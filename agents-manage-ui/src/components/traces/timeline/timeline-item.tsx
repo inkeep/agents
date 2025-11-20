@@ -1,7 +1,9 @@
 import {
   ArrowRight,
+  Check,
   ChevronDown,
   ChevronRight,
+  Clock,
   Cpu,
   Database,
   Hammer,
@@ -9,6 +11,7 @@ import {
   Settings,
   Sparkles,
   User,
+  X,
 } from 'lucide-react';
 import { Streamdown } from 'streamdown';
 import { formatDateTime } from '@/app/utils/format-date';
@@ -38,7 +41,15 @@ function formatJsonSafely(content: string): string {
 }
 
 function statusIcon(
-  type: ActivityKind | 'delegation' | 'transfer' | 'generic_tool' | 'tool_purpose',
+  type:
+    | ActivityKind
+    | 'delegation'
+    | 'transfer'
+    | 'generic_tool'
+    | 'tool_purpose'
+    | 'tool_approval_requested'
+    | 'tool_approval_approved'
+    | 'tool_approval_denied',
   status: ActivityItem['status']
 ) {
   const base: Record<string, { Icon: any; cls: string }> = {
@@ -56,6 +67,9 @@ function statusIcon(
     generic_tool: { Icon: Hammer, cls: 'text-muted-foreground' },
     tool_purpose: { Icon: Hammer, cls: 'text-muted-foreground' },
     artifact_processing: { Icon: Library, cls: 'text-emerald-600' },
+    tool_approval_requested: { Icon: Clock, cls: 'text-muted-foreground' },
+    tool_approval_approved: { Icon: Check, cls: 'text-blue-500' },
+    tool_approval_denied: { Icon: X, cls: 'text-red-500' },
   };
 
   const map = base[type] || base.tool_call;
@@ -103,7 +117,13 @@ export function TimelineItem({
           ? 'tool_purpose'
           : activity.type === ACTIVITY_TYPES.TOOL_CALL
             ? 'generic_tool'
-            : activity.type;
+            : activity.type === ACTIVITY_TYPES.TOOL_APPROVAL_REQUESTED
+              ? 'tool_approval_requested'
+              : activity.type === ACTIVITY_TYPES.TOOL_APPROVAL_APPROVED
+                ? 'tool_approval_approved'
+                : activity.type === ACTIVITY_TYPES.TOOL_APPROVAL_DENIED
+                  ? 'tool_approval_denied'
+                  : activity.type;
 
   const { Icon, className } = statusIcon(typeForIcon as any, activity.status);
   const formattedDateTime = formatDateTime(activity.timestamp);
@@ -379,6 +399,18 @@ export function TimelineItem({
             activity.subAgentId &&
             activity.toolType !== 'delegation' &&
             activity.toolType !== 'transfer' && (
+              <div className="mb-1">
+                <Badge variant="code" className="text-xs">
+                  {activity.subAgentId}
+                </Badge>
+              </div>
+            )}
+
+          {/* Sub-agent badge for tool approval activities */}
+          {(activity.type === ACTIVITY_TYPES.TOOL_APPROVAL_REQUESTED ||
+            activity.type === ACTIVITY_TYPES.TOOL_APPROVAL_APPROVED ||
+            activity.type === ACTIVITY_TYPES.TOOL_APPROVAL_DENIED) &&
+            activity.subAgentId && (
               <div className="mb-1">
                 <Badge variant="code" className="text-xs">
                   {activity.subAgentId}

@@ -4,7 +4,10 @@ export type PanelType =
   | 'transfer'
   | 'tool_purpose'
   | 'generic_tool'
-  | 'mcp_tool_error';
+  | 'mcp_tool_error'
+  | 'tool_approval_requested'
+  | 'tool_approval_approved'
+  | 'tool_approval_denied';
 
 export type MCPError = NonNullable<ConversationDetail['mcpToolErrors']>[number];
 
@@ -23,6 +26,9 @@ export const ACTIVITY_TYPES = {
   AI_MODEL_STREAMED_TEXT: 'ai_model_streamed_text',
   AI_MODEL_STREAMED_OBJECT: 'ai_model_streamed_object',
   ARTIFACT_PROCESSING: 'artifact_processing',
+  TOOL_APPROVAL_REQUESTED: 'tool_approval_requested',
+  TOOL_APPROVAL_APPROVED: 'tool_approval_approved',
+  TOOL_APPROVAL_DENIED: 'tool_approval_denied',
 } as const;
 
 export type ActivityKind = (typeof ACTIVITY_TYPES)[keyof typeof ACTIVITY_TYPES];
@@ -101,6 +107,9 @@ export interface ActivityItem {
   artifactData?: string;
   artifactSubAgentId?: string;
   artifactToolCallId?: string;
+  // Tool approval fields
+  approvalToolName?: string;
+  approvalToolCallId?: string;
 }
 
 export interface ToolCall {

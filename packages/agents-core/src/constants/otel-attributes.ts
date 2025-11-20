@@ -12,6 +12,9 @@ export const SPAN_NAMES = {
   AGENT_GENERATION: 'agent.generate',
   CONTEXT_FETCHER: 'context-fetcher.http-request',
   ARTIFACT_PROCESSING: 'agent_session.process_artifact',
+  TOOL_APPROVAL_REQUESTED: 'tool.approval_requested',
+  TOOL_APPROVAL_APPROVED: 'tool.approval_approved',
+  TOOL_APPROVAL_DENIED: 'tool.approval_denied',
 } as const;
 
 export const AI_OPERATIONS = {
@@ -62,6 +65,8 @@ export const SPAN_KEYS = {
   AI_TOOL_CALL_ID: 'ai.toolCall.id',
   AI_TOOL_TYPE: 'ai.toolType',
   TOOL_PURPOSE: 'tool.purpose',
+  TOOL_NAME: 'tool.name',
+  TOOL_CALL_ID: 'tool.callId',
 
   // Token usage
   GEN_AI_USAGE_INPUT_TOKENS: 'gen_ai.usage.input_tokens',
@@ -117,6 +122,9 @@ export const ACTIVITY_TYPES = {
   AI_ASSISTANT_MESSAGE: 'ai_assistant_message',
   AI_MODEL_STREAMED_TEXT: 'ai_model_streamed_text',
   AI_MODEL_STREAMED_OBJECT: 'ai_model_streamed_object',
+  TOOL_APPROVAL_REQUESTED: 'tool_approval_requested',
+  TOOL_APPROVAL_APPROVED: 'tool_approval_approved',
+  TOOL_APPROVAL_DENIED: 'tool_approval_denied',
 } as const;
 
 /** Activity Status Values */

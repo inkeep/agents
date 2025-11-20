@@ -862,6 +862,150 @@ function buildConversationListPayload(
             },
           ]
         ),
+
+        toolApprovalRequested: listQuery(
+          QUERY_EXPRESSIONS.TOOL_APPROVAL_REQUESTED,
+          [
+            {
+              key: {
+                key: SPAN_KEYS.NAME,
+                ...QUERY_FIELD_CONFIGS.STRING_TAG_COLUMN,
+              },
+              op: OPERATORS.EQUALS,
+              value: SPAN_NAMES.TOOL_APPROVAL_REQUESTED,
+            },
+          ],
+          [
+            {
+              key: SPAN_KEYS.SPAN_ID,
+              ...QUERY_FIELD_CONFIGS.STRING_TAG_COLUMN,
+            },
+            {
+              key: SPAN_KEYS.TRACE_ID,
+              ...QUERY_FIELD_CONFIGS.STRING_TAG_COLUMN,
+            },
+            {
+              key: SPAN_KEYS.TIMESTAMP,
+              ...QUERY_FIELD_CONFIGS.INT64_TAG_COLUMN,
+            },
+            {
+              key: SPAN_KEYS.HAS_ERROR,
+              ...QUERY_FIELD_CONFIGS.BOOL_TAG_COLUMN,
+            },
+            {
+              key: SPAN_KEYS.TOOL_NAME,
+              ...QUERY_FIELD_CONFIGS.STRING_TAG,
+            },
+            {
+              key: SPAN_KEYS.TOOL_CALL_ID,
+              ...QUERY_FIELD_CONFIGS.STRING_TAG,
+            },
+            {
+              key: SPAN_KEYS.SUB_AGENT_ID,
+              ...QUERY_FIELD_CONFIGS.STRING_TAG,
+            },
+            {
+              key: SPAN_KEYS.SUB_AGENT_NAME,
+              ...QUERY_FIELD_CONFIGS.STRING_TAG,
+            },
+          ]
+        ),
+
+        toolApprovalApproved: listQuery(
+          QUERY_EXPRESSIONS.TOOL_APPROVAL_APPROVED,
+          [
+            {
+              key: {
+                key: SPAN_KEYS.NAME,
+                ...QUERY_FIELD_CONFIGS.STRING_TAG_COLUMN,
+              },
+              op: OPERATORS.EQUALS,
+              value: SPAN_NAMES.TOOL_APPROVAL_APPROVED,
+            },
+          ],
+          [
+            {
+              key: SPAN_KEYS.SPAN_ID,
+              ...QUERY_FIELD_CONFIGS.STRING_TAG_COLUMN,
+            },
+            {
+              key: SPAN_KEYS.TRACE_ID,
+              ...QUERY_FIELD_CONFIGS.STRING_TAG_COLUMN,
+            },
+            {
+              key: SPAN_KEYS.TIMESTAMP,
+              ...QUERY_FIELD_CONFIGS.INT64_TAG_COLUMN,
+            },
+            {
+              key: SPAN_KEYS.HAS_ERROR,
+              ...QUERY_FIELD_CONFIGS.BOOL_TAG_COLUMN,
+            },
+            {
+              key: SPAN_KEYS.TOOL_NAME,
+              ...QUERY_FIELD_CONFIGS.STRING_TAG,
+            },
+            {
+              key: SPAN_KEYS.TOOL_CALL_ID,
+              ...QUERY_FIELD_CONFIGS.STRING_TAG,
+            },
+            {
+              key: SPAN_KEYS.SUB_AGENT_ID,
+              ...QUERY_FIELD_CONFIGS.STRING_TAG,
+            },
+            {
+              key: SPAN_KEYS.SUB_AGENT_NAME,
+              ...QUERY_FIELD_CONFIGS.STRING_TAG,
+            },
+          ]
+        ),
+
+        toolApprovalDenied: listQuery(
+          QUERY_EXPRESSIONS.TOOL_APPROVAL_DENIED,
+          [
+            {
+              key: {
+                key: SPAN_KEYS.NAME,
+                ...QUERY_FIELD_CONFIGS.STRING_TAG_COLUMN,
+              },
+              op: OPERATORS.EQUALS,
+              value: SPAN_NAMES.TOOL_APPROVAL_DENIED,
+            },
+          ],
+          [
+            {
+              key: SPAN_KEYS.SPAN_ID,
+              ...QUERY_FIELD_CONFIGS.STRING_TAG_COLUMN,
+            },
+            {
+              key: SPAN_KEYS.TRACE_ID,
+              ...QUERY_FIELD_CONFIGS.STRING_TAG_COLUMN,
+            },
+            {
+              key: SPAN_KEYS.TIMESTAMP,
+              ...QUERY_FIELD_CONFIGS.INT64_TAG_COLUMN,
+            },
+            {
+              key: SPAN_KEYS.HAS_ERROR,
+              ...QUERY_FIELD_CONFIGS.BOOL_TAG_COLUMN,
+            },
+            {
+              key: SPAN_KEYS.TOOL_NAME,
+              ...QUERY_FIELD_CONFIGS.STRING_TAG,
+            },
+            {
+              key: SPAN_KEYS.TOOL_CALL_ID,
+              ...QUERY_FIELD_CONFIGS.STRING_TAG,
+            },
+            {
+              key: SPAN_KEYS.SUB_AGENT_ID,
+              ...QUERY_FIELD_CONFIGS.STRING_TAG,
+            },
+            {
+              key: SPAN_KEYS.SUB_AGENT_NAME,
+              ...QUERY_FIELD_CONFIGS.STRING_TAG,
+            },
+          ]
+        ),
       },
     },
     dataSource: DATA_SOURCES.TRACES,
@@ -900,6 +1044,9 @@ export async function GET(
     const contextFetcherSpans = parseList(resp, QUERY_EXPRESSIONS.CONTEXT_FETCHERS);
     const durationSpans = parseList(resp, QUERY_EXPRESSIONS.DURATION_SPANS);
     const artifactProcessingSpans = parseList(resp, QUERY_EXPRESSIONS.ARTIFACT_PROCESSING);
+    const toolApprovalRequestedSpans = parseList(resp, QUERY_EXPRESSIONS.TOOL_APPROVAL_REQUESTED);
+    const toolApprovalApprovedSpans = parseList(resp, QUERY_EXPRESSIONS.TOOL_APPROVAL_APPROVED);
+    const toolApprovalDeniedSpans = parseList(resp, QUERY_EXPRESSIONS.TOOL_APPROVAL_DENIED);
 
     // Categorize spans with errors into critical errors vs warnings
     const CRITICAL_ERROR_SPAN_NAMES = [
@@ -973,7 +1120,10 @@ export async function GET(
         | 'ai_assistant_message'
         | 'ai_model_streamed_text'
         | 'ai_model_streamed_object'
-        | 'artifact_processing';
+        | 'artifact_processing'
+        | 'tool_approval_requested'
+        | 'tool_approval_approved'
+        | 'tool_approval_denied';
       description: string;
       timestamp: string;
       parentSpanId?: string | null;
@@ -981,6 +1131,9 @@ export async function GET(
       subAgentId?: string;
       subAgentName?: string;
       result?: string;
+      // tool approval attributes
+      approvalToolName?: string;
+      approvalToolCallId?: string;
       // ai
       aiModel?: string;
       inputTokens?: number;
@@ -1364,6 +1517,72 @@ export async function GET(
         artifactDescription: artifactDescription || undefined,
         artifactData: getString(span, SPAN_KEYS.ARTIFACT_DATA, '') || undefined,
         artifactToolCallId: getString(span, SPAN_KEYS.ARTIFACT_TOOL_CALL_ID, '') || undefined,
+      });
+    }
+
+    // tool approval requested
+    for (const span of toolApprovalRequestedSpans) {
+      const hasError = getField(span, SPAN_KEYS.HAS_ERROR) === true;
+      const toolName = getString(span, SPAN_KEYS.TOOL_NAME, '');
+      const toolCallId = getString(span, SPAN_KEYS.TOOL_CALL_ID, '');
+
+      const approvalRequested = getString(span, SPAN_KEYS.SPAN_ID, '');
+      activities.push({
+        id: approvalRequested,
+        type: ACTIVITY_TYPES.TOOL_APPROVAL_REQUESTED,
+        description: `Approval requested for ${toolName}`,
+        timestamp: span.timestamp,
+        parentSpanId: spanIdToParentSpanId.get(approvalRequested) || undefined,
+        status: hasError ? ACTIVITY_STATUS.ERROR : ACTIVITY_STATUS.PENDING,
+        subAgentId: getString(span, SPAN_KEYS.SUB_AGENT_ID, ACTIVITY_NAMES.UNKNOWN_AGENT),
+        subAgentName: getString(span, SPAN_KEYS.SUB_AGENT_NAME, ACTIVITY_NAMES.UNKNOWN_AGENT),
+        result: `Waiting for user approval`,
+        approvalToolName: toolName || undefined,
+        approvalToolCallId: toolCallId || undefined,
+      });
+    }
+
+    // tool approval approved
+    for (const span of toolApprovalApprovedSpans) {
+      const hasError = getField(span, SPAN_KEYS.HAS_ERROR) === true;
+      const toolName = getString(span, SPAN_KEYS.TOOL_NAME, '');
+      const toolCallId = getString(span, SPAN_KEYS.TOOL_CALL_ID, '');
+
+      const approvalApproved = getString(span, SPAN_KEYS.SPAN_ID, '');
+      activities.push({
+        id: approvalApproved,
+        type: ACTIVITY_TYPES.TOOL_APPROVAL_APPROVED,
+        description: `${toolName} approved by user`,
+        timestamp: span.timestamp,
+        parentSpanId: spanIdToParentSpanId.get(approvalApproved) || undefined,
+        status: hasError ? ACTIVITY_STATUS.ERROR : ACTIVITY_STATUS.SUCCESS,
+        subAgentId: getString(span, SPAN_KEYS.SUB_AGENT_ID, ACTIVITY_NAMES.UNKNOWN_AGENT),
+        subAgentName: getString(span, SPAN_KEYS.SUB_AGENT_NAME, ACTIVITY_NAMES.UNKNOWN_AGENT),
+        result: `Tool approved by user`,
+        approvalToolName: toolName || undefined,
+        approvalToolCallId: toolCallId || undefined,
+      });
+    }
+
+    // tool approval denied
+    for (const span of toolApprovalDeniedSpans) {
+      const hasError = getField(span, SPAN_KEYS.HAS_ERROR) === true;
+      const toolName = getString(span, SPAN_KEYS.TOOL_NAME, '');
+      const toolCallId = getString(span, SPAN_KEYS.TOOL_CALL_ID, '');
+
+      const approvalDenied = getString(span, SPAN_KEYS.SPAN_ID, '');
+      activities.push({
+        id: approvalDenied,
+        type: ACTIVITY_TYPES.TOOL_APPROVAL_DENIED,
+        description: `${toolName} denied by user`,
+        timestamp: span.timestamp,
+        parentSpanId: spanIdToParentSpanId.get(approvalDenied) || undefined,
+        status: hasError ? ACTIVITY_STATUS.ERROR : ACTIVITY_STATUS.SUCCESS,
+        subAgentId: getString(span, SPAN_KEYS.SUB_AGENT_ID, ACTIVITY_NAMES.UNKNOWN_AGENT),
+        subAgentName: getString(span, SPAN_KEYS.SUB_AGENT_NAME, ACTIVITY_NAMES.UNKNOWN_AGENT),
+        result: `Tool denied by user`,
+        approvalToolName: toolName || undefined,
+        approvalToolCallId: toolCallId || undefined,
       });
     }
 

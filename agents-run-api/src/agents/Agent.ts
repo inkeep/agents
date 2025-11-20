@@ -641,6 +641,33 @@ export class Agent {
                 'Tool requires approval - waiting for user response'
               );
 
+              // Add an event to the current active span if one exists
+              const currentSpan = trace.getActiveSpan();
+              if (currentSpan) {
+                currentSpan.addEvent('tool.approval.requested', {
+                  'tool.name': toolName,
+                  'tool.callId': toolCallId,
+                  'subAgent.id': this.config.id,
+                });
+              }
+
+              // Emit an immediate span to mark that approval request was sent
+              tracer.startActiveSpan(
+                'tool.approval_requested',
+                {
+                  attributes: {
+                    'tool.name': toolName,
+                    'tool.callId': toolCallId,
+                    'subAgent.id': this.config.id,
+                    'subAgent.name': this.config.name,
+                  },
+                },
+                (requestSpan: Span) => {
+                  requestSpan.setStatus({ code: SpanStatusCode.OK });
+                  requestSpan.end();
+                }
+              );
+
               // Wait for approval (this promise resolves when user responds via API)
               const approvalResult = await pendingToolApprovalManager.waitForApproval(
                 toolCallId,
@@ -652,15 +679,47 @@ export class Agent {
 
               if (!approvalResult.approved) {
                 // User denied approval - return a message instead of executing the tool
-                logger.info(
-                  { toolName, toolCallId, reason: approvalResult.reason },
-                  'Tool execution denied by user'
-                );
+                return tracer.startActiveSpan(
+                  'tool.approval_denied',
+                  {
+                    attributes: {
+                      'tool.name': toolName,
+                      'tool.callId': toolCallId,
+                      'subAgent.id': this.config.id,
+                      'subAgent.name': this.config.name,
+                    },
+                  },
+                  (denialSpan: Span) => {
+                    logger.info(
+                      { toolName, toolCallId, reason: approvalResult.reason },
+                      'Tool execution denied by user'
+                    );
 
-                return `User denied approval to run this tool: ${approvalResult.reason}`;
+                    denialSpan.setStatus({ code: SpanStatusCode.OK });
+                    denialSpan.end();
+
+                    return `User denied approval to run this tool: ${approvalResult.reason}`;
+                  }
+                );
               }
 
-              logger.info({ toolName, toolCallId }, 'Tool approved, continuing with execution');
+              // Tool was approved - create a span to show this
+              tracer.startActiveSpan(
+                'tool.approval_approved',
+                {
+                  attributes: {
+                    'tool.name': toolName,
+                    'tool.callId': toolCallId,
+                    'subAgent.id': this.config.id,
+                    'subAgent.name': this.config.name,
+                  },
+                },
+                (approvedSpan: Span) => {
+                  logger.info({ toolName, toolCallId }, 'Tool approved, continuing with execution');
+                  approvedSpan.setStatus({ code: SpanStatusCode.OK });
+                  approvedSpan.end();
+                }
+              );
             }
 
             logger.debug({ toolName, toolCallId }, 'MCP Tool Called');

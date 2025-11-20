@@ -49,6 +49,12 @@ function panelTitle(selected: SelectedPanel) {
       return 'MCP tool error details';
     case 'artifact_processing':
       return 'Artifact details';
+    case 'tool_approval_requested':
+      return 'Requested tool details';
+    case 'tool_approval_approved':
+      return 'Approved tool details';
+    case 'tool_approval_denied':
+      return 'Denied tool details';
     default:
       return 'Details';
   }
