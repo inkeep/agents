@@ -1,0 +1,43 @@
+configVersion: 2.0.0
+generation:
+  sdkClassName: InkeepAgents
+  maintainOpenAPIOrder: true
+  usageSnippets:
+    optionalPropertyRendering: withExample
+    sdkInitStyle: constructor
+  useClassNamesForArrayFields: true
+  fixes:
+    nameResolutionDec2023: true
+    nameResolutionFeb2025: true
+    parameterOrderingFeb2024: true
+    requestResponseComponentNamesFeb2024: true
+    securityFeb2025: true
+    sharedErrorComponentsApr2025: true
+  auth:
+    oAuth2ClientCredentialsEnabled: true
+    oAuth2PasswordEnabled: true
+    hoistGlobalSecurity: true
+  inferSSEOverload: true
+  sdkHooksConfigAccess: true
+  schemas:
+    allOfMergeStrategy: shallowMerge
+  requestBodyFieldName: body
+  tests:
+    generateTests: false
+    generateNewTests: true
+    skipResponseBodyAssertions: false
+mcp-typescript:
+  version: 0.0.18
+  additionalDependencies:
+    dependencies: {}
+    devDependencies: {}
+    peerDependencies: {}
+  author: Speakeasy
+  baseErrorName: InkeepAgentsError
+  cloudflareEnabled: false
+  defaultErrorName: InkeepAgentsDefaultError
+  envVarPrefix: INKEEPAGENTS
+  inputModelSuffix: input
+  maxMethodParams: 0
+  outputModelSuffix: output
+  packageName: '@inkeep/agents-eval-mcp'
