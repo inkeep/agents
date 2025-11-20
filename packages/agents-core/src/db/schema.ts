@@ -280,10 +280,12 @@ export const dataComponents = pgTable(
     ...projectScoped,
     ...uiProperties,
     props: jsonb('props').$type<Record<string, unknown>>(),
-    render: jsonb('render').$type<{
-      component: string;
-      mockData: Record<string, unknown>;
-    }>(),
+    render: jsonb('render')
+      .$type<{
+        component: string;
+        mockData: Record<string, unknown>;
+      }>()
+      .default(null),
     ...timestamps,
   },
   (table) => [

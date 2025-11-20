@@ -18,7 +18,7 @@ import { z } from 'zod';
 import dbClient from '../data/db/dbClient';
 import { env } from '../env';
 import { getLogger } from '../logger';
-import { ModelFactory } from '../utils/ModelFactory';
+import { ModelFactory } from '@inkeep/agents-core';
 
 const logger = getLogger('EvaluationService');
 

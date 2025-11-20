@@ -2,7 +2,7 @@
 import { createGoogleGenerativeAI } from '@ai-sdk/google';
 import type { LanguageModel } from 'ai';
 import { beforeEach, describe, expect, test, vi } from 'vitest';
-import { ModelFactory, type ModelSettings } from '../../agents/ModelFactory';
+import { ModelFactory, type ModelSettings } from '@inkeep/agents-core';
 
 // Mock AI SDK providers
 vi.mock('@ai-sdk/anthropic', () => {
