@@ -399,7 +399,9 @@ export const ContextCacheApiSelectSchema = createApiSchema(ContextCacheSelectSch
 export const ContextCacheApiInsertSchema = createApiInsertSchema(ContextCacheInsertSchema);
 export const ContextCacheApiUpdateSchema = createApiUpdateSchema(ContextCacheUpdateSchema);
 
-export const DataComponentSelectSchema = createSelectSchema(dataComponents);
+export const DataComponentSelectSchema = createSelectSchema(dataComponents, {
+  render: (schema) => schema.describe('The render configuration for the data component'),
+});
 export const DataComponentInsertSchema = createInsertSchema(dataComponents).extend({
   id: resourceIdSchema,
 });

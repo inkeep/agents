@@ -156,50 +156,6 @@ export const Agent: FC<AgentProps> = ({
     []
   );
 
-  // Helper to enrich MCP nodes with tool data
-  const enrichNodes = useCallback(
-    (nodes: Node[]): Node[] => {
-      return nodes.map((node) => {
-        if (node.type === NodeType.MCP && node.data && 'toolId' in node.data) {
-          const tool = toolLookup[node.data.toolId as string];
-          if (tool) {
-            return {
-              ...node,
-              data: {
-                ...node.data,
-                name: tool.name,
-                imageUrl: tool.imageUrl,
-              },
-            };
-          }
-        }
-        return node;
-      });
-    },
-    [toolLookup]
-  );
-
-  const { nodes: agentNodes, edges: agentEdges } = useMemo(() => {
-    const result = agent
-      ? deserializeAgentData(agent)
-      : { nodes: initialNodes, edges: initialEdges };
-    return {
-      ...result,
-      nodes: nodeId
-        ? enrichNodes(result.nodes).map((node) => ({
-            ...node,
-            selected: node.id === nodeId,
-          }))
-        : enrichNodes(result.nodes),
-      edges: edgeId
-        ? result.edges.map((edge) => ({
-            ...edge,
-            selected: edge.id === edgeId,
-          }))
-        : result.edges,
-    };
-  }, [agent, enrichNodes, initialNodes, nodeId, edgeId]);
-
   // Helper functions to compute lookups from agent data
   const computeAgentToolConfigLookup = useCallback(
     (agentData: ExtendedFullAgentDefinition | null | undefined): AgentToolConfigLookup => {
@@ -308,10 +264,20 @@ export const Agent: FC<AgentProps> = ({
     getEdges,
     getIntersectingNodes,
   } = useReactFlow();
-  const { storeNodes, edges, metadata } = useAgentStore((state) => ({
+  const {
+    storeNodes,
+    edges,
+    metadata,
+    storeDataComponentLookup,
+    storeArtifactComponentLookup,
+    storeToolLookup,
+  } = useAgentStore((state) => ({
     storeNodes: state.nodes,
     edges: state.edges,
     metadata: state.metadata,
+    storeDataComponentLookup: state.dataComponentLookup,
+    storeArtifactComponentLookup: state.artifactComponentLookup,
+    storeToolLookup: state.toolLookup,
   }));
   const {
     setNodes,
@@ -326,6 +292,62 @@ export const Agent: FC<AgentProps> = ({
     reset,
     animateGraph,
   } = useAgentActions();
+
+  // Use store lookups if available, fall back to props for initial load
+  const effectiveDataComponentLookup =
+    Object.keys(storeDataComponentLookup).length > 0
+      ? storeDataComponentLookup
+      : dataComponentLookup;
+  const effectiveArtifactComponentLookup =
+    Object.keys(storeArtifactComponentLookup).length > 0
+      ? storeArtifactComponentLookup
+      : artifactComponentLookup;
+  const effectiveToolLookup =
+    Object.keys(storeToolLookup).length > 0 ? storeToolLookup : toolLookup;
+
+  // Helper to enrich MCP nodes with tool data
+  const enrichNodes = useCallback(
+    (nodes: Node[]): Node[] => {
+      return nodes.map((node) => {
+        if (node.type === NodeType.MCP && node.data && 'toolId' in node.data) {
+          const tool = effectiveToolLookup[node.data.toolId as string];
+          if (tool) {
+            return {
+              ...node,
+              data: {
+                ...node.data,
+                name: tool.name,
+                imageUrl: tool.imageUrl,
+              },
+            };
+          }
+        }
+        return node;
+      });
+    },
+    [effectiveToolLookup]
+  );
+
+  const { nodes: agentNodes, edges: agentEdges } = useMemo(() => {
+    const result = agent
+      ? deserializeAgentData(agent)
+      : { nodes: initialNodes, edges: initialEdges };
+    return {
+      ...result,
+      nodes: nodeId
+        ? enrichNodes(result.nodes).map((node) => ({
+            ...node,
+            selected: node.id === nodeId,
+          }))
+        : enrichNodes(result.nodes),
+      edges: edgeId
+        ? result.edges.map((edge) => ({
+            ...edge,
+            selected: edge.id === edgeId,
+          }))
+        : result.edges,
+    };
+  }, [agent, enrichNodes, initialNodes, nodeId, edgeId]);
   const { setProject: setProjectStore, reset: resetProjectStore } = useProjectActions();
 
   // Always use enriched nodes for ReactFlow
@@ -372,9 +394,13 @@ export const Agent: FC<AgentProps> = ({
       agentNodes,
       agentEdges,
       extractAgentMetadata(agent),
-      dataComponentLookup,
-      artifactComponentLookup,
-      toolLookup,
+      Object.keys(storeDataComponentLookup).length > 0
+        ? storeDataComponentLookup
+        : dataComponentLookup,
+      Object.keys(storeArtifactComponentLookup).length > 0
+        ? storeArtifactComponentLookup
+        : artifactComponentLookup,
+      Object.keys(storeToolLookup).length > 0 ? storeToolLookup : toolLookup,
       agentToolConfigLookup
     );
 
@@ -787,8 +813,8 @@ export const Agent: FC<AgentProps> = ({
         nodes,
         edges,
         metadata,
-        dataComponentLookup,
-        artifactComponentLookup,
+        effectiveDataComponentLookup,
+        effectiveArtifactComponentLookup,
         agentToolConfigLookup,
         subAgentExternalAgentConfigLookup,
         subAgentTeamAgentConfigLookup
@@ -924,8 +950,8 @@ export const Agent: FC<AgentProps> = ({
     nodes,
     edges,
     metadata,
-    dataComponentLookup,
-    artifactComponentLookup,
+    effectiveDataComponentLookup,
+    effectiveArtifactComponentLookup,
     markSaved,
     setMetadata,
     setNodes,
@@ -936,7 +962,7 @@ export const Agent: FC<AgentProps> = ({
     clearErrors,
     setErrors,
     agentToolConfigLookup,
-    toolLookup,
+    effectiveToolLookup,
     subAgentExternalAgentConfigLookup,
     subAgentTeamAgentConfigLookup,
   ]);
@@ -1084,8 +1110,8 @@ export const Agent: FC<AgentProps> = ({
                 selectedEdgeId={edgeId}
                 onClose={closeSidePane}
                 backToAgent={backToAgent}
-                dataComponentLookup={dataComponentLookup}
-                artifactComponentLookup={artifactComponentLookup}
+                dataComponentLookup={effectiveDataComponentLookup}
+                artifactComponentLookup={effectiveArtifactComponentLookup}
                 agentToolConfigLookup={agentToolConfigLookup}
                 subAgentExternalAgentConfigLookup={subAgentExternalAgentConfigLookup}
                 subAgentTeamAgentConfigLookup={subAgentTeamAgentConfigLookup}
@@ -1111,7 +1137,7 @@ export const Agent: FC<AgentProps> = ({
               tenantId={tenantId}
               setShowPlayground={setShowPlayground}
               closeSidePane={closeSidePane}
-              dataComponentLookup={dataComponentLookup}
+              dataComponentLookup={effectiveDataComponentLookup}
               showTraces={showTraces}
               setShowTraces={setShowTraces}
             />
