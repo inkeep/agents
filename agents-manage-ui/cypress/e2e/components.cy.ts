@@ -17,7 +17,7 @@ describe('Components', () => {
 
   it('should not override json schema when json mode is enabled by default', () => {
     cy.visit('/default/projects/my-weather-project/components/weather-forecast');
-    cy.get('[role="switch"]').click();
+    cy.get('[role=switch]').click();
     cy.reload();
     cy.contains('Weather code at given time').should('exist');
   });
@@ -51,16 +51,16 @@ describe('Components', () => {
         cy.get('[role=switch]').click();
         // Switch to JSON schema editor
         cy.get('[role=switch]').click();
-        // Wait editor value was updated
+        // Wait for updated editor value
         cy.contains('"additionalProperties": false').should('exist');
 
         cy.wrap(null).should(() => {
-          const clonnedValue = structuredClone(editorValue);
-          delete clonnedValue.properties.num.inPreview;
+          const clonedValue = structuredClone(editorValue);
+          delete clonedValue.properties.num.inPreview;
 
           const [jsonModel] = win.monaco.editor.getModels();
           const newEditorValue = {
-            ...clonnedValue,
+            ...clonedValue,
             additionalProperties: false,
           };
           expect(jsonModel.getValue()).to.eq(JSON.stringify(newEditorValue, null, 2));
