@@ -1,0 +1,1 @@
+{"version":3,"file":"relatedagentinfo.js","sourceRoot":"","sources":["../../src/models/relatedagentinfo.ts"],"names":[],"mappings":"AAAA;;GAEG;AAEH,OAAO,KAAK,CAAC,MAAM,KAAK,CAAC;AAQzB,MAAM,CAAC,MAAM,0BAA0B,GAInC,CAAC,CAAC,MAAM,CAAC;IACX,WAAW,EAAE,CAAC,CAAC,MAAM,EAAE;IACvB,EAAE,EAAE,CAAC,CAAC,MAAM,EAAE;IACd,IAAI,EAAE,CAAC,CAAC,MAAM,EAAE;CACjB,CAAC,CAAC"}

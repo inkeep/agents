@@ -1,0 +1,29 @@
+speakeasyVersion: 1.658.2
+sources:
+    Inkeep Agents Evaluation API:
+        sourceNamespace: inkeep-agents-eval-api
+        sourceRevisionDigest: sha256:5077dce99c719c0ef10c598805f99c8e01dacd61a5abeab92fda862c63d3d5fa
+        sourceBlobDigest: sha256:b8edcd666a66e7d050ef0e4a19f45d79b249b28e53029c7ef130e9866b1b7ff8
+        tags:
+            - latest
+            - 1.0.0
+targets:
+    inkeep-agents:
+        source: Inkeep Agents Evaluation API
+        sourceNamespace: inkeep-agents-eval-api
+        sourceRevisionDigest: sha256:5077dce99c719c0ef10c598805f99c8e01dacd61a5abeab92fda862c63d3d5fa
+        sourceBlobDigest: sha256:b8edcd666a66e7d050ef0e4a19f45d79b249b28e53029c7ef130e9866b1b7ff8
+workflow:
+    workflowVersion: 1.0.0
+    speakeasyVersion: latest
+    sources:
+        Inkeep Agents Evaluation API:
+            inputs:
+                - location: openapi.json
+            output: .speakeasy/out.openapi.yaml
+            registry:
+                location: registry.speakeasyapi.dev/inkeep/inkeep/inkeep-agents-eval-api
+    targets:
+        inkeep-agents:
+            target: mcp-typescript
+            source: Inkeep Agents Evaluation API

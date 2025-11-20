@@ -1,0 +1,1 @@
+{"version":3,"file":"relatedagentinfo.d.ts","sourceRoot":"","sources":["../../src/models/relatedagentinfo.ts"],"names":[],"mappings":"AAIA,OAAO,KAAK,CAAC,MAAM,KAAK,CAAC;AAEzB,MAAM,MAAM,gBAAgB,GAAG;IAC7B,EAAE,EAAE,MAAM,CAAC;IACX,IAAI,EAAE,MAAM,CAAC;IACb,WAAW,EAAE,MAAM,CAAC;CACrB,CAAC;AAEF,eAAO,MAAM,0BAA0B,EAAE,CAAC,CAAC,OAAO,CAChD,gBAAgB,EAChB,CAAC,CAAC,UAAU,EACZ,OAAO,CAKP,CAAC"}

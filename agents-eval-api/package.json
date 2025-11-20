@@ -1,0 +1,78 @@
+{
+  "name": "@inkeep/agents-eval-api",
+  "version": "0.32.0",
+  "description": "Agents Evaluation API for Inkeep Agent Framework - handles evaluations, datasets, and evaluation runs",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "license": "SEE LICENSE IN LICENSE.md",
+  "exports": {
+    ".": "./dist/index.js"
+  },
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsup",
+    "start": "node dist/index.js",
+    "test": "vitest --run",
+    "test:watch": "vitest",
+    "test:coverage": "vitest --run --coverage",
+    "typecheck": "tsc --noEmit",
+    "typecheck:watch": "tsc --noEmit --watch"
+  },
+  "dependencies": {
+    "@ai-sdk/anthropic": "2.0.2",
+    "@ai-sdk/gateway": "^1.0.23",
+    "@ai-sdk/google": "^2.0.14",
+    "@ai-sdk/openai": "2.0.11",
+    "@hono/mcp": "^0.1.5",
+    "@hono/node-server": "^1.14.3",
+    "@hono/swagger-ui": "^0.5.1",
+    "@hono/zod-openapi": "^1.0.2",
+    "@inkeep/agents-core": "workspace:^",
+    "@inkeep/agents-eval-mcp": "workspace:^",
+    "@openrouter/ai-sdk-provider": "^1.2.0",
+    "ai": "^5.0.11",
+    "dotenv": "^17.2.1",
+    "drizzle-orm": "^0.44.4",
+    "hono": "^4.10.4",
+    "hono-pino": "^0.10.1",
+    "nanoid": "^5.1.5",
+    "pino": "^9.7.0",
+    "zod": "^4.1.11"
+  },
+  "optionalDependencies": {
+    "keytar": "^7.9.0"
+  },
+  "devDependencies": {
+    "@hono/vite-dev-server": "^0.20.1",
+    "@types/node": "^20.11.24",
+    "@vitest/coverage-v8": "^3.2.4",
+    "nodemon": "^3.1.0",
+    "pino-pretty": "^13.0.0",
+    "tsx": "^4.7.1",
+    "typescript": "^5.3.3",
+    "vite": "^7.1.11",
+    "vite-tsconfig-paths": "^5.1.4",
+    "vitest": "^3.2.4",
+    "@electric-sql/pglite": "^0.3.13"
+  },
+  "packageManager": "pnpm@10.11.0",
+  "engines": {
+    "node": ">=22.0.0"
+  },
+  "publishConfig": {
+    "access": "public",
+    "registry": "https://registry.npmjs.org/"
+  },
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE.md",
+    "SUPPLEMENTAL_TERMS.md"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/inkeep/agents.git",
+    "directory": "agents-eval-api"
+  }
+}

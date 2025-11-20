@@ -1,0 +1,1 @@
+{"version":3,"file":"functionresponse.d.ts","sourceRoot":"","sources":["../../src/models/functionresponse.ts"],"names":[],"mappings":"AAIA,OAAO,KAAK,CAAC,MAAM,KAAK,CAAC;AACzB,OAAO,EAAE,SAAS,EAAuB,MAAM,eAAe,CAAC;AAE/D,MAAM,MAAM,gBAAgB,GAAG;IAAE,IAAI,EAAE,SAAS,CAAA;CAAE,CAAC;AAEnD,eAAO,MAAM,0BAA0B,EAAE,CAAC,CAAC,OAAO,CAChD,gBAAgB,EAChB,CAAC,CAAC,UAAU,EACZ,OAAO,CAGP,CAAC"}

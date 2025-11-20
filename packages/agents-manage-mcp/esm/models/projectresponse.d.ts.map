@@ -1,0 +1,1 @@
+{"version":3,"file":"projectresponse.d.ts","sourceRoot":"","sources":["../../src/models/projectresponse.ts"],"names":[],"mappings":"AAIA,OAAO,KAAK,CAAC,MAAM,KAAK,CAAC;AACzB,OAAO,EAAE,OAAO,EAAqB,MAAM,cAAc,CAAC;AAE1D,MAAM,MAAM,eAAe,GAAG;IAAE,IAAI,EAAE,OAAO,CAAA;CAAE,CAAC;AAEhD,eAAO,MAAM,yBAAyB,EAAE,CAAC,CAAC,OAAO,CAC/C,eAAe,EACf,CAAC,CAAC,UAAU,EACZ,OAAO,CAGP,CAAC"}
