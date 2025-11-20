@@ -1,7 +1,7 @@
 'use client';
 
 import { NodeType, nodeTypeMap } from '../configuration/node-types';
-import { CopilotTrigger } from './copillot-trigger';
+import { CopilotTrigger } from './copilot-trigger';
 import { NodeItem } from './node-item';
 
 const nodeTypes: NodeItem[] = [
