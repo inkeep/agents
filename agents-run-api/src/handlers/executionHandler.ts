@@ -5,6 +5,7 @@ import {
   type ExecutionContext,
   generateId,
   getActiveAgentForConversation,
+  getAgentWithDefaultSubAgent,
   getArtifactComponentsForAgent,
   getFullAgent,
   getTask,
@@ -21,6 +22,7 @@ import dbClient from '../data/db/dbClient.js';
 import { getLogger } from '../logger.js';
 import { agentSessionManager } from '../services/AgentSession.js';
 import { agentInitializingOp, completionOp, errorOp } from '../utils/agent-operations.js';
+import { resolveModelConfig } from '../utils/model-resolver.js';
 import type { StreamHelper } from '../utils/stream-helpers.js';
 import { BufferingStreamHelper } from '../utils/stream-helpers.js';
 import { registerStreamHelper, unregisterStreamHelper } from '../utils/stream-registry.js';
@@ -94,11 +96,47 @@ export class ExecutionHandler {
       });
 
       if (agentConfig?.statusUpdates && agentConfig.statusUpdates.enabled !== false) {
-        agentSessionManager.initializeStatusUpdates(
-          requestId,
-          agentConfig.statusUpdates,
-          agentConfig.models?.summarizer
-        );
+        try {
+          // Get the default sub-agent to resolve models properly with inheritance
+          const agentWithDefault = await getAgentWithDefaultSubAgent(dbClient)({
+            scopes: { tenantId, projectId, agentId },
+          });
+
+          if (agentWithDefault?.defaultSubAgent) {
+            const resolvedModels = await resolveModelConfig(
+              agentId,
+              agentWithDefault.defaultSubAgent
+            );
+
+            agentSessionManager.initializeStatusUpdates(
+              requestId,
+              agentConfig.statusUpdates,
+              resolvedModels.summarizer,
+              resolvedModels.base
+            );
+          } else {
+            // Fallback to agent-level config if no default sub-agent
+            agentSessionManager.initializeStatusUpdates(
+              requestId,
+              agentConfig.statusUpdates,
+              agentConfig.models?.summarizer
+            );
+          }
+        } catch (modelError) {
+          logger.warn(
+            {
+              error: modelError instanceof Error ? modelError.message : 'Unknown error',
+              agentId,
+            },
+            'Failed to resolve models for status updates, using agent-level config'
+          );
+          // Fallback to agent-level config
+          agentSessionManager.initializeStatusUpdates(
+            requestId,
+            agentConfig.statusUpdates,
+            agentConfig.models?.summarizer
+          );
+        }
       }
     } catch (error) {
       logger.error(
