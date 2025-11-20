@@ -80,7 +80,7 @@ export const myProject = project({
 
 Contains agent definitions. Each file typically exports one agent:
 
-```typescript
+```typescript file="src/projects/my-agent-project/agents/customer-support.ts"
 // agents/customer-support.ts
 import { agent, subAgent } from '@inkeep/agents-sdk';
 
