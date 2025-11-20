@@ -466,7 +466,6 @@ describe('createAgents - Template and Project ID Logic', () => {
       );
     });
   });
-
 });
 
 // Helper to setup default mocks
