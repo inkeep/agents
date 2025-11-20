@@ -248,7 +248,8 @@ export const JsonSchemaBuilder: FC<{
   value: string;
   onChange: (newValue: string) => void;
   hasInPreview?: boolean;
-}> = ({ value, onChange, hasInPreview }) => {
+  hasError?: boolean;
+}> = ({ value, onChange, hasInPreview, hasError }) => {
   const fields = useJsonSchemaStore((state) => state.fields);
   const { addChild, setFields } = useJsonSchemaActions();
 
@@ -273,14 +274,14 @@ export const JsonSchemaBuilder: FC<{
     <>
       <Table>
         <TableHeader>
-          <TableRow noHover>
+          <TableRow noHover className={cn(hasError && '[&>th]:text-destructive')}>
             {hasInPreview && (
               <TableHead className="w-px p-0">
-                <div className="flex items-center">
+                <div className="flex items-center gap-1">
                   In Preview
                   <Tooltip>
                     <TooltipTrigger>
-                      <Info className="w-3 h-3 text-muted-foreground ml-1" />
+                      <Info className="size-3" />
                     </TooltipTrigger>
                     <TooltipContent className="text-wrap">
                       Specifies which fields will be immediately available.{' '}
