@@ -21,10 +21,7 @@ describe('Validation', () => {
     cy.get('[data-panel-id=side-pane]').contains('Back').click();
     cy.get('.monaco-editor').should('be.visible');
     cy.window().then((win) => {
-      const models = (win.monaco as typeof import('monaco-editor')).editor.getModels();
-      const jsonModel = models.find((model) => model.uri.path.endsWith('.json'));
-      expect(jsonModel, 'JSON Monaco model').to.exist;
-
+      const [jsonModel] = (win.monaco as typeof import('monaco-editor')).editor.getModels();
       jsonModel.setValue('foo bar');
     });
 

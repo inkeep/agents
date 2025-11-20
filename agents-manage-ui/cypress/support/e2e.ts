@@ -14,3 +14,13 @@
 // ***********************************************************
 
 import './commands';
+
+Cypress.on('uncaught:exception', (err) => {
+  // returning false prevents Cypress from failing the test
+  if (
+    // Promise from monaco-editor
+    err.message.includes('  > Canceled')
+  ) {
+    return false;
+  }
+});
