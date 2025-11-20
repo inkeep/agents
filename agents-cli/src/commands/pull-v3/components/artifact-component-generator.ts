@@ -177,6 +177,33 @@ export function generateArtifactComponentDefinition(
     }
   }
 
+  // Render attribute - handle { component: string, mockData: object }
+  if (componentData.render && typeof componentData.render === 'object') {
+    const render = componentData.render;
+    if (render.component && typeof render.component === 'string') {
+      lines.push(`${indentation}render: {`);
+
+      // For complex render components, use JSON.stringify to properly escape as string
+      const componentString = JSON.stringify(render.component);
+      lines.push(`${indentation}${indentation}component: ${componentString},`);
+
+      // Add mockData if present
+      if (render.mockData && typeof render.mockData === 'object') {
+        const mockDataStr = JSON.stringify(render.mockData, null, 2);
+        const formattedMockData = mockDataStr
+          .split('\n')
+          .map((line, index) => {
+            if (index === 0) return line;
+            return `${indentation}${indentation}${line}`;
+          })
+          .join('\n');
+        lines.push(`${indentation}${indentation}mockData: ${formattedMockData},`);
+      }
+
+      lines.push(`${indentation}},`);
+    }
+  }
+
   // Template (for rendering the artifact)
   if (componentData.template) {
     lines.push(`${indentation}template: ${formatString(componentData.template, q, true)},`);

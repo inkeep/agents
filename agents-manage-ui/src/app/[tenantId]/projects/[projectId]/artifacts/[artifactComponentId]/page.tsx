@@ -25,7 +25,7 @@ export default async function ArtifactComponentPage({
     );
   }
 
-  const { name, description, props } = artifactComponent;
+  const { name, description, props, render } = artifactComponent;
   return (
     <BodyTemplate
       breadcrumbs={[
@@ -47,6 +47,7 @@ export default async function ArtifactComponentPage({
               name,
               description: description ?? '',
               props,
+              render,
             }}
           />
         </div>

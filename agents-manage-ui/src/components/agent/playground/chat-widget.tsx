@@ -2,7 +2,7 @@
 import { InkeepEmbeddedChat } from '@inkeep/agents-ui';
 import type { ComponentsConfig, InkeepCallbackEvent } from '@inkeep/agents-ui/types';
 import { useCallback, useEffect, useRef } from 'react';
-import { DynamicComponentRenderer } from '@/components/data-components/render/dynamic-component-renderer';
+import { DynamicComponentRenderer } from '@/components/dynamic-component-renderer';
 import type { ConversationDetail } from '@/components/traces/timeline/types';
 import { useRuntimeConfig } from '@/contexts/runtime-config-context';
 import type { DataComponent } from '@/lib/api/data-components';

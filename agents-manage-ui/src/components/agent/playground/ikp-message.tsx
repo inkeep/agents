@@ -3,7 +3,7 @@ import { BookOpen, Check, ChevronRight, LoaderCircle } from 'lucide-react';
 import { type FC, useEffect, useRef, useState } from 'react';
 import supersub from 'remark-supersub';
 import { Streamdown } from 'streamdown';
-import { DynamicComponentRenderer } from '@/components/data-components/render/dynamic-component-renderer';
+import { DynamicComponentRenderer } from '@/components/dynamic-component-renderer';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import type { DataComponent } from '@/lib/api/data-components';
 import { cn } from '@/lib/utils';
