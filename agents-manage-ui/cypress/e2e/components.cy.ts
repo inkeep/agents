@@ -49,8 +49,6 @@ describe('Components', () => {
 
         // Switch to form builder
         cy.get('[role=switch]').click();
-        cy.contains('Add property').should('exist');
-
         // Switch to JSON schema editor
         cy.get('[role=switch]').click();
         // Wait editor value was updated

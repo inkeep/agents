@@ -23,4 +23,5 @@ Cypress.on('uncaught:exception', (err) => {
   ) {
     return false;
   }
+  console.error('Cypress uncaught exception', [err.message]);
 });
