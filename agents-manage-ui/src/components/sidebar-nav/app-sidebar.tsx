@@ -2,10 +2,8 @@
 
 import {
   Activity,
-  BarChart3,
   BookOpen,
   Component,
-  Database,
   Globe,
   Key,
   Layers,
@@ -127,16 +125,6 @@ export const AppSidebar: FC<AppSidebarProps> = ({ open, setOpen, ...props }) => 
           title: 'Traces',
           url: `/${tenantId}/projects/${projectId}/traces`,
           icon: Activity,
-        },
-        {
-          title: 'Test Suites',
-          url: `/${tenantId}/projects/${projectId}/datasets`,
-          icon: Database,
-        },
-        {
-          title: 'Evaluations',
-          url: `/${tenantId}/projects/${projectId}/evaluations`,
-          icon: BarChart3,
         },
       ]
     : [];

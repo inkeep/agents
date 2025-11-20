@@ -327,16 +327,3 @@ export type Filter<T extends Record<string, unknown>> =
   | T
   | { and: Array<Filter<T>> }
   | { or: Array<Filter<T>> };
-
-export type PassCriteriaOperator = '>' | '<' | '>=' | '<=' | '=' | '!=';
-
-export type PassCriteriaCondition = {
-  field: string;
-  operator: PassCriteriaOperator;
-  value: number;
-};
-
-export type PassCriteria = {
-  operator: 'and' | 'or';
-  conditions: PassCriteriaCondition[];
-};
