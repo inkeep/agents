@@ -7,7 +7,7 @@ import { createOpenRouter, openrouter } from '@openrouter/ai-sdk-provider';
 import type { LanguageModel, Provider } from 'ai';
 
 import type { ModelSettings } from '../validation/schemas.js';
-import { getLogger } from './logger.js';
+import { getLogger } from './logger';
 
 const logger = getLogger('ModelFactory');
 
@@ -83,7 +83,7 @@ export class ModelFactory {
             config: {
               baseURL: customConfig.baseURL,
               hasApiKey: !!process.env.CUSTOM_LLM_API_KEY,
-              apiKeyPrefix: process.env.CUSTOM_LLM_API_KEY?.substring(0, 10) + '...',
+              apiKeyPrefix: `${process.env.CUSTOM_LLM_API_KEY?.substring(0, 10)}...`,
               headers: Object.keys(customConfig.headers || {}),
             },
           },
