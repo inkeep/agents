@@ -14,7 +14,6 @@ function HomeContent() {
   const { user, session, isLoading, error } = useAuthSession();
   const [isRedirecting, setIsRedirecting] = useState(false);
 
-  const isDisableAuth = process.env.NEXT_PUBLIC_DISABLE_AUTH === 'true';
   const tenantId = process.env.NEXT_PUBLIC_TENANT_ID || DEFAULT_TENANT_ID;
 
   useEffect(() => {
