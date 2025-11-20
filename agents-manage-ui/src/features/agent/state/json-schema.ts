@@ -66,11 +66,9 @@ type FieldPatch = Partial<
   Pick<NameAndDescription, 'name' | 'description' | 'isRequired' | 'title' | 'isPreview'>
 >;
 
-const applyCommonMetadata = (
-  schema: JSONSchemaWithPreview,
-  field: NameAndDescription,
-  hasInPreview = false
-) => {
+const applyCommonMetadata = (schema: JSONSchemaWithPreview, field: NameAndDescription) => {
+  const { hasInPreview } = jsonSchemaStore.getState();
+
   if (field.description) {
     schema.description = field.description;
   }
@@ -83,22 +81,18 @@ const applyCommonMetadata = (
   return schema;
 };
 
-const fieldsToJsonSchema = (
-  field: EditableField | undefined,
-  hasInPreview = false
-): JSONSchemaWithPreview => {
+const fieldsToJsonSchema = (field: EditableField | undefined): JSONSchemaWithPreview => {
   if (!field) {
     return { type: 'string' };
   }
-
   switch (field.type) {
     case 'object': {
       const properties: Record<string, JSONSchema7> = {};
       const required: string[] = [];
 
       for (const property of field.properties ?? []) {
-        if (!property || !property.name) continue;
-        properties[property.name] = fieldsToJsonSchema(property, hasInPreview);
+        if (!property.name) continue;
+        properties[property.name] = fieldsToJsonSchema(property);
         if (property.isRequired) {
           required.push(property.name);
         }
@@ -109,19 +103,19 @@ const fieldsToJsonSchema = (
         properties,
         additionalProperties: false,
       };
-      applyCommonMetadata(schema, field, hasInPreview);
+      applyCommonMetadata(schema, field);
       if (required.length > 0) {
         schema.required = required;
       }
       return schema;
     }
     case 'array': {
-      const items = fieldsToJsonSchema(field.items, hasInPreview);
+      const items = fieldsToJsonSchema(field.items);
       const schema: JSONSchemaWithPreview = {
         type: 'array',
         items,
       };
-      applyCommonMetadata(schema, field, hasInPreview);
+      applyCommonMetadata(schema, field);
       return schema;
     }
     case 'enum': {
@@ -129,29 +123,23 @@ const fieldsToJsonSchema = (
         type: 'string',
         enum: field.values,
       };
-      applyCommonMetadata(schema, field, hasInPreview);
+      applyCommonMetadata(schema, field);
       return schema;
     }
     case 'number': {
-      const schema: JSONSchemaWithPreview = {
-        type: 'number',
-      };
-      applyCommonMetadata(schema, field, hasInPreview);
+      const schema: JSONSchemaWithPreview = { type: 'number' };
+      applyCommonMetadata(schema, field);
       return schema;
     }
     case 'boolean': {
-      const schema: JSONSchemaWithPreview = {
-        type: 'boolean',
-      };
-      applyCommonMetadata(schema, field, hasInPreview);
+      const schema: JSONSchemaWithPreview = { type: 'boolean' };
+      applyCommonMetadata(schema, field);
       return schema;
     }
     case 'string':
     default: {
-      const schema: JSONSchemaWithPreview = {
-        type: 'string',
-      };
-      applyCommonMetadata(schema, field, hasInPreview);
+      const schema: JSONSchemaWithPreview = { type: 'string' };
+      applyCommonMetadata(schema, field);
       return schema;
     }
   }
@@ -163,17 +151,19 @@ function convertJsonSchemaToFields({
   isRequired,
   id = ROOT_ID,
 }: {
-  schema: JSONSchema7;
+  schema: JSONSchemaWithPreview;
   name?: string;
   isRequired?: boolean;
   id?: string;
 }): EditableField | undefined {
+  const { hasInPreview } = jsonSchemaStore.getState();
   const base: NameAndDescription = {
     id,
     ...(name && { name }),
     ...(schema.description && { description: schema.description }),
     ...(schema.title && { title: schema.title }),
     ...(isRequired && { isRequired: true }),
+    ...(hasInPreview && schema.inPreview && { isPreview: true }),
   };
 
   if (schema.type === 'object') {
@@ -427,7 +417,7 @@ const parseFieldsFromJson = (value: string): EditableField[] => {
   }
 
   try {
-    const parsed = JSON.parse(value) as JSONSchema7;
+    const parsed = JSON.parse(value) as JSONSchemaWithPreview;
     const result = convertJsonSchemaToFields({ schema: parsed });
     if (!result) {
       return [];

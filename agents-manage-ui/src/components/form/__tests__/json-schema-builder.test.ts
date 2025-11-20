@@ -3,6 +3,7 @@ import {
   convertJsonSchemaToFields,
   type EditableField,
   fieldsToJsonSchema,
+  jsonSchemaStore,
   type JSONSchemaWithPreview,
 } from '@/features/agent/state/json-schema';
 import { JSONSchemaFixture } from './json-schema-fixture';
@@ -249,14 +250,13 @@ describe('convertJsonSchemaToFields', () => {
   });
 
   it('should include preview flags when enabled', () => {
-    const schema = convertJsonSchemaToFields({
-      schema: schemaWithPreview,
-      hasInPreview: true,
-    });
+    jsonSchemaStore.setState({ hasInPreview: true });
+    const schema = convertJsonSchemaToFields({ schema: schemaWithPreview });
     expect(schema).toEqual(fieldsWithPreview);
   });
 
   it('should ignore preview flags when disabled', () => {
+    jsonSchemaStore.setState({ hasInPreview: false });
     const schema = fieldsToJsonSchema(fieldsWithPreview);
     expect(schema.properties?.title).toEqual({ type: 'string' });
   });
