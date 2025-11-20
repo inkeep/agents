@@ -6,8 +6,8 @@ import { createOpenAICompatible } from '@ai-sdk/openai-compatible';
 import { createOpenRouter, openrouter } from '@openrouter/ai-sdk-provider';
 import type { LanguageModel, Provider } from 'ai';
 
-import type { ModelSettings } from '../validation/schemas.js';
-import { getLogger } from './logger.js';
+import type { ModelSettings } from '../validation/schemas';
+import { getLogger } from './logger';
 
 const logger = getLogger('ModelFactory');
 
