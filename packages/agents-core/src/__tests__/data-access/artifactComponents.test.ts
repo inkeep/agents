@@ -263,8 +263,16 @@ describe('Artifact Components Data Access', () => {
         props: {
           type: 'object',
           properties: {
-            title: { type: 'string', inPreview: true },
-            description: { type: 'string', inPreview: false },
+            title: {
+              type: 'string',
+              description: 'The title of the artifact',
+              inPreview: true,
+            },
+            description: {
+              type: 'string',
+              description: 'Detailed description of the artifact',
+              inPreview: false,
+            },
           },
         },
       };
@@ -302,8 +310,16 @@ describe('Artifact Components Data Access', () => {
         props: {
           type: 'object',
           properties: {
-            title: { type: 'string', inPreview: true },
-            description: { type: 'string', inPreview: false },
+            title: {
+              type: 'string',
+              description: 'The title of the artifact',
+              inPreview: true,
+            },
+            description: {
+              type: 'string',
+              description: 'Detailed description of the artifact',
+              inPreview: false,
+            },
           },
         },
       };

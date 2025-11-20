@@ -14,8 +14,11 @@ export interface PropsValidationResult {
  * Uses AJV to validate the schema structure without resolving references
  */
 export function validatePropsAsJsonSchema(props: any): PropsValidationResult {
-  // If props is null, undefined, or empty, it's valid (optional for artifact components)
-  if (!props || (typeof props === 'object' && Object.keys(props).length === 0)) {
+  // If props is null, undefined, or empty object, it's valid (optional for artifact components)
+  if (
+    !props ||
+    (typeof props === 'object' && !Array.isArray(props) && Object.keys(props).length === 0)
+  ) {
     return {
       isValid: true,
       errors: [],
@@ -71,6 +74,31 @@ export function validatePropsAsJsonSchema(props: any): PropsValidationResult {
           message: 'JSON Schema must have a "properties" object',
         },
       ],
+    };
+  }
+
+  // Validate that each property has a description (required for LLM compatibility)
+  const propertyErrors: Array<{ field: string; message: string; value?: any }> = [];
+  for (const [propName, propSchema] of Object.entries(props.properties)) {
+    if (
+      typeof propSchema !== 'object' ||
+      propSchema === null ||
+      !('description' in propSchema) ||
+      typeof (propSchema as any).description !== 'string' ||
+      (propSchema as any).description.trim() === ''
+    ) {
+      propertyErrors.push({
+        field: `props.properties.${propName}`,
+        message: `Property "${propName}" must have a non-empty "description" field for LLM compatibility`,
+        value: propSchema,
+      });
+    }
+  }
+
+  if (propertyErrors.length > 0) {
+    return {
+      isValid: false,
+      errors: propertyErrors,
     };
   }
 
