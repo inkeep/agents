@@ -32,7 +32,7 @@ async function makeApiRequestInternal<T>(
   options: RequestInit = {}
 ): Promise<T> {
   const url = `${baseUrl}/${endpoint}`;
-  
+
   let cookieHeader: string | undefined;
   if (typeof window === 'undefined') {
     try {
@@ -41,14 +41,12 @@ async function makeApiRequestInternal<T>(
       const allCookies = cookieStore.getAll();
       // Only forward Better Auth cookies for security
       const authCookies = allCookies.filter((c) => c.name.startsWith('better-auth.'));
-      cookieHeader = authCookies
-        .map((c) => `${c.name}=${c.value}`)
-        .join('; ');
+      cookieHeader = authCookies.map((c) => `${c.name}=${c.value}`).join('; ');
     } catch {
       // Not in a server component context, skip cookie forwarding
     }
   }
-  
+
   const defaultHeaders: HeadersInit = {
     'Content-Type': 'application/json',
     ...options.headers,
@@ -67,13 +65,13 @@ async function makeApiRequestInternal<T>(
     if (!response.ok) {
       const errorData = await response.json().catch(() => ({
         code: 'unknown',
-        detail: 'Unknown error occurred',
+        message: 'Unknown error occurred',
       }));
 
       throw new ApiError(
-        {
-          code: errorData.code || 'unknown',
-          message: errorData.detail || errorData.message || 'Unknown error occurred',
+        errorData.error || {
+          code: 'unknown',
+          message: 'Unknown error occurred',
         },
         response.status
       );
