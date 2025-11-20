@@ -511,6 +511,69 @@ export function renderPanelContent({
         </>
       );
 
+    case 'tool_approval_requested':
+      return (
+        <>
+          <Section>
+            <Info
+              label="Tool name"
+              value={<Badge variant="code">{a.approvalToolName || 'Unknown Tool'}</Badge>}
+            />
+            <LabeledBlock label="Status">
+              <Badge variant="outline" className="text-yellow-600 border-yellow-600">
+                Waiting for approval
+              </Badge>
+            </LabeledBlock>
+            <Info label="Timestamp" value={formatDateTime(a.timestamp)} />
+          </Section>
+          <Divider />
+          {SignozButton}
+          {AdvancedBlock}
+        </>
+      );
+
+    case 'tool_approval_approved':
+      return (
+        <>
+          <Section>
+            <Info
+              label="Tool name"
+              value={<Badge variant="code">{a.approvalToolName || 'Unknown Tool'}</Badge>}
+            />
+            <LabeledBlock label="Status">
+              <Badge variant="outline" className="text-blue-600 border-blue-600">
+                Approved by user
+              </Badge>
+            </LabeledBlock>
+            <Info label="Timestamp" value={formatDateTime(a.timestamp)} />
+          </Section>
+          <Divider />
+          {SignozButton}
+          {AdvancedBlock}
+        </>
+      );
+
+    case 'tool_approval_denied':
+      return (
+        <>
+          <Section>
+            <Info
+              label="Tool name"
+              value={<Badge variant="code">{a.approvalToolName || 'Unknown Tool'}</Badge>}
+            />
+            <LabeledBlock label="Status">
+              <Badge variant="outline" className="text-red-600 border-red-600">
+                Denied by user
+              </Badge>
+            </LabeledBlock>
+            <Info label="Timestamp" value={formatDateTime(a.timestamp)} />
+          </Section>
+          <Divider />
+          {SignozButton}
+          {AdvancedBlock}
+        </>
+      );
+
     default:
       return null;
   }
