@@ -103,7 +103,10 @@ export class ExecutionHandler {
           });
 
           if (agentWithDefault?.defaultSubAgent) {
-            const resolvedModels = await resolveModelConfig(agentId, agentWithDefault.defaultSubAgent);
+            const resolvedModels = await resolveModelConfig(
+              agentId,
+              agentWithDefault.defaultSubAgent
+            );
 
             agentSessionManager.initializeStatusUpdates(
               requestId,
