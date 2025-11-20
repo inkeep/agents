@@ -25,7 +25,31 @@ const nextConfig: NextConfig = {
       },
     },
   },
-  webpack(config) {
+  webpack(config, { isServer }) {
+    // Exclude native Node.js modules from bundling
+    // keytar is a native module that cannot be bundled by webpack
+    if (isServer) {
+      const originalExternals = config.externals;
+      config.externals = [
+        ...(Array.isArray(originalExternals)
+          ? originalExternals
+          : originalExternals
+            ? [originalExternals]
+            : []),
+        ({ request }: { request?: string }, callback: (err?: Error | null, result?: string) => void) => {
+          // Mark keytar as external - it will be required at runtime, not bundled
+          if (request === 'keytar') {
+            return callback(null, `commonjs ${request}`);
+          }
+          // Handle original externals if it was a function
+          if (typeof originalExternals === 'function') {
+            return originalExternals({ request }, callback);
+          }
+          callback();
+        },
+      ];
+    }
+
     const { test: _test, ...imageLoaderOptions } = config.module.rules.find(
       // @ts-expect-error -- fixme
       (rule) => rule.test?.test?.('.svg')
