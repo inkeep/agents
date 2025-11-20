@@ -195,7 +195,13 @@ export const production = registerEnvironmentSettings({
 
 Use the `inkeep add` command to add template projects from the [Inkeep Agents Cookbook](https://github.com/inkeep/agents/tree/main/agents-cookbook/template-projects) to your workspace.
 
-<Snippet file="cli-prereq.mdx" />
+### Prerequisite
+
+Ensure you have the [Inkeep CLI](/typescript-sdk/cli-reference) installed.
+
+```bash
+npm install -g @inkeep/agents-cli
+```
 
 ### Step 1: Navigate to your projects directory
 
@@ -229,7 +235,13 @@ For new projects, we recommend starting with a simple project template like docs
 
 After making changes to your project code, use `inkeep push` to sync your local TypeScript project to the Visual Builder. This allows you to continue development using the Visual Builder's drag-and-drop interface.
 
-<Snippet file="cli-prereq.mdx" />
+### Prerequisite
+
+Ensure you have the [Inkeep CLI](/typescript-sdk/cli-reference) installed.
+
+```bash
+npm install -g @inkeep/agents-cli
+```
 
 ### Step 1: Navigate to your project directory
 
@@ -265,7 +277,28 @@ inkeep push --json
 
 When you make changes in the Visual Builder (such as updating prompts or modifying agent configurations), use `inkeep pull` to sync those changes back to your local TypeScript project.
 
-<Snippet file="pull-prereq.mdx" />
+### Prerequisite
+
+The `inkeep pull` command in-part leverages AI to sync your TypeScript files to the state of your Visual Builder, so **at least one** of the below environment variables to be defined:
+
+```txt .env
+# Choose one:
+ANTHROPIC_API_KEY=your_api_key_here
+# or
+OPENAI_API_KEY=your_api_key_here
+# or
+GOOGLE_API_KEY=your_api_key_here
+```
+
+The CLI prioritizes Anthropic → OpenAI → Google.
+
+Here are the models used:
+
+| Provider  | Model(s)                              | Where to Get API Key                                |
+| --------- | ------------------------------------- | --------------------------------------------------- |
+| Anthropic | Claude Sonnet 4.5 (extended thinking) | [Anthropic Console](https://console.anthropic.com/) |
+| OpenAI    | GPT-5.1                               | [OpenAI Platform](https://platform.openai.com/)     |
+| Google    | Gemini 2.5 Flash                      | [Google AI Studio](https://ai.google.dev/)          |
 
 ### Step 1: Navigate to your project directory
 
@@ -299,7 +332,13 @@ See [CLI Reference](/typescript-sdk/cli-reference#inkeep-pull) for more informat
 
 Use the `inkeep add` command to add custom MCP server templates from the [Inkeep Agents Cookbook](https://github.com/inkeep/agents/tree/main/agents-cookbook/template-mcps) to your workspace. These templates provide starter code for common MCP server integrations that you can customize and deploy.
 
-<Snippet file="cli-prereq.mdx" />
+### Prerequisite
+
+Ensure you have the [Inkeep CLI](/typescript-sdk/cli-reference) installed.
+
+```bash
+npm install -g @inkeep/agents-cli
+```
 
 ### Step 1: Navigate to your workspace root
 
