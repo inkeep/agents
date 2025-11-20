@@ -1,5 +1,12 @@
 # @inkeep/agents-core
 
+## 0.34.1
+
+### Patch Changes
+
+- 699043d: Install inkeep mcp in quickstarte
+- e4b5d5c: Inkeep add: usage instructions and target path detection
+
 ## 0.34.0
 
 ### Patch Changes
