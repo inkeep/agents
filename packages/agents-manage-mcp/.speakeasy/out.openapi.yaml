@@ -7902,6 +7902,170 @@ paths:
           content:
             "application/json":
               schema: {"$ref": "#/components/schemas/ErrorResponse"}
+  "/tenants/{tenantId}/projects/{projectId}/data-components/{id}/generate-render":
+    post:
+      summary: "Generate Data Component Render"
+      operationId: "generate-data-component-render"
+      tags:
+        - "Data Component"
+      parameters:
+        - schema: {"$ref": "#/components/schemas/TenantIdPathParam"}
+          required: true
+          description: "Tenant identifier"
+          name: "tenantId"
+          in: "path"
+        - schema: {"$ref": "#/components/schemas/ProjectIdPathParam"}
+          required: true
+          description: "Project identifier"
+          name: "projectId"
+          in: "path"
+        - schema:
+            type: "string"
+            minLength: 1
+            maxLength: 255
+            pattern: "^[a-zA-Z0-9\\-_.]+$"
+            description: "Resource identifier"
+            example: "resource_789"
+          required: true
+          description: "Resource identifier"
+          name: "id"
+          in: "path"
+      requestBody:
+        content:
+          "application/json":
+            schema:
+              type: "object"
+              properties:
+                "instructions":
+                  type: "string"
+                "existingCode":
+                  type: "string"
+      responses:
+        "200":
+          description: "Component render generated successfully (streaming NDJSON)"
+          content:
+            "application/x-ndjson":
+              schema:
+                type: "object"
+                properties:
+                  "component":
+                    type: "string"
+                  "mockData":
+                    nullable: true
+                required:
+                  - "component"
+        "400":
+          description: "Bad Request"
+          content:
+            "application/problem+json":
+              schema: {"$ref": "#/components/schemas/BadRequest"}
+        "401":
+          description: "Unauthorized"
+          content:
+            "application/problem+json":
+              schema: {"$ref": "#/components/schemas/Unauthorized"}
+        "403":
+          description: "Forbidden"
+          content:
+            "application/problem+json":
+              schema: {"$ref": "#/components/schemas/Forbidden"}
+        "404":
+          description: "Not Found"
+          content:
+            "application/problem+json":
+              schema: {"$ref": "#/components/schemas/NotFound"}
+        "422":
+          description: "Unprocessable Entity"
+          content:
+            "application/problem+json":
+              schema: {"$ref": "#/components/schemas/UnprocessableEntity"}
+        "500":
+          description: "Internal Server Error"
+          content:
+            "application/problem+json":
+              schema: {"$ref": "#/components/schemas/InternalServerError"}
+  "/tenants/{tenantId}/projects/{projectId}/data-components/{id}/generate-render-sync":
+    post:
+      summary: "Generate Data Component Render (Synchronous)"
+      operationId: "generate-data-component-render-sync"
+      tags:
+        - "Data Component"
+      parameters:
+        - schema: {"$ref": "#/components/schemas/TenantIdPathParam"}
+          required: true
+          description: "Tenant identifier"
+          name: "tenantId"
+          in: "path"
+        - schema: {"$ref": "#/components/schemas/ProjectIdPathParam"}
+          required: true
+          description: "Project identifier"
+          name: "projectId"
+          in: "path"
+        - schema:
+            type: "string"
+            minLength: 1
+            maxLength: 255
+            pattern: "^[a-zA-Z0-9\\-_.]+$"
+            description: "Resource identifier"
+            example: "resource_789"
+          required: true
+          description: "Resource identifier"
+          name: "id"
+          in: "path"
+      requestBody:
+        content:
+          "application/json":
+            schema:
+              type: "object"
+              properties:
+                "instructions":
+                  type: "string"
+                "existingCode":
+                  type: "string"
+      responses:
+        "200":
+          description: "Component render generated successfully"
+          content:
+            "application/json":
+              schema:
+                type: "object"
+                properties:
+                  "component":
+                    type: "string"
+                  "mockData":
+                    nullable: true
+                required:
+                  - "component"
+        "400":
+          description: "Bad Request"
+          content:
+            "application/problem+json":
+              schema: {"$ref": "#/components/schemas/BadRequest"}
+        "401":
+          description: "Unauthorized"
+          content:
+            "application/problem+json":
+              schema: {"$ref": "#/components/schemas/Unauthorized"}
+        "403":
+          description: "Forbidden"
+          content:
+            "application/problem+json":
+              schema: {"$ref": "#/components/schemas/Forbidden"}
+        "404":
+          description: "Not Found"
+          content:
+            "application/problem+json":
+              schema: {"$ref": "#/components/schemas/NotFound"}
+        "422":
+          description: "Unprocessable Entity"
+          content:
+            "application/problem+json":
+              schema: {"$ref": "#/components/schemas/UnprocessableEntity"}
+        "500":
+          description: "Internal Server Error"
+          content:
+            "application/problem+json":
+              schema: {"$ref": "#/components/schemas/InternalServerError"}
   "/tenants/{tenantId}/projects/{projectId}/external-agents":
     get:
       summary: "List External Agents"

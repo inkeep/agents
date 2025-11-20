@@ -52,6 +52,7 @@ import { tool$credentialStoreListCredentialStores } from './tools/credentialStor
 import { tool$credentialUpdateCredential } from './tools/credentialUpdateCredential.js';
 import { tool$dataComponentCreateDataComponent } from './tools/dataComponentCreateDataComponent.js';
 import { tool$dataComponentDeleteDataComponent } from './tools/dataComponentDeleteDataComponent.js';
+import { tool$dataComponentGenerateDataComponentRenderSync } from './tools/dataComponentGenerateDataComponentRenderSync.js';
 import { tool$dataComponentGetDataComponentById } from './tools/dataComponentGetDataComponentById.js';
 import { tool$dataComponentListDataComponents } from './tools/dataComponentListDataComponents.js';
 import { tool$dataComponentUpdateDataComponent } from './tools/dataComponentUpdateDataComponent.js';
@@ -130,7 +131,7 @@ export function createMCPServer(deps: {
 }) {
   const server = new McpServer({
     name: 'InkeepAgents',
-    version: '0.0.12',
+    version: '0.0.14',
   });
 
   const getClient =
@@ -231,6 +232,7 @@ export function createMCPServer(deps: {
   tool(tool$dataComponentGetDataComponentById);
   tool(tool$dataComponentUpdateDataComponent);
   tool(tool$dataComponentDeleteDataComponent);
+  tool(tool$dataComponentGenerateDataComponentRenderSync);
   tool(tool$externalAgentsListExternalAgents);
   tool(tool$externalAgentsCreateExternalAgent);
   tool(tool$externalAgentsGetExternalAgentById);

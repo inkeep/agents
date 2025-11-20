@@ -19,7 +19,7 @@ import {
   updateDataComponent,
   validatePropsAsJsonSchema,
 } from '@inkeep/agents-core';
-import { streamObject } from 'ai';
+import { generateObject, streamObject } from 'ai';
 import { z } from 'zod';
 import dbClient from '../data/db/dbClient';
 
@@ -388,6 +388,113 @@ app.openapi(
       'Cache-Control': 'no-cache',
     });
   }) as any
+);
+
+const GenerateRenderResponseSchema = z.object({
+  component: z.string(),
+  mockData: z.any(),
+});
+
+app.openapi(
+  createRoute({
+    method: 'post',
+    path: '/{id}/generate-render-sync',
+    summary: 'Generate Data Component Render (Synchronous)',
+    description: 'Used to generate a UI component for a given data component',
+    operationId: 'generate-data-component-render-sync',
+    tags: ['Data Component'],
+    request: {
+      params: TenantProjectIdParamsSchema,
+      body: {
+        content: {
+          'application/json': {
+            schema: GenerateRenderRequestSchema,
+          },
+        },
+      },
+    },
+    responses: {
+      200: {
+        description: 'Component render generated successfully',
+        content: {
+          'application/json': {
+            schema: GenerateRenderResponseSchema,
+          },
+        },
+      },
+      ...commonGetErrorResponses,
+    },
+  }),
+  async (c: any) => {
+    const { tenantId, projectId, id } = c.req.valid('param');
+    const body = c.req.valid('json');
+    const { instructions, existingCode } = body;
+
+    const dataComponent = await getDataComponent(dbClient)({
+      scopes: { tenantId, projectId },
+      dataComponentId: id,
+    });
+
+    if (!dataComponent) {
+      throw createApiError({
+        code: 'not_found',
+        message: 'Data component not found',
+      });
+    }
+
+    const project = await getProject(dbClient)({
+      scopes: { tenantId, projectId },
+    });
+
+    if (!project) {
+      throw createApiError({
+        code: 'not_found',
+        message: 'Project not found',
+      });
+    }
+
+    if (!project.models?.base) {
+      throw createApiError({
+        code: 'bad_request',
+        message: 'Project base model configuration is required',
+      });
+    }
+
+    const prompt = buildGenerationPrompt(dataComponent, instructions, existingCode);
+    const modelConfig = ModelFactory.prepareGenerationConfig(project.models.base as any);
+
+    const renderSchema = z.object({
+      component: z.string().describe('The React component code'),
+      mockData: z.any().describe('Sample data matching the props schema'),
+    });
+
+    try {
+      const { object } = await generateObject({
+        ...modelConfig,
+        prompt,
+        schema: renderSchema,
+        temperature: 0.7,
+      });
+
+      const existingData =
+        existingCode &&
+        dataComponent.render &&
+        typeof dataComponent.render === 'object' &&
+        'mockData' in dataComponent.render
+          ? (dataComponent.render as any).mockData
+          : null;
+
+      const result = instructions && existingData ? { ...object, mockData: existingData } : object;
+
+      return c.json(result);
+    } catch (error) {
+      console.error('Error generating component:', error);
+      throw createApiError({
+        code: 'internal_server_error',
+        message: 'Failed to generate component',
+      });
+    }
+  }
 );
 
 function buildGenerationPrompt(
