@@ -86,6 +86,7 @@ export const PromptEditor: FC<PromptEditorProps> = ({ uri, editorOptions, onMoun
         autoClosingBrackets: 'never',
         renderLineHighlight: 'none', // disable active line highlight
         ariaLabel: 'Prompt input editor',
+        quickSuggestions: false,
         ...editorOptions,
       }}
       {...props}
