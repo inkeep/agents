@@ -29,6 +29,7 @@ export function JsonSchemaInput<T extends FieldValues>({
   readOnly,
   isRequired = false,
   hasInPreview,
+  uri,
 }: JsonSchemaInputProps<T>) {
   const isJsonSchemaModeChecked = useAgentStore((state) => state.jsonSchemaMode);
   const { setJsonSchemaMode } = useAgentActions();
@@ -57,6 +58,7 @@ export function JsonSchemaInput<T extends FieldValues>({
                 readOnly={readOnly}
                 disabled={disabled}
                 aria-invalid={!!fieldState.error}
+                uri={uri}
               />
             ) : (
               <JsonSchemaBuilder
