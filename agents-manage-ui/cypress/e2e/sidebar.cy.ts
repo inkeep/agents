@@ -31,9 +31,8 @@ describe('Sidebar', () => {
       cy.get('[data-slot=sidebar]').should('have.attr', 'data-state', 'collapsed');
       cy.get('[data-slot=sidebar]').trigger('mouseover');
       cy.get('[data-slot=sidebar]').should('have.attr', 'data-state', 'expanded');
-      cy.get('.react-flow__node').then((node) => {
-        const [domNode] = node; // raw DOM element
-        cy.get('[data-slot=sidebar]').trigger('mouseout', { relatedTarget: domNode });
+      cy.get('.react-flow__node').then(([domEl]) => {
+        cy.get('[data-slot=sidebar]').trigger('mouseout', { relatedTarget: domEl });
       });
       cy.get('[data-slot=sidebar]').should('have.attr', 'data-state', 'collapsed');
     });
