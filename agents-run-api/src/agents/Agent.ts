@@ -109,8 +109,8 @@ export type AgentConfig = {
   apiKey?: string;
   apiKeyId?: string;
   name: string;
-  description: string;
-  prompt: string;
+  description?: string;
+  prompt?: string;
   subAgentRelations: AgentConfig[];
   transferRelations: AgentConfig[];
   delegateRelations: DelegateRelation[];
@@ -1165,8 +1165,8 @@ export class Agent {
     const conversationId = runtimeContext?.metadata?.conversationId || runtimeContext?.contextId;
     const resolvedContext = conversationId ? await this.getResolvedContext(conversationId) : null;
 
-    let processedPrompt = this.config.prompt;
-    if (resolvedContext) {
+    let processedPrompt = this.config.prompt || '';
+    if (resolvedContext && this.config.prompt) {
       try {
         processedPrompt = TemplateEngine.render(this.config.prompt, resolvedContext, {
           strict: false,
@@ -1230,8 +1230,8 @@ export class Agent {
 
     const resolvedContext = conversationId ? await this.getResolvedContext(conversationId) : null;
 
-    let processedPrompt = this.config.prompt;
-    if (resolvedContext) {
+    let processedPrompt = this.config.prompt || '';
+    if (resolvedContext && this.config.prompt) {
       try {
         processedPrompt = TemplateEngine.render(this.config.prompt, resolvedContext, {
           strict: false,

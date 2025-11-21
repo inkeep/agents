@@ -90,7 +90,7 @@ export function generateSubAgentDefinition(
   }
 
   // Validate required sub-agent fields
-  const requiredFields = ['name', 'description', 'prompt'];
+  const requiredFields = ['name'];
   const missingFields = requiredFields.filter(
     (field) => !agentData[field] || agentData[field] === null || agentData[field] === undefined
   );
@@ -122,7 +122,11 @@ export function generateSubAgentDefinition(
 
   // Required fields - these must be present
   lines.push(`${indentation}name: ${formatString(agentData.name, q)},`);
-  lines.push(`${indentation}description: ${formatString(agentData.description, q, true)},`);
+  
+  // Description - optional field, only include if present
+  if (agentData.description !== undefined && agentData.description !== null && agentData.description !== '') {
+    lines.push(`${indentation}description: ${formatString(agentData.description, q, true)},`);
+  }
 
   // Prompt - can be multiline, use context.toTemplate() or headers.toTemplate() based on schema analysis
   if (agentData.prompt !== undefined && agentData.prompt !== null) {

@@ -57,7 +57,16 @@ export class Phase1Config implements VersionConfig<SystemPromptV1> {
 
     let systemPrompt = systemPromptTemplate;
 
-    systemPrompt = systemPrompt.replace('{{CORE_INSTRUCTIONS}}', config.corePrompt);
+    // Handle core instructions - omit entire section if empty
+    if (config.corePrompt && config.corePrompt.trim()) {
+      systemPrompt = systemPrompt.replace('{{CORE_INSTRUCTIONS}}', config.corePrompt);
+    } else {
+      // Remove the entire core_instructions section if empty
+      systemPrompt = systemPrompt.replace(
+        /<core_instructions>\s*\{\{CORE_INSTRUCTIONS\}\}\s*<\/core_instructions>/g,
+        ''
+      );
+    }
 
     const agentContextSection = this.generateAgentContextSection(config.prompt);
     systemPrompt = systemPrompt.replace('{{AGENT_CONTEXT_SECTION}}', agentContextSection);
@@ -100,7 +109,7 @@ export class Phase1Config implements VersionConfig<SystemPromptV1> {
   }
 
   private generateAgentContextSection(prompt?: string): string {
-    if (!prompt) {
+    if (!prompt || prompt.trim() === '') {
       return '';
     }
 

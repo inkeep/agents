@@ -171,7 +171,7 @@ describe('Artifact Component Generator', () => {
       expect(() => {
         generateArtifactComponentDefinition('minimal', {});
       }).toThrow(
-        "Missing required fields for artifact component 'minimal': name, description, props"
+        "Missing required fields for artifact component 'minimal': name, props"
       );
     });
 
@@ -243,7 +243,7 @@ describe('Artifact Component Generator', () => {
 
       expect(() => {
         generateArtifactComponentDefinition('test', dataWithSchema);
-      }).toThrow("Missing required fields for artifact component 'test': description, props");
+      }).toThrow("Missing required fields for artifact component 'test': props");
     });
 
     it('should prefer props over schema when both exist', () => {
@@ -426,7 +426,7 @@ describe('Artifact Component Generator', () => {
       expect(() => {
         generateArtifactComponentDefinition('empty', {});
       }).toThrow(
-        "Missing required fields for artifact component 'empty': name, description, props"
+        "Missing required fields for artifact component 'empty': name, props"
       );
     });
 

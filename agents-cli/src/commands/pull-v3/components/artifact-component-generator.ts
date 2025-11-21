@@ -133,7 +133,7 @@ export function generateArtifactComponentDefinition(
   }
 
   // Validate required artifact component fields
-  const requiredFields = ['name', 'description', 'props'];
+  const requiredFields = ['name', 'props'];
   const missingFields = requiredFields.filter(
     (field) =>
       !componentData[field] || componentData[field] === null || componentData[field] === undefined

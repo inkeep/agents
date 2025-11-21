@@ -937,7 +937,7 @@ export const FullAgentAgentInsertSchema = SubAgentApiInsertSchema.extend({
   dataComponents: z.array(z.string()).optional(),
   artifactComponents: z.array(z.string()).optional(),
   canTransferTo: z.array(z.string()).optional(),
-  prompt: z.string().trim().nonempty(),
+  prompt: z.string().trim().optional(),
   canDelegateTo: z
     .array(
       z.union([

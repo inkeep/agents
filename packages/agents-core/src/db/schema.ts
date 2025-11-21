@@ -62,7 +62,7 @@ const subAgentScoped = {
 
 const uiProperties = {
   name: varchar('name', { length: 256 }).notNull(),
-  description: text('description').notNull(),
+  description: text('description'),
 };
 
 const timestamps = {
@@ -176,7 +176,7 @@ export const subAgents = pgTable(
   {
     ...agentScoped,
     ...uiProperties,
-    prompt: text('prompt').notNull(),
+    prompt: text('prompt'),
     conversationHistoryConfig: jsonb('conversation_history_config')
       .$type<ConversationHistoryConfig>()
       .default({

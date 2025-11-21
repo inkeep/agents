@@ -77,7 +77,7 @@ export class SubAgent implements SubAgentInterface {
   }
 
   getInstructions(): string {
-    return this.config.prompt;
+    return this.config.prompt || '';
   }
 
   /**
@@ -358,7 +358,7 @@ export class SubAgent implements SubAgentInterface {
       id: this.getId(),
       name: this.config.name,
       description: this.config.description || '',
-      prompt: this.config.prompt,
+      prompt: this.config.prompt || '',
       conversationHistoryConfig: this.config.conversationHistoryConfig,
       models: this.config.models,
       stopWhen: this.config.stopWhen,
