@@ -5,11 +5,12 @@ import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { useAuthSession } from '@/hooks/use-auth';
-import { authClient } from '@/lib/auth-client';
+import { useAuthClient } from '@/lib/auth-client';
 
 export default function NoOrganizationPage() {
   const router = useRouter();
   const { user } = useAuthSession();
+  const authClient = useAuthClient();
   const [isSigningOut, setIsSigningOut] = useState(false);
 
   const handleSignOut = async () => {
