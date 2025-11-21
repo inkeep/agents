@@ -201,7 +201,7 @@ function createManagementHono(
     });
   }
 
-  // CORS middleware for playground routes (must be registered before the handler)
+  // CORS middleware for playground routes (must be registered before global CORS)
   app.use(
     '/api/playground/*',
     cors({
