@@ -8,7 +8,7 @@ const Layout: FC<LayoutProps<'/[tenantId]/projects/[projectId]/agents'>> = ({ ch
   const { setOpen } = useSidebar();
 
   // biome-ignore lint/correctness/useExhaustiveDependencies: run only on mount.
-  // Note: when the `open` prop is controlled via SidebarProvider (programmatic usage),
+  // Note: when the `open` prop is controlled via `SidebarProvider` (programmatic usage),
   // the `setOpen` callback is recreated whenever `open` changes, so we intentionally
   // avoid adding it to the dependency array.
   useEffect(() => {
