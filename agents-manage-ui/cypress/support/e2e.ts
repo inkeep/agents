@@ -14,3 +14,10 @@
 // ***********************************************************
 
 import './commands';
+
+Cypress.on('uncaught:exception', (err) => {
+  // returning false prevents Cypress from failing the test
+  if (err.message.includes('ResizeObserver loop completed with undelivered notifications.')) {
+    return false;
+  }
+});

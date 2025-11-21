@@ -94,6 +94,7 @@ export function SidePane({
     return { heading, HeadingIcon };
   }, [selectedNode, selectedEdge, selectedNodeId, selectedEdgeId]);
 
+  // biome-ignore lint/correctness/useExhaustiveDependencies: ignore `errors` dependency, it rerender sidepane when errors changes
   const editorContent = useMemo(() => {
     if (selectedNodeId && !selectedNode) {
       return <EditorLoadingSkeleton />;
@@ -185,7 +186,6 @@ export function SidePane({
     credentialLookup,
     subAgentExternalAgentConfigLookup,
     subAgentTeamAgentConfigLookup,
-    // Rerender sidepane when errors changes
     errors,
   ]);
 
