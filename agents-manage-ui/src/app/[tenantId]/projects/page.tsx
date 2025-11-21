@@ -9,6 +9,7 @@ import { ProjectList } from '@/components/projects/project-list';
 import { Button } from '@/components/ui/button';
 import { emptyStateProjectDescription, projectDescription } from '@/constants/page-descriptions';
 import { fetchProjects } from '@/lib/api/projects';
+import { serializeApiErrorForClient } from '@/lib/utils/error-serialization';
 
 async function ProjectsPage({ params }: PageProps<'/[tenantId]/projects'>) {
   const { tenantId } = await params;
@@ -17,17 +18,7 @@ async function ProjectsPage({ params }: PageProps<'/[tenantId]/projects'>) {
   try {
     projects = await fetchProjects(tenantId);
   } catch (error) {
-    const apiError = error as any;
-    const serializedError = new Error(apiError.message || 'An error occurred') as Error & {
-      cause?: { status: number; message: string };
-    };
-    if (apiError.status) {
-      serializedError.cause = {
-        status: apiError.status,
-        message: apiError.error?.message || apiError.message,
-      };
-    }
-    return <FullPageError error={serializedError} context="projects" />;
+    return <FullPageError error={serializeApiErrorForClient(error)} context="projects" />;
   }
 
   return (
