@@ -39,4 +39,38 @@ describe('Agent', () => {
       cy.location('pathname').should('eq', '/default/projects');
     });
   });
+
+  describe('Prompt', () => {
+    it.only('should suggest autocomplete in prompt editor from context variables editor and headers JSON schema editor', () => {
+      cy.visit('/default/projects/my-weather-project/agents/weather-agent?pane=agent');
+
+      cy.get('[data-uri="file:///contextVariables.json"] textarea')
+        .type('{selectall}{del}', { force: true })
+        .type('{"contextVariablesValue":123}', {
+          parseSpecialCharSequences: false,
+          delay: 0,
+        });
+
+      const headersJsonSchema = {
+        type: 'object',
+        properties: {
+          testHeadersJsonSchemaValue: { type: 'string' },
+        },
+      };
+      cy.get('[data-uri="file:///headersSchema.json"] textarea')
+        .type('{selectall}{del}', { force: true })
+        .type(JSON.stringify(headersJsonSchema), {
+          parseSpecialCharSequences: false,
+          delay: 0,
+        });
+      cy.contains('Save changes').click();
+
+      cy.get('[data-uri="file:///agent-prompt.template"] textarea')
+        .type('{selectall}{del}', { force: true })
+        .type('{');
+      cy.get('[aria-label=Suggest]').contains('contextVariablesValue');
+      cy.get('[aria-label=Suggest]').contains('headers.testHeadersJsonSchemaValue');
+      cy.get('[aria-label=Suggest]').contains('$env.');
+    });
+  });
 });
