@@ -1,5 +1,15 @@
 # @inkeep/agents-core
 
+## 0.35.0
+
+### Minor Changes
+
+- 0d46d32: Adding auth to the framework
+
+### Patch Changes
+
+- f9a208a: Check for CLI installation in quickstart
+
 ## 0.34.1
 
 ### Patch Changes
