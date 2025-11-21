@@ -1,6 +1,6 @@
 import { and, count, desc, eq, inArray } from 'drizzle-orm';
 import type { DatabaseClient } from '../db/client';
-import { subAgents } from '../db/schema';
+import { agents, subAgents } from '../db/schema';
 import type { SubAgentInsert, SubAgentSelect, SubAgentUpdate } from '../types/entities';
 import type { AgentScopeConfig, PaginationConfig } from '../types/utility';
 
@@ -146,8 +146,37 @@ export const upsertSubAgent =
     return await createSubAgent(db)(params.data);
   };
 
+export class SubAgentIsDefaultError extends Error {
+  constructor(
+    public subAgentId: string,
+    public agentId: string
+  ) {
+    super(
+      `Cannot delete sub-agent "${subAgentId}" because it is set as the default sub-agent for agent "${agentId}". Please change the default sub-agent before deleting.`
+    );
+    this.name = 'SubAgentIsDefaultError';
+  }
+}
+
 export const deleteSubAgent =
   (db: DatabaseClient) => async (params: { scopes: AgentScopeConfig; subAgentId: string }) => {
+    const agentUsingAsDefault = await db
+      .select()
+      .from(agents)
+      .where(
+        and(
+          eq(agents.tenantId, params.scopes.tenantId),
+          eq(agents.projectId, params.scopes.projectId),
+          eq(agents.id, params.scopes.agentId),
+          eq(agents.defaultSubAgentId, params.subAgentId)
+        )
+      )
+      .limit(1);
+
+    if (agentUsingAsDefault.length > 0) {
+      throw new SubAgentIsDefaultError(params.subAgentId, params.scopes.agentId);
+    }
+
     await db
       .delete(subAgents)
       .where(
