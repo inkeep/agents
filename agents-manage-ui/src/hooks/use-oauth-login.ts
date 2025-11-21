@@ -21,10 +21,12 @@ interface OAuthLoginResult {
     toolId,
     mcpServerUrl,
     toolName,
+    thirdPartyConnectAccountUrl,
   }: {
     toolId: string;
     mcpServerUrl: string;
     toolName: string;
+    thirdPartyConnectAccountUrl?: string;
   }) => Promise<void>;
 }
 
@@ -41,7 +43,7 @@ export function useOAuthLogin({
   const activeAttemptsRef = useRef(new Map<string, () => void>());
 
   const handleOAuthLoginManually = useCallback(
-    (toolId: string): Promise<void> => {
+    (toolId: string, thirdPartyConnectAccountUrl?: string): Promise<void> => {
       return new Promise((resolve, reject) => {
         // Clean up any previous attempt for this toolId
         const existingCleanup = activeAttemptsRef.current.get(toolId);
@@ -51,7 +53,7 @@ export function useOAuthLogin({
         }
 
         try {
-          const oauthUrl = getOAuthLoginUrl({
+          const oauthUrl = thirdPartyConnectAccountUrl ?? getOAuthLoginUrl({
             PUBLIC_INKEEP_AGENTS_MANAGE_API_URL,
             tenantId,
             projectId,
@@ -189,11 +191,19 @@ export function useOAuthLogin({
       toolId,
       mcpServerUrl,
       toolName,
+      thirdPartyConnectAccountUrl,
     }: {
       toolId: string;
       mcpServerUrl: string;
       toolName: string;
+      thirdPartyConnectAccountUrl?: string;
     }): Promise<void> => {
+
+      if (thirdPartyConnectAccountUrl) {
+        await handleOAuthLoginManually(toolId, thirdPartyConnectAccountUrl);
+        return;
+      }
+
       try {
         // Check credential stores availability
         const credentialStoresStatus = await listCredentialStores(tenantId, projectId);
