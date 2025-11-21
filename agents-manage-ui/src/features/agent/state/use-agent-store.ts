@@ -24,7 +24,7 @@ import type { AgentErrorSummary } from '@/lib/utils/agent-error-parser';
 
 type HistoryEntry = { nodes: Node[]; edges: Edge[] };
 
-type AgentStateData = {
+interface AgentStateData {
   nodes: Node[];
   edges: Edge[];
   metadata: AgentMetadata;
@@ -39,13 +39,17 @@ type AgentStateData = {
   future: HistoryEntry[];
   errors: AgentErrorSummary | null;
   showErrors: boolean;
+}
+
+interface AgentPersistedStateData {
   /**
    * Setting for using JSON Schema editor instead of Form builder.
    */
   jsonSchemaMode: boolean;
-};
+  isSidebarOpen: boolean;
+}
 
-type AgentActions = {
+interface AgentActions {
   setInitial(
     nodes: Node[],
     edges: Edge[],
@@ -89,13 +93,19 @@ type AgentActions = {
    * Setter for `jsonSchemaMode` field.
    */
   setJsonSchemaMode(jsonSchemaMode: boolean): void;
+  /**
+   * Setter for `isSidebarOpen` field.
+   */
+  setIsSidebarOpen(isSidebarOpen: boolean): void;
 
   animateGraph: EventListenerOrEventListenerObject;
-};
+}
 
-type AgentState = AgentStateData & {
+type AllAgentStateData = AgentStateData & AgentPersistedStateData;
+
+interface AgentState extends AllAgentStateData {
   actions: AgentActions;
-};
+}
 
 const initialAgentState: AgentStateData = {
   nodes: [],
@@ -124,11 +134,12 @@ const initialAgentState: AgentStateData = {
   future: [],
   errors: null,
   showErrors: false,
-  jsonSchemaMode: false,
 };
 
 const agentState: StateCreator<AgentState> = (set, get) => ({
   ...initialAgentState,
+  jsonSchemaMode: false,
+  isSidebarOpen: true,
   // Separate "namespace" for actions
   actions: {
     setInitial(
@@ -482,6 +493,9 @@ const agentState: StateCreator<AgentState> = (set, get) => ({
         return state;
       });
     },
+    setIsSidebarOpen(isSidebarOpen: boolean) {
+      set({ isSidebarOpen });
+    },
   },
 });
 
@@ -492,6 +506,7 @@ export const agentStore = create<AgentState>()(
       partialize(state) {
         return {
           jsonSchemaMode: state.jsonSchemaMode,
+          isSidebarOpen: state.isSidebarOpen,
         };
       },
     })
@@ -509,10 +524,10 @@ export const useAgentActions = () => agentStore((state) => state.actions);
 /**
  * Select values from the agent store (excluding actions).
  *
- * We explicitly use `AgentStateData` instead of `AgentState`,
+ * We explicitly use `AllAgentStateData` instead of `AgentState`,
  * which includes actions, to encourage using `useAgentActions`
  * when accessing or calling actions.
  */
-export function useAgentStore<T>(selector: (state: AgentStateData) => T): T {
+export function useAgentStore<T>(selector: (state: AllAgentStateData) => T): T {
   return agentStore(useShallow(selector));
 }
