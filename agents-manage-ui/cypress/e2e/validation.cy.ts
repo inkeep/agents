@@ -23,8 +23,6 @@ describe('Validation', () => {
     cy.window().then((win) => {
       const models = (win.monaco as typeof import('monaco-editor')).editor.getModels();
       const jsonModel = models.find((model) => model.uri.path.endsWith('.json'));
-      expect(jsonModel, 'JSON Monaco model').to.exist;
-
       jsonModel.setValue('foo bar');
     });
 

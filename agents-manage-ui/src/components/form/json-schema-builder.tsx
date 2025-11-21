@@ -1,4 +1,4 @@
-import { PlusIcon, TrashIcon, X } from 'lucide-react';
+import { Info, PlusIcon, TrashIcon, X } from 'lucide-react';
 import type { ComponentProps, Dispatch, FC, ReactNode } from 'react';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Badge } from '@/components/ui/badge';
@@ -19,7 +19,6 @@ import {
   fieldsToJsonSchema,
   findFieldById,
   type JsonSchemaStateData,
-  parseFieldsFromJson,
   Types,
   type TypeValues,
   useJsonSchemaActions,
@@ -60,10 +59,13 @@ interface PropertyProps {
 
 const Property: FC<PropertyProps> = ({ fieldId, depth = 0, prefix }) => {
   const selector = useMemo(
-    () => (state: JsonSchemaStateData) => findFieldById(state.fields, fieldId),
+    () => (state: JsonSchemaStateData) => ({
+      field: findFieldById(state.fields, fieldId),
+      hasInPreview: state.hasInPreview,
+    }),
     [fieldId]
   );
-  const field = useJsonSchemaStore(selector);
+  const { field, hasInPreview } = useJsonSchemaStore(selector);
 
   const { updateField, changeType, addChild, removeField, updateEnumValues } =
     useJsonSchemaActions();
@@ -76,7 +78,23 @@ const Property: FC<PropertyProps> = ({ fieldId, depth = 0, prefix }) => {
 
   const inputs = (
     <div className="flex gap-2 items-center" style={{ marginLeft: indentStyle }}>
-      {prefix}
+      {prefix ||
+        (hasInPreview && (
+          <Tooltip>
+            <TooltipTrigger asChild>
+              {/* without the wrapping div the checkbox doesn't get the data-state="checked" attribute and the styles are not applied */}
+              <div>
+                <Checkbox
+                  checked={field.isPreview}
+                  onCheckedChange={(checked) =>
+                    updateField(field.id, { isPreview: checked === true })
+                  }
+                />
+              </div>
+            </TooltipTrigger>
+            <TooltipContent>Mark this field as available immediately in UI</TooltipContent>
+          </Tooltip>
+        ))}
       <PropertyIcon type={field.type} />
       <SelectType
         value={field.type}
@@ -110,7 +128,7 @@ const Property: FC<PropertyProps> = ({ fieldId, depth = 0, prefix }) => {
               {/* without the wrapping div the checkbox doesn't get the data-state="checked" attribute and the styles are not applied */}
               <div>
                 <Checkbox
-                  checked={Boolean(field.isRequired)}
+                  checked={field.isRequired}
                   onCheckedChange={(checked) =>
                     updateField(field.id, { isRequired: checked === true })
                   }
@@ -225,16 +243,17 @@ const PropertyIcon: FC<{ type: TypeValues }> = ({ type }) => {
   return <Icon className={cn('shrink-0', ClassToUse[type])} />;
 };
 
-export const JsonSchemaBuilder: FC<{ value: string; onChange: (newValue: string) => void }> = ({
-  value,
-  onChange,
-}) => {
+export const JsonSchemaBuilder: FC<{
+  value: string;
+  onChange: (newValue: string) => void;
+  hasInPreview?: boolean;
+}> = ({ value, onChange, hasInPreview }) => {
   const fields = useJsonSchemaStore((state) => state.fields);
   const { addChild, setFields } = useJsonSchemaActions();
 
   // biome-ignore lint/correctness/useExhaustiveDependencies: run only on mount
   useEffect(() => {
-    setFields(parseFieldsFromJson(value));
+    setFields(value, hasInPreview);
   }, []);
 
   // Calls only on update to avoid race condition with above useEffect
@@ -247,14 +266,38 @@ export const JsonSchemaBuilder: FC<{ value: string; onChange: (newValue: string)
     const schema = fieldsToJsonSchema(root);
     const serialized = JSON.stringify(schema, null, 2);
     onChange(serialized);
-  }, [fields, onChange]);
+  }, [fields, hasInPreview, onChange]);
 
   return (
     <>
       <Table>
         <TableHeader>
           <TableRow noHover>
-            <TableHead className="w-[15%] text-center">Type</TableHead>
+            {hasInPreview && (
+              <TableHead className="w-px p-0">
+                <div className="flex items-center">
+                  In Preview
+                  <Tooltip>
+                    <TooltipTrigger>
+                      <Info className="w-3 h-3 text-muted-foreground ml-1" />
+                    </TooltipTrigger>
+                    <TooltipContent className="text-wrap">
+                      Specifies which fields will be immediately available.{' '}
+                      <a
+                        target="_blank"
+                        rel="noopener"
+                        href="https://docs.inkeep.com/visual-builder/structured-outputs/artifact-components#preview-fields"
+                        className="underline text-primary"
+                      >
+                        Learn more
+                      </a>
+                      .
+                    </TooltipContent>
+                  </Tooltip>
+                </div>
+              </TableHead>
+            )}
+            <TableHead className={hasInPreview ? 'w-1/10' : 'w-[15%] text-center'}>Type</TableHead>
             <TableHead className="w-[42%] text-center">Name</TableHead>
             <TableHead className="text-center">Description</TableHead>
             <TableHead className="w-px text-right">Required</TableHead>

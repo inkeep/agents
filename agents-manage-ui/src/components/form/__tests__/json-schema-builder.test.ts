@@ -1,5 +1,11 @@
 import type { JSONSchema7 } from 'json-schema';
-import { convertJsonSchemaToFields, fieldsToJsonSchema } from '@/features/agent/state/json-schema';
+import {
+  convertJsonSchemaToFields,
+  type EditableField,
+  fieldsToJsonSchema,
+  jsonSchemaStore,
+  type JSONSchemaWithPreview,
+} from '@/features/agent/state/json-schema';
 import { JSONSchemaFixture } from './json-schema-fixture';
 
 const schemaWithRef: JSONSchema7 = {
@@ -91,6 +97,32 @@ const schemaWithAnyOfResult: JSONSchema7 = {
   additionalProperties: false,
   required: ['contact'],
   title: 'User Contact',
+};
+
+const schemaWithPreview: JSONSchema7 = {
+  type: 'object',
+  properties: {
+    title: { type: 'string', inPreview: true } as JSONSchemaWithPreview,
+    body: { type: 'string' },
+  },
+};
+
+const fieldsWithPreview: EditableField = {
+  id: '__root__',
+  type: 'object',
+  properties: [
+    {
+      id: '__root__.title',
+      isPreview: true,
+      name: 'title',
+      type: 'string',
+    },
+    {
+      id: '__root__.body',
+      name: 'body',
+      type: 'string',
+    },
+  ],
 };
 
 describe('convertJsonSchemaToFields', () => {
@@ -215,5 +247,17 @@ describe('convertJsonSchemaToFields', () => {
   it('should fallback when JSON schema contains anyOf', () => {
     const schema = convertJsonSchemaToFields({ schema: schemaWithAnyOf });
     expect(fieldsToJsonSchema(schema)).toEqual(schemaWithAnyOfResult);
+  });
+
+  it('should include preview flags when enabled', () => {
+    jsonSchemaStore.setState({ hasInPreview: true });
+    const schema = convertJsonSchemaToFields({ schema: schemaWithPreview });
+    expect(schema).toEqual(fieldsWithPreview);
+  });
+
+  it('should ignore preview flags when disabled', () => {
+    jsonSchemaStore.setState({ hasInPreview: false });
+    const schema = fieldsToJsonSchema(fieldsWithPreview);
+    expect(schema.properties?.title).toEqual({ type: 'string' });
   });
 });
