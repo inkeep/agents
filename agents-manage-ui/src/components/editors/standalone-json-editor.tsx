@@ -1,21 +1,28 @@
 'use client';
 
-import { type FC, type ReactNode, useCallback } from 'react';
+import { type ComponentProps, type FC, type ReactNode, useCallback } from 'react';
 import { JsonEditor } from '@/components/editors/json-editor';
 import { Button } from '@/components/ui/button';
 import { createSchemaTemplate } from '@/lib/json-schema-validation';
 import { formatJson } from '@/lib/utils';
 
-interface StandaloneJsonEditorProps {
-  value?: string;
-  onChange: (value: string) => void;
-  placeholder?: string;
-  disabled?: boolean;
+type JsonEditorProps = ComponentProps<typeof JsonEditor>;
+
+interface StandaloneJsonEditorProps
+  extends Pick<
+    JsonEditorProps,
+    | 'value'
+    //
+    | 'placeholder'
+    | 'disabled'
+    | 'id'
+    | 'className'
+    | 'readOnly'
+    | 'aria-invalid'
+    | 'uri'
+  > {
+  onChange: NonNullable<JsonEditorProps['onChange']>;
   name?: string;
-  id?: string;
-  className?: string;
-  readOnly?: boolean;
-  'aria-invalid'?: boolean;
   actions?: ReactNode;
 }
 

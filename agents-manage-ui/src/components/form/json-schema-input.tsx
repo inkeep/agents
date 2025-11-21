@@ -17,6 +17,12 @@ interface JsonSchemaInputProps<T extends FieldValues> {
   readOnly?: boolean;
   isRequired?: boolean;
   hasInPreview?: boolean;
+  /**
+   * URIs that start with `json-schema-...` are validated against the JSON schema.
+   * In artifacts, we use custom JSON schemas with `inPreview` fields. To skip
+   * JSON schema validation, use a URI that starts with `custom-json-schema-...`.
+   */
+  uri?: `${string}json-schema-${string}.json`;
 }
 
 export function JsonSchemaInput<T extends FieldValues>({
@@ -29,6 +35,7 @@ export function JsonSchemaInput<T extends FieldValues>({
   readOnly,
   isRequired = false,
   hasInPreview,
+  uri,
 }: JsonSchemaInputProps<T>) {
   const isJsonSchemaModeChecked = useAgentStore((state) => state.jsonSchemaMode);
   const { setJsonSchemaMode } = useAgentActions();
@@ -57,6 +64,7 @@ export function JsonSchemaInput<T extends FieldValues>({
                 readOnly={readOnly}
                 disabled={disabled}
                 aria-invalid={!!fieldState.error}
+                uri={uri}
               />
             ) : (
               <JsonSchemaBuilder

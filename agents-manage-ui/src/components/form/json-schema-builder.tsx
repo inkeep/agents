@@ -85,7 +85,8 @@ const Property: FC<PropertyProps> = ({ fieldId, depth = 0, prefix }) => {
               {/* without the wrapping div the checkbox doesn't get the data-state="checked" attribute and the styles are not applied */}
               <div>
                 <Checkbox
-                  checked={field.isPreview}
+                  // !! fix warning: Checkbox is changing from uncontrolled to controlled.
+                  checked={!!field.isPreview}
                   onCheckedChange={(checked) =>
                     updateField(field.id, { isPreview: checked === true })
                   }

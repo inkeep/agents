@@ -32,36 +32,33 @@ describe('Components', () => {
       cy.visit('/default/projects/my-weather-project/components/new');
       cy.get('[role=switch]').click();
 
-      cy.window().then((win) => {
-        const [jsonModel] = (win.monaco as typeof import('monaco-editor')).editor.getModels();
-        const editorValue = {
-          type: 'object',
-          properties: {
-            num: {
-              type: 'number',
-              inPreview: true,
-            },
+      const editorValue = {
+        type: 'object',
+        properties: {
+          num: {
+            type: 'number',
+            inPreview: true,
           },
+        },
+      };
+      cy.typeInMonaco('json-schema-data-component.json', JSON.stringify(editorValue));
+
+      // Switch to form builder
+      cy.get('[role=switch]').click();
+      // Switch to JSON schema editor
+      cy.get('[role=switch]').click();
+      // Wait for updated editor value
+      cy.contains('"additionalProperties": false').should('exist');
+
+      cy.assertMonacoContent('json-schema-data-component.json', (content) => {
+        const newEditorValue = {
+          ...structuredClone(editorValue),
+          additionalProperties: false,
         };
+        delete newEditorValue.properties.num.inPreview;
 
-        jsonModel.setValue(JSON.stringify(editorValue, null, 2));
-
-        // Switch to form builder
-        cy.get('[role=switch]').click();
-        // Switch to JSON schema editor
-        cy.get('[role=switch]').click();
-        // Wait for updated editor value
-        cy.contains('"additionalProperties": false').should('exist');
-
-        cy.wrap(null).should(() => {
-          const newEditorValue = {
-            ...structuredClone(editorValue),
-            additionalProperties: false,
-          };
-          delete newEditorValue.properties.num.inPreview;
-          const [jsonModel] = win.monaco.editor.getModels();
-          expect(jsonModel.getValue()).to.eq(JSON.stringify(newEditorValue, null, 2));
-        });
+        // To compare objects by value, deep equality
+        expect(JSON.parse(content)).to.deep.equal(newEditorValue);
       });
     });
   });

@@ -132,6 +132,7 @@ export function ArtifactComponentForm({
             label="Properties"
             placeholder="Enter a valid JSON Schema with inPreview flags, or leave empty to save entire tool result..."
             description="Optional: Define specific fields with inPreview flags, or leave empty to capture the complete tool response."
+            uri="custom-json-schema-artifact-component.json"
             hasInPreview
           />
           <div className="flex w-full justify-between">
