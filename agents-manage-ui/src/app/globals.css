@@ -285,7 +285,7 @@
 
 /* Align toast error colors with `<GraphErrorSummaryComponent>` styling */
 li[data-sonner-toast][data-type="error"] {
-  @apply text-red-700 dark:text-red-400 border-red-200 dark:border-red-800 bg-red-50/50 dark:bg-red-950/30 backdrop-blur-sm shadow-xl;
+  @apply text-red-700 dark:text-red-400 border-red-200 dark:border-red-800 bg-red-50 dark:bg-red-950/30 backdrop-blur-sm shadow-xl;
 }
 
 /* Node execution pulse animation */
