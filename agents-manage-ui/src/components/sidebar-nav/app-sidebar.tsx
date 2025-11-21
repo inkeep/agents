@@ -115,9 +115,11 @@ export const AppSidebar: FC<AppSidebarProps> = ({ open, setOpen, ...props }) => 
       const isBlur = event.type === 'mouseleave';
 
       if (isBlur) {
-        const toElement = event.relatedTarget;
+        const blurToElement = event.relatedTarget;
         const insideMainContent =
-          toElement && toElement instanceof HTMLElement && !!toElement.closest('#main-content');
+          blurToElement &&
+          blurToElement instanceof HTMLElement &&
+          !!blurToElement.closest('#main-content');
 
         if (!insideMainContent) {
           return;
