@@ -1,5 +1,23 @@
 # @inkeep/agents-cli
 
+## 0.34.0
+
+### Patch Changes
+
+- 505749a: Fix orphaned resource deletion in full project updates - tools, functions, credentialReferences, externalAgents, dataComponents, and artifactComponents are now properly removed when not present in the update payload
+- 7f1b78a: fix linter errors
+- e07c709: Add Cursor command for creating PRs with changeset validation
+- fbf0d97: Add validation error when attempting to delete a sub-agent that is set as default
+- Updated dependencies [505749a]
+- Updated dependencies [7f1b78a]
+- Updated dependencies [777d8ef]
+- Updated dependencies [e07c709]
+- Updated dependencies [8af5738]
+- Updated dependencies [fbf0d97]
+  - @inkeep/agents-core@0.34.0
+  - @inkeep/agents-manage-ui@0.34.0
+  - @inkeep/agents-sdk@0.34.0
+
 ## 0.33.3
 
 ### Patch Changes

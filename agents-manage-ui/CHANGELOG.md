@@ -1,5 +1,27 @@
 # @inkeep/agents-manage-ui
 
+## 0.34.0
+
+### Minor Changes
+
+- 8af5738: - should collapses when opening an agent page and re-expands when returning to other page
+  - should keeps the sidebar collapsed after a manual toggle even when leaving the agent page
+
+### Patch Changes
+
+- 505749a: Fix orphaned resource deletion in full project updates - tools, functions, credentialReferences, externalAgents, dataComponents, and artifactComponents are now properly removed when not present in the update payload
+- 7f1b78a: fix linter errors
+- 777d8ef: UI improvements for Evaluations
+- e07c709: Add Cursor command for creating PRs with changeset validation
+- fbf0d97: Add validation error when attempting to delete a sub-agent that is set as default
+- Updated dependencies [505749a]
+- Updated dependencies [7f1b78a]
+- Updated dependencies [e07c709]
+- Updated dependencies [fbf0d97]
+  - @inkeep/agents-core@0.34.0
+  - @inkeep/agents-manage-api@0.34.0
+  - @inkeep/agents-run-api@0.34.0
+
 ## 0.33.3
 
 ### Patch Changes

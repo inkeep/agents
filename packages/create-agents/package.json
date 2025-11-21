@@ -1,6 +1,6 @@
 {
   "name": "@inkeep/create-agents",
-  "version": "0.33.3",
+  "version": "0.34.0",
   "description": "Create an Inkeep Agent Framework project",
   "type": "module",
   "bin": {
