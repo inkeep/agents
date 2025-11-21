@@ -3,7 +3,7 @@
 import { zodResolver } from '@hookform/resolvers/zod';
 import { Plus } from 'lucide-react';
 import { useRouter } from 'next/navigation';
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { toast } from 'sonner';
 import { z } from 'zod';
@@ -119,14 +119,7 @@ export function EvaluationRunConfigFormDialog({
     defaultValues: formatFormData(initialData),
   });
 
-  useEffect(() => {
-    if (isOpen) {
-      form.reset(formatFormData(initialData));
-      loadData();
-    }
-  }, [isOpen, initialData]);
-
-  const loadData = async () => {
+  const loadData = useCallback(async () => {
     setLoading(true);
     try {
       const [suiteConfigsRes, evaluatorsRes, agentsRes] = await Promise.all([
@@ -143,7 +136,14 @@ export function EvaluationRunConfigFormDialog({
     } finally {
       setLoading(false);
     }
-  };
+  }, [tenantId, projectId]);
+
+  useEffect(() => {
+    if (isOpen) {
+      form.reset(formatFormData(initialData));
+      loadData();
+    }
+  }, [isOpen, initialData, form, loadData]);
 
   const handleCreateSuiteConfig = async (data: SuiteConfigFormData) => {
     const isValid = await suiteConfigForm.trigger();
