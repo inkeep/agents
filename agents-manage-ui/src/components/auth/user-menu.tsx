@@ -12,10 +12,11 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { useAuthSession } from '@/hooks/use-auth';
-import { authClient } from '@/lib/auth-client';
+import { useAuthClient } from '@/lib/auth-client';
 
 export function UserMenu() {
   const { user, isLoading } = useAuthSession();
+  const authClient = useAuthClient();
   const router = useRouter();
 
   if (isLoading || !user) {

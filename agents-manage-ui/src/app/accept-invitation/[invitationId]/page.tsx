@@ -6,13 +6,14 @@ import { useEffect, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { useAuthSession } from '@/hooks/use-auth';
-import { authClient } from '@/lib/auth-client';
+import { useAuthClient } from '@/lib/auth-client';
 
 export default function AcceptInvitationPage() {
   const params = useParams();
   const router = useRouter();
   const { user, isLoading: isAuthLoading } = useAuthSession();
   const invitationId = params.invitationId as string;
+  const authClient = useAuthClient();
 
   const [invitation, setInvitation] = useState<any>(null);
   const [isLoading, setIsLoading] = useState(true);

@@ -9,12 +9,13 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { authClient } from '@/lib/auth-client';
+import { useAuthClient } from '@/lib/auth-client';
 
 function LoginForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const invitationId = searchParams.get('invitation');
+  const authClient = useAuthClient();
 
   // For OAuth, we need the full URL to redirect back to the UI
   const getFullCallbackURL = () => {

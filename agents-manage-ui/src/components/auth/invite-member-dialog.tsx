@@ -14,7 +14,7 @@ import {
 } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { authClient } from '@/lib/auth-client';
+import { useAuthClient } from '@/lib/auth-client';
 
 interface InviteMemberDialogProps {
   open: boolean;
@@ -24,6 +24,7 @@ interface InviteMemberDialogProps {
 export function InviteMemberDialog({ open, onOpenChange }: InviteMemberDialogProps) {
   const params = useParams();
   const organizationId = params.tenantId as string;
+  const authClient = useAuthClient();
   
   const [email, setEmail] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
