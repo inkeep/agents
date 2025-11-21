@@ -1,11 +1,14 @@
 import { Bug, X } from 'lucide-react';
-import { type Dispatch, useState } from 'react';
+import { type Dispatch, useEffect, useState } from 'react';
 import { toast } from 'sonner';
 import { TimelineWrapper } from '@/components/traces/timeline/timeline-wrapper';
 import { Button } from '@/components/ui/button';
 import { ResizableHandle, ResizablePanel, ResizablePanelGroup } from '@/components/ui/resizable';
+import { useAgentActions } from '@/features/agent/state/use-agent-store';
 import { useChatActivitiesPolling } from '@/hooks/use-chat-activities-polling';
+import { fetchDataComponentsAction } from '@/lib/actions/data-components';
 import type { DataComponent } from '@/lib/api/data-components';
+import { createLookup } from '@/lib/utils';
 import { generateId } from '@/lib/utils/id-utils';
 import { copyTraceToClipboard } from '@/lib/utils/trace-formatter';
 import { ChatWidget } from './chat-widget';
@@ -35,6 +38,7 @@ export const Playground = ({
   const [conversationId, setConversationId] = useState(generateId);
   const [customHeaders, setCustomHeaders] = useState<Record<string, string>>({});
   const [isCopying, setIsCopying] = useState(false);
+  const { setDataComponentLookup } = useAgentActions();
   const {
     chatActivities,
     isPolling,
@@ -46,6 +50,27 @@ export const Playground = ({
   } = useChatActivitiesPolling({
     conversationId,
   });
+
+  useEffect(() => {
+    const refetchDataComponents = async (event: any) => {
+      if (event.detail.type === 'tool_result' && event.detail.conversationId === conversationId) {
+        try {
+          const result = await fetchDataComponentsAction(tenantId, projectId);
+          if (result.success) {
+            const updatedLookup = createLookup(result.data);
+            setDataComponentLookup(updatedLookup);
+          }
+        } catch (error) {
+          console.error('Failed to refetch data components:', error);
+        }
+      }
+    };
+
+    document.addEventListener('ikp-data-operation', refetchDataComponents);
+    return () => {
+      document.removeEventListener('ikp-data-operation', refetchDataComponents);
+    };
+  }, [conversationId, tenantId, projectId, setDataComponentLookup]);
 
   const handleCopyTrace = async () => {
     if (!chatActivities) return;

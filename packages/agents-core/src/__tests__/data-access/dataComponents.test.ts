@@ -318,7 +318,7 @@ describe('Data Components Data Access', () => {
         props: {
           type: 'object',
           properties: {
-            key: { type: 'string' },
+            key: { type: 'string', description: 'A unique key identifier' },
           },
           required: ['key'],
         },
@@ -357,7 +357,7 @@ describe('Data Components Data Access', () => {
         props: {
           type: 'object',
           properties: {
-            key: { type: 'string' },
+            key: { type: 'string', description: 'A unique key identifier' },
           },
           required: ['key'],
         },

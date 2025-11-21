@@ -114,16 +114,30 @@ async function main() {
   console.log('✓ Speakeasy CLI found\n');
   console.log('🔄 Step 3: Running Speakeasy to generate TypeScript code...\n');
 
+  let speakeasyFailed = false;
   try {
     await runCommand('speakeasy', ['run']);
     console.log('\n✓ Successfully generated MCP server code\n');
   } catch (error) {
-    console.error('\n✗ Speakeasy generation failed:', error.message);
-    process.exit(1);
+    console.error('\n⚠️  Speakeasy generation had issues:', error.message);
+    console.log('Continuing with package.json restoration and manual build...\n');
+    speakeasyFailed = true;
   }
 
   console.log('🔄 Step 4: Restoring custom fields to package.json...\n');
   restorePackageJsonFields();
+
+  if (speakeasyFailed) {
+    console.log('🔄 Step 4.5: Running manual build with pnpm...\n');
+    try {
+      const packageDir = path.resolve(__dirname, '..');
+      await runCommand('pnpm', ['build'], { cwd: packageDir });
+      console.log('✓ Manual build completed successfully\n');
+    } catch (buildError) {
+      console.error('✗ Manual build failed:', buildError.message);
+      process.exit(1);
+    }
+  }
 
   console.log('🔄 Step 5: Running Biome to format code...\n');
 
