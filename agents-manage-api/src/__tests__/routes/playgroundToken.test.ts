@@ -1,4 +1,6 @@
+import { listApiKeys } from '@inkeep/agents-core';
 import { describe, expect, it } from 'vitest';
+import dbClient from '../../data/db/dbClient';
 import { env } from '../../env';
 import { makeRequest } from '../utils/testRequest';
 import { createTestTenantWithOrg } from '../utils/testTenant';
@@ -9,9 +11,9 @@ describe('Playground Token Routes', () => {
 
   describe('POST /api/playground/token', () => {
     it.skipIf(env.DISABLE_AUTH || process.env.ENVIRONMENT === 'test')(
-      'should generate temporary API key with valid session',
+      'should generate JWT token (not database API key)',
       async () => {
-        const tenantId = await createTestTenantWithOrg('playground-token-success');
+        const tenantId = await createTestTenantWithOrg('playground-jwt-success');
 
         const response = await makeRequest('/api/playground/token', {
           method: 'POST',
@@ -30,7 +32,9 @@ describe('Playground Token Routes', () => {
 
         expect(data).toHaveProperty('apiKey');
         expect(data).toHaveProperty('expiresAt');
-        expect(data.apiKey).toMatch(/^sk_/);
+
+        // JWT tokens start with 'eyJ' (base64url encoded header)
+        expect(data.apiKey).toMatch(/^eyJ/);
         expect(typeof data.expiresAt).toBe('string');
 
         // Verify expiry is approximately 1 hour from now
@@ -40,6 +44,13 @@ describe('Playground Token Routes', () => {
         const diffMs = Math.abs(expiryDate.getTime() - hourFromNow.getTime());
 
         expect(diffMs).toBeLessThan(5000);
+
+        // Should NOT be in database (JWTs are stateless)
+        const apiKeys = await listApiKeys(dbClient)({
+          scopes: { tenantId, projectId },
+        });
+        const hasMatchingKey = apiKeys.some((key) => key.keyPrefix?.includes('temp'));
+        expect(hasMatchingKey).toBe(false);
       }
     );
 
@@ -85,7 +96,7 @@ describe('Playground Token Routes', () => {
     );
 
     it.skipIf(env.DISABLE_AUTH || process.env.ENVIRONMENT === 'test')(
-      'should create unique keys for multiple requests',
+      'should create unique JWT tokens for multiple requests',
       async () => {
         const tenantId = await createTestTenantWithOrg('playground-token-unique');
 
@@ -119,9 +130,11 @@ describe('Playground Token Routes', () => {
         const data1 = await response1.json();
         const data2 = await response2.json();
 
+        // JWTs should be different (different jti claim)
         expect(data1.apiKey).not.toBe(data2.apiKey);
+        expect(data1.apiKey).toMatch(/^eyJ/);
+        expect(data2.apiKey).toMatch(/^eyJ/);
       }
     );
   });
 });
-

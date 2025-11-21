@@ -208,6 +208,8 @@ export default {
             'self-hosting/docker-build',
           ],
         },
+        'self-hosting/jwt-keys',
+        'self-hosting/configure-runtime-limits',
         {
           group: 'Add Services',
           icon: 'LuPackage',

@@ -16,14 +16,20 @@ function hasStatusCode(obj: unknown): obj is { status: number } {
 }
 
 function isApiError(obj: unknown): obj is { status: number; error: { message: string } } {
+  if (typeof obj !== 'object' || obj === null) {
+    return false;
+  }
+
+  const record = obj as Record<string, unknown>;
+
   return (
-    typeof obj === 'object' &&
-    obj !== null &&
-    'status' in obj &&
-    typeof (obj as { status: unknown }).status === 'number' &&
-    'error' in obj &&
-    typeof (obj as any).error === 'object' &&
-    (obj as any).error !== null
+    'status' in record &&
+    typeof record.status === 'number' &&
+    'error' in record &&
+    typeof record.error === 'object' &&
+    record.error !== null &&
+    'message' in (record.error as Record<string, unknown>) &&
+    typeof (record.error as Record<string, unknown>).message === 'string'
   );
 }
 

@@ -4,6 +4,7 @@ import {
   validateAndGetApiKey,
   validateTargetAgent,
   verifyServiceToken,
+  verifyTempToken,
 } from '@inkeep/agents-core';
 import { createMiddleware } from 'hono/factory';
 import { HTTPException } from 'hono/http-exception';
@@ -49,6 +50,37 @@ export const apiKeyAuth = () =>
       if (authHeader?.startsWith('Bearer ')) {
         // Try to authenticate as a API key
         const apiKey = authHeader.substring(7);
+        
+        // Check if it's a JWT (starts with ey)
+        if (apiKey.startsWith('ey') && env.INKEEP_AGENTS_TEMP_JWT_PUBLIC_KEY) {
+          try {
+            const publicKeyPem = Buffer.from(
+              env.INKEEP_AGENTS_TEMP_JWT_PUBLIC_KEY,
+              'base64'
+            ).toString('utf-8');
+
+            const payload = await verifyTempToken(publicKeyPem, apiKey);
+
+            executionContext = createExecutionContext({
+              apiKey: apiKey,
+              tenantId: payload.tenantId,
+              projectId: payload.projectId,
+              agentId: payload.agentId,
+              apiKeyId: 'temp-jwt',
+              baseUrl: baseUrl,
+              subAgentId: subAgentId,
+              metadata: { initiatedBy: payload.initiatedBy },
+            });
+
+            c.set('executionContext', executionContext);
+            logger.info({}, 'JWT temp token authenticated successfully');
+            await next();
+            return;
+          } catch (error) {
+            logger.debug({ error }, 'JWT verification failed, trying API key');
+          }
+        }
+        
         try {
           executionContext = await extractContextFromApiKey(apiKey, baseUrl);
           if (subAgentId) {
@@ -107,6 +139,36 @@ export const apiKeyAuth = () =>
 
     const apiKey = authHeader.substring(7);
 
+    // Check if it's a JWT temporary token (starts with 'eyJ')
+    if (apiKey.startsWith('eyJ') && env.INKEEP_AGENTS_TEMP_JWT_PUBLIC_KEY) {
+      try {
+        const publicKeyPem = Buffer.from(env.INKEEP_AGENTS_TEMP_JWT_PUBLIC_KEY, 'base64').toString(
+          'utf-8'
+        );
+
+        const payload = await verifyTempToken(publicKeyPem, apiKey);
+
+        const executionContext = createExecutionContext({
+          apiKey: apiKey,
+          tenantId: payload.tenantId,
+          projectId: payload.projectId,
+          agentId: payload.agentId,
+          apiKeyId: 'temp-jwt',
+          baseUrl: baseUrl,
+          subAgentId: subAgentId,
+          metadata: { initiatedBy: payload.initiatedBy },
+        });
+
+        c.set('executionContext', executionContext);
+        logger.info({}, 'JWT temp token authenticated successfully');
+        await next();
+        return;
+      } catch (error) {
+        logger.debug({ error }, 'JWT verification failed, trying regular API key');
+      }
+    }
+
+    // If bypass secret is configured, check it first (production mode bypass)
     if (env.INKEEP_AGENTS_RUN_API_BYPASS_SECRET) {
       if (apiKey === env.INKEEP_AGENTS_RUN_API_BYPASS_SECRET) {
         if (!tenantId || !projectId || !agentId) {
@@ -131,7 +193,8 @@ export const apiKeyAuth = () =>
 
         await next();
         return;
-      } else if (apiKey) {
+      }
+      if (apiKey) {
         try {
           const executionContext = await extractContextFromApiKey(apiKey, baseUrl);
           if (subAgentId) {
@@ -152,11 +215,10 @@ export const apiKeyAuth = () =>
 
         await next();
         return;
-      } else {
-        throw new HTTPException(401, {
-          message: 'Invalid Token',
-        });
       }
+      throw new HTTPException(401, {
+        message: 'Invalid Token',
+      });
     }
 
     if (!apiKey || apiKey.length < 16) {
