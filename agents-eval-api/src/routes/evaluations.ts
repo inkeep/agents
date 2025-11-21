@@ -2570,12 +2570,63 @@ app.openapi(
       // Create dataset run immediately and process items asynchronously
       try {
         const datasetRunId = generateId();
+        
+        // Create evaluation job config first if evaluators are provided
+        let evalJobConfigId: string | undefined;
+        if (evaluatorIds && Array.isArray(evaluatorIds) && evaluatorIds.length > 0) {
+          evalJobConfigId = generateId();
+          await createEvaluationJobConfig(dbClient)({
+            id: evalJobConfigId,
+            tenantId,
+            projectId,
+            jobFilters: {
+              datasetRunIds: [datasetRunId],
+            },
+          } as any);
+
+          // Create evaluator relations
+          await Promise.all(
+            evaluatorIds.map((evaluatorId: string) =>
+              createEvaluationJobConfigEvaluatorRelation(dbClient)({
+                tenantId,
+                projectId,
+                id: generateId(),
+                evaluationJobConfigId: evalJobConfigId!,
+                evaluatorId,
+              } as any)
+            )
+          );
+
+          // Create evaluation run for this job
+          const evaluationRunId = generateId();
+          await createEvaluationRun(dbClient)({
+            id: evaluationRunId,
+            tenantId,
+            projectId,
+            evaluationJobConfigId: evalJobConfigId,
+          });
+
+          logger.info(
+            {
+              tenantId,
+              projectId,
+              datasetRunId,
+              evalJobConfigId,
+              evaluationRunId,
+              evaluatorCount: evaluatorIds.length,
+            },
+            'Evaluation job config and run created before dataset run'
+          );
+        }
+
+        // Create dataset run with evaluation job config if available
         await createDatasetRun(dbClient)({
           id: datasetRunId,
           tenantId,
           projectId,
           datasetId: runConfigData.datasetId,
           datasetRunConfigId: id,
+          evaluationJobConfigId: evalJobConfigId,
         });
 
         logger.info(
@@ -2584,6 +2635,7 @@ app.openapi(
             projectId,
             runConfigId: id,
             datasetRunId,
+            hasEvalJobConfig: !!evalJobConfigId,
           },
           'Dataset run created, processing items asynchronously'
         );
@@ -2641,14 +2693,14 @@ app.openapi(
             for (const agentRelation of agentRelations) {
               for (const datasetItem of datasetItems) {
                 try {
-                  // Pass datasetRunConfigId to the chat API via header so it can skip automatic triggers
+                  // Pass datasetRunId to the chat API via header so it can link to the evaluation job
                   // The relation will be created after the conversation completes
                   const result = await evaluationService.runDatasetItem({
                     tenantId,
                     projectId,
                     agentId: agentRelation.agentId,
                     datasetItem,
-                    datasetRunConfigId: id,
+                    datasetRunId,
                   });
 
                   // Only create conversation relation if the API call succeeded
@@ -2744,125 +2796,17 @@ app.openapi(
               'Dataset run processing completed'
             );
 
-            // Create evaluation job if evaluators are configured
+            // Evaluation job already created before dataset run processing
+            // (created before processing items to avoid race conditions)
             logger.info(
               {
                 tenantId,
                 projectId,
                 datasetRunId,
-                hasEvaluators:
-                  evaluatorIds && Array.isArray(evaluatorIds) && evaluatorIds.length > 0,
-                evaluatorIds,
                 conversationCount: conversationRelations.length,
               },
-              'Checking if evaluation job should be created for dataset run'
+              'Dataset run processing complete - evaluations will trigger as conversations complete'
             );
-
-            if (
-              evaluatorIds &&
-              Array.isArray(evaluatorIds) &&
-              evaluatorIds.length > 0 &&
-              conversationRelations.length > 0
-            ) {
-              try {
-                logger.info(
-                  {
-                    tenantId,
-                    projectId,
-                    datasetRunId,
-                    evaluatorCount: evaluatorIds.length,
-                    evaluatorIds,
-                    conversationCount: conversationRelations.length,
-                  },
-                  'Creating evaluation job for dataset run'
-                );
-
-                const evalJobConfigId = generateId();
-                await createEvaluationJobConfig(dbClient)({
-                  id: evalJobConfigId,
-                  tenantId,
-                  projectId,
-                  jobFilters: {
-                    datasetRunIds: [datasetRunId],
-                  },
-                } as any);
-
-                logger.info(
-                  {
-                    tenantId,
-                    projectId,
-                    datasetRunId,
-                    evalJobConfigId,
-                  },
-                  'Evaluation job config created'
-                );
-
-                // Link evaluation job to dataset run
-                await updateDatasetRun(dbClient)({
-                  scopes: { tenantId, projectId, datasetRunId },
-                  data: { evaluationJobConfigId: evalJobConfigId },
-                });
-
-                logger.info(
-                  {
-                    tenantId,
-                    projectId,
-                    datasetRunId,
-                    evalJobConfigId,
-                  },
-                  'Linked evaluation job to dataset run'
-                );
-
-                // Create evaluator relations
-                await Promise.all(
-                  evaluatorIds.map((evaluatorId: string) =>
-                    createEvaluationJobConfigEvaluatorRelation(dbClient)({
-                      tenantId,
-                      projectId,
-                      id: generateId(),
-                      evaluationJobConfigId: evalJobConfigId,
-                      evaluatorId,
-                    } as any)
-                  )
-                );
-
-                logger.info(
-                  {
-                    tenantId,
-                    projectId,
-                    datasetRunId,
-                    evalJobConfigId,
-                    evaluatorIds,
-                    evaluatorCount: evaluatorIds.length,
-                  },
-                  'Evaluation job config created for dataset run - evaluations will trigger as conversations complete'
-                );
-              } catch (evalError) {
-                logger.error(
-                  {
-                    error: evalError,
-                    tenantId,
-                    projectId,
-                    datasetRunId,
-                    evaluatorIds,
-                  },
-                  'Failed to create evaluation job for dataset run (non-blocking)'
-                );
-              }
-            } else {
-              logger.info(
-                {
-                  tenantId,
-                  projectId,
-                  datasetRunId,
-                  hasEvaluators:
-                    evaluatorIds && Array.isArray(evaluatorIds) && evaluatorIds.length > 0,
-                  evaluatorIds,
-                  conversationCount: conversationRelations.length,
-                },
-                'Skipping evaluation job creation - no evaluators or no conversations'
-              );
-            }
           } catch (processError) {
             logger.error(
               {
