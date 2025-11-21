@@ -1,5 +1,19 @@
 # @inkeep/agents-manage-ui
 
+## 0.35.1
+
+### Patch Changes
+
+- 23c5018: Disable quick suggestions in prompt editor
+- fc243b4: fix baseUrl for auth client
+- 6fdfb87: `inPreview` property is missing in JSON and form builder in artifacts page
+- 447bdf2: - allow saving JSON schema without `required` field
+  - highlight header of form builder if there are errors
+  - highlight border of JSON Schema editor if there are errors
+  - @inkeep/agents-manage-api@0.35.1
+  - @inkeep/agents-run-api@0.35.1
+  - @inkeep/agents-core@0.35.1
+
 ## 0.35.0
 
 ### Minor Changes
