@@ -11,6 +11,7 @@ import {
   PaginationQueryParamsSchema,
   SubAgentApiInsertSchema,
   SubAgentApiUpdateSchema,
+  SubAgentIsDefaultError,
   SubAgentListResponse,
   SubAgentResponse,
   TenantProjectAgentIdParamsSchema,
@@ -241,24 +242,42 @@ app.openapi(
           },
         },
       },
+      409: {
+        description: 'SubAgent is set as default and cannot be deleted',
+        content: {
+          'application/json': {
+            schema: ErrorResponseSchema,
+          },
+        },
+      },
     },
   }),
   async (c) => {
     const { tenantId, projectId, agentId, id } = c.req.valid('param');
 
-    const deleted = await deleteSubAgent(dbClient)({
-      scopes: { tenantId, projectId, agentId },
-      subAgentId: id,
-    });
-
-    if (!deleted) {
-      throw createApiError({
-        code: 'not_found',
-        message: 'SubAgent not found',
+    try {
+      const deleted = await deleteSubAgent(dbClient)({
+        scopes: { tenantId, projectId, agentId },
+        subAgentId: id,
       });
-    }
 
-    return c.body(null, 204);
+      if (!deleted) {
+        throw createApiError({
+          code: 'not_found',
+          message: 'SubAgent not found',
+        });
+      }
+
+      return c.body(null, 204);
+    } catch (error) {
+      if (error instanceof SubAgentIsDefaultError) {
+        throw createApiError({
+          code: 'conflict',
+          message: error.message,
+        });
+      }
+      throw error;
+    }
   }
 );
 
