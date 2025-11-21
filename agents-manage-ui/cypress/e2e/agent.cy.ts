@@ -41,7 +41,7 @@ describe('Agent', () => {
   });
 
   describe('Prompt', () => {
-    it.only('should suggest autocomplete in prompt editor from context variables editor and headers JSON schema editor', () => {
+    it('should suggest autocomplete in prompt editor from context variables editor and headers JSON schema editor', () => {
       cy.visit('/default/projects/my-weather-project/agents/weather-agent?pane=agent');
 
       cy.typeInMonaco('contextVariables.json', '{"contextVariablesValue":123}');

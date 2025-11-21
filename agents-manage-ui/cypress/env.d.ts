@@ -7,7 +7,7 @@ declare namespace globalThis {
 declare namespace globalThis {
   namespace Cypress {
     interface Chainable {
-      typeInMonaco(uri: string, value: string): Chainable<JQuery<HTMLElement>>;
+      typeInMonaco(uri: string, value: string): Chainable<JQuery>;
     }
   }
 }
