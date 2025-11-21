@@ -622,7 +622,7 @@ export const RelatedAgentInfoSchema = z
   .object({
     id: z.string(),
     name: z.string(),
-    description: z.string(),
+    description: z.string().nullable(),
   })
   .openapi('RelatedAgentInfo');
 
