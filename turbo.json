@@ -95,7 +95,7 @@
       "outputs": []
     },
     "@inkeep/agents-docs#typecheck": {
-      "dependsOn": ["^build"],
+      "dependsOn": ["build"],
       "inputs": ["$TURBO_DEFAULT$"],
       "outputs": [".next/**"]
     },
