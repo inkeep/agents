@@ -46,7 +46,7 @@ interface ExecutionHandlerParams {
   requestId: string;
   sseHelper: StreamHelper;
   emitOperations?: boolean;
-  datasetRunConfigId?: string; // Optional flag to indicate this is a dataset run conversation
+  datasetRunId?: string; // Optional: ID of the dataset run this conversation belongs to
 }
 
 interface ExecutionResult {
@@ -492,22 +492,22 @@ export class ExecutionHandler {
               // Unified evaluation handling for ALL conversations (dataset and regular)
               (async () => {
                 try {
-                  const isDatasetRun = !!params.datasetRunConfigId;
+                  const isDatasetRun = !!params.datasetRunId;
 
                   if (isDatasetRun) {
                     logger.info(
-                      { conversationId, datasetRunConfigId: params.datasetRunConfigId },
+                      { conversationId, datasetRunId: params.datasetRunId },
                       'Triggering evaluation for dataset conversation'
                     );
 
                     const evalJobConfig = await getEvaluationJobConfigByDatasetRunId(dbClient)({
                       scopes: { tenantId, projectId },
-                      datasetRunId: params.datasetRunConfigId!,
+                      datasetRunId: params.datasetRunId!,
                     });
 
                     if (!evalJobConfig) {
                       logger.warn(
-                        { conversationId, datasetRunConfigId: params.datasetRunConfigId },
+                        { conversationId, datasetRunId: params.datasetRunId },
                         'No eval job config found for dataset run'
                       );
                       return;

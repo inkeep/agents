@@ -1369,25 +1369,29 @@ export const getEvaluationJobConfigByDatasetRunId =
     scopes: ProjectScopeConfig;
     datasetRunId: string;
   }): Promise<EvaluationJobConfigSelect | null> => {
-    const configs = await db
-      .select()
-      .from(evaluationJobConfig)
-      .where(
+    const run = await db.query.datasetRun.findFirst({
+      where: (datasetRun, { eq, and }) =>
         and(
-          eq(evaluationJobConfig.tenantId, params.scopes.tenantId),
-          eq(evaluationJobConfig.projectId, params.scopes.projectId)
-        )
-      );
-
-    const match = configs.find((config) => {
-      if (config.jobFilters && typeof config.jobFilters === 'object') {
-        const filters = config.jobFilters as { datasetRunId?: string };
-        return filters.datasetRunId === params.datasetRunId;
-      }
-      return false;
+          eq(datasetRun.tenantId, params.scopes.tenantId),
+          eq(datasetRun.projectId, params.scopes.projectId),
+          eq(datasetRun.id, params.datasetRunId)
+        ),
     });
 
-    return match ?? null;
+    if (!run || !run.evaluationJobConfigId) {
+      return null;
+    }
+
+    const config = await db.query.evaluationJobConfig.findFirst({
+      where: (evaluationJobConfig, { eq, and }) =>
+        and(
+          eq(evaluationJobConfig.tenantId, params.scopes.tenantId),
+          eq(evaluationJobConfig.projectId, params.scopes.projectId),
+          eq(evaluationJobConfig.id, run.evaluationJobConfigId!)
+        ),
+    });
+
+    return config ?? null;
   };
 
 export const createEvaluationJobConfig =

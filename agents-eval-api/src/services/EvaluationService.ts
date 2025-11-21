@@ -142,7 +142,7 @@ export interface RunDatasetItemOptions {
   projectId: string;
   agentId: string;
   datasetItem: DatasetItemSelect;
-  datasetRunConfigId: string;
+  datasetRunId: string;
   conversationId?: string;
   apiKey?: string;
 }
@@ -173,7 +173,7 @@ export class EvaluationService {
       projectId,
       agentId,
       datasetItem,
-      datasetRunConfigId,
+      datasetRunId,
       conversationId,
       apiKey,
     } = options;
@@ -205,7 +205,7 @@ export class EvaluationService {
           projectId,
           agentId,
           datasetItem,
-          datasetRunConfigId,
+          datasetRunId,
           conversationId: finalConversationId,
           apiKey,
           initialMessages,
@@ -223,7 +223,7 @@ export class EvaluationService {
         projectId,
         agentId,
         datasetItem,
-        datasetRunConfigId,
+        datasetRunId,
         conversationId: finalConversationId,
         apiKey,
         messages: initialMessages,
@@ -250,7 +250,7 @@ export class EvaluationService {
     projectId: string;
     agentId: string;
     datasetItem: DatasetItemSelect;
-    datasetRunConfigId: string;
+    datasetRunId: string;
     conversationId: string;
     apiKey?: string;
     messages: Array<{ role: string; content: unknown }>;
@@ -260,7 +260,7 @@ export class EvaluationService {
       projectId,
       agentId,
       datasetItem,
-      datasetRunConfigId,
+      datasetRunId,
       conversationId,
       apiKey,
       messages,
@@ -279,9 +279,9 @@ export class EvaluationService {
       'x-inkeep-tenant-id': tenantId,
       'x-inkeep-project-id': projectId,
       'x-inkeep-agent-id': agentId,
-      // Pass datasetRunConfigId as a header to indicate this is a dataset run conversation
-      // This allows the chat API to skip automatic evaluation triggers
-      ...(datasetRunConfigId && { 'x-inkeep-dataset-run-config-id': datasetRunConfigId }),
+      // Pass datasetRunId as a header to link this conversation to the dataset run
+      // This allows the run-api to find the evaluation job config
+      ...(datasetRunId && { 'x-inkeep-dataset-run-id': datasetRunId }),
     };
 
     logger.info(
@@ -290,7 +290,7 @@ export class EvaluationService {
         projectId,
         agentId,
         datasetItemId: datasetItem.id,
-        datasetRunConfigId,
+        datasetRunId,
         conversationId,
       },
       'Running dataset item through chat API'
@@ -362,7 +362,7 @@ export class EvaluationService {
     projectId: string;
     agentId: string;
     datasetItem: DatasetItemSelect;
-    datasetRunConfigId: string;
+    datasetRunId: string;
     conversationId: string;
     apiKey?: string;
     initialMessages: Array<{ role: string; content: unknown }>;
@@ -377,7 +377,7 @@ export class EvaluationService {
       projectId,
       agentId,
       datasetItem,
-      datasetRunConfigId,
+      datasetRunId,
       conversationId,
       apiKey,
       initialMessages,
@@ -407,16 +407,16 @@ export class EvaluationService {
     let stepCount = 0;
 
     // Initial turn: send initial messages to agent under test
-    const initialResult = await this.runSingleTurn({
-      tenantId,
-      projectId,
-      agentId,
-      datasetItem,
-      datasetRunConfigId,
-      conversationId,
-      apiKey,
-      messages: initialMessages,
-    });
+      const initialResult = await this.runSingleTurn({
+        tenantId,
+        projectId,
+        agentId,
+        datasetItem,
+        datasetRunId,
+        conversationId,
+        apiKey,
+        messages: initialMessages,
+      });
 
     if (initialResult.error || !initialResult.response) {
       return initialResult;
@@ -478,7 +478,7 @@ export class EvaluationService {
           projectId,
           agentId,
           datasetItem,
-          datasetRunConfigId,
+          datasetRunId,
           conversationId,
           apiKey,
           messages: [{ role: 'user', content: nextUserMessage }],
@@ -1298,32 +1298,109 @@ Return ONLY valid JSON, no markdown formatting, no code blocks.`;
    */
   private async fetchTraceFromSigNoz(conversationId: string): Promise<any | null> {
     const manageUIUrl = env.AGENTS_MANAGE_UI_URL;
+    const maxRetries = 2;
+    const retryDelayMs = 20000;
+    const initialDelayMs = 30000;
 
     try {
-      logger.info({ conversationId, manageUIUrl }, 'Fetching trace from SigNoz');
+      logger.info({ conversationId, manageUIUrl, initialDelayMs }, 'Waiting 30s before fetching trace from SigNoz');
+      
+      await new Promise((resolve) => setTimeout(resolve, initialDelayMs));
 
-      const traceResponse = await fetch(
-        `${manageUIUrl}/api/signoz/conversations/${conversationId}`
-      );
+      for (let attempt = 0; attempt <= maxRetries; attempt++) {
+        try {
+          logger.info(
+            { conversationId, attempt: attempt + 1, maxRetries: maxRetries + 1 },
+            'Fetching trace from SigNoz'
+          );
 
-      if (!traceResponse.ok) {
-        logger.warn(
-          { conversationId, status: traceResponse.status, statusText: traceResponse.statusText },
-          'Failed to fetch trace from SigNoz'
-        );
-        return null;
+          const traceResponse = await fetch(
+            `${manageUIUrl}/api/signoz/conversations/${conversationId}`
+          );
+
+          if (!traceResponse.ok) {
+            logger.warn(
+              { conversationId, status: traceResponse.status, statusText: traceResponse.statusText, attempt: attempt + 1 },
+              'Failed to fetch trace from SigNoz'
+            );
+
+            if (attempt < maxRetries) {
+              logger.info({ conversationId, retryDelayMs }, 'Retrying trace fetch after delay');
+              await new Promise((resolve) => setTimeout(resolve, retryDelayMs));
+              continue;
+            }
+
+            return null;
+          }
+
+          const conversationDetail = (await traceResponse.json()) as any;
+
+          // Debug: Log activity names to see what we're getting
+          logger.debug(
+            {
+              conversationId,
+              activityNames: conversationDetail.activities?.map((a: any) => a.name) || [],
+              activityCount: conversationDetail.activities?.length || 0,
+            },
+            'Checking activities for execution_handler.execute span'
+          );
+
+          const hasExecutionHandlerSpan = conversationDetail.activities?.some(
+            (activity: any) => activity.name === 'execution_handler.execute'
+          );
+
+          if (!hasExecutionHandlerSpan) {
+            logger.warn(
+              { 
+                conversationId, 
+                attempt: attempt + 1, 
+                activityCount: conversationDetail.activities?.length || 0,
+                activityNames: conversationDetail.activities?.slice(0, 5).map((a: any) => a.name) || []
+              },
+              'Trace fetched but execution_handler.execute span not found'
+            );
+
+            if (attempt < maxRetries) {
+              logger.info(
+                { conversationId, retryDelayMs },
+                'Retrying trace fetch after delay to wait for span'
+              );
+              await new Promise((resolve) => setTimeout(resolve, retryDelayMs));
+              continue;
+            }
+
+            logger.warn(
+              { conversationId, maxRetries },
+              'Max retries reached, execution_handler.execute span not found'
+            );
+            return null;
+          }
+
+          logger.info(
+            { conversationId, activityCount: conversationDetail.activities?.length || 0, attempt: attempt + 1 },
+            'Trace fetched successfully with execution_handler.execute span'
+          );
+
+          const prettifiedTrace = this.formatConversationAsPrettifiedTrace(conversationDetail);
+
+          return prettifiedTrace;
+        } catch (fetchError) {
+          logger.warn(
+            { error: fetchError, conversationId, attempt: attempt + 1 },
+            'Error fetching trace from SigNoz'
+          );
+
+          if (attempt < maxRetries) {
+            logger.info({ conversationId, retryDelayMs }, 'Retrying trace fetch after delay');
+            await new Promise((resolve) => setTimeout(resolve, retryDelayMs));
+            continue;
+          }
+
+          return null;
+        }
       }
 
-      const conversationDetail = (await traceResponse.json()) as any;
-
-      logger.info(
-        { conversationId, activityCount: conversationDetail.activities?.length || 0 },
-        'Trace fetched successfully'
-      );
-
-      const prettifiedTrace = this.formatConversationAsPrettifiedTrace(conversationDetail);
-
-      return prettifiedTrace;
+      return null;
     } catch (error) {
       logger.warn(
         { error, conversationId, manageUIUrl },
