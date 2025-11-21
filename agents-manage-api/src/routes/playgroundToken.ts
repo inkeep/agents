@@ -1,9 +1,8 @@
 import { createRoute, OpenAPIHono, z } from '@hono/zod-openapi';
-import { ErrorResponseSchema } from '@inkeep/agents-core';
-import dbClient from '../data/db/dbClient';
+import { createApiError, ErrorResponseSchema, signTempToken } from '@inkeep/agents-core';
+import { env } from '../env';
 import { getLogger } from '../logger';
 import type { BaseAppVariables } from '../types/app';
-import { createTempApiKey } from '../utils/temp-api-keys';
 
 const logger = getLogger('playgroundToken');
 
@@ -64,22 +63,37 @@ app.openapi(
 
     logger.info(
       { userId, tenantId, projectId, agentId },
-      'Generating temporary API key for playground'
+      'Generating temporary JWT token for playground'
     );
 
-    const result = await createTempApiKey(dbClient, {
-      tenantId,
-      projectId,
-      agentId,
-      userId,
-      expiryHours: 1,
-    });
+    if (!env.INKEEP_AGENTS_TEMP_JWT_PRIVATE_KEY) {
+      throw createApiError({
+        code: 'internal_server_error',
+        message: 'Temporary token signing not configured',
+      });
+    }
 
-    logger.info({ userId, expiresAt: result.expiresAt }, 'Temporary API key generated');
+    const privateKeyPem = Buffer.from(env.INKEEP_AGENTS_TEMP_JWT_PRIVATE_KEY, 'base64').toString(
+      'utf-8'
+    );
+
+    const result = await signTempToken(
+      privateKeyPem,
+      {
+        tenantId,
+        projectId,
+        agentId,
+        type: 'temporary',
+        initiatedBy: { type: 'user', id: userId },
+      },
+      userId
+    );
+
+    logger.info({ userId, expiresAt: result.expiresAt }, 'Temporary JWT token generated');
 
     return c.json(
       {
-        apiKey: result.apiKey,
+        apiKey: result.token,
         expiresAt: result.expiresAt,
       },
       200
@@ -88,4 +102,3 @@ app.openapi(
 );
 
 export default app;
-

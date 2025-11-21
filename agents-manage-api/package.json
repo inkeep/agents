@@ -31,6 +31,7 @@
     "drizzle-orm": "^0.44.4",
     "hono": "^4.10.4",
     "hono-pino": "^0.10.1",
+    "jose": "^6.1.0",
     "nanoid": "^5.1.5",
     "openid-client": "^6.6.4",
     "pino": "^9.7.0",

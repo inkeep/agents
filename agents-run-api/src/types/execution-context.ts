@@ -14,6 +14,10 @@ export function createExecutionContext(params: {
   metadata?: {
     teamDelegation?: boolean;
     originAgentId?: string;
+    initiatedBy?: {
+      type: 'user' | 'api_key';
+      id: string;
+    };
   };
 }): ExecutionContext {
   return {

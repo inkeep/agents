@@ -32,6 +32,7 @@ const envSchema = z.object({
     .optional()
     .default('false')
     .transform((val) => val === 'true'),
+  INKEEP_AGENTS_TEMP_JWT_PRIVATE_KEY: z.string().optional(),
 });
 
 const parseEnv = () => {

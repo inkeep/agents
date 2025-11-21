@@ -59,7 +59,11 @@ export function ChatWidget({
   dataComponentLookup = {},
 }: ChatWidgetProps) {
   const { PUBLIC_INKEEP_AGENTS_RUN_API_URL } = useRuntimeConfig();
-  const { apiKey: tempApiKey, isLoading: isLoadingKey } = useTempApiKey({
+  const {
+    apiKey: tempApiKey,
+    isLoading: isLoadingKey,
+    refresh: refreshToken,
+  } = useTempApiKey({
     tenantId,
     projectId,
     agentId: agentId || '',
