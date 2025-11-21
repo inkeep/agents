@@ -20,34 +20,23 @@ import chalk from 'chalk';
 import { enrichCanDelegateToWithTypes } from './index';
 import { compareProjects } from './project-comparator';
 import { ComponentRegistry } from './utils/component-registry';
+import { buildComponentRegistryFromParsing } from './component-parser';
 
 /**
- * Get a preview of an object for logging (truncated and formatted)
+ * Get a complete preview of an object for logging (pretty-printed JSON)
  */
-function getObjectPreview(obj: any, maxLength: number = 200): string {
+function getObjectPreview(obj: any): string {
   if (obj === null) return 'null';
   if (obj === undefined) return 'undefined';
 
   try {
-    // For objects, try to show meaningful content
+    // For objects, show complete JSON without truncation
     if (typeof obj === 'object') {
-      const jsonStr = JSON.stringify(obj, null, 0);
-      if (jsonStr.length <= maxLength) {
-        return jsonStr;
-      } else {
-        // If it's a render object with component, show component preview
-        if (obj.component && typeof obj.component === 'string') {
-          const componentPreview =
-            obj.component.length > 100 ? obj.component.substring(0, 100) + '...' : obj.component;
-          return `{component: "${componentPreview}", mockData: ${obj.mockData ? 'present' : 'null'}}`;
-        }
-        // Otherwise truncate JSON
-        return jsonStr.substring(0, maxLength) + '...';
-      }
+      // Use pretty-printed JSON with indentation for better readability
+      return JSON.stringify(obj, null, 2);
     } else {
-      // For primitives
-      const str = String(obj);
-      return str.length > maxLength ? str.substring(0, maxLength) + '...' : str;
+      // For primitives, show the full value
+      return String(obj);
     }
   } catch (error) {
     return `[Error stringifying: ${typeof obj}]`;
@@ -201,8 +190,8 @@ function findKeyDifferences(obj1: any, obj2: any, componentId: string): string[]
         // Special handling for important fields that should show content
         if (key === 'render' || key === 'component') {
           // Show detailed render/component differences
-          const val1Preview = getObjectPreview(val1, 200);
-          const val2Preview = getObjectPreview(val2, 200);
+          const val1Preview = getObjectPreview(val1);
+          const val2Preview = getObjectPreview(val2);
           differences.push(`~ ${key}:`);
           differences.push(`    Generated: ${val1Preview}`);
           differences.push(`    Remote:    ${val2Preview}`);
@@ -463,8 +452,8 @@ async function validateProjectEquivalence(
 
     // Use existing project comparator instead of custom logic
 
-    // Create a temporary registry for the temp project (needed by compareProjects)
-    const tempRegistry = new ComponentRegistry();
+    // Build a proper registry for the temp project (needed by compareProjects)
+    const tempRegistry = buildComponentRegistryFromParsing(tempDir, false);
 
     // Compare using existing comparator
     const comparison = await compareProjects(
