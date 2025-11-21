@@ -1,0 +1,16 @@
+DROP TABLE IF EXISTS "dataset" CASCADE;--> statement-breakpoint
+DROP TABLE IF EXISTS "dataset_item" CASCADE;--> statement-breakpoint
+DROP TABLE IF EXISTS "dataset_run" CASCADE;--> statement-breakpoint
+DROP TABLE IF EXISTS "dataset_run_config" CASCADE;--> statement-breakpoint
+DROP TABLE IF EXISTS "dataset_run_config_agent_relations" CASCADE;--> statement-breakpoint
+DROP TABLE IF EXISTS "dataset_run_config_evaluation_suite_config_relations" CASCADE;--> statement-breakpoint
+DROP TABLE IF EXISTS "dataset_run_conversation_relations" CASCADE;--> statement-breakpoint
+DROP TABLE IF EXISTS "evaluation_job_config" CASCADE;--> statement-breakpoint
+DROP TABLE IF EXISTS "evaluation_job_config_evaluator_relations" CASCADE;--> statement-breakpoint
+DROP TABLE IF EXISTS "evaluation_result" CASCADE;--> statement-breakpoint
+DROP TABLE IF EXISTS "evaluation_run" CASCADE;--> statement-breakpoint
+DROP TABLE IF EXISTS "evaluation_run_config" CASCADE;--> statement-breakpoint
+DROP TABLE IF EXISTS "evaluation_run_config_evaluation_suite_config_relations" CASCADE;--> statement-breakpoint
+DROP TABLE IF EXISTS "evaluation_suite_config" CASCADE;--> statement-breakpoint
+DROP TABLE IF EXISTS "evaluation_suite_config_evaluator_relations" CASCADE;--> statement-breakpoint
+DROP TABLE IF EXISTS "evaluator" CASCADE;--> statement-breakpoint
