@@ -50,7 +50,7 @@ export const apiKeyAuth = () =>
       if (authHeader?.startsWith('Bearer ')) {
         // Try to authenticate as a API key
         const apiKey = authHeader.substring(7);
-        
+
         // Check if it's a JWT (starts with ey)
         if (apiKey.startsWith('ey') && env.INKEEP_AGENTS_TEMP_JWT_PUBLIC_KEY) {
           try {
@@ -80,7 +80,7 @@ export const apiKeyAuth = () =>
             logger.debug({ error }, 'JWT verification failed, trying API key');
           }
         }
-        
+
         try {
           executionContext = await extractContextFromApiKey(apiKey, baseUrl);
           if (subAgentId) {
