@@ -1,5 +1,11 @@
 # @inkeep/agents-core
 
+## 0.35.4
+
+### Patch Changes
+
+- e297579: pull third party mcp servers
+
 ## 0.35.3
 
 ### Patch Changes

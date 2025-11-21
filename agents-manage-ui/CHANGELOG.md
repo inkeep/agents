@@ -1,5 +1,15 @@
 # @inkeep/agents-manage-ui
 
+## 0.35.4
+
+### Patch Changes
+
+- e297579: pull third party mcp servers
+- Updated dependencies [e297579]
+  - @inkeep/agents-core@0.35.4
+  - @inkeep/agents-manage-api@0.35.4
+  - @inkeep/agents-run-api@0.35.4
+
 ## 0.35.3
 
 ### Patch Changes
