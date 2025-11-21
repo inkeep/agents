@@ -1,5 +1,11 @@
 # @inkeep/agents-core
 
+## 0.35.5
+
+### Patch Changes
+
+- 15b564d: make inkeep mcp and docker optional in the quickstart
+
 ## 0.35.4
 
 ### Patch Changes
