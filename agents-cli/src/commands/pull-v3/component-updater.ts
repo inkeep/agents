@@ -112,11 +112,41 @@ export async function checkAndPromptForStaleComponentCleanup(
     Object.keys(remoteProject.externalAgents).forEach((id) => remoteComponentIds.add(id));
   }
 
+  // Environments (if they exist as separate entities)
+  if ((remoteProject as any).environments) {
+    Object.keys((remoteProject as any).environments).forEach((id) => remoteComponentIds.add(id));
+  }
+
+  // Headers (if they exist as separate entities)
+  if ((remoteProject as any).headers) {
+    Object.keys((remoteProject as any).headers).forEach((id) => remoteComponentIds.add(id));
+  }
+
+  // Models - project level
+  if (remoteProject.models) {
+    remoteComponentIds.add('project'); // models:project component
+  }
+
+  // Project component (the project itself)
+  if (remoteProject.name || remoteProject.description) {
+    remoteComponentIds.add(remoteProject.name || 'project');
+  }
+
   // Add nested components within agents
   if (remoteProject.agents) {
     Object.values(remoteProject.agents).forEach((agent) => {
       if (agent.subAgents) {
         Object.keys(agent.subAgents).forEach((id) => remoteComponentIds.add(id));
+        
+        // Check for function tools within each sub-agent
+        Object.values(agent.subAgents).forEach((subAgent: any) => {
+          if (subAgent.functionTools) {
+            Object.keys(subAgent.functionTools).forEach((id) => remoteComponentIds.add(id));
+          }
+          if (subAgent.tools) {
+            Object.keys(subAgent.tools).forEach((id) => remoteComponentIds.add(id));
+          }
+        });
       }
       if (agent.contextConfig && agent.contextConfig.id) {
         remoteComponentIds.add(agent.contextConfig.id);
@@ -127,6 +157,28 @@ export async function checkAndPromptForStaleComponentCleanup(
             }
           });
         }
+
+        // Headers within context configs (if any)
+        if ((agent.contextConfig as any).headers) {
+          Object.keys((agent.contextConfig as any).headers).forEach((id) =>
+            remoteComponentIds.add(id)
+          );
+        }
+      }
+
+      // Status components
+      if ((agent as any).statusUpdates?.statusComponents) {
+        (agent as any).statusUpdates.statusComponents.forEach((statusComp: any) => {
+          const statusCompId = statusComp.type || statusComp.id;
+          if (statusCompId) {
+            remoteComponentIds.add(statusCompId);
+          }
+        });
+      }
+
+      // Agent-level models (if any)
+      if (agent.models) {
+        remoteComponentIds.add(`${agent.id || 'unknown'}-models`);
       }
     });
   }
@@ -259,6 +311,16 @@ export async function cleanupStaleComponents(
       // Sub-agents
       if (agent.subAgents) {
         Object.keys(agent.subAgents).forEach((id) => remoteComponentIds.add(id));
+        
+        // Check for function tools within each sub-agent
+        Object.values(agent.subAgents).forEach((subAgent: any) => {
+          if (subAgent.functionTools) {
+            Object.keys(subAgent.functionTools).forEach((id) => remoteComponentIds.add(id));
+          }
+          if (subAgent.tools) {
+            Object.keys(subAgent.tools).forEach((id) => remoteComponentIds.add(id));
+          }
+        });
       }
 
       // Context configs

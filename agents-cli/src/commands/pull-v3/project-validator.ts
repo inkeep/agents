@@ -20,6 +20,7 @@ import chalk from 'chalk';
 import { enrichCanDelegateToWithTypes } from './index';
 import { compareProjects } from './project-comparator';
 import { ComponentRegistry } from './utils/component-registry';
+import { buildComponentRegistryFromParsing } from './component-parser';
 
 /**
  * Get a complete preview of an object for logging (pretty-printed JSON)
@@ -451,8 +452,8 @@ async function validateProjectEquivalence(
 
     // Use existing project comparator instead of custom logic
 
-    // Create a temporary registry for the temp project (needed by compareProjects)
-    const tempRegistry = new ComponentRegistry();
+    // Build a proper registry for the temp project (needed by compareProjects)
+    const tempRegistry = buildComponentRegistryFromParsing(tempDir, false);
 
     // Compare using existing comparator
     const comparison = await compareProjects(
