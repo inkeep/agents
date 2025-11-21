@@ -251,10 +251,13 @@ export const JsonSchemaBuilder: FC<{
 }> = ({ value, onChange, hasInPreview, hasError }) => {
   const fields = useJsonSchemaStore((state) => state.fields);
   const { addChild, setFields } = useJsonSchemaActions();
+  // Fix race condition in cypress
+  const [isHydrated, setIsHydrated] = useState(false);
 
   // biome-ignore lint/correctness/useExhaustiveDependencies: run only on mount
   useEffect(() => {
     setFields(value, hasInPreview);
+    setIsHydrated(true);
   }, []);
 
   // Calls only on update to avoid race condition with above useEffect
@@ -314,6 +317,7 @@ export const JsonSchemaBuilder: FC<{
         variant="link"
         size="sm"
         className="self-start text-xs"
+        disabled={!isHydrated}
       >
         <PlusIcon />
         Add property
