@@ -58,6 +58,7 @@ local.db
 .vercel/
 .idea/
 agents-manage-ui/cypress/screenshots/
+agents-manage-ui/cypress/videos/
 
 .turbo/
 dist/

@@ -5,6 +5,7 @@
     "sourceMap": true,
     "types": ["cypress", "node"],
     "skipLibCheck": true,
+    "allowSyntheticDefaultImports": true,
     "moduleResolution": "bundler"
   },
   "include": ["**/*.ts"]
