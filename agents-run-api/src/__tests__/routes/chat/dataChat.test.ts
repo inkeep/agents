@@ -20,8 +20,8 @@ vi.mock('../../../handlers/executionHandler', () => {
 });
 
 import { createAgent, createSubAgent } from '@inkeep/agents-core';
+import { createTestProject } from '@inkeep/agents-core/db/test-client';
 import dbClient from '../../../data/db/dbClient';
-import { ensureTestProject } from '../../utils/testProject';
 import { makeRequest } from '../../utils/testRequest';
 import { createTestTenantId } from '../../utils/testTenant';
 
@@ -86,7 +86,7 @@ describe('Chat Data Stream Route', () => {
     const subAgentId = 'test-agent';
 
     // Ensure project exists first
-    await ensureTestProject(tenantId, projectId);
+    await createTestProject(dbClient, tenantId, projectId);
 
     // Create agent first
     await createAgent(dbClient)({

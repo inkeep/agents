@@ -403,6 +403,8 @@ async function createEnvironmentFiles(config: FileConfig) {
 
   const jwtSigningSecret = crypto.randomBytes(32).toString('hex');
 
+  const betterAuthSecret = crypto.randomBytes(32).toString('hex');
+
   const envContent = `# Environment
 ENVIRONMENT=development
 
@@ -439,6 +441,13 @@ INKEEP_AGENTS_JWT_SIGNING_SECRET=${jwtSigningSecret}
 
 # initial project information
 DEFAULT_PROJECT_ID=${config.projectId}
+
+# Auth Configuration
+# INKEEP_AGENTS_MANAGE_UI_USERNAME=admin@example.com
+# INKEEP_AGENTS_MANAGE_UI_PASSWORD=adminADMIN!@12
+BETTER_AUTH_SECRET=${betterAuthSecret}
+DISABLE_AUTH=true
+
 `;
 
   await fs.writeFile('.env', envContent);

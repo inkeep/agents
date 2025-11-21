@@ -131,7 +131,7 @@ export async function fetchNangoIntegration(
 /**
  * Create a new Nango integration
  */
-export async function createNangoIntegration(params: {
+async function createNangoIntegration(params: {
   provider: string;
   uniqueKey: string;
   displayName?: string;

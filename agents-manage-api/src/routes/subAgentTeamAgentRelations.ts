@@ -11,7 +11,6 @@ import {
   PaginationQueryParamsSchema,
   SubAgentTeamAgentRelationApiInsertSchema,
   type SubAgentTeamAgentRelationApiSelect,
-  SubAgentTeamAgentRelationApiSelectSchema,
   SubAgentTeamAgentRelationApiUpdateSchema,
   SubAgentTeamAgentRelationListResponse,
   SubAgentTeamAgentRelationResponse,
@@ -20,9 +19,28 @@ import {
   updateSubAgentTeamAgentRelation,
 } from '@inkeep/agents-core';
 import { nanoid } from 'nanoid';
+import { requirePermission } from 'src/middleware/require-permission';
+import type { BaseAppVariables } from 'src/types/app';
 import dbClient from '../data/db/dbClient';
 
-const app = new OpenAPIHono();
+const app = new OpenAPIHono<{ Variables: BaseAppVariables }>();
+
+app.use('/', async (c, next) => {
+  if (c.req.method === 'POST') {
+    return requirePermission({ sub_agent: ['create'] })(c, next);
+  }
+  return next();
+});
+
+app.use('/:id', async (c, next) => {
+  if (c.req.method === 'PUT') {
+    return requirePermission({ sub_agent: ['update'] })(c, next);
+  }
+  if (c.req.method === 'DELETE') {
+    return requirePermission({ sub_agent: ['delete'] })(c, next);
+  }
+  return next();
+});
 
 app.openapi(
   createRoute({
