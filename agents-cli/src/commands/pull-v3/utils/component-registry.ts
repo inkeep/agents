@@ -472,7 +472,7 @@ export class ComponentRegistry {
    */
   getComponentsInFile(filePath: string): ComponentInfo[] {
     return Array.from(this.componentsByTypeAndId.values()).filter(
-      component => component.filePath === filePath
+      (component) => component.filePath === filePath
     );
   }
 
@@ -482,15 +482,15 @@ export class ComponentRegistry {
   removeComponent(type: string, id: string): void {
     const key = `${type}:${id}`;
     const component = this.componentsByTypeAndId.get(key);
-    
+
     if (component) {
       // Remove from both maps
       this.componentsByTypeAndId.delete(key);
       this.components.delete(component.name);
-      
+
       // Remove from used names if no other component uses it
       const nameStillUsed = Array.from(this.componentsByTypeAndId.values()).some(
-        comp => comp.name === component.name
+        (comp) => comp.name === component.name
       );
       if (!nameStillUsed) {
         this.usedNames.delete(component.name);

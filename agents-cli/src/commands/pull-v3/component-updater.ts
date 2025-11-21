@@ -85,38 +85,38 @@ export async function checkAndPromptForStaleComponentCleanup(
 ): Promise<boolean> {
   // Get stale components (same logic as cleanup function)
   const remoteComponentIds = new Set<string>();
-  
+
   // Add all remote component IDs (same logic as cleanupStaleComponents)
   if (remoteProject.agents) {
-    Object.keys(remoteProject.agents).forEach(id => remoteComponentIds.add(id));
+    Object.keys(remoteProject.agents).forEach((id) => remoteComponentIds.add(id));
   }
   if (remoteProject.tools) {
-    Object.keys(remoteProject.tools).forEach(id => remoteComponentIds.add(id));
+    Object.keys(remoteProject.tools).forEach((id) => remoteComponentIds.add(id));
   }
   if (remoteProject.functionTools) {
-    Object.keys(remoteProject.functionTools).forEach(id => remoteComponentIds.add(id));
+    Object.keys(remoteProject.functionTools).forEach((id) => remoteComponentIds.add(id));
   }
   if (remoteProject.functions) {
-    Object.keys(remoteProject.functions).forEach(id => remoteComponentIds.add(id));
+    Object.keys(remoteProject.functions).forEach((id) => remoteComponentIds.add(id));
   }
   if (remoteProject.dataComponents) {
-    Object.keys(remoteProject.dataComponents).forEach(id => remoteComponentIds.add(id));
+    Object.keys(remoteProject.dataComponents).forEach((id) => remoteComponentIds.add(id));
   }
   if (remoteProject.artifactComponents) {
-    Object.keys(remoteProject.artifactComponents).forEach(id => remoteComponentIds.add(id));
+    Object.keys(remoteProject.artifactComponents).forEach((id) => remoteComponentIds.add(id));
   }
   if (remoteProject.credentialReferences) {
-    Object.keys(remoteProject.credentialReferences).forEach(id => remoteComponentIds.add(id));
+    Object.keys(remoteProject.credentialReferences).forEach((id) => remoteComponentIds.add(id));
   }
   if (remoteProject.externalAgents) {
-    Object.keys(remoteProject.externalAgents).forEach(id => remoteComponentIds.add(id));
+    Object.keys(remoteProject.externalAgents).forEach((id) => remoteComponentIds.add(id));
   }
-  
+
   // Add nested components within agents
   if (remoteProject.agents) {
-    Object.values(remoteProject.agents).forEach(agent => {
+    Object.values(remoteProject.agents).forEach((agent) => {
       if (agent.subAgents) {
-        Object.keys(agent.subAgents).forEach(id => remoteComponentIds.add(id));
+        Object.keys(agent.subAgents).forEach((id) => remoteComponentIds.add(id));
       }
       if (agent.contextConfig && agent.contextConfig.id) {
         remoteComponentIds.add(agent.contextConfig.id);
@@ -144,12 +144,18 @@ export async function checkAndPromptForStaleComponentCleanup(
   }
 
   // Show stale components to user
-  console.log(chalk.yellow(`\n🧹 Found ${staleComponents.length} stale components that don't exist in remote project:`));
-  staleComponents.forEach(comp => {
+  console.log(
+    chalk.yellow(
+      `\n🧹 Found ${staleComponents.length} stale components that don't exist in remote project:`
+    )
+  );
+  staleComponents.forEach((comp) => {
     console.log(chalk.gray(`   - ${comp.type}:${comp.id} in ${basename(comp.filePath)}`));
   });
 
-  console.log(chalk.cyan(`\n❓ Would you like to remove these stale components from your project?`));
+  console.log(
+    chalk.cyan(`\n❓ Would you like to remove these stale components from your project?`)
+  );
   console.log(chalk.green(`   [Y] Yes - Clean up stale components`));
   console.log(chalk.red(`   [N] No - Keep existing components`));
 
@@ -195,71 +201,70 @@ export async function cleanupStaleComponents(
   localRegistry: ComponentRegistry
 ): Promise<void> {
   const tempDir = join(projectRoot, tempDirName);
-  
-  
+
   // Get all component IDs that exist in remote project
   const remoteComponentIds = new Set<string>();
-  
+
   // Add ALL remote component IDs from ALL possible locations
-  
+
   // Top-level components
   if (remoteProject.agents) {
-    Object.keys(remoteProject.agents).forEach(id => remoteComponentIds.add(id));
+    Object.keys(remoteProject.agents).forEach((id) => remoteComponentIds.add(id));
   }
   if (remoteProject.tools) {
-    Object.keys(remoteProject.tools).forEach(id => remoteComponentIds.add(id));
+    Object.keys(remoteProject.tools).forEach((id) => remoteComponentIds.add(id));
   }
   if (remoteProject.functionTools) {
-    Object.keys(remoteProject.functionTools).forEach(id => remoteComponentIds.add(id));
+    Object.keys(remoteProject.functionTools).forEach((id) => remoteComponentIds.add(id));
   }
   if (remoteProject.functions) {
-    Object.keys(remoteProject.functions).forEach(id => remoteComponentIds.add(id));
+    Object.keys(remoteProject.functions).forEach((id) => remoteComponentIds.add(id));
   }
   if (remoteProject.dataComponents) {
-    Object.keys(remoteProject.dataComponents).forEach(id => remoteComponentIds.add(id));
+    Object.keys(remoteProject.dataComponents).forEach((id) => remoteComponentIds.add(id));
   }
   if (remoteProject.artifactComponents) {
-    Object.keys(remoteProject.artifactComponents).forEach(id => remoteComponentIds.add(id));
+    Object.keys(remoteProject.artifactComponents).forEach((id) => remoteComponentIds.add(id));
   }
   if (remoteProject.credentialReferences) {
-    Object.keys(remoteProject.credentialReferences).forEach(id => remoteComponentIds.add(id));
+    Object.keys(remoteProject.credentialReferences).forEach((id) => remoteComponentIds.add(id));
   }
   if (remoteProject.externalAgents) {
-    Object.keys(remoteProject.externalAgents).forEach(id => remoteComponentIds.add(id));
+    Object.keys(remoteProject.externalAgents).forEach((id) => remoteComponentIds.add(id));
   }
-  
+
   // Environments (if they exist as separate entities)
   if ((remoteProject as any).environments) {
-    Object.keys((remoteProject as any).environments).forEach(id => remoteComponentIds.add(id));
+    Object.keys((remoteProject as any).environments).forEach((id) => remoteComponentIds.add(id));
   }
-  
-  // Headers (if they exist as separate entities)  
+
+  // Headers (if they exist as separate entities)
   if ((remoteProject as any).headers) {
-    Object.keys((remoteProject as any).headers).forEach(id => remoteComponentIds.add(id));
+    Object.keys((remoteProject as any).headers).forEach((id) => remoteComponentIds.add(id));
   }
-  
+
   // Models - project level
   if (remoteProject.models) {
     remoteComponentIds.add('project'); // models:project component
   }
-  
+
   // Project component (the project itself)
   if (remoteProject.name || remoteProject.description) {
     remoteComponentIds.add(remoteProject.name || 'project');
   }
-  
+
   // Nested components within agents
   if (remoteProject.agents) {
-    Object.values(remoteProject.agents).forEach(agent => {
+    Object.values(remoteProject.agents).forEach((agent) => {
       // Sub-agents
       if (agent.subAgents) {
-        Object.keys(agent.subAgents).forEach(id => remoteComponentIds.add(id));
+        Object.keys(agent.subAgents).forEach((id) => remoteComponentIds.add(id));
       }
-      
+
       // Context configs
       if (agent.contextConfig && agent.contextConfig.id) {
         remoteComponentIds.add(agent.contextConfig.id);
-        
+
         // Fetch definitions within context configs
         if (agent.contextConfig.contextVariables) {
           Object.values(agent.contextConfig.contextVariables).forEach((variable: any) => {
@@ -268,13 +273,15 @@ export async function cleanupStaleComponents(
             }
           });
         }
-        
+
         // Headers within context configs (if any)
         if ((agent.contextConfig as any).headers) {
-          Object.keys((agent.contextConfig as any).headers).forEach(id => remoteComponentIds.add(id));
+          Object.keys((agent.contextConfig as any).headers).forEach((id) =>
+            remoteComponentIds.add(id)
+          );
         }
       }
-      
+
       // Status components
       if ((agent as any).statusUpdates?.statusComponents) {
         (agent as any).statusUpdates.statusComponents.forEach((statusComp: any) => {
@@ -284,7 +291,7 @@ export async function cleanupStaleComponents(
           }
         });
       }
-      
+
       // Agent-level models (if any)
       if (agent.models) {
         remoteComponentIds.add(`${agent.id || 'unknown'}-models`);
@@ -305,7 +312,7 @@ export async function cleanupStaleComponents(
   if (staleComponents.length === 0) {
     return; // No cleanup needed
   }
-  
+
   // Group stale components by file path
   const staleComponentsByFile = new Map<string, ComponentInfo[]>();
   for (const component of staleComponents) {
@@ -319,15 +326,15 @@ export async function cleanupStaleComponents(
   // Process each file that contains stale components
   for (const [originalFilePath, staleComponentsInFile] of staleComponentsByFile) {
     const tempFilePath = join(tempDir, originalFilePath.replace(projectRoot + '/', ''));
-    
+
     if (!existsSync(tempFilePath)) {
       continue; // File doesn't exist in temp, skip
     }
 
     // Get all components in this file (both stale and valid)
     const allComponentsInFile = localRegistry.getComponentsInFile(originalFilePath);
-    const validComponentsRemaining = allComponentsInFile.filter(component => 
-      !staleComponentsInFile.some(stale => stale.id === component.id)
+    const validComponentsRemaining = allComponentsInFile.filter(
+      (component) => !staleComponentsInFile.some((stale) => stale.id === component.id)
     );
 
     if (validComponentsRemaining.length === 0) {
@@ -336,14 +343,14 @@ export async function cleanupStaleComponents(
     } else {
       // MIXED file → use LLM to surgically remove only stale components
       const currentContent = readFileSync(tempFilePath, 'utf8');
-      
+
       // Use LLM to remove stale components
       const cleanedContent = await removeComponentsFromFile(
         currentContent,
-        staleComponentsInFile.map(c => ({ id: c.id, type: c.type })),
+        staleComponentsInFile.map((c) => ({ id: c.id, type: c.type })),
         tempFilePath
       );
-      
+
       if (cleanedContent !== currentContent) {
         writeFileSync(tempFilePath, cleanedContent, 'utf8');
       }
@@ -364,8 +371,8 @@ async function removeComponentsFromFile(
   componentsToRemove: Array<{ id: string; type: string }>,
   filePath: string
 ): Promise<string> {
-  const componentList = componentsToRemove.map(c => `${c.type}:${c.id}`).join(', ');
-  
+  const componentList = componentsToRemove.map((c) => `${c.type}:${c.id}`).join(', ');
+
   const prompt = `Remove the following components from this TypeScript file: ${componentList}
 
 Please remove these components completely, including:

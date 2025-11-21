@@ -18,9 +18,13 @@ import { performBackgroundVersionCheck } from '../../utils/background-version-ch
 import { initializeCommand } from '../../utils/cli-pipeline';
 import { compareProjectDefinitions } from '../../utils/json-comparison';
 import { loadProject } from '../../utils/project-loader';
+import {
+  checkAndPromptForStaleComponentCleanup,
+  cleanupStaleComponents,
+  copyProjectToTemp,
+} from './component-updater';
 import { introspectGenerate } from './introspect-generator';
 import { compareProjects, type ProjectComparison } from './project-comparator';
-import { copyProjectToTemp, cleanupStaleComponents, checkAndPromptForStaleComponentCleanup } from './component-updater';
 import { extractSubAgents } from './utils/component-registry';
 
 export interface PullV3Options {
@@ -478,18 +482,17 @@ export async function pullV3Command(options: PullV3Options): Promise<void> {
 
     s.message(`Detected ${comparison.changeCount} differences`);
 
-
     // Step 11: Create temp directory and copy existing project (or start empty)
     const tempDirName = `.temp-validation-${Date.now()}`;
     s.start('Preparing temp directory...');
-    
+
     let performedCleanup = false;
 
     if (localProject) {
       // Copy existing project to temp directory
       copyProjectToTemp(paths.projectRoot, tempDirName);
       console.log(chalk.green(`✅ Existing project copied to temp directory`));
-      
+
       // Check for stale components and ask user permission to clean them up (in temp directory first)
       s.start('Checking for stale components...');
       const shouldCleanupStale = await checkAndPromptForStaleComponentCleanup(
