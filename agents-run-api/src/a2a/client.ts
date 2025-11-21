@@ -62,14 +62,16 @@ const DEFAULT_RETRY_STATUS_CODES = ['429', '500', '502', '503', '504'];
  */
 class PermanentError extends Error {
   override readonly cause: unknown;
+  public readonly type?: string;
+  public readonly data?: any;
 
-  constructor(message: string, options?: { cause?: unknown }) {
+  constructor(message: string, options?: { cause?: unknown; type?: string; data?: any }) {
     let msg = message;
     if (options?.cause) {
       msg += `: ${options.cause}`;
     }
     super(msg, options);
-    this.name = 'PermanentError';
+    this.name = options?.type || 'PermanentError';
     if (typeof this.cause === 'undefined') {
       this.cause = options?.cause;
     }
@@ -307,15 +309,30 @@ export class A2AClient {
   private isRetryableError(error: unknown): boolean {
     if (error instanceof Error) {
       const message = error.message.toLowerCase();
-      return (
+
+      // Don't retry connection refused errors
+      if (message.includes('econnrefused') || message.includes('connection refused')) {
+        logger.info(
+          { errorMessage: error.message },
+          'Connection refused error detected - will not retry'
+        );
+        return false;
+      }
+
+      const isRetryable =
         message.includes('network') ||
         message.includes('timeout') ||
         message.includes('connection') ||
         message.includes('econnreset') ||
-        message.includes('econnrefused') ||
         message.includes('enotfound') ||
-        message.includes('fetch')
+        message.includes('fetch');
+
+      logger.info(
+        { errorMessage: error.message, isRetryable },
+        'Checking if error is retryable'
       );
+
+      return isRetryable;
     }
     return false;
   }
@@ -469,6 +486,16 @@ export class A2AClient {
     }
 
     const rpcResponse = await httpResponse.json();
+
+    // Check if the response contains a connection_refused error type
+    // If so, throw a PermanentError to prevent retries
+    if (rpcResponse.error?.data?.type === 'connection_refused') {
+      throw new PermanentError(rpcResponse.error.message, {
+        cause: new Error(rpcResponse.error.message),
+        type: 'connection_refused',
+        data: rpcResponse.error.data,
+      });
+    }
 
     if (rpcResponse.id !== requestId) {
       logger.warn(

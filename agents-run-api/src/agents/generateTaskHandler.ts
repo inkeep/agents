@@ -688,10 +688,18 @@ export const createTaskHandler = (
     } catch (error) {
       console.error('Task handler error:', error);
 
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
+      const isConnectionRefused =
+        errorMessage.includes('Connection refused') ||
+        (error instanceof Error &&
+          error.cause &&
+          JSON.stringify(error.cause).includes('ECONNREFUSED'));
+
       return {
         status: {
           state: TaskState.Failed,
-          message: error instanceof Error ? error.message : 'Unknown error occurred',
+          message: errorMessage,
+          type: isConnectionRefused ? 'connection_refused' : 'unknown',
         },
         artifacts: [],
       };
