@@ -1,5 +1,5 @@
+import type { DatabaseClient } from '@inkeep/agents-core/data-access';
 import { beforeEach, describe, expect, it } from 'vitest';
-import { createProject } from '../../../data-access/projects';
 import {
   createTool,
   deleteTool,
@@ -7,7 +7,7 @@ import {
   listTools,
   updateTool,
 } from '../../../data-access/tools';
-import type { DatabaseClient } from '../../../db/client';
+import { createTestProject } from '../../../db/test-client';
 import { MCPTransportType, type ToolInsert, type ToolUpdate } from '../../../types/index';
 import { ToolInsertSchema } from '../../../validation/schemas';
 import { testDbClient } from '../../setup';
@@ -74,7 +74,7 @@ describe('Tools Data Access - Integration Tests', () => {
     it('should create and retrieve a tool with full configuration', async () => {
       // Create project first (required for foreign key constraint)
       const projectData = createProjectData({ suffix: '1' });
-      await createProject(db)(projectData);
+      await createTestProject(db, projectData.tenantId, projectData.id);
 
       const toolData = createToolData({ suffix: '1', projectData });
 
@@ -123,9 +123,9 @@ describe('Tools Data Access - Integration Tests', () => {
       const project2Data = createProjectData({ suffix: '2' });
       const project3Data = createProjectData({ suffix: '3' });
 
-      await createProject(db)(project1Data);
-      await createProject(db)(project2Data);
-      await createProject(db)(project3Data);
+      await createTestProject(db, project1Data.tenantId, project1Data.id);
+      await createTestProject(db, project2Data.tenantId, project2Data.id);
+      await createTestProject(db, project3Data.tenantId, project3Data.id);
 
       // Create tools for different tenants
       const tool1Data = createToolData({ suffix: '1', projectData: project1Data });
@@ -179,7 +179,7 @@ describe('Tools Data Access - Integration Tests', () => {
     it('should update tool properties and timestamps', async () => {
       // Create project first
       const projectData = createProjectData({ suffix: '1' });
-      await createProject(db)(projectData);
+      await createTestProject(db, projectData.tenantId, projectData.id);
 
       // Create initial tool
       const initialData = createToolData({ suffix: '1', projectData });
@@ -226,7 +226,7 @@ describe('Tools Data Access - Integration Tests', () => {
     it('should handle partial updates', async () => {
       // Create project first
       const projectData = createProjectData({ suffix: '1' });
-      await createProject(db)(projectData);
+      await createTestProject(db, projectData.tenantId, projectData.id);
 
       const toolData = createToolData({ suffix: '1', projectData });
 
@@ -250,7 +250,7 @@ describe('Tools Data Access - Integration Tests', () => {
     it('should handle configuration updates', async () => {
       // Create project first
       const projectData = createProjectData({ suffix: '1' });
-      await createProject(db)(projectData);
+      await createTestProject(db, projectData.tenantId, projectData.id);
 
       const toolData = createToolData({ suffix: '1', projectData });
 
@@ -288,7 +288,7 @@ describe('Tools Data Access - Integration Tests', () => {
     it('should maintain tenant isolation during updates', async () => {
       // Create project first
       const projectData = createProjectData({ suffix: '1' });
-      await createProject(db)(projectData);
+      await createTestProject(db, projectData.tenantId, projectData.id);
 
       const tenant1Tool = createToolData({ suffix: '1', projectData });
 
@@ -322,7 +322,7 @@ describe('Tools Data Access - Integration Tests', () => {
     it('should delete tool and verify removal', async () => {
       // Create project first
       const projectData = createProjectData({ suffix: '1' });
-      await createProject(db)(projectData);
+      await createTestProject(db, projectData.tenantId, projectData.id);
 
       const toolData = createToolData({ suffix: '1', projectData });
 
@@ -357,7 +357,7 @@ describe('Tools Data Access - Integration Tests', () => {
     it('should maintain tenant isolation during deletion', async () => {
       // Create project first
       const projectData = createProjectData({ suffix: '1' });
-      await createProject(db)(projectData);
+      await createTestProject(db, projectData.tenantId, projectData.id);
 
       const tenant1Tool = createToolData({ suffix: '1', projectData });
 

@@ -1,8 +1,9 @@
 import { CredentialStoreType } from '@inkeep/agents-core';
+import { createTestProject } from '@inkeep/agents-core/db/test-client';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { ensureTestProject } from '../../utils/testProject';
+import dbClient from '../../../data/db/dbClient';
 import { makeRequest } from '../../utils/testRequest';
-import { createTestTenantId } from '../../utils/testTenant';
+import { createTestTenantWithOrg } from '../../utils/testTenant';
 
 // Mock the app import with credential stores in context
 vi.mock('../../../index', async (importOriginal) => {
@@ -79,7 +80,7 @@ vi.mock('../../../index', async (importOriginal) => {
 
   return {
     default: createManagementHono
-      ? createManagementHono(mockConfig, mockRegistry)
+      ? createManagementHono(mockConfig, mockRegistry, null)
       : { request: vi.fn() },
     createManagementHono,
     createManagementApp: vi.fn(),
@@ -132,7 +133,7 @@ describe('Credential CRUD Routes - Integration Tests', () => {
     suffix?: string;
   }) => {
     // Ensure the project exists for this tenant before creating the credential
-    await ensureTestProject(tenantId, projectId);
+    await createTestProject(dbClient, tenantId, projectId);
 
     const credentialData = createCredentialData({ suffix });
     const createRes = await makeRequest(`/tenants/${tenantId}/projects/${projectId}/credentials`, {
@@ -163,8 +164,8 @@ describe('Credential CRUD Routes - Integration Tests', () => {
 
   describe('GET /', () => {
     it('should list credentials with pagination (empty initially)', async () => {
-      const tenantId = createTestTenantId('credentials-list-empty');
-      await ensureTestProject(tenantId, projectId);
+      const tenantId = await createTestTenantWithOrg('credentials-list-empty');
+      await createTestProject(dbClient, tenantId, projectId);
       const res = await makeRequest(
         `/tenants/${tenantId}/projects/${projectId}/credentials?page=1&limit=10`
       );
@@ -183,8 +184,8 @@ describe('Credential CRUD Routes - Integration Tests', () => {
     });
 
     it('should list credentials with pagination (with data)', async () => {
-      const tenantId = createTestTenantId('credentials-list-data');
-      await ensureTestProject(tenantId, projectId);
+      const tenantId = await createTestTenantWithOrg('credentials-list-data');
+      await createTestProject(dbClient, tenantId, projectId);
 
       // Create test credentials
       await createMultipleCredentials({ tenantId, count: 3 });
@@ -216,8 +217,8 @@ describe('Credential CRUD Routes - Integration Tests', () => {
     });
 
     it('should handle pagination correctly', async () => {
-      const tenantId = createTestTenantId('credentials-pagination');
-      await ensureTestProject(tenantId, projectId);
+      const tenantId = await createTestTenantWithOrg('credentials-pagination');
+      await createTestProject(dbClient, tenantId, projectId);
 
       // Create 5 credentials
       await createMultipleCredentials({ tenantId, count: 5 });
@@ -260,8 +261,8 @@ describe('Credential CRUD Routes - Integration Tests', () => {
     });
 
     it('should enforce maximum limit', async () => {
-      const tenantId = createTestTenantId('credentials-max-limit');
-      await ensureTestProject(tenantId, projectId);
+      const tenantId = await createTestTenantWithOrg('credentials-max-limit');
+      await createTestProject(dbClient, tenantId, projectId);
       const res = await makeRequest(
         `/tenants/${tenantId}/projects/${projectId}/credentials?page=1&limit=10`
       );
@@ -272,8 +273,8 @@ describe('Credential CRUD Routes - Integration Tests', () => {
     });
 
     it('should isolate credentials by tenant', async () => {
-      const tenantA = createTestTenantId('credentials-tenant-a');
-      const tenantB = createTestTenantId('credentials-tenant-b');
+      const tenantA = await createTestTenantWithOrg('credentials-tenant-a');
+      const tenantB = await createTestTenantWithOrg('credentials-tenant-b');
 
       // Create credentials for tenant A
       await createMultipleCredentials({ tenantId: tenantA, count: 2 });
@@ -295,8 +296,8 @@ describe('Credential CRUD Routes - Integration Tests', () => {
 
   describe('GET /:id', () => {
     it('should get a specific credential by ID', async () => {
-      const tenantId = createTestTenantId('credentials-get-by-id');
-      await ensureTestProject(tenantId, projectId);
+      const tenantId = await createTestTenantWithOrg('credentials-get-by-id');
+      await createTestProject(dbClient, tenantId, projectId);
       const { credentialData, credentialId } = await createTestCredential({ tenantId });
 
       const res = await makeRequest(
@@ -317,8 +318,8 @@ describe('Credential CRUD Routes - Integration Tests', () => {
     });
 
     it('should return 404 for non-existent credential', async () => {
-      const tenantId = createTestTenantId('credentials-get-404');
-      await ensureTestProject(tenantId, projectId);
+      const tenantId = await createTestTenantWithOrg('credentials-get-404');
+      await createTestProject(dbClient, tenantId, projectId);
       const nonExistentId = 'non-existent-credential-id';
 
       const res = await makeRequest(
@@ -334,8 +335,8 @@ describe('Credential CRUD Routes - Integration Tests', () => {
     });
 
     it('should enforce tenant isolation for get by ID', async () => {
-      const tenantA = createTestTenantId('credentials-get-tenant-a');
-      const tenantB = createTestTenantId('credentials-get-tenant-b');
+      const tenantA = await createTestTenantWithOrg('credentials-get-tenant-a');
+      const tenantB = await createTestTenantWithOrg('credentials-get-tenant-b');
 
       // Create credential for tenant A
       const { credentialId } = await createTestCredential({ tenantId: tenantA });
@@ -350,8 +351,8 @@ describe('Credential CRUD Routes - Integration Tests', () => {
 
   describe('POST /', () => {
     it('should create a new credential', async () => {
-      const tenantId = createTestTenantId('credentials-create');
-      await ensureTestProject(tenantId, projectId);
+      const tenantId = await createTestTenantWithOrg('credentials-create');
+      await createTestProject(dbClient, tenantId, projectId);
       const credentialData = createCredentialData();
 
       const res = await makeRequest(`/tenants/${tenantId}/projects/${projectId}/credentials`, {
@@ -375,8 +376,8 @@ describe('Credential CRUD Routes - Integration Tests', () => {
     });
 
     it('should create credential with minimal data', async () => {
-      const tenantId = createTestTenantId('credentials-create-minimal');
-      await ensureTestProject(tenantId, projectId);
+      const tenantId = await createTestTenantWithOrg('credentials-create-minimal');
+      await createTestProject(dbClient, tenantId, projectId);
       const minimalData = {
         id: `minimal-credential-${Date.now()}`,
         name: 'Minimal Credential',
@@ -401,8 +402,8 @@ describe('Credential CRUD Routes - Integration Tests', () => {
     });
 
     it('should handle validation errors for invalid data', async () => {
-      const tenantId = createTestTenantId('credentials-create-invalid');
-      await ensureTestProject(tenantId, projectId);
+      const tenantId = await createTestTenantWithOrg('credentials-create-invalid');
+      await createTestProject(dbClient, tenantId, projectId);
       const invalidData = {
         // Missing required fields
         retrievalParams: { some: 'data' },
@@ -419,8 +420,8 @@ describe('Credential CRUD Routes - Integration Tests', () => {
 
   describe('PUT /:id', () => {
     it('should update an existing credential', async () => {
-      const tenantId = createTestTenantId('credentials-update');
-      await ensureTestProject(tenantId, projectId);
+      const tenantId = await createTestTenantWithOrg('credentials-update');
+      await createTestProject(dbClient, tenantId, projectId);
       const { credentialId } = await createTestCredential({ tenantId });
 
       const updateData = {
@@ -453,8 +454,8 @@ describe('Credential CRUD Routes - Integration Tests', () => {
     });
 
     it('should handle partial updates', async () => {
-      const tenantId = createTestTenantId('credentials-partial-update');
-      await ensureTestProject(tenantId, projectId);
+      const tenantId = await createTestTenantWithOrg('credentials-partial-update');
+      await createTestProject(dbClient, tenantId, projectId);
       const { credentialData, credentialId } = await createTestCredential({ tenantId });
 
       const partialUpdate = {
@@ -485,8 +486,8 @@ describe('Credential CRUD Routes - Integration Tests', () => {
     });
 
     it('should return 404 for non-existent credential', async () => {
-      const tenantId = createTestTenantId('credentials-update-404');
-      await ensureTestProject(tenantId, projectId);
+      const tenantId = await createTestTenantWithOrg('credentials-update-404');
+      await createTestProject(dbClient, tenantId, projectId);
       const nonExistentId = 'non-existent-credential-id';
 
       const updateData = { type: CredentialStoreType.nango };
@@ -508,8 +509,8 @@ describe('Credential CRUD Routes - Integration Tests', () => {
     });
 
     it('should enforce tenant isolation for updates', async () => {
-      const tenantA = createTestTenantId('credentials-update-tenant-a');
-      const tenantB = createTestTenantId('credentials-update-tenant-b');
+      const tenantA = await createTestTenantWithOrg('credentials-update-tenant-a');
+      const tenantB = await createTestTenantWithOrg('credentials-update-tenant-b');
 
       // Create credential for tenant A
       const { credentialId } = await createTestCredential({ tenantId: tenantA });
@@ -530,8 +531,8 @@ describe('Credential CRUD Routes - Integration Tests', () => {
 
   describe('DELETE /:id', () => {
     it('should delete an existing credential', async () => {
-      const tenantId = createTestTenantId('credentials-delete');
-      await ensureTestProject(tenantId, projectId);
+      const tenantId = await createTestTenantWithOrg('credentials-delete');
+      await createTestProject(dbClient, tenantId, projectId);
       const { credentialId } = await createTestCredential({ tenantId });
 
       // Verify credential exists
@@ -557,8 +558,8 @@ describe('Credential CRUD Routes - Integration Tests', () => {
     });
 
     it('should return 404 for non-existent credential', async () => {
-      const tenantId = createTestTenantId('credentials-delete-404');
-      await ensureTestProject(tenantId, projectId);
+      const tenantId = await createTestTenantWithOrg('credentials-delete-404');
+      await createTestProject(dbClient, tenantId, projectId);
       const nonExistentId = 'non-existent-credential-id';
 
       const res = await makeRequest(
@@ -573,8 +574,8 @@ describe('Credential CRUD Routes - Integration Tests', () => {
     });
 
     it('should enforce tenant isolation for deletes', async () => {
-      const tenantA = createTestTenantId('credentials-delete-tenant-a');
-      const tenantB = createTestTenantId('credentials-delete-tenant-b');
+      const tenantA = await createTestTenantWithOrg('credentials-delete-tenant-a');
+      const tenantB = await createTestTenantWithOrg('credentials-delete-tenant-b');
 
       // Create credential for tenant A
       const { credentialId } = await createTestCredential({ tenantId: tenantA });
@@ -597,8 +598,8 @@ describe('Credential CRUD Routes - Integration Tests', () => {
     });
 
     it('should handle deletion of credential with complex retrievalParams', async () => {
-      const tenantId = createTestTenantId('credentials-delete-complex');
-      await ensureTestProject(tenantId, projectId);
+      const tenantId = await createTestTenantWithOrg('credentials-delete-complex');
+      await createTestProject(dbClient, tenantId, projectId);
       const complexCredentialData = {
         ...createCredentialData(),
         retrievalParams: {
@@ -642,8 +643,8 @@ describe('Credential CRUD Routes - Integration Tests', () => {
 
   describe('Edge Cases and Error Handling', () => {
     it('should handle malformed JSON in request body', async () => {
-      const tenantId = createTestTenantId('credentials-malformed-json');
-      await ensureTestProject(tenantId, projectId);
+      const tenantId = await createTestTenantWithOrg('credentials-malformed-json');
+      await createTestProject(dbClient, tenantId, projectId);
 
       const res = await makeRequest(`/tenants/${tenantId}/projects/${projectId}/credentials`, {
         method: 'POST',
@@ -657,8 +658,8 @@ describe('Credential CRUD Routes - Integration Tests', () => {
     });
 
     it('should handle missing Content-Type header', async () => {
-      const tenantId = createTestTenantId('credentials-no-content-type');
-      await ensureTestProject(tenantId, projectId);
+      const tenantId = await createTestTenantWithOrg('credentials-no-content-type');
+      await createTestProject(dbClient, tenantId, projectId);
       const credentialData = createCredentialData();
 
       const res = await makeRequest(`/tenants/${tenantId}/projects/${projectId}/credentials`, {
@@ -672,8 +673,8 @@ describe('Credential CRUD Routes - Integration Tests', () => {
 
     it.skip('should handle very long retrievalParams values', async () => {
       // TODO: This test is failing intermittently - investigate SQLite parameter limits
-      const tenantId = createTestTenantId('credentials-long-retrievalParams');
-      await ensureTestProject(tenantId, projectId);
+      const tenantId = await createTestTenantWithOrg('credentials-long-retrievalParams');
+      await createTestProject(dbClient, tenantId, projectId);
       const longString = 'a'.repeat(1000); // 1KB string (reduced from 10KB to avoid SQLite parameter limits)
 
       const credentialData = {
@@ -700,8 +701,8 @@ describe('Credential CRUD Routes - Integration Tests', () => {
     });
 
     it('should handle credentials with undefined retrievalParams (omitted)', async () => {
-      const tenantId = createTestTenantId('credentials-undefined-retrievalParams');
-      await ensureTestProject(tenantId, projectId);
+      const tenantId = await createTestTenantWithOrg('credentials-undefined-retrievalParams');
+      await createTestProject(dbClient, tenantId, projectId);
       const credentialData = {
         id: `undefined-metadata-credential-${Date.now()}`,
         name: 'Undefined Metadata Credential',
@@ -783,8 +784,8 @@ describe('Credential CRUD Routes - Integration Tests', () => {
     });
 
     it('should cleanup both local DB and external store atomically', async () => {
-      const tenantId = createTestTenantId('credentials-delete-atomic');
-      await ensureTestProject(tenantId, projectId);
+      const tenantId = await createTestTenantWithOrg('credentials-delete-atomic');
+      await createTestProject(dbClient, tenantId, projectId);
 
       // Create credential that uses mock store
       const credentialData = {
@@ -834,8 +835,8 @@ describe('Credential CRUD Routes - Integration Tests', () => {
     });
 
     it('should handle external store cleanup failures gracefully', async () => {
-      const tenantId = createTestTenantId('credentials-delete-graceful-failure');
-      await ensureTestProject(tenantId, projectId);
+      const tenantId = await createTestTenantWithOrg('credentials-delete-graceful-failure');
+      await createTestProject(dbClient, tenantId, projectId);
 
       // Create credential that uses failing store
       const credentialData = {
@@ -876,8 +877,8 @@ describe('Credential CRUD Routes - Integration Tests', () => {
     });
 
     it('should handle deletion when credential store is not available', async () => {
-      const tenantId = createTestTenantId('credentials-delete-no-store');
-      await ensureTestProject(tenantId, projectId);
+      const tenantId = await createTestTenantWithOrg('credentials-delete-no-store');
+      await createTestProject(dbClient, tenantId, projectId);
 
       // Create credential with non-existent store
       const credentialData = {
@@ -917,8 +918,8 @@ describe('Credential CRUD Routes - Integration Tests', () => {
     });
 
     it('should handle nango store deletion with correct JSON lookup key', async () => {
-      const tenantId = createTestTenantId('credentials-delete-nango-lookup');
-      await ensureTestProject(tenantId, projectId);
+      const tenantId = await createTestTenantWithOrg('credentials-delete-nango-lookup');
+      await createTestProject(dbClient, tenantId, projectId);
 
       // Create nango credential
       const credentialData = {
@@ -963,8 +964,8 @@ describe('Credential CRUD Routes - Integration Tests', () => {
     });
 
     it('should handle memory store deletion with key-based lookup', async () => {
-      const tenantId = createTestTenantId('credentials-delete-memory-lookup');
-      await ensureTestProject(tenantId, projectId);
+      const tenantId = await createTestTenantWithOrg('credentials-delete-memory-lookup');
+      await createTestProject(dbClient, tenantId, projectId);
 
       // Create memory credential
       const credentialData = {
@@ -1003,8 +1004,8 @@ describe('Credential CRUD Routes - Integration Tests', () => {
     });
 
     it('should verify deletion order: external store first, then database', async () => {
-      const tenantId = createTestTenantId('credentials-delete-order');
-      await ensureTestProject(tenantId, projectId);
+      const tenantId = await createTestTenantWithOrg('credentials-delete-order');
+      await createTestProject(dbClient, tenantId, projectId);
 
       // Create credential
       const credentialData = {

@@ -33,13 +33,6 @@ export async function createTestDatabaseClient(drizzleDir?: string): Promise<Dat
   return db;
 }
 
-export function createTestDatabaseClientNoMigrations(): DatabaseClient {
-  const client = new PGlite();
-  const db = drizzle(client, { schema });
-
-  return db;
-}
-
 /**
  * Cleans up test database by removing all data but keeping schema
  * Dynamically gets all tables from the public schema and truncates them
@@ -82,4 +75,48 @@ export async function closeTestDatabase(db: DatabaseClient): Promise<void> {
   } catch (error) {
     console.debug('Error closing database:', error);
   }
+}
+
+/**
+ * Creates a test organization in the database
+ * This is a helper for tests that need organization records before creating projects/agents
+ */
+export async function createTestOrganization(
+  db: DatabaseClient,
+  tenantId: string
+): Promise<void> {
+  const slug = tenantId.replace(/^test-tenant-/, '').substring(0, 50);
+
+  await db
+    .insert(schema.organization)
+    .values({
+      id: tenantId,
+      name: `Test Organization ${tenantId}`,
+      slug,
+      createdAt: new Date(),
+      metadata: null,
+    })
+    .onConflictDoNothing();
+}
+
+/**
+ * Creates a test project in the database
+ * Ensures the organization exists first
+ */
+export async function createTestProject(
+  db: DatabaseClient,
+  tenantId: string,
+  projectId = 'default'
+): Promise<void> {
+  await createTestOrganization(db, tenantId);
+  
+  await db
+    .insert(schema.projects)
+    .values({
+      tenantId,
+      id: projectId,
+      name: `Test Project ${projectId}`,
+      description: `Test project for ${projectId}`,
+    })
+    .onConflictDoNothing();
 }

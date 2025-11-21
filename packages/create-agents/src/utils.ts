@@ -1,5 +1,6 @@
 import { exec } from 'node:child_process';
 import crypto from 'node:crypto';
+import os from 'node:os';
 import path from 'node:path';
 import { promisify } from 'node:util';
 import * as p from '@clack/prompts';
@@ -90,6 +91,7 @@ type FileConfig = {
   customProject?: boolean;
   disableGit?: boolean;
   localPrefix?: string;
+  installInkeepCLI?: boolean;
 };
 
 export const createAgents = async (
@@ -104,6 +106,8 @@ export const createAgents = async (
     disableGit?: boolean;
     localAgentsPrefix?: string;
     localTemplatesPrefix?: string;
+    skipInkeepCli?: boolean;
+    skipInkeepMcp?: boolean;
   } = {}
 ) => {
   let {
@@ -116,7 +120,12 @@ export const createAgents = async (
     disableGit,
     localAgentsPrefix,
     localTemplatesPrefix,
+    skipInkeepCli,
+    skipInkeepMcp,
   } = args;
+
+  console.log('skipInkeepCli', skipInkeepCli);
+
   const tenantId = 'default';
 
   let projectId: string;
@@ -330,12 +339,34 @@ export const createAgents = async (
 
     s.stop();
 
-    const installInkeepCLIResponse = await p.confirm({
-      message: 'Would you like to install the Inkeep CLI globally?',
-    });
+    if (!skipInkeepCli) {
+      let isGloballyInstalled = false;
 
-    if (!p.isCancel(installInkeepCLIResponse) && installInkeepCLIResponse) {
-      await installInkeepCLI();
+      try {
+        const { stdout } = await execAsync('pnpm list -g @inkeep/agents-cli --json');
+        const result = JSON.parse(stdout);
+        isGloballyInstalled = result?.[0]?.dependencies?.['@inkeep/agents-cli'] !== undefined;
+      } catch (_error) {
+        try {
+          await execAsync('npm list -g @inkeep/agents-cli');
+          isGloballyInstalled = true;
+        } catch (_npmError) {
+          isGloballyInstalled = false;
+        }
+      }
+
+      if (!isGloballyInstalled) {
+        const installInkeepCLIResponse = await p.confirm({
+          message: 'Would you like to install the Inkeep CLI globally?',
+        });
+        if (!p.isCancel(installInkeepCLIResponse) && installInkeepCLIResponse) {
+          await installInkeepCLIGlobally();
+        }
+      }
+    }
+
+    if (!skipInkeepMcp) {
+      await addInkeepMcp();
     }
 
     p.note(
@@ -371,6 +402,8 @@ async function createEnvironmentFiles(config: FileConfig) {
   // Convert to forward slashes for cross-platform SQLite URI compatibility
 
   const jwtSigningSecret = crypto.randomBytes(32).toString('hex');
+
+  const betterAuthSecret = crypto.randomBytes(32).toString('hex');
 
   const envContent = `# Environment
 ENVIRONMENT=development
@@ -408,6 +441,13 @@ INKEEP_AGENTS_JWT_SIGNING_SECRET=${jwtSigningSecret}
 
 # initial project information
 DEFAULT_PROJECT_ID=${config.projectId}
+
+# Auth Configuration
+# INKEEP_AGENTS_MANAGE_UI_USERNAME=admin@example.com
+# INKEEP_AGENTS_MANAGE_UI_PASSWORD=adminADMIN!@12
+BETTER_AUTH_SECRET=${betterAuthSecret}
+DISABLE_AUTH=true
+
 `;
 
   await fs.writeFile('.env', envContent);
@@ -443,7 +483,7 @@ export const myProject = project({
   }
 }
 
-async function installInkeepCLI() {
+async function installInkeepCLIGlobally() {
   const s = p.spinner();
   s.start('Installing Inkeep CLI globally with pnpm...');
 
@@ -591,4 +631,161 @@ export async function createCommand(dirName?: string, options?: any) {
     dirName,
     ...options,
   });
+}
+
+export async function addInkeepMcp() {
+  const editorChoice = await p.select({
+    message: 'Give your IDE access to Inkeep docs and types? (Adds Inkeep MCP)',
+    options: [
+      { value: 'cursor-project', label: 'Cursor (project only)' },
+      { value: 'cursor-global', label: 'Cursor (global, all projects)' },
+      { value: 'windsurf', label: 'Windsurf' },
+      { value: 'vscode', label: 'VSCode' },
+    ],
+    initialValue: 'cursor-project',
+  });
+
+  if (p.isCancel(editorChoice)) {
+    return;
+  }
+
+  if (!editorChoice) {
+    return;
+  }
+
+  const s = p.spinner();
+
+  try {
+    const mcpConfig = {
+      mcpServers: {
+        inkeep: {
+          type: 'mcp',
+          url: 'https://agents.inkeep.com/mcp',
+        },
+      },
+    };
+
+    const homeDir = os.homedir();
+
+    switch (editorChoice) {
+      case 'cursor-project': {
+        s.start('Adding Inkeep MCP to Cursor (project)...');
+        const cursorDir = path.join(process.cwd(), '.cursor');
+        const configPath = path.join(cursorDir, 'mcp.json');
+
+        await fs.ensureDir(cursorDir);
+
+        let existingConfig = {};
+        if (await fs.pathExists(configPath)) {
+          existingConfig = await fs.readJson(configPath);
+        }
+
+        const mergedConfig = {
+          ...existingConfig,
+          mcpServers: {
+            ...(existingConfig as any).mcpServers,
+            ...mcpConfig.mcpServers,
+          },
+        };
+
+        await fs.writeJson(configPath, mergedConfig, { spaces: 2 });
+        s.stop(`${color.green('✓')} Inkeep MCP added to .cursor/mcp.json`);
+        break;
+      }
+
+      case 'cursor-global': {
+        s.start('Adding Inkeep MCP to Cursor (global)...');
+        const configPath = path.join(homeDir, '.cursor', 'mcp.json');
+
+        await fs.ensureDir(path.dirname(configPath));
+
+        let existingConfig = {};
+        if (await fs.pathExists(configPath)) {
+          existingConfig = await fs.readJson(configPath);
+        }
+
+        const mergedConfig = {
+          ...existingConfig,
+          mcpServers: {
+            ...(existingConfig as any).mcpServers,
+            ...mcpConfig.mcpServers,
+          },
+        };
+
+        await fs.writeJson(configPath, mergedConfig, { spaces: 2 });
+        s.stop(`${color.green('✓')} Inkeep MCP added to global Cursor settings`);
+        break;
+      }
+
+      case 'windsurf': {
+        s.start('Adding Inkeep MCP to Windsurf...');
+        const configPath = path.join(homeDir, '.codeium', 'windsurf', 'mcp_config.json');
+
+        await fs.ensureDir(path.dirname(configPath));
+
+        let existingConfig = {};
+        if (await fs.pathExists(configPath)) {
+          existingConfig = await fs.readJson(configPath);
+        }
+
+        const mergedConfig = {
+          ...existingConfig,
+          mcpServers: {
+            ...(existingConfig as any).mcpServers,
+            ...mcpConfig.mcpServers,
+          },
+        };
+
+        await fs.writeJson(configPath, mergedConfig, { spaces: 2 });
+        s.stop(`${color.green('✓')} Inkeep MCP added to Windsurf settings`);
+        break;
+      }
+
+      case 'vscode': {
+        s.start('Adding Inkeep MCP to VSCode...');
+
+        let configPath: string;
+
+        if (process.platform === 'darwin') {
+          configPath = path.join(
+            homeDir,
+            'Library',
+            'Application Support',
+            'Code',
+            'User',
+            'mcp.json'
+          );
+        } else if (process.platform === 'win32') {
+          configPath = path.join(homeDir, 'AppData', 'Roaming', 'Code', 'User', 'mcp.json');
+        } else {
+          configPath = path.join(homeDir, '.config', 'Code', 'User', 'mcp.json');
+        }
+
+        await fs.ensureDir(path.dirname(configPath));
+
+        let existingConfig = {};
+        if (await fs.pathExists(configPath)) {
+          existingConfig = await fs.readJson(configPath);
+        }
+
+        const mergedConfig = {
+          ...existingConfig,
+          servers: {
+            ...(existingConfig as any).servers,
+            ...mcpConfig.mcpServers,
+          },
+        };
+
+        await fs.writeJson(configPath, mergedConfig, { spaces: 2 });
+        s.stop(
+          `${color.green('✓')} Inkeep MCP added to VSCode settings\n\n${color.yellow('Next steps:')}\n` +
+            `  start the MCP by going to ${configPath} and clicking start`
+        );
+        break;
+      }
+    }
+  } catch (error) {
+    s.stop();
+    console.error(`${color.yellow('⚠')}  Could not automatically configure MCP server: ${error}`);
+  }
 }

@@ -1,10 +1,11 @@
 import { generateId } from '@inkeep/agents-core';
+import { createTestProject } from '@inkeep/agents-core/db/test-client';
 import { describe, expect, it } from 'vitest';
+import dbClient from '../../../data/db/dbClient';
 import { createTestContextConfigDataFull } from '../../utils/testHelpers';
-import { ensureTestProject } from '../../utils/testProject';
 import { makeRequest } from '../../utils/testRequest';
 import { createTestExternalAgentData, createTestSubAgentData } from '../../utils/testSubAgent';
-import { createTestTenantId } from '../../utils/testTenant';
+import { createTestTenantWithOrg } from '../../utils/testTenant';
 
 describe('Agent Full CRUD Routes - Integration Tests', () => {
   const projectId = 'default';
@@ -152,8 +153,8 @@ describe('Agent Full CRUD Routes - Integration Tests', () => {
   describe('POST /', () => {
     it.skip('should create a full agent with all entities', async () => {
       // TODO: Update this test to work with new scoped architecture where tools are project-scoped
-      const tenantId = createTestTenantId('agent-create');
-      await ensureTestProject(tenantId, projectId);
+      const tenantId = await createTestTenantWithOrg('agent-create');
+      await createTestProject(dbClient, tenantId, projectId);
       const agentData = createFullAgentData();
       const res = await makeRequest(`/tenants/${tenantId}/projects/${projectId}/agent`, {
         method: 'POST',
@@ -192,8 +193,8 @@ describe('Agent Full CRUD Routes - Integration Tests', () => {
     });
 
     it('should handle agent with no relationships', async () => {
-      const tenantId = createTestTenantId('agent-no-relations');
-      await ensureTestProject(tenantId, projectId);
+      const tenantId = await createTestTenantWithOrg('agent-no-relations');
+      await createTestProject(dbClient, tenantId, projectId);
       const subAgentId = generateId();
       const agentId = generateId();
 
@@ -227,8 +228,8 @@ describe('Agent Full CRUD Routes - Integration Tests', () => {
     });
 
     it('should return 400 for invalid agent data', async () => {
-      const tenantId = createTestTenantId('agent-invalid');
-      await ensureTestProject(tenantId, projectId);
+      const tenantId = await createTestTenantWithOrg('agent-invalid');
+      await createTestProject(dbClient, tenantId, projectId);
 
       const invalidAgentData = {
         id: 'test-agent',
@@ -246,8 +247,8 @@ describe('Agent Full CRUD Routes - Integration Tests', () => {
 
     it.skip('should include models field in agent responses', async () => {
       // TODO: Update this test to work with new scoped architecture
-      const tenantId = createTestTenantId('agent-model-field');
-      await ensureTestProject(tenantId, projectId);
+      const tenantId = await createTestTenantWithOrg('agent-model-field');
+      await createTestProject(dbClient, tenantId, projectId);
       const agentId = generateId();
       const subAgentId = `agent-${agentId}-1`;
       const toolId = `tool-${agentId}-1`;
@@ -319,8 +320,8 @@ describe('Agent Full CRUD Routes - Integration Tests', () => {
 
     it.skip('should include models with providerOptions in agent responses', async () => {
       // TODO: Update this test to work with new scoped architecture
-      const tenantId = createTestTenantId('agent-provider-options');
-      await ensureTestProject(tenantId, projectId);
+      const tenantId = await createTestTenantWithOrg('agent-provider-options');
+      await createTestProject(dbClient, tenantId, projectId);
       const agentId = generateId();
       const subAgentId = `agent-${agentId}-1`;
       const toolId = `tool-${agentId}-1`;
@@ -407,8 +408,8 @@ describe('Agent Full CRUD Routes - Integration Tests', () => {
 
   describe('GET /{agentId}', () => {
     it('should retrieve a full agent by ID', async () => {
-      const tenantId = createTestTenantId('agent-get');
-      await ensureTestProject(tenantId, projectId);
+      const tenantId = await createTestTenantWithOrg('agent-get');
+      await createTestProject(dbClient, tenantId, projectId);
       const { agentData } = await createTestAgent(tenantId);
 
       const res = await makeRequest(
@@ -434,8 +435,8 @@ describe('Agent Full CRUD Routes - Integration Tests', () => {
     });
 
     it('should return 404 for non-existent agent', async () => {
-      const tenantId = createTestTenantId('agent-not-found');
-      await ensureTestProject(tenantId, projectId);
+      const tenantId = await createTestTenantWithOrg('agent-not-found');
+      await createTestProject(dbClient, tenantId, projectId);
       const nonExistentId = generateId();
 
       const res = await makeRequest(
@@ -451,8 +452,8 @@ describe('Agent Full CRUD Routes - Integration Tests', () => {
 
   describe('PUT /{agentId}', () => {
     it('should update an existing agent', async () => {
-      const tenantId = createTestTenantId('agent-update');
-      await ensureTestProject(tenantId, projectId);
+      const tenantId = await createTestTenantWithOrg('agent-update');
+      await createTestProject(dbClient, tenantId, projectId);
       const { agentData } = await createTestAgent(tenantId);
 
       // Modify the agent data
@@ -487,8 +488,8 @@ describe('Agent Full CRUD Routes - Integration Tests', () => {
     });
 
     it('should create a new agent if it does not exist (upsert)', async () => {
-      const tenantId = createTestTenantId('agent-upsert');
-      await ensureTestProject(tenantId, projectId);
+      const tenantId = await createTestTenantWithOrg('agent-upsert');
+      await createTestProject(dbClient, tenantId, projectId);
       const agentData = createFullAgentData();
 
       const res = await makeRequest(
@@ -510,8 +511,8 @@ describe('Agent Full CRUD Routes - Integration Tests', () => {
     });
 
     it('should return 400 for ID mismatch', async () => {
-      const tenantId = createTestTenantId('agent-id-mismatch');
-      await ensureTestProject(tenantId, projectId);
+      const tenantId = await createTestTenantWithOrg('agent-id-mismatch');
+      await createTestProject(dbClient, tenantId, projectId);
       const agentData = createFullAgentData();
       const differentId = generateId();
 
@@ -527,8 +528,8 @@ describe('Agent Full CRUD Routes - Integration Tests', () => {
     });
 
     it('should handle adding new agents and relationships in update', async () => {
-      const tenantId = createTestTenantId('agent-add-agents');
-      await ensureTestProject(tenantId, projectId);
+      const tenantId = await createTestTenantWithOrg('agent-add-agents');
+      await createTestProject(dbClient, tenantId, projectId);
       const { agentData } = await createTestAgent(tenantId);
 
       // Add a new agent and relationships
@@ -561,8 +562,8 @@ describe('Agent Full CRUD Routes - Integration Tests', () => {
     });
 
     it('should delete agents that are removed from the agent definition', async () => {
-      const tenantId = createTestTenantId('agent-remove-agents');
-      await ensureTestProject(tenantId, projectId);
+      const tenantId = await createTestTenantWithOrg('agent-remove-agents');
+      await createTestProject(dbClient, tenantId, projectId);
 
       // Create an agent with external agent included
       const initialAgentData = createFullAgentData(
@@ -655,8 +656,8 @@ describe('Agent Full CRUD Routes - Integration Tests', () => {
     });
 
     it('should handle removing all agents except default agent', async () => {
-      const tenantId = createTestTenantId('agent-remove-all-but-one');
-      await ensureTestProject(tenantId, projectId);
+      const tenantId = await createTestTenantWithOrg('agent-remove-all-but-one');
+      await createTestProject(dbClient, tenantId, projectId);
       const { agentData } = await createTestAgent(tenantId);
 
       // Add more agents to make it interesting
@@ -718,8 +719,8 @@ describe('Agent Full CRUD Routes - Integration Tests', () => {
 
   describe('DELETE /{agentId}', () => {
     it('should delete an agent and its relationships', async () => {
-      const tenantId = createTestTenantId('agent-delete');
-      await ensureTestProject(tenantId, projectId);
+      const tenantId = await createTestTenantWithOrg('agent-delete');
+      await createTestProject(dbClient, tenantId, projectId);
       const { agentData } = await createTestAgent(tenantId);
 
       const deleteRes = await makeRequest(
@@ -743,8 +744,8 @@ describe('Agent Full CRUD Routes - Integration Tests', () => {
     });
 
     it('should return 404 for non-existent agent', async () => {
-      const tenantId = createTestTenantId('agent-delete-not-found');
-      await ensureTestProject(tenantId, projectId);
+      const tenantId = await createTestTenantWithOrg('agent-delete-not-found');
+      await createTestProject(dbClient, tenantId, projectId);
       const nonExistentId = generateId();
 
       const res = await makeRequest(
@@ -761,8 +762,8 @@ describe('Agent Full CRUD Routes - Integration Tests', () => {
   describe('Complex scenarios', () => {
     it.skip('should handle agent with multiple tools per agent', async () => {
       // TODO: Update this test to work with new scoped architecture where tools are project-scoped
-      const tenantId = createTestTenantId('agent-multi-tools');
-      await ensureTestProject(tenantId, projectId);
+      const tenantId = await createTestTenantWithOrg('agent-multi-tools');
+      await createTestProject(dbClient, tenantId, projectId);
       const agentId = generateId();
       const subAgentId = `agent-${agentId}`;
       const tool1Id = `tool-${agentId}-1`;
@@ -807,8 +808,8 @@ describe('Agent Full CRUD Routes - Integration Tests', () => {
     });
 
     it('should handle circular agent relationships', async () => {
-      const tenantId = createTestTenantId('agent-circular');
-      await ensureTestProject(tenantId, projectId);
+      const tenantId = await createTestTenantWithOrg('agent-circular');
+      await createTestProject(dbClient, tenantId, projectId);
       const agentId = generateId();
       const agent1Id = `agent-${agentId}-1`;
       const agent2Id = `agent-${agentId}-2`;
@@ -848,8 +849,8 @@ describe('Agent Full CRUD Routes - Integration Tests', () => {
     });
 
     it('should handle large agent with many agents', async () => {
-      const tenantId = createTestTenantId('agent-large');
-      await ensureTestProject(tenantId, projectId);
+      const tenantId = await createTestTenantWithOrg('agent-large');
+      await createTestProject(dbClient, tenantId, projectId);
       const agentId = generateId();
       const agentCount = 10;
 
@@ -894,11 +895,11 @@ describe('Agent Full CRUD Routes - Integration Tests', () => {
     });
 
     it('should handle concurrent agent operations on different tenants', async () => {
-      const tenant1 = createTestTenantId('concurrent-1');
-      const tenant2 = createTestTenantId('concurrent-2');
+      const tenant1 = await createTestTenantWithOrg('concurrent-1');
+      const tenant2 = await createTestTenantWithOrg('concurrent-2');
 
-      await ensureTestProject(tenant1, projectId);
-      await ensureTestProject(tenant2, projectId);
+      await createTestProject(dbClient, tenant1, projectId);
+      await createTestProject(dbClient, tenant2, projectId);
 
       const agent1Data = createFullAgentData();
       const agent2Data = createFullAgentData();
@@ -929,8 +930,8 @@ describe('Agent Full CRUD Routes - Integration Tests', () => {
   describe('Enhanced Features', () => {
     it.skip('should create an agent with dataComponents', async () => {
       // TODO: Update this test to work with new scoped architecture where dataComponents are project-scoped
-      const tenantId = createTestTenantId('agent-datacomponents');
-      await ensureTestProject(tenantId, projectId);
+      const tenantId = await createTestTenantWithOrg('agent-datacomponents');
+      await createTestProject(dbClient, tenantId, projectId);
       const agentData = createFullAgentData(undefined, { includeDataComponents: true });
 
       const res = await makeRequest(`/tenants/${tenantId}/projects/${projectId}/agent`, {
@@ -969,8 +970,8 @@ describe('Agent Full CRUD Routes - Integration Tests', () => {
 
     it.skip('should create an agent with artifactComponents', async () => {
       // TODO: Update this test to work with new scoped architecture where artifactComponents are project-scoped
-      const tenantId = createTestTenantId('agent-artifactcomponents');
-      await ensureTestProject(tenantId, projectId);
+      const tenantId = await createTestTenantWithOrg('agent-artifactcomponents');
+      await createTestProject(dbClient, tenantId, projectId);
       const agentData = createFullAgentData(undefined, { includeArtifactComponents: true });
 
       const res = await makeRequest(`/tenants/${tenantId}/projects/${projectId}/agent`, {
@@ -1012,8 +1013,8 @@ describe('Agent Full CRUD Routes - Integration Tests', () => {
     });
 
     it('should create an agent with contextConfig', async () => {
-      const tenantId = createTestTenantId('agent-contextconfig');
-      await ensureTestProject(tenantId, projectId);
+      const tenantId = await createTestTenantWithOrg('agent-contextconfig');
+      await createTestProject(dbClient, tenantId, projectId);
       const agentData = createFullAgentData(
         undefined,
         { includeContextConfig: true },
@@ -1054,8 +1055,8 @@ describe('Agent Full CRUD Routes - Integration Tests', () => {
     });
 
     it('should create an agent with external agents', async () => {
-      const tenantId = createTestTenantId('agent-external');
-      await ensureTestProject(tenantId, projectId);
+      const tenantId = await createTestTenantWithOrg('agent-external');
+      await createTestProject(dbClient, tenantId, projectId);
 
       // First, create the external agent at the project level
       const agentData = createFullAgentData(
@@ -1112,8 +1113,8 @@ describe('Agent Full CRUD Routes - Integration Tests', () => {
 
     it.skip('should create a complete agent with all features', async () => {
       // TODO: Update this test to work with new scoped architecture
-      const tenantId = createTestTenantId('agent-complete');
-      await ensureTestProject(tenantId, projectId);
+      const tenantId = await createTestTenantWithOrg('agent-complete');
+      await createTestProject(dbClient, tenantId, projectId);
       const agentData = createFullAgentData(
         undefined,
         {
@@ -1160,8 +1161,8 @@ describe('Agent Full CRUD Routes - Integration Tests', () => {
 
     it.skip('should update an agent with enhanced features', async () => {
       // TODO: Update this test to work with new scoped architecture
-      const tenantId = createTestTenantId('agent-update-enhanced');
-      await ensureTestProject(tenantId, projectId);
+      const tenantId = await createTestTenantWithOrg('agent-update-enhanced');
+      await createTestProject(dbClient, tenantId, projectId);
 
       // Create initial agent with basic features
       const initialAgentData = createFullAgentData();
@@ -1203,8 +1204,8 @@ describe('Agent Full CRUD Routes - Integration Tests', () => {
     });
 
     it('should handle external agent relationships correctly', async () => {
-      const tenantId = createTestTenantId('agent-external-relations');
-      await ensureTestProject(tenantId, projectId);
+      const tenantId = await createTestTenantWithOrg('agent-external-relations');
+      await createTestProject(dbClient, tenantId, projectId);
 
       // First, create the external agent at the project level
       const agentData = createFullAgentData(
@@ -1256,8 +1257,8 @@ describe('Agent Full CRUD Routes - Integration Tests', () => {
 
   describe('Context Config Clearing in Full Agent', () => {
     it('should clear contextVariables when set to null in full agent update', async () => {
-      const tenantId = createTestTenantId('full-agent-clear-context-vars');
-      await ensureTestProject(tenantId, projectId);
+      const tenantId = await createTestTenantWithOrg('full-agent-clear-context-vars');
+      await createTestProject(dbClient, tenantId, projectId);
       const agentData = createFullAgentData(
         undefined,
         { includeContextConfig: true },
@@ -1295,8 +1296,8 @@ describe('Agent Full CRUD Routes - Integration Tests', () => {
     });
 
     it('should clear headersSchema when set to null in full agent update', async () => {
-      const tenantId = createTestTenantId('full-agent-clear-request-schema');
-      await ensureTestProject(tenantId, projectId);
+      const tenantId = await createTestTenantWithOrg('full-agent-clear-request-schema');
+      await createTestProject(dbClient, tenantId, projectId);
       const agentData = createFullAgentData(
         undefined,
         { includeContextConfig: true },
@@ -1334,8 +1335,8 @@ describe('Agent Full CRUD Routes - Integration Tests', () => {
     });
 
     it('should clear both contextVariables and headersSchema simultaneously in full agent', async () => {
-      const tenantId = createTestTenantId('full-agent-clear-both-fields');
-      await ensureTestProject(tenantId, projectId);
+      const tenantId = await createTestTenantWithOrg('full-agent-clear-both-fields');
+      await createTestProject(dbClient, tenantId, projectId);
       const agentData = createFullAgentData(
         undefined,
         { includeContextConfig: true },
@@ -1375,8 +1376,8 @@ describe('Agent Full CRUD Routes - Integration Tests', () => {
     });
 
     it('should handle empty object contextVariables as null in full agent creation', async () => {
-      const tenantId = createTestTenantId('full-agent-create-empty-context-vars');
-      await ensureTestProject(tenantId, projectId);
+      const tenantId = await createTestTenantWithOrg('full-agent-create-empty-context-vars');
+      await createTestProject(dbClient, tenantId, projectId);
       const agentData = createFullAgentData(
         undefined,
         { includeContextConfig: true },
@@ -1400,8 +1401,8 @@ describe('Agent Full CRUD Routes - Integration Tests', () => {
     });
 
     it('should retrieve full agent with cleared context config fields consistently', async () => {
-      const tenantId = createTestTenantId('full-agent-retrieve-cleared-fields');
-      await ensureTestProject(tenantId, projectId);
+      const tenantId = await createTestTenantWithOrg('full-agent-retrieve-cleared-fields');
+      await createTestProject(dbClient, tenantId, projectId);
       const agentData = createFullAgentData(
         undefined,
         { includeContextConfig: true },
@@ -1456,8 +1457,8 @@ describe('Agent Full CRUD Routes - Integration Tests', () => {
       // - availableTools: [...]
 
       // Let's verify that these fields are present in the response
-      const tenantId = createTestTenantId('verify-tool-schema');
-      await ensureTestProject(tenantId, projectId);
+      const tenantId = await createTestTenantWithOrg('verify-tool-schema');
+      await createTestProject(dbClient, tenantId, projectId);
       const agentData = createFullAgentData();
 
       const createRes = await makeRequest(`/tenants/${tenantId}/projects/${projectId}/agent`, {
@@ -1508,8 +1509,8 @@ describe('Agent Full CRUD Routes - Integration Tests', () => {
 
     it.skip('should handle minimal tool config and verify optional fields', async () => {
       // TODO: Update this test to work with new scoped architecture where tools are project-scoped
-      const tenantId = createTestTenantId('minimal-tool-fields');
-      await ensureTestProject(tenantId, projectId);
+      const tenantId = await createTestTenantWithOrg('minimal-tool-fields');
+      await createTestProject(dbClient, tenantId, projectId);
       const agentId = generateId();
       const subAgentId = `agent-${agentId}`;
       const toolId = `tool-${agentId}`;
@@ -1585,8 +1586,8 @@ describe('Agent Full CRUD Routes - Integration Tests', () => {
 
   describe.skip('Tool Full Schema Fields - Old Tests', () => {
     it('should include all read-only tool fields in agent response', async () => {
-      const tenantId = createTestTenantId('agent-tool-full-fields');
-      await ensureTestProject(tenantId, projectId);
+      const tenantId = await createTestTenantWithOrg('agent-tool-full-fields');
+      await createTestProject(dbClient, tenantId, projectId);
       const agentId = generateId();
       const subAgentId = `agent-${agentId}`;
       const toolId = `tool-${agentId}`;
@@ -1653,8 +1654,8 @@ describe('Agent Full CRUD Routes - Integration Tests', () => {
     });
 
     it('should preserve tool full schema fields on agent retrieval', async () => {
-      const tenantId = createTestTenantId('agent-tool-fields-get');
-      await ensureTestProject(tenantId, projectId);
+      const tenantId = await createTestTenantWithOrg('agent-tool-fields-get');
+      await createTestProject(dbClient, tenantId, projectId);
       const agentData = createFullAgentData();
 
       // Create the agent
@@ -1695,8 +1696,8 @@ describe('Agent Full CRUD Routes - Integration Tests', () => {
     });
 
     it('should handle tools with populated availableTools field', async () => {
-      const tenantId = createTestTenantId('agent-tool-available-tools');
-      await ensureTestProject(tenantId, projectId);
+      const tenantId = await createTestTenantWithOrg('agent-tool-available-tools');
+      await createTestProject(dbClient, tenantId, projectId);
       const agentId = generateId();
       const subAgentId = `agent-${agentId}`;
       const toolId = `tool-${agentId}`;
@@ -1764,8 +1765,8 @@ describe('Agent Full CRUD Routes - Integration Tests', () => {
     });
 
     it('should handle multiple tools with different status values', async () => {
-      const tenantId = createTestTenantId('agent-tool-statuses');
-      await ensureTestProject(tenantId, projectId);
+      const tenantId = await createTestTenantWithOrg('agent-tool-statuses');
+      await createTestProject(dbClient, tenantId, projectId);
       const agentId = generateId();
       const subAgentId = `agent-${agentId}`;
       const healthyToolId = `healthy-tool-${agentId}`;
@@ -1842,8 +1843,8 @@ describe('Agent Full CRUD Routes - Integration Tests', () => {
     });
 
     it('should handle tools with capabilities field', async () => {
-      const tenantId = createTestTenantId('agent-tool-capabilities');
-      await ensureTestProject(tenantId, projectId);
+      const tenantId = await createTestTenantWithOrg('agent-tool-capabilities');
+      await createTestProject(dbClient, tenantId, projectId);
       const agentId = generateId();
       const subAgentId = `agent-${agentId}`;
       const toolId = `tool-${agentId}`;
@@ -1895,8 +1896,8 @@ describe('Agent Full CRUD Routes - Integration Tests', () => {
     });
 
     it('should preserve all tool fields during agent update', async () => {
-      const tenantId = createTestTenantId('agent-tool-update-preserve');
-      await ensureTestProject(tenantId, projectId);
+      const tenantId = await createTestTenantWithOrg('agent-tool-update-preserve');
+      await createTestProject(dbClient, tenantId, projectId);
       const agentData = createFullAgentData();
 
       // Create the agent
@@ -1934,8 +1935,8 @@ describe('Agent Full CRUD Routes - Integration Tests', () => {
     });
 
     it('should handle empty availableTools array', async () => {
-      const tenantId = createTestTenantId('agent-empty-available-tools');
-      await ensureTestProject(tenantId, projectId);
+      const tenantId = await createTestTenantWithOrg('agent-empty-available-tools');
+      await createTestProject(dbClient, tenantId, projectId);
       const agentId = generateId();
       const subAgentId = `agent-${agentId}`;
       const toolId = `tool-${agentId}`;
@@ -1983,8 +1984,8 @@ describe('Agent Full CRUD Routes - Integration Tests', () => {
     });
 
     it('should validate tool schema properly with all optional fields', async () => {
-      const tenantId = createTestTenantId('agent-tool-optional-fields');
-      await ensureTestProject(tenantId, projectId);
+      const tenantId = await createTestTenantWithOrg('agent-tool-optional-fields');
+      await createTestProject(dbClient, tenantId, projectId);
       const agentId = generateId();
       const subAgentId = `agent-${agentId}`;
       const toolId = `tool-${agentId}`;

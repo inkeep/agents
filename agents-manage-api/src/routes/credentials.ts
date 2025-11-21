@@ -5,7 +5,6 @@ import {
   CredentialReferenceApiUpdateSchema,
   CredentialReferenceListResponse,
   CredentialReferenceResponse,
-  type CredentialStoreRegistry,
   commonGetErrorResponses,
   createApiError,
   createCredentialReference,
@@ -22,12 +21,37 @@ import {
   updateCredentialReference,
 } from '@inkeep/agents-core';
 import dbClient from '../data/db/dbClient';
+import { requirePermission } from '../middleware/require-permission';
+import type { AppVariablesWithCredentials } from '../types/app';
 
-type AppVariables = {
-  credentialStores: CredentialStoreRegistry;
-};
+const app = new OpenAPIHono<{ Variables: AppVariablesWithCredentials }>();
 
-const app = new OpenAPIHono<{ Variables: AppVariables }>();
+// Apply permission middleware by HTTP method
+app.use('/', async (c, next) => {
+  if (c.req.method === 'POST') {
+    return requirePermission<{ Variables: AppVariablesWithCredentials }>({ credential: ['create'] })(
+      c,
+      next
+    );
+  }
+  return next();
+});
+
+app.use('/:id', async (c, next) => {
+  if (c.req.method === 'PATCH') {
+    return requirePermission<{ Variables: AppVariablesWithCredentials }>({ credential: ['update'] })(
+      c,
+      next
+    );
+  }
+  if (c.req.method === 'DELETE') {
+    return requirePermission<{ Variables: AppVariablesWithCredentials }>({ credential: ['delete'] })(
+      c,
+      next
+    );
+  }
+  return next();
+});
 
 app.openapi(
   createRoute({

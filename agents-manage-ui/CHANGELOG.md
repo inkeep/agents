@@ -1,5 +1,57 @@
 # @inkeep/agents-manage-ui
 
+## 0.35.0
+
+### Minor Changes
+
+- 0d46d32: Adding auth to the framework
+
+### Patch Changes
+
+- f9a208a: Check for CLI installation in quickstart
+- Updated dependencies [f9a208a]
+- Updated dependencies [0d46d32]
+  - @inkeep/agents-core@0.35.0
+  - @inkeep/agents-manage-api@0.35.0
+  - @inkeep/agents-run-api@0.35.0
+
+## 0.34.1
+
+### Patch Changes
+
+- 699043d: Install inkeep mcp in quickstarte
+- e4b5d5c: Inkeep add: usage instructions and target path detection
+- Updated dependencies [699043d]
+- Updated dependencies [e4b5d5c]
+  - @inkeep/agents-core@0.34.1
+  - @inkeep/agents-manage-api@0.34.1
+  - @inkeep/agents-run-api@0.34.1
+
+## 0.34.0
+
+### Minor Changes
+
+- 8af5738: - should collapses when opening an agent page and re-expands when returning to other page
+  - should keeps the sidebar collapsed after a manual toggle even when leaving the agent page
+
+### Patch Changes
+
+- 7426927: add cli installation to quickstart
+- 015f9f7: Status Update Model fixed
+- 817b43e: fix JSON mode in JSON schema from builder, when JSON mode is enabled it override JSON schema to empty
+- bdeee9b: quickstart skip cli install option
+- 2434d22: add error handling to github fetch
+- af95c9a: added provider config
+- 2672603: Fix scroll in widgets inside of the ship modal
+- Updated dependencies [7426927]
+- Updated dependencies [015f9f7]
+- Updated dependencies [bdeee9b]
+- Updated dependencies [2434d22]
+- Updated dependencies [af95c9a]
+  - @inkeep/agents-core@0.34.0
+  - @inkeep/agents-manage-api@0.34.0
+  - @inkeep/agents-run-api@0.34.0
+
 ## 0.33.3
 
 ### Patch Changes

@@ -248,7 +248,16 @@ export class ModelFactory {
       return {};
     }
 
-    const excludedKeys = ['apiKey', 'baseURL', 'baseUrl', 'maxDuration', 'headers', 'gateway', 'nim', 'custom'];
+    const excludedKeys = [
+      'apiKey',
+      'baseURL',
+      'baseUrl',
+      'maxDuration',
+      'headers',
+      'gateway',
+      'nim',
+      'custom',
+    ];
 
     const params: Record<string, unknown> = {};
     for (const [key, value] of Object.entries(providerOptions)) {

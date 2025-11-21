@@ -47,6 +47,8 @@ describe('create-agents quickstart e2e', () => {
         createAgentsPrefix,
         '--local-templates-prefix',
         projectTemplatesPrefix,
+        '--skip-inkeep-cli',
+        '--skip-inkeep-mcp',
       ],
       testDir
     );

@@ -545,7 +545,7 @@ interface JsonSchemaStateData {
 }
 
 interface JsonSchemaActions {
-  setFields: (fields: EditableField[], hasInPreview?: boolean) => void;
+  setFields: (schemaJson: string, hasInPreview?: boolean) => void;
   updateField: (id: string, patch: FieldPatch) => void;
   changeType: (id: string, type: TypeValues) => void;
   addChild: (parentId?: string) => void;
@@ -561,8 +561,11 @@ const jsonSchemaState: StateCreator<JsonSchemaState> = (set) => ({
   fields: [],
   hasInPreview: false,
   actions: {
-    setFields(fields, hasInPreview) {
-      set({ fields, hasInPreview });
+    setFields(schemaJson, hasInPreview) {
+      // Update preview mode before parsing the schema
+      set({ hasInPreview });
+      // Parse fields from the JSON schema using the updated `hasInPreview` state
+      set({ fields: parseFieldsFromJson(schemaJson) });
     },
     updateField(id, patch) {
       set((state) => {
@@ -640,7 +643,6 @@ export {
   Types,
   jsonSchemaStore,
   findFieldById,
-  parseFieldsFromJson,
   convertJsonSchemaToFields,
   fieldsToJsonSchema,
   useJsonSchemaStore,

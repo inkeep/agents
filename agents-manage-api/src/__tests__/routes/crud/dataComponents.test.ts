@@ -1,8 +1,9 @@
 import { generateId } from '@inkeep/agents-core';
+import { createTestProject } from '@inkeep/agents-core/db/test-client';
 import { describe, expect, it } from 'vitest';
-import { ensureTestProject } from '../../utils/testProject';
+import dbClient from '../../../data/db/dbClient';
 import { makeRequest } from '../../utils/testRequest';
-import { createTestTenantId } from '../../utils/testTenant';
+import { createTestTenantWithOrg } from '../../utils/testTenant';
 
 describe('Data Component CRUD Routes - Integration Tests', () => {
   const projectId = 'default';
@@ -65,8 +66,8 @@ describe('Data Component CRUD Routes - Integration Tests', () => {
 
   describe('GET /', () => {
     it('should list data components with pagination (empty initially)', async () => {
-      const tenantId = createTestTenantId('data-components-list-empty');
-      await ensureTestProject(tenantId, projectId);
+      const tenantId = await createTestTenantWithOrg('data-components-list-empty');
+      await createTestProject(dbClient, tenantId, projectId);
       const res = await makeRequest(
         `/tenants/${tenantId}/projects/${projectId}/data-components?page=1&limit=10`
       );
@@ -85,8 +86,8 @@ describe('Data Component CRUD Routes - Integration Tests', () => {
     });
 
     it('should list data components with pagination (single item)', async () => {
-      const tenantId = createTestTenantId('data-components-list-single');
-      await ensureTestProject(tenantId, projectId);
+      const tenantId = await createTestTenantWithOrg('data-components-list-single');
+      await createTestProject(dbClient, tenantId, projectId);
       const { dataComponentData } = await createTestDataComponent({ tenantId });
 
       const res = await makeRequest(
@@ -111,8 +112,8 @@ describe('Data Component CRUD Routes - Integration Tests', () => {
     });
 
     it('should handle pagination with multiple pages (small page size)', async () => {
-      const tenantId = createTestTenantId('data-components-list-multipages');
-      await ensureTestProject(tenantId, projectId);
+      const tenantId = await createTestTenantWithOrg('data-components-list-multipages');
+      await createTestProject(dbClient, tenantId, projectId);
       const _dataComponents = await createMultipleDataComponents({ tenantId, count: 5 });
 
       // Test first page with limit 2
@@ -170,8 +171,8 @@ describe('Data Component CRUD Routes - Integration Tests', () => {
     });
 
     it('should return empty data for page beyond available data', async () => {
-      const tenantId = createTestTenantId('data-components-list-beyond-pages');
-      await ensureTestProject(tenantId, projectId);
+      const tenantId = await createTestTenantWithOrg('data-components-list-beyond-pages');
+      await createTestProject(dbClient, tenantId, projectId);
       await createMultipleDataComponents({ tenantId, count: 3 });
 
       // Request page 5 with limit 2 (should be empty)
@@ -191,8 +192,8 @@ describe('Data Component CRUD Routes - Integration Tests', () => {
     });
 
     it('should handle edge case with limit 1', async () => {
-      const tenantId = createTestTenantId('data-components-list-limit1');
-      await ensureTestProject(tenantId, projectId);
+      const tenantId = await createTestTenantWithOrg('data-components-list-limit1');
+      await createTestProject(dbClient, tenantId, projectId);
       const _dataComponents = await createMultipleDataComponents({ tenantId, count: 3 });
 
       // Test with limit 1 (each page should have exactly 1 item)
@@ -242,8 +243,8 @@ describe('Data Component CRUD Routes - Integration Tests', () => {
     });
 
     it('should handle large page size (larger than total items)', async () => {
-      const tenantId = createTestTenantId('data-components-list-large-limit');
-      await ensureTestProject(tenantId, projectId);
+      const tenantId = await createTestTenantWithOrg('data-components-list-large-limit');
+      await createTestProject(dbClient, tenantId, projectId);
       const _dataComponents = await createMultipleDataComponents({ tenantId, count: 3 });
 
       // Request with limit 10 (larger than total)
@@ -265,8 +266,8 @@ describe('Data Component CRUD Routes - Integration Tests', () => {
 
   describe('GET /{id}', () => {
     it('should get a data component by id', async () => {
-      const tenantId = createTestTenantId('data-components-get-by-id');
-      await ensureTestProject(tenantId, projectId);
+      const tenantId = await createTestTenantWithOrg('data-components-get-by-id');
+      await createTestProject(dbClient, tenantId, projectId);
       const { dataComponentData, dataComponentId } = await createTestDataComponent({
         tenantId,
       });
@@ -289,8 +290,8 @@ describe('Data Component CRUD Routes - Integration Tests', () => {
     });
 
     it('should return 404 when data component not found', async () => {
-      const tenantId = createTestTenantId('data-components-get-not-found');
-      await ensureTestProject(tenantId, projectId);
+      const tenantId = await createTestTenantWithOrg('data-components-get-not-found');
+      await createTestProject(dbClient, tenantId, projectId);
       const res = await makeRequest(
         `/tenants/${tenantId}/projects/${projectId}/data-components/non-existent-id`
       );
@@ -310,8 +311,8 @@ describe('Data Component CRUD Routes - Integration Tests', () => {
     });
 
     it('should return RFC 7807-compliant problem details JSON and header for 404', async () => {
-      const tenantId = createTestTenantId('data-components-problem-details-404');
-      await ensureTestProject(tenantId, projectId);
+      const tenantId = await createTestTenantWithOrg('data-components-problem-details-404');
+      await createTestProject(dbClient, tenantId, projectId);
       const res = await makeRequest(
         `/tenants/${tenantId}/projects/${projectId}/data-components/non-existent-id`
       );
@@ -334,8 +335,8 @@ describe('Data Component CRUD Routes - Integration Tests', () => {
 
   describe('POST /', () => {
     it('should create a new data component', async () => {
-      const tenantId = createTestTenantId('data-components-create-success');
-      await ensureTestProject(tenantId, projectId);
+      const tenantId = await createTestTenantWithOrg('data-components-create-success');
+      await createTestProject(dbClient, tenantId, projectId);
       const dataComponentData = createDataComponentData();
 
       const res = await makeRequest(`/tenants/${tenantId}/projects/${projectId}/data-components`, {
@@ -357,8 +358,8 @@ describe('Data Component CRUD Routes - Integration Tests', () => {
     });
 
     it('should create a new data component with a provided id', async () => {
-      const tenantId = createTestTenantId('data-components-create-with-id');
-      await ensureTestProject(tenantId, projectId);
+      const tenantId = await createTestTenantWithOrg('data-components-create-with-id');
+      await createTestProject(dbClient, tenantId, projectId);
       const dataComponentData = createDataComponentData();
       const providedId = generateId();
 
@@ -388,8 +389,8 @@ describe('Data Component CRUD Routes - Integration Tests', () => {
     });
 
     it('should validate required fields', async () => {
-      const tenantId = createTestTenantId('data-components-create-validation');
-      await ensureTestProject(tenantId, projectId);
+      const tenantId = await createTestTenantWithOrg('data-components-create-validation');
+      await createTestProject(dbClient, tenantId, projectId);
       const res = await makeRequest(`/tenants/${tenantId}/projects/${projectId}/data-components`, {
         method: 'POST',
         body: JSON.stringify({}),
@@ -399,8 +400,8 @@ describe('Data Component CRUD Routes - Integration Tests', () => {
     });
 
     it('should handle complex props structure', async () => {
-      const tenantId = createTestTenantId('data-components-create-complex-props');
-      await ensureTestProject(tenantId, projectId);
+      const tenantId = await createTestTenantWithOrg('data-components-create-complex-props');
+      await createTestProject(dbClient, tenantId, projectId);
       const complexDataComponentData = {
         id: `complex-component-${generateId(6)}`,
         name: 'ComplexComponent',
@@ -457,8 +458,8 @@ describe('Data Component CRUD Routes - Integration Tests', () => {
 
   describe('PUT /{id}', () => {
     it('should update an existing data component', async () => {
-      const tenantId = createTestTenantId('data-components-update-success');
-      await ensureTestProject(tenantId, projectId);
+      const tenantId = await createTestTenantWithOrg('data-components-update-success');
+      await createTestProject(dbClient, tenantId, projectId);
       const { dataComponentId } = await createTestDataComponent({ tenantId });
 
       const updateData = {
@@ -498,8 +499,8 @@ describe('Data Component CRUD Routes - Integration Tests', () => {
     });
 
     it('should return 404 when updating non-existent data component', async () => {
-      const tenantId = createTestTenantId('data-components-update-not-found');
-      await ensureTestProject(tenantId, projectId);
+      const tenantId = await createTestTenantWithOrg('data-components-update-not-found');
+      await createTestProject(dbClient, tenantId, projectId);
       const updateData = {
         name: 'Updated Component',
         description: 'Updated Description',
@@ -529,8 +530,8 @@ describe('Data Component CRUD Routes - Integration Tests', () => {
 
   describe('DELETE /{id}', () => {
     it('should delete an existing data component', async () => {
-      const tenantId = createTestTenantId('data-components-delete-success');
-      await ensureTestProject(tenantId, projectId);
+      const tenantId = await createTestTenantWithOrg('data-components-delete-success');
+      await createTestProject(dbClient, tenantId, projectId);
       const { dataComponentId } = await createTestDataComponent({ tenantId });
 
       const res = await makeRequest(
@@ -550,8 +551,8 @@ describe('Data Component CRUD Routes - Integration Tests', () => {
     });
 
     it('should return 404 when deleting non-existent data component', async () => {
-      const tenantId = createTestTenantId('data-components-delete-not-found');
-      await ensureTestProject(tenantId, projectId);
+      const tenantId = await createTestTenantWithOrg('data-components-delete-not-found');
+      await createTestProject(dbClient, tenantId, projectId);
       const res = await makeRequest(
         `/tenants/${tenantId}/projects/${projectId}/data-components/non-existent-id`,
         {

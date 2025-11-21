@@ -19,7 +19,6 @@ import {
   fieldsToJsonSchema,
   findFieldById,
   type JsonSchemaStateData,
-  parseFieldsFromJson,
   Types,
   type TypeValues,
   useJsonSchemaActions,
@@ -255,7 +254,7 @@ export const JsonSchemaBuilder: FC<{
 
   // biome-ignore lint/correctness/useExhaustiveDependencies: run only on mount
   useEffect(() => {
-    setFields(parseFieldsFromJson(value), hasInPreview);
+    setFields(value, hasInPreview);
   }, []);
 
   // Calls only on update to avoid race condition with above useEffect
