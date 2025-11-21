@@ -8,11 +8,11 @@ import {
   createDatasetRun,
   createDatasetRunConfig,
   createDatasetRunConfigAgentRelation,
-  createDatasetRunConfigEvaluationRunConfigRelation,
   createDatasetRunConversationRelation,
   createEvaluationJobConfig,
   createEvaluationJobConfigEvaluatorRelation,
   createEvaluationResult,
+  createEvaluationRun,
   createEvaluationRunConfig,
   createEvaluationRunConfigEvaluationSuiteConfigRelation,
   createEvaluationSuiteConfig,
@@ -22,7 +22,6 @@ import {
   deleteDatasetItem,
   deleteDatasetRunConfig,
   deleteDatasetRunConfigAgentRelation,
-  deleteDatasetRunConfigEvaluationRunConfigRelation,
   deleteEvaluationJobConfig,
   deleteEvaluationJobConfigEvaluatorRelation,
   deleteEvaluationResult,
@@ -65,7 +64,6 @@ import {
   updateDatasetItem,
   updateDatasetRun,
   updateDatasetRunConfig,
-  updateDatasetRunConfigEvaluationRunConfigRelation,
   updateEvaluationJobConfig,
   updateEvaluationResult,
   updateEvaluationRunConfig,
@@ -74,7 +72,7 @@ import {
 } from '@inkeep/agents-core';
 import { z } from 'zod';
 import dbClient from '../data/db/dbClient';
-import { env } from '../env';
+import { inngest } from '../inngest';
 import { getLogger } from '../logger';
 import { EvaluationService } from '../services/EvaluationService';
 
@@ -1621,23 +1619,64 @@ app.openapi(
 
       logger.info({ tenantId, projectId, configId: id }, 'Evaluation job config created');
 
-      // Run the evaluation job asynchronously if evaluators are configured
+      // Fan out manual bulk evaluation job to Inngest if evaluators are configured
       if (evaluatorIds && Array.isArray(evaluatorIds) && evaluatorIds.length > 0) {
-        evaluationService
-          .runEvaluationJob({
-            tenantId,
-            projectId,
-            evaluationJobConfigId: id,
-          })
-          .then((results) => {
-            logger.info(
-              { tenantId, projectId, configId: id, resultCount: results.length },
-              'Evaluation job completed'
+        (async () => {
+          try {
+            // Filter conversations based on job filters
+            const conversations = await evaluationService.filterConversationsForJob({
+              tenantId,
+              projectId,
+              jobFilters: created.jobFilters,
+            });
+
+            if (conversations.length === 0) {
+              logger.warn(
+                { tenantId, projectId, configId: id },
+                'No conversations found matching job filters'
+              );
+              return;
+            }
+
+            // Create evaluation run
+            const evaluationRun = await createEvaluationRun(dbClient)({
+              id: generateId(),
+              tenantId,
+              projectId,
+              evaluationJobConfigId: id,
+            });
+
+            // Fan out: send worker event for each conversation
+            await inngest.send(
+              conversations.map((conv) => ({
+                name: 'evaluation/conversation.execute',
+                data: {
+                  tenantId,
+                  projectId,
+                  conversationId: conv.id,
+                  evaluatorIds,
+                  evaluationRunId: evaluationRun.id,
+                },
+              }))
             );
-          })
-          .catch((error) => {
-            logger.error({ error, tenantId, projectId, configId: id }, 'Evaluation job failed');
-          });
+
+            logger.info(
+              {
+                tenantId,
+                projectId,
+                configId: id,
+                conversationCount: conversations.length,
+                evaluationRunId: evaluationRun.id,
+              },
+              'Manual bulk evaluation job queued via Inngest'
+            );
+          } catch (error) {
+            logger.error(
+              { error, tenantId, projectId, configId: id },
+              'Failed to queue manual bulk evaluation job'
+            );
+          }
+        })();
       } else {
         logger.warn(
           { tenantId, projectId, configId: id },
@@ -2796,52 +2835,8 @@ app.openapi(
                     evaluatorIds,
                     evaluatorCount: evaluatorIds.length,
                   },
-                  'Evaluation job config evaluators linked, scheduling job execution in 30 seconds'
+                  'Evaluation job config created for dataset run - evaluations will trigger as conversations complete'
                 );
-
-                // Wait 30 seconds before running the evaluation job
-                setTimeout(() => {
-                  logger.info(
-                    {
-                      tenantId,
-                      projectId,
-                      datasetRunId,
-                      evalJobConfigId,
-                    },
-                    'Starting evaluation job execution after 30 second delay'
-                  );
-
-                  evaluationService
-                    .runEvaluationJob({
-                      tenantId,
-                      projectId,
-                      evaluationJobConfigId: evalJobConfigId,
-                    })
-                    .then((results) => {
-                      logger.info(
-                        {
-                          tenantId,
-                          projectId,
-                          datasetRunId,
-                          evalJobConfigId,
-                          resultCount: results.length,
-                        },
-                        'Evaluation job for dataset run completed'
-                      );
-                    })
-                    .catch((error) => {
-                      logger.error(
-                        {
-                          error,
-                          tenantId,
-                          projectId,
-                          datasetRunId,
-                          evalJobConfigId,
-                        },
-                        'Evaluation job for dataset run failed'
-                      );
-                    });
-                }, 30000);
               } catch (evalError) {
                 logger.error(
                   {

@@ -36,6 +36,7 @@
     "drizzle-orm": "^0.44.4",
     "hono": "^4.10.4",
     "hono-pino": "^0.10.1",
+    "inngest": "^3.45.1",
     "nanoid": "^5.1.5",
     "pino": "^9.7.0",
     "zod": "^4.1.11"
@@ -44,6 +45,7 @@
     "keytar": "^7.9.0"
   },
   "devDependencies": {
+    "@electric-sql/pglite": "^0.3.13",
     "@hono/vite-dev-server": "^0.20.1",
     "@types/node": "^20.11.24",
     "@vitest/coverage-v8": "^3.2.4",
@@ -53,8 +55,7 @@
     "typescript": "^5.3.3",
     "vite": "^7.1.11",
     "vite-tsconfig-paths": "^5.1.4",
-    "vitest": "^3.2.4",
-    "@electric-sql/pglite": "^0.3.13"
+    "vitest": "^3.2.4"
   },
   "packageManager": "pnpm@10.11.0",
   "engines": {
