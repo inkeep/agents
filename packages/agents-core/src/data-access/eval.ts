@@ -116,25 +116,32 @@ export const getDatasetById =
   async (params: {
     scopes: ProjectScopeConfig & { datasetId: string };
   }): Promise<DatasetSelect | null> => {
-    const result = await db.query.dataset.findFirst({
-      where: and(
-        eq(dataset.tenantId, params.scopes.tenantId),
-        eq(dataset.projectId, params.scopes.projectId),
-        eq(dataset.id, params.scopes.datasetId)
-      ),
-    });
-    return result ?? null;
+    const results = await db
+      .select()
+      .from(dataset)
+      .where(
+        and(
+          eq(dataset.tenantId, params.scopes.tenantId),
+          eq(dataset.projectId, params.scopes.projectId),
+          eq(dataset.id, params.scopes.datasetId)
+        )
+      )
+      .limit(1);
+    return results[0] ?? null;
   };
 
 export const listDatasets =
   (db: DatabaseClient) =>
   async (params: { scopes: ProjectScopeConfig }): Promise<DatasetSelect[]> => {
-    return await db.query.dataset.findMany({
-      where: and(
-        eq(dataset.tenantId, params.scopes.tenantId),
-        eq(dataset.projectId, params.scopes.projectId)
-      ),
-    });
+    return await db
+      .select()
+      .from(dataset)
+      .where(
+        and(
+          eq(dataset.tenantId, params.scopes.tenantId),
+          eq(dataset.projectId, params.scopes.projectId)
+        )
+      );
   };
 
 export const createDataset =
@@ -213,14 +220,18 @@ export const getDatasetItemById =
   async (params: {
     scopes: ProjectScopeConfig & { datasetItemId: string };
   }): Promise<DatasetItemSelect | null> => {
-    const result = await db.query.datasetItem.findFirst({
-      where: and(
-        eq(datasetItem.tenantId, params.scopes.tenantId),
-        eq(datasetItem.projectId, params.scopes.projectId),
-        eq(datasetItem.id, params.scopes.datasetItemId)
-      ),
-    });
-    return result ?? null;
+    const results = await db
+      .select()
+      .from(datasetItem)
+      .where(
+        and(
+          eq(datasetItem.tenantId, params.scopes.tenantId),
+          eq(datasetItem.projectId, params.scopes.projectId),
+          eq(datasetItem.id, params.scopes.datasetItemId)
+        )
+      )
+      .limit(1);
+    return results[0] ?? null;
   };
 
 export const listDatasetItems =
@@ -228,14 +239,17 @@ export const listDatasetItems =
   async (params: {
     scopes: ProjectScopeConfig & { datasetId: string };
   }): Promise<DatasetItemSelect[]> => {
-    return await db.query.datasetItem.findMany({
-      where: and(
-        eq(datasetItem.tenantId, params.scopes.tenantId),
-        eq(datasetItem.projectId, params.scopes.projectId),
-        eq(datasetItem.datasetId, params.scopes.datasetId)
-      ),
-      orderBy: desc(datasetItem.updatedAt),
-    });
+    return await db
+      .select()
+      .from(datasetItem)
+      .where(
+        and(
+          eq(datasetItem.tenantId, params.scopes.tenantId),
+          eq(datasetItem.projectId, params.scopes.projectId),
+          eq(datasetItem.datasetId, params.scopes.datasetId)
+        )
+      )
+      .orderBy(desc(datasetItem.updatedAt));
   };
 
 export const createDatasetItem =
@@ -347,25 +361,32 @@ export const getDatasetRunConfigById =
   async (params: {
     scopes: ProjectScopeConfig & { datasetRunConfigId: string };
   }): Promise<DatasetRunConfigSelect | null> => {
-    const result = await db.query.datasetRunConfig.findFirst({
-      where: and(
-        eq(datasetRunConfig.tenantId, params.scopes.tenantId),
-        eq(datasetRunConfig.projectId, params.scopes.projectId),
-        eq(datasetRunConfig.id, params.scopes.datasetRunConfigId)
-      ),
-    });
-    return result ?? null;
+    const results = await db
+      .select()
+      .from(datasetRunConfig)
+      .where(
+        and(
+          eq(datasetRunConfig.tenantId, params.scopes.tenantId),
+          eq(datasetRunConfig.projectId, params.scopes.projectId),
+          eq(datasetRunConfig.id, params.scopes.datasetRunConfigId)
+        )
+      )
+      .limit(1);
+    return results[0] ?? null;
   };
 
 export const listDatasetRunConfigs =
   (db: DatabaseClient) =>
   async (params: { scopes: ProjectScopeConfig }): Promise<DatasetRunConfigSelect[]> => {
-    return await db.query.datasetRunConfig.findMany({
-      where: and(
-        eq(datasetRunConfig.tenantId, params.scopes.tenantId),
-        eq(datasetRunConfig.projectId, params.scopes.projectId)
-      ),
-    });
+    return await db
+      .select()
+      .from(datasetRunConfig)
+      .where(
+        and(
+          eq(datasetRunConfig.tenantId, params.scopes.tenantId),
+          eq(datasetRunConfig.projectId, params.scopes.projectId)
+        )
+      );
   };
 
 export const createDatasetRunConfig =
@@ -446,13 +467,16 @@ export const getDatasetRunConfigAgentRelations =
   async (params: {
     scopes: ProjectScopeConfig & { datasetRunConfigId: string };
   }): Promise<DatasetRunConfigAgentRelationSelect[]> => {
-    return await db.query.datasetRunConfigAgentRelations.findMany({
-      where: and(
-        eq(datasetRunConfigAgentRelations.tenantId, params.scopes.tenantId),
-        eq(datasetRunConfigAgentRelations.projectId, params.scopes.projectId),
-        eq(datasetRunConfigAgentRelations.datasetRunConfigId, params.scopes.datasetRunConfigId)
-      ),
-    });
+    return await db
+      .select()
+      .from(datasetRunConfigAgentRelations)
+      .where(
+        and(
+          eq(datasetRunConfigAgentRelations.tenantId, params.scopes.tenantId),
+          eq(datasetRunConfigAgentRelations.projectId, params.scopes.projectId),
+          eq(datasetRunConfigAgentRelations.datasetRunConfigId, params.scopes.datasetRunConfigId)
+        )
+      );
   };
 
 export const createDatasetRunConfigAgentRelation =
@@ -503,16 +527,19 @@ export const getDatasetRunConfigEvaluationRunConfigRelations =
   async (params: {
     scopes: ProjectScopeConfig & { datasetRunConfigId: string };
   }): Promise<DatasetRunConfigEvaluationRunConfigRelationSelect[]> => {
-    return await db.query.datasetRunConfigEvaluationRunConfigRelations.findMany({
-      where: and(
-        eq(datasetRunConfigEvaluationRunConfigRelations.tenantId, params.scopes.tenantId),
-        eq(datasetRunConfigEvaluationRunConfigRelations.projectId, params.scopes.projectId),
-        eq(
-          datasetRunConfigEvaluationRunConfigRelations.datasetRunConfigId,
-          params.scopes.datasetRunConfigId
+    return await db
+      .select()
+      .from(datasetRunConfigEvaluationRunConfigRelations)
+      .where(
+        and(
+          eq(datasetRunConfigEvaluationRunConfigRelations.tenantId, params.scopes.tenantId),
+          eq(datasetRunConfigEvaluationRunConfigRelations.projectId, params.scopes.projectId),
+          eq(
+            datasetRunConfigEvaluationRunConfigRelations.datasetRunConfigId,
+            params.scopes.datasetRunConfigId
+          )
         )
-      ),
-    });
+      );
   };
 
 export const createDatasetRunConfigEvaluationRunConfigRelation =
@@ -602,26 +629,33 @@ export const getDatasetRunById =
   async (params: {
     scopes: ProjectScopeConfig & { datasetRunId: string };
   }): Promise<DatasetRunSelect | null> => {
-    const result = await db.query.datasetRun.findFirst({
-      where: and(
-        eq(datasetRun.tenantId, params.scopes.tenantId),
-        eq(datasetRun.projectId, params.scopes.projectId),
-        eq(datasetRun.id, params.scopes.datasetRunId)
-      ),
-    });
-    return result ?? null;
+    const results = await db
+      .select()
+      .from(datasetRun)
+      .where(
+        and(
+          eq(datasetRun.tenantId, params.scopes.tenantId),
+          eq(datasetRun.projectId, params.scopes.projectId),
+          eq(datasetRun.id, params.scopes.datasetRunId)
+        )
+      )
+      .limit(1);
+    return results[0] ?? null;
   };
 
 export const listDatasetRuns =
   (db: DatabaseClient) =>
   async (params: { scopes: ProjectScopeConfig }): Promise<DatasetRunSelect[]> => {
-    return await db.query.datasetRun.findMany({
-      where: and(
-        eq(datasetRun.tenantId, params.scopes.tenantId),
-        eq(datasetRun.projectId, params.scopes.projectId)
-      ),
-      orderBy: [desc(datasetRun.createdAt)],
-    });
+    return await db
+      .select()
+      .from(datasetRun)
+      .where(
+        and(
+          eq(datasetRun.tenantId, params.scopes.tenantId),
+          eq(datasetRun.projectId, params.scopes.projectId)
+        )
+      )
+      .orderBy(desc(datasetRun.createdAt));
   };
 
 export const listDatasetRunsByConfig =
@@ -629,14 +663,17 @@ export const listDatasetRunsByConfig =
   async (params: {
     scopes: ProjectScopeConfig & { datasetRunConfigId: string };
   }): Promise<DatasetRunSelect[]> => {
-    return await db.query.datasetRun.findMany({
-      where: and(
-        eq(datasetRun.tenantId, params.scopes.tenantId),
-        eq(datasetRun.projectId, params.scopes.projectId),
-        eq(datasetRun.datasetRunConfigId, params.scopes.datasetRunConfigId)
-      ),
-      orderBy: [desc(datasetRun.createdAt)],
-    });
+    return await db
+      .select()
+      .from(datasetRun)
+      .where(
+        and(
+          eq(datasetRun.tenantId, params.scopes.tenantId),
+          eq(datasetRun.projectId, params.scopes.projectId),
+          eq(datasetRun.datasetRunConfigId, params.scopes.datasetRunConfigId)
+        )
+      )
+      .orderBy(desc(datasetRun.createdAt));
   };
 
 export const createDatasetRun =
@@ -715,13 +752,16 @@ export const getDatasetRunConversationRelations =
   async (params: {
     scopes: ProjectScopeConfig & { datasetRunId: string };
   }): Promise<DatasetRunConversationRelationSelect[]> => {
-    return await db.query.datasetRunConversationRelations.findMany({
-      where: and(
-        eq(datasetRunConversationRelations.tenantId, params.scopes.tenantId),
-        eq(datasetRunConversationRelations.projectId, params.scopes.projectId),
-        eq(datasetRunConversationRelations.datasetRunId, params.scopes.datasetRunId)
-      ),
-    });
+    return await db
+      .select()
+      .from(datasetRunConversationRelations)
+      .where(
+        and(
+          eq(datasetRunConversationRelations.tenantId, params.scopes.tenantId),
+          eq(datasetRunConversationRelations.projectId, params.scopes.projectId),
+          eq(datasetRunConversationRelations.datasetRunId, params.scopes.datasetRunId)
+        )
+      );
   };
 
 export const createDatasetRunConversationRelation =
@@ -803,15 +843,19 @@ export const getDatasetRunConversationRelationByConversation =
   async (params: {
     scopes: ProjectScopeConfig & { conversationId: string };
   }): Promise<DatasetRunConversationRelationSelect | null> => {
-    const result = await db.query.datasetRunConversationRelations.findFirst({
-      where: and(
-        eq(datasetRunConversationRelations.tenantId, params.scopes.tenantId),
-        eq(datasetRunConversationRelations.projectId, params.scopes.projectId),
-        eq(datasetRunConversationRelations.conversationId, params.scopes.conversationId)
-      ),
-    });
+    const results = await db
+      .select()
+      .from(datasetRunConversationRelations)
+      .where(
+        and(
+          eq(datasetRunConversationRelations.tenantId, params.scopes.tenantId),
+          eq(datasetRunConversationRelations.projectId, params.scopes.projectId),
+          eq(datasetRunConversationRelations.conversationId, params.scopes.conversationId)
+        )
+      )
+      .limit(1);
 
-    return result || null;
+    return results[0] || null;
   };
 
 // ============================================================================
@@ -823,25 +867,32 @@ export const getEvaluatorById =
   async (params: {
     scopes: ProjectScopeConfig & { evaluatorId: string };
   }): Promise<EvaluatorSelect | null> => {
-    const result = await db.query.evaluator.findFirst({
-      where: and(
-        eq(evaluator.tenantId, params.scopes.tenantId),
-        eq(evaluator.projectId, params.scopes.projectId),
-        eq(evaluator.id, params.scopes.evaluatorId)
-      ),
-    });
-    return result ?? null;
+    const results = await db
+      .select()
+      .from(evaluator)
+      .where(
+        and(
+          eq(evaluator.tenantId, params.scopes.tenantId),
+          eq(evaluator.projectId, params.scopes.projectId),
+          eq(evaluator.id, params.scopes.evaluatorId)
+        )
+      )
+      .limit(1);
+    return results[0] ?? null;
   };
 
 export const listEvaluators =
   (db: DatabaseClient) =>
   async (params: { scopes: ProjectScopeConfig }): Promise<EvaluatorSelect[]> => {
-    return await db.query.evaluator.findMany({
-      where: and(
-        eq(evaluator.tenantId, params.scopes.tenantId),
-        eq(evaluator.projectId, params.scopes.projectId)
-      ),
-    });
+    return await db
+      .select()
+      .from(evaluator)
+      .where(
+        and(
+          eq(evaluator.tenantId, params.scopes.tenantId),
+          eq(evaluator.projectId, params.scopes.projectId)
+        )
+      );
   };
 
 export const createEvaluator =
@@ -920,25 +971,32 @@ export const getEvaluationSuiteConfigById =
   async (params: {
     scopes: ProjectScopeConfig & { evaluationSuiteConfigId: string };
   }): Promise<EvaluationSuiteConfigSelect | null> => {
-    const result = await db.query.evaluationSuiteConfig.findFirst({
-      where: and(
-        eq(evaluationSuiteConfig.tenantId, params.scopes.tenantId),
-        eq(evaluationSuiteConfig.projectId, params.scopes.projectId),
-        eq(evaluationSuiteConfig.id, params.scopes.evaluationSuiteConfigId)
-      ),
-    });
-    return result ?? null;
+    const results = await db
+      .select()
+      .from(evaluationSuiteConfig)
+      .where(
+        and(
+          eq(evaluationSuiteConfig.tenantId, params.scopes.tenantId),
+          eq(evaluationSuiteConfig.projectId, params.scopes.projectId),
+          eq(evaluationSuiteConfig.id, params.scopes.evaluationSuiteConfigId)
+        )
+      )
+      .limit(1);
+    return results[0] ?? null;
   };
 
 export const listEvaluationSuiteConfigs =
   (db: DatabaseClient) =>
   async (params: { scopes: ProjectScopeConfig }): Promise<EvaluationSuiteConfigSelect[]> => {
-    return await db.query.evaluationSuiteConfig.findMany({
-      where: and(
-        eq(evaluationSuiteConfig.tenantId, params.scopes.tenantId),
-        eq(evaluationSuiteConfig.projectId, params.scopes.projectId)
-      ),
-    });
+    return await db
+      .select()
+      .from(evaluationSuiteConfig)
+      .where(
+        and(
+          eq(evaluationSuiteConfig.tenantId, params.scopes.tenantId),
+          eq(evaluationSuiteConfig.projectId, params.scopes.projectId)
+        )
+      );
   };
 
 export const createEvaluationSuiteConfig =
@@ -1019,16 +1077,19 @@ export const getEvaluationSuiteConfigEvaluatorRelations =
   async (params: {
     scopes: ProjectScopeConfig & { evaluationSuiteConfigId: string };
   }): Promise<EvaluationSuiteConfigEvaluatorRelationSelect[]> => {
-    return await db.query.evaluationSuiteConfigEvaluatorRelations.findMany({
-      where: and(
-        eq(evaluationSuiteConfigEvaluatorRelations.tenantId, params.scopes.tenantId),
-        eq(evaluationSuiteConfigEvaluatorRelations.projectId, params.scopes.projectId),
-        eq(
-          evaluationSuiteConfigEvaluatorRelations.evaluationSuiteConfigId,
-          params.scopes.evaluationSuiteConfigId
+    return await db
+      .select()
+      .from(evaluationSuiteConfigEvaluatorRelations)
+      .where(
+        and(
+          eq(evaluationSuiteConfigEvaluatorRelations.tenantId, params.scopes.tenantId),
+          eq(evaluationSuiteConfigEvaluatorRelations.projectId, params.scopes.projectId),
+          eq(
+            evaluationSuiteConfigEvaluatorRelations.evaluationSuiteConfigId,
+            params.scopes.evaluationSuiteConfigId
+          )
         )
-      ),
-    });
+      );
   };
 
 export const createEvaluationSuiteConfigEvaluatorRelation =
@@ -1099,25 +1160,32 @@ export const getEvaluationRunConfigById =
   async (params: {
     scopes: ProjectScopeConfig & { evaluationRunConfigId: string };
   }): Promise<EvaluationRunConfigSelect | null> => {
-    const result = await db.query.evaluationRunConfig.findFirst({
-      where: and(
-        eq(evaluationRunConfig.tenantId, params.scopes.tenantId),
-        eq(evaluationRunConfig.projectId, params.scopes.projectId),
-        eq(evaluationRunConfig.id, params.scopes.evaluationRunConfigId)
-      ),
-    });
-    return result ?? null;
+    const results = await db
+      .select()
+      .from(evaluationRunConfig)
+      .where(
+        and(
+          eq(evaluationRunConfig.tenantId, params.scopes.tenantId),
+          eq(evaluationRunConfig.projectId, params.scopes.projectId),
+          eq(evaluationRunConfig.id, params.scopes.evaluationRunConfigId)
+        )
+      )
+      .limit(1);
+    return results[0] ?? null;
   };
 
 export const listEvaluationRunConfigs =
   (db: DatabaseClient) =>
   async (params: { scopes: ProjectScopeConfig }): Promise<EvaluationRunConfigSelect[]> => {
-    return await db.query.evaluationRunConfig.findMany({
-      where: and(
-        eq(evaluationRunConfig.tenantId, params.scopes.tenantId),
-        eq(evaluationRunConfig.projectId, params.scopes.projectId)
-      ),
-    });
+    return await db
+      .select()
+      .from(evaluationRunConfig)
+      .where(
+        and(
+          eq(evaluationRunConfig.tenantId, params.scopes.tenantId),
+          eq(evaluationRunConfig.projectId, params.scopes.projectId)
+        )
+      );
   };
 
 export const createEvaluationRunConfig =
@@ -1198,16 +1266,19 @@ export const getEvaluationRunConfigEvaluationSuiteConfigRelations =
   async (params: {
     scopes: ProjectScopeConfig & { evaluationRunConfigId: string };
   }): Promise<EvaluationRunConfigEvaluationSuiteConfigRelationSelect[]> => {
-    return await db.query.evaluationRunConfigEvaluationSuiteConfigRelations.findMany({
-      where: and(
-        eq(evaluationRunConfigEvaluationSuiteConfigRelations.tenantId, params.scopes.tenantId),
-        eq(evaluationRunConfigEvaluationSuiteConfigRelations.projectId, params.scopes.projectId),
-        eq(
-          evaluationRunConfigEvaluationSuiteConfigRelations.evaluationRunConfigId,
-          params.scopes.evaluationRunConfigId
+    return await db
+      .select()
+      .from(evaluationRunConfigEvaluationSuiteConfigRelations)
+      .where(
+        and(
+          eq(evaluationRunConfigEvaluationSuiteConfigRelations.tenantId, params.scopes.tenantId),
+          eq(evaluationRunConfigEvaluationSuiteConfigRelations.projectId, params.scopes.projectId),
+          eq(
+            evaluationRunConfigEvaluationSuiteConfigRelations.evaluationRunConfigId,
+            params.scopes.evaluationRunConfigId
+          )
         )
-      ),
-    });
+      );
   };
 
 export const createEvaluationRunConfigEvaluationSuiteConfigRelation =
@@ -1264,25 +1335,59 @@ export const getEvaluationJobConfigById =
   async (params: {
     scopes: ProjectScopeConfig & { evaluationJobConfigId: string };
   }): Promise<EvaluationJobConfigSelect | null> => {
-    const result = await db.query.evaluationJobConfig.findFirst({
-      where: and(
-        eq(evaluationJobConfig.tenantId, params.scopes.tenantId),
-        eq(evaluationJobConfig.projectId, params.scopes.projectId),
-        eq(evaluationJobConfig.id, params.scopes.evaluationJobConfigId)
-      ),
-    });
-    return result ?? null;
+    const results = await db
+      .select()
+      .from(evaluationJobConfig)
+      .where(
+        and(
+          eq(evaluationJobConfig.tenantId, params.scopes.tenantId),
+          eq(evaluationJobConfig.projectId, params.scopes.projectId),
+          eq(evaluationJobConfig.id, params.scopes.evaluationJobConfigId)
+        )
+      )
+      .limit(1);
+    return results[0] ?? null;
   };
 
 export const listEvaluationJobConfigs =
   (db: DatabaseClient) =>
   async (params: { scopes: ProjectScopeConfig }): Promise<EvaluationJobConfigSelect[]> => {
-    return await db.query.evaluationJobConfig.findMany({
-      where: and(
-        eq(evaluationJobConfig.tenantId, params.scopes.tenantId),
-        eq(evaluationJobConfig.projectId, params.scopes.projectId)
-      ),
+    return await db
+      .select()
+      .from(evaluationJobConfig)
+      .where(
+        and(
+          eq(evaluationJobConfig.tenantId, params.scopes.tenantId),
+          eq(evaluationJobConfig.projectId, params.scopes.projectId)
+        )
+      );
+  };
+
+export const getEvaluationJobConfigByDatasetRunId =
+  (db: DatabaseClient) =>
+  async (params: {
+    scopes: ProjectScopeConfig;
+    datasetRunId: string;
+  }): Promise<EvaluationJobConfigSelect | null> => {
+    const configs = await db
+      .select()
+      .from(evaluationJobConfig)
+      .where(
+        and(
+          eq(evaluationJobConfig.tenantId, params.scopes.tenantId),
+          eq(evaluationJobConfig.projectId, params.scopes.projectId)
+        )
+      );
+
+    const match = configs.find((config) => {
+      if (config.jobFilters && typeof config.jobFilters === 'object') {
+        const filters = config.jobFilters as { datasetRunId?: string };
+        return filters.datasetRunId === params.datasetRunId;
+      }
+      return false;
     });
+
+    return match ?? null;
   };
 
 export const createEvaluationJobConfig =
@@ -1363,16 +1468,19 @@ export const getEvaluationJobConfigEvaluatorRelations =
   async (params: {
     scopes: ProjectScopeConfig & { evaluationJobConfigId: string };
   }): Promise<EvaluationJobConfigEvaluatorRelationSelect[]> => {
-    return await db.query.evaluationJobConfigEvaluatorRelations.findMany({
-      where: and(
-        eq(evaluationJobConfigEvaluatorRelations.tenantId, params.scopes.tenantId),
-        eq(evaluationJobConfigEvaluatorRelations.projectId, params.scopes.projectId),
-        eq(
-          evaluationJobConfigEvaluatorRelations.evaluationJobConfigId,
-          params.scopes.evaluationJobConfigId
+    return await db
+      .select()
+      .from(evaluationJobConfigEvaluatorRelations)
+      .where(
+        and(
+          eq(evaluationJobConfigEvaluatorRelations.tenantId, params.scopes.tenantId),
+          eq(evaluationJobConfigEvaluatorRelations.projectId, params.scopes.projectId),
+          eq(
+            evaluationJobConfigEvaluatorRelations.evaluationJobConfigId,
+            params.scopes.evaluationJobConfigId
+          )
         )
-      ),
-    });
+      );
   };
 
 export const createEvaluationJobConfigEvaluatorRelation =
@@ -1443,25 +1551,70 @@ export const getEvaluationRunById =
   async (params: {
     scopes: ProjectScopeConfig & { evaluationRunId: string };
   }): Promise<EvaluationRunSelect | null> => {
-    const result = await db.query.evaluationRun.findFirst({
-      where: and(
-        eq(evaluationRun.tenantId, params.scopes.tenantId),
-        eq(evaluationRun.projectId, params.scopes.projectId),
-        eq(evaluationRun.id, params.scopes.evaluationRunId)
-      ),
-    });
-    return result ?? null;
+    const results = await db
+      .select()
+      .from(evaluationRun)
+      .where(
+        and(
+          eq(evaluationRun.tenantId, params.scopes.tenantId),
+          eq(evaluationRun.projectId, params.scopes.projectId),
+          eq(evaluationRun.id, params.scopes.evaluationRunId)
+        )
+      )
+      .limit(1);
+    return results[0] ?? null;
   };
 
 export const listEvaluationRuns =
   (db: DatabaseClient) =>
   async (params: { scopes: ProjectScopeConfig }): Promise<EvaluationRunSelect[]> => {
-    return await db.query.evaluationRun.findMany({
-      where: and(
-        eq(evaluationRun.tenantId, params.scopes.tenantId),
-        eq(evaluationRun.projectId, params.scopes.projectId)
-      ),
-    });
+    return await db
+      .select()
+      .from(evaluationRun)
+      .where(
+        and(
+          eq(evaluationRun.tenantId, params.scopes.tenantId),
+          eq(evaluationRun.projectId, params.scopes.projectId)
+        )
+      );
+  };
+
+export const listEvaluationRunsByJobConfigId =
+  (db: DatabaseClient) =>
+  async (params: {
+    scopes: ProjectScopeConfig;
+    evaluationJobConfigId: string;
+  }): Promise<EvaluationRunSelect[]> => {
+    return await db
+      .select()
+      .from(evaluationRun)
+      .where(
+        and(
+          eq(evaluationRun.tenantId, params.scopes.tenantId),
+          eq(evaluationRun.projectId, params.scopes.projectId),
+          eq(evaluationRun.evaluationJobConfigId, params.evaluationJobConfigId)
+        )
+      );
+  };
+
+export const getEvaluationRunByJobConfigId =
+  (db: DatabaseClient) =>
+  async (params: {
+    scopes: ProjectScopeConfig;
+    evaluationJobConfigId: string;
+  }): Promise<EvaluationRunSelect | null> => {
+    const runs = await db
+      .select()
+      .from(evaluationRun)
+      .where(
+        and(
+          eq(evaluationRun.tenantId, params.scopes.tenantId),
+          eq(evaluationRun.projectId, params.scopes.projectId),
+          eq(evaluationRun.evaluationJobConfigId, params.evaluationJobConfigId)
+        )
+      )
+      .limit(1);
+    return runs[0] ?? null;
   };
 
 export const createEvaluationRun =

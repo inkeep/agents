@@ -60,6 +60,7 @@
     "exit-hook": "^4.0.0",
     "fetch-to-node": "^2.1.0",
     "hono": "^4.10.4",
+    "inngest": "^3.45.1",
     "jmespath": "^0.16.0",
     "jose": "^6.1.0",
     "json-schema-to-zod": "^2.6.1",

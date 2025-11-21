@@ -6,6 +6,9 @@ import { HTTPException } from 'hono/http-exception';
 import { requestId } from 'hono/request-id';
 import type { StatusCode } from 'hono/utils/http-status';
 import { pinoLogger } from 'hono-pino';
+import { serve } from 'inngest/hono';
+import { env } from './env';
+import { functions, inngest } from './inngest';
 import { getLogger } from './logger';
 import { apiKeyAuth } from './middleware/auth';
 import { setupOpenAPIRoutes } from './openapi';
@@ -135,6 +138,16 @@ function createEvaluationHono() {
       exposeHeaders: ['Content-Length'],
       maxAge: 86400,
       credentials: true,
+    })
+  );
+
+  // Inngest serve endpoint (before auth middleware)
+  app.use(
+    '/api/inngest',
+    serve({
+      client: inngest,
+      functions: functions,
+      signingKey: env.INNGEST_SIGNING_KEY,
     })
   );
 

@@ -13,6 +13,9 @@ const envSchema = z.object({
   DATABASE_URL: z.string().optional(),
   LOG_LEVEL: z.enum(['trace', 'debug', 'info', 'warn', 'error']).optional().default('debug'),
   INKEEP_AGENTS_EVAL_API_BYPASS_SECRET: z.string().optional(),
+  INNGEST_EVENT_KEY: z.string().optional(),
+  INNGEST_SIGNING_KEY: z.string().optional(),
+  INNGEST_DEV: z.coerce.boolean().default(true),
 });
 
 const parseEnv = () => {

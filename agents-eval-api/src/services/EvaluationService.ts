@@ -924,7 +924,7 @@ Generate the next user message:`;
   /**
    * Filter conversations based on job filters
    */
-  private async filterConversationsForJob(params: {
+  async filterConversationsForJob(params: {
     tenantId: string;
     projectId: string;
     jobFilters: any;
@@ -992,7 +992,7 @@ Generate the next user message:`;
   /**
    * Execute an evaluation by calling the LLM with the evaluator prompt and conversation data
    */
-  private async executeEvaluation(params: {
+  async executeEvaluation(params: {
     conversation: typeof import('@inkeep/agents-core').conversations.$inferSelect;
     evaluator: typeof import('@inkeep/agents-core').evaluator.$inferSelect;
     tenantId: string;
