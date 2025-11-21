@@ -1,5 +1,11 @@
 # @inkeep/agents-core
 
+## 0.35.2
+
+### Patch Changes
+
+- 769d8a9: fix agents-core exports
+
 ## 0.35.1
 
 ## 0.35.0
