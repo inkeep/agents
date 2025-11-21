@@ -20,12 +20,7 @@ describe('Validation', () => {
     cy.get('.react-flow__node').eq(1).click();
     cy.get('[data-panel-id=side-pane]').contains('Back').click();
     cy.get('.monaco-editor').should('be.visible');
-    cy.window().then((win) => {
-      const models = (win.monaco as typeof import('monaco-editor')).editor.getModels();
-      const jsonModel = models.find((model) => model.uri.path.endsWith('.json'));
-      jsonModel.setValue('foo bar');
-    });
-
+    cy.typeInMonaco('contextVariables.json', 'foo bar');
     cy.contains('Save changes').click();
     cy.get('[data-sonner-toast]').should('be.visible');
     cy.contains('Save changes').should('not.be.disabled');
