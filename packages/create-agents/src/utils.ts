@@ -124,7 +124,6 @@ export const createAgents = async (
     skipInkeepMcp,
   } = args;
 
-  console.log('skipInkeepCli', skipInkeepCli);
 
   const tenantId = 'default';
 
