@@ -41,17 +41,9 @@ describe('Artifacts', () => {
       additionalProperties: false,
     };
 
-    cy.get('[data-uri="file:///custom-json-schema-artifact-component.json"] .view-line').then(
-      (lines) => {
-        const rendered = [...lines]
-          .map((l) => l.textContent)
-          .join('\n')
-          // Replace non-breaking spaces with normal spaces
-          .replaceAll(/\u00A0/g, ' ');
-
-        // To compare objects by value, deep equality
-        expect(JSON.parse(rendered)).to.deep.equal(editorValue);
-      }
-    );
+    cy.assertMonacoContent('custom-json-schema-artifact-component.json', (content) => {
+      // To compare objects by value, deep equality
+      expect(JSON.parse(content)).to.deep.equal(editorValue);
+    });
   });
 });
