@@ -31,6 +31,22 @@
         "types": "./dist/utils/schema-conversion.d.ts",
         "import": "./dist/utils/schema-conversion.js"
       },
+      "./auth": {
+        "types": "./dist/auth/auth.d.ts",
+        "import": "./dist/auth/auth.js"
+      },
+      "./auth/schema": {
+        "types": "./dist/auth/auth-schema.d.ts",
+        "import": "./dist/auth/auth-schema.js"
+      },
+      "./auth/validation": {
+        "types": "./dist/auth/auth-validation-schemas.d.ts",
+        "import": "./dist/auth/auth-validation-schemas.js"
+      },
+      "./auth/permissions": {
+        "types": "./dist/auth/permissions.d.ts",
+        "import": "./dist/auth/permissions.js"
+      },
       "./drizzle": "./drizzle/",
       "./package.json": "./package.json"
     }
