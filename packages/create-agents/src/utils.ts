@@ -124,7 +124,6 @@ export const createAgents = async (
     skipInkeepMcp,
   } = args;
 
-  console.log('skipInkeepCli', skipInkeepCli);
 
   const tenantId = 'default';
 
@@ -641,6 +640,7 @@ export async function addInkeepMcp() {
       { value: 'cursor-global', label: 'Cursor (global, all projects)' },
       { value: 'windsurf', label: 'Windsurf' },
       { value: 'vscode', label: 'VSCode' },
+      { value: 'skip', label: 'Skip' },
     ],
     initialValue: 'cursor-project',
   });
@@ -781,6 +781,10 @@ export async function addInkeepMcp() {
           `${color.green('✓')} Inkeep MCP added to VSCode settings\n\n${color.yellow('Next steps:')}\n` +
             `  start the MCP by going to ${configPath} and clicking start`
         );
+        break;
+      }
+
+      case 'skip': {
         break;
       }
     }

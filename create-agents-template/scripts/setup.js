@@ -1,5 +1,16 @@
 #!/usr/bin/env node
 
+/**
+ * Project Setup Script
+ * 
+ * Usage:
+ *   pnpm setup-dev              - Run setup with local Docker database
+ *   pnpm setup-dev --skip-docker - Run setup with cloud database (skips Docker step)
+ * 
+ * The --skip-docker flag is useful when you have a cloud-deployed database instance
+ * and want to skip starting the local Docker database container.
+ */
+
 import { loadEnvironmentFiles } from '@inkeep/agents-core';
 import dotenv from 'dotenv';
 
@@ -40,6 +51,10 @@ function logInfo(message) {
 
 console.log(`\n${colors.bright}=== Project Setup Script ===${colors.reset}\n`);
 
+// Parse command-line arguments
+const args = process.argv.slice(2);
+const skipDocker = args.includes('--skip-docker');
+
 loadEnvironmentFiles();
 
 // Load environment variables
@@ -58,42 +73,46 @@ logInfo(`Project ID: ${projectId}`);
 logInfo(`Manage API Port: ${manageApiPort}`);
 logInfo(`Run API Port: ${runApiPort}\n`);
 
-async function setupProjectInDatabase() {
+async function setupProjectInDatabase(skipDocker) {
   const { promisify } = await import('node:util');
   const { exec } = await import('node:child_process');
   const execAsync = promisify(exec);
 
-  // Step 1: Start database
-  logStep(1, 'Starting PostgreSQL database');
-  try {
-    await execAsync('docker-compose -f docker-compose.db.yml up -d');
-    logSuccess('Database container started successfully');
+  // Step 1: Start database (skip if --skip-docker flag is set)
+  if (skipDocker) {
+    logStep(1, 'Skipping docker database startup. Please ensure that your DATABASE_URL environment variable is configured for cloud database');
+  } else {
+    logStep(1, 'Starting PostgreSQL database with Docker');
+    try {
+      await execAsync('docker-compose -f docker-compose.db.yml up -d');
+      logSuccess('Database container started successfully');
 
-    logInfo('Waiting for database to be ready (5 seconds)...');
-    await new Promise((resolve) => setTimeout(resolve, 5000));
-    logSuccess('Database should be ready');
-  } catch (error) {
-    const errorMessage = error.message || error.toString();
-    const stderr = error.stderr || '';
-    const combinedError = `${errorMessage}\n${stderr}`;
+      logInfo('Waiting for database to be ready (5 seconds)...');
+      await new Promise((resolve) => setTimeout(resolve, 5000));
+      logSuccess('Database should be ready');
+    } catch (error) {
+      const errorMessage = error.message || error.toString();
+      const stderr = error.stderr || '';
+      const combinedError = `${errorMessage}\n${stderr}`;
 
-    // Check if it's a port conflict (database might already be running)
-    const isPortConflict =
-      combinedError.includes('port is already allocated') ||
-      combinedError.includes('address already in use') ||
-      combinedError.includes('Bind for 0.0.0.0:5432 failed');
+      // Check if it's a port conflict (database might already be running)
+      const isPortConflict =
+        combinedError.includes('port is already allocated') ||
+        combinedError.includes('address already in use') ||
+        combinedError.includes('Bind for 0.0.0.0:5432 failed');
 
-    if (isPortConflict) {
-      logWarning('Database port is already in use (database might already be running)');
-      logInfo('Continuing with setup...');
-    } else {
-      // For other errors, fail fast with clear error message
-      logError('Failed to start database container', error);
-      console.error(`\n${colors.red}${colors.bright}Common issues:${colors.reset}`);
-      console.error(`${colors.yellow}  • Docker is not installed or not running${colors.reset}`);
-      console.error(`${colors.yellow}  • Insufficient permissions to run Docker${colors.reset}`);
-      console.error(`${colors.yellow}  • Docker Compose is not installed${colors.reset}`);
-      process.exit(1);
+      if (isPortConflict) {
+        logWarning('Database port is already in use (database might already be running)');
+        logInfo('Continuing with setup...');
+      } else {
+        // For other errors, fail fast with clear error message
+        logError('Failed to start database container', error);
+        console.error(`\n${colors.red}${colors.bright}Common issues:${colors.reset}`);
+        console.error(`${colors.yellow}  • Docker is not installed or not running${colors.reset}`);
+        console.error(`${colors.yellow}  • Insufficient permissions to run Docker${colors.reset}`);
+        console.error(`${colors.yellow}  • Docker Compose is not installed${colors.reset}`);
+        process.exit(1);
+      }
     }
   }
 
@@ -294,7 +313,7 @@ async function setupProjectInDatabase() {
   }
 }
 
-setupProjectInDatabase().catch((error) => {
+setupProjectInDatabase(skipDocker).catch((error) => {
   logError('Unhandled error in setup', error);
   process.exit(1);
 });

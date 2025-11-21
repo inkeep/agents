@@ -46,6 +46,14 @@ Ensure Docker Desktop (or Docker daemon) is running before running the setup scr
 pnpm setup-dev
 ```
 
+Or if you are using a cloud database, you can skip the docker database startup by running:
+
+```bash
+pnpm setup-dev --skip-docker
+```
+
+Make sure your DATABASE_URL environment variable is configured for your cloud database.
+
 ### Step 3: Launch the dev environment
 
 ```bash

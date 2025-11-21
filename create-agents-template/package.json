@@ -13,7 +13,8 @@
     "db:migrate": "drizzle-kit migrate",
     "upgrade-agents": "node scripts/upgrade.js",
     "postinstall": "node scripts/postinstall.js",
-    "setup-dev": "node scripts/setup.js"
+    "setup-dev": "node scripts/setup.js",
+    "setup-dev:cloud": "node scripts/setup.js --skip-docker"
   },
   "dependencies": {
     "@inkeep/agents-core": "^0.35.3",
