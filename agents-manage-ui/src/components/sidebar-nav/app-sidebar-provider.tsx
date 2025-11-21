@@ -11,10 +11,13 @@ export const AppSidebarProvider: FC<{ children: ReactNode }> = ({ children }) =>
   const [isSidebarHoverOpen, setIsSidebarHoverOpen] = useState(false);
   const isOpen = isSidebarOpen || isSidebarHoverOpen;
 
-  const handleOpen = useCallback((isOpen: boolean) => {
-    setIsSidebarOpen(isOpen);
-    setIsSidebarHoverOpen(isOpen);
-  }, []);
+  const handleOpen = useCallback(
+    (isOpen: boolean) => {
+      setIsSidebarOpen(isOpen);
+      setIsSidebarHoverOpen(isOpen);
+    },
+    [setIsSidebarOpen]
+  );
 
   return (
     <SidebarProvider
