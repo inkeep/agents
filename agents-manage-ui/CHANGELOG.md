@@ -1,5 +1,15 @@
 # @inkeep/agents-manage-ui
 
+## 0.35.3
+
+### Patch Changes
+
+- 89e8c26: cleaned stale components with inkeep pull
+- Updated dependencies [89e8c26]
+  - @inkeep/agents-manage-api@0.35.3
+  - @inkeep/agents-run-api@0.35.3
+  - @inkeep/agents-core@0.35.3
+
 ## 0.35.2
 
 ### Patch Changes
