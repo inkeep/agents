@@ -17,7 +17,17 @@ async function ProjectsPage({ params }: PageProps<'/[tenantId]/projects'>) {
   try {
     projects = await fetchProjects(tenantId);
   } catch (error) {
-    return <FullPageError error={error as Error} context="projects" />;
+    const apiError = error as any;
+    const serializedError = new Error(apiError.message || 'An error occurred') as Error & {
+      cause?: { status: number; message: string };
+    };
+    if (apiError.status) {
+      serializedError.cause = {
+        status: apiError.status,
+        message: apiError.error?.message || apiError.message,
+      };
+    }
+    return <FullPageError error={serializedError} context="projects" />;
   }
 
   return (
