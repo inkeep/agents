@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { ExpandableJsonEditor } from '@/components/editors/expandable-json-editor';
 import { Button } from '@/components/ui/button';
 import {
@@ -47,14 +47,7 @@ export function SuiteConfigViewDialog({
   const [evaluators, setEvaluators] = useState<Evaluator[]>([]);
   const [agents, setAgents] = useState<Agent[]>([]);
 
-  useEffect(() => {
-    if (isOpen && suiteConfigId && tenantId && projectId) {
-      loadSuiteConfigDetails();
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isOpen, suiteConfigId]);
-
-  const loadSuiteConfigDetails = async () => {
+  const loadSuiteConfigDetails = useCallback(async () => {
     if (!suiteConfigId || !tenantId || !projectId) {
       return;
     }
@@ -110,7 +103,13 @@ export function SuiteConfigViewDialog({
     } finally {
       setLoading(false);
     }
-  };
+  }, [suiteConfigId, tenantId, projectId]);
+
+  useEffect(() => {
+    if (isOpen && suiteConfigId && tenantId && projectId) {
+      loadSuiteConfigDetails();
+    }
+  }, [isOpen, suiteConfigId, tenantId, projectId, loadSuiteConfigDetails]);
 
   const getAgentNames = (agentIds?: string[]): string[] => {
     if (!agentIds || agentIds.length === 0) {

@@ -1,7 +1,4 @@
-import { ChevronRight } from 'lucide-react';
 import type { FC } from 'react';
-import { useState } from 'react';
-import { cn } from '@/lib/utils';
 
 const getOperationLabel = (operation: any) => {
   // Use LLM-generated label if available for data-operations
@@ -23,14 +20,8 @@ const getOperationLabel = (operation: any) => {
 };
 
 export const InlineEvent: FC<{ operation: any; isLast: boolean }> = ({ operation, isLast }) => {
-  const [isExpanded, setIsExpanded] = useState(false);
-
   const getLabel = () => {
     return getOperationLabel(operation);
-  };
-
-  const getExpandedContent = () => {
-    return operation.details || {};
   };
 
   return (

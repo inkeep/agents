@@ -131,7 +131,7 @@ export function DatasetRunConfigForm({
         description: data.description,
         agentIds: data.agentIds || [],
         evaluatorIds: data.evaluatorIds || [],
-        ...(runConfigId ? {} : { datasetId: datasetId! }),
+        ...(runConfigId ? {} : datasetId ? { datasetId } : {}),
       };
 
       console.log('Payload being sent:', payload);

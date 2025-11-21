@@ -51,7 +51,7 @@ export function DatasetRunConfigsList({
   const [editingConfigId, setEditingConfigId] = useState<string | null>(null);
   const [editingConfig, setEditingConfig] = useState<DatasetRunConfig | null>(null);
 
-  const loadRunConfigs = async () => {
+  const loadRunConfigs = useCallback(async () => {
     try {
       setLoading(true);
       setError(null);
@@ -66,11 +66,11 @@ export function DatasetRunConfigsList({
     } finally {
       setLoading(false);
     }
-  };
+  }, [tenantId, projectId, datasetId]);
 
   useEffect(() => {
     loadRunConfigs();
-  }, [tenantId, projectId, datasetId, refreshKey]);
+  }, [loadRunConfigs]);
 
   const handleDeleteClick = (configId: string) => {
     setDeletingConfigId(configId);

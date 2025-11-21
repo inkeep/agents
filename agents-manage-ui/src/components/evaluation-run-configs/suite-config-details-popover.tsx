@@ -1,7 +1,7 @@
 'use client';
 
 import { Info } from 'lucide-react';
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { fetchAgents } from '@/lib/api/agent-full-client';
@@ -35,17 +35,7 @@ export function SuiteConfigDetailsPopover({
   const [evaluators, setEvaluators] = useState<Evaluator[]>([]);
   const [agents, setAgents] = useState<Agent[]>([]);
 
-  useEffect(() => {
-    if (!suiteConfigId || !tenantId || !projectId) {
-      return;
-    }
-    if (isOpen && !suiteConfig) {
-      loadSuiteConfigDetails();
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isOpen]);
-
-  const loadSuiteConfigDetails = async () => {
+  const loadSuiteConfigDetails = useCallback(async () => {
     if (!suiteConfigId) {
       console.error('Suite config ID is missing');
       return;
@@ -111,7 +101,16 @@ export function SuiteConfigDetailsPopover({
     } finally {
       setLoading(false);
     }
-  };
+  }, [suiteConfigId, tenantId, projectId]);
+
+  useEffect(() => {
+    if (!suiteConfigId || !tenantId || !projectId) {
+      return;
+    }
+    if (isOpen && !suiteConfig) {
+      loadSuiteConfigDetails();
+    }
+  }, [isOpen, suiteConfigId, tenantId, projectId, suiteConfig, loadSuiteConfigDetails]);
 
   const getAgentNames = (agentIds?: string[]): string[] => {
     if (!agentIds || agentIds.length === 0) {

@@ -222,9 +222,9 @@ export function DatasetRunDetails({
         </CardContent>
       </Card>
 
-      {selectedItemId && run.items && (
+      {selectedItemId && run.items && run.items.find((item) => item.id === selectedItemId) && (
         <DatasetItemViewDialog
-          item={run.items.find((item) => item.id === selectedItemId)!}
+          item={run.items.find((item) => item.id === selectedItemId) as any}
           isOpen={selectedItemId !== null}
           onOpenChange={(open) => !open && setSelectedItemId(null)}
         />

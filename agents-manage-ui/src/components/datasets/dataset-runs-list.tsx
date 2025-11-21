@@ -45,8 +45,7 @@ export function DatasetRunsList({
     }
 
     loadRuns();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [tenantId, projectId, datasetId, refreshKey]);
+  }, [tenantId, projectId, datasetId]);
 
   if (loading) {
     return (

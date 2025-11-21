@@ -1,7 +1,7 @@
 'use client';
 
 import { zodResolver } from '@hookform/resolvers/zod';
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
@@ -75,14 +75,7 @@ export function EvaluationJobFormDialog({
     defaultValues: formatFormData(initialData),
   });
 
-  useEffect(() => {
-    if (isOpen) {
-      form.reset(formatFormData(initialData));
-      loadData();
-    }
-  }, [isOpen, initialData]);
-
-  const loadData = async () => {
+  const loadData = useCallback(async () => {
     setLoading(true);
     try {
       const evaluatorsRes = await fetchEvaluators(tenantId, projectId);
@@ -93,7 +86,14 @@ export function EvaluationJobFormDialog({
     } finally {
       setLoading(false);
     }
-  };
+  }, [tenantId, projectId]);
+
+  useEffect(() => {
+    if (isOpen) {
+      form.reset(formatFormData(initialData));
+      loadData();
+    }
+  }, [isOpen, initialData, form, loadData]);
 
   const { isSubmitting } = form.formState;
   const selectedEvaluatorIds = form.watch('evaluatorIds') || [];

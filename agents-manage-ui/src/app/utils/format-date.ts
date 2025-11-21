@@ -14,7 +14,7 @@ function normalizeDateString(dateString: string | Date): string | Date {
 
   if (pgTimestampPattern.test(dateString)) {
     // Replace space with 'T' and add 'Z' for UTC
-    return dateString.replace(' ', 'T') + 'Z';
+    return `${dateString.replace(' ', 'T')}Z`;
   }
 
   return dateString;
