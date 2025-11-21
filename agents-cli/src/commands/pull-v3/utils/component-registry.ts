@@ -468,6 +468,15 @@ export class ComponentRegistry {
   }
 
   /**
+   * Get all components in a specific file
+   */
+  getComponentsInFile(filePath: string): ComponentInfo[] {
+    return Array.from(this.componentsByTypeAndId.values()).filter(
+      component => component.filePath === filePath
+    );
+  }
+
+  /**
    * Clear all components (for testing)
    */
   clear(): void {

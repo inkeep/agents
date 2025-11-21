@@ -10,6 +10,7 @@ import {
   readdirSync,
   readFileSync,
   statSync,
+  unlinkSync,
   writeFileSync,
 } from 'node:fs';
 import { basename, dirname, extname, join } from 'node:path';
@@ -72,6 +73,211 @@ export function copyProjectToTemp(projectRoot: string, tempDirName: string): voi
   }
 
   copyRecursively(projectRoot, tempDir);
+}
+
+/**
+ * Clean up stale components that don't exist in remote project
+ */
+export async function cleanupStaleComponents(
+  projectRoot: string,
+  tempDirName: string,
+  remoteProject: FullProjectDefinition,
+  localRegistry: ComponentRegistry
+): Promise<void> {
+  const tempDir = join(projectRoot, tempDirName);
+  
+  
+  // Get all component IDs that exist in remote project
+  const remoteComponentIds = new Set<string>();
+  
+  // Add ALL remote component IDs from ALL possible locations
+  
+  // Top-level components
+  if (remoteProject.agents) {
+    Object.keys(remoteProject.agents).forEach(id => remoteComponentIds.add(id));
+  }
+  if (remoteProject.tools) {
+    Object.keys(remoteProject.tools).forEach(id => remoteComponentIds.add(id));
+  }
+  if (remoteProject.functionTools) {
+    Object.keys(remoteProject.functionTools).forEach(id => remoteComponentIds.add(id));
+  }
+  if (remoteProject.functions) {
+    Object.keys(remoteProject.functions).forEach(id => remoteComponentIds.add(id));
+  }
+  if (remoteProject.dataComponents) {
+    Object.keys(remoteProject.dataComponents).forEach(id => remoteComponentIds.add(id));
+  }
+  if (remoteProject.artifactComponents) {
+    Object.keys(remoteProject.artifactComponents).forEach(id => remoteComponentIds.add(id));
+  }
+  if (remoteProject.credentialReferences) {
+    Object.keys(remoteProject.credentialReferences).forEach(id => remoteComponentIds.add(id));
+  }
+  if (remoteProject.externalAgents) {
+    Object.keys(remoteProject.externalAgents).forEach(id => remoteComponentIds.add(id));
+  }
+  
+  // Environments (if they exist as separate entities)
+  if ((remoteProject as any).environments) {
+    Object.keys((remoteProject as any).environments).forEach(id => remoteComponentIds.add(id));
+  }
+  
+  // Headers (if they exist as separate entities)  
+  if ((remoteProject as any).headers) {
+    Object.keys((remoteProject as any).headers).forEach(id => remoteComponentIds.add(id));
+  }
+  
+  // Models - project level
+  if (remoteProject.models) {
+    remoteComponentIds.add('project'); // models:project component
+  }
+  
+  // Project component (the project itself)
+  if (remoteProject.name || remoteProject.description) {
+    remoteComponentIds.add(remoteProject.name || 'project');
+  }
+  
+  // Nested components within agents
+  if (remoteProject.agents) {
+    Object.values(remoteProject.agents).forEach(agent => {
+      // Sub-agents
+      if (agent.subAgents) {
+        Object.keys(agent.subAgents).forEach(id => remoteComponentIds.add(id));
+      }
+      
+      // Context configs
+      if (agent.contextConfig && agent.contextConfig.id) {
+        remoteComponentIds.add(agent.contextConfig.id);
+        
+        // Fetch definitions within context configs
+        if (agent.contextConfig.contextVariables) {
+          Object.values(agent.contextConfig.contextVariables).forEach((variable: any) => {
+            if (variable && typeof variable === 'object' && variable.id) {
+              remoteComponentIds.add(variable.id);
+            }
+          });
+        }
+        
+        // Headers within context configs (if any)
+        if ((agent.contextConfig as any).headers) {
+          Object.keys((agent.contextConfig as any).headers).forEach(id => remoteComponentIds.add(id));
+        }
+      }
+      
+      // Status components
+      if ((agent as any).statusUpdates?.statusComponents) {
+        (agent as any).statusUpdates.statusComponents.forEach((statusComp: any) => {
+          const statusCompId = statusComp.type || statusComp.id;
+          if (statusCompId) {
+            remoteComponentIds.add(statusCompId);
+          }
+        });
+      }
+      
+      // Agent-level models (if any)
+      if (agent.models) {
+        remoteComponentIds.add(`${agent.id || 'unknown'}-models`);
+      }
+    });
+  }
+
+  const allLocalComponents = localRegistry.getAllComponents();
+
+  // Get all local components that don't exist remotely (stale components)
+  const staleComponents: ComponentInfo[] = [];
+  for (const component of localRegistry.getAllComponents()) {
+    if (!remoteComponentIds.has(component.id)) {
+      staleComponents.push(component);
+    }
+  }
+
+  if (staleComponents.length === 0) {
+    return; // No cleanup needed
+  }
+  
+  // Group stale components by file path
+  const staleComponentsByFile = new Map<string, ComponentInfo[]>();
+  for (const component of staleComponents) {
+    const filePath = component.filePath;
+    if (!staleComponentsByFile.has(filePath)) {
+      staleComponentsByFile.set(filePath, []);
+    }
+    staleComponentsByFile.get(filePath)!.push(component);
+  }
+
+  // Process each file that contains stale components
+  for (const [originalFilePath, staleComponentsInFile] of staleComponentsByFile) {
+    const tempFilePath = join(tempDir, originalFilePath.replace(projectRoot + '/', ''));
+    
+    if (!existsSync(tempFilePath)) {
+      continue; // File doesn't exist in temp, skip
+    }
+
+    // Get all components in this file (both stale and valid)
+    const allComponentsInFile = localRegistry.getComponentsInFile(originalFilePath);
+    const validComponentsRemaining = allComponentsInFile.filter(component => 
+      !staleComponentsInFile.some(stale => stale.id === component.id)
+    );
+
+    if (validComponentsRemaining.length === 0) {
+      // ALL components in this file are stale → delete entire file
+      unlinkSync(tempFilePath);
+    } else {
+      // MIXED file → use LLM to surgically remove only stale components
+      const currentContent = readFileSync(tempFilePath, 'utf8');
+      
+      // Use LLM to remove stale components
+      const cleanedContent = await removeComponentsFromFile(
+        currentContent,
+        staleComponentsInFile.map(c => ({ id: c.id, type: c.type })),
+        tempFilePath
+      );
+      
+      if (cleanedContent !== currentContent) {
+        writeFileSync(tempFilePath, cleanedContent, 'utf8');
+      }
+    }
+  }
+}
+
+/**
+ * Use LLM to remove specific components from file content
+ */
+async function removeComponentsFromFile(
+  fileContent: string,
+  componentsToRemove: Array<{ id: string; type: string }>,
+  filePath: string
+): Promise<string> {
+  const componentList = componentsToRemove.map(c => `${c.type}:${c.id}`).join(', ');
+  
+  const prompt = `Remove the following components from this TypeScript file: ${componentList}
+
+Please remove these components completely, including:
+- Their export statements
+- Their variable declarations/definitions  
+- Any imports that are no longer needed after removal
+- Any related helper code specific to these components
+
+Keep all other components, imports, and code that are still needed. Ensure the file remains syntactically valid TypeScript.
+
+Original file content:
+${fileContent}
+
+Return only the cleaned TypeScript code with the specified components removed.`;
+
+  try {
+    // Reuse the LLM infrastructure for removal
+    const result = await mergeComponentsWithLLM(
+      fileContent,
+      '', // No new content to merge, just removal
+      filePath,
+      prompt
+    );
+    return result.mergedContent;
+  } catch (error) {
+    return fileContent;
+  }
 }
 
 /**
@@ -747,8 +953,8 @@ export async function updateModifiedComponents(
   const tempDir = join(projectRoot, tempDirName);
   await runBiomeOnDirectory(tempDir);
 
-  // Validate the temp directory (silently)
-  await validateTempDirectory(projectRoot, tempDirName, remoteProject);
+  // Note: Validation is now handled by the main flow after index.ts generation
+  // This allows the index.ts to be properly regenerated before validation
 
   return results;
 }

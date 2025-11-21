@@ -20,6 +20,7 @@ import { compareProjectDefinitions } from '../../utils/json-comparison';
 import { loadProject } from '../../utils/project-loader';
 import { introspectGenerate } from './introspect-generator';
 import { compareProjects, type ProjectComparison } from './project-comparator';
+import { copyProjectToTemp, cleanupStaleComponents } from './component-updater';
 import { extractSubAgents } from './utils/component-registry';
 
 export interface PullV3Options {
@@ -481,11 +482,15 @@ export async function pullV3Command(options: PullV3Options): Promise<void> {
     const tempDirName = `.temp-validation-${Date.now()}`;
     s.start('Preparing temp directory...');
 
-    const { copyProjectToTemp } = await import('./component-updater');
     if (localProject) {
       // Copy existing project to temp directory
       copyProjectToTemp(paths.projectRoot, tempDirName);
       console.log(chalk.green(`✅ Existing project copied to temp directory`));
+      
+      // Clean up stale components that don't exist in remote project
+      s.start('Cleaning up stale components...');
+      await cleanupStaleComponents(paths.projectRoot, tempDirName, remoteProject, localRegistry);
+      console.log(chalk.green(`✅ Stale components cleaned up`));
     } else {
       // Start with empty temp directory for new projects
       const tempDir = join(paths.projectRoot, tempDirName);
