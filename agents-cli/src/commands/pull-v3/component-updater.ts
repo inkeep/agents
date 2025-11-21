@@ -29,6 +29,8 @@ import { generateProjectFile } from './components/project-generator';
 import { generateStatusComponentFile } from './components/status-component-generator';
 import { generateSubAgentFile } from './components/sub-agent-generator';
 import { mergeComponentsWithLLM, previewMergeResult } from './llm-content-merger';
+import { getAvailableModel } from './utils/model-provider-detector';
+import { generateText } from 'ai';
 import type { ProjectComparison } from './project-comparator';
 import { validateTempDirectory } from './project-validator';
 import type { ComponentInfo, ComponentRegistry } from './utils/component-registry';
@@ -426,6 +428,31 @@ export async function cleanupStaleComponents(
 }
 
 /**
+ * Use LLM specifically for component removal with custom prompt
+ */
+async function removeComponentsWithLLM(
+  fileContent: string,
+  prompt: string
+): Promise<string> {
+  try {
+    const model = await getAvailableModel();
+    const result = await generateText({
+      model,
+      prompt: prompt + '\n\nFile content:\n```typescript\n' + fileContent + '\n```',
+    });
+    
+    // Strip code fences from response if present
+    let cleanedResponse = result.text.replace(/^```(?:typescript|ts|javascript|js)?\s*\n?/i, '');
+    cleanedResponse = cleanedResponse.replace(/\n?```\s*$/i, '');
+    
+    return cleanedResponse.trim();
+  } catch (error) {
+    console.error('LLM removal failed:', error);
+    return fileContent; // Return original content on error
+  }
+}
+
+/**
  * Use LLM to remove specific components from file content
  */
 async function removeComponentsFromFile(
@@ -451,14 +478,8 @@ ${fileContent}
 Return only the cleaned TypeScript code with the specified components removed.`;
 
   try {
-    // Reuse the LLM infrastructure for removal
-    const result = await mergeComponentsWithLLM(
-      fileContent,
-      '', // No new content to merge, just removal
-      filePath,
-      prompt
-    );
-    return result.mergedContent;
+    // Use the dedicated LLM removal function
+    return await removeComponentsWithLLM(fileContent, prompt);
   } catch (error) {
     return fileContent;
   }
