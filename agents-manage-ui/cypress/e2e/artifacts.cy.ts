@@ -22,28 +22,36 @@ describe('Artifacts', () => {
     // Switch to JSON schema editor
     cy.get('[role=switch]').click();
 
-    cy.window().then((win) => {
-      const [jsonModel] = (win.monaco as typeof import('monaco-editor')).editor.getModels();
-      const editorValue = {
-        type: 'object',
-        properties: {
-          obj: {
-            type: 'object',
-            properties: {
-              num: {
-                type: 'number',
-                inPreview: true,
-              },
-              str: { type: 'string' },
+    const editorValue = {
+      type: 'object',
+      properties: {
+        obj: {
+          type: 'object',
+          properties: {
+            num: {
+              type: 'number',
+              inPreview: true,
             },
-            additionalProperties: false,
-            inPreview: true,
+            str: { type: 'string' },
           },
+          additionalProperties: false,
+          inPreview: true,
         },
-        additionalProperties: false,
-      };
+      },
+      additionalProperties: false,
+    };
 
-      expect(jsonModel.getValue()).to.eq(JSON.stringify(editorValue, null, 2));
-    });
+    cy.get('[data-uri="file:///custom-json-schema-artifact-component.json"] .view-line').then(
+      (lines) => {
+        const rendered = [...lines]
+          .map((l) => l.textContent)
+          .join('\n')
+          // Replace non-breaking spaces with normal spaces
+          .replaceAll(/\u00A0/g, ' ');
+
+        // To compare objects by value, deep equality
+        expect(JSON.parse(rendered)).to.deep.equal(editorValue);
+      }
+    );
   });
 });
