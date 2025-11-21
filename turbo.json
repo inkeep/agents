@@ -115,7 +115,7 @@
     "typecheck": {
       "dependsOn": ["^build"],
       "inputs": ["$TURBO_DEFAULT$"],
-      "outputs": []
+      "outputs": [".next/**"]
     },
     "typecheck:watch": {
       "cache": false,
