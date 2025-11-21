@@ -40,19 +40,17 @@ Open the folder using your favorite coding editor. To open with Cursor, you can 
 
 ### Step 2: Run the setup script
 
-Ensure Docker Desktop (or Docker daemon) is running before running the setup script.
+Ensure Docker Desktop (or Docker daemon) is running before running the setup script as it will start a local database container.
 
 ```bash
 pnpm setup-dev
 ```
 
-Or if you are using a cloud database, you can skip the docker database startup by running:
+Or set your DATABASE_URL environment variable to a cloud database URL and run:
 
 ```bash
 pnpm setup-dev --skip-docker
 ```
-
-Make sure your DATABASE_URL environment variable is configured for your cloud database.
 
 ### Step 3: Launch the dev environment
 
