@@ -25,7 +25,8 @@
 // Cypress.Commands.overwrite('visit', (originalFn, url, options) => { ... })
 
 Cypress.Commands.add('typeInMonaco', (uri: string, value: string) => {
-  cy.get(`[data-uri="file:///${uri}"] textarea`)
+  return cy
+    .get(`[data-uri="file:///${uri}"] textarea`)
     .type('{selectall}{del}', { force: true })
     .type(value, {
       parseSpecialCharSequences: false,

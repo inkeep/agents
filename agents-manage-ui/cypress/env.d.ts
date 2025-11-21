@@ -3,3 +3,11 @@ declare namespace globalThis {
   // For cypress
   var monaco: Monaco;
 }
+
+declare namespace globalThis {
+  namespace Cypress {
+    interface Chainable {
+      typeInMonaco(uri: string, value: string): Chainable<JQuery<HTMLElement>>;
+    }
+  }
+}
