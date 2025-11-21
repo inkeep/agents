@@ -20,7 +20,7 @@ import { compareProjectDefinitions } from '../../utils/json-comparison';
 import { loadProject } from '../../utils/project-loader';
 import { introspectGenerate } from './introspect-generator';
 import { compareProjects, type ProjectComparison } from './project-comparator';
-import { copyProjectToTemp, cleanupStaleComponents } from './component-updater';
+import { copyProjectToTemp, cleanupStaleComponents, checkAndPromptForStaleComponentCleanup } from './component-updater';
 import { extractSubAgents } from './utils/component-registry';
 
 export interface PullV3Options {
@@ -478,19 +478,31 @@ export async function pullV3Command(options: PullV3Options): Promise<void> {
 
     s.message(`Detected ${comparison.changeCount} differences`);
 
+
     // Step 11: Create temp directory and copy existing project (or start empty)
     const tempDirName = `.temp-validation-${Date.now()}`;
     s.start('Preparing temp directory...');
+    
+    let performedCleanup = false;
 
     if (localProject) {
       // Copy existing project to temp directory
       copyProjectToTemp(paths.projectRoot, tempDirName);
       console.log(chalk.green(`✅ Existing project copied to temp directory`));
       
-      // Clean up stale components that don't exist in remote project
-      s.start('Cleaning up stale components...');
-      await cleanupStaleComponents(paths.projectRoot, tempDirName, remoteProject, localRegistry);
-      console.log(chalk.green(`✅ Stale components cleaned up`));
+      // Check for stale components and ask user permission to clean them up (in temp directory first)
+      s.start('Checking for stale components...');
+      const shouldCleanupStale = await checkAndPromptForStaleComponentCleanup(
+        paths.projectRoot,
+        remoteProject,
+        localRegistry
+      );
+      if (shouldCleanupStale) {
+        s.start('Cleaning up stale components from temp directory...');
+        await cleanupStaleComponents(paths.projectRoot, tempDirName, remoteProject, localRegistry);
+        console.log(chalk.green(`✅ Stale components cleaned up from temp directory`));
+        performedCleanup = true;
+      }
     } else {
       // Start with empty temp directory for new projects
       const tempDir = join(paths.projectRoot, tempDirName);
@@ -602,7 +614,7 @@ export async function pullV3Command(options: PullV3Options): Promise<void> {
     s.message('Project index file created');
 
     // Step 15: Run validation and user interaction on complete temp directory
-    if (newComponentCount > 0 || modifiedCount > 0) {
+    if (newComponentCount > 0 || modifiedCount > 0 || performedCleanup) {
       s.start('Running validation on complete project...');
       const { validateTempDirectory } = await import('./project-validator');
       await validateTempDirectory(paths.projectRoot, tempDirName, remoteProject);

@@ -76,7 +76,117 @@ export function copyProjectToTemp(projectRoot: string, tempDirName: string): voi
 }
 
 /**
+ * Check for stale components and prompt user for cleanup permission
+ */
+export async function checkAndPromptForStaleComponentCleanup(
+  projectRoot: string,
+  remoteProject: FullProjectDefinition,
+  localRegistry: ComponentRegistry
+): Promise<boolean> {
+  // Get stale components (same logic as cleanup function)
+  const remoteComponentIds = new Set<string>();
+  
+  // Add all remote component IDs (same logic as cleanupStaleComponents)
+  if (remoteProject.agents) {
+    Object.keys(remoteProject.agents).forEach(id => remoteComponentIds.add(id));
+  }
+  if (remoteProject.tools) {
+    Object.keys(remoteProject.tools).forEach(id => remoteComponentIds.add(id));
+  }
+  if (remoteProject.functionTools) {
+    Object.keys(remoteProject.functionTools).forEach(id => remoteComponentIds.add(id));
+  }
+  if (remoteProject.functions) {
+    Object.keys(remoteProject.functions).forEach(id => remoteComponentIds.add(id));
+  }
+  if (remoteProject.dataComponents) {
+    Object.keys(remoteProject.dataComponents).forEach(id => remoteComponentIds.add(id));
+  }
+  if (remoteProject.artifactComponents) {
+    Object.keys(remoteProject.artifactComponents).forEach(id => remoteComponentIds.add(id));
+  }
+  if (remoteProject.credentialReferences) {
+    Object.keys(remoteProject.credentialReferences).forEach(id => remoteComponentIds.add(id));
+  }
+  if (remoteProject.externalAgents) {
+    Object.keys(remoteProject.externalAgents).forEach(id => remoteComponentIds.add(id));
+  }
+  
+  // Add nested components within agents
+  if (remoteProject.agents) {
+    Object.values(remoteProject.agents).forEach(agent => {
+      if (agent.subAgents) {
+        Object.keys(agent.subAgents).forEach(id => remoteComponentIds.add(id));
+      }
+      if (agent.contextConfig && agent.contextConfig.id) {
+        remoteComponentIds.add(agent.contextConfig.id);
+        if (agent.contextConfig.contextVariables) {
+          Object.values(agent.contextConfig.contextVariables).forEach((variable: any) => {
+            if (variable && typeof variable === 'object' && variable.id) {
+              remoteComponentIds.add(variable.id);
+            }
+          });
+        }
+      }
+    });
+  }
+
+  // Find stale components
+  const staleComponents: ComponentInfo[] = [];
+  for (const component of localRegistry.getAllComponents()) {
+    if (!remoteComponentIds.has(component.id)) {
+      staleComponents.push(component);
+    }
+  }
+
+  if (staleComponents.length === 0) {
+    return false; // No cleanup needed
+  }
+
+  // Show stale components to user
+  console.log(chalk.yellow(`\n🧹 Found ${staleComponents.length} stale components that don't exist in remote project:`));
+  staleComponents.forEach(comp => {
+    console.log(chalk.gray(`   - ${comp.type}:${comp.id} in ${basename(comp.filePath)}`));
+  });
+
+  console.log(chalk.cyan(`\n❓ Would you like to remove these stale components from your project?`));
+  console.log(chalk.green(`   [Y] Yes - Clean up stale components`));
+  console.log(chalk.red(`   [N] No - Keep existing components`));
+
+  return new Promise<boolean>((resolve) => {
+    process.stdin.setRawMode(true);
+    process.stdin.resume();
+    process.stdin.setEncoding('utf8');
+
+    const onKeypress = (key: string) => {
+      process.stdin.removeAllListeners('data');
+      process.stdin.setRawMode(false);
+      process.stdin.pause();
+
+      const normalizedKey = key.toLowerCase();
+      if (normalizedKey === 'y') {
+        console.log(chalk.green(`\n✅ Selected: Yes - Will clean up stale components`));
+        resolve(true);
+      } else if (normalizedKey === 'n') {
+        console.log(chalk.yellow(`\n❌ Selected: No - Keeping existing components`));
+        resolve(false);
+      } else {
+        console.log(chalk.red(`\n❌ Invalid key: "${key}". Skipping cleanup.`));
+        resolve(false);
+      }
+    };
+
+    process.stdin.once('data', onKeypress);
+    process.stdout.write(chalk.cyan('\nPress [Y] for Yes or [N] for No: '));
+  });
+}
+
+/**
  * Clean up stale components that don't exist in remote project
+ * @param projectRoot - Root project directory
+ * @param tempDirName - Temp directory name (empty string = operate on original project)
+ * @param remoteProject - Remote project definition
+ * @param localRegistry - Local component registry
  */
 export async function cleanupStaleComponents(
   projectRoot: string,
@@ -238,6 +348,11 @@ export async function cleanupStaleComponents(
         writeFileSync(tempFilePath, cleanedContent, 'utf8');
       }
     }
+  }
+
+  // Update the registry to remove stale components so index.ts generation works correctly
+  for (const staleComponent of staleComponents) {
+    localRegistry.removeComponent(staleComponent.type, staleComponent.id);
   }
 }
 
