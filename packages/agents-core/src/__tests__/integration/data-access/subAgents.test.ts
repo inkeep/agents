@@ -9,6 +9,7 @@ import {
 } from '../../../data-access/subAgents';
 import type { DatabaseClient } from '../../../db/client';
 import * as schema from '../../../db/schema';
+import { createTestOrganization } from '../../../db/test-client';
 import { SubAgentInsertSchema } from '../../../validation/schemas';
 import { testDbClient } from '../../setup';
 
@@ -21,9 +22,13 @@ describe('Agents Data Access - Integration Tests', () => {
   beforeEach(async () => {
     db = testDbClient;
 
-    // Create test projects and agent for all tenant IDs used in tests
+    // Create test organizations, projects and agent for all tenant IDs used in tests
     const tenantIds = [testTenantId, 'tenant-1', 'tenant-2'];
     for (const tenantId of tenantIds) {
+      // First ensure organization exists
+      await createTestOrganization(db, tenantId);
+
+      // Then create project
       await db
         .insert(schema.projects)
         .values({
@@ -279,8 +284,8 @@ describe('Agents Data Access - Integration Tests', () => {
 
       const createdAgent = await createSubAgent(db)(initialData);
 
-      // Wait a tiny bit to ensure timestamp difference
-      await new Promise((resolve) => setTimeout(resolve, 1));
+      // Wait a bit to ensure timestamp difference (10ms should be reliable)
+      await new Promise((resolve) => setTimeout(resolve, 10));
 
       // Update agent
       const updateData = {

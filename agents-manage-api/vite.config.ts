@@ -4,14 +4,15 @@ import tsconfigPaths from 'vite-tsconfig-paths';
 
 export default defineConfig({
   plugins: [
-    tsconfigPaths(), // This will automatically read tsconfig.json paths from dependencies
+    tsconfigPaths(),
     devServer({
-      entry: 'src/index.ts', // The Hono app entry point
+      entry: 'src/index.ts',
     }),
   ],
   server: {
     port: 3002,
     strictPort: true,
+    cors: false,
   },
   optimizeDeps: {
     exclude: ['keytar'],

@@ -292,7 +292,7 @@ async function compileTypeScript(projectDir: string): Promise<boolean> {
     if (!existsSync(tsconfigPath)) {
       const minimalTsconfig = {
         compilerOptions: {
-          target: 'ES2020',
+          target: 'ES2022',
           module: 'ESNext',
           moduleResolution: 'bundler',
           allowSyntheticDefaultImports: true,

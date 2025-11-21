@@ -1,5 +1,24 @@
 # @inkeep/agents-core
 
+## 0.35.1
+
+## 0.35.0
+
+### Minor Changes
+
+- 0d46d32: Adding auth to the framework
+
+### Patch Changes
+
+- f9a208a: Check for CLI installation in quickstart
+
+## 0.34.1
+
+### Patch Changes
+
+- 699043d: Install inkeep mcp in quickstarte
+- e4b5d5c: Inkeep add: usage instructions and target path detection
+
 ## 0.34.0
 
 ### Patch Changes

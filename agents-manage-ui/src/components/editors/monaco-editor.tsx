@@ -119,6 +119,7 @@ export const MonacoEditor: FC<MonacoEditorProps> = ({
       ),
       fontSize: 12,
       lineDecorationsWidth: 0, // removes the blank margin where the extra caret shows
+      editContext: false,
       ...editorOptions,
     });
     editorRef.current = editorInstance;

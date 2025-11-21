@@ -3,6 +3,7 @@ import type { BreadcrumbItem } from '@/components/ui/breadcrumbs';
 import { Breadcrumbs } from '@/components/ui/breadcrumbs';
 import { Separator } from '@/components/ui/separator';
 import { SidebarTrigger } from '@/components/ui/sidebar';
+import { UserMenu } from '../auth/user-menu';
 
 export function SiteHeader({ breadcrumbs }: { breadcrumbs?: BreadcrumbItem[] }) {
   return (
@@ -16,6 +17,7 @@ export function SiteHeader({ breadcrumbs }: { breadcrumbs?: BreadcrumbItem[] }) 
           className="mx-2 data-[orientation=vertical]:h-4 ml-auto"
         />
         <ThemeToggle />
+        <UserMenu />
       </div>
     </header>
   );

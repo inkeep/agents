@@ -20,8 +20,28 @@ import {
 } from '@inkeep/agents-core';
 import { z } from 'zod';
 import dbClient from '../data/db/dbClient';
+import { requirePermission } from '../middleware/require-permission';
+import type { BaseAppVariables } from '../types/app';
 
-const app = new OpenAPIHono();
+const app = new OpenAPIHono<{ Variables: BaseAppVariables }>();
+
+// Apply permission middleware by HTTP method
+app.use('/', async (c, next) => {
+  if (c.req.method === 'POST') {
+    return requirePermission({ api_key: ['create'] })(c, next);
+  }
+  return next();
+});
+
+app.use('/:id', async (c, next) => {
+  if (c.req.method === 'PATCH') {
+    return requirePermission({ api_key: ['update'] })(c, next);
+  }
+  if (c.req.method === 'DELETE') {
+    return requirePermission({ api_key: ['delete'] })(c, next);
+  }
+  return next();
+});
 
 app.openapi(
   createRoute({

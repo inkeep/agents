@@ -11,7 +11,7 @@ import { ApiError } from '../types/errors';
 let INKEEP_AGENTS_MANAGE_API_URL: string | null = null;
 let hasWarnedManageApi = false;
 
-function getManageApiUrl(): string {
+export function getManageApiUrl(): string {
   if (INKEEP_AGENTS_MANAGE_API_URL === null) {
     INKEEP_AGENTS_MANAGE_API_URL =
       process.env.INKEEP_AGENTS_MANAGE_API_URL || DEFAULT_INKEEP_AGENTS_MANAGE_API_URL;
@@ -32,9 +32,25 @@ async function makeApiRequestInternal<T>(
   options: RequestInit = {}
 ): Promise<T> {
   const url = `${baseUrl}/${endpoint}`;
-  const defaultHeaders = {
+
+  let cookieHeader: string | undefined;
+  if (typeof window === 'undefined') {
+    try {
+      const { cookies } = await import('next/headers');
+      const cookieStore = await cookies();
+      const allCookies = cookieStore.getAll();
+      // Only forward Better Auth cookies for security
+      const authCookies = allCookies.filter((c) => c.name.startsWith('better-auth.'));
+      cookieHeader = authCookies.map((c) => `${c.name}=${c.value}`).join('; ');
+    } catch {
+      // Not in a server component context, skip cookie forwarding
+    }
+  }
+
+  const defaultHeaders: HeadersInit = {
     'Content-Type': 'application/json',
     ...options.headers,
+    ...(cookieHeader && { Cookie: cookieHeader }),
     ...(process.env.INKEEP_AGENTS_MANAGE_API_BYPASS_SECRET && {
       Authorization: `Bearer ${process.env.INKEEP_AGENTS_MANAGE_API_BYPASS_SECRET}`,
     }),
@@ -48,7 +64,8 @@ async function makeApiRequestInternal<T>(
 
     if (!response.ok) {
       const errorData = await response.json().catch(() => ({
-        error: { code: 'unknown', message: 'Unknown error occurred' },
+        code: 'unknown',
+        message: 'Unknown error occurred',
       }));
 
       throw new ApiError(

@@ -1,10 +1,14 @@
 import type { JSONSchema7 } from 'json-schema';
 import { nanoid } from 'nanoid';
-import { create } from 'zustand';
+import { create, type StateCreator } from 'zustand';
 import { devtools } from 'zustand/middleware';
 import { useShallow } from 'zustand/react/shallow';
 
 const ROOT_ID = '__root__';
+
+export interface JSONSchemaWithPreview extends JSONSchema7 {
+  inPreview?: boolean;
+}
 
 type TypeValues = keyof typeof Types;
 
@@ -19,9 +23,11 @@ interface NameAndDescription {
   isRequired?: boolean;
   /** JSON Schema title field */
   title?: string;
+  /** @see https://docs.inkeep.com/visual-builder/structured-outputs/artifact-components#preview-fields */
+  isPreview?: boolean;
 }
 
-type EditableField =
+export type EditableField =
   | FieldString
   | FieldNumber
   | FieldBoolean
@@ -57,38 +63,42 @@ interface FieldObject extends NameAndDescription {
 }
 
 type FieldPatch = Partial<
-  Pick<NameAndDescription, 'name' | 'description' | 'isRequired' | 'title'>
+  Pick<NameAndDescription, 'name' | 'description' | 'isRequired' | 'title' | 'isPreview'>
 >;
 
-const applyCommonMetadata = (schema: JSONSchema7, field: NameAndDescription) => {
+const applyCommonMetadata = (schema: JSONSchemaWithPreview, field: NameAndDescription) => {
+  const { hasInPreview } = jsonSchemaStore.getState();
+
   if (field.description) {
     schema.description = field.description;
   }
   if (field.title) {
     schema.title = field.title;
   }
+  if (hasInPreview && field.isPreview) {
+    schema.inPreview = true;
+  }
   return schema;
 };
 
-const fieldsToJsonSchema = (field: EditableField | undefined): JSONSchema7 => {
+const fieldsToJsonSchema = (field: EditableField | undefined): JSONSchemaWithPreview => {
   if (!field) {
     return { type: 'string' };
   }
-
   switch (field.type) {
     case 'object': {
       const properties: Record<string, JSONSchema7> = {};
       const required: string[] = [];
 
       for (const property of field.properties ?? []) {
-        if (!property || !property.name) continue;
+        if (!property.name) continue;
         properties[property.name] = fieldsToJsonSchema(property);
         if (property.isRequired) {
           required.push(property.name);
         }
       }
 
-      const schema: JSONSchema7 = {
+      const schema: JSONSchemaWithPreview = {
         type: 'object',
         properties,
         additionalProperties: false,
@@ -101,7 +111,7 @@ const fieldsToJsonSchema = (field: EditableField | undefined): JSONSchema7 => {
     }
     case 'array': {
       const items = fieldsToJsonSchema(field.items);
-      const schema: JSONSchema7 = {
+      const schema: JSONSchemaWithPreview = {
         type: 'array',
         items,
       };
@@ -109,7 +119,7 @@ const fieldsToJsonSchema = (field: EditableField | undefined): JSONSchema7 => {
       return schema;
     }
     case 'enum': {
-      const schema: JSONSchema7 = {
+      const schema: JSONSchemaWithPreview = {
         type: 'string',
         enum: field.values,
       };
@@ -117,24 +127,18 @@ const fieldsToJsonSchema = (field: EditableField | undefined): JSONSchema7 => {
       return schema;
     }
     case 'number': {
-      const schema: JSONSchema7 = {
-        type: 'number',
-      };
+      const schema: JSONSchemaWithPreview = { type: 'number' };
       applyCommonMetadata(schema, field);
       return schema;
     }
     case 'boolean': {
-      const schema: JSONSchema7 = {
-        type: 'boolean',
-      };
+      const schema: JSONSchemaWithPreview = { type: 'boolean' };
       applyCommonMetadata(schema, field);
       return schema;
     }
     case 'string':
     default: {
-      const schema: JSONSchema7 = {
-        type: 'string',
-      };
+      const schema: JSONSchemaWithPreview = { type: 'string' };
       applyCommonMetadata(schema, field);
       return schema;
     }
@@ -147,17 +151,19 @@ function convertJsonSchemaToFields({
   isRequired,
   id = ROOT_ID,
 }: {
-  schema: JSONSchema7;
+  schema: JSONSchemaWithPreview;
   name?: string;
   isRequired?: boolean;
   id?: string;
 }): EditableField | undefined {
+  const { hasInPreview } = jsonSchemaStore.getState();
   const base: NameAndDescription = {
     id,
     ...(name && { name }),
     ...(schema.description && { description: schema.description }),
     ...(schema.title && { title: schema.title }),
     ...(isRequired && { isRequired: true }),
+    ...(hasInPreview && schema.inPreview && { isPreview: true }),
   };
 
   if (schema.type === 'object') {
@@ -411,7 +417,7 @@ const parseFieldsFromJson = (value: string): EditableField[] => {
   }
 
   try {
-    const parsed = JSON.parse(value) as JSONSchema7;
+    const parsed = JSON.parse(value) as JSONSchemaWithPreview;
     const result = convertJsonSchemaToFields({ schema: parsed });
     if (!result) {
       return [];
@@ -535,10 +541,11 @@ const changeEditableFieldType = (field: EditableField, type: TypeValues): Editab
 
 interface JsonSchemaStateData {
   fields: EditableField[];
+  hasInPreview: boolean;
 }
 
 interface JsonSchemaActions {
-  setFields: (fields: EditableField[]) => void;
+  setFields: (schemaJson: string, hasInPreview?: boolean) => void;
   updateField: (id: string, patch: FieldPatch) => void;
   changeType: (id: string, type: TypeValues) => void;
   addChild: (parentId?: string) => void;
@@ -550,64 +557,68 @@ interface JsonSchemaState extends JsonSchemaStateData {
   actions: JsonSchemaActions;
 }
 
-const jsonSchemaStore = create<JsonSchemaState>()(
-  devtools((set) => ({
-    fields: [],
-    actions: {
-      setFields(fields) {
-        set({ fields });
-      },
-      updateField(id, patch) {
-        set((state) => {
-          const [fields, changed] = updateEditableFields(state.fields, id, (candidate) => ({
-            ...candidate,
-            ...patch,
-          }));
-          return changed ? { fields } : state;
-        });
-      },
-      changeType(id, type) {
-        set((state) => {
-          const [fields, changed] = updateEditableFields(state.fields, id, (candidate) =>
-            changeEditableFieldType(candidate, type)
-          );
-          return changed ? { fields } : state;
-        });
-      },
-      addChild(parentId = ROOT_ID) {
-        set((state) => {
-          const child = createEditableField({
-            type: 'string',
-            id: `${parentId}.${nanoid()}`,
-          });
-          if (parentId === ROOT_ID) {
-            return { fields: [...state.fields, child] };
-          }
-          const [fields, changed] = addChildToEditableTree(state.fields, parentId, child);
-          return changed ? { fields } : state;
-        });
-      },
-      removeField(id) {
-        set((state) => {
-          const filtered = state.fields.filter((field) => field.id !== id);
-          if (filtered.length !== state.fields.length) {
-            return { fields: filtered };
-          }
-          const [fields, changed] = removeEditableFieldFromTree(state.fields, id);
-          return changed ? { fields } : state;
-        });
-      },
-      updateEnumValues(id, values) {
-        set((state) => {
-          const [fields, changed] = updateEditableFields(state.fields, id, (candidate) =>
-            candidate.type === 'enum' ? { ...candidate, values } : candidate
-          );
-          return changed ? { fields } : state;
-        });
-      },
+const jsonSchemaState: StateCreator<JsonSchemaState> = (set) => ({
+  fields: [],
+  hasInPreview: false,
+  actions: {
+    setFields(schemaJson, hasInPreview) {
+      // Update preview mode before parsing the schema
+      set({ hasInPreview });
+      // Parse fields from the JSON schema using the updated `hasInPreview` state
+      set({ fields: parseFieldsFromJson(schemaJson) });
     },
-  }))
-);
+    updateField(id, patch) {
+      set((state) => {
+        const [fields, changed] = updateEditableFields(state.fields, id, (candidate) => ({
+          ...candidate,
+          ...patch,
+        }));
+        return changed ? { fields } : state;
+      });
+    },
+    changeType(id, type) {
+      set((state) => {
+        const [fields, changed] = updateEditableFields(state.fields, id, (candidate) =>
+          changeEditableFieldType(candidate, type)
+        );
+        return changed ? { fields } : state;
+      });
+    },
+    addChild(parentId = ROOT_ID) {
+      set((state) => {
+        const child = createEditableField({
+          type: 'string',
+          id: `${parentId}.${nanoid()}`,
+        });
+        if (parentId === ROOT_ID) {
+          return { fields: [...state.fields, child] };
+        }
+        const [fields, changed] = addChildToEditableTree(state.fields, parentId, child);
+        return changed ? { fields } : state;
+      });
+    },
+    removeField(id) {
+      set((state) => {
+        const filtered = state.fields.filter((field) => field.id !== id);
+        if (filtered.length !== state.fields.length) {
+          return { fields: filtered };
+        }
+        const [fields, changed] = removeEditableFieldFromTree(state.fields, id);
+        return changed ? { fields } : state;
+      });
+    },
+    updateEnumValues(id, values) {
+      set((state) => {
+        const [fields, changed] = updateEditableFields(state.fields, id, (candidate) =>
+          candidate.type === 'enum' ? { ...candidate, values } : candidate
+        );
+        return changed ? { fields } : state;
+      });
+    },
+  },
+});
+
+const jsonSchemaStore = create<JsonSchemaState>()(devtools(jsonSchemaState));
 
 /**
  * Actions are functions that update values in your store.
@@ -632,7 +643,6 @@ export {
   Types,
   jsonSchemaStore,
   findFieldById,
-  parseFieldsFromJson,
   convertJsonSchemaToFields,
   fieldsToJsonSchema,
   useJsonSchemaStore,

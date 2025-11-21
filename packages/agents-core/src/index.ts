@@ -12,6 +12,7 @@ export * from './credential-stuffer/index';
 export * from './data-access/index';
 export * from './db/client';
 export * from './db/schema';
+export * from './db/test-client';
 export { loadEnvironmentFiles } from './env';
 export * from './middleware/index';
 export * from './types/index';
