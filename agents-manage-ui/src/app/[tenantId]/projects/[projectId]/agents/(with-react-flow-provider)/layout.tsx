@@ -2,18 +2,14 @@
 
 import { ReactFlowProvider } from '@xyflow/react';
 import { type FC, useEffect } from 'react';
-import { useSidebar } from '@/components/ui/sidebar';
+import { useAgentActions } from '@/features/agent/state/use-agent-store';
 
 const Layout: FC<LayoutProps<'/[tenantId]/projects/[projectId]/agents'>> = ({ children }) => {
-  const { setOpen } = useSidebar();
+  const { setSidebarOpen } = useAgentActions();
 
-  // biome-ignore lint/correctness/useExhaustiveDependencies: run only on mount.
-  // Note: when the `open` prop is controlled via `SidebarProvider` (programmatic usage),
-  // the `setOpen` callback is recreated whenever `open` changes, so we intentionally
-  // avoid adding it to the dependency array.
   useEffect(() => {
-    setOpen(false);
-  }, []);
+    setSidebarOpen({ isSidebarTemporarilyOpen: false });
+  }, [setSidebarOpen]);
 
   return <ReactFlowProvider>{children}</ReactFlowProvider>;
 };

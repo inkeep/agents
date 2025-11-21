@@ -39,6 +39,10 @@ interface AgentStateData {
   future: HistoryEntry[];
   errors: AgentErrorSummary | null;
   showErrors: boolean;
+  /**
+   * Temporary state used to control whether the sidebar is open on the agents page.
+   */
+  isSidebarTemporarilyOpen: boolean;
 }
 
 interface AgentPersistedStateData {
@@ -94,9 +98,11 @@ interface AgentActions {
    */
   setJsonSchemaMode(jsonSchemaMode: boolean): void;
   /**
-   * Setter for `isSidebarOpen` field.
+   * Setter for `isSidebarOpen` / `isSidebarTemporarilyOpen` fields.
    */
-  setIsSidebarOpen(isSidebarOpen: boolean): void;
+  setSidebarOpen(
+    state: Partial<Pick<AgentState, 'isSidebarOpen' | 'isSidebarTemporarilyOpen'>>
+  ): void;
 
   animateGraph: EventListenerOrEventListenerObject;
 }
@@ -134,6 +140,7 @@ const initialAgentState: AgentStateData = {
   future: [],
   errors: null,
   showErrors: false,
+  isSidebarTemporarilyOpen: true,
 };
 
 const agentState: StateCreator<AgentState> = (set, get) => ({
@@ -171,7 +178,11 @@ const agentState: StateCreator<AgentState> = (set, get) => ({
       });
     },
     reset() {
-      set(initialAgentState);
+      // Exclude `isSidebarTemporarilyOpen` from the initial state.
+      // If we kept it, the sidebar on the agents page would collapse (from the temp state)
+      // and then immediately re-expand due to the user’s persisted preference.
+      const { isSidebarTemporarilyOpen: _, ...state } = initialAgentState;
+      set(state);
     },
     setDataComponentLookup(dataComponentLookup) {
       set({ dataComponentLookup });
@@ -493,8 +504,8 @@ const agentState: StateCreator<AgentState> = (set, get) => ({
         return state;
       });
     },
-    setIsSidebarOpen(isSidebarOpen: boolean) {
-      set({ isSidebarOpen });
+    setSidebarOpen(state) {
+      set(state);
     },
   },
 });

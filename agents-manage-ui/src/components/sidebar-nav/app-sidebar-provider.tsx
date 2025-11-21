@@ -6,17 +6,20 @@ import { SidebarProvider } from '@/components/ui/sidebar';
 import { useAgentActions, useAgentStore } from '@/features/agent/state/use-agent-store';
 
 export const AppSidebarProvider: FC<{ children: ReactNode }> = ({ children }) => {
-  const isSidebarOpen = useAgentStore((state) => state.isSidebarOpen);
-  const { setIsSidebarOpen } = useAgentActions();
   const [isSidebarHoverOpen, setIsSidebarHoverOpen] = useState(false);
-  const isOpen = isSidebarOpen || isSidebarHoverOpen;
+  const open = useAgentStore((state) => state.isSidebarOpen && state.isSidebarTemporarilyOpen);
+  const { setSidebarOpen } = useAgentActions();
+  const isOpen = open || isSidebarHoverOpen;
 
   const handleOpen = useCallback(
     (isOpen: boolean) => {
-      setIsSidebarOpen(isOpen);
+      setSidebarOpen({
+        isSidebarOpen: isOpen,
+        isSidebarTemporarilyOpen: isOpen,
+      });
       setIsSidebarHoverOpen(isOpen);
     },
-    [setIsSidebarOpen]
+    [setSidebarOpen]
   );
 
   return (
