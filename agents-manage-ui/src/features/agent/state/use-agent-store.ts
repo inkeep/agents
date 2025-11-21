@@ -42,7 +42,7 @@ interface AgentStateData {
   /**
    * Temporary state used to control whether the sidebar is open on the agents page.
    */
-  isSidebarTemporarilyOpen: boolean;
+  isSidebarSessionOpen: boolean;
 }
 
 interface AgentPersistedStateData {
@@ -50,7 +50,7 @@ interface AgentPersistedStateData {
    * Setting for using JSON Schema editor instead of Form builder.
    */
   jsonSchemaMode: boolean;
-  isSidebarOpen: boolean;
+  isSidebarPinnedOpen: boolean;
 }
 
 interface AgentActions {
@@ -98,10 +98,10 @@ interface AgentActions {
    */
   setJsonSchemaMode(jsonSchemaMode: boolean): void;
   /**
-   * Setter for `isSidebarOpen` / `isSidebarTemporarilyOpen` fields.
+   * Setter for `isSidebarPinnedOpen` and `isSidebarSessionOpen` fields.
    */
   setSidebarOpen(
-    state: Partial<Pick<AgentState, 'isSidebarOpen' | 'isSidebarTemporarilyOpen'>>
+    state: Partial<Pick<AgentState, 'isSidebarPinnedOpen' | 'isSidebarSessionOpen'>>
   ): void;
 
   animateGraph: EventListenerOrEventListenerObject;
@@ -140,13 +140,13 @@ const initialAgentState: AgentStateData = {
   future: [],
   errors: null,
   showErrors: false,
-  isSidebarTemporarilyOpen: true,
+  isSidebarSessionOpen: true,
 };
 
 const agentState: StateCreator<AgentState> = (set, get) => ({
   ...initialAgentState,
   jsonSchemaMode: false,
-  isSidebarOpen: true,
+  isSidebarPinnedOpen: true,
   // Separate "namespace" for actions
   actions: {
     setInitial(
@@ -178,10 +178,10 @@ const agentState: StateCreator<AgentState> = (set, get) => ({
       });
     },
     reset() {
-      // Exclude `isSidebarTemporarilyOpen` from the initial state.
+      // Exclude `isSidebarSessionOpen` from the initial state.
       // If we kept it, the sidebar on the agents page would collapse (from the temp state)
       // and then immediately re-expand due to the user’s persisted preference.
-      const { isSidebarTemporarilyOpen: _, ...state } = initialAgentState;
+      const { isSidebarSessionOpen: _, ...state } = initialAgentState;
       set(state);
     },
     setDataComponentLookup(dataComponentLookup) {
@@ -517,7 +517,7 @@ export const agentStore = create<AgentState>()(
       partialize(state) {
         return {
           jsonSchemaMode: state.jsonSchemaMode,
-          isSidebarOpen: state.isSidebarOpen,
+          isSidebarPinnedOpen: state.isSidebarPinnedOpen,
         };
       },
     })

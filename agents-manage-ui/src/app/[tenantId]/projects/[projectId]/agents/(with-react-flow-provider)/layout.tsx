@@ -8,7 +8,7 @@ const Layout: FC<LayoutProps<'/[tenantId]/projects/[projectId]/agents'>> = ({ ch
   const { setSidebarOpen } = useAgentActions();
 
   useEffect(() => {
-    setSidebarOpen({ isSidebarTemporarilyOpen: false });
+    setSidebarOpen({ isSidebarSessionOpen: false });
   }, [setSidebarOpen]);
 
   return <ReactFlowProvider>{children}</ReactFlowProvider>;
