@@ -17,6 +17,7 @@ import { setupOpenAPIRoutes } from './openapi';
 import crudRoutes from './routes/index';
 import invitationsRoutes from './routes/invitations';
 import oauthRoutes from './routes/oauth';
+import playgroundTokenRoutes from './routes/playgroundToken';
 import projectFullRoutes from './routes/projectFull';
 import userOrganizationsRoutes from './routes/userOrganizations';
 
@@ -200,10 +201,28 @@ function createManagementHono(
     });
   }
 
-  // CORS middleware - handles all non-Better Auth routes
+  // CORS middleware for playground routes (must be registered before the handler)
+  app.use(
+    '/api/playground/*',
+    cors({
+      origin: (origin) => {
+        return isOriginAllowed(origin) ? origin : null;
+      },
+      allowHeaders: ['content-type', 'Content-Type', 'authorization', 'Authorization'],
+      allowMethods: ['POST', 'OPTIONS'],
+      exposeHeaders: ['Content-Length'],
+      maxAge: 600,
+      credentials: true,
+    })
+  );
+
+  // CORS middleware - handles all other routes
   app.use('*', async (c, next) => {
-    // Skip CORS middleware for Better Auth routes - they have their own CORS config
+    // Skip CORS middleware for routes with their own CORS config
     if (auth && c.req.path.startsWith('/api/auth/')) {
+      return next();
+    }
+    if (c.req.path.startsWith('/api/playground/')) {
       return next();
     }
 
@@ -292,6 +311,10 @@ function createManagementHono(
 
   // Mount invitations routes - global invitations endpoint
   app.route('/api/invitations', invitationsRoutes);
+
+  // Mount playground token routes - requires session auth
+  app.use('/api/playground/token', sessionAuth());
+  app.route('/api/playground/token', playgroundTokenRoutes);
 
   // Mount routes for all entities
   app.route('/tenants/:tenantId', crudRoutes);
