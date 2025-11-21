@@ -5,6 +5,7 @@ import { useCallback, useEffect, useRef } from 'react';
 import { DynamicComponentRenderer } from '@/components/data-components/render/dynamic-component-renderer';
 import type { ConversationDetail } from '@/components/traces/timeline/types';
 import { useRuntimeConfig } from '@/contexts/runtime-config-context';
+import { useTempApiKey } from '@/hooks/use-temp-api-key';
 import type { DataComponent } from '@/lib/api/data-components';
 import { generateId } from '@/lib/utils/id-utils';
 import { IkpMessage as IkpMessageComponent } from './ikp-message';
@@ -57,8 +58,13 @@ export function ChatWidget({
   chatActivities,
   dataComponentLookup = {},
 }: ChatWidgetProps) {
-  const { PUBLIC_INKEEP_AGENTS_RUN_API_URL, PUBLIC_INKEEP_AGENTS_RUN_API_BYPASS_SECRET } =
-    useRuntimeConfig();
+  const { PUBLIC_INKEEP_AGENTS_RUN_API_URL } = useRuntimeConfig();
+  const { apiKey: tempApiKey, isLoading: isLoadingKey } = useTempApiKey({
+    tenantId,
+    projectId,
+    agentId: agentId || '',
+    enabled: !!agentId,
+  });
   const stopPollingTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const hasReceivedAssistantMessageRef = useRef(false);
   const POLLING_TIMEOUT_MS = 5 * 60 * 1000; // 5 minutes
@@ -95,6 +101,17 @@ export function ChatWidget({
       }
     };
   }, []);
+
+  // Don't render chat until we have the API key
+  if (isLoadingKey || !tempApiKey) {
+    return (
+      <div className="h-full flex items-center justify-center">
+        <p className="text-muted-foreground">
+          {isLoadingKey ? 'Initializing playground...' : 'Failed to initialize playground'}
+        </p>
+      </div>
+    );
+  }
 
   return (
     <div className="h-full flex flex-row gap-4">
@@ -180,7 +197,7 @@ export function ChatWidget({
               'x-inkeep-project-id': projectId,
               'x-inkeep-agent-id': agentId || '',
               'x-emit-operations': 'true',
-              Authorization: `Bearer ${PUBLIC_INKEEP_AGENTS_RUN_API_BYPASS_SECRET}`,
+              Authorization: `Bearer ${tempApiKey}`,
               ...customHeaders,
             },
 

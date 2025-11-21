@@ -32,6 +32,25 @@ export function setupOpenAPIRoutes(app: any) {
           },
         ],
       });
+
+      // Add security schemes and global security requirements
+      document.components = {
+        ...document.components,
+        securitySchemes: {
+          ...(document.components?.securitySchemes || {}),
+          bearerAuth: {
+            type: 'http',
+            scheme: 'bearer',
+            bearerFormat: 'API Key',
+            description:
+              'API key authentication. All endpoints require a valid API key in the Authorization header as "Bearer <api-key>". API keys can be created in the management UI.',
+          },
+        },
+      };
+
+      // Set global security (all routes require API key)
+      document.security = [{ bearerAuth: [] }];
+
       return c.json(document);
     } catch (error) {
       console.error('OpenAPI document generation failed:', error);
