@@ -5,7 +5,7 @@ import { SelectedComponents } from './selected-components';
 interface ComponentItem {
   id: string;
   name: string;
-  description?: string;
+  description?: string | null;
 }
 
 interface ComponentSelectorProps<T extends ComponentItem> {

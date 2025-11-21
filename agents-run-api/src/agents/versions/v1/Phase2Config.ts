@@ -320,7 +320,7 @@ ${componentDescriptions}`;
     dataComponentXml = dataComponentXml.replace('{{COMPONENT_NAME}}', dataComponent.name);
     dataComponentXml = dataComponentXml.replace(
       '{{COMPONENT_DESCRIPTION}}',
-      dataComponent.description
+      dataComponent.description || ''
     );
     dataComponentXml = dataComponentXml.replace(
       '{{COMPONENT_PROPS_SCHEMA}}',
@@ -439,7 +439,7 @@ ${artifactRetrievalGuidance}
     );
 
     let phase2Prompt = systemPromptTemplate;
-    
+
     // Handle core instructions - omit entire section if empty
     if (corePrompt && corePrompt.trim()) {
       phase2Prompt = phase2Prompt.replace('{{CORE_INSTRUCTIONS}}', corePrompt);

@@ -176,9 +176,7 @@ describe('Sub-Agent Generator', () => {
 
       expect(() => {
         generateSubAgentDefinition('fallback-agent', noNameData, undefined, mockRegistry);
-      }).toThrow(
-        "Missing required fields for sub-agent 'fallback-agent': name"
-      );
+      }).toThrow("Missing required fields for sub-agent 'fallback-agent': name");
     });
 
     it('should handle camelCase conversion for variable names', () => {
@@ -492,9 +490,7 @@ describe('Sub-Agent Generator', () => {
           undefined,
           mockRegistry
         );
-      }).toThrow(
-        "Missing required fields for sub-agent 'empty-strings-sub-agent': name"
-      );
+      }).toThrow("Missing required fields for sub-agent 'empty-strings-sub-agent': name");
     });
 
     it('should not throw error when name is provided (other fields can be null/undefined)', () => {

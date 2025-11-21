@@ -170,9 +170,7 @@ describe('Artifact Component Generator', () => {
     it('should throw error for missing required fields', () => {
       expect(() => {
         generateArtifactComponentDefinition('minimal', {});
-      }).toThrow(
-        "Missing required fields for artifact component 'minimal': name, props"
-      );
+      }).toThrow("Missing required fields for artifact component 'minimal': name, props");
     });
 
     it('should handle template property', () => {
@@ -425,9 +423,7 @@ describe('Artifact Component Generator', () => {
     it('should throw error for empty component data', () => {
       expect(() => {
         generateArtifactComponentDefinition('empty', {});
-      }).toThrow(
-        "Missing required fields for artifact component 'empty': name, props"
-      );
+      }).toThrow("Missing required fields for artifact component 'empty': name, props");
     });
 
     it('should handle special characters in component ID', () => {

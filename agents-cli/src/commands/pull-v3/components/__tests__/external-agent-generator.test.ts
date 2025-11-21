@@ -177,9 +177,7 @@ describe('External Agent Generator', () => {
 
       expect(() => {
         generateExternalAgentDefinition('empty-strings-agent', emptyStringData);
-      }).toThrow(
-        "Missing required fields for external agent 'empty-strings-agent': name"
-      );
+      }).toThrow("Missing required fields for external agent 'empty-strings-agent': name");
     });
 
     it('should throw error for null required values', () => {
@@ -303,9 +301,7 @@ describe('External Agent Generator', () => {
 
       expect(() => {
         generateExternalAgentDefinition('minimal-test-external-agent', minimalData);
-      }).toThrow(
-        "Missing required fields for external agent 'minimal-test-external-agent': name"
-      );
+      }).toThrow("Missing required fields for external agent 'minimal-test-external-agent': name");
     });
   });
 
@@ -371,9 +367,7 @@ describe('External Agent Generator', () => {
     it('should throw error for empty external agent data', () => {
       expect(() => {
         generateExternalAgentDefinition('empty-agent', {});
-      }).toThrow(
-        "Missing required fields for external agent 'empty-agent': name, baseUrl"
-      );
+      }).toThrow("Missing required fields for external agent 'empty-agent': name, baseUrl");
     });
 
     it('should throw error for missing description only', () => {

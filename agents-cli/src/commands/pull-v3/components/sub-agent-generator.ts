@@ -122,9 +122,13 @@ export function generateSubAgentDefinition(
 
   // Required fields - these must be present
   lines.push(`${indentation}name: ${formatString(agentData.name, q)},`);
-  
+
   // Description - optional field, only include if present
-  if (agentData.description !== undefined && agentData.description !== null && agentData.description !== '') {
+  if (
+    agentData.description !== undefined &&
+    agentData.description !== null &&
+    agentData.description !== ''
+  ) {
     lines.push(`${indentation}description: ${formatString(agentData.description, q, true)},`);
   }
 

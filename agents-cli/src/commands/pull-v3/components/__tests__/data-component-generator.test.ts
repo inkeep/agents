@@ -329,9 +329,9 @@ describe('Data Component Generator', () => {
 
     it('should not throw error for missing description (now optional)', () => {
       expect(() => {
-        generateDataComponentDefinition('missing-desc', { 
+        generateDataComponentDefinition('missing-desc', {
           name: 'Test Component',
-          props: { type: 'object', properties: {} }
+          props: { type: 'object', properties: {} },
         });
       }).not.toThrow();
     });

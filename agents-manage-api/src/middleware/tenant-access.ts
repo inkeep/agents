@@ -28,9 +28,7 @@ export const requireTenantAccess = () =>
 
     try {
       const userOrganizations = await getUserOrganizations(dbClient)(userId);
-      const organizationAccess = userOrganizations.find(
-        (org) => org.organizationId === tenantId
-      );
+      const organizationAccess = userOrganizations.find((org) => org.organizationId === tenantId);
 
       if (!organizationAccess) {
         throw new HTTPException(403, {
@@ -52,4 +50,3 @@ export const requireTenantAccess = () =>
       });
     }
   });
-
