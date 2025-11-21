@@ -6,18 +6,20 @@ import { SidebarProvider } from '@/components/ui/sidebar';
 import { useAgentActions, useAgentStore } from '@/features/agent/state/use-agent-store';
 
 export const AppSidebarProvider: FC<{ children: ReactNode }> = ({ children }) => {
-  const [isSidebarHoverOpen, setIsSidebarHoverOpen] = useState(false);
-  const open = useAgentStore((state) => state.isSidebarOpen && state.isSidebarTemporarilyOpen);
+  const [isSidebarHoverExpanded, setIsSidebarHoverExpanded] = useState(false);
+  const isPinnedExpanded = useAgentStore(
+    (state) => state.isSidebarPinnedOpen && state.isSidebarSessionOpen
+  );
   const { setSidebarOpen } = useAgentActions();
-  const isOpen = open || isSidebarHoverOpen;
+  const isOpen = isPinnedExpanded || isSidebarHoverExpanded;
 
   const handleOpen = useCallback(
-    (isOpen: boolean) => {
+    (open: boolean) => {
       setSidebarOpen({
-        isSidebarOpen: isOpen,
-        isSidebarTemporarilyOpen: isOpen,
+        isSidebarPinnedOpen: open,
+        isSidebarSessionOpen: open,
       });
-      setIsSidebarHoverOpen(isOpen);
+      setIsSidebarHoverExpanded(open);
     },
     [setSidebarOpen]
   );
@@ -31,7 +33,7 @@ export const AppSidebarProvider: FC<{ children: ReactNode }> = ({ children }) =>
       open={isOpen}
       onOpenChange={handleOpen}
     >
-      <AppSidebar open={isOpen} setOpen={setIsSidebarHoverOpen} />
+      <AppSidebar open={isOpen} setOpen={setIsSidebarHoverExpanded} />
       {children}
     </SidebarProvider>
   );
