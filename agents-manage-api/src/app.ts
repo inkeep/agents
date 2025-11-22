@@ -33,12 +33,14 @@ logger.info({ logger: logger.getTransports() }, 'Logger initialized');
  * @returns true if origin is allowed (also narrows type to string)
  */
 function isOriginAllowed(origin: string | undefined): origin is string {
+  console.log('isOriginAllowed', origin);
   if (!origin) return false;
 
   try {
     const requestUrl = new URL(origin);
+    console.log('requestUrl', requestUrl);
     const authUrl = new URL(env.INKEEP_AGENTS_MANAGE_API_URL || 'http://localhost:3002');
-
+    console.log('authUrl', authUrl);
     // Development: allow any localhost
     if (authUrl.hostname === 'localhost' || authUrl.hostname === '127.0.0.1') {
       return requestUrl.hostname === 'localhost' || requestUrl.hostname === '127.0.0.1';
@@ -46,9 +48,15 @@ function isOriginAllowed(origin: string | undefined): origin is string {
 
     // Production: allow same base domain and subdomains
     const baseDomain = authUrl.hostname.replace(/^api\./, ''); // Remove 'api.' prefix if present
-    return requestUrl.hostname === baseDomain || requestUrl.hostname.endsWith(`.${baseDomain}`);
-  } catch {
+    console.log('baseDomain', baseDomain);
+
+    const isAllowed = requestUrl.hostname === baseDomain || requestUrl.hostname.endsWith(`.${baseDomain}`);
+    console.log('isAllowed', isAllowed);
+
+    return isAllowed;
+  } catch (error) {
     // Invalid URL
+    console.log('Invalid URL error', error);
     return false;
   }
 }
