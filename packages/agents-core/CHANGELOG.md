@@ -1,5 +1,11 @@
 # @inkeep/agents-core
 
+## 0.35.9
+
+### Patch Changes
+
+- 18c036d: fix better-auth type
+
 ## 0.35.8
 
 ### Patch Changes
