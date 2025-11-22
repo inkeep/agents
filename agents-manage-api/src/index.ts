@@ -73,7 +73,7 @@ const app = createManagementHono(defaultConfig, defaultRegistry, auth);
 
 // Skip initialization in test environment - tests will handle their own setup
 if (env.ENVIRONMENT !== 'test') {
-  void initializeDefaultUser();
+  void initializeDefaultUser(auth);
 }
 
 // Export the default app for Vite dev server and simple deployments
@@ -91,7 +91,12 @@ export function createManagementApp(config?: {
   const serverConfig = config?.serverConfig ?? defaultConfig;
   const stores = config?.credentialStores ?? defaultStores;
   const registry = new CredentialStoreRegistry(stores);
-  const auth = createManagementAuth(config?.auth);
+  const createdAuth = createManagementAuth(config?.auth);
 
-  return createManagementHono(serverConfig, registry, auth);
+  // Skip initialization in test environment - tests will handle their own setup
+  if (env.ENVIRONMENT !== 'test') {
+    void initializeDefaultUser(createdAuth);
+  }
+
+  return createManagementHono(serverConfig, registry, createdAuth);
 }

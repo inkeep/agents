@@ -110,6 +110,13 @@ async function registerSSOProvider(
 }
 
 export function createAuth(config: BetterAuthConfig) {
+  const baseUrl = new URL(config.baseURL);
+  const trustedOrigins = ['http://localhost:3000', 'http://localhost:3002', config.baseURL];
+  
+  if (baseUrl.hostname.endsWith('.preview.inkeep.com')) {
+    trustedOrigins.push('https://*.preview.inkeep.com');
+  }
+  
   const auth = betterAuth({
     baseURL: config.baseURL,
     secret: config.secret,
@@ -135,7 +142,7 @@ export function createAuth(config: BetterAuthConfig) {
         enabled: true,
       },
     },
-    trustedOrigins: ['http://localhost:3000', 'http://localhost:3002', config.baseURL],
+    trustedOrigins,
     plugins: [
       sso(),
       organization({

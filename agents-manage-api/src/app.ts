@@ -33,30 +33,39 @@ logger.info({ logger: logger.getTransports() }, 'Logger initialized');
  * @returns true if origin is allowed (also narrows type to string)
  */
 function isOriginAllowed(origin: string | undefined): origin is string {
-  console.log('isOriginAllowed', origin);
-  if (!origin) return false;
+  logger.info({ origin, apiUrl: env.INKEEP_AGENTS_MANAGE_API_URL }, 'CORS origin check');
+  
+  if (!origin) {
+    logger.warn({ apiUrl: env.INKEEP_AGENTS_MANAGE_API_URL }, 'CORS request with undefined origin');
+    return false;
+  }
 
   try {
     const requestUrl = new URL(origin);
-    console.log('requestUrl', requestUrl);
     const authUrl = new URL(env.INKEEP_AGENTS_MANAGE_API_URL || 'http://localhost:3002');
-    console.log('authUrl', authUrl);
+    
     // Development: allow any localhost
     if (authUrl.hostname === 'localhost' || authUrl.hostname === '127.0.0.1') {
-      return requestUrl.hostname === 'localhost' || requestUrl.hostname === '127.0.0.1';
+      const isAllowed = requestUrl.hostname === 'localhost' || requestUrl.hostname === '127.0.0.1';
+      logger.info({ origin, isAllowed }, 'Localhost CORS check');
+      return isAllowed;
+    }
+
+    // Preview environments: Allow *.preview.inkeep.com to communicate with each other
+    if (authUrl.hostname.endsWith('.preview.inkeep.com')) {
+      const isAllowed = requestUrl.hostname.endsWith('.preview.inkeep.com');
+      logger.info({ origin, isAllowed }, 'Preview environment CORS check');
+      return isAllowed;
     }
 
     // Production: allow same base domain and subdomains
     const baseDomain = authUrl.hostname.replace(/^api\./, ''); // Remove 'api.' prefix if present
-    console.log('baseDomain', baseDomain);
-
     const isAllowed = requestUrl.hostname === baseDomain || requestUrl.hostname.endsWith(`.${baseDomain}`);
-    console.log('isAllowed', isAllowed);
+    logger.info({ origin, baseDomain, isAllowed }, 'Production CORS check');
 
     return isAllowed;
   } catch (error) {
-    // Invalid URL
-    console.log('Invalid URL error', error);
+    logger.error({ origin, error }, 'Invalid URL in CORS check');
     return false;
   }
 }
