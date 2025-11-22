@@ -137,24 +137,24 @@ export type FunctionToolConfig = Omit<z.infer<typeof FunctionToolConfigSchema>, 
 };
 
 const createApiSchema = <T extends z.ZodRawShape>(schema: z.ZodObject<T>) =>
-  schema.omit({ tenantId: true, projectId: true }) satisfies z.ZodObject<any>;
+  schema.omit({ tenantId: true, projectId: true });
 
 const createApiInsertSchema = <T extends z.ZodRawShape>(schema: z.ZodObject<T>) =>
-  schema.omit({ tenantId: true, projectId: true }) satisfies z.ZodObject<any>;
+  schema.omit({ tenantId: true, projectId: true });
 
 const createApiUpdateSchema = <T extends z.ZodRawShape>(schema: z.ZodObject<T>) =>
-  schema.omit({ tenantId: true, projectId: true }).partial() satisfies z.ZodObject<any>;
+  schema.omit({ tenantId: true, projectId: true }).partial();
 
 const createAgentScopedApiSchema = <T extends z.ZodRawShape>(schema: z.ZodObject<T>) =>
-  schema.omit({ tenantId: true, projectId: true, agentId: true }) satisfies z.ZodObject<any>;
+  schema.omit({ tenantId: true, projectId: true, agentId: true });
 
 const createAgentScopedApiInsertSchema = <T extends z.ZodRawShape>(schema: z.ZodObject<T>) =>
-  schema.omit({ tenantId: true, projectId: true, agentId: true }) satisfies z.ZodObject<any>;
+  schema.omit({ tenantId: true, projectId: true, agentId: true });
 
 const createAgentScopedApiUpdateSchema = <T extends z.ZodRawShape>(schema: z.ZodObject<T>) =>
   schema
     .omit({ tenantId: true, projectId: true, agentId: true })
-    .partial() satisfies z.ZodObject<any>;
+    .partial();
 
 export const SubAgentSelectSchema = createSelectSchema(subAgents);
 
