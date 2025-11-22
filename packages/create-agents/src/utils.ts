@@ -438,6 +438,10 @@ NANGO_SECRET_KEY=
 # JWT Signing Secret
 INKEEP_AGENTS_JWT_SIGNING_SECRET=${jwtSigningSecret}
 
+# Temporary JWT Keys for Playground (generate with: pnpm run generate-jwt-keys)
+# INKEEP_AGENTS_TEMP_JWT_PRIVATE_KEY=
+# INKEEP_AGENTS_TEMP_JWT_PUBLIC_KEY=
+
 # initial project information
 DEFAULT_PROJECT_ID=${config.projectId}
 
