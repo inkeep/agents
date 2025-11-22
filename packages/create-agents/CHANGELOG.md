@@ -1,5 +1,13 @@
 # @inkeep/create-agents
 
+## 0.35.8
+
+### Patch Changes
+
+- 986dad2: update better-auth
+- Updated dependencies [986dad2]
+  - @inkeep/agents-core@0.35.8
+
 ## 0.35.7
 
 ### Patch Changes

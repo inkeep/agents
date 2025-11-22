@@ -1,5 +1,11 @@
 # @inkeep/agents-core
 
+## 0.35.8
+
+### Patch Changes
+
+- 986dad2: update better-auth
+
 ## 0.35.7
 
 ## 0.35.6
