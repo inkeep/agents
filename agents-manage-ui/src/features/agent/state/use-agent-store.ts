@@ -98,11 +98,9 @@ interface AgentActions {
    */
   setJsonSchemaMode(jsonSchemaMode: boolean): void;
   /**
-   * Setter for `isSidebarPinnedOpen` and `isSidebarSessionOpen` fields.
+   * Setter for `isSidebarSessionOpen` and `isSidebarPinnedOpen` fields.
    */
-  setSidebarOpen(
-    state: Partial<Pick<AgentState, 'isSidebarPinnedOpen' | 'isSidebarSessionOpen'>>
-  ): void;
+  setSidebarOpen(state: { isSidebarSessionOpen: boolean; isSidebarPinnedOpen?: boolean }): void;
 
   animateGraph: EventListenerOrEventListenerObject;
 }
@@ -504,8 +502,11 @@ const agentState: StateCreator<AgentState> = (set, get) => ({
         return state;
       });
     },
-    setSidebarOpen(state) {
-      set(state);
+    setSidebarOpen({ isSidebarSessionOpen, isSidebarPinnedOpen }) {
+      set({
+        isSidebarSessionOpen,
+        ...(typeof isSidebarPinnedOpen === 'boolean' && { isSidebarPinnedOpen }),
+      });
     },
   },
 });

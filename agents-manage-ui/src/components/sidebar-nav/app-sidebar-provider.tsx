@@ -16,8 +16,8 @@ export const AppSidebarProvider: FC<{ children: ReactNode }> = ({ children }) =>
   const handleOpen = useCallback(
     (open: boolean) => {
       setSidebarOpen({
-        isSidebarPinnedOpen: open,
         isSidebarSessionOpen: open,
+        isSidebarPinnedOpen: open,
       });
       setIsSidebarHoverExpanded(open);
     },

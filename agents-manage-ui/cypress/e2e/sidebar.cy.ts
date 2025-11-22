@@ -4,6 +4,18 @@ describe('Sidebar', () => {
   describe('Collapsing/Expanding', () => {
     const projectUrl = '/default/projects/my-weather-project';
 
+    it('should collapses when opening an agent page and re-expands when user navigates away from the agent page', () => {
+      cy.visit(projectUrl);
+      // Default expanded
+      cy.get('[data-slot=sidebar]').should('have.attr', 'data-state', 'expanded');
+      cy.contains('Weather agent').click();
+      // Switched to collapsed
+      cy.get('[data-slot=sidebar]').should('have.attr', 'data-state', 'collapsed');
+      // Back to expanded
+      cy.contains('Projects').click();
+      cy.get('[data-slot=sidebar]').should('have.attr', 'data-state', 'expanded');
+    });
+
     it('should collapses when opening an agent page and re-expands when opening new tab', () => {
       cy.visit(projectUrl);
       // Default expanded

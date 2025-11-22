@@ -9,6 +9,9 @@ const Layout: FC<LayoutProps<'/[tenantId]/projects/[projectId]/agents'>> = ({ ch
 
   useEffect(() => {
     setSidebarOpen({ isSidebarSessionOpen: false });
+    return () => {
+      setSidebarOpen({ isSidebarSessionOpen: true });
+    };
   }, [setSidebarOpen]);
 
   return <ReactFlowProvider>{children}</ReactFlowProvider>;
