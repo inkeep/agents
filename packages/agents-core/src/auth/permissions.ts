@@ -1,3 +1,4 @@
+import type { AccessControl } from 'better-auth/plugins/access';
 import { createAccessControl } from 'better-auth/plugins/access';
 import { defaultStatements } from 'better-auth/plugins/organization/access';
 
@@ -16,7 +17,7 @@ const statement = {
   context_config: ['create', 'read', 'update', 'delete'],
 } as const;
 
-export const ac = createAccessControl(statement);
+export const ac = createAccessControl(statement) as AccessControl
 
 export const memberRole = ac.newRole({
   project: ['read'],
