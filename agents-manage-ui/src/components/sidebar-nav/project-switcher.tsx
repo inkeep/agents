@@ -48,9 +48,10 @@ export const ProjectSwitcher: FC = () => {
     setIsProjectDialogOpen(true);
   }, []);
 
-  useEffect(() => {
+  const fetchProjects = useCallback(() => {
     if (!tenantId) return;
 
+    setIsLoading(true);
     fetchProjectsAction(tenantId)
       .then((res) => (res.success && res.data ? res.data : []))
       .catch((error) => {
@@ -62,6 +63,10 @@ export const ProjectSwitcher: FC = () => {
         setProjects(projects);
       });
   }, [tenantId]);
+
+  useEffect(() => {
+    fetchProjects();
+  }, [fetchProjects]);
 
   if (isLoading) {
     return <Skeleton className="h-12" />;
@@ -106,6 +111,7 @@ export const ProjectSwitcher: FC = () => {
         tenantId={tenantId}
         open={isProjectDialogOpen}
         onOpenChange={setIsProjectDialogOpen}
+        onSuccess={fetchProjects}
       />
     </DropdownMenu>
   );
