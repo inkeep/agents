@@ -15,16 +15,6 @@ if (process.env.NODE_ENV !== 'production') {
 const nextConfig: NextConfig = {
   env: {
     NEXT_PUBLIC_CI: process.env.CI,
-    // Expose environment variables to Server Components
-    // This allows PUBLIC_* naming conventions to work
-    PUBLIC_INKEEP_AGENTS_MANAGE_API_URL: process.env.PUBLIC_INKEEP_AGENTS_MANAGE_API_URL,
-    PUBLIC_INKEEP_AGENTS_RUN_API_URL: process.env.PUBLIC_INKEEP_AGENTS_RUN_API_URL,
-    PUBLIC_INKEEP_AGENTS_RUN_API_BYPASS_SECRET: process.env.PUBLIC_INKEEP_AGENTS_RUN_API_BYPASS_SECRET,
-    PUBLIC_SIGNOZ_URL: process.env.PUBLIC_SIGNOZ_URL,
-    PUBLIC_NANGO_SERVER_URL: process.env.PUBLIC_NANGO_SERVER_URL,
-    PUBLIC_NANGO_CONNECT_BASE_URL: process.env.PUBLIC_NANGO_CONNECT_BASE_URL,
-    PUBLIC_AUTH0_DOMAIN: process.env.PUBLIC_AUTH0_DOMAIN,
-    PUBLIC_GOOGLE_CLIENT_ID: process.env.PUBLIC_GOOGLE_CLIENT_ID,
   },
   output: 'standalone',
   turbopack: {
