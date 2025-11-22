@@ -12,8 +12,7 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { useAuthSession } from '@/hooks/use-auth';
-import { authClient, useAuthClient } from '@/lib/auth-client';
-import { InviteMemberDialog } from './invite-member-dialog';
+import { useAuthClient } from '@/lib/auth-client';
 
 export function UserMenu() {
   const { user, isLoading } = useAuthSession();
