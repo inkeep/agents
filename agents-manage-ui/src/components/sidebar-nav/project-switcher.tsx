@@ -99,7 +99,7 @@ export const ProjectSwitcher: FC = () => {
         <DropdownMenuSeparator />
         <DropdownMenuItem className="font-mono uppercase" onSelect={handleCreateProject}>
           <Plus />
-          Create Project
+          Create project
         </DropdownMenuItem>
       </DropdownMenuContent>
       <NewProjectDialog
