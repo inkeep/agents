@@ -64,6 +64,9 @@ export function useTempApiKey({
   useEffect(() => {
     if (enabled && agentId) {
       fetchToken();
+    } else {
+      // If not enabled or no agentId, set loading to false immediately
+      setIsLoading(false);
     }
   }, [enabled, agentId, fetchToken]);
 
