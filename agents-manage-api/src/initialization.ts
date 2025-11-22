@@ -8,12 +8,9 @@ import type { createAuth } from '@inkeep/agents-core/auth';
 import { and, eq } from 'drizzle-orm';
 import dbClient from './data/db/dbClient';
 import { env } from './env';
-import { getLogger } from './logger';
-
-const logger = getLogger('initialization');
 
 export async function initializeDefaultUser(auth: ReturnType<typeof createAuth> | null) {
-  console.log('initializeDefaultUser');
+  console.log('initializeDefaultUser', auth);
   const { INKEEP_AGENTS_MANAGE_UI_USERNAME, INKEEP_AGENTS_MANAGE_UI_PASSWORD, DISABLE_AUTH } = env;
   const hasCredentials = INKEEP_AGENTS_MANAGE_UI_USERNAME && INKEEP_AGENTS_MANAGE_UI_PASSWORD;
 
@@ -30,13 +27,13 @@ export async function initializeDefaultUser(auth: ReturnType<typeof createAuth> 
       logo: null,
       metadata: null,
     });
-    logger.info({ organizationId: orgId }, 'Created default organization');
+    console.log('Created default organization:', { organizationId: orgId });
   } else {
-    logger.info({ organizationId: orgId }, 'Organization already exists');
+    console.log('Organization already exists:', { organizationId: orgId });
   }
 
   if (!hasCredentials || DISABLE_AUTH || !auth) {
-    logger.info({ hasCredentials: false }, 'Skipping default user creation');
+    console.log('Skipping default user creation:', { hasCredentials: false });
     return;
   }
 
@@ -45,15 +42,14 @@ export async function initializeDefaultUser(auth: ReturnType<typeof createAuth> 
     let user = await getUserByEmail(dbClient)(INKEEP_AGENTS_MANAGE_UI_USERNAME);
 
     if (user) {
-      logger.info(
-        { email: INKEEP_AGENTS_MANAGE_UI_USERNAME, userId: user.id },
-        'Default user already exists'
-      );
+      console.log('Default user already exists:', {
+        email: INKEEP_AGENTS_MANAGE_UI_USERNAME,
+        userId: user.id,
+      });
     } else {
-      logger.info(
-        { email: INKEEP_AGENTS_MANAGE_UI_USERNAME },
-        'Creating default user with Better Auth...'
-      );
+      console.log('Creating default user with Better Auth...', {
+        email: INKEEP_AGENTS_MANAGE_UI_USERNAME,
+      });
 
       const result = await auth.api.signUpEmail({
         body: {
@@ -76,12 +72,12 @@ export async function initializeDefaultUser(auth: ReturnType<typeof createAuth> 
         throw new Error('User was created but could not be retrieved from database');
       }
 
-      logger.info(
+      console.log(
+        'Default user created from INKEEP_AGENTS_MANAGE_UI_USERNAME/INKEEP_AGENTS_MANAGE_UI_PASSWORD:',
         {
           email: user.email,
           id: user.id,
-        },
-        'Default user created from INKEEP_AGENTS_MANAGE_UI_USERNAME/INKEEP_AGENTS_MANAGE_UI_PASSWORD'
+        }
       );
     }
 
@@ -100,27 +96,24 @@ export async function initializeDefaultUser(auth: ReturnType<typeof createAuth> 
         role: 'owner',
         createdAt: new Date(),
       });
-      logger.info({ userId: user.id, organizationId: orgId }, 'Added user as organization owner');
+      console.log('Added user as organization owner:', { userId: user.id, organizationId: orgId });
     } else {
-      logger.info(
-        { userId: user.id, organizationId: orgId },
-        'User already a member of organization'
-      );
+      console.log('User already a member of organization:', {
+        userId: user.id,
+        organizationId: orgId,
+      });
     }
 
-    logger.info(
-      {
-        organizationId: orgId,
-        organizationSlug: env.TENANT_ID,
-        userId: user.id,
-        email: INKEEP_AGENTS_MANAGE_UI_USERNAME,
-      },
-      '✅ Initialization complete - login with these credentials'
-    );
+    console.log('✅ Initialization complete - login with these credentials:', {
+      organizationId: orgId,
+      organizationSlug: env.TENANT_ID,
+      userId: user.id,
+      email: INKEEP_AGENTS_MANAGE_UI_USERNAME,
+    });
   } catch (error) {
-    logger.error(
-      { error, email: INKEEP_AGENTS_MANAGE_UI_USERNAME },
-      '❌ Failed to create default user'
-    );
+    console.error('❌ Failed to create default user:', {
+      error,
+      email: INKEEP_AGENTS_MANAGE_UI_USERNAME,
+    });
   }
 }
