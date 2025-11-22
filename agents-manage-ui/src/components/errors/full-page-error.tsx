@@ -15,6 +15,24 @@ function hasStatusCode(obj: unknown): obj is { status: number } {
   );
 }
 
+function isApiError(obj: unknown): obj is { status: number; error: { message: string } } {
+  if (typeof obj !== 'object' || obj === null) {
+    return false;
+  }
+
+  const record = obj as Record<string, unknown>;
+
+  return (
+    'status' in record &&
+    typeof record.status === 'number' &&
+    'error' in record &&
+    typeof record.error === 'object' &&
+    record.error !== null &&
+    'message' in (record.error as Record<string, unknown>) &&
+    typeof (record.error as Record<string, unknown>).message === 'string'
+  );
+}
+
 interface FullPageErrorProps {
   error?: Error & { digest?: string };
   reset?: () => void;
@@ -43,7 +61,9 @@ export default function FullPageError({
   let statusCode = propStatusCode;
 
   if (!statusCode && error) {
-    if (hasStatusCode(error.cause)) {
+    if (isApiError(error)) {
+      statusCode = error.status;
+    } else if (hasStatusCode(error.cause)) {
       statusCode = error.cause.status;
     } else if (hasStatusCode(error)) {
       statusCode = error.status;
@@ -55,7 +75,9 @@ export default function FullPageError({
 
   if (error && !title) {
     title = `Failed to load ${context}`;
-    description = error.message || `An unexpected error occurred while loading this ${context}.`;
+    description = isApiError(error)
+      ? error.error.message
+      : error.message || `An unexpected error occurred while loading this ${context}.`;
 
     if (statusCode === 404) {
       title = `${context.charAt(0).toUpperCase() + context.slice(1)} not found`;
@@ -72,9 +94,6 @@ export default function FullPageError({
     } else if (statusCode === 503) {
       title = 'Service unavailable';
       description = 'The service is temporarily unavailable. Please try again in a few moments.';
-    } else if (typeof navigator !== 'undefined' && !navigator.onLine) {
-      title = 'Connection error';
-      description = 'Unable to connect to the server. Please check your internet connection.';
     }
   }
 
