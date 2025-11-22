@@ -32,10 +32,8 @@ function createManagementAuth(userAuthConfig?: UserAuthConfig) {
     return null;
   }
 
-  const baseURL = env.INKEEP_AGENTS_MANAGE_API_URL || 'http://localhost:3002';
-
   return createAuth({
-    baseURL,
+    baseURL: env.INKEEP_AGENTS_MANAGE_API_URL || 'http://localhost:3002',
     secret: env.BETTER_AUTH_SECRET || 'development-secret-change-in-production',
     dbClient,
     ...(userAuthConfig?.ssoProviders && { ssoProviders: userAuthConfig.ssoProviders }),
@@ -75,7 +73,7 @@ const app = createManagementHono(defaultConfig, defaultRegistry, auth);
 
 // Skip initialization in test environment - tests will handle their own setup
 if (env.ENVIRONMENT !== 'test') {
-  void initializeDefaultUser(auth);
+  void initializeDefaultUser();
 }
 
 // Export the default app for Vite dev server and simple deployments
@@ -93,12 +91,7 @@ export function createManagementApp(config?: {
   const serverConfig = config?.serverConfig ?? defaultConfig;
   const stores = config?.credentialStores ?? defaultStores;
   const registry = new CredentialStoreRegistry(stores);
-  const createdAuth = createManagementAuth(config?.auth);
+  const auth = createManagementAuth(config?.auth);
 
-  // Skip initialization in test environment - tests will handle their own setup
-  if (env.ENVIRONMENT !== 'test') {
-    void initializeDefaultUser(createdAuth);
-  }
-
-  return createManagementHono(serverConfig, registry, createdAuth);
+  return createManagementHono(serverConfig, registry, auth);
 }
