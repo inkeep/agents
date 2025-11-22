@@ -5,9 +5,11 @@
  * inkeep-chat backend AgentFull REST API endpoints.
  */
 
+import type { AgentApiInsert } from '@inkeep/agents-core/client-exports';
 import type {
   Agent,
   CreateAgentResponse,
+  CreateFullAgentResponse,
   FullAgentDefinition,
   GetAgentResponse,
   UpdateAgentResponse,
@@ -27,6 +29,23 @@ export async function fetchAgents(
 
   return makeManagementApiRequest<ListResponse<Agent>>(
     `tenants/${tenantId}/projects/${projectId}/agents`
+  );
+}
+
+export async function createAgent(
+  tenantId: string,
+  projectId: string,
+  agentData: AgentApiInsert
+): Promise<CreateAgentResponse> {
+  validateTenantId(tenantId);
+  validateProjectId(projectId);
+
+  return makeManagementApiRequest<CreateAgentResponse>(
+    `tenants/${tenantId}/projects/${projectId}/agents`,
+    {
+      method: 'POST',
+      body: JSON.stringify(agentData),
+    }
   );
 }
 
@@ -54,11 +73,11 @@ export async function createFullAgent(
   tenantId: string,
   projectId: string,
   agentData: FullAgentDefinition
-): Promise<CreateAgentResponse> {
+): Promise<CreateFullAgentResponse> {
   validateTenantId(tenantId);
   validateProjectId(projectId);
 
-  return makeManagementApiRequest<CreateAgentResponse>(
+  return makeManagementApiRequest<CreateFullAgentResponse>(
     `tenants/${tenantId}/projects/${projectId}/agent`,
     {
       method: 'POST',
