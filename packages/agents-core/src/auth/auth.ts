@@ -1,5 +1,5 @@
 import { sso } from '@better-auth/sso';
-import { type BetterAuthPlugin, betterAuth } from 'better-auth';
+import { betterAuth } from 'better-auth';
 import { drizzleAdapter } from 'better-auth/adapters/drizzle';
 import { organization } from 'better-auth/plugins';
 import type { GoogleOptions } from 'better-auth/social-providers';
@@ -110,34 +110,6 @@ async function registerSSOProvider(
 }
 
 export function createAuth(config: BetterAuthConfig) {
-  const plugins: BetterAuthPlugin[] = [
-    sso(),
-    organization({
-      allowUserToCreateOrganization: true,
-      ac,
-      roles: {
-        member: memberRole,
-        admin: adminRole,
-        owner: ownerRole,
-      },
-      async sendInvitationEmail(data) {
-        console.log('📧 Invitation created:', {
-          email: data.email,
-          invitedBy: data.inviter.user.name || data.inviter.user.email,
-          organization: data.organization.name,
-          invitationId: data.id,
-        });
-
-        // Note: The invitation link is displayed in the UI with a copy button.
-        // If you want to send actual emails, configure an email provider:
-        // - Resend: await resend.emails.send({ ... })
-        // - SendGrid: await sgMail.send({ ... })
-        // - AWS SES: await ses.sendEmail({ ... })
-        // - Postmark: await postmark.sendEmail({ ... })
-      },
-    }),
-  ];
-
   const auth = betterAuth({
     baseURL: config.baseURL,
     secret: config.secret,
@@ -164,7 +136,33 @@ export function createAuth(config: BetterAuthConfig) {
       },
     },
     trustedOrigins: ['http://localhost:3000', 'http://localhost:3002', config.baseURL],
-    plugins,
+    plugins: [
+      sso(),
+      organization({
+        allowUserToCreateOrganization: true,
+        ac,
+        roles: {
+          member: memberRole,
+          admin: adminRole,
+          owner: ownerRole,
+        },
+        async sendInvitationEmail(data) {
+          console.log('📧 Invitation created:', {
+            email: data.email,
+            invitedBy: data.inviter.user.name || data.inviter.user.email,
+            organization: data.organization.name,
+            invitationId: data.id,
+          });
+
+          // Note: The invitation link is displayed in the UI with a copy button.
+          // If you want to send actual emails, configure an email provider:
+          // - Resend: await resend.emails.send({ ... })
+          // - SendGrid: await sgMail.send({ ... })
+          // - AWS SES: await ses.sendEmail({ ... })
+          // - Postmark: await postmark.sendEmail({ ... })
+        },
+      }),
+    ],
   });
 
   if (config.ssoProviders?.length) {
