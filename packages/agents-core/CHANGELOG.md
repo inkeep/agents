@@ -1,5 +1,11 @@
 # @inkeep/agents-core
 
+## 0.35.6
+
+### Patch Changes
+
+- 31dbacc: handle google sign in
+
 ## 0.35.5
 
 ### Patch Changes

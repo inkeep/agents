@@ -1,5 +1,13 @@
 # @inkeep/agents-manage-api
 
+## 0.35.6
+
+### Patch Changes
+
+- 31dbacc: handle google sign in
+- Updated dependencies [31dbacc]
+  - @inkeep/agents-core@0.35.6
+
 ## 0.35.5
 
 ### Patch Changes
