@@ -1,3 +1,4 @@
+import { createApiError } from '@inkeep/agents-core';
 import { createMiddleware } from 'hono/factory';
 import { HTTPException } from 'hono/http-exception';
 
@@ -7,8 +8,9 @@ export const sessionAuth = () =>
       const user = c.get('user');
 
       if (!user) {
-        throw new HTTPException(401, {
-          message: 'Unauthorized - Please log in',
+        throw createApiError({
+          code: 'unauthorized',
+          message: 'Please log in to access this resource',
         });
       }
 
@@ -21,7 +23,8 @@ export const sessionAuth = () =>
         throw error;
       }
 
-      throw new HTTPException(401, {
+      throw createApiError({
+        code: 'unauthorized',
         message: 'Authentication failed',
       });
     }

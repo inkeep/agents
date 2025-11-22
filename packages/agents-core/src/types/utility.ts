@@ -73,6 +73,11 @@ export type ConversationMetadata = {
   userContext?: Record<string, unknown>;
   preferences?: Record<string, unknown>;
   sessionData?: Record<string, unknown>;
+  apiKeyId?: string;
+  initiatedBy?: {
+    type: 'user' | 'api_key';
+    id: string;
+  };
 };
 
 export type MessageContent = {
