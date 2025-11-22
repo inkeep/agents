@@ -117,12 +117,6 @@ export function createAuth(config: BetterAuthConfig) {
     trustedOrigins.push('https://*.preview.inkeep.com');
   }
   
-  console.log('🔐 Better Auth Configuration:', {
-    baseURL: config.baseURL,
-    hostname: baseUrl.hostname,
-    trustedOrigins,
-  });
-  
   const auth = betterAuth({
     baseURL: config.baseURL,
     secret: config.secret,

@@ -10,7 +10,6 @@ import dbClient from './data/db/dbClient';
 import { env } from './env';
 
 export async function initializeDefaultUser(auth: ReturnType<typeof createAuth> | null) {
-  console.log('initializeDefaultUser', auth);
   const { INKEEP_AGENTS_MANAGE_UI_USERNAME, INKEEP_AGENTS_MANAGE_UI_PASSWORD, DISABLE_AUTH } = env;
   const hasCredentials = INKEEP_AGENTS_MANAGE_UI_USERNAME && INKEEP_AGENTS_MANAGE_UI_PASSWORD;
 

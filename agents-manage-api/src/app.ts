@@ -22,8 +22,6 @@ import userOrganizationsRoutes from './routes/userOrganizations';
 
 const logger = getLogger('agents-manage-api');
 
-logger.info({ logger: logger.getTransports() }, 'Logger initialized');
-
 /**
  * Check if a request origin is allowed for CORS
  *

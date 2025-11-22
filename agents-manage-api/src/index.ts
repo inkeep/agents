@@ -29,12 +29,10 @@ const defaultRegistry = new CredentialStoreRegistry(defaultStores);
 
 function createManagementAuth(userAuthConfig?: UserAuthConfig) {
   if (env.DISABLE_AUTH) {
-    console.log('⚠️  Auth is disabled (DISABLE_AUTH=true)');
     return null;
   }
 
   const baseURL = env.INKEEP_AGENTS_MANAGE_API_URL || 'http://localhost:3002';
-  console.log('🚀 Creating management auth with baseURL:', baseURL);
 
   return createAuth({
     baseURL,
