@@ -37,6 +37,7 @@ function createManagementAuth(userAuthConfig?: UserAuthConfig) {
     secret: env.BETTER_AUTH_SECRET || 'development-secret-change-in-production',
     dbClient,
     ...(userAuthConfig?.ssoProviders && { ssoProviders: userAuthConfig.ssoProviders }),
+    ...(userAuthConfig?.socialProviders && { socialProviders: userAuthConfig.socialProviders }),
   });
 }
 
@@ -50,10 +51,22 @@ const ssoProviders = await Promise.all([
     : null,
 ]);
 
+const socialProviders =  process.env.PUBLIC_GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET
+    ? {
+        google: {
+          prompt: 'select_account' as const,
+          display: 'popup' as const,
+          clientId: process.env.PUBLIC_GOOGLE_CLIENT_ID,
+          clientSecret: process.env.GOOGLE_CLIENT_SECRET,
+        },
+      }
+    : undefined;
+
 export const auth = createManagementAuth({
   ssoProviders: ssoProviders.filter(
     (p: SSOProviderConfig | null): p is SSOProviderConfig => p !== null
   ),
+  socialProviders,
 });
 
 const app = createManagementHono(defaultConfig, defaultRegistry, auth);

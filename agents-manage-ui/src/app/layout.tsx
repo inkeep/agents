@@ -46,6 +46,8 @@ export default function RootLayout({ children }: LayoutProps<'/'>) {
     PUBLIC_NANGO_SERVER_URL: process.env.PUBLIC_NANGO_SERVER_URL || DEFAULT_NANGO_SERVER_URL,
     PUBLIC_NANGO_CONNECT_BASE_URL:
       process.env.PUBLIC_NANGO_CONNECT_BASE_URL || DEFAULT_NANGO_CONNECT_BASE_URL,
+    PUBLIC_AUTH0_DOMAIN: process.env.PUBLIC_AUTH0_DOMAIN,
+    PUBLIC_GOOGLE_CLIENT_ID: process.env.PUBLIC_GOOGLE_CLIENT_ID,
   };
 
   return (
