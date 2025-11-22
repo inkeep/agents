@@ -37,7 +37,6 @@ import { useIsMounted } from '@/hooks/use-is-mounted';
 import { useSidePane } from '@/hooks/use-side-pane';
 import { getFullProjectAction } from '@/lib/actions/project-full';
 import { fetchToolsAction } from '@/lib/actions/tools';
-
 import type { ArtifactComponent } from '@/lib/api/artifact-components';
 import type { Credential } from '@/lib/api/credentials';
 import type { DataComponent } from '@/lib/api/data-components';
@@ -62,6 +61,7 @@ import {
   teamAgentNodeTargetHandleId,
 } from './configuration/node-types';
 import { useCopilotContext } from './copilot/copilot-context';
+import { EmptyState } from './empty-state';
 import { AgentErrorSummary } from './error-display/agent-error-summary';
 import { DefaultMarker } from './markers/default-marker';
 import { SelectedMarker } from './markers/selected-marker';
@@ -447,7 +447,9 @@ export const Agent: FC<AgentProps> = ({
           return;
         }
         const fullProject = fullProjectResult.data;
-        const updatedAgent = fullProject.agents[agent.id] as ExtendedFullAgentDefinition;
+        const updatedAgent = fullProject?.agents?.[
+          agent.id as keyof typeof fullProject.agents
+        ] as ExtendedFullAgentDefinition;
 
         // Update tool lookup if tools were fetched
         const updatedToolLookup = toolsResult?.success
@@ -978,6 +980,7 @@ export const Agent: FC<AgentProps> = ({
 
   const [showTraces, setShowTraces] = useState(false);
   const isMounted = useIsMounted();
+
   return (
     <ResizablePanelGroup
       // Note: Without a specified `id`, Cypress tests may become flaky and fail with the error: `No group found for id '...'`
@@ -992,6 +995,7 @@ export const Agent: FC<AgentProps> = ({
         tenantId={tenantId}
         refreshAgentGraph={refreshAgentGraph}
       />
+
       <ResizablePanel
         // Panel id and order props recommended when panels are dynamically rendered
         id="react-flow-pane"
@@ -1034,6 +1038,11 @@ export const Agent: FC<AgentProps> = ({
           <Panel position="top-left">
             <NodeLibrary />
           </Panel>
+          {nodes.length === 0 && (
+            <Panel position="top-center" className="top-1/2! translate-y-[-50%]">
+              <EmptyState />
+            </Panel>
+          )}
           <Panel
             position="top-right"
             // width of NodeLibrary

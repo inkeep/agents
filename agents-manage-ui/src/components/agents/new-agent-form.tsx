@@ -31,10 +31,12 @@ interface NewAgentFormProps {
 
 export const NewAgentForm = ({ tenantId, projectId }: NewAgentFormProps) => {
   const router = useRouter();
-  const form = useForm({
+  const form = useForm<AgentFormData>({
     resolver: zodResolver(agentSchema),
-    defaultValues: defaultValues,
+    defaultValues,
   });
+
+  const { isSubmitting } = form.formState;
 
   useAutoPrefillId({
     form,
@@ -78,7 +80,9 @@ export const NewAgentForm = ({ tenantId, projectId }: NewAgentFormProps) => {
           isRequired
         />
         <div className="flex justify-end">
-          <Button type="submit">Create agent</Button>
+          <Button disabled={isSubmitting} type="submit">
+            Create agent
+          </Button>
         </div>
       </form>
     </Form>
