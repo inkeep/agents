@@ -35,16 +35,6 @@ export const metadata: Metadata = {
 };
 
 export default function RootLayout({ children }: LayoutProps<'/'>) {
-  // DEBUG: Log environment variables on server side
-  console.log('=== SERVER SIDE ENVIRONMENT (layout.tsx) ===');
-  console.log('NODE_ENV:', process.env.NODE_ENV);
-  console.log('VERCEL:', process.env.VERCEL);
-  console.log('PUBLIC_INKEEP_AGENTS_MANAGE_API_URL:', process.env.PUBLIC_INKEEP_AGENTS_MANAGE_API_URL);
-  console.log('NEXT_PUBLIC_INKEEP_AGENTS_MANAGE_API_URL:', process.env.NEXT_PUBLIC_INKEEP_AGENTS_MANAGE_API_URL);
-  console.log('INKEEP_AGENTS_MANAGE_API_URL:', process.env.INKEEP_AGENTS_MANAGE_API_URL);
-  console.log('All env keys containing INKEEP:', Object.keys(process.env).filter(k => k.includes('INKEEP')));
-  console.log('===========================================');
-
   const runtimeConfig: RuntimeConfig = {
     PUBLIC_INKEEP_AGENTS_MANAGE_API_URL:
       process.env.PUBLIC_INKEEP_AGENTS_MANAGE_API_URL ||
