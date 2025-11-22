@@ -1,5 +1,13 @@
 import { createRoute, OpenAPIHono, z } from '@hono/zod-openapi';
-import { createApiError, ErrorResponseSchema, signTempToken } from '@inkeep/agents-core';
+import {
+  createApiError,
+  ErrorResponseSchema,
+  getAgentById,
+  getUserOrganizations,
+  projectExists,
+  signTempToken,
+} from '@inkeep/agents-core';
+import dbClient from '../data/db/dbClient';
 import { env } from '../env';
 import { getLogger } from '../logger';
 import type { BaseAppVariables } from '../types/app';
@@ -65,6 +73,38 @@ app.openapi(
       { userId, tenantId, projectId, agentId },
       'Generating temporary JWT token for playground'
     );
+
+    // Verify user has access to the tenant
+    const userOrganizations = await getUserOrganizations(dbClient)(userId);
+    const hasAccessToTenant = userOrganizations.some((org) => org.organizationId === tenantId);
+
+    if (!hasAccessToTenant) {
+      logger.warn({ userId, tenantId }, 'User attempted to access tenant without permission');
+      throw createApiError({
+        code: 'forbidden',
+        message: 'Access denied to this organization',
+      });
+    }
+
+    // Verify project exists and belongs to the tenant
+    const projectExistsCheck = await projectExists(dbClient)({ tenantId, projectId });
+    if (!projectExistsCheck) {
+      logger.warn({ userId, tenantId, projectId }, 'Project not found or access denied');
+      throw createApiError({
+        code: 'not_found',
+        message: 'Project not found',
+      });
+    }
+
+    // Verify agent exists and belongs to the project
+    const agent = await getAgentById(dbClient)({ scopes: { tenantId, projectId, agentId } });
+    if (!agent) {
+      logger.warn({ userId, tenantId, projectId, agentId }, 'Agent not found or access denied');
+      throw createApiError({
+        code: 'not_found',
+        message: 'Agent not found',
+      });
+    }
 
     if (!env.INKEEP_AGENTS_TEMP_JWT_PRIVATE_KEY) {
       throw createApiError({
