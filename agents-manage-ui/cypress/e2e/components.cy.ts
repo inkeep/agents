@@ -1,9 +1,11 @@
 /// <reference types="cypress" />
 
+import { randomId } from '../support/utils';
+
 describe('Components', () => {
   it('should create a new component when adding JSON schema properties with form builder and without `required` field', () => {
     cy.visit('/default/projects/my-weather-project/components/new');
-    cy.get('input[name=name]').type(`test ${Math.random().toString().slice(2)}`);
+    cy.get('input[name=name]').type(`test ${randomId()}`);
     cy.get('textarea[name=description]').type('test description');
     cy.contains('Add property').click();
     cy.get('[placeholder="Property name"]').type('foo');
