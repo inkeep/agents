@@ -136,25 +136,79 @@ export type FunctionToolConfig = Omit<z.infer<typeof FunctionToolConfigSchema>, 
   execute: ((params: any) => Promise<any>) | string;
 };
 
-const createApiSchema = <T extends z.ZodRawShape>(schema: z.ZodObject<T>) =>
-  schema.omit({ tenantId: true, projectId: true });
+const createApiSchema = <T extends z.ZodRawShape>(schema: z.ZodObject<T>) => {
+  const result = schema.omit({ tenantId: true, projectId: true });
+  // Add openapi method if it doesn't exist
+  if (!('openapi' in result)) {
+    (result as any).openapi = function(name: string) {
+      // Simply return the schema itself - the openapi name is metadata
+      return result;
+    };
+  }
+  return result;
+};
 
-const createApiInsertSchema = <T extends z.ZodRawShape>(schema: z.ZodObject<T>) =>
-  schema.omit({ tenantId: true, projectId: true });
+const createApiInsertSchema = <T extends z.ZodRawShape>(schema: z.ZodObject<T>) => {
+  const result = schema.omit({ tenantId: true, projectId: true });
+  // Add openapi method if it doesn't exist
+  if (!('openapi' in result)) {
+    (result as any).openapi = function(name: string) {
+      // Simply return the schema itself - the openapi name is metadata
+      return result;
+    };
+  }
+  return result;
+};
 
-const createApiUpdateSchema = <T extends z.ZodRawShape>(schema: z.ZodObject<T>) =>
-  schema.omit({ tenantId: true, projectId: true }).partial();
+const createApiUpdateSchema = <T extends z.ZodRawShape>(schema: z.ZodObject<T>) => {
+  const result = schema.omit({ tenantId: true, projectId: true }).partial();
+  // Add openapi method if it doesn't exist
+  if (!('openapi' in result)) {
+    (result as any).openapi = function(name: string) {
+      // Simply return the schema itself - the openapi name is metadata
+      return result;
+    };
+  }
+  return result;
+};
 
-const createAgentScopedApiSchema = <T extends z.ZodRawShape>(schema: z.ZodObject<T>) =>
-  schema.omit({ tenantId: true, projectId: true, agentId: true });
+const createAgentScopedApiSchema = <T extends z.ZodRawShape>(schema: z.ZodObject<T>) => {
+  const result = schema.omit({ tenantId: true, projectId: true, agentId: true });
+  // Add openapi method if it doesn't exist
+  if (!('openapi' in result)) {
+    (result as any).openapi = function(name: string) {
+      // Simply return the schema itself - the openapi name is metadata
+      return result;
+    };
+  }
+  return result;
+};
 
-const createAgentScopedApiInsertSchema = <T extends z.ZodRawShape>(schema: z.ZodObject<T>) =>
-  schema.omit({ tenantId: true, projectId: true, agentId: true });
+const createAgentScopedApiInsertSchema = <T extends z.ZodRawShape>(schema: z.ZodObject<T>) => {
+  const result = schema.omit({ tenantId: true, projectId: true, agentId: true });
+  // Add openapi method if it doesn't exist
+  if (!('openapi' in result)) {
+    (result as any).openapi = function(name: string) {
+      // Simply return the schema itself - the openapi name is metadata
+      return result;
+    };
+  }
+  return result;
+};
 
-const createAgentScopedApiUpdateSchema = <T extends z.ZodRawShape>(schema: z.ZodObject<T>) =>
-  schema
+const createAgentScopedApiUpdateSchema = <T extends z.ZodRawShape>(schema: z.ZodObject<T>) => {
+  const result = schema
     .omit({ tenantId: true, projectId: true, agentId: true })
     .partial();
+  // Add openapi method if it doesn't exist
+  if (!('openapi' in result)) {
+    (result as any).openapi = function(name: string) {
+      // Simply return the schema itself - the openapi name is metadata
+      return result;
+    };
+  }
+  return result;
+};
 
 export const SubAgentSelectSchema = createSelectSchema(subAgents);
 
