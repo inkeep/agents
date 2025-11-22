@@ -4,68 +4,18 @@ description: Authentication modes for Manage API
 icon: "LuShield"
 ---
 
-The Manage API (`agents-manage-api`) supports two authentication methods:
+The Manage API (`agents-manage-api`) has two authentication modes:
 
-## Session-based Authentication
-
-The primary authentication method for the Management UI. When users log in through the UI, Better Auth sets HTTP-only cookies that are automatically sent with subsequent requests.
-
-### How it works
-
-1. User logs in via `/api/auth/sign-in/email`
-2. Better Auth sets `better-auth.*` cookies
-3. Browser automatically includes cookies in requests
-4. Manage API validates session and extracts user context
-
-### Session Configuration
-
-- **Expiry**: 7 days
-- **Update age**: 24 hours (session refreshes with activity)
-- **Cookie attributes**: HTTP-only, Secure (in production), SameSite
-- **Cross-subdomain**: Enabled for multi-domain deployments
-
-### Server-side Requests
-
-When making server-side requests (e.g., from Next.js Server Components), manually forward Better Auth cookies:
-
-```typescript
-const { cookies } = await import('next/headers');
-const cookieStore = await cookies();
-const authCookies = cookieStore.getAll().filter(c => c.name.startsWith('better-auth.'));
-const cookieHeader = authCookies.map(c => `${c.name}=${c.value}`).join('; ');
-
-fetch(`${MANAGE_API_URL}/tenants/${tenantId}/projects`, {
-  headers: {
-    'Cookie': cookieHeader,
-  },
-});
-```
-
-## Bearer Token Authentication
-
-For programmatic access and service-to-service communication.
-
-### Bypass Secret (Development)
+### Secured Mode
 
 When `INKEEP_AGENTS_MANAGE_API_BYPASS_SECRET` is set:
 
-```bash
-curl -H "Authorization: Bearer YOUR_BYPASS_SECRET" \
-  http://localhost:3002/tenants/default/projects
-```
+- Include the secret as a Bearer token in requests
+- Recommended for production environments
 
-**Note**: The bypass secret should only be used in development or for internal services. Never expose it to client-side code.
+### Open Mode
 
-## Playground Authentication
+When `INKEEP_AGENTS_MANAGE_API_BYPASS_SECRET` is not set:
 
-The playground feature uses temporary API keys:
-
-1. UI sends session cookie to `/api/playground/token`
-2. Manage API validates session
-3. Returns temporary API key (1 hour expiry)
-4. UI uses this key to call Run API directly
-
-This approach ensures:
-- Session tokens never reach Run API
-- API keys never exposed to browser
-- Long-running executions don't depend on session expiry
+- No authentication required
+- Useful for local development
