@@ -404,6 +404,23 @@ async function createEnvironmentFiles(config: FileConfig) {
 
   const betterAuthSecret = crypto.randomBytes(32).toString('hex');
 
+  // Generate RSA key pair for temporary JWT tokens
+  let tempJwtPrivateKey = '';
+  let tempJwtPublicKey = '';
+  try {
+    const { generateKeyPairSync } = await import('node:crypto');
+    const { privateKey, publicKey } = generateKeyPairSync('rsa', {
+      modulusLength: 2048,
+      publicKeyEncoding: { type: 'spki', format: 'pem' },
+      privateKeyEncoding: { type: 'pkcs8', format: 'pem' },
+    });
+    tempJwtPrivateKey = Buffer.from(privateKey).toString('base64');
+    tempJwtPublicKey = Buffer.from(publicKey).toString('base64');
+  } catch (error) {
+    console.warn('Warning: Failed to generate JWT keys. Playground may not work.');
+    console.warn('You can manually generate keys later with: pnpm run generate-jwt-keys');
+  }
+
   const envContent = `# Environment
 ENVIRONMENT=development
 
@@ -438,9 +455,9 @@ NANGO_SECRET_KEY=
 # JWT Signing Secret
 INKEEP_AGENTS_JWT_SIGNING_SECRET=${jwtSigningSecret}
 
-# Temporary JWT Keys for Playground (generate with: pnpm run generate-jwt-keys)
-# INKEEP_AGENTS_TEMP_JWT_PRIVATE_KEY=
-# INKEEP_AGENTS_TEMP_JWT_PUBLIC_KEY=
+# Temporary JWT Keys for Playground
+INKEEP_AGENTS_TEMP_JWT_PRIVATE_KEY=${tempJwtPrivateKey}
+INKEEP_AGENTS_TEMP_JWT_PUBLIC_KEY=${tempJwtPublicKey}
 
 # initial project information
 DEFAULT_PROJECT_ID=${config.projectId}
