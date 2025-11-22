@@ -203,7 +203,7 @@ function createManagementHono(
 
   // CORS middleware for playground routes (must be registered before global CORS)
   app.use(
-    '/api/playground/*',
+    '/tenants/*/playground/token',
     cors({
       origin: (origin) => {
         return isOriginAllowed(origin) ? origin : null;
@@ -222,7 +222,7 @@ function createManagementHono(
     if (auth && c.req.path.startsWith('/api/auth/')) {
       return next();
     }
-    if (c.req.path.startsWith('/api/playground/')) {
+    if (c.req.path.includes('/playground/token')) {
       return next();
     }
 
@@ -312,12 +312,11 @@ function createManagementHono(
   // Mount invitations routes - global invitations endpoint
   app.route('/api/invitations', invitationsRoutes);
 
-  // Mount playground token routes - requires session auth
-  app.use('/api/playground/token', sessionAuth());
-  app.route('/api/playground/token', playgroundTokenRoutes);
-
   // Mount routes for all entities
   app.route('/tenants/:tenantId', crudRoutes);
+
+  // Mount playground token routes under tenant (uses requireTenantAccess middleware)
+  app.route('/tenants/:tenantId/playground/token', playgroundTokenRoutes);
 
   // Mount full project routes directly under tenant
   app.route('/tenants/:tenantId', projectFullRoutes);

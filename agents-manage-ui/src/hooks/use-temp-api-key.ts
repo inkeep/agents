@@ -30,18 +30,20 @@ export function useTempApiKey({
 
   const fetchToken = useCallback(async () => {
     try {
-      const response = await fetch(`${PUBLIC_INKEEP_AGENTS_MANAGE_API_URL}/api/playground/token`, {
-        method: 'POST',
-        credentials: 'include',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          tenantId,
-          projectId,
-          agentId,
-        }),
-      });
+      const response = await fetch(
+        `${PUBLIC_INKEEP_AGENTS_MANAGE_API_URL}/tenants/${tenantId}/playground/token`,
+        {
+          method: 'POST',
+          credentials: 'include',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            projectId,
+            agentId,
+          }),
+        }
+      );
 
       if (!response.ok) {
         throw new Error('Failed to fetch temporary API key');
