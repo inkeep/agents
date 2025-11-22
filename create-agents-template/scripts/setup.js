@@ -76,7 +76,6 @@ logInfo(`Run API Port: ${runApiPort}\n`);
 async function setupProjectInDatabase(skipDocker) {
   const { promisify } = await import('node:util');
   const { exec } = await import('node:child_process');
-  const { readFile, writeFile } = await import('node:fs/promises');
   const execAsync = promisify(exec);
 
   // Step 0: Generate JWT keys if not already configured
