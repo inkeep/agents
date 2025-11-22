@@ -10,7 +10,7 @@
   },
   "dependencies": {
     "@hono/node-server": "^1.19.5",
-    "@inkeep/agents-run-api": "^0.35.3",
+    "@inkeep/agents-run-api": "^0.35.6",
     "hono": "^4.10.4"
   },
   "devDependencies": {
