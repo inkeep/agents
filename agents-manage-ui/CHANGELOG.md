@@ -1,5 +1,14 @@
 # @inkeep/agents-manage-ui
 
+## 0.35.7
+
+### Patch Changes
+
+- 8684c97: Make delegation the default relationship
+  - @inkeep/agents-manage-api@0.35.7
+  - @inkeep/agents-run-api@0.35.7
+  - @inkeep/agents-core@0.35.7
+
 ## 0.35.6
 
 ### Patch Changes
