@@ -7,14 +7,63 @@ import {
   projectExists,
   signTempToken,
 } from '@inkeep/agents-core';
+import { createMiddleware } from 'hono/factory';
+import { HTTPException } from 'hono/http-exception';
 import dbClient from '../data/db/dbClient';
 import { env } from '../env';
+import { auth } from '../index';
 import { getLogger } from '../logger';
+import { requirePermission } from '../middleware/require-permission';
 import type { BaseAppVariables } from '../types/app';
 
 const logger = getLogger('playgroundToken');
 
 const app = new OpenAPIHono<{ Variables: BaseAppVariables }>();
+
+// Middleware to extract tenantId from body and set in context for permission checking
+const setTenantFromBody = () =>
+  createMiddleware<{ Variables: BaseAppVariables }>(async (c, next) => {
+    try {
+      const body = await c.req.json();
+      const tenantId = body.tenantId;
+
+      if (!tenantId) {
+        throw createApiError({
+          code: 'bad_request',
+          message: 'tenantId is required',
+        });
+      }
+
+      // Verify user has access to this tenant
+      const userId = c.get('userId');
+      const userOrganizations = await getUserOrganizations(dbClient)(userId);
+      const organizationAccess = userOrganizations.find((org) => org.organizationId === tenantId);
+
+      if (!organizationAccess) {
+        throw createApiError({
+          code: 'forbidden',
+          message: 'Access denied to this organization',
+        });
+      }
+
+      c.set('tenantId', tenantId);
+      c.set('tenantRole', organizationAccess.role);
+
+      await next();
+    } catch (error) {
+      if (error instanceof HTTPException) {
+        throw error;
+      }
+      throw createApiError({
+        code: 'internal_server_error',
+        message: 'Failed to verify organization access',
+      });
+    }
+  });
+
+// Apply tenant access and permission checks
+app.use('/', setTenantFromBody());
+app.use('/', requirePermission({ agent: ['create'] }));
 
 const PlaygroundTokenRequestSchema = z.object({
   tenantId: z.string(),
@@ -67,24 +116,13 @@ app.openapi(
   }),
   async (c) => {
     const userId = c.get('userId');
-    const { tenantId, projectId, agentId } = c.req.valid('json');
+    const tenantId = c.get('tenantId'); // Set by setTenantFromBody middleware
+    const { projectId, agentId } = c.req.valid('json');
 
     logger.info(
       { userId, tenantId, projectId, agentId },
       'Generating temporary JWT token for playground'
     );
-
-    // Verify user has access to the tenant
-    const userOrganizations = await getUserOrganizations(dbClient)(userId);
-    const hasAccessToTenant = userOrganizations.some((org) => org.organizationId === tenantId);
-
-    if (!hasAccessToTenant) {
-      logger.warn({ userId, tenantId }, 'User attempted to access tenant without permission');
-      throw createApiError({
-        code: 'forbidden',
-        message: 'Access denied to this organization',
-      });
-    }
 
     // Verify project exists and belongs to the tenant
     const projectExistsCheck = await projectExists(dbClient)({ tenantId, projectId });
