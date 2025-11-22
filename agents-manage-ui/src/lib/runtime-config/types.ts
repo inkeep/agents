@@ -5,4 +5,6 @@ export interface RuntimeConfig {
   PUBLIC_SIGNOZ_URL: string;
   PUBLIC_NANGO_SERVER_URL?: string;
   PUBLIC_NANGO_CONNECT_BASE_URL?: string;
+  PUBLIC_AUTH0_DOMAIN?: string;
+  PUBLIC_GOOGLE_CLIENT_ID?: string;
 }
