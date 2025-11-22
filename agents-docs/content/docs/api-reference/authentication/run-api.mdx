@@ -4,55 +4,9 @@ description: Authentication modes for Run API
 icon: "LuShield"
 ---
 
-The Run API (`agents-run-api`) uses Bearer token authentication with API keys.
+The Run API (`agents-run-api`) has three authentication modes depending on your environment configuration:
 
-## API Key Authentication
-
-All Run API endpoints require a valid API key in the `Authorization` header.
-
-### Creating API Keys
-
-API keys are created through the Manage UI:
-
-1. Navigate to your project
-2. Go to API Keys section
-3. Click "Create API Key"
-4. Set an optional expiration date
-5. Copy the key (shown only once)
-
-### Using API Keys
-
-Include the API key as a Bearer token:
-
-```bash
-curl -X POST https://run-api.example.com/api/chat \
-  -H "Authorization: Bearer sk_abc123def456..." \
-  -H "Content-Type: application/json" \
-  -d '{
-    "messages": [
-      {"role": "user", "content": "Hello"}
-    ]
-  }'
-```
-
-### API Key Format
-
-API keys follow the format: `sk_{publicId}.{secret}`
-
-- **Prefix**: `sk_` indicates a secret key
-- **Public ID**: 12-character identifier for O(1) lookups
-- **Secret**: 32 bytes of cryptographically secure random data
-
-### API Key Scoping
-
-API keys are scoped to:
-- **Tenant**: Organization/workspace
-- **Project**: Specific project within the tenant
-- **Agent**: Individual agent within the project
-
-The scope is encoded in the key, so no additional headers are needed.
-
-## Development Mode
+### Development Mode
 
 When `ENVIRONMENT=development`:
 
@@ -66,58 +20,61 @@ When `ENVIRONMENT=development`:
 curl -H "x-inkeep-tenant-id: tenant-123" \
      -H "x-inkeep-project-id: project-456" \
      -H "x-inkeep-agent-id: agent-789" \
-     http://localhost:3003/api/chat
+     https://localhost:3003/v1/chat/completions
 ```
 
-## Temporary Keys (Playground)
+### Standard Mode
 
-The playground in the Manage UI uses temporary API keys:
+When `ENVIRONMENT≠development` and `INKEEP_AGENTS_RUN_API_BYPASS_SECRET` is not set:
 
-- **Duration**: 1 hour
-- **Purpose**: Allow authenticated users to test agents
-- **Generation**: Automatic via `/api/playground/token` endpoint
-- **Scope**: Same as regular API keys
+- Use API keys created from the Manage UI
+- No additional headers required (scope encoded in key)
 
-### How it works
+```bash
+curl -H "Authorization: Bearer sk_live_abc123..." \
+  https://localhost:3003/v1/chat/completions
+```
 
-1. User opens playground (authenticated via session)
-2. UI requests temporary key from Manage API
-3. Manage API validates session, generates 1-hour key
-4. UI uses key to call Run API directly
-5. Key expires automatically
+### Bypass Mode
 
-This ensures:
-- Sessions don't need to persist for long-running executions
-- API keys are never exposed in client-side code
-- Direct connection to Run API (low latency)
+When `ENVIRONMENT≠development` and `INKEEP_AGENTS_RUN_API_BYPASS_SECRET` is set:
 
-## Bypass Secret (Testing Only)
+**Option 1: Bypass Secret**
 
-When `INKEEP_AGENTS_RUN_API_BYPASS_SECRET` is set:
+- Use the bypass secret as token
+- Must include scope headers
 
 ```bash
 curl -H "Authorization: Bearer YOUR_BYPASS_SECRET" \
      -H "x-inkeep-tenant-id: tenant-123" \
      -H "x-inkeep-project-id: project-456" \
      -H "x-inkeep-agent-id: agent-789" \
-     http://localhost:3003/api/chat
+     https://run-api.example.com/chat/completions
 ```
 
-**Warning**: Bypass secret should only be used for testing and internal services. Never expose it in environment variables prefixed with `PUBLIC_`.
+**Option 2: Standard API Keys remain valid**
+
+- Use API keys from the Manage UI
+
+```bash
+curl -H "Authorization: Bearer sk_live_xyz789..." \
+  https://run-api.example.com/chat/completions
+```
+
+## Running Multiple Instances
+
+You can run multiple Run API instances with different auth configurations. If you're deploying Inkeep Agents to production, it is common to only expose the deployment of Run API in standard mode and all other services remain internal.
+
+```bash
+# Instance 1: Port 3003 with bypass secret (intended for internal purposes)
+PORT=3003 INKEEP_AGENTS_RUN_API_BYPASS_SECRET=secret123 pnpm dev
+
+# Instance 2: Port 3004 without bypass secret (intended for external purposes)
+PORT=3004 pnpm dev
+```
 
 ## Security Best Practices
 
-1. **Never expose API keys in client-side code**
-2. **Use temporary keys for playground** (automatic)
-3. **Set expiration dates** on production API keys
-4. **Rotate keys regularly** and revoke compromised keys
-5. **Use bypass secret only in development** for testing purposes
-
-## Long-Running Executions
-
-API keys are ideal for long-running agent executions because:
-
-- They don't expire based on user session
-- They can be scoped to conversation lifetime
-- They're stateless and don't require refresh
-- They work across multi-day approval workflows
+1. **Production**: Always use Standard API keys
+2. **Bypass Secret**: Use for internal services only
+3. **API Keys**: Rotate regularly and set expiration dates
