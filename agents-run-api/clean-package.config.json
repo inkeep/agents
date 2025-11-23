@@ -1,0 +1,17 @@
+{
+  "replace": {
+    "main": "dist/index.js",
+    "types": "./dist/index.d.ts",
+    "exports": {
+      ".": "./dist/index.js",
+      "./instrumentation": {
+        "import": "./dist/instrumentation.js",
+        "types": "./dist/instrumentation.d.ts"
+      }
+    },
+    "dependencies": {
+      "@inkeep/agents-core": "^0.35.10"
+    }
+  }
+}
+

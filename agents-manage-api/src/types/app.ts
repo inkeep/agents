@@ -1,10 +1,12 @@
 import type { CredentialStoreRegistry, ServerConfig } from '@inkeep/agents-core';
+import type { createAuth } from '@inkeep/agents-core/auth';
 
 /**
  * Base authentication variables set by session middleware
  * Available in all authenticated routes
  */
 export type BaseAppVariables = {
+  auth: ReturnType<typeof createAuth> | null;
   userId: string;
   userEmail: string;
   tenantId: string;

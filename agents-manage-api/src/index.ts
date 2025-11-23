@@ -1,6 +1,5 @@
-import type { CredentialStore, ServerConfig } from '@inkeep/agents-core';
 import { CredentialStoreRegistry, createDefaultCredentialStores } from '@inkeep/agents-core';
-import type { SSOProviderConfig, UserAuthConfig } from '@inkeep/agents-core/auth';
+import type { SSOProviderConfig } from '@inkeep/agents-core/auth';
 import { createAuth } from '@inkeep/agents-core/auth';
 import { createManagementHono } from './app';
 import dbClient from './data/db/dbClient';
@@ -8,14 +7,18 @@ import { env } from './env';
 import { initializeDefaultUser } from './initialization';
 import { createAuth0Provider } from './sso-helpers';
 
-export type { UserAuthConfig, SSOProviderConfig };
-
+// Re-export everything from factory for backward compatibility
+export type { SSOProviderConfig, UserAuthConfig } from './factory';
 export {
   createAuth0Provider,
+  createManagementApp,
+  createManagementHono,
   createOIDCProvider,
-} from './sso-helpers';
+  initializeDefaultUser,
+} from './factory';
 
-const defaultConfig: ServerConfig = {
+// Default configuration and stores for module-level app
+const defaultConfig = {
   port: 3002,
   serverOptions: {
     requestTimeout: 60000,
@@ -27,7 +30,10 @@ const defaultConfig: ServerConfig = {
 const defaultStores = createDefaultCredentialStores();
 const defaultRegistry = new CredentialStoreRegistry(defaultStores);
 
-function createManagementAuth(userAuthConfig?: UserAuthConfig) {
+function createManagementAuth(userAuthConfig?: {
+  ssoProviders?: SSOProviderConfig[];
+  socialProviders?: any;
+}) {
   if (env.DISABLE_AUTH) {
     return null;
   }
@@ -41,6 +47,8 @@ function createManagementAuth(userAuthConfig?: UserAuthConfig) {
   });
 }
 
+// Module-level initialization for default app export
+// This only runs when importing the default app (legacy/simple deployments)
 const ssoProviders = await Promise.all([
   process.env.AUTH0_DOMAIN && process.env.AUTH0_CLIENT_ID && process.env.AUTH0_CLIENT_SECRET
     ? createAuth0Provider({
@@ -51,7 +59,8 @@ const ssoProviders = await Promise.all([
     : null,
 ]);
 
-const socialProviders =  process.env.PUBLIC_GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET
+const socialProviders =
+  process.env.PUBLIC_GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET
     ? {
         google: {
           prompt: 'select_account' as const,
@@ -71,27 +80,10 @@ export const auth = createManagementAuth({
 
 const app = createManagementHono(defaultConfig, defaultRegistry, auth);
 
-// Skip initialization in test environment - tests will handle their own setup
-if (env.ENVIRONMENT !== 'test') {
-  void initializeDefaultUser();
+// Initialize default user for development environment only
+if (env.ENVIRONMENT === 'development') {
+  void initializeDefaultUser(auth);
 }
 
 // Export the default app for Vite dev server and simple deployments
 export default app;
-
-// Also export the factory function for advanced usage
-export { createManagementHono };
-
-// Export a helper to create app with custom configuration
-export function createManagementApp(config?: {
-  serverConfig?: ServerConfig;
-  credentialStores?: CredentialStore[];
-  auth?: UserAuthConfig;
-}) {
-  const serverConfig = config?.serverConfig ?? defaultConfig;
-  const stores = config?.credentialStores ?? defaultStores;
-  const registry = new CredentialStoreRegistry(stores);
-  const auth = createManagementAuth(config?.auth);
-
-  return createManagementHono(serverConfig, registry, auth);
-}

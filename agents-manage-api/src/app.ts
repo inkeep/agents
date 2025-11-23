@@ -56,6 +56,7 @@ function isOriginAllowed(origin: string | undefined): origin is string {
 export type AppVariables = {
   serverConfig: ServerConfig;
   credentialStores: CredentialStoreRegistry;
+  auth: ReturnType<typeof createAuth> | null;
   user: typeof authForTypes.$Infer.Session.user | null;
   session: typeof authForTypes.$Infer.Session.session | null;
   userId?: string;
@@ -74,10 +75,11 @@ function createManagementHono(
   // Request ID middleware
   app.use('*', requestId());
 
-  // Server config and credential stores middleware
+  // Server config, credential stores, and auth middleware
   app.use('*', async (c, next) => {
     c.set('serverConfig', serverConfig);
     c.set('credentialStores', credentialStores);
+    c.set('auth', auth);
     return next();
   });
 
