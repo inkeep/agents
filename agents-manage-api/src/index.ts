@@ -1,14 +1,15 @@
-import 'hono';
-
 import { CredentialStoreRegistry, createDefaultCredentialStores } from '@inkeep/agents-core';
 import type { SSOProviderConfig } from '@inkeep/agents-core/auth';
 import { createAuth } from '@inkeep/agents-core/auth';
-import type { Hono } from 'hono';
+import { Hono } from 'hono';
 import { createManagementHono } from './app';
 import dbClient from './data/db/dbClient';
 import { env } from './env';
 import { initializeDefaultUser } from './initialization';
 import { createAuth0Provider } from './sso-helpers';
+
+// Re-export Hono to ensure it's not tree-shaken (required for Vercel framework detection)
+export { Hono };
 
 // Re-export everything from factory for backward compatibility
 export type { SSOProviderConfig, UserAuthConfig } from './factory';
