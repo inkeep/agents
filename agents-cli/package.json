@@ -45,7 +45,7 @@
     "@opentelemetry/instrumentation": "^0.206.0",
     "@opentelemetry/sdk-logs": "^0.206.0",
     "@vercel/otel": "^2.0.1",
-    "ai": "5.0.11",
+    "ai": "5.0.52",
     "ast-types": "^0.14.2",
     "chalk": "^5.3.0",
     "cli-table3": "^0.6.3",
