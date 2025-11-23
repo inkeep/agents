@@ -63,9 +63,8 @@ const DEFAULT_RETRY_STATUS_CODES = ['429', '500', '502', '503', '504'];
 class PermanentError extends Error {
   override readonly cause: unknown;
   public readonly type?: string;
-  public readonly data?: any;
 
-  constructor(message: string, options?: { cause?: unknown; type?: string; data?: any }) {
+  constructor(message: string, options?: { cause?: unknown; type?: string}) {
     let msg = message;
     if (options?.cause) {
       msg += `: ${options.cause}`;
@@ -309,30 +308,15 @@ export class A2AClient {
   private isRetryableError(error: unknown): boolean {
     if (error instanceof Error) {
       const message = error.message.toLowerCase();
-
-      // Don't retry connection refused errors
-      if (message.includes('econnrefused') || message.includes('connection refused')) {
-        logger.info(
-          { errorMessage: error.message },
-          'Connection refused error detected - will not retry'
-        );
-        return false;
-      }
-
-      const isRetryable =
+      return (
         message.includes('network') ||
         message.includes('timeout') ||
         message.includes('connection') ||
         message.includes('econnreset') ||
+        message.includes('econnrefused') ||
         message.includes('enotfound') ||
-        message.includes('fetch');
-
-      logger.info(
-        { errorMessage: error.message, isRetryable },
-        'Checking if error is retryable'
+        message.includes('fetch')
       );
-
-      return isRetryable;
     }
     return false;
   }
@@ -493,7 +477,6 @@ export class A2AClient {
       throw new PermanentError(rpcResponse.error.message, {
         cause: new Error(rpcResponse.error.message),
         type: 'connection_refused',
-        data: rpcResponse.error.data,
       });
     }
 

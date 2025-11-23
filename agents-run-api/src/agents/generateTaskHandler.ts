@@ -689,11 +689,7 @@ export const createTaskHandler = (
       console.error('Task handler error:', error);
 
       const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
-      const isConnectionRefused =
-        errorMessage.includes('Connection refused') ||
-        (error instanceof Error &&
-          error.cause &&
-          JSON.stringify(error.cause).includes('ECONNREFUSED'));
+      const isConnectionRefused = (error instanceof Error && JSON.stringify(error.cause).includes('ECONNREFUSED'));
 
       return {
         status: {

@@ -417,28 +417,12 @@ export function createDelegateToAgentTool({
           : { toExternalAgentId: delegateConfig.config.id }),
       });
 
-      let response;
-      try {
-        response = await a2aClient.sendMessage({
-          message: messageToSend,
-        });
-      } catch (error) {
-        // Preserve error type from A2A client (e.g., connection_refused)
-        if (error instanceof Error && (error as any).type) {
-          const enhancedError = new Error(error.message);
-          enhancedError.name = (error as any).type;
-          enhancedError.stack = error.stack;
-          throw enhancedError;
-        }
-        throw error;
-      }
+      const response = await a2aClient.sendMessage({
+        message: messageToSend,
+      });
 
       if (response.error) {
-        const error = new Error(response.error.message);
-        if (response.error.data?.type) {
-          error.name = response.error.data.type;
-        }
-        throw error;
+        throw new Error(response.error.message);
       }
 
       await saveA2AMessageResponse(response, {

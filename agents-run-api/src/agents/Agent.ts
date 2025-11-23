@@ -479,13 +479,6 @@ export class Agent {
             });
           }
 
-          if (error instanceof Error && (error as any).type) {
-            const enhancedError = new Error(error.message);
-            enhancedError.name = (error as any).type;
-            enhancedError.stack = error.stack;
-            throw enhancedError;
-          }
-
           throw error;
         }
       },
@@ -1975,7 +1968,6 @@ ${output}`;
               tools: sanitizedTools,
               stopWhen: async ({ steps }) => {
                 const last = steps.at(-1);
-                logger.info({ last }, 'Last step');
                 if (last && 'text' in last && last.text) {
                   try {
                     await agentSessionManager.recordEvent(
@@ -1990,8 +1982,6 @@ ${output}`;
                     logger.debug({ error }, 'Failed to track agent reasoning');
                   }
                 }
-                logger.info({ content: last?.['content']?.[last?.['content']?.length-1]}, 'Last step content');
-
 
                 if (last && last['content'] && last['content'].length > 0 && last['content'][last['content'].length - 1]['type'] && last['content'][last['content'].length - 1]['type'] === 'tool-error') {
                   return true;
