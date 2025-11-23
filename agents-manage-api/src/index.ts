@@ -1,8 +1,9 @@
+import 'hono';
+
 import { CredentialStoreRegistry, createDefaultCredentialStores } from '@inkeep/agents-core';
 import type { SSOProviderConfig } from '@inkeep/agents-core/auth';
 import { createAuth } from '@inkeep/agents-core/auth';
-// Import Hono for Vercel auto-detection
-import { Hono } from 'hono';
+import type { Hono } from 'hono';
 import { createManagementHono } from './app';
 import dbClient from './data/db/dbClient';
 import { env } from './env';
@@ -80,7 +81,7 @@ export const auth = createManagementAuth({
   socialProviders,
 });
 
-const app = createManagementHono(defaultConfig, defaultRegistry, auth);
+const app: Hono = createManagementHono(defaultConfig, defaultRegistry, auth);
 
 // Initialize default user for development environment only
 if (env.ENVIRONMENT === 'development') {
