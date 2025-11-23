@@ -1,6 +1,9 @@
 'use server';
 
-import type { AddUserToOrganizationResponse, UserOrganizationsResponse } from '@inkeep/agents-core/auth/validation';
+import type {
+  AddUserToOrganizationResponse,
+  UserOrganizationsResponse,
+} from '@inkeep/agents-core/auth/validation';
 import { makeManagementApiRequest } from '../api/api-config';
 
 export interface CreateUserOrganizationParams {

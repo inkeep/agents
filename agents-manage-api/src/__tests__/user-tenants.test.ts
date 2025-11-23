@@ -151,5 +151,4 @@ describe('User Organizations Data Access', () => {
       expect(mockDb.insert).not.toHaveBeenCalled();
     });
   });
-
 });

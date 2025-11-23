@@ -18,11 +18,7 @@ export async function initializeDefaultUser() {
 
   // Upsert organization - get existing or create new (always happens regardless of auth)
   const orgId = env.TENANT_ID;
-  const existingOrg = await dbClient
-    .select()
-    .from(orgTable)
-    .where(eq(orgTable.id, orgId))
-    .limit(1);
+  const existingOrg = await dbClient.select().from(orgTable).where(eq(orgTable.id, orgId)).limit(1);
 
   if (existingOrg.length === 0) {
     await dbClient.insert(orgTable).values({
@@ -39,10 +35,7 @@ export async function initializeDefaultUser() {
   }
 
   if (!hasCredentials || DISABLE_AUTH || !auth) {
-    logger.info(
-      { hasCredentials: false },
-      'Skipping default user creation'
-    );
+    logger.info({ hasCredentials: false }, 'Skipping default user creation');
     return;
   }
 
@@ -51,9 +44,15 @@ export async function initializeDefaultUser() {
     let user = await getUserByEmail(dbClient)(INKEEP_AGENTS_MANAGE_UI_USERNAME);
 
     if (user) {
-      logger.info({ email: INKEEP_AGENTS_MANAGE_UI_USERNAME, userId: user.id }, 'Default user already exists');
+      logger.info(
+        { email: INKEEP_AGENTS_MANAGE_UI_USERNAME, userId: user.id },
+        'Default user already exists'
+      );
     } else {
-      logger.info({ email: INKEEP_AGENTS_MANAGE_UI_USERNAME }, 'Creating default user with Better Auth...');
+      logger.info(
+        { email: INKEEP_AGENTS_MANAGE_UI_USERNAME },
+        'Creating default user with Better Auth...'
+      );
 
       const result = await auth.api.signUpEmail({
         body: {
@@ -89,12 +88,7 @@ export async function initializeDefaultUser() {
     const existingMembership = await dbClient
       .select()
       .from(memberTable)
-      .where(
-        and(
-          eq(memberTable.userId, user.id),
-          eq(memberTable.organizationId, orgId)
-        )
-      )
+      .where(and(eq(memberTable.userId, user.id), eq(memberTable.organizationId, orgId)))
       .limit(1);
 
     if (existingMembership.length === 0) {
@@ -107,7 +101,10 @@ export async function initializeDefaultUser() {
       });
       logger.info({ userId: user.id, organizationId: orgId }, 'Added user as organization owner');
     } else {
-      logger.info({ userId: user.id, organizationId: orgId }, 'User already a member of organization');
+      logger.info(
+        { userId: user.id, organizationId: orgId },
+        'User already a member of organization'
+      );
     }
 
     logger.info(
@@ -120,6 +117,9 @@ export async function initializeDefaultUser() {
       '✅ Initialization complete - login with these credentials'
     );
   } catch (error) {
-    logger.error({ error, email: INKEEP_AGENTS_MANAGE_UI_USERNAME }, '❌ Failed to create default user');
+    logger.error(
+      { error, email: INKEEP_AGENTS_MANAGE_UI_USERNAME },
+      '❌ Failed to create default user'
+    );
   }
 }

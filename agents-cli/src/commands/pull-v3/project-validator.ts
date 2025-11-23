@@ -17,10 +17,10 @@ import { basename, dirname, join } from 'node:path';
 import { createInterface } from 'node:readline';
 import type { FullProjectDefinition } from '@inkeep/agents-core';
 import chalk from 'chalk';
+import { buildComponentRegistryFromParsing } from './component-parser';
 import { enrichCanDelegateToWithTypes } from './index';
 import { compareProjects } from './project-comparator';
 import { ComponentRegistry } from './utils/component-registry';
-import { buildComponentRegistryFromParsing } from './component-parser';
 
 /**
  * Get a complete preview of an object for logging (pretty-printed JSON)

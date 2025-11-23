@@ -133,7 +133,7 @@ export async function POST(
 function buildGenerationPrompt(
   dataComponent: {
     name: string;
-    description: string;
+    description: string | null;
     props: Record<string, unknown> | null;
   },
   instructions?: string,
@@ -150,7 +150,7 @@ function buildGenerationPrompt(
 COMPONENT DETAILS:
 - Original Name: ${dataComponent.name}
 - Component Function Name: ${componentName}
-- Description: ${dataComponent.description}
+- Description: ${dataComponent.description || ''}
 - Props Schema (JSON Schema): ${propsJson}
 
 EXISTING COMPONENT CODE:
@@ -190,7 +190,7 @@ Focus on making the requested changes while maintaining the component's quality 
 COMPONENT DETAILS:
 - Original Name: ${dataComponent.name}
 - Component Function Name: ${componentName}
-- Description: ${dataComponent.description}
+- Description: ${dataComponent.description || ''}
 - Props Schema (JSON Schema): ${propsJson}
 
 REQUIREMENTS:

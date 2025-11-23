@@ -34,7 +34,7 @@ describe('Auth Integration', () => {
     const customAuthConfig: UserAuthConfig = {
       ssoProviders: [],
     };
-    
+
     const app = createManagementApp({ auth: customAuthConfig });
     expect(app).toBeDefined();
   });
@@ -64,4 +64,3 @@ describe('Auth Integration', () => {
     expect(typeof createOIDCProvider).toBe('function');
   });
 });
-

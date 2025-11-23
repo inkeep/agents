@@ -15,6 +15,7 @@ import {
 } from 'node:fs';
 import { basename, dirname, extname, join } from 'node:path';
 import type { FullProjectDefinition } from '@inkeep/agents-core';
+import { generateText } from 'ai';
 import chalk from 'chalk';
 import { generateAgentFile } from './components/agent-generator';
 import { generateArtifactComponentFile } from './components/artifact-component-generator';
@@ -29,12 +30,11 @@ import { generateProjectFile } from './components/project-generator';
 import { generateStatusComponentFile } from './components/status-component-generator';
 import { generateSubAgentFile } from './components/sub-agent-generator';
 import { mergeComponentsWithLLM, previewMergeResult } from './llm-content-merger';
-import { getAvailableModel } from './utils/model-provider-detector';
-import { generateText } from 'ai';
 import type { ProjectComparison } from './project-comparator';
 import { validateTempDirectory } from './project-validator';
 import type { ComponentInfo, ComponentRegistry } from './utils/component-registry';
 import { findSubAgentWithParent } from './utils/component-registry';
+import { getAvailableModel } from './utils/model-provider-detector';
 
 interface ComponentUpdateResult {
   componentId: string;
@@ -139,7 +139,7 @@ export async function checkAndPromptForStaleComponentCleanup(
     Object.values(remoteProject.agents).forEach((agent) => {
       if (agent.subAgents) {
         Object.keys(agent.subAgents).forEach((id) => remoteComponentIds.add(id));
-        
+
         // Check for function tools within each sub-agent
         Object.values(agent.subAgents).forEach((subAgent: any) => {
           if (subAgent.functionTools) {
@@ -313,7 +313,7 @@ export async function cleanupStaleComponents(
       // Sub-agents
       if (agent.subAgents) {
         Object.keys(agent.subAgents).forEach((id) => remoteComponentIds.add(id));
-        
+
         // Check for function tools within each sub-agent
         Object.values(agent.subAgents).forEach((subAgent: any) => {
           if (subAgent.functionTools) {
@@ -430,21 +430,18 @@ export async function cleanupStaleComponents(
 /**
  * Use LLM specifically for component removal with custom prompt
  */
-async function removeComponentsWithLLM(
-  fileContent: string,
-  prompt: string
-): Promise<string> {
+async function removeComponentsWithLLM(fileContent: string, prompt: string): Promise<string> {
   try {
     const model = await getAvailableModel();
     const result = await generateText({
       model,
       prompt: prompt + '\n\nFile content:\n```typescript\n' + fileContent + '\n```',
     });
-    
+
     // Strip code fences from response if present
     let cleanedResponse = result.text.replace(/^```(?:typescript|ts|javascript|js)?\s*\n?/i, '');
     cleanedResponse = cleanedResponse.replace(/\n?```\s*$/i, '');
-    
+
     return cleanedResponse.trim();
   } catch (error) {
     console.error('LLM removal failed:', error);

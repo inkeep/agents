@@ -27,7 +27,9 @@ export async function createOIDCProvider(
       !metadata.userinfo_endpoint ||
       !metadata.jwks_uri
     ) {
-      console.log('Some OIDC configuration endpoints are missing, which might cause issues with SSO');
+      console.log(
+        'Some OIDC configuration endpoints are missing, which might cause issues with SSO'
+      );
     }
 
     const oidcConfig: OIDCProviderConfig = {

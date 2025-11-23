@@ -25,7 +25,7 @@ export function InviteMemberDialog({ open, onOpenChange }: InviteMemberDialogPro
   const params = useParams();
   const organizationId = params.tenantId as string;
   const authClient = useAuthClient();
-  
+
   const [email, setEmail] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -34,7 +34,7 @@ export function InviteMemberDialog({ open, onOpenChange }: InviteMemberDialogPro
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     if (!email) {
       setError('Email is required');
       return;
@@ -78,7 +78,7 @@ export function InviteMemberDialog({ open, onOpenChange }: InviteMemberDialogPro
 
   const handleCopyLink = async () => {
     if (!invitationLink) return;
-    
+
     try {
       await navigator.clipboard.writeText(invitationLink);
       setCopied(true);
@@ -107,7 +107,7 @@ export function InviteMemberDialog({ open, onOpenChange }: InviteMemberDialogPro
             {invitationLink ? 'Invitation Created' : 'Invite Team Member'}
           </DialogTitle>
           <DialogDescription>
-            {invitationLink 
+            {invitationLink
               ? 'Share this link with the user to accept the invitation.'
               : 'Create an invitation link for a new member to join your organization.'}
           </DialogDescription>
@@ -128,7 +128,7 @@ export function InviteMemberDialog({ open, onOpenChange }: InviteMemberDialogPro
                   required
                 />
               </div>
-              
+
               <div className="rounded-md bg-muted p-3 text-sm">
                 <p className="text-muted-foreground">
                   <span className="font-medium">Role:</span> Member (read-only access)
@@ -188,7 +188,9 @@ export function InviteMemberDialog({ open, onOpenChange }: InviteMemberDialogPro
             <div className="rounded-md bg-blue-500/10 p-3 text-sm text-blue-600 dark:text-blue-400">
               <p className="font-medium mb-1">Next Steps:</p>
               <ol className="list-decimal list-inside space-y-1 text-xs">
-                <li>Share this link with <span className="font-medium">{email}</span></li>
+                <li>
+                  Share this link with <span className="font-medium">{email}</span>
+                </li>
                 <li>They'll sign in or create an account</li>
                 <li>They'll click "Accept Invitation" to join your organization</li>
               </ol>
@@ -201,10 +203,7 @@ export function InviteMemberDialog({ open, onOpenChange }: InviteMemberDialogPro
             )}
 
             <DialogFooter>
-              <Button
-                type="button"
-                onClick={() => handleOpenChange(false)}
-              >
+              <Button type="button" onClick={() => handleOpenChange(false)}>
                 Done
               </Button>
             </DialogFooter>
@@ -214,4 +213,3 @@ export function InviteMemberDialog({ open, onOpenChange }: InviteMemberDialogPro
     </Dialog>
   );
 }
-

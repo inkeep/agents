@@ -16,7 +16,7 @@ import { EmptyState } from '../empty-state';
 interface ComponentItem {
   id: string;
   name: string;
-  description?: string;
+  description?: string | null;
 }
 
 interface ComponentDropdownProps<T extends ComponentItem> {

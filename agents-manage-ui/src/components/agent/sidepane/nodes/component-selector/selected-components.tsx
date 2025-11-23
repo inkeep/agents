@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button';
 interface ComponentItem {
   id: string;
   name: string;
-  description?: string;
+  description?: string | null;
 }
 
 interface SelectedComponentsProps<T extends ComponentItem> {

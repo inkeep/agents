@@ -23,7 +23,7 @@ export const requirePermission = <Env extends MinimalAuthVariables = MinimalAuth
   createMiddleware<Env>(async (c, next) => {
     // Use process.env directly to support test environment variables set after module load
     const isTestEnvironment = process.env.ENVIRONMENT === 'test';
-    
+
     if (env.DISABLE_AUTH || isTestEnvironment || !auth) {
       await next();
       return;

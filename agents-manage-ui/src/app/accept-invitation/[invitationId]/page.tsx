@@ -25,7 +25,7 @@ export default function AcceptInvitationPage() {
   useEffect(() => {
     async function fetchInvitation() {
       if (!invitationId) return;
-      
+
       // If not authenticated, don't fetch yet - wait for user to sign in
       if (!user) {
         setIsLoading(false);
@@ -168,20 +168,14 @@ export default function AcceptInvitationPage() {
         <Card className="w-full max-w-md">
           <CardHeader>
             <CardTitle>Organization Invitation</CardTitle>
-            <CardDescription>
-              You've been invited to join an organization
-            </CardDescription>
+            <CardDescription>You've been invited to join an organization</CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="rounded-md bg-blue-500/10 p-3 text-sm text-blue-600 dark:text-blue-400">
               Sign in to view invitation details and accept.
             </div>
 
-            <Button
-              onClick={handleAccept}
-              disabled={isAccepting}
-              className="w-full"
-            >
+            <Button onClick={handleAccept} disabled={isAccepting} className="w-full">
               {isAccepting ? (
                 <>
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
@@ -226,17 +220,11 @@ export default function AcceptInvitationPage() {
           )}
 
           {error && (
-            <div className="rounded-md bg-destructive/10 p-3 text-sm text-destructive">
-              {error}
-            </div>
+            <div className="rounded-md bg-destructive/10 p-3 text-sm text-destructive">{error}</div>
           )}
 
           <div className="flex gap-2">
-            <Button
-              onClick={handleAccept}
-              disabled={isAccepting || !invitation}
-              className="flex-1"
-            >
+            <Button onClick={handleAccept} disabled={isAccepting || !invitation} className="flex-1">
               {isAccepting ? (
                 <>
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
@@ -260,4 +248,3 @@ export default function AcceptInvitationPage() {
     </div>
   );
 }
-
