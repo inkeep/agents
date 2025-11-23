@@ -2,7 +2,7 @@ import { CredentialStoreRegistry, createDefaultCredentialStores } from '@inkeep/
 import type { SSOProviderConfig } from '@inkeep/agents-core/auth';
 import { createAuth } from '@inkeep/agents-core/auth';
 // Import Hono for Vercel auto-detection
-import type { Hono } from 'hono';
+import { Hono } from 'hono';
 import { createManagementHono } from './app';
 import dbClient from './data/db/dbClient';
 import { env } from './env';
