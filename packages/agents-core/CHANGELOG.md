@@ -1,5 +1,49 @@
 # @inkeep/agents-core
 
+## 0.35.10
+
+### Patch Changes
+
+- 7a7e726: handle next*public* for vercel
+
+## 0.35.9
+
+### Patch Changes
+
+- 18c036d: fix better-auth type
+
+## 0.35.8
+
+### Patch Changes
+
+- 986dad2: update better-auth
+
+## 0.35.7
+
+## 0.35.6
+
+### Patch Changes
+
+- 31dbacc: handle google sign in
+
+## 0.35.5
+
+### Patch Changes
+
+- 15b564d: make inkeep mcp and docker optional in the quickstart
+
+## 0.35.4
+
+### Patch Changes
+
+- e297579: pull third party mcp servers
+
+## 0.35.3
+
+### Patch Changes
+
+- 89e8c26: cleaned stale components with inkeep pull
+
 ## 0.35.2
 
 ### Patch Changes

@@ -4,11 +4,13 @@ import { Loader2 } from 'lucide-react';
 import Image from 'next/image';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { Suspense, useState } from 'react';
+import { GoogleIcon } from '@/components/icons/google';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { useRuntimeConfig } from '@/contexts/runtime-config-context';
 import { useAuthClient } from '@/lib/auth-client';
 
 function LoginForm() {
@@ -16,6 +18,7 @@ function LoginForm() {
   const searchParams = useSearchParams();
   const invitationId = searchParams.get('invitation');
   const authClient = useAuthClient();
+  const { PUBLIC_AUTH0_DOMAIN, PUBLIC_GOOGLE_CLIENT_ID } = useRuntimeConfig();
 
   // For OAuth, we need the full URL to redirect back to the UI
   const getFullCallbackURL = () => {
@@ -29,7 +32,6 @@ function LoginForm() {
   };
 
   const [isLoading, setIsLoading] = useState(false);
-  const [mode, setMode] = useState<'signin' | 'signup'>('signin');
 
   // Check for OAuth/SSO errors in URL params (e.g., from provider redirects)
   const urlError = searchParams.get('error');
@@ -41,7 +43,6 @@ function LoginForm() {
   const [formData, setFormData] = useState({
     email: '',
     password: '',
-    name: '',
   });
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -50,21 +51,14 @@ function LoginForm() {
     setError(null);
 
     try {
-      const result =
-        mode === 'signup'
-          ? await authClient.signUp.email({
-              email: formData.email,
-              password: formData.password,
-              name: formData.name,
-            })
-          : await authClient.signIn.email({
-              email: formData.email,
-              password: formData.password,
-            });
+      const result = await authClient.signIn.email({
+        email: formData.email,
+        password: formData.password,
+      });
 
-      // Check if sign-in/sign-up failed
+      // Check if sign-in failed
       if (result?.error) {
-        setError(result.error.message || (mode === 'signup' ? 'Sign up failed' : 'Sign in failed'));
+        setError(result.error.message || 'Sign in failed');
         setIsLoading(false);
         return;
       }
@@ -81,30 +75,38 @@ function LoginForm() {
     }
   };
 
-  const handleSsoSignIn = async (providerId: string) => {
+  const handleExternalSignIn = async (
+    method: 'social' | 'sso',
+    identifier: string,
+    fallbackError: string
+  ) => {
     setIsLoading(true);
     setError(null);
 
     try {
-      const result = await authClient.signIn.sso({
-        providerId,
-        callbackURL: getFullCallbackURL(),
-      });
+      const result =
+        method === 'social'
+          ? await authClient.signIn.social({
+              provider: identifier as 'google',
+              callbackURL: getFullCallbackURL(),
+            })
+          : await authClient.signIn.sso({
+              providerId: identifier,
+              callbackURL: getFullCallbackURL(),
+            });
 
       // If we got here without redirecting, something went wrong
       if (result?.error) {
-        setError(result.error.message || 'SSO sign in failed');
+        setError(result.error.message || fallbackError);
         setIsLoading(false);
       }
     } catch (err) {
-      let errorMessage = 'SSO sign in failed';
-
-      if (err instanceof Error) {
-        errorMessage = err.message;
-      } else if (typeof err === 'object' && err !== null) {
-        const errorObj = err as any;
-        errorMessage = errorObj.message || errorObj.error || errorMessage;
-      }
+      const errorMessage =
+        err instanceof Error
+          ? err.message
+          : typeof err === 'object' && err !== null
+            ? (err as any).message || (err as any).error || fallbackError
+            : fallbackError;
 
       setError(errorMessage);
       setIsLoading(false);
@@ -115,14 +117,8 @@ function LoginForm() {
     <div className="flex min-h-screen items-center justify-center bg-gray-50 px-4 py-12 dark:bg-gray-900">
       <Card className="w-full max-w-md">
         <CardHeader className="space-y-1">
-          <CardTitle className="text-2xl font-bold">
-            {mode === 'signin' ? 'Sign in' : 'Create account'}
-          </CardTitle>
-          <CardDescription>
-            {mode === 'signin'
-              ? 'Sign in to your account to continue'
-              : 'Create a new account to get started'}
-          </CardDescription>
+          <CardTitle className="text-2xl font-bold">Sign in</CardTitle>
+          <CardDescription>Sign in to your account to continue</CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
           {error && (
@@ -132,21 +128,6 @@ function LoginForm() {
           )}
 
           <form onSubmit={handleSubmit} className="space-y-4">
-            {mode === 'signup' && (
-              <div className="space-y-2">
-                <Label htmlFor="name">Name</Label>
-                <Input
-                  id="name"
-                  type="text"
-                  placeholder="John Doe"
-                  value={formData.name}
-                  onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                  required
-                  disabled={isLoading}
-                />
-              </div>
-            )}
-
             <div className="space-y-2">
               <Label htmlFor="email">Email</Label>
               <Input
@@ -172,26 +153,21 @@ function LoginForm() {
                 disabled={isLoading}
                 minLength={8}
               />
-              {mode === 'signup' && (
-                <p className="text-xs text-gray-500">Must be at least 8 characters</p>
-              )}
             </div>
 
             <Button type="submit" className="w-full" disabled={isLoading}>
               {isLoading ? (
                 <>
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  {mode === 'signin' ? 'Signing in...' : 'Creating account...'}
+                  Signing in...
                 </>
-              ) : mode === 'signin' ? (
-                'Sign in'
               ) : (
-                'Create account'
+                'Sign in'
               )}
             </Button>
           </form>
 
-          {process.env.NEXT_PUBLIC_AUTH0_DOMAIN && (
+          {(PUBLIC_AUTH0_DOMAIN || PUBLIC_GOOGLE_CLIENT_ID) && (
             <>
               <div className="relative">
                 <div className="absolute inset-0 flex items-center">
@@ -203,52 +179,37 @@ function LoginForm() {
               </div>
 
               <div className="space-y-2">
-                <Button
-                  variant="outline"
-                  onClick={() => handleSsoSignIn('auth0')}
-                  disabled={isLoading}
-                  className="w-full"
-                >
-                  <Image
-                    src="/assets/inkeep-icons/icon-blue.svg"
-                    alt="Inkeep"
-                    width={16}
-                    height={16}
-                    className="mr-2"
-                  />
-                  Inkeep
-                </Button>
+                {PUBLIC_AUTH0_DOMAIN && (
+                  <Button
+                    variant="outline"
+                    onClick={() => handleExternalSignIn('sso', 'auth0', 'Inkeep sign in failed')}
+                    disabled={isLoading}
+                    className="w-full"
+                  >
+                    <Image
+                      src="/assets/inkeep-icons/icon-blue.svg"
+                      alt="Inkeep"
+                      width={16}
+                      height={16}
+                      className="mr-2"
+                    />
+                    Inkeep
+                  </Button>
+                )}
+                {PUBLIC_GOOGLE_CLIENT_ID && (
+                  <Button
+                    variant="outline"
+                    onClick={() => handleExternalSignIn('social', 'google', 'Google sign in failed')}
+                    disabled={isLoading}
+                    className="w-full"
+                  >
+                    <GoogleIcon className="mr-2" />
+                    Google
+                  </Button>
+                )}
               </div>
             </>
           )}
-
-          <div className="text-center text-sm">
-            {mode === 'signin' ? (
-              <>
-                Don't have an account?{' '}
-                <button
-                  type="button"
-                  onClick={() => setMode('signup')}
-                  className="text-primary underline underline-offset-4 hover:text-primary/80"
-                  disabled={isLoading}
-                >
-                  Sign up
-                </button>
-              </>
-            ) : (
-              <>
-                Already have an account?{' '}
-                <button
-                  type="button"
-                  onClick={() => setMode('signin')}
-                  className="text-primary underline underline-offset-4 hover:text-primary/80"
-                  disabled={isLoading}
-                >
-                  Sign in
-                </button>
-              </>
-            )}
-          </div>
         </CardContent>
       </Card>
     </div>

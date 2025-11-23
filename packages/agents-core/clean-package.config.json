@@ -11,6 +11,10 @@
         "types": "./dist/db/schema.d.ts",
         "import": "./dist/db/schema.js"
       },
+      "./db/schema": {
+        "types": "./dist/db/schema.d.ts",
+        "import": "./dist/db/schema.js"
+      },
       "./types": {
         "types": "./dist/types/index.d.ts",
         "import": "./dist/types/index.js"
@@ -26,6 +30,18 @@
       "./constants/models": {
         "types": "./dist/constants/models.d.ts",
         "import": "./dist/constants/models.js"
+      },
+      "./constants/schema-validation": {
+        "types": "./dist/constants/schema-validation/index.d.ts",
+        "import": "./dist/constants/schema-validation/index.js"
+      },
+      "./credential-stores": {
+        "types": "./dist/credential-stores/index.d.ts",
+        "import": "./dist/credential-stores/index.js"
+      },
+      "./db/test-client": {
+        "types": "./dist/db/test-client.d.ts",
+        "import": "./dist/db/test-client.js"
       },
       "./utils/schema-conversion": {
         "types": "./dist/utils/schema-conversion.d.ts",

@@ -137,24 +137,24 @@ export type FunctionToolConfig = Omit<z.infer<typeof FunctionToolConfigSchema>, 
 };
 
 const createApiSchema = <T extends z.ZodRawShape>(schema: z.ZodObject<T>) =>
-  schema.omit({ tenantId: true, projectId: true }) satisfies z.ZodObject<any>;
+  schema.omit({ tenantId: true, projectId: true });
 
 const createApiInsertSchema = <T extends z.ZodRawShape>(schema: z.ZodObject<T>) =>
-  schema.omit({ tenantId: true, projectId: true }) satisfies z.ZodObject<any>;
+  schema.omit({ tenantId: true, projectId: true });
 
 const createApiUpdateSchema = <T extends z.ZodRawShape>(schema: z.ZodObject<T>) =>
-  schema.omit({ tenantId: true, projectId: true }).partial() satisfies z.ZodObject<any>;
+  schema.omit({ tenantId: true, projectId: true }).partial();
 
 const createAgentScopedApiSchema = <T extends z.ZodRawShape>(schema: z.ZodObject<T>) =>
-  schema.omit({ tenantId: true, projectId: true, agentId: true }) satisfies z.ZodObject<any>;
+  schema.omit({ tenantId: true, projectId: true, agentId: true });
 
 const createAgentScopedApiInsertSchema = <T extends z.ZodRawShape>(schema: z.ZodObject<T>) =>
-  schema.omit({ tenantId: true, projectId: true, agentId: true }) satisfies z.ZodObject<any>;
+  schema.omit({ tenantId: true, projectId: true, agentId: true });
 
 const createAgentScopedApiUpdateSchema = <T extends z.ZodRawShape>(schema: z.ZodObject<T>) =>
   schema
     .omit({ tenantId: true, projectId: true, agentId: true })
-    .partial() satisfies z.ZodObject<any>;
+    .partial();
 
 export const SubAgentSelectSchema = createSelectSchema(subAgents);
 
@@ -1365,3 +1365,31 @@ export const PaginationQueryParamsSchema = z
     limit: limitNumber,
   })
   .openapi('PaginationQueryParams');
+
+export const PrebuiltMCPServerSchema = z.object({
+  id: z.string().describe('Unique identifier for the MCP server'),
+  name: z.string().describe('Display name of the MCP server'),
+  url: z.url().describe('URL endpoint for the MCP server'),
+  transport: z.enum(MCPTransportType).describe('Transport protocol type'),
+  imageUrl: z.url().optional().describe('Logo/icon URL for the MCP server'),
+  isOpen: z
+    .boolean()
+    .optional()
+    .describe("Whether the MCP server is open (doesn't require authentication)"),
+  category: z
+    .string()
+    .optional()
+    .describe('Category of the MCP server (e.g., communication, project_management)'),
+  description: z.string().optional().describe('Brief description of what the MCP server does'),
+  thirdPartyConnectAccountUrl: z.url().optional().describe('URL to connect to the third party account'),
+});
+
+export const MCPCatalogListResponse = z.object({
+  data: z.array(PrebuiltMCPServerSchema),
+}).openapi('MCPCatalogListResponse');
+
+export const ThirdPartyMCPServerResponse = z
+  .object({
+    data: PrebuiltMCPServerSchema.nullable(),
+  })
+  .openapi('ThirdPartyMCPServerResponse');

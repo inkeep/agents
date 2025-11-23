@@ -1,10 +1,10 @@
 import { sso } from '@better-auth/sso';
-import { type BetterAuthPlugin, betterAuth } from 'better-auth';
+import { betterAuth } from 'better-auth';
 import { drizzleAdapter } from 'better-auth/adapters/drizzle';
 import { organization } from 'better-auth/plugins';
+import type { GoogleOptions } from 'better-auth/social-providers';
 import { eq } from 'drizzle-orm';
 import type { DatabaseClient } from '../db/client';
-import { createTestDatabaseClient } from '../db/test-client';
 import { generateId } from '../utils';
 import * as authSchema from './auth-schema';
 import { ac, adminRole, memberRole, ownerRole } from './permissions';
@@ -63,10 +63,16 @@ export interface BetterAuthConfig {
   secret: string;
   dbClient: DatabaseClient;
   ssoProviders?: SSOProviderConfig[];
+  socialProviders?: {
+    google?: GoogleOptions;
+  };
 }
 
 export interface UserAuthConfig {
   ssoProviders?: SSOProviderConfig[];
+  socialProviders?: {
+    google?: GoogleOptions;
+  };
 }
 
 async function registerSSOProvider(
@@ -104,34 +110,6 @@ async function registerSSOProvider(
 }
 
 export function createAuth(config: BetterAuthConfig) {
-  const plugins: BetterAuthPlugin[] = [
-    sso(),
-    organization({
-      allowUserToCreateOrganization: true,
-      ac,
-      roles: {
-        member: memberRole,
-        admin: adminRole,
-        owner: ownerRole,
-      },
-      async sendInvitationEmail(data) {
-        console.log('📧 Invitation created:', {
-          email: data.email,
-          invitedBy: data.inviter.user.name || data.inviter.user.email,
-          organization: data.organization.name,
-          invitationId: data.id,
-        });
-
-        // Note: The invitation link is displayed in the UI with a copy button.
-        // If you want to send actual emails, configure an email provider:
-        // - Resend: await resend.emails.send({ ... })
-        // - SendGrid: await sgMail.send({ ... })
-        // - AWS SES: await ses.sendEmail({ ... })
-        // - Postmark: await postmark.sendEmail({ ... })
-      },
-    }),
-  ];
-
   const auth = betterAuth({
     baseURL: config.baseURL,
     secret: config.secret,
@@ -145,6 +123,9 @@ export function createAuth(config: BetterAuthConfig) {
       requireEmailVerification: false,
       autoSignIn: true,
     },
+    socialProviders: config.socialProviders?.google && {
+      google: config.socialProviders.google,
+    },
     session: {
       expiresIn: 60 * 60 * 24 * 7,
       updateAge: 60 * 60 * 24,
@@ -155,7 +136,33 @@ export function createAuth(config: BetterAuthConfig) {
       },
     },
     trustedOrigins: ['http://localhost:3000', 'http://localhost:3002', config.baseURL],
-    plugins,
+    plugins: [
+      sso(),
+      organization({
+        allowUserToCreateOrganization: true,
+        ac,
+        roles: {
+          member: memberRole,
+          admin: adminRole,
+          owner: ownerRole,
+        },
+        async sendInvitationEmail(data) {
+          console.log('📧 Invitation created:', {
+            email: data.email,
+            invitedBy: data.inviter.user.name || data.inviter.user.email,
+            organization: data.organization.name,
+            invitationId: data.id,
+          });
+
+          // Note: The invitation link is displayed in the UI with a copy button.
+          // If you want to send actual emails, configure an email provider:
+          // - Resend: await resend.emails.send({ ... })
+          // - SendGrid: await sgMail.send({ ... })
+          // - AWS SES: await ses.sendEmail({ ... })
+          // - Postmark: await postmark.sendEmail({ ... })
+        },
+      }),
+    ],
   });
 
   if (config.ssoProviders?.length) {
@@ -170,10 +177,7 @@ export function createAuth(config: BetterAuthConfig) {
   return auth;
 }
 
-// Default auth instance for tooling (e.g., `@better-auth/cli generate`).
-// Uses createTestDatabaseClientNoMigrations so the CLI can introspect config.
-export const auth = createAuth({
-  baseURL: process.env.INKEEP_AGENTS_MANAGE_API_URL || 'http://localhost:3002',
-  secret: process.env.BETTER_AUTH_SECRET || 'development-secret-change-in-production',
-  dbClient: await createTestDatabaseClient(),
-});
+// Type placeholder for type inference in consuming code (e.g., app.ts AppVariables)
+// Actual auth instances should be created using createAuth() with a real database client
+// This is cast as any to avoid instantiation while preserving type information
+export const auth = null as any as ReturnType<typeof createAuth>;

@@ -42,8 +42,7 @@ export const requirePermission = <Env extends MinimalAuthVariables = MinimalAuth
     try {
       // Type assertion needed due to better-auth's complex type inference
       // hasPermission is provided by the organization plugin
-      // https://www.better-auth.com/docs/plugins/organization#access-control-usage
-      const result = await (auth.api as any).hasPermission({
+      const result = await auth.api.hasPermission({
         body: {
           permissions,
           organizationId: tenantId,

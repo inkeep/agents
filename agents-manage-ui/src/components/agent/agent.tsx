@@ -425,9 +425,9 @@ export const Agent: FC<AgentProps> = ({
         data: {
           relationships: {
             transferTargetToSource: false,
-            transferSourceToTarget: true,
+            transferSourceToTarget: false,
             delegateTargetToSource: false,
-            delegateSourceToTarget: false,
+            delegateSourceToTarget: true,
           },
         },
       };

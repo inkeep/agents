@@ -1,5 +1,83 @@
 # @inkeep/agents-manage-ui
 
+## 0.35.10
+
+### Patch Changes
+
+- 7a7e726: handle next*public* for vercel
+- Updated dependencies [7a7e726]
+  - @inkeep/agents-core@0.35.10
+  - @inkeep/agents-manage-api@0.35.10
+  - @inkeep/agents-run-api@0.35.10
+
+## 0.35.9
+
+### Patch Changes
+
+- Updated dependencies [18c036d]
+  - @inkeep/agents-core@0.35.9
+  - @inkeep/agents-manage-api@0.35.9
+  - @inkeep/agents-run-api@0.35.9
+
+## 0.35.8
+
+### Patch Changes
+
+- 986dad2: update better-auth
+- Updated dependencies [986dad2]
+  - @inkeep/agents-core@0.35.8
+  - @inkeep/agents-manage-api@0.35.8
+  - @inkeep/agents-run-api@0.35.8
+
+## 0.35.7
+
+### Patch Changes
+
+- 8684c97: Make delegation the default relationship
+  - @inkeep/agents-manage-api@0.35.7
+  - @inkeep/agents-run-api@0.35.7
+  - @inkeep/agents-core@0.35.7
+
+## 0.35.6
+
+### Patch Changes
+
+- 31dbacc: handle google sign in
+- Updated dependencies [31dbacc]
+  - @inkeep/agents-core@0.35.6
+  - @inkeep/agents-manage-api@0.35.6
+  - @inkeep/agents-run-api@0.35.6
+
+## 0.35.5
+
+### Patch Changes
+
+- 15b564d: make inkeep mcp and docker optional in the quickstart
+- Updated dependencies [15b564d]
+  - @inkeep/agents-core@0.35.5
+  - @inkeep/agents-manage-api@0.35.5
+  - @inkeep/agents-run-api@0.35.5
+
+## 0.35.4
+
+### Patch Changes
+
+- e297579: pull third party mcp servers
+- Updated dependencies [e297579]
+  - @inkeep/agents-core@0.35.4
+  - @inkeep/agents-manage-api@0.35.4
+  - @inkeep/agents-run-api@0.35.4
+
+## 0.35.3
+
+### Patch Changes
+
+- 89e8c26: cleaned stale components with inkeep pull
+- Updated dependencies [89e8c26]
+  - @inkeep/agents-manage-api@0.35.3
+  - @inkeep/agents-run-api@0.35.3
+  - @inkeep/agents-core@0.35.3
+
 ## 0.35.2
 
 ### Patch Changes
