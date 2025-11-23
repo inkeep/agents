@@ -42,9 +42,17 @@ export const requirePermission = <Env extends MinimalAuthVariables = MinimalAuth
     try {
       // Type assertion needed due to better-auth's complex type inference
       // hasPermission is provided by the organization plugin
-      const result = await auth.api.hasPermission({
+      // https://www.better-auth.com/docs/plugins/organization#access-control-usage
+      
+      // Normalize permissions to always be arrays
+      const normalizedPermissions: Record<string, string[]> = {};
+      for (const [resource, actions] of Object.entries(permissions)) {
+        normalizedPermissions[resource] = Array.isArray(actions) ? actions : [actions];
+      }
+      
+      const result = await (auth.api as any).hasPermission({
         body: {
-          permissions,
+          permissions: normalizedPermissions,
           organizationId: tenantId,
         },
         headers: c.req.raw.headers,
