@@ -1,5 +1,11 @@
 # @inkeep/agents-core
 
+## 0.35.10
+
+### Patch Changes
+
+- 7a7e726: handle next*public* for vercel
+
 ## 0.35.9
 
 ### Patch Changes
