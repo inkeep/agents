@@ -1,5 +1,12 @@
 # @inkeep/agents-run-api
 
+## 0.35.10
+
+### Patch Changes
+
+- Updated dependencies [7a7e726]
+  - @inkeep/agents-core@0.35.10
+
 ## 0.35.9
 
 ### Patch Changes
