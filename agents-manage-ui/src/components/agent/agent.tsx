@@ -133,7 +133,7 @@ export const Agent: FC<AgentProps> = ({
   credentialLookup = {},
 }) => {
   const [showPlayground, setShowPlayground] = useState(false);
-  const { isOpen: isCopilotChatOpen } = useCopilotContext();
+  const { isOpen: isCopilotChatOpen, isStreaming } = useCopilotContext();
   const router = useRouter();
 
   const { tenantId, projectId } = useParams<{
@@ -1059,7 +1059,7 @@ export const Agent: FC<AgentProps> = ({
               <NodeLibrary />
             </Panel>
           )}
-          {showEmptyState && (
+          {showEmptyState && !isStreaming && (
             <Panel position="top-center" className="top-1/2! translate-y-[-50%]">
               <EmptyState onAddInitialNode={onAddInitialNode} />
             </Panel>

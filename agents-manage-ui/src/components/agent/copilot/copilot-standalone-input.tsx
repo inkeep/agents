@@ -72,7 +72,7 @@ export default function CopilotStandaloneInput() {
                 />
               </FormControl>
             )}
-          ></FormField>
+          />
           <div className="flex justify-end w-full px-3 pb-3 dark:bg-input/30 rounded-b-xl">
             <Button size="icon" className="h-7 w-7" type="submit" disabled={isSubmitting}>
               <span className="sr-only">Submit</span>
@@ -85,6 +85,7 @@ export default function CopilotStandaloneInput() {
         {samplePrompts.map((prompt) => (
           <Button
             key={prompt.value}
+            type="button"
             size="xs"
             variant="outline"
             className="justify-center rounded-full font-normal font-sans normal-case backdrop-blur-3xl"
