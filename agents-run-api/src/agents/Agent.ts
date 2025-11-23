@@ -1982,9 +1982,14 @@ ${output}`;
                     logger.debug({ error }, 'Failed to track agent reasoning');
                   }
                 }
-
-                if (last && last['content'] && last['content'].length > 0 && last['content'][last['content'].length - 1]['type'] && last['content'][last['content'].length - 1]['type'] === 'tool-error') {
-                  return true;
+                if (last && last['content'] && last['content'].length > 0) {
+                  const lastContent = last['content'][last['content'].length - 1];  
+                  if (lastContent['type'] === 'tool-error') {
+                    const error = lastContent['error'];
+                    if (error && typeof error === 'object' && 'name' in error && error.name === 'connection_refused') {
+                      return true;
+                    }
+                  }
                 }
 
                 if (steps.length >= 2) {

@@ -689,7 +689,7 @@ export const createTaskHandler = (
       console.error('Task handler error:', error);
 
       const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
-      const isConnectionRefused = (error instanceof Error && JSON.stringify(error.cause).includes('ECONNREFUSED'));
+      const isConnectionRefused = errorMessage.includes('Connection refused. Please check if the MCP server is running.');
 
       return {
         status: {

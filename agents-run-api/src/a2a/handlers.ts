@@ -343,7 +343,6 @@ async function handleMessageSend(
             message: result.status.message || 'Agent execution failed',
             data: {
               type: 'connection_refused',
-              details: result.status.message || 'Agent execution failed',
             },
           },
         } satisfies JsonRpcResponse);
