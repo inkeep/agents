@@ -52,7 +52,7 @@
     "@opentelemetry/sdk-trace-node": "^2.1.0",
     "@opentelemetry/semantic-conventions": "^1.37.0",
     "@vercel/sandbox": "^0.0.24",
-    "ai": "5.0.11",
+    "ai": "5.0.52",
     "ajv": "^8.17.1",
     "ajv-formats": "^3.0.1",
     "destr": "^2.0.5",
