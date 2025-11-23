@@ -143,18 +143,18 @@ export const Agent: FC<AgentProps> = ({
 
   const { nodeId, edgeId, setQueryState, openAgentPane, isOpen } = useSidePane();
 
-  const initialNodes = useMemo<Node[]>(
-    () => [
-      {
-        id: generateId(),
-        type: NodeType.SubAgent,
-        position: { x: 0, y: 0 },
-        data: { name: '', isDefault: true },
-        deletable: false,
-      },
-    ],
+  const initialNode = useMemo<Node>(
+    () => ({
+      id: generateId(),
+      type: NodeType.SubAgent,
+      position: { x: 0, y: 0 },
+      data: { name: '', isDefault: true },
+      deletable: false,
+    }),
     []
   );
+
+  const initialNodes = useMemo<Node[]>(() => [initialNode], [initialNode]);
 
   // Helper to enrich MCP nodes with tool data
   const enrichNodes = useCallback(
@@ -664,6 +664,23 @@ export const Agent: FC<AgentProps> = ({
     [screenToFlowPosition, clearSelection]
   );
 
+  const onAddInitialNode = useCallback(() => {
+    const newNode = {
+      ...initialNode,
+      selected: true,
+    };
+    clearSelection();
+    commandManager.execute(new AddNodeCommand(newNode as Node));
+    // Wait for sidebar to open (350ms for CSS transition) then center the node
+    setTimeout(() => {
+      fitView({
+        maxZoom: 1,
+        duration: 200,
+        nodes: [newNode],
+      });
+    }, 350);
+  }, [clearSelection, initialNode, fitView]);
+
   const onSelectionChange = useCallback(
     ({ nodes, edges }: { nodes: Node[]; edges: Edge[] }) => {
       const node = nodes.length === 1 ? nodes[0] : null;
@@ -981,6 +998,8 @@ export const Agent: FC<AgentProps> = ({
   const [showTraces, setShowTraces] = useState(false);
   const isMounted = useIsMounted();
 
+  const showEmptyState = useMemo(() => nodes.length === 0, [nodes]);
+
   return (
     <ResizablePanelGroup
       // Note: Without a specified `id`, Cypress tests may become flaky and fail with the error: `No group found for id '...'`
@@ -1035,29 +1054,33 @@ export const Agent: FC<AgentProps> = ({
         >
           <Background color="#a8a29e" gap={20} />
           <Controls className="text-foreground" showInteractive={false} />
-          <Panel position="top-left">
-            <NodeLibrary />
-          </Panel>
-          {nodes.length === 0 && (
-            <Panel position="top-center" className="top-1/2! translate-y-[-50%]">
-              <EmptyState />
+          {!showEmptyState && (
+            <Panel position="top-left">
+              <NodeLibrary />
             </Panel>
           )}
-          <Panel
-            position="top-right"
-            // width of NodeLibrary
-            className="left-40"
-          >
-            <Toolbar
-              onSubmit={onSubmit}
-              inPreviewDisabled={!agent?.id}
-              toggleSidePane={isOpen ? backToAgent : openAgentPane}
-              setShowPlayground={() => {
-                closeSidePane();
-                setShowPlayground(true);
-              }}
-            />
-          </Panel>
+          {showEmptyState && (
+            <Panel position="top-center" className="top-1/2! translate-y-[-50%]">
+              <EmptyState onAddInitialNode={onAddInitialNode} />
+            </Panel>
+          )}
+          {!showEmptyState && (
+            <Panel
+              position="top-right"
+              // width of NodeLibrary
+              className="left-40"
+            >
+              <Toolbar
+                onSubmit={onSubmit}
+                inPreviewDisabled={!agent?.id}
+                toggleSidePane={isOpen ? backToAgent : openAgentPane}
+                setShowPlayground={() => {
+                  closeSidePane();
+                  setShowPlayground(true);
+                }}
+              />
+            </Panel>
+          )}
           {errors && showErrors && (
             <Panel position="bottom-left" className="max-w-sm !left-8 mb-4">
               <AgentErrorSummary
@@ -1079,7 +1102,8 @@ export const Agent: FC<AgentProps> = ({
          * accessible after the component has mounted. This component delays rendering
          * until then to avoid visual layout jumps.
          */
-        isMounted && (
+        isMounted &&
+        !showEmptyState && (
           <>
             <ResizableHandle withHandle />
             <ResizablePanel

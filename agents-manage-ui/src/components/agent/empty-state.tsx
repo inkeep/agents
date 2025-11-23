@@ -2,7 +2,11 @@ import { Button } from '../ui/button';
 import { Separator } from '../ui/separator';
 import { CopilotSection } from './copilot/copilot-section';
 
-export const EmptyState = () => {
+interface EmptyStateProps {
+  onAddInitialNode: () => void;
+}
+
+export const EmptyState = ({ onAddInitialNode }: EmptyStateProps) => {
   return (
     <div>
       <CopilotSection />
@@ -12,7 +16,7 @@ export const EmptyState = () => {
         <Separator className="flex-1" />
       </div>
       <div className="flex justify-center">
-        <Button variant="outline-primary" size="sm">
+        <Button type="button" variant="outline-primary" size="sm" onClick={onAddInitialNode}>
           Start from scratch
         </Button>
       </div>

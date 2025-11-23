@@ -87,7 +87,7 @@ export default function CopilotStandaloneInput() {
             key={prompt.value}
             size="xs"
             variant="outline"
-            className="justify-center rounded-full font-normal font-sans normal-case"
+            className="justify-center rounded-full font-normal font-sans normal-case backdrop-blur-3xl"
             onClick={() => form.setValue('message', prompt.value)}
           >
             <span className="text-sm text-muted-foreground">{prompt.label}</span>
