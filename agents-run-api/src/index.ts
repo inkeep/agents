@@ -8,6 +8,14 @@ import {
 import { createExecutionHono } from './app';
 import type { SandboxConfig } from './types/execution-context';
 
+// Debug SigNoz environment variables
+console.log('SigNoz env debug:', {
+  SIGNOZ_URL: process.env.SIGNOZ_URL,
+  SIGNOZ_API_KEY: process.env.SIGNOZ_API_KEY ? 'set' : 'missing',
+  OTEL_EXPORTER_OTLP_TRACES_ENDPOINT: process.env.OTEL_EXPORTER_OTLP_TRACES_ENDPOINT,
+  OTEL_EXPORTER_OTLP_TRACES_HEADERS: process.env.OTEL_EXPORTER_OTLP_TRACES_HEADERS,
+});
+
 // Create default configuration
 const defaultConfig: ServerConfig = {
   port: 3003,
