@@ -5,7 +5,7 @@ import { generateFiles } from 'fumadocs-openapi';
 const OUTPUT_DIR = './content/docs/api-reference';
 const DEFAULT_ICON = 'LuDatabaseZap';
 
-async function addIconToFrontmatter(filePath) {
+async function addIconToFrontmatter(filePath: string): Promise<void> {
   const content = await readFile(filePath, 'utf-8');
 
   // Check if file has frontmatter
@@ -35,7 +35,7 @@ async function addIconToFrontmatter(filePath) {
   console.log(`Added icon to: ${filePath}`);
 }
 
-async function processDirectory(dirPath) {
+async function processDirectory(dirPath: string): Promise<void> {
   const entries = await readdir(dirPath, { withFileTypes: true });
 
   for (const entry of entries) {
@@ -49,7 +49,7 @@ async function processDirectory(dirPath) {
   }
 }
 
-async function main() {
+async function main(): Promise<void> {
   console.log('Generating OpenAPI documentation...');
 
   await generateFiles({

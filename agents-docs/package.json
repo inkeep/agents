@@ -13,7 +13,7 @@
     "format:check": "biome format",
     "typecheck": "next typegen && tsc --noEmit",
     "postinstall": "fumadocs-mdx",
-    "generate-openapi": "node scripts/generate-openapi-docs.mjs",
+    "generate-openapi": "node scripts/generate-openapi-docs.mts --experimental-strip-types",
     "generate-classnames": "node scripts/generate-classnames.mjs",
     "prebuild": "pnpm generate-classnames",
     "validate-link": "node scripts/validate-link.mjs"
