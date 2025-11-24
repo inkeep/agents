@@ -61,6 +61,8 @@ export default function RootLayout({ children }: LayoutProps<'/'>) {
       process.env.PUBLIC_AUTH0_DOMAIN || process.env.NEXT_PUBLIC_AUTH0_DOMAIN,
     PUBLIC_GOOGLE_CLIENT_ID:
       process.env.PUBLIC_GOOGLE_CLIENT_ID || process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID,
+    PUBLIC_DISABLE_AUTH:
+      process.env.PUBLIC_DISABLE_AUTH || process.env.NEXT_PUBLIC_DISABLE_AUTH || 'true',
   };
 
   console.log('RuntimeConfig created:', JSON.stringify(runtimeConfig, null, 2));
