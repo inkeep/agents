@@ -1217,79 +1217,16 @@ Return your evaluation as a JSON object matching the schema above.`;
         },
       };
     } catch (error) {
-      // Fallback to generateText with JSON parsing if generateObject fails
       const errorMessage = error instanceof Error ? error.message : String(error);
-      const errorStack = error instanceof Error ? error.stack : undefined;
-
-      logger.warn(
+      logger.error(
         {
           error: errorMessage,
-          errorDetails: errorStack,
           schema: JSON.stringify(schema, null, 2),
           promptPreview: prompt.substring(0, 500),
         },
-        'generateObject failed, falling back to generateText with JSON parsing'
+        'Evaluation failed with generateObject'
       );
-
-      let textResult: Awaited<ReturnType<typeof generateText>> | undefined;
-      try {
-        // Enhance prompt to explicitly request JSON format
-        const schemaDescription = JSON.stringify(schema, null, 2);
-        const enhancedPrompt = `${prompt}
-
-IMPORTANT: You must respond with valid JSON matching this exact schema:
-${schemaDescription}
-
-Return ONLY valid JSON, no markdown formatting, no code blocks.`;
-
-        textResult = await generateText({
-          ...languageModel,
-          prompt: enhancedPrompt,
-          temperature: (providerOptions.temperature as number) ?? 0.3,
-        });
-
-        logger.info(
-          {
-            responseLength: textResult.text.length,
-            responsePreview: textResult.text.substring(0, 200),
-          },
-          'Received response from generateText fallback'
-        );
-
-        // Try to extract JSON from markdown code blocks if present
-        let jsonText = textResult.text.trim();
-        const jsonMatch = jsonText.match(/```(?:json)?\s*(\{[\s\S]*\})\s*```/);
-        if (jsonMatch) {
-          jsonText = jsonMatch[1];
-        }
-
-        const parsed = JSON.parse(jsonText);
-
-        // Validate that result has required fields
-        if (!parsed || typeof parsed !== 'object') {
-          throw new Error('Evaluation result is missing or invalid');
-        }
-
-        return {
-          result: parsed as Record<string, unknown>,
-          metadata: {
-            usage: textResult.usage,
-            fallback: true,
-          },
-        };
-      } catch (fallbackError) {
-        logger.error(
-          {
-            error: fallbackError instanceof Error ? fallbackError.message : String(fallbackError),
-            text: textResult?.text?.substring(0, 500),
-            originalError: errorMessage,
-          },
-          'Failed to parse JSON from generateText fallback'
-        );
-        throw new Error(
-          `Evaluation failed: ${fallbackError instanceof Error ? fallbackError.message : String(fallbackError)}`
-        );
-      }
+      throw new Error(`Evaluation failed: ${errorMessage}`);
     }
   }
 
@@ -1335,35 +1272,35 @@ Return ONLY valid JSON, no markdown formatting, no code blocks.`;
 
           const conversationDetail = (await traceResponse.json()) as any;
 
-          // Debug: Log activity names to see what we're getting
+          // Debug: Log activity types to see what we're getting
           logger.debug(
             {
               conversationId,
-              activityNames: conversationDetail.activities?.map((a: any) => a.name) || [],
+              activityTypes: conversationDetail.activities?.map((a: any) => a.type) || [],
               activityCount: conversationDetail.activities?.length || 0,
             },
-            'Checking activities for execution_handler.execute span'
+            'Checking activities for ai_assistant_message type'
           );
 
-          const hasExecutionHandlerSpan = conversationDetail.activities?.some(
-            (activity: any) => activity.name === 'execution_handler.execute'
+          const hasAssistantMessage = conversationDetail.activities?.some(
+            (activity: any) => activity.type === 'ai_assistant_message'
           );
 
-          if (!hasExecutionHandlerSpan) {
+          if (!hasAssistantMessage) {
             logger.warn(
               { 
                 conversationId, 
                 attempt: attempt + 1, 
                 activityCount: conversationDetail.activities?.length || 0,
-                activityNames: conversationDetail.activities?.slice(0, 5).map((a: any) => a.name) || []
+                activityTypes: conversationDetail.activities?.slice(0, 5).map((a: any) => a.type) || []
               },
-              'Trace fetched but execution_handler.execute span not found'
+              'Trace fetched but ai_assistant_message not found in activities'
             );
 
             if (attempt < maxRetries) {
               logger.info(
                 { conversationId, retryDelayMs },
-                'Retrying trace fetch after delay to wait for span'
+                'Retrying trace fetch after delay to wait for assistant message'
               );
               await new Promise((resolve) => setTimeout(resolve, retryDelayMs));
               continue;
@@ -1371,14 +1308,14 @@ Return ONLY valid JSON, no markdown formatting, no code blocks.`;
 
             logger.warn(
               { conversationId, maxRetries },
-              'Max retries reached, execution_handler.execute span not found'
+              'Max retries reached, ai_assistant_message not found in activities'
             );
             return null;
           }
 
           logger.info(
             { conversationId, activityCount: conversationDetail.activities?.length || 0, attempt: attempt + 1 },
-            'Trace fetched successfully with execution_handler.execute span'
+            'Trace fetched successfully with ai_assistant_message'
           );
 
           const prettifiedTrace = this.formatConversationAsPrettifiedTrace(conversationDetail);
