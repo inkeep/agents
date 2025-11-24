@@ -1,1 +1,0 @@
-{"version":3,"file":"subagentresponse.d.ts","sourceRoot":"","sources":["../../src/models/subagentresponse.ts"],"names":[],"mappings":"AAIA,OAAO,KAAK,CAAC,MAAM,KAAK,CAAC;AACzB,OAAO,EAAE,QAAQ,EAAsB,MAAM,eAAe,CAAC;AAE7D,MAAM,MAAM,gBAAgB,GAAG;IAAE,IAAI,EAAE,QAAQ,CAAA;CAAE,CAAC;AAElD,eAAO,MAAM,0BAA0B,EAAE,CAAC,CAAC,OAAO,CAAC,gBAAgB,EAAE,CAAC,CAAC,UAAU,EAAE,OAAO,CAGtF,CAAC"}

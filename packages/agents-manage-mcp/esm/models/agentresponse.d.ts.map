@@ -1,1 +1,0 @@
-{"version":3,"file":"agentresponse.d.ts","sourceRoot":"","sources":["../../src/models/agentresponse.ts"],"names":[],"mappings":"AAIA,OAAO,KAAK,CAAC,MAAM,KAAK,CAAC;AACzB,OAAO,EAAE,KAAK,EAAmB,MAAM,YAAY,CAAC;AAEpD,MAAM,MAAM,aAAa,GAAG;IAAE,IAAI,EAAE,KAAK,CAAA;CAAE,CAAC;AAE5C,eAAO,MAAM,uBAAuB,EAAE,CAAC,CAAC,OAAO,CAAC,aAAa,EAAE,CAAC,CAAC,UAAU,EAAE,OAAO,CAElF,CAAC"}

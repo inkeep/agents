@@ -1,1 +1,0 @@
-{"version":3,"file":"stopwhen.js","sourceRoot":"","sources":["../../src/models/stopwhen.ts"],"names":[],"mappings":"AAAA;;GAEG;AAEH,OAAO,KAAK,CAAC,MAAM,KAAK,CAAC;AAOzB,MAAM,CAAC,MAAM,kBAAkB,GAA+C,CAAC,CAAC,MAAM,CAAC;IACrF,WAAW,EAAE,CAAC,CAAC,MAAM,EAAE,CAAC,QAAQ,EAAE;IAClC,eAAe,EAAE,CAAC,CAAC,MAAM,EAAE,CAAC,QAAQ,EAAE;CACvC,CAAC,CAAC"}
