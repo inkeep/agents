@@ -4,6 +4,7 @@ import {
   validateAndGetApiKey,
   validateTargetAgent,
   verifyServiceToken,
+  verifyTempToken,
 } from '@inkeep/agents-core';
 import { createMiddleware } from 'hono/factory';
 import { HTTPException } from 'hono/http-exception';
@@ -13,6 +14,44 @@ import { getLogger } from '../logger';
 import { createExecutionContext } from '../types/execution-context';
 
 const logger = getLogger('env-key-auth');
+
+/**
+ * Attempts to authenticate using a JWT temporary token
+ * Returns execution context if successful, null if token is invalid or not a JWT
+ */
+async function tryAuthenticateWithTempJwt(
+  apiKey: string,
+  baseUrl: string,
+  subAgentId?: string
+): Promise<ExecutionContext | null> {
+  if (!apiKey.startsWith('eyJ') || !env.INKEEP_AGENTS_TEMP_JWT_PUBLIC_KEY) {
+    return null;
+  }
+
+  try {
+    const publicKeyPem = Buffer.from(env.INKEEP_AGENTS_TEMP_JWT_PUBLIC_KEY, 'base64').toString(
+      'utf-8'
+    );
+
+    const payload = await verifyTempToken(publicKeyPem, apiKey);
+
+    logger.info({}, 'JWT temp token authenticated successfully');
+
+    return createExecutionContext({
+      apiKey: apiKey,
+      tenantId: payload.tenantId,
+      projectId: payload.projectId,
+      agentId: payload.agentId,
+      apiKeyId: 'temp-jwt',
+      baseUrl: baseUrl,
+      subAgentId: subAgentId,
+      metadata: { initiatedBy: payload.initiatedBy },
+    });
+  } catch (error) {
+    logger.debug({ error }, 'JWT verification failed');
+    return null;
+  }
+}
 
 export const apiKeyAuth = () =>
   createMiddleware<{
@@ -47,8 +86,17 @@ export const apiKeyAuth = () =>
       let executionContext: ExecutionContext;
 
       if (authHeader?.startsWith('Bearer ')) {
-        // Try to authenticate as a API key
         const apiKey = authHeader.substring(7);
+
+        // Try JWT temp token first
+        const jwtContext = await tryAuthenticateWithTempJwt(apiKey, baseUrl, subAgentId);
+        if (jwtContext) {
+          c.set('executionContext', jwtContext);
+          await next();
+          return;
+        }
+
+        // Try regular API key
         try {
           executionContext = await extractContextFromApiKey(apiKey, baseUrl);
           if (subAgentId) {
@@ -56,13 +104,12 @@ export const apiKeyAuth = () =>
           }
           c.set('executionContext', executionContext);
         } catch {
-          // If the API key is invalid, try jwt
+          // Try team agent token
           try {
             executionContext = await extractContextFromTeamAgentToken(apiKey, baseUrl, subAgentId);
             c.set('executionContext', executionContext);
           } catch {
-            // If JWT verification fails, fall through to default context
-
+            // Fall through to default context
             executionContext = createExecutionContext({
               apiKey: 'development',
               tenantId: tenantId || 'test-tenant',
@@ -107,6 +154,15 @@ export const apiKeyAuth = () =>
 
     const apiKey = authHeader.substring(7);
 
+    // Try JWT temp token first
+    const jwtContext = await tryAuthenticateWithTempJwt(apiKey, baseUrl, subAgentId);
+    if (jwtContext) {
+      c.set('executionContext', jwtContext);
+      await next();
+      return;
+    }
+
+    // If bypass secret is configured, check it first (production mode bypass)
     if (env.INKEEP_AGENTS_RUN_API_BYPASS_SECRET) {
       if (apiKey === env.INKEEP_AGENTS_RUN_API_BYPASS_SECRET) {
         if (!tenantId || !projectId || !agentId) {
@@ -131,7 +187,8 @@ export const apiKeyAuth = () =>
 
         await next();
         return;
-      } else if (apiKey) {
+      }
+      if (apiKey) {
         try {
           const executionContext = await extractContextFromApiKey(apiKey, baseUrl);
           if (subAgentId) {
@@ -152,11 +209,10 @@ export const apiKeyAuth = () =>
 
         await next();
         return;
-      } else {
-        throw new HTTPException(401, {
-          message: 'Invalid Token',
-        });
       }
+      throw new HTTPException(401, {
+        message: 'Invalid Token',
+      });
     }
 
     if (!apiKey || apiKey.length < 16) {

@@ -14,7 +14,8 @@
     "upgrade-agents": "node scripts/upgrade.js",
     "postinstall": "node scripts/postinstall.js",
     "setup-dev": "node scripts/setup.js",
-    "setup-dev:cloud": "node scripts/setup.js --skip-docker"
+    "setup-dev:cloud": "node scripts/setup.js --skip-docker",
+    "generate-jwt-keys": "bash scripts/generate-jwt-keys.sh"
   },
   "dependencies": {
     "@inkeep/agents-core": "^0.36.0",

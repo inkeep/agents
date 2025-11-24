@@ -1,6 +1,7 @@
 import FullPageError from '@/components/errors/full-page-error';
 import { ProjectProvider } from '@/contexts/project-context';
 import { fetchProject } from '@/lib/api/projects';
+import { serializeApiErrorForClient } from '@/lib/utils/error-serialization';
 
 export const dynamic = 'force-dynamic';
 
@@ -15,6 +16,6 @@ export default async function ProjectLayout({
     const project = await fetchProject(tenantId, projectId);
     return <ProjectProvider value={project.data}>{children}</ProjectProvider>;
   } catch (error) {
-    return <FullPageError error={error as Error} context="project" />;
+    return <FullPageError error={serializeApiErrorForClient(error)} context="project" />;
   }
 }

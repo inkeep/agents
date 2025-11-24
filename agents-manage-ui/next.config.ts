@@ -25,7 +25,7 @@ const nextConfig: NextConfig = {
       },
     },
   },
-  webpack(config) {
+  webpack(config, { isServer }) {
     const { test: _test, ...imageLoaderOptions } = config.module.rules.find(
       // @ts-expect-error -- fixme
       (rule) => rule.test?.test?.('.svg')
@@ -41,6 +41,21 @@ const nextConfig: NextConfig = {
         imageLoaderOptions,
       ],
     });
+
+    // Exclude native modules from webpack bundling
+    if (!isServer) {
+      config.resolve.fallback = {
+        ...config.resolve.fallback,
+        keytar: false,
+      };
+    }
+
+    // Mark keytar as external to prevent bundling
+    config.externals = config.externals || [];
+    if (Array.isArray(config.externals)) {
+      config.externals.push('keytar');
+    }
+
     return config;
   },
   typescript: {
