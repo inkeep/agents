@@ -8,6 +8,7 @@ export function Database() {
       xmlns="http://www.w3.org/2000/svg"
       className="text-muted-foreground"
     >
+      <title>Database icon</title>
       <path
         d="M32 8C20.954 8 12 10.686 12 14V50C12 53.314 20.954 56 32 56C43.046 56 52 53.314 52 50V14C52 10.686 43.046 8 32 8Z"
         stroke="currentColor"
