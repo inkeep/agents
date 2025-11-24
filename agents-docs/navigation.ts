@@ -39,6 +39,7 @@ export default {
           pages: [
             'connect-your-data/overview',
             'connect-your-data/inkeep',
+            'connect-your-data/pinecone',
             'connect-your-data/context7',
             'connect-your-data/ref',
           ],
