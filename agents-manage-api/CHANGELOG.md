@@ -1,5 +1,12 @@
 # @inkeep/agents-manage-api
 
+## 0.35.11
+
+### Patch Changes
+
+- 287027e: use correct auth instance
+  - @inkeep/agents-core@0.35.11
+
 ## 0.35.10
 
 ### Patch Changes
