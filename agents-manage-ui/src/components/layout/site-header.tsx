@@ -1,3 +1,5 @@
+'use client';
+
 import dynamic from 'next/dynamic';
 import { ThemeToggle } from '@/components/theme-toggle';
 import type { BreadcrumbItem } from '@/components/ui/breadcrumbs';

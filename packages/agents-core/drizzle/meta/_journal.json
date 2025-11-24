@@ -15,6 +15,13 @@
       "when": 1763651358903,
       "tag": "0001_fair_malice",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1763975951714,
+      "tag": "0002_ambitious_emma_frost",
+      "breakpoints": true
     }
   ]
 }
