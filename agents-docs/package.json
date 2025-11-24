@@ -2,6 +2,7 @@
   "name": "@inkeep/agents-docs",
   "version": "0.1.0",
   "private": true,
+  "type": "module",
   "license": "SEE LICENSE IN LICENSE.md",
   "scripts": {
     "build": "next build",
@@ -13,10 +14,10 @@
     "format:check": "biome format",
     "typecheck": "next typegen && tsc --noEmit",
     "postinstall": "fumadocs-mdx",
-    "generate-openapi": "node scripts/generate-openapi-docs.mts --experimental-strip-types",
-    "generate-classnames": "node scripts/generate-classnames.mjs",
+    "generate-openapi": "node scripts/generate-openapi-docs.ts --experimental-strip-types",
+    "generate-classnames": "node scripts/generate-classnames.ts --experimental-strip-types",
     "prebuild": "pnpm generate-classnames",
-    "validate-link": "node scripts/validate-link.mjs"
+    "validate-link": "node scripts/validate-link.ts --experimental-strip-types"
   },
   "dependencies": {
     "@inkeep/agents-ui": "^0.15.3",
