@@ -16,6 +16,7 @@ interface NewProjectDialogProps {
   children?: React.ReactNode;
   open?: boolean;
   onOpenChange?: (open: boolean) => void;
+  onSuccess?: (projectId: string) => void;
 }
 
 export function NewProjectDialog({
@@ -23,6 +24,7 @@ export function NewProjectDialog({
   children,
   open: controlledOpen,
   onOpenChange,
+  onSuccess,
 }: NewProjectDialogProps) {
   const [uncontrolledOpen, setUncontrolledOpen] = useState(false);
   const router = useRouter();
@@ -32,6 +34,7 @@ export function NewProjectDialog({
   const setOpen = onOpenChange || setUncontrolledOpen;
 
   const handleSuccess = (projectId: string) => {
+    onSuccess?.(projectId);
     setOpen(false);
     router.push(`/${tenantId}/projects/${projectId}/agents`);
   };

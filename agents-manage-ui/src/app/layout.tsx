@@ -44,9 +44,6 @@ export default function RootLayout({ children }: LayoutProps<'/'>) {
       process.env.PUBLIC_INKEEP_AGENTS_RUN_API_URL ||
       process.env.NEXT_PUBLIC_INKEEP_AGENTS_RUN_API_URL ||
       DEFAULT_INKEEP_AGENTS_RUN_API_URL,
-    PUBLIC_INKEEP_AGENTS_RUN_API_BYPASS_SECRET:
-      process.env.PUBLIC_INKEEP_AGENTS_RUN_API_BYPASS_SECRET ||
-      process.env.NEXT_PUBLIC_INKEEP_AGENTS_RUN_API_BYPASS_SECRET,
     PUBLIC_SIGNOZ_URL:
       process.env.PUBLIC_SIGNOZ_URL || process.env.NEXT_PUBLIC_SIGNOZ_URL || DEFAULT_SIGNOZ_URL,
     PUBLIC_NANGO_SERVER_URL:
@@ -61,6 +58,8 @@ export default function RootLayout({ children }: LayoutProps<'/'>) {
       process.env.PUBLIC_AUTH0_DOMAIN || process.env.NEXT_PUBLIC_AUTH0_DOMAIN,
     PUBLIC_GOOGLE_CLIENT_ID:
       process.env.PUBLIC_GOOGLE_CLIENT_ID || process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID,
+    PUBLIC_DISABLE_AUTH:
+      process.env.PUBLIC_DISABLE_AUTH || process.env.NEXT_PUBLIC_DISABLE_AUTH || 'true',
   };
 
   console.log('RuntimeConfig created:', JSON.stringify(runtimeConfig, null, 2));

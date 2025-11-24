@@ -17,6 +17,7 @@ import { setupOpenAPIRoutes } from './openapi';
 import crudRoutes from './routes/index';
 import invitationsRoutes from './routes/invitations';
 import oauthRoutes from './routes/oauth';
+import playgroundTokenRoutes from './routes/playgroundToken';
 import projectFullRoutes from './routes/projectFull';
 import userOrganizationsRoutes from './routes/userOrganizations';
 
@@ -38,17 +39,22 @@ function isOriginAllowed(origin: string | undefined): origin is string {
   try {
     const requestUrl = new URL(origin);
     const authUrl = new URL(env.INKEEP_AGENTS_MANAGE_API_URL || 'http://localhost:3002');
+    const uiUrl = env.INKEEP_AGENTS_MANAGE_UI_URL
+      ? new URL(env.INKEEP_AGENTS_MANAGE_UI_URL)
+      : null;
 
     // Development: allow any localhost
     if (authUrl.hostname === 'localhost' || authUrl.hostname === '127.0.0.1') {
       return requestUrl.hostname === 'localhost' || requestUrl.hostname === '127.0.0.1';
     }
 
-    // Production: allow same base domain and subdomains
-    const baseDomain = authUrl.hostname.replace(/^api\./, ''); // Remove 'api.' prefix if present
-    return requestUrl.hostname === baseDomain || requestUrl.hostname.endsWith(`.${baseDomain}`);
+    // Allow the specific UI URL if configured
+    if (uiUrl && requestUrl.hostname === uiUrl.hostname) {
+      return true;
+    }
+
+    return false;
   } catch {
-    // Invalid URL
     return false;
   }
 }
@@ -56,6 +62,7 @@ function isOriginAllowed(origin: string | undefined): origin is string {
 export type AppVariables = {
   serverConfig: ServerConfig;
   credentialStores: CredentialStoreRegistry;
+  auth: ReturnType<typeof createAuth> | null;
   user: typeof authForTypes.$Infer.Session.user | null;
   session: typeof authForTypes.$Infer.Session.session | null;
   userId?: string;
@@ -74,10 +81,11 @@ function createManagementHono(
   // Request ID middleware
   app.use('*', requestId());
 
-  // Server config and credential stores middleware
+  // Server config, credential stores, and auth middleware
   app.use('*', async (c, next) => {
     c.set('serverConfig', serverConfig);
     c.set('credentialStores', credentialStores);
+    c.set('auth', auth);
     return next();
   });
 
@@ -200,10 +208,28 @@ function createManagementHono(
     });
   }
 
-  // CORS middleware - handles all non-Better Auth routes
+  // CORS middleware for playground routes (must be registered before global CORS)
+  app.use(
+    '/tenants/*/playground/token',
+    cors({
+      origin: (origin) => {
+        return isOriginAllowed(origin) ? origin : null;
+      },
+      allowHeaders: ['content-type', 'Content-Type', 'authorization', 'Authorization'],
+      allowMethods: ['POST', 'OPTIONS'],
+      exposeHeaders: ['Content-Length'],
+      maxAge: 600,
+      credentials: true,
+    })
+  );
+
+  // CORS middleware - handles all other routes
   app.use('*', async (c, next) => {
-    // Skip CORS middleware for Better Auth routes - they have their own CORS config
+    // Skip CORS middleware for routes with their own CORS config
     if (auth && c.req.path.startsWith('/api/auth/')) {
+      return next();
+    }
+    if (c.req.path.includes('/playground/token')) {
       return next();
     }
 
@@ -295,6 +321,9 @@ function createManagementHono(
 
   // Mount routes for all entities
   app.route('/tenants/:tenantId', crudRoutes);
+
+  // Mount playground token routes under tenant (uses requireTenantAccess middleware)
+  app.route('/tenants/:tenantId/playground/token', playgroundTokenRoutes);
 
   // Mount full project routes directly under tenant
   app.route('/tenants/:tenantId', projectFullRoutes);

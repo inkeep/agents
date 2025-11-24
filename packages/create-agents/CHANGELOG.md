@@ -1,5 +1,32 @@
 # @inkeep/create-agents
 
+## 0.36.1
+
+### Patch Changes
+
+- Updated dependencies [1235b18]
+  - @inkeep/agents-core@0.36.1
+
+## 0.36.0
+
+### Patch Changes
+
+- @inkeep/agents-core@0.36.0
+
+## 0.35.12
+
+### Patch Changes
+
+- 840ca11: remove clean-package from API packages - was stripping runtime dependencies causing production errors
+- Updated dependencies [840ca11]
+  - @inkeep/agents-core@0.35.12
+
+## 0.35.11
+
+### Patch Changes
+
+- @inkeep/agents-core@0.35.11
+
 ## 0.35.10
 
 ### Patch Changes

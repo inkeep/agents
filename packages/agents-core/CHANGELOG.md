@@ -1,5 +1,21 @@
 # @inkeep/agents-core
 
+## 0.36.1
+
+### Patch Changes
+
+- 1235b18: improve cors policy
+
+## 0.36.0
+
+## 0.35.12
+
+### Patch Changes
+
+- 840ca11: remove clean-package from API packages - was stripping runtime dependencies causing production errors
+
+## 0.35.11
+
 ## 0.35.10
 
 ### Patch Changes

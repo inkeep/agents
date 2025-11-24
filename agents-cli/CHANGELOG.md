@@ -1,5 +1,42 @@
 # @inkeep/agents-cli
 
+## 0.36.1
+
+### Patch Changes
+
+- Updated dependencies [1235b18]
+  - @inkeep/agents-core@0.36.1
+  - @inkeep/agents-manage-ui@0.36.1
+  - @inkeep/agents-sdk@0.36.1
+
+## 0.36.0
+
+### Patch Changes
+
+- Updated dependencies [7f0f13a]
+- Updated dependencies [c59e3db]
+  - @inkeep/agents-manage-ui@0.36.0
+  - @inkeep/agents-core@0.36.0
+  - @inkeep/agents-sdk@0.36.0
+
+## 0.35.12
+
+### Patch Changes
+
+- 840ca11: remove clean-package from API packages - was stripping runtime dependencies causing production errors
+- Updated dependencies [840ca11]
+  - @inkeep/agents-core@0.35.12
+  - @inkeep/agents-manage-ui@0.35.12
+  - @inkeep/agents-sdk@0.35.12
+
+## 0.35.11
+
+### Patch Changes
+
+- @inkeep/agents-manage-ui@0.35.11
+- @inkeep/agents-core@0.35.11
+- @inkeep/agents-sdk@0.35.11
+
 ## 0.35.10
 
 ### Patch Changes
