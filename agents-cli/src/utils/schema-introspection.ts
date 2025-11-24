@@ -17,13 +17,13 @@ function getRequiredFieldsFromValidation(schema: z.ZodType): string[] {
     schema.parse({});
     return []; // If it passes, nothing is required
   } catch (error) {
-    if (error instanceof z.ZodError && error.errors) {
+    if (error instanceof z.ZodError) {
       // Extract field names from validation errors
-      return error.errors
-        .filter(err => err.code === 'invalid_type' && err.expected !== 'undefined')
-        .map(err => err.path[0])
-        .filter((field): field is string => typeof field === 'string')
-        .filter((field, index, arr) => arr.indexOf(field) === index); // Remove duplicates
+      return error.issues
+        .filter((err: z.ZodIssue) => err.code === 'invalid_type' && err.expected !== 'undefined')
+        .map((err: z.ZodIssue) => err.path[0])
+        .filter((field: any): field is string => typeof field === 'string')
+        .filter((field: string, index: number, arr: string[]) => arr.indexOf(field) === index); // Remove duplicates
     }
     return [];
   }
