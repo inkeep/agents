@@ -4,7 +4,7 @@ describe('Sidebar', () => {
   describe('Collapsing/Expanding', () => {
     const projectUrl = '/default/projects/my-weather-project';
 
-    it('should collapses when opening an agent page and re-expands when returning to projects page', () => {
+    it('should collapses when opening an agent page and re-expands when user navigates away from the agent page', () => {
       cy.visit(projectUrl);
       // Default expanded
       cy.get('[data-slot=sidebar]').should('have.attr', 'data-state', 'expanded');
@@ -16,16 +16,25 @@ describe('Sidebar', () => {
       cy.get('[data-slot=sidebar]').should('have.attr', 'data-state', 'expanded');
     });
 
-    it('should keeps the sidebar collapsed after a manual toggle even when leaving the agent page', () => {
+    it('should collapses when opening an agent page and re-expands when opening new tab', () => {
+      cy.visit(projectUrl);
+      // Default expanded
+      cy.get('[data-slot=sidebar]').should('have.attr', 'data-state', 'expanded');
+      cy.contains('Weather agent').click();
+      // Switched to collapsed
+      cy.get('[data-slot=sidebar]').should('have.attr', 'data-state', 'collapsed');
+      // Back to expanded
+      cy.visit('/');
+      cy.get('[data-slot=sidebar]').should('have.attr', 'data-state', 'expanded');
+    });
+
+    it('should keeps the sidebar collapsed after a manual toggle and stay collapsed when opening new tab', () => {
       cy.visit(projectUrl);
       cy.contains('Toggle Sidebar').click();
       cy.get('[data-slot=sidebar]').should('have.attr', 'data-state', 'collapsed');
       cy.contains('Weather agent').click();
       cy.get('.react-flow__node').should('exist');
-      // Still collapsed
-      cy.contains('Projects').click();
-      cy.location('pathname').should('eq', '/default/projects');
-      cy.contains('Weather Project').should('exist');
+      cy.visit('/');
       cy.get('[data-slot=sidebar]').should('have.attr', 'data-state', 'collapsed');
     });
 
@@ -34,7 +43,9 @@ describe('Sidebar', () => {
       cy.get('[data-slot=sidebar]').should('have.attr', 'data-state', 'collapsed');
       cy.get('[data-slot=sidebar]').trigger('mouseover');
       cy.get('[data-slot=sidebar]').should('have.attr', 'data-state', 'expanded');
-      cy.get('[data-slot=sidebar]').trigger('mouseout');
+      cy.get('.react-flow__node').then(([domEl]) => {
+        cy.get('[data-slot=sidebar]').trigger('mouseout', { relatedTarget: domEl });
+      });
       cy.get('[data-slot=sidebar]').should('have.attr', 'data-state', 'collapsed');
     });
   });
