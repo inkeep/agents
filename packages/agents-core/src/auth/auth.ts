@@ -77,6 +77,59 @@ export interface UserAuthConfig {
   advanced?: BetterAuthAdvancedOptions;
 }
 
+/**
+ * Extracts the root domain from a URL for cross-subdomain cookie sharing.
+ * For example:
+ * - https://manage-api.pilot.inkeep.com -> .pilot.inkeep.com
+ * - https://pilot.inkeep.com -> .pilot.inkeep.com
+ * - http://localhost:3002 -> undefined (no domain for localhost)
+ *
+ * The logic extracts the parent domain that can be shared across subdomains.
+ * For domains with 3+ parts, it takes everything except the first part.
+ * For domains with exactly 2 parts, it takes both parts.
+ */
+function extractCookieDomain(baseURL: string): string | undefined {
+  try {
+    const url = new URL(baseURL);
+    const hostname = url.hostname;
+
+    // Don't set domain for localhost or IP addresses
+    if (hostname === 'localhost' || hostname.match(/^\d+\.\d+\.\d+\.\d+$/)) {
+      return undefined;
+    }
+
+    // Split hostname into parts
+    const parts = hostname.split('.');
+
+    // We need at least 2 parts to form a domain (e.g., inkeep.com)
+    if (parts.length < 2) {
+      return undefined;
+    }
+
+    // Extract the parent domain that can be shared across subdomains
+    // Examples:
+    // - pilot.inkeep.com (3 parts) -> take all 3 parts -> .pilot.inkeep.com
+    // - manage-api.pilot.inkeep.com (4 parts) -> take last 3 parts -> .pilot.inkeep.com
+    // - inkeep.com (2 parts) -> take both parts -> .inkeep.com
+
+    let domainParts: string[];
+    if (parts.length === 3) {
+      // For 3-part domains like pilot.inkeep.com, take all parts
+      domainParts = parts;
+    } else if (parts.length > 3) {
+      // For 4+ part domains like manage-api.pilot.inkeep.com, take everything except first
+      domainParts = parts.slice(1);
+    } else {
+      // For 2-part domains like inkeep.com, take both parts
+      domainParts = parts;
+    }
+
+    return `.${domainParts.join('.')}`;
+  } catch {
+    return undefined;
+  }
+}
+
 async function registerSSOProvider(
   dbClient: DatabaseClient,
   provider: SSOProviderConfig
@@ -112,6 +165,9 @@ async function registerSSOProvider(
 }
 
 export function createAuth(config: BetterAuthConfig) {
+  // Extract cookie domain from baseURL for cross-subdomain cookie sharing
+  const cookieDomain = extractCookieDomain(config.baseURL);
+
   const auth = betterAuth({
     baseURL: config.baseURL,
     secret: config.secret,
@@ -135,6 +191,7 @@ export function createAuth(config: BetterAuthConfig) {
     advanced: {
       crossSubDomainCookies: {
         enabled: true,
+        ...(cookieDomain && { domain: cookieDomain }),
       },
       ...config.advanced,
     },

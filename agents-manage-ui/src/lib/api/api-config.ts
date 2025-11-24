@@ -40,7 +40,7 @@ async function makeApiRequestInternal<T>(
       const cookieStore = await cookies();
       const allCookies = cookieStore.getAll();
       // Only forward Better Auth cookies for security
-      const authCookies = allCookies.filter((c) => c.name.startsWith('better-auth.'));
+      const authCookies = allCookies.filter((c) => c.name.includes('better-auth'));
       cookieHeader = authCookies.map((c) => `${c.name}=${c.value}`).join('; ');
     } catch {
       // Not in a server component context, skip cookie forwarding
@@ -55,6 +55,8 @@ async function makeApiRequestInternal<T>(
       Authorization: `Bearer ${process.env.INKEEP_AGENTS_MANAGE_API_BYPASS_SECRET}`,
     }),
   };
+
+  console.log('defaultHeaders', defaultHeaders);
 
   try {
     const response = await fetch(url, {
