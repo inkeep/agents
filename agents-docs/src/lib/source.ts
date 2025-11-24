@@ -1,6 +1,6 @@
 import { loader } from 'fumadocs-core/source';
 import { createElement } from 'react';
-import { docs } from '@/.source';
+import { docs } from '../../.source/server';
 import * as brandIcons from '@/components/brand-icons';
 import { flattenNav, transformItems } from '@/components/sidebar/transform';
 import navigation from '../../navigation';

@@ -2,21 +2,22 @@
   "name": "@inkeep/agents-docs",
   "version": "0.1.0",
   "private": true,
+  "type": "module",
   "license": "SEE LICENSE IN LICENSE.md",
   "scripts": {
     "build": "next build",
-    "dev": "next --turbo -p 3010",
-    "start": "next start",
+    "dev": "next --port 3010",
+    "start": "next start --port 3010",
     "lint": "biome lint",
     "lint:fix": "biome check --write",
     "format": "biome format --write",
     "format:check": "biome format",
     "typecheck": "next typegen && tsc --noEmit",
     "postinstall": "fumadocs-mdx",
-    "generate-openapi": "node scripts/generate-openapi-docs.mjs",
-    "generate-classnames": "node scripts/generate-classnames.mjs",
-    "prebuild": "pnpm generate-classnames",
-    "validate-link": "node scripts/validate-link.mjs"
+    "generate-openapi": "node scripts/generate-openapi-docs.ts --experimental-strip-types",
+    "generate-classnames": "node scripts/generate-classnames.ts --experimental-strip-types",
+    "prebuild": "pnpm generate-classnames && pnpm generate-openapi",
+    "validate-link": "node scripts/validate-link.ts --experimental-strip-types"
   },
   "dependencies": {
     "@inkeep/agents-ui": "^0.15.3",
@@ -32,11 +33,11 @@
     "@shikijs/langs": "^3.3.0",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
-    "fumadocs-core": "^16.0.7",
-    "fumadocs-mdx": "^13.0.0",
-    "fumadocs-openapi": "^9.6.2",
-    "fumadocs-typescript": "^4.0.12",
-    "fumadocs-ui": "^16.0.7",
+    "fumadocs-core": "^16.1.0",
+    "fumadocs-mdx": "^14.0.3",
+    "fumadocs-openapi": "^10.0.11",
+    "fumadocs-typescript": "^4.0.13",
+    "fumadocs-ui": "^16.1.0",
     "hast-util-to-jsx-runtime": "^2.3.6",
     "lucide-react": "^0.503.0",
     "mermaid": "^11.12.0",
@@ -53,7 +54,6 @@
     "remark-source-code": "^0.0.3",
     "shiki": "^3.3.0",
     "tailwind-merge": "^3.2.0",
-    "tailwindcss-animate": "^1.0.7",
     "zod": "^4.1.11"
   },
   "devDependencies": {
@@ -66,6 +66,7 @@
     "next-validate-link": "^1.6.3",
     "schema-dts": "^1.1.5",
     "tailwindcss": "^4.1.11",
+    "tailwindcss-animate": "^1.0.7",
     "typescript": "^5.8.3"
   }
 }

@@ -42,7 +42,7 @@ const categories = [
   },
 ];
 
-export async function generateClassNamesDocs() {
+export async function main(): Promise<void> {
   const markdown = generateMarkdown();
   const outputPath = path.join(process.cwd(), '_snippets/generated/style-classnames.mdx');
   await fs.promises.mkdir(path.dirname(outputPath), { recursive: true });
@@ -50,7 +50,7 @@ export async function generateClassNamesDocs() {
   console.log('Widget Classnames documentation generated successfully!');
 }
 
-function generateMarkdown() {
+function generateMarkdown(): string {
   let markdown = '';
 
   for (const category of categories) {
@@ -65,10 +65,6 @@ function generateMarkdown() {
   }
 
   return markdown;
-}
-
-async function main() {
-  generateClassNamesDocs();
 }
 
 main().catch(console.error);

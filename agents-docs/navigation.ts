@@ -18,9 +18,7 @@ export default {
         {
           group: 'Agents',
           icon: 'LuUser',
-          pages: [
-            'tutorials/agents/meeting-prep-assistant',
-          ],
+          pages: ['tutorials/agents/meeting-prep-assistant'],
         },
         {
           group: 'MCP Servers',
@@ -188,7 +186,8 @@ export default {
             'api-reference/authentication/manage-api',
           ],
         },
-        'api-reference',
+        { page: 'api-reference', icon: 'LuDatabaseZap' },
+        { page: 'api-reference/run-api', icon: 'LuPlay' },
       ],
     },
     {

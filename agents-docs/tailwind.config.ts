@@ -1,17 +1,18 @@
-const colors = require('tailwindcss/colors');
+import colors from 'tailwindcss/colors';
+import type { Config } from 'tailwindcss';
+import tailwindAnimate from 'tailwindcss-animate';
 
-/** @type {import('tailwindcss').Config} */
-export default {
-  darkMode: ['class'],
+const config: Config = {
+  darkMode: 'class',
   content: [
     './src/components/**/*.{ts,tsx}',
     './src/app/**/*.{ts,tsx}',
     './content/**/*.{md,mdx}',
-    './mdx-components.{ts,tsx}',
+    './src/mdx-components.{ts,tsx}',
     './node_modules/fumadocs-ui/dist/**/*.js',
     './node_modules/fumadocs-openapi/dist/**/*.js',
   ],
-  plugins: [require('tailwindcss-animate')],
+  plugins: [tailwindAnimate],
   theme: {
     extend: {
       keyframes: {
@@ -85,3 +86,5 @@ export default {
     },
   },
 };
+
+export default config;
