@@ -1,5 +1,5 @@
 import { sso } from '@better-auth/sso';
-import { type BetterAuthAdvancedOptions, betterAuth, env } from 'better-auth';
+import { type BetterAuthAdvancedOptions, betterAuth } from 'better-auth';
 import { drizzleAdapter } from 'better-auth/adapters/drizzle';
 import { organization } from 'better-auth/plugins';
 import type { GoogleOptions } from 'better-auth/social-providers';
@@ -141,8 +141,8 @@ export function createAuth(config: BetterAuthConfig) {
     trustedOrigins: [
       'http://localhost:3000',
       'http://localhost:3002',
-      env.INKEEP_AGENTS_MANAGE_UI_URL as string,
-      env.INKEEP_AGENTS_MANAGE_API_URL as string,
+      process.env.INKEEP_AGENTS_MANAGE_UI_URL as string,
+      process.env.INKEEP_AGENTS_MANAGE_API_URL as string,
     ],
     plugins: [
       sso(),
