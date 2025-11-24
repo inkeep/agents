@@ -1,5 +1,21 @@
 # @inkeep/agents-manage-ui
 
+## 0.36.0
+
+### Minor Changes
+
+- 7f0f13a: 1. Add persistence in localStorage for the sidebar open state.
+
+  2. Make the `project switcher`, `Next.js DevTools logo`, and `breadcrumbs` elements to not trigger sidebar expansion.
+
+### Patch Changes
+
+- c59e3db: add cypress test for should create project, navigate to agents page and update project switcher
+- Updated dependencies [604c74c]
+  - @inkeep/agents-manage-api@0.36.0
+  - @inkeep/agents-run-api@0.36.0
+  - @inkeep/agents-core@0.36.0
+
 ## 0.35.12
 
 ### Patch Changes

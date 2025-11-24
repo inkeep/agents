@@ -1,5 +1,12 @@
 # @inkeep/agents-manage-api
 
+## 0.36.0
+
+### Patch Changes
+
+- 604c74c: temp fix cors for vercel
+  - @inkeep/agents-core@0.36.0
+
 ## 0.35.12
 
 ### Patch Changes
