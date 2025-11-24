@@ -1,5 +1,11 @@
 # @inkeep/agents-core
 
+## 0.35.12
+
+### Patch Changes
+
+- 840ca11: remove clean-package from API packages - was stripping runtime dependencies causing production errors
+
 ## 0.35.11
 
 ## 0.35.10
