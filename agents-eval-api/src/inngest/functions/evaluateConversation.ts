@@ -79,7 +79,7 @@ export const evaluateConversation = inngest.createFunction(
             evaluator,
             tenantId,
             projectId,
-          });
+          }); 
 
           const updated = await updateEvaluationResult(dbClient)({
             scopes: { tenantId, projectId, evaluationResultId: evalResult.id },

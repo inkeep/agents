@@ -69,7 +69,6 @@ export function DatasetItemsTable({
         <Table>
           <TableHeader>
             <TableRow noHover>
-              <TableHead>Item id</TableHead>
               <TableHead>Created At</TableHead>
               <TableHead>Updated At</TableHead>
               <TableHead>Input</TableHead>
@@ -81,7 +80,7 @@ export function DatasetItemsTable({
           <TableBody>
             {items.length === 0 ? (
               <TableRow noHover>
-                <TableCell colSpan={7} className="text-center text-muted-foreground py-8">
+                <TableCell colSpan={6} className="text-center text-muted-foreground py-8">
                   No items yet. Click &quot;+ New item&quot; to create one.
                 </TableCell>
               </TableRow>
@@ -96,11 +95,6 @@ export function DatasetItemsTable({
 
                 return (
                   <TableRow key={item.id} noHover>
-                    <TableCell>
-                      <code className="bg-muted text-muted-foreground rounded-md border px-2 py-1 text-xs font-mono">
-                        {item.id}
-                      </code>
-                    </TableCell>
                     <TableCell className="text-sm text-muted-foreground">
                       {formatDateTimeTable(item.createdAt)}
                     </TableCell>

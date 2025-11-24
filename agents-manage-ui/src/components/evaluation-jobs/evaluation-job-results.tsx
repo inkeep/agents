@@ -1,12 +1,17 @@
 'use client';
 
-import { ExternalLink } from 'lucide-react';
+import { ChevronDown, ChevronRight, ExternalLink } from 'lucide-react';
 import Link from 'next/link';
 import { useState } from 'react';
 import { formatDateTimeTable } from '@/app/utils/format-date';
 import { ExpandableJsonEditor } from '@/components/editors/expandable-json-editor';
 import { EvaluationStatusBadge } from '@/components/evaluators/evaluation-status-badge';
 import { EvaluatorViewDialog } from '@/components/evaluators/evaluator-view-dialog';
+import {
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger,
+} from '@/components/ui/collapsible';
 import {
   Table,
   TableBody,
@@ -54,26 +59,6 @@ export function EvaluationJobResults({
 
   return (
     <div className="space-y-6">
-      <div className="rounded-lg border p-4">
-        <h3 className="text-sm font-semibold mb-2">Batch Configuration</h3>
-        <div className="space-y-2 text-sm">
-          <div>
-            <span className="text-muted-foreground">ID: </span>
-            <code className="bg-muted text-muted-foreground rounded-md border px-2 py-1 text-xs font-mono">
-              {jobConfig.id}
-            </code>
-          </div>
-          <div>
-            <span className="text-muted-foreground">Created: </span>
-            {formatDateTimeTable(jobConfig.createdAt)}
-          </div>
-          <div>
-            <span className="text-muted-foreground">Updated: </span>
-            {formatDateTimeTable(jobConfig.updatedAt)}
-          </div>
-        </div>
-      </div>
-
       <div className="rounded-lg border">
         <div className="p-4 border-b">
           <h3 className="text-sm font-semibold">Evaluation Results ({results.length})</h3>
@@ -123,9 +108,12 @@ export function EvaluationJobResults({
                     <TableCell>
                       {(() => {
                         const evaluator = getEvaluatorById(result.evaluatorId);
-                        const outputData = result.output && typeof result.output === 'object' 
+                        const resultData = result.output && typeof result.output === 'object' 
                           ? result.output as Record<string, unknown>
                           : {};
+                        const outputData = resultData.output && typeof resultData.output === 'object'
+                          ? resultData.output as Record<string, unknown>
+                          : resultData;
                         const evaluation = evaluatePassCriteria(
                           evaluator?.passCriteria,
                           outputData
@@ -135,12 +123,29 @@ export function EvaluationJobResults({
                     </TableCell>
                     <TableCell>
                       {result.output ? (
-                        <ExpandableJsonEditor
-                          name={`result-${result.id}`}
-                          value={JSON.stringify(result.output, null, 2)}
-                          onChange={() => {}}
-                          label="Output"
-                        />
+                        <div className="space-y-1">
+                          {(() => {
+                            const resultData = result.output && typeof result.output === 'object' 
+                              ? result.output as Record<string, unknown>
+                              : {};
+                            const { metadata, ...outputWithoutMetadata } = resultData;
+                            
+                            return (
+                              <>
+                                <OutputCollapsible
+                                  resultId={result.id}
+                                  output={outputWithoutMetadata}
+                                />
+                                {metadata && (
+                                  <MetadataCollapsible
+                                    resultId={result.id}
+                                    metadata={metadata}
+                                  />
+                                )}
+                              </>
+                            );
+                          })()}
+                        </div>
                       ) : (
                         <span className="text-sm text-muted-foreground">No output</span>
                       )}
@@ -163,5 +168,55 @@ export function EvaluationJobResults({
         />
       )}
     </div>
+  );
+}
+
+function OutputCollapsible({ resultId, output }: { resultId: string; output: unknown }) {
+  const [isOpen, setIsOpen] = useState(false);
+
+  return (
+    <Collapsible open={isOpen} onOpenChange={setIsOpen}>
+      <CollapsibleTrigger className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground transition-colors py-1">
+        {isOpen ? (
+          <ChevronDown className="h-3 w-3" />
+        ) : (
+          <ChevronRight className="h-3 w-3" />
+        )}
+        <span>Output</span>
+      </CollapsibleTrigger>
+      <CollapsibleContent className="pt-2">
+        <ExpandableJsonEditor
+          name={`output-${resultId}`}
+          value={JSON.stringify(output, null, 2)}
+          onChange={() => {}}
+          label="Output"
+        />
+      </CollapsibleContent>
+    </Collapsible>
+  );
+}
+
+function MetadataCollapsible({ resultId, metadata }: { resultId: string; metadata: unknown }) {
+  const [isOpen, setIsOpen] = useState(false);
+
+  return (
+    <Collapsible open={isOpen} onOpenChange={setIsOpen}>
+      <CollapsibleTrigger className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground transition-colors py-1">
+        {isOpen ? (
+          <ChevronDown className="h-3 w-3" />
+        ) : (
+          <ChevronRight className="h-3 w-3" />
+        )}
+        <span>Metadata</span>
+      </CollapsibleTrigger>
+      <CollapsibleContent className="pt-2">
+        <ExpandableJsonEditor
+          name={`metadata-${resultId}`}
+          value={JSON.stringify(metadata, null, 2)}
+          onChange={() => {}}
+          label="Metadata"
+        />
+      </CollapsibleContent>
+    </Collapsible>
   );
 }
