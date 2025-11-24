@@ -1,6 +1,7 @@
 import { readdir, readFile, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
 import { generateFiles } from 'fumadocs-openapi';
+import { openapi } from '../src/lib/openapi.ts';
 
 const OUTPUT_DIR = './content/docs/api-reference';
 const DEFAULT_ICON = 'LuDatabaseZap';
@@ -53,7 +54,7 @@ async function main(): Promise<void> {
   console.log('Generating OpenAPI documentation...');
 
   await generateFiles({
-    input: './src/lib/index.json',
+    input: openapi,
     output: OUTPUT_DIR,
     per: 'file',
     includeDescription: true,
