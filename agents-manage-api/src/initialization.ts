@@ -34,11 +34,7 @@ export async function initializeDefaultUser(authInstance?: ReturnType<typeof cre
     logger.info({ organizationId: orgId }, 'Organization already exists');
   }
 
-<<<<<<< HEAD
-  if (!hasCredentials || DISABLE_AUTH || !auth) {
-=======
   if (!hasCredentials || DISABLE_AUTH || !authInstance) {
->>>>>>> main
     logger.info({ hasCredentials: false }, 'Skipping default user creation');
     return;
   }
