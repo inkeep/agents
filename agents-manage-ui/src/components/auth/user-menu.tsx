@@ -11,34 +11,30 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
+import { useAuthSession } from '@/hooks/use-auth';
 import { useAuthClient } from '@/lib/auth-client';
 
 export function UserMenu() {
+  const { user, isLoading } = useAuthSession();
   const authClient = useAuthClient();
-  const session = authClient.useSession();
   const router = useRouter();
-  
-  const user = session.data?.user;
+
+  if (isLoading || !user) {
+    return null;
+  }
 
   const handleSignOut = async () => {
     await authClient.signOut();
     router.push('/login');
   };
 
-  // Always render the same structure to avoid hydration errors
-  // Use placeholder when no user to maintain consistent DOM
-  if (!user) {
-    return <div className="size-7" />;
-  }
-
   return (
     <DropdownMenu>
-      <DropdownMenuTrigger asChild disabled={session.isPending}>
+      <DropdownMenuTrigger asChild>
         <Button
           variant="ghost"
           size="icon"
           className="size-7 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground text-sidebar-foreground/80 dark:text-sidebar-foreground"
-          disabled={session.isPending}
         >
           <User className="h-4 w-4" />
           <span className="sr-only">User menu</span>

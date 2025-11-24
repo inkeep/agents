@@ -4,14 +4,13 @@ import { useRouter } from 'next/navigation';
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { useAuthSession } from '@/hooks/use-auth';
 import { useAuthClient } from '@/lib/auth-client';
 
 export default function NoOrganizationPage() {
   const router = useRouter();
+  const { user } = useAuthSession();
   const authClient = useAuthClient();
-  const session = authClient.useSession();
-  
-  const user = session.data?.user;
   const [isSigningOut, setIsSigningOut] = useState(false);
 
   const handleSignOut = async () => {
@@ -54,9 +53,7 @@ export default function NoOrganizationPage() {
                     <p>Signing out...</p>
                   ) : (
                     <>
-                      <p>
-                        Your account{user?.email && ` (${user.email})`} is not associated with any organization.
-                      </p>
+                      <p>Your account ({user?.email}) is not associated with any organization.</p>
                       <p className="mt-2">
                         Please contact your organization administrator to request access.
                       </p>

@@ -1,10 +1,9 @@
-'use client';
-
 import { ThemeToggle } from '@/components/theme-toggle';
 import type { BreadcrumbItem } from '@/components/ui/breadcrumbs';
 import { Breadcrumbs } from '@/components/ui/breadcrumbs';
 import { Separator } from '@/components/ui/separator';
 import { SidebarTrigger } from '@/components/ui/sidebar';
+import { UserMenu } from '../auth/user-menu';
 
 export function SiteHeader({ breadcrumbs }: { breadcrumbs?: BreadcrumbItem[] }) {
   return (
@@ -14,7 +13,7 @@ export function SiteHeader({ breadcrumbs }: { breadcrumbs?: BreadcrumbItem[] }) 
       <Breadcrumbs items={breadcrumbs} />
       <Separator orientation="vertical" className="mx-2 data-[orientation=vertical]:h-4 ml-auto" />
       <ThemeToggle />
-      {/* UserMenu temporarily removed to test hydration */}
+      <UserMenu />
     </header>
   );
 }
