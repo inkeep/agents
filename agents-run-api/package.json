@@ -24,8 +24,11 @@
     "test:watch": "vitest",
     "test:coverage": "vitest --run --coverage",
     "typecheck": "tsc --noEmit",
-    "typecheck:watch": "tsc --noEmit --watch"
+    "typecheck:watch": "tsc --noEmit --watch",
+    "prepack": "clean-package",
+    "postpack": "clean-package restore"
   },
+  "clean-package": "./clean-package.config.json",
   "dependencies": {
     "@ai-sdk/anthropic": "2.0.2",
     "@ai-sdk/gateway": "^1.0.23",
@@ -81,6 +84,7 @@
     "@types/node": "^20.11.24",
     "@types/traverse": "^0.6.37",
     "@vitest/coverage-v8": "^3.2.4",
+    "clean-package": "^2.2.0",
     "nodemon": "^3.1.0",
     "tsx": "^4.7.1",
     "typescript": "^5.3.3",
