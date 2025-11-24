@@ -16,7 +16,7 @@
     "postinstall": "fumadocs-mdx",
     "generate-openapi": "node scripts/generate-openapi-docs.ts --experimental-strip-types",
     "generate-classnames": "node scripts/generate-classnames.ts --experimental-strip-types",
-    "prebuild": "pnpm generate-classnames",
+    "prebuild": "pnpm generate-classnames && pnpm generate-openapi && pnpm validate-link",
     "validate-link": "node scripts/validate-link.ts --experimental-strip-types"
   },
   "dependencies": {
