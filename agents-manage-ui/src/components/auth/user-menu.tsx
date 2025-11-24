@@ -25,7 +25,7 @@ export function UserMenu() {
   };
 
   return (
-    <div suppressHydrationWarning>
+    <>
       {!isLoading && user && (
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
@@ -52,6 +52,6 @@ export function UserMenu() {
           </DropdownMenuContent>
         </DropdownMenu>
       )}
-    </div>
+    </>
   );
 }
