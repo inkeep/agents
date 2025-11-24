@@ -3,6 +3,7 @@
 import { Loader2 } from 'lucide-react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { Suspense, useEffect, useState } from 'react';
+import { useRuntimeConfig } from '@/contexts/runtime-config-context';
 import { useAuthSession } from '@/hooks/use-auth';
 import { getPendingInvitations } from '@/lib/actions/invitations';
 import { getUserOrganizations } from '@/lib/actions/user-organizations';
@@ -11,8 +12,9 @@ import { DEFAULT_TENANT_ID } from '@/lib/runtime-config/defaults';
 function HomeContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const { user, session, isLoading, error } = useAuthSession();
+  const { user, session, isLoading } = useAuthSession();
   const [isRedirecting, setIsRedirecting] = useState(false);
+  const { PUBLIC_DISABLE_AUTH } = useRuntimeConfig();
 
   const tenantId = process.env.NEXT_PUBLIC_TENANT_ID || DEFAULT_TENANT_ID;
 
@@ -22,7 +24,7 @@ function HomeContent() {
       if (isRedirecting) return;
 
       // Auth disabled - go straight to default tenant
-      if (!isLoading && error?.status === 404 && !user) {
+      if (PUBLIC_DISABLE_AUTH === 'true') {
         setIsRedirecting(true);
         router.push(`/${tenantId}/projects`);
         return;
@@ -86,7 +88,7 @@ function HomeContent() {
     }
 
     handleRedirect();
-  }, [user, session, isLoading, error, isRedirecting, tenantId, searchParams, router]);
+  }, [user, session, isLoading, isRedirecting, tenantId, searchParams, router, PUBLIC_DISABLE_AUTH]);
 
   return (
     <div className="flex items-center justify-center h-full">
