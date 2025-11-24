@@ -126,6 +126,7 @@ describe('Add Command', () => {
       process.env.ANTHROPIC_API_KEY = 'test-key';
       const mockTemplates = ['weather', 'chatbot'];
       vi.mocked(getAvailableTemplates).mockResolvedValue(mockTemplates);
+      vi.mocked(findUp).mockResolvedValue('/test/path/src/projects');
       vi.mocked(fs.pathExists).mockResolvedValue(false as any);
       vi.mocked(fs.mkdir).mockResolvedValue(undefined as any);
       vi.mocked(cloneTemplate).mockResolvedValue(undefined);
@@ -149,6 +150,7 @@ describe('Add Command', () => {
       const mockTemplates = ['weather'];
       vi.mocked(getAvailableTemplates).mockResolvedValue(mockTemplates);
       vi.mocked(cloneTemplate).mockResolvedValue(undefined);
+      vi.mocked(findUp).mockResolvedValue('/test/path/src/projects');
     });
 
     it('should create template in current directory when no target path specified', async () => {
@@ -161,7 +163,7 @@ describe('Add Command', () => {
 
       await addCommand(options);
 
-      const expectedPath = `${process.cwd()}/weather`;
+      const expectedPath = '/test/path/src/projects/weather';
       expect(cloneTemplate).toHaveBeenCalledWith(
         'https://github.com/inkeep/agents/agents-cookbook/template-projects/weather',
         expectedPath,
@@ -190,7 +192,7 @@ describe('Add Command', () => {
 
       expect(cloneTemplate).toHaveBeenCalledWith(
         'https://github.com/inkeep/agents/agents-cookbook/template-projects/weather',
-        './projects/weather',
+        'projects/weather',
         [
           {
             filePath: 'index.ts',
@@ -204,6 +206,7 @@ describe('Add Command', () => {
 
     it('should prevent overwriting existing template directory', async () => {
       vi.mocked(fs.pathExists).mockResolvedValue(true as any);
+      vi.mocked(p.confirm).mockResolvedValue(false);
 
       const options: AddOptions = {
         project: 'weather',
@@ -213,10 +216,10 @@ describe('Add Command', () => {
 
       await expect(addCommand(options)).rejects.toThrow('process.exit called');
 
-      expect(consoleErrorSpy).toHaveBeenCalledWith(
-        '❌ Directory "./projects/weather" already exists'
-      );
-      expect(processExitSpy).toHaveBeenCalledWith(1);
+      expect(p.confirm).toHaveBeenCalledWith({
+        message: 'Directory "projects/weather" already exists. Do you want to overwrite it?',
+      });
+      expect(processExitSpy).toHaveBeenCalledWith(0);
       expect(cloneTemplate).not.toHaveBeenCalled();
     });
 
@@ -237,7 +240,7 @@ describe('Add Command', () => {
       expect(fs.mkdir).toHaveBeenCalledWith('./new-projects', { recursive: true });
       expect(cloneTemplate).toHaveBeenCalledWith(
         'https://github.com/inkeep/agents/agents-cookbook/template-projects/weather',
-        './new-projects/weather',
+        'new-projects/weather',
         [
           {
             filePath: 'index.ts',
@@ -250,9 +253,7 @@ describe('Add Command', () => {
     });
 
     it('should handle errors when creating base directory', async () => {
-      vi.mocked(fs.pathExists)
-        .mockResolvedValueOnce(false as any) // Template directory doesn't exist
-        .mockResolvedValueOnce(false as any); // Base directory doesn't exist
+      vi.mocked(fs.pathExists).mockResolvedValue(false as any);
       vi.mocked(fs.mkdir).mockRejectedValue(new Error('Permission denied'));
 
       const options: AddOptions = {
@@ -277,6 +278,7 @@ describe('Add Command', () => {
       process.env.ANTHROPIC_API_KEY = 'test-key';
       const mockTemplates = ['weather'];
       vi.mocked(getAvailableTemplates).mockResolvedValue(mockTemplates);
+      vi.mocked(findUp).mockResolvedValue('/test/path/src/projects');
       vi.mocked(fs.pathExists).mockResolvedValue(false as any);
     });
 
@@ -292,7 +294,7 @@ describe('Add Command', () => {
 
       expect(p.spinner).toHaveBeenCalled();
       expect(mockSpinner.start).toHaveBeenCalled();
-      const expectedPath = `${process.cwd()}/weather`;
+      const expectedPath = '/test/path/src/projects/weather';
       expect(cloneTemplate).toHaveBeenCalledWith(
         'https://github.com/inkeep/agents/agents-cookbook/template-projects/weather',
         expectedPath,
@@ -325,9 +327,8 @@ describe('Add Command', () => {
     it('should construct correct GitHub URL for template', async () => {
       const mockTemplates = ['chatbot'];
       vi.mocked(getAvailableTemplates).mockResolvedValue(mockTemplates);
-      vi.mocked(fs.pathExists)
-        .mockResolvedValueOnce(false as any) // Template directory doesn't exist
-        .mockResolvedValueOnce(false as any); // Base directory doesn't exist
+      vi.mocked(findUp).mockResolvedValue('/test/path/src/projects');
+      vi.mocked(fs.pathExists).mockResolvedValue(false as any);
       vi.mocked(fs.mkdir).mockResolvedValue(undefined as any);
       vi.mocked(cloneTemplate).mockResolvedValue(undefined);
 
@@ -341,7 +342,7 @@ describe('Add Command', () => {
 
       expect(cloneTemplate).toHaveBeenCalledWith(
         'https://github.com/inkeep/agents/agents-cookbook/template-projects/chatbot',
-        './my-agents/chatbot',
+        'my-agents/chatbot',
         [
           {
             filePath: 'index.ts',
@@ -358,6 +359,7 @@ describe('Add Command', () => {
     it('should handle fs.pathExists errors gracefully', async () => {
       const mockTemplates = ['weather'];
       vi.mocked(getAvailableTemplates).mockResolvedValue(mockTemplates);
+      vi.mocked(findUp).mockResolvedValue('/test/path/src/projects');
       vi.mocked(fs.pathExists).mockRejectedValue(new Error('Filesystem error'));
 
       const options: AddOptions = {
@@ -371,9 +373,8 @@ describe('Add Command', () => {
     it('should handle mixed success and failure scenarios', async () => {
       const mockTemplates = ['weather'];
       vi.mocked(getAvailableTemplates).mockResolvedValue(mockTemplates);
-      vi.mocked(fs.pathExists)
-        .mockResolvedValueOnce(false as any) // Template directory check passes
-        .mockResolvedValueOnce(true as any); // Base directory exists
+      vi.mocked(findUp).mockResolvedValue('/test/path/src/projects');
+      vi.mocked(fs.pathExists).mockResolvedValue(false as any);
       vi.mocked(cloneTemplate).mockRejectedValue(new Error('Network timeout'));
 
       const options: AddOptions = {
@@ -396,6 +397,7 @@ describe('Add Command', () => {
       process.env.ANTHROPIC_API_KEY = 'test-key';
       const mockTemplates = ['my-complex-template'];
       vi.mocked(getAvailableTemplates).mockResolvedValue(mockTemplates);
+      vi.mocked(findUp).mockResolvedValue('/test/path/src/projects');
       vi.mocked(fs.pathExists).mockResolvedValue(false as any);
       vi.mocked(cloneTemplate).mockResolvedValue(undefined);
     });
@@ -408,7 +410,7 @@ describe('Add Command', () => {
 
       await addCommand(options);
 
-      const expectedPath = `${process.cwd()}/my-complex-template`;
+      const expectedPath = '/test/path/src/projects/my-complex-template';
       expect(cloneTemplate).toHaveBeenCalledWith(
         'https://github.com/inkeep/agents/agents-cookbook/template-projects/my-complex-template',
         expectedPath,
@@ -424,9 +426,7 @@ describe('Add Command', () => {
     });
 
     it('should handle deep target paths', async () => {
-      vi.mocked(fs.pathExists)
-        .mockResolvedValueOnce(false as any) // Template directory doesn't exist
-        .mockResolvedValueOnce(false as any); // Base directory doesn't exist
+      vi.mocked(fs.pathExists).mockResolvedValue(false as any);
       vi.mocked(fs.mkdir).mockResolvedValue(undefined as any);
 
       const options: AddOptions = {
@@ -439,7 +439,7 @@ describe('Add Command', () => {
 
       expect(cloneTemplate).toHaveBeenCalledWith(
         'https://github.com/inkeep/agents/agents-cookbook/template-projects/my-complex-template',
-        './deep/nested/path/my-complex-template',
+        'deep/nested/path/my-complex-template',
         [
           {
             filePath: 'index.ts',
@@ -456,6 +456,7 @@ describe('Add Command', () => {
     beforeEach(() => {
       const mockTemplates = ['weather'];
       vi.mocked(getAvailableTemplates).mockResolvedValue(mockTemplates);
+      vi.mocked(findUp).mockResolvedValue('/test/path/src/projects');
       vi.mocked(fs.pathExists).mockResolvedValue(false as any);
       vi.mocked(cloneTemplate).mockResolvedValue(undefined);
     });
@@ -701,7 +702,7 @@ describe('Add Command', () => {
         await addCommand(options);
 
         expect(consoleLogSpy).toHaveBeenCalledWith(
-          expect.stringContaining('No app directory found')
+          expect.stringContaining('No mcp directory found')
         );
         expect(p.confirm).toHaveBeenCalledWith({
           message: `Do you want to add to ${originalCwd} instead?`,
@@ -811,6 +812,7 @@ describe('Add Command', () => {
       it('should not include model configuration replacements for MCP templates', async () => {
         process.env.ANTHROPIC_API_KEY = 'test-key';
         vi.mocked(findUp).mockResolvedValue('/project/apps/mcp/app');
+        vi.mocked(fs.pathExists).mockResolvedValue(false as any);
 
         const options: AddOptions = {
           mcp: 'zendesk',
@@ -838,7 +840,7 @@ describe('Add Command', () => {
       });
 
       it('should add both project and MCP templates when both are specified', async () => {
-        vi.mocked(findUp).mockResolvedValue('/project/apps/mcp/app');
+        vi.mocked(findUp).mockResolvedValue('/project/src/projects');
 
         const options: AddOptions = {
           project: 'weather',
@@ -852,7 +854,7 @@ describe('Add Command', () => {
         expect(cloneTemplate).toHaveBeenCalledTimes(2);
         expect(cloneTemplate).toHaveBeenCalledWith(
           'https://github.com/inkeep/agents/agents-cookbook/template-projects/weather',
-          './projects/weather',
+          'projects/weather',
           [
             {
               filePath: 'index.ts',
@@ -873,7 +875,7 @@ describe('Add Command', () => {
       it('should return the apps/mcp/app directory path when found', async () => {
         vi.mocked(findUp).mockResolvedValue('/project/root/apps/mcp/app');
 
-        const result = await findAppDirectory();
+        const result = await findAppDirectory('mcp');
 
         expect(result).toBe('/project/root/apps/mcp/app');
         expect(vi.mocked(findUp)).toHaveBeenCalledWith('apps/mcp/app', { type: 'directory' });
@@ -884,11 +886,11 @@ describe('Add Command', () => {
         vi.mocked(p.confirm).mockResolvedValue(true);
         const originalCwd = process.cwd();
 
-        const result = await findAppDirectory();
+        const result = await findAppDirectory('mcp');
 
         expect(result).toBe(originalCwd);
         expect(consoleLogSpy).toHaveBeenCalledWith(
-          expect.stringContaining('No app directory found')
+          expect.stringContaining('No mcp directory found')
         );
         expect(p.confirm).toHaveBeenCalledWith({
           message: `Do you want to add to ${originalCwd} instead?`,
@@ -899,41 +901,35 @@ describe('Add Command', () => {
         vi.mocked(findUp).mockResolvedValue(undefined);
         vi.mocked(p.confirm).mockResolvedValue(false);
 
-        await expect(findAppDirectory()).rejects.toThrow('process.exit called');
+        await expect(findAppDirectory('mcp')).rejects.toThrow('process.exit called');
 
         expect(processExitSpy).toHaveBeenCalledWith(0);
       });
     });
 
     describe('addMcpTemplate function', () => {
-      let mockMcpSpinner: any;
-
       beforeEach(() => {
-        mockMcpSpinner = {
-          start: vi.fn().mockReturnThis(),
-          succeed: vi.fn().mockReturnThis(),
-          stop: vi.fn().mockReturnThis(),
-        };
         const mockMcpTemplates = ['zendesk'];
         vi.mocked(getAvailableTemplates).mockResolvedValue(mockMcpTemplates);
+        vi.mocked(fs.pathExists).mockResolvedValue(false as any);
       });
 
       it('should add MCP template with custom target path', async () => {
-        await addMcpTemplate('zendesk', './custom-path', mockMcpSpinner, undefined);
+        const mockMcpTemplates = ['zendesk'];
+        
+        await addMcpTemplate(mockMcpTemplates, 'zendesk', './custom-path', undefined);
 
         expect(cloneTemplate).toHaveBeenCalledWith(
           'https://github.com/inkeep/agents/agents-cookbook/template-mcps/zendesk',
           './custom-path'
         );
-        expect(mockMcpSpinner.stop).toHaveBeenCalledWith(
-          'MCP template "zendesk" added to ./custom-path'
-        );
       });
 
       it('should use findAppDirectory when no target path provided', async () => {
+        const mockMcpTemplates = ['zendesk'];
         vi.mocked(findUp).mockResolvedValue('/found/path/apps/mcp/app');
 
-        await addMcpTemplate('zendesk', undefined, mockMcpSpinner, undefined);
+        await addMcpTemplate(mockMcpTemplates, 'zendesk', undefined, undefined);
 
         expect(vi.mocked(findUp)).toHaveBeenCalledWith('apps/mcp/app', { type: 'directory' });
         expect(cloneTemplate).toHaveBeenCalledWith(

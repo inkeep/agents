@@ -1037,8 +1037,8 @@ importers:
         version: 5.9.0
     devDependencies:
       '@hono/zod-openapi':
-        specifier: ^1.0.2
-        version: 1.1.4(hono@4.10.4)(zod@4.1.12)
+        specifier: ^1.1.5
+        version: 1.1.5(hono@4.10.4)(zod@4.1.12)
       '@types/jmespath':
         specifier: ^0.15.2
         version: 0.15.2
@@ -1153,9 +1153,6 @@ importers:
       '@clack/prompts':
         specifier: ^0.11.0
         version: 0.11.0
-      '@hono/zod-openapi':
-        specifier: ^1.0.2
-        version: 1.1.4(hono@4.10.4)(zod@4.1.12)
       '@inkeep/agents-core':
         specifier: workspace:*
         version: link:../agents-core
@@ -1174,9 +1171,6 @@ importers:
       picocolors:
         specifier: ^1.0.0
         version: 1.1.1
-      zod:
-        specifier: ^4.1.11
-        version: 4.1.12
     devDependencies:
       '@types/degit':
         specifier: ^2.8.6
@@ -2405,6 +2399,13 @@ packages:
 
   '@hono/zod-openapi@1.1.4':
     resolution: {integrity: sha512-4BbOtd6oKg20yo6HLluVbEycBLLIfdKX5o/gUSoKZ2uBmeP4Og/VDfIX3k9pbNEX5W3fRkuPeVjGA+zaQDVY1A==}
+    engines: {node: '>=16.0.0'}
+    peerDependencies:
+      hono: '>=4.3.6'
+      zod: ^4.1.11
+
+  '@hono/zod-openapi@1.1.5':
+    resolution: {integrity: sha512-EAnY6ad4yt/MUKHx716BEGGOXSl5d0/FOLozOYB/pmSEFq07qrzefKFtBEMAgd3hlpJXjH+4lwgTtlAo+BGBgQ==}
     engines: {node: '>=16.0.0'}
     peerDependencies:
       hono: '>=4.3.6'
@@ -8198,7 +8199,6 @@ packages:
 
   libsql@0.5.22:
     resolution: {integrity: sha512-NscWthMQt7fpU8lqd7LXMvT9pi+KhhmTHAJWUB/Lj6MWa0MKFv0F2V4C6WKKpjCVZl0VwcDz4nOI3CyaT1DDiA==}
-    cpu: [x64, arm64, wasm32, arm]
     os: [darwin, linux, win32]
 
   lie@3.1.1:
@@ -12642,6 +12642,14 @@ snapshots:
       openapi3-ts: 4.5.0
       zod: 4.1.12
 
+  '@hono/zod-openapi@1.1.5(hono@4.10.4)(zod@4.1.12)':
+    dependencies:
+      '@asteasolutions/zod-to-openapi': 8.1.0(zod@4.1.12)
+      '@hono/zod-validator': 0.7.4(hono@4.10.4)(zod@4.1.12)
+      hono: 4.10.4
+      openapi3-ts: 4.5.0
+      zod: 4.1.12
+
   '@hono/zod-validator@0.7.4(hono@4.10.4)(zod@4.1.12)':
     dependencies:
       hono: 4.10.4
@@ -12764,7 +12772,7 @@ snapshots:
   '@inkeep/agents-core@0.30.4(@electric-sql/pglite@0.3.13)(@opentelemetry/core@2.2.0(@opentelemetry/api@1.9.0))(@types/pg@8.15.6)(gel@2.1.1)(kysely@0.28.8)(pg@8.16.3)':
     dependencies:
       '@hono/node-server': 1.19.6(hono@4.10.4)
-      '@hono/zod-openapi': 1.1.4(hono@4.10.4)(zod@4.1.12)
+      '@hono/zod-openapi': 1.1.5(hono@4.10.4)(zod@4.1.12)
       '@libsql/client': 0.15.15
       '@modelcontextprotocol/sdk': 1.21.0
       '@nangohq/node': 0.69.9
@@ -12837,7 +12845,7 @@ snapshots:
     dependencies:
       '@hono/node-server': 1.19.6(hono@4.10.4)
       '@hono/swagger-ui': 0.5.2(hono@4.10.4)
-      '@hono/zod-openapi': 1.1.4(hono@4.10.4)(zod@4.1.12)
+      '@hono/zod-openapi': 1.1.5(hono@4.10.4)(zod@4.1.12)
       '@inkeep/agents-core': 0.30.4(@electric-sql/pglite@0.3.13)(@opentelemetry/core@2.2.0(@opentelemetry/api@1.9.0))(@types/pg@8.15.6)(gel@2.1.1)(kysely@0.28.8)(pg@8.16.3)
       '@nangohq/node': 0.69.9
       '@nangohq/types': 0.69.9
@@ -13020,7 +13028,7 @@ snapshots:
       '@hono/node-server': 1.19.6(hono@4.10.4)
       '@hono/otel': 0.4.0(hono@4.10.4)
       '@hono/swagger-ui': 0.5.2(hono@4.10.4)
-      '@hono/zod-openapi': 1.1.4(hono@4.10.4)(zod@4.1.12)
+      '@hono/zod-openapi': 1.1.5(hono@4.10.4)(zod@4.1.12)
       '@inkeep/agents-core': 0.30.4(@electric-sql/pglite@0.3.13)(@opentelemetry/core@2.2.0(@opentelemetry/api@1.9.0))(@types/pg@8.15.6)(gel@2.1.1)(kysely@0.28.8)(pg@8.16.3)
       '@modelcontextprotocol/sdk': 1.21.0
       '@openrouter/ai-sdk-provider': 1.2.0(ai@5.0.11(zod@4.1.12))(zod@4.1.12)
