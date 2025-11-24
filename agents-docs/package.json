@@ -32,11 +32,11 @@
     "@shikijs/langs": "^3.3.0",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
-    "fumadocs-core": "^16.0.7",
-    "fumadocs-mdx": "^13.0.0",
+    "fumadocs-core": "^16.1.0",
+    "fumadocs-mdx": "^14.0.3",
     "fumadocs-openapi": "^10.0.11",
-    "fumadocs-typescript": "^4.0.12",
-    "fumadocs-ui": "^16.0.7",
+    "fumadocs-typescript": "^4.0.13",
+    "fumadocs-ui": "^16.1.0",
     "hast-util-to-jsx-runtime": "^2.3.6",
     "lucide-react": "^0.503.0",
     "mermaid": "^11.12.0",
@@ -53,7 +53,6 @@
     "remark-source-code": "^0.0.3",
     "shiki": "^3.3.0",
     "tailwind-merge": "^3.2.0",
-    "tailwindcss-animate": "^1.0.7",
     "zod": "^4.1.11"
   },
   "devDependencies": {
@@ -66,6 +65,7 @@
     "next-validate-link": "^1.6.3",
     "schema-dts": "^1.1.5",
     "tailwindcss": "^4.1.11",
+    "tailwindcss-animate": "^1.0.7",
     "typescript": "^5.8.3"
   }
 }
