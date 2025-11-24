@@ -21,7 +21,7 @@ import {
   Video,
   Warning,
 } from '@inkeep/docskit/mdx';
-import { APIPage } from 'fumadocs-openapi/ui';
+import { createAPIPage } from 'fumadocs-openapi/ui';
 import { createGenerator } from 'fumadocs-typescript';
 import defaultMdxComponents from 'fumadocs-ui/mdx';
 import type { MDXComponents } from 'mdx/types';
@@ -83,12 +83,13 @@ function pre(props: ComponentProps<typeof OriginalPre>) {
 }
 
 const generator = createGenerator();
+const APIPage = createAPIPage(openapi);
 
 // use this function to get MDX components, you will need it for rendering MDX
 export function getMDXComponents(components?: MDXComponents): MDXComponents {
   return {
     ...defaultMdxComponents,
-    APIPage: (props) => <APIPage {...openapi.getAPIPageProps(props)} />,
+    APIPage,
     AutoTypeTable: (props) => <AutoTypeTable {...props} generator={generator} />,
     Image: (props) => (
       <img

@@ -1,7 +1,11 @@
 ---
 title: Inkeep Agents Manage API
+full: true
 _openapi:
   toc:
+    - depth: 2
+      title: Health check
+      url: '#health-check'
     - depth: 2
       title: List Projects
       url: '#list-projects'
@@ -33,35 +37,65 @@ _openapi:
       title: Update SubAgent
       url: '#update-subagent'
     - depth: 2
-      title: List Agent Relations
-      url: '#list-agent-relations'
+      title: List Sub Agent Relations
+      url: '#list-sub-agent-relations'
     - depth: 2
-      title: Create Agent Relation
-      url: '#create-agent-relation'
+      title: Create Sub Agent Relation
+      url: '#create-sub-agent-relation'
     - depth: 2
-      title: Get Agent Relation
-      url: '#get-agent-relation'
+      title: Get Sub Agent Relation
+      url: '#get-sub-agent-relation'
     - depth: 2
-      title: Delete Agent Relation
-      url: '#delete-agent-relation'
+      title: Delete Sub Agent Relation
+      url: '#delete-sub-agent-relation'
     - depth: 2
-      title: Update Agent Relation
-      url: '#update-agent-relation'
+      title: Update Sub Agent Relation
+      url: '#update-sub-agent-relation'
     - depth: 2
-      title: List Agent Agent
-      url: '#list-agent-agent'
+      title: List Sub Agent External Agent Relations
+      url: '#list-sub-agent-external-agent-relations'
     - depth: 2
-      title: Create Agent Agent
-      url: '#create-agent-agent'
+      title: Create Sub Agent External Agent Relation
+      url: '#create-sub-agent-external-agent-relation'
     - depth: 2
-      title: Get Agent Agent
-      url: '#get-agent-agent'
+      title: Get Sub Agent External Agent Relation
+      url: '#get-sub-agent-external-agent-relation'
     - depth: 2
-      title: Delete Agent Agent
-      url: '#delete-agent-agent'
+      title: Delete Sub Agent External Agent Relation
+      url: '#delete-sub-agent-external-agent-relation'
     - depth: 2
-      title: Update Agent Agent
-      url: '#update-agent-agent'
+      title: Update Sub Agent External Agent Relation
+      url: '#update-sub-agent-external-agent-relation'
+    - depth: 2
+      title: List Sub Agent Team Agent Relations
+      url: '#list-sub-agent-team-agent-relations'
+    - depth: 2
+      title: Create Sub Agent Team Agent Relation
+      url: '#create-sub-agent-team-agent-relation'
+    - depth: 2
+      title: Get Sub Agent Team Agent Relation
+      url: '#get-sub-agent-team-agent-relation'
+    - depth: 2
+      title: Delete Sub Agent Team Agent Relation
+      url: '#delete-sub-agent-team-agent-relation'
+    - depth: 2
+      title: Update Sub Agent Team Agent Relation
+      url: '#update-sub-agent-team-agent-relation'
+    - depth: 2
+      title: List Agents
+      url: '#list-agents'
+    - depth: 2
+      title: Create Agent
+      url: '#create-agent'
+    - depth: 2
+      title: Get Agent
+      url: '#get-agent'
+    - depth: 2
+      title: Delete Agent
+      url: '#delete-agent'
+    - depth: 2
+      title: Update Agent
+      url: '#update-agent'
     - depth: 2
       title: Get Related Agent Infos
       url: '#get-related-agent-infos'
@@ -161,6 +195,12 @@ _openapi:
     - depth: 2
       title: Update Credential
       url: '#update-credential'
+    - depth: 2
+      title: List Credential Stores
+      url: '#list-credential-stores'
+    - depth: 2
+      title: Create Credential in Store
+      url: '#create-credential-in-store'
     - depth: 2
       title: List Data Components
       url: '#list-data-components'
@@ -264,6 +304,12 @@ _openapi:
       title: Update Full Agent
       url: '#update-full-agent'
     - depth: 2
+      title: List MCP Server Catalog
+      url: '#list-mcp-server-catalog'
+    - depth: 2
+      title: Get Third-Party MCP Server Details
+      url: '#get-third-party-mcp-server-details'
+    - depth: 2
       title: Create Full Project
       url: '#create-full-project'
     - depth: 2
@@ -283,6 +329,8 @@ _openapi:
       url: '#oauth-authorization-callback'
   structuredData:
     headings:
+      - content: Health check
+        id: health-check
       - content: List Projects
         id: list-projects
       - content: Create Project
@@ -303,26 +351,46 @@ _openapi:
         id: delete-subagent
       - content: Update SubAgent
         id: update-subagent
-      - content: List Agent Relations
-        id: list-agent-relations
-      - content: Create Agent Relation
-        id: create-agent-relation
-      - content: Get Agent Relation
-        id: get-agent-relation
-      - content: Delete Agent Relation
-        id: delete-agent-relation
-      - content: Update Agent Relation
-        id: update-agent-relation
-      - content: List Agent Agent
-        id: list-agent-agent
-      - content: Create Agent Agent
-        id: create-agent-agent
-      - content: Get Agent Agent
-        id: get-agent-agent
-      - content: Delete Agent Agent
-        id: delete-agent-agent
-      - content: Update Agent Agent
-        id: update-agent-agent
+      - content: List Sub Agent Relations
+        id: list-sub-agent-relations
+      - content: Create Sub Agent Relation
+        id: create-sub-agent-relation
+      - content: Get Sub Agent Relation
+        id: get-sub-agent-relation
+      - content: Delete Sub Agent Relation
+        id: delete-sub-agent-relation
+      - content: Update Sub Agent Relation
+        id: update-sub-agent-relation
+      - content: List Sub Agent External Agent Relations
+        id: list-sub-agent-external-agent-relations
+      - content: Create Sub Agent External Agent Relation
+        id: create-sub-agent-external-agent-relation
+      - content: Get Sub Agent External Agent Relation
+        id: get-sub-agent-external-agent-relation
+      - content: Delete Sub Agent External Agent Relation
+        id: delete-sub-agent-external-agent-relation
+      - content: Update Sub Agent External Agent Relation
+        id: update-sub-agent-external-agent-relation
+      - content: List Sub Agent Team Agent Relations
+        id: list-sub-agent-team-agent-relations
+      - content: Create Sub Agent Team Agent Relation
+        id: create-sub-agent-team-agent-relation
+      - content: Get Sub Agent Team Agent Relation
+        id: get-sub-agent-team-agent-relation
+      - content: Delete Sub Agent Team Agent Relation
+        id: delete-sub-agent-team-agent-relation
+      - content: Update Sub Agent Team Agent Relation
+        id: update-sub-agent-team-agent-relation
+      - content: List Agents
+        id: list-agents
+      - content: Create Agent
+        id: create-agent
+      - content: Get Agent
+        id: get-agent
+      - content: Delete Agent
+        id: delete-agent
+      - content: Update Agent
+        id: update-agent
       - content: Get Related Agent Infos
         id: get-related-agent-infos
       - content: Get Full Agent Definition
@@ -389,6 +457,10 @@ _openapi:
         id: delete-credential
       - content: Update Credential
         id: update-credential
+      - content: List Credential Stores
+        id: list-credential-stores
+      - content: Create Credential in Store
+        id: create-credential-in-store
       - content: List Data Components
         id: list-data-components
       - content: Create Data Component
@@ -457,6 +529,10 @@ _openapi:
         id: delete-full-agent
       - content: Update Full Agent
         id: update-full-agent
+      - content: List MCP Server Catalog
+        id: list-mcp-server-catalog
+      - content: Get Third-Party MCP Server Details
+        id: get-third-party-mcp-server-details
       - content: Create Full Project
         id: create-full-project
       - content: Get Full Project
@@ -471,6 +547,13 @@ _openapi:
         id: oauth-authorization-callback
     contents:
       - content: Check if the management service is healthy
+        heading: health-check
+      - content: Get all organizations associated with a user
+        heading: health-check
+      - content: Associate a user with an organization
+        heading: health-check
+      - content: Get all pending (non-expired) invitations for a given email address
+        heading: health-check
       - content: List all projects within a tenant with pagination
         heading: list-projects
       - content: Create a new project
@@ -510,6 +593,14 @@ _openapi:
           relationships from JSON definition
         heading: update-full-agent
       - content: >-
+          Get a list of available prebuilt MCP servers. If COMPOSIO_API_KEY is
+          configured, also includes Composio servers for the tenant/project.
+        heading: list-mcp-server-catalog
+      - content: >-
+          Fetch details for a specific third-party MCP server (e.g., Composio)
+          including authentication status and connect URL
+        heading: get-third-party-mcp-server-details
+      - content: >-
           Create a complete project with all Agents, Sub Agents, tools, and
           relationships from JSON definition
         heading: create-full-project
@@ -540,4 +631,4 @@ icon: LuDatabaseZap
 
 REST API for the management of the Inkeep Agent Framework.
 
-<APIPage document={"./src/lib/index.json"} operations={[{"path":"/health","method":"get"},{"path":"/tenants/{tenantId}/projects","method":"get"},{"path":"/tenants/{tenantId}/projects","method":"post"},{"path":"/tenants/{tenantId}/projects/{id}","method":"get"},{"path":"/tenants/{tenantId}/projects/{id}","method":"patch"},{"path":"/tenants/{tenantId}/projects/{id}","method":"delete"},{"path":"/tenants/{tenantId}/projects/{projectId}/agents/{agentId}/sub-agents","method":"get"},{"path":"/tenants/{tenantId}/projects/{projectId}/agents/{agentId}/sub-agents","method":"post"},{"path":"/tenants/{tenantId}/projects/{projectId}/agents/{agentId}/sub-agents/{id}","method":"get"},{"path":"/tenants/{tenantId}/projects/{projectId}/agents/{agentId}/sub-agents/{id}","method":"delete"},{"path":"/tenants/{tenantId}/projects/{projectId}/agents/{agentId}/sub-agents/{id}","method":"put"},{"path":"/tenants/{tenantId}/projects/{projectId}/agents/{agentId}/sub-agent-relations","method":"get"},{"path":"/tenants/{tenantId}/projects/{projectId}/agents/{agentId}/sub-agent-relations","method":"post"},{"path":"/tenants/{tenantId}/projects/{projectId}/agents/{agentId}/sub-agent-relations/{id}","method":"get"},{"path":"/tenants/{tenantId}/projects/{projectId}/agents/{agentId}/sub-agent-relations/{id}","method":"delete"},{"path":"/tenants/{tenantId}/projects/{projectId}/agents/{agentId}/sub-agent-relations/{id}","method":"put"},{"path":"/tenants/{tenantId}/projects/{projectId}/agents","method":"get"},{"path":"/tenants/{tenantId}/projects/{projectId}/agents","method":"post"},{"path":"/tenants/{tenantId}/projects/{projectId}/agents/{id}","method":"get"},{"path":"/tenants/{tenantId}/projects/{projectId}/agents/{id}","method":"delete"},{"path":"/tenants/{tenantId}/projects/{projectId}/agents/{id}","method":"put"},{"path":"/tenants/{tenantId}/projects/{projectId}/agents/{agentId}/sub-agents/{subAgentId}/related","method":"get"},{"path":"/tenants/{tenantId}/projects/{projectId}/agents/{agentId}/full","method":"get"},{"path":"/tenants/{tenantId}/projects/{projectId}/agents/{agentId}/sub-agent-tool-relations","method":"get"},{"path":"/tenants/{tenantId}/projects/{projectId}/agents/{agentId}/sub-agent-tool-relations","method":"post"},{"path":"/tenants/{tenantId}/projects/{projectId}/agents/{agentId}/sub-agent-tool-relations/{id}","method":"get"},{"path":"/tenants/{tenantId}/projects/{projectId}/agents/{agentId}/sub-agent-tool-relations/{id}","method":"delete"},{"path":"/tenants/{tenantId}/projects/{projectId}/agents/{agentId}/sub-agent-tool-relations/{id}","method":"put"},{"path":"/tenants/{tenantId}/projects/{projectId}/agents/{agentId}/sub-agent-tool-relations/tool/{toolId}/sub-agents","method":"get"},{"path":"/tenants/{tenantId}/projects/{projectId}/agents/{agentId}/sub-agent-artifact-components/agent/:subAgentId","method":"get"},{"path":"/tenants/{tenantId}/projects/{projectId}/agents/{agentId}/sub-agent-artifact-components/component/:artifactComponentId/agents","method":"get"},{"path":"/tenants/{tenantId}/projects/{projectId}/agents/{agentId}/sub-agent-artifact-components","method":"post"},{"path":"/tenants/{tenantId}/projects/{projectId}/agents/{agentId}/sub-agent-artifact-components/agent/:subAgentId/component/:artifactComponentId","method":"delete"},{"path":"/tenants/{tenantId}/projects/{projectId}/agents/{agentId}/sub-agent-artifact-components/agent/:subAgentId/component/:artifactComponentId/exists","method":"get"},{"path":"/tenants/{tenantId}/projects/{projectId}/agents/{agentId}/sub-agent-data-components/agent/:subAgentId","method":"get"},{"path":"/tenants/{tenantId}/projects/{projectId}/agents/{agentId}/sub-agent-data-components/component/:dataComponentId/agents","method":"get"},{"path":"/tenants/{tenantId}/projects/{projectId}/agents/{agentId}/sub-agent-data-components","method":"post"},{"path":"/tenants/{tenantId}/projects/{projectId}/agents/{agentId}/sub-agent-data-components/agent/:subAgentId/component/:dataComponentId","method":"delete"},{"path":"/tenants/{tenantId}/projects/{projectId}/agents/{agentId}/sub-agent-data-components/agent/:subAgentId/component/:dataComponentId/exists","method":"get"},{"path":"/tenants/{tenantId}/projects/{projectId}/artifact-components","method":"get"},{"path":"/tenants/{tenantId}/projects/{projectId}/artifact-components","method":"post"},{"path":"/tenants/{tenantId}/projects/{projectId}/artifact-components/{id}","method":"get"},{"path":"/tenants/{tenantId}/projects/{projectId}/artifact-components/{id}","method":"delete"},{"path":"/tenants/{tenantId}/projects/{projectId}/artifact-components/{id}","method":"put"},{"path":"/tenants/{tenantId}/projects/{projectId}/agents/{agentId}/context-configs","method":"get"},{"path":"/tenants/{tenantId}/projects/{projectId}/agents/{agentId}/context-configs","method":"post"},{"path":"/tenants/{tenantId}/projects/{projectId}/agents/{agentId}/context-configs/{id}","method":"get"},{"path":"/tenants/{tenantId}/projects/{projectId}/agents/{agentId}/context-configs/{id}","method":"delete"},{"path":"/tenants/{tenantId}/projects/{projectId}/agents/{agentId}/context-configs/{id}","method":"put"},{"path":"/tenants/{tenantId}/projects/{projectId}/credentials","method":"get"},{"path":"/tenants/{tenantId}/projects/{projectId}/credentials","method":"post"},{"path":"/tenants/{tenantId}/projects/{projectId}/credentials/{id}","method":"get"},{"path":"/tenants/{tenantId}/projects/{projectId}/credentials/{id}","method":"delete"},{"path":"/tenants/{tenantId}/projects/{projectId}/credentials/{id}","method":"put"},{"path":"/tenants/{tenantId}/projects/{projectId}/data-components","method":"get"},{"path":"/tenants/{tenantId}/projects/{projectId}/data-components","method":"post"},{"path":"/tenants/{tenantId}/projects/{projectId}/data-components/{id}","method":"get"},{"path":"/tenants/{tenantId}/projects/{projectId}/data-components/{id}","method":"delete"},{"path":"/tenants/{tenantId}/projects/{projectId}/data-components/{id}","method":"put"},{"path":"/tenants/{tenantId}/projects/{projectId}/agents/{agentId}/external-agents","method":"get"},{"path":"/tenants/{tenantId}/projects/{projectId}/agents/{agentId}/external-agents","method":"post"},{"path":"/tenants/{tenantId}/projects/{projectId}/agents/{agentId}/external-agents/{id}","method":"get"},{"path":"/tenants/{tenantId}/projects/{projectId}/agents/{agentId}/external-agents/{id}","method":"delete"},{"path":"/tenants/{tenantId}/projects/{projectId}/agents/{agentId}/external-agents/{id}","method":"put"},{"path":"/tenants/{tenantId}/projects/{projectId}/agents/{agentId}/function-tools","method":"get"},{"path":"/tenants/{tenantId}/projects/{projectId}/agents/{agentId}/function-tools","method":"post"},{"path":"/tenants/{tenantId}/projects/{projectId}/agents/{agentId}/function-tools/:id","method":"get"},{"path":"/tenants/{tenantId}/projects/{projectId}/agents/{agentId}/function-tools/:id","method":"delete"},{"path":"/tenants/{tenantId}/projects/{projectId}/agents/{agentId}/function-tools/:id","method":"put"},{"path":"/tenants/{tenantId}/projects/{projectId}/functions","method":"get"},{"path":"/tenants/{tenantId}/projects/{projectId}/functions","method":"post"},{"path":"/tenants/{tenantId}/projects/{projectId}/functions/{id}","method":"get"},{"path":"/tenants/{tenantId}/projects/{projectId}/functions/{id}","method":"delete"},{"path":"/tenants/{tenantId}/projects/{projectId}/functions/{id}","method":"put"},{"path":"/tenants/{tenantId}/projects/{projectId}/tools","method":"get"},{"path":"/tenants/{tenantId}/projects/{projectId}/tools","method":"post"},{"path":"/tenants/{tenantId}/projects/{projectId}/tools/{id}","method":"get"},{"path":"/tenants/{tenantId}/projects/{projectId}/tools/{id}","method":"delete"},{"path":"/tenants/{tenantId}/projects/{projectId}/tools/{id}","method":"put"},{"path":"/tenants/{tenantId}/projects/{projectId}/api-keys","method":"get"},{"path":"/tenants/{tenantId}/projects/{projectId}/api-keys","method":"post"},{"path":"/tenants/{tenantId}/projects/{projectId}/api-keys/{id}","method":"get"},{"path":"/tenants/{tenantId}/projects/{projectId}/api-keys/{id}","method":"delete"},{"path":"/tenants/{tenantId}/projects/{projectId}/api-keys/{id}","method":"put"},{"path":"/tenants/{tenantId}/projects/{projectId}/agent","method":"post"},{"path":"/tenants/{tenantId}/projects/{projectId}/agent/{agentId}","method":"get"},{"path":"/tenants/{tenantId}/projects/{projectId}/agent/{agentId}","method":"delete"},{"path":"/tenants/{tenantId}/projects/{projectId}/agent/{agentId}","method":"put"},{"path":"/tenants/{tenantId}/project-full","method":"post"},{"path":"/tenants/{tenantId}/project-full/{projectId}","method":"get"},{"path":"/tenants/{tenantId}/project-full/{projectId}","method":"delete"},{"path":"/tenants/{tenantId}/project-full/{projectId}","method":"put"},{"path":"/oauth/login","method":"get"},{"path":"/oauth/callback","method":"get"}]} webhooks={[]} hasHead={true} />
+<APIPage document={"index"} operations={[{"path":"/health","method":"get"},{"path":"/api/users/{userId}/organizations","method":"get"},{"path":"/api/users/{userId}/organizations","method":"post"},{"path":"/api/invitations/pending","method":"get"},{"path":"/tenants/{tenantId}/projects","method":"get"},{"path":"/tenants/{tenantId}/projects","method":"post"},{"path":"/tenants/{tenantId}/projects/{id}","method":"get"},{"path":"/tenants/{tenantId}/projects/{id}","method":"patch"},{"path":"/tenants/{tenantId}/projects/{id}","method":"delete"},{"path":"/tenants/{tenantId}/projects/{projectId}/agents/{agentId}/sub-agents","method":"get"},{"path":"/tenants/{tenantId}/projects/{projectId}/agents/{agentId}/sub-agents","method":"post"},{"path":"/tenants/{tenantId}/projects/{projectId}/agents/{agentId}/sub-agents/{id}","method":"get"},{"path":"/tenants/{tenantId}/projects/{projectId}/agents/{agentId}/sub-agents/{id}","method":"delete"},{"path":"/tenants/{tenantId}/projects/{projectId}/agents/{agentId}/sub-agents/{id}","method":"put"},{"path":"/tenants/{tenantId}/projects/{projectId}/agents/{agentId}/sub-agent-relations","method":"get"},{"path":"/tenants/{tenantId}/projects/{projectId}/agents/{agentId}/sub-agent-relations","method":"post"},{"path":"/tenants/{tenantId}/projects/{projectId}/agents/{agentId}/sub-agent-relations/{id}","method":"get"},{"path":"/tenants/{tenantId}/projects/{projectId}/agents/{agentId}/sub-agent-relations/{id}","method":"delete"},{"path":"/tenants/{tenantId}/projects/{projectId}/agents/{agentId}/sub-agent-relations/{id}","method":"put"},{"path":"/tenants/{tenantId}/projects/{projectId}/agents/{agentId}/sub-agents/{subAgentId}/external-agent-relations","method":"get"},{"path":"/tenants/{tenantId}/projects/{projectId}/agents/{agentId}/sub-agents/{subAgentId}/external-agent-relations","method":"post"},{"path":"/tenants/{tenantId}/projects/{projectId}/agents/{agentId}/sub-agents/{subAgentId}/external-agent-relations/{id}","method":"get"},{"path":"/tenants/{tenantId}/projects/{projectId}/agents/{agentId}/sub-agents/{subAgentId}/external-agent-relations/{id}","method":"delete"},{"path":"/tenants/{tenantId}/projects/{projectId}/agents/{agentId}/sub-agents/{subAgentId}/external-agent-relations/{id}","method":"put"},{"path":"/tenants/{tenantId}/projects/{projectId}/agents/{agentId}/sub-agents/{subAgentId}/team-agent-relations","method":"get"},{"path":"/tenants/{tenantId}/projects/{projectId}/agents/{agentId}/sub-agents/{subAgentId}/team-agent-relations","method":"post"},{"path":"/tenants/{tenantId}/projects/{projectId}/agents/{agentId}/sub-agents/{subAgentId}/team-agent-relations/{id}","method":"get"},{"path":"/tenants/{tenantId}/projects/{projectId}/agents/{agentId}/sub-agents/{subAgentId}/team-agent-relations/{id}","method":"delete"},{"path":"/tenants/{tenantId}/projects/{projectId}/agents/{agentId}/sub-agents/{subAgentId}/team-agent-relations/{id}","method":"put"},{"path":"/tenants/{tenantId}/projects/{projectId}/agents","method":"get"},{"path":"/tenants/{tenantId}/projects/{projectId}/agents","method":"post"},{"path":"/tenants/{tenantId}/projects/{projectId}/agents/{id}","method":"get"},{"path":"/tenants/{tenantId}/projects/{projectId}/agents/{id}","method":"delete"},{"path":"/tenants/{tenantId}/projects/{projectId}/agents/{id}","method":"put"},{"path":"/tenants/{tenantId}/projects/{projectId}/agents/{agentId}/sub-agents/{subAgentId}/related","method":"get"},{"path":"/tenants/{tenantId}/projects/{projectId}/agents/{agentId}/full","method":"get"},{"path":"/tenants/{tenantId}/projects/{projectId}/agents/{agentId}/sub-agent-tool-relations","method":"get"},{"path":"/tenants/{tenantId}/projects/{projectId}/agents/{agentId}/sub-agent-tool-relations","method":"post"},{"path":"/tenants/{tenantId}/projects/{projectId}/agents/{agentId}/sub-agent-tool-relations/{id}","method":"get"},{"path":"/tenants/{tenantId}/projects/{projectId}/agents/{agentId}/sub-agent-tool-relations/{id}","method":"delete"},{"path":"/tenants/{tenantId}/projects/{projectId}/agents/{agentId}/sub-agent-tool-relations/{id}","method":"put"},{"path":"/tenants/{tenantId}/projects/{projectId}/agents/{agentId}/sub-agent-tool-relations/tool/{toolId}/sub-agents","method":"get"},{"path":"/tenants/{tenantId}/projects/{projectId}/agents/{agentId}/sub-agent-artifact-components/agent/{subAgentId}","method":"get"},{"path":"/tenants/{tenantId}/projects/{projectId}/agents/{agentId}/sub-agent-artifact-components/component/{artifactComponentId}/agents","method":"get"},{"path":"/tenants/{tenantId}/projects/{projectId}/agents/{agentId}/sub-agent-artifact-components","method":"post"},{"path":"/tenants/{tenantId}/projects/{projectId}/agents/{agentId}/sub-agent-artifact-components/agent/{subAgentId}/component/{artifactComponentId}","method":"delete"},{"path":"/tenants/{tenantId}/projects/{projectId}/agents/{agentId}/sub-agent-artifact-components/agent/{subAgentId}/component/{artifactComponentId}/exists","method":"get"},{"path":"/tenants/{tenantId}/projects/{projectId}/agents/{agentId}/sub-agent-data-components/agent/{subAgentId}","method":"get"},{"path":"/tenants/{tenantId}/projects/{projectId}/agents/{agentId}/sub-agent-data-components/component/{dataComponentId}/agents","method":"get"},{"path":"/tenants/{tenantId}/projects/{projectId}/agents/{agentId}/sub-agent-data-components","method":"post"},{"path":"/tenants/{tenantId}/projects/{projectId}/agents/{agentId}/sub-agent-data-components/agent/{subAgentId}/component/{dataComponentId}","method":"delete"},{"path":"/tenants/{tenantId}/projects/{projectId}/agents/{agentId}/sub-agent-data-components/agent/{subAgentId}/component/{dataComponentId}/exists","method":"get"},{"path":"/tenants/{tenantId}/projects/{projectId}/artifact-components","method":"get"},{"path":"/tenants/{tenantId}/projects/{projectId}/artifact-components","method":"post"},{"path":"/tenants/{tenantId}/projects/{projectId}/artifact-components/{id}","method":"get"},{"path":"/tenants/{tenantId}/projects/{projectId}/artifact-components/{id}","method":"delete"},{"path":"/tenants/{tenantId}/projects/{projectId}/artifact-components/{id}","method":"put"},{"path":"/tenants/{tenantId}/projects/{projectId}/agents/{agentId}/context-configs","method":"get"},{"path":"/tenants/{tenantId}/projects/{projectId}/agents/{agentId}/context-configs","method":"post"},{"path":"/tenants/{tenantId}/projects/{projectId}/agents/{agentId}/context-configs/{id}","method":"get"},{"path":"/tenants/{tenantId}/projects/{projectId}/agents/{agentId}/context-configs/{id}","method":"delete"},{"path":"/tenants/{tenantId}/projects/{projectId}/agents/{agentId}/context-configs/{id}","method":"put"},{"path":"/tenants/{tenantId}/projects/{projectId}/credentials","method":"get"},{"path":"/tenants/{tenantId}/projects/{projectId}/credentials","method":"post"},{"path":"/tenants/{tenantId}/projects/{projectId}/credentials/{id}","method":"get"},{"path":"/tenants/{tenantId}/projects/{projectId}/credentials/{id}","method":"delete"},{"path":"/tenants/{tenantId}/projects/{projectId}/credentials/{id}","method":"put"},{"path":"/tenants/{tenantId}/projects/{projectId}/credential-stores","method":"get"},{"path":"/tenants/{tenantId}/projects/{projectId}/credential-stores/{id}/credentials","method":"post"},{"path":"/tenants/{tenantId}/projects/{projectId}/data-components","method":"get"},{"path":"/tenants/{tenantId}/projects/{projectId}/data-components","method":"post"},{"path":"/tenants/{tenantId}/projects/{projectId}/data-components/{id}","method":"get"},{"path":"/tenants/{tenantId}/projects/{projectId}/data-components/{id}","method":"delete"},{"path":"/tenants/{tenantId}/projects/{projectId}/data-components/{id}","method":"put"},{"path":"/tenants/{tenantId}/projects/{projectId}/external-agents","method":"get"},{"path":"/tenants/{tenantId}/projects/{projectId}/external-agents","method":"post"},{"path":"/tenants/{tenantId}/projects/{projectId}/external-agents/{id}","method":"get"},{"path":"/tenants/{tenantId}/projects/{projectId}/external-agents/{id}","method":"delete"},{"path":"/tenants/{tenantId}/projects/{projectId}/external-agents/{id}","method":"put"},{"path":"/tenants/{tenantId}/projects/{projectId}/agents/{agentId}/function-tools","method":"get"},{"path":"/tenants/{tenantId}/projects/{projectId}/agents/{agentId}/function-tools","method":"post"},{"path":"/tenants/{tenantId}/projects/{projectId}/agents/{agentId}/function-tools/{id}","method":"get"},{"path":"/tenants/{tenantId}/projects/{projectId}/agents/{agentId}/function-tools/{id}","method":"delete"},{"path":"/tenants/{tenantId}/projects/{projectId}/agents/{agentId}/function-tools/{id}","method":"put"},{"path":"/tenants/{tenantId}/projects/{projectId}/functions","method":"get"},{"path":"/tenants/{tenantId}/projects/{projectId}/functions","method":"post"},{"path":"/tenants/{tenantId}/projects/{projectId}/functions/{id}","method":"get"},{"path":"/tenants/{tenantId}/projects/{projectId}/functions/{id}","method":"delete"},{"path":"/tenants/{tenantId}/projects/{projectId}/functions/{id}","method":"put"},{"path":"/tenants/{tenantId}/projects/{projectId}/tools","method":"get"},{"path":"/tenants/{tenantId}/projects/{projectId}/tools","method":"post"},{"path":"/tenants/{tenantId}/projects/{projectId}/tools/{id}","method":"get"},{"path":"/tenants/{tenantId}/projects/{projectId}/tools/{id}","method":"delete"},{"path":"/tenants/{tenantId}/projects/{projectId}/tools/{id}","method":"put"},{"path":"/tenants/{tenantId}/projects/{projectId}/api-keys","method":"get"},{"path":"/tenants/{tenantId}/projects/{projectId}/api-keys","method":"post"},{"path":"/tenants/{tenantId}/projects/{projectId}/api-keys/{id}","method":"get"},{"path":"/tenants/{tenantId}/projects/{projectId}/api-keys/{id}","method":"delete"},{"path":"/tenants/{tenantId}/projects/{projectId}/api-keys/{id}","method":"put"},{"path":"/tenants/{tenantId}/projects/{projectId}/agent","method":"post"},{"path":"/tenants/{tenantId}/projects/{projectId}/agent/{agentId}","method":"get"},{"path":"/tenants/{tenantId}/projects/{projectId}/agent/{agentId}","method":"delete"},{"path":"/tenants/{tenantId}/projects/{projectId}/agent/{agentId}","method":"put"},{"path":"/tenants/{tenantId}/projects/{projectId}/mcp-catalog","method":"get"},{"path":"/tenants/{tenantId}/projects/{projectId}/third-party-mcp-servers","method":"post"},{"path":"/tenants/{tenantId}/project-full","method":"post"},{"path":"/tenants/{tenantId}/project-full/{projectId}","method":"get"},{"path":"/tenants/{tenantId}/project-full/{projectId}","method":"delete"},{"path":"/tenants/{tenantId}/project-full/{projectId}","method":"put"},{"path":"/oauth/login","method":"get"},{"path":"/oauth/callback","method":"get"}]} webhooks={[]} hasHead={true} />
