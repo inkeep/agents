@@ -4,15 +4,21 @@ import { Loader2 } from 'lucide-react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { Suspense, useEffect, useState } from 'react';
 import { useRuntimeConfig } from '@/contexts/runtime-config-context';
-import { useAuthSession } from '@/hooks/use-auth';
 import { getPendingInvitations } from '@/lib/actions/invitations';
 import { getUserOrganizations } from '@/lib/actions/user-organizations';
+import { useAuthClient } from '@/lib/auth-client';
 import { DEFAULT_TENANT_ID } from '@/lib/runtime-config/defaults';
 
 function HomeContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const { user, session, isLoading } = useAuthSession();
+  const authClient = useAuthClient();
+  const session = authClient.useSession();
+
+  const user = session.data?.user;
+  const isLoading = session.isPending;
+  const activeOrganizationId = session.data?.session?.activeOrganizationId;
+  
   const [isRedirecting, setIsRedirecting] = useState(false);
   const { PUBLIC_DISABLE_AUTH } = useRuntimeConfig();
 
@@ -71,8 +77,8 @@ function HomeContent() {
         // Determine which organization to use
         let organizationId = tenantId;
 
-        if (session?.activeOrganizationId) {
-          organizationId = session.activeOrganizationId;
+        if (activeOrganizationId) {
+          organizationId = activeOrganizationId;
         } else if (userOrganizations.length > 0) {
           organizationId = userOrganizations[0].organizationId;
         }
@@ -88,7 +94,7 @@ function HomeContent() {
     }
 
     handleRedirect();
-  }, [user, session, isLoading, isRedirecting, tenantId, searchParams, router, PUBLIC_DISABLE_AUTH]);
+  }, [user, isLoading, activeOrganizationId, isRedirecting, tenantId, searchParams, router, PUBLIC_DISABLE_AUTH]);
 
   return (
     <div className="flex items-center justify-center h-full">

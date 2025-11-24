@@ -5,15 +5,17 @@ import { useParams, useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { useAuthSession } from '@/hooks/use-auth';
 import { useAuthClient } from '@/lib/auth-client';
 
 export default function AcceptInvitationPage() {
   const params = useParams();
   const router = useRouter();
-  const { user, isLoading: isAuthLoading } = useAuthSession();
-  const invitationId = params.invitationId as string;
   const authClient = useAuthClient();
+  const session = authClient.useSession();
+  const invitationId = params.invitationId as string;
+  
+  const user = session.data?.user;
+  const isAuthLoading = session.isPending;
 
   const [invitation, setInvitation] = useState<any>(null);
   const [isLoading, setIsLoading] = useState(true);
