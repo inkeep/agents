@@ -1,7 +1,5 @@
 import { relations } from 'drizzle-orm';
 import {
-  boolean,
-  doublePrecision,
   foreignKey,
   index,
   integer,
@@ -19,7 +17,6 @@ import type {
   ContextFetchDefinition,
   ConversationHistoryConfig,
   ConversationMetadata,
-  Filter,
   MessageContent,
   MessageMetadata,
   Models,
@@ -29,12 +26,7 @@ import type {
   ToolMcpConfig,
   ToolServerCapabilities,
 } from '../types/utility';
-import type {
-  AgentStopWhen,
-  ModelSettings,
-  StopWhen,
-  SubAgentStopWhen,
-} from '../validation/schemas';
+import type { AgentStopWhen, StopWhen, SubAgentStopWhen } from '../validation/schemas';
 
 // Re-export Better Auth generated tables
 export {
