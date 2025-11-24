@@ -1,1 +1,0 @@
-{"version":3,"file":"agentArtifactComponentRelationsRemoveArtifactComponentFromAgent.d.ts","sourceRoot":"","sources":["../../../src/mcp-server/tools/agentArtifactComponentRelationsRemoveArtifactComponentFromAgent.ts"],"names":[],"mappings":"AAMA,OAAO,EAAgB,cAAc,EAAE,MAAM,aAAa,CAAC;AAE3D,QAAA,MAAM,IAAI;;CAET,CAAC;AAEF,eAAO,MAAM,oEAAoE,EAAE,cAAc,CAC/F,OAAO,IAAI,CA8BZ,CAAC"}

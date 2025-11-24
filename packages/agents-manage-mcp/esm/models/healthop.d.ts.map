@@ -1,1 +1,0 @@
-{"version":3,"file":"healthop.d.ts","sourceRoot":"","sources":["../../src/models/healthop.ts"],"names":[],"mappings":"AAIA,OAAO,KAAK,CAAC,MAAM,KAAK,CAAC;AAEzB,MAAM,MAAM,cAAc,GAAG;IAC3B,WAAW,EAAE,MAAM,CAAC;IACpB,UAAU,EAAE,MAAM,CAAC;IACnB,WAAW,EAAE,QAAQ,CAAC;CACvB,CAAC;AAEF,eAAO,MAAM,wBAAwB,EAAE,CAAC,CAAC,OAAO,CAAC,cAAc,EAAE,CAAC,CAAC,UAAU,EAAE,OAAO,CAIpF,CAAC"}

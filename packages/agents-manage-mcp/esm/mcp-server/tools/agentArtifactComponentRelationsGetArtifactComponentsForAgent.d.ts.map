@@ -1,1 +1,0 @@
-{"version":3,"file":"agentArtifactComponentRelationsGetArtifactComponentsForAgent.d.ts","sourceRoot":"","sources":["../../../src/mcp-server/tools/agentArtifactComponentRelationsGetArtifactComponentsForAgent.ts"],"names":[],"mappings":"AAMA,OAAO,EAAgB,cAAc,EAAE,MAAM,aAAa,CAAC;AAE3D,QAAA,MAAM,IAAI;;CAET,CAAC;AAEF,eAAO,MAAM,iEAAiE,EAAE,cAAc,CAC5F,OAAO,IAAI,CA8BZ,CAAC"}
