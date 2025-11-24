@@ -51,7 +51,7 @@ export default async function Page(props: PageProps<'/[[...slug]]'>) {
       {page.data.description && (
         <div>
           <Markdown
-            text={page.data.description ?? ''}
+            text={page.data.description}
             components={{
               p: (props) => <p {...props} className="text-lg text-fd-muted-foreground" />,
             }}
