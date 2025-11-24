@@ -1,5 +1,11 @@
 # @inkeep/agents-core
 
+## 0.36.1
+
+### Patch Changes
+
+- 1235b18: improve cors policy
+
 ## 0.36.0
 
 ## 0.35.12
