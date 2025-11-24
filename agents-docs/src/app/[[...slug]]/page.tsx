@@ -21,6 +21,7 @@ export default async function Page(props: PageProps<'/[[...slug]]'>) {
   }
 
   const MDXContent = page.data.body;
+  const tocEnabled = page.data.toc.length > 0;
 
   return (
     <DocsPage
@@ -28,7 +29,7 @@ export default async function Page(props: PageProps<'/[[...slug]]'>) {
       full={page.data.full}
       tableOfContent={{
         style: 'clerk',
-        enabled: page.data.toc.length > 0,
+        enabled: tocEnabled,
       }}
       breadcrumb={{
         component: <Breadcrumb tree={source.pageTree} />,
@@ -38,6 +39,7 @@ export default async function Page(props: PageProps<'/[[...slug]]'>) {
       }}
       container={{
         className: 'lg:pt-0! [&>#nd-toc]:!pt-6 [&>#nd-toc]:pb-4 h-full min-h-0',
+        style: tocEnabled ? undefined : { '--fd-toc-width': 0 },
       }}
     >
       <div className="flex items-center justify-between">

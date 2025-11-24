@@ -6,21 +6,6 @@ async function checkLinks() {
   const docsFiles = await readFiles('content/docs/**/*.{md,mdx}');
 
   // Build valid URLs manually from the slugs
-  const validUrls: Record<string, true> = {};
-
-  docsFiles.forEach((file) => {
-    const slugs = getSlugs(file.path);
-    const url = `/${slugs.join('/')}`;
-    validUrls[url] = true;
-
-    const hashes = getTableOfContents(file.content).map((item) => item.url.slice(1));
-    hashes.forEach((hash) => {
-      if (hash) {
-        validUrls[`${url}#${hash}`] = true;
-      }
-    });
-  });
-
   const scanned = await scanURLs({
     populate: {
       '[[...slug]]': docsFiles.map((file) => {
@@ -31,13 +16,6 @@ async function checkLinks() {
       }),
     },
   });
-
-  // Merge our manually built URLs with the scanned ones
-  if (scanned.urls) {
-    Object.assign(scanned.urls, validUrls);
-  } else {
-    scanned.urls = validUrls;
-  }
 
   const standardErrors = await validateFiles([...docsFiles], {
     scanned,
