@@ -38,17 +38,22 @@ function isOriginAllowed(origin: string | undefined): origin is string {
   try {
     const requestUrl = new URL(origin);
     const authUrl = new URL(env.INKEEP_AGENTS_MANAGE_API_URL || 'http://localhost:3002');
+    const uiUrl = env.INKEEP_AGENTS_MANAGE_UI_URL
+      ? new URL(env.INKEEP_AGENTS_MANAGE_UI_URL)
+      : null;
 
     // Development: allow any localhost
     if (authUrl.hostname === 'localhost' || authUrl.hostname === '127.0.0.1') {
       return requestUrl.hostname === 'localhost' || requestUrl.hostname === '127.0.0.1';
     }
 
-    // Production: allow same base domain and subdomains
-    const baseDomain = authUrl.hostname.replace(/^api\./, ''); // Remove 'api.' prefix if present
-    return requestUrl.hostname === baseDomain || requestUrl.hostname.endsWith(`.${baseDomain}`);
+    // Allow the specific UI URL if configured
+    if (uiUrl && requestUrl.hostname === uiUrl.hostname) {
+      return true;
+    }
+
+    return false;
   } catch {
-    // Invalid URL
     return false;
   }
 }
@@ -56,6 +61,7 @@ function isOriginAllowed(origin: string | undefined): origin is string {
 export type AppVariables = {
   serverConfig: ServerConfig;
   credentialStores: CredentialStoreRegistry;
+  auth: ReturnType<typeof createAuth> | null;
   user: typeof authForTypes.$Infer.Session.user | null;
   session: typeof authForTypes.$Infer.Session.session | null;
   userId?: string;
@@ -74,10 +80,11 @@ function createManagementHono(
   // Request ID middleware
   app.use('*', requestId());
 
-  // Server config and credential stores middleware
+  // Server config, credential stores, and auth middleware
   app.use('*', async (c, next) => {
     c.set('serverConfig', serverConfig);
     c.set('credentialStores', credentialStores);
+    c.set('auth', auth);
     return next();
   });
 

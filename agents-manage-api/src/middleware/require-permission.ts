@@ -1,8 +1,8 @@
 import { createApiError } from '@inkeep/agents-core';
+import type { createAuth } from '@inkeep/agents-core/auth';
 import { createMiddleware } from 'hono/factory';
 import { HTTPException } from 'hono/http-exception';
 import { env } from '../env';
-import { auth } from '../index';
 
 type Permission = {
   [resource: string]: string | string[];
@@ -10,6 +10,7 @@ type Permission = {
 
 type MinimalAuthVariables = {
   Variables: {
+    auth: ReturnType<typeof createAuth> | null;
     userId: string;
     userEmail: string;
     tenantId: string;
@@ -23,7 +24,13 @@ export const requirePermission = <Env extends MinimalAuthVariables = MinimalAuth
   createMiddleware<Env>(async (c, next) => {
     // Use process.env directly to support test environment variables set after module load
     const isTestEnvironment = process.env.ENVIRONMENT === 'test';
+<<<<<<< HEAD
 
+=======
+    
+    const auth = c.get('auth');
+    
+>>>>>>> main
     if (env.DISABLE_AUTH || isTestEnvironment || !auth) {
       await next();
       return;
@@ -42,8 +49,7 @@ export const requirePermission = <Env extends MinimalAuthVariables = MinimalAuth
     try {
       // Type assertion needed due to better-auth's complex type inference
       // hasPermission is provided by the organization plugin
-      // https://www.better-auth.com/docs/plugins/organization#access-control-usage
-      const result = await (auth.api as any).hasPermission({
+      const result = await auth.api.hasPermission({
         body: {
           permissions,
           organizationId: tenantId,

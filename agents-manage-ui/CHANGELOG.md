@@ -1,5 +1,108 @@
 # @inkeep/agents-manage-ui
 
+## 0.36.1
+
+### Patch Changes
+
+- 1235b18: improve cors policy
+- Updated dependencies [1235b18]
+  - @inkeep/agents-core@0.36.1
+  - @inkeep/agents-manage-api@0.36.1
+  - @inkeep/agents-run-api@0.36.1
+
+## 0.36.0
+
+### Minor Changes
+
+- 7f0f13a: 1. Add persistence in localStorage for the sidebar open state.
+
+  2. Make the `project switcher`, `Next.js DevTools logo`, and `breadcrumbs` elements to not trigger sidebar expansion.
+
+### Patch Changes
+
+- c59e3db: add cypress test for should create project, navigate to agents page and update project switcher
+- Updated dependencies [604c74c]
+  - @inkeep/agents-manage-api@0.36.0
+  - @inkeep/agents-run-api@0.36.0
+  - @inkeep/agents-core@0.36.0
+
+## 0.35.12
+
+### Patch Changes
+
+- 840ca11: remove clean-package from API packages - was stripping runtime dependencies causing production errors
+- Updated dependencies [840ca11]
+  - @inkeep/agents-core@0.35.12
+  - @inkeep/agents-manage-api@0.35.12
+  - @inkeep/agents-run-api@0.35.12
+
+## 0.35.11
+
+### Patch Changes
+
+- Updated dependencies [287027e]
+  - @inkeep/agents-manage-api@0.35.11
+  - @inkeep/agents-run-api@0.35.11
+  - @inkeep/agents-core@0.35.11
+
+## 0.35.10
+
+### Patch Changes
+
+- 7a7e726: handle next*public* for vercel
+- Updated dependencies [7a7e726]
+  - @inkeep/agents-core@0.35.10
+  - @inkeep/agents-manage-api@0.35.10
+  - @inkeep/agents-run-api@0.35.10
+
+## 0.35.9
+
+### Patch Changes
+
+- Updated dependencies [18c036d]
+  - @inkeep/agents-core@0.35.9
+  - @inkeep/agents-manage-api@0.35.9
+  - @inkeep/agents-run-api@0.35.9
+
+## 0.35.8
+
+### Patch Changes
+
+- 986dad2: update better-auth
+- Updated dependencies [986dad2]
+  - @inkeep/agents-core@0.35.8
+  - @inkeep/agents-manage-api@0.35.8
+  - @inkeep/agents-run-api@0.35.8
+
+## 0.35.7
+
+### Patch Changes
+
+- 8684c97: Make delegation the default relationship
+  - @inkeep/agents-manage-api@0.35.7
+  - @inkeep/agents-run-api@0.35.7
+  - @inkeep/agents-core@0.35.7
+
+## 0.35.6
+
+### Patch Changes
+
+- 31dbacc: handle google sign in
+- Updated dependencies [31dbacc]
+  - @inkeep/agents-core@0.35.6
+  - @inkeep/agents-manage-api@0.35.6
+  - @inkeep/agents-run-api@0.35.6
+
+## 0.35.5
+
+### Patch Changes
+
+- 15b564d: make inkeep mcp and docker optional in the quickstart
+- Updated dependencies [15b564d]
+  - @inkeep/agents-core@0.35.5
+  - @inkeep/agents-manage-api@0.35.5
+  - @inkeep/agents-run-api@0.35.5
+
 ## 0.35.4
 
 ### Patch Changes

@@ -13,5 +13,9 @@ export default defineConfig({
     port: 3002,
     allowedHosts: true,
     strictPort: true,
+    cors: {
+      origin: true,
+      credentials: true,
+    },
   },
 });

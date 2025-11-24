@@ -1,5 +1,53 @@
 # @inkeep/agents-core
 
+## 0.36.1
+
+### Patch Changes
+
+- 1235b18: improve cors policy
+
+## 0.36.0
+
+## 0.35.12
+
+### Patch Changes
+
+- 840ca11: remove clean-package from API packages - was stripping runtime dependencies causing production errors
+
+## 0.35.11
+
+## 0.35.10
+
+### Patch Changes
+
+- 7a7e726: handle next*public* for vercel
+
+## 0.35.9
+
+### Patch Changes
+
+- 18c036d: fix better-auth type
+
+## 0.35.8
+
+### Patch Changes
+
+- 986dad2: update better-auth
+
+## 0.35.7
+
+## 0.35.6
+
+### Patch Changes
+
+- 31dbacc: handle google sign in
+
+## 0.35.5
+
+### Patch Changes
+
+- 15b564d: make inkeep mcp and docker optional in the quickstart
+
 ## 0.35.4
 
 ### Patch Changes

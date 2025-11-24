@@ -4,15 +4,15 @@ import {
   member as memberTable,
   organization as orgTable,
 } from '@inkeep/agents-core';
+import type { createAuth } from '@inkeep/agents-core/auth';
 import { and, eq } from 'drizzle-orm';
 import dbClient from './data/db/dbClient';
 import { env } from './env';
-import { auth } from './index';
 import { getLogger } from './logger';
 
 const logger = getLogger('initialization');
 
-export async function initializeDefaultUser() {
+export async function initializeDefaultUser(authInstance?: ReturnType<typeof createAuth> | null) {
   const { INKEEP_AGENTS_MANAGE_UI_USERNAME, INKEEP_AGENTS_MANAGE_UI_PASSWORD, DISABLE_AUTH } = env;
   const hasCredentials = INKEEP_AGENTS_MANAGE_UI_USERNAME && INKEEP_AGENTS_MANAGE_UI_PASSWORD;
 
@@ -34,7 +34,11 @@ export async function initializeDefaultUser() {
     logger.info({ organizationId: orgId }, 'Organization already exists');
   }
 
+<<<<<<< HEAD
   if (!hasCredentials || DISABLE_AUTH || !auth) {
+=======
+  if (!hasCredentials || DISABLE_AUTH || !authInstance) {
+>>>>>>> main
     logger.info({ hasCredentials: false }, 'Skipping default user creation');
     return;
   }
@@ -54,7 +58,7 @@ export async function initializeDefaultUser() {
         'Creating default user with Better Auth...'
       );
 
-      const result = await auth.api.signUpEmail({
+      const result = await authInstance.api.signUpEmail({
         body: {
           email: INKEEP_AGENTS_MANAGE_UI_USERNAME,
           password: INKEEP_AGENTS_MANAGE_UI_PASSWORD,

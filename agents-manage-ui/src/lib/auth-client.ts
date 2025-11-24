@@ -30,5 +30,3 @@ export function useAuthClient() {
     [PUBLIC_INKEEP_AGENTS_MANAGE_API_URL]
   );
 }
-
-export type AuthClient = ReturnType<typeof useAuthClient>;
