@@ -1,9 +1,16 @@
+import dynamic from 'next/dynamic';
 import { ThemeToggle } from '@/components/theme-toggle';
 import type { BreadcrumbItem } from '@/components/ui/breadcrumbs';
 import { Breadcrumbs } from '@/components/ui/breadcrumbs';
 import { Separator } from '@/components/ui/separator';
 import { SidebarTrigger } from '@/components/ui/sidebar';
-import { UserMenu } from '../auth/user-menu';
+
+const UserMenu = dynamic(
+  () => import('../auth/user-menu').then((mod) => ({ default: mod.UserMenu })),
+  {
+    ssr: false,
+  }
+);
 
 export function SiteHeader({ breadcrumbs }: { breadcrumbs?: BreadcrumbItem[] }) {
   return (

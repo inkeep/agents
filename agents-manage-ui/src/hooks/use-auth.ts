@@ -10,21 +10,11 @@ export function useAuthSession() {
     setIsMounted(true);
   }, []);
 
-  if (!isMounted) {
-    return {
-      user: null,
-      session: null,
-      isLoading: true,
-      isAuthenticated: false,
-      error: null,
-    };
-  }
-
   return {
-    user: session?.user ?? null,
-    session: session?.session ?? null,
-    isLoading: isPending,
-    isAuthenticated: !isPending && !!session,
-    error,
+    user: isMounted ? (session?.user ?? null) : null,
+    session: isMounted ? (session?.session ?? null) : null,
+    isLoading: !isMounted || isPending,
+    isAuthenticated: isMounted && !isPending && !!session,
+    error: isMounted ? error : null,
   };
 }

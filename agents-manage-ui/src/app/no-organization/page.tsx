@@ -53,7 +53,9 @@ export default function NoOrganizationPage() {
                     <p>Signing out...</p>
                   ) : (
                     <>
-                      <p>Your account ({user?.email}) is not associated with any organization.</p>
+                      <p>
+                        Your account{user?.email && ` (${user.email})`} is not associated with any organization.
+                      </p>
                       <p className="mt-2">
                         Please contact your organization administrator to request access.
                       </p>
