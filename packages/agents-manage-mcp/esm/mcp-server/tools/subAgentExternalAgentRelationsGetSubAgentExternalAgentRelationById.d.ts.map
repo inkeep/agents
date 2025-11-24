@@ -1,1 +1,0 @@
-{"version":3,"file":"subAgentExternalAgentRelationsGetSubAgentExternalAgentRelationById.d.ts","sourceRoot":"","sources":["../../../src/mcp-server/tools/subAgentExternalAgentRelationsGetSubAgentExternalAgentRelationById.ts"],"names":[],"mappings":"AAMA,OAAO,EAAgB,cAAc,EAAE,MAAM,aAAa,CAAC;AAE3D,QAAA,MAAM,IAAI;;CAET,CAAC;AAEF,eAAO,MAAM,uEAAuE,EAAE,cAAc,CAClG,OAAO,IAAI,CA+BZ,CAAC"}

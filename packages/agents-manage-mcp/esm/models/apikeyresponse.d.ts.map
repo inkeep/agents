@@ -1,1 +1,0 @@
-{"version":3,"file":"apikeyresponse.d.ts","sourceRoot":"","sources":["../../src/models/apikeyresponse.ts"],"names":[],"mappings":"AAIA,OAAO,KAAK,CAAC,MAAM,KAAK,CAAC;AACzB,OAAO,EAAE,MAAM,EAAoB,MAAM,aAAa,CAAC;AAEvD,MAAM,MAAM,cAAc,GAAG;IAAE,IAAI,EAAE,MAAM,CAAA;CAAE,CAAC;AAE9C,eAAO,MAAM,wBAAwB,EAAE,CAAC,CAAC,OAAO,CAAC,cAAc,EAAE,CAAC,CAAC,UAAU,EAAE,OAAO,CAEpF,CAAC"}

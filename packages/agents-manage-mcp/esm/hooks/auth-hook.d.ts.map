@@ -1,1 +1,0 @@
-{"version":3,"file":"auth-hook.d.ts","sourceRoot":"","sources":["../../src/hooks/auth-hook.ts"],"names":[],"mappings":"AAAA,OAAO,KAAK,EAAE,oBAAoB,EAAE,iBAAiB,EAAE,MAAM,YAAY,CAAC;AAE1E;;;GAGG;AACH,qBAAa,QAAS,YAAW,iBAAiB;IAC1C,aAAa,CAAC,QAAQ,EAAE,oBAAoB,EAAE,OAAO,EAAE,OAAO,GAAG,OAAO,CAAC,OAAO,CAAC;CAwBxF"}

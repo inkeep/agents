@@ -1,1 +1,0 @@
-{"version":3,"file":"agentstopwhen.d.ts","sourceRoot":"","sources":["../../src/models/agentstopwhen.ts"],"names":[],"mappings":"AAIA,OAAO,KAAK,CAAC,MAAM,KAAK,CAAC;AAEzB,MAAM,MAAM,aAAa,GAAG;IAAE,eAAe,CAAC,EAAE,MAAM,GAAG,SAAS,CAAA;CAAE,CAAC;AAErE,eAAO,MAAM,uBAAuB,EAAE,CAAC,CAAC,OAAO,CAAC,aAAa,EAAE,CAAC,CAAC,UAAU,EAAE,OAAO,CAElF,CAAC"}
