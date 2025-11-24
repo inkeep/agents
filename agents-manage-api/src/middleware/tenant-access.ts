@@ -1,4 +1,4 @@
-import { getUserOrganizations } from '@inkeep/agents-core';
+import { createApiError, getUserOrganizations } from '@inkeep/agents-core';
 import { createMiddleware } from 'hono/factory';
 import { HTTPException } from 'hono/http-exception';
 import dbClient from '../data/db/dbClient';
@@ -15,14 +15,16 @@ export const requireTenantAccess = () =>
     const tenantId = c.req.param('tenantId');
 
     if (!userId) {
-      throw new HTTPException(401, {
-        message: 'Unauthorized - User ID not found',
+      throw createApiError({
+        code: 'unauthorized',
+        message: 'User ID not found',
       });
     }
 
     if (!tenantId) {
-      throw new HTTPException(400, {
-        message: 'Bad Request - Organization ID is required',
+      throw createApiError({
+        code: 'bad_request',
+        message: 'Organization ID is required',
       });
     }
 
@@ -31,7 +33,8 @@ export const requireTenantAccess = () =>
       const organizationAccess = userOrganizations.find((org) => org.organizationId === tenantId);
 
       if (!organizationAccess) {
-        throw new HTTPException(403, {
+        throw createApiError({
+          code: 'forbidden',
           message: 'Access denied to this organization',
         });
       }
@@ -45,7 +48,8 @@ export const requireTenantAccess = () =>
         throw error;
       }
 
-      throw new HTTPException(500, {
+      throw createApiError({
+        code: 'internal_server_error',
         message: 'Failed to verify organization access',
       });
     }
