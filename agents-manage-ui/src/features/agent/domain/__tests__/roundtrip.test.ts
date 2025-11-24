@@ -122,7 +122,7 @@ describe('agent serialize/deserialize', () => {
         target: 'a2',
         data: {
           relationships: {
-            transferSourceToTarget: false,
+            transferSourceToTarget: true,
             transferTargetToSource: false,
             delegateSourceToTarget: true,
             delegateTargetToSource: false,
