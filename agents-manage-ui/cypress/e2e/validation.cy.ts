@@ -1,18 +1,19 @@
 /// <reference types="cypress" />
 
 describe('Validation', () => {
-  it('for sub agent validate only `prompt` as required field', () => {
+  it('should validate required fields with prompt now optional', () => {
     cy.visit('/default/projects/my-weather-project/agents/new?pane=agent');
     // Wait for app to initialize and click to save
     cy.get('.react-flow__node-agent').should('be.visible');
     cy.contains('Save').click();
 
-    // Check for validation errors
-    cy.contains('Validation Errors (2)').should('exist');
-    cy.contains('Sub Agent Errors (1)').click();
-    cy.contains('Sub Agent is missing required field: Prompt').should('exist');
+    // Check for validation errors - should only be 1 now (agent name), since prompt is optional
+    cy.contains('Validation Errors (1)').should('exist');
     cy.contains('Agent Configuration Errors (1)').click();
     cy.contains('Agent Name is too short. Please provide a valid value').should('exist');
+    
+    // Verify that prompt validation no longer appears
+    cy.contains('Sub Agent is missing required field: Prompt').should('not.exist');
   });
 
   it('should not allow save invalid JSON', () => {
