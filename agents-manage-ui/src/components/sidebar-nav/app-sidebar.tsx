@@ -13,6 +13,7 @@ import {
   Settings,
   Workflow,
 } from 'lucide-react';
+import dynamic from 'next/dynamic';
 import Link from 'next/link';
 import { useParams } from 'next/navigation';
 import { type ComponentProps, type Dispatch, type FC, useCallback } from 'react';
@@ -31,6 +32,14 @@ import { InkeepLogo } from '@/icons';
 import { cn } from '@/lib/utils';
 import { throttle } from '@/lib/utils/throttle';
 import type { NavItemProps } from './nav-item';
+
+const UserMenu = dynamic(
+  () => import('../auth/user-menu').then((mod) => ({ default: mod.UserMenu })),
+  {
+    ssr: false,
+    loading: () => <div className="size-7" />,
+  }
+);
 
 const bottomNavItems: NavItemProps[] = [
   {
@@ -158,7 +167,10 @@ export const AppSidebar: FC<AppSidebarProps> = ({ open, setOpen, ...props }) => 
       </SidebarContent>
       {projectId && (
         <SidebarFooter>
-          <ProjectSwitcher />
+          <div className="flex items-center justify-between gap-2">
+            <ProjectSwitcher />
+            <UserMenu />
+          </div>
         </SidebarFooter>
       )}
     </Sidebar>
