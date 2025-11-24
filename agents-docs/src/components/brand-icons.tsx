@@ -401,7 +401,6 @@ export const Ref = () => (
   </svg>
 );
 
-
 export const Pinecone = () => (
   <svg
     xmlns="http://www.w3.org/2000/svg"
@@ -410,8 +409,8 @@ export const Pinecone = () => (
     viewBox="0 0 175 225"
     width="16px"
     height="16px"
-    
   >
+    <title>Pinecone icon</title>
     <g fill="currentColor">
       <path
         fillRule="evenodd"

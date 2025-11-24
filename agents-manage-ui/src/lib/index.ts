@@ -32,7 +32,7 @@ export {
   AgentApiSchema,
   type AgentIdParams,
   AgentIdParamsSchema,
-  type CreateAgentResponse,
+  type CreateFullAgentResponse,
   type ErrorResponse,
   ErrorResponseSchema,
   type FullAgentDefinition,

@@ -34,4 +34,3 @@ export async function isThirdPartyMCPServerAuthenticated(
   logger.info({ mcpServerUrl }, 'Unknown third-party MCP server provider');
   return false;
 }
-

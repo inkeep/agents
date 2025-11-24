@@ -152,9 +152,7 @@ const createAgentScopedApiInsertSchema = <T extends z.ZodRawShape>(schema: z.Zod
   schema.omit({ tenantId: true, projectId: true, agentId: true });
 
 const createAgentScopedApiUpdateSchema = <T extends z.ZodRawShape>(schema: z.ZodObject<T>) =>
-  schema
-    .omit({ tenantId: true, projectId: true, agentId: true })
-    .partial();
+  schema.omit({ tenantId: true, projectId: true, agentId: true }).partial();
 
 export const SubAgentSelectSchema = createSelectSchema(subAgents);
 
@@ -655,9 +653,7 @@ export const McpToolSchema = ToolInsertSchema.extend({
   availableTools: z.array(McpToolDefinitionSchema).optional(),
   status: ToolStatusSchema.default('unknown'),
   version: z.string().optional(),
-  createdAt: z.date(),
-  updatedAt: z.date(),
-  expiresAt: z.date().optional(),
+  expiresAt: z.string().optional(),
   relationshipId: z.string().optional(),
 }).openapi('McpTool');
 
@@ -792,6 +788,7 @@ export const SubAgentToolRelationInsertSchema = createInsertSchema(subAgentToolR
   toolId: resourceIdSchema,
   selectedTools: z.array(z.string()).nullish(),
   headers: z.record(z.string(), z.string()).nullish(),
+  toolPolicies: z.record(z.string(), z.object({ needsApproval: z.boolean().optional() })).nullish(),
 });
 
 export const SubAgentToolRelationUpdateSchema = SubAgentToolRelationInsertSchema.partial();
@@ -904,6 +901,9 @@ export const CanUseItemSchema = z
     toolId: z.string(),
     toolSelection: z.array(z.string()).nullish(),
     headers: z.record(z.string(), z.string()).nullish(),
+    toolPolicies: z
+      .record(z.string(), z.object({ needsApproval: z.boolean().optional() }))
+      .nullish(),
   })
   .openapi('CanUseItem');
 
@@ -1381,12 +1381,17 @@ export const PrebuiltMCPServerSchema = z.object({
     .optional()
     .describe('Category of the MCP server (e.g., communication, project_management)'),
   description: z.string().optional().describe('Brief description of what the MCP server does'),
-  thirdPartyConnectAccountUrl: z.url().optional().describe('URL to connect to the third party account'),
+  thirdPartyConnectAccountUrl: z
+    .url()
+    .optional()
+    .describe('URL to connect to the third party account'),
 });
 
-export const MCPCatalogListResponse = z.object({
-  data: z.array(PrebuiltMCPServerSchema),
-}).openapi('MCPCatalogListResponse');
+export const MCPCatalogListResponse = z
+  .object({
+    data: z.array(PrebuiltMCPServerSchema),
+  })
+  .openapi('MCPCatalogListResponse');
 
 export const ThirdPartyMCPServerResponse = z
   .object({

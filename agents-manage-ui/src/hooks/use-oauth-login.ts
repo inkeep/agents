@@ -2,6 +2,7 @@ import { CredentialStoreType, generateIdFromName } from '@inkeep/agents-core/cli
 import { useRouter } from 'next/navigation';
 import { useCallback, useRef } from 'react';
 import { toast } from 'sonner';
+import type { OAuthLoginHandler } from '@/components/agent/copilot/components/connect-tool-card';
 import { useRuntimeConfig } from '@/contexts/runtime-config-context';
 import { listCredentialStores } from '@/lib/api/credentialStores';
 import { updateMCPTool } from '@/lib/api/tools';
@@ -17,17 +18,7 @@ interface UseOAuthLoginProps {
 }
 
 interface OAuthLoginResult {
-  handleOAuthLogin: ({
-    toolId,
-    mcpServerUrl,
-    toolName,
-    thirdPartyConnectAccountUrl,
-  }: {
-    toolId: string;
-    mcpServerUrl: string;
-    toolName: string;
-    thirdPartyConnectAccountUrl?: string;
-  }) => Promise<void>;
+  handleOAuthLogin: OAuthLoginHandler;
 }
 
 export function useOAuthLogin({
@@ -53,12 +44,14 @@ export function useOAuthLogin({
         }
 
         try {
-          const oauthUrl = thirdPartyConnectAccountUrl ?? getOAuthLoginUrl({
-            PUBLIC_INKEEP_AGENTS_MANAGE_API_URL,
-            tenantId,
-            projectId,
-            id: toolId,
-          });
+          const oauthUrl =
+            thirdPartyConnectAccountUrl ??
+            getOAuthLoginUrl({
+              PUBLIC_INKEEP_AGENTS_MANAGE_API_URL,
+              tenantId,
+              projectId,
+              id: toolId,
+            });
 
           const popup = window.open(
             oauthUrl,
@@ -198,7 +191,6 @@ export function useOAuthLogin({
       toolName: string;
       thirdPartyConnectAccountUrl?: string;
     }): Promise<void> => {
-
       if (thirdPartyConnectAccountUrl) {
         await handleOAuthLoginManually(toolId, thirdPartyConnectAccountUrl);
         return;
