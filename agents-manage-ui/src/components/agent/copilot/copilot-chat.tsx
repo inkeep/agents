@@ -29,7 +29,7 @@ const styleOverrides = `
 `;
 
 export function CopilotChat({ agentId, tenantId, projectId, refreshAgentGraph }: CopilotChatProps) {
-  const { chatFunctionsRef, isOpen, setIsOpen, dynamicHeaders, setDynamicHeaders } =
+  const { chatFunctionsRef, isOpen, setIsOpen, setIsStreaming, dynamicHeaders, setDynamicHeaders } =
     useCopilotContext();
   const [conversationId, setConversationId] = useState(generateId);
 
@@ -86,9 +86,16 @@ export function CopilotChat({ agentId, tenantId, projectId, refreshAgentGraph }:
           position="left"
           baseSettings={{
             onEvent: async (event: InkeepCallbackEvent) => {
+              if (event.eventName === 'user_message_submitted') {
+                setIsStreaming(true);
+              }
+              if (event.eventName === 'assistant_message_received') {
+                setIsStreaming(false);
+              }
               if (event.eventName === 'chat_clear_button_clicked') {
                 setDynamicHeaders({});
                 setConversationId(generateId());
+                setIsStreaming(false);
               }
             },
             primaryBrandColor: '#3784ff',

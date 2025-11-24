@@ -11,6 +11,8 @@ interface CopilotContextHeaders {
 interface CopilotContextValue {
   isOpen: boolean;
   setIsOpen: (open: boolean) => void;
+  isStreaming: boolean;
+  setIsStreaming: (streaming: boolean) => void;
   chatFunctionsRef?: RefObject<AIChatFunctions | null>;
   openCopilot: () => void;
   dynamicHeaders: CopilotContextHeaders;
@@ -21,6 +23,7 @@ const CopilotContext = createContext<CopilotContextValue | null>(null);
 
 export function CopilotProvider({ children }: { children: ReactNode }) {
   const [isOpen, setIsOpen] = useState(false);
+  const [isStreaming, setIsStreaming] = useState(false);
   const chatFunctionsRef = useRef<AIChatFunctions | null>(null);
   const [dynamicHeaders, setDynamicHeaders] = useState<CopilotContextHeaders>({});
 
@@ -31,6 +34,8 @@ export function CopilotProvider({ children }: { children: ReactNode }) {
       value={{
         isOpen,
         setIsOpen,
+        isStreaming,
+        setIsStreaming,
         chatFunctionsRef,
         openCopilot,
         dynamicHeaders,

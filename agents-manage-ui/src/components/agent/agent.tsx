@@ -37,7 +37,6 @@ import { useIsMounted } from '@/hooks/use-is-mounted';
 import { useSidePane } from '@/hooks/use-side-pane';
 import { getFullProjectAction } from '@/lib/actions/project-full';
 import { fetchToolsAction } from '@/lib/actions/tools';
-
 import type { ArtifactComponent } from '@/lib/api/artifact-components';
 import type { Credential } from '@/lib/api/credentials';
 import type { DataComponent } from '@/lib/api/data-components';
@@ -62,6 +61,7 @@ import {
   teamAgentNodeTargetHandleId,
 } from './configuration/node-types';
 import { useCopilotContext } from './copilot/copilot-context';
+import { EmptyState } from './empty-state';
 import { AgentErrorSummary } from './error-display/agent-error-summary';
 import { DefaultMarker } from './markers/default-marker';
 import { SelectedMarker } from './markers/selected-marker';
@@ -143,18 +143,18 @@ export const Agent: FC<AgentProps> = ({
 
   const { nodeId, edgeId, setQueryState, openAgentPane, isOpen } = useSidePane();
 
-  const initialNodes = useMemo<Node[]>(
-    () => [
-      {
-        id: generateId(),
-        type: NodeType.SubAgent,
-        position: { x: 0, y: 0 },
-        data: { name: '', isDefault: true },
-        deletable: false,
-      },
-    ],
+  const initialNode = useMemo<Node>(
+    () => ({
+      id: generateId(),
+      type: NodeType.SubAgent,
+      position: { x: 0, y: 0 },
+      data: { name: '', isDefault: true },
+      deletable: false,
+    }),
     []
   );
+
+  const initialNodes = useMemo<Node[]>(() => [initialNode], [initialNode]);
 
   // Helper to enrich MCP nodes with tool data
   const enrichNodes = useCallback(
@@ -447,7 +447,9 @@ export const Agent: FC<AgentProps> = ({
           return;
         }
         const fullProject = fullProjectResult.data;
-        const updatedAgent = fullProject.agents[agent.id] as ExtendedFullAgentDefinition;
+        const updatedAgent = fullProject?.agents?.[
+          agent.id as keyof typeof fullProject.agents
+        ] as ExtendedFullAgentDefinition;
 
         // Update tool lookup if tools were fetched
         const updatedToolLookup = toolsResult?.success
@@ -661,6 +663,23 @@ export const Agent: FC<AgentProps> = ({
     },
     [screenToFlowPosition, clearSelection]
   );
+
+  const onAddInitialNode = useCallback(() => {
+    const newNode = {
+      ...initialNode,
+      selected: true,
+    };
+    clearSelection();
+    commandManager.execute(new AddNodeCommand(newNode as Node));
+    // Wait for sidebar to open (350ms for CSS transition) then center the node
+    setTimeout(() => {
+      fitView({
+        maxZoom: 1,
+        duration: 200,
+        nodes: [newNode],
+      });
+    }, 350);
+  }, [clearSelection, initialNode, fitView]);
 
   const onSelectionChange = useCallback(
     ({ nodes, edges }: { nodes: Node[]; edges: Edge[] }) => {
@@ -978,6 +997,9 @@ export const Agent: FC<AgentProps> = ({
 
   const [showTraces, setShowTraces] = useState(false);
   const isMounted = useIsMounted();
+
+  const showEmptyState = useMemo(() => nodes.length === 0, [nodes]);
+
   return (
     <ResizablePanelGroup
       // Note: Without a specified `id`, Cypress tests may become flaky and fail with the error: `No group found for id '...'`
@@ -992,6 +1014,7 @@ export const Agent: FC<AgentProps> = ({
         tenantId={tenantId}
         refreshAgentGraph={refreshAgentGraph}
       />
+
       <ResizablePanel
         // Panel id and order props recommended when panels are dynamically rendered
         id="react-flow-pane"
@@ -1031,24 +1054,33 @@ export const Agent: FC<AgentProps> = ({
         >
           <Background color="#a8a29e" gap={20} />
           <Controls className="text-foreground" showInteractive={false} />
-          <Panel position="top-left">
-            <NodeLibrary />
-          </Panel>
-          <Panel
-            position="top-right"
-            // width of NodeLibrary
-            className="left-40"
-          >
-            <Toolbar
-              onSubmit={onSubmit}
-              inPreviewDisabled={!agent?.id}
-              toggleSidePane={isOpen ? backToAgent : openAgentPane}
-              setShowPlayground={() => {
-                closeSidePane();
-                setShowPlayground(true);
-              }}
-            />
-          </Panel>
+          {!showEmptyState && (
+            <Panel position="top-left">
+              <NodeLibrary />
+            </Panel>
+          )}
+          {showEmptyState && (
+            <Panel position="top-center" className="top-1/2! translate-y-[-50%]">
+              <EmptyState onAddInitialNode={onAddInitialNode} />
+            </Panel>
+          )}
+          {!showEmptyState && (
+            <Panel
+              position="top-right"
+              // width of NodeLibrary
+              className="left-40"
+            >
+              <Toolbar
+                onSubmit={onSubmit}
+                inPreviewDisabled={!agent?.id}
+                toggleSidePane={isOpen ? backToAgent : openAgentPane}
+                setShowPlayground={() => {
+                  closeSidePane();
+                  setShowPlayground(true);
+                }}
+              />
+            </Panel>
+          )}
           {errors && showErrors && (
             <Panel position="bottom-left" className="max-w-sm !left-8 mb-4">
               <AgentErrorSummary
@@ -1070,7 +1102,8 @@ export const Agent: FC<AgentProps> = ({
          * accessible after the component has mounted. This component delays rendering
          * until then to avoid visual layout jumps.
          */
-        isMounted && (
+        isMounted &&
+        !showEmptyState && (
           <>
             <ResizableHandle withHandle />
             <ResizablePanel
