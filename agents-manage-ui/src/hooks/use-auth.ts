@@ -4,17 +4,27 @@ import { useAuthClient } from '@/lib/auth-client';
 export function useAuthSession() {
   const client = useAuthClient();
   const { data: session, isPending, error } = client.useSession();
-  const [isHydrated, setIsHydrated] = useState(false);
+  const [isMounted, setIsMounted] = useState(false);
 
   useEffect(() => {
-    setIsHydrated(true);
+    setIsMounted(true);
   }, []);
+
+  if (!isMounted) {
+    return {
+      user: null,
+      session: null,
+      isLoading: true,
+      isAuthenticated: false,
+      error: null,
+    };
+  }
 
   return {
     user: session?.user ?? null,
     session: session?.session ?? null,
-    isLoading: isPending || !isHydrated,
-    isAuthenticated: isHydrated && !isPending && !!session,
+    isLoading: isPending,
+    isAuthenticated: !isPending && !!session,
     error,
   };
 }
