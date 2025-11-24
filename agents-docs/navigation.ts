@@ -186,8 +186,8 @@ export default {
             'api-reference/authentication/manage-api',
           ],
         },
-        'api-reference',
-        'api-reference/run-api',
+        { page: 'api-reference', icon: 'LuDatabaseZap' },
+        { page: 'api-reference/run-api', icon: 'LuPlay' },
       ],
     },
     {

@@ -9,14 +9,15 @@ export const transformItems = (group: any) => {
     pages: [] as any[],
   } as SidebarPage;
   grp.pages = group.pages.map((item: any) => {
-    if (typeof item === 'string') {
-      const page = source.getPage([item]);
+    const slug = typeof item === 'string' ? item : item.page;
+    if (slug) {
+      const page = source.getPage([slug]);
       if (!page) return null;
 
       return {
         url: page.url,
         title: page.data.title,
-        icon: page.data.icon,
+        icon: item.icon ?? page.data.icon,
         sidebarTitle: page.data.sidebarTitle,
         method: page.data._openapi?.method,
       };
