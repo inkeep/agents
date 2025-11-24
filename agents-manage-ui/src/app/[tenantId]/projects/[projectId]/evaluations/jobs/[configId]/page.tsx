@@ -34,8 +34,7 @@ async function EvaluationJobPage({
       >
         <MainContent className="min-h-full">
           <PageHeader
-            title={`Batch Evaluation: ${jobConfig.id}`}
-            description="View evaluation results"
+            title="Batch Evaluation"
           />
           <EvaluationJobResults
             tenantId={tenantId}
