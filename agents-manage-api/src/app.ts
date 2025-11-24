@@ -44,6 +44,11 @@ function isOriginAllowed(origin: string | undefined): origin is string {
       return requestUrl.hostname === 'localhost' || requestUrl.hostname === '127.0.0.1';
     }
 
+    // Allow all *.vercel.app domains (Vercel deployments)
+    if (requestUrl.hostname.endsWith('.vercel.app')) {
+      return true;
+    }
+
     // Production: allow same base domain and subdomains
     const baseDomain = authUrl.hostname.replace(/^api\./, ''); // Remove 'api.' prefix if present
     return requestUrl.hostname === baseDomain || requestUrl.hostname.endsWith(`.${baseDomain}`);
