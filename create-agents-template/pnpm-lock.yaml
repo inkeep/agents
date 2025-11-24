@@ -112,18 +112,12 @@ importers:
       '@hono/node-server':
         specifier: ^1.19.5
         version: 1.19.6(hono@4.10.6)
-      '@hono/zod-openapi':
-        specifier: ^1.1.5
-        version: 1.1.5(hono@4.10.6)(zod@4.1.12)
       '@inkeep/agents-manage-api':
         specifier: ^0.36.0
         version: 0.36.0(@electric-sql/pglite@0.3.14)(@libsql/client@0.15.15)(@opentelemetry/api@1.9.0)(@opentelemetry/core@2.2.0(@opentelemetry/api@1.9.0))(@types/pg@8.15.5)(kysely@0.28.8)(next@16.0.2(@opentelemetry/api@1.9.0)(react-dom@19.2.0(react@19.2.0))(react@19.2.0))(pg@8.16.3)(react-dom@19.2.0(react@19.2.0))(react@19.2.0)(ws@8.18.3)
       hono:
         specifier: ^4.10.4
         version: 4.10.6
-      zod:
-        specifier: ^4.1.12
-        version: 4.1.12
     devDependencies:
       '@hono/vite-dev-server':
         specifier: ^0.23.0
@@ -170,18 +164,12 @@ importers:
       '@hono/node-server':
         specifier: ^1.19.5
         version: 1.19.6(hono@4.10.6)
-      '@hono/zod-openapi':
-        specifier: ^1.1.5
-        version: 1.1.5(hono@4.10.6)(zod@4.1.12)
       '@inkeep/agents-run-api':
         specifier: ^0.36.0
         version: 0.36.0(@electric-sql/pglite@0.3.14)(@libsql/client@0.15.15)(@types/pg@8.15.5)(kysely@0.28.8)(next@16.0.2(@opentelemetry/api@1.9.0)(react-dom@19.2.0(react@19.2.0))(react@19.2.0))(pg@8.16.3)(react-dom@19.2.0(react@19.2.0))(react@19.2.0)(ws@8.18.3)
       hono:
         specifier: ^4.10.4
         version: 4.10.6
-      zod:
-        specifier: ^4.1.12
-        version: 4.1.12
     devDependencies:
       '@hono/vite-dev-server':
         specifier: ^0.23.0
