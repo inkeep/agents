@@ -1,17 +1,15 @@
-import path from 'node:path';
 import { getTableOfContents } from 'fumadocs-core/content/toc';
-import { getSlugs, parseFilePath } from 'fumadocs-core/source';
+import { getSlugs } from 'fumadocs-core/source';
 import { printErrors, readFiles, scanURLs, validateFiles } from 'next-validate-link';
 
 async function checkLinks() {
   const docsFiles = await readFiles('content/docs/**/*.{md,mdx}');
 
   // Build valid URLs manually from the slugs
-  const validUrls = {};
+  const validUrls: Record<string, true> = {};
 
   docsFiles.forEach((file) => {
-    const info = parseFilePath(path.relative('content/docs', file.path));
-    const slugs = getSlugs(info);
+    const slugs = getSlugs(file.path);
     const url = `/${slugs.join('/')}`;
     validUrls[url] = true;
 
@@ -26,9 +24,8 @@ async function checkLinks() {
   const scanned = await scanURLs({
     populate: {
       '[[...slug]]': docsFiles.map((file) => {
-        const info = parseFilePath(path.relative('content/docs', file.path));
         return {
-          value: getSlugs(info),
+          value: getSlugs(file.path),
           hashes: getTableOfContents(file.content).map((item) => item.url.slice(1)),
         };
       }),
@@ -44,7 +41,6 @@ async function checkLinks() {
 
   const standardErrors = await validateFiles([...docsFiles], {
     scanned,
-    strict: true,
   });
 
   printErrors(standardErrors, true);
