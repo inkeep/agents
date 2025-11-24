@@ -1,22 +1,20 @@
 import { project } from '@inkeep/agents-sdk';
-import { inkeepAgent } from './agents/enhanced-maestro-agent';
+import { inkeepQaGraph } from './agents/inkeep-qa-graph';
+import { citation } from './artifact-components/citation';
+import { inkeepApiKey } from './credentials/inkeep-api-key';
+import { inkeepFacts } from './tools/inkeep-facts';
 
-export const inkeepFactsProject = project({
-  id: 'inkeep-facts-project',
-  name: 'Inkeep Facts Project',
-  description:
-    'An Inkeep documentation assistant that answers questions about Inkeep products, services, and technical support using the Inkeep facts tool. ',
+export const factsProject = project({
+  id: 'facts-project',
+  name: 'facts-project',
+  description: 'project is for facts...',
   models: {
     base: {
       model: 'anthropic/claude-sonnet-4-5',
     },
-    structuredOutput: {
-      model: 'anthropic/claude-sonnet-4-5',
-    },
-    summarizer: {
-      model: 'anthropic/claude-sonnet-4-5',
-    },
   },
-  agents: () => [inkeepAgent],
-  tools: () => [],
+  agents: () => [inkeepQaGraph],
+  tools: () => [inkeepFacts],
+  artifactComponents: () => [citation],
+  credentialReferences: () => [inkeepApiKey],
 });

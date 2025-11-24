@@ -17,9 +17,7 @@ async function NewArtifactComponentPage({
       ]}
     >
       <MainContent>
-        <div className="max-w-2xl mx-auto py-4">
-          <ArtifactComponentForm tenantId={tenantId} projectId={projectId} />
-        </div>
+        <ArtifactComponentForm tenantId={tenantId} projectId={projectId} />
       </MainContent>
     </BodyTemplate>
   );

@@ -230,7 +230,7 @@ export function InkeepScript() {
   }, []);
 
   if (!isApiConfigured) {
-    console.warn('NEXT_PUBLIC_INKEEP_API_KEY not configured.');
+    warnOnce('NEXT_PUBLIC_INKEEP_API_KEY not configured.');
     return null;
   }
 
@@ -255,3 +255,17 @@ export function InkeepScript() {
     </>
   );
 }
+
+function createWarnOnce() {
+  const messages = new Set<string>();
+
+  return (message: string): void => {
+    if (messages.has(message)) {
+      return;
+    }
+    messages.add(message);
+    console.warn(message);
+  };
+}
+
+const warnOnce = createWarnOnce();

@@ -1,4 +1,8 @@
 import { randomUUID } from 'node:crypto';
+import { organization } from '@inkeep/agents-core';
+import { createTestOrganization as createTestOrg } from '@inkeep/agents-core/db/test-client';
+import { eq } from 'drizzle-orm';
+import dbClient from '../../data/db/dbClient';
 
 /**
  * Creates a unique tenant ID for test isolation.
@@ -26,6 +30,64 @@ import { randomUUID } from 'node:crypto';
 export function createTestTenantId(prefix?: string): string {
   const uuid = randomUUID();
   return prefix ? `test-tenant-${prefix}-${uuid}` : `test-tenant-${uuid}`;
+}
+
+/**
+ * Creates a test organization in the database for the given tenant ID.
+ * This is required because projects now have a foreign key to the organization table.
+ *
+ * @param tenantId - The tenant ID to create an organization for
+ * @returns The created organization record
+ *
+ * @example
+ * ```typescript
+ * import { createTestTenantId, createTestOrganization } from './utils/testTenant';
+ *
+ * describe('My test suite', () => {
+ *   it('should work with organization', async () => {
+ *     const tenantId = createTestTenantId('agents');
+ *     await createTestOrganization(tenantId);
+ *     // Now you can create projects with this tenantId
+ *   });
+ * });
+ * ```
+ */
+export async function createTestOrganization(tenantId: string) {
+  await createTestOrg(dbClient, tenantId);
+  
+  // Return the created organization for test assertions
+  const [org] = await dbClient
+    .select()
+    .from(organization)
+    .where(eq(organization.id, tenantId))
+    .limit(1);
+  
+  return org;
+}
+
+/**
+ * Creates a unique tenant ID and corresponding organization for test isolation.
+ * This is the recommended way to create test tenants as it ensures the organization exists.
+ *
+ * @param prefix - Optional prefix to include in the tenant ID (e.g., test file name)
+ * @returns A unique tenant ID with organization already created
+ *
+ * @example
+ * ```typescript
+ * import { createTestTenantWithOrg } from './utils/testTenant';
+ *
+ * describe('My test suite', () => {
+ *   it('should work with tenant and org', async () => {
+ *     const tenantId = await createTestTenantWithOrg('agents');
+ *     // Organization already exists, can create projects immediately
+ *   });
+ * });
+ * ```
+ */
+export async function createTestTenantWithOrg(prefix?: string): Promise<string> {
+  const tenantId = createTestTenantId(prefix);
+  await createTestOrganization(tenantId);
+  return tenantId;
 }
 
 /**

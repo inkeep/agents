@@ -1,5 +1,203 @@
 # @inkeep/agents-manage-ui
 
+## 0.36.1
+
+### Patch Changes
+
+- 1235b18: improve cors policy
+- Updated dependencies [1235b18]
+  - @inkeep/agents-core@0.36.1
+  - @inkeep/agents-manage-api@0.36.1
+  - @inkeep/agents-run-api@0.36.1
+
+## 0.36.0
+
+### Minor Changes
+
+- 7f0f13a: 1. Add persistence in localStorage for the sidebar open state.
+
+  2. Make the `project switcher`, `Next.js DevTools logo`, and `breadcrumbs` elements to not trigger sidebar expansion.
+
+### Patch Changes
+
+- c59e3db: add cypress test for should create project, navigate to agents page and update project switcher
+- Updated dependencies [604c74c]
+  - @inkeep/agents-manage-api@0.36.0
+  - @inkeep/agents-run-api@0.36.0
+  - @inkeep/agents-core@0.36.0
+
+## 0.35.12
+
+### Patch Changes
+
+- 840ca11: remove clean-package from API packages - was stripping runtime dependencies causing production errors
+- Updated dependencies [840ca11]
+  - @inkeep/agents-core@0.35.12
+  - @inkeep/agents-manage-api@0.35.12
+  - @inkeep/agents-run-api@0.35.12
+
+## 0.35.11
+
+### Patch Changes
+
+- Updated dependencies [287027e]
+  - @inkeep/agents-manage-api@0.35.11
+  - @inkeep/agents-run-api@0.35.11
+  - @inkeep/agents-core@0.35.11
+
+## 0.35.10
+
+### Patch Changes
+
+- 7a7e726: handle next*public* for vercel
+- Updated dependencies [7a7e726]
+  - @inkeep/agents-core@0.35.10
+  - @inkeep/agents-manage-api@0.35.10
+  - @inkeep/agents-run-api@0.35.10
+
+## 0.35.9
+
+### Patch Changes
+
+- Updated dependencies [18c036d]
+  - @inkeep/agents-core@0.35.9
+  - @inkeep/agents-manage-api@0.35.9
+  - @inkeep/agents-run-api@0.35.9
+
+## 0.35.8
+
+### Patch Changes
+
+- 986dad2: update better-auth
+- Updated dependencies [986dad2]
+  - @inkeep/agents-core@0.35.8
+  - @inkeep/agents-manage-api@0.35.8
+  - @inkeep/agents-run-api@0.35.8
+
+## 0.35.7
+
+### Patch Changes
+
+- 8684c97: Make delegation the default relationship
+  - @inkeep/agents-manage-api@0.35.7
+  - @inkeep/agents-run-api@0.35.7
+  - @inkeep/agents-core@0.35.7
+
+## 0.35.6
+
+### Patch Changes
+
+- 31dbacc: handle google sign in
+- Updated dependencies [31dbacc]
+  - @inkeep/agents-core@0.35.6
+  - @inkeep/agents-manage-api@0.35.6
+  - @inkeep/agents-run-api@0.35.6
+
+## 0.35.5
+
+### Patch Changes
+
+- 15b564d: make inkeep mcp and docker optional in the quickstart
+- Updated dependencies [15b564d]
+  - @inkeep/agents-core@0.35.5
+  - @inkeep/agents-manage-api@0.35.5
+  - @inkeep/agents-run-api@0.35.5
+
+## 0.35.4
+
+### Patch Changes
+
+- e297579: pull third party mcp servers
+- Updated dependencies [e297579]
+  - @inkeep/agents-core@0.35.4
+  - @inkeep/agents-manage-api@0.35.4
+  - @inkeep/agents-run-api@0.35.4
+
+## 0.35.3
+
+### Patch Changes
+
+- 89e8c26: cleaned stale components with inkeep pull
+- Updated dependencies [89e8c26]
+  - @inkeep/agents-manage-api@0.35.3
+  - @inkeep/agents-run-api@0.35.3
+  - @inkeep/agents-core@0.35.3
+
+## 0.35.2
+
+### Patch Changes
+
+- Updated dependencies [769d8a9]
+  - @inkeep/agents-core@0.35.2
+  - @inkeep/agents-manage-api@0.35.2
+  - @inkeep/agents-run-api@0.35.2
+
+## 0.35.1
+
+### Patch Changes
+
+- 23c5018: Disable quick suggestions in prompt editor
+- fc243b4: fix baseUrl for auth client
+- 6fdfb87: `inPreview` property is missing in JSON and form builder in artifacts page
+- 447bdf2: - allow saving JSON schema without `required` field
+  - highlight header of form builder if there are errors
+  - highlight border of JSON Schema editor if there are errors
+  - @inkeep/agents-manage-api@0.35.1
+  - @inkeep/agents-run-api@0.35.1
+  - @inkeep/agents-core@0.35.1
+
+## 0.35.0
+
+### Minor Changes
+
+- 0d46d32: Adding auth to the framework
+
+### Patch Changes
+
+- f9a208a: Check for CLI installation in quickstart
+- Updated dependencies [f9a208a]
+- Updated dependencies [0d46d32]
+  - @inkeep/agents-core@0.35.0
+  - @inkeep/agents-manage-api@0.35.0
+  - @inkeep/agents-run-api@0.35.0
+
+## 0.34.1
+
+### Patch Changes
+
+- 699043d: Install inkeep mcp in quickstarte
+- e4b5d5c: Inkeep add: usage instructions and target path detection
+- Updated dependencies [699043d]
+- Updated dependencies [e4b5d5c]
+  - @inkeep/agents-core@0.34.1
+  - @inkeep/agents-manage-api@0.34.1
+  - @inkeep/agents-run-api@0.34.1
+
+## 0.34.0
+
+### Minor Changes
+
+- 8af5738: - should collapses when opening an agent page and re-expands when returning to other page
+  - should keeps the sidebar collapsed after a manual toggle even when leaving the agent page
+
+### Patch Changes
+
+- 7426927: add cli installation to quickstart
+- 015f9f7: Status Update Model fixed
+- 817b43e: fix JSON mode in JSON schema from builder, when JSON mode is enabled it override JSON schema to empty
+- bdeee9b: quickstart skip cli install option
+- 2434d22: add error handling to github fetch
+- af95c9a: added provider config
+- 2672603: Fix scroll in widgets inside of the ship modal
+- Updated dependencies [7426927]
+- Updated dependencies [015f9f7]
+- Updated dependencies [bdeee9b]
+- Updated dependencies [2434d22]
+- Updated dependencies [af95c9a]
+  - @inkeep/agents-core@0.34.0
+  - @inkeep/agents-manage-api@0.34.0
+  - @inkeep/agents-run-api@0.34.0
+
 ## 0.33.3
 
 ### Patch Changes

@@ -6,8 +6,8 @@ const jsonSchemaValidation = () =>
   z
     .union([z.string(), z.null(), z.undefined()])
     .transform((value, ctx) => {
-      if (!value || value === '' || value === null) {
-        return undefined;
+      if (!value) {
+        return;
       }
 
       try {
@@ -22,7 +22,7 @@ const jsonSchemaValidation = () =>
           });
           return z.NEVER;
         }
-
+        parsed.required ??= [];
         return parsed;
       } catch (error) {
         ctx.addIssue({

@@ -555,9 +555,9 @@ export const Agent: FC<AgentProps> = ({
         data: {
           relationships: {
             transferTargetToSource: false,
-            transferSourceToTarget: true,
+            transferSourceToTarget: false,
             delegateTargetToSource: false,
-            delegateSourceToTarget: false,
+            delegateSourceToTarget: true,
           },
         },
       };
@@ -925,6 +925,17 @@ export const Agent: FC<AgentProps> = ({
       }
       return true;
     }
+    
+    // Handle non-validation errors (permission, auth, not found, server errors)
+    const nonValidationErrors = ['forbidden', 'unauthorized', 'not_found', 'internal_server_error', 'bad_request'];
+    if (res.code && nonValidationErrors.includes(res.code)) {
+      toast.error(res.error || 'An error occurred while saving the agent', {
+        closeButton: true,
+      });
+      return false;
+    }
+    
+    // Handle validation errors (422 status - unprocessable_entity)
     try {
       const errorSummary = parseAgentValidationErrors(res.error);
       setErrors(errorSummary);

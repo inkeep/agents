@@ -1,0 +1,110 @@
+---
+title: Connect Your Data with Pinecone
+sidebarTitle: Pinecone
+description: Learn how to connect your documents and files to your agents using Pinecone's vector database and MCP server
+icon: "brand/Pinecone"
+keywords: Pinecone, vector database, data sources, MCP server, documentation, DOCX, PDF, Markdown, semantic search
+---
+
+Pinecone is a vector database that allows you to store and query your data in a vector space. With Pinecone's MCP server, you can connect your documents and files to your agents, enabling semantic search and retrieval of your content.
+
+## Supported data sources
+
+With Pinecone you can connect:
+
+- **Documents**: DOCX (.docx), PDF (.pdf), Text (.txt)
+- **Structured Data**: JSON (.json)
+- **Documentation**: Markdown (.md)
+
+## Getting started
+
+### Step 1: Create a Pinecone account
+
+[Sign up for Pinecone](https://app.pinecone.io/)
+
+### Step 2: Create an Assistant
+
+1. Log in to your [Pinecone dashboard](https://app.pinecone.io/)
+2. Navigate to the **Assistant** tab
+3. Click **"Create an Assistant"**
+4. Give your assistant a name
+
+### Step 3: Upload your files
+
+1. In your assistant, navigate to the **Files** tab (located in the top right corner)
+2. Upload your documents (DOCX, JSON, Markdown, PDF, or Text files)
+3. Wait for Pinecone to process and index your content
+
+<Tip>
+Test your assistant in the Assistant playground. Try uploading an Apple 10-K PDF file from [Apple's investor relations page](https://investor.apple.com/sec-filings/default.aspx) and ask it to summarize the document.
+</Tip>
+
+### Step 4: Get your MCP server URL
+
+1. Navigate to the **Settings** tab in your assistant
+2. Copy the MCP URL provided
+
+### Step 5: Register the MCP server
+
+Register the Pinecone MCP server as a tool in your agent configuration. Replace `<your-mcp-url>` with the MCP URL you copied in Step 4.
+
+**Using TypeScript SDK:**
+
+```typescript
+import { mcpTool, subAgent } from "@inkeep/agents-sdk";
+
+const pineconeTool = mcpTool({
+  id: "pinecone-documents",
+  name: "pinecone_search",
+  description: "Search uploaded documents and files using semantic search",
+  serverUrl: "<your-mcp-url>", // From Pinecone Settings tab
+});
+
+const docAgent = subAgent({
+  id: "doc-agent",
+  name: "Documentation Assistant",
+  description: "Answers questions using uploaded documents",
+  prompt: `You are a documentation assistant with access to company documents and files.`,
+  canUse: () => [pineconeTool],
+});
+```
+
+**Using Visual Builder:**
+
+1. Go to the **MCP Servers** tab in the Visual Builder
+2. Click **"New MCP server"**
+3. Select **"Custom Server"**
+4. Enter:
+   - **Name**: `Pinecone Documents`
+   - **URL**: Your MCP URL from Pinecone Settings tab
+   - **Transport Type**: `Streamable HTTP`
+5. Save the server
+6. Add it to your agent by dragging it onto your agent canvas
+
+**Using Visual Builder:**
+
+1. Go to the **MCP Servers** tab in the Visual Builder
+2. Click "New MCP server"
+3. Select "Custom Server"
+4. Enter:
+   - **Name**: `Pinecone Documents`
+   - **URL**: Your MCP URL from Pinecone Settings tab
+   - **Transport Type**: `Streamable HTTP`
+5. Save the server
+6. Add it to your agent by dragging it onto your agent canvas
+
+### Step 6: Use the Pinecone MCP server in your agent
+
+Once you have registered your MCP server as a tool and connected it to your agent, your agent can use the Pinecone tool to search and retrieve relevant content from your uploaded documents.
+
+The Pinecone tool provides a `get_context` function that retrieves relevant document snippets from your knowledge base. When your agent calls this tool, it will:
+
+- **Search semantically**: Use vector similarity search to find the most relevant content based on the query
+- **Return formatted snippets**: Each result includes:
+  - `file_name`: The name of the file containing the snippet
+  - `pages`: The page numbers where the snippet appears (for PDFs and DOCX files)
+  - `content`: The actual text content of the snippet
+
+**Parameters:**
+- `query` (required): The search query to retrieve context for
+- `top_k` (optional): The number of context snippets to retrieve. Defaults to 15.

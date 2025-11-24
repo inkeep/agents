@@ -44,4 +44,33 @@ Cypress.Commands.add('deleteAgent', (tenantId: string, projectId: string, agentI
   });
 });
 
+Cypress.Commands.add('typeInMonaco', (uri: string, value: string) => {
+  return cy
+    .get(`[data-uri="file:///${uri}"] textarea`)
+    .type('{selectall}{del}', { force: true })
+    .type(value, {
+      parseSpecialCharSequences: false,
+      delay: 0,
+    });
+});
+
+Cypress.Commands.add(
+  'assertMonacoContent',
+  (uri: string, expected: string | ((content: string) => void)) => {
+    cy.get(`[data-uri="file:///${uri}"] .view-line`).then((lines) => {
+      const rendered = [...lines]
+        .map((l) => l.textContent)
+        .join('\n')
+        // Replace non-breaking spaces with normal spaces
+        .replaceAll(/\u00A0/g, ' ');
+
+      if (typeof expected === 'function') {
+        expected(rendered);
+        return;
+      }
+      expect(rendered).to.eq(expected);
+    });
+  }
+);
+
 export {};

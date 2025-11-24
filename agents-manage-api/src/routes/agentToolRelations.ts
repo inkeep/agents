@@ -12,7 +12,6 @@ import {
   listAgentToolRelations,
   PaginationQueryParamsSchema,
   SubAgentToolRelationApiInsertSchema,
-  SubAgentToolRelationApiSelectSchema,
   SubAgentToolRelationApiUpdateSchema,
   SubAgentToolRelationListResponse,
   SubAgentToolRelationResponse,
@@ -23,8 +22,27 @@ import {
 } from '@inkeep/agents-core';
 import { z } from 'zod';
 import dbClient from '../data/db/dbClient';
+import { requirePermission } from '../middleware/require-permission';
+import type { BaseAppVariables } from '../types/app';
 
-const app = new OpenAPIHono();
+const app = new OpenAPIHono<{ Variables: BaseAppVariables }>();
+
+app.use('/', async (c, next) => {
+  if (c.req.method === 'POST') {
+    return requirePermission({ agent: ['create'] })(c, next);
+  }
+  return next();
+});
+
+app.use('/:id', async (c, next) => {
+  if (c.req.method === 'PUT') {
+    return requirePermission({ agent: ['update'] })(c, next);
+  }
+  if (c.req.method === 'DELETE') {
+    return requirePermission({ agent: ['delete'] })(c, next);
+  }
+  return next();
+});
 
 app.openapi(
   createRoute({
@@ -283,7 +301,6 @@ app.openapi(
   }),
   async (c) => {
     const { tenantId, projectId, agentId, id } = c.req.valid('param');
-    console.log('id', id);
     const body = await c.req.valid('json');
 
     if (Object.keys(body).length === 0) {

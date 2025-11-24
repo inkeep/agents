@@ -126,6 +126,37 @@ export function setupOpenAPIRoutes<E extends Env = Env>(app: OpenAPIHono<E>) {
           },
         ],
       });
+
+      // Add security schemes and global security requirements
+      document.components = {
+        ...document.components,
+        securitySchemes: {
+          ...(document.components?.securitySchemes || {}),
+          cookieAuth: {
+            type: 'apiKey',
+            in: 'cookie',
+            name: 'better-auth.session_token',
+            description:
+              'Session-based authentication using HTTP-only cookies. Cookies are automatically sent by browsers. For server-side requests, include cookies with names starting with "better-auth." in the Cookie header.',
+          },
+          bearerAuth: {
+            type: 'http',
+            scheme: 'bearer',
+            bearerFormat: 'Token',
+            description:
+              'Bearer token authentication. Use this for API clients and service-to-service communication. Set the Authorization header to "Bearer <token>".',
+          },
+        },
+      };
+
+      // Set global security (applies to all routes unless overridden)
+      // This allows either cookieAuth OR bearerAuth (both are valid)
+      document.security = [
+        {
+          cookieAuth: [],
+          bearerAuth: [],
+        },
+      ];
       return c.json(document);
     } catch (error) {
       console.error('OpenAPI document generation failed:', error);

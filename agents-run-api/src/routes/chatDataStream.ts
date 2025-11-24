@@ -314,7 +314,15 @@ app.openapi(chatDataStreamRoute, async (c) => {
       );
     });
   } catch (error) {
-    logger.error({ error }, 'chatDataStream error');
+    logger.error(
+      {
+        error,
+        errorMessage: error instanceof Error ? error.message : String(error),
+        errorStack: error instanceof Error ? error.stack : undefined,
+        errorType: error?.constructor?.name,
+      },
+      'chatDataStream error - DETAILED'
+    );
     throw createApiError({
       code: 'internal_server_error',
       message: 'Failed to process chat completion',

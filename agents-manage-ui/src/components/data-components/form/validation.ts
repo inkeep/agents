@@ -22,7 +22,7 @@ export const dataComponentSchema = z.object({
           });
           return z.NEVER;
         }
-
+        parsed.required ??= [];
         return parsed;
       } catch (error) {
         ctx.addIssue({

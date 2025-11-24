@@ -1,6 +1,6 @@
 {
   "name": "@inkeep/agents-core",
-  "version": "0.33.3",
+  "version": "0.36.1",
   "description": "Agents Core contains the database schema, types, and validation schemas for Inkeep Agent Framework, along with core components.",
   "type": "module",
   "license": "SEE LICENSE IN LICENSE.md",
@@ -11,9 +11,16 @@
     "./constants/models": "./src/constants/models.ts",
     "./constants/schema-validation": "./src/constants/schema-validation/index.ts",
     "./schema": "./src/db/schema.ts",
+    "./db/schema": "./src/db/schema.ts",
+    "./auth": "./src/auth/auth.ts",
+    "./auth/schema": "./src/auth/auth-schema.ts",
+    "./auth/validation": "./src/auth/auth-validation-schemas.ts",
+    "./auth/permissions": "./src/auth/permissions.ts",
+    "./db/test-client": "./src/db/test-client.ts",
     "./types": "./src/types/index.ts",
     "./validation": "./src/validation/index.ts",
     "./client-exports": "./src/client-exports.ts",
+    "./credential-stores": "./src/credential-stores/index.ts",
     "./drizzle": "./drizzle/",
     "./utils/schema-conversion": "./src/utils/schema-conversion.ts"
   },
@@ -50,8 +57,8 @@
     "@ai-sdk/openai-compatible": "^1.0.27",
     "@composio/core": "^0.2.4",
     "@electric-sql/pglite": "^0.3.13",
+    "@better-auth/sso": "^1.4.0",
     "@hono/node-server": "^1.14.3",
-    "@hono/zod-openapi": "^1.0.2",
     "@modelcontextprotocol/sdk": "^1.17.2",
     "@nangohq/node": "^0.69.5",
     "@nangohq/types": "^0.69.5",
@@ -68,6 +75,7 @@
     "ai": "5.0.11",
     "ajv": "^8.17.1",
     "ajv-formats": "^3.0.1",
+    "better-auth": "^1.4.0",
     "dotenv": "^17.2.1",
     "dotenv-expand": "^12.0.3",
     "drizzle-orm": "^0.44.4",
@@ -81,13 +89,14 @@
     "pg": "^8.16.3",
     "pino": "^9.11.0",
     "pino-pretty": "^13.1.1",
-    "ts-pattern": "^5.7.1",
-    "zod": "^4.1.11"
+    "ts-pattern": "^5.7.1"
   },
   "optionalDependencies": {
     "keytar": "^7.9.0"
   },
   "devDependencies": {
+    "@hono/zod-openapi": "^1.1.5",
+    "zod": "^4.1.11",
     "@types/jmespath": "^0.15.2",
     "@types/node": "^20.11.24",
     "@types/pg": "^8.15.6",

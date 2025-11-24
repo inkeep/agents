@@ -1,4 +1,0 @@
-ALTER TABLE "sub_agents" ALTER COLUMN "conversation_history_config" SET DEFAULT '{"mode":"full","limit":50,"maxOutputTokens":4000,"includeInternal":false,"messageTypes":["chat","tool-result"]}'::jsonb;--> statement-breakpoint
-UPDATE "sub_agents" SET "conversation_history_config" = '{"mode":"full","limit":50,"maxOutputTokens":4000,"includeInternal":false,"messageTypes":["chat","tool-result"]}'::jsonb WHERE "conversation_history_config" IS NULL;--> statement-breakpoint
-ALTER TABLE "sub_agents" ALTER COLUMN "conversation_history_config" SET NOT NULL;--> statement-breakpoint
-ALTER TABLE "sub_agent_tool_relations" ADD COLUMN "tool_policies" jsonb;

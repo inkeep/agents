@@ -13,7 +13,7 @@ let INKEEP_AGENTS_EVAL_API_URL: string | null = null;
 let hasWarnedManageApi = false;
 let hasWarnedEvalApi = false;
 
-function getManageApiUrl(): string {
+export function getManageApiUrl(): string {
   if (INKEEP_AGENTS_MANAGE_API_URL === null) {
     INKEEP_AGENTS_MANAGE_API_URL =
       process.env.INKEEP_AGENTS_MANAGE_API_URL || DEFAULT_INKEEP_AGENTS_MANAGE_API_URL;
@@ -53,13 +53,31 @@ async function makeApiRequestInternal<T>(
   options: RequestInit = {}
 ): Promise<T> {
   const url = `${baseUrl}/${endpoint}`;
-  const defaultHeaders = {
+
+  let cookieHeader: string | undefined;
+  if (typeof window === 'undefined') {
+    try {
+      const { cookies } = await import('next/headers');
+      const cookieStore = await cookies();
+      const allCookies = cookieStore.getAll();
+      // Only forward Better Auth cookies for security
+      const authCookies = allCookies.filter((c) => c.name.includes('better-auth'));
+      cookieHeader = authCookies.map((c) => `${c.name}=${c.value}`).join('; ');
+    } catch {
+      // Not in a server component context, skip cookie forwarding
+    }
+  }
+
+  const defaultHeaders: HeadersInit = {
     'Content-Type': 'application/json',
     ...options.headers,
+    ...(cookieHeader && { Cookie: cookieHeader }),
     ...(process.env.INKEEP_AGENTS_MANAGE_API_BYPASS_SECRET && {
       Authorization: `Bearer ${process.env.INKEEP_AGENTS_MANAGE_API_BYPASS_SECRET}`,
     }),
   };
+
+  console.log('defaultHeaders', defaultHeaders);
 
   try {
     const response = await fetch(url, {
@@ -68,7 +86,7 @@ async function makeApiRequestInternal<T>(
     });
 
     if (!response.ok) {
-      let errorData;
+      let errorData: any;
       try {
         const text = await response.text();
         errorData = text ? JSON.parse(text) : null;

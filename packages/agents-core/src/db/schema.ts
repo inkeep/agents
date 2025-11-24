@@ -13,6 +13,7 @@ import {
   unique,
   varchar,
 } from 'drizzle-orm/pg-core';
+import { organization } from '../auth/auth-schema';
 import type { Part } from '../types/a2a';
 import type {
   ContextFetchDefinition,
@@ -34,6 +35,18 @@ import type {
   StopWhen,
   SubAgentStopWhen,
 } from '../validation/schemas';
+
+// Re-export Better Auth generated tables
+export {
+  account,
+  invitation,
+  member,
+  organization,
+  session,
+  ssoProvider,
+  user,
+  verification,
+} from '../auth/auth-schema';
 
 const tenantScoped = {
   tenantId: varchar('tenant_id', { length: 256 }).notNull(),
@@ -77,7 +90,14 @@ export const projects = pgTable(
 
     ...timestamps,
   },
-  (table) => [primaryKey({ columns: [table.tenantId, table.id] })]
+  (table) => [
+    primaryKey({ columns: [table.tenantId, table.id] }),
+    foreignKey({
+      columns: [table.tenantId],
+      foreignColumns: [organization.id],
+      name: 'projects_tenant_id_fk',
+    }).onDelete('cascade'),
+  ]
 );
 
 export const agents = pgTable(
@@ -661,6 +681,11 @@ export const apiKeys = pgTable(
   },
   (t) => [
     foreignKey({
+      columns: [t.tenantId],
+      foreignColumns: [organization.id],
+      name: 'api_keys_organization_fk',
+    }).onDelete('cascade'),
+    foreignKey({
       columns: [t.tenantId, t.projectId],
       foreignColumns: [projects.tenantId, projects.id],
       name: 'api_keys_project_fk',
@@ -696,7 +721,6 @@ export const credentialReferences = pgTable(
     }).onDelete('cascade'),
   ]
 );
-
 
 export const tasksRelations = relations(tasks, ({ one, many }) => ({
   project: one(projects, {
@@ -1075,4 +1099,3 @@ export const subAgentTeamAgentRelationsRelations = relations(
     }),
   })
 );
-

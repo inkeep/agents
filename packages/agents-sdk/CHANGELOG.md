@@ -1,5 +1,141 @@
 # @inkeep/agents-sdk
 
+## 0.36.1
+
+### Patch Changes
+
+- Updated dependencies [1235b18]
+  - @inkeep/agents-core@0.36.1
+
+## 0.36.0
+
+### Patch Changes
+
+- @inkeep/agents-core@0.36.0
+
+## 0.35.12
+
+### Patch Changes
+
+- 840ca11: remove clean-package from API packages - was stripping runtime dependencies causing production errors
+- Updated dependencies [840ca11]
+  - @inkeep/agents-core@0.35.12
+
+## 0.35.11
+
+### Patch Changes
+
+- @inkeep/agents-core@0.35.11
+
+## 0.35.10
+
+### Patch Changes
+
+- Updated dependencies [7a7e726]
+  - @inkeep/agents-core@0.35.10
+
+## 0.35.9
+
+### Patch Changes
+
+- Updated dependencies [18c036d]
+  - @inkeep/agents-core@0.35.9
+
+## 0.35.8
+
+### Patch Changes
+
+- Updated dependencies [986dad2]
+  - @inkeep/agents-core@0.35.8
+
+## 0.35.7
+
+### Patch Changes
+
+- @inkeep/agents-core@0.35.7
+
+## 0.35.6
+
+### Patch Changes
+
+- Updated dependencies [31dbacc]
+  - @inkeep/agents-core@0.35.6
+
+## 0.35.5
+
+### Patch Changes
+
+- 15b564d: make inkeep mcp and docker optional in the quickstart
+- Updated dependencies [15b564d]
+  - @inkeep/agents-core@0.35.5
+
+## 0.35.4
+
+### Patch Changes
+
+- Updated dependencies [e297579]
+  - @inkeep/agents-core@0.35.4
+
+## 0.35.3
+
+### Patch Changes
+
+- 89e8c26: cleaned stale components with inkeep pull
+- Updated dependencies [89e8c26]
+  - @inkeep/agents-core@0.35.3
+
+## 0.35.2
+
+### Patch Changes
+
+- Updated dependencies [769d8a9]
+  - @inkeep/agents-core@0.35.2
+
+## 0.35.1
+
+### Patch Changes
+
+- @inkeep/agents-core@0.35.1
+
+## 0.35.0
+
+### Minor Changes
+
+- 0d46d32: Adding auth to the framework
+
+### Patch Changes
+
+- f9a208a: Check for CLI installation in quickstart
+- Updated dependencies [f9a208a]
+- Updated dependencies [0d46d32]
+  - @inkeep/agents-core@0.35.0
+
+## 0.34.1
+
+### Patch Changes
+
+- 699043d: Install inkeep mcp in quickstarte
+- e4b5d5c: Inkeep add: usage instructions and target path detection
+- Updated dependencies [699043d]
+- Updated dependencies [e4b5d5c]
+  - @inkeep/agents-core@0.34.1
+
+## 0.34.0
+
+### Patch Changes
+
+- 7426927: add cli installation to quickstart
+- 015f9f7: Status Update Model fixed
+- bdeee9b: quickstart skip cli install option
+- 2434d22: add error handling to github fetch
+- af95c9a: added provider config
+- Updated dependencies [7426927]
+- Updated dependencies [015f9f7]
+- Updated dependencies [bdeee9b]
+- Updated dependencies [2434d22]
+- Updated dependencies [af95c9a]
+  - @inkeep/agents-core@0.34.0
+
 ## 0.33.3
 
 ### Patch Changes

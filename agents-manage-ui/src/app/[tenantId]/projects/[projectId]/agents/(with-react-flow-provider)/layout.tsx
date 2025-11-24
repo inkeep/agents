@@ -3,20 +3,17 @@
 import { ReactFlowProvider } from '@xyflow/react';
 import { type FC, useEffect } from 'react';
 import { CopilotProvider } from '@/components/agent/copilot/copilot-context';
-import { useSidebar } from '@/components/ui/sidebar';
+import { useAgentActions } from '@/features/agent/state/use-agent-store';
 
 const Layout: FC<LayoutProps<'/[tenantId]/projects/[projectId]/agents'>> = ({ children }) => {
-  const { setOpen, open: initialOpen } = useSidebar();
+  const { setSidebarOpen } = useAgentActions();
 
-  // biome-ignore lint/correctness/useExhaustiveDependencies: ignore all deps
   useEffect(() => {
-    // Always collapse sidebar
-    setOpen(false);
+    setSidebarOpen({ isSidebarSessionOpen: false });
     return () => {
-      // Set initial open when leaving agents page
-      setOpen(initialOpen);
+      setSidebarOpen({ isSidebarSessionOpen: true });
     };
-  }, []);
+  }, [setSidebarOpen]);
 
   return (
     <ReactFlowProvider>

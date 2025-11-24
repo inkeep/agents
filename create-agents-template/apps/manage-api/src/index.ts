@@ -1,6 +1,6 @@
 import 'hono';
 
-import { createManagementApp } from '@inkeep/agents-manage-api';
+import { createManagementApp } from '@inkeep/agents-manage-api/factory';
 import type { Hono } from 'hono';
 import { credentialStores } from '../../shared/credential-stores.js';
 

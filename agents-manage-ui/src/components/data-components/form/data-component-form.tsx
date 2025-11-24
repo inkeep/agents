@@ -138,6 +138,7 @@ export function DataComponentForm({
             name="props"
             label="Properties"
             placeholder="Enter a valid JSON Schema..."
+            uri="json-schema-data-component.json"
             isRequired
           />
 

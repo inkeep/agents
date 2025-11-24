@@ -13,6 +13,41 @@ export default {
       ],
     },
     {
+      group: 'Tutorials',
+      pages: [
+        {
+          group: 'Agents',
+          icon: 'LuUser',
+          pages: [
+            'tutorials/agents/meeting-prep-assistant',
+          ],
+        },
+        {
+          group: 'MCP Servers',
+          icon: 'LuWrench',
+          pages: [
+            'tutorials/mcp-servers/overview',
+            'tutorials/mcp-servers/native-mcp-servers',
+            'tutorials/mcp-servers/composio-mcp-servers',
+            'tutorials/mcp-servers/gram',
+            'tutorials/mcp-servers/custom-mcp-servers',
+          ],
+        },
+        {
+          group: 'Connect Your Data',
+          icon: 'LuDatabase',
+          pages: [
+            'connect-your-data/overview',
+            'connect-your-data/inkeep',
+            'connect-your-data/pinecone',
+            'connect-your-data/context7',
+            'connect-your-data/ref',
+          ],
+        },
+        'tutorials/upgrading',
+      ],
+    },
+    {
       group: 'Typescript SDK',
       icon: 'LuCode',
       pages: [
@@ -144,33 +179,6 @@ export default {
         },
         'talk-to-your-agents/a2a',
         'troubleshooting',
-      ],
-    },
-    {
-      group: 'Tutorials',
-      pages: [
-        {
-          group: 'MCP Servers',
-          icon: 'LuWrench',
-          pages: [
-            'tutorials/mcp-servers/overview',
-            'tutorials/mcp-servers/native-mcp-servers',
-            'tutorials/mcp-servers/composio-mcp-servers',
-            'tutorials/mcp-servers/gram',
-            'tutorials/mcp-servers/custom-mcp-servers',
-          ],
-        },
-        {
-          group: 'Connect Your Data',
-          icon: 'LuDatabase',
-          pages: [
-            'connect-your-data/overview',
-            'connect-your-data/inkeep',
-            'connect-your-data/context7',
-            'connect-your-data/ref',
-          ],
-        },
-        'tutorials/upgrading',
       ],
     },
     {

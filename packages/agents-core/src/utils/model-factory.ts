@@ -113,6 +113,10 @@ export class ModelFactory {
       providerConfig.baseURL = providerOptions.baseUrl || providerOptions.baseURL;
     }
 
+    if (providerOptions.headers) {
+      providerConfig.headers = providerOptions.headers;
+    }
+
     if (providerOptions.gateway) {
       Object.assign(providerConfig, providerOptions.gateway);
     }
@@ -240,7 +244,7 @@ export class ModelFactory {
       return {};
     }
 
-    const excludedKeys = ['apiKey', 'baseURL', 'baseUrl', 'maxDuration'];
+    const excludedKeys = ['apiKey', 'baseURL', 'baseUrl', 'maxDuration', 'headers', 'gateway', 'nim', 'custom'];
 
     const params: Record<string, unknown> = {};
     for (const [key, value] of Object.entries(providerOptions)) {

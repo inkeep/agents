@@ -6,6 +6,7 @@ import {
   updateFullProjectServerSide,
 } from '../../data-access/projectFull';
 import type { DatabaseClient } from '../../db/client';
+import { createTestOrganization } from '../../db/test-client';
 import type { FullProjectDefinition } from '../../types/entities';
 import { generateId } from '../../utils/conversations';
 import { getLogger } from '../../utils/logger';
@@ -14,12 +15,15 @@ import { testDbClient } from '../setup';
 describe('projectFull data access', () => {
   let db: DatabaseClient;
   const logger = getLogger('test');
+  const tenantId = `tenant-${generateId()}`;
 
   beforeEach(async () => {
     db = testDbClient;
     vi.clearAllMocks();
+    
+    // Create organization for this tenant
+    await createTestOrganization(db, tenantId);
   });
-  const tenantId = `tenant-${generateId()}`;
 
   const createTestProjectDefinition = (projectId: string): FullProjectDefinition => ({
     id: projectId,

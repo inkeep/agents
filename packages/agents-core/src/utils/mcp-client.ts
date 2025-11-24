@@ -176,7 +176,7 @@ export class McpClient {
   }
 
   private async selectTools() {
-    const { tools } = await this.client.listTools({ timeout: this.timeout });
+    const { tools } = await this.client.listTools();
 
     const { selectedTools, activeTools } = this.serverConfig;
 
