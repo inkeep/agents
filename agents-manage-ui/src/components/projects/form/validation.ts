@@ -38,8 +38,8 @@ export const projectSchema = z.object({
     .max(100, 'Name must be less than 100 characters'),
   description: z
     .string()
-    .min(1, 'Project description is required')
-    .max(500, 'Description must be less than 500 characters'),
+    .max(500, 'Description must be less than 500 characters')
+    .optional(),
   models: projectModelsSchema,
   stopWhen: projectStopWhenSchema,
 });

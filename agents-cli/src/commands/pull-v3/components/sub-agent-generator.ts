@@ -5,7 +5,9 @@
  * Sub-agents are the individual agents within an agent graph that handle specific tasks
  */
 
+import { SubAgentInsertSchema } from '@inkeep/agents-core';
 import { compareJsonObjects } from '../../../utils/json-comparator';
+import { getRequiredFields } from '../../../utils/schema-introspection';
 import type { ComponentRegistry, ComponentType } from '../utils/component-registry';
 import {
   type CodeStyle,
@@ -89,8 +91,8 @@ export function generateSubAgentDefinition(
     throw new Error(`agentData is required for sub-agent '${agentId}'`);
   }
 
-  // Validate required sub-agent fields
-  const requiredFields = ['name'];
+  // Validate required sub-agent fields using schema introspection
+  const requiredFields = getRequiredFields(SubAgentInsertSchema);
   const missingFields = requiredFields.filter(
     (field) => !agentData[field] || agentData[field] === null || agentData[field] === undefined
   );

@@ -17,6 +17,9 @@ const DEFAULT_STYLE: CodeStyle = {
   indentation: '  ',
 };
 
+import { ToolInsertSchema } from '@inkeep/agents-core';
+import { getRequiredFields } from '../../../utils/schema-introspection';
+
 /**
  * Utility functions
  */
@@ -58,7 +61,8 @@ export function generateMcpToolDefinition(
   }
 
   // Validate required MCP tool fields - check both possible locations for serverUrl
-  const requiredFields = ['name'];
+  // Get required fields from schema introspection
+  const requiredFields = getRequiredFields(ToolInsertSchema);
   const serverUrl = toolData.config?.mcp?.server?.url || toolData.serverUrl;
 
   const missingFields = requiredFields.filter(

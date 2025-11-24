@@ -5,6 +5,8 @@
  */
 
 import { jsonSchemaToZod } from 'json-schema-to-zod';
+import { DataComponentInsertSchema } from '@inkeep/agents-core';
+import { getRequiredFields } from '../../../utils/schema-introspection';
 
 interface CodeStyle {
   quotes: 'single' | 'double';
@@ -74,7 +76,8 @@ export function generateDataComponentDefinition(
   }
 
   // Validate required data component fields
-  const requiredFields = ['name', 'props'];
+  // Get required fields from schema introspection
+  const requiredFields = getRequiredFields(DataComponentInsertSchema);
   const missingFields = requiredFields.filter(
     (field) =>
       !componentData[field] || componentData[field] === null || componentData[field] === undefined

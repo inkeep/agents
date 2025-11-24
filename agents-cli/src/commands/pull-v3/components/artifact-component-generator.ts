@@ -6,6 +6,8 @@
  */
 
 import { jsonSchemaToZod } from 'json-schema-to-zod';
+import { ArtifactComponentInsertSchema } from '@inkeep/agents-core';
+import { getRequiredFields } from '../../../utils/schema-introspection';
 
 interface CodeStyle {
   quotes: 'single' | 'double';
@@ -133,7 +135,8 @@ export function generateArtifactComponentDefinition(
   }
 
   // Validate required artifact component fields
-  const requiredFields = ['name', 'props'];
+  // Get required fields from schema introspection
+  const requiredFields = getRequiredFields(ArtifactComponentInsertSchema);
   const missingFields = requiredFields.filter(
     (field) =>
       !componentData[field] || componentData[field] === null || componentData[field] === undefined

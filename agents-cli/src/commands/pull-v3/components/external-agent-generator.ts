@@ -5,6 +5,8 @@
  * External agents are agents hosted on other systems that can be called by internal agents
  */
 
+import { ExternalAgentInsertSchema } from '@inkeep/agents-core';
+import { getRequiredFields } from '../../../utils/schema-introspection';
 import type { ComponentRegistry, ComponentType } from '../utils/component-registry';
 import {
   type CodeStyle,
@@ -35,7 +37,8 @@ export function generateExternalAgentDefinition(
   }
 
   // Validate required external agent fields
-  const requiredFields = ['name', 'baseUrl'];
+  // Get required fields from schema introspection
+  const requiredFields = getRequiredFields(ExternalAgentInsertSchema);
   const missingFields = requiredFields.filter(
     (field) => !agentData[field] || agentData[field] === null || agentData[field] === undefined
   );
