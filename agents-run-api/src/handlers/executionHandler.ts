@@ -6,7 +6,6 @@ import {
   generateId,
   getActiveAgentForConversation,
   getAgentWithDefaultSubAgent,
-  getArtifactComponentsForAgent,
   getFullAgent,
   getTask,
   type SendMessageResponse,
@@ -514,6 +513,7 @@ export class ExecutionHandler {
               }
 
               logger.info({}, 'ExecutionHandler returning success');
+
               return { success: true, iterations, response };
             } catch (error) {
               setSpanWithError(span, error instanceof Error ? error : new Error(String(error)));

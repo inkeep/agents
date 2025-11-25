@@ -1,5 +1,20 @@
 # @inkeep/agents-manage-api
 
+## 0.37.0
+
+### Minor Changes
+
+- 45471ab: Implement temporary API key authentication for playground with session-based auth
+
+### Patch Changes
+
+- 56e1b4d: make zod and hono zod internal deps
+- 45471ab: Fix error messages to show proper 403 access denied instead of generic internal server error
+- Updated dependencies [45471ab]
+- Updated dependencies [56e1b4d]
+- Updated dependencies [45471ab]
+  - @inkeep/agents-core@0.37.0
+
 ## 0.36.1
 
 ### Patch Changes

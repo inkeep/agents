@@ -80,7 +80,7 @@ export function TeamAgentSelector({ selectedNode }: { selectedNode: Node }) {
       <EmptyState
         message="Something went wrong."
         actionText="Create agent"
-        actionHref={`/${tenantId}/projects/${projectId}/agents/new`}
+        actionHref={`/${tenantId}/projects/${projectId}/agents/`}
       />
     );
   }
@@ -90,7 +90,7 @@ export function TeamAgentSelector({ selectedNode }: { selectedNode: Node }) {
       <EmptyState
         message="No agents found."
         actionText="Create agent"
-        actionHref={`/${tenantId}/projects/${projectId}/agents/new`}
+        actionHref={`/${tenantId}/projects/${projectId}/agents/`}
       />
     );
   }
