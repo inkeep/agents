@@ -42,6 +42,7 @@ export default {
             'connect-your-data/pinecone',
             'connect-your-data/context7',
             'connect-your-data/ref',
+            'connect-your-data/firecrawl',
           ],
         },
         'tutorials/upgrading',
