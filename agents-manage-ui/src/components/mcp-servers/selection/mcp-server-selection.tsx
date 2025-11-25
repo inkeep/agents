@@ -1,5 +1,6 @@
 'use client';
 
+import type { User } from 'better-auth';
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
 import { toast } from 'sonner';
@@ -7,12 +8,18 @@ import { PageHeader } from '@/components/layout/page-header';
 import { MCPServerForm } from '@/components/mcp-servers/form/mcp-server-form';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { useAuthSession } from '@/hooks/use-auth';
 import { useOAuthLogin } from '@/hooks/use-oauth-login';
 import type { Credential } from '@/lib/api/credentials';
 import { createMCPTool } from '@/lib/api/tools';
 import type { PrebuiltMCPServer } from '@/lib/data/prebuilt-mcp-servers';
 import { generateId } from '@/lib/utils/id-utils';
 import { PrebuiltServersGrid } from './prebuilt-servers-grid';
+
+export function createMcpServerNameWithUserSuffix(serverName: string, user?: User | null): string {
+  const userSuffix = user?.name ? ` (${user.name})` : user?.email ? ` (${user.email})` : '';
+  return `${serverName}${userSuffix}`;
+}
 
 interface MCPServerSelectionProps {
   credentials: Credential[];
@@ -27,6 +34,7 @@ export function MCPServerSelection({ credentials, tenantId, projectId }: MCPServ
   const [selectedMode, setSelectedMode] = useState<SelectionMode>('popular');
   const [searchQuery, setSearchQuery] = useState('');
   const router = useRouter();
+  const { user } = useAuthSession();
 
   const { handleOAuthLogin } = useOAuthLogin({
     tenantId,
@@ -36,11 +44,13 @@ export function MCPServerSelection({ credentials, tenantId, projectId }: MCPServ
   const handleSelectPrebuiltServer = async (server: PrebuiltMCPServer) => {
     setLoadingServerId(server.id);
 
+    const mcpServerName = createMcpServerNameWithUserSuffix(server.name, user);
+
     try {
       // Transform prebuilt server data to MCPToolFormData format
       const mcpToolData = {
         id: generateId(),
-        name: server.name,
+        name: mcpServerName,
         config: {
           type: 'mcp' as const,
           mcp: {
@@ -65,11 +75,11 @@ export function MCPServerSelection({ credentials, tenantId, projectId }: MCPServ
         handleOAuthLogin({
           toolId: newTool.id,
           mcpServerUrl: server.url,
-          toolName: server.name,
+          toolName: mcpServerName,
           thirdPartyConnectAccountUrl: server.thirdPartyConnectAccountUrl,
         });
       } else {
-        handleOAuthLogin({ toolId: newTool.id, mcpServerUrl: server.url, toolName: server.name });
+        handleOAuthLogin({ toolId: newTool.id, mcpServerUrl: server.url, toolName: mcpServerName });
       }
     } catch (error) {
       console.error('Failed to create prebuilt MCP server:', error);

@@ -1,4 +1,8 @@
-import { CredentialStoreType, generateIdFromName } from '@inkeep/agents-core/client-exports';
+import {
+  CredentialStoreType,
+  DEFAULT_NANGO_STORE_ID,
+  generateIdFromName,
+} from '@inkeep/agents-core/client-exports';
 import { useRouter } from 'next/navigation';
 import { useCallback, useRef } from 'react';
 import { toast } from 'sonner';
@@ -146,15 +150,15 @@ export function useOAuthLogin({
     }): Promise<void> => {
       const authResult = await openNangoConnectHeadless({
         mcpServerUrl,
-        providerUniqueKey: `${generateIdFromName(toolName)}_${toolId}`,
+        providerUniqueKey: `${generateIdFromName(toolName)}_${toolId.slice(0, 4)}`,
         providerDisplayName: toolName,
       });
 
       const newCredentialData = {
         id: generateId(),
-        name: `${toolName} OAuth Credential`,
+        name: toolName,
         type: CredentialStoreType.nango,
-        credentialStoreId: 'nango-default',
+        credentialStoreId: DEFAULT_NANGO_STORE_ID,
         retrievalParams: {
           connectionId: authResult.connectionId,
           providerConfigKey: authResult.providerConfigKey,

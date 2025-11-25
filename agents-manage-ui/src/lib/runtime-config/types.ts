@@ -11,4 +11,5 @@ export interface RuntimeConfig {
   PUBLIC_AUTH0_DOMAIN?: string;
   PUBLIC_GOOGLE_CLIENT_ID?: string;
   PUBLIC_DISABLE_AUTH?: string;
+  PUBLIC_IS_INKEEP_CLOUD_DEPLOYMENT?: string;
 }
