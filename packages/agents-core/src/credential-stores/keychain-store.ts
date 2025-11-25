@@ -1,7 +1,7 @@
+import type * as Keytar from 'keytar';
 import { CredentialStoreType } from '../types';
 import type { CredentialStore } from '../types/server';
 import { getLogger } from '../utils/logger';
-import type * as Keytar from 'keytar';
 
 /**
  * KeyChainStore - Cross-platform system keychain credential storage
