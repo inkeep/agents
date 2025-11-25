@@ -40,42 +40,61 @@ console.log('[OTEL DEBUG] Initializing OpenTelemetry with configuration:', JSON.
 logger.info(otelConfig, 'Initializing OpenTelemetry with configuration');
 
 const baseExporter = new OTLPTraceExporter();
+process.stdout.write('[OTEL DEBUG EXPORTER] OTLPTraceExporter base instance created\n');
 console.log('[OTEL DEBUG] OTLPTraceExporter created successfully');
 logger.info({}, 'OTLPTraceExporter created');
 
-const otlpExporter = {
-  export: (spans: any, resultCallback: any) => {
+class DebugOTLPExporter {
+  private exportCount = 0;
+
+  export(spans: any, resultCallback: any) {
+    this.exportCount++;
     const spanCount = spans.length;
-    process.stdout.write(`[OTEL DEBUG EXPORT] Exporting ${spanCount} span(s) to Signoz at ${new Date().toISOString()}\n`);
-    console.log(`[OTEL DEBUG] Exporting ${spanCount} span(s) to Signoz`);
-    logger.info({ spanCount }, 'Exporting spans to Signoz');
+    const timestamp = new Date().toISOString();
+    
+    process.stdout.write(`[OTEL DEBUG EXPORT #${this.exportCount}] Exporting ${spanCount} span(s) to Signoz at ${timestamp}\n`);
+    console.log(`[OTEL DEBUG EXPORT #${this.exportCount}] Exporting ${spanCount} span(s) to Signoz`);
+    
+    // Log first span details
+    if (spans.length > 0) {
+      const firstSpan = spans[0];
+      console.log(`[OTEL DEBUG EXPORT] First span name: ${firstSpan.name}, traceId: ${firstSpan.spanContext?.().traceId}`);
+    }
+    
+    logger.info({ spanCount, exportNumber: this.exportCount }, 'Exporting spans to Signoz');
     
     baseExporter.export(spans, (result: any) => {
       if (result.code === 0) {
-        process.stdout.write(`[OTEL DEBUG EXPORT] ✅ Successfully exported ${spanCount} span(s) to Signoz\n`);
-        console.log(`[OTEL DEBUG] Successfully exported ${spanCount} span(s) to Signoz`);
-        logger.info({ spanCount }, 'Successfully exported spans to Signoz');
+        process.stdout.write(`[OTEL DEBUG EXPORT #${this.exportCount}] ✅ Successfully exported ${spanCount} span(s) to Signoz\n`);
+        console.log(`[OTEL DEBUG EXPORT #${this.exportCount}] Successfully exported ${spanCount} span(s) to Signoz`);
+        logger.info({ spanCount, exportNumber: this.exportCount }, 'Successfully exported spans to Signoz');
       } else {
-        process.stderr.write(`[OTEL DEBUG EXPORT] ❌ Failed to export spans to Signoz: ${JSON.stringify(result)}\n`);
-        console.error(`[OTEL DEBUG] Failed to export spans to Signoz:`, result);
-        logger.error({ result, spanCount }, 'Failed to export spans to Signoz');
+        process.stderr.write(`[OTEL DEBUG EXPORT #${this.exportCount}] ❌ Failed to export spans: ${JSON.stringify(result)}\n`);
+        console.error(`[OTEL DEBUG EXPORT #${this.exportCount}] Failed to export spans:`, result);
+        logger.error({ result, spanCount, exportNumber: this.exportCount }, 'Failed to export spans to Signoz');
       }
       resultCallback(result);
     });
-  },
-  shutdown: () => {
+  }
+
+  shutdown() {
     process.stdout.write('[OTEL DEBUG EXPORT] Shutting down OTLPTraceExporter\n');
     console.log('[OTEL DEBUG] Shutting down OTLPTraceExporter');
     logger.info({}, 'Shutting down OTLPTraceExporter');
     return baseExporter.shutdown();
-  },
-  forceFlush: () => {
+  }
+
+  forceFlush() {
     process.stdout.write('[OTEL DEBUG EXPORT] Force flushing OTLPTraceExporter\n');
     console.log('[OTEL DEBUG] Force flushing OTLPTraceExporter');
     logger.info({}, 'Force flushing OTLPTraceExporter');
     return baseExporter.forceFlush();
-  },
-};
+  }
+}
+
+const otlpExporter = new DebugOTLPExporter();
+process.stdout.write('[OTEL DEBUG EXPORTER] DebugOTLPExporter wrapper created\n');
+console.log('[OTEL DEBUG EXPORTER] DebugOTLPExporter wrapper created');
 /**
  * Creates a safe batch processor that falls back to no-op when SignOz is not configured
  */
@@ -91,6 +110,32 @@ function createSafeBatchProcessor(): SpanProcessor {
     logger.info(processorConfig, 'Creating BatchSpanProcessor');
     
     const processor = new BatchSpanProcessor(otlpExporter, processorConfig);
+    
+    // Wrap the processor to intercept onStart and onEnd calls
+    const originalOnStart = processor.onStart.bind(processor);
+    const originalOnEnd = processor.onEnd.bind(processor);
+    const originalForceFlush = processor.forceFlush.bind(processor);
+    
+    processor.onStart = (span: any, context: any) => {
+      process.stdout.write(`[OTEL DEBUG PROCESSOR] onStart called for span: ${span.name}\n`);
+      console.log(`[OTEL DEBUG PROCESSOR] onStart called for span: ${span.name}`);
+      return originalOnStart(span, context);
+    };
+    
+    processor.onEnd = (span: any) => {
+      process.stdout.write(`[OTEL DEBUG PROCESSOR] onEnd called for span: ${span.name}, ended: ${span.ended}\n`);
+      console.log(`[OTEL DEBUG PROCESSOR] onEnd called for span: ${span.name}, ended: ${span.ended}`);
+      return originalOnEnd(span);
+    };
+    
+    processor.forceFlush = async () => {
+      process.stdout.write('[OTEL DEBUG PROCESSOR] forceFlush called on processor\n');
+      console.log('[OTEL DEBUG PROCESSOR] forceFlush called on processor');
+      const result = await originalForceFlush();
+      process.stdout.write('[OTEL DEBUG PROCESSOR] forceFlush completed\n');
+      console.log('[OTEL DEBUG PROCESSOR] forceFlush completed');
+      return result;
+    };
     
     process.stdout.write('[OTEL DEBUG PROCESSOR] BatchSpanProcessor created successfully\n');
     console.log('[OTEL DEBUG] BatchSpanProcessor created successfully');

@@ -272,7 +272,7 @@ function createExecutionHono(
         },
       },
     }),
-    (c) => {
+    async (c) => {
       const config = {
         OTEL_EXPORTER_OTLP_TRACES_ENDPOINT: process.env.OTEL_EXPORTER_OTLP_TRACES_ENDPOINT,
         OTEL_EXPORTER_OTLP_TRACES_HEADERS: process.env.OTEL_EXPORTER_OTLP_TRACES_HEADERS ? '[REDACTED]' : undefined,
@@ -286,9 +286,14 @@ function createExecutionHono(
       console.log('[OTEL DEBUG ENDPOINT] OTEL Configuration:', JSON.stringify(config, null, 2));
       logger.info({ config }, 'OTEL configuration endpoint called');
       
+      // Check SDK state
+      const { defaultSDK } = await import('./instrumentation');
+      console.log('[OTEL DEBUG ENDPOINT] SDK instance exists:', !!defaultSDK);
+      
       return c.json({
         message: 'Check Vercel logs for [OTEL DEBUG ENDPOINT] messages',
         config,
+        sdkExists: !!defaultSDK,
         timestamp: new Date().toISOString(),
       }, 200);
     }
@@ -309,25 +314,43 @@ function createExecutionHono(
       },
     }),
     async (c) => {
-      const { trace } = await import('@opentelemetry/api');
+      const { trace, context: otelContext } = await import('@opentelemetry/api');
       const tracer = trace.getTracer('debug-tracer');
       
       process.stdout.write(`[OTEL DEBUG] Creating test trace at ${new Date().toISOString()}\n`);
       console.log('[OTEL DEBUG] Creating test trace...');
       
+      const activeContext = otelContext.active();
+      const activeSpan = trace.getSpan(activeContext);
+      console.log('[OTEL DEBUG] Active context exists:', !!activeContext);
+      console.log('[OTEL DEBUG] Active span exists:', !!activeSpan);
+      
       const result = await tracer.startActiveSpan('test.trace', async (span) => {
+        const spanContext = span.spanContext();
+        console.log('[OTEL DEBUG] Test span created with context:', {
+          traceId: spanContext.traceId,
+          spanId: spanContext.spanId,
+          traceFlags: spanContext.traceFlags,
+        });
+        
         span.setAttribute('test.attribute', 'test-value');
         span.setAttribute('test.timestamp', new Date().toISOString());
         span.addEvent('test.event', { message: 'This is a test trace from /debug/trace-test' });
         
-        console.log('[OTEL DEBUG] Test span created, forcing flush...');
+        console.log('[OTEL DEBUG] Test span attributes set, about to end span');
+        span.end();
+        console.log('[OTEL DEBUG] Test span ended, now forcing flush...');
         
         await flushBatchProcessor();
         
-        span.end();
         console.log('[OTEL DEBUG] Test span ended and flushed');
         
-        return { success: true, message: 'Test trace created and exported' };
+        return { 
+          success: true, 
+          message: 'Test trace created and exported',
+          traceId: spanContext.traceId,
+          spanId: spanContext.spanId,
+        };
       });
       
       return c.json(result, 200);
