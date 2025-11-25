@@ -1,5 +1,11 @@
 import { type Node, useReactFlow } from '@xyflow/react';
-import { CircleAlert, Shield, Trash2 } from 'lucide-react';
+import {
+  Check,
+  CircleAlert,
+  //  Shield,
+  Trash2,
+  X,
+} from 'lucide-react';
 import { useParams } from 'next/navigation';
 import { useCallback, useEffect, useState } from 'react';
 import { getActiveTools } from '@/app/utils/active-tools';
@@ -133,23 +139,23 @@ export function MCPServerNodeEditor({
     markUnsaved();
   };
 
-  const toggleToolApproval = (toolName: string) => {
-    const updatedPolicies = { ...currentToolPolicies };
+  // const toggleToolApproval = (toolName: string) => {
+  //   const updatedPolicies = { ...currentToolPolicies };
 
-    if (updatedPolicies[toolName]?.needsApproval) {
-      // Remove approval requirement
-      delete updatedPolicies[toolName];
-    } else {
-      // Add approval requirement
-      updatedPolicies[toolName] = { needsApproval: true };
-    }
+  //   if (updatedPolicies[toolName]?.needsApproval) {
+  //     // Remove approval requirement
+  //     delete updatedPolicies[toolName];
+  //   } else {
+  //     // Add approval requirement
+  //     updatedPolicies[toolName] = { needsApproval: true };
+  //   }
 
-    updateNodeData(selectedNode.id, {
-      ...selectedNode.data,
-      tempToolPolicies: updatedPolicies,
-    });
-    markUnsaved();
-  };
+  //   updateNodeData(selectedNode.id, {
+  //     ...selectedNode.data,
+  //     tempToolPolicies: updatedPolicies,
+  //   });
+  //   markUnsaved();
+  // };
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
@@ -243,7 +249,7 @@ export function MCPServerNodeEditor({
         </div>
       )}
       <div className="flex flex-col gap-2">
-        <div className="flex items-center justify-between mb-3">
+        <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
             <Label>Tool Configuration</Label>
             <Badge
@@ -254,49 +260,63 @@ export function MCPServerNodeEditor({
                 selectedTools === null
                   ? (activeTools?.length ?? 0) // All tools selected
                   : selectedTools.length // Count all selected tools (including orphaned ones)
-              }{' '}
-              selected
+              }
             </Badge>
           </div>
-          {activeTools && activeTools.length > 1 && (
-            <div className="flex gap-1">
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => {
-                  updateNodeData(selectedNode.id, {
-                    ...selectedNode.data,
-                    tempSelectedTools: null, // null means all tools selected
-                  });
-                  markUnsaved();
-                }}
-              >
-                Select All
-              </Button>
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => {
-                  updateNodeData(selectedNode.id, {
-                    ...selectedNode.data,
-                    tempSelectedTools: [],
-                    tempToolPolicies: {}, // Clear all approval policies
-                  });
-                  markUnsaved();
-                }}
-              >
-                Deselect All
-              </Button>
-            </div>
-          )}
+          {activeTools &&
+            activeTools.length > 1 &&
+            (() => {
+              const allToolsSelected =
+                selectedTools === null ||
+                (selectedTools !== null && selectedTools.length === activeTools.length);
+
+              return (
+                <>
+                  {allToolsSelected ? (
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => {
+                        updateNodeData(selectedNode.id, {
+                          ...selectedNode.data,
+                          tempSelectedTools: [],
+                          tempToolPolicies: {}, // Clear all approval policies
+                        });
+                        markUnsaved();
+                      }}
+                    >
+                      <X className="w-4 h-4 text-muted-foreground" />
+                      Deselect all
+                    </Button>
+                  ) : (
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => {
+                        updateNodeData(selectedNode.id, {
+                          ...selectedNode.data,
+                          tempSelectedTools: null, // null means all tools selected
+                        });
+                        markUnsaved();
+                      }}
+                    >
+                      <Check className="w-4 h-4 text-muted-foreground" />
+                      Select all
+                    </Button>
+                  )}
+                </>
+              );
+            })()}
         </div>
 
         {(activeTools && activeTools.length > 0) || orphanedTools.length > 0 ? (
-          <div className="space-y-1 border rounded-md">
+          <div className="border rounded-md">
             {/* Header */}
-            <div className="grid grid-cols-[1fr_auto] gap-4 px-3 py-2 text-xs font-medium text-muted-foreground bg-muted/20 rounded-t-md border-b">
+            <div className="grid grid-cols-[1fr_auto] gap-4 px-3 py-2.5 text-xs font-medium text-muted-foreground rounded-t-md border-b">
               <div>Tool</div>
-              <Tooltip>
+              {/* <Tooltip>
                 <TooltipTrigger asChild>
                   <div className="flex items-center gap-1 cursor-help">
                     <Shield className="w-3 h-3" />
@@ -309,7 +329,7 @@ export function MCPServerNodeEditor({
                     before running.
                   </div>
                 </TooltipContent>
-              </Tooltip>
+              </Tooltip> */}
             </div>
 
             {/* Active tools */}
@@ -318,14 +338,14 @@ export function MCPServerNodeEditor({
                 selectedTools === null
                   ? true // If null, all tools are selected
                   : selectedTools.includes(tool.name);
-              const needsApproval = currentToolPolicies[tool.name]?.needsApproval || false;
+              // const needsApproval = currentToolPolicies[tool.name]?.needsApproval || false;
 
               return (
                 <div
                   key={tool.name}
                   className="grid grid-cols-[1fr_auto] gap-4 px-3 py-2 hover:bg-muted/30 transition-colors border-b last:border-b-0"
                 >
-                  <div className="flex items-center gap-2 min-w-0">
+                  <div className="flex items-center gap-2.5 min-w-0">
                     <Checkbox
                       checked={isSelected}
                       onCheckedChange={() => toggleToolSelection(tool.name)}
@@ -344,20 +364,20 @@ export function MCPServerNodeEditor({
                       </TooltipContent>
                     </Tooltip>
                   </div>
-                  <div className="flex items-center">
+                  {/* <div className="flex items-center">
                     <Checkbox
                       checked={needsApproval}
                       disabled={!isSelected}
                       onCheckedChange={() => toggleToolApproval(tool.name)}
                     />
-                  </div>
+                  </div> */}
                 </div>
               );
             })}
 
             {/* Orphaned tools (selected but no longer available) */}
             {orphanedTools.map((toolName) => {
-              const needsApproval = currentToolPolicies[toolName]?.needsApproval || false;
+              // const needsApproval = currentToolPolicies[toolName]?.needsApproval || false;
 
               return (
                 <div
@@ -387,12 +407,12 @@ export function MCPServerNodeEditor({
                       </TooltipContent>
                     </Tooltip>
                   </div>
-                  <div className="flex items-center">
+                  {/* <div className="flex items-center">
                     <Checkbox
                       checked={needsApproval}
                       onCheckedChange={() => toggleToolApproval(toolName)}
                     />
-                  </div>
+                  </div> */}
                 </div>
               );
             })}

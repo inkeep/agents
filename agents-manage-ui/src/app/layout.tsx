@@ -67,8 +67,6 @@ export default function RootLayout({ children }: LayoutProps<'/'>) {
       process.env.PUBLIC_DISABLE_AUTH || process.env.NEXT_PUBLIC_DISABLE_AUTH || 'true',
   };
 
-  console.log('RuntimeConfig created:', JSON.stringify(runtimeConfig, null, 2));
-
   return (
     <html lang="en" suppressHydrationWarning>
       <body
