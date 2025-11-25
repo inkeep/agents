@@ -12,7 +12,7 @@ This guide provides a structured methodology for debugging problems across diffe
 
 ## Step 1: Check the Timeline
 
-The timeline is your first stop for understanding what happened during a conversation or agent execution. Navigate to the **Traces** sections to view in depth details per conversation. Within each conversation, you'll find an **error card** that is clickable whenever something goes wrong during agent execution. 
+The timeline is your first stop for understanding what happened during a conversation or agent execution. Navigate to the **Traces** sections to view in depth details per conversation. Within each conversation, you'll find an **error card** that is clickable whenever something goes wrong during agent execution.
 
 ### What to Look For
 
@@ -79,8 +79,8 @@ When running `pnpm dev` from your [quickstart workspace](/quick-start/start-deve
 
 ![Service logs in local development](/images/agents-quickstart-pnpm-dev.png)
 
-- The `service-info` tab displays the health of each running service. 
-- The `manage-api` tab contains logs for all database operations. This is useful primarily for debugging issues with [`inkeep push`](/typescript-sdk/push-pull-workflows).
+- The `service-info` tab displays the health of each running service.
+- The `manage-api` tab contains logs for all database operations. This is useful primarily for debugging issues with [`inkeep push`](/typescript-sdk/cli-reference#inkeep-push).
 - The `run-api` tab contains logs for all agent execution and tool calls. This is useful for debugging issues with your agent's behavior.
 - The `mcp` tab contains logs for your [custom MCP servers](/tutorials/how-to-create-mcp-servers/inkeep).
 - The `dashboard` tab displays logs for the [Visual Builder](/visual-builder/overview) dashboard.
@@ -98,7 +98,7 @@ To terminate the running services, click press `q` or `esc` in the terminal.
 
 ### MCP Server Connection Issues
 
-- **MCP not able to connect**: 
+- **MCP not able to connect**:
     - Check that the MCP server is running and accessible
 - **401 Unauthorized errors**:
     - Verify that credentials are properly configured and valid
@@ -107,28 +107,28 @@ To terminate the running services, click press `q` or `esc` in the terminal.
 
 ### AI Provider Configuration Problems
 
-- **AI Provider key not defined or invalid**: 
+- **AI Provider key not defined or invalid**:
   - Ensure you have one of these environment variables set: `ANTHROPIC_API_KEY`, `OPENAI_API_KEY`, or `GOOGLE_GENERATIVE_AI_API_KEY`
   - Verify the API key is valid and has sufficient credits
   - Check that the key hasn't expired or been revoked
 
-- **GPT-5 access issues**: 
+- **GPT-5 access issues**:
   - Individual users cannot access GPT-5 as it requires organization verification
   - Use GPT-4 or other available models instead
   - Contact OpenAI support if you need GPT-5 access for your organization
 
 ### Credit and Rate Limiting Issues
 
-- **Running out of credits**: 
+- **Running out of credits**:
   - Monitor your OpenAI usage and billing
   - Set up usage alerts to prevent unexpected charges
 
-- **Rate limiting by AI providers**: 
+- **Rate limiting by AI providers**:
   - Especially common with high-frequency operations like summarizers
   - Monitor your API usage patterns and adjust accordingly
 
 ### Context Fetcher Issues
 
-- **Context fetcher timeouts**: 
+- **Context fetcher timeouts**:
   - Check that external services are responding within expected timeframes
 
