@@ -41,16 +41,14 @@ function createExecutionHono(
 
   app.use('*', otel());
 
-  // Ensure SDK is started on first request (lazy initialization for Vercel serverless)
   let initPromise: Promise<void> | null = null;
   app.use('*', async (c, next) => {
     if (!initPromise) {
       initPromise = (async () => {
         try {
           await defaultSDK.start();
-          console.log('[OTEL INIT] ✅ SDK started successfully');
         } catch (error) {
-          console.log('[OTEL INIT] SDK already started or initialization failed');
+          logger.error({ error }, 'Failed to start SDK');
         }
       })();
     }
@@ -272,113 +270,6 @@ function createExecutionHono(
     }),
     (c) => {
       return c.body(null, 204);
-    }
-  );
-
-  // Debug OTEL config endpoint (no auth required)
-  app.openapi(
-    createRoute({
-      method: 'get',
-      path: '/debug/otel-config',
-      tags: ['debug'],
-      summary: 'Show OpenTelemetry configuration',
-      description: 'Display current OTEL configuration and test logging',
-      responses: {
-        200: {
-          description: 'OTEL configuration',
-        },
-      },
-    }),
-    async (c) => {
-      const config = {
-        OTEL_EXPORTER_OTLP_TRACES_ENDPOINT: process.env.OTEL_EXPORTER_OTLP_TRACES_ENDPOINT,
-        OTEL_EXPORTER_OTLP_TRACES_HEADERS: process.env.OTEL_EXPORTER_OTLP_TRACES_HEADERS ? '[REDACTED]' : undefined,
-        OTEL_EXPORTER_OTLP_ENDPOINT: process.env.OTEL_EXPORTER_OTLP_ENDPOINT,
-        OTEL_EXPORTER_OTLP_HEADERS: process.env.OTEL_EXPORTER_OTLP_HEADERS ? '[REDACTED]' : undefined,
-        NODE_ENV: process.env.NODE_ENV,
-        ENVIRONMENT: process.env.ENVIRONMENT,
-      };
-      
-      process.stdout.write(`[OTEL DEBUG ENDPOINT] Configuration requested at ${new Date().toISOString()}\n`);
-      console.log('[OTEL DEBUG ENDPOINT] OTEL Configuration:', JSON.stringify(config, null, 2));
-      logger.info({ config }, 'OTEL configuration endpoint called');
-      
-      // Check SDK state
-      const { defaultSDK } = await import('./instrumentation');
-      console.log('[OTEL DEBUG ENDPOINT] SDK instance exists:', !!defaultSDK);
-      
-      return c.json({
-        message: 'Check Vercel logs for [OTEL DEBUG ENDPOINT] messages',
-        config,
-        sdkExists: !!defaultSDK,
-        timestamp: new Date().toISOString(),
-      }, 200);
-    }
-  );
-
-  // Debug trace export endpoint (no auth required)
-  app.openapi(
-    createRoute({
-      method: 'get',
-      path: '/debug/trace-test',
-      tags: ['debug'],
-      summary: 'Test trace export',
-      description: 'Create a test trace and export it to Signoz',
-      responses: {
-        200: {
-          description: 'Test trace created and exported',
-        },
-      },
-    }),
-    async (c) => {
-      const { trace, context: otelContext } = await import('@opentelemetry/api');
-      
-      process.stdout.write(`[OTEL DEBUG TEST] Test endpoint called at ${new Date().toISOString()}\n`);
-      
-      // Check if we have a tracer provider registered
-      const tracerProvider = trace.getTracerProvider();
-      const providerType = tracerProvider.constructor.name;
-      console.log('[OTEL DEBUG TEST] TracerProvider type:', providerType);
-      
-      const tracer = trace.getTracer('debug-tracer');
-      
-      process.stdout.write(`[OTEL DEBUG] Creating test trace at ${new Date().toISOString()}\n`);
-      console.log('[OTEL DEBUG] Creating test trace...');
-      
-      const result = await tracer.startActiveSpan('test.trace', async (span) => {
-        const spanContext = span.spanContext();
-        console.log('[OTEL DEBUG] Test span created with context:', {
-          traceId: spanContext.traceId,
-          spanId: spanContext.spanId,
-          traceFlags: spanContext.traceFlags,
-        });
-        
-        console.log('[OTEL DEBUG] Is recording:', span.isRecording());
-        
-        span.setAttribute('test.attribute', 'test-value');
-        span.setAttribute('test.timestamp', new Date().toISOString());
-        span.addEvent('test.event', { message: 'This is a test trace from /debug/trace-test' });
-        
-        console.log('[OTEL DEBUG] Test span attributes set, about to end span');
-        span.end();
-        console.log('[OTEL DEBUG] Test span ended, now forcing flush...');
-        
-        await flushBatchProcessor();
-        
-        console.log('[OTEL DEBUG] Test span ended and flushed');
-        
-        return { 
-          success: true, 
-          message: 'Test trace created and exported',
-          traceId: spanContext.traceId,
-          spanId: spanContext.spanId,
-          traceFlags: spanContext.traceFlags,
-          isRecording: span.isRecording(),
-          providerType,
-        };
-      });
-      
-      return c.json(result, 200);
     }
   );
 
