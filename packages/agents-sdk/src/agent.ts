@@ -4,6 +4,7 @@ import {
   type FullAgentDefinition,
   getLogger,
   type StatusUpdateSettings,
+  type ToolPolicy,
 } from '@inkeep/agents-core';
 import { convertZodToJsonSchema, isZodSchema } from '@inkeep/agents-core/utils/schema-conversion';
 import { updateFullAgentViaAPI } from './agentFullClient';
@@ -171,6 +172,7 @@ export class Agent implements AgentInterface {
       const tools: string[] = [];
       const selectedToolsMapping: Record<string, string[]> = {};
       const headersMapping: Record<string, Record<string, string>> = {};
+      const toolPoliciesMapping: Record<string, Record<string, ToolPolicy>> = {};
       const subAgentTools = subAgent.getTools();
 
       for (const [_toolName, toolInstance] of Object.entries(subAgentTools)) {
@@ -182,6 +184,10 @@ export class Agent implements AgentInterface {
 
         if (toolInstance.headers) {
           headersMapping[toolId] = toolInstance.headers;
+        }
+
+        if (toolInstance.toolPolicies) {
+          toolPoliciesMapping[toolId] = toolInstance.toolPolicies;
         }
 
         tools.push(toolId);
@@ -252,6 +258,7 @@ export class Agent implements AgentInterface {
         toolId,
         toolSelection: selectedToolsMapping[toolId] || null,
         headers: headersMapping[toolId] || null,
+        toolPolicies: toolPoliciesMapping[toolId] || null,
       }));
 
       subAgentsObject[subAgent.getId()] = {

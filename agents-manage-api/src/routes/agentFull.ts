@@ -13,7 +13,7 @@ import {
   TenantProjectParamsSchema,
   updateFullAgentServerSide,
 } from '@inkeep/agents-core';
-import { z } from 'zod';
+import { z } from '@hono/zod-openapi';
 import dbClient from '../data/db/dbClient';
 import { getLogger } from '../logger';
 import { requirePermission } from '../middleware/require-permission';

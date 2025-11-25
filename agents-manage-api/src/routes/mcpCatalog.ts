@@ -11,7 +11,7 @@ import {
   MCPTransportType,
   TenantProjectParamsSchema,
 } from '@inkeep/agents-core';
-import type z from 'zod';
+import type { z } from '@hono/zod-openapi';
 
 type AppVariables = {
   serverConfig: ServerConfig;

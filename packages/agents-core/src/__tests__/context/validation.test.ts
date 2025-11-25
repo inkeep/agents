@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { z } from 'zod';
+import { z } from '@hono/zod-openapi';
 import { contextConfig, fetchDefinition, headers } from '../../context/ContextConfig';
 import type { DotPaths } from '../../context/validation-helpers';
 

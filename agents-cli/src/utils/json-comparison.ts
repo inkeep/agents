@@ -159,16 +159,15 @@ export function compareProjectDefinitions(
       }
 
       return true;
-    } else {
-      // Compare as ordered arrays (original behavior)
-      let allMatch = true;
-      for (let i = 0; i < a.length; i++) {
-        if (!compareValues(`${path}[${i}]`, a[i], b[i])) {
-          allMatch = false;
-        }
-      }
-      return allMatch;
     }
+    // Compare as ordered arrays (original behavior)
+    let allMatch = true;
+    for (let i = 0; i < a.length; i++) {
+      if (!compareValues(`${path}[${i}]`, a[i], b[i])) {
+        allMatch = false;
+      }
+    }
+    return allMatch;
   };
 
   // Helper to compare objects

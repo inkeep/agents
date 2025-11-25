@@ -28,6 +28,29 @@ export const requireTenantAccess = () =>
       });
     }
 
+    // System user (bypass authentication) has access to all tenants
+    if (userId === 'system') {
+      c.set('tenantId', tenantId);
+      c.set('tenantRole', 'owner');
+      await next();
+      return;
+    }
+
+    // API key authentication - validate tenant matches the key's tenant
+    if (userId.startsWith('apikey:')) {
+      const apiKeyTenantId = c.get('tenantId');
+      if (apiKeyTenantId && apiKeyTenantId !== tenantId) {
+        throw createApiError({
+          code: 'forbidden',
+          message: 'API key does not have access to this organization',
+        });
+      }
+      c.set('tenantId', tenantId);
+      c.set('tenantRole', 'owner'); // API keys have full access to their tenant
+      await next();
+      return;
+    }
+
     try {
       const userOrganizations = await getUserOrganizations(dbClient)(userId);
       const organizationAccess = userOrganizations.find((org) => org.organizationId === tenantId);

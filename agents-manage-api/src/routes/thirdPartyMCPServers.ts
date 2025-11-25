@@ -6,7 +6,7 @@ import {
   TenantProjectParamsSchema,
   ThirdPartyMCPServerResponse,
 } from '@inkeep/agents-core';
-import { z } from 'zod';
+import { z } from '@hono/zod-openapi';
 
 type AppVariables = {
   serverConfig: ServerConfig;
@@ -63,4 +63,3 @@ app.openapi(
 );
 
 export default app;
-

@@ -21,7 +21,7 @@ import {
 } from '@inkeep/agents-core';
 import { context as otelContext, propagation, trace } from '@opentelemetry/api';
 import { toFetchResponse, toReqRes } from 'fetch-to-node';
-import { z } from 'zod';
+import { z } from '@hono/zod-openapi';
 import dbClient from '../data/db/dbClient';
 import { ExecutionHandler } from '../handlers/executionHandler';
 import { getLogger } from '../logger';
@@ -134,7 +134,8 @@ const validateSession = async (
       })
     );
     return false;
-  } else if (Array.isArray(sessionId)) {
+  }
+  if (Array.isArray(sessionId)) {
     res.writeHead(400).end(
       JSON.stringify({
         jsonrpc: '2.0',
@@ -676,16 +677,15 @@ app.openapi(
           c,
           credentialStores
         );
-      } else {
-        return await handleExistingSessionRequest(
-          body,
-          executionContext,
-          validatedContext,
-          req,
-          res,
-          credentialStores
-        );
       }
+      return await handleExistingSessionRequest(
+        body,
+        executionContext,
+        validatedContext,
+        req,
+        res,
+        credentialStores
+      );
     } catch (e) {
       logger.error(
         {

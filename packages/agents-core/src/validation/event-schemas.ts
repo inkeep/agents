@@ -1,4 +1,4 @@
-import { z } from 'zod';
+import { z } from '@hono/zod-openapi';
 
 // EVENT DATA SCHEMAS
 // These schemas define the structure of event data used across the agent system

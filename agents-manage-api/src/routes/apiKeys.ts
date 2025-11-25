@@ -18,7 +18,7 @@ import {
   TenantProjectParamsSchema,
   updateApiKey,
 } from '@inkeep/agents-core';
-import { z } from 'zod';
+import { z } from '@hono/zod-openapi';
 import dbClient from '../data/db/dbClient';
 import { requirePermission } from '../middleware/require-permission';
 import type { BaseAppVariables } from '../types/app';

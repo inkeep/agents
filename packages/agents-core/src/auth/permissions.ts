@@ -1,6 +1,11 @@
 import type { AccessControl } from 'better-auth/plugins/access';
 import { createAccessControl } from 'better-auth/plugins/access';
-import { defaultStatements } from 'better-auth/plugins/organization/access';
+import {
+  adminAc,
+  defaultStatements,
+  memberAc,
+  ownerAc,
+} from 'better-auth/plugins/organization/access';
 
 const statement = {
   ...defaultStatements,
@@ -17,7 +22,7 @@ const statement = {
   context_config: ['create', 'read', 'update', 'delete'],
 } as const;
 
-export const ac = createAccessControl(statement) as AccessControl
+export const ac = createAccessControl(statement) as AccessControl;
 
 export const memberRole = ac.newRole({
   project: ['read'],
@@ -31,6 +36,7 @@ export const memberRole = ac.newRole({
   external_agent: ['read'],
   function: ['read'],
   context_config: ['read'],
+  ...memberAc.statements,
 });
 
 export const adminRole = ac.newRole({
@@ -45,6 +51,7 @@ export const adminRole = ac.newRole({
   external_agent: ['create', 'read', 'update'],
   function: ['create', 'read', 'update'],
   context_config: ['create', 'read', 'update'],
+  ...adminAc.statements,
 });
 
 export const ownerRole = ac.newRole({
@@ -59,4 +66,5 @@ export const ownerRole = ac.newRole({
   external_agent: ['create', 'read', 'update', 'delete'],
   function: ['create', 'read', 'update', 'delete'],
   context_config: ['create', 'read', 'update', 'delete'],
+  ...ownerAc.statements,
 });

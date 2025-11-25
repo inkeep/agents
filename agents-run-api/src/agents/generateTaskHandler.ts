@@ -655,17 +655,16 @@ export const createTaskHandler = (
                   },
                 ],
               };
-            } else {
-              logger.warn(
-                {
-                  hasToolResult: !!toolResult,
-                  hasOutput: !!toolResult?.output,
-                  validationPassed: false,
-                  output: toolResult?.output,
-                },
-                '[DEBUG] Transfer validation FAILED'
-              );
             }
+            logger.warn(
+              {
+                hasToolResult: !!toolResult,
+                hasOutput: !!toolResult?.output,
+                validationPassed: false,
+                output: toolResult?.output,
+              },
+              '[DEBUG] Transfer validation FAILED'
+            );
           }
         }
       }
@@ -688,10 +687,14 @@ export const createTaskHandler = (
     } catch (error) {
       console.error('Task handler error:', error);
 
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
+      const isConnectionRefused = errorMessage.includes('Connection refused. Please check if the MCP server is running.');
+
       return {
         status: {
           state: TaskState.Failed,
-          message: error instanceof Error ? error.message : 'Unknown error occurred',
+          message: errorMessage,
+          type: isConnectionRefused ? 'connection_refused' : 'unknown',
         },
         artifacts: [],
       };

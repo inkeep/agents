@@ -175,5 +175,37 @@ describe('mcpTool builder function', () => {
       expect(agentMcpConfig.selectedTools).toBeUndefined();
       expect(agentMcpConfig.headers).toBeUndefined();
     });
+
+    it('should treat null selectedTools as all tools (same as undefined)', () => {
+      const config: MCPToolConfig = {
+        id: 'null-selected-tools',
+        name: 'Null Selected Tools',
+        description: 'MCP tool with null selectedTools',
+        serverUrl: 'http://localhost:3000/null',
+      };
+
+      const tool = mcpTool(config);
+      const agentMcpConfig = tool.with({ selectedTools: null });
+
+      expect(agentMcpConfig.server).toBe(tool);
+      expect(agentMcpConfig.selectedTools).toBeUndefined();
+      expect(agentMcpConfig.toolPolicies).toBeUndefined();
+    });
+
+    it('should treat empty array as explicit zero tools selection', () => {
+      const config: MCPToolConfig = {
+        id: 'empty-array-tools',
+        name: 'Empty Array Tools',
+        description: 'MCP tool with empty array selectedTools',
+        serverUrl: 'http://localhost:3000/empty-array',
+      };
+
+      const tool = mcpTool(config);
+      const agentMcpConfig = tool.with({ selectedTools: [] });
+
+      expect(agentMcpConfig.server).toBe(tool);
+      expect(agentMcpConfig.selectedTools).toEqual([]);
+      expect(agentMcpConfig.toolPolicies).toBeUndefined();
+    });
   });
 });

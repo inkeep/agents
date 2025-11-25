@@ -12,8 +12,22 @@
     {
       "idx": 1,
       "version": "7",
-      "when": 1763651358903,
-      "tag": "0001_fair_malice",
+      "when": 1764024513126,
+      "tag": "0001_calm_sheva_callister",
+      "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1764045769142,
+      "tag": "0002_puzzling_goblin_queen",
+      "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1764060547473,
+      "tag": "0003_sweet_human_robot",
       "breakpoints": true
     },
     {

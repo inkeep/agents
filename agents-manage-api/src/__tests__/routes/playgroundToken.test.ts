@@ -27,7 +27,7 @@ describe('Playground Token Routes', () => {
 
     it('should return 400 if request body is invalid', async () => {
       const testTenantId = await createTestTenantWithOrg('playground-validation');
-      
+
       const response = await makeRequest(`/tenants/${testTenantId}/playground/token`, {
         method: 'POST',
         headers: {
@@ -43,7 +43,7 @@ describe('Playground Token Routes', () => {
 
     it('should return 400 if projectId is missing', async () => {
       const testTenantId = await createTestTenantWithOrg('playground-no-project-id');
-      
+
       const response = await makeRequest(`/tenants/${testTenantId}/playground/token`, {
         method: 'POST',
         headers: {
@@ -59,7 +59,7 @@ describe('Playground Token Routes', () => {
 
     it('should return 400 if agentId is missing', async () => {
       const testTenantId = await createTestTenantWithOrg('playground-no-agent-id');
-      
+
       const response = await makeRequest(`/tenants/${testTenantId}/playground/token`, {
         method: 'POST',
         headers: {

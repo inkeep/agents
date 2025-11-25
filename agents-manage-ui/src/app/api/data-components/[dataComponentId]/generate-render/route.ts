@@ -9,10 +9,10 @@
  * 4. Streams NDJSON response back to client
  */
 
+import { ModelFactory } from '@inkeep/agents-core';
 import { streamObject } from 'ai';
 import type { NextRequest } from 'next/server';
 import { z } from 'zod';
-import { ModelFactory } from '@/lib/ai/model-factory';
 import { fetchDataComponent } from '@/lib/api/data-components';
 import { fetchProject } from '@/lib/api/projects';
 

@@ -2,6 +2,7 @@ import {
   type ArtifactComponentApiInsert,
   type DataComponentApiInsert,
   getLogger,
+  type ToolPolicy,
 } from '@inkeep/agents-core';
 import {
   convertZodToJsonSchemaWithPreview,
@@ -111,6 +112,8 @@ export class SubAgent implements SubAgentInterface {
           toolInstance.selectedTools = tool.selectedTools;
           // Add headers metadata to the tool instance if present
           toolInstance.headers = tool.headers;
+          // Add toolPolicies metadata to the tool instance if present
+          toolInstance.toolPolicies = tool.toolPolicies;
         } else {
           // Regular tool instance
           toolInstance = tool as AgentTool;
@@ -806,12 +809,14 @@ export class SubAgent implements SubAgentInterface {
       let tool: Tool;
       let selectedTools: string[] | undefined;
       let headers: Record<string, string> | undefined;
+      let toolPolicies: Record<string, ToolPolicy> | undefined;
 
       try {
         const normalizedTool = normalizeAgentCanUseType(toolConfig, toolId);
         tool = normalizedTool.tool;
         selectedTools = normalizedTool.selectedTools;
         headers = normalizedTool.headers;
+        toolPolicies = normalizedTool.toolPolicies;
 
         tool.setContext(this.tenantId, this.projectId);
         await tool.init();
@@ -832,8 +837,8 @@ export class SubAgent implements SubAgentInterface {
         await tool.init();
       }
 
-      // Create the agent-tool relation with selected tools, and headers
-      await this.createAgentToolRelation(tool.getId(), selectedTools, headers);
+      // Create the agent-tool relation with selected tools, headers, and toolPolicies
+      await this.createAgentToolRelation(tool.getId(), selectedTools, headers, toolPolicies);
 
       logger.info(
         {
@@ -1005,7 +1010,8 @@ export class SubAgent implements SubAgentInterface {
   private async createAgentToolRelation(
     toolId: string,
     selectedTools?: string[],
-    headers?: Record<string, string>
+    headers?: Record<string, string>,
+    toolPolicies?: Record<string, ToolPolicy>
   ): Promise<void> {
     const relationData: {
       id: string;
@@ -1015,6 +1021,7 @@ export class SubAgent implements SubAgentInterface {
       toolId: string;
       selectedTools?: string[];
       headers?: Record<string, string>;
+      toolPolicies?: Record<string, ToolPolicy>;
     } = {
       id: `${this.getId()}-tool-${toolId}`,
       tenantId: this.tenantId,
@@ -1031,6 +1038,11 @@ export class SubAgent implements SubAgentInterface {
     // Add headers if provided
     if (headers !== undefined) {
       relationData.headers = headers;
+    }
+
+    // Add toolPolicies if provided
+    if (toolPolicies !== undefined && Object.keys(toolPolicies).length > 0) {
+      relationData.toolPolicies = toolPolicies;
     }
 
     const relationResponse = await fetch(

@@ -34,10 +34,9 @@ function getObjectPreview(obj: any): string {
     if (typeof obj === 'object') {
       // Use pretty-printed JSON with indentation for better readability
       return JSON.stringify(obj, null, 2);
-    } else {
-      // For primitives, show the full value
-      return String(obj);
     }
+    // For primitives, show the full value
+    return String(obj);
   } catch (error) {
     return `[Error stringifying: ${typeof obj}]`;
   }
@@ -468,67 +467,65 @@ async function validateProjectEquivalence(
 
     if (!hasChanges) {
       return true;
-    } else {
-      console.log(chalk.yellow(`      🔄 Found differences:`));
+    }
+    console.log(chalk.yellow(`      🔄 Found differences:`));
 
-      // Show component changes summary with detailed differences
-      for (const [componentType, changes] of Object.entries(comparison.componentChanges)) {
-        const totalChanges =
-          changes.added.length + changes.modified.length + changes.deleted.length;
-        if (totalChanges > 0) {
-          console.log(chalk.cyan(`         ${componentType}: ${totalChanges} changes`));
-          if (changes.added.length > 0) {
-            console.log(chalk.green(`           ➕ Added: ${changes.added.join(', ')}`));
-          }
-          if (changes.modified.length > 0) {
-            console.log(chalk.yellow(`           📝 Modified: ${changes.modified.join(', ')}`));
+    // Show component changes summary with detailed differences
+    for (const [componentType, changes] of Object.entries(comparison.componentChanges)) {
+      const totalChanges = changes.added.length + changes.modified.length + changes.deleted.length;
+      if (totalChanges > 0) {
+        console.log(chalk.cyan(`         ${componentType}: ${totalChanges} changes`));
+        if (changes.added.length > 0) {
+          console.log(chalk.green(`           ➕ Added: ${changes.added.join(', ')}`));
+        }
+        if (changes.modified.length > 0) {
+          console.log(chalk.yellow(`           📝 Modified: ${changes.modified.join(', ')}`));
 
-            // Show specific differences for modified components
-            for (const modifiedId of changes.modified) {
-              console.log(chalk.gray(`              ${modifiedId} detailed differences:`));
+          // Show specific differences for modified components
+          for (const modifiedId of changes.modified) {
+            console.log(chalk.gray(`              ${modifiedId} detailed differences:`));
 
-              // Get the actual objects for comparison
-              const generatedComponent = getComponentFromProject(
-                tempProjectDefinition,
-                componentType,
+            // Get the actual objects for comparison
+            const generatedComponent = getComponentFromProject(
+              tempProjectDefinition,
+              componentType,
+              modifiedId
+            );
+            const remoteComponent = getComponentFromProject(
+              remoteProject,
+              componentType,
+              modifiedId
+            );
+
+            // Show the actual differences
+            if (generatedComponent && remoteComponent) {
+              const differences = findKeyDifferences(
+                generatedComponent,
+                remoteComponent,
                 modifiedId
               );
-              const remoteComponent = getComponentFromProject(
-                remoteProject,
-                componentType,
-                modifiedId
-              );
-
-              // Show the actual differences
-              if (generatedComponent && remoteComponent) {
-                const differences = findKeyDifferences(
-                  generatedComponent,
-                  remoteComponent,
-                  modifiedId
-                );
-                if (differences.length > 0) {
-                  differences.forEach((diff) => {
-                    console.log(chalk.gray(`                ${diff}`));
-                  });
-                } else {
-                  console.log(chalk.gray(`                No key-level differences detected`));
-                }
-              } else if (!generatedComponent) {
-                console.log(chalk.red(`                Component missing in generated project`));
-              } else if (!remoteComponent) {
-                console.log(chalk.red(`                Component missing in remote project`));
+              if (differences.length > 0) {
+                differences.forEach((diff) => {
+                  console.log(chalk.gray(`                ${diff}`));
+                });
+              } else {
+                console.log(chalk.gray(`                No key-level differences detected`));
               }
+            } else if (!generatedComponent) {
+              console.log(chalk.red(`                Component missing in generated project`));
+            } else if (!remoteComponent) {
+              console.log(chalk.red(`                Component missing in remote project`));
             }
           }
-          if (changes.deleted.length > 0) {
-            console.log(chalk.red(`           ➖ Deleted: ${changes.deleted.join(', ')}`));
-          }
+        }
+        if (changes.deleted.length > 0) {
+          console.log(chalk.red(`           ➖ Deleted: ${changes.deleted.join(', ')}`));
         }
       }
-
-      // Strict validation - any changes (added, modified, deleted) are failures
-      return false;
     }
+
+    // Strict validation - any changes (added, modified, deleted) are failures
+    return false;
   } catch (error) {
     const errorMsg = error instanceof Error ? error.message : String(error);
     console.log(chalk.red(`   ❌ Project validation failed: ${errorMsg}`));
@@ -632,25 +629,24 @@ export async function validateTempDirectory(
       process.stdin.once('data', onKeypress);
       process.stdout.write(chalk.cyan('\nPress [Y] for Yes or [N] for No: '));
     });
-  } else {
-    console.log(chalk.yellow(`   ⚠️ Generated project differs from remote project`));
-    console.log(chalk.gray(`   💡 This might be expected if there are structural changes`));
-    console.log(chalk.gray(`   📂 Generated files available in: ${tempDirName} for manual review`));
+  }
+  console.log(chalk.yellow(`   ⚠️ Generated project differs from remote project`));
+  console.log(chalk.gray(`   💡 This might be expected if there are structural changes`));
+  console.log(chalk.gray(`   📂 Generated files available in: ${tempDirName} for manual review`));
 
-    // Summary
-    if (compilationSuccess) {
-      console.log(chalk.yellow(`\n✅ Compilation successful, but project structure differs.`));
-      console.log(
-        chalk.cyan(`\n✅ Pull completed - please review generated files in temp directory.`)
-      );
-      process.exit(0);
-    } else {
-      console.log(chalk.red(`\n❌ Validation failed - please check the generated files.`));
-      console.log(
-        chalk.yellow(`\n⚠️ Pull completed with validation errors - temp directory preserved.`)
-      );
-      process.exit(1); // Exit with error code for validation failure
-    }
+  // Summary
+  if (compilationSuccess) {
+    console.log(chalk.yellow(`\n✅ Compilation successful, but project structure differs.`));
+    console.log(
+      chalk.cyan(`\n✅ Pull completed - please review generated files in temp directory.`)
+    );
+    process.exit(0);
+  } else {
+    console.log(chalk.red(`\n❌ Validation failed - please check the generated files.`));
+    console.log(
+      chalk.yellow(`\n⚠️ Pull completed with validation errors - temp directory preserved.`)
+    );
+    process.exit(1); // Exit with error code for validation failure
   }
 }
 

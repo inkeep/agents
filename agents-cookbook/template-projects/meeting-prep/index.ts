@@ -7,11 +7,6 @@ export const meetingPrep = project({
   id: 'activities-planner',
   name: 'Meeting prep',
   description: 'Meeting prep project template',
-  agents: () => [
-    meetingAssistant
-  ],
-  tools: () => [
-    exaMcpTool,
-    googleCalendarMcpTool,
-  ],
+  agents: () => [meetingAssistant],
+  tools: () => [exaMcpTool, googleCalendarMcpTool],
 });
