@@ -1,5 +1,13 @@
 # @inkeep/agents-core
 
+## 0.37.2
+
+### Patch Changes
+
+- 78163b1: mcp hard fail
+- f47e391: Use hono zod in run and manage packages
+- 1f77578: Fix broken tests: mcpTool.with() returns undefined for empty selectedTools, update agentFull test canUse structure, fix projectFull dataComponents props schema
+
 ## 0.37.1
 
 ### Patch Changes
