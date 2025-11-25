@@ -35,6 +35,7 @@ const otelConfig = {
   ENVIRONMENT: env.ENVIRONMENT,
 };
 
+process.stdout.write(`[OTEL DEBUG MODULE INIT] Initializing OpenTelemetry with configuration: ${JSON.stringify(otelConfig, null, 2)}\n`);
 console.log('[OTEL DEBUG] Initializing OpenTelemetry with configuration:', JSON.stringify(otelConfig, null, 2));
 logger.info(otelConfig, 'Initializing OpenTelemetry with configuration');
 
@@ -44,26 +45,32 @@ logger.info({}, 'OTLPTraceExporter created');
 
 const otlpExporter = {
   export: (spans: any, resultCallback: any) => {
-    console.log(`[OTEL DEBUG] Exporting ${spans.length} span(s) to Signoz`);
-    logger.info({ spanCount: spans.length }, 'Exporting spans to Signoz');
+    const spanCount = spans.length;
+    process.stdout.write(`[OTEL DEBUG EXPORT] Exporting ${spanCount} span(s) to Signoz at ${new Date().toISOString()}\n`);
+    console.log(`[OTEL DEBUG] Exporting ${spanCount} span(s) to Signoz`);
+    logger.info({ spanCount }, 'Exporting spans to Signoz');
     
     baseExporter.export(spans, (result: any) => {
       if (result.code === 0) {
-        console.log(`[OTEL DEBUG] Successfully exported ${spans.length} span(s) to Signoz`);
-        logger.info({ spanCount: spans.length }, 'Successfully exported spans to Signoz');
+        process.stdout.write(`[OTEL DEBUG EXPORT] ✅ Successfully exported ${spanCount} span(s) to Signoz\n`);
+        console.log(`[OTEL DEBUG] Successfully exported ${spanCount} span(s) to Signoz`);
+        logger.info({ spanCount }, 'Successfully exported spans to Signoz');
       } else {
+        process.stderr.write(`[OTEL DEBUG EXPORT] ❌ Failed to export spans to Signoz: ${JSON.stringify(result)}\n`);
         console.error(`[OTEL DEBUG] Failed to export spans to Signoz:`, result);
-        logger.error({ result, spanCount: spans.length }, 'Failed to export spans to Signoz');
+        logger.error({ result, spanCount }, 'Failed to export spans to Signoz');
       }
       resultCallback(result);
     });
   },
   shutdown: () => {
+    process.stdout.write('[OTEL DEBUG EXPORT] Shutting down OTLPTraceExporter\n');
     console.log('[OTEL DEBUG] Shutting down OTLPTraceExporter');
     logger.info({}, 'Shutting down OTLPTraceExporter');
     return baseExporter.shutdown();
   },
   forceFlush: () => {
+    process.stdout.write('[OTEL DEBUG EXPORT] Force flushing OTLPTraceExporter\n');
     console.log('[OTEL DEBUG] Force flushing OTLPTraceExporter');
     logger.info({}, 'Force flushing OTLPTraceExporter');
     return baseExporter.forceFlush();
@@ -79,15 +86,18 @@ function createSafeBatchProcessor(): SpanProcessor {
       maxExportBatchSize: env.OTEL_BSP_MAX_EXPORT_BATCH_SIZE,
     };
     
+    process.stdout.write(`[OTEL DEBUG PROCESSOR] Creating BatchSpanProcessor with config: ${JSON.stringify(processorConfig)}\n`);
     console.log('[OTEL DEBUG] Creating BatchSpanProcessor with config:', JSON.stringify(processorConfig, null, 2));
     logger.info(processorConfig, 'Creating BatchSpanProcessor');
     
     const processor = new BatchSpanProcessor(otlpExporter, processorConfig);
     
+    process.stdout.write('[OTEL DEBUG PROCESSOR] BatchSpanProcessor created successfully\n');
     console.log('[OTEL DEBUG] BatchSpanProcessor created successfully');
     logger.info({}, 'BatchSpanProcessor created successfully');
     return processor;
   } catch (error) {
+    process.stderr.write(`[OTEL DEBUG PROCESSOR] Failed to create batch processor: ${error}\n`);
     console.error('[OTEL DEBUG] Failed to create batch processor - falling back to NoopSpanProcessor:', error);
     logger.error({ error }, 'Failed to create batch processor - falling back to NoopSpanProcessor');
     return new NoopSpanProcessor();
@@ -175,12 +185,15 @@ process.on('beforeExit', async () => {
 
 export async function flushBatchProcessor(): Promise<void> {
   try {
+    process.stdout.write('[OTEL DEBUG FLUSH] Flushing batch processor...\n');
     console.log('[OTEL DEBUG] Flushing batch processor...');
     logger.info({}, 'Flushing batch processor');
     await defaultBatchProcessor.forceFlush();
+    process.stdout.write('[OTEL DEBUG FLUSH] Batch processor flushed successfully\n');
     console.log('[OTEL DEBUG] Batch processor flushed successfully');
     logger.info({}, 'Batch processor flushed successfully');
   } catch (error) {
+    process.stderr.write(`[OTEL DEBUG FLUSH] Failed to flush batch processor: ${error}\n`);
     console.error('[OTEL DEBUG] Failed to flush batch processor:', error);
     logger.warn({ error }, 'Failed to flush batch processor');
   }

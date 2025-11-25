@@ -258,6 +258,42 @@ function createExecutionHono(
     }
   );
 
+  // Debug OTEL config endpoint (no auth required)
+  app.openapi(
+    createRoute({
+      method: 'get',
+      path: '/debug/otel-config',
+      tags: ['debug'],
+      summary: 'Show OpenTelemetry configuration',
+      description: 'Display current OTEL configuration and test logging',
+      responses: {
+        200: {
+          description: 'OTEL configuration',
+        },
+      },
+    }),
+    (c) => {
+      const config = {
+        OTEL_EXPORTER_OTLP_TRACES_ENDPOINT: process.env.OTEL_EXPORTER_OTLP_TRACES_ENDPOINT,
+        OTEL_EXPORTER_OTLP_TRACES_HEADERS: process.env.OTEL_EXPORTER_OTLP_TRACES_HEADERS ? '[REDACTED]' : undefined,
+        OTEL_EXPORTER_OTLP_ENDPOINT: process.env.OTEL_EXPORTER_OTLP_ENDPOINT,
+        OTEL_EXPORTER_OTLP_HEADERS: process.env.OTEL_EXPORTER_OTLP_HEADERS ? '[REDACTED]' : undefined,
+        NODE_ENV: process.env.NODE_ENV,
+        ENVIRONMENT: process.env.ENVIRONMENT,
+      };
+      
+      process.stdout.write(`[OTEL DEBUG ENDPOINT] Configuration requested at ${new Date().toISOString()}\n`);
+      console.log('[OTEL DEBUG ENDPOINT] OTEL Configuration:', JSON.stringify(config, null, 2));
+      logger.info({ config }, 'OTEL configuration endpoint called');
+      
+      return c.json({
+        message: 'Check Vercel logs for [OTEL DEBUG ENDPOINT] messages',
+        config,
+        timestamp: new Date().toISOString(),
+      }, 200);
+    }
+  );
+
   // Debug trace export endpoint (no auth required)
   app.openapi(
     createRoute({
@@ -276,6 +312,7 @@ function createExecutionHono(
       const { trace } = await import('@opentelemetry/api');
       const tracer = trace.getTracer('debug-tracer');
       
+      process.stdout.write(`[OTEL DEBUG] Creating test trace at ${new Date().toISOString()}\n`);
       console.log('[OTEL DEBUG] Creating test trace...');
       
       const result = await tracer.startActiveSpan('test.trace', async (span) => {
