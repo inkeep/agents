@@ -32,11 +32,20 @@ Select a provider that supports your data sources:
   <Card title="Ref" icon="brand/Ref" href="/connect-your-data/ref">
     Connect GitHub repositories, PDFs, and Markdown files. Simple and focused solution for documentation.
   </Card>
+  <Card title="Firecrawl" icon="brand/Firecrawl" href="/connect-your-data/firecrawl">
+  Connect websites. Great for extracting LLM-friendly content from the web.  
+</Card>
 </Cards>
 
 
 ## Other options
 
-We recommend Inkeep, Context7, or Ref for the easiest setup—they handle MCP server management automatically.
+Consider these additional options for connecting your data:
 
-For more advanced use cases, you can use [Reducto](https://reducto.ai/) or [Unstructured](https://unstructured.io/). Both offer self-serve free tiers and allow you to upload documents and access them via their APIs or SDKs. You can either wrap these in your own MCP server or invoke them directly using [function tools](/typescript-sdk/tools/function-tools).
+- **[Reducto](https://reducto.ai/)** - Self-serve document processing with a free tier. Upload documents and access them via APIs or SDKs. Wrap their APIs in your own MCP server or invoke them directly using [function tools](/typescript-sdk/tools/function-tools).
+
+- **[Unstructured](https://unstructured.io/)** - Document processing platform with a free tier. Upload documents and access them via APIs or SDKs. Wrap their APIs in your own MCP server or invoke them directly using [function tools](/typescript-sdk/tools/function-tools).
+
+- **[Milvus](https://milvus.io/)** - Open-source vector database with self-hosting options. See their [MCP integration guide](https://milvus.io/docs/milvus_and_mcp.md) for setup instructions. Must manage deployment and hosting for MCP server.
+
+- **[SingleStore](https://singlestore.com/)** - Relational database with a managed MCP server that converts natural language queries into SQL. Learn more in their [MCP server documentation](https://docs.singlestore.com/cloud/ai-services/singlestore-mcp-server/).

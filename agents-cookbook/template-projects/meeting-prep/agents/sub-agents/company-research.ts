@@ -23,5 +23,5 @@ export const companyResearch = subAgent({
 - Show findings immediately
 - Proceed automatically
 </rules>`,
-  canUse: () => [exaMcpTool.with({ selectedTools: ["web_search_exa"] })]
+  canUse: () => [exaMcpTool.with({ selectedTools: ['web_search_exa'] })],
 });

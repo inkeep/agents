@@ -110,7 +110,7 @@ export function createTargetedTypeScriptPlaceholders(
         if (propertyName === 'inputSchema' || propertyName === 'render') {
           // The object should end after the closing brace and comma
           // Let's search from the start position forward to find the correct boundary
-          let searchStart = start;
+          const searchStart = start;
           let braceCount = 0;
           let correctEnd = -1;
           let inString = false;

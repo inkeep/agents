@@ -54,14 +54,14 @@ export function createTestTenantId(prefix?: string): string {
  */
 export async function createTestOrganization(tenantId: string) {
   await createTestOrg(dbClient, tenantId);
-  
+
   // Return the created organization for test assertions
   const [org] = await dbClient
     .select()
     .from(organization)
     .where(eq(organization.id, tenantId))
     .limit(1);
-  
+
   return org;
 }
 

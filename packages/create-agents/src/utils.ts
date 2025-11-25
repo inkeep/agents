@@ -124,7 +124,6 @@ export const createAgents = async (
     skipInkeepMcp,
   } = args;
 
-
   const tenantId = 'default';
 
   let projectId: string;

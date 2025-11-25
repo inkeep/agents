@@ -138,12 +138,14 @@ vi.mock('@ai-sdk/anthropic', () => ({
 }));
 
 // Mock ModelFactory
-vi.mock('../../agents/ModelFactory.js', () => {
+vi.mock('@inkeep/agents-core', async () => {
+  const actual = await vi.importActual('@inkeep/agents-core');
   const mockModel = 'mocked-language-model';
   const mockGenerationParams = { temperature: 0.7, maxTokens: 4096 };
   const mockGenerationConfig = { model: mockModel, ...mockGenerationParams };
 
   return {
+    ...actual,
     ModelFactory: {
       createModel: vi.fn().mockReturnValue(mockModel),
       getGenerationParams: vi.fn().mockReturnValue(mockGenerationParams),
@@ -347,8 +349,8 @@ describe('Agent Integration with SystemPromptBuilder', () => {
           },
         },
       ],
-      createdAt: new Date(),
-      updatedAt: new Date(),
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
     };
 
     mockAgentConfig = {
@@ -560,8 +562,8 @@ describe('Phase1Config Tool Conversion', () => {
             },
           },
         ],
-        createdAt: new Date(),
-        updatedAt: new Date(),
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
       } as McpTool,
     ];
 
@@ -619,8 +621,8 @@ describe('Phase1Config Tool Conversion', () => {
           logging: false,
         },
         availableTools: undefined,
-        createdAt: new Date(),
-        updatedAt: new Date(),
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
       } as McpTool,
     ];
 
@@ -887,8 +889,8 @@ describe('Agent Credential Integration', () => {
         logging: false,
       },
       availableTools: [],
-      createdAt: new Date(),
-      updatedAt: new Date(),
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
     };
 
     const agent = new Agent(mockAgentConfig, mockAgentFramework);
@@ -927,8 +929,8 @@ describe('Agent Credential Integration', () => {
         logging: false,
       },
       availableTools: [],
-      createdAt: new Date(),
-      updatedAt: new Date(),
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
     };
 
     const agent = new Agent(mockAgentConfig, mockAgentFramework);
@@ -960,8 +962,8 @@ describe('Agent Credential Integration', () => {
         logging: false,
       },
       availableTools: [],
-      createdAt: new Date(),
-      updatedAt: new Date(),
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
     };
 
     const configWithCredentials = {
@@ -998,7 +1000,7 @@ describe('Agent Credential Integration', () => {
       undefined
     );
 
-    expect(mcpTool).toEqual(mockMcpTools);
+    expect(mcpTool).toEqual({ tools: mockMcpTools, toolPolicies: {} });
   });
 
   test('should handle tools without credential reference', async () => {
@@ -1022,8 +1024,8 @@ describe('Agent Credential Integration', () => {
         logging: false,
       },
       availableTools: [],
-      createdAt: new Date(),
-      updatedAt: new Date(),
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
     };
 
     const configWithoutCredentials = {
@@ -1044,7 +1046,7 @@ describe('Agent Credential Integration', () => {
 
     const mcpTool = await (agent as any).getMcpTool(mockToolConfig);
 
-    expect(mcpTool).toEqual(mockMcpTools);
+    expect(mcpTool).toEqual({ tools: mockMcpTools, toolPolicies: {} });
   });
 
   test('should pass correct context to credential stuffer', async () => {
@@ -1076,8 +1078,8 @@ describe('Agent Credential Integration', () => {
       credentialReferenceId: 'context-credential',
       capabilities: { tools: true, resources: false, prompts: false, logging: false },
       availableTools: [],
-      createdAt: new Date(),
-      updatedAt: new Date(),
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
     };
 
     const contextConfig = {
@@ -1257,7 +1259,7 @@ describe('Agent Model Settings', () => {
     await agent.generate('Test prompt');
 
     // Get the mocked ModelFactory
-    const { ModelFactory } = await import('../../agents/ModelFactory.js');
+    const { ModelFactory } = await import('@inkeep/agents-core');
     expect(ModelFactory.prepareGenerationConfig).toHaveBeenCalledWith({
       model: 'anthropic/claude-sonnet-4-5',
       providerOptions: undefined,
@@ -1283,7 +1285,7 @@ describe('Agent Model Settings', () => {
     const agent = new Agent(configWithModel);
     await agent.generate('Test prompt');
 
-    const { ModelFactory } = await import('../../agents/ModelFactory.js');
+    const { ModelFactory } = await import('@inkeep/agents-core');
     expect(ModelFactory.prepareGenerationConfig).toHaveBeenCalledWith({
       model: 'openai/gpt-4o',
       providerOptions: {
@@ -1314,7 +1316,7 @@ describe('Agent Model Settings', () => {
     const agent = new Agent(configWithModel);
     await agent.generate('Test prompt');
 
-    const { ModelFactory } = await import('../../agents/ModelFactory.js');
+    const { ModelFactory } = await import('@inkeep/agents-core');
     expect(ModelFactory.prepareGenerationConfig).toHaveBeenCalledWith(
       expect.objectContaining({
         model: 'anthropic/claude-sonnet-4-5',
@@ -1372,7 +1374,7 @@ describe('Agent Model Settings', () => {
     const agent = new Agent(configWithDataComponents);
     await agent.generate('Test prompt');
 
-    const { ModelFactory } = await import('../../agents/ModelFactory.js');
+    const { ModelFactory } = await import('@inkeep/agents-core');
     // Called twice: once for text generation with custom model, once for structured output with OpenAI model
     expect(ModelFactory.prepareGenerationConfig).toHaveBeenCalledTimes(2);
     expect(ModelFactory.prepareGenerationConfig).toHaveBeenNthCalledWith(1, {
@@ -1404,7 +1406,7 @@ describe('Agent Model Settings', () => {
     const agent = new Agent(configWithDataComponents);
     await agent.generate('Test prompt');
 
-    const { ModelFactory } = await import('../../agents/ModelFactory.js');
+    const { ModelFactory } = await import('@inkeep/agents-core');
     // Called twice: once for text generation, once for structured output (both use base model)
     expect(ModelFactory.prepareGenerationConfig).toHaveBeenCalledTimes(2);
     expect(ModelFactory.prepareGenerationConfig).toHaveBeenNthCalledWith(1, {
@@ -1430,7 +1432,7 @@ describe('Agent Model Settings', () => {
     const agent = new Agent(configWithOpenAI);
     await agent.generate('Test prompt');
 
-    const { ModelFactory } = await import('../../agents/ModelFactory.js');
+    const { ModelFactory } = await import('@inkeep/agents-core');
     expect(ModelFactory.prepareGenerationConfig).toHaveBeenCalledWith({
       model: 'openai/gpt-4o',
       providerOptions: undefined,
@@ -1450,7 +1452,7 @@ describe('Agent Model Settings', () => {
     const agent = new Agent(configWithPlainModel);
     await agent.generate('Test prompt');
 
-    const { ModelFactory } = await import('../../agents/ModelFactory.js');
+    const { ModelFactory } = await import('@inkeep/agents-core');
     expect(ModelFactory.prepareGenerationConfig).toHaveBeenCalledWith({
       model: 'anthropic/claude-3-5-haiku-latest',
       providerOptions: undefined,

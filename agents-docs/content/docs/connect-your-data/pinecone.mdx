@@ -1,16 +1,16 @@
 ---
 title: Connect Your Data with Pinecone
 sidebarTitle: Pinecone
-description: Learn how to connect your documents and files to your agents using Pinecone's vector database and MCP server
+description: Connect documents to your agents using Pinecone Assistant's MCP server
 icon: "brand/Pinecone"
 keywords: Pinecone, vector database, data sources, MCP server, documentation, DOCX, PDF, Markdown, semantic search
 ---
 
-Pinecone is a vector database that allows you to store and query your data in a vector space. With Pinecone's MCP server, you can connect your documents and files to your agents, enabling semantic search and retrieval of your content.
+Pinecone is a vector database, and Pinecone Assistant helps you build production-grade chat and agent applications. Connect your documents and files to your agents using Pinecone Assistant's MCP server for semantic search and retrieval.
 
 ## Supported data sources
 
-With Pinecone you can connect:
+With Pinecone Assistant you can connect:
 
 - **Documents**: DOCX (.docx), PDF (.pdf), Text (.txt)
 - **Structured Data**: JSON (.json)
@@ -50,8 +50,24 @@ Register the Pinecone MCP server as a tool in your agent configuration. Replace 
 
 **Using TypeScript SDK:**
 
-```typescript
-import { mcpTool, subAgent } from "@inkeep/agents-sdk";
+You can create your [credential](/typescript-sdk/credentials/overview) using keychain, nango, or environment variables, but in this example we use environment variables.
+
+<CodeGroup>
+```typescript title=".env"
+PINECONE_API_KEY=<your-pinecone-api-key>
+```
+```typescript title="agents/documentation-agent.ts"
+import { mcpTool, subAgent, credential } from "@inkeep/agents-sdk";
+
+const pineconeCredential = credential({
+  id: 'pinecone-credential',
+  name: 'Pinecone Credential',
+  type: CredentialStoreType.memory,
+  credentialStoreId: 'memory-default',
+  retrievalParams: {
+    "key": "PINECONE_API_KEY", // where PINECONE_API_KEY is the API key for your Pinecone project
+  },
+});
 
 const pineconeTool = mcpTool({
   id: "pinecone-documents",
@@ -68,42 +84,52 @@ const docAgent = subAgent({
   canUse: () => [pineconeTool],
 });
 ```
+</CodeGroup>
 
 **Using Visual Builder:**
 
-1. Go to the **MCP Servers** tab in the Visual Builder
-2. Click **"New MCP server"**
-3. Select **"Custom Server"**
-4. Enter:
-   - **Name**: `Pinecone Documents`
-   - **URL**: Your MCP URL from Pinecone Settings tab
-   - **Transport Type**: `Streamable HTTP`
-5. Save the server
-6. Add it to your agent by dragging it onto your agent canvas
+1. **Add a Pinecone credential:**
+   - Go to the **Credentials** tab in the Visual Builder
+   - Click **"New credential"**
+   - Select **"Bearer authentication"**
+   - Enter:
+     - **Name**: `Pinecone API Key` (or your preferred name)
+     - **API key**: Your Pinecone API key (found in your [Pinecone dashboard](https://app.pinecone.io/))
+   - Click **"Create Credential"** to save
 
-**Using Visual Builder:**
+2. **Register the MCP server:**
+   - Go to the **MCP Servers** tab in the Visual Builder
+   - Click **"New MCP server"**
+   - Select **"Custom Server"**
+   - Enter:
+     - **Name**: `Pinecone Documents`
+     - **URL**: Your MCP URL from Pinecone Settings tab
+     - **Transport Type**: `Streamable HTTP`
+     - **Credential**: Select the Pinecone credential you created
+   - Click **"Create"** to save the server
 
-1. Go to the **MCP Servers** tab in the Visual Builder
-2. Click "New MCP server"
-3. Select "Custom Server"
-4. Enter:
-   - **Name**: `Pinecone Documents`
-   - **URL**: Your MCP URL from Pinecone Settings tab
-   - **Transport Type**: `Streamable HTTP`
-5. Save the server
-6. Add it to your agent by dragging it onto your agent canvas
+3. **Add the MCP tool to your sub agent:**
+   - Drag the Pinecone Documents MCP tool onto your agent canvas and connect it to the sub agent
 
-### Step 6: Use the Pinecone MCP server in your agent
+### Step 6: Use the Pinecone Assistant MCP server in your agent
 
-Once you have registered your MCP server as a tool and connected it to your agent, your agent can use the Pinecone tool to search and retrieve relevant content from your uploaded documents.
+Once you have registered your MCP server as a tool and connected it to your agent, your agent can use the Pinecone Assistant tool to search and retrieve relevant content from your uploaded documents.
 
 The Pinecone tool provides a `get_context` function that retrieves relevant document snippets from your knowledge base. When your agent calls this tool, it will:
 
-- **Search semantically**: Use vector similarity search to find the most relevant content based on the query
-- **Return formatted snippets**: Each result includes:
-  - `file_name`: The name of the file containing the snippet
-  - `pages`: The page numbers where the snippet appears (for PDFs and DOCX files)
-  - `content`: The actual text content of the snippet
+<Steps>
+  <Step>
+    **Search semantically**: Use vector similarity search to find the most relevant content based on the query
+  </Step>
+  <Step>
+    **Return formatted snippets**: Each result includes:
+    <ul>
+      <li><code>file_name</code>: The name of the file containing the snippet</li>
+      <li><code>pages</code>: The page numbers where the snippet appears (for PDFs and DOCX files)</li>
+      <li><code>content</code>: The actual text content of the snippet</li>
+    </ul>
+  </Step>
+</Steps>
 
 **Parameters:**
 - `query` (required): The search query to retrieve context for

@@ -18,9 +18,7 @@ export default {
         {
           group: 'Agents',
           icon: 'LuUser',
-          pages: [
-            'tutorials/agents/meeting-prep-assistant',
-          ],
+          pages: ['tutorials/agents/meeting-prep-assistant'],
         },
         {
           group: 'MCP Servers',
@@ -42,6 +40,7 @@ export default {
             'connect-your-data/pinecone',
             'connect-your-data/context7',
             'connect-your-data/ref',
+            'connect-your-data/firecrawl',
           ],
         },
         'tutorials/upgrading',
@@ -58,7 +57,11 @@ export default {
         {
           group: 'Tools',
           icon: 'LuHammer',
-          pages: ['typescript-sdk/tools/mcp-tools', 'typescript-sdk/tools/function-tools'],
+          pages: [
+            'typescript-sdk/tools/mcp-tools',
+            'typescript-sdk/tools/function-tools',
+            'tools/tool-approvals',
+          ],
         },
         {
           group: 'Credentials',

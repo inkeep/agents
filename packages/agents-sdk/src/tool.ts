@@ -1,5 +1,5 @@
 import type { MCPToolConfig, ToolApiInsert } from '@inkeep/agents-core';
-import { getLogger } from '@inkeep/agents-core';
+import { getLogger, normalizeToolSelections } from '@inkeep/agents-core';
 import type { AgentMcpConfig, AgentMcpConfigInput } from './builders';
 
 const logger = getLogger('tool');
@@ -206,10 +206,13 @@ export class Tool implements ToolInterface {
    * ```
    */
   with(config: AgentMcpConfigInput): AgentMcpConfig {
+    const { selectedTools, toolPolicies } = normalizeToolSelections(config.selectedTools);
+
     return {
       server: this,
-      selectedTools: config.selectedTools,
+      selectedTools,
       headers: config.headers,
+      toolPolicies,
     };
   }
 }

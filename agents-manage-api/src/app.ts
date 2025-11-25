@@ -16,6 +16,7 @@ import { requireTenantAccess } from './middleware/tenant-access';
 import { setupOpenAPIRoutes } from './openapi';
 import crudRoutes from './routes/index';
 import invitationsRoutes from './routes/invitations';
+import mcpRoutes from './routes/mcp';
 import oauthRoutes from './routes/oauth';
 import playgroundTokenRoutes from './routes/playgroundToken';
 import projectFullRoutes from './routes/projectFull';
@@ -39,9 +40,7 @@ function isOriginAllowed(origin: string | undefined): origin is string {
   try {
     const requestUrl = new URL(origin);
     const authUrl = new URL(env.INKEEP_AGENTS_MANAGE_API_URL || 'http://localhost:3002');
-    const uiUrl = env.INKEEP_AGENTS_MANAGE_UI_URL
-      ? new URL(env.INKEEP_AGENTS_MANAGE_UI_URL)
-      : null;
+    const uiUrl = env.INKEEP_AGENTS_MANAGE_UI_URL ? new URL(env.INKEEP_AGENTS_MANAGE_UI_URL) : null;
 
     // Development: allow any localhost
     if (authUrl.hostname === 'localhost' || authUrl.hostname === '127.0.0.1') {
@@ -203,7 +202,7 @@ function createManagementHono(
     );
 
     // Mount the Better Auth handler
-    app.on(['POST', 'GET'], '/api/auth/*', (c) => {
+    app.on(['POST', 'GET', 'OPTIONS'], '/api/auth/*', (c) => {
       return auth.handler(c.req.raw);
     });
   }
@@ -331,6 +330,7 @@ function createManagementHono(
   // Mount OAuth routes - global OAuth callback endpoint
   app.route('/oauth', oauthRoutes);
 
+  app.route('/mcp', mcpRoutes);
   // Setup OpenAPI documentation endpoints (/openapi.json and /docs)
   setupOpenAPIRoutes(app);
 

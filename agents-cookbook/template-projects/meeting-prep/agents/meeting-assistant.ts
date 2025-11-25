@@ -7,9 +7,5 @@ export const meetingAssistant = agent({
   id: 'meeting-prep-agent',
   name: 'Meeting prep agent',
   defaultSubAgent: meetingPrepCoordinator,
-  subAgents: () => [
-    companyResearch,
-    meetingFinder,
-    meetingPrepCoordinator
-  ]
+  subAgents: () => [companyResearch, meetingFinder, meetingPrepCoordinator],
 });

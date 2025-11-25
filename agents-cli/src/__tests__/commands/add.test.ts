@@ -916,7 +916,7 @@ describe('Add Command', () => {
 
       it('should add MCP template with custom target path', async () => {
         const mockMcpTemplates = ['zendesk'];
-        
+
         await addMcpTemplate(mockMcpTemplates, 'zendesk', './custom-path', undefined);
 
         expect(cloneTemplate).toHaveBeenCalledWith(

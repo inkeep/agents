@@ -7,9 +7,11 @@
  * type-safe functions that can be called from React components.
  */
 
+import type { AgentApiInsert } from '@inkeep/agents-core/client-exports';
 import { revalidatePath } from 'next/cache';
 import {
   ApiError,
+  createAgent as apiCreateAgent,
   createFullAgent as apiCreateFullAgent,
   deleteFullAgent as apiDeleteFullAgent,
   fetchAgents as apiFetchAgents,
@@ -75,6 +77,38 @@ export async function fetchTeamAgentsAction(
       success: false,
       error: error instanceof Error ? error.message : 'Failed to fetch team agents',
       code: 'unknown_error',
+    };
+  }
+}
+
+export async function createAgentAction(
+  tenantId: string,
+  projectId: string,
+  agentData: AgentApiInsert
+): Promise<ActionResult<AgentApiInsert>> {
+  try {
+    const response = await apiCreateAgent(tenantId, projectId, agentData);
+    // Revalidate relevant pages
+    revalidatePath(`/${tenantId}/projects/${projectId}/agents`);
+    revalidatePath(`/${tenantId}/projects/${projectId}/agents/${response.data.id}`);
+
+    return {
+      success: true,
+      data: response.data,
+    };
+  } catch (error) {
+    if (error instanceof ApiError) {
+      return {
+        success: false,
+        error: error.message,
+        code: error.error.code,
+      };
+    }
+
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : 'Failed to create agent',
+      code: 'validation_error',
     };
   }
 }
