@@ -250,7 +250,7 @@ export function DatasetItemFormDialog({
       {trigger && <DialogTrigger asChild>{trigger}</DialogTrigger>}
       <DialogContent className="sm:max-w-3xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>{itemId ? 'Edit Dataset Item' : 'Create Dataset Item'}</DialogTitle>
+          <DialogTitle>{itemId ? 'Edit Test Suite Item' : 'Create Test Suite Item'}</DialogTitle>
           <DialogDescription>
             Define the input messages, expected output, and optional simulation configuration for
             this test case.
