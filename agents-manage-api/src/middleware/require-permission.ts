@@ -47,6 +47,13 @@ export const requirePermission = <Env extends MinimalAuthVariables = MinimalAuth
     const tenantRole = c.get('tenantRole');
     const requiredPermissions = formatPermissionsForDisplay(permissions);
 
+    // System users and API key users bypass permission checks
+    // They have full access within their authorized scope (enforced by tenant-access middleware)
+    if (userId === 'system' || userId?.startsWith('apikey:')) {
+      await next();
+      return;
+    }
+
     if (!userId || !tenantId) {
       throw createApiError({
         code: 'unauthorized',
