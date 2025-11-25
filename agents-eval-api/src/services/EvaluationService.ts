@@ -750,10 +750,11 @@ Generate the next user message:`;
     tenantId: string;
     projectId: string;
     evaluationJobConfigId: string;
+    sampleRate?: number | null;
   }): Promise<Array<typeof import('@inkeep/agents-core').evaluationResult.$inferSelect>> {
-    const { tenantId, projectId, evaluationJobConfigId } = params;
+    const { tenantId, projectId, evaluationJobConfigId, sampleRate } = params;
 
-    logger.info({ tenantId, projectId, evaluationJobConfigId }, 'Starting evaluation job');
+    logger.info({ tenantId, projectId, evaluationJobConfigId, sampleRate }, 'Starting evaluation job');
 
     // Get the evaluation job config
     const config = await getEvaluationJobConfigById(dbClient)({
@@ -793,11 +794,21 @@ Generate the next user message:`;
     );
 
     // Filter conversations based on jobFilters
-    const conversationsToEvaluate = await this.filterConversationsForJob({
+    let conversationsToEvaluate = await this.filterConversationsForJob({
       tenantId,
       projectId,
       jobFilters: config.jobFilters,
     });
+
+    // Apply sample rate if provided
+    if (sampleRate !== undefined && sampleRate !== null) {
+      const originalCount = conversationsToEvaluate.length;
+      conversationsToEvaluate = this.applySampleRate(conversationsToEvaluate, sampleRate);
+      logger.info(
+        { tenantId, projectId, evaluationJobConfigId, originalCount, sampledCount: conversationsToEvaluate.length, sampleRate },
+        'Applied sample rate to conversations'
+      );
+    }
 
     logger.info(
       {
@@ -987,6 +998,33 @@ Generate the next user message:`;
       .where(and(...whereConditions));
 
     return filteredConversations;
+  }
+
+  /**
+   * Apply sample rate to conversations
+   */
+  applySampleRate<T>(items: T[], sampleRate: number | null | undefined): T[] {
+    if (!sampleRate || sampleRate >= 1.0) {
+      return items;
+    }
+
+    if (sampleRate <= 0) {
+      return [];
+    }
+
+    const targetCount = Math.ceil(items.length * sampleRate);
+    const sampled: T[] = [];
+    const indices = new Set<number>();
+
+    while (sampled.length < targetCount && sampled.length < items.length) {
+      const randomIndex = Math.floor(Math.random() * items.length);
+      if (!indices.has(randomIndex)) {
+        indices.add(randomIndex);
+        sampled.push(items[randomIndex]);
+      }
+    }
+
+    return sampled;
   }
 
   /**
