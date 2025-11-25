@@ -3,7 +3,7 @@ import { createElement } from 'react';
 import { docs } from '@/.source';
 import * as brandIcons from '@/components/brand-icons';
 import { flattenNav, transformItems } from '@/components/sidebar/transform';
-import navigation from '../../navigation';
+import { navigation } from '../../navigation';
 
 // See https://fumadocs.vercel.app/docs/headless/source-api for more info
 export const source = loader({
@@ -27,17 +27,17 @@ export const source = loader({
   },
 });
 
-export const docsGroups = navigation.docs.map(transformItems);
+export const docsGroups = navigation.map(transformItems);
 
 export function getDocsGroupFirstChild(url: string | undefined) {
   if (!url) return null;
 
-  const flatList = flattenNav(navigation.docs);
+  const flatList = flattenNav(navigation);
   return flatList.find((page) => page.url.startsWith(`/${url}`));
 }
 
 export function getDocsPreviousAndNextPage(url: string) {
-  const flatList = flattenNav(navigation.docs);
+  const flatList = flattenNav(navigation);
 
   const index = flatList.findIndex((page) => page.url === url);
 
