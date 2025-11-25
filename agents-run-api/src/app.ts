@@ -42,31 +42,31 @@ function createExecutionHono(
   app.use('*', otel());
 
   // Ensure SDK is started on first request
-  let sdkStarted = false;
-  app.use('*', async (c, next) => {
-    if (!sdkStarted) {
-      const { trace } = await import('@opentelemetry/api');
-      const { defaultSDK } = await import('./instrumentation');
-      const provider = trace.getTracerProvider();
+  // let sdkStarted = false;
+  // app.use('*', async (c, next) => {
+  //   if (!sdkStarted) {
+  //     const { trace } = await import('@opentelemetry/api');
+  //     const { defaultSDK } = await import('./instrumentation');
+  //     const provider = trace.getTracerProvider();
       
-      if (provider.constructor.name === 'ProxyTracerProvider') {
-        console.log('[OTEL INIT] SDK not started yet, starting now...');
-        process.stdout.write('[OTEL INIT] Starting SDK on first request...\n');
-        try {
-          await defaultSDK.start();
-          console.log('[OTEL INIT] ✅ SDK started successfully');
-          process.stdout.write('[OTEL INIT] ✅ SDK started successfully\n');
-        } catch (error) {
-          console.error('[OTEL INIT] ❌ Failed to start SDK:', error);
-          process.stderr.write(`[OTEL INIT] ❌ Failed to start SDK: ${error}\n`);
-        }
-      } else {
-        console.log('[OTEL INIT] ✅ SDK already started, provider:', provider.constructor.name);
-      }
-      sdkStarted = true;
-    }
-    return next();
-  });
+  //     if (provider.constructor.name === 'ProxyTracerProvider') {
+  //       console.log('[OTEL INIT] SDK not started yet, starting now...');
+  //       process.stdout.write('[OTEL INIT] Starting SDK on first request...\n');
+  //       try {
+  //         await defaultSDK.start();
+  //         console.log('[OTEL INIT] ✅ SDK started successfully');
+  //         process.stdout.write('[OTEL INIT] ✅ SDK started successfully\n');
+  //       } catch (error) {
+  //         console.error('[OTEL INIT] ❌ Failed to start SDK:', error);
+  //         process.stderr.write(`[OTEL INIT] ❌ Failed to start SDK: ${error}\n`);
+  //       }
+  //     } else {
+  //       console.log('[OTEL INIT] ✅ SDK already started, provider:', provider.constructor.name);
+  //     }
+  //     sdkStarted = true;
+  //   }
+  //   return next();
+  // });
 
   // Request ID middleware
   app.use('*', requestId());
