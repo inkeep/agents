@@ -128,7 +128,7 @@ describe('mcpTool builder function', () => {
         Authorization: 'Bearer token123',
         'X-Custom-Header': 'custom-value',
       });
-      expect(agentMcpConfig.selectedTools).toBeUndefined();
+      expect(agentMcpConfig.selectedTools).toEqual([]);
     });
 
     it('should create AgentMcpConfig with both selectedTools and headers', () => {
@@ -172,7 +172,7 @@ describe('mcpTool builder function', () => {
       const agentMcpConfig = tool.with(mcpConfigInput);
 
       expect(agentMcpConfig.server).toBe(tool);
-      expect(agentMcpConfig.selectedTools).toBeUndefined();
+      expect(agentMcpConfig.selectedTools).toEqual([]);
       expect(agentMcpConfig.headers).toBeUndefined();
     });
   });

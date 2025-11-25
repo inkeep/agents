@@ -1,5 +1,5 @@
 import { loadEnvironmentFiles } from '@inkeep/agents-core';
-import { z } from 'zod';
+import { z } from '@hono/zod-openapi';
 
 // Load all environment files using shared logic
 loadEnvironmentFiles();

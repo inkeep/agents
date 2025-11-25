@@ -1,6 +1,6 @@
 import { type AllAuthCredentials, type AuthModeType, Nango } from '@nangohq/node';
 import type { ApiKeyCredentials, ApiPublicIntegration } from '@nangohq/types';
-import { z } from 'zod';
+import { z } from '@hono/zod-openapi';
 import { CredentialStoreType } from '../types';
 import type { CredentialStore } from '../types/server';
 import { getLogger } from '../utils/logger';

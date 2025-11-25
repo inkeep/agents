@@ -40,7 +40,7 @@ import {
   type ToolSet,
   tool,
 } from 'ai';
-import { z } from 'zod';
+import { z } from '@hono/zod-openapi';
 import {
   AGENT_EXECUTION_MAX_GENERATION_STEPS,
   FUNCTION_TOOL_EXECUTION_TIMEOUT_MS_DEFAULT,

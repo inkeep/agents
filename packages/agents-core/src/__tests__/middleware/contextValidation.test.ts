@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { z } from 'zod';
+import { z } from '@hono/zod-openapi';
 import { validationHelper } from '../../middleware/contextValidation';
 import { convertZodToJsonSchema } from '../../utils/schema-conversion';
 
