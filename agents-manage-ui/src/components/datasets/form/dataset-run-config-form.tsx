@@ -178,6 +178,7 @@ export function DatasetRunConfigForm({
           label="Name"
           placeholder="Test Run for Production Agents"
           description="A descriptive name for this run configuration"
+          isRequired
         />
 
         <GenericTextarea
@@ -193,7 +194,7 @@ export function DatasetRunConfigForm({
           name="agentIds"
           render={() => (
             <FormItem>
-              <FormLabel>Agents</FormLabel>
+              <FormLabel isRequired>Agents</FormLabel>
               {loadingAgents ? (
                 <p className="text-sm text-muted-foreground">Loading agents...</p>
               ) : agents.length === 0 ? (

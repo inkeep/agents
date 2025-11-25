@@ -2,7 +2,7 @@
 
 import { ChevronDown, ChevronRight, ExternalLink } from 'lucide-react';
 import Link from 'next/link';
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { formatDateTimeTable } from '@/app/utils/format-date';
 import { ExpandableJsonEditor } from '@/components/editors/expandable-json-editor';
 import { SuiteConfigViewDialog } from '@/components/evaluation-run-configs/suite-config-view-dialog';
@@ -26,6 +26,11 @@ import type { EvaluationRunConfig } from '@/lib/api/evaluation-run-configs';
 import type { EvaluationSuiteConfig } from '@/lib/api/evaluation-suite-configs';
 import type { Evaluator } from '@/lib/api/evaluators';
 import { evaluatePassCriteria } from '@/lib/evaluation/pass-criteria-evaluator';
+import {
+  type EvaluationResultFilters,
+  EvaluationResultsFilters,
+} from '../evaluation-jobs/evaluation-results-filters';
+import { filterEvaluationResults } from '@/lib/evaluation/filter-evaluation-results';
 
 interface EvaluationRunConfigResultsProps {
   tenantId: string;
@@ -46,6 +51,7 @@ export function EvaluationRunConfigResults({
 }: EvaluationRunConfigResultsProps) {
   const [selectedEvaluatorId, setSelectedEvaluatorId] = useState<string | null>(null);
   const [selectedSuiteConfigId, setSelectedSuiteConfigId] = useState<string | null>(null);
+  const [filters, setFilters] = useState<EvaluationResultFilters>({});
 
   const evaluatorMap = new Map<string, string>();
   evaluators.forEach((evaluator) => {
@@ -73,6 +79,13 @@ export function EvaluationRunConfigResults({
   const runConfigSuiteConfigs = (runConfig.suiteConfigIds || [])
     .map((id) => getSuiteConfigById(id))
     .filter((config): config is EvaluationSuiteConfig => config !== undefined);
+
+  const filteredResults = useMemo(
+    () => filterEvaluationResults(results, filters, evaluators),
+    [results, filters, evaluators]
+  );
+
+  const evaluatorOptions = evaluators.map((e) => ({ id: e.id, name: e.name }));
 
   return (
     <div className="space-y-6">
@@ -146,9 +159,17 @@ export function EvaluationRunConfigResults({
         </div>
       )}
 
+      <EvaluationResultsFilters
+        filters={filters}
+        onFiltersChange={setFilters}
+        evaluators={evaluatorOptions}
+      />
+
       <div className="rounded-lg border">
         <div className="p-4 border-b">
-          <h3 className="text-sm font-semibold">Evaluation Results ({results.length})</h3>
+          <h3 className="text-sm font-semibold">
+            Evaluation Results ({filteredResults.length} of {results.length})
+          </h3>
         </div>
         {results.length === 0 ? (
           <div className="p-8 text-center text-muted-foreground">
@@ -157,6 +178,10 @@ export function EvaluationRunConfigResults({
               Results will appear here automatically when conversations complete and match the
               configured evaluation plans.
             </p>
+          </div>
+        ) : filteredResults.length === 0 ? (
+          <div className="p-8 text-center text-muted-foreground">
+            No results match the current filters.
           </div>
         ) : (
           <Table>
@@ -170,7 +195,7 @@ export function EvaluationRunConfigResults({
               </TableRow>
             </TableHeader>
             <TableBody>
-              {[...results]
+              {[...filteredResults]
                 .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
                 .map((result) => (
                   <TableRow key={result.id} noHover>

@@ -1119,7 +1119,6 @@ Generate the next user message:`;
       metadata: {
         ...llmResponse.metadata,
         model: modelConfig.model || 'unknown',
-        conversationMessageCount: conversationHistory.length,
         agentId,
         hasAgentDefinition: !!agentDefinition,
         hasTrace: !!prettifiedTrace,

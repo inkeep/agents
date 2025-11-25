@@ -2,7 +2,7 @@
 
 import { ChevronDown, ChevronRight, ExternalLink } from 'lucide-react';
 import Link from 'next/link';
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { formatDateTimeTable } from '@/app/utils/format-date';
 import { ExpandableJsonEditor } from '@/components/editors/expandable-json-editor';
 import { EvaluationStatusBadge } from '@/components/evaluators/evaluation-status-badge';
@@ -24,6 +24,11 @@ import type { EvaluationJobConfig } from '@/lib/api/evaluation-job-configs';
 import type { EvaluationResult } from '@/lib/api/evaluation-results';
 import type { Evaluator } from '@/lib/api/evaluators';
 import { evaluatePassCriteria } from '@/lib/evaluation/pass-criteria-evaluator';
+import {
+  type EvaluationResultFilters,
+  EvaluationResultsFilters,
+} from './evaluation-results-filters';
+import { filterEvaluationResults } from '@/lib/evaluation/filter-evaluation-results';
 
 interface EvaluationJobResultsProps {
   tenantId: string;
@@ -41,6 +46,7 @@ export function EvaluationJobResults({
   evaluators,
 }: EvaluationJobResultsProps) {
   const [selectedEvaluatorId, setSelectedEvaluatorId] = useState<string | null>(null);
+  const [filters, setFilters] = useState<EvaluationResultFilters>({});
 
   const evaluatorMap = new Map<string, string>();
   evaluators.forEach((evaluator) => {
@@ -57,15 +63,34 @@ export function EvaluationJobResults({
 
   const selectedEvaluator = selectedEvaluatorId ? getEvaluatorById(selectedEvaluatorId) : undefined;
 
+  const filteredResults = useMemo(
+    () => filterEvaluationResults(results, filters, evaluators),
+    [results, filters, evaluators]
+  );
+
+  const evaluatorOptions = evaluators.map((e) => ({ id: e.id, name: e.name }));
+
   return (
     <div className="space-y-6">
+      <EvaluationResultsFilters
+        filters={filters}
+        onFiltersChange={setFilters}
+        evaluators={evaluatorOptions}
+      />
+
       <div className="rounded-lg border">
         <div className="p-4 border-b">
-          <h3 className="text-sm font-semibold">Evaluation Results ({results.length})</h3>
+          <h3 className="text-sm font-semibold">
+            Evaluation Results ({filteredResults.length} of {results.length})
+          </h3>
         </div>
         {results.length === 0 ? (
           <div className="p-8 text-center text-muted-foreground">
             No evaluation results yet. The batch evaluation may still be running.
+          </div>
+        ) : filteredResults.length === 0 ? (
+          <div className="p-8 text-center text-muted-foreground">
+            No results match the current filters.
           </div>
         ) : (
           <Table>
@@ -79,7 +104,7 @@ export function EvaluationJobResults({
               </TableRow>
             </TableHeader>
             <TableBody>
-              {[...results]
+              {[...filteredResults]
                 .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
                 .map((result) => (
                   <TableRow key={result.id} noHover>
