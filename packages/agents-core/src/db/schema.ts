@@ -1072,7 +1072,6 @@ export const evaluationSuiteConfig = pgTable(
   'evaluation_suite_config',
   {
     ...projectScoped,
-    ...uiProperties,
     filters: jsonb('filters').$type<Filter<EvaluationSuiteFilterCriteria>>(), // Filters for the evaluation suite (supports and/or operations)
     sampleRate: doublePrecision('sample_rate'),
     ...timestamps,

@@ -95,8 +95,17 @@ const EvaluatorApiInsertSchema = z.any();
 const EvaluatorApiUpdateSchema = z.any();
 
 const EvaluationSuiteConfigApiSelectSchema = z.any();
-const EvaluationSuiteConfigApiInsertSchema = z.any();
-const EvaluationSuiteConfigApiUpdateSchema = z.any();
+const EvaluationSuiteConfigApiInsertSchema = z.object({
+  id: z.string().optional(),
+  filters: z.any().optional(),
+  sampleRate: z.number().min(0).max(1).optional(),
+  evaluatorIds: z.array(z.string()).optional(),
+});
+const EvaluationSuiteConfigApiUpdateSchema = z.object({
+  filters: z.any().optional(),
+  sampleRate: z.number().min(0).max(1).optional(),
+  evaluatorIds: z.array(z.string()).optional(),
+});
 
 const EvaluationResultApiSelectSchema = z.any();
 const EvaluationResultApiInsertSchema = z.any();
@@ -1624,7 +1633,7 @@ app.openapi(
         (async () => {
           try {
             // Filter conversations based on job filters
-            const conversations = await evaluationService.filterConversationsForJob({
+            let conversations = await evaluationService.filterConversationsForJob({
               tenantId,
               projectId,
               jobFilters: created.jobFilters,
@@ -1637,6 +1646,7 @@ app.openapi(
               );
               return;
             }
+
 
             // Create evaluation run
             const evaluationRun = await createEvaluationRun(dbClient)({

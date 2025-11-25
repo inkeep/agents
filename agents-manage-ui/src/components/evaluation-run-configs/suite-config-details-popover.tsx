@@ -17,14 +17,12 @@ interface SuiteConfigDetailsPopoverProps {
   tenantId: string;
   projectId: string;
   suiteConfigId: string;
-  suiteConfigName: string;
 }
 
 export function SuiteConfigDetailsPopover({
   tenantId,
   projectId,
   suiteConfigId,
-  suiteConfigName,
 }: SuiteConfigDetailsPopoverProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -150,7 +148,7 @@ export function SuiteConfigDetailsPopover({
       <PopoverContent className="w-80" align="start">
         <div className="space-y-4">
           <div>
-            <h4 className="font-semibold text-sm mb-2">{suiteConfigName}</h4>
+            <h4 className="font-semibold text-sm mb-2">{suiteConfigId}</h4>
           </div>
 
           {loading ? (
