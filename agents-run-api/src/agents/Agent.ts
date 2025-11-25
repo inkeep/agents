@@ -373,7 +373,6 @@ export class Agent {
     toolDefinition: any,
     streamRequestId?: string,
     toolType?: ToolType,
-    relationshipId?: string,
     options?: { needsApproval?: boolean }
   ) {
     if (!toolDefinition || typeof toolDefinition !== 'object' || !('execute' in toolDefinition)) {
@@ -579,13 +578,8 @@ export class Agent {
       }) || [];
     const tools = (await Promise.all(mcpTools.map((tool) => this.getMcpTool(tool)) || [])) || [];
     if (!sessionId) {
-      // TODO check if we need reduce
-      // const combinedTools = tools.reduce((acc, toolResult) => {
-      //     return Object.assign(acc, toolResult.tools) as ToolSet;
-      // }, {} as ToolSet);
       const wrappedTools: ToolSet = {};
-      for (const [index, toolSet] of tools.entries()) {
-        const relationshipId = mcpTools[index]?.relationshipId;
+      for (const toolSet of tools) {
         for (const [toolName, toolDef] of Object.entries(toolSet.tools)) {
           // Find toolPolicies for this tool
           const needsApproval = toolSet.toolPolicies?.[toolName]?.needsApproval || false;
@@ -600,7 +594,6 @@ export class Agent {
             enhancedTool,
             streamRequestId,
             'mcp',
-            relationshipId,
             { needsApproval }
           );
         }
@@ -609,8 +602,7 @@ export class Agent {
     }
 
     const wrappedTools: ToolSet = {};
-    for (const [index, toolResult] of tools.entries()) {
-      const relationshipId = mcpTools[index]?.relationshipId;
+    for (const toolResult of tools) {
       for (const [toolName, originalTool] of Object.entries(toolResult.tools)) {
         if (!isValidTool(originalTool)) {
           logger.error({ toolName }, 'Invalid MCP tool structure - missing required properties');
@@ -798,7 +790,6 @@ export class Agent {
           sessionWrappedTool,
           streamRequestId,
           'mcp',
-          relationshipId,
           { needsApproval }
         );
       }
