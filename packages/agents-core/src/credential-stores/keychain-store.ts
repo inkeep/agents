@@ -1,6 +1,7 @@
 import { CredentialStoreType } from '../types';
 import type { CredentialStore } from '../types/server';
 import { getLogger } from '../utils/logger';
+import type * as Keytar from 'keytar';
 
 /**
  * KeyChainStore - Cross-platform system keychain credential storage
@@ -34,7 +35,7 @@ export class KeyChainStore implements CredentialStore {
   private readonly service: string;
   private readonly logger = getLogger('KeyChainStore');
   private keytarAvailable = false;
-  private keytar: any | null = null;
+  private keytar: typeof Keytar | null = null;
   private initializationPromise: Promise<void>;
 
   constructor(id: string, servicePrefix = 'inkeep-agent-framework') {
@@ -54,7 +55,9 @@ export class KeyChainStore implements CredentialStore {
     }
 
     try {
-      this.keytar = (await import('keytar' as any)).default;
+      // Dynamic import with `webpackIgnore` to prevent Webpack/Turbopack from bundling
+      // or analyzing the `keytar` module (must be loaded at runtime only).
+      this.keytar = (await import(/* webpackIgnore: true */ 'keytar')).default;
       this.keytarAvailable = true;
       this.logger.info(
         {
@@ -113,9 +116,13 @@ export class KeyChainStore implements CredentialStore {
 
   /**
    * Set a credential in the keychain
-   * @param metadata - Optional metadata (ignored by keychain store)
    */
-  async set(key: string, value: string, _metadata?: Record<string, string>): Promise<void> {
+  async set(
+    key: string,
+    value: string,
+    /** Optional metadata (ignored by keychain store) */
+    _metadata?: Record<string, string>
+  ): Promise<void> {
     await this.initializationPromise;
 
     if (!this.keytarAvailable || !this.keytar) {
