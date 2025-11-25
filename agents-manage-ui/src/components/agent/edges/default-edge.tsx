@@ -20,27 +20,27 @@ export const AnimatedCircle: FC<{ edgePath: string } & AnimatedEdge> = ({ edgePa
     return;
   }
 
-  const isInvertedDelegating = status === 'inverted-delegating';
+  const isInverted = status === 'inverted-delegating';
+  const dur = '2s';
 
   return (
-    <circle fill="var(--primary)" r="6" opacity="0">
+    <circle fill="var(--primary)" r="6" opacity={isInverted ? 0 : 100}>
       <animateMotion
         ref={motionRef}
-        dur="2s"
+        dur={dur}
         path={edgePath}
-        fill={isInvertedDelegating ? 'remove' : 'freeze'}
-        {...(isInvertedDelegating && {
-          keyPoints: '1;0',
-          keyTimes: '0;1',
-        })}
+        fill={isInverted ? 'remove' : 'freeze'}
+        {...(isInverted && { keyPoints: '1;0', keyTimes: '0;1' })}
       />
-      <animate
-        ref={opacityRef}
-        attributeName="opacity"
-        values="1;1;0"
-        keyTimes="0;0.95;1"
-        dur="2s"
-      />
+      {isInverted && (
+        <animate
+          ref={opacityRef}
+          dur={dur}
+          attributeName="opacity"
+          values="1;1;0"
+          keyTimes="0;0.95;1"
+        />
+      )}
     </circle>
   );
 };
