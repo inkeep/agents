@@ -15,7 +15,7 @@
     "postinstall": "fumadocs-mdx",
     "generate-openapi": "node scripts/generate-openapi-docs.mjs",
     "generate-classnames": "node scripts/generate-classnames.mjs",
-    "prebuild": "pnpm generate-classnames",
+    "prebuild": "pnpm generate-classnames && pnpm generate-openapi && pnpm validate-link",
     "validate-link": "node scripts/validate-link.mjs"
   },
   "dependencies": {
