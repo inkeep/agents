@@ -446,7 +446,7 @@ const agentState: StateCreator<AgentState> = (set, get) => ({
             };
           }
           case 'error': {
-            const { relationshipId } = data.details;
+            const { relationshipId } = data.details ?? {};
             if (!relationshipId) {
               console.warn('[type: error] relationshipId is missing');
             }
