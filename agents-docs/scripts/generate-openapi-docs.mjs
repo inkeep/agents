@@ -2,7 +2,7 @@ import { readdir, readFile, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
 import { generateFiles } from 'fumadocs-openapi';
 
-const OUTPUT_DIR = './content/docs/api-reference';
+const OUTPUT_DIR = './content/api-reference';
 const DEFAULT_ICON = 'LuDatabaseZap';
 
 async function addIconToFrontmatter(filePath) {
