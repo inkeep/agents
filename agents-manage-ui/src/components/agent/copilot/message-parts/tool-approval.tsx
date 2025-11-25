@@ -41,6 +41,8 @@ interface ToolApprovalProps {
   copilotProjectId?: string;
   copilotTenantId?: string;
   runApiUrl?: string;
+  cookieHeader?: string;
+  copilotToken?: string;
 }
 
 export const FallbackApproval = ({ toolName }: { toolName: string }) => {
@@ -92,6 +94,8 @@ export const ToolApproval = ({
   copilotProjectId,
   copilotTenantId,
   runApiUrl,
+  cookieHeader,
+  copilotToken,
 }: ToolApprovalProps) => {
   const [diffs, setDiffs] = useState<FieldDiff[]>([]);
   const [entityData, setEntityData] = useState<EntityData | null>(null);
@@ -111,6 +115,8 @@ export const ToolApproval = ({
         ...(copilotTenantId && { 'x-inkeep-tenant-id': copilotTenantId }),
         ...(copilotProjectId && { 'x-inkeep-project-id': copilotProjectId }),
         ...(copilotAgentId && { 'x-inkeep-agent-id': copilotAgentId }),
+        ...(cookieHeader ? { 'x-forwarded-cookie': cookieHeader } : {}),
+        Authorization: `Bearer ${copilotToken}`,
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
