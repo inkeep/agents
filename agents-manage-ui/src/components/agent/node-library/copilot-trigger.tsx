@@ -1,24 +1,16 @@
 import { SparklesIcon } from 'lucide-react';
 import { useParams } from 'next/navigation';
 import { Button } from '@/components/ui/button';
-import { useRuntimeConfig } from '@/contexts/runtime-config-context';
 import { useCopilotContext } from '../copilot/copilot-context';
 
 export function CopilotTrigger() {
-  const { openCopilot } = useCopilotContext();
+  const { openCopilot, isCopilotConfigured } = useCopilotContext();
   const { agentId } = useParams<{ agentId?: string }>();
-  const {
-    PUBLIC_INKEEP_COPILOT_AGENT_ID,
-    PUBLIC_INKEEP_COPILOT_PROJECT_ID,
-    PUBLIC_INKEEP_COPILOT_TENANT_ID,
-  } = useRuntimeConfig();
-  if (
-    !PUBLIC_INKEEP_COPILOT_AGENT_ID ||
-    !PUBLIC_INKEEP_COPILOT_PROJECT_ID ||
-    !PUBLIC_INKEEP_COPILOT_TENANT_ID
-  ) {
+
+  if (!isCopilotConfigured) {
     return null;
   }
+
   return (
     <Button
       className="normal-case justify-start font-sans dark:bg-input/30 dark:border-input dark:hover:bg-input/50 backdrop-blur-3xl"
