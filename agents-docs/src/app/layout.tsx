@@ -1,4 +1,3 @@
-import '@/app/global.css';
 import { RootProvider } from 'fumadocs-ui/provider/next';
 import { Inter } from 'next/font/google';
 import { ThemeProvider } from 'next-themes';
@@ -10,12 +9,13 @@ import { AppSidebar } from '@/components/sidebar';
 import { SidebarProvider } from '@/components/ui/sidebar';
 import { createMetadata } from '@/lib/metadata';
 import { cn } from '@/lib/utils';
+import '@/app/global.css';
 
 const inter = Inter({
   subsets: ['latin'],
 });
 
-const orgLd: WithContext<Organization> = {
+const orgLd = {
   '@context': 'https://schema.org',
   '@type': 'Organization',
   name: 'Inkeep',
@@ -44,25 +44,29 @@ const orgLd: WithContext<Organization> = {
     'https://www.crunchbase.com/organization/inkeep',
     'https://www.youtube.com/@inkeep-ai',
   ],
-};
+} satisfies WithContext<Organization>;
 
-const siteLd: WithContext<WebSite> = {
+const siteLd = {
   '@context': 'https://schema.org',
   '@type': 'WebSite',
   name: 'Inkeep Open Source',
   url: 'https://docs.inkeep.com',
   alternateName: 'Inkeep Docs',
-};
+} satisfies WithContext<WebSite>;
 
 export const metadata = createMetadata({
-  title: siteLd.name as string,
-  description: orgLd.description as string,
+  title: siteLd.name,
+  description: orgLd.description,
 });
 
 export default function Layout({ children }: LayoutProps<'/'>) {
   return (
-    <html lang="en" className={`${inter.className} antialiased`} suppressHydrationWarning>
-      <body className="flex flex-col min-h-screen">
+    <html lang="en" className={cn(inter.className, 'antialiased')} suppressHydrationWarning>
+      <body
+        className="flex flex-col min-h-screen"
+        // Suppress hydration warnings in development caused by browser extensions
+        suppressHydrationWarning={process.env.NODE_ENV !== 'production'}
+      >
         <JsonLd json={[orgLd, siteLd]} />
         <ThemeProvider
           attribute="class"
