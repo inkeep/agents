@@ -253,7 +253,14 @@ function createManagementHono(
       return;
     }
 
-    const session = await auth.api.getSession({ headers: c.req.raw.headers });
+    // Create headers with x-forwarded-cookie mapped to cookie (browsers forbid setting Cookie header directly)
+    const headers = new Headers(c.req.raw.headers);
+    const forwardedCookie = headers.get('x-forwarded-cookie');
+    if (forwardedCookie && !headers.get('cookie')) {
+      headers.set('cookie', forwardedCookie);
+    }
+
+    const session = await auth.api.getSession({ headers });
 
     if (!session) {
       c.set('user', null);

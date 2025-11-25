@@ -419,7 +419,13 @@ export function contextValidationMiddleware(dbClient: DatabaseClient) {
 
       const headers: Record<string, string> = {};
       c.req.raw.headers.forEach((value, key) => {
-        headers[key.toLowerCase()] = value;
+        const normalizedKey = key.toLowerCase();
+        // Map x-forwarded-cookie to cookie (browsers forbid setting Cookie header directly)
+        if (normalizedKey === 'x-forwarded-cookie') {
+          headers['cookie'] = value;
+        } else {
+          headers[normalizedKey] = value;
+        }
       });
       const credentialStores = c.get('credentialStores') as CredentialStoreRegistry;
 

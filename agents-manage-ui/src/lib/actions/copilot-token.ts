@@ -1,5 +1,7 @@
 'use server';
 
+import { cookies } from 'next/headers';
+
 import { DEFAULT_INKEEP_AGENTS_MANAGE_API_URL } from '../runtime-config/defaults';
 
 export type ActionResult<T = void> =
@@ -16,6 +18,7 @@ export type ActionResult<T = void> =
 export interface CopilotTokenResponse {
   apiKey: string;
   expiresAt: string;
+  cookieHeader?: string;
 }
 
 export async function getCopilotTokenAction(): Promise<ActionResult<CopilotTokenResponse>> {
@@ -73,11 +76,19 @@ export async function getCopilotTokenAction(): Promise<ActionResult<CopilotToken
     }
 
     const data = await response.json();
+
+    // Read cookies and format as a cookie header string
+    const cookieStore = await cookies();
+    const allCookies = cookieStore.getAll();
+    console.log('allCookies', allCookies);
+    const cookieHeader = allCookies.map((c) => `${c.name}=${c.value}`).join('; ');
+
     return {
       success: true,
       data: {
         apiKey: data.apiKey,
         expiresAt: data.expiresAt,
+        cookieHeader: cookieHeader || undefined,
       },
     };
   } catch (error) {
