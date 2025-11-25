@@ -15,6 +15,13 @@
       "when": 1764024513126,
       "tag": "0001_calm_sheva_callister",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1764045769142,
+      "tag": "0002_puzzling_goblin_queen",
+      "breakpoints": true
     }
   ]
 }
