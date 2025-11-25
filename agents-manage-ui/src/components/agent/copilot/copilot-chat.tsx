@@ -12,6 +12,7 @@ import { useOAuthLogin } from '@/hooks/use-oauth-login';
 import { generateId } from '@/lib/utils/id-utils';
 import { useCopilotContext } from './copilot-context';
 import { IkpMessage } from './message-parts/message';
+import { warnOnce } from '@/lib/warn-once';
 
 interface CopilotChatProps {
   agentId?: string;
@@ -79,7 +80,7 @@ export function CopilotChat({ agentId, tenantId, projectId, refreshAgentGraph }:
     !PUBLIC_INKEEP_COPILOT_PROJECT_ID ||
     !PUBLIC_INKEEP_COPILOT_TENANT_ID
   ) {
-    console.error(
+    warnOnce(
       'PUBLIC_INKEEP_COPILOT_AGENT_ID, PUBLIC_INKEEP_COPILOT_PROJECT_ID, PUBLIC_INKEEP_COPILOT_TENANT_ID are not set, copilot chat will not be displayed'
     );
     return null;
