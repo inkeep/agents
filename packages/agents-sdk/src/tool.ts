@@ -206,13 +206,23 @@ export class Tool implements ToolInterface {
    * ```
    */
   with(config: AgentMcpConfigInput): AgentMcpConfig {
-    const { selectedTools, toolPolicies } = normalizeToolSelections(config.selectedTools);
+    const { selectedTools, toolPolicies } = normalizeToolSelections(config.selectedTools ?? undefined);
+
+    // Preserve semantic distinction:
+    // - undefined/null input = all tools (return undefined)
+    // - [] input = zero tools (return [])
+    // - ['tool1', ...] input = specific tools (return normalized list)
+    const isUnspecified = config.selectedTools === undefined || config.selectedTools === null;
+    const resolvedSelectedTools = isUnspecified ? undefined : selectedTools;
+
+    const resolvedToolPolicies =
+      isUnspecified || Object.keys(toolPolicies).length === 0 ? undefined : toolPolicies;
 
     return {
       server: this,
-      selectedTools,
+      selectedTools: resolvedSelectedTools,
       headers: config.headers,
-      toolPolicies,
+      toolPolicies: resolvedToolPolicies,
     };
   }
 }

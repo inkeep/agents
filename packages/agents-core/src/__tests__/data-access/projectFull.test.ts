@@ -591,7 +591,10 @@ describe('projectFull data access', () => {
             name: 'Data Component 1',
             description: 'Test data component 1',
             props: {
-              content: 'Test content 1',
+              type: 'object',
+              properties: {
+                content: { type: 'string' },
+              },
             },
           },
           [data2Id]: {
@@ -599,7 +602,10 @@ describe('projectFull data access', () => {
             name: 'Data Component 2',
             description: 'Test data component 2',
             props: {
-              content: 'Test content 2',
+              type: 'object',
+              properties: {
+                content: { type: 'string' },
+              },
             },
           },
         },

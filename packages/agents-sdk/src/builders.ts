@@ -99,8 +99,13 @@ export type AgentMcpConfig = {
  * Supports flexible tool selection with per-tool policies
  */
 export type AgentMcpConfigInput = {
-  /** Tools to enable from the MCP server - can be strings or objects with policies */
-  selectedTools?: McpToolSelection[];
+  /**
+   * Tools to enable from the MCP server - can be strings or objects with policies
+   * - undefined or null: all tools enabled (no filtering)
+   * - []: zero tools enabled (explicit empty selection)
+   * - ['tool1', 'tool2']: specific tools enabled
+   */
+  selectedTools?: McpToolSelection[] | null;
   /** Custom headers for MCP server requests */
   headers?: Record<string, string>;
 };

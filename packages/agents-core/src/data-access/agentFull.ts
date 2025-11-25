@@ -439,9 +439,14 @@ export const createFullAgentServerSide =
                       scopes: { tenantId, projectId, agentId: finalAgentId },
                       subAgentId,
                       toolId,
-                      selectedTools: toolSelection || undefined,
-                      headers: headers || undefined,
-                      toolPolicies: toolPolicies || undefined,
+                      // Preserve null vs undefined distinction:
+                      // - null = all tools (updates DB to NULL)
+                      // - undefined = don't change (Drizzle skips field)
+                      // - [] = zero tools
+                      // - ['tool1', ...] = specific tools
+                      selectedTools: toolSelection,
+                      headers: headers,
+                      toolPolicies: toolPolicies,
                       relationId: agentToolRelationId,
                     });
                     logger.info(
@@ -1283,9 +1288,14 @@ export const updateFullAgentServerSide =
                       scopes: { tenantId, projectId, agentId: finalAgentId },
                       subAgentId,
                       toolId,
-                      selectedTools: toolSelection || undefined,
-                      headers: headers || undefined,
-                      toolPolicies: toolPolicies || undefined,
+                      // Preserve null vs undefined distinction:
+                      // - null = all tools (updates DB to NULL)
+                      // - undefined = don't change (Drizzle skips field)
+                      // - [] = zero tools
+                      // - ['tool1', ...] = specific tools
+                      selectedTools: toolSelection,
+                      headers: headers,
+                      toolPolicies: toolPolicies,
                       relationId: agentToolRelationId,
                     });
                     logger.info(
