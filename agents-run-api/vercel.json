@@ -1,0 +1,6 @@
+{
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "framework": "hono",
+  "buildCommand": "cd ../.. && pnpm build --filter=@inkeep/agents-run-api"
+}
+

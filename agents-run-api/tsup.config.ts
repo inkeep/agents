@@ -3,7 +3,7 @@ import rootConfig from '../tsup.config';
 
 export default defineConfig({
   ...rootConfig,
-  entry: ['src/index.ts', 'src/instrumentation.ts'],
+  entry: ['index.ts', 'src/index.ts', 'src/instrumentation.ts'],
   external: ['keytar'],
   esbuildOptions(options) {
     options.loader = {
