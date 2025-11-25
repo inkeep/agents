@@ -51,6 +51,7 @@
     "@opentelemetry/sdk-trace-base": "^2.1.0",
     "@opentelemetry/sdk-trace-node": "^2.1.0",
     "@opentelemetry/semantic-conventions": "^1.37.0",
+    "@vercel/otel": "^1.9.2",
     "@vercel/sandbox": "^0.0.24",
     "ai": "5.0.11",
     "ajv": "^8.17.1",

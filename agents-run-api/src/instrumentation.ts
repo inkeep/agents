@@ -22,12 +22,26 @@ import { ATTR_SERVICE_NAME } from '@opentelemetry/semantic-conventions';
 import { env } from './env';
 import { getLogger } from './logger';
 
-const otlpExporter = new OTLPTraceExporter();
 const logger = getLogger('instrumentation');
+
+const isVercel = process.env.VERCEL === '1' || process.env.NEXT_RUNTIME === 'nodejs';
+
+const otlpExporter = isVercel ? undefined : new OTLPTraceExporter();
 /**
  * Creates a safe batch processor that falls back to no-op when SignOz is not configured
+ * or when running on Vercel (which uses the root instrumentation.ts instead)
  */
 function createSafeBatchProcessor(): SpanProcessor {
+  if (isVercel) {
+    logger.info({}, 'Running on Vercel, using root instrumentation.ts for tracing');
+    return new NoopSpanProcessor();
+  }
+
+  if (!otlpExporter) {
+    logger.warn({}, 'No OTLP exporter available');
+    return new NoopSpanProcessor();
+  }
+
   try {
     return new BatchSpanProcessor(otlpExporter, {
       scheduledDelayMillis: env.OTEL_BSP_SCHEDULE_DELAY,
@@ -88,6 +102,10 @@ export const defaultSDK = new NodeSDK({
 });
 
 export async function flushBatchProcessor(): Promise<void> {
+  if (isVercel) {
+    return;
+  }
+
   try {
     await defaultBatchProcessor.forceFlush();
   } catch (error) {
