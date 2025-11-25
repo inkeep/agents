@@ -41,12 +41,29 @@ function createExecutionHono(
 
   app.use('*', otel());
 
-  // Ensure SDK is started
+  // Ensure SDK is started on first request
+  let sdkStarted = false;
   app.use('*', async (c, next) => {
-    const { trace } = await import('@opentelemetry/api');
-    const provider = trace.getTracerProvider();
-    if (provider.constructor.name === 'ProxyTracerProvider') {
-      console.warn('[OTEL WARN] SDK not started, provider is still ProxyTracerProvider');
+    if (!sdkStarted) {
+      const { trace } = await import('@opentelemetry/api');
+      const { defaultSDK } = await import('./instrumentation');
+      const provider = trace.getTracerProvider();
+      
+      if (provider.constructor.name === 'ProxyTracerProvider') {
+        console.log('[OTEL INIT] SDK not started yet, starting now...');
+        process.stdout.write('[OTEL INIT] Starting SDK on first request...\n');
+        try {
+          await defaultSDK.start();
+          console.log('[OTEL INIT] ✅ SDK started successfully');
+          process.stdout.write('[OTEL INIT] ✅ SDK started successfully\n');
+        } catch (error) {
+          console.error('[OTEL INIT] ❌ Failed to start SDK:', error);
+          process.stderr.write(`[OTEL INIT] ❌ Failed to start SDK: ${error}\n`);
+        }
+      } else {
+        console.log('[OTEL INIT] ✅ SDK already started, provider:', provider.constructor.name);
+      }
+      sdkStarted = true;
     }
     return next();
   });
@@ -325,38 +342,18 @@ function createExecutionHono(
     }),
     async (c) => {
       const { trace, context: otelContext } = await import('@opentelemetry/api');
-      const { defaultSDK } = await import('./instrumentation');
       
       process.stdout.write(`[OTEL DEBUG TEST] Test endpoint called at ${new Date().toISOString()}\n`);
-      console.log('[OTEL DEBUG TEST] Checking SDK state...');
       
       // Check if we have a tracer provider registered
       const tracerProvider = trace.getTracerProvider();
-      console.log('[OTEL DEBUG TEST] TracerProvider type:', tracerProvider.constructor.name);
-      console.log('[OTEL DEBUG TEST] Is ProxyTracerProvider?:', tracerProvider.constructor.name === 'ProxyTracerProvider');
-      
-      // If it's still a ProxyTracerProvider, the SDK might not have started
-      if (tracerProvider.constructor.name === 'ProxyTracerProvider') {
-        console.log('[OTEL DEBUG TEST] ⚠️ SDK appears not started! Attempting to start...');
-        try {
-          await defaultSDK.start();
-          console.log('[OTEL DEBUG TEST] ✅ SDK started successfully');
-        } catch (error) {
-          console.error('[OTEL DEBUG TEST] ❌ Failed to start SDK:', error);
-        }
-      } else {
-        console.log('[OTEL DEBUG TEST] ✅ SDK is already started');
-      }
+      const providerType = tracerProvider.constructor.name;
+      console.log('[OTEL DEBUG TEST] TracerProvider type:', providerType);
       
       const tracer = trace.getTracer('debug-tracer');
       
       process.stdout.write(`[OTEL DEBUG] Creating test trace at ${new Date().toISOString()}\n`);
       console.log('[OTEL DEBUG] Creating test trace...');
-      
-      const activeContext = otelContext.active();
-      const activeSpan = trace.getSpan(activeContext);
-      console.log('[OTEL DEBUG] Active context exists:', !!activeContext);
-      console.log('[OTEL DEBUG] Active span exists:', !!activeSpan);
       
       const result = await tracer.startActiveSpan('test.trace', async (span) => {
         const spanContext = span.spanContext();
@@ -387,6 +384,7 @@ function createExecutionHono(
           spanId: spanContext.spanId,
           traceFlags: spanContext.traceFlags,
           isRecording: span.isRecording(),
+          providerType,
         };
       });
       
