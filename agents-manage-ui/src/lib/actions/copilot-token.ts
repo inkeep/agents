@@ -45,20 +45,17 @@ export async function getCopilotTokenAction(): Promise<ActionResult<CopilotToken
   }
 
   try {
-    const response = await fetch(
-      `${manageApiUrl}/tenants/${copilotTenantId}/playground/token`,
-      {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${copilotApiKey}`,
-        },
-        body: JSON.stringify({
-          projectId: copilotProjectId,
-          agentId: copilotAgentId,
-        }),
-      }
-    );
+    const response = await fetch(`${manageApiUrl}/tenants/${copilotTenantId}/playground/token`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${copilotApiKey}`,
+      },
+      body: JSON.stringify({
+        projectId: copilotProjectId,
+        agentId: copilotAgentId,
+      }),
+    });
 
     if (!response.ok) {
       let errorMessage = 'Failed to fetch copilot token';
@@ -91,4 +88,3 @@ export async function getCopilotTokenAction(): Promise<ActionResult<CopilotToken
     };
   }
 }
-

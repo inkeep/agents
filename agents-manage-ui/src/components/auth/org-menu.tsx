@@ -61,9 +61,7 @@ export function OrgMenu() {
           className="h-7 gap-2 px-2 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground text-sidebar-foreground/80 dark:text-sidebar-foreground normal-case"
         >
           <Building2 className="h-4 w-4" />
-          <span className="text-xs font-medium normal-case">
-            {organizationName ?? ''}
-          </span>
+          <span className="text-xs font-medium normal-case">{organizationName ?? ''}</span>
         </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end">
@@ -81,4 +79,3 @@ export function OrgMenu() {
     </DropdownMenu>
   );
 }
-

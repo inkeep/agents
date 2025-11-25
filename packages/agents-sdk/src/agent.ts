@@ -264,7 +264,7 @@ export class Agent implements AgentInterface {
       subAgentsObject[subAgent.getId()] = {
         id: subAgent.getId(),
         name: subAgent.getName(),
-        description: subAgent.config.description || `Agent ${subAgent.getName()}`,
+        description: subAgent.config.description || '',
         prompt: subAgent.getInstructions(),
         models: subAgent.config.models,
         stopWhen: subAgent.config.stopWhen,

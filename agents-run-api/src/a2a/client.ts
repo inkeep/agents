@@ -64,7 +64,7 @@ class PermanentError extends Error {
   override readonly cause: unknown;
   public readonly type?: string;
 
-  constructor(message: string, options?: { cause?: unknown; type?: string}) {
+  constructor(message: string, options?: { cause?: unknown; type?: string }) {
     let msg = message;
     if (options?.cause) {
       msg += `: ${options.cause}`;
