@@ -14,19 +14,16 @@ import { resourceFromAttributes } from '@opentelemetry/resources';
 import type { NodeSDKConfiguration } from '@opentelemetry/sdk-node';
 import { NodeSDK } from '@opentelemetry/sdk-node';
 import {
-  AlwaysOnSampler,
   BatchSpanProcessor,
   NoopSpanProcessor,
-  ParentBasedSampler,
   type SpanProcessor,
 } from '@opentelemetry/sdk-trace-base';
 import { ATTR_SERVICE_NAME } from '@opentelemetry/semantic-conventions';
 import { env } from './env';
 import { getLogger } from './logger';
 
-const logger = getLogger('instrumentation');
-
 const otlpExporter = new OTLPTraceExporter();
+const logger = getLogger('instrumentation');
 /**
  * Creates a safe batch processor that falls back to no-op when SignOz is not configured
  */
@@ -88,23 +85,6 @@ export const defaultSDK = new NodeSDK({
   textMapPropagator: defaultTextMapPropagator,
   spanProcessors: defaultSpanProcessors,
   instrumentations: defaultInstrumentations,
-  // sampler: sampler,
-});
-
-process.on('SIGTERM', async () => {
-  try {
-    await defaultSDK.shutdown();
-  } catch (error) {
-    logger.error({ error }, 'Error during SDK shutdown');
-  }
-});
-
-process.on('beforeExit', async () => {
-  try {
-    await flushBatchProcessor();
-  } catch (error) {
-    logger.error({ error }, 'Error flushing traces on beforeExit');
-  }
 });
 
 export async function flushBatchProcessor(): Promise<void> {
