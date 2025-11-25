@@ -1,6 +1,8 @@
 import './env';
 import { defaultSDK } from './instrumentation';
+
 defaultSDK.start();
+
 import {
   type CredentialStore,
   CredentialStoreRegistry,
