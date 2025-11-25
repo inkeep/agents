@@ -6,7 +6,7 @@ import {
   getConversationHistory,
   TenantProjectIdParamsSchema,
 } from '@inkeep/agents-core';
-import { z } from 'zod';
+import { z } from '@hono/zod-openapi';
 import dbClient from '../data/db/dbClient';
 
 const app = new OpenAPIHono();

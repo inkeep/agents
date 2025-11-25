@@ -3,7 +3,7 @@ import type {
   ArtifactComponentApiSelect,
   DataComponentInsert,
 } from '@inkeep/agents-core';
-import { z } from 'zod';
+import { z } from '@hono/zod-openapi';
 import { getLogger } from '../logger';
 import { jsonSchemaToZod } from './data-component-schema';
 import { SchemaProcessor } from './SchemaProcessor';

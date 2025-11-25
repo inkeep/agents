@@ -14,7 +14,7 @@ import {
 } from '@inkeep/agents-core';
 import { trace } from '@opentelemetry/api';
 import { tool } from 'ai';
-import z from 'zod';
+import { z } from '@hono/zod-openapi';
 import { A2AClient } from '../a2a/client';
 import {
   DELEGATION_TOOL_BACKOFF_EXPONENT,
