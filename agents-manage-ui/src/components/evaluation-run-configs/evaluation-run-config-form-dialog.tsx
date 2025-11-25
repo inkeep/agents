@@ -1,7 +1,6 @@
 'use client';
 
 import { zodResolver } from '@hookform/resolvers/zod';
-import { Plus } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import { useForm } from 'react-hook-form';
@@ -29,12 +28,9 @@ import { createEvaluationSuiteConfigAction } from '@/lib/actions/evaluation-suit
 import type { ActionResult } from '@/lib/actions/types';
 import { fetchAgents } from '@/lib/api/agent-full-client';
 import type { EvaluationRunConfig } from '@/lib/api/evaluation-run-configs';
-import type { EvaluationSuiteConfig } from '@/lib/api/evaluation-suite-configs';
-import { fetchEvaluationSuiteConfigs } from '@/lib/api/evaluation-suite-configs';
 import type { Evaluator } from '@/lib/api/evaluators';
 import { fetchEvaluators } from '@/lib/api/evaluators';
 import type { Agent } from '@/lib/types/agent-full';
-import { SuiteConfigDetailsPopover } from './suite-config-details-popover';
 
 const evaluationRunConfigSchema = z.object({
   name: z.string().min(1, 'Name is required'),
@@ -75,10 +71,9 @@ const formatFormData = (data?: EvaluationRunConfig): EvaluationRunConfigFormData
 };
 
 const suiteConfigSchema = z.object({
-  name: z.string().min(1, 'Name is required'),
-  description: z.string().min(1, 'Description is required'),
   evaluatorIds: z.array(z.string()),
   agentIds: z.array(z.string()),
+  sampleRate: z.number().min(0).max(1).optional(),
 });
 
 type SuiteConfigFormData = z.infer<typeof suiteConfigSchema>;
@@ -95,28 +90,24 @@ export function EvaluationRunConfigFormDialog({
 }: EvaluationRunConfigFormDialogProps) {
   const router = useRouter();
   const [internalIsOpen, setInternalIsOpen] = useState(false);
-  const [suiteConfigs, setSuiteConfigs] = useState<EvaluationSuiteConfig[]>([]);
   const [evaluators, setEvaluators] = useState<Evaluator[]>([]);
   const [agents, setAgents] = useState<Agent[]>([]);
-  const [loading, setLoading] = useState(false);
-  const [isCreateSuiteConfigOpen, setIsCreateSuiteConfigOpen] = useState(false);
 
   const isOpen = trigger ? internalIsOpen : controlledIsOpen;
   const setIsOpen = trigger ? setInternalIsOpen : onOpenChange;
 
-  const suiteConfigForm = useForm<SuiteConfigFormData>({
-    resolver: zodResolver(suiteConfigSchema),
-    defaultValues: {
-      name: '',
-      description: '',
-      evaluatorIds: [],
-      agentIds: [],
-    },
-  });
-
   const form = useForm<EvaluationRunConfigFormData>({
     resolver: zodResolver(evaluationRunConfigSchema),
     defaultValues: formatFormData(initialData),
+  });
+
+  const suiteConfigForm = useForm<SuiteConfigFormData>({
+    resolver: zodResolver(suiteConfigSchema),
+    defaultValues: {
+      evaluatorIds: [],
+      agentIds: [],
+      sampleRate: undefined,
+    },
   });
 
   useEffect(() => {
@@ -127,60 +118,19 @@ export function EvaluationRunConfigFormDialog({
   }, [isOpen, initialData]);
 
   const loadData = async () => {
-    setLoading(true);
     try {
-      const [suiteConfigsRes, evaluatorsRes, agentsRes] = await Promise.all([
-        fetchEvaluationSuiteConfigs(tenantId, projectId),
+      const [evaluatorsRes, agentsRes] = await Promise.all([
         fetchEvaluators(tenantId, projectId),
         fetchAgents(tenantId, projectId),
       ]);
-      setSuiteConfigs(suiteConfigsRes.data || []);
       setEvaluators(evaluatorsRes.data || []);
       setAgents(agentsRes.data || []);
     } catch (error) {
       console.error('Error loading data:', error);
       toast.error('Failed to load data');
-    } finally {
-      setLoading(false);
     }
   };
 
-  const handleCreateSuiteConfig = async (data: SuiteConfigFormData) => {
-    const isValid = await suiteConfigForm.trigger();
-    if (!isValid) {
-      return;
-    }
-
-    try {
-      const filters: Record<string, unknown> | null =
-        data.agentIds && data.agentIds.length > 0 ? { agentIds: data.agentIds } : null;
-
-      const result = await createEvaluationSuiteConfigAction(tenantId, projectId, {
-        name: data.name,
-        description: data.description,
-        evaluatorIds: data.evaluatorIds,
-        filters,
-      });
-
-      if (result.success && result.data) {
-        toast.success('Evaluation plan created');
-        setIsCreateSuiteConfigOpen(false);
-        suiteConfigForm.reset();
-
-        // Reload suite configs
-        await loadData();
-
-        // Auto-select the newly created suite config
-        const currentIds = form.getValues('suiteConfigIds') || [];
-        form.setValue('suiteConfigIds', [...currentIds, result.data.id]);
-      } else {
-        toast.error(result.error || 'Failed to create evaluation plan');
-      }
-    } catch (error) {
-      console.error('Error creating suite config:', error);
-      toast.error('An unexpected error occurred');
-    }
-  };
 
   const toggleEvaluator = (evaluatorId: string) => {
     const current = suiteConfigForm.watch('evaluatorIds') || [];
@@ -199,28 +149,40 @@ export function EvaluationRunConfigFormDialog({
   };
 
   const { isSubmitting } = form.formState;
-  const selectedSuiteConfigIds = form.watch('suiteConfigIds') || [];
-
-  const toggleSuiteConfig = (suiteConfigId: string) => {
-    const current = selectedSuiteConfigIds;
-    const newIds = current.includes(suiteConfigId)
-      ? current.filter((id) => id !== suiteConfigId)
-      : [...current, suiteConfigId];
-    form.setValue('suiteConfigIds', newIds);
-  };
 
   const onSubmit = async (data: EvaluationRunConfigFormData) => {
-    const isValid = await form.trigger();
-    if (!isValid) {
+    const formValid = await form.trigger();
+    const suiteConfigFormValid = await suiteConfigForm.trigger();
+    
+    if (!formValid || !suiteConfigFormValid) {
       return;
     }
 
     try {
+      // First, create the evaluation suite config
+      const suiteConfigData = suiteConfigForm.getValues();
+      const filters: Record<string, unknown> | null =
+        suiteConfigData.agentIds && suiteConfigData.agentIds.length > 0 
+          ? { agentIds: suiteConfigData.agentIds } 
+          : null;
+
+      const suiteConfigResult = await createEvaluationSuiteConfigAction(tenantId, projectId, {
+        evaluatorIds: suiteConfigData.evaluatorIds,
+        filters,
+        sampleRate: suiteConfigData.sampleRate,
+      });
+
+      if (!suiteConfigResult.success || !suiteConfigResult.data) {
+        toast.error(suiteConfigResult.error || 'Failed to create evaluation plan');
+        return;
+      }
+
+      // Then create the run config with the new suite config ID
       const payload = {
         name: data.name,
         description: data.description,
         isActive: data.isActive,
-        suiteConfigIds: data.suiteConfigIds,
+        suiteConfigIds: [suiteConfigResult.data.id],
       };
 
       let result: ActionResult<EvaluationRunConfig>;
@@ -234,16 +196,16 @@ export function EvaluationRunConfigFormDialog({
         console.log('Run config created/updated successfully');
         toast.success(`Continuous test ${runConfigId ? 'updated' : 'created'}`);
         form.reset();
+        suiteConfigForm.reset();
         // Close dialog
         if (trigger) {
           setInternalIsOpen(false);
         } else {
           onOpenChange?.(false);
         }
-        // Call success callback to refresh data (this is the key one)
+        // Call success callback to refresh data
         if (onSuccess) {
           console.log('Calling onSuccess callback');
-          // Call onSuccess which will trigger the refresh in the list
           onSuccess();
         } else {
           console.log('No onSuccess callback provided');
@@ -310,70 +272,105 @@ export function EvaluationRunConfigFormDialog({
               )}
             />
 
-            <FormField
-              control={form.control}
-              name="suiteConfigIds"
-              render={() => (
-                <FormItem>
-                  <div className="mb-4 flex items-center justify-between">
-                    <div>
-                      <FormLabel className="text-base">Evaluation Plans</FormLabel>
-                      <div className="text-sm text-muted-foreground mt-1">
-                        Select which evaluation plans to use for automatic evaluations
+            <div className="space-y-4 rounded-lg border p-4">
+              <div>
+                <h3 className="text-base font-semibold">Evaluation Configuration</h3>
+                <p className="text-sm text-muted-foreground mt-1">
+                  Configure what and how to evaluate
+                </p>
+              </div>
+
+              <FormField
+                control={suiteConfigForm.control}
+                name="agentIds"
+                render={() => (
+                  <FormItem>
+                    <div className="mb-2">
+                      <FormLabel className="text-sm">Agent Filter (Optional)</FormLabel>
+                      <div className="text-xs text-muted-foreground mt-1">
+                        Select which agents to evaluate. Leave empty to evaluate all agents.
                       </div>
                     </div>
-                    <Button
-                      type="button"
-                      variant="outline"
-                      size="sm"
-                      onClick={() => setIsCreateSuiteConfigOpen(true)}
-                      className="h-8"
-                    >
-                      <Plus className="mr-2 h-4 w-4" />
-                      New Evaluation Plan
-                    </Button>
-                  </div>
-                  <div className="rounded-lg border p-4 space-y-3 max-h-64 overflow-y-auto">
-                    {loading ? (
-                      <div className="text-sm text-muted-foreground">
-                        Loading evaluation plans...
+                    <div className="rounded-lg border p-3 space-y-2 max-h-48 overflow-y-auto">
+                      {agents.length === 0 ? (
+                        <div className="text-xs text-muted-foreground">No agents available.</div>
+                      ) : (
+                        agents.map((agent) => (
+                          <div key={agent.id} className="flex items-start space-x-2">
+                            <Checkbox
+                              checked={(suiteConfigForm.watch('agentIds') || []).includes(agent.id)}
+                              onCheckedChange={() => toggleAgent(agent.id)}
+                              id={`agent-${agent.id}`}
+                            />
+                            <label
+                              htmlFor={`agent-${agent.id}`}
+                              className="flex-1 cursor-pointer text-xs leading-none"
+                            >
+                              <div className="font-medium">{agent.name}</div>
+                              <div className="text-muted-foreground text-xs mt-0.5 line-clamp-1">
+                                {agent.description || 'No description'}
+                              </div>
+                            </label>
+                          </div>
+                        ))
+                      )}
+                    </div>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={suiteConfigForm.control}
+                name="evaluatorIds"
+                render={() => (
+                  <FormItem>
+                    <div className="mb-2">
+                      <FormLabel className="text-sm">Evaluators</FormLabel>
+                      <div className="text-xs text-muted-foreground mt-1">
+                        Select evaluators to use
                       </div>
-                    ) : suiteConfigs.length === 0 ? (
-                      <div className="text-sm text-muted-foreground text-center py-4">
-                        No evaluation plans available. Click &quot;New Evaluation Plan&quot; to
-                        create one.
-                      </div>
-                    ) : (
-                      suiteConfigs.map((suiteConfig) => (
-                        <div key={suiteConfig.id} className="flex items-start space-x-3">
-                          <Checkbox
-                            checked={selectedSuiteConfigIds.includes(suiteConfig.id)}
-                            onCheckedChange={() => toggleSuiteConfig(suiteConfig.id)}
-                            id={`suite-${suiteConfig.id}`}
-                          />
-                          <label
-                            htmlFor={`suite-${suiteConfig.id}`}
-                            className="flex-1 cursor-pointer text-sm leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
-                          >
-                            <div className="font-medium">{suiteConfig.name}</div>
-                            <div className="text-muted-foreground text-xs mt-1 line-clamp-2">
-                              {suiteConfig.description || 'No description'}
-                            </div>
-                          </label>
-                          <SuiteConfigDetailsPopover
-                            tenantId={tenantId}
-                            projectId={projectId}
-                            suiteConfigId={suiteConfig.id}
-                            suiteConfigName={suiteConfig.name}
-                          />
+                    </div>
+                    <div className="rounded-lg border p-3 space-y-2 max-h-48 overflow-y-auto">
+                      {evaluators.length === 0 ? (
+                        <div className="text-xs text-muted-foreground">
+                          No evaluators available. Create evaluators first.
                         </div>
-                      ))
-                    )}
-                  </div>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
+                      ) : (
+                        evaluators.map((evaluator) => (
+                          <div key={evaluator.id} className="flex items-start space-x-2">
+                            <Checkbox
+                              checked={(suiteConfigForm.watch('evaluatorIds') || []).includes(evaluator.id)}
+                              onCheckedChange={() => toggleEvaluator(evaluator.id)}
+                              id={`eval-${evaluator.id}`}
+                            />
+                            <label
+                              htmlFor={`eval-${evaluator.id}`}
+                              className="flex-1 cursor-pointer text-xs leading-none"
+                            >
+                              <div className="font-medium">{evaluator.name}</div>
+                              <div className="text-muted-foreground text-xs mt-0.5 line-clamp-1">
+                                {evaluator.description || 'No description'}
+                              </div>
+                            </label>
+                          </div>
+                        ))
+                      )}
+                    </div>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <GenericInput
+                control={suiteConfigForm.control}
+                name="sampleRate"
+                label="Sample Rate"
+                type="number"
+                placeholder="0.1"
+                description="Sample rate for evaluation (0.0 to 1.0). For example, 0.1 means 10% of conversations will be evaluated."
+              />
+            </div>
 
             <div className="flex justify-end space-x-2 pt-4">
               <Button type="button" variant="outline" onClick={() => setIsOpen(false)}>
@@ -385,142 +382,6 @@ export function EvaluationRunConfigFormDialog({
             </div>
           </form>
         </Form>
-
-        {/* Nested dialog for creating suite configs */}
-        <Dialog open={isCreateSuiteConfigOpen} onOpenChange={setIsCreateSuiteConfigOpen}>
-          <DialogContent className="sm:max-w-lg">
-            <DialogHeader>
-              <DialogTitle>Create Evaluation Plan</DialogTitle>
-              <DialogDescription>
-                Create a new evaluation plan that defines what to evaluate and which evaluators to
-                use.
-              </DialogDescription>
-            </DialogHeader>
-
-            <Form {...suiteConfigForm}>
-              <form
-                onSubmit={suiteConfigForm.handleSubmit(handleCreateSuiteConfig)}
-                className="space-y-4"
-              >
-                <GenericInput
-                  control={suiteConfigForm.control}
-                  name="name"
-                  label="Name"
-                  description="A descriptive name for this evaluation plan"
-                  placeholder="e.g., Quality Checks"
-                  isRequired
-                />
-
-                <GenericTextarea
-                  control={suiteConfigForm.control}
-                  name="description"
-                  label="Description"
-                  placeholder="Evaluates conversation quality and accuracy..."
-                  isRequired
-                />
-
-                <FormField
-                  control={suiteConfigForm.control}
-                  name="agentIds"
-                  render={() => (
-                    <FormItem>
-                      <div className="mb-2">
-                        <FormLabel className="text-sm">Agent Filter (Optional)</FormLabel>
-                        <div className="text-xs text-muted-foreground mt-1">
-                          Select which agents to evaluate. Leave empty to evaluate all agents.
-                        </div>
-                      </div>
-                      <div className="rounded-lg border p-3 space-y-2 max-h-48 overflow-y-auto">
-                        {agents.length === 0 ? (
-                          <div className="text-xs text-muted-foreground">No agents available.</div>
-                        ) : (
-                          agents.map((agent) => (
-                            <div key={agent.id} className="flex items-start space-x-2">
-                              <Checkbox
-                                checked={(suiteConfigForm.watch('agentIds') || []).includes(
-                                  agent.id
-                                )}
-                                onCheckedChange={() => toggleAgent(agent.id)}
-                                id={`agent-${agent.id}`}
-                              />
-                              <label
-                                htmlFor={`agent-${agent.id}`}
-                                className="flex-1 cursor-pointer text-xs leading-none"
-                              >
-                                <div className="font-medium">{agent.name}</div>
-                                <div className="text-muted-foreground text-xs mt-0.5 line-clamp-1">
-                                  {agent.description || 'No description'}
-                                </div>
-                              </label>
-                            </div>
-                          ))
-                        )}
-                      </div>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-
-                <FormField
-                  control={suiteConfigForm.control}
-                  name="evaluatorIds"
-                  render={() => (
-                    <FormItem>
-                      <div className="mb-2">
-                        <FormLabel className="text-sm">Evaluators</FormLabel>
-                        <div className="text-xs text-muted-foreground mt-1">
-                          Select evaluators to use in this suite
-                        </div>
-                      </div>
-                      <div className="rounded-lg border p-3 space-y-2 max-h-48 overflow-y-auto">
-                        {evaluators.length === 0 ? (
-                          <div className="text-xs text-muted-foreground">
-                            No evaluators available. Create evaluators first.
-                          </div>
-                        ) : (
-                          evaluators.map((evaluator) => (
-                            <div key={evaluator.id} className="flex items-start space-x-2">
-                              <Checkbox
-                                checked={(suiteConfigForm.watch('evaluatorIds') || []).includes(
-                                  evaluator.id
-                                )}
-                                onCheckedChange={() => toggleEvaluator(evaluator.id)}
-                                id={`eval-${evaluator.id}`}
-                              />
-                              <label
-                                htmlFor={`eval-${evaluator.id}`}
-                                className="flex-1 cursor-pointer text-xs leading-none"
-                              >
-                                <div className="font-medium">{evaluator.name}</div>
-                                <div className="text-muted-foreground text-xs mt-0.5 line-clamp-1">
-                                  {evaluator.description || 'No description'}
-                                </div>
-                              </label>
-                            </div>
-                          ))
-                        )}
-                      </div>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-
-                <div className="flex justify-end space-x-2 pt-2">
-                  <Button
-                    type="button"
-                    variant="outline"
-                    onClick={() => setIsCreateSuiteConfigOpen(false)}
-                  >
-                    Cancel
-                  </Button>
-                  <Button type="submit" disabled={suiteConfigForm.formState.isSubmitting}>
-                    {suiteConfigForm.formState.isSubmitting ? 'Creating...' : 'Create'}
-                  </Button>
-                </div>
-              </form>
-            </Form>
-          </DialogContent>
-        </Dialog>
       </DialogContent>
     </Dialog>
   );

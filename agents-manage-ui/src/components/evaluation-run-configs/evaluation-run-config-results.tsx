@@ -143,12 +143,10 @@ export function EvaluationRunConfigResults({
                         onClick={() => setSelectedSuiteConfigId(suiteConfig.id)}
                         className="text-left w-full"
                       >
-                        <div className="font-medium text-sm">{suiteConfig.name}</div>
-                        {suiteConfig.description && (
-                          <div className="text-xs text-muted-foreground mt-1 line-clamp-2">
-                            {suiteConfig.description}
-                          </div>
-                        )}
+                        <div className="font-medium text-sm">{suiteConfig.id}</div>
+                        <div className="text-xs text-muted-foreground mt-1">
+                          Sample Rate: {suiteConfig.sampleRate !== null ? `${(suiteConfig.sampleRate * 100).toFixed(0)}%` : 'N/A'}
+                        </div>
                       </button>
                     </div>
                   </div>
@@ -289,7 +287,6 @@ export function EvaluationRunConfigResults({
           tenantId={tenantId}
           projectId={projectId}
           suiteConfigId={selectedSuiteConfig.id}
-          suiteConfigName={selectedSuiteConfig.name}
           isOpen={selectedSuiteConfig !== undefined}
           onOpenChange={(open) => !open && setSelectedSuiteConfigId(null)}
         />

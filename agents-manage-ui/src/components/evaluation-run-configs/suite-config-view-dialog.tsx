@@ -25,7 +25,6 @@ interface SuiteConfigViewDialogProps {
   tenantId: string;
   projectId: string;
   suiteConfigId: string;
-  suiteConfigName: string;
   isOpen: boolean;
   onOpenChange: (open: boolean) => void;
 }
@@ -34,13 +33,11 @@ export function SuiteConfigViewDialog({
   tenantId,
   projectId,
   suiteConfigId,
-  suiteConfigName,
   isOpen,
   onOpenChange,
 }: SuiteConfigViewDialogProps) {
   const [loading, setLoading] = useState(false);
   const [suiteConfig, setSuiteConfig] = useState<{
-    description: string;
     filters: Record<string, unknown> | null;
     sampleRate: number | null;
   } | null>(null);
@@ -129,7 +126,7 @@ export function SuiteConfigViewDialog({
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
       <DialogContent className="!max-w-[80vw] w-[80vw] max-h-[95vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>View Evaluation Plan: {suiteConfigName}</DialogTitle>
+          <DialogTitle>View Evaluation Plan: {suiteConfigId}</DialogTitle>
           <DialogDescription>View the evaluation plan details.</DialogDescription>
         </DialogHeader>
 
@@ -146,14 +143,6 @@ export function SuiteConfigViewDialog({
             </div>
           ) : (
             <>
-              {/* Description */}
-              <div className="space-y-2">
-                <Label className="text-sm font-medium">Description</Label>
-                <div className="bg-muted rounded-md p-3">
-                  <span className="text-sm">{suiteConfig.description || 'No description'}</span>
-                </div>
-              </div>
-
               {/* Evaluators */}
               {evaluators.length > 0 && (
                 <div className="space-y-2">

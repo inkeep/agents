@@ -10,8 +10,6 @@ import { validateProjectId, validateTenantId } from './resource-validation';
 
 export interface EvaluationSuiteConfig {
   id: string;
-  name: string;
-  description: string;
   filters: Record<string, unknown> | null;
   sampleRate: number | null;
   createdAt: string;
@@ -22,8 +20,6 @@ export interface EvaluationSuiteConfig {
 
 export interface EvaluationSuiteConfigInsert {
   id?: string;
-  name: string;
-  description: string;
   filters?: Record<string, unknown> | null;
   sampleRate?: number | null;
   evaluatorIds?: string[];
