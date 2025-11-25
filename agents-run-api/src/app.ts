@@ -12,7 +12,7 @@ import { cors } from 'hono/cors';
 import { HTTPException } from 'hono/http-exception';
 import { requestId } from 'hono/request-id';
 import type { StatusCode } from 'hono/utils/http-status';
-import { flushBatchProcessor } from './instrumentation';
+import { defaultSDK, flushBatchProcessor } from './instrumentation';
 import { getLogger } from './logger';
 import { apiKeyAuth } from './middleware/api-key-auth';
 import { setupOpenAPIRoutes } from './openapi';
@@ -41,30 +41,20 @@ function createExecutionHono(
 
   app.use('*', otel());
 
-  // Ensure SDK is started on first request
-  let sdkStarted = false;
+  // Ensure SDK is started on first request (lazy initialization for Vercel serverless)
+  let initPromise: Promise<void> | null = null;
   app.use('*', async (c, next) => {
-    if (!sdkStarted) {
-      const { trace } = await import('@opentelemetry/api');
-      const { defaultSDK } = await import('./instrumentation');
-      const provider = trace.getTracerProvider();
-      
-      if (provider.constructor.name === 'ProxyTracerProvider') {
-        console.log('[OTEL INIT] SDK not started yet, starting now...');
-        process.stdout.write('[OTEL INIT] Starting SDK on first request...\n');
+    if (!initPromise) {
+      initPromise = (async () => {
         try {
           await defaultSDK.start();
           console.log('[OTEL INIT] ✅ SDK started successfully');
-          process.stdout.write('[OTEL INIT] ✅ SDK started successfully\n');
         } catch (error) {
-          console.error('[OTEL INIT] ❌ Failed to start SDK:', error);
-          process.stderr.write(`[OTEL INIT] ❌ Failed to start SDK: ${error}\n`);
+          console.log('[OTEL INIT] SDK already started or initialization failed');
         }
-      } else {
-        console.log('[OTEL INIT] ✅ SDK already started, provider:', provider.constructor.name);
-      }
-      sdkStarted = true;
+      })();
     }
+    await initPromise;
     return next();
   });
 
