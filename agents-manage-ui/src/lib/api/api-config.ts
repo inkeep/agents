@@ -61,14 +61,14 @@ async function makeApiRequestInternal<T>(
       const { headers } = await import('next/headers');
       const headerStore = await headers();
       const rawCookieHeader = headerStore.get('cookie');
-      
+
       if (rawCookieHeader) {
         // Filter to only forward Better Auth cookies for security
-        const cookiePairs = rawCookieHeader.split(';').map(c => c.trim());
-        const authCookies = cookiePairs.filter(c => c.includes('better-auth'));
+        const cookiePairs = rawCookieHeader.split(';').map((c) => c.trim());
+        const authCookies = cookiePairs.filter((c) => c.includes('better-auth'));
         cookieHeader = authCookies.join('; ');
       }
-      
+
       // Fallback to cookies() if headers() didn't have the cookie
       if (!cookieHeader) {
         const { cookies } = await import('next/headers');

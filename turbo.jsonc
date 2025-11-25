@@ -32,6 +32,10 @@
       "outputs": ["dist/**", "build/**", ".next/**", "!.next/cache/**"]
     },
     "dev": {
+      "dependsOn": [
+        // Run `build` in workspaces I depend on first
+        "^build"
+      ],
       "cache": false,
       "persistent": true
     },
