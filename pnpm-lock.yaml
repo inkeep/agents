@@ -975,6 +975,9 @@ importers:
       '@hono/node-server':
         specifier: ^1.14.3
         version: 1.19.6(hono@4.10.4)
+      '@hono/zod-openapi':
+        specifier: ^1.1.5
+        version: 1.1.5(hono@4.10.4)(zod@4.1.12)
       '@modelcontextprotocol/sdk':
         specifier: ^1.17.2
         version: 1.21.0
@@ -1068,10 +1071,10 @@ importers:
       ts-pattern:
         specifier: ^5.7.1
         version: 5.9.0
+      zod:
+        specifier: ^4.1.11
+        version: 4.1.12
     devDependencies:
-      '@hono/zod-openapi':
-        specifier: ^1.1.5
-        version: 1.1.5(hono@4.10.4)(zod@4.1.12)
       '@types/jmespath':
         specifier: ^0.15.2
         version: 0.15.2
@@ -1099,9 +1102,6 @@ importers:
       vitest:
         specifier: ^3.2.4
         version: 3.2.4(@types/debug@4.1.12)(@types/node@20.19.24)(jiti@2.6.1)(jsdom@26.1.0)(lightningcss@1.30.2)(tsx@4.20.6)(yaml@2.8.1)
-      zod:
-        specifier: ^4.1.11
-        version: 4.1.12
     optionalDependencies:
       keytar:
         specifier: ^7.9.0
@@ -6453,7 +6453,6 @@ packages:
 
   bun@1.3.3:
     resolution: {integrity: sha512-2hJ4ocTZ634/Ptph4lysvO+LbbRZq8fzRvMwX0/CqaLBxrF2UB5D1LdMB8qGcdtCer4/VR9Bx5ORub0yn+yzmw==}
-    cpu: [arm64, x64]
     os: [darwin, linux, win32]
     hasBin: true
 
