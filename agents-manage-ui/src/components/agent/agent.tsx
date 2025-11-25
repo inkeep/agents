@@ -133,7 +133,7 @@ export const Agent: FC<AgentProps> = ({
   credentialLookup = {},
 }) => {
   const [showPlayground, setShowPlayground] = useState(false);
-  const { isOpen: isCopilotChatOpen, hasCopilotConfigured } = useCopilotContext();
+  const { isOpen: isCopilotChatOpen, isCopilotConfigured } = useCopilotContext();
 
   const router = useRouter();
 
@@ -380,7 +380,7 @@ export const Agent: FC<AgentProps> = ({
     );
 
     // After initialization, if there are no nodes and copilot is not configured, auto-add initial node
-    if (agentNodes.length === 0 && !hasCopilotConfigured) {
+    if (agentNodes.length === 0 && !isCopilotConfigured) {
       onAddInitialNode();
     }
 
@@ -1022,7 +1022,10 @@ export const Agent: FC<AgentProps> = ({
   const [showTraces, setShowTraces] = useState(false);
   const isMounted = useIsMounted();
 
-  const showEmptyState = useMemo(() => nodes.length === 0, [nodes]) && hasCopilotConfigured;
+  const showEmptyState = useMemo(
+    () => nodes.length === 0 && isCopilotConfigured,
+    [nodes, isCopilotConfigured]
+  );
 
   return (
     <ResizablePanelGroup

@@ -19,7 +19,7 @@ interface CopilotContextValue {
   openCopilot: () => void;
   dynamicHeaders: CopilotContextHeaders;
   setDynamicHeaders: (headers: CopilotContextHeaders) => void;
-  hasCopilotConfigured: boolean;
+  isCopilotConfigured: boolean;
 }
 
 const CopilotContext = createContext<CopilotContextValue | null>(null);
@@ -35,13 +35,13 @@ export function CopilotProvider({ children }: { children: ReactNode }) {
     PUBLIC_INKEEP_COPILOT_PROJECT_ID,
     PUBLIC_INKEEP_COPILOT_TENANT_ID,
   } = useRuntimeConfig();
-  const hasCopilotConfigured = !!(
+  const isCopilotConfigured = !!(
     PUBLIC_INKEEP_COPILOT_AGENT_ID &&
     PUBLIC_INKEEP_COPILOT_PROJECT_ID &&
     PUBLIC_INKEEP_COPILOT_TENANT_ID
   );
 
-  if (!hasCopilotConfigured) {
+  if (!isCopilotConfigured) {
     console.warn('Copilot is not configured.');
   }
 
@@ -58,7 +58,7 @@ export function CopilotProvider({ children }: { children: ReactNode }) {
         openCopilot,
         dynamicHeaders,
         setDynamicHeaders,
-        hasCopilotConfigured,
+        isCopilotConfigured,
       }}
     >
       {children}

@@ -4,10 +4,10 @@ import { Button } from '@/components/ui/button';
 import { useCopilotContext } from '../copilot/copilot-context';
 
 export function CopilotTrigger() {
-  const { openCopilot, hasCopilotConfigured } = useCopilotContext();
+  const { openCopilot, isCopilotConfigured } = useCopilotContext();
   const { agentId } = useParams<{ agentId?: string }>();
 
-  if (!hasCopilotConfigured) {
+  if (!isCopilotConfigured) {
     return null;
   }
 

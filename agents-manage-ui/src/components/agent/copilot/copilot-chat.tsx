@@ -36,7 +36,7 @@ export function CopilotChat({ agentId, tenantId, projectId, refreshAgentGraph }:
     setIsStreaming,
     dynamicHeaders,
     setDynamicHeaders,
-    hasCopilotConfigured,
+    isCopilotConfigured,
   } = useCopilotContext();
   const [conversationId, setConversationId] = useState(generateId);
 
@@ -70,7 +70,7 @@ export function CopilotChat({ agentId, tenantId, projectId, refreshAgentGraph }:
     PUBLIC_INKEEP_COPILOT_TENANT_ID,
   } = useRuntimeConfig();
 
-  if (!hasCopilotConfigured) {
+  if (!isCopilotConfigured) {
     return null;
   }
 
