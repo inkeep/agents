@@ -231,10 +231,9 @@ export class NativeSandboxExecutor {
           'Reusing cached sandbox'
         );
         return sandbox.sandboxDir;
-      } else {
-        this.cleanupSandbox(sandbox.sandboxDir);
-        delete this.sandboxPool[poolKey];
       }
+      this.cleanupSandbox(sandbox.sandboxDir);
+      delete this.sandboxPool[poolKey];
     }
 
     return null;

@@ -1,6 +1,6 @@
 /**
  * Serializes API errors for Next.js server-to-client boundary
- * 
+ *
  * Next.js doesn't preserve custom error properties during SSR serialization,
  * so we need to explicitly serialize the status code and message in the cause property
  */

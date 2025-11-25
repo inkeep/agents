@@ -18,8 +18,8 @@ function createMockMcpTool(name: string, availableTools: any[]): McpTool {
     },
     availableTools,
     status: 'healthy',
-    createdAt: new Date(),
-    updatedAt: new Date(),
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString(),
   };
 }
 

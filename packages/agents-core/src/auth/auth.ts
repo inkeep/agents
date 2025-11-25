@@ -1,10 +1,11 @@
 import { sso } from '@better-auth/sso';
-import { type BetterAuthAdvancedOptions, betterAuth, env } from 'better-auth';
+import { type BetterAuthAdvancedOptions, betterAuth } from 'better-auth';
 import { drizzleAdapter } from 'better-auth/adapters/drizzle';
 import { organization } from 'better-auth/plugins';
 import type { GoogleOptions } from 'better-auth/social-providers';
 import { eq } from 'drizzle-orm';
 import type { DatabaseClient } from '../db/client';
+import { env } from '../env';
 import { generateId } from '../utils';
 import * as authSchema from './auth-schema';
 import { ac, adminRole, memberRole, ownerRole } from './permissions';
@@ -198,9 +199,9 @@ export function createAuth(config: BetterAuthConfig) {
     trustedOrigins: [
       'http://localhost:3000',
       'http://localhost:3002',
-      env.INKEEP_AGENTS_MANAGE_UI_URL as string,
-      env.INKEEP_AGENTS_MANAGE_API_URL as string,
-    ],
+      env.INKEEP_AGENTS_MANAGE_UI_URL,
+      env.INKEEP_AGENTS_MANAGE_API_URL,
+    ].filter((origin): origin is string => typeof origin === 'string' && origin.length > 0),
     plugins: [
       sso(),
       organization({

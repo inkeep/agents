@@ -168,19 +168,11 @@ export function ViewMCPServerDetails({
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div className="space-y-2">
             <ItemLabel>Created At</ItemLabel>
-            <ItemValue>
-              {formatDate(
-                typeof tool.createdAt === 'string' ? tool.createdAt : tool.createdAt.toISOString()
-              )}
-            </ItemValue>
+            <ItemValue>{tool.createdAt ? formatDate(tool.createdAt) : 'N/A'}</ItemValue>
           </div>
           <div className="space-y-2">
             <ItemLabel>Updated At</ItemLabel>
-            <ItemValue>
-              {formatDate(
-                typeof tool.updatedAt === 'string' ? tool.updatedAt : tool.updatedAt.toISOString()
-              )}
-            </ItemValue>
+            <ItemValue>{tool.updatedAt ? formatDate(tool.updatedAt) : 'N/A'}</ItemValue>
           </div>
         </div>
 
@@ -271,11 +263,7 @@ export function ViewMCPServerDetails({
                 <ItemLabel>Credential Expires At</ItemLabel>
                 {isExpired(tool.expiresAt) && <AlertCircle className="h-4 w-4 text-amber-500" />}
               </div>
-              <ItemValue>
-                {formatDate(
-                  typeof tool.expiresAt === 'string' ? tool.expiresAt : tool.expiresAt.toISOString()
-                )}
-              </ItemValue>
+              <ItemValue>{formatDate(tool.expiresAt)}</ItemValue>
             </div>
           )}
         </div>

@@ -406,7 +406,8 @@ export const createFullAgentServerSide =
             agentToolPromises.push(
               (async () => {
                 try {
-                  const { toolId, toolSelection, headers, agentToolRelationId } = canUseItem;
+                  const { toolId, toolSelection, headers, toolPolicies, agentToolRelationId } =
+                    canUseItem;
                   const isFunctionTool = typed.functionTools && toolId in typed.functionTools;
 
                   logger.info(
@@ -440,6 +441,7 @@ export const createFullAgentServerSide =
                       toolId,
                       selectedTools: toolSelection || undefined,
                       headers: headers || undefined,
+                      toolPolicies: toolPolicies || undefined,
                       relationId: agentToolRelationId,
                     });
                     logger.info(
@@ -1253,7 +1255,8 @@ export const updateFullAgentServerSide =
             subAgentToolPromises.push(
               (async () => {
                 try {
-                  const { toolId, toolSelection, headers, agentToolRelationId } = canUseItem;
+                  const { toolId, toolSelection, headers, toolPolicies, agentToolRelationId } =
+                    canUseItem;
 
                   const isFunctionTool =
                     typedAgentDefinition.functionTools &&
@@ -1282,6 +1285,7 @@ export const updateFullAgentServerSide =
                       toolId,
                       selectedTools: toolSelection || undefined,
                       headers: headers || undefined,
+                      toolPolicies: toolPolicies || undefined,
                       relationId: agentToolRelationId,
                     });
                     logger.info(

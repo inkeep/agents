@@ -1,5 +1,26 @@
 # @inkeep/agents-core
 
+## 0.37.1
+
+### Patch Changes
+
+- 505749a: Fix orphaned resource deletion in full project updates - tools, functions, credentialReferences, externalAgents, dataComponents, and artifactComponents are now properly removed when not present in the update payload
+- 7f1b78a: fix linter errors
+- e07c709: Add Cursor command for creating PRs with changeset validation
+- c3c0ac4: dependency updates
+- fbf0d97: Add validation error when attempting to delete a sub-agent that is set as default
+
+## 0.37.0
+
+### Minor Changes
+
+- 45471ab: Implement temporary API key authentication for playground with session-based auth
+
+### Patch Changes
+
+- 56e1b4d: make zod and hono zod internal deps
+- 45471ab: Fix error messages to show proper 403 access denied instead of generic internal server error
+
 ## 0.36.1
 
 ### Patch Changes

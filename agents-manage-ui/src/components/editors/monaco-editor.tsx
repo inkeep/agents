@@ -45,7 +45,7 @@ export const MonacoEditor: FC<MonacoEditorProps> = ({
   onChange,
   placeholder = '',
   autoFocus,
-  editorOptions = {},
+  editorOptions,
   hasDynamicHeight = true,
   onMount,
   ...props

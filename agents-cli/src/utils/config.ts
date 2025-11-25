@@ -80,16 +80,15 @@ function normalizeConfig(config: any): InkeepConfig {
       manageUiUrl: config.manageUiUrl,
       outputDirectory: config.outputDirectory,
     };
-  } else {
-    // Legacy flat format
-    return {
-      tenantId: config.tenantId,
-      agentsManageApiUrl: config.agentsManageApiUrl,
-      agentsRunApiUrl: config.agentsRunApiUrl,
-      manageUiUrl: config.manageUiUrl,
-      outputDirectory: config.outputDirectory,
-    };
   }
+  // Legacy flat format
+  return {
+    tenantId: config.tenantId,
+    agentsManageApiUrl: config.agentsManageApiUrl,
+    agentsRunApiUrl: config.agentsRunApiUrl,
+    manageUiUrl: config.manageUiUrl,
+    outputDirectory: config.outputDirectory,
+  };
 }
 
 /**
@@ -250,13 +249,12 @@ export async function validateConfiguration(configPath?: string): Promise<Valida
         `Tenant ID is missing from configuration file: ${actualConfigFile}\n` +
           'Please ensure your config file exports a valid configuration with tenantId.'
       );
-    } else {
-      throw new Error(
-        'No configuration found. Please:\n' +
-          '  1. Create "inkeep.config.ts" by running "inkeep init"\n' +
-          '  2. Or provide --config to specify a config file path'
-      );
     }
+    throw new Error(
+      'No configuration found. Please:\n' +
+        '  1. Create "inkeep.config.ts" by running "inkeep init"\n' +
+        '  2. Or provide --config to specify a config file path'
+    );
   }
 
   if (!config.agentsManageApiUrl) {

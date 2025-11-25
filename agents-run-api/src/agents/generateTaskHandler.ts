@@ -655,17 +655,16 @@ export const createTaskHandler = (
                   },
                 ],
               };
-            } else {
-              logger.warn(
-                {
-                  hasToolResult: !!toolResult,
-                  hasOutput: !!toolResult?.output,
-                  validationPassed: false,
-                  output: toolResult?.output,
-                },
-                '[DEBUG] Transfer validation FAILED'
-              );
             }
+            logger.warn(
+              {
+                hasToolResult: !!toolResult,
+                hasOutput: !!toolResult?.output,
+                validationPassed: false,
+                output: toolResult?.output,
+              },
+              '[DEBUG] Transfer validation FAILED'
+            );
           }
         }
       }

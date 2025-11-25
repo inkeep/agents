@@ -199,7 +199,9 @@ function LoginForm() {
                 {PUBLIC_GOOGLE_CLIENT_ID && (
                   <Button
                     variant="outline"
-                    onClick={() => handleExternalSignIn('social', 'google', 'Google sign in failed')}
+                    onClick={() =>
+                      handleExternalSignIn('social', 'google', 'Google sign in failed')
+                    }
                     disabled={isLoading}
                     className="w-full"
                   >

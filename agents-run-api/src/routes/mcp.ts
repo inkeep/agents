@@ -134,7 +134,8 @@ const validateSession = async (
       })
     );
     return false;
-  } else if (Array.isArray(sessionId)) {
+  }
+  if (Array.isArray(sessionId)) {
     res.writeHead(400).end(
       JSON.stringify({
         jsonrpc: '2.0',
@@ -676,16 +677,15 @@ app.openapi(
           c,
           credentialStores
         );
-      } else {
-        return await handleExistingSessionRequest(
-          body,
-          executionContext,
-          validatedContext,
-          req,
-          res,
-          credentialStores
-        );
       }
+      return await handleExistingSessionRequest(
+        body,
+        executionContext,
+        validatedContext,
+        req,
+        res,
+        credentialStores
+      );
     } catch (e) {
       logger.error(
         {

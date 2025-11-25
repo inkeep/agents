@@ -456,15 +456,17 @@ function generateSubAgentChangeSummary(fieldChanges: FieldChange[]): string {
 
   if (changeTypes.has('modified') && fieldNames.length === 1) {
     return `Modified ${fieldNames[0]}`;
-  } else if (changeTypes.has('added') && changeTypes.has('deleted')) {
-    return `Updated configuration (${fieldChanges.length} changes)`;
-  } else if (changeTypes.has('added')) {
-    return `Added ${fieldNames.join(', ')}`;
-  } else if (changeTypes.has('deleted')) {
-    return `Removed ${fieldNames.join(', ')}`;
-  } else {
-    return `Modified ${fieldNames.join(', ')}`;
   }
+  if (changeTypes.has('added') && changeTypes.has('deleted')) {
+    return `Updated configuration (${fieldChanges.length} changes)`;
+  }
+  if (changeTypes.has('added')) {
+    return `Added ${fieldNames.join(', ')}`;
+  }
+  if (changeTypes.has('deleted')) {
+    return `Removed ${fieldNames.join(', ')}`;
+  }
+  return `Modified ${fieldNames.join(', ')}`;
 }
 
 /**
@@ -1125,11 +1127,11 @@ function formatValue(value: any): string {
         const val = value[key];
         if (typeof val === 'string') {
           return `${key}: "${val.length > 15 ? val.substring(0, 12) + '...' : val}"`;
-        } else if (typeof val === 'object' && val !== null) {
-          return `${key}: {...}`;
-        } else {
-          return `${key}: ${val}`;
         }
+        if (typeof val === 'object' && val !== null) {
+          return `${key}: {...}`;
+        }
+        return `${key}: ${val}`;
       });
       return `{${pairs.join(', ')}}`;
     }

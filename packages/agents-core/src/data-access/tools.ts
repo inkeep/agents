@@ -23,7 +23,7 @@ import {
   detectAuthenticationRequired,
   getCredentialStoreLookupKeyFromRetrievalParams,
   isThirdPartyMCPServerAuthenticated,
-  normalizeDateString,
+  toISODateString,
 } from '../utils';
 import { generateId } from '../utils/conversations';
 import { getLogger } from '../utils/logger';
@@ -183,8 +183,8 @@ export const dbResultToMcpTool = async (
       availableTools: [],
       capabilities: capabilities || undefined,
       credentialReferenceId: credentialReferenceId || undefined,
-      createdAt: new Date(normalizeDateString(createdAt)),
-      updatedAt: new Date(normalizeDateString(dbResult.updatedAt)),
+      createdAt: toISODateString(createdAt),
+      updatedAt: toISODateString(dbResult.updatedAt),
       lastError: null,
       headers: headers || undefined,
       imageUrl: imageUrl || undefined,
@@ -195,7 +195,7 @@ export const dbResultToMcpTool = async (
   let availableTools: McpToolDefinition[] = [];
   let status: McpTool['status'] = 'unknown';
   let lastErrorComputed: string | null;
-  let expiresAt: Date | undefined;
+  let expiresAt: string | undefined;
 
   if (credentialReferenceId) {
     const credentialReference = await getCredentialReference(dbClient)({
@@ -215,12 +215,12 @@ export const dbResultToMcpTool = async (
             if (credentialStore.type === CredentialStoreType.nango) {
               const nangoCredentialData = JSON.parse(credentialDataString) as NangoCredentialData;
               if (nangoCredentialData.expiresAt) {
-                expiresAt = nangoCredentialData.expiresAt;
+                expiresAt = toISODateString(nangoCredentialData.expiresAt);
               }
             } else if (credentialStore.type === CredentialStoreType.keychain) {
               const oauthTokens = JSON.parse(credentialDataString);
               if (oauthTokens.expires_at) {
-                expiresAt = new Date(normalizeDateString(oauthTokens.expires_at));
+                expiresAt = toISODateString(oauthTokens.expires_at);
               }
             }
           }
@@ -285,8 +285,8 @@ export const dbResultToMcpTool = async (
     availableTools,
     capabilities: capabilities || undefined,
     credentialReferenceId: credentialReferenceId || undefined,
-    createdAt: new Date(normalizeDateString(createdAt)),
-    updatedAt: new Date(now),
+    createdAt: toISODateString(createdAt),
+    updatedAt: toISODateString(now),
     expiresAt,
     lastError: lastErrorComputed,
     headers: headers || undefined,
@@ -401,6 +401,7 @@ export const addToolToAgent =
     toolId: string;
     selectedTools?: string[] | null;
     headers?: Record<string, string> | null;
+    toolPolicies?: Record<string, { needsApproval?: boolean }> | null;
   }) => {
     const id = generateId();
     const now = new Date().toISOString();
@@ -416,6 +417,7 @@ export const addToolToAgent =
         toolId: params.toolId,
         selectedTools: params.selectedTools,
         headers: params.headers,
+        toolPolicies: params.toolPolicies,
         createdAt: now,
         updatedAt: now,
       })
@@ -454,6 +456,7 @@ export const upsertSubAgentToolRelation =
     toolId: string;
     selectedTools?: string[] | null;
     headers?: Record<string, string> | null;
+    toolPolicies?: Record<string, { needsApproval?: boolean }> | null;
     relationId?: string; // Optional: if provided, update specific relationship
   }) => {
     if (params.relationId) {
@@ -465,6 +468,7 @@ export const upsertSubAgentToolRelation =
           toolId: params.toolId,
           selectedTools: params.selectedTools,
           headers: params.headers,
+          toolPolicies: params.toolPolicies,
         },
       });
     }

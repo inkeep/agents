@@ -81,10 +81,7 @@ export async function closeTestDatabase(db: DatabaseClient): Promise<void> {
  * Creates a test organization in the database
  * This is a helper for tests that need organization records before creating projects/agents
  */
-export async function createTestOrganization(
-  db: DatabaseClient,
-  tenantId: string
-): Promise<void> {
+export async function createTestOrganization(db: DatabaseClient, tenantId: string): Promise<void> {
   const slug = tenantId.replace(/^test-tenant-/, '').substring(0, 50);
 
   await db
@@ -109,7 +106,7 @@ export async function createTestProject(
   projectId = 'default'
 ): Promise<void> {
   await createTestOrganization(db, tenantId);
-  
+
   await db
     .insert(schema.projects)
     .values({

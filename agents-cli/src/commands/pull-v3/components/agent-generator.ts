@@ -61,7 +61,8 @@ function formatStatusUpdates(
       .map((comp: any) => {
         if (typeof comp === 'string') {
           return comp;
-        } else if (typeof comp === 'object' && comp) {
+        }
+        if (typeof comp === 'object' && comp) {
           return comp.id || comp.type || comp.name;
         }
         return null;

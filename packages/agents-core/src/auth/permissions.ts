@@ -17,7 +17,7 @@ const statement = {
   context_config: ['create', 'read', 'update', 'delete'],
 } as const;
 
-export const ac = createAccessControl(statement) as AccessControl
+export const ac = createAccessControl(statement) as AccessControl;
 
 export const memberRole = ac.newRole({
   project: ['read'],
