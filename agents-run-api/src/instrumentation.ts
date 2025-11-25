@@ -14,8 +14,10 @@ import { resourceFromAttributes } from '@opentelemetry/resources';
 import type { NodeSDKConfiguration } from '@opentelemetry/sdk-node';
 import { NodeSDK } from '@opentelemetry/sdk-node';
 import {
+  AlwaysOnSampler,
   BatchSpanProcessor,
   NoopSpanProcessor,
+  ParentBasedSampler,
   type SpanProcessor,
 } from '@opentelemetry/sdk-trace-base';
 import { ATTR_SERVICE_NAME } from '@opentelemetry/semantic-conventions';
@@ -189,12 +191,21 @@ export const defaultTextMapPropagator = new CompositePropagator({
   propagators: [new W3CTraceContextPropagator(), new W3CBaggagePropagator()],
 });
 
+// Create an AlwaysOn sampler to ensure all spans are recorded
+const sampler = new ParentBasedSampler({
+  root: new AlwaysOnSampler(),
+});
+
+process.stdout.write('[OTEL DEBUG SDK] Creating sampler (ParentBased with AlwaysOn root)\n');
+console.log('[OTEL DEBUG SDK] Sampler created: ParentBasedSampler with AlwaysOnSampler root');
+
 console.log('[OTEL DEBUG] Creating NodeSDK with configuration:', {
   serviceName: 'inkeep-agents-run-api',
   hasContextManager: !!defaultContextManager,
   hasPropagator: !!defaultTextMapPropagator,
   spanProcessorCount: defaultSpanProcessors.length,
   instrumentationCount: defaultInstrumentations.length,
+  hasSampler: !!sampler,
 });
 
 export const defaultSDK = new NodeSDK({
@@ -203,8 +214,10 @@ export const defaultSDK = new NodeSDK({
   textMapPropagator: defaultTextMapPropagator,
   spanProcessors: defaultSpanProcessors,
   instrumentations: defaultInstrumentations,
+  sampler: sampler,
 });
 
+process.stdout.write('[OTEL DEBUG SDK] NodeSDK instance created successfully\n');
 console.log('[OTEL DEBUG] NodeSDK instance created successfully');
 logger.info({}, 'NodeSDK instance created successfully');
 

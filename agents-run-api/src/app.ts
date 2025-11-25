@@ -41,6 +41,16 @@ function createExecutionHono(
 
   app.use('*', otel());
 
+  // Ensure SDK is started
+  app.use('*', async (c, next) => {
+    const { trace } = await import('@opentelemetry/api');
+    const provider = trace.getTracerProvider();
+    if (provider.constructor.name === 'ProxyTracerProvider') {
+      console.warn('[OTEL WARN] SDK not started, provider is still ProxyTracerProvider');
+    }
+    return next();
+  });
+
   // Request ID middleware
   app.use('*', requestId());
 
@@ -315,6 +325,29 @@ function createExecutionHono(
     }),
     async (c) => {
       const { trace, context: otelContext } = await import('@opentelemetry/api');
+      const { defaultSDK } = await import('./instrumentation');
+      
+      process.stdout.write(`[OTEL DEBUG TEST] Test endpoint called at ${new Date().toISOString()}\n`);
+      console.log('[OTEL DEBUG TEST] Checking SDK state...');
+      
+      // Check if we have a tracer provider registered
+      const tracerProvider = trace.getTracerProvider();
+      console.log('[OTEL DEBUG TEST] TracerProvider type:', tracerProvider.constructor.name);
+      console.log('[OTEL DEBUG TEST] Is ProxyTracerProvider?:', tracerProvider.constructor.name === 'ProxyTracerProvider');
+      
+      // If it's still a ProxyTracerProvider, the SDK might not have started
+      if (tracerProvider.constructor.name === 'ProxyTracerProvider') {
+        console.log('[OTEL DEBUG TEST] ⚠️ SDK appears not started! Attempting to start...');
+        try {
+          await defaultSDK.start();
+          console.log('[OTEL DEBUG TEST] ✅ SDK started successfully');
+        } catch (error) {
+          console.error('[OTEL DEBUG TEST] ❌ Failed to start SDK:', error);
+        }
+      } else {
+        console.log('[OTEL DEBUG TEST] ✅ SDK is already started');
+      }
+      
       const tracer = trace.getTracer('debug-tracer');
       
       process.stdout.write(`[OTEL DEBUG] Creating test trace at ${new Date().toISOString()}\n`);
@@ -333,6 +366,8 @@ function createExecutionHono(
           traceFlags: spanContext.traceFlags,
         });
         
+        console.log('[OTEL DEBUG] Is recording:', span.isRecording());
+        
         span.setAttribute('test.attribute', 'test-value');
         span.setAttribute('test.timestamp', new Date().toISOString());
         span.addEvent('test.event', { message: 'This is a test trace from /debug/trace-test' });
@@ -350,6 +385,8 @@ function createExecutionHono(
           message: 'Test trace created and exported',
           traceId: spanContext.traceId,
           spanId: spanContext.spanId,
+          traceFlags: spanContext.traceFlags,
+          isRecording: span.isRecording(),
         };
       });
       
