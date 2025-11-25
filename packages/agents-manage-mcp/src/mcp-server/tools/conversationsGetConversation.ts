@@ -4,7 +4,7 @@
 
 import { conversationsGetConversation } from '../../funcs/conversationsGetConversation.js';
 import { GetConversationRequest$zodSchema } from '../../models/getconversationop.js';
-import { formatResult, ToolDefinition } from '../tools.js';
+import { formatResult, type ToolDefinition } from '../tools.js';
 
 const args = {
   request: GetConversationRequest$zodSchema,

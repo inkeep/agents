@@ -3,7 +3,7 @@
  */
 
 import * as z from 'zod';
-import { StatusComponent, StatusComponent$zodSchema } from './statuscomponent.js';
+import { type StatusComponent, StatusComponent$zodSchema } from './statuscomponent.js';
 
 export type StatusUpdate = {
   enabled?: boolean | undefined;

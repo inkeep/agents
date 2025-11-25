@@ -4,7 +4,7 @@
 
 import { externalAgentsGetExternalAgentById } from '../../funcs/externalAgentsGetExternalAgentById.js';
 import { GetExternalAgentByIdRequest$zodSchema } from '../../models/getexternalagentbyidop.js';
-import { formatResult, ToolDefinition } from '../tools.js';
+import { formatResult, type ToolDefinition } from '../tools.js';
 
 const args = {
   request: GetExternalAgentByIdRequest$zodSchema,

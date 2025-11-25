@@ -4,12 +4,11 @@
 
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { InkeepAgentsCore } from '../core.js';
-import { SDKOptions } from '../lib/config.js';
+import type { SDKOptions } from '../lib/config.js';
 import type { ConsoleLogger } from './console-logger.js';
 import { createRegisterPrompt } from './prompts.js';
 import { createRegisterResource, createRegisterResourceTemplate } from './resources.js';
-import { MCPScope } from './scopes.js';
-import { createRegisterTool } from './tools.js';
+import type { MCPScope } from './scopes.js';
 import { tool$agentArtifactComponentRelationsAssociateArtifactComponentWithAgent } from './tools/agentArtifactComponentRelationsAssociateArtifactComponentWithAgent.js';
 import { tool$agentArtifactComponentRelationsCheckArtifactComponentAgentAssociation } from './tools/agentArtifactComponentRelationsCheckArtifactComponentAgentAssociation.js';
 import { tool$agentArtifactComponentRelationsGetAgentsUsingArtifactComponent } from './tools/agentArtifactComponentRelationsGetAgentsUsingArtifactComponent.js';
@@ -119,6 +118,7 @@ import { tool$toolsDeleteTool } from './tools/toolsDeleteTool.js';
 import { tool$toolsGetTool } from './tools/toolsGetTool.js';
 import { tool$toolsListTools } from './tools/toolsListTools.js';
 import { tool$toolsUpdateTool } from './tools/toolsUpdateTool.js';
+import { createRegisterTool } from './tools.js';
 
 export function createMCPServer(deps: {
   logger: ConsoleLogger;

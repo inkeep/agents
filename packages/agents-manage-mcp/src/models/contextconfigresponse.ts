@@ -3,7 +3,7 @@
  */
 
 import * as z from 'zod';
-import { ContextConfig, ContextConfig$zodSchema } from './contextconfig.js';
+import { type ContextConfig, ContextConfig$zodSchema } from './contextconfig.js';
 
 export type ContextConfigResponse = { data: ContextConfig };
 

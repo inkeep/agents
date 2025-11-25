@@ -31,9 +31,8 @@ export class SDKValidationError extends Error {
   public pretty(): string {
     if (this.cause instanceof z.ZodError) {
       return `${this.rawMessage}\n${formatZodError(this.cause)}`;
-    } else {
-      return this.toString();
     }
+    return this.toString();
   }
 }
 

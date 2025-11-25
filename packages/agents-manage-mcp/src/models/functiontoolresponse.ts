@@ -3,7 +3,7 @@
  */
 
 import * as z from 'zod';
-import { FunctionTool, FunctionTool$zodSchema } from './functiontool.js';
+import { type FunctionTool, FunctionTool$zodSchema } from './functiontool.js';
 
 export type FunctionToolResponse = { data: FunctionTool };
 

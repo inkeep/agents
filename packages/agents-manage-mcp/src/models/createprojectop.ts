@@ -3,15 +3,15 @@
  */
 
 import * as z from 'zod';
-import { BadRequest, BadRequest$zodSchema } from './badrequest.js';
-import { ErrorResponse, ErrorResponse$zodSchema } from './errorresponse.js';
-import { Forbidden, Forbidden$zodSchema } from './forbidden.js';
-import { InternalServerError, InternalServerError$zodSchema } from './internalservererror.js';
-import { NotFound, NotFound$zodSchema } from './notfound.js';
-import { ProjectCreate, ProjectCreate$zodSchema } from './projectcreate.js';
-import { ProjectResponse, ProjectResponse$zodSchema } from './projectresponse.js';
-import { Unauthorized, Unauthorized$zodSchema } from './unauthorized.js';
-import { UnprocessableEntity, UnprocessableEntity$zodSchema } from './unprocessableentity.js';
+import { type BadRequest, BadRequest$zodSchema } from './badrequest.js';
+import { type ErrorResponse, ErrorResponse$zodSchema } from './errorresponse.js';
+import { type Forbidden, Forbidden$zodSchema } from './forbidden.js';
+import { type InternalServerError, InternalServerError$zodSchema } from './internalservererror.js';
+import { type NotFound, NotFound$zodSchema } from './notfound.js';
+import { type ProjectCreate, ProjectCreate$zodSchema } from './projectcreate.js';
+import { type ProjectResponse, ProjectResponse$zodSchema } from './projectresponse.js';
+import { type Unauthorized, Unauthorized$zodSchema } from './unauthorized.js';
+import { type UnprocessableEntity, UnprocessableEntity$zodSchema } from './unprocessableentity.js';
 
 export type CreateProjectRequest = {
   tenantId: string;

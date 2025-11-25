@@ -1,5 +1,5 @@
 import { fetchDefinition } from '@inkeep/agents-core';
-import { projectAutogenInfoSchema } from './schemas'
+import { projectAutogenInfoSchema } from './schemas';
 
 // Then create your fetch definition with the GraphQL query
 export const projectDescriptionFetchDefinition = fetchDefinition({
@@ -11,7 +11,7 @@ export const projectDescriptionFetchDefinition = fetchDefinition({
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
-      'Authorization': `Bearer ${process.env.INKEEP_API_KEY}`
+      Authorization: `Bearer ${process.env.INKEEP_API_KEY}`,
     },
     body: {
       query: `

@@ -4,7 +4,7 @@
 
 import { projectsCreateProject } from '../../funcs/projectsCreateProject.js';
 import { CreateProjectRequest$zodSchema } from '../../models/createprojectop.js';
-import { formatResult, ToolDefinition } from '../tools.js';
+import { formatResult, type ToolDefinition } from '../tools.js';
 
 const args = {
   request: CreateProjectRequest$zodSchema,

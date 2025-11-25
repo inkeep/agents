@@ -119,7 +119,7 @@ function wrapFetcher(
   };
 }
 
-const codeRangeRE = new RegExp('^[0-9]xx$', 'i');
+const codeRangeRE = /^[0-9]xx$/i;
 
 function isRetryableResponse(res: Response, statusCodes: string[]): boolean {
   const actual = `${res.status}`;
@@ -175,7 +175,7 @@ async function retryBackoff(
       }
 
       if (retryInterval <= 0) {
-        retryInterval = initialInterval * Math.pow(x, exponent) + Math.random() * 1000;
+        retryInterval = initialInterval * x ** exponent + Math.random() * 1000;
       }
 
       const d = Math.min(retryInterval, maxInterval);

@@ -4,7 +4,7 @@
 
 import { agentGetRelatedAgentInfos } from '../../funcs/agentGetRelatedAgentInfos.js';
 import { GetRelatedAgentInfosRequest$zodSchema } from '../../models/getrelatedagentinfosop.js';
-import { formatResult, ToolDefinition } from '../tools.js';
+import { formatResult, type ToolDefinition } from '../tools.js';
 
 const args = {
   request: GetRelatedAgentInfosRequest$zodSchema,

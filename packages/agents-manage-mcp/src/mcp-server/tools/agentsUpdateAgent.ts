@@ -4,7 +4,7 @@
 
 import { agentsUpdateAgent } from '../../funcs/agentsUpdateAgent.js';
 import { UpdateAgentRequest$zodSchema } from '../../models/updateagentop.js';
-import { formatResult, ToolDefinition } from '../tools.js';
+import { formatResult, type ToolDefinition } from '../tools.js';
 
 const args = {
   request: UpdateAgentRequest$zodSchema,

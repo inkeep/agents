@@ -4,7 +4,7 @@
 
 import { apiKeysCreateAPIKey } from '../../funcs/apiKeysCreateAPIKey.js';
 import { CreateApiKeyRequest$zodSchema } from '../../models/createapikeyop.js';
-import { formatResult, ToolDefinition } from '../tools.js';
+import { formatResult, type ToolDefinition } from '../tools.js';
 
 const args = {
   request: CreateApiKeyRequest$zodSchema,

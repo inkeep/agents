@@ -4,7 +4,7 @@
 
 import { fullAgentDeleteFullAgent } from '../../funcs/fullAgentDeleteFullAgent.js';
 import { DeleteFullAgentRequest$zodSchema } from '../../models/deletefullagentop.js';
-import { formatResult, ToolDefinition } from '../tools.js';
+import { formatResult, type ToolDefinition } from '../tools.js';
 
 const args = {
   request: DeleteFullAgentRequest$zodSchema,

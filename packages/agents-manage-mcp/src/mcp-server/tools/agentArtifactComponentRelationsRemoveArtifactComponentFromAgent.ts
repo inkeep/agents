@@ -4,7 +4,7 @@
 
 import { agentArtifactComponentRelationsRemoveArtifactComponentFromAgent } from '../../funcs/agentArtifactComponentRelationsRemoveArtifactComponentFromAgent.js';
 import { RemoveArtifactComponentFromAgentRequest$zodSchema } from '../../models/removeartifactcomponentfromagentop.js';
-import { formatResult, ToolDefinition } from '../tools.js';
+import { formatResult, type ToolDefinition } from '../tools.js';
 
 const args = {
   request: RemoveArtifactComponentFromAgentRequest$zodSchema,

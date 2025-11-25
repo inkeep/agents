@@ -4,7 +4,7 @@
 
 import { functionsDeleteFunction } from '../../funcs/functionsDeleteFunction.js';
 import { DeleteFunctionRequest$zodSchema } from '../../models/deletefunctionop.js';
-import { formatResult, ToolDefinition } from '../tools.js';
+import { formatResult, type ToolDefinition } from '../tools.js';
 
 const args = {
   request: DeleteFunctionRequest$zodSchema,

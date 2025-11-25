@@ -4,7 +4,7 @@
 
 import { artifactComponentUpdateArtifactComponent } from '../../funcs/artifactComponentUpdateArtifactComponent.js';
 import { UpdateArtifactComponentRequest$zodSchema } from '../../models/updateartifactcomponentop.js';
-import { formatResult, ToolDefinition } from '../tools.js';
+import { formatResult, type ToolDefinition } from '../tools.js';
 
 const args = {
   request: UpdateArtifactComponentRequest$zodSchema,

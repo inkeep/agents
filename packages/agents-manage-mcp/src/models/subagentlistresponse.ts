@@ -3,8 +3,8 @@
  */
 
 import * as z from 'zod';
-import { Pagination, Pagination$zodSchema } from './pagination.js';
-import { SubAgent, SubAgent$zodSchema } from './subagent.js';
+import { type Pagination, Pagination$zodSchema } from './pagination.js';
+import { type SubAgent, SubAgent$zodSchema } from './subagent.js';
 
 export type SubAgentListResponse = {
   data: Array<SubAgent>;

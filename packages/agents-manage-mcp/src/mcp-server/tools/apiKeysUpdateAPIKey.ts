@@ -4,7 +4,7 @@
 
 import { apiKeysUpdateAPIKey } from '../../funcs/apiKeysUpdateAPIKey.js';
 import { UpdateApiKeyRequest$zodSchema } from '../../models/updateapikeyop.js';
-import { formatResult, ToolDefinition } from '../tools.js';
+import { formatResult, type ToolDefinition } from '../tools.js';
 
 const args = {
   request: UpdateApiKeyRequest$zodSchema,

@@ -4,7 +4,7 @@
 
 import { externalAgentsUpdateExternalAgent } from '../../funcs/externalAgentsUpdateExternalAgent.js';
 import { UpdateExternalAgentRequest$zodSchema } from '../../models/updateexternalagentop.js';
-import { formatResult, ToolDefinition } from '../tools.js';
+import { formatResult, type ToolDefinition } from '../tools.js';
 
 const args = {
   request: UpdateExternalAgentRequest$zodSchema,

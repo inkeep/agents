@@ -4,7 +4,7 @@
 
 import { artifactComponentCreateArtifactComponent } from '../../funcs/artifactComponentCreateArtifactComponent.js';
 import { CreateArtifactComponentRequest$zodSchema } from '../../models/createartifactcomponentop.js';
-import { formatResult, ToolDefinition } from '../tools.js';
+import { formatResult, type ToolDefinition } from '../tools.js';
 
 const args = {
   request: CreateArtifactComponentRequest$zodSchema,

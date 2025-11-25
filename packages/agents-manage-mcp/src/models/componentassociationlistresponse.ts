@@ -3,7 +3,10 @@
  */
 
 import * as z from 'zod';
-import { ComponentAssociation, ComponentAssociation$zodSchema } from './componentassociation.js';
+import {
+  type ComponentAssociation,
+  ComponentAssociation$zodSchema,
+} from './componentassociation.js';
 
 export type ComponentAssociationListResponse = {
   data: Array<ComponentAssociation>;

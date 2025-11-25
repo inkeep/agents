@@ -1,7 +1,7 @@
 import path from 'node:path';
+import { getLogger } from '@inkeep/agents-core';
 import degit from 'degit';
 import fs from 'fs-extra';
-import {getLogger} from '@inkeep/agents-core';
 
 const logger = getLogger('templates');
 

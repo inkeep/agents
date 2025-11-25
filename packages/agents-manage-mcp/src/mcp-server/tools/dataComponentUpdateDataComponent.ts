@@ -4,7 +4,7 @@
 
 import { dataComponentUpdateDataComponent } from '../../funcs/dataComponentUpdateDataComponent.js';
 import { UpdateDataComponentRequest$zodSchema } from '../../models/updatedatacomponentop.js';
-import { formatResult, ToolDefinition } from '../tools.js';
+import { formatResult, type ToolDefinition } from '../tools.js';
 
 const args = {
   request: UpdateDataComponentRequest$zodSchema,

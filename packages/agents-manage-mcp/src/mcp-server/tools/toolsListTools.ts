@@ -4,7 +4,7 @@
 
 import { toolsListTools } from '../../funcs/toolsListTools.js';
 import { ListToolsRequest$zodSchema } from '../../models/listtoolsop.js';
-import { formatResult, ToolDefinition } from '../tools.js';
+import { formatResult, type ToolDefinition } from '../tools.js';
 
 const args = {
   request: ListToolsRequest$zodSchema,

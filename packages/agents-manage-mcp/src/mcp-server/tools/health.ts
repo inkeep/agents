@@ -3,7 +3,7 @@
  */
 
 import { health } from '../../funcs/health.js';
-import { formatResult, ToolDefinition } from '../tools.js';
+import { formatResult, type ToolDefinition } from '../tools.js';
 
 export const tool$health: ToolDefinition = {
   name: 'health',

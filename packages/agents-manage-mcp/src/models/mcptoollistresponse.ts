@@ -3,8 +3,8 @@
  */
 
 import * as z from 'zod';
-import { McpTool, McpTool$zodSchema } from './mcptool.js';
-import { Pagination, Pagination$zodSchema } from './pagination.js';
+import { type McpTool, McpTool$zodSchema } from './mcptool.js';
+import { type Pagination, Pagination$zodSchema } from './pagination.js';
 
 export type McpToolListResponse = {
   data: Array<McpTool>;

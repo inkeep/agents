@@ -4,7 +4,7 @@
 
 import { credentialGetCredentialById } from '../../funcs/credentialGetCredentialById.js';
 import { GetCredentialByIdRequest$zodSchema } from '../../models/getcredentialbyidop.js';
-import { formatResult, ToolDefinition } from '../tools.js';
+import { formatResult, type ToolDefinition } from '../tools.js';
 
 const args = {
   request: GetCredentialByIdRequest$zodSchema,

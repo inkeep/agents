@@ -3,7 +3,7 @@
  */
 
 import * as z from 'zod';
-import { CredentialReference, CredentialReference$zodSchema } from './credentialreference.js';
+import { type CredentialReference, CredentialReference$zodSchema } from './credentialreference.js';
 
 export type CredentialReferenceResponse = { data: CredentialReference };
 

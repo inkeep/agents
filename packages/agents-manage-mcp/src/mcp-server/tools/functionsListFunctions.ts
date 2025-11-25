@@ -4,7 +4,7 @@
 
 import { functionsListFunctions } from '../../funcs/functionsListFunctions.js';
 import { ListFunctionsRequest$zodSchema } from '../../models/listfunctionsop.js';
-import { formatResult, ToolDefinition } from '../tools.js';
+import { formatResult, type ToolDefinition } from '../tools.js';
 
 const args = {
   request: ListFunctionsRequest$zodSchema,

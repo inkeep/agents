@@ -4,7 +4,7 @@
 
 import { credentialStoreCreateCredentialInStore } from '../../funcs/credentialStoreCreateCredentialInStore.js';
 import { CreateCredentialInStoreRequestRequest$zodSchema } from '../../models/createcredentialinstoreop.js';
-import { formatResult, ToolDefinition } from '../tools.js';
+import { formatResult, type ToolDefinition } from '../tools.js';
 
 const args = {
   request: CreateCredentialInStoreRequestRequest$zodSchema,

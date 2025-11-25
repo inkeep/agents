@@ -4,7 +4,7 @@
 
 import { dataComponentDeleteDataComponent } from '../../funcs/dataComponentDeleteDataComponent.js';
 import { DeleteDataComponentRequest$zodSchema } from '../../models/deletedatacomponentop.js';
-import { formatResult, ToolDefinition } from '../tools.js';
+import { formatResult, type ToolDefinition } from '../tools.js';
 
 const args = {
   request: DeleteDataComponentRequest$zodSchema,

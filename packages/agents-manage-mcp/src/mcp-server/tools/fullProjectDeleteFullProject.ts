@@ -4,7 +4,7 @@
 
 import { fullProjectDeleteFullProject } from '../../funcs/fullProjectDeleteFullProject.js';
 import { DeleteFullProjectRequest$zodSchema } from '../../models/deletefullprojectop.js';
-import { formatResult, ToolDefinition } from '../tools.js';
+import { formatResult, type ToolDefinition } from '../tools.js';
 
 const args = {
   request: DeleteFullProjectRequest$zodSchema,

@@ -4,7 +4,7 @@
 
 import { fullAgentCreateFullAgent } from '../../funcs/fullAgentCreateFullAgent.js';
 import { CreateFullAgentRequest$zodSchema } from '../../models/createfullagentop.js';
-import { formatResult, ToolDefinition } from '../tools.js';
+import { formatResult, type ToolDefinition } from '../tools.js';
 
 const args = {
   request: CreateFullAgentRequest$zodSchema,

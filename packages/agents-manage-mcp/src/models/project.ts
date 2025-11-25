@@ -3,8 +3,8 @@
  */
 
 import * as z from 'zod';
-import { ProjectModel, ProjectModel$zodSchema } from './projectmodel.js';
-import { StopWhen, StopWhen$zodSchema } from './stopwhen.js';
+import { type ProjectModel, ProjectModel$zodSchema } from './projectmodel.js';
+import { type StopWhen, StopWhen$zodSchema } from './stopwhen.js';
 
 export type Project = {
   id: string;

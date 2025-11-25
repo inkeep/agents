@@ -4,7 +4,7 @@
 
 import { thirdPartyMCPServersGetThirdPartyMCPServer } from '../../funcs/thirdPartyMCPServersGetThirdPartyMCPServer.js';
 import { GetThirdPartyMcpServerRequest$zodSchema } from '../../models/getthirdpartymcpserverop.js';
-import { formatResult, ToolDefinition } from '../tools.js';
+import { formatResult, type ToolDefinition } from '../tools.js';
 
 const args = {
   request: GetThirdPartyMcpServerRequest$zodSchema,

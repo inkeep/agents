@@ -3,7 +3,7 @@
  */
 
 import * as z from 'zod';
-import { ErrorResponse, ErrorResponse$zodSchema } from './errorresponse.js';
+import { type ErrorResponse, ErrorResponse$zodSchema } from './errorresponse.js';
 
 export type DeleteToolRequest = {
   tenantId: string;

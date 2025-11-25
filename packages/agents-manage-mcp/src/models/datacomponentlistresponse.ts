@@ -3,8 +3,8 @@
  */
 
 import * as z from 'zod';
-import { DataComponent, DataComponent$zodSchema } from './datacomponent.js';
-import { Pagination, Pagination$zodSchema } from './pagination.js';
+import { type DataComponent, DataComponent$zodSchema } from './datacomponent.js';
+import { type Pagination, Pagination$zodSchema } from './pagination.js';
 
 export type DataComponentListResponse = {
   data: Array<DataComponent>;

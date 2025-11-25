@@ -3,7 +3,7 @@
  */
 
 import * as z from 'zod';
-import { Agent, Agent$zodSchema } from './agent.js';
+import { type Agent, Agent$zodSchema } from './agent.js';
 
 export type AgentResponse = { data: Agent };
 

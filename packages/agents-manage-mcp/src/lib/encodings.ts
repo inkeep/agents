@@ -35,7 +35,8 @@ export function encodeMatrix(
 
     if (pv == null) {
       return;
-    } else if (Array.isArray(pv)) {
+    }
+    if (Array.isArray(pv)) {
       encValue = mapDefined(pv, (v) => `${encodeValue(v)}`)?.join(',');
     } else if (isPlainObject(pv)) {
       const mapped = mapDefinedEntries(Object.entries(pv), ([k, v]) => {
@@ -90,7 +91,8 @@ export function encodeLabel(
 
     if (pv == null) {
       return;
-    } else if (Array.isArray(pv)) {
+    }
+    if (Array.isArray(pv)) {
       encValue = mapDefined(pv, (v) => `${encodeValue(v)}`)?.join('.');
     } else if (isPlainObject(pv)) {
       const mapped = mapDefinedEntries(Object.entries(pv), ([k, v]) => {
@@ -141,7 +143,8 @@ function formEncoder(sep: string): FormEncoder {
 
       if (pv == null) {
         return;
-      } else if (Array.isArray(pv)) {
+      }
+      if (Array.isArray(pv)) {
         encValue = mapDefined(pv, (v) => `${encodeValue(v)}`)?.join(encodedSep);
       } else if (isPlainObject(pv)) {
         encValue = mapDefinedEntries(Object.entries(pv), ([k, v]) => {
@@ -193,7 +196,8 @@ export function encodeBodyForm(
 
     if (pv == null) {
       return;
-    } else if (Array.isArray(pv)) {
+    }
+    if (Array.isArray(pv)) {
       encValue = JSON.stringify(pv, jsonReplacer);
     } else if (isPlainObject(pv)) {
       encValue = JSON.stringify(pv, jsonReplacer);
@@ -317,7 +321,8 @@ export const encodeSimple = (
 
     if (pv == null) {
       return;
-    } else if (Array.isArray(pv)) {
+    }
+    if (Array.isArray(pv)) {
       tmp = mapDefined(pv, (v) => `${encodeValue(v)}`)?.join(',');
     } else if (isPlainObject(pv)) {
       const mapped = mapDefinedEntries(Object.entries(pv), ([k, v]) => {
@@ -338,22 +343,25 @@ export const encodeSimple = (
 function explode(key: string, value: unknown): [string, unknown][] {
   if (Array.isArray(value)) {
     return value.map((v) => [key, v]);
-  } else if (isPlainObject(value)) {
+  }
+  if (isPlainObject(value)) {
     const o = value ?? {};
     return Object.entries(o).map(([k, v]) => [k, v]);
-  } else {
-    return [[key, value]];
   }
+  return [[key, value]];
 }
 
 function serializeValue(value: unknown): string {
   if (value == null) {
     return '';
-  } else if (value instanceof Date) {
+  }
+  if (value instanceof Date) {
     return value.toISOString();
-  } else if (value instanceof Uint8Array) {
+  }
+  if (value instanceof Uint8Array) {
     return bytesToBase64(value);
-  } else if (typeof value === 'object') {
+  }
+  if (typeof value === 'object') {
     return JSON.stringify(value, jsonReplacer);
   }
 
@@ -363,9 +371,8 @@ function serializeValue(value: unknown): string {
 function jsonReplacer(_: string, value: unknown): unknown {
   if (value instanceof Uint8Array) {
     return bytesToBase64(value);
-  } else {
-    return value;
   }
+  return value;
 }
 
 function mapDefined<T, R>(inp: T[], mapper: (v: T) => R): R[] | null {
@@ -423,10 +430,7 @@ type QueryEncoder = (
 type BulkQueryEncoder = (values: Record<string, unknown>, options?: QueryEncoderOptions) => string;
 
 export function queryEncoder(f: QueryEncoder): BulkQueryEncoder {
-  const bulkEncode = function (
-    values: Record<string, unknown>,
-    options?: QueryEncoderOptions
-  ): string {
+  const bulkEncode = (values: Record<string, unknown>, options?: QueryEncoderOptions): string => {
     const opts: QueryEncoderOptions = {
       ...options,
       explode: options?.explode ?? true,
@@ -451,7 +455,8 @@ export const encodeDeepObjectQuery = queryEncoder(encodeDeepObject);
 export function appendForm(fd: FormData, key: string, value: unknown, fileName?: string): void {
   if (value == null) {
     return;
-  } else if (value instanceof Blob && fileName) {
+  }
+  if (value instanceof Blob && fileName) {
     fd.append(key, value, fileName);
   } else if (value instanceof Blob) {
     fd.append(key, value);

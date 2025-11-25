@@ -4,7 +4,7 @@
 
 import * as z from 'zod';
 import {
-  SubAgentTeamAgentRelation,
+  type SubAgentTeamAgentRelation,
   SubAgentTeamAgentRelation$zodSchema,
 } from './subagentteamagentrelation.js';
 

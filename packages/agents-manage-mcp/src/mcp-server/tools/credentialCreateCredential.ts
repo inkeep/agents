@@ -4,7 +4,7 @@
 
 import { credentialCreateCredential } from '../../funcs/credentialCreateCredential.js';
 import { CreateCredentialRequest$zodSchema } from '../../models/createcredentialop.js';
-import { formatResult, ToolDefinition } from '../tools.js';
+import { formatResult, type ToolDefinition } from '../tools.js';
 
 const args = {
   request: CreateCredentialRequest$zodSchema,

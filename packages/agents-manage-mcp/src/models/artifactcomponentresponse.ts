@@ -3,7 +3,7 @@
  */
 
 import * as z from 'zod';
-import { ArtifactComponent, ArtifactComponent$zodSchema } from './artifactcomponent.js';
+import { type ArtifactComponent, ArtifactComponent$zodSchema } from './artifactcomponent.js';
 
 export type ArtifactComponentResponse = { data: ArtifactComponent };
 

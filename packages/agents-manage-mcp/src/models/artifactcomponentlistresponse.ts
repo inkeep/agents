@@ -3,8 +3,8 @@
  */
 
 import * as z from 'zod';
-import { ArtifactComponent, ArtifactComponent$zodSchema } from './artifactcomponent.js';
-import { Pagination, Pagination$zodSchema } from './pagination.js';
+import { type ArtifactComponent, ArtifactComponent$zodSchema } from './artifactcomponent.js';
+import { type Pagination, Pagination$zodSchema } from './pagination.js';
 
 export type ArtifactComponentListResponse = {
   data: Array<ArtifactComponent>;

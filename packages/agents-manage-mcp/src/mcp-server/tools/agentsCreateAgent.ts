@@ -4,7 +4,7 @@
 
 import { agentsCreateAgent } from '../../funcs/agentsCreateAgent.js';
 import { CreateAgentRequest$zodSchema } from '../../models/createagentop.js';
-import { formatResult, ToolDefinition } from '../tools.js';
+import { formatResult, type ToolDefinition } from '../tools.js';
 
 const args = {
   request: CreateAgentRequest$zodSchema,

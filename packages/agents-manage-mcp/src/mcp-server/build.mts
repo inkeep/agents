@@ -1,9 +1,9 @@
 /// <reference types="bun-types" />
 
-import { build } from 'bun';
 import { chmod, copyFile, mkdir } from 'node:fs/promises';
-import { packExtension } from '@anthropic-ai/mcpb';
 import { join } from 'node:path';
+import { packExtension } from '@anthropic-ai/mcpb';
+import { build } from 'bun';
 
 async function buildMcpServer() {
   const entrypoint = './src/mcp-server/mcp-server.ts';

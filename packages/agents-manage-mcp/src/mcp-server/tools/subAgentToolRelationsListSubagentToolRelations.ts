@@ -4,7 +4,7 @@
 
 import { subAgentToolRelationsListSubagentToolRelations } from '../../funcs/subAgentToolRelationsListSubagentToolRelations.js';
 import { ListSubagentToolRelationsRequest$zodSchema } from '../../models/listsubagenttoolrelationsop.js';
-import { formatResult, ToolDefinition } from '../tools.js';
+import { formatResult, type ToolDefinition } from '../tools.js';
 
 const args = {
   request: ListSubagentToolRelationsRequest$zodSchema,

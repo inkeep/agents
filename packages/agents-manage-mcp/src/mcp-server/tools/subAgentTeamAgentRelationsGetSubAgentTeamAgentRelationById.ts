@@ -4,7 +4,7 @@
 
 import { subAgentTeamAgentRelationsGetSubAgentTeamAgentRelationById } from '../../funcs/subAgentTeamAgentRelationsGetSubAgentTeamAgentRelationById.js';
 import { GetSubAgentTeamAgentRelationByIdRequest$zodSchema } from '../../models/getsubagentteamagentrelationbyidop.js';
-import { formatResult, ToolDefinition } from '../tools.js';
+import { formatResult, type ToolDefinition } from '../tools.js';
 
 const args = {
   request: GetSubAgentTeamAgentRelationByIdRequest$zodSchema,

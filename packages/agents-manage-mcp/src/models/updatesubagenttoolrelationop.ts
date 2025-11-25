@@ -3,20 +3,20 @@
  */
 
 import * as z from 'zod';
-import { BadRequest, BadRequest$zodSchema } from './badrequest.js';
-import { Forbidden, Forbidden$zodSchema } from './forbidden.js';
-import { InternalServerError, InternalServerError$zodSchema } from './internalservererror.js';
-import { NotFound, NotFound$zodSchema } from './notfound.js';
+import { type BadRequest, BadRequest$zodSchema } from './badrequest.js';
+import { type Forbidden, Forbidden$zodSchema } from './forbidden.js';
+import { type InternalServerError, InternalServerError$zodSchema } from './internalservererror.js';
+import { type NotFound, NotFound$zodSchema } from './notfound.js';
 import {
-  SubAgentToolRelationResponse,
+  type SubAgentToolRelationResponse,
   SubAgentToolRelationResponse$zodSchema,
 } from './subagenttoolrelationresponse.js';
 import {
-  SubAgentToolRelationUpdate,
+  type SubAgentToolRelationUpdate,
   SubAgentToolRelationUpdate$zodSchema,
 } from './subagenttoolrelationupdate.js';
-import { Unauthorized, Unauthorized$zodSchema } from './unauthorized.js';
-import { UnprocessableEntity, UnprocessableEntity$zodSchema } from './unprocessableentity.js';
+import { type Unauthorized, Unauthorized$zodSchema } from './unauthorized.js';
+import { type UnprocessableEntity, UnprocessableEntity$zodSchema } from './unprocessableentity.js';
 
 export type UpdateSubagentToolRelationRequest = {
   tenantId: string;

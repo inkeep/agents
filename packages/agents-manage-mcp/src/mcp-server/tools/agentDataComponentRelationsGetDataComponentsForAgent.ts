@@ -4,7 +4,7 @@
 
 import { agentDataComponentRelationsGetDataComponentsForAgent } from '../../funcs/agentDataComponentRelationsGetDataComponentsForAgent.js';
 import { GetDataComponentsForAgentRequest$zodSchema } from '../../models/getdatacomponentsforagentop.js';
-import { formatResult, ToolDefinition } from '../tools.js';
+import { formatResult, type ToolDefinition } from '../tools.js';
 
 const args = {
   request: GetDataComponentsForAgentRequest$zodSchema,

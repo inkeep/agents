@@ -4,7 +4,7 @@
 
 import { artifactComponentDeleteArtifactComponent } from '../../funcs/artifactComponentDeleteArtifactComponent.js';
 import { DeleteArtifactComponentRequest$zodSchema } from '../../models/deleteartifactcomponentop.js';
-import { formatResult, ToolDefinition } from '../tools.js';
+import { formatResult, type ToolDefinition } from '../tools.js';
 
 const args = {
   request: DeleteArtifactComponentRequest$zodSchema,

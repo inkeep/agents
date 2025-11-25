@@ -4,7 +4,7 @@
 
 import * as z from 'zod';
 import {
-  AgentWithinContextOfProject,
+  type AgentWithinContextOfProject,
   AgentWithinContextOfProject$zodSchema,
 } from './agentwithincontextofproject.js';
 

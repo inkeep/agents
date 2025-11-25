@@ -4,7 +4,7 @@
 
 import { projectsUpdateProject } from '../../funcs/projectsUpdateProject.js';
 import { UpdateProjectRequest$zodSchema } from '../../models/updateprojectop.js';
-import { formatResult, ToolDefinition } from '../tools.js';
+import { formatResult, type ToolDefinition } from '../tools.js';
 
 const args = {
   request: UpdateProjectRequest$zodSchema,

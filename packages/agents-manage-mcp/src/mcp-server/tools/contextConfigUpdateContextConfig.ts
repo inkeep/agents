@@ -4,7 +4,7 @@
 
 import { contextConfigUpdateContextConfig } from '../../funcs/contextConfigUpdateContextConfig.js';
 import { UpdateContextConfigRequest$zodSchema } from '../../models/updatecontextconfigop.js';
-import { formatResult, ToolDefinition } from '../tools.js';
+import { formatResult, type ToolDefinition } from '../tools.js';
 
 const args = {
   request: UpdateContextConfigRequest$zodSchema,

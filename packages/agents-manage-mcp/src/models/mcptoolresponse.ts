@@ -3,7 +3,7 @@
  */
 
 import * as z from 'zod';
-import { McpTool, McpTool$zodSchema } from './mcptool.js';
+import { type McpTool, McpTool$zodSchema } from './mcptool.js';
 
 export type McpToolResponse = { data: McpTool };
 

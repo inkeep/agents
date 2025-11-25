@@ -65,9 +65,9 @@ export default function NoOrganizationPage() {
           </div>
 
           <div className="flex flex-col gap-2">
-            <Button 
-              onClick={handleSignOut} 
-              variant="outline" 
+            <Button
+              onClick={handleSignOut}
+              variant="outline"
               className="w-full"
               disabled={isSigningOut}
             >

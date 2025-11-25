@@ -3,8 +3,8 @@
  */
 
 import * as z from 'zod';
-import { ContextConfig, ContextConfig$zodSchema } from './contextconfig.js';
-import { Pagination, Pagination$zodSchema } from './pagination.js';
+import { type ContextConfig, ContextConfig$zodSchema } from './contextconfig.js';
+import { type Pagination, Pagination$zodSchema } from './pagination.js';
 
 export type ContextConfigListResponse = {
   data: Array<ContextConfig>;

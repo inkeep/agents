@@ -4,7 +4,7 @@
 
 import { contextConfigDeleteContextConfig } from '../../funcs/contextConfigDeleteContextConfig.js';
 import { DeleteContextConfigRequest$zodSchema } from '../../models/deletecontextconfigop.js';
-import { formatResult, ToolDefinition } from '../tools.js';
+import { formatResult, type ToolDefinition } from '../tools.js';
 
 const args = {
   request: DeleteContextConfigRequest$zodSchema,

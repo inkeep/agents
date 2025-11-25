@@ -3,9 +3,9 @@
  */
 
 import { APIError } from '../models/errors/apierror.js';
-import { SDKValidationError } from '../models/errors/sdkvalidationerror.js';
-import { Result } from '../types/fp.js';
-import { matchResponse, matchStatusCode, StatusCodePredicate } from './http.js';
+import type { SDKValidationError } from '../models/errors/sdkvalidationerror.js';
+import type { Result } from '../types/fp.js';
+import { matchResponse, matchStatusCode, type StatusCodePredicate } from './http.js';
 import { isPlainObject } from './is-plain-object.js';
 import { safeParse } from './schemas.js';
 
@@ -184,7 +184,8 @@ export function match<T, E>(
       if (ctpattern && matchResponse(response, codes, ctpattern)) {
         matcher = match;
         break;
-      } else if (!ctpattern && matchStatusCode(response, codes)) {
+      }
+      if (!ctpattern && matchStatusCode(response, codes)) {
         matcher = match;
         break;
       }
@@ -288,12 +289,11 @@ export function match<T, E>(
         'Response validation failed'
       );
       return [result.ok ? { ok: false, error: result.value } : result, raw];
-    } else {
-      return [
-        safeParse(data, (v: unknown) => matcher.schema.parse(v), 'Response validation failed'),
-        raw,
-      ];
     }
+    return [
+      safeParse(data, (v: unknown) => matcher.schema.parse(v), 'Response validation failed'),
+      raw,
+    ];
   };
 }
 

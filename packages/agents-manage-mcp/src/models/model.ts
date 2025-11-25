@@ -3,7 +3,7 @@
  */
 
 import * as z from 'zod';
-import { ModelSettings, ModelSettings$zodSchema } from './modelsettings.js';
+import { type ModelSettings, ModelSettings$zodSchema } from './modelsettings.js';
 
 export type Model = {
   base?: ModelSettings | undefined;

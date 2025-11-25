@@ -4,7 +4,7 @@
 
 import { credentialStoreListCredentialStores } from '../../funcs/credentialStoreListCredentialStores.js';
 import { ListCredentialStoresRequest$zodSchema } from '../../models/listcredentialstoresop.js';
-import { formatResult, ToolDefinition } from '../tools.js';
+import { formatResult, type ToolDefinition } from '../tools.js';
 
 const args = {
   request: ListCredentialStoresRequest$zodSchema,

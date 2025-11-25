@@ -3,16 +3,19 @@
  */
 
 import * as z from 'zod';
-import { AgentStopWhen, AgentStopWhen$zodSchema } from './agentstopwhen.js';
-import { ContextConfigCreate, ContextConfigCreate$zodSchema } from './contextconfigcreate.js';
-import { ExternalAgentCreate, ExternalAgentCreate$zodSchema } from './externalagentcreate.js';
-import { FullAgentAgentInsert, FullAgentAgentInsert$zodSchema } from './fullagentagentinsert.js';
-import { FunctionCreate, FunctionCreate$zodSchema } from './functioncreate.js';
-import { FunctionToolCreate, FunctionToolCreate$zodSchema } from './functiontoolcreate.js';
-import { Model, Model$zodSchema } from './model.js';
-import { StatusUpdate, StatusUpdate$zodSchema } from './statusupdate.js';
-import { TeamAgent, TeamAgent$zodSchema } from './teamagent.js';
-import { ToolCreate, ToolCreate$zodSchema } from './toolcreate.js';
+import { type AgentStopWhen, AgentStopWhen$zodSchema } from './agentstopwhen.js';
+import { type ContextConfigCreate, ContextConfigCreate$zodSchema } from './contextconfigcreate.js';
+import { type ExternalAgentCreate, ExternalAgentCreate$zodSchema } from './externalagentcreate.js';
+import {
+  type FullAgentAgentInsert,
+  FullAgentAgentInsert$zodSchema,
+} from './fullagentagentinsert.js';
+import { type FunctionCreate, FunctionCreate$zodSchema } from './functioncreate.js';
+import { type FunctionToolCreate, FunctionToolCreate$zodSchema } from './functiontoolcreate.js';
+import { type Model, Model$zodSchema } from './model.js';
+import { type StatusUpdate, StatusUpdate$zodSchema } from './statusupdate.js';
+import { type TeamAgent, TeamAgent$zodSchema } from './teamagent.js';
+import { type ToolCreate, ToolCreate$zodSchema } from './toolcreate.js';
 
 export type AgentWithinContextOfProject = {
   id: string;

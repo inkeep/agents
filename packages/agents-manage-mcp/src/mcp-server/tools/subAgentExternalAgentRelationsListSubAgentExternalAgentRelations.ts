@@ -4,7 +4,7 @@
 
 import { subAgentExternalAgentRelationsListSubAgentExternalAgentRelations } from '../../funcs/subAgentExternalAgentRelationsListSubAgentExternalAgentRelations.js';
 import { ListSubAgentExternalAgentRelationsRequest$zodSchema } from '../../models/listsubagentexternalagentrelationsop.js';
-import { formatResult, ToolDefinition } from '../tools.js';
+import { formatResult, type ToolDefinition } from '../tools.js';
 
 const args = {
   request: ListSubAgentExternalAgentRelationsRequest$zodSchema,

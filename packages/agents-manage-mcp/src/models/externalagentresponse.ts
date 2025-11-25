@@ -3,7 +3,7 @@
  */
 
 import * as z from 'zod';
-import { ExternalAgent, ExternalAgent$zodSchema } from './externalagent.js';
+import { type ExternalAgent, ExternalAgent$zodSchema } from './externalagent.js';
 
 export type ExternalAgentResponse = { data: ExternalAgent };
 

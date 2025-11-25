@@ -4,7 +4,7 @@
 
 import * as z from 'zod';
 import {
-  SubAgentExternalAgentRelation,
+  type SubAgentExternalAgentRelation,
   SubAgentExternalAgentRelation$zodSchema,
 } from './subagentexternalagentrelation.js';
 

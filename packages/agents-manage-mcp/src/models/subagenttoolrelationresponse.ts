@@ -3,7 +3,10 @@
  */
 
 import * as z from 'zod';
-import { SubAgentToolRelation, SubAgentToolRelation$zodSchema } from './subagenttoolrelation.js';
+import {
+  type SubAgentToolRelation,
+  SubAgentToolRelation$zodSchema,
+} from './subagenttoolrelation.js';
 
 export type SubAgentToolRelationResponse = { data: SubAgentToolRelation };
 

@@ -18,9 +18,7 @@ export default {
         {
           group: 'Agents',
           icon: 'LuUser',
-          pages: [
-            'tutorials/agents/meeting-prep-assistant',
-          ],
+          pages: ['tutorials/agents/meeting-prep-assistant'],
         },
         {
           group: 'MCP Servers',

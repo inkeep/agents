@@ -349,8 +349,8 @@ describe('Agent Integration with SystemPromptBuilder', () => {
           },
         },
       ],
-      createdAt: new Date(),
-      updatedAt: new Date(),
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
     };
 
     mockAgentConfig = {
@@ -562,8 +562,8 @@ describe('Phase1Config Tool Conversion', () => {
             },
           },
         ],
-        createdAt: new Date(),
-        updatedAt: new Date(),
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
       } as McpTool,
     ];
 
@@ -621,8 +621,8 @@ describe('Phase1Config Tool Conversion', () => {
           logging: false,
         },
         availableTools: undefined,
-        createdAt: new Date(),
-        updatedAt: new Date(),
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
       } as McpTool,
     ];
 
@@ -889,8 +889,8 @@ describe('Agent Credential Integration', () => {
         logging: false,
       },
       availableTools: [],
-      createdAt: new Date(),
-      updatedAt: new Date(),
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
     };
 
     const agent = new Agent(mockAgentConfig, mockAgentFramework);
@@ -929,8 +929,8 @@ describe('Agent Credential Integration', () => {
         logging: false,
       },
       availableTools: [],
-      createdAt: new Date(),
-      updatedAt: new Date(),
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
     };
 
     const agent = new Agent(mockAgentConfig, mockAgentFramework);
@@ -962,8 +962,8 @@ describe('Agent Credential Integration', () => {
         logging: false,
       },
       availableTools: [],
-      createdAt: new Date(),
-      updatedAt: new Date(),
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
     };
 
     const configWithCredentials = {
@@ -1024,8 +1024,8 @@ describe('Agent Credential Integration', () => {
         logging: false,
       },
       availableTools: [],
-      createdAt: new Date(),
-      updatedAt: new Date(),
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
     };
 
     const configWithoutCredentials = {
@@ -1078,8 +1078,8 @@ describe('Agent Credential Integration', () => {
       credentialReferenceId: 'context-credential',
       capabilities: { tools: true, resources: false, prompts: false, logging: false },
       availableTools: [],
-      createdAt: new Date(),
-      updatedAt: new Date(),
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
     };
 
     const contextConfig = {

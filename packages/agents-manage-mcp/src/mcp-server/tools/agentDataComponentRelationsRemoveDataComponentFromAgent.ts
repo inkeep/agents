@@ -4,7 +4,7 @@
 
 import { agentDataComponentRelationsRemoveDataComponentFromAgent } from '../../funcs/agentDataComponentRelationsRemoveDataComponentFromAgent.js';
 import { RemoveDataComponentFromAgentRequest$zodSchema } from '../../models/removedatacomponentfromagentop.js';
-import { formatResult, ToolDefinition } from '../tools.js';
+import { formatResult, type ToolDefinition } from '../tools.js';
 
 const args = {
   request: RemoveDataComponentFromAgentRequest$zodSchema,

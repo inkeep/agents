@@ -4,7 +4,7 @@
 
 import { projectsGetProjectById } from '../../funcs/projectsGetProjectById.js';
 import { GetProjectByIdRequest$zodSchema } from '../../models/getprojectbyidop.js';
-import { formatResult, ToolDefinition } from '../tools.js';
+import { formatResult, type ToolDefinition } from '../tools.js';
 
 const args = {
   request: GetProjectByIdRequest$zodSchema,

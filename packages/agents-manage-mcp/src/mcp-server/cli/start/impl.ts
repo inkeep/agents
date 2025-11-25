@@ -5,9 +5,9 @@
 import { SSEServerTransport } from '@modelcontextprotocol/sdk/server/sse.js';
 import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';
 import express from 'express';
-import { SDKOptions } from '../../../lib/config.js';
-import { LocalContext } from '../../cli.js';
-import { ConsoleLoggerLevel, createConsoleLogger } from '../../console-logger.js';
+import type { SDKOptions } from '../../../lib/config.js';
+import type { LocalContext } from '../../cli.js';
+import { type ConsoleLoggerLevel, createConsoleLogger } from '../../console-logger.js';
 import { createMCPServer } from '../../server.js';
 
 interface StartCommandFlags {

@@ -3,7 +3,7 @@
  */
 
 import * as z from 'zod';
-import { Project, Project$zodSchema } from './project.js';
+import { type Project, Project$zodSchema } from './project.js';
 
 export type ProjectResponse = { data: Project };
 

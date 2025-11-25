@@ -88,7 +88,16 @@ function HomeContent() {
     }
 
     handleRedirect();
-  }, [user, session, isLoading, isRedirecting, tenantId, searchParams, router, PUBLIC_DISABLE_AUTH]);
+  }, [
+    user,
+    session,
+    isLoading,
+    isRedirecting,
+    tenantId,
+    searchParams,
+    router,
+    PUBLIC_DISABLE_AUTH,
+  ]);
 
   return (
     <div className="flex items-center justify-center h-full">

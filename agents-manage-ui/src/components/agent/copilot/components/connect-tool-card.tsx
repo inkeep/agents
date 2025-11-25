@@ -24,7 +24,7 @@ export interface ConnectToolCardProps {
   toolId: string;
   targetTenantId?: string;
   targetProjectId?: string;
-  onConnect: OAuthLoginHandler
+  onConnect: OAuthLoginHandler;
 }
 
 export function ConnectToolCard({
@@ -72,7 +72,9 @@ export function ConnectToolCard({
             }
           } catch (thirdPartyErr) {
             console.error('Failed to fetch third-party connect URL:', thirdPartyErr);
-            setErrorMessage('Failed to fetch third-party connect URL. Go to the MCP server page to see more details.');
+            setErrorMessage(
+              'Failed to fetch third-party connect URL. Go to the MCP server page to see more details.'
+            );
           }
         } else if (isThirdPartyMCPServer && tool.status === 'healthy') {
           setStatus('success');
@@ -187,4 +189,3 @@ export function ConnectToolCard({
     </div>
   );
 }
-

@@ -3,7 +3,7 @@
  */
 
 import * as z from 'zod';
-import { CredentialStore, CredentialStore$zodSchema } from './credentialstore.js';
+import { type CredentialStore, CredentialStore$zodSchema } from './credentialstore.js';
 
 export type CredentialStoreListResponse = { data: Array<CredentialStore> };
 

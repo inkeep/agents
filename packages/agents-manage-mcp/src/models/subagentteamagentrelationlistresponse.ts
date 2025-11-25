@@ -3,9 +3,9 @@
  */
 
 import * as z from 'zod';
-import { Pagination, Pagination$zodSchema } from './pagination.js';
+import { type Pagination, Pagination$zodSchema } from './pagination.js';
 import {
-  SubAgentTeamAgentRelation,
+  type SubAgentTeamAgentRelation,
   SubAgentTeamAgentRelation$zodSchema,
 } from './subagentteamagentrelation.js';
 

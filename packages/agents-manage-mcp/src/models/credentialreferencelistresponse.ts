@@ -3,8 +3,8 @@
  */
 
 import * as z from 'zod';
-import { CredentialReference, CredentialReference$zodSchema } from './credentialreference.js';
-import { Pagination, Pagination$zodSchema } from './pagination.js';
+import { type CredentialReference, CredentialReference$zodSchema } from './credentialreference.js';
+import { type Pagination, Pagination$zodSchema } from './pagination.js';
 
 export type CredentialReferenceListResponse = {
   data: Array<CredentialReference>;

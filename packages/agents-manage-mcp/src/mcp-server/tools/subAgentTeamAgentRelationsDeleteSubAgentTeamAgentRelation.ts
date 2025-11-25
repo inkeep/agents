@@ -4,7 +4,7 @@
 
 import { subAgentTeamAgentRelationsDeleteSubAgentTeamAgentRelation } from '../../funcs/subAgentTeamAgentRelationsDeleteSubAgentTeamAgentRelation.js';
 import { DeleteSubAgentTeamAgentRelationRequest$zodSchema } from '../../models/deletesubagentteamagentrelationop.js';
-import { formatResult, ToolDefinition } from '../tools.js';
+import { formatResult, type ToolDefinition } from '../tools.js';
 
 const args = {
   request: DeleteSubAgentTeamAgentRelationRequest$zodSchema,

@@ -4,7 +4,7 @@
 
 import { toolsUpdateTool } from '../../funcs/toolsUpdateTool.js';
 import { UpdateToolRequest$zodSchema } from '../../models/updatetoolop.js';
-import { formatResult, ToolDefinition } from '../tools.js';
+import { formatResult, type ToolDefinition } from '../tools.js';
 
 const args = {
   request: UpdateToolRequest$zodSchema,

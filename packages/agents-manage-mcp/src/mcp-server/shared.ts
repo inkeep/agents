@@ -47,18 +47,22 @@ export function isBinaryData(value: unknown): value is BinaryData {
 export async function valueToBase64(value: BinaryData | null | undefined): Promise<string | null> {
   if (value == null) {
     return null;
-  } else if (value instanceof Uint8Array) {
-    return bytesToBase64(value);
-  } else if (value instanceof ArrayBuffer) {
-    return bytesToBase64(new Uint8Array(value));
-  } else if (value instanceof Response || value instanceof Blob) {
-    return bytesToBase64(new Uint8Array(await value.arrayBuffer()));
-  } else if (value instanceof ReadableStream) {
-    return bytesToBase64(await consumeStream(value));
-  } else if (typeof value === 'string') {
-    return base64Schema.parse(value);
-  } else {
-    value satisfies never;
-    throw new Error(`Unsupported image value type: ${typeof value}`);
   }
+  if (value instanceof Uint8Array) {
+    return bytesToBase64(value);
+  }
+  if (value instanceof ArrayBuffer) {
+    return bytesToBase64(new Uint8Array(value));
+  }
+  if (value instanceof Response || value instanceof Blob) {
+    return bytesToBase64(new Uint8Array(await value.arrayBuffer()));
+  }
+  if (value instanceof ReadableStream) {
+    return bytesToBase64(await consumeStream(value));
+  }
+  if (typeof value === 'string') {
+    return base64Schema.parse(value);
+  }
+  value satisfies never;
+  throw new Error(`Unsupported image value type: ${typeof value}`);
 }

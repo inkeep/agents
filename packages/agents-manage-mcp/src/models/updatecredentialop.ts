@@ -3,20 +3,20 @@
  */
 
 import * as z from 'zod';
-import { BadRequest, BadRequest$zodSchema } from './badrequest.js';
+import { type BadRequest, BadRequest$zodSchema } from './badrequest.js';
 import {
-  CredentialReferenceResponse,
+  type CredentialReferenceResponse,
   CredentialReferenceResponse$zodSchema,
 } from './credentialreferenceresponse.js';
 import {
-  CredentialReferenceUpdate,
+  type CredentialReferenceUpdate,
   CredentialReferenceUpdate$zodSchema,
 } from './credentialreferenceupdate.js';
-import { Forbidden, Forbidden$zodSchema } from './forbidden.js';
-import { InternalServerError, InternalServerError$zodSchema } from './internalservererror.js';
-import { NotFound, NotFound$zodSchema } from './notfound.js';
-import { Unauthorized, Unauthorized$zodSchema } from './unauthorized.js';
-import { UnprocessableEntity, UnprocessableEntity$zodSchema } from './unprocessableentity.js';
+import { type Forbidden, Forbidden$zodSchema } from './forbidden.js';
+import { type InternalServerError, InternalServerError$zodSchema } from './internalservererror.js';
+import { type NotFound, NotFound$zodSchema } from './notfound.js';
+import { type Unauthorized, Unauthorized$zodSchema } from './unauthorized.js';
+import { type UnprocessableEntity, UnprocessableEntity$zodSchema } from './unprocessableentity.js';
 
 export type UpdateCredentialRequest = {
   tenantId: string;

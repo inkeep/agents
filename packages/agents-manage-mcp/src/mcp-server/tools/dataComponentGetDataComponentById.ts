@@ -4,7 +4,7 @@
 
 import { dataComponentGetDataComponentById } from '../../funcs/dataComponentGetDataComponentById.js';
 import { GetDataComponentByIdRequest$zodSchema } from '../../models/getdatacomponentbyidop.js';
-import { formatResult, ToolDefinition } from '../tools.js';
+import { formatResult, type ToolDefinition } from '../tools.js';
 
 const args = {
   request: GetDataComponentByIdRequest$zodSchema,

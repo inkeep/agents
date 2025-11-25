@@ -3,7 +3,7 @@
  */
 
 import * as z from 'zod';
-import { DataComponent, DataComponent$zodSchema } from './datacomponent.js';
+import { type DataComponent, DataComponent$zodSchema } from './datacomponent.js';
 
 export type DataComponentResponse = { data: DataComponent };
 

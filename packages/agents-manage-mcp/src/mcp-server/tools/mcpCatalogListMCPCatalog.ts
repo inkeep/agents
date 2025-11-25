@@ -4,7 +4,7 @@
 
 import { mcpCatalogListMCPCatalog } from '../../funcs/mcpCatalogListMCPCatalog.js';
 import { ListMcpCatalogRequest$zodSchema } from '../../models/listmcpcatalogop.js';
-import { formatResult, ToolDefinition } from '../tools.js';
+import { formatResult, type ToolDefinition } from '../tools.js';
 
 const args = {
   request: ListMcpCatalogRequest$zodSchema,

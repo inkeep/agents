@@ -4,25 +4,25 @@
 
 import * as z from 'zod';
 import {
-  AgentWithinContextOfProject,
+  type AgentWithinContextOfProject,
   AgentWithinContextOfProject$zodSchema,
 } from './agentwithincontextofproject.js';
 import {
-  ArtifactComponentCreate,
+  type ArtifactComponentCreate,
   ArtifactComponentCreate$zodSchema,
 } from './artifactcomponentcreate.js';
 import {
-  CredentialReferenceCreate,
+  type CredentialReferenceCreate,
   CredentialReferenceCreate$zodSchema,
 } from './credentialreferencecreate.js';
-import { DataComponentCreate, DataComponentCreate$zodSchema } from './datacomponentcreate.js';
-import { ExternalAgentCreate, ExternalAgentCreate$zodSchema } from './externalagentcreate.js';
-import { FunctionCreate, FunctionCreate$zodSchema } from './functioncreate.js';
-import { FunctionToolCreate, FunctionToolCreate$zodSchema } from './functiontoolcreate.js';
-import { ProjectModel, ProjectModel$zodSchema } from './projectmodel.js';
-import { StatusUpdate, StatusUpdate$zodSchema } from './statusupdate.js';
-import { StopWhen, StopWhen$zodSchema } from './stopwhen.js';
-import { ToolCreate, ToolCreate$zodSchema } from './toolcreate.js';
+import { type DataComponentCreate, DataComponentCreate$zodSchema } from './datacomponentcreate.js';
+import { type ExternalAgentCreate, ExternalAgentCreate$zodSchema } from './externalagentcreate.js';
+import { type FunctionCreate, FunctionCreate$zodSchema } from './functioncreate.js';
+import { type FunctionToolCreate, FunctionToolCreate$zodSchema } from './functiontoolcreate.js';
+import { type ProjectModel, ProjectModel$zodSchema } from './projectmodel.js';
+import { type StatusUpdate, StatusUpdate$zodSchema } from './statusupdate.js';
+import { type StopWhen, StopWhen$zodSchema } from './stopwhen.js';
+import { type ToolCreate, ToolCreate$zodSchema } from './toolcreate.js';
 
 export type FullProjectDefinition = {
   id: string;

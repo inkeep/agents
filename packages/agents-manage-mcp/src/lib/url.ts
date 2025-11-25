@@ -13,7 +13,7 @@ export function pathToFunc(
   const paramRE = /\{([a-zA-Z0-9_]+?)\}/g;
 
   return function buildURLPath(params: Record<string, unknown> = {}): string {
-    return pathPattern.replace(paramRE, function (_, placeholder) {
+    return pathPattern.replace(paramRE, (_, placeholder) => {
       if (!hasOwn.call(params, placeholder)) {
         throw new Error(`Parameter '${placeholder}' is required`);
       }

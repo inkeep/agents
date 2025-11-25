@@ -3,7 +3,7 @@
  */
 
 import * as z from 'zod';
-import { ApiKey, ApiKey$zodSchema } from './apikey.js';
+import { type ApiKey, ApiKey$zodSchema } from './apikey.js';
 
 export type ApiKeyResponse = { data: ApiKey };
 

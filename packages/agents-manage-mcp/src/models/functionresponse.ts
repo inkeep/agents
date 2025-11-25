@@ -3,7 +3,7 @@
  */
 
 import * as z from 'zod';
-import { FunctionT, FunctionT$zodSchema } from './function.js';
+import { type FunctionT, FunctionT$zodSchema } from './function.js';
 
 export type FunctionResponse = { data: FunctionT };
 

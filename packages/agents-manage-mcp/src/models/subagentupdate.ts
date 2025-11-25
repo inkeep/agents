@@ -3,7 +3,7 @@
  */
 
 import * as z from 'zod';
-import { Model, Model$zodSchema } from './model.js';
+import { type Model, Model$zodSchema } from './model.js';
 
 export type SubAgentUpdate = {
   id?: string | undefined;

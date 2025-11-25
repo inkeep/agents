@@ -3,8 +3,8 @@
  */
 
 import * as z from 'zod';
-import { Pagination, Pagination$zodSchema } from './pagination.js';
-import { RelatedAgentInfo, RelatedAgentInfo$zodSchema } from './relatedagentinfo.js';
+import { type Pagination, Pagination$zodSchema } from './pagination.js';
+import { type RelatedAgentInfo, RelatedAgentInfo$zodSchema } from './relatedagentinfo.js';
 
 export type RelatedAgentInfoListResponse = {
   data: Array<RelatedAgentInfo>;

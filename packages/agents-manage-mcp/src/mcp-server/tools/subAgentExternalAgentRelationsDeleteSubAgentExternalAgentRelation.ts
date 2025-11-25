@@ -4,7 +4,7 @@
 
 import { subAgentExternalAgentRelationsDeleteSubAgentExternalAgentRelation } from '../../funcs/subAgentExternalAgentRelationsDeleteSubAgentExternalAgentRelation.js';
 import { DeleteSubAgentExternalAgentRelationRequest$zodSchema } from '../../models/deletesubagentexternalagentrelationop.js';
-import { formatResult, ToolDefinition } from '../tools.js';
+import { formatResult, type ToolDefinition } from '../tools.js';
 
 const args = {
   request: DeleteSubAgentExternalAgentRelationRequest$zodSchema,

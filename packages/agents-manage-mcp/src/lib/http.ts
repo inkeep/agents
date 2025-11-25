@@ -13,9 +13,8 @@ const DEFAULT_FETCHER: Fetcher = (input, init) => {
   // therefore needed for interop with Bun.
   if (init == null) {
     return fetch(input);
-  } else {
-    return fetch(input, init);
   }
+  return fetch(input, init);
 };
 
 export type RequestInput = {
@@ -201,7 +200,7 @@ export function matchContentType(response: Response, pattern: string): boolean {
   return true;
 }
 
-const codeRangeRE = new RegExp('^[0-9]xx$', 'i');
+const codeRangeRE = /^[0-9]xx$/i;
 
 export function matchStatusCode(response: Response, codes: StatusCodePredicate): boolean {
   const actual = `${response.status}`;

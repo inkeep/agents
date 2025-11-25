@@ -4,7 +4,7 @@
 
 import { artifactComponentGetArtifactComponentById } from '../../funcs/artifactComponentGetArtifactComponentById.js';
 import { GetArtifactComponentByIdRequest$zodSchema } from '../../models/getartifactcomponentbyidop.js';
-import { formatResult, ToolDefinition } from '../tools.js';
+import { formatResult, type ToolDefinition } from '../tools.js';
 
 const args = {
   request: GetArtifactComponentByIdRequest$zodSchema,

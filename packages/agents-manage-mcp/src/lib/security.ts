@@ -120,22 +120,26 @@ export function resolveSecurity(...options: SecurityInput[][]): SecurityState | 
     return opts.every((o) => {
       if (o.value == null) {
         return false;
-      } else if (o.type === 'http:basic') {
+      }
+      if (o.type === 'http:basic') {
         return o.value.username != null || o.value.password != null;
-      } else if (o.type === 'http:custom') {
+      }
+      if (o.type === 'http:custom') {
         return null;
-      } else if (o.type === 'oauth2:password') {
+      }
+      if (o.type === 'oauth2:password') {
         return typeof o.value === 'string' && !!o.value;
-      } else if (o.type === 'oauth2:client_credentials') {
+      }
+      if (o.type === 'oauth2:client_credentials') {
         if (typeof o.value == 'string') {
           return !!o.value;
         }
         return o.value.clientID != null || o.value.clientSecret != null;
-      } else if (typeof o.value === 'string') {
-        return !!o.value;
-      } else {
-        throw new Error(`Unrecognized security type: ${o.type} (value type: ${typeof o.value})`);
       }
+      if (typeof o.value === 'string') {
+        return !!o.value;
+      }
+      throw new Error(`Unrecognized security type: ${o.type} (value type: ${typeof o.value})`);
     });
   });
   if (option == null) {

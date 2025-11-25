@@ -4,7 +4,7 @@
 
 import { fullAgentUpdateFullAgent } from '../../funcs/fullAgentUpdateFullAgent.js';
 import { UpdateFullAgentRequest$zodSchema } from '../../models/updatefullagentop.js';
-import { formatResult, ToolDefinition } from '../tools.js';
+import { formatResult, type ToolDefinition } from '../tools.js';
 
 const args = {
   request: UpdateFullAgentRequest$zodSchema,

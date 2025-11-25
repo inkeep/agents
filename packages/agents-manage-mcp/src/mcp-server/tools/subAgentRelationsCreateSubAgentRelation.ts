@@ -4,7 +4,7 @@
 
 import { subAgentRelationsCreateSubAgentRelation } from '../../funcs/subAgentRelationsCreateSubAgentRelation.js';
 import { CreateSubAgentRelationRequest$zodSchema } from '../../models/createsubagentrelationop.js';
-import { formatResult, ToolDefinition } from '../tools.js';
+import { formatResult, type ToolDefinition } from '../tools.js';
 
 const args = {
   request: CreateSubAgentRelationRequest$zodSchema,

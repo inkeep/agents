@@ -4,7 +4,7 @@
 
 import { agentsGetAgent } from '../../funcs/agentsGetAgent.js';
 import { GetAgentRequest$zodSchema } from '../../models/getagentop.js';
-import { formatResult, ToolDefinition } from '../tools.js';
+import { formatResult, type ToolDefinition } from '../tools.js';
 
 const args = {
   request: GetAgentRequest$zodSchema,

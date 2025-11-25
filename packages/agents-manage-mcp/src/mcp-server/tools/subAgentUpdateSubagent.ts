@@ -4,7 +4,7 @@
 
 import { subAgentUpdateSubagent } from '../../funcs/subAgentUpdateSubagent.js';
 import { UpdateSubagentRequest$zodSchema } from '../../models/updatesubagentop.js';
-import { formatResult, ToolDefinition } from '../tools.js';
+import { formatResult, type ToolDefinition } from '../tools.js';
 
 const args = {
   request: UpdateSubagentRequest$zodSchema,

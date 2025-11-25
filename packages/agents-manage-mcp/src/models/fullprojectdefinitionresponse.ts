@@ -3,7 +3,10 @@
  */
 
 import * as z from 'zod';
-import { FullProjectDefinition, FullProjectDefinition$zodSchema } from './fullprojectdefinition.js';
+import {
+  type FullProjectDefinition,
+  FullProjectDefinition$zodSchema,
+} from './fullprojectdefinition.js';
 
 export type FullProjectDefinitionResponse = { data: FullProjectDefinition };
 

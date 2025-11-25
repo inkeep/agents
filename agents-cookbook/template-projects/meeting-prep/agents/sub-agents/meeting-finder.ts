@@ -26,5 +26,5 @@ export const meetingFinder = subAgent({
 - Return to coordinator after finding meeting
 - Do not pass in a start_time parameter
 </rules>`,
-  canUse: () => [googleCalendarMcpTool]
+  canUse: () => [googleCalendarMcpTool],
 });

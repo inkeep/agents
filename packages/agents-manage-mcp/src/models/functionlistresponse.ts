@@ -3,8 +3,8 @@
  */
 
 import * as z from 'zod';
-import { FunctionT, FunctionT$zodSchema } from './function.js';
-import { Pagination, Pagination$zodSchema } from './pagination.js';
+import { type FunctionT, FunctionT$zodSchema } from './function.js';
+import { type Pagination, Pagination$zodSchema } from './pagination.js';
 
 export type FunctionListResponse = {
   data: Array<FunctionT>;

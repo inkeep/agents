@@ -4,7 +4,7 @@
 
 import { agentArtifactComponentRelationsCheckArtifactComponentAgentAssociation } from '../../funcs/agentArtifactComponentRelationsCheckArtifactComponentAgentAssociation.js';
 import { CheckArtifactComponentAgentAssociationRequest$zodSchema } from '../../models/checkartifactcomponentagentassociationop.js';
-import { formatResult, ToolDefinition } from '../tools.js';
+import { formatResult, type ToolDefinition } from '../tools.js';
 
 const args = {
   request: CheckArtifactComponentAgentAssociationRequest$zodSchema,

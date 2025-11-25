@@ -4,7 +4,7 @@
 
 import { dataComponentListDataComponents } from '../../funcs/dataComponentListDataComponents.js';
 import { ListDataComponentsRequest$zodSchema } from '../../models/listdatacomponentsop.js';
-import { formatResult, ToolDefinition } from '../tools.js';
+import { formatResult, type ToolDefinition } from '../tools.js';
 
 const args = {
   request: ListDataComponentsRequest$zodSchema,

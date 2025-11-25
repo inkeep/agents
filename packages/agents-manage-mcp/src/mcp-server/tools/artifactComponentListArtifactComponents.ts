@@ -4,7 +4,7 @@
 
 import { artifactComponentListArtifactComponents } from '../../funcs/artifactComponentListArtifactComponents.js';
 import { ListArtifactComponentsRequest$zodSchema } from '../../models/listartifactcomponentsop.js';
-import { formatResult, ToolDefinition } from '../tools.js';
+import { formatResult, type ToolDefinition } from '../tools.js';
 
 const args = {
   request: ListArtifactComponentsRequest$zodSchema,

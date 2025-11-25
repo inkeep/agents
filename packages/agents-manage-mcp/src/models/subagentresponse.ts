@@ -3,7 +3,7 @@
  */
 
 import * as z from 'zod';
-import { SubAgent, SubAgent$zodSchema } from './subagent.js';
+import { type SubAgent, SubAgent$zodSchema } from './subagent.js';
 
 export type SubAgentResponse = { data: SubAgent };
 

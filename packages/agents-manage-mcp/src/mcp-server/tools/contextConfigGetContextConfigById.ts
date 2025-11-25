@@ -4,7 +4,7 @@
 
 import { contextConfigGetContextConfigById } from '../../funcs/contextConfigGetContextConfigById.js';
 import { GetContextConfigByIdRequest$zodSchema } from '../../models/getcontextconfigbyidop.js';
-import { formatResult, ToolDefinition } from '../tools.js';
+import { formatResult, type ToolDefinition } from '../tools.js';
 
 const args = {
   request: GetContextConfigByIdRequest$zodSchema,

@@ -3,8 +3,8 @@
  */
 
 import * as z from 'zod';
-import { ApiKey, ApiKey$zodSchema } from './apikey.js';
-import { Pagination, Pagination$zodSchema } from './pagination.js';
+import { type ApiKey, ApiKey$zodSchema } from './apikey.js';
+import { type Pagination, Pagination$zodSchema } from './pagination.js';
 
 export type ApiKeyListResponse = {
   data: Array<ApiKey>;

@@ -4,7 +4,7 @@
 
 import { functionToolsGetFunctionTool } from '../../funcs/functionToolsGetFunctionTool.js';
 import { GetFunctionToolRequest$zodSchema } from '../../models/getfunctiontoolop.js';
-import { formatResult, ToolDefinition } from '../tools.js';
+import { formatResult, type ToolDefinition } from '../tools.js';
 
 const args = {
   request: GetFunctionToolRequest$zodSchema,

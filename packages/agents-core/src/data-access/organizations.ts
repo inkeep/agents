@@ -59,12 +59,7 @@ export const getPendingInvitationsByEmail = (db: DatabaseClient) => async (email
     })
     .from(invitation)
     .leftJoin(organization, eq(invitation.organizationId, organization.id))
-    .where(
-      and(
-        eq(invitation.email, email),
-        eq(invitation.status, 'pending')
-      )
-    );
+    .where(and(eq(invitation.email, email), eq(invitation.status, 'pending')));
 
   // Filter out expired invitations
   return result.filter((inv) => new Date(inv.expiresAt) > now);

@@ -3,8 +3,8 @@
  */
 
 import * as z from 'zod';
-import { ExternalAgent, ExternalAgent$zodSchema } from './externalagent.js';
-import { Pagination, Pagination$zodSchema } from './pagination.js';
+import { type ExternalAgent, ExternalAgent$zodSchema } from './externalagent.js';
+import { type Pagination, Pagination$zodSchema } from './pagination.js';
 
 export type ExternalAgentListResponse = {
   data: Array<ExternalAgent>;

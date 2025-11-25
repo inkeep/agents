@@ -4,7 +4,7 @@
 
 import { agentDataComponentRelationsAssociateDataComponentWithAgent } from '../../funcs/agentDataComponentRelationsAssociateDataComponentWithAgent.js';
 import { AssociateDataComponentWithAgentRequest$zodSchema } from '../../models/associatedatacomponentwithagentop.js';
-import { formatResult, ToolDefinition } from '../tools.js';
+import { formatResult, type ToolDefinition } from '../tools.js';
 
 const args = {
   request: AssociateDataComponentWithAgentRequest$zodSchema,

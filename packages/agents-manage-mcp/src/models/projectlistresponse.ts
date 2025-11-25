@@ -3,8 +3,8 @@
  */
 
 import * as z from 'zod';
-import { Pagination, Pagination$zodSchema } from './pagination.js';
-import { Project, Project$zodSchema } from './project.js';
+import { type Pagination, Pagination$zodSchema } from './pagination.js';
+import { type Project, Project$zodSchema } from './project.js';
 
 export type ProjectListResponse = {
   data: Array<Project>;

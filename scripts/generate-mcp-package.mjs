@@ -163,7 +163,10 @@ async function main() {
   const workspaceYamlPath = path.join(rootDir, 'pnpm-workspace.yaml');
   const workspaceYaml = fs.readFileSync(workspaceYamlPath, 'utf8');
 
-  if (!workspaceYaml.includes(`packages/${packageName}`) && !workspaceYaml.includes('"packages/*"')) {
+  if (
+    !workspaceYaml.includes(`packages/${packageName}`) &&
+    !workspaceYaml.includes('"packages/*"')
+  ) {
     console.log('⚠️  Package not in pnpm-workspace.yaml');
     console.log('   Adding it now...');
 
@@ -208,4 +211,3 @@ main().catch((error) => {
   console.error(error.stack);
   process.exit(1);
 });
-

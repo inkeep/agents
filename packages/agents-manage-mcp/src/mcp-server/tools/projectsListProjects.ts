@@ -4,7 +4,7 @@
 
 import { projectsListProjects } from '../../funcs/projectsListProjects.js';
 import { ListProjectsRequest$zodSchema } from '../../models/listprojectsop.js';
-import { formatResult, ToolDefinition } from '../tools.js';
+import { formatResult, type ToolDefinition } from '../tools.js';
 
 const args = {
   request: ListProjectsRequest$zodSchema,

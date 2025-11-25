@@ -1,6 +1,6 @@
 'use server';
 
-import { makeManagementApiRequest } from "../api/api-config";
+import { makeManagementApiRequest } from '../api/api-config';
 
 export interface PendingInvitation {
   id: string;
@@ -23,4 +23,3 @@ export async function getPendingInvitations(email: string): Promise<PendingInvit
     return [];
   }
 }
-

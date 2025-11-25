@@ -4,7 +4,7 @@
 
 import { oAuthInitiateOauthLoginPublic } from '../../funcs/oAuthInitiateOauthLoginPublic.js';
 import { InitiateOauthLoginPublicRequest$zodSchema } from '../../models/initiateoauthloginpublicop.js';
-import { formatResult, ToolDefinition } from '../tools.js';
+import { formatResult, type ToolDefinition } from '../tools.js';
 
 const args = {
   request: InitiateOauthLoginPublicRequest$zodSchema,

@@ -4,7 +4,7 @@
 
 import { apiKeysListAPIKeys } from '../../funcs/apiKeysListAPIKeys.js';
 import { ListApiKeysRequest$zodSchema } from '../../models/listapikeysop.js';
-import { formatResult, ToolDefinition } from '../tools.js';
+import { formatResult, type ToolDefinition } from '../tools.js';
 
 const args = {
   request: ListApiKeysRequest$zodSchema,

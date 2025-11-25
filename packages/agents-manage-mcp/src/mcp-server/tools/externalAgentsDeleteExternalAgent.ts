@@ -4,7 +4,7 @@
 
 import { externalAgentsDeleteExternalAgent } from '../../funcs/externalAgentsDeleteExternalAgent.js';
 import { DeleteExternalAgentRequest$zodSchema } from '../../models/deleteexternalagentop.js';
-import { formatResult, ToolDefinition } from '../tools.js';
+import { formatResult, type ToolDefinition } from '../tools.js';
 
 const args = {
   request: DeleteExternalAgentRequest$zodSchema,

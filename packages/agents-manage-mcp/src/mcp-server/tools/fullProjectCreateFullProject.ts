@@ -4,7 +4,7 @@
 
 import { fullProjectCreateFullProject } from '../../funcs/fullProjectCreateFullProject.js';
 import { CreateFullProjectRequest$zodSchema } from '../../models/createfullprojectop.js';
-import { formatResult, ToolDefinition } from '../tools.js';
+import { formatResult, type ToolDefinition } from '../tools.js';
 
 const args = {
   request: CreateFullProjectRequest$zodSchema,

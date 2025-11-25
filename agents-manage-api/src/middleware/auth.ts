@@ -33,12 +33,11 @@ export const apiKeyAuth = () =>
 
         await next();
         return;
-      } else {
-        // Bypass secret is set but token doesn't match - reject
-        throw new HTTPException(401, {
-          message: 'Invalid Token',
-        });
       }
+      // Bypass secret is set but token doesn't match - reject
+      throw new HTTPException(401, {
+        message: 'Invalid Token',
+      });
     }
     await next();
     return;

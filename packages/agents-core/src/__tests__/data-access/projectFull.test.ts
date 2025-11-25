@@ -20,7 +20,7 @@ describe('projectFull data access', () => {
   beforeEach(async () => {
     db = testDbClient;
     vi.clearAllMocks();
-    
+
     // Create organization for this tenant
     await createTestOrganization(db, tenantId);
   });
@@ -433,7 +433,7 @@ describe('projectFull data access', () => {
       const updatedProjectWithOneFunction: FullProjectDefinition = {
         ...projectWithFunctions,
         functions: {
-          [func1Id]: projectWithFunctions.functions?.[func1Id],
+          [func1Id]: projectWithFunctions.functions![func1Id],
         },
       };
 
@@ -496,7 +496,7 @@ describe('projectFull data access', () => {
       const updatedProjectWithOneCredential: FullProjectDefinition = {
         ...projectWithCredentials,
         credentialReferences: {
-          [cred1Id]: projectWithCredentials.credentialReferences?.[cred1Id],
+          [cred1Id]: projectWithCredentials.credentialReferences![cred1Id],
         },
       };
 
@@ -557,7 +557,7 @@ describe('projectFull data access', () => {
       const updatedProjectWithOneExternalAgent: FullProjectDefinition = {
         ...projectWithExternalAgents,
         externalAgents: {
-          [ext1Id]: projectWithExternalAgents.externalAgents?.[ext1Id],
+          [ext1Id]: projectWithExternalAgents.externalAgents![ext1Id],
         },
       };
 
@@ -590,22 +590,16 @@ describe('projectFull data access', () => {
             id: data1Id,
             name: 'Data Component 1',
             description: 'Test data component 1',
-            config: {
-              type: 'static',
-              static: {
-                content: 'Test content 1',
-              },
+            props: {
+              content: 'Test content 1',
             },
           },
           [data2Id]: {
             id: data2Id,
             name: 'Data Component 2',
             description: 'Test data component 2',
-            config: {
-              type: 'static',
-              static: {
-                content: 'Test content 2',
-              },
+            props: {
+              content: 'Test content 2',
             },
           },
         },
@@ -628,7 +622,7 @@ describe('projectFull data access', () => {
       const updatedProjectWithOneDataComponent: FullProjectDefinition = {
         ...projectWithDataComponents,
         dataComponents: {
-          [data1Id]: projectWithDataComponents.dataComponents?.[data1Id],
+          [data1Id]: projectWithDataComponents.dataComponents![data1Id],
         },
       };
 
@@ -687,7 +681,7 @@ describe('projectFull data access', () => {
       const updatedProjectWithOneArtifactComponent: FullProjectDefinition = {
         ...projectWithArtifactComponents,
         artifactComponents: {
-          [artifact1Id]: projectWithArtifactComponents.artifactComponents?.[artifact1Id],
+          [artifact1Id]: projectWithArtifactComponents.artifactComponents![artifact1Id],
         },
       };
 

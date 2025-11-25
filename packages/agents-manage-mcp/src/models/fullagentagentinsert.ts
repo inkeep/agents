@@ -4,15 +4,15 @@
 
 import * as z from 'zod';
 import {
-  CanDelegateToExternalAgent,
+  type CanDelegateToExternalAgent,
   CanDelegateToExternalAgent$zodSchema,
 } from './candelegatetoexternalagent.js';
 import {
-  CanDelegateToTeamAgent,
+  type CanDelegateToTeamAgent,
   CanDelegateToTeamAgent$zodSchema,
 } from './candelegatetoteamagent.js';
-import { CanUseItem, CanUseItem$zodSchema } from './canuseitem.js';
-import { Model, Model$zodSchema } from './model.js';
+import { type CanUseItem, CanUseItem$zodSchema } from './canuseitem.js';
+import { type Model, Model$zodSchema } from './model.js';
 
 export const FullAgentAgentInsertType$zodSchema = z.enum(['internal']);
 

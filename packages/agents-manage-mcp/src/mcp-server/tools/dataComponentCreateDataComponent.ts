@@ -4,7 +4,7 @@
 
 import { dataComponentCreateDataComponent } from '../../funcs/dataComponentCreateDataComponent.js';
 import { CreateDataComponentRequest$zodSchema } from '../../models/createdatacomponentop.js';
-import { formatResult, ToolDefinition } from '../tools.js';
+import { formatResult, type ToolDefinition } from '../tools.js';
 
 const args = {
   request: CreateDataComponentRequest$zodSchema,

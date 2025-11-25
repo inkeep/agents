@@ -4,7 +4,7 @@
 
 import { credentialDeleteCredential } from '../../funcs/credentialDeleteCredential.js';
 import { DeleteCredentialRequest$zodSchema } from '../../models/deletecredentialop.js';
-import { formatResult, ToolDefinition } from '../tools.js';
+import { formatResult, type ToolDefinition } from '../tools.js';
 
 const args = {
   request: DeleteCredentialRequest$zodSchema,

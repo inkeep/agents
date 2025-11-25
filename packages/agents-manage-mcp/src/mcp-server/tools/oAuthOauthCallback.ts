@@ -4,7 +4,7 @@
 
 import { oAuthOauthCallback } from '../../funcs/oAuthOauthCallback.js';
 import { OauthCallbackRequest$zodSchema } from '../../models/oauthcallbackop.js';
-import { formatResult, ToolDefinition } from '../tools.js';
+import { formatResult, type ToolDefinition } from '../tools.js';
 
 const args = {
   request: OauthCallbackRequest$zodSchema,

@@ -4,7 +4,7 @@
 
 import { contextConfigListContextConfigs } from '../../funcs/contextConfigListContextConfigs.js';
 import { ListContextConfigsRequest$zodSchema } from '../../models/listcontextconfigsop.js';
-import { formatResult, ToolDefinition } from '../tools.js';
+import { formatResult, type ToolDefinition } from '../tools.js';
 
 const args = {
   request: ListContextConfigsRequest$zodSchema,

@@ -4,7 +4,7 @@
 
 import { agentDataComponentRelationsCheckDataComponentAgentAssociation } from '../../funcs/agentDataComponentRelationsCheckDataComponentAgentAssociation.js';
 import { CheckDataComponentAgentAssociationRequest$zodSchema } from '../../models/checkdatacomponentagentassociationop.js';
-import { formatResult, ToolDefinition } from '../tools.js';
+import { formatResult, type ToolDefinition } from '../tools.js';
 
 const args = {
   request: CheckDataComponentAgentAssociationRequest$zodSchema,
