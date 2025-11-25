@@ -258,6 +258,45 @@ function createExecutionHono(
     }
   );
 
+  // Debug trace export endpoint (no auth required)
+  app.openapi(
+    createRoute({
+      method: 'get',
+      path: '/debug/trace-test',
+      tags: ['debug'],
+      summary: 'Test trace export',
+      description: 'Create a test trace and export it to Signoz',
+      responses: {
+        200: {
+          description: 'Test trace created and exported',
+        },
+      },
+    }),
+    async (c) => {
+      const { trace } = await import('@opentelemetry/api');
+      const tracer = trace.getTracer('debug-tracer');
+      
+      console.log('[OTEL DEBUG] Creating test trace...');
+      
+      const result = await tracer.startActiveSpan('test.trace', async (span) => {
+        span.setAttribute('test.attribute', 'test-value');
+        span.setAttribute('test.timestamp', new Date().toISOString());
+        span.addEvent('test.event', { message: 'This is a test trace from /debug/trace-test' });
+        
+        console.log('[OTEL DEBUG] Test span created, forcing flush...');
+        
+        await flushBatchProcessor();
+        
+        span.end();
+        console.log('[OTEL DEBUG] Test span ended and flushed');
+        
+        return { success: true, message: 'Test trace created and exported' };
+      });
+      
+      return c.json(result, 200);
+    }
+  );
+
   // Mount execution routes - API key provides tenant, project, and agent context
   app.route('/v1/chat', chatRoutes);
   app.route('/api', chatDataRoutes);
