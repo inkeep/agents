@@ -319,14 +319,10 @@ export class Agent {
 
     if (toolType === 'delegation') {
       const relation = this.config.delegateRelations.find(
-        (relation) =>
-          (relation.type === 'external' || relation.type === 'team') &&
-          this.#createRelationToolName('delegate', relation.config.id) === toolName
+        (relation) => this.#createRelationToolName('delegate', relation.config.id) === toolName
       );
 
-      if (relation && (relation.type === 'external' || relation.type === 'team')) {
-        return relation.config.relationId;
-      }
+      return relation?.config.relationId;
     }
   }
 
