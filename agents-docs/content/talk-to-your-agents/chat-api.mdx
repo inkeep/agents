@@ -1,7 +1,7 @@
 ---
 title: How to call your AI Agent using the Chat API
 sidebarTitle: Chat API
-description: Learn about details of the Vercel AI SDK data stream protocol that powers the `/chat` API endpoint.
+description: Learn about details of the Vercel AI SDK data stream protocol that powers the `/api/chat` API endpoint.
 icon: LuMessagesSquare
 keywords: API, Vercel AI SDK, streaming, SSE, data stream, agents, chat
 ---
@@ -75,7 +75,7 @@ The response is an SSE stream of JSON events compatible with the Vercel AI SDK U
 
 #### Text Streaming Events
 - **`text-start`** — Indicates a new text segment is starting
-- **`text-delta`** — Carries the text content delta for the current segment  
+- **`text-delta`** — Carries the text content delta for the current segment
 - **`text-end`** — Marks the end of the current text segment
 
 #### Data Events
@@ -120,7 +120,8 @@ Low-level operational events with technical context. Common types include:
 {"type":"data-operation","data":{"type":"completion","ctx":{"agent":"search-agent","iteration":1}}}
 ```
 
-#### `data-summary` Events  
+#### `data-summary` Events
+
 AI-generated status updates designed for end-user consumption. Structure:
 
 - **`label`** — User-friendly description (required)
