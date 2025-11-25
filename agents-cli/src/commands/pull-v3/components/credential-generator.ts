@@ -17,9 +17,6 @@ const DEFAULT_STYLE: CodeStyle = {
   indentation: '  ',
 };
 
-import { CredentialReferenceInsertSchema } from '@inkeep/agents-core';
-import { getRequiredFields } from '../../../utils/schema-introspection';
-
 /**
  * Utility functions
  */
@@ -105,8 +102,7 @@ export function generateCredentialDefinition(
   lines.push(`${indentation}id: ${formatString(credentialId, q)},`);
 
   // Validate required fields
-  // Get required fields from schema introspection
-  const requiredFields = getRequiredFields(CredentialReferenceInsertSchema);
+  const requiredFields = ['name', 'type', 'credentialStoreId'];
   const missingFields = requiredFields.filter(
     (field) =>
       !credentialData[field] ||

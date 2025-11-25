@@ -118,7 +118,7 @@ describe('Data Component Generator', () => {
     it('should throw error for missing required fields', () => {
       expect(() => {
         generateDataComponentDefinition('minimal', {});
-      }).toThrow("Missing required fields for data component 'minimal': name");
+      }).toThrow("Missing required fields for data component 'minimal': name, props");
     });
 
     it('should throw error when only schema provided (needs props)', () => {
@@ -296,7 +296,7 @@ describe('Data Component Generator', () => {
     it('should throw error for empty component data', () => {
       expect(() => {
         generateDataComponentDefinition('empty', {});
-      }).toThrow("Missing required fields for data component 'empty': name");
+      }).toThrow("Missing required fields for data component 'empty': name, props");
     });
 
     it('should handle special characters in component ID', () => {

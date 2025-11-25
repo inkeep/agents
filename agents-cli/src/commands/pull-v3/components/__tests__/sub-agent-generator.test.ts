@@ -161,7 +161,7 @@ describe('Sub-Agent Generator', () => {
       expect(definition).not.toContain('tool3,');
     });
 
-    it('should throw error for missing required fields', () => {
+    it('should not throw error for minimal agent with just name (description and prompt are optional)', () => {
       const minimalData = {
         name: 'Minimal Agent',
       };
@@ -573,7 +573,7 @@ describe('Sub-Agent Generator', () => {
       }).toThrow("Missing required fields for sub-agent 'missing-name': name");
     });
 
-    it('should throw error for missing description only', () => {
+    it('should not throw error for missing description (now optional)', () => {
       expect(() => {
         generateSubAgentDefinition('missing-desc', {
           name: 'Test Agent',

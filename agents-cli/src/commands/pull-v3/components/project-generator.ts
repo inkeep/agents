@@ -5,8 +5,6 @@
  * Projects are the top-level organizational unit that contains Agents and shared configurations
  */
 
-import { ProjectInsertSchema } from '@inkeep/agents-core';
-import { getRequiredFields } from '../../../utils/schema-introspection';
 import type { ComponentRegistry, ComponentType } from '../utils/component-registry';
 import {
   type CodeStyle,
@@ -39,8 +37,7 @@ export function generateProjectDefinition(
   }
 
   // Validate required project fields
-  // Get required fields from schema introspection
-  const requiredFields = getRequiredFields(ProjectInsertSchema);
+  const requiredFields = ['name', 'models'];
   const missingFields = requiredFields.filter(
     (field) =>
       !projectData[field] || projectData[field] === null || projectData[field] === undefined

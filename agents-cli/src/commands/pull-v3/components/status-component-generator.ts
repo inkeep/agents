@@ -6,8 +6,6 @@
  */
 
 import { jsonSchemaToZod } from 'json-schema-to-zod';
-// Note: Status components don't have a dedicated schema yet, keeping validation minimal
-// TODO: Create StatusComponentInsertSchema when status components get their own table
 
 interface CodeStyle {
   quotes: 'single' | 'double';
@@ -77,7 +75,6 @@ export function generateStatusComponentDefinition(
   }
 
   // Validate required status component fields
-  // Status components validation - keeping minimal for now until proper schema exists
   const requiredFields = ['type'];
   const missingFields = requiredFields.filter(
     (field) =>

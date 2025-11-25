@@ -180,16 +180,16 @@ describe('External Agent Generator', () => {
       }).toThrow("Missing required fields for external agent 'empty-strings-agent': name");
     });
 
-    it('should throw error for null required values', () => {
+    it('should not throw error when name and baseUrl are provided (description is optional)', () => {
       const nullData = {
         name: 'Test External Agent',
         description: null,
-        baseUrl: null,
+        baseUrl: 'https://api.example.com/test',
       };
 
       expect(() => {
         generateExternalAgentDefinition('null-values-agent', nullData);
-      }).toThrow("Missing required fields for external agent 'null-values-agent': baseUrl");
+      }).not.toThrow();
     });
 
     it('should handle partial credential reference objects', () => {
@@ -370,7 +370,7 @@ describe('External Agent Generator', () => {
       }).toThrow("Missing required fields for external agent 'empty-agent': name, baseUrl");
     });
 
-    it('should throw error for missing description only', () => {
+    it('should not throw error for missing description (now optional)', () => {
       const missingDescData = {
         name: 'Test Agent',
         baseUrl: 'https://api.example.com/test',

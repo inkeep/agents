@@ -5,9 +5,7 @@
  * Top-level agents are the main entry points that handle statusUpdates with statusComponents
  */
 
-import { AgentInsertSchema } from '@inkeep/agents-core';
 import { compareJsonObjects } from '../../../utils/json-comparator';
-import { getRequiredFields } from '../../../utils/schema-introspection';
 import type { ComponentRegistry, ComponentType } from '../utils/component-registry';
 import {
   type CodeStyle,
@@ -198,8 +196,7 @@ export function generateAgentDefinition(
   }
 
   // Validate required agent fields
-  // Get required fields from schema introspection
-  const requiredFields = getRequiredFields(AgentInsertSchema);
+  const requiredFields = ['name', 'defaultSubAgentId', 'subAgents'];
   const missingFields = requiredFields.filter(
     (field) => !agentData[field] || agentData[field] === null || agentData[field] === undefined
   );

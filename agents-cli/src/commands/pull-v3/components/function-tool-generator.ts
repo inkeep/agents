@@ -6,8 +6,6 @@
  */
 
 import { jsonSchemaToZod } from 'json-schema-to-zod';
-import { FunctionToolInsertSchema } from '@inkeep/agents-core';
-import { getRequiredFields } from '../../../utils/schema-introspection';
 
 interface CodeStyle {
   quotes: 'single' | 'double';
@@ -111,11 +109,20 @@ export function generateFunctionToolDefinition(
   }
 
   // Validate required function tool fields
-  // Get required fields from schema introspection
-  const requiredFields = getRequiredFields(FunctionToolInsertSchema);
+  const requiredFields = ['name']; // Name is required, others checked separately
   const missingFields = requiredFields.filter(
     (field) => !toolData[field] || toolData[field] === null || toolData[field] === undefined
   );
+
+  // Check for input schema (either inputSchema or schema)
+  if (!toolData.inputSchema && !toolData.schema) {
+    missingFields.push('inputSchema');
+  }
+
+  // Check for execute code (either executeCode or execute)
+  if (!toolData.executeCode && !toolData.execute) {
+    missingFields.push('executeCode');
+  }
 
   if (missingFields.length > 0) {
     throw new Error(
