@@ -62,14 +62,15 @@ const DEFAULT_RETRY_STATUS_CODES = ['429', '500', '502', '503', '504'];
  */
 class PermanentError extends Error {
   override readonly cause: unknown;
+  public readonly type?: string;
 
-  constructor(message: string, options?: { cause?: unknown }) {
+  constructor(message: string, options?: { cause?: unknown; type?: string}) {
     let msg = message;
     if (options?.cause) {
       msg += `: ${options.cause}`;
     }
     super(msg, options);
-    this.name = 'PermanentError';
+    this.name = options?.type || 'PermanentError';
     if (typeof this.cause === 'undefined') {
       this.cause = options?.cause;
     }
@@ -469,6 +470,15 @@ export class A2AClient {
     }
 
     const rpcResponse = await httpResponse.json();
+
+    // Check if the response contains a connection_refused error type
+    // If so, throw a PermanentError to prevent retries
+    if (rpcResponse.error?.data?.type === 'connection_refused') {
+      throw new PermanentError(rpcResponse.error.message, {
+        cause: new Error(rpcResponse.error.message),
+        type: 'connection_refused',
+      });
+    }
 
     if (rpcResponse.id !== requestId) {
       logger.warn(
