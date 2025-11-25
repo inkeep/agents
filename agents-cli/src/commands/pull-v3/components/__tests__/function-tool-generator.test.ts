@@ -89,7 +89,7 @@ describe('Function Tool Generator', () => {
       }).toThrow("Missing required fields for function tool 'minimal': inputSchema, executeCode");
     });
 
-    it('should throw error when only schema provided (needs inputSchema)', () => {
+    it('should accept schema as alternative to inputSchema', () => {
       const dataWithSchema = {
         name: 'test-tool',
         description: 'Test tool',
@@ -104,7 +104,7 @@ describe('Function Tool Generator', () => {
 
       expect(() => {
         generateFunctionToolDefinition('test', dataWithSchema);
-      }).toThrow("Missing required fields for function tool 'test': inputSchema");
+      }).not.toThrow();
     });
 
     it('should prefer inputSchema over schema when both exist', () => {

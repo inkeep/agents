@@ -332,9 +332,8 @@ async function handleMessageSend(
       }
     }
     if (result.status.state === TaskState.Failed) {
-  
       const isConnectionRefused = result.status.type === 'connection_refused';
-      
+
       if (isConnectionRefused) {
         return c.json({
           jsonrpc: '2.0',
@@ -346,7 +345,7 @@ async function handleMessageSend(
             },
           },
         } satisfies JsonRpcResponse);
-      }     
+      }
     }
 
     const taskStatus = {

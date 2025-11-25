@@ -1,6 +1,6 @@
+import { z } from '@hono/zod-openapi';
 import { convertZodToJsonSchemaWithPreview } from '@inkeep/agents-core/utils/schema-conversion';
 import Ajv from 'ajv';
-import { z } from '@hono/zod-openapi';
 import { getLogger } from '../logger';
 
 const logger = getLogger('SchemaValidation');

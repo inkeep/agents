@@ -57,7 +57,8 @@ export const requirePermission = <Env extends MinimalAuthVariables = MinimalAuth
     if (!userId || !tenantId) {
       throw createApiError({
         code: 'unauthorized',
-        message: 'User or organization context not found. Ensure you are authenticated and belong to an organization.',
+        message:
+          'User or organization context not found. Ensure you are authenticated and belong to an organization.',
         instance: c.req.path,
         extensions: {
           requiredPermissions,

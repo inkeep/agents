@@ -1,3 +1,4 @@
+import { z } from '@hono/zod-openapi';
 import type {
   DelegationReturnedData,
   DelegationSentData,
@@ -15,7 +16,6 @@ import {
 } from '@inkeep/agents-core';
 import { SpanStatusCode } from '@opentelemetry/api';
 import { generateObject } from 'ai';
-import { z } from '@hono/zod-openapi';
 import { toolSessionManager } from '../agents/ToolSessionManager';
 import {
   ARTIFACT_GENERATION_BACKOFF_INITIAL_MS,

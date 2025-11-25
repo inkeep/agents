@@ -121,4 +121,3 @@ export function useCopilotToken(): UseCopilotTokenResult {
 
   return { apiKey, isLoading, error, retryCount, refresh: fetchToken };
 }
-

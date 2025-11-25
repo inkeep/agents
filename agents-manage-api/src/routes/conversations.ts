@@ -1,4 +1,4 @@
-import { createRoute, OpenAPIHono } from '@hono/zod-openapi';
+import { createRoute, OpenAPIHono, z } from '@hono/zod-openapi';
 import {
   commonGetErrorResponses,
   createApiError,
@@ -6,7 +6,6 @@ import {
   getConversationHistory,
   TenantProjectIdParamsSchema,
 } from '@inkeep/agents-core';
-import { z } from '@hono/zod-openapi';
 import dbClient from '../data/db/dbClient';
 
 const app = new OpenAPIHono();

@@ -7,10 +7,7 @@ function SettingsPage() {
   return (
     <BodyTemplate>
       <MainContent>
-        <PageHeader
-          title="Organization Settings"
-          description="Manage your organization settings"
-        />
+        <PageHeader title="Organization Settings" description="Manage your organization settings" />
         <SettingsContent />
       </MainContent>
     </BodyTemplate>
@@ -18,4 +15,3 @@ function SettingsPage() {
 }
 
 export default SettingsPage;
-
