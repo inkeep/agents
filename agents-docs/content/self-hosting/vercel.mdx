@@ -19,7 +19,7 @@ Create a Postgres database on the [**Vercel Marketplace**](https://vercel.com/ma
 
 Set your database connection string as an environment variable:
 
-```
+```dotenv
 DATABASE_URL=
 ```
 
@@ -38,7 +38,7 @@ Sign up for a Vercel account [here](https://vercel.com/signup).
 
 Required environment variables for Manage API:
 
-```
+```dotenv
 ENVIRONMENT=production
 
 INKEEP_AGENTS_MANAGE_API_BYPASS_SECRET=
@@ -68,7 +68,7 @@ NANGO_SERVER_URL=https://api.nango.dev
 
 Required environment variables for Run API:
 
-```
+```dotenv
 ENVIRONMENT=production
 
 ANTHROPIC_API_KEY=
@@ -113,7 +113,7 @@ INKEEP_AGENTS_JWT_SIGNING_SECRET=
 
 Required environment variables for Manage UI:
 
-```
+```dotenv
 ENVIRONMENT=production
 
 PUBLIC_INKEEP_AGENTS_RUN_API_URL=
@@ -164,7 +164,7 @@ For more information on how to add MCP servers to your project, see [Create MCP 
 
 ### Step 1: Configure your root .env file
 
-```
+```dotenv
 INKEEP_AGENTS_MANAGE_API_BYPASS_SECRET=
 INKEEP_AGENTS_RUN_API_BYPASS_SECRET=
 ```
@@ -268,7 +268,7 @@ const app: Hono = createExecutionApp({
 
 Add these [environment variables in your Vercel project](https://vercel.com/docs/environment-variables/managing-environment-variables#declare-an-environment-variable) to your **Run API** app:
 
-```bash
+```dotenv
 SANDBOX_VERCEL_TOKEN=your_vercel_access_token
 SANDBOX_VERCEL_TEAM_ID=team_xxxxxxxxxx
 SANDBOX_VERCEL_PROJECT_ID=prj_xxxxxxxxxx
@@ -307,7 +307,7 @@ SANDBOX_VERCEL_PROJECT_ID=prj_xxxxxxxxxx
     </ul>
 
   </Accordion>
-  
+
   <Accordion title="Best Practices">
     <ol>
       <li><strong>Use environment variables</strong> – Never hardcode credentials</li>
