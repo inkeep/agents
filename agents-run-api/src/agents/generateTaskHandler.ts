@@ -440,6 +440,7 @@ export const createTaskHandler = (
                 type: 'internal' as const,
                 config: {
                   id: relation.id,
+                  relationId: relation.relationId,
                   tenantId: config.tenantId,
                   projectId: config.projectId,
                   agentId: config.agentId,

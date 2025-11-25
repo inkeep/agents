@@ -106,6 +106,7 @@ export type AgentConfig = {
   tenantId: string;
   projectId: string;
   agentId: string;
+  relationId?: string;
   baseUrl: string;
   apiKey?: string;
   apiKeyId?: string;
