@@ -42,7 +42,7 @@ export function CopilotProvider({ children }: { children: ReactNode }) {
   );
 
   if (!hasCopilotConfigured) {
-    console.warn('Copilot is not configured, copilot context will not be displayed.');
+    console.warn('Copilot is not configured.');
   }
 
   const openCopilot = () => setIsOpen(true);
