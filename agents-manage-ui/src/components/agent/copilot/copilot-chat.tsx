@@ -205,6 +205,8 @@ export function CopilotChat({ agentId, tenantId, projectId, refreshAgentGraph }:
                         targetProjectId: projectId,
                         targetAgentId: agentId,
                         onOAuthLogin: handleOAuthLogin,
+                        cookieHeader: cookieHeader,
+                        copilotToken: copilotToken,
                       }),
                   }
                 : {}),
