@@ -7,7 +7,9 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { useAuthClient } from '@/lib/auth-client';
 
 type FullOrganization = NonNullable<
-  Awaited<ReturnType<ReturnType<typeof useAuthClient>['organization']['getFullOrganization']>>['data']
+  Awaited<
+    ReturnType<ReturnType<typeof useAuthClient>['organization']['getFullOrganization']>
+  >['data']
 >;
 
 export function SettingsContent() {
@@ -96,9 +98,7 @@ export function SettingsContent() {
                 className="flex items-center justify-between py-2 border-b last:border-0"
               >
                 <div>
-                  <p className="text-sm font-medium">
-                    {member.user.name || member.user.email}
-                  </p>
+                  <p className="text-sm font-medium">{member.user.name || member.user.email}</p>
                   <p className="text-xs text-muted-foreground">{member.user.email}</p>
                 </div>
               </div>
