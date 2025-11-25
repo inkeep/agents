@@ -42,7 +42,7 @@ export function convertFullProjectToProject(
     projectId: fullProject.id,
     tenantId,
     name: fullProject.name,
-    description: fullProject.description,
+    description: fullProject.description || '',
     models,
     stopWhen,
     createdAt: fullProject.createdAt || new Date().toISOString(),
