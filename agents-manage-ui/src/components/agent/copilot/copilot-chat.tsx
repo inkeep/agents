@@ -4,6 +4,7 @@ import { InkeepSidebarChat } from '@inkeep/agents-ui';
 import type { InkeepCallbackEvent } from '@inkeep/agents-ui/types';
 import { useEffect, useState } from 'react';
 import { useRuntimeConfig } from '@/contexts/runtime-config-context';
+import { useCopilotToken } from '@/hooks/use-copilot-token';
 import { useOAuthLogin } from '@/hooks/use-oauth-login';
 import { generateId } from '@/lib/utils/id-utils';
 import { useCopilotContext } from './copilot-context';
@@ -57,11 +58,12 @@ export function CopilotChat({ agentId, tenantId, projectId, refreshAgentGraph }:
 
   const {
     PUBLIC_INKEEP_AGENTS_RUN_API_URL,
-    PUBLIC_INKEEP_AGENTS_RUN_API_BYPASS_SECRET,
     PUBLIC_INKEEP_COPILOT_AGENT_ID,
     PUBLIC_INKEEP_COPILOT_PROJECT_ID,
     PUBLIC_INKEEP_COPILOT_TENANT_ID,
   } = useRuntimeConfig();
+
+  const { apiKey: copilotToken, isLoading: isLoadingToken } = useCopilotToken();
 
   if (
     !PUBLIC_INKEEP_COPILOT_AGENT_ID ||
@@ -71,6 +73,10 @@ export function CopilotChat({ agentId, tenantId, projectId, refreshAgentGraph }:
     console.error(
       'PUBLIC_INKEEP_COPILOT_AGENT_ID, PUBLIC_INKEEP_COPILOT_PROJECT_ID, PUBLIC_INKEEP_COPILOT_TENANT_ID are not set, copilot chat will not be displayed'
     );
+    return null;
+  }
+
+  if (isLoadingToken || !copilotToken) {
     return null;
   }
 
@@ -165,7 +171,7 @@ export function CopilotChat({ agentId, tenantId, projectId, refreshAgentGraph }:
             agentUrl: `${PUBLIC_INKEEP_AGENTS_RUN_API_URL}/api/chat`,
             headers: {
               'x-emit-operations': 'true',
-              Authorization: `Bearer ${PUBLIC_INKEEP_AGENTS_RUN_API_BYPASS_SECRET}`,
+              Authorization: `Bearer ${copilotToken}`,
               'x-inkeep-tenant-id': PUBLIC_INKEEP_COPILOT_TENANT_ID,
               'x-inkeep-project-id': PUBLIC_INKEEP_COPILOT_PROJECT_ID,
               'x-inkeep-agent-id': PUBLIC_INKEEP_COPILOT_AGENT_ID,
