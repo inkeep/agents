@@ -214,9 +214,9 @@ describe('tool-approval-mapper', () => {
       expect(mockMakeManagementApiRequest).not.toHaveBeenCalled();
     });
 
-    it('should return null for non-update/create operations', async () => {
+    it('should return null for non-update/create/delete operations', async () => {
       const result = await fetchCurrentEntityState({
-        toolName: 'sub-agent-delete-subagent',
+        toolName: 'sub-agent-get-subagent',
         input: {
           request: {
             id: 'test-sub-agent',

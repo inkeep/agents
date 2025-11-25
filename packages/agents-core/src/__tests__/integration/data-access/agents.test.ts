@@ -77,6 +77,12 @@ describe('Agent Agent Data Access - Integration Tests', () => {
       expect(fetchedAgent).not.toBeNull();
       expect(fetchedAgent).toMatchObject(agentData);
 
+      // Clear defaultSubAgentId before deleting sub-agent
+      await updateAgent(db)({
+        scopes: { tenantId: testTenantId, projectId: testProjectId, agentId: agentData.id },
+        data: { defaultSubAgentId: null },
+      });
+
       // Delete the agent and agent
       await deleteSubAgent(db)({
         scopes: { tenantId: testTenantId, projectId: testProjectId, agentId: agentData.id },
@@ -115,6 +121,12 @@ describe('Agent Agent Data Access - Integration Tests', () => {
       // Fetch with relations
       const agentWithAgent = await getAgentWithDefaultSubAgent(db)({
         scopes: { tenantId: testTenantId, projectId: testProjectId, agentId: agentData.id },
+      });
+
+      // Clear defaultSubAgentId before deleting sub-agent
+      await updateAgent(db)({
+        scopes: { tenantId: testTenantId, projectId: testProjectId, agentId: agentData.id },
+        data: { defaultSubAgentId: null },
       });
 
       // Delete the agent and agent
