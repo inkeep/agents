@@ -3,6 +3,8 @@
 import type { AIChatFunctions } from '@inkeep/agents-ui/types';
 import { createContext, type ReactNode, type RefObject, useContext, useRef, useState } from 'react';
 
+import { useRuntimeConfig } from '@/contexts/runtime-config-context';
+
 interface CopilotContextHeaders {
   messageId?: string;
   conversationId?: string;
@@ -17,6 +19,7 @@ interface CopilotContextValue {
   openCopilot: () => void;
   dynamicHeaders: CopilotContextHeaders;
   setDynamicHeaders: (headers: CopilotContextHeaders) => void;
+  hasCopilotConfigured: boolean;
 }
 
 const CopilotContext = createContext<CopilotContextValue | null>(null);
@@ -26,6 +29,21 @@ export function CopilotProvider({ children }: { children: ReactNode }) {
   const [isStreaming, setIsStreaming] = useState(false);
   const chatFunctionsRef = useRef<AIChatFunctions | null>(null);
   const [dynamicHeaders, setDynamicHeaders] = useState<CopilotContextHeaders>({});
+
+  const {
+    PUBLIC_INKEEP_COPILOT_AGENT_ID,
+    PUBLIC_INKEEP_COPILOT_PROJECT_ID,
+    PUBLIC_INKEEP_COPILOT_TENANT_ID,
+  } = useRuntimeConfig();
+  const hasCopilotConfigured = !!(
+    PUBLIC_INKEEP_COPILOT_AGENT_ID &&
+    PUBLIC_INKEEP_COPILOT_PROJECT_ID &&
+    PUBLIC_INKEEP_COPILOT_TENANT_ID
+  );
+
+  if (!hasCopilotConfigured) {
+    console.warn('Copilot is not configured, copilot context will not be displayed.');
+  }
 
   const openCopilot = () => setIsOpen(true);
 
@@ -40,6 +58,7 @@ export function CopilotProvider({ children }: { children: ReactNode }) {
         openCopilot,
         dynamicHeaders,
         setDynamicHeaders,
+        hasCopilotConfigured,
       }}
     >
       {children}

@@ -29,8 +29,15 @@ const styleOverrides = `
 `;
 
 export function CopilotChat({ agentId, tenantId, projectId, refreshAgentGraph }: CopilotChatProps) {
-  const { chatFunctionsRef, isOpen, setIsOpen, setIsStreaming, dynamicHeaders, setDynamicHeaders } =
-    useCopilotContext();
+  const {
+    chatFunctionsRef,
+    isOpen,
+    setIsOpen,
+    setIsStreaming,
+    dynamicHeaders,
+    setDynamicHeaders,
+    hasCopilotConfigured,
+  } = useCopilotContext();
   const [conversationId, setConversationId] = useState(generateId);
 
   const { handleOAuthLogin } = useOAuthLogin({
@@ -63,14 +70,7 @@ export function CopilotChat({ agentId, tenantId, projectId, refreshAgentGraph }:
     PUBLIC_INKEEP_COPILOT_TENANT_ID,
   } = useRuntimeConfig();
 
-  if (
-    !PUBLIC_INKEEP_COPILOT_AGENT_ID ||
-    !PUBLIC_INKEEP_COPILOT_PROJECT_ID ||
-    !PUBLIC_INKEEP_COPILOT_TENANT_ID
-  ) {
-    console.error(
-      'PUBLIC_INKEEP_COPILOT_AGENT_ID, PUBLIC_INKEEP_COPILOT_PROJECT_ID, PUBLIC_INKEEP_COPILOT_TENANT_ID are not set, copilot chat will not be displayed'
-    );
+  if (!hasCopilotConfigured) {
     return null;
   }
 
@@ -166,9 +166,9 @@ export function CopilotChat({ agentId, tenantId, projectId, refreshAgentGraph }:
             headers: {
               'x-emit-operations': 'true',
               Authorization: `Bearer ${PUBLIC_INKEEP_AGENTS_RUN_API_BYPASS_SECRET}`,
-              'x-inkeep-tenant-id': PUBLIC_INKEEP_COPILOT_TENANT_ID,
-              'x-inkeep-project-id': PUBLIC_INKEEP_COPILOT_PROJECT_ID,
-              'x-inkeep-agent-id': PUBLIC_INKEEP_COPILOT_AGENT_ID,
+              'x-inkeep-tenant-id': PUBLIC_INKEEP_COPILOT_TENANT_ID || '',
+              'x-inkeep-project-id': PUBLIC_INKEEP_COPILOT_PROJECT_ID || '',
+              'x-inkeep-agent-id': PUBLIC_INKEEP_COPILOT_AGENT_ID || '',
               // Target is the agent that the copilot is building or editing.
               'x-target-tenant-id': tenantId,
               'x-target-project-id': projectId,

@@ -133,7 +133,8 @@ export const Agent: FC<AgentProps> = ({
   credentialLookup = {},
 }) => {
   const [showPlayground, setShowPlayground] = useState(false);
-  const { isOpen: isCopilotChatOpen } = useCopilotContext();
+  const { isOpen: isCopilotChatOpen, hasCopilotConfigured } = useCopilotContext();
+
   const router = useRouter();
 
   const { tenantId, projectId } = useParams<{
@@ -377,6 +378,11 @@ export const Agent: FC<AgentProps> = ({
       toolLookup,
       agentToolConfigLookup
     );
+
+    // After initialization, if there are no nodes and copilot is not configured, auto-add initial node
+    if (agentNodes.length === 0 && !hasCopilotConfigured) {
+      onAddInitialNode();
+    }
 
     return () => {
       // we need to reset the agent store when the component unmounts otherwise the agent store will persist the changes from the previous agent
@@ -670,6 +676,7 @@ export const Agent: FC<AgentProps> = ({
       selected: true,
     };
     clearSelection();
+    markUnsaved();
     commandManager.execute(new AddNodeCommand(newNode as Node));
     // Wait for sidebar to open (350ms for CSS transition) then center the node
     setTimeout(() => {
@@ -679,7 +686,7 @@ export const Agent: FC<AgentProps> = ({
         nodes: [newNode],
       });
     }, 350);
-  }, [clearSelection, initialNode, fitView]);
+  }, [clearSelection, initialNode, fitView, markUnsaved]);
 
   const onSelectionChange = useCallback(
     ({ nodes, edges }: { nodes: Node[]; edges: Edge[] }) => {
@@ -1015,7 +1022,7 @@ export const Agent: FC<AgentProps> = ({
   const [showTraces, setShowTraces] = useState(false);
   const isMounted = useIsMounted();
 
-  const showEmptyState = useMemo(() => nodes.length === 0, [nodes]);
+  const showEmptyState = useMemo(() => nodes.length === 0, [nodes]) && hasCopilotConfigured;
 
   return (
     <ResizablePanelGroup
