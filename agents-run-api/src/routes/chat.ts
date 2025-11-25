@@ -1,4 +1,4 @@
-import { createRoute, OpenAPIHono } from '@hono/zod-openapi';
+import { createRoute, OpenAPIHono, z } from '@hono/zod-openapi';
 import {
   type CredentialStoreRegistry,
   contextValidationMiddleware,
@@ -17,7 +17,6 @@ import {
 } from '@inkeep/agents-core';
 import { context as otelContext, propagation, trace } from '@opentelemetry/api';
 import { streamSSE } from 'hono/streaming';
-import { z } from '@hono/zod-openapi';
 import dbClient from '../data/db/dbClient';
 import { ExecutionHandler } from '../handlers/executionHandler';
 import { getLogger } from '../logger';

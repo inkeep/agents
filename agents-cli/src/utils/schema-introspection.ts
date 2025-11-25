@@ -1,6 +1,6 @@
 /**
  * Schema Introspection Utilities
- * 
+ *
  * Utilities to extract required fields and other metadata from Zod schemas.
  * This ensures CLI generators stay in sync with the actual validation schemas.
  */
@@ -37,7 +37,6 @@ export function getRequiredFields(schema: z.ZodType): string[] {
   return getRequiredFieldsFromValidation(schema);
 }
 
-
 /**
  * Get a human-readable summary of schema requirements
  */
@@ -47,15 +46,15 @@ export function getSchemaInfo(schema: z.ZodType): {
   allFields: string[];
 } {
   const requiredFields = getRequiredFields(schema);
-  
+
   // Get all fields from the shape if available
   let allFields: string[] = [];
-  
+
   if ('shape' in schema && schema.shape) {
     allFields = Object.keys(schema.shape);
   }
-  
-  const optionalFields = allFields.filter(field => !requiredFields.includes(field));
-  
+
+  const optionalFields = allFields.filter((field) => !requiredFields.includes(field));
+
   return { requiredFields, optionalFields, allFields };
 }

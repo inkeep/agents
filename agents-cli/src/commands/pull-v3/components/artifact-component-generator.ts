@@ -139,7 +139,7 @@ export function generateArtifactComponentDefinition(
       !componentData[field] || componentData[field] === null || componentData[field] === undefined
   );
 
-  // Check for props (required)  
+  // Check for props (required)
   if (!componentData.props) {
     missingFields.push('props');
   }
