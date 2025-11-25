@@ -291,6 +291,44 @@ export class Agent {
     return sanitizedTools;
   }
 
+  #createRelationToolName(prefix: string, targetId: string): string {
+    return `${prefix}_to_${targetId.toLowerCase().replace(/\s+/g, '_')}`;
+  }
+
+  #getRelationshipIdForTool(toolName: string, toolType?: ToolType): string | undefined {
+    if (toolType === 'mcp') {
+      const matchingTool = this.config.tools?.find((tool) => {
+        if (tool.config?.type !== 'mcp') {
+          return false;
+        }
+
+        if (tool.availableTools?.some((available) => available.name === toolName)) {
+          return true;
+        }
+
+        if (tool.config.mcp.activeTools?.includes(toolName)) {
+          return true;
+        }
+
+        return tool.name === toolName;
+      });
+
+      return matchingTool?.relationshipId;
+    }
+
+    if (toolType === 'delegation') {
+      const relation = this.config.delegateRelations.find(
+        (relation) =>
+          (relation.type === 'external' || relation.type === 'team') &&
+          this.#createRelationToolName('delegate', relation.config.id) === toolName
+      );
+
+      if (relation && (relation.type === 'external' || relation.type === 'team')) {
+        return relation.config.relationId;
+      }
+    }
+  }
+
   /**
    * Get the primary model settings for text generation and thinking
    * Requires model to be configured at project level
@@ -378,6 +416,8 @@ export class Agent {
     if (!toolDefinition || typeof toolDefinition !== 'object' || !('execute' in toolDefinition)) {
       return toolDefinition;
     }
+    const relationshipId = this.#getRelationshipIdForTool(toolName, toolType);
+    console.log(111, { toolName, relationshipId });
 
     const originalExecute = toolDefinition.execute;
     return {
@@ -519,11 +559,9 @@ export class Agent {
     sessionId?: string
   ) {
     const { transferRelations = [], delegateRelations = [] } = this.config;
-    const createToolName = (prefix: string, subAgentId: string) =>
-      `${prefix}_to_${subAgentId.toLowerCase().replace(/\s+/g, '_')}`;
     return Object.fromEntries([
       ...transferRelations.map((agentConfig) => {
-        const toolName = createToolName('transfer', agentConfig.id);
+        const toolName = this.#createRelationToolName('transfer', agentConfig.id);
         return [
           toolName,
           this.wrapToolWithStreaming(
@@ -540,7 +578,7 @@ export class Agent {
         ];
       }),
       ...delegateRelations.map((relation) => {
-        const toolName = createToolName('delegate', relation.config.id);
+        const toolName = this.#createRelationToolName('delegate', relation.config.id);
 
         return [
           toolName,
@@ -735,6 +773,8 @@ export class Agent {
                 });
 
                 if (streamRequestId) {
+                  const relationshipId = this.#getRelationshipIdForTool(toolName, 'mcp');
+                  console.log(222, { toolName, relationshipId });
                   agentSessionManager.recordEvent(streamRequestId, 'error', this.config.id, {
                     message: `MCP tool "${toolName}" failed: ${errorMessage}`,
                     code: 'mcp_tool_error',
