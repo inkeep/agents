@@ -7,7 +7,10 @@ import {
 } from '@inkeep/agents-core';
 import { createExecutionHono } from './app';
 import type { SandboxConfig } from './types/execution-context';
+import { defaultSDK } from './instrumentation';
+defaultSDK.start();
 
+export const runtime = 'nodejs';
 // Create default configuration
 const defaultConfig: ServerConfig = {
   port: 3003,
