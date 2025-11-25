@@ -77,8 +77,6 @@ async function makeApiRequestInternal<T>(
     }),
   };
 
-  console.log('defaultHeaders', defaultHeaders);
-
   try {
     const response = await fetch(url, {
       ...options,
