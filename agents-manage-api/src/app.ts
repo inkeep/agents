@@ -308,7 +308,17 @@ function createManagementHono(
   // Tenant access check (skip in DISABLE_AUTH and test environments)
   // Use process.env directly to support test environment variables set after module load
   const isTestEnv = process.env.ENVIRONMENT === 'test';
-  if (!env.DISABLE_AUTH && !isTestEnv) {
+  if (env.DISABLE_AUTH || isTestEnv) {
+    // When auth is disabled, just extract tenantId from URL param
+    app.use('/tenants/:tenantId/*', async (c, next) => {
+      const tenantId = c.req.param('tenantId');
+      if (tenantId) {
+        c.set('tenantId', tenantId);
+        c.set('userId', 'anonymous'); // Set a default user ID for disabled auth
+      }
+      await next();
+    });
+  } else {
     app.use('/tenants/:tenantId/*', requireTenantAccess());
   }
 
