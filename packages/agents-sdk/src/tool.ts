@@ -210,9 +210,9 @@ export class Tool implements ToolInterface {
 
     return {
       server: this,
-      selectedTools,
+      selectedTools: selectedTools.length > 0 ? selectedTools : undefined,
       headers: config.headers,
-      toolPolicies,
+      toolPolicies: Object.keys(toolPolicies).length > 0 ? toolPolicies : undefined,
     };
   }
 }
