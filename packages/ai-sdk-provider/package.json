@@ -37,7 +37,7 @@
     "@ai-sdk/provider": "^2.0.0",
     "@ai-sdk/provider-utils": "^3.0.12",
     "@inkeep/agents-core": "workspace:*",
-    "ai": "5.0.11"
+    "ai": "5.0.52"
   },
   "devDependencies": {
     "@types/node": "^20.11.24",
