@@ -2,8 +2,12 @@
 
 import { InkeepSidebarChat } from '@inkeep/agents-ui';
 import type { InkeepCallbackEvent } from '@inkeep/agents-ui/types';
+import { AlertCircle, Loader2, RefreshCw } from 'lucide-react';
 import { useEffect, useState } from 'react';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { Button } from '@/components/ui/button';
 import { useRuntimeConfig } from '@/contexts/runtime-config-context';
+import { useCopilotToken } from '@/hooks/use-copilot-token';
 import { useOAuthLogin } from '@/hooks/use-oauth-login';
 import { generateId } from '@/lib/utils/id-utils';
 import { useCopilotContext } from './copilot-context';
@@ -57,11 +61,18 @@ export function CopilotChat({ agentId, tenantId, projectId, refreshAgentGraph }:
 
   const {
     PUBLIC_INKEEP_AGENTS_RUN_API_URL,
-    PUBLIC_INKEEP_AGENTS_RUN_API_BYPASS_SECRET,
     PUBLIC_INKEEP_COPILOT_AGENT_ID,
     PUBLIC_INKEEP_COPILOT_PROJECT_ID,
     PUBLIC_INKEEP_COPILOT_TENANT_ID,
   } = useRuntimeConfig();
+
+  const {
+    apiKey: copilotToken,
+    isLoading: isLoadingToken,
+    error: tokenError,
+    retryCount,
+    refresh: refreshToken,
+  } = useCopilotToken();
 
   if (
     !PUBLIC_INKEEP_COPILOT_AGENT_ID ||
@@ -71,6 +82,43 @@ export function CopilotChat({ agentId, tenantId, projectId, refreshAgentGraph }:
     console.error(
       'PUBLIC_INKEEP_COPILOT_AGENT_ID, PUBLIC_INKEEP_COPILOT_PROJECT_ID, PUBLIC_INKEEP_COPILOT_TENANT_ID are not set, copilot chat will not be displayed'
     );
+    return null;
+  }
+
+  // Show error state when token fetch failed
+  if (tokenError && !isLoadingToken) {
+    return (
+      <div className="p-4">
+        <Alert variant="destructive">
+          <AlertCircle className="h-4 w-4" />
+          <AlertTitle>Agent Editor Unavailable</AlertTitle>
+          <AlertDescription className="mt-2">
+            <p className="mb-3">
+              Unable to connect to the Agent Editor. This may be due to a temporary network issue or
+              configuration problem.
+            </p>
+            <Button variant="outline" size="sm" onClick={() => refreshToken()} className="gap-2">
+              <RefreshCw className="h-4 w-4" />
+              Try Again
+            </Button>
+          </AlertDescription>
+        </Alert>
+      </div>
+    );
+  }
+
+  // Show loading state (including retries)
+  if (isLoadingToken) {
+    return (
+      <div className="flex items-center justify-center p-4 text-muted-foreground">
+        <Loader2 className="h-4 w-4 animate-spin mr-2" />
+        <span>{retryCount > 0 ? `Reconnecting (attempt ${retryCount}/3)...` : 'Loading...'}</span>
+      </div>
+    );
+  }
+
+  // Token not available (shouldn't happen if no error, but safety check)
+  if (!copilotToken) {
     return null;
   }
 
@@ -165,7 +213,7 @@ export function CopilotChat({ agentId, tenantId, projectId, refreshAgentGraph }:
             agentUrl: `${PUBLIC_INKEEP_AGENTS_RUN_API_URL}/api/chat`,
             headers: {
               'x-emit-operations': 'true',
-              Authorization: `Bearer ${PUBLIC_INKEEP_AGENTS_RUN_API_BYPASS_SECRET}`,
+              Authorization: `Bearer ${copilotToken}`,
               'x-inkeep-tenant-id': PUBLIC_INKEEP_COPILOT_TENANT_ID,
               'x-inkeep-project-id': PUBLIC_INKEEP_COPILOT_PROJECT_ID,
               'x-inkeep-agent-id': PUBLIC_INKEEP_COPILOT_AGENT_ID,
