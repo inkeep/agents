@@ -74,7 +74,7 @@ async function AgentPage({
       ]}
     >
       <Agent
-        agent={agent?.data}
+        agent={agent.data}
         dataComponentLookup={dataComponentLookup}
         artifactComponentLookup={artifactComponentLookup}
         toolLookup={toolLookup}
