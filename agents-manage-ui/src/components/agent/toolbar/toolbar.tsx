@@ -1,9 +1,8 @@
 import { Play, Settings } from 'lucide-react';
-import { type ComponentProps, useEffect, useRef } from 'react';
+import type { ComponentProps } from 'react';
 import { Button } from '@/components/ui/button';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { useAgentStore } from '@/features/agent/state/use-agent-store';
-import { isMacOs } from '@/lib/utils';
 import { ShipModal } from '../ship/ship-modal';
 
 type MaybePromise<T> = T | Promise<T>;
@@ -22,7 +21,6 @@ export function Toolbar({
   setShowPlayground,
 }: ToolbarProps) {
   const dirty = useAgentStore((state) => state.dirty);
-  const saveButtonRef = useRef<HTMLButtonElement>(null);
 
   const commonProps = {
     className: 'backdrop-blur-3xl',
@@ -40,21 +38,6 @@ export function Toolbar({
       Try it
     </Button>
   );
-
-  useEffect(() => {
-    function handleSaveShortcut(event: KeyboardEvent) {
-      const isShortcutPressed = (isMacOs() ? event.metaKey : event.ctrlKey) && event.key === 's';
-      if (!isShortcutPressed) return;
-      event.preventDefault();
-      // Using button ref instead onSubmit to respect button's disabled state
-      saveButtonRef.current?.click();
-    }
-
-    window.addEventListener('keydown', handleSaveShortcut);
-    return () => {
-      window.removeEventListener('keydown', handleSaveShortcut);
-    };
-  }, []);
 
   return (
     <div className="flex gap-2 flex-wrap justify-end content-start">
@@ -82,7 +65,7 @@ export function Toolbar({
         onClick={onSubmit}
         variant={dirty ? 'default' : 'outline'}
         disabled={!dirty && !inPreviewDisabled}
-        ref={saveButtonRef}
+        id="save-agent"
       >
         {inPreviewDisabled ? 'Save' : 'Save changes'}
       </Button>

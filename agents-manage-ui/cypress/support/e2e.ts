@@ -20,7 +20,8 @@ Cypress.on('uncaught:exception', (err) => {
   if (
     // Promise from monaco-editor
     err.message.includes('  > Canceled') ||
-    err.message.includes('  > ResizeObserver loop completed with undelivered notifications.')
+    err.message.includes('  > ResizeObserver loop completed with undelivered notifications.') ||
+    err.message.includes('  > TextModelPart is disposed!')
   ) {
     return false;
   }
