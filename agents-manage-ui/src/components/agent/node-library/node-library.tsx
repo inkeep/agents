@@ -1,10 +1,10 @@
 'use client';
 
-import { useState, type FC, useCallback, type FocusEvent, type MouseEvent } from 'react';
+import { type FC, type FocusEvent, type MouseEvent, useCallback, useState } from 'react';
+import { cn } from '@/lib/utils';
 import { NodeType, nodeTypeMap } from '../configuration/node-types';
 import { CopilotTrigger } from './copilot-trigger';
 import { NodeItem } from './node-item';
-import { cn } from '@/lib/utils';
 
 const nodes = [
   nodeTypeMap[NodeType.TeamAgentPlaceholder],
