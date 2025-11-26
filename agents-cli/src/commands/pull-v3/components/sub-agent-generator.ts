@@ -90,7 +90,7 @@ export function generateSubAgentDefinition(
   }
 
   // Validate required sub-agent fields
-  const requiredFields = ['name', 'description', 'prompt'];
+  const requiredFields = ['name']; // Only name is required, description and prompt are optional
   const missingFields = requiredFields.filter(
     (field) => !agentData[field] || agentData[field] === null || agentData[field] === undefined
   );

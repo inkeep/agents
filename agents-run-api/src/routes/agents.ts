@@ -1,4 +1,4 @@
-import { createRoute, OpenAPIHono } from '@hono/zod-openapi';
+import { createRoute, OpenAPIHono, z } from '@hono/zod-openapi';
 import {
   type CredentialStoreRegistry,
   createApiError,
@@ -7,7 +7,6 @@ import {
   HeadersScopeSchema,
 } from '@inkeep/agents-core';
 import type { Context } from 'hono';
-import { z } from '@hono/zod-openapi';
 import { a2aHandler } from '../a2a/handlers';
 import { getRegisteredAgent } from '../data/agents';
 import dbClient from '../data/db/dbClient';

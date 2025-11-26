@@ -1,6 +1,6 @@
 'use client';
 
-import { CredentialStoreType } from '@inkeep/agents-core/client-exports';
+import { CredentialStoreType, DEFAULT_NANGO_STORE_ID } from '@inkeep/agents-core/client-exports';
 import type { ApiProvider } from '@nangohq/types';
 import { useRouter } from 'next/navigation';
 import { use, useCallback, useEffect, useState } from 'react';
@@ -45,7 +45,7 @@ function ProviderSetupPage({
           id: generateId(),
           name: provider.name,
           type: CredentialStoreType.nango,
-          credentialStoreId: 'nango-default',
+          credentialStoreId: DEFAULT_NANGO_STORE_ID,
           retrievalParams: {
             connectionId: event.payload.connectionId,
             providerConfigKey: event.payload.providerConfigKey,

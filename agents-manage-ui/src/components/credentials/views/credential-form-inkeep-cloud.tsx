@@ -1,7 +1,7 @@
 'use client';
 
 import { zodResolver } from '@hookform/resolvers/zod';
-import { CredentialStoreType } from '@inkeep/agents-core/client-exports';
+import { DEFAULT_NANGO_STORE_ID } from '@inkeep/agents-core/client-exports';
 import { useEffect, useMemo, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { toast } from 'sonner';
@@ -12,7 +12,6 @@ import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Form } from '@/components/ui/form';
 import { InfoCard } from '@/components/ui/info-card';
-import { type CredentialStoreStatus, listCredentialStores } from '@/lib/api/credentialStores';
 import { fetchExternalAgents } from '@/lib/api/external-agents';
 import { fetchMCPTools } from '@/lib/api/tools';
 import type { ExternalAgent } from '@/lib/types/external-agents';
@@ -32,21 +31,23 @@ const defaultValues: CredentialFormData = {
   name: '',
   apiKeyToSet: '',
   metadata: {},
-  credentialStoreId: '',
+  credentialStoreId: DEFAULT_NANGO_STORE_ID,
   credentialStoreType: 'nango',
   selectedTool: undefined,
   selectedExternalAgent: undefined,
 };
 
-export function CredentialForm({ onCreateCredential, tenantId, projectId }: CredentialFormProps) {
+export function CredentialFormInkeepCloud({
+  onCreateCredential,
+  tenantId,
+  projectId,
+}: CredentialFormProps) {
   const [availableMCPServers, setAvailableMCPServers] = useState<MCPTool[]>([]);
   const [toolsLoading, setToolsLoading] = useState(true);
   const [shouldLinkToServer, setShouldLinkToServer] = useState(false);
   const [availableExternalAgents, setAvailableExternalAgents] = useState<ExternalAgent[]>([]);
   const [externalAgentsLoading, setExternalAgentsLoading] = useState(true);
   const [shouldLinkToExternalAgent, setShouldLinkToExternalAgent] = useState(false);
-  const [credentialStores, setCredentialStores] = useState<CredentialStoreStatus[]>([]);
-  const [storesLoading, setStoresLoading] = useState(true);
 
   const form = useForm({
     resolver: zodResolver(credentialFormSchema),
@@ -91,41 +92,6 @@ export function CredentialForm({ onCreateCredential, tenantId, projectId }: Cred
     loadAvailableExternalAgents();
   }, [tenantId, projectId]);
 
-  // loadCredentialStores
-  useEffect(() => {
-    const loadCredentialStores = async () => {
-      try {
-        const stores = await listCredentialStores(tenantId, projectId);
-        setCredentialStores(stores);
-
-        // Auto-select preferred store: prioritize Nango, then other available non-memory stores
-        const availableStores = stores.filter(
-          (store) => store.available && store.type !== 'memory'
-        );
-        if (availableStores.length > 0) {
-          // First try to find Nango store
-          const nangoStore = availableStores.find((store) => store.type === 'nango');
-          const preferredStore = nangoStore || availableStores[0];
-
-          // Only set values if form doesn't already have a credentialStoreId value
-          const currentStoreId = form.getValues('credentialStoreId');
-          if (!currentStoreId) {
-            form.setValue('credentialStoreId', preferredStore.id, { shouldValidate: true });
-            form.setValue('credentialStoreType', preferredStore.type as 'keychain' | 'nango', {
-              shouldValidate: true,
-            });
-          }
-        }
-      } catch (err) {
-        console.error('Failed to load credential stores:', err);
-      } finally {
-        setStoresLoading(false);
-      }
-    };
-
-    loadCredentialStores();
-  }, [tenantId, projectId, form.getValues, form.setValue]);
-
   // Handle checkbox state changes
   useEffect(() => {
     if (!shouldLinkToServer) {
@@ -140,20 +106,6 @@ export function CredentialForm({ onCreateCredential, tenantId, projectId }: Cred
       form.setValue('selectedExternalAgent', undefined);
     }
   }, [shouldLinkToExternalAgent, form]);
-
-  useEffect(() => {
-    const subscription = form.watch((value: any, { name }: any) => {
-      if (name === 'credentialStoreId' && value.credentialStoreId) {
-        const selectedStore = credentialStores.find(
-          (store) => store.id === value.credentialStoreId
-        );
-        if (selectedStore && selectedStore.type !== 'memory') {
-          form.setValue('credentialStoreType', selectedStore.type);
-        }
-      }
-    });
-    return () => subscription.unsubscribe();
-  }, [form, credentialStores]);
 
   const handleLinkToServerChange = (checked: boolean | 'indeterminate') => {
     setShouldLinkToServer(checked === true);
@@ -226,39 +178,6 @@ export function CredentialForm({ onCreateCredential, tenantId, projectId }: Cred
     [availableExternalAgents, externalAgentsLoading]
   );
 
-  const credentialStoreOptions = useMemo(() => {
-    if (storesLoading) {
-      return [
-        {
-          value: 'loading',
-          label: 'Loading credential stores...',
-          disabled: true,
-        },
-      ];
-    }
-
-    const availableStores = credentialStores.filter(
-      (store) => store.available && store.type !== 'memory'
-    );
-
-    if (availableStores.length === 0) {
-      return [
-        {
-          value: 'none',
-          label: 'No credential stores available',
-          disabled: true,
-        },
-      ];
-    }
-
-    const options = availableStores.map((store) => ({
-      value: store.id,
-      label: `${store.type === 'keychain' ? 'Keychain Store' : 'Nango Store'} (${store.id})`,
-    }));
-
-    return options;
-  }, [credentialStores, storesLoading]);
-
   return (
     <Form {...form}>
       <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
@@ -294,43 +213,25 @@ export function CredentialForm({ onCreateCredential, tenantId, projectId }: Cred
             </InfoCard>
           </div>
 
-          {!storesLoading && form.watch('credentialStoreType') === CredentialStoreType.nango && (
-            <div className="space-y-3">
-              <GenericKeyValueInput
-                control={form.control}
-                name="metadata"
-                label="Metadata (optional)"
-                keyPlaceholder="Header name (e.g., X-API-Key)"
-                valuePlaceholder="Header value"
-              />
-              <InfoCard title="How this works">
-                <p className="mb-2">
-                  Add extra headers to be included with authentication requests.
-                </p>
-                <p>
-                  Examples:{' '}
-                  <code className="bg-background px-1.5 py-0.5 rounded border mx-1">
-                    User-Agent
-                  </code>
-                  <code className="bg-background px-1.5 py-0.5 rounded border mx-1">X-API-Key</code>
-                  <code className="bg-background px-1.5 py-0.5 rounded border mx-1">
-                    Content-Type
-                  </code>
-                </p>
-              </InfoCard>
-            </div>
-          )}
-
-          {/* Credential Store Selection Section */}
           <div className="space-y-3">
-            <GenericSelect
-              isRequired
+            <GenericKeyValueInput
               control={form.control}
-              name="credentialStoreId"
-              label="Credential store"
-              options={credentialStoreOptions}
-              key={`credential-store-${credentialStores.length}-${storesLoading}`} // Force re-render when stores change
+              name="metadata"
+              label="Metadata (optional)"
+              keyPlaceholder="Header name (e.g., X-API-Key)"
+              valuePlaceholder="Header value"
             />
+            <InfoCard title="How this works">
+              <p className="mb-2">Add extra headers to be included with authentication requests.</p>
+              <p>
+                Examples:{' '}
+                <code className="bg-background px-1.5 py-0.5 rounded border mx-1">User-Agent</code>
+                <code className="bg-background px-1.5 py-0.5 rounded border mx-1">X-API-Key</code>
+                <code className="bg-background px-1.5 py-0.5 rounded border mx-1">
+                  Content-Type
+                </code>
+              </p>
+            </InfoCard>
           </div>
 
           {/* Tool Selection Section */}

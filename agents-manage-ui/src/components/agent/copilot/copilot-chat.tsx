@@ -75,6 +75,7 @@ export function CopilotChat({ agentId, tenantId, projectId, refreshAgentGraph }:
 
   const {
     apiKey: copilotToken,
+    cookieHeader,
     isLoading: isLoadingToken,
     error: tokenError,
     retryCount,
@@ -204,6 +205,8 @@ export function CopilotChat({ agentId, tenantId, projectId, refreshAgentGraph }:
                         targetProjectId: projectId,
                         targetAgentId: agentId,
                         onOAuthLogin: handleOAuthLogin,
+                        cookieHeader: cookieHeader,
+                        copilotToken: copilotToken,
                       }),
                   }
                 : {}),
@@ -232,6 +235,8 @@ export function CopilotChat({ agentId, tenantId, projectId, refreshAgentGraph }:
               ...(dynamicHeaders?.messageId
                 ? { 'x-inkeep-from-message-id': dynamicHeaders.messageId }
                 : {}),
+              // Forward cookies from the server action using custom header (Cookie is a forbidden header in browsers)
+              ...(cookieHeader ? { 'x-forwarded-cookie': cookieHeader } : {}),
             },
             exampleQuestionsLabel: agentId ? undefined : 'Try one of these examples:',
             exampleQuestions: agentId
