@@ -2,10 +2,11 @@
 
 import { useParams } from 'next/navigation';
 import { useEffect, useState } from 'react';
-import { InviteMemberDialog } from '@/components/auth/invite-member-dialog';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Skeleton } from '@/components/ui/skeleton';
 import { useAuthClient } from '@/lib/auth-client';
+import { ErrorContent } from '../errors/full-page-error';
+import { CopyableSingleLineCode } from '../ui/copyable-single-line-code';
+import { SettingsLoadingSkeleton } from './loading';
+import { MembersTable } from './members-table';
 
 type FullOrganization = NonNullable<
   Awaited<
@@ -16,10 +17,9 @@ type FullOrganization = NonNullable<
 export function SettingsContent() {
   const authClient = useAuthClient();
   const { tenantId } = useParams<{ tenantId: string }>();
-  const [organization, setOrganization] = useState<FullOrganization | null>(null);
+  const [organization, setOrganization] = useState<FullOrganization | null>();
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [inviteDialogOpen, setInviteDialogOpen] = useState(false);
 
   useEffect(() => {
     async function fetchOrganization() {
@@ -52,70 +52,31 @@ export function SettingsContent() {
   }, [tenantId, authClient]);
 
   if (loading) {
-    return (
-      <div className="space-y-6">
-        <Skeleton className="h-32 w-full rounded-lg" />
-        <Skeleton className="h-64 w-full rounded-lg" />
-      </div>
-    );
+    return <SettingsLoadingSkeleton />;
   }
 
   if (error || !organization) {
     return (
-      <Card className="border bg-background shadow-none rounded-lg">
-        <CardContent className="py-8">
-          <p className="text-sm text-destructive">{error || 'Failed to load organization'}</p>
-        </CardContent>
-      </Card>
+      <ErrorContent
+        error={new Error(error || 'Failed to load organization')}
+        context="organization"
+      />
     );
   }
 
   return (
     <div className="space-y-6">
-      <Card className="border bg-background shadow-none rounded-lg">
-        <CardHeader>
-          <CardTitle>Organization Details</CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div>
-            <p className="text-sm font-medium">Name</p>
-            <p className="text-sm text-muted-foreground">{organization.name}</p>
-          </div>
-          <div>
-            <p className="text-sm font-medium">ID</p>
-            <p className="text-xs text-muted-foreground font-mono">{organization.id}</p>
-          </div>
-        </CardContent>
-      </Card>
-
-      <Card className="border bg-background shadow-none rounded-lg">
-        <CardHeader>
-          <div className="flex items-center justify-between">
-            <CardTitle>Members ({organization.members.length})</CardTitle>
-            {/* <Button onClick={() => setInviteDialogOpen(true)} size="sm" variant="outline">
-              <UserPlus className="h-4 w-4 mr-2" />
-              Invite
-            </Button> */}
-          </div>
-        </CardHeader>
-        <CardContent>
-          <div className="space-y-3">
-            {organization.members.map((member: FullOrganization['members'][number]) => (
-              <div
-                key={member.id}
-                className="flex items-center justify-between py-2 border-b last:border-0"
-              >
-                <div>
-                  <p className="text-sm font-medium">{member.user.name || member.user.email}</p>
-                  <p className="text-xs text-muted-foreground">{member.user.email}</p>
-                </div>
-              </div>
-            ))}
-          </div>
-        </CardContent>
-      </Card>
-
-      <InviteMemberDialog open={inviteDialogOpen} onOpenChange={setInviteDialogOpen} />
+      <div className=" flex items-center gap-6 rounded-lg border p-4">
+        <div className="flex flex-col gap-2 flex-1">
+          <p className="text-sm font-medium">Organization name</p>
+          <CopyableSingleLineCode code={organization.name} />
+        </div>
+        <div className="flex flex-col gap-2 flex-1">
+          <p className="text-sm font-medium">Organization id</p>
+          <CopyableSingleLineCode code={organization.id} />
+        </div>
+      </div>
+      <MembersTable members={organization?.members || []} />
     </div>
   );
 }
