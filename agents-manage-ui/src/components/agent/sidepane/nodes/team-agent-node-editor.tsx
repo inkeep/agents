@@ -11,7 +11,7 @@ import type { ErrorHelpers } from '@/hooks/use-agent-errors';
 import { useAutoPrefillIdZustand } from '@/hooks/use-auto-prefill-id-zustand';
 import { useNodeEditor } from '@/hooks/use-node-editor';
 import { getCurrentHeadersForTeamAgentNode } from '@/lib/utils/team-agent-utils';
-import type { SubAgentTeamAgentConfigLookup } from '../../agent';
+import type { SubAgentTeamAgentConfigLookup } from '@/lib/types/agent-full';
 import type { TeamAgentNodeData } from '../../configuration/node-types';
 import { InputField } from '../form-components/input';
 import { TextareaField } from '../form-components/text-area';

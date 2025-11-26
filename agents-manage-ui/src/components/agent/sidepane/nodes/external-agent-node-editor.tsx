@@ -12,7 +12,7 @@ import { useAutoPrefillIdZustand } from '@/hooks/use-auto-prefill-id-zustand';
 import { useNodeEditor } from '@/hooks/use-node-editor';
 import type { Credential } from '@/lib/api/credentials';
 import { getCurrentHeadersForExternalAgentNode } from '@/lib/utils/external-agent-utils';
-import type { SubAgentExternalAgentConfigLookup } from '../../agent';
+import type { SubAgentExternalAgentConfigLookup } from '@/lib/types/agent-full';
 import type { ExternalAgentNodeData } from '../../configuration/node-types';
 import { InputField } from '../form-components/input';
 import { TextareaField } from '../form-components/text-area';

@@ -92,3 +92,22 @@ export type AgentApiError = {
   code: 'not_found' | 'bad_request' | 'internal_server_error' | 'conflict';
   message: string;
 };
+
+type SubAgentTeamAgentConfig = {
+  agentId: string;
+  headers?: Record<string, string>;
+};
+
+type SubAgentExternalAgentConfig = {
+  externalAgentId: string;
+  headers?: Record<string, string>;
+};
+
+// SubAgentTeamAgentConfigLookup: subAgentId -> relationshipId -> config
+export type SubAgentTeamAgentConfigLookup = Record<string, Record<string, SubAgentTeamAgentConfig>>;
+
+// SubAgentExternalAgentConfigLookup: subAgentId -> relationshipId -> config
+export type SubAgentExternalAgentConfigLookup = Record<
+  string,
+  Record<string, SubAgentExternalAgentConfig>
+>;

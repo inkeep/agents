@@ -1,5 +1,5 @@
 import type { Edge } from '@xyflow/react';
-import type { SubAgentTeamAgentConfigLookup } from '@/components/agent/agent';
+import type { SubAgentTeamAgentConfigLookup } from '@/lib/types/agent-full';
 import type { TeamAgentNodeData } from '@/components/agent/configuration/node-types';
 
 /**
