@@ -8,7 +8,7 @@ import { useShallow } from 'zustand/react/shallow';
 import type {
   AgentToolConfigLookup,
   SubAgentExternalAgentConfigLookup,
-} from '@/components/agent/agent';
+} from '@/lib/types/agent-full';
 import type { AgentMetadata } from '@/components/agent/configuration/agent-types';
 import type { AnimatedEdge } from '@/components/agent/configuration/edge-types';
 import {

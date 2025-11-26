@@ -111,3 +111,14 @@ export type SubAgentExternalAgentConfigLookup = Record<
   string,
   Record<string, SubAgentExternalAgentConfig>
 >;
+
+// Type for agent tool configuration lookup including both selection and headers
+type AgentToolConfig = {
+  toolId: string;
+  toolSelection?: string[] | null;
+  headers?: Record<string, string>;
+  toolPolicies?: Record<string, { needsApproval?: boolean }>;
+};
+
+// AgentToolConfigLookup: subAgentId -> relationshipId -> config
+export type AgentToolConfigLookup = Record<string, Record<string, AgentToolConfig>>;

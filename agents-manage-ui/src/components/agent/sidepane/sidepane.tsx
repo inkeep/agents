@@ -13,7 +13,7 @@ import type {
   AgentToolConfigLookup,
   SubAgentExternalAgentConfigLookup,
   SubAgentTeamAgentConfigLookup,
-} from '../agent';
+} from '@/lib/types/agent-full';
 import { edgeTypeMap } from '../configuration/edge-types';
 import {
   type AgentNodeData,

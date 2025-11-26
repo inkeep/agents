@@ -3,7 +3,7 @@ import type {
   AgentToolConfigLookup,
   SubAgentExternalAgentConfigLookup,
   SubAgentTeamAgentConfigLookup,
-} from '@/components/agent/agent';
+} from '@/lib/types/agent-full';
 import type { AgentMetadata } from '@/components/agent/configuration/agent-types';
 import type { A2AEdgeData } from '@/components/agent/configuration/edge-types';
 import { EdgeType } from '@/components/agent/configuration/edge-types';

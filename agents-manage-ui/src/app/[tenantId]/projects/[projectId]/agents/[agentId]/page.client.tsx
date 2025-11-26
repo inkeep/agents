@@ -85,17 +85,6 @@ const CopilotChat = dynamic(
   }
 );
 
-// Type for agent tool configuration lookup including both selection and headers
-export type AgentToolConfig = {
-  toolId: string;
-  toolSelection?: string[] | null;
-  headers?: Record<string, string>;
-  toolPolicies?: Record<string, { needsApproval?: boolean }>;
-};
-
-// AgentToolConfigLookup: subAgentId -> relationshipId -> config
-export type AgentToolConfigLookup = Record<string, Record<string, AgentToolConfig>>;
-
 function getEdgeId(a: string, b: string) {
   const [low, high] = [a, b].sort();
   return `edge-${low}-${high}`;

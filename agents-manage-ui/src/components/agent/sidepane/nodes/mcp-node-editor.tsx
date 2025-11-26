@@ -26,7 +26,7 @@ import {
   getCurrentSelectedToolsForNode,
   getCurrentToolPoliciesForNode,
 } from '@/lib/utils/orphaned-tools-detector';
-import type { AgentToolConfigLookup } from '../../agent';
+import type { AgentToolConfigLookup } from '@/lib/types/agent-full';
 import type { MCPNodeData } from '../../configuration/node-types';
 
 interface MCPServerNodeEditorProps {
