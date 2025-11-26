@@ -9,7 +9,6 @@ import {
   generateServiceToken,
   getCredentialReference,
   headers,
-  type McpTool,
   SPAN_KEYS,
   TemplateEngine,
 } from '@inkeep/agents-core';
@@ -263,8 +262,8 @@ export function createDelegateToAgentTool({
 }) {
   return tool({
     description: generateDelegateToolDescription(delegateConfig),
-    inputSchema: z.object({ message: z.string() }),
-    execute: async (input: { message: string }, context?: any) => {
+    inputSchema: z.object({ message: z.string().optional() }),
+    execute: async (input: { message?: string }, context?: any) => {
       const delegationId = `del_${generateId()}`;
 
       const activeSpan = trace.getActiveSpan();
@@ -285,7 +284,7 @@ export function createDelegateToAgentTool({
             delegationId,
             fromSubAgent: callingAgentId,
             targetSubAgent: delegateConfig.config.id,
-            taskDescription: input.message,
+            taskDescription: input.message || 'Delegated task',
           }
         );
       }
@@ -385,7 +384,7 @@ export function createDelegateToAgentTool({
 
       const messageToSend = {
         role: 'agent' as const,
-        parts: [{ text: input.message, kind: 'text' as const }],
+        parts: [{ text: input.message || 'Delegated task', kind: 'text' as const }],
         messageId: generateId(),
         kind: 'message' as const,
         contextId,
@@ -407,7 +406,7 @@ export function createDelegateToAgentTool({
         conversationId: contextId,
         role: 'agent',
         content: {
-          text: input.message,
+          text: input.message || 'Delegated task',
         },
         visibility: isInternal ? 'internal' : 'external',
         messageType: 'a2a-request',
