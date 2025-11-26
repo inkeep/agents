@@ -15,7 +15,27 @@ import dynamic from 'next/dynamic';
 import { useParams, useRouter } from 'next/navigation';
 import { type ComponentProps, type FC, useCallback, useEffect, useMemo, useState } from 'react';
 import { toast } from 'sonner';
+import { EdgeType, edgeTypes, initialEdges } from '@/components/agent/configuration/edge-types';
+import {
+  agentNodeSourceHandleId,
+  agentNodeTargetHandleId,
+  externalAgentNodeTargetHandleId,
+  type MCPNodeData,
+  mcpNodeHandleId,
+  NodeType,
+  newNodeDefaults,
+  nodeTypes,
+  teamAgentNodeTargetHandleId,
+} from '@/components/agent/configuration/node-types';
+import { useCopilotContext } from '@/components/agent/copilot/copilot-context';
+import { EmptyState } from '@/components/agent/empty-state';
+import { AgentErrorSummary } from '@/components/agent/error-display/agent-error-summary';
+import { DefaultMarker } from '@/components/agent/markers/default-marker';
+import { SelectedMarker } from '@/components/agent/markers/selected-marker';
+import NodeLibrary from '@/components/agent/node-library/node-library';
 import { EditorLoadingSkeleton } from '@/components/agent/sidepane/editor-loading-skeleton';
+import { SidePane } from '@/components/agent/sidepane/sidepane';
+import { Toolbar } from '@/components/agent/toolbar/toolbar';
 import { UnsavedChangesDialog } from '@/components/agent/unsaved-changes-dialog';
 import { ResizableHandle, ResizablePanel, ResizablePanelGroup } from '@/components/ui/resizable';
 import { commandManager } from '@/features/agent/commands/command-manager';
@@ -48,36 +68,22 @@ import { getErrorSummaryMessage, parseAgentValidationErrors } from '@/lib/utils/
 import { generateId } from '@/lib/utils/id-utils';
 import { detectOrphanedToolsAndGetWarning } from '@/lib/utils/orphaned-tools-detector';
 import { convertFullProjectToProject } from '@/lib/utils/project-converter';
-import { EdgeType, edgeTypes, initialEdges } from './configuration/edge-types';
-import {
-  agentNodeSourceHandleId,
-  agentNodeTargetHandleId,
-  externalAgentNodeTargetHandleId,
-  type MCPNodeData,
-  mcpNodeHandleId,
-  NodeType,
-  newNodeDefaults,
-  nodeTypes,
-  teamAgentNodeTargetHandleId,
-} from './configuration/node-types';
-import { useCopilotContext } from './copilot/copilot-context';
-import { EmptyState } from './empty-state';
-import { AgentErrorSummary } from './error-display/agent-error-summary';
-import { DefaultMarker } from './markers/default-marker';
-import { SelectedMarker } from './markers/selected-marker';
-import NodeLibrary from './node-library/node-library';
-import { SidePane } from './sidepane/sidepane';
-import { Toolbar } from './toolbar/toolbar';
 
 // The Widget component is heavy, so we load it on the client only after the user clicks the "Try it" button.
-const Playground = dynamic(() => import('./playground/playground').then((mod) => mod.Playground), {
-  ssr: false,
-  loading: () => <EditorLoadingSkeleton className="p-6" />,
-});
+const Playground = dynamic(
+  () => import('@/components/agent/playground/playground').then((mod) => mod.Playground),
+  {
+    ssr: false,
+    loading: () => <EditorLoadingSkeleton className="p-6" />,
+  }
+);
 
-const CopilotChat = dynamic(() => import('./copilot/copilot-chat').then((mod) => mod.CopilotChat), {
-  ssr: false,
-});
+const CopilotChat = dynamic(
+  () => import('@/components/agent/copilot/copilot-chat').then((mod) => mod.CopilotChat),
+  {
+    ssr: false,
+  }
+);
 
 // Type for agent tool configuration lookup including both selection and headers
 export type AgentToolConfig = {
@@ -87,27 +93,8 @@ export type AgentToolConfig = {
   toolPolicies?: Record<string, { needsApproval?: boolean }>;
 };
 
-export type SubAgentExternalAgentConfig = {
-  externalAgentId: string;
-  headers?: Record<string, string>;
-};
-
-export type SubAgentTeamAgentConfig = {
-  agentId: string;
-  headers?: Record<string, string>;
-};
-
 // AgentToolConfigLookup: subAgentId -> relationshipId -> config
 export type AgentToolConfigLookup = Record<string, Record<string, AgentToolConfig>>;
-
-// SubAgentExternalAgentConfigLookup: subAgentId -> relationshipId -> config
-export type SubAgentExternalAgentConfigLookup = Record<
-  string,
-  Record<string, SubAgentExternalAgentConfig>
->;
-
-// SubAgentTeamAgentConfigLookup: subAgentId -> relationshipId -> config
-export type SubAgentTeamAgentConfigLookup = Record<string, Record<string, SubAgentTeamAgentConfig>>;
 
 function getEdgeId(a: string, b: string) {
   const [low, high] = [a, b].sort();
