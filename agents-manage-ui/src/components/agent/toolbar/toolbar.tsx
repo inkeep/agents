@@ -1,9 +1,8 @@
 import { Play, Settings } from 'lucide-react';
-import { type ComponentProps, useEffect, useRef } from 'react';
+import type { ComponentProps } from 'react';
 import { Button } from '@/components/ui/button';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { useAgentStore } from '@/features/agent/state/use-agent-store';
-import { isMacOs } from '@/lib/utils';
 import { ShipModal } from '../ship/ship-modal';
 
 type MaybePromise<T> = T | Promise<T>;
