@@ -118,7 +118,7 @@ export default {
         },
         'visual-builder/headers',
         'visual-builder/traces',
-        'visual-builder/project-management',
+        // 'visual-builder/project-management',
         {
           group: 'Structured Outputs',
           icon: 'LuLayoutTemplate',
