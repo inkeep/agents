@@ -7,13 +7,13 @@ import { useAgentErrors } from '@/hooks/use-agent-errors';
 import type { ArtifactComponent } from '@/lib/api/artifact-components';
 import type { Credential } from '@/lib/api/credentials';
 import type { DataComponent } from '@/lib/api/data-components';
-import { cn } from '@/lib/utils';
-import { SidePane as SidePaneLayout } from '../../layout/sidepane';
 import type {
   AgentToolConfigLookup,
   SubAgentExternalAgentConfigLookup,
   SubAgentTeamAgentConfigLookup,
 } from '@/lib/types/agent-full';
+import { cn } from '@/lib/utils';
+import { SidePane as SidePaneLayout } from '../../layout/sidepane';
 import { edgeTypeMap } from '../configuration/edge-types';
 import {
   type AgentNodeData,
