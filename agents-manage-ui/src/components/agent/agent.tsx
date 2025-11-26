@@ -115,7 +115,7 @@ function getEdgeId(a: string, b: string) {
 }
 
 interface AgentProps {
-  agent?: ExtendedFullAgentDefinition;
+  agent: ExtendedFullAgentDefinition;
   dataComponentLookup?: Record<string, DataComponent>;
   artifactComponentLookup?: Record<string, ArtifactComponent>;
   toolLookup?: Record<string, MCPTool>;
@@ -1099,7 +1099,6 @@ export const Agent: FC<AgentProps> = ({
             >
               <Toolbar
                 onSubmit={onSubmit}
-                inPreviewDisabled={!agent?.id}
                 toggleSidePane={isOpen ? backToAgent : openAgentPane}
                 setShowPlayground={() => {
                   closeSidePane();
