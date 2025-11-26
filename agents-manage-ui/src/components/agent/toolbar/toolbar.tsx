@@ -1,10 +1,11 @@
 import { Play, Settings } from 'lucide-react';
-import { type ComponentProps, useEffect, useRef } from 'react';
+import { type ComponentProps, useCallback, useState } from 'react';
 import { Button } from '@/components/ui/button';
+import { Spinner } from '@/components/ui/spinner';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { useAgentStore } from '@/features/agent/state/use-agent-store';
-import { isMacOs } from '@/lib/utils';
 import { ShipModal } from '../ship/ship-modal';
+import { cn } from '@/lib/utils';
 
 type MaybePromise<T> = T | Promise<T>;
 
@@ -22,7 +23,6 @@ export function Toolbar({
   setShowPlayground,
 }: ToolbarProps) {
   const dirty = useAgentStore((state) => state.dirty);
-  const saveButtonRef = useRef<HTMLButtonElement>(null);
 
   const commonProps = {
     className: 'backdrop-blur-3xl',
@@ -41,20 +41,12 @@ export function Toolbar({
     </Button>
   );
 
-  useEffect(() => {
-    function handleSaveShortcut(event: KeyboardEvent) {
-      const isShortcutPressed = (isMacOs() ? event.metaKey : event.ctrlKey) && event.key === 's';
-      if (!isShortcutPressed) return;
-      event.preventDefault();
-      // Using button ref instead onSubmit to respect button's disabled state
-      saveButtonRef.current?.click();
-    }
-
-    window.addEventListener('keydown', handleSaveShortcut);
-    return () => {
-      window.removeEventListener('keydown', handleSaveShortcut);
-    };
-  }, []);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const saveAgent = useCallback(async () => {
+    setIsSubmitting(true);
+    await onSubmit();
+    setIsSubmitting(false);
+  }, [onSubmit]);
 
   return (
     <div className="flex gap-2 flex-wrap justify-end content-start">
@@ -79,11 +71,12 @@ export function Toolbar({
       )}
       <Button
         {...commonProps}
-        onClick={onSubmit}
+        id="save-agent"
+        onClick={saveAgent}
         variant={dirty ? 'default' : 'outline'}
-        disabled={!dirty && !inPreviewDisabled}
-        ref={saveButtonRef}
+        disabled={isSubmitting || (!dirty && !inPreviewDisabled)}
       >
+        <Spinner className={cn(!isSubmitting && 'hidden')} />
         {inPreviewDisabled ? 'Save' : 'Save changes'}
       </Button>
       <Button {...commonProps} onClick={toggleSidePane}>
