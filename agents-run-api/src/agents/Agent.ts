@@ -414,7 +414,6 @@ export class Agent {
       return toolDefinition;
     }
     const relationshipId = this.#getRelationshipIdForTool(toolName, toolType);
-    console.log(111, { toolName, relationshipId });
 
     const originalExecute = toolDefinition.execute;
     return {
@@ -771,7 +770,6 @@ export class Agent {
 
                 if (streamRequestId) {
                   const relationshipId = this.#getRelationshipIdForTool(toolName, 'mcp');
-                  console.log(222, { toolName, relationshipId });
                   agentSessionManager.recordEvent(streamRequestId, 'error', this.config.id, {
                     message: `MCP tool "${toolName}" failed: ${errorMessage}`,
                     code: 'mcp_tool_error',
