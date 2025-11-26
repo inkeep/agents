@@ -320,11 +320,11 @@ describe('Project CRUD Routes - Integration Tests', () => {
       });
       expect(res1.status).toBe(400);
 
-      // Missing description
+      // Description is now optional, so this should succeed
       const res2 = await makeRequest(`/tenants/${tenantId}/projects`, {
         method: 'POST',
         body: JSON.stringify({
-          id: 'test-id',
+          id: 'test-id-without-description',
           name: 'Test name',
           models: {
             base: {
@@ -334,7 +334,7 @@ describe('Project CRUD Routes - Integration Tests', () => {
           },
         }),
       });
-      expect(res2.status).toBe(400);
+      expect(res2.status).toBe(201);
 
       // Missing id
       const res3 = await makeRequest(`/tenants/${tenantId}/projects`, {

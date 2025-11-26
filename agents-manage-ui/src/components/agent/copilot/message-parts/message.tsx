@@ -28,6 +28,8 @@ interface IkpMessageProps {
   targetProjectId?: string;
   targetAgentId?: string;
   onOAuthLogin?: OAuthLoginHandler;
+  cookieHeader?: string;
+  copilotToken?: string;
 }
 
 // StreamMarkdown component that renders with inline citations and data operations
@@ -165,6 +167,8 @@ export const IkpMessageComponent: FC<IkpMessageProps> = ({
   targetProjectId,
   targetAgentId,
   onOAuthLogin,
+  cookieHeader,
+  copilotToken,
 }) => {
   const { operations, textContent, artifacts } = useProcessedOperations(message.parts);
   // Just use operations in chronological order
@@ -306,6 +310,8 @@ export const IkpMessageComponent: FC<IkpMessageProps> = ({
                               copilotProjectId={copilotProjectId}
                               copilotTenantId={copilotTenantId}
                               runApiUrl={runApiUrl}
+                              cookieHeader={cookieHeader}
+                              copilotToken={copilotToken}
                             />
                           )}
                         </div>
@@ -384,6 +390,8 @@ export const IkpMessage = (props: any) => {
         targetProjectId={otherProps.targetProjectId}
         targetAgentId={otherProps.targetAgentId}
         onOAuthLogin={otherProps.onOAuthLogin}
+        cookieHeader={otherProps.cookieHeader}
+        copilotToken={otherProps.copilotToken}
       />
     </div>
   );

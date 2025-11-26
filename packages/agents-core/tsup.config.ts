@@ -21,6 +21,6 @@ export default defineConfig({
     'src/credential-stores/index.ts',
     'src/db/test-client.ts',
   ],
-  external: ['keytar', '@hono/zod-openapi', 'zod', 'drizzle-zod'],
+  external: ['keytar', 'zod', '@hono/zod-openapi', 'drizzle-zod'],
   async onSuccess() {},
 });

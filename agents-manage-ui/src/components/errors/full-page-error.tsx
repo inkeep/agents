@@ -6,6 +6,16 @@ import { BodyTemplate } from '@/components/layout/body-template';
 import { MainContent } from '@/components/layout/main-content';
 import { Button } from '@/components/ui/button';
 
+export default function FullPageError({ statusCode, ...props }: FullPageErrorProps) {
+  return (
+    <BodyTemplate breadcrumbs={[{ label: statusCode ? `${statusCode} Error` : 'Error' }]}>
+      <MainContent className="flex-1">
+        <ErrorContent statusCode={statusCode} {...props} />
+      </MainContent>
+    </BodyTemplate>
+  );
+}
+
 function hasStatusCode(obj: unknown): obj is { status: number } {
   return (
     typeof obj === 'object' &&
@@ -46,7 +56,7 @@ interface FullPageErrorProps {
   context?: string;
 }
 
-export default function FullPageError({
+export function ErrorContent({
   error,
   reset,
   title: propTitle,
@@ -115,37 +125,33 @@ export default function FullPageError({
   };
 
   return (
-    <BodyTemplate breadcrumbs={[{ label: statusCode ? `${statusCode} Error` : 'Error' }]}>
-      <MainContent className="flex-1">
-        <div className="flex flex-col items-center justify-center h-full gap-10 px-4">
-          {statusCode ? (
-            <div className="text-8xl font-mono font-bold text-foreground">{statusCode}</div>
-          ) : (
-            <AlertTriangle className="w-14 h-14 text-foreground" strokeWidth={1} />
-          )}
-          <div className="flex flex-col items-center gap-2 text-center max-w-md">
-            <h1 className="text-lg text-muted-foreground font-mono uppercase">{title}</h1>
-            <p className="text-muted-foreground text-sm">{description}</p>
-          </div>
+    <div className="flex flex-col items-center justify-center h-full gap-10 px-4">
+      {statusCode ? (
+        <div className="text-8xl font-mono font-bold text-foreground">{statusCode}</div>
+      ) : (
+        <AlertTriangle className="w-14 h-14 text-foreground" strokeWidth={1} />
+      )}
+      <div className="flex flex-col items-center gap-2 text-center max-w-md">
+        <h1 className="text-lg text-muted-foreground font-mono uppercase">{title}</h1>
+        <p className="text-muted-foreground text-sm">{description}</p>
+      </div>
 
-          <div className="flex items-center gap-3">
-            {showRetry && (
-              <Button onClick={handleRetry} variant="outline">
-                <RefreshCw className="w-4 h-4" />
-                Try Again
-              </Button>
-            )}
-            {link && linkText && (
-              <Button asChild variant="outline">
-                <Link href={link} className="flex items-center gap-2">
-                  <ArrowLeft className="w-4 h-4" />
-                  {linkText}
-                </Link>
-              </Button>
-            )}
-          </div>
-        </div>
-      </MainContent>
-    </BodyTemplate>
+      <div className="flex items-center gap-3">
+        {showRetry && (
+          <Button onClick={handleRetry} variant="outline">
+            <RefreshCw className="w-4 h-4" />
+            Try Again
+          </Button>
+        )}
+        {link && linkText && (
+          <Button asChild variant="outline">
+            <Link href={link} className="flex items-center gap-2">
+              <ArrowLeft className="w-4 h-4" />
+              {linkText}
+            </Link>
+          </Button>
+        )}
+      </div>
+    </div>
   );
 }
