@@ -30,7 +30,6 @@ export const NodeLibrary: FC = () => {
       role="group"
     >
       <div
-        className="flex flex-col gap-1"
         onMouseEnter={() => setIsExpanded(true)}
         onFocus={() => setIsExpanded(true)}
         role="group"
@@ -41,8 +40,8 @@ export const NodeLibrary: FC = () => {
             'flex flex-col gap-2',
             'transition-all duration-300',
             isExpanded
-              ? 'max-h-100 opacity-100 translate-y-0 pt-1 pointer-events-auto'
-              : 'max-h-0 opacity-0 -translate-y-1 pt-0 pointer-events-none'
+              ? 'max-h-100 opacity-100 pt-2 pointer-events-auto'
+              : 'max-h-0 opacity-0 pointer-events-none'
           )}
         >
           {secondaryNodes.map((node) => (
