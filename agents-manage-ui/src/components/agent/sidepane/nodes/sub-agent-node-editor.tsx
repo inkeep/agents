@@ -152,7 +152,6 @@ export function SubAgentNodeEditor({
           placeholder="You are a helpful assistant..."
           error={getFieldError('prompt')}
           label="Prompt"
-          isRequired
         />
       </div>
       <div className="space-y-2">

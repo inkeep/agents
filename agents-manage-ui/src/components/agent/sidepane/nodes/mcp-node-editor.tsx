@@ -249,13 +249,10 @@ export function MCPServerNodeEditor({
         </div>
       )}
       <div className="flex flex-col gap-2">
-        <div className="flex items-center justify-between">
+        <div className="flex items-center justify-between gap-2">
           <div className="flex items-center gap-2">
             <Label>Tool Configuration</Label>
-            <Badge
-              variant="code"
-              className="border-none px-2 text-[10px] text-gray-700 dark:text-gray-300"
-            >
+            <Badge variant="count">
               {
                 selectedTools === null
                   ? (activeTools?.length ?? 0) // All tools selected

@@ -36,6 +36,8 @@ import {
   SubAgentStopWhenSchema,
 } from './validation/schemas';
 
+export { DEFAULT_NANGO_STORE_ID } from './credential-stores/default-constants';
+
 export { validatePropsAsJsonSchema } from './validation/props-validation';
 
 export {

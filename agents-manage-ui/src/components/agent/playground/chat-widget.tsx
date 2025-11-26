@@ -8,6 +8,7 @@ import { useRuntimeConfig } from '@/contexts/runtime-config-context';
 import { useTempApiKey } from '@/hooks/use-temp-api-key';
 import type { DataComponent } from '@/lib/api/data-components';
 import { generateId } from '@/lib/utils/id-utils';
+import { useCopilotContext } from '../copilot/copilot-context';
 import { FeedbackDialog } from './feedback-dialog';
 
 interface ChatWidgetProps {
@@ -59,6 +60,7 @@ export function ChatWidget({
   dataComponentLookup = {},
 }: ChatWidgetProps) {
   const { PUBLIC_INKEEP_AGENTS_RUN_API_URL } = useRuntimeConfig();
+  const { isCopilotConfigured } = useCopilotContext();
   const [isFeedbackDialogOpen, setIsFeedbackDialogOpen] = useState(false);
   const [messageId, setMessageId] = useState<string | undefined>(undefined);
   const {
@@ -112,7 +114,7 @@ export function ChatWidget({
   if (isLoadingKey || !tempApiKey) {
     return (
       <div className="h-full flex items-center justify-center">
-        <p className="text-muted-foreground">
+        <p className="text-muted-foreground text-sm">
           {isLoadingKey ? 'Initializing playground...' : 'Failed to initialize playground'}
         </p>
       </div>
@@ -206,19 +208,21 @@ export function ChatWidget({
               Authorization: `Bearer ${tempApiKey}`,
               ...customHeaders,
             },
-            messageActions: [
-              {
-                label: 'Improve with AI',
-                icon: { builtIn: 'LuSparkles' },
-                action: {
-                  type: 'invoke_message_callback',
-                  callback: ({ messageId }: InvokeMessageCallbackActionArgs) => {
-                    setMessageId(messageId);
-                    setIsFeedbackDialogOpen(true);
+            messageActions: isCopilotConfigured
+              ? [
+                  {
+                    label: 'Improve with AI',
+                    icon: { builtIn: 'LuSparkles' },
+                    action: {
+                      type: 'invoke_message_callback',
+                      callback: ({ messageId }: InvokeMessageCallbackActionArgs) => {
+                        setMessageId(messageId);
+                        setIsFeedbackDialogOpen(true);
+                      },
+                    },
                   },
-                },
-              },
-            ],
+                ]
+              : undefined,
             components: new Proxy(
               {},
               {

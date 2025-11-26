@@ -7,15 +7,16 @@ function SettingsPage() {
   return (
     <BodyTemplate>
       <MainContent>
-        <PageHeader
-          title="Organization Settings"
-          description="Manage your organization settings"
-        />
-        <SettingsContent />
+        <div className="max-w-4xl mx-auto py-4">
+          <PageHeader
+            title="Organization Settings"
+            description="Manage your organization settings"
+          />
+          <SettingsContent />
+        </div>
       </MainContent>
     </BodyTemplate>
   );
 }
 
 export default SettingsPage;
-
