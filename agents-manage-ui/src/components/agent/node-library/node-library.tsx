@@ -6,7 +6,7 @@ import { NodeType, nodeTypeMap } from '../configuration/node-types';
 import { CopilotTrigger } from './copilot-trigger';
 import { NodeItem } from './node-item';
 
-const nodes = [
+const nodeTypes = [
   nodeTypeMap[NodeType.TeamAgentPlaceholder],
   nodeTypeMap[NodeType.ExternalAgentPlaceholder],
   nodeTypeMap[NodeType.MCPPlaceholder],
@@ -42,7 +42,7 @@ export const NodeLibrary: FC = () => {
             isExpanded ? 'max-h-100 opacity-100 pt-2' : 'max-h-0 opacity-0 pointer-events-none'
           )}
         >
-          {nodes.map((node) => (
+          {nodeTypes.map((node) => (
             <NodeItem key={node.type} node={node} />
           ))}
         </div>
