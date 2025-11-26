@@ -2,6 +2,7 @@
 
 import { useParams } from 'next/navigation';
 import { useEffect, useState } from 'react';
+import { InviteMemberDialog } from '@/components/auth/invite-member-dialog';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useAuthClient } from '@/lib/auth-client';
@@ -18,6 +19,7 @@ export function SettingsContent() {
   const [organization, setOrganization] = useState<FullOrganization | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [inviteDialogOpen, setInviteDialogOpen] = useState(false);
 
   useEffect(() => {
     async function fetchOrganization() {
@@ -88,7 +90,13 @@ export function SettingsContent() {
 
       <Card className="border bg-background shadow-none rounded-lg">
         <CardHeader>
-          <CardTitle>Members ({organization.members.length})</CardTitle>
+          <div className="flex items-center justify-between">
+            <CardTitle>Members ({organization.members.length})</CardTitle>
+            {/* <Button onClick={() => setInviteDialogOpen(true)} size="sm" variant="outline">
+              <UserPlus className="h-4 w-4 mr-2" />
+              Invite
+            </Button> */}
+          </div>
         </CardHeader>
         <CardContent>
           <div className="space-y-3">
@@ -106,6 +114,8 @@ export function SettingsContent() {
           </div>
         </CardContent>
       </Card>
+
+      <InviteMemberDialog open={inviteDialogOpen} onOpenChange={setInviteDialogOpen} />
     </div>
   );
 }
