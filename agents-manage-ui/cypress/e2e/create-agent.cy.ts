@@ -1,5 +1,7 @@
 /// <reference types="cypress" />
 
+import { randomId } from '../support/utils';
+
 describe('Create Agent', () => {
   const tenantId = 'default';
   const projectId = 'my-weather-project';
@@ -31,8 +33,8 @@ describe('Create Agent', () => {
   });
 
   it('should create agent and navigate to agent page', () => {
-    const agentName = `Test Agent ${Date.now()}`;
-    const agentId = `test-agent-${Date.now()}`;
+    const agentName = `Test Agent ${randomId()}`;
+    const agentId = `test-agent-${randomId()}`;
 
     openNewAgentDialog();
     cy.get('[role=dialog]', { timeout: 10000 }).should('be.visible');
@@ -85,8 +87,8 @@ describe('Create Agent', () => {
   });
 
   it('should show error toast for duplicate agent id', () => {
-    const agentName = `Test Agent ${Date.now()}`;
-    const agentId = `test-agent-${Date.now()}`;
+    const agentName = `Test Agent ${randomId()}`;
+    const agentId = `test-agent-${randomId()}`;
 
     openNewAgentDialog();
     cy.get('[role=dialog]', { timeout: 10000 }).should('be.visible');
