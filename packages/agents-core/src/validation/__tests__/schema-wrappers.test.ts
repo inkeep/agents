@@ -120,11 +120,11 @@ describe('Schema Wrapper Functions', () => {
       expect(() => schema.parse(null)).toThrow();
     });
 
-    it('should validate description as string', () => {
+    it('should validate description as string or null', () => {
       const schema = ProjectSelectSchema.shape.description;
       expect(() => schema.parse('Valid description')).not.toThrow();
+      expect(() => schema.parse(null)).not.toThrow(); // Now nullable
       expect(() => schema.parse(123)).toThrow();
-      expect(() => schema.parse(null)).toThrow();
     });
   });
 

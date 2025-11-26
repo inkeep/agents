@@ -1,3 +1,4 @@
+import { z } from '@hono/zod-openapi';
 import {
   type AgentConversationHistoryConfig,
   type Artifact,
@@ -40,7 +41,6 @@ import {
   type ToolSet,
   tool,
 } from 'ai';
-import { z } from 'zod';
 import {
   AGENT_EXECUTION_MAX_GENERATION_STEPS,
   FUNCTION_TOOL_EXECUTION_TIMEOUT_MS_DEFAULT,
@@ -111,8 +111,8 @@ export type AgentConfig = {
   apiKey?: string;
   apiKeyId?: string;
   name: string;
-  description: string;
-  prompt: string;
+  description?: string;
+  prompt?: string;
   subAgentRelations: AgentConfig[];
   transferRelations: AgentConfig[];
   delegateRelations: DelegateRelation[];
@@ -1326,8 +1326,8 @@ export class Agent {
     const conversationId = runtimeContext?.metadata?.conversationId || runtimeContext?.contextId;
     const resolvedContext = conversationId ? await this.getResolvedContext(conversationId) : null;
 
-    let processedPrompt = this.config.prompt;
-    if (resolvedContext) {
+    let processedPrompt = this.config.prompt || '';
+    if (resolvedContext && this.config.prompt) {
       try {
         processedPrompt = TemplateEngine.render(this.config.prompt, resolvedContext, {
           strict: false,
@@ -1390,8 +1390,9 @@ export class Agent {
     }
 
     const resolvedContext = conversationId ? await this.getResolvedContext(conversationId) : null;
-    let processedPrompt = this.config.prompt;
-    if (resolvedContext) {
+
+    let processedPrompt = this.config.prompt || '';
+    if (resolvedContext && this.config.prompt) {
       try {
         processedPrompt = TemplateEngine.render(this.config.prompt, resolvedContext, {
           strict: false,
@@ -2140,6 +2141,20 @@ ${output}`;
                     );
                   } catch (error) {
                     logger.debug({ error }, 'Failed to track agent reasoning');
+                  }
+                }
+                if (last && last['content'] && last['content'].length > 0) {
+                  const lastContent = last['content'][last['content'].length - 1];
+                  if (lastContent['type'] === 'tool-error') {
+                    const error = lastContent['error'];
+                    if (
+                      error &&
+                      typeof error === 'object' &&
+                      'name' in error &&
+                      error.name === 'connection_refused'
+                    ) {
+                      return true;
+                    }
                   }
                 }
 

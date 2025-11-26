@@ -1,4 +1,4 @@
-import { createRoute, OpenAPIHono } from '@hono/zod-openapi';
+import { createRoute, OpenAPIHono, z } from '@hono/zod-openapi';
 import type { CredentialStoreRegistry, ServerConfig } from '@inkeep/agents-core';
 import {
   commonGetErrorResponses,
@@ -6,7 +6,6 @@ import {
   TenantProjectParamsSchema,
   ThirdPartyMCPServerResponse,
 } from '@inkeep/agents-core';
-import { z } from 'zod';
 
 type AppVariables = {
   serverConfig: ServerConfig;

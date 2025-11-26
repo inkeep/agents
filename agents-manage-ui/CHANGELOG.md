@@ -1,5 +1,20 @@
 # @inkeep/agents-manage-ui
 
+## 0.37.2
+
+### Patch Changes
+
+- 6cdde56: add org settings page
+- 78163b1: mcp hard fail
+- f47e391: Use hono zod in run and manage packages
+- 1f77578: Fix broken tests: mcpTool.with() returns undefined for empty selectedTools, update agentFull test canUse structure, fix projectFull dataComponents props schema
+- Updated dependencies [78163b1]
+- Updated dependencies [f47e391]
+- Updated dependencies [1f77578]
+  - @inkeep/agents-run-api@0.37.2
+  - @inkeep/agents-manage-api@0.37.2
+  - @inkeep/agents-core@0.37.2
+
 ## 0.37.1
 
 ### Patch Changes

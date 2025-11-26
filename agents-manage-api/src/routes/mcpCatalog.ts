@@ -1,3 +1,4 @@
+import type { z } from '@hono/zod-openapi';
 import { createRoute, OpenAPIHono } from '@hono/zod-openapi';
 import type {
   CredentialStoreRegistry,
@@ -11,7 +12,6 @@ import {
   MCPTransportType,
   TenantProjectParamsSchema,
 } from '@inkeep/agents-core';
-import type z from 'zod';
 
 type AppVariables = {
   serverConfig: ServerConfig;

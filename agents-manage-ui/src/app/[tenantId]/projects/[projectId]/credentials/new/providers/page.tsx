@@ -19,11 +19,17 @@ const SUPPORTED_AUTH_MODES: AuthModeType[] = [
   'NONE',
 ];
 
+const DISABLED_PROVIDERS = ['hibob-service-user'];
+
 /**
  * Filter providers by supported authentication modes
  */
 function filterSupportedProviders(providers: ApiProvider[]): ApiProvider[] {
-  return providers.filter((provider) => SUPPORTED_AUTH_MODES.includes(provider.auth_mode));
+  return providers.filter(
+    (provider) =>
+      SUPPORTED_AUTH_MODES.includes(provider.auth_mode) &&
+      !DISABLED_PROVIDERS.includes(provider.name)
+  );
 }
 
 async function ProvidersPage({

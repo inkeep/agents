@@ -35,7 +35,7 @@ export function generateExternalAgentDefinition(
   }
 
   // Validate required external agent fields
-  const requiredFields = ['name', 'description', 'baseUrl'];
+  const requiredFields = ['name', 'baseUrl']; // Description is optional
   const missingFields = requiredFields.filter(
     (field) => !agentData[field] || agentData[field] === null || agentData[field] === undefined
   );
