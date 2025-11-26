@@ -62,6 +62,14 @@ import type { Credential } from '@/lib/api/credentials';
 import type { DataComponent } from '@/lib/api/data-components';
 import type { ExternalAgent } from '@/lib/api/external-agents';
 import { saveAgent } from '@/lib/services/save-agent';
+import type {
+  AgentToolConfig,
+  AgentToolConfigLookup,
+  SubAgentExternalAgentConfig,
+  SubAgentExternalAgentConfigLookup,
+  SubAgentTeamAgentConfig,
+  SubAgentTeamAgentConfigLookup,
+} from '@/lib/types/agent-full';
 import type { MCPTool } from '@/lib/types/tools';
 import { createLookup } from '@/lib/utils';
 import { getErrorSummaryMessage, parseAgentValidationErrors } from '@/lib/utils/agent-error-parser';

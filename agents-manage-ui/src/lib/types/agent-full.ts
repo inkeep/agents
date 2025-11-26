@@ -93,12 +93,12 @@ export type AgentApiError = {
   message: string;
 };
 
-type SubAgentTeamAgentConfig = {
+export type SubAgentTeamAgentConfig = {
   agentId: string;
   headers?: Record<string, string>;
 };
 
-type SubAgentExternalAgentConfig = {
+export type SubAgentExternalAgentConfig = {
   externalAgentId: string;
   headers?: Record<string, string>;
 };
@@ -113,7 +113,7 @@ export type SubAgentExternalAgentConfigLookup = Record<
 >;
 
 // Type for agent tool configuration lookup including both selection and headers
-type AgentToolConfig = {
+export type AgentToolConfig = {
   toolId: string;
   toolSelection?: string[] | null;
   headers?: Record<string, string>;
