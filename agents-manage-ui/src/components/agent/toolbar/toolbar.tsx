@@ -1,12 +1,11 @@
 import { Play, Settings } from 'lucide-react';
-import { type ComponentProps, useCallback, useState, useEffect, useRef } from 'react';
+import { type ComponentProps, useCallback, useEffect, useRef, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Spinner } from '@/components/ui/spinner';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { useAgentStore } from '@/features/agent/state/use-agent-store';
+import { cn, isMacOs } from '@/lib/utils';
 import { ShipModal } from '../ship/ship-modal';
-import { isMacOs } from '@/lib/utils';
-import { cn } from '@/lib/utils';
 
 type MaybePromise<T> = T | Promise<T>;
 
