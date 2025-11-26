@@ -32,7 +32,7 @@ import { EmptyState } from '@/components/agent/empty-state';
 import { AgentErrorSummary } from '@/components/agent/error-display/agent-error-summary';
 import { DefaultMarker } from '@/components/agent/markers/default-marker';
 import { SelectedMarker } from '@/components/agent/markers/selected-marker';
-import NodeLibrary from '@/components/agent/node-library/node-library';
+import { NodeLibrary } from '@/components/agent/node-library/node-library';
 import { EditorLoadingSkeleton } from '@/components/agent/sidepane/editor-loading-skeleton';
 import { SidePane } from '@/components/agent/sidepane/sidepane';
 import { Toolbar } from '@/components/agent/toolbar/toolbar';
