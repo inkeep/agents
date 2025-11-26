@@ -272,7 +272,7 @@ export function ViewMCPServerDetails({
         <div className="space-y-2">
           <div className="flex gap-2 items-center">
             <ItemLabel>Active Tools</ItemLabel>
-            <Badge variant="code" className="border-none px-2 text-[10px] text-muted-foreground">
+            <Badge variant="count">
               {(tool.config as any).mcp.activeTools === undefined
                 ? (tool.availableTools?.length ?? 0)
                 : ((tool.config as any).mcp.activeTools?.length ?? 0)}

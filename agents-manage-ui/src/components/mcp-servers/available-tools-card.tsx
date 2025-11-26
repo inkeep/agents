@@ -115,9 +115,7 @@ export function AvailableToolsCard({
     <div className="space-y-2">
       <div className="flex gap-2 items-center">
         <div className="text-sm font-medium leading-none">Available Tools</div>
-        <Badge variant="code" className="border-none px-2 text-[10px] text-gray-700">
-          {tools.length}
-        </Badge>
+        <Badge variant="count">{tools.length}</Badge>
       </div>
       <div className="space-y-2">
         {tools.map((availableTool) => {
