@@ -7,6 +7,9 @@ settings:
 overrides:
   esbuild: 0.25.9
   zod: ^4.1.11
+  '@inkeep/agents-manage-mcp>zod': ^3.25.7
+  '@modelcontextprotocol/sdk>zod': ^3.25.7
+  '@anthropic-ai/mcpb>zod': ^3.25.7
 
 patchedDependencies:
   '@changesets/assemble-release-plan@6.0.9':
@@ -361,8 +364,8 @@ importers:
         specifier: ^0.2.4
         version: 0.2.4(ws@8.18.3)(zod@4.1.12)
       '@hono/mcp':
-        specifier: ^0.2.0
-        version: 0.2.0(@modelcontextprotocol/sdk@1.23.0(zod@4.1.12))(hono-rate-limiter@0.4.2(hono@4.10.4))(hono@4.10.4)
+        specifier: ^0.1.5
+        version: 0.1.5(@modelcontextprotocol/sdk@1.21.0)(hono@4.10.4)
       '@hono/node-server':
         specifier: ^1.14.3
         version: 1.19.6(hono@4.10.4)
@@ -379,8 +382,8 @@ importers:
         specifier: workspace:^
         version: link:../packages/agents-manage-mcp
       '@modelcontextprotocol/sdk':
-        specifier: ^1.23.0
-        version: 1.23.0(zod@4.1.12)
+        specifier: ^1.17.0
+        version: 1.21.0
       '@nangohq/node':
         specifier: ^0.69.5
         version: 0.69.9
@@ -1110,8 +1113,8 @@ importers:
   packages/agents-manage-mcp:
     dependencies:
       '@modelcontextprotocol/sdk':
-        specifier: ^1.23.0
-        version: 1.23.0(zod@4.1.12)
+        specifier: ^1.17.0
+        version: 1.21.0
       '@stricli/core':
         specifier: ^1.1.2
         version: 1.2.4
@@ -1122,8 +1125,8 @@ importers:
         specifier: ^5.1.0
         version: 5.1.0
       zod:
-        specifier: ^4.1.11
-        version: 4.1.12
+        specifier: ^3.25.7
+        version: 3.25.76
     devDependencies:
       '@anthropic-ai/mcpb':
         specifier: ^1.2.0
@@ -2495,12 +2498,11 @@ packages:
   '@hapi/topo@6.0.2':
     resolution: {integrity: sha512-KR3rD5inZbGMrHmgPxsJ9dbi6zEK+C3ZwUwTa+eMwWLz7oijWUTWD2pMSNNYJAU6Qq+65NkxXjqHr/7LM2Xkqg==}
 
-  '@hono/mcp@0.2.0':
-    resolution: {integrity: sha512-kKZklY+yApZce6zzHzQPrEOhon4O7ANstUCDWstvGF3+B/Qn0j9mWUyps2XZhA/PzKoFGUBuAu1SwTFc7JRX9A==}
+  '@hono/mcp@0.1.5':
+    resolution: {integrity: sha512-q6Yurx9VUwVEpqnwVXtzIYaq4kgQgWWq9lYLM7NFS2W0sg1RzL+RdKh6jO4/dGyvBLKrahPd2v+NC6rr0XWBvQ==}
     peerDependencies:
-      '@modelcontextprotocol/sdk': ^1.17.3
-      hono: '*'
-      hono-rate-limiter: ^0.4.2
+      '@modelcontextprotocol/sdk': ^1.12.0
+      hono: '>=4.0.0'
 
   '@hono/node-server@1.19.6':
     resolution: {integrity: sha512-Shz/KjlIeAhfiuE93NDKVdZ7HdBVLQAfdbaXEaoAVO3ic9ibRSLGIQGkcBbFyuLr+7/1D5ZCINM8B+6IvXeMtw==}
@@ -2931,16 +2933,6 @@ packages:
     engines: {node: '>=18'}
     peerDependencies:
       '@cfworker/json-schema': ^4.1.1
-    peerDependenciesMeta:
-      '@cfworker/json-schema':
-        optional: true
-
-  '@modelcontextprotocol/sdk@1.23.0':
-    resolution: {integrity: sha512-MCGd4K9aZKvuSqdoBkdMvZNcYXCkZRYVs/Gh92mdV5IHbctX9H9uIvd4X93+9g8tBbXv08sxc/QHXTzf8y65bA==}
-    engines: {node: '>=18'}
-    peerDependencies:
-      '@cfworker/json-schema': ^4.1.1
-      zod: ^4.1.11
     peerDependenciesMeta:
       '@cfworker/json-schema':
         optional: true
@@ -8147,11 +8139,6 @@ packages:
       hono: '>=4.0.0'
       pino: '>=7.1.0'
 
-  hono-rate-limiter@0.4.2:
-    resolution: {integrity: sha512-AAtFqgADyrmbDijcRTT/HJfwqfvhalya2Zo+MgfdrMPas3zSMD8SU03cv+ZsYwRU1swv7zgVt0shwN059yzhjw==}
-    peerDependencies:
-      hono: ^4.1.1
-
   hono@4.10.4:
     resolution: {integrity: sha512-YG/fo7zlU3KwrBL5vDpWKisLYiM+nVstBQqfr7gCPbSYURnNEP9BDxEMz8KfsDR9JX0lJWDRNc6nXX31v7ZEyg==}
     engines: {node: '>=16.9.0'}
@@ -11735,10 +11722,8 @@ packages:
     peerDependencies:
       zod: ^4.1.11
 
-  zod-to-json-schema@3.25.0:
-    resolution: {integrity: sha512-HvWtU2UG41LALjajJrML6uQejQhNJx+JBO9IflpSja4R03iNWfKXrj6W2h7ljuLyc1nKS+9yDyL/9tD1U/yBnQ==}
-    peerDependencies:
-      zod: ^4.1.11
+  zod@3.25.76:
+    resolution: {integrity: sha512-gzUt/qt81nXsFGKIFcC3YnfEAx5NkunCfnDlvuBSSFS02bcXu4Lmea0AFIUwbLWxWPx3d9p8S5QoaujKcNQxcQ==}
 
   zod@4.1.12:
     resolution: {integrity: sha512-JInaHOamG8pt5+Ey8kGmdcAcg3OL9reK8ltczgHTAwNhMys/6ThXHityHxVV2p3fkw/c+MAvBHFVYHFZDmjMCQ==}
@@ -11970,8 +11955,8 @@ snapshots:
       ignore: 7.0.5
       node-forge: 1.3.1
       pretty-bytes: 5.6.0
-      zod: 4.1.12
-      zod-to-json-schema: 3.24.6(zod@4.1.12)
+      zod: 3.25.76
+      zod-to-json-schema: 3.24.6(zod@3.25.76)
     transitivePeerDependencies:
       - supports-color
 
@@ -13270,12 +13255,10 @@ snapshots:
     dependencies:
       '@hapi/hoek': 11.0.7
 
-  '@hono/mcp@0.2.0(@modelcontextprotocol/sdk@1.23.0(zod@4.1.12))(hono-rate-limiter@0.4.2(hono@4.10.4))(hono@4.10.4)':
+  '@hono/mcp@0.1.5(@modelcontextprotocol/sdk@1.21.0)(hono@4.10.4)':
     dependencies:
-      '@modelcontextprotocol/sdk': 1.23.0(zod@4.1.12)
+      '@modelcontextprotocol/sdk': 1.21.0
       hono: 4.10.4
-      hono-rate-limiter: 0.4.2(hono@4.10.4)
-      pkce-challenge: 5.0.0
 
   '@hono/node-server@1.19.6(hono@4.10.4)':
     dependencies:
@@ -13440,7 +13423,7 @@ snapshots:
       '@hono/node-server': 1.19.6(hono@4.10.4)
       '@hono/zod-openapi': 1.1.5(hono@4.10.4)(zod@4.1.12)
       '@libsql/client': 0.15.15
-      '@modelcontextprotocol/sdk': 1.23.0(zod@4.1.12)
+      '@modelcontextprotocol/sdk': 1.21.0
       '@nangohq/node': 0.69.9
       '@nangohq/types': 0.69.9
       '@opentelemetry/api': 1.9.0
@@ -13696,7 +13679,7 @@ snapshots:
       '@hono/swagger-ui': 0.5.2(hono@4.10.4)
       '@hono/zod-openapi': 1.1.5(hono@4.10.4)(zod@4.1.12)
       '@inkeep/agents-core': 0.30.4(@electric-sql/pglite@0.3.13)(@opentelemetry/core@2.2.0(@opentelemetry/api@1.9.0))(@types/pg@8.15.6)(bun-types@1.3.3)(gel@2.1.1)(kysely@0.28.8)(pg@8.16.3)
-      '@modelcontextprotocol/sdk': 1.23.0(zod@4.1.12)
+      '@modelcontextprotocol/sdk': 1.21.0
       '@openrouter/ai-sdk-provider': 1.2.0(ai@5.0.11(zod@4.1.12))(zod@4.1.12)
       '@opentelemetry/api': 1.9.0
       '@opentelemetry/auto-instrumentations-node': 0.64.6(@opentelemetry/api@1.9.0)(@opentelemetry/core@2.2.0(@opentelemetry/api@1.9.0))
@@ -14306,26 +14289,8 @@ snapshots:
       express-rate-limit: 7.5.1(express@5.1.0)
       pkce-challenge: 5.0.0
       raw-body: 3.0.1
-      zod: 4.1.12
-      zod-to-json-schema: 3.24.6(zod@4.1.12)
-    transitivePeerDependencies:
-      - supports-color
-
-  '@modelcontextprotocol/sdk@1.23.0(zod@4.1.12)':
-    dependencies:
-      ajv: 8.17.1
-      ajv-formats: 3.0.1(ajv@8.17.1)
-      content-type: 1.0.5
-      cors: 2.8.5
-      cross-spawn: 7.0.6
-      eventsource: 3.0.7
-      eventsource-parser: 3.0.6
-      express: 5.1.0
-      express-rate-limit: 7.5.1(express@5.1.0)
-      pkce-challenge: 5.0.0
-      raw-body: 3.0.1
-      zod: 4.1.12
-      zod-to-json-schema: 3.25.0(zod@4.1.12)
+      zod: 3.25.76
+      zod-to-json-schema: 3.24.6(zod@3.25.76)
     transitivePeerDependencies:
       - supports-color
 
@@ -21225,10 +21190,6 @@ snapshots:
       hono: 4.10.4
       pino: 9.14.0
 
-  hono-rate-limiter@0.4.2(hono@4.10.4):
-    dependencies:
-      hono: 4.10.4
-
   hono@4.10.4: {}
 
   hosted-git-info@2.8.9: {}
@@ -25668,13 +25629,15 @@ snapshots:
 
   youtube-video-element@1.6.2: {}
 
+  zod-to-json-schema@3.24.6(zod@3.25.76):
+    dependencies:
+      zod: 3.25.76
+
   zod-to-json-schema@3.24.6(zod@4.1.12):
     dependencies:
       zod: 4.1.12
 
-  zod-to-json-schema@3.25.0(zod@4.1.12):
-    dependencies:
-      zod: 4.1.12
+  zod@3.25.76: {}
 
   zod@4.1.12: {}
 
