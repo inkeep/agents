@@ -1,3 +1,4 @@
+import type { FC } from 'react';
 import { NodeType, nodeTypeMap } from '../configuration/node-types';
 import { CopilotTrigger } from './copilot-trigger';
 import { NodeItem } from './node-item';
@@ -10,29 +11,26 @@ const nodeTypes: NodeItem[] = [
   nodeTypeMap[NodeType.FunctionTool],
 ];
 
-export default function NodeLibrary() {
+export const NodeLibrary: FC = () => {
   return (
-    <div className="flex flex-col gap-2 w-40">
-      <div className="group/node-stack flex flex-col gap-0 group-hover/node-stack:gap-2 group-focus-within/node-stack:gap-2">
-        <NodeItem node={nodeTypeMap[NodeType.SubAgent]} />
-        <div
-          className={cn(
-            'opacity-0 max-h-0',
-            'flex flex-col gap-2',
-            'transition-[max-height,opacity,transform] duration-300',
-            'pointer-events-none',
-            'group-hover/node-stack:pointer-events-auto group-focus-within/node-stack:pointer-events-auto',
-            'group-hover/node-stack:max-h-100 group-focus-within/node-stack:max-h-100',
-            'group-hover/node-stack:opacity-100 group-focus-within/node-stack:opacity-100'
-          )}
-        >
-          {nodeTypes.map((node) => (
-            <NodeItem key={node.type} node={node} />
-          ))}
-        </div>
+    <div className="group/STACK flex flex-col gap-1">
+      <NodeItem node={nodeTypeMap[NodeType.SubAgent]} />
+      <div
+        className={cn(
+          'flex flex-col gap-2',
+          'opacity-0 max-h-0 pointer-events-none',
+          'transition-all duration-300',
+          'group-hover/STACK:pointer-events-auto group-focus-within/STACK:pointer-events-auto',
+          'group-hover/STACK:max-h-100 group-focus-within/STACK:max-h-100',
+          'group-hover/STACK:opacity-100 group-focus-within/STACK:opacity-100',
+          'group-hover/STACK:py-1 group-focus-within/STACK:py-1'
+        )}
+      >
+        {nodeTypes.map((node) => (
+          <NodeItem key={node.type} node={node} />
+        ))}
       </div>
-      <div>hello</div>
       <CopilotTrigger />
     </div>
   );
-}
+};
