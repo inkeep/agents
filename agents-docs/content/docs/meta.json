@@ -1,0 +1,23 @@
+{
+  "root": true,
+  "pages": [
+    "overview",
+    "get-started",
+    "concepts",
+    "pricing",
+    "---Tutorials---",
+    "...tutorials",
+    "---[LuCode]Typescript SDK---",
+    "...typescript-sdk",
+    "---[LuPalette]Visual Builder---",
+    "visual-builder",
+    "---[LuMessageSquare]Talk to your agents---",
+    "talk-to-your-agents",
+    "---[LuBookOpen]API Reference---",
+    "api-reference",
+    "---[LuServer]Self-Hosting---",
+    "self-hosting",
+    "---[LuUsers]Community---",
+    "community"
+  ]
+}
