@@ -1,13 +1,15 @@
 'use client';
 import { InkeepEmbeddedChat } from '@inkeep/agents-ui';
-import type { ComponentsConfig, InkeepCallbackEvent } from '@inkeep/agents-ui/types';
-import { useCallback, useEffect, useRef } from 'react';
+import type { InkeepCallbackEvent, InvokeMessageCallbackActionArgs } from '@inkeep/agents-ui/types';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { DynamicComponentRenderer } from '@/components/data-components/render/dynamic-component-renderer';
 import type { ConversationDetail } from '@/components/traces/timeline/types';
 import { useRuntimeConfig } from '@/contexts/runtime-config-context';
+import { useTempApiKey } from '@/hooks/use-temp-api-key';
 import type { DataComponent } from '@/lib/api/data-components';
 import { generateId } from '@/lib/utils/id-utils';
-import { IkpMessage as IkpMessageComponent } from './ikp-message';
+import { useCopilotContext } from '../copilot/copilot-context';
+import { FeedbackDialog } from './feedback-dialog';
 
 interface ChatWidgetProps {
   agentId?: string;
@@ -57,8 +59,20 @@ export function ChatWidget({
   chatActivities,
   dataComponentLookup = {},
 }: ChatWidgetProps) {
-  const { PUBLIC_INKEEP_AGENTS_RUN_API_URL, PUBLIC_INKEEP_AGENTS_RUN_API_BYPASS_SECRET } =
-    useRuntimeConfig();
+  const { PUBLIC_INKEEP_AGENTS_RUN_API_URL } = useRuntimeConfig();
+  const { isCopilotConfigured } = useCopilotContext();
+  const [isFeedbackDialogOpen, setIsFeedbackDialogOpen] = useState(false);
+  const [messageId, setMessageId] = useState<string | undefined>(undefined);
+  const {
+    apiKey: tempApiKey,
+    isLoading: isLoadingKey,
+    refresh: refreshToken,
+  } = useTempApiKey({
+    tenantId,
+    projectId,
+    agentId: agentId || '',
+    enabled: !!agentId,
+  });
   const stopPollingTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const hasReceivedAssistantMessageRef = useRef(false);
   const POLLING_TIMEOUT_MS = 5 * 60 * 1000; // 5 minutes
@@ -95,6 +109,17 @@ export function ChatWidget({
       }
     };
   }, []);
+
+  // Don't render chat until we have the API key
+  if (isLoadingKey || !tempApiKey) {
+    return (
+      <div className="h-full flex items-center justify-center">
+        <p className="text-muted-foreground text-sm">
+          {isLoadingKey ? 'Initializing playground...' : 'Failed to initialize playground'}
+        </p>
+      </div>
+    );
+  }
 
   return (
     <div className="h-full flex flex-row gap-4">
@@ -180,10 +205,24 @@ export function ChatWidget({
               'x-inkeep-project-id': projectId,
               'x-inkeep-agent-id': agentId || '',
               'x-emit-operations': 'true',
-              Authorization: `Bearer ${PUBLIC_INKEEP_AGENTS_RUN_API_BYPASS_SECRET}`,
+              Authorization: `Bearer ${tempApiKey}`,
               ...customHeaders,
             },
-
+            messageActions: isCopilotConfigured
+              ? [
+                  {
+                    label: 'Improve with AI',
+                    icon: { builtIn: 'LuSparkles' },
+                    action: {
+                      type: 'invoke_message_callback',
+                      callback: ({ messageId }: InvokeMessageCallbackActionArgs) => {
+                        setMessageId(messageId);
+                        setIsFeedbackDialogOpen(true);
+                      },
+                    },
+                  },
+                ]
+              : undefined,
             components: new Proxy(
               {},
               {
@@ -212,28 +251,14 @@ export function ChatWidget({
           }}
         />
       </div>
+      {isFeedbackDialogOpen && (
+        <FeedbackDialog
+          isOpen={isFeedbackDialogOpen}
+          onOpenChange={setIsFeedbackDialogOpen}
+          conversationId={conversationId}
+          messageId={messageId}
+        />
+      )}
     </div>
   );
 }
-
-// using the built in IkpMessage component from agents-ui but leaving this here for reference / testing
-const _IkpMessage: ComponentsConfig<Record<string, unknown>>['IkpMessage'] = (props) => {
-  const { message, renderMarkdown, renderComponent } = props;
-
-  const lastPart = message.parts[message.parts.length - 1];
-  const isStreaming = !(
-    lastPart?.type === 'data-operation' && lastPart?.data?.type === 'completion'
-  );
-
-  // Use our new IkpMessage component
-  return (
-    <div>
-      <IkpMessageComponent
-        message={message as any}
-        isStreaming={isStreaming}
-        renderMarkdown={renderMarkdown}
-        renderComponent={renderComponent}
-      />
-    </div>
-  );
-};

@@ -1,5 +1,5 @@
+import { z } from '@hono/zod-openapi';
 import { loadEnvironmentFiles } from '@inkeep/agents-core';
-import { z } from 'zod';
 
 // Load all environment files using shared logic
 loadEnvironmentFiles();
@@ -8,6 +8,7 @@ const envSchema = z.object({
   NODE_ENV: z.enum(['development', 'production', 'test']).optional(),
   ENVIRONMENT: z.enum(['development', 'production', 'pentest', 'test']).optional(),
   INKEEP_AGENTS_MANAGE_API_URL: z.string().optional().default('http://localhost:3002'),
+  INKEEP_AGENTS_MANAGE_UI_URL: z.string().optional().default('http://localhost:3000'),
   DATABASE_URL: z.string().optional(),
   LOG_LEVEL: z.enum(['trace', 'debug', 'info', 'warn', 'error']).optional().default('debug'),
   NANGO_SERVER_URL: z.string().optional().default('https://api.nango.dev'),
@@ -32,6 +33,7 @@ const envSchema = z.object({
     .optional()
     .default('false')
     .transform((val) => val === 'true'),
+  INKEEP_AGENTS_TEMP_JWT_PRIVATE_KEY: z.string().optional(),
 });
 
 const parseEnv = () => {

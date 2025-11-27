@@ -31,8 +31,5 @@ export const meetingPrepCoordinator = subAgent({
 - Show progress and insights clearly
 - Proceed automatically
 </rules>`,
-  canDelegateTo: () => [
-      companyResearch,
-      meetingFinder
-  ]
+  canDelegateTo: () => [companyResearch, meetingFinder],
 });

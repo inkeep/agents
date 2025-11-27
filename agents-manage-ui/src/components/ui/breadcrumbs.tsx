@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { useParams } from 'next/navigation';
+import { useParams, usePathname } from 'next/navigation';
 import { useMemo } from 'react';
 import { useProject } from '@/contexts/project-context';
 import { cn } from '@/lib/utils';
@@ -18,25 +18,35 @@ interface BreadcrumbsProps {
 export function Breadcrumbs({ items }: BreadcrumbsProps) {
   const project = useProject();
   const { tenantId } = useParams<{ tenantId: string }>();
+  const pathname = usePathname();
 
   const allItems = useMemo(() => {
-    const result: BreadcrumbItem[] = [
-      {
+    const result: BreadcrumbItem[] = [];
+    const isSettingsRoute = pathname?.includes('/settings');
+
+    if (!isSettingsRoute) {
+      result.push({
         label: 'Projects',
         href: `/${tenantId}/projects`,
-      },
-    ];
-    if (project) {
-      result.push({
-        label: project.name,
-        href: `/${tenantId}/projects/${project.id}`,
       });
+
+      if (project) {
+        result.push({
+          label: project.name,
+          href: `/${tenantId}/projects/${project.id}`,
+        });
+      }
     }
+
     if (items) {
       result.push(...items);
     }
     return result;
-  }, [items, tenantId, project]);
+  }, [items, tenantId, project, pathname]);
+
+  if (allItems.length === 0) {
+    return null;
+  }
 
   return (
     <nav className="text-sm text-muted-foreground" aria-label="Breadcrumb">

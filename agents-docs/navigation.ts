@@ -37,8 +37,10 @@ export default {
           pages: [
             'connect-your-data/overview',
             'connect-your-data/inkeep',
+            'connect-your-data/pinecone',
             'connect-your-data/context7',
             'connect-your-data/ref',
+            'connect-your-data/firecrawl',
           ],
         },
         'tutorials/upgrading',
@@ -55,7 +57,11 @@ export default {
         {
           group: 'Tools',
           icon: 'LuHammer',
-          pages: ['typescript-sdk/tools/mcp-tools', 'typescript-sdk/tools/function-tools'],
+          pages: [
+            'typescript-sdk/tools/mcp-tools',
+            'typescript-sdk/tools/function-tools',
+            'tools/tool-approvals',
+          ],
         },
         {
           group: 'Credentials',
@@ -112,7 +118,7 @@ export default {
         },
         'visual-builder/headers',
         'visual-builder/traces',
-        'visual-builder/project-management',
+        // 'visual-builder/project-management',
         {
           group: 'Structured Outputs',
           icon: 'LuLayoutTemplate',

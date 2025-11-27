@@ -255,10 +255,9 @@ export class ExecutionApiClient extends BaseApiClient {
         throw new Error('No response body for streaming request');
       }
       return response.body;
-    } else {
-      // Non-streaming response
-      const data = await response.json();
-      return data.choices?.[0]?.message?.content || data.result || '';
     }
+    // Non-streaming response
+    const data = await response.json();
+    return data.choices?.[0]?.message?.content || data.result || '';
   }
 }

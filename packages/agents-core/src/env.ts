@@ -1,10 +1,10 @@
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
+import { z } from '@hono/zod-openapi';
 import dotenv from 'dotenv'; // Still needed for parsing additional config files
 import { expand } from 'dotenv-expand';
 import { findUpSync } from 'find-up';
-import { z } from 'zod';
 
 export const loadEnvironmentFiles = () => {
   // Define files in priority order (highest to lowest priority)
@@ -49,6 +49,9 @@ const envSchema = z.object({
     .string()
     .min(32, 'INKEEP_AGENTS_JWT_SIGNING_SECRET must be at least 32 characters')
     .optional(),
+  INKEEP_AGENTS_MANAGE_UI_URL: z.string().optional(),
+  INKEEP_AGENTS_MANAGE_API_URL: z.string().optional(),
+  BETTER_AUTH_SECRET: z.string().optional(),
 });
 
 const parseEnv = () => {

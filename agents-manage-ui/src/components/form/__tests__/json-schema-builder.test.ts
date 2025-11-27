@@ -3,8 +3,8 @@ import {
   convertJsonSchemaToFields,
   type EditableField,
   fieldsToJsonSchema,
-  jsonSchemaStore,
   type JSONSchemaWithPreview,
+  jsonSchemaStore,
 } from '@/features/agent/state/json-schema';
 import { JSONSchemaFixture } from './json-schema-fixture';
 

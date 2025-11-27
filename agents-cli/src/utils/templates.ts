@@ -1,6 +1,9 @@
 import path from 'node:path';
+import { getLogger } from '@inkeep/agents-core';
 import degit from 'degit';
 import fs from 'fs-extra';
+
+const logger = getLogger('templates');
 
 export interface ContentReplacement {
   /** Relative file path within the cloned template */

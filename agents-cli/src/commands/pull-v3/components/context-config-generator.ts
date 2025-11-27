@@ -31,20 +31,18 @@ function processFetchConfigTemplates(fetchConfig: any, headersVarName: string): 
           `\${${headersVarName}.toTemplate("$1")}`
         );
         return `\`${convertedStr.replace(/`/g, '\\`')}\``;
-      } else {
-        // Check if string is multi-line or long, use template literals if so
-        const isMultiline = value.includes('\n') || value.length > 80;
-        if (isMultiline) {
-          return `\`${value.replace(/`/g, '\\`')}\``;
-        } else {
-          return `'${value.replace(/'/g, "\\'")}'`;
-        }
       }
-    } else if (typeof value === 'object' && value !== null) {
-      return processObject(value);
-    } else {
-      return JSON.stringify(value);
+      // Check if string is multi-line or long, use template literals if so
+      const isMultiline = value.includes('\n') || value.length > 80;
+      if (isMultiline) {
+        return `\`${value.replace(/`/g, '\\`')}\``;
+      }
+      return `'${value.replace(/'/g, "\\'")}'`;
     }
+    if (typeof value === 'object' && value !== null) {
+      return processObject(value);
+    }
+    return JSON.stringify(value);
   };
 
   const processObject = (obj: any): string => {

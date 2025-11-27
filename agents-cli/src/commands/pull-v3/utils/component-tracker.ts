@@ -138,22 +138,23 @@ export class ComponentTracker {
       .map((ref) => {
         if (typeof ref === 'string') {
           return ref;
-        } else if (typeof ref === 'object' && ref) {
+        }
+        if (typeof ref === 'object' && ref) {
           // Try various properties to find the ID
           if (ref.id) {
             return ref.id;
-          } else if (ref.type) {
-            return ref.type;
-          } else if (ref.name) {
-            return ref.name;
-          } else {
-            // For objects without clear IDs, skip them rather than return [object Object]
-            console.warn('ComponentTracker: Skipping reference without clear ID:', ref);
-            return null;
           }
-        } else {
+          if (ref.type) {
+            return ref.type;
+          }
+          if (ref.name) {
+            return ref.name;
+          }
+          // For objects without clear IDs, skip them rather than return [object Object]
+          console.warn('ComponentTracker: Skipping reference without clear ID:', ref);
           return null;
         }
+        return null;
       })
       .filter(Boolean) as string[];
   }
@@ -259,9 +260,8 @@ export class ComponentTracker {
     // Clean up path
     if (relativePath.startsWith('../')) {
       return relativePath;
-    } else {
-      return './' + relativePath;
     }
+    return './' + relativePath;
   }
 
   /**

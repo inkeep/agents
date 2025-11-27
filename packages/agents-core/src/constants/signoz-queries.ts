@@ -121,6 +121,9 @@ export const QUERY_EXPRESSIONS = {
   AGENT_GENERATIONS: 'agentGenerations',
   SPANS_WITH_ERRORS: 'spansWithErrors',
   ARTIFACT_PROCESSING: 'artifactProcessing',
+  TOOL_APPROVAL_REQUESTED: 'toolApprovalRequested',
+  TOOL_APPROVAL_APPROVED: 'toolApprovalApproved',
+  TOOL_APPROVAL_DENIED: 'toolApprovalDenied',
 } as const;
 
 /** Query Reduce Operations */

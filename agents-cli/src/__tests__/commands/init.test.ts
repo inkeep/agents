@@ -167,7 +167,8 @@ describe('Init Command', () => {
         if (options.message.includes('API URL')) {
           validateFn = options.validate;
           return 'http://localhost:3002';
-        } else if (options.message.includes('tenant')) {
+        }
+        if (options.message.includes('tenant')) {
           return 'test-tenant';
         }
         return './inkeep.config.ts';

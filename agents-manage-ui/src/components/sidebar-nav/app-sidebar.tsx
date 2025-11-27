@@ -55,6 +55,16 @@ export const AppSidebar: FC<AppSidebarProps> = ({ open, setOpen, ...props }) => 
   const { tenantId, projectId } = useParams<{ tenantId: string; projectId?: string }>();
 
   const topNavItems: NavItemProps[] = projectId
+    ? []
+    : [
+        {
+          title: 'Projects',
+          url: `/${tenantId}/projects`,
+          icon: Layers,
+        },
+      ];
+
+  const configureNavItems: NavItemProps[] = projectId
     ? [
         {
           title: 'Agents',
@@ -67,14 +77,19 @@ export const AppSidebar: FC<AppSidebarProps> = ({ open, setOpen, ...props }) => 
           icon: Key,
         },
         {
+          title: 'Settings',
+          url: `/${tenantId}/projects/${projectId}/settings`,
+          icon: Settings,
+        },
+      ]
+    : [];
+
+  const registerNavItems: NavItemProps[] = projectId
+    ? [
+        {
           title: 'MCP Servers',
           url: `/${tenantId}/projects/${projectId}/mcp-servers`,
           icon: MCPIcon,
-        },
-        {
-          title: 'External Agents',
-          url: `/${tenantId}/projects/${projectId}/external-agents`,
-          icon: Globe,
         },
         {
           title: 'Credentials',
@@ -82,10 +97,15 @@ export const AppSidebar: FC<AppSidebarProps> = ({ open, setOpen, ...props }) => 
           icon: Lock,
         },
         {
-          title: 'Traces',
-          url: `/${tenantId}/projects/${projectId}/traces`,
-          icon: Activity,
+          title: 'External Agents',
+          url: `/${tenantId}/projects/${projectId}/external-agents`,
+          icon: Globe,
         },
+      ]
+    : [];
+
+  const uiNavItems: NavItemProps[] = projectId
+    ? [
         {
           title: 'Components',
           url: `/${tenantId}/projects/${projectId}/components`,
@@ -96,19 +116,18 @@ export const AppSidebar: FC<AppSidebarProps> = ({ open, setOpen, ...props }) => 
           url: `/${tenantId}/projects/${projectId}/artifacts`,
           icon: Library,
         },
+      ]
+    : [];
+
+  const monitorNavItems: NavItemProps[] = projectId
+    ? [
         {
-          title: 'Settings',
-          url: `/${tenantId}/projects/${projectId}/settings`,
-          icon: Settings,
+          title: 'Traces',
+          url: `/${tenantId}/projects/${projectId}/traces`,
+          icon: Activity,
         },
       ]
-    : [
-        {
-          title: 'Projects',
-          url: `/${tenantId}/projects`,
-          icon: Layers,
-        },
-      ];
+    : [];
 
   const handleHover: NonNullable<ComponentProps<'div'>['onMouseEnter']> = useCallback(
     throttle(200, (event) => {
@@ -153,7 +172,16 @@ export const AppSidebar: FC<AppSidebarProps> = ({ open, setOpen, ...props }) => 
         </SidebarMenuButton>
       </SidebarHeader>
       <SidebarContent className="justify-between">
-        <NavGroup items={topNavItems} />
+        {projectId ? (
+          <div className="flex flex-col gap-1.5">
+            <NavGroup items={configureNavItems} />
+            <NavGroup label="Register" items={registerNavItems} />
+            <NavGroup label="UI" items={uiNavItems} />
+            <NavGroup label="Monitor" items={monitorNavItems} />
+          </div>
+        ) : (
+          <NavGroup items={topNavItems} />
+        )}
         <NavGroup items={bottomNavItems} />
       </SidebarContent>
       {projectId && (
