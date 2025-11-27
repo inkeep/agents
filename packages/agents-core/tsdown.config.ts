@@ -12,5 +12,5 @@ export default defineConfig({
   }),
   entry: ['src/**/*.ts', '!**/__tests__/'],
   external: ['keytar', 'typescript'],
-  nodeProtocol: 'strip',
+  target: 'es2022',
 });
