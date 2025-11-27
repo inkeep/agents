@@ -1,13 +1,12 @@
 {
-  "root": true,
   "pages": [
     "overview",
     "get-started",
     "concepts",
     "pricing",
-    "---Tutorials---",
+    "---TUTORIALS---",
     "...tutorials",
-    "---[LuCode]Typescript SDK---",
+    "---TYPESCRIPT SDK---",
     "...typescript-sdk",
     "---[LuPalette]Visual Builder---",
     "visual-builder",
@@ -18,6 +17,7 @@
     "---[LuServer]Self-Hosting---",
     "self-hosting",
     "---[LuUsers]Community---",
-    "community"
+    "community",
+    "..."
   ]
 }

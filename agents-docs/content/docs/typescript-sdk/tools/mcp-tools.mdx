@@ -2,7 +2,7 @@
 title: Register MCP Servers as Tools
 sidebarTitle: MCP Tools
 description: Learn how to add and configure MCP tools for your agents
-icon: "LuHammer"
+icon: Hammer
 ---
 
 MCP tools connect to external MCP servers, enabling integration with a wide ecosystem of tools and services. Registering them as tools is a two step process:
@@ -108,16 +108,16 @@ const customerSupportAgent = subAgent({
   name: "Customer Support Agent",
   description: "Responsible for customer support",
   prompt: "You are a helpful assistant",
-  canUse: () => [customerSupportTool.with({ 
-      selectedTools: ["customer-support-tool"], 
-      headers: { "X-Custom-Header": "custom-value" } 
+  canUse: () => [customerSupportTool.with({
+      selectedTools: ["customer-support-tool"],
+      headers: { "X-Custom-Header": "custom-value" }
     })],
 });
 ```
 
 ## Environment-Aware MCP Servers
 
-You can also configure MCP tools to switch based on your environment. This is useful when you want to use different MCP tool configurations for development vs production. 
+You can also configure MCP tools to switch based on your environment. This is useful when you want to use different MCP tool configurations for development vs production.
 
 Creating environment-aware MCP tools is a two step process:
 
