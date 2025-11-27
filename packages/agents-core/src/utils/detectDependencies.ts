@@ -1,3 +1,5 @@
+import type * as TypeScript from 'typescript';
+
 const collapseSubpath = (spec: string) => {
   if (spec.startsWith('@')) {
     const [scope, name] = spec.split('/');
@@ -8,12 +10,19 @@ const collapseSubpath = (spec: string) => {
 
 // Conditional imports to avoid breaking CLI bundling
 let builtinModules: string[] = [];
-let ts: typeof import('typescript') | null = null;
+let ts: typeof TypeScript | null = null;
 
 try {
-  // Only import in server environments
-  builtinModules = require('node:module').builtinModules;
-  ts = require('typescript');
+  /**
+   * Only import in server environments
+   *
+   * Prevents rolldown create `require` shims in `dist/_virtual` folder,
+   * which will break `turbopack` build in `@inkeep/agents-manage-ui`
+   *
+   * @see https://tsdown.dev/options/shims#the-require-function-in-esm
+   */
+  builtinModules = globalThis.require('node:module').builtinModules;
+  ts = globalThis.require('typescript');
 } catch {}
 
 const NODE_BUILTINS = new Set(builtinModules.concat(builtinModules.map((m) => `node:${m}`)));
@@ -37,8 +46,8 @@ export function collectDepsFromCode(code: string): Set<string> {
     try {
       const info = ts.preProcessFile(
         code,
-        /*readImportFiles*/ true,
-        /*detectJavaScriptImports*/ true
+        /* readImportFiles */ true,
+        /* detectJavaScriptImports */ true
       );
 
       // Process imports detected by TypeScript compiler
