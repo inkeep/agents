@@ -13,9 +13,14 @@ let builtinModules: string[] = [];
 let ts: typeof TypeScript | null = null;
 
 try {
-  // Only import in server environments
-  builtinModules = require('node:module').builtinModules;
-  ts = require('typescript');
+  /**
+   * Only import in server environments
+   *
+   * Prevents rolldown create `require` shims
+   * @see https://tsdown.dev/options/shims#the-require-function-in-esm
+   */
+  builtinModules = globalThis.require('node:module').builtinModules;
+  ts = globalThis.require('typescript');
 } catch {}
 
 const NODE_BUILTINS = new Set(builtinModules.concat(builtinModules.map((m) => `node:${m}`)));
