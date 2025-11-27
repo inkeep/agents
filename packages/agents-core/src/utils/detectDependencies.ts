@@ -18,7 +18,7 @@ try {
    *
    * Prevents rolldown create `require` shims in `dist/_virtual` folder,
    * which will break `turbopack` build in `@inkeep/agents-manage-ui`
-   * 
+   *
    * @see https://tsdown.dev/options/shims#the-require-function-in-esm
    */
   builtinModules = globalThis.require('node:module').builtinModules;
