@@ -2,4 +2,4 @@
 "@inkeep/agents-manage-ui": patch
 ---
 
-remove 
+remove `typescript.ignoreBuildErrors` in `next.config`
