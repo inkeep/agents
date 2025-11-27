@@ -1,0 +1,4 @@
+{
+  "icon": "LuChartColumn",
+  "pages": ["signoz-usage", "langfuse-usage", "cli-observability", "..."]
+}
