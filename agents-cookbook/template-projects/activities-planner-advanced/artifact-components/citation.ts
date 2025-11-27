@@ -1,6 +1,6 @@
-import { artifactComponent } from "@inkeep/agents-sdk";
-import { z } from "zod";
-import { preview } from "@inkeep/agents-core";
+import { preview } from '@inkeep/agents-core';
+import { artifactComponent } from '@inkeep/agents-sdk';
+import { z } from 'zod';
 
 /**
  * Citation artifact component for storing source citations from web search results
@@ -13,13 +13,11 @@ import { preview } from "@inkeep/agents-core";
  * rendered as interactive cards by Inkeep's widget library.
  */
 export const citation = artifactComponent({
-  id: "citation",
-  name: "citation",
-  description: "Source citation from web search results",
+  id: 'citation',
+  name: 'citation',
+  description: 'Source citation from web search results',
   props: z.object({
-    title: preview(
-      z.string().describe("The title of the source document or webpage")
-    ),
-    url: preview(z.string().describe("The URL of the source")),
+    title: preview(z.string().describe('The title of the source document or webpage')),
+    url: preview(z.string().describe('The URL of the source')),
   }),
 });

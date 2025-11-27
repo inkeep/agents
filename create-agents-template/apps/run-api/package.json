@@ -11,9 +11,9 @@
   "dependencies": {
     "@hono/node-server": "^1.19.5",
     "@hono/zod-openapi": "^1.1.5",
-    "@inkeep/agents-run-api": "^0.35.6",
+    "@inkeep/agents-run-api": "^0.37.1",
     "hono": "^4.10.4",
-    "zod": "^4.1.12"
+    "zod": "^4.1.11"
   },
   "devDependencies": {
     "@hono/vite-dev-server": "^0.23.0",

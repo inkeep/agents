@@ -1,4 +1,8 @@
-import type { CredentialReferenceApiInsert } from '@inkeep/agents-core';
+import type {
+  CredentialReferenceApiInsert,
+  McpToolSelection,
+  ToolPolicy,
+} from '@inkeep/agents-core';
 import { z } from 'zod';
 import { SubAgent } from './subAgent';
 import type { Tool } from './tool';
@@ -87,14 +91,21 @@ export type AgentMcpConfig = {
   server: Tool;
   selectedTools?: string[];
   headers?: Record<string, string>;
+  toolPolicies?: Record<string, ToolPolicy>;
 };
 
 /**
  * Input configuration for MCP tool customization
+ * Supports flexible tool selection with per-tool policies
  */
 export type AgentMcpConfigInput = {
-  /** Specific tools to enable from the MCP server */
-  selectedTools?: string[];
+  /**
+   * Tools to enable from the MCP server - can be strings or objects with policies
+   * - undefined or null: all tools enabled (no filtering)
+   * - []: zero tools enabled (explicit empty selection)
+   * - ['tool1', 'tool2']: specific tools enabled
+   */
+  selectedTools?: McpToolSelection[] | null;
   /** Custom headers for MCP server requests */
   headers?: Record<string, string>;
 };

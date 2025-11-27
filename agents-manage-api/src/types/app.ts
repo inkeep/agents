@@ -45,4 +45,3 @@ export type PublicAppVariablesWithServerConfig = {
   serverConfig: ServerConfig;
   credentialStores: CredentialStoreRegistry;
 };
-

@@ -54,4 +54,3 @@ export function createManagementApp(config?: {
 }
 
 export { createManagementHono, initializeDefaultUser };
-

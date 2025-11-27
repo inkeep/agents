@@ -57,7 +57,7 @@ export class FunctionTool implements FunctionToolInterface {
   }
 
   getDescription(): string {
-    return this.config.description;
+    return this.config.description || '';
   }
 
   getInputSchema(): Record<string, unknown> {

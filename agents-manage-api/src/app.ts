@@ -16,7 +16,9 @@ import { requireTenantAccess } from './middleware/tenant-access';
 import { setupOpenAPIRoutes } from './openapi';
 import crudRoutes from './routes/index';
 import invitationsRoutes from './routes/invitations';
+import mcpRoutes from './routes/mcp';
 import oauthRoutes from './routes/oauth';
+import playgroundTokenRoutes from './routes/playgroundToken';
 import projectFullRoutes from './routes/projectFull';
 import userOrganizationsRoutes from './routes/userOrganizations';
 
@@ -38,17 +40,20 @@ function isOriginAllowed(origin: string | undefined): origin is string {
   try {
     const requestUrl = new URL(origin);
     const authUrl = new URL(env.INKEEP_AGENTS_MANAGE_API_URL || 'http://localhost:3002');
+    const uiUrl = env.INKEEP_AGENTS_MANAGE_UI_URL ? new URL(env.INKEEP_AGENTS_MANAGE_UI_URL) : null;
 
     // Development: allow any localhost
     if (authUrl.hostname === 'localhost' || authUrl.hostname === '127.0.0.1') {
       return requestUrl.hostname === 'localhost' || requestUrl.hostname === '127.0.0.1';
     }
 
-    // Production: allow same base domain and subdomains
-    const baseDomain = authUrl.hostname.replace(/^api\./, ''); // Remove 'api.' prefix if present
-    return requestUrl.hostname === baseDomain || requestUrl.hostname.endsWith(`.${baseDomain}`);
+    // Allow the specific UI URL if configured
+    if (uiUrl && requestUrl.hostname === uiUrl.hostname) {
+      return true;
+    }
+
+    return false;
   } catch {
-    // Invalid URL
     return false;
   }
 }
@@ -197,15 +202,33 @@ function createManagementHono(
     );
 
     // Mount the Better Auth handler
-    app.on(['POST', 'GET'], '/api/auth/*', (c) => {
+    app.on(['POST', 'GET', 'OPTIONS'], '/api/auth/*', (c) => {
       return auth.handler(c.req.raw);
     });
   }
 
-  // CORS middleware - handles all non-Better Auth routes
+  // CORS middleware for playground routes (must be registered before global CORS)
+  app.use(
+    '/tenants/*/playground/token',
+    cors({
+      origin: (origin) => {
+        return isOriginAllowed(origin) ? origin : null;
+      },
+      allowHeaders: ['content-type', 'Content-Type', 'authorization', 'Authorization'],
+      allowMethods: ['POST', 'OPTIONS'],
+      exposeHeaders: ['Content-Length'],
+      maxAge: 600,
+      credentials: true,
+    })
+  );
+
+  // CORS middleware - handles all other routes
   app.use('*', async (c, next) => {
-    // Skip CORS middleware for Better Auth routes - they have their own CORS config
+    // Skip CORS middleware for routes with their own CORS config
     if (auth && c.req.path.startsWith('/api/auth/')) {
+      return next();
+    }
+    if (c.req.path.includes('/playground/token')) {
       return next();
     }
 
@@ -230,7 +253,14 @@ function createManagementHono(
       return;
     }
 
-    const session = await auth.api.getSession({ headers: c.req.raw.headers });
+    // Create headers with x-forwarded-cookie mapped to cookie (browsers forbid setting Cookie header directly)
+    const headers = new Headers(c.req.raw.headers);
+    const forwardedCookie = headers.get('x-forwarded-cookie');
+    if (forwardedCookie && !headers.get('cookie')) {
+      headers.set('cookie', forwardedCookie);
+    }
+
+    const session = await auth.api.getSession({ headers });
 
     if (!session) {
       c.set('user', null);
@@ -285,7 +315,17 @@ function createManagementHono(
   // Tenant access check (skip in DISABLE_AUTH and test environments)
   // Use process.env directly to support test environment variables set after module load
   const isTestEnv = process.env.ENVIRONMENT === 'test';
-  if (!env.DISABLE_AUTH && !isTestEnv) {
+  if (env.DISABLE_AUTH || isTestEnv) {
+    // When auth is disabled, just extract tenantId from URL param
+    app.use('/tenants/:tenantId/*', async (c, next) => {
+      const tenantId = c.req.param('tenantId');
+      if (tenantId) {
+        c.set('tenantId', tenantId);
+        c.set('userId', 'anonymous'); // Set a default user ID for disabled auth
+      }
+      await next();
+    });
+  } else {
     app.use('/tenants/:tenantId/*', requireTenantAccess());
   }
 
@@ -298,12 +338,16 @@ function createManagementHono(
   // Mount routes for all entities
   app.route('/tenants/:tenantId', crudRoutes);
 
+  // Mount playground token routes under tenant (uses requireTenantAccess middleware)
+  app.route('/tenants/:tenantId/playground/token', playgroundTokenRoutes);
+
   // Mount full project routes directly under tenant
   app.route('/tenants/:tenantId', projectFullRoutes);
 
   // Mount OAuth routes - global OAuth callback endpoint
   app.route('/oauth', oauthRoutes);
 
+  app.route('/mcp', mcpRoutes);
   // Setup OpenAPI documentation endpoints (/openapi.json and /docs)
   setupOpenAPIRoutes(app);
 

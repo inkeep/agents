@@ -89,12 +89,12 @@ export function formatPromptWithContext(
     const convertedStr = str.replace(/\{\{([^}]+)\}\}/g, (match, variablePath) => {
       if (isContextVariable(variablePath, contextConfigData)) {
         return `\${${contextVarName}.toTemplate("${variablePath}")}`;
-      } else if (isHeadersVariable(variablePath, contextConfigData)) {
-        return `\${${headersVarName}.toTemplate("${variablePath}")}`;
-      } else {
-        // Default to context if we can't determine (safer fallback)
-        return `\${${contextVarName}.toTemplate("${variablePath}")}`;
       }
+      if (isHeadersVariable(variablePath, contextConfigData)) {
+        return `\${${headersVarName}.toTemplate("${variablePath}")}`;
+      }
+      // Default to context if we can't determine (safer fallback)
+      return `\${${contextVarName}.toTemplate("${variablePath}")}`;
     });
     return `\`${convertedStr.replace(/`/g, '\\`')}\``;
   }
@@ -140,11 +140,11 @@ export function formatReferencesArray(
     refArray = references.map((item) => {
       if (typeof item === 'string') {
         return toCamelCase(item);
-      } else if (typeof item === 'object' && item && item.id) {
-        return toCamelCase(item.id);
-      } else {
-        return toCamelCase(String(item));
       }
+      if (typeof item === 'object' && item && item.id) {
+        return toCamelCase(item.id);
+      }
+      return toCamelCase(String(item));
     });
   } else if (references && typeof references === 'object') {
     refArray = Object.keys(references).map((key) => toCamelCase(key));
@@ -237,9 +237,8 @@ export function generateImport(imports: string[], from: string, style: CodeStyle
 
   if (imports.length === 1) {
     return `import { ${imports[0]} } from ${q}${from}${q}${semi}`;
-  } else {
-    return `import { ${imports.join(', ')} } from ${q}${from}${q}${semi}`;
   }
+  return `import { ${imports.join(', ')} } from ${q}${from}${q}${semi}`;
 }
 
 /**

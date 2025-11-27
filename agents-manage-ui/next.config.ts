@@ -41,6 +41,7 @@ const nextConfig: NextConfig = {
         imageLoaderOptions,
       ],
     });
+
     return config;
   },
   typescript: {

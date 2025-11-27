@@ -1,4 +1,5 @@
 import { AgentList } from '@/components/agents/agents-list';
+import { NewAgentDialog } from '@/components/agents/new-agent-item';
 import FullPageError from '@/components/errors/full-page-error';
 import { AgentsIcon } from '@/components/icons/empty-state/agents';
 import { BodyTemplate } from '@/components/layout/body-template';
@@ -33,7 +34,7 @@ async function AgentsPage({ params }: PageProps<'/[tenantId]/projects/[projectId
           <EmptyState
             title="No agents yet."
             description={agentDescription}
-            link={`/${tenantId}/projects/${projectId}/agents/new`}
+            action={<NewAgentDialog tenantId={tenantId} projectId={projectId} />}
             linkText="Create agent"
             icon={<AgentsIcon />}
           />

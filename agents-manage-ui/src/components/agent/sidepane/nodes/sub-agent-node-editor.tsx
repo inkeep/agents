@@ -20,9 +20,10 @@ import type { ArtifactComponent } from '@/lib/api/artifact-components';
 import type { DataComponent } from '@/lib/api/data-components';
 import { ExpandablePromptEditor } from '../../../editors/expandable-prompt-editor';
 import type { AgentNodeData } from '../../configuration/node-types';
+import { InputField } from '../form-components/input';
+import { TextareaField } from '../form-components/text-area';
 import { SectionHeader } from '../section';
 import { ComponentSelector } from './component-selector/component-selector';
-import { InputField, TextareaField } from './form-fields';
 import { ModelSection } from './model-section';
 
 const ExecutionLimitInheritanceInfo = () => {
@@ -151,7 +152,6 @@ export function SubAgentNodeEditor({
           placeholder="You are a helpful assistant..."
           error={getFieldError('prompt')}
           label="Prompt"
-          isRequired
         />
       </div>
       <div className="space-y-2">

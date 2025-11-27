@@ -276,7 +276,8 @@ export class ComponentRegistry {
   private extractIdFromReference(ref: any): string | null {
     if (typeof ref === 'string') {
       return ref;
-    } else if (typeof ref === 'object' && ref) {
+    }
+    if (typeof ref === 'object' && ref) {
       // Handle different component types by their specific ID fields (confirmed from debug output)
 
       // Tool references (MCP tools and function tools)
@@ -455,9 +456,8 @@ export class ComponentRegistry {
     // Clean up path format
     if (relativePath.startsWith('../')) {
       return relativePath;
-    } else {
-      return './' + relativePath;
     }
+    return './' + relativePath;
   }
 
   /**

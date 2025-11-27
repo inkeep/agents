@@ -242,16 +242,30 @@ app.openapi(
     const { tenantId, projectId } = c.req.valid('param');
     const validatedBody = c.req.valid('json');
 
-    const agent = await createAgent(dbClient)({
-      tenantId,
-      projectId,
-      id: validatedBody.id || generateId(),
-      name: validatedBody.name,
-      defaultSubAgentId: validatedBody.defaultSubAgentId,
-      contextConfigId: validatedBody.contextConfigId ?? undefined,
-    });
+    try {
+      const agent = await createAgent(dbClient)({
+        tenantId,
+        projectId,
+        id: validatedBody.id || generateId(),
+        name: validatedBody.name,
+        defaultSubAgentId: validatedBody.defaultSubAgentId,
+        contextConfigId: validatedBody.contextConfigId ?? undefined,
+      });
 
-    return c.json({ data: agent }, 201);
+      return c.json({ data: agent }, 201);
+    } catch (error: any) {
+      // Handle duplicate agent (PostgreSQL unique constraint violation)
+      if (error?.cause?.code === '23505') {
+        const agentId = validatedBody.id || 'unknown';
+        throw createApiError({
+          code: 'conflict',
+          message: `An agent with ID '${agentId}' already exists`,
+        });
+      }
+
+      // Re-throw other errors to be handled by the global error handler
+      throw error;
+    }
   }
 );
 
