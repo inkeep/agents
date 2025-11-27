@@ -122,10 +122,6 @@ html {
   left: calc(var(--fd-sidebar-width) + 1.1rem);
   /* @apply rounded-none lg:px-1 mx-0 shadow-none w-full border-0 bg-background top-[calc(var(--fd-banner-height)_+_var(--fd-nav-height))] after:bg-gradient-to-b after:from-[hsl(var(--background))] after:absolute after:w-full after:h-6 after:top-full after:left-0; */
 }
-/* hide the 'on this page' text */
-#nd-toc h3 {
-  display: none;
-}
 
 /* tailwind typography overrides */
 @utility prose {
