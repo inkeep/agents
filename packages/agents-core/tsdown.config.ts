@@ -7,10 +7,8 @@ export default defineConfig({
   dts: true,
   unbundle: true,
   format: 'esm',
-  outExtensions: () => ({
-    js: '.js',
-  }),
+  outExtensions: () => ({ js: '.js' }),
   entry: ['src/**/*.ts', '!**/__tests__/'],
-  external: ['keytar', 'typescript'],
+  external: ['keytar'],
   target: 'es2022',
 });
