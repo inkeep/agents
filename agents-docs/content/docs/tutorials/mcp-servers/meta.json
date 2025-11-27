@@ -1,5 +1,12 @@
 {
   "title": "MCP Servers",
   "icon": "Wrench",
-  "pages": ["overview", "native-mcp-servers", "composio-mcp-servers", "gram", "custom-mcp-servers"]
+  "pages": [
+    "overview",
+    "native-mcp-servers",
+    "composio-mcp-servers",
+    "gram",
+    "custom-mcp-servers",
+    "..."
+  ]
 }

@@ -1,4 +1,4 @@
 {
   "icon": "User",
-  "pages": ["meeting-prep-assistant"]
+  "pages": ["meeting-prep-assistant", "..."]
 }
