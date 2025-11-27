@@ -1,5 +1,5 @@
 {
   "title": "Connect Your Data",
-  "icon": "Database",
+  "icon": "LuDatabase",
   "pages": ["overview", "inkeep", "pinecone", "context7", "ref", "firecrawl", "..."]
 }

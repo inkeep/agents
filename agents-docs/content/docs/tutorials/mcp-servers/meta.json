@@ -1,6 +1,6 @@
 {
   "title": "MCP Servers",
-  "icon": "Wrench",
+  "icon": "LuWrench",
   "pages": [
     "overview",
     "native-mcp-servers",
