@@ -58,9 +58,6 @@ const nextConfig: NextConfig = {
 
     return config;
   },
-  typescript: {
-    ignoreBuildErrors: process.env.NEXTJS_IGNORE_TYPECHECK === 'true',
-  },
   images: {
     // Allow all external image domains since users can provide any URL
     remotePatterns: [
