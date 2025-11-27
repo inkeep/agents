@@ -1,5 +1,25 @@
 # @inkeep/agents-cli
 
+## 0.38.0
+
+### Patch Changes
+
+- f1f68cf: new models
+- 6dcb6b7: fix signoz for vercel
+- b3e49d9: updated schemas
+- Updated dependencies [a2928eb]
+- Updated dependencies [f1f68cf]
+- Updated dependencies [6dcb6b7]
+- Updated dependencies [b3e49d9]
+- Updated dependencies [5fbd137]
+- Updated dependencies [576c9d9]
+- Updated dependencies [4b64b94]
+- Updated dependencies [609e8fe]
+- Updated dependencies [fcbf008]
+  - @inkeep/agents-manage-ui@0.38.0
+  - @inkeep/agents-core@0.38.0
+  - @inkeep/agents-sdk@0.38.0
+
 ## 0.37.2
 
 ### Patch Changes
