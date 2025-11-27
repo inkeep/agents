@@ -1,3 +1,5 @@
+import type * as TypeScript from 'typescript';
+
 const collapseSubpath = (spec: string) => {
   if (spec.startsWith('@')) {
     const [scope, name] = spec.split('/');
@@ -8,7 +10,7 @@ const collapseSubpath = (spec: string) => {
 
 // Conditional imports to avoid breaking CLI bundling
 let builtinModules: string[] = [];
-let ts: typeof import('typescript') | null = null;
+let ts: typeof TypeScript | null = null;
 
 try {
   // Only import in server environments
@@ -37,8 +39,8 @@ export function collectDepsFromCode(code: string): Set<string> {
     try {
       const info = ts.preProcessFile(
         code,
-        /*readImportFiles*/ true,
-        /*detectJavaScriptImports*/ true
+        /* readImportFiles */ true,
+        /* detectJavaScriptImports */ true
       );
 
       // Process imports detected by TypeScript compiler
