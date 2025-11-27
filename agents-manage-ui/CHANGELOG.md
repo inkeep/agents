@@ -1,5 +1,31 @@
 # @inkeep/agents-manage-ui
 
+## 0.38.0
+
+### Minor Changes
+
+- 4b64b94: - add spinner in `Save changes` button in agent workflow
+  - remove `inPreviewDisabled` prop from `<Toolbar />` component
+
+### Patch Changes
+
+- a2928eb: filter out disabled providers
+- f1f68cf: new models
+- 6dcb6b7: fix signoz for vercel
+- b3e49d9: updated schemas
+- 5fbd137: fix `Module not found: Can't resolve '../build/Release/keytar.node'` in dashboard, ignore `keytar` from bundling with `webpackIgnore` comment
+- 576c9d9: fix `TypeError: Cannot destructure property 'relationshipId' of 'data.details' as it is undefined.`
+- 609e8fe: Fix bug with team agent fetch
+- fcbf008: add creator to mcp server name
+- Updated dependencies [f1f68cf]
+- Updated dependencies [6dcb6b7]
+- Updated dependencies [b3e49d9]
+- Updated dependencies [5fbd137]
+- Updated dependencies [fcbf008]
+  - @inkeep/agents-core@0.38.0
+  - @inkeep/agents-manage-api@0.38.0
+  - @inkeep/agents-run-api@0.38.0
+
 ## 0.37.2
 
 ### Patch Changes

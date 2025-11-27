@@ -1,5 +1,15 @@
 # @inkeep/agents-core
 
+## 0.38.0
+
+### Patch Changes
+
+- f1f68cf: new models
+- 6dcb6b7: fix signoz for vercel
+- b3e49d9: updated schemas
+- 5fbd137: fix `Module not found: Can't resolve '../build/Release/keytar.node'` in dashboard, ignore `keytar` from bundling with `webpackIgnore` comment
+- fcbf008: add creator to mcp server name
+
 ## 0.37.2
 
 ### Patch Changes

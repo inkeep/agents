@@ -1,5 +1,19 @@
 # @inkeep/create-agents
 
+## 0.38.0
+
+### Patch Changes
+
+- f1f68cf: new models
+- 6dcb6b7: fix signoz for vercel
+- b3e49d9: updated schemas
+- Updated dependencies [f1f68cf]
+- Updated dependencies [6dcb6b7]
+- Updated dependencies [b3e49d9]
+- Updated dependencies [5fbd137]
+- Updated dependencies [fcbf008]
+  - @inkeep/agents-core@0.38.0
+
 ## 0.37.2
 
 ### Patch Changes
