@@ -1,0 +1,5 @@
+{
+  "title": "Structured Outputs",
+  "icon": "LuLayoutTemplate",
+  "pages": ["data-components", "artifact-components", "status-updates", "..."]
+}
