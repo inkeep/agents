@@ -16,7 +16,7 @@ Open http://localhost:3010 with your browser to see the result.
 In the project, you can see:
 
 - [`src/lib/source.ts`](./src/lib/source.ts): Code for content source adapter, [`loader()`](https://fumadocs.dev/docs/headless/source-api) provides the interface to access your content.
-- [`src/app/[[...slug]]/page.tsx`](./src/app/[[...slug]]/page.tsx): Shared options for layouts, optional but preferred to keep.
+- [`src/app/[[...slug]]/page.tsx`](./src/app/[[...slug]]/page.tsx): Catch-all route that applies shared layout options.
 
 ### Fumadocs MDX
 
