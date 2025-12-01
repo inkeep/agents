@@ -152,6 +152,7 @@ function MetadataEditor() {
           value={prompt}
           onChange={(value) => updateMetadata('prompt', value)}
           placeholder="System-level instructions for this agent..."
+          className="min-h-16"
         />
         <p className="text-xs text-muted-foreground">
           System-level prompt that defines the intended audience and overall goal of this agent.
