@@ -73,6 +73,11 @@ import { jsonSchemaToZod } from '../utils/data-component-schema';
 import { getCompressionConfigForModel } from '../utils/model-context-utils';
 import type { StreamHelper } from '../utils/stream-helpers';
 import { getStreamHelper } from '../utils/stream-registry';
+import {
+  type AssembleResult,
+  type ContextBreakdown,
+  estimateTokens,
+} from '../utils/token-estimator';
 import { setSpanWithError, tracer } from '../utils/tracer';
 import { createDelegateToAgentTool, createTransferToAgentTool } from './relationTools';
 import { SystemPromptBuilder } from './SystemPromptBuilder';
@@ -1525,7 +1530,7 @@ export class Agent {
       streamRequestId?: string;
       streamBaseUrl?: string;
     };
-  }): Promise<string> {
+  }): Promise<AssembleResult> {
     const phase2Config = new Phase2Config();
     const compressionConfig = getCompressionConfigFromEnv();
     const hasAgentArtifactComponents =
@@ -1590,7 +1595,7 @@ export class Agent {
       };
     },
     excludeDataComponents: boolean = false
-  ): Promise<string> {
+  ): Promise<AssembleResult> {
     const conversationId = runtimeContext?.metadata?.conversationId || runtimeContext?.contextId;
 
     if (conversationId) {
@@ -2228,8 +2233,8 @@ ${output}`;
           // Note: getDefaultTools needs to be called after streamHelper is set above
           const [
             mcpTools,
-            systemPrompt,
-            thinkingSystemPrompt,
+            systemPromptResult,
+            thinkingSystemPromptResult,
             functionTools,
             relationTools,
             defaultTools,
@@ -2264,6 +2269,11 @@ ${output}`;
               }
             }
           );
+
+          // Extract prompts and breakdown from results
+          const systemPrompt = systemPromptResult.prompt;
+          const thinkingSystemPrompt = thinkingSystemPromptResult.prompt;
+          const contextBreakdown = systemPromptResult.breakdown;
 
           // Combine all tools for AI SDK
           const allTools = {
@@ -2312,6 +2322,41 @@ ${output}`;
               });
             }
           }
+
+          // Track conversation history tokens and add to context breakdown
+          const conversationHistoryTokens = estimateTokens(conversationHistory);
+          contextBreakdown.conversationHistory = conversationHistoryTokens;
+
+          // Recalculate total with conversation history
+          contextBreakdown.total =
+            contextBreakdown.systemPromptTemplate +
+            contextBreakdown.coreInstructions +
+            contextBreakdown.agentPrompt +
+            contextBreakdown.toolsSection +
+            contextBreakdown.artifactsSection +
+            contextBreakdown.dataComponents +
+            contextBreakdown.artifactComponents +
+            contextBreakdown.transferInstructions +
+            contextBreakdown.delegationInstructions +
+            contextBreakdown.thinkingPreparation +
+            contextBreakdown.conversationHistory;
+
+          // Record context breakdown as span attributes for trace viewer
+          span.setAttributes({
+            'context.breakdown.system_template_tokens': contextBreakdown.systemPromptTemplate,
+            'context.breakdown.core_instructions_tokens': contextBreakdown.coreInstructions,
+            'context.breakdown.agent_prompt_tokens': contextBreakdown.agentPrompt,
+            'context.breakdown.tools_tokens': contextBreakdown.toolsSection,
+            'context.breakdown.artifacts_tokens': contextBreakdown.artifactsSection,
+            'context.breakdown.data_components_tokens': contextBreakdown.dataComponents,
+            'context.breakdown.artifact_components_tokens': contextBreakdown.artifactComponents,
+            'context.breakdown.transfer_instructions_tokens': contextBreakdown.transferInstructions,
+            'context.breakdown.delegation_instructions_tokens':
+              contextBreakdown.delegationInstructions,
+            'context.breakdown.thinking_preparation_tokens': contextBreakdown.thinkingPreparation,
+            'context.breakdown.conversation_history_tokens': contextBreakdown.conversationHistory,
+            'context.breakdown.total_tokens': contextBreakdown.total,
+          });
 
           // Use the primary model for text generation
           const primaryModelSettings = this.getPrimaryModel();
@@ -3000,10 +3045,11 @@ ${output}${structureHintsFormatted}`;
               const shouldStreamPhase2 = this.getStreamingHelper();
 
               if (shouldStreamPhase2) {
+                const phase2SystemPromptResult = await this.buildPhase2SystemPrompt(runtimeContext);
                 const phase2Messages: any[] = [
                   {
                     role: 'system',
-                    content: await this.buildPhase2SystemPrompt(runtimeContext),
+                    content: phase2SystemPromptResult.prompt,
                   },
                 ];
 
@@ -3094,8 +3140,9 @@ ${output}${structureHintsFormatted}`;
               } else {
                 const { withJsonPostProcessing } = await import('../utils/json-postprocessor');
 
+                const phase2SystemPromptResult = await this.buildPhase2SystemPrompt(runtimeContext);
                 const phase2Messages: any[] = [
-                  { role: 'system', content: await this.buildPhase2SystemPrompt(runtimeContext) },
+                  { role: 'system', content: phase2SystemPromptResult.prompt },
                 ];
 
                 if (conversationHistory.trim() !== '') {
