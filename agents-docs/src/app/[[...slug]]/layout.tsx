@@ -52,7 +52,7 @@ export default function Layout({ children }: LayoutProps<'/'>) {
             <Button
               variant="outline"
               size="sm"
-              className="grow text-primary border border-primary/30 hover:bg-primary/5 dark:bg-primary/5 hover:text-primary dark:text-primary dark:border-primary/30 dark:hover:bg-primary/10"
+              className="grow text-primary border-primary/30 hover:bg-primary/5 dark:bg-primary/5 hover:text-primary dark:text-primary dark:border-primary/30 dark:hover:bg-primary/10"
               asChild
             >
               <a
