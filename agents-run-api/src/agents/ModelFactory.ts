@@ -4,7 +4,7 @@ import { createGoogleGenerativeAI, google } from '@ai-sdk/google';
 import { createOpenAI, openai } from '@ai-sdk/openai';
 import { createOpenAICompatible } from '@ai-sdk/openai-compatible';
 import { createOpenRouter, openrouter } from '@openrouter/ai-sdk-provider';
-import type { LanguageModel, Provider } from 'ai';
+import type { LanguageModel } from 'ai';
 
 import { getLogger } from '../logger';
 
@@ -31,8 +31,12 @@ export interface ModelSettings {
 export class ModelFactory {
   /**
    * Create a provider instance with custom configuration
+   * Returns a provider with at least languageModel method
    */
-  private static createProvider(provider: string, config: Record<string, unknown>): Provider {
+  private static createProvider(
+    provider: string,
+    config: Record<string, unknown>
+  ): { languageModel: (modelId: string) => LanguageModel } {
     switch (provider) {
       case 'anthropic':
         return createAnthropic(config);
@@ -41,19 +45,10 @@ export class ModelFactory {
       case 'google':
         return createGoogleGenerativeAI(config);
       case 'openrouter':
-        return {
-          ...createOpenRouter(config),
-          textEmbeddingModel: () => {
-            throw new Error('OpenRouter does not support text embeddings');
-          },
-          imageModel: () => {
-            throw new Error('OpenRouter does not support image generation');
-          },
-        };
+        return createOpenRouter(config);
       case 'gateway':
         return createGateway(config);
       case 'nim': {
-        // Merge custom config with default NIM configuration
         const nimConfig = {
           name: 'nim',
           baseURL: 'https://integrate.api.nvidia.com/v1',
@@ -65,7 +60,6 @@ export class ModelFactory {
         return createOpenAICompatible(nimConfig);
       }
       case 'custom': {
-        // Custom OpenAI-compatible provider - requires baseURL in config
         if (!config.baseURL && !config.baseUrl) {
           throw new Error(
             'Custom provider requires baseURL. Please provide it in providerOptions.baseURL or providerOptions.baseUrl'

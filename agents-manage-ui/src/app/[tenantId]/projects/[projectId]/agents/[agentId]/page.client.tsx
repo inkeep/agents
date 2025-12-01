@@ -99,7 +99,7 @@ function getEdgeId(a: string, b: string) {
 }
 
 interface AgentProps {
-  agent?: ExtendedFullAgentDefinition;
+  agent: ExtendedFullAgentDefinition;
   dataComponentLookup?: Record<string, DataComponent>;
   artifactComponentLookup?: Record<string, ArtifactComponent>;
   toolLookup?: Record<string, MCPTool>;
@@ -263,7 +263,7 @@ export const Agent: FC<AgentProps> = ({
   );
 
   const subAgentTeamAgentConfigLookup = useMemo((): SubAgentTeamAgentConfigLookup => {
-    if (!agent?.subAgents) return {} as SubAgentTeamAgentConfigLookup;
+    if (!agent.subAgents) return {} as SubAgentTeamAgentConfigLookup;
     const lookup: SubAgentTeamAgentConfigLookup = {};
     Object.entries(agent.subAgents).forEach(([subAgentId, agentData]) => {
       if ('canDelegateTo' in agentData && agentData.canDelegateTo) {
@@ -283,7 +283,7 @@ export const Agent: FC<AgentProps> = ({
       }
     });
     return lookup;
-  }, [agent?.subAgents]);
+  }, [agent.subAgents]);
 
   const {
     screenToFlowPosition,
@@ -422,7 +422,7 @@ export const Agent: FC<AgentProps> = ({
   // Callback function to fetch and update agent graph from copilot
   const refreshAgentGraph = useCallback(
     async (options?: { fetchTools?: boolean }) => {
-      if (!agent?.id) {
+      if (!agent.id) {
         return;
       }
 
@@ -498,7 +498,7 @@ export const Agent: FC<AgentProps> = ({
       }
     },
     [
-      agent?.id,
+      agent.id,
       tenantId,
       projectId,
       nodeId,
@@ -851,7 +851,7 @@ export const Agent: FC<AgentProps> = ({
       tenantId,
       projectId,
       serializedData,
-      agent?.id // agentid is required and added to the serialized data if it does not exist so we need to pass is separately to know whether to create or update
+      agent.id // agentid is required and added to the serialized data if it does not exist so we need to pass is separately to know whether to create or update
     );
 
     if (res.success) {
@@ -910,7 +910,7 @@ export const Agent: FC<AgentProps> = ({
         );
       }
 
-      if (!agent?.id && res.data?.id) {
+      if (!agent.id && res.data?.id) {
         setMetadata('id', res.data.id);
         router.push(`/${tenantId}/projects/${projectId}/agents/${res.data.id}`);
       }
@@ -957,7 +957,7 @@ export const Agent: FC<AgentProps> = ({
     setMetadata,
     setNodes,
     router,
-    agent?.id,
+    agent.id,
     tenantId,
     projectId,
     clearErrors,
@@ -1007,8 +1007,8 @@ export const Agent: FC<AgentProps> = ({
   const isMounted = useIsMounted();
 
   const showEmptyState = useMemo(
-    () => nodes.length === 0 && isCopilotConfigured,
-    [nodes, isCopilotConfigured]
+    () => nodes.length === 0 && agentNodes.length === 0 && isCopilotConfigured,
+    [nodes, agentNodes, isCopilotConfigured]
   );
 
   return (
@@ -1020,7 +1020,7 @@ export const Agent: FC<AgentProps> = ({
       className="w-full h-full relative bg-muted/20 dark:bg-background flex rounded-b-[14px] overflow-hidden"
     >
       <CopilotChat
-        agentId={agent?.id}
+        agentId={agent.id}
         projectId={projectId}
         tenantId={tenantId}
         refreshAgentGraph={refreshAgentGraph}
@@ -1083,7 +1083,6 @@ export const Agent: FC<AgentProps> = ({
             >
               <Toolbar
                 onSubmit={onSubmit}
-                inPreviewDisabled={!agent?.id}
                 toggleSidePane={isOpen ? backToAgent : openAgentPane}
                 setShowPlayground={() => {
                   closeSidePane();
@@ -1139,7 +1138,7 @@ export const Agent: FC<AgentProps> = ({
           </>
         )}
 
-      {showPlayground && agent?.id && (
+      {showPlayground && agent.id && (
         <>
           {!showTraces && <ResizableHandle withHandle />}
           <ResizablePanel
