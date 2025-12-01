@@ -491,7 +491,13 @@ describe('AgentFull Data Access - getFullAgentDefinition', () => {
       });
 
       expect((result?.subAgents['agent-1'] as any).canUse).toEqual([
-        { agentToolRelationId: undefined, toolId: 'tool-1', toolSelection: null, headers: null },
+        {
+          agentToolRelationId: undefined,
+          toolId: 'tool-1',
+          toolSelection: null,
+          headers: null,
+          toolPolicies: null,
+        },
       ]);
     });
 

@@ -1,4 +1,4 @@
-import { YoutubeIcon } from '@/components/brand-icons';
+import { Youtube } from '@/components/brand-icons';
 import { List } from '@/components/sidebar/list';
 import { Sidebar, SidebarFooter } from '@/components/ui/sidebar';
 import { SLACK_URL } from '@/lib/constants';
@@ -29,7 +29,7 @@ const footerLinks = [
   },
   {
     href: 'https://www.youtube.com/@inkeep-ai',
-    icon: <YoutubeIcon />,
+    icon: <Youtube />,
     label: 'Inkeep on YouTube',
   },
 ];

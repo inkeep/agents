@@ -74,11 +74,16 @@ export function generateDataComponentDefinition(
   }
 
   // Validate required data component fields
-  const requiredFields = ['name', 'description', 'props'];
+  const requiredFields = ['name']; // Description is optional, props validation handled separately
   const missingFields = requiredFields.filter(
     (field) =>
       !componentData[field] || componentData[field] === null || componentData[field] === undefined
   );
+
+  // Check for props (required)
+  if (!componentData.props) {
+    missingFields.push('props');
+  }
 
   if (missingFields.length > 0) {
     throw new Error(

@@ -13,6 +13,40 @@ export default {
       ],
     },
     {
+      group: 'Tutorials',
+      pages: [
+        {
+          group: 'Agents',
+          icon: 'LuUser',
+          pages: ['tutorials/agents/meeting-prep-assistant'],
+        },
+        {
+          group: 'MCP Servers',
+          icon: 'LuWrench',
+          pages: [
+            'tutorials/mcp-servers/overview',
+            'tutorials/mcp-servers/native-mcp-servers',
+            'tutorials/mcp-servers/composio-mcp-servers',
+            'tutorials/mcp-servers/gram',
+            'tutorials/mcp-servers/custom-mcp-servers',
+          ],
+        },
+        {
+          group: 'Connect Your Data',
+          icon: 'LuDatabase',
+          pages: [
+            'connect-your-data/overview',
+            'connect-your-data/inkeep',
+            'connect-your-data/pinecone',
+            'connect-your-data/context7',
+            'connect-your-data/ref',
+            'connect-your-data/firecrawl',
+          ],
+        },
+        'tutorials/upgrading',
+      ],
+    },
+    {
       group: 'Typescript SDK',
       icon: 'LuCode',
       pages: [
@@ -23,7 +57,11 @@ export default {
         {
           group: 'Tools',
           icon: 'LuHammer',
-          pages: ['typescript-sdk/tools/mcp-tools', 'typescript-sdk/tools/function-tools'],
+          pages: [
+            'typescript-sdk/tools/mcp-tools',
+            'typescript-sdk/tools/function-tools',
+            'tools/tool-approvals',
+          ],
         },
         {
           group: 'Credentials',
@@ -80,7 +118,7 @@ export default {
         },
         'visual-builder/headers',
         'visual-builder/traces',
-        'visual-builder/project-management',
+        // 'visual-builder/project-management',
         {
           group: 'Structured Outputs',
           icon: 'LuLayoutTemplate',
@@ -143,23 +181,6 @@ export default {
       ],
     },
     {
-      group: 'Tutorials',
-      pages: [
-        {
-          group: 'MCP Servers',
-          icon: 'LuWrench',
-          pages: [
-            'tutorials/mcp-servers/overview',
-            'tutorials/mcp-servers/native-mcp-servers',
-            'tutorials/mcp-servers/composio-mcp-servers',
-            'tutorials/mcp-servers/gram',
-            'tutorials/mcp-servers/custom-mcp-servers',
-          ],
-        },
-        'tutorials/upgrading',
-      ],
-    },
-    {
       group: 'API Reference',
       icon: 'LuBookOpen',
       pages: [
@@ -174,40 +195,6 @@ export default {
         'api-reference',
       ],
     },
-    /**
-     * TODO: Add back schema validation back in some way
-     */
-    // {
-    //   group: 'UI Components',
-    //   pages: ['ui-components/json-schema-validation'],
-    // },
-    /**
-     * TODO: Add back in and flesh out Connecting your data section
-     */
-    // {
-    //   group: 'Connecting your data',
-    //   pages: [
-    //     {
-    //       group: '3rd Party Tools',
-    //       pages: [
-    //         {
-    //           group: 'Data Scraping',
-    //           pages: [
-    //             'connecting-your-data/3rd-party-tools/exa',
-    //             'connecting-your-data/3rd-party-tools/firecrawl',
-    //           ],
-    //         },
-    //         {
-    //           group: 'Data Stores',
-    //           pages: [
-    //             'connecting-your-data/3rd-party-tools/Pinecone',
-    //             'connecting-your-data/3rd-party-tools/pgVector',
-    //           ],
-    //         },
-    //       ],
-    //     },
-    //   ],
-    // },
     {
       group: 'Self-Hosting',
       icon: 'LuServer',

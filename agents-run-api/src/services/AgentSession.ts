@@ -1,3 +1,4 @@
+import { z } from '@hono/zod-openapi';
 import type {
   DelegationReturnedData,
   DelegationSentData,
@@ -11,11 +12,10 @@ import {
   CONVERSATION_HISTORY_DEFAULT_LIMIT,
   CONVERSATION_HISTORY_MAX_OUTPUT_TOKENS_DEFAULT,
   getSubAgentById,
+  ModelFactory,
 } from '@inkeep/agents-core';
 import { SpanStatusCode } from '@opentelemetry/api';
 import { generateObject } from 'ai';
-import { z } from 'zod';
-import { ModelFactory } from '../agents/ModelFactory';
 import { toolSessionManager } from '../agents/ToolSessionManager';
 import {
   ARTIFACT_GENERATION_BACKOFF_INITIAL_MS,
@@ -155,6 +155,8 @@ export interface ToolCallData {
   input: any;
   toolCallId: string;
   relationshipId?: string;
+  needsApproval?: boolean;
+  conversationId?: string;
 }
 
 export interface ToolResultData {
@@ -164,6 +166,7 @@ export interface ToolResultData {
   duration?: number;
   error?: string;
   relationshipId?: string;
+  needsApproval?: boolean;
 }
 
 export interface ErrorEventData {
@@ -259,6 +262,7 @@ export class AgentSession {
    * Send data operation to stream when emit operations is enabled
    */
   private async sendDataOperation(event: AgentSessionEvent): Promise<void> {
+    console.log('sendDataOperation called with event', Date.now());
     try {
       const streamHelper = getStreamHelper(this.sessionId);
       if (streamHelper) {
@@ -1039,9 +1043,12 @@ ${this.statusUpdateState?.config.prompt?.trim() || ''}`;
           });
 
           const result = object as any;
+          logger.info({ result: JSON.stringify(result) }, 'DEBUG: Result');
 
           const summaries = [];
           for (const [componentId, data] of Object.entries(result)) {
+            logger.info({ componentId, data: JSON.stringify(data) }, 'DEBUG: Component data');
+            // await new Promise((resolve) => setTimeout(resolve, 100000));
             if (componentId === 'no_relevant_updates') {
               continue;
             }
@@ -1704,11 +1711,12 @@ export class AgentSessionManager {
   initializeStatusUpdates(
     sessionId: string,
     config: StatusUpdateSettings,
-    summarizerModel?: ModelSettings
+    summarizerModel?: ModelSettings,
+    baseModel?: ModelSettings
   ): void {
     const session = this.sessions.get(sessionId);
     if (session) {
-      session.initializeStatusUpdates(config, summarizerModel);
+      session.initializeStatusUpdates(config, summarizerModel, baseModel);
     } else {
       logger.error(
         {

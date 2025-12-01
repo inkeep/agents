@@ -17,7 +17,12 @@ import './commands';
 
 Cypress.on('uncaught:exception', (err) => {
   // returning false prevents Cypress from failing the test
-  if (err.message.includes('ResizeObserver loop completed with undelivered notifications.')) {
+  if (
+    // Promise from monaco-editor
+    err.message.includes('  > Canceled') ||
+    err.message.includes('  > ResizeObserver loop completed with undelivered notifications.')
+  ) {
     return false;
   }
+  console.error('Cypress uncaught exception', [err.message]);
 });

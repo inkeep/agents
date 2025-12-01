@@ -201,10 +201,32 @@ export function serializeAgentData(
               }
             }
 
+            const tempToolPolicies = (mcpNode.data as any).tempToolPolicies;
+            let toolPolicies: Record<string, { needsApproval?: boolean }> | null = null;
+
+            if (tempToolPolicies !== undefined) {
+              if (
+                typeof tempToolPolicies === 'object' &&
+                tempToolPolicies !== null &&
+                !Array.isArray(tempToolPolicies)
+              ) {
+                toolPolicies = tempToolPolicies;
+              }
+            } else {
+              // No changes made to tool policies - preserve existing policies
+              const existingConfig = relationshipId
+                ? agentToolConfigLookup?.[subAgentId]?.[relationshipId]
+                : null;
+              if (existingConfig?.toolPolicies) {
+                toolPolicies = existingConfig.toolPolicies;
+              }
+            }
+
             canUse.push({
               toolId,
               toolSelection,
               headers: toolHeaders,
+              toolPolicies,
               ...(relationshipId && { agentToolRelationId: relationshipId }),
             });
           }
@@ -378,8 +400,8 @@ export function serializeAgentData(
         agent: ExtendedAgent,
         relationshipType: 'canTransferTo' | 'canDelegateTo',
         targetId: string,
-        isExternal: boolean = false,
-        isTeamAgent: boolean = false,
+        isExternal = false,
+        isTeamAgent = false,
         headers?: Record<string, string>,
         relationshipId?: string
       ) => {

@@ -11,6 +11,7 @@ import {
   unique,
   varchar,
 } from 'drizzle-orm/pg-core';
+import { organization } from '../auth/auth-schema';
 import type { Part } from '../types/a2a';
 import type {
   ContextFetchDefinition,
@@ -26,6 +27,18 @@ import type {
   ToolServerCapabilities,
 } from '../types/utility';
 import type { AgentStopWhen, StopWhen, SubAgentStopWhen } from '../validation/schemas';
+
+// Re-export Better Auth generated tables
+export {
+  account,
+  invitation,
+  member,
+  organization,
+  session,
+  ssoProvider,
+  user,
+  verification,
+} from '../auth/auth-schema';
 
 const tenantScoped = {
   tenantId: varchar('tenant_id', { length: 256 }).notNull(),
@@ -49,7 +62,7 @@ const subAgentScoped = {
 
 const uiProperties = {
   name: varchar('name', { length: 256 }).notNull(),
-  description: text('description').notNull(),
+  description: text('description'),
 };
 
 const timestamps = {
@@ -69,7 +82,14 @@ export const projects = pgTable(
 
     ...timestamps,
   },
-  (table) => [primaryKey({ columns: [table.tenantId, table.id] })]
+  (table) => [
+    primaryKey({ columns: [table.tenantId, table.id] }),
+    foreignKey({
+      columns: [table.tenantId],
+      foreignColumns: [organization.id],
+      name: 'projects_tenant_id_fk',
+    }).onDelete('cascade'),
+  ]
 );
 
 export const agents = pgTable(
@@ -156,7 +176,7 @@ export const subAgents = pgTable(
   {
     ...agentScoped,
     ...uiProperties,
-    prompt: text('prompt').notNull(),
+    prompt: text('prompt'),
     conversationHistoryConfig: jsonb('conversation_history_config')
       .$type<ConversationHistoryConfig>()
       .default({
@@ -440,6 +460,10 @@ export const subAgentToolRelations = pgTable(
     toolId: varchar('tool_id', { length: 256 }).notNull(),
     selectedTools: jsonb('selected_tools').$type<string[] | null>(),
     headers: jsonb('headers').$type<Record<string, string> | null>(),
+    toolPolicies: jsonb('tool_policies').$type<Record<
+      string,
+      { needsApproval?: boolean }
+    > | null>(),
     ...timestamps,
   },
   (table) => [
@@ -648,6 +672,11 @@ export const apiKeys = pgTable(
     ...timestamps,
   },
   (t) => [
+    foreignKey({
+      columns: [t.tenantId],
+      foreignColumns: [organization.id],
+      name: 'api_keys_organization_fk',
+    }).onDelete('cascade'),
     foreignKey({
       columns: [t.tenantId, t.projectId],
       foreignColumns: [projects.tenantId, projects.id],

@@ -1,7 +1,12 @@
-import { CredentialStoreType, generateIdFromName } from '@inkeep/agents-core/client-exports';
+import {
+  CredentialStoreType,
+  DEFAULT_NANGO_STORE_ID,
+  generateIdFromName,
+} from '@inkeep/agents-core/client-exports';
 import { useRouter } from 'next/navigation';
 import { useCallback, useRef } from 'react';
 import { toast } from 'sonner';
+import type { OAuthLoginHandler } from '@/components/agent/copilot/components/connect-tool-card';
 import { useRuntimeConfig } from '@/contexts/runtime-config-context';
 import { listCredentialStores } from '@/lib/api/credentialStores';
 import { updateMCPTool } from '@/lib/api/tools';
@@ -17,15 +22,7 @@ interface UseOAuthLoginProps {
 }
 
 interface OAuthLoginResult {
-  handleOAuthLogin: ({
-    toolId,
-    mcpServerUrl,
-    toolName,
-  }: {
-    toolId: string;
-    mcpServerUrl: string;
-    toolName: string;
-  }) => Promise<void>;
+  handleOAuthLogin: OAuthLoginHandler;
 }
 
 export function useOAuthLogin({
@@ -41,7 +38,7 @@ export function useOAuthLogin({
   const activeAttemptsRef = useRef(new Map<string, () => void>());
 
   const handleOAuthLoginManually = useCallback(
-    (toolId: string): Promise<void> => {
+    (toolId: string, thirdPartyConnectAccountUrl?: string): Promise<void> => {
       return new Promise((resolve, reject) => {
         // Clean up any previous attempt for this toolId
         const existingCleanup = activeAttemptsRef.current.get(toolId);
@@ -51,12 +48,14 @@ export function useOAuthLogin({
         }
 
         try {
-          const oauthUrl = getOAuthLoginUrl({
-            PUBLIC_INKEEP_AGENTS_MANAGE_API_URL,
-            tenantId,
-            projectId,
-            id: toolId,
-          });
+          const oauthUrl =
+            thirdPartyConnectAccountUrl ??
+            getOAuthLoginUrl({
+              PUBLIC_INKEEP_AGENTS_MANAGE_API_URL,
+              tenantId,
+              projectId,
+              id: toolId,
+            });
 
           const popup = window.open(
             oauthUrl,
@@ -151,15 +150,15 @@ export function useOAuthLogin({
     }): Promise<void> => {
       const authResult = await openNangoConnectHeadless({
         mcpServerUrl,
-        providerUniqueKey: `${generateIdFromName(toolName)}_${toolId}`,
+        providerUniqueKey: `${generateIdFromName(toolName)}_${toolId.slice(0, 4)}`,
         providerDisplayName: toolName,
       });
 
       const newCredentialData = {
         id: generateId(),
-        name: `${toolName} OAuth Credential`,
+        name: toolName,
         type: CredentialStoreType.nango,
-        credentialStoreId: 'nango-default',
+        credentialStoreId: DEFAULT_NANGO_STORE_ID,
         retrievalParams: {
           connectionId: authResult.connectionId,
           providerConfigKey: authResult.providerConfigKey,
@@ -189,11 +188,18 @@ export function useOAuthLogin({
       toolId,
       mcpServerUrl,
       toolName,
+      thirdPartyConnectAccountUrl,
     }: {
       toolId: string;
       mcpServerUrl: string;
       toolName: string;
+      thirdPartyConnectAccountUrl?: string;
     }): Promise<void> => {
+      if (thirdPartyConnectAccountUrl) {
+        await handleOAuthLoginManually(toolId, thirdPartyConnectAccountUrl);
+        return;
+      }
+
       try {
         // Check credential stores availability
         const credentialStoresStatus = await listCredentialStores(tenantId, projectId);

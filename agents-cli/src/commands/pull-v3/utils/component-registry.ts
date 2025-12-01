@@ -276,7 +276,8 @@ export class ComponentRegistry {
   private extractIdFromReference(ref: any): string | null {
     if (typeof ref === 'string') {
       return ref;
-    } else if (typeof ref === 'object' && ref) {
+    }
+    if (typeof ref === 'object' && ref) {
       // Handle different component types by their specific ID fields (confirmed from debug output)
 
       // Tool references (MCP tools and function tools)
@@ -455,9 +456,8 @@ export class ComponentRegistry {
     // Clean up path format
     if (relativePath.startsWith('../')) {
       return relativePath;
-    } else {
-      return './' + relativePath;
     }
+    return './' + relativePath;
   }
 
   /**
@@ -465,6 +465,37 @@ export class ComponentRegistry {
    */
   getAllComponents(): ComponentInfo[] {
     return Array.from(this.componentsByTypeAndId.values());
+  }
+
+  /**
+   * Get all components in a specific file
+   */
+  getComponentsInFile(filePath: string): ComponentInfo[] {
+    return Array.from(this.componentsByTypeAndId.values()).filter(
+      (component) => component.filePath === filePath
+    );
+  }
+
+  /**
+   * Remove a component from the registry
+   */
+  removeComponent(type: string, id: string): void {
+    const key = `${type}:${id}`;
+    const component = this.componentsByTypeAndId.get(key);
+
+    if (component) {
+      // Remove from both maps
+      this.componentsByTypeAndId.delete(key);
+      this.components.delete(component.name);
+
+      // Remove from used names if no other component uses it
+      const nameStillUsed = Array.from(this.componentsByTypeAndId.values()).some(
+        (comp) => comp.name === component.name
+      );
+      if (!nameStillUsed) {
+        this.usedNames.delete(component.name);
+      }
+    }
   }
 
   /**

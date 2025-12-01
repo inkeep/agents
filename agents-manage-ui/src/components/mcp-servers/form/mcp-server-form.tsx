@@ -13,12 +13,14 @@ import { DeleteConfirmation } from '@/components/ui/delete-confirmation';
 import { Dialog, DialogTrigger } from '@/components/ui/dialog';
 import { Form } from '@/components/ui/form';
 import { InfoCard } from '@/components/ui/info-card';
+import { useAuthSession } from '@/hooks/use-auth';
 import { useOAuthLogin } from '@/hooks/use-oauth-login';
 import { deleteToolAction, detectOAuthServerAction } from '@/lib/actions/tools';
 import type { Credential } from '@/lib/api/credentials';
 import { createMCPTool, updateMCPTool } from '@/lib/api/tools';
 import type { MCPTool } from '@/lib/types/tools';
 import { generateId } from '@/lib/utils/id-utils';
+import { createMcpServerNameWithUserSuffix } from '../selection/mcp-server-selection';
 import { ActiveToolsSelector } from './active-tools-selector';
 import { type MCPToolFormData, mcpToolSchema } from './validation';
 
@@ -60,6 +62,7 @@ export function MCPServerForm({
   const router = useRouter();
   const [isDeleteOpen, setIsDeleteOpen] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
+  const { user } = useAuthSession();
 
   const form = useForm({
     resolver: zodResolver(mcpToolSchema),
@@ -86,6 +89,8 @@ export function MCPServerForm({
 
   const onSubmit = async (data: MCPToolFormData) => {
     try {
+      const mcpServerName = createMcpServerNameWithUserSuffix(data.name, user);
+
       // handle oauth login
       if (data.credentialReferenceId === 'oauth') {
         const result = await detectOAuthServerAction(data.config.mcp.server.url);
@@ -104,7 +109,7 @@ export function MCPServerForm({
 
         const mcpToolData = {
           id: generateId(),
-          name: data.name,
+          name: mcpServerName,
           config: {
             type: 'mcp' as const,
             mcp: {
@@ -125,7 +130,7 @@ export function MCPServerForm({
         handleOAuthLogin({
           toolId: newTool.id,
           mcpServerUrl: data.config.mcp.server.url,
-          toolName: data.name,
+          toolName: mcpServerName,
         });
 
         return;
@@ -134,6 +139,7 @@ export function MCPServerForm({
       // Transform form data to API format
       const transformedData = {
         ...data,
+        name: mcpServerName,
         credentialReferenceId:
           data.credentialReferenceId === 'none' ? null : data.credentialReferenceId,
         config: {

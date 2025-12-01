@@ -383,6 +383,15 @@ describe('Agent Data Access', () => {
         where: vi.fn().mockResolvedValue(undefined),
       });
 
+      // Mock select for checking if sub-agent is default (returns empty array = not default)
+      const mockSelect = vi.fn().mockReturnValue({
+        from: vi.fn().mockReturnValue({
+          where: vi.fn().mockReturnValue({
+            limit: vi.fn().mockResolvedValue([]),
+          }),
+        }),
+      });
+
       // Mock getAgentById to return null (agent not found after deletion)
       const mockQuery = {
         subAgents: {
@@ -393,6 +402,7 @@ describe('Agent Data Access', () => {
       const mockDb = {
         ...db,
         delete: mockDelete,
+        select: mockSelect,
         query: mockQuery,
       } as any;
 

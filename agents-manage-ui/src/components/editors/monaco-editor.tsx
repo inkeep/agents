@@ -45,7 +45,7 @@ export const MonacoEditor: FC<MonacoEditorProps> = ({
   onChange,
   placeholder = '',
   autoFocus,
-  editorOptions = {},
+  editorOptions,
   hasDynamicHeight = true,
   onMount,
   ...props
@@ -119,6 +119,7 @@ export const MonacoEditor: FC<MonacoEditorProps> = ({
       ),
       fontSize: 12,
       lineDecorationsWidth: 0, // removes the blank margin where the extra caret shows
+      editContext: false,
       ...editorOptions,
     });
     editorRef.current = editorInstance;

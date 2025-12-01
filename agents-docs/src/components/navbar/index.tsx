@@ -1,6 +1,6 @@
 import { ChevronRight, SlackIcon } from 'lucide-react';
 import Link from 'next/link';
-import { GithubIcon, YoutubeIcon } from '@/components/brand-icons';
+import { GithubIcon, Youtube } from '@/components/brand-icons';
 import { Fade } from '@/components/fade';
 import { Logo } from '@/components/logo';
 import { MobileSearchTrigger } from '@/components/navbar/mobile-search';
@@ -43,7 +43,7 @@ export const Navbar = () => {
               </Button>
               <Button variant="ghost" size="sm" className="max-sm:hidden" asChild>
                 <a href="https://www.youtube.com/@inkeep-ai" target="_blank" rel="noreferrer">
-                  <YoutubeIcon />
+                  <Youtube />
                 </a>
               </Button>
             </div>

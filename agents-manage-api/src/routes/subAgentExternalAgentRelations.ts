@@ -11,7 +11,6 @@ import {
   PaginationQueryParamsSchema,
   SubAgentExternalAgentRelationApiInsertSchema,
   type SubAgentExternalAgentRelationApiSelect,
-  SubAgentExternalAgentRelationApiSelectSchema,
   SubAgentExternalAgentRelationApiUpdateSchema,
   SubAgentExternalAgentRelationListResponse,
   SubAgentExternalAgentRelationResponse,
@@ -21,8 +20,27 @@ import {
 } from '@inkeep/agents-core';
 import { nanoid } from 'nanoid';
 import dbClient from '../data/db/dbClient';
+import { requirePermission } from '../middleware/require-permission';
+import type { BaseAppVariables } from '../types/app';
 
-const app = new OpenAPIHono();
+const app = new OpenAPIHono<{ Variables: BaseAppVariables }>();
+
+app.use('/', async (c, next) => {
+  if (c.req.method === 'POST') {
+    return requirePermission({ sub_agent: ['create'] })(c, next);
+  }
+  return next();
+});
+
+app.use('/:id', async (c, next) => {
+  if (c.req.method === 'PUT') {
+    return requirePermission({ sub_agent: ['update'] })(c, next);
+  }
+  if (c.req.method === 'DELETE') {
+    return requirePermission({ sub_agent: ['delete'] })(c, next);
+  }
+  return next();
+});
 
 app.openapi(
   createRoute({

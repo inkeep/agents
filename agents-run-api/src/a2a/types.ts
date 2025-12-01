@@ -35,10 +35,13 @@ export interface A2ATask {
   };
 }
 
+export type A2ATaskErrorType = 'connection_refused' | 'unknown';
+
 export interface A2ATaskResult {
   status: {
     state: TaskState;
     message?: string;
+    type?: A2ATaskErrorType;
   };
   artifacts?: Artifact[];
 }

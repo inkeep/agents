@@ -16,53 +16,47 @@ async function ArtifactComponentsPage({
   params,
 }: PageProps<'/[tenantId]/projects/[projectId]/artifacts'>) {
   const { tenantId, projectId } = await params;
-
-  let artifacts: Awaited<ReturnType<typeof fetchArtifactComponents>>;
   try {
-    artifacts = await fetchArtifactComponents(tenantId, projectId);
+    const { data } = await fetchArtifactComponents(tenantId, projectId);
+    return (
+      <BodyTemplate
+        breadcrumbs={[
+          {
+            label: 'Artifacts',
+            href: `/${tenantId}/projects/${projectId}/artifacts`,
+          },
+        ]}
+      >
+        <MainContent className="min-h-full">
+          {data.length > 0 ? (
+            <>
+              <PageHeader
+                title="Artifacts"
+                description={artifactDescription}
+                action={
+                  <Button asChild>
+                    <Link href={`/${tenantId}/projects/${projectId}/artifacts/new`}>
+                      <Plus className="size-4" /> New artifact
+                    </Link>
+                  </Button>
+                }
+              />
+              <ArtifactComponentsList tenantId={tenantId} projectId={projectId} artifacts={data} />
+            </>
+          ) : (
+            <EmptyState
+              title="No artifacts yet."
+              description={artifactDescription}
+              link={`/${tenantId}/projects/${projectId}/artifacts/new`}
+              linkText="Create artifact"
+            />
+          )}
+        </MainContent>
+      </BodyTemplate>
+    );
   } catch (error) {
     return <FullPageError error={error as Error} context="artifacts" />;
   }
-  return (
-    <BodyTemplate
-      breadcrumbs={[
-        {
-          label: 'Artifacts',
-          href: `/${tenantId}/projects/${projectId}/artifacts`,
-        },
-      ]}
-    >
-      <MainContent className="min-h-full">
-        {artifacts.data.length > 0 ? (
-          <>
-            <PageHeader
-              title="Artifacts"
-              description={artifactDescription}
-              action={
-                <Button asChild>
-                  <Link href={`/${tenantId}/projects/${projectId}/artifacts/new`}>
-                    <Plus className="size-4" /> New artifact
-                  </Link>
-                </Button>
-              }
-            />
-            <ArtifactComponentsList
-              tenantId={tenantId}
-              projectId={projectId}
-              artifacts={artifacts.data}
-            />
-          </>
-        ) : (
-          <EmptyState
-            title="No artifacts yet."
-            description={artifactDescription}
-            link={`/${tenantId}/projects/${projectId}/artifacts/new`}
-            linkText="Create artifact"
-          />
-        )}
-      </MainContent>
-    </BodyTemplate>
-  );
 }
 
 export default ArtifactComponentsPage;

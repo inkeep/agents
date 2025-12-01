@@ -153,6 +153,7 @@ describe('Template Utils', () => {
       ];
 
       vi.mocked(fetch).mockResolvedValue({
+        ok: true,
         json: () => Promise.resolve(mockResponse),
       } as Response);
 
@@ -173,6 +174,7 @@ describe('Template Utils', () => {
       ];
 
       vi.mocked(fetch).mockResolvedValue({
+        ok: true,
         json: () => Promise.resolve(mockResponse),
       } as Response);
 
@@ -199,6 +201,7 @@ describe('Template Utils', () => {
       ];
 
       vi.mocked(fetch).mockResolvedValue({
+        ok: true,
         json: () => Promise.resolve(mockResponse),
       } as Response);
 

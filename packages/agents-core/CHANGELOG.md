@@ -1,5 +1,141 @@
 # @inkeep/agents-core
 
+## 0.37.2
+
+### Patch Changes
+
+- 78163b1: mcp hard fail
+- f47e391: Use hono zod in run and manage packages
+- 1f77578: Fix broken tests: mcpTool.with() returns undefined for empty selectedTools, update agentFull test canUse structure, fix projectFull dataComponents props schema
+
+## 0.37.1
+
+### Patch Changes
+
+- 505749a: Fix orphaned resource deletion in full project updates - tools, functions, credentialReferences, externalAgents, dataComponents, and artifactComponents are now properly removed when not present in the update payload
+- 7f1b78a: fix linter errors
+- e07c709: Add Cursor command for creating PRs with changeset validation
+- c3c0ac4: dependency updates
+- fbf0d97: Add validation error when attempting to delete a sub-agent that is set as default
+
+## 0.37.0
+
+### Minor Changes
+
+- 45471ab: Implement temporary API key authentication for playground with session-based auth
+
+### Patch Changes
+
+- 56e1b4d: make zod and hono zod internal deps
+- 45471ab: Fix error messages to show proper 403 access denied instead of generic internal server error
+
+## 0.36.1
+
+### Patch Changes
+
+- 1235b18: improve cors policy
+
+## 0.36.0
+
+## 0.35.12
+
+### Patch Changes
+
+- 840ca11: remove clean-package from API packages - was stripping runtime dependencies causing production errors
+
+## 0.35.11
+
+## 0.35.10
+
+### Patch Changes
+
+- 7a7e726: handle next*public* for vercel
+
+## 0.35.9
+
+### Patch Changes
+
+- 18c036d: fix better-auth type
+
+## 0.35.8
+
+### Patch Changes
+
+- 986dad2: update better-auth
+
+## 0.35.7
+
+## 0.35.6
+
+### Patch Changes
+
+- 31dbacc: handle google sign in
+
+## 0.35.5
+
+### Patch Changes
+
+- 15b564d: make inkeep mcp and docker optional in the quickstart
+
+## 0.35.4
+
+### Patch Changes
+
+- e297579: pull third party mcp servers
+
+## 0.35.3
+
+### Patch Changes
+
+- 89e8c26: cleaned stale components with inkeep pull
+
+## 0.35.2
+
+### Patch Changes
+
+- 769d8a9: fix agents-core exports
+
+## 0.35.1
+
+## 0.35.0
+
+### Minor Changes
+
+- 0d46d32: Adding auth to the framework
+
+### Patch Changes
+
+- f9a208a: Check for CLI installation in quickstart
+
+## 0.34.1
+
+### Patch Changes
+
+- 699043d: Install inkeep mcp in quickstarte
+- e4b5d5c: Inkeep add: usage instructions and target path detection
+
+## 0.34.0
+
+### Patch Changes
+
+- 7426927: add cli installation to quickstart
+- 015f9f7: Status Update Model fixed
+- bdeee9b: quickstart skip cli install option
+- 2434d22: add error handling to github fetch
+- af95c9a: added provider config
+
+## 0.33.3
+
+### Patch Changes
+
+- d957766: updated docs and model pointing
+- 9ab5e8b: fix template rendering of '-'
+- 3294024: bad schema
+- cd916ee: fix of bug when two MCPs are incorrectly highlighted as `active` in animation
+- 8bfac58: ADded new models
+- 7eafb29: updated agent docs and directory aware inkeep pull
+- 7b2db47: added new models
+
 ## 0.33.2
 
 ### Patch Changes

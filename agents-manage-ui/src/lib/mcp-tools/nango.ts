@@ -10,6 +10,7 @@ import type {
   ApiPublicConnection,
   ApiPublicIntegration,
   ApiPublicIntegrationCredentials,
+  PostConnectSessions,
 } from '@nangohq/types';
 import { DEFAULT_TENANT_ID } from '@/lib/runtime-config/defaults';
 import { NangoError, wrapNangoError } from './nango-types';
@@ -131,7 +132,7 @@ export async function fetchNangoIntegration(
 /**
  * Create a new Nango integration
  */
-export async function createNangoIntegration(params: {
+async function createNangoIntegration(params: {
   provider: string;
   uniqueKey: string;
   displayName?: string;
@@ -231,10 +232,7 @@ async function createNangoConnectSession({
   organizationId?: string;
   organizationDisplayName?: string;
   integrationId: string;
-}): Promise<{
-  token: string;
-  expires_at: string;
-}> {
+}): Promise<PostConnectSessions['Success']['data']> {
   try {
     const nango = getNangoClient();
     const { data } = await nango.createConnectSession({

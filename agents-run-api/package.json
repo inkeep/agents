@@ -1,6 +1,6 @@
 {
   "name": "@inkeep/agents-run-api",
-  "version": "0.33.2",
+  "version": "0.37.2",
   "description": "Agents Run API for Inkeep Agent Framework - handles chat, agent execution, and streaming",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
@@ -37,7 +37,6 @@
     "@hono/node-server": "^1.14.3",
     "@hono/otel": "^0.4.0",
     "@hono/swagger-ui": "^0.5.1",
-    "@hono/zod-openapi": "^1.0.2",
     "@inkeep/agents-core": "workspace:^",
     "@openrouter/ai-sdk-provider": "^1.2.0",
     "@opentelemetry/api": "^1.9.0",
@@ -62,17 +61,22 @@
     "fetch-to-node": "^2.1.0",
     "hono": "^4.10.4",
     "jmespath": "^0.16.0",
+    "jose": "^6.1.0",
     "json-schema-to-zod": "^2.6.1",
     "nanoid": "^5.1.5",
     "pino": "^9.11.0",
     "traverse": "^0.6.11",
-    "ts-pattern": "^5.7.1",
-    "zod": "4.1.5"
+    "ts-pattern": "^5.7.1"
+  },
+  "peerDependencies": {
+    "@hono/zod-openapi": "^1.1.5",
+    "zod": "^4.1.11"
   },
   "optionalDependencies": {
     "keytar": "^7.9.0"
   },
   "devDependencies": {
+    "@electric-sql/pglite": "^0.3.13",
     "@hono/vite-dev-server": "^0.20.1",
     "@opentelemetry/exporter-trace-otlp-proto": "^0.203.0",
     "@opentelemetry/sdk-metrics": "^2.1.0",
@@ -86,8 +90,7 @@
     "typescript": "^5.3.3",
     "vite": "^7.1.11",
     "vite-tsconfig-paths": "^5.1.4",
-    "vitest": "^3.2.4",
-    "@electric-sql/pglite": "^0.3.13"
+    "vitest": "^3.2.4"
   },
   "packageManager": "pnpm@10.11.0",
   "engines": {

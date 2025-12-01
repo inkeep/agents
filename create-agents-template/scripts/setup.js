@@ -1,5 +1,16 @@
 #!/usr/bin/env node
 
+/**
+ * Project Setup Script
+ *
+ * Usage:
+ *   pnpm setup-dev              - Run setup with local Docker database
+ *   pnpm setup-dev --skip-docker - Run setup with cloud database (skips Docker step)
+ *
+ * The --skip-docker flag is useful when you have a cloud-deployed database instance
+ * and want to skip starting the local Docker database container.
+ */
+
 import { loadEnvironmentFiles } from '@inkeep/agents-core';
 import dotenv from 'dotenv';
 
@@ -40,6 +51,10 @@ function logInfo(message) {
 
 console.log(`\n${colors.bright}=== Project Setup Script ===${colors.reset}\n`);
 
+// Parse command-line arguments
+const args = process.argv.slice(2);
+const skipDocker = args.includes('--skip-docker');
+
 loadEnvironmentFiles();
 
 // Load environment variables
@@ -58,42 +73,112 @@ logInfo(`Project ID: ${projectId}`);
 logInfo(`Manage API Port: ${manageApiPort}`);
 logInfo(`Run API Port: ${runApiPort}\n`);
 
-async function setupProjectInDatabase() {
+async function setupProjectInDatabase(skipDocker) {
   const { promisify } = await import('node:util');
   const { exec } = await import('node:child_process');
   const execAsync = promisify(exec);
 
-  // Step 1: Start database
-  logStep(1, 'Starting PostgreSQL database');
-  try {
-    await execAsync('docker-compose -f docker-compose.db.yml up -d');
-    logSuccess('Database container started successfully');
+  // Step 0: Generate JWT keys if not already configured
+  if (
+    !process.env.INKEEP_AGENTS_TEMP_JWT_PRIVATE_KEY ||
+    !process.env.INKEEP_AGENTS_TEMP_JWT_PUBLIC_KEY
+  ) {
+    logStep(0, 'Generating JWT keys for playground authentication');
+    try {
+      // Generate RSA key pair using openssl
+      const { stdout: privateKey } = await execAsync('openssl genrsa 2048 2>/dev/null');
+      const { stdout: publicKey } = await execAsync(
+        `echo '${privateKey.replace(/'/g, "'\\''")}' | openssl rsa -pubout 2>/dev/null`
+      );
 
-    logInfo('Waiting for database to be ready (5 seconds)...');
-    await new Promise((resolve) => setTimeout(resolve, 5000));
-    logSuccess('Database should be ready');
-  } catch (error) {
-    const errorMessage = error.message || error.toString();
-    const stderr = error.stderr || '';
-    const combinedError = `${errorMessage}\n${stderr}`;
+      // Base64 encode the keys
+      const privateKeyBase64 = Buffer.from(privateKey).toString('base64');
+      const publicKeyBase64 = Buffer.from(publicKey).toString('base64');
 
-    // Check if it's a port conflict (database might already be running)
-    const isPortConflict =
-      combinedError.includes('port is already allocated') ||
-      combinedError.includes('address already in use') ||
-      combinedError.includes('Bind for 0.0.0.0:5432 failed');
+      // Read current .env file
+      let envContent = '';
+      try {
+        envContent = await readFile('.env', 'utf-8');
+      } catch {
+        logWarning('.env file not found, creating new one');
+      }
 
-    if (isPortConflict) {
-      logWarning('Database port is already in use (database might already be running)');
-      logInfo('Continuing with setup...');
-    } else {
-      // For other errors, fail fast with clear error message
-      logError('Failed to start database container', error);
-      console.error(`\n${colors.red}${colors.bright}Common issues:${colors.reset}`);
-      console.error(`${colors.yellow}  • Docker is not installed or not running${colors.reset}`);
-      console.error(`${colors.yellow}  • Insufficient permissions to run Docker${colors.reset}`);
-      console.error(`${colors.yellow}  • Docker Compose is not installed${colors.reset}`);
-      process.exit(1);
+      // Update or append JWT keys
+      const lines = envContent.split('\n');
+      let privateKeyFound = false;
+      let publicKeyFound = false;
+
+      for (let i = 0; i < lines.length; i++) {
+        if (
+          lines[i].startsWith('# INKEEP_AGENTS_TEMP_JWT_PRIVATE_KEY=') ||
+          lines[i].startsWith('INKEEP_AGENTS_TEMP_JWT_PRIVATE_KEY=')
+        ) {
+          lines[i] = `INKEEP_AGENTS_TEMP_JWT_PRIVATE_KEY=${privateKeyBase64}`;
+          privateKeyFound = true;
+        }
+        if (
+          lines[i].startsWith('# INKEEP_AGENTS_TEMP_JWT_PUBLIC_KEY=') ||
+          lines[i].startsWith('INKEEP_AGENTS_TEMP_JWT_PUBLIC_KEY=')
+        ) {
+          lines[i] = `INKEEP_AGENTS_TEMP_JWT_PUBLIC_KEY=${publicKeyBase64}`;
+          publicKeyFound = true;
+        }
+      }
+
+      // Append if not found
+      if (!privateKeyFound) {
+        lines.push(`INKEEP_AGENTS_TEMP_JWT_PRIVATE_KEY=${privateKeyBase64}`);
+      }
+      if (!publicKeyFound) {
+        lines.push(`INKEEP_AGENTS_TEMP_JWT_PUBLIC_KEY=${publicKeyBase64}`);
+      }
+
+      await writeFile('.env', lines.join('\n'));
+      logSuccess('JWT keys generated and added to .env');
+    } catch (error) {
+      logWarning('Failed to generate JWT keys - playground may not work');
+      logInfo('You can manually run: pnpm run generate-jwt-keys');
+    }
+  } else {
+    logInfo('JWT keys already configured, skipping generation');
+  }
+  // Step 1: Start database (skip if --skip-docker flag is set)
+  if (skipDocker) {
+    logStep(
+      1,
+      'Skipping docker database startup. Please ensure that your DATABASE_URL environment variable is configured for cloud database'
+    );
+  } else {
+    logStep(1, 'Starting PostgreSQL database with Docker');
+    try {
+      await execAsync('docker-compose -f docker-compose.db.yml up -d');
+      logSuccess('Database container started successfully');
+      logInfo('Waiting for database to be ready (5 seconds)...');
+      await new Promise((resolve) => setTimeout(resolve, 5000));
+      logSuccess('Database should be ready');
+    } catch (error) {
+      const errorMessage = error.message || error.toString();
+      const stderr = error.stderr || '';
+      const combinedError = `${errorMessage}\n${stderr}`;
+
+      // Check if it's a port conflict (database might already be running)
+      const isPortConflict =
+        combinedError.includes('port is already allocated') ||
+        combinedError.includes('address already in use') ||
+        combinedError.includes('Bind for 0.0.0.0:5432 failed');
+
+      if (isPortConflict) {
+        logWarning('Database port is already in use (database might already be running)');
+        logInfo('Continuing with setup...');
+      } else {
+        // For other errors, fail fast with clear error message
+        logError('Failed to start database container', error);
+        console.error(`\n${colors.red}${colors.bright}Common issues:${colors.reset}`);
+        console.error(`${colors.yellow}  • Docker is not installed or not running${colors.reset}`);
+        console.error(`${colors.yellow}  • Insufficient permissions to run Docker${colors.reset}`);
+        console.error(`${colors.yellow}  • Docker Compose is not installed${colors.reset}`);
+        process.exit(1);
+      }
     }
   }
 
@@ -294,7 +379,7 @@ async function setupProjectInDatabase() {
   }
 }
 
-setupProjectInDatabase().catch((error) => {
+setupProjectInDatabase(skipDocker).catch((error) => {
   logError('Unhandled error in setup', error);
   process.exit(1);
 });

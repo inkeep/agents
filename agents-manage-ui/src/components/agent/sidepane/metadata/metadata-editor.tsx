@@ -24,7 +24,8 @@ import { useAutoPrefillIdZustand } from '@/hooks/use-auto-prefill-id-zustand';
 import { useProjectData } from '@/hooks/use-project-data';
 import { ExpandablePromptEditor } from '../../../editors/expandable-prompt-editor';
 import { CollapsibleSettings } from '../collapsible-settings';
-import { InputField, TextareaField } from '../nodes/form-fields';
+import { InputField } from '../form-components/input';
+import { TextareaField } from '../form-components/text-area';
 import { ModelSelector } from '../nodes/model-selector';
 import { SectionHeader } from '../section';
 import { ContextConfigForm } from './context-config';
@@ -53,9 +54,8 @@ const ExecutionLimitInheritanceInfo = () => {
 };
 
 function MetadataEditor() {
-  const params = useParams();
+  const { agentId, tenantId, projectId } = useParams();
   const metadata = useAgentStore((state) => state.metadata);
-  const { agentId, tenantId, projectId } = params;
   const { id, name, description, contextConfig, models, stopWhen, prompt, statusUpdates } =
     metadata;
   const { PUBLIC_INKEEP_AGENTS_RUN_API_URL } = useRuntimeConfig();

@@ -1,4 +1,4 @@
-import type { z } from 'zod';
+import type { z } from '@hono/zod-openapi';
 import type { FullAgentDefinition } from '../types/entities';
 import { detectDelegationCycles } from './cycleDetection';
 import { AgentWithinContextOfProjectSchema } from './schemas';

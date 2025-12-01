@@ -9,10 +9,10 @@
  * 4. Streams NDJSON response back to client
  */
 
+import { ModelFactory } from '@inkeep/agents-core';
 import { streamObject } from 'ai';
 import type { NextRequest } from 'next/server';
 import { z } from 'zod';
-import { ModelFactory } from '@/lib/ai/model-factory';
 import { fetchDataComponent } from '@/lib/api/data-components';
 import { fetchProject } from '@/lib/api/projects';
 
@@ -133,7 +133,7 @@ export async function POST(
 function buildGenerationPrompt(
   dataComponent: {
     name: string;
-    description: string;
+    description: string | null;
     props: Record<string, unknown> | null;
   },
   instructions?: string,
@@ -150,7 +150,7 @@ function buildGenerationPrompt(
 COMPONENT DETAILS:
 - Original Name: ${dataComponent.name}
 - Component Function Name: ${componentName}
-- Description: ${dataComponent.description}
+- Description: ${dataComponent.description || ''}
 - Props Schema (JSON Schema): ${propsJson}
 
 EXISTING COMPONENT CODE:
@@ -190,7 +190,7 @@ Focus on making the requested changes while maintaining the component's quality 
 COMPONENT DETAILS:
 - Original Name: ${dataComponent.name}
 - Component Function Name: ${componentName}
-- Description: ${dataComponent.description}
+- Description: ${dataComponent.description || ''}
 - Props Schema (JSON Schema): ${propsJson}
 
 REQUIREMENTS:
