@@ -1,4 +1,5 @@
-import { DocsLayout, type LinkItemType } from 'fumadocs-ui/layouts/docs';
+import { DocsLayout } from 'fumadocs-ui/layouts/docs';
+import type { LinkItemType } from 'fumadocs-ui/layouts/shared';
 import { RootProvider } from 'fumadocs-ui/provider/next';
 import { Inter } from 'next/font/google';
 import { FaGithub, FaLinkedinIn, FaSlack, FaXTwitter, FaYoutube } from 'react-icons/fa6';
