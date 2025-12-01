@@ -1,9 +1,9 @@
 import { loader } from 'fumadocs-core/source';
-import { createElement, type FC } from 'react';
-import { docs } from '../../.source/server';
-import * as brandIcons from '@/components/brand-icons';
 import * as luIcons from 'lucide-react';
+import { createElement, type FC } from 'react';
 import * as tbIcons from 'react-icons/tb';
+import * as brandIcons from '@/components/brand-icons';
+import { docs } from '../../.source/server';
 
 // See https://fumadocs.vercel.app/docs/headless/source-api for more info
 export const source = loader({

@@ -1,11 +1,11 @@
 import path from 'node:path';
 import html from '@shikijs/langs/html';
+import { remarkMermaid } from '@theguild/remark-mermaid';
 import { defineConfig, defineDocs, frontmatterSchema } from 'fumadocs-mdx/config';
 import emoji from 'remark-emoji';
 import { mdxSnippet } from 'remark-mdx-snippets';
 import { remarkSourceCode } from 'remark-source-code';
 import { z } from 'zod';
-import { remarkMermaid } from '@theguild/remark-mermaid';
 
 // You can customise Zod schemas for frontmatter here
 // see https://fumadocs.vercel.app/docs/mdx/collections#define-docs

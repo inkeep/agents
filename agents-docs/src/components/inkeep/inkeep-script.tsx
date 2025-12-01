@@ -7,11 +7,11 @@ import {
   InkeepModalSearchAndChat,
   type InkeepSearchSettings,
 } from '@inkeep/cxkit-react';
+import type { SharedProps } from 'fumadocs-ui/components/dialog/search';
 import { type FC, useEffect, useRef } from 'react';
 import { z } from 'zod';
 import { detectedSalesSignal, salesSignalType } from './sales-escalation';
 import { provideAnswerConfidenceSchema } from './support-escalation';
-import type { SharedProps } from 'fumadocs-ui/components/dialog/search';
 
 const validSalesSignalTypes: string[] = salesSignalType.options.map((option) => option.value);
 
