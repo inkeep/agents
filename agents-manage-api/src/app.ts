@@ -193,7 +193,7 @@ function createManagementHono(
         origin: (origin) => {
           return isOriginAllowed(origin) ? origin : null;
         },
-        allowHeaders: ['Content-Type', 'Authorization'],
+        allowHeaders: ['Content-Type', 'Authorization', 'User-Agent'],
         allowMethods: ['POST', 'GET', 'OPTIONS'],
         exposeHeaders: ['Content-Length'],
         maxAge: 600,
@@ -214,7 +214,7 @@ function createManagementHono(
       origin: (origin) => {
         return isOriginAllowed(origin) ? origin : null;
       },
-      allowHeaders: ['content-type', 'Content-Type', 'authorization', 'Authorization'],
+      allowHeaders: ['content-type', 'Content-Type', 'authorization', 'Authorization', 'User-Agent'],
       allowMethods: ['POST', 'OPTIONS'],
       exposeHeaders: ['Content-Length'],
       maxAge: 600,
