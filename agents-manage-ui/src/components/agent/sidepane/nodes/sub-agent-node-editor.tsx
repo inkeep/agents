@@ -150,7 +150,6 @@ export function SubAgentNodeEditor({
           placeholder="You are a helpful assistant..."
           error={getFieldError('prompt')}
           label="Prompt"
-          className="min-h-16"
         />
       </div>
       <div className="space-y-2">
