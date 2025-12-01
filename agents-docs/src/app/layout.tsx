@@ -116,7 +116,7 @@ export default function Layout({ children }: LayoutProps<'/'>) {
             }}
             sidebar={{
               banner: (
-                <div className="flex gap-1 md:[--text-sm:11px] lg:[--text-sm:12.5px]">
+                <div className="flex gap-1 md:[--text-sm:11px]">
                   <Button
                     variant="outline"
                     size="sm"
