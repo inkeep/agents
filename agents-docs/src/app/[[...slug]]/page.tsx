@@ -31,7 +31,7 @@ export default async function Page(props: PageProps<'/[[...slug]]'>) {
         <DocsTitle className="tracking-tight">{page.data.title}</DocsTitle>
         <PageControls
           title={page.data.title}
-          description={page.data.description ?? ''}
+          description={page.data.description}
           data={page.data.structuredData}
         />
       </div>

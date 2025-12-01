@@ -5,6 +5,13 @@ import { createMetadata } from '@/lib/metadata';
 import { cn } from '@/lib/utils';
 import { SearchDialog } from '@/components/search-dialog';
 import { RootProvider } from 'fumadocs-ui/provider/next';
+import { source } from '@/lib/source';
+import { Logo } from '@/components/logo';
+import { Button } from '@/components/ui/button';
+import { GithubIcon } from '@/components/brand-icons';
+import { DocsLayout, type LinkItemType } from 'fumadocs-ui/layouts/docs';
+import { FaGithub, FaLinkedinIn, FaSlack, FaXTwitter, FaYoutube } from 'react-icons/fa6';
+import { SLACK_URL } from '@/lib/constants';
 import '@/app/global.css';
 
 const inter = Inter({
@@ -58,6 +65,39 @@ export const metadata = createMetadata({
   description: orgLd.description,
 });
 
+const linkItems: LinkItemType[] = [
+  {
+    type: 'icon',
+    url: 'https://github.com/inkeep/agents',
+    icon: <FaGithub />,
+    text: 'GitHub',
+  },
+  {
+    type: 'icon',
+    url: SLACK_URL,
+    icon: <FaSlack />,
+    text: 'Slack',
+  },
+  {
+    type: 'icon',
+    url: 'https://linkedin.com/company/inkeep/',
+    icon: <FaLinkedinIn />,
+    text: 'LinkedIn',
+  },
+  {
+    type: 'icon',
+    url: 'https://twitter.com/inkeep',
+    icon: <FaXTwitter />,
+    text: 'X (Twitter)',
+  },
+  {
+    type: 'icon',
+    url: 'https://youtube.com/@inkeep-ai',
+    icon: <FaYoutube />,
+    text: 'Inkeep on YouTube',
+  },
+];
+
 export default function Layout({ children }: LayoutProps<'/'>) {
   return (
     <html lang="en" className={cn(inter.className, 'antialiased')} suppressHydrationWarning>
@@ -67,7 +107,46 @@ export default function Layout({ children }: LayoutProps<'/'>) {
         suppressHydrationWarning={process.env.NODE_ENV !== 'production'}
       >
         <JsonLd json={[orgLd, siteLd]} />
-        <RootProvider search={{ SearchDialog }}>{children}</RootProvider>
+        <RootProvider search={{ SearchDialog }}>
+          <DocsLayout
+            tree={source.pageTree}
+            nav={{
+              title: <Logo className="!w-[110px] !h-[32px]" />,
+            }}
+            sidebar={{
+              banner: (
+                <div className="flex gap-1 md:[--text-sm:11px] lg:[--text-sm:12.5px]">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="grow text-primary border-primary/30 hover:bg-primary/5 dark:bg-primary/5 hover:text-primary dark:text-primary dark:border-primary/30 dark:hover:bg-primary/10"
+                    asChild
+                  >
+                    <a
+                      href="https://inkeep.com/cloud-waitlist?cta_id=docs_nav"
+                      target="_blank"
+                      rel="noreferrer"
+                    >
+                      Inkeep Cloud
+                    </a>
+                  </Button>
+                  <Button variant="outline" size="sm" asChild>
+                    <a href="https://github.com/inkeep/agents" target="_blank" rel="noreferrer">
+                      <GithubIcon />
+                      <span>Star</span>
+                    </a>
+                  </Button>
+                  <Button type="button" variant="outline" id="chat-trigger" size="sm">
+                    Ask AI
+                  </Button>
+                </div>
+              ),
+            }}
+            links={linkItems}
+          >
+            {children}
+          </DocsLayout>
+        </RootProvider>
       </body>
     </html>
   );
