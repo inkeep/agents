@@ -51,7 +51,10 @@ const siteLd = {
 } satisfies WithContext<WebSite>;
 
 export const metadata = createMetadata({
-  title: siteLd.name,
+  title: {
+    default: siteLd.name,
+    template: '%s - Inkeep Open Source Docs',
+  },
   description: orgLd.description,
 });
 
