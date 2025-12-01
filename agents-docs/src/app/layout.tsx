@@ -4,7 +4,6 @@ import { RootProvider } from 'fumadocs-ui/provider/next';
 import { Inter } from 'next/font/google';
 import { FaGithub, FaLinkedinIn, FaSlack, FaXTwitter, FaYoutube } from 'react-icons/fa6';
 import type { Organization, WebSite, WithContext } from 'schema-dts';
-import { GithubIcon } from '@/components/brand-icons';
 import { Logo } from '@/components/logo';
 import { SearchDialog } from '@/components/search-dialog';
 import { JsonLd } from '@/components/seo/json-ld';
@@ -13,6 +12,7 @@ import { SLACK_URL } from '@/lib/constants';
 import { createMetadata } from '@/lib/metadata';
 import { source } from '@/lib/source';
 import { cn } from '@/lib/utils';
+import { GithubStars } from '@/components/github-stars';
 import '@/app/global.css';
 
 const inter = Inter({
@@ -113,10 +113,11 @@ export default function Layout({ children }: LayoutProps<'/'>) {
             tree={source.pageTree}
             nav={{
               title: <Logo className="!w-[110px] !h-[32px]" />,
+              children: <GithubStars />,
             }}
             sidebar={{
               banner: (
-                <div className="flex gap-1 md:[--text-sm:11px]">
+                <div className="flex gap-1">
                   <Button
                     variant="outline"
                     size="sm"
@@ -129,12 +130,6 @@ export default function Layout({ children }: LayoutProps<'/'>) {
                       rel="noreferrer"
                     >
                       Inkeep Cloud
-                    </a>
-                  </Button>
-                  <Button variant="outline" size="sm" asChild>
-                    <a href="https://github.com/inkeep/agents" target="_blank" rel="noreferrer">
-                      <GithubIcon />
-                      <span>Star</span>
                     </a>
                   </Button>
                   <Button type="button" variant="outline" id="chat-trigger" size="sm">
