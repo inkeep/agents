@@ -3,7 +3,8 @@ import type { Organization, WebSite, WithContext } from 'schema-dts';
 import { JsonLd } from '@/components/seo/json-ld';
 import { createMetadata } from '@/lib/metadata';
 import { cn } from '@/lib/utils';
-import { Provider } from '@/components/provider';
+import { SearchDialog } from '@/components/search-dialog';
+import { RootProvider } from 'fumadocs-ui/provider/next';
 import '@/app/global.css';
 
 const inter = Inter({
@@ -63,7 +64,7 @@ export default function Layout({ children }: LayoutProps<'/'>) {
         suppressHydrationWarning={process.env.NODE_ENV !== 'production'}
       >
         <JsonLd json={[orgLd, siteLd]} />
-        <Provider>{children}</Provider>
+        <RootProvider search={{ SearchDialog }}>{children}</RootProvider>
       </body>
     </html>
   );
