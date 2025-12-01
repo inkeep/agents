@@ -124,7 +124,6 @@ export function ArtifactComponentForm({
             label="Description"
             placeholder="Structured factual information extracted from search results"
             className="min-h-[80px]"
-            isRequired
           />
           <JsonSchemaInput
             control={form.control}

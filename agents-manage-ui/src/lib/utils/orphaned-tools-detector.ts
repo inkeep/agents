@@ -24,7 +24,7 @@ export function detectOrphanedToolsAndGetWarning(
   nodes: Node[],
   agentToolConfigLookup: Record<
     string,
-    Record<string, { toolId: string; toolSelection?: string[] }>
+    Record<string, { toolId: string; toolSelection?: string[] | null }>
   >,
   toolLookup: Record<string, MCPTool>
 ): string | null {
@@ -40,7 +40,7 @@ function detectOrphanedToolsInAgent(
   nodes: Node[],
   agentToolConfigLookup: Record<
     string,
-    Record<string, { toolId: string; toolSelection?: string[] }>
+    Record<string, { toolId: string; toolSelection?: string[] | null }>
   >,
   toolLookup: Record<string, MCPTool>
 ): OrphanedToolsDetectionResult {
@@ -167,5 +167,36 @@ export function getCurrentHeadersForNode(
   }
 
   // No relationshipId found, return empty headers
+  return {};
+}
+
+/**
+ * Enhanced lookup for toolPolicies - uses relationshipId
+ */
+export function getCurrentToolPoliciesForNode(
+  node: { data: MCPNodeData; id: string },
+  agentToolConfigLookup: Record<
+    string,
+    Record<string, { toolId: string; toolPolicies?: Record<string, { needsApproval?: boolean }> }>
+  >,
+  _edges: Edge[]
+): Record<string, { needsApproval?: boolean }> {
+  // First check if we have temporary toolPolicies stored on the node (from recent edits)
+  if ((node.data as any).tempToolPolicies !== undefined) {
+    return (node.data as any).tempToolPolicies;
+  }
+
+  // If node has relationshipId, find config by relationshipId
+  const relationshipId = (node.data as any).relationshipId;
+  if (relationshipId) {
+    for (const toolsMap of Object.values(agentToolConfigLookup)) {
+      const config = toolsMap[relationshipId];
+      if (config) {
+        return config.toolPolicies || {};
+      }
+    }
+  }
+
+  // No relationshipId found, default to empty object
   return {};
 }

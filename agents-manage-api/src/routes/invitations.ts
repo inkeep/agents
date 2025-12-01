@@ -45,18 +45,17 @@ invitationsRoutes.openapi(
   }),
   async (c) => {
     const { email } = c.req.valid('query');
-    
+
     const invitations = await getPendingInvitationsByEmail(dbClient)(email);
-    
+
     // Convert Date to timestamp number for API response
     const response = invitations.map((inv) => ({
       ...inv,
       expiresAt: inv.expiresAt instanceof Date ? inv.expiresAt.getTime() : inv.expiresAt,
     }));
-    
+
     return c.json(response);
   }
 );
 
 export default invitationsRoutes;
-

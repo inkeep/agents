@@ -63,15 +63,42 @@ const monacoState: StateCreator<MonacoState> = (set, get) => ({
     },
     setMonacoTheme(isDark) {
       const monaco = get().monaco;
+      if (!monaco) return;
+
+      // Define custom themes with blue diff colors to match TextDiff
+      monaco.editor.defineTheme('github-light-default', {
+        base: 'vs',
+        inherit: true,
+        rules: [],
+        colors: {
+          'diffEditor.insertedTextBackground': '#3784ff19',
+          'diffEditor.insertedLineBackground': '#3784ff0d',
+        },
+      });
+
+      monaco.editor.defineTheme('github-dark-default', {
+        base: 'vs-dark',
+        inherit: true,
+        rules: [],
+        colors: {
+          'diffEditor.insertedTextBackground': '#69a3ff4d',
+          'diffEditor.insertedLineBackground': '#69a3ff33',
+        },
+      });
+
       const monacoTheme = isDark ? MONACO_THEME_NAME.dark : MONACO_THEME_NAME.light;
-      monaco?.editor.setTheme(monacoTheme);
+      monaco.editor.setTheme(monacoTheme);
     },
     async setupHighlighter(isDark) {
       const { highlighter: prevHighlighter, monaco, actions } = get();
+      if (!monaco) return;
+
       const highlighter = prevHighlighter ?? (await getHighlighter());
       // Create the highlighter
       // Register the themes from Shiki, and provide syntax highlighting for Monaco.
       shikiToMonaco(highlighter, monaco);
+
+      // setMonacoTheme will define the custom themes and apply the correct one
       actions.setMonacoTheme(isDark);
       if (!prevHighlighter) {
         set({ highlighter });

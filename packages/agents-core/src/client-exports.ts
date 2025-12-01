@@ -6,7 +6,7 @@
  * server-side database dependencies.
  */
 
-import { z } from 'zod';
+import { z } from '@hono/zod-openapi';
 import { schemaValidationDefaults } from './constants/schema-validation/defaults';
 
 // Destructure defaults for use in schemas
@@ -35,6 +35,8 @@ import {
   type SubAgentStopWhen,
   SubAgentStopWhenSchema,
 } from './validation/schemas';
+
+export { DEFAULT_NANGO_STORE_ID } from './credential-stores/default-constants';
 
 export { validatePropsAsJsonSchema } from './validation/props-validation';
 

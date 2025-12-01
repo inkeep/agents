@@ -1,5 +1,82 @@
 # @inkeep/agents-manage-ui
 
+## 0.37.2
+
+### Patch Changes
+
+- 6cdde56: add org settings page
+- 78163b1: mcp hard fail
+- f47e391: Use hono zod in run and manage packages
+- 1f77578: Fix broken tests: mcpTool.with() returns undefined for empty selectedTools, update agentFull test canUse structure, fix projectFull dataComponents props schema
+- Updated dependencies [78163b1]
+- Updated dependencies [f47e391]
+- Updated dependencies [1f77578]
+  - @inkeep/agents-run-api@0.37.2
+  - @inkeep/agents-manage-api@0.37.2
+  - @inkeep/agents-core@0.37.2
+
+## 0.37.1
+
+### Patch Changes
+
+- 505749a: Fix orphaned resource deletion in full project updates - tools, functions, credentialReferences, externalAgents, dataComponents, and artifactComponents are now properly removed when not present in the update payload
+- 7f1b78a: fix linter errors
+- 777d8ef: UI improvements for Evaluations
+- e07c709: Add Cursor command for creating PRs with changeset validation
+- c3c0ac4: dependency updates
+- fbf0d97: Add validation error when attempting to delete a sub-agent that is set as default
+- Updated dependencies [505749a]
+- Updated dependencies [7f1b78a]
+- Updated dependencies [e07c709]
+- Updated dependencies [c3c0ac4]
+- Updated dependencies [fbf0d97]
+  - @inkeep/agents-core@0.37.1
+  - @inkeep/agents-manage-api@0.37.1
+  - @inkeep/agents-run-api@0.37.1
+
+## 0.37.0
+
+### Minor Changes
+
+- 45471ab: Implement temporary API key authentication for playground with session-based auth
+
+### Patch Changes
+
+- 56e1b4d: make zod and hono zod internal deps
+- 45471ab: Fix error messages to show proper 403 access denied instead of generic internal server error
+- Updated dependencies [45471ab]
+- Updated dependencies [56e1b4d]
+- Updated dependencies [45471ab]
+  - @inkeep/agents-core@0.37.0
+  - @inkeep/agents-manage-api@0.37.0
+  - @inkeep/agents-run-api@0.37.0
+
+## 0.36.1
+
+### Patch Changes
+
+- 1235b18: improve cors policy
+- Updated dependencies [1235b18]
+  - @inkeep/agents-core@0.36.1
+  - @inkeep/agents-manage-api@0.36.1
+  - @inkeep/agents-run-api@0.36.1
+
+## 0.36.0
+
+### Minor Changes
+
+- 7f0f13a: 1. Add persistence in localStorage for the sidebar open state.
+
+  2. Make the `project switcher`, `Next.js DevTools logo`, and `breadcrumbs` elements to not trigger sidebar expansion.
+
+### Patch Changes
+
+- c59e3db: add cypress test for should create project, navigate to agents page and update project switcher
+- Updated dependencies [604c74c]
+  - @inkeep/agents-manage-api@0.36.0
+  - @inkeep/agents-run-api@0.36.0
+  - @inkeep/agents-core@0.36.0
+
 ## 0.35.12
 
 ### Patch Changes

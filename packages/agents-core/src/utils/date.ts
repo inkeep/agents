@@ -14,8 +14,20 @@ export function normalizeDateString(dateString: string | Date): string | Date {
 
   if (pgTimestampPattern.test(dateString)) {
     // Replace space with 'T' and add 'Z' for UTC
-    return dateString.replace(' ', 'T') + 'Z';
+    return `${dateString.replace(' ', 'T')}Z`;
   }
 
   return dateString;
+}
+
+/**
+ * Converts a date value (string or Date) to an ISO 8601 date-time string
+ * Ensures consistent string output for API responses and database operations
+ */
+export function toISODateString(dateValue: string | Date): string {
+  if (typeof dateValue === 'string') {
+    const normalized = normalizeDateString(dateValue);
+    return typeof normalized === 'string' ? normalized : normalized.toISOString();
+  }
+  return dateValue.toISOString();
 }

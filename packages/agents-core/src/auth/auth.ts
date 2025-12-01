@@ -1,10 +1,11 @@
 import { sso } from '@better-auth/sso';
-import { betterAuth } from 'better-auth';
+import { type BetterAuthAdvancedOptions, betterAuth } from 'better-auth';
 import { drizzleAdapter } from 'better-auth/adapters/drizzle';
 import { organization } from 'better-auth/plugins';
 import type { GoogleOptions } from 'better-auth/social-providers';
 import { eq } from 'drizzle-orm';
 import type { DatabaseClient } from '../db/client';
+import { env } from '../env';
 import { generateId } from '../utils';
 import * as authSchema from './auth-schema';
 import { ac, adminRole, memberRole, ownerRole } from './permissions';
@@ -66,6 +67,7 @@ export interface BetterAuthConfig {
   socialProviders?: {
     google?: GoogleOptions;
   };
+  advanced?: BetterAuthAdvancedOptions;
 }
 
 export interface UserAuthConfig {
@@ -73,6 +75,60 @@ export interface UserAuthConfig {
   socialProviders?: {
     google?: GoogleOptions;
   };
+  advanced?: BetterAuthAdvancedOptions;
+}
+
+/**
+ * Extracts the root domain from a URL for cross-subdomain cookie sharing.
+ * For example:
+ * - https://manage-api.pilot.inkeep.com -> .pilot.inkeep.com
+ * - https://pilot.inkeep.com -> .pilot.inkeep.com
+ * - http://localhost:3002 -> undefined (no domain for localhost)
+ *
+ * The logic extracts the parent domain that can be shared across subdomains.
+ * For domains with 3+ parts, it takes everything except the first part.
+ * For domains with exactly 2 parts, it takes both parts.
+ */
+function extractCookieDomain(baseURL: string): string | undefined {
+  try {
+    const url = new URL(baseURL);
+    const hostname = url.hostname;
+
+    // Don't set domain for localhost or IP addresses
+    if (hostname === 'localhost' || hostname.match(/^\d+\.\d+\.\d+\.\d+$/)) {
+      return undefined;
+    }
+
+    // Split hostname into parts
+    const parts = hostname.split('.');
+
+    // We need at least 2 parts to form a domain (e.g., inkeep.com)
+    if (parts.length < 2) {
+      return undefined;
+    }
+
+    // Extract the parent domain that can be shared across subdomains
+    // Examples:
+    // - pilot.inkeep.com (3 parts) -> take all 3 parts -> .pilot.inkeep.com
+    // - manage-api.pilot.inkeep.com (4 parts) -> take last 3 parts -> .pilot.inkeep.com
+    // - inkeep.com (2 parts) -> take both parts -> .inkeep.com
+
+    let domainParts: string[];
+    if (parts.length === 3) {
+      // For 3-part domains like pilot.inkeep.com, take all parts
+      domainParts = parts;
+    } else if (parts.length > 3) {
+      // For 4+ part domains like manage-api.pilot.inkeep.com, take everything except first
+      domainParts = parts.slice(1);
+    } else {
+      // For 2-part domains like inkeep.com, take both parts
+      domainParts = parts;
+    }
+
+    return `.${domainParts.join('.')}`;
+  } catch {
+    return undefined;
+  }
 }
 
 async function registerSSOProvider(
@@ -110,6 +166,9 @@ async function registerSSOProvider(
 }
 
 export function createAuth(config: BetterAuthConfig) {
+  // Extract cookie domain from baseURL for cross-subdomain cookie sharing
+  const cookieDomain = extractCookieDomain(config.baseURL);
+
   const auth = betterAuth({
     baseURL: config.baseURL,
     secret: config.secret,
@@ -133,9 +192,23 @@ export function createAuth(config: BetterAuthConfig) {
     advanced: {
       crossSubDomainCookies: {
         enabled: true,
+        ...(cookieDomain && { domain: cookieDomain }),
       },
+      defaultCookieAttributes: {
+        sameSite: 'none',
+        secure: true,
+        httpOnly: true,
+        partitioned: true,
+        ...(cookieDomain && { domain: cookieDomain }),
+      },
+      ...config.advanced,
     },
-    trustedOrigins: ['http://localhost:3000', 'http://localhost:3002', config.baseURL],
+    trustedOrigins: [
+      'http://localhost:3000',
+      'http://localhost:3002',
+      env.INKEEP_AGENTS_MANAGE_UI_URL,
+      env.INKEEP_AGENTS_MANAGE_API_URL,
+    ].filter((origin): origin is string => typeof origin === 'string' && origin.length > 0),
     plugins: [
       sso(),
       organization({

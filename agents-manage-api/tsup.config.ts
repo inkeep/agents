@@ -6,5 +6,6 @@ export default defineConfig({
   entry: ['src/index.ts', 'src/factory.ts'],
   format: ['esm'],
   external: ['keytar'],
+  noExternal: ['@inkeep/agents-manage-mcp'],
   async onSuccess() {},
 });

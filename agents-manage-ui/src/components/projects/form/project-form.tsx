@@ -173,7 +173,6 @@ export function ProjectForm({
           label="Description"
           placeholder="Describe what this project is for..."
           className="min-h-[100px]"
-          isRequired
         />
 
         <Separator />

@@ -1,6 +1,6 @@
 {
   "name": "@inkeep/agents-manage-api",
-  "version": "0.35.12",
+  "version": "0.37.2",
   "description": "Agents Manage API for Inkeep Agent Framework - handles CRUD operations and OAuth",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
@@ -27,20 +27,26 @@
     "typecheck:watch": "tsc --noEmit --watch"
   },
   "dependencies": {
+    "@hono/mcp": "^0.1.5",
     "@composio/core": "^0.2.4",
     "@hono/node-server": "^1.14.3",
     "@hono/swagger-ui": "^0.5.1",
-    "@hono/zod-openapi": "^1.0.2",
     "@inkeep/agents-core": "workspace:^",
+    "@inkeep/agents-manage-mcp": "workspace:^",
+    "@modelcontextprotocol/sdk": "^1.17.0",
     "@nangohq/node": "^0.69.5",
     "@nangohq/types": "^0.69.5",
     "dotenv": "^17.2.1",
     "drizzle-orm": "^0.44.4",
     "hono": "^4.10.4",
     "hono-pino": "^0.10.1",
+    "jose": "^6.1.0",
     "nanoid": "^5.1.5",
     "openid-client": "^6.6.4",
-    "pino": "^9.7.0",
+    "pino": "^9.7.0"
+  },
+  "peerDependencies": {
+    "@hono/zod-openapi": "^1.1.5",
     "zod": "^4.1.11"
   },
   "optionalDependencies": {

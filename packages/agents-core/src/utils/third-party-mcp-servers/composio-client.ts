@@ -4,7 +4,7 @@
  */
 
 import { Composio } from '@composio/core';
-import type z from 'zod';
+import type { z } from '@hono/zod-openapi';
 import { MCPTransportType } from '../../types/utility';
 import type { PrebuiltMCPServerSchema } from '../../validation/schemas';
 import { getLogger } from '../logger';

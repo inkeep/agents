@@ -1,4 +1,4 @@
-import type { z } from 'zod';
+import type { z } from '@hono/zod-openapi';
 import type { ApiKeySelect } from '../index';
 import type {
   McpTransportConfigSchema,
@@ -73,6 +73,11 @@ export type ConversationMetadata = {
   userContext?: Record<string, unknown>;
   preferences?: Record<string, unknown>;
   sessionData?: Record<string, unknown>;
+  apiKeyId?: string;
+  initiatedBy?: {
+    type: 'user' | 'api_key';
+    id: string;
+  };
 };
 
 export type MessageContent = {
@@ -276,3 +281,54 @@ export interface ExecutionContext {
     originAgentId?: string;
   };
 }
+
+/**
+ * Reusable filter type that supports and/or operations
+ *
+ * Allows composition of filters using:
+ * - Direct filter criteria (e.g., { agentIds: ['id1', 'id2'] })
+ * - AND operation: { and: [filter1, filter2, ...] }
+ * - OR operation: { or: [filter1, filter2, ...] }
+ *
+ * @template T - The base filter criteria type (e.g., { agentIds?: string[] })
+ *
+ * @example
+ * // Simple filter
+ * const filter: Filter<{ agentIds?: string[] }> = { agentIds: ['id1'] };
+ *
+ * @example
+ * // AND operation
+ * const filter: Filter<{ agentIds?: string[] }> = {
+ *   and: [
+ *     { agentIds: ['id1'] },
+ *     { agentIds: ['id2'] }
+ *   ]
+ * };
+ *
+ * @example
+ * // OR operation
+ * const filter: Filter<{ agentIds?: string[] }> = {
+ *   or: [
+ *     { agentIds: ['id1'] },
+ *     { agentIds: ['id2'] }
+ *   ]
+ * };
+ *
+ * @example
+ * // Complex nested operations
+ * const filter: Filter<{ agentIds?: string[] }> = {
+ *   and: [
+ *     { agentIds: ['id1'] },
+ *     {
+ *       or: [
+ *         { agentIds: ['id2'] },
+ *         { agentIds: ['id3'] }
+ *       ]
+ *     }
+ *   ]
+ * };
+ */
+export type Filter<T extends Record<string, unknown>> =
+  | T
+  | { and: Array<Filter<T>> }
+  | { or: Array<Filter<T>> };
