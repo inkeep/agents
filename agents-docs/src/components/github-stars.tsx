@@ -1,6 +1,6 @@
 import type { FC } from 'react';
-import { Button } from '@/components/ui/button';
 import { FaGithub } from 'react-icons/fa6';
+import { Button } from '@/components/ui/button';
 
 // async function getStars() {
 //   if (process.env.NODE_ENV === 'development') {
@@ -14,7 +14,7 @@ import { FaGithub } from 'react-icons/fa6';
 
 export const GithubStars: FC = async () => {
   // const count = await getStars();
-  const stars = 'Star' // new Intl.NumberFormat('en-US').format(stars)
+  const stars = 'Star'; // new Intl.NumberFormat('en-US').format(stars)
 
   return (
     <Button variant="outline" size="sm" asChild>
