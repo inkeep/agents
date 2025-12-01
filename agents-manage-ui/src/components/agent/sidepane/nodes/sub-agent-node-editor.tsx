@@ -118,7 +118,6 @@ export function SubAgentNodeEditor({
         onChange={(e) => updatePath('name', e.target.value)}
         placeholder="Support agent"
         error={getFieldError('name')}
-        isRequired
       />
       <InputField
         ref={(el) => setFieldRef('id', el)}
@@ -130,7 +129,6 @@ export function SubAgentNodeEditor({
         placeholder="my-agent"
         error={getFieldError('id')}
         description="Choose a unique identifier for this sub agent. Using an existing id will replace that sub agent."
-        isRequired
       />
       <TextareaField
         ref={(el) => setFieldRef('description', el)}
