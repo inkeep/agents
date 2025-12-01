@@ -16,7 +16,12 @@ export const GithubStars: FC = async () => {
   const stars = await getStars();
 
   return (
-    <Button variant="ghost" size="icon" className="h-auto w-auto [&_svg]:size-4.5 p-1.5" asChild>
+    <Button
+      variant="ghost"
+      size="icon"
+      className="h-auto w-auto [&_svg]:size-4.5 p-1.5 font-mono"
+      asChild
+    >
       <a
         href="https://github.com/inkeep/agents"
         target="_blank"

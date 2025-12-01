@@ -13,6 +13,7 @@ import { createMetadata } from '@/lib/metadata';
 import { source } from '@/lib/source';
 import { cn } from '@/lib/utils';
 import { GithubStars } from '@/components/github-stars';
+import { Sparkles, Cloud } from 'lucide-react';
 import '@/app/global.css';
 
 const inter = Inter({
@@ -129,10 +130,12 @@ export default function Layout({ children }: LayoutProps<'/'>) {
                       target="_blank"
                       rel="noreferrer"
                     >
+                      <Cloud />
                       Inkeep Cloud
                     </a>
                   </Button>
                   <Button type="button" variant="outline" id="chat-trigger" size="sm">
+                    <Sparkles />
                     Ask AI
                   </Button>
                 </div>
