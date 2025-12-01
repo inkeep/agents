@@ -6,41 +6,32 @@ import { cn } from '@/lib/utils';
 import type { AnimatedEdge } from '../configuration/edge-types';
 
 export const AnimatedCircle: FC<{ edgePath: string } & AnimatedEdge> = ({ edgePath, status }) => {
-  const motionRef = useRef<SVGAnimateMotionElement>(null);
-  const opacityRef = useRef<SVGAnimateElement>(null);
+  const ref = useRef<SVGAnimateElement>(null);
 
   // Without this useEffect, the animation won't start when this component is rendered dynamically.
   // biome-ignore lint/correctness/useExhaustiveDependencies: We need restart animation when invert is changed
   useEffect(() => {
-    motionRef.current?.beginElement();
-    opacityRef.current?.beginElement();
+    ref.current?.beginElement();
   }, [status]);
 
   if (!status) {
     return;
   }
 
-  const isInverted = status === 'inverted-delegating';
-  const dur = '2s';
+  const isInvertedDelegating = status === 'inverted-delegating';
 
   return (
-    <circle fill="var(--primary)" r="6" opacity={isInverted ? 0 : 100}>
+    <circle fill="var(--primary)" r="6">
       <animateMotion
-        ref={motionRef}
-        dur={dur}
+        ref={ref}
+        dur="2s"
         path={edgePath}
-        fill={isInverted ? 'remove' : 'freeze'}
-        {...(isInverted && { keyPoints: '1;0', keyTimes: '0;1' })}
+        fill={isInvertedDelegating ? 'remove' : 'freeze'}
+        {...(isInvertedDelegating && {
+          keyPoints: '1;0',
+          keyTimes: '0;1',
+        })}
       />
-      {isInverted && (
-        <animate
-          ref={opacityRef}
-          dur={dur}
-          attributeName="opacity"
-          values="1;1;0"
-          keyTimes="0;0.95;1"
-        />
-      )}
     </circle>
   );
 };

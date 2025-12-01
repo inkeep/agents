@@ -158,7 +158,6 @@ export const getRelatedAgentsForAgent =
         name: subAgents.name,
         description: subAgents.description,
         relationType: subAgentRelations.relationType,
-        relationId: subAgentRelations.id,
       })
       .from(subAgentRelations)
       .innerJoin(
