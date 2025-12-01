@@ -48,11 +48,11 @@ export default function Layout({ children }: LayoutProps<'/'>) {
       }}
       sidebar={{
         banner: (
-          <div className="flex gap-2">
+          <div className="flex gap-1 md:[--text-sm:11px] lg:[--text-sm:12.5px]">
             <Button
               variant="outline"
               size="sm"
-              className="text-primary border border-primary/30 hover:bg-primary/5 dark:bg-primary/5 hover:text-primary dark:text-primary dark:border-primary/30 dark:hover:bg-primary/10"
+              className="grow text-primary border border-primary/30 hover:bg-primary/5 dark:bg-primary/5 hover:text-primary dark:text-primary dark:border-primary/30 dark:hover:bg-primary/10"
               asChild
             >
               <a
