@@ -415,7 +415,7 @@ async function createEnvironmentFiles(config: FileConfig) {
     });
     tempJwtPrivateKey = Buffer.from(privateKey).toString('base64');
     tempJwtPublicKey = Buffer.from(publicKey).toString('base64');
-  } catch (error) {
+  } catch {
     console.warn('Warning: Failed to generate JWT keys. Playground may not work.');
     console.warn('You can manually generate keys later with: pnpm run generate-jwt-keys');
   }
