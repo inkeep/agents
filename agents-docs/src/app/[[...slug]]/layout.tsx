@@ -3,6 +3,7 @@ import { DocsLayout, type LinkItemType } from 'fumadocs-ui/layouts/docs';
 import { SLACK_URL } from '@/lib/constants';
 import { FaXTwitter, FaYoutube, FaLinkedinIn, FaSlack, FaGithub } from 'react-icons/fa6';
 import { Logo } from '@/components/logo';
+import { ChatToggle } from '@/components/navbar/chat-trigger';
 
 const linkItems: LinkItemType[] = [
   {
@@ -43,6 +44,9 @@ export default function Layout({ children }: LayoutProps<'/'>) {
       tree={source.pageTree}
       nav={{
         title: <Logo className="!w-[110px] !h-[32px]" />,
+      }}
+      sidebar={{
+        banner: <ChatToggle />,
       }}
       links={linkItems}
     >
