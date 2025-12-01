@@ -17,7 +17,7 @@ async function checkLinks() {
     },
   });
 
-  const standardErrors = await validateFiles([...docsFiles], {
+  const standardErrors = await validateFiles(docsFiles, {
     scanned,
   });
 
