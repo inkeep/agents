@@ -5,6 +5,7 @@ import emoji from 'remark-emoji';
 import { mdxSnippet } from 'remark-mdx-snippets';
 import { remarkSourceCode } from 'remark-source-code';
 import { z } from 'zod';
+import { remarkMermaid } from '@theguild/remark-mermaid';
 
 // You can customise Zod schemas for frontmatter here
 // see https://fumadocs.vercel.app/docs/mdx/collections#define-docs
@@ -21,6 +22,7 @@ export const docs = defineDocs({
 export default defineConfig({
   mdxOptions: {
     remarkPlugins: (v) => [
+      remarkMermaid,
       [remarkSourceCode, { baseDir: '..' }],
       [mdxSnippet, { snippetsDir: path.resolve(process.cwd(), '_snippets') }],
       [emoji, { accessible: true }],

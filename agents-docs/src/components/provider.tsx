@@ -10,13 +10,5 @@ const SearchDialog = dynamic(
 );
 
 export const Provider: FC<{ children: ReactNode }> = ({ children }) => {
-  return (
-    <RootProvider
-      search={{
-        SearchDialog,
-      }}
-    >
-      {children}
-    </RootProvider>
-  );
+  return <RootProvider search={{ SearchDialog }}>{children}</RootProvider>;
 };

@@ -1,12 +1,10 @@
 import { a } from '@inkeep/docskit';
 import { createRelativeLink } from 'fumadocs-ui/mdx';
 import { DocsBody, DocsPage, DocsTitle } from 'fumadocs-ui/page';
-import { notFound, redirect } from 'next/navigation';
-import { Breadcrumb } from '@/components/breadcrumb';
-import { Footer } from '@/components/footer';
+import { notFound } from 'next/navigation';
 import { Markdown } from '@/components/markdown';
 import { createMetadata } from '@/lib/metadata';
-import { getDocsGroupFirstChild, source } from '@/lib/source';
+import { source } from '@/lib/source';
 import { getMDXComponents } from '@/mdx-components';
 
 import { PageControls } from './page-controls';
@@ -15,9 +13,7 @@ export default async function Page(props: PageProps<'/[[...slug]]'>) {
   const params = await props.params;
   const page = source.getPage(params.slug);
   if (!page) {
-    const childPage = getDocsGroupFirstChild(params.slug?.join('/'));
-    if (childPage) redirect(childPage.url);
-    else notFound();
+    notFound();
   }
 
   const MDXContent = page.data.body;
@@ -31,14 +27,7 @@ export default async function Page(props: PageProps<'/[[...slug]]'>) {
         style: 'clerk',
         enabled: tocEnabled,
       }}
-      breadcrumb={{
-        component: <Breadcrumb tree={source.pageTree} />,
-      }}
-      footer={{
-        component: <Footer url={page.url} />,
-      }}
       container={{
-        className: 'lg:pt-0! [&>#nd-toc]:!pt-6 [&>#nd-toc]:pb-4 h-full min-h-0',
         style: tocEnabled ? undefined : { '--fd-toc-width': 0 },
       }}
     >

@@ -245,6 +245,9 @@ importers:
       '@shikijs/langs':
         specifier: ^3.3.0
         version: 3.14.0
+      '@theguild/remark-mermaid':
+        specifier: ^0.3.0
+        version: 0.3.0(react@19.2.0)
       class-variance-authority:
         specifier: ^0.7.1
         version: 0.7.1
@@ -272,15 +275,9 @@ importers:
       lucide-react:
         specifier: ^0.503.0
         version: 0.503.0(react@19.2.0)
-      mermaid:
-        specifier: ^11.12.0
-        version: 11.12.1
       next:
         specifier: 16.0.3
         version: 16.0.3(@opentelemetry/api@1.9.0)(react-dom@19.2.0(react@19.2.0))(react@19.2.0)
-      next-themes:
-        specifier: ^0.4.6
-        version: 0.4.6(react-dom@19.2.0(react@19.2.0))(react@19.2.0)
       react:
         specifier: 19.2.0
         version: 19.2.0
@@ -5590,6 +5587,11 @@ packages:
     engines: {node: '>=12', npm: '>=6'}
     peerDependencies:
       '@testing-library/dom': '>=7.21.4'
+
+  '@theguild/remark-mermaid@0.3.0':
+    resolution: {integrity: sha512-Fy1J4FSj8totuHsHFpaeWyWRaRSIvpzGTRoEfnNJc1JmLV9uV70sYE3zcT+Jj5Yw20Xq4iCsiT+3Ho49BBZcBQ==}
+    peerDependencies:
+      react: ^18.2.0 || ^19.0.0
 
   '@trysound/sax@0.2.0':
     resolution: {integrity: sha512-L7z9BgrNEcYyUYtF+HaEfiS5ebkh9jXqbszz7pC0hRBPaatV0XjSD3+eHrpqFemQfgwiFF0QPIarnIihIDn7OA==}
@@ -18171,6 +18173,14 @@ snapshots:
   '@testing-library/user-event@14.6.1(@testing-library/dom@10.4.1)':
     dependencies:
       '@testing-library/dom': 10.4.1
+
+  '@theguild/remark-mermaid@0.3.0(react@19.2.0)':
+    dependencies:
+      mermaid: 11.12.1
+      react: 19.2.0
+      unist-util-visit: 5.0.0
+    transitivePeerDependencies:
+      - supports-color
 
   '@trysound/sax@0.2.0': {}
 
