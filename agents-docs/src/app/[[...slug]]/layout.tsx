@@ -1,40 +1,38 @@
 import { source } from '@/lib/source';
 import { DocsLayout, type LinkItemType } from 'fumadocs-ui/layouts/docs';
 import { SLACK_URL } from '@/lib/constants';
-import { Youtube } from '@/components/brand-icons';
-import { Icon } from './_icon';
-import { GithubIcon, LinkedinIcon, SlackIcon } from 'lucide-react';
+import { FaXTwitter, FaYoutube, FaLinkedinIn, FaSlack, FaGithub } from 'react-icons/fa6';
 import { Logo } from '@/components/logo';
 
 const linkItems: LinkItemType[] = [
   {
     type: 'icon',
     url: 'https://github.com/inkeep/agents',
-    icon: <GithubIcon />,
+    icon: <FaGithub />,
     text: 'GitHub',
   },
   {
     type: 'icon',
     url: SLACK_URL,
-    icon: <SlackIcon />,
+    icon: <FaSlack />,
     text: 'Slack',
   },
   {
     type: 'icon',
     url: 'https://linkedin.com/company/inkeep/',
-    icon: <LinkedinIcon />,
+    icon: <FaLinkedinIn />,
     text: 'LinkedIn',
   },
   {
     type: 'icon',
     url: 'https://twitter.com/inkeep',
-    icon: <Icon iconName="FaXTwitter" />,
+    icon: <FaXTwitter />,
     text: 'X (Twitter)',
   },
   {
     type: 'icon',
     url: 'https://youtube.com/@inkeep-ai',
-    icon: <Youtube />,
+    icon: <FaYoutube />,
     text: 'Inkeep on YouTube',
   },
 ];
