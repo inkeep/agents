@@ -16,7 +16,10 @@ import type { SharedProps } from 'fumadocs-ui/components/dialog/search';
 const validSalesSignalTypes: string[] = salesSignalType.options.map((option) => option.value);
 
 const apiKey = process.env.NEXT_PUBLIC_INKEEP_API_KEY;
-const isApiConfigured = Boolean(apiKey);
+
+if (!apiKey) {
+  console.warn('NEXT_PUBLIC_INKEEP_API_KEY not configured.');
+}
 
 const config = {
   baseSettings: {
@@ -168,27 +171,20 @@ export const InkeepScript: FC<SharedProps> = ({ open, onOpenChange }) => {
   const modalRef = useRef<InkeepEmbeddedSearchAndChatFunctions>(null);
 
   useEffect(() => {
-    if (!isApiConfigured) {
-      return;
-    }
     const handleChatClick = () => {
       modalRef.current?.setView('chat');
       onOpenChange(true);
     };
+    const chatButton = document.querySelector<HTMLButtonElement>('button#chat-trigger')!;
 
-    const chatButton = document.querySelector<HTMLButtonElement>('#chat-trigger')!;
-
-    // Add event listeners
     chatButton.addEventListener('click', handleChatClick);
-    // Cleanup function to remove event listeners
     return () => {
       chatButton.removeEventListener('click', handleChatClick);
     };
   }, []);
 
-  if (!isApiConfigured) {
-    warnOnce('NEXT_PUBLIC_INKEEP_API_KEY not configured.');
-    return null;
+  if (!apiKey) {
+    return;
   }
 
   return (
@@ -212,17 +208,3 @@ export const InkeepScript: FC<SharedProps> = ({ open, onOpenChange }) => {
     </>
   );
 };
-
-function createWarnOnce() {
-  const messages = new Set<string>();
-
-  return (message: string): void => {
-    if (messages.has(message)) {
-      return;
-    }
-    messages.add(message);
-    console.warn(message);
-  };
-}
-
-const warnOnce = createWarnOnce();
