@@ -6,6 +6,7 @@ import {
   ExternalLink as ExternalLinkIcon,
   MessageSquare,
   TriangleAlert,
+  Wrench,
 } from 'lucide-react';
 import { useParams } from 'next/navigation';
 import { useEffect, useState } from 'react';
@@ -15,13 +16,14 @@ import type {
   ActivityItem,
   ConversationDetail as ConversationDetailType,
 } from '@/components/traces/timeline/types';
+import { ACTIVITY_TYPES, TOOL_TYPES } from '@/components/traces/timeline/types';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { ExternalLink } from '@/components/ui/external-link';
 import { ResizablePanelGroup } from '@/components/ui/resizable';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useRuntimeConfig } from '@/contexts/runtime-config-context';
-import { getSignozTracesExplorerUrl } from '@/lib/utils/signoz-links';
+import { getSignozTracesExplorerUrl, getSignozToolCallUrl } from '@/lib/utils/signoz-links';
 import { copyTraceToClipboard } from '@/lib/utils/trace-formatter';
 import { SignozLink } from './signoz-link';
 import { InfoRow } from './timeline/blocks';
@@ -93,7 +95,7 @@ export function ConversationDetail({ conversationId, onBack }: ConversationDetai
         </div>
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
           {[1, 2, 3, 4].map((i) => (
-            <Skeleton key={i} className="h-32" />
+            <Skeleton key={i} className="h-40" />
           ))}
         </div>
         <Skeleton className="h-96" />
@@ -148,7 +150,7 @@ export function ConversationDetail({ conversationId, onBack }: ConversationDetai
       </div>
 
       {/* Summary Cards */}
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3 mb-4 flex-shrink-0">
+      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4 mb-4 flex-shrink-0">
         {/* Duration */}
         <Card
           className="shadow-none bg-background"
@@ -245,6 +247,95 @@ export function ConversationDetail({ conversationId, onBack }: ConversationDetai
                     <div className="text-center">
                       <div className="text-2xl font-bold text-muted-foreground mb-1">0</div>
                       <p className="text-xs text-muted-foreground">No AI calls found.</p>
+                    </div>
+                  )}
+                </div>
+              );
+            })()}
+          </CardContent>
+        </Card>
+
+        {/* Tool Calls */}
+        <Card className="shadow-none bg-background">
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium text-foreground">Tool Calls</CardTitle>
+            <Wrench className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            {(() => {
+              const toolCalls = conversation?.activities?.filter(
+                (a: ActivityItem) => a.type === ACTIVITY_TYPES.TOOL_CALL && a.toolType === TOOL_TYPES.MCP
+              ) as ActivityItem[];
+              const mcpTools: Record<string, { success: number; failed: number }> = {};
+              toolCalls?.forEach((tc: ActivityItem) => {
+                const toolName = tc.toolName || 'Unknown Tool';
+                if (!mcpTools[toolName]) {
+                  mcpTools[toolName] = { success: 0, failed: 0 };
+                }
+                if (tc.status === 'error') {
+                  mcpTools[toolName].failed += 1;
+                } else {
+                  mcpTools[toolName].success += 1;
+                }
+              });
+              const entries = Object.entries(mcpTools);
+              const totalCalls = toolCalls?.length || 0;
+
+              return (
+                <div className="space-y-3">
+                  {entries.length ? (
+                    <>
+                      <div className="text-center mb-3">
+                        <div className="text-2xl font-bold text-foreground">{totalCalls}</div>
+                        <p className="text-xs text-muted-foreground">
+                          MCP tool call{totalCalls !== 1 ? 's' : ''}
+                        </p>
+                      </div>
+                      <div className="space-y-2 max-h-32 overflow-y-auto">
+                        {entries
+                          .sort((a, b) => (b[1].success + b[1].failed) - (a[1].success + a[1].failed))
+                          .map(([toolName, counts]) => (
+                            <div
+                              key={toolName}
+                              className="flex items-center justify-between px-2 py-1 rounded border border-border group"
+                            >
+                              <span className="text-xs font-medium text-foreground truncate flex-1">
+                                {toolName}
+                              </span>
+                              <div className="flex items-center gap-2 ml-2">
+                                {counts.success > 0 && (
+                                  <span className="text-xs text-green-600 font-medium">
+                                    {counts.success}×
+                                  </span>
+                                )}
+                                {counts.failed > 0 && (
+                                  <span className="text-xs text-red-600 font-medium">
+                                    {counts.failed}×
+                                  </span>
+                                )}
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  className="h-5 w-5 p-0"
+                                  onClick={() => {
+                                    window.open(
+                                      getSignozToolCallUrl(conversationId, toolName, PUBLIC_SIGNOZ_URL),
+                                      '_blank'
+                                    );
+                                  }}
+                                  title="View in SigNoz"
+                                >
+                                  <ExternalLinkIcon className="h-3 w-3" />
+                                </Button>
+                              </div>
+                            </div>
+                          ))}
+                      </div>
+                    </>
+                  ) : (
+                    <div className="text-center">
+                      <div className="text-2xl font-bold text-muted-foreground mb-1">0</div>
+                      <p className="text-xs text-muted-foreground">No MCP tool calls found.</p>
                     </div>
                   )}
                 </div>
