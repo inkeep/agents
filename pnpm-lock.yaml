@@ -293,12 +293,6 @@ importers:
       remark-emoji:
         specifier: ^5.0.1
         version: 5.0.2
-      remark-gfm:
-        specifier: ^4.0.1
-        version: 4.0.1
-      remark-mdx:
-        specifier: ^3.1.0
-        version: 3.1.1
       remark-mdx-snippets:
         specifier: ^0.2.0
         version: 0.2.0
@@ -308,9 +302,6 @@ importers:
       remark-source-code:
         specifier: ^0.0.3
         version: 0.0.3
-      shiki:
-        specifier: ^3.3.0
-        version: 3.14.0
       tailwind-merge:
         specifier: ^3.2.0
         version: 3.3.1
@@ -333,9 +324,6 @@ importers:
       '@types/react-dom':
         specifier: ^19.2.3
         version: 19.2.3(@types/react@19.2.7)
-      fast-glob:
-        specifier: ^3.3.3
-        version: 3.3.3
       next-validate-link:
         specifier: ^1.6.3
         version: 1.6.3
