@@ -1022,8 +1022,8 @@ export const Agent: FC<AgentProps> = ({
   const isMounted = useIsMounted();
 
   const showEmptyState = useMemo(
-    () => nodes.length === 0 && isCopilotConfigured,
-    [nodes, isCopilotConfigured]
+    () => nodes.length === 0 && agentNodes.length === 0 && isCopilotConfigured,
+    [nodes, agentNodes, isCopilotConfigured]
   );
 
   return (
