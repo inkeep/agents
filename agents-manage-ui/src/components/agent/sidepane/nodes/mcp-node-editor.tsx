@@ -21,12 +21,12 @@ import { Separator } from '@/components/ui/separator';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { useAgentActions, useAgentStore } from '@/features/agent/state/use-agent-store';
 import { useNodeEditor } from '@/hooks/use-node-editor';
+import type { AgentToolConfigLookup } from '@/lib/types/agent-full';
 import {
   getCurrentHeadersForNode,
   getCurrentSelectedToolsForNode,
   getCurrentToolPoliciesForNode,
 } from '@/lib/utils/orphaned-tools-detector';
-import type { AgentToolConfigLookup } from '../../agent';
 import type { MCPNodeData } from '../../configuration/node-types';
 
 interface MCPServerNodeEditorProps {
