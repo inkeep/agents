@@ -79,16 +79,47 @@ export async function GET(request: NextRequest) {
 
   // Clear all known better-auth cookies by setting them to expire immediately
   // This ensures cookies are cleared even if the server-side sign-out fails
+  // We must match the attributes used when setting the cookies (Secure, SameSite, etc.)
   const cookiesToClear = new Set([
     ...BETTER_AUTH_COOKIES,
     ...authCookies.map((c) => c.name),
   ]);
 
+  // Determine if request is secure (HTTPS) to match Secure cookie attribute
+  const isSecure = request.url.startsWith('https://') || request.headers.get('x-forwarded-proto') === 'https';
+
+  // Extract domain from request URL if needed (for cross-subdomain cookies)
+  // This matches the logic in packages/agents-core/src/auth/auth.ts
+  const requestUrl = new URL(request.url);
+  let cookieDomain: string | undefined;
+  const hostname = requestUrl.hostname;
+  if (hostname !== 'localhost' && !hostname.match(/^\d+\.\d+\.\d+\.\d+$/)) {
+    const parts = hostname.split('.');
+    if (parts.length >= 2) {
+      // Extract parent domain for cross-subdomain cookie clearing
+      // Matches auth.ts logic: 3 parts = all, 4+ parts = slice(1), 2 parts = all
+      let domainParts: string[];
+      if (parts.length === 3) {
+        domainParts = parts;
+      } else if (parts.length > 3) {
+        domainParts = parts.slice(1);
+      } else {
+        domainParts = parts;
+      }
+      cookieDomain = `.${domainParts.join('.')}`;
+    }
+  }
+
   for (const cookieName of cookiesToClear) {
-    // Clear cookie with path=/ to ensure we clear cookies set on root
+    // Clear cookie with matching attributes to ensure browser removes it
+    // Must include Secure if cookie was set with Secure, and SameSite to match
     response.cookies.set(cookieName, '', {
       expires: new Date(0),
       path: '/',
+      secure: isSecure,
+      sameSite: 'none',
+      httpOnly: true,
+      ...(cookieDomain && { domain: cookieDomain }),
     });
   }
 
