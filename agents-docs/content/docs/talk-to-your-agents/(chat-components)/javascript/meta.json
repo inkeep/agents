@@ -1,0 +1,5 @@
+{
+  "title": "JavaScript",
+  "icon": "brand/JavascriptIcon",
+  "pages": ["chat-button", "custom-trigger", "side-bar-chat", "embedded-chat", "..."]
+}

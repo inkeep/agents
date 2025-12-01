@@ -1,0 +1,13 @@
+diff --git a/dist/source/index.js b/dist/source/index.js
+index 464273b1dba38736e4d6273eb744a03a08b42074..75dff713ccf6985ceb3f90d57c907383e3335989 100644
+--- a/dist/source/index.js
++++ b/dist/source/index.js
+@@ -459,7 +459,7 @@ function createPageTreeBuilderUtils(ctx) {
+       let item = {
+         $id: nextNodeId(path),
+         type: "page",
+-        name: title ?? pathToName(basename(path, extname(path))),
++        name: page.data.sidebarTitle ?? title ?? pathToName(basename(path, extname(path))),
+         description,
+         icon,
+         url: getUrl(page.slugs, locale),

@@ -1,0 +1,13 @@
+{
+  "icon": "LuMessageSquare",
+  "pages": [
+    "overview",
+    "mcp-server",
+    "chat-api",
+    "(chat-components)",
+    "vercel-ai-sdk",
+    "a2a",
+    "../troubleshooting",
+    "..."
+  ]
+}

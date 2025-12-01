@@ -1,0 +1,12 @@
+{
+  "icon": "brand/DockerIcon",
+  "pages": [
+    "docker-local",
+    "gcp-compute-engine",
+    "gcp-cloud-run",
+    "aws-ec2",
+    "hetzner",
+    "docker-build",
+    "..."
+  ]
+}

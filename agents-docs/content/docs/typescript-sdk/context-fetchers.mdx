@@ -1,7 +1,7 @@
 ---
 title: Context Fetchers
 description: Learn how to use context fetchers to fetch data from external sources and make it available to your agents
-icon: "LuCirclePlus"
+icon: LuCirclePlus
 ---
 
 ## Overview
@@ -97,7 +97,7 @@ export const myAgent = agent({
 
 ## Using Context Variables
 
-Context variables can be used in your agent prompts using JSONPath template syntax `{{contextVariableKey.field_name}}`. 
+Context variables can be used in your agent prompts using JSONPath template syntax `{{contextVariableKey.field_name}}`.
 Use the context config's `toTemplate()` method for type-safe templating with autocomplete and validation.
 
 ```typescript

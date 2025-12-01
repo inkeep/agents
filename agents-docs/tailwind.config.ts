@@ -1,5 +1,5 @@
-import colors from 'tailwindcss/colors';
 import type { Config } from 'tailwindcss';
+import colors from 'tailwindcss/colors';
 import tailwindAnimate from 'tailwindcss-animate';
 
 const config: Config = {

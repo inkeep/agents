@@ -2,7 +2,7 @@
 title: Create Rich UI Blocks with Data Components
 sidebarTitle: Custom UI Blocks
 description: Learn how to create and use data components for rich, interactive Agent messages.
-icon: "LuBlocks"
+icon: LuBlocks
 ---
 
 <Snippet file="multi-agent-framework/what-are-data-components.mdx" />
@@ -17,7 +17,7 @@ import { z } from 'zod';
 
 export const taskList = dataComponent({
   id: "task-list",
-  name: "TaskList", 
+  name: "TaskList",
   description: "Display user tasks with status",
   props: z.object({
     tasks: z
@@ -50,7 +50,7 @@ import { taskList } from './data-components/task-list';
 
 const taskAgent = agent({
   id: "task-agent",
-  name: "Task Agent", 
+  name: "Task Agent",
   prompt: "Provide helpful answers and use data components when appropriate.",
   dataComponents: () => [taskList],
 });

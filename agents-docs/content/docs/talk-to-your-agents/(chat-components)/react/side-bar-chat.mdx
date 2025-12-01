@@ -1,0 +1,222 @@
+---
+title: Add Sidebar Chat to React
+sidebarTitle: Sidebar Chat
+description: Integrate Inkeep's sidebar chat component into your React application for seamless agent conversations.
+icon: LuPanelLeft
+---
+
+The InkeepSidebarChat component provides a slide-out panel interface for conversing with your agents. It can be positioned on either side of your application and supports both manual triggering and automatic element triggers.
+
+## Installation
+
+<CodeGroup>
+```bash title="npm"
+npm install @inkeep/agents-ui
+```
+
+```bash title="yarn"
+yarn add @inkeep/agents-ui
+```
+
+```bash title="pnpm"
+pnpm add @inkeep/agents-ui
+```
+
+</CodeGroup>
+
+## Quick Start
+
+<Tabs>
+  <Tab title="Production">
+
+    Use an API key for secure authentication in production:
+
+    ### Trigger through React state
+
+    ```tsx
+    import { useState } from "react";
+    import { InkeepSidebarChat, type InkeepSidebarChatProps } from "@inkeep/agents-ui";
+
+    export default function App() {
+      const [isOpen, setIsOpen] = useState(false);
+
+      const sidebarChatProps: InkeepSidebarChatProps = {
+        aiChatSettings: {
+          agentUrl: "https://your-api.example.com/api/chat",
+          apiKey: process.env.REACT_APP_INKEEP_API_KEY, // Your API key
+        },
+        position: "right",
+        openSettings: {
+          isOpen: isOpen,
+          onOpenChange: setIsOpen,
+        },
+      };
+
+      return (
+        <div>
+          <button onClick={() => setIsOpen(!isOpen)}>
+            {isOpen ? "Close" : "Open"} Sidebar Chat
+          </button>
+
+          <InkeepSidebarChat {...sidebarChatProps} />
+        </div>
+      );
+    }
+    ```
+
+    ### Trigger through data attributes
+
+    ```tsx
+    import {
+      InkeepSidebarChat,
+      type InkeepSidebarChatProps,
+    } from "@inkeep/agents-ui";
+
+    export default function App() {
+      const sidebarChatProps: InkeepSidebarChatProps = {
+        aiChatSettings: {
+          agentUrl: "https://your-api.example.com/api/chat",
+          apiKey: process.env.REACT_APP_INKEEP_API_KEY, // Your API key
+        },
+        position: "right",
+      };
+
+      return (
+        <div>
+          <button data-inkeep-sidebar-chat-trigger>
+            Click here to open sidebar chat
+          </button>
+
+          <InkeepSidebarChat {...sidebarChatProps} />
+        </div>
+      );
+    }
+    ```
+
+    **To get an API key:**
+    1. Open the Visual Builder Dashboard
+    2. Navigate to your Project → **API Keys**
+    3. Click **Create New Key** and select your agent
+    4. Copy the key (shown once) and store it in your environment variables
+
+  </Tab>
+
+  <Tab title="Development">
+
+    For local development, use headers with your agent IDs:
+
+    ### Trigger through React state
+
+    ```tsx
+    import { useState } from "react";
+    import {
+      InkeepSidebarChat,
+      type InkeepSidebarChatProps,
+    } from "@inkeep/agents-ui";
+
+    export default function App() {
+      const [isOpen, setIsOpen] = useState(false);
+
+      const sidebarChatProps: InkeepSidebarChatProps = {
+        aiChatSettings: {
+          agentUrl: "http://localhost:3003/api/chat",
+          headers: {
+            "x-inkeep-tenant-id": "your-tenant-id",
+            "x-inkeep-project-id": "your-project-id",
+            "x-inkeep-agent-id": "your-agent-id",
+          },
+        },
+        position: "right",
+        openSettings: {
+          isOpen: isOpen,
+          onOpenChange: setIsOpen,
+        },
+      };
+
+      return (
+        <div>
+          <button onClick={() => setIsOpen(!isOpen)}>
+            {isOpen ? "Close" : "Open"} Sidebar Chat
+          </button>
+
+          <InkeepSidebarChat {...sidebarChatProps} />
+        </div>
+      );
+    }
+    ```
+
+    ### Trigger through data attributes
+
+    ```tsx
+    import {
+      InkeepSidebarChat,
+      type InkeepSidebarChatProps,
+    } from "@inkeep/agents-ui";
+
+    export default function App() {
+      const sidebarChatProps: InkeepSidebarChatProps = {
+        aiChatSettings: {
+          agentUrl: "http://localhost:3003/api/chat",
+          headers: {
+            "x-inkeep-tenant-id": "your-tenant-id",
+            "x-inkeep-project-id": "your-project-id",
+            "x-inkeep-agent-id": "your-agent-id",
+          },
+        },
+        position: "right",
+      };
+
+      return (
+        <div>
+          <button data-inkeep-sidebar-chat-trigger>
+            Click here to open sidebar chat
+          </button>
+
+          <InkeepSidebarChat {...sidebarChatProps} />
+        </div>
+      );
+    }
+    ```
+
+    **Note:** Run your API server with `ENVIRONMENT=development` to bypass authentication.
+
+  </Tab>
+</Tabs>
+
+## Configuration Options
+
+### Required Props
+
+| Property                  | Type   | Description                                         |
+| ------------------------- | ------ | --------------------------------------------------- |
+| `aiChatSettings`          | object | Configuration for the AI chat connection            |
+| `aiChatSettings.agentUrl` | string | The URL of your agent endpoint                      |
+| `aiChatSettings.headers`  | object | Headers for authentication and agent identification |
+
+## Props
+
+<AutoTypeTable
+  path="./content/docs/talk-to-your-agents/types.ts"
+  name="InkeepSidebarChatProps"
+/>
+
+### Base Settings
+
+<AutoTypeTable
+  path="./content/docs/talk-to-your-agents/types.ts"
+  name="InkeepBaseSettings"
+/>
+
+### AI Chat Settings
+
+<AutoTypeTable
+  path="./content/docs/talk-to-your-agents/types.ts"
+  name="InkeepAIChatSettings"
+/>
+
+### Open Settings
+
+<AutoTypeTable
+  path="./content/docs/talk-to-your-agents/types.ts"
+  name="OpenSettingsSidebar"
+/>

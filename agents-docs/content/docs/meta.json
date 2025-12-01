@@ -1,0 +1,26 @@
+{
+  "pages": [
+    "overview",
+    "get-started",
+    "concepts",
+    "pricing",
+    "---TUTORIALS---",
+    "...tutorials",
+    "---TYPESCRIPT SDK---",
+    "...typescript-sdk",
+    "---VISUAL BUILDER---",
+    "...visual-builder",
+    "---TALK TO YOUR AGENTS---",
+    "...talk-to-your-agents",
+    "---API REFERENCE---",
+    "...api-reference",
+    "---SELF-HOSTING---",
+    "...self-hosting",
+    "---COMMUNITY---",
+    "...community",
+    "!quick-start",
+    "!ui-components",
+    "!api-keys",
+    "..."
+  ]
+}

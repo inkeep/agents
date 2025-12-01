@@ -10,12 +10,12 @@ import { cn } from '@/lib/utils';
 
 export function PageControls({
   title,
-  description,
+  description = '',
   data,
 }: {
   data: StructuredData;
   title: string;
-  description: string;
+  description?: string;
 } & ComponentProps<'button'>) {
   const [open, setOpen] = useState(false);
 

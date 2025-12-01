@@ -1,0 +1,12 @@
+{
+  "title": "MCP Servers",
+  "icon": "LuWrench",
+  "pages": [
+    "overview",
+    "native-mcp-servers",
+    "composio-mcp-servers",
+    "gram",
+    "custom-mcp-servers",
+    "..."
+  ]
+}

@@ -1,0 +1,11 @@
+{
+  "pages": [
+    "sub-agents",
+    "tools",
+    "headers",
+    "structured-outputs",
+    "!context-fetchers",
+    "!project-management",
+    "..."
+  ]
+}

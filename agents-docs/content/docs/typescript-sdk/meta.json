@@ -1,0 +1,20 @@
+{
+  "pages": [
+    "project-management",
+    "agent-settings",
+    "models",
+    "agent-relationships",
+    "tools",
+    "credentials",
+    "memory",
+    "headers",
+    "context-fetchers",
+    "structured-outputs",
+    "data-operations",
+    "(observability)",
+    "external-agents",
+    "workspace-configuration",
+    "cli-reference",
+    "..."
+  ]
+}
