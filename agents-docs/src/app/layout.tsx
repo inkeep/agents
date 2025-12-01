@@ -114,11 +114,10 @@ export default function Layout({ children }: LayoutProps<'/'>) {
             tree={source.pageTree}
             nav={{
               title: <Logo className="!w-[110px] !h-[32px]" />,
-              children: <GithubStars />,
             }}
             sidebar={{
               banner: (
-                <div className="flex gap-1">
+                <div className="flex gap-2">
                   <Button
                     variant="outline"
                     size="sm"
@@ -134,10 +133,7 @@ export default function Layout({ children }: LayoutProps<'/'>) {
                       Inkeep Cloud
                     </a>
                   </Button>
-                  <Button type="button" variant="outline" id="chat-trigger" size="sm">
-                    <Sparkles />
-                    Ask AI
-                  </Button>
+                  <GithubStars />
                 </div>
               ),
             }}

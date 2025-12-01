@@ -1,14 +1,13 @@
 'use client';
 
 import {
-  type InkeepBaseSettings,
   InkeepChatButton,
   type InkeepEmbeddedSearchAndChatFunctions,
   InkeepModalSearchAndChat,
-  type InkeepSearchSettings,
+  type InkeepModalSearchAndChatProps,
 } from '@inkeep/cxkit-react';
 import type { SharedProps } from 'fumadocs-ui/components/dialog/search';
-import { type FC, useEffect, useRef } from 'react';
+import { type FC, useRef } from 'react';
 import { z } from 'zod';
 import { detectedSalesSignal, salesSignalType } from './sales-escalation';
 import { provideAnswerConfidenceSchema } from './support-escalation';
@@ -21,7 +20,7 @@ if (!apiKey) {
   console.warn('NEXT_PUBLIC_INKEEP_API_KEY not configured.');
 }
 
-const config = {
+const config: InkeepModalSearchAndChatProps = {
   baseSettings: {
     apiKey,
     primaryBrandColor: '#D5E5FF',
@@ -30,7 +29,7 @@ const config = {
       sync: {
         target: document.documentElement,
         attributes: ['class'],
-        isDarkMode: (attrs: Record<string, string | null>) => !!attrs.class?.includes('dark'),
+        isDarkMode: (attrs) => !!attrs.class?.includes('dark'),
       },
     },
     theme: {
@@ -72,7 +71,7 @@ const config = {
         tabs,
       };
     },
-  } satisfies InkeepBaseSettings,
+  },
   aiChatSettings: {
     aiAssistantAvatar: {
       light: '/logos/icon-black.svg',
@@ -87,25 +86,25 @@ const config = {
       {
         name: 'Schedule a Demo',
         isPinnedToToolbar: true,
-        icon: { builtIn: 'LuCalendar' as const },
+        icon: { builtIn: 'LuCalendar' },
         action: {
-          type: 'open_link' as const,
+          type: 'open_link',
           url: 'https://inkeep.com/demo?cta_id=docs_cxkit',
         },
       },
       {
         name: 'Contact us',
         isPinnedToToolbar: true,
-        icon: { builtIn: 'IoChatbubblesOutline' as const },
+        icon: { builtIn: 'IoChatbubblesOutline' },
         action: {
-          type: 'open_link' as const,
+          type: 'open_link',
           url: 'mailto:support@inkeep.com?subject=Question%20about%20inkeep',
         },
       },
     ],
     getTools: () => [
       {
-        type: 'function' as const,
+        type: 'function',
         function: {
           name: 'detectSalesSignal',
           description: 'Identify when users express interest in potentially purchasing a product.',
@@ -116,9 +115,9 @@ const config = {
             return [
               {
                 label: 'Schedule a Demo',
-                icon: { builtIn: 'LuCalendar' as const },
+                icon: { builtIn: 'LuCalendar' },
                 action: {
-                  type: 'open_link' as const,
+                  type: 'open_link',
                   url: 'https://inkeep.com/demo?cta_id=docs_cxkit',
                 },
               },
@@ -128,7 +127,7 @@ const config = {
         },
       },
       {
-        type: 'function' as const,
+        type: 'function',
         function: {
           name: 'provideAnswerConfidence',
           description:
@@ -145,9 +144,9 @@ const config = {
             return [
               {
                 label: 'Contact Support',
-                icon: { builtIn: 'LuUser' as const },
+                icon: { builtIn: 'LuUser' },
                 action: {
-                  type: 'open_link' as const,
+                  type: 'open_link',
                   url: 'mailto:support@inkeep.com',
                 },
               },
@@ -164,24 +163,11 @@ const config = {
   },
   searchSettings: {
     tabs: [['Docs', { isAlwaysVisible: true }], ['All', { isAlwaysVisible: true }], 'GitHub'],
-  } satisfies InkeepSearchSettings,
+  },
 };
 
 export const InkeepScript: FC<SharedProps> = ({ open, onOpenChange }) => {
   const modalRef = useRef<InkeepEmbeddedSearchAndChatFunctions>(null);
-
-  useEffect(() => {
-    const handleChatClick = () => {
-      modalRef.current?.setView('chat');
-      onOpenChange(true);
-    };
-    const chatButton = document.querySelector<HTMLButtonElement>('button#chat-trigger')!;
-
-    chatButton.addEventListener('click', handleChatClick);
-    return () => {
-      chatButton.removeEventListener('click', handleChatClick);
-    };
-  }, []);
 
   if (!apiKey) {
     return;

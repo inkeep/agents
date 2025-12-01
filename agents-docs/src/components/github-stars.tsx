@@ -2,26 +2,22 @@ import type { FC } from 'react';
 import { Button } from '@/components/ui/button';
 import { FaGithub } from 'react-icons/fa6';
 
-async function getStars() {
-  if (process.env.NODE_ENV === 'development') {
-    return 747;
-  }
-
-  const response = await fetch('https://api.github.com/repos/inkeep/agents');
-  const json = await response.json();
-  return json.stargazers_count;
-}
+// async function getStars() {
+//   if (process.env.NODE_ENV === 'development') {
+//     return 747;
+//   }
+//
+//   const response = await fetch('https://api.github.com/repos/inkeep/agents');
+//   const json = await response.json();
+//   return json.stargazers_count;
+// }
 
 export const GithubStars: FC = async () => {
-  const stars = await getStars();
+  // const count = await getStars();
+  const stars = 'Star' // new Intl.NumberFormat('en-US').format(stars)
 
   return (
-    <Button
-      variant="ghost"
-      size="icon"
-      className="h-auto w-auto [&_svg]:size-4.5 p-1.5 font-mono"
-      asChild
-    >
+    <Button variant="outline" size="sm" asChild>
       <a
         href="https://github.com/inkeep/agents"
         target="_blank"
@@ -29,7 +25,7 @@ export const GithubStars: FC = async () => {
         aria-label="Inkeep on GitHub"
       >
         <FaGithub />
-        {new Intl.NumberFormat('en-US').format(stars)}
+        {stars}
       </a>
     </Button>
   );
