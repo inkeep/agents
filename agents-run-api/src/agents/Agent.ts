@@ -106,6 +106,7 @@ export type AgentConfig = {
   tenantId: string;
   projectId: string;
   agentId: string;
+  relationId?: string;
   baseUrl: string;
   apiKey?: string;
   apiKeyId?: string;
@@ -291,6 +292,40 @@ export class Agent {
     return sanitizedTools;
   }
 
+  #createRelationToolName(prefix: string, targetId: string): string {
+    return `${prefix}_to_${targetId.toLowerCase().replace(/\s+/g, '_')}`;
+  }
+
+  #getRelationshipIdForTool(toolName: string, toolType?: ToolType): string | undefined {
+    if (toolType === 'mcp') {
+      const matchingTool = this.config.tools?.find((tool) => {
+        if (tool.config?.type !== 'mcp') {
+          return false;
+        }
+
+        if (tool.availableTools?.some((available) => available.name === toolName)) {
+          return true;
+        }
+
+        if (tool.config.mcp.activeTools?.includes(toolName)) {
+          return true;
+        }
+
+        return tool.name === toolName;
+      });
+
+      return matchingTool?.relationshipId;
+    }
+
+    if (toolType === 'delegation') {
+      const relation = this.config.delegateRelations.find(
+        (relation) => this.#createRelationToolName('delegate', relation.config.id) === toolName
+      );
+
+      return relation?.config.relationId;
+    }
+  }
+
   /**
    * Get the primary model settings for text generation and thinking
    * Requires model to be configured at project level
@@ -373,12 +408,12 @@ export class Agent {
     toolDefinition: any,
     streamRequestId?: string,
     toolType?: ToolType,
-    relationshipId?: string,
     options?: { needsApproval?: boolean }
   ) {
     if (!toolDefinition || typeof toolDefinition !== 'object' || !('execute' in toolDefinition)) {
       return toolDefinition;
     }
+    const relationshipId = this.#getRelationshipIdForTool(toolName, toolType);
 
     const originalExecute = toolDefinition.execute;
     return {
@@ -520,11 +555,9 @@ export class Agent {
     sessionId?: string
   ) {
     const { transferRelations = [], delegateRelations = [] } = this.config;
-    const createToolName = (prefix: string, subAgentId: string) =>
-      `${prefix}_to_${subAgentId.toLowerCase().replace(/\s+/g, '_')}`;
     return Object.fromEntries([
       ...transferRelations.map((agentConfig) => {
-        const toolName = createToolName('transfer', agentConfig.id);
+        const toolName = this.#createRelationToolName('transfer', agentConfig.id);
         return [
           toolName,
           this.wrapToolWithStreaming(
@@ -541,7 +574,7 @@ export class Agent {
         ];
       }),
       ...delegateRelations.map((relation) => {
-        const toolName = createToolName('delegate', relation.config.id);
+        const toolName = this.#createRelationToolName('delegate', relation.config.id);
 
         return [
           toolName,
@@ -579,13 +612,8 @@ export class Agent {
       }) || [];
     const tools = (await Promise.all(mcpTools.map((tool) => this.getMcpTool(tool)) || [])) || [];
     if (!sessionId) {
-      // TODO check if we need reduce
-      // const combinedTools = tools.reduce((acc, toolResult) => {
-      //     return Object.assign(acc, toolResult.tools) as ToolSet;
-      // }, {} as ToolSet);
       const wrappedTools: ToolSet = {};
-      for (const [index, toolSet] of tools.entries()) {
-        const relationshipId = mcpTools[index]?.relationshipId;
+      for (const toolSet of tools) {
         for (const [toolName, toolDef] of Object.entries(toolSet.tools)) {
           // Find toolPolicies for this tool
           const needsApproval = toolSet.toolPolicies?.[toolName]?.needsApproval || false;
@@ -600,7 +628,6 @@ export class Agent {
             enhancedTool,
             streamRequestId,
             'mcp',
-            relationshipId,
             { needsApproval }
           );
         }
@@ -609,8 +636,7 @@ export class Agent {
     }
 
     const wrappedTools: ToolSet = {};
-    for (const [index, toolResult] of tools.entries()) {
-      const relationshipId = mcpTools[index]?.relationshipId;
+    for (const toolResult of tools) {
       for (const [toolName, originalTool] of Object.entries(toolResult.tools)) {
         if (!isValidTool(originalTool)) {
           logger.error({ toolName }, 'Invalid MCP tool structure - missing required properties');
@@ -743,6 +769,7 @@ export class Agent {
                 });
 
                 if (streamRequestId) {
+                  const relationshipId = this.#getRelationshipIdForTool(toolName, 'mcp');
                   agentSessionManager.recordEvent(streamRequestId, 'error', this.config.id, {
                     message: `MCP tool "${toolName}" failed: ${errorMessage}`,
                     code: 'mcp_tool_error',
@@ -798,7 +825,6 @@ export class Agent {
           sessionWrappedTool,
           streamRequestId,
           'mcp',
-          relationshipId,
           { needsApproval }
         );
       }
