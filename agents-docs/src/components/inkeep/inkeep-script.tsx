@@ -2,17 +2,16 @@
 
 import {
   InkeepChatButton,
-  type InkeepEmbeddedSearchAndChatFunctions,
   InkeepModalSearchAndChat,
   type InkeepModalSearchAndChatProps,
 } from '@inkeep/cxkit-react';
 import type { SharedProps } from 'fumadocs-ui/components/dialog/search';
-import { type FC, useRef } from 'react';
+import type { FC } from 'react';
 import { z } from 'zod';
 import { detectedSalesSignal, salesSignalType } from './sales-escalation';
 import { provideAnswerConfidenceSchema } from './support-escalation';
 
-const validSalesSignalTypes: string[] = salesSignalType.options.map((option) => option.value);
+const validSalesSignalTypes = salesSignalType.options.map((option) => option.value);
 
 const apiKey = process.env.NEXT_PUBLIC_INKEEP_API_KEY;
 
@@ -110,8 +109,12 @@ const config: InkeepModalSearchAndChatProps = {
           description: 'Identify when users express interest in potentially purchasing a product.',
           parameters: z.toJSONSchema(detectedSalesSignal),
         },
-        renderMessageButtons: ({ args }: { args: { type: string } }) => {
-          if (args.type && validSalesSignalTypes.includes(args.type)) {
+        renderMessageButtons: ({
+          args,
+        }: {
+          args: { type: (typeof validSalesSignalTypes)[number] };
+        }) => {
+          if (validSalesSignalTypes.includes(args.type)) {
             return [
               {
                 label: 'Schedule a Demo',
@@ -157,18 +160,12 @@ const config: InkeepModalSearchAndChatProps = {
       },
     ],
   } as any,
-  modalSettings: {
-    // disable default cmd+k behavior, it's handled in this script
-    shortcutKey: null,
-  },
   searchSettings: {
     tabs: [['Docs', { isAlwaysVisible: true }], ['All', { isAlwaysVisible: true }], 'GitHub'],
   },
 };
 
 export const InkeepScript: FC<SharedProps> = ({ open, onOpenChange }) => {
-  const modalRef = useRef<InkeepEmbeddedSearchAndChatFunctions>(null);
-
   if (!apiKey) {
     return;
   }
@@ -182,14 +179,11 @@ export const InkeepScript: FC<SharedProps> = ({ open, onOpenChange }) => {
       <InkeepModalSearchAndChat
         {...config}
         modalSettings={{
-          ...config.modalSettings,
+          // disable default cmd+k behavior, it's handled by fumadocs
+          shortcutKey: null,
           isOpen: open,
-          onOpenChange(open) {
-            modalRef.current?.setView('search');
-            onOpenChange(open);
-          },
+          onOpenChange,
         }}
-        ref={modalRef as any}
       />
     </>
   );
