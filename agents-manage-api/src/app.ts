@@ -66,7 +66,7 @@ function isOriginAllowed(origin: string | undefined): origin is string {
       return true;
     }
 
-// Production: allow origins from the same base domain as the API URL
+    // Production: allow origins from the same base domain as the API URL
     // This handles cases like agents-manage-ui.preview.inkeep.com -> agents-manage-api.preview.inkeep.com
     const requestBaseDomain = getBaseDomain(requestUrl.hostname);
     const apiBaseDomain = getBaseDomain(apiUrl.hostname);
@@ -215,7 +215,13 @@ function createManagementHono(
         origin: (origin) => {
           return isOriginAllowed(origin) ? origin : null;
         },
-allowHeaders: ['content-type', 'Content-Type', 'authorization', 'Authorization', 'User-Agent'],
+        allowHeaders: [
+          'content-type',
+          'Content-Type',
+          'authorization',
+          'Authorization',
+          'User-Agent',
+        ],
         allowMethods: ['POST', 'GET', 'OPTIONS'],
         exposeHeaders: ['Content-Length'],
         maxAge: 600,
