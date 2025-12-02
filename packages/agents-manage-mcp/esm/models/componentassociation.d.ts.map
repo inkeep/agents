@@ -1,0 +1,1 @@
+{"version":3,"file":"componentassociation.d.ts","sourceRoot":"","sources":["../../src/models/componentassociation.ts"],"names":[],"mappings":"AAIA,OAAO,KAAK,CAAC,MAAM,KAAK,CAAC;AAEzB,MAAM,MAAM,oBAAoB,GAAG;IAAE,UAAU,EAAE,MAAM,CAAC;IAAC,SAAS,EAAE,MAAM,CAAA;CAAE,CAAC;AAE7E,eAAO,MAAM,8BAA8B,EAAE,CAAC,CAAC,OAAO,CACpD,oBAAoB,EACpB,CAAC,CAAC,UAAU,EACZ,OAAO,CAIP,CAAC"}

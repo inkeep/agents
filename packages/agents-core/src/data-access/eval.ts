@@ -6,7 +6,6 @@ import {
   datasetRun,
   datasetRunConfig,
   datasetRunConfigAgentRelations,
-  datasetRunConfigEvaluationRunConfigRelations,
   datasetRunConversationRelations,
   evaluationJobConfig,
   evaluationJobConfigEvaluatorRelations,
@@ -41,11 +40,6 @@ type DatasetRunConfigUpdate = Partial<
 
 type DatasetRunConfigAgentRelationInsert = typeof datasetRunConfigAgentRelations.$inferInsert;
 type DatasetRunConfigAgentRelationSelect = typeof datasetRunConfigAgentRelations.$inferSelect;
-
-type DatasetRunConfigEvaluationRunConfigRelationInsert =
-  typeof datasetRunConfigEvaluationRunConfigRelations.$inferInsert;
-type DatasetRunConfigEvaluationRunConfigRelationSelect =
-  typeof datasetRunConfigEvaluationRunConfigRelations.$inferSelect;
 
 type DatasetRunInsert = typeof datasetRun.$inferInsert;
 type DatasetRunSelect = typeof datasetRun.$inferSelect;
@@ -511,108 +505,6 @@ export const deleteDatasetRunConfigAgentRelation =
           eq(datasetRunConfigAgentRelations.projectId, params.scopes.projectId),
           eq(datasetRunConfigAgentRelations.datasetRunConfigId, params.scopes.datasetRunConfigId),
           eq(datasetRunConfigAgentRelations.agentId, params.scopes.agentId)
-        )
-      )
-      .returning();
-
-    return result.length > 0;
-  };
-
-// ============================================================================
-// DATASET RUN CONFIG EVALUATION RUN CONFIG RELATIONS (CONFIG LAYER - JOIN TABLE)
-// ============================================================================
-
-export const getDatasetRunConfigEvaluationRunConfigRelations =
-  (db: DatabaseClient) =>
-  async (params: {
-    scopes: ProjectScopeConfig & { datasetRunConfigId: string };
-  }): Promise<DatasetRunConfigEvaluationRunConfigRelationSelect[]> => {
-    return await db
-      .select()
-      .from(datasetRunConfigEvaluationRunConfigRelations)
-      .where(
-        and(
-          eq(datasetRunConfigEvaluationRunConfigRelations.tenantId, params.scopes.tenantId),
-          eq(datasetRunConfigEvaluationRunConfigRelations.projectId, params.scopes.projectId),
-          eq(
-            datasetRunConfigEvaluationRunConfigRelations.datasetRunConfigId,
-            params.scopes.datasetRunConfigId
-          )
-        )
-      );
-  };
-
-export const createDatasetRunConfigEvaluationRunConfigRelation =
-  (db: DatabaseClient) =>
-  async (
-    data: DatasetRunConfigEvaluationRunConfigRelationInsert
-  ): Promise<DatasetRunConfigEvaluationRunConfigRelationSelect> => {
-    const now = new Date().toISOString();
-
-    const [created] = await db
-      .insert(datasetRunConfigEvaluationRunConfigRelations)
-      .values({
-        ...data,
-        createdAt: now,
-        updatedAt: now,
-      })
-      .returning();
-
-    return created;
-  };
-
-export const updateDatasetRunConfigEvaluationRunConfigRelation =
-  (db: DatabaseClient) =>
-  async (params: {
-    scopes: ProjectScopeConfig & { datasetRunConfigId: string; evaluationRunConfigId: string };
-    data: Partial<Pick<DatasetRunConfigEvaluationRunConfigRelationInsert, 'enabled'>>;
-  }): Promise<DatasetRunConfigEvaluationRunConfigRelationSelect | null> => {
-    const now = new Date().toISOString();
-
-    const [updated] = await db
-      .update(datasetRunConfigEvaluationRunConfigRelations)
-      .set({
-        ...params.data,
-        updatedAt: now,
-      })
-      .where(
-        and(
-          eq(datasetRunConfigEvaluationRunConfigRelations.tenantId, params.scopes.tenantId),
-          eq(datasetRunConfigEvaluationRunConfigRelations.projectId, params.scopes.projectId),
-          eq(
-            datasetRunConfigEvaluationRunConfigRelations.datasetRunConfigId,
-            params.scopes.datasetRunConfigId
-          ),
-          eq(
-            datasetRunConfigEvaluationRunConfigRelations.evaluationRunConfigId,
-            params.scopes.evaluationRunConfigId
-          )
-        )
-      )
-      .returning();
-
-    return updated || null;
-  };
-
-export const deleteDatasetRunConfigEvaluationRunConfigRelation =
-  (db: DatabaseClient) =>
-  async (params: {
-    scopes: ProjectScopeConfig & { datasetRunConfigId: string; evaluationRunConfigId: string };
-  }): Promise<boolean> => {
-    const result = await db
-      .delete(datasetRunConfigEvaluationRunConfigRelations)
-      .where(
-        and(
-          eq(datasetRunConfigEvaluationRunConfigRelations.tenantId, params.scopes.tenantId),
-          eq(datasetRunConfigEvaluationRunConfigRelations.projectId, params.scopes.projectId),
-          eq(
-            datasetRunConfigEvaluationRunConfigRelations.datasetRunConfigId,
-            params.scopes.datasetRunConfigId
-          ),
-          eq(
-            datasetRunConfigEvaluationRunConfigRelations.evaluationRunConfigId,
-            params.scopes.evaluationRunConfigId
-          )
         )
       )
       .returning();
