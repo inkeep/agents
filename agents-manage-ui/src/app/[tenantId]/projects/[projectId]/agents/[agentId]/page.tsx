@@ -63,9 +63,6 @@ async function AgentPage({
 
   const toolLookup = createLookup(tools.success ? tools.data : undefined);
   const credentialLookup = createLookup(credentials.success ? credentials.data : undefined);
-  const externalAgentLookup = createLookup(
-    externalAgents.success ? externalAgents.data : undefined
-  );
 
   return (
     <BodyTemplate
@@ -80,7 +77,6 @@ async function AgentPage({
         artifactComponentLookup={artifactComponentLookup}
         toolLookup={toolLookup}
         credentialLookup={credentialLookup}
-        externalAgentLookup={externalAgentLookup}
       />
     </BodyTemplate>
   );

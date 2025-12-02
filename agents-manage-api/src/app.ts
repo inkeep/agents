@@ -236,7 +236,13 @@ function createManagementHono(
       origin: (origin) => {
         return isOriginAllowed(origin) ? origin : null;
       },
-      allowHeaders: ['content-type', 'Content-Type', 'authorization', 'Authorization', 'User-Agent'],
+      allowHeaders: [
+        'content-type',
+        'Content-Type',
+        'authorization',
+        'Authorization',
+        'User-Agent',
+      ],
       allowMethods: ['POST', 'OPTIONS'],
       exposeHeaders: ['Content-Length'],
       maxAge: 600,

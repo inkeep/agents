@@ -80,13 +80,11 @@ export async function GET(request: NextRequest) {
   // Clear all known better-auth cookies by setting them to expire immediately
   // This ensures cookies are cleared even if the server-side sign-out fails
   // We must match the attributes used when setting the cookies (Secure, SameSite, etc.)
-  const cookiesToClear = new Set([
-    ...BETTER_AUTH_COOKIES,
-    ...authCookies.map((c) => c.name),
-  ]);
+  const cookiesToClear = new Set([...BETTER_AUTH_COOKIES, ...authCookies.map((c) => c.name)]);
 
   // Determine if request is secure (HTTPS) to match Secure cookie attribute
-  const isSecure = request.url.startsWith('https://') || request.headers.get('x-forwarded-proto') === 'https';
+  const isSecure =
+    request.url.startsWith('https://') || request.headers.get('x-forwarded-proto') === 'https';
 
   // Extract domain from request URL if needed (for cross-subdomain cookies)
   // This matches the logic in packages/agents-core/src/auth/auth.ts
@@ -125,4 +123,3 @@ export async function GET(request: NextRequest) {
 
   return response;
 }
-

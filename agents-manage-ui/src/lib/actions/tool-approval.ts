@@ -66,7 +66,7 @@ function extractEntityId(input: Record<string, any>, metadata: ToolMetadata): st
 
   const request = input.request || input;
 
-  const specificIdFields = ['id', `${entity}Id`, entity.replace(/-/g, '') + 'Id'];
+  const specificIdFields = ['id', `${entity}Id`, `${entity.replace(/-/g, '')}Id`];
 
   for (const field of specificIdFields) {
     if (request[field]) {

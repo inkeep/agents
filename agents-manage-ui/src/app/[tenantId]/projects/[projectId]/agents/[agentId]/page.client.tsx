@@ -104,7 +104,6 @@ interface AgentProps {
   artifactComponentLookup?: Record<string, ArtifactComponent>;
   toolLookup?: Record<string, MCPTool>;
   credentialLookup?: Record<string, Credential>;
-  externalAgentLookup?: Record<string, ExternalAgent>;
 }
 
 type ReactFlowProps = Required<ComponentProps<typeof ReactFlow>>;
