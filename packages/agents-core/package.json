@@ -75,7 +75,7 @@
     "ai": "6.0.0-beta.124",
     "ajv": "^8.17.1",
     "ajv-formats": "^3.0.1",
-    "better-auth": "^1.4.0",
+    "better-auth": "^1.4.2",
     "dotenv": "^17.2.1",
     "dotenv-expand": "^12.0.3",
     "drizzle-orm": "^0.44.4",
