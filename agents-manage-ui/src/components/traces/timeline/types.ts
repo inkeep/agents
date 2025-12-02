@@ -121,6 +121,8 @@ export interface ActivityItem {
   // Tool approval fields
   approvalToolName?: string;
   approvalToolCallId?: string;
+  // Context breakdown for AI generation spans
+  contextBreakdown?: ContextBreakdown;
 }
 
 interface ToolCall {
@@ -214,8 +216,6 @@ export interface ConversationDetail {
     failureReason: string;
     timestamp: string;
   }>;
-  /** Context breakdown showing token usage by component */
-  contextBreakdown?: ContextBreakdown;
 }
 
 export const TOOL_TYPES = {

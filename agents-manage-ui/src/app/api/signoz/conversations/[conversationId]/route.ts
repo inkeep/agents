@@ -1114,6 +1114,57 @@ export async function GET(
       spanIdToParentSpanId.set(spanAttr.spanId, parentSpanId);
     }
 
+    // Build map from spanId to context breakdown (from agent.generate spans)
+    type ContextBreakdownData = {
+      systemPromptTemplate: number;
+      coreInstructions: number;
+      agentPrompt: number;
+      toolsSection: number;
+      artifactsSection: number;
+      dataComponents: number;
+      artifactComponents: number;
+      transferInstructions: number;
+      delegationInstructions: number;
+      thinkingPreparation: number;
+      conversationHistory: number;
+      total: number;
+    };
+    const spanIdToContextBreakdown = new Map<string, ContextBreakdownData>();
+    for (const spanAttr of allSpanAttributes) {
+      const data = spanAttr.data;
+      if (data['context.breakdown.total_tokens'] !== undefined) {
+        spanIdToContextBreakdown.set(spanAttr.spanId, {
+          systemPromptTemplate: Number(data['context.breakdown.system_template_tokens']) || 0,
+          coreInstructions: Number(data['context.breakdown.core_instructions_tokens']) || 0,
+          agentPrompt: Number(data['context.breakdown.agent_prompt_tokens']) || 0,
+          toolsSection: Number(data['context.breakdown.tools_tokens']) || 0,
+          artifactsSection: Number(data['context.breakdown.artifacts_tokens']) || 0,
+          dataComponents: Number(data['context.breakdown.data_components_tokens']) || 0,
+          artifactComponents: Number(data['context.breakdown.artifact_components_tokens']) || 0,
+          transferInstructions: Number(data['context.breakdown.transfer_instructions_tokens']) || 0,
+          delegationInstructions:
+            Number(data['context.breakdown.delegation_instructions_tokens']) || 0,
+          thinkingPreparation: Number(data['context.breakdown.thinking_preparation_tokens']) || 0,
+          conversationHistory: Number(data['context.breakdown.conversation_history_tokens']) || 0,
+          total: Number(data['context.breakdown.total_tokens']) || 0,
+        });
+      }
+    }
+
+    // Helper to get context breakdown for a span (check self and parent)
+    const getContextBreakdownForSpan = (spanId: string): ContextBreakdownData | undefined => {
+      // Check if this span has context breakdown
+      if (spanIdToContextBreakdown.has(spanId)) {
+        return spanIdToContextBreakdown.get(spanId);
+      }
+      // Check parent span
+      const parentId = spanIdToParentSpanId.get(spanId);
+      if (parentId && spanIdToContextBreakdown.has(parentId)) {
+        return spanIdToContextBreakdown.get(parentId);
+      }
+      return undefined;
+    };
+
     // activities
     type Activity = {
       id: string;
@@ -1181,6 +1232,21 @@ export async function GET(
       aiStreamObjectContent?: string;
       aiStreamObjectModel?: string;
       aiStreamObjectOperationId?: string;
+      // context breakdown (for AI streaming spans)
+      contextBreakdown?: {
+        systemPromptTemplate: number;
+        coreInstructions: number;
+        agentPrompt: number;
+        toolsSection: number;
+        artifactsSection: number;
+        dataComponents: number;
+        artifactComponents: number;
+        transferInstructions: number;
+        delegationInstructions: number;
+        thinkingPreparation: number;
+        conversationHistory: number;
+        total: number;
+      };
       // ai generation specifics
       aiResponseToolCalls?: string;
       aiPromptMessages?: string;
@@ -1433,12 +1499,13 @@ export async function GET(
       const durMs = getNumber(span, SPAN_KEYS.DURATION_NANO) / 1e6;
       const aiStreamingText = getString(span, SPAN_KEYS.SPAN_ID, '');
       const statusMessage = hasError ? getString(span, SPAN_KEYS.STATUS_MESSAGE, '') : '';
+      const parentSpanId = spanIdToParentSpanId.get(aiStreamingText) || undefined;
       activities.push({
         id: aiStreamingText,
         type: ACTIVITY_TYPES.AI_MODEL_STREAMED_TEXT,
         description: 'AI model streaming text response',
         timestamp: span.timestamp,
-        parentSpanId: spanIdToParentSpanId.get(aiStreamingText) || undefined,
+        parentSpanId,
         status: hasError ? ACTIVITY_STATUS.ERROR : ACTIVITY_STATUS.SUCCESS,
         subAgentId: getString(
           span,
@@ -1460,6 +1527,7 @@ export async function GET(
         outputTokens: getNumber(span, SPAN_KEYS.GEN_AI_USAGE_OUTPUT_TOKENS, 0),
         aiTelemetryFunctionId: getString(span, SPAN_KEYS.AI_TELEMETRY_FUNCTION_ID, '') || undefined,
         otelStatusDescription: statusMessage || undefined,
+        contextBreakdown: parentSpanId ? getContextBreakdownForSpan(parentSpanId) : undefined,
       });
     }
 
@@ -1469,12 +1537,13 @@ export async function GET(
       const durMs = getNumber(span, SPAN_KEYS.DURATION_NANO) / 1e6;
       const aiStreamingObject = getString(span, SPAN_KEYS.SPAN_ID, '');
       const statusMessage = hasError ? getString(span, SPAN_KEYS.STATUS_MESSAGE, '') : '';
+      const parentSpanId = spanIdToParentSpanId.get(aiStreamingObject) || undefined;
       activities.push({
         id: aiStreamingObject,
         type: ACTIVITY_TYPES.AI_MODEL_STREAMED_OBJECT,
         description: 'AI model streaming object response',
         timestamp: span.timestamp,
-        parentSpanId: spanIdToParentSpanId.get(aiStreamingObject) || undefined,
+        parentSpanId,
         status: hasError ? ACTIVITY_STATUS.ERROR : ACTIVITY_STATUS.SUCCESS,
         subAgentId: getString(span, SPAN_KEYS.SUB_AGENT_ID, ACTIVITY_NAMES.UNKNOWN_AGENT),
         subAgentName: getString(span, SPAN_KEYS.SUB_AGENT_NAME, ACTIVITY_NAMES.UNKNOWN_AGENT),
@@ -1488,6 +1557,7 @@ export async function GET(
         outputTokens: getNumber(span, SPAN_KEYS.GEN_AI_USAGE_OUTPUT_TOKENS, 0),
         aiTelemetryFunctionId: getString(span, SPAN_KEYS.AI_TELEMETRY_FUNCTION_ID, '') || undefined,
         otelStatusDescription: statusMessage || undefined,
+        contextBreakdown: parentSpanId ? getContextBreakdownForSpan(parentSpanId) : undefined,
       });
     }
 
@@ -1741,46 +1811,6 @@ export async function GET(
       totalOpenAICalls: openAICallsCount,
     };
 
-    // Extract context breakdown from agent.generate spans
-    let contextBreakdown: {
-      systemPromptTemplate: number;
-      coreInstructions: number;
-      agentPrompt: number;
-      toolsSection: number;
-      artifactsSection: number;
-      dataComponents: number;
-      artifactComponents: number;
-      transferInstructions: number;
-      delegationInstructions: number;
-      thinkingPreparation: number;
-      conversationHistory: number;
-      total: number;
-    } | undefined;
-
-    // Look for context breakdown in agent generation spans
-    for (const spanAttr of allSpanAttributes) {
-      const data = spanAttr.data;
-      // Check if this span has context breakdown attributes
-      if (data['context.breakdown.total_tokens'] !== undefined) {
-        contextBreakdown = {
-          systemPromptTemplate: Number(data['context.breakdown.system_template_tokens']) || 0,
-          coreInstructions: Number(data['context.breakdown.core_instructions_tokens']) || 0,
-          agentPrompt: Number(data['context.breakdown.agent_prompt_tokens']) || 0,
-          toolsSection: Number(data['context.breakdown.tools_tokens']) || 0,
-          artifactsSection: Number(data['context.breakdown.artifacts_tokens']) || 0,
-          dataComponents: Number(data['context.breakdown.data_components_tokens']) || 0,
-          artifactComponents: Number(data['context.breakdown.artifact_components_tokens']) || 0,
-          transferInstructions: Number(data['context.breakdown.transfer_instructions_tokens']) || 0,
-          delegationInstructions:
-            Number(data['context.breakdown.delegation_instructions_tokens']) || 0,
-          thinkingPreparation: Number(data['context.breakdown.thinking_preparation_tokens']) || 0,
-          conversationHistory: Number(data['context.breakdown.conversation_history_tokens']) || 0,
-          total: Number(data['context.breakdown.total_tokens']) || 0,
-        };
-        break; // Use the first agent.generate span with context breakdown
-      }
-    }
-
     return NextResponse.json({
       ...conversation,
       activities,
@@ -1796,7 +1826,6 @@ export async function GET(
       spansWithErrorsCount: spansWithErrorsList.length,
       errorCount: finalErrorCount,
       warningCount: finalWarningCount,
-      contextBreakdown,
     });
   } catch (error) {
     const logger = getLogger('conversation-details');
