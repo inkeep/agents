@@ -374,8 +374,8 @@ export const createAgents = async (
         `  pnpm setup   # Setup project in database\n` +
         `  pnpm dev     # Start development servers\n\n` +
         `${color.yellow('Available services:')}\n` +
-        `  • Manage API: http://localhost:3002\n` +
-        `  • Run API: http://localhost:3003\n` +
+        `  • Manage API: http://127.0.0.1:3002\n` +
+        `  • Run API: http://127.0.0.1:3003\n` +
         `  • Manage UI: Available with management API\n` +
         `\n${color.yellow('Configuration:')}\n` +
         `  • Edit .env for environment variables\n` +
@@ -433,12 +433,13 @@ GOOGLE_GENERATIVE_AI_API_KEY=${config.googleKey || 'your-google-key-here'}
 
 # Inkeep API URLs
 # Internal URLs (server-side, Docker internal networking)
-INKEEP_AGENTS_MANAGE_API_URL="http://localhost:3002"
-INKEEP_AGENTS_RUN_API_URL="http://localhost:3003"
+# Using 127.0.0.1 instead of localhost to avoid IPv6/IPv4 resolution issues
+INKEEP_AGENTS_MANAGE_API_URL="http://127.0.0.1:3002"
+INKEEP_AGENTS_RUN_API_URL="http://127.0.0.1:3003"
 
 # Public URLs (client-side, browser accessible)
-PUBLIC_INKEEP_AGENTS_MANAGE_API_URL="http://localhost:3002"
-PUBLIC_INKEEP_AGENTS_RUN_API_URL="http://localhost:3003"
+PUBLIC_INKEEP_AGENTS_MANAGE_API_URL="http://127.0.0.1:3002"
+PUBLIC_INKEEP_AGENTS_RUN_API_URL="http://127.0.0.1:3003"
 
 # SigNoz Configuration
 SIGNOZ_URL=your-signoz-url-here
@@ -478,10 +479,11 @@ async function createInkeepConfig(config: FileConfig) {
 const config = defineConfig({
   tenantId: "${config.tenantId}",
   agentsManageApi: {
-    url: 'http://localhost:3002',
+    // Using 127.0.0.1 instead of localhost to avoid IPv6/IPv4 resolution issues
+    url: 'http://127.0.0.1:3002',
   },
   agentsRunApi: {
-    url: 'http://localhost:3003',
+    url: 'http://127.0.0.1:3003',
   },
 });
     

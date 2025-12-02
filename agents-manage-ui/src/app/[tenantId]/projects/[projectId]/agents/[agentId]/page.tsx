@@ -1,4 +1,3 @@
-import { Agent } from '@/components/agent/agent';
 import FullPageError from '@/components/errors/full-page-error';
 import { BodyTemplate } from '@/components/layout/body-template';
 import { getFullAgentAction } from '@/lib/actions/agent-full';
@@ -8,6 +7,8 @@ import { fetchDataComponentsAction } from '@/lib/actions/data-components';
 import { fetchExternalAgentsAction } from '@/lib/actions/external-agents';
 import { fetchToolsAction } from '@/lib/actions/tools';
 import { createLookup } from '@/lib/utils';
+import { Agent } from './page.client';
+
 export const dynamic = 'force-dynamic';
 
 async function AgentPage({
