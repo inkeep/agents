@@ -196,11 +196,9 @@ export class ContextFetcher {
   ): Promise<ContextFetchDefinition['fetchConfig']> {
     const resolved = { ...fetchConfig };
 
-    const filteredRequiredToFetch = fetchConfig.requiredToFetch?.filter((variable) => {
-      if (variable.startsWith('{{') && variable.endsWith('}}')) {
-        return variable;
-      }
-    });
+    const filteredRequiredToFetch = fetchConfig.requiredToFetch?.filter(
+      (variable) => variable.startsWith('{{') && variable.endsWith('}}')
+    );
 
     if (filteredRequiredToFetch) {
       for (const variable of filteredRequiredToFetch) {
