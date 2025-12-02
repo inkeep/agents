@@ -20,7 +20,6 @@ export class MissingRequiredVariableError extends Error {
 // Response validator type - checks for errors and throws if found
 type ResponseErrorChecker = (data: unknown) => void;
 
-
 /**
  * GraphQL error checker - validates response for GraphQL errors and throws if found
  */
@@ -197,8 +196,14 @@ export class ContextFetcher {
   ): Promise<ContextFetchDefinition['fetchConfig']> {
     const resolved = { ...fetchConfig };
 
-    if (fetchConfig.requiredToFetch) {
-      for (const variable of fetchConfig.requiredToFetch) {
+    const filteredRequiredToFetch = fetchConfig.requiredToFetch?.filter((variable) => {
+      if (variable.startsWith('{{') && variable.endsWith('}}')) {
+        return variable;
+      }
+    });
+
+    if (filteredRequiredToFetch) {
+      for (const variable of filteredRequiredToFetch) {
         let resolvedVariable: string;
         try {
           resolvedVariable = this.interpolateTemplate(variable, context);

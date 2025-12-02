@@ -802,7 +802,9 @@ describe('ContextFetcher', () => {
         user: { id: '' },
       };
 
-      await expect(fetcher.fetch(definition, context)).rejects.toThrow(MissingRequiredVariableError);
+      await expect(fetcher.fetch(definition, context)).rejects.toThrow(
+        MissingRequiredVariableError
+      );
       await expect(fetcher.fetch(definition, context)).rejects.toThrow(
         'Missing required variable: {{user.id}}'
       );
@@ -824,7 +826,9 @@ describe('ContextFetcher', () => {
         other: { value: 'test' },
       };
 
-      await expect(fetcher.fetch(definition, context)).rejects.toThrow(MissingRequiredVariableError);
+      await expect(fetcher.fetch(definition, context)).rejects.toThrow(
+        MissingRequiredVariableError
+      );
       expect(mockFetch).not.toHaveBeenCalled();
     });
 
@@ -958,6 +962,115 @@ describe('ContextFetcher', () => {
       const result = await fetcher.fetch(definition, context);
 
       expect(result).toEqual({ data: 'success' });
+    });
+
+    it('should filter out non-template variables (without {{ }}) and not validate them', async () => {
+      const definition: ContextFetchDefinition = {
+        id: 'test-fetch',
+        trigger: 'initialization',
+        fetchConfig: {
+          url: 'https://api.example.com/data',
+          method: 'GET',
+          requiredToFetch: ['plainVariable', 'anotherPlain'],
+        },
+      };
+
+      const context = {};
+
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        status: 200,
+        headers: new Map([['content-type', 'application/json']]),
+        json: async () => ({ data: 'success' }),
+      });
+
+      const result = await fetcher.fetch(definition, context);
+
+      expect(result).toEqual({ data: 'success' });
+      expect(mockFetch).toHaveBeenCalled();
+    });
+
+    it('should only validate template variables and ignore non-template ones in mixed array', async () => {
+      const definition: ContextFetchDefinition = {
+        id: 'test-fetch',
+        trigger: 'initialization',
+        fetchConfig: {
+          url: 'https://api.example.com/users/{{user.id}}',
+          method: 'GET',
+          requiredToFetch: ['plainVariable', '{{user.id}}', 'anotherPlain'],
+        },
+      };
+
+      const context = {
+        user: { id: 'user-123' },
+      };
+
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        status: 200,
+        headers: new Map([['content-type', 'application/json']]),
+        json: async () => ({ data: 'success' }),
+      });
+
+      const result = await fetcher.fetch(definition, context);
+
+      expect(result).toEqual({ data: 'success' });
+      expect(mockFetch).toHaveBeenCalledWith(
+        'https://api.example.com/users/user-123',
+        expect.any(Object)
+      );
+    });
+
+    it('should throw for missing template variable but ignore non-template ones', async () => {
+      const definition: ContextFetchDefinition = {
+        id: 'test-fetch',
+        trigger: 'initialization',
+        fetchConfig: {
+          url: 'https://api.example.com/users/{{user.id}}',
+          method: 'GET',
+          requiredToFetch: ['plainVariable', '{{user.id}}'],
+        },
+      };
+
+      const context = {
+        user: { id: '' },
+      };
+
+      await expect(fetcher.fetch(definition, context)).rejects.toThrow(
+        MissingRequiredVariableError
+      );
+      await expect(fetcher.fetch(definition, context)).rejects.toThrow(
+        'Missing required variable: {{user.id}}'
+      );
+      expect(mockFetch).not.toHaveBeenCalled();
+    });
+
+    it('should filter out variables with partial template syntax', async () => {
+      const definition: ContextFetchDefinition = {
+        id: 'test-fetch',
+        trigger: 'initialization',
+        fetchConfig: {
+          url: 'https://api.example.com/data',
+          method: 'GET',
+          requiredToFetch: ['{{noClosing', 'noOpening}}', '{ {spaced} }', '{{valid}}'],
+        },
+      };
+
+      const context = {
+        valid: 'value',
+      };
+
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        status: 200,
+        headers: new Map([['content-type', 'application/json']]),
+        json: async () => ({ data: 'success' }),
+      });
+
+      const result = await fetcher.fetch(definition, context);
+
+      expect(result).toEqual({ data: 'success' });
+      expect(mockFetch).toHaveBeenCalled();
     });
   });
 
