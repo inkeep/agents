@@ -187,8 +187,8 @@ export class EvaluationService {
         };
       }
 
-      // Generate conversation ID if not provided (format: eval-timestamp for clarity)
-      const finalConversationId = conversationId || `eval-${Date.now()}-${generateId()}`;
+      // Generate conversation ID
+      const finalConversationId = generateId();
 
       // Check if simulation agent is configured
       const hasSimulationAgent =
