@@ -10,8 +10,16 @@ import { type TemplateContext, TemplateEngine } from './TemplateEngine';
 
 const logger = getLogger('context-fetcher');
 
+export class MissingRequiredVariableError extends Error {
+  constructor(variable: string) {
+    super(`Missing required variable: ${variable}`);
+    this.name = 'MissingRequiredVariableError';
+  }
+}
+
 // Response validator type - checks for errors and throws if found
 type ResponseErrorChecker = (data: unknown) => void;
+
 
 /**
  * GraphQL error checker - validates response for GraphQL errors and throws if found
@@ -188,6 +196,20 @@ export class ContextFetcher {
     credentialReferenceId?: string
   ): Promise<ContextFetchDefinition['fetchConfig']> {
     const resolved = { ...fetchConfig };
+
+    if (fetchConfig.requiredToFetch) {
+      for (const variable of fetchConfig.requiredToFetch) {
+        let resolvedVariable: string;
+        try {
+          resolvedVariable = this.interpolateTemplate(variable, context);
+        } catch {
+          throw new MissingRequiredVariableError(variable);
+        }
+        if (resolvedVariable === '' || resolvedVariable === variable) {
+          throw new MissingRequiredVariableError(variable);
+        }
+      }
+    }
 
     // Resolve URL template variables
     resolved.url = this.interpolateTemplate(fetchConfig.url, context);
