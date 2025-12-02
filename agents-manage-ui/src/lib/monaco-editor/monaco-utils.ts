@@ -37,7 +37,8 @@ export function addDecorations({
     const lineNumber = index + 1;
     const lineContent = lines[lineNumber - 1];
 
-    for (const [tokenIndex, token] of [...lineTokens.entries()].reverse()) {
+    for (let tokenIndex = lineTokens.length - 1; tokenIndex >= 0; tokenIndex--) {
+      const token = lineTokens[tokenIndex];
       if (!shouldShowCopyIcon(token.type)) {
         continue;
       }
