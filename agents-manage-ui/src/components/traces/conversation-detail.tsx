@@ -23,7 +23,7 @@ import { ExternalLink } from '@/components/ui/external-link';
 import { ResizablePanelGroup } from '@/components/ui/resizable';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useRuntimeConfig } from '@/contexts/runtime-config-context';
-import { getSignozTracesExplorerUrl, getSignozToolCallUrl } from '@/lib/utils/signoz-links';
+import { getSignozToolCallUrl, getSignozTracesExplorerUrl } from '@/lib/utils/signoz-links';
 import { copyTraceToClipboard } from '@/lib/utils/trace-formatter';
 import { SignozLink } from './signoz-link';
 import { InfoRow } from './timeline/blocks';
@@ -264,7 +264,8 @@ export function ConversationDetail({ conversationId, onBack }: ConversationDetai
           <CardContent>
             {(() => {
               const toolCalls = conversation?.activities?.filter(
-                (a: ActivityItem) => a.type === ACTIVITY_TYPES.TOOL_CALL && a.toolType === TOOL_TYPES.MCP
+                (a: ActivityItem) =>
+                  a.type === ACTIVITY_TYPES.TOOL_CALL && a.toolType === TOOL_TYPES.MCP
               ) as ActivityItem[];
               const mcpTools: Record<string, { success: number; failed: number }> = {};
               toolCalls?.forEach((tc: ActivityItem) => {
@@ -293,7 +294,7 @@ export function ConversationDetail({ conversationId, onBack }: ConversationDetai
                       </div>
                       <div className="space-y-2 max-h-32 overflow-y-auto">
                         {entries
-                          .sort((a, b) => (b[1].success + b[1].failed) - (a[1].success + a[1].failed))
+                          .sort((a, b) => b[1].success + b[1].failed - (a[1].success + a[1].failed))
                           .map(([toolName, counts]) => (
                             <div
                               key={toolName}
@@ -319,7 +320,11 @@ export function ConversationDetail({ conversationId, onBack }: ConversationDetai
                                   className="h-5 w-5 p-0"
                                   onClick={() => {
                                     window.open(
-                                      getSignozToolCallUrl(conversationId, toolName, PUBLIC_SIGNOZ_URL),
+                                      getSignozToolCallUrl(
+                                        conversationId,
+                                        toolName,
+                                        PUBLIC_SIGNOZ_URL
+                                      ),
                                       '_blank'
                                     );
                                   }}
