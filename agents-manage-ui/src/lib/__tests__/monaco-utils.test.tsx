@@ -1,6 +1,5 @@
-import type * as Monaco from 'monaco-editor';
+import * as monaco from 'monaco-editor';
 import { addDecorations, getOrCreateModel } from '@/lib/monaco-editor/monaco-utils';
-import { monacoStore } from '@/features/agent/state/use-monaco-store';
 import '@/lib/monaco-editor/setup-monaco-workers';
 
 const obj = {
@@ -21,22 +20,11 @@ const obj = {
 };
 
 describe('Monaco-Editor Functionality', () => {
-  let editor: Monaco.editor.IStandaloneCodeEditor;
-  let model: Monaco.editor.ITextModel;
+  let editor: monaco.editor.IStandaloneCodeEditor;
+  let model: monaco.editor.ITextModel;
   let container: HTMLDivElement;
 
-  beforeAll(async () => {
-    const { actions } = monacoStore.getState();
-    await actions.setMonaco();
-    requestAnimationFrame(async () => {
-      await actions.setupHighlighter(true);
-    });
-  });
-
   beforeEach(() => {
-    // biome-ignore lint/style/noNonNullAssertion: ignore
-    const monaco = monacoStore.getState().monaco!;
-
     // Create a container for Monaco Editor
     container = document.createElement('div');
     document.body.append(container);
@@ -71,10 +59,6 @@ describe('Monaco-Editor Functionality', () => {
 
     const modelValue = model.getValue();
     expect(modelValue).toBe(JSON.stringify(obj, null, 2));
-
-    // biome-ignore lint/style/noNonNullAssertion: ignore
-    const monaco = monacoStore.getState().monaco!;
-
     expect(monaco.editor.tokenize(modelValue, 'json')).toMatchInlineSnapshot(`
       [
         [
