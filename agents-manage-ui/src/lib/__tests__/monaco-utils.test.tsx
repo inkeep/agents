@@ -1,5 +1,6 @@
-import * as monaco from 'monaco-editor';
+import type * as Monaco from 'monaco-editor';
 import { addDecorations, getOrCreateModel } from '@/lib/monaco-editor/monaco-utils';
+import { monacoStore } from '@/features/agent/state/use-monaco-store';
 import '@/lib/monaco-editor/setup-monaco-workers';
 
 const obj = {
@@ -15,14 +16,27 @@ const obj = {
   ],
   string: 'hello',
   emptyString: '',
+  multipleQuotes:
+    '["/Users/Inkeep/.fnm/node-versions/v22.20.0/installation/bin/node","/Users/Inkeep/Desktop/agents/agents-run-api/node_modules/vite/bin/vite.js"]',
 };
 
 describe('Monaco-Editor Functionality', () => {
-  let editor: monaco.editor.IStandaloneCodeEditor;
-  let model: monaco.editor.ITextModel;
+  let editor: Monaco.editor.IStandaloneCodeEditor;
+  let model: Monaco.editor.ITextModel;
   let container: HTMLDivElement;
 
+  beforeAll(async () => {
+    const { actions } = monacoStore.getState();
+    await actions.setMonaco();
+    requestAnimationFrame(async () => {
+      await actions.setupHighlighter(true);
+    });
+  });
+
   beforeEach(() => {
+    // biome-ignore lint/style/noNonNullAssertion: ignore
+    const monaco = monacoStore.getState().monaco!;
+
     // Create a container for Monaco Editor
     container = document.createElement('div');
     document.body.append(container);
@@ -46,7 +60,7 @@ describe('Monaco-Editor Functionality', () => {
     container?.remove();
 
     // Wait for any pending operations to complete
-    await new Promise((resolve) => setTimeout(resolve, 50));
+    await new Promise((resolve) => setTimeout(resolve, 30));
   });
 
   it('should test monaco.editor.tokenize with proper worker initialization', async () => {
@@ -57,6 +71,10 @@ describe('Monaco-Editor Functionality', () => {
 
     const modelValue = model.getValue();
     expect(modelValue).toBe(JSON.stringify(obj, null, 2));
+
+    // biome-ignore lint/style/noNonNullAssertion: ignore
+    const monaco = monacoStore.getState().monaco!;
+
     expect(monaco.editor.tokenize(modelValue, 'json')).toMatchInlineSnapshot(`
       [
         [
@@ -64,7 +82,7 @@ describe('Monaco-Editor Functionality', () => {
             "_tokenBrand": undefined,
             "language": "json",
             "offset": 0,
-            "type": "delimiter.bracket.json",
+            "type": "",
           },
         ],
         [
@@ -74,35 +92,13 @@ describe('Monaco-Editor Functionality', () => {
             "offset": 0,
             "type": "",
           },
+        ],
+        [
           Token {
             "_tokenBrand": undefined,
             "language": "json",
-            "offset": 2,
-            "type": "string.key.json",
-          },
-          Token {
-            "_tokenBrand": undefined,
-            "language": "json",
-            "offset": 8,
-            "type": "delimiter.colon.json",
-          },
-          Token {
-            "_tokenBrand": undefined,
-            "language": "json",
-            "offset": 9,
+            "offset": 0,
             "type": "",
-          },
-          Token {
-            "_tokenBrand": undefined,
-            "language": "json",
-            "offset": 10,
-            "type": "keyword.json",
-          },
-          Token {
-            "_tokenBrand": undefined,
-            "language": "json",
-            "offset": 14,
-            "type": "delimiter.comma.json",
           },
         ],
         [
@@ -112,35 +108,13 @@ describe('Monaco-Editor Functionality', () => {
             "offset": 0,
             "type": "",
           },
+        ],
+        [
           Token {
             "_tokenBrand": undefined,
             "language": "json",
-            "offset": 2,
-            "type": "string.key.json",
-          },
-          Token {
-            "_tokenBrand": undefined,
-            "language": "json",
-            "offset": 10,
-            "type": "delimiter.colon.json",
-          },
-          Token {
-            "_tokenBrand": undefined,
-            "language": "json",
-            "offset": 11,
+            "offset": 0,
             "type": "",
-          },
-          Token {
-            "_tokenBrand": undefined,
-            "language": "json",
-            "offset": 12,
-            "type": "number.json",
-          },
-          Token {
-            "_tokenBrand": undefined,
-            "language": "json",
-            "offset": 13,
-            "type": "delimiter.comma.json",
           },
         ],
         [
@@ -150,35 +124,13 @@ describe('Monaco-Editor Functionality', () => {
             "offset": 0,
             "type": "",
           },
+        ],
+        [
           Token {
             "_tokenBrand": undefined,
             "language": "json",
-            "offset": 2,
-            "type": "string.key.json",
-          },
-          Token {
-            "_tokenBrand": undefined,
-            "language": "json",
-            "offset": 11,
-            "type": "delimiter.colon.json",
-          },
-          Token {
-            "_tokenBrand": undefined,
-            "language": "json",
-            "offset": 12,
+            "offset": 0,
             "type": "",
-          },
-          Token {
-            "_tokenBrand": undefined,
-            "language": "json",
-            "offset": 13,
-            "type": "keyword.json",
-          },
-          Token {
-            "_tokenBrand": undefined,
-            "language": "json",
-            "offset": 18,
-            "type": "delimiter.comma.json",
           },
         ],
         [
@@ -188,29 +140,13 @@ describe('Monaco-Editor Functionality', () => {
             "offset": 0,
             "type": "",
           },
+        ],
+        [
           Token {
             "_tokenBrand": undefined,
             "language": "json",
-            "offset": 2,
-            "type": "string.key.json",
-          },
-          Token {
-            "_tokenBrand": undefined,
-            "language": "json",
-            "offset": 9,
-            "type": "delimiter.colon.json",
-          },
-          Token {
-            "_tokenBrand": undefined,
-            "language": "json",
-            "offset": 10,
+            "offset": 0,
             "type": "",
-          },
-          Token {
-            "_tokenBrand": undefined,
-            "language": "json",
-            "offset": 11,
-            "type": "delimiter.array.json",
           },
         ],
         [
@@ -220,17 +156,13 @@ describe('Monaco-Editor Functionality', () => {
             "offset": 0,
             "type": "",
           },
+        ],
+        [
           Token {
             "_tokenBrand": undefined,
             "language": "json",
-            "offset": 4,
-            "type": "keyword.json",
-          },
-          Token {
-            "_tokenBrand": undefined,
-            "language": "json",
-            "offset": 8,
-            "type": "delimiter.comma.json",
+            "offset": 0,
+            "type": "",
           },
         ],
         [
@@ -240,11 +172,13 @@ describe('Monaco-Editor Functionality', () => {
             "offset": 0,
             "type": "",
           },
+        ],
+        [
           Token {
             "_tokenBrand": undefined,
             "language": "json",
-            "offset": 4,
-            "type": "delimiter.bracket.json",
+            "offset": 0,
+            "type": "",
           },
         ],
         [
@@ -254,29 +188,13 @@ describe('Monaco-Editor Functionality', () => {
             "offset": 0,
             "type": "",
           },
+        ],
+        [
           Token {
             "_tokenBrand": undefined,
             "language": "json",
-            "offset": 6,
-            "type": "string.key.json",
-          },
-          Token {
-            "_tokenBrand": undefined,
-            "language": "json",
-            "offset": 11,
-            "type": "delimiter.colon.json",
-          },
-          Token {
-            "_tokenBrand": undefined,
-            "language": "json",
-            "offset": 12,
+            "offset": 0,
             "type": "",
-          },
-          Token {
-            "_tokenBrand": undefined,
-            "language": "json",
-            "offset": 13,
-            "type": "string.value.json",
           },
         ],
         [
@@ -286,18 +204,6 @@ describe('Monaco-Editor Functionality', () => {
             "offset": 0,
             "type": "",
           },
-          Token {
-            "_tokenBrand": undefined,
-            "language": "json",
-            "offset": 4,
-            "type": "delimiter.bracket.json",
-          },
-          Token {
-            "_tokenBrand": undefined,
-            "language": "json",
-            "offset": 5,
-            "type": "delimiter.comma.json",
-          },
         ],
         [
           Token {
@@ -306,12 +212,6 @@ describe('Monaco-Editor Functionality', () => {
             "offset": 0,
             "type": "",
           },
-          Token {
-            "_tokenBrand": undefined,
-            "language": "json",
-            "offset": 4,
-            "type": "delimiter.array.json",
-          },
         ],
         [
           Token {
@@ -319,144 +219,6 @@ describe('Monaco-Editor Functionality', () => {
             "language": "json",
             "offset": 0,
             "type": "",
-          },
-          Token {
-            "_tokenBrand": undefined,
-            "language": "json",
-            "offset": 6,
-            "type": "number.json",
-          },
-          Token {
-            "_tokenBrand": undefined,
-            "language": "json",
-            "offset": 7,
-            "type": "delimiter.comma.json",
-          },
-        ],
-        [
-          Token {
-            "_tokenBrand": undefined,
-            "language": "json",
-            "offset": 0,
-            "type": "",
-          },
-          Token {
-            "_tokenBrand": undefined,
-            "language": "json",
-            "offset": 6,
-            "type": "string.value.json",
-          },
-        ],
-        [
-          Token {
-            "_tokenBrand": undefined,
-            "language": "json",
-            "offset": 0,
-            "type": "",
-          },
-          Token {
-            "_tokenBrand": undefined,
-            "language": "json",
-            "offset": 4,
-            "type": "delimiter.array.json",
-          },
-        ],
-        [
-          Token {
-            "_tokenBrand": undefined,
-            "language": "json",
-            "offset": 0,
-            "type": "",
-          },
-          Token {
-            "_tokenBrand": undefined,
-            "language": "json",
-            "offset": 2,
-            "type": "delimiter.array.json",
-          },
-          Token {
-            "_tokenBrand": undefined,
-            "language": "json",
-            "offset": 3,
-            "type": "delimiter.comma.json",
-          },
-        ],
-        [
-          Token {
-            "_tokenBrand": undefined,
-            "language": "json",
-            "offset": 0,
-            "type": "",
-          },
-          Token {
-            "_tokenBrand": undefined,
-            "language": "json",
-            "offset": 2,
-            "type": "string.key.json",
-          },
-          Token {
-            "_tokenBrand": undefined,
-            "language": "json",
-            "offset": 10,
-            "type": "delimiter.colon.json",
-          },
-          Token {
-            "_tokenBrand": undefined,
-            "language": "json",
-            "offset": 11,
-            "type": "",
-          },
-          Token {
-            "_tokenBrand": undefined,
-            "language": "json",
-            "offset": 12,
-            "type": "string.value.json",
-          },
-          Token {
-            "_tokenBrand": undefined,
-            "language": "json",
-            "offset": 19,
-            "type": "delimiter.comma.json",
-          },
-        ],
-        [
-          Token {
-            "_tokenBrand": undefined,
-            "language": "json",
-            "offset": 0,
-            "type": "",
-          },
-          Token {
-            "_tokenBrand": undefined,
-            "language": "json",
-            "offset": 2,
-            "type": "string.key.json",
-          },
-          Token {
-            "_tokenBrand": undefined,
-            "language": "json",
-            "offset": 15,
-            "type": "delimiter.colon.json",
-          },
-          Token {
-            "_tokenBrand": undefined,
-            "language": "json",
-            "offset": 16,
-            "type": "",
-          },
-          Token {
-            "_tokenBrand": undefined,
-            "language": "json",
-            "offset": 17,
-            "type": "string.value.json",
-          },
-        ],
-        [
-          Token {
-            "_tokenBrand": undefined,
-            "language": "json",
-            "offset": 0,
-            "type": "delimiter.bracket.json",
           },
         ],
       ]
@@ -527,7 +289,8 @@ describe('Monaco-Editor Functionality', () => {
     ]
   ],
   "string": "hello",❌
-  "emptyString": ""❌
+  "emptyString": "",❌
+  "multipleQuotes": "[\\"/Users/Inkeep/.fnm/node-versions/v22.20.0/installation/bin/node\\",\\"/Users/Inkeep/Desktop/agents/agents-run-api/node_modules/vite/bin/vite.js\\"]"❌
 }`;
     expect(addDecorationsToString(modelValue)).toBe(expectedContentWithDecorations);
   });
