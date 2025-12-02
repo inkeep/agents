@@ -15,6 +15,8 @@ const obj = {
   ],
   string: 'hello',
   emptyString: '',
+  multipleQuotes:
+    '["/Users/Inkeep/.fnm/node-versions/v22.20.0/installation/bin/node","/Users/Inkeep/Desktop/agents/agents-run-api/node_modules/vite/bin/vite.js"]',
 };
 
 describe('Monaco-Editor Functionality', () => {
@@ -46,7 +48,7 @@ describe('Monaco-Editor Functionality', () => {
     container?.remove();
 
     // Wait for any pending operations to complete
-    await new Promise((resolve) => setTimeout(resolve, 50));
+    await new Promise((resolve) => setTimeout(resolve, 30));
   });
 
   it('should test monaco.editor.tokenize with proper worker initialization', async () => {
@@ -450,6 +452,44 @@ describe('Monaco-Editor Functionality', () => {
             "offset": 17,
             "type": "string.value.json",
           },
+          Token {
+            "_tokenBrand": undefined,
+            "language": "json",
+            "offset": 19,
+            "type": "delimiter.comma.json",
+          },
+        ],
+        [
+          Token {
+            "_tokenBrand": undefined,
+            "language": "json",
+            "offset": 0,
+            "type": "",
+          },
+          Token {
+            "_tokenBrand": undefined,
+            "language": "json",
+            "offset": 2,
+            "type": "string.key.json",
+          },
+          Token {
+            "_tokenBrand": undefined,
+            "language": "json",
+            "offset": 18,
+            "type": "delimiter.colon.json",
+          },
+          Token {
+            "_tokenBrand": undefined,
+            "language": "json",
+            "offset": 19,
+            "type": "",
+          },
+          Token {
+            "_tokenBrand": undefined,
+            "language": "json",
+            "offset": 20,
+            "type": "string.value.json",
+          },
         ],
         [
           Token {
@@ -527,7 +567,8 @@ describe('Monaco-Editor Functionality', () => {
     ]
   ],
   "string": "hello",❌
-  "emptyString": ""❌
+  "emptyString": "",❌
+  "multipleQuotes": "[\\"/Users/Inkeep/.fnm/node-versions/v22.20.0/installation/bin/node\\",\\"/Users/Inkeep/Desktop/agents/agents-run-api/node_modules/vite/bin/vite.js\\"]"❌
 }`;
     expect(addDecorationsToString(modelValue)).toBe(expectedContentWithDecorations);
   });

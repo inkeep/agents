@@ -5,7 +5,9 @@ import { type FC, useEffect } from 'react';
 import { CopilotProvider } from '@/components/agent/copilot/copilot-context';
 import { useAgentActions } from '@/features/agent/state/use-agent-store';
 
-const Layout: FC<LayoutProps<'/[tenantId]/projects/[projectId]/agents'>> = ({ children }) => {
+const Layout: FC<LayoutProps<'/[tenantId]/projects/[projectId]/agents/[agentId]'>> = ({
+  children,
+}) => {
   const { setSidebarOpen } = useAgentActions();
 
   useEffect(() => {

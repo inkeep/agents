@@ -27,10 +27,19 @@ const logger = getLogger('agents-manage-api');
 logger.info({ logger: logger.getTransports() }, 'Logger initialized');
 
 /**
+ * Extract the base domain from a hostname (e.g., "foo.bar.inkeep.com" -> "inkeep.com")
+ */
+function getBaseDomain(hostname: string): string | null {
+  const parts = hostname.split('.');
+  if (parts.length < 2) return null;
+  return parts.slice(-2).join('.');
+}
+
+/**
  * Check if a request origin is allowed for CORS
  *
  * Development: Allow any localhost origin
- * Production: Only allow origins from the same base domain as INKEEP_AGENTS_MANAGE_API_URL
+ * Production/Preview: Allow the specific UI URL, or any subdomain of the same base domain
  *
  * @returns true if origin is allowed (also narrows type to string)
  */
@@ -50,6 +59,19 @@ function isOriginAllowed(origin: string | undefined): origin is string {
     // Allow the specific UI URL if configured
     if (uiUrl && requestUrl.hostname === uiUrl.hostname) {
       return true;
+    }
+
+    // For Vercel deployments, allow any subdomain of the same base domain
+    // Use VERCEL_ENV to determine which URL to use for base domain extraction
+    const vercelUrl =
+      process.env.VERCEL_ENV === 'production'
+        ? process.env.VERCEL_PROJECT_PRODUCTION_URL
+        : process.env.VERCEL_URL;
+    if (vercelUrl) {
+      const baseDomain = getBaseDomain(vercelUrl);
+      if (baseDomain && requestUrl.hostname.endsWith(`.${baseDomain}`)) {
+        return true;
+      }
     }
 
     return false;
@@ -193,7 +215,7 @@ function createManagementHono(
         origin: (origin) => {
           return isOriginAllowed(origin) ? origin : null;
         },
-        allowHeaders: ['Content-Type', 'Authorization'],
+        allowHeaders: ['Content-Type', 'Authorization', 'User-Agent'],
         allowMethods: ['POST', 'GET', 'OPTIONS'],
         exposeHeaders: ['Content-Length'],
         maxAge: 600,
@@ -214,7 +236,13 @@ function createManagementHono(
       origin: (origin) => {
         return isOriginAllowed(origin) ? origin : null;
       },
-      allowHeaders: ['content-type', 'Content-Type', 'authorization', 'Authorization'],
+      allowHeaders: [
+        'content-type',
+        'Content-Type',
+        'authorization',
+        'Authorization',
+        'User-Agent',
+      ],
       allowMethods: ['POST', 'OPTIONS'],
       exposeHeaders: ['Content-Length'],
       maxAge: 600,
