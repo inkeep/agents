@@ -61,6 +61,7 @@ export type builderFetchDefinition<R extends z.ZodTypeAny> = {
     body?: Record<string, unknown>;
     transform?: string;
     timeout?: number;
+    requiredToFetch?: Array<string>; // Context variables that are required to run the fetch request. If the given variables cannot be resolved, the fetch request will be skipped.
   };
   responseSchema: R; // Zod Schema for validating HTTP response
   defaultValue?: unknown;
@@ -439,6 +440,11 @@ export function fetchDefinition<R extends z.ZodTypeAny>(
   // Only include timeout if it's defined
   if (fetchConfig.timeout !== undefined) {
     result.fetchConfig.timeout = fetchConfig.timeout;
+  }
+
+  // Only include requiredToFetch if it's defined
+  if (fetchConfig.requiredToFetch !== undefined) {
+    result.fetchConfig.requiredToFetch = fetchConfig.requiredToFetch;
   }
 
   // Only include credentialReferenceId if it's defined
