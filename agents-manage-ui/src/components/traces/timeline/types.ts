@@ -216,8 +216,6 @@ export interface ConversationDetail {
     failureReason: string;
     timestamp: string;
   }>;
-  /** Context breakdown showing token usage by component */
-  contextBreakdown?: ContextBreakdown;
 }
 
 export const TOOL_TYPES = {

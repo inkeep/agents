@@ -327,11 +327,6 @@ export function ConversationDetail({ conversationId, onBack }: ConversationDetai
             })()}
           </CardContent>
         </Card>
-
-        {/* Context Breakdown - only show if available */}
-        {conversation.contextBreakdown && (
-          <ContextBreakdown breakdown={conversation.contextBreakdown} />
-        )}
       </div>
 
       {/* Timeline Panel - Takes remaining height */}

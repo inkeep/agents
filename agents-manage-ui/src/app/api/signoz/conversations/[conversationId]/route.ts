@@ -1539,6 +1539,7 @@ export async function GET(
       const statusMessage = hasError ? getString(span, SPAN_KEYS.STATUS_MESSAGE, '') : '';
       const parentSpanId = spanIdToParentSpanId.get(aiStreamingObject) || undefined;
       const statusMessage = hasError ? getString(span, SPAN_KEYS.STATUS_MESSAGE, '') : '';
+      const parentSpanId = spanIdToParentSpanId.get(aiStreamingObject) || undefined;
       activities.push({
         id: aiStreamingObject,
         type: ACTIVITY_TYPES.AI_MODEL_STREAMED_OBJECT,
@@ -1812,46 +1813,6 @@ export async function GET(
       totalOpenAICalls: openAICallsCount,
     };
 
-    // Extract context breakdown from agent.generate spans
-    let contextBreakdown: {
-      systemPromptTemplate: number;
-      coreInstructions: number;
-      agentPrompt: number;
-      toolsSection: number;
-      artifactsSection: number;
-      dataComponents: number;
-      artifactComponents: number;
-      transferInstructions: number;
-      delegationInstructions: number;
-      thinkingPreparation: number;
-      conversationHistory: number;
-      total: number;
-    } | undefined;
-
-    // Look for context breakdown in agent generation spans
-    for (const spanAttr of allSpanAttributes) {
-      const data = spanAttr.data;
-      // Check if this span has context breakdown attributes
-      if (data['context.breakdown.total_tokens'] !== undefined) {
-        contextBreakdown = {
-          systemPromptTemplate: Number(data['context.breakdown.system_template_tokens']) || 0,
-          coreInstructions: Number(data['context.breakdown.core_instructions_tokens']) || 0,
-          agentPrompt: Number(data['context.breakdown.agent_prompt_tokens']) || 0,
-          toolsSection: Number(data['context.breakdown.tools_tokens']) || 0,
-          artifactsSection: Number(data['context.breakdown.artifacts_tokens']) || 0,
-          dataComponents: Number(data['context.breakdown.data_components_tokens']) || 0,
-          artifactComponents: Number(data['context.breakdown.artifact_components_tokens']) || 0,
-          transferInstructions: Number(data['context.breakdown.transfer_instructions_tokens']) || 0,
-          delegationInstructions:
-            Number(data['context.breakdown.delegation_instructions_tokens']) || 0,
-          thinkingPreparation: Number(data['context.breakdown.thinking_preparation_tokens']) || 0,
-          conversationHistory: Number(data['context.breakdown.conversation_history_tokens']) || 0,
-          total: Number(data['context.breakdown.total_tokens']) || 0,
-        };
-        break; // Use the first agent.generate span with context breakdown
-      }
-    }
-
     return NextResponse.json({
       ...conversation,
       activities,
@@ -1867,7 +1828,7 @@ export async function GET(
       spansWithErrorsCount: spansWithErrorsList.length,
       errorCount: finalErrorCount,
       warningCount: finalWarningCount,
-      contextBreakdown,
+      contextBreakdown
     });
   } catch (error) {
     const logger = getLogger('conversation-details');
