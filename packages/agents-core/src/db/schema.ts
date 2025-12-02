@@ -913,46 +913,6 @@ export const datasetRunConfigAgentRelations = pgTable(
 );
 
 /**
- * Dataset Run Config Evaluation Run Config Relations join table (CONFIG LAYER)
- *
- * Links dataset run configs to evaluation run configs. Many-to-many relationship that
- * allows one dataset run config to trigger multiple evaluation runs, and one evaluation
- * run config to be triggered by multiple dataset run configs.
- *
- * When a datasetRun completes, it can trigger evaluations using the linked evaluation run configs.
- * The `enabled` field controls whether this specific evaluation run config should be triggered.
- *
- * Includes: datasetRunConfigId, evaluationRunConfigId, enabled (defaults to true), and timestamps
- */
-export const datasetRunConfigEvaluationRunConfigRelations = pgTable(
-  'dataset_run_config_evaluation_run_config_relations',
-  {
-    ...projectScoped,
-    datasetRunConfigId: text('dataset_run_config_id').notNull(),
-    evaluationRunConfigId: text('evaluation_run_config_id').notNull(),
-    enabled: boolean('enabled').notNull().default(true),
-    ...timestamps,
-  },
-  (table) => [
-    primaryKey({ columns: [table.tenantId, table.projectId, table.id] }),
-    foreignKey({
-      columns: [table.tenantId, table.projectId, table.datasetRunConfigId],
-      foreignColumns: [datasetRunConfig.tenantId, datasetRunConfig.projectId, datasetRunConfig.id],
-      name: 'dataset_run_config_evaluation_run_config_relations_dataset_run_config_fk',
-    }).onDelete('cascade'),
-    foreignKey({
-      columns: [table.tenantId, table.projectId, table.evaluationRunConfigId],
-      foreignColumns: [
-        evaluationRunConfig.tenantId,
-        evaluationRunConfig.projectId,
-        evaluationRunConfig.id,
-      ],
-      name: 'dataset_run_config_evaluation_run_config_relations_evaluation_run_config_fk',
-    }).onDelete('cascade'),
-  ]
-);
-
-/**
  * Dataset Run table (RUNTIME STORAGE)
  *
  * Execution of a suite of items from a dataset. Represents a batch run that
@@ -1776,7 +1736,6 @@ export const datasetRunConfigRelations = relations(datasetRunConfig, ({ one, man
     references: [dataset.tenantId, dataset.projectId, dataset.id],
   }),
   agents: many(datasetRunConfigAgentRelations),
-  evaluationRunConfigs: many(datasetRunConfigEvaluationRunConfigRelations),
   runs: many(datasetRun),
 }));
 
@@ -1798,32 +1757,6 @@ export const datasetRunConfigAgentRelationsRelations = relations(
         datasetRunConfigAgentRelations.agentId,
       ],
       references: [agents.tenantId, agents.projectId, agents.id],
-    }),
-  })
-);
-
-export const datasetRunConfigEvaluationRunConfigRelationsRelations = relations(
-  datasetRunConfigEvaluationRunConfigRelations,
-  ({ one }) => ({
-    datasetRunConfig: one(datasetRunConfig, {
-      fields: [
-        datasetRunConfigEvaluationRunConfigRelations.tenantId,
-        datasetRunConfigEvaluationRunConfigRelations.projectId,
-        datasetRunConfigEvaluationRunConfigRelations.datasetRunConfigId,
-      ],
-      references: [datasetRunConfig.tenantId, datasetRunConfig.projectId, datasetRunConfig.id],
-    }),
-    evaluationRunConfig: one(evaluationRunConfig, {
-      fields: [
-        datasetRunConfigEvaluationRunConfigRelations.tenantId,
-        datasetRunConfigEvaluationRunConfigRelations.projectId,
-        datasetRunConfigEvaluationRunConfigRelations.evaluationRunConfigId,
-      ],
-      references: [
-        evaluationRunConfig.tenantId,
-        evaluationRunConfig.projectId,
-        evaluationRunConfig.id,
-      ],
     }),
   })
 );
@@ -1953,7 +1886,6 @@ export const evaluationRunConfigRelations = relations(evaluationRunConfig, ({ on
     references: [projects.tenantId, projects.id],
   }),
   suiteConfigs: many(evaluationRunConfigEvaluationSuiteConfigRelations),
-  datasetRunConfigs: many(datasetRunConfigEvaluationRunConfigRelations),
   runs: many(evaluationRun),
 }));
 
