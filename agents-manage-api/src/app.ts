@@ -223,8 +223,8 @@ allowHeaders: ['content-type', 'Content-Type', 'authorization', 'Authorization',
       })
     );
 
-    // Mount the Better Auth handler
-    app.on(['POST', 'GET', 'OPTIONS'], '/api/auth/*', (c) => {
+    // Mount the Better Auth handler (OPTIONS handled by cors middleware above)
+    app.on(['POST', 'GET'], '/api/auth/*', (c) => {
       return auth.handler(c.req.raw);
     });
   }
