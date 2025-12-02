@@ -64,3 +64,5 @@ curl "http://localhost:16686/api/traces?service=inkeep-chat&tags=%7B%22task.id%2
 - **Tool Health**: MCP tools require health checks before use
 - **Agent Discovery**: Agents register via `/.well-known/{subAgentId}/agent.json` endpoints
 
+
+

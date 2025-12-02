@@ -33,3 +33,5 @@ pnpm db:check     # Check schema
 - **To remove migrations, use `pnpm db:drop`** - don't manually delete
 - **Only edit newly generated migrations** before first application
 
+
+

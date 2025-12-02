@@ -80,7 +80,6 @@ export async function getCopilotTokenAction(): Promise<ActionResult<CopilotToken
     // Read cookies and format as a cookie header string
     const cookieStore = await cookies();
     const allCookies = cookieStore.getAll();
-    console.log('allCookies', allCookies);
     const cookieHeader = allCookies.map((c) => `${c.name}=${c.value}`).join('; ');
 
     return {

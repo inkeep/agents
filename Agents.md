@@ -78,10 +78,20 @@ New features should include:
 - **UI**: Components in `agents-manage-ui/`, see [UI development](docs/agent-guides/ui-development.md)
 - **Docs**: MDX in `agents-docs/`, see [documentation guide](docs/agent-guides/documentation.md)
 
+## Before Committing
+
+Always run before committing:
+```bash
+pnpm lint:fix     # Auto-fix lint issues (Biome)
+pnpm format       # Format code
+pnpm typecheck    # Type check
+pnpm test --run   # Run tests
+```
+
 ## Development Workflow
 
 1. Create branch: `git checkout -b feat/your-feature`
-2. Verify: `pnpm test && pnpm typecheck && pnpm build && pnpm lint`
+2. Run pre-commit checks: `pnpm lint:fix && pnpm format && pnpm typecheck && pnpm test --run`
 3. Commit with descriptive message
 4. Create PR: `gh pr create --title "feat: description"`
 
