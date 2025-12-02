@@ -4,10 +4,10 @@ import { type ComponentProps, type FC, useCallback, useEffect, useState } from '
 import { toast } from 'sonner';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import { useAgentActions, useAgentStore } from '@/features/agent/state/use-agent-store';
 import { useMonacoStore } from '@/features/agent/state/use-monaco-store';
 import { addDecorations } from '@/lib/monaco-editor/monaco-utils';
 import { JsonEditor } from './json-editor';
-import { useAgentActions, useAgentStore } from '@/features/agent/state/use-agent-store';
 import './json-editor-with-copy.css';
 
 const handleCopyFieldValue =
