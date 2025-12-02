@@ -82,7 +82,7 @@ describe('Monaco-Editor Functionality', () => {
             "_tokenBrand": undefined,
             "language": "json",
             "offset": 0,
-            "type": "",
+            "type": "delimiter.bracket.json",
           },
         ],
         [
@@ -92,13 +92,35 @@ describe('Monaco-Editor Functionality', () => {
             "offset": 0,
             "type": "",
           },
-        ],
-        [
           Token {
             "_tokenBrand": undefined,
             "language": "json",
-            "offset": 0,
+            "offset": 2,
+            "type": "string.key.json",
+          },
+          Token {
+            "_tokenBrand": undefined,
+            "language": "json",
+            "offset": 8,
+            "type": "delimiter.colon.json",
+          },
+          Token {
+            "_tokenBrand": undefined,
+            "language": "json",
+            "offset": 9,
             "type": "",
+          },
+          Token {
+            "_tokenBrand": undefined,
+            "language": "json",
+            "offset": 10,
+            "type": "keyword.json",
+          },
+          Token {
+            "_tokenBrand": undefined,
+            "language": "json",
+            "offset": 14,
+            "type": "delimiter.comma.json",
           },
         ],
         [
@@ -108,13 +130,35 @@ describe('Monaco-Editor Functionality', () => {
             "offset": 0,
             "type": "",
           },
-        ],
-        [
           Token {
             "_tokenBrand": undefined,
             "language": "json",
-            "offset": 0,
+            "offset": 2,
+            "type": "string.key.json",
+          },
+          Token {
+            "_tokenBrand": undefined,
+            "language": "json",
+            "offset": 10,
+            "type": "delimiter.colon.json",
+          },
+          Token {
+            "_tokenBrand": undefined,
+            "language": "json",
+            "offset": 11,
             "type": "",
+          },
+          Token {
+            "_tokenBrand": undefined,
+            "language": "json",
+            "offset": 12,
+            "type": "number.json",
+          },
+          Token {
+            "_tokenBrand": undefined,
+            "language": "json",
+            "offset": 13,
+            "type": "delimiter.comma.json",
           },
         ],
         [
@@ -124,13 +168,35 @@ describe('Monaco-Editor Functionality', () => {
             "offset": 0,
             "type": "",
           },
-        ],
-        [
           Token {
             "_tokenBrand": undefined,
             "language": "json",
-            "offset": 0,
+            "offset": 2,
+            "type": "string.key.json",
+          },
+          Token {
+            "_tokenBrand": undefined,
+            "language": "json",
+            "offset": 11,
+            "type": "delimiter.colon.json",
+          },
+          Token {
+            "_tokenBrand": undefined,
+            "language": "json",
+            "offset": 12,
             "type": "",
+          },
+          Token {
+            "_tokenBrand": undefined,
+            "language": "json",
+            "offset": 13,
+            "type": "keyword.json",
+          },
+          Token {
+            "_tokenBrand": undefined,
+            "language": "json",
+            "offset": 18,
+            "type": "delimiter.comma.json",
           },
         ],
         [
@@ -140,13 +206,29 @@ describe('Monaco-Editor Functionality', () => {
             "offset": 0,
             "type": "",
           },
-        ],
-        [
           Token {
             "_tokenBrand": undefined,
             "language": "json",
-            "offset": 0,
+            "offset": 2,
+            "type": "string.key.json",
+          },
+          Token {
+            "_tokenBrand": undefined,
+            "language": "json",
+            "offset": 9,
+            "type": "delimiter.colon.json",
+          },
+          Token {
+            "_tokenBrand": undefined,
+            "language": "json",
+            "offset": 10,
             "type": "",
+          },
+          Token {
+            "_tokenBrand": undefined,
+            "language": "json",
+            "offset": 11,
+            "type": "delimiter.array.json",
           },
         ],
         [
@@ -156,13 +238,17 @@ describe('Monaco-Editor Functionality', () => {
             "offset": 0,
             "type": "",
           },
-        ],
-        [
           Token {
             "_tokenBrand": undefined,
             "language": "json",
-            "offset": 0,
-            "type": "",
+            "offset": 4,
+            "type": "keyword.json",
+          },
+          Token {
+            "_tokenBrand": undefined,
+            "language": "json",
+            "offset": 8,
+            "type": "delimiter.comma.json",
           },
         ],
         [
@@ -172,13 +258,11 @@ describe('Monaco-Editor Functionality', () => {
             "offset": 0,
             "type": "",
           },
-        ],
-        [
           Token {
             "_tokenBrand": undefined,
             "language": "json",
-            "offset": 0,
-            "type": "",
+            "offset": 4,
+            "type": "delimiter.bracket.json",
           },
         ],
         [
@@ -188,13 +272,29 @@ describe('Monaco-Editor Functionality', () => {
             "offset": 0,
             "type": "",
           },
-        ],
-        [
           Token {
             "_tokenBrand": undefined,
             "language": "json",
-            "offset": 0,
+            "offset": 6,
+            "type": "string.key.json",
+          },
+          Token {
+            "_tokenBrand": undefined,
+            "language": "json",
+            "offset": 11,
+            "type": "delimiter.colon.json",
+          },
+          Token {
+            "_tokenBrand": undefined,
+            "language": "json",
+            "offset": 12,
             "type": "",
+          },
+          Token {
+            "_tokenBrand": undefined,
+            "language": "json",
+            "offset": 13,
+            "type": "string.value.json",
           },
         ],
         [
@@ -204,13 +304,17 @@ describe('Monaco-Editor Functionality', () => {
             "offset": 0,
             "type": "",
           },
-        ],
-        [
           Token {
             "_tokenBrand": undefined,
             "language": "json",
-            "offset": 0,
-            "type": "",
+            "offset": 4,
+            "type": "delimiter.bracket.json",
+          },
+          Token {
+            "_tokenBrand": undefined,
+            "language": "json",
+            "offset": 5,
+            "type": "delimiter.comma.json",
           },
         ],
         [
@@ -219,6 +323,196 @@ describe('Monaco-Editor Functionality', () => {
             "language": "json",
             "offset": 0,
             "type": "",
+          },
+          Token {
+            "_tokenBrand": undefined,
+            "language": "json",
+            "offset": 4,
+            "type": "delimiter.array.json",
+          },
+        ],
+        [
+          Token {
+            "_tokenBrand": undefined,
+            "language": "json",
+            "offset": 0,
+            "type": "",
+          },
+          Token {
+            "_tokenBrand": undefined,
+            "language": "json",
+            "offset": 6,
+            "type": "number.json",
+          },
+          Token {
+            "_tokenBrand": undefined,
+            "language": "json",
+            "offset": 7,
+            "type": "delimiter.comma.json",
+          },
+        ],
+        [
+          Token {
+            "_tokenBrand": undefined,
+            "language": "json",
+            "offset": 0,
+            "type": "",
+          },
+          Token {
+            "_tokenBrand": undefined,
+            "language": "json",
+            "offset": 6,
+            "type": "string.value.json",
+          },
+        ],
+        [
+          Token {
+            "_tokenBrand": undefined,
+            "language": "json",
+            "offset": 0,
+            "type": "",
+          },
+          Token {
+            "_tokenBrand": undefined,
+            "language": "json",
+            "offset": 4,
+            "type": "delimiter.array.json",
+          },
+        ],
+        [
+          Token {
+            "_tokenBrand": undefined,
+            "language": "json",
+            "offset": 0,
+            "type": "",
+          },
+          Token {
+            "_tokenBrand": undefined,
+            "language": "json",
+            "offset": 2,
+            "type": "delimiter.array.json",
+          },
+          Token {
+            "_tokenBrand": undefined,
+            "language": "json",
+            "offset": 3,
+            "type": "delimiter.comma.json",
+          },
+        ],
+        [
+          Token {
+            "_tokenBrand": undefined,
+            "language": "json",
+            "offset": 0,
+            "type": "",
+          },
+          Token {
+            "_tokenBrand": undefined,
+            "language": "json",
+            "offset": 2,
+            "type": "string.key.json",
+          },
+          Token {
+            "_tokenBrand": undefined,
+            "language": "json",
+            "offset": 10,
+            "type": "delimiter.colon.json",
+          },
+          Token {
+            "_tokenBrand": undefined,
+            "language": "json",
+            "offset": 11,
+            "type": "",
+          },
+          Token {
+            "_tokenBrand": undefined,
+            "language": "json",
+            "offset": 12,
+            "type": "string.value.json",
+          },
+          Token {
+            "_tokenBrand": undefined,
+            "language": "json",
+            "offset": 19,
+            "type": "delimiter.comma.json",
+          },
+        ],
+        [
+          Token {
+            "_tokenBrand": undefined,
+            "language": "json",
+            "offset": 0,
+            "type": "",
+          },
+          Token {
+            "_tokenBrand": undefined,
+            "language": "json",
+            "offset": 2,
+            "type": "string.key.json",
+          },
+          Token {
+            "_tokenBrand": undefined,
+            "language": "json",
+            "offset": 15,
+            "type": "delimiter.colon.json",
+          },
+          Token {
+            "_tokenBrand": undefined,
+            "language": "json",
+            "offset": 16,
+            "type": "",
+          },
+          Token {
+            "_tokenBrand": undefined,
+            "language": "json",
+            "offset": 17,
+            "type": "string.value.json",
+          },
+          Token {
+            "_tokenBrand": undefined,
+            "language": "json",
+            "offset": 19,
+            "type": "delimiter.comma.json",
+          },
+        ],
+        [
+          Token {
+            "_tokenBrand": undefined,
+            "language": "json",
+            "offset": 0,
+            "type": "",
+          },
+          Token {
+            "_tokenBrand": undefined,
+            "language": "json",
+            "offset": 2,
+            "type": "string.key.json",
+          },
+          Token {
+            "_tokenBrand": undefined,
+            "language": "json",
+            "offset": 18,
+            "type": "delimiter.colon.json",
+          },
+          Token {
+            "_tokenBrand": undefined,
+            "language": "json",
+            "offset": 19,
+            "type": "",
+          },
+          Token {
+            "_tokenBrand": undefined,
+            "language": "json",
+            "offset": 20,
+            "type": "string.value.json",
+          },
+        ],
+        [
+          Token {
+            "_tokenBrand": undefined,
+            "language": "json",
+            "offset": 0,
+            "type": "delimiter.bracket.json",
           },
         ],
       ]
