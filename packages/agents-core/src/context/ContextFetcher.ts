@@ -132,7 +132,16 @@ export class ContextFetcher {
     } catch (error) {
       const durationMs = Date.now() - startTime;
       const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-
+      if (error instanceof MissingRequiredVariableError) {
+        logger.error(
+          {
+            definitionId: definition.id,
+            error: errorMessage,
+            durationMs,
+          },
+          'Context fetch skipped due to missing required variable'
+        );
+      }
       logger.error(
         {
           definitionId: definition.id,

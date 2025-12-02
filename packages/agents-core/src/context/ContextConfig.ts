@@ -442,6 +442,11 @@ export function fetchDefinition<R extends z.ZodTypeAny>(
     result.fetchConfig.timeout = fetchConfig.timeout;
   }
 
+  // Only include requiredToFetch if it's defined
+  if (fetchConfig.requiredToFetch !== undefined) {
+    result.fetchConfig.requiredToFetch = fetchConfig.requiredToFetch;
+  }
+
   // Only include credentialReferenceId if it's defined
   if (options.credentialReference?.id !== undefined) {
     result.credentialReferenceId = options.credentialReference.id;
