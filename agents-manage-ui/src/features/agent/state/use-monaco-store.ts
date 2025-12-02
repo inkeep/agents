@@ -73,6 +73,9 @@ const monacoState: StateCreator<MonacoState> = (set, get) => ({
         colors: {
           'diffEditor.insertedTextBackground': '#3784ff19',
           'diffEditor.insertedLineBackground': '#3784ff0d',
+          'scrollbarSlider.background': '#ccc5',
+          'scrollbarSlider.hoverBackground': '#bbb5',
+          'scrollbarSlider.activeBackground': '#aaa5',
         },
       });
 
@@ -83,6 +86,9 @@ const monacoState: StateCreator<MonacoState> = (set, get) => ({
         colors: {
           'diffEditor.insertedTextBackground': '#69a3ff4d',
           'diffEditor.insertedLineBackground': '#69a3ff33',
+          'scrollbarSlider.background': '#aaa5',
+          'scrollbarSlider.hoverBackground': '#bbb5',
+          'scrollbarSlider.activeBackground': '#ccc5',
         },
       });
 
