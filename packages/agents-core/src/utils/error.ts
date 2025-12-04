@@ -22,7 +22,7 @@ const errorCodeToHttpStatus: Record<z.infer<typeof ErrorCode>, number> = {
   internal_server_error: 500,
 };
 
-export const ERROR_DOCS_BASE_URL = 'https://docs.inkeep.com/agents-api/errors';
+export const ERROR_DOCS_BASE_URL = 'https://docs.inkeep.com/api-reference/errors';
 
 export const problemDetailsSchema = z
   .object({

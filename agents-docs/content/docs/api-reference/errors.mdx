@@ -1,0 +1,173 @@
+---
+title: API Errors
+description: Error response format and error codes for the Inkeep Agents API
+icon: "LuAlertTriangle"
+---
+
+The Inkeep Agents API uses the [Problem Details for HTTP APIs](https://datatracker.ietf.org/doc/html/rfc9457) specification (RFC 9457) for error responses. This provides a consistent, machine-readable format for API errors.
+
+## Error Response Format
+
+All error responses are returned with the `application/problem+json` content type and include the following fields:
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `title` | string | A short, human-readable summary of the problem type |
+| `status` | integer | The HTTP status code |
+| `detail` | string | A human-readable explanation specific to this occurrence |
+| `code` | string | A machine-readable error code |
+| `instance` | string | (Optional) URI reference identifying the specific occurrence |
+| `requestId` | string | (Optional) Unique identifier for the request, useful for troubleshooting |
+
+### Example Error Response
+
+```json
+{
+  "title": "Not Found",
+  "status": 404,
+  "detail": "The requested agent with ID 'abc123' was not found.",
+  "code": "not_found",
+  "requestId": "req_1234567890",
+  "error": {
+    "code": "not_found",
+    "message": "The requested agent with ID 'abc123' was not found."
+  }
+}
+```
+
+<Callout type="info">
+The `error` object is included for backward compatibility with legacy clients. New integrations should use the top-level Problem Details fields.
+</Callout>
+
+## Error Codes
+
+### bad_request
+
+**HTTP Status:** 400
+
+The request was malformed or contains invalid parameters. This typically occurs when:
+
+- Required fields are missing from the request body
+- Field values are of the wrong type
+- Query parameters are invalid
+
+**Resolution:** Check the request body and parameters against the API documentation.
+
+---
+
+### unauthorized
+
+**HTTP Status:** 401
+
+Authentication is required but was not provided or is invalid. This occurs when:
+
+- No authentication token is provided
+- The authentication token is expired
+- The authentication token is malformed
+
+**Resolution:** Ensure you include a valid Bearer token in the `Authorization` header. See [Authentication](/api-reference/authentication/manage-api) for details.
+
+---
+
+### forbidden
+
+**HTTP Status:** 403
+
+The authenticated user does not have permission to perform this action. This occurs when:
+
+- Attempting to access resources outside your tenant
+- Attempting operations not allowed for your API key scope
+
+**Resolution:** Verify you have the necessary permissions for this operation.
+
+---
+
+### not_found
+
+**HTTP Status:** 404
+
+The requested resource does not exist. This occurs when:
+
+- The resource ID is incorrect
+- The resource was deleted
+- The resource belongs to a different tenant or project
+
+**Resolution:** Verify the resource ID and ensure you're querying the correct tenant and project.
+
+---
+
+### conflict
+
+**HTTP Status:** 409
+
+The request conflicts with the current state of the resource. This occurs when:
+
+- Attempting to create a resource that already exists
+- Concurrent modification conflicts
+- Unique constraint violations
+
+**Resolution:** Check if the resource already exists or refresh your data before retrying.
+
+---
+
+### unprocessable_entity
+
+**HTTP Status:** 422
+
+The request was well-formed but contains semantic errors. This occurs when:
+
+- Business logic validation fails
+- Referenced resources don't exist
+- Invalid relationships between entities
+
+**Resolution:** Review the `detail` field for specific validation errors and correct the request data.
+
+---
+
+### internal_server_error
+
+**HTTP Status:** 500
+
+An unexpected error occurred on the server. This occurs when:
+
+- Unexpected server-side failures
+- Database connectivity issues
+- Unhandled exceptions
+
+**Resolution:** Retry the request after a short delay. If the problem persists, contact support with the `requestId` from the error response.
+
+## Handling Errors
+
+When handling API errors, we recommend:
+
+1. **Check the `code` field** for programmatic error handling
+2. **Display the `detail` field** for user-facing error messages
+3. **Log the `requestId`** for debugging and support requests
+4. **Implement retry logic** with exponential backoff for 5xx errors
+
+```typescript
+async function handleApiResponse(response: Response) {
+  if (!response.ok) {
+    const error = await response.json();
+    
+    switch (error.code) {
+      case 'unauthorized':
+        // Refresh authentication token
+        break;
+      case 'not_found':
+        // Handle missing resource
+        break;
+      case 'internal_server_error':
+        // Retry with backoff
+        break;
+      default:
+        // Log error details
+        console.error(`API Error [${error.requestId}]:`, error.detail);
+    }
+    
+    throw new Error(error.detail);
+  }
+  
+  return response.json();
+}
+```
