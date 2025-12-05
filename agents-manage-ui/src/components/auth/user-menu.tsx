@@ -1,7 +1,8 @@
 'use client';
 
-import { LogOut, User } from 'lucide-react';
+import { LogOut } from 'lucide-react';
 import { useRouter } from 'next/navigation';
+import { ThemeToggleTabs } from '@/components/theme-toggle-tabs';
 import { Button } from '@/components/ui/button';
 import {
   DropdownMenu,
@@ -33,23 +34,25 @@ export function UserMenu() {
       <DropdownMenuTrigger asChild>
         <Button
           variant="ghost"
-          size="icon"
-          className="size-7 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground text-sidebar-foreground/80 dark:text-sidebar-foreground"
+          className="h-7 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground text-sidebar-foreground/80 dark:text-sidebar-foreground font-sans normal-case px-2"
         >
-          <User className="h-4 w-4" />
-          <span className="sr-only">User menu</span>
+          <span> {user.name ?? user.email}</span>
         </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end">
         <DropdownMenuLabel className="font-normal">
-          <div className="flex flex-col space-y-1">
-            <p className="text-xs text-muted-foreground">{user.email}</p>
+          <div className="flex flex-col space-y-0.5">
+            <p className="text-sm font-medium">{user.name || ''}</p>
+            <p className="text-sm text-muted-foreground">{user.email}</p>
           </div>
         </DropdownMenuLabel>
+        <div className="px-2 pt-1.5 pb-2">
+          <ThemeToggleTabs />
+        </div>
         <DropdownMenuSeparator />
         <DropdownMenuItem onClick={handleSignOut} className="gap-2">
           <LogOut className="h-4 w-4" />
-          Sign out
+          Log out
         </DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenu>

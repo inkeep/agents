@@ -27,6 +27,7 @@ import {
   SidebarMenuButton,
 } from '@/components/ui/sidebar';
 import { DOCS_BASE_URL } from '@/constants/page-descriptions';
+import { useAuthSession } from '@/hooks/use-auth';
 import { InkeepLogo } from '@/icons';
 import { cn } from '@/lib/utils';
 import { throttle } from '@/lib/utils/throttle';
@@ -53,6 +54,7 @@ interface AppSidebarProps extends ComponentProps<typeof Sidebar> {
 
 export const AppSidebar: FC<AppSidebarProps> = ({ open, setOpen, ...props }) => {
   const { tenantId, projectId } = useParams<{ tenantId: string; projectId?: string }>();
+  const { user } = useAuthSession();
 
   const topNavItems: NavItemProps[] = projectId
     ? []
@@ -63,6 +65,14 @@ export const AppSidebar: FC<AppSidebarProps> = ({ open, setOpen, ...props }) => 
           icon: Layers,
         },
       ];
+
+  const orgNavItems: NavItemProps[] = [
+    {
+      title: 'Settings',
+      url: `/${tenantId}/settings`,
+      icon: Settings,
+    },
+  ];
 
   const configureNavItems: NavItemProps[] = projectId
     ? [
@@ -180,7 +190,10 @@ export const AppSidebar: FC<AppSidebarProps> = ({ open, setOpen, ...props }) => 
             <NavGroup label="Monitor" items={monitorNavItems} />
           </div>
         ) : (
-          <NavGroup items={topNavItems} />
+          <div className="flex flex-col gap-1.5">
+            <NavGroup items={topNavItems} />
+            {user && <NavGroup label="Organization" items={orgNavItems} />}
+          </div>
         )}
         <NavGroup items={bottomNavItems} />
       </SidebarContent>

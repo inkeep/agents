@@ -11,9 +11,9 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 
-type ThemeValue = 'dark' | 'light' | 'system';
+export type ThemeValue = 'dark' | 'light' | 'system';
 
-const ThemeMap: Record<ThemeValue, FC<ComponentProps<'svg'>>> = {
+export const ThemeMap: Record<ThemeValue, FC<ComponentProps<'svg'>>> = {
   light: Sun,
   dark: Moon,
   system: Monitor,
@@ -29,7 +29,6 @@ export const ThemeToggle: FC = () => {
     },
     [setTheme]
   );
-
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>

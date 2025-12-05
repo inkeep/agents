@@ -1,10 +1,8 @@
-import { ThemeToggle } from '@/components/theme-toggle';
 import type { BreadcrumbItem } from '@/components/ui/breadcrumbs';
 import { Breadcrumbs } from '@/components/ui/breadcrumbs';
 import { Separator } from '@/components/ui/separator';
 import { SidebarTrigger } from '@/components/ui/sidebar';
-import { OrgMenu } from '../auth/org-menu';
-import { UserMenu } from '../auth/user-menu';
+import { HeaderMenus } from './header-menus';
 
 export function SiteHeader({ breadcrumbs }: { breadcrumbs?: BreadcrumbItem[] }) {
   return (
@@ -13,9 +11,7 @@ export function SiteHeader({ breadcrumbs }: { breadcrumbs?: BreadcrumbItem[] }) 
       <Separator orientation="vertical" className="mx-2 data-[orientation=vertical]:h-4" />
       <Breadcrumbs items={breadcrumbs} />
       <Separator orientation="vertical" className="mx-2 data-[orientation=vertical]:h-4 ml-auto" />
-      <OrgMenu />
-      <UserMenu />
-      <ThemeToggle />
+      <HeaderMenus />
     </header>
   );
 }
