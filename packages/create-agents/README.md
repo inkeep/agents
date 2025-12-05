@@ -20,7 +20,9 @@ npx create-agents my-agent-directory  --project-id my-project --openai-key sk-..
 `@inkeep/create-agents` is a wrapper around the Inkeep CLI's `create` command that sets up a complete Agent Framework directory with:
 
 ### Interactive Mode
+
 Run without arguments for an interactive setup experience:
+
 ```bash
 npx create-agents
 ```
@@ -33,7 +35,9 @@ You'll be prompted for:
 - OpenAI API key (optional)
 
 ### Direct Mode
+
 Specify options directly:
+
 ```bash
 pnpm create-agents my-agent-directory --project-id my-project-id --anthropic-key sk-ant-... --openai-key sk-...
 ```
@@ -51,31 +55,31 @@ After running `@inkeep/create-agents`, you'll have a complete Agent Framework Di
 ```
 my-agent-directory/
 ├── src/
-│   └── <project-id>/           # Agent configurations
-│       ├── hello-agent.ts      # Example agent configuration
-│       ├── inkeep.config.ts    # Inkeep CLI configuration
-│       └── .env                # CLI environment variables
+│   └── <project-id>/            # Agent configurations
+│       ├── hello-agent.ts       # Example agent configuration
+│       ├── inkeep.config.ts     # Inkeep CLI configuration
+│       └── .env                 # CLI environment variables
 ├── apps/
-│   ├── manage-api/             # Manage API service
-│   │   ├── src/index.ts        # API server entry point
-│   │   ├── package.json        # Service dependencies
-│   │   ├── tsconfig.json       # TypeScript config
-│   │   └── .env                # Service environment
-│   ├── run-api/                # Run API service  
-│   │   ├── src/index.ts        # API server entry point
-│   │   ├── package.json        # Service dependencies
-│   │   ├── tsconfig.json       # TypeScript config
-│   │   └── .env                # Service environment
-│   └── shared/                 # Shared code
+│   ├── manage-api/              # Manage API service
+│   │   ├── src/index.ts         # API server entry point
+│   │   ├── package.json         # Service dependencies
+│   │   ├── tsconfig.json        # TypeScript config
+│   │   └── .env                 # Service environment
+│   ├── run-api/                 # Run API service  
+│   │   ├── src/index.ts         # API server entry point
+│   │   ├── package.json         # Service dependencies
+│   │   ├── tsconfig.json        # TypeScript config
+│   │   └── .env                 # Service environment
+│   └── shared/                  # Shared code
 │       └── credential-stores.ts # Credential store config
-├── package.json                # Root package with workspaces
-├── turbo.json                  # Turbo build configuration
-├── drizzle.config.ts           # Database configuration
-├── biome.json                  # Linting and formatting
-├── .env                        # Root environment variables
-├── .env.example                # Environment template
-├── .gitignore                  # Git ignore rules
-└── README.md                   # Project documentation
+├── package.json                 # Root package with workspaces
+├── turbo.jsonc                  # Turbo build configuration
+├── drizzle.config.ts            # Database configuration
+├── biome.json                   # Linting and formatting
+├── .env                         # Root environment variables
+├── .env.example                 # Environment template
+├── .gitignore                   # Git ignore rules
+└── README.md                    # Project documentation
 ```
 
 ## Next Steps
@@ -122,7 +126,8 @@ After setup, you'll have access to:
 The directory includes multiple environment files:
 
 ### Root `.env` (shared configuration)
-```bash
+
+```dotenv
 # AI Provider Keys
 ANTHROPIC_API_KEY=your-anthropic-key-here
 OPENAI_API_KEY=your-openai-key-here
