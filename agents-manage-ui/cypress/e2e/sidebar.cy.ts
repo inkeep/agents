@@ -41,10 +41,10 @@ describe('Sidebar', () => {
     it('should temporarily expands on hover and collapses again on blur', () => {
       cy.visit(`${projectUrl}/agents/weather-agent`);
       cy.get('[data-slot=sidebar]').should('have.attr', 'data-state', 'collapsed');
-      cy.get('[data-slot=sidebar]').trigger('mouseover');
+      cy.get('[data-slot=sidebar]').trigger('mouseenter');
       cy.get('[data-slot=sidebar]').should('have.attr', 'data-state', 'expanded');
       cy.get('.react-flow__node').then(([domEl]) => {
-        cy.get('[data-slot=sidebar]').trigger('mouseout', { relatedTarget: domEl });
+        cy.get('[data-slot=sidebar]').trigger('mouseleave', { relatedTarget: domEl });
       });
       cy.get('[data-slot=sidebar]').should('have.attr', 'data-state', 'collapsed');
     });
