@@ -1,5 +1,38 @@
 # @inkeep/agents-cli
 
+## 0.38.0
+
+### Minor Changes
+
+- 515d808: Upgrade to Vercel AI SDK v6 beta
+
+### Patch Changes
+
+- bcee35f: add requiredToFetch on fetch definitions
+- f1f68cf: new models
+- 6dcb6b7: fix signoz for vercel
+- b3e49d9: updated schemas
+- Updated dependencies [c3ffb34]
+- Updated dependencies [b69b814]
+- Updated dependencies [515d808]
+- Updated dependencies [bcee35f]
+- Updated dependencies [f4628aa]
+- Updated dependencies [a2928eb]
+- Updated dependencies [bc2bb7e]
+- Updated dependencies [a46303b]
+- Updated dependencies [f1f68cf]
+- Updated dependencies [6dcb6b7]
+- Updated dependencies [b3e49d9]
+- Updated dependencies [5fbd137]
+- Updated dependencies [576c9d9]
+- Updated dependencies [4b64b94]
+- Updated dependencies [609e8fe]
+- Updated dependencies [fcbf008]
+- Updated dependencies [e53c50a]
+  - @inkeep/agents-manage-ui@0.38.0
+  - @inkeep/agents-core@0.38.0
+  - @inkeep/agents-sdk@0.38.0
+
 ## 0.37.2
 
 ### Patch Changes
