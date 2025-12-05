@@ -22,7 +22,7 @@
     "@inkeep/agents-core": "workspace:^",
     "@yarnpkg/lockfile": "^1.1.0",
     "esbuild": "^0.25.10",
-    "js-yaml": "^4.1.0",
+    "js-yaml": "^4.1.1",
     "nanoid": "^5.1.5",
     "typescript": "^5.3.3",
     "zod": "^4.1.11"
