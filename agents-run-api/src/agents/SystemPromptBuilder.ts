@@ -1,5 +1,5 @@
 import { getLogger } from '../logger';
-import type { VersionConfig } from './types';
+import type { AssembleResult, VersionConfig } from './types';
 
 const logger = getLogger('SystemPromptBuilder');
 
@@ -35,13 +35,16 @@ export class SystemPromptBuilder<TConfig> {
     }
   }
 
-  public buildSystemPrompt(config: TConfig): string {
+  /**
+   * Build the system prompt and return both the prompt string and token breakdown
+   */
+  public buildSystemPrompt(config: TConfig): AssembleResult {
     this.loadTemplates();
 
     // Validate that all required template variables are present
     this.validateTemplateVariables(config);
 
-    // Let the version config handle assembly
+    // Let the version config handle assembly - returns prompt and breakdown
     return this.versionConfig.assemble(this.templates, config);
   }
 
