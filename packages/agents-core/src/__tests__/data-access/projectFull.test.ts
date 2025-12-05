@@ -433,6 +433,7 @@ describe('projectFull data access', () => {
       const updatedProjectWithOneFunction: FullProjectDefinition = {
         ...projectWithFunctions,
         functions: {
+          // biome-ignore lint/style/noNonNullAssertion: ignore in test
           [func1Id]: projectWithFunctions.functions![func1Id],
         },
       };
@@ -496,6 +497,7 @@ describe('projectFull data access', () => {
       const updatedProjectWithOneCredential: FullProjectDefinition = {
         ...projectWithCredentials,
         credentialReferences: {
+          // biome-ignore lint/style/noNonNullAssertion: ignore in test
           [cred1Id]: projectWithCredentials.credentialReferences![cred1Id],
         },
       };
@@ -557,6 +559,7 @@ describe('projectFull data access', () => {
       const updatedProjectWithOneExternalAgent: FullProjectDefinition = {
         ...projectWithExternalAgents,
         externalAgents: {
+          // biome-ignore lint/style/noNonNullAssertion: ignore in test
           [ext1Id]: projectWithExternalAgents.externalAgents![ext1Id],
         },
       };
@@ -628,6 +631,7 @@ describe('projectFull data access', () => {
       const updatedProjectWithOneDataComponent: FullProjectDefinition = {
         ...projectWithDataComponents,
         dataComponents: {
+          // biome-ignore lint/style/noNonNullAssertion: ignore in test
           [data1Id]: projectWithDataComponents.dataComponents![data1Id],
         },
       };
@@ -687,6 +691,7 @@ describe('projectFull data access', () => {
       const updatedProjectWithOneArtifactComponent: FullProjectDefinition = {
         ...projectWithArtifactComponents,
         artifactComponents: {
+          // biome-ignore lint/style/noNonNullAssertion: ignore in test
           [artifact1Id]: projectWithArtifactComponents.artifactComponents![artifact1Id],
         },
       };

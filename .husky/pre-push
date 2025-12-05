@@ -35,7 +35,8 @@ run_with_timeout() {
   fi
   
   # Run command in background and capture PID and process group
-  pnpm check:husky &
+  # Force stream UI mode (not TUI) for non-interactive git hook environment
+  TURBO_UI=stream pnpm check:husky &
   local cmd_pid=$!
   local pgid=$(ps -o pgid= -p $cmd_pid 2>/dev/null | tr -d ' ' || echo "")
   

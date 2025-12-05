@@ -63,11 +63,7 @@ export function ChatWidget({
   const { isCopilotConfigured } = useCopilotContext();
   const [isFeedbackDialogOpen, setIsFeedbackDialogOpen] = useState(false);
   const [messageId, setMessageId] = useState<string | undefined>(undefined);
-  const {
-    apiKey: tempApiKey,
-    isLoading: isLoadingKey,
-    refresh: refreshToken,
-  } = useTempApiKey({
+  const { apiKey: tempApiKey, isLoading: isLoadingKey } = useTempApiKey({
     tenantId,
     projectId,
     agentId: agentId || '',
