@@ -201,7 +201,9 @@ describe('OpenAPI Specification - Integration Tests', () => {
         console.error('  pnpm --filter @inkeep/agents-manage-api openapi:update-snapshot');
         console.error('═'.repeat(70));
         console.error('\n');
-        throw new Error(`OpenAPI snapshot not found. Run 'pnpm --filter @inkeep/agents-manage-api openapi:update-snapshot' to create it.`);
+        throw new Error(
+          `OpenAPI snapshot not found. Run 'pnpm --filter @inkeep/agents-manage-api openapi:update-snapshot' to create it.`
+        );
       }
 
       // Read and parse the snapshot
@@ -247,8 +249,15 @@ describe('OpenAPI Specification - Integration Tests', () => {
           console.error('');
         }
 
-        if (addedPaths.length === 0 && removedPaths.length === 0 && addedSchemas.length === 0 && removedSchemas.length === 0) {
-          console.error('  ⚠️  Changes detected in existing paths/schemas (not additions or removals)');
+        if (
+          addedPaths.length === 0 &&
+          removedPaths.length === 0 &&
+          addedSchemas.length === 0 &&
+          removedSchemas.length === 0
+        ) {
+          console.error(
+            '  ⚠️  Changes detected in existing paths/schemas (not additions or removals)'
+          );
           console.error('');
         }
 
