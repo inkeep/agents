@@ -29,7 +29,6 @@ export const ThemeToggle: FC = () => {
     },
     [setTheme]
   );
-
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
