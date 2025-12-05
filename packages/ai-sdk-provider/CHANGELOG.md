@@ -1,5 +1,29 @@
 # @inkeep/ai-sdk-provider
 
+## 0.38.0
+
+### Minor Changes
+
+- 515d808: Upgrade to Vercel AI SDK v6 beta
+
+### Patch Changes
+
+- b69b814: fix biome warnings
+- bcee35f: add requiredToFetch on fetch definitions
+- f1f68cf: new models
+- 6dcb6b7: fix signoz for vercel
+- b3e49d9: updated schemas
+- Updated dependencies [b69b814]
+- Updated dependencies [515d808]
+- Updated dependencies [bcee35f]
+- Updated dependencies [a46303b]
+- Updated dependencies [f1f68cf]
+- Updated dependencies [6dcb6b7]
+- Updated dependencies [b3e49d9]
+- Updated dependencies [5fbd137]
+- Updated dependencies [fcbf008]
+  - @inkeep/agents-core@0.38.0
+
 ## 0.37.2
 
 ### Patch Changes

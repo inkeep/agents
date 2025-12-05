@@ -1,5 +1,31 @@
 # @inkeep/agents-manage-api
 
+## 0.38.0
+
+### Minor Changes
+
+- 515d808: Upgrade to Vercel AI SDK v6 beta
+
+### Patch Changes
+
+- 2cf1070: fix CORS for Vercel preview/production deployments by using VERCEL_URL env vars for subdomain matching
+- bcee35f: add requiredToFetch on fetch definitions
+- 6ee52a8: fix Safari and Firefox CORS issue by adding User-Agent to allowed headers for auth routes
+- f1f68cf: new models
+- 6dcb6b7: fix signoz for vercel
+- b3e49d9: updated schemas
+- Updated dependencies [b69b814]
+- Updated dependencies [515d808]
+- Updated dependencies [bcee35f]
+- Updated dependencies [a46303b]
+- Updated dependencies [f1f68cf]
+- Updated dependencies [6dcb6b7]
+- Updated dependencies [b3e49d9]
+- Updated dependencies [5fbd137]
+- Updated dependencies [fcbf008]
+  - @inkeep/agents-core@0.38.0
+  - @inkeep/agents-manage-mcp@0.38.0
+
 ## 0.37.2
 
 ### Patch Changes
