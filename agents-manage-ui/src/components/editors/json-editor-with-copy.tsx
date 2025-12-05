@@ -1,9 +1,10 @@
-import { Copy, Download } from 'lucide-react';
+import { Copy, Download, TextWrap } from 'lucide-react';
 import type * as Monaco from 'monaco-editor';
 import { type ComponentProps, type FC, useCallback, useEffect, useState } from 'react';
 import { toast } from 'sonner';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import { useAgentActions, useAgentStore } from '@/features/agent/state/use-agent-store';
 import { useMonacoStore } from '@/features/agent/state/use-monaco-store';
 import { addDecorations } from '@/lib/monaco-editor/monaco-utils';
 import { JsonEditor } from './json-editor';
@@ -46,6 +47,9 @@ type JsonEditorWithCopyProps = Pick<ComponentProps<typeof JsonEditor>, 'uri' | '
 export const JsonEditorWithCopy: FC<JsonEditorWithCopyProps> = ({ title, uri, value }) => {
   const [editor, setEditor] = useState<Monaco.editor.IStandaloneCodeEditor>();
   const monaco = useMonacoStore((state) => state.monaco);
+  const { toggleTextWrap } = useAgentActions();
+  const hasTextWrap = useAgentStore((state) => state.hasTextWrap);
+
   const handleCopyCode = useCallback(async () => {
     const code = editor?.getValue() ?? '';
     try {
@@ -123,6 +127,9 @@ export const JsonEditorWithCopy: FC<JsonEditorWithCopyProps> = ({ title, uri, va
         readOnly
         className="inkeep-readonly-monaco-editor"
         onMount={handleOnMount}
+        editorOptions={{
+          wordWrap: hasTextWrap ? 'on' : 'off',
+        }}
       >
         <div className="absolute end-2 top-2 flex gap-1 z-1">
           <Button variant="ghost" size="icon-sm" title="Download File" onClick={handleDownloadCode}>
@@ -130,6 +137,9 @@ export const JsonEditorWithCopy: FC<JsonEditorWithCopyProps> = ({ title, uri, va
           </Button>
           <Button variant="ghost" size="icon-sm" title="Copy Code" onClick={handleCopyCode}>
             <Copy />
+          </Button>
+          <Button variant="ghost" size="icon-sm" title="Toggle Word Wrap" onClick={toggleTextWrap}>
+            <TextWrap />
           </Button>
         </div>
       </JsonEditor>
