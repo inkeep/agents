@@ -72,7 +72,7 @@
     "@opentelemetry/sdk-node": "^0.203.0",
     "@opentelemetry/sdk-trace-node": "^2.0.1",
     "@opentelemetry/semantic-conventions": "^1.34.0",
-    "ai": "6.0.0-beta.124",
+    "ai": "6.0.0-beta.125",
     "ajv": "^8.17.1",
     "ajv-formats": "^3.0.1",
     "better-auth": "^1.4.0",
