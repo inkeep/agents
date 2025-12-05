@@ -20,7 +20,7 @@
     "watch": "node scripts/watch-and-fetch.mjs"
   },
   "dependencies": {
-    "@modelcontextprotocol/sdk": "^1.17.0",
+    "@modelcontextprotocol/sdk": "^1.24.0",
     "@stricli/core": "^1.1.2",
     "bun": "^1.2.12",
     "express": "^5.1.0",
