@@ -1,5 +1,22 @@
+import fs from 'node:fs';
+import path from 'node:path';
 import { beforeAll, describe, expect, it } from 'vitest';
 import { makeRequest } from '../utils/testRequest';
+
+// Helper to deeply sort object keys for consistent comparison
+function sortObjectKeys(obj: any): any {
+  if (typeof obj !== 'object' || obj === null) return obj;
+  if (Array.isArray(obj)) return obj.map(sortObjectKeys);
+  return Object.keys(obj)
+    .sort()
+    .reduce(
+      (acc, key) => {
+        acc[key] = sortObjectKeys(obj[key]);
+        return acc;
+      },
+      {} as Record<string, any>
+    );
+}
 
 describe('OpenAPI Specification - Integration Tests', () => {
   describe('GET /openapi.json', () => {
@@ -149,6 +166,106 @@ describe('OpenAPI Specification - Integration Tests', () => {
       // Verify the cached spec is valid JSON
       expect(cachedSpec).toBeDefined();
       expect(typeof cachedSpec).toBe('object');
+    });
+
+    it('should match the OpenAPI snapshot', async () => {
+      const snapshotDir = path.resolve(__dirname, '../../../__snapshots__');
+      const snapshotPath = path.resolve(snapshotDir, 'openapi.json');
+
+      // Normalize the current spec (remove environment-specific values)
+      const normalizedSpec = sortObjectKeys({
+        ...cachedSpec,
+        servers: [{ url: 'http://localhost:3002', description: 'API Server' }],
+      });
+
+      // Check if we should update the snapshot (via env var)
+      if (process.env.UPDATE_OPENAPI_SNAPSHOT === 'true') {
+        if (!fs.existsSync(snapshotDir)) {
+          fs.mkdirSync(snapshotDir, { recursive: true });
+        }
+        fs.writeFileSync(snapshotPath, JSON.stringify(normalizedSpec, null, 2) + '\n', 'utf-8');
+        console.log(`\n✓ Updated OpenAPI snapshot at ${snapshotPath}\n`);
+        return; // Skip comparison when updating
+      }
+
+      // Check if snapshot exists
+      if (!fs.existsSync(snapshotPath)) {
+        console.error('\n');
+        console.error('═'.repeat(70));
+        console.error('  ❌ OpenAPI SNAPSHOT NOT FOUND');
+        console.error('═'.repeat(70));
+        console.error(`  Snapshot file does not exist at:`);
+        console.error(`  ${snapshotPath}`);
+        console.error('');
+        console.error('  To create the initial snapshot, run:');
+        console.error('  pnpm --filter @inkeep/agents-manage-api openapi:update-snapshot');
+        console.error('═'.repeat(70));
+        console.error('\n');
+        throw new Error(`OpenAPI snapshot not found. Run 'pnpm --filter @inkeep/agents-manage-api openapi:update-snapshot' to create it.`);
+      }
+
+      // Read and parse the snapshot
+      const snapshotContent = fs.readFileSync(snapshotPath, 'utf-8');
+      const snapshotSpec = JSON.parse(snapshotContent);
+      const normalizedSnapshot = sortObjectKeys(snapshotSpec);
+
+      // Compare
+      const currentJson = JSON.stringify(normalizedSpec, null, 2);
+      const snapshotJson = JSON.stringify(normalizedSnapshot, null, 2);
+
+      if (currentJson !== snapshotJson) {
+        // Find what changed for helpful output
+        const currentPaths = Object.keys(normalizedSpec.paths || {});
+        const snapshotPaths = Object.keys(normalizedSnapshot.paths || {});
+        const addedPaths = currentPaths.filter((p) => !snapshotPaths.includes(p));
+        const removedPaths = snapshotPaths.filter((p) => !currentPaths.includes(p));
+
+        const currentSchemas = Object.keys(normalizedSpec.components?.schemas || {});
+        const snapshotSchemas = Object.keys(normalizedSnapshot.components?.schemas || {});
+        const addedSchemas = currentSchemas.filter((s) => !snapshotSchemas.includes(s));
+        const removedSchemas = snapshotSchemas.filter((s) => !currentSchemas.includes(s));
+
+        console.error('\n');
+        console.error('═'.repeat(70));
+        console.error('  ❌ OpenAPI SNAPSHOT MISMATCH');
+        console.error('═'.repeat(70));
+        console.error('');
+        console.error('  The generated OpenAPI spec differs from the committed snapshot.');
+        console.error('');
+
+        if (addedPaths.length > 0 || removedPaths.length > 0) {
+          console.error('  📍 PATH CHANGES:');
+          addedPaths.forEach((p) => console.error(`     + ${p}`));
+          removedPaths.forEach((p) => console.error(`     - ${p}`));
+          console.error('');
+        }
+
+        if (addedSchemas.length > 0 || removedSchemas.length > 0) {
+          console.error('  📦 SCHEMA CHANGES:');
+          addedSchemas.forEach((s) => console.error(`     + ${s}`));
+          removedSchemas.forEach((s) => console.error(`     - ${s}`));
+          console.error('');
+        }
+
+        if (addedPaths.length === 0 && removedPaths.length === 0 && addedSchemas.length === 0 && removedSchemas.length === 0) {
+          console.error('  ⚠️  Changes detected in existing paths/schemas (not additions or removals)');
+          console.error('');
+        }
+
+        console.error('  ─'.repeat(35));
+        console.error('');
+        console.error('  If this change is INTENTIONAL:');
+        console.error('    pnpm --filter @inkeep/agents-manage-api openapi:update-snapshot');
+        console.error('');
+        console.error('  If this change is UNINTENTIONAL:');
+        console.error('    Review your changes to the API routes and schemas.');
+        console.error('');
+        console.error('═'.repeat(70));
+        console.error('\n');
+
+        // Use expect for the actual assertion (will show in test output)
+        expect(currentJson).toBe(snapshotJson);
+      }
     });
   });
 });
