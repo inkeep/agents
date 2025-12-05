@@ -1,17 +1,9 @@
 'use client';
 
-import { Monitor, Moon, Sun } from 'lucide-react';
 import { useTheme } from 'next-themes';
-import { type ComponentProps, type FC, useEffect, useState } from 'react';
+import { type FC, useEffect, useState } from 'react';
+import { ThemeMap } from '@/components/theme-toggle';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
-
-type ThemeValue = 'dark' | 'light' | 'system';
-
-const ThemeMap: Record<ThemeValue, FC<ComponentProps<'svg'>>> = {
-  light: Sun,
-  dark: Moon,
-  system: Monitor,
-};
 
 export const ThemeToggleTabs: FC = () => {
   const { theme, setTheme } = useTheme();
