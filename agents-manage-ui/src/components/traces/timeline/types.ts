@@ -110,6 +110,8 @@ export interface ActivityItem {
   // Tool approval fields
   approvalToolName?: string;
   approvalToolCallId?: string;
+  // Context breakdown for AI generation spans
+  contextBreakdown?: ContextBreakdown;
 }
 
 export interface ToolCall {
