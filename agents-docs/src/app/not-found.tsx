@@ -3,6 +3,8 @@
 import Link from 'next/link';
 import { useEffect } from 'react';
 
+import { Button } from '@/components/ui/button';
+
 export default function NotFound() {
   useEffect(() => {
     document.documentElement.style.overflow = 'hidden';
@@ -23,12 +25,9 @@ export default function NotFound() {
       <p className="text-fd-muted-foreground mb-8 text-center max-w-md">
         The page you&apos;re looking for doesn&apos;t exist or has been moved.
       </p>
-      <Link
-        href="/"
-        className="inline-flex items-center justify-center rounded-md bg-fd-primary px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-fd-primary/90"
-      >
-        Go to Overview
-      </Link>
+      <Button asChild>
+        <Link href="/">Go to Overview</Link>
+      </Button>
     </div>
   );
 }
