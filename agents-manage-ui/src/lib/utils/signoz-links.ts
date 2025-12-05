@@ -52,3 +52,64 @@ export function getSignozTracesExplorerUrl(conversationId: string, signozUrl?: s
 
   return `${url}/traces-explorer?compositeQuery=${encodedCompositeQuery}&relativeTime=1month`;
 }
+
+/**
+ * Generate a SigNoz Traces Explorer URL scoped to a specific tool call in a conversation.
+ */
+export function getSignozToolCallUrl(
+  conversationId: string,
+  toolName: string,
+  signozUrl?: string
+): string {
+  const compositeQuery = {
+    queryType: 'builder',
+    builder: {
+      queryData: [
+        {
+          dataSource: 'traces',
+          queryName: 'A',
+          aggregateOperator: 'count',
+          timeAggregation: 'rate',
+          spaceAggregation: 'sum',
+          filters: {
+            op: 'AND',
+            items: [
+              {
+                op: 'in',
+                key: {
+                  id: 'conversation.id',
+                  key: 'conversation.id',
+                  dataType: 'string',
+                  type: 'tag',
+                },
+                value: conversationId,
+              },
+              {
+                op: '=',
+                key: {
+                  id: 'ai.toolCall.name',
+                  key: 'ai.toolCall.name',
+                  dataType: 'string',
+                  type: 'tag',
+                },
+                value: toolName,
+              },
+            ],
+          },
+          expression: 'A',
+        },
+      ],
+      queryFormulas: [],
+      queryTraceOperator: [],
+    },
+    promql: [{ name: 'A', query: '', legend: '', disabled: false }],
+    clickhouse_sql: [{ name: 'A', query: '', legend: '', disabled: false }],
+  };
+
+  const encodedCompositeQuery = encodeURIComponent(
+    encodeURIComponent(JSON.stringify(compositeQuery))
+  );
+  const url = signozUrl || DEFAULT_SIGNOZ_URL;
+
+  return `${url}/traces-explorer?compositeQuery=${encodedCompositeQuery}&relativeTime=2w`;
+}
