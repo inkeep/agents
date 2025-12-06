@@ -111,7 +111,17 @@ html {
 #nd-page {
   /* max-width: calc(var(--fd-page-width) - var(--fd-sidebar-width)); */
   max-width: calc(100% - var(--fd-sidebar-width));
-  @apply mx-0!;
+  @apply mx-0! h-full min-h-0;
+}
+
+@media (min-width: 1024px) {
+  #nd-page {
+    padding-top: 0 !important;
+  }
+}
+
+#nd-page > #nd-toc {
+  @apply pt-6! pb-4;
 }
 
 #nd-page > article {

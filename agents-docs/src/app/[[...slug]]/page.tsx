@@ -30,14 +30,14 @@ export default async function Page(props: PageProps<'/[[...slug]]'>) {
         style: 'clerk',
         enabled: page.data.toc.length > 0,
       }}
+      tableOfContentPopover={{
+        enabled: false,
+      }}
       breadcrumb={{
         component: <Breadcrumb tree={source.pageTree} />,
       }}
       footer={{
         component: <Footer url={page.url} />,
-      }}
-      container={{
-        className: 'lg:pt-0! [&>#nd-toc]:!pt-6 [&>#nd-toc]:pb-4 h-full min-h-0',
       }}
     >
       <div className="flex items-center justify-between">
