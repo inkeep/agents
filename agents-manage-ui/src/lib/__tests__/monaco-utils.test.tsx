@@ -47,8 +47,9 @@ describe('Monaco-Editor Functionality', () => {
     model?.dispose();
     container?.remove();
 
-    // Wait for any pending operations to complete
-    await new Promise((resolve) => setTimeout(resolve, 30));
+    // Wait for any pending operations to complete, including web worker cleanup.
+    // Increased timeout to handle slower CI environments.
+    await new Promise((resolve) => setTimeout(resolve, 100));
   });
 
   it('should test monaco.editor.tokenize with proper worker initialization', async () => {
