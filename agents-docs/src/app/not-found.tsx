@@ -22,11 +22,11 @@ export default function NotFound() {
       aria-labelledby="error-title"
     >
       <h1 id="error-title" className="sr-only">404 - Page Not Found</h1>
-      <div className="text-6xl font-bold text-fd-muted-foreground mb-4" aria-hidden="true">404</div>
-      <h2 className="text-xl font-medium text-fd-muted-foreground mb-6">
+      <div className="text-6xl font-bold text-muted-foreground mb-4" aria-hidden="true">404</div>
+      <h2 className="text-xl font-medium text-muted-foreground mb-6">
         This page could not be found.
       </h2>
-      <p className="text-fd-muted-foreground mb-8 text-center max-w-md">
+      <p className="text-muted-foreground mb-8 text-center max-w-md">
         The page you&apos;re looking for doesn&apos;t exist or has been moved.
       </p>
       <Button asChild>
