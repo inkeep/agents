@@ -51,6 +51,7 @@ interface AgentPersistedStateData {
    */
   jsonSchemaMode: boolean;
   isSidebarPinnedOpen: boolean;
+  hasTextWrap: boolean;
 }
 
 interface AgentActions {
@@ -101,6 +102,10 @@ interface AgentActions {
    * Setter for `isSidebarSessionOpen` and `isSidebarPinnedOpen` fields.
    */
   setSidebarOpen(state: { isSidebarSessionOpen: boolean; isSidebarPinnedOpen?: boolean }): void;
+  /**
+   * Toggle of `hasTextWrap` field.
+   */
+  toggleTextWrap(): void;
 
   animateGraph: EventListenerOrEventListenerObject;
 }
@@ -145,6 +150,7 @@ const agentState: StateCreator<AgentState> = (set, get) => ({
   ...initialAgentState,
   jsonSchemaMode: false,
   isSidebarPinnedOpen: true,
+  hasTextWrap: true,
   // Separate "namespace" for actions
   actions: {
     setInitial(
@@ -511,6 +517,11 @@ const agentState: StateCreator<AgentState> = (set, get) => ({
         ...(typeof isSidebarPinnedOpen === 'boolean' && { isSidebarPinnedOpen }),
       });
     },
+    toggleTextWrap() {
+      set((prevState) => ({
+        hasTextWrap: !prevState.hasTextWrap,
+      }));
+    },
   },
 });
 
@@ -522,6 +533,7 @@ export const agentStore = create<AgentState>()(
         return {
           jsonSchemaMode: state.jsonSchemaMode,
           isSidebarPinnedOpen: state.isSidebarPinnedOpen,
+          hasTextWrap: state.hasTextWrap,
         };
       },
     })

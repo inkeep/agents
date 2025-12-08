@@ -90,7 +90,7 @@
     "dagre": "^0.8.5",
     "date-fns": "^4.1.0",
     "diff": "^8.0.2",
-    "lucide-react": "^0.539.0",
+    "lucide-react": "^0.555.0",
     "monaco-editor": "0.54.0",
     "nanoid": "^5.1.5",
     "next": "16.0.7",

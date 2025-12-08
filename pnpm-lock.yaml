@@ -579,8 +579,8 @@ importers:
         specifier: ^8.0.2
         version: 8.0.2
       lucide-react:
-        specifier: ^0.539.0
-        version: 0.539.0(react@19.2.0)
+        specifier: ^0.555.0
+        version: 0.555.0(react@19.2.0)
       monaco-editor:
         specifier: 0.54.0
         version: 0.54.0
@@ -8809,6 +8809,11 @@ packages:
 
   lucide-react@0.542.0:
     resolution: {integrity: sha512-w3hD8/SQB7+lzU2r4VdFyzzOzKnUjTZIF/MQJGSSvni7Llewni4vuViRppfRAa2guOsY5k4jZyxw/i9DQHv+dw==}
+    peerDependencies:
+      react: ^16.5.1 || ^17.0.0 || ^18.0.0 || ^19.0.0
+
+  lucide-react@0.555.0:
+    resolution: {integrity: sha512-D8FvHUGbxWBRQM90NZeIyhAvkFfsh3u9ekrMvJ30Z6gnpBHS6HC6ldLg7tL45hwiIz/u66eKDtdA23gwwGsAHA==}
     peerDependencies:
       react: ^16.5.1 || ^17.0.0 || ^18.0.0 || ^19.0.0
 
@@ -20766,6 +20771,10 @@ snapshots:
       react: 19.2.0
 
   lucide-react@0.542.0(react@19.2.0):
+    dependencies:
+      react: 19.2.0
+
+  lucide-react@0.555.0(react@19.2.0):
     dependencies:
       react: 19.2.0
 
