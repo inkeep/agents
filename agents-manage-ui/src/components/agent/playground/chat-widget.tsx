@@ -1,7 +1,7 @@
 'use client';
 import { InkeepEmbeddedChat } from '@inkeep/agents-ui';
 import type { InkeepCallbackEvent, InvokeMessageCallbackActionArgs } from '@inkeep/agents-ui/types';
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { type Dispatch, useCallback, useEffect, useRef, useState } from 'react';
 import { DynamicComponentRenderer } from '@/components/data-components/render/dynamic-component-renderer';
 import type { ConversationDetail } from '@/components/traces/timeline/types';
 import { useRuntimeConfig } from '@/contexts/runtime-config-context';
@@ -22,6 +22,7 @@ interface ChatWidgetProps {
   customHeaders?: Record<string, string>;
   chatActivities: ConversationDetail | null;
   dataComponentLookup?: Record<string, DataComponent>;
+  setShowTraces: Dispatch<boolean>;
 }
 
 const styleOverrides = `
@@ -58,6 +59,7 @@ export function ChatWidget({
   customHeaders = {},
   chatActivities,
   dataComponentLookup = {},
+  setShowTraces,
 }: ChatWidgetProps) {
   const { PUBLIC_INKEEP_AGENTS_RUN_API_URL } = useRuntimeConfig();
   const { isCopilotConfigured } = useCopilotContext();
@@ -253,6 +255,7 @@ export function ChatWidget({
           onOpenChange={setIsFeedbackDialogOpen}
           conversationId={conversationId}
           messageId={messageId}
+          setShowTraces={setShowTraces}
         />
       )}
     </div>
