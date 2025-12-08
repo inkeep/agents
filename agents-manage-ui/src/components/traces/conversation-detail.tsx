@@ -21,6 +21,7 @@ import { ExternalLink } from '@/components/ui/external-link';
 import { ResizablePanelGroup } from '@/components/ui/resizable';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useRuntimeConfig } from '@/contexts/runtime-config-context';
+import { getManageApiUrl } from '@/lib/api/api-config';
 import { getSignozTracesExplorerUrl } from '@/lib/utils/signoz-links';
 import { copyTraceToClipboard } from '@/lib/utils/trace-formatter';
 import { SignozLink } from './signoz-link';
@@ -70,7 +71,11 @@ export function ConversationDetail({ conversationId, onBack }: ConversationDetai
       try {
         setLoading(true);
         setError(null);
-        const response = await fetch(`/api/signoz/conversations/${conversationId}`);
+        
+        const response = await fetch(
+          `/api/signoz/conversations/${conversationId}?tenantId=${tenantId}&projectId=${projectId}`
+        );
+        
         if (!response.ok) throw new Error('Failed to fetch conversation details');
         const data = await response.json();
         setConversation(data);
@@ -81,8 +86,8 @@ export function ConversationDetail({ conversationId, onBack }: ConversationDetai
       }
     };
 
-    if (conversationId) fetchConversationDetail();
-  }, [conversationId]);
+    if (conversationId && tenantId && projectId) fetchConversationDetail();
+  }, [conversationId, tenantId, projectId]);
 
   if (loading) {
     return (

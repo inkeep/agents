@@ -1,6 +1,7 @@
 import axios from 'axios';
 import axiosRetry from 'axios-retry';
 import { z } from 'zod';
+import { getManageApiUrl } from './api-config';
 import {
   AGGREGATE_OPERATORS,
   AI_OPERATIONS,
@@ -146,13 +147,35 @@ axiosRetry(axios, {
 });
 
 class SigNozStatsAPI {
-  private async makeRequest<T = any>(payload: any): Promise<T> {
-    const response = await axios.post<T>('/api/signoz', payload, {
-      timeout: 30000,
-      headers: {
-        'Content-Type': 'application/json',
-      },
-    });
+  private tenantId: string | null = null;
+
+  setTenantId(tenantId: string) {
+    this.tenantId = tenantId;
+  }
+
+  private async makeRequest<T = any>(payload: any, projectId?: string): Promise<T> {
+    if (!this.tenantId) {
+      throw new Error('TenantId not set. Call setTenantId() before making requests.');
+    }
+
+    const manageApiUrl = getManageApiUrl();
+    
+    const requestPayload = {
+      ...payload,
+      ...(projectId && { projectId }),
+    };
+
+    const response = await axios.post<T>(
+      `${manageApiUrl}/tenants/${this.tenantId}/signoz/query`,
+      requestPayload,
+      {
+        timeout: 30000,
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        withCredentials: true,
+      }
+    );
     return response.data;
   }
 
@@ -184,6 +207,9 @@ class SigNozStatsAPI {
       );
     } catch (e) {
       console.error('getConversationStats error:', e);
+      if (axios.isAxiosError(e) && e.response?.status === 403) {
+        console.error('Access denied to project:', projectId);
+      }
       return {
         data: [],
         pagination: {
@@ -2534,8 +2560,14 @@ class SigNozStatsAPI {
 
 let signozStatsClient: SigNozStatsAPI | null = null;
 
-export function getSigNozStatsClient(): SigNozStatsAPI {
-  return (signozStatsClient ??= new SigNozStatsAPI());
+export function getSigNozStatsClient(tenantId?: string): SigNozStatsAPI {
+  const client = (signozStatsClient ??= new SigNozStatsAPI());
+  
+  if (tenantId) {
+    client.setTenantId(tenantId);
+  }
+  
+  return client;
 }
 
 export { SigNozStatsAPI };

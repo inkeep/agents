@@ -120,7 +120,7 @@ export function AICallsBreakdown({ onBack }: AICallsBreakdownProps) {
         setLoading(true);
         setError(null);
 
-        const client = getSigNozStatsClient();
+        const client = getSigNozStatsClient(tenantId as string);
 
         const agentId = selectedAgent === 'all' ? undefined : selectedAgent;
         const modelId = selectedModel === 'all' ? undefined : selectedModel;

@@ -1,4 +1,6 @@
 import { useEffect, useState } from 'react';
+import { useParams } from 'next/navigation';
+import { getManageApiUrl } from '@/lib/api/api-config';
 
 interface SignozConfigStatus {
   status: string;
@@ -7,6 +9,7 @@ interface SignozConfigStatus {
 }
 
 export function useSignozConfig() {
+  const { tenantId } = useParams();
   const [isLoading, setIsLoading] = useState(true);
   const [configError, setConfigError] = useState<string | null>(null);
 
@@ -14,7 +17,8 @@ export function useSignozConfig() {
     const checkConfig = async () => {
       try {
         setIsLoading(true);
-        const response = await fetch('/api/signoz');
+        const manageApiUrl = getManageApiUrl();
+        const response = await fetch(`${manageApiUrl}/tenants/${tenantId}/signoz/health`);
         if (!response.ok) {
           throw new Error('Failed to check Signoz configuration');
         }
@@ -28,8 +32,10 @@ export function useSignozConfig() {
       }
     };
 
-    checkConfig();
-  }, []);
+    if (tenantId) {
+      checkConfig();
+    }
+  }, [tenantId]);
 
   return { isLoading, configError };
 }
