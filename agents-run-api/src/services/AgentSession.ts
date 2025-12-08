@@ -622,17 +622,17 @@ export class AgentSession {
     if (this.pendingArtifacts.size > 0) {
       const maxWaitTime = 10000; // 10 seconds max wait
       const startTime = Date.now();
-      
-      while (this.pendingArtifacts.size > 0 && (Date.now() - startTime) < maxWaitTime) {
-        await new Promise(resolve => setTimeout(resolve, 100)); // Wait 100ms between checks
+
+      while (this.pendingArtifacts.size > 0 && Date.now() - startTime < maxWaitTime) {
+        await new Promise((resolve) => setTimeout(resolve, 100)); // Wait 100ms between checks
       }
-      
+
       if (this.pendingArtifacts.size > 0) {
         logger.warn(
-          { 
+          {
             sessionId: this.sessionId,
             pendingCount: this.pendingArtifacts.size,
-            pendingIds: Array.from(this.pendingArtifacts)
+            pendingIds: Array.from(this.pendingArtifacts),
           },
           'Cleanup proceeding with pending artifacts still processing'
         );
@@ -1567,7 +1567,7 @@ Make it specific and relevant.`;
             if (!this.artifactService) {
               throw new Error('ArtifactService is not initialized');
             }
-            
+
             await this.artifactService.saveArtifact({
               artifactId: artifactData.artifactId,
               name: result.name,

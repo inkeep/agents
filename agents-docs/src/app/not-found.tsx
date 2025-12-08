@@ -21,8 +21,12 @@ export default function NotFound() {
       className="fixed inset-0 top-[var(--fd-nav-height)] flex flex-col items-center justify-center px-4 bg-background text-foreground"
       aria-labelledby="error-title"
     >
-      <h1 id="error-title" className="sr-only">404 - Page Not Found</h1>
-      <div className="text-6xl font-bold text-muted-foreground mb-4" aria-hidden="true">404</div>
+      <h1 id="error-title" className="sr-only">
+        404 - Page Not Found
+      </h1>
+      <div className="text-6xl font-bold text-muted-foreground mb-4" aria-hidden="true">
+        404
+      </div>
       <h2 className="text-xl font-medium text-muted-foreground mb-6">
         This page could not be found.
       </h2>
