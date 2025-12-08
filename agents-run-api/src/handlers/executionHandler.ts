@@ -320,7 +320,7 @@ export class ExecutionHandler {
               });
             }
 
-            agentSessionManager.endSession(requestId);
+            await agentSessionManager.endSession(requestId);
             unregisterStreamHelper(requestId);
             return { success: false, error: errorMessage, iterations };
           }
@@ -499,7 +499,7 @@ export class ExecutionHandler {
 
               // End the AgentSession and clean up resources
               logger.info({}, 'Ending AgentSession and cleaning up');
-              agentSessionManager.endSession(requestId);
+              await agentSessionManager.endSession(requestId);
 
               // Clean up streamHelper
               logger.info({}, 'Cleaning up streamHelper');
@@ -551,7 +551,7 @@ export class ExecutionHandler {
             });
           }
 
-          agentSessionManager.endSession(requestId);
+          await agentSessionManager.endSession(requestId);
           unregisterStreamHelper(requestId);
           return { success: false, error: errorMessage, iterations };
         }
@@ -579,7 +579,7 @@ export class ExecutionHandler {
         });
       }
       // Clean up AgentSession and streamHelper on error
-      agentSessionManager.endSession(requestId);
+      await agentSessionManager.endSession(requestId);
       unregisterStreamHelper(requestId);
       return { success: false, error: errorMessage, iterations };
     } catch (error) {
@@ -607,7 +607,7 @@ export class ExecutionHandler {
         });
       }
       // Clean up AgentSession and streamHelper on exception
-      agentSessionManager.endSession(requestId);
+      await agentSessionManager.endSession(requestId);
       unregisterStreamHelper(requestId);
       return { success: false, error: errorMessage, iterations };
     }
