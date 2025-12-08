@@ -608,7 +608,7 @@ export class AgentSession {
   /**
    * Clean up status update resources when session ends
    */
-  cleanup(): void {
+  async cleanup(): Promise<void> {
     // Mark session as ended
     this.isEnded = true;
 
@@ -617,6 +617,27 @@ export class AgentSession {
       this.statusUpdateTimer = undefined;
     }
     this.statusUpdateState = undefined;
+
+    // Wait for pending artifacts to complete before cleaning up artifactService
+    if (this.pendingArtifacts.size > 0) {
+      const maxWaitTime = 10000; // 10 seconds max wait
+      const startTime = Date.now();
+
+      while (this.pendingArtifacts.size > 0 && Date.now() - startTime < maxWaitTime) {
+        await new Promise((resolve) => setTimeout(resolve, 100)); // Wait 100ms between checks
+      }
+
+      if (this.pendingArtifacts.size > 0) {
+        logger.warn(
+          {
+            sessionId: this.sessionId,
+            pendingCount: this.pendingArtifacts.size,
+            pendingIds: Array.from(this.pendingArtifacts),
+          },
+          'Cleanup proceeding with pending artifacts still processing'
+        );
+      }
+    }
 
     // Clean up artifact tracking maps to prevent memory leaks
     this.pendingArtifacts.clear();
@@ -1543,6 +1564,10 @@ Make it specific and relevant.`;
           }
 
           try {
+            if (!this.artifactService) {
+              throw new Error('ArtifactService is not initialized');
+            }
+
             await this.artifactService.saveArtifact({
               artifactId: artifactData.artifactId,
               name: result.name,
@@ -1775,7 +1800,7 @@ export class AgentSessionManager {
   /**
    * End a session and return the final event data
    */
-  endSession(sessionId: string): AgentSessionEvent[] {
+  async endSession(sessionId: string): Promise<AgentSessionEvent[]> {
     const session = this.sessions.get(sessionId);
     if (!session) {
       logger.warn({ sessionId }, 'Attempted to end non-existent session');
@@ -1787,7 +1812,7 @@ export class AgentSessionManager {
 
     logger.info({ sessionId, summary }, 'AgentSession ended');
 
-    session.cleanup();
+    await session.cleanup();
 
     this.sessions.delete(sessionId);
 

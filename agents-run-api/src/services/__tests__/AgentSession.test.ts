@@ -74,10 +74,10 @@ describe('AgentSession', () => {
     session = new AgentSession('test-session', 'test-message', 'test-agent');
   });
 
-  afterEach(() => {
+  afterEach(async () => {
     // Clean up any sessions
-    session.cleanup();
-    agentSessionManager.endSession('test-session');
+    await session.cleanup();
+    await agentSessionManager.endSession('test-session');
   });
 
   describe('Basic Session Management', () => {
@@ -580,7 +580,7 @@ describe('AgentSession', () => {
       }).not.toThrow();
     });
 
-    it('should end sessions via manager', () => {
+    it('should end sessions via manager', async () => {
       agentSessionManager.createSession('manager-test', 'test-agent');
       const retrieved = agentSessionManager.getSession('manager-test');
 
@@ -597,7 +597,7 @@ describe('AgentSession', () => {
       });
       expect(retrieved?.getEvents()).toHaveLength(2);
 
-      const finalEvents = agentSessionManager.endSession('manager-test');
+      const finalEvents = await agentSessionManager.endSession('manager-test');
       expect(finalEvents).toHaveLength(2);
 
       // Session should be removed from manager
@@ -892,7 +892,7 @@ describe('AgentSession', () => {
       expect(statusState.config.prompt).toContain('\n');
     });
 
-    it('should properly pass custom prompt through AgentSessionManager', () => {
+    it('should properly pass custom prompt through AgentSessionManager', async () => {
       const customPrompt = 'Manager-level custom prompt test';
       const config: StatusUpdateSettings = {
         numEvents: 2,
@@ -912,7 +912,7 @@ describe('AgentSession', () => {
       expect((retrievedSession as any)?.statusUpdateState?.config.prompt).toBe(customPrompt);
 
       // Cleanup
-      agentSessionManager.endSession(sessionId);
+      await agentSessionManager.endSession(sessionId);
     });
 
     it('should handle session not found gracefully in manager', () => {
