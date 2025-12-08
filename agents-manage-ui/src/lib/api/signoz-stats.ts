@@ -207,9 +207,6 @@ class SigNozStatsAPI {
       );
     } catch (e) {
       console.error('getConversationStats error:', e);
-      if (axios.isAxiosError(e) && e.response?.status === 403) {
-        console.error('Access denied to project:', projectId);
-      }
       return {
         data: [],
         pagination: {

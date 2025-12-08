@@ -6,18 +6,8 @@ import {
   ACTIVITY_STATUS,
   ACTIVITY_TYPES,
   AGENT_IDS,
-  AGGREGATE_OPERATORS,
-  AI_OPERATIONS,
-  DATA_SOURCES,
-  OPERATORS,
-  ORDER_DIRECTIONS,
-  PANEL_TYPES,
-  QUERY_DEFAULTS,
   QUERY_EXPRESSIONS,
-  QUERY_FIELD_CONFIGS,
-  QUERY_TYPES,
   SPAN_KEYS,
-  SPAN_NAMES,
   UNKNOWN_VALUE,
 } from '@/constants/signoz';
 import { getLogger } from '@/lib/logger';
@@ -37,8 +27,6 @@ type SigNozListItem = { data?: Record<string, any>; [k: string]: any };
 type SigNozResp = {
   data?: { result?: Array<{ queryName?: string; list?: SigNozListItem[] }> };
 };
-
-const START_2020_MS = new Date('2020-01-01T00:00:00Z').getTime();
 
 function getField(span: SigNozListItem, key: string) {
   const d = span?.data ?? span;
@@ -104,10 +92,7 @@ async function signozQuery(
         throw new Error(`SigNoz service unavailable: ${e.message}`);
       }
       if (e.response?.status === 401 || e.response?.status === 403) {
-        throw new Error(`Access denied: ${e.response.statusText}`);
-      }
-      if (e.response?.status === 404) {
-        throw new Error(`Conversation not found`);
+        throw new Error(`SigNoz authentication failed: ${e.response.statusText}`);
       }
       if (e.response?.status === 400) {
         throw new Error(`Invalid SigNoz query: ${e.response.statusText}`);
@@ -144,10 +129,10 @@ export async function GET(
     return NextResponse.json({ error: 'Conversation ID is required' }, { status: 400 });
   }
 
-  // Get tenantId and projectId from URL search params or headers
+  // Get tenantId and projectId from URL search params
   const url = new URL(req.url);
   const tenantId = url.searchParams.get('tenantId') || 'default';
-  const projectId = url.searchParams.get('projectId') || 'test-agents';
+  const projectId = url.searchParams.get('projectId') || '';
 
   try {
     // Forward cookies from the original request for authentication
@@ -848,8 +833,8 @@ export async function GET(
     if (errorMessage.includes('SigNoz service unavailable')) {
       return NextResponse.json({ error: errorMessage }, { status: 503 });
     }
-    if (errorMessage.includes('Access denied') || errorMessage.includes('Conversation not found')) {
-      return NextResponse.json({ error: errorMessage }, { status: 403 });
+    if (errorMessage.includes('SigNoz authentication failed')) {
+      return NextResponse.json({ error: errorMessage }, { status: 502 });
     }
     if (errorMessage.includes('Invalid SigNoz query')) {
       return NextResponse.json({ error: errorMessage }, { status: 400 });

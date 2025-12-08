@@ -1,6 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import type { ConversationDetail } from '@/components/traces/timeline/types';
-import { getManageApiUrl } from '@/lib/api/api-config';
 
 interface UseChatActivitiesPollingOptions {
   conversationId: string;
