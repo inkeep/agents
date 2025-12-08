@@ -104,7 +104,7 @@ export default function Layout({ children }: LayoutProps<'/'>) {
   return (
     <html lang="en" className={cn(inter.className, 'antialiased')} suppressHydrationWarning>
       <body
-        className="flex flex-col min-h-screen"
+        className="flex flex-col min-h-screen bg-background"
         // Suppress hydration warnings in development caused by browser extensions
         suppressHydrationWarning={process.env.NODE_ENV !== 'production'}
       >
@@ -116,6 +116,7 @@ export default function Layout({ children }: LayoutProps<'/'>) {
               title: <Logo className="!w-[110px] !h-[32px]" />,
             }}
             sidebar={{
+              className: 'bg-background',
               banner: (
                 <div className="flex gap-2">
                   <Button
