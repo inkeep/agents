@@ -264,6 +264,8 @@ THE details PROPERTY MUST CONTAIN JMESPATH SELECTORS THAT EXTRACT DATA FROM THE 
 ❌ NEVER: [?text ~ contains(@, 'word')] (~ with @ operator)
 ❌ NEVER: contains(@, 'text') (@ operator usage)
 ❌ NEVER: [?field=="value"] (double quotes in filters)
+❌ NEVER: [?field==\'value\'] (escaped quotes in filters)  
+❌ NEVER: [?field=='\"'\"'value'\"'\"'] (nightmare quote mixing)
 ❌ NEVER: result.items[?type=='doc'][?status=='active'] (chained filters)
 
 ✅ CORRECT JMESPATH SYNTAX:
@@ -274,6 +276,11 @@ THE details PROPERTY MUST CONTAIN JMESPATH SELECTORS THAT EXTRACT DATA FROM THE 
 ✅ [?type=='doc' && status=='active'] (single filter with &&)
 ✅ [?contains(text, 'Founder')] (contains haystack, needle format)
 ✅ source.content[?contains(text, 'Founder')].text (correct filter usage)
+
+🚨 MANDATORY QUOTE PATTERN - FOLLOW EXACTLY:
+- ALWAYS: base="path[?field=='value']" (double quotes outside, single inside)
+- This is the ONLY allowed pattern - any other pattern WILL FAIL
+- NEVER escape quotes, NEVER mix quote types, NEVER use complex quoting
 
 🚨 CRITICAL: EXAMINE TOOL RESULTS BEFORE CREATING SELECTORS! 🚨
 
@@ -313,7 +320,7 @@ Only use artifact:ref when you need to cite the SAME artifact again for a differ
 Format: <artifact:ref id="artifact-id" tool="tool_call_id" />
 
 EXAMPLE TEXT RESPONSE:
-"I found the authentication documentation. <artifact:create id='auth-doc-1' tool='call_xyz789' type='APIDoc' base='result.documents[?type=="auth"]' details='{"title":"metadata.title","endpoint":"api.endpoint","description":"content.description","parameters":"spec.parameters","examples":"examples.sample_code"}' /> The documentation explains OAuth 2.0 implementation in detail.
+"I found the authentication documentation. <artifact:create id='auth-doc-1' tool='call_xyz789' type='APIDoc' base="result.documents[?type=='auth']" details='{"title":"metadata.title","endpoint":"api.endpoint","description":"content.description","parameters":"spec.parameters","examples":"examples.sample_code"}' /> The documentation explains OAuth 2.0 implementation in detail.
 
 The process involves three main steps: registration, token exchange, and API calls. As mentioned in the authentication documentation <artifact:ref id='auth-doc-1' tool='call_xyz789' />, you'll need to register your application first."
 

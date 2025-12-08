@@ -2,9 +2,13 @@
 # Pre-push hook for Agent Framework
 #
 # This hook runs before each push to ensure code quality.
-# It runs a single optimized turbo command (pnpm check:husky) that:
-#   - Builds once (cached and reused by all tasks)
-#   - Runs lint, typecheck, and test in parallel after build
+# It uses turbo's affected-only filtering to only check packages
+# that have changed since origin/main, making it much faster.
+#
+# Performance optimizations:
+#   - Only checks packages affected by your changes (--filter='...[origin/main]')
+#   - Uses turbo remote caching when configured (see scripts/setup-turbo-cache.sh)
+#   - Excludes docs and cookbook templates from checks
 #
 # Usage:
 #   Normal push:                      git push
@@ -18,11 +22,44 @@ set -e
 TIMEOUT_SECONDS=300  # 5 minutes timeout
 RETRY_COUNT=1
 
-echo "🚀 Running pre-push checks..."
-echo "   Step 1: pnpm check:husky (build, lint, typecheck, unit tests)"
-
 # Ensure we're in the repository root
 cd "$(git rev-parse --show-toplevel)" || exit 1
+
+# Determine the base ref for affected filtering
+# Try to use origin/main, fall back to HEAD~1 if not available
+get_base_ref() {
+  if git rev-parse --verify origin/main >/dev/null 2>&1; then
+    echo "origin/main"
+  elif git rev-parse --verify main >/dev/null 2>&1; then
+    echo "main"
+  else
+    # Fallback: compare against parent commit
+    echo "HEAD~1"
+  fi
+}
+
+BASE_REF=$(get_base_ref)
+
+# Check if there are any changes affecting packages
+has_package_changes() {
+  # Check if any non-ignored files have changed
+  git diff --name-only "$BASE_REF"...HEAD 2>/dev/null | grep -qvE '^(\.github/|docs/|\.md$|\.txt$)' || \
+  git diff --name-only HEAD 2>/dev/null | grep -qvE '^(\.github/|docs/|\.md$|\.txt$)'
+}
+
+echo "🚀 Running pre-push checks..."
+echo "   Using affected-only mode (comparing against $BASE_REF)"
+
+# Show cache status
+if [ -n "$TURBO_TOKEN" ] && [ -n "$TURBO_TEAM" ]; then
+  echo "   ✅ Remote caching enabled (team: $TURBO_TEAM)"
+else
+  echo "   ⚠️  Remote caching not configured (run: pnpm turbo:login)"
+fi
+
+# Build the turbo command with affected-only filtering
+# Excludes: agents-cookbook-templates, agents-docs (docs don't need pre-push validation)
+TURBO_FILTER="--filter='...[$BASE_REF]' --filter='!agents-cookbook-templates' --filter='!@inkeep/agents-docs'"
 
 # Function to run command with timeout detection
 run_with_timeout() {
@@ -36,7 +73,7 @@ run_with_timeout() {
   
   # Run command in background and capture PID and process group
   # Force stream UI mode (not TUI) for non-interactive git hook environment
-  TURBO_UI=stream pnpm check:husky &
+  eval "TURBO_UI=stream pnpm turbo check:husky $TURBO_FILTER" &
   local cmd_pid=$!
   local pgid=$(ps -o pgid= -p $cmd_pid 2>/dev/null | tr -d ' ' || echo "")
   

@@ -66,3 +66,6 @@ dist/
 out/
 .source/
 vite.config.d.ts
+
+# Turborepo
+.turbo
