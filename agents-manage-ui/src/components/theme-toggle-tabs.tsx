@@ -1,19 +1,16 @@
 'use client';
 
 import { useTheme } from 'next-themes';
-import { type FC, useEffect, useState } from 'react';
+import type { FC } from 'react';
 import { ThemeMap } from '@/components/theme-toggle';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { useIsMounted } from '@/hooks/use-is-mounted';
 
 export const ThemeToggleTabs: FC = () => {
   const { theme, setTheme } = useTheme();
-  const [mounted, setMounted] = useState(false);
+  const isMounted = useIsMounted();
 
-  useEffect(() => {
-    setMounted(true);
-  }, []);
-
-  if (!mounted) {
+  if (!isMounted) {
     return null;
   }
 
