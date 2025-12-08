@@ -20,7 +20,7 @@ export default defineConfig({
   resolve: {
     alias: {
       '@': path.resolve(__dirname, './src'),
-      '@inkeep/agents-eval-mcp': path.resolve(__dirname, '../packages/agents-eval-mcp'),
+      '@inkeep/agents-eval-mcp': path.resolve(__dirname, '../packages/agents-eval-mcp/src'),
     },
   },
 });

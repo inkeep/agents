@@ -12,28 +12,27 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import type { EvaluationStatus } from '@/lib/evaluation/pass-criteria-evaluator';
 
-export interface EvaluationResultFilters {
-  status?: EvaluationStatus | 'all';
-  evaluatorId?: string;
+export interface TestCaseFilters {
+  agentId?: string;
+  outputStatus?: 'all' | 'has_output' | 'no_output';
   searchInput?: string;
 }
 
-interface EvaluationResultsFiltersProps {
-  filters: EvaluationResultFilters;
-  onFiltersChange: (filters: EvaluationResultFilters) => void;
-  evaluators: Array<{ id: string; name: string }>;
+interface TestCaseFiltersProps {
+  filters: TestCaseFilters;
+  onFiltersChange: (filters: TestCaseFilters) => void;
+  agents: Array<{ id: string; name: string }>;
 }
 
-export function EvaluationResultsFilters({
+export function TestCaseFilters({
   filters,
   onFiltersChange,
-  evaluators,
-}: EvaluationResultsFiltersProps) {
+  agents,
+}: TestCaseFiltersProps) {
   const [isExpanded, setIsExpanded] = useState(false);
 
-  const updateFilter = (key: keyof EvaluationResultFilters, value: any) => {
+  const updateFilter = (key: keyof TestCaseFilters, value: string) => {
     onFiltersChange({
       ...filters,
       [key]: value === '' ? undefined : value,
@@ -55,7 +54,7 @@ export function EvaluationResultsFilters({
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
           <Input
             type="text"
-            placeholder="Search input..."
+            placeholder="Search test cases..."
             value={filters.searchInput || ''}
             onChange={(e) => updateFilter('searchInput', e.target.value)}
             className="pl-9 h-9"
@@ -82,43 +81,42 @@ export function EvaluationResultsFilters({
         <div className="rounded-lg border bg-muted/50 p-4">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="space-y-2">
-              <Label htmlFor="status-filter" className="text-xs font-medium">
-                Status
+              <Label htmlFor="agent-filter" className="text-xs font-medium">
+                Agent
               </Label>
               <Select
-                value={filters.status || 'all'}
-                onValueChange={(value) => updateFilter('status', value)}
+                value={filters.agentId || 'all'}
+                onValueChange={(value) => updateFilter('agentId', value === 'all' ? '' : value)}
               >
-                <SelectTrigger id="status-filter" className="h-9">
-                  <SelectValue placeholder="All statuses" />
+                <SelectTrigger id="agent-filter" className="h-9">
+                  <SelectValue placeholder="All agents" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="all">All Statuses</SelectItem>
-                  <SelectItem value="passed">Passed</SelectItem>
-                  <SelectItem value="failed">Failed</SelectItem>
-                  <SelectItem value="no_criteria">No Criteria</SelectItem>
+                  <SelectItem value="all">All Agents</SelectItem>
+                  {agents.map((agent) => (
+                    <SelectItem key={agent.id} value={agent.id}>
+                      {agent.name}
+                    </SelectItem>
+                  ))}
                 </SelectContent>
               </Select>
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="evaluator-filter" className="text-xs font-medium">
-                Evaluator
+              <Label htmlFor="output-filter" className="text-xs font-medium">
+                Output Status
               </Label>
               <Select
-                value={filters.evaluatorId || 'all'}
-                onValueChange={(value) => updateFilter('evaluatorId', value === 'all' ? undefined : value)}
+                value={filters.outputStatus || 'all'}
+                onValueChange={(value) => updateFilter('outputStatus', value)}
               >
-                <SelectTrigger id="evaluator-filter" className="h-9">
-                  <SelectValue placeholder="All evaluators" />
+                <SelectTrigger id="output-filter" className="h-9">
+                  <SelectValue placeholder="All outputs" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="all">All Evaluators</SelectItem>
-                  {evaluators.map((evaluator) => (
-                    <SelectItem key={evaluator.id} value={evaluator.id}>
-                      {evaluator.name}
-                    </SelectItem>
-                  ))}
+                  <SelectItem value="all">All Outputs</SelectItem>
+                  <SelectItem value="has_output">Has Output</SelectItem>
+                  <SelectItem value="no_output">No Output</SelectItem>
                 </SelectContent>
               </Select>
             </div>

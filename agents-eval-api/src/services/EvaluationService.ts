@@ -1,5 +1,6 @@
 import type { DatasetItemSelect, FullAgentDefinition, ModelSettings } from '@inkeep/agents-core';
 import {
+  ModelFactory,
   conversations,
   createEvaluationResult,
   createEvaluationRun,
@@ -18,7 +19,6 @@ import { z } from 'zod';
 import dbClient from '../data/db/dbClient';
 import { env } from '../env';
 import { getLogger } from '../logger';
-import { ModelFactory } from '../utils/ModelFactory';
 
 const logger = getLogger('EvaluationService');
 
@@ -1343,17 +1343,17 @@ Return your evaluation as a JSON object matching the schema above.`;
               continue;
             }
 
+            // Max retries reached - still return the trace we have, just log a warning
             logger.warn(
-              { conversationId, maxRetries },
-              'Max retries reached, ai_assistant_message not found in activities'
+              { conversationId, maxRetries, activityCount: conversationDetail.activities?.length || 0 },
+              'Max retries reached, ai_assistant_message not found - proceeding with available trace data'
             );
-            return null;
+          } else {
+            logger.info(
+              { conversationId, activityCount: conversationDetail.activities?.length || 0, attempt: attempt + 1 },
+              'Trace fetched successfully with ai_assistant_message'
+            );
           }
-
-          logger.info(
-            { conversationId, activityCount: conversationDetail.activities?.length || 0, attempt: attempt + 1 },
-            'Trace fetched successfully with ai_assistant_message'
-          );
 
           const prettifiedTrace = this.formatConversationAsPrettifiedTrace(conversationDetail);
 

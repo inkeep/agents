@@ -1,6 +1,7 @@
 'use client';
 
 import { Plus } from 'lucide-react';
+import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -13,6 +14,9 @@ import { EvaluationRunConfigFormDialog } from '../evaluation-run-configs/evaluat
 import { EvaluationRunConfigsList } from '../evaluation-run-configs/evaluation-run-configs-list';
 import { EvaluatorFormDialog } from '../evaluators/evaluator-form-dialog';
 import { EvaluatorsList } from '../evaluators/evaluators-list';
+
+const VALID_TABS = ['evaluators', 'jobs', 'run-configs'] as const;
+type TabValue = (typeof VALID_TABS)[number];
 
 interface EvaluationsTabsProps {
   tenantId: string;
@@ -29,7 +33,20 @@ export function EvaluationsTabs({
   jobConfigs,
   runConfigs,
 }: EvaluationsTabsProps) {
-  const [activeTab, setActiveTab] = useState('evaluators');
+  const router = useRouter();
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
+
+  const tabParam = searchParams.get('tab');
+  const activeTab: TabValue = VALID_TABS.includes(tabParam as TabValue)
+    ? (tabParam as TabValue)
+    : 'evaluators';
+
+  const setActiveTab = (tab: string) => {
+    const params = new URLSearchParams(searchParams.toString());
+    params.set('tab', tab);
+    router.replace(`${pathname}?${params.toString()}`, { scroll: false });
+  };
   const [isCreateEvaluatorOpen, setIsCreateEvaluatorOpen] = useState(false);
   const [isCreateJobOpen, setIsCreateJobOpen] = useState(false);
   const [isCreateRunConfigOpen, setIsCreateRunConfigOpen] = useState(false);

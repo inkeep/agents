@@ -133,10 +133,6 @@
       "description": "Get Evaluation Job Config by ID"
     },
     {
-      "name": "evaluations-update-evaluation-job-config",
-      "description": "Update Evaluation Job Config"
-    },
-    {
       "name": "evaluations-delete-evaluation-job-config",
       "description": "Delete Evaluation Job Config"
     },

@@ -31,12 +31,15 @@ import {
   deleteEvaluationSuiteConfigEvaluatorRelation,
   deleteEvaluator,
   generateId,
+  getAgentById,
+  getConversation,
   getDatasetById,
+  subAgents,
+  datasetRun,
   getDatasetItemById,
   getDatasetRunById,
   getDatasetRunConfigAgentRelations,
   getDatasetRunConfigById,
-  getDatasetRunConfigEvaluationRunConfigRelations,
   getDatasetRunConversationRelations,
   getEvaluationJobConfigById,
   getEvaluationJobConfigEvaluatorRelations,
@@ -62,14 +65,13 @@ import {
   TenantProjectParamsSchema,
   updateDataset,
   updateDatasetItem,
-  updateDatasetRun,
   updateDatasetRunConfig,
-  updateEvaluationJobConfig,
   updateEvaluationResult,
   updateEvaluationRunConfig,
   updateEvaluationSuiteConfig,
   updateEvaluator,
 } from '@inkeep/agents-core';
+import { and, eq } from 'drizzle-orm';
 import { z } from 'zod';
 import dbClient from '../data/db/dbClient';
 import { inngest } from '../inngest';
@@ -1713,106 +1715,6 @@ app.openapi(
 
 app.openapi(
   createRoute({
-    method: 'patch',
-    path: '/evaluation-job-configs/{configId}',
-    summary: 'Update Evaluation Job Config',
-    operationId: 'update-evaluation-job-config',
-    tags: ['Evaluations'],
-    request: {
-      params: TenantProjectParamsSchema.extend({ configId: z.string() }),
-      body: {
-        content: {
-          'application/json': {
-            schema: EvaluationJobConfigApiUpdateSchema,
-          },
-        },
-      },
-    },
-    responses: {
-      200: {
-        description: 'Evaluation job config updated',
-        content: {
-          'application/json': {
-            schema: SingleResponseSchema(EvaluationJobConfigApiSelectSchema),
-          },
-        },
-      },
-      ...commonGetErrorResponses,
-    },
-  }),
-  async (c) => {
-    const { tenantId, projectId, configId } = c.req.valid('param');
-    const configData = c.req.valid('json') as any;
-    const { evaluatorIds, ...jobConfigUpdateData } = configData;
-
-    try {
-      const updated = await updateEvaluationJobConfig(dbClient)({
-        scopes: { tenantId, projectId, evaluationJobConfigId: configId },
-        data: jobConfigUpdateData,
-      });
-
-      if (!updated) {
-        return c.json(
-          createApiError({ code: 'not_found', message: 'Evaluation job config not found' }),
-          404
-        ) as any;
-      }
-
-      // Update evaluator relations if provided
-      if (evaluatorIds !== undefined) {
-        // Get existing relations
-        const existingRelations = await getEvaluationJobConfigEvaluatorRelations(dbClient)({
-          scopes: { tenantId, projectId, evaluationJobConfigId: configId },
-        });
-
-        const existingEvaluatorIds = existingRelations.map((rel) => rel.evaluatorId);
-        const newEvaluatorIds = Array.isArray(evaluatorIds) ? evaluatorIds : [];
-
-        // Delete relations that are no longer in the list
-        const toDelete = existingEvaluatorIds.filter((id) => !newEvaluatorIds.includes(id));
-        await Promise.all(
-          toDelete.map((evaluatorId) =>
-            deleteEvaluationJobConfigEvaluatorRelation(dbClient)({
-              scopes: { tenantId, projectId, evaluationJobConfigId: configId, evaluatorId },
-            })
-          )
-        );
-
-        // Create new relations
-        const toCreate = newEvaluatorIds.filter((id) => !existingEvaluatorIds.includes(id));
-        await Promise.all(
-          toCreate.map((evaluatorId) =>
-            createEvaluationJobConfigEvaluatorRelation(dbClient)({
-              tenantId,
-              projectId,
-              id: generateId(),
-              evaluationJobConfigId: configId,
-              evaluatorId,
-            } as any)
-          )
-        );
-      }
-
-      logger.info({ tenantId, projectId, configId }, 'Evaluation job config updated');
-      return c.json({ data: updated as any }) as any;
-    } catch (error) {
-      logger.error(
-        { error, tenantId, projectId, configId },
-        'Failed to update evaluation job config'
-      );
-      return c.json(
-        createApiError({
-          code: 'internal_server_error',
-          message: 'Failed to update evaluation job config',
-        }),
-        500
-      );
-    }
-  }
-);
-
-app.openapi(
-  createRoute({
     method: 'delete',
     path: '/evaluation-job-configs/{configId}',
     summary: 'Delete Evaluation Job Config',
@@ -1909,14 +1811,34 @@ app.openapi(
 
       const results = allResults.flat();
 
-      const uniqueConversationIds = [...new Set(results.map((r) => r.conversationId))];
+      const uniqueConversationIds = [...new Set(results.map((r) => r.conversationId))] as string[];
       const conversationInputs = new Map<string, string>();
+      const conversationAgents = new Map<string, string>();
 
       logger.info({ uniqueConversationIds }, '=== FETCHING INPUTS FOR JOB CONFIG CONVERSATIONS ===');
 
       await Promise.all(
-        uniqueConversationIds.map(async (conversationId) => {
+        uniqueConversationIds.map(async (conversationId: string) => {
           try {
+            // Fetch conversation to get sub-agent ID, then look up parent agent ID
+            const conversation = await getConversation(dbClient)({
+              scopes: { tenantId, projectId },
+              conversationId,
+            });
+            if (conversation?.activeSubAgentId) {
+              // Look up the sub-agent to get the parent agent ID
+              const subAgent = await dbClient.query.subAgents.findFirst({
+                where: and(
+                  eq(subAgents.tenantId, tenantId),
+                  eq(subAgents.projectId, projectId),
+                  eq(subAgents.id, conversation.activeSubAgentId)
+                ),
+              });
+              if (subAgent?.agentId) {
+                conversationAgents.set(conversationId, subAgent.agentId);
+              }
+            }
+
             logger.info({ conversationId }, 'Fetching messages for conversation');
             const messages = await getMessagesByConversation(dbClient)({
               scopes: { tenantId, projectId },
@@ -1954,6 +1876,7 @@ app.openapi(
       const enrichedResults = results.map((result) => ({
         ...result,
         input: conversationInputs.get(result.conversationId) || null,
+        agentId: conversationAgents.get(result.conversationId) || null,
       }));
 
       logger.info(
@@ -2083,12 +2006,32 @@ app.openapi(
         })),
       });
 
-      const uniqueConversationIds = [...new Set(results.map((r) => r.conversationId))];
+      const uniqueConversationIds = [...new Set(results.map((r) => r.conversationId))] as string[];
       const conversationInputs = new Map<string, string>();
+      const conversationAgents = new Map<string, string>();
 
       await Promise.all(
-        uniqueConversationIds.map(async (conversationId) => {
+        uniqueConversationIds.map(async (conversationId: string) => {
           try {
+            // Fetch conversation to get sub-agent ID, then look up parent agent ID
+            const conversation = await getConversation(dbClient)({
+              scopes: { tenantId, projectId },
+              conversationId,
+            });
+            if (conversation?.activeSubAgentId) {
+              // Look up the sub-agent to get the parent agent ID
+              const subAgent = await dbClient.query.subAgents.findFirst({
+                where: and(
+                  eq(subAgents.tenantId, tenantId),
+                  eq(subAgents.projectId, projectId),
+                  eq(subAgents.id, conversation.activeSubAgentId)
+                ),
+              });
+              if (subAgent?.agentId) {
+                conversationAgents.set(conversationId, subAgent.agentId);
+              }
+            }
+
             const messages = await getMessagesByConversation(dbClient)({
               scopes: { tenantId, projectId },
               conversationId,
@@ -2113,6 +2056,7 @@ app.openapi(
       const enrichedResults = results.map((result) => ({
         ...result,
         input: conversationInputs.get(result.conversationId) || null,
+        agentId: conversationAgents.get(result.conversationId) || null,
       }));
 
       return c.json({
@@ -2364,6 +2308,145 @@ app.openapi(
 );
 
 // ============================================================================
+// TRIGGER CONVERSATION EVALUATION
+// ============================================================================
+
+app.openapi(
+  createRoute({
+    method: 'post',
+    path: '/conversations/evaluate',
+    summary: 'Trigger Evaluation on Conversations',
+    operationId: 'trigger-conversation-evaluation',
+    tags: ['Evaluations'],
+    request: {
+      params: TenantProjectParamsSchema,
+      body: {
+        content: {
+          'application/json': {
+            schema: z.object({
+              conversationIds: z.array(z.string()).min(1, 'At least one conversation is required'),
+              evaluatorIds: z.array(z.string()).min(1, 'At least one evaluator is required'),
+            }),
+          },
+        },
+      },
+    },
+    responses: {
+      202: {
+        description: 'Evaluations triggered',
+        content: {
+          'application/json': {
+            schema: z.object({
+              message: z.string(),
+              evaluationRunId: z.string(),
+              conversationIds: z.array(z.string()),
+              evaluatorIds: z.array(z.string()),
+            }),
+          },
+        },
+      },
+      ...commonGetErrorResponses,
+    },
+  }),
+  async (c) => {
+    const { tenantId, projectId } = c.req.valid('param');
+    const { conversationIds, evaluatorIds } = c.req.valid('json');
+
+    try {
+      // Verify all conversations exist
+      const conversations = await Promise.all(
+        conversationIds.map((conversationId) =>
+          getConversation(dbClient)({
+            scopes: { tenantId, projectId },
+            conversationId,
+          })
+        )
+      );
+
+      const missingConversations = conversationIds.filter((id, index) => !conversations[index]);
+      if (missingConversations.length > 0) {
+        return c.json(
+          createApiError({
+            code: 'not_found',
+            message: `Conversations not found: ${missingConversations.join(', ')}`,
+          }),
+          404
+        ) as any;
+      }
+
+      // Verify all evaluators exist
+      const evaluators = await Promise.all(
+        evaluatorIds.map((evaluatorId) =>
+          getEvaluatorById(dbClient)({
+            scopes: { tenantId, projectId, evaluatorId },
+          })
+        )
+      );
+
+      const missingEvaluators = evaluatorIds.filter((id, index) => !evaluators[index]);
+      if (missingEvaluators.length > 0) {
+        return c.json(
+          createApiError({
+            code: 'not_found',
+            message: `Evaluators not found: ${missingEvaluators.join(', ')}`,
+          }),
+          404
+        ) as any;
+      }
+
+      // Create evaluation run
+      const evaluationRunId = generateId();
+      await createEvaluationRun(dbClient)({
+        id: evaluationRunId,
+        tenantId,
+        projectId,
+      });
+
+      // Trigger evaluations via Inngest
+      await inngest.send(
+        conversationIds.map((conversationId) => ({
+          name: 'evaluation/conversation.execute',
+          data: {
+            tenantId,
+            projectId,
+            conversationId,
+            evaluatorIds,
+            evaluationRunId,
+          },
+        }))
+      );
+
+      logger.info(
+        { tenantId, projectId, conversationIds, evaluatorIds, evaluationRunId },
+        'Conversation evaluations triggered'
+      );
+
+      return c.json(
+        {
+          message: 'Evaluations triggered successfully',
+          evaluationRunId,
+          conversationIds,
+          evaluatorIds,
+        },
+        202
+      ) as any;
+    } catch (error) {
+      logger.error(
+        { error, tenantId, projectId, conversationIds },
+        'Failed to trigger conversation evaluations'
+      );
+      return c.json(
+        createApiError({
+          code: 'internal_server_error',
+          message: 'Failed to trigger evaluations',
+        }),
+        500
+      );
+    }
+  }
+);
+
+// ============================================================================
 // DATASET RUN CONFIGS
 // ============================================================================
 
@@ -2456,21 +2539,8 @@ app.openapi(
         ) as any;
       }
 
-      // Fetch evaluation run config relations to include enabled status
-      const evalRunConfigRelations = await getDatasetRunConfigEvaluationRunConfigRelations(
-        dbClient
-      )({
-        scopes: { tenantId, projectId, datasetRunConfigId: runConfigId },
-      });
-
       return c.json({
-        data: {
-          ...config,
-          evaluationRunConfigs: evalRunConfigRelations.map((rel) => ({
-            id: rel.evaluationRunConfigId,
-            enabled: rel.enabled,
-          })),
-        } as any,
+        data: config,
       }) as any;
     } catch (error) {
       logger.error({ error, tenantId, projectId, runConfigId }, 'Failed to get dataset run config');
@@ -2581,62 +2651,14 @@ app.openapi(
       try {
         const datasetRunId = generateId();
         
-        // Create evaluation job config first if evaluators are provided
-        let evalJobConfigId: string | undefined;
-        if (evaluatorIds && Array.isArray(evaluatorIds) && evaluatorIds.length > 0) {
-          evalJobConfigId = generateId();
-          await createEvaluationJobConfig(dbClient)({
-            id: evalJobConfigId,
-            tenantId,
-            projectId,
-            jobFilters: {
-              datasetRunIds: [datasetRunId],
-            },
-          } as any);
-
-          // Create evaluator relations
-          await Promise.all(
-            evaluatorIds.map((evaluatorId: string) =>
-              createEvaluationJobConfigEvaluatorRelation(dbClient)({
-                tenantId,
-                projectId,
-                id: generateId(),
-                evaluationJobConfigId: evalJobConfigId!,
-                evaluatorId,
-              } as any)
-            )
-          );
-
-          // Create evaluation run for this job
-          const evaluationRunId = generateId();
-          await createEvaluationRun(dbClient)({
-            id: evaluationRunId,
-            tenantId,
-            projectId,
-            evaluationJobConfigId: evalJobConfigId,
-          });
-
-          logger.info(
-            {
-              tenantId,
-              projectId,
-              datasetRunId,
-              evalJobConfigId,
-              evaluationRunId,
-              evaluatorCount: evaluatorIds.length,
-            },
-            'Evaluation job config and run created before dataset run'
-          );
-        }
-
-        // Create dataset run with evaluation job config if available
+        // Create dataset run first (without eval job config)
         await createDatasetRun(dbClient)({
           id: datasetRunId,
           tenantId,
           projectId,
           datasetId: runConfigData.datasetId,
           datasetRunConfigId: id,
-          evaluationJobConfigId: evalJobConfigId,
+          evaluationJobConfigId: undefined, // Will be linked after conversations exist
         });
 
         logger.info(
@@ -2645,7 +2667,7 @@ app.openapi(
             projectId,
             runConfigId: id,
             datasetRunId,
-            hasEvalJobConfig: !!evalJobConfigId,
+            hasEvaluators: !!(evaluatorIds && Array.isArray(evaluatorIds) && evaluatorIds.length > 0),
           },
           'Dataset run created, processing items asynchronously'
         );
@@ -2713,14 +2735,9 @@ app.openapi(
                     datasetRunId,
                   });
 
-                  // Only create conversation relation if the API call succeeded
-                  // If there's an error (especially 400 Bad Request), the conversation may not exist
-                  // Check if we have both a conversationId AND no error (or only a non-blocking error)
-                  const shouldCreateRelation =
-                    result.conversationId &&
-                    (!result.error || !result.error.includes('Chat API error: 400'));
-
-                  if (shouldCreateRelation && result.conversationId) {
+                  // Create conversation relation if we got a conversationId
+                  // This includes both successful and failed conversations so evaluators can assess failures
+                  if (result.conversationId) {
                     const relationId = generateId();
                     conversationRelations.push({
                       tenantId,
@@ -2732,6 +2749,7 @@ app.openapi(
                     });
 
                     // Create conversation relation immediately as each item completes
+                    // Note: agentId is extracted at query time from conversation → subAgent
                     try {
                       await createDatasetRunConversationRelation(dbClient)({
                         tenantId,
@@ -2740,7 +2758,7 @@ app.openapi(
                         datasetRunId: datasetRunId,
                         conversationId: result.conversationId,
                         datasetItemId: datasetItem.id,
-                      } as any);
+                      });
                     } catch (relationError: any) {
                       // If foreign key constraint fails, the conversation doesn't exist
                       // Log and continue - this is expected for failed API calls
@@ -2806,17 +2824,105 @@ app.openapi(
               'Dataset run processing completed'
             );
 
-            // Evaluation job already created before dataset run processing
-            // (created before processing items to avoid race conditions)
-            logger.info(
-              {
+            // Now create evaluation job config AFTER conversations exist
+            // This allows the automatic eval job config trigger to work properly
+            if (evaluatorIds && Array.isArray(evaluatorIds) && evaluatorIds.length > 0 && conversationRelations.length > 0) {
+              logger.info(
+                {
+                  tenantId,
+                  projectId,
+                  datasetRunId,
+                  conversationCount: conversationRelations.length,
+                  evaluatorCount: evaluatorIds.length,
+                },
+                'Creating evaluation job config now that conversations exist'
+              );
+
+              const evalJobConfigId = generateId();
+              await createEvaluationJobConfig(dbClient)({
+                id: evalJobConfigId,
                 tenantId,
                 projectId,
-                datasetRunId,
-                conversationCount: conversationRelations.length,
-              },
-              'Dataset run processing complete - evaluations will trigger as conversations complete'
-            );
+                jobFilters: {
+                  datasetRunIds: [datasetRunId],
+                },
+              } as any);
+
+              // Create evaluator relations
+              await Promise.all(
+                evaluatorIds.map((evaluatorId: string) =>
+                  createEvaluationJobConfigEvaluatorRelation(dbClient)({
+                    tenantId,
+                    projectId,
+                    id: generateId(),
+                    evaluationJobConfigId: evalJobConfigId,
+                    evaluatorId,
+                  } as any)
+                )
+              );
+
+              // Update dataset run to link the eval job config
+              await dbClient
+                .update(datasetRun)
+                .set({ evaluationJobConfigId: evalJobConfigId })
+                .where(
+                  and(
+                    eq(datasetRun.tenantId, tenantId),
+                    eq(datasetRun.projectId, projectId),
+                    eq(datasetRun.id, datasetRunId)
+                  )
+                );
+
+              // Trigger evaluations for all conversations
+              const uniqueConversationIds = [...new Set(conversationRelations.map(rel => rel.conversationId))];
+              
+              // Create evaluation run
+              const evaluationRunId = generateId();
+              await createEvaluationRun(dbClient)({
+                id: evaluationRunId,
+                tenantId,
+                projectId,
+                evaluationJobConfigId: evalJobConfigId,
+              });
+
+              // Send Inngest events to trigger evaluations
+              await inngest.send(
+                uniqueConversationIds.map((conversationId) => ({
+                  name: 'evaluation/conversation.execute' as const,
+                  data: {
+                    tenantId,
+                    projectId,
+                    conversationId,
+                    evaluatorIds,
+                    evaluationRunId,
+                  },
+                }))
+              );
+
+              logger.info(
+                {
+                  tenantId,
+                  projectId,
+                  datasetRunId,
+                  evalJobConfigId,
+                  evaluationRunId,
+                  evaluatorCount: evaluatorIds.length,
+                  conversationsTriggered: uniqueConversationIds.length,
+                },
+                'Evaluation job config created and evaluations triggered'
+              );
+            } else {
+              logger.info(
+                {
+                  tenantId,
+                  projectId,
+                  datasetRunId,
+                  hasEvaluatorIds: !!(evaluatorIds && Array.isArray(evaluatorIds) && evaluatorIds.length > 0),
+                  conversationCount: conversationRelations.length,
+                },
+                'Dataset run processing complete - no evaluations configured'
+              );
+            }
           } catch (processError) {
             logger.error(
               {
@@ -3031,6 +3137,254 @@ app.openapi(
   }
 );
 
+app.openapi(
+  createRoute({
+    method: 'post',
+    path: '/datasets/{datasetId}/trigger',
+    summary: 'Trigger Dataset Run',
+    operationId: 'trigger-dataset-run',
+    tags: ['Evaluations'],
+    request: {
+      params: TenantProjectParamsSchema.extend({ datasetId: z.string() }),
+      body: {
+        content: {
+          'application/json': {
+            schema: z.object({
+              agentIds: z.array(z.string()).min(1, 'At least one agent is required'),
+              evaluatorIds: z.array(z.string()).optional(),
+            }),
+          },
+        },
+      },
+    },
+    responses: {
+      202: {
+        description: 'Dataset run triggered',
+        content: {
+          'application/json': {
+            schema: z.object({
+              message: z.string(),
+              datasetRunId: z.string(),
+              datasetId: z.string(),
+            }),
+          },
+        },
+      },
+      ...commonGetErrorResponses,
+    },
+  }),
+  async (c) => {
+    const { tenantId, projectId, datasetId } = c.req.valid('param');
+    const { agentIds, evaluatorIds } = c.req.valid('json');
+
+    try {
+      // Verify dataset exists
+      const dataset = await getDatasetById(dbClient)({
+        scopes: { tenantId, projectId, datasetId },
+      });
+
+      if (!dataset) {
+        return c.json(
+          createApiError({ code: 'not_found', message: 'Dataset not found' }),
+          404
+        ) as any;
+      }
+
+      // Verify all agents exist
+      const agents = await Promise.all(
+        agentIds.map((agentId: string) =>
+          getAgentById(dbClient)({
+            scopes: { tenantId, projectId, agentId },
+          })
+        )
+      );
+
+      const missingAgents = agentIds.filter((id: string, index: number) => !agents[index]);
+      if (missingAgents.length > 0) {
+        return c.json(
+          createApiError({
+            code: 'not_found',
+            message: `Agents not found: ${missingAgents.join(', ')}`,
+          }),
+          404
+        ) as any;
+      }
+
+      // Verify all evaluators exist if provided
+      if (evaluatorIds && evaluatorIds.length > 0) {
+        const evaluators = await Promise.all(
+          evaluatorIds.map((evaluatorId: string) =>
+            getEvaluatorById(dbClient)({
+              scopes: { tenantId, projectId, evaluatorId },
+            })
+          )
+        );
+
+        const missingEvaluators = evaluatorIds.filter((id: string, index: number) => !evaluators[index]);
+        if (missingEvaluators.length > 0) {
+          return c.json(
+            createApiError({
+              code: 'not_found',
+              message: `Evaluators not found: ${missingEvaluators.join(', ')}`,
+            }),
+            404
+          ) as any;
+        }
+      }
+
+      // Create new dataset run
+      const datasetRunId = generateId();
+      await createDatasetRun(dbClient)({
+        id: datasetRunId,
+        tenantId,
+        projectId,
+        datasetId,
+        datasetRunConfigId: null,
+        evaluationJobConfigId: undefined,
+      });
+
+      logger.info(
+        { tenantId, projectId, datasetId, datasetRunId, agentIds, evaluatorIds },
+        'Dataset run created, processing items asynchronously'
+      );
+
+      // Process dataset items asynchronously (fire-and-forget)
+      const evaluationService = new EvaluationService();
+      
+      (async () => {
+        try {
+          // Get all dataset items
+          const datasetItems = await listDatasetItems(dbClient)({
+            scopes: { tenantId, projectId, datasetId },
+          });
+
+          const conversationRelations: Array<{
+            tenantId: string;
+            projectId: string;
+            id: string;
+            datasetRunId: string;
+            conversationId: string;
+            datasetItemId: string;
+          }> = [];
+
+          for (const agentId of agentIds) {
+            for (const datasetItem of datasetItems) {
+              try {
+                const result = await evaluationService.runDatasetItem({
+                  tenantId,
+                  projectId,
+                  agentId,
+                  datasetItem,
+                  datasetRunId,
+                });
+
+                if (result.conversationId) {
+                  const relationId = generateId();
+                  conversationRelations.push({
+                    tenantId,
+                    projectId,
+                    id: relationId,
+                    datasetRunId: datasetRunId,
+                    conversationId: result.conversationId,
+                    datasetItemId: datasetItem.id,
+                  });
+
+                  await createDatasetRunConversationRelation(dbClient)({
+                    tenantId,
+                    projectId,
+                    id: relationId,
+                    datasetRunId,
+                    conversationId: result.conversationId,
+                    datasetItemId: datasetItem.id,
+                  });
+                }
+              } catch (itemError) {
+                logger.error(
+                  { error: itemError, tenantId, projectId, datasetItemId: datasetItem.id },
+                  'Failed to run dataset item'
+                );
+              }
+            }
+          }
+
+          // Trigger evaluations if evaluatorIds provided
+          if (evaluatorIds && evaluatorIds.length > 0 && conversationRelations.length > 0) {
+            const evaluationRunId = generateId();
+            await createEvaluationRun(dbClient)({
+              id: evaluationRunId,
+              tenantId,
+              projectId,
+            });
+
+            const uniqueConversationIds = [...new Set(conversationRelations.map(rel => rel.conversationId))];
+            
+            await inngest.send(
+              uniqueConversationIds.map((conversationId) => ({
+                name: 'evaluation/conversation.execute' as const,
+                data: {
+                  tenantId,
+                  projectId,
+                  conversationId,
+                  evaluatorIds,
+                  evaluationRunId,
+                },
+              }))
+            );
+
+            logger.info(
+              {
+                tenantId,
+                projectId,
+                datasetRunId,
+                evaluationRunId,
+                conversationCount: uniqueConversationIds.length,
+                evaluatorCount: evaluatorIds.length,
+              },
+              'Dataset run evaluations triggered'
+            );
+          }
+
+          logger.info(
+            {
+              tenantId,
+              projectId,
+              datasetRunId,
+              conversationCount: conversationRelations.length,
+            },
+            'Dataset run processing complete'
+          );
+        } catch (processError) {
+          logger.error(
+            { error: processError, tenantId, projectId, datasetRunId },
+            'Failed to process dataset run asynchronously'
+          );
+        }
+      })();
+
+      return c.json(
+        {
+          message: 'Dataset run triggered successfully',
+          datasetRunId,
+          datasetId,
+        },
+        202
+      ) as any;
+    } catch (error) {
+      logger.error(
+        { error, tenantId, projectId, datasetId },
+        'Failed to trigger dataset run'
+      );
+      return c.json(
+        createApiError({
+          code: 'internal_server_error',
+          message: 'Failed to trigger dataset run',
+        }),
+        500
+      );
+    }
+  }
+);
+
 // ============================================================================
 // DATASET RUNS
 // ============================================================================
@@ -3138,6 +3492,7 @@ app.openapi(
                     id: z.string(),
                     conversationId: z.string(),
                     datasetRunId: z.string(),
+                    agentId: z.string().nullable().optional(),
                     output: z.string().nullable().optional(),
                     createdAt: z.string(),
                     updatedAt: z.string(),
@@ -3159,6 +3514,7 @@ app.openapi(
                         id: z.string(),
                         conversationId: z.string(),
                         datasetRunId: z.string(),
+                        agentId: z.string().nullable().optional(),
                         output: z.string().nullable().optional(),
                         createdAt: z.string(),
                         updatedAt: z.string(),
@@ -3213,10 +3569,30 @@ app.openapi(
             (conv) => conv.datasetItemId === item.id
           );
 
-          // Fetch output (assistant response) for each conversation
+          // Fetch output (assistant response) and agentId for each conversation
           const conversationsWithOutput = await Promise.all(
             itemConversations.map(async (conv) => {
               try {
+                // Fetch conversation to get sub-agent ID, then look up parent agent ID
+                const conversation = await getConversation(dbClient)({
+                  scopes: { tenantId, projectId },
+                  conversationId: conv.conversationId,
+                });
+
+                let agentId: string | null = null;
+                if (conversation?.activeSubAgentId) {
+                  const subAgent = await dbClient.query.subAgents.findFirst({
+                    where: and(
+                      eq(subAgents.tenantId, tenantId),
+                      eq(subAgents.projectId, projectId),
+                      eq(subAgents.id, conversation.activeSubAgentId)
+                    ),
+                  });
+                  if (subAgent?.agentId) {
+                    agentId = subAgent.agentId;
+                  }
+                }
+
                 const messages = await getMessagesByConversation(dbClient)({
                   scopes: { tenantId, projectId },
                   conversationId: conv.conversationId,
@@ -3249,6 +3625,7 @@ app.openapi(
                 return {
                   ...conv,
                   output,
+                  agentId,
                 };
               } catch (error) {
                 logger.warn(
@@ -3258,6 +3635,7 @@ app.openapi(
                 return {
                   ...conv,
                   output: null,
+                  agentId: null,
                 };
               }
             })
@@ -3270,10 +3648,30 @@ app.openapi(
         })
       );
 
-      // Also fetch output for all conversations in the main conversations array
+      // Also fetch output and agentId for all conversations in the main conversations array
       const conversationsWithOutput = await Promise.all(
         conversationRelations.map(async (conv) => {
           try {
+            // Fetch conversation to get sub-agent ID, then look up parent agent ID
+            const conversation = await getConversation(dbClient)({
+              scopes: { tenantId, projectId },
+              conversationId: conv.conversationId,
+            });
+
+            let agentId: string | null = null;
+            if (conversation?.activeSubAgentId) {
+              const subAgent = await dbClient.query.subAgents.findFirst({
+                where: and(
+                  eq(subAgents.tenantId, tenantId),
+                  eq(subAgents.projectId, projectId),
+                  eq(subAgents.id, conversation.activeSubAgentId)
+                ),
+              });
+              if (subAgent?.agentId) {
+                agentId = subAgent.agentId;
+              }
+            }
+
             const messages = await getMessagesByConversation(dbClient)({
               scopes: { tenantId, projectId },
               conversationId: conv.conversationId,
@@ -3303,6 +3701,7 @@ app.openapi(
             return {
               ...conv,
               output,
+              agentId,
             };
           } catch (error) {
             logger.warn(
@@ -3312,6 +3711,7 @@ app.openapi(
             return {
               ...conv,
               output: null,
+              agentId: null,
             };
           }
         })

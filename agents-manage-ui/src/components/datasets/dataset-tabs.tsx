@@ -1,8 +1,8 @@
 'use client';
 
 import { Plus } from 'lucide-react';
-import { useRouter } from 'next/navigation';
-import { useState } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
+import { useEffect, useState } from 'react';
 import { DatasetItemFormDialog } from '@/components/dataset-items/dataset-item-form-dialog';
 import { DatasetItemsTable } from '@/components/dataset-items/dataset-items-table';
 import { Button } from '@/components/ui/button';
@@ -29,14 +29,25 @@ export function DatasetTabs({
   onTabChange,
 }: DatasetTabsProps) {
   const router = useRouter();
-  const [activeTab, setActiveTab] = useState(defaultTab);
+  const searchParams = useSearchParams();
+  const tabFromUrl = searchParams.get('tab');
+  const [activeTab, setActiveTab] = useState(tabFromUrl || defaultTab);
   const [isCreateItemOpen, setIsCreateItemOpen] = useState(false);
   const [isCreateRunOpen, setIsCreateRunOpen] = useState(false);
   const [refreshKey, setRefreshKey] = useState(0);
 
+  useEffect(() => {
+    if (tabFromUrl && (tabFromUrl === 'items' || tabFromUrl === 'runs')) {
+      setActiveTab(tabFromUrl);
+    }
+  }, [tabFromUrl]);
+
   const handleTabChange = (tab: string) => {
     setActiveTab(tab);
     onTabChange?.(tab);
+    const params = new URLSearchParams(searchParams.toString());
+    params.set('tab', tab);
+    router.push(`?${params.toString()}`, { scroll: false });
   };
 
   return (

@@ -10,7 +10,7 @@ import { fetchEvaluators } from '@/lib/api/evaluators';
 export const dynamic = 'force-dynamic';
 
 const evaluationsDescription =
-  'Evaluators are LLM-based assessment tools that analyze agent conversations and provide structured feedback.';
+  'Evaluators are LLM-based assessment tools that analyze conversations and provide structured feedback.';
 
 async function EvaluationsPage({
   params,

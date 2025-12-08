@@ -1,9 +1,9 @@
 'use client';
 
-import { ExternalLink, MoreVertical, Pencil, Trash2 } from 'lucide-react';
-import Link from 'next/link';
+import { ChevronRight, MoreVertical, Pencil, Trash2 } from 'lucide-react';
+import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
-import { formatDateTimeTable } from '@/app/utils/format-date';
+import { formatDate } from '@/app/utils/format-date';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import {
@@ -38,6 +38,7 @@ export function EvaluationRunConfigsList({
   runConfigs: initialRunConfigs,
   refreshKey,
 }: EvaluationRunConfigsListProps) {
+  const router = useRouter();
   const [runConfigs, setRunConfigs] = useState<EvaluationRunConfig[]>(initialRunConfigs);
   const [editingRunConfig, setEditingRunConfig] = useState<EvaluationRunConfig | undefined>();
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
@@ -87,30 +88,30 @@ export function EvaluationRunConfigsList({
               <TableHead>Name</TableHead>
               <TableHead>Description</TableHead>
               <TableHead>Status</TableHead>
-              <TableHead>Evaluation Plans</TableHead>
-              <TableHead>Created</TableHead>
               <TableHead>Updated</TableHead>
+              <TableHead className="w-12"></TableHead>
               <TableHead className="w-12"></TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
             {runConfigs.length === 0 ? (
               <TableRow noHover>
-                <TableCell colSpan={7} className="text-center text-muted-foreground py-8">
+                <TableCell colSpan={6} className="text-center text-muted-foreground py-8">
                   No continuous tests yet. Click &quot;+ New continuous test&quot; to create one.
                 </TableCell>
               </TableRow>
             ) : (
               runConfigs.map((runConfig) => (
-                <TableRow key={runConfig.id} noHover>
-                  <TableCell className="font-medium">
-                    <Link
-                      href={`/${tenantId}/projects/${projectId}/evaluations/run-configs/${runConfig.id}`}
-                      className="hover:underline"
-                    >
-                      {runConfig.name}
-                    </Link>
-                  </TableCell>
+                <TableRow
+                  key={runConfig.id}
+                  className="cursor-pointer"
+                  onClick={() =>
+                    router.push(
+                      `/${tenantId}/projects/${projectId}/evaluations/run-configs/${runConfig.id}`
+                    )
+                  }
+                >
+                  <TableCell className="font-medium">{runConfig.name}</TableCell>
                   <TableCell>
                     <span className="text-sm text-muted-foreground line-clamp-1">
                       {runConfig.description || 'No description'}
@@ -121,22 +122,10 @@ export function EvaluationRunConfigsList({
                       {runConfig.isActive ? 'Active' : 'Inactive'}
                     </Badge>
                   </TableCell>
-                  <TableCell>
-                    <Link
-                      href={`/${tenantId}/projects/${projectId}/evaluations/run-configs/${runConfig.id}`}
-                      className="text-sm text-muted-foreground hover:text-foreground flex items-center gap-1"
-                    >
-                      {runConfig.suiteConfigIds?.length || 0} evaluation plan(s)
-                      <ExternalLink className="h-3 w-3" />
-                    </Link>
-                  </TableCell>
                   <TableCell className="text-sm text-muted-foreground">
-                    {formatDateTimeTable(runConfig.createdAt)}
+                    {formatDate(runConfig.updatedAt)}
                   </TableCell>
-                  <TableCell className="text-sm text-muted-foreground">
-                    {formatDateTimeTable(runConfig.updatedAt)}
-                  </TableCell>
-                  <TableCell>
+                  <TableCell onClick={(e) => e.stopPropagation()}>
                     <DropdownMenu>
                       <DropdownMenuTrigger asChild>
                         <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
@@ -157,6 +146,9 @@ export function EvaluationRunConfigsList({
                         </DropdownMenuItem>
                       </DropdownMenuContent>
                     </DropdownMenu>
+                  </TableCell>
+                  <TableCell>
+                    <ChevronRight className="h-4 w-4 text-muted-foreground" />
                   </TableCell>
                 </TableRow>
               ))

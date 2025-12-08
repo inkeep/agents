@@ -20,6 +20,7 @@ export interface DatasetRunConversation {
   id: string;
   conversationId: string;
   datasetRunId: string;
+  agentId?: string | null;
   output?: string | null;
   createdAt: string;
   updatedAt: string;

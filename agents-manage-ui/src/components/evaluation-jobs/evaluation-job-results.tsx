@@ -97,10 +97,10 @@ export function EvaluationJobResults({
             <TableHeader>
               <TableRow noHover>
                 <TableHead>Input</TableHead>
+                <TableHead>Agent</TableHead>
                 <TableHead>Evaluator</TableHead>
                 <TableHead>Status</TableHead>
                 <TableHead>Output</TableHead>
-                <TableHead>Created</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -120,6 +120,11 @@ export function EvaluationJobResults({
                         </span>
                         <ExternalLink className="h-4 w-4 flex-shrink-0" />
                       </Link>
+                    </TableCell>
+                    <TableCell>
+                      <code className="text-xs font-mono text-muted-foreground">
+                        {result.agentId || '-'}
+                      </code>
                     </TableCell>
                     <TableCell>
                       <button
@@ -175,9 +180,6 @@ export function EvaluationJobResults({
                         <span className="text-sm text-muted-foreground">No output</span>
                       )}
                     </TableCell>
-                    <TableCell className="text-sm text-muted-foreground">
-                      {formatDateTimeTable(result.createdAt)}
-                    </TableCell>
                   </TableRow>
                 ))}
             </TableBody>
@@ -213,8 +215,8 @@ function OutputCollapsible({ resultId, output }: { resultId: string; output: unk
         <ExpandableJsonEditor
           name={`output-${resultId}`}
           value={JSON.stringify(output, null, 2)}
-          onChange={() => {}}
           label="Output"
+          readOnly
         />
       </CollapsibleContent>
     </Collapsible>
@@ -238,8 +240,8 @@ function MetadataCollapsible({ resultId, metadata }: { resultId: string; metadat
         <ExpandableJsonEditor
           name={`metadata-${resultId}`}
           value={JSON.stringify(metadata, null, 2)}
-          onChange={() => {}}
           label="Metadata"
+          readOnly
         />
       </CollapsibleContent>
     </Collapsible>

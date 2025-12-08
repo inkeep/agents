@@ -52,7 +52,6 @@ import { tool$evaluationsRemoveEvaluatorFromSuiteConfig } from './tools/evaluati
 import { tool$evaluationsUpdateDataset } from './tools/evaluationsUpdateDataset.js';
 import { tool$evaluationsUpdateDatasetItem } from './tools/evaluationsUpdateDatasetItem.js';
 import { tool$evaluationsUpdateDatasetRunConfig } from './tools/evaluationsUpdateDatasetRunConfig.js';
-import { tool$evaluationsUpdateEvaluationJobConfig } from './tools/evaluationsUpdateEvaluationJobConfig.js';
 import { tool$evaluationsUpdateEvaluationResult } from './tools/evaluationsUpdateEvaluationResult.js';
 import { tool$evaluationsUpdateEvaluationRunConfig } from './tools/evaluationsUpdateEvaluationRunConfig.js';
 import { tool$evaluationsUpdateEvaluationSuiteConfig } from './tools/evaluationsUpdateEvaluationSuiteConfig.js';
@@ -126,7 +125,6 @@ export function createMCPServer(deps: {
   tool(tool$evaluationsListEvaluationJobConfigs);
   tool(tool$evaluationsCreateEvaluationJobConfig);
   tool(tool$evaluationsGetEvaluationJobConfig);
-  tool(tool$evaluationsUpdateEvaluationJobConfig);
   tool(tool$evaluationsDeleteEvaluationJobConfig);
   tool(tool$evaluationsGetEvaluationJobConfigResults);
   tool(tool$evaluationsGetEvaluationRunConfigResults);

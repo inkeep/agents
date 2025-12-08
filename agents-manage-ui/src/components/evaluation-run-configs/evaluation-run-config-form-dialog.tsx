@@ -34,7 +34,7 @@ import type { Agent } from '@/lib/types/agent-full';
 
 const evaluationRunConfigSchema = z.object({
   name: z.string().min(1, 'Name is required'),
-  description: z.string().min(1, 'Description is required'),
+  description: z.string().optional(),
   isActive: z.boolean(),
   suiteConfigIds: z.array(z.string()),
 });
@@ -253,7 +253,6 @@ export function EvaluationRunConfigFormDialog({
               name="description"
               label="Description"
               placeholder="Automatically evaluates all production conversations..."
-              isRequired
             />
 
             <FormField
