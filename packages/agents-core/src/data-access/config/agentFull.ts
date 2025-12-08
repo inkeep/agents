@@ -1,10 +1,10 @@
 import { and, eq, inArray, not } from 'drizzle-orm';
-import type { DatabaseClient } from '../db/client';
-import { projects, subAgents, subAgentToolRelations } from '../db/schema';
-import type { FullAgentDefinition } from '../types/entities';
-import type { AgentScopeConfig, ProjectScopeConfig } from '../types/utility';
-import { generateId } from '../utils/conversations';
-import { validateAgentStructure, validateAndTypeAgentData } from '../validation/agentFull';
+import type { AgentsManageDatabaseClient } from '../../db/config/config-client';
+import { projects, subAgents, subAgentToolRelations } from '../../db/config/config-schema';
+import type { FullAgentDefinition } from '../../types/entities';
+import type { AgentScopeConfig, ProjectScopeConfig } from '../../types/utility';
+import { generateId } from '../../utils/conversations';
+import { validateAgentStructure, validateAndTypeAgentData } from '../../validation/agentFull';
 import {
   deleteAgent,
   getAgentById,
@@ -58,7 +58,7 @@ const defaultLogger: AgentLogger = {
  * Apply execution limits inheritance from project to Agents and Sub Agents
  */
 async function applyExecutionLimitsInheritance(
-  db: DatabaseClient,
+  db: AgentsManageDatabaseClient,
   logger: AgentLogger,
   scopes: ProjectScopeConfig,
   agentData: FullAgentDefinition
@@ -159,7 +159,7 @@ async function applyExecutionLimitsInheritance(
  * This function creates a complete agent with all agents, tools, and relationships.
  */
 export const createFullAgentServerSide =
-  (db: DatabaseClient, logger: AgentLogger = defaultLogger) =>
+  (db: AgentsManageDatabaseClient, logger: AgentLogger = defaultLogger) =>
   async (
     scopes: ProjectScopeConfig,
     agentData: FullAgentDefinition
@@ -725,7 +725,7 @@ export const createFullAgentServerSide =
  * This function updates a complete agent with all agents, tools, and relationships.
  */
 export const updateFullAgentServerSide =
-  (db: DatabaseClient, logger: AgentLogger = defaultLogger) =>
+  (db: AgentsManageDatabaseClient, logger: AgentLogger = defaultLogger) =>
   async (
     scopes: ProjectScopeConfig,
     agentData: FullAgentDefinition
@@ -1584,7 +1584,7 @@ export const updateFullAgentServerSide =
  * Get a complete agent definition by ID
  */
 export const getFullAgent =
-  (db: DatabaseClient, logger: AgentLogger = defaultLogger) =>
+  (db: AgentsManageDatabaseClient, logger: AgentLogger = defaultLogger) =>
   async (params: { scopes: AgentScopeConfig }): Promise<FullAgentDefinition | null> => {
     const { scopes } = params;
     const { tenantId, projectId } = scopes;
@@ -1628,7 +1628,7 @@ export const getFullAgent =
  * Delete a complete agent and cascade to all related entities
  */
 export const deleteFullAgent =
-  (db: DatabaseClient, logger: AgentLogger = defaultLogger) =>
+  (db: AgentsManageDatabaseClient, logger: AgentLogger = defaultLogger) =>
   async (params: { scopes: AgentScopeConfig }): Promise<boolean> => {
     const { tenantId, projectId, agentId } = params.scopes;
 

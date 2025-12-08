@@ -1,8 +1,7 @@
 import { sql } from 'drizzle-orm';
-import type { DatabaseClient } from '../db/client';
+import type { AgentsManageDatabaseClient } from '../db/config/config-client';
 import type { AgentScopeConfig, ProjectScopeConfig } from '../types/utility';
 import { doltBranch, doltDeleteBranch, doltGetBranchNamespace, doltListBranches } from './branch';
-import type { BranchInfo } from '../validation/dolt-schemas';
 
 export const MAIN_BRANCH_SUFFIX = 'main';
 
@@ -42,7 +41,7 @@ export type GetBranchParams = {
  * Create a new branch
  */
 export const createBranch =
-  (db: DatabaseClient) =>
+  (db: AgentsManageDatabaseClient) =>
   async (params: CreateBranchParams): Promise<BranchInfo> => {
     const { tenantId, projectId, name, from } = params;
 
@@ -98,7 +97,7 @@ export const createBranch =
  * Delete a branch
  */
 export const deleteBranch =
-  (db: DatabaseClient) =>
+  (db: AgentsManageDatabaseClient) =>
   async (params: DeleteBranchParams): Promise<void> => {
     const { tenantId, projectId, name } = params;
 
@@ -126,7 +125,7 @@ export const deleteBranch =
  * Get a single branch
  */
 export const getBranch =
-  (db: DatabaseClient) =>
+  (db: AgentsManageDatabaseClient) =>
   async (params: GetBranchParams): Promise<BranchInfo | null> => {
     const { tenantId, projectId, name } = params;
 
@@ -156,7 +155,7 @@ export const getBranch =
  * Includes the tenant main branch and all project-specific branches
  */
 export const listBranches =
-  (db: DatabaseClient) =>
+  (db: AgentsManageDatabaseClient) =>
   async (params: ProjectScopeConfig): Promise<BranchInfo[]> => {
     const { tenantId, projectId } = params;
 
@@ -192,7 +191,7 @@ export const listBranches =
   };
 
 export const listBranchesForAgent =
-  (db: DatabaseClient) =>
+  (db: AgentsManageDatabaseClient) =>
   async (params: AgentScopeConfig): Promise<BranchInfo[]> => {
     const { tenantId, projectId, agentId } = params;
 

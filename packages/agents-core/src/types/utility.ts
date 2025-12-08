@@ -1,6 +1,5 @@
 import type { z } from '@hono/zod-openapi';
-import type { ResolvedRef } from '../dolt/ref';
-import type { ApiKeySelect } from '../index';
+import type { ApiKeySelect, ResolvedRef } from '../index';
 import type {
   McpTransportConfigSchema,
   ModelSchema,
@@ -251,6 +250,7 @@ export interface CreateApiKeyParams {
   agentId: string;
   name: string;
   expiresAt?: string;
+  ref: ResolvedRef;
 }
 
 export interface ApiKeyCreateResult {

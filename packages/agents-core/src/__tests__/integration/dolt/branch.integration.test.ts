@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it } from 'vitest';
-import { cleanupTestData, getIntegrationTestClient } from '../../../db/integration-cleanup';
+import { cleanupTestData, getIntegrationTestClient } from '../../../db/config/dolt-cleanup';
 // import * as schema from '../../../db/schema';
 import {
   doltActiveBranch,

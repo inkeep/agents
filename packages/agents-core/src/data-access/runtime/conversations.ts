@@ -1,6 +1,6 @@
 import { and, count, desc, eq, inArray } from 'drizzle-orm';
-import type { DatabaseClient } from '../db/client';
-import { conversations, messages } from '../db/schema';
+import type { AgentsRunDatabaseClient } from '../../db/runtime/runtime-client';
+import { conversations, messages } from '../../db/runtime/runtime-schema';
 import type {
   ConversationHistoryConfig,
   ConversationInsert,
@@ -9,11 +9,12 @@ import type {
   MessageContent,
   PaginationConfig,
   ProjectScopeConfig,
-} from '../types/index';
-import { getConversationId } from '../utils/conversations';
+} from '../../types/index';
+import { getConversationId } from '../../utils/conversations';
+import type { ResolvedRef } from '../../validation/dolt-schemas';
 
 export const listConversations =
-  (db: DatabaseClient) =>
+  (db: AgentsRunDatabaseClient) =>
   async (params: {
     scopes: ProjectScopeConfig;
     userId?: string;
@@ -55,7 +56,7 @@ export const listConversations =
     };
   };
 
-export const createConversation = (db: DatabaseClient) => async (params: ConversationInsert) => {
+export const createConversation = (db: AgentsRunDatabaseClient) => async (params: ConversationInsert) => {
   const now = new Date().toISOString();
 
   const [created] = await db
@@ -71,7 +72,7 @@ export const createConversation = (db: DatabaseClient) => async (params: Convers
 };
 
 export const updateConversation =
-  (db: DatabaseClient) =>
+  (db: AgentsRunDatabaseClient) =>
   async (params: {
     scopes: ProjectScopeConfig;
     conversationId: string;
@@ -98,7 +99,7 @@ export const updateConversation =
   };
 
 export const deleteConversation =
-  (db: DatabaseClient) =>
+  (db: AgentsRunDatabaseClient) =>
   async (params: { scopes: ProjectScopeConfig; conversationId: string }): Promise<boolean> => {
     try {
       await db
@@ -129,7 +130,7 @@ export const deleteConversation =
   };
 
 export const updateConversationActiveAgent =
-  (db: DatabaseClient) =>
+  (db: AgentsRunDatabaseClient) =>
   async (params: {
     scopes: ProjectScopeConfig;
     conversationId: string;
@@ -146,7 +147,7 @@ export const updateConversationActiveAgent =
 
 //simpler getConversation
 export const getConversation =
-  (db: DatabaseClient) =>
+  (db: AgentsRunDatabaseClient) =>
   async (params: { scopes: ProjectScopeConfig; conversationId: string }) => {
     return await db.query.conversations.findFirst({
       where: and(
@@ -158,7 +159,7 @@ export const getConversation =
   };
 
 export const createOrGetConversation =
-  (db: DatabaseClient) => async (input: ConversationInsert) => {
+  (db: AgentsRunDatabaseClient) => async (input: ConversationInsert) => {
     const conversationId = input.id || getConversationId();
 
     if (input.id) {
@@ -191,6 +192,7 @@ export const createOrGetConversation =
       title: input.title,
       lastContextResolution: input.lastContextResolution,
       metadata: input.metadata,
+      ref: input.ref,
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
     };
@@ -262,7 +264,7 @@ function applyContextWindowManagement(messageHistory: any[], maxTokens: number):
  * Get conversation history with filtering and context management
  */
 export const getConversationHistory =
-  (db: DatabaseClient) =>
+  (db: AgentsRunDatabaseClient) =>
   async (params: {
     scopes: ProjectScopeConfig;
     conversationId: string;
@@ -316,7 +318,7 @@ export const getConversationHistory =
  * Get active agent for a conversation
  */
 export const getActiveAgentForConversation =
-  (db: DatabaseClient) =>
+  (db: AgentsRunDatabaseClient) =>
   async (params: { scopes: ProjectScopeConfig; conversationId: string }) => {
     return await db.query.conversations.findFirst({
       where: and(
@@ -331,32 +333,13 @@ export const getActiveAgentForConversation =
  * Set active agent for a conversation (upsert operation)
  */
 export const setActiveAgentForConversation =
-  (db: DatabaseClient) =>
+  (db: AgentsRunDatabaseClient) =>
   async (params: {
     scopes: ProjectScopeConfig;
     conversationId: string;
     subAgentId: string;
+    ref: ResolvedRef;
   }): Promise<void> => {
-    // await db
-    //   .insert(conversations)
-    //   .values({
-    //     id: params.conversationId,
-    //     tenantId: params.scopes.tenantId,
-    //     projectId: params.scopes.projectId,
-    //     activeSubAgentId: params.subAgentId,
-    //     createdAt: new Date().toISOString(),
-    //     updatedAt: new Date().toISOString(),
-    //   })
-    //   .onConflictDoUpdate({
-    //     target: [conversations.tenantId, conversations.projectId, conversations.id],
-    //     set: {
-    //       activeSubAgentId: params.subAgentId,
-    //       updatedAt: new Date().toISOString(),
-    //     },
-    //   });
-    // Try insert; ignore if row already exists
-
-    // TEMPORARY: waiting for dolt to support onConflictDoUpdate
     await db
       .insert(conversations)
       .values({
@@ -364,36 +347,37 @@ export const setActiveAgentForConversation =
         tenantId: params.scopes.tenantId,
         projectId: params.scopes.projectId,
         activeSubAgentId: params.subAgentId,
+        ref: params.ref,
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
       })
-      .onConflictDoNothing(); // Drizzle has this
+      .onConflictDoUpdate({
+        target: [conversations.tenantId, conversations.projectId, conversations.id],
+        set: {
+          activeSubAgentId: params.subAgentId,
+          updatedAt: new Date().toISOString(),
+        },
+      });
 
-    // Then ensure the value is what you want
-    await db
-      .update(conversations)
-      .set({ activeSubAgentId: params.subAgentId })
-      .where(
-        and(
-          eq(conversations.tenantId, params.scopes.tenantId),
-          eq(conversations.projectId, params.scopes.projectId),
-          eq(conversations.id, params.conversationId)
-        )
-      );
   };
 
 export const setActiveAgentForThread =
-  (db: DatabaseClient) =>
+  (db: AgentsRunDatabaseClient) =>
   async ({
     scopes,
     threadId,
     subAgentId,
+    ref,
   }: {
     scopes: ProjectScopeConfig;
     threadId: string;
     subAgentId: string;
+    ref: ResolvedRef;
   }) => {
     return setActiveAgentForConversation(db)({
       scopes,
       conversationId: threadId,
       subAgentId,
+      ref,
     });
   };

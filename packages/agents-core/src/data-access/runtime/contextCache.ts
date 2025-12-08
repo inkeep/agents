@@ -1,15 +1,15 @@
 import { and, eq } from 'drizzle-orm';
-import type { DatabaseClient } from '../db/client';
-import { contextCache } from '../db/schema';
-import type { ContextCacheInsert, ContextCacheSelect } from '../types/entities';
-import type { ProjectScopeConfig } from '../types/utility';
-import { generateId } from '../utils/conversations';
+import type { AgentsRunDatabaseClient } from '../../db/runtime/runtime-client';
+import { contextCache } from '../../db/runtime/runtime-schema';
+import type { ContextCacheInsert, ContextCacheSelect } from '../../types/entities';
+import type { ProjectScopeConfig } from '../../types/utility';
+import { generateId } from '../../utils/conversations';
 
 /**
  * Get cached context data for a conversation with optional request hash validation
  */
 export const getCacheEntry =
-  (db: DatabaseClient) =>
+  (db: AgentsRunDatabaseClient) =>
   async (params: {
     conversationId: string;
     contextConfigId: string;
@@ -51,7 +51,7 @@ export const getCacheEntry =
  * Set cached context data for a conversation
  */
 export const setCacheEntry =
-  (db: DatabaseClient) =>
+  (db: AgentsRunDatabaseClient) =>
   async (entry: ContextCacheInsert): Promise<ContextCacheSelect | null> => {
     try {
       const cacheData = {
@@ -65,9 +65,9 @@ export const setCacheEntry =
         requestHash: entry.requestHash || null,
         fetchedAt: new Date().toISOString(),
         fetchSource: `${entry.contextConfigId}:${entry.contextVariableKey}`,
-        fetchDurationMs: 0,
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString(),
+        ref: entry.ref,
       };
 
       const [result] = await db.insert(contextCache).values(cacheData).returning();
@@ -85,7 +85,7 @@ export const setCacheEntry =
  * Clear cache entries for a specific conversation
  */
 export const clearConversationCache =
-  (db: DatabaseClient) =>
+  (db: AgentsRunDatabaseClient) =>
   async (params: { scopes: ProjectScopeConfig; conversationId: string }): Promise<number> => {
     const result = await db
       .delete(contextCache)
@@ -105,7 +105,7 @@ export const clearConversationCache =
  * Clear all cache entries for a specific context configuration
  */
 export const clearContextConfigCache =
-  (db: DatabaseClient) =>
+  (db: AgentsRunDatabaseClient) =>
   async (params: { scopes: ProjectScopeConfig; contextConfigId: string }): Promise<number> => {
     const result = await db
       .delete(contextCache)
@@ -125,7 +125,7 @@ export const clearContextConfigCache =
  * Clean up all cache entries for a tenant
  */
 export const cleanupTenantCache =
-  (db: DatabaseClient) =>
+  (db: AgentsRunDatabaseClient) =>
   async (params: { scopes: ProjectScopeConfig }): Promise<number> => {
     const result = await db
       .delete(contextCache)
@@ -144,7 +144,7 @@ export const cleanupTenantCache =
  * Invalidate the headers cache for a conversation
  */
 export const invalidateHeadersCache =
-  (db: DatabaseClient) =>
+  (db: AgentsRunDatabaseClient) =>
   async (params: {
     scopes: ProjectScopeConfig;
     conversationId: string;
@@ -170,7 +170,7 @@ export const invalidateHeadersCache =
  * Invalidate specific cache entries for invocation-trigger definitions
  */
 export const invalidateInvocationDefinitionsCache =
-  (db: DatabaseClient) =>
+  (db: AgentsRunDatabaseClient) =>
   async (params: {
     scopes: ProjectScopeConfig;
     conversationId: string;
@@ -203,7 +203,7 @@ export const invalidateInvocationDefinitionsCache =
  * Get all cache entries for a conversation
  */
 export const getConversationCacheEntries =
-  (db: DatabaseClient) =>
+  (db: AgentsRunDatabaseClient) =>
   async (params: {
     scopes: ProjectScopeConfig;
     conversationId: string;
@@ -226,7 +226,7 @@ export const getConversationCacheEntries =
  * Get all cache entries for a context configuration
  */
 export const getContextConfigCacheEntries =
-  (db: DatabaseClient) =>
+  (db: AgentsRunDatabaseClient) =>
   async (params: {
     scopes: ProjectScopeConfig;
     contextConfigId: string;

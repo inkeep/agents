@@ -14,20 +14,16 @@ const {
   VALIDATION_SUB_AGENT_PROMPT_MAX_CHARS,
 } = schemaValidationDefaults;
 
+// Config DB imports (Doltgres - versioned)
 import {
   agents,
-  apiKeys,
   artifactComponents,
-  contextCache,
   contextConfigs,
-  conversations,
   credentialReferences,
   dataComponents,
   externalAgents,
   functions,
   functionTools,
-  ledgerArtifacts,
-  messages,
   projects,
   subAgentArtifactComponents,
   subAgentDataComponents,
@@ -36,10 +32,21 @@ import {
   subAgents,
   subAgentTeamAgentRelations,
   subAgentToolRelations,
+  tools,
+} from '../db/config/config-schema';
+
+// Runtime DB imports (Postgres - not versioned)
+import {
+  apiKeys,
+  contextCache,
+  conversations,
+  ledgerArtifacts,
+  messages,
   taskRelations,
   tasks,
-  tools,
-} from '../db/schema';
+} from '../db/runtime/runtime-schema';
+
+import { ResolvedRefSchema } from './dolt-schemas';
 import {
   CredentialStoreType,
   MCPServerType,
@@ -282,6 +289,7 @@ export const TaskSelectSchema = createSelectSchema(tasks);
 export const TaskInsertSchema = createInsertSchema(tasks).extend({
   id: resourceIdSchema,
   conversationId: resourceIdSchema.optional(),
+  ref: ResolvedRefSchema,
 });
 export const TaskUpdateSchema = TaskInsertSchema.partial();
 
@@ -377,6 +385,7 @@ export const ConversationSelectSchema = createSelectSchema(conversations);
 export const ConversationInsertSchema = createInsertSchema(conversations).extend({
   id: resourceIdSchema,
   contextConfigId: resourceIdSchema.optional(),
+  ref: ResolvedRefSchema,
 });
 export const ConversationUpdateSchema = ConversationInsertSchema.partial();
 
@@ -402,7 +411,9 @@ export const MessageApiUpdateSchema =
   createApiUpdateSchema(MessageUpdateSchema).openapi('MessageUpdate');
 
 export const ContextCacheSelectSchema = createSelectSchema(contextCache);
-export const ContextCacheInsertSchema = createInsertSchema(contextCache);
+export const ContextCacheInsertSchema = createInsertSchema(contextCache).extend({
+  ref: ResolvedRefSchema,
+});
 export const ContextCacheUpdateSchema = ContextCacheInsertSchema.partial();
 
 export const ContextCacheApiSelectSchema = createApiSchema(ContextCacheSelectSchema);
@@ -512,6 +523,7 @@ export const ApiKeySelectSchema = createSelectSchema(apiKeys);
 export const ApiKeyInsertSchema = createInsertSchema(apiKeys).extend({
   id: resourceIdSchema,
   agentId: resourceIdSchema,
+  ref: ResolvedRefSchema,
 });
 
 export const ApiKeyUpdateSchema = ApiKeyInsertSchema.partial().omit({

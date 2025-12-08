@@ -1,12 +1,12 @@
 import { and, count, desc, eq, sql } from 'drizzle-orm';
-import type { DatabaseClient } from '../db/client';
-import { contextConfigs } from '../db/schema';
-import type { ContextConfigInsert, ContextConfigUpdate } from '../types/entities';
-import type { AgentScopeConfig, PaginationConfig } from '../types/utility';
-import { generateId } from '../utils/conversations';
+import type { AgentsManageDatabaseClient } from '../../db/config/config-client';
+import { contextConfigs } from '../../db/config/config-schema';
+import type { ContextConfigInsert, ContextConfigUpdate } from '../../types/entities';
+import type { AgentScopeConfig, PaginationConfig } from '../../types/utility';
+import { generateId } from '../../utils/conversations';
 
 export const getContextConfigById =
-  (db: DatabaseClient) => async (params: { scopes: AgentScopeConfig; id: string }) => {
+  (db: AgentsManageDatabaseClient) => async (params: { scopes: AgentScopeConfig; id: string }) => {
     return await db.query.contextConfigs.findFirst({
       where: and(
         eq(contextConfigs.tenantId, params.scopes.tenantId),
@@ -18,7 +18,7 @@ export const getContextConfigById =
   };
 
 export const listContextConfigs =
-  (db: DatabaseClient) => async (params: { scopes: AgentScopeConfig }) => {
+  (db: AgentsManageDatabaseClient) => async (params: { scopes: AgentScopeConfig }) => {
     return await db.query.contextConfigs.findMany({
       where: and(
         eq(contextConfigs.tenantId, params.scopes.tenantId),
@@ -30,7 +30,7 @@ export const listContextConfigs =
   };
 
 export const listContextConfigsPaginated =
-  (db: DatabaseClient) =>
+  (db: AgentsManageDatabaseClient) =>
   async (params: {
     scopes: AgentScopeConfig;
     pagination?: PaginationConfig;
@@ -73,7 +73,7 @@ export const listContextConfigsPaginated =
     };
   };
 
-export const createContextConfig = (db: DatabaseClient) => async (params: ContextConfigInsert) => {
+export const createContextConfig = (db: AgentsManageDatabaseClient) => async (params: ContextConfigInsert) => {
   const id = params.id || generateId();
   const now = new Date().toISOString();
 
@@ -106,7 +106,7 @@ export const createContextConfig = (db: DatabaseClient) => async (params: Contex
 };
 
 export const updateContextConfig =
-  (db: DatabaseClient) =>
+  (db: AgentsManageDatabaseClient) =>
   async (params: { scopes: AgentScopeConfig; id: string; data: Partial<ContextConfigUpdate> }) => {
     const now = new Date().toISOString();
 
@@ -150,7 +150,7 @@ export const updateContextConfig =
   };
 
 export const deleteContextConfig =
-  (db: DatabaseClient) =>
+  (db: AgentsManageDatabaseClient) =>
   async (params: { scopes: AgentScopeConfig; id: string }): Promise<boolean> => {
     try {
       const result = await db
@@ -173,14 +173,14 @@ export const deleteContextConfig =
   };
 
 export const hasContextConfig =
-  (db: DatabaseClient) =>
+  (db: AgentsManageDatabaseClient) =>
   async (params: { scopes: AgentScopeConfig; id: string }): Promise<boolean> => {
     const contextConfig = await getContextConfigById(db)(params);
     return contextConfig !== null;
   };
 
 export const countContextConfigs =
-  (db: DatabaseClient) =>
+  (db: AgentsManageDatabaseClient) =>
   async (params: { scopes: AgentScopeConfig }): Promise<number> => {
     const result = await db
       .select({ count: count() })
@@ -201,7 +201,7 @@ export const countContextConfigs =
  * Upsert a context config (create if it doesn't exist, update if it does)
  */
 export const upsertContextConfig =
-  (db: DatabaseClient) => async (params: { data: ContextConfigInsert }) => {
+  (db: AgentsManageDatabaseClient) => async (params: { data: ContextConfigInsert }) => {
     const scopes = {
       tenantId: params.data.tenantId,
       projectId: params.data.projectId,

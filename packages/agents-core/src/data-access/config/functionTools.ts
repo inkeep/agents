@@ -1,10 +1,10 @@
 import { and, count, desc, eq } from 'drizzle-orm';
-import type { DatabaseClient } from '../db/client';
-import { functionTools, subAgentFunctionToolRelations } from '../db/schema';
-import type { FunctionToolApiInsert, FunctionToolApiUpdate } from '../types/entities';
-import type { AgentScopeConfig, PaginationConfig } from '../types/utility';
-import { generateId } from '../utils/conversations';
-import { getLogger } from '../utils/logger';
+import type { AgentsManageDatabaseClient } from '../../db/config/config-client';
+import { functionTools, subAgentFunctionToolRelations } from '../../db/config/config-schema';
+import type { FunctionToolApiInsert, FunctionToolApiUpdate } from '../../types/entities';
+import type { AgentScopeConfig, PaginationConfig } from '../../types/utility';
+import { generateId } from '../../utils/conversations';
+import { getLogger } from '../../utils/logger';
 
 const logger = getLogger('functionTools');
 
@@ -12,7 +12,7 @@ const logger = getLogger('functionTools');
  * Get a function tool by ID (agent-scoped)
  */
 export const getFunctionToolById =
-  (db: DatabaseClient) => async (params: { scopes: AgentScopeConfig; functionToolId: string }) => {
+  (db: AgentsManageDatabaseClient) => async (params: { scopes: AgentScopeConfig; functionToolId: string }) => {
     const result = await db
       .select()
       .from(functionTools)
@@ -33,7 +33,7 @@ export const getFunctionToolById =
  * List function tools (agent-scoped)
  */
 export const listFunctionTools =
-  (db: DatabaseClient) =>
+  (db: AgentsManageDatabaseClient) =>
   async (params: { scopes: AgentScopeConfig; pagination?: PaginationConfig }) => {
     const page = params.pagination?.page || 1;
     const limit = Math.min(params.pagination?.limit || 10, 100);
@@ -69,7 +69,7 @@ export const listFunctionTools =
  * Create a function tool (agent-scoped)
  */
 export const createFunctionTool =
-  (db: DatabaseClient) =>
+  (db: AgentsManageDatabaseClient) =>
   async (params: { data: FunctionToolApiInsert; scopes: AgentScopeConfig }) => {
     const { data, scopes } = params;
     const { tenantId, projectId, agentId } = scopes;
@@ -96,7 +96,7 @@ export const createFunctionTool =
  * Update a function tool (agent-scoped)
  */
 export const updateFunctionTool =
-  (db: DatabaseClient) =>
+  (db: AgentsManageDatabaseClient) =>
   async (params: {
     scopes: AgentScopeConfig;
     functionToolId: string;
@@ -127,7 +127,7 @@ export const updateFunctionTool =
  * Delete a function tool (agent-scoped)
  */
 export const deleteFunctionTool =
-  (db: DatabaseClient) => async (params: { scopes: AgentScopeConfig; functionToolId: string }) => {
+  (db: AgentsManageDatabaseClient) => async (params: { scopes: AgentScopeConfig; functionToolId: string }) => {
     const [deleted] = await db
       .delete(functionTools)
       .where(
@@ -147,7 +147,7 @@ export const deleteFunctionTool =
  * Upsert a function tool (create if it doesn't exist, update if it does)
  */
 export const upsertFunctionTool =
-  (db: DatabaseClient) =>
+  (db: AgentsManageDatabaseClient) =>
   async (params: { data: FunctionToolApiInsert; scopes: AgentScopeConfig }) => {
     const scopes = {
       tenantId: params.scopes.tenantId,
@@ -177,7 +177,7 @@ export const upsertFunctionTool =
     });
   };
 
-export const getFunctionToolsForSubAgent = (db: DatabaseClient) => {
+export const getFunctionToolsForSubAgent = (db: AgentsManageDatabaseClient) => {
   return async (params: {
     scopes: { tenantId: string; projectId: string; agentId: string };
     subAgentId: string;
@@ -227,7 +227,7 @@ export const getFunctionToolsForSubAgent = (db: DatabaseClient) => {
  * Upsert a sub_agent-function tool relation (create if it doesn't exist, update if it does)
  */
 export const upsertSubAgentFunctionToolRelation =
-  (db: DatabaseClient) =>
+  (db: AgentsManageDatabaseClient) =>
   async (params: {
     scopes: AgentScopeConfig;
     subAgentId: string;
@@ -295,7 +295,7 @@ export const upsertSubAgentFunctionToolRelation =
 /**
  * Add a function tool to an agent
  */
-export const addFunctionToolToSubAgent = (db: DatabaseClient) => {
+export const addFunctionToolToSubAgent = (db: AgentsManageDatabaseClient) => {
   return async (params: {
     scopes: AgentScopeConfig;
     subAgentId: string;
@@ -335,7 +335,7 @@ export const addFunctionToolToSubAgent = (db: DatabaseClient) => {
 /**
  * Update an agent-function tool relation
  */
-export const updateSubAgentFunctionToolRelation = (db: DatabaseClient) => {
+export const updateSubAgentFunctionToolRelation = (db: AgentsManageDatabaseClient) => {
   return async (params: {
     scopes: AgentScopeConfig;
     relationId: string;

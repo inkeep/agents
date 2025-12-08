@@ -4,10 +4,10 @@
  * complete project definitions with all nested resources (Agents, Sub Agents, tools, etc.).
  */
 
-import type { DatabaseClient } from '../db/client';
-import type { FullProjectDefinition, ProjectSelect, ToolApiInsert } from '../types/entities';
-import type { ProjectScopeConfig } from '../types/utility';
-import { getLogger } from '../utils/logger';
+import type { AgentsManageDatabaseClient } from '../../db/config/config-client';
+import type { FullProjectDefinition, ProjectSelect, ToolApiInsert } from '../../types/entities';
+import type { ProjectScopeConfig } from '../../types/utility';
+import { getLogger } from '../../utils/logger';
 import {
   createFullAgentServerSide,
   deleteFullAgent,
@@ -47,7 +47,7 @@ function validateAndTypeProjectData(projectData: any): FullProjectDefinition {
  * This function creates a complete project with all agent and their nested resources.
  */
 export const createFullProjectServerSide =
-  (db: DatabaseClient, logger: ProjectLogger = defaultLogger) =>
+  (db: AgentsManageDatabaseClient, logger: ProjectLogger = defaultLogger) =>
   async (params: {
     scopes: ProjectScopeConfig;
     projectData: FullProjectDefinition;
@@ -478,7 +478,7 @@ export const createFullProjectServerSide =
  * This function updates a complete project with all agent and their nested resources.
  */
 export const updateFullProjectServerSide =
-  (db: DatabaseClient, logger: ProjectLogger = defaultLogger) =>
+  (db: AgentsManageDatabaseClient, logger: ProjectLogger = defaultLogger) =>
   async (params: {
     scopes: ProjectScopeConfig;
     projectData: FullProjectDefinition;
@@ -1122,7 +1122,7 @@ export const updateFullProjectServerSide =
  * Get a complete project definition with all nested resources
  */
 export const getFullProject =
-  (db: DatabaseClient, logger: ProjectLogger = defaultLogger) =>
+  (db: AgentsManageDatabaseClient, logger: ProjectLogger = defaultLogger) =>
   async (params: { scopes: ProjectScopeConfig }): Promise<FullProjectDefinition | null> => {
     const { scopes } = params;
     const { tenantId, projectId } = scopes;
@@ -1390,7 +1390,7 @@ export const getFullProject =
  * Delete a complete project and cascade to all related entities
  */
 export const deleteFullProject =
-  (db: DatabaseClient, logger: ProjectLogger = defaultLogger) =>
+  (db: AgentsManageDatabaseClient, logger: ProjectLogger = defaultLogger) =>
   async (params: { scopes: ProjectScopeConfig }): Promise<boolean> => {
     const { scopes } = params;
     const { tenantId, projectId } = scopes;

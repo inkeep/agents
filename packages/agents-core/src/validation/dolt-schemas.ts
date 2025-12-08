@@ -57,7 +57,16 @@ export const BranchNameParamsSchema = z
   })
   .openapi('BranchNameParams');
 
+  export const ResolvedRefSchema = z
+  .object({
+    type: z.enum(['commit', 'tag', 'branch']).describe('The type of ref'),
+    name: z.string().describe('The name of the ref (branch name, tag name, or commit hash)'),
+    hash: z.string().describe('The commit hash this ref resolves to'),
+  })
+  .openapi('ResolvedRef');
+
 // Export types
+export type ResolvedRef = z.infer<typeof ResolvedRefSchema>;
 export type CreateBranchRequest = z.infer<typeof CreateBranchRequestSchema>;
 export type BranchInfo = z.infer<typeof BranchInfoSchema>;
 export type BranchResponse = z.infer<typeof BranchResponseSchema>;

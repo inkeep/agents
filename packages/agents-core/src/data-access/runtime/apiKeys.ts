@@ -1,17 +1,17 @@
 import { and, count, desc, eq } from 'drizzle-orm';
-import type { DatabaseClient } from '../db/client';
-import { apiKeys } from '../db/schema';
-import type { ApiKeyInsert, ApiKeySelect, ApiKeyUpdate } from '../types/entities';
+import type { AgentsRunDatabaseClient } from '../../db/runtime/runtime-client';
+import { apiKeys } from '../../db/runtime/runtime-schema';
+import type { ApiKeyInsert, ApiKeySelect, ApiKeyUpdate } from '../../types/entities';
 import type {
   ApiKeyCreateResult,
   CreateApiKeyParams,
   PaginationConfig,
   ProjectScopeConfig,
-} from '../types/utility';
-import { extractPublicId, generateApiKey, isApiKeyExpired, validateApiKey } from '../utils/apiKeys';
+} from '../../types/utility';
+import { extractPublicId, generateApiKey, isApiKeyExpired, validateApiKey } from '../../utils/apiKeys';
 
 export const getApiKeyById =
-  (db: DatabaseClient) => async (params: { scopes: ProjectScopeConfig; id: string }) => {
+  (db: AgentsRunDatabaseClient) => async (params: { scopes: ProjectScopeConfig; id: string }) => {
     return await db.query.apiKeys.findFirst({
       where: and(
         eq(apiKeys.tenantId, params.scopes.tenantId),
@@ -21,14 +21,14 @@ export const getApiKeyById =
     });
   };
 
-export const getApiKeyByPublicId = (db: DatabaseClient) => async (publicId: string) => {
+export const getApiKeyByPublicId = (db: AgentsRunDatabaseClient) => async (publicId: string) => {
   return await db.query.apiKeys.findFirst({
     where: eq(apiKeys.publicId, publicId),
   });
 };
 
 export const listApiKeys =
-  (db: DatabaseClient) => async (params: { scopes: ProjectScopeConfig; agentId?: string }) => {
+  (db: AgentsRunDatabaseClient) => async (params: { scopes: ProjectScopeConfig; agentId?: string }) => {
     const conditions = [
       eq(apiKeys.tenantId, params.scopes.tenantId),
       eq(apiKeys.projectId, params.scopes.projectId),
@@ -45,7 +45,7 @@ export const listApiKeys =
   };
 
 export const listApiKeysPaginated =
-  (db: DatabaseClient) =>
+  (db: AgentsRunDatabaseClient) =>
   async (params: {
     scopes: ProjectScopeConfig;
     pagination?: PaginationConfig;
@@ -89,7 +89,7 @@ export const listApiKeysPaginated =
     };
   };
 
-export const createApiKey = (db: DatabaseClient) => async (params: ApiKeyInsert) => {
+export const createApiKey = (db: AgentsRunDatabaseClient) => async (params: ApiKeyInsert) => {
   const now = new Date().toISOString();
 
   const [apiKey] = await db
@@ -104,6 +104,7 @@ export const createApiKey = (db: DatabaseClient) => async (params: ApiKeyInsert)
       keyHash: params.keyHash,
       keyPrefix: params.keyPrefix,
       expiresAt: params.expiresAt,
+      ref: params.ref,
       createdAt: now,
       updatedAt: now,
     })
@@ -113,7 +114,7 @@ export const createApiKey = (db: DatabaseClient) => async (params: ApiKeyInsert)
 };
 
 export const updateApiKey =
-  (db: DatabaseClient) =>
+  (db: AgentsRunDatabaseClient) =>
   async (params: { scopes: ProjectScopeConfig; id: string; data: ApiKeyUpdate }) => {
     const now = new Date().toISOString();
 
@@ -137,7 +138,7 @@ export const updateApiKey =
   };
 
 export const deleteApiKey =
-  (db: DatabaseClient) =>
+  (db: AgentsRunDatabaseClient) =>
   async (params: { scopes: ProjectScopeConfig; id: string }): Promise<boolean> => {
     try {
       const existingKey = await getApiKeyById(db)({
@@ -168,14 +169,14 @@ export const deleteApiKey =
   };
 
 export const hasApiKey =
-  (db: DatabaseClient) =>
+  (db: AgentsRunDatabaseClient) =>
   async (params: { scopes: ProjectScopeConfig; id: string }): Promise<boolean> => {
     const apiKey = await getApiKeyById(db)(params);
     return apiKey !== null;
   };
 
 export const updateApiKeyLastUsed =
-  (db: DatabaseClient) =>
+  (db: AgentsRunDatabaseClient) =>
   async (id: string): Promise<void> => {
     await db
       .update(apiKeys)
@@ -184,7 +185,7 @@ export const updateApiKeyLastUsed =
   };
 
 export const countApiKeys =
-  (db: DatabaseClient) =>
+  (db: AgentsRunDatabaseClient) =>
   async (params: { scopes: ProjectScopeConfig; agentId?: string }): Promise<number> => {
     const conditions = [
       eq(apiKeys.tenantId, params.scopes.tenantId),
@@ -210,9 +211,9 @@ export const countApiKeys =
  */
 export const generateAndCreateApiKey = async (
   params: CreateApiKeyParams,
-  db: DatabaseClient
+  db: AgentsRunDatabaseClient
 ): Promise<ApiKeyCreateResult> => {
-  const { tenantId, projectId, agentId, expiresAt, name } = params;
+  const { tenantId, projectId, agentId, expiresAt, name, ref } = params;
 
   // Generate the API key
   const keyData = await generateApiKey(tenantId, projectId);
@@ -224,6 +225,7 @@ export const generateAndCreateApiKey = async (
     agentId,
     name,
     expiresAt,
+    ref,
     ...keyData,
   });
 
@@ -238,7 +240,7 @@ export const generateAndCreateApiKey = async (
  */
 export const validateAndGetApiKey = async (
   key: string,
-  db: DatabaseClient
+  db: AgentsRunDatabaseClient
 ): Promise<ApiKeySelect | null> => {
   // Extract publicId from the key for O(1) lookup
   const publicId = extractPublicId(key);

@@ -1,12 +1,12 @@
 import { and, count, desc, eq } from 'drizzle-orm';
 import { nanoid } from 'nanoid';
-import type { DatabaseClient } from '../db/client';
-import { agents, subAgents, subAgentTeamAgentRelations } from '../db/schema';
-import type { SubAgentTeamAgentRelationInsert } from '../types/entities';
-import type { AgentScopeConfig, PaginationConfig, SubAgentScopeConfig } from '../types/utility';
+import type { AgentsManageDatabaseClient } from '../../db/config/config-client';
+import { agents, subAgents, subAgentTeamAgentRelations } from '../../db/config/config-schema';
+import type { SubAgentTeamAgentRelationInsert } from '../../types/entities';
+import type { AgentScopeConfig, PaginationConfig, SubAgentScopeConfig } from '../../types/utility';
 
 export const getSubAgentTeamAgentRelationById =
-  (db: DatabaseClient) => async (params: { scopes: SubAgentScopeConfig; relationId: string }) => {
+  (db: AgentsManageDatabaseClient) => async (params: { scopes: SubAgentScopeConfig; relationId: string }) => {
     return db.query.subAgentTeamAgentRelations.findFirst({
       where: and(
         eq(subAgentTeamAgentRelations.tenantId, params.scopes.tenantId),
@@ -19,7 +19,7 @@ export const getSubAgentTeamAgentRelationById =
   };
 
 export const listSubAgentTeamAgentRelations =
-  (db: DatabaseClient) =>
+  (db: AgentsManageDatabaseClient) =>
   async (params: { scopes: SubAgentScopeConfig; pagination?: PaginationConfig }) => {
     const page = params.pagination?.page || 1;
     const limit = Math.min(params.pagination?.limit || 10, 100);
@@ -50,7 +50,7 @@ export const listSubAgentTeamAgentRelations =
   };
 
 export const getSubAgentTeamAgentRelations =
-  (db: DatabaseClient) => async (params: { scopes: SubAgentScopeConfig }) => {
+  (db: AgentsManageDatabaseClient) => async (params: { scopes: SubAgentScopeConfig }) => {
     return await db.query.subAgentTeamAgentRelations.findMany({
       where: and(
         eq(subAgentTeamAgentRelations.tenantId, params.scopes.tenantId),
@@ -62,7 +62,7 @@ export const getSubAgentTeamAgentRelations =
   };
 
 export const getSubAgentTeamAgentRelationsByAgent =
-  (db: DatabaseClient) => async (params: { scopes: AgentScopeConfig }) => {
+  (db: AgentsManageDatabaseClient) => async (params: { scopes: AgentScopeConfig }) => {
     return await db.query.subAgentTeamAgentRelations.findMany({
       where: and(
         eq(subAgentTeamAgentRelations.tenantId, params.scopes.tenantId),
@@ -73,7 +73,7 @@ export const getSubAgentTeamAgentRelationsByAgent =
   };
 
 export const getSubAgentTeamAgentRelationsByTeamAgent =
-  (db: DatabaseClient) =>
+  (db: AgentsManageDatabaseClient) =>
   async (params: {
     scopes: AgentScopeConfig;
     targetAgentId: string;
@@ -111,7 +111,7 @@ export const getSubAgentTeamAgentRelationsByTeamAgent =
   };
 
 export const getTeamAgentsForSubAgent =
-  (db: DatabaseClient) =>
+  (db: AgentsManageDatabaseClient) =>
   async (params: { scopes: SubAgentScopeConfig; pagination?: PaginationConfig }) => {
     const page = params.pagination?.page || 1;
     const limit = Math.min(params.pagination?.limit || 10, 100);
@@ -186,7 +186,7 @@ export const getTeamAgentsForSubAgent =
   };
 
 export const getSubAgentsForTeamAgent =
-  (db: DatabaseClient) =>
+  (db: AgentsManageDatabaseClient) =>
   async (params: {
     scopes: AgentScopeConfig;
     targetAgentId: string;
@@ -263,7 +263,7 @@ export const getSubAgentsForTeamAgent =
   };
 
 export const createSubAgentTeamAgentRelation =
-  (db: DatabaseClient) =>
+  (db: AgentsManageDatabaseClient) =>
   async (params: {
     scopes: SubAgentScopeConfig;
     relationId?: string;
@@ -294,7 +294,7 @@ export const createSubAgentTeamAgentRelation =
  * Check if sub-agent team agent relation exists by params
  */
 export const getSubAgentTeamAgentRelationByParams =
-  (db: DatabaseClient) =>
+  (db: AgentsManageDatabaseClient) =>
   async (params: { scopes: SubAgentScopeConfig; targetAgentId: string }) => {
     return db.query.subAgentTeamAgentRelations.findFirst({
       where: and(
@@ -311,7 +311,7 @@ export const getSubAgentTeamAgentRelationByParams =
  * Upsert sub-agent team agent relation (create if it doesn't exist, update if it does)
  */
 export const upsertSubAgentTeamAgentRelation =
-  (db: DatabaseClient) =>
+  (db: AgentsManageDatabaseClient) =>
   async (params: {
     scopes: SubAgentScopeConfig;
     relationId?: string;
@@ -348,7 +348,7 @@ export const upsertSubAgentTeamAgentRelation =
   };
 
 export const updateSubAgentTeamAgentRelation =
-  (db: DatabaseClient) =>
+  (db: AgentsManageDatabaseClient) =>
   async (params: {
     scopes: SubAgentScopeConfig;
     relationId: string;
@@ -377,7 +377,7 @@ export const updateSubAgentTeamAgentRelation =
   };
 
 export const deleteSubAgentTeamAgentRelation =
-  (db: DatabaseClient) => async (params: { scopes: SubAgentScopeConfig; relationId: string }) => {
+  (db: AgentsManageDatabaseClient) => async (params: { scopes: SubAgentScopeConfig; relationId: string }) => {
     const result = await db
       .delete(subAgentTeamAgentRelations)
       .where(
@@ -395,7 +395,7 @@ export const deleteSubAgentTeamAgentRelation =
   };
 
 export const deleteSubAgentTeamAgentRelationsBySubAgent =
-  (db: DatabaseClient) => async (params: { scopes: SubAgentScopeConfig }) => {
+  (db: AgentsManageDatabaseClient) => async (params: { scopes: SubAgentScopeConfig }) => {
     const result = await db
       .delete(subAgentTeamAgentRelations)
       .where(
@@ -411,7 +411,7 @@ export const deleteSubAgentTeamAgentRelationsBySubAgent =
   };
 
 export const deleteSubAgentTeamAgentRelationsByAgent =
-  (db: DatabaseClient) => async (params: { scopes: AgentScopeConfig }) => {
+  (db: AgentsManageDatabaseClient) => async (params: { scopes: AgentScopeConfig }) => {
     const result = await db
       .delete(subAgentTeamAgentRelations)
       .where(

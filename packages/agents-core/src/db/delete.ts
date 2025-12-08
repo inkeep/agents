@@ -1,16 +1,17 @@
 import { sql } from 'drizzle-orm';
 import { env } from '../env';
-import { createDatabaseClient } from './client';
+import { createAgentsManageDatabaseClient } from './config/config-client';
+import { createAgentsRunDatabaseClient } from './runtime/runtime-client';
 
 /**
  * Drops all tables, sequences, types, and functions from the public schema
  * WARNING: This is destructive and cannot be undone!
  */
-export async function deleteDatabase() {
+export async function deleteDatabase( type: 'manage' | 'run' ) {
   console.log(`🗑️  Deleting all database objects for environment: ${env.ENVIRONMENT}`);
   console.log('---');
 
-  const dbClient = createDatabaseClient();
+  const dbClient = type === 'manage' ? createAgentsManageDatabaseClient({}) : createAgentsRunDatabaseClient({});
 
   try {
     // Drop the entire public schema and everything in it
@@ -29,17 +30,4 @@ export async function deleteDatabase() {
     console.error('❌ Failed to delete database:', error);
     throw error;
   }
-}
-
-// Run the delete function if executed directly
-if (import.meta.url === new URL(import.meta.url).href) {
-  deleteDatabase()
-    .then(() => {
-      console.log('Database deletion completed');
-      process.exit(0);
-    })
-    .catch((error) => {
-      console.error('Database deletion failed:', error);
-      process.exit(1);
-    });
 }

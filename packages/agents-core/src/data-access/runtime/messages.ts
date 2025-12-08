@@ -1,16 +1,16 @@
 import { and, asc, count, desc, eq, inArray } from 'drizzle-orm';
-import type { DatabaseClient } from '../db/client';
-import { messages } from '../db/schema';
+import type { AgentsRunDatabaseClient } from '../../db/runtime/runtime-client';
+import { messages } from '../../db/runtime/runtime-schema';
 import type {
   MessageInsert,
   MessageUpdate,
   MessageVisibility,
   PaginationConfig,
   ProjectScopeConfig,
-} from '../types/index';
+} from '../../types/index';
 
 export const getMessageById =
-  (db: DatabaseClient) => async (params: { scopes: ProjectScopeConfig; messageId: string }) => {
+  (db: AgentsRunDatabaseClient) => async (params: { scopes: ProjectScopeConfig; messageId: string }) => {
     return db.query.messages.findFirst({
       where: and(
         eq(messages.tenantId, params.scopes.tenantId),
@@ -21,7 +21,7 @@ export const getMessageById =
   };
 
 export const listMessages =
-  (db: DatabaseClient) =>
+  (db: AgentsRunDatabaseClient) =>
   async (params: { scopes: ProjectScopeConfig; pagination: PaginationConfig }) => {
     const page = params.pagination?.page || 1;
     const limit = Math.min(params.pagination?.limit || 10, 100);
@@ -44,7 +44,7 @@ export const listMessages =
   };
 
 export const getMessagesByConversation =
-  (db: DatabaseClient) =>
+  (db: AgentsRunDatabaseClient) =>
   async (params: {
     scopes: ProjectScopeConfig;
     conversationId: string;
@@ -72,7 +72,7 @@ export const getMessagesByConversation =
   };
 
 export const getMessagesByTask =
-  (db: DatabaseClient) =>
+  (db: AgentsRunDatabaseClient) =>
   async (params: { scopes: ProjectScopeConfig; taskId: string; pagination: PaginationConfig }) => {
     const page = params.pagination?.page || 1;
     const limit = Math.min(params.pagination?.limit || 10, 100);
@@ -96,7 +96,7 @@ export const getMessagesByTask =
   };
 
 export const getVisibleMessages =
-  (db: DatabaseClient) =>
+  (db: AgentsRunDatabaseClient) =>
   async (params: {
     scopes: ProjectScopeConfig;
     conversationId: string;
@@ -127,7 +127,7 @@ export const getVisibleMessages =
     return await query;
   };
 
-export const createMessage = (db: DatabaseClient) => async (params: MessageInsert) => {
+export const createMessage = (db: AgentsRunDatabaseClient) => async (params: MessageInsert) => {
   const now = new Date().toISOString();
 
   const [created] = await db
@@ -143,7 +143,7 @@ export const createMessage = (db: DatabaseClient) => async (params: MessageInser
 };
 
 export const updateMessage =
-  (db: DatabaseClient) =>
+  (db: AgentsRunDatabaseClient) =>
   async (params: { scopes: ProjectScopeConfig; messageId: string; data: MessageUpdate }) => {
     const now = new Date().toISOString();
 
@@ -166,7 +166,7 @@ export const updateMessage =
   };
 
 export const deleteMessage =
-  (db: DatabaseClient) => async (params: { scopes: ProjectScopeConfig; messageId: string }) => {
+  (db: AgentsRunDatabaseClient) => async (params: { scopes: ProjectScopeConfig; messageId: string }) => {
     const [deleted] = await db
       .delete(messages)
       .where(
@@ -182,7 +182,7 @@ export const deleteMessage =
   };
 
 export const countMessagesByConversation =
-  (db: DatabaseClient) =>
+  (db: AgentsRunDatabaseClient) =>
   async (params: { scopes: ProjectScopeConfig; conversationId: string }) => {
     const result = await db
       .select({ count: count() })

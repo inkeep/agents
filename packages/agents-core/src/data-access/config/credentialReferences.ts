@@ -1,6 +1,6 @@
 import { and, count, desc, eq, sql } from 'drizzle-orm';
-import type { DatabaseClient } from '../db/client';
-import { credentialReferences, externalAgents, tools } from '../db/schema';
+import type { AgentsManageDatabaseClient } from '../../db/config/config-client';
+import { credentialReferences, externalAgents, tools } from '../../db/config/config-schema';
 import type {
   CredentialReferenceInsert,
   CredentialReferenceSelect,
@@ -9,7 +9,7 @@ import type {
   PaginationConfig,
   ProjectScopeConfig,
   ToolSelect,
-} from '../types/index';
+} from '../../types/index';
 
 export type CredentialReferenceWithResources = CredentialReferenceSelect & {
   tools: ToolSelect[];
@@ -20,7 +20,7 @@ export type CredentialReferenceWithResources = CredentialReferenceSelect & {
  * Get a credential reference by ID
  */
 export const getCredentialReference =
-  (db: DatabaseClient) =>
+  (db: AgentsManageDatabaseClient) =>
   async (params: {
     scopes: ProjectScopeConfig;
     id: string;
@@ -58,7 +58,7 @@ export const getUserScopedCredentialReference =
  * Get a credential reference by ID with its related tools
  */
 export const getCredentialReferenceWithResources =
-  (db: DatabaseClient) =>
+  (db: AgentsManageDatabaseClient) =>
   async (params: {
     scopes: ProjectScopeConfig;
     id: string;
@@ -108,7 +108,7 @@ export const getCredentialReferenceWithResources =
  * List all credential references for a tenant/project
  */
 export const listCredentialReferences =
-  (db: DatabaseClient) =>
+  (db: AgentsManageDatabaseClient) =>
   async (params: { scopes: ProjectScopeConfig }): Promise<CredentialReferenceSelect[]> => {
     return await db.query.credentialReferences.findMany({
       where: and(
@@ -123,7 +123,7 @@ export const listCredentialReferences =
  * List credential references with pagination
  */
 export const listCredentialReferencesPaginated =
-  (db: DatabaseClient) =>
+  (db: AgentsManageDatabaseClient) =>
   async (params: {
     scopes: ProjectScopeConfig;
     pagination?: PaginationConfig;
@@ -164,7 +164,7 @@ export const listCredentialReferencesPaginated =
  * Create a new credential reference
  */
 export const createCredentialReference =
-  (db: DatabaseClient) =>
+  (db: AgentsManageDatabaseClient) =>
   async (params: CredentialReferenceInsert): Promise<CredentialReferenceSelect> => {
     const now = new Date().toISOString();
 
@@ -184,7 +184,7 @@ export const createCredentialReference =
  * Update a credential reference
  */
 export const updateCredentialReference =
-  (db: DatabaseClient) =>
+  (db: AgentsManageDatabaseClient) =>
   async (params: {
     scopes: ProjectScopeConfig;
     id: string;
@@ -216,7 +216,7 @@ export const updateCredentialReference =
  * Delete a credential reference
  */
 export const deleteCredentialReference =
-  (db: DatabaseClient) =>
+  (db: AgentsManageDatabaseClient) =>
   async (params: { scopes: ProjectScopeConfig; id: string }): Promise<boolean> => {
     // First check if the credential reference exists
     const existingCredential = await getCredentialReference(db)({
@@ -251,7 +251,7 @@ export const deleteCredentialReference =
  * Check if a credential reference exists
  */
 export const hasCredentialReference =
-  (db: DatabaseClient) =>
+  (db: AgentsManageDatabaseClient) =>
   async (params: { scopes: ProjectScopeConfig; id: string }): Promise<boolean> => {
     const credential = await getCredentialReference(db)(params);
     return credential !== null;
@@ -261,7 +261,7 @@ export const hasCredentialReference =
  * Get credential reference by ID (simple version without tools)
  */
 export const getCredentialReferenceById =
-  (db: DatabaseClient) =>
+  (db: AgentsManageDatabaseClient) =>
   async (params: {
     scopes: ProjectScopeConfig;
     id: string;
@@ -281,7 +281,7 @@ export const getCredentialReferenceById =
  * Count credential references for a tenant/project
  */
 export const countCredentialReferences =
-  (db: DatabaseClient) =>
+  (db: AgentsManageDatabaseClient) =>
   async (params: { scopes: ProjectScopeConfig }): Promise<number> => {
     const result = await db
       .select({ count: count() })
@@ -301,7 +301,7 @@ export const countCredentialReferences =
  * Upsert a credential reference (create if it doesn't exist, update if it does)
  */
 export const upsertCredentialReference =
-  (db: DatabaseClient) =>
+  (db: AgentsManageDatabaseClient) =>
   async (params: { data: CredentialReferenceInsert }): Promise<CredentialReferenceSelect> => {
     const scopes = { tenantId: params.data.tenantId, projectId: params.data.projectId };
 

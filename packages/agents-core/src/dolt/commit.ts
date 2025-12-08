@@ -1,6 +1,6 @@
 import { sql } from 'drizzle-orm';
-import type { DatabaseClient } from '../db/client';
 import { doltListBranches } from './branch';
+import type { AgentsManageDatabaseClient } from '../db/config/config-client';
 /**
  * Stage all changes for commit
  * params: { tables?: string[] }
@@ -8,7 +8,7 @@ import { doltListBranches } from './branch';
  * if no tables are specified, all changes are staged
  */
 export const doltAdd =
-  (db: DatabaseClient) =>
+  (db: AgentsManageDatabaseClient) =>
   async (params: { tables?: string[] } = {}): Promise<void> => {
     if (!params.tables || params.tables.length === 0) {
       // Stage all changes
@@ -29,7 +29,7 @@ export const doltAdd =
  * author is optional, if not provided, the commit will be committed with the default author
  */
 export const doltCommit =
-  (db: DatabaseClient) =>
+  (db: AgentsManageDatabaseClient) =>
   async (params: {
     message: string;
     author?: { name: string; email: string };
@@ -50,7 +50,7 @@ export const doltCommit =
   };
 
 export const doltAddAndCommit =
-  (db: DatabaseClient) =>
+  (db: AgentsManageDatabaseClient) =>
   async (params: {
     message: string;
     author?: { name: string; email: string };
@@ -63,7 +63,7 @@ export const doltAddAndCommit =
  * Get commit log
  */
 export const doltLog =
-  (db: DatabaseClient) =>
+  (db: AgentsManageDatabaseClient) =>
   async (params?: {
     revision?: string;
     limit?: number;
@@ -96,7 +96,7 @@ export const doltLog =
  * Reset staged or working changes
  */
 export const doltReset =
-  (db: DatabaseClient) =>
+  (db: AgentsManageDatabaseClient) =>
   async (params?: { hard?: boolean; tables?: string[] }): Promise<void> => {
     if (params?.hard) {
       await db.execute(sql`CALL DOLT_RESET('--hard')`);
@@ -112,7 +112,7 @@ export const doltReset =
  * Get status of working changes
  */
 export const doltStatus =
-  (db: DatabaseClient) =>
+  (db: AgentsManageDatabaseClient) =>
   async (): Promise<
     {
       table_name: string;
@@ -128,7 +128,7 @@ export const doltStatus =
  * Get hash of a commit/branch
  */
 export const doltHashOf =
-  (db: DatabaseClient) =>
+  (db: AgentsManageDatabaseClient) =>
   async (params: { revision: string }): Promise<string> => {
     // If it's already a commit hash (base32 encoding: 0-9 and a-v, 32 chars), return it directly
     if (/^[0-9a-v]{32}$/.test(params.revision)) {
@@ -172,7 +172,7 @@ export const doltHashOf =
  * Create a tag
  */
 export const doltTag =
-  (db: DatabaseClient) =>
+  (db: AgentsManageDatabaseClient) =>
   async (params: { name: string; message?: string; revision?: string }): Promise<void> => {
     const args: string[] = [`'${params.name}'`];
 
@@ -191,7 +191,7 @@ export const doltTag =
  * Delete a tag
  */
 export const doltDeleteTag =
-  (db: DatabaseClient) =>
+  (db: AgentsManageDatabaseClient) =>
   async (params: { name: string }): Promise<void> => {
     await db.execute(sql.raw(`CALL DOLT_TAG('-d', '${params.name}')`));
   };
@@ -200,7 +200,7 @@ export const doltDeleteTag =
  * List all tags
  */
 export const doltListTags =
-  (db: DatabaseClient) =>
+  (db: AgentsManageDatabaseClient) =>
   async (): Promise<
     { tag_name: string; tag_hash: string; tagger: string; date: Date; message: string }[]
   > => {

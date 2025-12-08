@@ -1,12 +1,12 @@
-import type { DatabaseClient } from '../db/client';
-import { projectExistsInTable } from './projects';
+import type { AgentsManageDatabaseClient } from '../db/config/config-client';
+import { projectExistsInTable } from './config/projects';
 
 /**
  * Validates that a project exists before performing database operations
  * This provides runtime validation even when foreign key constraints are not enforced
  */
 export const validateProjectExists = async (
-  db: DatabaseClient,
+  db: AgentsManageDatabaseClient,
   tenantId: string,
   projectId: string
 ): Promise<void> => {
@@ -27,7 +27,7 @@ export const validateProjectExists = async (
  * Ensures the project exists before executing the operation
  */
 export const withProjectValidation = <T extends (...args: any[]) => Promise<any>>(
-  db: DatabaseClient,
+  db: AgentsManageDatabaseClient,
   operation: T
 ) => {
   return async (params: Parameters<T>[0]): Promise<ReturnType<T>> => {
@@ -48,7 +48,7 @@ export const withProjectValidation = <T extends (...args: any[]) => Promise<any>
  * Automatically adds project validation to insert/update operations
  */
 export const createValidatedDataAccess = <T extends Record<string, any>>(
-  db: DatabaseClient,
+  db: AgentsManageDatabaseClient,
   dataAccessFunctions: T
 ): T => {
   const validated = {} as T;

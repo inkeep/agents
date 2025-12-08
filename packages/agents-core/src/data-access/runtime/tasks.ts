@@ -1,9 +1,9 @@
 import { and, eq } from 'drizzle-orm';
-import type { DatabaseClient } from '../db/client';
-import { tasks } from '../db/schema';
-import type { TaskInsert, TaskSelect } from '../types/index';
+import type { AgentsRunDatabaseClient } from '../../db/runtime/runtime-client';
+import { tasks } from '../../db/runtime/runtime-schema';
+import type { TaskInsert, TaskSelect } from '../../types/index';
 
-export const createTask = (db: DatabaseClient) => async (params: TaskInsert) => {
+export const createTask = (db: AgentsRunDatabaseClient) => async (params: TaskInsert) => {
   const now = new Date().toISOString();
 
   const [created] = await db
@@ -19,7 +19,7 @@ export const createTask = (db: DatabaseClient) => async (params: TaskInsert) => 
 };
 
 export const getTask =
-  (db: DatabaseClient) =>
+  (db: AgentsRunDatabaseClient) =>
   async (params: { id: string }): Promise<TaskSelect | null> => {
     const { id } = params;
     const result = await db.select().from(tasks).where(eq(tasks.id, id)).limit(1);
@@ -28,7 +28,7 @@ export const getTask =
   };
 
 export const updateTask =
-  (db: DatabaseClient) =>
+  (db: AgentsRunDatabaseClient) =>
   async (params: {
     taskId: string;
     data: {
@@ -51,7 +51,7 @@ export const updateTask =
   };
 
 export const listTaskIdsByContextId =
-  (db: DatabaseClient) => async (params: { contextId: string }) => {
+  (db: AgentsRunDatabaseClient) => async (params: { contextId: string }) => {
     const { contextId } = params;
     const result = await db
       .select({ id: tasks.id })

@@ -1,8 +1,8 @@
 import { drizzle } from 'drizzle-orm/node-postgres';
 import type { Pool, PoolClient } from 'pg';
-import type { DatabaseClient } from '../db/client';
+import type { AgentsManageDatabaseClient } from '../db/config/config-client';
 import * as schema from '../db/schema';
-import type { ResolvedRef } from '../dolt/ref';
+import type { ResolvedRef } from '../validation/dolt-schemas';
 import { resolveRef } from '../dolt/ref';
 import { getLogger } from '../utils/logger';
 
@@ -11,7 +11,7 @@ const logger = getLogger('branch-scoped-executor');
 /**
  * Get the underlying connection pool from a Drizzle database client
  */
-function getPoolFromClient(client: DatabaseClient): Pool | null {
+function getPoolFromClient(client: AgentsManageDatabaseClient): Pool | null {
   if ('$client' in client && client.$client) {
     return client.$client as Pool;
   }
@@ -25,7 +25,7 @@ export interface BranchScopedExecuteOptions {
   /**
    * The base database client (used to get the connection pool)
    */
-  dbClient: DatabaseClient;
+  dbClient: AgentsManageDatabaseClient;
   /**
    * The ref to checkout (branch name, tag, or commit hash)
    * If a string is provided, it will be resolved to a ResolvedRef
@@ -70,7 +70,7 @@ export interface BranchScopedExecuteOptions {
  *  */
 export async function executeInBranch<T>(
   options: BranchScopedExecuteOptions,
-  fn: (branchDb: DatabaseClient) => Promise<T>
+  fn: (branchDb: AgentsManageDatabaseClient) => Promise<T>
 ): Promise<T> {
   const { dbClient, ref, autoCommit = false, commitMessage } = options;
 

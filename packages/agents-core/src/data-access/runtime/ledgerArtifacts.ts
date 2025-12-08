@@ -1,8 +1,8 @@
 import { and, count, eq } from 'drizzle-orm';
-import type { DatabaseClient } from '../db/client';
-import { ledgerArtifacts } from '../db/schema';
-import type { Artifact, LedgerArtifactSelect, Part, ProjectScopeConfig } from '../types/index';
-import { generateId } from '../utils/conversations';
+import type { AgentsRunDatabaseClient } from '../../db/runtime/runtime-client';
+import { ledgerArtifacts } from '../../db/runtime/runtime-schema';
+import type { Artifact, LedgerArtifactSelect, Part, ProjectScopeConfig } from '../../types/index';
+import { generateId } from '../../utils/conversations';
 
 /**
  * Validate artifact data before database insertion
@@ -84,7 +84,7 @@ function sanitizeArtifactForDatabase(artifact: Artifact): Artifact {
  * Fallback insert strategy for when normal insert fails
  */
 async function tryFallbackInsert(
-  db: DatabaseClient,
+  db: AgentsRunDatabaseClient,
   rows: any[],
   _originalError: any
 ): Promise<void> {
@@ -125,7 +125,7 @@ async function tryFallbackInsert(
  * Atomic upsert operation for a single artifact - prevents race conditions
  */
 export const upsertLedgerArtifact =
-  (db: DatabaseClient) =>
+  (db: AgentsRunDatabaseClient) =>
   async (params: {
     scopes: ProjectScopeConfig;
     contextId: string;
@@ -211,7 +211,7 @@ export const upsertLedgerArtifact =
  * Save one or more artifacts to the ledger
  */
 export const addLedgerArtifacts =
-  (db: DatabaseClient) =>
+  (db: AgentsRunDatabaseClient) =>
   async (params: {
     scopes: ProjectScopeConfig;
     contextId: string;
@@ -319,7 +319,7 @@ export const addLedgerArtifacts =
  * At least one of taskId, toolCallId, or artifactId must be provided.
  */
 export const getLedgerArtifacts =
-  (db: DatabaseClient) =>
+  (db: AgentsRunDatabaseClient) =>
   async (params: {
     scopes: ProjectScopeConfig;
     taskId?: string;
@@ -374,7 +374,7 @@ export const getLedgerArtifacts =
  * Get ledger artifacts by context ID
  */
 export const getLedgerArtifactsByContext =
-  (db: DatabaseClient) =>
+  (db: AgentsRunDatabaseClient) =>
   async (params: {
     scopes: ProjectScopeConfig;
     contextId: string;
@@ -395,7 +395,7 @@ export const getLedgerArtifactsByContext =
  * Delete ledger artifacts by task ID
  */
 export const deleteLedgerArtifactsByTask =
-  (db: DatabaseClient) =>
+  (db: AgentsRunDatabaseClient) =>
   async (params: { scopes: ProjectScopeConfig; taskId: string }): Promise<boolean> => {
     const result = await db
       .delete(ledgerArtifacts)
@@ -415,7 +415,7 @@ export const deleteLedgerArtifactsByTask =
  * Delete ledger artifacts by context ID
  */
 export const deleteLedgerArtifactsByContext =
-  (db: DatabaseClient) =>
+  (db: AgentsRunDatabaseClient) =>
   async (params: { scopes: ProjectScopeConfig; contextId: string }): Promise<boolean> => {
     const result = await db
       .delete(ledgerArtifacts)
@@ -435,7 +435,7 @@ export const deleteLedgerArtifactsByContext =
  * Count ledger artifacts by task ID
  */
 export const countLedgerArtifactsByTask =
-  (db: DatabaseClient) =>
+  (db: AgentsRunDatabaseClient) =>
   async (params: { scopes: ProjectScopeConfig; taskId: string }): Promise<number> => {
     const result = await db
       .select({ count: count() })

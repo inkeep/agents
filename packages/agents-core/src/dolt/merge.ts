@@ -1,4 +1,4 @@
-import type { DatabaseClient } from '../db/client';
+import type { AgentsManageDatabaseClient } from '../db/config/config-client';
 import { doltCheckout } from './branch';
 import { sql } from 'drizzle-orm';
 /**
@@ -6,7 +6,7 @@ import { sql } from 'drizzle-orm';
  * Returns merge status and handles conflicts by allowing commit with conflicts
  */
 export const doltMerge =
-  (db: DatabaseClient) =>
+  (db: AgentsManageDatabaseClient) =>
   async (params: {
     fromBranch: string;
     toBranch: string;
@@ -71,7 +71,7 @@ export const doltMerge =
  * Get merge status
  */
 export const doltMergeStatus =
-  (db: DatabaseClient) =>
+  (db: AgentsManageDatabaseClient) =>
   async (): Promise<{
     isMerging: boolean;
     source?: string;
@@ -97,7 +97,7 @@ export const doltMergeStatus =
  * Get list of tables with conflicts
  */
 export const doltConflicts =
-  (db: DatabaseClient) => async (): Promise<{ table: string; numConflicts: number }[]> => {
+  (db: AgentsManageDatabaseClient) => async (): Promise<{ table: string; numConflicts: number }[]> => {
     const result = await db.execute(sql`SELECT * FROM dolt_conflicts`);
     return result.rows as any[];
   };
@@ -106,7 +106,7 @@ export const doltConflicts =
  * Get detailed conflicts for a specific table
  */
 export const doltTableConflicts =
-  (db: DatabaseClient) =>
+  (db: AgentsManageDatabaseClient) =>
   async (params: { tableName: string }): Promise<any[]> => {
     const result = await db.execute(sql.raw(`SELECT * FROM dolt_conflicts_${params.tableName}`));
     return result.rows as any[];
@@ -115,7 +115,7 @@ export const doltTableConflicts =
 /**
  * Get schema conflicts
  */
-export const doltSchemaConflicts = (db: DatabaseClient) => async (): Promise<any[]> => {
+export const doltSchemaConflicts = (db: AgentsManageDatabaseClient) => async (): Promise<any[]> => {
   const result = await db.execute(sql`SELECT * FROM dolt_schema_conflicts`);
   return result.rows as any[];
 };
@@ -124,7 +124,7 @@ export const doltSchemaConflicts = (db: DatabaseClient) => async (): Promise<any
  * Resolve conflicts for a table using a strategy
  */
 export const doltResolveConflicts =
-  (db: DatabaseClient) =>
+  (db: AgentsManageDatabaseClient) =>
   async (params: { tableName: string; strategy: 'ours' | 'theirs' }): Promise<void> => {
     await db.execute(sql`SET dolt_allow_commit_conflicts = 1`); 
     await db.execute(

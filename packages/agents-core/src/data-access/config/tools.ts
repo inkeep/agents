@@ -1,12 +1,12 @@
 import { and, count, desc, eq } from 'drizzle-orm';
-import { ContextResolver } from '../context';
-import type { CredentialStoreRegistry } from '../credential-stores';
-import type { NangoCredentialData } from '../credential-stores/nango-store';
-import { CredentialStuffer } from '../credential-stuffer';
-import type { DatabaseClient } from '../db/client';
-import { subAgentToolRelations, tools } from '../db/schema';
-import type { CredentialReferenceSelect } from '../types/index';
-import type { ResolvedRef } from '../dolt/ref';
+import { ContextResolver } from '../../context';
+import type { CredentialStoreRegistry } from '../../credential-stores';
+import type { NangoCredentialData } from '../../credential-stores/nango-store';
+import { CredentialStuffer } from '../../credential-stuffer';
+import type { AgentsManageDatabaseClient } from '../../db/config/config-client';
+import { subAgentToolRelations, tools } from '../../db/config/config-schema';
+import type { CredentialReferenceSelect } from '../../types/index';
+import type { ResolvedRef } from '../../validation/dolt-schemas';
 import {
   type AgentScopeConfig,
   CredentialStoreType,
@@ -20,17 +20,17 @@ import {
   type ToolInsert,
   type ToolSelect,
   type ToolUpdate,
-} from '../types/index';
+} from '../../types/index';
 import {
   detectAuthenticationRequired,
   getCredentialStoreLookupKeyFromRetrievalParams,
   isThirdPartyMCPServerAuthenticated,
   toISODateString,
-} from '../utils';
-import { generateId } from '../utils/conversations';
-import { getLogger } from '../utils/logger';
-import { McpClient, type McpServerConfig } from '../utils/mcp-client';
-import { getCredentialReference, getUserScopedCredentialReference } from './credentialReferences';
+} from '../../utils';
+import { generateId } from '../../utils/conversations';
+import { getLogger } from '../../utils/logger';
+import { McpClient, type McpServerConfig } from '../../utils/mcp-client';
+import { getCredentialReference, getUserScopedCredentialReference } from '../../data-access/config/credentialReferences';
 import { updateAgentToolRelation } from './subAgentRelations';
 
 const logger = getLogger('tools');
@@ -117,10 +117,9 @@ const convertToMCPToolConfig = (tool: ToolSelect): MCPToolConfig => {
   };
 };
 
-const discoverToolsFromServer = async (
+const discoverToolsFromManageServer = async (
   tool: ToolSelect,
-  dbClient: DatabaseClient,
-  ref?: ResolvedRef,
+  dbClient: AgentsManageDatabaseClient,
   credentialStoreRegistry?: CredentialStoreRegistry,
   userId?: string
 ): Promise<McpToolDefinition[]> => {
@@ -155,14 +154,7 @@ const discoverToolsFromServer = async (
       if (!credentialStoreRegistry) {
         throw new Error('CredentialStoreRegistry is required for authenticated tools');
       }
-      const contextResolver = new ContextResolver(
-        tool.tenantId,
-        tool.projectId,
-        dbClient,
-        credentialStoreRegistry,
-        ref
-      );
-      const credentialStuffer = new CredentialStuffer(credentialStoreRegistry, contextResolver);
+      const credentialStuffer = new CredentialStuffer(credentialStoreRegistry);
       serverConfig = await credentialStuffer.buildMcpServerConfig(
         { tenantId: tool.tenantId, projectId: tool.projectId },
         convertToMCPToolConfig(tool),
@@ -228,13 +220,12 @@ const discoverToolsFromServer = async (
   }
 };
 
-export const dbResultToMcpTool = async (
+export const manageDbResultToMcpTool = async (
   dbResult: ToolSelect,
-  dbClient: DatabaseClient,
+  dbClient: AgentsManageDatabaseClient,
   credentialStoreRegistry?: CredentialStoreRegistry,
   relationshipId?: string,
   userId?: string,
-  ref?: ResolvedRef
 ): Promise<McpTool> => {
   const { headers, capabilities, credentialReferenceId, imageUrl, createdAt, ...rest } = dbResult;
 
@@ -283,10 +274,9 @@ export const dbResultToMcpTool = async (
   const mcpServerUrl = dbResult.config.mcp.server.url;
 
   try {
-    availableTools = await discoverToolsFromServer(
+    availableTools = await discoverToolsFromManageServer(
       dbResult,
       dbClient,
-      ref,
       credentialStoreRegistry,
       userId
     );
@@ -357,7 +347,7 @@ export const dbResultToMcpTool = async (
 };
 
 export const getToolById =
-  (db: DatabaseClient) => async (params: { scopes: ProjectScopeConfig; toolId: string }) => {
+  (db: AgentsManageDatabaseClient) => async (params: { scopes: ProjectScopeConfig; toolId: string }) => {
     const result = await db.query.tools.findFirst({
       where: and(
         eq(tools.tenantId, params.scopes.tenantId),
@@ -369,7 +359,7 @@ export const getToolById =
   };
 
 export const listTools =
-  (db: DatabaseClient) =>
+  (db: AgentsManageDatabaseClient) =>
   async (params: { scopes: ProjectScopeConfig; pagination?: PaginationConfig }) => {
     const page = params.pagination?.page || 1;
     const limit = Math.min(params.pagination?.limit || 10, 100);
@@ -400,7 +390,7 @@ export const listTools =
     };
   };
 
-export const createTool = (db: DatabaseClient) => async (params: ToolInsert) => {
+export const createTool = (db: AgentsManageDatabaseClient) => async (params: ToolInsert) => {
   const now = new Date().toISOString();
 
   const [created] = await db
@@ -416,7 +406,7 @@ export const createTool = (db: DatabaseClient) => async (params: ToolInsert) => 
 };
 
 export const updateTool =
-  (db: DatabaseClient) =>
+  (db: AgentsManageDatabaseClient) =>
   async (params: { scopes: ProjectScopeConfig; toolId: string; data: ToolUpdate }) => {
     const now = new Date().toISOString();
 
@@ -439,7 +429,7 @@ export const updateTool =
   };
 
 export const deleteTool =
-  (db: DatabaseClient) => async (params: { scopes: ProjectScopeConfig; toolId: string }) => {
+  (db: AgentsManageDatabaseClient) => async (params: { scopes: ProjectScopeConfig; toolId: string }) => {
     const [deleted] = await db
       .delete(tools)
       .where(
@@ -455,7 +445,7 @@ export const deleteTool =
   };
 
 export const addToolToAgent =
-  (db: DatabaseClient) =>
+  (db: AgentsManageDatabaseClient) =>
   async (params: {
     scopes: AgentScopeConfig;
     subAgentId: string;
@@ -488,7 +478,7 @@ export const addToolToAgent =
   };
 
 export const removeToolFromAgent =
-  (db: DatabaseClient) =>
+  (db: AgentsManageDatabaseClient) =>
   async (params: { scopes: AgentScopeConfig; subAgentId: string; toolId: string }) => {
     const [deleted] = await db
       .delete(subAgentToolRelations)
@@ -510,7 +500,7 @@ export const removeToolFromAgent =
  * Upsert agent-tool relation (create if it doesn't exist, update if it does)
  */
 export const upsertSubAgentToolRelation =
-  (db: DatabaseClient) =>
+  (db: AgentsManageDatabaseClient) =>
   async (params: {
     scopes: AgentScopeConfig;
     subAgentId: string;
@@ -540,7 +530,7 @@ export const upsertSubAgentToolRelation =
 /**
  * Upsert a tool (create if it doesn't exist, update if it does)
  */
-export const upsertTool = (db: DatabaseClient) => async (params: { data: ToolInsert }) => {
+export const upsertTool = (db: AgentsManageDatabaseClient) => async (params: { data: ToolInsert }) => {
   const scopes = { tenantId: params.data.tenantId, projectId: params.data.projectId };
 
   const existing = await getToolById(db)({

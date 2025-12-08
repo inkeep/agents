@@ -1,15 +1,11 @@
-import type { DatabaseClient } from '../db/client';
+import type { AgentsManageDatabaseClient } from '../db/config/config-client';
 import { sql } from 'drizzle-orm';
 import { doltListBranches } from './branch';
 import { doltListTags, doltHashOf } from './commit';
+import type { ResolvedRef } from '../validation/dolt-schemas';
 
 export type RefType = 'commit' | 'tag' | 'branch';
 
-export type ResolvedRef = {
-  type: RefType;
-  name: string;
-  hash: string;
-};
 
 export const isValidCommitHash = (ref: string): boolean => {
   // Dolt uses base32 encoding for commit hashes (characters 0-9 and a-v)
@@ -17,7 +13,7 @@ export const isValidCommitHash = (ref: string): boolean => {
 };
 
 export const resolveRef =
-  (db: DatabaseClient) =>
+  (db: AgentsManageDatabaseClient) =>
   async (ref: string): Promise<ResolvedRef | null> => {
     if (isValidCommitHash(ref)) {
       return {
@@ -55,7 +51,7 @@ export const isRefWritable = (resolvedRef: ResolvedRef): boolean => {
 };
 
 export const checkoutRef =
-  (db: DatabaseClient) =>
+  (db: AgentsManageDatabaseClient) =>
   async (resolvedRef: ResolvedRef): Promise<void> => {
     if (resolvedRef.type === 'branch') {
       await db.execute(sql.raw(`CALL DOLT_CHECKOUT('${resolvedRef.name}')`));
@@ -65,7 +61,7 @@ export const checkoutRef =
   };
 
 export const getCurrentBranchOrCommit =
-  (db: DatabaseClient) =>
+  (db: AgentsManageDatabaseClient) =>
   async (): Promise<{ ref: string; hash: string; type: RefType }> => {
     const branchResult = await db.execute(sql`SELECT ACTIVE_BRANCH() as branch`);
     const branch = branchResult.rows[0]?.branch as string;

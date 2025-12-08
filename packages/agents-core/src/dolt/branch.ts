@@ -1,5 +1,5 @@
 import { sql } from 'drizzle-orm';
-import type { DatabaseClient } from '../db/client';
+import type { AgentsManageDatabaseClient } from '../db/config/config-client';
 import { doltHashOf } from './commit';
 
 export type branchScopes = {
@@ -11,7 +11,7 @@ export type branchScopes = {
  * Create a new branch
  */
 export const doltBranch =
-  (db: DatabaseClient) =>
+  (db: AgentsManageDatabaseClient) =>
   async (params: { name: string; startPoint?: string }): Promise<void> => {
     if (params.startPoint) {
       // Get the commit hash of the startPoint (branch, commit, or tag)
@@ -27,7 +27,7 @@ export const doltBranch =
  * Delete a branch
  */
 export const doltDeleteBranch =
-  (db: DatabaseClient) =>
+  (db: AgentsManageDatabaseClient) =>
   async (params: { name: string; force?: boolean }): Promise<void> => {
     const flag = params.force ? '-D' : '-d';
     await db.execute(sql.raw(`CALL DOLT_BRANCH('${flag}', '${params.name}')`));
@@ -37,7 +37,7 @@ export const doltDeleteBranch =
  * Rename a branch
  */
 export const doltRenameBranch =
-  (db: DatabaseClient) =>
+  (db: AgentsManageDatabaseClient) =>
   async (params: { oldName: string; newName: string }): Promise<void> => {
     await db.execute(sql.raw(`CALL DOLT_BRANCH('-m', '${params.oldName}', '${params.newName}')`));
   };
@@ -46,7 +46,7 @@ export const doltRenameBranch =
  * List all branches
  */
 export const doltListBranches =
-  (db: DatabaseClient) =>
+  (db: AgentsManageDatabaseClient) =>
   async (): Promise<{ name: string; hash: string; latest_commit_date: Date }[]> => {
     const result = await db.execute(sql`SELECT * FROM dolt_branches`);
     return result.rows as any[];
@@ -56,7 +56,7 @@ export const doltListBranches =
  * Checkout a branch or create and checkout a new branch
  */
 export const doltCheckout =
-  (db: DatabaseClient) =>
+  (db: AgentsManageDatabaseClient) =>
   async (params: { branch: string; create?: boolean }): Promise<void> => {
     params.create
       ? await db.execute(sql.raw(`CALL DOLT_CHECKOUT('-b', '${params.branch}')`))
@@ -66,7 +66,7 @@ export const doltCheckout =
 /**
  * Get the currently active branch
  */
-export const doltActiveBranch = (db: DatabaseClient) => async (): Promise<string> => {
+export const doltActiveBranch = (db: AgentsManageDatabaseClient) => async (): Promise<string> => {
   const result = await db.execute(sql`SELECT ACTIVE_BRANCH() as branch`);
   return result.rows[0]?.branch as string;
 };

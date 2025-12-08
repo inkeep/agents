@@ -1,13 +1,13 @@
 import crypto from 'node:crypto';
 import { type Span, SpanStatusCode } from '@opentelemetry/api';
 import type { CredentialStoreRegistry } from '../credential-stores/CredentialStoreRegistry';
-import type { DatabaseClient } from '../db/client';
-import type { ResolvedRef } from '../dolt/ref';
+import type { ResolvedRef } from '../validation/dolt-schemas';
 import type { ContextConfigSelect, ContextFetchDefinition } from '../types/index';
 import { getLogger } from '../utils';
 import { setSpanWithError, tracer } from '../utils/tracer';
 import { ContextFetcher } from './ContextFetcher';
 import { ContextCache } from './contextCache';
+import { AgentsRunDatabaseClient } from '../db/runtime/runtime-client';
 
 const logger = getLogger('context-resolver');
 
@@ -44,9 +44,9 @@ export class ContextResolver {
   constructor(
     tenantId: string,
     projectId: string,
-    dbClient: DatabaseClient,
+    dbClient: AgentsRunDatabaseClient,
+    ref: ResolvedRef,
     credentialStoreRegistry?: CredentialStoreRegistry,
-    ref?: ResolvedRef
   ) {
     this.tenantId = tenantId;
     this.projectId = projectId;

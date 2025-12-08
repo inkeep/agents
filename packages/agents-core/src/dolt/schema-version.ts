@@ -1,6 +1,6 @@
-import type { DatabaseClient } from '../db/client';
+import type { AgentsManageDatabaseClient } from '../db/config/config-client';
 import { sql } from 'drizzle-orm';
-import type { ResolvedRef } from './ref';
+import type { ResolvedRef } from '../validation/dolt-schemas';
 import { checkoutRef, getCurrentBranchOrCommit } from './ref';
 
 export type SchemaVersion = {
@@ -19,7 +19,7 @@ export type SchemaCompatibilityCheck = {
 export const MAIN_BRANCH = 'main';
 export const MIN_VIABLE_SCHEMA_VERSION_KEY = 'min_viable_schema_version';
 
-const getAppliedMigrations = (db: DatabaseClient) => async (): Promise<SchemaVersion[]> => {
+const getAppliedMigrations = (db: AgentsManageDatabaseClient) => async (): Promise<SchemaVersion[]> => {
   try {
     const result = await db.execute(
       sql`SELECT * FROM __drizzle_migrations ORDER BY created_at ASC`
@@ -34,12 +34,12 @@ const getAppliedMigrations = (db: DatabaseClient) => async (): Promise<SchemaVer
   }
 };
 
-export const getCurrentSchemaVersion = (db: DatabaseClient) => async (): Promise<number> => {
+export const getCurrentSchemaVersion = (db: AgentsManageDatabaseClient) => async (): Promise<number> => {
   const migrations = await getAppliedMigrations(db)();
   return migrations.length;
 };
 
-export const getMinViableSchemaVersion = (db: DatabaseClient) => async (): Promise<number> => {
+export const getMinViableSchemaVersion = (db: AgentsManageDatabaseClient) => async (): Promise<number> => {
   try {
     const result = await db.execute(
       sql`SELECT value FROM dolt_config WHERE name = ${MIN_VIABLE_SCHEMA_VERSION_KEY}`
@@ -52,7 +52,7 @@ export const getMinViableSchemaVersion = (db: DatabaseClient) => async (): Promi
 };
 
 export const setMinViableSchemaVersion =
-  (db: DatabaseClient) =>
+  (db: AgentsManageDatabaseClient) =>
   async (version: number): Promise<void> => {
     await db.execute(
       sql`INSERT INTO dolt_config (name, value) VALUES (${MIN_VIABLE_SCHEMA_VERSION_KEY}, ${version.toString()}) ON CONFLICT (name) DO UPDATE SET value = ${version.toString()}`
@@ -60,7 +60,7 @@ export const setMinViableSchemaVersion =
   };
 
 export const checkSchemaCompatibility =
-  (db: DatabaseClient) =>
+  (db: AgentsManageDatabaseClient) =>
   async (resolvedRef: ResolvedRef): Promise<SchemaCompatibilityCheck> => {
     const currentState = await getCurrentBranchOrCommit(db)();
 
@@ -108,7 +108,7 @@ export const checkSchemaCompatibility =
   };
 
 export const getSchemaVersionForRef =
-  (db: DatabaseClient) =>
+  (db: AgentsManageDatabaseClient) =>
   async (resolvedRef: ResolvedRef): Promise<number> => {
     const currentState = await getCurrentBranchOrCommit(db)();
 

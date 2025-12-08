@@ -1,12 +1,11 @@
 import { createRoute, OpenAPIHono } from '@hono/zod-openapi';
-import type { ToolApiSelect } from '@inkeep/agents-core';
 import {
   CredentialReferenceApiSelectSchema,
   CredentialReferenceResponse,
   commonGetErrorResponses,
   createApiError,
   createTool,
-  dbResultToMcpTool,
+  manageDbResultToMcpTool,
   deleteTool,
   generateId,
   getToolById,
@@ -22,6 +21,7 @@ import {
   ToolApiUpdateSchema,
   ToolStatusSchema,
   updateTool,
+  AgentsManageDatabaseClient,
 } from '@inkeep/agents-core';
 import dbClient from '../data/db/dbClient';
 import { getLogger } from '../logger';
@@ -87,7 +87,7 @@ app.openapi(
     ...speakeasyOffsetLimitPagination,
   }),
   async (c) => {
-    const db = c.get('db');
+    const db: AgentsManageDatabaseClient = c.get('db');
     const { tenantId, projectId } = c.req.valid('param');
     const { page, limit, status } = c.req.valid('query');
 
@@ -113,7 +113,7 @@ app.openapi(
         data: (
           await Promise.all(
             dbResult.data.map(
-              async (tool) => await dbResultToMcpTool(tool, dbClient, credentialStores)
+              async (tool) => await manageDbResultToMcpTool(tool, dbClient, credentialStores)
             )
           )
         ).filter((tool: McpTool) => tool.status === status),
@@ -128,7 +128,7 @@ app.openapi(
       result = {
         data: await Promise.all(
           dbResult.data.map(
-            async (tool) => await dbResultToMcpTool(tool, dbClient, credentialStores)
+            async (tool) => await manageDbResultToMcpTool(tool, dbClient, credentialStores)
           )
         ),
         pagination: dbResult.pagination,
@@ -176,7 +176,7 @@ app.openapi(
     const userId = c.get('userId');
 
     return c.json({
-      data: await dbResultToMcpTool(tool, dbClient, credentialStores, undefined, userId),
+      data: await manageDbResultToMcpTool(tool, dbClient, credentialStores),
     });
   }
 );
@@ -235,7 +235,7 @@ app.openapi(
 
     return c.json(
       {
-        data: await dbResultToMcpTool(tool, dbClient, credentialStores, undefined, userId),
+        data: await manageDbResultToMcpTool(tool, dbClient, credentialStores),
       },
       201
     );
@@ -306,7 +306,7 @@ app.openapi(
     }
 
     return c.json({
-      data: await dbResultToMcpTool(updatedTool, dbClient, credentialStores, undefined, userId),
+      data: await manageDbResultToMcpTool(updatedTool, dbClient, credentialStores),
     });
   }
 );

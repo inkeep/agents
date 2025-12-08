@@ -15,6 +15,7 @@ import {
   getFunction,
   getFunctionToolsForSubAgent,
   getLedgerArtifacts,
+  createMessage,
   getToolsForAgent,
   getUserScopedCredentialReference,
   listTaskIdsByContextId,
@@ -31,6 +32,7 @@ import {
   parseEmbeddedJson,
   type ResolvedRef,
   type SubAgentStopWhen,
+  generateId,
   TemplateEngine,
 } from '@inkeep/agents-core';
 import { type Span, SpanStatusCode, trace } from '@opentelemetry/api';

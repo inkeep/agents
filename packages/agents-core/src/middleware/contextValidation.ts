@@ -2,9 +2,9 @@ import Ajv, { type ValidateFunction } from 'ajv';
 import type { Context, Next } from 'hono';
 import { ContextResolver } from '../context/ContextResolver';
 import type { CredentialStoreRegistry } from '../credential-stores/CredentialStoreRegistry';
-import { getAgentWithDefaultSubAgent } from '../data-access/agents';
-import { getContextConfigById } from '../data-access/contextConfigs';
-import type { DatabaseClient } from '../db/client';
+import { getAgentWithDefaultSubAgent } from '../data-access/config/agents';
+import { getContextConfigById } from '../data-access/config/contextConfigs';
+import type { AgentsRunDatabaseClient } from '../db/runtime/runtime-client';
 import { executeInBranch } from '../dolt/branch-scoped-execution';
 import type { ContextConfigSelect } from '../types/entities';
 import { createApiError } from '../utils/error';
@@ -252,17 +252,17 @@ async function fetchExistingHeaders({
   projectId,
   contextConfig,
   conversationId,
-  dbClient,
+  ref,
   credentialStores,
 }: {
   tenantId: string;
   projectId: string;
   contextConfig: ContextConfigSelect;
   conversationId: string;
-  dbClient: DatabaseClient;
+  ref: ResolvedRef;
   credentialStores?: CredentialStoreRegistry;
 }) {
-  const contextResolver = new ContextResolver(tenantId, projectId, dbClient, credentialStores);
+  const contextResolver = new ContextResolver(tenantId, projectId, dbClient, recredentialStores);
   const headers = await contextResolver.resolveHeaders(conversationId, contextConfig.id);
   if (Object.keys(headers).length > 0) {
     return {
@@ -288,7 +288,7 @@ export async function validateHeaders({
   agentId: string;
   conversationId: string;
   parsedRequest: ParsedHttpRequest;
-  dbClient: DatabaseClient;
+  dbClient: AgentsRunDatabaseClient;
   credentialStores?: CredentialStoreRegistry;
 }): Promise<ContextValidationResult> {
   try {

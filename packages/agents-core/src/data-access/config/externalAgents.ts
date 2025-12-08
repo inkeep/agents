@@ -1,19 +1,19 @@
 import { and, asc, count, desc, eq } from 'drizzle-orm';
-import type { DatabaseClient } from '../db/client';
-import { externalAgents } from '../db/schema';
+import type { AgentsManageDatabaseClient } from '../../db/config/config-client';
+import { externalAgents } from '../../db/config/config-schema';
 import type {
   ExternalAgentInsert,
   ExternalAgentSelect,
   ExternalAgentUpdate,
   PaginationConfig,
   ProjectScopeConfig,
-} from '../types/index';
+} from '../../types/index';
 
 /**
  * Create a new external agent
  */
 export const createExternalAgent =
-  (db: DatabaseClient) =>
+  (db: AgentsManageDatabaseClient) =>
   async (params: ExternalAgentInsert): Promise<ExternalAgentSelect> => {
     const agent = await db.insert(externalAgents).values(params).returning();
 
@@ -24,7 +24,7 @@ export const createExternalAgent =
  * Get external agent by ID
  */
 export const getExternalAgent =
-  (db: DatabaseClient) =>
+  (db: AgentsManageDatabaseClient) =>
   async (params: {
     scopes: ProjectScopeConfig;
     externalAgentId: string;
@@ -44,7 +44,7 @@ export const getExternalAgent =
  * Get external agent by base URL
  */
 export const getExternalAgentByUrl =
-  (db: DatabaseClient) =>
+  (db: AgentsManageDatabaseClient) =>
   async (params: {
     scopes: ProjectScopeConfig;
     baseUrl: string;
@@ -64,7 +64,7 @@ export const getExternalAgentByUrl =
  * List external agents for a project
  */
 export const listExternalAgents =
-  (db: DatabaseClient) =>
+  (db: AgentsManageDatabaseClient) =>
   async (params: { scopes: ProjectScopeConfig }): Promise<ExternalAgentSelect[]> => {
     return await db.query.externalAgents.findMany({
       where: and(
@@ -79,7 +79,7 @@ export const listExternalAgents =
  * List external agents with pagination
  */
 export const listExternalAgentsPaginated =
-  (db: DatabaseClient) =>
+  (db: AgentsManageDatabaseClient) =>
   async (params: {
     scopes: ProjectScopeConfig;
     pagination?: PaginationConfig;
@@ -131,7 +131,7 @@ export const listExternalAgentsPaginated =
  * Update an existing external agent
  */
 export const updateExternalAgent =
-  (db: DatabaseClient) =>
+  (db: AgentsManageDatabaseClient) =>
   async (params: {
     scopes: ProjectScopeConfig;
     externalAgentId: string;
@@ -170,7 +170,7 @@ export const updateExternalAgent =
  * Upsert external agent (create if it doesn't exist, update if it does)
  */
 export const upsertExternalAgent =
-  (db: DatabaseClient) =>
+  (db: AgentsManageDatabaseClient) =>
   async (params: { data: ExternalAgentInsert }): Promise<ExternalAgentSelect> => {
     const scopes = {
       tenantId: params.data.tenantId,
@@ -205,7 +205,7 @@ export const upsertExternalAgent =
  * Delete an external agent
  */
 export const deleteExternalAgent =
-  (db: DatabaseClient) =>
+  (db: AgentsManageDatabaseClient) =>
   async (params: { scopes: ProjectScopeConfig; externalAgentId: string }): Promise<boolean> => {
     try {
       const result = await db
@@ -230,7 +230,7 @@ export const deleteExternalAgent =
  * Check if an external agent exists
  */
 export const externalAgentExists =
-  (db: DatabaseClient) =>
+  (db: AgentsManageDatabaseClient) =>
   async (params: { scopes: ProjectScopeConfig; externalAgentId: string }): Promise<boolean> => {
     const agent = await getExternalAgent(db)(params);
     return agent !== null;
@@ -240,7 +240,7 @@ export const externalAgentExists =
  * Check if an external agent exists by URL
  */
 export const externalAgentUrlExists =
-  (db: DatabaseClient) =>
+  (db: AgentsManageDatabaseClient) =>
   async (params: { scopes: ProjectScopeConfig; baseUrl: string }): Promise<boolean> => {
     const agent = await getExternalAgentByUrl(db)(params);
     return agent !== null;
@@ -250,7 +250,7 @@ export const externalAgentUrlExists =
  * Count external agents for a project
  */
 export const countExternalAgents =
-  (db: DatabaseClient) =>
+  (db: AgentsManageDatabaseClient) =>
   async (params: { scopes: ProjectScopeConfig }): Promise<number> => {
     const result = await db
       .select({ count: count() })

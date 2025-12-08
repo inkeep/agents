@@ -8,7 +8,7 @@ RUN apt-get update && apt-get install -y \
     && rm -rf /var/lib/apt/lists/*
 
 # Set Doltgres version (check https://github.com/dolthub/doltgresql/releases for latest)
-ARG DOLTGRES_VERSION=0.53.1
+ARG DOLTGRES_VERSION=0.54.4
 
 # Download and install Doltgres
 RUN curl -L "https://github.com/dolthub/doltgresql/releases/download/v${DOLTGRES_VERSION}/doltgresql-linux-amd64.tar.gz" -o doltgres.tar.gz \
@@ -26,8 +26,8 @@ COPY doltgres-config.yml /etc/doltgres/config.yaml
 
 # Copy entrypoint script and fix line endings in one layer
 COPY docker-doltgres-entrypoint.sh /usr/local/bin/docker-doltgres-entrypoint.sh
-RUN sed -i 's/\r$//' /usr/local/bin/docker-doltgres-entrypoint.sh && \
-    chmod +x /usr/local/bin/docker-doltgres-entrypoint.sh
+# RUN sed -i 's/\r$//' /usr/local/bin/docker-doltgres-entrypoint.sh && \
+#     chmod +x /usr/local/bin/docker-doltgres-entrypoint.sh
 
 # Copy initialization scripts
 COPY init-dolt.sql /docker-entrypoint-initdb.d/
@@ -37,5 +37,5 @@ WORKDIR /var/lib/doltgres
 # Expose PostgreSQL port
 EXPOSE 5432
 
-# Run doltgres
-ENTRYPOINT ["/usr/local/bin/docker-doltgres-entrypoint.sh"]
+# Run doltgres directly with config
+ENTRYPOINT ["doltgres", "-config", "/etc/doltgres/config.yaml"]

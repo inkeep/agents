@@ -1,6 +1,6 @@
 import { and, count, desc, eq, inArray } from 'drizzle-orm';
 import type { PgTable } from 'drizzle-orm/pg-core';
-import type { DatabaseClient } from '../db/client';
+import type { AgentsManageDatabaseClient } from '../../db/config/config-client';
 import {
   agents,
   artifactComponents,
@@ -13,10 +13,10 @@ import {
   subAgents,
   subAgentToolRelations,
   tools,
-} from '../db/schema';
-import type { AgentInsert, AgentSelect, AgentUpdate, FullAgentDefinition } from '../types/entities';
-import type { AgentScopeConfig, PaginationConfig, ProjectScopeConfig } from '../types/utility';
-import { generateId } from '../utils/conversations';
+} from '../../db/config/config-schema';
+import type { AgentInsert, AgentSelect, AgentUpdate, FullAgentDefinition } from '../../types/entities';
+import type { AgentScopeConfig, PaginationConfig, ProjectScopeConfig } from '../../types/utility';
+import { generateId } from '../../utils/conversations';
 import { getContextConfigById } from './contextConfigs';
 import { getExternalAgent } from './externalAgents';
 import { getFunction } from './functions';
@@ -28,7 +28,7 @@ import { getSubAgentTeamAgentRelationsByAgent } from './subAgentTeamAgentRelatio
 import { listTools } from './tools';
 
 export const getAgentById =
-  (db: DatabaseClient) => async (params: { scopes: AgentScopeConfig }) => {
+  (db: AgentsManageDatabaseClient) => async (params: { scopes: AgentScopeConfig }) => {
     const result = await db.query.agents.findFirst({
       where: and(
         eq(agents.tenantId, params.scopes.tenantId),
@@ -40,7 +40,7 @@ export const getAgentById =
   };
 
 export const getAgentWithDefaultSubAgent =
-  (db: DatabaseClient) => async (params: { scopes: AgentScopeConfig }) => {
+  (db: AgentsManageDatabaseClient) => async (params: { scopes: AgentScopeConfig }) => {
     const result = await db
       .select()
       .from(agents)
@@ -62,7 +62,7 @@ export const getAgentWithDefaultSubAgent =
   };
 
 export const listAgents =
-  (db: DatabaseClient) => async (params: { scopes: ProjectScopeConfig }) => {
+  (db: AgentsManageDatabaseClient) => async (params: { scopes: ProjectScopeConfig }) => {
     return await db.query.agents.findMany({
       where: and(
         eq(agents.tenantId, params.scopes.tenantId),
@@ -72,7 +72,7 @@ export const listAgents =
   };
 
 export const listAgentsPaginated =
-  (db: DatabaseClient) =>
+  (db: AgentsManageDatabaseClient) =>
   async (params: { scopes: ProjectScopeConfig; pagination?: PaginationConfig }) => {
     const page = params.pagination?.page || 1;
     const limit = Math.min(params.pagination?.limit || 10, 100);
@@ -105,7 +105,7 @@ export const listAgentsPaginated =
     };
   };
 
-export const createAgent = (db: DatabaseClient) => async (data: AgentInsert) => {
+export const createAgent = (db: AgentsManageDatabaseClient) => async (data: AgentInsert) => {
   const now = new Date().toISOString();
 
   const insertData = {
@@ -126,7 +126,7 @@ export const createAgent = (db: DatabaseClient) => async (data: AgentInsert) => 
 };
 
 export const updateAgent =
-  (db: DatabaseClient) => async (params: { scopes: AgentScopeConfig; data: AgentUpdate }) => {
+  (db: AgentsManageDatabaseClient) => async (params: { scopes: AgentScopeConfig; data: AgentUpdate }) => {
     const data = params.data;
 
     const updateData: Record<string, unknown> = {
@@ -181,7 +181,7 @@ export const updateAgent =
     return agent[0] ?? null;
   };
 
-export const deleteAgent = (db: DatabaseClient) => async (params: { scopes: AgentScopeConfig }) => {
+export const deleteAgent = (db: AgentsManageDatabaseClient) => async (params: { scopes: AgentScopeConfig }) => {
   const result = await db
     .delete(agents)
     .where(
@@ -200,7 +200,7 @@ export const deleteAgent = (db: DatabaseClient) => async (params: { scopes: Agen
  * Helper function to fetch component relationships using efficient joins
  */
 export const fetchComponentRelationships =
-  (db: DatabaseClient) =>
+  (db: AgentsManageDatabaseClient) =>
   async <T extends Record<string, unknown>>(
     scopes: ProjectScopeConfig,
     subAgentIds: string[],
@@ -240,7 +240,7 @@ export const fetchComponentRelationships =
   };
 
 export const getAgentSubAgentInfos =
-  (db: DatabaseClient) =>
+  (db: AgentsManageDatabaseClient) =>
   async ({
     scopes: { tenantId, projectId },
     agentId,
@@ -282,7 +282,7 @@ export const getAgentSubAgentInfos =
   };
 
 export const getFullAgentDefinition =
-  (db: DatabaseClient) =>
+  (db: AgentsManageDatabaseClient) =>
   async ({
     scopes: { tenantId, projectId, agentId },
   }: {
@@ -800,7 +800,7 @@ export const getFullAgentDefinition =
  * Upsert an agent (create if it doesn't exist, update if it does)
  */
 export const upsertAgent =
-  (db: DatabaseClient) =>
+  (db: AgentsManageDatabaseClient) =>
   async (params: { data: AgentInsert }): Promise<AgentSelect | null> => {
     const agentId = params.data.id || generateId();
     const scopes = { tenantId: params.data.tenantId, projectId: params.data.projectId, agentId };

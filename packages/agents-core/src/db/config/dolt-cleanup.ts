@@ -1,7 +1,7 @@
 import { sql } from 'drizzle-orm';
-import { loadEnvironmentFiles } from '../env';
-import type { DatabaseClient } from './client';
-import { createDatabaseClient } from './client';
+import { loadEnvironmentFiles } from '../../env';
+import type { AgentsManageDatabaseClient } from './config-client';
+import { createAgentsManageDatabaseClient } from './config-client';
 
 loadEnvironmentFiles();
 
@@ -9,9 +9,9 @@ loadEnvironmentFiles();
  * Get a database client for cleanup operations
  * Allows passing a custom client or uses a default one
  */
-export const getIntegrationTestClient = (db?: DatabaseClient): DatabaseClient => {
+export const getIntegrationTestClient = (db?: AgentsManageDatabaseClient): AgentsManageDatabaseClient => {
   if (db) return db;
-  return createDatabaseClient({ connectionString: process.env.DATABASE_URL });
+  return createAgentsManageDatabaseClient({});
 };
 
 /**
@@ -20,7 +20,7 @@ export const getIntegrationTestClient = (db?: DatabaseClient): DatabaseClient =>
  */
 export const cleanupBranchesByPrefix = async (
   prefix: string,
-  db?: DatabaseClient
+  db?: AgentsManageDatabaseClient
 ): Promise<void> => {
   const dbClient = getIntegrationTestClient(db);
   try {
@@ -48,7 +48,7 @@ export const cleanupBranchesByPrefix = async (
  * Delete all tags matching a prefix pattern
  * Used for cleaning up integration test data
  */
-export const cleanupTagsByPrefix = async (prefix: string, db?: DatabaseClient): Promise<void> => {
+export const cleanupTagsByPrefix = async (prefix: string, db?: AgentsManageDatabaseClient): Promise<void> => {
   const dbClient = getIntegrationTestClient(db);
   try {
     // Get all tags matching the prefix
@@ -76,7 +76,7 @@ export const cleanupTagsByPrefix = async (prefix: string, db?: DatabaseClient): 
  */
 export const cleanupBranches = async (
   branchNames: Set<string>,
-  db?: DatabaseClient
+  db?: AgentsManageDatabaseClient
 ): Promise<void> => {
   const dbClient = getIntegrationTestClient(db);
   for (const branchName of branchNames) {
@@ -92,7 +92,7 @@ export const cleanupBranches = async (
  * Delete specific tags by name
  * Used for cleaning up integration test data
  */
-export const cleanupTags = async (tagNames: Set<string>, db?: DatabaseClient): Promise<void> => {
+export const cleanupTags = async (tagNames: Set<string>, db?: AgentsManageDatabaseClient): Promise<void> => {
   const dbClient = getIntegrationTestClient(db);
   for (const tagName of tagNames) {
     try {
@@ -111,7 +111,7 @@ export const cleanupTestData = async (
   prefix: string,
   branches?: Set<string>,
   tags?: Set<string>,
-  db?: DatabaseClient
+  db?: AgentsManageDatabaseClient
 ): Promise<void> => {
   // Clean up specific tags first
   if (tags && tags.size > 0) {
@@ -136,7 +136,7 @@ export const cleanupTestData = async (
  */
 export const cleanupTenantBranches = async (
   tenantId: string,
-  db?: DatabaseClient
+  db?: AgentsManageDatabaseClient
 ): Promise<void> => {
   const dbClient = getIntegrationTestClient(db);
   try {
@@ -168,7 +168,7 @@ export const cleanupTenantBranches = async (
 export const cleanupTenant = async (
   tenantId: string,
   tagNames?: Set<string>,
-  db?: DatabaseClient
+  db?: AgentsManageDatabaseClient
 ): Promise<void> => {
   try {
     // Delete all tags first (if provided)
@@ -190,7 +190,7 @@ export const cleanupTenant = async (
 export const cleanupTenants = async (
   tenantIds: Set<string>,
   tagNames?: Set<string>,
-  db?: DatabaseClient
+  db?: AgentsManageDatabaseClient
 ): Promise<void> => {
   // Clean up tags first
   if (tagNames && tagNames.size > 0) {

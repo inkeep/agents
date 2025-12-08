@@ -1,16 +1,16 @@
 import { and, count, desc, eq, isNotNull } from 'drizzle-orm';
-import type { DatabaseClient } from '../db/client';
-import { subAgentRelations, subAgents, subAgentToolRelations, tools } from '../db/schema';
+import type { AgentsManageDatabaseClient } from '../../db/config/config-client';
+import { subAgentRelations, subAgents, subAgentToolRelations, tools } from '../../db/config/config-schema';
 import type {
   SubAgentRelationInsert,
   SubAgentRelationUpdate,
   SubAgentToolRelationUpdate,
-} from '../types/entities';
-import type { AgentScopeConfig, PaginationConfig, SubAgentScopeConfig } from '../types/utility';
-import { generateId } from '../utils/conversations';
+} from '../../types/entities';
+import type { AgentScopeConfig, PaginationConfig, SubAgentScopeConfig } from '../../types/utility';
+import { generateId } from '../../utils/conversations';
 
 export const getAgentRelationById =
-  (db: DatabaseClient) => async (params: { scopes: AgentScopeConfig; relationId: string }) => {
+  (db: AgentsManageDatabaseClient) => async (params: { scopes: AgentScopeConfig; relationId: string }) => {
     return db.query.subAgentRelations.findFirst({
       where: and(
         eq(subAgentRelations.tenantId, params.scopes.tenantId),
@@ -22,7 +22,7 @@ export const getAgentRelationById =
   };
 
 export const listAgentRelations =
-  (db: DatabaseClient) =>
+  (db: AgentsManageDatabaseClient) =>
   async (params: { scopes: AgentScopeConfig; pagination?: PaginationConfig }) => {
     const page = params.pagination?.page || 1;
     const limit = Math.min(params.pagination?.limit || 10, 100);
@@ -52,7 +52,7 @@ export const listAgentRelations =
   };
 
 export const getAgentRelations =
-  (db: DatabaseClient) => async (params: { scopes: SubAgentScopeConfig }) => {
+  (db: AgentsManageDatabaseClient) => async (params: { scopes: SubAgentScopeConfig }) => {
     return await db.query.subAgentRelations.findMany({
       where: and(
         eq(subAgentRelations.tenantId, params.scopes.tenantId),
@@ -64,7 +64,7 @@ export const getAgentRelations =
   };
 
 export const getAgentRelationsByAgent =
-  (db: DatabaseClient) => async (params: { scopes: AgentScopeConfig }) => {
+  (db: AgentsManageDatabaseClient) => async (params: { scopes: AgentScopeConfig }) => {
     return await db.query.subAgentRelations.findMany({
       where: and(
         eq(subAgentRelations.tenantId, params.scopes.tenantId),
@@ -75,7 +75,7 @@ export const getAgentRelationsByAgent =
   };
 
 export const getAgentRelationsBySource =
-  (db: DatabaseClient) =>
+  (db: AgentsManageDatabaseClient) =>
   async (params: {
     scopes: AgentScopeConfig;
     sourceSubAgentId: string;
@@ -113,7 +113,7 @@ export const getAgentRelationsBySource =
   };
 
 export const getSubAgentRelationsByTarget =
-  (db: DatabaseClient) =>
+  (db: AgentsManageDatabaseClient) =>
   async (params: {
     scopes: AgentScopeConfig;
     targetSubAgentId: string;
@@ -151,7 +151,7 @@ export const getSubAgentRelationsByTarget =
   };
 
 export const getRelatedAgentsForAgent =
-  (db: DatabaseClient) => async (params: { scopes: AgentScopeConfig; subAgentId: string }) => {
+  (db: AgentsManageDatabaseClient) => async (params: { scopes: AgentScopeConfig; subAgentId: string }) => {
     const data = await db
       .select({
         id: subAgents.id,
@@ -186,7 +186,7 @@ export const getRelatedAgentsForAgent =
   };
 
 export const createSubAgentRelation =
-  (db: DatabaseClient) => async (params: SubAgentRelationInsert) => {
+  (db: AgentsManageDatabaseClient) => async (params: SubAgentRelationInsert) => {
     const hasTargetAgent = params.targetSubAgentId != null;
     const hasExternalAgent = params.externalSubAgentId != null;
     const hasTeamAgent = params.teamSubAgentId != null;
@@ -218,7 +218,7 @@ export const createSubAgentRelation =
  * Check if sub-agent relation exists by agent, source, target, and relation type
  */
 export const getAgentRelationByParams =
-  (db: DatabaseClient) =>
+  (db: AgentsManageDatabaseClient) =>
   async (params: {
     scopes: AgentScopeConfig;
     sourceSubAgentId: string;
@@ -246,7 +246,7 @@ export const getAgentRelationByParams =
  * Upsert agent relation (create if it doesn't exist, no-op if it does)
  */
 export const upsertSubAgentRelation =
-  (db: DatabaseClient) => async (params: SubAgentRelationInsert) => {
+  (db: AgentsManageDatabaseClient) => async (params: SubAgentRelationInsert) => {
     const existing = await getAgentRelationByParams(db)({
       scopes: { tenantId: params.tenantId, projectId: params.projectId, agentId: params.agentId },
       sourceSubAgentId: params.sourceSubAgentId,
@@ -262,7 +262,7 @@ export const upsertSubAgentRelation =
   };
 
 export const updateAgentRelation =
-  (db: DatabaseClient) =>
+  (db: AgentsManageDatabaseClient) =>
   async (params: {
     scopes: AgentScopeConfig;
     relationId: string;
@@ -290,7 +290,7 @@ export const updateAgentRelation =
   };
 
 export const deleteSubAgentRelation =
-  (db: DatabaseClient) => async (params: { scopes: AgentScopeConfig; relationId: string }) => {
+  (db: AgentsManageDatabaseClient) => async (params: { scopes: AgentScopeConfig; relationId: string }) => {
     const result = await db
       .delete(subAgentRelations)
       .where(
@@ -307,7 +307,7 @@ export const deleteSubAgentRelation =
   };
 
 export const deleteAgentRelationsByAgent =
-  (db: DatabaseClient) => async (params: { scopes: AgentScopeConfig }) => {
+  (db: AgentsManageDatabaseClient) => async (params: { scopes: AgentScopeConfig }) => {
     const result = await db
       .delete(subAgentRelations)
       .where(
@@ -321,7 +321,7 @@ export const deleteAgentRelationsByAgent =
   };
 
 export const createAgentToolRelation =
-  (db: DatabaseClient) =>
+  (db: AgentsManageDatabaseClient) =>
   async (params: {
     scopes: AgentScopeConfig;
     relationId?: string;
@@ -354,7 +354,7 @@ export const createAgentToolRelation =
   };
 
 export const updateAgentToolRelation =
-  (db: DatabaseClient) =>
+  (db: AgentsManageDatabaseClient) =>
   async (params: {
     scopes: AgentScopeConfig;
     relationId: string;
@@ -382,7 +382,7 @@ export const updateAgentToolRelation =
   };
 
 export const deleteAgentToolRelation =
-  (db: DatabaseClient) => async (params: { scopes: AgentScopeConfig; relationId: string }) => {
+  (db: AgentsManageDatabaseClient) => async (params: { scopes: AgentScopeConfig; relationId: string }) => {
     const result = await db
       .delete(subAgentToolRelations)
       .where(
@@ -399,7 +399,7 @@ export const deleteAgentToolRelation =
   };
 
 export const deleteAgentToolRelationByAgent =
-  (db: DatabaseClient) => async (params: { scopes: SubAgentScopeConfig }) => {
+  (db: AgentsManageDatabaseClient) => async (params: { scopes: SubAgentScopeConfig }) => {
     const result = await db
       .delete(subAgentToolRelations)
       .where(
@@ -415,7 +415,7 @@ export const deleteAgentToolRelationByAgent =
   };
 
 export const getAgentToolRelationById =
-  (db: DatabaseClient) => async (params: { scopes: SubAgentScopeConfig; relationId: string }) => {
+  (db: AgentsManageDatabaseClient) => async (params: { scopes: SubAgentScopeConfig; relationId: string }) => {
     return await db.query.subAgentToolRelations.findFirst({
       where: and(
         eq(subAgentToolRelations.tenantId, params.scopes.tenantId),
@@ -427,7 +427,7 @@ export const getAgentToolRelationById =
   };
 
 export const getAgentToolRelationByAgent =
-  (db: DatabaseClient) =>
+  (db: AgentsManageDatabaseClient) =>
   async (params: { scopes: SubAgentScopeConfig; pagination?: PaginationConfig }) => {
     const page = params.pagination?.page || 1;
     const limit = Math.min(params.pagination?.limit || 10, 100);
@@ -469,7 +469,7 @@ export const getAgentToolRelationByAgent =
   };
 
 export const getAgentToolRelationByTool =
-  (db: DatabaseClient) =>
+  (db: AgentsManageDatabaseClient) =>
   async (params: { scopes: AgentScopeConfig; toolId: string; pagination?: PaginationConfig }) => {
     const page = params.pagination?.page || 1;
     const limit = Math.min(params.pagination?.limit || 10, 100);
@@ -513,7 +513,7 @@ export const getAgentToolRelationByTool =
   };
 
 export const listAgentToolRelations =
-  (db: DatabaseClient) =>
+  (db: AgentsManageDatabaseClient) =>
   async (params: { scopes: AgentScopeConfig; pagination?: PaginationConfig }) => {
     const page = params.pagination?.page || 1;
     const limit = Math.min(params.pagination?.limit || 10, 100);
@@ -554,7 +554,7 @@ export const listAgentToolRelations =
   };
 
 export const getToolsForAgent =
-  (db: DatabaseClient) =>
+  (db: AgentsManageDatabaseClient) =>
   async (params: { scopes: SubAgentScopeConfig; pagination?: PaginationConfig }) => {
     const page = params.pagination?.page || 1;
     const limit = Math.min(params.pagination?.limit || 10, 100);
@@ -632,7 +632,7 @@ export const getToolsForAgent =
   };
 
 export const getAgentsForTool =
-  (db: DatabaseClient) =>
+  (db: AgentsManageDatabaseClient) =>
   async (params: { scopes: AgentScopeConfig; toolId: string; pagination?: PaginationConfig }) => {
     const page = params.pagination?.page || 1;
     const limit = Math.min(params.pagination?.limit || 10, 100);
@@ -706,7 +706,7 @@ export const getAgentsForTool =
   };
 
 export const validateSubAgent =
-  (db: DatabaseClient) => async (params: { scopes: SubAgentScopeConfig }) => {
+  (db: AgentsManageDatabaseClient) => async (params: { scopes: SubAgentScopeConfig }) => {
     const result = await db
       .select({ id: subAgents.id })
       .from(subAgents)

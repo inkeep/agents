@@ -1,10 +1,9 @@
 import jmespath from 'jmespath';
 import type { CredentialStoreRegistry } from '../credential-stores/CredentialStoreRegistry';
 import { CredentialStuffer } from '../credential-stuffer/CredentialStuffer';
-import { getCredentialReference } from '../data-access/index';
-import type { DatabaseClient } from '../db/client';
+import { AgentsRunDatabaseClient, getCredentialReference } from '../data-access/index';
 import { executeInBranch } from '../dolt/branch-scoped-execution';
-import type { ResolvedRef } from '../dolt/ref';
+import type { ResolvedRef } from '../validation/dolt-schemas';
 import { validateAgainstJsonSchema } from '../middleware/index';
 import type { CredentialReferenceSelect } from '../types/entities';
 import type { ContextFetchDefinition } from '../types/utility';
@@ -54,13 +53,13 @@ export class ContextFetcher {
   private projectId: string;
   private defaultTimeout: number;
   private credentialStuffer?: CredentialStuffer;
-  private dbClient: DatabaseClient;
+  private dbClient: AgentsRunDatabaseClient;
   private ref?: ResolvedRef;
 
   constructor(
     tenantId: string,
     projectId: string,
-    dbClient: DatabaseClient,
+    dbClient: AgentsRunDatabaseClient,
     ref?: ResolvedRef,
     credentialStoreRegistry?: CredentialStoreRegistry,
     defaultTimeout = 10000
@@ -166,26 +165,12 @@ export class ContextFetcher {
 
   private async getCredential(credentialReferenceId: string) {
     try {
-      let credentialReference: CredentialReferenceSelect | undefined;
-      if (this.ref) {
-        credentialReference = await executeInBranch(
-          {
-            dbClient: this.dbClient,
-            ref: this.ref,
-          },
-          async (db) => {
-            return await getCredentialReference(db)({
-              scopes: { tenantId: this.tenantId, projectId: this.projectId },
-              id: credentialReferenceId,
-            });
-          }
-        );
-      } else {
-        credentialReference = await getCredentialReference(this.dbClient)({
-          scopes: { tenantId: this.tenantId, projectId: this.projectId },
-          id: credentialReferenceId,
-        });
-      }
+
+      // TODO: This should be changed to a request to the agents-manage-api to get the credential reference
+      const credentialReference = await getCredentialReference(this.dbClient)({
+        scopes: { tenantId: this.tenantId, projectId: this.projectId },
+        id: credentialReferenceId,
+      });
 
       logger.info({ credentialReference }, 'Credential reference');
 

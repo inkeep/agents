@@ -1,11 +1,11 @@
-import type { DatabaseClient } from '../db/client';
+import type { AgentsManageDatabaseClient } from '../db/config/config-client';
 import { sql } from 'drizzle-orm';
 
 /**
  * Get diff between two commits/branches
  */
 export const doltDiff =
-  (db: DatabaseClient) =>
+  (db: AgentsManageDatabaseClient) =>
   async (params: {
     fromRevision: string;
     toRevision: string;
@@ -23,7 +23,7 @@ export const doltDiff =
  * Get diff summary between two commits/branches
  */
 export const doltDiffSummary =
-  (db: DatabaseClient) =>
+  (db: AgentsManageDatabaseClient) =>
   async (params: {
     fromRevision: string;
     toRevision: string;

@@ -1,13 +1,13 @@
 import { and, count, desc, eq, inArray } from 'drizzle-orm';
-import type { DatabaseClient } from '../db/client';
-import { agents, subAgents } from '../db/schema';
-import { doltActiveBranch } from '../dolt/branch';
-import type { SubAgentInsert, SubAgentSelect, SubAgentUpdate } from '../types/entities';
-import type { AgentScopeConfig, PaginationConfig } from '../types/utility';
-import { getLogger } from '../utils/logger';
+import type { AgentsManageDatabaseClient } from '../../db/config/config-client';
+import { agents, subAgents } from '../../db/config/config-schema';
+import { doltActiveBranch } from '../../dolt/branch';
+import type { SubAgentInsert, SubAgentSelect, SubAgentUpdate } from '../../types/entities';
+import type { AgentScopeConfig, PaginationConfig } from '../../types/utility';
+import { getLogger } from '../../utils/logger';
 
 export const getSubAgentById =
-  (db: DatabaseClient) => async (params: { scopes: AgentScopeConfig; subAgentId: string }) => {
+  (db: AgentsManageDatabaseClient) => async (params: { scopes: AgentScopeConfig; subAgentId: string }) => {
     const result = await db.query.subAgents.findFirst({
       where: and(
         eq(subAgents.tenantId, params.scopes.tenantId),
@@ -25,7 +25,7 @@ export const getSubAgentById =
   };
 
 export const listSubAgents =
-  (db: DatabaseClient) => async (params: { scopes: AgentScopeConfig }) => {
+  (db: AgentsManageDatabaseClient) => async (params: { scopes: AgentScopeConfig }) => {
     return await db.query.subAgents.findMany({
       where: and(
         eq(subAgents.tenantId, params.scopes.tenantId),
@@ -36,7 +36,7 @@ export const listSubAgents =
   };
 
 export const listSubAgentsPaginated =
-  (db: DatabaseClient) =>
+  (db: AgentsManageDatabaseClient) =>
   async (params: { scopes: AgentScopeConfig; pagination?: PaginationConfig }) => {
     const page = params.pagination?.page || 1;
     const limit = Math.min(params.pagination?.limit || 10, 100);
@@ -68,14 +68,14 @@ export const listSubAgentsPaginated =
     };
   };
 
-export const createSubAgent = (db: DatabaseClient) => async (params: SubAgentInsert) => {
-    const agent = await db.insert(subAgents).values(params).returning();
+export const createSubAgent = (db: AgentsManageDatabaseClient) => async (params: SubAgentInsert) => {
+  const agent = await db.insert(subAgents).values(params).returning();
 
     return agent[0];
   };
 
 export const updateSubAgent =
-  (db: DatabaseClient) =>
+  (db: AgentsManageDatabaseClient) =>
   async (params: { scopes: AgentScopeConfig; subAgentId: string; data: SubAgentUpdate }) => {
     const data = params.data;
 
@@ -120,7 +120,7 @@ export const updateSubAgent =
  * Upsert agent (create if it doesn't exist, update if it does)
  */
 export const upsertSubAgent =
-  (db: DatabaseClient) =>
+  (db: AgentsManageDatabaseClient) =>
   async (params: { data: SubAgentInsert }): Promise<SubAgentSelect> => {
     const scopes = {
       tenantId: params.data.tenantId,
@@ -168,7 +168,7 @@ export class SubAgentIsDefaultError extends Error {
 }
 
 export const deleteSubAgent =
-  (db: DatabaseClient) =>
+  (db: AgentsManageDatabaseClient) =>
   async (params: { scopes: AgentScopeConfig; subAgentId: string }) => {
     const agentUsingAsDefault = await db
       .select()
@@ -206,7 +206,7 @@ export const deleteSubAgent =
   }
 
 export const getSubAgentsByIds =
-  (db: DatabaseClient) => async (params: { scopes: AgentScopeConfig; subAgentIds: string[] }) => {
+  (db: AgentsManageDatabaseClient) => async (params: { scopes: AgentScopeConfig; subAgentIds: string[] }) => {
     if (params.subAgentIds.length === 0) {
       return [];
     }

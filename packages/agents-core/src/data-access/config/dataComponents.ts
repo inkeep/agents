@@ -1,6 +1,6 @@
 import { and, count, desc, eq } from 'drizzle-orm';
-import type { DatabaseClient } from '../db/client';
-import { dataComponents, subAgentDataComponents } from '../db/schema';
+import type { AgentsManageDatabaseClient } from '../../db/config/config-client';
+import { dataComponents, subAgentDataComponents } from '../../db/config/config-schema';
 import type {
   DataComponentInsert,
   DataComponentSelect,
@@ -8,17 +8,17 @@ import type {
   PaginationConfig,
   ProjectScopeConfig,
   SubAgentScopeConfig,
-} from '../types/index';
-import { createApiError } from '../utils';
-import { generateId } from '../utils/conversations';
-import { validatePropsAsJsonSchema } from '../validation/props-validation';
-import { validateRender } from '../validation/render-validation';
+} from '../../types/index';
+import { createApiError } from '../../utils';
+import { generateId } from '../../utils/conversations';
+import { validatePropsAsJsonSchema } from '../../validation/props-validation';
+import { validateRender } from '../../validation/render-validation';
 
 /**
  * Get a data component by ID
  */
 export const getDataComponent =
-  (db: DatabaseClient) =>
+  (db: AgentsManageDatabaseClient) =>
   async (params: {
     scopes: ProjectScopeConfig;
     dataComponentId: string;
@@ -38,7 +38,7 @@ export const getDataComponent =
  * List all data components for a tenant/project
  */
 export const listDataComponents =
-  (db: DatabaseClient) =>
+  (db: AgentsManageDatabaseClient) =>
   async (params: { scopes: ProjectScopeConfig }): Promise<DataComponentSelect[]> => {
     return await db
       .select()
@@ -56,7 +56,7 @@ export const listDataComponents =
  * List data components with pagination
  */
 export const listDataComponentsPaginated =
-  (db: DatabaseClient) =>
+  (db: AgentsManageDatabaseClient) =>
   async (params: {
     scopes: ProjectScopeConfig;
     pagination?: PaginationConfig;
@@ -108,7 +108,7 @@ export const listDataComponentsPaginated =
  * Create a new data component
  */
 export const createDataComponent =
-  (db: DatabaseClient) =>
+  (db: AgentsManageDatabaseClient) =>
   async (params: DataComponentInsert): Promise<DataComponentSelect> => {
     if (params.props) {
       const propsValidation = validatePropsAsJsonSchema(params.props);
@@ -151,7 +151,7 @@ export const createDataComponent =
  * Update a data component
  */
 export const updateDataComponent =
-  (db: DatabaseClient) =>
+  (db: AgentsManageDatabaseClient) =>
   async (params: {
     scopes: ProjectScopeConfig;
     dataComponentId: string;
@@ -217,7 +217,7 @@ export const updateDataComponent =
  * Delete a data component
  */
 export const deleteDataComponent =
-  (db: DatabaseClient) =>
+  (db: AgentsManageDatabaseClient) =>
   async (params: { scopes: ProjectScopeConfig; dataComponentId: string }): Promise<boolean> => {
     const result = await db
       .delete(dataComponents)
@@ -237,7 +237,7 @@ export const deleteDataComponent =
  * Get data components for a specific agent
  */
 export const getDataComponentsForAgent =
-  (db: DatabaseClient) =>
+  (db: AgentsManageDatabaseClient) =>
   async (params: { scopes: SubAgentScopeConfig }): Promise<DataComponentSelect[]> => {
     return await db
       .select({
@@ -271,7 +271,7 @@ export const getDataComponentsForAgent =
  * Associate a data component with an agent
  */
 export const associateDataComponentWithAgent =
-  (db: DatabaseClient) =>
+  (db: AgentsManageDatabaseClient) =>
   async (params: { scopes: SubAgentScopeConfig; dataComponentId: string }) => {
     const association = await db
       .insert(subAgentDataComponents)
@@ -292,7 +292,7 @@ export const associateDataComponentWithAgent =
  * Remove association between data component and agent
  */
 export const removeDataComponentFromAgent =
-  (db: DatabaseClient) =>
+  (db: AgentsManageDatabaseClient) =>
   async (params: { scopes: SubAgentScopeConfig; dataComponentId: string }): Promise<boolean> => {
     const result = await db
       .delete(subAgentDataComponents)
@@ -311,7 +311,7 @@ export const removeDataComponentFromAgent =
   };
 
 export const deleteAgentDataComponentRelationByAgent =
-  (db: DatabaseClient) => async (params: { scopes: SubAgentScopeConfig }) => {
+  (db: AgentsManageDatabaseClient) => async (params: { scopes: SubAgentScopeConfig }) => {
     const result = await db
       .delete(subAgentDataComponents)
       .where(
@@ -329,7 +329,7 @@ export const deleteAgentDataComponentRelationByAgent =
  * Get all agents that use a specific data component
  */
 export const getAgentsUsingDataComponent =
-  (db: DatabaseClient) =>
+  (db: AgentsManageDatabaseClient) =>
   async (params: { scopes: ProjectScopeConfig; dataComponentId: string }) => {
     return await db
       .select({
@@ -351,7 +351,7 @@ export const getAgentsUsingDataComponent =
  * Check if a data component is associated with an agent
  */
 export const isDataComponentAssociatedWithAgent =
-  (db: DatabaseClient) =>
+  (db: AgentsManageDatabaseClient) =>
   async (params: { scopes: SubAgentScopeConfig; dataComponentId: string }): Promise<boolean> => {
     const result = await db
       .select({ id: subAgentDataComponents.id })
@@ -374,7 +374,7 @@ export const isDataComponentAssociatedWithAgent =
  * Upsert agent-data component relation (create if it doesn't exist, no-op if it does)
  */
 export const upsertAgentDataComponentRelation =
-  (db: DatabaseClient) =>
+  (db: AgentsManageDatabaseClient) =>
   async (params: { scopes: SubAgentScopeConfig; dataComponentId: string }) => {
     const exists = await isDataComponentAssociatedWithAgent(db)(params);
 
@@ -391,7 +391,7 @@ export const upsertAgentDataComponentRelation =
  * Count data components for a tenant/project
  */
 export const countDataComponents =
-  (db: DatabaseClient) =>
+  (db: AgentsManageDatabaseClient) =>
   async (params: { scopes: ProjectScopeConfig }): Promise<number> => {
     const result = await db
       .select({ count: count() })
@@ -411,7 +411,7 @@ export const countDataComponents =
  * Upsert a data component (create if it doesn't exist, update if it does)
  */
 export const upsertDataComponent =
-  (db: DatabaseClient) =>
+  (db: AgentsManageDatabaseClient) =>
   async (params: { data: DataComponentInsert }): Promise<DataComponentSelect | null> => {
     const scopes = { tenantId: params.data.tenantId, projectId: params.data.projectId };
 

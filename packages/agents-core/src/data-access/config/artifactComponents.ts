@@ -1,27 +1,27 @@
 import { and, count, desc, eq } from 'drizzle-orm';
-import type { DatabaseClient } from '../db/client';
+import type { AgentsManageDatabaseClient } from '../../db/config/config-client';
 import {
   artifactComponents,
   subAgentArtifactComponents,
   subAgentRelations,
   subAgents,
-} from '../db/schema';
+} from '../../db/config/config-schema';
 import type {
   ArtifactComponentInsert,
   ArtifactComponentSelect,
   ArtifactComponentUpdate,
-} from '../types/entities';
+} from '../../types/entities';
 import type {
   AgentScopeConfig,
   PaginationConfig,
   ProjectScopeConfig,
   SubAgentScopeConfig,
-} from '../types/utility';
-import { generateId } from '../utils/conversations';
-import { validatePropsAsJsonSchema } from '../validation/props-validation';
+} from '../../types/utility';
+import { generateId } from '../../utils/conversations';
+import { validatePropsAsJsonSchema } from '../../validation/props-validation';
 
 export const getArtifactComponentById =
-  (db: DatabaseClient) => async (params: { scopes: ProjectScopeConfig; id: string }) => {
+  (db: AgentsManageDatabaseClient) => async (params: { scopes: ProjectScopeConfig; id: string }) => {
     return await db.query.artifactComponents.findFirst({
       where: and(
         eq(artifactComponents.tenantId, params.scopes.tenantId),
@@ -32,7 +32,7 @@ export const getArtifactComponentById =
   };
 
 export const listArtifactComponents =
-  (db: DatabaseClient) => async (params: { scopes: ProjectScopeConfig }) => {
+  (db: AgentsManageDatabaseClient) => async (params: { scopes: ProjectScopeConfig }) => {
     return await db
       .select()
       .from(artifactComponents)
@@ -46,7 +46,7 @@ export const listArtifactComponents =
   };
 
 export const listArtifactComponentsPaginated =
-  (db: DatabaseClient) =>
+  (db: AgentsManageDatabaseClient) =>
   async (params: {
     scopes: ProjectScopeConfig;
     pagination?: PaginationConfig;
@@ -85,7 +85,7 @@ export const listArtifactComponentsPaginated =
   };
 
 export const createArtifactComponent =
-  (db: DatabaseClient) => async (params: ArtifactComponentInsert) => {
+  (db: AgentsManageDatabaseClient) => async (params: ArtifactComponentInsert) => {
     if (params.props !== null && params.props !== undefined) {
       const propsValidation = validatePropsAsJsonSchema(params.props);
       if (!propsValidation.isValid) {
@@ -111,7 +111,7 @@ export const createArtifactComponent =
   };
 
 export const updateArtifactComponent =
-  (db: DatabaseClient) =>
+  (db: AgentsManageDatabaseClient) =>
   async (params: { scopes: ProjectScopeConfig; id: string; data: ArtifactComponentUpdate }) => {
     if (params.data.props !== undefined && params.data.props !== null) {
       const propsValidation = validatePropsAsJsonSchema(params.data.props);
@@ -144,7 +144,7 @@ export const updateArtifactComponent =
   };
 
 export const deleteArtifactComponent =
-  (db: DatabaseClient) =>
+  (db: AgentsManageDatabaseClient) =>
   async (params: { scopes: ProjectScopeConfig; id: string }): Promise<boolean> => {
     try {
       const result = await db
@@ -166,7 +166,7 @@ export const deleteArtifactComponent =
   };
 
 export const getArtifactComponentsForAgent =
-  (db: DatabaseClient) => async (params: { scopes: SubAgentScopeConfig }) => {
+  (db: AgentsManageDatabaseClient) => async (params: { scopes: SubAgentScopeConfig }) => {
     return await db
       .select({
         id: artifactComponents.id,
@@ -195,7 +195,7 @@ export const getArtifactComponentsForAgent =
   };
 
 export const associateArtifactComponentWithAgent =
-  (db: DatabaseClient) =>
+  (db: AgentsManageDatabaseClient) =>
   async (params: { scopes: SubAgentScopeConfig; artifactComponentId: string }) => {
     const [association] = await db
       .insert(subAgentArtifactComponents)
@@ -214,7 +214,7 @@ export const associateArtifactComponentWithAgent =
   };
 
 export const removeArtifactComponentFromAgent =
-  (db: DatabaseClient) =>
+  (db: AgentsManageDatabaseClient) =>
   async (params: { scopes: SubAgentScopeConfig; artifactComponentId: string }) => {
     try {
       const result = await db
@@ -238,7 +238,7 @@ export const removeArtifactComponentFromAgent =
   };
 
 export const deleteAgentArtifactComponentRelationByAgent =
-  (db: DatabaseClient) => async (params: { scopes: SubAgentScopeConfig }) => {
+  (db: AgentsManageDatabaseClient) => async (params: { scopes: SubAgentScopeConfig }) => {
     const result = await db
       .delete(subAgentArtifactComponents)
       .where(
@@ -253,7 +253,7 @@ export const deleteAgentArtifactComponentRelationByAgent =
   };
 
 export const getAgentsUsingArtifactComponent =
-  (db: DatabaseClient) =>
+  (db: AgentsManageDatabaseClient) =>
   async (params: { scopes: ProjectScopeConfig; artifactComponentId: string }) => {
     return await db
       .select({

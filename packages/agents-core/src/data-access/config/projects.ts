@@ -1,40 +1,34 @@
 import { and, count, desc, eq } from 'drizzle-orm';
-import type { DatabaseClient } from '../db/client';
+import type { AgentsManageDatabaseClient } from '../../db/config/config-client';
 import {
   agents,
   artifactComponents,
-  contextCache,
   contextConfigs,
-  conversations,
   credentialReferences,
   dataComponents,
   externalAgents,
-  ledgerArtifacts,
-  messages,
   projects,
   subAgentArtifactComponents,
   subAgentDataComponents,
   subAgentRelations,
   subAgents,
   subAgentToolRelations,
-  taskRelations,
-  tasks,
   tools,
-} from '../db/schema';
-import type { ProjectInsert, ProjectSelect, ProjectUpdate } from '../types/entities';
+} from '../../db/config/config-schema';
+import type { ProjectInsert, ProjectSelect, ProjectUpdate } from '../../types/entities';
 import type {
   PaginationConfig,
   PaginationResult,
   ProjectInfo,
   ProjectResourceCounts,
   ProjectScopeConfig,
-} from '../types/utility';
+} from '../../types/utility';
 
 /**
  * List all unique project IDs within a tenant by scanning all resource tables
  */
 export const listProjects =
-  (db: DatabaseClient) =>
+  (db: AgentsManageDatabaseClient) =>
   async (params: { tenantId: string }): Promise<ProjectInfo[]> => {
     const projectsFromTable = await db
       .select({ projectId: projects.id }) // id IS the project ID
@@ -91,33 +85,9 @@ export const listProjects =
         .from(artifactComponents)
         .where(eq(artifactComponents.tenantId, params.tenantId)),
       db
-        .selectDistinct({ projectId: tasks.projectId })
-        .from(tasks)
-        .where(eq(tasks.tenantId, params.tenantId)),
-      db
-        .selectDistinct({ projectId: taskRelations.projectId })
-        .from(taskRelations)
-        .where(eq(taskRelations.tenantId, params.tenantId)),
-      db
-        .selectDistinct({ projectId: conversations.projectId })
-        .from(conversations)
-        .where(eq(conversations.tenantId, params.tenantId)),
-      db
-        .selectDistinct({ projectId: messages.projectId })
-        .from(messages)
-        .where(eq(messages.tenantId, params.tenantId)),
-      db
-        .selectDistinct({ projectId: contextCache.projectId })
-        .from(contextCache)
-        .where(eq(contextCache.tenantId, params.tenantId)),
-      db
         .selectDistinct({ projectId: credentialReferences.projectId })
         .from(credentialReferences)
         .where(eq(credentialReferences.tenantId, params.tenantId)),
-      db
-        .selectDistinct({ projectId: ledgerArtifacts.projectId })
-        .from(ledgerArtifacts)
-        .where(eq(ledgerArtifacts.tenantId, params.tenantId)),
     ]);
 
     const allProjectIds = new Set<string>();
@@ -140,7 +110,7 @@ export const listProjects =
  * List all unique project IDs within a tenant with pagination
  */
 export const listProjectsPaginated =
-  (db: DatabaseClient) =>
+  (db: AgentsManageDatabaseClient) =>
   async (params: {
     tenantId: string;
     pagination?: PaginationConfig;
@@ -176,7 +146,7 @@ export const listProjectsPaginated =
  * Get resource counts for a specific project
  */
 export const getProjectResourceCounts =
-  (db: DatabaseClient) =>
+  (db: AgentsManageDatabaseClient) =>
   async (params: ProjectScopeConfig): Promise<ProjectResourceCounts> => {
     const whereClause = (table: any) =>
       and(eq(table.tenantId, params.tenantId), eq(table.projectId, params.projectId));
@@ -209,7 +179,7 @@ export const getProjectResourceCounts =
  * Check if a project exists (has any resources)
  */
 export const projectExists =
-  (db: DatabaseClient) =>
+  (db: AgentsManageDatabaseClient) =>
   async (params: ProjectScopeConfig): Promise<boolean> => {
     const whereClause = (table: any) =>
       and(eq(table.tenantId, params.tenantId), eq(table.projectId, params.projectId));
@@ -228,12 +198,6 @@ export const projectExists =
         .from(externalAgents)
         .where(whereClause(externalAgents))
         .limit(1),
-      db.select({ id: tasks.id }).from(tasks).where(whereClause(tasks)).limit(1),
-      db
-        .select({ id: conversations.id })
-        .from(conversations)
-        .where(whereClause(conversations))
-        .limit(1),
     ];
 
     const results = await Promise.all(checks);
@@ -244,7 +208,7 @@ export const projectExists =
  * Count total projects for a tenant
  */
 export const countProjects =
-  (db: DatabaseClient) =>
+  (db: AgentsManageDatabaseClient) =>
   async (params: { tenantId: string }): Promise<number> => {
     const projects = await listProjects(db)(params);
     return projects.length;
@@ -254,7 +218,7 @@ export const countProjects =
  * Get a single project by ID
  */
 export const getProject =
-  (db: DatabaseClient) =>
+  (db: AgentsManageDatabaseClient) =>
   async (params: { scopes: ProjectScopeConfig }): Promise<ProjectSelect | null> => {
     const result = await db.query.projects.findFirst({
       where: and(
@@ -269,7 +233,7 @@ export const getProject =
  * Create a new project
  */
 export const createProject =
-  (db: DatabaseClient) =>
+  (db: AgentsManageDatabaseClient) =>
   async (params: ProjectInsert): Promise<ProjectSelect> => {
     const now = new Date().toISOString();
 
@@ -289,7 +253,7 @@ export const createProject =
  * Update an existing project
  */
 export const updateProject =
-  (db: DatabaseClient) =>
+  (db: AgentsManageDatabaseClient) =>
   async (params: {
     scopes: ProjectScopeConfig;
     data: ProjectUpdate;
@@ -334,7 +298,7 @@ export const updateProject =
  * Check if a project exists in the projects table
  */
 export const projectExistsInTable =
-  (db: DatabaseClient) =>
+  (db: AgentsManageDatabaseClient) =>
   async (params: { scopes: ProjectScopeConfig }): Promise<boolean> => {
     const result = await db
       .select({ id: projects.id })
@@ -351,7 +315,7 @@ export const projectExistsInTable =
  * Check if a project has any resources (used before deletion)
  */
 export const projectHasResources =
-  (db: DatabaseClient) =>
+  (db: AgentsManageDatabaseClient) =>
   async (params: ProjectScopeConfig): Promise<boolean> => {
     return await projectExists(db)(params);
   };
@@ -360,7 +324,7 @@ export const projectHasResources =
  * Delete a project (with validation for existing resources)
  */
 export const deleteProject =
-  (db: DatabaseClient) =>
+  (db: AgentsManageDatabaseClient) =>
   async (params: { scopes: ProjectScopeConfig }): Promise<boolean> => {
     const projectExistsInTableResult = await projectExistsInTable(db)({ scopes: params.scopes });
     if (!projectExistsInTableResult) {
@@ -380,7 +344,7 @@ export const deleteProject =
  * Cascade stopWhen updates from project to Agents and Sub Agents
  */
 async function cascadeStopWhenUpdates(
-  db: DatabaseClient,
+  db: AgentsManageDatabaseClient,
   scopes: ProjectScopeConfig,
   oldStopWhen: any,
   newStopWhen: any
