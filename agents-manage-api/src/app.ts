@@ -27,12 +27,17 @@ const logger = getLogger('agents-manage-api');
 logger.info({ logger: logger.getTransports() }, 'Logger initialized');
 
 /**
- * Extract the base domain from a hostname (e.g., "foo.bar.inkeep.com" -> "inkeep.com")
+ * Extract the base domain from a hostname (e.g., 'app.preview.inkeep.com' -> 'preview.inkeep.com')
+ * For hostnames with 3+ parts, returns the last 3 parts (subdomain.domain.tld)
+ * For hostnames with 2 parts, returns as-is (domain.tld)
  */
-function getBaseDomain(hostname: string): string | null {
+function getBaseDomain(hostname: string): string {
   const parts = hostname.split('.');
-  if (parts.length < 2) return null;
-  return parts.slice(-2).join('.');
+  // For hostnames like 'agents-manage-ui.preview.inkeep.com', get 'preview.inkeep.com'
+  if (parts.length >= 3) {
+    return parts.slice(-3).join('.');
+  }
+  return hostname;
 }
 
 /**
@@ -48,11 +53,11 @@ function isOriginAllowed(origin: string | undefined): origin is string {
 
   try {
     const requestUrl = new URL(origin);
-    const authUrl = new URL(env.INKEEP_AGENTS_MANAGE_API_URL || 'http://localhost:3002');
+    const apiUrl = new URL(env.INKEEP_AGENTS_MANAGE_API_URL || 'http://localhost:3002');
     const uiUrl = env.INKEEP_AGENTS_MANAGE_UI_URL ? new URL(env.INKEEP_AGENTS_MANAGE_UI_URL) : null;
 
     // Development: allow any localhost
-    if (authUrl.hostname === 'localhost' || authUrl.hostname === '127.0.0.1') {
+    if (apiUrl.hostname === 'localhost' || apiUrl.hostname === '127.0.0.1') {
       return requestUrl.hostname === 'localhost' || requestUrl.hostname === '127.0.0.1';
     }
 
@@ -61,17 +66,12 @@ function isOriginAllowed(origin: string | undefined): origin is string {
       return true;
     }
 
-    // For Vercel deployments, allow any subdomain of the same base domain
-    // Use VERCEL_ENV to determine which URL to use for base domain extraction
-    const vercelUrl =
-      process.env.VERCEL_ENV === 'production'
-        ? process.env.VERCEL_PROJECT_PRODUCTION_URL
-        : process.env.VERCEL_URL;
-    if (vercelUrl) {
-      const baseDomain = getBaseDomain(vercelUrl);
-      if (baseDomain && requestUrl.hostname.endsWith(`.${baseDomain}`)) {
-        return true;
-      }
+    // Production: allow origins from the same base domain as the API URL
+    // This handles cases like agents-manage-ui.preview.inkeep.com -> agents-manage-api.preview.inkeep.com
+    const requestBaseDomain = getBaseDomain(requestUrl.hostname);
+    const apiBaseDomain = getBaseDomain(apiUrl.hostname);
+    if (requestBaseDomain === apiBaseDomain) {
+      return true;
     }
 
     return false;
@@ -215,7 +215,13 @@ function createManagementHono(
         origin: (origin) => {
           return isOriginAllowed(origin) ? origin : null;
         },
-        allowHeaders: ['Content-Type', 'Authorization', 'User-Agent'],
+        allowHeaders: [
+          'content-type',
+          'Content-Type',
+          'authorization',
+          'Authorization',
+          'User-Agent',
+        ],
         allowMethods: ['POST', 'GET', 'OPTIONS'],
         exposeHeaders: ['Content-Length'],
         maxAge: 600,
@@ -223,8 +229,8 @@ function createManagementHono(
       })
     );
 
-    // Mount the Better Auth handler
-    app.on(['POST', 'GET', 'OPTIONS'], '/api/auth/*', (c) => {
+    // Mount the Better Auth handler (OPTIONS handled by cors middleware above)
+    app.on(['POST', 'GET'], '/api/auth/*', (c) => {
       return auth.handler(c.req.raw);
     });
   }

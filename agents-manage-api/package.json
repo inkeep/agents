@@ -24,7 +24,8 @@
     "test:watch": "vitest",
     "test:coverage": "vitest --run --coverage",
     "typecheck": "tsc --noEmit",
-    "typecheck:watch": "tsc --noEmit --watch"
+    "typecheck:watch": "tsc --noEmit --watch",
+    "openapi:update-snapshot": "UPDATE_OPENAPI_SNAPSHOT=true vitest --run src/__tests__/routes/openapi.test.ts"
   },
   "dependencies": {
     "@hono/mcp": "^0.1.5",

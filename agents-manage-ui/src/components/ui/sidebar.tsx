@@ -146,6 +146,8 @@ function Sidebar({
   collapsible = 'offcanvas',
   className,
   children,
+  onMouseEnter,
+  onMouseLeave,
   ...props
 }: React.ComponentProps<'div'> & {
   side?: 'left' | 'right';
@@ -194,12 +196,15 @@ function Sidebar({
 
   return (
     <div
+      role="group"
       className="group peer text-sidebar-foreground hidden md:block"
       data-state={state}
       data-collapsible={state === 'collapsed' ? collapsible : ''}
       data-variant={variant}
       data-side={side}
       data-slot="sidebar"
+      onMouseEnter={onMouseEnter}
+      onMouseLeave={onMouseLeave}
     >
       {/* This is what handles the sidebar gap on desktop */}
       <div
