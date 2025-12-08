@@ -80,7 +80,6 @@ export function SuiteConfigViewDialog({
 
       const suiteConfigData = suiteConfigRes.data;
       setSuiteConfig({
-        description: suiteConfigData.description,
         filters: suiteConfigData.filters,
         sampleRate: suiteConfigData.sampleRate,
       });
@@ -191,7 +190,7 @@ export function SuiteConfigViewDialog({
                   <ExpandableJsonEditor
                     name="filters"
                     value={JSON.stringify(suiteConfig.filters, null, 2)}
-                    onChange={() => {}}
+                    readOnly
                   />
                 </div>
               )}

@@ -40,11 +40,6 @@ export interface EvaluationJobConfigInsert {
   evaluatorIds?: string[];
 }
 
-export interface EvaluationJobConfigUpdate {
-  jobFilters?: Filter<EvaluationJobFilterCriteria> | null;
-  evaluatorIds?: string[];
-}
-
 /**
  * Fetch all evaluation job configs for a project
  */
@@ -93,29 +88,6 @@ export async function createEvaluationJobConfig(
     `tenants/${tenantId}/projects/${projectId}/evaluations/evaluation-job-configs`,
     {
       method: 'POST',
-      body: JSON.stringify(config),
-    }
-  );
-
-  return response.data;
-}
-
-/**
- * Update an existing evaluation job config
- */
-export async function updateEvaluationJobConfig(
-  tenantId: string,
-  projectId: string,
-  configId: string,
-  config: EvaluationJobConfigUpdate
-): Promise<EvaluationJobConfig> {
-  validateTenantId(tenantId);
-  validateProjectId(projectId);
-
-  const response = await makeEvalApiRequest<SingleResponse<EvaluationJobConfig>>(
-    `tenants/${tenantId}/projects/${projectId}/evaluations/evaluation-job-configs/${configId}`,
-    {
-      method: 'PATCH',
       body: JSON.stringify(config),
     }
   );

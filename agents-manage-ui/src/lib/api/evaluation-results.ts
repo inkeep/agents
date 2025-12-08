@@ -16,6 +16,7 @@ export interface EvaluationResult {
   conversationId: string;
   evaluatorId: string;
   evaluationRunId?: string | null;
+  agentId?: string | null;
   input?: string | null;
   output?: {
     text?: string;

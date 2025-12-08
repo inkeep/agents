@@ -8,6 +8,7 @@ import {
 export interface EvaluationResultFilters {
   status?: EvaluationStatus | 'all';
   evaluatorId?: string;
+  searchInput?: string;
 }
 
 export function filterEvaluationResults(
@@ -33,6 +34,14 @@ export function filterEvaluationResults(
       const evaluation = evaluatePassCriteria(evaluator?.passCriteria, outputData);
 
       if (evaluation.status !== filters.status) {
+        return false;
+      }
+    }
+
+    if (filters.searchInput && filters.searchInput.trim() !== '') {
+      const searchTerm = filters.searchInput.toLowerCase();
+      const input = (result.input || result.conversationId || '').toLowerCase();
+      if (!input.includes(searchTerm)) {
         return false;
       }
     }

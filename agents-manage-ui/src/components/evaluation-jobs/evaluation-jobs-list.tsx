@@ -1,9 +1,9 @@
 'use client';
 
-import { MoreVertical, Pencil, Trash2 } from 'lucide-react';
-import Link from 'next/link';
+import { ChevronRight, MoreVertical, Trash2 } from 'lucide-react';
+import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
-import { formatDate, formatDateTimeTable } from '@/app/utils/format-date';
+import { formatDate } from '@/app/utils/format-date';
 import { Button } from '@/components/ui/button';
 import {
   DropdownMenu,
@@ -11,6 +11,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
+import { Skeleton } from '@/components/ui/skeleton';
 import {
   Table,
   TableBody,
@@ -25,7 +26,6 @@ import type {
   EvaluationJobFilterCriteria,
 } from '@/lib/api/evaluation-job-configs';
 import { DeleteEvaluationJobConfirmation } from './delete-evaluation-job-confirmation';
-import { EvaluationJobFormDialog } from './evaluation-job-form-dialog';
 
 interface EvaluationJobsListProps {
   tenantId: string;
@@ -34,13 +34,14 @@ interface EvaluationJobsListProps {
 }
 
 export function EvaluationJobsList({ tenantId, projectId, jobConfigs }: EvaluationJobsListProps) {
-  const [editingJobConfig, setEditingJobConfig] = useState<EvaluationJobConfig | undefined>();
-  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
+  const router = useRouter();
   const [deletingJobConfig, setDeletingJobConfig] = useState<EvaluationJobConfig | undefined>();
   const [datasetRunNames, setDatasetRunNames] = useState<Record<string, string>>({});
+  const [isLoadingNames, setIsLoadingNames] = useState(true);
 
   useEffect(() => {
     const fetchRunNames = async () => {
+      setIsLoadingNames(true);
       const runIds = new Set<string>();
       jobConfigs.forEach((config) => {
         const criteria = config.jobFilters as EvaluationJobFilterCriteria;
@@ -61,17 +62,15 @@ export function EvaluationJobsList({ tenantId, projectId, jobConfigs }: Evaluati
         }
       }
       setDatasetRunNames(names);
+      setIsLoadingNames(false);
     };
 
     if (jobConfigs.length > 0) {
       fetchRunNames();
+    } else {
+      setIsLoadingNames(false);
     }
   }, [jobConfigs, tenantId, projectId]);
-
-  const handleEdit = (jobConfig: EvaluationJobConfig) => {
-    setEditingJobConfig(jobConfig);
-    setIsEditDialogOpen(true);
-  };
 
   const handleDelete = (jobConfig: EvaluationJobConfig) => {
     setDeletingJobConfig(jobConfig);
@@ -109,41 +108,45 @@ export function EvaluationJobsList({ tenantId, projectId, jobConfigs }: Evaluati
           <TableHeader>
             <TableRow noHover>
               <TableHead>Name</TableHead>
-              <TableHead>Created</TableHead>
+              <TableHead>Updated</TableHead>
+              <TableHead className="w-12"></TableHead>
               <TableHead className="w-12"></TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
             {jobConfigs.length === 0 ? (
               <TableRow noHover>
-                <TableCell colSpan={3} className="text-center text-muted-foreground py-8">
+                <TableCell colSpan={4} className="text-center text-muted-foreground py-8">
                   No batch evaluations yet. Click &quot;+ New batch evaluation&quot; to create one.
                 </TableCell>
               </TableRow>
+            ) : isLoadingNames ? (
+              [...jobConfigs].map((jobConfig) => (
+                <TableRow key={jobConfig.id} noHover>
+                  <TableCell><Skeleton className="h-4 w-48" /></TableCell>
+                  <TableCell><Skeleton className="h-4 w-24" /></TableCell>
+                  <TableCell><Skeleton className="h-4 w-8" /></TableCell>
+                  <TableCell><Skeleton className="h-4 w-4" /></TableCell>
+                </TableRow>
+              ))
             ) : (
               [...jobConfigs]
-                .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
+                .sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime())
                 .map((jobConfig) => (
-                <TableRow key={jobConfig.id} noHover>
-                  <TableCell>
-                    <Link
-                      href={`/${tenantId}/projects/${projectId}/evaluations/jobs/${jobConfig.id}`}
-                      className="hover:underline"
-                    >
-                      <div className="flex flex-col">
-                        <span className="font-medium text-foreground">
-                          {formatFilters(jobConfig.jobFilters)}
-                        </span>
-                        <code className="text-xs text-muted-foreground font-mono mt-1">
-                          {jobConfig.id}
-                        </code>
-                      </div>
-                    </Link>
+                <TableRow
+                  key={jobConfig.id}
+                  className="cursor-pointer"
+                  onClick={() =>
+                    router.push(`/${tenantId}/projects/${projectId}/evaluations/jobs/${jobConfig.id}`)
+                  }
+                >
+                  <TableCell className="font-medium">
+                    {formatFilters(jobConfig.jobFilters)}
                   </TableCell>
                   <TableCell className="text-sm text-muted-foreground">
-                    {formatDateTimeTable(jobConfig.createdAt)}
+                    {formatDate(jobConfig.updatedAt)}
                   </TableCell>
-                  <TableCell>
+                  <TableCell onClick={(e) => e.stopPropagation()}>
                     <DropdownMenu>
                       <DropdownMenuTrigger asChild>
                         <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
@@ -151,10 +154,6 @@ export function EvaluationJobsList({ tenantId, projectId, jobConfigs }: Evaluati
                         </Button>
                       </DropdownMenuTrigger>
                       <DropdownMenuContent align="end">
-                        <DropdownMenuItem onClick={() => handleEdit(jobConfig)}>
-                          <Pencil className="mr-2 h-4 w-4" />
-                          Edit
-                        </DropdownMenuItem>
                         <DropdownMenuItem
                           onClick={() => handleDelete(jobConfig)}
                           className="text-destructive"
@@ -165,28 +164,15 @@ export function EvaluationJobsList({ tenantId, projectId, jobConfigs }: Evaluati
                       </DropdownMenuContent>
                     </DropdownMenu>
                   </TableCell>
+                  <TableCell>
+                    <ChevronRight className="h-4 w-4 text-muted-foreground" />
+                  </TableCell>
                 </TableRow>
               ))
             )}
           </TableBody>
         </Table>
       </div>
-
-      {editingJobConfig && (
-        <EvaluationJobFormDialog
-          tenantId={tenantId}
-          projectId={projectId}
-          jobConfigId={editingJobConfig.id}
-          initialData={editingJobConfig}
-          isOpen={isEditDialogOpen}
-          onOpenChange={(open) => {
-            setIsEditDialogOpen(open);
-            if (!open) {
-              setEditingJobConfig(undefined);
-            }
-          }}
-        />
-      )}
 
       {deletingJobConfig && (
         <DeleteEvaluationJobConfirmation

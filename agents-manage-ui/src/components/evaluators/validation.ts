@@ -23,7 +23,7 @@ const passCriteriaSchema = z.object({
 
 export const evaluatorSchema = z.object({
   name: z.string().min(1, 'Name is required'),
-  description: z.string().min(1, 'Description is required'),
+  description: z.string().optional(),
   prompt: z.string().min(1, 'Prompt is required'),
   schema: z
     .string()

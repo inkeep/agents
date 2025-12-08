@@ -684,6 +684,157 @@ export class ExecutionHandler {
 
           await agentSessionManager.endSession(requestId);
           unregisterStreamHelper(requestId);
+          (async () => {
+            try {
+              const isDatasetRun = !!params.datasetRunId;
+
+              if (isDatasetRun) {
+                logger.info(
+                  { conversationId, datasetRunId: params.datasetRunId },
+                  'Triggering evaluation for dataset conversation'
+                );
+
+                const evalJobConfig = await getEvaluationJobConfigByDatasetRunId(dbClient)({
+                  scopes: { tenantId, projectId },
+                  datasetRunId: params.datasetRunId!,
+                });
+
+                if (!evalJobConfig) {
+                  logger.warn(
+                    { conversationId, datasetRunId: params.datasetRunId },
+                    'No eval job config found for dataset run'
+                  );
+                  return;
+                }
+
+                const evaluatorRelations = await getEvaluationJobConfigEvaluatorRelations(
+                  dbClient
+                )({
+                  scopes: { tenantId, projectId, evaluationJobConfigId: evalJobConfig.id },
+                });
+
+                if (evaluatorRelations.length === 0) {
+                  logger.warn(
+                    { conversationId, evalJobConfigId: evalJobConfig.id },
+                    'No evaluators configured for dataset eval job'
+                  );
+                  return;
+                }
+
+                const evaluatorIds = evaluatorRelations.map((r) => r.evaluatorId);
+
+                const evaluationRun = await getEvaluationRunByJobConfigId(dbClient)({
+                  scopes: { tenantId, projectId },
+                  evaluationJobConfigId: evalJobConfig.id,
+                });
+
+                const evaluationRunId = evaluationRun?.id;
+                if (!evaluationRunId) {
+                  logger.error(
+                    { conversationId, evalJobConfigId: evalJobConfig.id },
+                    'No evaluation run found for dataset eval job'
+                  );
+                  return;
+                }
+
+                await inngest.send({
+                  name: 'evaluation/conversation.execute',
+                  data: {
+                    tenantId,
+                    projectId,
+                    conversationId,
+                    evaluatorIds,
+                    evaluationRunId,
+                  },
+                });
+
+                logger.info(
+                  { conversationId, evaluatorCount: evaluatorIds.length, evaluationRunId },
+                  'Dataset conversation evaluation queued via Inngest'
+                );
+              } else {
+                logger.info({ conversationId }, 'Triggering evaluation for regular conversation');
+
+                const conversation = await getConversation(dbClient)({
+                  scopes: { tenantId, projectId },
+                  conversationId,
+                });
+
+                if (!conversation) {
+                  logger.warn({ conversationId }, 'Conversation not found');
+                  return;
+                }
+
+                const allRunConfigs = await listEvaluationRunConfigs(dbClient)({
+                  scopes: { tenantId, projectId },
+                });
+
+                const runConfigs = allRunConfigs.filter((config) => config.isActive);
+
+                for (const runConfig of runConfigs) {
+                  const matches = await evaluationRunConfigMatchesConversation(
+                    runConfig,
+                    conversation
+                  );
+
+                  if (!matches) continue;
+
+                  const suiteRelations =
+                    await getEvaluationRunConfigEvaluationSuiteConfigRelations(dbClient)({
+                      scopes: { tenantId, projectId, evaluationRunConfigId: runConfig.id },
+                    });
+
+                  for (const suiteRelation of suiteRelations) {
+                    const evaluatorRelations =
+                      await getEvaluationSuiteConfigEvaluatorRelations(dbClient)({
+                        scopes: {
+                          tenantId,
+                          projectId,
+                          evaluationSuiteConfigId: suiteRelation.evaluationSuiteConfigId,
+                        },
+                      });
+
+                    const evaluatorIds = evaluatorRelations.map((r) => r.evaluatorId);
+
+                    if (evaluatorIds.length === 0) continue;
+
+                    const evaluationRun = await createEvaluationRun(dbClient)({
+                      id: generateId(),
+                      tenantId,
+                      projectId,
+                      evaluationRunConfigId: runConfig.id,
+                    });
+
+                    await inngest.send({
+                      name: 'evaluation/conversation.execute',
+                      data: {
+                        tenantId,
+                        projectId,
+                        conversationId,
+                        evaluatorIds,
+                        evaluationRunId: evaluationRun.id,
+                      },
+                    });
+
+                    logger.info(
+                      {
+                        conversationId,
+                        runConfigId: runConfig.id,
+                        evaluatorCount: evaluatorIds.length,
+                      },
+                      'Regular conversation evaluation queued via Inngest'
+                    );
+                  }
+                }
+              }
+            } catch (error) {
+              logger.error(
+                { error, conversationId, tenantId, projectId },
+                'Failed to queue conversation evaluation (non-blocking)'
+              );
+            }
+          })();
+
           return { success: false, error: errorMessage, iterations };
         }
       }

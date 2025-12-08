@@ -6,9 +6,7 @@ import {
   deleteEvaluationJobConfig,
   type EvaluationJobConfig,
   type EvaluationJobConfigInsert,
-  type EvaluationJobConfigUpdate,
   fetchEvaluationJobConfigs,
-  updateEvaluationJobConfig,
 } from '../api/evaluation-job-configs';
 import { ApiError } from '../types/errors';
 import type { ActionResult } from './types';
@@ -53,39 +51,6 @@ export async function createEvaluationJobConfigAction(
 ): Promise<ActionResult<EvaluationJobConfig>> {
   try {
     const config = await createEvaluationJobConfig(tenantId, projectId, configData);
-    revalidatePath(`/${tenantId}/projects/${projectId}/evaluations`);
-    return {
-      success: true,
-      data: config,
-    };
-  } catch (error) {
-    if (error instanceof ApiError) {
-      return {
-        success: false,
-        error: error.message,
-        code: error.error.code,
-      };
-    }
-
-    return {
-      success: false,
-      error: error instanceof Error ? error.message : 'Unknown error occurred',
-      code: 'unknown_error',
-    };
-  }
-}
-
-/**
- * Update an existing evaluation job config
- */
-export async function updateEvaluationJobConfigAction(
-  tenantId: string,
-  projectId: string,
-  configId: string,
-  configData: EvaluationJobConfigUpdate
-): Promise<ActionResult<EvaluationJobConfig>> {
-  try {
-    const config = await updateEvaluationJobConfig(tenantId, projectId, configId, configData);
     revalidatePath(`/${tenantId}/projects/${projectId}/evaluations`);
     return {
       success: true,

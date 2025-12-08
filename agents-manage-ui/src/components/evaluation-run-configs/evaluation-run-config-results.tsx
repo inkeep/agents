@@ -39,6 +39,7 @@ interface EvaluationRunConfigResultsProps {
   results: EvaluationResult[];
   evaluators: Evaluator[];
   suiteConfigs: EvaluationSuiteConfig[];
+  suiteConfigEvaluators: Map<string, string[]>;
 }
 
 export function EvaluationRunConfigResults({
@@ -48,6 +49,7 @@ export function EvaluationRunConfigResults({
   results,
   evaluators,
   suiteConfigs,
+  suiteConfigEvaluators,
 }: EvaluationRunConfigResultsProps) {
   const [selectedEvaluatorId, setSelectedEvaluatorId] = useState<string | null>(null);
   const [selectedSuiteConfigId, setSelectedSuiteConfigId] = useState<string | null>(null);
@@ -89,69 +91,36 @@ export function EvaluationRunConfigResults({
 
   return (
     <div className="space-y-6">
-      <div className="rounded-lg border p-4">
-        <h3 className="text-sm font-semibold mb-2">Run Config Configuration</h3>
-        <div className="space-y-2 text-sm">
-          <div>
-            <span className="text-muted-foreground">Name: </span>
-            <span className="font-medium">{runConfig.name}</span>
-          </div>
-          <div>
-            <span className="text-muted-foreground">Description: </span>
-            <span>{runConfig.description || 'No description'}</span>
-          </div>
-          <div>
-            <span className="text-muted-foreground">Status: </span>
-            <span className={runConfig.isActive ? 'text-green-600' : 'text-muted-foreground'}>
-              {runConfig.isActive ? 'Active' : 'Inactive'}
-            </span>
-          </div>
-          <div>
-            <span className="text-muted-foreground">Evaluation Plans: </span>
-            <span>{runConfig.suiteConfigIds?.length || 0}</span>
-          </div>
-          <div>
-            <span className="text-muted-foreground">Created: </span>
-            {formatDateTimeTable(runConfig.createdAt)}
-          </div>
-          <div>
-            <span className="text-muted-foreground">Updated: </span>
-            {formatDateTimeTable(runConfig.updatedAt)}
-          </div>
-        </div>
-      </div>
-
       {/* Evaluation Plans Section */}
       {runConfigSuiteConfigs.length > 0 && (
         <div className="rounded-lg border">
-          <div className="p-4 border-b">
-            <h3 className="text-sm font-semibold">
-              Evaluation Plans ({runConfigSuiteConfigs.length})
-            </h3>
-          </div>
           <div className="p-4">
             <div className="space-y-3">
-              {runConfigSuiteConfigs.map((suiteConfig) => (
-                <div
-                  key={suiteConfig.id}
-                  className="border rounded-md p-3 hover:bg-accent/50 transition-colors"
-                >
-                  <div className="flex items-start justify-between">
-                    <div className="flex-1">
-                      <button
-                        type="button"
-                        onClick={() => setSelectedSuiteConfigId(suiteConfig.id)}
-                        className="text-left w-full"
-                      >
-                        <div className="font-medium text-sm">{suiteConfig.id}</div>
-                        <div className="text-xs text-muted-foreground mt-1">
-                          Sample Rate: {suiteConfig.sampleRate !== null ? `${(suiteConfig.sampleRate * 100).toFixed(0)}%` : 'N/A'}
+              {runConfigSuiteConfigs.map((suiteConfig) => {
+                const evaluatorIds = suiteConfigEvaluators.get(suiteConfig.id) || [];
+                const evaluatorNames = evaluatorIds
+                  .map((id) => getEvaluatorName(id))
+                  .join(', ') || 'No evaluators';
+                
+                // Extract agent filter from filters
+                const agentFilter = suiteConfig.filters?.agentId as string | undefined;
+
+                return (
+                  <div key={suiteConfig.id}>
+                    <div className="font-medium text-sm">{evaluatorNames}</div>
+                    <div className="text-xs text-muted-foreground mt-1 space-y-0.5">
+                      <div>
+                        Sample Rate: {suiteConfig.sampleRate !== null ? `${(suiteConfig.sampleRate * 100).toFixed(0)}%` : 'N/A'}
+                      </div>
+                      {agentFilter && (
+                        <div>
+                          Agent Filter: <code className="text-xs">{agentFilter}</code>
                         </div>
-                      </button>
+                      )}
                     </div>
                   </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
           </div>
         </div>
@@ -186,10 +155,10 @@ export function EvaluationRunConfigResults({
             <TableHeader>
               <TableRow noHover>
                 <TableHead>Input</TableHead>
+                <TableHead>Agent</TableHead>
                 <TableHead>Evaluator</TableHead>
                 <TableHead>Status</TableHead>
                 <TableHead>Output</TableHead>
-                <TableHead>Created</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -209,6 +178,11 @@ export function EvaluationRunConfigResults({
                         </span>
                         <ExternalLink className="h-4 w-4 flex-shrink-0" />
                       </Link>
+                    </TableCell>
+                    <TableCell>
+                      <code className="text-xs font-mono text-muted-foreground">
+                        {result.agentId || '-'}
+                      </code>
                     </TableCell>
                     <TableCell>
                       <button
@@ -264,9 +238,6 @@ export function EvaluationRunConfigResults({
                         <span className="text-sm text-muted-foreground">No output</span>
                       )}
                     </TableCell>
-                    <TableCell className="text-sm text-muted-foreground">
-                      {formatDateTimeTable(result.createdAt)}
-                    </TableCell>
                   </TableRow>
                 ))}
             </TableBody>
@@ -312,8 +283,8 @@ function OutputCollapsible({ resultId, output }: { resultId: string; output: unk
         <ExpandableJsonEditor
           name={`output-${resultId}`}
           value={JSON.stringify(output, null, 2)}
-          onChange={() => {}}
           label="Output"
+          readOnly
         />
       </CollapsibleContent>
     </Collapsible>
@@ -337,8 +308,8 @@ function MetadataCollapsible({ resultId, metadata }: { resultId: string; metadat
         <ExpandableJsonEditor
           name={`metadata-${resultId}`}
           value={JSON.stringify(metadata, null, 2)}
-          onChange={() => {}}
           label="Metadata"
+          readOnly
         />
       </CollapsibleContent>
     </Collapsible>
