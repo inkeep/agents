@@ -1,1 +1,0 @@
-{"version":3,"file":"existsresponse.d.ts","sourceRoot":"","sources":["../../src/models/existsresponse.ts"],"names":[],"mappings":"AAIA,OAAO,KAAK,CAAC,MAAM,KAAK,CAAC;AAEzB,MAAM,MAAM,cAAc,GAAG;IAAE,MAAM,EAAE,OAAO,CAAA;CAAE,CAAC;AAEjD,eAAO,MAAM,wBAAwB,EAAE,CAAC,CAAC,OAAO,CAAC,cAAc,EAAE,CAAC,CAAC,UAAU,EAAE,OAAO,CAEpF,CAAC"}
