@@ -2,9 +2,13 @@
 
 import { ArrowLeft, ChevronRight, Clock, ExternalLink, Sparkles } from 'lucide-react';
 import Link from 'next/link';
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { formatDateAgo, formatDateTime } from '@/app/utils/format-date';
 import { DatasetItemViewDialog } from '@/components/dataset-items/dataset-item-view-dialog';
+import {
+  TestCaseFilters,
+  type TestCaseFilters as TestCaseFiltersType,
+} from '@/components/datasets/test-case-filters';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -36,6 +40,7 @@ export function DatasetRunDetails({
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [selectedItemId, setSelectedItemId] = useState<string | null>(null);
+  const [filters, setFilters] = useState<TestCaseFiltersType>({});
 
   useEffect(() => {
     async function loadRun() {
@@ -54,6 +59,82 @@ export function DatasetRunDetails({
 
     loadRun();
   }, [tenantId, projectId, runId]);
+
+  const uniqueAgents = useMemo(() => {
+    if (!run?.items) return [];
+    const agentIds = new Set<string>();
+    run.items.forEach((item) => {
+      item.conversations?.forEach((conv) => {
+        if (conv.agentId) {
+          agentIds.add(conv.agentId);
+        }
+      });
+    });
+    return Array.from(agentIds).map((id) => ({ id, name: id }));
+  }, [run]);
+
+  const filteredItems = useMemo(() => {
+    if (!run?.items) return [];
+
+    return run.items
+      .map((item) => {
+        const getInputText = (): string => {
+          const input = item.input;
+          if (!input) return '';
+
+          if (typeof input === 'object' && 'messages' in input) {
+            const messages = input.messages;
+            if (Array.isArray(messages) && messages.length > 0) {
+              const firstMessage = messages[0];
+              if (firstMessage?.content) {
+                const content = firstMessage.content;
+                if (typeof content === 'string') {
+                  return content;
+                }
+                if (typeof content === 'object' && content !== null && 'text' in content) {
+                  const text = (content as { text?: unknown }).text;
+                  if (typeof text === 'string') {
+                    return text;
+                  }
+                }
+              }
+            }
+          }
+
+          return '';
+        };
+
+        const inputText = getInputText().toLowerCase();
+
+        if (filters.searchInput && !inputText.includes(filters.searchInput.toLowerCase())) {
+          return null;
+        }
+
+        let conversations = item.conversations || [];
+
+        if (filters.agentId) {
+          conversations = conversations.filter((conv) => conv.agentId === filters.agentId);
+        }
+
+        if (filters.outputStatus && filters.outputStatus !== 'all') {
+          if (filters.outputStatus === 'has_output') {
+            conversations = conversations.filter((conv) => conv.output);
+          } else if (filters.outputStatus === 'no_output') {
+            conversations = conversations.filter((conv) => !conv.output);
+          }
+        }
+
+        if (conversations.length === 0 && (filters.agentId || filters.outputStatus)) {
+          return null;
+        }
+
+        return {
+          ...item,
+          conversations,
+        };
+      })
+      .filter((item): item is NonNullable<typeof item> => item !== null);
+  }, [run, filters]);
 
   if (loading) {
     return (
@@ -102,6 +183,8 @@ export function DatasetRunDetails({
             <div className="mt-4">
               <Link
                 href={`/${tenantId}/projects/${projectId}/evaluations/jobs/${run.evaluationJobConfigId}`}
+                target="_blank"
+                rel="noopener noreferrer"
               >
                 <Button variant="outline" size="sm" className="w-full sm:w-auto">
                   <Sparkles className="mr-2 h-4 w-4" />
@@ -116,30 +199,37 @@ export function DatasetRunDetails({
 
       <Card>
         <CardHeader>
-          <CardTitle>Test Cases ({run.items?.length || 0})</CardTitle>
+          <CardTitle>
+            Test Cases ({filteredItems.reduce((acc, item) => acc + (item.conversations?.length || 0), 0)}{' '}
+            {filteredItems.length !== (run.items?.length || 0) && (
+              <span className="text-muted-foreground">
+                of {run.items?.reduce((acc, item) => acc + (item.conversations?.length || 0), 0) || 0}
+              </span>
+            )})
+          </CardTitle>
           <CardDescription>Test cases executed in this test suite run</CardDescription>
         </CardHeader>
-        <CardContent>
+        <CardContent className="space-y-4">
+          <TestCaseFilters filters={filters} onFiltersChange={setFilters} agents={uniqueAgents} />
           {!run.items || run.items.length === 0 ? (
             <p className="text-sm text-muted-foreground">No items found</p>
+          ) : filteredItems.length === 0 ? (
+            <p className="text-sm text-muted-foreground text-center py-8">
+              No test cases match the current filters.
+            </p>
           ) : (
             <Table>
               <TableHeader>
                 <TableRow>
                   <TableHead>Input</TableHead>
+                  <TableHead>Agent</TableHead>
                   <TableHead>Output</TableHead>
                   <TableHead>Run At</TableHead>
                   <TableHead>Conversation ID</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {run.items.map((item) => {
-                  // Get the first conversation for this item (or show all if multiple)
-                  const primaryConversation = item.conversations?.[0];
-                  // Use the dataset run's createdAt as the "Run At" time, not the conversation's createdAt
-                  // This ensures all items show the same run time, not random times based on async processing
-                  const runAt = primaryConversation?.createdAt || run.createdAt;
-
+                {filteredItems.flatMap((item) => {
                   // Extract input text from the item
                   const getInputPreview = (): string => {
                     const input = item.input;
@@ -175,8 +265,40 @@ export function DatasetRunDetails({
 
                   const inputPreview = getInputPreview();
 
-                  return (
-                    <TableRow key={item.id}>
+                  // Show all conversations for this item (one row per agent run)
+                  const conversations = item.conversations || [];
+                  if (conversations.length === 0) {
+                    // No conversations yet - show placeholder row
+                    return (
+                      <TableRow key={item.id}>
+                        <TableCell>
+                          <button
+                            type="button"
+                            onClick={() => setSelectedItemId(item.id)}
+                            className="flex items-center gap-2 text-sm text-blue-600 dark:text-blue-400 hover:underline text-left max-w-md truncate"
+                          >
+                            <span className="truncate">{inputPreview}</span>
+                            <ChevronRight className="h-4 w-4 flex-shrink-0" />
+                          </button>
+                        </TableCell>
+                        <TableCell>
+                          <span className="text-sm text-muted-foreground">-</span>
+                        </TableCell>
+                        <TableCell>
+                          <span className="text-sm text-muted-foreground">No output</span>
+                        </TableCell>
+                        <TableCell>
+                          <span className="text-sm">{formatDateTime(run.createdAt)}</span>
+                        </TableCell>
+                        <TableCell>
+                          <span className="text-sm text-muted-foreground">No conversation</span>
+                        </TableCell>
+                      </TableRow>
+                    );
+                  }
+
+                  return conversations.map((conversation) => (
+                    <TableRow key={`${item.id}-${conversation.conversationId}`}>
                       <TableCell>
                         <button
                           type="button"
@@ -188,33 +310,36 @@ export function DatasetRunDetails({
                         </button>
                       </TableCell>
                       <TableCell>
+                        <code className="text-xs font-mono text-muted-foreground">
+                          {conversation.agentId || '-'}
+                        </code>
+                      </TableCell>
+                      <TableCell>
                         <span className="text-sm text-muted-foreground max-w-md truncate block">
-                          {primaryConversation?.output
-                            ? primaryConversation.output.length > 100
-                              ? `${primaryConversation.output.slice(0, 100)}...`
-                              : primaryConversation.output
+                          {conversation.output
+                            ? conversation.output.length > 100
+                              ? `${conversation.output.slice(0, 100)}...`
+                              : conversation.output
                             : 'No output'}
                         </span>
                       </TableCell>
                       <TableCell>
-                        <span className="text-sm">{formatDateTime(runAt)}</span>
+                        <span className="text-sm">{formatDateTime(conversation.createdAt)}</span>
                       </TableCell>
                       <TableCell>
-                        {primaryConversation ? (
-                          <Link
-                            href={`/${tenantId}/projects/${projectId}/traces/conversations/${primaryConversation.conversationId}`}
-                            onClick={(e) => e.stopPropagation()}
-                            className="flex items-center gap-2 text-sm text-blue-600 dark:text-blue-400 hover:underline"
-                          >
-                            <code className="font-mono">{primaryConversation.conversationId}</code>
-                            <ExternalLink className="h-4 w-4" />
-                          </Link>
-                        ) : (
-                          <span className="text-sm text-muted-foreground">No conversation</span>
-                        )}
+                        <Link
+                          href={`/${tenantId}/projects/${projectId}/traces/conversations/${conversation.conversationId}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          onClick={(e) => e.stopPropagation()}
+                          className="flex items-center gap-2 text-sm text-blue-600 dark:text-blue-400 hover:underline"
+                        >
+                          <code className="font-mono">{conversation.conversationId}</code>
+                          <ExternalLink className="h-4 w-4" />
+                        </Link>
                       </TableCell>
                     </TableRow>
-                  );
+                  ));
                 })}
               </TableBody>
             </Table>

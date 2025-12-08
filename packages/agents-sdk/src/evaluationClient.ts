@@ -1261,3 +1261,212 @@ export async function deleteEvaluationResult(
     throw error;
   }
 }
+
+// ============================================================================
+// TRIGGER CONVERSATION EVALUATION
+// ============================================================================
+
+export async function triggerConversationEvaluation(
+  tenantId: string,
+  projectId: string,
+  apiUrl: string,
+  evaluationData: {
+    conversationIds: string[];
+    evaluatorIds: string[];
+  },
+  apiKey?: string
+): Promise<{
+  message: string;
+  evaluationRunId: string;
+  conversationIds: string[];
+  evaluatorIds: string[];
+}> {
+  logger.info(
+    { tenantId, projectId, conversationIds: evaluationData.conversationIds, evaluatorIds: evaluationData.evaluatorIds },
+    'Triggering conversation evaluations via API'
+  );
+
+  const url = buildUrl(apiUrl, tenantId, projectId, 'conversations', 'evaluate');
+
+  try {
+    const response = await apiFetch(url, {
+      method: 'POST',
+      headers: buildHeaders(apiKey),
+      body: JSON.stringify(evaluationData),
+    });
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      const errorMessage =
+        parseError(errorText) ??
+        `Failed to trigger conversation evaluations: ${response.status} ${response.statusText}`;
+
+      logger.error(
+        { status: response.status, error: errorMessage },
+        'Failed to trigger conversation evaluations via API'
+      );
+      throw new Error(errorMessage);
+    }
+
+    const result = (await response.json()) as {
+      message: string;
+      evaluationRunId: string;
+      conversationIds: string[];
+      evaluatorIds: string[];
+    };
+    logger.info(
+      { tenantId, projectId, conversationIds: evaluationData.conversationIds, evaluationRunId: result.evaluationRunId },
+      'Successfully triggered conversation evaluations via API'
+    );
+    return result;
+  } catch (error) {
+    logger.error(
+      { error, tenantId, projectId, conversationIds: evaluationData.conversationIds },
+      'Failed to trigger conversation evaluations'
+    );
+    throw error;
+  }
+}
+
+// ============================================================================
+// DATASET RUNS
+// ============================================================================
+
+export async function listDatasetRuns(
+  tenantId: string,
+  projectId: string,
+  datasetId: string,
+  apiUrl: string,
+  apiKey?: string
+): Promise<unknown[]> {
+  logger.info({ tenantId, projectId, datasetId }, 'Listing dataset runs via API');
+
+  const url = buildUrl(apiUrl, tenantId, projectId, 'datasets', datasetId, 'runs');
+
+  try {
+    const response = await apiFetch(url, {
+      method: 'GET',
+      headers: buildHeaders(apiKey),
+    });
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      const errorMessage =
+        parseError(errorText) ??
+        `Failed to list dataset runs: ${response.status} ${response.statusText}`;
+
+      logger.error(
+        { status: response.status, error: errorMessage },
+        'Failed to list dataset runs via API'
+      );
+      throw new Error(errorMessage);
+    }
+
+    const result = (await response.json()) as { data: unknown[] };
+    return result.data;
+  } catch (error) {
+    logger.error({ error, tenantId, projectId, datasetId }, 'Failed to list dataset runs');
+    throw error;
+  }
+}
+
+export async function getDatasetRun(
+  tenantId: string,
+  projectId: string,
+  runId: string,
+  apiUrl: string,
+  apiKey?: string
+): Promise<unknown | null> {
+  logger.info({ tenantId, projectId, runId }, 'Getting dataset run via API');
+
+  const url = buildUrl(apiUrl, tenantId, projectId, 'dataset-runs', runId);
+
+  try {
+    const response = await apiFetch(url, {
+      method: 'GET',
+      headers: buildHeaders(apiKey),
+    });
+
+    if (!response.ok) {
+      if (response.status === 404) {
+        logger.info({ runId }, 'Dataset run not found');
+        return null;
+      }
+
+      const errorText = await response.text();
+      const errorMessage =
+        parseError(errorText) ??
+        `Failed to get dataset run: ${response.status} ${response.statusText}`;
+
+      logger.error(
+        { status: response.status, error: errorMessage },
+        'Failed to get dataset run via API'
+      );
+      throw new Error(errorMessage);
+    }
+
+    const result = (await response.json()) as { data: unknown };
+    return result.data;
+  } catch (error) {
+    logger.error({ error, tenantId, projectId, runId }, 'Failed to get dataset run');
+    throw error;
+  }
+}
+
+export async function triggerDatasetRun(
+  tenantId: string,
+  projectId: string,
+  datasetId: string,
+  apiUrl: string,
+  runData: {
+    agentIds: string[];
+    evaluatorIds?: string[];
+  },
+  apiKey?: string
+): Promise<{
+  message: string;
+  datasetRunId: string;
+  datasetId: string;
+}> {
+  logger.info(
+    { tenantId, projectId, datasetId, agentIds: runData.agentIds, evaluatorIds: runData.evaluatorIds },
+    'Triggering dataset run via API'
+  );
+
+  const url = buildUrl(apiUrl, tenantId, projectId, 'datasets', datasetId, 'trigger');
+
+  try {
+    const response = await apiFetch(url, {
+      method: 'POST',
+      headers: buildHeaders(apiKey),
+      body: JSON.stringify(runData),
+    });
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      const errorMessage =
+        parseError(errorText) ??
+        `Failed to trigger dataset run: ${response.status} ${response.statusText}`;
+
+      logger.error(
+        { status: response.status, error: errorMessage },
+        'Failed to trigger dataset run via API'
+      );
+      throw new Error(errorMessage);
+    }
+
+    const result = (await response.json()) as {
+      message: string;
+      datasetRunId: string;
+      datasetId: string;
+    };
+    logger.info(
+      { tenantId, projectId, datasetId, datasetRunId: result.datasetRunId },
+      'Successfully triggered dataset run via API'
+    );
+    return result;
+  } catch (error) {
+    logger.error({ error, tenantId, projectId, datasetId }, 'Failed to trigger dataset run');
+    throw error;
+  }
+}

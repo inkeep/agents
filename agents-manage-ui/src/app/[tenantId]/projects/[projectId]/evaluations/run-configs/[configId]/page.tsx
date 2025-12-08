@@ -5,7 +5,7 @@ import { MainContent } from '@/components/layout/main-content';
 import { PageHeader } from '@/components/layout/page-header';
 import { fetchEvaluationResultsByRunConfig } from '@/lib/api/evaluation-results';
 import { fetchEvaluationRunConfig } from '@/lib/api/evaluation-run-configs';
-import { fetchEvaluationSuiteConfigs } from '@/lib/api/evaluation-suite-configs';
+import { fetchEvaluationSuiteConfigs, fetchEvaluationSuiteConfigEvaluators } from '@/lib/api/evaluation-suite-configs';
 import { fetchEvaluators } from '@/lib/api/evaluators';
 
 export const dynamic = 'force-dynamic';
@@ -22,6 +22,25 @@ async function EvaluationRunConfigPage({
       fetchEvaluators(tenantId, projectId),
       fetchEvaluationSuiteConfigs(tenantId, projectId),
     ]);
+
+    // Fetch evaluators for each suite config used by this run config
+    const suiteConfigEvaluators = new Map<string, string[]>();
+    if (runConfig.suiteConfigIds && runConfig.suiteConfigIds.length > 0) {
+      await Promise.all(
+        runConfig.suiteConfigIds.map(async (suiteConfigId) => {
+          try {
+            const evaluatorsRes = await fetchEvaluationSuiteConfigEvaluators(tenantId, projectId, suiteConfigId);
+            suiteConfigEvaluators.set(
+              suiteConfigId,
+              evaluatorsRes.data.map((e) => e.evaluatorId)
+            );
+          } catch {
+            // If fetch fails, set empty array
+            suiteConfigEvaluators.set(suiteConfigId, []);
+          }
+        })
+      );
+    }
 
     return (
       <BodyTemplate
@@ -46,6 +65,7 @@ async function EvaluationRunConfigPage({
             results={results.data}
             evaluators={evaluators.data}
             suiteConfigs={suiteConfigs.data}
+            suiteConfigEvaluators={suiteConfigEvaluators}
           />
         </MainContent>
       </BodyTemplate>

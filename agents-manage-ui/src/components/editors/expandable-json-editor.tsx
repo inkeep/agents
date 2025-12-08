@@ -77,6 +77,7 @@ export function ExpandableJsonEditor({
   editorOptions,
 }: ExpandableJsonEditorProps) {
   const { error: internalError } = useJsonValidation(value);
+  const handleChange = onChange ?? (() => {});
   const { handleFormat, canFormat } = useJsonFormat(
     value,
     !!(externalError || internalError),
@@ -113,7 +114,7 @@ export function ExpandableJsonEditor({
       <JsonEditor
         uri={uri}
         value={value}
-        onChange={onChange}
+        onChange={handleChange}
         placeholder={placeholder}
         aria-invalid={error ? 'true' : undefined}
         className={cn(!open && error && 'max-h-96')}

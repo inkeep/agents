@@ -17,11 +17,7 @@ import {
 import { Form, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import {
-  createEvaluationJobConfigAction,
-  updateEvaluationJobConfigAction,
-} from '@/lib/actions/evaluation-job-configs';
-import type { ActionResult } from '@/lib/actions/types';
+import { createEvaluationJobConfigAction } from '@/lib/actions/evaluation-job-configs';
 import type { EvaluationJobConfig } from '@/lib/api/evaluation-job-configs';
 import type { Evaluator } from '@/lib/api/evaluators';
 import { fetchEvaluators } from '@/lib/api/evaluators';
@@ -30,35 +26,14 @@ import { type EvaluationJobConfigFormData, evaluationJobConfigSchema } from './v
 interface EvaluationJobFormDialogProps {
   tenantId: string;
   projectId: string;
-  jobConfigId?: string;
-  initialData?: EvaluationJobConfig;
   isOpen: boolean;
   onOpenChange: (open: boolean) => void;
   trigger?: React.ReactNode;
 }
 
-const formatFormData = (data?: EvaluationJobConfig): EvaluationJobConfigFormData => {
-  if (!data) {
-    return {
-      jobFilters: null,
-      evaluatorIds: [],
-    };
-  }
-
-  const jobFilters = data.jobFilters || null;
-  const evaluatorIds: string[] = [];
-
-  return {
-    jobFilters,
-    evaluatorIds,
-  };
-};
-
 export function EvaluationJobFormDialog({
   tenantId,
   projectId,
-  jobConfigId,
-  initialData,
   isOpen: controlledIsOpen,
   onOpenChange,
   trigger,
@@ -70,17 +45,22 @@ export function EvaluationJobFormDialog({
   const isOpen = trigger ? internalIsOpen : controlledIsOpen;
   const setIsOpen = trigger ? setInternalIsOpen : onOpenChange;
 
+  const defaultFormData: EvaluationJobConfigFormData = {
+    jobFilters: null,
+    evaluatorIds: [],
+  };
+
   const form = useForm<EvaluationJobConfigFormData>({
     resolver: zodResolver(evaluationJobConfigSchema),
-    defaultValues: formatFormData(initialData),
+    defaultValues: defaultFormData,
   });
 
   useEffect(() => {
     if (isOpen) {
-      form.reset(formatFormData(initialData));
+      form.reset(defaultFormData);
       loadData();
     }
-  }, [isOpen, initialData]);
+  }, [isOpen]);
 
   const loadData = async () => {
     setLoading(true);
@@ -119,23 +99,12 @@ export function EvaluationJobFormDialog({
         evaluatorIds: data.evaluatorIds,
       };
 
-      let result: ActionResult<EvaluationJobConfig>;
-      if (jobConfigId) {
-        result = await updateEvaluationJobConfigAction(tenantId, projectId, jobConfigId, payload);
-        if (result.success) {
-          toast.success('Batch evaluation updated');
-        } else {
-          toast.error(result.error || 'Failed to update batch evaluation');
-          return;
-        }
+      const result = await createEvaluationJobConfigAction(tenantId, projectId, payload);
+      if (result.success) {
+        toast.success('Batch evaluation created');
       } else {
-        result = await createEvaluationJobConfigAction(tenantId, projectId, payload);
-        if (result.success) {
-          toast.success('Batch evaluation created');
-        } else {
-          toast.error(result.error || 'Failed to create batch evaluation');
-          return;
-        }
+        toast.error(result.error || 'Failed to create batch evaluation');
+        return;
       }
 
       onOpenChange(false);
@@ -152,9 +121,7 @@ export function EvaluationJobFormDialog({
       {trigger && <DialogTrigger asChild>{trigger}</DialogTrigger>}
       <DialogContent className="sm:max-w-3xl max-h-[95vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>
-            {jobConfigId ? 'Edit Batch Evaluation' : 'Create Batch Evaluation'}
-          </DialogTitle>
+          <DialogTitle>Create Batch Evaluation</DialogTitle>
           <DialogDescription>
             Configure a one-off batch evaluation to evaluate conversations based on filters.
           </DialogDescription>
@@ -250,7 +217,7 @@ export function EvaluationJobFormDialog({
                   Cancel
                 </Button>
                 <Button type="submit" disabled={isSubmitting}>
-                  {jobConfigId ? 'Update' : 'Create'} Batch Evaluation
+                  Create Batch Evaluation
                 </Button>
               </div>
             </form>

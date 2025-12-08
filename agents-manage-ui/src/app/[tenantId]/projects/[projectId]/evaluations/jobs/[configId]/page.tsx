@@ -3,9 +3,11 @@ import { EvaluationJobResults } from '@/components/evaluation-jobs/evaluation-jo
 import { BodyTemplate } from '@/components/layout/body-template';
 import { MainContent } from '@/components/layout/main-content';
 import { PageHeader } from '@/components/layout/page-header';
+import type { EvaluationJobFilterCriteria } from '@/lib/api/evaluation-job-configs';
 import { fetchEvaluationJobConfig } from '@/lib/api/evaluation-job-configs';
 import { fetchEvaluationResultsByJobConfig } from '@/lib/api/evaluation-results';
 import { fetchEvaluators } from '@/lib/api/evaluators';
+import { fetchDatasetRun } from '@/lib/api/dataset-runs';
 
 export const dynamic = 'force-dynamic';
 
@@ -21,20 +23,32 @@ async function EvaluationJobPage({
       fetchEvaluators(tenantId, projectId),
     ]);
 
+    // Get the dataset run name for breadcrumb
+    let displayName = jobConfig.id;
+    const criteria = jobConfig.jobFilters as EvaluationJobFilterCriteria;
+    if (criteria?.datasetRunIds && criteria.datasetRunIds.length > 0) {
+      try {
+        const datasetRun = await fetchDatasetRun(tenantId, projectId, criteria.datasetRunIds[0]);
+        displayName = datasetRun.data?.runConfigName || jobConfig.id;
+      } catch {
+        // Fallback to ID if fetch fails
+      }
+    }
+
     return (
       <BodyTemplate
         breadcrumbs={[
           { label: 'Evaluations', href: `/${tenantId}/projects/${projectId}/evaluations` },
           { label: 'Batch Evaluations', href: `/${tenantId}/projects/${projectId}/evaluations` },
           {
-            label: jobConfig.id,
+            label: displayName,
             href: `/${tenantId}/projects/${projectId}/evaluations/jobs/${configId}`,
           },
         ]}
       >
         <MainContent className="min-h-full">
           <PageHeader
-            title="Batch Evaluation"
+            title={displayName}
           />
           <EvaluationJobResults
             tenantId={tenantId}

@@ -43,9 +43,6 @@ type DatasetRunConfigAgentRelationSelect = typeof datasetRunConfigAgentRelations
 
 type DatasetRunInsert = typeof datasetRun.$inferInsert;
 type DatasetRunSelect = typeof datasetRun.$inferSelect;
-type DatasetRunUpdate = Partial<
-  Omit<DatasetRunInsert, 'tenantId' | 'projectId' | 'id' | 'createdAt' | 'updatedAt'>
->;
 
 type DatasetRunConversationRelationInsert = typeof datasetRunConversationRelations.$inferInsert;
 type DatasetRunConversationRelationSelect = typeof datasetRunConversationRelations.$inferSelect;
@@ -583,39 +580,6 @@ export const createDatasetRun =
       .returning();
 
     return created;
-  };
-
-export const updateDatasetRun =
-  (db: DatabaseClient) =>
-  async (params: {
-    scopes: ProjectScopeConfig & { datasetRunId: string };
-    data: DatasetRunUpdate;
-  }): Promise<DatasetRunSelect | null> => {
-    const now = new Date().toISOString();
-
-    const updateData: Record<string, unknown> = {
-      updatedAt: now,
-    };
-
-    for (const [key, value] of Object.entries(params.data)) {
-      if (value !== undefined) {
-        updateData[key] = value;
-      }
-    }
-
-    const [updated] = await db
-      .update(datasetRun)
-      .set(updateData)
-      .where(
-        and(
-          eq(datasetRun.tenantId, params.scopes.tenantId),
-          eq(datasetRun.projectId, params.scopes.projectId),
-          eq(datasetRun.id, params.scopes.datasetRunId)
-        )
-      )
-      .returning();
-
-    return updated ?? null;
   };
 
 export const deleteDatasetRun =
@@ -1301,39 +1265,6 @@ export const createEvaluationJobConfig =
       .returning();
 
     return created;
-  };
-
-export const updateEvaluationJobConfig =
-  (db: DatabaseClient) =>
-  async (params: {
-    scopes: ProjectScopeConfig & { evaluationJobConfigId: string };
-    data: EvaluationJobConfigUpdate;
-  }): Promise<EvaluationJobConfigSelect | null> => {
-    const now = new Date().toISOString();
-
-    const updateData: Record<string, unknown> = {
-      updatedAt: now,
-    };
-
-    for (const [key, value] of Object.entries(params.data)) {
-      if (value !== undefined) {
-        updateData[key] = value;
-      }
-    }
-
-    const [updated] = await db
-      .update(evaluationJobConfig)
-      .set(updateData)
-      .where(
-        and(
-          eq(evaluationJobConfig.tenantId, params.scopes.tenantId),
-          eq(evaluationJobConfig.projectId, params.scopes.projectId),
-          eq(evaluationJobConfig.id, params.scopes.evaluationJobConfigId)
-        )
-      )
-      .returning();
-
-    return updated ?? null;
   };
 
 export const deleteEvaluationJobConfig =

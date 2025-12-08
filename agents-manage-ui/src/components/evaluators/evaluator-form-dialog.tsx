@@ -200,7 +200,6 @@ export function EvaluatorFormDialog({
               name="description"
               label="Description"
               placeholder="Describe what this evaluator measures..."
-              isRequired
             />
 
             <FormFieldWrapper

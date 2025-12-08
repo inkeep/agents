@@ -53,7 +53,6 @@ export function EvaluatorsList({ tenantId, projectId, evaluators }: EvaluatorsLi
               <TableHead>Name</TableHead>
               <TableHead className="max-w-md">Description</TableHead>
               <TableHead>Model</TableHead>
-              <TableHead>Created</TableHead>
               <TableHead>Updated</TableHead>
               <TableHead className="w-12"></TableHead>
             </TableRow>
@@ -61,7 +60,7 @@ export function EvaluatorsList({ tenantId, projectId, evaluators }: EvaluatorsLi
           <TableBody>
             {evaluators.length === 0 ? (
               <TableRow noHover>
-                <TableCell colSpan={6} className="text-center text-muted-foreground py-8">
+                <TableCell colSpan={5} className="text-center text-muted-foreground py-8">
                   No evaluators yet. Click &quot;+ New evaluator&quot; to create one.
                 </TableCell>
               </TableRow>
@@ -84,9 +83,6 @@ export function EvaluatorsList({ tenantId, projectId, evaluators }: EvaluatorsLi
                     <code className="bg-muted text-muted-foreground rounded-md border px-2 py-1 text-sm font-mono">
                       {evaluator.model?.model || 'N/A'}
                     </code>
-                  </TableCell>
-                  <TableCell className="text-sm text-muted-foreground">
-                    {formatDate(evaluator.createdAt)}
                   </TableCell>
                   <TableCell className="text-sm text-muted-foreground">
                     {formatDate(evaluator.updatedAt)}
