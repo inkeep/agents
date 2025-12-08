@@ -17,7 +17,7 @@
     "build": "tsup",
     "test": "vitest --run",
     "test:watch": "vitest --watch",
-    "lint": "biome lint src",
+    "lint": "biome lint --error-on-warnings",
     "lint:fix": "biome check --write src",
     "format": "biome format --write src",
     "format:check": "biome format src",
@@ -34,10 +34,10 @@
   ],
   "packageManager": "pnpm@10.10.0",
   "dependencies": {
-    "@ai-sdk/provider": "^2.0.0",
-    "@ai-sdk/provider-utils": "^3.0.12",
+    "@ai-sdk/provider": "3.0.0-beta.22",
+    "@ai-sdk/provider-utils": "4.0.0-beta.40",
     "@inkeep/agents-core": "workspace:*",
-    "ai": "5.0.11"
+    "ai": "6.0.0-beta.124"
   },
   "devDependencies": {
     "@types/node": "^20.11.24",

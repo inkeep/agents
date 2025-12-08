@@ -125,14 +125,22 @@ export function ErrorContent({
   };
 
   return (
-    <div className="flex flex-col items-center justify-center h-full gap-10 px-4">
+    <main
+      aria-labelledby="error-title"
+      className="flex flex-col items-center justify-center h-full gap-10 px-4"
+    >
+      <h1 id="error-title" className="sr-only">
+        {title}
+      </h1>
       {statusCode ? (
-        <div className="text-8xl font-mono font-bold text-foreground">{statusCode}</div>
+        <div className="text-8xl font-mono font-bold text-foreground" aria-hidden="true">
+          {statusCode}
+        </div>
       ) : (
-        <AlertTriangle className="w-14 h-14 text-foreground" strokeWidth={1} />
+        <AlertTriangle className="w-14 h-14 text-foreground" strokeWidth={1} aria-hidden="true" />
       )}
       <div className="flex flex-col items-center gap-2 text-center max-w-md">
-        <h1 className="text-lg text-muted-foreground font-mono uppercase">{title}</h1>
+        <h2 className="text-lg text-muted-foreground font-mono uppercase">{title}</h2>
         <p className="text-muted-foreground text-sm">{description}</p>
       </div>
 
@@ -152,6 +160,6 @@ export function ErrorContent({
           </Button>
         )}
       </div>
-    </div>
+    </main>
   );
 }
