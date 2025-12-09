@@ -360,7 +360,7 @@ export const PromptEditor: FC<PromptEditorProps> = ({
   const formattedContent = useMemo(() => buildPromptContent(mdContent), []);
 
   const editor = useEditor({
-    immediatelyRender: false,
+    immediatelyRender: false, // needs for SSR
     editorProps: {
       attributes: {
         class: cn(
@@ -430,7 +430,7 @@ export const PromptEditor: FC<PromptEditorProps> = ({
       contentType ? undefined : { contentType: 'markdown' }
     );
     toggleMarkdownEditor();
-  }, [editor, contentType, toggleMarkdownEditor]);
+  }, [editor, contentType, toggleMarkdownEditor, formattedContent]);
 
   const IconToUse = contentType ? TextInitial : MarkdownIcon;
 
