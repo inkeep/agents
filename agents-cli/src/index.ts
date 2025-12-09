@@ -153,7 +153,6 @@ program
       build: options.build,
       outputDir: options.outputDir,
       path: options.path,
-      export: options.export,
       openBrowser: options.openBrowser,
     });
   });
