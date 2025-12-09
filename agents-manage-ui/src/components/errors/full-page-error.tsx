@@ -47,7 +47,7 @@ interface FullPageErrorProps {
   error?: Error & { digest?: string };
   reset?: () => void;
   title?: string;
-  description?: string;
+  description?: string | React.ReactNode;
   link?: string;
   linkText?: string;
   statusCode?: number;
