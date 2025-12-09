@@ -112,16 +112,6 @@ This demo supports **multi-mention** with different trigger characters:
 
 Try typing \`@\` or \`#\` in the editor to see suggestions!
 
-### Mathematics
-
-Inline math: $E = mc^2$ and $\\pi r^2$
-
-Block math:
-
-$$
-40*5/38
-$$
-
 ### Try editing the markdown on the left:
 
 1. Edit the markdown text

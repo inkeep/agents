@@ -336,12 +336,10 @@ export const PromptEditor2: FC<PromptEditorProps> = ({
   );
 };
 
-import { createBlockMarkdownSpec, Node } from '@tiptap/core';
 import { Details, DetailsContent, DetailsSummary } from '@tiptap/extension-details';
 import { Highlight } from '@tiptap/extension-highlight';
 import { Image } from '@tiptap/extension-image';
 import { TaskItem, TaskList } from '@tiptap/extension-list';
-import { Mathematics } from '@tiptap/extension-mathematics';
 import { Mention } from '@tiptap/extension-mention';
 import { TableKit } from '@tiptap/extension-table';
 import { Youtube } from '@tiptap/extension-youtube';
@@ -419,10 +417,8 @@ export const PromptEditor: FC = () => {
           },
         ],
       }),
-      Mathematics,
-      CustomReactNode,
     ],
-    content: '# Markdown Test\n\nClick **"Parse Markdown"** to load content from the left panel.',
+    content: markdownInput,
     contentType: 'markdown',
   });
 
