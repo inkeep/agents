@@ -93,10 +93,6 @@ You can learn how to use Tiptap by visiting the [official documentation](https:/
 
 :::
 
-### YouTube Videos
-
-:::youtube {src="https://www.youtube.com/watch?v=dQw4w9WgXcQ" start="0" width="400" height="300"} :::
-
 ### Images
 
 ![Random Image](https://unsplash.it/400/600 "Tiptap Editor")

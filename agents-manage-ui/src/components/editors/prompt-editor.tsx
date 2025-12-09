@@ -342,7 +342,6 @@ import { Image } from '@tiptap/extension-image';
 import { TaskItem, TaskList } from '@tiptap/extension-list';
 import { Mention } from '@tiptap/extension-mention';
 import { TableKit } from '@tiptap/extension-table';
-import { Youtube } from '@tiptap/extension-youtube';
 import { Markdown } from '@tiptap/markdown';
 import './prompt-editor.css';
 
@@ -368,11 +367,6 @@ export const PromptEditor: FC = () => {
       TaskList,
       TaskItem.configure({
         nested: true,
-      }),
-      Youtube.configure({
-        inline: false,
-        width: 480,
-        height: 320,
       }),
       Image,
       TableKit,
