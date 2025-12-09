@@ -11,7 +11,7 @@ import Suggestion, {
   type SuggestionProps,
 } from '@tiptap/suggestion';
 import type { ComponentPropsWithoutRef, FC, RefObject } from 'react';
-import { useEffect, useImperativeHandle, useMemo, useRef, useState } from 'react';
+import { useEffect, useImperativeHandle, useMemo, useRef, useState, useCallback } from 'react';
 import { useMonacoStore } from '@/features/agent/state/use-monaco-store';
 import { cn } from '@/lib/utils';
 import { buildPromptContent, extractInvalidVariables } from './prompt-editor-utils';
@@ -341,9 +341,11 @@ import { TaskItem, TaskList } from '@tiptap/extension-list';
 import { Mention } from '@tiptap/extension-mention';
 import { TableKit } from '@tiptap/extension-table';
 import { Markdown } from '@tiptap/markdown';
-import './prompt-editor.css';
-
+import { Button } from '@/components/ui/button';
+import { TextInitial } from 'lucide-react';
+import { MarkdownIcon } from '@/icons';
 import { mdContent } from './content';
+import './prompt-editor.css';
 
 export const PromptEditor: FC<PromptEditorProps> = ({
   className,
@@ -376,9 +378,7 @@ export const PromptEditor: FC<PromptEditorProps> = ({
       Markdown,
       StarterKit,
       TaskList,
-      TaskItem.configure({
-        nested: true,
-      }),
+      TaskItem.configure({ nested: true }),
       TableKit,
       Highlight,
       Mention.configure({
@@ -426,18 +426,26 @@ export const PromptEditor: FC<PromptEditorProps> = ({
     contentType: 'markdown',
   });
 
+  const toggle = useCallback(() => {
+    setIsMd((prev) => {
+      editor?.commands.setContent(mdContent, prev ? undefined : { contentType: 'markdown' });
+      return !prev;
+    });
+  }, [editor]);
+
+  const IconToUse = isMd ? TextInitial : MarkdownIcon;
+
   return (
     <EditorContent editor={editor} className="relative">
-      <button
-        type="button"
-        className="absolute top-0 right-0"
-        onClick={() => {
-          setIsMd((prev) => !prev);
-          editor?.commands.setContent(mdContent, isMd ? undefined : { contentType: 'markdown' });
-        }}
+      <Button
+        variant="ghost"
+        className="backdrop-blur-3xl absolute end-2 top-2 z-1 h-8 w-auto!"
+        size="icon-sm"
+        title={`Switch to ${isMd ? 'Text' : 'Markdown'}`}
+        onClick={toggle}
       >
-        Switch to {isMd ? 'Markdown' : 'Text'}
-      </button>
+        <IconToUse className="h-10 w-10!" />
+      </Button>
     </EditorContent>
   );
 };

@@ -5,3 +5,4 @@ export { default as InkeepLogo } from './inkeep.svg?svgr';
 export { default as NumberIcon } from './number.svg?svgr';
 export { default as ObjectIcon } from './object.svg?svgr';
 export { default as StringIcon } from './string.svg?svgr';
+export { default as MarkdownIcon } from './markdown.svg?svgr';
