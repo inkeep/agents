@@ -242,6 +242,7 @@ export const PromptEditor: FC<PromptEditorProps> = ({
     [placeholder]
   );
   const invalid = props['aria-invalid'] === 'true' || props['aria-invalid'] === true;
+  const editable = !(readOnly || disabled);
 
   const editor = useEditor({
     extensions: [
@@ -283,7 +284,7 @@ export const PromptEditor: FC<PromptEditorProps> = ({
         //   'whitespace-pre-wrap break-words leading-6 prose prose-sm max-w-none dark:prose-invert',
       },
     },
-    editable: !(readOnly || disabled),
+    editable,
     content: buildPromptContent(value),
     onUpdate({ editor }) {
       const nextValue = getEditorText(editor);
@@ -301,14 +302,13 @@ export const PromptEditor: FC<PromptEditorProps> = ({
   }, [editor, textValue, value]);
 
   useEffect(() => {
-    if (!editor) return;
-    editor.setEditable(!(readOnly || disabled));
-  }, [disabled, editor, readOnly]);
+    editor?.setEditable(editable);
+  }, [editor, editable]);
 
   useEffect(() => {
-    if (!editor || !autoFocus) return;
-    editor.chain().focus('end').run();
-  }, [autoFocus, editor]);
+    if (!autoFocus) return;
+    editor?.chain().focus('end').run();
+  }, [editor, autoFocus]);
 
   useImperativeHandle(
     ref,
