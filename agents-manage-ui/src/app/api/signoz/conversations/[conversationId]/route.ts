@@ -1064,15 +1064,15 @@ export async function GET(
       'ai.toolCall',
     ];
 
-    let errorCount = 0;
-    let warningCount = 0;
+    let _errorCount = 0;
+    let _warningCount = 0;
 
     for (const span of spansWithErrorsList) {
       const spanName = getString(span, SPAN_KEYS.NAME, '');
       if (CRITICAL_ERROR_SPAN_NAMES.includes(spanName)) {
-        errorCount++;
+        _errorCount++;
       } else {
-        warningCount++;
+        _warningCount++;
       }
     }
 
@@ -1629,14 +1629,18 @@ export async function GET(
         }
       }
     }
-    
+
     // For each agent generation, check if ALL or SOME tool calls failed
-    for (const [agentGenId, toolCallsInGeneration] of toolCallsByAgentGen) {
+    for (const [_agentGenId, toolCallsInGeneration] of toolCallsByAgentGen) {
       if (toolCallsInGeneration.length === 0) continue;
-      
-      const failedToolCalls = toolCallsInGeneration.filter((a) => a.status === ACTIVITY_STATUS.ERROR);
-      const successfulToolCalls = toolCallsInGeneration.filter((a) => a.status === ACTIVITY_STATUS.SUCCESS);
-      
+
+      const failedToolCalls = toolCallsInGeneration.filter(
+        (a) => a.status === ACTIVITY_STATUS.ERROR
+      );
+      const successfulToolCalls = toolCallsInGeneration.filter(
+        (a) => a.status === ACTIVITY_STATUS.SUCCESS
+      );
+
       // If SOME tools failed but at least one succeeded, mark failed ones as warnings
       if (failedToolCalls.length > 0 && successfulToolCalls.length > 0) {
         for (const toolCall of failedToolCalls) {

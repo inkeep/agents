@@ -80,9 +80,9 @@ function statusIcon(
         ? 'text-red-500'
         : status === 'warning'
           ? 'text-yellow-500'
-        : status === 'pending'
-          ? 'text-yellow-500'
-          : map.cls;
+          : status === 'pending'
+            ? 'text-yellow-500'
+            : map.cls;
 
   return { Icon: map.Icon, className: cls };
 }
@@ -137,7 +137,7 @@ export function TimelineItem({
       ? 'text-red-500 hover:text-red-700'
       : activity.status === 'warning'
         ? 'text-yellow-500 hover:text-yellow-700'
-      : 'text-foreground hover:text-primary';
+        : 'text-foreground hover:text-primary';
 
   return (
     <div className={`flex flex-col text-muted-foreground relative text-xs`}>
