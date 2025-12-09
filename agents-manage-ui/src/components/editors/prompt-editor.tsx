@@ -388,7 +388,7 @@ export const PromptEditor: FC<PromptEditorProps> = ({
         suggestions: [
           {
             char: '@',
-            items: ({ query }) => {
+            items({ query }) {
               return [
                 'Lea Thompson',
                 'Cyndi Lauper',
@@ -398,14 +398,12 @@ export const PromptEditor: FC<PromptEditorProps> = ({
                 'Joan Collins',
                 'Winona Ryder',
                 'Christina Applegate',
-              ]
-                .filter((item) => item.toLowerCase().startsWith(query.toLowerCase()))
-                .slice(0, 5);
+              ].filter((item) => item.toLowerCase().startsWith(query.toLowerCase()));
             },
           },
           {
             char: '#',
-            items: ({ query }) => {
+            items({ query }) {
               return [
                 'bug',
                 'feature',
@@ -414,9 +412,7 @@ export const PromptEditor: FC<PromptEditorProps> = ({
                 'help-wanted',
                 'priority-high',
                 'priority-low',
-              ]
-                .filter((item) => item.toLowerCase().startsWith(query.toLowerCase()))
-                .slice(0, 5);
+              ].filter((item) => item.toLowerCase().startsWith(query.toLowerCase()));
             },
           },
         ],
@@ -438,13 +434,13 @@ export const PromptEditor: FC<PromptEditorProps> = ({
   return (
     <EditorContent editor={editor} className="relative">
       <Button
-        variant="ghost"
-        className="backdrop-blur-3xl absolute end-2 top-2 z-1 h-8 w-auto!"
+        variant="default"
+        className="absolute end-2 top-2 z-1"
         size="icon-sm"
         title={`Switch to ${isMd ? 'Text' : 'Markdown'}`}
         onClick={toggle}
       >
-        <IconToUse className="h-10 w-10!" />
+        <IconToUse />
       </Button>
     </EditorContent>
   );
