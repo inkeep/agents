@@ -345,14 +345,31 @@ import './prompt-editor.css';
 
 import { mdContent } from './content';
 
-export const PromptEditor: FC = () => {
+export const PromptEditor: FC<PromptEditorProps> = ({
+  className,
+  hasDynamicHeight,
+  disabled,
+  readOnly,
+  invalid,
+}) => {
   const [isMd, setIsMd] = useState(true);
 
   const editor = useEditor({
     immediatelyRender: false,
     editorProps: {
       attributes: {
-        class: 'prose prose-sm dark:prose-invert mx-auto focus:outline-none',
+        class: cn(
+          'prose prose-sm dark:prose-invert focus:outline-none overflow-scroll min-w-full',
+          'dark:bg-input/30 text-sm focus:outline-none px-3 py-2',
+          'rounded-md border border-input shadow-xs transition-colors',
+          hasDynamicHeight ? 'min-h-16' : 'min-h-80',
+          disabled || readOnly
+            ? 'bg-muted/50 text-muted-foreground opacity-70'
+            : 'focus-within:border-ring focus-within:ring-2 focus-within:ring-ring/40',
+          invalid &&
+            'border-destructive focus-within:border-destructive focus-within:ring-destructive/30',
+          className
+        ),
       },
     },
     extensions: [
@@ -410,9 +427,10 @@ export const PromptEditor: FC = () => {
   });
 
   return (
-    <div className="markdown-parser-demo">
+    <EditorContent editor={editor} className="relative">
       <button
         type="button"
+        className="absolute top-0 right-0"
         onClick={() => {
           setIsMd((prev) => !prev);
           editor?.commands.setContent(mdContent, isMd ? undefined : { contentType: 'markdown' });
@@ -420,10 +438,6 @@ export const PromptEditor: FC = () => {
       >
         Switch to {isMd ? 'Markdown' : 'Text'}
       </button>
-
-      <div className="editor-container">
-        {editor ? <EditorContent editor={editor} /> : <div>Loading editor…</div>}
-      </div>
-    </div>
+    </EditorContent>
   );
 };

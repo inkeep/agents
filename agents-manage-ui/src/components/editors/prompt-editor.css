@@ -9,51 +9,6 @@
   line-height: 1.5;
 }
 
-.markdown-parser-demo {
-  display: flex;
-  flex-direction: column;
-  height: 100vh;
-}
-
-.markdown-parser-demo .input-panel,
-.markdown-parser-demo .editor-panel {
-  flex: 1 1 50%;
-  display: flex;
-  flex-direction: column;
-  gap: 0.5rem;
-}
-
-.markdown-parser-demo .editor-container {
-  flex: 1 1 auto;
-  border: 1px solid #e5e7eb;
-  border-radius: 6px;
-  padding: 1rem;
-  overflow: auto;
-}
-
-.markdown-parser-demo .editor-toolbar + .editor-container {
-  border-top-left-radius: 0;
-  border-top-right-radius: 0;
-  border-top: none;
-}
-
-.markdown-parser-demo .json-preview {
-  background: #f8fafc;
-  border: 1px solid #e5e7eb;
-  border-radius: 6px;
-  padding: 1rem;
-  margin-top: 1rem;
-  max-height: 200px;
-  overflow: auto;
-}
-
-.markdown-parser-demo .json-preview pre {
-  margin: 0;
-  font-family: "Monaco", "Menlo", "Ubuntu Mono", monospace;
-  font-size: 12px;
-  color: #374151;
-}
-
 /* Basic table styles for the editor */
 .tiptap table {
   width: 100%;
