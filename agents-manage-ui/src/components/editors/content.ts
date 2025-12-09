@@ -20,6 +20,15 @@ This demo showcases **bidirectional** markdown support in Tiptap with extended f
   - [ ] Incomplete task
   - [x] Completed task
 
+## Table
+
+| Tables   |      Are      |  Cool |
+|----------|:-------------:|------:|
+| col 1 is |  left-aligned | $1600 |
+| col 2 is |    centered   |   $12 |
+| col 3 is | right-aligned |    $1 |
+
+
 <h2>HTML Support</h2>
 
 <p>Markdown support comes with additional HTML support so your content can be easily parsed as well, even if not in Markdown format.</p>
@@ -57,10 +66,6 @@ const editor = new Editor({
   element: document.querySelector('#editor'),
 })
 \`\`\`
-
-### Images
-
-![Random Image](https://unsplash.it/400/600 "Tiptap Editor")
 
 ### Mentions
 

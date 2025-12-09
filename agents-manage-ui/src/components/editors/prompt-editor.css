@@ -10,25 +10,6 @@
   }
 }
 
-/* Basic table styles for the editor */
-.tiptap table {
-  width: 100%;
-  border-collapse: collapse;
-  margin: 0.5rem 0;
-}
-
-.tiptap table td,
-.tiptap table th {
-  border: 1px solid #d1d5db;
-  padding: 0.5rem;
-  text-align: left;
-}
-
-.tiptap table th {
-  background: #f9fafb;
-  font-weight: 600;
-}
-
 /* Mention styling */
 .tiptap .mention {
   background: #e0e7ff;
