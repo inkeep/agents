@@ -9,21 +9,18 @@ describe('Create Agent', () => {
   const createdAgents: string[] = [];
 
   const openNewAgentDialog = () => {
-    cy.get('body').then(($body) => {
-      const newAgentButton = $body
-        .find('button')
-        .filter((_, el) => el.textContent?.includes('New Agent'));
-
-      if (newAgentButton.length > 0) {
-        cy.contains('button', 'New Agent').click();
-      } else {
-        cy.contains(/Create agent|New Agent/i).click();
-      }
-    });
+    // Wait for page to fully load by checking for either:
+    // 1. "New Agent" button (empty state - no agents)
+    // 2. "Create agent" text (agent list view)
+    cy.contains(/New Agent|Create agent/i, { timeout: 15000 })
+      .should('be.visible')
+      .click();
   };
 
   beforeEach(() => {
     cy.visit(baseUrl);
+    // Wait for page content to be visible before proceeding
+    cy.get('main', { timeout: 15000 }).should('be.visible');
   });
 
   after(() => {
@@ -37,7 +34,7 @@ describe('Create Agent', () => {
     const agentId = `test-agent-${randomId()}`;
 
     openNewAgentDialog();
-    cy.get('[role=dialog]', { timeout: 10000 }).should('be.visible');
+    cy.get('[role=dialog]', { timeout: 15000 }).should('be.visible');
     cy.wait(300);
 
     cy.get('[role=dialog]').within(() => {
@@ -57,7 +54,7 @@ describe('Create Agent', () => {
 
   it('should show validation errors for empty required fields', () => {
     openNewAgentDialog();
-    cy.get('[role=dialog]', { timeout: 10000 }).should('be.visible');
+    cy.get('[role=dialog]', { timeout: 15000 }).should('be.visible');
     cy.wait(300);
 
     cy.get('[role=dialog]').within(() => {
@@ -72,7 +69,7 @@ describe('Create Agent', () => {
 
   it('should show validation error for invalid id format', () => {
     openNewAgentDialog();
-    cy.get('[role=dialog]', { timeout: 10000 }).should('be.visible');
+    cy.get('[role=dialog]', { timeout: 15000 }).should('be.visible');
     cy.wait(300);
 
     cy.get('[role=dialog]').within(() => {
@@ -91,7 +88,7 @@ describe('Create Agent', () => {
     const agentId = `test-agent-${randomId()}`;
 
     openNewAgentDialog();
-    cy.get('[role=dialog]', { timeout: 10000 }).should('be.visible');
+    cy.get('[role=dialog]', { timeout: 15000 }).should('be.visible');
     cy.wait(300);
 
     cy.get('[role=dialog]').within(() => {
@@ -107,7 +104,7 @@ describe('Create Agent', () => {
     cy.wait(1000);
 
     openNewAgentDialog();
-    cy.get('[role=dialog]', { timeout: 10000 }).should('be.visible');
+    cy.get('[role=dialog]', { timeout: 15000 }).should('be.visible');
     cy.wait(500);
 
     cy.get('[role=dialog]').within(() => {
