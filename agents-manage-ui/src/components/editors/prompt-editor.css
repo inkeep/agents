@@ -1,3 +1,14 @@
+[data-type="taskList"] li {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.25rem;
+}
+
+[data-type="taskList"] > li > div > p:first-child {
+  margin: 0;
+  line-height: 1.5;
+}
+
 .markdown-parser-demo {
   display: flex;
   flex-direction: column;

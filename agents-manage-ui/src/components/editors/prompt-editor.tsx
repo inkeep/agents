@@ -422,6 +422,11 @@ export const PromptEditor: FC = () => {
 
   const editor = useEditor({
     immediatelyRender: false,
+    editorProps: {
+      attributes: {
+        class: 'prose prose-sm dark:prose-invert mx-auto focus:outline-none',
+      },
+    },
     extensions: [
       Markdown,
       StarterKit,
