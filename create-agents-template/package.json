@@ -12,7 +12,6 @@
     "dev:mcp": "turbo dev --filter mcp-quickstart",
     "db:migrate": "drizzle-kit migrate",
     "upgrade-agents": "node scripts/upgrade.ts --experimental-strip-types",
-    "postinstall": "node scripts/postinstall.ts --experimental-strip-types",
     "setup-dev": "node scripts/setup.js",
     "setup-dev:cloud": "node scripts/setup.js --skip-docker",
     "generate-jwt-keys": "bash scripts/generate-jwt-keys.sh"
