@@ -357,6 +357,8 @@ export const PromptEditor: FC<PromptEditorProps> = ({
 }) => {
   const { toggleMarkdownEditor } = useAgentActions();
   const contentType = useAgentStore((state) => (state.isMarkdownEditor ? undefined : 'markdown'));
+  const formattedContent = useMemo(() => buildPromptContent(mdContent), []);
+
   const editor = useEditor({
     immediatelyRender: false,
     editorProps: {
@@ -418,13 +420,15 @@ export const PromptEditor: FC<PromptEditorProps> = ({
         ],
       }),
     ],
-    content: mdContent,
+    content: contentType ? mdContent : formattedContent,
     contentType,
   });
-  console.log({ mdContent });
 
   const toggle = useCallback(() => {
-    editor?.commands.setContent(mdContent, contentType ? undefined : { contentType: 'markdown' });
+    editor?.commands.setContent(
+      contentType ? formattedContent : mdContent,
+      contentType ? undefined : { contentType: 'markdown' }
+    );
     toggleMarkdownEditor();
   }, [editor, contentType, toggleMarkdownEditor]);
 
