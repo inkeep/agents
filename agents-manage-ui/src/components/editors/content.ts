@@ -122,26 +122,6 @@ $$
 40*5/38
 $$
 
-### Custom React Component
-
-:::react {content="This is a custom React node view with fenced syntax!"}
-
-Isn't this great?
-
-:::
-
-:::react {content="Here is another custom React node view with more content!"}
-
-Another one with even more inline content to **edit**!
-
-:::react {content="Nested node"}
-
-Nested content is also supported!
-
-:::
-
-:::
-
 ### Try editing the markdown on the left:
 
 1. Edit the markdown text
