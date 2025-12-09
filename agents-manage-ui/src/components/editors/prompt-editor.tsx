@@ -241,6 +241,7 @@ export const PromptEditor: FC<PromptEditorProps> = ({
     () => Placeholder.configure({ placeholder: placeholder || '' }),
     [placeholder]
   );
+  const invalid = props['aria-invalid'] === 'true' || props['aria-invalid'] === true;
 
   const editor = useEditor({
     extensions: [
@@ -267,8 +268,19 @@ export const PromptEditor: FC<PromptEditorProps> = ({
     immediatelyRender: false,
     editorProps: {
       attributes: {
+        class: cn(
+          'dark:bg-input/30 text-sm focus:outline-none px-3 py-2',
+          'rounded-md border border-input shadow-xs transition-colors',
+          hasDynamicHeight ? 'min-h-16' : 'min-h-80',
+          disabled || readOnly
+            ? 'bg-muted/50 text-muted-foreground opacity-70'
+            : 'focus-within:border-ring focus-within:ring-2 focus-within:ring-ring/40',
+          invalid &&
+            'border-destructive focus-within:border-destructive focus-within:ring-destructive/30',
+          className
+        ),
         // class:
-        //   'focus:outline-none whitespace-pre-wrap break-words text-sm leading-6 prose prose-sm max-w-none dark:prose-invert',
+        //   'whitespace-pre-wrap break-words leading-6 prose prose-sm max-w-none dark:prose-invert',
       },
     },
     editable: !(readOnly || disabled),
@@ -311,22 +323,9 @@ export const PromptEditor: FC<PromptEditorProps> = ({
     [editor]
   );
 
-  const invalid = props['aria-invalid'] === 'true' || props['aria-invalid'] === true;
-
   return (
     <EditorContent
       editor={editor}
-      className={cn(
-        'rounded-md border border-input shadow-xs transition-colors',
-        disabled || readOnly
-          ? 'bg-muted/50 text-muted-foreground opacity-70'
-          : 'focus-within:border-ring focus-within:ring-2 focus-within:ring-ring/40',
-        invalid &&
-          'border-destructive focus-within:border-destructive focus-within:ring-destructive/30',
-        hasDynamicHeight ? 'min-h-16' : 'min-h-80',
-        'px-3 py-2',
-        className
-      )}
       {...props}
       //{invalidVariables.length > 0 && (
       //  <div className="pt-2 text-xs text-destructive">
