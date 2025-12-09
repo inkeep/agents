@@ -347,8 +347,6 @@ import './prompt-editor.css';
 import { mdContent } from './content';
 
 export const PromptEditor: FC = () => {
-  const [markdownInput, setMarkdownInput] = useState(mdContent);
-  const [error, setError] = useState<string | null>(null);
   const [isMd, setIsMd] = useState(true);
 
   const editor = useEditor({
@@ -409,7 +407,7 @@ export const PromptEditor: FC = () => {
         ],
       }),
     ],
-    content: markdownInput,
+    content: mdContent,
     contentType: 'markdown',
   });
 
@@ -419,16 +417,11 @@ export const PromptEditor: FC = () => {
         type="button"
         onClick={() => {
           setIsMd((prev) => !prev);
-          editor?.commands.setContent(
-            markdownInput,
-            isMd ? undefined : { contentType: 'markdown' }
-          );
+          editor?.commands.setContent(mdContent, isMd ? undefined : { contentType: 'markdown' });
         }}
       >
         Switch to {isMd ? 'Markdown' : 'Text'}
       </button>
-
-      {error && <div className="error">{error}</div>}
 
       <div className="editor-container">
         {editor ? <EditorContent editor={editor} /> : <div>Loading editor…</div>}
