@@ -100,7 +100,7 @@ function HomeContent() {
   ]);
 
   return (
-    <div className="flex items-center justify-center h-full">
+    <div className="flex items-center justify-center h-full min-h-screen">
       <Loader2 className="size-4 animate-spin text-muted-foreground" />
     </div>
   );
@@ -110,7 +110,7 @@ export default function Home() {
   return (
     <Suspense
       fallback={
-        <div className="flex items-center justify-center h-full">
+        <div className="flex items-center justify-center h-full min-h-screen">
           <Loader2 className="size-4 animate-spin text-muted-foreground" />
         </div>
       }
