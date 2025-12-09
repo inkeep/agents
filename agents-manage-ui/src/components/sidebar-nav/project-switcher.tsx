@@ -31,9 +31,11 @@ const ProjectItem: FC<{
           <AvatarFallback className="rounded-lg uppercase">{name.slice(0, 2)}</AvatarFallback>
         </Avatar>
       )}
-      <div className="grid flex-1 text-left text-sm leading-tight">
+      <div className="grid flex-1 gap-0.5 text-left text-sm leading-tight">
         <span className="truncate font-medium">{name}</span>
-        <span className="truncate text-xs">{description}</span>
+        <span className="truncate text-xs text-muted-foreground group-hover/project-switcher:text-sidebar-accent-foreground group-data-[state=open]/project-switcher:text-sidebar-accent-foreground">
+          {description}
+        </span>
       </div>
       {Icon && <Icon className="ml-auto size-4" />}
     </>
@@ -82,7 +84,7 @@ export const ProjectSwitcher: FC = () => {
       <DropdownMenuTrigger asChild>
         <SidebarMenuButton
           size="lg"
-          className="data-[state=open]:bg-sidebar-accent data-[state=open]:text-sidebar-accent-foreground"
+          className="group/project-switcher data-[state=open]:bg-sidebar-accent data-[state=open]:text-sidebar-accent-foreground"
         >
           <ProjectItem
             name={projectName}

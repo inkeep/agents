@@ -16,7 +16,13 @@ export const EmptyState = ({ onAddInitialNode }: EmptyStateProps) => {
         <Separator className="flex-1" />
       </div>
       <div className="flex justify-center">
-        <Button type="button" variant="outline-primary" size="sm" onClick={onAddInitialNode}>
+        <Button
+          type="button"
+          variant="outline-primary"
+          className="backdrop-blur-3xl"
+          size="sm"
+          onClick={onAddInitialNode}
+        >
           Start from scratch
         </Button>
       </div>
