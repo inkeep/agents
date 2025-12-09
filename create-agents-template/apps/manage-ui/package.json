@@ -4,12 +4,13 @@
   "description": "Manage UI for agents",
   "type": "module",
   "scripts": {
-    "dev": "next dev",
-    "build": "next build",
-    "start": "next start"
+    "build": "inkeep dev --build --output-dir dist",
+    "start": "cd dist && pnpm start"
   },
-  "devDependencies": {
-    "next": "^16.0.7"
+  "dependencies": {
+    "next": "^16.0.8",
+    "shiki": "^3.19.0",
+    "@inkeep/agents-manage-ui": "^0.37.2"
   },
   "engines": {
     "node": ">=22.x"

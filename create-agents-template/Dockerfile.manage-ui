@@ -15,14 +15,12 @@ COPY apps/manage-ui/ ./apps/manage-ui/
 
 RUN pnpm install --frozen-lockfile --offline
 
-RUN pnpm inkeep dev --export --output-dir ./apps/manage-ui
-
 WORKDIR /inkeep-agents/apps/manage-ui
 
 RUN pnpm install --no-frozen-lockfile --ignore-scripts
 
-RUN pnpm next build
+RUN pnpm build
 
 EXPOSE 3000
 
-CMD ["pnpm", "next", "start"]
+CMD ["pnpm", "start"]
