@@ -80,7 +80,7 @@ Try typing \`@\` or \`#\` in the editor to see suggestions!
 
 ### Try editing the markdown on the left:
 
-1. Edit the markdown text
+1. Edit the Markdown text
 2. Click "Parse Markdown"
 3. See it render in the editor!
   1. Be very happy

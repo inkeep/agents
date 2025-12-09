@@ -362,7 +362,8 @@ export const PromptEditor: FC<PromptEditorProps> = ({
     editorProps: {
       attributes: {
         class: cn(
-          'prose prose-sm dark:prose-invert focus:outline-none overflow-scroll min-w-full',
+          contentType && 'prose prose-sm dark:prose-invert',
+          'focus:outline-none overflow-scroll min-w-full',
           'dark:bg-input/30 text-sm focus:outline-none px-3 py-2',
           'rounded-md border border-input shadow-xs transition-colors',
           hasDynamicHeight ? 'min-h-16' : 'min-h-80',
@@ -420,6 +421,7 @@ export const PromptEditor: FC<PromptEditorProps> = ({
     content: mdContent,
     contentType,
   });
+  console.log({ mdContent });
 
   const toggle = useCallback(() => {
     editor?.commands.setContent(mdContent, contentType ? undefined : { contentType: 'markdown' });
