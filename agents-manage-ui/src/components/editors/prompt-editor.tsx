@@ -12,8 +12,6 @@ import Suggestion, {
 } from '@tiptap/suggestion';
 import type { ComponentPropsWithoutRef, FC, RefObject } from 'react';
 import { useEffect, useImperativeHandle, useMemo, useRef, useState } from 'react';
-import type { Instance as TippyInstance } from 'tippy.js';
-import tippy from 'tippy.js';
 import { useMonacoStore } from '@/features/agent/state/use-monaco-store';
 import { cn } from '@/lib/utils';
 import { buildPromptContent, extractInvalidVariables } from './prompt-editor-utils';
@@ -151,10 +149,10 @@ export const PromptEditor: FC<PromptEditorProps> = ({
   const suggestionsRef = useRef<string[]>([]);
   const [textValue, setTextValue] = useState(value);
   const variableSuggestions = useMonacoStore((state) => state.variableSuggestions);
-  const invalidVariables = useMemo(
-    () => extractInvalidVariables(textValue, suggestionsRef.current),
-    [textValue, variableSuggestions]
-  );
+  // const invalidVariables = useMemo(
+  //   () => extractInvalidVariables(textValue, suggestionsRef.current),
+  //   [textValue, variableSuggestions]
+  // );
 
   useEffect(() => {
     suggestionsRef.current = [...new Set(variableSuggestions)];
@@ -184,8 +182,24 @@ export const PromptEditor: FC<PromptEditorProps> = ({
             editor.chain().focus().insertContentAt(range, `{{${props.label}}}`).run();
           },
           render() {
-            let component: ReactRenderer<VariableListRef>;
-            let popup: TippyInstance[];
+            let component: ReactRenderer<VariableListRef> | null = null;
+            let popupElement: HTMLElement | null = null;
+
+            const updatePopupPosition = (props: SuggestionProps<VariableSuggestionItem>) => {
+              const clientRect = props.clientRect?.();
+              if (!popupElement || !clientRect) return;
+              popupElement.style.left = `${clientRect.left + window.scrollX}px`;
+              popupElement.style.top = `${clientRect.bottom + window.scrollY}px`;
+            };
+
+            const destroyPopup = () => {
+              if (popupElement?.parentNode) {
+                popupElement.parentNode.removeChild(popupElement);
+              }
+              popupElement = null;
+              component?.destroy();
+              component = null;
+            };
 
             return {
               onStart(startProps) {
@@ -194,38 +208,27 @@ export const PromptEditor: FC<PromptEditorProps> = ({
                   editor: startProps.editor,
                 });
 
-                if (!startProps.clientRect) return;
-
-                popup = tippy('body', {
-                  getReferenceClientRect: startProps.clientRect,
-                  appendTo: () => document.body,
-                  content: component.element,
-                  showOnCreate: true,
-                  interactive: true,
-                  trigger: 'manual',
-                  placement: 'bottom-start',
-                });
+                popupElement = document.createElement('div');
+                popupElement.style.position = 'absolute';
+                popupElement.style.zIndex = '9999';
+                popupElement.appendChild(component.element);
+                document.body.appendChild(popupElement);
+                updatePopupPosition(startProps);
               },
               onUpdate(updateProps) {
-                component.updateProps(updateProps);
-
-                if (!updateProps.clientRect || !popup?.[0]) return;
-
-                popup[0].setProps({
-                  getReferenceClientRect: updateProps.clientRect,
-                });
+                component?.updateProps(updateProps);
+                updatePopupPosition(updateProps);
               },
               onKeyDown(keyDownProps) {
                 if (keyDownProps.event.key === 'Escape') {
-                  popup?.[0]?.hide();
+                  destroyPopup();
                   return true;
                 }
 
-                return component.ref?.onKeyDown(keyDownProps) ?? false;
+                return component?.ref?.onKeyDown(keyDownProps) ?? false;
               },
               onExit() {
-                popup?.[0]?.destroy();
-                component.destroy();
+                destroyPopup();
               },
             };
           },
@@ -242,27 +245,30 @@ export const PromptEditor: FC<PromptEditorProps> = ({
   const editor = useEditor({
     extensions: [
       StarterKit.configure({
-        heading: false,
-        blockquote: false,
-        codeBlock: false,
-        code: false,
-        bold: false,
-        italic: false,
-        strike: false,
-        bulletList: false,
-        orderedList: false,
-        listItem: false,
-        dropcursor: false,
-        gapcursor: false,
-        horizontalRule: false,
+        heading: {
+          levels: [1, 2, 3, 4, 5, 6],
+        },
+        // blockquote: false,
+        // codeBlock: false,
+        // code: false,
+        // bold: false,
+        // italic: false,
+        // strike: false,
+        // bulletList: false,
+        // orderedList: false,
+        // listItem: false,
+        // dropcursor: false,
+        // gapcursor: false,
+        // horizontalRule: false,
       }),
       placeholderExtension,
       suggestionExtension,
     ],
+    immediatelyRender: false,
     editorProps: {
       attributes: {
-        class:
-          'focus:outline-none whitespace-pre-wrap break-words text-sm leading-6 prose prose-sm max-w-none dark:prose-invert',
+        // class:
+        //   'focus:outline-none whitespace-pre-wrap break-words text-sm leading-6 prose prose-sm max-w-none dark:prose-invert',
       },
     },
     editable: !(readOnly || disabled),
@@ -308,7 +314,8 @@ export const PromptEditor: FC<PromptEditorProps> = ({
   const invalid = props['aria-invalid'] === 'true' || props['aria-invalid'] === true;
 
   return (
-    <div
+    <EditorContent
+      editor={editor}
       className={cn(
         'rounded-md border border-input shadow-xs transition-colors',
         disabled || readOnly
@@ -316,26 +323,16 @@ export const PromptEditor: FC<PromptEditorProps> = ({
           : 'focus-within:border-ring focus-within:ring-2 focus-within:ring-ring/40',
         invalid &&
           'border-destructive focus-within:border-destructive focus-within:ring-destructive/30',
-        hasDynamicHeight ? 'min-h-[4rem]' : 'min-h-[320px]',
+        hasDynamicHeight ? 'min-h-16' : 'min-h-80',
+        'px-3 py-2',
         className
       )}
       {...props}
-    >
-      <div className={cn('px-3 py-2', !hasDynamicHeight && 'h-full flex flex-col')}>
-        <EditorContent
-          editor={editor}
-          className={cn(
-            'min-h-[4rem]',
-            !hasDynamicHeight && 'flex-1',
-            disabled && 'pointer-events-none select-none'
-          )}
-        />
-        {invalidVariables.length > 0 && (
-          <div className="pt-2 text-xs text-destructive">
-            Unknown variables: {invalidVariables.join(', ')}
-          </div>
-        )}
-      </div>
-    </div>
+      //{invalidVariables.length > 0 && (
+      //  <div className="pt-2 text-xs text-destructive">
+      //    Unknown variables: {invalidVariables.join(', ')}
+      //  </div>
+      //)}
+    />
   );
 };
