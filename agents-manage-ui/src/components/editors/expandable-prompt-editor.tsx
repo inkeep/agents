@@ -1,10 +1,9 @@
 import { Braces } from 'lucide-react';
 import type { ComponentProps } from 'react';
-import { useCallback, useState } from 'react';
-import { PromptEditor } from '@/components/editors/prompt-editor';
+import { useCallback, useRef, useState } from 'react';
+import { PromptEditor, type PromptEditorHandle } from '@/components/editors/prompt-editor';
 import { ExpandableField } from '@/components/form/expandable-field';
 import { Button } from '@/components/ui/button';
-import { useMonacoStore } from '@/features/agent/state/use-monaco-store';
 import { cn } from '@/lib/utils';
 
 type PromptEditorProps = ComponentProps<typeof PromptEditor> & {
@@ -24,29 +23,12 @@ export function ExpandablePromptEditor({
   error?: string;
 } & PromptEditorProps) {
   const [open, onOpenChange] = useState(false);
-  const monaco = useMonacoStore((state) => state.monaco);
+  const editorRef = useRef<PromptEditorHandle>(null);
   const uri = `${open ? 'expanded-' : ''}${name}.template` as const;
 
   const handleAddVariable = useCallback(() => {
-    if (!monaco) {
-      return;
-    }
-    const model = monaco.editor.getModel(monaco.Uri.parse(uri));
-    const [editor] = monaco.editor.getEditors().filter((editor) => editor.getModel() === model);
-    if (!editor) {
-      return;
-    }
-
-    const selection = editor.getSelection();
-    const pos = selection ? selection.getStartPosition() : editor.getPosition();
-    if (!pos) return;
-
-    const range = new monaco.Range(pos.lineNumber, pos.column, pos.lineNumber, pos.column);
-    editor.executeEdits('insert-template-variable', [{ range, text: '{' }]);
-    editor.setPosition({ lineNumber: pos.lineNumber, column: pos.column + 1 });
-    editor.focus();
-    editor.trigger('insert-template-variable', 'editor.action.triggerSuggest', {});
-  }, [monaco, uri]);
+    editorRef.current?.insertVariableTrigger();
+  }, []);
 
   const id = `${name}-label`;
 
@@ -59,6 +41,7 @@ export function ExpandablePromptEditor({
       label={label}
       isRequired={isRequired}
       hasError={!!error}
+      onLabelClick={() => editorRef.current?.focus()}
       actions={
         <Button
           size="sm"
@@ -73,7 +56,7 @@ export function ExpandablePromptEditor({
       }
     >
       <PromptEditor
-        uri={uri}
+        ref={editorRef}
         autoFocus={open}
         aria-invalid={error ? 'true' : undefined}
         className={cn(!open && 'max-h-96', 'min-h-16', className)}

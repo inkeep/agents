@@ -1,95 +1,357 @@
 'use client';
 
-import type * as Monaco from 'monaco-editor';
-import { type ComponentProps, type FC, useCallback, useEffect, useId, useState } from 'react';
-import { monacoStore, useMonacoStore } from '@/features/agent/state/use-monaco-store';
-import { cleanupDisposables } from '@/lib/monaco-editor/monaco-utils';
-import { MonacoEditor } from './monaco-editor';
+import type { ComponentPropsWithoutRef } from 'react';
+import {
+  forwardRef,
+  useEffect,
+  useImperativeHandle,
+  useMemo,
+  useRef,
+  useState,
+} from 'react';
+import type { Editor } from '@tiptap/core';
+import { Extension } from '@tiptap/core';
+import { EditorContent, ReactRenderer, useEditor } from '@tiptap/react';
+import Suggestion, {
+  type SuggestionKeyDownProps,
+  type SuggestionOptions,
+  type SuggestionProps,
+} from '@tiptap/suggestion';
+import Placeholder from '@tiptap/extension-placeholder';
+import StarterKit from '@tiptap/starter-kit';
+import type { Instance as TippyInstance } from 'tippy.js';
+import tippy from 'tippy.js';
+import { useMonacoStore } from '@/features/agent/state/use-monaco-store';
+import { cn } from '@/lib/utils';
+import { buildPromptContent, extractInvalidVariables } from './prompt-editor-utils';
 
-interface PromptEditorProps extends Omit<ComponentProps<typeof MonacoEditor>, 'uri'> {
-  uri?: `${string}.template`;
+type VariableSuggestionItem = {
+  label: string;
+  detail: string;
+};
+
+interface VariableListRef {
+  onKeyDown: (props: SuggestionKeyDownProps) => boolean;
 }
 
-export const PromptEditor: FC<PromptEditorProps> = ({ uri, editorOptions, onMount, ...props }) => {
-  const id = useId();
-  uri ??= `${id}.template`;
+type VariableListProps = SuggestionProps<VariableSuggestionItem>;
 
-  const [editor, setEditor] = useState<Monaco.editor.IStandaloneCodeEditor>();
-  const monaco = useMonacoStore((state) => state.monaco);
+const VariableList = forwardRef<VariableListRef, VariableListProps>((props, ref) => {
+  const [selectedIndex, setSelectedIndex] = useState(0);
+
+  const selectItem = (index: number) => {
+    const item = props.items[index];
+    if (!item) return;
+    props.command(item);
+  };
+
   useEffect(() => {
-    const model = editor?.getModel();
-    if (!monaco || !editor || !model) {
-      return;
-    }
+    setSelectedIndex(0);
+  }, [props.items]);
 
-    // Function to validate template variables and set markers
-    const validateTemplateVariables = () => {
-      const validVariables = new Set(monacoStore.getState().variableSuggestions);
-      const regex = /\{\{([^}]+)}}/g;
-      const markers: Monaco.editor.IMarkerData[] = [];
+  useImperativeHandle(ref, () => ({
+    onKeyDown({ event }) {
+      if (props.items.length === 0) return false;
 
-      for (let lineNumber = 1; lineNumber <= model.getLineCount(); lineNumber++) {
-        const line = model.getLineContent(lineNumber);
-        let match: RegExpExecArray | null;
-
-        while ((match = regex.exec(line)) !== null) {
-          const variableName = match[1];
-
-          // Check if variable is valid (in suggestions) or reserved env
-          const isValid =
-            validVariables.has(variableName) ||
-            variableName.startsWith('$env.') ||
-            // Exclude arrays from linting, as they are indicated with [*] in the suggestions
-            variableName.includes('[') ||
-            // JMESPath expressions
-            variableName.startsWith('length(');
-
-          if (!isValid) {
-            markers.push({
-              startLineNumber: lineNumber,
-              startColumn: match.index + 3,
-              endLineNumber: lineNumber,
-              endColumn: match.index + match[0].length - 1,
-              message: `Unknown variable: ${variableName}`,
-              severity: monaco.MarkerSeverity.Error,
-            });
-          }
-        }
+      if (event.key === 'ArrowUp') {
+        event.preventDefault();
+        const total = props.items.length;
+        setSelectedIndex((index) => (index + total - 1) % total);
+        return true;
       }
-
-      monaco.editor.setModelMarkers(model, 'template-variables', markers);
-    };
-
-    const disposables: Monaco.IDisposable[] = [];
-
-    // Add model change listener to trigger validation for this specific editor
-    disposables.push(model.onDidChangeContent(validateTemplateVariables));
-    // Initial validation
-    validateTemplateVariables();
-
-    return cleanupDisposables(disposables);
-  }, [editor, monaco]);
-
-  const handleOnMount: NonNullable<ComponentProps<typeof MonacoEditor>['onMount']> = useCallback(
-    (editorInstance) => {
-      setEditor(editorInstance);
-      onMount?.(editorInstance);
+      if (event.key === 'ArrowDown') {
+        event.preventDefault();
+        const total = props.items.length;
+        setSelectedIndex((index) => (index + 1) % total);
+        return true;
+      }
+      if (event.key === 'Enter' || event.key === 'Tab') {
+        event.preventDefault();
+        selectItem(selectedIndex);
+        return true;
+      }
+      return false;
     },
-    [onMount]
-  );
+  }));
 
   return (
-    <MonacoEditor
-      uri={uri}
-      onMount={handleOnMount}
-      editorOptions={{
-        autoClosingBrackets: 'never',
-        renderLineHighlight: 'none', // disable active line highlight
-        ariaLabel: 'Prompt input editor',
-        quickSuggestions: false,
-        ...editorOptions,
-      }}
-      {...props}
-    />
+    <div className="min-w-56 rounded-md border border-input bg-popover text-popover-foreground shadow-lg">
+      {props.items.length === 0 ? (
+        <p className="px-3 py-2 text-sm text-muted-foreground">No suggestions</p>
+      ) : (
+        <ul className="py-1">
+          {props.items.map((item, index) => (
+            <li key={item.label}>
+              <button
+                type="button"
+                className={cn(
+                  'flex w-full items-center justify-between px-3 py-2 text-left text-sm',
+                  index === selectedIndex ? 'bg-muted' : 'hover:bg-muted'
+                )}
+                onMouseDown={(event) => {
+                  event.preventDefault();
+                  selectItem(index);
+                }}
+              >
+                <span className="truncate">{item.label}</span>
+                <span className="ml-3 text-xs text-muted-foreground">{item.detail}</span>
+              </button>
+            </li>
+          ))}
+        </ul>
+      )}
+    </div>
   );
-};
+});
+
+VariableList.displayName = 'VariableList';
+
+const VariableSuggestion = Extension.create<{
+  suggestion: Partial<SuggestionOptions<VariableSuggestionItem>>;
+}>({
+  name: 'variableSuggestion',
+  addOptions() {
+    return {
+      suggestion: {},
+    };
+  },
+  addProseMirrorPlugins() {
+    return [
+      Suggestion<VariableSuggestionItem>({
+        editor: this.editor,
+        ...this.options.suggestion,
+      }),
+    ];
+  },
+});
+
+const getEditorText = (editor: Editor) =>
+  editor.state.doc.textBetween(0, editor.state.doc.content.size, '\n');
+
+interface PromptEditorProps extends Omit<ComponentPropsWithoutRef<'div'>, 'onChange'> {
+  value?: string;
+  onChange?: (value: string) => void;
+  placeholder?: string;
+  autoFocus?: boolean;
+  readOnly?: boolean;
+  disabled?: boolean;
+  hasDynamicHeight?: boolean;
+}
+
+export interface PromptEditorHandle {
+  focus: () => void;
+  insertVariableTrigger: () => void;
+}
+
+export const PromptEditor = forwardRef<PromptEditorHandle, PromptEditorProps>(
+  (
+    {
+      value = '',
+      onChange,
+      placeholder,
+      autoFocus,
+      readOnly,
+      disabled,
+      className,
+      hasDynamicHeight = true,
+      ...props
+    },
+    ref
+  ) => {
+    const suggestionsRef = useRef<string[]>([]);
+    const [textValue, setTextValue] = useState(value);
+    const variableSuggestions = useMonacoStore((state) => state.variableSuggestions);
+    const invalidVariables = useMemo(
+      () => extractInvalidVariables(textValue, suggestionsRef.current),
+      [textValue, variableSuggestions]
+    );
+
+    useEffect(() => {
+      suggestionsRef.current = [...new Set(variableSuggestions)];
+    }, [variableSuggestions]);
+
+    const suggestionExtension = useMemo(
+      () =>
+        VariableSuggestion.configure({
+          suggestion: {
+            char: '{',
+            allowSpaces: true,
+            items({ query }) {
+              const normalized = query.toLowerCase();
+              const entries = new Map<string, VariableSuggestionItem>();
+
+              for (const label of suggestionsRef.current) {
+                if (label.toLowerCase().includes(normalized)) {
+                  entries.set(label, { label, detail: 'Context variable' });
+                }
+              }
+
+              entries.set('$env.', { label: '$env.', detail: 'Environment variable' });
+
+              return [...entries.values()];
+            },
+            command({ editor, range, props }) {
+              editor
+                .chain()
+                .focus()
+                .insertContentAt(range, `{{${props.label}}}`)
+                .run();
+            },
+            render() {
+              let component: ReactRenderer<VariableListRef>;
+              let popup: TippyInstance[];
+
+              return {
+                onStart(startProps) {
+                  component = new ReactRenderer(VariableList, {
+                    props: startProps,
+                    editor: startProps.editor,
+                  });
+
+                  if (!startProps.clientRect) return;
+
+                  popup = tippy('body', {
+                    getReferenceClientRect: startProps.clientRect,
+                    appendTo: () => document.body,
+                    content: component.element,
+                    showOnCreate: true,
+                    interactive: true,
+                    trigger: 'manual',
+                    placement: 'bottom-start',
+                  });
+                },
+                onUpdate(updateProps) {
+                  component.updateProps(updateProps);
+
+                  if (!updateProps.clientRect || !popup?.[0]) return;
+
+                  popup[0].setProps({
+                    getReferenceClientRect: updateProps.clientRect,
+                  });
+                },
+                onKeyDown(keyDownProps) {
+                  if (keyDownProps.event.key === 'Escape') {
+                    popup?.[0]?.hide();
+                    return true;
+                  }
+
+                  return component.ref?.onKeyDown(keyDownProps) ?? false;
+                },
+                onExit() {
+                  popup?.[0]?.destroy();
+                  component.destroy();
+                },
+              };
+            },
+          },
+        }),
+      []
+    );
+
+    const placeholderExtension = useMemo(
+      () => Placeholder.configure({ placeholder: placeholder || '' }),
+      [placeholder]
+    );
+
+    const editor = useEditor({
+      extensions: [
+        StarterKit.configure({
+          heading: false,
+          blockquote: false,
+          codeBlock: false,
+          code: false,
+          bold: false,
+          italic: false,
+          strike: false,
+          bulletList: false,
+          orderedList: false,
+          listItem: false,
+          dropcursor: false,
+          gapcursor: false,
+          horizontalRule: false,
+        }),
+        placeholderExtension,
+        suggestionExtension,
+      ],
+      editorProps: {
+        attributes: {
+          class:
+            'focus:outline-none whitespace-pre-wrap break-words text-sm leading-6 prose prose-sm max-w-none dark:prose-invert',
+        },
+      },
+      editable: !(readOnly || disabled),
+      content: buildPromptContent(value),
+      onUpdate({ editor })  {
+        const nextValue = getEditorText(editor);
+        setTextValue(nextValue);
+        onChange?.(nextValue);
+      },
+    });
+
+    useEffect(() => {
+      if (!editor) return;
+      const next = value ?? '';
+      if (next === textValue) return;
+      editor.commands.setContent(buildPromptContent(next), false);
+      setTextValue(next);
+    }, [editor, textValue, value]);
+
+    useEffect(() => {
+      if (!editor) return;
+      editor.setEditable(!(readOnly || disabled));
+    }, [disabled, editor, readOnly]);
+
+    useEffect(() => {
+      if (!editor || !autoFocus) return;
+      editor.chain().focus('end').run();
+    }, [autoFocus, editor]);
+
+    useImperativeHandle(
+      ref,
+      () => ({
+        focus()  {
+          editor?.chain().focus('end').run();
+        },
+        insertVariableTrigger()  {
+          editor?.chain().focus().insertContent('{').run();
+        },
+      }),
+      [editor]
+    );
+
+    const invalid = props['aria-invalid'] === 'true' || props['aria-invalid'] === true;
+
+    return (
+      <div
+        className={cn(
+          'rounded-md border border-input shadow-xs transition-colors',
+          disabled || readOnly
+            ? 'bg-muted/50 text-muted-foreground opacity-70'
+            : 'focus-within:border-ring focus-within:ring-2 focus-within:ring-ring/40',
+          invalid && 'border-destructive focus-within:border-destructive focus-within:ring-destructive/30',
+          hasDynamicHeight ? 'min-h-[4rem]' : 'min-h-[320px]',
+          className
+        )}
+        {...props}
+      >
+        <div className={cn('px-3 py-2', !hasDynamicHeight && 'h-full flex flex-col')}>
+          <EditorContent
+            editor={editor}
+            className={cn(
+              'min-h-[4rem]',
+              !hasDynamicHeight && 'flex-1',
+              disabled && 'pointer-events-none select-none'
+            )}
+          />
+          {invalidVariables.length > 0 && (
+            <div className="pt-2 text-xs text-destructive">
+              Unknown variables: {invalidVariables.join(', ')}
+            </div>
+          )}
+        </div>
+      </div>
+    );
+  }
+);
+
+PromptEditor.displayName = 'PromptEditor';

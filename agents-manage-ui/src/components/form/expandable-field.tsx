@@ -27,6 +27,7 @@ interface ExpandableFieldProps {
   onOpenChange: DialogProps['onOpenChange'];
   hasError?: boolean;
   id: string;
+  onLabelClick?: () => void;
 }
 
 export function ExpandableField({
@@ -39,17 +40,22 @@ export function ExpandableField({
   open,
   onOpenChange,
   hasError,
+  onLabelClick,
 }: ExpandableFieldProps) {
   const monaco = useMonacoStore((state) => state.monaco);
 
   const handleClick = useCallback(() => {
+    if (onLabelClick) {
+      onLabelClick();
+      return;
+    }
     if (!monaco) {
       return;
     }
     const model = monaco.editor.getModel(monaco.Uri.parse(uri));
     const [editor] = monaco.editor.getEditors().filter((editor) => editor.getModel() === model);
     editor?.focus();
-  }, [monaco, uri]);
+  }, [monaco, onLabelClick, uri]);
 
   const content = (
     <>
