@@ -58,41 +58,6 @@ const editor = new Editor({
 })
 \`\`\`
 
-### Details
-
-:::details
-
-:::detailsSummary
-What features does Tiptap offer?
-:::
-
-:::detailsContent
-
-- Rich Text Editing
-- Collaborative Editing
-- Markdown Support
-- Content AI
-- Custom Extensions
-- More...
-
-:::
-
-:::
-
-:::details
-
-:::detailsSummary
-Where can I learn how to use Tiptap?
-:::
-
-:::detailsContent
-
-You can learn how to use Tiptap by visiting the [official documentation](https://tiptap.dev/docs).
-
-:::
-
-:::
-
 ### Images
 
 ![Random Image](https://unsplash.it/400/600 "Tiptap Editor")

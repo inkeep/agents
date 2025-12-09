@@ -336,7 +336,6 @@ export const PromptEditor2: FC<PromptEditorProps> = ({
   );
 };
 
-import { Details, DetailsContent, DetailsSummary } from '@tiptap/extension-details';
 import { Highlight } from '@tiptap/extension-highlight';
 import { Image } from '@tiptap/extension-image';
 import { TaskItem, TaskList } from '@tiptap/extension-list';
@@ -361,9 +360,6 @@ export const PromptEditor: FC = () => {
     extensions: [
       Markdown,
       StarterKit,
-      Details,
-      DetailsSummary,
-      DetailsContent,
       TaskList,
       TaskItem.configure({
         nested: true,
