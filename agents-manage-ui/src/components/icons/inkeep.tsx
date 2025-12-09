@@ -13,10 +13,5 @@ export const InkeepIcon = forwardRef<SVGSVGElement, IconComponentProps>((props, 
         fill="#69A3FF"
       />
     </g>
-    <defs>
-      {/* <clipPath id="clip0_136_232">
-<rect width="48" height="48" fill="white"/>
-</clipPath> */}
-    </defs>
   </SvgIcon>
 ));
