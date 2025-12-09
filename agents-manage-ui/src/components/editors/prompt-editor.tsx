@@ -337,7 +337,6 @@ export const PromptEditor2: FC<PromptEditorProps> = ({
 };
 
 import { Highlight } from '@tiptap/extension-highlight';
-import { Image } from '@tiptap/extension-image';
 import { TaskItem, TaskList } from '@tiptap/extension-list';
 import { Mention } from '@tiptap/extension-mention';
 import { TableKit } from '@tiptap/extension-table';
@@ -363,7 +362,6 @@ export const PromptEditor: FC = () => {
       TaskItem.configure({
         nested: true,
       }),
-      Image,
       TableKit,
       Highlight,
       Mention.configure({
