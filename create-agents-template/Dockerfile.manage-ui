@@ -15,8 +15,6 @@ COPY apps/manage-ui/ ./apps/manage-ui/
 
 RUN pnpm install --frozen-lockfile --offline
 
-ENV SKIP_APP_INSTALL="1"
-
 RUN pnpm inkeep dev --export --output-dir ./apps/manage-ui
 
 WORKDIR /inkeep-agents/apps/manage-ui

@@ -210,9 +210,6 @@ inkeep dev --port 3001 --host 0.0.0.0
 # Build for production (packages standalone build)
 inkeep dev --build --output-dir ./build
 
-# Export Next.js project source files
-inkeep dev --export --output-dir ./my-dashboard
-
 # Get dashboard path for deployment
 DASHBOARD_PATH=$(inkeep dev --path)
 echo "Dashboard built at: $DASHBOARD_PATH"
