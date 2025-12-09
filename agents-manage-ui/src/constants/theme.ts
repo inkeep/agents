@@ -16,9 +16,6 @@ export const MONACO_THEME_NAME = {
 //   'editor.wordHighlightBackground': color.transparent,
 // };
 
-export const TEMPLATE_LANGUAGE = 'template';
-export const VARIABLE_TOKEN = 'variable';
-
 // export const MONACO_THEME_DATA: Record<'light' | 'dark', editor.IStandaloneThemeData> = {
 //   light: {
 //     base: 'vs',

@@ -1,6 +1,5 @@
 'use client';
 
-import type { IDisposable } from 'monaco-editor';
 import { useTheme } from 'next-themes';
 import { useEffect } from 'react';
 import { AppSidebarProvider } from '@/components/sidebar-nav/app-sidebar-provider';
@@ -39,16 +38,7 @@ export default function Layout({ children }: LayoutProps<'/[tenantId]'>) {
   }, [contextConfig, setVariableSuggestions]);
 
   useEffect(() => {
-    let disposables: IDisposable[] = [];
-    setMonaco().then(($disposables) => {
-      disposables = $disposables;
-    });
-
-    return () => {
-      for (const disposable of disposables) {
-        disposable.dispose();
-      }
-    };
+    setMonaco()
   }, [setMonaco]);
 
   useEffect(() => {
