@@ -4,8 +4,7 @@
     "tools",
     "headers",
     "structured-outputs",
-    "!context-fetchers",
-    "!project-management",
+    "context-fetchers",
     "..."
   ]
 }

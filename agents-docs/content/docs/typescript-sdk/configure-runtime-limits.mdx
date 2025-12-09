@@ -98,43 +98,18 @@ AGENTS_SESSION_TOOL_RESULT_CACHE_TIMEOUT_MS=1800000  # 30min, Default: 5min
 AGENTS_STREAM_MAX_LIFETIME_MS=1800000  # 30min, Default: 10min
 ```
 
+<Note>
+  `AGENTS_EXECUTION_TRANSFER_COUNT_DEFAULT` sets the default number of transfers allowed between sub-agents in a turn when no agent-specific limit is configured. `AGENTS_EXECUTION_TRANSFER_COUNT_MAX` sets the maximum number of transfers that can be configured via the manage-api for any agent.
+
+  The same pattern applies to `AGENTS_SUB_AGENT_TURN_GENERATION_STEPS_DEFAULT` and `AGENTS_SUB_AGENT_TURN_GENERATION_STEPS_MAX`.
+</Note>
+
 ### Why These Settings?
 
 - **Transfer Count**: Coding orchestration often involves many handoffs between specialist agents (planning → implementation → testing → refinement)
 - **Generation Steps**: Each coding operation may require multiple tool calls (read files, analyze, write code, run tests)
 - **Timeouts**: Code generation and analysis can take time, especially for large files or complex refactoring
 - **Cache Duration**: Keeps tool results available throughout long sessions for artifact processing
-
-## Setting Variables by Deployment Type
-
-### Local Development (Docker Compose)
-
-```bash
-# Edit .env file
-vim .env
-
-# Add your overrides
-AGENTS_EXECUTION_TRANSFER_COUNT_DEFAULT=50
-# ... other settings
-
-# Restart services
-docker compose down && docker compose up -d
-```
-
-### Production Deployments
-
-#### AWS EC2, GCP, Hetzner
-Add variables to your `.env` file before running `docker compose up`:
-
-```bash
-cp .env.docker.example .env
-# Edit .env with your overrides
-vim .env
-docker compose up -d
-```
-
-#### Vercel, Cloud Run, etc.
-Set environment variables in your platform's environment configuration UI.
 
 ## All Available Configuration Variables
 
@@ -169,9 +144,3 @@ The runtime configuration is organized into functional categories:
 - **Artifact Processing**: UI component generation with retry mechanisms
 - **Session Management**: Tool result caching and cleanup
 - **Streaming**: Frequency, batching, and lifetime limits for streams
-
-## Related Documentation
-
-- [Agent Settings - StopWhen](/docs/typescript-sdk/agent-settings#configuring-stopwhen) - Configure per-agent limits
-- [Environment Configuration](/docs/community/contributing/environment-configuration) - Development environment setup
-- [Configuration Management](/docs/typescript-sdk/configuration) - Workspace configuration
