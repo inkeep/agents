@@ -2,8 +2,8 @@ import axios from 'axios';
 import axiosRetry from 'axios-retry';
 import { type NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
-import { getLogger } from '@/lib/logger';
 import { getManageApiUrl } from '@/lib/api/api-config';
+import { getLogger } from '@/lib/logger';
 
 // Configure axios retry
 axiosRetry(axios, {
@@ -91,7 +91,7 @@ export async function POST(request: NextRequest) {
     // 5. Forward to secure manage-api
     const manageApiUrl = getManageApiUrl();
     const endpoint = `${manageApiUrl}/tenants/${tenantId}/signoz/query`;
-    
+
     logger.info({ endpoint }, 'Forwarding validated query to manage-api');
 
     const response = await axios.post(endpoint, validatedBody, {
@@ -113,7 +113,7 @@ export async function POST(request: NextRequest) {
     if (axios.isAxiosError(error)) {
       const status = error.response?.status || 500;
       const message = error.response?.data?.message || error.message;
-      
+
       return NextResponse.json(
         {
           error: 'Failed to query SigNoz',

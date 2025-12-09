@@ -163,17 +163,13 @@ class SigNozStatsAPI {
     };
 
     // Call Next.js route which validates and forwards to manage-api
-    const response = await axios.post<T>(
-      `/api/signoz?tenantId=${this.tenantId}`,
-      requestPayload,
-      {
-        timeout: 30000,
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        withCredentials: true,
-      }
-    );
+    const response = await axios.post<T>(`/api/signoz?tenantId=${this.tenantId}`, requestPayload, {
+      timeout: 30000,
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      withCredentials: true,
+    });
     return response.data;
   }
 
@@ -2557,11 +2553,11 @@ let signozStatsClient: SigNozStatsAPI | null = null;
 
 export function getSigNozStatsClient(tenantId?: string): SigNozStatsAPI {
   const client = (signozStatsClient ??= new SigNozStatsAPI());
-  
+
   if (tenantId) {
     client.setTenantId(tenantId);
   }
-  
+
   return client;
 }
 

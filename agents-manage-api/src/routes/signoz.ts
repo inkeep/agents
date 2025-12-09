@@ -1,6 +1,6 @@
-import { Hono } from 'hono';
 import { projectExists } from '@inkeep/agents-core';
 import axios from 'axios';
+import { Hono } from 'hono';
 import dbClient from '../data/db/dbClient';
 import { env } from '../env';
 import { getLogger } from '../logger';

@@ -70,11 +70,11 @@ export function ConversationDetail({ conversationId, onBack }: ConversationDetai
       try {
         setLoading(true);
         setError(null);
-        
+
         const response = await fetch(
           `/api/signoz/conversations/${conversationId}?tenantId=${tenantId}&projectId=${projectId}`
         );
-        
+
         if (!response.ok) throw new Error('Failed to fetch conversation details');
         const data = await response.json();
         setConversation(data);

@@ -93,21 +93,21 @@ export async function fetchAllSpanAttributes_SQL(
   while (true) {
     const payload = JSON.parse(JSON.stringify(basePayload));
     payload.variables.offset = offset;
-    
+
     // Call secure manage-api instead of SigNoz directly
     const manageApiUrl = getManageApiUrl();
     const endpoint = `${manageApiUrl}/tenants/${tenantId}/signoz/query`;
-    
+
     try {
       const headers: Record<string, string> = {
         'Content-Type': 'application/json',
       };
-      
+
       // Forward cookies for authentication
       if (cookieHeader) {
         headers.Cookie = cookieHeader;
       }
-      
+
       const response = await axios.post(endpoint, payload, {
         headers,
         timeout: 30000,

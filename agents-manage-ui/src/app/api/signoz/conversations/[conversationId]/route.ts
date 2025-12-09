@@ -20,9 +20,9 @@ import {
   SPAN_NAMES,
   UNKNOWN_VALUE,
 } from '@/constants/signoz';
+import { getManageApiUrl } from '@/lib/api/api-config';
 import { fetchAllSpanAttributes_SQL } from '@/lib/api/signoz-sql';
 import { getLogger } from '@/lib/logger';
-import { getManageApiUrl } from '@/lib/api/api-config';
 
 // Configure axios retry
 axiosRetry(axios, {
@@ -68,24 +68,24 @@ async function signozQuery(
   try {
     const manageApiUrl = getManageApiUrl();
     const endpoint = `${manageApiUrl}/tenants/${tenantId}/signoz/query`;
-    
+
     const headers: Record<string, string> = {
       'Content-Type': 'application/json',
     };
-    
+
     // Forward cookies for authentication
     if (cookieHeader) {
       headers.Cookie = cookieHeader;
     }
-    
+
     logger.debug({ endpoint }, 'Calling secure manage-api for conversation traces');
-    
+
     const response = await axios.post(endpoint, payload, {
       headers,
       timeout: 30000,
       withCredentials: true,
     });
-    
+
     const json = response.data as SigNozResp;
     const responseData = json?.data?.result
       ? json.data.result.map((r) => ({
@@ -1037,7 +1037,7 @@ export async function GET(
   // Get tenantId and projectId from URL search params
   const url = new URL(req.url);
   const tenantId = url.searchParams.get('tenantId') || 'default';
-  
+
   // Forward cookies for authentication
   const cookieHeader = req.headers.get('cookie');
 
@@ -1047,7 +1047,7 @@ export async function GET(
 
     // Build the query payload
     const payload = buildConversationListPayload(conversationId, start, end);
-    
+
     // Call secure manage-api
     const resp = await signozQuery(payload, tenantId, cookieHeader);
 
@@ -1112,11 +1112,7 @@ export async function GET(
     }> = [];
     try {
       // Call secure manage-api via the SQL helper function
-      allSpanAttributes = await fetchAllSpanAttributes_SQL(
-        conversationId,
-        tenantId,
-        cookieHeader
-      );
+      allSpanAttributes = await fetchAllSpanAttributes_SQL(conversationId, tenantId, cookieHeader);
     } catch (e) {
       const logger = getLogger('span-attributes');
       logger.error({ error: e }, 'allSpanAttributes SQL fetch skipped/failed');
