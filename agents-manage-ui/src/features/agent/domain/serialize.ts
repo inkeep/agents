@@ -652,11 +652,7 @@ export function serializeAgentData(
     (result as any).stopWhen = metadata.stopWhen;
   }
 
-  /**
-  * Explicitly check for empty string (falsy) to ensure prompt updates in the database.
-  * Without this check, empty strings would be skipped, leaving prompt undefined.
-  */
-  if (metadata?.prompt || metadata?.prompt === '') {
+  if (metadata) {
     (result as any).prompt = metadata.prompt;
   }
 
