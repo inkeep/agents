@@ -1,6 +1,5 @@
 import { useEffect, useState } from 'react';
 import { useParams } from 'next/navigation';
-import { getManageApiUrl } from '@/lib/api/api-config';
 
 interface SignozConfigStatus {
   status: string;
@@ -17,8 +16,8 @@ export function useSignozConfig() {
     const checkConfig = async () => {
       try {
         setIsLoading(true);
-        const manageApiUrl = getManageApiUrl();
-        const response = await fetch(`${manageApiUrl}/tenants/${tenantId}/signoz/health`);
+        // Call Next.js route which forwards to manage-api
+        const response = await fetch(`/api/signoz?tenantId=${tenantId}`);
         if (!response.ok) {
           throw new Error('Failed to check Signoz configuration');
         }

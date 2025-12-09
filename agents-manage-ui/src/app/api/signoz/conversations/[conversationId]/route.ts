@@ -6,10 +6,21 @@ import {
   ACTIVITY_STATUS,
   ACTIVITY_TYPES,
   AGENT_IDS,
+  AGGREGATE_OPERATORS,
+  AI_OPERATIONS,
+  DATA_SOURCES,
+  OPERATORS,
+  ORDER_DIRECTIONS,
+  PANEL_TYPES,
+  QUERY_DEFAULTS,
   QUERY_EXPRESSIONS,
+  QUERY_FIELD_CONFIGS,
+  QUERY_TYPES,
   SPAN_KEYS,
+  SPAN_NAMES,
   UNKNOWN_VALUE,
 } from '@/constants/signoz';
+import { fetchAllSpanAttributes_SQL } from '@/lib/api/signoz-sql';
 import { getLogger } from '@/lib/logger';
 import { getManageApiUrl } from '@/lib/api/api-config';
 
@@ -28,6 +39,8 @@ type SigNozResp = {
   data?: { result?: Array<{ queryName?: string; list?: SigNozListItem[] }> };
 };
 
+const START_2020_MS = new Date('2020-01-01T00:00:00Z').getTime();
+
 function getField(span: SigNozListItem, key: string) {
   const d = span?.data ?? span;
   return d?.[key] ?? span?.[key];
@@ -44,34 +57,33 @@ function getNumber(span: SigNozListItem, key: string, fallback = 0): number {
   return Number.isFinite(n) ? n : fallback;
 }
 
-// Updated to call the secure manage-api endpoint instead of SigNoz directly
+// Call secure manage-api instead of SigNoz directly
 async function signozQuery(
-  conversationId: string,
+  payload: any,
   tenantId: string,
-  projectId: string,
-  cookieHeader?: string | null
+  cookieHeader: string | null
 ): Promise<SigNozResp> {
   const logger = getLogger('signoz-query');
 
   try {
     const manageApiUrl = getManageApiUrl();
-    const endpoint = `${manageApiUrl}/tenants/${tenantId}/signoz/projects/${projectId}/conversations/${conversationId}`;
-    
-    logger.debug({ endpoint }, 'Calling secure manage-api for conversation traces');
+    const endpoint = `${manageApiUrl}/tenants/${tenantId}/signoz/query`;
     
     const headers: Record<string, string> = {
       'Content-Type': 'application/json',
     };
     
-    // Forward cookies from the original request for authentication
+    // Forward cookies for authentication
     if (cookieHeader) {
       headers.Cookie = cookieHeader;
     }
     
-    const response = await axios.get(endpoint, {
-      timeout: 30000,
+    logger.debug({ endpoint }, 'Calling secure manage-api for conversation traces');
+    
+    const response = await axios.post(endpoint, payload, {
       headers,
-      withCredentials: true, // Include cookies for auth
+      timeout: 30000,
+      withCredentials: true,
     });
     
     const json = response.data as SigNozResp;
@@ -114,11 +126,904 @@ function parseList(resp: SigNozResp, name: string): SigNozListItem[] {
   return Array.isArray(list) ? list : [];
 }
 
+// ---------- Payload builder (single combined "list" payload)
+
+function buildConversationListPayload(
+  conversationId: string,
+  start = START_2020_MS,
+  end = Date.now()
+) {
+  const baseFilters = [
+    {
+      key: {
+        key: SPAN_KEYS.CONVERSATION_ID,
+        ...QUERY_FIELD_CONFIGS.STRING_TAG,
+      },
+      op: OPERATORS.EQUALS,
+      value: conversationId,
+    },
+  ];
+
+  const listQuery = (queryName: string, items: any[], selectColumns: any[], limit?: number) => ({
+    dataSource: DATA_SOURCES.TRACES,
+    queryName,
+    aggregateOperator: AGGREGATE_OPERATORS.NOOP,
+    aggregateAttribute: {},
+    filters: { op: OPERATORS.AND, items: [...baseFilters, ...items] },
+    selectColumns,
+    expression: queryName,
+    disabled: QUERY_DEFAULTS.DISABLED,
+    having: QUERY_DEFAULTS.HAVING,
+    stepInterval: QUERY_DEFAULTS.STEP_INTERVAL,
+    limit,
+    orderBy: [{ columnName: SPAN_KEYS.TIMESTAMP, order: ORDER_DIRECTIONS.DESC }],
+    groupBy: QUERY_DEFAULTS.EMPTY_GROUP_BY,
+    offset: QUERY_DEFAULTS.OFFSET,
+  });
+
+  return {
+    start,
+    end,
+    step: QUERY_DEFAULTS.STEP,
+    variables: {},
+    compositeQuery: {
+      queryType: QUERY_TYPES.BUILDER,
+      panelType: PANEL_TYPES.LIST,
+      builderQueries: {
+        toolCalls: listQuery(
+          QUERY_EXPRESSIONS.TOOL_CALLS,
+          [
+            {
+              key: {
+                key: SPAN_KEYS.NAME,
+                ...QUERY_FIELD_CONFIGS.STRING_TAG_COLUMN,
+              },
+              op: OPERATORS.EQUALS,
+              value: SPAN_NAMES.AI_TOOL_CALL,
+            },
+          ],
+          [
+            {
+              key: SPAN_KEYS.SPAN_ID,
+              ...QUERY_FIELD_CONFIGS.STRING_TAG_COLUMN,
+            },
+            {
+              key: SPAN_KEYS.TRACE_ID,
+              ...QUERY_FIELD_CONFIGS.STRING_TAG_COLUMN,
+            },
+            {
+              key: SPAN_KEYS.TIMESTAMP,
+              ...QUERY_FIELD_CONFIGS.INT64_TAG_COLUMN,
+            },
+            {
+              key: SPAN_KEYS.HAS_ERROR,
+              ...QUERY_FIELD_CONFIGS.BOOL_TAG_COLUMN,
+            },
+            {
+              key: SPAN_KEYS.DURATION_NANO,
+              ...QUERY_FIELD_CONFIGS.FLOAT64_TAG_COLUMN,
+            },
+            {
+              key: SPAN_KEYS.AI_TOOL_CALL_NAME,
+              ...QUERY_FIELD_CONFIGS.STRING_TAG,
+            },
+            {
+              key: SPAN_KEYS.AI_TOOL_CALL_RESULT,
+              ...QUERY_FIELD_CONFIGS.STRING_TAG,
+            },
+            {
+              key: SPAN_KEYS.AI_TOOL_CALL_ARGS,
+              ...QUERY_FIELD_CONFIGS.STRING_TAG,
+            },
+            { key: SPAN_KEYS.AI_TOOL_TYPE, ...QUERY_FIELD_CONFIGS.STRING_TAG },
+            {
+              key: SPAN_KEYS.AI_TELEMETRY_FUNCTION_ID,
+              ...QUERY_FIELD_CONFIGS.STRING_TAG,
+            },
+            {
+              key: SPAN_KEYS.DELEGATION_FROM_SUB_AGENT_ID,
+              ...QUERY_FIELD_CONFIGS.STRING_TAG,
+            },
+            {
+              key: SPAN_KEYS.DELEGATION_TO_SUB_AGENT_ID,
+              ...QUERY_FIELD_CONFIGS.STRING_TAG,
+            },
+            {
+              key: SPAN_KEYS.TRANSFER_FROM_SUB_AGENT_ID,
+              ...QUERY_FIELD_CONFIGS.STRING_TAG,
+            },
+            {
+              key: SPAN_KEYS.TRANSFER_TO_SUB_AGENT_ID,
+              ...QUERY_FIELD_CONFIGS.STRING_TAG,
+            },
+            { key: SPAN_KEYS.TOOL_PURPOSE, ...QUERY_FIELD_CONFIGS.STRING_TAG },
+            {
+              key: SPAN_KEYS.STATUS_MESSAGE,
+              ...QUERY_FIELD_CONFIGS.STRING_TAG,
+            },
+            {
+              key: SPAN_KEYS.OTEL_STATUS_DESCRIPTION,
+              ...QUERY_FIELD_CONFIGS.STRING_TAG,
+            },
+            { key: SPAN_KEYS.SUB_AGENT_NAME, ...QUERY_FIELD_CONFIGS.STRING_TAG },
+            { key: SPAN_KEYS.SUB_AGENT_ID, ...QUERY_FIELD_CONFIGS.STRING_TAG },
+            { key: SPAN_KEYS.AGENT_ID, ...QUERY_FIELD_CONFIGS.STRING_TAG },
+            { key: SPAN_KEYS.AGENT_NAME, ...QUERY_FIELD_CONFIGS.STRING_TAG },
+          ]
+        ),
+
+        // context resolution spans
+        contextResolution: listQuery(
+          QUERY_EXPRESSIONS.CONTEXT_RESOLUTION,
+          [
+            {
+              key: {
+                key: SPAN_KEYS.NAME,
+                ...QUERY_FIELD_CONFIGS.STRING_TAG_COLUMN,
+              },
+              op: OPERATORS.EQUALS,
+              value: SPAN_NAMES.CONTEXT_RESOLUTION,
+            },
+          ],
+          [
+            {
+              key: SPAN_KEYS.SPAN_ID,
+              ...QUERY_FIELD_CONFIGS.STRING_TAG_COLUMN,
+            },
+            {
+              key: SPAN_KEYS.TRACE_ID,
+              ...QUERY_FIELD_CONFIGS.STRING_TAG_COLUMN,
+            },
+            {
+              key: SPAN_KEYS.TIMESTAMP,
+              ...QUERY_FIELD_CONFIGS.INT64_TAG_COLUMN,
+            },
+            {
+              key: SPAN_KEYS.DURATION_NANO,
+              ...QUERY_FIELD_CONFIGS.FLOAT64_TAG_COLUMN,
+            },
+            {
+              key: SPAN_KEYS.HAS_ERROR,
+              ...QUERY_FIELD_CONFIGS.BOOL_TAG_COLUMN,
+            },
+            { key: SPAN_KEYS.CONTEXT_URL, ...QUERY_FIELD_CONFIGS.STRING_TAG },
+            {
+              key: SPAN_KEYS.STATUS_MESSAGE,
+              ...QUERY_FIELD_CONFIGS.STRING_TAG,
+            },
+            {
+              key: SPAN_KEYS.OTEL_STATUS_DESCRIPTION,
+              ...QUERY_FIELD_CONFIGS.STRING_TAG,
+            },
+            {
+              key: SPAN_KEYS.CONTEXT_CONFIG_ID,
+              ...QUERY_FIELD_CONFIGS.STRING_TAG,
+            },
+            {
+              key: SPAN_KEYS.CONTEXT_AGENT_ID,
+              ...QUERY_FIELD_CONFIGS.STRING_TAG,
+            },
+            {
+              key: SPAN_KEYS.CONTEXT_HEADERS_KEYS,
+              ...QUERY_FIELD_CONFIGS.STRING_TAG,
+            },
+          ]
+        ),
+
+        // context handle spans
+        contextHandle: listQuery(
+          QUERY_EXPRESSIONS.CONTEXT_HANDLE,
+          [
+            {
+              key: {
+                key: SPAN_KEYS.NAME,
+                ...QUERY_FIELD_CONFIGS.STRING_TAG_COLUMN,
+              },
+              op: OPERATORS.EQUALS,
+              value: SPAN_NAMES.CONTEXT_HANDLE,
+            },
+          ],
+          [
+            {
+              key: SPAN_KEYS.SPAN_ID,
+              ...QUERY_FIELD_CONFIGS.STRING_TAG_COLUMN,
+            },
+            {
+              key: SPAN_KEYS.TRACE_ID,
+              ...QUERY_FIELD_CONFIGS.STRING_TAG_COLUMN,
+            },
+            {
+              key: SPAN_KEYS.TIMESTAMP,
+              ...QUERY_FIELD_CONFIGS.INT64_TAG_COLUMN,
+            },
+            {
+              key: SPAN_KEYS.DURATION_NANO,
+              ...QUERY_FIELD_CONFIGS.FLOAT64_TAG_COLUMN,
+            },
+            {
+              key: SPAN_KEYS.HAS_ERROR,
+              ...QUERY_FIELD_CONFIGS.BOOL_TAG_COLUMN,
+            },
+            { key: SPAN_KEYS.CONTEXT_URL, ...QUERY_FIELD_CONFIGS.STRING_TAG },
+            {
+              key: SPAN_KEYS.STATUS_MESSAGE,
+              ...QUERY_FIELD_CONFIGS.STRING_TAG,
+            },
+            {
+              key: SPAN_KEYS.OTEL_STATUS_DESCRIPTION,
+              ...QUERY_FIELD_CONFIGS.STRING_TAG,
+            },
+            {
+              key: SPAN_KEYS.CONTEXT_CONFIG_ID,
+              ...QUERY_FIELD_CONFIGS.STRING_TAG,
+            },
+            {
+              key: SPAN_KEYS.CONTEXT_AGENT_ID,
+              ...QUERY_FIELD_CONFIGS.STRING_TAG,
+            },
+            {
+              key: SPAN_KEYS.CONTEXT_HEADERS_KEYS,
+              ...QUERY_FIELD_CONFIGS.STRING_TAG,
+            },
+          ]
+        ),
+
+        agentGenerations: listQuery(
+          QUERY_EXPRESSIONS.AGENT_GENERATIONS,
+          [
+            {
+              key: {
+                key: SPAN_KEYS.NAME,
+                ...QUERY_FIELD_CONFIGS.STRING_TAG_COLUMN,
+              },
+              op: OPERATORS.EQUALS,
+              value: SPAN_NAMES.AGENT_GENERATION,
+            },
+          ],
+          [
+            {
+              key: SPAN_KEYS.SPAN_ID,
+              ...QUERY_FIELD_CONFIGS.STRING_TAG_COLUMN,
+            },
+            {
+              key: SPAN_KEYS.TIMESTAMP,
+              ...QUERY_FIELD_CONFIGS.INT64_TAG_COLUMN,
+            },
+            {
+              key: SPAN_KEYS.HAS_ERROR,
+              ...QUERY_FIELD_CONFIGS.BOOL_TAG_COLUMN,
+            },
+            {
+              key: SPAN_KEYS.STATUS_MESSAGE,
+              ...QUERY_FIELD_CONFIGS.STRING_TAG,
+            },
+            {
+              key: SPAN_KEYS.OTEL_STATUS_DESCRIPTION,
+              ...QUERY_FIELD_CONFIGS.STRING_TAG,
+            },
+            {
+              key: SPAN_KEYS.SUB_AGENT_ID,
+              ...QUERY_FIELD_CONFIGS.STRING_TAG,
+            },
+            {
+              key: SPAN_KEYS.SUB_AGENT_NAME,
+              ...QUERY_FIELD_CONFIGS.STRING_TAG,
+            },
+          ]
+        ),
+
+        // Count spans with errors
+        spansWithErrors: listQuery(
+          QUERY_EXPRESSIONS.SPANS_WITH_ERRORS,
+          [
+            {
+              key: {
+                key: SPAN_KEYS.HAS_ERROR,
+                ...QUERY_FIELD_CONFIGS.BOOL_TAG_COLUMN,
+              },
+              op: OPERATORS.EQUALS,
+              value: true,
+            },
+          ],
+          [
+            {
+              key: SPAN_KEYS.SPAN_ID,
+              ...QUERY_FIELD_CONFIGS.STRING_TAG_COLUMN,
+            },
+            {
+              key: SPAN_KEYS.NAME,
+              ...QUERY_FIELD_CONFIGS.STRING_TAG_COLUMN,
+            },
+          ]
+        ),
+
+        // user messages
+        userMessages: listQuery(
+          QUERY_EXPRESSIONS.USER_MESSAGES,
+          [
+            {
+              key: {
+                key: SPAN_KEYS.MESSAGE_CONTENT,
+                ...QUERY_FIELD_CONFIGS.STRING_TAG,
+              },
+              op: OPERATORS.NOT_EQUALS,
+              value: '',
+            },
+          ],
+          [
+            {
+              key: SPAN_KEYS.SPAN_ID,
+              ...QUERY_FIELD_CONFIGS.STRING_TAG_COLUMN,
+            },
+            {
+              key: SPAN_KEYS.TRACE_ID,
+              ...QUERY_FIELD_CONFIGS.STRING_TAG_COLUMN,
+            },
+            {
+              key: SPAN_KEYS.TIMESTAMP,
+              ...QUERY_FIELD_CONFIGS.INT64_TAG_COLUMN,
+            },
+            {
+              key: SPAN_KEYS.HAS_ERROR,
+              ...QUERY_FIELD_CONFIGS.BOOL_TAG_COLUMN,
+            },
+            {
+              key: SPAN_KEYS.DURATION_NANO,
+              ...QUERY_FIELD_CONFIGS.FLOAT64_TAG_COLUMN,
+            },
+            {
+              key: SPAN_KEYS.MESSAGE_CONTENT,
+              ...QUERY_FIELD_CONFIGS.STRING_TAG,
+            },
+            {
+              key: SPAN_KEYS.MESSAGE_TIMESTAMP,
+              ...QUERY_FIELD_CONFIGS.STRING_TAG,
+            },
+            { key: SPAN_KEYS.AGENT_ID, ...QUERY_FIELD_CONFIGS.STRING_TAG },
+            { key: SPAN_KEYS.AGENT_NAME, ...QUERY_FIELD_CONFIGS.STRING_TAG },
+          ]
+        ),
+
+        // assistant messages
+        aiAssistantMessages: listQuery(
+          QUERY_EXPRESSIONS.AI_ASSISTANT_MESSAGES,
+          [
+            {
+              key: {
+                key: SPAN_KEYS.AI_RESPONSE_CONTENT,
+                ...QUERY_FIELD_CONFIGS.STRING_TAG,
+              },
+              op: OPERATORS.NOT_EQUALS,
+              value: '',
+            },
+          ],
+          [
+            {
+              key: SPAN_KEYS.SPAN_ID,
+              ...QUERY_FIELD_CONFIGS.STRING_TAG_COLUMN,
+            },
+            {
+              key: SPAN_KEYS.TRACE_ID,
+              ...QUERY_FIELD_CONFIGS.STRING_TAG_COLUMN,
+            },
+            {
+              key: SPAN_KEYS.TIMESTAMP,
+              ...QUERY_FIELD_CONFIGS.INT64_TAG_COLUMN,
+            },
+            {
+              key: SPAN_KEYS.HAS_ERROR,
+              ...QUERY_FIELD_CONFIGS.BOOL_TAG_COLUMN,
+            },
+            {
+              key: SPAN_KEYS.DURATION_NANO,
+              ...QUERY_FIELD_CONFIGS.FLOAT64_TAG_COLUMN,
+            },
+            {
+              key: SPAN_KEYS.AI_RESPONSE_CONTENT,
+              ...QUERY_FIELD_CONFIGS.STRING_TAG,
+            },
+            {
+              key: SPAN_KEYS.AI_RESPONSE_TIMESTAMP,
+              ...QUERY_FIELD_CONFIGS.STRING_TAG,
+            },
+            {
+              key: SPAN_KEYS.SUB_AGENT_NAME,
+              ...QUERY_FIELD_CONFIGS.STRING_TAG,
+            },
+            {
+              key: SPAN_KEYS.SUB_AGENT_ID,
+              ...QUERY_FIELD_CONFIGS.STRING_TAG,
+            },
+          ]
+        ),
+
+        // AI generations
+        aiGenerations: listQuery(
+          QUERY_EXPRESSIONS.AI_GENERATIONS,
+          [
+            {
+              key: {
+                key: SPAN_KEYS.AI_OPERATION_ID,
+                ...QUERY_FIELD_CONFIGS.STRING_TAG,
+              },
+              op: OPERATORS.EQUALS,
+              value: AI_OPERATIONS.GENERATE_TEXT,
+            },
+          ],
+          [
+            {
+              key: SPAN_KEYS.SPAN_ID,
+              ...QUERY_FIELD_CONFIGS.STRING_TAG_COLUMN,
+            },
+            {
+              key: SPAN_KEYS.TRACE_ID,
+              ...QUERY_FIELD_CONFIGS.STRING_TAG_COLUMN,
+            },
+            {
+              key: SPAN_KEYS.TIMESTAMP,
+              ...QUERY_FIELD_CONFIGS.INT64_TAG_COLUMN,
+            },
+            {
+              key: SPAN_KEYS.HAS_ERROR,
+              ...QUERY_FIELD_CONFIGS.BOOL_TAG_COLUMN,
+            },
+            {
+              key: SPAN_KEYS.DURATION_NANO,
+              ...QUERY_FIELD_CONFIGS.FLOAT64_TAG_COLUMN,
+            },
+            { key: SPAN_KEYS.AGENT_ID, ...QUERY_FIELD_CONFIGS.STRING_TAG },
+            {
+              key: SPAN_KEYS.AI_TELEMETRY_FUNCTION_ID,
+              ...QUERY_FIELD_CONFIGS.STRING_TAG,
+            },
+            {
+              key: SPAN_KEYS.AI_TELEMETRY_SUB_AGENT_ID,
+              ...QUERY_FIELD_CONFIGS.STRING_TAG,
+            },
+            {
+              key: SPAN_KEYS.AI_TELEMETRY_SUB_AGENT_NAME,
+              ...QUERY_FIELD_CONFIGS.STRING_TAG,
+            },
+            {
+              key: SPAN_KEYS.AI_MODEL_ID,
+              ...QUERY_FIELD_CONFIGS.STRING_TAG,
+            },
+            {
+              key: SPAN_KEYS.GEN_AI_USAGE_INPUT_TOKENS,
+              ...QUERY_FIELD_CONFIGS.INT64_TAG,
+            },
+            {
+              key: SPAN_KEYS.GEN_AI_USAGE_OUTPUT_TOKENS,
+              ...QUERY_FIELD_CONFIGS.INT64_TAG,
+            },
+            {
+              key: SPAN_KEYS.AI_RESPONSE_TEXT,
+              ...QUERY_FIELD_CONFIGS.STRING_TAG,
+            },
+            {
+              key: SPAN_KEYS.AI_RESPONSE_TOOL_CALLS,
+              ...QUERY_FIELD_CONFIGS.STRING_TAG,
+            },
+            {
+              key: SPAN_KEYS.AI_PROMPT_MESSAGES,
+              ...QUERY_FIELD_CONFIGS.STRING_TAG,
+            },
+          ]
+        ),
+
+        // AI streaming text
+        aiStreamingText: listQuery(
+          QUERY_EXPRESSIONS.AI_STREAMING_TEXT,
+          [
+            {
+              key: {
+                key: SPAN_KEYS.AI_OPERATION_ID,
+                ...QUERY_FIELD_CONFIGS.STRING_TAG,
+              },
+              op: OPERATORS.EQUALS,
+              value: AI_OPERATIONS.STREAM_TEXT,
+            },
+          ],
+          [
+            {
+              key: SPAN_KEYS.SPAN_ID,
+              ...QUERY_FIELD_CONFIGS.STRING_TAG_COLUMN,
+            },
+            {
+              key: SPAN_KEYS.TRACE_ID,
+              ...QUERY_FIELD_CONFIGS.STRING_TAG_COLUMN,
+            },
+            {
+              key: SPAN_KEYS.TIMESTAMP,
+              ...QUERY_FIELD_CONFIGS.INT64_TAG_COLUMN,
+            },
+            {
+              key: SPAN_KEYS.HAS_ERROR,
+              ...QUERY_FIELD_CONFIGS.BOOL_TAG_COLUMN,
+            },
+            {
+              key: SPAN_KEYS.DURATION_NANO,
+              ...QUERY_FIELD_CONFIGS.FLOAT64_TAG_COLUMN,
+            },
+            { key: SPAN_KEYS.AI_TELEMETRY_SUB_AGENT_ID, ...QUERY_FIELD_CONFIGS.STRING_TAG },
+            { key: SPAN_KEYS.AI_TELEMETRY_SUB_AGENT_NAME, ...QUERY_FIELD_CONFIGS.STRING_TAG },
+            {
+              key: SPAN_KEYS.AI_RESPONSE_TEXT,
+              ...QUERY_FIELD_CONFIGS.STRING_TAG,
+            },
+            {
+              key: SPAN_KEYS.AI_MODEL_ID,
+              ...QUERY_FIELD_CONFIGS.STRING_TAG,
+            },
+            {
+              key: SPAN_KEYS.AI_MODEL_PROVIDER,
+              ...QUERY_FIELD_CONFIGS.STRING_TAG,
+            },
+            {
+              key: SPAN_KEYS.AI_OPERATION_ID,
+              ...QUERY_FIELD_CONFIGS.STRING_TAG,
+            },
+            {
+              key: SPAN_KEYS.GEN_AI_USAGE_INPUT_TOKENS,
+              ...QUERY_FIELD_CONFIGS.INT64_TAG,
+            },
+            {
+              key: SPAN_KEYS.GEN_AI_USAGE_OUTPUT_TOKENS,
+              ...QUERY_FIELD_CONFIGS.INT64_TAG,
+            },
+            {
+              key: SPAN_KEYS.AI_TELEMETRY_FUNCTION_ID,
+              ...QUERY_FIELD_CONFIGS.STRING_TAG,
+            },
+          ]
+        ),
+
+        // AI streaming object
+        aiStreamingObject: listQuery(
+          QUERY_EXPRESSIONS.AI_STREAMING_OBJECT,
+          [
+            {
+              key: {
+                key: SPAN_KEYS.AI_OPERATION_ID,
+                ...QUERY_FIELD_CONFIGS.STRING_TAG,
+              },
+              op: OPERATORS.EQUALS,
+              value: AI_OPERATIONS.STREAM_OBJECT,
+            },
+          ],
+          [
+            {
+              key: SPAN_KEYS.SPAN_ID,
+              ...QUERY_FIELD_CONFIGS.STRING_TAG_COLUMN,
+            },
+            {
+              key: SPAN_KEYS.TRACE_ID,
+              ...QUERY_FIELD_CONFIGS.STRING_TAG_COLUMN,
+            },
+            {
+              key: SPAN_KEYS.TIMESTAMP,
+              ...QUERY_FIELD_CONFIGS.INT64_TAG_COLUMN,
+            },
+            {
+              key: SPAN_KEYS.HAS_ERROR,
+              ...QUERY_FIELD_CONFIGS.BOOL_TAG_COLUMN,
+            },
+            {
+              key: SPAN_KEYS.DURATION_NANO,
+              ...QUERY_FIELD_CONFIGS.FLOAT64_TAG_COLUMN,
+            },
+            { key: SPAN_KEYS.SUB_AGENT_ID, ...QUERY_FIELD_CONFIGS.STRING_TAG },
+            { key: SPAN_KEYS.SUB_AGENT_NAME, ...QUERY_FIELD_CONFIGS.STRING_TAG },
+            {
+              key: SPAN_KEYS.AI_RESPONSE_OBJECT,
+              ...QUERY_FIELD_CONFIGS.STRING_TAG,
+            },
+            {
+              key: SPAN_KEYS.AI_MODEL_ID,
+              ...QUERY_FIELD_CONFIGS.STRING_TAG,
+            },
+            {
+              key: SPAN_KEYS.AI_MODEL_PROVIDER,
+              ...QUERY_FIELD_CONFIGS.STRING_TAG,
+            },
+            {
+              key: SPAN_KEYS.AI_OPERATION_ID,
+              ...QUERY_FIELD_CONFIGS.STRING_TAG,
+            },
+            {
+              key: SPAN_KEYS.GEN_AI_USAGE_INPUT_TOKENS,
+              ...QUERY_FIELD_CONFIGS.INT64_TAG,
+            },
+            {
+              key: SPAN_KEYS.GEN_AI_USAGE_OUTPUT_TOKENS,
+              ...QUERY_FIELD_CONFIGS.INT64_TAG,
+            },
+            {
+              key: SPAN_KEYS.AI_TELEMETRY_FUNCTION_ID,
+              ...QUERY_FIELD_CONFIGS.STRING_TAG,
+            },
+          ]
+        ),
+
+        // context fetchers
+        contextFetchers: listQuery(
+          QUERY_EXPRESSIONS.CONTEXT_FETCHERS,
+          [
+            {
+              key: {
+                key: SPAN_KEYS.NAME,
+                ...QUERY_FIELD_CONFIGS.STRING_TAG_COLUMN,
+              },
+              op: OPERATORS.EQUALS,
+              value: SPAN_NAMES.CONTEXT_FETCHER,
+            },
+          ],
+          [
+            {
+              key: SPAN_KEYS.SPAN_ID,
+              ...QUERY_FIELD_CONFIGS.STRING_TAG_COLUMN,
+            },
+            {
+              key: SPAN_KEYS.TRACE_ID,
+              ...QUERY_FIELD_CONFIGS.STRING_TAG_COLUMN,
+            },
+            {
+              key: SPAN_KEYS.TIMESTAMP,
+              ...QUERY_FIELD_CONFIGS.INT64_TAG_COLUMN,
+            },
+            {
+              key: SPAN_KEYS.DURATION_NANO,
+              ...QUERY_FIELD_CONFIGS.FLOAT64_TAG_COLUMN,
+            },
+            {
+              key: SPAN_KEYS.HAS_ERROR,
+              ...QUERY_FIELD_CONFIGS.BOOL_TAG_COLUMN,
+            },
+            { key: SPAN_KEYS.HTTP_URL, ...QUERY_FIELD_CONFIGS.STRING_TAG },
+            {
+              key: SPAN_KEYS.HTTP_STATUS_CODE,
+              ...QUERY_FIELD_CONFIGS.STRING_TAG,
+            },
+            {
+              key: SPAN_KEYS.HTTP_RESPONSE_BODY_SIZE,
+              ...QUERY_FIELD_CONFIGS.STRING_TAG,
+            },
+          ]
+        ),
+
+        durationSpans: listQuery(
+          QUERY_EXPRESSIONS.DURATION_SPANS,
+          [],
+          [
+            {
+              key: SPAN_KEYS.TRACE_ID,
+              ...QUERY_FIELD_CONFIGS.STRING_TAG_COLUMN,
+            },
+            {
+              key: SPAN_KEYS.PARENT_SPAN_ID,
+              ...QUERY_FIELD_CONFIGS.STRING_TAG_COLUMN,
+            },
+            {
+              key: SPAN_KEYS.DURATION_NANO,
+              ...QUERY_FIELD_CONFIGS.FLOAT64_TAG_COLUMN,
+            },
+            {
+              key: SPAN_KEYS.TIMESTAMP,
+              ...QUERY_FIELD_CONFIGS.INT64_TAG_COLUMN,
+            },
+          ]
+        ),
+
+        artifactProcessing: listQuery(
+          QUERY_EXPRESSIONS.ARTIFACT_PROCESSING,
+          [
+            {
+              key: {
+                key: SPAN_KEYS.NAME,
+                ...QUERY_FIELD_CONFIGS.STRING_TAG_COLUMN,
+              },
+              op: OPERATORS.EQUALS,
+              value: SPAN_NAMES.ARTIFACT_PROCESSING,
+            },
+          ],
+          [
+            {
+              key: SPAN_KEYS.SPAN_ID,
+              ...QUERY_FIELD_CONFIGS.STRING_TAG_COLUMN,
+            },
+            {
+              key: SPAN_KEYS.HAS_ERROR,
+              ...QUERY_FIELD_CONFIGS.BOOL_TAG_COLUMN,
+            },
+            {
+              key: SPAN_KEYS.ARTIFACT_ID,
+              ...QUERY_FIELD_CONFIGS.STRING_TAG,
+            },
+            {
+              key: SPAN_KEYS.ARTIFACT_TYPE,
+              ...QUERY_FIELD_CONFIGS.STRING_TAG,
+            },
+            {
+              key: SPAN_KEYS.SUB_AGENT_ID,
+              ...QUERY_FIELD_CONFIGS.STRING_TAG,
+            },
+            {
+              key: SPAN_KEYS.SUB_AGENT_NAME,
+              ...QUERY_FIELD_CONFIGS.STRING_TAG,
+            },
+            {
+              key: SPAN_KEYS.ARTIFACT_TOOL_CALL_ID,
+              ...QUERY_FIELD_CONFIGS.STRING_TAG,
+            },
+            {
+              key: SPAN_KEYS.ARTIFACT_NAME,
+              ...QUERY_FIELD_CONFIGS.STRING_TAG,
+            },
+            {
+              key: SPAN_KEYS.ARTIFACT_DESCRIPTION,
+              ...QUERY_FIELD_CONFIGS.STRING_TAG,
+            },
+            {
+              key: SPAN_KEYS.ARTIFACT_DATA,
+              ...QUERY_FIELD_CONFIGS.STRING_TAG,
+            },
+          ]
+        ),
+
+        toolApprovalRequested: listQuery(
+          QUERY_EXPRESSIONS.TOOL_APPROVAL_REQUESTED,
+          [
+            {
+              key: {
+                key: SPAN_KEYS.NAME,
+                ...QUERY_FIELD_CONFIGS.STRING_TAG_COLUMN,
+              },
+              op: OPERATORS.EQUALS,
+              value: SPAN_NAMES.TOOL_APPROVAL_REQUESTED,
+            },
+          ],
+          [
+            {
+              key: SPAN_KEYS.SPAN_ID,
+              ...QUERY_FIELD_CONFIGS.STRING_TAG_COLUMN,
+            },
+            {
+              key: SPAN_KEYS.TRACE_ID,
+              ...QUERY_FIELD_CONFIGS.STRING_TAG_COLUMN,
+            },
+            {
+              key: SPAN_KEYS.TIMESTAMP,
+              ...QUERY_FIELD_CONFIGS.INT64_TAG_COLUMN,
+            },
+            {
+              key: SPAN_KEYS.HAS_ERROR,
+              ...QUERY_FIELD_CONFIGS.BOOL_TAG_COLUMN,
+            },
+            {
+              key: SPAN_KEYS.TOOL_NAME,
+              ...QUERY_FIELD_CONFIGS.STRING_TAG,
+            },
+            {
+              key: SPAN_KEYS.TOOL_CALL_ID,
+              ...QUERY_FIELD_CONFIGS.STRING_TAG,
+            },
+            {
+              key: SPAN_KEYS.SUB_AGENT_ID,
+              ...QUERY_FIELD_CONFIGS.STRING_TAG,
+            },
+            {
+              key: SPAN_KEYS.SUB_AGENT_NAME,
+              ...QUERY_FIELD_CONFIGS.STRING_TAG,
+            },
+          ]
+        ),
+
+        toolApprovalApproved: listQuery(
+          QUERY_EXPRESSIONS.TOOL_APPROVAL_APPROVED,
+          [
+            {
+              key: {
+                key: SPAN_KEYS.NAME,
+                ...QUERY_FIELD_CONFIGS.STRING_TAG_COLUMN,
+              },
+              op: OPERATORS.EQUALS,
+              value: SPAN_NAMES.TOOL_APPROVAL_APPROVED,
+            },
+          ],
+          [
+            {
+              key: SPAN_KEYS.SPAN_ID,
+              ...QUERY_FIELD_CONFIGS.STRING_TAG_COLUMN,
+            },
+            {
+              key: SPAN_KEYS.TRACE_ID,
+              ...QUERY_FIELD_CONFIGS.STRING_TAG_COLUMN,
+            },
+            {
+              key: SPAN_KEYS.TIMESTAMP,
+              ...QUERY_FIELD_CONFIGS.INT64_TAG_COLUMN,
+            },
+            {
+              key: SPAN_KEYS.HAS_ERROR,
+              ...QUERY_FIELD_CONFIGS.BOOL_TAG_COLUMN,
+            },
+            {
+              key: SPAN_KEYS.TOOL_NAME,
+              ...QUERY_FIELD_CONFIGS.STRING_TAG,
+            },
+            {
+              key: SPAN_KEYS.TOOL_CALL_ID,
+              ...QUERY_FIELD_CONFIGS.STRING_TAG,
+            },
+            {
+              key: SPAN_KEYS.SUB_AGENT_ID,
+              ...QUERY_FIELD_CONFIGS.STRING_TAG,
+            },
+            {
+              key: SPAN_KEYS.SUB_AGENT_NAME,
+              ...QUERY_FIELD_CONFIGS.STRING_TAG,
+            },
+          ]
+        ),
+
+        toolApprovalDenied: listQuery(
+          QUERY_EXPRESSIONS.TOOL_APPROVAL_DENIED,
+          [
+            {
+              key: {
+                key: SPAN_KEYS.NAME,
+                ...QUERY_FIELD_CONFIGS.STRING_TAG_COLUMN,
+              },
+              op: OPERATORS.EQUALS,
+              value: SPAN_NAMES.TOOL_APPROVAL_DENIED,
+            },
+          ],
+          [
+            {
+              key: SPAN_KEYS.SPAN_ID,
+              ...QUERY_FIELD_CONFIGS.STRING_TAG_COLUMN,
+            },
+            {
+              key: SPAN_KEYS.TRACE_ID,
+              ...QUERY_FIELD_CONFIGS.STRING_TAG_COLUMN,
+            },
+            {
+              key: SPAN_KEYS.TIMESTAMP,
+              ...QUERY_FIELD_CONFIGS.INT64_TAG_COLUMN,
+            },
+            {
+              key: SPAN_KEYS.HAS_ERROR,
+              ...QUERY_FIELD_CONFIGS.BOOL_TAG_COLUMN,
+            },
+            {
+              key: SPAN_KEYS.TOOL_NAME,
+              ...QUERY_FIELD_CONFIGS.STRING_TAG,
+            },
+            {
+              key: SPAN_KEYS.TOOL_CALL_ID,
+              ...QUERY_FIELD_CONFIGS.STRING_TAG,
+            },
+            {
+              key: SPAN_KEYS.SUB_AGENT_ID,
+              ...QUERY_FIELD_CONFIGS.STRING_TAG,
+            },
+            {
+              key: SPAN_KEYS.SUB_AGENT_NAME,
+              ...QUERY_FIELD_CONFIGS.STRING_TAG,
+            },
+          ]
+        ),
+      },
+    },
+    dataSource: DATA_SOURCES.TRACES,
+  };
+}
+
+// ---------- Main handler
+
 type RouteContext<T> = {
   params: Promise<Record<string, string>>;
 };
-
-// ---------- Main handler
 
 export async function GET(
   req: NextRequest,
@@ -132,14 +1037,19 @@ export async function GET(
   // Get tenantId and projectId from URL search params
   const url = new URL(req.url);
   const tenantId = url.searchParams.get('tenantId') || 'default';
-  const projectId = url.searchParams.get('projectId') || '';
+  
+  // Forward cookies for authentication
+  const cookieHeader = req.headers.get('cookie');
 
   try {
-    // Forward cookies from the original request for authentication
-    const cookieHeader = req.headers.get('cookie');
+    const start = START_2020_MS;
+    const end = Date.now();
+
+    // Build the query payload
+    const payload = buildConversationListPayload(conversationId, start, end);
     
-    // Call the secure manage-api endpoint which validates access and queries SigNoz
-    const resp = await signozQuery(conversationId, tenantId, projectId, cookieHeader);
+    // Call secure manage-api
+    const resp = await signozQuery(payload, tenantId, cookieHeader);
 
     const toolCallSpans = parseList(resp, QUERY_EXPRESSIONS.TOOL_CALLS);
     const contextResolutionSpans = parseList(resp, QUERY_EXPRESSIONS.CONTEXT_RESOLUTION);
@@ -201,28 +1111,12 @@ export async function GET(
       data: Record<string, any>;
     }> = [];
     try {
-      // Call the secure manage-api SQL endpoint instead of querying SigNoz directly
-      const manageApiUrl = getManageApiUrl();
-      
-      const headers: Record<string, string> = {
-        'Content-Type': 'application/json',
-      };
-      
-      // Forward cookies from the original request for authentication
-      const cookieHeader = req.headers.get('cookie');
-      if (cookieHeader) {
-        headers.Cookie = cookieHeader;
-      }
-      
-      const sqlResponse = await axios.get(
-        `${manageApiUrl}/tenants/${tenantId}/signoz/projects/${projectId}/conversations/${conversationId}/sql-attributes`,
-        {
-          timeout: 30000,
-          headers,
-          withCredentials: true,
-        }
+      // Call secure manage-api via the SQL helper function
+      allSpanAttributes = await fetchAllSpanAttributes_SQL(
+        conversationId,
+        tenantId,
+        cookieHeader
       );
-      allSpanAttributes = sqlResponse.data;
     } catch (e) {
       const logger = getLogger('span-attributes');
       logger.error({ error: e }, 'allSpanAttributes SQL fetch skipped/failed');
@@ -848,4 +1742,3 @@ export async function GET(
     return NextResponse.json({ error: errorMessage }, { status: 500 });
   }
 }
-

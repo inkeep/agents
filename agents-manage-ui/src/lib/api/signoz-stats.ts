@@ -158,15 +158,14 @@ class SigNozStatsAPI {
       throw new Error('TenantId not set. Call setTenantId() before making requests.');
     }
 
-    const manageApiUrl = getManageApiUrl();
-    
     const requestPayload = {
       ...payload,
       ...(projectId && { projectId }),
     };
 
+    // Call Next.js route which validates and forwards to manage-api
     const response = await axios.post<T>(
-      `${manageApiUrl}/tenants/${this.tenantId}/signoz/query`,
+      `/api/signoz?tenantId=${this.tenantId}`,
       requestPayload,
       {
         timeout: 30000,

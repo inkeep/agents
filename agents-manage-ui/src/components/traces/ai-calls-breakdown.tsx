@@ -33,6 +33,7 @@ interface AICallsBreakdownProps {
 
 export function AICallsBreakdown({ onBack }: AICallsBreakdownProps) {
   const params = useParams();
+  const tenantId = params.tenantId as string;
 
   // Use nuqs for type-safe query state management
   const {
@@ -120,7 +121,7 @@ export function AICallsBreakdown({ onBack }: AICallsBreakdownProps) {
         setLoading(true);
         setError(null);
 
-        const client = getSigNozStatsClient(tenantId as string);
+        const client = getSigNozStatsClient(tenantId);
 
         const agentId = selectedAgent === 'all' ? undefined : selectedAgent;
         const modelId = selectedModel === 'all' ? undefined : selectedModel;
