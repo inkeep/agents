@@ -3,6 +3,8 @@
 import type { IDisposable } from 'monaco-editor';
 import { useTheme } from 'next-themes';
 import { useEffect } from 'react';
+import { AppSidebarProvider } from '@/components/sidebar-nav/app-sidebar-provider';
+import { SidebarInset } from '@/components/ui/sidebar';
 import { useAgentStore } from '@/features/agent/state/use-agent-store';
 import { useMonacoActions } from '@/features/agent/state/use-monaco-store';
 import { getContextSuggestions } from '@/lib/context-suggestions';
@@ -53,5 +55,9 @@ export default function Layout({ children }: LayoutProps<'/[tenantId]'>) {
     setMonacoTheme(isDark);
   }, [isDark, setMonacoTheme]);
 
-  return children;
+  return (
+    <AppSidebarProvider>
+      <SidebarInset>{children}</SidebarInset>
+    </AppSidebarProvider>
+  );
 }

@@ -1,6 +1,6 @@
 'use client';
 
-import { AlertTriangle, ArrowLeft, RefreshCw } from 'lucide-react';
+import { AlertTriangle, ArrowLeft, type LucideIcon, RefreshCw } from 'lucide-react';
 import Link from 'next/link';
 import { BodyTemplate } from '@/components/layout/body-template';
 import { MainContent } from '@/components/layout/main-content';
@@ -47,17 +47,19 @@ interface FullPageErrorProps {
   error?: Error & { digest?: string };
   reset?: () => void;
   title?: string;
-  description?: string;
+  description?: string | React.ReactNode;
   link?: string;
   linkText?: string;
   statusCode?: number;
   showRetry?: boolean;
   onRetry?: () => void;
   context?: string;
+  icon?: LucideIcon;
 }
 
 export function ErrorContent({
   error,
+  icon: Icon = AlertTriangle,
   reset,
   title: propTitle,
   description: propDescription,
@@ -137,7 +139,7 @@ export function ErrorContent({
           {statusCode}
         </div>
       ) : (
-        <AlertTriangle className="w-14 h-14 text-foreground" strokeWidth={1} aria-hidden="true" />
+        <Icon className="w-14 h-14 text-foreground" strokeWidth={1} aria-hidden="true" />
       )}
       <div className="flex flex-col items-center gap-2 text-center max-w-md">
         <h2 className="text-lg text-muted-foreground font-mono uppercase">{title}</h2>
