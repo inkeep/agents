@@ -1,12 +1,13 @@
-[data-type="taskList"] li {
-  display: flex;
-  align-items: flex-start;
-  gap: 0.25rem;
-}
-
-[data-type="taskList"] > li > div > p:first-child {
-  margin: 0;
-  line-height: 1.5;
+[data-type="taskList"] {
+  li {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.25rem;
+  }
+  & > li > div > p:first-child {
+    margin: 0;
+    line-height: 1.2;
+  }
 }
 
 /* Basic table styles for the editor */

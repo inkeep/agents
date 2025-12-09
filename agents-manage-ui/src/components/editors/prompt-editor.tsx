@@ -345,6 +345,7 @@ import { Button } from '@/components/ui/button';
 import { TextInitial } from 'lucide-react';
 import { MarkdownIcon } from '@/icons';
 import { mdContent } from './content';
+import { useAgentActions, useAgentStore } from '@/features/agent/state/use-agent-store';
 import './prompt-editor.css';
 
 export const PromptEditor: FC<PromptEditorProps> = ({
@@ -354,8 +355,8 @@ export const PromptEditor: FC<PromptEditorProps> = ({
   readOnly,
   invalid,
 }) => {
-  const [isMd, setIsMd] = useState(true);
-
+  const { toggleMarkdownEditor } = useAgentActions();
+  const contentType = useAgentStore((state) => (state.isMarkdownEditor ? undefined : 'markdown'));
   const editor = useEditor({
     immediatelyRender: false,
     editorProps: {
@@ -382,9 +383,7 @@ export const PromptEditor: FC<PromptEditorProps> = ({
       TableKit,
       Highlight,
       Mention.configure({
-        HTMLAttributes: {
-          class: 'mention',
-        },
+        HTMLAttributes: { class: 'mention' },
         suggestions: [
           {
             char: '@',
@@ -419,17 +418,15 @@ export const PromptEditor: FC<PromptEditorProps> = ({
       }),
     ],
     content: mdContent,
-    contentType: 'markdown',
+    contentType,
   });
 
   const toggle = useCallback(() => {
-    setIsMd((prev) => {
-      editor?.commands.setContent(mdContent, prev ? undefined : { contentType: 'markdown' });
-      return !prev;
-    });
-  }, [editor]);
+    editor?.commands.setContent(mdContent, contentType ? undefined : { contentType: 'markdown' });
+    toggleMarkdownEditor();
+  }, [editor, contentType, toggleMarkdownEditor]);
 
-  const IconToUse = isMd ? TextInitial : MarkdownIcon;
+  const IconToUse = contentType ? TextInitial : MarkdownIcon;
 
   return (
     <EditorContent editor={editor} className="relative">
@@ -437,7 +434,7 @@ export const PromptEditor: FC<PromptEditorProps> = ({
         variant="default"
         className="absolute end-2 top-2 z-1"
         size="icon-sm"
-        title={`Switch to ${isMd ? 'Text' : 'Markdown'}`}
+        title={`Switch to ${contentType ? 'Text' : 'Markdown'}`}
         onClick={toggle}
       >
         <IconToUse />

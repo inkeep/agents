@@ -52,6 +52,7 @@ interface AgentPersistedStateData {
   jsonSchemaMode: boolean;
   isSidebarPinnedOpen: boolean;
   hasTextWrap: boolean;
+  isMarkdownEditor: boolean;
 }
 
 interface AgentActions {
@@ -108,6 +109,11 @@ interface AgentActions {
   toggleTextWrap(): void;
 
   animateGraph: EventListenerOrEventListenerObject;
+
+  /**
+   * Toggle of `isMarkdownEditor` field.
+   */
+  toggleMarkdownEditor(): void;
 }
 
 type AllAgentStateData = AgentStateData & AgentPersistedStateData;
@@ -151,6 +157,7 @@ const agentState: StateCreator<AgentState> = (set, get) => ({
   jsonSchemaMode: false,
   isSidebarPinnedOpen: true,
   hasTextWrap: true,
+  isMarkdownEditor: true,
   // Separate "namespace" for actions
   actions: {
     setInitial(
@@ -522,6 +529,11 @@ const agentState: StateCreator<AgentState> = (set, get) => ({
         hasTextWrap: !prevState.hasTextWrap,
       }));
     },
+    toggleMarkdownEditor() {
+      set((prevState) => ({
+        isMarkdownEditor: !prevState.isMarkdownEditor,
+      }));
+    },
   },
 });
 
@@ -534,6 +546,7 @@ export const agentStore = create<AgentState>()(
           jsonSchemaMode: state.jsonSchemaMode,
           isSidebarPinnedOpen: state.isSidebarPinnedOpen,
           hasTextWrap: state.hasTextWrap,
+          isMarkdownEditor: state.isMarkdownEditor,
         };
       },
     })
