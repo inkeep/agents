@@ -349,6 +349,7 @@ import { mdContent } from './content';
 export const PromptEditor: FC = () => {
   const [markdownInput, setMarkdownInput] = useState(mdContent);
   const [error, setError] = useState<string | null>(null);
+  const [isMd, setIsMd] = useState(true);
 
   const editor = useEditor({
     immediatelyRender: false,
@@ -412,74 +413,25 @@ export const PromptEditor: FC = () => {
     contentType: 'markdown',
   });
 
-  const parseMarkdown = () => {
-    if (!editor || !editor.markdown) {
-      setError('Editor or MarkdownManager not available');
-      return;
-    }
-
-    try {
-      setError(null);
-      editor.commands.setContent(markdownInput, { contentType: 'markdown' });
-    } catch (err) {
-      console.error(err);
-      setError(`Error parsing markdown: ${err instanceof Error ? err.message : String(err)}`);
-    }
-  };
-
-  const getEditorAsMarkdown = () => {
-    if (!editor) {
-      return '';
-    }
-
-    try {
-      return editor.getMarkdown();
-    } catch {
-      return editor.getText();
-    }
-  };
-
   return (
     <div className="markdown-parser-demo">
-      <div className="control-group">
-        <div className="button-group">
-          <button type="button" onClick={parseMarkdown} disabled={!editor || !markdownInput.trim()}>
-            Parse Markdown →
-          </button>
-
-          <button
-            type="button"
-            onClick={() => {
-              if (editor) {
-                const markdown = getEditorAsMarkdown();
-                setMarkdownInput(markdown);
-              }
-            }}
-          >
-            ← Extract Markdown
-          </button>
-        </div>
-      </div>
+      <button
+        type="button"
+        onClick={() => {
+          setIsMd((prev) => !prev);
+          editor?.commands.setContent(
+            markdownInput,
+            isMd ? undefined : { contentType: 'markdown' }
+          );
+        }}
+      >
+        Switch to {isMd ? 'Markdown' : 'Text'}
+      </button>
 
       {error && <div className="error">{error}</div>}
 
-      <div className="split">
-        <div className="input-panel">
-          <div className="panel-label">Markdown Input</div>
-          <textarea
-            className="markdown-input"
-            value={markdownInput}
-            onChange={(e) => setMarkdownInput(e.target.value)}
-            placeholder="Enter markdown here..."
-          />
-        </div>
-
-        <div className="editor-panel">
-          <div className="panel-label">Tiptap Editor</div>
-          <div className="editor-container">
-            {editor ? <EditorContent editor={editor} /> : <div>Loading editor…</div>}
-          </div>
-        </div>
+      <div className="editor-container">
+        {editor ? <EditorContent editor={editor} /> : <div>Loading editor…</div>}
       </div>
     </div>
   );
