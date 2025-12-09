@@ -136,7 +136,6 @@ const fieldsToJsonSchema = (field: EditableField | undefined): JSONSchemaWithPre
       applyCommonMetadata(schema, field);
       return schema;
     }
-    case 'string':
     default: {
       const schema: JSONSchemaWithPreview = { type: 'string' };
       applyCommonMetadata(schema, field);
@@ -477,7 +476,6 @@ const createEditableField = ({ id, type }: { id: string; type: TypeValues }): Ed
       return { id, type: 'number' };
     case 'boolean':
       return { id, type: 'boolean' };
-    case 'string':
     default:
       return { id, type: 'string' };
   }
@@ -530,7 +528,6 @@ const changeEditableFieldType = (field: EditableField, type: TypeValues): Editab
         ...base,
         type: 'boolean',
       };
-    case 'string':
     default:
       return {
         ...base,

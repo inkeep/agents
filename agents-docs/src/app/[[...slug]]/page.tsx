@@ -1,12 +1,9 @@
 import { a } from '@inkeep/docskit';
 import { createRelativeLink } from 'fumadocs-ui/mdx';
 import { DocsBody, DocsPage, DocsTitle } from 'fumadocs-ui/page';
-import { notFound, redirect } from 'next/navigation';
-import { Breadcrumb } from '@/components/breadcrumb';
-import { Footer } from '@/components/footer';
-import { Markdown } from '@/components/markdown';
+import { notFound } from 'next/navigation';
 import { createMetadata } from '@/lib/metadata';
-import { getDocsGroupFirstChild, source } from '@/lib/source';
+import { source } from '@/lib/source';
 import { getMDXComponents } from '@/mdx-components';
 
 import { PageControls } from './page-controls';
@@ -15,12 +12,11 @@ export default async function Page(props: PageProps<'/[[...slug]]'>) {
   const params = await props.params;
   const page = source.getPage(params.slug);
   if (!page) {
-    const childPage = getDocsGroupFirstChild(params.slug?.join('/'));
-    if (childPage) redirect(childPage.url);
-    else notFound();
+    notFound();
   }
 
   const MDXContent = page.data.body;
+  const tocEnabled = page.data.toc.length > 0;
 
   return (
     <DocsPage
@@ -28,35 +24,19 @@ export default async function Page(props: PageProps<'/[[...slug]]'>) {
       full={page.data.full}
       tableOfContent={{
         style: 'clerk',
-        enabled: page.data.toc.length > 0,
-      }}
-      breadcrumb={{
-        component: <Breadcrumb tree={source.pageTree} />,
-      }}
-      footer={{
-        component: <Footer url={page.url} />,
-      }}
-      container={{
-        className: 'lg:pt-0! [&>#nd-toc]:!pt-6 [&>#nd-toc]:pb-4 h-full min-h-0',
+        enabled: tocEnabled,
       }}
     >
       <div className="flex items-center justify-between">
         <DocsTitle className="tracking-tight">{page.data.title}</DocsTitle>
         <PageControls
           title={page.data.title}
-          description={page.data.description ?? ''}
+          description={page.data.description}
           data={page.data.structuredData}
         />
       </div>
       {page.data.description && (
-        <div>
-          <Markdown
-            text={page.data.description ?? ''}
-            components={{
-              p: (props) => <p {...props} className="text-lg text-fd-muted-foreground" />,
-            }}
-          />
-        </div>
+        <p className="text-lg text-fd-muted-foreground mb-2">{page.data.description}</p>
       )}
       <DocsBody className="prose-gray dark:prose-invert mt-4">
         <MDXContent
@@ -78,10 +58,12 @@ export async function generateMetadata(props: PageProps<'/[[...slug]]'>) {
   const params = await props.params;
   const page = source.getPage(params.slug);
 
-  if (!page) notFound();
+  if (!page) {
+    notFound();
+  }
 
   return createMetadata({
-    title: `${page.data.title} - Inkeep Open Source Docs`,
+    title: page.data.title,
     description: page.data.description,
     openGraph: {
       url: page.url,

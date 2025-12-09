@@ -5,10 +5,6 @@ import { addEdge, applyEdgeChanges, applyNodeChanges } from '@xyflow/react';
 import { create, type StateCreator } from 'zustand';
 import { devtools, persist } from 'zustand/middleware';
 import { useShallow } from 'zustand/react/shallow';
-import type {
-  AgentToolConfigLookup,
-  SubAgentExternalAgentConfigLookup,
-} from '@/components/agent/agent';
 import type { AgentMetadata } from '@/components/agent/configuration/agent-types';
 import type { AnimatedEdge } from '@/components/agent/configuration/edge-types';
 import {
@@ -18,6 +14,10 @@ import {
 } from '@/components/agent/configuration/node-types';
 import type { ArtifactComponent } from '@/lib/api/artifact-components';
 import type { DataComponent } from '@/lib/api/data-components';
+import type {
+  AgentToolConfigLookup,
+  SubAgentExternalAgentConfigLookup,
+} from '@/lib/types/agent-full';
 import type { ExternalAgent } from '@/lib/types/external-agents';
 import type { MCPTool } from '@/lib/types/tools';
 import type { AgentErrorSummary } from '@/lib/utils/agent-error-parser';
@@ -51,6 +51,7 @@ interface AgentPersistedStateData {
    */
   jsonSchemaMode: boolean;
   isSidebarPinnedOpen: boolean;
+  hasTextWrap: boolean;
 }
 
 interface AgentActions {
@@ -101,6 +102,10 @@ interface AgentActions {
    * Setter for `isSidebarSessionOpen` and `isSidebarPinnedOpen` fields.
    */
   setSidebarOpen(state: { isSidebarSessionOpen: boolean; isSidebarPinnedOpen?: boolean }): void;
+  /**
+   * Toggle of `hasTextWrap` field.
+   */
+  toggleTextWrap(): void;
 
   animateGraph: EventListenerOrEventListenerObject;
 }
@@ -145,6 +150,7 @@ const agentState: StateCreator<AgentState> = (set, get) => ({
   ...initialAgentState,
   jsonSchemaMode: false,
   isSidebarPinnedOpen: true,
+  hasTextWrap: true,
   // Separate "namespace" for actions
   actions: {
     setInitial(
@@ -446,7 +452,7 @@ const agentState: StateCreator<AgentState> = (set, get) => ({
             };
           }
           case 'error': {
-            const { relationshipId } = data.details;
+            const { relationshipId } = data.details ?? {};
             if (!relationshipId) {
               console.warn('[type: error] relationshipId is missing');
             }
@@ -511,6 +517,11 @@ const agentState: StateCreator<AgentState> = (set, get) => ({
         ...(typeof isSidebarPinnedOpen === 'boolean' && { isSidebarPinnedOpen }),
       });
     },
+    toggleTextWrap() {
+      set((prevState) => ({
+        hasTextWrap: !prevState.hasTextWrap,
+      }));
+    },
   },
 });
 
@@ -522,6 +533,7 @@ export const agentStore = create<AgentState>()(
         return {
           jsonSchemaMode: state.jsonSchemaMode,
           isSidebarPinnedOpen: state.isSidebarPinnedOpen,
+          hasTextWrap: state.hasTextWrap,
         };
       },
     })

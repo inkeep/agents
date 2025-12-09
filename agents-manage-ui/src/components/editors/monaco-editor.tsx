@@ -57,10 +57,17 @@ export const MonacoEditor: FC<MonacoEditorProps> = ({
   const { setupHighlighter } = useMonacoActions();
   // Update editor options when `readOnly` or `disabled` changes
   useEffect(() => {
+    const wordWrap: Monaco.editor.IEditorOptions['wordWrap'] = editorOptions?.wordWrap ?? 'on';
+
     editorRef.current?.updateOptions({
       readOnly: readOnly || disabled,
+      wordWrap,
+      scrollbar: {
+        horizontal: wordWrap === 'on' ? 'hidden' : 'auto',
+        alwaysConsumeMouseWheel: wordWrap !== 'on',
+      },
     });
-  }, [readOnly, disabled]);
+  }, [readOnly, disabled, editorOptions?.wordWrap]);
 
   // Sync model value when `value` prop changes
   useEffect(() => {
@@ -105,7 +112,6 @@ export const MonacoEditor: FC<MonacoEditorProps> = ({
         bottom: 12,
       },
       scrollbar: {
-        vertical: 'hidden', // Hide vertical scrollbar
         horizontal: 'hidden', // Hide horizontal scrollbar
         useShadows: false, // Disable shadow effects
         alwaysConsumeMouseWheel: false, // Monaco grabs the mouse wheel by default
@@ -192,6 +198,7 @@ export const MonacoEditor: FC<MonacoEditorProps> = ({
   return (
     <div
       className={cn(
+        'max-h-screen', // set fixed max height, otherwise page freezes up / lags when clicking into it
         !hasDynamicHeight && 'h-full',
         'rounded-md relative dark:bg-input/30 transition-colors',
         'border border-input shadow-xs',

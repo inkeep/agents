@@ -2,8 +2,6 @@ import type { Metadata } from 'next';
 import { Inter, JetBrains_Mono } from 'next/font/google';
 import { ThemeProvider } from 'next-themes';
 import { NuqsAdapter } from 'nuqs/adapters/next/app';
-import { AppSidebarProvider } from '@/components/sidebar-nav/app-sidebar-provider';
-import { SidebarInset } from '@/components/ui/sidebar';
 import { Toaster } from '@/components/ui/sonner';
 import { RuntimeConfigProvider } from '@/contexts/runtime-config-context';
 import {
@@ -90,9 +88,7 @@ export default function RootLayout({ children }: LayoutProps<'/'>) {
         >
           <NuqsAdapter>
             <RuntimeConfigProvider value={runtimeConfig}>
-              <AppSidebarProvider>
-                <SidebarInset>{children}</SidebarInset>
-              </AppSidebarProvider>
+              {children}
               <Toaster />
             </RuntimeConfigProvider>
           </NuqsAdapter>

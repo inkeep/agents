@@ -1,10 +1,10 @@
 'use client';
 
-import { Loader2 } from 'lucide-react';
-import Image from 'next/image';
+import { AlertCircleIcon, Loader2 } from 'lucide-react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { Suspense, useState } from 'react';
-import { GoogleIcon } from '@/components/icons/google';
+import { GoogleColorIcon } from '@/components/icons/google';
+import { InkeepIcon } from '@/components/icons/inkeep';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -114,15 +114,21 @@ function LoginForm() {
   };
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-gray-50 px-4 py-12 dark:bg-gray-900">
-      <Card className="w-full max-w-md">
-        <CardHeader className="space-y-1">
-          <CardTitle className="text-2xl font-bold">Sign in</CardTitle>
-          <CardDescription>Sign in to your account to continue</CardDescription>
+    <div className="flex flex-col min-h-screen items-center justify-center px-4 py-12">
+      <Card className="w-full max-w-md shadow-none border-none bg-transparent space-y-3">
+        <div className="px-6">
+          <InkeepIcon size={48} />
+        </div>
+        <CardHeader>
+          <CardTitle className="text-2xl font-medium tracking-tight text-foreground">
+            Welcome
+          </CardTitle>
+          <CardDescription>Please sign in to your account to continue.</CardDescription>
         </CardHeader>
-        <CardContent className="space-y-4">
+        <CardContent className="space-y-5">
           {error && (
-            <Alert variant="destructive">
+            <Alert variant="destructive" className="border-destructive/10 dark:border-border">
+              <AlertCircleIcon className="h-4 w-4" />
               <AlertDescription>{error}</AlertDescription>
             </Alert>
           )}
@@ -173,40 +179,36 @@ function LoginForm() {
                 <div className="absolute inset-0 flex items-center">
                   <span className="w-full border-t" />
                 </div>
-                <div className="relative flex justify-center text-xs uppercase">
-                  <span className="bg-background px-2 text-muted-foreground">Or continue with</span>
+                <div className="relative flex justify-center ">
+                  <span className="bg-background px-2 text-muted-foreground font-mono text-xs uppercase">
+                    Or
+                  </span>
                 </div>
               </div>
 
-              <div className="space-y-2">
+              <div className="space-y-3">
                 {PUBLIC_AUTH0_DOMAIN && (
                   <Button
-                    variant="outline"
+                    variant="gray-outline"
                     onClick={() => handleExternalSignIn('sso', 'auth0', 'Inkeep sign in failed')}
                     disabled={isLoading}
                     className="w-full"
                   >
-                    <Image
-                      src="/assets/inkeep-icons/icon-blue.svg"
-                      alt="Inkeep"
-                      width={16}
-                      height={16}
-                      className="mr-2"
-                    />
-                    Inkeep
+                    <InkeepIcon />
+                    Continue with Inkeep
                   </Button>
                 )}
                 {PUBLIC_GOOGLE_CLIENT_ID && (
                   <Button
-                    variant="outline"
+                    variant="gray-outline"
                     onClick={() =>
                       handleExternalSignIn('social', 'google', 'Google sign in failed')
                     }
                     disabled={isLoading}
                     className="w-full"
                   >
-                    <GoogleIcon className="mr-2" />
-                    Google
+                    <GoogleColorIcon />
+                    Continue with Google
                   </Button>
                 )}
               </div>

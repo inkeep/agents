@@ -95,6 +95,7 @@ export function useConversationStats(
       options?.searchQuery,
       options?.agentId,
       pageSize,
+      currentPage,
     ]
   );
 

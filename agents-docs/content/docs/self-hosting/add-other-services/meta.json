@@ -1,0 +1,5 @@
+{
+  "title": "Add Services",
+  "icon": "LuPackage",
+  "pages": ["sentry", "datadog-apm", "..."]
+}

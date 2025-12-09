@@ -1,8 +1,8 @@
 ---
 title: Contribute to Inkeep Open Source project
-sidebarTitle: How to start
+sidebarTitle: How to Start
 description: How to contribute to the Inkeep Agent Framework
-icon: "LuZap"
+icon: LuZap
 ---
 
 # Making a Contribution
@@ -43,7 +43,7 @@ This will:
 
 Add API keys for the AI providers you want to use to the root `.env`. You must have at least one AI provider configured.
 
-```
+```dotenv
 ANTHROPIC_API_KEY=sk-ant-xyz789
 OPENAI_API_KEY=sk-xxx
 GOOGLE_GENERATIVE_AI_API_KEY=sk-xxx
@@ -51,13 +51,13 @@ GOOGLE_GENERATIVE_AI_API_KEY=sk-xxx
 
 Add your SigNoz API key to enable the traces feature (optional).
 
-```
+```dotenv
 SIGNOZ_API_KEY=sk-xxx
 ```
 
 Add your Nango secret key to enable the Nango credential store (optional).
 
-```
+```dotenv
 NANGO_SECRET_KEY=sk-xxx
 ```
 
@@ -121,7 +121,7 @@ Open `http://localhost:3080` in the browser. Go to **Settings** → **Workspace 
 
 Create a `.env` file at `/agents-manage-ui/` with the following variable:
 
-```
+```dotenv
 SIGNOZ_API_KEY=your-signoz-api-key-here
 ```
 

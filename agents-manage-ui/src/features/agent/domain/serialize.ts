@@ -1,16 +1,17 @@
 import type { Edge, Node } from '@xyflow/react';
-import type {
-  AgentToolConfigLookup,
-  SubAgentExternalAgentConfigLookup,
-  SubAgentTeamAgentConfigLookup,
-} from '@/components/agent/agent';
 import type { AgentMetadata } from '@/components/agent/configuration/agent-types';
 import type { A2AEdgeData } from '@/components/agent/configuration/edge-types';
 import { EdgeType } from '@/components/agent/configuration/edge-types';
 import { NodeType } from '@/components/agent/configuration/node-types';
 import type { ArtifactComponent } from '@/lib/api/artifact-components';
 import type { DataComponent } from '@/lib/api/data-components';
-import type { FullAgentDefinition, InternalAgentDefinition } from '@/lib/types/agent-full';
+import type {
+  AgentToolConfigLookup,
+  FullAgentDefinition,
+  InternalAgentDefinition,
+  SubAgentExternalAgentConfigLookup,
+  SubAgentTeamAgentConfigLookup,
+} from '@/lib/types/agent-full';
 import type { ExternalAgent } from '@/lib/types/external-agents';
 import type { TeamAgent } from '@/lib/types/team-agents';
 import { generateId } from '@/lib/utils/id-utils';
@@ -651,7 +652,7 @@ export function serializeAgentData(
     (result as any).stopWhen = metadata.stopWhen;
   }
 
-  if (metadata?.prompt) {
+  if (metadata) {
     (result as any).prompt = metadata.prompt;
   }
 

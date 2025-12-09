@@ -132,7 +132,6 @@ export function FunctionToolNodeEditor({ selectedNode }: FunctionToolNodeEditorP
         onChange={handleDescriptionChange}
         placeholder="Enter function tool description..."
         error={getFieldError('description')}
-        isRequired
         maxHeight="max-h-32"
       />
       <div className="space-y-2">

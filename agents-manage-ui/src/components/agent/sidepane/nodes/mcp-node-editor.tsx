@@ -21,12 +21,12 @@ import { Separator } from '@/components/ui/separator';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { useAgentActions, useAgentStore } from '@/features/agent/state/use-agent-store';
 import { useNodeEditor } from '@/hooks/use-node-editor';
+import type { AgentToolConfigLookup } from '@/lib/types/agent-full';
 import {
   getCurrentHeadersForNode,
   getCurrentSelectedToolsForNode,
   getCurrentToolPoliciesForNode,
 } from '@/lib/utils/orphaned-tools-detector';
-import type { AgentToolConfigLookup } from '../../agent';
 import type { MCPNodeData } from '../../configuration/node-types';
 
 interface MCPServerNodeEditorProps {
@@ -139,23 +139,23 @@ export function MCPServerNodeEditor({
     markUnsaved();
   };
 
-  // const toggleToolApproval = (toolName: string) => {
-  //   const updatedPolicies = { ...currentToolPolicies };
+  const toggleToolApproval = (toolName: string) => {
+    const updatedPolicies = { ...currentToolPolicies };
 
-  //   if (updatedPolicies[toolName]?.needsApproval) {
-  //     // Remove approval requirement
-  //     delete updatedPolicies[toolName];
-  //   } else {
-  //     // Add approval requirement
-  //     updatedPolicies[toolName] = { needsApproval: true };
-  //   }
+    if (updatedPolicies[toolName]?.needsApproval) {
+      // Remove approval requirement
+      delete updatedPolicies[toolName];
+    } else {
+      // Add approval requirement
+      updatedPolicies[toolName] = { needsApproval: true };
+    }
 
-  //   updateNodeData(selectedNode.id, {
-  //     ...selectedNode.data,
-  //     tempToolPolicies: updatedPolicies,
-  //   });
-  //   markUnsaved();
-  // };
+    updateNodeData(selectedNode.id, {
+      ...selectedNode.data,
+      tempToolPolicies: updatedPolicies,
+    });
+    markUnsaved();
+  };
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
@@ -335,7 +335,7 @@ export function MCPServerNodeEditor({
                 selectedTools === null
                   ? true // If null, all tools are selected
                   : selectedTools.includes(tool.name);
-              // const needsApproval = currentToolPolicies[tool.name]?.needsApproval || false;
+              const needsApproval = currentToolPolicies[tool.name]?.needsApproval || false;
 
               return (
                 <div
@@ -361,20 +361,21 @@ export function MCPServerNodeEditor({
                       </TooltipContent>
                     </Tooltip>
                   </div>
-                  {/* <div className="flex items-center">
+                  {/* Needs Approval Checkbox hidden b/c we don't support it yet */}
+                  <div className="items-center hidden mcp-needs-approval">
                     <Checkbox
                       checked={needsApproval}
                       disabled={!isSelected}
                       onCheckedChange={() => toggleToolApproval(tool.name)}
                     />
-                  </div> */}
+                  </div>
                 </div>
               );
             })}
 
             {/* Orphaned tools (selected but no longer available) */}
             {orphanedTools.map((toolName) => {
-              // const needsApproval = currentToolPolicies[toolName]?.needsApproval || false;
+              const needsApproval = currentToolPolicies[toolName]?.needsApproval || false;
 
               return (
                 <div
@@ -404,12 +405,13 @@ export function MCPServerNodeEditor({
                       </TooltipContent>
                     </Tooltip>
                   </div>
-                  {/* <div className="flex items-center">
+                  {/* Needs Approval Checkbox hidden b/c we don't support it yet */}
+                  <div className="hidden items-center mcp-needs-approval">
                     <Checkbox
                       checked={needsApproval}
                       onCheckedChange={() => toggleToolApproval(toolName)}
                     />
-                  </div> */}
+                  </div>
                 </div>
               );
             })}

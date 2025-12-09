@@ -40,7 +40,7 @@ interface FetchToolApprovalDiffParams {
 }
 
 function parseToolName(toolName: string): ToolMetadata {
-  const parts = toolName.split('-');
+  const parts = toolName.split('_');
 
   const actions = ['create', 'update', 'delete', 'get', 'list'];
   const actionIndex = parts.findIndex((part) => actions.includes(part));
@@ -49,10 +49,15 @@ function parseToolName(toolName: string): ToolMetadata {
     throw new Error(`Unable to parse tool name: ${toolName}`);
   }
 
+  // New format: inkeep_manage_<action>_<entity_parts>
+  // Entity parts after action are joined with dashes to match API path conventions
+  const entityParts = parts.slice(actionIndex + 1);
+  const entity = entityParts.join('-');
+
   return {
-    resource: parts.slice(0, actionIndex).join('-'),
+    resource: entity,
     action: parts[actionIndex],
-    entity: parts.slice(actionIndex + 1).join('-'),
+    entity: entity,
   };
 }
 
@@ -61,7 +66,7 @@ function extractEntityId(input: Record<string, any>, metadata: ToolMetadata): st
 
   const request = input.request || input;
 
-  const specificIdFields = ['id', `${entity}Id`, entity.replace(/-/g, '') + 'Id'];
+  const specificIdFields = ['id', `${entity}Id`, `${entity.replace(/-/g, '')}Id`];
 
   for (const field of specificIdFields) {
     if (request[field]) {
@@ -71,7 +76,7 @@ function extractEntityId(input: Record<string, any>, metadata: ToolMetadata): st
 
   const commonIdFields = ['agentId', 'subAgentId', 'toolId'];
 
-  if (resource === 'projects' && request.id) {
+  if ((resource === 'projects' || resource === 'project') && request.id) {
     return request.id;
   }
 
@@ -117,6 +122,7 @@ function buildApiPath(
     (tid: string, pid: string, eid: string, params?: any) => string
   > = {
     projects: (tid, _pid, eid) => `tenants/${tid}/projects/${eid}`,
+    project: (tid, _pid, eid) => `tenants/${tid}/projects/${eid}`,
     agent: (tid, pid, eid) => `tenants/${tid}/projects/${pid}/agent/${eid}`,
     'sub-agent': (tid, pid, eid, params) => {
       if (!params?.agentId) {

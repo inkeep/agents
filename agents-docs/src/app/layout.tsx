@@ -1,21 +1,26 @@
-import '@/app/global.css';
+import { DocsLayout } from 'fumadocs-ui/layouts/docs';
+import type { LinkItemType } from 'fumadocs-ui/layouts/shared';
 import { RootProvider } from 'fumadocs-ui/provider/next';
+import { Cloud } from 'lucide-react';
 import { Inter } from 'next/font/google';
-import { ThemeProvider } from 'next-themes';
+import { FaGithub, FaLinkedinIn, FaSlack, FaXTwitter, FaYoutube } from 'react-icons/fa6';
 import type { Organization, WebSite, WithContext } from 'schema-dts';
-import { InkeepScript } from '@/components/inkeep/inkeep-script';
-import { Navbar } from '@/components/navbar';
+import { GithubStars } from '@/components/github-stars';
+import { Logo } from '@/components/logo';
+import { SearchDialog } from '@/components/search-dialog';
 import { JsonLd } from '@/components/seo/json-ld';
-import { AppSidebar } from '@/components/sidebar';
-import { SidebarProvider } from '@/components/ui/sidebar';
+import { Button } from '@/components/ui/button';
+import { SLACK_URL } from '@/lib/constants';
 import { createMetadata } from '@/lib/metadata';
+import { source } from '@/lib/source';
 import { cn } from '@/lib/utils';
+import '@/app/global.css';
 
 const inter = Inter({
   subsets: ['latin'],
 });
 
-const orgLd: WithContext<Organization> = {
+const orgLd = {
   '@context': 'https://schema.org',
   '@type': 'Organization',
   name: 'Inkeep',
@@ -44,52 +49,100 @@ const orgLd: WithContext<Organization> = {
     'https://www.crunchbase.com/organization/inkeep',
     'https://www.youtube.com/@inkeep-ai',
   ],
-};
+} satisfies WithContext<Organization>;
 
-const siteLd: WithContext<WebSite> = {
+const siteLd = {
   '@context': 'https://schema.org',
   '@type': 'WebSite',
   name: 'Inkeep Open Source',
   url: 'https://docs.inkeep.com',
   alternateName: 'Inkeep Docs',
-};
+} satisfies WithContext<WebSite>;
 
 export const metadata = createMetadata({
-  title: siteLd.name as string,
-  description: orgLd.description as string,
+  title: {
+    default: siteLd.name,
+    template: '%s - Inkeep Open Source Docs',
+  },
+  description: orgLd.description,
 });
+
+const linkItems: LinkItemType[] = [
+  {
+    type: 'icon',
+    url: 'https://github.com/inkeep/agents',
+    icon: <FaGithub />,
+    text: 'GitHub',
+  },
+  {
+    type: 'icon',
+    url: SLACK_URL,
+    icon: <FaSlack />,
+    text: 'Slack',
+  },
+  {
+    type: 'icon',
+    url: 'https://linkedin.com/company/inkeep/',
+    icon: <FaLinkedinIn />,
+    text: 'LinkedIn',
+  },
+  {
+    type: 'icon',
+    url: 'https://twitter.com/inkeep',
+    icon: <FaXTwitter />,
+    text: 'X (Twitter)',
+  },
+  {
+    type: 'icon',
+    url: 'https://youtube.com/@inkeep-ai',
+    icon: <FaYoutube />,
+    text: 'Inkeep on YouTube',
+  },
+];
 
 export default function Layout({ children }: LayoutProps<'/'>) {
   return (
-    <html lang="en" className={`${inter.className} antialiased`} suppressHydrationWarning>
-      <body className="flex flex-col min-h-screen">
+    <html lang="en" className={cn(inter.className, 'antialiased')} suppressHydrationWarning>
+      <body
+        className="flex flex-col min-h-screen bg-background"
+        // Suppress hydration warnings in development caused by browser extensions
+        suppressHydrationWarning={process.env.NODE_ENV !== 'production'}
+      >
         <JsonLd json={[orgLd, siteLd]} />
-        <ThemeProvider
-          attribute="class"
-          defaultTheme="system"
-          enableSystem
-          disableTransitionOnChange
-        >
-          <InkeepScript />
-          <RootProvider theme={{ enabled: false }}>
-            <SidebarProvider>
-              <Navbar />
-              <main
-                id="nd-docs-layout"
-                className={cn(
-                  'flex flex-1 flex-col pt-[calc(var(--fd-nav-height)-0.4rem)] transition-[padding] fd-default-layout',
-                  'mx-(--fd-layout-offset)',
-                  'md:[&_#nd-page_article]:pt-0! xl:[--fd-toc-width:286px] xl:[&_#nd-page_article]:px-8',
-                  'md:[--fd-sidebar-width:268px] lg:[--fd-sidebar-width:286px]',
-                  'flex flex-1 flex-row max-w-fd-container relative top-[calc(var(--fd-nav-height)+1rem)] px-4 ms-auto! me-auto!'
-                )}
-              >
-                <AppSidebar />
-                {children}
-              </main>
-            </SidebarProvider>
-          </RootProvider>
-        </ThemeProvider>
+        <RootProvider search={{ SearchDialog }}>
+          <DocsLayout
+            tree={source.pageTree}
+            nav={{
+              title: <Logo className="!w-[110px] !h-[32px]" />,
+            }}
+            sidebar={{
+              className: 'bg-background',
+              banner: (
+                <div className="flex gap-2">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="grow text-primary border-primary/30 hover:bg-primary/5 dark:bg-primary/5 hover:text-primary dark:text-primary dark:border-primary/30 dark:hover:bg-primary/10"
+                    asChild
+                  >
+                    <a
+                      href="https://inkeep.com/cloud-waitlist?cta_id=docs_nav"
+                      target="_blank"
+                      rel="noreferrer"
+                    >
+                      <Cloud />
+                      Inkeep Cloud
+                    </a>
+                  </Button>
+                  <GithubStars />
+                </div>
+              ),
+            }}
+            links={linkItems}
+          >
+            {children}
+          </DocsLayout>
+        </RootProvider>
       </body>
     </html>
   );
