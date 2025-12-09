@@ -1127,7 +1127,7 @@ export async function GET(
       description: string;
       timestamp: string;
       parentSpanId?: string | null;
-      status: 'success' | 'error' | 'pending';
+      status: 'success' | 'error' | 'warning' | 'pending';
       subAgentId?: string;
       subAgentName?: string;
       result?: string;
@@ -1606,6 +1606,46 @@ export async function GET(
       }
     }
 
+    // Adjust tool call status based on whether ALL or SOME failed within their agent generation
+    // Helper function to find the ancestor agent generation for an activity
+    function findAncestorAgentGeneration(activityId: string): string | null {
+      const activity = activities.find((a) => a.id === activityId);
+      if (!activity) return null;
+      if (activity.type === ACTIVITY_TYPES.AGENT_GENERATION) return activity.id;
+      if (!activity.parentSpanId) return null;
+      return findAncestorAgentGeneration(activity.parentSpanId);
+    }
+
+    // Group tool calls by their ancestor agent generation
+    const toolCallsByAgentGen = new Map<string, Activity[]>();
+    for (const activity of activities) {
+      if (activity.type === ACTIVITY_TYPES.TOOL_CALL) {
+        const ancestorAgentGen = findAncestorAgentGeneration(activity.id);
+        if (ancestorAgentGen) {
+          if (!toolCallsByAgentGen.has(ancestorAgentGen)) {
+            toolCallsByAgentGen.set(ancestorAgentGen, []);
+          }
+          toolCallsByAgentGen.get(ancestorAgentGen)?.push(activity);
+        }
+      }
+    }
+    
+    // For each agent generation, check if ALL or SOME tool calls failed
+    for (const [agentGenId, toolCallsInGeneration] of toolCallsByAgentGen) {
+      if (toolCallsInGeneration.length === 0) continue;
+      
+      const failedToolCalls = toolCallsInGeneration.filter((a) => a.status === ACTIVITY_STATUS.ERROR);
+      const successfulToolCalls = toolCallsInGeneration.filter((a) => a.status === ACTIVITY_STATUS.SUCCESS);
+      
+      // If SOME tools failed but at least one succeeded, mark failed ones as warnings
+      if (failedToolCalls.length > 0 && successfulToolCalls.length > 0) {
+        for (const toolCall of failedToolCalls) {
+          toolCall.status = 'warning' as const;
+        }
+      }
+      // If ALL tools failed, they remain as errors (no change needed)
+    }
+
     // Sort activities by pre-parsed timestamps
     activities.sort((a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime());
 
@@ -1655,6 +1695,17 @@ export async function GET(
 
     const openAICallsCount = aiGenerationSpans.length;
 
+    // Recalculate error and warning counts based on actual activity statuses
+    let finalErrorCount = 0;
+    let finalWarningCount = 0;
+    for (const activity of activities) {
+      if (activity.status === ACTIVITY_STATUS.ERROR) {
+        finalErrorCount++;
+      } else if (activity.status === 'warning') {
+        finalWarningCount++;
+      }
+    }
+
     const conversation = {
       conversationId,
       startTime: conversationStartTime ? conversationStartTime : null,
@@ -1689,8 +1740,8 @@ export async function GET(
       agentName,
       allSpanAttributes,
       spansWithErrorsCount: spansWithErrorsList.length,
-      errorCount,
-      warningCount,
+      errorCount: finalErrorCount,
+      warningCount: finalWarningCount,
     });
   } catch (error) {
     const logger = getLogger('conversation-details');

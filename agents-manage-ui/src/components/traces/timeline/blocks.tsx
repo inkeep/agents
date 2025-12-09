@@ -31,11 +31,20 @@ export function Info({ label, value }: { label: string; value?: React.ReactNode 
 }
 
 export function StatusBadge({ status }: { status: ActivityItem['status'] }) {
+  const variant =
+    status === 'success'
+      ? 'primary'
+      : status === 'warning'
+        ? 'warning'
+        : status === 'pending'
+          ? 'warning'
+          : 'error';
+
   return (
     <div>
       <span className="text-sm font-medium text-foreground">Status</span>
       <div className="mt-1">
-        <Badge className="uppercase" variant={status === 'success' ? 'primary' : 'error'}>
+        <Badge className="uppercase" variant={variant}>
           {status}
         </Badge>
       </div>

@@ -44,7 +44,7 @@ export interface ActivityItem {
   subAgentName?: string;
   toolName?: string;
   toolResult?: string;
-  status: 'success' | 'error' | 'pending';
+  status: 'success' | 'error' | 'warning' | 'pending';
   toolDescription?: string;
   result?: string;
   saveResultSaved?: boolean;
@@ -117,7 +117,7 @@ export interface ToolCall {
   toolType: string;
   timestamp: string;
   duration?: number;
-  status: 'success' | 'error' | 'pending';
+  status: 'success' | 'error' | 'warning' | 'pending';
   arguments?: any;
   result?: any;
   id?: string;
