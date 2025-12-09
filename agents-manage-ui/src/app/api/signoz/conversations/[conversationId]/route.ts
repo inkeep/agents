@@ -1021,7 +1021,7 @@ function buildConversationListPayload(
 
 // ---------- Main handler
 
-type RouteContext<T> = {
+type RouteContext<_T> = {
   params: Promise<Record<string, string>>;
 };
 

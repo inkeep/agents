@@ -21,7 +21,6 @@ import { ExternalLink } from '@/components/ui/external-link';
 import { ResizablePanelGroup } from '@/components/ui/resizable';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useRuntimeConfig } from '@/contexts/runtime-config-context';
-import { getManageApiUrl } from '@/lib/api/api-config';
 import { getSignozTracesExplorerUrl } from '@/lib/utils/signoz-links';
 import { copyTraceToClipboard } from '@/lib/utils/trace-formatter';
 import { SignozLink } from './signoz-link';

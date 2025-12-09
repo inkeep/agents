@@ -1,7 +1,6 @@
 import axios from 'axios';
 import axiosRetry from 'axios-retry';
 import { z } from 'zod';
-import { getManageApiUrl } from './api-config';
 import {
   AGGREGATE_OPERATORS,
   AI_OPERATIONS,

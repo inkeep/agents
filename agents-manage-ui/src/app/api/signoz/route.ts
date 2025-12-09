@@ -177,7 +177,7 @@ export async function GET(request: NextRequest) {
     );
 
     let errorMessage = 'Failed to check SigNoz configuration';
-    let configured = false;
+    const configured = false;
 
     if (axios.isAxiosError(error)) {
       if (error.code === 'ECONNREFUSED' || error.code === 'ENOTFOUND') {

@@ -153,7 +153,7 @@ export function AICallsBreakdown({ onBack }: AICallsBreakdownProps) {
     };
 
     fetchData();
-  }, [selectedAgent, selectedModel, startTime, endTime, params.projectId]);
+  }, [selectedAgent, selectedModel, startTime, endTime, params.projectId, tenantId]);
 
   const totalAICalls = agentCalls.reduce((sum, item) => sum + item.totalCalls, 0);
 

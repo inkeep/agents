@@ -101,7 +101,7 @@ export const useChatActivitiesPolling = ({
       }
       throw err;
     }
-  }, [conversationId]);
+  }, [conversationId, tenantId, projectId]);
 
   // Start polling
   const startPolling = useCallback(() => {
