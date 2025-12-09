@@ -15,6 +15,7 @@
     "external-agents",
     "workspace-configuration",
     "cli-reference",
+    "configure-runtime-limits",
     "..."
   ]
 }
