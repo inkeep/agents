@@ -1,6 +1,6 @@
 /**
  * Slack MCP Tools
- * 
+ *
  * Provides tools for interacting with Slack conversations, users, and channels.
  * All tools use session-based authentication and automatically retrieve
  * the appropriate user's credentials from the session context.
@@ -109,13 +109,13 @@ interface AuthTestResponse {
   scopes?: string[];
 }
 
-type SlackApiResponse = 
-  | MessagesResponse 
-  | SearchMessagesResponse 
-  | UserResponse 
-  | UsersResponse 
-  | ChannelResponse 
-  | ChannelsResponse 
+type SlackApiResponse =
+  | MessagesResponse
+  | SearchMessagesResponse
+  | UserResponse
+  | UsersResponse
+  | ChannelResponse
+  | ChannelsResponse
   | PostMessageResponse
   | AuthTestResponse
   | SlackError;
@@ -132,7 +132,7 @@ function parseRelativeDate(dateStr: string): string | null {
   const amount = Number.parseInt(match[1], 10);
   const unit = match[2];
   const today = new Date();
-  
+
   let targetDate: Date;
   if (unit === 'd') {
     targetDate = new Date(today.getTime() - amount * 24 * 60 * 60 * 1000);
@@ -283,7 +283,9 @@ export async function getChannelMessages(
     };
   } catch (e: unknown) {
     const error = e as { data?: { error?: string } };
-    console.error(`Slack API error in get_channel_messages: ${error.data?.error || 'Unknown error'}`);
+    console.error(
+      `Slack API error in get_channel_messages: ${error.data?.error || 'Unknown error'}`
+    );
     return {
       ok: false,
       error: `Slack API error: ${error.data?.error || 'Unknown error'}`,
@@ -329,12 +331,12 @@ export async function getThreadReplies(
       return { ok: false, error: response.error || 'Unknown error' };
     }
 
-      return {
-        ok: true,
-        messages: (response.messages || []) as SlackMessage[],
-        has_more: response.has_more || false,
-        next_cursor: response.response_metadata?.next_cursor,
-      };
+    return {
+      ok: true,
+      messages: (response.messages || []) as SlackMessage[],
+      has_more: response.has_more || false,
+      next_cursor: response.response_metadata?.next_cursor,
+    };
   } catch (error: unknown) {
     const err = error as { data?: { error?: string } };
     console.error(`Slack API error in get_thread_replies: ${err.data?.error || 'Unknown error'}`);
@@ -348,14 +350,14 @@ export async function getThreadReplies(
 /**
  * Search for messages across all conversations with advanced filters.
  * Uses the authenticated user's credentials from the current session context.
- * 
+ *
  * @example
  * // Search in last 7 days
  * searchMessages("important", { afterDate: "7d" })
- * 
+ *
  * // Search from specific user in a channel
  * searchMessages("meeting", { fromUser: "@john", inChannel: "#team" })
- * 
+ *
  * // Date range search
  * searchMessages("report", { afterDate: "2025-01-01", beforeDate: "2025-01-31" })
  */
@@ -414,7 +416,6 @@ export async function searchMessages(
       parsedBefore || undefined
     );
 
-
     // Slack API doesn't support sort_by/sort_order parameters, so we apply
     // client-side sorting to the current page of results only
     const response = await client.search.messages({
@@ -427,7 +428,11 @@ export async function searchMessages(
       return { ok: false, error: response.error || 'Unknown error' };
     }
 
-    const messagesData = response.messages || { matches: [], total: 0, pagination: { page: 1, page_count: 1 } };
+    const messagesData = response.messages || {
+      matches: [],
+      total: 0,
+      pagination: { page: 1, page_count: 1 },
+    };
     let matches = (messagesData.matches || []) as SearchMatch[];
 
     // Apply client-side sorting if requested and different from default
@@ -471,7 +476,7 @@ export async function searchMessages(
  * Dual-mode function:
  * - Without userId: Lists all users in the workspace with pagination
  * - With userId: Gets detailed profile for a specific user
- * 
+ *
  * Uses the authenticated user's credentials from the current session context.
  */
 export async function getUsers(
@@ -482,21 +487,21 @@ export async function getUsers(
   const client = new WebClient(slackBotToken);
 
   try {
-      // List all users
-      const response = await client.users.list({
-        limit: Math.min(limit, 1000),
-        cursor,
-      });
+    // List all users
+    const response = await client.users.list({
+      limit: Math.min(limit, 1000),
+      cursor,
+    });
 
-      if (!response.ok) {
-        return { ok: false, error: response.error || 'Unknown error' };
-      }
+    if (!response.ok) {
+      return { ok: false, error: response.error || 'Unknown error' };
+    }
 
-      return {
-        ok: true,
-        users: (response.members || []) as SlackUser[],
-        next_cursor: response.response_metadata?.next_cursor,
-      };
+    return {
+      ok: true,
+      users: (response.members || []) as SlackUser[],
+      next_cursor: response.response_metadata?.next_cursor,
+    };
   } catch (error: unknown) {
     const err = error as { data?: { error?: string } };
     console.error(`Slack API error in get_users: ${err.data?.error || 'Unknown error'}`);
@@ -512,7 +517,7 @@ export async function getUsers(
  * Dual-mode function:
  * - Without channelId: Lists channels with optional type filter (defaults to public channels only)
  * - With channelId: Gets detailed info for a specific channel, optionally with members
- * 
+ *
  * Uses the authenticated user's credentials from the current session context.
  */
 export async function getChannels(
@@ -520,7 +525,7 @@ export async function getChannels(
   channelId?: string,
   types?: string,
   limit = 200,
-  cursor?: string,
+  cursor?: string
 ): Promise<ChannelResponse | ChannelsResponse | SlackError> {
   const client = new WebClient(slackBotToken);
 
@@ -539,41 +544,43 @@ export async function getChannels(
       };
 
       return result;
-     }
-       const response = await client.conversations.list({
-        limit: Math.min(limit, 1000),
-        cursor,
-        types,
-      });
+    }
+    const response = await client.conversations.list({
+      limit: Math.min(limit, 1000),
+      cursor,
+      types,
+    });
 
-      const filteredChannels = response.channels?.filter((channel) => channel.is_channel === true).map((channel) => ({
+    const filteredChannels = response.channels
+      ?.filter((channel) => channel.is_channel === true)
+      .map((channel) => ({
         id: channel.id,
         name: channel.name,
         is_private: channel.is_private,
       }));
 
-      if (!response.ok) {
-        return { ok: false, error: response.error || 'Unknown error' };
-      }
-
-      return {
-        ok: true,
-        channels: (filteredChannels || []) as SlackChannel[],
-        next_cursor: response.response_metadata?.next_cursor,
-      };
-     } catch (error: unknown) {
-     const err = error as { data?: { error?: string } };
-     console.error(`Slack API error in get_channels: ${err.data?.error || 'Unknown error'}`);
-      return {
-        ok: false,
-        error: `Slack API error: ${err.data?.error || 'Unknown error'}`,
-      };
+    if (!response.ok) {
+      return { ok: false, error: response.error || 'Unknown error' };
     }
+
+    return {
+      ok: true,
+      channels: (filteredChannels || []) as SlackChannel[],
+      next_cursor: response.response_metadata?.next_cursor,
+    };
+  } catch (error: unknown) {
+    const err = error as { data?: { error?: string } };
+    console.error(`Slack API error in get_channels: ${err.data?.error || 'Unknown error'}`);
+    return {
+      ok: false,
+      error: `Slack API error: ${err.data?.error || 'Unknown error'}`,
+    };
   }
+}
 
 /**
  * Post a message to a Slack channel.
- * 
+ *
  * @param slackBotToken - Slack bot token for authentication
  * @param channelId - Channel ID to post the message to (e.g., 'C1234567890')
  * @param text - Message text content
@@ -583,13 +590,13 @@ export async function getChannels(
  * @param options.attachments - Message attachments (legacy)
  * @param options.unfurlLinks - Automatically unfurl links (default: true)
  * @param options.unfurlMedia - Automatically unfurl media (default: true)
- * 
+ *
  * @returns Promise with message details or error
- * 
+ *
  * @example
  * // Post a simple message
  * await postMessage(token, "C1234567890", "Hello, world!")
- * 
+ *
  * // Post a threaded reply
  * await postMessage(token, "C1234567890", "Reply!", { threadTs: "1234567890.123456" })
  */
@@ -638,10 +645,10 @@ export async function postMessage(
 
 /**
  * Test authentication and get bot information including available scopes/permissions.
- * 
+ *
  * @param slackBotToken - Slack bot token for authentication
  * @returns Promise with authentication details including scopes/permissions
- * 
+ *
  * @example
  * // Check bot permissions
  * const auth = await testAuth(token);
@@ -651,9 +658,7 @@ export async function postMessage(
  *   console.log('Team:', auth.team);
  * }
  */
-export async function getAuthScopes(
-  slackBotToken: string
-): Promise<string[]> {
+export async function getAuthScopes(slackBotToken: string): Promise<string[]> {
   const client = new WebClient(slackBotToken);
 
   try {
