@@ -1,6 +1,5 @@
 import { AlertTriangle, ChevronDown, ChevronUp, Copy, Loader2, RefreshCw } from 'lucide-react';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { ACTIVITY_STATUS } from '@/components/traces/timeline/types';
 import { toast } from 'sonner';
 import { StickToBottom } from 'use-stick-to-bottom';
 import { ConversationTracesLink } from '@/components/traces/signoz-link';
@@ -13,7 +12,7 @@ import type {
   PanelType,
   SelectedPanel,
 } from '@/components/traces/timeline/types';
-import { ACTIVITY_TYPES, TOOL_TYPES } from '@/components/traces/timeline/types';
+import { ACTIVITY_STATUS, ACTIVITY_TYPES, TOOL_TYPES } from '@/components/traces/timeline/types';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
 import { ExternalLink } from '@/components/ui/external-link';
@@ -222,8 +221,7 @@ export function TimelineWrapper({
   // Memoize first error ID for auto-scroll functionality
   const firstErrorId = useMemo(() => {
     const errorActivity = sortedActivities.find(
-      (activity) =>
-        activity.status === ACTIVITY_STATUS.ERROR || activity.hasError === true
+      (activity) => activity.status === ACTIVITY_STATUS.ERROR || activity.hasError === true
     );
     return errorActivity?.id ?? null;
   }, [sortedActivities]);

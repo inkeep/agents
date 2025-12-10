@@ -350,10 +350,7 @@ export function renderPanelContent({
               </LabeledBlock>
             )}
             {a.toolType === 'mcp' && a.mcpServerName && (
-              <Info
-                label="MCP server"
-                value={<Badge variant="code">{a.mcpServerName}</Badge>}
-              />
+              <Info label="MCP server" value={<Badge variant="code">{a.mcpServerName}</Badge>} />
             )}
             <Info label="Purpose" value={a.toolPurpose || 'No purpose information available'} />
             <Info label="Sub agent" value={a.subAgentName || 'Unknown sub agent'} />
@@ -403,10 +400,7 @@ export function renderPanelContent({
               </LabeledBlock>
             )}
             {a.toolType === 'mcp' && a.mcpServerName && (
-              <Info
-                label="MCP server"
-                value={<Badge variant="code">{a.mcpServerName}</Badge>}
-              />
+              <Info label="MCP server" value={<Badge variant="code">{a.mcpServerName}</Badge>} />
             )}
             <StatusBadge status={a.status} />
             {a.status === ACTIVITY_STATUS.ERROR && a.toolStatusMessage && (

@@ -1050,22 +1050,6 @@ export async function GET(
     const toolApprovalApprovedSpans = parseList(resp, QUERY_EXPRESSIONS.TOOL_APPROVAL_APPROVED);
     const toolApprovalDeniedSpans = parseList(resp, QUERY_EXPRESSIONS.TOOL_APPROVAL_DENIED);
 
-    // Categorize spans with errors into critical errors vs warnings
-    const CRITICAL_ERROR_SPAN_NAMES = [
-      'execution_handler.execute',
-      'agent.load_tools',
-      'context.handle_context_resolution',
-      'context.resolve',
-      'agent.generate',
-      'context-resolver.resolve_single_fetch_definition',
-      'agent_session.generate_structured_update',
-      'agent_session.process_artifact',
-      'agent_session.generate_artifact_metadata',
-      'response.format_object_response',
-      'response.format_response',
-      'ai.toolCall',
-    ];
-
     let agentId: string | null = null;
     let agentName: string | null = null;
     for (const s of userMessageSpans) {
@@ -1642,9 +1626,7 @@ export async function GET(
 
       // For each MCP server, check if ALL or SOME tool calls failed
       for (const [_mcpServerName, toolCallsToServer] of toolCallsByMcpServer) {
-        const failedToolCalls = toolCallsToServer.filter(
-          (a) => a.status === ACTIVITY_STATUS.ERROR
-        );
+        const failedToolCalls = toolCallsToServer.filter((a) => a.status === ACTIVITY_STATUS.ERROR);
         const successfulToolCalls = toolCallsToServer.filter(
           (a) => a.status === ACTIVITY_STATUS.SUCCESS
         );

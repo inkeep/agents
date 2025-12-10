@@ -2814,7 +2814,9 @@ class SigNozStatsAPI {
               ...QUERY_FIELD_CONFIGS.STRING_TAG_COLUMN,
             },
             filters: { op: OPERATORS.AND, items: baseFilters },
-            groupBy: [{ key: SPAN_KEYS.AI_TOOL_CALL_MCP_SERVER, ...QUERY_FIELD_CONFIGS.STRING_TAG }],
+            groupBy: [
+              { key: SPAN_KEYS.AI_TOOL_CALL_MCP_SERVER, ...QUERY_FIELD_CONFIGS.STRING_TAG },
+            ],
             expression: 'serverCalls',
             reduceTo: REDUCE_OPERATIONS.SUM,
             stepInterval: QUERY_DEFAULTS.STEP_INTERVAL,
@@ -2844,7 +2846,9 @@ class SigNozStatsAPI {
                 },
               ],
             },
-            groupBy: [{ key: SPAN_KEYS.AI_TOOL_CALL_MCP_SERVER, ...QUERY_FIELD_CONFIGS.STRING_TAG }],
+            groupBy: [
+              { key: SPAN_KEYS.AI_TOOL_CALL_MCP_SERVER, ...QUERY_FIELD_CONFIGS.STRING_TAG },
+            ],
             expression: 'serverErrors',
             reduceTo: REDUCE_OPERATIONS.SUM,
             stepInterval: QUERY_DEFAULTS.STEP_INTERVAL,
@@ -2920,7 +2924,9 @@ class SigNozStatsAPI {
             expression: 'uniqueServers',
             reduceTo: REDUCE_OPERATIONS.SUM,
             stepInterval: QUERY_DEFAULTS.STEP_INTERVAL,
-            orderBy: [{ columnName: SPAN_KEYS.AI_TOOL_CALL_MCP_SERVER, order: ORDER_DIRECTIONS.ASC }],
+            orderBy: [
+              { columnName: SPAN_KEYS.AI_TOOL_CALL_MCP_SERVER, order: ORDER_DIRECTIONS.ASC },
+            ],
             offset: QUERY_DEFAULTS.OFFSET,
             disabled: QUERY_DEFAULTS.DISABLED,
             having: QUERY_DEFAULTS.HAVING,

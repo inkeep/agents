@@ -637,7 +637,11 @@ export class Agent {
             enhancedTool,
             streamRequestId,
             'mcp',
-            { needsApproval, mcpServerId: toolSet.mcpServerId, mcpServerName: toolSet.mcpServerName }
+            {
+              needsApproval,
+              mcpServerId: toolSet.mcpServerId,
+              mcpServerName: toolSet.mcpServerName,
+            }
           );
         }
       }
@@ -834,7 +838,11 @@ export class Agent {
           sessionWrappedTool,
           streamRequestId,
           'mcp',
-          { needsApproval, mcpServerId: toolResult.mcpServerId, mcpServerName: toolResult.mcpServerName }
+          {
+            needsApproval,
+            mcpServerId: toolResult.mcpServerId,
+            mcpServerName: toolResult.mcpServerName,
+          }
         );
       }
     }
