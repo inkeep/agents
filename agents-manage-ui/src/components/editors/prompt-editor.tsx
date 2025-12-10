@@ -2,7 +2,6 @@
 
 import type { Editor } from '@tiptap/core';
 import { Extension } from '@tiptap/core';
-import Placeholder from '@tiptap/extension-placeholder';
 import { EditorContent, ReactRenderer, useEditor } from '@tiptap/react';
 import StarterKit from '@tiptap/starter-kit';
 import Suggestion, {
@@ -11,10 +10,25 @@ import Suggestion, {
   type SuggestionProps,
 } from '@tiptap/suggestion';
 import type { ComponentPropsWithoutRef, FC, RefObject } from 'react';
-import { useEffect, useImperativeHandle, useMemo, useRef, useState, useCallback } from 'react';
+import {
+  forwardRef,
+  useEffect,
+  useImperativeHandle,
+  useMemo,
+  useRef,
+  useState,
+  useCallback,
+} from 'react';
 import { useMonacoStore } from '@/features/agent/state/use-monaco-store';
 import { cn } from '@/lib/utils';
-import { buildPromptContent, extractInvalidVariables } from './prompt-editor-utils';
+import { buildPromptContent } from './prompt-editor-utils';
+import {
+  Command,
+  CommandEmpty,
+  CommandGroup,
+  CommandItem,
+  CommandList,
+} from '@/components/ui/command';
 
 type VariableSuggestionItem = {
   label: string;
@@ -29,14 +43,17 @@ interface VariableListProps extends SuggestionProps<VariableSuggestionItem> {
   ref: RefObject<VariableListRef>;
 }
 
-const VariableList: FC<VariableListProps> = ({ ref, items, command }) => {
+const VariableList = forwardRef<VariableListRef, VariableListProps>(({ items, command }, ref) => {
   const [selectedIndex, setSelectedIndex] = useState(0);
 
-  const selectItem = (index: number) => {
-    const item = items[index];
-    if (!item) return;
-    command(item);
-  };
+  const selectItem = useCallback(
+    (index: number) => {
+      const item = items[index];
+      if (!item) return;
+      command(item);
+    },
+    [command, items]
+  );
 
   useEffect(() => {
     setSelectedIndex(0);
@@ -67,34 +84,34 @@ const VariableList: FC<VariableListProps> = ({ ref, items, command }) => {
   }));
 
   return (
-    <div className="min-w-56 rounded-md border border-input bg-popover text-popover-foreground shadow-lg">
-      {items.length === 0 ? (
-        <p className="px-3 py-2 text-sm text-muted-foreground">No suggestions</p>
-      ) : (
-        <ul className="py-1">
-          {items.map((item, index) => (
-            <li key={item.label}>
-              <button
-                type="button"
-                className={cn(
-                  'flex w-full items-center justify-between px-3 py-2 text-left text-sm',
-                  index === selectedIndex ? 'bg-muted' : 'hover:bg-muted'
-                )}
+    <Command className="w-64 rounded-md border bg-popover text-popover-foreground shadow-lg">
+      <CommandList>
+        <CommandEmpty>No suggestions</CommandEmpty>
+        {items.length > 0 && (
+          <CommandGroup heading="Variables">
+            {items.map((item, index) => (
+              <CommandItem
+                key={item.label}
+                value={item.label}
+                data-selected={index === selectedIndex}
+                onMouseMove={() => setSelectedIndex(index)}
                 onMouseDown={(event) => {
                   event.preventDefault();
                   selectItem(index);
                 }}
               >
                 <span className="truncate">{item.label}</span>
-                <span className="ml-3 text-xs text-muted-foreground">{item.detail}</span>
-              </button>
-            </li>
-          ))}
-        </ul>
-      )}
-    </div>
+                <span className="ml-2 text-xs text-muted-foreground">{item.detail}</span>
+              </CommandItem>
+            ))}
+          </CommandGroup>
+        )}
+      </CommandList>
+    </Command>
   );
-};
+});
+
+VariableList.displayName = 'VariableList';
 
 const VariableSuggestion = Extension.create<{
   suggestion: Partial<SuggestionOptions<VariableSuggestionItem>>;
@@ -117,6 +134,73 @@ const VariableSuggestion = Extension.create<{
 
 const getEditorText = (editor: Editor) =>
   editor.state.doc.textBetween(0, editor.state.doc.content.size, '\n');
+
+const buildVariableItems = (query: string, suggestions: string[]) => {
+  const normalized = query.toLowerCase();
+  const entries = new Map<string, VariableSuggestionItem>();
+
+  for (const label of suggestions) {
+    if (label.toLowerCase().includes(normalized)) {
+      entries.set(label, { label, detail: 'Context variable' });
+    }
+  }
+
+  entries.set('$env.', { label: '$env.', detail: 'Environment variable' });
+
+  return [...entries.values()];
+};
+
+const createSuggestionRenderer = () => {
+  let component: ReactRenderer<VariableListRef> | null = null;
+  let popupElement: HTMLElement | null = null;
+
+  const updatePopupPosition = (props: SuggestionProps<VariableSuggestionItem>) => {
+    const clientRect = props.clientRect?.();
+    if (!popupElement || !clientRect) return;
+    popupElement.style.left = `${clientRect.left + window.scrollX}px`;
+    popupElement.style.top = `${clientRect.bottom + window.scrollY}px`;
+  };
+
+  const destroyPopup = () => {
+    if (popupElement?.parentNode) {
+      popupElement.parentNode.removeChild(popupElement);
+    }
+    popupElement = null;
+    component?.destroy();
+    component = null;
+  };
+
+  return {
+    onStart(startProps) {
+      component = new ReactRenderer(VariableList, {
+        props: startProps,
+        editor: startProps.editor,
+      });
+
+      popupElement = document.createElement('div');
+      popupElement.style.position = 'absolute';
+      popupElement.style.zIndex = '9999';
+      popupElement.appendChild(component.element);
+      document.body.appendChild(popupElement);
+      updatePopupPosition(startProps);
+    },
+    onUpdate(updateProps) {
+      component?.updateProps(updateProps);
+      updatePopupPosition(updateProps);
+    },
+    onKeyDown(keyDownProps) {
+      if (keyDownProps.event.key === 'Escape') {
+        destroyPopup();
+        return true;
+      }
+
+      return component?.ref?.onKeyDown(keyDownProps) ?? false;
+    },
+    onExit() {
+      destroyPopup();
+    },
+  };
+};
 
 interface PromptEditorProps extends Omit<ComponentPropsWithoutRef<'div'>, 'onChange'> {
   value?: string;
@@ -359,6 +443,30 @@ export const PromptEditor: FC<PromptEditorProps> = ({
   const { toggleMarkdownEditor } = useAgentActions();
   const contentType = useAgentStore((state) => (state.isMarkdownEditor ? undefined : 'markdown'));
   const formattedContent = useMemo(() => buildPromptContent(''), []);
+  const suggestionsRef = useRef<string[]>([]);
+  const variableSuggestions = useMonacoStore((state) => state.variableSuggestions);
+
+  useEffect(() => {
+    suggestionsRef.current = [...new Set(variableSuggestions)];
+  }, [variableSuggestions]);
+
+  const suggestionExtension = useMemo(
+    () =>
+      VariableSuggestion.configure({
+        suggestion: {
+          char: '{',
+          allowSpaces: true,
+          items({ query }) {
+            return buildVariableItems(query, suggestionsRef.current);
+          },
+          command({ editor, range, props }) {
+            editor.chain().focus().insertContentAt(range, `{{${props.label}}}`).run();
+          },
+          render: createSuggestionRenderer,
+        },
+      }),
+    []
+  );
 
   const editor = useEditor({
     immediatelyRender: false, // needs for SSR
@@ -386,17 +494,7 @@ export const PromptEditor: FC<PromptEditorProps> = ({
       TaskItem.configure({ nested: true }),
       TableKit,
       Highlight,
-      Mention.configure({
-        HTMLAttributes: { class: 'mention' },
-        suggestion: {
-          char: '{{',
-          items({ query }) {
-            const all = ['Ada', 'Alan', 'Grace', 'Linus', 'Margaret'];
-            console.log({ all });
-            return all.filter((x) => x.toLowerCase().startsWith(query.toLowerCase())).slice(0, 8);
-          },
-        },
-      }),
+      suggestionExtension,
     ],
     content: contentType ? mdContent : formattedContent,
     contentType,
