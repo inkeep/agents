@@ -169,7 +169,7 @@ export default function AcceptInvitationPage() {
       <div className="flex min-h-screen items-center justify-center p-4">
         <Card className="w-full max-w-md shadow-none border-none bg-transparent space-y-3">
           <div className="px-6">
-            <InkeepIcon size={48} />
+            <InkeepIcon size={50} />
           </div>
           <CardHeader>
             <CardTitle className="text-2xl font-medium tracking-tight text-foreground">
