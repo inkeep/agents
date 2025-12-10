@@ -61,7 +61,7 @@ const VariableList: FC<VariableListProps> = ({ items, command }) => {
           tabIndex={-1}
         />
       </DropdownMenuTrigger>
-      <DropdownMenuContent sideOffset={4}>
+      <DropdownMenuContent sideOffset={4} align="start">
         {items.length ? (
           items.map((item) => (
             <DropdownMenuItem key={item.label} data-label={item.label} onSelect={selectItem}>
@@ -81,11 +81,6 @@ const VariableSuggestion = Extension.create<{
   suggestion: Partial<SuggestionOptions<VariableSuggestionItem>>;
 }>({
   name: 'variableSuggestion',
-  addOptions() {
-    return {
-      suggestion: {},
-    };
-  },
   addProseMirrorPlugins() {
     return [
       Suggestion<VariableSuggestionItem>({
@@ -110,42 +105,27 @@ const buildVariableItems = (query: string, suggestions: string[]) => {
 };
 
 const createSuggestionRenderer: SuggestionOptions['render'] = () => {
-  let component: ReactRenderer<VariableListRef> | null = null;
-  let popupElement: HTMLElement | null = null;
-
-  const updatePopupPosition = (props: SuggestionProps<VariableSuggestionItem>) => {
-    const clientRect = props.clientRect?.();
-    if (!popupElement || !clientRect) return;
-    popupElement.style.left = `${clientRect.left + window.scrollX}px`;
-    popupElement.style.top = `${clientRect.bottom + window.scrollY}px`;
-  };
-
-  const destroyPopup = () => {
-    popupElement?.parentNode?.removeChild(popupElement);
-    popupElement = null;
-    component?.destroy();
-    component = null;
-  };
-
   return {
     onStart(startProps) {
-      component = new ReactRenderer(VariableList, {
+      console.log('on start');
+      const component = new ReactRenderer(VariableList, {
         props: startProps,
         editor: startProps.editor,
       });
-
-      popupElement = document.createElement('div');
+      const popupElement = document.createElement('div');
       popupElement.style.position = 'absolute';
       popupElement.style.zIndex = '9999';
-      popupElement.appendChild(component.element);
-      document.body.appendChild(popupElement);
-      updatePopupPosition(startProps);
+      popupElement.append(component.element);
+      document.body.append(popupElement);
+
+      const clientRect = startProps.clientRect?.();
+      if (!clientRect) return;
+      popupElement.style.left = `${clientRect.left}px`;
+      popupElement.style.top = `${clientRect.bottom}px`;
     },
-    onUpdate(updateProps) {
-      component?.updateProps(updateProps);
-      updatePopupPosition(updateProps);
+    onExit() {
+      console.log('on exit');
     },
-    onExit: destroyPopup,
   };
 };
 
