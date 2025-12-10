@@ -38,12 +38,11 @@ const VariableList: FC<VariableListProps> = ({ items, command, ref }) => {
   const anchorRef = useRef<HTMLButtonElement>(null);
 
   const selectItem = useCallback(
-    (index: number) => {
-      const item = items[index];
-      if (!item) return;
-      command(item);
+    (event: any) => {
+      const label = (event.currentTarget as HTMLElement).dataset.label;
+      command({ label });
     },
-    [command, items]
+    [command]
   );
 
   useEffect(() => {
@@ -91,14 +90,12 @@ const VariableList: FC<VariableListProps> = ({ items, command, ref }) => {
         onEscapeKeyDown={(event) => event.preventDefault()}
       >
         {items.length ? (
-          items.map((item, index) => (
+          items.map((item) => (
             <DropdownMenuItem
+              // onMouseMove={() => setSelectedIndex(index)}
               key={item.label}
-              onMouseMove={() => setSelectedIndex(index)}
-              onSelect={(event) => {
-                event.preventDefault();
-                selectItem(index);
-              }}
+              data-label={item.label}
+              onSelect={selectItem}
             >
               <span className="truncate">{item.label}</span>
               <span className="ml-2 text-xs text-muted-foreground">{item.detail}</span>
