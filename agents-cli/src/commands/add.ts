@@ -60,10 +60,16 @@ export async function addCommand(options: AddOptions) {
   const projectTemplates = await getAvailableTemplates('template-projects', options.localPrefix);
   const mcpTemplates = await getAvailableTemplates('template-mcps', options.localPrefix);
   if (!options.project && !options.mcp) {
+    console.log(chalk.cyan('\nUsage:\n'));
+    console.log(chalk.white('Add a project with: inkeep add --project <project-template>'));
+    console.log(chalk.gray('  Example: inkeep add --project docs-assistant\n'));
     console.log(chalk.yellow('Available project templates:'));
     for (const template of projectTemplates) {
       console.log(chalk.gray(`  • ${template}`));
     }
+
+    console.log(chalk.white('\nAdd an MCP server with: inkeep add --mcp <mcp-template>'));
+    console.log(chalk.gray('  Example: inkeep add --mcp slack\n'));
     console.log(chalk.yellow('Available MCP templates:'));
     for (const template of mcpTemplates) {
       console.log(chalk.gray(`  • ${template}`));
@@ -79,36 +85,65 @@ export async function addCommand(options: AddOptions) {
       process.exit(1);
     }
 
-    const s = p.spinner();
-    s.start('Adding template...');
     if (options.project) {
-      await addProjectTemplate(options.project, options.targetPath, options.localPrefix);
-      s.stop();
+      await addProjectTemplate(
+        projectTemplates,
+        options.project,
+        options.targetPath,
+        options.localPrefix
+      );
     }
     if (options.mcp) {
-      await addMcpTemplate(options.mcp, options.targetPath, s, options.localPrefix);
+      await addMcpTemplate(mcpTemplates, options.mcp, options.targetPath, options.localPrefix);
     }
     return;
   }
 }
 
+export async function checkTemplateDir(templateDir: string, commandType: 'project' | 'mcp') {
+  const s = p.spinner();
+  // Check if the template directory already exists
+  if (await fs.pathExists(templateDir)) {
+    const overwrite = await p.confirm({
+      message: `Directory "${templateDir}" already exists. Do you want to overwrite it?`,
+    });
+    if (!overwrite) {
+      p.cancel(
+        `You can specify a different target path like: \`inkeep add --${commandType} <${commandType}-template> --target-path <path>\``
+      );
+      process.exit(0);
+    }
+    s.start('Cleaning existing directory...');
+    await fs.emptyDir(templateDir);
+    s.stop();
+  }
+}
+
+function buildTemplateUrl(
+  templateType: 'template-projects' | 'template-mcps',
+  templateName: string
+): string {
+  return `https://github.com/inkeep/agents/agents-cookbook/${templateType}/${templateName}`;
+}
+
 export async function addProjectTemplate(
+  availableTemplates: string[],
   template: string,
   targetPath: string | undefined,
   localPrefix: string | undefined
 ) {
-  const templates = await getAvailableTemplates('template-projects', localPrefix);
   if (!template) {
     console.log(chalk.yellow('Available templates:'));
-    for (const template of templates) {
+    for (const template of availableTemplates) {
       console.log(chalk.gray(`  • ${template}`));
     }
     process.exit(0);
   } else {
-    if (!templates.includes(template)) {
+    if (!availableTemplates.includes(template)) {
       console.error(`❌ Template "${template}" not found`);
       process.exit(1);
     }
+    const s = p.spinner();
 
     const anthropicKey = process.env.ANTHROPIC_API_KEY;
     const openAiKey = process.env.OPENAI_API_KEY;
@@ -138,18 +173,15 @@ export async function addProjectTemplate(
         '❌ No AI provider key found in environment variables. Please set one of: ANTHROPIC_API_KEY, OPENAI_API_KEY, or GOOGLE_GENERATIVE_AI_API_KEY'
       );
     }
+    const projectDirectory = await findAppDirectory('project');
 
     // Determine the base directory (use provided target path or current directory)
-    const baseDir = targetPath || process.cwd();
+    const baseDir = targetPath || projectDirectory;
 
     // Create the full path including the template name as a subdirectory
-    const templateDir = `${baseDir}/${template}`;
+    const templateDir = path.join(baseDir, template);
 
-    // Check if the template directory already exists
-    if (await fs.pathExists(templateDir)) {
-      console.error(`❌ Directory "${templateDir}" already exists`);
-      process.exit(1);
-    }
+    await checkTemplateDir(templateDir, 'project');
 
     // Ensure the base directory exists
     if (targetPath && !(await fs.pathExists(baseDir))) {
@@ -163,7 +195,6 @@ export async function addProjectTemplate(
       }
     }
 
-    const s = p.spinner();
     s.start('Adding template...');
 
     // Clone into the template-named subdirectory
@@ -171,7 +202,7 @@ export async function addProjectTemplate(
       const fullTemplatePath = path.join(localPrefix, 'template-projects', template);
       await cloneTemplateLocal(fullTemplatePath, templateDir, contentReplacements);
     } else {
-      const fullTemplatePath = `https://github.com/inkeep/agents/agents-cookbook/template-projects/${template}`;
+      const fullTemplatePath = buildTemplateUrl('template-projects', template);
       await cloneTemplate(fullTemplatePath, templateDir, contentReplacements);
     }
     s.stop(`Template "${template}" added to ${templateDir}`);
@@ -180,47 +211,51 @@ export async function addProjectTemplate(
 }
 
 export async function addMcpTemplate(
+  availableTemplates: string[],
   template: string,
   targetPath: string | undefined,
-  spinner: any,
   localPrefix: string | undefined
 ) {
-  const templates = await getAvailableTemplates('template-mcps', localPrefix);
   if (!template) {
     console.log(chalk.yellow('Available templates:'));
-    for (const template of templates) {
+    for (const template of availableTemplates) {
       console.log(chalk.gray(`  • ${template}`));
     }
     process.exit(0);
   }
 
   if (!targetPath) {
-    const foundPath = await findAppDirectory();
-    targetPath = `${foundPath}/${template}`;
+    const foundPath = await findAppDirectory('mcp');
+    targetPath = path.join(foundPath, template);
   }
+
+  await checkTemplateDir(targetPath, 'mcp');
+
+  const s = p.spinner();
+  s.start('Adding template...');
   if (localPrefix && localPrefix.length > 0) {
     const fullTemplatePath = path.join(localPrefix, 'template-mcps', template);
     await cloneTemplateLocal(fullTemplatePath, targetPath);
   } else {
-    const fullTemplatePath = `https://github.com/inkeep/agents/agents-cookbook/template-mcps/${template}`;
+    const fullTemplatePath = buildTemplateUrl('template-mcps', template);
     await cloneTemplate(fullTemplatePath, targetPath);
   }
-  spinner.stop(`MCP template "${template}" added to ${targetPath}`);
+  s.stop(`MCP template "${template}" added to ${targetPath}`);
 }
 
-export async function findAppDirectory() {
-  const appDirectory = await findUp('apps/mcp/app', { type: 'directory' });
-  if (!appDirectory || !appDirectory.includes('apps/mcp/app')) {
-    console.log(chalk.yellow(`⚠️  No app directory found.`));
+export async function findAppDirectory(type: 'project' | 'mcp') {
+  const searchPath = type === 'project' ? 'src/projects' : 'apps/mcp/app';
+  const directory = await findUp(searchPath, { type: 'directory' });
+
+  if (!directory || !directory.includes(searchPath)) {
+    console.log(chalk.yellow(`⚠️  No ${type} directory found.`));
     const continueAnyway = await p.confirm({
       message: `Do you want to add to ${process.cwd()} instead?`,
     });
-
     if (!continueAnyway) {
       p.cancel('Operation cancelled');
       process.exit(0);
     }
-    return process.cwd();
   }
-  return appDirectory;
+  return directory || process.cwd();
 }

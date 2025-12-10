@@ -10,6 +10,7 @@ on:
       - "agents-run-api/**"
     branches:
       - main
+      - chat-to-edit
 
 permissions:
   contents: write
@@ -63,12 +64,19 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           HUSKY: 0
 
-      - name: Release to dev tag
+      - name: Release to snapshot tag
         if: steps.changesets.outputs.published != 'true'
         run: |
-          git checkout main
-          pnpm changeset version --snapshot dev
-          pnpm changeset publish --tag dev
+          BRANCH_NAME="${GITHUB_REF#refs/heads/}"
+          if [ "$BRANCH_NAME" = "chat-to-edit" ]; then
+            TAG_NAME="chat-to-edit"
+          else
+            TAG_NAME="dev"
+          fi
+          echo "Publishing to tag: $TAG_NAME"
+          git checkout $BRANCH_NAME
+          pnpm changeset version --snapshot $TAG_NAME
+          pnpm changeset publish --tag $TAG_NAME
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

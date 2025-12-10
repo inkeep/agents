@@ -11,7 +11,12 @@ export default defineConfig({
   ],
   server: {
     port: 3002,
+    host: '127.0.0.1', // Explicitly bind to IPv4 to avoid IPv6/IPv4 resolution issues
     allowedHosts: true,
     strictPort: true,
+    cors: {
+      origin: true,
+      credentials: true,
+    },
   },
 });

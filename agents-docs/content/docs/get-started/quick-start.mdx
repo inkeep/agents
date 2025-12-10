@@ -1,7 +1,7 @@
 ---
 title: Quick Start
-description: Get started with Inkeep Agents in &lt;1min
-icon: "LuRocket"
+description: Get started with Inkeep Agents in <1min
+icon: LuRocket
 ---
 
 ## Launch your first agent
@@ -36,7 +36,7 @@ Navigate to the folder
 cd my-agents
 ```
 
-Open the folder using your favorite coding editor. To open with Cursor, you can run `cursor .` 
+Open the folder using your coding editor. To open with Cursor, you can run `cursor .`
 
 ### Step 2: Run the setup script
 
@@ -45,6 +45,14 @@ Ensure Docker Desktop (or Docker daemon) is running before running the setup scr
 ```bash
 pnpm setup-dev
 ```
+
+Or if you are using a cloud database, you can skip the docker database startup by running:
+
+```bash
+pnpm setup-dev --skip-docker
+```
+
+Make sure your DATABASE_URL environment variable is configured for your cloud database.
 
 ### Step 3: Launch the dev environment
 
@@ -62,7 +70,7 @@ Navigate to the **Activities Planner** agent at http://localhost:3000, click **T
 
 ### Step 5: Install Inkeep MCP (optional)
 
-To help "vibe code" agents with Inkeep, add the `Inkeep Agents MCP` to your preferred IDE.
+If you didn't already opt-in to install the Inkeep MCP server during setup, you can add the Inkeep MCP server to your preferred IDE. This enables AI coding assistants to "vibe code" with your Inkeep agents.
 
 <div
   style={{
@@ -107,5 +115,12 @@ Next, we recommend learning about `inkeep push` and `inkeep pull` so you can go 
     href="/get-started/push-pull"
   >
     Use our cookbook to learn about push and pull.
+  </Card>
+  <Card
+    title="Meeting prep agent"
+    icon="LuCalendar"
+    href="/tutorials/agents/meeting-prep-assistant"
+  >
+    Learn how to build a meeting prep agent using the Visual Builder.
   </Card>
 </Cards>

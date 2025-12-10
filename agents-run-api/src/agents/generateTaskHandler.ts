@@ -253,7 +253,7 @@ export const createTaskHandler = (
         })
       );
 
-      const prompt = 'prompt' in config.agentSchema ? config.agentSchema.prompt : '';
+      const prompt = 'prompt' in config.agentSchema ? config.agentSchema.prompt || undefined : '';
       const models = 'models' in config.agentSchema ? config.agentSchema.models : undefined;
       const stopWhen = 'stopWhen' in config.agentSchema ? config.agentSchema.stopWhen : undefined;
 
@@ -300,7 +300,7 @@ export const createTaskHandler = (
             baseUrl: config.baseUrl,
             apiKey: config.apiKey,
             name: relation.name,
-            description: relation.description,
+            description: relation.description || undefined,
             prompt: '',
             delegateRelations: [],
             subAgentRelations: [],
@@ -424,7 +424,7 @@ export const createTaskHandler = (
                   projectId: config.projectId,
                   agentId: config.agentId,
                   name: relation.name,
-                  description: relation.description,
+                  description: relation.description || undefined,
                   prompt: '',
                   delegateRelations: targetDelegateRelationsConfig,
                   subAgentRelations: [],
@@ -440,13 +440,14 @@ export const createTaskHandler = (
                 type: 'internal' as const,
                 config: {
                   id: relation.id,
+                  relationId: relation.relationId,
                   tenantId: config.tenantId,
                   projectId: config.projectId,
                   agentId: config.agentId,
                   baseUrl: config.baseUrl,
                   apiKey: config.apiKey,
                   name: relation.name,
-                  description: relation.description,
+                  description: relation.description || undefined,
                   prompt: '',
                   delegateRelations: [], // Simplified - no nested relations
                   subAgentRelations: [],
@@ -655,17 +656,16 @@ export const createTaskHandler = (
                   },
                 ],
               };
-            } else {
-              logger.warn(
-                {
-                  hasToolResult: !!toolResult,
-                  hasOutput: !!toolResult?.output,
-                  validationPassed: false,
-                  output: toolResult?.output,
-                },
-                '[DEBUG] Transfer validation FAILED'
-              );
             }
+            logger.warn(
+              {
+                hasToolResult: !!toolResult,
+                hasOutput: !!toolResult?.output,
+                validationPassed: false,
+                output: toolResult?.output,
+              },
+              '[DEBUG] Transfer validation FAILED'
+            );
           }
         }
       }
@@ -688,10 +688,16 @@ export const createTaskHandler = (
     } catch (error) {
       console.error('Task handler error:', error);
 
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
+      const isConnectionRefused = errorMessage.includes(
+        'Connection refused. Please check if the MCP server is running.'
+      );
+
       return {
         status: {
           state: TaskState.Failed,
-          message: error instanceof Error ? error.message : 'Unknown error occurred',
+          message: errorMessage,
+          type: isConnectionRefused ? 'connection_refused' : 'unknown',
         },
         artifacts: [],
       };
@@ -768,7 +774,7 @@ export const createTaskHandlerConfig = async (params: {
     baseUrl: params.baseUrl,
     apiKey: params.apiKey,
     name: subAgent.name,
-    description: subAgent.description,
+    description: subAgent.description || undefined,
     conversationHistoryConfig: effectiveConversationHistoryConfig as AgentConversationHistoryConfig,
     contextConfigId: agent?.contextConfigId || undefined,
     sandboxConfig: params.sandboxConfig,

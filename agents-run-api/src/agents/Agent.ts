@@ -1,3 +1,4 @@
+import { z } from '@hono/zod-openapi';
 import {
   type AgentConversationHistoryConfig,
   type Artifact,
@@ -24,6 +25,7 @@ import {
   type McpServerConfig,
   type McpTool,
   type MessageContent,
+  ModelFactory,
   type ModelSettings,
   type Models,
   type SubAgentStopWhen,
@@ -39,7 +41,6 @@ import {
   type ToolSet,
   tool,
 } from 'ai';
-import { z } from 'zod';
 import {
   AGENT_EXECUTION_MAX_GENERATION_STEPS,
   FUNCTION_TOOL_EXECUTION_TIMEOUT_MS_DEFAULT,
@@ -55,8 +56,9 @@ import {
 } from '../data/conversations';
 import dbClient from '../data/db/dbClient';
 import { getLogger } from '../logger';
-import { agentSessionManager } from '../services/AgentSession';
+import { agentSessionManager, type ToolCallData } from '../services/AgentSession';
 import { IncrementalStreamParser } from '../services/IncrementalStreamParser';
+import { pendingToolApprovalManager } from '../services/PendingToolApprovalManager';
 import { ResponseFormatter } from '../services/ResponseFormatter';
 import type { SandboxConfig } from '../types/execution-context';
 import { generateToolId } from '../utils/agent-operations';
@@ -66,7 +68,6 @@ import { parseEmbeddedJson } from '../utils/json-parser';
 import type { StreamHelper } from '../utils/stream-helpers';
 import { getStreamHelper } from '../utils/stream-registry';
 import { setSpanWithError, tracer } from '../utils/tracer';
-import { ModelFactory } from './ModelFactory';
 import { createDelegateToAgentTool, createTransferToAgentTool } from './relationTools';
 import { SystemPromptBuilder } from './SystemPromptBuilder';
 import { toolSessionManager } from './ToolSessionManager';
@@ -105,12 +106,13 @@ export type AgentConfig = {
   tenantId: string;
   projectId: string;
   agentId: string;
+  relationId?: string;
   baseUrl: string;
   apiKey?: string;
   apiKeyId?: string;
   name: string;
-  description: string;
-  prompt: string;
+  description?: string;
+  prompt?: string;
   subAgentRelations: AgentConfig[];
   transferRelations: AgentConfig[];
   delegateRelations: DelegateRelation[];
@@ -290,6 +292,40 @@ export class Agent {
     return sanitizedTools;
   }
 
+  #createRelationToolName(prefix: string, targetId: string): string {
+    return `${prefix}_to_${targetId.toLowerCase().replace(/\s+/g, '_')}`;
+  }
+
+  #getRelationshipIdForTool(toolName: string, toolType?: ToolType): string | undefined {
+    if (toolType === 'mcp') {
+      const matchingTool = this.config.tools?.find((tool) => {
+        if (tool.config?.type !== 'mcp') {
+          return false;
+        }
+
+        if (tool.availableTools?.some((available) => available.name === toolName)) {
+          return true;
+        }
+
+        if (tool.config.mcp.activeTools?.includes(toolName)) {
+          return true;
+        }
+
+        return tool.name === toolName;
+      });
+
+      return matchingTool?.relationshipId;
+    }
+
+    if (toolType === 'delegation') {
+      const relation = this.config.delegateRelations.find(
+        (relation) => this.#createRelationToolName('delegate', relation.config.id) === toolName
+      );
+
+      return relation?.config.relationId;
+    }
+  }
+
   /**
    * Get the primary model settings for text generation and thinking
    * Requires model to be configured at project level
@@ -372,11 +408,12 @@ export class Agent {
     toolDefinition: any,
     streamRequestId?: string,
     toolType?: ToolType,
-    relationshipId?: string
+    options?: { needsApproval?: boolean }
   ) {
     if (!toolDefinition || typeof toolDefinition !== 'object' || !('execute' in toolDefinition)) {
       return toolDefinition;
     }
+    const relationshipId = this.#getRelationshipIdForTool(toolName, toolType);
 
     const originalExecute = toolDefinition.execute;
     return {
@@ -403,13 +440,29 @@ export class Agent {
           toolName.startsWith('transfer_to_');
         // Note: delegate_to_ tools are NOT internal - we want their results in conversation history
 
+        // Check if this tool needs approval first
+        const needsApproval = options?.needsApproval || false;
+
         if (streamRequestId && !isInternalTool) {
-          agentSessionManager.recordEvent(streamRequestId, 'tool_call', this.config.id, {
+          const toolCallData: ToolCallData = {
             toolName,
             input: args,
             toolCallId,
             relationshipId,
-          });
+          };
+
+          // Add approval-specific data when needed
+          if (needsApproval) {
+            toolCallData.needsApproval = true;
+            toolCallData.conversationId = this.conversationId;
+          }
+
+          await agentSessionManager.recordEvent(
+            streamRequestId,
+            'tool_call',
+            this.config.id,
+            toolCallData
+          );
         }
 
         try {
@@ -460,6 +513,7 @@ export class Agent {
               toolCallId,
               duration,
               relationshipId,
+              needsApproval,
             });
           }
 
@@ -476,6 +530,7 @@ export class Agent {
               duration,
               error: errorMessage,
               relationshipId,
+              needsApproval,
             });
           }
 
@@ -500,11 +555,9 @@ export class Agent {
     sessionId?: string
   ) {
     const { transferRelations = [], delegateRelations = [] } = this.config;
-    const createToolName = (prefix: string, subAgentId: string) =>
-      `${prefix}_to_${subAgentId.toLowerCase().replace(/\s+/g, '_')}`;
     return Object.fromEntries([
       ...transferRelations.map((agentConfig) => {
-        const toolName = createToolName('transfer', agentConfig.id);
+        const toolName = this.#createRelationToolName('transfer', agentConfig.id);
         return [
           toolName,
           this.wrapToolWithStreaming(
@@ -521,7 +574,7 @@ export class Agent {
         ];
       }),
       ...delegateRelations.map((relation) => {
-        const toolName = createToolName('delegate', relation.config.id);
+        const toolName = this.#createRelationToolName('delegate', relation.config.id);
 
         return [
           toolName,
@@ -560,15 +613,22 @@ export class Agent {
     const tools = (await Promise.all(mcpTools.map((tool) => this.getMcpTool(tool)) || [])) || [];
     if (!sessionId) {
       const wrappedTools: ToolSet = {};
-      for (const [index, toolSet] of tools.entries()) {
-        const relationshipId = mcpTools[index]?.relationshipId;
-        for (const [toolName, toolDef] of Object.entries(toolSet)) {
+      for (const toolSet of tools) {
+        for (const [toolName, toolDef] of Object.entries(toolSet.tools)) {
+          // Find toolPolicies for this tool
+          const needsApproval = toolSet.toolPolicies?.[toolName]?.needsApproval || false;
+
+          const enhancedTool = {
+            ...toolDef,
+            needsApproval,
+          };
+
           wrappedTools[toolName] = this.wrapToolWithStreaming(
             toolName,
-            toolDef,
+            enhancedTool,
             streamRequestId,
             'mcp',
-            relationshipId
+            { needsApproval }
           );
         }
       }
@@ -576,17 +636,118 @@ export class Agent {
     }
 
     const wrappedTools: ToolSet = {};
-    for (const [index, toolSet] of tools.entries()) {
-      const relationshipId = mcpTools[index]?.relationshipId;
-      for (const [toolName, originalTool] of Object.entries(toolSet)) {
+    for (const toolResult of tools) {
+      for (const [toolName, originalTool] of Object.entries(toolResult.tools)) {
         if (!isValidTool(originalTool)) {
           logger.error({ toolName }, 'Invalid MCP tool structure - missing required properties');
           continue;
         }
+
+        // Check if this tool needs approval from toolPolicies
+        const needsApproval = toolResult.toolPolicies?.[toolName]?.needsApproval || false;
+
+        logger.debug(
+          {
+            toolName,
+            toolPolicies: toolResult.toolPolicies,
+            needsApproval,
+            policyForThisTool: toolResult.toolPolicies?.[toolName],
+          },
+          'Tool approval check'
+        );
+
         const sessionWrappedTool = tool({
           description: originalTool.description,
           inputSchema: originalTool.inputSchema,
           execute: async (args, { toolCallId }) => {
+            // Check for approval requirement before execution
+            if (needsApproval) {
+              logger.info(
+                { toolName, toolCallId, args },
+                'Tool requires approval - waiting for user response'
+              );
+
+              // Add an event to the current active span if one exists
+              const currentSpan = trace.getActiveSpan();
+              if (currentSpan) {
+                currentSpan.addEvent('tool.approval.requested', {
+                  'tool.name': toolName,
+                  'tool.callId': toolCallId,
+                  'subAgent.id': this.config.id,
+                });
+              }
+
+              // Emit an immediate span to mark that approval request was sent
+              tracer.startActiveSpan(
+                'tool.approval_requested',
+                {
+                  attributes: {
+                    'tool.name': toolName,
+                    'tool.callId': toolCallId,
+                    'subAgent.id': this.config.id,
+                    'subAgent.name': this.config.name,
+                  },
+                },
+                (requestSpan: Span) => {
+                  requestSpan.setStatus({ code: SpanStatusCode.OK });
+                  requestSpan.end();
+                }
+              );
+
+              // Wait for approval (this promise resolves when user responds via API)
+              const approvalResult = await pendingToolApprovalManager.waitForApproval(
+                toolCallId,
+                toolName,
+                args,
+                this.conversationId || 'unknown',
+                this.config.id
+              );
+
+              if (!approvalResult.approved) {
+                // User denied approval - return a message instead of executing the tool
+                return tracer.startActiveSpan(
+                  'tool.approval_denied',
+                  {
+                    attributes: {
+                      'tool.name': toolName,
+                      'tool.callId': toolCallId,
+                      'subAgent.id': this.config.id,
+                      'subAgent.name': this.config.name,
+                    },
+                  },
+                  (denialSpan: Span) => {
+                    logger.info(
+                      { toolName, toolCallId, reason: approvalResult.reason },
+                      'Tool execution denied by user'
+                    );
+
+                    denialSpan.setStatus({ code: SpanStatusCode.OK });
+                    denialSpan.end();
+
+                    return `User denied approval to run this tool: ${approvalResult.reason}`;
+                  }
+                );
+              }
+
+              // Tool was approved - create a span to show this
+              tracer.startActiveSpan(
+                'tool.approval_approved',
+                {
+                  attributes: {
+                    'tool.name': toolName,
+                    'tool.callId': toolCallId,
+                    'subAgent.id': this.config.id,
+                    'subAgent.name': this.config.name,
+                  },
+                },
+                (approvedSpan: Span) => {
+                  logger.info({ toolName, toolCallId }, 'Tool approved, continuing with execution');
+                  approvedSpan.setStatus({ code: SpanStatusCode.OK });
+                  approvedSpan.end();
+                }
+              );
+            }
+
             logger.debug({ toolName, toolCallId }, 'MCP Tool Called');
 
             try {
@@ -608,6 +769,7 @@ export class Agent {
                 });
 
                 if (streamRequestId) {
+                  const relationshipId = this.#getRelationshipIdForTool(toolName, 'mcp');
                   agentSessionManager.recordEvent(streamRequestId, 'error', this.config.id, {
                     message: `MCP tool "${toolName}" failed: ${errorMessage}`,
                     code: 'mcp_tool_error',
@@ -663,7 +825,7 @@ export class Agent {
           sessionWrappedTool,
           streamRequestId,
           'mcp',
-          relationshipId
+          { needsApproval }
         );
       }
     }
@@ -713,11 +875,10 @@ export class Agent {
       },
     });
 
-    const agentToolRelationHeaders =
-      toolsForAgent.data.find((t) => t.toolId === tool.id)?.headers || undefined;
-
-    const selectedTools =
-      toolsForAgent.data.find((t) => t.toolId === tool.id)?.selectedTools || undefined;
+    const toolRelation = toolsForAgent.data.find((t) => t.toolId === tool.id);
+    const agentToolRelationHeaders = toolRelation?.headers || undefined;
+    const selectedTools = toolRelation?.selectedTools || undefined;
+    const toolPolicies = toolRelation?.toolPolicies || {};
 
     let serverConfig: McpServerConfig;
 
@@ -864,7 +1025,7 @@ export class Agent {
       }
     }
 
-    return tools;
+    return { tools, toolPolicies };
   }
 
   private async createMcpConnection(
@@ -892,12 +1053,12 @@ export class Agent {
         if (error?.cause && JSON.stringify(error.cause).includes('ECONNREFUSED')) {
           const errorMessage = 'Connection refused. Please check if the MCP server is running.';
           throw new Error(errorMessage);
-        } else if (error.message.includes('404')) {
+        }
+        if (error.message.includes('404')) {
           const errorMessage = 'Error accessing endpoint (HTTP 404)';
           throw new Error(errorMessage);
-        } else {
-          throw new Error(`MCP server connection failed: ${error.message}`);
         }
+        throw new Error(`MCP server connection failed: ${error.message}`);
       }
 
       throw error;
@@ -1165,8 +1326,8 @@ export class Agent {
     const conversationId = runtimeContext?.metadata?.conversationId || runtimeContext?.contextId;
     const resolvedContext = conversationId ? await this.getResolvedContext(conversationId) : null;
 
-    let processedPrompt = this.config.prompt;
-    if (resolvedContext) {
+    let processedPrompt = this.config.prompt || '';
+    if (resolvedContext && this.config.prompt) {
       try {
         processedPrompt = TemplateEngine.render(this.config.prompt, resolvedContext, {
           strict: false,
@@ -1230,8 +1391,8 @@ export class Agent {
 
     const resolvedContext = conversationId ? await this.getResolvedContext(conversationId) : null;
 
-    let processedPrompt = this.config.prompt;
-    if (resolvedContext) {
+    let processedPrompt = this.config.prompt || '';
+    if (resolvedContext && this.config.prompt) {
       try {
         processedPrompt = TemplateEngine.render(this.config.prompt, resolvedContext, {
           strict: false,
@@ -1982,6 +2143,20 @@ ${output}`;
                     logger.debug({ error }, 'Failed to track agent reasoning');
                   }
                 }
+                if (last && last['content'] && last['content'].length > 0) {
+                  const lastContent = last['content'][last['content'].length - 1];
+                  if (lastContent['type'] === 'tool-error') {
+                    const error = lastContent['error'];
+                    if (
+                      error &&
+                      typeof error === 'object' &&
+                      'name' in error &&
+                      error.name === 'connection_refused'
+                    ) {
+                      return true;
+                    }
+                  }
+                }
 
                 if (steps.length >= 2) {
                   const previousStep = steps[steps.length - 2];
@@ -2050,13 +2225,13 @@ ${output}`;
                     parser.markToolResult();
                   }
                   break;
-                case 'error':
+                case 'error': {
                   if (event.error instanceof Error) {
                     throw event.error;
-                  } else {
-                    const errorMessage = (event.error as any)?.error?.message;
-                    throw new Error(errorMessage);
                   }
+                  const errorMessage = (event.error as any)?.error?.message;
+                  throw new Error(errorMessage);
+                }
               }
             }
 

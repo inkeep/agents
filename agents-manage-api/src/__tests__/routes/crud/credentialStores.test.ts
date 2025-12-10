@@ -1,8 +1,9 @@
 import { CredentialStoreType } from '@inkeep/agents-core';
+import { createTestProject } from '@inkeep/agents-core/db/test-client';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { ensureTestProject } from '../../utils/testProject';
+import dbClient from '../../../data/db/dbClient';
 import { makeRequest } from '../../utils/testRequest';
-import { createTestTenantId } from '../../utils/testTenant';
+import { createTestTenantWithOrg } from '../../utils/testTenant';
 
 // Factory functions for creating mock stores with different behaviors
 const createMockStore = (
@@ -66,7 +67,7 @@ vi.mock('../../../index', async (importOriginal) => {
         }
 
         const mockConfig = { port: 3002, serverOptions: {} };
-        const app = createManagementHono(mockConfig, currentRegistry);
+        const app = createManagementHono(mockConfig, currentRegistry, null);
         return app.request(url, options);
       }),
     },
@@ -85,9 +86,9 @@ describe('Credential Stores - CRUD Operations', () => {
   beforeEach(async () => {
     vi.clearAllMocks();
     currentRegistry = null; // Clear registry between tests
-    tenantId = createTestTenantId();
+    tenantId = await createTestTenantWithOrg();
     projectId = 'default';
-    await ensureTestProject(tenantId, projectId);
+    await createTestProject(dbClient, tenantId, projectId);
   });
 
   describe('GET /stores', () => {

@@ -161,14 +161,14 @@ describe('Sub-Agent Generator', () => {
       expect(definition).not.toContain('tool3,');
     });
 
-    it('should throw error for missing required fields', () => {
+    it('should not throw error for minimal agent with just name (description and prompt are optional)', () => {
       const minimalData = {
         name: 'Minimal Agent',
       };
 
       expect(() => {
         generateSubAgentDefinition('minimal-agent', minimalData, undefined, mockRegistry);
-      }).toThrow("Missing required fields for sub-agent 'minimal-agent': description, prompt");
+      }).not.toThrow();
     });
 
     it('should throw error for missing all required fields', () => {
@@ -176,9 +176,7 @@ describe('Sub-Agent Generator', () => {
 
       expect(() => {
         generateSubAgentDefinition('fallback-agent', noNameData, undefined, mockRegistry);
-      }).toThrow(
-        "Missing required fields for sub-agent 'fallback-agent': name, description, prompt"
-      );
+      }).toThrow("Missing required fields for sub-agent 'fallback-agent': name");
     });
 
     it('should handle camelCase conversion for variable names', () => {
@@ -444,14 +442,12 @@ describe('Sub-Agent Generator', () => {
       expect(result.artifactComponents()).toHaveLength(1);
     });
 
-    it('should throw error for minimal sub-agent without required fields', () => {
+    it('should not throw error for minimal sub-agent with just name', () => {
       const minimalData = { name: 'Minimal Test Agent' };
 
       expect(() => {
         generateSubAgentDefinition('minimal-test-sub-agent', minimalData, undefined, mockRegistry);
-      }).toThrow(
-        "Missing required fields for sub-agent 'minimal-test-sub-agent': description, prompt"
-      );
+      }).not.toThrow();
     });
   });
 
@@ -494,12 +490,10 @@ describe('Sub-Agent Generator', () => {
           undefined,
           mockRegistry
         );
-      }).toThrow(
-        "Missing required fields for sub-agent 'empty-strings-sub-agent': name, description, prompt"
-      );
+      }).toThrow("Missing required fields for sub-agent 'empty-strings-sub-agent': name");
     });
 
-    it('should throw error for null required values', () => {
+    it('should not throw error when name is provided (other fields can be null/undefined)', () => {
       const nullData = {
         name: 'Test Sub Agent',
         description: null,
@@ -512,9 +506,7 @@ describe('Sub-Agent Generator', () => {
 
       expect(() => {
         generateSubAgentDefinition('null-values-sub-agent', nullData, undefined, mockRegistry);
-      }).toThrow(
-        "Missing required fields for sub-agent 'null-values-sub-agent': description, prompt"
-      );
+      }).not.toThrow();
     });
 
     it('should handle large number of tools/agents with proper formatting', () => {
@@ -581,22 +573,22 @@ describe('Sub-Agent Generator', () => {
       }).toThrow("Missing required fields for sub-agent 'missing-name': name");
     });
 
-    it('should throw error for missing description only', () => {
+    it('should not throw error for missing description (now optional)', () => {
       expect(() => {
         generateSubAgentDefinition('missing-desc', {
           name: 'Test Agent',
           prompt: 'Test prompt',
         });
-      }).toThrow("Missing required fields for sub-agent 'missing-desc': description");
+      }).not.toThrow();
     });
 
-    it('should throw error for missing prompt only', () => {
+    it('should not throw error for missing prompt (now optional)', () => {
       expect(() => {
         generateSubAgentDefinition('missing-prompt', {
           name: 'Test Agent',
           description: 'Test description',
         });
-      }).toThrow("Missing required fields for sub-agent 'missing-prompt': prompt");
+      }).not.toThrow();
     });
   });
 });

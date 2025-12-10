@@ -5,7 +5,6 @@ import {
   AgentListResponse,
   AgentResponse,
   AgentWithinContextOfProjectResponse,
-  AgentWithinContextOfProjectSchema,
   commonGetErrorResponses,
   createAgent,
   createApiError,
@@ -25,8 +24,27 @@ import {
   updateAgent,
 } from '@inkeep/agents-core';
 import dbClient from '../data/db/dbClient';
+import { requirePermission } from '../middleware/require-permission';
+import type { BaseAppVariables } from '../types/app';
 
-const app = new OpenAPIHono();
+const app = new OpenAPIHono<{ Variables: BaseAppVariables }>();
+
+app.use('/', async (c, next) => {
+  if (c.req.method === 'POST') {
+    return requirePermission({ agent: ['create'] })(c, next);
+  }
+  return next();
+});
+
+app.use('/:id', async (c, next) => {
+  if (c.req.method === 'PUT') {
+    return requirePermission({ agent: ['update'] })(c, next);
+  }
+  if (c.req.method === 'DELETE') {
+    return requirePermission({ agent: ['delete'] })(c, next);
+  }
+  return next();
+});
 
 app.openapi(
   createRoute({
@@ -224,16 +242,30 @@ app.openapi(
     const { tenantId, projectId } = c.req.valid('param');
     const validatedBody = c.req.valid('json');
 
-    const agent = await createAgent(dbClient)({
-      tenantId,
-      projectId,
-      id: validatedBody.id || generateId(),
-      name: validatedBody.name,
-      defaultSubAgentId: validatedBody.defaultSubAgentId,
-      contextConfigId: validatedBody.contextConfigId ?? undefined,
-    });
+    try {
+      const agent = await createAgent(dbClient)({
+        tenantId,
+        projectId,
+        id: validatedBody.id || generateId(),
+        name: validatedBody.name,
+        defaultSubAgentId: validatedBody.defaultSubAgentId,
+        contextConfigId: validatedBody.contextConfigId ?? undefined,
+      });
 
-    return c.json({ data: agent }, 201);
+      return c.json({ data: agent }, 201);
+    } catch (error: any) {
+      // Handle duplicate agent (PostgreSQL unique constraint violation)
+      if (error?.cause?.code === '23505') {
+        const agentId = validatedBody.id || 'unknown';
+        throw createApiError({
+          code: 'conflict',
+          message: `An agent with ID '${agentId}' already exists`,
+        });
+      }
+
+      // Re-throw other errors to be handled by the global error handler
+      throw error;
+    }
   }
 );
 

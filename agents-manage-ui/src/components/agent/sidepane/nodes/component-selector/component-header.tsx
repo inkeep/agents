@@ -10,9 +10,7 @@ export function ComponentHeader({ label, count }: ComponentHeaderProps) {
   return (
     <div className="flex gap-2">
       <Label>{label}</Label>
-      <Badge variant="code" className="border-none px-2 text-[10px] text-muted-foreground">
-        {count}
-      </Badge>
+      <Badge variant="count">{count}</Badge>
     </div>
   );
 }

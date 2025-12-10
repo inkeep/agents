@@ -19,6 +19,10 @@ export const DEFAULT_GOOGLE_SUMMARIZER_MODEL = GOOGLE_MODELS.GEMINI_2_5_FLASH_LI
 export const modelOptions = {
   anthropic: [
     {
+      value: ANTHROPIC_MODELS.CLAUDE_OPUS_4_5,
+      label: 'Claude Opus 4.5',
+    },
+    {
       value: ANTHROPIC_MODELS.CLAUDE_OPUS_4_1,
       label: 'Claude Opus 4.1',
     },
@@ -40,6 +44,10 @@ export const modelOptions = {
     },
   ],
   openai: [
+    {
+      value: OPENAI_MODELS.GPT_5_1,
+      label: 'GPT-5.1',
+    },
     {
       value: OPENAI_MODELS.GPT_4_1,
       label: 'GPT-4.1',
@@ -66,6 +74,10 @@ export const modelOptions = {
     },
   ],
   google: [
+    {
+      value: GOOGLE_MODELS.GEMINI_3_PRO_PREVIEW,
+      label: 'Gemini 3 Pro Preview',
+    },
     {
       value: GOOGLE_MODELS.GEMINI_2_5_PRO,
       label: 'Gemini 2.5 Pro',

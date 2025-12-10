@@ -1,4 +1,5 @@
 import { type NodeProps, Position } from '@xyflow/react';
+import type { FC, ReactNode } from 'react';
 import { getActiveTools } from '@/app/utils/active-tools';
 import { MCPToolImage } from '@/components/mcp-servers/mcp-tool-image';
 import { Badge } from '@/components/ui/badge';
@@ -10,6 +11,21 @@ import { BaseNode, BaseNodeContent, BaseNodeHeader, BaseNodeHeaderTitle } from '
 import { Handle } from './handle';
 
 const TOOLS_SHOWN_LIMIT = 4;
+
+export const TruncateBadge: FC<{ children: ReactNode }> = ({ children }) => {
+  return (
+    <Badge
+      variant="code"
+      className={cn(
+        'text-2xs text-gray-700 dark:text-gray-300',
+        // Add ellipsis for long names
+        'truncate block max-w-full'
+      )}
+    >
+      {children}
+    </Badge>
+  );
+};
 
 export function MCPNode(props: NodeProps & { data: MCPNodeData }) {
   const { data, selected } = props;
@@ -94,15 +110,9 @@ export function MCPNode(props: NodeProps & { data: MCPNodeData }) {
         <MCPToolImage imageUrl={imageUrl} name={name} size={24} className="flex-shrink-0" />
         <BaseNodeHeaderTitle>{name}</BaseNodeHeaderTitle>
       </BaseNodeHeader>
-      <BaseNodeContent>
-        {toolBadges.map((label, index) => (
-          <Badge
-            key={index}
-            variant="code"
-            className="px-2 text-2xs text-gray-700 dark:text-gray-300 flex-shrink-0"
-          >
-            {label}
-          </Badge>
+      <BaseNodeContent className="flex-row gap-2 flex-wrap">
+        {toolBadges.map((label) => (
+          <TruncateBadge key={label}>{label}</TruncateBadge>
         ))}
       </BaseNodeContent>
       <Handle id={mcpNodeHandleId} type="target" position={Position.Top} isConnectable />

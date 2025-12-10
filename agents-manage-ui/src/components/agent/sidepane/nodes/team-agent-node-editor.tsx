@@ -10,10 +10,11 @@ import { useAgentActions } from '@/features/agent/state/use-agent-store';
 import type { ErrorHelpers } from '@/hooks/use-agent-errors';
 import { useAutoPrefillIdZustand } from '@/hooks/use-auto-prefill-id-zustand';
 import { useNodeEditor } from '@/hooks/use-node-editor';
+import type { SubAgentTeamAgentConfigLookup } from '@/lib/types/agent-full';
 import { getCurrentHeadersForTeamAgentNode } from '@/lib/utils/team-agent-utils';
-import type { SubAgentTeamAgentConfigLookup } from '../../agent';
 import type { TeamAgentNodeData } from '../../configuration/node-types';
-import { InputField, TextareaField } from './form-fields';
+import { InputField } from '../form-components/input';
+import { TextareaField } from '../form-components/text-area';
 
 interface TeamAgentNodeEditorProps {
   selectedNode: Node<TeamAgentNodeData>;

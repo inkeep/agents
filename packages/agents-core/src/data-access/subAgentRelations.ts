@@ -158,6 +158,7 @@ export const getRelatedAgentsForAgent =
         name: subAgents.name,
         description: subAgents.description,
         relationType: subAgentRelations.relationType,
+        relationId: subAgentRelations.id,
       })
       .from(subAgentRelations)
       .innerJoin(
@@ -329,6 +330,7 @@ export const createAgentToolRelation =
       toolId: string;
       selectedTools?: string[] | null;
       headers?: Record<string, string> | null;
+      toolPolicies?: Record<string, { needsApproval?: boolean }> | null;
     };
   }) => {
     const finalRelationId = params.relationId ?? generateId();
@@ -344,6 +346,7 @@ export const createAgentToolRelation =
         toolId: params.data.toolId,
         selectedTools: params.data.selectedTools,
         headers: params.data.headers,
+        toolPolicies: params.data.toolPolicies,
       })
       .returning();
 
@@ -566,6 +569,7 @@ export const getToolsForAgent =
           toolId: subAgentToolRelations.toolId,
           selectedTools: subAgentToolRelations.selectedTools,
           headers: subAgentToolRelations.headers,
+          toolPolicies: subAgentToolRelations.toolPolicies,
           createdAt: subAgentToolRelations.createdAt,
           updatedAt: subAgentToolRelations.updatedAt,
           tool: {
@@ -642,6 +646,7 @@ export const getAgentsForTool =
           toolId: subAgentToolRelations.toolId,
           selectedTools: subAgentToolRelations.selectedTools,
           headers: subAgentToolRelations.headers,
+          toolPolicies: subAgentToolRelations.toolPolicies,
           createdAt: subAgentToolRelations.createdAt,
           updatedAt: subAgentToolRelations.updatedAt,
           subAgent: {

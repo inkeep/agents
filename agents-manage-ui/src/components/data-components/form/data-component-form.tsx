@@ -131,13 +131,13 @@ export function DataComponentForm({
             label="Description"
             placeholder="Display a list of user orders with interactive options"
             className="min-h-[80px]"
-            isRequired
           />
           <JsonSchemaInput
             control={form.control}
             name="props"
             label="Properties"
             placeholder="Enter a valid JSON Schema..."
+            uri="json-schema-data-component.json"
             isRequired
           />
 

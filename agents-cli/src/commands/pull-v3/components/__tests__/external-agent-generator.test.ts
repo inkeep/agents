@@ -117,7 +117,7 @@ describe('External Agent Generator', () => {
 
       expect(() => {
         generateExternalAgentDefinition('minimal-agent', minimalData);
-      }).toThrow("Missing required fields for external agent 'minimal-agent': name, description");
+      }).toThrow("Missing required fields for external agent 'minimal-agent': name");
     });
 
     it('should throw error for missing name only', () => {
@@ -177,12 +177,10 @@ describe('External Agent Generator', () => {
 
       expect(() => {
         generateExternalAgentDefinition('empty-strings-agent', emptyStringData);
-      }).toThrow(
-        "Missing required fields for external agent 'empty-strings-agent': name, description"
-      );
+      }).toThrow("Missing required fields for external agent 'empty-strings-agent': name");
     });
 
-    it('should throw error for null required values', () => {
+    it('should not throw error when name and baseUrl are provided (description is optional)', () => {
       const nullData = {
         name: 'Test External Agent',
         description: null,
@@ -191,7 +189,7 @@ describe('External Agent Generator', () => {
 
       expect(() => {
         generateExternalAgentDefinition('null-values-agent', nullData);
-      }).toThrow("Missing required fields for external agent 'null-values-agent': description");
+      }).not.toThrow();
     });
 
     it('should handle partial credential reference objects', () => {
@@ -303,9 +301,7 @@ describe('External Agent Generator', () => {
 
       expect(() => {
         generateExternalAgentDefinition('minimal-test-external-agent', minimalData);
-      }).toThrow(
-        "Missing required fields for external agent 'minimal-test-external-agent': name, description"
-      );
+      }).toThrow("Missing required fields for external agent 'minimal-test-external-agent': name");
     });
   });
 
@@ -371,12 +367,10 @@ describe('External Agent Generator', () => {
     it('should throw error for empty external agent data', () => {
       expect(() => {
         generateExternalAgentDefinition('empty-agent', {});
-      }).toThrow(
-        "Missing required fields for external agent 'empty-agent': name, description, baseUrl"
-      );
+      }).toThrow("Missing required fields for external agent 'empty-agent': name, baseUrl");
     });
 
-    it('should throw error for missing description only', () => {
+    it('should not throw error for missing description (now optional)', () => {
       const missingDescData = {
         name: 'Test Agent',
         baseUrl: 'https://api.example.com/test',
@@ -384,7 +378,7 @@ describe('External Agent Generator', () => {
 
       expect(() => {
         generateExternalAgentDefinition('missing-desc-agent', missingDescData);
-      }).toThrow("Missing required fields for external agent 'missing-desc-agent': description");
+      }).not.toThrow();
     });
 
     it('should throw error for missing baseUrl only', () => {

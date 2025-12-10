@@ -12,7 +12,8 @@ import {
   waitForServerReady,
 } from './utils';
 
-const manageApiUrl = 'http://localhost:3002';
+// Use 127.0.0.1 instead of localhost to avoid IPv6/IPv4 resolution issues on CI (Ubuntu)
+const manageApiUrl = 'http://127.0.0.1:3002';
 
 describe('create-agents quickstart e2e', () => {
   let testDir: string;
@@ -47,6 +48,8 @@ describe('create-agents quickstart e2e', () => {
         createAgentsPrefix,
         '--local-templates-prefix',
         projectTemplatesPrefix,
+        '--skip-inkeep-cli',
+        '--skip-inkeep-mcp',
       ],
       testDir
     );
@@ -80,8 +83,8 @@ describe('create-agents quickstart e2e', () => {
       /ENVIRONMENT=development/,
       /OPENAI_API_KEY=test-openai-key/,
       /DATABASE_URL=postgresql:\/\/appuser:password@localhost:5432\/inkeep_agents/,
-      /INKEEP_AGENTS_MANAGE_API_URL="http:\/\/localhost:3002"/,
-      /INKEEP_AGENTS_RUN_API_URL="http:\/\/localhost:3003"/,
+      /INKEEP_AGENTS_MANAGE_API_URL="http:\/\/127\.0\.0\.1:3002"/,
+      /INKEEP_AGENTS_RUN_API_URL="http:\/\/127\.0\.0\.1:3003"/,
       /INKEEP_AGENTS_JWT_SIGNING_SECRET=\w+/, // Random secret should be generated
     ]);
     console.log('.env file verified');
@@ -92,7 +95,7 @@ describe('create-agents quickstart e2e', () => {
     console.log('inkeep.config.ts verified');
 
     console.log('Setting up project in database');
-    await runCommand('pnpm', ['db:migrate'], projectDir);
+    await runCommand('pnpm', ['setup-dev:cloud'], projectDir);
     console.log('Project setup in database');
 
     console.log('Starting dev servers');

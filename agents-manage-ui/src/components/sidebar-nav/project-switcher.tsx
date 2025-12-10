@@ -22,15 +22,20 @@ const ProjectItem: FC<{
   name: string;
   description: string;
   icon: FC<ComponentProps<'svg'>> | false;
-}> = ({ name, description, icon: Icon }) => {
+  showIcon: boolean;
+}> = ({ name, description, icon: Icon, showIcon = true }) => {
   return (
     <>
-      <Avatar className="h-8 w-8 rounded-lg">
-        <AvatarFallback className="rounded-lg uppercase">{name.slice(0, 2)}</AvatarFallback>
-      </Avatar>
-      <div className="grid flex-1 text-left text-sm leading-tight">
+      {showIcon && (
+        <Avatar className={`h-8 w-8 rounded-lg `}>
+          <AvatarFallback className="rounded-lg uppercase">{name.slice(0, 2)}</AvatarFallback>
+        </Avatar>
+      )}
+      <div className="grid flex-1 gap-0.5 text-left text-sm leading-tight">
         <span className="truncate font-medium">{name}</span>
-        <span className="truncate text-xs">{description}</span>
+        <span className="truncate text-xs text-muted-foreground group-hover/project-switcher:text-sidebar-accent-foreground group-data-[state=open]/project-switcher:text-sidebar-accent-foreground">
+          {description}
+        </span>
       </div>
       {Icon && <Icon className="ml-auto size-4" />}
     </>
@@ -42,15 +47,16 @@ export const ProjectSwitcher: FC = () => {
   const [projects, setProjects] = useState<Project[]>([]);
   const [isProjectDialogOpen, setIsProjectDialogOpen] = useState(false);
   const { tenantId, projectId } = useParams<{ tenantId: string; projectId: string }>();
-  const { isMobile } = useSidebar();
+  const { isMobile, state } = useSidebar();
 
   const handleCreateProject = useCallback(() => {
     setIsProjectDialogOpen(true);
   }, []);
 
-  useEffect(() => {
+  const fetchProjects = useCallback(() => {
     if (!tenantId) return;
 
+    setIsLoading(true);
     fetchProjectsAction(tenantId)
       .then((res) => (res.success && res.data ? res.data : []))
       .catch((error) => {
@@ -63,6 +69,10 @@ export const ProjectSwitcher: FC = () => {
       });
   }, [tenantId]);
 
+  useEffect(() => {
+    fetchProjects();
+  }, [fetchProjects]);
+
   if (isLoading) {
     return <Skeleton className="h-12" />;
   }
@@ -74,9 +84,14 @@ export const ProjectSwitcher: FC = () => {
       <DropdownMenuTrigger asChild>
         <SidebarMenuButton
           size="lg"
-          className="data-[state=open]:bg-sidebar-accent data-[state=open]:text-sidebar-accent-foreground"
+          className="group/project-switcher data-[state=open]:bg-sidebar-accent data-[state=open]:text-sidebar-accent-foreground"
         >
-          <ProjectItem name={projectName} description={tenantId} icon={ChevronsUpDown} />
+          <ProjectItem
+            name={projectName}
+            description={tenantId}
+            icon={ChevronsUpDown}
+            showIcon={state === 'collapsed'}
+          />
         </SidebarMenuButton>
       </DropdownMenuTrigger>
       <DropdownMenuContent
@@ -92,6 +107,7 @@ export const ProjectSwitcher: FC = () => {
                 name={project.name}
                 description={project.description}
                 icon={project.projectId === projectId && Check}
+                showIcon={false}
               />
             </NextLink>
           </DropdownMenuItem>
@@ -99,13 +115,14 @@ export const ProjectSwitcher: FC = () => {
         <DropdownMenuSeparator />
         <DropdownMenuItem className="font-mono uppercase" onSelect={handleCreateProject}>
           <Plus />
-          Create Project
+          Create project
         </DropdownMenuItem>
       </DropdownMenuContent>
       <NewProjectDialog
         tenantId={tenantId}
         open={isProjectDialogOpen}
         onOpenChange={setIsProjectDialogOpen}
+        onSuccess={fetchProjects}
       />
     </DropdownMenu>
   );

@@ -135,7 +135,12 @@ interface SignozSpanLinkProps {
 }
 
 export function SignozLink({ conversationId }: SignozLinkProps) {
-  const { PUBLIC_SIGNOZ_URL } = useRuntimeConfig();
+  const { PUBLIC_SIGNOZ_URL, PUBLIC_IS_INKEEP_CLOUD_DEPLOYMENT } = useRuntimeConfig();
+
+  if (PUBLIC_IS_INKEEP_CLOUD_DEPLOYMENT === 'true') {
+    return null;
+  }
+
   return (
     <ExternalLink href={makeTracesUrl(PUBLIC_SIGNOZ_URL, conversationId)}>
       View Conversation in SigNoz
@@ -144,7 +149,12 @@ export function SignozLink({ conversationId }: SignozLinkProps) {
 }
 
 export function SignozSpanLink({ traceId, spanId }: SignozSpanLinkProps) {
-  const { PUBLIC_SIGNOZ_URL } = useRuntimeConfig();
+  const { PUBLIC_SIGNOZ_URL, PUBLIC_IS_INKEEP_CLOUD_DEPLOYMENT } = useRuntimeConfig();
+
+  if (PUBLIC_IS_INKEEP_CLOUD_DEPLOYMENT === 'true') {
+    return null;
+  }
+
   return (
     <ExternalLink href={makeSpanUrl(PUBLIC_SIGNOZ_URL, traceId, spanId)}>
       View span in SigNoz

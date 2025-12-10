@@ -1,19 +1,16 @@
 import { createRoute, OpenAPIHono } from '@hono/zod-openapi';
-import type { CredentialStoreRegistry, ServerConfig } from '@inkeep/agents-core';
 import {
   commonGetErrorResponses,
   createApiError,
   createTool,
   dbResultToMcpTool,
   deleteTool,
-  ErrorResponseSchema,
   generateId,
   getToolById,
   listTools,
   type McpTool,
   McpToolListResponse,
   McpToolResponse,
-  McpToolSchema,
   PaginationQueryParamsSchema,
   TenantProjectIdParamsSchema,
   TenantProjectParamsSchema,
@@ -24,15 +21,39 @@ import {
 } from '@inkeep/agents-core';
 import dbClient from '../data/db/dbClient';
 import { getLogger } from '../logger';
+import { requirePermission } from '../middleware/require-permission';
+import type { AppVariablesWithServerConfig } from '../types/app';
 
 const logger = getLogger('tools');
 
-type AppVariables = {
-  serverConfig: ServerConfig;
-  credentialStores: CredentialStoreRegistry;
-};
+const app = new OpenAPIHono<{ Variables: AppVariablesWithServerConfig }>();
 
-const app = new OpenAPIHono<{ Variables: AppVariables }>();
+// Apply permission middleware by HTTP method
+app.use('/', async (c, next) => {
+  if (c.req.method === 'POST') {
+    return requirePermission<{ Variables: AppVariablesWithServerConfig }>({ tool: ['create'] })(
+      c,
+      next
+    );
+  }
+  return next();
+});
+
+app.use('/:id', async (c, next) => {
+  if (c.req.method === 'PUT') {
+    return requirePermission<{ Variables: AppVariablesWithServerConfig }>({ tool: ['update'] })(
+      c,
+      next
+    );
+  }
+  if (c.req.method === 'DELETE') {
+    return requirePermission<{ Variables: AppVariablesWithServerConfig }>({ tool: ['delete'] })(
+      c,
+      next
+    );
+  }
+  return next();
+});
 
 app.openapi(
   createRoute({
@@ -288,14 +309,7 @@ app.openapi(
       204: {
         description: 'Tool deleted successfully',
       },
-      404: {
-        description: 'Tool not found',
-        content: {
-          'application/json': {
-            schema: ErrorResponseSchema,
-          },
-        },
-      },
+      ...commonGetErrorResponses,
     },
   }),
   async (c) => {

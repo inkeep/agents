@@ -137,24 +137,22 @@ export type FunctionToolConfig = Omit<z.infer<typeof FunctionToolConfigSchema>, 
 };
 
 const createApiSchema = <T extends z.ZodRawShape>(schema: z.ZodObject<T>) =>
-  schema.omit({ tenantId: true, projectId: true }) satisfies z.ZodObject<any>;
+  schema.omit({ tenantId: true, projectId: true });
 
 const createApiInsertSchema = <T extends z.ZodRawShape>(schema: z.ZodObject<T>) =>
-  schema.omit({ tenantId: true, projectId: true }) satisfies z.ZodObject<any>;
+  schema.omit({ tenantId: true, projectId: true });
 
 const createApiUpdateSchema = <T extends z.ZodRawShape>(schema: z.ZodObject<T>) =>
-  schema.omit({ tenantId: true, projectId: true }).partial() satisfies z.ZodObject<any>;
+  schema.omit({ tenantId: true, projectId: true }).partial();
 
 const createAgentScopedApiSchema = <T extends z.ZodRawShape>(schema: z.ZodObject<T>) =>
-  schema.omit({ tenantId: true, projectId: true, agentId: true }) satisfies z.ZodObject<any>;
+  schema.omit({ tenantId: true, projectId: true, agentId: true });
 
 const createAgentScopedApiInsertSchema = <T extends z.ZodRawShape>(schema: z.ZodObject<T>) =>
-  schema.omit({ tenantId: true, projectId: true, agentId: true }) satisfies z.ZodObject<any>;
+  schema.omit({ tenantId: true, projectId: true, agentId: true });
 
 const createAgentScopedApiUpdateSchema = <T extends z.ZodRawShape>(schema: z.ZodObject<T>) =>
-  schema
-    .omit({ tenantId: true, projectId: true, agentId: true })
-    .partial() satisfies z.ZodObject<any>;
+  schema.omit({ tenantId: true, projectId: true, agentId: true }).partial();
 
 export const SubAgentSelectSchema = createSelectSchema(subAgents);
 
@@ -622,7 +620,7 @@ export const RelatedAgentInfoSchema = z
   .object({
     id: z.string(),
     name: z.string(),
-    description: z.string(),
+    description: z.string().nullable(),
   })
   .openapi('RelatedAgentInfo');
 
@@ -655,9 +653,7 @@ export const McpToolSchema = ToolInsertSchema.extend({
   availableTools: z.array(McpToolDefinitionSchema).optional(),
   status: ToolStatusSchema.default('unknown'),
   version: z.string().optional(),
-  createdAt: z.date(),
-  updatedAt: z.date(),
-  expiresAt: z.date().optional(),
+  expiresAt: z.string().optional(),
   relationshipId: z.string().optional(),
 }).openapi('McpTool');
 
@@ -722,6 +718,7 @@ export const FetchConfigSchema = z
     headers: z.record(z.string(), z.string()).optional(),
     body: z.record(z.string(), z.unknown()).optional(),
     transform: z.string().optional(), // JSONPath or JS transform function
+    requiredToFetch: z.array(z.string()).optional(), // Context variables that are required to run the fetch request. If the given variables cannot be resolved, the fetch request will be skipped.
     timeout: z
       .number()
       .min(0)
@@ -792,6 +789,7 @@ export const SubAgentToolRelationInsertSchema = createInsertSchema(subAgentToolR
   toolId: resourceIdSchema,
   selectedTools: z.array(z.string()).nullish(),
   headers: z.record(z.string(), z.string()).nullish(),
+  toolPolicies: z.record(z.string(), z.object({ needsApproval: z.boolean().optional() })).nullish(),
 });
 
 export const SubAgentToolRelationUpdateSchema = SubAgentToolRelationInsertSchema.partial();
@@ -904,6 +902,9 @@ export const CanUseItemSchema = z
     toolId: z.string(),
     toolSelection: z.array(z.string()).nullish(),
     headers: z.record(z.string(), z.string()).nullish(),
+    toolPolicies: z
+      .record(z.string(), z.object({ needsApproval: z.boolean().optional() }))
+      .nullish(),
   })
   .openapi('CanUseItem');
 
@@ -937,7 +938,7 @@ export const FullAgentAgentInsertSchema = SubAgentApiInsertSchema.extend({
   dataComponents: z.array(z.string()).optional(),
   artifactComponents: z.array(z.string()).optional(),
   canTransferTo: z.array(z.string()).optional(),
-  prompt: z.string().trim().nonempty(),
+  prompt: z.string().trim().optional(),
   canDelegateTo: z
     .array(
       z.union([
@@ -1365,3 +1366,36 @@ export const PaginationQueryParamsSchema = z
     limit: limitNumber,
   })
   .openapi('PaginationQueryParams');
+
+export const PrebuiltMCPServerSchema = z.object({
+  id: z.string().describe('Unique identifier for the MCP server'),
+  name: z.string().describe('Display name of the MCP server'),
+  url: z.url().describe('URL endpoint for the MCP server'),
+  transport: z.enum(MCPTransportType).describe('Transport protocol type'),
+  imageUrl: z.url().optional().describe('Logo/icon URL for the MCP server'),
+  isOpen: z
+    .boolean()
+    .optional()
+    .describe("Whether the MCP server is open (doesn't require authentication)"),
+  category: z
+    .string()
+    .optional()
+    .describe('Category of the MCP server (e.g., communication, project_management)'),
+  description: z.string().optional().describe('Brief description of what the MCP server does'),
+  thirdPartyConnectAccountUrl: z
+    .url()
+    .optional()
+    .describe('URL to connect to the third party account'),
+});
+
+export const MCPCatalogListResponse = z
+  .object({
+    data: z.array(PrebuiltMCPServerSchema),
+  })
+  .openapi('MCPCatalogListResponse');
+
+export const ThirdPartyMCPServerResponse = z
+  .object({
+    data: PrebuiltMCPServerSchema.nullable(),
+  })
+  .openapi('ThirdPartyMCPServerResponse');

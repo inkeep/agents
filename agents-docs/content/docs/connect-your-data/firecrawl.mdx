@@ -1,0 +1,236 @@
+---
+title: Connect Your Data with Firecrawl
+sidebarTitle: Firecrawl
+description: Connect websites to your agents using Firecrawl
+icon: "brand/Firecrawl"
+keywords: Firecrawl, web scraping, web crawling, data sources, MCP server, documentation, website indexing, RAG pipeline
+---
+
+## Overview
+
+Firecrawl is a web scraping and web crawling platform that extracts clean content from web pages and converts it to markdown or structured JSON, ready for embedding and use in RAG pipelines.
+
+With Firecrawl you can connect your agents to:
+
+- **Websites**: Website crawling and indexing for extracting clean content from web pages
+- **Web pages**: Individual page scraping with automatic content extraction
+
+## RAG pipeline workflow
+
+Here's what a complete RAG pipeline looks like to connect your websites to your agents:
+
+<Steps>
+  <Step>
+    **Scrape web content with Firecrawl** - Extract clean markdown from websites
+  </Step>
+  <Step>
+    **Save the clean markdown** - Store scraped content locally
+  </Step>
+  <Step>
+    **Index the documents in Pinecone** - Using Pinecone Assistant SDK
+  </Step>
+  <Step>
+    **Agent queries via MCP server** - Retrieves relevant content using semantic search
+  </Step>
+</Steps>
+
+## Getting started
+
+### Prerequisites
+
+Before we get started, make sure you have the following:
+- A [Firecrawl account](https://firecrawl.dev/)
+- A [Pinecone account](https://app.pinecone.io/)
+- [uv](https://docs.astral.sh/uv/) installed
+- A python virtual environment running
+
+### Step 1: Set up Firecrawl and collect data
+
+Install Firecrawl and retrieve your API key from [firecrawl.dev](https://firecrawl.dev):
+
+```bash
+uv pip install firecrawl-py python-dotenv
+```
+
+Save your API key to a `.env` file:
+
+```bash title=".env"
+FIRECRAWL_API_KEY=fc-YOUR-KEY-HERE
+```
+
+The following script uses Firecrawl to explore a website's structure, identify all available pages, and convert each page's content into markdown files.
+
+```python
+from firecrawl import Firecrawl
+from dotenv import load_dotenv
+from pathlib import Path
+
+load_dotenv()
+app = Firecrawl()
+
+# Crawl to discover pages
+crawl_result = app.crawl(
+    "https://www.mayoclinic.org/drugs-supplements",
+    limit=10,
+    scrape_options={'formats': ['markdown']}
+)
+
+# Extract URLs
+urls = [page.metadata.url for page in crawl_result.data
+        if page.metadata and page.metadata.url]
+
+# Batch scrape
+batch_job = app.batch_scrape(urls, formats=["markdown"])
+
+# This creates a directory for our documents and saves each scraped page as a numbered markdown file
+output_dir = Path("data/documents")
+output_dir.mkdir(parents=True, exist_ok=True)
+
+for i, result in enumerate(batch_job.data):
+    filename = f"doc_{i:02d}.md"
+    with open(output_dir / filename, "w") as f:
+        f.write(result.markdown)
+```
+
+<Tip>
+For a more in-depth tutorial on programmatically scraping with Firecrawl, follow Firecrawl's [guide](https://www.firecrawl.dev/blog/best-vector-databases-2025) under the "Building a RAG Pipeline" section.
+</Tip>
+
+### Step 2: Set up Pinecone Assistant and index your documents
+
+We'll load those markdown files, chunk them, and store them in Pinecone. First, install the required packages:
+
+```bash
+uv pip install langchain-pinecone langchain-openai pinecone langchain langchain-text-splitters
+```
+
+Set up your Pinecone API key environment variable:
+
+```bash title=".env"
+PINECONE_API_KEY=your-key
+```
+
+In your Pinecone Assistant, create a new assistant named "drug-info-rag". The code below indexes your documents in the assistant with their embeddings.
+
+```python
+import os
+from pathlib import Path
+from dotenv import load_dotenv
+from pinecone import Pinecone
+
+load_dotenv()
+
+# Initialize Pinecone
+pc = Pinecone(api_key=os.environ["PINECONE_API_KEY"])
+
+# Create assistant
+assistant = pc.assistant.Assistant(
+    assistant_name="drug-info-rag",
+)
+
+# Upload markdown files to assistant
+for md_file in Path("data/documents").glob("*.md"):
+    response = assistant.upload_file(
+        file_path=str(md_file.absolute()),
+        timeout=None
+    )
+    print(f"Uploaded {md_file.name}: {response}")
+```
+
+### Step 3: Get your Pinecone Assistant MCP server URL
+
+1. Navigate to the **Settings** tab in [Pinecone Assistant](https://app.pinecone.io/)
+2. Copy the MCP URL provided
+
+### Step 4: Register the MCP server
+
+Register the Pinecone MCP server as a tool in your agent configuration. Replace `<your-mcp-url>` with the MCP URL you copied in Step 4.
+
+**Using TypeScript SDK:**
+
+You can create your [credential](/typescript-sdk/credentials/overview) using keychain, nango, or environment variables, but in this example we use environment variables.
+
+<CodeGroup>
+```typescript title=".env"
+PINECONE_API_KEY=<your-pinecone-api-key>
+```
+```typescript title="agents/documentation-agent.ts"
+import { mcpTool, subAgent, credential } from "@inkeep/agents-sdk";
+
+const pineconeCredential = credential({
+  id: 'pinecone-credential',
+  name: 'Pinecone Credential',
+  type: CredentialStoreType.memory,
+  credentialStoreId: 'memory-default',
+  retrievalParams: {
+    "key": "PINECONE_API_KEY", // where PINECONE_API_KEY is the API key for your Pinecone project
+  },
+});
+
+const pineconeTool = mcpTool({
+  id: "pinecone-documents",
+  name: "pinecone_search",
+  description: "Search uploaded documents and files using semantic search",
+  serverUrl: "<your-mcp-url>", // From Pinecone Settings tab
+});
+
+const docAgent = subAgent({
+  id: "doc-agent",
+  name: "Documentation Assistant",
+  description: "Answers questions using uploaded documents",
+  prompt: `You are a documentation assistant with access to company documents and files.`,
+  canUse: () => [pineconeTool],
+});
+```
+</CodeGroup>
+
+**Using Visual Builder:**
+
+1. **Add a Pinecone credential:**
+   - Go to the **Credentials** tab in the Visual Builder
+   - Click **"New credential"**
+   - Select **"Bearer authentication"**
+   - Enter:
+     - **Name**: `Pinecone API Key` (or your preferred name)
+     - **API key**: Your Pinecone API key (found in your [Pinecone dashboard](https://app.pinecone.io/))
+   - Click **"Create Credential"** to save
+
+2. **Register the MCP server:**
+   - Go to the **MCP Servers** tab in the Visual Builder
+   - Click **"New MCP server"**
+   - Select **"Custom Server"**
+   - Enter:
+     - **Name**: `Pinecone Documents`
+     - **URL**: Your MCP URL from Pinecone Settings tab
+     - **Transport Type**: `Streamable HTTP`
+     - **Credential**: Select the Pinecone credential you created
+   - Click **"Create"** to save the server
+
+3. **Add the MCP tool to your sub agent:**
+   - Drag the Pinecone Documents MCP tool onto your agent canvas and connect it to the sub agent
+
+### Step 5: Use the Pinecone Assistant MCP server in your agent
+
+Once you have registered your MCP server as a tool and connected it to your agent, your agent can use the Pinecone Assistant tool to search and retrieve relevant content from your uploaded documents.
+
+Ask an interesting question like, "What are the primary uses of amlodipine and atorvastatin, and how do they work in the body?"
+
+The Pinecone tool provides a `get_context` function that retrieves relevant document snippets from your knowledge base. When your agent calls this tool, it will:
+
+<Steps>
+  <Step>
+    **Search semantically**: Use vector similarity search to find the most relevant content based on the query
+  </Step>
+  <Step>
+    **Return formatted snippets**: Each result includes:
+    <ul>
+      <li><code>file_name</code>: The name of the file containing the snippet</li>
+      <li><code>pages</code>: The page numbers where the snippet appears (for PDFs and DOCX files)</li>
+      <li><code>content</code>: The actual text content of the snippet</li>
+    </ul>
+  </Step>
+</Steps>
+
+**Parameters:**
+- `query` (required): The search query to retrieve context for
+- `top_k` (optional): The number of context snippets to retrieve. Defaults to 15.

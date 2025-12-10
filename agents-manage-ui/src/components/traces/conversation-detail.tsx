@@ -38,7 +38,8 @@ export function ConversationDetail({ conversationId, onBack }: ConversationDetai
   const [error, setError] = useState<string | null>(null);
   const [isCopying, setIsCopying] = useState(false);
   const { tenantId, projectId } = useParams();
-  const { PUBLIC_SIGNOZ_URL } = useRuntimeConfig();
+  const { PUBLIC_SIGNOZ_URL, PUBLIC_IS_INKEEP_CLOUD_DEPLOYMENT } = useRuntimeConfig();
+  const isCloudDeployment = PUBLIC_IS_INKEEP_CLOUD_DEPLOYMENT === 'true';
 
   const handleCopyTrace = async () => {
     if (!conversation) return;
@@ -296,7 +297,7 @@ export function ConversationDetail({ conversationId, onBack }: ConversationDetai
                       <p className="text-xs text-muted-foreground">No warnings or errors</p>
                     </div>
                   )}
-                  {total > 0 && (
+                  {total > 0 && !isCloudDeployment && (
                     <Button
                       variant="outline"
                       size="sm"

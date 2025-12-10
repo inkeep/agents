@@ -1,3 +1,4 @@
+import { z } from '@hono/zod-openapi';
 import type {
   DelegationReturnedData,
   DelegationSentData,
@@ -11,11 +12,10 @@ import {
   CONVERSATION_HISTORY_DEFAULT_LIMIT,
   CONVERSATION_HISTORY_MAX_OUTPUT_TOKENS_DEFAULT,
   getSubAgentById,
+  ModelFactory,
 } from '@inkeep/agents-core';
 import { SpanStatusCode } from '@opentelemetry/api';
 import { generateObject } from 'ai';
-import { z } from 'zod';
-import { ModelFactory } from '../agents/ModelFactory';
 import { toolSessionManager } from '../agents/ToolSessionManager';
 import {
   ARTIFACT_GENERATION_BACKOFF_INITIAL_MS,
@@ -155,6 +155,8 @@ export interface ToolCallData {
   input: any;
   toolCallId: string;
   relationshipId?: string;
+  needsApproval?: boolean;
+  conversationId?: string;
 }
 
 export interface ToolResultData {
@@ -164,6 +166,7 @@ export interface ToolResultData {
   duration?: number;
   error?: string;
   relationshipId?: string;
+  needsApproval?: boolean;
 }
 
 export interface ErrorEventData {
@@ -259,6 +262,7 @@ export class AgentSession {
    * Send data operation to stream when emit operations is enabled
    */
   private async sendDataOperation(event: AgentSessionEvent): Promise<void> {
+    console.log('sendDataOperation called with event', Date.now());
     try {
       const streamHelper = getStreamHelper(this.sessionId);
       if (streamHelper) {
@@ -604,7 +608,7 @@ export class AgentSession {
   /**
    * Clean up status update resources when session ends
    */
-  cleanup(): void {
+  async cleanup(): Promise<void> {
     // Mark session as ended
     this.isEnded = true;
 
@@ -613,6 +617,27 @@ export class AgentSession {
       this.statusUpdateTimer = undefined;
     }
     this.statusUpdateState = undefined;
+
+    // Wait for pending artifacts to complete before cleaning up artifactService
+    if (this.pendingArtifacts.size > 0) {
+      const maxWaitTime = 10000; // 10 seconds max wait
+      const startTime = Date.now();
+
+      while (this.pendingArtifacts.size > 0 && Date.now() - startTime < maxWaitTime) {
+        await new Promise((resolve) => setTimeout(resolve, 100)); // Wait 100ms between checks
+      }
+
+      if (this.pendingArtifacts.size > 0) {
+        logger.warn(
+          {
+            sessionId: this.sessionId,
+            pendingCount: this.pendingArtifacts.size,
+            pendingIds: Array.from(this.pendingArtifacts),
+          },
+          'Cleanup proceeding with pending artifacts still processing'
+        );
+      }
+    }
 
     // Clean up artifact tracking maps to prevent memory leaks
     this.pendingArtifacts.clear();
@@ -1039,9 +1064,12 @@ ${this.statusUpdateState?.config.prompt?.trim() || ''}`;
           });
 
           const result = object as any;
+          logger.info({ result: JSON.stringify(result) }, 'DEBUG: Result');
 
           const summaries = [];
           for (const [componentId, data] of Object.entries(result)) {
+            logger.info({ componentId, data: JSON.stringify(data) }, 'DEBUG: Component data');
+            // await new Promise((resolve) => setTimeout(resolve, 100000));
             if (componentId === 'no_relevant_updates') {
               continue;
             }
@@ -1536,6 +1564,10 @@ Make it specific and relevant.`;
           }
 
           try {
+            if (!this.artifactService) {
+              throw new Error('ArtifactService is not initialized');
+            }
+
             await this.artifactService.saveArtifact({
               artifactId: artifactData.artifactId,
               name: result.name,
@@ -1704,11 +1736,12 @@ export class AgentSessionManager {
   initializeStatusUpdates(
     sessionId: string,
     config: StatusUpdateSettings,
-    summarizerModel?: ModelSettings
+    summarizerModel?: ModelSettings,
+    baseModel?: ModelSettings
   ): void {
     const session = this.sessions.get(sessionId);
     if (session) {
-      session.initializeStatusUpdates(config, summarizerModel);
+      session.initializeStatusUpdates(config, summarizerModel, baseModel);
     } else {
       logger.error(
         {
@@ -1767,7 +1800,7 @@ export class AgentSessionManager {
   /**
    * End a session and return the final event data
    */
-  endSession(sessionId: string): AgentSessionEvent[] {
+  async endSession(sessionId: string): Promise<AgentSessionEvent[]> {
     const session = this.sessions.get(sessionId);
     if (!session) {
       logger.warn({ sessionId }, 'Attempted to end non-existent session');
@@ -1779,7 +1812,7 @@ export class AgentSessionManager {
 
     logger.info({ sessionId, summary }, 'AgentSession ended');
 
-    session.cleanup();
+    await session.cleanup();
 
     this.sessions.delete(sessionId);
 
