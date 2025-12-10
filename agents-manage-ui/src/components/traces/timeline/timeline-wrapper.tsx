@@ -1,5 +1,6 @@
 import { AlertTriangle, ChevronDown, ChevronUp, Copy, Loader2, RefreshCw } from 'lucide-react';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { ACTIVITY_STATUS } from '@/components/traces/timeline/types';
 import { toast } from 'sonner';
 import { StickToBottom } from 'use-stick-to-bottom';
 import { ConversationTracesLink } from '@/components/traces/signoz-link';
@@ -218,6 +219,19 @@ export function TimelineWrapper({
     return list;
   }, [activities]);
 
+  // Memoize first error ID for auto-scroll functionality
+  const firstErrorId = useMemo(() => {
+    const errorActivity = sortedActivities.find(
+      (activity) =>
+        activity.status === ACTIVITY_STATUS.ERROR || activity.hasError === true
+    );
+    return errorActivity?.id ?? null;
+  }, [sortedActivities]);
+
+  // Ref to track if we've already scrolled to the first error
+  const hasScrolledToErrorRef = useRef<string | undefined>(undefined);
+  const scrollContainerRef = useRef<HTMLDivElement>(null);
+
   // Memoize AI message IDs to avoid recalculating on every render
   const aiMessageIds = useMemo(() => {
     return sortedActivities
@@ -285,6 +299,37 @@ export function TimelineWrapper({
       }
     }
   }, [conversationId, aiMessageIds, streamTextIds, enableAutoScroll]);
+
+  // Auto-scroll to first error when conversation loads (only for static view, not auto-scroll/polling mode)
+  useEffect(() => {
+    // Skip if auto-scroll is enabled (polling mode) or if there's no error
+    if (enableAutoScroll || !firstErrorId) {
+      return;
+    }
+
+    // Skip if we've already scrolled to this error for this conversation
+    if (hasScrolledToErrorRef.current === `${conversationId}-${firstErrorId}`) {
+      return;
+    }
+
+    // Small delay to ensure DOM is rendered
+    const timeoutId = setTimeout(() => {
+      const errorElement = scrollContainerRef.current?.querySelector('[data-first-error="true"]');
+      if (errorElement) {
+        errorElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        hasScrolledToErrorRef.current = `${conversationId}-${firstErrorId}`;
+      }
+    }, 100);
+
+    return () => clearTimeout(timeoutId);
+  }, [conversationId, firstErrorId, enableAutoScroll]);
+
+  // Reset scroll tracking when conversation changes
+  useEffect(() => {
+    if (conversationId !== lastConversationRef.current) {
+      hasScrolledToErrorRef.current = undefined;
+    }
+  }, [conversationId]);
 
   // Functions to handle expand/collapse all (memoized to prevent unnecessary re-renders)
   const expandAllAiMessages = useCallback(() => {
@@ -453,6 +498,7 @@ export function TimelineWrapper({
                     selectedActivityId={selected?.item?.id}
                     collapsedAiMessages={collapsedAiMessages}
                     onToggleAiMessageCollapse={toggleAiMessageCollapse}
+                    firstErrorId={firstErrorId}
                   />
                   {!isPolling && sortedActivities.length > 0 && !error && refreshOnce && (
                     <div className="flex justify-center items-center z-10">
@@ -475,7 +521,10 @@ export function TimelineWrapper({
                 </StickToBottom.Content>
               </StickToBottom>
             ) : (
-              <div className="h-full overflow-y-auto scrollbar-thin scrollbar-thumb-muted-foreground/30 scrollbar-track-transparent dark:scrollbar-thumb-muted-foreground/50">
+              <div
+                ref={scrollContainerRef}
+                className="h-full overflow-y-auto scrollbar-thin scrollbar-thumb-muted-foreground/30 scrollbar-track-transparent dark:scrollbar-thumb-muted-foreground/50"
+              >
                 <HierarchicalTimeline
                   activities={sortedActivities}
                   onSelect={(activity) => {
@@ -487,6 +536,7 @@ export function TimelineWrapper({
                   selectedActivityId={selected?.item?.id}
                   collapsedAiMessages={collapsedAiMessages}
                   onToggleAiMessageCollapse={toggleAiMessageCollapse}
+                  firstErrorId={firstErrorId}
                 />
               </div>
             )}
