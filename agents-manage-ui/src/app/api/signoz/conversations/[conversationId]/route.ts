@@ -1435,9 +1435,7 @@ export async function GET(
       const hasError = getField(span, SPAN_KEYS.HAS_ERROR) === true;
       const durMs = getNumber(span, SPAN_KEYS.DURATION_NANO) / 1e6;
       const aiStreamingText = getString(span, SPAN_KEYS.SPAN_ID, '');
-      const statusMessage = hasError
-        ? getString(span, SPAN_KEYS.STATUS_MESSAGE, '')
-        : '';
+      const statusMessage = hasError ? getString(span, SPAN_KEYS.STATUS_MESSAGE, '') : '';
       activities.push({
         id: aiStreamingText,
         type: ACTIVITY_TYPES.AI_MODEL_STREAMED_TEXT,
@@ -1473,9 +1471,7 @@ export async function GET(
       const hasError = getField(span, SPAN_KEYS.HAS_ERROR) === true;
       const durMs = getNumber(span, SPAN_KEYS.DURATION_NANO) / 1e6;
       const aiStreamingObject = getString(span, SPAN_KEYS.SPAN_ID, '');
-      const statusMessage = hasError
-        ? getString(span, SPAN_KEYS.STATUS_MESSAGE, '')
-        : '';
+      const statusMessage = hasError ? getString(span, SPAN_KEYS.STATUS_MESSAGE, '') : '';
       activities.push({
         id: aiStreamingObject,
         type: ACTIVITY_TYPES.AI_MODEL_STREAMED_OBJECT,
@@ -1502,9 +1498,7 @@ export async function GET(
     for (const span of contextFetcherSpans) {
       const hasError = getField(span, SPAN_KEYS.HAS_ERROR) === true;
       const contextFetcher = getString(span, SPAN_KEYS.SPAN_ID, '');
-      const statusMessage = hasError
-        ? getString(span, SPAN_KEYS.STATUS_MESSAGE, '')
-        : '';
+      const statusMessage = hasError ? getString(span, SPAN_KEYS.STATUS_MESSAGE, '') : '';
       activities.push({
         id: contextFetcher,
         type: ACTIVITY_TYPES.CONTEXT_FETCH,
@@ -1527,9 +1521,7 @@ export async function GET(
       const artifactName = getString(span, SPAN_KEYS.ARTIFACT_NAME, '');
       const artifactType = getString(span, SPAN_KEYS.ARTIFACT_TYPE, '');
       const artifactDescription = getString(span, SPAN_KEYS.ARTIFACT_DESCRIPTION, '');
-      const statusMessage = hasError
-        ? getString(span, SPAN_KEYS.STATUS_MESSAGE, '')
-        : '';
+      const statusMessage = hasError ? getString(span, SPAN_KEYS.STATUS_MESSAGE, '') : '';
 
       const artifactProcessing = getString(span, SPAN_KEYS.SPAN_ID, '');
       activities.push({
