@@ -2,7 +2,7 @@ import { AnthropicIcon } from '@/components/icons/anthropic';
 import { GoogleIcon } from '@/components/icons/google';
 import { OpenAIIcon } from '@/components/icons/openai';
 import { Badge } from '@/components/ui/badge';
-import type { ActivityItem } from './types';
+import { ACTIVITY_STATUS, type ActivityItem } from './types';
 
 export function LabeledBlock({ label, children }: { label: string; children: React.ReactNode }) {
   return (
@@ -32,11 +32,11 @@ export function Info({ label, value }: { label: string; value?: React.ReactNode 
 
 export function StatusBadge({ status }: { status: ActivityItem['status'] }) {
   const variant =
-    status === 'success'
+    status === ACTIVITY_STATUS.SUCCESS
       ? 'primary'
-      : status === 'warning'
+      : status === ACTIVITY_STATUS.WARNING
         ? 'warning'
-        : status === 'pending'
+        : status === ACTIVITY_STATUS.PENDING
           ? 'warning'
           : 'error';
 

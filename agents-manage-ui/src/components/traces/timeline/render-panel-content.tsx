@@ -13,7 +13,11 @@ import {
 } from '@/components/traces/timeline/blocks';
 import { Bubble, CodeBubble } from '@/components/traces/timeline/bubble';
 import { SpanAttributes } from '@/components/traces/timeline/span-attributes';
-import type { ConversationDetail, SelectedPanel } from '@/components/traces/timeline/types';
+import {
+  ACTIVITY_STATUS,
+  type ConversationDetail,
+  type SelectedPanel,
+} from '@/components/traces/timeline/types';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 
@@ -257,7 +261,7 @@ export function renderPanelContent({
               value={<Badge variant="code">{a.toolName || 'Unknown Tool'}</Badge>}
             />
             <StatusBadge status={a.status} />
-            {a.status === 'error' && a.toolStatusMessage && (
+            {a.status === ACTIVITY_STATUS.ERROR && a.toolStatusMessage && (
               <LabeledBlock label="Status message">
                 <Bubble className="bg-red-50 border-red-200 text-red-800 dark:bg-red-900/20 dark:border-red-800 dark:text-red-300">
                   {a.toolStatusMessage}
@@ -301,7 +305,7 @@ export function renderPanelContent({
               value={<Badge variant="code">{a.toolName || 'Unknown tool'}</Badge>}
             />
             <StatusBadge status={a.status} />
-            {a.status === 'error' && a.toolStatusMessage && (
+            {a.status === ACTIVITY_STATUS.ERROR && a.toolStatusMessage && (
               <LabeledBlock label="Status message">
                 <Bubble className="bg-red-50 border-red-200 text-red-800 dark:bg-red-900/20 dark:border-red-800 dark:text-red-300">
                   {a.toolStatusMessage}
@@ -354,7 +358,7 @@ export function renderPanelContent({
             <Info label="Purpose" value={a.toolPurpose || 'No purpose information available'} />
             <Info label="Sub agent" value={a.subAgentName || 'Unknown sub agent'} />
             <StatusBadge status={a.status} />
-            {a.status === 'error' && a.toolStatusMessage && (
+            {a.status === ACTIVITY_STATUS.ERROR && a.toolStatusMessage && (
               <LabeledBlock label="Status message">
                 <Bubble className="bg-red-50 border-red-200 text-red-800 dark:bg-red-900/20 dark:border-red-800 dark:text-red-300">
                   {a.toolStatusMessage}
@@ -405,14 +409,14 @@ export function renderPanelContent({
               />
             )}
             <StatusBadge status={a.status} />
-            {a.status === 'error' && a.toolStatusMessage && (
+            {a.status === ACTIVITY_STATUS.ERROR && a.toolStatusMessage && (
               <LabeledBlock label="Status message">
                 <Bubble className="bg-red-50 border-red-200 text-red-800 dark:bg-red-900/20 dark:border-red-800 dark:text-red-300">
                   {a.toolStatusMessage}
                 </Bubble>
               </LabeledBlock>
             )}
-            {a.status === 'warning' && a.toolStatusMessage && (
+            {a.status === ACTIVITY_STATUS.WARNING && a.toolStatusMessage && (
               <LabeledBlock label="Status message">
                 <Bubble className="bg-yellow-50 border-yellow-200 text-yellow-800 dark:bg-yellow-900/20 dark:border-yellow-800 dark:text-yellow-300">
                   {a.toolStatusMessage}

@@ -20,6 +20,7 @@ import { Bubble } from '@/components/traces/timeline/bubble';
 import { Flow } from '@/components/traces/timeline/flow';
 import { TagRow } from '@/components/traces/timeline/tag-row';
 import {
+  ACTIVITY_STATUS,
   ACTIVITY_TYPES,
   type ActivityItem,
   type ActivityKind,
@@ -74,13 +75,13 @@ function statusIcon(
 
   const map = base[type] || base.tool_call;
   const cls =
-    status === 'success'
+    status === ACTIVITY_STATUS.SUCCESS
       ? map.cls
-      : status === 'error'
+      : status === ACTIVITY_STATUS.ERROR
         ? 'text-red-500'
-        : status === 'warning'
+        : status === ACTIVITY_STATUS.WARNING
           ? 'text-yellow-500'
-          : status === 'pending'
+          : status === ACTIVITY_STATUS.PENDING
             ? 'text-yellow-500'
             : map.cls;
 
@@ -133,9 +134,9 @@ export function TimelineItem({
 
   // Determine text color based on status
   const textColorClass =
-    activity.status === 'error'
+    activity.status === ACTIVITY_STATUS.ERROR
       ? 'text-red-500 hover:text-red-700'
-      : activity.status === 'warning'
+      : activity.status === ACTIVITY_STATUS.WARNING
         ? 'text-yellow-500 hover:text-yellow-700'
         : 'text-foreground hover:text-primary';
 

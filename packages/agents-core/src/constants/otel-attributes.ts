@@ -134,6 +134,7 @@ export const ACTIVITY_STATUS = {
   SUCCESS: 'success',
   ERROR: 'error',
   PENDING: 'pending',
+  WARNING: 'warning',
 } as const;
 
 /** Agent IDs */

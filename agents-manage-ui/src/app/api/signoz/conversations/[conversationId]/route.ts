@@ -1129,7 +1129,7 @@ export async function GET(
       description: string;
       timestamp: string;
       parentSpanId?: string | null;
-      status: 'success' | 'error' | 'warning' | 'pending';
+      status: (typeof ACTIVITY_STATUS)[keyof typeof ACTIVITY_STATUS];
       subAgentId?: string;
       subAgentName?: string;
       result?: string;
@@ -1652,7 +1652,7 @@ export async function GET(
       // If SOME tools failed but at least one succeeded, mark failed ones as warnings
       if (failedToolCalls.length > 0 && successfulToolCalls.length > 0) {
         for (const toolCall of failedToolCalls) {
-          toolCall.status = 'warning' as const;
+          toolCall.status = ACTIVITY_STATUS.WARNING;
         }
       }
       // If ALL tools failed, they remain as errors (no change needed)
@@ -1713,7 +1713,7 @@ export async function GET(
     for (const activity of activities) {
       if (activity.status === ACTIVITY_STATUS.ERROR) {
         finalErrorCount++;
-      } else if (activity.status === 'warning') {
+      } else if (activity.status === ACTIVITY_STATUS.WARNING) {
         finalWarningCount++;
       }
     }
