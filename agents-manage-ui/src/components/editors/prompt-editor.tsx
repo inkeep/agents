@@ -23,12 +23,11 @@ import { useMonacoStore } from '@/features/agent/state/use-monaco-store';
 import { cn } from '@/lib/utils';
 import { buildPromptContent } from './prompt-editor-utils';
 import {
-  Command,
-  CommandEmpty,
-  CommandGroup,
-  CommandItem,
-  CommandList,
-} from '@/components/ui/command';
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 
 type VariableSuggestionItem = {
   label: string;
@@ -84,30 +83,42 @@ const VariableList = forwardRef<VariableListRef, VariableListProps>(({ items, co
   }));
 
   return (
-    <Command className="w-64 rounded-md border bg-popover text-popover-foreground shadow-lg">
-      <CommandList>
-        <CommandEmpty>No suggestions</CommandEmpty>
-        {items.length > 0 && (
-          <CommandGroup heading="Variables">
-            {items.map((item, index) => (
-              <CommandItem
-                key={item.label}
-                value={item.label}
-                data-selected={index === selectedIndex}
-                onMouseMove={() => setSelectedIndex(index)}
-                onMouseDown={(event) => {
-                  event.preventDefault();
-                  selectItem(index);
-                }}
-              >
-                <span className="truncate">{item.label}</span>
-                <span className="ml-2 text-xs text-muted-foreground">{item.detail}</span>
-              </CommandItem>
-            ))}
-          </CommandGroup>
+    <DropdownMenu open modal={false}>
+      <DropdownMenuTrigger asChild>
+        <button
+          ref={anchorRef}
+          type="button"
+          aria-hidden
+          className="absolute h-0 w-0 opacity-0"
+          tabIndex={-1}
+        />
+      </DropdownMenuTrigger>
+      <DropdownMenuContent
+        sideOffset={4}
+        className="z-50 w-64 p-0"
+        onCloseAutoFocus={(event) => event.preventDefault()}
+        onEscapeKeyDown={(event) => event.preventDefault()}
+      >
+        {items.length === 0 ? (
+          <p className="px-3 py-2 text-sm text-muted-foreground">No suggestions</p>
+        ) : (
+          items.map((item, index) => (
+            <DropdownMenuItem
+              key={item.label}
+              data-selected={index === selectedIndex}
+              onMouseMove={() => setSelectedIndex(index)}
+              onSelect={(event) => {
+                event.preventDefault();
+                selectItem(index);
+              }}
+            >
+              <span className="truncate">{item.label}</span>
+              <span className="ml-2 text-xs text-muted-foreground">{item.detail}</span>
+            </DropdownMenuItem>
+          ))
         )}
-      </CommandList>
-    </Command>
+      </DropdownMenuContent>
+    </DropdownMenu>
   );
 });
 
@@ -422,7 +433,6 @@ export const PromptEditor2: FC<PromptEditorProps> = ({
 
 import { Highlight } from '@tiptap/extension-highlight';
 import { TaskItem, TaskList } from '@tiptap/extension-list';
-import { Mention } from '@tiptap/extension-mention';
 import { TableKit } from '@tiptap/extension-table';
 import { Markdown } from '@tiptap/markdown';
 import { Button } from '@/components/ui/button';
