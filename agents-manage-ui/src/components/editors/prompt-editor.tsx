@@ -33,8 +33,7 @@ interface VariableListProps extends SuggestionProps<VariableSuggestionItem> {
   ref: RefObject<VariableListRef>;
 }
 
-const VariableList: FC<VariableListProps> = ({ items, command }) => {
-  const anchorRef = useRef<HTMLButtonElement>(null);
+const VariableList: FC<VariableListProps> = ({ items, command, children }) => {
   const [open, setOpen] = useState(true);
 
   const selectItem = useCallback(
@@ -52,16 +51,8 @@ const VariableList: FC<VariableListProps> = ({ items, command }) => {
       // Setting modal false, so hovering on sidebar will still expand it
       modal={false}
     >
-      <DropdownMenuTrigger asChild>
-        <button
-          ref={anchorRef}
-          type="button"
-          aria-hidden
-          className="absolute h-0 w-0 opacity-0"
-          tabIndex={-1}
-        />
-      </DropdownMenuTrigger>
-      <DropdownMenuContent sideOffset={4} align="start">
+      <DropdownMenuTrigger />
+      <DropdownMenuContent sideOffset={1} align="start">
         {items.length ? (
           items.map((item) => (
             <DropdownMenuItem key={item.label} data-label={item.label} onSelect={selectItem}>
@@ -91,11 +82,13 @@ const VariableSuggestion = Extension.create<{
   },
 });
 
-const buildVariableItems = (query: string, suggestions: string[]) => {
+const buildVariableItems: SuggestionOptions['items'] = ({ query }) => {
+  const { variableSuggestions } = monacoStore.getState();
+
   const normalized = query.toLowerCase();
   const entries = new Map<string, VariableSuggestionItem>();
 
-  for (const label of suggestions) {
+  for (const label of variableSuggestions) {
     if (label.toLowerCase().includes(normalized)) {
       entries.set(label, { label, detail: 'Context variable' });
     }
@@ -112,10 +105,12 @@ const createSuggestionRenderer: SuggestionOptions['render'] = () => {
         props: startProps,
         editor: startProps.editor,
       });
+      // startProps.decorationNode?.append(popupElement);
+
       const popupElement = document.createElement('div');
+      popupElement.append(component.element);
       popupElement.style.position = 'absolute';
       popupElement.style.zIndex = '9999';
-      popupElement.append(component.element);
       document.body.append(popupElement);
 
       const clientRect = startProps.clientRect?.();
@@ -369,12 +364,6 @@ export const PromptEditor: FC<PromptEditorProps> = ({
   const { toggleMarkdownEditor } = useAgentActions();
   const contentType = useAgentStore((state) => (state.isMarkdownEditor ? undefined : 'markdown'));
   const formattedContent = useMemo(() => buildPromptContent(''), []);
-  const suggestionsRef = useRef<string[]>([]);
-  const variableSuggestions = useMonacoStore((state) => state.variableSuggestions);
-
-  useEffect(() => {
-    suggestionsRef.current = [...new Set(variableSuggestions)];
-  }, [variableSuggestions]);
 
   const suggestionExtension = useMemo(
     () =>
@@ -382,9 +371,7 @@ export const PromptEditor: FC<PromptEditorProps> = ({
         suggestion: {
           char: '{',
           allowSpaces: true,
-          items({ query }) {
-            return buildVariableItems(query, suggestionsRef.current);
-          },
+          items: buildVariableItems,
           command({ editor, range, props }) {
             editor.chain().focus().insertContentAt(range, `{{${props.label}}}`).run();
           },
