@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import type { DatabaseClient } from '../../db/client';
+import type { AgentsManageDatabaseClient } from '../../db/manage/manage-client';
 import {
   checkoutRef,
   getCurrentBranchOrCommit,
@@ -7,14 +7,14 @@ import {
   isValidCommitHash,
   resolveRef,
 } from '../../dolt/ref';
-import { testDbClient } from '../setup';
+import { testManageDbClient } from '../setup';
 import { getSqlString } from './test-utils';
 
 describe('Ref Module', () => {
-  let db: DatabaseClient;
+  let db: AgentsManageDatabaseClient;
 
   beforeEach(() => {
-    db = testDbClient;
+    db = testManageDbClient;
     vi.clearAllMocks();
   });
 
@@ -257,12 +257,17 @@ describe('Ref Module', () => {
   describe('getCurrentBranchOrCommit', () => {
     it('should return current branch when on a branch', async () => {
       const branchName = 'main';
-      const branchHash = 'a1b2c3d4e5f6789012345678901234ab';
+      // Valid Dolt base32 hash (0-9, a-v)
+      const branchHash = 'a1b2c3d4e5f67890123456789012345v';
 
       const mockExecute = vi
         .fn()
-        .mockResolvedValueOnce({ rows: [{ branch: branchName }] }) // ACTIVE_BRANCH query
-        .mockResolvedValueOnce({ rows: [{ hash: branchHash }] }); // DOLT_HASHOF query
+        // Call 1: ACTIVE_BRANCH query
+        .mockResolvedValueOnce({ rows: [{ branch: branchName }] })
+        // Call 2: doltHashOf -> doltListBranches (dolt_branches)
+        .mockResolvedValueOnce({ rows: [{ name: branchName }] })
+        // Call 3: doltHashOf -> DOLT_LOG for branch
+        .mockResolvedValueOnce({ rows: [{ commit_hash: branchHash }] });
 
       const mockDb = {
         ...db,
@@ -279,12 +284,15 @@ describe('Ref Module', () => {
     });
 
     it('should return commit hash when in detached HEAD state', async () => {
-      const commitHash = 'a1b2c3d4e5f6789012345678901234ab';
+      // Valid Dolt base32 hash (0-9, a-v)
+      const commitHash = 'a1b2c3d4e5f67890123456789012345v';
 
       const mockExecute = vi
         .fn()
-        .mockResolvedValueOnce({ rows: [{ branch: null }] }) // ACTIVE_BRANCH query (null = detached HEAD)
-        .mockResolvedValueOnce({ rows: [{ hash: commitHash }] }); // DOLT_HASHOF query
+        // Call 1: ACTIVE_BRANCH query (null = detached HEAD)
+        .mockResolvedValueOnce({ rows: [{ branch: null }] })
+        // Call 2: Direct DOLT_HASHOF('HEAD') query (not through doltHashOf function)
+        .mockResolvedValueOnce({ rows: [{ hash: commitHash }] });
 
       const mockDb = {
         ...db,
@@ -301,12 +309,15 @@ describe('Ref Module', () => {
     });
 
     it('should handle empty branch name as detached HEAD', async () => {
-      const commitHash = 'a1b2c3d4e5f6789012345678901234ab';
+      // Valid Dolt base32 hash (0-9, a-v)
+      const commitHash = 'a1b2c3d4e5f67890123456789012345v';
 
       const mockExecute = vi
         .fn()
-        .mockResolvedValueOnce({ rows: [{ branch: '' }] }) // ACTIVE_BRANCH query (empty string)
-        .mockResolvedValueOnce({ rows: [{ hash: commitHash }] }); // DOLT_HASHOF query
+        // Call 1: ACTIVE_BRANCH query (empty string = detached HEAD)
+        .mockResolvedValueOnce({ rows: [{ branch: '' }] })
+        // Call 2: Direct DOLT_HASHOF('HEAD') query (not through doltHashOf function)
+        .mockResolvedValueOnce({ rows: [{ hash: commitHash }] });
 
       const mockDb = {
         ...db,

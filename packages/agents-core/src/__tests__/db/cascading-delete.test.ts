@@ -1,71 +1,57 @@
 import type {
-  ApiKeyInsert,
   ExternalAgentInsert,
   SubAgentDataComponentInsert,
-  TaskInsert,
 } from '@inkeep/agents-core';
 import { eq } from 'drizzle-orm';
 import { beforeAll, beforeEach, describe, expect, it } from 'vitest';
-import type { DatabaseClient } from '../../db/client';
+import type { AgentsManageDatabaseClient } from '../../db/manage/manage-client';
 import {
   agents,
-  apiKeys,
   artifactComponents,
-  contextCache,
   contextConfigs,
-  conversations,
   credentialReferences,
   dataComponents,
   externalAgents,
-  ledgerArtifacts,
-  messages,
   projects,
   subAgentArtifactComponents,
   subAgentDataComponents,
   subAgentRelations,
   subAgents,
   subAgentToolRelations,
-  taskRelations,
-  tasks,
   tools,
-} from '../../db/schema';
-import { createTestDatabaseClient, createTestProject } from '../../db/test-client';
-import { generateId } from '../../utils/conversations';
+} from '../../db/manage/manage-schema';
 
-describe('Cascading Delete Tests', () => {
-  let dbClient: DatabaseClient;
+import { createTestProject } from '../../db/manage/test-manage-client';
+import { generateId } from '../../utils/conversations';
+import { testManageDbClient } from '../setup';
+
+describe('Cascading Delete Tests (Manage DB)', () => {
+  let dbClient: AgentsManageDatabaseClient;
   const tenantId = 'test-tenant';
   const projectId = generateId();
 
   beforeAll(async () => {
-    dbClient = await createTestDatabaseClient();
+    dbClient = testManageDbClient;
   });
 
   beforeEach(async () => {
-    // Clean up all tables
-    await dbClient.delete(projects);
+    // Clean up all manage DB tables
+    await dbClient.delete(subAgentRelations);
+    await dbClient.delete(subAgentToolRelations);
+    await dbClient.delete(subAgentArtifactComponents);
+    await dbClient.delete(subAgentDataComponents);
+    await dbClient.delete(credentialReferences);
+    await dbClient.delete(externalAgents);
+    await dbClient.delete(tools);
+    await dbClient.delete(artifactComponents);
+    await dbClient.delete(dataComponents);
+    await dbClient.delete(contextConfigs);
     await dbClient.delete(subAgents);
     await dbClient.delete(agents);
-    await dbClient.delete(contextConfigs);
-    await dbClient.delete(contextCache);
-    await dbClient.delete(conversations);
-    await dbClient.delete(messages);
-    await dbClient.delete(tasks);
-    await dbClient.delete(taskRelations);
-    await dbClient.delete(dataComponents);
-    await dbClient.delete(subAgentDataComponents);
-    await dbClient.delete(artifactComponents);
-    await dbClient.delete(subAgentArtifactComponents);
-    await dbClient.delete(tools);
-    await dbClient.delete(subAgentToolRelations);
-    await dbClient.delete(externalAgents);
-    await dbClient.delete(apiKeys);
-    await dbClient.delete(ledgerArtifacts);
-    await dbClient.delete(credentialReferences);
-    await dbClient.delete(subAgentRelations);
+    await dbClient.delete(projects);
   });
 
-  it('should cascade delete all project-related resources when project is deleted', async () => {
+  it('should cascade delete all project-related config resources when project is deleted', async () => {
     // Create a project (with organization)
     await createTestProject(dbClient, tenantId, projectId);
 
@@ -104,51 +90,6 @@ describe('Cascading Delete Tests', () => {
       description: 'Test context configuration',
     };
     await dbClient.insert(contextConfigs).values(contextConfig);
-
-    // Create context cache
-    const contextCacheEntry = {
-      tenantId,
-      projectId,
-      id: generateId(),
-      conversationId: generateId(),
-      contextConfigId: contextConfig.id,
-      contextVariableKey: 'test-key',
-      value: { test: 'data' },
-      fetchedAt: new Date().toISOString(),
-    };
-    await dbClient.insert(contextCache).values(contextCacheEntry);
-
-    // Create conversation
-    const conversation = {
-      tenantId,
-      projectId,
-      id: generateId(),
-      activeSubAgentId: subAgentId,
-    };
-    await dbClient.insert(conversations).values(conversation);
-
-    // Create message
-    const message = {
-      tenantId,
-      projectId,
-      id: generateId(),
-      conversationId: conversation.id,
-      role: 'user',
-      content: { type: 'text', text: 'Hello' },
-    };
-    await dbClient.insert(messages).values(message);
-
-    // Create task
-    const task: TaskInsert = {
-      tenantId,
-      projectId,
-      id: generateId(),
-      agentId: agentId,
-      contextId: generateId(),
-      status: 'pending',
-      subAgentId: subAgentId,
-    };
-    await dbClient.insert(tasks).values(task);
 
     // Create data component
     const dataComponent = {
@@ -202,29 +143,6 @@ describe('Cascading Delete Tests', () => {
       baseUrl: 'https://example.com',
     } satisfies ExternalAgentInsert;
     await dbClient.insert(externalAgents).values(externalAgent);
-
-    // Create API key
-    const apiKey = {
-      id: generateId(),
-      tenantId,
-      projectId,
-      agentId,
-      publicId: generateId(),
-      keyHash: 'test-hash',
-      keyPrefix: 'sk_test_',
-    } satisfies ApiKeyInsert;
-    await dbClient.insert(apiKeys).values(apiKey);
-
-    // Create ledger artifact
-    const ledgerArtifact = {
-      tenantId,
-      projectId,
-      id: generateId(),
-      taskId: generateId(),
-      contextId: generateId(),
-      type: 'source' as const,
-    };
-    await dbClient.insert(ledgerArtifacts).values(ledgerArtifact);
 
     // Create credential reference
     const credentialReference = {
@@ -291,7 +209,7 @@ describe('Cascading Delete Tests', () => {
     // Delete the project
     await dbClient.delete(projects).where(eq(projects.id, projectId));
 
-    // Verify all related records are deleted
+    // Verify all related config records are deleted
     const remainingProjects = await dbClient
       .select()
       .from(projects)
@@ -316,30 +234,6 @@ describe('Cascading Delete Tests', () => {
       .where(eq(contextConfigs.projectId, projectId));
     expect(remainingContextConfigs).toHaveLength(0);
 
-    const remainingContextCache = await dbClient
-      .select()
-      .from(contextCache)
-      .where(eq(contextCache.projectId, projectId));
-    expect(remainingContextCache).toHaveLength(0);
-
-    const remainingConversations = await dbClient
-      .select()
-      .from(conversations)
-      .where(eq(conversations.projectId, projectId));
-    expect(remainingConversations).toHaveLength(0);
-
-    const remainingMessages = await dbClient
-      .select()
-      .from(messages)
-      .where(eq(messages.projectId, projectId));
-    expect(remainingMessages).toHaveLength(0);
-
-    const remainingTasks = await dbClient
-      .select()
-      .from(tasks)
-      .where(eq(tasks.projectId, projectId));
-    expect(remainingTasks).toHaveLength(0);
-
     const remainingDataComponents = await dbClient
       .select()
       .from(dataComponents)
@@ -363,18 +257,6 @@ describe('Cascading Delete Tests', () => {
       .from(externalAgents)
       .where(eq(externalAgents.projectId, projectId));
     expect(remainingExternalAgents).toHaveLength(0);
-
-    const remainingApiKeys = await dbClient
-      .select()
-      .from(apiKeys)
-      .where(eq(apiKeys.projectId, projectId));
-    expect(remainingApiKeys).toHaveLength(0);
-
-    const remainingLedgerArtifacts = await dbClient
-      .select()
-      .from(ledgerArtifacts)
-      .where(eq(ledgerArtifacts.projectId, projectId));
-    expect(remainingLedgerArtifacts).toHaveLength(0);
 
     const remainingCredentialReferences = await dbClient
       .select()

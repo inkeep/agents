@@ -1,6 +1,6 @@
 import { drizzle } from 'drizzle-orm/node-postgres';
 import type { Pool, PoolClient } from 'pg';
-import type { AgentsManageDatabaseClient } from '../db/config/config-client';
+import type { AgentsManageDatabaseClient } from '../db/manage/manage-client';
 import * as schema from '../db/schema';
 import type { ResolvedRef } from '../validation/dolt-schemas';
 import { resolveRef } from '../dolt/ref';

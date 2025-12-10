@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import type { DatabaseClient } from '../../db/client';
+import type { AgentsManageDatabaseClient } from '../../db/manage/manage-client';
 import {
   checkSchemaCompatibility,
   getCurrentSchemaVersion,
@@ -7,14 +7,14 @@ import {
   getSchemaVersionForRef,
   setMinViableSchemaVersion,
 } from '../../dolt/schema-version';
-import { testDbClient } from '../setup';
+import { testManageDbClient } from '../setup';
 import { getSqlString } from './test-utils';
 
 describe('Schema Version Module', () => {
-  let db: DatabaseClient;
+  let db: AgentsManageDatabaseClient;
 
   beforeEach(() => {
-    db = testDbClient;
+    db = testManageDbClient;
     vi.clearAllMocks();
   });
 
@@ -202,14 +202,15 @@ describe('Schema Version Module', () => {
       const resolvedRef = {
         type: 'branch' as const,
         name: 'feature',
-        hash: 'a1b2c3d4e5f6789012345678901234ab',
+        hash: 'a1b2c3d4e5f67890123456789012345v',
       };
 
       const mockExecute = vi
         .fn()
-        // getCurrentBranchOrCommit
-        .mockResolvedValueOnce({ rows: [{ branch: 'main' }] })
-        .mockResolvedValueOnce({ rows: [{ hash: 'mainHash' }] })
+        // getCurrentBranchOrCommit (on branch 'main')
+        .mockResolvedValueOnce({ rows: [{ branch: 'main' }] }) // ACTIVE_BRANCH
+        .mockResolvedValueOnce({ rows: [{ name: 'main' }] }) // doltListBranches
+        .mockResolvedValueOnce({ rows: [{ commit_hash: 'mainHash1234567890123456789v' }] }) // DOLT_LOG
         // checkoutRef (feature)
         .mockResolvedValueOnce({ rows: [] })
         // getCurrentSchemaVersion (feature) - version 5
@@ -255,14 +256,15 @@ describe('Schema Version Module', () => {
       const resolvedRef = {
         type: 'branch' as const,
         name: 'old-feature',
-        hash: 'b2c3d4e5f6789012345678901234abcd',
+        hash: 'b2c3d4e5f67890123456789012345abv',
       };
 
       const mockExecute = vi
         .fn()
-        // getCurrentBranchOrCommit
-        .mockResolvedValueOnce({ rows: [{ branch: 'main' }] })
-        .mockResolvedValueOnce({ rows: [{ hash: 'mainHash' }] })
+        // getCurrentBranchOrCommit (on branch 'main')
+        .mockResolvedValueOnce({ rows: [{ branch: 'main' }] }) // ACTIVE_BRANCH
+        .mockResolvedValueOnce({ rows: [{ name: 'main' }] }) // doltListBranches
+        .mockResolvedValueOnce({ rows: [{ commit_hash: 'mainHash1234567890123456789v' }] }) // DOLT_LOG
         // checkoutRef (old-feature)
         .mockResolvedValueOnce({ rows: [] })
         // getCurrentSchemaVersion (old-feature) - version 2
@@ -301,14 +303,15 @@ describe('Schema Version Module', () => {
       const resolvedRef = {
         type: 'branch' as const,
         name: 'feature',
-        hash: 'a1b2c3d4e5f6789012345678901234ab',
+        hash: 'a1b2c3d4e5f67890123456789012345v',
       };
 
       const mockExecute = vi
         .fn()
-        // getCurrentBranchOrCommit
-        .mockResolvedValueOnce({ rows: [{ branch: 'main' }] })
-        .mockResolvedValueOnce({ rows: [{ hash: 'mainHash' }] })
+        // getCurrentBranchOrCommit (on branch 'main')
+        .mockResolvedValueOnce({ rows: [{ branch: 'main' }] }) // ACTIVE_BRANCH
+        .mockResolvedValueOnce({ rows: [{ name: 'main' }] }) // doltListBranches
+        .mockResolvedValueOnce({ rows: [{ commit_hash: 'mainHash1234567890123456789v' }] }) // DOLT_LOG
         // checkoutRef (feature) - fails
         .mockRejectedValueOnce(new Error('Checkout failed'))
         // checkoutRef (back to main)
@@ -327,8 +330,8 @@ describe('Schema Version Module', () => {
       });
 
       // Verify we tried to restore original ref
-      expect(mockExecute).toHaveBeenCalledTimes(4);
-      const lastCall = getSqlString(mockExecute, 3);
+      expect(mockExecute).toHaveBeenCalledTimes(5);
+      const lastCall = getSqlString(mockExecute, 4);
       expect(lastCall).toContain('DOLT_CHECKOUT');
     });
 
@@ -336,16 +339,22 @@ describe('Schema Version Module', () => {
       const resolvedRef = {
         type: 'tag' as const,
         name: 'v1.0.0',
-        hash: 'c3d4e5f6789012345678901234abcdef',
+        hash: 'c3d4e5f67890123456789012345abcdv',
       };
 
       const mockExecute = vi
         .fn()
-        .mockResolvedValueOnce({ rows: [{ branch: 'main' }] })
-        .mockResolvedValueOnce({ rows: [{ hash: 'mainHash' }] })
+        // getCurrentBranchOrCommit (on branch 'main')
+        .mockResolvedValueOnce({ rows: [{ branch: 'main' }] }) // ACTIVE_BRANCH
+        .mockResolvedValueOnce({ rows: [{ name: 'main' }] }) // doltListBranches
+        .mockResolvedValueOnce({ rows: [{ commit_hash: 'mainHash1234567890123456789v' }] }) // DOLT_LOG
+        // checkoutRef (tag)
         .mockResolvedValueOnce({ rows: [] })
+        // getCurrentSchemaVersion (tag)
         .mockResolvedValueOnce({ rows: [{ hash: 'm1' }, { hash: 'm2' }, { hash: 'm3' }] })
+        // checkoutRef (back to main)
         .mockResolvedValueOnce({ rows: [] })
+        // getCurrentSchemaVersion (main)
         .mockResolvedValueOnce({
           rows: [
             { hash: 'm1' },
@@ -355,6 +364,7 @@ describe('Schema Version Module', () => {
             { hash: 'm5' },
           ],
         })
+        // getMinViableSchemaVersion
         .mockResolvedValueOnce({ rows: [{ value: '2' }] });
 
       const mockDb = {
@@ -370,18 +380,25 @@ describe('Schema Version Module', () => {
     it('should work with commit refs', async () => {
       const resolvedRef = {
         type: 'commit' as const,
-        name: 'd4e5f6789012345678901234abcdef01',
-        hash: 'd4e5f6789012345678901234abcdef01',
+        name: 'd4e5f67890123456789012345abcde01',
+        hash: 'd4e5f67890123456789012345abcde01',
       };
 
       const mockExecute = vi
         .fn()
-        .mockResolvedValueOnce({ rows: [{ branch: 'main' }] })
-        .mockResolvedValueOnce({ rows: [{ hash: 'mainHash' }] })
+        // getCurrentBranchOrCommit (on branch 'main')
+        .mockResolvedValueOnce({ rows: [{ branch: 'main' }] }) // ACTIVE_BRANCH
+        .mockResolvedValueOnce({ rows: [{ name: 'main' }] }) // doltListBranches
+        .mockResolvedValueOnce({ rows: [{ commit_hash: 'mainHash1234567890123456789v' }] }) // DOLT_LOG
+        // checkoutRef (commit)
         .mockResolvedValueOnce({ rows: [] })
+        // getCurrentSchemaVersion (commit)
         .mockResolvedValueOnce({ rows: [{ hash: 'm1' }, { hash: 'm2' }] })
+        // checkoutRef (back to main)
         .mockResolvedValueOnce({ rows: [] })
+        // getCurrentSchemaVersion (main)
         .mockResolvedValueOnce({ rows: [{ hash: 'm1' }, { hash: 'm2' }] })
+        // getMinViableSchemaVersion
         .mockResolvedValueOnce({ rows: [{ value: '1' }] });
 
       const mockDb = {
@@ -398,18 +415,23 @@ describe('Schema Version Module', () => {
       const resolvedRef = {
         type: 'branch' as const,
         name: 'feature',
-        hash: 'a1b2c3d4e5f6789012345678901234ab',
+        hash: 'a1b2c3d4e5f67890123456789012345v',
       };
 
       const mockExecute = vi
         .fn()
-        // getCurrentBranchOrCommit - detached HEAD
-        .mockResolvedValueOnce({ rows: [{ branch: null }] })
-        .mockResolvedValueOnce({ rows: [{ hash: 'detachedHash' }] })
+        // getCurrentBranchOrCommit - detached HEAD (2 calls, not 3)
+        .mockResolvedValueOnce({ rows: [{ branch: null }] }) // ACTIVE_BRANCH returns null
+        .mockResolvedValueOnce({ rows: [{ hash: 'detachedHash123456789012345v' }] }) // Direct DOLT_HASHOF('HEAD')
+        // checkoutRef (feature)
         .mockResolvedValueOnce({ rows: [] })
+        // getCurrentSchemaVersion (feature)
         .mockResolvedValueOnce({ rows: [{ hash: 'm1' }, { hash: 'm2' }] })
+        // checkoutRef (back to detached hash)
         .mockResolvedValueOnce({ rows: [] })
+        // getCurrentSchemaVersion (original)
         .mockResolvedValueOnce({ rows: [{ hash: 'm1' }, { hash: 'm2' }] })
+        // getMinViableSchemaVersion
         .mockResolvedValueOnce({ rows: [{ value: '1' }] });
 
       const mockDb = {
@@ -428,14 +450,15 @@ describe('Schema Version Module', () => {
       const resolvedRef = {
         type: 'branch' as const,
         name: 'feature',
-        hash: 'a1b2c3d4e5f6789012345678901234ab',
+        hash: 'a1b2c3d4e5f67890123456789012345v',
       };
 
       const mockExecute = vi
         .fn()
-        // getCurrentBranchOrCommit
-        .mockResolvedValueOnce({ rows: [{ branch: 'main' }] })
-        .mockResolvedValueOnce({ rows: [{ hash: 'mainHash' }] })
+        // getCurrentBranchOrCommit (on branch 'main')
+        .mockResolvedValueOnce({ rows: [{ branch: 'main' }] }) // ACTIVE_BRANCH
+        .mockResolvedValueOnce({ rows: [{ name: 'main' }] }) // doltListBranches
+        .mockResolvedValueOnce({ rows: [{ commit_hash: 'mainHash1234567890123456789v' }] }) // DOLT_LOG
         // checkoutRef (feature)
         .mockResolvedValueOnce({ rows: [] })
         // getCurrentSchemaVersion (feature)
@@ -457,15 +480,20 @@ describe('Schema Version Module', () => {
       const resolvedRef = {
         type: 'tag' as const,
         name: 'v1.0.0',
-        hash: 'b2c3d4e5f6789012345678901234abcd',
+        hash: 'b2c3d4e5f67890123456789012345abv',
       };
 
       const mockExecute = vi
         .fn()
-        .mockResolvedValueOnce({ rows: [{ branch: 'develop' }] })
-        .mockResolvedValueOnce({ rows: [{ hash: 'developHash' }] })
+        // getCurrentBranchOrCommit (on branch 'develop')
+        .mockResolvedValueOnce({ rows: [{ branch: 'develop' }] }) // ACTIVE_BRANCH
+        .mockResolvedValueOnce({ rows: [{ name: 'develop' }] }) // doltListBranches
+        .mockResolvedValueOnce({ rows: [{ commit_hash: 'developHash12345678901234567v' }] }) // DOLT_LOG
+        // checkoutRef (tag)
         .mockResolvedValueOnce({ rows: [] })
+        // getCurrentSchemaVersion (tag)
         .mockResolvedValueOnce({ rows: [{ hash: 'm1' }] })
+        // checkoutRef (back to develop)
         .mockResolvedValueOnce({ rows: [] });
 
       const mockDb = {
@@ -476,7 +504,7 @@ describe('Schema Version Module', () => {
       await getSchemaVersionForRef(mockDb)(resolvedRef);
 
       // Last checkout should be back to develop
-      const lastCall = getSqlString(mockExecute, 4);
+      const lastCall = getSqlString(mockExecute, 5);
       expect(lastCall).toContain('DOLT_CHECKOUT');
       expect(lastCall).toContain('develop');
     });
@@ -485,15 +513,20 @@ describe('Schema Version Module', () => {
       const resolvedRef = {
         type: 'branch' as const,
         name: 'feature',
-        hash: 'a1b2c3d4e5f6789012345678901234ab',
+        hash: 'a1b2c3d4e5f67890123456789012345v',
       };
 
       const mockExecute = vi
         .fn()
-        .mockResolvedValueOnce({ rows: [{ branch: 'main' }] })
-        .mockResolvedValueOnce({ rows: [{ hash: 'mainHash' }] })
+        // getCurrentBranchOrCommit (on branch 'main')
+        .mockResolvedValueOnce({ rows: [{ branch: 'main' }] }) // ACTIVE_BRANCH
+        .mockResolvedValueOnce({ rows: [{ name: 'main' }] }) // doltListBranches
+        .mockResolvedValueOnce({ rows: [{ commit_hash: 'mainHash1234567890123456789v' }] }) // DOLT_LOG
+        // checkoutRef (feature)
         .mockResolvedValueOnce({ rows: [] })
+        // getCurrentSchemaVersion (feature) - fails
         .mockRejectedValueOnce(new Error('Migration table error'))
+        // checkoutRef (back to main)
         .mockResolvedValueOnce({ rows: [] });
 
       const mockDb = {
@@ -506,23 +539,27 @@ describe('Schema Version Module', () => {
       expect(version).toBe(0);
 
       // Verify we restored original ref
-      const lastCall = getSqlString(mockExecute, 4);
+      const lastCall = getSqlString(mockExecute, 5);
       expect(lastCall).toContain('DOLT_CHECKOUT');
     });
 
     it('should work with detached HEAD state', async () => {
       const resolvedRef = {
         type: 'commit' as const,
-        name: 'c3d4e5f6789012345678901234abcdef',
-        hash: 'c3d4e5f6789012345678901234abcdef',
+        name: 'c3d4e5f67890123456789012345abcdv',
+        hash: 'c3d4e5f67890123456789012345abcdv',
       };
 
       const mockExecute = vi
         .fn()
-        .mockResolvedValueOnce({ rows: [{ branch: null }] })
-        .mockResolvedValueOnce({ rows: [{ hash: 'detachedHash' }] })
+        // getCurrentBranchOrCommit - detached HEAD (2 calls, not 3)
+        .mockResolvedValueOnce({ rows: [{ branch: null }] }) // ACTIVE_BRANCH returns null
+        .mockResolvedValueOnce({ rows: [{ hash: 'detachedHash123456789012345v' }] }) // Direct DOLT_HASHOF('HEAD')
+        // checkoutRef (commit)
         .mockResolvedValueOnce({ rows: [] })
+        // getCurrentSchemaVersion (commit)
         .mockResolvedValueOnce({ rows: [{ hash: 'm1' }, { hash: 'm2' }] })
+        // checkoutRef (back to detached hash)
         .mockResolvedValueOnce({ rows: [] });
 
       const mockDb = {
@@ -536,22 +573,27 @@ describe('Schema Version Module', () => {
 
       // Verify we restored to detached HEAD hash
       const lastCall = getSqlString(mockExecute, 4);
-      expect(lastCall).toContain('detachedHash');
+      expect(lastCall).toContain('detachedHash123456789012345v');
     });
 
     it('should return 0 for ref with no migrations', async () => {
       const resolvedRef = {
         type: 'branch' as const,
         name: 'new-branch',
-        hash: 'd4e5f6789012345678901234abcdef01',
+        hash: 'd4e5f67890123456789012345abcde01',
       };
 
       const mockExecute = vi
         .fn()
-        .mockResolvedValueOnce({ rows: [{ branch: 'main' }] })
-        .mockResolvedValueOnce({ rows: [{ hash: 'mainHash' }] })
+        // getCurrentBranchOrCommit (on branch 'main')
+        .mockResolvedValueOnce({ rows: [{ branch: 'main' }] }) // ACTIVE_BRANCH
+        .mockResolvedValueOnce({ rows: [{ name: 'main' }] }) // doltListBranches
+        .mockResolvedValueOnce({ rows: [{ commit_hash: 'mainHash1234567890123456789v' }] }) // DOLT_LOG
+        // checkoutRef (new-branch)
         .mockResolvedValueOnce({ rows: [] })
-        .mockResolvedValueOnce({ rows: [] }) // No migrations
+        // getCurrentSchemaVersion (new-branch) - no migrations
+        .mockResolvedValueOnce({ rows: [] })
+        // checkoutRef (back to main)
         .mockResolvedValueOnce({ rows: [] });
 
       const mockDb = {

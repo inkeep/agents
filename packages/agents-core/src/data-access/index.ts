@@ -1,25 +1,25 @@
 // Re-export all data access functions
 
-export * from '../db/config/config-client';
+export * from '../db/manage/manage-client';
 export * from '../db/runtime/runtime-client';
 
 // Config data access (Doltgres - versioned)
-export * from './config/agentFull';
-export * from './config/agents';
-export * from './config/artifactComponents';
-export * from './config/contextConfigs';
-export * from './config/credentialReferences';
-export * from './config/dataComponents';
-export * from './config/externalAgents';
-export * from './config/functions';
-export * from './config/functionTools';
-export * from './config/projectFull';
-export * from './config/projects';
-export * from './config/subAgentExternalAgentRelations';
-export * from './config/subAgentRelations';
-export * from './config/subAgents';
-export * from './config/subAgentTeamAgentRelations';
-export * from './config/tools';
+export * from './manage/agentFull';
+export * from './manage/agents';
+export * from './manage/artifactComponents';
+export * from './manage/contextConfigs';
+export * from './manage/credentialReferences';
+export * from './manage/dataComponents';
+export * from './manage/externalAgents';
+export * from './manage/functions';
+export * from './manage/functionTools';
+export * from './manage/projectFull';
+export * from './manage/projects';
+export * from './manage/subAgentExternalAgentRelations';
+export * from './manage/subAgentRelations';
+export * from './manage/subAgents';
+export * from './manage/subAgentTeamAgentRelations';
+export * from './manage/tools';
 
 // Runtime data access (Postgres - not versioned)
 export * from './runtime/apiKeys';

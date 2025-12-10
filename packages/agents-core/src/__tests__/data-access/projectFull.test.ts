@@ -4,23 +4,27 @@ import {
   deleteFullProject,
   getFullProject,
   updateFullProjectServerSide,
-} from '../../data-access/projectFull';
-import type { DatabaseClient } from '../../db/client';
-import { createTestOrganization } from '../../db/test-client';
+} from '../../data-access/manage/projectFull';
+import type { AgentsManageDatabaseClient } from '../../db/manage/manage-client';
+import { createTestOrganization } from '../../db/runtime/test-runtime-client';
+import type { AgentsRunDatabaseClient } from '../../db/runtime/runtime-client';
+import { testRunDbClient } from '../setup';
 import type { FullProjectDefinition } from '../../types/entities';
 import { generateId } from '../../utils/conversations';
-import { testDbClient } from '../setup';
+import { testManageDbClient } from '../setup';
 
 describe('projectFull data access', () => {
-  let db: DatabaseClient;
+  let db: AgentsManageDatabaseClient;
+  let runDb: AgentsRunDatabaseClient
   const tenantId = `tenant-${generateId()}`;
 
   beforeEach(async () => {
-    db = testDbClient;
+    db = testManageDbClient;
+    runDb = testRunDbClient;
     vi.clearAllMocks();
 
     // Create organization for this tenant
-    await createTestOrganization(db, tenantId);
+    await createTestOrganization(runDb, tenantId);
   });
 
   const createTestProjectDefinition = (projectId: string): FullProjectDefinition => ({

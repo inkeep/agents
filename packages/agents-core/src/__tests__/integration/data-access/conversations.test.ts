@@ -1,17 +1,16 @@
 import { beforeEach, describe, expect, it } from 'vitest';
-import { createAgent } from '../../../data-access/agents';
 import {
   createConversation,
   getConversation,
   updateConversationActiveAgent,
-} from '../../../data-access/conversations';
-import { createSubAgent } from '../../../data-access/subAgents';
-import type { DatabaseClient } from '../../../db/client';
+} from '../../../data-access/runtime/conversations';
 import * as schema from '../../../db/schema';
-import { createTestOrganization } from '../../../db/test-client';
+import { createTestOrganization } from '../../../db/runtime/test-runtime-client';
 import type { ConversationInsert } from '../../../types/index';
-import { testDbClient } from '../../setup';
+import { testRunDbClient } from '../../setup';
 import { createTestAgentData, createTestSubAgentData } from '../helpers';
+import { AgentsRunDatabaseClient } from '@inkeep/agents-core/db/runtime/runtime-client';
+import { ResolvedRef } from '@inkeep/agents-core/validation/dolt-schemas';
 
 const createTestConversationData = (
   tenantId: string,
@@ -25,6 +24,7 @@ const createTestConversationData = (
     userId: `user-${suffix}`,
     title: `Test Conversation ${suffix}`,
     activeSubAgentId: `test-agent-${suffix}`,
+    ref: { type: 'branch', name: 'main', hash: 'abc123' },
     metadata: {
       userContext: {
         name: `Test User ${suffix}`,
@@ -36,75 +36,18 @@ const createTestConversationData = (
 };
 
 describe('Conversations Data Access - Integration Tests', () => {
-  let db: DatabaseClient;
+  let db: AgentsRunDatabaseClient;
   const testTenantId = 'test-tenant';
   const testProjectId = 'test-project';
+  const testRef: ResolvedRef = { type: 'branch', name: 'main', hash: 'abc123' };
 
   beforeEach(async () => {
     // Create fresh in-memory database for each test
-    db = testDbClient;
-
-    // Create test organizations, projects and agent for all tenant IDs used in tests
-    const tenantIds = [testTenantId, 'tenant-1', 'tenant-2'];
-    for (const tenantId of tenantIds) {
-      // First ensure organization exists
-      await createTestOrganization(db, tenantId);
-
-      // Then create project
-      await db
-        .insert(schema.projects)
-        .values({
-          tenantId: tenantId,
-          id: testProjectId,
-          name: 'Test Project',
-          description: 'Project for testing',
-        })
-        .onConflictDoNothing();
-
-      // Create test agent for each project
-      for (let i = 1; i <= 3; i++) {
-        const agentId = `test-agent-${i}`;
-        const defaultSubAgentId = `test-agent-${i}`;
-
-        await db
-          .insert(schema.agents)
-          .values({
-            tenantId: tenantId,
-            projectId: testProjectId,
-            id: agentId,
-            name: `Test Agent ${i}`,
-            description: 'Agent for testing',
-            defaultSubAgentId: defaultSubAgentId,
-          })
-          .onConflictDoNothing();
-
-        // Create the default agent for the agent
-        await db
-          .insert(schema.subAgents)
-          .values({
-            tenantId: tenantId,
-            projectId: testProjectId,
-            agentId,
-            id: defaultSubAgentId,
-            name: `Default Agent ${i}`,
-            description: 'Default agent for testing',
-            prompt: 'You are a test agent',
-          })
-          .onConflictDoNothing();
-      }
-    }
+    db = testRunDbClient;
   });
 
   describe('createConversation & getConversation', () => {
     it('should create and retrieve a conversation with full configuration', async () => {
-      // Create an agent first (before agents, as they need agentId)
-      const agentData = createTestAgentData(testTenantId, testProjectId, 'conv-1');
-      await createAgent(db)(agentData);
-
-      // Create an agent with agentId
-      const _agent = await createSubAgent(db)(
-        createTestSubAgentData(testTenantId, testProjectId, '1', agentData.id)
-      );
 
       const conversationData = createTestConversationData(testTenantId, testProjectId, '1');
 
@@ -135,11 +78,13 @@ describe('Conversations Data Access - Integration Tests', () => {
         userId: 'user-minimal',
         title: 'Minimal Conversation',
         activeSubAgentId: 'test-agent-1',
+        ref: testRef,
       };
 
       const createdConversation = await createConversation(db)(minimalConversationData);
 
       expect(createdConversation.metadata).toBeNull();
+      expect(createdConversation.ref).toEqual(minimalConversationData.ref);
       expect(createdConversation.title).toBe(minimalConversationData.title);
       expect(createdConversation.userId).toBe(minimalConversationData.userId);
     });
@@ -182,7 +127,6 @@ describe('Conversations Data Access - Integration Tests', () => {
     it('should update active agent and timestamp', async () => {
       // Create an agent first (before agents, as they need agentId)
       const agentData = createTestAgentData(testTenantId, testProjectId, 'conv-2');
-      await createAgent(db)(agentData);
 
       // Create agents with agentId
       const initialAgentData = createTestSubAgentData(
@@ -191,18 +135,15 @@ describe('Conversations Data Access - Integration Tests', () => {
         '1',
         agentData.id
       );
-      const initialAgent = await createSubAgent(db)(initialAgentData);
-
       const newAgentData = createTestSubAgentData(testTenantId, testProjectId, '2', agentData.id);
-      const newAgent = await createSubAgent(db)(newAgentData);
 
       // Create conversation with initial agent
       const conversationData = createTestConversationData(testTenantId, testProjectId, '1');
-      conversationData.activeSubAgentId = initialAgent.id;
+      conversationData.activeSubAgentId = initialAgentData.id;
 
       const createdConversation = await createConversation(db)(conversationData);
 
-      expect(createdConversation.activeSubAgentId).toBe(initialAgent.id);
+      expect(createdConversation.activeSubAgentId).toBe(initialAgentData.id);
       const originalUpdatedAt = createdConversation.updatedAt;
 
       // Wait a moment to ensure timestamp difference
@@ -212,10 +153,10 @@ describe('Conversations Data Access - Integration Tests', () => {
       const updatedConversation = await updateConversationActiveAgent(db)({
         scopes: { tenantId: testTenantId, projectId: testProjectId },
         conversationId: conversationData.id,
-        activeSubAgentId: newAgent.id,
+        activeSubAgentId: newAgentData.id,
       });
 
-      expect(updatedConversation.activeSubAgentId).toBe(newAgent.id);
+      expect(updatedConversation.activeSubAgentId).toBe(newAgentData.id);
       expect(updatedConversation.updatedAt).not.toBe(originalUpdatedAt);
       expect(updatedConversation.createdAt).toBe(createdConversation.createdAt); // Should remain unchanged
       expect(updatedConversation.id).toBe(conversationData.id);
@@ -225,14 +166,12 @@ describe('Conversations Data Access - Integration Tests', () => {
     it('should maintain tenant isolation during agent updates', async () => {
       // Create an agent first (before agents, as they need agentId)
       const agentData = createTestAgentData(testTenantId, testProjectId, 'conv-3');
-      await createAgent(db)(agentData);
 
       // Create agent and conversation for tenant 1
       const subAgentData = createTestSubAgentData(testTenantId, testProjectId, '1', agentData.id);
-      const agent = await createSubAgent(db)(subAgentData);
 
       const conversationData = createTestConversationData(testTenantId, testProjectId, '1');
-      conversationData.activeSubAgentId = agent.id;
+      conversationData.activeSubAgentId = subAgentData.id;
 
       await createConversation(db)(conversationData);
 
@@ -252,7 +191,7 @@ describe('Conversations Data Access - Integration Tests', () => {
       });
 
       expect(originalConversation).not.toBeUndefined();
-      expect(originalConversation?.activeSubAgentId).toBe(agent.id);
+      expect(originalConversation?.activeSubAgentId).toBe(subAgentData.id);
     });
 
     it('should return undefined when updating non-existent conversation', async () => {

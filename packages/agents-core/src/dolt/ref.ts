@@ -1,4 +1,4 @@
-import type { AgentsManageDatabaseClient } from '../db/config/config-client';
+import type { AgentsManageDatabaseClient } from '../db/manage/manage-client';
 import { sql } from 'drizzle-orm';
 import { doltListBranches } from './branch';
 import { doltListTags, doltHashOf } from './commit';

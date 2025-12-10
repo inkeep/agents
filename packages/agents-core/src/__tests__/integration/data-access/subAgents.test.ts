@@ -8,27 +8,29 @@ import {
   listSubAgents,
   SubAgentIsDefaultError,
   updateSubAgent,
-} from '../../../data-access/subAgents';
-import type { DatabaseClient } from '../../../db/client';
+} from '../../../data-access/manage/subAgents';
+import type { AgentsManageDatabaseClient } from '../../../db/manage/manage-client';
 import * as schema from '../../../db/schema';
-import { createTestOrganization } from '../../../db/test-client';
+import { createTestOrganization } from '../../../db/runtime/test-runtime-client';
 import { SubAgentInsertSchema } from '../../../validation/schemas';
-import { testDbClient } from '../../setup';
+import { testManageDbClient, testRunDbClient } from '../../setup';
+import { AgentsRunDatabaseClient } from '@inkeep/agents-core/db/runtime/runtime-client';
 
 describe('Agents Data Access - Integration Tests', () => {
-  let db: DatabaseClient;
+  let db: AgentsManageDatabaseClient;
+  let runDb: AgentsRunDatabaseClient;
   const testTenantId = 'test-tenant';
   const testProjectId = 'test-project';
   const testAgentId = 'test-agent';
 
   beforeEach(async () => {
-    db = testDbClient;
-
+    db = testManageDbClient;
+    runDb = testRunDbClient;
     // Create test organizations, projects and agent for all tenant IDs used in tests
     const tenantIds = [testTenantId, 'tenant-1', 'tenant-2'];
     for (const tenantId of tenantIds) {
       // First ensure organization exists
-      await createTestOrganization(db, tenantId);
+      await createTestOrganization(runDb, tenantId);
 
       // Then create project
       await db

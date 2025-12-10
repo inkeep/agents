@@ -216,7 +216,7 @@ export const generateAndCreateApiKey = async (
   const { tenantId, projectId, agentId, expiresAt, name, ref } = params;
 
   // Generate the API key
-  const keyData = await generateApiKey(tenantId, projectId);
+  const keyData = await generateApiKey();
 
   // Store the API key in the database
   const apiKey = await createApiKey(db)({

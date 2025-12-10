@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
-import { createProject } from '../../../data-access/projects';
-import { cleanupTestData, getIntegrationTestClient } from '../../../db/config/dolt-cleanup';
+import { createProject } from '../../../data-access/manage/projects';
+import { cleanupTestData, getIntegrationTestClient } from '../../../db/manage/dolt-cleanup';
 import { doltActiveBranch, doltBranch, doltCheckout } from '../../../dolt/branch';
 import {
   doltAdd,

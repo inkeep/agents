@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import type { DatabaseClient } from '../../db/client';
+import type { AgentsManageDatabaseClient } from '../../db/manage/manage-client';
 import {
   doltConflicts,
   doltMerge,
@@ -8,14 +8,14 @@ import {
   doltSchemaConflicts,
   doltTableConflicts,
 } from '../../dolt/merge';
-import { testDbClient } from '../setup';
+import { testManageDbClient } from '../setup';
 import { getSqlString } from './test-utils';
 
 describe('Merge Module', () => {
-  let db: DatabaseClient;
+  let db: AgentsManageDatabaseClient;
 
   beforeEach(() => {
-    db = testDbClient;
+    db = testManageDbClient;
     vi.clearAllMocks();
   });
 

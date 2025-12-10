@@ -26,16 +26,13 @@ export type ApiKeyGenerationResult = {
 /**
  * Generate a new API key with secure random bytes
  */
-export async function generateApiKey(
-  tenantId: string,
-  projectId: string
-): Promise<ApiKeyGenerationResult> {
+export async function generateApiKey(): Promise<ApiKeyGenerationResult> {
   const publicId = generatePublicId();
 
   const secretBytes = randomBytes(API_KEY_LENGTH);
   const secret = secretBytes.toString('base64url');
 
-  const key = `sk_${tenantId}_${projectId}_${publicId}.${secret}`;
+  const key = `sk_${publicId}.${secret}`;
 
   const keyPrefix = key.substring(0, 12);
 

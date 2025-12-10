@@ -1,5 +1,5 @@
 import { sql } from 'drizzle-orm';
-import type { AgentsManageDatabaseClient } from '../db/config/config-client';
+import type { AgentsManageDatabaseClient } from '../db/manage/manage-client';
 import { doltHashOf } from './commit';
 
 export type branchScopes = {

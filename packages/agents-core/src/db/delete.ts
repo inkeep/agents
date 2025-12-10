@@ -1,6 +1,6 @@
 import { sql } from 'drizzle-orm';
 import { env } from '../env';
-import { createAgentsManageDatabaseClient } from './config/config-client';
+import { createAgentsManageDatabaseClient } from './manage/manage-client';
 import { createAgentsRunDatabaseClient } from './runtime/runtime-client';
 
 /**

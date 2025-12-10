@@ -1,4 +1,4 @@
-import { AgentsManageDatabaseClient } from './config/config-client';
+import { AgentsManageDatabaseClient } from './manage/manage-client';
 import { AgentsRunDatabaseClient } from './runtime/runtime-client';
 import { sql } from 'drizzle-orm';
 

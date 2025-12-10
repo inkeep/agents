@@ -1,4 +1,4 @@
-import type { AgentsManageDatabaseClient } from '../db/config/config-client';
+import type { AgentsManageDatabaseClient } from '../db/manage/manage-client';
 import { sql } from 'drizzle-orm';
 import type { ResolvedRef } from '../validation/dolt-schemas';
 import { checkoutRef, getCurrentBranchOrCommit } from './ref';

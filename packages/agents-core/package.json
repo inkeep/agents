@@ -10,13 +10,21 @@
       "types": "./dist/index.d.ts",
       "default": "./dist/index.js"
     },
-    "./schema": {
-      "types": "./dist/db/schema.d.ts",
-      "import": "./dist/db/schema.js"
+    "./db/manage-schema": {
+      "types": "./dist/db/manage/manage-schema.d.ts",
+      "import": "./dist/db/manage/manage-schema.js"
     },
-    "./db/schema": {
-      "types": "./dist/db/schema.d.ts",
-      "import": "./dist/db/schema.js"
+    "./db/run-schema": {
+      "types": "./dist/db/run/run-schema.d.ts",
+      "import": "./dist/db/run/run-schema.js"
+    },
+    "./db/manage-client": {
+      "types": "./dist/db/manage/manage-client.d.ts",
+      "import": "./dist/db/manage/manage-client.js"
+    },
+    "./db/run-client": {
+      "types": "./dist/db/run/run-client.d.ts",
+      "import": "./dist/db/run/run-client.js"
     },
     "./types": {
       "types": "./dist/types/index.d.ts",
@@ -73,8 +81,7 @@
     "knip": "knip --directory ../.. --workspace packages/agents-core --dependencies",
     "build": "tsdown",
     "test": "vitest --run",
-    "test:unit": "vitest --run src/__tests__ --exclude src/__tests__/integration/**",
-    "test:integration": "vitest --run src/__tests__/integration/",
+    "test:integration": "vitest --run --config vitest.integration.config.ts src/__tests__/integration/",
     "test:coverage": "vitest --run --coverage",
     "test:watch": "vitest --watch",
     "lint": "biome lint --error-on-warnings",
@@ -83,14 +90,26 @@
     "format:check": "biome format src",
     "typecheck": "tsc --noEmit",
     "typecheck:watch": "tsc --noEmit --watch",
-    "db:generate": "drizzle-kit generate",
-    "db:migrate": "drizzle-kit migrate",
-    "db:drop": "drizzle-kit drop",
+    "db:generate": "pnpm db:manage:generate && pnpm db:run:generate",
+    "db:migrate": "pnpm db:manage:migrate && pnpm db:run:migrate",
+    "db:drop": "pnpm db:manage:drop && pnpm db:run:drop",
     "db:clean": "tsx src/db/clean.ts",
     "db:delete": "tsx src/db/delete.ts",
     "db:reset": "pnpm db:delete && pnpm db:migrate",
-    "db:studio": "drizzle-kit studio",
-    "db:check": "drizzle-kit check"
+    "db:studio": "echo 'Use db:manage:studio or db:run:studio'",
+    "db:check": "pnpm db:manage:check && pnpm db:run:check",
+    "db:manage:generate": "drizzle-kit generate --config=drizzle.manage.config.ts",
+    "db:manage:migrate": "drizzle-kit migrate --config=drizzle.manage.config.ts",
+    "db:manage:drop": "drizzle-kit drop --config=drizzle.manage.config.ts",
+    "db:manage:studio": "drizzle-kit studio --config=drizzle.manage.config.ts",
+    "db:manage:check": "drizzle-kit check --config=drizzle.manage.config.ts",
+    "db:run:generate": "drizzle-kit generate --config=drizzle.run.config.ts",
+    "db:run:migrate": "drizzle-kit migrate --config=drizzle.run.config.ts",
+    "db:run:drop": "drizzle-kit drop --config=drizzle.run.config.ts",
+    "db:run:studio": "drizzle-kit studio --config=drizzle.run.config.ts",
+    "db:run:check": "drizzle-kit check --config=drizzle.run.config.ts",
+    "prepack": "clean-package",
+    "postpack": "clean-package restore"
   },
   "dependencies": {
     "@ai-sdk/anthropic": "3.0.0-beta.66",

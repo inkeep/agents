@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it } from 'vitest';
-import { cleanupTestData, getIntegrationTestClient } from '../../../db/config/dolt-cleanup';
+import { cleanupTestData, getIntegrationTestClient } from '../../../db/manage/dolt-cleanup';
 // import * as schema from '../../../db/schema';
 import {
   doltActiveBranch,
@@ -10,9 +10,6 @@ import {
   doltListBranches,
   doltRenameBranch,
 } from '../../../dolt/branch';
-
-// import { createBranch, listBranchesForAgent } from '../../../dolt/branches-api';
-// import { doltAddAndCommit } from '../../../dolt/commit';
 
 const dbClient = getIntegrationTestClient();
 

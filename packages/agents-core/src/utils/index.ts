@@ -12,6 +12,8 @@ export * from './mcp-client';
 export * from './model-factory';
 export * from './schema-conversion';
 export * from './service-token-auth';
+export * from './internal-service-auth';
+export * from './jwt-helpers';
 export * from './temp-jwt';
 export * from './third-party-mcp-servers';
 export * from './tracer-factory';

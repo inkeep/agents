@@ -1,5 +1,5 @@
-import type { AgentsManageDatabaseClient } from '../db/config/config-client';
-import { projectExistsInTable } from './config/projects';
+import type { AgentsManageDatabaseClient } from '../db/manage/manage-client';
+import { projectExistsInTable } from './manage/projects';
 
 /**
  * Validates that a project exists before performing database operations

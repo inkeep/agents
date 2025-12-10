@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import type { DatabaseClient } from '../../db/client';
+import type { AgentsManageDatabaseClient } from '../../db/manage/manage-client';
 import {
   doltAdd,
   doltCommit,
@@ -11,14 +11,14 @@ import {
   doltStatus,
   doltTag,
 } from '../../dolt/commit';
-import { testDbClient } from '../setup';
+import { testManageDbClient } from '../setup';
 import { getSqlString } from './test-utils';
 
 describe('Commit Module', () => {
-  let db: DatabaseClient;
+  let db: AgentsManageDatabaseClient;
 
   beforeEach(() => {
-    db = testDbClient;
+    db = testManageDbClient;
     vi.clearAllMocks();
   });
 
@@ -378,9 +378,15 @@ describe('Commit Module', () => {
 
   describe('doltHashOf', () => {
     it('should return hash of a branch', async () => {
-      const expectedHash = 'a1b2c3d4e5f6789012345678901234ab';
+      // Valid Dolt base32 hash (0-9, a-v)
+      const expectedHash = 'a1b2c3d4e5f67890123456789012345v';
 
-      const mockExecute = vi.fn().mockResolvedValue({ rows: [{ hash: expectedHash }] });
+      const mockExecute = vi
+        .fn()
+        // Call 1: doltListBranches - returns branch list including 'main'
+        .mockResolvedValueOnce({ rows: [{ name: 'main' }] })
+        // Call 2: DOLT_LOG to get commit hash for branch
+        .mockResolvedValueOnce({ rows: [{ commit_hash: expectedHash }] });
 
       const mockDb = {
         ...db,
@@ -389,17 +395,29 @@ describe('Commit Module', () => {
 
       const result = await doltHashOf(mockDb)({ revision: 'main' });
 
-      expect(mockExecute).toHaveBeenCalled();
-      const sqlString = getSqlString(mockExecute);
-      expect(sqlString).toContain('DOLT_HASHOF');
-      expect(sqlString).toContain('main');
+      expect(mockExecute).toHaveBeenCalledTimes(2);
+      // First call checks branches
+      const branchSql = getSqlString(mockExecute, 0);
+      expect(branchSql).toContain('dolt_branches');
+      // Second call gets commit hash from DOLT_LOG
+      const logSql = getSqlString(mockExecute, 1);
+      expect(logSql).toContain('DOLT_LOG');
+      expect(logSql).toContain('main');
       expect(result).toBe(expectedHash);
     });
 
     it('should return hash of HEAD', async () => {
-      const expectedHash = 'b2c3d4e5f6789012345678901234abcd';
+      // Valid Dolt base32 hash (0-9, a-v)
+      const expectedHash = 'b2c3d4e5f67890123456789012345abv';
 
-      const mockExecute = vi.fn().mockResolvedValue({ rows: [{ hash: expectedHash }] });
+      const mockExecute = vi
+        .fn()
+        // Call 1: doltListBranches - HEAD is not a branch name
+        .mockResolvedValueOnce({ rows: [{ name: 'main' }] })
+        // Call 2: doltListTags - HEAD is not a tag name
+        .mockResolvedValueOnce({ rows: [] })
+        // Call 3: DOLT_HASHOF for HEAD
+        .mockResolvedValueOnce({ rows: [{ hash: expectedHash }] });
 
       const mockDb = {
         ...db,
@@ -408,17 +426,19 @@ describe('Commit Module', () => {
 
       const result = await doltHashOf(mockDb)({ revision: 'HEAD' });
 
-      expect(mockExecute).toHaveBeenCalled();
-      const sqlString = getSqlString(mockExecute);
-      expect(sqlString).toContain('DOLT_HASHOF');
-      expect(sqlString).toContain('HEAD');
+      expect(mockExecute).toHaveBeenCalledTimes(3);
+      // Third call uses DOLT_HASHOF
+      const hashOfSql = getSqlString(mockExecute, 2);
+      expect(hashOfSql).toContain('DOLT_HASHOF');
+      expect(hashOfSql).toContain('HEAD');
       expect(result).toBe(expectedHash);
     });
 
-    it('should return hash of a commit', async () => {
-      const commitHash = 'c3d4e5f6789012345678901234abcdef';
+    it('should return hash directly if already a valid commit hash', async () => {
+      // Valid Dolt base32 hash (0-9, a-v) - 32 chars
+      const commitHash = 'c3d4e5f67890123456789012345abcdv';
 
-      const mockExecute = vi.fn().mockResolvedValue({ rows: [{ hash: commitHash }] });
+      const mockExecute = vi.fn();
 
       const mockDb = {
         ...db,
@@ -427,10 +447,32 @@ describe('Commit Module', () => {
 
       const result = await doltHashOf(mockDb)({ revision: commitHash });
 
-      expect(mockExecute).toHaveBeenCalled();
-      const sqlString = getSqlString(mockExecute);
-      expect(sqlString).toContain('DOLT_HASHOF');
+      // No DB calls should be made when the revision is already a valid hash
+      expect(mockExecute).not.toHaveBeenCalled();
       expect(result).toBe(commitHash);
+    });
+
+    it('should return hash from tag', async () => {
+      const tagHash = 'd4e5f678901234567890123456789abc';
+      // This hash intentionally contains 'x' which is NOT valid base32
+      // so it won't be treated as a commit hash
+
+      const mockExecute = vi
+        .fn()
+        // Call 1: doltListBranches - 'v1.0.0' is not a branch
+        .mockResolvedValueOnce({ rows: [{ name: 'main' }] })
+        // Call 2: doltListTags - returns matching tag
+        .mockResolvedValueOnce({ rows: [{ tag_name: 'v1.0.0', tag_hash: tagHash }] });
+
+      const mockDb = {
+        ...db,
+        execute: mockExecute,
+      } as any;
+
+      const result = await doltHashOf(mockDb)({ revision: 'v1.0.0' });
+
+      expect(mockExecute).toHaveBeenCalledTimes(2);
+      expect(result).toBe(tagHash);
     });
   });
 

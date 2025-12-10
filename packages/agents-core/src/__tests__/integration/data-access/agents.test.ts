@@ -7,32 +7,34 @@ import {
   listAgents,
   listAgentsPaginated,
   updateAgent,
-} from '../../../data-access/agents';
+} from '../../../data-access/manage/agents';
 import {
   createSubAgentRelation,
   deleteSubAgentRelation,
-} from '../../../data-access/subAgentRelations';
-import { createSubAgent, deleteSubAgent } from '../../../data-access/subAgents';
-import type { DatabaseClient } from '../../../db/client';
+} from '../../../data-access/manage/subAgentRelations';
+import { createSubAgent, deleteSubAgent } from '../../../data-access/manage/subAgents';
+import type { AgentsManageDatabaseClient } from '../../../db/manage/manage-client';
+import type { AgentsRunDatabaseClient } from '../../../db/runtime/runtime-client';
 import * as schema from '../../../db/schema';
-import { createTestOrganization } from '../../../db/test-client';
-import { testDbClient } from '../../setup';
+import { createTestOrganization } from '../../../db/runtime/test-runtime-client';
+import { testManageDbClient, testRunDbClient } from '../../setup';
 import { createTestAgentData, createTestRelationData, createTestSubAgentData } from '../helpers';
 
 describe('Agent Agent Data Access - Integration Tests', () => {
-  let db: DatabaseClient;
+  let db: AgentsManageDatabaseClient;
+  let runDb: AgentsRunDatabaseClient;
   const testTenantId = 'test-tenant';
   const testProjectId = 'test-project';
 
   beforeEach(async () => {
     // Use shared database client (migrations already applied once in setup.ts)
-    db = testDbClient;
-
+    db = testManageDbClient;
+    runDb = testRunDbClient;
     // Create test organizations and projects for all tenant IDs used in tests
     const tenantIds = [testTenantId, 'other-tenant', 'tenant-1', 'tenant-2'];
     for (const tenantId of tenantIds) {
       // First ensure organization exists
-      await createTestOrganization(db, tenantId);
+      await createTestOrganization(runDb, tenantId);
 
       // Then create project
       await db

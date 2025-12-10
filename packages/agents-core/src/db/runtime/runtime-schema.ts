@@ -18,6 +18,18 @@ import type {
   TaskMetadataConfig,
 } from '../../types/utility';
 
+// Re-export Better Auth generated tables (runtime entities)
+export {
+  account,
+  invitation,
+  member,
+  organization,
+  session,
+  ssoProvider,
+  user,
+  verification,
+} from '../../auth/auth-schema';
+
 const tenantScoped = {
   tenantId: varchar('tenant_id', { length: 256 }).notNull(),
   id: varchar('id', { length: 256 }).notNull(),

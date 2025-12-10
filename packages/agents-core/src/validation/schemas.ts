@@ -33,7 +33,7 @@ import {
   subAgentTeamAgentRelations,
   subAgentToolRelations,
   tools,
-} from '../db/config/config-schema';
+} from '../db/manage/manage-schema';
 
 // Runtime DB imports (Postgres - not versioned)
 import {

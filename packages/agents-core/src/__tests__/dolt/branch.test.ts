@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import type { DatabaseClient } from '../../db/client';
+import type { AgentsManageDatabaseClient } from '../../db/manage/manage-client';
 import {
   doltActiveBranch,
   doltBranch,
@@ -9,14 +9,14 @@ import {
   doltListBranches,
   doltRenameBranch,
 } from '../../dolt/branch';
-import { testDbClient } from '../setup';
+import { testManageDbClient } from '../setup';
 import { getSqlString } from './test-utils';
 
 describe('Branch Module', () => {
-  let db: DatabaseClient;
+  let db: AgentsManageDatabaseClient;
 
   beforeEach(() => {
-    db = testDbClient;
+    db = testManageDbClient;
     vi.clearAllMocks();
   });
 
@@ -38,7 +38,16 @@ describe('Branch Module', () => {
     });
 
     it('should create a new branch with start point', async () => {
-      const mockExecute = vi.fn().mockResolvedValue({ rows: [] });
+      // Use a valid dolt base32 hash (0-9 and a-v only, 32 chars)
+      const mockCommitHash = 'a1b2c3d4e5a6b890123456789012345v';
+      const mockExecute = vi
+        .fn()
+        // First call: dolt_branches query (to check if startPoint is a branch)
+        .mockResolvedValueOnce({ rows: [{ name: 'main', hash: mockCommitHash }] })
+        // Second call: DOLT_LOG query to get HEAD commit hash for the branch
+        .mockResolvedValueOnce({ rows: [{ commit_hash: mockCommitHash }] })
+        // Third call: DOLT_BRANCH with resolved hash
+        .mockResolvedValueOnce({ rows: [] });
 
       const mockDb = {
         ...db,
@@ -47,25 +56,32 @@ describe('Branch Module', () => {
 
       await doltBranch(mockDb)({ name: 'new-branch', startPoint: 'main' });
 
-      expect(mockExecute).toHaveBeenCalled();
-      const sqlString = getSqlString(mockExecute);
+      expect(mockExecute).toHaveBeenCalledTimes(3);
+      // Use getSqlString helper with callIndex=2 for the third call (DOLT_BRANCH)
+      const sqlString = getSqlString(mockExecute, 2);
       expect(sqlString).toContain('DOLT_BRANCH');
       expect(sqlString).toContain('new-branch');
-      expect(sqlString).toContain('main');
+      expect(sqlString).toContain(mockCommitHash);
     });
 
     it('should create a branch from a commit hash', async () => {
-      const mockExecute = vi.fn().mockResolvedValue({ rows: [] });
+      // Use a valid dolt base32 hash (0-9 and a-v only, 32 chars)
+      // When startPoint is already a valid hash, doltHashOf returns it directly
+      const commitHash = 'a1b2c3d4e5a6b890123456789012345v';
+      const mockExecute = vi
+        .fn()
+        // Only call: DOLT_BRANCH (hash is returned directly from doltHashOf without DB query)
+        .mockResolvedValueOnce({ rows: [] });
 
       const mockDb = {
         ...db,
         execute: mockExecute,
       } as any;
 
-      const commitHash = 'a1b2c3d4e5f6789012345678901234ab';
       await doltBranch(mockDb)({ name: 'branch-from-commit', startPoint: commitHash });
 
-      expect(mockExecute).toHaveBeenCalled();
+      // Only 1 call since doltHashOf returns hash directly when it matches base32 pattern
+      expect(mockExecute).toHaveBeenCalledTimes(1);
       const sqlString = getSqlString(mockExecute);
       expect(sqlString).toContain('DOLT_BRANCH');
       expect(sqlString).toContain('branch-from-commit');
