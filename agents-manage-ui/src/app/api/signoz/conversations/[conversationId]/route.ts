@@ -1066,18 +1066,6 @@ export async function GET(
       'ai.toolCall',
     ];
 
-    let _errorCount = 0;
-    let _warningCount = 0;
-
-    for (const span of spansWithErrorsList) {
-      const spanName = getString(span, SPAN_KEYS.NAME, '');
-      if (CRITICAL_ERROR_SPAN_NAMES.includes(spanName)) {
-        _errorCount++;
-      } else {
-        _warningCount++;
-      }
-    }
-
     let agentId: string | null = null;
     let agentName: string | null = null;
     for (const s of userMessageSpans) {
