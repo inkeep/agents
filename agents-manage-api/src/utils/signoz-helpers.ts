@@ -37,4 +37,3 @@ export function enforceProjectFilter(payload: any, projectId: string): any {
 
   return modifiedPayload;
 }
-
