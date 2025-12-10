@@ -1,6 +1,5 @@
 'use client';
 
-import type { Editor } from '@tiptap/core';
 import { Extension } from '@tiptap/core';
 import { EditorContent, ReactRenderer, useEditor } from '@tiptap/react';
 import StarterKit from '@tiptap/starter-kit';
@@ -10,15 +9,7 @@ import Suggestion, {
   type SuggestionProps,
 } from '@tiptap/suggestion';
 import type { ComponentPropsWithoutRef, FC, RefObject } from 'react';
-import {
-  forwardRef,
-  useEffect,
-  useImperativeHandle,
-  useMemo,
-  useRef,
-  useState,
-  useCallback,
-} from 'react';
+import { useEffect, useImperativeHandle, useMemo, useRef, useState, useCallback } from 'react';
 import { useMonacoStore } from '@/features/agent/state/use-monaco-store';
 import { cn } from '@/lib/utils';
 import { buildPromptContent } from './prompt-editor-utils';
@@ -42,8 +33,9 @@ interface VariableListProps extends SuggestionProps<VariableSuggestionItem> {
   ref: RefObject<VariableListRef>;
 }
 
-const VariableList = forwardRef<VariableListRef, VariableListProps>(({ items, command }, ref) => {
+const VariableList: FC<VariableListProps> = ({ items, command, ref }) => {
   const [selectedIndex, setSelectedIndex] = useState(0);
+  const anchorRef = useRef<HTMLButtonElement>(null);
 
   const selectItem = useCallback(
     (index: number) => {
@@ -83,7 +75,7 @@ const VariableList = forwardRef<VariableListRef, VariableListProps>(({ items, co
   }));
 
   return (
-    <DropdownMenu open modal={false}>
+    <DropdownMenu open>
       <DropdownMenuTrigger asChild>
         <button
           ref={anchorRef}
@@ -95,17 +87,13 @@ const VariableList = forwardRef<VariableListRef, VariableListProps>(({ items, co
       </DropdownMenuTrigger>
       <DropdownMenuContent
         sideOffset={4}
-        className="z-50 w-64 p-0"
         onCloseAutoFocus={(event) => event.preventDefault()}
         onEscapeKeyDown={(event) => event.preventDefault()}
       >
-        {items.length === 0 ? (
-          <p className="px-3 py-2 text-sm text-muted-foreground">No suggestions</p>
-        ) : (
+        {items.length ? (
           items.map((item, index) => (
             <DropdownMenuItem
               key={item.label}
-              data-selected={index === selectedIndex}
               onMouseMove={() => setSelectedIndex(index)}
               onSelect={(event) => {
                 event.preventDefault();
@@ -116,13 +104,13 @@ const VariableList = forwardRef<VariableListRef, VariableListProps>(({ items, co
               <span className="ml-2 text-xs text-muted-foreground">{item.detail}</span>
             </DropdownMenuItem>
           ))
+        ) : (
+          <p className="px-3 py-2 text-sm text-muted-foreground">No suggestions</p>
         )}
       </DropdownMenuContent>
     </DropdownMenu>
   );
-});
-
-VariableList.displayName = 'VariableList';
+};
 
 const VariableSuggestion = Extension.create<{
   suggestion: Partial<SuggestionOptions<VariableSuggestionItem>>;
@@ -143,9 +131,6 @@ const VariableSuggestion = Extension.create<{
   },
 });
 
-const getEditorText = (editor: Editor) =>
-  editor.state.doc.textBetween(0, editor.state.doc.content.size, '\n');
-
 const buildVariableItems = (query: string, suggestions: string[]) => {
   const normalized = query.toLowerCase();
   const entries = new Map<string, VariableSuggestionItem>();
@@ -156,12 +141,10 @@ const buildVariableItems = (query: string, suggestions: string[]) => {
     }
   }
 
-  entries.set('$env.', { label: '$env.', detail: 'Environment variable' });
-
-  return [...entries.values()];
+  return [...entries.values(), { label: '$env.', detail: 'Environment variable' }];
 };
 
-const createSuggestionRenderer = () => {
+const createSuggestionRenderer: SuggestionOptions['render'] = () => {
   let component: ReactRenderer<VariableListRef> | null = null;
   let popupElement: HTMLElement | null = null;
 
@@ -173,9 +156,7 @@ const createSuggestionRenderer = () => {
   };
 
   const destroyPopup = () => {
-    if (popupElement?.parentNode) {
-      popupElement.parentNode.removeChild(popupElement);
-    }
+    popupElement?.parentNode?.removeChild(popupElement);
     popupElement = null;
     component?.destroy();
     component = null;
@@ -207,9 +188,7 @@ const createSuggestionRenderer = () => {
 
       return component?.ref?.onKeyDown(keyDownProps) ?? false;
     },
-    onExit() {
-      destroyPopup();
-    },
+    onExit: destroyPopup,
   };
 };
 

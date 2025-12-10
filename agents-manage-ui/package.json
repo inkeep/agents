@@ -86,7 +86,6 @@
     "@tiptap/suggestion": "^3.13.0",
     "@tiptap/extension-highlight": "^3.13.0",
     "@tiptap/extension-list": "^3.13.0",
-    "@tiptap/extension-mention": "^3.13.0",
     "@tiptap/extension-table": "^3.13.0",
     "@tiptap/markdown": "^3.13.0",
     "@xyflow/react": "^12.8.2",
