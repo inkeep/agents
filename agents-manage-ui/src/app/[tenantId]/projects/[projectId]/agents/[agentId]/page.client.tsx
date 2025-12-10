@@ -28,6 +28,7 @@ import {
   teamAgentNodeTargetHandleId,
 } from '@/components/agent/configuration/node-types';
 import { useCopilotContext } from '@/components/agent/copilot/copilot-context';
+import { CopilotStreamingOverlay } from '@/components/agent/copilot-streaming-overlay';
 import { EmptyState } from '@/components/agent/empty-state';
 import { AgentErrorSummary } from '@/components/agent/error-display/agent-error-summary';
 import { DefaultMarker } from '@/components/agent/markers/default-marker';
@@ -116,7 +117,11 @@ export const Agent: FC<AgentProps> = ({
   credentialLookup = {},
 }) => {
   const [showPlayground, setShowPlayground] = useState(false);
-  const { isOpen: isCopilotChatOpen, isCopilotConfigured } = useCopilotContext();
+  const {
+    isOpen: isCopilotChatOpen,
+    isCopilotConfigured,
+    isStreaming: isCopilotStreaming,
+  } = useCopilotContext();
 
   const router = useRouter();
 
@@ -1034,6 +1039,7 @@ export const Agent: FC<AgentProps> = ({
         defaultSize={100}
         className="relative"
       >
+        {isCopilotStreaming && <CopilotStreamingOverlay />}
         <DefaultMarker />
         <SelectedMarker />
         <ReactFlow
@@ -1069,6 +1075,7 @@ export const Agent: FC<AgentProps> = ({
               <NodeLibrary />
             </Panel>
           )}
+
           {showEmptyState && (
             <Panel position="top-center" className="top-1/2! translate-y-[-50%]">
               <EmptyState onAddInitialNode={onAddInitialNode} />
@@ -1132,6 +1139,7 @@ export const Agent: FC<AgentProps> = ({
                 subAgentExternalAgentConfigLookup={subAgentExternalAgentConfigLookup}
                 subAgentTeamAgentConfigLookup={subAgentTeamAgentConfigLookup}
                 credentialLookup={credentialLookup}
+                disabled={isCopilotStreaming}
               />
             </ResizablePanel>
           </>
