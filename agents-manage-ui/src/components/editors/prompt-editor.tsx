@@ -353,11 +353,12 @@ export const PromptEditor: FC<PromptEditorProps> = ({
   hasDynamicHeight,
   disabled,
   readOnly,
+  ref,
   invalid,
 }) => {
   const { toggleMarkdownEditor } = useAgentActions();
   const contentType = useAgentStore((state) => (state.isMarkdownEditor ? undefined : 'markdown'));
-  const formattedContent = useMemo(() => buildPromptContent(mdContent), []);
+  const formattedContent = useMemo(() => buildPromptContent(''), []);
 
   const editor = useEditor({
     immediatelyRender: false, // needs for SSR
@@ -387,42 +388,32 @@ export const PromptEditor: FC<PromptEditorProps> = ({
       Highlight,
       Mention.configure({
         HTMLAttributes: { class: 'mention' },
-        suggestions: [
-          {
-            char: '@',
-            items({ query }) {
-              return [
-                'Lea Thompson',
-                'Cyndi Lauper',
-                'Tom Cruise',
-                'Madonna',
-                'Jerry Hall',
-                'Joan Collins',
-                'Winona Ryder',
-                'Christina Applegate',
-              ].filter((item) => item.toLowerCase().startsWith(query.toLowerCase()));
-            },
+        suggestion: {
+          char: '{{',
+          items({ query }) {
+            const all = ['Ada', 'Alan', 'Grace', 'Linus', 'Margaret'];
+            console.log({ all });
+            return all.filter((x) => x.toLowerCase().startsWith(query.toLowerCase())).slice(0, 8);
           },
-          {
-            char: '#',
-            items({ query }) {
-              return [
-                'bug',
-                'feature',
-                'enhancement',
-                'documentation',
-                'help-wanted',
-                'priority-high',
-                'priority-low',
-              ].filter((item) => item.toLowerCase().startsWith(query.toLowerCase()));
-            },
-          },
-        ],
+        },
       }),
     ],
     content: contentType ? mdContent : formattedContent,
     contentType,
   });
+
+  useImperativeHandle(
+    ref,
+    () => ({
+      focus() {
+        editor?.chain().focus('end').run();
+      },
+      insertVariableTrigger() {
+        // editor?.chain().focus().insertContent('{').run();
+      },
+    }),
+    [editor]
+  );
 
   const toggle = useCallback(() => {
     editor?.commands.setContent(
