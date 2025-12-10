@@ -1638,24 +1638,35 @@ export async function GET(
       }
     }
 
-    // For each agent generation, check if ALL or SOME tool calls failed
+    // For each agent generation, check if ALL tool calls to the same MCP server failed
     for (const [_agentGenId, toolCallsInGeneration] of toolCallsByAgentGen) {
       if (toolCallsInGeneration.length === 0) continue;
 
-      const failedToolCalls = toolCallsInGeneration.filter(
-        (a) => a.status === ACTIVITY_STATUS.ERROR
-      );
-      const successfulToolCalls = toolCallsInGeneration.filter(
-        (a) => a.status === ACTIVITY_STATUS.SUCCESS
-      );
+      // Group tool calls by MCP server name
+      const toolCallsByMcpServer = new Map<string, Activity[]>();
+      for (const toolCall of toolCallsInGeneration) {
+        const mcpServerName = toolCall.mcpServerName || UNKNOWN_VALUE;
+        if (!toolCallsByMcpServer.has(mcpServerName)) {
+          toolCallsByMcpServer.set(mcpServerName, []);
+        }
+        toolCallsByMcpServer.get(mcpServerName)?.push(toolCall);
+      }
 
-      // If SOME tools failed but at least one succeeded, mark failed ones as warnings
-      if (failedToolCalls.length > 0 && successfulToolCalls.length > 0) {
-        for (const toolCall of failedToolCalls) {
-          toolCall.status = ACTIVITY_STATUS.WARNING;
+      // For each MCP server, check if ALL or SOME tool calls failed
+      for (const [_mcpServerName, toolCallsToServer] of toolCallsByMcpServer) {
+        const failedToolCalls = toolCallsToServer.filter(
+          (a) => a.status === ACTIVITY_STATUS.ERROR
+        );
+        const successfulToolCalls = toolCallsToServer.filter(
+          (a) => a.status === ACTIVITY_STATUS.SUCCESS
+        );
+
+        if (failedToolCalls.length > 0 && successfulToolCalls.length > 0) {
+          for (const toolCall of failedToolCalls) {
+            toolCall.status = ACTIVITY_STATUS.WARNING;
+          }
         }
       }
-      // If ALL tools failed, they remain as errors (no change needed)
     }
 
     // Sort activities by pre-parsed timestamps

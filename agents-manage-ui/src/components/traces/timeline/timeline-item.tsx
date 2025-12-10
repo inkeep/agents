@@ -353,6 +353,17 @@ export function TimelineItem({
               <Bubble className="line-clamp-2">{activity.toolPurpose}</Bubble>
             )}
 
+          {/* MCP server badge for MCP tool calls */}
+          {activity.type === ACTIVITY_TYPES.TOOL_CALL &&
+            activity.toolType === TOOL_TYPES.MCP &&
+            (activity.mcpServerId || activity.mcpServerName) && (
+              <div className="mb-1">
+                <Badge variant="code" className="text-xs">
+                  MCP: {activity.mcpServerId || activity.mcpServerName}
+                </Badge>
+              </div>
+            )}
+
           {/* artifact processing */}
           {activity.type === ACTIVITY_TYPES.ARTIFACT_PROCESSING && (
             <div className="mt-2 p-3 bg-emerald-50 border border-emerald-200 dark:bg-emerald-900/20 dark:border-emerald-800 rounded-lg max-w-4xl">

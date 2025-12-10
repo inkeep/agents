@@ -362,7 +362,7 @@ export function TracesOverview({ refreshKey }: TracesOverviewProps) {
           <div className="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-4 xl:grid-cols-2 gap-4 h-full">
             {/* Total MCP Tool Calls */}
             <StatCard
-              title="Tool calls"
+              title="MCP Tool calls"
               stat={aggregateStats.totalToolCalls}
               statDescription={`Over ${aggregateStats.totalConversations} conversations`}
               isLoading={aggregateLoading}
