@@ -33,9 +33,9 @@ interface VariableListProps extends SuggestionProps<VariableSuggestionItem> {
   ref: RefObject<VariableListRef>;
 }
 
-const VariableList: FC<VariableListProps> = ({ items, command, ref }) => {
-  const [selectedIndex, setSelectedIndex] = useState(0);
+const VariableList: FC<VariableListProps> = ({ items, command }) => {
   const anchorRef = useRef<HTMLButtonElement>(null);
+  const [open, setOpen] = useState(true);
 
   const selectItem = useCallback(
     (event: any) => {
@@ -45,36 +45,13 @@ const VariableList: FC<VariableListProps> = ({ items, command, ref }) => {
     [command]
   );
 
-  useEffect(() => {
-    setSelectedIndex(0);
-  }, [items]);
-
-  useImperativeHandle(ref, () => ({
-    onKeyDown({ event }) {
-      const total = items.length;
-      if (!total) return false;
-
-      if (event.key === 'ArrowUp') {
-        event.preventDefault();
-        setSelectedIndex((index) => (index + total - 1) % total);
-        return true;
-      }
-      if (event.key === 'ArrowDown') {
-        event.preventDefault();
-        setSelectedIndex((index) => (index + 1) % total);
-        return true;
-      }
-      if (event.key === 'Enter' || event.key === 'Tab') {
-        event.preventDefault();
-        selectItem(selectedIndex);
-        return true;
-      }
-      return false;
-    },
-  }));
-
   return (
-    <DropdownMenu open>
+    <DropdownMenu
+      open={open}
+      onOpenChange={setOpen}
+      // Setting modal false, so hovering on sidebar will still expand it
+      modal={false}
+    >
       <DropdownMenuTrigger asChild>
         <button
           ref={anchorRef}
@@ -84,19 +61,10 @@ const VariableList: FC<VariableListProps> = ({ items, command, ref }) => {
           tabIndex={-1}
         />
       </DropdownMenuTrigger>
-      <DropdownMenuContent
-        sideOffset={4}
-        onCloseAutoFocus={(event) => event.preventDefault()}
-        onEscapeKeyDown={(event) => event.preventDefault()}
-      >
+      <DropdownMenuContent sideOffset={4}>
         {items.length ? (
           items.map((item) => (
-            <DropdownMenuItem
-              // onMouseMove={() => setSelectedIndex(index)}
-              key={item.label}
-              data-label={item.label}
-              onSelect={selectItem}
-            >
+            <DropdownMenuItem key={item.label} data-label={item.label} onSelect={selectItem}>
               <span className="truncate">{item.label}</span>
               <span className="ml-2 text-xs text-muted-foreground">{item.detail}</span>
             </DropdownMenuItem>
@@ -176,14 +144,6 @@ const createSuggestionRenderer: SuggestionOptions['render'] = () => {
     onUpdate(updateProps) {
       component?.updateProps(updateProps);
       updatePopupPosition(updateProps);
-    },
-    onKeyDown(keyDownProps) {
-      if (keyDownProps.event.key === 'Escape') {
-        destroyPopup();
-        return true;
-      }
-
-      return component?.ref?.onKeyDown(keyDownProps) ?? false;
     },
     onExit: destroyPopup,
   };
