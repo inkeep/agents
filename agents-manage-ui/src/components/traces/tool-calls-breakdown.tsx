@@ -412,28 +412,28 @@ export function ToolCallsBreakdown({ onBack }: ToolCallsBreakdownProps) {
 
                       return (
                         <div key={serverName} className="space-y-2">
-                          <div className="flex items-center justify-between p-4 rounded-lg border border-border bg-muted/40">
+                          <div className={`flex items-center justify-between p-4 rounded-lg border ${serverSuccessRate === 0 ? 'border-red-500 bg-red-50 dark:bg-red-950/30' : 'border-border bg-muted/40'}`}>
                             <div className="flex items-center gap-3">
-                              <Server className="h-5 w-5 text-muted-foreground" />
+                              <Server className={`h-5 w-5 ${serverSuccessRate === 0 ? 'text-red-600 dark:text-red-400' : 'text-muted-foreground'}`} />
                               <div>
-                                <span className="text-sm font-semibold text-foreground">
+                                <span className={`text-sm font-semibold ${serverSuccessRate === 0 ? 'text-red-700 dark:text-red-300' : 'text-foreground'}`}>
                                   {serverName === UNKNOWN_VALUE ? 'Unknown Server' : serverName}
                                 </span>
                                 {serverId && serverId !== UNKNOWN_VALUE && (
-                                  <p className="text-xs text-muted-foreground font-mono">
+                                  <p className={`text-xs font-mono ${serverSuccessRate === 0 ? 'text-red-600/80 dark:text-red-400/80' : 'text-muted-foreground'}`}>
                                     {serverId}
                                   </p>
                                 )}
-                                <p className="text-xs text-muted-foreground">
+                                <p className={`text-xs ${serverSuccessRate === 0 ? 'text-red-600/80 dark:text-red-400/80' : 'text-muted-foreground'}`}>
                                   {serverTools.length} tool{serverTools.length !== 1 ? 's' : ''}
                                 </p>
                               </div>
                             </div>
                             <div className="text-right">
-                              <div className="text-lg font-bold text-foreground">
+                              <div className={`text-lg font-bold ${serverSuccessRate === 0 ? 'text-red-700 dark:text-red-400' : 'text-foreground'}`}>
                                 {serverSuccessRate.toFixed(0)}%
                               </div>
-                              <div className="text-xs text-muted-foreground">
+                              <div className={`text-xs ${serverSuccessRate === 0 ? 'text-red-600/80 dark:text-red-400/80' : 'text-muted-foreground'}`}>
                                 {serverSuccessful}/{serverTotalCalls} calls 
                               </div>
                             </div>
@@ -450,19 +450,19 @@ export function ToolCallsBreakdown({ onBack }: ToolCallsBreakdownProps) {
                                 return (
                                   <div
                                     key={toolIndex}
-                                    className="flex items-center justify-between p-3 rounded-md border border-border/50 bg-muted/20"
+                                    className={`flex items-center justify-between p-3 rounded-md border ${successRate === 0 ? 'border-red-500 bg-red-50 dark:bg-red-950/30' : 'border-border/50 bg-muted/20'}`}
                                   >
                                     <div className="flex items-center gap-2">
-                                      <Wrench className="h-4 w-4 text-muted-foreground" />
-                                      <span className="text-sm text-foreground">
+                                      <Wrench className={`h-4 w-4 ${successRate === 0 ? 'text-red-600 dark:text-red-400' : 'text-muted-foreground'}`} />
+                                      <span className={`text-sm ${successRate === 0 ? 'text-red-700 dark:text-red-300' : 'text-foreground'}`}>
                                         {tool.toolName === UNKNOWN_VALUE ? 'Unknown Tool' : tool.toolName}
                                       </span>
                                     </div>
                                     <div className="text-right">
-                                      <div className="text-sm font-medium text-foreground">
+                                      <div className={`text-sm font-medium ${successRate === 0 ? 'text-red-700 dark:text-red-400' : 'text-foreground'}`}>
                                         {successRate.toFixed(0)}%
                                       </div>
-                                      <div className="text-xs text-muted-foreground">
+                                      <div className={`text-xs ${successRate === 0 ? 'text-red-600/80 dark:text-red-400/80' : 'text-muted-foreground'}`}>
                                         {successfulCalls}/{tool.totalCalls} calls 
                                       </div>
                                     </div>
