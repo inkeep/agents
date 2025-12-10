@@ -367,6 +367,11 @@ export function TracesOverview({ refreshKey }: TracesOverviewProps) {
               statDescription={`Over ${aggregateStats.totalConversations} conversations`}
               isLoading={aggregateLoading}
               Icon={Wrench}
+              onClick={() => {
+                const current = new URLSearchParams(searchParams.toString());
+                const href = `/${tenantId}/projects/${projectId}/traces/tool-calls?${current.toString()}`;
+                router.push(href);
+              }}
             />
 
             {/* Agent Transfers */}

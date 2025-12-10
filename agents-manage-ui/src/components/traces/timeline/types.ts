@@ -72,6 +72,8 @@ export interface ActivityItem {
   transferToSubAgentId?: string;
   toolType?: string;
   toolPurpose?: string;
+  mcpServerId?: string;
+  mcpServerName?: string;
   contextConfigId?: string;
   contextAgentId?: string;
   contextRequestKeys?: string[];

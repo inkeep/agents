@@ -209,6 +209,8 @@ function buildConversationListPayload(
               ...QUERY_FIELD_CONFIGS.STRING_TAG,
             },
             { key: SPAN_KEYS.AI_TOOL_TYPE, ...QUERY_FIELD_CONFIGS.STRING_TAG },
+            { key: SPAN_KEYS.AI_TOOL_CALL_MCP_SERVER_ID, ...QUERY_FIELD_CONFIGS.STRING_TAG },
+            { key: SPAN_KEYS.AI_TOOL_CALL_MCP_SERVER, ...QUERY_FIELD_CONFIGS.STRING_TAG },
             {
               key: SPAN_KEYS.AI_TELEMETRY_FUNCTION_ID,
               ...QUERY_FIELD_CONFIGS.STRING_TAG,
@@ -1155,6 +1157,8 @@ export async function GET(
       toolName?: string;
       toolType?: string;
       toolPurpose?: string;
+      mcpServerId?: string;
+      mcpServerName?: string;
       toolCallArgs?: string;
       toolCallResult?: string;
       toolStatusMessage?: string;
@@ -1203,6 +1207,8 @@ export async function GET(
       const durMs = getNumber(span, SPAN_KEYS.DURATION_NANO) / 1e6;
       const toolType = getString(span, SPAN_KEYS.AI_TOOL_TYPE, '');
       const toolPurpose = getString(span, SPAN_KEYS.TOOL_PURPOSE, '');
+      const mcpServerId = getString(span, SPAN_KEYS.AI_TOOL_CALL_MCP_SERVER_ID, '');
+      const mcpServerName = getString(span, SPAN_KEYS.AI_TOOL_CALL_MCP_SERVER, '');
       const aiTelemetryFunctionId = getString(span, SPAN_KEYS.AI_TELEMETRY_FUNCTION_ID, '');
       const delegationFromSubAgentId = getString(span, SPAN_KEYS.DELEGATION_FROM_SUB_AGENT_ID, '');
       const delegationToSubAgentId = getString(span, SPAN_KEYS.DELEGATION_TO_SUB_AGENT_ID, '');
@@ -1232,6 +1238,8 @@ export async function GET(
         result: hasError ? `Tool call failed (${durMs.toFixed(2)}ms)` : `${durMs.toFixed(2)}ms`,
         toolType: toolType || undefined,
         toolPurpose: toolPurpose || undefined,
+        mcpServerId: mcpServerId || undefined,
+        mcpServerName: mcpServerName || undefined,
         aiTelemetryFunctionId: aiTelemetryFunctionId || undefined,
         delegationFromSubAgentId: delegationFromSubAgentId || undefined,
         delegationToSubAgentId: delegationToSubAgentId || undefined,
