@@ -9,65 +9,12 @@
  * 4. Streams NDJSON response back to client
  */
 
-import { ModelFactory } from '@inkeep/agents-core';
+import { jsonSchemaToZod, ModelFactory } from '@inkeep/agents-core';
 import { streamObject } from 'ai';
 import type { NextRequest } from 'next/server';
 import { z } from 'zod';
 import { fetchDataComponent } from '@/lib/api/data-components';
 import { fetchProject } from '@/lib/api/projects';
-
-/**
- * Converts JSON Schema to Zod schema with Anthropic-compatible types.
- * Avoids z.any() and z.unknown() which don't produce proper JSON Schema types.
- */
-function jsonSchemaToZod(jsonSchema: Record<string, unknown> | null): z.ZodType<unknown> {
-  if (!jsonSchema || typeof jsonSchema !== 'object') {
-    // Fallback to string for invalid schemas
-    return z.string();
-  }
-
-  const schemaType = jsonSchema.type as string | undefined;
-
-  switch (schemaType) {
-    case 'object': {
-      const properties = jsonSchema.properties as
-        | Record<string, Record<string, unknown>>
-        | undefined;
-      if (properties && typeof properties === 'object') {
-        const shape: Record<string, z.ZodType<unknown>> = {};
-        for (const [key, prop] of Object.entries(properties)) {
-          shape[key] = jsonSchemaToZod(prop);
-        }
-        return z.object(shape);
-      }
-      // Object without defined properties - use record with string values as safe fallback
-      return z.record(z.string(), z.string());
-    }
-
-    case 'array': {
-      const items = jsonSchema.items as Record<string, unknown> | undefined;
-      const itemSchema = items ? jsonSchemaToZod(items) : z.string();
-      return z.array(itemSchema);
-    }
-
-    case 'string':
-      return z.string();
-
-    case 'number':
-    case 'integer':
-      return z.number();
-
-    case 'boolean':
-      return z.boolean();
-
-    case 'null':
-      return z.null();
-
-    default:
-      // For untyped or unknown schemas, use string as safe fallback
-      return z.string();
-  }
-}
 
 export async function POST(
   request: NextRequest,
