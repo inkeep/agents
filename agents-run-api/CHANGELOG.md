@@ -1,5 +1,37 @@
 # @inkeep/agents-run-api
 
+## 0.38.0
+
+### Minor Changes
+
+- 515d808: Upgrade to Vercel AI SDK v6 beta
+
+### Patch Changes
+
+- 8114afc: Update to open id connect for release action
+- bcee35f: add requiredToFetch on fetch definitions
+- a46303b: fix blue dot appears on inverted delegation on top left corner, refactor retrieving relationshipId in agents-core
+- 4801d35: status messages for traces shown
+- f791c6d: updated artifact handlin
+- f1f68cf: new models
+- 6dcb6b7: fix signoz for vercel
+- b3e49d9: updated schemas
+- 31be157: cloud deployment does not have signoz links
+- Updated dependencies [b69b814]
+- Updated dependencies [8114afc]
+- Updated dependencies [515d808]
+- Updated dependencies [bcee35f]
+- Updated dependencies [a46303b]
+- Updated dependencies [4801d35]
+- Updated dependencies [f791c6d]
+- Updated dependencies [f1f68cf]
+- Updated dependencies [6dcb6b7]
+- Updated dependencies [b3e49d9]
+- Updated dependencies [5fbd137]
+- Updated dependencies [31be157]
+- Updated dependencies [fcbf008]
+  - @inkeep/agents-core@0.38.0
+
 ## 0.37.2
 
 ### Patch Changes
