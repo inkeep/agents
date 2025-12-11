@@ -14,7 +14,7 @@ import { validateProjectId, validateTenantId } from './resource-validation';
 export interface EvaluationRunConfig {
   id: string;
   name: string;
-  description: string;
+  description?: string;
   isActive: boolean;
   suiteConfigIds?: string[];
   createdAt: string;
@@ -26,7 +26,7 @@ export interface EvaluationRunConfig {
 export interface EvaluationRunConfigInsert {
   id?: string;
   name: string;
-  description: string;
+  description?: string;
   isActive?: boolean;
   suiteConfigIds?: string[];
 }
