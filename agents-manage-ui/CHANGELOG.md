@@ -1,5 +1,59 @@
 # @inkeep/agents-manage-ui
 
+## 0.38.0
+
+### Minor Changes
+
+- c3ffb34: Add GET /logout endpoint for debugging login/logout issues. Supports direct URL-based logout without requiring JavaScript execution. Includes security hardening to prevent open redirect vulnerabilities.
+- 515d808: Upgrade to Vercel AI SDK v6 beta
+- 4b64b94: - add spinner in `Save changes` button in agent workflow
+  - remove `inPreviewDisabled` prop from `<Toolbar />` component
+
+### Patch Changes
+
+- b69b814: fix biome warnings
+- 8114afc: Update to open id connect for release action
+- bcee35f: add requiredToFetch on fetch definitions
+- f4628aa: fix multiple copy value icons when value contains multiple quotes
+- a2928eb: filter out disabled providers
+- 4f2b325: Add missing repo field to package json
+- bc2bb7e: fix: update tool-approval tests to use correct underscore-based tool name format
+- a46303b: fix blue dot appears on inverted delegation on top left corner, refactor retrieving relationshipId in agents-core
+- d29440f: Bump next
+- af7704c: fix empty agent prompt field not updating in database
+- 4801d35: status messages for traces shown
+- f791c6d: updated artifact handlin
+- f1f68cf: new models
+- 6dcb6b7: fix signoz for vercel
+- 5e2c81d: - set max height for monaco editor to avoid page freezes up / lags when clicking into it
+  - add toggle text wrap action button for `JsonEditorWithCopy`
+- b3e49d9: updated schemas
+- 5fbd137: fix `Module not found: Can't resolve '../build/Release/keytar.node'` in dashboard, ignore `keytar` from bundling with `webpackIgnore` comment
+- 576c9d9: fix `TypeError: Cannot destructure property 'relationshipId' of 'data.details' as it is undefined.`
+- 609e8fe: Fix bug with team agent fetch
+- 31be157: cloud deployment does not have signoz links
+- fcbf008: add creator to mcp server name
+- e53c50a: remove `(with-react-flow-provider)` folder group
+- 6001b74: Fix schema for render generations when using anthropic models
+- Updated dependencies [b69b814]
+- Updated dependencies [8114afc]
+- Updated dependencies [2cf1070]
+- Updated dependencies [515d808]
+- Updated dependencies [bcee35f]
+- Updated dependencies [6ee52a8]
+- Updated dependencies [a46303b]
+- Updated dependencies [4801d35]
+- Updated dependencies [f791c6d]
+- Updated dependencies [f1f68cf]
+- Updated dependencies [6dcb6b7]
+- Updated dependencies [b3e49d9]
+- Updated dependencies [5fbd137]
+- Updated dependencies [31be157]
+- Updated dependencies [fcbf008]
+  - @inkeep/agents-core@0.38.0
+  - @inkeep/agents-manage-api@0.38.0
+  - @inkeep/agents-run-api@0.38.0
+
 ## 0.37.2
 
 ### Patch Changes
