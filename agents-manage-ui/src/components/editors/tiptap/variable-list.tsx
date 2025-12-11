@@ -6,17 +6,18 @@ import {
 } from '@/components/ui/dropdown-menu';
 import type { SuggestionOptions, SuggestionProps } from '@tiptap/suggestion';
 import type { FC, RefObject } from 'react';
-import { useCallback, useEffect, useImperativeHandle, useState } from 'react';
+import { useCallback, useImperativeHandle, useState } from 'react';
 import { monacoStore } from '@/features/agent/state/use-monaco-store';
 import { cn } from '@/lib/utils';
 
-type VariableSuggestionItem = string;
+type VariableListItem = string;
 
 export type VariableListRef = {
   onKeyDown: (props: { event: KeyboardEvent }) => boolean;
 };
 
-export interface VariableListProps extends SuggestionProps {
+export interface VariableListProps
+  extends SuggestionProps<VariableListItem, { id: VariableListItem }> {
   ref: RefObject<VariableListRef>;
 }
 
@@ -24,7 +25,7 @@ export const buildVariableItems: SuggestionOptions['items'] = ({ query }) => {
   const { variableSuggestions } = monacoStore.getState();
 
   const normalized = query.toLowerCase();
-  const entries = new Map<string, VariableSuggestionItem>();
+  const entries = new Map<string, VariableListItem>();
 
   for (const label of variableSuggestions) {
     if (label.toLowerCase().includes(normalized)) {
@@ -71,27 +72,20 @@ export const VariableList: FC<VariableListProps> = ({ items, command, ref }) => 
   const selectItem = useCallback(
     (index: number) => {
       const item = items[index];
-
-      if (item) {
-        command({ id: item });
-      }
+      command({ id: item });
     },
     [command, items]
   );
 
-  useEffect(() => {
-    setSelectedIndex(0);
-  }, []);
-
   useImperativeHandle(ref, () => ({
     onKeyDown({ event }) {
       if (event.key === 'ArrowUp') {
-        setSelectedIndex((selectedIndex + items.length - 1) % items.length);
+        setSelectedIndex((idx) => (idx + items.length - 1) % items.length);
         return true;
       }
 
       if (event.key === 'ArrowDown') {
-        setSelectedIndex((selectedIndex + 1) % items.length);
+        setSelectedIndex((idx) => (idx + 1) % items.length);
         return true;
       }
 
