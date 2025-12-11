@@ -9,16 +9,21 @@ import Suggestion, {
   type SuggestionProps,
 } from '@tiptap/suggestion';
 import type { ComponentPropsWithoutRef, FC, RefObject } from 'react';
-import { useEffect, useImperativeHandle, useMemo, useRef, useState, useCallback } from 'react';
-import { useMonacoStore } from '@/features/agent/state/use-monaco-store';
+import { forwardRef, useCallback, useImperativeHandle, useMemo } from 'react';
+import { monacoStore } from '@/features/agent/state/use-monaco-store';
 import { cn } from '@/lib/utils';
 import { buildPromptContent } from './prompt-editor-utils';
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu';
+import Mention from '@tiptap/extension-mention';
+import { Highlight } from '@tiptap/extension-highlight';
+import { TaskItem, TaskList } from '@tiptap/extension-list';
+import { TableKit } from '@tiptap/extension-table';
+import { Markdown } from '@tiptap/markdown';
+import { Button } from '@/components/ui/button';
+import { TextInitial } from 'lucide-react';
+import { MarkdownIcon } from '@/icons';
+import { useAgentActions, useAgentStore } from '@/features/agent/state/use-agent-store';
+import { suggestion } from './tiptap/suggestion';
+import './prompt-editor.css';
 
 type VariableSuggestionItem = {
   label: string;
@@ -408,6 +413,12 @@ export const PromptEditor: FC<PromptEditorProps> = ({
       TableKit,
       Highlight,
       suggestionExtension,
+      Mention.configure({
+        HTMLAttributes: {
+          class: 'mention',
+        },
+        suggestion,
+      }),
     ],
     content: contentType ? mdContent : formattedContent,
     contentType,

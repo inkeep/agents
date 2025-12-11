@@ -1,7 +1,10 @@
-import type { FC,  } from 'react';
+import type { FC } from 'react';
 import { useEffect, useImperativeHandle, useState } from 'react';
+import type { SuggestionProps } from '@tiptap/suggestion';
 
-export const MentionList: FC = (props) => {
+interface MentionListProps extends SuggestionProps {}
+
+export const MentionList: FC<MentionListProps> = (props) => {
   const [selectedIndex, setSelectedIndex] = useState(0);
 
   const selectItem = (index) => {
@@ -29,7 +32,7 @@ export const MentionList: FC = (props) => {
   }, [props.items]);
 
   useImperativeHandle(props.ref, () => ({
-    onKeyDown: ({ event }) => {
+    onKeyDown({ event }) {
       if (event.key === 'ArrowUp') {
         upHandler();
         return true;
