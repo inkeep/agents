@@ -1683,8 +1683,8 @@ export async function GET(
     const openAICallsCount = aiGenerationSpans.length;
 
     // Recalculate error and warning counts based on actual activity statuses
-    const finalErrorCount = activities.filter(a => a.status === ACTIVITY_STATUS.ERROR).length;
-    const finalWarningCount = activities.filter(a => a.status === ACTIVITY_STATUS.WARNING).length;
+    const finalErrorCount = activities.filter((a) => a.status === ACTIVITY_STATUS.ERROR).length;
+    const finalWarningCount = activities.filter((a) => a.status === ACTIVITY_STATUS.WARNING).length;
 
     const conversation = {
       conversationId,
@@ -1692,7 +1692,8 @@ export async function GET(
       endTime: conversationEndTime ? conversationEndTime : null,
       duration: conversationDurationMs,
       totalMessages: activities.filter(
-        a => a.type === ACTIVITY_TYPES.USER_MESSAGE || a.type === ACTIVITY_TYPES.AI_ASSISTANT_MESSAGE
+        (a) =>
+          a.type === ACTIVITY_TYPES.USER_MESSAGE || a.type === ACTIVITY_TYPES.AI_ASSISTANT_MESSAGE
       ).length,
       totalToolCalls: activities.filter((a) => a.type === ACTIVITY_TYPES.TOOL_CALL).length,
       totalErrors: 0,
