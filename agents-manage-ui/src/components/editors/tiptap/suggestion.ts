@@ -44,25 +44,25 @@ export const suggestion: MentionOptions['suggestion'] = {
           // Provide a DOM context so floating-ui can track scroll/resize ancestors.
           contextElement: editor.view.dom,
         };
-
         component = new ReactRenderer(VariableList, { props, editor });
-        const el = component.element;
 
         if (!props.clientRect) {
           return;
         }
-
+        const el = component.element;
         el.style.position = 'absolute';
-
-        document.body.appendChild(el);
+        document.body.append(el);
 
         // Keep the menu positioned when the editable area scrolls.
         updatePosition(virtualElement, el);
-        cleanup = autoUpdate(virtualElement, el, () => updatePosition(virtualElement, el), {
+        cleanup = autoUpdate(
+          virtualElement,
+          el,
+          () => updatePosition(virtualElement, el),
           // With a virtual reference, rely on animation frames so scrolling
           // inside the editor keeps the list aligned.
-          animationFrame: true,
-        });
+          { animationFrame: true }
+        );
       },
 
       onUpdate(props) {
