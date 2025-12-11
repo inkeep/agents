@@ -437,7 +437,7 @@ export class Agent {
             attributes['ai.toolCall.mcpServerId'] = options.mcpServerId;
           }
           if (options?.mcpServerName) {
-            attributes['ai.toolCall.mcpServer'] = options.mcpServerName;
+            attributes['ai.toolCall.mcpServerName'] = options.mcpServerName;
           }
 
           activeSpan.setAttributes(attributes);

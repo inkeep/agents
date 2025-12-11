@@ -576,18 +576,18 @@ class SigNozStatsAPI {
 
       for (const s of series) {
         const toolName = s.labels?.[SPAN_KEYS.AI_TOOL_CALL_NAME] || UNKNOWN_VALUE;
-        const server = s.labels?.[SPAN_KEYS.AI_TOOL_CALL_MCP_SERVER] || UNKNOWN_VALUE;
-        const sId = s.labels?.[SPAN_KEYS.AI_TOOL_CALL_MCP_SERVER_ID] || UNKNOWN_VALUE;
+        const server = s.labels?.[SPAN_KEYS.AI_TOOL_CALL_MCP_SERVER_NAME] || UNKNOWN_VALUE;
+        const serverId = s.labels?.[SPAN_KEYS.AI_TOOL_CALL_MCP_SERVER_ID] || UNKNOWN_VALUE;
         const count = countFromSeries(s);
 
         if (!count) continue;
         if (serverName && serverName !== 'all' && server !== serverName) continue;
 
-        const key = `${toolName}::${server}::${sId}`;
+        const key = `${toolName}::${server}::${serverId}`;
         const row = acc.get(key) || {
           toolName,
           serverName: server,
-          serverId: sId,
+          serverId,
           totalCalls: 0,
           errorCount: 0,
           errorRate: 0,
@@ -615,14 +615,14 @@ class SigNozStatsAPI {
 
       const errorMap = new Map<string, number>();
       for (const s of errorSeries) {
-        const serverName = s.labels?.[SPAN_KEYS.AI_TOOL_CALL_MCP_SERVER] || UNKNOWN_VALUE;
+        const serverName = s.labels?.[SPAN_KEYS.AI_TOOL_CALL_MCP_SERVER_NAME] || UNKNOWN_VALUE;
         const count = countFromSeries(s);
         errorMap.set(serverName, (errorMap.get(serverName) || 0) + count);
       }
 
       const totals = new Map<string, { totalCalls: number; errorCount: number }>();
       for (const s of series) {
-        const serverName = s.labels?.[SPAN_KEYS.AI_TOOL_CALL_MCP_SERVER] || UNKNOWN_VALUE;
+        const serverName = s.labels?.[SPAN_KEYS.AI_TOOL_CALL_MCP_SERVER_NAME] || UNKNOWN_VALUE;
         const count = countFromSeries(s);
         if (!count) continue;
         const existing = totals.get(serverName) || { totalCalls: 0, errorCount: 0 };
@@ -653,7 +653,7 @@ class SigNozStatsAPI {
       const series = this.extractSeries(resp, 'uniqueServers');
       const serverMap = new Map<string, { name: string; id: string }>();
       for (const s of series) {
-        const name = s.labels?.[SPAN_KEYS.AI_TOOL_CALL_MCP_SERVER];
+        const name = s.labels?.[SPAN_KEYS.AI_TOOL_CALL_MCP_SERVER_NAME];
         const id = s.labels?.[SPAN_KEYS.AI_TOOL_CALL_MCP_SERVER_ID] || '';
         if (name && name !== UNKNOWN_VALUE) {
           serverMap.set(name, { name, id });
@@ -2718,7 +2718,7 @@ class SigNozStatsAPI {
             filters: { op: OPERATORS.AND, items: baseFilters },
             groupBy: [
               { key: SPAN_KEYS.AI_TOOL_CALL_NAME, ...QUERY_FIELD_CONFIGS.STRING_TAG },
-              { key: SPAN_KEYS.AI_TOOL_CALL_MCP_SERVER, ...QUERY_FIELD_CONFIGS.STRING_TAG },
+              { key: SPAN_KEYS.AI_TOOL_CALL_MCP_SERVER_NAME, ...QUERY_FIELD_CONFIGS.STRING_TAG },
               { key: SPAN_KEYS.AI_TOOL_CALL_MCP_SERVER_ID, ...QUERY_FIELD_CONFIGS.STRING_TAG },
             ],
             expression: 'toolCalls',
@@ -2815,7 +2815,7 @@ class SigNozStatsAPI {
             },
             filters: { op: OPERATORS.AND, items: baseFilters },
             groupBy: [
-              { key: SPAN_KEYS.AI_TOOL_CALL_MCP_SERVER, ...QUERY_FIELD_CONFIGS.STRING_TAG },
+              { key: SPAN_KEYS.AI_TOOL_CALL_MCP_SERVER_NAME, ...QUERY_FIELD_CONFIGS.STRING_TAG },
             ],
             expression: 'serverCalls',
             reduceTo: REDUCE_OPERATIONS.SUM,
@@ -2847,7 +2847,7 @@ class SigNozStatsAPI {
               ],
             },
             groupBy: [
-              { key: SPAN_KEYS.AI_TOOL_CALL_MCP_SERVER, ...QUERY_FIELD_CONFIGS.STRING_TAG },
+              { key: SPAN_KEYS.AI_TOOL_CALL_MCP_SERVER_NAME, ...QUERY_FIELD_CONFIGS.STRING_TAG },
             ],
             expression: 'serverErrors',
             reduceTo: REDUCE_OPERATIONS.SUM,
@@ -2879,12 +2879,12 @@ class SigNozStatsAPI {
         value: AI_TOOL_TYPES.MCP,
       },
       {
-        key: { key: SPAN_KEYS.AI_TOOL_CALL_MCP_SERVER, ...QUERY_FIELD_CONFIGS.STRING_TAG },
+        key: { key: SPAN_KEYS.AI_TOOL_CALL_MCP_SERVER_NAME, ...QUERY_FIELD_CONFIGS.STRING_TAG },
         op: OPERATORS.EXISTS,
         value: '',
       },
       {
-        key: { key: SPAN_KEYS.AI_TOOL_CALL_MCP_SERVER, ...QUERY_FIELD_CONFIGS.STRING_TAG },
+        key: { key: SPAN_KEYS.AI_TOOL_CALL_MCP_SERVER_NAME, ...QUERY_FIELD_CONFIGS.STRING_TAG },
         op: OPERATORS.NOT_EQUALS,
         value: UNKNOWN_VALUE,
       },
@@ -2918,14 +2918,14 @@ class SigNozStatsAPI {
             },
             filters: { op: OPERATORS.AND, items },
             groupBy: [
-              { key: SPAN_KEYS.AI_TOOL_CALL_MCP_SERVER, ...QUERY_FIELD_CONFIGS.STRING_TAG },
+              { key: SPAN_KEYS.AI_TOOL_CALL_MCP_SERVER_NAME, ...QUERY_FIELD_CONFIGS.STRING_TAG },
               { key: SPAN_KEYS.AI_TOOL_CALL_MCP_SERVER_ID, ...QUERY_FIELD_CONFIGS.STRING_TAG },
             ],
             expression: 'uniqueServers',
             reduceTo: REDUCE_OPERATIONS.SUM,
             stepInterval: QUERY_DEFAULTS.STEP_INTERVAL,
             orderBy: [
-              { columnName: SPAN_KEYS.AI_TOOL_CALL_MCP_SERVER, order: ORDER_DIRECTIONS.ASC },
+              { columnName: SPAN_KEYS.AI_TOOL_CALL_MCP_SERVER_NAME, order: ORDER_DIRECTIONS.ASC },
             ],
             offset: QUERY_DEFAULTS.OFFSET,
             disabled: QUERY_DEFAULTS.DISABLED,
