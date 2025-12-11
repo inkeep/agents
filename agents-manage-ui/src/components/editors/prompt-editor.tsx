@@ -3,13 +3,9 @@
 import { Extension } from '@tiptap/core';
 import { EditorContent, ReactRenderer, useEditor } from '@tiptap/react';
 import StarterKit from '@tiptap/starter-kit';
-import Suggestion, {
-  type SuggestionKeyDownProps,
-  type SuggestionOptions,
-  type SuggestionProps,
-} from '@tiptap/suggestion';
+import Suggestion, { type SuggestionOptions } from '@tiptap/suggestion';
 import type { ComponentPropsWithoutRef, FC, RefObject } from 'react';
-import { useState, useCallback, useImperativeHandle, useMemo } from 'react';
+import { useCallback, useImperativeHandle, useMemo } from 'react';
 import { monacoStore } from '@/features/agent/state/use-monaco-store';
 import { cn } from '@/lib/utils';
 import { buildPromptContent } from './prompt-editor-utils';
@@ -23,61 +19,8 @@ import { TextInitial } from 'lucide-react';
 import { MarkdownIcon } from '@/icons';
 import { useAgentActions, useAgentStore } from '@/features/agent/state/use-agent-store';
 import { suggestion } from './tiptap/suggestion';
+import { type VariableSuggestionItem, VariableList } from './tiptap/variable-list';
 import './prompt-editor.css';
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu';
-
-type VariableSuggestionItem = {
-  label: string;
-  detail: string;
-};
-
-interface VariableListRef {
-  onKeyDown: (props: SuggestionKeyDownProps) => boolean;
-}
-
-interface VariableListProps extends SuggestionProps<VariableSuggestionItem> {
-  ref: RefObject<VariableListRef>;
-}
-
-const VariableList: FC<VariableListProps> = ({ items, command, children }) => {
-  const [open, setOpen] = useState(true);
-
-  const selectItem = useCallback(
-    (event: any) => {
-      const label = (event.currentTarget as HTMLElement).dataset.label;
-      command({ label });
-    },
-    [command]
-  );
-
-  return (
-    <DropdownMenu
-      open={open}
-      onOpenChange={setOpen}
-      // Setting modal false, so hovering on sidebar will still expand it
-      modal={false}
-    >
-      <DropdownMenuTrigger />
-      <DropdownMenuContent sideOffset={1} align="start">
-        {items.length ? (
-          items.map((item) => (
-            <DropdownMenuItem key={item.label} data-label={item.label} onSelect={selectItem}>
-              <span className="truncate">{item.label}</span>
-              <span className="ml-2 text-xs text-muted-foreground">{item.detail}</span>
-            </DropdownMenuItem>
-          ))
-        ) : (
-          <p className="px-3 py-2 text-sm text-muted-foreground">No suggestions</p>
-        )}
-      </DropdownMenuContent>
-    </DropdownMenu>
-  );
-};
 
 const VariableSuggestion = Extension.create<{
   suggestion: Partial<SuggestionOptions<VariableSuggestionItem>>;
@@ -121,7 +64,6 @@ const createSuggestionRenderer: SuggestionOptions['render'] = () => {
       const popupElement = document.createElement('div');
       popupElement.append(component.element);
       popupElement.style.position = 'absolute';
-      popupElement.style.zIndex = '9999';
       document.body.append(popupElement);
 
       const clientRect = startProps.clientRect?.();
