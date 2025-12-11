@@ -12,6 +12,9 @@ import { cors } from 'hono/cors';
 import { HTTPException } from 'hono/http-exception';
 import { requestId } from 'hono/request-id';
 import type { StatusCode } from 'hono/utils/http-status';
+import { serve } from 'inngest/hono';
+import { env } from './env';
+import { inngest } from './inngest';
 import { flushBatchProcessor } from './instrumentation';
 import { getLogger } from './logger';
 import { apiKeyAuth } from './middleware/api-key-auth';
@@ -181,6 +184,16 @@ function createExecutionHono(
       allowHeaders: ['*'],
       exposeHeaders: ['Content-Length'],
       maxAge: 86400,
+    })
+  );
+
+  // Inngest serve endpoint (before auth middleware)
+  app.use(
+    '/api/inngest',
+    serve({
+      client: inngest,
+      functions: [],
+      signingKey: env.INNGEST_SIGNING_KEY,
     })
   );
 
