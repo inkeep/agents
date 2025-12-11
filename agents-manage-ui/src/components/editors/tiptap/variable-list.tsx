@@ -4,15 +4,28 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import type { SuggestionProps } from '@tiptap/suggestion';
+import type { SuggestionOptions, SuggestionProps } from '@tiptap/suggestion';
 import { type FC, useCallback, useState } from 'react';
+import { monacoStore } from '@/features/agent/state/use-monaco-store';
 
-export type VariableSuggestionItem = {
-  label: string;
-  detail: string;
-};
+export type VariableSuggestionItem = string;
 
 interface VariableListProps extends SuggestionProps<VariableSuggestionItem> {}
+
+export const buildVariableItems: SuggestionOptions['items'] = ({ query }) => {
+  const { variableSuggestions } = monacoStore.getState();
+
+  const normalized = query.toLowerCase();
+  const entries = new Map<string, VariableSuggestionItem>();
+
+  for (const label of variableSuggestions) {
+    if (label.toLowerCase().includes(normalized)) {
+      entries.set(label, label);
+    }
+  }
+
+  return [...entries.values(), '$env.'];
+};
 
 export const VariableList: FC<VariableListProps> = ({ items, command }) => {
   const [open, setOpen] = useState(true);
@@ -33,12 +46,11 @@ export const VariableList: FC<VariableListProps> = ({ items, command }) => {
       modal={false}
     >
       <DropdownMenuTrigger />
-      <DropdownMenuContent sideOffset={1} align="start">
+      <DropdownMenuContent align="start">
         {items.length ? (
           items.map((item) => (
-            <DropdownMenuItem key={item.label} data-label={item.label} onSelect={selectItem}>
-              <span className="truncate">{item.label}</span>
-              <span className="ml-2 text-xs text-muted-foreground">{item.detail}</span>
+            <DropdownMenuItem key={item} data-label={item} onSelect={selectItem}>
+              {item}
             </DropdownMenuItem>
           ))
         ) : (

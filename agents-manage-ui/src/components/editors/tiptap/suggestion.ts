@@ -1,8 +1,7 @@
 import { autoUpdate, computePosition, flip, type ReferenceElement, shift } from '@floating-ui/dom';
 import { posToDOMRect, ReactRenderer } from '@tiptap/react';
 import type { MentionOptions } from '@tiptap/extension-mention';
-import { VariableList } from './variable-list';
-import { MentionList } from './mention-list';
+import { buildVariableItems, VariableList } from './variable-list';
 
 function updatePosition(virtualElement: ReferenceElement, element: HTMLElement) {
   computePosition(virtualElement, element, {
@@ -18,37 +17,8 @@ function updatePosition(virtualElement: ReferenceElement, element: HTMLElement) 
 }
 
 export const suggestion: MentionOptions['suggestion'] = {
-  items({ query }) {
-    return [
-      'Lea Thompson',
-      'Cyndi Lauper',
-      'Tom Cruise',
-      'Madonna',
-      'Jerry Hall',
-      'Joan Collins',
-      'Winona Ryder',
-      'Christina Applegate',
-      'Alyssa Milano',
-      'Molly Ringwald',
-      'Ally Sheedy',
-      'Debbie Harry',
-      'Olivia Newton-John',
-      'Elton John',
-      'Michael J. Fox',
-      'Axl Rose',
-      'Emilio Estevez',
-      'Ralph Macchio',
-      'Rob Lowe',
-      'Jennifer Grey',
-      'Mickey Rourke',
-      'John Cusack',
-      'Matthew Broderick',
-      'Justine Bateman',
-      'Lisa Bonet',
-    ]
-      .filter((item) => item.toLowerCase().startsWith(query.toLowerCase()))
-      .slice(0, 5);
-  },
+  char: '{',
+  items: buildVariableItems,
 
   render() {
     let component: ReactRenderer;
@@ -70,28 +40,24 @@ export const suggestion: MentionOptions['suggestion'] = {
           contextElement: editor.view.dom,
         };
 
-        component = new ReactRenderer(MentionList, { props, editor });
+        component = new ReactRenderer(VariableList, { props, editor });
+        const el = component.element;
 
         if (!props.clientRect) {
           return;
         }
 
-        component.element.style.position = 'absolute';
+        el.style.position = 'absolute';
 
-        document.body.appendChild(component.element);
+        document.body.appendChild(el);
 
         // Keep the menu positioned when the editable area scrolls.
-        updatePosition(virtualElement, component.element);
-        cleanup = autoUpdate(
-          virtualElement,
-          component.element,
-          () => updatePosition(virtualElement, component.element),
-          {
-            // With a virtual reference, rely on animation frames so scrolling
-            // inside the editor keeps the list aligned.
-            animationFrame: true,
-          }
-        );
+        updatePosition(virtualElement, el);
+        cleanup = autoUpdate(virtualElement, el, () => updatePosition(virtualElement, el), {
+          // With a virtual reference, rely on animation frames so scrolling
+          // inside the editor keeps the list aligned.
+          animationFrame: true,
+        });
       },
 
       onUpdate(props) {
@@ -107,11 +73,9 @@ export const suggestion: MentionOptions['suggestion'] = {
       onKeyDown(props) {
         if (props.event.key === 'Escape') {
           component.destroy();
-
           return true;
         }
-
-        return component.ref?.onKeyDown(props);
+        return false;
       },
 
       onExit() {
