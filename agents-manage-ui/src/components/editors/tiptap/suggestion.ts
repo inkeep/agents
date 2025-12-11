@@ -1,14 +1,10 @@
-import type { SuggestionOptions } from '@tiptap/suggestion';
+import { autoUpdate, computePosition, flip, type ReferenceElement, shift } from '@floating-ui/dom';
 import { posToDOMRect, ReactRenderer } from '@tiptap/react';
-import { computePosition, flip, shift } from '@floating-ui/dom';
+import type { MentionOptions } from '@tiptap/extension-mention';
+import { VariableList } from './variable-list';
 import { MentionList } from './mention-list';
 
-const updatePosition = (editor, element) => {
-  const virtualElement = {
-    getBoundingClientRect: () =>
-      posToDOMRect(editor.view, editor.state.selection.from, editor.state.selection.to),
-  };
-
+function updatePosition(virtualElement: ReferenceElement, element: HTMLElement) {
   computePosition(virtualElement, element, {
     placement: 'bottom-start',
     strategy: 'absolute',
@@ -19,9 +15,9 @@ const updatePosition = (editor, element) => {
     element.style.left = `${x}px`;
     element.style.top = `${y}px`;
   });
-};
+}
 
-export const suggestion: SuggestionOptions = {
+export const suggestion: MentionOptions['suggestion'] = {
   items({ query }) {
     return [
       'Lea Thompson',
@@ -54,11 +50,24 @@ export const suggestion: SuggestionOptions = {
       .slice(0, 5);
   },
 
-  render: () => {
-    let component;
+  render() {
+    let component: ReactRenderer;
+    let cleanup: () => void;
+    let virtualElement: ReferenceElement;
 
     return {
       onStart(props) {
+        virtualElement = {
+          getBoundingClientRect: () =>
+            posToDOMRect(
+              props.editor.view,
+              props.editor.state.selection.from,
+              props.editor.state.selection.to
+            ),
+          // Provide a DOM context so floating-ui can track scroll/resize ancestors.
+          contextElement: props.editor.view.dom,
+        };
+
         component = new ReactRenderer(MentionList, {
           props,
           editor: props.editor,
@@ -72,7 +81,18 @@ export const suggestion: SuggestionOptions = {
 
         document.body.appendChild(component.element);
 
-        updatePosition(props.editor, component.element);
+        // Keep the menu positioned when the editable area scrolls.
+        updatePosition(virtualElement, component.element);
+        cleanup = autoUpdate(
+          virtualElement,
+          component.element,
+          () => updatePosition(virtualElement, component.element),
+          {
+            // With a virtual reference, rely on animation frames so scrolling
+            // inside the editor keeps the list aligned.
+            animationFrame: true,
+          }
+        );
       },
 
       onUpdate(props) {
@@ -82,7 +102,7 @@ export const suggestion: SuggestionOptions = {
           return;
         }
 
-        updatePosition(props.editor, component.element);
+        updatePosition(virtualElement, component.element);
       },
 
       onKeyDown(props) {
@@ -96,6 +116,7 @@ export const suggestion: SuggestionOptions = {
       },
 
       onExit() {
+        cleanup?.();
         component.element.remove();
         component.destroy();
       },
