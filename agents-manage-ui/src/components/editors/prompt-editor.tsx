@@ -1,12 +1,9 @@
 'use client';
 
-import { Extension } from '@tiptap/core';
-import { EditorContent, ReactRenderer, useEditor } from '@tiptap/react';
+import { EditorContent, useEditor } from '@tiptap/react';
 import StarterKit from '@tiptap/starter-kit';
-import Suggestion, { type SuggestionOptions } from '@tiptap/suggestion';
 import type { ComponentPropsWithoutRef, FC, RefObject } from 'react';
 import { useCallback, useImperativeHandle, useMemo } from 'react';
-import { monacoStore } from '@/features/agent/state/use-monaco-store';
 import { cn } from '@/lib/utils';
 import { buildPromptContent } from './prompt-editor-utils';
 import Mention from '@tiptap/extension-mention';
@@ -19,7 +16,6 @@ import { TextInitial } from 'lucide-react';
 import { MarkdownIcon } from '@/icons';
 import { useAgentActions, useAgentStore } from '@/features/agent/state/use-agent-store';
 import { suggestion } from './tiptap/suggestion';
-import { type VariableSuggestionItem, VariableList } from './tiptap/variable-list';
 import './prompt-editor.css';
 
 const VariableSuggestion = Extension.create<{
@@ -360,13 +356,7 @@ export const PromptEditor: FC<PromptEditorProps> = ({
       TaskItem.configure({ nested: true }),
       TableKit,
       Highlight,
-      suggestionExtension,
-      Mention.configure({
-        HTMLAttributes: {
-          class: 'mention',
-        },
-        suggestion,
-      }),
+      mentionExtension,
     ],
     content: isMarkdownMode ? mdContent : formattedContent,
     contentType: isMarkdownMode ? 'markdown' : undefined,
