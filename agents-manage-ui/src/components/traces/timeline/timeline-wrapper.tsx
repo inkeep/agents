@@ -12,7 +12,7 @@ import type {
   PanelType,
   SelectedPanel,
 } from '@/components/traces/timeline/types';
-import { ACTIVITY_STATUS, ACTIVITY_TYPES, TOOL_TYPES } from '@/components/traces/timeline/types';
+import { ACTIVITY_TYPES, TOOL_TYPES } from '@/components/traces/timeline/types';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
 import { ExternalLink } from '@/components/ui/external-link';
@@ -312,7 +312,7 @@ export function TimelineWrapper({
     }, 100);
 
     return () => clearTimeout(timeoutId);
-  }, [conversationId, sortedActivities, enableAutoScroll]);
+  }, [conversationId, enableAutoScroll]);
 
   // Reset scroll tracking when conversation changes
   useEffect(() => {
