@@ -57,21 +57,20 @@ export const suggestion: MentionOptions['suggestion'] = {
 
     return {
       onStart(props) {
+        const { editor } = props;
         virtualElement = {
-          getBoundingClientRect: () =>
-            posToDOMRect(
-              props.editor.view,
-              props.editor.state.selection.from,
-              props.editor.state.selection.to
-            ),
+          getBoundingClientRect() {
+            return posToDOMRect(
+              editor.view,
+              editor.state.selection.from,
+              editor.state.selection.to
+            );
+          },
           // Provide a DOM context so floating-ui can track scroll/resize ancestors.
-          contextElement: props.editor.view.dom,
+          contextElement: editor.view.dom,
         };
 
-        component = new ReactRenderer(MentionList, {
-          props,
-          editor: props.editor,
-        });
+        component = new ReactRenderer(MentionList, { props, editor });
 
         if (!props.clientRect) {
           return;
