@@ -65,7 +65,7 @@ export const SPAN_KEYS = {
   AI_TOOL_CALL_ID: 'ai.toolCall.id',
   AI_TOOL_TYPE: 'ai.toolType',
   AI_TOOL_CALL_MCP_SERVER_ID: 'ai.toolCall.mcpServerId',
-  AI_TOOL_CALL_MCP_SERVER: 'ai.toolCall.mcpServer',
+  AI_TOOL_CALL_MCP_SERVER_NAME: 'ai.toolCall.mcpServerName',
   TOOL_PURPOSE: 'tool.purpose',
   TOOL_NAME: 'tool.name',
   TOOL_CALL_ID: 'tool.callId',
