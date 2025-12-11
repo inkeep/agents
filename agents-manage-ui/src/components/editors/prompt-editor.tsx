@@ -315,8 +315,8 @@ export const PromptEditor: FC<PromptEditorProps> = ({
   invalid,
 }) => {
   const { toggleMarkdownEditor } = useAgentActions();
-  const contentType = useAgentStore((state) => (state.isMarkdownEditor ? undefined : 'markdown'));
-  const formattedContent = useMemo(() => buildPromptContent(''), []);
+  const contentType = useAgentStore((state) => (state.isMarkdownEditor ? 'markdown' : undefined));
+  const formattedContent = useMemo(() => buildPromptContent(mdContent), []);
 
   const suggestionExtension = useMemo(
     () =>
@@ -386,12 +386,15 @@ export const PromptEditor: FC<PromptEditorProps> = ({
   );
 
   const toggle = useCallback(() => {
-    editor?.commands.setContent(
-      contentType ? formattedContent : mdContent,
+    if (!editor) return;
+    editor.commands.setContent(
+      contentType
+        ? /* text */ buildPromptContent(editor.getMarkdown())
+        : /* markdown */ editor.getText(),
       contentType ? undefined : { contentType: 'markdown' }
     );
     toggleMarkdownEditor();
-  }, [editor, contentType, toggleMarkdownEditor, formattedContent]);
+  }, [editor, contentType, toggleMarkdownEditor]);
 
   const IconToUse = contentType ? TextInitial : MarkdownIcon;
 
