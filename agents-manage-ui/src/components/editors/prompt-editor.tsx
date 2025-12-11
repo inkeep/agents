@@ -315,7 +315,7 @@ export const PromptEditor: FC<PromptEditorProps> = ({
   invalid,
 }) => {
   const { toggleMarkdownEditor } = useAgentActions();
-  const contentType = useAgentStore((state) => (state.isMarkdownEditor ? 'markdown' : undefined));
+  const isMarkdownMode = useAgentStore((state) => state.isMarkdownEditor);
   const formattedContent = useMemo(() => buildPromptContent(mdContent), []);
 
   const suggestionExtension = useMemo(
@@ -339,7 +339,7 @@ export const PromptEditor: FC<PromptEditorProps> = ({
     editorProps: {
       attributes: {
         class: cn(
-          contentType && 'prose prose-sm dark:prose-invert',
+          isMarkdownMode && 'prose prose-sm dark:prose-invert',
           'focus:outline-none overflow-scroll min-w-full',
           'dark:bg-input/30 text-sm focus:outline-none px-3 py-2',
           'rounded-md border border-input shadow-xs transition-colors',
@@ -368,8 +368,8 @@ export const PromptEditor: FC<PromptEditorProps> = ({
         suggestion,
       }),
     ],
-    content: contentType ? mdContent : formattedContent,
-    contentType,
+    content: isMarkdownMode ? mdContent : formattedContent,
+    contentType: isMarkdownMode ? 'markdown' : undefined,
   });
 
   useImperativeHandle(
@@ -388,15 +388,15 @@ export const PromptEditor: FC<PromptEditorProps> = ({
   const toggle = useCallback(() => {
     if (!editor) return;
     editor.commands.setContent(
-      contentType
+      isMarkdownMode
         ? /* text */ buildPromptContent(editor.getMarkdown())
         : /* markdown */ editor.getText(),
-      contentType ? undefined : { contentType: 'markdown' }
+      isMarkdownMode ? undefined : { contentType: 'markdown' }
     );
     toggleMarkdownEditor();
-  }, [editor, contentType, toggleMarkdownEditor]);
+  }, [editor, isMarkdownMode, toggleMarkdownEditor]);
 
-  const IconToUse = contentType ? TextInitial : MarkdownIcon;
+  const IconToUse = isMarkdownMode ? TextInitial : MarkdownIcon;
 
   return (
     <EditorContent editor={editor} className="relative">
@@ -404,7 +404,7 @@ export const PromptEditor: FC<PromptEditorProps> = ({
         variant="default"
         className="absolute end-2 top-2 z-1"
         size="icon-sm"
-        title={`Switch to ${contentType ? 'Text' : 'Markdown'}`}
+        title={`Switch to ${isMarkdownMode ? 'Text' : 'Markdown'}`}
         onClick={toggle}
       >
         <IconToUse />
