@@ -1664,57 +1664,36 @@ export async function GET(
         ? Math.max(0, conversationEndTime - conversationStartTime)
         : 0;
 
-    // Single pass token counting for better performance
-    let totalInputTokens = 0;
-    let totalOutputTokens = 0;
-    for (const activity of activities) {
-      if (
-        (activity.type === ACTIVITY_TYPES.AI_GENERATION ||
-          activity.type === ACTIVITY_TYPES.AI_MODEL_STREAMED_TEXT ||
-          activity.type === ACTIVITY_TYPES.AI_MODEL_STREAMED_OBJECT) &&
-        typeof activity.inputTokens === 'number'
-      ) {
-        totalInputTokens += activity.inputTokens;
-      }
-      if (
-        (activity.type === ACTIVITY_TYPES.AI_GENERATION ||
-          activity.type === ACTIVITY_TYPES.AI_MODEL_STREAMED_TEXT ||
-          activity.type === ACTIVITY_TYPES.AI_MODEL_STREAMED_OBJECT) &&
-        typeof activity.outputTokens === 'number'
-      ) {
-        totalOutputTokens += activity.outputTokens;
-      }
-    }
+    const TOKEN_ACTIVITY_TYPES: Set<string> = new Set([
+      ACTIVITY_TYPES.AI_GENERATION,
+      ACTIVITY_TYPES.AI_MODEL_STREAMED_TEXT,
+      ACTIVITY_TYPES.AI_MODEL_STREAMED_OBJECT,
+    ]);
+    const { totalInputTokens, totalOutputTokens } = activities.reduce(
+      (acc, a) => {
+        if (TOKEN_ACTIVITY_TYPES.has(a.type)) {
+          if (typeof a.inputTokens === 'number') acc.totalInputTokens += a.inputTokens;
+          if (typeof a.outputTokens === 'number') acc.totalOutputTokens += a.outputTokens;
+        }
+        return acc;
+      },
+      { totalInputTokens: 0, totalOutputTokens: 0 }
+    );
 
     const openAICallsCount = aiGenerationSpans.length;
 
     // Recalculate error and warning counts based on actual activity statuses
-    let finalErrorCount = 0;
-    let finalWarningCount = 0;
-    for (const activity of activities) {
-      if (activity.status === ACTIVITY_STATUS.ERROR) {
-        finalErrorCount++;
-      } else if (activity.status === ACTIVITY_STATUS.WARNING) {
-        finalWarningCount++;
-      }
-    }
+    const finalErrorCount = activities.filter(a => a.status === ACTIVITY_STATUS.ERROR).length;
+    const finalWarningCount = activities.filter(a => a.status === ACTIVITY_STATUS.WARNING).length;
 
     const conversation = {
       conversationId,
       startTime: conversationStartTime ? conversationStartTime : null,
       endTime: conversationEndTime ? conversationEndTime : null,
       duration: conversationDurationMs,
-      totalMessages: (() => {
-        let count = 0;
-        for (const a of activities) {
-          if (
-            a.type === ACTIVITY_TYPES.USER_MESSAGE ||
-            a.type === ACTIVITY_TYPES.AI_ASSISTANT_MESSAGE
-          )
-            count++;
-        }
-        return count;
-      })(),
+      totalMessages: activities.filter(
+        a => a.type === ACTIVITY_TYPES.USER_MESSAGE || a.type === ACTIVITY_TYPES.AI_ASSISTANT_MESSAGE
+      ).length,
       totalToolCalls: activities.filter((a) => a.type === ACTIVITY_TYPES.TOOL_CALL).length,
       totalErrors: 0,
       totalOpenAICalls: openAICallsCount,
