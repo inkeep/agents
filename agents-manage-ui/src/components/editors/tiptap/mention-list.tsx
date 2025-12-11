@@ -1,10 +1,7 @@
-import type { FC } from 'react';
-import { useEffect, useImperativeHandle, useState } from 'react';
+import { type FC, useEffect, useImperativeHandle, useState } from 'react';
 import type { SuggestionProps } from '@tiptap/suggestion';
 
-interface MentionListProps extends SuggestionProps {}
-
-export const MentionList: FC<MentionListProps> = (props) => {
+export const MentionList: FC<SuggestionProps> = (props) => {
   const [selectedIndex, setSelectedIndex] = useState(0);
 
   const selectItem = (index) => {
