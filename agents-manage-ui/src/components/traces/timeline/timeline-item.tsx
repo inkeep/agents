@@ -356,7 +356,7 @@ export function TimelineItem({
           {/* MCP server badge for MCP tool calls */}
           {activity.type === ACTIVITY_TYPES.TOOL_CALL &&
             activity.toolType === TOOL_TYPES.MCP &&
-            (activity.mcpServerName) && (
+            activity.mcpServerName && (
               <div className="mb-1">
                 <Badge variant="code" className="text-xs">
                   MCP: {activity.mcpServerName}
