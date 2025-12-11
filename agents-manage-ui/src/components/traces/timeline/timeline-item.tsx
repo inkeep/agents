@@ -98,7 +98,6 @@ interface TimelineItemProps {
   hasChildren?: boolean;
   isCollapsed?: boolean;
   onToggleCollapse?: () => void;
-  isFirstError?: boolean;
 }
 
 export function TimelineItem({
@@ -111,7 +110,6 @@ export function TimelineItem({
   hasChildren = false,
   isCollapsed = false,
   onToggleCollapse,
-  isFirstError = false,
 }: TimelineItemProps) {
   const typeForIcon =
     activity.type === ACTIVITY_TYPES.TOOL_CALL && activity.toolType === TOOL_TYPES.TRANSFER
@@ -145,7 +143,7 @@ export function TimelineItem({
   return (
     <div
       className={`flex flex-col text-muted-foreground relative text-xs`}
-      data-first-error={isFirstError || undefined}
+      data-has-error={activity.status === ACTIVITY_STATUS.ERROR || undefined}
     >
       <div className="flex items-start">
         <div className="mr-2 py-2" style={{ width: '16px' }}>

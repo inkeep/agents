@@ -218,14 +218,6 @@ export function TimelineWrapper({
     return list;
   }, [activities]);
 
-  // Memoize first error ID for auto-scroll functionality
-  const firstErrorId = useMemo(() => {
-    const errorActivity = sortedActivities.find(
-      (activity) => activity.status === ACTIVITY_STATUS.ERROR || activity.hasError === true
-    );
-    return errorActivity?.id ?? null;
-  }, [sortedActivities]);
-
   // Ref to track if we've already scrolled to the first error
   const hasScrolledToErrorRef = useRef<string | undefined>(undefined);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
@@ -300,27 +292,27 @@ export function TimelineWrapper({
 
   // Auto-scroll to first error when conversation loads (only for static view, not auto-scroll/polling mode)
   useEffect(() => {
-    // Skip if auto-scroll is enabled (polling mode) or if there's no error
-    if (enableAutoScroll || !firstErrorId) {
+    // Skip if auto-scroll is enabled (polling mode)
+    if (enableAutoScroll) {
       return;
     }
 
-    // Skip if we've already scrolled to this error for this conversation
-    if (hasScrolledToErrorRef.current === `${conversationId}-${firstErrorId}`) {
+    // Skip if we've already scrolled for this conversation
+    if (hasScrolledToErrorRef.current === conversationId) {
       return;
     }
 
     // Small delay to ensure DOM is rendered
     const timeoutId = setTimeout(() => {
-      const errorElement = scrollContainerRef.current?.querySelector('[data-first-error="true"]');
+      const errorElement = scrollContainerRef.current?.querySelector('[data-has-error="true"]');
       if (errorElement) {
         errorElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
-        hasScrolledToErrorRef.current = `${conversationId}-${firstErrorId}`;
+        hasScrolledToErrorRef.current = conversationId;
       }
     }, 100);
 
     return () => clearTimeout(timeoutId);
-  }, [conversationId, firstErrorId, enableAutoScroll]);
+  }, [conversationId, sortedActivities, enableAutoScroll]);
 
   // Reset scroll tracking when conversation changes
   useEffect(() => {
@@ -496,7 +488,6 @@ export function TimelineWrapper({
                     selectedActivityId={selected?.item?.id}
                     collapsedAiMessages={collapsedAiMessages}
                     onToggleAiMessageCollapse={toggleAiMessageCollapse}
-                    firstErrorId={firstErrorId}
                   />
                   {!isPolling && sortedActivities.length > 0 && !error && refreshOnce && (
                     <div className="flex justify-center items-center z-10">
@@ -534,7 +525,6 @@ export function TimelineWrapper({
                   selectedActivityId={selected?.item?.id}
                   collapsedAiMessages={collapsedAiMessages}
                   onToggleAiMessageCollapse={toggleAiMessageCollapse}
-                  firstErrorId={firstErrorId}
                 />
               </div>
             )}

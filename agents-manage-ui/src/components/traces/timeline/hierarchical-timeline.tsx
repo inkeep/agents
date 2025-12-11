@@ -9,7 +9,6 @@ interface HierarchicalTimelineProps {
   selectedActivityId?: string | null;
   collapsedAiMessages?: Set<string>;
   onToggleAiMessageCollapse?: (activityId: string) => void;
-  firstErrorId?: string | null;
 }
 
 interface TreeNodeItemProps {
@@ -21,7 +20,6 @@ interface TreeNodeItemProps {
   onToggleAiMessageCollapse?: (activityId: string) => void;
   collapsedNodes: Set<string>;
   toggleNodeCollapse: (nodeId: string) => void;
-  firstErrorId?: string | null;
 }
 
 function TreeNodeItem({
@@ -33,7 +31,6 @@ function TreeNodeItem({
   onToggleAiMessageCollapse,
   collapsedNodes,
   toggleNodeCollapse,
-  firstErrorId,
 }: TreeNodeItemProps) {
   const hasChildren = node.children.length > 0;
   const isCollapsed = collapsedNodes.has(node.activity.id);
@@ -83,7 +80,6 @@ function TreeNodeItem({
               hasChildren={hasChildren}
               isCollapsed={isCollapsed}
               onToggleCollapse={() => toggleNodeCollapse(node.activity.id)}
-              isFirstError={firstErrorId === node.activity.id}
             />
           </div>
         </div>
@@ -102,7 +98,6 @@ function TreeNodeItem({
               onToggleAiMessageCollapse={onToggleAiMessageCollapse}
               collapsedNodes={collapsedNodes}
               toggleNodeCollapse={toggleNodeCollapse}
-              firstErrorId={firstErrorId}
             />
           ))}
         </div>
@@ -117,7 +112,6 @@ export function HierarchicalTimeline({
   selectedActivityId,
   collapsedAiMessages,
   onToggleAiMessageCollapse,
-  firstErrorId,
 }: HierarchicalTimelineProps) {
   const [collapsedNodes, setCollapsedNodes] = useState<Set<string>>(new Set());
 
@@ -149,7 +143,6 @@ export function HierarchicalTimeline({
             onToggleAiMessageCollapse={onToggleAiMessageCollapse}
             collapsedNodes={collapsedNodes}
             toggleNodeCollapse={toggleNodeCollapse}
-            firstErrorId={firstErrorId}
           />
         ))}
       </div>
