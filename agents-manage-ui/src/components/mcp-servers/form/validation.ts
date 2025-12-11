@@ -12,6 +12,13 @@ const toolsConfigSchema = z.discriminatedUnion('type', [
   }),
 ]);
 
+export const CredentialScopeEnum = {
+  project: 'project',
+  user: 'user',
+} as const;
+
+export type CredentialScope = (typeof CredentialScopeEnum)[keyof typeof CredentialScopeEnum];
+
 export const mcpToolSchema = z.object({
   name: z.string().min(1, 'Name is required.'),
   config: z.object({
@@ -27,6 +34,7 @@ export const mcpToolSchema = z.object({
     }),
   }),
   credentialReferenceId: z.string().nullish(),
+  credentialScope: z.enum(CredentialScopeEnum).default('project'),
   imageUrl: z.string().optional(),
 });
 

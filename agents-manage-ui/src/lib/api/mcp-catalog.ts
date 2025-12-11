@@ -23,16 +23,18 @@ export async function fetchMCPCatalog(
 /**
  * Fetch details for a specific third-party MCP server (e.g., Composio)
  * Returns authentication status and connect URL if not authenticated
+ * @param credentialScope - 'project' for shared team credentials, 'user' for per-user credentials
  */
 export async function fetchThirdPartyMCPServer(
   tenantId: string,
   projectId: string,
-  url: string
+  url: string,
+  credentialScope: 'project' | 'user' = 'project'
 ): Promise<ThirdPartyMCPServerResponseType> {
   const endpoint = `tenants/${tenantId}/projects/${projectId}/third-party-mcp-servers`;
   const response = await makeManagementApiRequest<ThirdPartyMCPServerResponseType>(endpoint, {
     method: 'POST',
-    body: JSON.stringify({ url }),
+    body: JSON.stringify({ url, credentialScope }),
   });
   return response;
 }
