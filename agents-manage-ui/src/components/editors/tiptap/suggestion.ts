@@ -1,7 +1,12 @@
 import { autoUpdate, computePosition, flip, type ReferenceElement, shift } from '@floating-ui/dom';
 import { posToDOMRect, ReactRenderer } from '@tiptap/react';
 import type { MentionOptions } from '@tiptap/extension-mention';
-import { buildVariableItems, VariableList } from './variable-list';
+import {
+  buildVariableItems,
+  VariableList,
+  type VariableListProps,
+  type VariableListRef,
+} from './variable-list';
 
 function updatePosition(virtualElement: ReferenceElement, element: HTMLElement) {
   computePosition(virtualElement, element, {
@@ -21,7 +26,7 @@ export const suggestion: MentionOptions['suggestion'] = {
   items: buildVariableItems,
 
   render() {
-    let component: ReactRenderer;
+    let component: ReactRenderer<VariableListRef, VariableListProps>;
     let cleanup: () => void;
     let virtualElement: ReferenceElement;
 
@@ -74,6 +79,9 @@ export const suggestion: MentionOptions['suggestion'] = {
         if (props.event.key === 'Escape') {
           component.destroy();
           return true;
+        }
+        if (component.ref) {
+          return component.ref.onKeyDown(props);
         }
         return false;
       },
