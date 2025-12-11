@@ -6,6 +6,10 @@ import { useState } from 'react';
 import { toast } from 'sonner';
 import { PageHeader } from '@/components/layout/page-header';
 import { MCPServerForm } from '@/components/mcp-servers/form/mcp-server-form';
+import {
+  type CredentialScope,
+  CredentialScopeEnum,
+} from '@/components/mcp-servers/form/validation';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { useAuthSession } from '@/hooks/use-auth';
@@ -15,6 +19,7 @@ import { createMCPTool } from '@/lib/api/tools';
 import type { PrebuiltMCPServer } from '@/lib/data/prebuilt-mcp-servers';
 import { generateId } from '@/lib/utils/id-utils';
 import { PrebuiltServersGrid } from './prebuilt-servers-grid';
+import { ScopeSelectionDialog } from './scope-selection-dialog';
 
 export function createMcpServerNameWithUserSuffix(serverName: string, user?: User | null): string {
   const userSuffix = user?.name ? ` (${user.name})` : user?.email ? ` (${user.email})` : '';
@@ -33,6 +38,8 @@ export function MCPServerSelection({ credentials, tenantId, projectId }: MCPServ
   const [loadingServerId, setLoadingServerId] = useState<string>();
   const [selectedMode, setSelectedMode] = useState<SelectionMode>('popular');
   const [searchQuery, setSearchQuery] = useState('');
+  const [scopeDialogOpen, setScopeDialogOpen] = useState(false);
+  const [pendingServer, setPendingServer] = useState<PrebuiltMCPServer | null>(null);
   const router = useRouter();
   const { user } = useAuthSession();
 
@@ -41,13 +48,24 @@ export function MCPServerSelection({ credentials, tenantId, projectId }: MCPServ
     projectId,
   });
 
-  const handleSelectPrebuiltServer = async (server: PrebuiltMCPServer) => {
+  const handleSelectPrebuiltServer = (server: PrebuiltMCPServer) => {
+    // For servers that require auth, show scope selection dialog first
+    if (!server.isOpen) {
+      setPendingServer(server);
+      setScopeDialogOpen(true);
+    } else {
+      // Open servers don't need credentials, proceed directly
+      createServerWithScope(server, CredentialScopeEnum.project);
+    }
+  };
+
+  const createServerWithScope = async (server: PrebuiltMCPServer, scope: CredentialScope) => {
     setLoadingServerId(server.id);
+    setPendingServer(null);
 
     const mcpServerName = createMcpServerNameWithUserSuffix(server.name, user);
 
     try {
-      // Transform prebuilt server data to MCPToolFormData format
       const mcpToolData = {
         id: generateId(),
         name: mcpServerName,
@@ -62,12 +80,23 @@ export function MCPServerSelection({ credentials, tenantId, projectId }: MCPServ
             },
           },
         },
-        credentialReferenceId: null, // OAuth servers typically don't need pre-configured credentials
+        credentialReferenceId: null,
+        credentialScope: scope,
         imageUrl: server.imageUrl,
       };
 
       const newTool = await createMCPTool(tenantId, projectId, mcpToolData);
 
+      // For user-scoped, don't start OAuth - just redirect to detail page
+      if (scope === CredentialScopeEnum.user) {
+        toast.success(
+          `${server.name} MCP server created. Users can connect their own accounts from the detail page.`
+        );
+        router.push(`/${tenantId}/projects/${projectId}/mcp-servers/${newTool.id}`);
+        return;
+      }
+
+      // For project-scoped, proceed with OAuth
       if (server.isOpen) {
         toast.success(`${server.name} MCP server created successfully`);
         router.push(`/${tenantId}/projects/${projectId}/mcp-servers/${newTool.id}`);
@@ -85,6 +114,12 @@ export function MCPServerSelection({ credentials, tenantId, projectId }: MCPServ
       console.error('Failed to create prebuilt MCP server:', error);
       toast.error(`Failed to create ${server.name} server. Please try again.`);
       setLoadingServerId(undefined);
+    }
+  };
+
+  const handleScopeConfirm = (scope: CredentialScope) => {
+    if (pendingServer) {
+      createServerWithScope(pendingServer, scope);
     }
   };
 
@@ -141,6 +176,14 @@ export function MCPServerSelection({ credentials, tenantId, projectId }: MCPServ
           <MCPServerForm credentials={credentials} tenantId={tenantId} projectId={projectId} />
         </div>
       )}
+
+      {/* Scope selection dialog for prebuilt servers */}
+      <ScopeSelectionDialog
+        open={scopeDialogOpen}
+        onOpenChange={setScopeDialogOpen}
+        serverName={pendingServer?.name ?? ''}
+        onConfirm={handleScopeConfirm}
+      />
     </>
   );
 }

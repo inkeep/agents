@@ -537,17 +537,7 @@ export const ApiKeyApiInsertSchema = ApiKeyInsertSchema.omit({
 
 export const ApiKeyApiUpdateSchema = ApiKeyUpdateSchema.openapi('ApiKeyUpdate');
 
-export const CredentialReferenceSelectSchema = z.object({
-  id: z.string(),
-  tenantId: z.string(),
-  projectId: z.string(),
-  name: z.string(),
-  type: z.string(),
-  credentialStoreId: z.string(),
-  retrievalParams: z.record(z.string(), z.unknown()).nullish(),
-  createdAt: z.string(),
-  updatedAt: z.string(),
-});
+export const CredentialReferenceSelectSchema = createSelectSchema(credentialReferences);
 
 export const CredentialReferenceInsertSchema = createInsertSchema(credentialReferences).extend({
   id: resourceIdSchema,
@@ -654,6 +644,7 @@ export const McpToolSchema = ToolInsertSchema.extend({
   status: ToolStatusSchema.default('unknown'),
   version: z.string().optional(),
   expiresAt: z.string().optional(),
+  createdBy: z.string().optional(),
   relationshipId: z.string().optional(),
 }).openapi('McpTool');
 

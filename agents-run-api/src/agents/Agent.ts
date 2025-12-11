@@ -17,6 +17,7 @@ import {
   getFunctionToolsForSubAgent,
   getLedgerArtifacts,
   getToolsForAgent,
+  getUserScopedCredentialReference,
   listTaskIdsByContextId,
   MCPServerType,
   type MCPToolConfig,
@@ -132,6 +133,8 @@ export type AgentConfig = {
   models?: Models;
   stopWhen?: SubAgentStopWhen;
   sandboxConfig?: SandboxConfig;
+  /** User ID for user-scoped credential lookup (from temp JWT) */
+  userId?: string;
 };
 
 export type ExternalAgentRelationConfig = {
@@ -882,7 +885,58 @@ export class Agent {
 
     let serverConfig: McpServerConfig;
 
-    if (credentialReferenceId && this.credentialStuffer) {
+    // Check for user-scoped credential first (uses toolId + userId lookup)
+    const isUserScoped = tool.credentialScope === 'user';
+    const userId = this.config.userId;
+
+    if (isUserScoped && userId && this.credentialStuffer) {
+      // User-scoped: look up credential by (toolId, userId)
+      const userCredentialReference = await getUserScopedCredentialReference(dbClient)({
+        scopes: {
+          tenantId: this.config.tenantId,
+          projectId: this.config.projectId,
+        },
+        toolId: tool.id,
+        userId,
+      });
+
+      if (userCredentialReference) {
+        const storeReference = {
+          credentialStoreId: userCredentialReference.credentialStoreId,
+          retrievalParams: userCredentialReference.retrievalParams || {},
+        };
+
+        serverConfig = await this.credentialStuffer.buildMcpServerConfig(
+          {
+            tenantId: this.config.tenantId,
+            projectId: this.config.projectId,
+            contextConfigId: this.config.contextConfigId || undefined,
+            conversationId: this.conversationId || undefined,
+          },
+          this.convertToMCPToolConfig(tool, agentToolRelationHeaders),
+          storeReference,
+          selectedTools
+        );
+      } else {
+        // User hasn't connected their credential yet - build config without auth
+        logger.warn(
+          { toolId: tool.id, userId },
+          'User-scoped tool has no credential connected for this user'
+        );
+        serverConfig = await this.credentialStuffer.buildMcpServerConfig(
+          {
+            tenantId: this.config.tenantId,
+            projectId: this.config.projectId,
+            contextConfigId: this.config.contextConfigId || undefined,
+            conversationId: this.conversationId || undefined,
+          },
+          this.convertToMCPToolConfig(tool, agentToolRelationHeaders),
+          undefined,
+          selectedTools
+        );
+      }
+    } else if (credentialReferenceId && this.credentialStuffer) {
+      // Project-scoped: look up credential by credentialReferenceId
       const credentialReference = await getCredentialReference(dbClient)({
         scopes: {
           tenantId: this.config.tenantId,

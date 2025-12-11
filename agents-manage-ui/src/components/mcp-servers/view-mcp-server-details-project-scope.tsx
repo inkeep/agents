@@ -1,49 +1,28 @@
 'use client';
 
-import { AlertCircle, Lock, LockOpen, Pencil } from 'lucide-react';
+import { AlertCircle, Lock, LockOpen, Pencil, Users } from 'lucide-react';
 import Link from 'next/link';
 import { useEffect, useState } from 'react';
 import { Badge } from '@/components/ui/badge';
 import { ExternalLink } from '@/components/ui/external-link';
-import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { useOAuthLogin } from '@/hooks/use-oauth-login';
 import { fetchThirdPartyMCPServer } from '@/lib/api/mcp-catalog';
 import type { MCPTool } from '@/lib/types/tools';
-import { cn } from '@/lib/utils';
 import { Button } from '../ui/button';
 import { CopyableMultiLineCode } from '../ui/copyable-multi-line-code';
 import { CopyableSingleLineCode } from '../ui/copyable-single-line-code';
 import { AvailableToolsCard } from './available-tools-card';
 import { MCPToolImage } from './mcp-tool-image';
+import {
+  ActiveToolBadge,
+  formatDate,
+  getStatusBadgeVariant,
+  ItemLabel,
+  ItemValue,
+  isExpired,
+} from './view-mcp-server-details-shared';
 
-// Helper component to render active tool badges with availability status
-function ActiveToolBadge({ toolName, isAvailable }: { toolName: string; isAvailable: boolean }) {
-  const badge = (
-    <Badge
-      variant={isAvailable ? 'primary' : 'warning'}
-      className={cn(
-        isAvailable ? '' : 'opacity-75 border-yellow-500 text-yellow-700 bg-yellow-50 normal-case'
-      )}
-    >
-      {toolName}
-    </Badge>
-  );
-
-  if (!isAvailable) {
-    return (
-      <Tooltip>
-        <TooltipTrigger asChild>{badge}</TooltipTrigger>
-        <TooltipContent>
-          <p>This tool is not available in the MCP server.</p>
-        </TooltipContent>
-      </Tooltip>
-    );
-  }
-
-  return badge;
-}
-
-export function ViewMCPServerDetails({
+export function ViewMCPServerDetailsProjectScope({
   tool,
   tenantId,
   projectId,
@@ -72,7 +51,8 @@ export function ViewMCPServerDetails({
           const response = await fetchThirdPartyMCPServer(
             tenantId,
             projectId,
-            tool.config.mcp.server.url
+            tool.config.mcp.server.url,
+            'project'
           );
           if (response.data?.thirdPartyConnectAccountUrl) {
             setThirdPartyConnectUrl(response.data.thirdPartyConnectAccountUrl);
@@ -87,57 +67,6 @@ export function ViewMCPServerDetails({
       fetchServerDetails();
     }
   }, [isThirdPartyMCPServer, tool.status, tool.config.mcp.server.url, tenantId, projectId]);
-
-  const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString('en-US', {
-      year: 'numeric',
-      month: 'long',
-      day: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit',
-    });
-  };
-
-  const isExpired = (expiresAt: string | Date | null | undefined): boolean => {
-    if (!expiresAt) return false;
-    const expirationDate = typeof expiresAt === 'string' ? new Date(expiresAt) : expiresAt;
-    return expirationDate < new Date();
-  };
-
-  const getStatusBadgeVariant = (status: string) => {
-    switch (status) {
-      case 'healthy':
-        return 'success';
-      case 'unhealthy':
-        return 'error';
-      case 'disabled':
-        return 'code';
-      case 'needs_auth':
-        return 'warning';
-      default:
-        return 'warning';
-    }
-  };
-
-  const ItemLabel = ({
-    children,
-    className,
-  }: {
-    children: React.ReactNode;
-    className?: string;
-  }) => {
-    return <div className={cn('text-sm font-medium leading-none', className)}>{children}</div>;
-  };
-
-  const ItemValue = ({
-    children,
-    className,
-  }: {
-    children: React.ReactNode;
-    className?: string;
-  }) => {
-    return <div className={cn('flex w-full text-sm', className)}>{children}</div>;
-  };
 
   return (
     <div className="max-w-2xl mx-auto py-4 space-y-8">
@@ -209,7 +138,7 @@ export function ViewMCPServerDetails({
             <div className="space-y-2">
               <ItemLabel>Transport Type</ItemLabel>
               <ItemValue>
-                {<Badge variant="code">{(tool.config as any).mcp.transport.type}</Badge>}
+                <Badge variant="code">{(tool.config as any).mcp.transport.type}</Badge>
               </ItemValue>
             </div>
           )}
@@ -231,10 +160,29 @@ export function ViewMCPServerDetails({
           )}
         </div>
 
-        {/* Credential Name and Expires At */}
+        {/* Credential Scope and Created By */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div className="space-y-2">
-            <ItemLabel>Credential</ItemLabel>
+            <ItemLabel>Credential Scope</ItemLabel>
+            <ItemValue className="items-center">
+              <Badge variant="outline" className="flex items-center gap-1.5">
+                <Users className="w-3 h-3" />
+                Project (shared credential)
+              </Badge>
+            </ItemValue>
+          </div>
+          {tool.createdBy && (
+            <div className="space-y-2">
+              <ItemLabel>Created By</ItemLabel>
+              <ItemValue>{tool.createdBy}</ItemValue>
+            </div>
+          )}
+        </div>
+
+        {/* Team Credential */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="space-y-2">
+            <ItemLabel>Team Credential</ItemLabel>
             <ItemValue className="items-center">
               {tool.credentialReferenceId ? (
                 <div className="flex items-center gap-2">
@@ -280,15 +228,10 @@ export function ViewMCPServerDetails({
           </div>
           <ItemValue>
             {(tool.config as any).mcp.activeTools === undefined ? (
-              // All tools are active (undefined means all)
               tool.availableTools && tool.availableTools.length > 0 ? (
                 <div className="flex flex-wrap gap-2">
                   {tool.availableTools.map((toolInfo) => (
-                    <ActiveToolBadge
-                      key={toolInfo.name}
-                      toolName={toolInfo.name}
-                      isAvailable={true} // All available tools are shown, so they're all available
-                    />
+                    <ActiveToolBadge key={toolInfo.name} toolName={toolInfo.name} isAvailable />
                   ))}
                 </div>
               ) : (
@@ -296,7 +239,6 @@ export function ViewMCPServerDetails({
               )
             ) : (tool.config as any).mcp.activeTools &&
               (tool.config as any).mcp.activeTools.length > 0 ? (
-              // Specific tools are active - check availability
               <div className="flex flex-wrap gap-2">
                 {(tool.config as any).mcp.activeTools.map((toolName: string) => {
                   const isAvailable =
@@ -307,7 +249,6 @@ export function ViewMCPServerDetails({
                 })}
               </div>
             ) : (
-              // No tools are active (empty array)
               <div className="text-sm text-muted-foreground">None</div>
             )}
           </ItemValue>

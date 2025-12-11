@@ -6,6 +6,7 @@ import { useParams, useRouter } from 'next/navigation';
 import { toast } from 'sonner';
 import type { CredentialFormData } from '@/components/credentials/views/credential-form-validation';
 import { useRuntimeConfig } from '@/contexts/runtime-config-context';
+import { useAuthSession } from '@/hooks/use-auth';
 import { createCredentialInStore } from '@/lib/api/credentialStores';
 import { updateExternalAgent } from '@/lib/api/external-agents';
 import { updateMCPTool } from '@/lib/api/tools';
@@ -21,7 +22,7 @@ export function NewCredentialForm() {
     tenantId: string;
     projectId: string;
   }>();
-
+  const { user } = useAuthSession();
   const handleCreateCredential = async (data: CredentialFormData) => {
     try {
       const newCredentialId = generateId();
@@ -73,6 +74,7 @@ export function NewCredentialForm() {
 
       newCredential = await findOrCreateCredential(tenantId, projectId, {
         id: newCredentialId,
+        createdBy: user?.email ?? undefined,
         name: data.name.trim(),
         type: data.credentialStoreType,
         credentialStoreId: data.credentialStoreId,

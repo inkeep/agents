@@ -582,6 +582,7 @@ export const getToolsForAgent =
             capabilities: tools.capabilities,
             lastError: tools.lastError,
             credentialReferenceId: tools.credentialReferenceId,
+            credentialScope: tools.credentialScope,
             tenantId: tools.tenantId,
             projectId: tools.projectId,
             headers: tools.headers,
