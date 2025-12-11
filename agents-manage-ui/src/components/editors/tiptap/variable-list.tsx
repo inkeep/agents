@@ -41,8 +41,8 @@ export const VariableList2: FC<VariableListProps> = ({ items, command }) => {
 
   const selectItem = useCallback(
     (event: any) => {
-      const label = (event.currentTarget as HTMLElement).dataset.label;
-      command({ label });
+      const id = (event.currentTarget as HTMLElement).dataset.label as string;
+      command({ id });
     },
     [command]
   );
