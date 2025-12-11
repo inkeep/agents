@@ -5,6 +5,7 @@
 import type { FullProjectDefinition } from '@inkeep/agents-core';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import * as projectFullClient from '../../api/project-full';
+import { ApiError } from '../../types/errors';
 import { getFullProjectAction } from '../project-full';
 
 vi.mock('../../api/project-full', async (importOriginal) => {
@@ -62,7 +63,7 @@ describe('Project Full Actions', () => {
     });
 
     it('should handle API errors gracefully', async () => {
-      const apiError = new projectFullClient.ApiError(
+      const apiError = new ApiError(
         {
           code: 'not_found',
           message: 'Project not found',

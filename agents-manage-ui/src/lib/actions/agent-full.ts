@@ -10,7 +10,6 @@
 import type { AgentApiInsert } from '@inkeep/agents-core/client-exports';
 import { revalidatePath } from 'next/cache';
 import {
-  ApiError,
   createAgent as apiCreateAgent,
   createFullAgent as apiCreateFullAgent,
   deleteFullAgent as apiDeleteFullAgent,
@@ -24,6 +23,7 @@ import {
   type FullAgentDefinition,
   FullAgentDefinitionSchema,
 } from '../types/agent-full';
+import { ApiError } from '../types/errors';
 import type { TeamAgent } from '../types/team-agents';
 
 /**

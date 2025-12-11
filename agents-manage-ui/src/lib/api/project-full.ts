@@ -5,6 +5,8 @@
  * management backend for full project operations.
  */
 
+'use server';
+
 import type { FullProjectDefinition } from '@inkeep/agents-core';
 import type { SingleResponse } from '../types/response';
 import { makeManagementApiRequest } from './api-config';
@@ -25,5 +27,3 @@ export async function getFullProject(
     `tenants/${tenantId}/project-full/${projectId}`
   );
 }
-
-export { ApiError } from '../types/errors';

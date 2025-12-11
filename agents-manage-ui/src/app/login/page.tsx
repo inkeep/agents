@@ -153,6 +153,7 @@ function LoginForm() {
                 id="password"
                 type="password"
                 placeholder="••••••••"
+                autoComplete="on"
                 value={formData.password}
                 onChange={(e) => setFormData({ ...formData, password: e.target.value })}
                 required
