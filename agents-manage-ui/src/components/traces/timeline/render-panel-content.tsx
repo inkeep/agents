@@ -220,6 +220,13 @@ export function renderPanelContent({
             <Bubble className=" break-all">{a.toolResult || 'URL not available'}</Bubble>
           </LabeledBlock>
           <StatusBadge status={a.status} />
+          {a.status === 'error' && a.otelStatusDescription && (
+            <LabeledBlock label="Status message">
+              <Bubble className="bg-red-50 border-red-200 text-red-800 dark:bg-red-900/20 dark:border-red-800 dark:text-red-300">
+                {a.otelStatusDescription}
+              </Bubble>
+            </LabeledBlock>
+          )}
           <Info label="Timestamp" value={formatDateTime(a.timestamp)} />
         </Section>
       );
@@ -454,6 +461,13 @@ export function renderPanelContent({
             <Info label="Input tokens" value={a.inputTokens?.toLocaleString() || '0'} />
             <Info label="Output tokens" value={a.outputTokens?.toLocaleString() || '0'} />
             <StatusBadge status={a.status} />
+            {a.status === 'error' && a.otelStatusDescription && (
+              <LabeledBlock label="Status message">
+                <Bubble className="bg-red-50 border-red-200 text-red-800 dark:bg-red-900/20 dark:border-red-800 dark:text-red-300">
+                  {a.otelStatusDescription}
+                </Bubble>
+              </LabeledBlock>
+            )}
             <Info label="Timestamp" value={formatDateTime(a.timestamp)} />
           </Section>
           <Divider />
@@ -485,6 +499,13 @@ export function renderPanelContent({
               </LabeledBlock>
             )}
             <StatusBadge status={a.status} />
+            {a.status === 'error' && a.otelStatusDescription && (
+              <LabeledBlock label="Status message">
+                <Bubble className="bg-red-50 border-red-200 text-red-800 dark:bg-red-900/20 dark:border-red-800 dark:text-red-300">
+                  {a.otelStatusDescription}
+                </Bubble>
+              </LabeledBlock>
+            )}
             <Info label="Timestamp" value={formatDateTime(a.timestamp)} />
           </Section>
           <Divider />
@@ -508,6 +529,13 @@ export function renderPanelContent({
               />
             )}
             <StatusBadge status={a.status} />
+            {a.status === 'error' && a.otelStatusDescription && (
+              <LabeledBlock label="Status message">
+                <Bubble className="bg-red-50 border-red-200 text-red-800 dark:bg-red-900/20 dark:border-red-800 dark:text-red-300">
+                  {a.otelStatusDescription}
+                </Bubble>
+              </LabeledBlock>
+            )}
             {a.artifactSubAgentId && (
               <Info label="Sub agent" value={a.artifactSubAgentId || 'Unknown Sub Agent'} />
             )}

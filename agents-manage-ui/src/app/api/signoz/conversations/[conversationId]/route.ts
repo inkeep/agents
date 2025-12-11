@@ -670,6 +670,10 @@ function buildConversationListPayload(
               key: SPAN_KEYS.AI_TELEMETRY_FUNCTION_ID,
               ...QUERY_FIELD_CONFIGS.STRING_TAG,
             },
+            {
+              key: SPAN_KEYS.STATUS_MESSAGE,
+              ...QUERY_FIELD_CONFIGS.STRING_TAG,
+            },
           ]
         ),
 
@@ -737,6 +741,10 @@ function buildConversationListPayload(
               key: SPAN_KEYS.AI_TELEMETRY_FUNCTION_ID,
               ...QUERY_FIELD_CONFIGS.STRING_TAG,
             },
+            {
+              key: SPAN_KEYS.STATUS_MESSAGE,
+              ...QUERY_FIELD_CONFIGS.STRING_TAG,
+            },
           ]
         ),
 
@@ -781,6 +789,10 @@ function buildConversationListPayload(
             },
             {
               key: SPAN_KEYS.HTTP_RESPONSE_BODY_SIZE,
+              ...QUERY_FIELD_CONFIGS.STRING_TAG,
+            },
+            {
+              key: SPAN_KEYS.STATUS_MESSAGE,
               ...QUERY_FIELD_CONFIGS.STRING_TAG,
             },
           ]
@@ -860,6 +872,10 @@ function buildConversationListPayload(
             },
             {
               key: SPAN_KEYS.ARTIFACT_DATA,
+              ...QUERY_FIELD_CONFIGS.STRING_TAG,
+            },
+            {
+              key: SPAN_KEYS.STATUS_MESSAGE,
               ...QUERY_FIELD_CONFIGS.STRING_TAG,
             },
           ]
@@ -1399,6 +1415,7 @@ export async function GET(
       const hasError = getField(span, SPAN_KEYS.HAS_ERROR) === true;
       const durMs = getNumber(span, SPAN_KEYS.DURATION_NANO) / 1e6;
       const aiStreamingText = getString(span, SPAN_KEYS.SPAN_ID, '');
+      const statusMessage = hasError ? getString(span, SPAN_KEYS.STATUS_MESSAGE, '') : '';
       activities.push({
         id: aiStreamingText,
         type: ACTIVITY_TYPES.AI_MODEL_STREAMED_TEXT,
@@ -1425,6 +1442,7 @@ export async function GET(
         inputTokens: getNumber(span, SPAN_KEYS.GEN_AI_USAGE_INPUT_TOKENS, 0),
         outputTokens: getNumber(span, SPAN_KEYS.GEN_AI_USAGE_OUTPUT_TOKENS, 0),
         aiTelemetryFunctionId: getString(span, SPAN_KEYS.AI_TELEMETRY_FUNCTION_ID, '') || undefined,
+        otelStatusDescription: statusMessage || undefined,
       });
     }
 
@@ -1433,6 +1451,7 @@ export async function GET(
       const hasError = getField(span, SPAN_KEYS.HAS_ERROR) === true;
       const durMs = getNumber(span, SPAN_KEYS.DURATION_NANO) / 1e6;
       const aiStreamingObject = getString(span, SPAN_KEYS.SPAN_ID, '');
+      const statusMessage = hasError ? getString(span, SPAN_KEYS.STATUS_MESSAGE, '') : '';
       activities.push({
         id: aiStreamingObject,
         type: ACTIVITY_TYPES.AI_MODEL_STREAMED_OBJECT,
@@ -1451,6 +1470,7 @@ export async function GET(
         inputTokens: getNumber(span, SPAN_KEYS.GEN_AI_USAGE_INPUT_TOKENS, 0),
         outputTokens: getNumber(span, SPAN_KEYS.GEN_AI_USAGE_OUTPUT_TOKENS, 0),
         aiTelemetryFunctionId: getString(span, SPAN_KEYS.AI_TELEMETRY_FUNCTION_ID, '') || undefined,
+        otelStatusDescription: statusMessage || undefined,
       });
     }
 
@@ -1458,6 +1478,7 @@ export async function GET(
     for (const span of contextFetcherSpans) {
       const hasError = getField(span, SPAN_KEYS.HAS_ERROR) === true;
       const contextFetcher = getString(span, SPAN_KEYS.SPAN_ID, '');
+      const statusMessage = hasError ? getString(span, SPAN_KEYS.STATUS_MESSAGE, '') : '';
       activities.push({
         id: contextFetcher,
         type: ACTIVITY_TYPES.CONTEXT_FETCH,
@@ -1470,6 +1491,7 @@ export async function GET(
         result: hasError
           ? 'Context fetch failed'
           : getString(span, SPAN_KEYS.HTTP_URL, 'Unknown URL'),
+        otelStatusDescription: statusMessage || undefined,
       });
     }
 
@@ -1479,6 +1501,7 @@ export async function GET(
       const artifactName = getString(span, SPAN_KEYS.ARTIFACT_NAME, '');
       const artifactType = getString(span, SPAN_KEYS.ARTIFACT_TYPE, '');
       const artifactDescription = getString(span, SPAN_KEYS.ARTIFACT_DESCRIPTION, '');
+      const statusMessage = hasError ? getString(span, SPAN_KEYS.STATUS_MESSAGE, '') : '';
 
       const artifactProcessing = getString(span, SPAN_KEYS.SPAN_ID, '');
       activities.push({
@@ -1497,6 +1520,7 @@ export async function GET(
         artifactDescription: artifactDescription || undefined,
         artifactData: getString(span, SPAN_KEYS.ARTIFACT_DATA, '') || undefined,
         artifactToolCallId: getString(span, SPAN_KEYS.ARTIFACT_TOOL_CALL_ID, '') || undefined,
+        otelStatusDescription: statusMessage || undefined,
       });
     }
 
