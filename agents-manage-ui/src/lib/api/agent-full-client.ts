@@ -5,6 +5,8 @@
  * inkeep-chat backend AgentFull REST API endpoints.
  */
 
+'use server';
+
 import type { AgentApiInsert } from '@inkeep/agents-core/client-exports';
 import type {
   Agent,
@@ -14,7 +16,6 @@ import type {
   GetAgentResponse,
   UpdateAgentResponse,
 } from '../types/agent-full';
-import { ApiError } from '../types/errors';
 import type { ListResponse } from '../types/response';
 import type { TeamAgent } from '../types/team-agents';
 import { makeManagementApiRequest } from './api-config';
@@ -141,6 +142,3 @@ export async function deleteFullAgent(
     method: 'DELETE',
   });
 }
-
-// Export the error class for use in server actions
-export { ApiError };

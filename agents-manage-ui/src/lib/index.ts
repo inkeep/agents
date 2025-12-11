@@ -17,7 +17,6 @@ export {
 
 // API Client exports (for advanced use cases)
 export {
-  ApiError,
   createFullAgent,
   deleteFullAgent,
   getFullAgent,
@@ -45,3 +44,4 @@ export {
   ToolApiSchema,
   type UpdateAgentResponse,
 } from './types/agent-full';
+export { ApiError } from './types/errors';

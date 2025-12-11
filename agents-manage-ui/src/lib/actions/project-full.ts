@@ -8,7 +8,8 @@
  */
 
 import type { FullProjectDefinition } from '@inkeep/agents-core';
-import { ApiError, getFullProject as apiGetFullProject } from '../api/project-full';
+import { getFullProject as apiGetFullProject } from '../api/project-full';
+import { ApiError } from '../types/errors';
 
 /**
  * Result type for server actions - follows a consistent pattern
