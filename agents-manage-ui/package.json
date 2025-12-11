@@ -26,6 +26,11 @@
     "access": "public",
     "registry": "https://registry.npmjs.org/"
   },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/inkeep/agents.git",
+    "directory": "agents-manage-ui"
+  },
   "scripts": {
     "dev": "next -p 3000",
     "build:sync": "cp -r public .next/standalone/agents-manage-ui && mkdir -p .next/standalone/agents-manage-ui/.next/ && cp -r .next/static .next/standalone/agents-manage-ui/.next/static",
