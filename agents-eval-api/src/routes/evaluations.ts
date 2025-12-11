@@ -126,7 +126,7 @@ const EvaluationRunConfigApiSelectSchema = z.any();
 const EvaluationRunConfigApiInsertSchema = z.object({
   id: z.string().optional(),
   name: z.string(),
-  description: z.string(),
+  description: z.string().optional(),
   isActive: z.boolean().optional(),
   suiteConfigIds: z.array(z.string()).optional(),
 });
