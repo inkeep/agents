@@ -35,7 +35,6 @@ jobs:
       - name: Setup npm for OIDC publishing
         uses: actions/setup-node@v4
         with:
-          node-version: '20'
           registry-url: 'https://registry.npmjs.org'
 
       - name: Ensure npm 11.5.1+ for OIDC support
