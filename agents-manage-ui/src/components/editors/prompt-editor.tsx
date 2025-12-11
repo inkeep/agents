@@ -9,7 +9,7 @@ import Suggestion, {
   type SuggestionProps,
 } from '@tiptap/suggestion';
 import type { ComponentPropsWithoutRef, FC, RefObject } from 'react';
-import { forwardRef, useCallback, useImperativeHandle, useMemo } from 'react';
+import { useState, useCallback, useImperativeHandle, useMemo } from 'react';
 import { monacoStore } from '@/features/agent/state/use-monaco-store';
 import { cn } from '@/lib/utils';
 import { buildPromptContent } from './prompt-editor-utils';
@@ -24,6 +24,12 @@ import { MarkdownIcon } from '@/icons';
 import { useAgentActions, useAgentStore } from '@/features/agent/state/use-agent-store';
 import { suggestion } from './tiptap/suggestion';
 import './prompt-editor.css';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 
 type VariableSuggestionItem = {
   label: string;
