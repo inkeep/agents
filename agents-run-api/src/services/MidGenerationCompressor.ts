@@ -1,5 +1,5 @@
-import { randomUUID } from 'crypto';
 import type { ModelSettings } from '@inkeep/agents-core';
+import { randomUUID } from 'crypto';
 import { getLogger } from '../logger';
 import { distillConversation } from '../tools/distill-conversation-tool';
 import { agentSessionManager } from './AgentSession';
