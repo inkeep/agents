@@ -20,9 +20,9 @@ import {
   SPAN_NAMES,
   UNKNOWN_VALUE,
 } from '@/constants/signoz';
+import { getManageApiUrl } from '@/lib/api/api-config';
 import { fetchAllSpanAttributes_SQL } from '@/lib/api/signoz-sql';
 import { getLogger } from '@/lib/logger';
-import { DEFAULT_SIGNOZ_URL } from '@/lib/runtime-config/defaults';
 
 // Configure axios retry
 axiosRetry(axios, {
@@ -31,9 +31,6 @@ axiosRetry(axios, {
 });
 
 export const dynamic = 'force-dynamic';
-
-const SIGNOZ_URL = process.env.SIGNOZ_URL || process.env.PUBLIC_SIGNOZ_URL || DEFAULT_SIGNOZ_URL;
-const SIGNOZ_API_KEY = process.env.SIGNOZ_API_KEY || '';
 
 // ---------- Types
 
@@ -60,25 +57,35 @@ function getNumber(span: SigNozListItem, key: string, fallback = 0): number {
   return Number.isFinite(n) ? n : fallback;
 }
 
-async function signozQuery(payload: any): Promise<SigNozResp> {
+// Call secure manage-api instead of SigNoz directly
+async function signozQuery(
+  payload: any,
+  tenantId: string,
+  cookieHeader: string | null
+): Promise<SigNozResp> {
   const logger = getLogger('signoz-query');
 
-  // Check if API key is configured
-  if (!SIGNOZ_API_KEY || SIGNOZ_API_KEY.trim() === '') {
-    throw new Error(
-      'SIGNOZ_API_KEY is not configured. Please set the SIGNOZ_API_KEY environment variable.'
-    );
-  }
-
   try {
-    const signozEndpoint = `${SIGNOZ_URL}/api/v4/query_range`;
-    const response = await axios.post(signozEndpoint, payload, {
-      headers: {
-        'Content-Type': 'application/json',
-        'SIGNOZ-API-KEY': SIGNOZ_API_KEY,
-      },
+    const manageApiUrl = getManageApiUrl();
+    const endpoint = `${manageApiUrl}/tenants/${tenantId}/signoz/query`;
+
+    const headers: Record<string, string> = {
+      'Content-Type': 'application/json',
+    };
+
+    // Forward cookies for authentication
+    if (cookieHeader) {
+      headers.Cookie = cookieHeader;
+    }
+
+    logger.debug({ endpoint }, 'Calling secure manage-api for conversation traces');
+
+    const response = await axios.post(endpoint, payload, {
+      headers,
       timeout: 30000,
+      withCredentials: true,
     });
+
     const json = response.data as SigNozResp;
     const responseData = json?.data?.result
       ? json.data.result.map((r) => ({
@@ -1032,8 +1039,12 @@ function buildConversationListPayload(
 
 // ---------- Main handler
 
+type RouteContext<_T> = {
+  params: Promise<Record<string, string>>;
+};
+
 export async function GET(
-  _req: NextRequest,
+  req: NextRequest,
   context: RouteContext<'/api/signoz/conversations/[conversationId]'>
 ) {
   const { conversationId } = await context.params;
@@ -1041,13 +1052,22 @@ export async function GET(
     return NextResponse.json({ error: 'Conversation ID is required' }, { status: 400 });
   }
 
+  // Get tenantId and projectId from URL search params
+  const url = new URL(req.url);
+  const tenantId = url.searchParams.get('tenantId') || 'default';
+
+  // Forward cookies for authentication
+  const cookieHeader = req.headers.get('cookie');
+
   try {
     const start = START_2020_MS;
     const end = Date.now();
 
-    // one combined LIST request for everything
+    // Build the query payload
     const payload = buildConversationListPayload(conversationId, start, end);
-    const resp = await signozQuery(payload);
+
+    // Call secure manage-api
+    const resp = await signozQuery(payload, tenantId, cookieHeader);
 
     const toolCallSpans = parseList(resp, QUERY_EXPRESSIONS.TOOL_CALLS);
     const contextResolutionSpans = parseList(resp, QUERY_EXPRESSIONS.CONTEXT_RESOLUTION);
@@ -1081,11 +1101,8 @@ export async function GET(
       data: Record<string, any>;
     }> = [];
     try {
-      allSpanAttributes = await fetchAllSpanAttributes_SQL(
-        conversationId,
-        SIGNOZ_URL,
-        SIGNOZ_API_KEY
-      );
+      // Call secure manage-api via the SQL helper function
+      allSpanAttributes = await fetchAllSpanAttributes_SQL(conversationId, tenantId, cookieHeader);
     } catch (e) {
       const logger = getLogger('span-attributes');
       logger.error({ error: e }, 'allSpanAttributes SQL fetch skipped/failed');

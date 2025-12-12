@@ -72,7 +72,11 @@ export function ConversationDetail({ conversationId, onBack }: ConversationDetai
       try {
         setLoading(true);
         setError(null);
-        const response = await fetch(`/api/signoz/conversations/${conversationId}`);
+
+        const response = await fetch(
+          `/api/signoz/conversations/${conversationId}?tenantId=${tenantId}&projectId=${projectId}`
+        );
+
         if (!response.ok) throw new Error('Failed to fetch conversation details');
         const data = await response.json();
         setConversation(data);
@@ -83,8 +87,8 @@ export function ConversationDetail({ conversationId, onBack }: ConversationDetai
       }
     };
 
-    if (conversationId) fetchConversationDetail();
-  }, [conversationId]);
+    if (conversationId && tenantId && projectId) fetchConversationDetail();
+  }, [conversationId, tenantId, projectId]);
 
   if (loading) {
     return (

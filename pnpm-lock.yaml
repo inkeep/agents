@@ -372,6 +372,9 @@ importers:
       '@nangohq/types':
         specifier: ^0.69.5
         version: 0.69.14
+      axios:
+        specifier: ^1.7.9
+        version: 1.13.2(debug@4.4.3)
       dotenv:
         specifier: ^17.2.1
         version: 17.2.3
