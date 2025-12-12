@@ -1,5 +1,21 @@
 # @inkeep/agents-manage-api
 
+## 0.38.1
+
+### Patch Changes
+
+- 32c4c34: improve ux for scoped credentials
+- 8c81242: ui for tool breakdown and warnings for tool calls
+- 251cecd: added mid generation compression
+- ce60f56: multi tenant auth for signoz queries
+- Updated dependencies [32c4c34]
+- Updated dependencies [1a4474c]
+- Updated dependencies [8c81242]
+- Updated dependencies [251cecd]
+- Updated dependencies [ce60f56]
+  - @inkeep/agents-core@0.38.1
+  - @inkeep/agents-manage-mcp@0.38.1
+
 ## 0.38.0
 
 ### Minor Changes
