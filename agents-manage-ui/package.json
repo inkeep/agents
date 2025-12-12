@@ -145,6 +145,6 @@
     "vitest-canvas-mock": "^0.3.3"
   },
   "engines": {
-    "node": ">=22.0.0"
+    "node": ">=22.18.0"
   }
 }
