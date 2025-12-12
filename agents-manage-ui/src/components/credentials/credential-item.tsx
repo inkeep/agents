@@ -98,12 +98,14 @@ export function CredentialItem({
   id,
   name,
   createdAt,
+  createdBy,
   tenantId,
   projectId,
 }: {
   id: Credential['id'];
   name: Credential['name'];
   createdAt: Credential['createdAt'];
+  createdBy: Credential['createdBy'];
   tenantId: string;
   projectId: string;
 }) {
@@ -120,10 +122,12 @@ export function CredentialItem({
         </ItemCardLink>
         <CredentialDialogMenu credentialId={id} credentialName={name} />
       </ItemCardHeader>
-      <ItemCardContent>
-        {/* <ItemCardDescription hasContent={!!description} className="line-clamp-2">
-            {description || 'No description'}
-          </ItemCardDescription> */}
+      <ItemCardContent className="gap-2">
+        <div className="relative flex items-center justify-between">
+          <div className="flex items-center text-xs text-muted-foreground">
+            Created by {createdBy}
+          </div>
+        </div>
         <ItemCardFooter footerText={`Created ${formatDate(createdAt)}`} />
       </ItemCardContent>
     </ItemCardRoot>

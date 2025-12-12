@@ -77,6 +77,28 @@ function deriveComposioUserId(tenantId: string, projectId: string): string {
 }
 
 /**
+ * Credential scope type for MCP servers
+ */
+export type CredentialScope = 'project' | 'user';
+
+/**
+ * Get the Composio user ID based on credential scope
+ * - For project-scoped: uses derived tenant||project ID (shared team credentials)
+ * - For user-scoped: uses the actual user ID (per-user credentials)
+ */
+export function getComposioUserId(
+  tenantId: string,
+  projectId: string,
+  credentialScope: CredentialScope,
+  userId?: string
+): string {
+  if (credentialScope === 'user' && userId) {
+    return userId;
+  }
+  return deriveComposioUserId(tenantId, projectId);
+}
+
+/**
  * Extract server ID from a Composio MCP URL
  * Example: https://backend.composio.dev/v3/mcp/1234-1234-1234?user_id=... -> 1234-1234-1234
  */
@@ -96,17 +118,6 @@ export function extractComposioServerId(mcpUrl: string): string | null {
   } catch {
     return null;
   }
-}
-
-/**
- * Add user_id query parameter to a URL and remove transport parameter
- * (Composio adds sse transport by default which we don't want)
- */
-function addUserIdToUrl(url: string, userId: string): string {
-  const urlObj = new URL(url);
-  urlObj.searchParams.set('user_id', userId);
-  urlObj.searchParams.delete('transport');
-  return urlObj.toString();
 }
 
 /**
@@ -145,6 +156,7 @@ async function fetchComposioConnectedAccounts(
   try {
     const connectedAccounts = await composioInstance.connectedAccounts.list({
       userIds: [derivedUserId],
+      statuses: ['ACTIVE', 'INITIATED'],
     });
 
     return connectedAccounts;
@@ -155,13 +167,17 @@ async function fetchComposioConnectedAccounts(
 }
 
 /**
- * Check if a Composio MCP server is authenticated for the given tenant/project
+ * Check if a Composio MCP server is authenticated for the given tenant/project/user
  * Returns true if authenticated, false otherwise
+ * @param credentialScope - 'project' for shared team credentials, 'user' for per-user credentials
+ * @param userId - The actual user ID (required if credentialScope is 'user')
  */
 export async function isComposioMCPServerAuthenticated(
   tenantId: string,
   projectId: string,
-  mcpServerUrl: string
+  mcpServerUrl: string,
+  credentialScope: CredentialScope = 'project',
+  userId?: string
 ): Promise<boolean> {
   const composioApiKey = process.env.COMPOSIO_API_KEY;
   if (!composioApiKey) {
@@ -175,7 +191,7 @@ export async function isComposioMCPServerAuthenticated(
     return false;
   }
 
-  const derivedUserId = deriveComposioUserId(tenantId, projectId);
+  const composioUserId = getComposioUserId(tenantId, projectId, credentialScope, userId);
 
   const composioInstance = getComposioInstance();
   if (!composioInstance) {
@@ -193,7 +209,7 @@ export async function isComposioMCPServerAuthenticated(
       return false;
     }
 
-    const connectedAccounts = await fetchComposioConnectedAccounts(derivedUserId);
+    const connectedAccounts = await fetchComposioConnectedAccounts(composioUserId);
 
     if (!connectedAccounts) {
       return false;
@@ -289,6 +305,62 @@ async function ensureComposioAccount(
 }
 
 /**
+ * Get the OAuth redirect URL for a Composio MCP server based on credential scope
+ * This should be called AFTER scope selection to get the correct URL
+ * @param credentialScope - 'project' for shared team credentials, 'user' for per-user credentials
+ * @param userId - The actual user ID (required if credentialScope is 'user')
+ */
+export async function getComposioOAuthRedirectUrl(
+  tenantId: string,
+  projectId: string,
+  mcpServerUrl: string,
+  credentialScope: CredentialScope,
+  userId?: string
+): Promise<string | null> {
+  const composioApiKey = process.env.COMPOSIO_API_KEY;
+  if (!composioApiKey) {
+    logger.info({}, 'Composio API key not configured');
+    return null;
+  }
+
+  const serverId = extractComposioServerId(mcpServerUrl);
+  if (!serverId) {
+    logger.info({ mcpServerUrl }, 'Could not extract Composio server ID from URL');
+    return null;
+  }
+
+  const composioInstance = getComposioInstance();
+  if (!composioInstance) {
+    logger.info({}, 'Composio not configured');
+    return null;
+  }
+
+  // Use the correct user ID based on scope
+  const composioUserId = getComposioUserId(tenantId, projectId, credentialScope, userId);
+
+  try {
+    const composioMcpServer = await composioInstance.mcp.get(serverId);
+
+    // Get any existing initiated accounts to clean up
+    const connectedAccounts = await fetchComposioConnectedAccounts(composioUserId);
+    const initiatedAccounts =
+      connectedAccounts?.items.filter((account) => account.status === 'INITIATED') ?? [];
+
+    // Generate the OAuth redirect URL
+    const redirectUrl = await ensureComposioAccount(
+      composioMcpServer,
+      composioUserId,
+      initiatedAccounts
+    );
+
+    return redirectUrl;
+  } catch (error) {
+    logger.error({ error, mcpServerUrl }, 'Failed to get Composio OAuth redirect URL');
+    return null;
+  }
+}
+
+/**
  * Orchestration: Transform Composio server to PrebuiltMCPServer format
  * Coordinates authentication checks and account management
  * Returns null if the server cannot be properly configured
@@ -303,12 +375,9 @@ async function transformComposioServer(
     authenticatedAuthConfigIds.has(authConfigId)
   );
 
-  let url = composioMcpServer.MCPUrl;
   let thirdPartyConnectAccountUrl: string | undefined;
 
-  if (isAuthenticated) {
-    url = addUserIdToUrl(url, derivedUserId);
-  } else {
+  if (!isAuthenticated) {
     const redirectUrl = await ensureComposioAccount(
       composioMcpServer,
       derivedUserId,
@@ -320,32 +389,26 @@ async function transformComposioServer(
     }
 
     thirdPartyConnectAccountUrl = redirectUrl;
-    url = addUserIdToUrl(url, derivedUserId);
   }
 
   return transformComposioServerData(
     composioMcpServer,
     isAuthenticated,
-    url,
+    composioMcpServer.MCPUrl,
     thirdPartyConnectAccountUrl
   );
 }
 
 /**
- * Fetch and transform Composio MCP servers for a tenant/project
+ * Fetch Composio MCP servers for the catalog
  */
-export async function fetchComposioServers(
-  tenantId: string,
-  projectId: string
-): Promise<PrebuiltMCPServer[]> {
+export async function fetchComposioServers(): Promise<PrebuiltMCPServer[]> {
   const composioApiKey = process.env.COMPOSIO_API_KEY;
 
   if (!composioApiKey) {
     logger.info({}, 'COMPOSIO_API_KEY not configured, skipping Composio servers');
     return [];
   }
-
-  const derivedUserId = deriveComposioUserId(tenantId, projectId);
 
   const composioInstance = getComposioInstance();
   if (!composioInstance) {
@@ -361,37 +424,16 @@ export async function fetchComposioServers(
       authConfigs: [],
     });
 
-    const userConnectedAccounts = await composioInstance.connectedAccounts.list({
-      userIds: [derivedUserId],
-    });
-
-    const activeAccounts = userConnectedAccounts?.items.filter(
-      (account) => account.status === 'ACTIVE'
-    );
-    const initiatedAccounts = userConnectedAccounts?.items.filter(
-      (account) => account.status === 'INITIATED'
-    );
-
-    const authenticatedAuthConfigIds = new Set(
-      activeAccounts?.map((account) => account.authConfig.id) ?? []
-    );
-
-    const transformedServers = await Promise.all(
-      composioMcpServers?.items.map((server) =>
-        transformComposioServer(
-          server,
-          authenticatedAuthConfigIds,
-          initiatedAccounts ?? [],
-          derivedUserId
-        )
+    const transformedServers = composioMcpServers?.items.map((server) =>
+      transformComposioServerData(
+        server,
+        false, // Always false for catalog - we want scope dialog to show
+        server.MCPUrl, // Raw URL without user_id
+        undefined // No OAuth redirect URL for catalog
       )
     );
 
-    const validServers = transformedServers.filter(
-      (server: PrebuiltMCPServer | null): server is PrebuiltMCPServer => server !== null
-    );
-
-    return validServers;
+    return transformedServers ?? [];
   } catch (error) {
     logger.error({ error }, 'Failed to fetch Composio servers');
     return [];
@@ -400,11 +442,15 @@ export async function fetchComposioServers(
 
 /**
  * Fetch a single Composio MCP server by URL and return its details with auth status
+ * @param credentialScope - 'project' uses tenant||project, 'user' uses actual userId
+ * @param userId - The actual user ID (required if credentialScope is 'user')
  */
 export async function fetchSingleComposioServer(
   tenantId: string,
   projectId: string,
-  mcpServerUrl: string
+  mcpServerUrl: string,
+  credentialScope: CredentialScope = 'project',
+  userId?: string
 ): Promise<PrebuiltMCPServer | null> {
   const composioApiKey = process.env.COMPOSIO_API_KEY;
 
@@ -413,7 +459,7 @@ export async function fetchSingleComposioServer(
     return null;
   }
 
-  const derivedUserId = deriveComposioUserId(tenantId, projectId);
+  const composioUserId = getComposioUserId(tenantId, projectId, credentialScope, userId);
 
   const composioInstance = getComposioInstance();
   if (!composioInstance) {
@@ -431,7 +477,8 @@ export async function fetchSingleComposioServer(
     const composioMcpServer = await composioInstance.mcp.get(serverId);
 
     const userConnectedAccounts = await composioInstance.connectedAccounts.list({
-      userIds: [derivedUserId],
+      userIds: [composioUserId],
+      statuses: ['ACTIVE', 'INITIATED'],
     });
 
     const activeAccounts = userConnectedAccounts?.items.filter(
@@ -449,7 +496,7 @@ export async function fetchSingleComposioServer(
       composioMcpServer,
       authenticatedAuthConfigIds,
       initiatedAccounts ?? [],
-      derivedUserId
+      composioUserId
     );
 
     return transformedServer;
