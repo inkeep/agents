@@ -21,7 +21,7 @@ import playgroundTokenRoutes from './routes/playgroundToken';
 import projectFullRoutes from './routes/projectFull';
 import signozRoutes from './routes/signoz';
 import userOrganizationsRoutes from './routes/userOrganizations';
-import { authCorsConfig, defaultCorsConfig, playgroundCorsConfig } from './utils/cors';
+import { authCorsConfig, defaultCorsConfig, isOriginAllowed, playgroundCorsConfig } from './utils/cors';
 
 const logger = getLogger('agents-manage-api');
 
