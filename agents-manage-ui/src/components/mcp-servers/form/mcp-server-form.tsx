@@ -88,7 +88,10 @@ export function MCPServerForm({
 
   const onSubmit = async (data: MCPToolFormData) => {
     try {
-      const mcpServerName = mode === 'create' ? createMcpServerNameWithScopeSuffix(data.name, data.credentialScope) : data.name;
+      const mcpServerName =
+        mode === 'create'
+          ? createMcpServerNameWithScopeSuffix(data.name, data.credentialScope)
+          : data.name;
       const isUserScoped = data.credentialScope === CredentialScopeEnum.user;
 
       // For user-scoped in CREATE mode: skip OAuth (users connect later from detail page)

@@ -1001,7 +1001,10 @@ export class Agent {
       } else {
         // Project-scoped: use tenantId||projectId
         const SEPARATOR = '||';
-        urlObj.searchParams.set('user_id', `${this.config.tenantId}${SEPARATOR}${this.config.projectId}`);
+        urlObj.searchParams.set(
+          'user_id',
+          `${this.config.tenantId}${SEPARATOR}${this.config.projectId}`
+        );
       }
       serverConfig.url = urlObj.toString();
     }
