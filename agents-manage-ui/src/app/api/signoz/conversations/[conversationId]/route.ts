@@ -1101,8 +1101,8 @@ export async function GET(
       data: Record<string, any>;
     }> = [];
     try {
-      // Call secure manage-api via the SQL helper function
-      allSpanAttributes = await fetchAllSpanAttributes_SQL(conversationId, tenantId, cookieHeader);
+      // Call SigNoz directly via the SQL helper function
+      allSpanAttributes = await fetchAllSpanAttributes_SQL(conversationId, SIGNOZ_URL, SIGNOZ_API_KEY);
     } catch (e) {
       const logger = getLogger('span-attributes');
       logger.error({ error: e }, 'allSpanAttributes SQL fetch skipped/failed');
