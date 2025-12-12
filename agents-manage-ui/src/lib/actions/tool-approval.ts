@@ -40,7 +40,7 @@ interface FetchToolApprovalDiffParams {
 }
 
 function parseToolName(toolName: string): ToolMetadata {
-  const parts = toolName.split('_');
+  const parts = toolName.split('-');
 
   const actions = ['create', 'update', 'delete', 'get', 'list'];
   const actionIndex = parts.findIndex((part) => actions.includes(part));
@@ -49,14 +49,10 @@ function parseToolName(toolName: string): ToolMetadata {
     throw new Error(`Unable to parse tool name: ${toolName}`);
   }
 
-  // In the new format (underscore-separated), the entity type comes AFTER the action
-  // Join with hyphens for API compatibility
-  const entity = parts.slice(actionIndex + 1).join('-');
-
   return {
-    resource: entity,
+    resource: parts.slice(0, actionIndex).join('-'),
     action: parts[actionIndex],
-    entity: entity,
+    entity: parts.slice(actionIndex + 1).join('-'),
   };
 }
 
