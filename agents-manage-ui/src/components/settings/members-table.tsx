@@ -10,6 +10,8 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import type { useAuthClient } from '@/lib/auth-client';
+import { Button } from '../ui/button';
+import { UserPlus } from 'lucide-react';
 
 type FullOrganization = NonNullable<
   Awaited<
@@ -32,10 +34,10 @@ export function MembersTable({ members }: MembersTableProps) {
             <h2 className="text-md font-medium text-gray-700 dark:text-white/70">Members</h2>
             <Badge variant="count">{members.length}</Badge>
           </div>
-          {/* <Button onClick={() => setInviteDialogOpen(true)} size="sm" variant="outline">
+          <Button onClick={() => setInviteDialogOpen(true)} size="sm" variant="outline">
             <UserPlus className="h-4 w-4 mr-2" />
             Invite
-          </Button> */}
+          </Button>
         </div>
         <Table>
           <TableHeader>
