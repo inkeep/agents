@@ -2628,7 +2628,19 @@ Now please provide your answer to my original question using this context.`
 
             if (thinkingCompleteCall) {
               const reasoningFlow: any[] = [];
-              if (response.steps) {
+              
+              // Check if compression has occurred and use compression summary instead of detailed tool results
+              const compressionSummary = this.currentCompressor?.getCompressionSummary();
+              
+              if (compressionSummary) {
+                // Use the entire compression summary
+                const summaryContent = JSON.stringify(compressionSummary, null, 2);
+                
+                reasoningFlow.push({
+                  role: 'assistant',
+                  content: `## Research Summary (Compressed)\n\nBased on tool executions, here's the comprehensive summary:\n\n\`\`\`json\n${summaryContent}\n\`\`\`\n\nThis summary represents all tool execution results in compressed form. Full details are preserved in artifacts.`,
+                });
+              } else if (response.steps) {
                 response.steps.forEach((step: any) => {
                   if (step.toolCalls && step.toolResults) {
                     step.toolCalls.forEach((call: any, index: number) => {

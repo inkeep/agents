@@ -491,4 +491,11 @@ export class MidGenerationCompressor {
       config: this.config,
     };
   }
+
+  /**
+   * Get the current compression summary
+   */
+  getCompressionSummary() {
+    return this.cumulativeSummary;
+  }
 }
