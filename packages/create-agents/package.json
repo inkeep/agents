@@ -60,7 +60,7 @@
     "vitest": "^3.2.4"
   },
   "engines": {
-    "node": ">=22.0.0"
+    "node": ">=22.18.0"
   },
   "repository": {
     "type": "git",
