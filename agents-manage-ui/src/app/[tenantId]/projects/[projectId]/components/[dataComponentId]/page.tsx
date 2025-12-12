@@ -3,6 +3,7 @@ import FullPageError from '@/components/errors/full-page-error';
 import { BodyTemplate } from '@/components/layout/body-template';
 import { MainContent } from '@/components/layout/main-content';
 import { fetchDataComponent } from '@/lib/api/data-components';
+import { getErrorCode } from '@/lib/utils/error-serialization';
 
 export const dynamic = 'force-dynamic';
 
@@ -17,7 +18,7 @@ export default async function DataComponentPage({
   } catch (error) {
     return (
       <FullPageError
-        error={error as Error}
+        errorCode={getErrorCode(error)}
         link={`/${tenantId}/projects/${projectId}/components`}
         linkText="Back to components"
         context="component"

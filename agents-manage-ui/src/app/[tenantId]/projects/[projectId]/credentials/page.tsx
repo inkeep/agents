@@ -9,6 +9,7 @@ import { MainContent } from '@/components/layout/main-content';
 import { PageHeader } from '@/components/layout/page-header';
 import { Button } from '@/components/ui/button';
 import { fetchCredentials } from '@/lib/api/credentials';
+import { getErrorCode } from '@/lib/utils/error-serialization';
 
 export const dynamic = 'force-dynamic';
 
@@ -24,7 +25,7 @@ async function CredentialsPage({
   try {
     credentials = await fetchCredentials(tenantId, projectId);
   } catch (error) {
-    return <FullPageError error={error as Error} context="credentials" />;
+    return <FullPageError errorCode={getErrorCode(error)} context="credentials" />;
   }
 
   return (

@@ -8,6 +8,7 @@ import { PageHeader } from '@/components/layout/page-header';
 import { MCPToolsList } from '@/components/mcp-servers/mcp-tools-list';
 import { Button } from '@/components/ui/button';
 import { fetchMCPTools } from '@/lib/api/tools';
+import { getErrorCode } from '@/lib/utils/error-serialization';
 
 const mcpServerDescription = 'Create MCP servers that agents can use to access external services.';
 
@@ -20,7 +21,7 @@ async function MCPServersPage({
   try {
     tools = await fetchMCPTools(tenantId, projectId);
   } catch (error) {
-    return <FullPageError error={error as Error} context="MCP servers" />;
+    return <FullPageError errorCode={getErrorCode(error)} context="MCP servers" />;
   }
 
   return (

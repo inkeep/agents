@@ -3,6 +3,7 @@ import { ViewExternalAgentDetails } from '@/components/external-agents/view-exte
 import { BodyTemplate } from '@/components/layout/body-template';
 import { MainContent } from '@/components/layout/main-content';
 import { fetchExternalAgent } from '@/lib/api/external-agents';
+import { getErrorCode } from '@/lib/utils/error-serialization';
 
 async function ExternalAgentPage({
   params,
@@ -15,10 +16,10 @@ async function ExternalAgentPage({
   } catch (error) {
     return (
       <FullPageError
-        error={error as Error}
+        errorCode={getErrorCode(error)}
         link={`/${tenantId}/projects/${projectId}/external-agents`}
         linkText="Back to external agents"
-        context="External agent"
+        context="external agent"
       />
     );
   }

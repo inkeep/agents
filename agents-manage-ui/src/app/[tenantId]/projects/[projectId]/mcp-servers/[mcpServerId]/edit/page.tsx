@@ -11,6 +11,7 @@ import {
 import { type Credential, fetchCredentials } from '@/lib/api/credentials';
 import { fetchMCPTool } from '@/lib/api/tools';
 import type { MCPTool } from '@/lib/types/tools';
+import { getErrorCode } from '@/lib/utils/error-serialization';
 
 async function EditMCPPage({
   params,
@@ -31,7 +32,7 @@ async function EditMCPPage({
     console.error('Failed to load MCP tool:', mcpToolResult.reason);
     return (
       <FullPageError
-        error={mcpToolResult.reason as Error}
+        errorCode={getErrorCode(mcpToolResult.reason)}
         link={`/${tenantId}/projects/${projectId}/mcp-servers`}
         linkText="Back to MCP servers"
         context="MCP server"
