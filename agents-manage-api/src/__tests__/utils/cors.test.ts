@@ -183,4 +183,3 @@ describe('isOriginAllowed', () => {
     });
   });
 });
-
