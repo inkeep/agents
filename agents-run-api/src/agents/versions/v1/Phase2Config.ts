@@ -134,6 +134,8 @@ CREATING ARTIFACTS (SERVES AS CITATION):
 Use the appropriate ArtifactCreate_[Type] component to extract and structure data from tool results.
 The creation itself serves as a citation - no additional reference needed.
 
+⚠️ IMPORTANT: Do not create artifacts from get_reference_artifact tool results - these are already compressed artifacts being retrieved. Only create artifacts from original research and analysis tools.
+
 🚫 FORBIDDEN JMESPATH PATTERNS:
 ❌ NEVER: [?title~'.*text.*'] (regex patterns with ~ operator)
 ❌ NEVER: [?field~'pattern.*'] (any ~ operator usage)
