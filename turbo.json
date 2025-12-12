@@ -93,7 +93,7 @@
     "@inkeep/agents-manage-mcp#build": {
       "dependsOn": ["^build", "sync:licenses"],
       "inputs": ["$TURBO_DEFAULT$", ".env*"],
-      "outputs": ["esm/**", "bin/**", ".tsbuildinfo"]
+      "outputs": ["dist/**", "bin/**", ".tsbuildinfo"]
     },
     "chat-widget#test": {
       "dependsOn": ["build"],
