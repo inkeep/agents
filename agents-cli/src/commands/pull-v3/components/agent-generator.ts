@@ -40,7 +40,7 @@ function formatStatusUpdates(
   const lines: string[] = [];
 
   lines.push(`${indent}statusUpdates: {`);
-
+// new line
   // numEvents
   if (statusUpdatesConfig.numEvents !== undefined) {
     lines.push(`${indent}${indentation}numEvents: ${statusUpdatesConfig.numEvents},`);
