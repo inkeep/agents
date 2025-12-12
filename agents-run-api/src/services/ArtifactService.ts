@@ -784,10 +784,12 @@ export class ArtifactService {
     description: string;
     type: string;
     data: Record<string, any>;
+    summaryData?: Record<string, any>;
     metadata?: Record<string, any>;
     toolCallId?: string;
   }): Promise<void> {
-    let summaryData = artifact.data;
+    // Use provided summaryData if available, otherwise default to artifact.data
+    let summaryData = artifact.summaryData || artifact.data;
     let fullData = artifact.data;
 
     if (this.context.artifactComponents) {

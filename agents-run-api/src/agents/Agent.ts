@@ -59,6 +59,10 @@ import dbClient from '../data/db/dbClient';
 import { getLogger } from '../logger';
 import { agentSessionManager, type ToolCallData } from '../services/AgentSession';
 import { IncrementalStreamParser } from '../services/IncrementalStreamParser';
+import {
+  getCompressionConfigFromEnv,
+  MidGenerationCompressor,
+} from '../services/MidGenerationCompressor';
 import { pendingToolApprovalManager } from '../services/PendingToolApprovalManager';
 import { ResponseFormatter } from '../services/ResponseFormatter';
 import type { SandboxConfig } from '../types/execution-context';
@@ -190,6 +194,7 @@ export class Agent {
   private credentialStoreRegistry?: CredentialStoreRegistry;
   private mcpClientCache: Map<string, McpClient> = new Map();
   private mcpConnectionLocks: Map<string, Promise<McpClient>> = new Map();
+  private currentCompressor: MidGenerationCompressor | null = null;
 
   constructor(config: AgentConfig, credentialStoreRegistry?: CredentialStoreRegistry) {
     this.artifactComponents = config.artifactComponents || [];
@@ -373,6 +378,38 @@ export class Agent {
     }
     return {
       model: validateModel(baseConfig.model, 'Base (fallback for structured output)'),
+      providerOptions: baseConfig.providerOptions,
+    };
+  }
+
+  /**
+   * Get the model settings for summarization/distillation
+   * Falls back to base model if summarizer not configured
+   */
+  private getSummarizerModel(): ModelSettings {
+    if (!this.config.models) {
+      throw new Error(
+        'Model configuration is required. Please configure models at the project level.'
+      );
+    }
+
+    const summarizerConfig = this.config.models.summarizer;
+    const baseConfig = this.config.models.base;
+
+    if (summarizerConfig) {
+      return {
+        model: validateModel(summarizerConfig.model, 'Summarizer'),
+        providerOptions: summarizerConfig.providerOptions,
+      };
+    }
+
+    if (!baseConfig) {
+      throw new Error(
+        'Base model configuration is required for summarizer fallback. Please configure models at the project level.'
+      );
+    }
+    return {
+      model: validateModel(baseConfig.model, 'Base (fallback for summarizer)'),
       providerOptions: baseConfig.providerOptions,
     };
   }
@@ -1631,6 +1668,34 @@ export class Agent {
       }
     }
 
+    // Add manual compression tool
+    logger.info({ agentId: this.config.id, streamRequestId }, 'Adding compress_context tool to defaultTools');
+    defaultTools.compress_context = tool({
+      description: 'Manually compress the current conversation context to save space. Use when shifting topics, completing major tasks, or when context feels cluttered.',
+      inputSchema: z.object({
+        reason: z.string().describe('Why you are requesting compression (e.g., "shifting from research to coding", "completed analysis phase")'),
+      }),
+      execute: async ({ reason }) => {
+        logger.info({
+          agentId: this.config.id,
+          streamRequestId,
+          reason,
+        }, 'Manual compression requested by LLM');
+
+        // Set compression flag on the current compressor instance
+        if (this.currentCompressor) {
+          this.currentCompressor.requestManualCompression(reason);
+        }
+
+        return {
+          status: 'compression_requested',
+          reason,
+          message: 'Context compression will be applied on the next generation step. Previous work has been summarized and saved as artifacts.'
+        };
+      },
+    });
+
+    logger.info('getDefaultTools returning tools:', Object.keys(defaultTools));
     return defaultTools;
   }
 
@@ -2167,6 +2232,24 @@ ${output}`;
             content: userMessage,
           });
 
+          // Capture original message count and initialize compressor for this generation
+          const originalMessageCount = messages.length;
+          const compressionConfig = getCompressionConfigFromEnv();
+          const compressor = compressionConfig.enabled
+            ? new MidGenerationCompressor(
+                sessionId,
+                contextId,
+                this.config.tenantId,
+                this.config.projectId,
+                compressionConfig,
+                this.getSummarizerModel(),
+                primaryModelSettings
+              )
+            : null;
+
+          // Store compressor for tool access
+          this.currentCompressor = compressor;
+
           // ----- PHASE 1: Planning with tools -----
 
           if (shouldStreamPhase1) {
@@ -2181,6 +2264,81 @@ ${output}`;
               ...streamConfig,
               messages,
               tools: sanitizedTools,
+              prepareStep: async ({ messages: stepMessages}) => {
+
+                // Check if compression is enabled
+                if (!compressor) {
+                  return {};
+                }
+
+                // Check if compression is needed (manual or automatic)
+                const compressionNeeded = compressor.isCompressionNeeded(stepMessages);
+                
+                if (compressionNeeded) {
+                  logger.info({
+                    compressorState: compressor.getState(),
+                  }, 'Triggering layered mid-generation compression');
+
+                  try {
+                    // Split messages into original vs generated
+                    const originalMessages = stepMessages.slice(0, originalMessageCount);
+                    const generatedMessages = stepMessages.slice(originalMessageCount);
+
+                    if (generatedMessages.length > 0) {
+                      // Compress ONLY the generated content (tool results, intermediate steps)
+                      const compressionResult = await compressor.compress(generatedMessages);
+                      
+                      // Build final messages: original + preserved text + summary
+                      const finalMessages = [...originalMessages];
+
+                      // Add preserved text messages first (so they appear in natural order)
+                      if (compressionResult.summary.text_messages && compressionResult.summary.text_messages.length > 0) {
+                        finalMessages.push(...compressionResult.summary.text_messages);
+                      }
+                      
+                      // Add compressed summary message last (provides context for artifacts)
+                      const summaryMessage = JSON.stringify({
+                          high_level: compressionResult.summary?.summary?.high_level,
+                          user_intent: compressionResult.summary?.summary?.user_intent,
+                          decisions: compressionResult.summary?.summary?.decisions,
+                          open_questions: compressionResult.summary?.summary?.open_questions,
+                          next_steps: compressionResult.summary?.summary?.next_steps,
+                          related_artifacts: compressionResult?.summary?.summary?.related_artifacts
+                        });
+                        finalMessages.push({
+                          role: 'user',
+                          content: `Based on your research, here's what you've discovered: ${summaryMessage}
+
+Now please provide your answer to my original question using this context.`
+                        });
+  
+                      logger.info(
+                        {
+                          originalTotal: stepMessages.length,
+                          compressed: finalMessages.length,
+                          originalKept: originalMessages.length,
+                          generatedCompressed: generatedMessages.length,
+                        },
+                        'Generated content compression completed'
+                      );
+                      logger.info({ summaryMessage }, 'Summary message');
+
+                      return { messages: finalMessages };
+                    }
+
+                    // No generated messages yet, nothing to compress
+                    return {};
+                  } catch (error) {
+                    logger.error({ 
+                      error: error instanceof Error ? error.message : String(error),
+                      stack: error instanceof Error ? error.stack : undefined 
+                    }, 'Compression failed, continuing without compression');
+                    return {};
+                  }
+                }
+
+                return {};
+              },
               stopWhen: async ({ steps }) => {
                 const last = steps.at(-1);
                 if (last && 'text' in last && last.text) {
@@ -2332,6 +2490,84 @@ ${output}`;
               ...genConfig,
               messages,
               tools: sanitizedTools,
+              prepareStep: async ({ messages: stepMessages}) => {
+
+                // Check if compression is enabled
+                if (!compressor) {
+                  return {};
+                }
+
+                // Check if compression is needed (manual or automatic)
+                const compressionNeeded = compressor.isCompressionNeeded(stepMessages);
+                
+                if (compressionNeeded) {
+                  logger.info(
+                    {
+                      compressorState: compressor.getState(),
+                    },
+                    'Triggering layered mid-generation compression'
+                  );
+
+                  try {
+                    // Split messages into original vs generated
+                    const originalMessages = stepMessages.slice(0, originalMessageCount);
+                    const generatedMessages = stepMessages.slice(originalMessageCount);
+
+                    if (generatedMessages.length > 0) {
+                      // Compress ONLY the generated content (tool results, intermediate steps)
+                      const compressionResult = await compressor.compress(generatedMessages);
+                      
+                      // Build final messages: original + preserved text + summary
+                      const finalMessages = [...originalMessages];
+                      
+                      // Add preserved text messages first (so they appear in natural order)
+                      if (compressionResult.summary.text_messages && compressionResult.summary.text_messages.length > 0) {
+                        finalMessages.push(...compressionResult.summary.text_messages);
+                      }
+                      
+                      // Add compressed summary message last (provides context for artifacts)
+                      const summaryMessage = JSON.stringify({
+                          high_level: compressionResult.summary?.summary?.high_level,
+                          user_intent: compressionResult.summary?.summary?.user_intent,
+                          decisions: compressionResult.summary?.summary?.decisions,
+                          open_questions: compressionResult.summary?.summary?.open_questions,
+                          next_steps: compressionResult.summary?.summary?.next_steps,
+                          related_artifacts: compressionResult?.summary?.summary?.related_artifacts
+                        });
+                      finalMessages.push({
+                        role: 'user',
+                        content: `Based on your research, here's what you've discovered: ${summaryMessage}
+
+Now please provide your answer to my original question using this context.`
+                      });
+
+                      logger.info(
+                        {
+                          originalTotal: stepMessages.length,
+                          compressed: finalMessages.length,
+                          originalKept: originalMessages.length,
+                          generatedCompressed: generatedMessages.length,
+                        },
+                        'Generated content compression completed'
+                      );
+                      logger.info({ summaryMessage }, 'Summary message');
+
+                      return { messages: finalMessages };
+                    }
+
+                    // No generated messages yet, nothing to compress
+                    return {};
+                  } catch (error) {
+                    logger.error({ 
+                      error: error instanceof Error ? error.message : String(error),
+                      stack: error instanceof Error ? error.stack : undefined 
+                    }, 'Compression failed, continuing without compression');
+                    return {};
+                  }
+                }
+
+                return {};
+              },
               stopWhen: async ({ steps }) => {
                 const last = steps.at(-1);
                 if (last && 'text' in last && last.text) {
