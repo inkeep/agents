@@ -89,9 +89,6 @@
     ]
   },
   "packageManager": "pnpm@10.10.0",
-  "engines": {
-    "node": ">=22.18.0"
-  },
   "pnpm": {
     "// esbuild": "we pin it for Cypress",
     "overrides": {

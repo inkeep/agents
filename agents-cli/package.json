@@ -79,9 +79,6 @@
     "@inkeep/agents-manage-ui": "*",
     "zod": "^4.1.11"
   },
-  "engines": {
-    "node": ">=22.18.0"
-  },
   "publishConfig": {
     "access": "public",
     "registry": "https://registry.npmjs.org/"

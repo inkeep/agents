@@ -21,6 +21,21 @@ if [ ! -f "pnpm-workspace.yaml" ]; then
   exit 1
 fi
 
+# Check Node.js version (requires >= 22.18.0)
+NODE_VERSION=$(node -v | sed 's/v//')
+REQUIRED_VERSION="22.18.0"
+if [ "$(printf '%s\n' "$REQUIRED_VERSION" "$NODE_VERSION" | sort -V | head -n1)" != "$REQUIRED_VERSION" ]; then
+  echo "❌ Error: Node.js >= $REQUIRED_VERSION is required (found v$NODE_VERSION)"
+  echo "   Please upgrade Node.js and try again"
+  exit 1
+fi
+echo -e "${GREEN}✓${NC} Node.js v$NODE_VERSION detected"
+
+# Enable corepack for package manager version management
+echo "Enabling corepack..."
+corepack enable
+echo -e "${GREEN}✓${NC} Corepack enabled"
+
 # 1. Create .env from template if it doesn't exist
 if [ ! -f ".env" ]; then
   cp .env.example .env
