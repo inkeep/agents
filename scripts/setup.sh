@@ -21,12 +21,12 @@ if [ ! -f "pnpm-workspace.yaml" ]; then
   exit 1
 fi
 
-# Check Node.js version (requires >= 22.18.0)
+# Check Node.js version (reads from .node-version)
 NODE_VERSION=$(node -v | sed 's/v//')
-REQUIRED_VERSION="22.18.0"
+REQUIRED_VERSION=$(cat .node-version | tr -d '[:space:]')
 if [ "$(printf '%s\n' "$REQUIRED_VERSION" "$NODE_VERSION" | sort -V | head -n1)" != "$REQUIRED_VERSION" ]; then
   echo "❌ Error: Node.js >= $REQUIRED_VERSION is required (found v$NODE_VERSION)"
-  echo "   Please upgrade Node.js and try again"
+  echo "   Run 'nvm use' or install Node.js $REQUIRED_VERSION"
   exit 1
 fi
 echo -e "${GREEN}✓${NC} Node.js v$NODE_VERSION detected"
