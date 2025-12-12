@@ -229,16 +229,18 @@ export class MidGenerationCompressor {
       if (Array.isArray(message.content)) {
         for (const block of message.content) {
           if (block.type === 'tool-result') {
-            // Skip artifact retrieval tools - they're just accessing already compressed data
+            // Handle artifact retrieval tools specially - don't create artifacts but do compress the large results
             if (block.toolName === 'get_reference_artifact') {
               logger.debug(
                 {
                   toolCallId: block.toolCallId,
                   toolName: block.toolName,
                 },
-                'Skipping artifact retrieval tool - not compressing'
+                'Handling artifact retrieval tool - compressing result but not saving as artifact'
               );
-              continue;
+              // Mark as processed but don't create an artifact - the extractTextMessages will handle this
+              this.processedToolCalls.add(block.toolCallId);
+              // Don't continue - let it be processed but without artifact creation
             }
 
             // Skip if this tool call has already been processed
@@ -468,13 +470,20 @@ export class MidGenerationCompressor {
       else if (message.role === 'assistant' && Array.isArray(message.content)) {
         const textParts: string[] = [];
         const toolCallsInMessage = new Set<string>();
+        const preservedBlocks: any[] = [];
 
         for (const block of message.content) {
           // Always preserve text blocks
           if (block.type === 'text') {
             textParts.push(block.text);
           }
-          // Convert tool calls to descriptive text
+          // Preserve thinking_complete tool blocks as-is
+          else if (block.type === 'tool-call' && block.toolName === 'thinking_complete') {
+            preservedBlocks.push(block);
+          } else if (block.type === 'tool-result' && block.toolName === 'thinking_complete') {
+            preservedBlocks.push(block);
+          }
+          // Convert other tool calls to descriptive text
           else if (block.type === 'tool-call') {
             toolCallsInMessage.add(block.toolCallId);
           }
@@ -489,13 +498,31 @@ export class MidGenerationCompressor {
             const args = JSON.stringify(pair.call.input);
             const artifactText = artifactId
               ? ` Results compressed into artifact: ${artifactId}.`
-              : ' Results were compressed and saved.';
+              : ' Results were compressed but not saved.';
 
             textParts.push(`I called ${pair.call.toolName}(${args}).${artifactText}`);
           }
         }
 
-        if (textParts.length > 0) {
+        // Build final content based on what we have
+        if (preservedBlocks.length > 0 && textParts.length > 0) {
+          // Mixed content: preserved blocks + text
+          const content = [...preservedBlocks];
+          if (textParts.length > 0) {
+            content.push({ type: 'text', text: textParts.join('\n\n') });
+          }
+          textMessages.push({
+            role: message.role,
+            content: content,
+          });
+        } else if (preservedBlocks.length > 0) {
+          // Only preserved blocks
+          textMessages.push({
+            role: message.role,
+            content: preservedBlocks,
+          });
+        } else if (textParts.length > 0) {
+          // Only text
           textMessages.push({
             role: message.role,
             content: textParts.join('\n\n'),
