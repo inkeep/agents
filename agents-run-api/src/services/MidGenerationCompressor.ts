@@ -479,11 +479,9 @@ export class MidGenerationCompressor {
           if (block.type === 'text') {
             textParts.push(block.text);
           }
-          // Preserve thinking_complete tool blocks as-is
+          // Skip thinking_complete entirely - don't convert to text
           else if (block.type === 'tool-call' && block.toolName === 'thinking_complete') {
-            preservedBlocks.push(block);
-          } else if (block.type === 'tool-result' && block.toolName === 'thinking_complete') {
-            preservedBlocks.push(block);
+            // Do nothing - let it pass through unchanged in original messages
           }
           // Convert other tool calls to descriptive text
           else if (block.type === 'tool-call') {
