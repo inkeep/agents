@@ -598,10 +598,15 @@ export class ArtifactService {
           actualFields: summaryValidation.actualFields,
           schemaExpected: previewSchema?.properties ? Object.keys(previewSchema.properties) : [],
         },
-        'Blocking artifact save due to missing required fields'
+        'Artifact creation failed due to missing required fields - continuing with generation'
       );
 
-      throw error;
+      // Return validation result indicating failure to prevent generation crash
+      return {
+        summary: summaryValidation,
+        full: fullValidation,
+        schemaFound: !!previewSchema,
+      };
     }
 
     // Log validation results
