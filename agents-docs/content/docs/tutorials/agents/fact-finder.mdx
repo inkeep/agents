@@ -10,6 +10,11 @@ In this tutorial, you'll build a fact finder agent using code and the Inkeep SDK
 1. Search your knowledge base using the Inkeep RAG MCP tool
 2. Present relevant facts about Inkeep
 
+<Video
+  src="youtube.com/watch?v=76HP-P269RI&feature=youtu.be"
+  title="Fact finder agent tutorial"
+/>
+
 ## Prerequisites
 
 - An existing Inkeep project running (follow the [quick start guide](/get-started/quick-start) to get started)
@@ -138,7 +143,12 @@ export const inkeepRagMcpTool = mcpTool({
 });
 ```
 
-This tool enables your agent to search your Inkeep knowledge base for relevant information.
+This tool enables your agent to search your Inkeep knowledge base for relevant information, leveraging Inkeep Unified Search's RAG capabilities to provide accurate and relevant results.
+
+<Tip>
+  Inkeep Unified Search is part of [Inkeep's Enterprise offering](https://inkeep.com/enterprise). Connect 25+ data sources to create a unified knowledge base that your agents can access.
+</Tip>
+
 
 ### Step 3: Register the fact finder agent and rag mcp tool in the project
 
