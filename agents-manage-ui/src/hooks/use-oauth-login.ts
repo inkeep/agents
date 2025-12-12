@@ -236,7 +236,12 @@ export function useOAuthLogin({
 
         // Choose authentication method based on availability
         if (isNangoReady) {
-          await handleOAuthLoginWithNangoMCPGeneric({ toolId, mcpServerUrl, toolName, credentialScope });
+          await handleOAuthLoginWithNangoMCPGeneric({
+            toolId,
+            mcpServerUrl,
+            toolName,
+            credentialScope,
+          });
         } else if (isKeychainReady) {
           await handleOAuthLoginManually(toolId);
         } else {

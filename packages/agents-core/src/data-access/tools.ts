@@ -243,18 +243,19 @@ export const dbResultToMcpTool = async (
   let createdBy: string | undefined;
 
   // Look up credential reference based on scope
-  const credentialReference = credentialReferenceId && dbResult.credentialScope !== 'user'
-    ? await getCredentialReference(dbClient)({
-        scopes: { tenantId: dbResult.tenantId, projectId: dbResult.projectId },
-        id: credentialReferenceId,
-      })
-    : userId && dbResult.credentialScope === 'user'
-      ? await getUserScopedCredentialReference(dbClient)({
+  const credentialReference =
+    credentialReferenceId && dbResult.credentialScope !== 'user'
+      ? await getCredentialReference(dbClient)({
           scopes: { tenantId: dbResult.tenantId, projectId: dbResult.projectId },
-          toolId: dbResult.id,
-          userId,
+          id: credentialReferenceId,
         })
-      : undefined;
+      : userId && dbResult.credentialScope === 'user'
+        ? await getUserScopedCredentialReference(dbClient)({
+            scopes: { tenantId: dbResult.tenantId, projectId: dbResult.projectId },
+            toolId: dbResult.id,
+            userId,
+          })
+        : undefined;
 
   if (credentialReference) {
     createdBy = credentialReference.createdBy || undefined;
@@ -264,7 +265,12 @@ export const dbResultToMcpTool = async (
   const mcpServerUrl = dbResult.config.mcp.server.url;
 
   try {
-    availableTools = await discoverToolsFromServer(dbResult, dbClient, credentialStoreRegistry, userId);
+    availableTools = await discoverToolsFromServer(
+      dbResult,
+      dbClient,
+      credentialStoreRegistry,
+      userId
+    );
     status = 'healthy';
     lastErrorComputed = null;
   } catch (error) {

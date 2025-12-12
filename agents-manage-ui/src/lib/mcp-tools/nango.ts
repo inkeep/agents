@@ -276,11 +276,11 @@ export async function createProviderConnectSession({
   uniqueKey: string;
   displayName: string;
   credentials?: ApiPublicIntegrationCredentials;
-  endUserId?: string,
-  endUserEmail?: string,
-  endUserDisplayName?: string,
-  organizationId?: string,
-  organizationDisplayName?: string,
+  endUserId?: string;
+  endUserEmail?: string;
+  endUserDisplayName?: string;
+  organizationId?: string;
+  organizationDisplayName?: string;
 }): Promise<string> {
   try {
     let integration: ApiPublicIntegration;
