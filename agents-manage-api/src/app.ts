@@ -13,6 +13,7 @@ import { errorHandler } from './middleware/error-handler';
 import { sessionAuth } from './middleware/session-auth';
 import { requireTenantAccess } from './middleware/tenant-access';
 import { setupOpenAPIRoutes } from './openapi';
+import cliAuthRoutes from './routes/cliAuth';
 import crudRoutes from './routes/index';
 import invitationsRoutes from './routes/invitations';
 import mcpRoutes from './routes/mcp';
@@ -217,6 +218,9 @@ function createManagementHono(
 
   // Mount user-organizations routes - global user endpoint
   app.route('/api/users/:userId/organizations', userOrganizationsRoutes);
+
+  // Mount CLI auth routes - for CLI login flow
+  app.route('/api/cli', cliAuthRoutes);
 
   // Mount invitations routes - global invitations endpoint
   app.route('/api/invitations', invitationsRoutes);

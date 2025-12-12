@@ -1,7 +1,7 @@
 import { sso } from '@better-auth/sso';
 import { type BetterAuthAdvancedOptions, betterAuth } from 'better-auth';
 import { drizzleAdapter } from 'better-auth/adapters/drizzle';
-import { organization } from 'better-auth/plugins';
+import { bearer, deviceAuthorization, organization } from 'better-auth/plugins';
 import type { GoogleOptions } from 'better-auth/social-providers';
 import { eq } from 'drizzle-orm';
 import type { DatabaseClient } from '../db/client';
@@ -210,6 +210,7 @@ export function createAuth(config: BetterAuthConfig) {
       env.INKEEP_AGENTS_MANAGE_API_URL,
     ].filter((origin): origin is string => typeof origin === 'string' && origin.length > 0),
     plugins: [
+      bearer(),
       sso(),
       organization({
         allowUserToCreateOrganization: true,
@@ -234,6 +235,12 @@ export function createAuth(config: BetterAuthConfig) {
           // - AWS SES: await ses.sendEmail({ ... })
           // - Postmark: await postmark.sendEmail({ ... })
         },
+      }),
+      deviceAuthorization({
+        verificationUri: '/device',
+        expiresIn: '60m', // 30 minutes
+        interval: '5s', // 5 second polling interval
+        userCodeLength: 8, // e.g., "ABCD-EFGH"
       }),
     ],
   });
