@@ -1695,7 +1695,7 @@ export class Agent {
       },
     });
 
-    logger.info('getDefaultTools returning tools:', Object.keys(defaultTools));
+    logger.info('getDefaultTools returning tools:', Object.keys(defaultTools).join(', '));
     return defaultTools;
   }
 
@@ -2797,6 +2797,11 @@ ${output}${structureHintsFormatted}`;
 
                 phase2Messages.push({ role: 'user', content: userMessage });
                 phase2Messages.push(...reasoningFlow);
+                
+                // Ensure the last message is not an assistant message when using output_format
+                if (reasoningFlow.length > 0 && reasoningFlow[reasoningFlow.length - 1]?.role === 'assistant') {
+                  phase2Messages.push({ role: 'user', content: 'Continue with the structured response.' });
+                }
 
                 const streamResult = streamObject({
                   ...structuredModelSettings,
@@ -2877,6 +2882,11 @@ ${output}${structureHintsFormatted}`;
 
                 phase2Messages.push({ role: 'user', content: userMessage });
                 phase2Messages.push(...reasoningFlow);
+                
+                // Ensure the last message is not an assistant message when using output_format
+                if (reasoningFlow.length > 0 && reasoningFlow[reasoningFlow.length - 1]?.role === 'assistant') {
+                  phase2Messages.push({ role: 'user', content: 'Continue with the structured response.' });
+                }
 
                 const structuredResponse = await generateObject(
                   withJsonPostProcessing({

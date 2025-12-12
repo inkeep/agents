@@ -198,34 +198,4 @@ Return **only** valid JSON.`;
   }
 }
 
-/**
- * Agent tool for manual conversation distillation
- */
-// deprecated
-export function createDistillConversationTool(config: { conversationId: string; messages: any[]; summarizerModel?: ModelSettings }) {
-  return tool({
-    description: `Distill the current conversation into a structured summary to preserve important context. Returns a structured conversation_summary_v1 object with key context extracted.`.trim(),
-
-    inputSchema: z.object({
-      current_summary: ConversationSummarySchema.optional().describe(
-        'Existing conversation summary to update (if any)'
-      ),
-      focus_hint: z
-        .string()
-        .max(400)
-        .optional()
-        .describe('OPTIONAL: Brief description of what was most important in recent work'),
-    }),
-
-    execute: async ({ current_summary, focus_hint }) => {
-      return await distillConversation({
-        messages: config.messages,
-        conversationId: config.conversationId,
-        currentSummary: current_summary || null,
-        focusHint: focus_hint,
-        summarizerModel: config.summarizerModel,
-      });
-    },
-  });
-}
 

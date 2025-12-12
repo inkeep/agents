@@ -138,7 +138,7 @@ export class MidGenerationCompressor {
     // Count tool results to be saved
     const toolResultCount = messages.reduce((count, msg) => {
       if (Array.isArray(msg.content)) {
-        return count + msg.content.filter(block => block.type === 'tool-result').length;
+        return count + msg.content.filter((block: any) => block.type === 'tool-result').length;
       }
       return count;
     }, 0);
@@ -237,7 +237,7 @@ export class MidGenerationCompressor {
             let toolInput = null;
             if (Array.isArray(message.content)) {
               const toolCall = message.content.find(
-                b => b.type === 'tool-call' && b.toolCallId === block.toolCallId
+                (b: any) => b.type === 'tool-call' && b.toolCallId === block.toolCallId
               );
               toolInput = toolCall?.input;
             }
@@ -392,11 +392,11 @@ export class MidGenerationCompressor {
       }
       // Handle assistant messages with text content blocks
       else if (message.role === 'assistant' && Array.isArray(message.content)) {
-        const textBlocks = message.content.filter(block => block.type === 'text');
+        const textBlocks = message.content.filter((block: any) => block.type === 'text');
         if (textBlocks.length > 0) {
           textMessages.push({
             role: message.role,
-            content: textBlocks.map(block => block.text).join('\n')
+            content: textBlocks.map((block: any) => block.text).join('\n')
           });
         }
       }
