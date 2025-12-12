@@ -29,7 +29,7 @@ async function AgentPage({
   if (!agent.success) {
     return (
       <FullPageError
-        error={new Error(agent.error)}
+        errorCode={agent.code}
         context="agent"
         link={`/${tenantId}/projects/${projectId}/agents`}
         linkText="Back to agents"

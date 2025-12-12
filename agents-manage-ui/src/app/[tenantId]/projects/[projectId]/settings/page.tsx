@@ -4,6 +4,7 @@ import { MainContent } from '@/components/layout/main-content';
 import { ProjectForm } from '@/components/projects/form/project-form';
 import type { ProjectFormData } from '@/components/projects/form/validation';
 import { fetchProject } from '@/lib/api/projects';
+import { getErrorCode } from '@/lib/utils/error-serialization';
 
 export const dynamic = 'force-dynamic';
 
@@ -18,7 +19,7 @@ export default async function SettingsPage({
   } catch (error) {
     return (
       <FullPageError
-        error={error as Error}
+        errorCode={getErrorCode(error)}
         link={`/${tenantId}/projects`}
         linkText="Back to projects"
         context="project"

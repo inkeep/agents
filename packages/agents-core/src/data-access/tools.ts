@@ -185,6 +185,20 @@ const discoverToolsFromServer = async (
       }
     }
 
+    // Inject user_id for Composio servers at discovery time
+    if (serverConfig.url?.toString().includes('composio.dev')) {
+      const urlObj = new URL(serverConfig.url.toString());
+      if (tool.credentialScope === 'user' && userId) {
+        // User-scoped: use actual userId
+        urlObj.searchParams.set('user_id', userId);
+      } else {
+        // Project-scoped: use tenantId||projectId
+        const SEPARATOR = '||';
+        urlObj.searchParams.set('user_id', `${tool.tenantId}${SEPARATOR}${tool.projectId}`);
+      }
+      serverConfig.url = urlObj.toString();
+    }
+
     const client = new McpClient({
       name: tool.name,
       server: serverConfig,
@@ -243,18 +257,19 @@ export const dbResultToMcpTool = async (
   let createdBy: string | undefined;
 
   // Look up credential reference based on scope
-  const credentialReference = credentialReferenceId && dbResult.credentialScope !== 'user'
-    ? await getCredentialReference(dbClient)({
-        scopes: { tenantId: dbResult.tenantId, projectId: dbResult.projectId },
-        id: credentialReferenceId,
-      })
-    : userId && dbResult.credentialScope === 'user'
-      ? await getUserScopedCredentialReference(dbClient)({
+  const credentialReference =
+    credentialReferenceId && dbResult.credentialScope !== 'user'
+      ? await getCredentialReference(dbClient)({
           scopes: { tenantId: dbResult.tenantId, projectId: dbResult.projectId },
-          toolId: dbResult.id,
-          userId,
+          id: credentialReferenceId,
         })
-      : undefined;
+      : userId && dbResult.credentialScope === 'user'
+        ? await getUserScopedCredentialReference(dbClient)({
+            scopes: { tenantId: dbResult.tenantId, projectId: dbResult.projectId },
+            toolId: dbResult.id,
+            userId,
+          })
+        : undefined;
 
   if (credentialReference) {
     createdBy = credentialReference.createdBy || undefined;
@@ -264,7 +279,12 @@ export const dbResultToMcpTool = async (
   const mcpServerUrl = dbResult.config.mcp.server.url;
 
   try {
-    availableTools = await discoverToolsFromServer(dbResult, dbClient, credentialStoreRegistry, userId);
+    availableTools = await discoverToolsFromServer(
+      dbResult,
+      dbClient,
+      credentialStoreRegistry,
+      userId
+    );
     status = 'healthy';
     lastErrorComputed = null;
   } catch (error) {
@@ -288,10 +308,13 @@ export const dbResultToMcpTool = async (
   // Check third-party service status
   const isThirdPartyMCPServer = dbResult.config.mcp.server.url.includes('composio.dev');
   if (isThirdPartyMCPServer) {
+    const credentialScope = (dbResult.credentialScope as 'project' | 'user') || 'project';
     const isAuthenticated = await isThirdPartyMCPServerAuthenticated(
       dbResult.tenantId,
       dbResult.projectId,
-      mcpServerUrl
+      mcpServerUrl,
+      credentialScope,
+      userId
     );
 
     if (!isAuthenticated) {

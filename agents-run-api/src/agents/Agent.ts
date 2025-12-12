@@ -448,7 +448,7 @@ export class Agent {
     toolDefinition: any,
     streamRequestId?: string,
     toolType?: ToolType,
-    options?: { needsApproval?: boolean }
+    options?: { needsApproval?: boolean; mcpServerId?: string; mcpServerName?: string }
   ) {
     if (!toolDefinition || typeof toolDefinition !== 'object' || !('execute' in toolDefinition)) {
       return toolDefinition;
@@ -464,14 +464,23 @@ export class Agent {
 
         const activeSpan = trace.getActiveSpan();
         if (activeSpan) {
-          activeSpan.setAttributes({
+          const attributes: Record<string, any> = {
             'conversation.id': this.conversationId,
             'tool.purpose': toolDefinition.description || 'No description provided',
             'ai.toolType': toolType || 'unknown',
             'subAgent.name': this.config.name || 'unknown',
             'subAgent.id': this.config.id || 'unknown',
             'agent.id': this.config.agentId || 'unknown',
-          });
+          };
+
+          if (options?.mcpServerId) {
+            attributes['ai.toolCall.mcpServerId'] = options.mcpServerId;
+          }
+          if (options?.mcpServerName) {
+            attributes['ai.toolCall.mcpServerName'] = options.mcpServerName;
+          }
+
+          activeSpan.setAttributes(attributes);
         }
 
         const isInternalTool =
@@ -668,7 +677,11 @@ export class Agent {
             enhancedTool,
             streamRequestId,
             'mcp',
-            { needsApproval }
+            {
+              needsApproval,
+              mcpServerId: toolSet.mcpServerId,
+              mcpServerName: toolSet.mcpServerName,
+            }
           );
         }
       }
@@ -865,7 +878,11 @@ export class Agent {
           sessionWrappedTool,
           streamRequestId,
           'mcp',
-          { needsApproval }
+          {
+            needsApproval,
+            mcpServerId: toolResult.mcpServerId,
+            mcpServerName: toolResult.mcpServerName,
+          }
         );
       }
     }
@@ -1029,6 +1046,23 @@ export class Agent {
       };
     }
 
+    // Inject user_id for Composio servers at runtime
+    if (serverConfig.url?.toString().includes('composio.dev')) {
+      const urlObj = new URL(serverConfig.url.toString());
+      if (isUserScoped && userId) {
+        // User-scoped: use actual userId
+        urlObj.searchParams.set('user_id', userId);
+      } else {
+        // Project-scoped: use tenantId||projectId
+        const SEPARATOR = '||';
+        urlObj.searchParams.set(
+          'user_id',
+          `${this.config.tenantId}${SEPARATOR}${this.config.projectId}`
+        );
+      }
+      serverConfig.url = urlObj.toString();
+    }
+
     logger.info(
       {
         toolName: tool.name,
@@ -1116,7 +1150,7 @@ export class Agent {
       }
     }
 
-    return { tools, toolPolicies };
+    return { tools, toolPolicies, mcpServerId: tool.id, mcpServerName: tool.name };
   }
 
   private async createMcpConnection(

@@ -85,7 +85,11 @@ export const DiffApproval = ({ diffs }: { diffs: FieldDiff[] }) => {
 };
 
 const ApprovalWrapper = ({ children }: { children: React.ReactNode }) => {
-  return <div className="flex flex-col rounded-lg border px-4 py-3 gap-5 my-3">{children}</div>;
+  return (
+    <div className="flex flex-col rounded-lg border px-4 py-3 gap-5 my-3 text-foreground">
+      {children}
+    </div>
+  );
 };
 
 export const ToolApproval = ({

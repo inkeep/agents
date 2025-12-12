@@ -386,9 +386,7 @@ export const tools = pgTable(
       .notNull(),
 
     credentialReferenceId: varchar('credential_reference_id', { length: 256 }),
-    credentialScope: varchar('credential_scope', { length: 50 })
-      .notNull()
-      .default('project'), // 'project' | 'user'
+    credentialScope: varchar('credential_scope', { length: 50 }).notNull().default('project'), // 'project' | 'user'
     headers: jsonb('headers').$type<Record<string, string>>(),
 
     imageUrl: text('image_url'),

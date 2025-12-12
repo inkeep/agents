@@ -176,6 +176,14 @@ export function EditCredentialForm({
               )}
             </div>
 
+            {/* Created By Display */}
+            {credential.createdBy && (
+              <div className="space-y-3">
+                <Label>Created by</Label>
+                <Input type="text" disabled={true} value={credential.createdBy} />
+              </div>
+            )}
+
             {/* Metadata / Headers Section */}
             {credential.type === CredentialStoreType.nango && (
               <div className="space-y-3">

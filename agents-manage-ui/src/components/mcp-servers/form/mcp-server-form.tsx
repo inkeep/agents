@@ -13,14 +13,13 @@ import { DeleteConfirmation } from '@/components/ui/delete-confirmation';
 import { Dialog, DialogTrigger } from '@/components/ui/dialog';
 import { Form } from '@/components/ui/form';
 import { InfoCard } from '@/components/ui/info-card';
-import { useAuthSession } from '@/hooks/use-auth';
 import { useOAuthLogin } from '@/hooks/use-oauth-login';
 import { deleteToolAction, detectOAuthServerAction } from '@/lib/actions/tools';
 import type { Credential } from '@/lib/api/credentials';
 import { createMCPTool, updateMCPTool } from '@/lib/api/tools';
 import type { MCPTool } from '@/lib/types/tools';
 import { generateId } from '@/lib/utils/id-utils';
-import { createMcpServerNameWithUserSuffix } from '../selection/mcp-server-selection';
+import { createMcpServerNameWithScopeSuffix } from '../selection/mcp-server-selection';
 import { ActiveToolsSelector } from './active-tools-selector';
 import { CredentialScopeEnum, type MCPToolFormData, mcpToolSchema } from './validation';
 
@@ -63,7 +62,6 @@ export function MCPServerForm({
   const router = useRouter();
   const [isDeleteOpen, setIsDeleteOpen] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
-  const { user } = useAuthSession();
 
   const form = useForm({
     resolver: zodResolver(mcpToolSchema),
@@ -90,7 +88,10 @@ export function MCPServerForm({
 
   const onSubmit = async (data: MCPToolFormData) => {
     try {
-      const mcpServerName = mode === 'create' ? createMcpServerNameWithUserSuffix(data.name, user) : data.name;
+      const mcpServerName =
+        mode === 'create'
+          ? createMcpServerNameWithScopeSuffix(data.name, data.credentialScope)
+          : data.name;
       const isUserScoped = data.credentialScope === CredentialScopeEnum.user;
 
       // For user-scoped in CREATE mode: skip OAuth (users connect later from detail page)
@@ -115,7 +116,9 @@ export function MCPServerForm({
         };
 
         const newTool = await createMCPTool(tenantId, projectId, mcpToolData);
-        toast.success('MCP server created. Users can connect their own accounts from the detail page.');
+        toast.success(
+          'MCP server created. Users can connect their own accounts from the detail page.'
+        );
         router.push(`/${tenantId}/projects/${projectId}/mcp-servers/${newTool.id}`);
         return;
       }
@@ -274,8 +277,8 @@ export function MCPServerForm({
             <InfoCard title="Credential Scope">
               <div className="space-y-2">
                 <p>
-                  <strong>Project:</strong> One shared credential for the entire team. You'll connect
-                  an OAuth account now that everyone will use.
+                  <strong>Project:</strong> One shared credential for the entire team. You'll
+                  connect an OAuth account now that everyone will use.
                 </p>
                 <p>
                   <strong>User:</strong> Each team member connects their own account. No OAuth
@@ -305,10 +308,9 @@ export function MCPServerForm({
               <InfoCard title="How this works">
                 <div className="space-y-2">
                   <p>
-                    Select{' '}
-                    <code className="bg-background px-1.5 py-0.5 rounded border">OAuth</code> to
-                    authenticate with the MCP server's OAuth flow, which will start after you click
-                    "Create".
+                    Select <code className="bg-background px-1.5 py-0.5 rounded border">OAuth</code>{' '}
+                    to authenticate with the MCP server's OAuth flow, which will start after you
+                    click "Create".
                   </p>
                   <p>
                     Select{' '}

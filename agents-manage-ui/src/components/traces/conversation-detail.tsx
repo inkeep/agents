@@ -23,6 +23,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { useRuntimeConfig } from '@/contexts/runtime-config-context';
 import { getSignozTracesExplorerUrl } from '@/lib/utils/signoz-links';
 import { copyTraceToClipboard } from '@/lib/utils/trace-formatter';
+import { MCPBreakdownCard } from './mcp-breakdown-card';
 import { SignozLink } from './signoz-link';
 import { InfoRow } from './timeline/blocks';
 import { TimelineWrapper } from './timeline/timeline-wrapper';
@@ -149,7 +150,7 @@ export function ConversationDetail({ conversationId, onBack }: ConversationDetai
       </div>
 
       {/* Summary Cards */}
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3 mb-4 flex-shrink-0">
+      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4 mb-4 flex-shrink-0">
         {/* Duration */}
         <Card
           className="shadow-none bg-background"
@@ -253,6 +254,9 @@ export function ConversationDetail({ conversationId, onBack }: ConversationDetai
             })()}
           </CardContent>
         </Card>
+
+        {/* MCP Tools */}
+        <MCPBreakdownCard conversation={conversation} />
 
         {/* Alerts */}
         <Card className="shadow-none bg-background">

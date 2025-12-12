@@ -3,6 +3,7 @@ import FullPageError from '@/components/errors/full-page-error';
 import { BodyTemplate } from '@/components/layout/body-template';
 import { MainContent } from '@/components/layout/main-content';
 import { fetchArtifactComponent } from '@/lib/api/artifact-components';
+import { getErrorCode } from '@/lib/utils/error-serialization';
 
 export const dynamic = 'force-dynamic';
 
@@ -44,7 +45,7 @@ export default async function ArtifactComponentPage({
   } catch (error) {
     return (
       <FullPageError
-        error={error as Error}
+        errorCode={getErrorCode(error)}
         link={`/${tenantId}/projects/${projectId}/artifacts`}
         linkText="Back to artifacts"
         context="artifact"
