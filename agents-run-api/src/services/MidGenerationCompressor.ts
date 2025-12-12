@@ -229,6 +229,18 @@ export class MidGenerationCompressor {
       if (Array.isArray(message.content)) {
         for (const block of message.content) {
           if (block.type === 'tool-result') {
+            // Skip artifact retrieval tools - they're just accessing already compressed data
+            if (block.toolName === 'get_reference_artifact') {
+              logger.debug(
+                {
+                  toolCallId: block.toolCallId,
+                  toolName: block.toolName,
+                },
+                'Skipping artifact retrieval tool - not compressing'
+              );
+              continue;
+            }
+
             // Skip if this tool call has already been processed
             if (this.processedToolCalls.has(block.toolCallId)) {
               logger.debug(
@@ -365,7 +377,7 @@ export class MidGenerationCompressor {
     toolCallToArtifactMap: Record<string, string>
   ): Promise<any> {
     // Extract text messages to preserve before the summary
-    const textMessages = this.extractTextMessages(messages);
+    const textMessages = this.extractTextMessages(messages, toolCallToArtifactMap);
 
     logger.debug(
       {
@@ -412,10 +424,37 @@ export class MidGenerationCompressor {
   }
 
   /**
-   * Extract text messages from LLM responses to preserve alongside compressed summary
+   * Extract text messages and convert tool calls to descriptive text
+   * Avoids API tool-call/tool-result pairing issues while preserving context
    */
-  private extractTextMessages(messages: any[]): any[] {
+  private extractTextMessages(
+    messages: any[],
+    toolCallToArtifactMap: Record<string, string>
+  ): any[] {
     const textMessages: any[] = [];
+
+    // Collect tool call pairs to group them properly
+    const toolCallPairs = new Map<string, { call: any; result: any }>();
+
+    for (const message of messages) {
+      if (Array.isArray(message.content)) {
+        for (const block of message.content) {
+          if (block.type === 'tool-call') {
+            if (!toolCallPairs.has(block.toolCallId)) {
+              toolCallPairs.set(block.toolCallId, { call: block, result: null });
+            } else {
+              toolCallPairs.get(block.toolCallId)!.call = block;
+            }
+          } else if (block.type === 'tool-result') {
+            if (!toolCallPairs.has(block.toolCallId)) {
+              toolCallPairs.set(block.toolCallId, { call: null, result: block });
+            } else {
+              toolCallPairs.get(block.toolCallId)!.result = block;
+            }
+          }
+        }
+      }
+    }
 
     for (const message of messages) {
       // Handle assistant text messages
@@ -425,13 +464,41 @@ export class MidGenerationCompressor {
           content: message.content,
         });
       }
-      // Handle assistant messages with text content blocks
+      // Handle assistant messages with content blocks
       else if (message.role === 'assistant' && Array.isArray(message.content)) {
-        const textBlocks = message.content.filter((block: any) => block.type === 'text');
-        if (textBlocks.length > 0) {
+        const textParts: string[] = [];
+        const toolCallsInMessage = new Set<string>();
+
+        for (const block of message.content) {
+          // Always preserve text blocks
+          if (block.type === 'text') {
+            textParts.push(block.text);
+          }
+          // Convert tool calls to descriptive text
+          else if (block.type === 'tool-call') {
+            toolCallsInMessage.add(block.toolCallId);
+          }
+        }
+
+        // Add descriptive text for tool calls in this message
+        for (const toolCallId of toolCallsInMessage) {
+          const pair = toolCallPairs.get(toolCallId);
+          const artifactId = toolCallToArtifactMap[toolCallId];
+
+          if (pair?.call) {
+            const args = JSON.stringify(pair.call.input);
+            const artifactText = artifactId
+              ? ` Results compressed into artifact: ${artifactId}.`
+              : ' Results were compressed and saved.';
+
+            textParts.push(`I called ${pair.call.toolName}(${args}).${artifactText}`);
+          }
+        }
+
+        if (textParts.length > 0) {
           textMessages.push({
             role: message.role,
-            content: textBlocks.map((block: any) => block.text).join('\n'),
+            content: textParts.join('\n\n'),
           });
         }
       }

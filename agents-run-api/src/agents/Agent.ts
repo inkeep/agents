@@ -1475,7 +1475,9 @@ export class Agent {
     };
   }): Promise<string> {
     const phase2Config = new Phase2Config();
-    const hasAgentArtifactComponents = await this.hasAgentArtifactComponents();
+    const compressionConfig = getCompressionConfigFromEnv();
+    const hasAgentArtifactComponents =
+      (await this.hasAgentArtifactComponents()) || compressionConfig.enabled;
 
     const conversationId = runtimeContext?.metadata?.conversationId || runtimeContext?.contextId;
     const resolvedContext = conversationId ? await this.getResolvedContext(conversationId) : null;
@@ -1634,7 +1636,9 @@ export class Agent {
 
     const shouldIncludeArtifactComponents = !excludeDataComponents;
 
-    const hasAgentArtifactComponents = await this.hasAgentArtifactComponents();
+    const compressionConfig = getCompressionConfigFromEnv();
+    const hasAgentArtifactComponents =
+      (await this.hasAgentArtifactComponents()) || compressionConfig.enabled;
 
     const config: SystemPromptV1 = {
       corePrompt: processedPrompt,
@@ -1707,9 +1711,10 @@ export class Agent {
   private async getDefaultTools(streamRequestId?: string): Promise<ToolSet> {
     const defaultTools: ToolSet = {};
 
-    // Add get_reference_artifact if any agent in the agent has artifact components
-    // This enables cross-agent artifact collaboration within the same agent
-    if (await this.agentHasArtifactComponents()) {
+    // Add get_reference_artifact if any agent has artifact components OR compression is enabled
+    // This enables cross-agent artifact collaboration and access to compressed artifacts
+    const compressionConfig = getCompressionConfigFromEnv();
+    if ((await this.agentHasArtifactComponents()) || compressionConfig.enabled) {
       defaultTools.get_reference_artifact = this.getArtifactTools();
     }
 
