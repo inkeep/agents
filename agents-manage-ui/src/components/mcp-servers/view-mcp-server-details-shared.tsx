@@ -86,4 +86,3 @@ export function getStatusBadgeVariant(status: string) {
       return 'warning';
   }
 }
-

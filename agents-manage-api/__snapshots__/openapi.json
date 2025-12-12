@@ -1210,7 +1210,13 @@
           "createdAt": {
             "type": "string"
           },
+          "createdBy": {
+            "maxLength": 256,
+            "nullable": true,
+            "type": "string"
+          },
           "credentialStoreId": {
+            "maxLength": 256,
             "type": "string"
           },
           "externalAgents": {
@@ -1265,17 +1271,48 @@
             "type": "array"
           },
           "id": {
+            "maxLength": 256,
             "type": "string"
           },
           "name": {
+            "maxLength": 256,
             "type": "string"
           },
           "retrievalParams": {
-            "additionalProperties": {
-              "nullable": true
-            },
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "number"
+              },
+              {
+                "type": "boolean"
+              },
+              {
+                "nullable": true
+              },
+              {
+                "additionalProperties": {
+                  "nullable": true
+                },
+                "type": "object"
+              },
+              {
+                "items": {
+                  "nullable": true
+                },
+                "type": "array"
+              },
+              {
+                "nullable": true
+              }
+            ]
+          },
+          "toolId": {
+            "maxLength": 256,
             "nullable": true,
-            "type": "object"
+            "type": "string"
           },
           "tools": {
             "items": {
@@ -1350,6 +1387,10 @@
                   "nullable": true,
                   "type": "string"
                 },
+                "credentialScope": {
+                  "maxLength": 50,
+                  "type": "string"
+                },
                 "description": {
                   "nullable": true,
                   "type": "string"
@@ -1421,6 +1462,7 @@
                 "description",
                 "config",
                 "credentialReferenceId",
+                "credentialScope",
                 "headers",
                 "imageUrl",
                 "capabilities",
@@ -1438,14 +1480,35 @@
           },
           "updatedAt": {
             "type": "string"
+          },
+          "userId": {
+            "maxLength": 256,
+            "nullable": true,
+            "type": "string"
           }
         },
-        "required": ["id", "name", "type", "credentialStoreId", "createdAt", "updatedAt"],
+        "required": [
+          "id",
+          "name",
+          "type",
+          "credentialStoreId",
+          "retrievalParams",
+          "toolId",
+          "userId",
+          "createdBy",
+          "createdAt",
+          "updatedAt"
+        ],
         "type": "object"
       },
       "CredentialReferenceCreate": {
         "properties": {
           "createdAt": {
+            "type": "string"
+          },
+          "createdBy": {
+            "maxLength": 256,
+            "nullable": true,
             "type": "string"
           },
           "credentialStoreId": {
@@ -1475,11 +1538,21 @@
             "nullable": true,
             "type": "object"
           },
+          "toolId": {
+            "maxLength": 256,
+            "nullable": true,
+            "type": "string"
+          },
           "type": {
             "enum": ["memory", "keychain", "nango"],
             "type": "string"
           },
           "updatedAt": {
+            "type": "string"
+          },
+          "userId": {
+            "maxLength": 256,
+            "nullable": true,
             "type": "string"
           }
         },
@@ -1515,6 +1588,11 @@
           "createdAt": {
             "type": "string"
           },
+          "createdBy": {
+            "maxLength": 256,
+            "nullable": true,
+            "type": "string"
+          },
           "credentialStoreId": {
             "description": "Resource identifier",
             "example": "resource_789",
@@ -1542,11 +1620,21 @@
             "nullable": true,
             "type": "object"
           },
+          "toolId": {
+            "maxLength": 256,
+            "nullable": true,
+            "type": "string"
+          },
           "type": {
             "enum": ["memory", "keychain", "nango"],
             "type": "string"
           },
           "updatedAt": {
+            "type": "string"
+          },
+          "userId": {
+            "maxLength": 256,
+            "nullable": true,
             "type": "string"
           }
         },
@@ -2861,9 +2949,16 @@
           "createdAt": {
             "type": "string"
           },
+          "createdBy": {
+            "type": "string"
+          },
           "credentialReferenceId": {
             "maxLength": 256,
             "nullable": true,
+            "type": "string"
+          },
+          "credentialScope": {
+            "maxLength": 50,
             "type": "string"
           },
           "description": {
@@ -4688,6 +4783,10 @@
             "nullable": true,
             "type": "string"
           },
+          "credentialScope": {
+            "maxLength": 50,
+            "type": "string"
+          },
           "description": {
             "nullable": true,
             "type": "string"
@@ -4849,6 +4948,10 @@
           "credentialReferenceId": {
             "maxLength": 256,
             "nullable": true,
+            "type": "string"
+          },
+          "credentialScope": {
+            "maxLength": 50,
             "type": "string"
           },
           "description": {
@@ -17386,6 +17489,119 @@
           }
         },
         "summary": "Update Tool",
+        "tags": ["Tools"]
+      }
+    },
+    "/tenants/{tenantId}/projects/{projectId}/tools/{id}/user-credential": {
+      "get": {
+        "operationId": "get-user-credential-for-tool",
+        "parameters": [
+          {
+            "description": "Tenant identifier",
+            "in": "path",
+            "name": "tenantId",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/TenantIdPathParam"
+            }
+          },
+          {
+            "description": "Project identifier",
+            "in": "path",
+            "name": "projectId",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/ProjectIdPathParam"
+            }
+          },
+          {
+            "description": "Resource identifier",
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "description": "Resource identifier",
+              "example": "resource_789",
+              "maxLength": 255,
+              "minLength": 1,
+              "pattern": "^[a-zA-Z0-9\\-_.]+$",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CredentialReferenceResponse"
+                }
+              }
+            },
+            "description": "User credential retrieved successfully"
+          },
+          "400": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BadRequest"
+                }
+              }
+            },
+            "description": "Bad Request"
+          },
+          "401": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Unauthorized"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "403": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Forbidden"
+                }
+              }
+            },
+            "description": "Forbidden"
+          },
+          "404": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NotFound"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "422": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UnprocessableEntity"
+                }
+              }
+            },
+            "description": "Unprocessable Entity"
+          },
+          "500": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InternalServerError"
+                }
+              }
+            },
+            "description": "Internal Server Error"
+          }
+        },
+        "summary": "Get User Credential for Tool",
         "tags": ["Tools"]
       }
     }
