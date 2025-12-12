@@ -9,7 +9,7 @@
     "start": "next start"
   },
   "devDependencies": {
-    "next": "16.0.9"
+    "next": "16.0.10"
   },
   "engines": {
     "node": ">=22.18.0"
