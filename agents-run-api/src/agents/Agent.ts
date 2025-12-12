@@ -419,6 +419,35 @@ export class Agent {
   }
 
   /**
+   * Simple compression fallback: drop oldest messages to fit under token limit
+   */
+  private simpleCompression(messages: any[], targetTokens: number): any[] {
+    if (messages.length === 0) return messages;
+
+    const estimateTokens = (msg: any) => {
+      const content = typeof msg.content === 'string' ? msg.content : JSON.stringify(msg.content);
+      return Math.ceil(content.length / 4);
+    };
+
+    let totalTokens = messages.reduce((sum, msg) => sum + estimateTokens(msg), 0);
+    
+    if (totalTokens <= targetTokens) {
+      return messages; // Already under limit
+    }
+
+    // Keep dropping messages from the beginning until we're under the limit
+    const result = [...messages];
+    while (totalTokens > targetTokens && result.length > 1) {
+      const dropped = result.shift();
+      if (dropped) {
+        totalTokens -= estimateTokens(dropped);
+      }
+    }
+
+    return result;
+  }
+
+  /**
    * Set delegation status for this agent instance
    */
   setDelegationStatus(isDelegated: boolean) {
@@ -2385,9 +2414,27 @@ Now please provide your answer to my original question using this context.`,
                         error: error instanceof Error ? error.message : String(error),
                         stack: error instanceof Error ? error.stack : undefined,
                       },
-                      'Compression failed, continuing without compression'
+                      'Smart compression failed, falling back to simple compression'
                     );
-                    return {};
+                    
+                    // Fallback: simple compression by dropping oldest messages
+                    try {
+                      const targetSize = Math.floor(compressor.getHardLimit() * 0.5); // Use 50% of limit as target
+                      const fallbackMessages = this.simpleCompression(stepMessages, targetSize);
+                      
+                      logger.info({
+                        originalCount: stepMessages.length,
+                        compressedCount: fallbackMessages.length,
+                        compressionType: 'simple_fallback'
+                      }, 'Simple compression fallback completed');
+                      
+                      return { messages: fallbackMessages };
+                    } catch (fallbackError) {
+                      logger.error({
+                        error: fallbackError instanceof Error ? fallbackError.message : String(fallbackError)
+                      }, 'Fallback compression also failed, continuing without compression');
+                      return {};
+                    }
                   }
                 }
 
@@ -2619,9 +2666,27 @@ Now please provide your answer to my original question using this context.`,
                         error: error instanceof Error ? error.message : String(error),
                         stack: error instanceof Error ? error.stack : undefined,
                       },
-                      'Compression failed, continuing without compression'
+                      'Smart compression failed, falling back to simple compression'
                     );
-                    return {};
+                    
+                    // Fallback: simple compression by dropping oldest messages
+                    try {
+                      const targetSize = Math.floor(compressor.getHardLimit() * 0.5); // Use 50% of limit as target
+                      const fallbackMessages = this.simpleCompression(stepMessages, targetSize);
+                      
+                      logger.info({
+                        originalCount: stepMessages.length,
+                        compressedCount: fallbackMessages.length,
+                        compressionType: 'simple_fallback'
+                      }, 'Simple compression fallback completed');
+                      
+                      return { messages: fallbackMessages };
+                    } catch (fallbackError) {
+                      logger.error({
+                        error: fallbackError instanceof Error ? fallbackError.message : String(fallbackError)
+                      }, 'Fallback compression also failed, continuing without compression');
+                      return {};
+                    }
                   }
                 }
 
@@ -3055,8 +3120,14 @@ ${output}${structureHintsFormatted}`;
             });
           }
 
+          // Clear compressor reference to prevent memory leaks
+          this.currentCompressor = null;
+          
           return formattedResponse;
         } catch (error) {
+          // Clear compressor reference to prevent memory leaks
+          this.currentCompressor = null;
+          
           // Don't clean up ToolSession on error - let ToolSessionManager handle cleanup
           const errorToThrow = error instanceof Error ? error : new Error(String(error));
           setSpanWithError(span, errorToThrow);

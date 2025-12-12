@@ -1,3 +1,4 @@
+import { randomUUID } from 'crypto';
 import type { ModelSettings } from '@inkeep/agents-core';
 import { getLogger } from '../logger';
 import { distillConversation } from '../tools/distill-conversation-tool';
@@ -41,6 +42,13 @@ export class MidGenerationCompressor {
     private summarizerModel?: ModelSettings,
     private baseModel?: ModelSettings
   ) {}
+
+  /**
+   * Get the hard limit for compression decisions
+   */
+  getHardLimit(): number {
+    return this.config.hardLimit;
+  }
 
   /**
    * Estimate tokens (4 chars = 1 token)
@@ -232,7 +240,7 @@ export class MidGenerationCompressor {
               );
               continue;
             }
-            const artifactId = `compress_${block.toolName || 'tool'}_${block.toolCallId || Date.now()}_${Math.random().toString(36).slice(2, 7)}`;
+            const artifactId = `compress_${block.toolName || 'tool'}_${block.toolCallId || Date.now()}_${randomUUID().slice(0, 8)}`;
 
             logger.debug(
               {
