@@ -178,7 +178,7 @@ export const CodeDiff: FC<CodeDiffProps> = ({
     <div
       className={cn(
         'w-full',
-        'rounded-md relative dark:bg-input/30 transition-colors',
+        'rounded-md relative dark:bg-input/30 transition-colors text-foreground',
         'border border-input shadow-xs',
         className,
         !monaco && 'px-3 py-4',
