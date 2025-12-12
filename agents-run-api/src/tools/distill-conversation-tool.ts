@@ -14,20 +14,39 @@ export const ConversationSummarySchema = z.object({
   session_id: z.string().nullable().optional(),
   high_level: z.string().describe('1-3 sentences capturing what was discovered and learned'),
   user_intent: z.string().describe('Current main goal or what the user wants to accomplish'),
-  decisions: z.array(z.string()).describe('Concrete decisions made about approach or implementation (≤5 items)'),
-  open_questions: z.array(z.string()).describe('Unresolved questions about the subject matter (≤5 items)'),
+  decisions: z
+    .array(z.string())
+    .describe('Concrete decisions made about approach or implementation (≤5 items)'),
+  open_questions: z
+    .array(z.string())
+    .describe('Unresolved questions about the subject matter (≤5 items)'),
   next_steps: z.object({
-    for_agent: z.array(z.string()).describe('Content-focused actions: what to discover, analyze, or present. Don\'t get trapped in an infinite loop of tool calls. You have already done a lot of work that is why you are being compressed. Don\'t encourage too much more work.'),
+    for_agent: z
+      .array(z.string())
+      .describe(
+        "Content-focused actions: what to discover, analyze, or present. Don't get trapped in an infinite loop of tool calls. You have already done a lot of work that is why you are being compressed. Don't encourage too much more work."
+      ),
     for_user: z.array(z.string()).describe('Actions for user based on discovered content'),
   }),
-  related_artifacts: z.array(z.object({
-    id: z.string().describe('Artifact ID'),
-    name: z.string().describe('Human-readable name describing the content'),
-    tool_name: z.string().describe('Tool that generated this artifact (e.g. search-inkeep-docs)'),
-    tool_call_id: z.string().describe('Specific tool call ID for precise referencing'),
-    content_type: z.string().describe('Type of content (e.g. search_results, api_response, documentation)'),
-    key_findings: z.array(z.string()).describe('2-3 most important findings from this specific artifact')
-  })).optional().describe('Artifacts containing detailed findings with citation info'),
+  related_artifacts: z
+    .array(
+      z.object({
+        id: z.string().describe('Artifact ID'),
+        name: z.string().describe('Human-readable name describing the content'),
+        tool_name: z
+          .string()
+          .describe('Tool that generated this artifact (e.g. search-inkeep-docs)'),
+        tool_call_id: z.string().describe('Specific tool call ID for precise referencing'),
+        content_type: z
+          .string()
+          .describe('Type of content (e.g. search_results, api_response, documentation)'),
+        key_findings: z
+          .array(z.string())
+          .describe('2-3 most important findings from this specific artifact'),
+      })
+    )
+    .optional()
+    .describe('Artifacts containing detailed findings with citation info'),
 });
 
 export type ConversationSummary = z.infer<typeof ConversationSummarySchema>;
@@ -42,7 +61,8 @@ export async function distillConversation(params: {
   summarizerModel?: ModelSettings;
   toolCallToArtifactMap?: Record<string, string>;
 }): Promise<ConversationSummary> {
-  const { messages, conversationId, currentSummary, summarizerModel, toolCallToArtifactMap } = params;
+  const { messages, conversationId, currentSummary, summarizerModel, toolCallToArtifactMap } =
+    params;
 
   try {
     // Choose model (prefer summarizer, fallback to base)
@@ -62,7 +82,7 @@ export async function distillConversation(params: {
     const formattedMessages = messages
       .map((msg: any) => {
         const parts: string[] = [];
-        
+
         if (typeof msg.content === 'string') {
           parts.push(msg.content);
         } else if (Array.isArray(msg.content)) {
@@ -71,28 +91,37 @@ export async function distillConversation(params: {
             if (block.type === 'text') {
               parts.push(block.text);
             } else if (block.type === 'tool-call') {
-              parts.push(`[TOOL CALL] ${block.toolName}(${JSON.stringify(block.input)}) [ID: ${block.toolCallId}]`);
+              parts.push(
+                `[TOOL CALL] ${block.toolName}(${JSON.stringify(block.input)}) [ID: ${block.toolCallId}]`
+              );
             } else if (block.type === 'tool-result') {
               const artifactId = toolCallToArtifactMap?.[block.toolCallId];
               const artifactInfo = artifactId ? `\n[ARTIFACT CREATED: ${artifactId}]` : '';
-              parts.push(`[TOOL RESULT] ${block.toolName} [ID: ${block.toolCallId}]${artifactInfo}\nResult: ${JSON.stringify(block.result)}`);
+              parts.push(
+                `[TOOL RESULT] ${block.toolName} [ID: ${block.toolCallId}]${artifactInfo}\nResult: ${JSON.stringify(block.result)}`
+              );
             }
           }
         } else if (msg.content?.text) {
           parts.push(msg.content.text);
         }
-        
+
         return parts.length > 0 ? `${msg.role || 'system'}: ${parts.join('\n')}` : '';
       })
-      .filter(line => line.trim().length > 0) // Remove empty lines
+      .filter((line) => line.trim().length > 0) // Remove empty lines
       .join('\n\n');
 
-    logger.debug({
-      conversationId,
-      messageCount: messages.length,
-      formattedLength: formattedMessages.length,
-      sampleMessages: messages.slice(0, 2).map(m => ({ role: m.role, contentType: typeof m.content, hasContent: !!m.content }))
-    }, 'Formatting messages for distillation');
+    logger.debug(
+      {
+        conversationId,
+        messageCount: messages.length,
+        formattedLength: formattedMessages.length,
+        sampleMessages: messages
+          .slice(0, 2)
+          .map((m) => ({ role: m.role, contentType: typeof m.content, hasContent: !!m.content })),
+      },
+      'Formatting messages for distillation'
+    );
 
     const prompt = `You are a conversation summarization assistant. Your job is to create or update a compact, structured summary that captures VALUABLE CONTENT and FINDINGS, not just operational details.
 
@@ -197,5 +226,3 @@ Return **only** valid JSON.`;
     };
   }
 }
-
-

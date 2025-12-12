@@ -1413,7 +1413,7 @@ ${this.statusUpdateState?.config.prompt?.trim() || ''}`;
                 scopes: { tenantId: artifactData.tenantId, projectId: artifactData.projectId },
                 taskId: artifactData.taskId,
               });
-              existingNames = existingArtifacts.map(a => a.name).filter(Boolean) as string[];
+              existingNames = existingArtifacts.map((a) => a.name).filter(Boolean) as string[];
             }
           } catch (error) {
             logger.warn(
@@ -1428,7 +1428,7 @@ ${this.statusUpdateState?.config.prompt?.trim() || ''}`;
 
           const toolName = artifactData.metadata?.toolName || 'unknown';
           const toolCallId = artifactData.metadata?.toolCallId || 'unknown';
-          
+
           const prompt = `Create a unique name and description for this tool result artifact.
 
 CRITICAL: Your name must be different from these existing artifacts: ${existingNames.length > 0 ? existingNames.join(', ') : 'None yet'}
@@ -1517,7 +1517,8 @@ Make the name extremely specific to what this tool call actually returned, not g
           let result: { name: string; description: string };
           if (!modelToUse) {
             // Fallback: include toolCallId for guaranteed uniqueness
-            const toolCallSuffix = artifactData.metadata?.toolCallId?.slice(-8) || Date.now().toString().slice(-8);
+            const toolCallSuffix =
+              artifactData.metadata?.toolCallId?.slice(-8) || Date.now().toString().slice(-8);
             result = {
               name: `${artifactData.artifactType || 'Artifact'} ${toolCallSuffix}`,
               description: `${artifactData.artifactType || 'Data'} from ${artifactData.metadata?.toolName || 'tool'} (${artifactData.metadata?.toolCallId || 'tool results'})`,
@@ -1630,10 +1631,11 @@ Make the name extremely specific to what this tool call actually returned, not g
           if (existingNames.includes(result.name)) {
             const toolCallSuffix = toolCallId.slice(-8);
             const originalName = result.name;
-            result.name = result.name.length + toolCallSuffix.length + 1 <= 50 
-              ? `${result.name} ${toolCallSuffix}`
-              : `${result.name.substring(0, 50 - toolCallSuffix.length - 1)} ${toolCallSuffix}`;
-            
+            result.name =
+              result.name.length + toolCallSuffix.length + 1 <= 50
+                ? `${result.name} ${toolCallSuffix}`
+                : `${result.name.substring(0, 50 - toolCallSuffix.length - 1)} ${toolCallSuffix}`;
+
             logger.info(
               {
                 sessionId: this.sessionId,
@@ -1732,7 +1734,8 @@ Make the name extremely specific to what this tool call actually returned, not g
                     error: fallbackError instanceof Error ? fallbackError.message : 'Unknown error',
                     errorName: fallbackError instanceof Error ? fallbackError.name : undefined,
                     errorCause: fallbackError instanceof Error ? fallbackError.cause : undefined,
-                    errorCode: (fallbackError as any)?.code || (fallbackError as any)?.errno || undefined,
+                    errorCode:
+                      (fallbackError as any)?.code || (fallbackError as any)?.errno || undefined,
                     artifactType: artifactData.artifactType,
                     dataKeys: artifactData.data ? Object.keys(artifactData.data) : [],
                     metadataKeys: artifactData.metadata ? Object.keys(artifactData.metadata) : [],

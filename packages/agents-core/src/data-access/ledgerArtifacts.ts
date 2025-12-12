@@ -183,14 +183,14 @@ export const upsertLedgerArtifact =
           return { created: false, existing: existing[0] };
         }
       }
-      
+
       // Create a cleaner error message without exposing massive artifact data
       const sanitizedError = new Error(
         `Failed to insert artifact ${artifactRow.id}: ${error.message?.split('\nparams:')[0] || error.message}`
       );
       sanitizedError.name = error.name;
       sanitizedError.cause = error.code || error.errno;
-      
+
       // TEMPORARY DEBUG: Log full error for debugging compression artifacts
       if (artifactRow.id?.includes('compress_')) {
         console.error('COMPRESSION ARTIFACT FULL ERROR:', {
@@ -202,7 +202,7 @@ export const upsertLedgerArtifact =
           fullError: error,
         });
       }
-      
+
       throw sanitizedError;
     }
   };
@@ -294,13 +294,15 @@ export const addLedgerArtifacts =
     );
     sanitizedError.name = lastError?.name;
     sanitizedError.cause = lastError?.code || lastError?.errno;
-    
+
     // TEMPORARY DEBUG: Log full error for debugging compression artifacts
-    const hasCompressionArtifacts = rows.some(row => row.id?.includes('compress_'));
+    const hasCompressionArtifacts = rows.some((row) => row.id?.includes('compress_'));
     if (hasCompressionArtifacts) {
       console.error('COMPRESSION ARTIFACTS BULK INSERT FULL ERROR:', {
         artifactCount: rows.length,
-        compressionArtifacts: rows.filter(row => row.id?.includes('compress_')).map(row => row.id),
+        compressionArtifacts: rows
+          .filter((row) => row.id?.includes('compress_'))
+          .map((row) => row.id),
         errorMessage: lastError?.message,
         errorCode: lastError?.code,
         errorName: lastError?.name,
@@ -308,7 +310,7 @@ export const addLedgerArtifacts =
         fullError: lastError,
       });
     }
-    
+
     throw sanitizedError;
   };
 

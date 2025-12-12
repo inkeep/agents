@@ -64,17 +64,21 @@ export class MidGenerationCompressor {
           if (block.type === 'text') {
             msgTokens += this.estimateTokens(block.text || '');
           } else if (block.type === 'tool-call') {
-            msgTokens += this.estimateTokens(JSON.stringify({
-              toolCallId: block.toolCallId,
-              toolName: block.toolName,
-              input: block.input
-            }));
+            msgTokens += this.estimateTokens(
+              JSON.stringify({
+                toolCallId: block.toolCallId,
+                toolName: block.toolName,
+                input: block.input,
+              })
+            );
           } else if (block.type === 'tool-result') {
-            msgTokens += this.estimateTokens(JSON.stringify({
-              toolCallId: block.toolCallId,
-              toolName: block.toolName,
-              output: block.output
-            }));
+            msgTokens += this.estimateTokens(
+              JSON.stringify({
+                toolCallId: block.toolCallId,
+                toolName: block.toolName,
+                output: block.output,
+              })
+            );
           }
         }
       } else if (typeof msg.content === 'string') {
@@ -121,20 +125,21 @@ export class MidGenerationCompressor {
   /**
    * Perform compression: save all tool results as artifacts and create summary
    */
-  async compress(
-    messages: any[],
-  ): Promise<{
+  async compress(messages: any[]): Promise<{
     artifactIds: string[];
     summary: any;
   }> {
     const contextSizeBefore = this.calculateContextSize(messages);
-    
-    logger.info({ 
-      sessionId: this.sessionId, 
-      messageCount: messages.length,
-      contextSize: contextSizeBefore
-    }, 'COMPRESSION: Starting compression');
-    
+
+    logger.info(
+      {
+        sessionId: this.sessionId,
+        messageCount: messages.length,
+        contextSize: contextSizeBefore,
+      },
+      'COMPRESSION: Starting compression'
+    );
+
     // Count tool results to be saved
     const toolResultCount = messages.reduce((count, msg) => {
       if (Array.isArray(msg.content)) {
@@ -142,17 +147,14 @@ export class MidGenerationCompressor {
       }
       return count;
     }, 0);
-    
+
     logger.debug({ toolResultCount }, 'Tool results found for compression');
-    
+
     // 1. Save tool results as artifacts
     const toolCallToArtifactMap = await this.saveToolResultsAsArtifacts(messages);
 
     // 3. Create conversation summary
-    const summary = await this.createConversationSummary(
-      messages,
-      toolCallToArtifactMap,
-    );
+    const summary = await this.createConversationSummary(messages, toolCallToArtifactMap);
 
     // Calculate context size after compression (just the summary)
     const contextSizeAfter = this.estimateTokens(JSON.stringify(summary));
@@ -162,14 +164,14 @@ export class MidGenerationCompressor {
     if (session) {
       // Determine if this was a manual request (shouldCompress was set) or automatic (context limit)
       const wasManualRequest = this.shouldCompress;
-      
+
       session.recordEvent('compression', this.sessionId, {
         reason: wasManualRequest ? 'manual' : 'automatic',
         messageCount: messages.length,
         artifactCount: Object.keys(toolCallToArtifactMap).length,
         contextSizeBefore,
         contextSizeAfter,
-        compressionType: 'mid_generation'
+        compressionType: 'mid_generation',
       });
     }
 
@@ -183,7 +185,7 @@ export class MidGenerationCompressor {
         messageCount: messages.length,
         contextSizeBefore,
         contextSizeAfter,
-        artifactIds: Object.values(toolCallToArtifactMap)
+        artifactIds: Object.values(toolCallToArtifactMap),
       },
       'COMPRESSION: Compression completed successfully'
     );
@@ -204,34 +206,42 @@ export class MidGenerationCompressor {
 
     // Only process messages that haven't been processed yet
     const newMessages = messages.slice(this.lastProcessedMessageIndex);
-    
-    logger.debug({ 
-      totalMessages: messages.length,
-      newMessages: newMessages.length,
-      startIndex: this.lastProcessedMessageIndex
-    }, 'Starting compression artifact processing');
+
+    logger.debug(
+      {
+        totalMessages: messages.length,
+        newMessages: newMessages.length,
+        startIndex: this.lastProcessedMessageIndex,
+      },
+      'Starting compression artifact processing'
+    );
 
     for (const message of newMessages) {
-      
       // Handle Vercel AI SDK message format
       if (Array.isArray(message.content)) {
         for (const block of message.content) {
           if (block.type === 'tool-result') {
             // Skip if this tool call has already been processed
             if (this.processedToolCalls.has(block.toolCallId)) {
-              logger.debug({ 
-                toolCallId: block.toolCallId,
-                toolName: block.toolName 
-              }, 'Skipping already processed tool call');
+              logger.debug(
+                {
+                  toolCallId: block.toolCallId,
+                  toolName: block.toolName,
+                },
+                'Skipping already processed tool call'
+              );
               continue;
             }
             const artifactId = `compress_${block.toolName || 'tool'}_${block.toolCallId || Date.now()}_${Math.random().toString(36).slice(2, 7)}`;
 
-            logger.debug({ 
-              artifactId, 
-              toolName: block.toolName, 
-              toolCallId: block.toolCallId
-            }, 'Saving compression artifact');
+            logger.debug(
+              {
+                artifactId,
+                toolName: block.toolName,
+                toolCallId: block.toolCallId,
+              },
+              'Saving compression artifact'
+            );
 
             // Find corresponding tool-call for input
             let toolInput = null;
@@ -241,7 +251,7 @@ export class MidGenerationCompressor {
               );
               toolInput = toolCall?.input;
             }
-            
+
             // Clean tool result by recursively removing _structureHints before storing
             const cleanToolResult = this.removeStructureHints(block.output);
 
@@ -257,10 +267,13 @@ export class MidGenerationCompressor {
 
             // Skip artifact creation if toolResultData is empty
             if (this.isEmpty(toolResultData)) {
-              logger.debug({ 
-                toolName: block.toolName, 
-                toolCallId: block.toolCallId 
-              }, 'Skipping empty tool result');
+              logger.debug(
+                {
+                  toolName: block.toolName,
+                  toolCallId: block.toolCallId,
+                },
+                'Skipping empty tool result'
+              );
               continue;
             }
 
@@ -281,31 +294,35 @@ export class MidGenerationCompressor {
                 compressionReason: 'mid_generation_context_limit',
               },
               // Pass data in the format expected by ArtifactSavedData interface
-              summaryData: { 
+              summaryData: {
                 toolName: block.toolName,
-                note: "Compressed tool result - see full data for details" 
+                note: 'Compressed tool result - see full data for details',
               },
               data: toolResultData, // Full tool result data
             };
 
             // Double-check if artifact data contains meaningful data - use deeper validation
             const fullData = artifactData.data;
-            const hasFullData = fullData && 
-              typeof fullData === 'object' && 
+            const hasFullData =
+              fullData &&
+              typeof fullData === 'object' &&
               Object.keys(fullData).length > 0 &&
               // Check if toolResult specifically has content
-              fullData.toolResult && 
-              (typeof fullData.toolResult !== 'object' || Object.keys(fullData.toolResult).length > 0);
+              fullData.toolResult &&
+              (typeof fullData.toolResult !== 'object' ||
+                Object.keys(fullData.toolResult).length > 0);
 
             if (!hasFullData) {
-              logger.debug({ 
-                artifactId, 
-                toolName: block.toolName, 
-                toolCallId: block.toolCallId
-              }, 'Skipping empty compression artifact');
+              logger.debug(
+                {
+                  artifactId,
+                  toolName: block.toolName,
+                  toolCallId: block.toolCallId,
+                },
+                'Skipping empty compression artifact'
+              );
               continue;
             }
-
 
             // Use existing AgentSession artifact processing (includes LLM name/description generation)
             session.recordEvent('artifact_saved', this.sessionId, artifactData);
@@ -321,10 +338,13 @@ export class MidGenerationCompressor {
     // Update the pointer to track where we left off
     this.lastProcessedMessageIndex = messages.length;
 
-    logger.debug({ 
-      totalArtifactsCreated: Object.keys(toolCallToArtifactMap).length,
-      newMessageIndex: this.lastProcessedMessageIndex
-    }, 'Compression artifact processing completed');
+    logger.debug(
+      {
+        totalArtifactsCreated: Object.keys(toolCallToArtifactMap).length,
+        newMessageIndex: this.lastProcessedMessageIndex,
+      },
+      'Compression artifact processing completed'
+    );
 
     return toolCallToArtifactMap;
   }
@@ -334,22 +354,26 @@ export class MidGenerationCompressor {
    */
   private async createConversationSummary(
     messages: any[],
-    toolCallToArtifactMap: Record<string, string>,
+    toolCallToArtifactMap: Record<string, string>
   ): Promise<any> {
     // Extract text messages to preserve before the summary
     const textMessages = this.extractTextMessages(messages);
-    
-    logger.debug({
-      sessionId: this.sessionId,
-      messageCount: messages.length,
-      textMessageCount: textMessages.length,
-      artifactCount: Object.keys(toolCallToArtifactMap).length,
-      sampleMessages: messages.slice(0, 2).map(m => ({
-        role: m.role,
-        contentType: typeof m.content,
-        contentPreview: typeof m.content === 'string' ? m.content.substring(0, 100) : 'array/object'
-      }))
-    }, 'Starting distillation with debug info');
+
+    logger.debug(
+      {
+        sessionId: this.sessionId,
+        messageCount: messages.length,
+        textMessageCount: textMessages.length,
+        artifactCount: Object.keys(toolCallToArtifactMap).length,
+        sampleMessages: messages.slice(0, 2).map((m) => ({
+          role: m.role,
+          contentType: typeof m.content,
+          contentPreview:
+            typeof m.content === 'string' ? m.content.substring(0, 100) : 'array/object',
+        })),
+      },
+      'Starting distillation with debug info'
+    );
 
     const summary = await distillConversation({
       messages: messages,
@@ -362,17 +386,20 @@ export class MidGenerationCompressor {
     // Update cumulative summary for next compression cycle
     this.cumulativeSummary = summary;
 
-    logger.debug({
-      sessionId: this.sessionId,
-      summaryGenerated: !!summary,
-      summaryHighLevel: summary?.high_level,
-      artifactsCount: summary?.related_artifacts?.length || 0
-    }, 'Distillation completed');
+    logger.debug(
+      {
+        sessionId: this.sessionId,
+        summaryGenerated: !!summary,
+        summaryHighLevel: summary?.high_level,
+        artifactsCount: summary?.related_artifacts?.length || 0,
+      },
+      'Distillation completed'
+    );
 
     // Return structure: text messages first, then summary
     return {
       text_messages: textMessages,
-      summary: summary
+      summary: summary,
     };
   }
 
@@ -387,7 +414,7 @@ export class MidGenerationCompressor {
       if (message.role === 'assistant' && typeof message.content === 'string') {
         textMessages.push({
           role: message.role,
-          content: message.content
+          content: message.content,
         });
       }
       // Handle assistant messages with text content blocks
@@ -396,7 +423,7 @@ export class MidGenerationCompressor {
         if (textBlocks.length > 0) {
           textMessages.push({
             role: message.role,
-            content: textBlocks.map((block: any) => block.text).join('\n')
+            content: textBlocks.map((block: any) => block.text).join('\n'),
           });
         }
       }
@@ -427,9 +454,9 @@ export class MidGenerationCompressor {
       if (keys.length === 0) {
         return true;
       }
-      
+
       // Check if all values are empty/null/undefined
-      return keys.every(key => {
+      return keys.every((key) => {
         const value = toolResult[key];
         if (value === null || value === undefined || value === '') {
           return true;
@@ -466,7 +493,7 @@ export class MidGenerationCompressor {
     }
 
     if (Array.isArray(obj)) {
-      return obj.map(item => this.removeStructureHints(item));
+      return obj.map((item) => this.removeStructureHints(item));
     }
 
     if (typeof obj === 'object') {

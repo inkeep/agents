@@ -1703,18 +1703,29 @@ export class Agent {
     }
 
     // Add manual compression tool
-    logger.info({ agentId: this.config.id, streamRequestId }, 'Adding compress_context tool to defaultTools');
+    logger.info(
+      { agentId: this.config.id, streamRequestId },
+      'Adding compress_context tool to defaultTools'
+    );
     defaultTools.compress_context = tool({
-      description: 'Manually compress the current conversation context to save space. Use when shifting topics, completing major tasks, or when context feels cluttered.',
+      description:
+        'Manually compress the current conversation context to save space. Use when shifting topics, completing major tasks, or when context feels cluttered.',
       inputSchema: z.object({
-        reason: z.string().describe('Why you are requesting compression (e.g., "shifting from research to coding", "completed analysis phase")'),
+        reason: z
+          .string()
+          .describe(
+            'Why you are requesting compression (e.g., "shifting from research to coding", "completed analysis phase")'
+          ),
       }),
       execute: async ({ reason }) => {
-        logger.info({
-          agentId: this.config.id,
-          streamRequestId,
-          reason,
-        }, 'Manual compression requested by LLM');
+        logger.info(
+          {
+            agentId: this.config.id,
+            streamRequestId,
+            reason,
+          },
+          'Manual compression requested by LLM'
+        );
 
         // Set compression flag on the current compressor instance
         if (this.currentCompressor) {
@@ -1724,7 +1735,8 @@ export class Agent {
         return {
           status: 'compression_requested',
           reason,
-          message: 'Context compression will be applied on the next generation step. Previous work has been summarized and saved as artifacts.'
+          message:
+            'Context compression will be applied on the next generation step. Previous work has been summarized and saved as artifacts.',
         };
       },
     });
@@ -2298,8 +2310,7 @@ ${output}`;
               ...streamConfig,
               messages,
               tools: sanitizedTools,
-              prepareStep: async ({ messages: stepMessages}) => {
-
+              prepareStep: async ({ messages: stepMessages }) => {
                 // Check if compression is enabled
                 if (!compressor) {
                   return {};
@@ -2307,11 +2318,14 @@ ${output}`;
 
                 // Check if compression is needed (manual or automatic)
                 const compressionNeeded = compressor.isCompressionNeeded(stepMessages);
-                
+
                 if (compressionNeeded) {
-                  logger.info({
-                    compressorState: compressor.getState(),
-                  }, 'Triggering layered mid-generation compression');
+                  logger.info(
+                    {
+                      compressorState: compressor.getState(),
+                    },
+                    'Triggering layered mid-generation compression'
+                  );
 
                   try {
                     // Split messages into original vs generated
@@ -2321,31 +2335,34 @@ ${output}`;
                     if (generatedMessages.length > 0) {
                       // Compress ONLY the generated content (tool results, intermediate steps)
                       const compressionResult = await compressor.compress(generatedMessages);
-                      
+
                       // Build final messages: original + preserved text + summary
                       const finalMessages = [...originalMessages];
 
                       // Add preserved text messages first (so they appear in natural order)
-                      if (compressionResult.summary.text_messages && compressionResult.summary.text_messages.length > 0) {
+                      if (
+                        compressionResult.summary.text_messages &&
+                        compressionResult.summary.text_messages.length > 0
+                      ) {
                         finalMessages.push(...compressionResult.summary.text_messages);
                       }
-                      
+
                       // Add compressed summary message last (provides context for artifacts)
                       const summaryMessage = JSON.stringify({
-                          high_level: compressionResult.summary?.summary?.high_level,
-                          user_intent: compressionResult.summary?.summary?.user_intent,
-                          decisions: compressionResult.summary?.summary?.decisions,
-                          open_questions: compressionResult.summary?.summary?.open_questions,
-                          next_steps: compressionResult.summary?.summary?.next_steps,
-                          related_artifacts: compressionResult?.summary?.summary?.related_artifacts
-                        });
-                        finalMessages.push({
-                          role: 'user',
-                          content: `Based on your research, here's what you've discovered: ${summaryMessage}
+                        high_level: compressionResult.summary?.summary?.high_level,
+                        user_intent: compressionResult.summary?.summary?.user_intent,
+                        decisions: compressionResult.summary?.summary?.decisions,
+                        open_questions: compressionResult.summary?.summary?.open_questions,
+                        next_steps: compressionResult.summary?.summary?.next_steps,
+                        related_artifacts: compressionResult?.summary?.summary?.related_artifacts,
+                      });
+                      finalMessages.push({
+                        role: 'user',
+                        content: `Based on your research, here's what you've discovered: ${summaryMessage}
 
-Now please provide your answer to my original question using this context.`
-                        });
-  
+Now please provide your answer to my original question using this context.`,
+                      });
+
                       logger.info(
                         {
                           originalTotal: stepMessages.length,
@@ -2363,10 +2380,13 @@ Now please provide your answer to my original question using this context.`
                     // No generated messages yet, nothing to compress
                     return {};
                   } catch (error) {
-                    logger.error({ 
-                      error: error instanceof Error ? error.message : String(error),
-                      stack: error instanceof Error ? error.stack : undefined 
-                    }, 'Compression failed, continuing without compression');
+                    logger.error(
+                      {
+                        error: error instanceof Error ? error.message : String(error),
+                        stack: error instanceof Error ? error.stack : undefined,
+                      },
+                      'Compression failed, continuing without compression'
+                    );
                     return {};
                   }
                 }
@@ -2524,8 +2544,7 @@ Now please provide your answer to my original question using this context.`
               ...genConfig,
               messages,
               tools: sanitizedTools,
-              prepareStep: async ({ messages: stepMessages}) => {
-
+              prepareStep: async ({ messages: stepMessages }) => {
                 // Check if compression is enabled
                 if (!compressor) {
                   return {};
@@ -2533,7 +2552,7 @@ Now please provide your answer to my original question using this context.`
 
                 // Check if compression is needed (manual or automatic)
                 const compressionNeeded = compressor.isCompressionNeeded(stepMessages);
-                
+
                 if (compressionNeeded) {
                   logger.info(
                     {
@@ -2550,29 +2569,32 @@ Now please provide your answer to my original question using this context.`
                     if (generatedMessages.length > 0) {
                       // Compress ONLY the generated content (tool results, intermediate steps)
                       const compressionResult = await compressor.compress(generatedMessages);
-                      
+
                       // Build final messages: original + preserved text + summary
                       const finalMessages = [...originalMessages];
-                      
+
                       // Add preserved text messages first (so they appear in natural order)
-                      if (compressionResult.summary.text_messages && compressionResult.summary.text_messages.length > 0) {
+                      if (
+                        compressionResult.summary.text_messages &&
+                        compressionResult.summary.text_messages.length > 0
+                      ) {
                         finalMessages.push(...compressionResult.summary.text_messages);
                       }
-                      
+
                       // Add compressed summary message last (provides context for artifacts)
                       const summaryMessage = JSON.stringify({
-                          high_level: compressionResult.summary?.summary?.high_level,
-                          user_intent: compressionResult.summary?.summary?.user_intent,
-                          decisions: compressionResult.summary?.summary?.decisions,
-                          open_questions: compressionResult.summary?.summary?.open_questions,
-                          next_steps: compressionResult.summary?.summary?.next_steps,
-                          related_artifacts: compressionResult?.summary?.summary?.related_artifacts
-                        });
+                        high_level: compressionResult.summary?.summary?.high_level,
+                        user_intent: compressionResult.summary?.summary?.user_intent,
+                        decisions: compressionResult.summary?.summary?.decisions,
+                        open_questions: compressionResult.summary?.summary?.open_questions,
+                        next_steps: compressionResult.summary?.summary?.next_steps,
+                        related_artifacts: compressionResult?.summary?.summary?.related_artifacts,
+                      });
                       finalMessages.push({
                         role: 'user',
                         content: `Based on your research, here's what you've discovered: ${summaryMessage}
 
-Now please provide your answer to my original question using this context.`
+Now please provide your answer to my original question using this context.`,
                       });
 
                       logger.info(
@@ -2592,10 +2614,13 @@ Now please provide your answer to my original question using this context.`
                     // No generated messages yet, nothing to compress
                     return {};
                   } catch (error) {
-                    logger.error({ 
-                      error: error instanceof Error ? error.message : String(error),
-                      stack: error instanceof Error ? error.stack : undefined 
-                    }, 'Compression failed, continuing without compression');
+                    logger.error(
+                      {
+                        error: error instanceof Error ? error.message : String(error),
+                        stack: error instanceof Error ? error.stack : undefined,
+                      },
+                      'Compression failed, continuing without compression'
+                    );
                     return {};
                   }
                 }
@@ -2662,14 +2687,14 @@ Now please provide your answer to my original question using this context.`
 
             if (thinkingCompleteCall) {
               const reasoningFlow: any[] = [];
-              
+
               // Check if compression has occurred and use compression summary instead of detailed tool results
               const compressionSummary = this.currentCompressor?.getCompressionSummary();
-              
+
               if (compressionSummary) {
                 // Use the entire compression summary
                 const summaryContent = JSON.stringify(compressionSummary, null, 2);
-                
+
                 reasoningFlow.push({
                   role: 'assistant',
                   content: `## Research Summary (Compressed)\n\nBased on tool executions, here's the comprehensive summary:\n\n\`\`\`json\n${summaryContent}\n\`\`\`\n\nThis summary represents all tool execution results in compressed form. Full details are preserved in artifacts.`,
@@ -2843,10 +2868,16 @@ ${output}${structureHintsFormatted}`;
 
                 phase2Messages.push({ role: 'user', content: userMessage });
                 phase2Messages.push(...reasoningFlow);
-                
+
                 // Ensure the last message is not an assistant message when using output_format
-                if (reasoningFlow.length > 0 && reasoningFlow[reasoningFlow.length - 1]?.role === 'assistant') {
-                  phase2Messages.push({ role: 'user', content: 'Continue with the structured response.' });
+                if (
+                  reasoningFlow.length > 0 &&
+                  reasoningFlow[reasoningFlow.length - 1]?.role === 'assistant'
+                ) {
+                  phase2Messages.push({
+                    role: 'user',
+                    content: 'Continue with the structured response.',
+                  });
                 }
 
                 const streamResult = streamObject({
@@ -2928,10 +2959,16 @@ ${output}${structureHintsFormatted}`;
 
                 phase2Messages.push({ role: 'user', content: userMessage });
                 phase2Messages.push(...reasoningFlow);
-                
+
                 // Ensure the last message is not an assistant message when using output_format
-                if (reasoningFlow.length > 0 && reasoningFlow[reasoningFlow.length - 1]?.role === 'assistant') {
-                  phase2Messages.push({ role: 'user', content: 'Continue with the structured response.' });
+                if (
+                  reasoningFlow.length > 0 &&
+                  reasoningFlow[reasoningFlow.length - 1]?.role === 'assistant'
+                ) {
+                  phase2Messages.push({
+                    role: 'user',
+                    content: 'Continue with the structured response.',
+                  });
                 }
 
                 const structuredResponse = await generateObject(
