@@ -55,6 +55,7 @@ async function CredentialsPage({
                   id={cred.id}
                   name={cred.name}
                   createdAt={cred.createdAt}
+                  createdBy={cred.createdBy}
                   tenantId={tenantId}
                   projectId={projectId}
                 />

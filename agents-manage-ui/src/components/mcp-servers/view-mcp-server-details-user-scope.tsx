@@ -1,6 +1,6 @@
 'use client';
 
-import { AlertCircle, CheckCircle2, Lock, Pencil, User } from 'lucide-react';
+import { AlertCircle, Lock, Pencil, User } from 'lucide-react';
 import Link from 'next/link';
 import { useEffect, useState } from 'react';
 import { Badge } from '@/components/ui/badge';
@@ -18,6 +18,7 @@ import { MCPToolImage } from './mcp-tool-image';
 import {
   ActiveToolBadge,
   formatDate,
+  getStatusBadgeVariant,
   ItemLabel,
   ItemValue,
   isExpired,
@@ -67,7 +68,7 @@ export function ViewMCPServerDetailsUserScope({
 
   // Fetch third-party connect URL if needed (user-scoped)
   useEffect(() => {
-    if (isThirdPartyMCPServer && !userCredential) {
+    if (isThirdPartyMCPServer && tool.status === 'needs_auth') {
       const fetchServerDetails = async () => {
         setIsLoadingThirdParty(true);
         try {
@@ -89,9 +90,7 @@ export function ViewMCPServerDetailsUserScope({
 
       fetchServerDetails();
     }
-  }, [isThirdPartyMCPServer, userCredential, tool.config.mcp.server.url, tenantId, projectId]);
-
-  const isConnected = !!userCredential;
+  }, [isThirdPartyMCPServer, tool.config.mcp.server.url, tenantId, projectId, tool.status]);
 
   return (
     <div className="max-w-2xl mx-auto py-4 space-y-8">
@@ -135,56 +134,32 @@ export function ViewMCPServerDetailsUserScope({
           <InfoCard title="Loading...">
             <p className="text-sm text-muted-foreground">Checking your connection status...</p>
           </InfoCard>
-        ) : isConnected ? (
-          <InfoCard title="Connected">
-            <div className="space-y-3">
-              <div className="flex items-center gap-2 text-green-600 dark:text-green-400">
-                <CheckCircle2 className="w-4 h-4" />
-                <span className="text-sm font-medium">Your account is connected</span>
-              </div>
-              <p className="text-sm text-muted-foreground">
-                You have connected your personal credentials to this MCP server.
-              </p>
-              {userCredential && (
-                <div className="flex items-center gap-2">
-                  <Badge variant="code" className="flex items-center gap-2">
-                    <Lock className="w-3 h-3" />
-                    {userCredential.name}
-                  </Badge>
-                  <ExternalLink
-                    href={`/${tenantId}/projects/${projectId}/credentials/${userCredential.id}`}
-                    className="text-xs"
-                  >
-                    view credential
-                  </ExternalLink>
-                </div>
-              )}
-            </div>
-          </InfoCard>
         ) : (
-          <InfoCard title="Connect Your Account">
-            <div className="space-y-3">
-              <p className="text-sm text-muted-foreground">
-                This MCP server requires each user to connect their own account. Click below to
-                authenticate with your personal credentials.
-              </p>
-              <Button
-                size="sm"
-                onClick={() => {
-                  handleOAuthLogin({
-                    toolId: tool.id,
-                    mcpServerUrl: tool.config.mcp.server.url,
-                    toolName: tool.name,
-                    thirdPartyConnectAccountUrl: thirdPartyConnectUrl,
-                    credentialScope: 'user',
-                  });
-                }}
-                disabled={isLoadingThirdParty}
-              >
-                {isLoadingThirdParty ? 'Loading...' : 'Connect My Account'}
-              </Button>
-            </div>
-          </InfoCard>
+          tool.status === 'needs_auth' && (
+            <InfoCard title="Connect Your Account">
+              <div className="space-y-3">
+                <p className="text-sm text-muted-foreground">
+                  This MCP server requires each user to connect their own account. Click below to
+                  authenticate with your personal credentials.
+                </p>
+                <Button
+                  size="sm"
+                  onClick={() => {
+                    handleOAuthLogin({
+                      toolId: tool.id,
+                      mcpServerUrl: tool.config.mcp.server.url,
+                      toolName: tool.name,
+                      thirdPartyConnectAccountUrl: thirdPartyConnectUrl,
+                      credentialScope: 'user',
+                    });
+                  }}
+                  disabled={isLoadingThirdParty}
+                >
+                  {isLoadingThirdParty ? 'Loading...' : 'Connect My Account'}
+                </Button>
+              </div>
+            </InfoCard>
+          )
         )}
 
         {/* Status and Transport Type */}
@@ -192,15 +167,9 @@ export function ViewMCPServerDetailsUserScope({
           <div className="space-y-2">
             <ItemLabel>Your Status</ItemLabel>
             <ItemValue className="items-center">
-              {isLoadingCredential ? (
-                <Badge variant="outline">Loading...</Badge>
-              ) : isConnected ? (
-                <Badge className="uppercase" variant="success">
-                  Connected
-                </Badge>
-              ) : (
-                <Badge variant="warning">Not Connected</Badge>
-              )}
+              <Badge className="uppercase" variant={getStatusBadgeVariant(tool.status)}>
+                {tool.status === 'needs_auth' ? 'Needs Login' : tool.status}
+              </Badge>
             </ItemValue>
           </div>
           {(tool.config as any).mcp.transport && (
@@ -249,7 +218,7 @@ export function ViewMCPServerDetailsUserScope({
         </div>
 
         {/* User Credential Details */}
-        {isConnected && userCredential && (
+        {userCredential && (
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="space-y-2">
               <ItemLabel>Your Credential</ItemLabel>
@@ -257,7 +226,7 @@ export function ViewMCPServerDetailsUserScope({
                 <div className="flex items-center gap-2">
                   <Badge variant="code" className="flex items-center gap-2">
                     <Lock className="w-4 h-4" />
-                    {userCredential.id}
+                    {userCredential.name}
                   </Badge>
                   <ExternalLink
                     href={`/${tenantId}/projects/${projectId}/credentials/${userCredential.id}`}
@@ -268,15 +237,13 @@ export function ViewMCPServerDetailsUserScope({
                 </div>
               </ItemValue>
             </div>
-            {userCredential.createdAt && (
+            {tool.expiresAt && (
               <div className="space-y-2">
                 <div className="flex items-center gap-2">
-                  <ItemLabel>Connected At</ItemLabel>
-                  {isExpired(userCredential.createdAt) && (
-                    <AlertCircle className="h-4 w-4 text-amber-500" />
-                  )}
+                  <ItemLabel>Credential Expires At</ItemLabel>
+                  {isExpired(tool.expiresAt) && <AlertCircle className="h-4 w-4 text-amber-500" />}
                 </div>
-                <ItemValue>{formatDate(userCredential.createdAt)}</ItemValue>
+                <ItemValue>{formatDate(tool.expiresAt)}</ItemValue>
               </div>
             )}
           </div>

@@ -96,12 +96,14 @@ export function MCPNode(props: NodeProps & { data: MCPNodeData }) {
   const isInvertedDelegating = data.status === 'inverted-delegating';
   const isExecuting = data.status === 'executing';
   const hasErrors = data.status === 'error';
+  const needsAuth = toolData?.status === 'needs_auth';
   return (
     <BaseNode
       isSelected={selected || isDelegating}
       className={cn(
         'rounded-4xl min-w-40 min-h-13 max-w-3xs',
         hasErrors && 'ring-2 ring-red-300 border-red-300',
+        needsAuth && 'ring-2 ring-red-400 border-red-400 bg-red-50 dark:bg-red-950/30',
         isExecuting && 'node-executing',
         isInvertedDelegating && 'node-delegating-inverted'
       )}

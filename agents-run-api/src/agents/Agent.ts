@@ -992,6 +992,20 @@ export class Agent {
       };
     }
 
+    // Inject user_id for Composio servers at runtime
+    if (serverConfig.url?.toString().includes('composio.dev')) {
+      const urlObj = new URL(serverConfig.url.toString());
+      if (isUserScoped && userId) {
+        // User-scoped: use actual userId
+        urlObj.searchParams.set('user_id', userId);
+      } else {
+        // Project-scoped: use tenantId||projectId
+        const SEPARATOR = '||';
+        urlObj.searchParams.set('user_id', `${this.config.tenantId}${SEPARATOR}${this.config.projectId}`);
+      }
+      serverConfig.url = urlObj.toString();
+    }
+
     logger.info(
       {
         toolName: tool.name,

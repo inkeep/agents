@@ -185,6 +185,20 @@ const discoverToolsFromServer = async (
       }
     }
 
+    // Inject user_id for Composio servers at discovery time
+    if (serverConfig.url?.toString().includes('composio.dev')) {
+      const urlObj = new URL(serverConfig.url.toString());
+      if (tool.credentialScope === 'user' && userId) {
+        // User-scoped: use actual userId
+        urlObj.searchParams.set('user_id', userId);
+      } else {
+        // Project-scoped: use tenantId||projectId
+        const SEPARATOR = '||';
+        urlObj.searchParams.set('user_id', `${tool.tenantId}${SEPARATOR}${tool.projectId}`);
+      }
+      serverConfig.url = urlObj.toString();
+    }
+
     const client = new McpClient({
       name: tool.name,
       server: serverConfig,
@@ -294,10 +308,13 @@ export const dbResultToMcpTool = async (
   // Check third-party service status
   const isThirdPartyMCPServer = dbResult.config.mcp.server.url.includes('composio.dev');
   if (isThirdPartyMCPServer) {
+    const credentialScope = (dbResult.credentialScope as 'project' | 'user') || 'project';
     const isAuthenticated = await isThirdPartyMCPServerAuthenticated(
       dbResult.tenantId,
       dbResult.projectId,
-      mcpServerUrl
+      mcpServerUrl,
+      credentialScope,
+      userId
     );
 
     if (!isAuthenticated) {
