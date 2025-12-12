@@ -229,18 +229,20 @@ export class MidGenerationCompressor {
       if (Array.isArray(message.content)) {
         for (const block of message.content) {
           if (block.type === 'tool-result') {
-            // Handle artifact retrieval tools specially - don't create artifacts but do compress the large results
-            if (block.toolName === 'get_reference_artifact') {
+            // Skip special tools that shouldn't be compressed at all
+            if (
+              block.toolName === 'get_reference_artifact' ||
+              block.toolName === 'thinking_complete'
+            ) {
               logger.debug(
                 {
                   toolCallId: block.toolCallId,
                   toolName: block.toolName,
                 },
-                'Handling artifact retrieval tool - compressing result but not saving as artifact'
+                'Skipping special tool - not creating artifacts'
               );
-              // Mark as processed but don't create an artifact - the extractTextMessages will handle this
               this.processedToolCalls.add(block.toolCallId);
-              // Don't continue - let it be processed but without artifact creation
+              continue; // Skip entirely - don't create artifacts
             }
 
             // Skip if this tool call has already been processed
