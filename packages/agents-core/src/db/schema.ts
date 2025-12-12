@@ -38,6 +38,7 @@ export {
   ssoProvider,
   user,
   verification,
+  deviceCode,
 } from '../auth/auth-schema';
 
 const tenantScoped = {

@@ -1,6 +1,7 @@
 import { existsSync } from 'node:fs';
 import { dirname, join, resolve } from 'node:path';
 import { getLogger } from '@inkeep/agents-core';
+import { loadCredentials } from './credentials';
 import { importWithTypeScriptSupport } from './tsx-loader';
 
 const logger = getLogger('config');
@@ -182,7 +183,7 @@ export async function loadConfigFromFile(configPath?: string): Promise<InkeepCon
  * @param configPath - Optional explicit path to config file
  * @returns Normalized configuration with defaults applied
  */
-export async function loadConfig(configPath?: string): Promise<InkeepConfig> {
+export async function loadConfig(configPath?: string, production: boolean = false): Promise<InkeepConfig> {
   // IMPORTANT: URL configuration (agentsManageApiUrl, agentsRunApiUrl) is loaded ONLY from
   // the config file or CLI flags, NOT from environment variables or .env files.
   //
@@ -224,7 +225,8 @@ export async function loadConfig(configPath?: string): Promise<InkeepConfig> {
  *
  * Configuration priority:
  * 1. Config file (inkeep.config.ts or --config path/to/config.ts)
- * 2. Default values (http://localhost:3002, http://localhost:3003)
+ * 2. CLI credentials (from `inkeep login`) - for API key and tenant ID fallback
+ * 3. Default values (http://localhost:3002, http://localhost:3003)
  *
  * Note: API URLs and keys are loaded ONLY from the config file, NOT from environment
  * variables or CLI flags. This ensures explicit control over where the CLI connects.
@@ -242,18 +244,48 @@ export async function validateConfiguration(configPath?: string): Promise<Valida
   // Determine the config file that was actually used
   const actualConfigFile = configPath || findConfigFile();
 
+  // Load CLI credentials as fallback for API key and tenant ID
+  let cliCredentials: { accessToken: string; organizationId: string } | null = null;
+  try {
+    const credentials = await loadCredentials();
+    if (credentials && credentials.accessToken && credentials.organizationId) {
+      cliCredentials = {
+        accessToken: credentials.accessToken,
+        organizationId: credentials.organizationId,
+      };
+      logger.info('CLI credentials available for fallback');
+    }
+  } catch {
+    // Ignore errors loading credentials - keychain might not be available
+    logger.debug('Could not load CLI credentials');
+  }
+
+  // Use CLI credentials as fallback for API key if not specified in config
+  if (!config.agentsManageApiKey && cliCredentials) {
+    config.agentsManageApiKey = cliCredentials.accessToken;
+    logger.info('Using CLI session token as API key');
+  }
+
+  // Use CLI credentials as fallback for tenant ID if not specified in config
+  if (!config.tenantId && cliCredentials) {
+    config.tenantId = cliCredentials.organizationId;
+    logger.info('Using CLI organization ID as tenant ID');
+  }
+
   // Validate required fields
   if (!config.tenantId) {
     if (actualConfigFile) {
       throw new Error(
         `Tenant ID is missing from configuration file: ${actualConfigFile}\n` +
-          'Please ensure your config file exports a valid configuration with tenantId.'
+          'Please ensure your config file exports a valid configuration with tenantId,\n' +
+          'or run "inkeep login" to authenticate with Inkeep Cloud.'
       );
     }
     throw new Error(
       'No configuration found. Please:\n' +
-        '  1. Create "inkeep.config.ts" by running "inkeep init"\n' +
-        '  2. Or provide --config to specify a config file path'
+        '  1. Run "inkeep login" to authenticate with Inkeep Cloud\n' +
+        '  2. Or create "inkeep.config.ts" by running "inkeep init"\n' +
+        '  3. Or provide --config to specify a config file path'
     );
   }
 
@@ -273,7 +305,11 @@ export async function validateConfiguration(configPath?: string): Promise<Valida
 
   // Build sources for debugging
   const sources: any = {
-    tenantId: actualConfigFile ? `config file (${actualConfigFile})` : 'default',
+    tenantId: cliCredentials && !actualConfigFile
+      ? 'CLI login (organization ID)'
+      : actualConfigFile
+        ? `config file (${actualConfigFile})`
+        : 'default',
     agentsManageApiUrl: actualConfigFile ? `config file (${actualConfigFile})` : 'default value',
     agentsRunApiUrl: actualConfigFile ? `config file (${actualConfigFile})` : 'default value',
   };

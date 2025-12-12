@@ -59,13 +59,6 @@ export class KeyChainStore implements CredentialStore {
       // or analyzing the `keytar` module (must be loaded at runtime only).
       this.keytar = (await import(/* webpackIgnore: true */ 'keytar')).default;
       this.keytarAvailable = true;
-      this.logger.info(
-        {
-          storeId: this.id,
-          service: this.service,
-        },
-        'Keytar initialized successfully'
-      );
     } catch (error) {
       this.logger.warn(
         {

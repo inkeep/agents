@@ -16,9 +16,12 @@ import { configGetCommand, configListCommand, configSetCommand } from './command
 import { devCommand } from './commands/dev';
 import { initCommand } from './commands/init';
 import { listAgentsCommand } from './commands/list-agents';
+import { loginCommand } from './commands/login';
+import { logoutCommand } from './commands/logout';
 import { pullV3Command } from './commands/pull-v3/index';
 import { pushCommand } from './commands/push';
 import { updateCommand } from './commands/update';
+import { whoamiCommand } from './commands/whoami';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -166,6 +169,29 @@ program
   .option('--force', 'Force update even if already on latest version')
   .action(async (options) => {
     await updateCommand(options);
+  });
+
+// Authentication commands
+program
+  .command('login')
+  .description('Authenticate with Inkeep Cloud')
+  .option('--url <url>', 'Cloud URL (defaults to https://cloud.inkeep.com)')
+  .action(async (options) => {
+    await loginCommand(options);
+  });
+
+program
+  .command('logout')
+  .description('Log out of Inkeep Cloud')
+  .action(async () => {
+    await logoutCommand();
+  });
+
+program
+  .command('whoami')
+  .description('Display current authentication status')
+  .action(async () => {
+    await whoamiCommand();
   });
 
 program.parse();
