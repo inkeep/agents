@@ -10,6 +10,7 @@ import { fetchAgents } from '@/lib/api/agent-full-client';
 import { fetchApiKeys } from '@/lib/api/api-keys';
 import type { Agent } from '@/lib/types/agent-full';
 import { createLookup } from '@/lib/utils';
+import { getErrorCode } from '@/lib/utils/error-serialization';
 
 export const dynamic = 'force-dynamic';
 
@@ -32,7 +33,7 @@ async function ApiKeysPage({ params }: PageProps<'/[tenantId]/projects/[projectI
       fetchAgents(tenantId, projectId),
     ]);
   } catch (error) {
-    return <FullPageError error={error as Error} context="API keys" />;
+    return <FullPageError errorCode={getErrorCode(error)} context="API keys" />;
   }
 
   const agentLookup = createLookup(agent.data);

@@ -33,6 +33,15 @@ export const ACTIVITY_TYPES = {
 
 export type ActivityKind = (typeof ACTIVITY_TYPES)[keyof typeof ACTIVITY_TYPES];
 
+export const ACTIVITY_STATUS = {
+  SUCCESS: 'success',
+  ERROR: 'error',
+  PENDING: 'pending',
+  WARNING: 'warning',
+} as const;
+
+export type ActivityStatus = (typeof ACTIVITY_STATUS)[keyof typeof ACTIVITY_STATUS];
+
 export interface ActivityItem {
   id: string;
   type: ActivityKind;
@@ -44,7 +53,7 @@ export interface ActivityItem {
   subAgentName?: string;
   toolName?: string;
   toolResult?: string;
-  status: 'success' | 'error' | 'pending';
+  status: ActivityStatus;
   toolDescription?: string;
   result?: string;
   saveResultSaved?: boolean;
@@ -72,6 +81,8 @@ export interface ActivityItem {
   transferToSubAgentId?: string;
   toolType?: string;
   toolPurpose?: string;
+  mcpServerId?: string;
+  mcpServerName?: string;
   contextConfigId?: string;
   contextAgentId?: string;
   contextRequestKeys?: string[];
@@ -117,7 +128,7 @@ export interface ToolCall {
   toolType: string;
   timestamp: string;
   duration?: number;
-  status: 'success' | 'error' | 'pending';
+  status: ActivityStatus;
   arguments?: any;
   result?: any;
   id?: string;

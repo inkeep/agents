@@ -475,9 +475,11 @@ app.openapi(
     },
   }),
   async (c) => {
-    const { tenantId, projectId } = c.req.valid('param');
-
-    const composioServers = await fetchComposioServers(tenantId, projectId);
+    // Params validated but not needed - fetchComposioServers returns raw catalog
+    const _params = c.req.valid('param');
+    // fetchComposioServers returns raw URLs without user_id
+    // user_id is added after scope selection in getComposioUrlForScope
+    const composioServers = await fetchComposioServers();
 
     const allServers = [...PREBUILT_MCP_SERVERS, ...composioServers].sort((a, b) =>
       a.name.localeCompare(b.name)

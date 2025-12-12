@@ -8,6 +8,7 @@ import { MainContent } from '@/components/layout/main-content';
 import { PageHeader } from '@/components/layout/page-header';
 import { Button } from '@/components/ui/button';
 import { fetchExternalAgents } from '@/lib/api/external-agents';
+import { getErrorCode } from '@/lib/utils/error-serialization';
 
 const externalAgentsDescription =
   'Create external agents that can be delegated to from your internal agents.';
@@ -21,7 +22,7 @@ async function ExternalAgentsPage({
   try {
     externalAgents = await fetchExternalAgents(tenantId, projectId);
   } catch (error) {
-    return <FullPageError error={error as Error} context="External agents" />;
+    return <FullPageError errorCode={getErrorCode(error)} context="external agents" />;
   }
 
   return (

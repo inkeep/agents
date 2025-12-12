@@ -1,5 +1,7 @@
 import { createRoute, OpenAPIHono } from '@hono/zod-openapi';
 import {
+  CredentialReferenceApiSelectSchema,
+  CredentialReferenceResponse,
   commonGetErrorResponses,
   createApiError,
   createTool,
@@ -7,6 +9,7 @@ import {
   deleteTool,
   generateId,
   getToolById,
+  getUserScopedCredentialReference,
   listTools,
   type McpTool,
   McpToolListResponse,
@@ -94,6 +97,7 @@ app.openapi(
       };
     };
     const credentialStores = c.get('credentialStores');
+    const userId = c.get('userId');
 
     // Filter by status if provided
     if (status) {
@@ -105,7 +109,8 @@ app.openapi(
         data: (
           await Promise.all(
             dbResult.data.map(
-              async (tool) => await dbResultToMcpTool(tool, dbClient, credentialStores)
+              async (tool) =>
+                await dbResultToMcpTool(tool, dbClient, credentialStores, undefined, userId)
             )
           )
         ).filter((tool) => tool.status === status),
@@ -120,7 +125,8 @@ app.openapi(
       result = {
         data: await Promise.all(
           dbResult.data.map(
-            async (tool) => await dbResultToMcpTool(tool, dbClient, credentialStores)
+            async (tool) =>
+              await dbResultToMcpTool(tool, dbClient, credentialStores, undefined, userId)
           )
         ),
         pagination: dbResult.pagination,
@@ -164,9 +170,10 @@ app.openapi(
     }
 
     const credentialStores = c.get('credentialStores');
+    const userId = c.get('userId');
 
     return c.json({
-      data: await dbResultToMcpTool(tool, dbClient, credentialStores),
+      data: await dbResultToMcpTool(tool, dbClient, credentialStores, undefined, userId),
     });
   }
 );
@@ -204,6 +211,7 @@ app.openapi(
     const { tenantId, projectId } = c.req.valid('param');
     const body = c.req.valid('json');
     const credentialStores = c.get('credentialStores');
+    const userId = c.get('userId');
 
     logger.info({ body }, 'body');
 
@@ -216,13 +224,14 @@ app.openapi(
       name: body.name,
       config: body.config,
       credentialReferenceId: body.credentialReferenceId,
+      credentialScope: body.credentialScope,
       imageUrl: body.imageUrl,
       headers: body.headers,
     });
 
     return c.json(
       {
-        data: await dbResultToMcpTool(tool, dbClient, credentialStores),
+        data: await dbResultToMcpTool(tool, dbClient, credentialStores, undefined, userId),
       },
       201
     );
@@ -262,6 +271,7 @@ app.openapi(
     const { tenantId, projectId, id } = c.req.valid('param');
     const body = c.req.valid('json');
     const credentialStores = c.get('credentialStores');
+    const userId = c.get('userId');
 
     if (Object.keys(body).length === 0) {
       throw createApiError({
@@ -277,6 +287,7 @@ app.openapi(
         name: body.name,
         config: body.config,
         credentialReferenceId: body.credentialReferenceId,
+        credentialScope: body.credentialScope,
         imageUrl: body.imageUrl,
         headers: body.headers,
       },
@@ -290,8 +301,60 @@ app.openapi(
     }
 
     return c.json({
-      data: await dbResultToMcpTool(updatedTool, dbClient, credentialStores),
+      data: await dbResultToMcpTool(updatedTool, dbClient, credentialStores, undefined, userId),
     });
+  }
+);
+
+// Get user-scoped credential for a tool
+app.openapi(
+  createRoute({
+    method: 'get',
+    path: '/{id}/user-credential',
+    summary: 'Get User Credential for Tool',
+    operationId: 'get-user-credential-for-tool',
+    tags: ['Tools'],
+    request: {
+      params: TenantProjectIdParamsSchema,
+    },
+    responses: {
+      200: {
+        description: 'User credential retrieved successfully',
+        content: {
+          'application/json': {
+            schema: CredentialReferenceResponse,
+          },
+        },
+      },
+      ...commonGetErrorResponses,
+    },
+  }),
+  async (c) => {
+    const { tenantId, projectId, id: toolId } = c.req.valid('param');
+    const userId = c.get('userId');
+
+    if (!userId) {
+      throw createApiError({
+        code: 'unauthorized',
+        message: 'User ID required for user-scoped credential lookup',
+      });
+    }
+
+    const credential = await getUserScopedCredentialReference(dbClient)({
+      scopes: { tenantId, projectId },
+      toolId,
+      userId,
+    });
+
+    if (!credential) {
+      throw createApiError({
+        code: 'not_found',
+        message: 'User credential not found for this tool',
+      });
+    }
+
+    const validatedCredential = CredentialReferenceApiSelectSchema.parse(credential);
+    return c.json({ data: validatedCredential });
   }
 );
 

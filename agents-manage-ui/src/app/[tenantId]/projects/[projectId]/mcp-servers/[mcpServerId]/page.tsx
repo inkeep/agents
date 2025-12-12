@@ -1,8 +1,10 @@
 import FullPageError from '@/components/errors/full-page-error';
 import { BodyTemplate } from '@/components/layout/body-template';
 import { MainContent } from '@/components/layout/main-content';
-import { ViewMCPServerDetails } from '@/components/mcp-servers/view-mcp-server-details';
+import { ViewMCPServerDetailsProjectScope } from '@/components/mcp-servers/view-mcp-server-details-project-scope';
+import { ViewMCPServerDetailsUserScope } from '@/components/mcp-servers/view-mcp-server-details-user-scope';
 import { fetchMCPTool } from '@/lib/api/tools';
+import { getErrorCode } from '@/lib/utils/error-serialization';
 
 async function MCPPage({
   params,
@@ -15,7 +17,7 @@ async function MCPPage({
   } catch (error) {
     return (
       <FullPageError
-        error={error as Error}
+        errorCode={getErrorCode(error)}
         link={`/${tenantId}/projects/${projectId}/mcp-servers`}
         linkText="Back to MCP servers"
         context="MCP server"
@@ -37,7 +39,11 @@ async function MCPPage({
       ]}
     >
       <MainContent>
-        <ViewMCPServerDetails tool={tool} tenantId={tenantId} projectId={projectId} />
+        {tool.credentialScope === 'user' ? (
+          <ViewMCPServerDetailsUserScope tool={tool} tenantId={tenantId} projectId={projectId} />
+        ) : (
+          <ViewMCPServerDetailsProjectScope tool={tool} tenantId={tenantId} projectId={projectId} />
+        )}
       </MainContent>
     </BodyTemplate>
   );

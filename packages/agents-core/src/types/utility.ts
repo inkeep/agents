@@ -280,6 +280,10 @@ export interface ExecutionContext {
   metadata?: {
     teamDelegation?: boolean;
     originAgentId?: string;
+    initiatedBy?: {
+      type: 'user' | 'api_key';
+      id: string;
+    };
   };
 }
 

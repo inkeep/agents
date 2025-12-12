@@ -47,6 +47,8 @@ export const Playground = ({
     refreshOnce,
   } = useChatActivitiesPolling({
     conversationId,
+    tenantId,
+    projectId,
   });
 
   const handleCopyTrace = async () => {

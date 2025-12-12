@@ -266,11 +266,21 @@ export async function createProviderConnectSession({
   uniqueKey,
   displayName,
   credentials,
+  endUserId,
+  endUserEmail,
+  endUserDisplayName,
+  organizationId,
+  organizationDisplayName,
 }: {
   providerName: string;
   uniqueKey: string;
   displayName: string;
   credentials?: ApiPublicIntegrationCredentials;
+  endUserId?: string;
+  endUserEmail?: string;
+  endUserDisplayName?: string;
+  organizationId?: string;
+  organizationDisplayName?: string;
 }): Promise<string> {
   try {
     let integration: ApiPublicIntegration;
@@ -318,6 +328,11 @@ export async function createProviderConnectSession({
     try {
       const connectSession = await createNangoConnectSession({
         integrationId: integration.unique_key,
+        endUserId,
+        endUserEmail,
+        endUserDisplayName,
+        organizationId,
+        organizationDisplayName,
       });
 
       return connectSession.token;

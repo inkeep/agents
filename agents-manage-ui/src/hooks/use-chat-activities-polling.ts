@@ -3,6 +3,8 @@ import type { ConversationDetail } from '@/components/traces/timeline/types';
 
 interface UseChatActivitiesPollingOptions {
   conversationId: string;
+  tenantId: string;
+  projectId: string;
   pollingInterval?: number; // in milliseconds, defaults to 1000
 }
 
@@ -18,6 +20,8 @@ interface UseChatActivitiesPollingReturn {
 
 export const useChatActivitiesPolling = ({
   conversationId,
+  tenantId,
+  projectId,
   pollingInterval = 1000,
 }: UseChatActivitiesPollingOptions): UseChatActivitiesPollingReturn => {
   const [chatActivities, setChatActivities] = useState<ConversationDetail | null>(null);
@@ -36,9 +40,12 @@ export const useChatActivitiesPolling = ({
       abortControllerRef.current = new AbortController();
       const currentConversationId = conversationId; // Capture current ID
 
-      const response = await fetch(`/api/signoz/conversations/${currentConversationId}`, {
-        signal: abortControllerRef.current.signal,
-      });
+      const response = await fetch(
+        `/api/signoz/conversations/${currentConversationId}?tenantId=${tenantId}&projectId=${projectId}`,
+        {
+          signal: abortControllerRef.current.signal,
+        }
+      );
 
       if (!response.ok) {
         // If conversation doesn't exist yet, that's fine - just return
@@ -94,7 +101,7 @@ export const useChatActivitiesPolling = ({
       }
       throw err;
     }
-  }, [conversationId]);
+  }, [conversationId, tenantId, projectId]);
 
   // Start polling
   const startPolling = useCallback(() => {

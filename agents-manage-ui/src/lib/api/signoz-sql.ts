@@ -1,5 +1,6 @@
 import axios from 'axios';
 import axiosRetry from 'axios-retry';
+import { getManageApiUrl } from './api-config';
 
 // Configure axios retry
 axiosRetry(axios, {
@@ -29,12 +30,12 @@ export type SpanRow = {
 };
 
 /**
- * Fetch all span attributes for given trace IDs using optimized SQL query
+ * Fetch all span attributes via secure manage-api
  */
 export async function fetchAllSpanAttributes_SQL(
   conversationId: string,
-  sigNozUrl: string,
-  apiKey: string
+  tenantId: string,
+  cookieHeader: string | null
 ): Promise<
   Array<{
     spanId: string;
@@ -92,14 +93,25 @@ export async function fetchAllSpanAttributes_SQL(
   while (true) {
     const payload = JSON.parse(JSON.stringify(basePayload));
     payload.variables.offset = offset;
-    const signozEndpoint = `${sigNozUrl}/api/v4/query_range`;
+
+    // Call secure manage-api instead of SigNoz directly
+    const manageApiUrl = getManageApiUrl();
+    const endpoint = `${manageApiUrl}/tenants/${tenantId}/signoz/query`;
+
     try {
-      const response = await axios.post(signozEndpoint, payload, {
-        headers: {
-          'Content-Type': 'application/json',
-          'SIGNOZ-API-KEY': apiKey,
-        },
+      const headers: Record<string, string> = {
+        'Content-Type': 'application/json',
+      };
+
+      // Forward cookies for authentication
+      if (cookieHeader) {
+        headers.Cookie = cookieHeader;
+      }
+
+      const response = await axios.post(endpoint, payload, {
+        headers,
         timeout: 30000,
+        withCredentials: true,
       });
 
       const json = response.data;

@@ -3,10 +3,15 @@ import FullPageError from '@/components/errors/full-page-error';
 import { BodyTemplate } from '@/components/layout/body-template';
 import { MainContent } from '@/components/layout/main-content';
 import { MCPServerForm } from '@/components/mcp-servers/form/mcp-server-form';
-import type { MCPToolFormData } from '@/components/mcp-servers/form/validation';
+import {
+  type CredentialScope,
+  CredentialScopeEnum,
+  type MCPToolFormData,
+} from '@/components/mcp-servers/form/validation';
 import { type Credential, fetchCredentials } from '@/lib/api/credentials';
 import { fetchMCPTool } from '@/lib/api/tools';
 import type { MCPTool } from '@/lib/types/tools';
+import { getErrorCode } from '@/lib/utils/error-serialization';
 
 async function EditMCPPage({
   params,
@@ -27,7 +32,7 @@ async function EditMCPPage({
     console.error('Failed to load MCP tool:', mcpToolResult.reason);
     return (
       <FullPageError
-        error={mcpToolResult.reason as Error}
+        errorCode={getErrorCode(mcpToolResult.reason)}
         link={`/${tenantId}/projects/${projectId}/mcp-servers`}
         linkText="Back to MCP servers"
         context="MCP server"
@@ -71,6 +76,7 @@ async function EditMCPPage({
       },
     },
     credentialReferenceId: mcpTool.credentialReferenceId || 'none',
+    credentialScope: (mcpTool.credentialScope as CredentialScope) ?? CredentialScopeEnum.project,
     imageUrl: mcpTool.imageUrl?.trim() || undefined,
   };
 

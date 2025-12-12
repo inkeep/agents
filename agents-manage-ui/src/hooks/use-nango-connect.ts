@@ -3,7 +3,9 @@
 import Nango, { type AuthOptions, type AuthSuccess, type OnConnectEvent } from '@nangohq/frontend';
 import { useCallback } from 'react';
 import { useRuntimeConfig } from '@/contexts/runtime-config-context';
+import { useAuthClient } from '@/lib/auth-client';
 import { createProviderConnectSession } from '@/lib/mcp-tools/nango';
+import { useAuthSession } from './use-auth';
 
 type OpenNangoConnectOptions = {
   sessionToken: string;
@@ -20,6 +22,10 @@ type NangoConnectInstance = {
 
 export function useNangoConnect() {
   const { PUBLIC_NANGO_SERVER_URL, PUBLIC_NANGO_CONNECT_BASE_URL } = useRuntimeConfig();
+
+  const { user } = useAuthSession();
+
+  const authClient = useAuthClient();
 
   const openNangoConnect = useCallback(
     ({ sessionToken, onEvent, connectOptions }: OpenNangoConnectOptions): NangoConnectInstance => {
@@ -52,10 +58,18 @@ export function useNangoConnect() {
       providerDisplayName: string;
     }): Promise<AuthSuccess> => {
       const providerName = 'mcp-generic';
+
+      const { data: organizationData } = await authClient.organization.getFullOrganization();
+
       const connectSessionToken = await createProviderConnectSession({
         providerName,
         uniqueKey: providerUniqueKey,
         displayName: providerDisplayName,
+        endUserId: user?.id,
+        endUserEmail: user?.email,
+        endUserDisplayName: user?.name,
+        organizationId: organizationData?.id,
+        organizationDisplayName: organizationData?.name,
       });
 
       const nango = new Nango({
@@ -81,7 +95,7 @@ export function useNangoConnect() {
         throw error;
       }
     },
-    [PUBLIC_NANGO_SERVER_URL]
+    [PUBLIC_NANGO_SERVER_URL, user?.id, user?.email, user?.name, authClient]
   );
 
   return {
