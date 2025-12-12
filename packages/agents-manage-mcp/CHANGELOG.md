@@ -1,5 +1,14 @@
 # @inkeep/agents-manage-mcp
 
+## 0.38.1
+
+### Patch Changes
+
+- 1a4474c: Bundle Zod v3 into package output to avoid version conflicts with consumers using Zod v4
+- 8c81242: ui for tool breakdown and warnings for tool calls
+- 251cecd: added mid generation compression
+- ce60f56: multi tenant auth for signoz queries
+
 ## 0.38.0
 
 ### Patch Changes

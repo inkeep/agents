@@ -1,5 +1,18 @@
 # @inkeep/agents-sdk
 
+## 0.38.1
+
+### Patch Changes
+
+- 8c81242: ui for tool breakdown and warnings for tool calls
+- 251cecd: added mid generation compression
+- ce60f56: multi tenant auth for signoz queries
+- Updated dependencies [32c4c34]
+- Updated dependencies [8c81242]
+- Updated dependencies [251cecd]
+- Updated dependencies [ce60f56]
+  - @inkeep/agents-core@0.38.1
+
 ## 0.38.0
 
 ### Minor Changes
