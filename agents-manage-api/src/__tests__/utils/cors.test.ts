@@ -183,3 +183,4 @@ describe('isOriginAllowed', () => {
     });
   });
 });
+
