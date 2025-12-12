@@ -97,20 +97,20 @@ Create `agents/fact-finder-agent.ts` with the following content:
 
 ```typescript
 import { agent, subAgent } from "@inkeep/agents-sdk";
-import { inkeepRagMcpTool } from "../tools/inkeep-rag-mcp.js";
+import { inkeepRagMcpTool } from "../tools/inkeep-rag-mcp";
 
 const mySubAgent = subAgent({
   id: 'fact-finder-sub-agent',
   name: 'Fact Finder SubAgent',
-  description: 'A sub agent that can help you find facts about the moon',
-  prompt: 'You are a fact finder sub agent that can help you find facts about the moon',
+  description: 'A sub agent that can help you find facts about Inkeep',
+  prompt: 'You are a fact finder sub agent that can help you find facts about Inkeep',
   canUse: () => [inkeepRagMcpTool]
 });
 
 export const factFinderAgent = agent({
   id: "fact-finder-agent",
   name: "Fact Finder Agent",
-  description: "A agent that can help you find facts about the moon",
+  description: "A agent that can help you find facts about Inkeep",
   defaultSubAgent: mySubAgent,
   subAgents: () => [mySubAgent],
 });
