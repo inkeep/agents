@@ -20,8 +20,10 @@ export const LoadingDots = () => {
 
 export function LoadingIndicator({
   messages = ['Thinking', 'Looking for content', 'Analyzing'],
+  variant = 'inkeep',
 }: {
   messages?: string[];
+  variant?: 'inkeep' | 'tailwind';
 }) {
   const [messageIndex, setMessageIndex] = useState(0);
 
@@ -38,12 +40,17 @@ export function LoadingIndicator({
     return () => clearInterval(interval);
   }, [messages.length]);
 
+  const shimmerClass =
+    variant === 'inkeep'
+      ? 'bg-[linear-gradient(to_bottom_right,_var(--ikp-color-gray-700),_var(--ikp-color-gray-400))] dark:bg-[linear-gradient(to_bottom_right,_var(--ikp-color-gray-dark-300),_var(--ikp-color-gray-dark-100))]'
+      : 'bg-[linear-gradient(to_bottom_right,_#374151,_#9ca3af)] dark:bg-[linear-gradient(to_bottom_right,_#d1d5db,_#f3f4f6)]';
+
   return (
     <div
       className="flex items-center space-x-2 font-medium text-sm text-gray-700 dark:text-gray-dark-300"
       aria-live="polite"
     >
-      <span className="animate-shimmer bg-[linear-gradient(to_bottom_right,_var(--ikp-color-gray-700),_var(--ikp-color-gray-400))] dark:bg-[linear-gradient(to_bottom_right,_var(--ikp-color-gray-dark-300),_var(--ikp-color-gray-dark-100))] bg-clip-text text-transparent">
+      <span className={`animate-shimmer ${shimmerClass} bg-clip-text text-transparent`}>
         {messages[messageIndex]}
       </span>
       <div className="flex space-x-1">
