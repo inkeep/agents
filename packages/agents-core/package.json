@@ -14,6 +14,7 @@
     "./db/schema": "./src/db/schema.ts",
     "./auth": "./src/auth/auth.ts",
     "./auth/schema": "./src/auth/auth-schema.ts",
+    "./db/client": "./src/db/client.ts",
     "./auth/validation": "./src/auth/auth-validation-schemas.ts",
     "./auth/permissions": "./src/auth/permissions.ts",
     "./db/test-client": "./src/db/test-client.ts",
