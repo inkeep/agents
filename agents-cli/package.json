@@ -14,6 +14,8 @@
   },
   "scripts": {
     "build": "tsup",
+    "cli": "node ./dist/index.js",
+    "postinstall": "node scripts/ensure-keytar.mjs || true",
     "prepare": "pnpm build --no-dts",
     "dev": "MODE=watch tsup",
     "test": "node -e \"process.exit(process.env.CI ? 0 : 1)\" && vitest --run --config vitest.config.ci.ts || vitest --run",
@@ -56,6 +58,7 @@
     "find-up": "^7.0.0",
     "fs-extra": "^11.2.0",
     "json-schema-to-zod": "^2.6.1",
+    "keytar": "^7.9.0",
     "langfuse-vercel": "^3.38.6",
     "picocolors": "^1.1.1",
     "pg": "^8.16.3",

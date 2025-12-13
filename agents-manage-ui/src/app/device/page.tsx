@@ -9,10 +9,17 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { useAuthClient } from '@/lib/auth-client';
 import { useAuthSession } from '@/hooks/use-auth';
+import { useAuthClient } from '@/lib/auth-client';
 
-type DeviceState = 'input' | 'validating' | 'confirm' | 'approving' | 'approved' | 'denied' | 'error';
+type DeviceState =
+  | 'input'
+  | 'validating'
+  | 'confirm'
+  | 'approving'
+  | 'approved'
+  | 'denied'
+  | 'error';
 
 function formatUserCode(code: string): string {
   // Format as XXXX-XXXX if not already formatted
@@ -151,11 +158,11 @@ function DeviceVerificationForm() {
   return (
     <div className="flex flex-col min-h-screen items-center justify-center px-4 py-12">
       <Card className="w-full max-w-md shadow-none border-none bg-transparent space-y-3">
-        <div className="px-6">
+        <div className="flex justify-center">
           <InkeepIcon size={48} />
         </div>
-        <CardHeader>
-          <CardTitle className="text-2xl font-medium tracking-tight text-foreground flex items-center gap-2">
+        <CardHeader className="text-center">
+          <CardTitle className="text-2xl font-medium tracking-tight text-foreground flex items-center justify-center gap-2">
             <Terminal className="h-6 w-6" />
             Device Authorization
           </CardTitle>
@@ -238,11 +245,7 @@ function DeviceVerificationForm() {
                   onClick={handleDeny}
                   disabled={state === 'approving'}
                 >
-                  {state === 'approving' ? (
-                    <Loader2 className="h-4 w-4 animate-spin" />
-                  ) : (
-                    'Deny'
-                  )}
+                  {state === 'approving' ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Deny'}
                 </Button>
                 <Button className="flex-1" onClick={handleApprove} disabled={state === 'approving'}>
                   {state === 'approving' ? (
@@ -303,5 +306,13 @@ export default function DevicePage() {
     >
       <DeviceVerificationForm />
     </Suspense>
+  );
+}
+  );
+}
+  );
+}
+  );
+}
   );
 }

@@ -1,4 +1,4 @@
-import { and, eq } from 'drizzle-orm';
+import { and, desc, eq } from 'drizzle-orm';
 import { invitation, member, organization } from '../auth/auth-schema';
 import type { UserOrganization } from '../auth/auth-validation-schemas';
 import type { DatabaseClient } from '../db/client';
@@ -30,7 +30,8 @@ export const getUserOrganizations =
       })
       .from(member)
       .leftJoin(organization, eq(member.organizationId, organization.id))
-      .where(eq(member.userId, userId));
+      .where(eq(member.userId, userId))
+      .orderBy(desc(member.createdAt));
 
     return result.map((row) => ({
       ...row,
