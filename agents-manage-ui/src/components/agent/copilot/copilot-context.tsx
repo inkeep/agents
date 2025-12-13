@@ -1,15 +1,7 @@
 'use client';
 
 import type { AIChatFunctions } from '@inkeep/agents-ui/types';
-import {
-  createContext,
-  type ReactNode,
-  type RefObject,
-  useContext,
-  useEffect,
-  useRef,
-  useState,
-} from 'react';
+import { createContext, type ReactNode, type RefObject, useContext, useRef, useState } from 'react';
 
 import { useRuntimeConfig } from '@/contexts/runtime-config-context';
 
