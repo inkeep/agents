@@ -28,7 +28,7 @@ const variableSuggestionTokenizer: MarkdownTokenizer = {
   level: 'inline',
   start: (src) => src.indexOf('{{'),
   tokenize(src) {
-    const match = src.match(/^\{\{([^{}]+)}}/);
+    const match = src.match(/^\u200b?\{\{([^{}]+)}}\u200b?/);
     if (!match) {
       return;
     }
@@ -51,7 +51,7 @@ const suggestionExtension = Mention.extend({
   markdownTokenizer: variableSuggestionTokenizer,
   parseMarkdown(token, helpers) {
     const id = token.id ?? token.text;
-    return helpers.createNode(
+    const mentionNode = helpers.createNode(
       'mention',
       {
         id,
@@ -60,12 +60,12 @@ const suggestionExtension = Mention.extend({
       },
       [helpers.createTextNode(id)]
     );
+    return [helpers.createTextNode('\u200b'), mentionNode, helpers.createTextNode('\u200b')];
   },
   renderMarkdown(node) {
     const content = node.content;
     const textContent = Array.isArray(content) ? content.map((child) => child.text).join('') : '';
-
-    const label = textContent || node.attrs?.label || node.attrs?.id;
+    const label = (textContent || node.attrs?.label || node.attrs?.id || '').replace(/\u200b/g, '');
     return label ? `{{${label}}}` : '';
   },
   renderHTML() {
@@ -87,11 +87,13 @@ const suggestionExtension = Mention.extend({
         .chain()
         .focus()
         .insertContentAt(range, [
+          { type: 'text', text: '\u200b' },
           {
             type: 'mention',
-            attrs: props,
+            attrs: { ...props, mentionSuggestionChar: suggestion.char },
             content: [{ type: 'text', text: props.id }],
           },
+          { type: 'text', text: '\u200b' },
         ])
         .run();
       editor.view.dom.ownerDocument.defaultView?.getSelection()?.collapseToEnd();
