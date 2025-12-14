@@ -4,17 +4,16 @@ import { Highlight } from '@tiptap/extension-highlight';
 import { TaskItem, TaskList } from '@tiptap/extension-list';
 import { TableKit } from '@tiptap/extension-table';
 import { Markdown } from '@tiptap/markdown';
-import { EditorContent, useEditor } from '@tiptap/react';
+import { EditorContent, useEditor, type UseEditorOptions } from '@tiptap/react';
 import { StarterKit } from '@tiptap/starter-kit';
 import { TextInitial } from 'lucide-react';
 import type { ComponentPropsWithoutRef, FC, RefObject } from 'react';
-import { useCallback, useImperativeHandle, useMemo } from 'react';
+import { useCallback, useImperativeHandle } from 'react';
 import { Button } from '@/components/ui/button';
 import { useAgentActions, useAgentStore } from '@/features/agent/state/use-agent-store';
 import { MarkdownIcon } from '@/icons';
 import { cn } from '@/lib/utils';
 import { mdContent } from './content';
-import { buildPromptContent } from './prompt-editor-utils';
 import { variableSuggestionExtension } from './tiptap/variable-suggestion';
 import './prompt-editor.css';
 
@@ -28,6 +27,13 @@ interface PromptEditorProps extends Omit<ComponentPropsWithoutRef<'div'>, 'onCha
   hasDynamicHeight?: boolean;
   ref: RefObject<PromptEditorHandle>;
 }
+
+const editorOptions: UseEditorOptions = {
+  parseOptions: {
+    // do not collapse new lines
+    preserveWhitespace: 'full',
+  },
+};
 
 export interface PromptEditorHandle {
   focus: () => void;
@@ -257,9 +263,9 @@ export const PromptEditor: FC<PromptEditorProps> = ({
 }) => {
   const { toggleMarkdownEditor } = useAgentActions();
   const isMarkdownMode = useAgentStore((state) => state.isMarkdownEditor);
-  const formattedContent = useMemo(() => buildPromptContent(mdContent), []);
 
   const editor = useEditor({
+    ...editorOptions,
     immediatelyRender: false, // needs for SSR
     editorProps: {
       attributes: {
@@ -287,7 +293,7 @@ export const PromptEditor: FC<PromptEditorProps> = ({
       variableSuggestionExtension,
       Highlight,
     ],
-    content: isMarkdownMode ? mdContent : formattedContent,
+    content: mdContent,
     contentType: isMarkdownMode ? 'markdown' : undefined,
   });
 
@@ -307,10 +313,8 @@ export const PromptEditor: FC<PromptEditorProps> = ({
   const toggle = useCallback(() => {
     if (!editor) return;
     editor.commands.setContent(
-      isMarkdownMode
-        ? /* text */ buildPromptContent(editor.getMarkdown())
-        : /* markdown */ editor.getText(),
-      isMarkdownMode ? undefined : { contentType: 'markdown' }
+      isMarkdownMode ? /* text */ editor.getMarkdown() : /* markdown */ editor.getText(),
+      isMarkdownMode ? editorOptions : { contentType: 'markdown' }
     );
     toggleMarkdownEditor();
   }, [editor, isMarkdownMode, toggleMarkdownEditor]);
