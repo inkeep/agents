@@ -3,7 +3,7 @@
 import { TaskItem, TaskList } from '@tiptap/extension-list';
 import { TableKit } from '@tiptap/extension-table';
 import { Markdown } from '@tiptap/markdown';
-import { EditorContent, useEditor, type UseEditorOptions } from '@tiptap/react';
+import { EditorContent, type UseEditorOptions, useEditor } from '@tiptap/react';
 import { StarterKit } from '@tiptap/starter-kit';
 import { TextInitial } from 'lucide-react';
 import type { ComponentPropsWithoutRef, FC, RefObject } from 'react';
@@ -269,7 +269,7 @@ export const PromptEditor: FC<PromptEditorProps> = ({
     editorProps: {
       attributes: {
         class: cn(
-          isMarkdownMode && 'prose prose-sm dark:prose-invert',
+          'prose prose-sm dark:prose-invert',
           'focus:outline-none overflow-scroll min-w-full',
           'dark:bg-input/30 text-sm focus:outline-none px-3 py-2',
           'rounded-md border border-input shadow-xs transition-colors',
@@ -310,11 +310,13 @@ export const PromptEditor: FC<PromptEditorProps> = ({
 
   const toggle = useCallback(() => {
     if (!editor) return;
+    // First toggle and after set content, since we are checking current `contentType` in `renderHTML()` of
+    // `variableSuggestionExtension`
+    toggleMarkdownEditor();
     editor.commands.setContent(
       isMarkdownMode ? /* text */ editor.getMarkdown() : /* markdown */ editor.getText(),
       isMarkdownMode ? editorOptions : { contentType: 'markdown' }
     );
-    toggleMarkdownEditor();
   }, [editor, isMarkdownMode, toggleMarkdownEditor]);
 
   const IconToUse = isMarkdownMode ? TextInitial : MarkdownIcon;

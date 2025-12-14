@@ -1,8 +1,9 @@
 import { autoUpdate, computePosition, flip, type ReferenceElement, shift } from '@floating-ui/dom';
-import type { MarkdownTokenizer } from '@tiptap/core';
+import { type MarkdownTokenizer, mergeAttributes } from '@tiptap/core';
 import { Mention } from '@tiptap/extension-mention';
 import { posToDOMRect, ReactRenderer } from '@tiptap/react';
 import { badgeVariants } from '@/components/ui/badge';
+import { agentStore } from '@/features/agent/state/use-agent-store';
 import {
   buildVariableItems,
   VariableList,
@@ -47,7 +48,7 @@ const variableSuggestionTokenizer: MarkdownTokenizer = {
 /**
  * Updated the prompt mention handling so TipTap now serializes mentions to {{var}} instead of [@ id="..." char="{"] and still renders them as violet badges.
  */
-export const variableSuggestionExtension = Mention.extend({
+const VariableSuggestionExtension = Mention.extend({
   markdownTokenName: TOKEN_NAME,
   markdownTokenizer: variableSuggestionTokenizer,
   parseMarkdown(token, helpers) {
@@ -65,11 +66,26 @@ export const variableSuggestionExtension = Mention.extend({
     const label = node.attrs?.id;
     return label ? `{{${label}}}` : '';
   },
-  renderHTML({ node }) {
-    const className = badgeVariants({ variant: 'violet' });
-    return ['span', { class: className }, `{{${node.attrs.id}}}`];
+  renderText({ node }) {
+    const label = node.attrs?.id;
+    return label ? `{{${label}}}` : '';
   },
-}).configure({
+  renderHTML({ node, HTMLAttributes }) {
+    // I didn't find a way get current contentType from TipTap editor instance
+    const isMarkdown = agentStore.getState().isMarkdownEditor;
+    const content = `{{${node.attrs.id}}}`;
+    if (!isMarkdown) {
+      // We don't append badge class for text
+      return ['span', HTMLAttributes, content];
+    }
+    return ['span', mergeAttributes(HTMLAttributes, this.options.HTMLAttributes), content];
+  },
+});
+
+export const variableSuggestionExtension = VariableSuggestionExtension.configure({
+  HTMLAttributes: {
+    class: badgeVariants({ variant: 'violet' }),
+  },
   suggestion: {
     char: TRIGGER_CHAR,
     items: buildVariableItems,
