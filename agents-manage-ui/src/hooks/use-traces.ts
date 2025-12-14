@@ -33,6 +33,7 @@ export interface UseConversationStatsOptions {
   endTime?: number;
   filters?: SpanFilterOptions;
   projectId?: string;
+  tenantId?: string;
   pagination?: {
     pageSize?: number;
   };
@@ -60,7 +61,7 @@ export function useConversationStats(
         setLoading(true);
         setError(null);
 
-        const client = getSigNozStatsClient();
+        const client = getSigNozStatsClient(options?.tenantId);
         // Use provided time range or default to all time (2020)
         // Clamp endTime to now-1ms to satisfy backend validation (end cannot be in the future)
         const currentEndTime = Math.min(options?.endTime || Date.now() - 1);
@@ -92,6 +93,7 @@ export function useConversationStats(
       options?.endTime,
       options?.filters,
       options?.projectId,
+      options?.tenantId,
       options?.searchQuery,
       options?.agentId,
       pageSize,
@@ -179,6 +181,7 @@ export function useAggregateStats(options?: {
   endTime?: number;
   filters?: SpanFilterOptions;
   projectId?: string;
+  tenantId?: string;
   agentId?: string;
 }) {
   const [aggregateStats, setAggregateStats] = useState({
@@ -196,7 +199,7 @@ export function useAggregateStats(options?: {
       setLoading(true);
       setError(null);
 
-      const client = getSigNozStatsClient();
+      const client = getSigNozStatsClient(options?.tenantId);
       const currentEndTime = Math.min(options?.endTime || Date.now() - 1);
       const currentStartTime = options?.startTime || new Date('2020-01-01T00:00:00Z').getTime();
 
@@ -221,6 +224,7 @@ export function useAggregateStats(options?: {
     options?.endTime,
     options?.filters,
     options?.projectId,
+    options?.tenantId,
     options?.agentId,
   ]);
 

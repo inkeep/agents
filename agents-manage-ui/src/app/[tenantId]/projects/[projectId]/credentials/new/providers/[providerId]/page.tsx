@@ -10,8 +10,10 @@ import { GenericAuthForm } from '@/components/credentials/views/generic-auth-for
 import { BodyTemplate } from '@/components/layout/body-template';
 import { MainContent } from '@/components/layout/main-content';
 import { Button } from '@/components/ui/button';
+import { useAuthSession } from '@/hooks/use-auth';
 import { useNangoConnect } from '@/hooks/use-nango-connect';
 import { useNangoProviders } from '@/hooks/use-nango-providers';
+import { useAuthClient } from '@/lib/auth-client';
 import { createProviderConnectSession } from '@/lib/mcp-tools/nango';
 import { NangoError } from '@/lib/mcp-tools/nango-types';
 import { findOrCreateCredential } from '@/lib/utils/credentials-utils';
@@ -25,7 +27,8 @@ function ProviderSetupPage({
   const [loading, setLoading] = useState(false);
   const [hasAttempted, setHasAttempted] = useState(false);
   const { openNangoConnect } = useNangoConnect();
-
+  const { user } = useAuthSession();
+  const authClient = useAuthClient();
   const { providerId, tenantId, projectId } = use(params);
 
   const provider = providers?.find((p: ApiProvider) => encodeURIComponent(p.name) === providerId);
@@ -45,6 +48,7 @@ function ProviderSetupPage({
           id: generateId(),
           name: provider.name,
           type: CredentialStoreType.nango,
+          createdBy: user?.email ?? undefined,
           credentialStoreId: DEFAULT_NANGO_STORE_ID,
           retrievalParams: {
             connectionId: event.payload.connectionId,
@@ -65,12 +69,14 @@ function ProviderSetupPage({
         }
       }
     },
-    [provider, tenantId, projectId, router]
+    [provider, tenantId, projectId, router, user?.email]
   );
 
   const handleCreateCredential = useCallback(
     async (credentials?: Record<string, any>) => {
       if (!provider) return;
+
+      const { data: organizationData } = await authClient.organization.getFullOrganization();
 
       setLoading(true);
       setHasAttempted(true);
@@ -86,6 +92,11 @@ function ProviderSetupPage({
                   type: provider.auth_mode,
                 } as any)
               : undefined,
+          endUserId: user?.id,
+          endUserEmail: user?.email,
+          endUserDisplayName: user?.name,
+          organizationId: organizationData?.id,
+          organizationDisplayName: organizationData?.name,
         });
 
         openNangoConnect({
@@ -110,7 +121,7 @@ function ProviderSetupPage({
         setLoading(false);
       }
     },
-    [provider, openNangoConnect, handleNangoConnect]
+    [provider, openNangoConnect, handleNangoConnect, user?.id, user?.email, user?.name, authClient]
   );
 
   // Auto-connect when no credential form is required

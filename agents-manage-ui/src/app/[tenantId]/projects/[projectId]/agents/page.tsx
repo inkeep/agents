@@ -8,6 +8,7 @@ import { MainContent } from '@/components/layout/main-content';
 import { PageHeader } from '@/components/layout/page-header';
 import { agentDescription } from '@/constants/page-descriptions';
 import { fetchAgents } from '@/lib/api/agent-full-client';
+import { getErrorCode } from '@/lib/utils/error-serialization';
 
 export const dynamic = 'force-dynamic';
 
@@ -38,7 +39,7 @@ async function AgentsPage({ params }: PageProps<'/[tenantId]/projects/[projectId
       </BodyTemplate>
     );
   } catch (error) {
-    return <FullPageError error={error as Error} context="agents" />;
+    return <FullPageError errorCode={getErrorCode(error)} context="agents" />;
   }
 }
 

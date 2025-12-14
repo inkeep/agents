@@ -65,10 +65,6 @@ describe('Package Configuration', () => {
       expect(packageJson.scripts.typecheck).toBe('tsc --noEmit --project tsconfig.typecheck.json');
     });
 
-    it('should have correct Node.js engine requirement', () => {
-      expect(packageJson.engines.node).toBe('>=22.0.0');
-    });
-
     it('should have correct author', () => {
       expect(packageJson.author).toBe('Inkeep <support@inkeep.com>');
     });

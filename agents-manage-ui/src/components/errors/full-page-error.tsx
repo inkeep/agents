@@ -6,11 +6,14 @@ import { BodyTemplate } from '@/components/layout/body-template';
 import { MainContent } from '@/components/layout/main-content';
 import { Button } from '@/components/ui/button';
 
-export default function FullPageError({ statusCode, ...props }: FullPageErrorProps) {
+export default function FullPageError({ statusCode, errorCode, ...props }: FullPageErrorProps) {
+  const resolvedStatusCode = statusCode ?? getStatusCodeFromErrorCode(errorCode);
   return (
-    <BodyTemplate breadcrumbs={[{ label: statusCode ? `${statusCode} Error` : 'Error' }]}>
+    <BodyTemplate
+      breadcrumbs={[{ label: resolvedStatusCode ? `${resolvedStatusCode} Error` : 'Error' }]}
+    >
       <MainContent className="flex-1">
-        <ErrorContent statusCode={statusCode} {...props} />
+        <ErrorContent statusCode={resolvedStatusCode} errorCode={errorCode} {...props} />
       </MainContent>
     </BodyTemplate>
   );
@@ -43,8 +46,87 @@ function isApiError(obj: unknown): obj is { status: number; error: { message: st
   );
 }
 
+const ERROR_CODE_STATUS_MAP: Record<string, number> = {
+  not_found: 404,
+  forbidden: 403,
+  unauthorized: 401,
+  internal_server_error: 500,
+  service_unavailable: 503,
+  bad_request: 400,
+  validation_error: 400,
+  unprocessable_entity: 422,
+};
+
+const STATUS_CODE_ERROR_MAP: Record<number, string> = {
+  404: 'not_found',
+  403: 'forbidden',
+  401: 'unauthorized',
+  500: 'internal_server_error',
+  503: 'service_unavailable',
+  400: 'bad_request',
+  422: 'unprocessable_entity',
+};
+
+function getStatusCodeFromErrorCode(errorCode?: string): number | undefined {
+  if (!errorCode) return undefined;
+  return ERROR_CODE_STATUS_MAP[errorCode];
+}
+
+function getErrorCodeFromStatusCode(statusCode?: number): string | undefined {
+  if (!statusCode) return undefined;
+  return STATUS_CODE_ERROR_MAP[statusCode];
+}
+
+function getErrorMessage(
+  errorCode: string | undefined,
+  context: string
+): { title: string; description: string } {
+  const contextCapitalized = context.charAt(0).toUpperCase() + context.slice(1);
+
+  switch (errorCode) {
+    case 'not_found':
+      return {
+        title: `${contextCapitalized} not found`,
+        description: `The ${context} you are looking for does not exist or has been deleted.`,
+      };
+    case 'forbidden':
+      return {
+        title: 'Access denied',
+        description: `You do not have permission to access this ${context}.`,
+      };
+    case 'unauthorized':
+      return {
+        title: 'Authentication required',
+        description: 'Please sign in to access this resource.',
+      };
+    case 'internal_server_error':
+      return {
+        title: 'Server error',
+        description: 'An error occurred on the server. Please try again later.',
+      };
+    case 'service_unavailable':
+      return {
+        title: 'Service unavailable',
+        description: 'The service is temporarily unavailable. Please try again in a few moments.',
+      };
+    case 'bad_request':
+    case 'validation_error':
+    case 'unprocessable_entity':
+      return {
+        title: 'Invalid request',
+        description: `The request to load this ${context} was invalid. Please try again.`,
+      };
+    default:
+      return {
+        title: `Failed to load ${context}`,
+        description: `An unexpected error occurred while loading this ${context}.`,
+      };
+  }
+}
+
 interface FullPageErrorProps {
   error?: Error & { digest?: string };
+  errorCode?: string;
   reset?: () => void;
   title?: string;
   description?: string | React.ReactNode;
@@ -59,6 +141,7 @@ interface FullPageErrorProps {
 
 export function ErrorContent({
   error,
+  errorCode: propErrorCode,
   icon: Icon = AlertTriangle,
   reset,
   title: propTitle,
@@ -70,9 +153,11 @@ export function ErrorContent({
   onRetry,
   context = 'resource',
 }: FullPageErrorProps) {
+  // Resolve error code from props or error object
+  let errorCode = propErrorCode;
   let statusCode = propStatusCode;
 
-  if (!statusCode && error) {
+  if (!errorCode && !statusCode && error) {
     if (isApiError(error)) {
       statusCode = error.status;
     } else if (hasStatusCode(error.cause)) {
@@ -82,36 +167,25 @@ export function ErrorContent({
     }
   }
 
+  // Convert between error code and status code as needed
+  if (errorCode && !statusCode) {
+    statusCode = getStatusCodeFromErrorCode(errorCode);
+  } else if (statusCode && !errorCode) {
+    errorCode = getErrorCodeFromStatusCode(statusCode);
+  }
+
+  // Generate title and description
   let title = propTitle;
   let description = propDescription;
 
-  if (error && !title) {
-    title = `Failed to load ${context}`;
-    description = isApiError(error)
-      ? error.error.message
-      : error.message || `An unexpected error occurred while loading this ${context}.`;
-
-    if (statusCode === 404) {
-      title = `${context.charAt(0).toUpperCase() + context.slice(1)} not found`;
-      description = `The ${context} you are looking for does not exist or has been deleted.`;
-    } else if (statusCode === 403) {
-      title = 'Access denied';
-      description = `You do not have permission to access this ${context}.`;
-    } else if (statusCode === 401) {
-      title = 'Authentication required';
-      description = 'Please sign in to access this resource.';
-    } else if (statusCode === 500) {
-      title = 'Server error';
-      description = 'An error occurred on the server. Please try again later.';
-    } else if (statusCode === 503) {
-      title = 'Service unavailable';
-      description = 'The service is temporarily unavailable. Please try again in a few moments.';
+  if (!title) {
+    const errorMessages = getErrorMessage(errorCode, context);
+    title = errorMessages.title;
+    if (!description) {
+      description = errorMessages.description;
     }
   }
 
-  if (!title) {
-    title = 'Something went wrong';
-  }
   if (!description) {
     description = 'An unexpected error occurred. Please try again.';
   }

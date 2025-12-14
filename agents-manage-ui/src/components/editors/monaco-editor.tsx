@@ -200,7 +200,7 @@ export const MonacoEditor: FC<MonacoEditorProps> = ({
       className={cn(
         'max-h-screen', // set fixed max height, otherwise page freezes up / lags when clicking into it
         !hasDynamicHeight && 'h-full',
-        'rounded-md relative dark:bg-input/30 transition-colors',
+        'rounded-md relative dark:bg-input/30 transition-colors text-foreground',
         'border border-input shadow-xs',
         disabled
           ? 'cursor-not-allowed opacity-50 bg-muted [&>.monaco-editor]:pointer-events-none'

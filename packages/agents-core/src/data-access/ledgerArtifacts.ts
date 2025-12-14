@@ -183,7 +183,27 @@ export const upsertLedgerArtifact =
           return { created: false, existing: existing[0] };
         }
       }
-      throw error;
+
+      // Create a cleaner error message without exposing massive artifact data
+      const sanitizedError = new Error(
+        `Failed to insert artifact ${artifactRow.id}: ${error.message?.split('\nparams:')[0] || error.message}`
+      );
+      sanitizedError.name = error.name;
+      sanitizedError.cause = error.code || error.errno;
+
+      // TEMPORARY DEBUG: Log full error for debugging compression artifacts
+      if (artifactRow.id?.includes('compress_')) {
+        console.error('COMPRESSION ARTIFACT FULL ERROR:', {
+          artifactId: artifactRow.id,
+          errorMessage: error.message,
+          errorCode: error.code,
+          errorName: error.name,
+          errorStack: error.stack,
+          fullError: error,
+        });
+      }
+
+      throw sanitizedError;
     }
   };
 
@@ -268,7 +288,30 @@ export const addLedgerArtifacts =
       }
     }
 
-    throw lastError;
+    // Create a cleaner error message without exposing massive artifact data
+    const sanitizedError = new Error(
+      `Failed to insert ${rows.length} artifacts after ${maxRetries} attempts: ${lastError?.message?.split('\nparams:')[0] || lastError?.message}`
+    );
+    sanitizedError.name = lastError?.name;
+    sanitizedError.cause = lastError?.code || lastError?.errno;
+
+    // TEMPORARY DEBUG: Log full error for debugging compression artifacts
+    const hasCompressionArtifacts = rows.some((row) => row.id?.includes('compress_'));
+    if (hasCompressionArtifacts) {
+      console.error('COMPRESSION ARTIFACTS BULK INSERT FULL ERROR:', {
+        artifactCount: rows.length,
+        compressionArtifacts: rows
+          .filter((row) => row.id?.includes('compress_'))
+          .map((row) => row.id),
+        errorMessage: lastError?.message,
+        errorCode: lastError?.code,
+        errorName: lastError?.name,
+        errorStack: lastError?.stack,
+        fullError: lastError,
+      });
+    }
+
+    throw sanitizedError;
   };
 
 /**

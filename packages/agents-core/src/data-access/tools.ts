@@ -5,6 +5,7 @@ import type { NangoCredentialData } from '../credential-stores/nango-store';
 import { CredentialStuffer } from '../credential-stuffer';
 import type { DatabaseClient } from '../db/client';
 import { subAgentToolRelations, tools } from '../db/schema';
+import type { CredentialReferenceSelect } from '../types/index';
 import {
   type AgentScopeConfig,
   CredentialStoreType,
@@ -28,10 +29,46 @@ import {
 import { generateId } from '../utils/conversations';
 import { getLogger } from '../utils/logger';
 import { McpClient, type McpServerConfig } from '../utils/mcp-client';
-import { getCredentialReference } from './credentialReferences';
+import { getCredentialReference, getUserScopedCredentialReference } from './credentialReferences';
 import { updateAgentToolRelation } from './subAgentRelations';
 
 const logger = getLogger('tools');
+
+/**
+ * Extract expiration date from credential data stored in credential store
+ */
+async function getCredentialExpiresAt(
+  credentialReference: CredentialReferenceSelect,
+  credentialStoreRegistry?: CredentialStoreRegistry
+): Promise<string | undefined> {
+  if (!credentialReference.retrievalParams) return undefined;
+
+  const credentialStore = credentialStoreRegistry?.get(credentialReference.credentialStoreId);
+  if (!credentialStore || credentialStore.type === CredentialStoreType.memory) return undefined;
+
+  const lookupKey = getCredentialStoreLookupKeyFromRetrievalParams({
+    retrievalParams: credentialReference.retrievalParams,
+    credentialStoreType: credentialStore.type,
+  });
+  if (!lookupKey) return undefined;
+
+  const credentialDataString = await credentialStore.get(lookupKey);
+  if (!credentialDataString) return undefined;
+
+  if (credentialStore.type === CredentialStoreType.nango) {
+    const nangoCredentialData = JSON.parse(credentialDataString) as NangoCredentialData;
+    return nangoCredentialData.expiresAt
+      ? toISODateString(nangoCredentialData.expiresAt)
+      : undefined;
+  }
+
+  if (credentialStore.type === CredentialStoreType.keychain) {
+    const oauthTokens = JSON.parse(credentialDataString);
+    return oauthTokens.expires_at ? toISODateString(oauthTokens.expires_at) : undefined;
+  }
+
+  return undefined;
+}
 
 /**
  * Extract input schema from MCP tool definition, handling multiple formats
@@ -82,26 +119,32 @@ const convertToMCPToolConfig = (tool: ToolSelect): MCPToolConfig => {
 const discoverToolsFromServer = async (
   tool: ToolSelect,
   dbClient: DatabaseClient,
-  credentialStoreRegistry?: CredentialStoreRegistry
+  credentialStoreRegistry?: CredentialStoreRegistry,
+  userId?: string
 ): Promise<McpToolDefinition[]> => {
   if (tool.config.type !== 'mcp') {
     throw new Error(`Cannot discover tools from non-MCP tool: ${tool.id}`);
   }
 
   try {
-    const credentialReferenceId = tool.credentialReferenceId;
     let serverConfig: McpServerConfig;
 
-    if (credentialReferenceId) {
-      const credentialReference = await getCredentialReference(dbClient)({
-        scopes: { tenantId: tool.tenantId, projectId: tool.projectId },
-        id: credentialReferenceId,
-      });
+    // Look up credential reference based on scope
+    const credentialReference =
+      tool.credentialReferenceId && tool.credentialScope !== 'user'
+        ? await getCredentialReference(dbClient)({
+            scopes: { tenantId: tool.tenantId, projectId: tool.projectId },
+            id: tool.credentialReferenceId,
+          })
+        : userId && tool.credentialScope === 'user'
+          ? await getUserScopedCredentialReference(dbClient)({
+              scopes: { tenantId: tool.tenantId, projectId: tool.projectId },
+              toolId: tool.id,
+              userId,
+            })
+          : undefined;
 
-      if (!credentialReference) {
-        throw new Error(`Credential reference not found: ${credentialReferenceId}`);
-      }
-
+    if (credentialReference) {
       const storeReference = {
         credentialStoreId: credentialReference.credentialStoreId,
         retrievalParams: credentialReference.retrievalParams || {},
@@ -142,6 +185,20 @@ const discoverToolsFromServer = async (
       }
     }
 
+    // Inject user_id for Composio servers at discovery time
+    if (serverConfig.url?.toString().includes('composio.dev')) {
+      const urlObj = new URL(serverConfig.url.toString());
+      if (tool.credentialScope === 'user' && userId) {
+        // User-scoped: use actual userId
+        urlObj.searchParams.set('user_id', userId);
+      } else {
+        // Project-scoped: use tenantId||projectId
+        const SEPARATOR = '||';
+        urlObj.searchParams.set('user_id', `${tool.tenantId}${SEPARATOR}${tool.projectId}`);
+      }
+      serverConfig.url = urlObj.toString();
+    }
+
     const client = new McpClient({
       name: tool.name,
       server: serverConfig,
@@ -172,7 +229,8 @@ export const dbResultToMcpTool = async (
   dbResult: ToolSelect,
   dbClient: DatabaseClient,
   credentialStoreRegistry?: CredentialStoreRegistry,
-  relationshipId?: string
+  relationshipId?: string,
+  userId?: string
 ): Promise<McpTool> => {
   const { headers, capabilities, credentialReferenceId, imageUrl, createdAt, ...rest } = dbResult;
 
@@ -196,43 +254,37 @@ export const dbResultToMcpTool = async (
   let status: McpTool['status'] = 'unknown';
   let lastErrorComputed: string | null;
   let expiresAt: string | undefined;
+  let createdBy: string | undefined;
 
-  if (credentialReferenceId) {
-    const credentialReference = await getCredentialReference(dbClient)({
-      scopes: { tenantId: dbResult.tenantId, projectId: dbResult.projectId },
-      id: credentialReferenceId,
-    });
-    if (credentialReference?.retrievalParams) {
-      const credentialStore = credentialStoreRegistry?.get(credentialReference.credentialStoreId);
-      if (credentialStore && credentialStore.type !== CredentialStoreType.memory) {
-        const lookupKey = getCredentialStoreLookupKeyFromRetrievalParams({
-          retrievalParams: credentialReference.retrievalParams,
-          credentialStoreType: credentialStore.type,
-        });
-        if (lookupKey) {
-          const credentialDataString = await credentialStore.get(lookupKey);
-          if (credentialDataString) {
-            if (credentialStore.type === CredentialStoreType.nango) {
-              const nangoCredentialData = JSON.parse(credentialDataString) as NangoCredentialData;
-              if (nangoCredentialData.expiresAt) {
-                expiresAt = toISODateString(nangoCredentialData.expiresAt);
-              }
-            } else if (credentialStore.type === CredentialStoreType.keychain) {
-              const oauthTokens = JSON.parse(credentialDataString);
-              if (oauthTokens.expires_at) {
-                expiresAt = toISODateString(oauthTokens.expires_at);
-              }
-            }
-          }
-        }
-      }
-    }
+  // Look up credential reference based on scope
+  const credentialReference =
+    credentialReferenceId && dbResult.credentialScope !== 'user'
+      ? await getCredentialReference(dbClient)({
+          scopes: { tenantId: dbResult.tenantId, projectId: dbResult.projectId },
+          id: credentialReferenceId,
+        })
+      : userId && dbResult.credentialScope === 'user'
+        ? await getUserScopedCredentialReference(dbClient)({
+            scopes: { tenantId: dbResult.tenantId, projectId: dbResult.projectId },
+            toolId: dbResult.id,
+            userId,
+          })
+        : undefined;
+
+  if (credentialReference) {
+    createdBy = credentialReference.createdBy || undefined;
+    expiresAt = await getCredentialExpiresAt(credentialReference, credentialStoreRegistry);
   }
 
   const mcpServerUrl = dbResult.config.mcp.server.url;
 
   try {
-    availableTools = await discoverToolsFromServer(dbResult, dbClient, credentialStoreRegistry);
+    availableTools = await discoverToolsFromServer(
+      dbResult,
+      dbClient,
+      credentialStoreRegistry,
+      userId
+    );
     status = 'healthy';
     lastErrorComputed = null;
   } catch (error) {
@@ -256,10 +308,13 @@ export const dbResultToMcpTool = async (
   // Check third-party service status
   const isThirdPartyMCPServer = dbResult.config.mcp.server.url.includes('composio.dev');
   if (isThirdPartyMCPServer) {
+    const credentialScope = (dbResult.credentialScope as 'project' | 'user') || 'project';
     const isAuthenticated = await isThirdPartyMCPServerAuthenticated(
       dbResult.tenantId,
       dbResult.projectId,
-      mcpServerUrl
+      mcpServerUrl,
+      credentialScope,
+      userId
     );
 
     if (!isAuthenticated) {
@@ -286,6 +341,7 @@ export const dbResultToMcpTool = async (
     capabilities: capabilities || undefined,
     credentialReferenceId: credentialReferenceId || undefined,
     createdAt: toISODateString(createdAt),
+    createdBy: createdBy || undefined,
     updatedAt: toISODateString(now),
     expiresAt,
     lastError: lastErrorComputed,

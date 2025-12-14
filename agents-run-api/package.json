@@ -1,6 +1,6 @@
 {
   "name": "@inkeep/agents-run-api",
-  "version": "0.37.2",
+  "version": "0.38.1",
   "description": "Agents Run API for Inkeep Agent Framework - handles chat, agent execution, and streaming",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
@@ -93,9 +93,6 @@
     "vitest": "^3.2.4"
   },
   "packageManager": "pnpm@10.11.0",
-  "engines": {
-    "node": ">=22.0.0"
-  },
   "publishConfig": {
     "access": "public",
     "registry": "https://registry.npmjs.org/"

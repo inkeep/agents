@@ -7,6 +7,7 @@ import { BodyTemplate } from '@/components/layout/body-template';
 import { MainContent } from '@/components/layout/main-content';
 import { type Credential, fetchCredential } from '@/lib/api/credentials';
 import { getNangoConnectionMetadata } from '@/lib/mcp-tools/nango';
+import { getErrorCode } from '@/lib/utils/error-serialization';
 
 async function credentialToFormData(credential: Credential): Promise<EditCredentialFormData> {
   let connectionMetadata: Record<string, string> = {};
@@ -38,7 +39,7 @@ async function EditCredentialsPage({
   } catch (error) {
     return (
       <FullPageError
-        error={error as Error}
+        errorCode={getErrorCode(error)}
         link={`/${tenantId}/projects/${projectId}/credentials`}
         linkText="Back to credentials"
         context="credential"

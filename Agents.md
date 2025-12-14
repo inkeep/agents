@@ -167,6 +167,7 @@ LOG_LEVEL=debug|info|warn|error
 - [ ] UI components implemented in agents-manage-ui
 - [ ] Documentation added to `/agents-docs/`
 - [ ] All linting passes (`pnpm lint`)
+- [ ] Code is formatted (`pnpm format` to auto-fix, `pnpm format:check` to verify)
 
 ### 📋 Standard Development Workflow
 
@@ -183,6 +184,7 @@ LOG_LEVEL=debug|info|warn|error
    pnpm typecheck  # or pnpm tsc --noEmit
    pnpm build
    pnpm lint
+   pnpm format     # IMPORTANT: Always run formatter before committing
    ```
 
 3. **Commit your changes** with a descriptive message

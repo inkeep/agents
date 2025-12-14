@@ -13,6 +13,7 @@ export interface OAuthLoginParams {
   mcpServerUrl: string;
   toolName: string;
   thirdPartyConnectAccountUrl?: string;
+  credentialScope?: 'project' | 'user';
 }
 
 /**
@@ -42,6 +43,7 @@ export function ConnectToolCard({
     imageUrl?: string;
     url: string;
     thirdPartyConnectAccountUrl?: string;
+    credentialScope?: 'project' | 'user';
   } | null>(null);
 
   useEffect(() => {
@@ -56,6 +58,7 @@ export function ConnectToolCard({
         const tool = await fetchMCPTool(targetTenantId, targetProjectId, toolId);
         const serverUrl = tool.config?.mcp?.server?.url || '';
         const isThirdPartyMCPServer = serverUrl.includes('composio.dev');
+        const credentialScope = (tool.credentialScope as 'project' | 'user') || 'project';
 
         let thirdPartyConnectAccountUrl: string | undefined;
 
@@ -65,7 +68,8 @@ export function ConnectToolCard({
             const response = await fetchThirdPartyMCPServer(
               targetTenantId,
               targetProjectId,
-              serverUrl
+              serverUrl,
+              credentialScope
             );
             if (response.data?.thirdPartyConnectAccountUrl) {
               thirdPartyConnectAccountUrl = response.data.thirdPartyConnectAccountUrl;
@@ -85,6 +89,7 @@ export function ConnectToolCard({
           imageUrl: tool.imageUrl,
           url: serverUrl,
           thirdPartyConnectAccountUrl,
+          credentialScope,
         });
         setStatus('idle');
       } catch (err) {
@@ -113,6 +118,7 @@ export function ConnectToolCard({
         toolName: toolDetails.name,
         mcpServerUrl: toolDetails.url,
         thirdPartyConnectAccountUrl: toolDetails.thirdPartyConnectAccountUrl,
+        credentialScope: toolDetails.credentialScope,
       });
       setStatus('success');
     } catch (error) {

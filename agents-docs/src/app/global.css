@@ -99,3 +99,24 @@
     cursor: pointer;
   }
 }
+
+/* tailwind typography overrides */
+@utility prose {
+  th {
+    border-inline-start: none;
+    @apply bg-transparent;
+  }
+
+  table {
+    @apply bg-transparent;
+  }
+
+  td {
+    border-inline-start: none;
+    @apply border-gray-100 dark:border-gray-800;
+  }
+
+  table {
+    @apply border-none;
+  }
+}

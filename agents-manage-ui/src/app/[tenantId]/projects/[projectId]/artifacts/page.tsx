@@ -9,6 +9,7 @@ import { PageHeader } from '@/components/layout/page-header';
 import { Button } from '@/components/ui/button';
 import { artifactDescription } from '@/constants/page-descriptions';
 import { fetchArtifactComponents } from '@/lib/api/artifact-components';
+import { getErrorCode } from '@/lib/utils/error-serialization';
 
 export const dynamic = 'force-dynamic';
 
@@ -55,7 +56,7 @@ async function ArtifactComponentsPage({
       </BodyTemplate>
     );
   } catch (error) {
-    return <FullPageError error={error as Error} context="artifacts" />;
+    return <FullPageError errorCode={getErrorCode(error)} context="artifacts" />;
   }
 }
 

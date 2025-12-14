@@ -14,10 +14,10 @@
     "format:check": "biome format",
     "typecheck": "next typegen && tsc --noEmit",
     "postinstall": "fumadocs-mdx",
-    "generate-openapi": "node scripts/generate-openapi-docs.ts --experimental-strip-types",
-    "generate-classnames": "node scripts/generate-classnames.ts --experimental-strip-types",
-    "prebuild": "pnpm generate-classnames && pnpm generate-openapi",
-    "validate-link": "node scripts/validate-link.ts --experimental-strip-types"
+    "generate-openapi": "node --experimental-strip-types scripts/generate-openapi-docs.ts",
+    "generate-classnames": "node --experimental-strip-types scripts/generate-classnames.ts",
+    "prebuild": "pnpm generate-openapi",
+    "validate-link": "node --experimental-strip-types scripts/validate-link.ts"
   },
   "dependencies": {
     "@inkeep/agents-ui": "^0.15.4",
@@ -38,7 +38,7 @@
     "fumadocs-ui": "^16.1.0",
     "hast-util-to-jsx-runtime": "^2.3.6",
     "lucide-react": "^0.503.0",
-    "next": "16.0.7",
+    "next": "16.0.10",
     "@theguild/remark-mermaid": "^0.3.0",
     "react": "19.2.0",
     "react-dom": "19.2.0",
