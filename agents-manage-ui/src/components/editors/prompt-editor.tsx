@@ -28,7 +28,7 @@ const variableSuggestionTokenizer: MarkdownTokenizer = {
   level: 'inline',
   start: (src) => src.indexOf('{{'),
   tokenize(src) {
-    const match = src.match(/^\u200b?\{\{([^{}]+)}}\u200b?/);
+    const match = src.match(/^\{\{([^{}]+)}}/);
     if (!match) {
       return;
     }
@@ -45,39 +45,26 @@ const variableSuggestionTokenizer: MarkdownTokenizer = {
  * Updated the prompt mention handling so TipTap now serializes mentions to {{var}} instead of [@ id="..." char="{"] and still renders them as violet badges.
  */
 const suggestionExtension = Mention.extend({
-  content: 'text*',
-  atom: false,
   markdownTokenName: TOKEN_NAME,
   markdownTokenizer: variableSuggestionTokenizer,
   parseMarkdown(token, helpers) {
-    const id = token.id ?? token.text;
-    const mentionNode = helpers.createNode(
+    const { id } = token;
+    return helpers.createNode(
       'mention',
       {
         id,
-        label: id,
         mentionSuggestionChar: suggestion.char,
       },
       [helpers.createTextNode(id)]
     );
-    return [helpers.createTextNode('\u200b'), mentionNode, helpers.createTextNode('\u200b')];
   },
   renderMarkdown(node) {
-    const content = node.content;
-    const textContent = Array.isArray(content) ? content.map((child) => child.text).join('') : '';
-    const label = (textContent || node.attrs?.label || node.attrs?.id || '').replace(/\u200b/g, '');
+    const label = node.attrs?.id;
     return label ? `{{${label}}}` : '';
   },
-  renderHTML() {
-    return [
-      'span',
-      {
-        class: cn(badgeVariants({ variant: 'violet' }), 'gap-0'),
-      },
-      '{{',
-      ['span', 0],
-      '}}',
-    ];
+  renderHTML({ node }) {
+    const className = badgeVariants({ variant: 'violet' });
+    return ['span', { class: className }, `{{${node.attrs.id}}}`];
   },
 }).configure({
   suggestion: {
@@ -87,13 +74,10 @@ const suggestionExtension = Mention.extend({
         .chain()
         .focus()
         .insertContentAt(range, [
-          { type: 'text', text: '\u200b' },
           {
             type: 'mention',
             attrs: { ...props, mentionSuggestionChar: suggestion.char },
-            content: [{ type: 'text', text: props.id }],
           },
-          { type: 'text', text: '\u200b' },
         ])
         .run();
       editor.view.dom.ownerDocument.defaultView?.getSelection()?.collapseToEnd();
