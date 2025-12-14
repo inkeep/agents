@@ -485,6 +485,7 @@ const config = defineConfig({
   agentsRunApi: {
     url: 'http://127.0.0.1:3003',
   },
+  manageUiUrl: 'http://localhost:3000',
 });
     
 export default config;`;
