@@ -89,7 +89,7 @@ const suggestionExtension = Mention.extend({
         .insertContentAt(range, [
           {
             type: 'mention',
-            attrs: { ...props, mentionSuggestionChar: suggestion.char },
+            attrs: props,
             content: [{ type: 'text', text: props.id }],
           },
         ])
