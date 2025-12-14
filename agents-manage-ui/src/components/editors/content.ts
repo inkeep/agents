@@ -67,17 +67,6 @@ const editor = new Editor({
 })
 \`\`\`
 
-### Mentions
-
-Hey, [@ id="Madonna"], have you seen [@ id="Tom Cruise"]?
-
-This demo supports **multi-mention** with different trigger characters:
-
-- User mentions with \`@\`: [@ id="Lea Thompson"] and [@ id="Cyndi Lauper"]
-- Tag mentions with \`#\`: [@ id="bug" char="#"] and [@ id="feature" char="#"]
-
-Try typing \`@\` or \`#\` in the editor to see suggestions!
-
 ### Try editing the markdown on the left:
 
 1. Edit the Markdown text

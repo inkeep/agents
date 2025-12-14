@@ -89,7 +89,6 @@
     "@tiptap/react": "^3.13.0",
     "@tiptap/starter-kit": "^3.13.0",
     "@tiptap/suggestion": "^3.13.0",
-    "@tiptap/extension-highlight": "^3.13.0",
     "@tiptap/extension-list": "^3.13.0",
     "@tiptap/extension-table": "^3.13.0",
     "@tiptap/extension-mention": "^3.13.0",

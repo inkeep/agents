@@ -1,6 +1,5 @@
 'use client';
 
-import { Highlight } from '@tiptap/extension-highlight';
 import { TaskItem, TaskList } from '@tiptap/extension-list';
 import { TableKit } from '@tiptap/extension-table';
 import { Markdown } from '@tiptap/markdown';
@@ -291,7 +290,6 @@ export const PromptEditor: FC<PromptEditorProps> = ({
       TaskItem.configure({ nested: true }),
       TableKit,
       variableSuggestionExtension,
-      Highlight,
     ],
     content: mdContent,
     contentType: isMarkdownMode ? 'markdown' : undefined,
