@@ -1,6 +1,6 @@
 'use client';
 
-import { createInlineMarkdownSpec, Extension, mergeAttributes } from '@tiptap/core';
+import { mergeAttributes, type MarkdownTokenizer, createInlineMarkdownSpec } from '@tiptap/core';
 import { Highlight } from '@tiptap/extension-highlight';
 import { TaskItem, TaskList } from '@tiptap/extension-list';
 import Mention from '@tiptap/extension-mention';
@@ -8,14 +8,11 @@ import { TableKit } from '@tiptap/extension-table';
 import { Markdown } from '@tiptap/markdown';
 import { EditorContent, useEditor } from '@tiptap/react';
 import StarterKit from '@tiptap/starter-kit';
-import Suggestion, { type SuggestionOptions } from '@tiptap/suggestion';
+import type { SuggestionOptions } from '@tiptap/suggestion';
 import { TextInitial } from 'lucide-react';
 import type { ComponentPropsWithoutRef, FC, RefObject } from 'react';
 import { useCallback, useImperativeHandle, useMemo } from 'react';
-import {
-  buildVariableItems,
-  type VariableListItem,
-} from '@/components/editors/tiptap/variable-list';
+import type { VariableListItem } from '@/components/editors/tiptap/variable-list';
 import { badgeVariants } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { useAgentActions, useAgentStore } from '@/features/agent/state/use-agent-store';
@@ -26,19 +23,21 @@ import { buildPromptContent } from './prompt-editor-utils';
 import { suggestion } from './tiptap/suggestion';
 import './prompt-editor.css';
 
-const VariableSuggestion = Extension.create<{
-  suggestion: Partial<SuggestionOptions<VariableListItem>>;
-}>({
-  name: 'variableSuggestion',
-  addProseMirrorPlugins() {
-    return [
-      Suggestion<VariableListItem>({
-        editor: this.editor,
-        ...this.options.suggestion,
-      }),
-    ];
+const variableMentionTokenizer: MarkdownTokenizer = {
+  name: 'variableMention',
+  level: 'inline',
+  start: (src) => src.indexOf('{{'),
+  tokenize(src) {
+    const match = src.match(/^\{\{([^{}]+)}}/);
+    if (!match) return;
+    const [, id] = match;
+    return {
+      type: 'variableMention',
+      raw: match[0],
+      id: id.trim(),
+    };
   },
-});
+};
 
 const allowEmptyBraceOnly: SuggestionOptions<VariableListItem>['allow'] = ({
   state,
@@ -57,15 +56,59 @@ const allowEmptyBraceOnly: SuggestionOptions<VariableListItem>['allow'] = ({
   return nextChar.length === 0 || /\s/.test(nextChar);
 };
 
-const suggestionExtension = VariableSuggestion.configure({
+const suggestionExtension = Mention.extend({
+  markdownTokenName: 'variableMention',
+  markdownTokenizer: variableMentionTokenizer,
+  parseMarkdown(token, helpers) {
+    if (token.type !== 'variableMention') return null;
+    const id = (token.id ?? token.text ?? '').trim();
+    if (!id) return null;
+    return {
+      type: 'node',
+      node: helpers.createNode('mention', {
+        id,
+        label: id,
+        mentionSuggestionChar: '{',
+      }),
+    };
+  },
+  renderMarkdown({ attrs }) {
+    const label = attrs?.label ?? attrs?.id;
+    return label ? `{{${label}}}` : '';
+  },
+  renderText({ node }) {
+    const label = node.attrs.label ?? node.attrs.id;
+    return `{{${label}}}`;
+  },
+  renderHTML({ options = {}, node }) {
+    const label = node.attrs.label ?? node.attrs.id;
+    return [
+      'span',
+      mergeAttributes(options.HTMLAttributes, {
+        class: badgeVariants({ variant: 'violet' }),
+        contenteditable: true,
+      }),
+      `{{${label}}}`,
+    ];
+  },
+}).configure({
   suggestion: {
-    char: '{',
-    items: buildVariableItems,
-    command({ editor, range, props }) {
-      editor.chain().focus().insertContentAt(range, `{{${props.id}}}`).run();
-    },
-    render: suggestion.render,
+    ...suggestion,
     allow: allowEmptyBraceOnly,
+    command({ editor, range, props }) {
+      const triggerChar = suggestion.char ?? '{';
+      editor
+        .chain()
+        .focus()
+        .insertContentAt(range, [
+          {
+            type: 'mention',
+            attrs: { ...props, mentionSuggestionChar: triggerChar },
+          },
+        ])
+        .run();
+      editor.view.dom.ownerDocument.defaultView?.getSelection()?.collapseToEnd();
+    },
   },
 });
 
@@ -123,6 +166,7 @@ const mentionExtension = Mention.configure({
     ];
   },
 });
+
 // console.log(mentionExtension);
 // mentionExtension.config = {
 //   ...mentionExtension.config,
