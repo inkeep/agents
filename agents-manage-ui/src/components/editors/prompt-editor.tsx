@@ -1,6 +1,6 @@
 'use client';
 
-import { mergeAttributes, type MarkdownTokenizer, createInlineMarkdownSpec } from '@tiptap/core';
+import type { MarkdownTokenizer } from '@tiptap/core';
 import { Highlight } from '@tiptap/extension-highlight';
 import { TaskItem, TaskList } from '@tiptap/extension-list';
 import Mention from '@tiptap/extension-mention';
@@ -8,11 +8,9 @@ import { TableKit } from '@tiptap/extension-table';
 import { Markdown } from '@tiptap/markdown';
 import { EditorContent, useEditor } from '@tiptap/react';
 import StarterKit from '@tiptap/starter-kit';
-import type { SuggestionOptions } from '@tiptap/suggestion';
 import { TextInitial } from 'lucide-react';
 import type { ComponentPropsWithoutRef, FC, RefObject } from 'react';
 import { useCallback, useImperativeHandle, useMemo } from 'react';
-import type { VariableListItem } from '@/components/editors/tiptap/variable-list';
 import { badgeVariants } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { useAgentActions, useAgentStore } from '@/features/agent/state/use-agent-store';
@@ -23,54 +21,36 @@ import { buildPromptContent } from './prompt-editor-utils';
 import { suggestion } from './tiptap/suggestion';
 import './prompt-editor.css';
 
-const variableMentionTokenizer: MarkdownTokenizer = {
-  name: 'variableMention',
+const TOKEN_NAME = 'variableSuggestion';
+
+const variableSuggestionTokenizer: MarkdownTokenizer = {
+  name: TOKEN_NAME,
   level: 'inline',
   start: (src) => src.indexOf('{{'),
   tokenize(src) {
     const match = src.match(/^\{\{([^{}]+)}}/);
-    if (!match) return;
-    const [, id] = match;
+    if (!match) {
+      return;
+    }
+    const [raw, id] = match;
     return {
-      type: 'variableMention',
-      raw: match[0],
+      type: TOKEN_NAME,
+      raw,
       id: id.trim(),
     };
   },
 };
 
-const allowEmptyBraceOnly: SuggestionOptions<VariableListItem>['allow'] = ({
-  state,
-  range,
-  isActive,
-}) => {
-  if (isActive) {
-    return true;
-  }
-  const matchedText = state.doc.textBetween(range.from, range.to);
-  if (matchedText !== '{') {
-    return false;
-  }
-  const nextPosition = Math.min(range.to + 1, state.doc.content.size);
-  const nextChar = state.doc.textBetween(range.to, nextPosition);
-  return nextChar.length === 0 || /\s/.test(nextChar);
-};
-
 const suggestionExtension = Mention.extend({
-  markdownTokenName: 'variableMention',
-  markdownTokenizer: variableMentionTokenizer,
+  markdownTokenName: TOKEN_NAME,
+  markdownTokenizer: variableSuggestionTokenizer,
   parseMarkdown(token, helpers) {
-    if (token.type !== 'variableMention') return null;
-    const id = (token.id ?? token.text ?? '').trim();
-    if (!id) return null;
-    return {
-      type: 'node',
-      node: helpers.createNode('mention', {
-        id,
-        label: id,
-        mentionSuggestionChar: '{',
-      }),
-    };
+    const id = token.id ?? token.text;
+    return helpers.createNode('mention', {
+      id,
+      label: id,
+      mentionSuggestionChar: '{',
+    });
   },
   renderMarkdown({ attrs }) {
     const label = attrs?.label ?? attrs?.id;
@@ -80,98 +60,14 @@ const suggestionExtension = Mention.extend({
     const label = node.attrs.label ?? node.attrs.id;
     return `{{${label}}}`;
   },
-  renderHTML({ options = {}, node }) {
+  renderHTML({ node }) {
     const label = node.attrs.label ?? node.attrs.id;
-    return [
-      'span',
-      mergeAttributes(options.HTMLAttributes, {
-        class: badgeVariants({ variant: 'violet' }),
-        contenteditable: true,
-      }),
-      `{{${label}}}`,
-    ];
+    const className = badgeVariants({ variant: 'violet' });
+    return ['span', { class: className }, `{{${label}}}`];
   },
 }).configure({
-  suggestion: {
-    ...suggestion,
-    allow: allowEmptyBraceOnly,
-    command({ editor, range, props }) {
-      const triggerChar = suggestion.char ?? '{';
-      editor
-        .chain()
-        .focus()
-        .insertContentAt(range, [
-          {
-            type: 'mention',
-            attrs: { ...props, mentionSuggestionChar: triggerChar },
-          },
-        ])
-        .run();
-      editor.view.dom.ownerDocument.defaultView?.getSelection()?.collapseToEnd();
-    },
-  },
-});
-
-const markdownSpec = createInlineMarkdownSpec({
-  nodeName: 'mention',
-  name: '@',
-  selfClosing: true,
-  allowedAttributes: ['id', 'label', { name: 'mentionSuggestionChar', skipIfDefault: '@' }],
-  parseAttributes(attrString) {
-    const attrs: Record<string, any> = {};
-    const regex = /(\w+)=(?:"([^"]*)"|'([^']*)')/g;
-    let match = regex.exec(attrString);
-
-    while (match !== null) {
-      const [, key, doubleQuoted, singleQuoted] = match;
-      const value = doubleQuoted ?? singleQuoted;
-      attrs[key === 'char' ? 'mentionSuggestionChar' : key] = value;
-      match = regex.exec(attrString);
-    }
-    console.log(attrs);
-    return attrs;
-  },
-  serializeAttributes(attrs) {
-    const result = Object.entries(attrs)
-      .filter(([, value]) => value !== undefined && value !== null)
-      .map(([key, value]) => {
-        const serializedKey = key === 'mentionSuggestionChar' ? 'char' : key;
-        return `${serializedKey}="${value}"`;
-      })
-      .join(' ');
-    console.log({ result });
-    return result;
-  },
-});
-
-const mentionExtension = Mention.configure({
-  // HTMLAttributes: {
-  //   class: ,
-  // },
   suggestion,
-  renderText() {
-    console.log('renderText called');
-    return 'foofffff';
-  },
-  renderHTML({ options, node }) {
-    return [
-      'b',
-      {
-        // ...options.HTMLAttributes,
-        class: badgeVariants({ variant: 'violet' }),
-        contenteditable: true,
-        // 'data-mention-suggestion-char': undefined,
-      },
-      `{{${node.attrs.label ?? node.attrs.id}}}`,
-    ];
-  },
 });
-
-// console.log(mentionExtension);
-// mentionExtension.config = {
-//   ...mentionExtension.config,
-//   ...markdownSpec,
-// };
 
 interface PromptEditorProps extends Omit<ComponentPropsWithoutRef<'div'>, 'onChange'> {
   value?: string;
@@ -441,7 +337,6 @@ export const PromptEditor: FC<PromptEditorProps> = ({
       TableKit,
       suggestionExtension,
       Highlight,
-      // mentionExtension,
     ],
     content: isMarkdownMode ? mdContent : formattedContent,
     contentType: isMarkdownMode ? 'markdown' : undefined,
