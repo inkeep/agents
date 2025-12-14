@@ -1,89 +1,22 @@
 'use client';
 
-import type { MarkdownTokenizer } from '@tiptap/core';
 import { Highlight } from '@tiptap/extension-highlight';
 import { TaskItem, TaskList } from '@tiptap/extension-list';
-import Mention from '@tiptap/extension-mention';
 import { TableKit } from '@tiptap/extension-table';
 import { Markdown } from '@tiptap/markdown';
 import { EditorContent, useEditor } from '@tiptap/react';
-import StarterKit from '@tiptap/starter-kit';
+import { StarterKit } from '@tiptap/starter-kit';
 import { TextInitial } from 'lucide-react';
 import type { ComponentPropsWithoutRef, FC, RefObject } from 'react';
 import { useCallback, useImperativeHandle, useMemo } from 'react';
-import { badgeVariants } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { useAgentActions, useAgentStore } from '@/features/agent/state/use-agent-store';
 import { MarkdownIcon } from '@/icons';
 import { cn } from '@/lib/utils';
 import { mdContent } from './content';
 import { buildPromptContent } from './prompt-editor-utils';
-import { suggestion } from './tiptap/suggestion';
+import { variableSuggestionExtension } from './tiptap/variable-suggestion';
 import './prompt-editor.css';
-
-const TOKEN_NAME = 'variableSuggestion';
-
-const variableSuggestionTokenizer: MarkdownTokenizer = {
-  name: TOKEN_NAME,
-  level: 'inline',
-  start: (src) => src.indexOf('{{'),
-  tokenize(src) {
-    const match = src.match(/^\{\{([^{}]+)}}/);
-    if (!match) {
-      return;
-    }
-    const [raw, id] = match;
-    return {
-      type: TOKEN_NAME,
-      raw,
-      id: id.trim(),
-    };
-  },
-};
-
-/**
- * Updated the prompt mention handling so TipTap now serializes mentions to {{var}} instead of [@ id="..." char="{"] and still renders them as violet badges.
- */
-const suggestionExtension = Mention.extend({
-  markdownTokenName: TOKEN_NAME,
-  markdownTokenizer: variableSuggestionTokenizer,
-  parseMarkdown(token, helpers) {
-    const { id } = token;
-    return helpers.createNode(
-      'mention',
-      {
-        id,
-        mentionSuggestionChar: suggestion.char,
-      },
-      [helpers.createTextNode(id)]
-    );
-  },
-  renderMarkdown(node) {
-    const label = node.attrs?.id;
-    return label ? `{{${label}}}` : '';
-  },
-  renderHTML({ node }) {
-    const className = badgeVariants({ variant: 'violet' });
-    return ['span', { class: className }, `{{${node.attrs.id}}}`];
-  },
-}).configure({
-  suggestion: {
-    ...suggestion,
-    command({ editor, range, props }) {
-      editor
-        .chain()
-        .focus()
-        .insertContentAt(range, [
-          {
-            type: 'mention',
-            attrs: { ...props, mentionSuggestionChar: suggestion.char },
-          },
-        ])
-        .run();
-      editor.view.dom.ownerDocument.defaultView?.getSelection()?.collapseToEnd();
-    },
-  },
-});
 
 interface PromptEditorProps extends Omit<ComponentPropsWithoutRef<'div'>, 'onChange'> {
   value?: string;
@@ -351,7 +284,7 @@ export const PromptEditor: FC<PromptEditorProps> = ({
       TaskList,
       TaskItem.configure({ nested: true }),
       TableKit,
-      suggestionExtension,
+      variableSuggestionExtension,
       Highlight,
     ],
     content: isMarkdownMode ? mdContent : formattedContent,
