@@ -41,32 +41,65 @@ const variableSuggestionTokenizer: MarkdownTokenizer = {
   },
 };
 
+/**
+ * Updated the prompt mention handling so TipTap now serializes mentions to {{var}} instead of [@ id="..." char="{"] and still renders them as violet badges.
+ */
 const suggestionExtension = Mention.extend({
   markdownTokenName: TOKEN_NAME,
   markdownTokenizer: variableSuggestionTokenizer,
   parseMarkdown(token, helpers) {
     const id = token.id ?? token.text;
-    return helpers.createNode('mention', {
-      id,
-      label: id,
-      mentionSuggestionChar: '{',
-    });
+    return helpers.createNode(
+      'mention',
+      {
+        id,
+        label: id,
+        mentionSuggestionChar: suggestion.char,
+      },
+      [helpers.createTextNode(id)]
+    );
   },
-  renderMarkdown({ attrs }) {
-    const label = attrs?.label ?? attrs?.id;
+  renderMarkdown(node) {
+    const content = node.content;
+    const textContent = Array.isArray(content) ? content.map((child) => child.text).join('') : '';
+
+    const label = textContent || node.attrs?.label || node.attrs?.id;
     return label ? `{{${label}}}` : '';
   },
   renderText({ node }) {
     const label = node.attrs.label ?? node.attrs.id;
     return `{{${label}}}`;
   },
-  renderHTML({ node }) {
-    const label = node.attrs.label ?? node.attrs.id;
-    const className = badgeVariants({ variant: 'violet' });
-    return ['span', { class: className }, `{{${label}}}`];
+  renderHTML() {
+    return [
+      'span',
+      {
+        class: cn(badgeVariants({ variant: 'violet' }), 'gap-0'),
+        contenteditable: true,
+      },
+      '{{',
+      ['span', 0],
+      '}}',
+    ];
   },
 }).configure({
-  suggestion,
+  suggestion: {
+    ...suggestion,
+    command({ editor, range, props }) {
+      editor
+        .chain()
+        .focus()
+        .insertContentAt(range, [
+          {
+            type: 'mention',
+            attrs: { ...props, mentionSuggestionChar: suggestion.char },
+            content: [{ type: 'text', text: props.id }],
+          },
+        ])
+        .run();
+      editor.view.dom.ownerDocument.defaultView?.getSelection()?.collapseToEnd();
+    },
+  },
 });
 
 interface PromptEditorProps extends Omit<ComponentPropsWithoutRef<'div'>, 'onChange'> {
