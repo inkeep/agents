@@ -141,18 +141,5 @@ export const variableSuggestionExtension = Mention.extend({
         },
       };
     },
-    command({ editor, range, props }) {
-      editor
-        .chain()
-        .focus()
-        .insertContentAt(range, [
-          {
-            type: 'mention',
-            attrs: { ...props, mentionSuggestionChar: TRIGGER_CHAR },
-          },
-        ])
-        .run();
-      editor.view.dom.ownerDocument.defaultView?.getSelection()?.collapseToEnd();
-    },
   },
 });
