@@ -1,12 +1,12 @@
+import type { SuggestionOptions, SuggestionProps } from '@tiptap/suggestion';
+import type { FC, RefObject } from 'react';
+import { useCallback, useImperativeHandle, useState } from 'react';
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import type { SuggestionOptions, SuggestionProps } from '@tiptap/suggestion';
-import type { FC, RefObject } from 'react';
-import { useCallback, useImperativeHandle, useState } from 'react';
 import { monacoStore } from '@/features/agent/state/use-monaco-store';
 import { cn } from '@/lib/utils';
 

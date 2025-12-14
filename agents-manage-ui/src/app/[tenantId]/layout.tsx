@@ -38,7 +38,7 @@ export default function Layout({ children }: LayoutProps<'/[tenantId]'>) {
   }, [contextConfig, setVariableSuggestions]);
 
   useEffect(() => {
-    setMonaco()
+    setMonaco();
   }, [setMonaco]);
 
   useEffect(() => {

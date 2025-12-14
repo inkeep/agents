@@ -1,6 +1,6 @@
 import { autoUpdate, computePosition, flip, type ReferenceElement, shift } from '@floating-ui/dom';
-import { posToDOMRect, ReactRenderer } from '@tiptap/react';
 import type { MentionOptions } from '@tiptap/extension-mention';
+import { posToDOMRect, ReactRenderer } from '@tiptap/react';
 import {
   buildVariableItems,
   VariableList,
