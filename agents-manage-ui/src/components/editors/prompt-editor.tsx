@@ -1,20 +1,23 @@
 'use client';
 
-import { EditorContent, useEditor } from '@tiptap/react';
-import StarterKit from '@tiptap/starter-kit';
-import type { ComponentPropsWithoutRef, FC, RefObject } from 'react';
-import { useCallback, useImperativeHandle, useMemo } from 'react';
-import { cn } from '@/lib/utils';
-import { buildPromptContent } from './prompt-editor-utils';
-import Mention from '@tiptap/extension-mention';
+import { createInlineMarkdownSpec, mergeAttributes } from '@tiptap/core';
 import { Highlight } from '@tiptap/extension-highlight';
 import { TaskItem, TaskList } from '@tiptap/extension-list';
+import Mention from '@tiptap/extension-mention';
 import { TableKit } from '@tiptap/extension-table';
 import { Markdown } from '@tiptap/markdown';
-import { Button } from '@/components/ui/button';
+import { EditorContent, useEditor } from '@tiptap/react';
+import StarterKit from '@tiptap/starter-kit';
 import { TextInitial } from 'lucide-react';
-import { MarkdownIcon } from '@/icons';
+import type { ComponentPropsWithoutRef, FC, RefObject } from 'react';
+import { useCallback, useImperativeHandle, useMemo } from 'react';
+import { badgeVariants } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
 import { useAgentActions, useAgentStore } from '@/features/agent/state/use-agent-store';
+import { MarkdownIcon } from '@/icons';
+import { cn } from '@/lib/utils';
+import { mdContent } from './content';
+import { buildPromptContent } from './prompt-editor-utils';
 import { suggestion } from './tiptap/suggestion';
 import './prompt-editor.css';
 
