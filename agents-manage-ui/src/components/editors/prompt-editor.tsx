@@ -45,6 +45,8 @@ const variableSuggestionTokenizer: MarkdownTokenizer = {
  * Updated the prompt mention handling so TipTap now serializes mentions to {{var}} instead of [@ id="..." char="{"] and still renders them as violet badges.
  */
 const suggestionExtension = Mention.extend({
+  content: 'text*',
+  atom: false,
   markdownTokenName: TOKEN_NAME,
   markdownTokenizer: variableSuggestionTokenizer,
   parseMarkdown(token, helpers) {
@@ -66,16 +68,11 @@ const suggestionExtension = Mention.extend({
     const label = textContent || node.attrs?.label || node.attrs?.id;
     return label ? `{{${label}}}` : '';
   },
-  renderText({ node }) {
-    const label = node.attrs.label ?? node.attrs.id;
-    return `{{${label}}}`;
-  },
   renderHTML() {
     return [
       'span',
       {
         class: cn(badgeVariants({ variant: 'violet' }), 'gap-0'),
-        contenteditable: true,
       },
       '{{',
       ['span', 0],
