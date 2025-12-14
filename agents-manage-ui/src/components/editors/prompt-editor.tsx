@@ -302,7 +302,19 @@ export const PromptEditor: FC<PromptEditorProps> = ({
         editor?.chain().focus('end').run();
       },
       insertVariableTrigger() {
-        // editor?.chain().focus().insertContent('{').run();
+        if (!editor) {
+          return;
+        }
+        const { from } = editor.state.selection;
+        // Get the character **before** caret
+        const charBefore = editor.state.doc.textBetween(from - 1, from);
+
+        editor
+          .chain()
+          .focus()
+          // @tiptap/extension-mention don't show dropdown if there is some character before, we insert space to fix it
+          .insertContent(charBefore ? ' {' : '{')
+          .run();
       },
     }),
     [editor]
