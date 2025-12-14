@@ -1,6 +1,6 @@
 'use client';
 
-import { createInlineMarkdownSpec, mergeAttributes } from '@tiptap/core';
+import { createInlineMarkdownSpec, Extension, mergeAttributes } from '@tiptap/core';
 import { Highlight } from '@tiptap/extension-highlight';
 import { TaskItem, TaskList } from '@tiptap/extension-list';
 import Mention from '@tiptap/extension-mention';
@@ -8,9 +8,11 @@ import { TableKit } from '@tiptap/extension-table';
 import { Markdown } from '@tiptap/markdown';
 import { EditorContent, useEditor } from '@tiptap/react';
 import StarterKit from '@tiptap/starter-kit';
+import Suggestion, { SuggestionOptions } from '@tiptap/suggestion';
 import { TextInitial } from 'lucide-react';
 import type { ComponentPropsWithoutRef, FC, RefObject } from 'react';
 import { useCallback, useImperativeHandle, useMemo } from 'react';
+import { buildVariableItems, VariableListItem } from '@/components/editors/tiptap/variable-list';
 import { badgeVariants } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { useAgentActions, useAgentStore } from '@/features/agent/state/use-agent-store';
@@ -22,12 +24,12 @@ import { suggestion } from './tiptap/suggestion';
 import './prompt-editor.css';
 
 const VariableSuggestion = Extension.create<{
-  suggestion: Partial<SuggestionOptions<VariableSuggestionItem>>;
+  suggestion: Partial<SuggestionOptions<VariableListItem>>;
 }>({
   name: 'variableSuggestion',
   addProseMirrorPlugins() {
     return [
-      Suggestion<VariableSuggestionItem>({
+      Suggestion<VariableListItem>({
         editor: this.editor,
         ...this.options.suggestion,
       }),
@@ -35,46 +37,65 @@ const VariableSuggestion = Extension.create<{
   },
 });
 
-const buildVariableItems: SuggestionOptions['items'] = ({ query }) => {
-  const { variableSuggestions } = monacoStore.getState();
+const markdownSpec = createInlineMarkdownSpec({
+  nodeName: 'mention',
+  name: '@',
+  selfClosing: true,
+  allowedAttributes: ['id', 'label', { name: 'mentionSuggestionChar', skipIfDefault: '@' }],
+  parseAttributes(attrString) {
+    const attrs: Record<string, any> = {};
+    const regex = /(\w+)=(?:"([^"]*)"|'([^']*)')/g;
+    let match = regex.exec(attrString);
 
-  const normalized = query.toLowerCase();
-  const entries = new Map<string, VariableSuggestionItem>();
-
-  for (const label of variableSuggestions) {
-    if (label.toLowerCase().includes(normalized)) {
-      entries.set(label, { label, detail: 'Context variable' });
+    while (match !== null) {
+      const [, key, doubleQuoted, singleQuoted] = match;
+      const value = doubleQuoted ?? singleQuoted;
+      attrs[key === 'char' ? 'mentionSuggestionChar' : key] = value;
+      match = regex.exec(attrString);
     }
-  }
+    console.log(attrs);
+    return attrs;
+  },
+  serializeAttributes(attrs) {
+    const result = Object.entries(attrs)
+      .filter(([, value]) => value !== undefined && value !== null)
+      .map(([key, value]) => {
+        const serializedKey = key === 'mentionSuggestionChar' ? 'char' : key;
+        return `${serializedKey}="${value}"`;
+      })
+      .join(' ');
+    console.log({ result });
+    return result;
+  },
+});
 
-  return [...entries.values(), { label: '$env.', detail: 'Environment variable' }];
-};
-
-const createSuggestionRenderer: SuggestionOptions['render'] = () => {
-  return {
-    onStart(startProps) {
-      console.log('on start');
-      const component = new ReactRenderer(VariableList, {
-        props: startProps,
-        editor: startProps.editor,
-      });
-      // startProps.decorationNode?.append(popupElement);
-
-      const popupElement = document.createElement('div');
-      popupElement.append(component.element);
-      popupElement.style.position = 'absolute';
-      document.body.append(popupElement);
-
-      const clientRect = startProps.clientRect?.();
-      if (!clientRect) return;
-      popupElement.style.left = `${clientRect.left}px`;
-      popupElement.style.top = `${clientRect.bottom}px`;
-    },
-    onExit() {
-      console.log('on exit');
-    },
-  };
-};
+const mentionExtension = Mention.configure({
+  // HTMLAttributes: {
+  //   class: ,
+  // },
+  suggestion,
+  renderText() {
+    console.log('renderText called');
+    return 'foofffff';
+  },
+  renderHTML({ options, node }) {
+    return [
+      'b',
+      {
+        // ...options.HTMLAttributes,
+        class: badgeVariants({ variant: 'violet' }),
+        contenteditable: true,
+        // 'data-mention-suggestion-char': undefined,
+      },
+      `{{${node.attrs.label ?? node.attrs.id}}}`,
+    ];
+  },
+});
+// console.log(mentionExtension);
+// mentionExtension.config = {
+//   ...mentionExtension.config,
+//   ...markdownSpec,
+// };
 
 interface PromptEditorProps extends Omit<ComponentPropsWithoutRef<'div'>, 'onChange'> {
   value?: string;
@@ -327,12 +348,11 @@ export const PromptEditor: FC<PromptEditorProps> = ({
           command({ editor, range, props }) {
             editor.chain().focus().insertContentAt(range, `{{${props.label}}}`).run();
           },
-          render: createSuggestionRenderer,
+          render: suggestion.render,
         },
       }),
     []
   );
-
   const editor = useEditor({
     immediatelyRender: false, // needs for SSR
     editorProps: {
@@ -358,8 +378,9 @@ export const PromptEditor: FC<PromptEditorProps> = ({
       TaskList,
       TaskItem.configure({ nested: true }),
       TableKit,
+      suggestionExtension,
       Highlight,
-      mentionExtension,
+      // mentionExtension,
     ],
     content: isMarkdownMode ? mdContent : formattedContent,
     contentType: isMarkdownMode ? 'markdown' : undefined,

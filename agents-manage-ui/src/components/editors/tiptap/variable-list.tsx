@@ -10,7 +10,7 @@ import {
 import { monacoStore } from '@/features/agent/state/use-monaco-store';
 import { cn } from '@/lib/utils';
 
-type VariableListItem = string;
+export type VariableListItem = string;
 
 export type VariableListRef = {
   onKeyDown: (props: { event: KeyboardEvent }) => boolean;
