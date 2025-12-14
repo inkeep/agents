@@ -8,11 +8,14 @@ import { TableKit } from '@tiptap/extension-table';
 import { Markdown } from '@tiptap/markdown';
 import { EditorContent, useEditor } from '@tiptap/react';
 import StarterKit from '@tiptap/starter-kit';
-import Suggestion, { SuggestionOptions } from '@tiptap/suggestion';
+import Suggestion, { type SuggestionOptions } from '@tiptap/suggestion';
 import { TextInitial } from 'lucide-react';
 import type { ComponentPropsWithoutRef, FC, RefObject } from 'react';
 import { useCallback, useImperativeHandle, useMemo } from 'react';
-import { buildVariableItems, VariableListItem } from '@/components/editors/tiptap/variable-list';
+import {
+  buildVariableItems,
+  type VariableListItem,
+} from '@/components/editors/tiptap/variable-list';
 import { badgeVariants } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { useAgentActions, useAgentStore } from '@/features/agent/state/use-agent-store';
@@ -34,6 +37,35 @@ const VariableSuggestion = Extension.create<{
         ...this.options.suggestion,
       }),
     ];
+  },
+});
+
+const allowEmptyBraceOnly: SuggestionOptions<VariableListItem>['allow'] = ({
+  state,
+  range,
+  isActive,
+}) => {
+  if (isActive) {
+    return true;
+  }
+  const matchedText = state.doc.textBetween(range.from, range.to);
+  if (matchedText !== '{') {
+    return false;
+  }
+  const nextPosition = Math.min(range.to + 1, state.doc.content.size);
+  const nextChar = state.doc.textBetween(range.to, nextPosition);
+  return nextChar.length === 0 || /\s/.test(nextChar);
+};
+
+const suggestionExtension = VariableSuggestion.configure({
+  suggestion: {
+    char: '{',
+    items: buildVariableItems,
+    command({ editor, range, props }) {
+      editor.chain().focus().insertContentAt(range, `{{${props.id}}}`).run();
+    },
+    render: suggestion.render,
+    allow: allowEmptyBraceOnly,
   },
 });
 
@@ -338,21 +370,6 @@ export const PromptEditor: FC<PromptEditorProps> = ({
   const isMarkdownMode = useAgentStore((state) => state.isMarkdownEditor);
   const formattedContent = useMemo(() => buildPromptContent(mdContent), []);
 
-  const suggestionExtension = useMemo(
-    () =>
-      VariableSuggestion.configure({
-        suggestion: {
-          char: '{',
-          allowSpaces: true,
-          items: buildVariableItems,
-          command({ editor, range, props }) {
-            editor.chain().focus().insertContentAt(range, `{{${props.label}}}`).run();
-          },
-          render: suggestion.render,
-        },
-      }),
-    []
-  );
   const editor = useEditor({
     immediatelyRender: false, // needs for SSR
     editorProps: {
