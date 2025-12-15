@@ -14,13 +14,19 @@ describe('Create Agent', () => {
     // 2. "Create agent" text (agent list view)
     cy.contains(/New Agent|Create agent/i, { timeout: 15000 })
       .should('be.visible')
+      .should('not.be.disabled')
       .click();
+    // Wait for dialog to appear
+    cy.get('[role=dialog]', { timeout: 15000 }).should('be.visible');
   };
 
   beforeEach(() => {
     cy.visit(baseUrl);
     // Wait for page content to be visible before proceeding
     cy.get('main', { timeout: 15000 }).should('be.visible');
+    // Wait for React hydration to complete in CI headless mode
+    // eslint-disable-next-line cypress/no-unnecessary-waiting
+    cy.wait(500);
   });
 
   after(() => {
@@ -34,8 +40,6 @@ describe('Create Agent', () => {
     const agentId = `test-agent-${randomId()}`;
 
     openNewAgentDialog();
-    cy.get('[role=dialog]', { timeout: 15000 }).should('be.visible');
-    cy.wait(300);
 
     cy.get('[role=dialog]').within(() => {
       cy.get('input[name="name"]').clear({ force: true }).type(agentName, { force: true });
@@ -54,8 +58,6 @@ describe('Create Agent', () => {
 
   it('should show validation errors for empty required fields', () => {
     openNewAgentDialog();
-    cy.get('[role=dialog]', { timeout: 15000 }).should('be.visible');
-    cy.wait(300);
 
     cy.get('[role=dialog]').within(() => {
       cy.get('input[name="name"]').clear({ force: true });
@@ -69,8 +71,6 @@ describe('Create Agent', () => {
 
   it('should show validation error for invalid id format', () => {
     openNewAgentDialog();
-    cy.get('[role=dialog]', { timeout: 15000 }).should('be.visible');
-    cy.wait(300);
 
     cy.get('[role=dialog]').within(() => {
       cy.get('input[name="name"]').clear({ force: true }).type('Test Agent', { force: true });
@@ -88,8 +88,6 @@ describe('Create Agent', () => {
     const agentId = `test-agent-${randomId()}`;
 
     openNewAgentDialog();
-    cy.get('[role=dialog]', { timeout: 15000 }).should('be.visible');
-    cy.wait(300);
 
     cy.get('[role=dialog]').within(() => {
       cy.get('input[name="name"]').clear({ force: true }).type(agentName, { force: true });
@@ -101,11 +99,10 @@ describe('Create Agent', () => {
     createdAgents.push(agentId);
 
     cy.visit(baseUrl);
-    cy.wait(1000);
+    // eslint-disable-next-line cypress/no-unnecessary-waiting
+    cy.wait(500);
 
     openNewAgentDialog();
-    cy.get('[role=dialog]', { timeout: 15000 }).should('be.visible');
-    cy.wait(500);
 
     cy.get('[role=dialog]').within(() => {
       cy.get('input[name="name"]').clear({ force: true }).type('Different Name', { force: true });
@@ -113,6 +110,7 @@ describe('Create Agent', () => {
       cy.contains('button', 'Create agent').click({ force: true });
     });
 
+    // eslint-disable-next-line cypress/no-unnecessary-waiting
     cy.wait(500);
     cy.get('[data-sonner-toast]', { timeout: 10000 }).should('exist');
     cy.contains(/already exists|Failed to create agent/i, { timeout: 10000 }).should('exist');
