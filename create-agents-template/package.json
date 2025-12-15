@@ -42,7 +42,8 @@
   "packageManager": "pnpm@10.10.0",
   "pnpm": {
     "overrides": {
-      "next": "^16.0.8"
+      "next": "^16.0.8",
+      "@modelcontextprotocol/sdk": "1.24.3"
     },
     "onlyBuiltDependencies": [
       "keytar"
