@@ -7,7 +7,7 @@ import { EditorContent, type UseEditorOptions, useEditor } from '@tiptap/react';
 import { StarterKit } from '@tiptap/starter-kit';
 import { TextInitial } from 'lucide-react';
 import type { ComponentPropsWithoutRef, FC, RefObject } from 'react';
-import { useCallback, useImperativeHandle } from 'react';
+import { useCallback, useImperativeHandle, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { useAgentActions, useAgentStore } from '@/features/agent/state/use-agent-store';
 import { MarkdownIcon } from '@/icons';
@@ -29,7 +29,7 @@ interface PromptEditorProps extends Omit<ComponentPropsWithoutRef<'div'>, 'onCha
 
 const editorOptions: UseEditorOptions = {
   parseOptions: {
-    // do not collapse new lines
+    // do not collapse new lines in text editor
     preserveWhitespace: 'full',
   },
 };
@@ -240,17 +240,6 @@ export const PromptEditor2: FC<PromptEditorProps> = ({
     />
   );
 };
-
-import { Highlight } from '@tiptap/extension-highlight';
-import { TaskItem, TaskList } from '@tiptap/extension-list';
-import { TableKit } from '@tiptap/extension-table';
-import { Markdown } from '@tiptap/markdown';
-import { Button } from '@/components/ui/button';
-import { TextInitial } from 'lucide-react';
-import { MarkdownIcon } from '@/icons';
-import { mdContent } from './content';
-import { useAgentActions, useAgentStore } from '@/features/agent/state/use-agent-store';
-import './prompt-editor.css';
 
 export const PromptEditor: FC<PromptEditorProps> = ({
   className,
