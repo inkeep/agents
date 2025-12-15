@@ -342,7 +342,7 @@ Use technical language appropriate to the customer's expertise level.`,
 
 Always verify customer identity before discussing account details.`,
           canUse: [{ toolId: 'zendesk-integration' }, { toolId: 'priority-calculator' }],
-          canDelegateTo: [{ externalAgentId: 'billing-system' }],
+          canDelegateTo: [{ externalAgentId: 'billing-system', subAgentExternalAgentRelationId: 'billing-system-relation' }],
           dataComponents: ['customer-profile', 'ticket-context'],
         },
 
