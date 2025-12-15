@@ -252,45 +252,10 @@ export class McpClient {
         };
 
         const schema = createZodSchema(def.inputSchema);
-
-        // Enhance description with strong JSON formatting guidance
-        let enhancedDescription = def.description || '';
-        enhancedDescription += `
-
-## CRITICAL: Parameter Formatting Requirements
-
-**All object parameters must be passed as JSON objects, not as stringified JSON.**
-
-### Correct Format:
-\`\`\`json
-{
-  "parent": {"page_id": "abc123"},
-  "pages": [{"properties": {"title": "Example"}}]
-}
-\`\`\`
-
-### Incorrect Format:
-\`\`\`json
-{
-  "parent": "{\\"page_id\\": \\"abc123\\"}",
-  "pages": "[{\\"properties\\": {\\"title\\": \\"Example\\"}}]"
-}
-\`\`\`
-
-**This is a strict API requirement. Tools will fail with malformed JSON strings.**`;
-        
-        // Log for debugging - confirm our guidance is being applied
-        console.log(`[MCP-CLIENT] Enhanced tool ${def.name} with JSON formatting guidance`);
-        if (def.name === 'notion-create-pages') {
-          console.log(`[MCP-CLIENT] notion-create-pages description length: ${enhancedDescription.length}`);
-          console.log(`[MCP-CLIENT] Contains CRITICAL guidance: ${enhancedDescription.includes('CRITICAL')}`);
-          console.log(`[MCP-CLIENT] Contains markdown guidance: ${enhancedDescription.includes('## CRITICAL')}`);
-          console.log(`[MCP-CLIENT] Last 200 chars:`, enhancedDescription.slice(-200));
-        }
         
         const createdTool = tool({
           id: `${this.name}.${def.name}` as const,
-          description: enhancedDescription,
+          description: def.description || '',
           inputSchema: schema,
           execute: async (context) => {
             const result = await this.client.callTool(

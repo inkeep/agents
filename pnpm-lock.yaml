@@ -1017,6 +1017,9 @@ importers:
       better-auth:
         specifier: ^1.4.0
         version: 1.4.5(next@16.0.10(@opentelemetry/api@1.9.0)(react-dom@19.2.0(react@19.2.0))(react@19.2.0))(react-dom@19.2.0(react@19.2.0))(react@19.2.0)
+      destr:
+        specifier: ^2.0.3
+        version: 2.0.5
       dotenv:
         specifier: ^17.2.1
         version: 17.2.3
@@ -1056,6 +1059,9 @@ importers:
       pino-pretty:
         specifier: ^13.1.1
         version: 13.1.3
+      traverse:
+        specifier: ^0.6.10
+        version: 0.6.11
       ts-pattern:
         specifier: ^5.7.1
         version: 5.9.0
@@ -1072,6 +1078,9 @@ importers:
       '@types/pg':
         specifier: ^8.15.6
         version: 8.15.6
+      '@types/traverse':
+        specifier: ^0.6.37
+        version: 0.6.37
       '@vitest/coverage-v8':
         specifier: ^3.2.4
         version: 3.2.4(vitest@3.2.4(@types/debug@4.1.12)(@types/node@20.19.25)(jiti@2.6.1)(jsdom@26.1.0)(lightningcss@1.30.2)(tsx@4.21.0)(yaml@2.8.2))

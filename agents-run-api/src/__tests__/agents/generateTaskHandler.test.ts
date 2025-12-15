@@ -8,7 +8,7 @@ import {
   serializeTaskHandlerConfig,
   type TaskHandlerConfig,
 } from '../../agents/generateTaskHandler';
-import { parseEmbeddedJson } from '../../utils/json-parser';
+import { parseEmbeddedJson } from '@inkeep/agents-core';
 
 // Mock @inkeep/agents-core functions using hoisted pattern
 const {
