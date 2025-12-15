@@ -115,14 +115,16 @@ export const PromptEditor: FC<PromptEditorProps> = ({
   value,
   'aria-invalid': ariaInvalid,
   placeholder,
+  autoFocus,
 }) => {
   const { toggleMarkdownEditor } = useAgentActions();
   const isMarkdownMode = useAgentStore((state) => state.isMarkdownEditor);
 
   const editor = useEditor({
     ...editorOptions,
-    // Tiptap Error: SSR has been detected, please set `immediatelyRender` explicitly to `false` to avoid hydration mismatches.
-    immediatelyRender: false,
+    autofocus: autoFocus,
+    // to see placeholder on initial rendering
+    immediatelyRender: true,
     editorProps: {
       attributes: {
         class: cn(
