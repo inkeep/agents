@@ -1151,19 +1151,6 @@ export async function GET(
       }
     }
 
-    // Helper to get context breakdown for a span (check self and parent)
-    const getContextBreakdownForSpan = (spanId: string): ContextBreakdownData | undefined => {
-      // Check if this span has context breakdown
-      if (spanIdToContextBreakdown.has(spanId)) {
-        return spanIdToContextBreakdown.get(spanId);
-      }
-      // Check parent span
-      const parentId = spanIdToParentSpanId.get(spanId);
-      if (parentId && spanIdToContextBreakdown.has(parentId)) {
-        return spanIdToContextBreakdown.get(parentId);
-      }
-      return undefined;
-    };
 
     // activities
     type Activity = {
@@ -1490,8 +1477,7 @@ export async function GET(
         otelStatusDescription: hasError ? otelStatusDescription || statusMessage : undefined,
         subAgentId: getString(span, SPAN_KEYS.SUB_AGENT_ID, ACTIVITY_NAMES.UNKNOWN_AGENT),
         subAgentName: getString(span, SPAN_KEYS.SUB_AGENT_NAME, ACTIVITY_NAMES.UNKNOWN_AGENT),
-        // Include context breakdown directly from this span (agent.generate has the breakdown attributes)
-        contextBreakdown: getContextBreakdownForSpan(agentGeneration),
+        contextBreakdown: spanIdToContextBreakdown.get(agentGeneration),
       });
     }
 
