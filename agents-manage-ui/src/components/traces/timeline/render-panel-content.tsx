@@ -63,10 +63,10 @@ function ContextBreakdownPanel({ breakdown }: { breakdown: ContextBreakdown }) {
     <LabeledBlock label="Context token breakdown">
       <div className="space-y-3">
         {/* Total */}
-        <div className="flex items-baseline justify-between">
-          <span className="text-lg font-semibold text-foreground">
+        <div className="flex items-center justify-between">
+          <Badge variant="code" className="text-sm font-semibold">
             ~{breakdown.total.toLocaleString()} tokens
-          </span>
+          </Badge>
           <span className="text-xs text-muted-foreground">estimated</span>
         </div>
 
@@ -541,7 +541,6 @@ export function renderPanelContent({
             )}
             <Info label="Input tokens" value={a.inputTokens?.toLocaleString() || '0'} />
             <Info label="Output tokens" value={a.outputTokens?.toLocaleString() || '0'} />
-            {a.contextBreakdown && <ContextBreakdownPanel breakdown={a.contextBreakdown} />}
             <StatusBadge status={a.status} />
             {a.status === 'error' && a.otelStatusDescription && (
               <LabeledBlock label="Status message">
@@ -571,7 +570,6 @@ export function renderPanelContent({
             )}
             <Info label="Input tokens" value={a.inputTokens?.toLocaleString() || '0'} />
             <Info label="Output tokens" value={a.outputTokens?.toLocaleString() || '0'} />
-            {a.contextBreakdown && <ContextBreakdownPanel breakdown={a.contextBreakdown} />}
             {a.aiStreamObjectContent && (
               <LabeledBlock label="Structured object response">
                 <JsonEditorWithCopy

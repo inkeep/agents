@@ -3,10 +3,7 @@ import type {
   ArtifactComponentApiInsert,
   DataComponentApiInsert,
 } from '@inkeep/agents-core';
-import type { AssembleResult, ContextBreakdown } from '../utils/token-estimator';
-
-// Re-export for convenience
-export type { AssembleResult, ContextBreakdown };
+import type { AssembleResult } from '../utils/token-estimator';
 
 // Base interfaces for version-agnostic system prompt building
 export interface VersionConfig<TConfig> {

@@ -1501,13 +1501,12 @@ export async function GET(
       const durMs = getNumber(span, SPAN_KEYS.DURATION_NANO) / 1e6;
       const aiStreamingText = getString(span, SPAN_KEYS.SPAN_ID, '');
       const statusMessage = hasError ? getString(span, SPAN_KEYS.STATUS_MESSAGE, '') : '';
-      const parentSpanId = spanIdToParentSpanId.get(aiStreamingText) || undefined;
       activities.push({
         id: aiStreamingText,
         type: ACTIVITY_TYPES.AI_MODEL_STREAMED_TEXT,
         description: 'AI model streaming text response',
         timestamp: span.timestamp,
-        parentSpanId,
+        parentSpanId: spanIdToParentSpanId.get(aiStreamingText) || undefined,
         status: hasError ? ACTIVITY_STATUS.ERROR : ACTIVITY_STATUS.SUCCESS,
         subAgentId: getString(
           span,
@@ -1529,7 +1528,6 @@ export async function GET(
         outputTokens: getNumber(span, SPAN_KEYS.GEN_AI_USAGE_OUTPUT_TOKENS, 0),
         aiTelemetryFunctionId: getString(span, SPAN_KEYS.AI_TELEMETRY_FUNCTION_ID, '') || undefined,
         otelStatusDescription: statusMessage || undefined,
-        contextBreakdown: parentSpanId ? getContextBreakdownForSpan(parentSpanId) : undefined,
       });
     }
 
@@ -1539,15 +1537,12 @@ export async function GET(
       const durMs = getNumber(span, SPAN_KEYS.DURATION_NANO) / 1e6;
       const aiStreamingObject = getString(span, SPAN_KEYS.SPAN_ID, '');
       const statusMessage = hasError ? getString(span, SPAN_KEYS.STATUS_MESSAGE, '') : '';
-      const parentSpanId = spanIdToParentSpanId.get(aiStreamingObject) || undefined;
-      const statusMessage = hasError ? getString(span, SPAN_KEYS.STATUS_MESSAGE, '') : '';
-      const parentSpanId = spanIdToParentSpanId.get(aiStreamingObject) || undefined;
       activities.push({
         id: aiStreamingObject,
         type: ACTIVITY_TYPES.AI_MODEL_STREAMED_OBJECT,
         description: 'AI model streaming object response',
         timestamp: span.timestamp,
-        parentSpanId,
+        parentSpanId: spanIdToParentSpanId.get(aiStreamingObject) || undefined,
         status: hasError ? ACTIVITY_STATUS.ERROR : ACTIVITY_STATUS.SUCCESS,
         subAgentId: getString(span, SPAN_KEYS.SUB_AGENT_ID, ACTIVITY_NAMES.UNKNOWN_AGENT),
         subAgentName: getString(span, SPAN_KEYS.SUB_AGENT_NAME, ACTIVITY_NAMES.UNKNOWN_AGENT),
@@ -1561,7 +1556,6 @@ export async function GET(
         outputTokens: getNumber(span, SPAN_KEYS.GEN_AI_USAGE_OUTPUT_TOKENS, 0),
         aiTelemetryFunctionId: getString(span, SPAN_KEYS.AI_TELEMETRY_FUNCTION_ID, '') || undefined,
         otelStatusDescription: statusMessage || undefined,
-        contextBreakdown: parentSpanId ? getContextBreakdownForSpan(parentSpanId) : undefined,
       });
     }
 

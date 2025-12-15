@@ -1,5 +1,6 @@
 import { getLogger } from '../logger';
-import type { AssembleResult, VersionConfig } from './types';
+import type { AssembleResult } from '../utils/token-estimator';
+import type { VersionConfig } from './types';
 
 const logger = getLogger('SystemPromptBuilder');
 

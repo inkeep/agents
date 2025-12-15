@@ -170,14 +170,6 @@ export function ContextBreakdown({ breakdown }: ContextBreakdownProps) {
             );
           })}
         </div>
-
-        {/* Legend note */}
-        <div className="mt-4 pt-3 border-t border-border">
-          <p className="text-xs text-muted-foreground">
-            Token counts are estimated using ~4 characters per token approximation. Actual token
-            usage may vary by model.
-          </p>
-        </div>
       </CardContent>
     </Card>
   );
