@@ -12,6 +12,7 @@ import {
   setSpanWithError,
   updateTask,
 } from '@inkeep/agents-core';
+import { flushBatchProcessor } from '../instrumentation.js';
 import { tracer } from 'src/utils/tracer.js';
 import { A2AClient } from '../a2a/client.js';
 import { executeTransfer } from '../a2a/transfer.js';
@@ -520,6 +521,10 @@ export class ExecutionHandler {
               throw error;
             } finally {
               span.end();
+              // Flush immediately after span ends to ensure it's sent to SignOz
+              // Use setImmediate to allow span to be processed before flushing
+              await new Promise((resolve) => setImmediate(resolve));
+              await flushBatchProcessor();
             }
           });
         }
