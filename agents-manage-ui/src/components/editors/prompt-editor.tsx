@@ -59,14 +59,6 @@ export const PromptEditor2: FC<PromptEditorProps> = ({
   //   [textValue, variableSuggestions]
   // );
 
-  const editor = useEditor({
-    onUpdate({ editor }) {
-      const nextValue = getEditorText(editor);
-      setTextValue(nextValue);
-      onChange?.(nextValue);
-    },
-  });
-
   useEffect(() => {
     if (!editor) return;
     const next = value ?? '';
@@ -98,6 +90,7 @@ export const PromptEditor: FC<PromptEditorProps> = ({
   'aria-invalid': ariaInvalid,
   placeholder,
   autoFocus,
+  onChange,
 }) => {
   const { toggleMarkdownEditor } = useAgentActions();
   const isMarkdownMode = useAgentStore((state) => state.isMarkdownEditor);
@@ -136,6 +129,10 @@ export const PromptEditor: FC<PromptEditorProps> = ({
     ],
     content: value,
     contentType: isMarkdownMode ? 'markdown' : undefined,
+    onUpdate({ editor }) {
+      const nextValue = editor.getMarkdown();
+      onChange?.(nextValue);
+    },
   });
 
   useEffect(() => {
