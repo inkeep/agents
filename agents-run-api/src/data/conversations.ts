@@ -5,7 +5,6 @@ import {
   type ConversationHistoryConfig,
   type ConversationScopeOptions,
   createMessage,
-  executeInBranch,
   generateId,
   getConversationHistory,
   getLedgerArtifacts,
@@ -60,7 +59,6 @@ function extractA2AMessageText(parts: Array<{ kind: string; text?: string }>): s
  */
 export async function saveA2AMessageResponse(
   response: any, // SendMessageResponse type
-  ref: ResolvedRef,
   params: {
     tenantId: string;
     projectId: string;
@@ -99,33 +97,25 @@ export async function saveA2AMessageResponse(
     return null;
   }
 
-  return await executeInBranch(
-    {
-      dbClient,
-      ref,
+  return await createMessage(dbClient)({
+    id: generateId(),
+    tenantId: params.tenantId,
+    projectId: params.projectId,
+    conversationId: params.conversationId,
+    role: 'agent',
+    content: {
+      text: messageText,
     },
-    async (db) => {
-      return await createMessage(db)({
-        id: generateId(),
-        tenantId: params.tenantId,
-        projectId: params.projectId,
-        conversationId: params.conversationId,
-        role: 'agent',
-        content: {
-          text: messageText,
-        },
-        visibility: params.visibility,
-        messageType: params.messageType,
-        fromSubAgentId: params.fromSubAgentId,
-        toSubAgentId: params.toSubAgentId,
-        fromExternalAgentId: params.fromExternalAgentId,
-        toExternalAgentId: params.toExternalAgentId,
-        a2aTaskId: params.a2aTaskId,
-        a2aSessionId: params.a2aSessionId,
-        metadata: params.metadata,
-      });
-    }
-  );
+    visibility: params.visibility,
+    messageType: params.messageType,
+    fromSubAgentId: params.fromSubAgentId,
+    toSubAgentId: params.toSubAgentId,
+    fromExternalAgentId: params.fromExternalAgentId,
+    toExternalAgentId: params.toExternalAgentId,
+    a2aTaskId: params.a2aTaskId,
+    a2aSessionId: params.a2aSessionId,
+    metadata: params.metadata,
+  });
 }
 
 /**
@@ -138,29 +128,19 @@ export async function getScopedHistory({
   conversationId,
   filters,
   options,
-  ref,
 }: {
   tenantId: string;
   projectId: string;
   conversationId: string;
   filters?: ConversationScopeOptions;
   options?: ConversationHistoryConfig;
-  ref: ResolvedRef;
 }): Promise<any[]> {
   try {
-    const messages = await executeInBranch(
-      {
-        dbClient,
-        ref,
-      },
-      async (db) => {
-        return await getConversationHistory(db)({
-          scopes: { tenantId, projectId },
-          conversationId,
-          options,
-        });
-      }
-    );
+    const messages = await getConversationHistory(dbClient)({
+      scopes: { tenantId, projectId },
+      conversationId,
+      options,
+    });
 
     if (
       !filters ||
@@ -237,26 +217,13 @@ export async function getUserFacingHistory(
   tenantId: string,
   projectId: string,
   conversationId: string,
-  ref: ResolvedRef,
   limit = CONVERSATION_HISTORY_DEFAULT_LIMIT
 ): Promise<any[]> {
-  return await executeInBranch(
-    {
-      dbClient,
-      ref,
-    },
-    async (db) => {
-      return await getConversationHistory(db)({
-        scopes: { tenantId, projectId },
-        conversationId,
-        options: {
-          limit,
-          includeInternal: false,
-          messageTypes: ['chat'],
-        },
-      });
-    }
-  );
+  return await getConversationHistory(dbClient)({
+    scopes: { tenantId, projectId },
+    conversationId,
+    options: { limit, includeInternal: false, messageTypes: ['chat'] },
+  });
 }
 
 /**
@@ -266,17 +233,10 @@ export async function getFullConversationContext(
   tenantId: string,
   projectId: string,
   conversationId: string,
-  ref: ResolvedRef,
   maxTokens?: number
 ): Promise<any[]> {
   const defaultConfig = createDefaultConversationHistoryConfig();
-  return await executeInBranch(
-    {
-      dbClient,
-      ref,
-    },
-    async (db) => {
-      return await getConversationHistory(db)({
+  return await getConversationHistory(dbClient)({
         scopes: { tenantId, projectId },
         conversationId,
         options: {
@@ -284,10 +244,8 @@ export async function getFullConversationContext(
           limit: 100,
           includeInternal: true,
           maxOutputTokens: maxTokens,
-        },
-      });
-    }
-  );
+    },
+  });
 }
 
 /**
@@ -300,7 +258,6 @@ export async function getFormattedConversationHistory({
   currentMessage,
   options,
   filters,
-  ref,
 }: {
   tenantId: string;
   projectId: string;
@@ -308,7 +265,6 @@ export async function getFormattedConversationHistory({
   currentMessage?: string;
   options?: ConversationHistoryConfig;
   filters?: ConversationScopeOptions;
-  ref: ResolvedRef;
 }): Promise<string> {
   const historyOptions = options ?? createDefaultConversationHistoryConfig();
 
@@ -318,7 +274,6 @@ export async function getFormattedConversationHistory({
     conversationId,
     filters,
     options: historyOptions,
-    ref,
   });
 
   let messagesToFormat = conversationHistory;
@@ -392,8 +347,7 @@ export async function getConversationScopedArtifacts(params: {
       tenantId,
       projectId,
       conversationId,
-      options: historyConfig,
-      ref,
+      options: historyConfig
     });
 
     if (visibleMessages.length === 0) {
@@ -420,18 +374,10 @@ export async function getConversationScopedArtifacts(params: {
 
     const referenceArtifacts: Artifact[] = [];
     for (const taskId of visibleTaskIds) {
-      const artifacts = await executeInBranch(
-        {
-          dbClient,
-          ref,
-        },
-        async (db) => {
-          return await getLedgerArtifacts(db)({
+      const artifacts = await getLedgerArtifacts(dbClient)({
             scopes: { tenantId, projectId },
             taskId: taskId,
-          });
-        }
-      );
+      });
       referenceArtifacts.push(...artifacts);
     }
 

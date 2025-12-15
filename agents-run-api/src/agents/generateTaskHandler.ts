@@ -1,32 +1,29 @@
 import {
   type AgentConversationHistoryConfig,
+  type FullExecutionContext,
   type CredentialStoreRegistry,
-  dbResultToMcpTool,
-  executeInBranch,
   generateId,
-  getAgentById,
-  getAgentWithDefaultSubAgent,
-  getArtifactComponentsForAgent,
-  getDataComponentsForAgent,
-  getExternalAgentsForSubAgent,
-  getRelatedAgentsForAgent,
-  getSubAgentById,
-  getTeamAgentsForSubAgent,
-  getToolsForAgent,
   type McpTool,
   type Part,
-  type ResolvedRef,
   type SubAgentApiSelect,
   TaskState,
 } from '@inkeep/agents-core';
 import type { A2ATask, A2ATaskResult } from '../a2a/types';
-import { generateDescriptionWithRelationData } from '../data/agents';
-import dbClient from '../data/db/dbClient';
 import { getLogger } from '../logger';
 import { agentSessionManager } from '../services/AgentSession';
 import type { SandboxConfig } from '../types/execution-context';
 import { resolveModelConfig } from '../utils/model-resolver';
+import {
+  getSubAgentRelations,
+  getToolsForSubAgent,
+  getDataComponentsForSubAgent,
+  getArtifactComponentsForSubAgent,
+  enhanceInternalRelation,
+  enhanceTeamRelation,
+} from '../utils/project';
 import { Agent } from './Agent';
+import { getMcpTool } from '../api/manage-api';
+import { buildTransferRelationConfig } from './relationTools';
 import { toolSessionManager } from './ToolSessionManager';
 
 const logger = getLogger('generateTaskHandler');
@@ -35,10 +32,7 @@ const logger = getLogger('generateTaskHandler');
  * Serializable configuration for creating task handlers
  */
 export interface TaskHandlerConfig {
-  ref: ResolvedRef;
-  tenantId: string;
-  projectId: string;
-  agentId: string;
+  executionContext: FullExecutionContext;
   subAgentId: string;
   agentSchema: SubAgentApiSelect;
   name: string;
@@ -73,234 +67,70 @@ export const createTaskHandler = (
         };
       }
 
-      const [
-        internalRelations,
+      // Get data from project context instead of database
+      const { project, agentId, tenantId, projectId, resolvedRef } = config.executionContext;
+      const currentAgent = project.agents[agentId];
+      const currentSubAgent = currentAgent?.subAgents?.[config.subAgentId];
+
+      if (!currentSubAgent) {
+        return {
+          status: {
+            state: TaskState.Failed,
+            message: `Sub-agent ${config.subAgentId} not found in project`,
+          },
+          artifacts: [],
+        };
+      }
+
+      // Extract relations using helper functions
+      const {
         externalRelations,
         teamRelations,
-        toolsForAgent,
-        dataComponents,
-        artifactComponents,
-      ] = await Promise.all([
-        executeInBranch({ dbClient, ref: config.ref }, async (db) => {
-          return await getRelatedAgentsForAgent(db)({
-            scopes: {
-              tenantId: config.tenantId,
-              projectId: config.projectId,
-              agentId: config.agentId,
-            },
-            subAgentId: config.subAgentId,
-          });
-        }),
-        executeInBranch({ dbClient, ref: config.ref }, async (db) => {
-          return await getExternalAgentsForSubAgent(db)({
-            scopes: {
-              tenantId: config.tenantId,
-              projectId: config.projectId,
-              agentId: config.agentId,
-              subAgentId: config.subAgentId,
-            },
-          });
-        }),
-        executeInBranch({ dbClient, ref: config.ref }, async (db) => {
-          return await getTeamAgentsForSubAgent(db)({
-            scopes: {
-              tenantId: config.tenantId,
-              projectId: config.projectId,
-              agentId: config.agentId,
-              subAgentId: config.subAgentId,
-            },
-          });
-        }),
-        executeInBranch({ dbClient, ref: config.ref }, async (db) => {
-          return await getToolsForAgent(db)({
-            scopes: {
-              tenantId: config.tenantId,
-              projectId: config.projectId,
-              agentId: config.agentId,
-              subAgentId: config.subAgentId,
-            },
-          });
-        }),
-        executeInBranch({ dbClient, ref: config.ref }, async (db) => {
-          return await getDataComponentsForAgent(db)({
-            scopes: {
-              tenantId: config.tenantId,
-              projectId: config.projectId,
-              agentId: config.agentId,
-              subAgentId: config.subAgentId,
-            },
-          });
-        }),
-        executeInBranch({ dbClient, ref: config.ref }, async (db) => {
-          return await getArtifactComponentsForAgent(db)({
-            scopes: {
-              tenantId: config.tenantId,
-              projectId: config.projectId,
-              agentId: config.agentId,
-              subAgentId: config.subAgentId,
-            },
-          });
-        }),
-      ]);
+        transferRelations, 
+        internalDelegateRelations
+      } = getSubAgentRelations({
+        agent: currentAgent,
+        project,
+        subAgent: currentSubAgent,
+      });
 
-      const enhancedInternalRelations = await Promise.all(
-        internalRelations.data.map(async (relation) => {
-          try {
-            const relatedAgent = await executeInBranch(
-              { dbClient, ref: config.ref },
-              async (db) => {
-                return await getSubAgentById(db)({
-                  scopes: {
-                    tenantId: config.tenantId,
-                    projectId: config.projectId,
-                    agentId: config.agentId,
-                  },
-                  subAgentId: relation.id,
-                });
-              }
-            );
-            if (relatedAgent) {
-              const relatedAgentRelations = await executeInBranch(
-                { dbClient, ref: config.ref },
-                async (db) => {
-                  return await getRelatedAgentsForAgent(db)({
-                    scopes: {
-                      tenantId: config.tenantId,
-                      projectId: config.projectId,
-                      agentId: config.agentId,
-                    },
-                    subAgentId: relation.id,
-                  });
-                }
-              );
-              const relatedAgentExternalAgentRelations = await executeInBranch(
-                { dbClient, ref: config.ref },
-                async (db) => {
-                  return await getExternalAgentsForSubAgent(db)({
-                    scopes: {
-                      tenantId: config.tenantId,
-                      projectId: config.projectId,
-                      agentId: config.agentId,
-                      subAgentId: relation.id,
-                    },
-                  });
-                }
-              );
-              const relatedAgentTeamAgentRelations = await executeInBranch(
-                { dbClient, ref: config.ref },
-                async (db) => {
-                  return await getTeamAgentsForSubAgent(db)({
-                    scopes: {
-                      tenantId: config.tenantId,
-                      projectId: config.projectId,
-                      agentId: config.agentId,
-                      subAgentId: relation.id,
-                    },
-                  });
-                }
-              );
-              const enhancedDescription = generateDescriptionWithRelationData(
-                relation.description || '',
-                relatedAgentRelations.data,
-                relatedAgentExternalAgentRelations.data,
-                relatedAgentTeamAgentRelations.data
-              );
-              return { ...relation, description: enhancedDescription };
-            }
-          } catch (error) {
-            logger.warn({ subAgentId: relation.id, error }, 'Failed to enhance agent description');
-          }
+      // Combine transfer and delegate internal relations for processing
+      const allInternalRelations = [...transferRelations, ...internalDelegateRelations];
+
+      // Get tools, data components, and artifact components using helper functions
+      const toolsForAgent = getToolsForSubAgent({ agent: currentAgent, project, subAgent: currentSubAgent });
+      const dataComponents = getDataComponentsForSubAgent({ project, subAgent: currentSubAgent });
+      const artifactComponents = getArtifactComponentsForSubAgent({ project, subAgent: currentSubAgent });
+
+      // Enhance internal relations with description data from project context
+      const enhancedInternalRelations = allInternalRelations.map((relation) => {
+        try {
+          return enhanceInternalRelation({
+            relation,
+            agent: currentAgent,
+            project,
+          });
+        } catch (error) {
+          logger.warn({ subAgentId: relation.id, error }, 'Failed to enhance agent description');
           return relation;
-        })
-      );
+        }
+      });
 
-      const enhancedTeamRelations = await Promise.all(
-        teamRelations.data.map(async (relation) => {
-          try {
-            // Get the default sub agent for the team agent
-            const teamAgentWithDefault = await executeInBranch(
-              { dbClient, ref: config.ref },
-              async (db) => {
-                return await getAgentWithDefaultSubAgent(db)({
-                  scopes: {
-                    tenantId: config.tenantId,
-                    projectId: config.projectId,
-                    agentId: relation.targetAgentId,
-                  },
-                });
-              }
-            );
-            if (teamAgentWithDefault?.defaultSubAgent) {
-              const defaultSubAgent = teamAgentWithDefault.defaultSubAgent;
-
-              // Get related agents for the default sub agent
-              const relatedAgentRelations = await executeInBranch(
-                { dbClient, ref: config.ref },
-                async (db) => {
-                  return await getRelatedAgentsForAgent(db)({
-                    scopes: {
-                      tenantId: config.tenantId,
-                      projectId: config.projectId,
-                      agentId: relation.targetAgentId,
-                    },
-                    subAgentId: defaultSubAgent.id,
-                  });
-                }
-              );
-              // Get external agents for the default sub agent
-              const relatedAgentExternalAgentRelations = await executeInBranch(
-                { dbClient, ref: config.ref },
-                async (db) => {
-                  return await getExternalAgentsForSubAgent(db)({
-                    scopes: {
-                      tenantId: config.tenantId,
-                      projectId: config.projectId,
-                      agentId: relation.targetAgentId,
-                      subAgentId: defaultSubAgent.id,
-                    },
-                  });
-                }
-              );
-
-              // Get team agents for the default sub agent
-              const relatedAgentTeamAgentRelations = await executeInBranch(
-                { dbClient, ref: config.ref },
-                async (db) => {
-                  return await getTeamAgentsForSubAgent(db)({
-                    scopes: {
-                      tenantId: config.tenantId,
-                      projectId: config.projectId,
-                      agentId: relation.targetAgentId,
-                      subAgentId: defaultSubAgent.id,
-                    },
-                  });
-                }
-              );
-
-              const enhancedDescription = generateDescriptionWithRelationData(
-                teamAgentWithDefault.description || '',
-                relatedAgentRelations.data,
-                relatedAgentExternalAgentRelations.data,
-                relatedAgentTeamAgentRelations.data
-              );
-
-              return {
-                ...relation,
-                targetAgent: {
-                  ...relation.targetAgent,
-                  description: enhancedDescription,
-                },
-              };
-            }
-          } catch (error) {
-            logger.warn(
-              { targetAgentId: relation.targetAgentId, error },
-              'Failed to enhance team agent description'
-            );
-          }
+      // Enhance team relations with description data from project context
+      const enhancedTeamRelations = teamRelations.map((relation) => {
+        try {
+          return enhanceTeamRelation({
+            relation,
+            project,
+          });
+        } catch (error) {
+          logger.warn(
+            { targetAgentId: relation.targetAgentId, error },
+            'Failed to enhance team agent description'
+          );
           return relation;
-        })
-      );
+        }
+      });
 
       const prompt = 'prompt' in config.agentSchema ? config.agentSchema.prompt || undefined : '';
       const models = 'models' in config.agentSchema ? config.agentSchema.models : undefined;
@@ -309,15 +139,16 @@ export const createTaskHandler = (
       // Convert db tools to MCP tools and filter by selectedTools
       const toolsForAgentResult: McpTool[] =
         (await Promise.all(
-          toolsForAgent.data.map(async (item) => {
-            const mcpTool = await dbResultToMcpTool(
-              item.tool,
-              dbClient,
-              credentialStoreRegistry,
-              item.id,
-              config.userId
-            );
-
+          toolsForAgent.map(async (item) => {
+            // Doing a api call here rather than using the full project because the mcp's available tools are not available in the project context
+            const mcpTool = await getMcpTool({ baseUrl: config.baseUrl })({
+              scopes: {
+                tenantId,
+                projectId,
+              },
+              toolId: item.tool.id,
+              ref: resolvedRef.name,
+            });
             // Filter available tools based on selectedTools for this agent-tool relationship
             if (item.selectedTools && item.selectedTools.length > 0) {
               const selectedToolsSet = new Set(item.selectedTools);
@@ -332,10 +163,9 @@ export const createTaskHandler = (
       const agent = new Agent(
         {
           id: config.subAgentId,
-          tenantId: config.tenantId,
-          projectId: config.projectId,
-          ref: config.ref,
-          agentId: config.agentId,
+          tenantId,
+          projectId,
+          agentId,
           baseUrl: config.baseUrl,
           apiKey: config.apiKey,
           userId: config.userId,
@@ -345,11 +175,10 @@ export const createTaskHandler = (
           models: models || undefined,
           stopWhen: stopWhen || undefined,
           subAgentRelations: enhancedInternalRelations.map((relation) => ({
-            ref: config.ref,
             id: relation.id,
-            tenantId: config.tenantId,
-            projectId: config.projectId,
-            agentId: config.agentId,
+            tenantId,
+            projectId,
+            agentId,
             baseUrl: config.baseUrl,
             apiKey: config.apiKey,
             name: relation.name,
@@ -358,146 +187,19 @@ export const createTaskHandler = (
             delegateRelations: [],
             subAgentRelations: [],
             transferRelations: [],
+            relationId: relation.relationId,
           })),
           transferRelations: await Promise.all(
             enhancedInternalRelations
               .filter((relation) => relation.relationType === 'transfer')
-              .map(async (relation) => {
-                // For internal agents, try to fetch tools and relations
-                // For external/team agents, we'll only get tools (if available)
-                const targetToolsForAgent = await executeInBranch(
-                  { dbClient, ref: config.ref },
-                  async (db) => {
-                    return await getToolsForAgent(db)({
-                      scopes: {
-                        tenantId: config.tenantId,
-                        projectId: config.projectId,
-                        agentId: config.agentId,
-                        subAgentId: relation.id,
-                      },
-                    });
-                  }
-                );
-
-                // Try to get transfer and delegate relations for internal agents only
-                let targetTransferRelations: any = { data: [] };
-                let targetDelegateRelations: any = { data: [] };
-
-                try {
-                  // Only attempt to get relations for internal agents (same tenant/project/agent)
-                  const [transferRel, delegateRel] = await Promise.all([
-                    executeInBranch({ dbClient, ref: config.ref }, async (db) => {
-                      return await getRelatedAgentsForAgent(db)({
-                        scopes: {
-                          tenantId: config.tenantId,
-                          projectId: config.projectId,
-                          agentId: config.agentId,
-                        },
-                        subAgentId: relation.id,
-                      });
-                    }),
-                    executeInBranch({ dbClient, ref: config.ref }, async (db) => {
-                      return await getExternalAgentsForSubAgent(db)({
-                        scopes: {
-                          tenantId: config.tenantId,
-                          projectId: config.projectId,
-                          agentId: config.agentId,
-                          subAgentId: relation.id,
-                        },
-                      });
-                    }),
-                  ]);
-                  targetTransferRelations = transferRel;
-                  targetDelegateRelations = delegateRel;
-                } catch (err: any) {
-                  logger.info(
-                    {
-                      agentId: relation.id,
-                      error: err?.message || 'Unknown error',
-                    },
-                    'Could not fetch relations for target agent (likely external/team agent), using basic info only'
-                  );
-                }
-
-                const targetAgentTools: McpTool[] =
-                  (await Promise.all(
-                    targetToolsForAgent.data.map(async (item) => {
-                      const mcpTool = await dbResultToMcpTool(
-                        item.tool,
-                        dbClient,
-                        credentialStoreRegistry,
-                        item.id,
-                        config.userId
-                      );
-
-                      // Filter available tools based on selectedTools for this agent-tool relationship
-                      if (item.selectedTools && item.selectedTools.length > 0) {
-                        const selectedToolsSet = new Set(item.selectedTools);
-                        mcpTool.availableTools =
-                          mcpTool.availableTools?.filter((tool) =>
-                            selectedToolsSet.has(tool.name)
-                          ) || [];
-                      }
-
-                      return mcpTool;
-                    })
-                  )) ?? [];
-
-                // Build transfer relations for target agent (if available)
-                const targetTransferRelationsConfig = targetTransferRelations.data
-                  .filter((rel: any) => rel.relationType === 'transfer')
-                  .map((rel: any) => ({
-                    ref: config.ref,
-                    baseUrl: config.baseUrl,
-                    apiKey: config.apiKey,
-                    id: rel.id,
-                    tenantId: config.tenantId,
-                    projectId: config.projectId,
-                    agentId: config.agentId,
-                    name: rel.name,
-                    description: rel.description,
-                    prompt: '',
-                    delegateRelations: [],
-                    subAgentRelations: [],
-                    transferRelations: [],
-                    // Note: Not including tools for nested relations to avoid infinite recursion
-                  }));
-
-                // Build delegate relations for target agent (if available)
-                const targetDelegateRelationsConfig = targetDelegateRelations.data.map(
-                  (rel: any) => ({
-                    type: 'external' as const,
-                    config: {
-                      ref: config.ref,
-                      id: rel.externalAgent.id,
-                      name: rel.externalAgent.name,
-                      description: rel.externalAgent.description || '',
-                      baseUrl: rel.externalAgent.baseUrl,
-                      headers: rel.headers,
-                      credentialReferenceId: rel.externalAgent.credentialReferenceId,
-                      relationId: rel.id,
-                      relationType: 'delegate',
-                    },
-                  })
-                );
-
-                return {
-                  ref: config.ref,
+              .map((relation) =>
+                buildTransferRelationConfig({
+                  relation,
+                  executionContext: config.executionContext,
                   baseUrl: config.baseUrl,
                   apiKey: config.apiKey,
-                  id: relation.id,
-                  tenantId: config.tenantId,
-                  projectId: config.projectId,
-                  agentId: config.agentId,
-                  name: relation.name,
-                  description: relation.description || undefined,
-                  prompt: '',
-                  delegateRelations: targetDelegateRelationsConfig,
-                  subAgentRelations: [],
-                  transferRelations: targetTransferRelationsConfig,
-                  tools: targetAgentTools, // Include target agent's tools for transfer descriptions
-                };
-              })
+                })
+              )
           ),
           delegateRelations: [
             ...enhancedInternalRelations
@@ -507,57 +209,57 @@ export const createTaskHandler = (
                 config: {
                   id: relation.id,
                   relationId: relation.relationId,
-                  tenantId: config.tenantId,
-                  projectId: config.projectId,
-                  agentId: config.agentId,
+                  tenantId,
+                  projectId,
+                  agentId,
                   baseUrl: config.baseUrl,
                   apiKey: config.apiKey,
-                  ref: config.ref,
                   name: relation.name,
                   description: relation.description || undefined,
                   prompt: '',
-                  delegateRelations: [], // Simplified - no nested relations
+                  delegateRelations: [],
                   subAgentRelations: [],
                   transferRelations: [],
-                  tools: [], // Tools are defined in config files, not DB
+                  tools: [],
+                  project,
                 },
               })),
-            ...externalRelations.data.map((relation) => ({
+            ...externalRelations.map((relation) => ({
               type: 'external' as const,
               config: {
-                ref: config.ref,
                 id: relation.externalAgent.id,
                 name: relation.externalAgent.name,
                 description: relation.externalAgent.description || '',
+                ref: resolvedRef,
                 baseUrl: relation.externalAgent.baseUrl,
                 headers: relation.headers,
                 credentialReferenceId: relation.externalAgent.credentialReferenceId,
-                relationId: relation.id,
+                relationId: relation.relationId,
                 relationType: 'delegate',
               },
             })),
             ...enhancedTeamRelations.map((relation) => ({
               type: 'team' as const,
               config: {
-                ref: config.ref,
                 id: relation.targetAgent.id,
+                ref: resolvedRef,
                 name: relation.targetAgent.name,
                 description: relation.targetAgent.description || '',
                 baseUrl: config.baseUrl,
                 headers: relation.headers,
-                relationId: relation.id,
+                relationId: relation.relationId,
               },
             })),
           ],
           tools: toolsForAgentResult,
-          functionTools: [], // All tools are now handled via MCP servers
-          dataComponents: dataComponents,
-          artifactComponents: artifactComponents,
+          functionTools: [],
+          dataComponents,
+          artifactComponents,
           contextConfigId: config.contextConfigId || undefined,
           conversationHistoryConfig: config.conversationHistoryConfig,
           sandboxConfig: config.sandboxConfig,
         },
-        config.ref,
+        config.executionContext,
         credentialStoreRegistry
       );
 
@@ -600,11 +302,11 @@ export const createTaskHandler = (
           'Delegated agent - streaming disabled'
         );
 
-        if (streamRequestId && config.tenantId && config.projectId) {
+        if (streamRequestId && tenantId && projectId) {
           toolSessionManager.ensureAgentSession(
             streamRequestId,
-            config.tenantId,
-            config.projectId,
+            tenantId,
+            projectId,
             contextId,
             task.id
           );
@@ -790,53 +492,33 @@ export const deserializeTaskHandlerConfig = (configJson: string): TaskHandlerCon
 };
 
 /**
- * Creates a task handler configuration from agent data
+ * Creates a task handler configuration from execution context and project data
  */
 export const createTaskHandlerConfig = async (params: {
-  ref: ResolvedRef;
-  tenantId: string;
-  projectId: string;
-  agentId: string;
+  executionContext: FullExecutionContext;
   subAgentId: string;
   baseUrl: string;
   apiKey?: string;
   sandboxConfig?: SandboxConfig;
   userId?: string;
 }): Promise<TaskHandlerConfig> => {
-  const subAgent = await executeInBranch({ dbClient, ref: params.ref }, async (db) => {
-    return await getSubAgentById(db)({
-      scopes: {
-        tenantId: params.tenantId,
-        projectId: params.projectId,
-        agentId: params.agentId,
-      },
-      subAgentId: params.subAgentId,
-    });
-  });
+  const { executionContext, subAgentId, baseUrl, apiKey, sandboxConfig } = params;
+  const { project, agentId } = executionContext;
 
-  const agent = await executeInBranch({ dbClient, ref: params.ref }, async (db) => {
-    return await getAgentById(db)({
-      scopes: {
-        tenantId: params.tenantId,
-        projectId: params.projectId,
-        agentId: params.agentId,
-      },
-    });
-  });
+  const agent = project.agents[agentId];
+  const subAgent = agent?.subAgents?.[subAgentId];
 
   if (!subAgent) {
-    throw new Error(`Agent not found: ${params.subAgentId}`);
+    throw new Error(`Sub-agent not found: ${subAgentId}`);
   }
 
-  const effectiveModels = await resolveModelConfig(params.ref, params.agentId, subAgent);
+  // Cast to satisfy resolveModelConfig - it only uses the models property
+  const effectiveModels = await resolveModelConfig(executionContext, subAgent);
   const effectiveConversationHistoryConfig = subAgent.conversationHistoryConfig;
 
   return {
-    ref: params.ref,
-    tenantId: params.tenantId,
-    projectId: params.projectId,
-    agentId: params.agentId,
-    subAgentId: params.subAgentId,
+    executionContext,
+    subAgentId,
     agentSchema: {
       id: subAgent.id,
       name: subAgent.name,
@@ -848,8 +530,8 @@ export const createTaskHandlerConfig = async (params: {
       createdAt: subAgent.createdAt,
       updatedAt: subAgent.updatedAt,
     },
-    baseUrl: params.baseUrl,
-    apiKey: params.apiKey,
+    baseUrl,
+    apiKey,
     name: subAgent.name,
     description: subAgent.description || undefined,
     conversationHistoryConfig: effectiveConversationHistoryConfig as AgentConversationHistoryConfig,

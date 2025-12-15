@@ -1,0 +1,128 @@
+import {
+  type FullExecutionContext
+} from '@inkeep/agents-core';
+import { createMiddleware } from 'hono/factory';
+import { getFullProject, getResolvedRef, ManageApiError } from '../api/manage-api';
+import { env } from '../env';
+import { getLogger } from '../logger';
+
+const logger = getLogger('projectConfigMiddleware');
+
+
+/**
+ * Middleware that fetches the full project definition from the Management API
+ * and adds it to the Hono context for use in route handlers.
+ *
+ * This middleware should be applied after authentication middleware since it
+ * requires the execution context to be set.
+ */
+export const projectConfigMiddleware = createMiddleware<{
+  Variables: {
+    executionContext: FullExecutionContext;
+  };
+}>(async (c, next) => {
+  const executionContext = c.get('executionContext');
+  const { tenantId, projectId, ref } = executionContext;
+
+  logger.debug(
+    {
+      tenantId,
+      projectId,
+      ref,
+    },
+    'Fetching project config from Management API'
+  );
+
+  try {
+    const manageApiConfig = {
+      baseUrl: env.INKEEP_AGENTS_MANAGE_API_URL,
+    };
+
+    const resolvedRef = await getResolvedRef(manageApiConfig)({
+        scopes: { tenantId, projectId },
+        ref,
+      });
+
+    if (!resolvedRef) {
+      throw new Error('Resolved ref not found');
+    }
+
+    logger.debug({ resolvedRef }, 'Resolved ref');
+
+    const projectConfig = await getFullProject(manageApiConfig)({
+      scopes: { tenantId, projectId },
+      ref: resolvedRef.name,
+    });
+
+
+    c.set('executionContext', {
+      ...executionContext,
+      project: projectConfig,
+      resolvedRef,
+    });
+
+    logger.debug(
+      {
+        tenantId,
+        projectId,
+        agentCount: Object.keys(projectConfig.agents || {}).length,
+        toolCount: Object.keys(projectConfig.tools || {}).length,
+      },
+      'Project config fetched successfully'
+    );
+
+    await next();
+  } catch (error) {
+    if (error instanceof ManageApiError) {
+      logger.error(
+        {
+          tenantId,
+          projectId,
+          statusCode: error.statusCode,
+          message: error.message,
+        },
+        'Failed to fetch project config from Management API'
+      );
+
+      if (error.isNotFound) {
+        return c.json(
+          {
+            error: 'Project not found',
+            message: `Project ${projectId} not found for tenant ${tenantId}`,
+          },
+          404
+        );
+      }
+
+      if (error.isUnauthorized || error.isForbidden) {
+        return c.json(
+          {
+            error: 'Access denied',
+            message: 'Unable to access project configuration',
+          },
+          403
+        );
+      }
+    }
+
+    logger.error(
+      {
+        tenantId,
+        projectId,
+        error: error instanceof Error ? error.message : String(error),
+      },
+      'Unexpected error fetching project config'
+    );
+
+    return c.json(
+      {
+        error: 'Internal server error',
+        message: 'Failed to load project configuration',
+      },
+      500
+    );
+  }
+});
+
+
+

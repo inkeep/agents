@@ -33,21 +33,14 @@ export async function executeTransfer({
   );
 
   try {
-    await executeInBranch(
-      {
-        dbClient,
-        ref,
-        autoCommit: true,
-        commitMessage: 'Update active agent for thread',
-      },
-      async (db) => {
-        await setActiveAgentForThread(db)({
-          scopes: { tenantId, projectId },
-          threadId,
-          subAgentId: targetSubAgentId,
-        });
-      }
-    );
+
+    await setActiveAgentForThread(dbClient)({
+      scopes: { tenantId, projectId },
+      threadId,
+      subAgentId: targetSubAgentId,
+      ref,
+    });
+
 
     logger.info(
       { targetAgent: targetSubAgentId, threadId },

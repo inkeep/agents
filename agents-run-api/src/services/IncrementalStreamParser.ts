@@ -1,4 +1,4 @@
-import type { ResolvedRef } from '@inkeep/agents-core';
+import type { FullExecutionContext, ResolvedRef } from '@inkeep/agents-core';
 import {
   STREAM_PARSER_MAX_COLLECTED_PARTS,
   STREAM_PARSER_MAX_SNAPSHOT_SIZE,
@@ -34,7 +34,6 @@ export class IncrementalStreamParser {
   private componentSnapshots = new Map<string, string>();
   private artifactMap?: Map<string, any>;
   private subAgentId?: string;
-  private readonly ref: ResolvedRef;
   private allStreamedContent: StreamPart[] = [];
 
   private static readonly MAX_SNAPSHOT_SIZE = STREAM_PARSER_MAX_SNAPSHOT_SIZE; // Max number of snapshots to keep
@@ -43,19 +42,16 @@ export class IncrementalStreamParser {
 
   constructor(
     streamHelper: StreamHelper,
-    tenantId: string,
+    executionContext: FullExecutionContext,
     contextId: string,
-    ref: ResolvedRef,
     artifactParserOptions?: {
       sessionId?: string;
       taskId?: string;
-      projectId?: string;
       artifactComponents?: any[];
       streamRequestId?: string;
       subAgentId?: string;
     }
   ) {
-    this.ref = ref;
     this.streamHelper = streamHelper;
     this.contextId = contextId;
     this.subAgentId = artifactParserOptions?.subAgentId;
@@ -83,7 +79,7 @@ export class IncrementalStreamParser {
       } catch (_error) {}
     }
 
-    this.artifactParser = new ArtifactParser(tenantId, this.ref, {
+    this.artifactParser = new ArtifactParser(executionContext, {
       ...artifactParserOptions,
       contextId,
       artifactService: sharedArtifactService, // Use shared ArtifactService if available

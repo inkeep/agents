@@ -1,21 +1,16 @@
 import { createRoute, OpenAPIHono, z } from '@hono/zod-openapi';
 import {
   type CredentialStoreRegistry,
-  contextValidationMiddleware,
+  type FullExecutionContext,
   createApiError,
   createMessage,
   createOrGetConversation,
-  executeInBranch,
   generateId,
   getActiveAgentForConversation,
-  getAgentWithDefaultSubAgent,
   getConversationId,
-  getFullAgent,
-  getRequestExecutionContext,
-  getSubAgentById,
-  handleContextResolution,
   setActiveAgentForConversation,
 } from '@inkeep/agents-core';
+import { contextValidationMiddleware, handleContextResolution } from '../context';
 import { context as otelContext, propagation, trace } from '@opentelemetry/api';
 import { streamSSE } from 'hono/streaming';
 import dbClient from '../data/db/dbClient';
@@ -27,6 +22,7 @@ import { createSSEStreamHelper } from '../utils/stream-helpers';
 
 type AppVariables = {
   credentialStores: CredentialStoreRegistry;
+  executionContext: FullExecutionContext;
   requestBody?: any;
 };
 
@@ -148,7 +144,7 @@ const chatCompletionsRoute = createRoute({
   },
 });
 
-app.use('/completions', contextValidationMiddleware(dbClient));
+app.use('/completions', contextValidationMiddleware);
 
 app.openapi(chatCompletionsRoute, async (c) => {
   getLogger('chat').info(
@@ -175,7 +171,7 @@ app.openapi(chatCompletionsRoute, async (c) => {
     'OpenTelemetry headers: chat'
   );
   try {
-    const executionContext = getRequestExecutionContext(c);
+    const executionContext = c.get('executionContext');
     const { tenantId, projectId, agentId, ref } = executionContext;
 
     getLogger('chat').debug(
@@ -206,40 +202,14 @@ app.openapi(chatCompletionsRoute, async (c) => {
     currentBag = currentBag.setEntry('conversation.id', { value: conversationId });
     const ctxWithBaggage = propagation.setBaggage(otelContext.active(), currentBag);
     return await otelContext.with(ctxWithBaggage, async () => {
-      const fullAgent = await executeInBranch({ dbClient, ref }, async (db) => {
-        return await getFullAgent(db)({
-          scopes: { tenantId, projectId, agentId },
-        });
-      });
+      const fullAgent = executionContext.project.agents[agentId];
 
-      let agent: any;
+      let agent = fullAgent;
       let defaultSubAgentId: string;
 
-      if (fullAgent) {
-        agent = {
-          id: fullAgent.id,
-          name: fullAgent.name,
-          tenantId,
-          projectId,
-          defaultSubAgentId: fullAgent.defaultSubAgentId,
-        };
-        const agentKeys = Object.keys((fullAgent.subAgents as Record<string, any>) || {});
-        const firstAgentId = agentKeys.length > 0 ? agentKeys[0] : '';
-        defaultSubAgentId = (fullAgent.defaultSubAgentId as string) || firstAgentId; // Use first agent if no defaultSubAgentId
-      } else {
-        agent = await executeInBranch({ dbClient, ref }, async (db) => {
-          return await getAgentWithDefaultSubAgent(db)({
-            scopes: { tenantId, projectId, agentId },
-          });
-        });
-        if (!agent) {
-          throw createApiError({
-            code: 'not_found',
-            message: 'Agent not found',
-          });
-        }
-        defaultSubAgentId = agent.defaultSubAgentId || '';
-      }
+      const agentKeys = Object.keys((fullAgent.subAgents as Record<string, any>) || {});
+      const firstAgentId = agentKeys.length > 0 ? agentKeys[0] : '';
+      defaultSubAgentId = (fullAgent.defaultSubAgentId as string) || firstAgentId; // Use first agent if no defaultSubAgentId
 
       if (!defaultSubAgentId) {
         throw createApiError({
@@ -248,44 +218,30 @@ app.openapi(chatCompletionsRoute, async (c) => {
         });
       }
 
-      await executeInBranch(
-        { dbClient, ref, autoCommit: true, commitMessage: 'Create or get conversation' },
-        async (db) => {
-          return await createOrGetConversation(db)({
-            tenantId,
-            projectId,
-            id: conversationId,
-            activeSubAgentId: defaultSubAgentId,
-          });
-        }
-      );
+      await createOrGetConversation(dbClient)({
+        tenantId,
+        projectId,
+        id: conversationId,
+        activeSubAgentId: defaultSubAgentId,
+        ref: executionContext.resolvedRef
+      });
+        
 
-      const activeAgent = await executeInBranch({ dbClient, ref }, async (db) => {
-        return await getActiveAgentForConversation(db)({
-          scopes: { tenantId, projectId },
-          conversationId,
-        });
+      const activeAgent = await getActiveAgentForConversation(dbClient)({
+        scopes: { tenantId, projectId },
+        conversationId,
       });
       if (!activeAgent) {
-        await executeInBranch(
-          { dbClient, ref, autoCommit: true, commitMessage: 'Set active agent for conversation' },
-          async (db) => {
-            return await setActiveAgentForConversation(db)({
-              scopes: { tenantId, projectId },
-              conversationId,
-              subAgentId: defaultSubAgentId,
-            });
-          }
-        );
+        await setActiveAgentForConversation(dbClient)({
+          scopes: { tenantId, projectId },
+          conversationId,
+          subAgentId: defaultSubAgentId,
+          ref: executionContext.resolvedRef
+        });
       }
       const subAgentId = activeAgent?.activeSubAgentId || defaultSubAgentId;
 
-      const agentInfo = await executeInBranch({ dbClient, ref }, async (db) => {
-        return await getSubAgentById(db)({
-          scopes: { tenantId, projectId, agentId },
-          subAgentId: subAgentId,
-        });
-      });
+      const agentInfo = executionContext.project.agents[agentId]?.subAgents[subAgentId];
 
       if (!agentInfo) {
         throw createApiError({
@@ -298,20 +254,12 @@ app.openapi(chatCompletionsRoute, async (c) => {
 
       const credentialStores = c.get('credentialStores');
 
-      await executeInBranch(
-        { dbClient, ref, autoCommit: true, commitMessage: 'Handle context resolution' },
-        async (db) => {
-          return await handleContextResolution({
-            tenantId,
-            projectId,
-            agentId,
-            conversationId,
-            headers: validatedContext,
-            dbClient: db,
-            credentialStores,
-          });
-        }
-      );
+      await handleContextResolution({
+        executionContext,
+        conversationId,
+        headers: validatedContext,
+        credentialStores,
+      });
 
       logger.info(
         {
@@ -349,23 +297,18 @@ app.openapi(chatCompletionsRoute, async (c) => {
           messageSpan.setAttribute('user.id', executionContext.metadata.initiatedBy.id);
         }
       }
-      await executeInBranch(
-        { dbClient, ref, autoCommit: true, commitMessage: 'Create user message' },
-        async (db) => {
-          return await createMessage(db)({
-            id: generateId(),
-            tenantId,
-            projectId,
-            conversationId,
-            role: 'user',
-            content: {
-              text: userMessage,
-            },
-            visibility: 'user-facing',
-            messageType: 'chat',
-          });
-        }
-      );
+      await createMessage(dbClient)({
+        id: generateId(),
+        tenantId,
+        projectId,
+        conversationId,
+        role: 'user',
+        content: {
+          text: userMessage,
+        },
+        visibility: 'user-facing',
+        messageType: 'chat',
+      });
 
       if (messageSpan) {
         messageSpan.addEvent('user.message.stored', {

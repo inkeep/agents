@@ -1,9 +1,7 @@
 import {
   createMessage,
   createTask,
-  executeInBranch,
   generateId,
-  getRequestExecutionContext,
   type Message,
   type MessageSendParams,
   type Task,
@@ -88,9 +86,8 @@ async function handleMessageSend(
 ): Promise<Response> {
   try {
     const params = request.params as MessageSendParams;
-    const executionContext = getRequestExecutionContext(c);
-    const { agentId } = executionContext;
-    const ref = executionContext.ref;
+    const executionContext = c.get('executionContext');
+    const { agentId, ref } = executionContext;
 
     const task: A2ATask = {
       id: generateId(),
@@ -171,15 +168,7 @@ async function handleMessageSend(
       },
       'A2A contextId resolution for delegation'
     );
-    await executeInBranch(
-      {
-        dbClient,
-        ref,
-        autoCommit: true,
-        commitMessage: 'Create task for A2A',
-      },
-      async (db) => {
-        await createTask(db)({
+        await createTask(dbClient)({
           id: task.id,
           tenantId: agent.tenantId,
           projectId: agent.projectId,
@@ -195,12 +184,11 @@ async function handleMessageSend(
             agent_id: agentId || '',
             stream_request_id: params.message.metadata?.stream_request_id,
           },
+          ref,
           subAgentId: agent.subAgentId,
           createdAt: new Date().toISOString(),
           updatedAt: new Date().toISOString(),
         });
-      }
-    );
 
     logger.info({ metadata: params.message.metadata }, 'message metadata');
 
@@ -240,17 +228,7 @@ async function handleMessageSend(
           messageData.toTeamAgentId = agent.subAgentId;
         }
 
-        await executeInBranch(
-          {
-            dbClient,
-            ref,
-            autoCommit: true,
-            commitMessage: 'Create A2A message',
-          },
-          async (db) => {
-            await createMessage(db)(messageData);
-          }
-        );
+        await createMessage(dbClient)(messageData);
 
         logger.info(
           {
@@ -282,30 +260,22 @@ async function handleMessageSend(
 
     const result = await agent.taskHandler(task);
 
-    await executeInBranch(
-      {
-        dbClient,
-        ref,
-        autoCommit: true,
-        commitMessage: 'Update task for A2A',
-      },
-      async (db) => {
-        await updateTask(db)({
-          taskId: task.id,
-          data: {
-            status: result.status.state.toLowerCase(),
-            metadata: {
-              conversation_id: params.message.contextId || '',
-              message_id: params.message.messageId || '',
-              created_at: new Date().toISOString(),
-              updated_at: new Date().toISOString(),
-              sub_agent_id: agent.subAgentId,
-              agent_id: agentId || '',
-            },
+
+      await updateTask(dbClient)({
+        taskId: task.id,
+        data: {
+          status: result.status.state.toLowerCase(),
+          metadata: {
+            conversation_id: params.message.contextId || '',
+            message_id: params.message.messageId || '',
+            created_at: new Date().toISOString(),
+            updated_at: new Date().toISOString(),
+            sub_agent_id: agent.subAgentId,
+            agent_id: agentId || '',
           },
-        });
-      }
-    );
+        },
+      });
+
 
     const transferArtifact = result.artifacts?.find((artifact) =>
       artifact.parts?.some(
@@ -438,7 +408,7 @@ async function handleMessageStream(
 ): Promise<Response> {
   try {
     const params = request.params as MessageSendParams;
-    const executionContext = getRequestExecutionContext(c);
+    const executionContext = c.get('executionContext');
     const { agentId } = executionContext;
 
     if (!agent.agentCard.capabilities.streaming) {

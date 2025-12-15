@@ -1,28 +1,23 @@
 import {
   type AgentCard,
-  type AgentSelect,
-  type ExecutionContext,
-  executeInBranch,
-  getAgentById,
-  getSubAgentById,
-  type ResolvedRef,
+  type AgentWithinContextOfProjectSelectWithRelationIds,
+  type FullExecutionContext,
 } from '@inkeep/agents-core';
 import type { RegisteredAgent } from '../a2a/types';
 import { createTaskHandler, createTaskHandlerConfig } from '../agents/generateTaskHandler';
-import dbClient from './db/dbClient';
+import { getAgentFromProject, getSubAgentFromProject } from 'src/utils/project';
 
 // Hydrate agent function
 async function hydrateAgent({
   dbAgent,
+  executionContext,
   baseUrl,
-  apiKey,
-  ref,
 }: {
-  dbAgent: AgentSelect;
+  dbAgent: AgentWithinContextOfProjectSelectWithRelationIds;
+  executionContext: FullExecutionContext;
   baseUrl: string;
-  apiKey?: string;
-  ref: ResolvedRef;
 }): Promise<RegisteredAgent> {
+  const { tenantId, projectId, agentId, project, resolvedRef, apiKey } = executionContext;
   try {
     // Check if defaultSubAgentId exists
     if (!dbAgent.defaultSubAgentId) {
@@ -31,16 +26,7 @@ async function hydrateAgent({
 
     // Get the default agent for this agent to create the task handler
     const subAgentId = dbAgent.defaultSubAgentId;
-    const defaultSubAgent = await executeInBranch({ dbClient, ref }, async (db) => {
-      return await getSubAgentById(db)({
-        scopes: {
-          tenantId: dbAgent.tenantId,
-          projectId: dbAgent.projectId,
-          agentId: dbAgent.id,
-        },
-        subAgentId,
-      });
-    });
+    const defaultSubAgent = getSubAgentFromProject({ project, agentId, subAgentId });
 
     if (!defaultSubAgent) {
       throw new Error(
@@ -50,13 +36,10 @@ async function hydrateAgent({
 
     // Create task handler for the default agent
     const taskHandlerConfig = await createTaskHandlerConfig({
-      tenantId: dbAgent.tenantId,
-      projectId: dbAgent.projectId,
-      ref,
-      agentId: dbAgent.id,
+      executionContext,
       subAgentId: dbAgent.defaultSubAgentId,
-      baseUrl: baseUrl,
-      apiKey: apiKey,
+      baseUrl,
+      apiKey,
     });
     const taskHandler = createTaskHandler(taskHandlerConfig);
 
@@ -84,9 +67,9 @@ async function hydrateAgent({
     };
 
     return {
-      subAgentId: dbAgent.id, // Use agent ID as agent ID for A2A purposes
-      tenantId: dbAgent.tenantId,
-      projectId: dbAgent.projectId,
+      subAgentId: dbAgent.id,
+      tenantId,
+      projectId,
       agentId: dbAgent.id,
       agentCard,
       taskHandler,
@@ -99,19 +82,15 @@ async function hydrateAgent({
 
 // A2A functions that hydrate agent on-demand
 export async function getRegisteredAgent(
-  executionContext: ExecutionContext
+  executionContext: FullExecutionContext
 ): Promise<RegisteredAgent | null> {
-  const { tenantId, projectId, agentId, baseUrl, apiKey, ref } = executionContext;
-  const dbAgent = await executeInBranch({ dbClient, ref }, async (db) => {
-    return await getAgentById(db)({
-      scopes: { tenantId, projectId, agentId },
-    });
-  });
+  const { project, agentId, baseUrl } = executionContext;
+  const dbAgent = getAgentFromProject({ project, agentId });
   if (!dbAgent) {
     return null;
   }
 
   const agentFrameworkBaseUrl = `${baseUrl}/agents`;
 
-  return hydrateAgent({ dbAgent, baseUrl: agentFrameworkBaseUrl, apiKey, ref });
+  return hydrateAgent({ dbAgent, executionContext, baseUrl: agentFrameworkBaseUrl });
 }

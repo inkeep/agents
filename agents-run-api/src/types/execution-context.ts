@@ -1,4 +1,4 @@
-import type { ExecutionContext, ResolvedRef } from '@inkeep/agents-core';
+import type { BaseExecutionContext, ResolvedRef } from '@inkeep/agents-core';
 
 /**
  * Extract userId from execution context metadata (when available)
@@ -14,24 +14,17 @@ export function getUserIdFromContext(ctx: ExecutionContext): string | undefined 
 /**
  * Create execution context from middleware values
  */
-export function createExecutionContext(params: {
+export function createBaseExecutionContext(params: {
   apiKey: string;
   tenantId: string;
   projectId: string;
   agentId: string;
   apiKeyId: string;
-  subAgentId?: string;
   baseUrl?: string;
-  ref: ResolvedRef;
-  metadata?: {
-    teamDelegation?: boolean;
-    originAgentId?: string;
-    initiatedBy?: {
-      type: 'user' | 'api_key';
-      id: string;
-    };
-  };
-}): ExecutionContext {
+  subAgentId?: string;
+  ref?: string;
+  metadata?: BaseExecutionContext['metadata'];
+}): BaseExecutionContext {
   return {
     apiKey: params.apiKey,
     tenantId: params.tenantId,
@@ -40,8 +33,8 @@ export function createExecutionContext(params: {
     baseUrl: params.baseUrl || process.env.API_URL || 'http://localhost:3003',
     apiKeyId: params.apiKeyId,
     subAgentId: params.subAgentId,
-    metadata: params.metadata || {},
     ref: params.ref,
+    metadata: params.metadata || {},
   };
 }
 

@@ -1,4 +1,4 @@
-import type { ArtifactComponentApiInsert, ResolvedRef } from '@inkeep/agents-core';
+import type { ArtifactComponentApiInsert, FullExecutionContext } from '@inkeep/agents-core';
 import { getLogger } from '../logger';
 import {
   type ArtifactCreateRequest,
@@ -71,8 +71,7 @@ export class ArtifactParser {
   private artifactService: ArtifactService;
 
   constructor(
-    tenantId: string,
-    ref: ResolvedRef,
+    executionContext: FullExecutionContext,
     options?: {
       sessionId?: string;
       taskId?: string;
@@ -88,10 +87,10 @@ export class ArtifactParser {
       this.artifactService = options.artifactService;
     } else {
       const context: ArtifactServiceContext = {
-        tenantId,
+        executionContext,
         ...options,
       };
-      this.artifactService = new ArtifactService(context, ref);
+      this.artifactService = new ArtifactService(context);
     }
   }
 

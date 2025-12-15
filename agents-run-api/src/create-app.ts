@@ -1,11 +1,10 @@
 import { otel } from '@hono/otel';
 import { createRoute, OpenAPIHono } from '@hono/zod-openapi';
 import {
-  branchScopedDbMiddleware,
   type CredentialStoreRegistry,
-  type ExecutionContext,
+  type BaseExecutionContext,
+  type FullProjectDefinition,
   handleApiError,
-  refMiddleware,
   type ServerConfig,
 } from '@inkeep/agents-core';
 import { context as otelContext, propagation } from '@opentelemetry/api';
@@ -18,6 +17,7 @@ import dbClient from './data/db/dbClient';
 import { flushBatchProcessor } from './instrumentation';
 import { getLogger } from './logger';
 import { apiKeyAuth } from './middleware/api-key-auth';
+import { projectConfigMiddleware } from './middleware/projectConfig';
 import { setupOpenAPIRoutes } from './openapi';
 import agentRoutes from './routes/agents';
 import chatRoutes from './routes/chat';
@@ -28,11 +28,12 @@ import type { SandboxConfig } from './types/execution-context';
 const logger = getLogger('agents-run-api');
 
 type AppVariables = {
-  executionContext: ExecutionContext;
+  executionContext: BaseExecutionContext;
   serverConfig: ServerConfig;
   credentialStores: CredentialStoreRegistry;
   sandboxConfig?: SandboxConfig;
   requestBody?: any;
+  projectConfig?: FullProjectDefinition;
 };
 
 function createExecutionHono(
@@ -187,22 +188,17 @@ function createExecutionHono(
     })
   );
 
-  // Ref and branch scoped database middleware
-  app.use('/v1/chat', refMiddleware(dbClient, { apiType: 'run' }));
-  app.use('/api/*', refMiddleware(dbClient, { apiType: 'run' }));
-  app.use('/v1/mcp', refMiddleware(dbClient, { apiType: 'run' }));
-  app.use('/agents/*', refMiddleware(dbClient, { apiType: 'run' }));
-
-  // app.use('/v1/chat', (c, next) => branchScopedDbMiddleware(c, next, dbClient));
-  // app.use('/api/*', (c, next) => branchScopedDbMiddleware(c, next, dbClient));
-  // app.use('/v1/mcp', (c, next) => branchScopedDbMiddleware(c, next, dbClient));
-  // app.use('/agents/*', (c, next) => branchScopedDbMiddleware(c, next, dbClient));
-
   // Apply API key authentication to all routes except health and docs
   app.use('/tenants/*', apiKeyAuth());
   app.use('/agents/*', apiKeyAuth());
   app.use('/v1/*', apiKeyAuth());
   app.use('/api/*', apiKeyAuth());
+
+  // Fetch project config from Management API for authenticated routes
+  app.use('/tenants/*', projectConfigMiddleware);
+  app.use('/agents/*', projectConfigMiddleware);
+  app.use('/v1/*', projectConfigMiddleware);
+  app.use('/api/*', projectConfigMiddleware);
 
   // Baggage middleware for execution API - extracts context from API key authentication
   app.use('*', async (c, next) => {
