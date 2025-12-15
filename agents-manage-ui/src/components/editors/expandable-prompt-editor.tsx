@@ -2,11 +2,11 @@ import { Braces } from 'lucide-react';
 import type { ComponentPropsWithoutRef } from 'react';
 import { useCallback, useRef, useState } from 'react';
 import { PromptEditor, type PromptEditorHandle } from '@/components/editors/prompt-editor';
+import { extractInvalidVariables } from '@/components/editors/prompt-editor-utils';
 import { ExpandableField } from '@/components/form/expandable-field';
 import { Button } from '@/components/ui/button';
-import { cn } from '@/lib/utils';
 import { useMonacoStore } from '@/features/agent/state/use-monaco-store';
-import { extractInvalidVariables } from '@/components/editors/prompt-editor-utils';
+import { cn } from '@/lib/utils';
 
 type PromptEditorProps = ComponentPropsWithoutRef<typeof PromptEditor> & {
   name: string;

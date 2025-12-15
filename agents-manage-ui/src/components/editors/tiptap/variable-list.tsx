@@ -36,6 +36,7 @@ export const buildVariableItems: SuggestionOptions['items'] = ({ query }) => {
   return [...entries.values(), '$env.'];
 };
 
+// TODO: figure out how to replace dropdown with shadcn and have proper scroll when scrolling in viewport and in editor view
 export const VariableList2: FC<VariableListProps> = ({ items, command }) => {
   const [open, setOpen] = useState(true);
 
