@@ -119,7 +119,21 @@ export const PromptEditor: FC<PromptEditorProps> = ({
       },
     },
     extensions: [
-      StarterKit,
+      StarterKit.configure(
+        isMarkdownMode
+          ? {}
+          : {
+              bold: false,
+              italic: false,
+              orderedList: false,
+              bulletList: false,
+              code: false,
+              codeBlock: false,
+              strike: false,
+              heading: false,
+              blockquote: false,
+            }
+      ),
       Placeholder.configure({ placeholder }),
       Markdown,
       TaskList,
@@ -130,7 +144,7 @@ export const PromptEditor: FC<PromptEditorProps> = ({
     content: value,
     contentType: isMarkdownMode ? 'markdown' : undefined,
     onUpdate({ editor }) {
-      const nextValue = editor.getMarkdown();
+      const nextValue = isMarkdownMode ? editor.getMarkdown() : editor.getText();
       onChange?.(nextValue);
     },
   });
