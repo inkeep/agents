@@ -102,6 +102,7 @@ program
   .description('Push a project configuration to the backend')
   .option('--project <project-id>', 'Project ID or path to project directory')
   .option('--config <path>', 'Path to configuration file')
+  .option('--profile <name>', 'Profile to use for remote URLs and authentication')
   .option('--tenant-id <id>', 'Override tenant ID')
   .option('--agents-manage-api-url <url>', 'Override agents manage API URL')
   .option('--agents-run-api-url <url>', 'Override agents run API URL')
@@ -112,6 +113,7 @@ program
   .option('--json', 'Generate project data JSON file instead of pushing to backend')
   .option('--all', 'Push all projects found in current directory tree')
   .option('--tag <tag>', 'Use tagged config file (e.g., --tag prod loads prod.__inkeep.config.ts__)')
+  .option('--quiet', 'Suppress profile/config logging')
   .action(async (options) => {
     await pushCommand(options);
   });
@@ -124,6 +126,7 @@ program
     'Project ID to pull (or path to project directory). If in project directory, validates against local project ID.'
   )
   .option('--config <path>', 'Path to configuration file')
+  .option('--profile <name>', 'Profile to use for remote URLs and authentication')
   .option(
     '--env <environment>',
     'Environment file to generate (development, staging, production). Defaults to development'
@@ -135,6 +138,7 @@ program
   .option('--introspect', 'Completely regenerate all files from scratch (no comparison needed)')
   .option('--all', 'Pull all projects for current tenant')
   .option('--tag <tag>', 'Use tagged config file (e.g., --tag prod loads prod.__inkeep.config.ts__)')
+  .option('--quiet', 'Suppress profile/config logging')
   .action(async (options) => {
     await pullV3Command(options);
   });
