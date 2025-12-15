@@ -8,7 +8,7 @@ import { EditorContent, type UseEditorOptions, useEditor } from '@tiptap/react';
 import { StarterKit } from '@tiptap/starter-kit';
 import { TextInitial } from 'lucide-react';
 import type { ComponentPropsWithoutRef, FC, RefObject } from 'react';
-import { useEffect, useImperativeHandle, useState } from 'react';
+import { useEffect, useImperativeHandle } from 'react';
 import { Button } from '@/components/ui/button';
 import { useAgentActions, useAgentStore } from '@/features/agent/state/use-agent-store';
 import { MarkdownIcon } from '@/icons';
@@ -24,7 +24,7 @@ interface PromptEditorProps extends Omit<ComponentPropsWithoutRef<'div'>, 'onCha
   readOnly?: boolean;
   disabled?: boolean;
   hasDynamicHeight?: boolean;
-  ref: RefObject<PromptEditorHandle>;
+  ref: RefObject<PromptEditorHandle | null>;
 }
 
 const editorOptions: UseEditorOptions = {
@@ -38,47 +38,6 @@ export interface PromptEditorHandle {
   focus: () => void;
   insertVariableTrigger: () => void;
 }
-
-export const PromptEditor2: FC<PromptEditorProps> = ({
-  value = '',
-  onChange,
-  placeholder,
-  autoFocus,
-  readOnly,
-  disabled,
-  className,
-  hasDynamicHeight = true,
-  ref,
-  ...props
-}) => {
-  const suggestionsRef = useRef<string[]>([]);
-  const [textValue, setTextValue] = useState(value);
-  const variableSuggestions = useMonacoStore((state) => state.variableSuggestions);
-  // const invalidVariables = useMemo(
-  //   () => extractInvalidVariables(textValue, suggestionsRef.current),
-  //   [textValue, variableSuggestions]
-  // );
-
-  useEffect(() => {
-    if (!editor) return;
-    const next = value ?? '';
-    if (next === textValue) return;
-    editor.commands.setContent(next);
-    setTextValue(next);
-  }, [editor, textValue, value]);
-
-  return (
-    <EditorContent
-      editor={editor}
-      {...props}
-      //{invalidVariables.length > 0 && (
-      //  <div className="pt-2 text-xs text-destructive">
-      //    Unknown variables: {invalidVariables.join(', ')}
-      //  </div>
-      //)}
-    />
-  );
-};
 
 export const PromptEditor: FC<PromptEditorProps> = ({
   className,
@@ -140,7 +99,8 @@ export const PromptEditor: FC<PromptEditorProps> = ({
         TaskList,
         TaskItem.configure({ nested: true }),
         TableKit,
-        variableSuggestionExtension,
+        // todo: add dropdown suggestions for text mode too
+        ...(isMarkdownMode ? [variableSuggestionExtension] : []),
       ],
       content: value,
       contentType: isMarkdownMode ? 'markdown' : undefined,

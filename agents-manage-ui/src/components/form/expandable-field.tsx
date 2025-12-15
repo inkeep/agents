@@ -16,8 +16,7 @@ import { cn } from '@/lib/utils';
 
 type DialogProps = Required<ComponentProps<typeof Dialog>>;
 
-interface ExpandableFieldProps {
-  uri: string;
+interface ExpandableFieldPropsBase {
   label: string;
   className?: string;
   children: ReactNode;
@@ -27,8 +26,17 @@ interface ExpandableFieldProps {
   onOpenChange: DialogProps['onOpenChange'];
   hasError?: boolean;
   id: string;
-  onLabelClick?: () => void;
 }
+
+type ExpandableFieldProps =
+  | (ExpandableFieldPropsBase & {
+      uri: string;
+      onLabelClick?: never;
+    })
+  | (ExpandableFieldPropsBase & {
+      uri?: never;
+      onLabelClick: () => void;
+    });
 
 export function ExpandableField({
   id,

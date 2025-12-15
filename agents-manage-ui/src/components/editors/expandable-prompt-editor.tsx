@@ -1,14 +1,21 @@
 import { Braces } from 'lucide-react';
-import type { ComponentProps } from 'react';
+import type { ComponentPropsWithoutRef } from 'react';
 import { useCallback, useRef, useState } from 'react';
 import { PromptEditor, type PromptEditorHandle } from '@/components/editors/prompt-editor';
 import { ExpandableField } from '@/components/form/expandable-field';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
+import { useMonacoStore } from '@/features/agent/state/use-monaco-store';
+import { extractInvalidVariables } from '@/components/editors/prompt-editor-utils';
 
-type PromptEditorProps = ComponentProps<typeof PromptEditor> & {
+type PromptEditorProps = ComponentPropsWithoutRef<typeof PromptEditor> & {
   name: string;
 };
+
+const engFormatter = new Intl.ListFormat('en', {
+  style: 'long',
+  type: 'conjunction',
+});
 
 export function ExpandablePromptEditor({
   label,
@@ -24,20 +31,27 @@ export function ExpandablePromptEditor({
 } & PromptEditorProps) {
   const [open, onOpenChange] = useState(false);
   const editorRef = useRef<PromptEditorHandle>(null);
-  const uri = `${open ? 'expanded-' : ''}${name}.template` as const;
 
   const handleAddVariable = useCallback(() => {
     editorRef.current?.insertVariableTrigger();
   }, []);
 
   const id = `${name}-label`;
+  const variableSuggestions = useMonacoStore((state) => state.variableSuggestions);
+
+  const allErrors =
+    error ||
+    ((invalidVariables: string[]) => {
+      if (invalidVariables.length) {
+        return `Unknown variables: ${engFormatter.format(invalidVariables)}`;
+      }
+    })(extractInvalidVariables(props.value ?? '', variableSuggestions));
 
   return (
     <ExpandableField
       id={id}
       open={open}
       onOpenChange={onOpenChange}
-      uri={uri}
       label={label}
       isRequired={isRequired}
       hasError={!!error}
@@ -58,13 +72,13 @@ export function ExpandablePromptEditor({
       <PromptEditor
         ref={editorRef}
         autoFocus={open}
-        aria-invalid={error ? 'true' : undefined}
+        aria-invalid={allErrors ? 'true' : undefined}
         className={cn(!open && 'max-h-96', 'min-h-16', className)}
         hasDynamicHeight={!open}
         aria-labelledby={id}
         {...props}
       />
-      {error && <p className="text-sm text-red-600">{error}</p>}
+      {allErrors && <p className="text-sm text-red-600">{allErrors}</p>}
     </ExpandableField>
   );
 }
