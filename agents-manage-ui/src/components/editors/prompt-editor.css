@@ -10,4 +10,11 @@
       line-height: 1.2;
     }
   }
+  /* https://tiptap.dev/docs/editor/extensions/functionality/placeholder#additional-setup */
+  p.is-empty::before {
+    content: attr(data-placeholder);
+    float: left;
+    height: 0;
+    pointer-events: none;
+  }
 }

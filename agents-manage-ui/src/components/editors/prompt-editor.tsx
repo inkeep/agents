@@ -140,12 +140,15 @@ export const PromptEditor: FC<PromptEditorProps> = ({
       },
     },
     extensions: [
-      Markdown,
       StarterKit,
+      Placeholder.configure({
+        placeholder,
+        emptyEditorClass: 'before:text-muted-foreground',
+      }),
+      Markdown,
       TaskList,
       TaskItem.configure({ nested: true }),
       TableKit,
-      Placeholder.configure({ placeholder }),
       variableSuggestionExtension,
     ],
     content: value,
