@@ -3034,12 +3034,8 @@ ${output}${structureHintsFormatted}`;
               const shouldStreamPhase2 = this.getStreamingHelper();
 
               if (shouldStreamPhase2) {
-                const phase2SystemPrompt = await this.buildPhase2SystemPrompt(runtimeContext);
                 const phase2Messages: any[] = [
-                  {
-                    role: 'system',
-                    content: phase2SystemPrompt,
-                  },
+                  { role: 'system', content: await this.buildPhase2SystemPrompt(runtimeContext) },
                 ];
 
                 if (conversationHistory.trim() !== '') {
@@ -3129,8 +3125,9 @@ ${output}${structureHintsFormatted}`;
               } else {
                 const { withJsonPostProcessing } = await import('../utils/json-postprocessor');
 
-                const phase2SystemPrompt = await this.buildPhase2SystemPrompt(runtimeContext);
-                const phase2Messages: any[] = [{ role: 'system', content: phase2SystemPrompt }];
+                const phase2Messages: any[] = [
+                  { role: 'system', content: await this.buildPhase2SystemPrompt(runtimeContext) },
+                ];
 
                 if (conversationHistory.trim() !== '') {
                   phase2Messages.push({ role: 'user', content: conversationHistory });
