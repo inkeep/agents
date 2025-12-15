@@ -7,15 +7,11 @@ import {
   loadCredentials,
   saveCredentials,
 } from '../utils/credentials';
-import { loadConfig } from 'src/utils/config';
+import { ProfileManager } from '../utils/profiles';
 
 export interface LoginOptions {
-  config?: string;
+  profile?: string;
 }
-
-// Default cloud URL
-const DEFAULT_INKEEP_CLOUD_MANAGE_API_URL = 'http://localhost:3002';
-const DEFAULT_INKEEP_CLOUD_MANAGE_UI_URL = 'http://localhost:3000';
 
 /**
  * Format user code as XXXX-XXXX for display
@@ -140,22 +136,59 @@ async function fetchUserInfo(
 }
 
 export async function loginCommand(options: LoginOptions = {}): Promise<void> {
-  const config = await loadConfig(options.config);
-  const cloudManageApiUrl = config.agentsManageApiUrl;
-  const cloudManageUiUrl = config.manageUiUrl;
+  const profileManager = new ProfileManager();
+
+  // Resolve profile to use
+  let profileName: string;
+  let credentialKey: string;
+  let manageApiUrl: string;
+  let manageUiUrl: string;
+
+  try {
+    if (options.profile) {
+      const profile = profileManager.getProfile(options.profile);
+      if (!profile) {
+        console.error(chalk.red(`Profile '${options.profile}' not found.`));
+        console.log(chalk.gray('Run "inkeep profile list" to see available profiles.'));
+        process.exit(1);
+      }
+      profileName = options.profile;
+      credentialKey = profile.credential;
+      manageApiUrl = profile.remote.manageApi;
+      manageUiUrl = profile.remote.manageUi;
+    } else {
+      const activeProfile = profileManager.getActiveProfile();
+      profileName = activeProfile.name;
+      credentialKey = activeProfile.credential;
+      manageApiUrl = activeProfile.remote.manageApi;
+      manageUiUrl = activeProfile.remote.manageUi;
+    }
+  } catch {
+    // No profile configured, use defaults
+    profileName = 'default';
+    credentialKey = 'inkeep-cloud';
+    manageApiUrl = 'https://manage-api.inkeep.com';
+    manageUiUrl = 'https://manage.inkeep.com';
+  }
+
+  console.log(chalk.gray(`Using profile: ${profileName}`));
 
   // Check if keychain is available
   const { available, reason } = await checkKeychainAvailability();
   if (!available) {
     console.error(chalk.red('Error:'), getKeychainUnavailableMessage(reason));
+    console.log();
+    console.log(chalk.yellow('For CI/CD environments without keychain access:'));
+    console.log(chalk.gray('  Set INKEEP_API_KEY environment variable instead of using login.'));
+    console.log(chalk.gray('  See: https://docs.inkeep.com/cli/cicd'));
     process.exit(1);
   }
 
-  // Check if already logged in
-  const existingCredentials = await loadCredentials();
+  // Check if already logged in for this profile
+  const existingCredentials = await loadCredentials(credentialKey);
   if (existingCredentials) {
     const continueLogin = await p.confirm({
-      message: `Already logged in as ${chalk.cyan(existingCredentials.userEmail)}. Continue with new login?`,
+      message: `Already logged in as ${chalk.cyan(existingCredentials.userEmail)} for profile '${profileName}'. Continue with new login?`,
       initialValue: false,
     });
 
@@ -176,7 +209,7 @@ export async function loginCommand(options: LoginOptions = {}): Promise<void> {
     // Request device code
     s.start('Requesting device code...');
 
-    const deviceCodeResponse = await fetch(`${cloudManageApiUrl}/api/auth/device/code`, {
+    const deviceCodeResponse = await fetch(`${manageApiUrl}/api/auth/device/code`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ client_id: 'inkeep-cli' }),
@@ -184,52 +217,61 @@ export async function loginCommand(options: LoginOptions = {}): Promise<void> {
 
     if (!deviceCodeResponse.ok) {
       const errorData = await deviceCodeResponse.json().catch(() => ({}));
-      throw new Error(errorData.message || `Failed to get device code: ${deviceCodeResponse.statusText}`);
+      throw new Error(
+        errorData.message || `Failed to get device code: ${deviceCodeResponse.statusText}`
+      );
     }
 
-    const {
-      device_code,
-      user_code,
-      verification_uri,
-      verification_uri_complete,
-      interval,
-    } = await deviceCodeResponse.json();
+    const { device_code, user_code, interval } = await deviceCodeResponse.json();
 
     s.stop('Device code received');
 
     // Display instructions
     console.log();
     console.log(chalk.bold('To authenticate, visit:'));
-    console.log(chalk.cyan(`  ${cloudManageUiUrl}/device?user_code=${user_code}`));
+    console.log(chalk.cyan(`  ${manageUiUrl}/device?user_code=${user_code}`));
     console.log();
     console.log(chalk.bold('And enter code:'));
     console.log(chalk.yellow.bold(`  ${formatUserCode(user_code)}`));
     console.log();
 
+    // Try to open browser automatically
+    try {
+      await open(`${manageUiUrl}/device?user_code=${user_code}`);
+      console.log(chalk.gray('  (Browser opened automatically)'));
+      console.log();
+    } catch {
+      // Browser opening failed, user can copy the URL manually
+    }
+
     // Poll for token
     s.start('Waiting for authorization...');
-    const accessToken = await pollForToken(cloudManageApiUrl, device_code, 'inkeep-cli', interval || 5);
+    const accessToken = await pollForToken(manageApiUrl, device_code, 'inkeep-cli', interval || 5);
     s.stop('Authorized!');
 
     // Fetch user info and organization
     s.start('Fetching account info...');
-    const userInfo = await fetchUserInfo(cloudManageApiUrl, accessToken);
+    const userInfo = await fetchUserInfo(manageApiUrl, accessToken);
     s.stop('Account info retrieved');
 
-    // Store credentials
-    await saveCredentials({
-      accessToken,
-      userId: userInfo.user.id,
-      userEmail: userInfo.user.email,
-      organizationId: userInfo.organization.id,
-      organizationName: userInfo.organization.name,
-      createdAt: new Date().toISOString(),
-    });
+    // Store credentials under the profile's credential key
+    await saveCredentials(
+      {
+        accessToken,
+        userId: userInfo.user.id,
+        userEmail: userInfo.user.email,
+        organizationId: userInfo.organization.id,
+        organizationName: userInfo.organization.name,
+        createdAt: new Date().toISOString(),
+      },
+      credentialKey
+    );
 
     // Success message
     console.log();
     console.log(chalk.green('✓'), `Logged in as ${chalk.cyan(userInfo.user.email)}`);
     console.log(chalk.green('✓'), `Organization: ${chalk.cyan(userInfo.organization.name)}`);
+    console.log(chalk.green('✓'), `Profile: ${chalk.cyan(profileName)}`);
   } catch (error) {
     s.stop('Login failed');
     const errorMessage = error instanceof Error ? error.message : 'Unknown error';
