@@ -58,8 +58,9 @@ program
 
 program
   .command('init [path]')
-  .description('Initialize a new Inkeep configuration file')
-  .option('--no-interactive', 'Skip interactive path selection')
+  .description('Initialize a new Inkeep project (runs cloud onboarding wizard by default)')
+  .option('--local', 'Use local/self-hosted mode instead of cloud onboarding')
+  .option('--no-interactive', 'Skip interactive prompts')
   .option('--config <path>', 'Path to use as template for new configuration')
   .action(async (path, options) => {
     await initCommand({ path, ...options });
