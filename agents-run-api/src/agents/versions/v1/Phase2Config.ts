@@ -11,13 +11,6 @@ import systemPromptTemplate from '../../../../templates/v1/phase2/system-prompt.
 import artifactTemplate from '../../../../templates/v1/shared/artifact.xml?raw';
 import artifactRetrievalGuidance from '../../../../templates/v1/shared/artifact-retrieval-guidance.xml?raw';
 import { ArtifactCreateSchema } from '../../../utils/artifact-component-schema';
-import {
-  createEmptyBreakdown,
-  estimateTokens,
-  calculateBreakdownTotal,
-  type AssembleResult,
-  type ContextBreakdown,
-} from '../../../utils/token-estimator';
 
 /**
  * Configuration for Phase 2 structured output generation
@@ -405,7 +398,6 @@ ${artifactRetrievalGuidance}
 
   /**
    * Assemble the complete Phase 2 system prompt for structured output generation
-   * Returns both the prompt and a breakdown of token usage by component
    */
   assemblePhase2Prompt(config: {
     corePrompt: string;
@@ -414,9 +406,7 @@ ${artifactRetrievalGuidance}
     hasArtifactComponents: boolean;
     hasAgentArtifactComponents?: boolean;
     artifacts?: Artifact[];
-  }): AssembleResult {
-    const breakdown = createEmptyBreakdown();
-
+  }): string {
     const {
       corePrompt,
       dataComponents,
@@ -425,16 +415,6 @@ ${artifactRetrievalGuidance}
       hasAgentArtifactComponents,
       artifacts = [],
     } = config;
-
-    // Track base template tokens (without placeholders - estimate overhead)
-    breakdown.systemPromptTemplate = estimateTokens(
-      systemPromptTemplate
-        .replace('{{CORE_INSTRUCTIONS}}', '')
-        .replace('{{DATA_COMPONENTS_SECTION}}', '')
-        .replace('{{ARTIFACTS_SECTION}}', '')
-        .replace('{{ARTIFACT_GUIDANCE_SECTION}}', '')
-        .replace('{{ARTIFACT_TYPES_SECTION}}', '')
-    );
 
     // Include ArtifactCreate components in data components when artifacts are available
     let allDataComponents = [...dataComponents];
@@ -448,10 +428,7 @@ ${artifactRetrievalGuidance}
     }
 
     const dataComponentsSection = this.generateDataComponentsSection(allDataComponents);
-    breakdown.dataComponents = estimateTokens(dataComponentsSection);
-
     const artifactsSection = this.generateArtifactsSection(artifacts);
-    breakdown.artifactsSection = estimateTokens(artifactsSection);
 
     const shouldShowReferencingRules = hasAgentArtifactComponents || artifacts.length > 0;
     const artifactGuidance = this.getStructuredArtifactGuidance(
@@ -464,13 +441,11 @@ ${artifactRetrievalGuidance}
       hasArtifactComponents,
       artifactComponents
     );
-    breakdown.artifactComponents = estimateTokens(artifactGuidance) + estimateTokens(artifactTypes);
 
     let phase2Prompt = systemPromptTemplate;
 
     // Handle core instructions - omit entire section if empty
     if (corePrompt && corePrompt.trim()) {
-      breakdown.coreInstructions = estimateTokens(corePrompt);
       phase2Prompt = phase2Prompt.replace('{{CORE_INSTRUCTIONS}}', corePrompt);
     } else {
       // Remove the entire core_instructions section if empty
@@ -484,12 +459,6 @@ ${artifactRetrievalGuidance}
     phase2Prompt = phase2Prompt.replace('{{ARTIFACT_GUIDANCE_SECTION}}', artifactGuidance);
     phase2Prompt = phase2Prompt.replace('{{ARTIFACT_TYPES_SECTION}}', artifactTypes);
 
-    // Calculate total
-    calculateBreakdownTotal(breakdown);
-
-    return {
-      prompt: phase2Prompt,
-      breakdown,
-    };
+    return phase2Prompt;
   }
 }

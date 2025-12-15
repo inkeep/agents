@@ -1530,7 +1530,7 @@ export class Agent {
       streamRequestId?: string;
       streamBaseUrl?: string;
     };
-  }): Promise<AssembleResult> {
+  }): Promise<string> {
     const phase2Config = new Phase2Config();
     const compressionConfig = getCompressionConfigFromEnv();
     const hasAgentArtifactComponents =
@@ -3034,11 +3034,11 @@ ${output}${structureHintsFormatted}`;
               const shouldStreamPhase2 = this.getStreamingHelper();
 
               if (shouldStreamPhase2) {
-                const phase2SystemPromptResult = await this.buildPhase2SystemPrompt(runtimeContext);
+                const phase2SystemPrompt = await this.buildPhase2SystemPrompt(runtimeContext);
                 const phase2Messages: any[] = [
                   {
                     role: 'system',
-                    content: phase2SystemPromptResult.prompt,
+                    content: phase2SystemPrompt,
                   },
                 ];
 
@@ -3129,10 +3129,8 @@ ${output}${structureHintsFormatted}`;
               } else {
                 const { withJsonPostProcessing } = await import('../utils/json-postprocessor');
 
-                const phase2SystemPromptResult = await this.buildPhase2SystemPrompt(runtimeContext);
-                const phase2Messages: any[] = [
-                  { role: 'system', content: phase2SystemPromptResult.prompt },
-                ];
+                const phase2SystemPrompt = await this.buildPhase2SystemPrompt(runtimeContext);
+                const phase2Messages: any[] = [{ role: 'system', content: phase2SystemPrompt }];
 
                 if (conversationHistory.trim() !== '') {
                   phase2Messages.push({ role: 'user', content: conversationHistory });
