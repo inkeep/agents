@@ -141,10 +141,7 @@ export const PromptEditor: FC<PromptEditorProps> = ({
     },
     extensions: [
       StarterKit,
-      Placeholder.configure({
-        placeholder,
-        emptyEditorClass: 'before:text-muted-foreground',
-      }),
+      Placeholder.configure({ placeholder }),
       Markdown,
       TaskList,
       TaskItem.configure({ nested: true }),
@@ -154,6 +151,16 @@ export const PromptEditor: FC<PromptEditorProps> = ({
     content: value,
     contentType: isMarkdownMode ? 'markdown' : undefined,
   });
+
+  // biome-ignore lint/correctness/useExhaustiveDependencies: only on mount
+  useEffect(() => {
+    if (!editor) {
+      return;
+    }
+    // When `Markdown` extension is enabled placeholder isn't rendered on initial loading
+    // and loaded only after focusing editor, this dispatch fix it
+    editor.view.dispatch(editor.state.tr.setMeta('placeholder-init', true));
+  }, []);
 
   useImperativeHandle(
     ref,

@@ -12,6 +12,7 @@
   }
   /* https://tiptap.dev/docs/editor/extensions/functionality/placeholder#additional-setup */
   p.is-empty::before {
+    color: var(--muted-foreground);
     content: attr(data-placeholder);
     float: left;
     height: 0;
