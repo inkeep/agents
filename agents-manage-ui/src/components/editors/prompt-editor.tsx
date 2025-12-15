@@ -121,7 +121,8 @@ export const PromptEditor: FC<PromptEditorProps> = ({
 
   const editor = useEditor({
     ...editorOptions,
-    immediatelyRender: false, // needs for SSR
+    // Tiptap Error: SSR has been detected, please set `immediatelyRender` explicitly to `false` to avoid hydration mismatches.
+    immediatelyRender: false,
     editorProps: {
       attributes: {
         class: cn(
