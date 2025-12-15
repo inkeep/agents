@@ -29,7 +29,7 @@ export const AppSidebarProvider: FC<{ children: ReactNode }> = ({ children }) =>
       style={{
         '--sidebar-width': 'calc(var(--spacing) * 62)',
         '--header-height': 'calc(var(--spacing) * 12)',
-      }}
+      } as React.CSSProperties}
       open={isOpen}
       onOpenChange={handleOpen}
     >
