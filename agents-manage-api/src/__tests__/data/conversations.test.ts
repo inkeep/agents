@@ -77,11 +77,12 @@ describe.skip('Conversations', () => {
       }),
     });
 
-    const result = await createConversation(dbClient)({
+    const result = await createConversation(runDbClient)({
       id: 'conv-123',
       tenantId: 'test-tenant',
       projectId: 'test-project',
       activeSubAgentId: 'default-agent',
+      ref: { type: 'branch', name: 'main', hash: 'abc123' },
     });
 
     expect(result).toEqual(expectedConversation);

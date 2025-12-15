@@ -5,10 +5,13 @@ import {
   createFullProjectServerSide,
   deleteFullProject,
   ErrorResponseSchema,
-  type FullProjectDefinition,
-  FullProjectDefinitionResponse,
   FullProjectDefinitionSchema,
+  FullProjectSelect,
+  FullProjectSelectResponse,
+  FullProjectSelectWithRelationIds,
+  FullProjectSelectWithRelationIdsResponse,
   getFullProject,
+  getFullProjectWithRelationIds,
   TenantParamsSchema,
   TenantProjectParamsSchema,
   updateFullProjectServerSide,
@@ -63,7 +66,7 @@ app.openapi(
         description: 'Full project created successfully',
         content: {
           'application/json': {
-            schema: FullProjectDefinitionResponse,
+            schema: FullProjectSelectResponse,
           },
         },
       },
@@ -123,7 +126,7 @@ app.openapi(
         description: 'Full project found',
         content: {
           'application/json': {
-            schema: FullProjectDefinitionResponse,
+            schema: FullProjectSelectResponse,
           },
         },
       },
@@ -135,7 +138,7 @@ app.openapi(
     const db = c.get('db');
 
     try {
-      const project: FullProjectDefinition | null = await getFullProject(db)(
+      const project: FullProjectSelect | null = await getFullProject(db)(
         { scopes: { tenantId, projectId } });
 
       if (!project) {
@@ -162,6 +165,64 @@ app.openapi(
   }
 );
 
+
+app.openapi(
+  createRoute({
+    method: 'get',
+    path: '/project-full/{projectId}/with-relation-ids',
+    summary: 'Get Full Project with Relation IDs',
+    operationId: 'get-full-project-with-relation-ids',
+    tags: ['Full Project'],
+    description:
+      'Retrieve a complete project definition with all Agents, Sub Agents, tools, and relationships',
+    request: {
+      params: TenantProjectParamsSchema,
+    },
+    responses: {
+      200: {
+        description: 'Full project found',
+        content: {
+          'application/json': {
+            schema: FullProjectSelectWithRelationIdsResponse,
+          },
+        },
+      },
+      ...commonGetErrorResponses,
+    },
+  }),
+  async (c) => {
+    const { tenantId, projectId } = c.req.valid('param');
+    const db = c.get('db');
+
+    try {
+      const project: FullProjectSelectWithRelationIds | null = await getFullProjectWithRelationIds(db)(
+        { scopes: { tenantId, projectId } });
+
+      if (!project) {
+        throw createApiError({
+          code: 'not_found',
+          message: 'Project not found',
+        });
+      }
+
+      return c.json({ data: project });
+    } catch (error) {
+      if (error instanceof Error && error.message.includes('not found')) {
+        throw createApiError({
+          code: 'not_found',
+          message: 'Project not found',
+        });
+      }
+
+      throw createApiError({
+        code: 'internal_server_error',
+        message: error instanceof Error ? error.message : 'Failed to retrieve project',
+      });
+    }
+  }
+);
+
+
 // Update/upsert full project
 app.openapi(
   createRoute({
@@ -187,7 +248,7 @@ app.openapi(
         description: 'Full project updated successfully',
         content: {
           'application/json': {
-            schema: FullProjectDefinitionResponse,
+            schema: FullProjectSelectResponse,
           },
         },
       },
@@ -195,7 +256,7 @@ app.openapi(
         description: 'Full project created successfully',
         content: {
           'application/json': {
-            schema: FullProjectDefinitionResponse,
+            schema: FullProjectSelectResponse,
           },
         },
       },
@@ -217,13 +278,13 @@ app.openapi(
         });
       }
 
-      const existingProject: FullProjectDefinition | null = await getFullProject(db)({
+      const existingProject: FullProjectSelect | null = await getFullProject(db)({
         scopes: { tenantId, projectId },
       });
       const isCreate = !existingProject;
 
       // Update/create the full project using server-side data layer operations
-      const updatedProject: FullProjectDefinition = isCreate
+      const updatedProject: FullProjectSelect = isCreate
         ? await createFullProjectServerSide(db)({
             scopes: { tenantId, projectId },
             projectData: validatedProjectData,

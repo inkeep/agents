@@ -6,7 +6,7 @@ import {
   getFullAgent,
   updateFullAgentServerSide,
 } from '@inkeep/agents-core';
-import { createTestProject } from '@inkeep/agents-core/db/test-client';
+import { createTestProject } from '@inkeep/agents-core/db/test-manage-client';
 import { describe, expect, it, vi } from 'vitest';
 import dbClient from '../../data/db/dbClient';
 import { createTestContextConfigData } from '../utils/testHelpers';

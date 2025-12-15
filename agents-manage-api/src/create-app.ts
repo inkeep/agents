@@ -217,6 +217,11 @@ function createManagementHono(
     app.use('/tenants/:tenantId/*', requireTenantAccess());
   }
 
+  // Ref versioning middleware for all tenant routes - MUST be before route mounting
+  app.use('/tenants/*', async (c, next) => refMiddleware(c, next));
+  app.use('/tenants/*', (c, next) => writeProtectionMiddleware(c, next));
+  app.use('/tenants/*', async (c, next) => branchScopedDbMiddleware(c, next));
+
   // Mount user-organizations routes - global user endpoint
   app.route('/api/users/:userId/organizations', userOrganizationsRoutes);
 
@@ -225,11 +230,6 @@ function createManagementHono(
 
   // Mount invitations routes - global invitations endpoint
   app.route('/api/invitations', invitationsRoutes);
-
-  // Ref versioning middleware for all tenant routes
-  app.use('/tenants/*', async (c, next) => refMiddleware(c, next));
-  app.use('/tenants/*', (c, next) => writeProtectionMiddleware(c, next));
-  app.use('/tenants/*', async (c, next) => branchScopedDbMiddleware(c, next));
 
   // Mount routes for all entities
   app.route('/tenants/:tenantId', crudRoutes);
@@ -247,7 +247,8 @@ function createManagementHono(
   app.route('/oauth', oauthRoutes);
 
   app.route('/mcp', mcpRoutes);
-  // Setup OpenAPI documentation endpoints (/openapi.json and /docs)
+  
+// Setup OpenAPI documentation endpoints (/openapi.json and /docs)
   setupOpenAPIRoutes(app);
 
   const baseApp = new Hono();

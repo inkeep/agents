@@ -18,6 +18,7 @@ import {
   TenantProjectParamsSchema,
   updateApiKey,
 } from '@inkeep/agents-core';
+import runDbClient from '../data/db/runDbClient';
 import { requirePermission } from '../middleware/require-permission';
 import type { BaseAppVariables } from '../types/app';
 import { speakeasyOffsetLimitPagination } from './shared';
@@ -70,13 +71,13 @@ app.openapi(
     ...speakeasyOffsetLimitPagination,
   }),
   async (c) => {
-    const db = c.get('db');
+
     const { tenantId, projectId } = c.req.valid('param');
     const page = Number(c.req.query('page')) || 1;
     const limit = Math.min(Number(c.req.query('limit')) || 10, 100);
     const agentId = c.req.query('agentId');
 
-    const result = await listApiKeysPaginated(db)({
+    const result = await listApiKeysPaginated(runDbClient)({
       scopes: { tenantId, projectId },
       pagination: { page, limit },
       agentId: agentId,
@@ -115,9 +116,8 @@ app.openapi(
     },
   }),
   async (c) => {
-    const db = c.get('db');
     const { tenantId, projectId, id } = c.req.valid('param');
-    const apiKey = await getApiKeyById(db)({
+    const apiKey = await getApiKeyById(runDbClient)({
       scopes: { tenantId, projectId },
       id,
     });
@@ -173,10 +173,9 @@ app.openapi(
     },
   }),
   async (c) => {
-    const db = c.get('db');
     const { tenantId, projectId } = c.req.valid('param');
     const body = c.req.valid('json');
-    const keyData = await generateApiKey(tenantId, projectId);
+    const keyData = await generateApiKey();
 
     const { key, ...keyDataWithoutKey } = keyData;
     const insertData = {
@@ -189,7 +188,7 @@ app.openapi(
     };
 
     try {
-      const result = await createApiKey(db)(insertData);
+      const result = await createApiKey(runDbClient)(insertData);
       // Remove sensitive fields from the apiKey object (but keep the full key)
       const { keyHash: _, tenantId: __, projectId: ___, ...sanitizedApiKey } = result;
 
@@ -252,11 +251,10 @@ app.openapi(
     },
   }),
   async (c) => {
-    const db = c.get('db');
     const { tenantId, projectId, id } = c.req.valid('param');
     const body = c.req.valid('json');
 
-    const updatedApiKey = await updateApiKey(db)({
+    const updatedApiKey = await updateApiKey(runDbClient)({
       scopes: { tenantId, projectId },
       id,
       data: {
@@ -311,10 +309,10 @@ app.openapi(
     },
   }),
   async (c) => {
-    const db = c.get('db');
+    const ref = c.get('resolvedRef');
     const { tenantId, projectId, id } = c.req.valid('param');
 
-    const deleted = await deleteApiKey(db)({
+    const deleted = await deleteApiKey(runDbClient)({
       scopes: { tenantId, projectId },
       id,
     });

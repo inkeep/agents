@@ -15,10 +15,10 @@ import {
   TenantProjectAgentParamsSchema,
   TenantProjectParamsSchema,
 } from '@inkeep/agents-core';
+import { OpenAPIHono } from '@hono/zod-openapi';
+import type { BaseAppVariables } from '../types/app';
 
-import { createAppWithDb } from '../utils/apps';
-
-const app = createAppWithDb();
+const app = new OpenAPIHono<{ Variables: BaseAppVariables }>();
 
 // List branches for a project
 app.openapi(

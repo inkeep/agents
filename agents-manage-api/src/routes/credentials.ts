@@ -8,7 +8,6 @@ import {
   commonGetErrorResponses,
   createApiError,
   createCredentialReference,
-  type DatabaseClient,
   deleteCredentialReference,
   ErrorResponseSchema,
   getCredentialReferenceById,

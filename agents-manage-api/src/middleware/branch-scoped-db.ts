@@ -1,4 +1,4 @@
-import type { DatabaseClient, ResolvedRef } from '@inkeep/agents-core';
+import type { AgentsManageDatabaseClient, ResolvedRef } from '@inkeep/agents-core';
 import { doltAddAndCommit, doltStatus } from '@inkeep/agents-core';
 import * as schema from '@inkeep/agents-core/schema';
 import { drizzle } from 'drizzle-orm/node-postgres';
@@ -12,7 +12,7 @@ const logger = getLogger('branch-scoped-db');
 /**
  * Get the underlying connection pool from a Drizzle database client
  */
-export function getPoolFromClient(client: DatabaseClient): Pool | null {
+export function getPoolFromClient(client: AgentsManageDatabaseClient): Pool | null {
   if ('$client' in client && client.$client) {
     return client.$client as Pool;
   }

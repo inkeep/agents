@@ -15,7 +15,7 @@ import {
   CredentialReferenceApiSelectSchema,
   CredentialStoreType,
   createCredentialReference,
-  type DatabaseClient,
+  type AgentsManageDatabaseClient,
   generateId,
   getCredentialReferenceWithResources,
   getToolById,
@@ -31,7 +31,7 @@ import { oauthService, retrievePKCEVerifier } from '../utils/oauth-service';
  * Find existing credential or create a new one (idempotent operation)
  */
 async function findOrCreateCredential(
-  db: DatabaseClient,
+  db: AgentsManageDatabaseClient,
   tenantId: string,
   projectId: string,
   credentialData: CredentialReferenceApiInsert

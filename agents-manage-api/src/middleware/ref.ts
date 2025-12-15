@@ -4,10 +4,10 @@ import {
   isRefWritable,
   type ResolvedRef,
   resolveRef,
+  getLogger
 } from '@inkeep/agents-core';
-import type { Context, Next } from 'hono';
 import dbClient from '../data/db/dbClient';
-import { getLogger } from '../logger';
+import type { Context, Next } from 'hono';
 
 const logger = getLogger('ref');
 
@@ -23,36 +23,53 @@ export const refMiddleware = async (c: Context, next: Next) => {
 
   const ref = c.req.query('ref');
   const path = c.req.path;
-
-  // Extract tenantId from /tenants/:tenantId/... path structure
-  // For /tenants/123/projects, split('/') = ['', 'tenants', '123', 'projects']
-  // tenantId is at index 2
   const pathSplit = path.split('/');
-  const tenantId = pathSplit[2];
 
-  if (pathSplit.length < 4 && ref !== 'main' && ref !== undefined) {
-    throw createApiError({
-      code: 'bad_request',
-      message: 'Ref is not supported for this path',
-    });
-  }
-  const projectId = pathSplit[4];
 
-  if (!tenantId) {
-    throw createApiError({
-      code: 'bad_request',
-      message: 'Missing tenantId in path',
-    });
-  }
+  let tenantId: string | undefined;
+  let projectId: string | undefined;
 
-  const tenant_main = `${tenantId}_main`;
-  const project_scoped_ref = `${tenantId}_${projectId}_${ref}`;
+    if (pathSplit.length < 4 && ref !== 'main' && ref !== undefined) {
+      throw createApiError({
+        code: 'bad_request',
+        message: 'Ref is not supported for this path',
+      });
+    }
+    // Extract tenantId from /tenants/:tenantId/... path structure (only for agents-manage-api routes)
+    // For /tenants/123/projects, split('/') = ['', 'tenants', '123', 'projects']
+    // tenantId is at index 2, projectId is at index 4
+    // Only use path-based extraction if path matches the expected pattern
+    if (!tenantId) {
+      tenantId = pathSplit[2];
+    }
+    if (!projectId && pathSplit.length >= 5) {
+      projectId = pathSplit[4];
+    }
+
+    if (!tenantId) {
+      throw createApiError({
+        code: 'bad_request',
+        message: 'Missing tenantId',
+      });
+    }
+  
+
+  const tenantMain = `${tenantId}_main`;
+  const projectScopedRef = `${tenantId}_${projectId}_${ref}`;
 
   let resolvedRef: ResolvedRef;
 
   if (ref && ref !== 'main') {
     // User provided a specific ref
-    const refResult = await resolveRef(dbClient)(project_scoped_ref);
+    // First try to resolve as project-scoped ref (e.g., tenant_project_branch)
+    let refResult = await resolveRef(dbClient)(projectScopedRef);
+
+    // If project-scoped ref not found, try resolving the ref directly
+    // This handles tags and commit hashes which aren't namespaced
+    if (!refResult) {
+      refResult = await resolveRef(dbClient)(ref);
+    }
+
     if (!refResult) {
       throw createApiError({
         code: 'not_found',
@@ -62,19 +79,19 @@ export const refMiddleware = async (c: Context, next: Next) => {
     resolvedRef = refResult;
   } else {
     // No ref provided, use tenant main
-    let refResult = await resolveRef(dbClient)(tenant_main);
+    let refResult = await resolveRef(dbClient)(tenantMain);
 
     if (!refResult) {
       // Tenant main doesn't exist, create it
-      await doltBranch(dbClient)({ name: tenant_main });
+      await doltBranch(dbClient)({ name: tenantMain });
 
       // Resolve the newly created branch
-      refResult = await resolveRef(dbClient)(tenant_main);
+      refResult = await resolveRef(dbClient)(tenantMain);
 
       if (!refResult) {
         throw createApiError({
           code: 'internal_server_error',
-          message: `Failed to create tenant main branch: ${tenant_main}`,
+          message: `Failed to create tenant main branch: ${tenantMain}`,
         });
       }
     }

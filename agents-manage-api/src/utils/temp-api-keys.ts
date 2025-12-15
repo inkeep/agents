@@ -1,4 +1,4 @@
-import { createApiKey, type DatabaseClient, generateApiKey } from '@inkeep/agents-core';
+import { createApiKey, type AgentsRunDatabaseClient, generateApiKey } from '@inkeep/agents-core';
 
 export interface CreateTempApiKeyParams {
   tenantId: string;
@@ -14,7 +14,7 @@ export interface TempApiKeyResult {
 }
 
 export async function createTempApiKey(
-  db: DatabaseClient,
+  db: AgentsRunDatabaseClient,
   params: CreateTempApiKeyParams
 ): Promise<TempApiKeyResult> {
   const expiryHours = params.expiryHours || 1;

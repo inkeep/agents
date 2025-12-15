@@ -38,6 +38,7 @@ const envSchema = z.object({
   SIGNOZ_API_KEY: z.string().optional(),
   PUBLIC_SIGNOZ_URL: z.string().optional(),
   INKEEP_AGENTS_MANAGE_DATABASE_URL: z.string(),
+  INKEEP_AGENTS_RUN_DATABASE_URL: z.string(),
 });
 
 const parseEnv = () => {

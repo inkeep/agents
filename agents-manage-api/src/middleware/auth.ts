@@ -1,8 +1,8 @@
-import { type ExecutionContext, getLogger, validateAndGetApiKey } from '@inkeep/agents-core';
+import { type BaseExecutionContext, getLogger, validateAndGetApiKey } from '@inkeep/agents-core';
 import type { createAuth } from '@inkeep/agents-core/auth';
 import { createMiddleware } from 'hono/factory';
 import { HTTPException } from 'hono/http-exception';
-import dbClient from '../data/db/dbClient';
+import runDbClient from '../data/db/runDbClient';
 import { env } from '../env';
 
 const logger = getLogger('env-key-auth');
@@ -16,7 +16,7 @@ const logger = getLogger('env-key-auth');
 export const apiKeyAuth = () =>
   createMiddleware<{
     Variables: {
-      executionContext: ExecutionContext;
+      executionContext: BaseExecutionContext;
       userId?: string;
       userEmail?: string;
       tenantId?: string;
@@ -79,7 +79,7 @@ export const apiKeyAuth = () =>
     }
 
     // 3. Validate against database API keys
-    const validatedKey = await validateAndGetApiKey(token, dbClient);
+    const validatedKey = await validateAndGetApiKey(token, runDbClient);
 
     if (validatedKey) {
       logger.info({ keyId: validatedKey.id }, 'API key authenticated successfully');
