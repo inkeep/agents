@@ -75,7 +75,7 @@ import type { StreamHelper } from '../utils/stream-helpers';
 import { getStreamHelper } from '../utils/stream-registry';
 import {
   type AssembleResult,
-  type ContextBreakdown,
+  calculateBreakdownTotal,
   estimateTokens,
 } from '../utils/token-estimator';
 import { setSpanWithError, tracer } from '../utils/tracer';
@@ -2328,18 +2328,7 @@ ${output}`;
           contextBreakdown.conversationHistory = conversationHistoryTokens;
 
           // Recalculate total with conversation history
-          contextBreakdown.total =
-            contextBreakdown.systemPromptTemplate +
-            contextBreakdown.coreInstructions +
-            contextBreakdown.agentPrompt +
-            contextBreakdown.toolsSection +
-            contextBreakdown.artifactsSection +
-            contextBreakdown.dataComponents +
-            contextBreakdown.artifactComponents +
-            contextBreakdown.transferInstructions +
-            contextBreakdown.delegationInstructions +
-            contextBreakdown.thinkingPreparation +
-            contextBreakdown.conversationHistory;
+          calculateBreakdownTotal(contextBreakdown);
 
           // Record context breakdown as span attributes for trace viewer
           span.setAttributes({
