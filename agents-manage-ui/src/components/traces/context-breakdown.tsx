@@ -2,8 +2,8 @@
 
 import { FileText, MessageSquare, PieChart, Settings, Wrench } from 'lucide-react';
 import { useMemo } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import type { ContextBreakdown as ContextBreakdownType } from '@/components/traces/timeline/types';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 
 interface ContextBreakdownProps {
   breakdown: ContextBreakdownType;

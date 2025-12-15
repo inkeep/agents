@@ -15,9 +15,9 @@ import { Bubble, CodeBubble } from '@/components/traces/timeline/bubble';
 import { SpanAttributes } from '@/components/traces/timeline/span-attributes';
 import {
   ACTIVITY_STATUS,
+  type ContextBreakdown,
   type ConversationDetail,
   type SelectedPanel,
-  type ContextBreakdown,
 } from '@/components/traces/timeline/types';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
