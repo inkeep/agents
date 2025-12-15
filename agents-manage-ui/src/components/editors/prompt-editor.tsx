@@ -58,27 +58,9 @@ export const PromptEditor: FC<PromptEditorProps> = ({
   const editor = useEditor(
     {
       ...editorOptions,
-      editable,
       autofocus: autoFocus,
       // to see placeholder on initial rendering
       immediatelyRender: true,
-      editorProps: {
-        attributes: {
-          class: cn(
-            'prose prose-sm dark:prose-invert',
-            'focus:outline-none overflow-scroll min-w-full',
-            'dark:bg-input/30 text-sm focus:outline-none px-3 py-2',
-            'rounded-md border border-input shadow-xs transition-colors',
-            hasDynamicHeight ? 'min-h-16' : 'min-h-80',
-            editable
-              ? 'focus-within:border-ring focus-within:ring-2 focus-within:ring-ring/40'
-              : 'bg-muted/50 text-muted-foreground opacity-70 cursor-not-allowed',
-            ariaInvalid === 'true' &&
-              'border-destructive focus-within:border-destructive focus-within:ring-destructive/30',
-            className
-          ),
-        },
-      },
       extensions: [
         isMarkdownMode
           ? StarterKit
@@ -109,8 +91,35 @@ export const PromptEditor: FC<PromptEditorProps> = ({
         onChange?.(nextValue);
       },
     },
-    [isMarkdownMode, editable]
+    [isMarkdownMode]
   );
+
+  useEffect(() => {
+    if (!editor) {
+      return;
+    }
+    // Add a class to an existing editor instance
+    editor.setOptions({
+      editorProps: {
+        attributes: {
+          class: cn(
+            'prose prose-sm dark:prose-invert',
+            'focus:outline-none overflow-scroll min-w-full',
+            'dark:bg-input/30 text-sm focus:outline-none px-3 py-2',
+            'rounded-md border border-input shadow-xs transition-colors',
+            hasDynamicHeight ? 'min-h-16' : 'min-h-80',
+            editable
+              ? 'focus-within:border-ring focus-within:ring-2 focus-within:ring-ring/40'
+              : 'bg-muted/50 text-muted-foreground opacity-70 cursor-not-allowed',
+            ariaInvalid === 'true' &&
+              'border-destructive focus-within:border-destructive focus-within:ring-destructive/30',
+            className
+          ),
+        },
+      },
+    });
+    editor.setEditable(editable);
+  }, [editor, hasDynamicHeight, editable, ariaInvalid, className]);
 
   useEffect(() => {
     if (!editor) {

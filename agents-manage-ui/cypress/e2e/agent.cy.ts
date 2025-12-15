@@ -54,7 +54,7 @@ describe('Agent', () => {
       cy.typeInMonaco('headersSchema.json', JSON.stringify(headersJsonSchema));
       cy.contains('Save changes').click();
 
-      cy.typeInMonaco('agent-prompt.template', '{');
+      cy.get('.tiptap').type('{');
       cy.get('[aria-label=Suggest]').contains('contextVariablesValue');
       cy.get('[aria-label=Suggest]').contains('headers.testHeadersJsonSchemaValue');
       cy.get('[aria-label=Suggest]').contains('$env.');
@@ -62,8 +62,10 @@ describe('Agent', () => {
 
     it('should highlight as error unknown variables', () => {
       cy.visit('/default/projects/my-weather-project/agents/weather-agent?pane=agent');
-      cy.typeInMonaco('agent-prompt.template', 'Hello {{unknown}} {{$env.MY_ENV}}');
-      cy.get('.squiggly-error').should('have.length', 1);
+      cy.get('.tiptap').type('Hello {{unknown}} {{$env.MY_ENV}}', {
+        parseSpecialCharSequences: false,
+      });
+      cy.contains('Unknown variables: unknown').should('exist');
     });
   });
 });

@@ -104,6 +104,7 @@ export const VariableList: FC<VariableListProps> = ({ items, command, ref }) => 
       {items.map((item, index) => (
         <button
           type="button"
+          aria-label="Suggest"
           key={index}
           className={cn(
             'rounded-sm text-left px-2 py-1.5 text-sm',
