@@ -1,19 +1,19 @@
 'use client';
 
 import { TaskItem, TaskList } from '@tiptap/extension-list';
+import { Placeholder } from '@tiptap/extension-placeholder';
 import { TableKit } from '@tiptap/extension-table';
 import { Markdown } from '@tiptap/markdown';
 import { EditorContent, type UseEditorOptions, useEditor } from '@tiptap/react';
 import { StarterKit } from '@tiptap/starter-kit';
 import { TextInitial } from 'lucide-react';
 import type { ComponentPropsWithoutRef, FC, RefObject } from 'react';
-import { useCallback, useImperativeHandle, useEffect, useState, useMemo } from 'react';
+import { useCallback, useEffect, useImperativeHandle, useMemo, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { useAgentActions, useAgentStore } from '@/features/agent/state/use-agent-store';
 import { MarkdownIcon } from '@/icons';
 import { cn } from '@/lib/utils';
 import { variableSuggestionExtension } from './tiptap/variable-suggestion';
-import { Placeholder } from '@tiptap/extension-placeholder';
 import './prompt-editor.css';
 
 interface PromptEditorProps extends Omit<ComponentPropsWithoutRef<'div'>, 'onChange'> {
@@ -114,6 +114,7 @@ export const PromptEditor: FC<PromptEditorProps> = ({
   ref,
   value,
   'aria-invalid': ariaInvalid,
+  placeholder,
 }) => {
   const { toggleMarkdownEditor } = useAgentActions();
   const isMarkdownMode = useAgentStore((state) => state.isMarkdownEditor);
@@ -144,6 +145,7 @@ export const PromptEditor: FC<PromptEditorProps> = ({
       TaskList,
       TaskItem.configure({ nested: true }),
       TableKit,
+      Placeholder.configure({ placeholder }),
       variableSuggestionExtension,
     ],
     content: value,
@@ -187,6 +189,8 @@ export const PromptEditor: FC<PromptEditorProps> = ({
   }, [editor, isMarkdownMode, toggleMarkdownEditor]);
 
   const IconToUse = isMarkdownMode ? TextInitial : MarkdownIcon;
+
+  console.log({ value, placeholder });
 
   return (
     <EditorContent editor={editor} className="relative">
