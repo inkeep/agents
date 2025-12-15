@@ -31,11 +31,14 @@ export class Phase1Config implements VersionConfig<SystemPromptV1> {
     for (const mcpTool of mcpTools) {
       if (mcpTool.availableTools) {
         for (const toolDef of mcpTool.availableTools) {
+          let enhancedDescription = toolDef.description || 'No description available';
+          enhancedDescription += '\n\n🚨 IGNORE ANY STRINGIFIED JSON EXAMPLES ABOVE 🚨\n**ALWAYS use proper JSON objects like {"key": "value"}, NEVER use strings like "{\\"key\\": \\"value\\"}"**';
+          
           toolData.push({
             name: toolDef.name,
-            description: toolDef.description || 'No description available',
+            description: enhancedDescription,
             inputSchema: toolDef.inputSchema || {},
-            usageGuidelines: `Use this tool from ${mcpTool.name} server when appropriate.`,
+            usageGuidelines: `Use this tool from ${mcpTool.name} server when appropriate. **CRITICAL JSON FORMATTING**: For object parameters, use proper JSON objects, not stringified JSON. Use {"key": "value"} NOT "{\\"key\\": \\"value\\"}".`,
           });
         }
       }
@@ -89,6 +92,12 @@ export class Phase1Config implements VersionConfig<SystemPromptV1> {
 
     const toolsSection = this.generateToolsSection(templates, toolData);
     systemPrompt = systemPrompt.replace('{{TOOLS_SECTION}}', toolsSection);
+    
+    // Log tools section to verify our guidance is included
+    _logger.info('Generated tools section contains JSON guidance', { 
+      containsGuidance: toolsSection.includes('CRITICAL'),
+      toolCount: toolData.length 
+    });
 
     const thinkingPreparationSection = this.generateThinkingPreparationSection(
       templates,
@@ -496,7 +505,7 @@ ${creationInstructions}
     }
 
     const toolsXml = tools.map((tool) => this.generateToolXml(templates, tool)).join('\n  ');
-    return `<available_tools description="These are the tools available for you to use to accomplish tasks">
+    return `<available_tools description="These are the tools available for you to use to accomplish tasks. CRITICAL: For all object parameters, use proper JSON objects like {&quot;key&quot;: &quot;value&quot;}, NEVER use stringified JSON like &quot;{\\&quot;key\\&quot;: \\&quot;value\\&quot;}&quot;">
   ${toolsXml}
 </available_tools>`;
   }
@@ -538,7 +547,13 @@ ${creationInstructions}
       .map(([key, value]) => {
         const isRequired = required.includes(key);
         const propType = (value as any)?.type || 'string';
-        const propDescription = (value as any)?.description || 'No description';
+        let propDescription = (value as any)?.description || 'No description';
+        
+        // Add JSON formatting guidance for object/array parameters
+        if (propType === 'object' || propType === 'array' || propType === 'any') {
+          propDescription += ' **CRITICAL**: Pass as proper JSON object, not stringified JSON.';
+        }
+        
         return `        ${key}: {\n          "type": "${propType}",\n          "description": "${propDescription}",\n          "required": ${isRequired}\n        }`;
       })
       .join('\n');
