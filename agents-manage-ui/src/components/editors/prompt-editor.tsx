@@ -63,7 +63,6 @@ export const PromptEditor2: FC<PromptEditorProps> = ({
     () => Placeholder.configure({ placeholder: placeholder || '' }),
     [placeholder]
   );
-  const editable = !(readOnly || disabled);
 
   const editor = useEditor({
     extensions: [placeholderExtension],
@@ -87,11 +86,6 @@ export const PromptEditor2: FC<PromptEditorProps> = ({
   useEffect(() => {
     editor?.setEditable(editable);
   }, [editor, editable]);
-
-  useEffect(() => {
-    if (!autoFocus) return;
-    editor?.chain().focus('end').run();
-  }, [editor, autoFocus]);
 
   return (
     <EditorContent
@@ -119,10 +113,12 @@ export const PromptEditor: FC<PromptEditorProps> = ({
 }) => {
   const { toggleMarkdownEditor } = useAgentActions();
   const isMarkdownMode = useAgentStore((state) => state.isMarkdownEditor);
+  const editable = !(readOnly || disabled);
 
   const editor = useEditor({
     ...editorOptions,
     autofocus: autoFocus,
+    editable,
     // to see placeholder on initial rendering
     immediatelyRender: true,
     editorProps: {
@@ -133,9 +129,9 @@ export const PromptEditor: FC<PromptEditorProps> = ({
           'dark:bg-input/30 text-sm focus:outline-none px-3 py-2',
           'rounded-md border border-input shadow-xs transition-colors',
           hasDynamicHeight ? 'min-h-16' : 'min-h-80',
-          disabled || readOnly
-            ? 'bg-muted/50 text-muted-foreground opacity-70'
-            : 'focus-within:border-ring focus-within:ring-2 focus-within:ring-ring/40',
+          editable
+            ? 'focus-within:border-ring focus-within:ring-2 focus-within:ring-ring/40'
+            : 'bg-muted/50 text-muted-foreground opacity-70 cursor-not-allowed',
           ariaInvalid === 'true' &&
             'border-destructive focus-within:border-destructive focus-within:ring-destructive/30',
           className
