@@ -8,7 +8,7 @@ import { EditorContent, type UseEditorOptions, useEditor } from '@tiptap/react';
 import { StarterKit } from '@tiptap/starter-kit';
 import { TextInitial } from 'lucide-react';
 import type { ComponentPropsWithoutRef, FC, RefObject } from 'react';
-import { useCallback, useEffect, useImperativeHandle, useMemo, useState } from 'react';
+import { useCallback, useEffect, useImperativeHandle, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { useAgentActions, useAgentStore } from '@/features/agent/state/use-agent-store';
 import { MarkdownIcon } from '@/icons';
@@ -59,15 +59,7 @@ export const PromptEditor2: FC<PromptEditorProps> = ({
   //   [textValue, variableSuggestions]
   // );
 
-  const placeholderExtension = useMemo(
-    () => Placeholder.configure({ placeholder: placeholder || '' }),
-    [placeholder]
-  );
-
   const editor = useEditor({
-    extensions: [placeholderExtension],
-    editable,
-    content: value,
     onUpdate({ editor }) {
       const nextValue = getEditorText(editor);
       setTextValue(nextValue);
@@ -146,7 +138,6 @@ export const PromptEditor: FC<PromptEditorProps> = ({
     contentType: isMarkdownMode ? 'markdown' : undefined,
   });
 
-  // biome-ignore lint/correctness/useExhaustiveDependencies: only on mount
   useEffect(() => {
     if (!editor) {
       return;
@@ -154,7 +145,7 @@ export const PromptEditor: FC<PromptEditorProps> = ({
     // When `Markdown` extension is enabled placeholder isn't rendered on initial loading
     // and loaded only after focusing editor, this dispatch fix it
     editor.view.dispatch(editor.state.tr.setMeta('placeholder-init', true));
-  }, []);
+  }, [editor]);
 
   useEffect(() => {
     editor?.setEditable(editable);
@@ -197,8 +188,6 @@ export const PromptEditor: FC<PromptEditorProps> = ({
   }, [editor, isMarkdownMode, toggleMarkdownEditor]);
 
   const IconToUse = isMarkdownMode ? TextInitial : MarkdownIcon;
-
-  console.log({ value, placeholder });
 
   return (
     <EditorContent editor={editor} className="relative">
