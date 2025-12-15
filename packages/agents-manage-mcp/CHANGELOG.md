@@ -1,5 +1,11 @@
 # @inkeep/agents-manage-mcp
 
+## 0.38.2
+
+### Patch Changes
+
+- 907fb8f: updated models to have gpt-5-2
+
 ## 0.38.1
 
 ### Patch Changes
