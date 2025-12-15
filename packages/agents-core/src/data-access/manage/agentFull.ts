@@ -1,7 +1,7 @@
 import { and, eq, inArray, not } from 'drizzle-orm';
 import type { AgentsManageDatabaseClient } from '../../db/manage/manage-client';
 import { projects, subAgents, subAgentToolRelations } from '../../db/manage/manage-schema';
-import type { FullAgentDefinition } from '../../types/entities';
+import type { FullAgentDefinition, FullAgentSelect, FullAgentSelectWithRelationIds } from '../../types/entities';
 import type { AgentScopeConfig, ProjectScopeConfig } from '../../types/utility';
 import { generateId } from '../../utils/conversations';
 import { validateAgentStructure, validateAndTypeAgentData } from '../../validation/agentFull';
@@ -9,6 +9,7 @@ import {
   deleteAgent,
   getAgentById,
   getFullAgentDefinition,
+  getFullAgentDefinitionWithRelationIds,
   updateAgent,
   upsertAgent,
 } from './agents';
@@ -1573,7 +1574,7 @@ export const updateFullAgentServerSide =
 
       logger.info({ agentId: typedAgentDefinition.id }, 'Full agent updated successfully');
 
-      return updatedAgent;
+      return updatedAgent as FullAgentDefinition;
     } catch (error) {
       logger.error({ agentId: typedAgentDefinition.id, error }, 'Failed to update full agent');
       throw error;
@@ -1619,6 +1620,47 @@ export const getFullAgent =
           error: error instanceof Error ? error.message : 'Unknown error',
         },
         'Failed to retrieve full agent'
+      );
+      throw error;
+    }
+  };
+
+export const getFullAgentWithRelationIds =
+  (db: AgentsManageDatabaseClient, logger: AgentLogger = defaultLogger) =>
+  async (params: { scopes: AgentScopeConfig }): Promise<FullAgentSelectWithRelationIds | null> => {
+    const { scopes } = params;
+    const { tenantId, projectId } = scopes;
+
+    logger.info({ tenantId, agentId: scopes.agentId }, 'Retrieving full agent definition with relation ids');
+
+    try {
+      const agent = await getFullAgentDefinitionWithRelationIds(db)({
+        scopes: { tenantId, projectId, agentId: scopes.agentId },
+      });
+
+      if (!agent) {
+        logger.info({ tenantId, agentId: scopes.agentId }, 'Agent not found');
+        return null;
+      }
+
+      logger.info(
+        {
+          tenantId,
+          agentId: scopes.agentId,
+          agentCount: Object.keys(agent.subAgents).length,
+        },
+        'Full agent with relation ids retrieved successfully'
+      );
+
+      return agent;
+    } catch (error) {
+      logger.error(
+        {
+          tenantId,
+          agentId: scopes.agentId,
+          error: error instanceof Error ? error.message : 'Unknown error',
+        },
+        'Failed to retrieve full agent with relation ids'
       );
       throw error;
     }

@@ -25,8 +25,6 @@ describe('Internal Service Auth', () => {
   describe('InternalServices', () => {
     it('should have correct service identifiers', () => {
       expect(InternalServices.AGENTS_RUN_API).toBe('agents-run-api');
-      expect(InternalServices.AGENTS_MANAGE_API).toBe('agents-manage-api');
-      expect(InternalServices.AGENTS_CLI).toBe('agents-cli');
     });
   });
 
@@ -67,7 +65,7 @@ describe('Internal Service Auth', () => {
 
     it('should generate a token with both tenant and project scope', async () => {
       const token = await generateInternalServiceToken({
-        serviceId: InternalServices.AGENTS_MANAGE_API,
+        serviceId: InternalServices.AGENTS_RUN_API,
         tenantId: 'tenant-123',
         projectId: 'project-456',
       });
@@ -77,19 +75,19 @@ describe('Internal Service Auth', () => {
       expect(result.valid).toBe(true);
       expect(result.payload?.tenantId).toBe('tenant-123');
       expect(result.payload?.projectId).toBe('project-456');
-      expect(result.payload?.sub).toBe(InternalServices.AGENTS_MANAGE_API);
+      expect(result.payload?.sub).toBe(InternalServices.AGENTS_RUN_API);
     });
 
     it('should generate a token with custom expiry', async () => {
       const token = await generateInternalServiceToken({
-        serviceId: InternalServices.AGENTS_CLI,
+        serviceId: InternalServices.AGENTS_RUN_API,
         expiresIn: '1h',
       });
 
       const result = await verifyInternalServiceToken(token);
 
       expect(result.valid).toBe(true);
-      expect(result.payload?.sub).toBe(InternalServices.AGENTS_CLI);
+      expect(result.payload?.sub).toBe(InternalServices.AGENTS_RUN_API);
     });
   });
 

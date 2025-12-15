@@ -22,6 +22,14 @@
       "types": "./dist/db/manage/manage-client.d.ts",
       "import": "./dist/db/manage/manage-client.js"
     },
+    "./db/test-manage-client": {
+      "types": "./dist/db/manage/test-manage-client.d.ts",
+      "import": "./dist/db/manage/test-manage-client.js"
+    },
+    "./db/test-runtime-client": {
+      "types": "./dist/db/runtime/test-runtime-client.d.ts",
+      "import": "./dist/db/runtime/test-runtime-client.js"
+    },
     "./db/run-client": {
       "types": "./dist/db/run/run-client.d.ts",
       "import": "./dist/db/run/run-client.js"

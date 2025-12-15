@@ -1,7 +1,7 @@
 import { eq } from 'drizzle-orm';
-import { user } from '../auth/auth-schema';
-import type { User } from '../auth/auth-validation-schemas';
-import type { DatabaseClient } from '../db/client';
+import { user } from '../../auth/auth-schema';
+import type { User } from '../../auth/auth-validation-schemas';
+import type { AgentsRunDatabaseClient } from '../../db/runtime/runtime-client';
 
 /**
  * User data access layer
@@ -12,7 +12,7 @@ import type { DatabaseClient } from '../db/client';
  * Get user by ID
  */
 export const getUserById =
-  (db: DatabaseClient) =>
+  (db: AgentsRunDatabaseClient) =>
   async (userId: string): Promise<User | null> => {
     const result = await db.select().from(user).where(eq(user.id, userId)).limit(1);
 
@@ -23,7 +23,7 @@ export const getUserById =
  * Get user by email
  */
 export const getUserByEmail =
-  (db: DatabaseClient) =>
+  (db: AgentsRunDatabaseClient) =>
   async (email: string): Promise<User | null> => {
     const result = await db.select().from(user).where(eq(user.email, email)).limit(1);
 

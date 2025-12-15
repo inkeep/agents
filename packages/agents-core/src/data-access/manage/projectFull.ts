@@ -5,13 +5,25 @@
  */
 
 import type { AgentsManageDatabaseClient } from '../../db/manage/manage-client';
-import type { FullProjectDefinition, ProjectSelect, ToolApiInsert } from '../../types/entities';
+import type {
+  FullProjectDefinition,
+  FullProjectSelect,
+  FullProjectSelectWithRelationIds,
+  ProjectSelect,
+  ToolApiSelect,
+  ExternalAgentApiSelect,
+  DataComponentApiSelect,
+  ArtifactComponentApiSelect,
+  CredentialReferenceApiSelect,
+  FunctionApiSelect,
+} from '../../types/entities';
 import type { ProjectScopeConfig } from '../../types/utility';
 import { getLogger } from '../../utils/logger';
 import {
   createFullAgentServerSide,
   deleteFullAgent,
   getFullAgent,
+  getFullAgentWithRelationIds,
   updateFullAgentServerSide,
 } from './agentFull';
 import { listAgents } from './agents';
@@ -51,7 +63,7 @@ export const createFullProjectServerSide =
   async (params: {
     scopes: ProjectScopeConfig;
     projectData: FullProjectDefinition;
-  }): Promise<FullProjectDefinition> => {
+  }): Promise<FullProjectSelect> => {
     const { scopes, projectData } = params;
     const { tenantId } = scopes;
     const typed = validateAndTypeProjectData(projectData);
@@ -454,12 +466,18 @@ export const createFullProjectServerSide =
 
       logger.info({ projectId: typed.id }, 'Full project created successfully');
 
-      return (await getFullProject(
+      const fullProject = await getFullProject(
         db,
         logger
       )({
         scopes: { tenantId, projectId: typed.id },
-      })) as FullProjectDefinition;
+      });
+
+      if (!fullProject) {
+        throw new Error(`Failed to retrieve created project ${typed.id}`);
+      }
+
+      return fullProject;
     } catch (error) {
       logger.error(
         {
@@ -482,7 +500,7 @@ export const updateFullProjectServerSide =
   async (params: {
     scopes: ProjectScopeConfig;
     projectData: FullProjectDefinition;
-  }): Promise<FullProjectDefinition> => {
+  }): Promise<FullProjectSelect> => {
     const { scopes, projectData } = params;
     const { tenantId } = scopes;
     const typed = validateAndTypeProjectData(projectData);
@@ -1099,12 +1117,18 @@ export const updateFullProjectServerSide =
 
       logger.info({ projectId: typed.id }, 'Full project updated successfully');
 
-      return (await getFullProject(
+      const fullProject  = await getFullProject(
         db,
         logger
       )({
         scopes: { tenantId, projectId: typed.id },
-      })) as FullProjectDefinition;
+      });
+
+      if (!fullProject) {
+        throw new Error('Failed to retrieve full project');
+      }
+
+      return fullProject;
     } catch (error) {
       logger.error(
         {
@@ -1121,13 +1145,13 @@ export const updateFullProjectServerSide =
 /**
  * Get a complete project definition with all nested resources
  */
-export const getFullProject =
+const getFullProjectInternal =
   (db: AgentsManageDatabaseClient, logger: ProjectLogger = defaultLogger) =>
-  async (params: { scopes: ProjectScopeConfig }): Promise<FullProjectDefinition | null> => {
-    const { scopes } = params;
+  async (params: { scopes: ProjectScopeConfig; includeRelationIds?: boolean }): Promise<FullProjectSelect | FullProjectSelectWithRelationIds | null> => {
+    const { scopes, includeRelationIds = false } = params;
     const { tenantId, projectId } = scopes;
 
-    logger.info({ tenantId, projectId }, 'Retrieving full project definition');
+    logger.info({ tenantId, projectId, includeRelationIds }, 'Retrieving full project definition');
 
     try {
       const project: ProjectSelect | null = await getProject(db)({
@@ -1154,7 +1178,7 @@ export const getFullProject =
         'Found agent for project'
       );
 
-      const projectTools: Record<string, ToolApiInsert> = {};
+      const projectTools: Record<string, ToolApiSelect> = {};
       try {
         const toolsList = await listTools(db)({
           scopes: { tenantId, projectId },
@@ -1162,15 +1186,7 @@ export const getFullProject =
         });
 
         for (const tool of toolsList.data) {
-          projectTools[tool.id] = {
-            id: tool.id,
-            name: tool.name,
-            config: tool.config,
-            credentialReferenceId: tool.credentialReferenceId || undefined,
-            imageUrl: tool.imageUrl || undefined,
-            capabilities: tool.capabilities || undefined,
-            lastError: tool.lastError || undefined,
-          };
+          projectTools[tool.id] = tool;
         }
         logger.info(
           { tenantId, projectId, toolCount: Object.keys(projectTools).length },
@@ -1180,20 +1196,14 @@ export const getFullProject =
         logger.warn({ tenantId, projectId, error }, 'Failed to retrieve tools for project');
       }
 
-      const projectExternalAgents: Record<string, any> = {};
+      const projectExternalAgents: Record<string, ExternalAgentApiSelect> = {};
       try {
         const externalAgentsList = await listExternalAgents(db)({
           scopes: { tenantId, projectId },
         });
 
         for (const externalAgent of externalAgentsList) {
-          projectExternalAgents[externalAgent.id] = {
-            id: externalAgent.id,
-            name: externalAgent.name,
-            description: externalAgent.description,
-            baseUrl: externalAgent.baseUrl,
-            credentialReferenceId: externalAgent.credentialReferenceId || undefined,
-          };
+          projectExternalAgents[externalAgent.id] = externalAgent;
         }
         logger.info(
           { tenantId, projectId, count: Object.keys(projectExternalAgents).length },
@@ -1206,20 +1216,14 @@ export const getFullProject =
         );
       }
 
-      const projectDataComponents: Record<string, any> = {};
+      const projectDataComponents: Record<string, DataComponentApiSelect> = {};
       try {
         const dataComponentsList = await listDataComponents(db)({
           scopes: { tenantId, projectId },
         });
 
         for (const component of dataComponentsList) {
-          projectDataComponents[component.id] = {
-            id: component.id,
-            name: component.name,
-            description: component.description,
-            props: component.props,
-            render: component.render,
-          };
+          projectDataComponents[component.id] = component;
         }
         logger.info(
           { tenantId, projectId, count: Object.keys(projectDataComponents).length },
@@ -1232,19 +1236,14 @@ export const getFullProject =
         );
       }
 
-      const projectArtifactComponents: Record<string, any> = {};
+      const projectArtifactComponents: Record<string, ArtifactComponentApiSelect> = {};
       try {
         const artifactComponentsList = await listArtifactComponents(db)({
           scopes: { tenantId, projectId },
         });
 
         for (const component of artifactComponentsList) {
-          projectArtifactComponents[component.id] = {
-            id: component.id,
-            name: component.name,
-            description: component.description,
-            props: component.props,
-          };
+          projectArtifactComponents[component.id] = component;
         }
         logger.info(
           { tenantId, projectId, count: Object.keys(projectArtifactComponents).length },
@@ -1257,20 +1256,15 @@ export const getFullProject =
         );
       }
 
-      const projectCredentialReferences: Record<string, any> = {};
+      const projectCredentialReferences: Record<string, CredentialReferenceApiSelect> = {};
       try {
         const credentialReferencesList = await listCredentialReferences(db)({
           scopes: { tenantId, projectId },
         });
 
         for (const credential of credentialReferencesList) {
-          projectCredentialReferences[credential.id] = {
-            id: credential.id,
-            name: credential.name,
-            type: credential.type,
-            credentialStoreId: credential.credentialStoreId,
-            retrievalParams: credential.retrievalParams,
-          };
+          // Type assertion needed because listCredentialReferences returns generic 'type' string
+          projectCredentialReferences[credential.id] = credential as CredentialReferenceApiSelect;
         }
         logger.info(
           { tenantId, projectId, count: Object.keys(projectCredentialReferences).length },
@@ -1283,19 +1277,15 @@ export const getFullProject =
         );
       }
 
-      const projectFunctions: Record<string, any> = {};
+      const projectFunctions: Record<string, FunctionApiSelect> = {};
       try {
         const functionsList = await listFunctions(db)({
           scopes: { tenantId, projectId },
         });
 
         for (const func of functionsList) {
-          projectFunctions[func.id] = {
-            id: func.id,
-            inputSchema: func.inputSchema,
-            executeCode: func.executeCode,
-            dependencies: func.dependencies,
-          };
+          // Type assertion needed because listFunctions may have optional timestamps
+          projectFunctions[func.id] = func as FunctionApiSelect;
         }
         logger.info(
           { tenantId, projectId, functionCount: Object.keys(projectFunctions).length },
@@ -1308,6 +1298,7 @@ export const getFullProject =
       const agents: Record<string, any> = {};
 
       if (agentList.length > 0) {
+        const getAgentFn = includeRelationIds ? getFullAgentWithRelationIds : getFullAgent;
         const agentPromises = agentList.map(async (agent) => {
           try {
             logger.info(
@@ -1315,7 +1306,7 @@ export const getFullProject =
               'Retrieving full agent definition'
             );
 
-            const fullAgent = await getFullAgent(db)({
+            const fullAgent = await getAgentFn(db)({
               scopes: { tenantId, projectId, agentId: agent.id },
             });
 
@@ -1346,19 +1337,21 @@ export const getFullProject =
         );
       }
 
-      const fullProjectDefinition: FullProjectDefinition = {
+      const fullProjectDefinition = {
         id: project.id,
         name: project.name,
         description: project.description,
         models: project.models,
-        stopWhen: project.stopWhen || undefined,
+        stopWhen: project.stopWhen ?? null,
         agents,
         tools: projectTools,
-        functions: projectFunctions,
-        externalAgents: projectExternalAgents,
-        dataComponents: projectDataComponents,
-        artifactComponents: projectArtifactComponents,
-        credentialReferences: projectCredentialReferences,
+        functions: Object.keys(projectFunctions).length > 0 ? projectFunctions : null,
+        externalAgents: Object.keys(projectExternalAgents).length > 0 ? projectExternalAgents : null,
+        dataComponents: Object.keys(projectDataComponents).length > 0 ? projectDataComponents : null,
+        artifactComponents: Object.keys(projectArtifactComponents).length > 0 ? projectArtifactComponents : null,
+        credentialReferences: Object.keys(projectCredentialReferences).length > 0 ? projectCredentialReferences : null,
+        statusUpdates: null, // Not currently loaded
+        functionTools: null, // Loaded at agent level
         createdAt: project.createdAt,
         updatedAt: project.updatedAt,
       };
@@ -1385,6 +1378,18 @@ export const getFullProject =
       throw error;
     }
   };
+
+export const getFullProject =
+  (db: AgentsManageDatabaseClient, logger: ProjectLogger = defaultLogger) =>
+  async (params: { scopes: ProjectScopeConfig }): Promise<FullProjectSelect | null> => {
+    return getFullProjectInternal(db, logger)({ scopes: params.scopes, includeRelationIds: false }) as Promise<FullProjectSelect | null>;
+  };
+
+export const getFullProjectWithRelationIds =
+  (db: AgentsManageDatabaseClient, logger: ProjectLogger = defaultLogger) =>
+  async (params: { scopes: ProjectScopeConfig }): Promise<FullProjectSelectWithRelationIds | null> => {
+    return getFullProjectInternal(db, logger)({ scopes: params.scopes, includeRelationIds: true }) as Promise<FullProjectSelectWithRelationIds | null>;
+  }
 
 /**
  * Delete a complete project and cascade to all related entities

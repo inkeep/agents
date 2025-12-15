@@ -14,7 +14,7 @@ import {
   subAgentToolRelations,
   tools,
 } from '../../db/manage/manage-schema';
-import type { AgentInsert, AgentSelect, AgentUpdate, FullAgentDefinition } from '../../types/entities';
+import type { AgentInsert, AgentSelect, AgentUpdate, FullAgentDefinition, FullAgentSelect, FullAgentSelectWithRelationIds } from '../../types/entities';
 import type { AgentScopeConfig, PaginationConfig, ProjectScopeConfig } from '../../types/utility';
 import { generateId } from '../../utils/conversations';
 import { getContextConfigById } from './contextConfigs';
@@ -274,13 +274,15 @@ export const getAgentSubAgentInfos =
     return agentInfos.filter((agent): agent is NonNullable<typeof agent> => agent !== null);
   };
 
-export const getFullAgentDefinition =
+const getFullAgentDefinitionInternal =
   (db: AgentsManageDatabaseClient) =>
   async ({
     scopes: { tenantId, projectId, agentId },
+    includeRelationIds = false,
   }: {
     scopes: AgentScopeConfig;
-  }): Promise<FullAgentDefinition | null> => {
+    includeRelationIds?: boolean;
+  }): Promise<FullAgentSelect | FullAgentSelectWithRelationIds | null> => {
     const agent = await getAgentById(db)({
       scopes: { tenantId, projectId, agentId },
     });
@@ -326,15 +328,23 @@ export const getFullAgentDefinition =
           (relation) => relation.sourceSubAgentId === agent.id
         );
 
-        const canTransferTo = subAgentRelationsList
-          .filter((rel) => rel.relationType === 'transfer' || rel.relationType === 'transfer_to')
-          .map((rel) => rel.targetSubAgentId)
-          .filter((id): id is string => id !== null);
+        const canTransferTo = includeRelationIds
+          ? subAgentRelationsList
+              .filter((rel) => (rel.relationType === 'transfer' || rel.relationType === 'transfer_to') && rel.targetSubAgentId !== null)
+              .map((rel) => ({ subAgentId: rel.targetSubAgentId!, subAgentSubAgentRelationId: rel.id }))
+          : subAgentRelationsList
+              .filter((rel) => rel.relationType === 'transfer' || rel.relationType === 'transfer_to')
+              .map((rel) => rel.targetSubAgentId)
+              .filter((id): id is string => id !== null);
 
-        const canDelegateToInternal = subAgentRelationsList
-          .filter((rel) => rel.relationType === 'delegate' || rel.relationType === 'delegate_to')
-          .map((rel) => rel.targetSubAgentId)
-          .filter((id): id is string => id !== null);
+        const canDelegateToInternal = includeRelationIds
+          ? subAgentRelationsList
+              .filter((rel) => (rel.relationType === 'delegate' || rel.relationType === 'delegate_to') && rel.targetSubAgentId !== null)
+              .map((rel) => ({ subAgentId: rel.targetSubAgentId!, subAgentSubAgentRelationId: rel.id }))
+          : subAgentRelationsList
+              .filter((rel) => rel.relationType === 'delegate' || rel.relationType === 'delegate_to')
+              .map((rel) => rel.targetSubAgentId)
+              .filter((id): id is string => id !== null);
 
         const canDelegateToExternal = externalAgentRelations
           .filter((rel) => rel.subAgentId === agent.id)
@@ -352,19 +362,7 @@ export const getFullAgentDefinition =
             headers: rel.headers as Record<string, string> | null | undefined,
           }));
 
-        const canDelegateTo: (
-          | string
-          | {
-              externalAgentId: string;
-              subAgentExternalAgentRelationId?: string;
-              headers?: Record<string, string> | null;
-            }
-          | {
-              agentId: string;
-              subAgentTeamAgentRelationId?: string;
-              headers?: Record<string, string> | null;
-            }
-        )[] = [...canDelegateToInternal, ...canDelegateToExternal, ...canDelegateToTeam];
+        const canDelegateTo = [...canDelegateToInternal, ...canDelegateToExternal, ...canDelegateToTeam];
 
         const subAgentTools = await db
           .select({
@@ -654,7 +652,7 @@ export const getFullAgentDefinition =
 
     try {
       if (!db.query?.projects?.findFirst) {
-        return result as FullAgentDefinition;
+        return result as FullAgentSelect;
       }
 
       const project = await db.query.projects.findFirst({
@@ -786,7 +784,27 @@ export const getFullAgentDefinition =
       console.warn('Failed to load tools/functions lookups:', error);
     }
 
-    return result as FullAgentDefinition;
+    return result;
+  };
+
+export const getFullAgentDefinition =
+  (db: AgentsManageDatabaseClient) =>
+  async ({
+    scopes,
+  }: {
+    scopes: AgentScopeConfig;
+  }): Promise<FullAgentDefinition | null> => {
+    return getFullAgentDefinitionInternal(db)({ scopes, includeRelationIds: false }) as Promise<FullAgentDefinition | null>;
+  };
+
+export const getFullAgentDefinitionWithRelationIds =
+  (db: AgentsManageDatabaseClient) =>
+  async ({
+    scopes,
+  }: {
+    scopes: AgentScopeConfig;
+  }): Promise<FullAgentSelectWithRelationIds | null> => {
+    return getFullAgentDefinitionInternal(db)({ scopes, includeRelationIds: true }) as Promise<FullAgentSelectWithRelationIds | null>;
   };
 
 /**

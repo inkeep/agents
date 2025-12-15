@@ -307,21 +307,21 @@ export const addFunctionToolToSubAgent = (db: AgentsManageDatabaseClient) => {
     try {
       const relationId = generateId();
 
-      await db.insert(subAgentFunctionToolRelations).values({
+      const [result] = await db.insert(subAgentFunctionToolRelations).values({
         id: relationId,
         tenantId,
         projectId,
         agentId,
         subAgentId,
         functionToolId,
-      });
+      }).returning();
 
       logger.info(
         { tenantId, projectId, agentId, subAgentId, functionToolId, relationId },
         'Function tool added to sub_agent'
       );
 
-      return { id: relationId };
+      return result;
     } catch (error) {
       logger.error(
         { tenantId, projectId, agentId, subAgentId, functionToolId, error },
@@ -377,4 +377,132 @@ export const updateSubAgentFunctionToolRelation = (db: AgentsManageDatabaseClien
       throw error;
     }
   };
+};
+
+/**
+ * Get all sub-agents that use a specific function tool
+ */
+export const getSubAgentsUsingFunctionTool = (db: AgentsManageDatabaseClient) => {
+  return async (params: {
+    scopes: AgentScopeConfig;
+    functionToolId: string;
+  }) => {
+    const { scopes, functionToolId } = params;
+    const { tenantId, projectId, agentId } = scopes;
+
+    try {
+      const relations = await db
+        .select({
+          subAgentId: subAgentFunctionToolRelations.subAgentId,
+          createdAt: subAgentFunctionToolRelations.createdAt,
+        })
+        .from(subAgentFunctionToolRelations)
+        .where(
+          and(
+            eq(subAgentFunctionToolRelations.tenantId, tenantId),
+            eq(subAgentFunctionToolRelations.projectId, projectId),
+            eq(subAgentFunctionToolRelations.agentId, agentId),
+            eq(subAgentFunctionToolRelations.functionToolId, functionToolId)
+          )
+        );
+
+      return relations;
+    } catch (error) {
+      logger.error(
+        { tenantId, projectId, agentId, functionToolId, error },
+        'Failed to get sub-agents using function tool'
+      );
+      throw error;
+    }
+  };
+};
+
+/**
+ * Remove a function tool from a sub-agent
+ */
+export const removeFunctionToolFromSubAgent = (db: AgentsManageDatabaseClient) => {
+  return async (params: {
+    scopes: AgentScopeConfig;
+    subAgentId: string;
+    functionToolId: string;
+  }): Promise<boolean> => {
+    const { scopes, subAgentId, functionToolId } = params;
+    const { tenantId, projectId, agentId } = scopes;
+
+    try {
+      const result = await db
+        .delete(subAgentFunctionToolRelations)
+        .where(
+          and(
+            eq(subAgentFunctionToolRelations.tenantId, tenantId),
+            eq(subAgentFunctionToolRelations.projectId, projectId),
+            eq(subAgentFunctionToolRelations.agentId, agentId),
+            eq(subAgentFunctionToolRelations.subAgentId, subAgentId),
+            eq(subAgentFunctionToolRelations.functionToolId, functionToolId)
+          )
+        )
+        .returning();
+
+      const removed = result.length > 0;
+      if (removed) {
+        logger.info(
+          { tenantId, projectId, agentId, subAgentId, functionToolId },
+          'Function tool removed from sub-agent'
+        );
+      }
+
+      return removed;
+    } catch (error) {
+      logger.error(
+        { tenantId, projectId, agentId, subAgentId, functionToolId, error },
+        'Failed to remove function tool from sub-agent'
+      );
+      throw error;
+    }
+  };
+};
+
+/**
+ * Check if a function tool is associated with a sub-agent
+ */
+export const isFunctionToolAssociatedWithSubAgent = (db: AgentsManageDatabaseClient) => {
+  return async (params: {
+    scopes: AgentScopeConfig;
+    subAgentId: string;
+    functionToolId: string;
+  }): Promise<boolean> => {
+    const { scopes, subAgentId, functionToolId } = params;
+    const { tenantId, projectId, agentId } = scopes;
+
+    try {
+      const result = await db
+        .select({ id: subAgentFunctionToolRelations.id })
+        .from(subAgentFunctionToolRelations)
+        .where(
+          and(
+            eq(subAgentFunctionToolRelations.tenantId, tenantId),
+            eq(subAgentFunctionToolRelations.projectId, projectId),
+            eq(subAgentFunctionToolRelations.agentId, agentId),
+            eq(subAgentFunctionToolRelations.subAgentId, subAgentId),
+            eq(subAgentFunctionToolRelations.functionToolId, functionToolId)
+          )
+        )
+        .limit(1);
+
+      return result.length > 0;
+    } catch (error) {
+      logger.error(
+        { tenantId, projectId, agentId, subAgentId, functionToolId, error },
+        'Failed to check function tool association with sub-agent'
+      );
+      throw error;
+    }
+  };
+};
+
+/**
+ * Associate a function tool with a sub-agent (alias for addFunctionToolToSubAgent)
+ */
+export const associateFunctionToolWithSubAgent = (db: AgentsManageDatabaseClient) => {
+  return addFunctionToolToSubAgent(db);
 };

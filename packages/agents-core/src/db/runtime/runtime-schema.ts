@@ -165,7 +165,6 @@ export const apiKeys = pgTable(
   {
     ...projectScoped,
     agentId: varchar('agent_id', { length: 256 }).notNull(),
-    ref: jsonb('ref').$type<ResolvedRef>().notNull(),
     publicId: varchar('public_id', { length: 256 }).notNull().unique(),
     keyHash: varchar('key_hash', { length: 256 }).notNull(),
     keyPrefix: varchar('key_prefix', { length: 256 }).notNull(),

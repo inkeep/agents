@@ -47,6 +47,7 @@ import type {
   CredentialReferenceSelectSchema,
   CredentialReferenceUpdateSchema,
   canDelegateToExternalAgentSchema,
+  canDelegateToTeamAgentSchema,
   DataComponentApiInsertSchema,
   DataComponentApiSelectSchema,
   DataComponentApiUpdateSchema,
@@ -64,7 +65,13 @@ import type {
   FetchConfigSchema,
   FetchDefinitionSchema,
   FullAgentAgentInsertSchema,
+  FullAgentSubAgentSelectSchema,
+  FullAgentSubAgentSelectSchemaWithRelationIds,
   FullProjectDefinitionSchema,
+  FullProjectSelectSchema,
+  FullProjectSelectSchemaWithRelationIds,
+  AgentWithinContextOfProjectSelectSchema,
+  AgentWithinContextOfProjectSelectSchemaWithRelationIds,
   FunctionApiInsertSchema,
   FunctionApiSelectSchema,
   FunctionApiUpdateSchema,
@@ -156,6 +163,7 @@ import type {
   ToolInsertSchema,
   ToolSelectSchema,
   ToolUpdateSchema,
+  canRelateToInternalSubAgentSchema,
 } from '../validation/schemas';
 
 export type SubAgentSelect = z.infer<typeof SubAgentSelectSchema>;
@@ -354,11 +362,22 @@ export type LedgerArtifactApiInsert = z.infer<typeof LedgerArtifactApiInsertSche
 export type LedgerArtifactApiUpdate = z.infer<typeof LedgerArtifactApiUpdateSchema>;
 
 export type FullAgentDefinition = z.infer<typeof AgentWithinContextOfProjectSchema>;
+export type FullAgentSelect = z.infer<typeof AgentWithinContextOfProjectSelectSchema>;
+export type FullAgentSelectWithRelationIds = z.infer<typeof AgentWithinContextOfProjectSelectSchemaWithRelationIds>;
 export type FullAgentAgentInsert = z.infer<typeof FullAgentAgentInsertSchema>;
+export type FullAgentSubAgentSelect = z.infer<typeof FullAgentSubAgentSelectSchema>;
+export type FullAgentSubAgentSelectWithRelationIds = z.infer<typeof FullAgentSubAgentSelectSchemaWithRelationIds>;
 
 export type FullProjectDefinition = z.infer<typeof FullProjectDefinitionSchema>;
+export type FullProjectSelect = z.infer<typeof FullProjectSelectSchema>;
+export type FullProjectSelectWithRelationIds = z.infer<typeof FullProjectSelectSchemaWithRelationIds>;
+export type AgentWithinContextOfProjectSelect = z.infer<typeof AgentWithinContextOfProjectSelectSchema>;
+export type AgentWithinContextOfProjectSelectWithRelationIds = z.infer<typeof AgentWithinContextOfProjectSelectSchemaWithRelationIds>;
 export type CanUseItem = z.infer<typeof CanUseItemSchema>;
 export type CanDelegateToExternalAgent = z.infer<typeof canDelegateToExternalAgentSchema>;
+export type CanDelegateToTeamAgent = z.infer<typeof canDelegateToTeamAgentSchema>;
+export type CanDelegateToItem = CanRelateToInternalSubAgent | CanDelegateToExternalAgent | CanDelegateToTeamAgent;
+export type CanRelateToInternalSubAgent = z.infer<typeof canRelateToInternalSubAgentSchema>;
 
 export type SubAgentDefinition = z.infer<typeof SubAgentApiInsertSchema> & {
   canUse: CanUseItem[];

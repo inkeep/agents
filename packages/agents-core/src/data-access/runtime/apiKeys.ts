@@ -104,7 +104,6 @@ export const createApiKey = (db: AgentsRunDatabaseClient) => async (params: ApiK
       keyHash: params.keyHash,
       keyPrefix: params.keyPrefix,
       expiresAt: params.expiresAt,
-      ref: params.ref,
       createdAt: now,
       updatedAt: now,
     })
@@ -213,7 +212,7 @@ export const generateAndCreateApiKey = async (
   params: CreateApiKeyParams,
   db: AgentsRunDatabaseClient
 ): Promise<ApiKeyCreateResult> => {
-  const { tenantId, projectId, agentId, expiresAt, name, ref } = params;
+  const { tenantId, projectId, agentId, expiresAt, name } = params;
 
   // Generate the API key
   const keyData = await generateApiKey();
@@ -225,7 +224,6 @@ export const generateAndCreateApiKey = async (
     agentId,
     name,
     expiresAt,
-    ref,
     ...keyData,
   });
 

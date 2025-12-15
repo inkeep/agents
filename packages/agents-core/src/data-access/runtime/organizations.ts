@@ -1,7 +1,7 @@
 import { and, desc, eq } from 'drizzle-orm';
-import { invitation, member, organization } from '../auth/auth-schema';
-import type { UserOrganization } from '../auth/auth-validation-schemas';
-import type { DatabaseClient } from '../db/client';
+import { invitation, member, organization } from '../../auth/auth-schema';
+import type { UserOrganization } from '../../auth/auth-validation-schemas';
+import type { AgentsRunDatabaseClient } from '../../db/runtime/runtime-client';
 
 /**
  * Organization and Member data access layer
@@ -14,7 +14,7 @@ import type { DatabaseClient } from '../db/client';
  * Returns Date for createdAt (converted to string at API boundary)
  */
 export const getUserOrganizations =
-  (db: DatabaseClient) =>
+  (db: AgentsRunDatabaseClient) =>
   async (
     userId: string
   ): Promise<Array<Omit<UserOrganization, 'createdAt'> & { createdAt: Date }>> => {
@@ -43,7 +43,7 @@ export const getUserOrganizations =
  * Get pending invitations for a user by email
  * Returns invitations with status 'pending' that haven't expired
  */
-export const getPendingInvitationsByEmail = (db: DatabaseClient) => async (email: string) => {
+export const getPendingInvitationsByEmail = (db: AgentsRunDatabaseClient) => async (email: string) => {
   const now = new Date();
 
   const result = await db
@@ -71,7 +71,7 @@ export const getPendingInvitationsByEmail = (db: DatabaseClient) => async (email
  * Directly inserts into Better Auth's member table
  */
 export const addUserToOrganization =
-  (db: DatabaseClient) =>
+  (db: AgentsRunDatabaseClient) =>
   async (data: { userId: string; organizationId: string; role: string }): Promise<void> => {
     // Check if organization exists
     const existingOrg = await db

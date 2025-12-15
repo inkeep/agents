@@ -16,7 +16,6 @@ export * from './db/runtime/runtime-schema';
 export * from './db/manage/dolt-cleanup';
 export * from './dolt/index';
 export { loadEnvironmentFiles } from './env';
-export * from './middleware/index';
 export * from './types/index';
 export * from './types/server';
 export * from './utils/index';

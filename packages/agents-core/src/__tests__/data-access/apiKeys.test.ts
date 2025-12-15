@@ -22,14 +22,12 @@ import {
   validateApiKey,
 } from '../../utils/apiKeys';
 import { testRunDbClient } from '../setup';
-import type { ResolvedRef } from '@inkeep/agents-core/validation';
 
 describe('API Keys Data Access', () => {
   let db: AgentsRunDatabaseClient;
   const testTenantId = 'test-tenant';
   const testProjectId = 'test-project';
   const testAgentId = 'test-agent';
-  const testRef: ResolvedRef = { type: 'branch', name: 'main', hash: '1234567890' };
 
   beforeEach(async () => {
     db = testRunDbClient;
@@ -47,7 +45,6 @@ describe('API Keys Data Access', () => {
         publicId: 'pub-1',
         keyPrefix: 'ik_test',
         keyHash: 'hash123',
-        ref: testRef,
       } satisfies ApiKeyInsert;
 
       const mockQuery = {
@@ -338,7 +335,6 @@ describe('API Keys Data Access', () => {
         keyHash: 'hash123',
         keyPrefix: 'ik_test',
         expiresAt: new Date().toISOString(),
-        ref: testRef,
       } satisfies ApiKeyInsert;
 
       const expectedApiKey = {
@@ -375,7 +371,6 @@ describe('API Keys Data Access', () => {
         publicId: 'pub-1',
         keyHash: 'hash123',
         keyPrefix: 'ik_test',
-        ref: testRef,
       } satisfies ApiKeyInsert;
 
       const expectedApiKey = {

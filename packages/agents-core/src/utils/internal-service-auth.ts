@@ -15,9 +15,7 @@ const ISSUER = 'inkeep-agents-internal';
  * Known internal services that can authenticate
  */
 export const InternalServices = {
-  AGENTS_RUN_API: 'agents-run-api',
-  AGENTS_MANAGE_API: 'agents-manage-api',
-  AGENTS_CLI: 'agents-cli',
+  AGENTS_RUN_API: 'agents-run-api'
 } as const;
 
 export type InternalServiceId = (typeof InternalServices)[keyof typeof InternalServices];

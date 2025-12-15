@@ -27,6 +27,8 @@ export * from './runtime/contextCache';
 export * from './runtime/conversations';
 export * from './runtime/ledgerArtifacts';
 export * from './runtime/messages';
+export * from './runtime/organizations';
+export * from './runtime/users';
 export * from './runtime/tasks';
 
 export * from './validation';
