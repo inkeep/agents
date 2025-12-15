@@ -1,30 +1,52 @@
 import { existsSync } from 'node:fs';
-import { join, resolve } from 'node:path';
+import { basename, dirname, join, resolve } from 'node:path';
 import * as p from '@clack/prompts';
 import chalk from 'chalk';
 import { env } from '../env';
 import { performBackgroundVersionCheck } from '../utils/background-version-check';
 import { initializeCommand } from '../utils/cli-pipeline';
+import { findAllConfigFiles, findConfigFile } from '../utils/config';
 import { loadEnvironmentCredentials } from '../utils/environment-loader';
 import { loadProject } from '../utils/project-loader';
 
 export interface PushOptions {
   project?: string;
   config?: string;
+  profile?: string;
   env?: string;
   json?: boolean;
+  all?: boolean;
+  tag?: string;
+  quiet?: boolean;
+}
+
+interface BatchPushResult {
+  projectDir: string;
+  projectId?: string;
+  projectName?: string;
+  success: boolean;
+  error?: string;
 }
 
 export async function pushCommand(options: PushOptions) {
   // Perform background version check (non-blocking)
   performBackgroundVersionCheck();
 
+  // Handle --all flag for batch operations
+  if (options.all) {
+    await pushAllProjects(options);
+    return;
+  }
+
   // Use standardized CLI pipeline for initialization
-  const { config } = await initializeCommand({
+  const { config, profile } = await initializeCommand({
     configPath: options.config,
+    profileName: options.profile,
+    tag: options.tag,
     showSpinner: true,
     spinnerText: 'Loading configuration...',
     logConfig: true,
+    quiet: options.quiet,
   });
 
   // Declare spinner at function scope so it's accessible in catch block
@@ -43,18 +65,35 @@ export async function pushCommand(options: PushOptions) {
         process.exit(1);
       }
     } else {
-      // Look for index.ts in current directory
+      // Look for index.ts in current directory first
       const currentDir = process.cwd();
       if (existsSync(join(currentDir, 'index.ts'))) {
         projectDir = currentDir;
       } else {
-        s.stop('No index.ts found in current directory');
-        console.error(
-          chalk.yellow(
-            'Please run this command from a directory containing index.ts or use --project <path>'
-          )
-        );
-        process.exit(1);
+        // Try to find config file and use its directory
+        const configFile = findConfigFile(currentDir, options.tag);
+        if (configFile) {
+          const configDir = dirname(configFile);
+          if (existsSync(join(configDir, 'index.ts'))) {
+            projectDir = configDir;
+          } else {
+            s.stop('No index.ts found in config directory');
+            console.error(
+              chalk.yellow(
+                'Please run this command from a directory containing index.ts or use --project <path>'
+              )
+            );
+            process.exit(1);
+          }
+        } else {
+          s.stop('No index.ts found in current directory');
+          console.error(
+            chalk.yellow(
+              'Please run this command from a directory containing index.ts or use --project <path>'
+            )
+          );
+          process.exit(1);
+        }
       }
     }
 
@@ -256,5 +295,165 @@ export async function pushCommand(options: PushOptions) {
     }
 
     process.exit(1);
+  }
+}
+
+/**
+ * Push all projects found in current directory tree
+ */
+async function pushAllProjects(options: PushOptions): Promise<void> {
+  console.log(chalk.blue('\n🚀 Batch Push: Finding all projects...\n'));
+
+  // Find all config files recursively
+  const configFiles = findAllConfigFiles(process.cwd(), options.tag);
+
+  if (configFiles.length === 0) {
+    const configPattern = options.tag ? `${options.tag}.__inkeep.config.ts__` : 'inkeep.config.ts';
+    console.error(chalk.red(`No ${configPattern} files found in current directory tree.`));
+    console.log(chalk.yellow('\nHint: Make sure you are in a directory containing projects.'));
+    process.exit(1);
+  }
+
+  // Filter to only include directories with index.ts (actual projects)
+  const projectDirs: string[] = [];
+  for (const configFile of configFiles) {
+    const dir = dirname(configFile);
+    if (existsSync(join(dir, 'index.ts'))) {
+      projectDirs.push(dir);
+    }
+  }
+
+  if (projectDirs.length === 0) {
+    console.error(chalk.red('No valid projects found (projects must have index.ts).'));
+    process.exit(1);
+  }
+
+  console.log(chalk.gray(`Found ${projectDirs.length} project(s) to push:\n`));
+  for (const dir of projectDirs) {
+    const relativePath = dir === process.cwd() ? '.' : dir.replace(process.cwd() + '/', '');
+    console.log(chalk.gray(`  • ${relativePath}`));
+  }
+  console.log();
+
+  const results: BatchPushResult[] = [];
+  const total = projectDirs.length;
+
+  for (let i = 0; i < projectDirs.length; i++) {
+    const projectDir = projectDirs[i];
+    const relativePath =
+      projectDir === process.cwd() ? '.' : projectDir.replace(process.cwd() + '/', '');
+    const progress = `[${i + 1}/${total}]`;
+
+    console.log(chalk.cyan(`${progress} Pushing ${relativePath}...`));
+
+    const result = await pushSingleProject(projectDir, options);
+    results.push(result);
+
+    if (result.success) {
+      console.log(
+        chalk.green(`  ✓ ${result.projectName || result.projectId || basename(projectDir)}`)
+      );
+    } else {
+      console.log(chalk.red(`  ✗ ${basename(projectDir)}: ${result.error}`));
+    }
+  }
+
+  // Print summary
+  const succeeded = results.filter((r) => r.success).length;
+  const failed = results.filter((r) => !r.success).length;
+
+  console.log(chalk.cyan('\n📊 Batch Push Summary:'));
+  console.log(chalk.green(`  ✓ Succeeded: ${succeeded}`));
+  if (failed > 0) {
+    console.log(chalk.red(`  ✗ Failed: ${failed}`));
+
+    console.log(chalk.red('\nFailed projects:'));
+    for (const result of results) {
+      if (!result.success) {
+        const relativePath =
+          result.projectDir === process.cwd()
+            ? '.'
+            : result.projectDir.replace(process.cwd() + '/', '');
+        console.log(chalk.red(`  • ${relativePath}: ${result.error}`));
+      }
+    }
+  }
+
+  process.exit(failed > 0 ? 1 : 0);
+}
+
+/**
+ * Push a single project (used by batch operations)
+ */
+async function pushSingleProject(
+  projectDir: string,
+  options: PushOptions
+): Promise<BatchPushResult> {
+  try {
+    // Find config file for this project directory
+    const configFile = findConfigFile(projectDir, options.tag);
+
+    // Use standardized CLI pipeline for initialization
+    const { config } = await initializeCommand({
+      configPath: configFile || undefined,
+      profileName: options.profile,
+      tag: options.tag,
+      showSpinner: false,
+      logConfig: false,
+    });
+
+    // Set environment variables for the SDK
+    const originalTenantId = process.env.INKEEP_TENANT_ID;
+    const originalApiUrl = process.env.INKEEP_API_URL;
+
+    process.env.INKEEP_TENANT_ID = config.tenantId;
+    process.env.INKEEP_API_URL = config.agentsManageApiUrl;
+
+    // Load project from index.ts
+    const project = await loadProject(projectDir);
+
+    // Restore original environment variables
+    if (originalTenantId !== undefined) {
+      process.env.INKEEP_TENANT_ID = originalTenantId;
+    } else {
+      delete process.env.INKEEP_TENANT_ID;
+    }
+    if (originalApiUrl !== undefined) {
+      process.env.INKEEP_API_URL = originalApiUrl;
+    } else {
+      delete process.env.INKEEP_API_URL;
+    }
+
+    // Set configuration on the project
+    if (typeof project.setConfig === 'function') {
+      project.setConfig(
+        config.tenantId,
+        config.agentsManageApiUrl,
+        undefined,
+        config.agentsManageApiKey
+      );
+    }
+
+    // Load environment credentials if --env flag is provided
+    if (options.env && typeof project.setCredentials === 'function') {
+      const credentials = await loadEnvironmentCredentials(projectDir, options.env);
+      project.setCredentials(credentials);
+    }
+
+    // Initialize the project (this will push to the backend)
+    await project.init();
+
+    return {
+      projectDir,
+      projectId: project.getId(),
+      projectName: project.getName(),
+      success: true,
+    };
+  } catch (error) {
+    return {
+      projectDir,
+      success: false,
+      error: error instanceof Error ? error.message : String(error),
+    };
   }
 }

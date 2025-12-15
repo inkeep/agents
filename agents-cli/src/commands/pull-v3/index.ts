@@ -9,13 +9,14 @@
  */
 
 import { existsSync, mkdirSync } from 'node:fs';
-import { dirname, join, resolve } from 'node:path';
+import { basename, dirname, join, resolve } from 'node:path';
 import * as p from '@clack/prompts';
 import type { FullProjectDefinition } from '@inkeep/agents-core';
 import chalk from 'chalk';
 import { ManagementApiClient } from '../../api';
 import { performBackgroundVersionCheck } from '../../utils/background-version-check';
 import { initializeCommand } from '../../utils/cli-pipeline';
+import { findConfigFile } from '../../utils/config';
 import { compareProjectDefinitions } from '../../utils/json-comparison';
 import { loadProject } from '../../utils/project-loader';
 import {
@@ -30,12 +31,24 @@ import { extractSubAgents } from './utils/component-registry';
 export interface PullV3Options {
   project?: string;
   config?: string;
+  profile?: string;
   env?: string;
   json?: boolean;
   debug?: boolean;
   verbose?: boolean;
   force?: boolean;
   introspect?: boolean;
+  all?: boolean;
+  tag?: string;
+  quiet?: boolean;
+}
+
+interface BatchPullResult {
+  projectId: string;
+  projectName?: string;
+  targetDir: string;
+  success: boolean;
+  error?: string;
 }
 
 interface ProjectPaths {
@@ -187,6 +200,12 @@ async function readExistingProject(
  * Main pull-v3 command
  */
 export async function pullV3Command(options: PullV3Options): Promise<void> {
+  // Handle --all flag for batch operations
+  if (options.all) {
+    await pullAllProjects(options);
+    return;
+  }
+
   // Suppress SDK logging for cleaner output
   const originalLogLevel = process.env.LOG_LEVEL;
   process.env.LOG_LEVEL = 'silent';
@@ -213,11 +232,14 @@ export async function pullV3Command(options: PullV3Options): Promise<void> {
 
   try {
     // Step 1: Load configuration (same as push command)
-    const { config } = await initializeCommand({
+    const { config, profile } = await initializeCommand({
       configPath: options.config,
+      profileName: options.profile,
+      tag: options.tag,
       showSpinner: true,
       spinnerText: 'Loading configuration...',
       logConfig: true,
+      quiet: options.quiet,
     });
 
     // Step 2: Determine project directory and ID
@@ -636,5 +658,157 @@ export async function pullV3Command(options: PullV3Options): Promise<void> {
     }
     restoreLogLevel();
     process.exit(1);
+  }
+}
+
+/**
+ * Pull all projects for the current tenant
+ */
+async function pullAllProjects(options: PullV3Options): Promise<void> {
+  console.log(chalk.blue('\n🔄 Batch Pull: Fetching all projects for tenant...\n'));
+
+  // Load configuration first
+  const { config, profile } = await initializeCommand({
+    configPath: options.config,
+    profileName: options.profile,
+    tag: options.tag,
+    showSpinner: true,
+    spinnerText: 'Loading configuration...',
+    logConfig: true,
+    quiet: options.quiet,
+  });
+
+  const s = p.spinner();
+
+  try {
+    // Fetch all projects from the API
+    s.start('Fetching project list from API...');
+    const apiClient = await ManagementApiClient.create(
+      config.agentsManageApiUrl,
+      options.config,
+      config.tenantId
+    );
+
+    const projects = await apiClient.listAllProjects();
+    s.stop(`Found ${projects.length} project(s)`);
+
+    if (projects.length === 0) {
+      console.log(chalk.yellow('No projects found for this tenant.'));
+      process.exit(0);
+    }
+
+    console.log(chalk.gray('\nProjects to pull:\n'));
+    for (const project of projects) {
+      console.log(chalk.gray(`  • ${project.name || project.id} (${project.id})`));
+    }
+    console.log();
+
+    const results: BatchPullResult[] = [];
+    const total = projects.length;
+
+    for (let i = 0; i < projects.length; i++) {
+      const project = projects[i];
+      const progress = `[${i + 1}/${total}]`;
+
+      console.log(chalk.cyan(`${progress} Pulling ${project.name || project.id}...`));
+
+      const result = await pullSingleProject(project.id, project.name, options, config);
+      results.push(result);
+
+      if (result.success) {
+        console.log(
+          chalk.green(`  ✓ ${result.projectName || result.projectId} → ${result.targetDir}`)
+        );
+      } else {
+        console.log(chalk.red(`  ✗ ${result.projectName || result.projectId}: ${result.error}`));
+      }
+    }
+
+    // Print summary
+    const succeeded = results.filter((r) => r.success).length;
+    const failed = results.filter((r) => !r.success).length;
+
+    console.log(chalk.cyan('\n📊 Batch Pull Summary:'));
+    console.log(chalk.green(`  ✓ Succeeded: ${succeeded}`));
+    if (failed > 0) {
+      console.log(chalk.red(`  ✗ Failed: ${failed}`));
+
+      console.log(chalk.red('\nFailed projects:'));
+      for (const result of results) {
+        if (!result.success) {
+          console.log(chalk.red(`  • ${result.projectId}: ${result.error}`));
+        }
+      }
+    }
+
+    process.exit(failed > 0 ? 1 : 0);
+  } catch (error) {
+    s.stop();
+    console.error(chalk.red(`\nError: ${error instanceof Error ? error.message : String(error)}`));
+    process.exit(1);
+  }
+}
+
+/**
+ * Pull a single project (used by batch operations)
+ */
+async function pullSingleProject(
+  projectId: string,
+  projectName: string | undefined,
+  options: PullV3Options,
+  config: any
+): Promise<BatchPullResult> {
+  const targetDir = join(process.cwd(), projectId);
+
+  try {
+    // Suppress SDK logging
+    const originalLogLevel = process.env.LOG_LEVEL;
+    process.env.LOG_LEVEL = 'silent';
+
+    const restoreLogLevel = () => {
+      if (originalLogLevel !== undefined) {
+        process.env.LOG_LEVEL = originalLogLevel;
+      } else {
+        delete process.env.LOG_LEVEL;
+      }
+    };
+
+    // Fetch project data from API
+    const apiClient = await ManagementApiClient.create(
+      config.agentsManageApiUrl,
+      options.config,
+      config.tenantId,
+      projectId
+    );
+
+    const remoteProject = await apiClient.getFullProject(projectId);
+
+    // Create project structure
+    const paths = createProjectStructure(targetDir, projectId);
+
+    // Generate all files using introspect mode for batch operations
+    await introspectGenerate(
+      remoteProject,
+      paths,
+      options.env || 'development',
+      false // debug
+    );
+
+    restoreLogLevel();
+
+    return {
+      projectId,
+      projectName: projectName || remoteProject.name,
+      targetDir,
+      success: true,
+    };
+  } catch (error) {
+    return {
+      projectId,
+      projectName,
+      targetDir,
+      success: false,
+      error: error instanceof Error ? error.message : String(error),
+    };
   }
 }
