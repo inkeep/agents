@@ -2,11 +2,27 @@
 alwaysApply: true
 ---
 
+### Always use the `FC` type from React when declaring components
+
 ### Do *not* use `React.forwardRef`
 
 React 19 no longer requires `forwardRef` for normal ref propagation.
 
-### Always use the `FC` type from React when declaring components
+✅ Do
+
+```tsx
+import { FC, RefObject } from 'react'
+
+const MyComponent: FC<{ ref: RefObject<HTMLDivElement> }> = ({ ref, ...props }) => <>...</>
+```
+
+❌Don't
+
+```tsx
+import { forwardRef } from 'react'
+
+const MyComponent = forwardRef<HTMLDivElement, MyProps>((props, ref) => <>...</>)
+```
 
 ### Always the shorthand syntax for defining object literal methods `{ foo(...) {} }` instead of the long form `{ foo: function(...) {} }` or `{ foo: (...) => {} }`.
 
