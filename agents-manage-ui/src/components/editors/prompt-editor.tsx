@@ -83,10 +83,6 @@ export const PromptEditor2: FC<PromptEditorProps> = ({
     setTextValue(next);
   }, [editor, textValue, value]);
 
-  useEffect(() => {
-    editor?.setEditable(editable);
-  }, [editor, editable]);
-
   return (
     <EditorContent
       editor={editor}
@@ -118,7 +114,6 @@ export const PromptEditor: FC<PromptEditorProps> = ({
   const editor = useEditor({
     ...editorOptions,
     autofocus: autoFocus,
-    editable,
     // to see placeholder on initial rendering
     immediatelyRender: true,
     editorProps: {
@@ -160,6 +155,10 @@ export const PromptEditor: FC<PromptEditorProps> = ({
     // and loaded only after focusing editor, this dispatch fix it
     editor.view.dispatch(editor.state.tr.setMeta('placeholder-init', true));
   }, []);
+
+  useEffect(() => {
+    editor?.setEditable(editable);
+  }, [editor, editable]);
 
   useImperativeHandle(
     ref,
