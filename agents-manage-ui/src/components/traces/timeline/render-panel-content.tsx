@@ -104,9 +104,6 @@ function ContextBreakdownPanel({ breakdown }: { breakdown: ContextBreakdown }) {
           })}
         </div>
 
-        <p className="text-[10px] text-muted-foreground pt-1 border-t border-border">
-          Estimated using ~4 characters per token
-        </p>
       </div>
     </LabeledBlock>
   );
@@ -252,6 +249,7 @@ export function renderPanelContent({
             {a.hasError && a.otelStatusCode && (
               <Info label="Status code" value={a.otelStatusCode} />
             )}
+            {a.contextBreakdown && <ContextBreakdownPanel breakdown={a.contextBreakdown} />}
             <StatusBadge status={a.status} />
             <Info label="Timestamp" value={formatDateTime(a.timestamp)} />
           </Section>

@@ -1490,6 +1490,8 @@ export async function GET(
         otelStatusDescription: hasError ? otelStatusDescription || statusMessage : undefined,
         subAgentId: getString(span, SPAN_KEYS.SUB_AGENT_ID, ACTIVITY_NAMES.UNKNOWN_AGENT),
         subAgentName: getString(span, SPAN_KEYS.SUB_AGENT_NAME, ACTIVITY_NAMES.UNKNOWN_AGENT),
+        // Include context breakdown directly from this span (agent.generate has the breakdown attributes)
+        contextBreakdown: getContextBreakdownForSpan(agentGeneration),
       });
     }
 
@@ -1828,7 +1830,6 @@ export async function GET(
       spansWithErrorsCount: spansWithErrorsList.length,
       errorCount: finalErrorCount,
       warningCount: finalWarningCount,
-      contextBreakdown
     });
   } catch (error) {
     const logger = getLogger('conversation-details');

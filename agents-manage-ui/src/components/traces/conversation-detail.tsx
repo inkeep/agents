@@ -24,7 +24,6 @@ import { useRuntimeConfig } from '@/contexts/runtime-config-context';
 import { getSignozTracesExplorerUrl } from '@/lib/utils/signoz-links';
 import { copyTraceToClipboard } from '@/lib/utils/trace-formatter';
 import { MCPBreakdownCard } from './mcp-breakdown-card';
-import { ContextBreakdown } from './context-breakdown';
 import { SignozLink } from './signoz-link';
 import { InfoRow } from './timeline/blocks';
 import { TimelineWrapper } from './timeline/timeline-wrapper';
