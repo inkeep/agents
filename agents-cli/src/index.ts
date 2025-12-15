@@ -18,6 +18,7 @@ import { initCommand } from './commands/init';
 import { listAgentsCommand } from './commands/list-agents';
 import { loginCommand } from './commands/login';
 import { logoutCommand } from './commands/logout';
+import { statusCommand } from './commands/status';
 import {
   profileAddCommand,
   profileCurrentCommand,
@@ -109,6 +110,8 @@ program
     'Environment to use for credential resolution (e.g., development, production)'
   )
   .option('--json', 'Generate project data JSON file instead of pushing to backend')
+  .option('--all', 'Push all projects found in current directory tree')
+  .option('--tag <tag>', 'Use tagged config file (e.g., --tag prod loads prod.__inkeep.config.ts__)')
   .action(async (options) => {
     await pushCommand(options);
   });
@@ -130,6 +133,8 @@ program
   .option('--verbose', 'Enable verbose logging')
   .option('--force', 'Force regeneration even if no changes detected')
   .option('--introspect', 'Completely regenerate all files from scratch (no comparison needed)')
+  .option('--all', 'Pull all projects for current tenant')
+  .option('--tag <tag>', 'Use tagged config file (e.g., --tag prod loads prod.__inkeep.config.ts__)')
   .action(async (options) => {
     await pullV3Command(options);
   });
@@ -182,7 +187,7 @@ program
 program
   .command('login')
   .description('Authenticate with Inkeep Cloud')
-  .option('--url <url>', 'Cloud URL (defaults to https://cloud.inkeep.com)')
+  .option('--profile <name>', 'Profile to authenticate (defaults to active profile)')
   .action(async (options) => {
     await loginCommand(options);
   });
@@ -190,13 +195,22 @@ program
 program
   .command('logout')
   .description('Log out of Inkeep Cloud')
-  .action(async () => {
-    await logoutCommand();
+  .option('--profile <name>', 'Profile to log out (defaults to active profile)')
+  .action(async (options) => {
+    await logoutCommand(options);
+  });
+
+program
+  .command('status')
+  .description('Show current profile, authentication state, and remote URLs')
+  .option('--profile <name>', 'Profile to show status for (defaults to active profile)')
+  .action(async (options) => {
+    await statusCommand(options);
   });
 
 program
   .command('whoami')
-  .description('Display current authentication status')
+  .description('Display current authentication status (alias for status)')
   .action(async () => {
     await whoamiCommand();
   });

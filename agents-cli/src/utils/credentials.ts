@@ -1,13 +1,14 @@
 import { KeyChainStore } from '@inkeep/agents-core/credential-stores';
 
 const CLI_SERVICE_PREFIX = 'inkeep-cli';
-const CREDENTIALS_KEY = 'auth-credentials';
+const DEFAULT_CREDENTIALS_KEY = 'auth-credentials';
 
 /**
  * CLI credentials stored in the system keychain
  */
 export interface CLICredentials {
   accessToken: string;
+  refreshToken?: string;
   userId: string;
   userEmail: string;
   organizationId: string;
@@ -28,8 +29,13 @@ function getKeychainStore(): KeyChainStore {
 
 /**
  * Save CLI credentials to the system keychain
+ * @param credentials - The credentials to store
+ * @param credentialKey - Optional key to store under (from profile's credential field). Defaults to 'auth-credentials'
  */
-export async function saveCredentials(credentials: CLICredentials): Promise<void> {
+export async function saveCredentials(
+  credentials: CLICredentials,
+  credentialKey?: string
+): Promise<void> {
   const store = getKeychainStore();
 
   // Check availability first
@@ -38,17 +44,20 @@ export async function saveCredentials(credentials: CLICredentials): Promise<void
     throw new Error(getKeychainUnavailableMessage(reason));
   }
 
+  const key = credentialKey || DEFAULT_CREDENTIALS_KEY;
   const credentialsJson = JSON.stringify(credentials);
-  await store.set(CREDENTIALS_KEY, credentialsJson);
+  await store.set(key, credentialsJson);
 }
 
 /**
  * Load CLI credentials from the system keychain
+ * @param credentialKey - Optional key to load from (from profile's credential field). Defaults to 'auth-credentials'
  */
-export async function loadCredentials(): Promise<CLICredentials | null> {
+export async function loadCredentials(credentialKey?: string): Promise<CLICredentials | null> {
   const store = getKeychainStore();
+  const key = credentialKey || DEFAULT_CREDENTIALS_KEY;
 
-  const credentialsJson = await store.get(CREDENTIALS_KEY);
+  const credentialsJson = await store.get(key);
   if (!credentialsJson) {
     return null;
   }
@@ -64,24 +73,27 @@ export async function loadCredentials(): Promise<CLICredentials | null> {
     return credentials;
   } catch {
     // Invalid JSON, clear and return null
-    await store.delete(CREDENTIALS_KEY);
+    await store.delete(key);
     return null;
   }
 }
 
 /**
  * Clear CLI credentials from the system keychain
+ * @param credentialKey - Optional key to clear (from profile's credential field). Defaults to 'auth-credentials'
  */
-export async function clearCredentials(): Promise<boolean> {
+export async function clearCredentials(credentialKey?: string): Promise<boolean> {
   const store = getKeychainStore();
-  return store.delete(CREDENTIALS_KEY);
+  const key = credentialKey || DEFAULT_CREDENTIALS_KEY;
+  return store.delete(key);
 }
 
 /**
  * Check if valid credentials exist in the keychain
+ * @param credentialKey - Optional key to check (from profile's credential field). Defaults to 'auth-credentials'
  */
-export async function hasValidCredentials(): Promise<boolean> {
-  const credentials = await loadCredentials();
+export async function hasValidCredentials(credentialKey?: string): Promise<boolean> {
+  const credentials = await loadCredentials(credentialKey);
   if (!credentials) {
     return false;
   }
@@ -95,6 +107,54 @@ export async function hasValidCredentials(): Promise<boolean> {
   }
 
   return true;
+}
+
+/**
+ * Check if credentials are expired
+ */
+export function isCredentialExpired(credentials: CLICredentials): boolean {
+  if (!credentials.expiresAt) {
+    return false;
+  }
+  const expiresAt = new Date(credentials.expiresAt);
+  return expiresAt < new Date();
+}
+
+/**
+ * Get time until credentials expire
+ */
+export function getCredentialExpiryInfo(credentials: CLICredentials): {
+  isExpired: boolean;
+  expiresIn?: string;
+  expiresAt?: Date;
+} {
+  if (!credentials.expiresAt) {
+    return { isExpired: false };
+  }
+
+  const expiresAt = new Date(credentials.expiresAt);
+  const now = new Date();
+  const isExpired = expiresAt < now;
+
+  if (isExpired) {
+    return { isExpired: true, expiresAt };
+  }
+
+  const diffMs = expiresAt.getTime() - now.getTime();
+  const hours = Math.floor(diffMs / (1000 * 60 * 60));
+  const minutes = Math.floor((diffMs % (1000 * 60 * 60)) / (1000 * 60));
+
+  let expiresIn: string;
+  if (hours > 24) {
+    const days = Math.floor(hours / 24);
+    expiresIn = `${days}d`;
+  } else if (hours > 0) {
+    expiresIn = `${hours}h`;
+  } else {
+    expiresIn = `${minutes}m`;
+  }
+
+  return { isExpired: false, expiresIn, expiresAt };
 }
 
 /**
