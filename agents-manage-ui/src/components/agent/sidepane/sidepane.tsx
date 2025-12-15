@@ -48,6 +48,7 @@ interface SidePaneProps {
   subAgentExternalAgentConfigLookup: SubAgentExternalAgentConfigLookup;
   subAgentTeamAgentConfigLookup: SubAgentTeamAgentConfigLookup;
   credentialLookup: Record<string, Credential>;
+  disabled?: boolean;
 }
 
 export function SidePane({
@@ -61,6 +62,7 @@ export function SidePane({
   subAgentExternalAgentConfigLookup,
   subAgentTeamAgentConfigLookup,
   credentialLookup,
+  disabled = false,
 }: SidePaneProps) {
   const selectedNode = useNodesData(selectedNodeId || '');
   const edges = useEdges();
@@ -206,7 +208,11 @@ export function SidePane({
         </div>
         <SidePaneLayout.CloseButton onClick={onClose} />
       </SidePaneLayout.Header>
-      <SidePaneLayout.Content>{editorContent}</SidePaneLayout.Content>
+      <SidePaneLayout.Content>
+        <fieldset disabled={disabled} className="contents">
+          {editorContent}
+        </fieldset>
+      </SidePaneLayout.Content>
     </SidePaneLayout.Root>
   );
 }

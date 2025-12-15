@@ -20,13 +20,6 @@ import { generateId } from '@/lib/utils/id-utils';
 import { PrebuiltServersGrid } from './prebuilt-servers-grid';
 import { ScopeSelectionDialog } from './scope-selection-dialog';
 
-export function createMcpServerNameWithScopeSuffix(
-  serverName: string,
-  scope: 'project' | 'user'
-): string {
-  return `${serverName} (${scope}-scoped)`;
-}
-
 /**
  * Remove user_id from Composio URLs before storing in DB.
  * user_id is ALWAYS injected at discovery/runtime based on scope:
@@ -79,7 +72,7 @@ export function MCPServerSelection({ credentials, tenantId, projectId }: MCPServ
     setLoadingServerId(server.id);
     setPendingServer(null);
 
-    const mcpServerName = createMcpServerNameWithScopeSuffix(server.name, scope);
+    const mcpServerName = server.name;
     const serverUrl = removeComposioUserId(server.url);
 
     try {

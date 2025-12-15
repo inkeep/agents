@@ -19,7 +19,6 @@ import type { Credential } from '@/lib/api/credentials';
 import { createMCPTool, updateMCPTool } from '@/lib/api/tools';
 import type { MCPTool } from '@/lib/types/tools';
 import { generateId } from '@/lib/utils/id-utils';
-import { createMcpServerNameWithScopeSuffix } from '../selection/mcp-server-selection';
 import { ActiveToolsSelector } from './active-tools-selector';
 import { CredentialScopeEnum, type MCPToolFormData, mcpToolSchema } from './validation';
 
@@ -88,10 +87,7 @@ export function MCPServerForm({
 
   const onSubmit = async (data: MCPToolFormData) => {
     try {
-      const mcpServerName =
-        mode === 'create'
-          ? createMcpServerNameWithScopeSuffix(data.name, data.credentialScope)
-          : data.name;
+      const mcpServerName = data.name;
       const isUserScoped = data.credentialScope === CredentialScopeEnum.user;
 
       // For user-scoped in CREATE mode: skip OAuth (users connect later from detail page)

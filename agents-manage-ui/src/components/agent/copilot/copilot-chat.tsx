@@ -53,6 +53,10 @@ export function CopilotChat({ agentId, tenantId, projectId, refreshAgentGraph }:
   });
 
   useEffect(() => {
+    return () => setIsStreaming(false);
+  }, [setIsStreaming]);
+
+  useEffect(() => {
     const updateAgentGraph = (event: any) => {
       // we need to check if the conversationId is the same as the one in the event because this event is also triggered by the 'try now' chat.
       if (event.detail.type === 'tool_result' && event.detail.conversationId === conversationId) {
