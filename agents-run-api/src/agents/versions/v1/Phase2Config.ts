@@ -429,14 +429,12 @@ ${artifactRetrievalGuidance}
 
     const dataComponentsSection = this.generateDataComponentsSection(allDataComponents);
     const artifactsSection = this.generateArtifactsSection(artifacts);
-
     const shouldShowReferencingRules = hasAgentArtifactComponents || artifacts.length > 0;
     const artifactGuidance = this.getStructuredArtifactGuidance(
       hasArtifactComponents,
       artifactComponents,
       shouldShowReferencingRules
     );
-
     const artifactTypes = this.getArtifactCreationInstructions(
       hasArtifactComponents,
       artifactComponents
