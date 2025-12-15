@@ -20,7 +20,6 @@ import {
   agentNodeSourceHandleId,
   agentNodeTargetHandleId,
   externalAgentNodeTargetHandleId,
-  type MCPNodeData,
   mcpNodeHandleId,
   NodeType,
   newNodeDefaults,
@@ -66,6 +65,7 @@ import { saveAgent } from '@/lib/services/save-agent';
 import type {
   AgentToolConfig,
   AgentToolConfigLookup,
+  FullAgentDefinition,
   SubAgentExternalAgentConfig,
   SubAgentExternalAgentConfigLookup,
   SubAgentTeamAgentConfig,
@@ -307,9 +307,7 @@ export const Agent: FC<AgentProps> = ({
     setEdges,
     onNodesChange: storeOnNodesChange,
     onEdgesChange,
-    setMetadata,
     setInitial,
-    markSaved,
     clearSelection,
     markUnsaved,
     reset,
@@ -422,6 +420,70 @@ export const Agent: FC<AgentProps> = ({
 
     return () => clearTimeout(timer);
   }, [showPlayground, isCopilotChatOpen, fitView]);
+
+  // Callback function to update agent state from save response
+  // This is used after saving to sync local state with the backend response
+  const updateAgentStateFromSaveResponse = useCallback(
+    (savedAgent: FullAgentDefinition) => {
+      try {
+        // Deserialize agent data to nodes and edges
+        const { nodes, edges } = deserializeAgentData(savedAgent);
+
+        // Preserve selection state based on current URL state
+        const nodesWithSelection = nodeId
+          ? nodes.map((node) => ({
+              ...node,
+              selected: node.id === nodeId,
+            }))
+          : nodes;
+
+        const edgesWithSelection = edgeId
+          ? edges.map((edge) => ({
+              ...edge,
+              selected: edge.id === edgeId,
+            }))
+          : edges;
+
+        // Extract metadata from the saved agent
+        const updatedMetadata = extractAgentMetadata(
+          savedAgent as unknown as ExtendedFullAgentDefinition
+        );
+
+        // Recompute agent-specific lookups from the saved agent data
+        const updatedAgentToolConfigLookup = computeAgentToolConfigLookup(
+          savedAgent as unknown as ExtendedFullAgentDefinition
+        );
+        const updatedSubAgentExternalAgentConfigLookup = computeSubAgentExternalAgentConfigLookup(
+          savedAgent as unknown as ExtendedFullAgentDefinition
+        );
+
+        // Update the store with refreshed agent data
+        // Keep existing project-level lookups (dataComponents, artifactComponents, tools, externalAgents)
+        // as those are not included in the save response
+        setInitial(
+          enrichNodes(nodesWithSelection),
+          edgesWithSelection,
+          updatedMetadata,
+          undefined, // Keep existing dataComponentLookup
+          undefined, // Keep existing artifactComponentLookup
+          undefined, // Keep existing toolLookup
+          updatedAgentToolConfigLookup,
+          undefined, // Keep existing externalAgentLookup
+          updatedSubAgentExternalAgentConfigLookup
+        );
+      } catch (error) {
+        console.error('Failed to update agent state from save response:', error);
+      }
+    },
+    [
+      nodeId,
+      edgeId,
+      setInitial,
+      computeAgentToolConfigLookup,
+      computeSubAgentExternalAgentConfigLookup,
+      enrichNodes,
+    ]
+  );
 
   // Callback function to fetch and update agent graph from copilot
   const refreshAgentGraph = useCallback(
@@ -864,58 +926,15 @@ export const Agent: FC<AgentProps> = ({
       toast.success('Agent saved', {
         closeButton: true,
       });
-      markSaved();
 
-      // Update MCP nodes with new relationshipIds from backend response
+      // Update local state with the saved agent response
+      // This ensures the UI reflects any normalization/transformations done by the backend
+      // and includes relationship IDs for newly created tool connections
       if (res.data) {
-        const processedRelationships = new Set<string>();
-
-        setNodes((currentNodes) =>
-          currentNodes.map((node) => {
-            if (node.type === NodeType.MCP) {
-              const mcpNode = node as Node & { data: MCPNodeData };
-              if (mcpNode.data.subAgentId && mcpNode.data.toolId) {
-                // If node already has a relationshipId, keep it (it's an existing relationship)
-                if (mcpNode.data.relationshipId) {
-                  return node;
-                }
-
-                // For new nodes (relationshipId is null), find the first unprocessed relationship
-                // that matches this agent and tool
-                const subAgentId = mcpNode.data.subAgentId;
-                const toolId = mcpNode.data.toolId;
-
-                if (
-                  'canUse' in res.data.subAgents[subAgentId] &&
-                  res.data.subAgents[subAgentId].canUse
-                ) {
-                  const matchingRelationship = res.data.subAgents[subAgentId].canUse.find(
-                    (tool: any) =>
-                      tool.toolId === toolId &&
-                      tool.agentToolRelationId &&
-                      !processedRelationships.has(tool.agentToolRelationId)
-                  );
-
-                  if (matchingRelationship?.agentToolRelationId) {
-                    processedRelationships.add(matchingRelationship.agentToolRelationId);
-                    return {
-                      ...node,
-                      data: {
-                        ...node.data,
-                        relationshipId: matchingRelationship.agentToolRelationId,
-                      },
-                    };
-                  }
-                }
-              }
-            }
-            return node;
-          })
-        );
+        updateAgentStateFromSaveResponse(res.data);
       }
 
       if (!agent.id && res.data?.id) {
-        setMetadata('id', res.data.id);
         router.push(`/${tenantId}/projects/${projectId}/agents/${res.data.id}`);
       }
       return true;
@@ -957,9 +976,6 @@ export const Agent: FC<AgentProps> = ({
     metadata,
     dataComponentLookup,
     artifactComponentLookup,
-    markSaved,
-    setMetadata,
-    setNodes,
     router,
     agent.id,
     tenantId,
@@ -970,6 +986,7 @@ export const Agent: FC<AgentProps> = ({
     toolLookup,
     subAgentExternalAgentConfigLookup,
     subAgentTeamAgentConfigLookup,
+    updateAgentStateFromSaveResponse,
   ]);
 
   // biome-ignore lint/correctness/useExhaustiveDependencies: only on mount
