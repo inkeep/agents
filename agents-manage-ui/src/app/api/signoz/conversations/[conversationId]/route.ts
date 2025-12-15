@@ -1151,7 +1151,6 @@ export async function GET(
       }
     }
 
-
     // activities
     type Activity = {
       id: string;

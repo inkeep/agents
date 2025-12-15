@@ -103,7 +103,6 @@ function ContextBreakdownPanel({ breakdown }: { breakdown: ContextBreakdown }) {
             );
           })}
         </div>
-
       </div>
     </LabeledBlock>
   );
