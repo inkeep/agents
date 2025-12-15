@@ -45,6 +45,10 @@ export const modelOptions = {
   ],
   openai: [
     {
+      value: OPENAI_MODELS.GPT_5_2,
+      label: 'GPT-5.2',
+    },
+    {
       value: OPENAI_MODELS.GPT_5_1,
       label: 'GPT-5.1',
     },
