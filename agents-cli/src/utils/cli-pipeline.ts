@@ -1,5 +1,11 @@
 import * as p from '@clack/prompts';
 import chalk from 'chalk';
+import {
+  detectCIEnvironment,
+  loadCIEnvironmentConfig,
+  logCIConfig,
+  type CIEnvironmentConfig,
+} from './ci-environment';
 import type { ValidatedConfiguration } from './config';
 import { validateConfiguration } from './config';
 import { getCredentialExpiryInfo, loadCredentials } from './credentials';
@@ -33,10 +39,14 @@ export interface CommandInitResult {
   config: ValidatedConfiguration;
   /** Resolved profile (if profiles are configured) */
   profile?: ResolvedProfile;
-  /** Whether the user is authenticated via profile */
+  /** Whether the user is authenticated via profile or CI API key */
   isAuthenticated?: boolean;
   /** Auth token expiry info */
   authExpiry?: string;
+  /** Whether running in CI mode */
+  isCI?: boolean;
+  /** CI configuration (if in CI mode) */
+  ciConfig?: CIEnvironmentConfig;
 }
 
 /**
@@ -87,6 +97,45 @@ export async function initializeCommand(
   }
 
   try {
+    // Check for CI environment first
+    const ciDetection = await detectCIEnvironment();
+    const ciConfig = ciDetection.isCI ? loadCIEnvironmentConfig() : null;
+
+    // If in CI mode with API key, use CI configuration
+    if (ciDetection.isCI && ciConfig) {
+      // Load file config as base but override with CI env vars
+      const config = await validateConfiguration(configPath, tag);
+
+      // CI env vars take precedence over file config
+      if (ciConfig.manageApiUrl) {
+        config.agentsManageApiUrl = ciConfig.manageApiUrl;
+      }
+      if (ciConfig.runApiUrl) {
+        config.agentsRunApiUrl = ciConfig.runApiUrl;
+      }
+      if (ciConfig.apiKey) {
+        config.agentsManageApiKey = ciConfig.apiKey;
+      }
+      if (ciConfig.tenantId) {
+        config.tenantId = ciConfig.tenantId;
+      }
+
+      if (s) {
+        s.stop('Configuration loaded');
+      }
+
+      if (logConfig && !quiet) {
+        logCIConfig(ciConfig, ciDetection.reason);
+      }
+
+      return {
+        config,
+        isAuthenticated: !!ciConfig.apiKey,
+        isCI: true,
+        ciConfig,
+      };
+    }
+
     // Try to load profile configuration
     let profile: ResolvedProfile | undefined;
     let isAuthenticated = false;
@@ -163,7 +212,7 @@ export async function initializeCommand(
       }
     }
 
-    return { config, profile, isAuthenticated, authExpiry };
+    return { config, profile, isAuthenticated, authExpiry, isCI: false };
   } catch (error: any) {
     if (s) {
       s.stop('Configuration failed');

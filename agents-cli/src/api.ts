@@ -11,17 +11,20 @@ abstract class BaseApiClient {
   protected tenantId: string | undefined;
   protected projectId: string;
   protected apiKey: string | undefined;
+  protected isCI: boolean;
 
   protected constructor(
     apiUrl: string,
     tenantId: string | undefined,
     projectId: string,
-    apiKey?: string
+    apiKey?: string,
+    isCI: boolean = false
   ) {
     this.apiUrl = apiUrl;
     this.tenantId = tenantId;
     this.projectId = projectId;
     this.apiKey = apiKey;
+    this.isCI = isCI;
   }
 
   protected checkTenantId(): string {
@@ -32,17 +35,24 @@ abstract class BaseApiClient {
   }
 
   /**
-   * Wrapper around fetch that automatically includes Authorization header if API key is present
+   * Wrapper around fetch that automatically includes auth header
+   * Uses X-API-Key for CI mode, Authorization Bearer for interactive mode
    */
   protected async authenticatedFetch(url: string, options: RequestInit = {}): Promise<Response> {
-    // Build headers with Authorization if API key is present
+    // Build headers with auth if API key is present
     const headers: Record<string, string> = {
       ...((options.headers as Record<string, string>) || {}),
     };
 
-    // Add Authorization header if API key is provided
+    // Add auth header based on mode
     if (this.apiKey) {
-      headers.Authorization = `Bearer ${this.apiKey}`;
+      if (this.isCI) {
+        // CI mode: use X-API-Key header for tenant-level API keys
+        headers['X-API-Key'] = this.apiKey;
+      } else {
+        // Interactive mode: use Bearer token for user session tokens
+        headers.Authorization = `Bearer ${this.apiKey}`;
+      }
     }
 
     return apiFetch(url, {
@@ -62,6 +72,10 @@ abstract class BaseApiClient {
   getApiUrl(): string {
     return this.apiUrl;
   }
+
+  getIsCI(): boolean {
+    return this.isCI;
+  }
 }
 
 export class ManagementApiClient extends BaseApiClient {
@@ -69,16 +83,18 @@ export class ManagementApiClient extends BaseApiClient {
     apiUrl: string,
     tenantId: string | undefined,
     projectId: string,
-    apiKey?: string
+    apiKey?: string,
+    isCI: boolean = false
   ) {
-    super(apiUrl, tenantId, projectId, apiKey);
+    super(apiUrl, tenantId, projectId, apiKey, isCI);
   }
 
   static async create(
     apiUrl?: string,
     configPath?: string,
     tenantIdOverride?: string,
-    projectIdOverride?: string
+    projectIdOverride?: string,
+    isCI?: boolean
   ): Promise<ManagementApiClient> {
     // Load config from file
     const { validateConfiguration } = await import('./utils/config.js');
@@ -89,7 +105,13 @@ export class ManagementApiClient extends BaseApiClient {
     const tenantId = tenantIdOverride || config.tenantId;
     const projectId = projectIdOverride || '';
 
-    return new ManagementApiClient(resolvedApiUrl, tenantId, projectId, config.agentsManageApiKey);
+    return new ManagementApiClient(
+      resolvedApiUrl,
+      tenantId,
+      projectId,
+      config.agentsManageApiKey,
+      isCI ?? false
+    );
   }
 
   async listAgents(): Promise<AgentApiSelect[]> {
@@ -190,6 +212,70 @@ export class ManagementApiClient extends BaseApiClient {
     const responseData = await response.json();
     return responseData.data;
   }
+
+  /**
+   * List all projects for the current tenant
+   * @param page - Page number (1-based)
+   * @param limit - Number of results per page (max 100)
+   * @returns List of projects with pagination info
+   */
+  async listProjects(
+    page: number = 1,
+    limit: number = 100
+  ): Promise<{ data: any[]; pagination: { page: number; limit: number; total: number } }> {
+    const tenantId = this.checkTenantId();
+
+    const response = await this.authenticatedFetch(
+      `${this.apiUrl}/tenants/${tenantId}/projects?page=${page}&limit=${limit}`,
+      {
+        method: 'GET',
+      }
+    );
+
+    if (!response.ok) {
+      if (response.status === 401 || response.status === 403) {
+        const errorText = await response.text().catch(() => '');
+        let errorMessage = 'Authentication failed - check your API key configuration\n\n';
+        errorMessage += 'Common issues:\n';
+        errorMessage += '  • Missing or invalid API key in inkeep.config.ts\n';
+        errorMessage += '  • API key does not have access to this tenant\n';
+        if (errorText) {
+          errorMessage += `\nServer response: ${errorText}`;
+        }
+        throw new Error(errorMessage);
+      }
+      const errorText = await response.text().catch(() => '');
+      throw new Error(
+        `Failed to list projects: ${response.statusText}${errorText ? `\n${errorText}` : ''}`
+      );
+    }
+
+    const responseData = await response.json();
+    return responseData;
+  }
+
+  /**
+   * List all projects for the current tenant (fetches all pages)
+   * @returns Array of all projects
+   */
+  async listAllProjects(): Promise<any[]> {
+    const allProjects: any[] = [];
+    let page = 1;
+    const limit = 100;
+
+    while (true) {
+      const result = await this.listProjects(page, limit);
+      allProjects.push(...result.data);
+
+      // Check if we've fetched all projects
+      if (result.data.length < limit || allProjects.length >= result.pagination.total) {
+        break;
+      }
+      page++;
+    }
+
+    return allProjects;
+  }
 }
 
 export class ExecutionApiClient extends BaseApiClient {
@@ -197,16 +283,18 @@ export class ExecutionApiClient extends BaseApiClient {
     apiUrl: string,
     tenantId: string | undefined,
     projectId: string,
-    apiKey?: string
+    apiKey?: string,
+    isCI: boolean = false
   ) {
-    super(apiUrl, tenantId, projectId, apiKey);
+    super(apiUrl, tenantId, projectId, apiKey, isCI);
   }
 
   static async create(
     apiUrl?: string,
     configPath?: string,
     tenantIdOverride?: string,
-    projectIdOverride?: string
+    projectIdOverride?: string,
+    isCI?: boolean
   ): Promise<ExecutionApiClient> {
     // Load config from file
     const { validateConfiguration } = await import('./utils/config.js');
@@ -217,7 +305,13 @@ export class ExecutionApiClient extends BaseApiClient {
     const tenantId = tenantIdOverride || config.tenantId;
     const projectId = projectIdOverride || '';
 
-    return new ExecutionApiClient(resolvedApiUrl, tenantId, projectId, config.agentsRunApiKey);
+    return new ExecutionApiClient(
+      resolvedApiUrl,
+      tenantId,
+      projectId,
+      config.agentsRunApiKey,
+      isCI ?? false
+    );
   }
 
   async chatCompletion(
