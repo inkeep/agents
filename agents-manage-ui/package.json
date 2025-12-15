@@ -1,6 +1,6 @@
 {
   "name": "@inkeep/agents-manage-ui",
-  "version": "0.37.2",
+  "version": "0.38.1",
   "license": "SEE LICENSE IN LICENSE.md",
   "main": "index.js",
   "types": "index.d.ts",
@@ -25,6 +25,11 @@
   "publishConfig": {
     "access": "public",
     "registry": "https://registry.npmjs.org/"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/inkeep/agents.git",
+    "directory": "agents-manage-ui"
   },
   "scripts": {
     "dev": "next -p 3000",
@@ -93,7 +98,7 @@
     "lucide-react": "^0.555.0",
     "monaco-editor": "0.54.0",
     "nanoid": "^5.1.5",
-    "next": "16.0.7",
+    "next": "16.0.10",
     "next-themes": "^0.4.6",
     "nuqs": "^2.4.3",
     "pino": "^9.9.0",
@@ -138,8 +143,5 @@
     "typescript": "^5",
     "vitest": "^3.2.4",
     "vitest-canvas-mock": "^0.3.3"
-  },
-  "engines": {
-    "node": ">=22.0.0"
   }
 }

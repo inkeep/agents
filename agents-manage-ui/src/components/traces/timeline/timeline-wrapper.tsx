@@ -218,6 +218,10 @@ export function TimelineWrapper({
     return list;
   }, [activities]);
 
+  // Ref to track if we've already scrolled to the first error
+  const hasScrolledToErrorRef = useRef<string | undefined>(undefined);
+  const scrollContainerRef = useRef<HTMLDivElement>(null);
+
   // Memoize AI message IDs to avoid recalculating on every render
   const aiMessageIds = useMemo(() => {
     return sortedActivities
@@ -285,6 +289,37 @@ export function TimelineWrapper({
       }
     }
   }, [conversationId, aiMessageIds, streamTextIds, enableAutoScroll]);
+
+  // Auto-scroll to first error when conversation loads (only for static view, not auto-scroll/polling mode)
+  useEffect(() => {
+    // Skip if auto-scroll is enabled (polling mode)
+    if (enableAutoScroll) {
+      return;
+    }
+
+    // Skip if we've already scrolled for this conversation
+    if (hasScrolledToErrorRef.current === conversationId) {
+      return;
+    }
+
+    // Small delay to ensure DOM is rendered
+    const timeoutId = setTimeout(() => {
+      const errorElement = scrollContainerRef.current?.querySelector('[data-has-error="true"]');
+      if (errorElement) {
+        errorElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        hasScrolledToErrorRef.current = conversationId;
+      }
+    }, 100);
+
+    return () => clearTimeout(timeoutId);
+  }, [conversationId, enableAutoScroll]);
+
+  // Reset scroll tracking when conversation changes
+  useEffect(() => {
+    if (conversationId !== lastConversationRef.current) {
+      hasScrolledToErrorRef.current = undefined;
+    }
+  }, [conversationId]);
 
   // Functions to handle expand/collapse all (memoized to prevent unnecessary re-renders)
   const expandAllAiMessages = useCallback(() => {
@@ -475,7 +510,10 @@ export function TimelineWrapper({
                 </StickToBottom.Content>
               </StickToBottom>
             ) : (
-              <div className="h-full overflow-y-auto scrollbar-thin scrollbar-thumb-muted-foreground/30 scrollbar-track-transparent dark:scrollbar-thumb-muted-foreground/50">
+              <div
+                ref={scrollContainerRef}
+                className="h-full overflow-y-auto scrollbar-thin scrollbar-thumb-muted-foreground/30 scrollbar-track-transparent dark:scrollbar-thumb-muted-foreground/50"
+              >
                 <HierarchicalTimeline
                   activities={sortedActivities}
                   onSelect={(activity) => {

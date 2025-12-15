@@ -9,6 +9,7 @@ import { PageHeader } from '@/components/layout/page-header';
 import { Button } from '@/components/ui/button';
 import { dataComponentDescription } from '@/constants/page-descriptions';
 import { fetchDataComponents } from '@/lib/api/data-components';
+import { getErrorCode } from '@/lib/utils/error-serialization';
 
 export const dynamic = 'force-dynamic';
 
@@ -21,7 +22,7 @@ async function DataComponentsPage({
   try {
     dataComponents = await fetchDataComponents(tenantId, projectId);
   } catch (error) {
-    return <FullPageError error={error as Error} context="components" />;
+    return <FullPageError errorCode={getErrorCode(error)} context="components" />;
   }
   return (
     <BodyTemplate breadcrumbs={[{ label: 'Components' }]}>

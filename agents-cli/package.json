@@ -1,6 +1,6 @@
 {
   "name": "@inkeep/agents-cli",
-  "version": "0.37.2",
+  "version": "0.38.1",
   "description": "Inkeep CLI tool",
   "type": "module",
   "main": "./dist/index.js",
@@ -78,9 +78,6 @@
   "peerDependencies": {
     "@inkeep/agents-manage-ui": "*",
     "zod": "^4.1.11"
-  },
-  "engines": {
-    "node": ">=22.0.0"
   },
   "publishConfig": {
     "access": "public",

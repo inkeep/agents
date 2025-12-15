@@ -29,7 +29,30 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v5
         with:
-          fetch-depth: 1
+          fetch-depth: 0  # Need full history to detect changes
+
+      - name: Check for documentation changes
+        uses: dorny/paths-filter@v2
+        id: changes
+        with:
+          filters: |
+            docs:
+              - 'agents-docs/**'
+              - '**/*.md'
+              - '**/*.mdx'
+              - '.cursor/rules/**/*.mdc'
+
+      - name: Read documentation style guide
+        if: steps.changes.outputs.docs == 'true'
+        id: read-style-guide
+        run: |
+          content=$(cat .cursor/rules/documentation-style-guide.mdc)
+          content="${content//'/'\'}"  # Escape single quotes
+          content="${content//$'\n'/'%0A'}"  # Escape newlines
+          echo "content<<EOF" >> $GITHUB_OUTPUT
+          echo "$content" >> $GITHUB_OUTPUT
+          echo "EOF" >> $GITHUB_OUTPUT
+        shell: bash
 
       - name: Run Claude Code Review
         id: claude-review
@@ -87,6 +110,8 @@ jobs:
             18. Thinking through future scenarios that could be appropriate to address now or that we should account for so we don't block future use cases. I.e., are things evolvable? We want to keep things simple but also not be short-sighted/myopic.
             19. Accounting for all dimensions of how a customer/user/client may use the data contracts, APIs, UI, SDK, documentation, or any other interface of how they may consume or interact with the features or platform?
             20. Ensuring that there is equal representation across any modality that this repo encompasses (e.g. both UI and API, if applicable to the repo or use case)?
+
+            ${{ steps.changes.outputs.docs == 'true' && steps.read-style-guide.outputs.content || '' }}
 
             Your final review should be thoughtful and cover what's actually most applicable to this PR -- don't leave superfluous comments that seem unrelated to the intent or proposed changes of the PR.  
             The dimensions mentioned in these instructions are suggestions, they won't all always apply to every PR, and there may be additional considerations that you think are important to cover.

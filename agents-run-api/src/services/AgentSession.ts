@@ -11,6 +11,7 @@ import type {
 import {
   CONVERSATION_HISTORY_DEFAULT_LIMIT,
   CONVERSATION_HISTORY_MAX_OUTPUT_TOKENS_DEFAULT,
+  getLedgerArtifacts,
   getSubAgentById,
   ModelFactory,
 } from '@inkeep/agents-core';
@@ -46,6 +47,7 @@ export type AgentSessionEventType =
   | 'artifact_saved'
   | 'tool_call'
   | 'tool_result'
+  | 'compression'
   | 'error';
 
 interface BaseAgentSessionEvent {
@@ -62,6 +64,7 @@ export type AgentSessionEvent =
   | (BaseAgentSessionEvent & { eventType: 'artifact_saved'; data: ArtifactSavedData })
   | (BaseAgentSessionEvent & { eventType: 'tool_call'; data: ToolCallData })
   | (BaseAgentSessionEvent & { eventType: 'tool_result'; data: ToolResultData })
+  | (BaseAgentSessionEvent & { eventType: 'compression'; data: CompressionEventData })
   | (BaseAgentSessionEvent & { eventType: 'error'; data: ErrorEventData });
 
 export type EventData =
@@ -73,6 +76,7 @@ export type EventData =
   | ArtifactSavedData
   | ToolCallData
   | ToolResultData
+  | CompressionEventData
   | ErrorEventData;
 
 export type EventDataMap = {
@@ -84,6 +88,7 @@ export type EventDataMap = {
   artifact_saved: ArtifactSavedData;
   tool_call: ToolCallData;
   tool_result: ToolResultData;
+  compression: CompressionEventData;
   error: ErrorEventData;
 };
 
@@ -167,6 +172,15 @@ export interface ToolResultData {
   error?: string;
   relationshipId?: string;
   needsApproval?: boolean;
+}
+
+export interface CompressionEventData {
+  reason: 'manual' | 'automatic';
+  messageCount: number;
+  artifactCount: number;
+  contextSizeBefore: number;
+  contextSizeAfter: number;
+  compressionType: 'mid_generation' | 'full_conversation';
 }
 
 export interface ErrorEventData {
@@ -262,7 +276,6 @@ export class AgentSession {
    * Send data operation to stream when emit operations is enabled
    */
   private async sendDataOperation(event: AgentSessionEvent): Promise<void> {
-    console.log('sendDataOperation called with event', Date.now());
     try {
       const streamHelper = getStreamHelper(this.sessionId);
       if (streamHelper) {
@@ -315,6 +328,8 @@ export class AgentSession {
         return `Task completed: ${event.data.targetSubAgent} → ${event.data.fromSubAgent}`;
       case 'artifact_saved':
         return `Artifact saved: ${event.data.artifactType || 'unknown type'}`;
+      case 'compression':
+        return `Compressed ${event.data.messageCount} messages and ${event.data.artifactCount} artifacts (${event.data.reason})`;
       default:
         return `${(event as AgentSessionEvent).eventType} event`;
     }
@@ -1390,14 +1405,60 @@ ${this.statusUpdateState?.config.prompt?.trim() || ''}`;
               }
             : null;
 
-          const prompt = `Name this artifact (max 50 chars) and describe it (max 150 chars).
+          // Get existing artifact names for this task to provide context
+          let existingNames: string[] = [];
+          try {
+            if (artifactData.tenantId && artifactData.projectId && artifactData.taskId) {
+              const existingArtifacts = await getLedgerArtifacts(dbClient)({
+                scopes: { tenantId: artifactData.tenantId, projectId: artifactData.projectId },
+                taskId: artifactData.taskId,
+              });
+              existingNames = existingArtifacts.map((a) => a.name).filter(Boolean) as string[];
+            }
+          } catch (error) {
+            logger.warn(
+              {
+                sessionId: this.sessionId,
+                artifactId: artifactData.artifactId,
+                error: error instanceof Error ? error.message : 'Unknown error',
+              },
+              'Failed to fetch existing artifact names for context'
+            );
+          }
 
-Tool Context: ${toolContext ? JSON.stringify(toolContext, null, 2) : 'No tool context'}
-Context: ${conversationHistory?.slice(-200) || 'Processing'}
+          const toolName = artifactData.metadata?.toolName || 'unknown';
+          const toolCallId = artifactData.metadata?.toolCallId || 'unknown';
+
+          const prompt = `Create a unique name and description for this tool result artifact.
+
+CRITICAL: Your name must be different from these existing artifacts: ${existingNames.length > 0 ? existingNames.join(', ') : 'None yet'}
+
+Tool Context: ${toolContext ? JSON.stringify(toolContext.args, null, 2) : 'No args'}
+Context: ${conversationHistory?.slice(-200) || 'No context'}
 Type: ${artifactData.artifactType || 'data'}
-Data: ${JSON.stringify(artifactData.data || artifactData.summaryData, null, 2)}
+Data: ${JSON.stringify(artifactData.data || artifactData.summaryData || {}, null, 2)}
 
-Make it specific and relevant.`;
+Requirements:
+- Name: Max 50 chars, be extremely specific to THIS EXACT tool execution
+- Description: Max 150 chars, describe what THIS SPECIFIC tool call returned  
+- Focus on the unique aspects of this particular tool execution result
+- Be descriptive about the actual content returned, not just the tool type
+
+BAD Examples (too generic):
+- "Search Results"
+- "Tool Results" 
+- "${toolName} Results"
+- "Data from ${toolName}"
+- "Tool Output"
+- "Search Data"
+
+GOOD Examples:
+- "GitHub API Rate Limits & Auth Methods"
+- "React Component Props Documentation"
+- "Database Schema for User Tables"
+- "Pricing Tiers with Enterprise Features"
+
+Make the name extremely specific to what this tool call actually returned, not generic.`;
 
           let modelToUse = this.statusUpdateState?.summarizerModel;
           if (!modelToUse?.model?.trim()) {
@@ -1455,9 +1516,12 @@ Make it specific and relevant.`;
 
           let result: { name: string; description: string };
           if (!modelToUse) {
+            // Fallback: include toolCallId for guaranteed uniqueness
+            const toolCallSuffix =
+              artifactData.metadata?.toolCallId?.slice(-8) || Date.now().toString().slice(-8);
             result = {
-              name: `Artifact ${artifactData.artifactId.substring(0, 8)}`,
-              description: `${artifactData.artifactType || 'Data'} from ${artifactData.metadata?.toolCallId || 'tool results'}`,
+              name: `${artifactData.artifactType || 'Artifact'} ${toolCallSuffix}`,
+              description: `${artifactData.artifactType || 'Data'} from ${artifactData.metadata?.toolName || 'tool'} (${artifactData.metadata?.toolCallId || 'tool results'})`,
             };
           } else {
             const model = ModelFactory.createModel(modelToUse);
@@ -1563,6 +1627,27 @@ Make it specific and relevant.`;
             result = object;
           }
 
+          // Ensure name uniqueness - add toolCallId suffix if needed
+          if (existingNames.includes(result.name)) {
+            const toolCallSuffix = toolCallId.slice(-8);
+            const originalName = result.name;
+            result.name =
+              result.name.length + toolCallSuffix.length + 1 <= 50
+                ? `${result.name} ${toolCallSuffix}`
+                : `${result.name.substring(0, 50 - toolCallSuffix.length - 1)} ${toolCallSuffix}`;
+
+            logger.info(
+              {
+                sessionId: this.sessionId,
+                artifactId: artifactData.artifactId,
+                originalName,
+                uniqueName: result.name,
+                reason: 'Name conflict resolved with toolCallId suffix',
+              },
+              'Updated artifact name for uniqueness'
+            );
+          }
+
           try {
             if (!this.artifactService) {
               throw new Error('ArtifactService is not initialized');
@@ -1574,6 +1659,7 @@ Make it specific and relevant.`;
               description: result.description,
               type: artifactData.artifactType || 'source',
               data: artifactData.data || {},
+              summaryData: artifactData.summaryData,
               metadata: artifactData.metadata || {},
               toolCallId: artifactData.toolCallId,
             });
@@ -1592,6 +1678,12 @@ Make it specific and relevant.`;
                 sessionId: this.sessionId,
                 artifactId: artifactData.artifactId,
                 error: saveError instanceof Error ? saveError.message : 'Unknown error',
+                errorName: saveError instanceof Error ? saveError.name : undefined,
+                errorCause: saveError instanceof Error ? saveError.cause : undefined,
+                errorCode: (saveError as any)?.code || (saveError as any)?.errno || undefined,
+                artifactType: artifactData.artifactType,
+                dataKeys: artifactData.data ? Object.keys(artifactData.data) : [],
+                metadataKeys: artifactData.metadata ? Object.keys(artifactData.metadata) : [],
               },
               'Main artifact save failed, will attempt fallback'
             );
@@ -1614,6 +1706,7 @@ Make it specific and relevant.`;
                   description: `${artifactData.artifactType || 'Data'} from ${artifactData.metadata?.toolName || 'tool results'}`,
                   type: artifactData.artifactType || 'source',
                   data: artifactData.data || {},
+                  summaryData: artifactData.summaryData,
                   metadata: artifactData.metadata || {},
                   toolCallId: artifactData.toolCallId,
                 });
@@ -1639,6 +1732,13 @@ Make it specific and relevant.`;
                     sessionId: this.sessionId,
                     artifactId: artifactData.artifactId,
                     error: fallbackError instanceof Error ? fallbackError.message : 'Unknown error',
+                    errorName: fallbackError instanceof Error ? fallbackError.name : undefined,
+                    errorCause: fallbackError instanceof Error ? fallbackError.cause : undefined,
+                    errorCode:
+                      (fallbackError as any)?.code || (fallbackError as any)?.errno || undefined,
+                    artifactType: artifactData.artifactType,
+                    dataKeys: artifactData.data ? Object.keys(artifactData.data) : [],
+                    metadataKeys: artifactData.metadata ? Object.keys(artifactData.metadata) : [],
                   },
                   'Failed to save artifact even with fallback'
                 );

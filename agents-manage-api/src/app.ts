@@ -1,16 +1,15 @@
 import { createRoute, OpenAPIHono } from '@hono/zod-openapi';
-import { handleApiError, type ServerConfig } from '@inkeep/agents-core';
+import type { ServerConfig } from '@inkeep/agents-core';
 import type { auth as authForTypes, createAuth } from '@inkeep/agents-core/auth';
 import type { CredentialStoreRegistry } from '@inkeep/agents-core/credential-stores';
 import { Hono } from 'hono';
 import { cors } from 'hono/cors';
-import { HTTPException } from 'hono/http-exception';
 import { requestId } from 'hono/request-id';
-import type { StatusCode } from 'hono/utils/http-status';
 import { pinoLogger } from 'hono-pino';
 import { env } from './env';
 import { getLogger } from './logger';
 import { apiKeyAuth } from './middleware/auth';
+import { errorHandler } from './middleware/error-handler';
 import { sessionAuth } from './middleware/session-auth';
 import { requireTenantAccess } from './middleware/tenant-access';
 import { setupOpenAPIRoutes } from './openapi';
@@ -20,65 +19,20 @@ import mcpRoutes from './routes/mcp';
 import oauthRoutes from './routes/oauth';
 import playgroundTokenRoutes from './routes/playgroundToken';
 import projectFullRoutes from './routes/projectFull';
+import signozRoutes from './routes/signoz';
 import userOrganizationsRoutes from './routes/userOrganizations';
+import {
+  authCorsConfig,
+  defaultCorsConfig,
+  isOriginAllowed,
+  playgroundCorsConfig,
+} from './utils/cors';
 
 const logger = getLogger('agents-manage-api');
 
 logger.info({ logger: logger.getTransports() }, 'Logger initialized');
 
-/**
- * Extract the base domain from a hostname (e.g., 'app.preview.inkeep.com' -> 'preview.inkeep.com')
- * For hostnames with 3+ parts, returns the last 3 parts (subdomain.domain.tld)
- * For hostnames with 2 parts, returns as-is (domain.tld)
- */
-function getBaseDomain(hostname: string): string {
-  const parts = hostname.split('.');
-  // For hostnames like 'agents-manage-ui.preview.inkeep.com', get 'preview.inkeep.com'
-  if (parts.length >= 3) {
-    return parts.slice(-3).join('.');
-  }
-  return hostname;
-}
-
-/**
- * Check if a request origin is allowed for CORS
- *
- * Development: Allow any localhost origin
- * Production/Preview: Allow the specific UI URL, or any subdomain of the same base domain
- *
- * @returns true if origin is allowed (also narrows type to string)
- */
-function isOriginAllowed(origin: string | undefined): origin is string {
-  if (!origin) return false;
-
-  try {
-    const requestUrl = new URL(origin);
-    const apiUrl = new URL(env.INKEEP_AGENTS_MANAGE_API_URL || 'http://localhost:3002');
-    const uiUrl = env.INKEEP_AGENTS_MANAGE_UI_URL ? new URL(env.INKEEP_AGENTS_MANAGE_UI_URL) : null;
-
-    // Development: allow any localhost
-    if (apiUrl.hostname === 'localhost' || apiUrl.hostname === '127.0.0.1') {
-      return requestUrl.hostname === 'localhost' || requestUrl.hostname === '127.0.0.1';
-    }
-
-    // Allow the specific UI URL if configured
-    if (uiUrl && requestUrl.hostname === uiUrl.hostname) {
-      return true;
-    }
-
-    // Production: allow origins from the same base domain as the API URL
-    // This handles cases like agents-manage-ui.preview.inkeep.com -> agents-manage-api.preview.inkeep.com
-    const requestBaseDomain = getBaseDomain(requestUrl.hostname);
-    const apiBaseDomain = getBaseDomain(apiUrl.hostname);
-    if (requestBaseDomain === apiBaseDomain) {
-      return true;
-    }
-
-    return false;
-  } catch {
-    return false;
-  }
-}
+const isTestEnvironment = () => process.env.ENVIRONMENT === 'test';
 
 export type AppVariables = {
   serverConfig: ServerConfig;
@@ -126,108 +80,12 @@ function createManagementHono(
   );
 
   // Error handling
-  app.onError(async (err, c) => {
-    const isExpectedError = err instanceof HTTPException;
-    const status = isExpectedError ? err.status : 500;
-    const requestId = c.get('requestId') || 'unknown';
-
-    // Zod validation error detection
-    let zodIssues: Array<any> | undefined;
-    if (err && typeof err === 'object') {
-      if (err.cause && Array.isArray((err.cause as any).issues)) {
-        zodIssues = (err.cause as any).issues;
-      } else if (Array.isArray((err as any).issues)) {
-        zodIssues = (err as any).issues;
-      }
-    }
-
-    if (status === 400 && Array.isArray(zodIssues)) {
-      c.status(400);
-      c.header('Content-Type', 'application/problem+json');
-      c.header('X-Content-Type-Options', 'nosniff');
-      return c.json({
-        type: 'https://docs.inkeep.com/agents-api/errors#bad_request',
-        title: 'Validation Failed',
-        status: 400,
-        detail: 'Request validation failed',
-        errors: zodIssues.map((issue) => ({
-          detail: issue.message,
-          pointer: issue.path ? `/${issue.path.join('/')}` : undefined,
-          name: issue.path ? issue.path.join('.') : undefined,
-          reason: issue.message,
-        })),
-      });
-    }
-
-    if (status >= 500) {
-      if (!isExpectedError) {
-        const errorMessage = err instanceof Error ? err.message : String(err);
-        const errorStack = err instanceof Error ? err.stack : undefined;
-        logger.error(
-          {
-            error: err,
-            message: errorMessage,
-            stack: errorStack,
-            path: c.req.path,
-            requestId,
-          },
-          'Unexpected server error occurred'
-        );
-      } else {
-        logger.error(
-          {
-            error: err,
-            path: c.req.path,
-            requestId,
-            status,
-          },
-          'Server error occurred'
-        );
-      }
-    }
-
-    // All errors (including HTTPExceptions) flow through to RFC 7807-compliant error handler
-    const errorResponse = await handleApiError(err, requestId);
-    c.status(errorResponse.status as StatusCode);
-
-    const responseBody = {
-      ...(errorResponse.code && { code: errorResponse.code }),
-      title: errorResponse.title,
-      status: errorResponse.status,
-      detail: errorResponse.detail,
-      ...(errorResponse.instance && { instance: errorResponse.instance }),
-      ...(errorResponse.error && { error: errorResponse.error }),
-    };
-
-    // Use c.body() to set custom Content-Type (c.json() overrides it to application/json)
-    c.header('Content-Type', 'application/problem+json');
-    c.header('X-Content-Type-Options', 'nosniff');
-
-    return c.body(JSON.stringify(responseBody));
-  });
+  app.onError(errorHandler);
 
   // Better Auth routes - only mount if auth is enabled
   if (auth) {
     // CORS middleware for Better Auth routes (must be registered before the handler)
-    app.use(
-      '/api/auth/*',
-      cors({
-        origin: (origin) => {
-          return isOriginAllowed(origin) ? origin : null;
-        },
-        allowHeaders: [
-          'content-type',
-          'Content-Type',
-          'authorization',
-          'Authorization',
-          'User-Agent',
-        ],
-        allowMethods: ['POST', 'GET', 'OPTIONS'],
-        exposeHeaders: ['Content-Length'],
-        maxAge: 600,
-        credentials: true,
-      })
-    );
+    app.use('/api/auth/*', cors(authCorsConfig));
 
     // Mount the Better Auth handler (OPTIONS handled by cors middleware above)
     app.on(['POST', 'GET'], '/api/auth/*', (c) => {
@@ -236,8 +94,11 @@ function createManagementHono(
   }
 
   // CORS middleware for playground routes (must be registered before global CORS)
+  app.use('/tenants/*/playground/token', cors(playgroundCorsConfig));
+
+  // CORS middleware for SigNoz proxy routes (must be registered before global CORS)
   app.use(
-    '/tenants/*/playground/token',
+    '/tenants/*/signoz/*',
     cors({
       origin: (origin) => {
         return isOriginAllowed(origin) ? origin : null;
@@ -248,9 +109,11 @@ function createManagementHono(
         'authorization',
         'Authorization',
         'User-Agent',
+        'Cookie',
+        'X-Forwarded-Cookie',
       ],
-      allowMethods: ['POST', 'OPTIONS'],
-      exposeHeaders: ['Content-Length'],
+      allowMethods: ['GET', 'POST', 'OPTIONS'],
+      exposeHeaders: ['Content-Length', 'Set-Cookie'],
       maxAge: 600,
       credentials: true,
     })
@@ -265,17 +128,11 @@ function createManagementHono(
     if (c.req.path.includes('/playground/token')) {
       return next();
     }
+    if (c.req.path.includes('/signoz/')) {
+      return next();
+    }
 
-    return cors({
-      origin: (origin) => {
-        return isOriginAllowed(origin) ? origin : null;
-      },
-      allowMethods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS', 'PATCH'],
-      allowHeaders: ['*'],
-      exposeHeaders: ['Content-Length'],
-      maxAge: 86400,
-      credentials: true,
-    })(c, next);
+    return cors(defaultCorsConfig)(c, next);
   });
 
   // Global session middleware - sets user and session in context for all routes
@@ -329,11 +186,8 @@ function createManagementHono(
 
   // Authentication middleware for protected routes
   app.use('/tenants/*', async (c, next) => {
-    // Use process.env directly to support test environment variables set after module load
-    const isTestEnvironment = process.env.ENVIRONMENT === 'test';
-
     // Skip auth if DISABLE_AUTH is true or in test environment
-    if (env.DISABLE_AUTH || isTestEnvironment) {
+    if (env.DISABLE_AUTH || isTestEnvironment()) {
       await next();
       return;
     }
@@ -347,9 +201,7 @@ function createManagementHono(
   });
 
   // Tenant access check (skip in DISABLE_AUTH and test environments)
-  // Use process.env directly to support test environment variables set after module load
-  const isTestEnv = process.env.ENVIRONMENT === 'test';
-  if (env.DISABLE_AUTH || isTestEnv) {
+  if (env.DISABLE_AUTH || isTestEnvironment()) {
     // When auth is disabled, just extract tenantId from URL param
     app.use('/tenants/:tenantId/*', async (c, next) => {
       const tenantId = c.req.param('tenantId');
@@ -374,6 +226,9 @@ function createManagementHono(
 
   // Mount playground token routes under tenant (uses requireTenantAccess middleware)
   app.route('/tenants/:tenantId/playground/token', playgroundTokenRoutes);
+
+  // Mount SigNoz proxy routes under tenant (uses requireTenantAccess middleware for authorization)
+  app.route('/tenants/:tenantId/signoz', signozRoutes);
 
   // Mount full project routes directly under tenant
   app.route('/tenants/:tenantId', projectFullRoutes);

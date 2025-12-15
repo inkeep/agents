@@ -1,5 +1,35 @@
 # @inkeep/agents-core
 
+## 0.38.1
+
+### Patch Changes
+
+- 32c4c34: improve ux for scoped credentials
+- 8c81242: ui for tool breakdown and warnings for tool calls
+- 251cecd: added mid generation compression
+- ce60f56: multi tenant auth for signoz queries
+
+## 0.38.0
+
+### Minor Changes
+
+- 515d808: Upgrade to Vercel AI SDK v6 beta
+
+### Patch Changes
+
+- b69b814: fix biome warnings
+- 8114afc: Update to open id connect for release action
+- bcee35f: add requiredToFetch on fetch definitions
+- a46303b: fix blue dot appears on inverted delegation on top left corner, refactor retrieving relationshipId in agents-core
+- 4801d35: status messages for traces shown
+- f791c6d: updated artifact handlin
+- f1f68cf: new models
+- 6dcb6b7: fix signoz for vercel
+- b3e49d9: updated schemas
+- 5fbd137: fix `Module not found: Can't resolve '../build/Release/keytar.node'` in dashboard, ignore `keytar` from bundling with `webpackIgnore` comment
+- 31be157: cloud deployment does not have signoz links
+- fcbf008: add creator to mcp server name
+
 ## 0.37.2
 
 ### Patch Changes

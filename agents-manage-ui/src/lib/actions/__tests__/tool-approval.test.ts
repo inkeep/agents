@@ -147,7 +147,7 @@ describe('tool-approval-mapper', () => {
       mockMakeManagementApiRequest.mockResolvedValue(mockResponse);
 
       const result = await fetchCurrentEntityState({
-        toolName: 'inkeep_manage_update_sub_agent',
+        toolName: 'sub-agent-update-subagent',
         input: {
           request: {
             id: 'test-sub-agent',
@@ -178,7 +178,7 @@ describe('tool-approval-mapper', () => {
       mockMakeManagementApiRequest.mockResolvedValue(mockResponse);
 
       const result = await fetchCurrentEntityState({
-        toolName: 'inkeep_manage_update_agent',
+        toolName: 'agents-update-agent',
         input: {
           request: {
             agentId: 'test-agent',
@@ -192,14 +192,14 @@ describe('tool-approval-mapper', () => {
 
       expect(result).toEqual(mockResponse.data);
       expect(mockMakeManagementApiRequest).toHaveBeenCalledWith(
-        'tenants/default/projects/test-project/agent/test-agent',
+        'tenants/default/projects/test-project/agents/test-agent',
         { method: 'GET' }
       );
     });
 
     it('should return empty object for create operations', async () => {
       const result = await fetchCurrentEntityState({
-        toolName: 'inkeep_manage_create_sub_agent',
+        toolName: 'sub-agent-create-subagent',
         input: {
           request: {
             tenantId: 'default',
@@ -216,7 +216,7 @@ describe('tool-approval-mapper', () => {
 
     it('should return null for non-update/create/delete operations', async () => {
       const result = await fetchCurrentEntityState({
-        toolName: 'inkeep_manage_get_sub_agent',
+        toolName: 'sub-agent-get-subagent-by-id',
         input: {
           request: {
             id: 'test-sub-agent',
@@ -236,7 +236,7 @@ describe('tool-approval-mapper', () => {
       mockMakeManagementApiRequest.mockRejectedValue(new Error('API Error'));
 
       const result = await fetchCurrentEntityState({
-        toolName: 'inkeep_manage_update_sub_agent',
+        toolName: 'sub-agent-update-subagent',
         input: {
           request: {
             id: 'test-sub-agent',
@@ -254,7 +254,7 @@ describe('tool-approval-mapper', () => {
 
     it('should return null when entity ID cannot be extracted', async () => {
       const result = await fetchCurrentEntityState({
-        toolName: 'inkeep_manage_update_sub_agent',
+        toolName: 'sub-agent-update-subagent',
         input: {
           request: {
             tenantId: 'default',
@@ -280,7 +280,7 @@ describe('tool-approval-mapper', () => {
       mockMakeManagementApiRequest.mockResolvedValue(mockResponse);
 
       const result = await fetchCurrentEntityState({
-        toolName: 'inkeep_manage_update_project',
+        toolName: 'projects-update-project',
         input: {
           request: {
             id: 'test-project',
@@ -310,7 +310,7 @@ describe('tool-approval-mapper', () => {
       mockMakeManagementApiRequest.mockResolvedValue(mockResponse);
 
       const result = await fetchCurrentEntityState({
-        toolName: 'inkeep_manage_update_tool',
+        toolName: 'tools-update-tool',
         input: {
           request: {
             toolId: 'test-tool',
@@ -339,7 +339,7 @@ describe('tool-approval-mapper', () => {
       mockMakeManagementApiRequest.mockResolvedValue(mockResponse);
 
       const result = await fetchCurrentEntityState({
-        toolName: 'inkeep_manage_update_sub_agent_relation',
+        toolName: 'sub-agent-relations-update-sub-agent-relation',
         input: {
           request: {
             id: 'test-relation',

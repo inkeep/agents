@@ -6,6 +6,7 @@ import { MainContent } from '@/components/layout/main-content';
 import { type Credential, fetchCredentials } from '@/lib/api/credentials';
 import { fetchExternalAgent } from '@/lib/api/external-agents';
 import type { ExternalAgent } from '@/lib/types/external-agents';
+import { getErrorCode } from '@/lib/utils/error-serialization';
 
 async function EditExternalAgentPage({
   params,
@@ -26,10 +27,10 @@ async function EditExternalAgentPage({
     console.error('Failed to load external agent:', externalAgentResult.reason);
     return (
       <FullPageError
-        error={externalAgentResult.reason as Error}
+        errorCode={getErrorCode(externalAgentResult.reason)}
         link={`/${tenantId}/projects/${projectId}/external-agents`}
         linkText="Back to external agents"
-        context="External agent"
+        context="external agent"
       />
     );
   }

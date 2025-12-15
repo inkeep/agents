@@ -150,6 +150,11 @@ export const CredentialReferenceApiInsertSchema = z.object({
   type: z.enum(CredentialStoreType),
   credentialStoreId: z.string(),
   retrievalParams: z.record(z.string(), z.unknown()).nullish(),
+  createdAt: z.string().optional(),
+  updatedAt: z.string().optional(),
+  userId: z.string().nullish(),
+  toolId: z.string().nullish(),
+  createdBy: z.string().nullish(),
 });
 
 export const DataComponentApiInsertSchema = z.object({

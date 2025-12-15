@@ -1,6 +1,17 @@
 import type { ExecutionContext } from '@inkeep/agents-core';
 
 /**
+ * Extract userId from execution context metadata (when available)
+ * Only available when request originates from an authenticated user session (e.g., playground)
+ */
+export function getUserIdFromContext(ctx: ExecutionContext): string | undefined {
+  const metadata = ctx.metadata as
+    | { initiatedBy?: { type: 'user' | 'api_key'; id: string } }
+    | undefined;
+  return metadata?.initiatedBy?.type === 'user' ? metadata.initiatedBy.id : undefined;
+}
+
+/**
  * Create execution context from middleware values
  */
 export function createExecutionContext(params: {

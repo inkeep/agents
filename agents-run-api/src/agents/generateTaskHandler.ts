@@ -45,6 +45,8 @@ export interface TaskHandlerConfig {
   contextConfigId?: string;
   conversationHistoryConfig?: AgentConversationHistoryConfig;
   sandboxConfig?: SandboxConfig;
+  /** User ID for user-scoped credential lookups (available when request is from authenticated user) */
+  userId?: string;
 }
 
 export const createTaskHandler = (
@@ -265,7 +267,8 @@ export const createTaskHandler = (
               item.tool,
               dbClient,
               credentialStoreRegistry,
-              item.id
+              item.id,
+              config.userId
             );
 
             // Filter available tools based on selectedTools for this agent-tool relationship
@@ -287,6 +290,7 @@ export const createTaskHandler = (
           agentId: config.agentId,
           baseUrl: config.baseUrl,
           apiKey: config.apiKey,
+          userId: config.userId,
           name: config.name,
           description: config.description || '',
           prompt,
@@ -364,7 +368,8 @@ export const createTaskHandler = (
                         item.tool,
                         dbClient,
                         credentialStoreRegistry,
-                        item.id
+                        item.id,
+                        config.userId
                       );
 
                       // Filter available tools based on selectedTools for this agent-tool relationship
@@ -730,6 +735,7 @@ export const createTaskHandlerConfig = async (params: {
   baseUrl: string;
   apiKey?: string;
   sandboxConfig?: SandboxConfig;
+  userId?: string;
 }): Promise<TaskHandlerConfig> => {
   const subAgent = await getSubAgentById(dbClient)({
     scopes: {
@@ -778,5 +784,6 @@ export const createTaskHandlerConfig = async (params: {
     conversationHistoryConfig: effectiveConversationHistoryConfig as AgentConversationHistoryConfig,
     contextConfigId: agent?.contextConfigId || undefined,
     sandboxConfig: params.sandboxConfig,
+    userId: params.userId,
   };
 };

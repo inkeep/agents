@@ -1,5 +1,67 @@
 # @inkeep/agents-cli
 
+## 0.38.1
+
+### Patch Changes
+
+- 8c81242: ui for tool breakdown and warnings for tool calls
+- 251cecd: added mid generation compression
+- ce60f56: multi tenant auth for signoz queries
+- Updated dependencies [32c4c34]
+- Updated dependencies [8c81242]
+- Updated dependencies [4d28a93]
+- Updated dependencies [251cecd]
+- Updated dependencies [ce60f56]
+  - @inkeep/agents-core@0.38.1
+  - @inkeep/agents-manage-ui@0.38.1
+  - @inkeep/agents-sdk@0.38.1
+
+## 0.38.0
+
+### Minor Changes
+
+- 515d808: Upgrade to Vercel AI SDK v6 beta
+
+### Patch Changes
+
+- 8114afc: Update to open id connect for release action
+- bcee35f: add requiredToFetch on fetch definitions
+- 4801d35: status messages for traces shown
+- f791c6d: updated artifact handlin
+- f1f68cf: new models
+- 6dcb6b7: fix signoz for vercel
+- b3e49d9: updated schemas
+- 31be157: cloud deployment does not have signoz links
+- Updated dependencies [c3ffb34]
+- Updated dependencies [b69b814]
+- Updated dependencies [8114afc]
+- Updated dependencies [515d808]
+- Updated dependencies [bcee35f]
+- Updated dependencies [f4628aa]
+- Updated dependencies [a2928eb]
+- Updated dependencies [4f2b325]
+- Updated dependencies [bc2bb7e]
+- Updated dependencies [a46303b]
+- Updated dependencies [d29440f]
+- Updated dependencies [af7704c]
+- Updated dependencies [4801d35]
+- Updated dependencies [f791c6d]
+- Updated dependencies [f1f68cf]
+- Updated dependencies [6dcb6b7]
+- Updated dependencies [5e2c81d]
+- Updated dependencies [b3e49d9]
+- Updated dependencies [5fbd137]
+- Updated dependencies [576c9d9]
+- Updated dependencies [4b64b94]
+- Updated dependencies [609e8fe]
+- Updated dependencies [31be157]
+- Updated dependencies [fcbf008]
+- Updated dependencies [e53c50a]
+- Updated dependencies [6001b74]
+  - @inkeep/agents-manage-ui@0.38.0
+  - @inkeep/agents-core@0.38.0
+  - @inkeep/agents-sdk@0.38.0
+
 ## 0.37.2
 
 ### Patch Changes
