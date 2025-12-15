@@ -18,6 +18,13 @@ import { initCommand } from './commands/init';
 import { listAgentsCommand } from './commands/list-agents';
 import { loginCommand } from './commands/login';
 import { logoutCommand } from './commands/logout';
+import {
+  profileAddCommand,
+  profileCurrentCommand,
+  profileListCommand,
+  profileRemoveCommand,
+  profileUseCommand,
+} from './commands/profile';
 import { pullV3Command } from './commands/pull-v3/index';
 import { pushCommand } from './commands/push';
 import { updateCommand } from './commands/update';
@@ -192,6 +199,46 @@ program
   .description('Display current authentication status')
   .action(async () => {
     await whoamiCommand();
+  });
+
+// Profile management commands
+const profileCommand = program
+  .command('profile')
+  .description('Manage CLI profiles for connecting to different remotes');
+
+profileCommand
+  .command('list')
+  .description('List all profiles')
+  .action(async () => {
+    await profileListCommand();
+  });
+
+profileCommand
+  .command('add [name]')
+  .description('Add a new profile')
+  .action(async (name) => {
+    await profileAddCommand(name);
+  });
+
+profileCommand
+  .command('use <name>')
+  .description('Set the active profile')
+  .action(async (name) => {
+    await profileUseCommand(name);
+  });
+
+profileCommand
+  .command('current')
+  .description('Display the active profile details')
+  .action(async () => {
+    await profileCurrentCommand();
+  });
+
+profileCommand
+  .command('remove <name>')
+  .description('Remove a profile')
+  .action(async (name) => {
+    await profileRemoveCommand(name);
   });
 
 program.parse();
