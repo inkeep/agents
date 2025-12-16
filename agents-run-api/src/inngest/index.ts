@@ -1,2 +1,0 @@
-export { inngest } from './client';
-

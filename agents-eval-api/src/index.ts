@@ -7,3 +7,6 @@ export default app;
 
 // Also export the factory function for advanced usage
 export { createEvaluationHono };
+
+// Export workflow for use in other packages (like agents-run-api)
+export { evaluateConversationWorkflow } from './workflow';

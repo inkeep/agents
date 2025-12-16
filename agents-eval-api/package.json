@@ -30,14 +30,15 @@
     "@hono/zod-openapi": "^1.0.2",
     "@inkeep/agents-core": "workspace:^",
     "@openrouter/ai-sdk-provider": "^1.2.0",
+    "@workflow/world-postgres": "4.1.0-beta.18",
     "ai": "6.0.0-beta.124",
     "dotenv": "^17.2.1",
     "drizzle-orm": "^0.44.4",
     "hono": "^4.10.4",
     "hono-pino": "^0.10.1",
-    "inngest": "^3.45.1",
     "nanoid": "^5.1.5",
     "pino": "^9.7.0",
+    "workflow": "4.0.1-beta.29",
     "zod": "^4.1.11"
   },
   "optionalDependencies": {

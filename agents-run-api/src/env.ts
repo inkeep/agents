@@ -24,9 +24,6 @@ const envSchema = z.object({
   INKEEP_AGENTS_TEMP_JWT_PUBLIC_KEY: z.string().optional(),
   OTEL_BSP_SCHEDULE_DELAY: z.coerce.number().optional().default(500),
   OTEL_BSP_MAX_EXPORT_BATCH_SIZE: z.coerce.number().optional().default(64),
-  INNGEST_EVENT_KEY: z.string().optional(),
-  INNGEST_SIGNING_KEY: z.string().optional(),
-  INNGEST_DEV: z.coerce.boolean().default(true),
 });
 
 const parseEnv = () => {

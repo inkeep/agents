@@ -10,12 +10,12 @@ const envSchema = z.object({
   AGENTS_EVAL_API_URL: z.string().optional().default('http://localhost:3005'),
   AGENTS_RUN_API_URL: z.string().optional().default('http://localhost:3003'),
   AGENTS_MANAGE_UI_URL: z.string().optional().default('http://localhost:3000'),
-  DATABASE_URL: z.string().optional(),
+  DATABASE_URL: z.string(),
+  WORKFLOW_POSTGRES_URL: z.string().optional(),
+  WORKFLOW_POSTGRES_JOB_PREFIX: z.string().optional(),
+  WORKFLOW_POSTGRES_WORKER_CONCURRENCY: z.string().optional(),
   LOG_LEVEL: z.enum(['trace', 'debug', 'info', 'warn', 'error']).optional().default('debug'),
   INKEEP_AGENTS_EVAL_API_BYPASS_SECRET: z.string().optional(),
-  INNGEST_EVENT_KEY: z.string().optional(),
-  INNGEST_SIGNING_KEY: z.string().optional(),
-  INNGEST_DEV: z.coerce.boolean().default(true),
 });
 
 const parseEnv = () => {
