@@ -63,7 +63,10 @@ export const PromptEditor: FC<PromptEditorProps> = ({
       immediatelyRender: true,
       extensions: [
         isMarkdownMode
-          ? StarterKit
+          ? StarterKit.configure({
+              // they are intended to be rendered as code here since it is part of the instruction to the LLM to include backticks when providing code
+              codeBlock: false,
+            })
           : StarterKit.configure({
               // this is needed to remove node formatting for text mode
               bold: false,
