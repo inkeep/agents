@@ -19,7 +19,7 @@ NC='\033[0m' # No Color
 # Doltgres (Manage DB) configuration
 MANAGE_DB_HOST="localhost"
 MANAGE_DB_PORT="5432"
-MANAGE_DB_USER="postgres"
+MANAGE_DB_USER="appuser"
 MANAGE_DB_PASSWORD="password"
 MANAGE_DB_NAME="inkeep_agents"
 

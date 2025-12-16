@@ -990,8 +990,8 @@ export const FullAgentAgentInsertSchema = SubAgentApiInsertSchema.extend({
     .array(
       z.union([
         z.string(), // Internal subAgent ID
-        canDelegateToExternalAgentSchema, // External agent with headers
-        canDelegateToTeamAgentSchema, // Team agent with headers
+        canDelegateToExternalAgentSchema, // External agent with headers (INSERT - no relation ID)
+        canDelegateToTeamAgentSchema, // Team agent with headers (INSERT - no relation ID)
       ])
     )
     .optional(),

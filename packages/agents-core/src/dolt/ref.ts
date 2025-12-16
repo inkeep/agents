@@ -54,9 +54,9 @@ export const checkoutRef =
   (db: AgentsManageDatabaseClient) =>
   async (resolvedRef: ResolvedRef): Promise<void> => {
     if (resolvedRef.type === 'branch') {
-      await db.execute(sql.raw(`CALL DOLT_CHECKOUT('${resolvedRef.name}')`));
+      await db.execute(sql.raw(`SELECT DOLT_CHECKOUT('${resolvedRef.name}')`));
     } else {
-      await db.execute(sql.raw(`CALL DOLT_CHECKOUT('${resolvedRef.hash}')`));
+      await db.execute(sql.raw(`SELECT DOLT_CHECKOUT('${resolvedRef.hash}')`));
     }
   };
 

@@ -47,6 +47,11 @@ export const projectConfigMiddleware = createMiddleware<{
       throw new Error('Resolved ref not found');
     }
 
+    //TODO: support tag and commit refs (just branch for now)
+    if (resolvedRef.type !== 'branch') {
+      throw new Error(`Runtime operations require a branch ref. Got ${resolvedRef.type} '${resolvedRef.name}'.`)
+    }
+
     const projectConfig = await getFullProject(manageApiConfig)({
       scopes: { tenantId, projectId },
       ref: resolvedRef.name,

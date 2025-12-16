@@ -12,12 +12,12 @@ export const doltAdd =
   async (params: { tables?: string[] } = {}): Promise<void> => {
     if (!params.tables || params.tables.length === 0) {
       // Stage all changes
-      await db.execute(sql`CALL DOLT_ADD('-A')`);
+      await db.execute(sql`SELECT DOLT_ADD('-A')`);
     } else {
       // Stage specific tables
       const tableParams = params.tables.map((t) => `'${t}'`).join(', ');
       console.log(tableParams);
-      await db.execute(sql.raw(`CALL DOLT_ADD(${tableParams})`));
+      await db.execute(sql.raw(`SELECT DOLT_ADD(${tableParams})`));
     }
   };
 
@@ -45,7 +45,7 @@ export const doltCommit =
       args.push("'--author'", `'${params.author.name} <${params.author.email}>'`);
     }
 
-    await db.execute(sql.raw(`CALL DOLT_COMMIT(${args.join(', ')})`));
+    await db.execute(sql.raw(`SELECT DOLT_COMMIT(${args.join(', ')})`));
     return 'Commit successful';
   };
 
@@ -99,12 +99,12 @@ export const doltReset =
   (db: AgentsManageDatabaseClient) =>
   async (params?: { hard?: boolean; tables?: string[] }): Promise<void> => {
     if (params?.hard) {
-      await db.execute(sql`CALL DOLT_RESET('--hard')`);
+      await db.execute(sql`SELECT DOLT_RESET('--hard')`);
     } else if (params?.tables && params.tables.length > 0) {
       const tableParams = params.tables.map((t) => `'${t}'`).join(', ');
-      await db.execute(sql.raw(`CALL DOLT_RESET(${tableParams})`));
+      await db.execute(sql.raw(`SELECT DOLT_RESET(${tableParams})`));
     } else {
-      await db.execute(sql`CALL DOLT_RESET()`);
+      await db.execute(sql`SELECT DOLT_RESET()`);
     }
   };
 
@@ -184,7 +184,7 @@ export const doltTag =
       args.push(`'${params.revision}'`);
     }
 
-    await db.execute(sql.raw(`CALL DOLT_TAG(${args.join(', ')})`));
+    await db.execute(sql.raw(`SELECT DOLT_TAG(${args.join(', ')})`));
   };
 
 /**
@@ -193,7 +193,7 @@ export const doltTag =
 export const doltDeleteTag =
   (db: AgentsManageDatabaseClient) =>
   async (params: { name: string }): Promise<void> => {
-    await db.execute(sql.raw(`CALL DOLT_TAG('-d', '${params.name}')`));
+    await db.execute(sql.raw(`SELECT DOLT_TAG('-d', '${params.name}')`));
   };
 
 /**

@@ -1,15 +1,17 @@
 services:
   doltgres-db:
-    image: inkeep/doltgres:latest
+    image: dolthub/doltgresql:latest
     restart: unless-stopped
     environment:
-      DOLTGRES_DATA_DIR: /var/lib/doltgres
+      DOLTGRES_USER: appuser
+      DOLTGRES_PASSWORD: password
+      DOLTGRES_DB: inkeep_agents
     ports:
       - "5432:5432"
     volumes:
       - doltgres-data:/var/lib/doltgres
     healthcheck:
-      test: ["CMD-SHELL", "PGPASSWORD=password psql -h localhost -U postgres -d postgres -c 'SELECT 1' || exit 1"]
+      test: ["CMD-SHELL", "PGPASSWORD=password psql -h localhost -U appuser -d inkeep_agents -c 'SELECT 1' || exit 1"]
       interval: 10s
       timeout: 5s
       retries: 5

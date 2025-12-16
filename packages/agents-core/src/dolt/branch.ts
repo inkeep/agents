@@ -17,9 +17,9 @@ export const doltBranch =
       // Get the commit hash of the startPoint (branch, commit, or tag)
       // Dolt requires a commit hash when creating a branch from a start point
       const startPointHash = await doltHashOf(db)({ revision: params.startPoint });
-      await db.execute(sql.raw(`CALL DOLT_BRANCH('${params.name}', '${startPointHash}')`));
+      await db.execute(sql.raw(`SELECT DOLT_BRANCH('${params.name}', '${startPointHash}')`));
     } else {
-      await db.execute(sql.raw(`CALL DOLT_BRANCH('${params.name}')`));
+      await db.execute(sql.raw(`SELECT DOLT_BRANCH('${params.name}')`));
     }
   };
 
@@ -30,7 +30,7 @@ export const doltDeleteBranch =
   (db: AgentsManageDatabaseClient) =>
   async (params: { name: string; force?: boolean }): Promise<void> => {
     const flag = params.force ? '-D' : '-d';
-    await db.execute(sql.raw(`CALL DOLT_BRANCH('${flag}', '${params.name}')`));
+    await db.execute(sql.raw(`SELECT DOLT_BRANCH('${flag}', '${params.name}')`));
   };
 
 /**
@@ -39,7 +39,7 @@ export const doltDeleteBranch =
 export const doltRenameBranch =
   (db: AgentsManageDatabaseClient) =>
   async (params: { oldName: string; newName: string }): Promise<void> => {
-    await db.execute(sql.raw(`CALL DOLT_BRANCH('-m', '${params.oldName}', '${params.newName}')`));
+    await db.execute(sql.raw(`SELECT DOLT_BRANCH('-m', '${params.oldName}', '${params.newName}')`));
   };
 
 /**
@@ -59,8 +59,8 @@ export const doltCheckout =
   (db: AgentsManageDatabaseClient) =>
   async (params: { branch: string; create?: boolean }): Promise<void> => {
     params.create
-      ? await db.execute(sql.raw(`CALL DOLT_CHECKOUT('-b', '${params.branch}')`))
-      : await db.execute(sql.raw(`CALL DOLT_CHECKOUT('${params.branch}')`));
+      ? await db.execute(sql.raw(`SELECT DOLT_CHECKOUT('-b', '${params.branch}')`))
+      : await db.execute(sql.raw(`SELECT DOLT_CHECKOUT('${params.branch}')`));
   };
 
 /**

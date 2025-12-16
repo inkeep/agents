@@ -42,7 +42,7 @@ export const doltMerge =
       args.push("'-m'", `'${params.message.replace(/'/g, "''")}'`);
     }
 
-    await db.execute(sql.raw(`CALL DOLT_MERGE(${args.join(', ')})`));
+    await db.execute(sql.raw(`SELECT DOLT_MERGE(${args.join(', ')})`));
 
     // Check for conflicts
     const conflictsResult = await db.execute(sql`SELECT COUNT(*) as count FROM dolt_conflicts`);
@@ -128,6 +128,6 @@ export const doltResolveConflicts =
   async (params: { tableName: string; strategy: 'ours' | 'theirs' }): Promise<void> => {
     await db.execute(sql`SET dolt_allow_commit_conflicts = 1`); 
     await db.execute(
-      sql.raw(`CALL DOLT_CONFLICTS_RESOLVE('--${params.strategy}', '${params.tableName}')`)
+      sql.raw(`SELECT DOLT_CONFLICTS_RESOLVE('--${params.strategy}', '${params.tableName}')`)
     );
   };

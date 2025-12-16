@@ -33,7 +33,7 @@ export const cleanupBranchesByPrefix = async (
     for (const branch of branches.rows) {
       const branchName = (branch as any).name;
       try {
-        await dbClient.execute(sql.raw(`CALL DOLT_BRANCH('-D', '${branchName}')`));
+        await dbClient.execute(sql.raw(` DOLT_BRANCH('-D', '${branchName}')`));
       } catch (error) {
         // Ignore errors (e.g., trying to delete current branch)
         console.debug(`Could not delete branch ${branchName}:`, error);
@@ -60,7 +60,7 @@ export const cleanupTagsByPrefix = async (prefix: string, db?: AgentsManageDatab
     for (const tag of tags.rows) {
       const tagName = (tag as any).tag_name;
       try {
-        await dbClient.execute(sql.raw(`CALL DOLT_TAG('-d', '${tagName}')`));
+        await dbClient.execute(sql.raw(`SELECT DOLT_TAG('-d', '${tagName}')`));
       } catch (error) {
         console.debug(`Could not delete tag ${tagName}:`, error);
       }
@@ -81,7 +81,7 @@ export const cleanupBranches = async (
   const dbClient = getIntegrationTestClient(db);
   for (const branchName of branchNames) {
     try {
-      await dbClient.execute(sql.raw(`CALL DOLT_BRANCH('-D', '${branchName}')`));
+      await dbClient.execute(sql.raw(`SELECT DOLT_BRANCH('-D', '${branchName}')`));
     } catch (error) {
       console.debug(`Could not delete branch ${branchName}:`, error);
     }
@@ -96,7 +96,7 @@ export const cleanupTags = async (tagNames: Set<string>, db?: AgentsManageDataba
   const dbClient = getIntegrationTestClient(db);
   for (const tagName of tagNames) {
     try {
-      await dbClient.execute(sql.raw(`CALL DOLT_TAG('-d', '${tagName}')`));
+      await dbClient.execute(sql.raw(`SELECT DOLT_TAG('-d', '${tagName}')`));
     } catch (error) {
       console.debug(`Could not delete tag ${tagName}:`, error);
     }
@@ -150,7 +150,7 @@ export const cleanupTenantBranches = async (
     for (const branch of branches.rows) {
       const branchName = (branch as any).name;
       try {
-        await dbClient.execute(sql.raw(`CALL DOLT_BRANCH('-D', '${branchName}')`));
+        await dbClient.execute(sql.raw(`SELECT DOLT_BRANCH('-D', '${branchName}')`));
       } catch (error) {
         // Ignore errors (e.g., trying to delete current branch)
         console.debug(`Could not delete branch ${branchName}:`, error);
