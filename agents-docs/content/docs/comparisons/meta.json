@@ -1,0 +1,11 @@
+{
+    "title": "Comparisons",
+    "icon": "LuGitCompareArrows",
+    "pages": [
+        "n8n",
+        "crewai",
+        "openai-agent-kit",
+        "lindy",
+        "..."
+    ]
+}
