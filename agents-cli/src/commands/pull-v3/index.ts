@@ -968,11 +968,3 @@ async function pullSingleProject(
     };
   }
 }
-  }
-}
-  }
-}
-  }
-}
-  }
-}

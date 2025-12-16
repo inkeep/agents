@@ -1,4 +1,4 @@
-import { existsSync } from 'node:fs';
+import { existsSync, readdirSync, statSync } from 'node:fs';
 import { basename, dirname, join, resolve } from 'node:path';
 import * as p from '@clack/prompts';
 import chalk from 'chalk';
@@ -299,32 +299,130 @@ export async function pushCommand(options: PushOptions) {
 }
 
 /**
+ * Check if an index.ts file exports a project (has __type = 'project')
+ */
+async function isProjectDirectory(dir: string): Promise<boolean> {
+  const indexPath = join(dir, 'index.ts');
+  if (!existsSync(indexPath)) {
+    return false;
+  }
+
+  try {
+    // Dynamically import to check for project export
+    const { importWithTypeScriptSupport } = await import('../utils/tsx-loader');
+    const module = await importWithTypeScriptSupport(indexPath);
+
+    // Check if any export has __type = 'project'
+    for (const key of Object.keys(module)) {
+      const value = module[key];
+      if (value && typeof value === 'object' && value.__type === 'project') {
+        return true;
+      }
+    }
+    return false;
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * Find all directories containing index.ts that export a project
+ */
+async function findAllProjectDirs(
+  rootDir: string,
+  excludeDirs: string[] = ['node_modules', '.git', 'dist', 'build', '.temp-validation']
+): Promise<string[]> {
+  const projectDirs: string[] = [];
+
+  async function scanDirectory(dir: string): Promise<void> {
+    if (!existsSync(dir)) {
+      return;
+    }
+
+    let items: string[];
+    try {
+      items = readdirSync(dir);
+    } catch {
+      return;
+    }
+
+    // Check if this directory has an index.ts that exports a project
+    if (existsSync(join(dir, 'index.ts'))) {
+      const isProject = await isProjectDirectory(dir);
+      if (isProject) {
+        projectDirs.push(dir);
+        // Don't recurse into subdirectories of a project
+        return;
+      }
+    }
+
+    // Recurse into subdirectories
+    for (const item of items) {
+      const fullPath = join(dir, item);
+
+      // Skip excluded directories
+      if (excludeDirs.includes(item)) {
+        continue;
+      }
+
+      try {
+        const stat = statSync(fullPath);
+        if (stat.isDirectory()) {
+          await scanDirectory(fullPath);
+        }
+      } catch {
+        // Skip files/directories we can't stat
+      }
+    }
+  }
+
+  await scanDirectory(rootDir);
+  return projectDirs.sort();
+}
+
+/**
  * Push all projects found in current directory tree
  */
 async function pushAllProjects(options: PushOptions): Promise<void> {
   console.log(chalk.blue('\n🚀 Batch Push: Finding all projects...\n'));
 
-  // Find all config files recursively
+  // Strategy 1: Find all config files and check for index.ts in same directory
   const configFiles = findAllConfigFiles(process.cwd(), options.tag);
-
-  if (configFiles.length === 0) {
-    const configPattern = options.tag ? `${options.tag}.__inkeep.config.ts__` : 'inkeep.config.ts';
-    console.error(chalk.red(`No ${configPattern} files found in current directory tree.`));
-    console.log(chalk.yellow('\nHint: Make sure you are in a directory containing projects.'));
-    process.exit(1);
-  }
-
-  // Filter to only include directories with index.ts (actual projects)
-  const projectDirs: string[] = [];
+  const projectDirsFromConfig: string[] = [];
   for (const configFile of configFiles) {
     const dir = dirname(configFile);
     if (existsSync(join(dir, 'index.ts'))) {
-      projectDirs.push(dir);
+      projectDirsFromConfig.push(dir);
     }
   }
 
+  // Strategy 2: Find all index.ts files that export a project and can find a config (supports shared config)
+  const allIndexDirs = await findAllProjectDirs(process.cwd());
+  const projectDirsFromIndex: string[] = [];
+  for (const dir of allIndexDirs) {
+    // Skip if already found via config file in same directory
+    if (projectDirsFromConfig.includes(dir)) {
+      continue;
+    }
+    // Check if this directory can find a config file (walking up the tree)
+    const configFile = findConfigFile(dir, options.tag);
+    if (configFile) {
+      projectDirsFromIndex.push(dir);
+    }
+  }
+
+  // Combine both strategies
+  const projectDirs = [...projectDirsFromConfig, ...projectDirsFromIndex].sort();
+
   if (projectDirs.length === 0) {
-    console.error(chalk.red('No valid projects found (projects must have index.ts).'));
+    const configPattern = options.tag ? `${options.tag}.__inkeep.config.ts__` : 'inkeep.config.ts';
+    console.error(chalk.red('No valid projects found.'));
+    console.log(
+      chalk.yellow(
+        '\nHint: Projects must have an index.ts file and access to an ' + configPattern + ' file'
+      )
+    );
+    console.log(chalk.yellow('      (either in the same directory or in a parent directory).'));
     process.exit(1);
   }
 
