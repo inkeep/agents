@@ -31,6 +31,7 @@ import type { AgentStopWhen, StopWhen, SubAgentStopWhen } from '../validation/sc
 // Re-export Better Auth generated tables
 export {
   account,
+  deviceCode,
   invitation,
   member,
   organization,
@@ -38,7 +39,6 @@ export {
   ssoProvider,
   user,
   verification,
-  deviceCode,
 } from '../auth/auth-schema';
 
 const tenantScoped = {

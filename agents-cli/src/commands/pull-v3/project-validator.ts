@@ -2,14 +2,7 @@
  * Project Validator - Validate generated projects with TypeScript compilation and equivalence checking
  */
 
-import {
-  copyFileSync,
-  existsSync,
-  mkdirSync,
-  readdirSync,
-  rmSync,
-  statSync,
-} from 'node:fs';
+import { copyFileSync, existsSync, mkdirSync, readdirSync, rmSync, statSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import type { FullProjectDefinition } from '@inkeep/agents-core';
 import chalk from 'chalk';
@@ -488,7 +481,7 @@ export async function validateTempDirectory(
   console.log(chalk.green(`   [Y] Yes - Replace files and clean up temp directory`));
   console.log(chalk.red(`   [N] No - Keep temp directory for manual review`));
 
-  return new Promise<void>((resolve) => {
+  return new Promise<void>((_resolve) => {
     // Prevent multiple simultaneous listener setups
     if (isWaitingForInput && currentKeypressHandler) {
       // Remove the previous handler if it exists
@@ -624,3 +617,4 @@ function overwriteProjectFiles(
     console.log(chalk.yellow(`   Generated files remain in: ${tempDirName} for manual review`));
   }
 }
+
