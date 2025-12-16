@@ -1,11 +1,49 @@
 import { z } from '@hono/zod-openapi';
-import { type AllAuthCredentials, type AuthModeType, Nango } from '@nangohq/node';
-import type { ApiKeyCredentials, ApiPublicIntegration } from '@nangohq/types';
 import { CredentialStoreType } from '../types';
 import type { CredentialStore } from '../types/server';
 import { getLogger } from '../utils/logger';
 
 const logger = getLogger('nango-credential-store');
+
+// Dynamic import types - these are loaded at runtime if Nango is installed
+type NangoType = import('@nangohq/node').Nango;
+type AllAuthCredentials = import('@nangohq/node').AllAuthCredentials;
+type AuthModeType = import('@nangohq/node').AuthModeType;
+type ApiKeyCredentials = import('@nangohq/types').ApiKeyCredentials;
+type ApiPublicIntegration = import('@nangohq/types').ApiPublicIntegration;
+
+// Lazy-loaded Nango module
+let nangoModule: typeof import('@nangohq/node') | null = null;
+
+/**
+ * Check if Nango is available
+ */
+export function isNangoAvailable(): boolean {
+  try {
+    require.resolve('@nangohq/node');
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * Dynamically load Nango module
+ */
+async function loadNangoModule(): Promise<typeof import('@nangohq/node')> {
+  if (nangoModule) {
+    return nangoModule;
+  }
+
+  try {
+    nangoModule = await import('@nangohq/node');
+    return nangoModule;
+  } catch {
+    throw new Error(
+      'Nango is not installed. To use Nango credential store, install it with: npm install @nangohq/node @nangohq/types'
+    );
+  }
+}
 
 const CredentialKeySchema = z.object({
   connectionId: z.string().min(1, 'connectionId must be a non-empty string'),
@@ -76,20 +114,35 @@ function isSupportedAuthMode(mode: unknown): mode is SupportedAuthMode {
 /**
  * Nango-based CredentialStore that fetches OAuth credentials from Nango API
  * Uses connectionId and providerConfigKey from metadata to fetch live credentials
+ *
+ * Note: This store requires the @nangohq/node and @nangohq/types packages to be installed.
+ * If Nango is not installed, the store will throw helpful error messages.
  */
 export class NangoCredentialStore implements CredentialStore {
   public readonly id: string;
   public readonly type = CredentialStoreType.nango;
   private nangoConfig: NangoConfig;
-  private nangoClient: Nango;
+  private nangoClient: NangoType | null = null;
 
   constructor(id: string, config: NangoConfig) {
     this.id = id;
     this.nangoConfig = config;
+  }
+
+  /**
+   * Initialize Nango client lazily
+   */
+  private async getNangoClient(): Promise<NangoType> {
+    if (this.nangoClient) {
+      return this.nangoClient;
+    }
+
+    const { Nango } = await loadNangoModule();
     this.nangoClient = new Nango({
       secretKey: this.nangoConfig.secretKey,
       host: this.nangoConfig.apiUrl,
     });
+    return this.nangoClient;
   }
 
   private getAccessToken(credentials: AllAuthCredentials): Record<string, any> | null {
@@ -186,7 +239,8 @@ export class NangoCredentialStore implements CredentialStore {
     uniqueKey: string
   ): Promise<(ApiPublicIntegration & { areCredentialsSet: boolean }) | null> {
     try {
-      const response = await this.nangoClient.getIntegration(
+      const nangoClient = await this.getNangoClient();
+      const response = await nangoClient.getIntegration(
         { uniqueKey },
         { include: ['credentials'] }
       );
@@ -262,7 +316,8 @@ export class NangoCredentialStore implements CredentialStore {
        * where true race conditions could occur.
        */
       try {
-        const response = await this.nangoClient.createIntegration({
+        const nangoClient = await this.getNangoClient();
+        const response = await nangoClient.createIntegration({
           provider,
           unique_key: uniqueKey,
           display_name: displayName,
@@ -339,7 +394,8 @@ export class NangoCredentialStore implements CredentialStore {
     providerConfigKey: string;
   }): Promise<NangoCredentialData | null> {
     try {
-      const nangoConnection = await this.nangoClient.getConnection(providerConfigKey, connectionId);
+      const nangoClient = await this.getNangoClient();
+      const nangoConnection = await nangoClient.getConnection(providerConfigKey, connectionId);
 
       const tokenAndCredentials = this.getAccessToken(nangoConnection.credentials) ?? {};
 
@@ -451,7 +507,8 @@ export class NangoCredentialStore implements CredentialStore {
 
       const { connectionId, providerConfigKey } = parsedKey;
 
-      await this.nangoClient.deleteConnection(providerConfigKey, connectionId);
+      const nangoClient = await this.getNangoClient();
+      await nangoClient.deleteConnection(providerConfigKey, connectionId);
       return true;
     } catch (error) {
       logger.error(
@@ -470,6 +527,14 @@ export class NangoCredentialStore implements CredentialStore {
    * Check if the credential store is available and functional
    */
   async checkAvailability(): Promise<{ available: boolean; reason?: string }> {
+    // First check if Nango is installed
+    if (!isNangoAvailable()) {
+      return {
+        available: false,
+        reason: 'Nango is not installed. Install with: npm install @nangohq/node @nangohq/types',
+      };
+    }
+
     if (!this.nangoConfig.secretKey) {
       return {
         available: false,
@@ -496,11 +561,21 @@ export class NangoCredentialStore implements CredentialStore {
 /**
  * Factory function to create NangoCredentialStore
  * Automatically reads NANGO_SECRET_KEY from environment and validates it
+ *
+ * Note: This function requires the @nangohq/node and @nangohq/types packages to be installed.
+ * If Nango is not installed, this will throw a helpful error message.
  */
 export function createNangoCredentialStore(
   id: string,
   config?: Partial<NangoConfig>
 ): NangoCredentialStore {
+  // Check if Nango is available
+  if (!isNangoAvailable()) {
+    throw new Error(
+      'Nango is not installed. To use Nango credential store, install it with: npm install @nangohq/node @nangohq/types'
+    );
+  }
+
   const nangoSecretKey = config?.secretKey || process.env.NANGO_SECRET_KEY;
 
   if (

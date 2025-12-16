@@ -2,7 +2,7 @@
 
 import { ssoClient } from '@better-auth/sso/client';
 import { ac, adminRole, memberRole, ownerRole } from '@inkeep/agents-core/auth/permissions';
-import { organizationClient } from 'better-auth/client/plugins';
+import { deviceAuthorizationClient, organizationClient } from 'better-auth/client/plugins';
 import { createAuthClient } from 'better-auth/react';
 import { createContext, type ReactNode, useContext, useMemo } from 'react';
 import { useRuntimeConfig } from '@/contexts/runtime-config-context';
@@ -31,6 +31,7 @@ export function AuthClientProvider({ children }: { children: ReactNode }) {
               owner: ownerRole,
             },
           }),
+          deviceAuthorizationClient(),
         ],
       }),
     [PUBLIC_INKEEP_AGENTS_MANAGE_API_URL]

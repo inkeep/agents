@@ -1,5 +1,73 @@
 # @inkeep/agents-cli
 
+## 0.39.0
+
+### Minor Changes
+
+- f76e412: Add device_code table for CLI device authentication flow
+
+### Patch Changes
+
+- f76e412: Add InkeepTelemetryProvider for observability and tracing
+- f76e412: Add CI/CD support for headless operation with INKEEP_API_KEY and environment variable overrides
+- f76e412: Add --all flag to push/pull for batch project operations and --tag for tagged config files
+- f76e412: Enhance init command with cloud onboarding wizard (scaffolds projects from remote tenant)
+- f76e412: Add profile management system for multi-remote support (profile list/add/use/current/remove)
+- f76e412: Wire profiles into push/pull commands with --profile and --quiet flags
+- f76e412: Add CLI authentication commands (login, logout, status, whoami) with device code OAuth flow
+- f76e412: Add /api/cli/me endpoint for CLI user authentication
+- f76e412: Add InkeepCredentialProvider abstraction for credential management
+- f76e412: Add device authorization page for CLI OAuth flow
+- Updated dependencies [f76e412]
+- Updated dependencies [f76e412]
+- Updated dependencies [f76e412]
+- Updated dependencies [f76e412]
+- Updated dependencies [f76e412]
+- Updated dependencies [f76e412]
+- Updated dependencies [f76e412]
+- Updated dependencies [f76e412]
+- Updated dependencies [f76e412]
+- Updated dependencies [f76e412]
+- Updated dependencies [f76e412]
+  - @inkeep/agents-core@0.39.0
+  - @inkeep/agents-manage-ui@0.39.0
+  - @inkeep/agents-sdk@0.39.0
+
+## 0.38.3
+
+### Patch Changes
+
+- @inkeep/agents-manage-ui@0.38.3
+- @inkeep/agents-core@0.38.3
+- @inkeep/agents-sdk@0.38.3
+
+## 0.38.2
+
+### Patch Changes
+
+- 907fb8f: updated models to have gpt-5-2
+- Updated dependencies [907fb8f]
+- Updated dependencies [5f4fa55]
+  - @inkeep/agents-core@0.38.2
+  - @inkeep/agents-manage-ui@0.38.2
+  - @inkeep/agents-sdk@0.38.2
+
+## 0.38.1
+
+### Patch Changes
+
+- 8c81242: ui for tool breakdown and warnings for tool calls
+- 251cecd: added mid generation compression
+- ce60f56: multi tenant auth for signoz queries
+- Updated dependencies [32c4c34]
+- Updated dependencies [8c81242]
+- Updated dependencies [4d28a93]
+- Updated dependencies [251cecd]
+- Updated dependencies [ce60f56]
+  - @inkeep/agents-core@0.38.1
+  - @inkeep/agents-manage-ui@0.38.1
+  - @inkeep/agents-sdk@0.38.1
+
 ## 0.38.0
 
 ### Minor Changes

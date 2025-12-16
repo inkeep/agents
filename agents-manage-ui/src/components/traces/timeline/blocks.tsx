@@ -2,7 +2,7 @@ import { AnthropicIcon } from '@/components/icons/anthropic';
 import { GoogleIcon } from '@/components/icons/google';
 import { OpenAIIcon } from '@/components/icons/openai';
 import { Badge } from '@/components/ui/badge';
-import type { ActivityItem } from './types';
+import { ACTIVITY_STATUS, type ActivityItem } from './types';
 
 export function LabeledBlock({ label, children }: { label: string; children: React.ReactNode }) {
   return (
@@ -31,11 +31,20 @@ export function Info({ label, value }: { label: string; value?: React.ReactNode 
 }
 
 export function StatusBadge({ status }: { status: ActivityItem['status'] }) {
+  const variant =
+    status === ACTIVITY_STATUS.SUCCESS
+      ? 'primary'
+      : status === ACTIVITY_STATUS.WARNING
+        ? 'warning'
+        : status === ACTIVITY_STATUS.PENDING
+          ? 'warning'
+          : 'error';
+
   return (
     <div>
       <span className="text-sm font-medium text-foreground">Status</span>
       <div className="mt-1">
-        <Badge className="uppercase" variant={status === 'success' ? 'primary' : 'error'}>
+        <Badge className="uppercase" variant={variant}>
           {status}
         </Badge>
       </div>

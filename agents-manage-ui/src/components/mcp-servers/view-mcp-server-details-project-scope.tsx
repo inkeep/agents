@@ -1,6 +1,6 @@
 'use client';
 
-import { AlertCircle, Lock, LockOpen, Pencil, Users } from 'lucide-react';
+import { AlertCircle, Lock, Pencil, Users } from 'lucide-react';
 import Link from 'next/link';
 import { useEffect, useState } from 'react';
 import { Badge } from '@/components/ui/badge';
@@ -179,12 +179,12 @@ export function ViewMCPServerDetailsProjectScope({
           )}
         </div>
 
-        {/* Team Credential */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div className="space-y-2">
-            <ItemLabel>Team Credential</ItemLabel>
-            <ItemValue className="items-center">
-              {tool.credentialReferenceId ? (
+        {/* Project Credential */}
+        {tool.credentialReferenceId && (
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <ItemLabel>Project Credential</ItemLabel>
+              <ItemValue className="items-center">
                 <div className="flex items-center gap-2">
                   <Badge variant="code" className="flex items-center gap-2">
                     <Lock className="w-4 h-4" />
@@ -197,24 +197,19 @@ export function ViewMCPServerDetailsProjectScope({
                     view credential
                   </ExternalLink>
                 </div>
-              ) : (
-                <Badge variant="warning" className="flex items-center gap-2">
-                  <LockOpen className="w-4 h-4" />
-                  Unsecured
-                </Badge>
-              )}
-            </ItemValue>
-          </div>
-          {tool.expiresAt && (
-            <div className="space-y-2">
-              <div className="flex items-center gap-2">
-                <ItemLabel>Credential Expires At</ItemLabel>
-                {isExpired(tool.expiresAt) && <AlertCircle className="h-4 w-4 text-amber-500" />}
-              </div>
-              <ItemValue>{formatDate(tool.expiresAt)}</ItemValue>
+              </ItemValue>
             </div>
-          )}
-        </div>
+            {tool.expiresAt && (
+              <div className="space-y-2">
+                <div className="flex items-center gap-2">
+                  <ItemLabel>Credential Expires At</ItemLabel>
+                  {isExpired(tool.expiresAt) && <AlertCircle className="h-4 w-4 text-amber-500" />}
+                </div>
+                <ItemValue>{formatDate(tool.expiresAt)}</ItemValue>
+              </div>
+            )}
+          </div>
+        )}
 
         {/* Active Tools */}
         <div className="space-y-2">

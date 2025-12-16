@@ -5141,6 +5141,68 @@
   },
   "openapi": "3.0.0",
   "paths": {
+    "/api/cli/me": {
+      "get": {
+        "description": "Get the current authenticated user and their organization for CLI usage",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "organization": {
+                      "properties": {
+                        "id": {
+                          "type": "string"
+                        },
+                        "name": {
+                          "type": "string"
+                        },
+                        "role": {
+                          "type": "string"
+                        },
+                        "slug": {
+                          "type": "string"
+                        }
+                      },
+                      "required": ["id", "name", "slug", "role"],
+                      "type": "object"
+                    },
+                    "user": {
+                      "properties": {
+                        "email": {
+                          "type": "string"
+                        },
+                        "id": {
+                          "type": "string"
+                        },
+                        "name": {
+                          "nullable": true,
+                          "type": "string"
+                        }
+                      },
+                      "required": ["id", "email", "name"],
+                      "type": "object"
+                    }
+                  },
+                  "required": ["user", "organization"],
+                  "type": "object"
+                }
+              }
+            },
+            "description": "User info with organization"
+          },
+          "401": {
+            "description": "Not authenticated"
+          },
+          "404": {
+            "description": "User has no organization"
+          }
+        },
+        "summary": "Get CLI user info",
+        "tags": ["cli"]
+      }
+    },
     "/api/invitations/pending": {
       "get": {
         "description": "Get all pending (non-expired) invitations for a given email address",
@@ -16837,6 +16899,11 @@
             "application/json": {
               "schema": {
                 "properties": {
+                  "credentialScope": {
+                    "default": "project",
+                    "enum": ["project", "user"],
+                    "type": "string"
+                  },
                   "url": {
                     "description": "The MCP server URL to fetch details for",
                     "format": "uri",
@@ -16922,6 +16989,141 @@
           }
         },
         "summary": "Get Third-Party MCP Server Details",
+        "tags": ["Third-Party MCP Servers"]
+      }
+    },
+    "/tenants/{tenantId}/projects/{projectId}/third-party-mcp-servers/oauth-redirect": {
+      "post": {
+        "description": "Get the OAuth redirect URL for a third-party MCP server. Call this after scope selection to get the correct URL for the selected scope.",
+        "operationId": "get-oauth-redirect-url",
+        "parameters": [
+          {
+            "description": "Tenant identifier",
+            "in": "path",
+            "name": "tenantId",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/TenantIdPathParam"
+            }
+          },
+          {
+            "description": "Project identifier",
+            "in": "path",
+            "name": "projectId",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/ProjectIdPathParam"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "properties": {
+                  "credentialScope": {
+                    "description": "The credential scope",
+                    "enum": ["project", "user"],
+                    "type": "string"
+                  },
+                  "url": {
+                    "description": "The MCP server URL",
+                    "format": "uri",
+                    "type": "string"
+                  }
+                },
+                "required": ["url", "credentialScope"],
+                "type": "object"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "data": {
+                      "properties": {
+                        "redirectUrl": {
+                          "nullable": true,
+                          "type": "string"
+                        }
+                      },
+                      "required": ["redirectUrl"],
+                      "type": "object"
+                    }
+                  },
+                  "required": ["data"],
+                  "type": "object"
+                }
+              }
+            },
+            "description": "OAuth redirect URL"
+          },
+          "400": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BadRequest"
+                }
+              }
+            },
+            "description": "Bad Request"
+          },
+          "401": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Unauthorized"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "403": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Forbidden"
+                }
+              }
+            },
+            "description": "Forbidden"
+          },
+          "404": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NotFound"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "422": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UnprocessableEntity"
+                }
+              }
+            },
+            "description": "Unprocessable Entity"
+          },
+          "500": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InternalServerError"
+                }
+              }
+            },
+            "description": "Internal Server Error"
+          }
+        },
+        "summary": "Get OAuth Redirect URL",
         "tags": ["Third-Party MCP Servers"]
       }
     },

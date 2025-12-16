@@ -3,7 +3,7 @@
 import type * as Monaco from 'monaco-editor';
 import { useTheme } from 'next-themes';
 import type { ComponentPropsWithoutRef, FC } from 'react';
-import { useEffect, useRef } from 'react';
+import { useEffect, useId, useRef } from 'react';
 import { MonacoEditor } from '@/components/editors/monaco-editor';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useMonacoActions, useMonacoStore } from '@/features/agent/state/use-monaco-store';
@@ -23,13 +23,16 @@ interface CodeDiffProps extends Omit<ComponentPropsWithoutRef<'div'>, 'onChange'
 export const CodeDiff: FC<CodeDiffProps> = ({
   originalValue,
   newValue,
-  originalUri = 'code-original.txt',
-  modifiedUri = 'code-modified.txt',
+  originalUri: originalUriProp,
+  modifiedUri: modifiedUriProp,
   className,
   editorOptions = {},
   onMount,
   ...props
 }) => {
+  const instanceId = useId();
+  const originalUri = originalUriProp ?? `code-original-${instanceId}.txt`;
+  const modifiedUri = modifiedUriProp ?? `code-modified-${instanceId}.txt`;
   // If there's no original value, show a regular editor instead of a diff
   const hasOriginalValue = originalValue && originalValue.trim() !== '';
 
@@ -168,7 +171,6 @@ export const CodeDiff: FC<CodeDiffProps> = ({
   }, [monaco, hasOriginalValue]);
 
   if (!hasOriginalValue) {
-    modifiedUri ??= `new-code.json`;
     return (
       <MonacoEditor value={newValue} uri={modifiedUri} readOnly className={className} {...props} />
     );
@@ -178,7 +180,7 @@ export const CodeDiff: FC<CodeDiffProps> = ({
     <div
       className={cn(
         'w-full',
-        'rounded-md relative dark:bg-input/30 transition-colors',
+        'rounded-md relative dark:bg-input/30 transition-colors text-foreground',
         'border border-input shadow-xs',
         className,
         !monaco && 'px-3 py-4',

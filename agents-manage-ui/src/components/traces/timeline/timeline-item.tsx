@@ -20,6 +20,7 @@ import { Bubble } from '@/components/traces/timeline/bubble';
 import { Flow } from '@/components/traces/timeline/flow';
 import { TagRow } from '@/components/traces/timeline/tag-row';
 import {
+  ACTIVITY_STATUS,
   ACTIVITY_TYPES,
   type ActivityItem,
   type ActivityKind,
@@ -74,13 +75,15 @@ function statusIcon(
 
   const map = base[type] || base.tool_call;
   const cls =
-    status === 'success'
+    status === ACTIVITY_STATUS.SUCCESS
       ? map.cls
-      : status === 'error'
+      : status === ACTIVITY_STATUS.ERROR
         ? 'text-red-500'
-        : status === 'pending'
+        : status === ACTIVITY_STATUS.WARNING
           ? 'text-yellow-500'
-          : map.cls;
+          : status === ACTIVITY_STATUS.PENDING
+            ? 'text-yellow-500'
+            : map.cls;
 
   return { Icon: map.Icon, className: cls };
 }
@@ -131,12 +134,17 @@ export function TimelineItem({
 
   // Determine text color based on status
   const textColorClass =
-    activity.status === 'error'
+    activity.status === ACTIVITY_STATUS.ERROR
       ? 'text-red-500 hover:text-red-700'
-      : 'text-foreground hover:text-primary';
+      : activity.status === ACTIVITY_STATUS.WARNING
+        ? 'text-yellow-500 hover:text-yellow-700'
+        : 'text-foreground hover:text-primary';
 
   return (
-    <div className={`flex flex-col text-muted-foreground relative text-xs`}>
+    <div
+      className={`flex flex-col text-muted-foreground relative text-xs`}
+      data-has-error={activity.status === ACTIVITY_STATUS.ERROR || undefined}
+    >
       <div className="flex items-start">
         <div className="mr-2 py-2" style={{ width: '16px' }}>
           <div className="absolute left-[7px] top-[8px] -translate-x-1/2 flex items-center justify-center w-5 h-5 rounded bg-white dark:bg-background z-10">
@@ -341,6 +349,17 @@ export function TimelineItem({
             (activity.toolType === TOOL_TYPES.MCP || activity.toolType === TOOL_TYPES.TOOL) &&
             activity.toolPurpose && (
               <Bubble className="line-clamp-2">{activity.toolPurpose}</Bubble>
+            )}
+
+          {/* MCP server badge for MCP tool calls */}
+          {activity.type === ACTIVITY_TYPES.TOOL_CALL &&
+            activity.toolType === TOOL_TYPES.MCP &&
+            activity.mcpServerName && (
+              <div className="mb-1">
+                <Badge variant="code" className="text-xs">
+                  MCP: {activity.mcpServerName}
+                </Badge>
+              </div>
             )}
 
           {/* artifact processing */}

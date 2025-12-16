@@ -240,6 +240,8 @@ CREATING ARTIFACTS (SERVES AS CITATION):
 Use the artifact:create annotation to extract data from tool results. The creation itself serves as a citation.
 Format: <artifact:create id="unique-id" tool="tool_call_id" type="TypeName" base="selector.path" details='{"key":"jmespath_selector"}' />
 
+⚠️ IMPORTANT: Do not create artifacts from get_reference_artifact tool results - these are already compressed artifacts being retrieved. Only create artifacts from original research and analysis tools.
+
 🚨 CRITICAL: DETAILS PROPS USE JMESPATH SELECTORS, NOT LITERAL VALUES! 🚨
 
 ❌ WRONG - Using literal values:

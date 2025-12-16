@@ -62,7 +62,7 @@ async function discoverMcpMetadata(
   try {
     // RFC9728 - Protected Resource Metadata Discovery
     let resourceMetadata: OAuthProtectedResourceMetadata | null = null;
-    let authServerUrl = new URL(mcpServerUrl);
+    let authServerUrl = new URL('/', mcpServerUrl);
 
     try {
       resourceMetadata = await discoverOAuthProtectedResourceMetadata(mcpServerUrl);
