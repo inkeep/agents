@@ -531,8 +531,7 @@ export class NangoCredentialStore implements CredentialStore {
     if (!isNangoAvailable()) {
       return {
         available: false,
-        reason:
-          'Nango is not installed. Install with: npm install @nangohq/node @nangohq/types',
+        reason: 'Nango is not installed. Install with: npm install @nangohq/node @nangohq/types',
       };
     }
 

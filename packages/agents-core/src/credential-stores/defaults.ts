@@ -23,10 +23,7 @@ export function createDefaultCredentialStores(): CredentialStore[] {
         })
       );
     } catch (error) {
-      console.warn(
-        'Failed to create Nango store:',
-        error instanceof Error ? error.message : error
-      );
+      console.warn('Failed to create Nango store:', error instanceof Error ? error.message : error);
     }
   }
 

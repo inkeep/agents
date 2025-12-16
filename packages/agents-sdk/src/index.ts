@@ -13,38 +13,18 @@ export {
   statusComponent,
   subAgent,
 } from './builderFunctions';
+export { transfer } from './builders';
 export {
-  createCredentialProvider,
-  InkeepCredentialProvider,
   type CredentialProviderConfig,
   type CredentialProviderType,
   type CredentialStore,
   type CustomCredentialConfig,
+  createCredentialProvider,
+  InkeepCredentialProvider,
   type KeychainCredentialConfig,
   type MemoryCredentialConfig,
   type NangoCredentialConfig,
 } from './credential-provider';
-export {
-  ConsoleTelemetryProvider,
-  createConsoleTelemetryProvider,
-  createNoOpTelemetryProvider,
-  createOpenTelemetryProvider,
-  getGlobalTelemetryProvider,
-  InkeepTelemetryProvider,
-  NoOpTelemetryProvider,
-  setGlobalTelemetryProvider,
-  SpanStatus,
-  type OpenTelemetryConfig,
-  type SpanOptions,
-  type SpanStatusType,
-  type TelemetryConfig,
-  type TelemetryLogger,
-  type TelemetryMetrics,
-  type TelemetryProvider,
-  type TelemetrySpan,
-  type TelemetryTracer,
-} from './telemetry-provider';
-export { transfer } from './builders';
 export {
   type CredentialReference,
   credentialRef,
@@ -73,5 +53,25 @@ export {
 export { Runner, raceAgents, run, stream } from './runner';
 export { StatusComponent, type StatusComponentInterface } from './status-component';
 export { SubAgent } from './subAgent';
+export {
+  ConsoleTelemetryProvider,
+  createConsoleTelemetryProvider,
+  createNoOpTelemetryProvider,
+  createOpenTelemetryProvider,
+  getGlobalTelemetryProvider,
+  InkeepTelemetryProvider,
+  NoOpTelemetryProvider,
+  type OpenTelemetryConfig,
+  type SpanOptions,
+  SpanStatus,
+  type SpanStatusType,
+  setGlobalTelemetryProvider,
+  type TelemetryConfig,
+  type TelemetryLogger,
+  type TelemetryMetrics,
+  type TelemetryProvider,
+  type TelemetrySpan,
+  type TelemetryTracer,
+} from './telemetry-provider';
 export { Tool } from './tool';
 export type * from './types';

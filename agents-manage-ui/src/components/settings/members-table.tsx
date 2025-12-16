@@ -1,3 +1,4 @@
+import { UserPlus } from 'lucide-react';
 import { useState } from 'react';
 import { InviteMemberDialog } from '@/components/auth/invite-member-dialog';
 import { Badge } from '@/components/ui/badge';
@@ -11,7 +12,6 @@ import {
 } from '@/components/ui/table';
 import type { useAuthClient } from '@/lib/auth-client';
 import { Button } from '../ui/button';
-import { UserPlus } from 'lucide-react';
 
 type FullOrganization = NonNullable<
   Awaited<
