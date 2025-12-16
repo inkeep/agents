@@ -188,6 +188,11 @@ export function createAuth(config: BetterAuthConfig) {
     session: {
       expiresIn: 60 * 60 * 24 * 7,
       updateAge: 60 * 60 * 24,
+      cookieCache: {
+        enabled: true,
+        maxAge: 5 * 60,
+        strategy: 'compact',
+      }
     },
     advanced: {
       crossSubDomainCookies: {
