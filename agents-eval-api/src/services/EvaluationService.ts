@@ -158,9 +158,11 @@ export interface ChatApiResponse {
  */
 export class EvaluationService {
   private readonly agentsRunApiUrl: string;
+  private readonly runApiBypassSecret: string | undefined;
 
   constructor() {
     this.agentsRunApiUrl = env.AGENTS_RUN_API_URL;
+    this.runApiBypassSecret = env.INKEEP_AGENTS_RUN_API_BYPASS_SECRET;
   }
 
   /**
@@ -273,9 +275,10 @@ export class EvaluationService {
       stream: true,
     };
 
+    const authToken = apiKey || this.runApiBypassSecret;
     const headers: Record<string, string> = {
       'Content-Type': 'application/json',
-      ...(apiKey && { Authorization: `Bearer ${apiKey}` }),
+      ...(authToken && { Authorization: `Bearer ${authToken}` }),
       'x-inkeep-tenant-id': tenantId,
       'x-inkeep-project-id': projectId,
       'x-inkeep-agent-id': agentId,

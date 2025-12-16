@@ -16,6 +16,7 @@ const envSchema = z.object({
   WORKFLOW_POSTGRES_WORKER_CONCURRENCY: z.string().optional(),
   LOG_LEVEL: z.enum(['trace', 'debug', 'info', 'warn', 'error']).optional().default('debug'),
   INKEEP_AGENTS_EVAL_API_BYPASS_SECRET: z.string().optional(),
+  INKEEP_AGENTS_RUN_API_BYPASS_SECRET: z.string().optional(),
 });
 
 const parseEnv = () => {
