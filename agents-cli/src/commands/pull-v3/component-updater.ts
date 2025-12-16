@@ -907,9 +907,7 @@ export async function updateModifiedComponents(
 
       // Log which file/components are being processed BEFORE the LLM call
       const componentNames = fileComponents.map((c) => `${c.type}:${c.id}`).join(', ');
-      console.log(
-        chalk.gray(`   [${fileIndex}/${totalFiles}] Processing: ${relativeFilePath}`)
-      );
+      console.log(chalk.gray(`   [${fileIndex}/${totalFiles}] Processing: ${relativeFilePath}`));
       console.log(chalk.gray(`            Components: ${componentNames}`));
 
       // Read current file content
