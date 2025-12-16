@@ -238,7 +238,7 @@ describe('Branch CRUD Routes - Integration Tests', () => {
         method: 'POST',
         body: JSON.stringify({
           name: 'derived-branch',
-          from: baseBranch.fullName,
+          from: baseBranch.baseName,
         }),
       });
 

@@ -1,4 +1,4 @@
-import { createTestProject } from '@inkeep/agents-core/db/test-client';
+import { createTestProject } from '@inkeep/agents-core/db/test-manage-client';
 import { nanoid } from 'nanoid';
 import { describe, expect, it } from 'vitest';
 import dbClient from '../../../data/db/dbClient';
