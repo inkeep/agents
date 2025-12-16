@@ -186,16 +186,17 @@ function ChartTooltipContent({
                         className={cn(
                           'shrink-0 rounded-[2px] border-(--color-border) bg-(--color-bg)',
                           {
-                            'h-2.5 w-2.5': indicator === 'dot',
-                            'w-1': indicator === 'line',
-                            'w-0 border-[1.5px] border-dashed bg-transparent':
-                              indicator === 'dashed',
-                            'my-0.5': nestLabel && indicator === 'dashed',
-                          }
+                            dot: 'h-2.5 w-2.5',
+                            line: 'w-1',
+                            dashed: [
+                              'w-0 border-[1.5px] border-dashed bg-transparent',
+                              nestLabel && 'my-0.5',
+                            ],
+                          }[indicator]
                         )}
                         style={{
-                          '--color-bg': indicatorColor,
-                          '--color-border': indicatorColor,
+                          ['--color-bg' as string]: indicatorColor,
+                          ['--color-border' as string]: indicatorColor,
                         }}
                       />
                     )
