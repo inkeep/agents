@@ -84,13 +84,18 @@ const VariableSuggestionExtension = Mention.extend({
  */
 export const variableSuggestionExtension = VariableSuggestionExtension.configure({
   HTMLAttributes: {
-    class: badgeVariants({ variant: 'violet' }),
+    class: cn(badgeVariants({ variant: 'violet' }), 'px-1'),
   },
   suggestion: {
     char: TRIGGER_CHAR,
-    items() {
+    items({ query }) {
       const { variableSuggestions } = monacoStore.getState();
-      return [...variableSuggestions, '$env.'];
+      const normalized = query.toLowerCase();
+      const entries = variableSuggestions.filter((label) =>
+        label.toLowerCase().includes(normalized)
+      );
+      entries.push('$env.');
+      return entries;
     },
     render() {
       let component: ReactRenderer<null, VariableListProps>;
