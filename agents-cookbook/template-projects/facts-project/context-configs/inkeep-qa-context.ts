@@ -1,4 +1,4 @@
-import { contextConfig, fetchDefinition, headers } from '@inkeep/agents-core';
+import { contextConfig, fetchDefinition } from '@inkeep/agents-core';
 import { z } from 'zod';
 import { inkeepApiKey } from '../credentials/inkeep-api-key';
 
@@ -9,7 +9,7 @@ const projectDescription = fetchDefinition({
   fetchConfig: {
     url: 'https://api.management.inkeep.com/graphql',
     body: {
-      query: `
+      query: /* GraphQL */ `
       query GetProjectAutogenInfo {
         projectByIntegrationAuth {
           chatSubjectName

@@ -62,23 +62,21 @@ export const PromptEditor: FC<PromptEditorProps> = ({
       // to see placeholder on initial rendering
       immediatelyRender: true,
       extensions: [
-        isMarkdownMode
-          ? StarterKit.configure({
-              // they are intended to be rendered as code here since it is part of the instruction to the LLM to include backticks when providing code
-              codeBlock: false,
-            })
-          : StarterKit.configure({
-              // this is needed to remove node formatting for text mode
-              bold: false,
-              italic: false,
-              orderedList: false,
-              bulletList: false,
-              code: false,
-              codeBlock: false,
-              strike: false,
-              heading: false,
-              blockquote: false,
-            }),
+        StarterKit.configure({
+          // they are intended to be rendered as code here since it is part of the instruction to the LLM to include backticks when providing code
+          codeBlock: false,
+          ...(!isMarkdownMode && {
+            // this is needed to remove node formatting for text mode
+            bold: false,
+            italic: false,
+            orderedList: false,
+            bulletList: false,
+            code: false,
+            strike: false,
+            heading: false,
+            blockquote: false,
+          }),
+        }),
         Placeholder.configure({ placeholder }),
         Markdown,
         TaskList,

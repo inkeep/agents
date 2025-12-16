@@ -5,7 +5,8 @@ import { posToDOMRect, ReactRenderer } from '@tiptap/react';
 import { badgeVariants } from '@/components/ui/badge';
 import { agentStore } from '@/features/agent/state/use-agent-store';
 import { monacoStore } from '@/features/agent/state/use-monaco-store';
-import { VariableList, type VariableListProps } from './variable-list';
+import { cn } from '@/lib/utils';
+import { VariableList, type VariableListProps, type VariableListRef } from './variable-list';
 
 const TOKEN_NAME = 'variableSuggestion';
 const TRIGGER_CHAR = '{';
@@ -90,15 +91,15 @@ export const variableSuggestionExtension = VariableSuggestionExtension.configure
     char: TRIGGER_CHAR,
     items({ query }) {
       const { variableSuggestions } = monacoStore.getState();
+      const entries = [...variableSuggestions, '$env.'];
+      if (!query) {
+        return entries;
+      }
       const normalized = query.toLowerCase();
-      const entries = variableSuggestions.filter((label) =>
-        label.toLowerCase().includes(normalized)
-      );
-      entries.push('$env.');
-      return entries;
+      return entries.filter((label) => label.toLowerCase().includes(normalized));
     },
     render() {
-      let component: ReactRenderer<null, VariableListProps>;
+      let component: ReactRenderer<VariableListRef, VariableListProps>;
       let cleanup: () => void;
       let virtualElement: ReferenceElement;
 
@@ -125,7 +126,6 @@ export const variableSuggestionExtension = VariableSuggestionExtension.configure
           document.body.append(el);
 
           // Keep the menu positioned when the editable area scrolls.
-          updatePosition(virtualElement, el);
           cleanup = autoUpdate(
             virtualElement,
             el,
@@ -150,6 +150,9 @@ export const variableSuggestionExtension = VariableSuggestionExtension.configure
           if (props.event.key === 'Escape') {
             component.destroy();
             return true;
+          }
+          if (component.ref) {
+            return component.ref.onKeyDown(props);
           }
           return false;
         },

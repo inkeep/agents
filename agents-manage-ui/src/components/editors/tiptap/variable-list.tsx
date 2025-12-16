@@ -1,6 +1,5 @@
 import type { SuggestionProps } from '@tiptap/suggestion';
-import { type FC, type RefObject, useImperativeHandle } from 'react';
-import { useCallback, useState } from 'react';
+import { type FC, type RefObject, useCallback, useImperativeHandle, useState } from 'react';
 import {
   DropdownMenu,
   DropdownMenuContent,
