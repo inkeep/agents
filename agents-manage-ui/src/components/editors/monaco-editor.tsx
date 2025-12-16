@@ -1,17 +1,18 @@
 'use client';
 
+import { shikiToMonaco } from '@shikijs/monaco';
 import type * as Monaco from 'monaco-editor';
+import monaco from 'monaco-editor';
 import type { ComponentPropsWithoutRef, FC } from 'react';
 import { useEffect, useRef } from 'react';
-import { Skeleton } from '@/components/ui/skeleton';
-import { cleanupDisposables, getOrCreateModel } from '@/lib/monaco-editor/monaco-utils';
-import { cn } from '@/lib/utils';
-import monaco from 'monaco-editor';
-import { shikiToMonaco } from '@shikijs/monaco';
 import { createHighlighter } from 'shiki';
+import { Skeleton } from '@/components/ui/skeleton';
 import { TEMPLATE_LANGUAGE, VARIABLE_TOKEN } from '@/constants/theme';
 import monacoCompatibleSchema from '@/lib/monaco-editor/dynamic-ref-compatible-json-schema.json';
+import { cleanupDisposables, getOrCreateModel } from '@/lib/monaco-editor/monaco-utils';
+import { cn } from '@/lib/utils';
 import '@/lib/monaco-editor/setup-monaco-workers';
+import { agentStore } from '@/features/agent/state/use-agent-store';
 
 // for cypress
 window.monaco = monaco;
@@ -39,7 +40,7 @@ monaco.languages.setMonarchTokensProvider(TEMPLATE_LANGUAGE, {
 monaco.languages.registerCompletionItemProvider(TEMPLATE_LANGUAGE, {
   triggerCharacters: ['{'],
   provideCompletionItems(model, position) {
-    const { variableSuggestions } = get();
+    const { variableSuggestions } = agentStore.getState();
 
     const textUntilPosition = model.getValueInRange({
       startLineNumber: 1,
@@ -289,7 +290,7 @@ export const MonacoEditor: FC<MonacoEditorProps> = ({
           : 'has-[&>.focused]:border-ring has-[&>.focused]:ring-ring/50 has-[&>.focused]:ring-[3px]',
         'aria-invalid:border-destructive aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40',
         className,
-        !monaco && 'px-3 py-4',
+        // !monaco && 'px-3 py-4',
         // Fixes cursor blinking at the beginning of the line
         '[&_.native-edit-context]:caret-transparent'
       )}
