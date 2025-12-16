@@ -15,6 +15,17 @@ export {
 } from './builderFunctions';
 export { transfer } from './builders';
 export {
+  type CredentialProviderConfig,
+  type CredentialProviderType,
+  type CredentialStore,
+  type CustomCredentialConfig,
+  createCredentialProvider,
+  InkeepCredentialProvider,
+  type KeychainCredentialConfig,
+  type MemoryCredentialConfig,
+  type NangoCredentialConfig,
+} from './credential-provider';
+export {
   type CredentialReference,
   credentialRef,
   type ExtractCredentialIds,
@@ -42,5 +53,25 @@ export {
 export { Runner, raceAgents, run, stream } from './runner';
 export { StatusComponent, type StatusComponentInterface } from './status-component';
 export { SubAgent } from './subAgent';
+export {
+  ConsoleTelemetryProvider,
+  createConsoleTelemetryProvider,
+  createNoOpTelemetryProvider,
+  createOpenTelemetryProvider,
+  getGlobalTelemetryProvider,
+  InkeepTelemetryProvider,
+  NoOpTelemetryProvider,
+  type OpenTelemetryConfig,
+  type SpanOptions,
+  SpanStatus,
+  type SpanStatusType,
+  setGlobalTelemetryProvider,
+  type TelemetryConfig,
+  type TelemetryLogger,
+  type TelemetryMetrics,
+  type TelemetryProvider,
+  type TelemetrySpan,
+  type TelemetryTracer,
+} from './telemetry-provider';
 export { Tool } from './tool';
 export type * from './types';

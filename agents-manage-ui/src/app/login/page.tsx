@@ -17,6 +17,7 @@ function LoginForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const invitationId = searchParams.get('invitation');
+  const callbackUrl = searchParams.get('callbackUrl');
   const authClient = useAuthClient();
   const { PUBLIC_AUTH0_DOMAIN, PUBLIC_GOOGLE_CLIENT_ID } = useRuntimeConfig();
 
@@ -24,6 +25,14 @@ function LoginForm() {
   const getFullCallbackURL = () => {
     if (typeof window === 'undefined') return '/';
     const baseURL = window.location.origin; // http://localhost:3000
+    // Priority: callbackUrl > invitation > home
+    if (callbackUrl) {
+      // If callbackUrl is a relative path, prepend baseURL
+      if (callbackUrl.startsWith('/')) {
+        return `${baseURL}${callbackUrl}`;
+      }
+      return callbackUrl;
+    }
     // If there's a pending invitation, include it in callback
     if (invitationId) {
       return `${baseURL}/?invitation=${invitationId}`;
@@ -63,8 +72,11 @@ function LoginForm() {
         return;
       }
 
-      // Redirect to invitation page if invitation param exists
-      if (invitationId) {
+      // Redirect after successful login
+      // Priority: callbackUrl > invitation > home
+      if (callbackUrl) {
+        router.push(callbackUrl);
+      } else if (invitationId) {
         router.push(`/accept-invitation/${invitationId}`);
       } else {
         router.push('/');

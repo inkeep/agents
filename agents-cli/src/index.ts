@@ -16,9 +16,20 @@ import { configGetCommand, configListCommand, configSetCommand } from './command
 import { devCommand } from './commands/dev';
 import { initCommand } from './commands/init';
 import { listAgentsCommand } from './commands/list-agents';
+import { loginCommand } from './commands/login';
+import { logoutCommand } from './commands/logout';
+import {
+  profileAddCommand,
+  profileCurrentCommand,
+  profileListCommand,
+  profileRemoveCommand,
+  profileUseCommand,
+} from './commands/profile';
 import { pullV3Command } from './commands/pull-v3/index';
 import { pushCommand } from './commands/push';
+import { statusCommand } from './commands/status';
 import { updateCommand } from './commands/update';
+import { whoamiCommand } from './commands/whoami';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -47,8 +58,9 @@ program
 
 program
   .command('init [path]')
-  .description('Initialize a new Inkeep configuration file')
-  .option('--no-interactive', 'Skip interactive path selection')
+  .description('Initialize a new Inkeep project (runs cloud onboarding wizard by default)')
+  .option('--local', 'Use local/self-hosted mode instead of cloud onboarding')
+  .option('--no-interactive', 'Skip interactive prompts')
   .option('--config <path>', 'Path to use as template for new configuration')
   .action(async (path, options) => {
     await initCommand({ path, ...options });
@@ -91,6 +103,7 @@ program
   .description('Push a project configuration to the backend')
   .option('--project <project-id>', 'Project ID or path to project directory')
   .option('--config <path>', 'Path to configuration file')
+  .option('--profile <name>', 'Profile to use for remote URLs and authentication')
   .option('--tenant-id <id>', 'Override tenant ID')
   .option('--agents-manage-api-url <url>', 'Override agents manage API URL')
   .option('--agents-run-api-url <url>', 'Override agents run API URL')
@@ -99,6 +112,12 @@ program
     'Environment to use for credential resolution (e.g., development, production)'
   )
   .option('--json', 'Generate project data JSON file instead of pushing to backend')
+  .option('--all', 'Push all projects found in current directory tree')
+  .option(
+    '--tag <tag>',
+    'Use tagged config file (e.g., --tag prod loads prod.__inkeep.config.ts__)'
+  )
+  .option('--quiet', 'Suppress profile/config logging')
   .action(async (options) => {
     await pushCommand(options);
   });
@@ -111,6 +130,7 @@ program
     'Project ID to pull (or path to project directory). If in project directory, validates against local project ID.'
   )
   .option('--config <path>', 'Path to configuration file')
+  .option('--profile <name>', 'Profile to use for remote URLs and authentication')
   .option(
     '--env <environment>',
     'Environment file to generate (development, staging, production). Defaults to development'
@@ -120,6 +140,12 @@ program
   .option('--verbose', 'Enable verbose logging')
   .option('--force', 'Force regeneration even if no changes detected')
   .option('--introspect', 'Completely regenerate all files from scratch (no comparison needed)')
+  .option('--all', 'Pull all projects for current tenant')
+  .option(
+    '--tag <tag>',
+    'Use tagged config file (e.g., --tag prod loads prod.__inkeep.config.ts__)'
+  )
+  .option('--quiet', 'Suppress profile/config logging')
   .action(async (options) => {
     await pullV3Command(options);
   });
@@ -166,6 +192,78 @@ program
   .option('--force', 'Force update even if already on latest version')
   .action(async (options) => {
     await updateCommand(options);
+  });
+
+// Authentication commands
+program
+  .command('login')
+  .description('Authenticate with Inkeep Cloud')
+  .option('--profile <name>', 'Profile to authenticate (defaults to active profile)')
+  .action(async (options) => {
+    await loginCommand(options);
+  });
+
+program
+  .command('logout')
+  .description('Log out of Inkeep Cloud')
+  .option('--profile <name>', 'Profile to log out (defaults to active profile)')
+  .action(async (options) => {
+    await logoutCommand(options);
+  });
+
+program
+  .command('status')
+  .description('Show current profile, authentication state, and remote URLs')
+  .option('--profile <name>', 'Profile to show status for (defaults to active profile)')
+  .action(async (options) => {
+    await statusCommand(options);
+  });
+
+program
+  .command('whoami')
+  .description('Display current authentication status (alias for status)')
+  .action(async () => {
+    await whoamiCommand();
+  });
+
+// Profile management commands
+const profileCommand = program
+  .command('profile')
+  .description('Manage CLI profiles for connecting to different remotes');
+
+profileCommand
+  .command('list')
+  .description('List all profiles')
+  .action(async () => {
+    await profileListCommand();
+  });
+
+profileCommand
+  .command('add [name]')
+  .description('Add a new profile')
+  .action(async (name) => {
+    await profileAddCommand(name);
+  });
+
+profileCommand
+  .command('use <name>')
+  .description('Set the active profile')
+  .action(async (name) => {
+    await profileUseCommand(name);
+  });
+
+profileCommand
+  .command('current')
+  .description('Display the active profile details')
+  .action(async () => {
+    await profileCurrentCommand();
+  });
+
+profileCommand
+  .command('remove <name>')
+  .description('Remove a profile')
+  .action(async (name) => {
+    await profileRemoveCommand(name);
   });
 
 program.parse();

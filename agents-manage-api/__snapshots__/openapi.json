@@ -5141,6 +5141,68 @@
   },
   "openapi": "3.0.0",
   "paths": {
+    "/api/cli/me": {
+      "get": {
+        "description": "Get the current authenticated user and their organization for CLI usage",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "organization": {
+                      "properties": {
+                        "id": {
+                          "type": "string"
+                        },
+                        "name": {
+                          "type": "string"
+                        },
+                        "role": {
+                          "type": "string"
+                        },
+                        "slug": {
+                          "type": "string"
+                        }
+                      },
+                      "required": ["id", "name", "slug", "role"],
+                      "type": "object"
+                    },
+                    "user": {
+                      "properties": {
+                        "email": {
+                          "type": "string"
+                        },
+                        "id": {
+                          "type": "string"
+                        },
+                        "name": {
+                          "nullable": true,
+                          "type": "string"
+                        }
+                      },
+                      "required": ["id", "email", "name"],
+                      "type": "object"
+                    }
+                  },
+                  "required": ["user", "organization"],
+                  "type": "object"
+                }
+              }
+            },
+            "description": "User info with organization"
+          },
+          "401": {
+            "description": "Not authenticated"
+          },
+          "404": {
+            "description": "User has no organization"
+          }
+        },
+        "summary": "Get CLI user info",
+        "tags": ["cli"]
+      }
+    },
     "/api/invitations/pending": {
       "get": {
         "description": "Get all pending (non-expired) invitations for a given email address",

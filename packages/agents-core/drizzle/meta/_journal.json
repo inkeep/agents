@@ -43,6 +43,13 @@
       "when": 1765392765706,
       "tag": "0005_reflective_starfox",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1765583388864,
+      "tag": "0006_stale_thaddeus_ross",
+      "breakpoints": true
     }
   ]
 }

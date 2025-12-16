@@ -32,7 +32,9 @@ describe('User Organizations Data Access', () => {
       mockDb.select.mockReturnValue({
         from: vi.fn().mockReturnValue({
           leftJoin: vi.fn().mockReturnValue({
-            where: vi.fn().mockResolvedValue(mockResult),
+            where: vi.fn().mockReturnValue({
+              orderBy: vi.fn().mockResolvedValue(mockResult),
+            }),
           }),
         }),
       });
@@ -47,7 +49,9 @@ describe('User Organizations Data Access', () => {
       mockDb.select.mockReturnValue({
         from: vi.fn().mockReturnValue({
           leftJoin: vi.fn().mockReturnValue({
-            where: vi.fn().mockResolvedValue([]),
+            where: vi.fn().mockReturnValue({
+              orderBy: vi.fn().mockResolvedValue([]),
+            }),
           }),
         }),
       });

@@ -18,7 +18,10 @@ export const ANTHROPIC_MODELS = {
 } as const;
 
 export const OPENAI_MODELS = {
+  GPT_5_2: 'openai/gpt-5.2',
+  GPT_5_2_20251211: 'openai/gpt-5.2-2025-12-11',
   GPT_5_1: 'openai/gpt-5.1',
+  GPT_5_1_20251113: 'openai/gpt-5.1-2025-11-13',
   GPT_5: 'openai/gpt-5',
   GPT_5_20250807: 'openai/gpt-5-2025-08-07',
   GPT_5_MINI: 'openai/gpt-5-mini',
