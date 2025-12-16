@@ -18,6 +18,7 @@ import { executeTransfer } from '../a2a/transfer.js';
 import { extractTransferData, isTransferTask } from '../a2a/types.js';
 import { AGENT_EXECUTION_MAX_CONSECUTIVE_ERRORS } from '../constants/execution-limits';
 import dbClient from '../data/db/dbClient.js';
+import { flushBatchProcessor } from '../instrumentation.js';
 import { getLogger } from '../logger.js';
 import { agentSessionManager } from '../services/AgentSession.js';
 import { agentInitializingOp, completionOp, errorOp } from '../utils/agent-operations.js';
@@ -520,6 +521,10 @@ export class ExecutionHandler {
               throw error;
             } finally {
               span.end();
+              // Flush immediately after span ends to ensure it's sent to SignOz
+              // Use setImmediate to allow span to be processed before flushing
+              await new Promise((resolve) => setImmediate(resolve));
+              await flushBatchProcessor();
             }
           });
         }
