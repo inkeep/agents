@@ -11,6 +11,7 @@ export function parseEmbeddedJson<T>(data: T): T {
     return data;
   }
 
+  // biome-ignore lint/suspicious/useIterableCallbackReturn: traverse.map() works via this.update(), not return values
   return traverse(data).map(function (this: traverse.TraverseContext, x: any) {
     if (typeof x === 'string') {
       const v = destr(x); // returns original string if not JSON

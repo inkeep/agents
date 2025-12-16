@@ -182,12 +182,10 @@ describe('parseEmbeddedJson', () => {
 
   describe('performance considerations', () => {
     it('should not significantly impact performance for normal objects', () => {
-      const largeNormalObject = {
-        ...Array.from({ length: 1000 }, (_, i) => ({ [`key${i}`]: `value${i}` })).reduce(
-          (acc, obj) => ({ ...acc, ...obj }),
-          {}
-        ),
-      };
+      const largeNormalObject: Record<string, string> = {};
+      for (let i = 0; i < 1000; i++) {
+        largeNormalObject[`key${i}`] = `value${i}`;
+      }
 
       const start = Date.now();
       const result = parseEmbeddedJson(largeNormalObject);
@@ -198,12 +196,11 @@ describe('parseEmbeddedJson', () => {
     });
 
     it('should handle large stringified objects efficiently', () => {
-      const largeStringifiedObject = JSON.stringify({
-        ...Array.from({ length: 100 }, (_, i) => ({ [`prop${i}`]: `value${i}` })).reduce(
-          (acc, obj) => ({ ...acc, ...obj }),
-          {}
-        ),
-      });
+      const largeObject: Record<string, string> = {};
+      for (let i = 0; i < 100; i++) {
+        largeObject[`prop${i}`] = `value${i}`;
+      }
+      const largeStringifiedObject = JSON.stringify(largeObject);
 
       const input = { large: largeStringifiedObject };
 
