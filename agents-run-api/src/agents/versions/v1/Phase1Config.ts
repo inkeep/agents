@@ -96,9 +96,9 @@ export class Phase1Config implements VersionConfig<SystemPromptV1> {
       : Phase1Config.convertMcpToolsToToolData(config.tools as McpTool[]);
 
     // Normalize any Zod schemas to JSON schemas
-    const toolData = rawToolData.map(tool => ({
+    const toolData = rawToolData.map((tool) => ({
       ...tool,
-      inputSchema: this.normalizeSchema(tool.inputSchema)
+      inputSchema: this.normalizeSchema(tool.inputSchema),
     }));
 
     const hasArtifactComponents = config.artifactComponents && config.artifactComponents.length > 0;
