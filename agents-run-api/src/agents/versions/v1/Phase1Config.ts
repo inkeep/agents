@@ -562,6 +562,7 @@ ${creationInstructions}
         const isRequired = required.includes(key);
         const propType = (value as any)?.type || 'string';
         const propDescription = (value as any)?.description || 'No description';
+
         return `        ${key}: {\n          "type": "${propType}",\n          "description": "${propDescription}",\n          "required": ${isRequired}\n        }`;
       })
       .join('\n');

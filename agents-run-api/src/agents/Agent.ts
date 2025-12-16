@@ -29,6 +29,7 @@ import {
   ModelFactory,
   type ModelSettings,
   type Models,
+  parseEmbeddedJson,
   type SubAgentStopWhen,
   TemplateEngine,
 } from '@inkeep/agents-core';
@@ -69,7 +70,6 @@ import type { SandboxConfig } from '../types/execution-context';
 import { generateToolId } from '../utils/agent-operations';
 import { ArtifactCreateSchema, ArtifactReferenceSchema } from '../utils/artifact-component-schema';
 import { jsonSchemaToZod } from '../utils/data-component-schema';
-import { parseEmbeddedJson } from '../utils/json-parser';
 import type { StreamHelper } from '../utils/stream-helpers';
 import { getStreamHelper } from '../utils/stream-registry';
 import { setSpanWithError, tracer } from '../utils/tracer';
@@ -742,10 +742,34 @@ export class Agent {
           description: originalTool.description,
           inputSchema: originalTool.inputSchema,
           execute: async (args, { toolCallId }) => {
+            // Fix Claude's stringified JSON issue - convert any stringified JSON back to objects
+            // This must happen first, before any logging or tracing, so spans show correct data
+            let processedArgs: typeof args;
+            try {
+              processedArgs = parseEmbeddedJson(args);
+
+              // Warn if we had to fix stringified JSON (indicates schema ambiguity issue)
+              if (JSON.stringify(args) !== JSON.stringify(processedArgs)) {
+                logger.warn(
+                  { toolName, toolCallId },
+                  'Fixed stringified JSON parameters (indicates schema ambiguity)'
+                );
+              }
+            } catch (error) {
+              logger.warn(
+                { toolName, toolCallId, error: (error as Error).message },
+                'Failed to parse embedded JSON, using original args'
+              );
+              processedArgs = args;
+            }
+
+            // Use processed args for all subsequent operations
+            const finalArgs = processedArgs;
+
             // Check for approval requirement before execution
             if (needsApproval) {
               logger.info(
-                { toolName, toolCallId, args },
+                { toolName, toolCallId, args: finalArgs },
                 'Tool requires approval - waiting for user response'
               );
 
@@ -833,7 +857,7 @@ export class Agent {
             logger.debug({ toolName, toolCallId }, 'MCP Tool Called');
 
             try {
-              const rawResult = await originalTool.execute(args, { toolCallId });
+              const rawResult = await originalTool.execute(finalArgs, { toolCallId });
 
               if (rawResult && typeof rawResult === 'object' && rawResult.isError) {
                 const errorMessage = rawResult.content?.[0]?.text || 'MCP tool returned an error';
@@ -845,7 +869,7 @@ export class Agent {
                 toolSessionManager.recordToolResult(sessionId, {
                   toolCallId,
                   toolName,
-                  args,
+                  args: finalArgs,
                   result: { error: errorMessage, failed: true },
                   timestamp: Date.now(),
                 });
@@ -889,7 +913,7 @@ export class Agent {
               toolSessionManager.recordToolResult(sessionId, {
                 toolCallId,
                 toolName,
-                args,
+                args: finalArgs,
                 result: enhancedResult,
                 timestamp: Date.now(),
               });
@@ -1272,8 +1296,31 @@ export class Agent {
           description: functionToolDef.description || functionToolDef.name,
           inputSchema: zodSchema,
           execute: async (args, { toolCallId }) => {
+            // Fix Claude's stringified JSON issue - convert any stringified JSON back to objects
+            let processedArgs: typeof args;
+            try {
+              processedArgs = parseEmbeddedJson(args);
+
+              // Warn if we had to fix stringified JSON (indicates schema ambiguity issue)
+              if (JSON.stringify(args) !== JSON.stringify(processedArgs)) {
+                logger.warn(
+                  { toolName: functionToolDef.name, toolCallId },
+                  'Fixed stringified JSON parameters (indicates schema ambiguity)'
+                );
+              }
+            } catch (error) {
+              logger.warn(
+                { toolName: functionToolDef.name, toolCallId, error: (error as Error).message },
+                'Failed to parse embedded JSON, using original args'
+              );
+              processedArgs = args;
+            }
+
+            // Use processed args for all subsequent operations
+            const finalArgs = processedArgs;
+
             logger.debug(
-              { toolName: functionToolDef.name, toolCallId, args },
+              { toolName: functionToolDef.name, toolCallId, args: finalArgs },
               'Function Tool Called'
             );
 
@@ -1285,18 +1332,22 @@ export class Agent {
                 vcpus: FUNCTION_TOOL_SANDBOX_VCPUS_DEFAULT,
               };
 
-              const result = await sandboxExecutor.executeFunctionTool(functionToolDef.id, args, {
-                description: functionToolDef.description || functionToolDef.name,
-                inputSchema: functionData.inputSchema || {},
-                executeCode: functionData.executeCode,
-                dependencies: functionData.dependencies || {},
-                sandboxConfig: this.config.sandboxConfig || defaultSandboxConfig,
-              });
+              const result = await sandboxExecutor.executeFunctionTool(
+                functionToolDef.id,
+                finalArgs,
+                {
+                  description: functionToolDef.description || functionToolDef.name,
+                  inputSchema: functionData.inputSchema || {},
+                  executeCode: functionData.executeCode,
+                  dependencies: functionData.dependencies || {},
+                  sandboxConfig: this.config.sandboxConfig || defaultSandboxConfig,
+                }
+              );
 
               toolSessionManager.recordToolResult(sessionId || '', {
                 toolCallId,
                 toolName: functionToolDef.name,
-                args,
+                args: finalArgs,
                 result,
                 timestamp: Date.now(),
               });
