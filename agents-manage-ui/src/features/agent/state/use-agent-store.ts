@@ -21,6 +21,7 @@ import type {
 import type { ExternalAgent } from '@/lib/types/external-agents';
 import type { MCPTool } from '@/lib/types/tools';
 import type { AgentErrorSummary } from '@/lib/utils/agent-error-parser';
+import { getContextSuggestions } from '@/lib/context-suggestions';
 
 type HistoryEntry = { nodes: Node[]; edges: Edge[] };
 
@@ -43,6 +44,7 @@ interface AgentStateData {
    * Temporary state used to control whether the sidebar is open on the agents page.
    */
   isSidebarSessionOpen: boolean;
+  variableSuggestions: string[];
 }
 
 interface AgentPersistedStateData {
@@ -144,13 +146,26 @@ const initialAgentState: AgentStateData = {
   errors: null,
   showErrors: false,
   isSidebarSessionOpen: true,
+  variableSuggestions: [],
 };
+
+function tryJsonParse(json = ''): object {
+  if (!json.trim()) {
+    return {};
+  }
+  try {
+    return JSON.parse(json);
+  } catch {
+    return {};
+  }
+}
 
 const agentState: StateCreator<AgentState> = (set, get) => ({
   ...initialAgentState,
   jsonSchemaMode: false,
   isSidebarPinnedOpen: true,
   hasTextWrap: true,
+  variableSuggestions: [],
   // Separate "namespace" for actions
   actions: {
     setInitial(
@@ -164,6 +179,14 @@ const agentState: StateCreator<AgentState> = (set, get) => ({
       externalAgentLookup = {},
       subAgentExternalAgentConfigLookup = {}
     ) {
+      const { contextConfig } = metadata;
+      const contextVariables = tryJsonParse(contextConfig.contextVariables);
+      const headersSchema = tryJsonParse(contextConfig.headersSchema);
+      const variableSuggestions = getContextSuggestions({
+        headersSchema,
+        // @ts-expect-error -- todo: improve type
+        contextVariables,
+      });
       set({
         nodes,
         edges,
@@ -179,6 +202,7 @@ const agentState: StateCreator<AgentState> = (set, get) => ({
         future: [],
         errors: null,
         showErrors: false,
+        variableSuggestions,
       });
     },
     reset() {
