@@ -4,6 +4,7 @@ import { Monitor, Moon, Sun } from 'lucide-react';
 import { useTheme } from 'next-themes';
 import type { ComponentProps, FC, MouseEventHandler } from 'react';
 import { useCallback, useEffect } from 'react';
+import type { ToasterProps } from 'sonner';
 import { Button } from '@/components/ui/button';
 import {
   DropdownMenu,
@@ -11,7 +12,6 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import type { ToasterProps } from 'sonner';
 import { MONACO_THEME_NAME } from '@/constants/theme';
 
 export type ThemeValue = NonNullable<ToasterProps['theme']>;

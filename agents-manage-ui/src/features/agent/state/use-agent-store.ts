@@ -14,6 +14,7 @@ import {
 } from '@/components/agent/configuration/node-types';
 import type { ArtifactComponent } from '@/lib/api/artifact-components';
 import type { DataComponent } from '@/lib/api/data-components';
+import { getContextSuggestions } from '@/lib/context-suggestions';
 import type {
   AgentToolConfigLookup,
   SubAgentExternalAgentConfigLookup,
@@ -21,7 +22,6 @@ import type {
 import type { ExternalAgent } from '@/lib/types/external-agents';
 import type { MCPTool } from '@/lib/types/tools';
 import type { AgentErrorSummary } from '@/lib/utils/agent-error-parser';
-import { getContextSuggestions } from '@/lib/context-suggestions';
 
 type HistoryEntry = { nodes: Node[]; edges: Edge[] };
 
