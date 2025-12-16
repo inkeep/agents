@@ -1,5 +1,5 @@
-import type { ReactElement } from 'react';
 import { toJsxRuntime } from 'hast-util-to-jsx-runtime';
+import type { ReactElement } from 'react';
 import { Fragment, jsx, jsxs } from 'react/jsx-runtime';
 import { renderMarkdownToHast } from '@/lib/markdown';
 
@@ -77,11 +77,7 @@ async function renderCell(
 
     // If there's a note, wrap in a tooltip
     if (noteElement) {
-      return (
-        <abbr title={note}>
-          {displayValue}
-        </abbr>
-      );
+      return <abbr title={note}>{displayValue}</abbr>;
     }
 
     return <span>{displayValue}</span>;
@@ -124,9 +120,7 @@ export async function ComparisonTable({
 
   // Filter sections if sectionTitle is provided
   const sectionsToRender = sectionTitle
-    ? (comparison.comparison?.sections || []).filter(
-        (section) => section.title === sectionTitle
-      )
+    ? (comparison.comparison?.sections || []).filter((section) => section.title === sectionTitle)
     : comparison.comparison?.sections || [];
 
   if (sectionTitle && sectionsToRender.length === 0) {
@@ -157,31 +151,29 @@ export async function ComparisonTable({
   if (sectionTitle) {
     const section = processedSections[0];
     return (
-        <table className="w-full border-collapse rounded-md">
-          <thead>
-            <tr className="border-b border-fd-border bg-fd-muted/50">
-              <th className="p-4 text-left font-semibold">Feature</th>
-              <th className="p-4 text-center font-semibold w-32">Inkeep</th>
-              <th className="p-4 text-center font-semibold w-32">
-                {comparison.competitor}
-              </th>
+      <table className="w-full border-collapse rounded-md">
+        <thead>
+          <tr className="border-b border-fd-border bg-fd-muted/50">
+            <th className="p-4 text-left font-semibold">Feature</th>
+            <th className="p-4 text-center font-semibold w-32">Inkeep</th>
+            <th className="p-4 text-center font-semibold w-32">{comparison.competitor}</th>
+          </tr>
+        </thead>
+        <tbody>
+          {section.processedRows.map((row, idx) => (
+            <tr
+              key={idx}
+              className={`border-b border-fd-border last:border-b-0 hover:bg-fd-muted/30 transition-colors ${
+                idx % 2 === 0 ? 'bg-white dark:bg-transparent' : 'bg-fd-muted/10'
+              }`}
+            >
+              <td className="p-4 font-medium">{row.feature}</td>
+              <td className="p-4 text-center align-top">{row.inkeepCell}</td>
+              <td className="p-4 text-center align-top">{row.competitorCell}</td>
             </tr>
-          </thead>
-          <tbody>
-            {section.processedRows.map((row, idx) => (
-              <tr
-                key={idx}
-                className={`border-b border-fd-border last:border-b-0 hover:bg-fd-muted/30 transition-colors ${
-                  idx % 2 === 0 ? 'bg-white dark:bg-transparent' : 'bg-fd-muted/10'
-                }`}
-              >
-                <td className="p-4 font-medium">{row.feature}</td>
-                <td className="p-4 text-center align-top">{row.inkeepCell}</td>
-                <td className="p-4 text-center align-top">{row.competitorCell}</td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
+          ))}
+        </tbody>
+      </table>
     );
   }
 
@@ -197,9 +189,7 @@ export async function ComparisonTable({
                 <tr className="border-b border-fd-border bg-fd-muted/50">
                   <th className="p-4 text-left font-semibold">Feature</th>
                   <th className="p-4 text-center font-semibold w-32">Inkeep</th>
-                  <th className="p-4 text-center font-semibold w-32">
-                    {comparison.competitor}
-                  </th>
+                  <th className="p-4 text-center font-semibold w-32">{comparison.competitor}</th>
                 </tr>
               </thead>
               <tbody>
