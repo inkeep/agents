@@ -133,7 +133,7 @@ export function EvaluatorFormDialog({
 
       const payload = {
         name: data.name,
-        description: data.description,
+        description: data.description ?? '',
         prompt: data.prompt,
         schema: parsedSchema,
         model: {
