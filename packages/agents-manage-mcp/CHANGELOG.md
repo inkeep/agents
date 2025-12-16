@@ -1,5 +1,12 @@
 # @inkeep/agents-manage-mcp
 
+## 0.39.1
+
+### Patch Changes
+
+- cbb7c09: batch flushing
+- 00be449: found bug in system prpomt
+
 ## 0.39.0
 
 ## 0.38.3

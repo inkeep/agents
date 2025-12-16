@@ -1,5 +1,13 @@
 # @inkeep/agents-core
 
+## 0.39.1
+
+### Patch Changes
+
+- cbb7c09: batch flushing
+- 00be449: found bug in system prpomt
+- 71a83d0: improve redirect logic and better-auth session use
+
 ## 0.39.0
 
 ### Minor Changes
