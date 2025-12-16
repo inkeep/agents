@@ -101,23 +101,27 @@ export async function initializeCommand(
     const ciDetection = await detectCIEnvironment();
     const ciConfig = ciDetection.isCI ? loadCIEnvironmentConfig() : null;
 
-    // If in CI mode with API key, use CI configuration
-    if (ciDetection.isCI && ciConfig) {
-      // Load file config as base but override with CI env vars
+    // In CI mode, use config file + CI env vars, skip profile loading entirely
+    // This prevents ProfileManager from auto-creating a "cloud" profile that would
+    // override config file URLs
+    if (ciDetection.isCI) {
+      // Load file config as base
       const config = await validateConfiguration(configPath, tag);
 
-      // CI env vars take precedence over file config
-      if (ciConfig.manageApiUrl) {
-        config.agentsManageApiUrl = ciConfig.manageApiUrl;
-      }
-      if (ciConfig.runApiUrl) {
-        config.agentsRunApiUrl = ciConfig.runApiUrl;
-      }
-      if (ciConfig.apiKey) {
-        config.agentsManageApiKey = ciConfig.apiKey;
-      }
-      if (ciConfig.tenantId) {
-        config.tenantId = ciConfig.tenantId;
+      // CI env vars take precedence over file config (if ciConfig is available)
+      if (ciConfig) {
+        if (ciConfig.manageApiUrl) {
+          config.agentsManageApiUrl = ciConfig.manageApiUrl;
+        }
+        if (ciConfig.runApiUrl) {
+          config.agentsRunApiUrl = ciConfig.runApiUrl;
+        }
+        if (ciConfig.apiKey) {
+          config.agentsManageApiKey = ciConfig.apiKey;
+        }
+        if (ciConfig.tenantId) {
+          config.tenantId = ciConfig.tenantId;
+        }
       }
 
       if (s) {
@@ -125,18 +129,24 @@ export async function initializeCommand(
       }
 
       if (logConfig && !quiet) {
-        logCIConfig(ciConfig, ciDetection.reason);
+        if (ciConfig) {
+          logCIConfig(ciConfig, ciDetection.reason);
+        } else {
+          console.log(chalk.yellow(`CI mode detected (${ciDetection.reason})`));
+          console.log(chalk.gray(`  Using config file settings (no INKEEP_API_KEY set)`));
+          console.log(chalk.gray(`  Remote: ${config.agentsManageApiUrl}`));
+        }
       }
 
       return {
         config,
-        isAuthenticated: !!ciConfig.apiKey,
+        isAuthenticated: !!ciConfig?.apiKey,
         isCI: true,
-        ciConfig,
+        ciConfig: ciConfig ?? undefined,
       };
     }
 
-    // Try to load profile configuration
+    // Non-CI mode: Try to load profile configuration
     let profile: ResolvedProfile | undefined;
     let isAuthenticated = false;
     let authExpiry: string | undefined;
