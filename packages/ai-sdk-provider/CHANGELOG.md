@@ -1,5 +1,36 @@
 # @inkeep/ai-sdk-provider
 
+## 0.39.0
+
+### Minor Changes
+
+- f76e412: Add device_code table for CLI device authentication flow
+
+### Patch Changes
+
+- f76e412: Add InkeepTelemetryProvider for observability and tracing
+- f76e412: Add CI/CD support for headless operation with INKEEP_API_KEY and environment variable overrides
+- f76e412: Add --all flag to push/pull for batch project operations and --tag for tagged config files
+- f76e412: Enhance init command with cloud onboarding wizard (scaffolds projects from remote tenant)
+- f76e412: Add profile management system for multi-remote support (profile list/add/use/current/remove)
+- f76e412: Wire profiles into push/pull commands with --profile and --quiet flags
+- f76e412: Add CLI authentication commands (login, logout, status, whoami) with device code OAuth flow
+- f76e412: Add /api/cli/me endpoint for CLI user authentication
+- f76e412: Add InkeepCredentialProvider abstraction for credential management
+- f76e412: Add device authorization page for CLI OAuth flow
+- Updated dependencies [f76e412]
+- Updated dependencies [f76e412]
+- Updated dependencies [f76e412]
+- Updated dependencies [f76e412]
+- Updated dependencies [f76e412]
+- Updated dependencies [f76e412]
+- Updated dependencies [f76e412]
+- Updated dependencies [f76e412]
+- Updated dependencies [f76e412]
+- Updated dependencies [f76e412]
+- Updated dependencies [f76e412]
+  - @inkeep/agents-core@0.39.0
+
 ## 0.38.3
 
 ### Patch Changes
