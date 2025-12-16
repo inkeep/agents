@@ -1,4 +1,5 @@
 import type { Artifact, McpTool } from '@inkeep/agents-core';
+import { convertZodToJsonSchema } from '@inkeep/agents-core/utils/schema-conversion';
 import systemPromptTemplate from '../../../../templates/v1/phase1/system-prompt.xml?raw';
 import thinkingPreparationTemplate from '../../../../templates/v1/phase1/thinking-preparation.xml?raw';
 import toolTemplate from '../../../../templates/v1/phase1/tool.xml?raw';
@@ -49,6 +50,25 @@ export class Phase1Config implements VersionConfig<SystemPromptV1> {
     return 'usageGuidelines' in firstItem && !('config' in firstItem);
   }
 
+  private normalizeSchema(inputSchema: any): Record<string, unknown> {
+    // If it's already a plain object (JSON Schema), return as-is
+    if (!inputSchema || typeof inputSchema !== 'object' || !inputSchema.def) {
+      return inputSchema || {};
+    }
+
+    // Check if it's a Zod object by looking for Zod-specific properties
+    if (inputSchema.def && typeof inputSchema.parse === 'function') {
+      try {
+        // Convert Zod schema to JSON schema using existing utility
+        return convertZodToJsonSchema(inputSchema);
+      } catch (error) {
+        return {};
+      }
+    }
+
+    return inputSchema || {};
+  }
+
   assemble(templates: Map<string, string>, config: SystemPromptV1): string {
     const systemPromptTemplate = templates.get('system-prompt');
     if (!systemPromptTemplate) {
@@ -71,9 +91,15 @@ export class Phase1Config implements VersionConfig<SystemPromptV1> {
     const agentContextSection = this.generateAgentContextSection(config.prompt);
     systemPrompt = systemPrompt.replace('{{AGENT_CONTEXT_SECTION}}', agentContextSection);
 
-    const toolData = this.isToolDataArray(config.tools)
+    const rawToolData = this.isToolDataArray(config.tools)
       ? config.tools
       : Phase1Config.convertMcpToolsToToolData(config.tools as McpTool[]);
+
+    // Normalize any Zod schemas to JSON schemas
+    const toolData = rawToolData.map(tool => ({
+      ...tool,
+      inputSchema: this.normalizeSchema(tool.inputSchema)
+    }));
 
     const hasArtifactComponents = config.artifactComponents && config.artifactComponents.length > 0;
 
@@ -266,8 +292,8 @@ THE details PROPERTY MUST CONTAIN JMESPATH SELECTORS THAT EXTRACT DATA FROM THE 
 ❌ NEVER: [?text ~ contains(@, 'word')] (~ with @ operator)
 ❌ NEVER: contains(@, 'text') (@ operator usage)
 ❌ NEVER: [?field=="value"] (double quotes in filters)
-❌ NEVER: [?field==\'value\'] (escaped quotes in filters)  
-❌ NEVER: [?field=='\"'\"'value'\"'\"'] (nightmare quote mixing)
+❌ NEVER: [?field=='value'] (escaped quotes in filters)  
+❌ NEVER: [?field=='"'"'value'"'"'] (nightmare quote mixing)
 ❌ NEVER: result.items[?type=='doc'][?status=='active'] (chained filters)
 
 ✅ CORRECT JMESPATH SYNTAX:
