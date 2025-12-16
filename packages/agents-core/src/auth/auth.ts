@@ -192,7 +192,7 @@ export function createAuth(config: BetterAuthConfig) {
         enabled: true,
         maxAge: 5 * 60,
         strategy: 'compact',
-      }
+      },
     },
     advanced: {
       crossSubDomainCookies: {
