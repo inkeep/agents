@@ -744,14 +744,21 @@ export class Agent {
           execute: async (args, { toolCallId }) => {
             // Fix Claude's stringified JSON issue - convert any stringified JSON back to objects
             // This must happen first, before any logging or tracing, so spans show correct data
-            const processedArgs = parseEmbeddedJson(args);
-
-            // Warn if we had to fix stringified JSON (indicates schema ambiguity issue)
-            if (JSON.stringify(args) !== JSON.stringify(processedArgs)) {
-              logger.warn(
-                { toolName, toolCallId },
-                'Fixed stringified JSON parameters (indicates schema ambiguity)'
-              );
+            let processedArgs: typeof args;
+            try {
+              processedArgs = parseEmbeddedJson(args);
+              
+              // Warn if we had to fix stringified JSON (indicates schema ambiguity issue)
+              if (JSON.stringify(args) !== JSON.stringify(processedArgs)) {
+                logger.warn(
+                  { toolName, toolCallId },
+                  'Fixed stringified JSON parameters (indicates schema ambiguity)'
+                );
+              }
+            } catch (error) {
+              logger.warn({ toolName, toolCallId, error: (error as Error).message }, 
+                'Failed to parse embedded JSON, using original args');
+              processedArgs = args;
             }
 
             // Use processed args for all subsequent operations
@@ -1288,14 +1295,21 @@ export class Agent {
           inputSchema: zodSchema,
           execute: async (args, { toolCallId }) => {
             // Fix Claude's stringified JSON issue - convert any stringified JSON back to objects
-            const processedArgs = parseEmbeddedJson(args);
-
-            // Warn if we had to fix stringified JSON (indicates schema ambiguity issue)
-            if (JSON.stringify(args) !== JSON.stringify(processedArgs)) {
-              logger.warn(
-                { toolName: functionToolDef.name, toolCallId },
-                'Fixed stringified JSON parameters (indicates schema ambiguity)'
-              );
+            let processedArgs: typeof args;
+            try {
+              processedArgs = parseEmbeddedJson(args);
+              
+              // Warn if we had to fix stringified JSON (indicates schema ambiguity issue)
+              if (JSON.stringify(args) !== JSON.stringify(processedArgs)) {
+                logger.warn(
+                  { toolName: functionToolDef.name, toolCallId },
+                  'Fixed stringified JSON parameters (indicates schema ambiguity)'
+                );
+              }
+            } catch (error) {
+              logger.warn({ toolName: functionToolDef.name, toolCallId, error: (error as Error).message }, 
+                'Failed to parse embedded JSON, using original args');
+              processedArgs = args;
             }
 
             // Use processed args for all subsequent operations
