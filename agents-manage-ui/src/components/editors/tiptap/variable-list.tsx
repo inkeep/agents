@@ -70,9 +70,10 @@ export const VariableList: FC<VariableListProps> = ({ items, command, ref }) => 
         className="max-h-64"
         // Update dropdown position when user scroll on page or in editor
         updatePositionStrategy="always"
-        // @ts-expect-error
-        onOpenAutoFocus={(event) => event.preventDefault()}
-        onCloseAutoFocus={(event) => event.preventDefault()}
+        // @ts-expect-error -- to not lose focus on editor
+        onOpenAutoFocus={(event) => {
+          event.preventDefault();
+        }}
       >
         {items.length ? (
           items.map((item, index) => (
@@ -82,7 +83,10 @@ export const VariableList: FC<VariableListProps> = ({ items, command, ref }) => 
               onSelect={selectItem}
               aria-label="Suggest"
               className={selectedIndex === index ? 'bg-accent text-accent-foreground' : ''}
-              onMouseEnter={() => setSelectedIndex(index)}
+              onMouseEnter={(event) => {
+                event.preventDefault();
+                setSelectedIndex(index);
+              }}
             >
               {item}
             </DropdownMenuItem>
