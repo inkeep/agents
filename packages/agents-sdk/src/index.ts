@@ -13,6 +13,37 @@ export {
   statusComponent,
   subAgent,
 } from './builderFunctions';
+export {
+  createCredentialProvider,
+  InkeepCredentialProvider,
+  type CredentialProviderConfig,
+  type CredentialProviderType,
+  type CredentialStore,
+  type CustomCredentialConfig,
+  type KeychainCredentialConfig,
+  type MemoryCredentialConfig,
+  type NangoCredentialConfig,
+} from './credential-provider';
+export {
+  ConsoleTelemetryProvider,
+  createConsoleTelemetryProvider,
+  createNoOpTelemetryProvider,
+  createOpenTelemetryProvider,
+  getGlobalTelemetryProvider,
+  InkeepTelemetryProvider,
+  NoOpTelemetryProvider,
+  setGlobalTelemetryProvider,
+  SpanStatus,
+  type OpenTelemetryConfig,
+  type SpanOptions,
+  type SpanStatusType,
+  type TelemetryConfig,
+  type TelemetryLogger,
+  type TelemetryMetrics,
+  type TelemetryProvider,
+  type TelemetrySpan,
+  type TelemetryTracer,
+} from './telemetry-provider';
 export { transfer } from './builders';
 export {
   type CredentialReference,

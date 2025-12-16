@@ -8,11 +8,31 @@
  * Step 5: Use LLM to correct modified components
  */
 
+import { EventEmitter } from 'node:events';
 import { existsSync, mkdirSync } from 'node:fs';
 import { basename, dirname, join, resolve } from 'node:path';
 import * as p from '@clack/prompts';
 import type { FullProjectDefinition } from '@inkeep/agents-core';
 import chalk from 'chalk';
+
+// Increase max listeners to prevent warnings during complex CLI flows
+// This is needed because @clack/prompts + multiple interactive prompts + spinners all add listeners
+EventEmitter.defaultMaxListeners = 20;
+
+/**
+ * Clean up stdin state between interactive prompts to prevent listener leaks
+ */
+function resetStdinState(): void {
+  process.stdin.removeAllListeners('data');
+  process.stdin.removeAllListeners('keypress');
+  process.stdin.removeAllListeners('end');
+  if (process.stdin.isTTY && process.stdin.isRaw) {
+    process.stdin.setRawMode(false);
+  }
+  if (!process.stdin.isPaused()) {
+    process.stdin.pause();
+  }
+}
 import { ManagementApiClient } from '../../api';
 import { performBackgroundVersionCheck } from '../../utils/background-version-check';
 import { initializeCommand } from '../../utils/cli-pipeline';
@@ -232,7 +252,7 @@ export async function pullV3Command(options: PullV3Options): Promise<void> {
 
   try {
     // Step 1: Load configuration (same as push command)
-    const { config, profile } = await initializeCommand({
+    const { config, profile, isCI } = await initializeCommand({
       configPath: options.config,
       profileName: options.profile,
       tag: options.tag,
@@ -329,7 +349,9 @@ export async function pullV3Command(options: PullV3Options): Promise<void> {
       config.agentsManageApiUrl,
       options.config,
       config.tenantId,
-      projectId
+      projectId,
+      isCI,
+      config.agentsManageApiKey
     );
 
     const remoteProject = await apiClient.getFullProject(projectId);
@@ -522,6 +544,10 @@ export async function pullV3Command(options: PullV3Options): Promise<void> {
         remoteProject,
         localRegistry
       );
+
+      // Reset stdin state after interactive prompt to prevent listener leaks
+      resetStdinState();
+
       if (shouldCleanupStale) {
         s.start('Cleaning up stale components from temp directory...');
         await cleanupStaleComponents(paths.projectRoot, tempDirName, remoteProject, localRegistry);
@@ -596,7 +622,8 @@ export async function pullV3Command(options: PullV3Options): Promise<void> {
     );
 
     if (modifiedCount > 0) {
-      s.start('Applying modified components to temp directory...');
+      // Stop spinner - updateModifiedComponents will log its own progress
+      s.stop();
       const { updateModifiedComponents } = await import('./component-updater');
 
       // Transform new component results for LLM context
@@ -621,7 +648,6 @@ export async function pullV3Command(options: PullV3Options): Promise<void> {
         tempDirName, // Use the temp directory we created
         newComponentsForContext
       );
-      s.message('Modified components applied');
     }
 
     // Step 14: Create index.ts in temp directory only
@@ -640,11 +666,13 @@ export async function pullV3Command(options: PullV3Options): Promise<void> {
 
     // Step 15: Run validation and user interaction on complete temp directory
     if (newComponentCount > 0 || modifiedCount > 0 || performedCleanup) {
-      s.start('Running validation on complete project...');
+      // Stop spinner before validation - validateTempDirectory handles its own user interaction and exit
+      s.stop('Running validation on complete project...');
       const { validateTempDirectory } = await import('./project-validator');
       await validateTempDirectory(paths.projectRoot, tempDirName, remoteProject);
-      s.message('Validation completed');
+      // Note: validateTempDirectory calls process.exit() internally after user interaction
     } else {
+      s.stop();
       console.log(chalk.green('\n✅ No changes detected - project is up to date'));
     }
 
@@ -668,7 +696,7 @@ async function pullAllProjects(options: PullV3Options): Promise<void> {
   console.log(chalk.blue('\n🔄 Batch Pull: Fetching all projects for tenant...\n'));
 
   // Load configuration first
-  const { config, profile } = await initializeCommand({
+  const { config, profile, isCI } = await initializeCommand({
     configPath: options.config,
     profileName: options.profile,
     tag: options.tag,
@@ -686,7 +714,10 @@ async function pullAllProjects(options: PullV3Options): Promise<void> {
     const apiClient = await ManagementApiClient.create(
       config.agentsManageApiUrl,
       options.config,
-      config.tenantId
+      config.tenantId,
+      undefined,
+      isCI,
+      config.agentsManageApiKey
     );
 
     const projects = await apiClient.listAllProjects();
@@ -712,7 +743,7 @@ async function pullAllProjects(options: PullV3Options): Promise<void> {
 
       console.log(chalk.cyan(`${progress} Pulling ${project.name || project.id}...`));
 
-      const result = await pullSingleProject(project.id, project.name, options, config);
+      const result = await pullSingleProject(project.id, project.name, options, config, isCI);
       results.push(result);
 
       if (result.success) {
@@ -756,7 +787,8 @@ async function pullSingleProject(
   projectId: string,
   projectName: string | undefined,
   options: PullV3Options,
-  config: any
+  config: any,
+  isCI?: boolean
 ): Promise<BatchPullResult> {
   const targetDir = join(process.cwd(), projectId);
 
@@ -778,7 +810,9 @@ async function pullSingleProject(
       config.agentsManageApiUrl,
       options.config,
       config.tenantId,
-      projectId
+      projectId,
+      isCI,
+      config.agentsManageApiKey
     );
 
     const remoteProject = await apiClient.getFullProject(projectId);

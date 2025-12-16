@@ -120,7 +120,9 @@ async function fetchUserInfo(
   });
 
   if (!orgResponse.ok) {
-    throw new Error('Failed to fetch organization info. Please ensure that you are a member of an organization.');
+    throw new Error(
+      'Failed to fetch organization info. Please ensure that you are a member of an organization.'
+    );
   }
 
   const orgData = await orgResponse.json();
