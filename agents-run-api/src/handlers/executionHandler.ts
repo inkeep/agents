@@ -26,9 +26,9 @@ import { executeTransfer } from '../a2a/transfer.js';
 import { extractTransferData, isTransferTask } from '../a2a/types.js';
 import { AGENT_EXECUTION_MAX_CONSECUTIVE_ERRORS } from '../constants/execution-limits';
 import dbClient from '../data/db/dbClient.js';
-import { inngest } from '../inngest';
 import { getLogger } from '../logger.js';
 import { agentSessionManager } from '../services/AgentSession.js';
+import { evaluateConversationWorkflow } from '@inkeep/agents-eval-api';
 import { conversationEvaluationTrigger } from '../services/ConversationEvaluationTrigger.js';
 import { evaluationRunConfigMatchesConversation } from '../services/evaluationRunConfigMatcher.js';
 import { agentInitializingOp, completionOp, errorOp } from '../utils/agent-operations.js';
@@ -543,20 +543,17 @@ export class ExecutionHandler {
                       return;
                     }
 
-                    await inngest.send({
-                      name: 'evaluation/conversation.execute',
-                      data: {
-                        tenantId,
-                        projectId,
-                        conversationId,
-                        evaluatorIds,
-                        evaluationRunId,
-                      },
+                    await evaluateConversationWorkflow({
+                      tenantId,
+                      projectId,
+                      conversationId,
+                      evaluatorIds,
+                      evaluationRunId,
                     });
 
                     logger.info(
                       { conversationId, evaluatorCount: evaluatorIds.length, evaluationRunId },
-                      'Dataset conversation evaluation queued via Inngest'
+                      'Dataset conversation evaluation queued via Workflow'
                     );
                   } else {
                     logger.info({ conversationId }, 'Triggering evaluation for regular conversation');
@@ -611,15 +608,12 @@ export class ExecutionHandler {
                           evaluationRunConfigId: runConfig.id,
                         });
 
-                        await inngest.send({
-                          name: 'evaluation/conversation.execute',
-                          data: {
-                            tenantId,
-                            projectId,
-                            conversationId,
-                            evaluatorIds,
-                            evaluationRunId: evaluationRun.id,
-                          },
+                        await evaluateConversationWorkflow({
+                          tenantId,
+                          projectId,
+                          conversationId,
+                          evaluatorIds,
+                          evaluationRunId: evaluationRun.id,
                         });
 
                         logger.info(
@@ -628,7 +622,7 @@ export class ExecutionHandler {
                             runConfigId: runConfig.id,
                             evaluatorCount: evaluatorIds.length,
                           },
-                          'Regular conversation evaluation queued via Inngest'
+                          'Regular conversation evaluation queued via Vercel workflow'
                         );
                       }
                     }
@@ -733,20 +727,17 @@ export class ExecutionHandler {
                   return;
                 }
 
-                await inngest.send({
-                  name: 'evaluation/conversation.execute',
-                  data: {
-                    tenantId,
-                    projectId,
-                    conversationId,
-                    evaluatorIds,
-                    evaluationRunId,
-                  },
+                await evaluateConversationWorkflow({
+                  tenantId,
+                  projectId,
+                  conversationId,
+                  evaluatorIds,
+                  evaluationRunId,
                 });
 
                 logger.info(
                   { conversationId, evaluatorCount: evaluatorIds.length, evaluationRunId },
-                  'Dataset conversation evaluation queued via Inngest'
+                  'Dataset conversation evaluation queued via Vercel workflow'
                 );
               } else {
                 logger.info({ conversationId }, 'Triggering evaluation for regular conversation');
@@ -801,15 +792,12 @@ export class ExecutionHandler {
                       evaluationRunConfigId: runConfig.id,
                     });
 
-                    await inngest.send({
-                      name: 'evaluation/conversation.execute',
-                      data: {
-                        tenantId,
-                        projectId,
-                        conversationId,
-                        evaluatorIds,
-                        evaluationRunId: evaluationRun.id,
-                      },
+                    await evaluateConversationWorkflow({
+                      tenantId,
+                      projectId,
+                      conversationId,
+                      evaluatorIds,
+                      evaluationRunId: evaluationRun.id,
                     });
 
                     logger.info(
@@ -818,7 +806,7 @@ export class ExecutionHandler {
                         runConfigId: runConfig.id,
                         evaluatorCount: evaluatorIds.length,
                       },
-                      'Regular conversation evaluation queued via Inngest'
+                      'Regular conversation evaluation queued via Vercel workflow'
                     );
                   }
                 }

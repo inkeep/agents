@@ -74,7 +74,7 @@ import {
 import { and, eq } from 'drizzle-orm';
 import { z } from 'zod';
 import dbClient from '../data/db/dbClient';
-import { inngest } from '../inngest';
+import { evaluateConversationWorkflow } from '../workflow';
 import { getLogger } from '../logger';
 import { EvaluationService } from '../services/EvaluationService';
 
@@ -1630,7 +1630,7 @@ app.openapi(
 
       logger.info({ tenantId, projectId, configId: id }, 'Evaluation job config created');
 
-      // Fan out manual bulk evaluation job to Inngest if evaluators are configured
+      // Fan out manual bulk evaluation job to vercel workflow if evaluators are configured
       if (evaluatorIds && Array.isArray(evaluatorIds) && evaluatorIds.length > 0) {
         (async () => {
           try {
@@ -1658,18 +1658,17 @@ app.openapi(
               evaluationJobConfigId: id,
             });
 
-            // Fan out: send worker event for each conversation
-            await inngest.send(
-              conversations.map((conv) => ({
-                name: 'evaluation/conversation.execute',
-                data: {
+            // Fan out: start workflow for each conversation
+            await Promise.all(
+              conversations.map((conv) =>
+                evaluateConversationWorkflow({
                   tenantId,
                   projectId,
                   conversationId: conv.id,
                   evaluatorIds,
                   evaluationRunId: evaluationRun.id,
-                },
-              }))
+                })
+              )
             );
 
             logger.info(
@@ -1680,7 +1679,7 @@ app.openapi(
                 conversationCount: conversations.length,
                 evaluationRunId: evaluationRun.id,
               },
-              'Manual bulk evaluation job queued via Inngest'
+              'Manual bulk evaluation job '
             );
           } catch (error) {
             logger.error(
@@ -2402,18 +2401,17 @@ app.openapi(
         projectId,
       });
 
-      // Trigger evaluations via Inngest
-      await inngest.send(
-        conversationIds.map((conversationId) => ({
-          name: 'evaluation/conversation.execute',
-          data: {
+      // Trigger evaluations via Workflow
+      await Promise.all(
+        conversationIds.map((conversationId) =>
+          evaluateConversationWorkflow({
             tenantId,
             projectId,
             conversationId,
             evaluatorIds,
             evaluationRunId,
-          },
-        }))
+          })
+        )
       );
 
       logger.info(
@@ -2885,18 +2883,17 @@ app.openapi(
                 evaluationJobConfigId: evalJobConfigId,
               });
 
-              // Send Inngest events to trigger evaluations
-              await inngest.send(
-                uniqueConversationIds.map((conversationId) => ({
-                  name: 'evaluation/conversation.execute' as const,
-                  data: {
+              // Trigger evaluations via Workflow
+              await Promise.all(
+                uniqueConversationIds.map((conversationId) =>
+                  evaluateConversationWorkflow({
                     tenantId,
                     projectId,
                     conversationId,
                     evaluatorIds,
                     evaluationRunId,
-                  },
-                }))
+                  })
+                )
               );
 
               logger.info(
@@ -3239,7 +3236,7 @@ app.openapi(
         tenantId,
         projectId,
         datasetId,
-        datasetRunConfigId: null,
+        datasetRunConfigId: undefined as any, // TODO: Fix schema to make this optional
         evaluationJobConfigId: undefined,
       });
 
@@ -3318,17 +3315,16 @@ app.openapi(
 
             const uniqueConversationIds = [...new Set(conversationRelations.map(rel => rel.conversationId))];
             
-            await inngest.send(
-              uniqueConversationIds.map((conversationId) => ({
-                name: 'evaluation/conversation.execute' as const,
-                data: {
+            await Promise.all(
+              uniqueConversationIds.map((conversationId) =>
+                evaluateConversationWorkflow({
                   tenantId,
                   projectId,
                   conversationId,
                   evaluatorIds,
                   evaluationRunId,
-                },
-              }))
+                })
+              )
             );
 
             logger.info(
