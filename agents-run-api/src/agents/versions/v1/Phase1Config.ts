@@ -1,5 +1,5 @@
 import type { Artifact, McpTool } from '@inkeep/agents-core';
-import { convertZodToJsonSchema } from '@inkeep/agents-core/utils/schema-conversion';
+import { convertZodToJsonSchema, isZodSchema } from '@inkeep/agents-core/utils/schema-conversion';
 import systemPromptTemplate from '../../../../templates/v1/phase1/system-prompt.xml?raw';
 import thinkingPreparationTemplate from '../../../../templates/v1/phase1/thinking-preparation.xml?raw';
 import toolTemplate from '../../../../templates/v1/phase1/tool.xml?raw';
@@ -51,22 +51,19 @@ export class Phase1Config implements VersionConfig<SystemPromptV1> {
   }
 
   private normalizeSchema(inputSchema: any): Record<string, unknown> {
-    // If it's already a plain object (JSON Schema), return as-is
-    if (!inputSchema || typeof inputSchema !== 'object' || !inputSchema.def) {
+    if (!inputSchema || typeof inputSchema !== 'object') {
       return inputSchema || {};
     }
 
-    // Check if it's a Zod object by looking for Zod-specific properties
-    if (inputSchema.def && typeof inputSchema.parse === 'function') {
+    if (isZodSchema(inputSchema)) {
       try {
-        // Convert Zod schema to JSON schema using existing utility
         return convertZodToJsonSchema(inputSchema);
       } catch (error) {
         return {};
       }
     }
 
-    return inputSchema || {};
+    return inputSchema;
   }
 
   assemble(templates: Map<string, string>, config: SystemPromptV1): string {
