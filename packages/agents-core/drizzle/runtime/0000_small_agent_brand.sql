@@ -19,7 +19,6 @@ CREATE TABLE "api_keys" (
 	"id" varchar(256) NOT NULL,
 	"project_id" varchar(256) NOT NULL,
 	"agent_id" varchar(256) NOT NULL,
-	"ref" jsonb NOT NULL,
 	"public_id" varchar(256) NOT NULL,
 	"key_hash" varchar(256) NOT NULL,
 	"key_prefix" varchar(256) NOT NULL,

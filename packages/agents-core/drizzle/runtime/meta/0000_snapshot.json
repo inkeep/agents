@@ -1,5 +1,5 @@
 {
-  "id": "c7e51ff3-5f0d-4755-9266-14c9f0ad7181",
+  "id": "8de3e342-7f8a-4881-9708-8a0786597441",
   "prevId": "00000000-0000-0000-0000-000000000000",
   "version": "7",
   "dialect": "postgresql",
@@ -151,12 +151,6 @@
         "agent_id": {
           "name": "agent_id",
           "type": "varchar(256)",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "ref": {
-          "name": "ref",
-          "type": "jsonb",
           "primaryKey": false,
           "notNull": true
         },
