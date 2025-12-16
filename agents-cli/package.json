@@ -1,6 +1,6 @@
 {
   "name": "@inkeep/agents-cli",
-  "version": "0.38.0",
+  "version": "0.39.0",
   "description": "Inkeep CLI tool",
   "type": "module",
   "main": "./dist/index.js",
@@ -14,6 +14,8 @@
   },
   "scripts": {
     "build": "tsup",
+    "cli": "node ./dist/index.js",
+    "postinstall": "node scripts/ensure-keytar.mjs || true",
     "prepare": "pnpm build --no-dts",
     "dev": "MODE=watch tsup",
     "test": "node -e \"process.exit(process.env.CI ? 0 : 1)\" && vitest --run --config vitest.config.ci.ts || vitest --run",
@@ -56,6 +58,7 @@
     "find-up": "^7.0.0",
     "fs-extra": "^11.2.0",
     "json-schema-to-zod": "^2.6.1",
+    "keytar": "^7.9.0",
     "langfuse-vercel": "^3.38.6",
     "picocolors": "^1.1.1",
     "pg": "^8.16.3",
@@ -63,7 +66,8 @@
     "recast": "^0.23.0",
     "ts-morph": "^26.0.0",
     "tsx": "^4.20.5",
-    "open": "^10.2.0"
+    "open": "^10.2.0",
+    "yaml": "^2.7.0"
   },
   "devDependencies": {
     "@types/degit": "^2.8.6",
@@ -78,9 +82,6 @@
   "peerDependencies": {
     "@inkeep/agents-manage-ui": "*",
     "zod": "^4.1.11"
-  },
-  "engines": {
-    "node": ">=22.0.0"
   },
   "publishConfig": {
     "access": "public",

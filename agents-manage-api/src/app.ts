@@ -13,14 +13,21 @@ import { errorHandler } from './middleware/error-handler';
 import { sessionAuth } from './middleware/session-auth';
 import { requireTenantAccess } from './middleware/tenant-access';
 import { setupOpenAPIRoutes } from './openapi';
+import cliAuthRoutes from './routes/cliAuth';
 import crudRoutes from './routes/index';
 import invitationsRoutes from './routes/invitations';
 import mcpRoutes from './routes/mcp';
 import oauthRoutes from './routes/oauth';
 import playgroundTokenRoutes from './routes/playgroundToken';
 import projectFullRoutes from './routes/projectFull';
+import signozRoutes from './routes/signoz';
 import userOrganizationsRoutes from './routes/userOrganizations';
-import { authCorsConfig, defaultCorsConfig, playgroundCorsConfig } from './utils/cors';
+import {
+  authCorsConfig,
+  defaultCorsConfig,
+  isOriginAllowed,
+  playgroundCorsConfig,
+} from './utils/cors';
 
 const logger = getLogger('agents-manage-api');
 
@@ -90,6 +97,29 @@ function createManagementHono(
   // CORS middleware for playground routes (must be registered before global CORS)
   app.use('/tenants/*/playground/token', cors(playgroundCorsConfig));
 
+  // CORS middleware for SigNoz proxy routes (must be registered before global CORS)
+  app.use(
+    '/tenants/*/signoz/*',
+    cors({
+      origin: (origin) => {
+        return isOriginAllowed(origin) ? origin : null;
+      },
+      allowHeaders: [
+        'content-type',
+        'Content-Type',
+        'authorization',
+        'Authorization',
+        'User-Agent',
+        'Cookie',
+        'X-Forwarded-Cookie',
+      ],
+      allowMethods: ['GET', 'POST', 'OPTIONS'],
+      exposeHeaders: ['Content-Length', 'Set-Cookie'],
+      maxAge: 600,
+      credentials: true,
+    })
+  );
+
   // CORS middleware - handles all other routes
   app.use('*', async (c, next) => {
     // Skip CORS middleware for routes with their own CORS config
@@ -97,6 +127,9 @@ function createManagementHono(
       return next();
     }
     if (c.req.path.includes('/playground/token')) {
+      return next();
+    }
+    if (c.req.path.includes('/signoz/')) {
       return next();
     }
 
@@ -186,6 +219,9 @@ function createManagementHono(
   // Mount user-organizations routes - global user endpoint
   app.route('/api/users/:userId/organizations', userOrganizationsRoutes);
 
+  // Mount CLI auth routes - for CLI login flow
+  app.route('/api/cli', cliAuthRoutes);
+
   // Mount invitations routes - global invitations endpoint
   app.route('/api/invitations', invitationsRoutes);
 
@@ -194,6 +230,9 @@ function createManagementHono(
 
   // Mount playground token routes under tenant (uses requireTenantAccess middleware)
   app.route('/tenants/:tenantId/playground/token', playgroundTokenRoutes);
+
+  // Mount SigNoz proxy routes under tenant (uses requireTenantAccess middleware for authorization)
+  app.route('/tenants/:tenantId/signoz', signozRoutes);
 
   // Mount full project routes directly under tenant
   app.route('/tenants/:tenantId', projectFullRoutes);

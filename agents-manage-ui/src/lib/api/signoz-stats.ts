@@ -146,12 +146,29 @@ axiosRetry(axios, {
 });
 
 class SigNozStatsAPI {
-  private async makeRequest<T = any>(payload: any): Promise<T> {
-    const response = await axios.post<T>('/api/signoz', payload, {
+  private tenantId: string | null = null;
+
+  setTenantId(tenantId: string) {
+    this.tenantId = tenantId;
+  }
+
+  private async makeRequest<T = any>(payload: any, projectId?: string): Promise<T> {
+    if (!this.tenantId) {
+      throw new Error('TenantId not set. Call setTenantId() before making requests.');
+    }
+
+    const requestPayload = {
+      ...payload,
+      ...(projectId && { projectId }),
+    };
+
+    // Call Next.js route which validates and forwards to manage-api
+    const response = await axios.post<T>(`/api/signoz?tenantId=${this.tenantId}`, requestPayload, {
       timeout: 30000,
       headers: {
         'Content-Type': 'application/json',
       },
+      withCredentials: true,
     });
     return response.data;
   }
@@ -538,6 +555,147 @@ class SigNozStatsAPI {
       return [...new Set(models)];
     } catch (e) {
       console.error('getUniqueModels error:', e);
+      return [];
+    }
+  }
+
+  async getToolCallsByTool(
+    startTime: number,
+    endTime: number,
+    serverName?: string,
+    projectId?: string
+  ) {
+    try {
+      const resp = await this.makeRequest(
+        this.buildToolBreakdownPayload(startTime, endTime, projectId)
+      );
+      const series = this.extractSeries(resp, 'toolCalls');
+      const errorSeries = this.extractSeries(resp, 'toolErrors');
+
+      const errorMap = new Map<string, number>();
+      for (const s of errorSeries) {
+        const toolName = s.labels?.[SPAN_KEYS.AI_TOOL_CALL_NAME] || UNKNOWN_VALUE;
+        const count = countFromSeries(s);
+        errorMap.set(toolName, (errorMap.get(toolName) || 0) + count);
+      }
+
+      const acc = new Map<
+        string,
+        {
+          toolName: string;
+          serverName: string;
+          serverId: string;
+          totalCalls: number;
+          errorCount: number;
+          errorRate: number;
+        }
+      >();
+
+      for (const s of series) {
+        const toolName = s.labels?.[SPAN_KEYS.AI_TOOL_CALL_NAME] || UNKNOWN_VALUE;
+        const server = s.labels?.[SPAN_KEYS.AI_TOOL_CALL_MCP_SERVER_NAME] || UNKNOWN_VALUE;
+        const serverId = s.labels?.[SPAN_KEYS.AI_TOOL_CALL_MCP_SERVER_ID] || UNKNOWN_VALUE;
+        const count = countFromSeries(s);
+
+        if (!count) continue;
+        if (serverName && serverName !== 'all' && server !== serverName) continue;
+
+        const key = `${toolName}::${server}::${serverId}`;
+        const row = acc.get(key) || {
+          toolName,
+          serverName: server,
+          serverId,
+          totalCalls: 0,
+          errorCount: 0,
+          errorRate: 0,
+        };
+        row.totalCalls += count;
+        row.errorCount = errorMap.get(toolName) || 0;
+        row.errorRate = row.totalCalls > 0 ? (row.errorCount / row.totalCalls) * 100 : 0;
+        acc.set(key, row);
+      }
+
+      return [...acc.values()].sort((a, b) => b.totalCalls - a.totalCalls);
+    } catch (e) {
+      console.error('getToolCallsByTool error:', e);
+      return [];
+    }
+  }
+
+  async getToolCallsByServer(startTime: number, endTime: number, projectId?: string) {
+    try {
+      const resp = await this.makeRequest(
+        this.buildToolServerBreakdownPayload(startTime, endTime, projectId)
+      );
+      const series = this.extractSeries(resp, 'serverCalls');
+      const errorSeries = this.extractSeries(resp, 'serverErrors');
+
+      const errorMap = new Map<string, number>();
+      for (const s of errorSeries) {
+        const serverName = s.labels?.[SPAN_KEYS.AI_TOOL_CALL_MCP_SERVER_NAME] || UNKNOWN_VALUE;
+        const count = countFromSeries(s);
+        errorMap.set(serverName, (errorMap.get(serverName) || 0) + count);
+      }
+
+      const totals = new Map<string, { totalCalls: number; errorCount: number }>();
+      for (const s of series) {
+        const serverName = s.labels?.[SPAN_KEYS.AI_TOOL_CALL_MCP_SERVER_NAME] || UNKNOWN_VALUE;
+        const count = countFromSeries(s);
+        if (!count) continue;
+        const existing = totals.get(serverName) || { totalCalls: 0, errorCount: 0 };
+        existing.totalCalls += count;
+        existing.errorCount = errorMap.get(serverName) || 0;
+        totals.set(serverName, existing);
+      }
+
+      return [...totals]
+        .map(([serverName, data]) => ({
+          serverName,
+          totalCalls: data.totalCalls,
+          errorCount: data.errorCount,
+          errorRate: data.totalCalls > 0 ? (data.errorCount / data.totalCalls) * 100 : 0,
+        }))
+        .sort((a, b) => b.totalCalls - a.totalCalls);
+    } catch (e) {
+      console.error('getToolCallsByServer error:', e);
+      return [];
+    }
+  }
+
+  async getUniqueToolServers(startTime: number, endTime: number, projectId?: string) {
+    try {
+      const resp = await this.makeRequest(
+        this.buildUniqueToolServersPayload(startTime, endTime, projectId)
+      );
+      const series = this.extractSeries(resp, 'uniqueServers');
+      const serverMap = new Map<string, { name: string; id: string }>();
+      for (const s of series) {
+        const name = s.labels?.[SPAN_KEYS.AI_TOOL_CALL_MCP_SERVER_NAME];
+        const id = s.labels?.[SPAN_KEYS.AI_TOOL_CALL_MCP_SERVER_ID] || '';
+        if (name && name !== UNKNOWN_VALUE) {
+          serverMap.set(name, { name, id });
+        }
+      }
+      return [...serverMap.values()].sort((a, b) => a.name.localeCompare(b.name));
+    } catch (e) {
+      console.error('getUniqueToolServers error:', e);
+      return [];
+    }
+  }
+
+  async getUniqueToolNames(startTime: number, endTime: number, projectId?: string) {
+    try {
+      const resp = await this.makeRequest(
+        this.buildUniqueToolNamesPayload(startTime, endTime, projectId)
+      );
+      const series = this.extractSeries(resp, 'uniqueTools');
+      const tools = series
+        .map((s) => s.labels?.[SPAN_KEYS.AI_TOOL_CALL_NAME])
+        .filter((id): id is string => Boolean(id) && id !== UNKNOWN_VALUE)
+        .sort();
+      return [...new Set(tools)];
+    } catch (e) {
+      console.error('getUniqueToolNames error:', e);
       return [];
     }
   }
@@ -2528,14 +2686,359 @@ class SigNozStatsAPI {
       projectId,
     };
   }
+
+  private buildToolBreakdownPayload(start: number, end: number, projectId?: string) {
+    const baseFilters: any[] = [
+      {
+        key: { key: SPAN_KEYS.NAME, ...QUERY_FIELD_CONFIGS.STRING_TAG_COLUMN },
+        op: OPERATORS.EQUALS,
+        value: SPAN_NAMES.AI_TOOL_CALL,
+      },
+      {
+        key: { key: SPAN_KEYS.AI_TOOL_TYPE, ...QUERY_FIELD_CONFIGS.STRING_TAG },
+        op: OPERATORS.EQUALS,
+        value: AI_TOOL_TYPES.MCP,
+      },
+      {
+        key: { key: SPAN_KEYS.CONVERSATION_ID, ...QUERY_FIELD_CONFIGS.STRING_TAG },
+        op: OPERATORS.EXISTS,
+        value: '',
+      },
+      ...(projectId
+        ? [
+            {
+              key: { key: SPAN_KEYS.PROJECT_ID, ...QUERY_FIELD_CONFIGS.STRING_TAG },
+              op: OPERATORS.EQUALS,
+              value: projectId,
+            },
+          ]
+        : []),
+    ];
+
+    return {
+      start,
+      end,
+      step: QUERY_DEFAULTS.STEP,
+      variables: {},
+      compositeQuery: {
+        queryType: QUERY_TYPES.BUILDER,
+        panelType: PANEL_TYPES.TABLE,
+        builderQueries: {
+          toolCalls: {
+            dataSource: DATA_SOURCES.TRACES,
+            queryName: 'toolCalls',
+            aggregateOperator: AGGREGATE_OPERATORS.COUNT,
+            aggregateAttribute: {
+              key: SPAN_KEYS.SPAN_ID,
+              ...QUERY_FIELD_CONFIGS.STRING_TAG_COLUMN,
+            },
+            filters: { op: OPERATORS.AND, items: baseFilters },
+            groupBy: [
+              { key: SPAN_KEYS.AI_TOOL_CALL_NAME, ...QUERY_FIELD_CONFIGS.STRING_TAG },
+              { key: SPAN_KEYS.AI_TOOL_CALL_MCP_SERVER_NAME, ...QUERY_FIELD_CONFIGS.STRING_TAG },
+              { key: SPAN_KEYS.AI_TOOL_CALL_MCP_SERVER_ID, ...QUERY_FIELD_CONFIGS.STRING_TAG },
+            ],
+            expression: 'toolCalls',
+            reduceTo: REDUCE_OPERATIONS.SUM,
+            stepInterval: QUERY_DEFAULTS.STEP_INTERVAL,
+            orderBy: [{ columnName: SPAN_KEYS.TIMESTAMP, order: ORDER_DIRECTIONS.DESC }],
+            offset: QUERY_DEFAULTS.OFFSET,
+            disabled: QUERY_DEFAULTS.DISABLED,
+            having: QUERY_DEFAULTS.HAVING,
+            legend: QUERY_DEFAULTS.LEGEND,
+            limit: QUERY_DEFAULTS.LIMIT_UNLIMITED,
+          },
+          toolErrors: {
+            dataSource: DATA_SOURCES.TRACES,
+            queryName: 'toolErrors',
+            aggregateOperator: AGGREGATE_OPERATORS.COUNT,
+            aggregateAttribute: {
+              key: SPAN_KEYS.SPAN_ID,
+              ...QUERY_FIELD_CONFIGS.STRING_TAG_COLUMN,
+            },
+            filters: {
+              op: OPERATORS.AND,
+              items: [
+                ...baseFilters,
+                {
+                  key: { key: SPAN_KEYS.HAS_ERROR, ...QUERY_FIELD_CONFIGS.BOOL_TAG_COLUMN },
+                  op: OPERATORS.EQUALS,
+                  value: true,
+                },
+              ],
+            },
+            groupBy: [{ key: SPAN_KEYS.AI_TOOL_CALL_NAME, ...QUERY_FIELD_CONFIGS.STRING_TAG }],
+            expression: 'toolErrors',
+            reduceTo: REDUCE_OPERATIONS.SUM,
+            stepInterval: QUERY_DEFAULTS.STEP_INTERVAL,
+            orderBy: [{ columnName: SPAN_KEYS.TIMESTAMP, order: ORDER_DIRECTIONS.DESC }],
+            offset: QUERY_DEFAULTS.OFFSET,
+            disabled: QUERY_DEFAULTS.DISABLED,
+            having: QUERY_DEFAULTS.HAVING,
+            legend: QUERY_DEFAULTS.LEGEND,
+            limit: QUERY_DEFAULTS.LIMIT_UNLIMITED,
+          },
+        },
+      },
+      dataSource: DATA_SOURCES.TRACES,
+      projectId,
+    };
+  }
+
+  private buildToolServerBreakdownPayload(start: number, end: number, projectId?: string) {
+    const baseFilters: any[] = [
+      {
+        key: { key: SPAN_KEYS.NAME, ...QUERY_FIELD_CONFIGS.STRING_TAG_COLUMN },
+        op: OPERATORS.EQUALS,
+        value: SPAN_NAMES.AI_TOOL_CALL,
+      },
+      {
+        key: { key: SPAN_KEYS.AI_TOOL_TYPE, ...QUERY_FIELD_CONFIGS.STRING_TAG },
+        op: OPERATORS.EQUALS,
+        value: AI_TOOL_TYPES.MCP,
+      },
+      {
+        key: { key: SPAN_KEYS.CONVERSATION_ID, ...QUERY_FIELD_CONFIGS.STRING_TAG },
+        op: OPERATORS.EXISTS,
+        value: '',
+      },
+      ...(projectId
+        ? [
+            {
+              key: { key: SPAN_KEYS.PROJECT_ID, ...QUERY_FIELD_CONFIGS.STRING_TAG },
+              op: OPERATORS.EQUALS,
+              value: projectId,
+            },
+          ]
+        : []),
+    ];
+
+    return {
+      start,
+      end,
+      step: QUERY_DEFAULTS.STEP,
+      variables: {},
+      compositeQuery: {
+        queryType: QUERY_TYPES.BUILDER,
+        panelType: PANEL_TYPES.TABLE,
+        builderQueries: {
+          serverCalls: {
+            dataSource: DATA_SOURCES.TRACES,
+            queryName: 'serverCalls',
+            aggregateOperator: AGGREGATE_OPERATORS.COUNT,
+            aggregateAttribute: {
+              key: SPAN_KEYS.SPAN_ID,
+              ...QUERY_FIELD_CONFIGS.STRING_TAG_COLUMN,
+            },
+            filters: { op: OPERATORS.AND, items: baseFilters },
+            groupBy: [
+              { key: SPAN_KEYS.AI_TOOL_CALL_MCP_SERVER_NAME, ...QUERY_FIELD_CONFIGS.STRING_TAG },
+            ],
+            expression: 'serverCalls',
+            reduceTo: REDUCE_OPERATIONS.SUM,
+            stepInterval: QUERY_DEFAULTS.STEP_INTERVAL,
+            orderBy: [{ columnName: SPAN_KEYS.TIMESTAMP, order: ORDER_DIRECTIONS.DESC }],
+            offset: QUERY_DEFAULTS.OFFSET,
+            disabled: QUERY_DEFAULTS.DISABLED,
+            having: QUERY_DEFAULTS.HAVING,
+            legend: QUERY_DEFAULTS.LEGEND,
+            limit: QUERY_DEFAULTS.LIMIT_UNLIMITED,
+          },
+          serverErrors: {
+            dataSource: DATA_SOURCES.TRACES,
+            queryName: 'serverErrors',
+            aggregateOperator: AGGREGATE_OPERATORS.COUNT,
+            aggregateAttribute: {
+              key: SPAN_KEYS.SPAN_ID,
+              ...QUERY_FIELD_CONFIGS.STRING_TAG_COLUMN,
+            },
+            filters: {
+              op: OPERATORS.AND,
+              items: [
+                ...baseFilters,
+                {
+                  key: { key: SPAN_KEYS.HAS_ERROR, ...QUERY_FIELD_CONFIGS.BOOL_TAG_COLUMN },
+                  op: OPERATORS.EQUALS,
+                  value: true,
+                },
+              ],
+            },
+            groupBy: [
+              { key: SPAN_KEYS.AI_TOOL_CALL_MCP_SERVER_NAME, ...QUERY_FIELD_CONFIGS.STRING_TAG },
+            ],
+            expression: 'serverErrors',
+            reduceTo: REDUCE_OPERATIONS.SUM,
+            stepInterval: QUERY_DEFAULTS.STEP_INTERVAL,
+            orderBy: [{ columnName: SPAN_KEYS.TIMESTAMP, order: ORDER_DIRECTIONS.DESC }],
+            offset: QUERY_DEFAULTS.OFFSET,
+            disabled: QUERY_DEFAULTS.DISABLED,
+            having: QUERY_DEFAULTS.HAVING,
+            legend: QUERY_DEFAULTS.LEGEND,
+            limit: QUERY_DEFAULTS.LIMIT_UNLIMITED,
+          },
+        },
+      },
+      dataSource: DATA_SOURCES.TRACES,
+      projectId,
+    };
+  }
+
+  private buildUniqueToolServersPayload(start: number, end: number, projectId?: string) {
+    const items: any[] = [
+      {
+        key: { key: SPAN_KEYS.NAME, ...QUERY_FIELD_CONFIGS.STRING_TAG_COLUMN },
+        op: OPERATORS.EQUALS,
+        value: SPAN_NAMES.AI_TOOL_CALL,
+      },
+      {
+        key: { key: SPAN_KEYS.AI_TOOL_TYPE, ...QUERY_FIELD_CONFIGS.STRING_TAG },
+        op: OPERATORS.EQUALS,
+        value: AI_TOOL_TYPES.MCP,
+      },
+      {
+        key: { key: SPAN_KEYS.AI_TOOL_CALL_MCP_SERVER_NAME, ...QUERY_FIELD_CONFIGS.STRING_TAG },
+        op: OPERATORS.EXISTS,
+        value: '',
+      },
+      {
+        key: { key: SPAN_KEYS.AI_TOOL_CALL_MCP_SERVER_NAME, ...QUERY_FIELD_CONFIGS.STRING_TAG },
+        op: OPERATORS.NOT_EQUALS,
+        value: UNKNOWN_VALUE,
+      },
+      ...(projectId
+        ? [
+            {
+              key: { key: SPAN_KEYS.PROJECT_ID, ...QUERY_FIELD_CONFIGS.STRING_TAG },
+              op: OPERATORS.EQUALS,
+              value: projectId,
+            },
+          ]
+        : []),
+    ];
+
+    return {
+      start,
+      end,
+      step: QUERY_DEFAULTS.STEP,
+      variables: {},
+      compositeQuery: {
+        queryType: QUERY_TYPES.BUILDER,
+        panelType: PANEL_TYPES.TABLE,
+        builderQueries: {
+          uniqueServers: {
+            dataSource: DATA_SOURCES.TRACES,
+            queryName: 'uniqueServers',
+            aggregateOperator: AGGREGATE_OPERATORS.COUNT,
+            aggregateAttribute: {
+              key: SPAN_KEYS.SPAN_ID,
+              ...QUERY_FIELD_CONFIGS.STRING_TAG_COLUMN,
+            },
+            filters: { op: OPERATORS.AND, items },
+            groupBy: [
+              { key: SPAN_KEYS.AI_TOOL_CALL_MCP_SERVER_NAME, ...QUERY_FIELD_CONFIGS.STRING_TAG },
+              { key: SPAN_KEYS.AI_TOOL_CALL_MCP_SERVER_ID, ...QUERY_FIELD_CONFIGS.STRING_TAG },
+            ],
+            expression: 'uniqueServers',
+            reduceTo: REDUCE_OPERATIONS.SUM,
+            stepInterval: QUERY_DEFAULTS.STEP_INTERVAL,
+            orderBy: [
+              { columnName: SPAN_KEYS.AI_TOOL_CALL_MCP_SERVER_NAME, order: ORDER_DIRECTIONS.ASC },
+            ],
+            offset: QUERY_DEFAULTS.OFFSET,
+            disabled: QUERY_DEFAULTS.DISABLED,
+            having: QUERY_DEFAULTS.HAVING,
+            legend: QUERY_DEFAULTS.LEGEND,
+            limit: QUERY_DEFAULTS.LIMIT_UNLIMITED,
+          },
+        },
+      },
+      dataSource: DATA_SOURCES.TRACES,
+      projectId,
+    };
+  }
+
+  private buildUniqueToolNamesPayload(start: number, end: number, projectId?: string) {
+    const items: any[] = [
+      {
+        key: { key: SPAN_KEYS.NAME, ...QUERY_FIELD_CONFIGS.STRING_TAG_COLUMN },
+        op: OPERATORS.EQUALS,
+        value: SPAN_NAMES.AI_TOOL_CALL,
+      },
+      {
+        key: { key: SPAN_KEYS.AI_TOOL_TYPE, ...QUERY_FIELD_CONFIGS.STRING_TAG },
+        op: OPERATORS.EQUALS,
+        value: AI_TOOL_TYPES.MCP,
+      },
+      {
+        key: { key: SPAN_KEYS.AI_TOOL_CALL_NAME, ...QUERY_FIELD_CONFIGS.STRING_TAG },
+        op: OPERATORS.EXISTS,
+        value: '',
+      },
+      {
+        key: { key: SPAN_KEYS.AI_TOOL_CALL_NAME, ...QUERY_FIELD_CONFIGS.STRING_TAG },
+        op: OPERATORS.NOT_EQUALS,
+        value: UNKNOWN_VALUE,
+      },
+      ...(projectId
+        ? [
+            {
+              key: { key: SPAN_KEYS.PROJECT_ID, ...QUERY_FIELD_CONFIGS.STRING_TAG },
+              op: OPERATORS.EQUALS,
+              value: projectId,
+            },
+          ]
+        : []),
+    ];
+
+    return {
+      start,
+      end,
+      step: QUERY_DEFAULTS.STEP,
+      variables: {},
+      compositeQuery: {
+        queryType: QUERY_TYPES.BUILDER,
+        panelType: PANEL_TYPES.TABLE,
+        builderQueries: {
+          uniqueTools: {
+            dataSource: DATA_SOURCES.TRACES,
+            queryName: 'uniqueTools',
+            aggregateOperator: AGGREGATE_OPERATORS.COUNT,
+            aggregateAttribute: {
+              key: SPAN_KEYS.SPAN_ID,
+              ...QUERY_FIELD_CONFIGS.STRING_TAG_COLUMN,
+            },
+            filters: { op: OPERATORS.AND, items },
+            groupBy: [{ key: SPAN_KEYS.AI_TOOL_CALL_NAME, ...QUERY_FIELD_CONFIGS.STRING_TAG }],
+            expression: 'uniqueTools',
+            reduceTo: REDUCE_OPERATIONS.SUM,
+            stepInterval: QUERY_DEFAULTS.STEP_INTERVAL,
+            orderBy: [{ columnName: SPAN_KEYS.AI_TOOL_CALL_NAME, order: ORDER_DIRECTIONS.ASC }],
+            offset: QUERY_DEFAULTS.OFFSET,
+            disabled: QUERY_DEFAULTS.DISABLED,
+            having: QUERY_DEFAULTS.HAVING,
+            legend: QUERY_DEFAULTS.LEGEND,
+            limit: QUERY_DEFAULTS.LIMIT_UNLIMITED,
+          },
+        },
+      },
+      dataSource: DATA_SOURCES.TRACES,
+      projectId,
+    };
+  }
 }
 
 // ---------- Singleton export
 
 let signozStatsClient: SigNozStatsAPI | null = null;
 
-export function getSigNozStatsClient(): SigNozStatsAPI {
-  return (signozStatsClient ??= new SigNozStatsAPI());
+export function getSigNozStatsClient(tenantId?: string): SigNozStatsAPI {
+  const client = (signozStatsClient ??= new SigNozStatsAPI());
+
+  if (tenantId) {
+    client.setTenantId(tenantId);
+  }
+
+  return client;
 }
 
 export { SigNozStatsAPI };

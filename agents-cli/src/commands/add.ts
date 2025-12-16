@@ -34,7 +34,7 @@ export const defaultGoogleModelConfigurations = {
 
 export const defaultOpenaiModelConfigurations = {
   base: {
-    model: OPENAI_MODELS.GPT_4_1,
+    model: OPENAI_MODELS.GPT_5_2,
   },
   structuredOutput: {
     model: OPENAI_MODELS.GPT_4_1_MINI,

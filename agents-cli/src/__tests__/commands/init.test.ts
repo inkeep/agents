@@ -53,10 +53,11 @@ describe('Init Command', () => {
       vi.mocked(p.text)
         .mockResolvedValueOnce('./inkeep.config.ts') // confirmedPath
         .mockResolvedValueOnce('test-tenant-123') // tenantId
-        .mockResolvedValueOnce('http://localhost:3002'); // apiUrl
+        .mockResolvedValueOnce('http://localhost:3002') // manageApiUrl
+        .mockResolvedValueOnce('http://localhost:3003'); // runApiUrl
       vi.mocked(p.isCancel).mockReturnValue(false);
 
-      await initCommand();
+      await initCommand({ local: true });
 
       expect(existsSync).toHaveBeenCalledWith(expect.stringContaining('inkeep.config.ts'));
 
@@ -92,11 +93,12 @@ describe('Init Command', () => {
       vi.mocked(p.text)
         .mockResolvedValueOnce('./inkeep.config.ts') // confirmedPath
         .mockResolvedValueOnce('new-tenant-456') // tenantId
-        .mockResolvedValueOnce('https://api.example.com'); // apiUrl
+        .mockResolvedValueOnce('https://api.example.com') // manageApiUrl
+        .mockResolvedValueOnce('https://run.example.com'); // runApiUrl
       vi.mocked(p.confirm).mockResolvedValueOnce(true); // overwrite
       vi.mocked(p.isCancel).mockReturnValue(false);
 
-      await initCommand();
+      await initCommand({ local: true });
 
       expect(p.confirm).toHaveBeenCalledWith(
         expect.objectContaining({
@@ -122,10 +124,10 @@ describe('Init Command', () => {
       vi.mocked(p.confirm).mockResolvedValueOnce(false); // overwrite
       vi.mocked(p.isCancel).mockReturnValue(false);
 
-      await initCommand();
+      await initCommand({ local: true });
 
       expect(writeFileSync).not.toHaveBeenCalled();
-      expect(consoleLogSpy).toHaveBeenCalledWith(expect.stringContaining('Init cancelled'));
+      expect(consoleLogSpy).toHaveBeenCalledWith(expect.stringContaining('cancelled'));
     });
 
     it('should validate tenant ID is not empty', async () => {
@@ -141,11 +143,14 @@ describe('Init Command', () => {
           validateFn = options.validate;
           return 'valid-tenant';
         }
+        if (options.message.includes('Management API') || options.message.includes('Run API')) {
+          return 'http://localhost:3002';
+        }
         return './inkeep.config.ts';
       });
       vi.mocked(p.isCancel).mockReturnValue(false);
 
-      await initCommand();
+      await initCommand({ local: true });
 
       // Test validation function
       if (validateFn) {
@@ -164,9 +169,12 @@ describe('Init Command', () => {
       // Mock clack prompts with validation
       let validateFn: any;
       vi.mocked(p.text).mockImplementation(async (options: any) => {
-        if (options.message.includes('API URL')) {
+        if (options.message.includes('Management API URL')) {
           validateFn = options.validate;
           return 'http://localhost:3002';
+        }
+        if (options.message.includes('Run API URL')) {
+          return 'http://localhost:3003';
         }
         if (options.message.includes('tenant')) {
           return 'test-tenant';
@@ -175,7 +183,7 @@ describe('Init Command', () => {
       });
       vi.mocked(p.isCancel).mockReturnValue(false);
 
-      await initCommand();
+      await initCommand({ local: true });
 
       // Test validation function
       if (validateFn) {
@@ -193,10 +201,11 @@ describe('Init Command', () => {
       // Mock clack prompts
       vi.mocked(p.text)
         .mockResolvedValueOnce('test-tenant') // tenantId
-        .mockResolvedValueOnce('http://localhost:3002'); // apiUrl
+        .mockResolvedValueOnce('http://localhost:3002') // manageApiUrl
+        .mockResolvedValueOnce('http://localhost:3003'); // runApiUrl
       vi.mocked(p.isCancel).mockReturnValue(false);
 
-      await initCommand({ path: './custom/path' });
+      await initCommand({ path: './custom/path', local: true });
 
       expect(writeFileSync).toHaveBeenCalledWith(
         expect.stringContaining('custom/path/inkeep.config.ts'),
@@ -214,14 +223,15 @@ describe('Init Command', () => {
       vi.mocked(p.text)
         .mockResolvedValueOnce('./inkeep.config.ts') // confirmedPath
         .mockResolvedValueOnce('test-tenant') // tenantId
-        .mockResolvedValueOnce('http://localhost:3002'); // apiUrl
+        .mockResolvedValueOnce('http://localhost:3002') // manageApiUrl
+        .mockResolvedValueOnce('http://localhost:3003'); // runApiUrl
       vi.mocked(p.isCancel).mockReturnValue(false);
 
       vi.mocked(writeFileSync).mockImplementation(() => {
         throw new Error('Permission denied');
       });
 
-      await expect(initCommand()).rejects.toThrow('process.exit called');
+      await expect(initCommand({ local: true })).rejects.toThrow('process.exit called');
 
       expect(consoleErrorSpy).toHaveBeenCalledWith(
         expect.stringContaining('Failed to create config file'),

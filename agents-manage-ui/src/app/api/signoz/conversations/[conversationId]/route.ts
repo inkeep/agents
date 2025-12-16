@@ -20,9 +20,9 @@ import {
   SPAN_NAMES,
   UNKNOWN_VALUE,
 } from '@/constants/signoz';
+import { getManageApiUrl } from '@/lib/api/api-config';
 import { fetchAllSpanAttributes_SQL } from '@/lib/api/signoz-sql';
 import { getLogger } from '@/lib/logger';
-import { DEFAULT_SIGNOZ_URL } from '@/lib/runtime-config/defaults';
 
 // Configure axios retry
 axiosRetry(axios, {
@@ -31,9 +31,6 @@ axiosRetry(axios, {
 });
 
 export const dynamic = 'force-dynamic';
-
-const SIGNOZ_URL = process.env.SIGNOZ_URL || process.env.PUBLIC_SIGNOZ_URL || DEFAULT_SIGNOZ_URL;
-const SIGNOZ_API_KEY = process.env.SIGNOZ_API_KEY || '';
 
 // ---------- Types
 
@@ -60,25 +57,35 @@ function getNumber(span: SigNozListItem, key: string, fallback = 0): number {
   return Number.isFinite(n) ? n : fallback;
 }
 
-async function signozQuery(payload: any): Promise<SigNozResp> {
+// Call secure manage-api instead of SigNoz directly
+async function signozQuery(
+  payload: any,
+  tenantId: string,
+  cookieHeader: string | null
+): Promise<SigNozResp> {
   const logger = getLogger('signoz-query');
 
-  // Check if API key is configured
-  if (!SIGNOZ_API_KEY || SIGNOZ_API_KEY.trim() === '') {
-    throw new Error(
-      'SIGNOZ_API_KEY is not configured. Please set the SIGNOZ_API_KEY environment variable.'
-    );
-  }
-
   try {
-    const signozEndpoint = `${SIGNOZ_URL}/api/v4/query_range`;
-    const response = await axios.post(signozEndpoint, payload, {
-      headers: {
-        'Content-Type': 'application/json',
-        'SIGNOZ-API-KEY': SIGNOZ_API_KEY,
-      },
+    const manageApiUrl = getManageApiUrl();
+    const endpoint = `${manageApiUrl}/tenants/${tenantId}/signoz/query`;
+
+    const headers: Record<string, string> = {
+      'Content-Type': 'application/json',
+    };
+
+    // Forward cookies for authentication
+    if (cookieHeader) {
+      headers.Cookie = cookieHeader;
+    }
+
+    logger.debug({ endpoint }, 'Calling secure manage-api for conversation traces');
+
+    const response = await axios.post(endpoint, payload, {
+      headers,
       timeout: 30000,
+      withCredentials: true,
     });
+
     const json = response.data as SigNozResp;
     const responseData = json?.data?.result
       ? json.data.result.map((r) => ({
@@ -209,6 +216,8 @@ function buildConversationListPayload(
               ...QUERY_FIELD_CONFIGS.STRING_TAG,
             },
             { key: SPAN_KEYS.AI_TOOL_TYPE, ...QUERY_FIELD_CONFIGS.STRING_TAG },
+            { key: SPAN_KEYS.AI_TOOL_CALL_MCP_SERVER_ID, ...QUERY_FIELD_CONFIGS.STRING_TAG },
+            { key: SPAN_KEYS.AI_TOOL_CALL_MCP_SERVER_NAME, ...QUERY_FIELD_CONFIGS.STRING_TAG },
             {
               key: SPAN_KEYS.AI_TELEMETRY_FUNCTION_ID,
               ...QUERY_FIELD_CONFIGS.STRING_TAG,
@@ -1030,8 +1039,12 @@ function buildConversationListPayload(
 
 // ---------- Main handler
 
+type RouteContext<_T> = {
+  params: Promise<Record<string, string>>;
+};
+
 export async function GET(
-  _req: NextRequest,
+  req: NextRequest,
   context: RouteContext<'/api/signoz/conversations/[conversationId]'>
 ) {
   const { conversationId } = await context.params;
@@ -1039,13 +1052,22 @@ export async function GET(
     return NextResponse.json({ error: 'Conversation ID is required' }, { status: 400 });
   }
 
+  // Get tenantId and projectId from URL search params
+  const url = new URL(req.url);
+  const tenantId = url.searchParams.get('tenantId') || 'default';
+
+  // Forward cookies for authentication
+  const cookieHeader = req.headers.get('cookie');
+
   try {
     const start = START_2020_MS;
     const end = Date.now();
 
-    // one combined LIST request for everything
+    // Build the query payload
     const payload = buildConversationListPayload(conversationId, start, end);
-    const resp = await signozQuery(payload);
+
+    // Call secure manage-api
+    const resp = await signozQuery(payload, tenantId, cookieHeader);
 
     const toolCallSpans = parseList(resp, QUERY_EXPRESSIONS.TOOL_CALLS);
     const contextResolutionSpans = parseList(resp, QUERY_EXPRESSIONS.CONTEXT_RESOLUTION);
@@ -1064,34 +1086,6 @@ export async function GET(
     const toolApprovalApprovedSpans = parseList(resp, QUERY_EXPRESSIONS.TOOL_APPROVAL_APPROVED);
     const toolApprovalDeniedSpans = parseList(resp, QUERY_EXPRESSIONS.TOOL_APPROVAL_DENIED);
 
-    // Categorize spans with errors into critical errors vs warnings
-    const CRITICAL_ERROR_SPAN_NAMES = [
-      'execution_handler.execute',
-      'agent.load_tools',
-      'context.handle_context_resolution',
-      'context.resolve',
-      'agent.generate',
-      'context-resolver.resolve_single_fetch_definition',
-      'agent_session.generate_structured_update',
-      'agent_session.process_artifact',
-      'agent_session.generate_artifact_metadata',
-      'response.format_object_response',
-      'response.format_response',
-      'ai.toolCall',
-    ];
-
-    let errorCount = 0;
-    let warningCount = 0;
-
-    for (const span of spansWithErrorsList) {
-      const spanName = getString(span, SPAN_KEYS.NAME, '');
-      if (CRITICAL_ERROR_SPAN_NAMES.includes(spanName)) {
-        errorCount++;
-      } else {
-        warningCount++;
-      }
-    }
-
     let agentId: string | null = null;
     let agentName: string | null = null;
     for (const s of userMessageSpans) {
@@ -1107,11 +1101,8 @@ export async function GET(
       data: Record<string, any>;
     }> = [];
     try {
-      allSpanAttributes = await fetchAllSpanAttributes_SQL(
-        conversationId,
-        SIGNOZ_URL,
-        SIGNOZ_API_KEY
-      );
+      // Call secure manage-api via the SQL helper function
+      allSpanAttributes = await fetchAllSpanAttributes_SQL(conversationId, tenantId, cookieHeader);
     } catch (e) {
       const logger = getLogger('span-attributes');
       logger.error({ error: e }, 'allSpanAttributes SQL fetch skipped/failed');
@@ -1143,7 +1134,7 @@ export async function GET(
       description: string;
       timestamp: string;
       parentSpanId?: string | null;
-      status: 'success' | 'error' | 'pending';
+      status: (typeof ACTIVITY_STATUS)[keyof typeof ACTIVITY_STATUS];
       subAgentId?: string;
       subAgentName?: string;
       result?: string;
@@ -1171,6 +1162,8 @@ export async function GET(
       toolName?: string;
       toolType?: string;
       toolPurpose?: string;
+      mcpServerId?: string;
+      mcpServerName?: string;
       toolCallArgs?: string;
       toolCallResult?: string;
       toolStatusMessage?: string;
@@ -1219,6 +1212,8 @@ export async function GET(
       const durMs = getNumber(span, SPAN_KEYS.DURATION_NANO) / 1e6;
       const toolType = getString(span, SPAN_KEYS.AI_TOOL_TYPE, '');
       const toolPurpose = getString(span, SPAN_KEYS.TOOL_PURPOSE, '');
+      const mcpServerId = getString(span, SPAN_KEYS.AI_TOOL_CALL_MCP_SERVER_ID, '');
+      const mcpServerName = getString(span, SPAN_KEYS.AI_TOOL_CALL_MCP_SERVER_NAME, '');
       const aiTelemetryFunctionId = getString(span, SPAN_KEYS.AI_TELEMETRY_FUNCTION_ID, '');
       const delegationFromSubAgentId = getString(span, SPAN_KEYS.DELEGATION_FROM_SUB_AGENT_ID, '');
       const delegationToSubAgentId = getString(span, SPAN_KEYS.DELEGATION_TO_SUB_AGENT_ID, '');
@@ -1248,6 +1243,8 @@ export async function GET(
         result: hasError ? `Tool call failed (${durMs.toFixed(2)}ms)` : `${durMs.toFixed(2)}ms`,
         toolType: toolType || undefined,
         toolPurpose: toolPurpose || undefined,
+        mcpServerId: mcpServerId || undefined,
+        mcpServerName: mcpServerName || undefined,
         aiTelemetryFunctionId: aiTelemetryFunctionId || undefined,
         delegationFromSubAgentId: delegationFromSubAgentId || undefined,
         delegationToSubAgentId: delegationToSubAgentId || undefined,
@@ -1630,6 +1627,59 @@ export async function GET(
       }
     }
 
+    // Adjust tool call status based on whether ALL or SOME failed within their agent generation
+    // Helper function to find the ancestor agent generation for an activity
+    function findAncestorAgentGeneration(activityId: string): string | null {
+      const activity = activities.find((a) => a.id === activityId);
+      if (!activity) return null;
+      if (activity.type === ACTIVITY_TYPES.AGENT_GENERATION) return activity.id;
+      if (!activity.parentSpanId) return null;
+      return findAncestorAgentGeneration(activity.parentSpanId);
+    }
+
+    // Group tool calls by their ancestor agent generation
+    const toolCallsByAgentGen = new Map<string, Activity[]>();
+    for (const activity of activities) {
+      if (activity.type === ACTIVITY_TYPES.TOOL_CALL) {
+        const ancestorAgentGen = findAncestorAgentGeneration(activity.id);
+        if (ancestorAgentGen) {
+          if (!toolCallsByAgentGen.has(ancestorAgentGen)) {
+            toolCallsByAgentGen.set(ancestorAgentGen, []);
+          }
+          toolCallsByAgentGen.get(ancestorAgentGen)?.push(activity);
+        }
+      }
+    }
+
+    // For each agent generation, check if ALL tool calls to the same MCP server failed
+    for (const [_agentGenId, toolCallsInGeneration] of toolCallsByAgentGen) {
+      if (toolCallsInGeneration.length === 0) continue;
+
+      // Group tool calls by MCP server name
+      const toolCallsByMcpServer = new Map<string, Activity[]>();
+      for (const toolCall of toolCallsInGeneration) {
+        const mcpServerName = toolCall.mcpServerName || UNKNOWN_VALUE;
+        if (!toolCallsByMcpServer.has(mcpServerName)) {
+          toolCallsByMcpServer.set(mcpServerName, []);
+        }
+        toolCallsByMcpServer.get(mcpServerName)?.push(toolCall);
+      }
+
+      // For each MCP server, check if ALL or SOME tool calls failed
+      for (const [_mcpServerName, toolCallsToServer] of toolCallsByMcpServer) {
+        const failedToolCalls = toolCallsToServer.filter((a) => a.status === ACTIVITY_STATUS.ERROR);
+        const successfulToolCalls = toolCallsToServer.filter(
+          (a) => a.status === ACTIVITY_STATUS.SUCCESS
+        );
+
+        if (failedToolCalls.length > 0 && successfulToolCalls.length > 0) {
+          for (const toolCall of failedToolCalls) {
+            toolCall.status = ACTIVITY_STATUS.WARNING;
+          }
+        }
+      }
+    }
+
     // Sort activities by pre-parsed timestamps
     activities.sort((a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime());
 
@@ -1655,46 +1705,37 @@ export async function GET(
         ? Math.max(0, conversationEndTime - conversationStartTime)
         : 0;
 
-    // Single pass token counting for better performance
-    let totalInputTokens = 0;
-    let totalOutputTokens = 0;
-    for (const activity of activities) {
-      if (
-        (activity.type === ACTIVITY_TYPES.AI_GENERATION ||
-          activity.type === ACTIVITY_TYPES.AI_MODEL_STREAMED_TEXT ||
-          activity.type === ACTIVITY_TYPES.AI_MODEL_STREAMED_OBJECT) &&
-        typeof activity.inputTokens === 'number'
-      ) {
-        totalInputTokens += activity.inputTokens;
-      }
-      if (
-        (activity.type === ACTIVITY_TYPES.AI_GENERATION ||
-          activity.type === ACTIVITY_TYPES.AI_MODEL_STREAMED_TEXT ||
-          activity.type === ACTIVITY_TYPES.AI_MODEL_STREAMED_OBJECT) &&
-        typeof activity.outputTokens === 'number'
-      ) {
-        totalOutputTokens += activity.outputTokens;
-      }
-    }
+    const TOKEN_ACTIVITY_TYPES: Set<string> = new Set([
+      ACTIVITY_TYPES.AI_GENERATION,
+      ACTIVITY_TYPES.AI_MODEL_STREAMED_TEXT,
+      ACTIVITY_TYPES.AI_MODEL_STREAMED_OBJECT,
+    ]);
+    const { totalInputTokens, totalOutputTokens } = activities.reduce(
+      (acc, a) => {
+        if (TOKEN_ACTIVITY_TYPES.has(a.type)) {
+          if (typeof a.inputTokens === 'number') acc.totalInputTokens += a.inputTokens;
+          if (typeof a.outputTokens === 'number') acc.totalOutputTokens += a.outputTokens;
+        }
+        return acc;
+      },
+      { totalInputTokens: 0, totalOutputTokens: 0 }
+    );
 
     const openAICallsCount = aiGenerationSpans.length;
+
+    // Recalculate error and warning counts based on actual activity statuses
+    const finalErrorCount = activities.filter((a) => a.status === ACTIVITY_STATUS.ERROR).length;
+    const finalWarningCount = activities.filter((a) => a.status === ACTIVITY_STATUS.WARNING).length;
 
     const conversation = {
       conversationId,
       startTime: conversationStartTime ? conversationStartTime : null,
       endTime: conversationEndTime ? conversationEndTime : null,
       duration: conversationDurationMs,
-      totalMessages: (() => {
-        let count = 0;
-        for (const a of activities) {
-          if (
-            a.type === ACTIVITY_TYPES.USER_MESSAGE ||
-            a.type === ACTIVITY_TYPES.AI_ASSISTANT_MESSAGE
-          )
-            count++;
-        }
-        return count;
-      })(),
+      totalMessages: activities.filter(
+        (a) =>
+          a.type === ACTIVITY_TYPES.USER_MESSAGE || a.type === ACTIVITY_TYPES.AI_ASSISTANT_MESSAGE
+      ).length,
       totalToolCalls: activities.filter((a) => a.type === ACTIVITY_TYPES.TOOL_CALL).length,
       totalErrors: 0,
       totalOpenAICalls: openAICallsCount,
@@ -1713,8 +1754,8 @@ export async function GET(
       agentName,
       allSpanAttributes,
       spansWithErrorsCount: spansWithErrorsList.length,
-      errorCount,
-      warningCount,
+      errorCount: finalErrorCount,
+      warningCount: finalWarningCount,
     });
   } catch (error) {
     const logger = getLogger('conversation-details');

@@ -31,6 +31,7 @@ import type { AgentStopWhen, StopWhen, SubAgentStopWhen } from '../validation/sc
 // Re-export Better Auth generated tables
 export {
   account,
+  deviceCode,
   invitation,
   member,
   organization,

@@ -889,22 +889,16 @@ function getDetailedFieldChanges(
   // Prevent infinite recursion
   if (depth > 10) return changes;
 
-  // Ignore database/SDK generated fields that shouldn't affect comparison
+  // Ignore SDK/runtime generated fields that shouldn't affect comparison
+  // Note: Database-generated IDs (like agentToolRelationId) are NOT ignored - they represent meaningful structural differences
   const ignoredFields = [
-    // Database-generated IDs
-    'agentToolRelationId',
-    'subAgentExternalAgentRelationId',
-    'subAgentTeamAgentRelationId',
-    'subAgentToolRelationId',
-    'agentExternalAgentRelationId',
-    'teamAgentRelationId',
+    // Internal temporary fields (prefixed with _)
     '_agentId',
-    'teamAgents',
     '_parentAgentId',
     '_contextConfigData',
-    // SDK-generated metadata
+    // SDK-generated metadata (added at runtime when loading project)
     'type',
-    // Runtime context fields
+    // Runtime context fields (set dynamically)
     'tenantId',
     'projectId',
     'agentId',
@@ -917,7 +911,6 @@ function getDetailedFieldChanges(
     'usedBy', // Computed field
     // Agent-level fields that shouldn't be compared (tools only for sub-agents via canUse)
     'tools', // Tools are handled at project level and sub-agent level via canUse
-    'teamAgents', // Team relationships are handled elsewhere
     // Timestamps
     'createdAt',
     'updatedAt',

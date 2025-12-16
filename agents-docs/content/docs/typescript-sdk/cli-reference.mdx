@@ -67,6 +67,7 @@ inkeep push
 **Options:**
 
 - `--project <project-id>` - Project ID or path to project directory
+- `--all` - Push all projects found in the current directory tree
 - `--env <environment>` - Load environment-specific credentials from `environments/<environment>.env.ts`
 - `--config <path>` - Override config file path (bypasses automatic config discovery)
 - `--tenant-id <id>` - Override tenant ID
@@ -74,14 +75,35 @@ inkeep push
 - `--agents-run-api-url <url>` - Override agents run API URL
 - `--json` - Generate project data as JSON file instead of pushing to server
 
+#### Single Project Push
+
+The most common workflow is to run `inkeep push` from inside a project directory. A project directory is identified by having an `index.ts` file that exports a project object (with `__type = "project"`).
+
+```bash
+# Navigate to your project directory
+cd my-project
+
+# Push the current project
+inkeep push
+```
+
+The CLI will:
+1. Detect `index.ts` in the current directory
+2. Load the project export from `index.ts`
+3. Search upward for `inkeep.config.ts` to get tenant/API configuration
+4. Push the project to the server
+
 **Examples:**
 
 ```bash
-# Push project from current directory
-inkeep push
+# Push project from current directory (most common)
+cd my-project && inkeep push
 
 # Push specific project directory
 inkeep push --project ./my-project
+
+# Push all projects in current directory tree
+inkeep push --all
 
 # Push with development environment credentials
 inkeep push --env development
@@ -98,6 +120,61 @@ inkeep push --agents-run-api-url https://run.example.com
 
 # Use specific config file
 inkeep push --config ./custom-config/inkeep.config.ts
+```
+
+#### Batch Push with `--all`
+
+The `--all` flag discovers and pushes all projects in the current directory tree. A directory is considered a project if its `index.ts` file exports an object with `__type = "project"`.
+
+```bash
+# From a workspace root containing multiple projects
+inkeep push --all
+```
+
+**Project Discovery:**
+
+1. Searches recursively for directories containing `index.ts` files
+2. Validates each `index.ts` exports a project (checks for `__type = "project"`)
+3. Ensures each project can access an `inkeep.config.ts` (in the same directory or a parent directory)
+
+**Shared Configuration:**
+
+You can use a single `inkeep.config.ts` at the workspace root for multiple projects:
+
+```
+workspace-root/
+├── inkeep.config.ts          # Shared config for all projects
+└── projects/
+    ├── project-a/
+    │   └── index.ts          # Project A
+    ├── project-b/
+    │   └── index.ts          # Project B
+    └── project-c/
+        └── index.ts          # Project C
+```
+
+Running `inkeep push --all` from `workspace-root/` or `workspace-root/projects/` will discover and push all three projects using the shared configuration.
+
+**Output:**
+
+```
+🚀 Batch Push: Finding all projects...
+
+Found 3 project(s) to push:
+
+  • project-a
+  • project-b
+  • project-c
+
+[1/3] Pushing project-a...
+  ✓ Project A
+[2/3] Pushing project-b...
+  ✓ Project B
+[3/3] Pushing project-c...
+  ✓ Project C
+
+📊 Batch Push Summary:
+  ✓ Succeeded: 3
 ```
 
 **Environment Credentials:**
@@ -186,6 +263,7 @@ inkeep pull
 **Options:**
 
 - `--project <project-id>` - Project ID to pull (or path to project directory). If in project directory, validates against local project ID.
+- `--all` - Pull all projects from the server to the current directory
 - `--config <path>` - Path to configuration file
 - `--env <environment>` - Environment file to generate (development, staging, production). Defaults to development
 - `--json` - Output project data as JSON instead of generating files
@@ -193,6 +271,24 @@ inkeep pull
 - `--verbose` - Enable verbose logging
 - `--force` - Force regeneration even if no changes detected
 - `--introspect` - Completely regenerate all files from scratch (no comparison needed)
+
+#### Single Project Pull
+
+The most common workflow is to run `inkeep pull` from inside a project directory. A project directory is identified by having an `index.ts` file that exports a project object (with `__type = "project"`).
+
+```bash
+# Navigate to your project directory
+cd my-project
+
+# Pull updates from the server
+inkeep pull
+```
+
+The CLI will:
+1. Detect `index.ts` in the current directory
+2. Load the project export to get the project ID
+3. Fetch the latest configuration from the server
+4. Update your local TypeScript files with any changes
 
 **Smart Project Detection:**
 
@@ -282,6 +378,54 @@ inkeep pull --env production
 
 # Use specific config file
 inkeep pull --config ./custom-config/inkeep.config.ts
+
+# Pull all projects from server
+inkeep pull --all
+```
+
+#### Batch Pull with `--all`
+
+The `--all` flag fetches all projects from your tenant and pulls them to the current directory. Each project is created as a subdirectory.
+
+```bash
+# From a workspace directory
+inkeep pull --all
+```
+
+**How it Works:**
+
+1. Fetches all projects from the API for your tenant
+2. Categorizes each project as "existing" or "new":
+   - **Existing**: Directory with `index.ts` already exists → uses smart comparison mode
+   - **New**: No local directory → uses introspect mode for fresh generation
+3. Processes each project sequentially
+
+**Output:**
+
+```
+🔄 Batch Pull: Sequential processing with smart comparison
+
+  • Existing projects: Smart comparison + LLM merging + confirmation prompts
+  • New projects: Fresh generation with introspect mode
+
+Projects to pull:
+
+  Existing (smart comparison):
+    • My Agent (my-agent)
+  New (introspect):
+    • New Project (new-project)
+
+──────────────────────────────────────────────────────────
+[1/2] Pulling My Agent...
+  ✓ My Agent → ./my-agent
+
+──────────────────────────────────────────────────────────
+[2/2] Pulling New Project...
+  ✓ New Project → ./new-project
+
+════════════════════════════════════════════════════════════
+📊 Batch Pull Summary:
+  ✓ Succeeded: 2
 ```
 
 #### Model Configuration
