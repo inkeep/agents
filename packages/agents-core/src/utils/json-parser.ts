@@ -6,6 +6,11 @@ import traverse from 'traverse'; // tiny object walker
  * Useful for parsing MCP tool results and other string data that may contain embedded JSON.
  */
 export function parseEmbeddedJson<T>(data: T): T {
+  // Handle null/undefined/primitive values that can't be traversed
+  if (data === null || data === undefined || typeof data !== 'object') {
+    return data;
+  }
+
   return traverse(data).map(function (this: traverse.TraverseContext, x: any) {
     if (typeof x === 'string') {
       const v = destr(x); // returns original string if not JSON

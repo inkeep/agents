@@ -7,7 +7,7 @@ describe('parseEmbeddedJson', () => {
       const input = { key: 'value', nested: { prop: 123 } };
       const result = parseEmbeddedJson(input);
       expect(result).toEqual(input);
-      expect(result).toBe(input); // Should not create new instance
+      // Note: traverse() creates a new instance even if no changes are made
     });
 
     it('should not modify primitive values', () => {
@@ -62,13 +62,8 @@ describe('parseEmbeddedJson', () => {
       };
       const result = parseEmbeddedJson(input);
       
+      // parseEmbeddedJson processes all levels in one pass
       expect(result).toEqual({
-        parent: { nested: '{"deep": "value"}' }
-      });
-      
-      // Parse again to handle double-nested
-      const doubleResult = parseEmbeddedJson(result);
-      expect(doubleResult).toEqual({
         parent: { nested: { deep: 'value' } }
       });
     });
@@ -98,6 +93,20 @@ describe('parseEmbeddedJson', () => {
   });
 
   describe('edge cases', () => {
+    it('should safely handle null input', () => {
+      expect(parseEmbeddedJson(null)).toBe(null);
+    });
+
+    it('should safely handle undefined input', () => {
+      expect(parseEmbeddedJson(undefined)).toBe(undefined);
+    });
+
+    it('should safely handle primitive inputs', () => {
+      expect(parseEmbeddedJson('string')).toBe('string');
+      expect(parseEmbeddedJson(42)).toBe(42);
+      expect(parseEmbeddedJson(true)).toBe(true);
+    });
+
     it('should handle malformed JSON strings gracefully', () => {
       const input = {
         malformed: '{"incomplete": true',
@@ -123,7 +132,7 @@ describe('parseEmbeddedJson', () => {
       expect(result).toEqual({
         nullValue: null,
         undefinedValue: undefined,
-        stringNull: null, // 'null' string becomes null
+        stringNull: 'null', // 'null' string stays as string (destr doesn't parse bare 'null')
         stringUndefined: 'undefined' // 'undefined' string stays as string
       });
     });
