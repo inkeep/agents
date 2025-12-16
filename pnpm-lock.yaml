@@ -123,6 +123,9 @@ importers:
       degit:
         specifier: ^2.8.4
         version: 2.8.4
+      destr:
+        specifier: ^2.0.3
+        version: 2.0.5
       dotenv:
         specifier: ^17.2.1
         version: 17.2.3
@@ -156,6 +159,9 @@ importers:
       recast:
         specifier: ^0.23.0
         version: 0.23.11
+      traverse:
+        specifier: ^0.6.10
+        version: 0.6.11
       ts-morph:
         specifier: ^26.0.0
         version: 26.0.0

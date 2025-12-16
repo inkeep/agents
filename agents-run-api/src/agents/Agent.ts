@@ -747,7 +747,7 @@ export class Agent {
             let processedArgs: typeof args;
             try {
               processedArgs = parseEmbeddedJson(args);
-              
+
               // Warn if we had to fix stringified JSON (indicates schema ambiguity issue)
               if (JSON.stringify(args) !== JSON.stringify(processedArgs)) {
                 logger.warn(
@@ -756,8 +756,10 @@ export class Agent {
                 );
               }
             } catch (error) {
-              logger.warn({ toolName, toolCallId, error: (error as Error).message }, 
-                'Failed to parse embedded JSON, using original args');
+              logger.warn(
+                { toolName, toolCallId, error: (error as Error).message },
+                'Failed to parse embedded JSON, using original args'
+              );
               processedArgs = args;
             }
 
@@ -1298,7 +1300,7 @@ export class Agent {
             let processedArgs: typeof args;
             try {
               processedArgs = parseEmbeddedJson(args);
-              
+
               // Warn if we had to fix stringified JSON (indicates schema ambiguity issue)
               if (JSON.stringify(args) !== JSON.stringify(processedArgs)) {
                 logger.warn(
@@ -1307,8 +1309,10 @@ export class Agent {
                 );
               }
             } catch (error) {
-              logger.warn({ toolName: functionToolDef.name, toolCallId, error: (error as Error).message }, 
-                'Failed to parse embedded JSON, using original args');
+              logger.warn(
+                { toolName: functionToolDef.name, toolCallId, error: (error as Error).message },
+                'Failed to parse embedded JSON, using original args'
+              );
               processedArgs = args;
             }
 

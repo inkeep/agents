@@ -35,36 +35,36 @@ describe('parseEmbeddedJson', () => {
     it('should parse stringified objects', () => {
       const input = {
         normal: 'value',
-        stringified: '{"page_id": "abc123", "type": "page"}'
+        stringified: '{"page_id": "abc123", "type": "page"}',
       };
       const result = parseEmbeddedJson(input);
-      
+
       expect(result).toEqual({
         normal: 'value',
-        stringified: { page_id: 'abc123', type: 'page' }
+        stringified: { page_id: 'abc123', type: 'page' },
       });
     });
 
     it('should parse stringified arrays', () => {
       const input = {
-        items: '[{"name": "item1"}, {"name": "item2"}]'
+        items: '[{"name": "item1"}, {"name": "item2"}]',
       };
       const result = parseEmbeddedJson(input);
-      
+
       expect(result).toEqual({
-        items: [{ name: 'item1' }, { name: 'item2' }]
+        items: [{ name: 'item1' }, { name: 'item2' }],
       });
     });
 
     it('should handle nested stringified JSON', () => {
       const input = {
-        parent: '{"nested": "{\\"deep\\": \\"value\\"}"}' 
+        parent: '{"nested": "{\\"deep\\": \\"value\\"}"}',
       };
       const result = parseEmbeddedJson(input);
-      
+
       // parseEmbeddedJson processes all levels in one pass
       expect(result).toEqual({
-        parent: { nested: { deep: 'value' } }
+        parent: { nested: { deep: 'value' } },
       });
     });
 
@@ -75,19 +75,19 @@ describe('parseEmbeddedJson', () => {
         stringifiedObj: '{"prop": "value"}',
         stringifiedArray: '[1, 2, 3]',
         nested: {
-          deep: '{"inner": "stringified"}'
-        }
+          deep: '{"inner": "stringified"}',
+        },
       };
       const result = parseEmbeddedJson(input);
-      
+
       expect(result).toEqual({
         regular: 'normal string',
         number: 42,
         stringifiedObj: { prop: 'value' },
         stringifiedArray: [1, 2, 3],
         nested: {
-          deep: { inner: 'stringified' }
-        }
+          deep: { inner: 'stringified' },
+        },
       });
     });
   });
@@ -112,10 +112,10 @@ describe('parseEmbeddedJson', () => {
         malformed: '{"incomplete": true',
         invalid: '{not json at all}',
         empty: '',
-        whitespace: '   '
+        whitespace: '   ',
       };
       const result = parseEmbeddedJson(input);
-      
+
       // Should leave malformed JSON unchanged
       expect(result).toEqual(input);
     });
@@ -125,15 +125,15 @@ describe('parseEmbeddedJson', () => {
         nullValue: null,
         undefinedValue: undefined,
         stringNull: 'null',
-        stringUndefined: 'undefined'
+        stringUndefined: 'undefined',
       };
       const result = parseEmbeddedJson(input);
-      
+
       expect(result).toEqual({
         nullValue: null,
         undefinedValue: undefined,
         stringNull: 'null', // 'null' string stays as string (destr doesn't parse bare 'null')
-        stringUndefined: 'undefined' // 'undefined' string stays as string
+        stringUndefined: 'undefined', // 'undefined' string stays as string
       });
     });
 
@@ -142,15 +142,15 @@ describe('parseEmbeddedJson', () => {
         emptyObj: '{}',
         emptyArray: '[]',
         existingEmpty: {},
-        existingEmptyArray: []
+        existingEmptyArray: [],
       };
       const result = parseEmbeddedJson(input);
-      
+
       expect(result).toEqual({
         emptyObj: {},
         emptyArray: [],
         existingEmpty: {},
-        existingEmptyArray: []
+        existingEmptyArray: [],
       });
     });
 
@@ -159,22 +159,22 @@ describe('parseEmbeddedJson', () => {
         deep: {
           level1: {
             level2: {
-              level3: '{"stringified": "deep down"}'
-            }
-          }
-        }
+              level3: '{"stringified": "deep down"}',
+            },
+          },
+        },
       };
       const result = parseEmbeddedJson(input);
-      
+
       expect(result.deep.level1.level2.level3).toEqual({
-        stringified: 'deep down'
+        stringified: 'deep down',
       });
     });
 
     it('should not cause infinite recursion with circular references', () => {
       const input: any = { prop: 'value' };
       input.circular = input;
-      
+
       // Should not throw error - traverse library handles circular refs
       expect(() => parseEmbeddedJson(input)).not.toThrow();
     });
@@ -183,28 +183,34 @@ describe('parseEmbeddedJson', () => {
   describe('performance considerations', () => {
     it('should not significantly impact performance for normal objects', () => {
       const largeNormalObject = {
-        ...Array.from({ length: 1000 }, (_, i) => ({ [`key${i}`]: `value${i}` })).reduce((acc, obj) => ({ ...acc, ...obj }), {})
+        ...Array.from({ length: 1000 }, (_, i) => ({ [`key${i}`]: `value${i}` })).reduce(
+          (acc, obj) => ({ ...acc, ...obj }),
+          {}
+        ),
       };
-      
+
       const start = Date.now();
       const result = parseEmbeddedJson(largeNormalObject);
       const duration = Date.now() - start;
-      
+
       expect(result).toEqual(largeNormalObject);
       expect(duration).toBeLessThan(100); // Should process quickly
     });
 
     it('should handle large stringified objects efficiently', () => {
       const largeStringifiedObject = JSON.stringify({
-        ...Array.from({ length: 100 }, (_, i) => ({ [`prop${i}`]: `value${i}` })).reduce((acc, obj) => ({ ...acc, ...obj }), {})
+        ...Array.from({ length: 100 }, (_, i) => ({ [`prop${i}`]: `value${i}` })).reduce(
+          (acc, obj) => ({ ...acc, ...obj }),
+          {}
+        ),
       });
-      
+
       const input = { large: largeStringifiedObject };
-      
+
       const start = Date.now();
       const result = parseEmbeddedJson(input);
       const duration = Date.now() - start;
-      
+
       expect(typeof result.large).toBe('object');
       expect(duration).toBeLessThan(200); // Should still be reasonable
     });
@@ -214,25 +220,25 @@ describe('parseEmbeddedJson', () => {
     it('should fix Claude notion-create-pages stringified JSON issue', () => {
       const claudeInput = {
         parent: '{"page_id": "2c745f35-b5ad-813b-aee2-c1b1ef058a64"}',
-        pages: '[{"properties": {"title": "Example Page"}}]'
+        pages: '[{"properties": {"title": "Example Page"}}]',
       };
-      
+
       const result = parseEmbeddedJson(claudeInput);
-      
+
       expect(result).toEqual({
         parent: { page_id: '2c745f35-b5ad-813b-aee2-c1b1ef058a64' },
-        pages: [{ properties: { title: 'Example Page' } }]
+        pages: [{ properties: { title: 'Example Page' } }],
       });
     });
 
     it('should preserve GPT-style proper objects', () => {
       const gptInput = {
         parent: { page_id: '2c745f35-b5ad-813b-aee2-c1b1ef058a64' },
-        pages: [{ properties: { title: 'Example Page' } }]
+        pages: [{ properties: { title: 'Example Page' } }],
       };
-      
+
       const result = parseEmbeddedJson(gptInput);
-      
+
       // Should remain unchanged
       expect(result).toEqual(gptInput);
     });
