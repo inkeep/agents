@@ -1,6 +1,6 @@
 import type { SuggestionOptions, SuggestionProps } from '@tiptap/suggestion';
-import type { FC, RefObject } from 'react';
-import { useCallback, useImperativeHandle, useState } from 'react';
+import type { FC } from 'react';
+import { useCallback, useState } from 'react';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -8,18 +8,10 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { monacoStore } from '@/features/agent/state/use-monaco-store';
-import { cn } from '@/lib/utils';
 
-export type VariableListItem = string;
+type VariableListItem = string;
 
-export type VariableListRef = {
-  onKeyDown: (props: { event: KeyboardEvent }) => boolean;
-};
-
-export interface VariableListProps
-  extends SuggestionProps<VariableListItem, { id: VariableListItem }> {
-  ref: RefObject<VariableListRef>;
-}
+export type VariableListProps = SuggestionProps<VariableListItem, { id: VariableListItem }>;
 
 export const buildVariableItems: SuggestionOptions['items'] = ({ query }) => {
   const { variableSuggestions } = monacoStore.getState();
@@ -36,8 +28,7 @@ export const buildVariableItems: SuggestionOptions['items'] = ({ query }) => {
   return [...entries.values(), '$env.'];
 };
 
-// TODO: figure out how to replace dropdown with shadcn and have proper scroll when scrolling in viewport and in editor view
-export const VariableList2: FC<VariableListProps> = ({ items, command }) => {
+export const VariableList: FC<VariableListProps> = ({ items, command }) => {
   const [open, setOpen] = useState(true);
 
   const selectItem = useCallback(
@@ -56,9 +47,15 @@ export const VariableList2: FC<VariableListProps> = ({ items, command }) => {
       modal={false}
     >
       <DropdownMenuTrigger />
-      <DropdownMenuContent align="start">
+      <DropdownMenuContent
+        align="start"
+        sideOffset={-15}
+        className="max-h-64"
+        // Update dropdown position when user scroll on page or in editor
+        updatePositionStrategy="always"
+      >
         {items.map((item) => (
-          <DropdownMenuItem key={item} data-label={item} onSelect={selectItem}>
+          <DropdownMenuItem key={item} data-label={item} onSelect={selectItem} aria-label="Suggest">
             {item}
           </DropdownMenuItem>
         ))}

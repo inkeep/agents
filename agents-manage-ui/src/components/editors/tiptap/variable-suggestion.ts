@@ -4,12 +4,7 @@ import { Mention } from '@tiptap/extension-mention';
 import { posToDOMRect, ReactRenderer } from '@tiptap/react';
 import { badgeVariants } from '@/components/ui/badge';
 import { agentStore } from '@/features/agent/state/use-agent-store';
-import {
-  buildVariableItems,
-  VariableList,
-  type VariableListProps,
-  type VariableListRef,
-} from './variable-list';
+import { buildVariableItems, VariableList, type VariableListProps } from './variable-list';
 
 const TOKEN_NAME = 'variableSuggestion';
 const TRIGGER_CHAR = '{';
@@ -82,6 +77,10 @@ const VariableSuggestionExtension = Mention.extend({
   },
 });
 
+/**
+ * Based on Tiptap mention example
+ * @see https://github.com/ueberdosis/tiptap/blob/main/demos/src/Nodes/Mention/React/suggestion.js
+ */
 export const variableSuggestionExtension = VariableSuggestionExtension.configure({
   HTMLAttributes: {
     class: badgeVariants({ variant: 'violet' }),
@@ -90,7 +89,7 @@ export const variableSuggestionExtension = VariableSuggestionExtension.configure
     char: TRIGGER_CHAR,
     items: buildVariableItems,
     render() {
-      let component: ReactRenderer<VariableListRef, VariableListProps>;
+      let component: ReactRenderer<null, VariableListProps>;
       let cleanup: () => void;
       let virtualElement: ReferenceElement;
 
@@ -114,7 +113,6 @@ export const variableSuggestionExtension = VariableSuggestionExtension.configure
             return;
           }
           const el = component.element;
-          el.style.position = 'absolute';
           document.body.append(el);
 
           // Keep the menu positioned when the editable area scrolls.
@@ -143,9 +141,6 @@ export const variableSuggestionExtension = VariableSuggestionExtension.configure
           if (props.event.key === 'Escape') {
             component.destroy();
             return true;
-          }
-          if (component.ref) {
-            return component.ref.onKeyDown(props);
           }
           return false;
         },
