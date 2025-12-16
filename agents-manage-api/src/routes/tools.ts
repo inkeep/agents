@@ -1,4 +1,5 @@
 import { createRoute, OpenAPIHono } from '@hono/zod-openapi';
+import { speakeasyOffsetLimitPagination } from './shared';
 import {
   CredentialReferenceApiSelectSchema,
   CredentialReferenceResponse,
@@ -82,6 +83,7 @@ app.openapi(
       },
       ...commonGetErrorResponses,
     },
+    ...speakeasyOffsetLimitPagination,
   }),
   async (c) => {
     const { tenantId, projectId } = c.req.valid('param');

@@ -1,4 +1,5 @@
 import { createRoute, OpenAPIHono, z } from '@hono/zod-openapi';
+import { speakeasyOffsetLimitPagination } from './shared';
 import {
   ApiKeyApiCreationResponseSchema,
   ApiKeyApiInsertSchema,
@@ -67,6 +68,7 @@ app.openapi(
       },
       ...commonGetErrorResponses,
     },
+    ...speakeasyOffsetLimitPagination,
   }),
   async (c) => {
     const { tenantId, projectId } = c.req.valid('param');
