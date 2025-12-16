@@ -444,12 +444,20 @@ let currentKeypressHandler: ((key: string) => void) | null = null;
 /**
  * Validate the temp directory by compiling and comparing with remote project
  */
+export interface ValidationResult {
+  success: boolean;
+  upToDate?: boolean;
+  userDeclined?: boolean;
+}
+
 export async function validateTempDirectory(
   originalProjectRoot: string,
   tempDirName: string,
-  remoteProject: FullProjectDefinition
-): Promise<void> {
+  remoteProject: FullProjectDefinition,
+  options?: { skipExit?: boolean }
+): Promise<ValidationResult> {
   const tempDir = join(originalProjectRoot, tempDirName);
+  const skipExit = options?.skipExit ?? false;
 
   // Load and compare project definitions
   const equivalenceSuccess = await validateProjectEquivalence(tempDir, remoteProject);
@@ -468,7 +476,10 @@ export async function validateTempDirectory(
     }
 
     console.log(chalk.green(`\n🎉 Pull completed - project is up to date!`));
-    process.exit(0);
+    if (!skipExit) {
+      process.exit(0);
+    }
+    return { success: true, upToDate: true };
   }
 
   // Projects have meaningful differences - ask user if they want to overwrite
@@ -481,7 +492,7 @@ export async function validateTempDirectory(
   console.log(chalk.green(`   [Y] Yes - Replace files and clean up temp directory`));
   console.log(chalk.red(`   [N] No - Keep temp directory for manual review`));
 
-  return new Promise<void>((_resolve) => {
+  return new Promise<ValidationResult>((resolve) => {
     // Prevent multiple simultaneous listener setups
     if (isWaitingForInput && currentKeypressHandler) {
       // Remove the previous handler if it exists
@@ -525,20 +536,29 @@ export async function validateTempDirectory(
         // Overwrite files and clean up
         overwriteProjectFiles(originalProjectRoot, tempDirName, tempDir);
         console.log(chalk.green(`\n🎉 Pull completed successfully!`));
-        process.exit(0);
+        if (!skipExit) {
+          process.exit(0);
+        }
+        resolve({ success: true });
       } else if (normalizedKey === 'n') {
         console.log(chalk.yellow(`\n❌ Selected: No - Files not replaced`));
         console.log(chalk.gray(`📂 Generated files remain in: ${tempDirName}`));
         console.log(chalk.gray(`   You can manually review and copy files as needed.`));
         console.log(chalk.cyan(`\n✅ Pull completed - temp directory preserved for review.`));
-        process.exit(0);
+        if (!skipExit) {
+          process.exit(0);
+        }
+        resolve({ success: true, userDeclined: true });
       } else {
         console.log(chalk.red(`\n❌ Invalid key: "${key}". Please press Y or N.`));
         console.log(chalk.gray(`📂 Files not replaced. Generated files remain in: ${tempDirName}`));
         console.log(
           chalk.yellow(`\n⚠️ Pull completed with invalid input - temp directory preserved.`)
         );
-        process.exit(0);
+        if (!skipExit) {
+          process.exit(0);
+        }
+        resolve({ success: true, userDeclined: true });
       }
     };
 
@@ -617,4 +637,3 @@ function overwriteProjectFiles(
     console.log(chalk.yellow(`   Generated files remain in: ${tempDirName} for manual review`));
   }
 }
-

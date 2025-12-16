@@ -33,6 +33,7 @@ function resetStdinState(): void {
     process.stdin.pause();
   }
 }
+
 import { ManagementApiClient } from '../../api';
 import { performBackgroundVersionCheck } from '../../utils/background-version-check';
 import { initializeCommand } from '../../utils/cli-pipeline';
@@ -61,6 +62,15 @@ export interface PullV3Options {
   all?: boolean;
   tag?: string;
   quiet?: boolean;
+  /** Internal: used for batch operations to return results instead of calling process.exit() */
+  _batchMode?: boolean;
+}
+
+export interface PullResult {
+  success: boolean;
+  skipped?: boolean;
+  upToDate?: boolean;
+  error?: string;
 }
 
 interface BatchPullResult {
@@ -218,13 +228,16 @@ async function readExistingProject(
 
 /**
  * Main pull-v3 command
+ * @returns PullResult when in batch mode, otherwise void (exits process)
  */
-export async function pullV3Command(options: PullV3Options): Promise<void> {
+export async function pullV3Command(options: PullV3Options): Promise<PullResult | void> {
   // Handle --all flag for batch operations
   if (options.all) {
     await pullAllProjects(options);
     return;
   }
+
+  const batchMode = options._batchMode ?? false;
 
   // Suppress SDK logging for cleaner output
   const originalLogLevel = process.env.LOG_LEVEL;
@@ -238,8 +251,10 @@ export async function pullV3Command(options: PullV3Options): Promise<void> {
     }
   };
 
-  // Background version check
-  performBackgroundVersionCheck();
+  // Background version check (skip in batch mode - already done)
+  if (!batchMode) {
+    performBackgroundVersionCheck();
+  }
 
   console.log(chalk.blue('\nInkeep Pull:'));
   if (options.introspect) {
@@ -292,6 +307,9 @@ export async function pullV3Command(options: PullV3Options): Promise<void> {
             console.error(
               chalk.yellow('Either remove --project flag or ensure it matches the local project ID')
             );
+            if (batchMode) {
+              return { success: false, error: 'Project ID mismatch' };
+            }
             process.exit(1);
           }
         }
@@ -313,6 +331,9 @@ export async function pullV3Command(options: PullV3Options): Promise<void> {
             'Please run this command from a directory containing index.ts or use --project <project-id>'
           )
         );
+        if (batchMode) {
+          return { success: false, error: 'No index.ts found and no --project specified' };
+        }
         process.exit(1);
       }
 
@@ -459,6 +480,9 @@ export async function pullV3Command(options: PullV3Options): Promise<void> {
       console.log(chalk.gray(`   🚀 Mode: Complete regeneration (no comparison)`));
 
       restoreLogLevel();
+      if (batchMode) {
+        return { success: true };
+      }
       process.exit(0);
     }
 
@@ -521,6 +545,9 @@ export async function pullV3Command(options: PullV3Options): Promise<void> {
       console.log(chalk.green('✅ Project is already up to date'));
       console.log(chalk.gray('   No differences detected between local and remote projects'));
       restoreLogLevel();
+      if (batchMode) {
+        return { success: true, upToDate: true };
+      }
       process.exit(0);
     }
 
@@ -666,17 +693,29 @@ export async function pullV3Command(options: PullV3Options): Promise<void> {
 
     // Step 15: Run validation and user interaction on complete temp directory
     if (newComponentCount > 0 || modifiedCount > 0 || performedCleanup) {
-      // Stop spinner before validation - validateTempDirectory handles its own user interaction and exit
+      // Stop spinner before validation - validateTempDirectory handles its own user interaction
       s.stop('Running validation on complete project...');
       const { validateTempDirectory } = await import('./project-validator');
-      await validateTempDirectory(paths.projectRoot, tempDirName, remoteProject);
-      // Note: validateTempDirectory calls process.exit() internally after user interaction
+      const validationResult = await validateTempDirectory(
+        paths.projectRoot,
+        tempDirName,
+        remoteProject,
+        { skipExit: batchMode }
+      );
+      if (batchMode) {
+        restoreLogLevel();
+        return { success: validationResult.success, upToDate: validationResult.upToDate };
+      }
+      // Note: validateTempDirectory calls process.exit() internally when not in batch mode
     } else {
       s.stop();
       console.log(chalk.green('\n✅ No changes detected - project is up to date'));
     }
 
     restoreLogLevel();
+    if (batchMode) {
+      return { success: true };
+    }
     process.exit(0);
   } catch (error) {
     s.stop();
@@ -685,15 +724,26 @@ export async function pullV3Command(options: PullV3Options): Promise<void> {
       console.error(chalk.red(error.stack || ''));
     }
     restoreLogLevel();
+    if (batchMode) {
+      return { success: false, error: error instanceof Error ? error.message : String(error) };
+    }
     process.exit(1);
   }
 }
 
 /**
  * Pull all projects for the current tenant
+ * Uses smart comparison with LLM merging for existing projects, introspect for new projects
  */
 async function pullAllProjects(options: PullV3Options): Promise<void> {
-  console.log(chalk.blue('\n🔄 Batch Pull: Fetching all projects for tenant...\n'));
+  console.log(chalk.blue('\n🔄 Batch Pull: Sequential processing with smart comparison\n'));
+  console.log(
+    chalk.gray('  • Existing projects: Smart comparison + LLM merging + confirmation prompts')
+  );
+  console.log(chalk.gray('  • New projects: Fresh generation with introspect mode\n'));
+
+  // Background version check (only once for batch)
+  performBackgroundVersionCheck();
 
   // Load configuration first
   const { config, profile, isCI } = await initializeCommand({
@@ -728,9 +778,31 @@ async function pullAllProjects(options: PullV3Options): Promise<void> {
       process.exit(0);
     }
 
-    console.log(chalk.gray('\nProjects to pull:\n'));
+    // Categorize projects
+    const existingProjects: typeof projects = [];
+    const newProjects: typeof projects = [];
+
     for (const project of projects) {
-      console.log(chalk.gray(`  • ${project.name || project.id} (${project.id})`));
+      const targetDir = join(process.cwd(), project.id);
+      if (existsSync(join(targetDir, 'index.ts'))) {
+        existingProjects.push(project);
+      } else {
+        newProjects.push(project);
+      }
+    }
+
+    console.log(chalk.gray('\nProjects to pull:\n'));
+    if (existingProjects.length > 0) {
+      console.log(chalk.cyan('  Existing (smart comparison):'));
+      for (const project of existingProjects) {
+        console.log(chalk.gray(`    • ${project.name || project.id} (${project.id})`));
+      }
+    }
+    if (newProjects.length > 0) {
+      console.log(chalk.cyan('  New (introspect):'));
+      for (const project of newProjects) {
+        console.log(chalk.gray(`    • ${project.name || project.id} (${project.id})`));
+      }
     }
     console.log();
 
@@ -741,6 +813,7 @@ async function pullAllProjects(options: PullV3Options): Promise<void> {
       const project = projects[i];
       const progress = `[${i + 1}/${total}]`;
 
+      console.log(chalk.cyan(`\n${'─'.repeat(60)}`));
       console.log(chalk.cyan(`${progress} Pulling ${project.name || project.id}...`));
 
       const result = await pullSingleProject(project.id, project.name, options, config, isCI);
@@ -748,10 +821,10 @@ async function pullAllProjects(options: PullV3Options): Promise<void> {
 
       if (result.success) {
         console.log(
-          chalk.green(`  ✓ ${result.projectName || result.projectId} → ${result.targetDir}`)
+          chalk.green(`\n  ✓ ${result.projectName || result.projectId} → ${result.targetDir}`)
         );
       } else {
-        console.log(chalk.red(`  ✗ ${result.projectName || result.projectId}: ${result.error}`));
+        console.log(chalk.red(`\n  ✗ ${result.projectName || result.projectId}: ${result.error}`));
       }
     }
 
@@ -759,7 +832,8 @@ async function pullAllProjects(options: PullV3Options): Promise<void> {
     const succeeded = results.filter((r) => r.success).length;
     const failed = results.filter((r) => !r.success).length;
 
-    console.log(chalk.cyan('\n📊 Batch Pull Summary:'));
+    console.log(chalk.cyan(`\n${'═'.repeat(60)}`));
+    console.log(chalk.cyan('📊 Batch Pull Summary:'));
     console.log(chalk.green(`  ✓ Succeeded: ${succeeded}`));
     if (failed > 0) {
       console.log(chalk.red(`  ✗ Failed: ${failed}`));
@@ -782,6 +856,7 @@ async function pullAllProjects(options: PullV3Options): Promise<void> {
 
 /**
  * Pull a single project (used by batch operations)
+ * Uses smart comparison flow for existing projects, introspect for new projects
  */
 async function pullSingleProject(
   projectId: string,
@@ -791,8 +866,55 @@ async function pullSingleProject(
   isCI?: boolean
 ): Promise<BatchPullResult> {
   const targetDir = join(process.cwd(), projectId);
+  const hasExistingProject = existsSync(join(targetDir, 'index.ts'));
 
   try {
+    if (hasExistingProject) {
+      // Project exists locally - use smart comparison flow with LLM merging and user prompts
+      console.log(chalk.gray(`   📂 Existing project found - using smart comparison mode`));
+
+      // Save current directory and change to project directory
+      const originalDir = process.cwd();
+      process.chdir(targetDir);
+
+      try {
+        // Call the main pull command in batch mode (returns results instead of exiting)
+        const result = await pullV3Command({
+          ...options,
+          project: projectId,
+          all: false, // Don't recurse into batch mode
+          _batchMode: true,
+        });
+
+        // Restore original directory
+        process.chdir(originalDir);
+
+        if (result && typeof result === 'object') {
+          return {
+            projectId,
+            projectName,
+            targetDir,
+            success: result.success,
+            error: result.error,
+          };
+        }
+
+        return {
+          projectId,
+          projectName,
+          targetDir,
+          success: true,
+        };
+      } catch (error) {
+        // Restore original directory even on error
+        process.chdir(originalDir);
+        throw error;
+      }
+    }
+
+    // No existing project - use introspect mode to generate fresh
+    console.log(chalk.gray(`   🆕 New project - using introspect mode`));
+
     // Suppress SDK logging
     const originalLogLevel = process.env.LOG_LEVEL;
     process.env.LOG_LEVEL = 'silent';
@@ -820,7 +942,7 @@ async function pullSingleProject(
     // Create project structure
     const paths = createProjectStructure(targetDir, projectId);
 
-    // Generate all files using introspect mode for batch operations
+    // Generate all files using introspect mode for new projects
     await introspectGenerate(
       remoteProject,
       paths,
@@ -844,5 +966,13 @@ async function pullSingleProject(
       success: false,
       error: error instanceof Error ? error.message : String(error),
     };
+  }
+}
+  }
+}
+  }
+}
+  }
+}
   }
 }

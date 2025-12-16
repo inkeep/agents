@@ -104,7 +104,7 @@ export class ContextConfigBuilder<
           ? options.headers.getSchema()
           : options.headers;
 
-      logger.info(
+      logger.debug(
         {
           headers: options.headers,
         },
