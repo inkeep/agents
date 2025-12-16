@@ -4,10 +4,97 @@ import type * as Monaco from 'monaco-editor';
 import type { ComponentPropsWithoutRef, FC } from 'react';
 import { useEffect, useRef } from 'react';
 import { Skeleton } from '@/components/ui/skeleton';
-import { useMonacoStore } from '@/features/agent/state/use-monaco-store';
 import { cleanupDisposables, getOrCreateModel } from '@/lib/monaco-editor/monaco-utils';
 import { cn } from '@/lib/utils';
+import monaco from 'monaco-editor';
+import { shikiToMonaco } from '@shikijs/monaco';
+import { createHighlighter } from 'shiki';
+import { TEMPLATE_LANGUAGE, VARIABLE_TOKEN } from '@/constants/theme';
+import monacoCompatibleSchema from '@/lib/monaco-editor/dynamic-ref-compatible-json-schema.json';
 import '@/lib/monaco-editor/setup-monaco-workers';
+
+// for cypress
+window.monaco = monaco;
+
+monaco.languages.register({ id: TEMPLATE_LANGUAGE });
+monaco.languages.json.jsonDefaults.setDiagnosticsOptions({
+  // Fixes when `$schema` is `https://json-schema.org/draft/2020-12/schema`
+  // The schema uses meta-schema features ($dynamicRef) that are not yet supported by the validator
+  schemas: [
+    {
+      // Configure JSON language service with Monaco-compatible schema
+      uri: 'https://json-schema.org/draft/2020-12/schema',
+      fileMatch: ['json-schema-*.json'],
+      schema: monacoCompatibleSchema,
+    },
+  ],
+  enableSchemaRequest: true,
+});
+// Define tokens for template variables
+monaco.languages.setMonarchTokensProvider(TEMPLATE_LANGUAGE, {
+  tokenizer: {
+    root: [[/\{\{([^}]+)}}/, VARIABLE_TOKEN]],
+  },
+});
+monaco.languages.registerCompletionItemProvider(TEMPLATE_LANGUAGE, {
+  triggerCharacters: ['{'],
+  provideCompletionItems(model, position) {
+    const { variableSuggestions } = get();
+
+    const textUntilPosition = model.getValueInRange({
+      startLineNumber: 1,
+      startColumn: 1,
+      endLineNumber: position.lineNumber,
+      endColumn: position.column,
+    });
+
+    // Check if we're inside a template variable (after {)
+    const match = textUntilPosition.match(/\{([^}]*)$/);
+    if (!match) {
+      console.log('No template variable match found');
+      return { suggestions: [] };
+    }
+
+    const query = match[1].toLowerCase();
+    const filteredSuggestions = variableSuggestions.filter((suggestion) =>
+      suggestion.toLowerCase().includes(query)
+    );
+
+    const word = model.getWordUntilPosition(position);
+    const range = new monaco.Range(
+      position.lineNumber,
+      word.startColumn,
+      position.lineNumber,
+      word.endColumn
+    );
+
+    const completionItems: Omit<
+      Monaco.languages.CompletionItem,
+      'kind' | 'range' | 'insertText'
+    >[] = [
+      // Add context suggestions
+      ...filteredSuggestions.map((label) => ({
+        label,
+        detail: 'Context variable',
+        sortText: '0',
+      })),
+      // Add environment variables
+      {
+        label: '$env.',
+        detail: 'Environment variable',
+        sortText: '1',
+      },
+    ];
+    return {
+      suggestions: completionItems.map((item) => ({
+        kind: monaco.languages.CompletionItemKind.Module,
+        range,
+        insertText: `{${item.label}}}`,
+        ...item,
+      })),
+    };
+  },
+});
 
 interface MonacoEditorProps extends Omit<ComponentPropsWithoutRef<'div'>, 'onChange'> {
   /** @default '' */
@@ -52,7 +139,6 @@ export const MonacoEditor: FC<MonacoEditorProps> = ({
   const containerRef = useRef<HTMLDivElement>(null);
   const editorRef = useRef<Monaco.editor.IStandaloneCodeEditor>(null);
   const onChangeRef = useRef<typeof onChange>(undefined);
-  const monaco = useMonacoStore((state) => state.monaco);
   // Update editor options when `readOnly` or `disabled` changes
   useEffect(() => {
     const wordWrap: Monaco.editor.IEditorOptions['wordWrap'] = editorOptions?.wordWrap ?? 'on';
@@ -82,14 +168,13 @@ export const MonacoEditor: FC<MonacoEditorProps> = ({
   // biome-ignore lint/correctness/useExhaustiveDependencies: Initialize Monaco Editor (runs only on mount)
   useEffect(() => {
     const container = containerRef.current;
-    if (!container || !monaco) {
+    if (!container) {
       return;
     }
     const { editor } = monaco;
     const { model, language } = getOrCreateModel({ monaco, uri, value });
 
     const editorInstance = editor.create(container, {
-      // theme: 'vitesse-dark',
       model,
       language,
       extraEditorClassName: [
@@ -211,12 +296,12 @@ export const MonacoEditor: FC<MonacoEditorProps> = ({
       {...props}
       ref={containerRef}
     >
-      {!monaco && (
-        <>
-          <Skeleton className="h-4 w-4/5" />
-          <Skeleton className="h-4 w-3/5 mt-3 mb-full" />
-        </>
-      )}
+      {/*{!monaco && (*/}
+      {/*  <>*/}
+      {/*    <Skeleton className="h-4 w-4/5" />*/}
+      {/*    <Skeleton className="h-4 w-3/5 mt-3 mb-full" />*/}
+      {/*  </>*/}
+      {/*)}*/}
       {children}
     </div>
   );
