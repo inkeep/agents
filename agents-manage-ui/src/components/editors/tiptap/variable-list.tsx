@@ -1,4 +1,4 @@
-import type { SuggestionOptions, SuggestionProps } from '@tiptap/suggestion';
+import type { SuggestionProps } from '@tiptap/suggestion';
 import type { FC } from 'react';
 import { useCallback, useState } from 'react';
 import {
@@ -7,26 +7,10 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { monacoStore } from '@/features/agent/state/use-monaco-store';
 
 type VariableListItem = string;
 
 export type VariableListProps = SuggestionProps<VariableListItem, { id: VariableListItem }>;
-
-export const buildVariableItems: SuggestionOptions['items'] = ({ query }) => {
-  const { variableSuggestions } = monacoStore.getState();
-
-  const normalized = query.toLowerCase();
-  const entries = new Map<string, VariableListItem>();
-
-  for (const label of variableSuggestions) {
-    if (label.toLowerCase().includes(normalized)) {
-      entries.set(label, label);
-    }
-  }
-
-  return [...entries.values(), '$env.'];
-};
 
 export const VariableList: FC<VariableListProps> = ({ items, command }) => {
   const [open, setOpen] = useState(true);

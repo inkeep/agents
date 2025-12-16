@@ -4,7 +4,8 @@ import { Mention } from '@tiptap/extension-mention';
 import { posToDOMRect, ReactRenderer } from '@tiptap/react';
 import { badgeVariants } from '@/components/ui/badge';
 import { agentStore } from '@/features/agent/state/use-agent-store';
-import { buildVariableItems, VariableList, type VariableListProps } from './variable-list';
+import { monacoStore } from '@/features/agent/state/use-monaco-store';
+import { VariableList, type VariableListProps } from './variable-list';
 
 const TOKEN_NAME = 'variableSuggestion';
 const TRIGGER_CHAR = '{';
@@ -87,7 +88,10 @@ export const variableSuggestionExtension = VariableSuggestionExtension.configure
   },
   suggestion: {
     char: TRIGGER_CHAR,
-    items: buildVariableItems,
+    items() {
+      const { variableSuggestions } = monacoStore.getState();
+      return [...variableSuggestions, '$env.'];
+    },
     render() {
       let component: ReactRenderer<null, VariableListProps>;
       let cleanup: () => void;
