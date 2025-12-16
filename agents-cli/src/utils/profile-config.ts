@@ -1,12 +1,8 @@
-import chalk from 'chalk';
-import dotenv from 'dotenv';
 import { existsSync } from 'node:fs';
 import { join } from 'node:path';
-import {
-  getCredentialExpiryInfo,
-  loadCredentials,
-  type CLICredentials,
-} from './credentials';
+import chalk from 'chalk';
+import dotenv from 'dotenv';
+import { type CLICredentials, getCredentialExpiryInfo, loadCredentials } from './credentials';
 import { ProfileManager, type ResolvedProfile } from './profiles';
 
 export interface ProfileConfig {

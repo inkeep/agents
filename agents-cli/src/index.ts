@@ -18,7 +18,6 @@ import { initCommand } from './commands/init';
 import { listAgentsCommand } from './commands/list-agents';
 import { loginCommand } from './commands/login';
 import { logoutCommand } from './commands/logout';
-import { statusCommand } from './commands/status';
 import {
   profileAddCommand,
   profileCurrentCommand,
@@ -28,6 +27,7 @@ import {
 } from './commands/profile';
 import { pullV3Command } from './commands/pull-v3/index';
 import { pushCommand } from './commands/push';
+import { statusCommand } from './commands/status';
 import { updateCommand } from './commands/update';
 import { whoamiCommand } from './commands/whoami';
 
@@ -113,7 +113,10 @@ program
   )
   .option('--json', 'Generate project data JSON file instead of pushing to backend')
   .option('--all', 'Push all projects found in current directory tree')
-  .option('--tag <tag>', 'Use tagged config file (e.g., --tag prod loads prod.__inkeep.config.ts__)')
+  .option(
+    '--tag <tag>',
+    'Use tagged config file (e.g., --tag prod loads prod.__inkeep.config.ts__)'
+  )
   .option('--quiet', 'Suppress profile/config logging')
   .action(async (options) => {
     await pushCommand(options);
@@ -138,7 +141,10 @@ program
   .option('--force', 'Force regeneration even if no changes detected')
   .option('--introspect', 'Completely regenerate all files from scratch (no comparison needed)')
   .option('--all', 'Pull all projects for current tenant')
-  .option('--tag <tag>', 'Use tagged config file (e.g., --tag prod loads prod.__inkeep.config.ts__)')
+  .option(
+    '--tag <tag>',
+    'Use tagged config file (e.g., --tag prod loads prod.__inkeep.config.ts__)'
+  )
   .option('--quiet', 'Suppress profile/config logging')
   .action(async (options) => {
     await pullV3Command(options);

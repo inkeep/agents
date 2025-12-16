@@ -171,12 +171,18 @@ describe('Sub-Agent Generator', () => {
       }).not.toThrow();
     });
 
-    it('should throw error for missing all required fields', () => {
+    it('should generate name from ID when name is missing', () => {
       const noNameData = {};
 
-      expect(() => {
-        generateSubAgentDefinition('fallback-agent', noNameData, undefined, mockRegistry);
-      }).toThrow("Missing required fields for sub-agent 'fallback-agent': name");
+      const definition = generateSubAgentDefinition(
+        'fallback-agent',
+        noNameData,
+        undefined,
+        mockRegistry
+      );
+
+      // Should generate a human-readable name from the ID
+      expect(definition).toContain("name: 'Fallback Agent',");
     });
 
     it('should handle camelCase conversion for variable names', () => {
@@ -490,7 +496,16 @@ describe('Sub-Agent Generator', () => {
           undefined,
           mockRegistry
         );
-      }).toThrow("Missing required fields for sub-agent 'empty-strings-sub-agent': name");
+      }).not.toThrow();
+
+      // Should generate name from ID since name is empty string
+      const definition = generateSubAgentDefinition(
+        'empty-strings-sub-agent',
+        emptyStringData,
+        undefined,
+        mockRegistry
+      );
+      expect(definition).toContain("name: 'Empty Strings Sub Agent',");
     });
 
     it('should not throw error when name is provided (other fields can be null/undefined)', () => {
@@ -564,13 +579,15 @@ describe('Sub-Agent Generator', () => {
       expect(definition).toContain('dataComponents: () => [stringComponent]');
     });
 
-    it('should throw error for missing name only', () => {
-      expect(() => {
-        generateSubAgentDefinition('missing-name', {
-          description: 'Test description',
-          prompt: 'Test prompt',
-        });
-      }).toThrow("Missing required fields for sub-agent 'missing-name': name");
+    it('should generate name from ID when name is missing', () => {
+      const definition = generateSubAgentDefinition('missing-name', {
+        description: 'Test description',
+        prompt: 'Test prompt',
+      });
+
+      // Should generate name from ID
+      expect(definition).toContain("name: 'Missing Name',");
+      expect(definition).toContain("description: 'Test description',");
     });
 
     it('should not throw error for missing description (now optional)', () => {

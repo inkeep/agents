@@ -2,11 +2,8 @@ import { existsSync, mkdirSync, readdirSync, writeFileSync } from 'node:fs';
 import { basename, dirname, join, resolve } from 'node:path';
 import * as p from '@clack/prompts';
 import chalk from 'chalk';
-import {
-  checkKeychainAvailability,
-  loadCredentials,
-} from '../utils/credentials';
-import { DEFAULT_PROFILES_CONFIG, ProfileManager, type Profile } from '../utils/profiles';
+import { checkKeychainAvailability, loadCredentials } from '../utils/credentials';
+import { DEFAULT_PROFILES_CONFIG, type Profile, ProfileManager } from '../utils/profiles';
 import { loginCommand } from './login';
 
 export interface InitOptions {

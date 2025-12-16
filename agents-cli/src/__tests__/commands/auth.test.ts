@@ -4,9 +4,9 @@ import { join } from 'node:path';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import * as yaml from 'yaml';
 import {
+  type CLICredentials,
   getCredentialExpiryInfo,
   isCredentialExpired,
-  type CLICredentials,
 } from '../../utils/credentials';
 import type { ProfilesConfig } from '../../utils/profiles/types';
 

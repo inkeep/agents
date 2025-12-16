@@ -1,10 +1,10 @@
 import * as p from '@clack/prompts';
 import chalk from 'chalk';
 import {
+  type CIEnvironmentConfig,
   detectCIEnvironment,
   loadCIEnvironmentConfig,
   logCIConfig,
-  type CIEnvironmentConfig,
 } from './ci-environment';
 import type { ValidatedConfiguration } from './config';
 import { validateConfiguration } from './config';
@@ -141,6 +141,7 @@ export async function initializeCommand(
     let isAuthenticated = false;
     let authExpiry: string | undefined;
     let profileAccessToken: string | undefined;
+    let profileOrganizationId: string | undefined;
 
     try {
       const profileManager = new ProfileManager();
@@ -161,6 +162,7 @@ export async function initializeCommand(
           const expiryInfo = getCredentialExpiryInfo(credentials);
           if (!expiryInfo.isExpired) {
             profileAccessToken = credentials.accessToken;
+            profileOrganizationId = credentials.organizationId;
             isAuthenticated = true;
             authExpiry = expiryInfo.expiresIn;
           }
@@ -173,15 +175,22 @@ export async function initializeCommand(
     // Load and validate configuration from file
     const config = await validateConfiguration(configPath, tag);
 
-    // Override config with profile values (profile takes precedence)
+    // Override config with profile values (profile takes precedence over config file)
+    // Precedence: CLI flag > Profile credentials > Config file > Defaults
     if (profile) {
       config.agentsManageApiUrl = profile.remote.manageApi;
       config.agentsRunApiUrl = profile.remote.runApi;
       config.manageUiUrl = profile.remote.manageUi;
 
-      // Use profile access token if available and no API key in config
-      if (profileAccessToken && !config.agentsManageApiKey) {
+      // Profile credentials ALWAYS override config file values when using a profile
+      // Config file values are intended for CI/CD scenarios without profiles
+      if (profileAccessToken) {
         config.agentsManageApiKey = profileAccessToken;
+      }
+
+      // Use organization ID from authenticated session as tenantId
+      if (profileOrganizationId) {
+        config.tenantId = profileOrganizationId;
       }
     }
 

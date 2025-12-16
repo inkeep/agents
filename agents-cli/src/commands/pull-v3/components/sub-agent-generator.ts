@@ -89,17 +89,8 @@ export function generateSubAgentDefinition(
     throw new Error(`agentData is required for sub-agent '${agentId}'`);
   }
 
-  // Validate required sub-agent fields
-  const requiredFields = ['name']; // Only name is required, description and prompt are optional
-  const missingFields = requiredFields.filter(
-    (field) => !agentData[field] || agentData[field] === null || agentData[field] === undefined
-  );
-
-  if (missingFields.length > 0) {
-    throw new Error(
-      `Missing required fields for sub-agent '${agentId}': ${missingFields.join(', ')}`
-    );
-  }
+  // No required fields - name, description, and prompt are all optional
+  // If name is missing, generate one from the ID
 
   const { quotes, semicolons, indentation } = style;
   const q = quotes === 'single' ? "'" : '"';
@@ -115,13 +106,24 @@ export function generateSubAgentDefinition(
     }
   }
 
+  // Generate a human-readable name from ID if not provided
+  // Note: Only auto-generate if name is undefined/null, NOT if it's an empty string
+  // (empty string might be intentional in the remote project)
+  const agentName =
+    agentData.name !== undefined && agentData.name !== null
+      ? agentData.name
+      : agentId
+          .replace(/[-_]/g, ' ')
+          .replace(/([a-z])([A-Z])/g, '$1 $2')
+          .replace(/\b\w/g, (c) => c.toUpperCase());
+
   const lines: string[] = [];
 
   lines.push(`export const ${agentVarName} = subAgent({`);
   lines.push(`${indentation}id: ${formatString(agentId, q)},`);
 
-  // Required fields - these must be present
-  lines.push(`${indentation}name: ${formatString(agentData.name, q)},`);
+  // Name - use provided name or generated from ID
+  lines.push(`${indentation}name: ${formatString(agentName, q)},`);
   lines.push(`${indentation}description: ${formatString(agentData.description, q, true)},`);
 
   // Prompt - can be multiline, use context.toTemplate() or headers.toTemplate() based on schema analysis

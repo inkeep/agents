@@ -1,7 +1,7 @@
-import chalk from 'chalk';
 import { existsSync } from 'node:fs';
 import { homedir } from 'node:os';
 import { join } from 'node:path';
+import chalk from 'chalk';
 import { checkKeychainAvailability } from './credentials';
 
 export interface CIEnvironmentConfig {
@@ -117,7 +117,10 @@ export function getAuthHeaders(
   return headers;
 }
 
-export function validateCIConfig(config: CIEnvironmentConfig): { valid: boolean; errors: string[] } {
+export function validateCIConfig(config: CIEnvironmentConfig): {
+  valid: boolean;
+  errors: string[];
+} {
   const errors: string[] = [];
 
   if (!config.apiKey) {

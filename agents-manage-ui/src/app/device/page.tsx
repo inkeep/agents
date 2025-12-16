@@ -308,11 +308,3 @@ export default function DevicePage() {
     </Suspense>
   );
 }
-  );
-}
-  );
-}
-  );
-}
-  );
-}

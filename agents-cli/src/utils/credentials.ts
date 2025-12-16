@@ -160,7 +160,10 @@ export function getCredentialExpiryInfo(credentials: CLICredentials): {
 /**
  * Check if the keychain is available for storing credentials
  */
-export async function checkKeychainAvailability(): Promise<{ available: boolean; reason?: string }> {
+export async function checkKeychainAvailability(): Promise<{
+  available: boolean;
+  reason?: string;
+}> {
   const store = getKeychainStore();
   return store.checkAvailability();
 }
@@ -176,7 +179,8 @@ function getKeychainUnavailableMessage(reason?: string): string {
     message += `Reason: ${reason}\n\n`;
   }
 
-  message += 'The Inkeep CLI requires access to the system keychain to store your login credentials securely.\n\n';
+  message +=
+    'The Inkeep CLI requires access to the system keychain to store your login credentials securely.\n\n';
 
   switch (platform) {
     case 'darwin':
@@ -197,7 +201,8 @@ function getKeychainUnavailableMessage(reason?: string): string {
       message += '  3. For headless servers, consider using an API key instead of `inkeep login`\n';
       break;
     default:
-      message += 'Please ensure your system has a supported keychain/credential manager available.\n';
+      message +=
+        'Please ensure your system has a supported keychain/credential manager available.\n';
   }
 
   return message;

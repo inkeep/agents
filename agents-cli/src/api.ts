@@ -94,7 +94,8 @@ export class ManagementApiClient extends BaseApiClient {
     configPath?: string,
     tenantIdOverride?: string,
     projectIdOverride?: string,
-    isCI?: boolean
+    isCI?: boolean,
+    apiKeyOverride?: string
   ): Promise<ManagementApiClient> {
     // Load config from file
     const { validateConfiguration } = await import('./utils/config.js');
@@ -105,13 +106,10 @@ export class ManagementApiClient extends BaseApiClient {
     const tenantId = tenantIdOverride || config.tenantId;
     const projectId = projectIdOverride || '';
 
-    return new ManagementApiClient(
-      resolvedApiUrl,
-      tenantId,
-      projectId,
-      config.agentsManageApiKey,
-      isCI ?? false
-    );
+    // Use explicit API key override if provided (e.g., from profile credentials)
+    const apiKey = apiKeyOverride || config.agentsManageApiKey;
+
+    return new ManagementApiClient(resolvedApiUrl, tenantId, projectId, apiKey, isCI ?? false);
   }
 
   async listAgents(): Promise<AgentApiSelect[]> {
