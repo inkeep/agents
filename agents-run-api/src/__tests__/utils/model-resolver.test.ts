@@ -1,26 +1,63 @@
-import type { AgentSelect, ProjectSelect, SubAgentSelect } from '@inkeep/agents-core';
+import type { Models } from '@inkeep/agents-core';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { resolveModelConfig } from '../../utils/model-resolver';
 
-// Mock the database client
-const mockDbClient = 'mock-db-client';
-vi.mock('../../data/db/dbClient', () => ({
-  default: mockDbClient,
-}));
+function createExecutionContext(params: {
+  tenantId?: string;
+  projectId?: string;
+  agentId?: string;
+  agentModels?: Models | null;
+  projectModels?: Models | null;
+}) {
+  const tenantId = params.tenantId ?? 'tenant-123';
+  const projectId = params.projectId ?? 'project-123';
+  const agentId = params.agentId ?? 'agent-123';
 
-// Mock the agents-core functions - use importOriginal to preserve existing mocks
-vi.mock('@inkeep/agents-core', async (importOriginal) => {
-  const actual = await importOriginal<typeof import('@inkeep/agents-core')>();
   return {
-    ...actual,
-    getAgentById: vi.fn(),
-    getProject: vi.fn(),
-  };
-});
-
-// Import mocked functions
-const mockGetAgentById = vi.mocked(await import('@inkeep/agents-core')).getAgentById;
-const mockGetProject = vi.mocked(await import('@inkeep/agents-core')).getProject;
+    apiKey: 'test-api-key',
+    apiKeyId: 'test-key',
+    tenantId,
+    projectId,
+    agentId,
+    baseUrl: 'http://localhost:3003',
+    resolvedRef: { type: 'branch', name: 'main', hash: 'test-hash' },
+    project: {
+      id: projectId,
+      tenantId,
+      name: 'Test Project',
+      models: params.projectModels ?? null,
+      agents: {
+        [agentId]: {
+          id: agentId,
+          tenantId,
+          projectId,
+          name: 'Test Agent',
+          description: 'Test agent',
+          defaultSubAgentId: agentId,
+          models: params.agentModels ?? null,
+          subAgents: {},
+          tools: {},
+          externalAgents: {},
+          teamAgents: {},
+          transferRelations: {},
+          delegateRelations: {},
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString(),
+          contextConfigId: null,
+          contextConfig: null,
+          statusUpdates: { enabled: false },
+        },
+      },
+      tools: {},
+      functions: {},
+      dataComponents: {},
+      artifactComponents: {},
+      externalAgents: {},
+      credentialReferences: {},
+      statusUpdates: null,
+    },
+  } as any;
+}
 
 describe('resolveModelConfig', () => {
   const mockAgentId = 'agent-123';
@@ -29,19 +66,12 @@ describe('resolveModelConfig', () => {
     tenantId: 'tenant-123',
     projectId: 'project-123',
     name: 'Test Agent',
-  } as SubAgentSelect;
+    models: null,
+  } as any;
 
   beforeEach(() => {
     // Clear all mock calls and implementations
     vi.clearAllMocks();
-
-    // Reset mock implementations to default
-    mockGetAgentById.mockReset();
-    mockGetProject.mockReset();
-
-    // Setup default mock implementations that return functions
-    mockGetAgentById.mockReturnValue(vi.fn());
-    mockGetProject.mockReturnValue(vi.fn());
   });
 
   afterEach(() => {
@@ -51,37 +81,33 @@ describe('resolveModelConfig', () => {
 
   describe('when agent has base model defined', () => {
     it('should use agent base model for all model types when only base is defined', async () => {
-      const agent: SubAgentSelect = {
+      const subAgent = {
         ...baseAgent,
         models: {
           base: { model: 'gpt-4' },
         },
-      } as SubAgentSelect;
+      } as any;
 
-      const result = await resolveModelConfig(mockDbClient as any, mockAgentId, agent);
+      const result = await resolveModelConfig(createExecutionContext({ agentId: mockAgentId }), subAgent);
 
       expect(result).toEqual({
         base: { model: 'gpt-4' },
         structuredOutput: { model: 'gpt-4' },
         summarizer: { model: 'gpt-4' },
       });
-
-      // Should not call agent or project functions
-      expect(mockGetAgentById).not.toHaveBeenCalled();
-      expect(mockGetProject).not.toHaveBeenCalled();
     });
 
     it('should use specific models when defined, fallback to base for undefined ones', async () => {
-      const agent: SubAgentSelect = {
+      const subAgent = {
         ...baseAgent,
         models: {
           base: { model: 'gpt-4' },
           structuredOutput: { model: 'gpt-4-turbo' },
           summarizer: undefined,
         },
-      } as SubAgentSelect;
+      } as any;
 
-      const result = await resolveModelConfig(mockDbClient as any, mockAgentId, agent);
+      const result = await resolveModelConfig(createExecutionContext({ agentId: mockAgentId }), subAgent);
 
       expect(result).toEqual({
         base: { model: 'gpt-4' },
@@ -91,16 +117,16 @@ describe('resolveModelConfig', () => {
     });
 
     it('should use all specific models when all are defined', async () => {
-      const agent: SubAgentSelect = {
+      const subAgent = {
         ...baseAgent,
         models: {
           base: { model: 'gpt-4' },
           structuredOutput: { model: 'gpt-4-turbo' },
           summarizer: { model: 'claude-3.5-haiku' },
         },
-      } as SubAgentSelect;
+      } as any;
 
-      const result = await resolveModelConfig(mockDbClient as any, mockAgentId, agent);
+      const result = await resolveModelConfig(createExecutionContext({ agentId: mockAgentId }), subAgent);
 
       expect(result).toEqual({
         base: { model: 'gpt-4' },
@@ -112,68 +138,51 @@ describe('resolveModelConfig', () => {
 
   describe('when agent does not have base model defined', () => {
     it('should use agent model config when available', async () => {
-      const agent: SubAgentSelect = {
+      const subAgent = {
         ...baseAgent,
         models: null,
-      } as SubAgentSelect;
+      } as any;
 
-      const mockAgent: AgentSelect = {
-        id: 'agent-123',
-        tenantId: 'tenant-123',
-        projectId: 'project-123',
-        models: {
-          base: { model: 'claude-3-sonnet' },
-          structuredOutput: { model: 'claude-3.5-haiku' },
-          summarizer: undefined,
-        },
-      } as AgentSelect;
-
-      const mockAgentFn = vi.fn().mockResolvedValue(mockAgent);
-      mockGetAgentById.mockReturnValue(mockAgentFn);
-
-      const result = await resolveModelConfig(mockDbClient as any, mockAgentId, agent);
+      const result = await resolveModelConfig(
+        createExecutionContext({
+          agentId: mockAgentId,
+          agentModels: {
+            base: { model: 'claude-3-sonnet' },
+            structuredOutput: { model: 'claude-3.5-haiku' },
+            summarizer: undefined,
+          },
+        }),
+        subAgent
+      );
 
       expect(result).toEqual({
         base: { model: 'claude-3-sonnet' },
         structuredOutput: { model: 'claude-3.5-haiku' },
         summarizer: { model: 'claude-3-sonnet' },
       });
-
-      expect(mockGetAgentById).toHaveBeenCalledWith('mock-db-client');
-      expect(mockAgentFn).toHaveBeenCalledWith({
-        scopes: {
-          tenantId: 'tenant-123',
-          projectId: 'project-123',
-          agentId: 'agent-123',
-        },
-      });
     });
 
     it('should respect agent-specific models even when using agent base model', async () => {
-      const agent: SubAgentSelect = {
+      const subAgent = {
         ...baseAgent,
         models: {
           base: undefined,
           structuredOutput: { model: 'gpt-4-turbo' },
           summarizer: undefined,
         },
-      } as SubAgentSelect;
+      } as any;
 
-      const mockAgent: AgentSelect = {
-        id: 'agent-123',
-        tenantId: 'tenant-123',
-        projectId: 'project-123',
-        models: {
-          base: { model: 'claude-3-sonnet' },
-          structuredOutput: { model: 'claude-3.5-haiku' },
-          summarizer: { model: 'claude-3-opus' },
-        },
-      } as AgentSelect;
-
-      const mockAgentFn = vi.fn().mockResolvedValue(mockAgent);
-      mockGetAgentById.mockReturnValue(mockAgentFn);
-
-      const result = await resolveModelConfig(mockDbClient as any, mockAgentId, agent);
+      const result = await resolveModelConfig(
+        createExecutionContext({
+          agentId: mockAgentId,
+          agentModels: {
+            base: { model: 'claude-3-sonnet' },
+            structuredOutput: { model: 'claude-3.5-haiku' },
+            summarizer: { model: 'claude-3-opus' },
+          },
+        }),
+        subAgent
+      );
 
       expect(result).toEqual({
         base: { model: 'claude-3-sonnet' },
@@ -183,78 +192,53 @@ describe('resolveModelConfig', () => {
     });
 
     it('should fallback to project config when agent has no base model', async () => {
-      const agent: SubAgentSelect = {
+      const subAgent = {
         ...baseAgent,
         models: null,
-      } as SubAgentSelect;
+      } as any;
 
-      const mockAgent: AgentSelect = {
-        id: 'agent-123',
-        models: null,
-      } as AgentSelect;
-
-      const mockProject: ProjectSelect = {
-        id: 'project-123',
-        tenantId: 'tenant-123',
-        models: {
-          base: { model: 'gpt-3.5-turbo' },
-          structuredOutput: undefined,
-          summarizer: { model: 'gpt-4' },
-        },
-      } as ProjectSelect;
-
-      const mockAgentFn = vi.fn().mockResolvedValue(mockAgent);
-      const mockProjectFn = vi.fn().mockResolvedValue(mockProject);
-
-      mockGetAgentById.mockReturnValue(mockAgentFn);
-      mockGetProject.mockReturnValue(mockProjectFn);
-
-      const result = await resolveModelConfig(mockDbClient as any, mockAgentId, agent);
+      const result = await resolveModelConfig(
+        createExecutionContext({
+          agentId: mockAgentId,
+          agentModels: null,
+          projectModels: {
+            base: { model: 'gpt-3.5-turbo' },
+            structuredOutput: undefined,
+            summarizer: { model: 'gpt-4' },
+          },
+        }),
+        subAgent
+      );
 
       expect(result).toEqual({
         base: { model: 'gpt-3.5-turbo' },
         structuredOutput: { model: 'gpt-3.5-turbo' }, // Falls back to base
         summarizer: { model: 'gpt-4' },
       });
-
-      expect(mockGetProject).toHaveBeenCalledWith('mock-db-client');
-      expect(mockProjectFn).toHaveBeenCalledWith({
-        scopes: { tenantId: 'tenant-123', projectId: 'project-123' },
-      });
     });
 
     it('should respect agent-specific models when using project base model', async () => {
-      const agent: SubAgentSelect = {
+      const subAgent = {
         ...baseAgent,
         models: {
           base: undefined,
           structuredOutput: undefined,
           summarizer: { model: 'claude-3.5-haiku' },
         },
-      } as SubAgentSelect;
+      } as any;
 
-      const mockAgent: AgentSelect = {
-        id: 'agent-123',
-        models: null,
-      } as AgentSelect;
-
-      const mockProject: ProjectSelect = {
-        id: 'project-123',
-        tenantId: 'tenant-123',
-        models: {
-          base: { model: 'gpt-4' },
-          structuredOutput: { model: 'gpt-4-turbo' },
-          summarizer: { model: 'gpt-3.5-turbo' },
-        },
-      } as ProjectSelect;
-
-      const mockAgentFn = vi.fn().mockResolvedValue(mockAgent);
-      const mockProjectFn = vi.fn().mockResolvedValue(mockProject);
-
-      mockGetAgentById.mockReturnValue(mockAgentFn);
-      mockGetProject.mockReturnValue(mockProjectFn);
-
-      const result = await resolveModelConfig(mockDbClient as any, mockAgentId, agent);
+      const result = await resolveModelConfig(
+        createExecutionContext({
+          agentId: mockAgentId,
+          agentModels: null,
+          projectModels: {
+            base: { model: 'gpt-4' },
+            structuredOutput: { model: 'gpt-4-turbo' },
+            summarizer: { model: 'gpt-3.5-turbo' },
+          },
+        }),
+        subAgent
+      );
 
       expect(result).toEqual({
         base: { model: 'gpt-4' },
@@ -266,86 +250,67 @@ describe('resolveModelConfig', () => {
 
   describe('error handling', () => {
     it('should throw error when no base model is configured anywhere', async () => {
-      const agent: SubAgentSelect = {
+      const subAgent = {
         ...baseAgent,
         models: null,
-      } as SubAgentSelect;
+      } as any;
 
-      const mockAgent: AgentSelect = {
-        id: 'agent-123',
-        models: null,
-      } as AgentSelect;
-
-      const mockProject: ProjectSelect = {
-        id: 'project-123',
-        models: null,
-      } as ProjectSelect;
-
-      const mockAgentFn = vi.fn().mockResolvedValue(mockAgent);
-      const mockProjectFn = vi.fn().mockResolvedValue(mockProject);
-
-      mockGetAgentById.mockReturnValue(mockAgentFn);
-      mockGetProject.mockReturnValue(mockProjectFn);
-
-      await expect(resolveModelConfig({} as any, mockAgentId, agent)).rejects.toThrow(
+      await expect(
+        resolveModelConfig(
+          createExecutionContext({
+            agentId: mockAgentId,
+            agentModels: null,
+            projectModels: null,
+          }),
+          subAgent
+        )
+      ).rejects.toThrow(
         'Base model configuration is required. Please configure models at the project level.'
       );
     });
 
     it('should throw error when project models exist but no base model', async () => {
-      const agent: SubAgentSelect = {
+      const subAgent = {
         ...baseAgent,
         models: null,
-      } as SubAgentSelect;
+      } as any;
 
-      const mockAgent: AgentSelect = {
-        id: 'agent-123',
-        models: null,
-      } as AgentSelect;
-
-      const mockProject: ProjectSelect = {
-        id: 'project-123',
-        models: {
-          base: undefined,
-          structuredOutput: { model: 'gpt-4' },
-          summarizer: { model: 'claude-3.5-haiku' },
-        },
-      } as unknown as ProjectSelect;
-
-      const mockAgentFn = vi.fn().mockResolvedValue(mockAgent);
-      const mockProjectFn = vi.fn().mockResolvedValue(mockProject);
-
-      mockGetAgentById.mockReturnValue(mockAgentFn);
-      mockGetProject.mockReturnValue(mockProjectFn);
-
-      await expect(resolveModelConfig({} as any, mockAgentId, agent)).rejects.toThrow(
+      await expect(
+        resolveModelConfig(
+          createExecutionContext({
+            agentId: mockAgentId,
+            agentModels: null,
+            projectModels: {
+              base: undefined,
+              structuredOutput: { model: 'gpt-4' },
+              summarizer: { model: 'claude-3.5-haiku' },
+            } as any,
+          }),
+          subAgent
+        )
+      ).rejects.toThrow(
         'Base model configuration is required. Please configure models at the project level.'
       );
     });
 
     it('should handle null agent gracefully', async () => {
-      const agent: SubAgentSelect = {
+      const subAgent = {
         ...baseAgent,
         models: null,
-      } as SubAgentSelect;
+      } as any;
 
-      const mockProject: ProjectSelect = {
-        id: 'project-123',
-        tenantId: 'tenant-123',
-        models: {
+      const executionContext = createExecutionContext({
+        agentId: mockAgentId,
+        agentModels: null,
+        projectModels: {
           base: { model: 'gpt-4' },
           structuredOutput: undefined,
           summarizer: undefined,
         },
-      } as ProjectSelect;
+      });
+      delete executionContext.project.agents[mockAgentId];
 
-      const mockAgentFn = vi.fn().mockResolvedValue(null);
-      const mockProjectFn = vi.fn().mockResolvedValue(mockProject);
-
-      mockGetAgentById.mockReturnValue(mockAgentFn);
-      mockGetProject.mockReturnValue(mockProjectFn);
-
-      const result = await resolveModelConfig(mockDbClient as any, mockAgentId, agent);
+      const result = await resolveModelConfig(executionContext, subAgent);
 
       expect(result).toEqual({
         base: { model: 'gpt-4' },
@@ -355,18 +320,19 @@ describe('resolveModelConfig', () => {
     });
 
     it('should handle null project gracefully', async () => {
-      const agent: SubAgentSelect = {
+      const subAgent = {
         ...baseAgent,
         models: null,
-      } as SubAgentSelect;
+      } as any;
 
-      const mockAgentFn = vi.fn().mockResolvedValue(null);
-      const mockProjectFn = vi.fn().mockResolvedValue(null);
+      const executionContext = createExecutionContext({
+        agentId: mockAgentId,
+        agentModels: null,
+        projectModels: null,
+      });
+      delete executionContext.project.agents[mockAgentId];
 
-      mockGetAgentById.mockReturnValue(mockAgentFn);
-      mockGetProject.mockReturnValue(mockProjectFn);
-
-      await expect(resolveModelConfig({} as any, mockAgentId, agent)).rejects.toThrow(
+      await expect(resolveModelConfig(executionContext, subAgent)).rejects.toThrow(
         'Base model configuration is required. Please configure models at the project level.'
       );
     });
@@ -374,28 +340,26 @@ describe('resolveModelConfig', () => {
 
   describe('edge cases', () => {
     it('should handle agent models with null base model', async () => {
-      const agent: SubAgentSelect = {
+      const subAgent = {
         ...baseAgent,
         models: {
           base: null as any,
           structuredOutput: { model: 'gpt-4-turbo' },
           summarizer: undefined,
         },
-      } as SubAgentSelect;
+      } as any;
 
-      const mockAgent: AgentSelect = {
-        id: 'agent-123',
-        models: {
-          base: { model: 'claude-3-sonnet' },
-          structuredOutput: undefined,
-          summarizer: { model: 'claude-3.5-haiku' },
-        },
-      } as AgentSelect;
-
-      const mockAgentFn = vi.fn().mockResolvedValue(mockAgent);
-      mockGetAgentById.mockReturnValue(mockAgentFn);
-
-      const result = await resolveModelConfig(mockDbClient as any, mockAgentId, agent);
+      const result = await resolveModelConfig(
+        createExecutionContext({
+          agentId: mockAgentId,
+          agentModels: {
+            base: { model: 'claude-3-sonnet' },
+            structuredOutput: undefined,
+            summarizer: { model: 'claude-3.5-haiku' },
+          } as any,
+        }),
+        subAgent
+      );
 
       expect(result).toEqual({
         base: { model: 'claude-3-sonnet' },
@@ -405,32 +369,27 @@ describe('resolveModelConfig', () => {
     });
 
     it('should handle mixed null and undefined values', async () => {
-      const agent: SubAgentSelect = {
+      const subAgent = {
         ...baseAgent,
         models: {
           base: undefined,
           structuredOutput: null as any,
           summarizer: { model: 'custom-summarizer' },
         },
-      } as SubAgentSelect;
+      } as any;
 
-      const mockProject: ProjectSelect = {
-        id: 'project-123',
-        tenantId: 'tenant-123',
-        models: {
+      const executionContext = createExecutionContext({
+        agentId: mockAgentId,
+        agentModels: null,
+        projectModels: {
           base: { model: 'base-model' },
           structuredOutput: { model: 'structured-model' },
           summarizer: null as any,
-        },
-      } as ProjectSelect;
+        } as any,
+      });
+      delete executionContext.project.agents[mockAgentId];
 
-      const mockAgentFn = vi.fn().mockResolvedValue(null);
-      const mockProjectFn = vi.fn().mockResolvedValue(mockProject);
-
-      mockGetAgentById.mockReturnValue(mockAgentFn);
-      mockGetProject.mockReturnValue(mockProjectFn);
-
-      const result = await resolveModelConfig(mockDbClient as any, mockAgentId, agent);
+      const result = await resolveModelConfig(executionContext, subAgent);
 
       expect(result).toEqual({
         base: { model: 'base-model' },

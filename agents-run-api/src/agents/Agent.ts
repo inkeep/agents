@@ -82,6 +82,7 @@ import type { SystemPromptV1 } from './types';
 import { Phase1Config } from './versions/v1/Phase1Config';
 import { Phase2Config } from './versions/v1/Phase2Config';
 import { getFunctionToolsForSubAgent } from '../api/manage-api';
+import { env } from '../env';
 /**
  * Creates a stopWhen condition that stops when any tool call name starts with the given prefix
  * @param prefix - The prefix to check for in tool call names
@@ -1243,7 +1244,7 @@ export class Agent {
     const functionTools: ToolSet = {};
     const project = this.executionContext.project;
     try {
-      const functionToolsForAgent = await getFunctionToolsForSubAgent({ baseUrl: this.config.baseUrl })({
+      const functionToolsForAgent = await getFunctionToolsForSubAgent({ baseUrl: env.INKEEP_AGENTS_MANAGE_API_URL })({
         scopes: {
           tenantId: this.config.tenantId,
           projectId: this.config.projectId,

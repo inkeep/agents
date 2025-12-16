@@ -268,7 +268,6 @@ export class ExecutionHandler {
         if (fromSubAgentId) {
           messageMetadata.fromSubAgentId = fromSubAgentId;
         }
-
         messageResponse = await a2aClient.sendMessage({
           message: {
             role: 'user',
@@ -292,7 +291,14 @@ export class ExecutionHandler {
         if (!messageResponse?.result) {
           errorCount++;
           logger.error(
-            { currentAgentId, iterations, errorCount },
+            { 
+              currentAgentId, 
+              iterations, 
+              errorCount,
+              hasError: !!(messageResponse as any)?.error,
+              errorDetails: (messageResponse as any)?.error,
+              fullResponse: messageResponse,
+            },
             `No response from agent ${currentAgentId} on iteration ${iterations} (error ${errorCount}/${this.MAX_ERRORS})`
           );
 

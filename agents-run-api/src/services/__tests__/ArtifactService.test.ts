@@ -2,6 +2,7 @@ import { getLedgerArtifacts, getTask, listTaskIdsByContextId } from '@inkeep/age
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { toolSessionManager } from '../../agents/ToolSessionManager';
 import { agentSessionManager } from '../AgentSession';
+import type { ResolvedRef } from '@inkeep/agents-core';
 import {
   type ArtifactCreateRequest,
   ArtifactService,
@@ -24,10 +25,29 @@ describe('ArtifactService', () => {
     vi.clearAllMocks();
 
     mockContext = {
-      tenantId: 'test-tenant',
+      executionContext: {
+        tenantId: 'test-tenant',
+        projectId: 'test-project',
+        agentId: 'test-agent',
+        apiKey: 'test-api-key',
+        apiKeyId: 'test-api-key-id',
+        baseUrl: 'http://localhost:3003',
+        resolvedRef: { type: 'branch', name: 'main', hash: 'test-hash' },
+        project: {
+          id: 'test-project',
+          tenantId: 'test-tenant',
+          name: 'Test Project',
+          agents: {},
+          tools: {},
+          functions: {},
+          dataComponents: {},
+          artifactComponents: {},
+          externalAgents: {},
+          credentialReferences: {},
+        },
+      } as any,
       sessionId: 'test-session',
       taskId: 'test-task',
-      projectId: 'test-project',
       contextId: 'test-context',
       streamRequestId: 'test-stream-request',
       subAgentId: 'test-agent',
@@ -48,7 +68,7 @@ describe('ArtifactService', () => {
       ],
     };
 
-    artifactService = new ArtifactService(mockContext, {} as any);
+    artifactService = new ArtifactService(mockContext);
   });
 
   afterEach(() => {
@@ -67,6 +87,7 @@ describe('ArtifactService', () => {
         status: 'active',
         metadata: null,
         subAgentId: 'test-agent',
+        ref: { type: 'branch', name: 'main', hash: 'test-hash' } as ResolvedRef,
         createdAt: '2024-01-01T00:00:00Z',
         updatedAt: '2024-01-01T00:00:00Z',
       };
@@ -110,6 +131,7 @@ describe('ArtifactService', () => {
             agentId: 'test-agent',
             id: 'task1',
             contextId: 'test-context',
+            ref: { type: 'branch', name: 'main', hash: 'test-hash' },
             status: 'active',
             metadata: null,
             subAgentId: 'test-agent',
@@ -242,13 +264,10 @@ describe('ArtifactService', () => {
     });
 
     it('should handle missing session ID', async () => {
-      const serviceWithoutSession = new ArtifactService(
-        {
-          ...mockContext,
-          sessionId: undefined,
-        },
-        {} as any
-      );
+      const serviceWithoutSession = new ArtifactService({
+        ...mockContext,
+        sessionId: undefined,
+      });
 
       const result = await serviceWithoutSession.createArtifact(mockRequest);
 
@@ -370,7 +389,7 @@ describe('ArtifactService', () => {
         data: { db: 'data' },
       });
 
-      expect(getLedgerArtifacts).toHaveBeenCalledWith(expect.any(Object));
+      expect(getLedgerArtifacts).toHaveBeenCalledWith('mock-db-client');
     });
 
     it('should return null when artifact not found anywhere', async () => {
@@ -397,14 +416,14 @@ describe('ArtifactService', () => {
     });
 
     it('should return null when missing required context', async () => {
-      const serviceWithoutContext = new ArtifactService(
-        {
-          ...mockContext,
+      const serviceWithoutContext = new ArtifactService({
+        ...mockContext,
+        executionContext: {
+          ...(mockContext.executionContext as any),
           projectId: undefined,
-          taskId: undefined,
         },
-        {} as any
-      );
+        taskId: undefined,
+      });
 
       vi.mocked(agentSessionManager.getArtifactCache).mockResolvedValue(null);
 
@@ -532,13 +551,10 @@ describe('ArtifactService', () => {
       vi.mocked(toolSessionManager.getToolResult).mockReturnValue(mockToolResult);
       vi.mocked(agentSessionManager.recordEvent).mockResolvedValue(undefined);
 
-      const serviceWithoutComponents = new ArtifactService(
-        {
-          ...mockContext,
-          artifactComponents: undefined,
-        },
-        {} as any
-      );
+      const serviceWithoutComponents = new ArtifactService({
+        ...mockContext,
+        artifactComponents: undefined,
+      });
 
       const testRequest2: ArtifactCreateRequest = {
         artifactId: 'test-artifact',

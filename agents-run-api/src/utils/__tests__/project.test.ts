@@ -1,10 +1,4 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import type {
-  FullProjectSelect,
-  FullAgentSubAgentSelect,
-  AgentWithinContextOfProjectSelect,
-  CanDelegateToItem,
-} from '@inkeep/agents-core';
 import {
   getAgentFromProject,
   getSubAgentFromProject,
@@ -19,8 +13,6 @@ import {
   buildRelationsForDescription,
   enhanceInternalRelation,
   enhanceTeamRelation,
-  type InternalRelation,
-  type TeamRelation,
 } from '../project';
 
 // Mock the logger
@@ -40,7 +32,7 @@ vi.mock('../../data/agents', () => ({
 }));
 
 // Helper to create minimal project fixtures
-function createMockProject(overrides: Partial<FullProjectSelect> = {}): FullProjectSelect {
+function createMockProject(overrides: Record<string, unknown> = {}) {
   return {
     id: 'project-1',
     name: 'Test Project',
@@ -56,10 +48,10 @@ function createMockProject(overrides: Partial<FullProjectSelect> = {}): FullProj
     credentialReferences: {},
     functions: {},
     ...overrides,
-  } as FullProjectSelect;
+  } as any;
 }
 
-function createMockSubAgent(overrides: Partial<FullAgentSubAgentSelect> = {}): FullAgentSubAgentSelect {
+function createMockSubAgent(overrides: Record<string, unknown> = {}) {
   return {
     id: 'sub-agent-1',
     name: 'Test Sub Agent',
@@ -78,10 +70,10 @@ function createMockSubAgent(overrides: Partial<FullAgentSubAgentSelect> = {}): F
     contextConfigId: null,
     conversationHistoryConfig: null,
     ...overrides,
-  } as FullAgentSubAgentSelect;
+  } as any;
 }
 
-function createMockAgent(overrides: Partial<AgentWithinContextOfProjectSelect> = {}): AgentWithinContextOfProjectSelect {
+function createMockAgent(overrides: Record<string, unknown> = {}) {
   return {
     id: 'agent-1',
     name: 'Test Agent',
@@ -98,7 +90,7 @@ function createMockAgent(overrides: Partial<AgentWithinContextOfProjectSelect> =
     teamAgents: null,
     prompt: null,
     ...overrides,
-  } as AgentWithinContextOfProjectSelect;
+  } as any;
 }
 
 describe('project helpers', () => {
@@ -215,7 +207,10 @@ describe('project helpers', () => {
 
       const result = extractTransferRelations({
         agent,
-        canTransferTo: ['sub-1', 'sub-2'],
+        canTransferTo: [
+          { subAgentId: 'sub-1', subAgentSubAgentRelationId: 'rel-sub-1' },
+          { subAgentId: 'sub-2', subAgentSubAgentRelationId: 'rel-sub-2' },
+        ] as any,
       });
 
       expect(result).toHaveLength(2);
@@ -224,12 +219,14 @@ describe('project helpers', () => {
         name: 'Sub 1',
         description: 'Desc 1',
         relationType: 'transfer',
+        relationId: 'rel-sub-1',
       });
       expect(result[1]).toEqual({
         id: 'sub-2',
         name: 'Sub 2',
         description: 'Desc 2',
         relationType: 'transfer',
+        relationId: 'rel-sub-2',
       });
     });
 
@@ -241,7 +238,10 @@ describe('project helpers', () => {
 
       const result = extractTransferRelations({
         agent,
-        canTransferTo: ['sub-1', 'non-existent'],
+        canTransferTo: [
+          { subAgentId: 'sub-1', subAgentSubAgentRelationId: 'rel-sub-1' },
+          { subAgentId: 'non-existent', subAgentSubAgentRelationId: 'rel-missing' },
+        ] as any,
       });
 
       expect(result).toHaveLength(1);
@@ -268,7 +268,9 @@ describe('project helpers', () => {
       const result = parseDelegateRelations({
         agent,
         project,
-        canDelegateTo: ['sub-1'] as CanDelegateToItem[],
+        canDelegateTo: [
+          { subAgentId: 'sub-1', subAgentSubAgentRelationId: 'rel-delegate-sub-1' },
+        ] as any,
       });
 
       expect(result.internalDelegateRelations).toHaveLength(1);
@@ -277,6 +279,7 @@ describe('project helpers', () => {
         name: 'Sub 1',
         description: 'Desc',
         relationType: 'delegate',
+        relationId: 'rel-delegate-sub-1',
       });
       expect(result.externalRelations).toHaveLength(0);
       expect(result.teamRelations).toHaveLength(0);
@@ -304,8 +307,12 @@ describe('project helpers', () => {
         agent,
         project,
         canDelegateTo: [
-          { externalAgentId: 'ext-1', headers: { 'X-Custom': 'value' } },
-        ] as CanDelegateToItem[],
+          {
+            externalAgentId: 'ext-1',
+            subAgentExternalAgentRelationId: 'rel-ext-1',
+            headers: { 'X-Custom': 'value' },
+          },
+        ] as any,
       });
 
       expect(result.externalRelations).toHaveLength(1);
@@ -318,6 +325,7 @@ describe('project helpers', () => {
           credentialReferenceId: 'cred-1',
         },
         headers: { 'X-Custom': 'value' },
+        relationId: 'rel-ext-1',
       });
     });
 
@@ -337,8 +345,12 @@ describe('project helpers', () => {
         agent,
         project,
         canDelegateTo: [
-          { agentId: 'team-1', headers: { 'X-Team': 'header' } },
-        ] as CanDelegateToItem[],
+          {
+            agentId: 'team-1',
+            subAgentTeamAgentRelationId: 'rel-team-1',
+            headers: { 'X-Team': 'header' },
+          },
+        ] as any,
       });
 
       expect(result.teamRelations).toHaveLength(1);
@@ -350,6 +362,7 @@ describe('project helpers', () => {
         },
         targetAgentId: 'team-1',
         headers: { 'X-Team': 'header' },
+        relationId: 'rel-team-1',
       });
     });
 
@@ -374,7 +387,7 @@ describe('project helpers', () => {
       const result = parseDelegateRelations({
         agent,
         project,
-        canDelegateTo: [{ externalAgentId: 'ext-1' }] as CanDelegateToItem[],
+        canDelegateTo: [{ externalAgentId: 'ext-1', subAgentExternalAgentRelationId: 'rel-ext-1' }] as any,
       });
 
       expect(result.externalRelations).toHaveLength(1);
@@ -408,10 +421,10 @@ describe('project helpers', () => {
         agent,
         project,
         canDelegateTo: [
-          'sub-1',
-          { externalAgentId: 'ext-1' },
-          { agentId: 'team-1' },
-        ] as CanDelegateToItem[],
+          { subAgentId: 'sub-1', subAgentSubAgentRelationId: 'rel-sub-1' },
+          { externalAgentId: 'ext-1', subAgentExternalAgentRelationId: 'rel-ext-1' },
+          { agentId: 'team-1', subAgentTeamAgentRelationId: 'rel-team-1' },
+        ] as any,
       });
 
       expect(result.internalDelegateRelations).toHaveLength(1);
@@ -426,8 +439,8 @@ describe('project helpers', () => {
       const subAgent2 = createMockSubAgent({ id: 'sub-2', name: 'Sub 2' });
       const currentSubAgent = createMockSubAgent({
         id: 'current',
-        canTransferTo: ['sub-1'],
-        canDelegateTo: ['sub-2'] as any,
+        canTransferTo: [{ subAgentId: 'sub-1', subAgentSubAgentRelationId: 'rel-transfer-1' }] as any,
+        canDelegateTo: [{ subAgentId: 'sub-2', subAgentSubAgentRelationId: 'rel-delegate-1' }] as any,
       });
       const agent = createMockAgent({
         subAgents: {
@@ -638,10 +651,10 @@ describe('project helpers', () => {
     it('should build all relation types for description generation', () => {
       const subAgent1 = createMockSubAgent({ id: 'sub-1', name: 'Transfer Target' });
       const subAgent = createMockSubAgent({
-        canTransferTo: ['sub-1'],
+        canTransferTo: [{ subAgentId: 'sub-1', subAgentSubAgentRelationId: 'rel-transfer-1' }] as any,
         canDelegateTo: [
-          { externalAgentId: 'ext-1' },
-          { agentId: 'team-1' },
+          { externalAgentId: 'ext-1', subAgentExternalAgentRelationId: 'rel-ext-1' },
+          { agentId: 'team-1', subAgentTeamAgentRelationId: 'rel-team-1' },
         ] as any,
       });
       const agent = createMockAgent({
@@ -680,11 +693,12 @@ describe('project helpers', () => {
     });
 
     it('should enhance relation with generated description', () => {
-      const relation: InternalRelation = {
+      const relation = {
         id: 'sub-1',
         name: 'Sub Agent 1',
         description: 'Original description',
-        relationType: 'transfer',
+        relationType: 'transfer' as const,
+        relationId: 'rel-internal-1',
       };
       const relatedSubAgent = createMockSubAgent({
         id: 'sub-1',
@@ -712,11 +726,12 @@ describe('project helpers', () => {
     });
 
     it('should return original relation when sub-agent not found', () => {
-      const relation: InternalRelation = {
+      const relation = {
         id: 'non-existent',
         name: 'Non-existent',
         description: 'Original',
-        relationType: 'transfer',
+        relationType: 'transfer' as const,
+        relationId: 'rel-internal-missing',
       };
       const agent = createMockAgent({ subAgents: {} });
       const project = createMockProject();
@@ -738,13 +753,14 @@ describe('project helpers', () => {
     });
 
     it('should enhance team relation with generated description', () => {
-      const relation: TeamRelation = {
+      const relation = {
         targetAgent: {
           id: 'team-agent-1',
           name: 'Team Agent',
           description: 'Original team desc',
         },
         targetAgentId: 'team-agent-1',
+        relationId: 'rel-team-1',
       };
       const defaultSubAgent = createMockSubAgent({
         id: 'default-sub',
@@ -776,9 +792,10 @@ describe('project helpers', () => {
     });
 
     it('should return original relation when team agent has no default sub-agent', () => {
-      const relation: TeamRelation = {
+      const relation = {
         targetAgent: { id: 'team-1', name: 'Team', description: 'Desc' },
         targetAgentId: 'team-1',
+        relationId: 'rel-team-missing-default',
       };
       const teamAgent = createMockAgent({
         id: 'team-1',
@@ -798,9 +815,10 @@ describe('project helpers', () => {
     });
 
     it('should return original relation when team agent not found', () => {
-      const relation: TeamRelation = {
+      const relation = {
         targetAgent: { id: 'non-existent', name: 'Non-existent', description: null },
         targetAgentId: 'non-existent',
+        relationId: 'rel-team-not-found',
       };
       const project = createMockProject({ agents: {} });
 
@@ -819,7 +837,10 @@ describe('project helpers', () => {
       const subAgent1 = createMockSubAgent({
         id: 'sub-1',
         name: 'Sub 1',
-        canTransferTo: ['sub-2', 'sub-3'],
+        canTransferTo: [
+          { subAgentId: 'sub-2', subAgentSubAgentRelationId: 'rel-12' },
+          { subAgentId: 'sub-3', subAgentSubAgentRelationId: 'rel-13' },
+        ] as any,
       });
       const subAgent2 = createMockSubAgent({ id: 'sub-2', name: 'Sub 2', description: 'Desc 2' });
       const subAgent3 = createMockSubAgent({ id: 'sub-3', name: 'Sub 3', description: 'Desc 3' });
@@ -841,11 +862,13 @@ describe('project helpers', () => {
         id: 'sub-2',
         name: 'Sub 2',
         description: 'Desc 2',
+        relationId: 'rel-12',
       });
       expect(result[1]).toEqual({
         id: 'sub-3',
         name: 'Sub 3',
         description: 'Desc 3',
+        relationId: 'rel-13',
       });
     });
 
@@ -863,7 +886,10 @@ describe('project helpers', () => {
     it('should filter out non-existent transfer targets', () => {
       const subAgent1 = createMockSubAgent({
         id: 'sub-1',
-        canTransferTo: ['sub-2', 'non-existent'],
+        canTransferTo: [
+          { subAgentId: 'sub-2', subAgentSubAgentRelationId: 'rel-12' },
+          { subAgentId: 'non-existent', subAgentSubAgentRelationId: 'rel-missing' },
+        ] as any,
       });
       const subAgent2 = createMockSubAgent({ id: 'sub-2', name: 'Sub 2' });
       const agent = createMockAgent({
@@ -937,7 +963,7 @@ describe('project helpers', () => {
     it('should look up external agents from project when not in agent', () => {
       const subAgent1 = createMockSubAgent({
         id: 'sub-1',
-        canDelegateTo: [{ externalAgentId: 'ext-project' }] as any,
+        canDelegateTo: [{ externalAgentId: 'ext-project', subAgentExternalAgentRelationId: 'rel-ext-project' }] as any,
       });
       const agent = createMockAgent({
         subAgents: { 'sub-1': subAgent1 },
@@ -985,7 +1011,7 @@ describe('project helpers', () => {
     it('should filter out non-existent external agents', () => {
       const subAgent1 = createMockSubAgent({
         id: 'sub-1',
-        canDelegateTo: [{ externalAgentId: 'non-existent' }] as any,
+        canDelegateTo: [{ externalAgentId: 'non-existent', subAgentExternalAgentRelationId: 'rel-ext-missing' }] as any,
       });
       const agent = createMockAgent({
         subAgents: { 'sub-1': subAgent1 },

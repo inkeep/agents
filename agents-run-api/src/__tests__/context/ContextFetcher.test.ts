@@ -1,21 +1,49 @@
 import type { ContextFetchDefinition } from '@inkeep/agents-core';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { ContextFetcher, MissingRequiredVariableError } from '../../context/ContextFetcher';
-import type { AgentsRunDatabaseClient } from '@inkeep/agents-core';
 
 // Mock fetch globally
 const mockFetch = vi.fn();
 global.fetch = mockFetch;
 
-// Mock the database client
-const mockDbClient = {} as AgentsRunDatabaseClient;
+function createMockExecutionContext(overrides: {
+  tenantId?: string;
+  projectId?: string;
+} = {}) {
+  const tenantId = overrides.tenantId ?? 'test-tenant';
+  const projectId = overrides.projectId ?? 'test-project';
+
+  return {
+    apiKey: 'test-api-key',
+    apiKeyId: 'test-api-key-id',
+    tenantId,
+    projectId,
+    agentId: 'test-agent',
+    baseUrl: 'http://localhost:3000',
+    resolvedRef: { type: 'branch', name: 'main', hash: 'test-hash' },
+    project: {
+      id: projectId,
+      tenantId,
+      name: 'Test Project',
+      agents: {},
+      tools: {},
+      functions: {},
+      dataComponents: {},
+      artifactComponents: {},
+      externalAgents: {},
+      credentialReferences: {},
+      statusUpdates: null,
+    },
+  } as any;
+}
 
 describe('ContextFetcher', () => {
   let fetcher: ContextFetcher;
   const tenantId = 'test-tenant';
+  const projectId = 'test-project';
 
   beforeEach(async () => {
-    fetcher = new ContextFetcher(tenantId, 'test-project', mockDbClient);
+    fetcher = new ContextFetcher(createMockExecutionContext({ tenantId, projectId }));
     mockFetch.mockClear();
   });
 
@@ -293,10 +321,7 @@ describe('ContextFetcher', () => {
     it('should respect custom timeout', async () => {
       const customTimeout = 5000;
       const customFetcher = new ContextFetcher(
-        tenantId,
-        'test-project',
-        mockDbClient,
-        undefined,
+        createMockExecutionContext({ tenantId, projectId }),
         undefined,
         customTimeout
       );
@@ -498,7 +523,6 @@ describe('ContextFetcher', () => {
         headers: new Map([['content-type', 'application/json']]),
         json: async () => validResponse,
       });
-
       const result = await fetcher.fetch(definition, {});
 
       expect(result).toEqual(validResponse);

@@ -24,6 +24,36 @@ vi.mock('../../logger', () => ({
 import * as execModule from '../../handlers/executionHandler';
 import { makeRequest } from '../utils/testRequest';
 
+// Mock context exports used by the chat route (routes/chat.ts imports from ../context)
+vi.mock('../../context', () => ({
+  handleContextResolution: vi.fn().mockResolvedValue({}),
+  contextValidationMiddleware: vi.fn().mockImplementation(async (c: any, next: any) => {
+    c.set('validatedContext', {
+      agentId: 'test-agent',
+      tenantId: 'test-tenant',
+      projectId: 'default',
+    });
+    await next();
+  }),
+}));
+
+// Mock Management API calls used by projectConfigMiddleware so tests don't hit network
+const getFullProjectMock = vi.fn();
+vi.mock('../../api/manage-api', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('../../api/manage-api')>();
+  return {
+    ...actual,
+    getResolvedRef: vi.fn().mockImplementation(() =>
+      vi.fn().mockResolvedValue({
+        type: 'branch',
+        name: 'main',
+        hash: 'test-hash',
+      })
+    ),
+    getFullProject: vi.fn().mockImplementation(() => getFullProjectMock),
+  };
+});
+
 // Mock @inkeep/agents-core functions that are used by the chat routes
 // This mock is merged with the one below
 
@@ -36,10 +66,6 @@ import { makeRequest } from '../utils/testRequest';
 vi.mock('../../data/threads.js', () => ({
   getActiveAgentForThread: vi.fn().mockResolvedValue(null),
   setActiveAgentForThread: vi.fn(),
-}));
-
-vi.mock('../../data/context.js', () => ({
-  handleContextResolution: vi.fn().mockResolvedValue({}),
 }));
 
 // Mock database client with required methods
@@ -94,50 +120,24 @@ vi.mock('../../utils/stream-helpers.js', () => ({
   }),
 }));
 
+vi.mock('../../utils/stream-helpers', () => ({
+  createSSEStreamHelper: vi.fn().mockReturnValue({
+    writeRole: vi.fn().mockResolvedValue(undefined),
+    writeContent: vi.fn().mockResolvedValue(undefined),
+    complete: vi.fn().mockResolvedValue(undefined),
+    writeError: vi.fn().mockResolvedValue(undefined),
+    writeData: vi.fn().mockResolvedValue(undefined),
+    writeOperation: vi.fn().mockResolvedValue(undefined),
+    writeSummary: vi.fn().mockResolvedValue(undefined),
+    streamText: vi.fn().mockResolvedValue(undefined),
+    streamData: vi.fn().mockResolvedValue(undefined),
+  }),
+}));
+
 vi.mock('@inkeep/agents-core', async (importOriginal) => {
   const actual = await importOriginal<typeof import('@inkeep/agents-core')>();
   return {
     ...actual,
-    contextValidationMiddleware: vi.fn().mockReturnValue(async (c: any, next: any) => {
-      // Mock successful validation
-      c.set('validatedContext', {
-        agentId: 'test-agent',
-        tenantId: 'test-tenant',
-        projectId: 'default',
-      });
-      await next();
-    }),
-    getAgentWithDefaultSubAgent: vi.fn().mockReturnValue(
-      vi.fn().mockResolvedValue({
-        id: 'test-agent',
-        name: 'Test Agent',
-        tenantId: 'test-tenant',
-        projectId: 'default',
-        defaultSubAgentId: 'default-agent',
-      })
-    ),
-    getFullAgent: vi.fn().mockReturnValue(
-      vi.fn().mockResolvedValue({
-        id: 'test-agent',
-        name: 'Test Agent',
-        tenantId: 'test-tenant',
-        projectId: 'default',
-        defaultSubAgentId: 'default-agent',
-        agents: [],
-        relations: [],
-      })
-    ),
-    getSubAgentById: vi.fn().mockReturnValue(
-      vi.fn().mockResolvedValue({
-        id: 'default-agent',
-        tenantId: 'test-tenant',
-        name: 'Default Agent',
-        description: 'A helpful assistant',
-        prompt: 'You are a helpful assistant.',
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString(),
-      })
-    ),
     createOrGetConversation: vi.fn().mockReturnValue(
       vi.fn().mockResolvedValue({
         id: 'conv-123',
@@ -193,39 +193,54 @@ describe('Chat Routes', () => {
     process.env.ENVIRONMENT = 'test';
     // Don't use clearAllMocks as it clears the initial vi.mock() setup
     // Instead, just reset the specific mocks we need
-    const { getAgentWithDefaultSubAgent } = await import('@inkeep/agents-core');
-    (vi.mocked(getAgentWithDefaultSubAgent) as any).mockReturnValue(
-      vi.fn().mockResolvedValue({
-        id: 'test-agent',
-        name: 'Test Agent',
-        tenantId: 'test-tenant',
-        projectId: 'test-project',
-        description: 'Test agent description',
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString(),
-        contextConfigId: null,
-        models: null,
-        agents: null,
-        defaultSubAgentId: 'default-agent',
-        defaultSubAgent: {
+    getFullProjectMock.mockResolvedValue({
+      id: 'default',
+      tenantId: 'test-tenant',
+      name: 'Test Project',
+      agents: {
+        'test-agent': {
+          id: 'test-agent',
           tenantId: 'test-tenant',
-          id: 'default-agent',
-          name: 'Default Agent',
-          description: 'A helpful assistant',
-          prompt: 'You are a helpful assistant.',
+          projectId: 'default',
+          name: 'Test Agent',
+          description: 'Test agent description',
+          defaultSubAgentId: 'default-agent',
+          subAgents: {
+            'default-agent': {
+              id: 'default-agent',
+              tenantId: 'test-tenant',
+              projectId: 'default',
+              name: 'Default Agent',
+              description: 'A helpful assistant',
+              prompt: 'You are a helpful assistant.',
+              canUse: [],
+              canTransferTo: [],
+              canDelegateTo: [],
+              dataComponents: [],
+              artifactComponents: [],
+              createdAt: new Date().toISOString(),
+              updatedAt: new Date().toISOString(),
+            },
+          },
+          tools: {},
+          externalAgents: {},
+          teamAgents: {},
+          transferRelations: {},
+          delegateRelations: {},
           createdAt: new Date().toISOString(),
           updatedAt: new Date().toISOString(),
-          model: 'claude-3-sonnet',
-          providerOptions: {},
-          conversationHistoryConfig: {
-            mode: 'full' as const,
-            limit: 10,
-            maxOutputTokens: 1000,
-            includeInternal: false,
-          },
+          contextConfigId: null,
+          contextConfig: null,
         },
-      })
-    );
+      },
+      tools: {},
+      functions: {},
+      dataComponents: {},
+      artifactComponents: {},
+      externalAgents: {},
+      credentialReferences: {},
+      statusUpdates: null,
+    });
 
     // Mock ExecutionHandler.prototype.execute like the working dataChat test
     vi.spyOn(execModule.ExecutionHandler.prototype, 'execute').mockImplementation(
@@ -312,11 +327,19 @@ describe('Chat Routes', () => {
     });
 
     it('should handle missing agent', async () => {
-      const { getAgentWithDefaultSubAgent, getFullAgent } = await import('@inkeep/agents-core');
-      vi.mocked(getAgentWithDefaultSubAgent).mockReturnValueOnce(
-        vi.fn().mockResolvedValueOnce(undefined)
-      );
-      vi.mocked(getFullAgent).mockReturnValueOnce(vi.fn().mockResolvedValueOnce(undefined));
+      getFullProjectMock.mockResolvedValueOnce({
+        id: 'default',
+        tenantId: 'test-tenant',
+        name: 'Test Project',
+        agents: {},
+        tools: {},
+        functions: {},
+        dataComponents: {},
+        artifactComponents: {},
+        externalAgents: {},
+        credentialReferences: {},
+        statusUpdates: null,
+      });
 
       const response = await makeRequest('/v1/chat/completions', {
         method: 'POST',

@@ -75,8 +75,8 @@ const buildUrl = (
 ): string => {
   const normalizedBase = baseUrl.replace(/\/$/, '');
   const url = new URL(`${normalizedBase}${path}`);
-  if (params?.ref !== undefined) {
-    url.searchParams.set('ref', JSON.stringify(params.ref));
+  if (params?.ref !== undefined && params.ref != "main") {
+    url.searchParams.set('ref', params.ref);
   }
   if (params?.page !== undefined) {
     url.searchParams.set('page', String(params.page));
@@ -103,7 +103,7 @@ export const getFullProject =
   (config: ManageApiConfig) =>
   async (params: GetProjectConfigParams): Promise<FullProjectSelectWithRelationIds> => {
     const { scopes: { tenantId, projectId }, ref } = params;
-    const path = `/tenants/${tenantId}/projects/${projectId}/project-full/with-relation-ids`;
+    const path = `/tenants/${tenantId}/project-full/${projectId}/with-relation-ids`;
     const url = buildUrl(config.baseUrl, path, { ref });
 
     const headers = await getInternalServiceAuthHeaders(tenantId, projectId);

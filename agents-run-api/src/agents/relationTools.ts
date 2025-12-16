@@ -16,6 +16,7 @@ import { ContextResolver } from '../context';
 import { trace } from '@opentelemetry/api';
 import { tool } from 'ai';
 import { A2AClient } from '../a2a/client';
+import { env } from '../env';
 import {
   DELEGATION_TOOL_BACKOFF_EXPONENT,
   DELEGATION_TOOL_BACKOFF_INITIAL_INTERVAL_MS,
@@ -508,9 +509,10 @@ export async function buildTransferRelationConfig(
   //TODO: add user id to the scopes
   const targetAgentTools: McpTool[] = await Promise.all(
     targetToolsForSubAgent.map(async (item) => {
-      const mcpTool = await getMcpTool({ baseUrl })({
-        scopes: { tenantId, projectId},
+      const mcpTool = await getMcpTool({ baseUrl: env.INKEEP_AGENTS_MANAGE_API_URL })({
+        scopes: { tenantId, projectId },
         toolId: item.tool.id,
+        ref: executionContext.resolvedRef.name,
       });
       if (item.selectedTools && item.selectedTools.length > 0) {
         const selectedToolsSet = new Set(item.selectedTools);

@@ -68,9 +68,8 @@ app.openapi(
 
     // Get execution context from API key authentication
     const executionContext = c.get('executionContext');
-    const { tenantId, projectId, agentId, subAgentId, ref } = executionContext;
+    const { tenantId, projectId, agentId, subAgentId } = executionContext;
 
-    logger.info({ executionContext }, 'executionContext');
     logger.info(
       {
         message: 'getRegisteredAgent (agent-level)',
@@ -120,7 +119,7 @@ app.post('/a2a', async (c: Context) => {
 
   // Get execution context from API key authentication
   const executionContext = c.get('executionContext');
-  const { tenantId, projectId, agentId, subAgentId, resolvedRef, project } = executionContext;
+  const { tenantId, projectId, agentId, subAgentId, project } = executionContext;
 
   // If subAgentId is defined in execution context, run agent-level logic
   if (subAgentId) {

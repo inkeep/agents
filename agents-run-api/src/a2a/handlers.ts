@@ -87,7 +87,7 @@ async function handleMessageSend(
   try {
     const params = request.params as MessageSendParams;
     const executionContext = c.get('executionContext');
-    const { agentId, ref } = executionContext;
+    const { agentId, resolvedRef } = executionContext;
 
     const task: A2ATask = {
       id: generateId(),
@@ -184,7 +184,7 @@ async function handleMessageSend(
             agent_id: agentId || '',
             stream_request_id: params.message.metadata?.stream_request_id,
           },
-          ref,
+          ref: resolvedRef,
           subAgentId: agent.subAgentId,
           createdAt: new Date().toISOString(),
           updatedAt: new Date().toISOString(),
@@ -389,6 +389,14 @@ async function handleMessageSend(
       id: request.id,
     });
   } catch (error) {
+    logger.error(
+      {
+        error: error instanceof Error ? error.message : 'Unknown error',
+        stack: error instanceof Error ? error.stack : undefined,
+        subAgentId: agent.subAgentId,
+      },
+      'Error in handleMessageSend'
+    );
     return c.json({
       jsonrpc: '2.0',
       error: {

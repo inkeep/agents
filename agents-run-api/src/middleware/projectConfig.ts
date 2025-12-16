@@ -47,8 +47,6 @@ export const projectConfigMiddleware = createMiddleware<{
       throw new Error('Resolved ref not found');
     }
 
-    logger.debug({ resolvedRef }, 'Resolved ref');
-
     const projectConfig = await getFullProject(manageApiConfig)({
       scopes: { tenantId, projectId },
       ref: resolvedRef.name,

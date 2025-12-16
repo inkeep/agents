@@ -1,4 +1,4 @@
-import { executeInBranch, type ResolvedRef, setActiveAgentForThread } from '@inkeep/agents-core';
+import { type ResolvedRef, setActiveAgentForThread } from '@inkeep/agents-core';
 import dbClient from '../data/db/dbClient';
 import { getLogger } from '../logger';
 

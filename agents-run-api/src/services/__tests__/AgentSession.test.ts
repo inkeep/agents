@@ -71,7 +71,32 @@ describe('AgentSession', () => {
       writeSummary: vi.fn().mockResolvedValue(undefined),
     };
 
-    session = new AgentSession('test-session', 'test-message', {} as any, 'test-agent');
+    session = new AgentSession(
+      'test-session',
+      'test-message',
+      {
+        tenantId: 'test-tenant',
+        projectId: 'test-project',
+        agentId: 'test-agent',
+        apiKey: 'test-api-key',
+        apiKeyId: 'test-api-key-id',
+        baseUrl: 'http://localhost:3003',
+        resolvedRef: { type: 'branch', name: 'main', hash: 'test-hash' },
+        project: {
+          id: 'test-project',
+          tenantId: 'test-tenant',
+          name: 'Test Project',
+          agents: {},
+          tools: {},
+          functions: {},
+          dataComponents: {},
+          artifactComponents: {},
+          externalAgents: {},
+          credentialReferences: {},
+        },
+      } as any,
+      'test-context'
+    );
   });
 
   afterEach(async () => {
@@ -84,7 +109,7 @@ describe('AgentSession', () => {
     it('should create a session with initial state', () => {
       expect(session.sessionId).toBe('test-session');
       expect(session.messageId).toBe('test-message');
-      expect(session.agentId).toBe('test-agent');
+      expect(session.executionContext.agentId).toBe('test-agent');
       expect(session.isCurrentlyStreaming()).toBe(false);
       expect(session.getEvents()).toHaveLength(0);
     });

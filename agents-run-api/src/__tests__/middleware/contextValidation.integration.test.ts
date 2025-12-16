@@ -1,25 +1,67 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import type { AgentsRunDatabaseClient } from '@inkeep/agents-core';
 import { type ParsedHttpRequest, validateHeaders } from '../../context/validation';
 
-// Mock the data access functions from @inkeep/agents-core
-const mockGetAgentWithDefaultSubAgent = vi.fn();
-const mockGetContextConfigById = vi.fn();
+function createMockExecutionContext(params: {
+  tenantId: string;
+  projectId: string;
+  agentId: string;
+  headersSchema?: Record<string, unknown> | null;
+  includeContextConfig?: boolean;
+}) {
+  const { tenantId, projectId, agentId, headersSchema, includeContextConfig = true } = params;
 
-vi.mock('@inkeep/agents-core', async (importOriginal) => {
-  const actual = await importOriginal();
   return {
-    ...(actual as any),
-    getAgentWithDefaultSubAgent: () => mockGetAgentWithDefaultSubAgent,
-    getContextConfigById: () => mockGetContextConfigById,
-  };
-});
+    apiKey: 'test-api-key',
+    apiKeyId: 'test-api-key-id',
+    tenantId,
+    projectId,
+    agentId,
+    baseUrl: 'http://localhost:3000',
+    resolvedRef: { type: 'branch', name: 'main', hash: 'test-hash' },
+    project: {
+      id: projectId,
+      tenantId,
+      name: 'Test Project',
+      agents: {
+        [agentId]: {
+          id: agentId,
+          tenantId,
+          projectId,
+          name: 'Test Agent',
+          description: 'Test agent',
+          defaultSubAgentId: agentId,
+          subAgents: {},
+          tools: {},
+          externalAgents: {},
+          teamAgents: {},
+          transferRelations: {},
+          delegateRelations: {},
+          createdAt: '2024-01-01T00:00:00Z',
+          updatedAt: '2024-01-01T00:00:00Z',
+          ...(includeContextConfig
+            ? {
+                contextConfigId: 'test-config',
+                contextConfig: {
+                  id: 'test-config',
+                  headersSchema: headersSchema ?? null,
+                },
+              }
+            : {}),
+        },
+      },
+      tools: {},
+      functions: {},
+      dataComponents: {},
+      artifactComponents: {},
+      externalAgents: {},
+      credentialReferences: {},
+      statusUpdates: null,
+    },
+  } as any;
+}
 
 describe('validateHeaders - Integration with Flattened Headers', () => {
-  let dbClient: AgentsRunDatabaseClient;
-
   beforeEach(async () => {
-    dbClient = {} as AgentsRunDatabaseClient;
     vi.clearAllMocks();
   });
 
@@ -32,14 +74,12 @@ describe('validateHeaders - Integration with Flattened Headers', () => {
       },
     };
 
-    mockGetAgentWithDefaultSubAgent.mockResolvedValue({
-      id: 'test-agent',
-      contextConfigId: 'test-config',
-    });
-
-    mockGetContextConfigById.mockResolvedValue({
-      id: 'test-config',
-      headersSchema: headersSchema,
+    const executionContext = createMockExecutionContext({
+      tenantId: 'tenant1',
+      projectId: 'project1',
+      agentId: 'agent1',
+      headersSchema,
+      includeContextConfig: true,
     });
 
     const parsedRequest: ParsedHttpRequest = {
@@ -51,12 +91,9 @@ describe('validateHeaders - Integration with Flattened Headers', () => {
     };
 
     const result = await validateHeaders({
-      tenantId: 'tenant1',
-      projectId: 'project1',
-      agentId: 'agent1',
       conversationId: 'conv1',
       parsedRequest,
-      dbClient,
+      executionContext,
     });
 
     expect(result.valid).toBe(true);
@@ -77,13 +114,12 @@ describe('validateHeaders - Integration with Flattened Headers', () => {
       required: ['x-api-key'],
     };
 
-    mockGetAgentWithDefaultSubAgent.mockResolvedValue({
-      contextConfigId: 'test-config',
-    });
-
-    mockGetContextConfigById.mockResolvedValue({
-      id: 'test-config',
-      headersSchema: headersSchema,
+    const executionContext = createMockExecutionContext({
+      tenantId: 'tenant1',
+      projectId: 'project1',
+      agentId: 'agent1',
+      headersSchema,
+      includeContextConfig: true,
     });
 
     const parsedRequest: ParsedHttpRequest = {
@@ -93,12 +129,9 @@ describe('validateHeaders - Integration with Flattened Headers', () => {
     };
 
     const result = await validateHeaders({
-      tenantId: 'tenant1',
-      projectId: 'project1',
-      agentId: 'agent1',
       conversationId: 'conv1',
       parsedRequest,
-      dbClient,
+      executionContext,
     });
 
     expect(result.valid).toBe(false);
@@ -107,8 +140,11 @@ describe('validateHeaders - Integration with Flattened Headers', () => {
   });
 
   it('should work without context config (no validation)', async () => {
-    mockGetAgentWithDefaultSubAgent.mockResolvedValue({
-      id: 'test-agent',
+    const executionContext = createMockExecutionContext({
+      tenantId: 'tenant1',
+      projectId: 'project1',
+      agentId: 'agent1',
+      includeContextConfig: false,
     });
 
     const parsedRequest: ParsedHttpRequest = {
@@ -116,12 +152,9 @@ describe('validateHeaders - Integration with Flattened Headers', () => {
     };
 
     const result = await validateHeaders({
-      tenantId: 'tenant1',
-      projectId: 'project1',
-      agentId: 'agent1',
       conversationId: 'conv1',
       parsedRequest,
-      dbClient,
+      executionContext,
     });
 
     expect(result.valid).toBe(true);

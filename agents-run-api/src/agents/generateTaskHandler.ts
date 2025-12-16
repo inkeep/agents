@@ -9,6 +9,7 @@ import {
   TaskState,
 } from '@inkeep/agents-core';
 import type { A2ATask, A2ATaskResult } from '../a2a/types';
+import { env } from '../env';
 import { getLogger } from '../logger';
 import { agentSessionManager } from '../services/AgentSession';
 import type { SandboxConfig } from '../types/execution-context';
@@ -141,7 +142,8 @@ export const createTaskHandler = (
         (await Promise.all(
           toolsForAgent.map(async (item) => {
             // Doing a api call here rather than using the full project because the mcp's available tools are not available in the project context
-            const mcpTool = await getMcpTool({ baseUrl: config.baseUrl })({
+            
+            const mcpTool = await getMcpTool({ baseUrl: env.INKEEP_AGENTS_MANAGE_API_URL })({
               scopes: {
                 tenantId,
                 projectId,
@@ -313,6 +315,9 @@ export const createTaskHandler = (
         }
       }
 
+      logger.info({ contextId }, 'Context ID');
+      logger.info({ userMessage }, 'User Message');
+      
       const response = await agent.generate(userMessage, {
         contextId,
         metadata: {

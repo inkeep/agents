@@ -47,6 +47,11 @@ type AuthResult = Pick<
   'apiKey' | 'tenantId' | 'projectId' | 'agentId' | 'apiKeyId' | 'metadata'
 >;
 
+type AuthAttempt = {
+  authResult: AuthResult | null;
+  failureMessage?: string;
+};
+
 /**
  * Extract common request data from the Hono context
  */
@@ -136,32 +141,28 @@ async function tryTempJwtAuth(apiKey: string): Promise<AuthResult | null> {
  * Authenticate using a regular API key
  */
 async function tryApiKeyAuth(apiKey: string): Promise<AuthResult | null> {
-  try {
-    const apiKeyRecord = await validateAndGetApiKey(apiKey, dbClient);
+  const apiKeyRecord = await validateAndGetApiKey(apiKey, dbClient);
 
-    if (!apiKeyRecord) {
-      return null;
-    }
+  if (!apiKeyRecord) {
+    return null;
+  }
 
-    logger.debug(
-      {
-        tenantId: apiKeyRecord.tenantId,
-        projectId: apiKeyRecord.projectId,
-        agentId: apiKeyRecord.agentId,
-      },
-      'API key authenticated successfully'
-    );
-
-    return {
-      apiKey,
+  logger.debug(
+    {
       tenantId: apiKeyRecord.tenantId,
       projectId: apiKeyRecord.projectId,
       agentId: apiKeyRecord.agentId,
-      apiKeyId: apiKeyRecord.id,
-    };
-  } catch {
-    return null;
-  }
+    },
+    'API key authenticated successfully'
+  );
+
+  return {
+    apiKey,
+    tenantId: apiKeyRecord.tenantId,
+    projectId: apiKeyRecord.projectId,
+    agentId: apiKeyRecord.agentId,
+    apiKeyId: apiKeyRecord.id,
+  };
 }
 
 /**
@@ -170,12 +171,15 @@ async function tryApiKeyAuth(apiKey: string): Promise<AuthResult | null> {
 async function tryTeamAgentAuth(
   token: string,
   expectedSubAgentId?: string
-): Promise<AuthResult | null> {
+): Promise<AuthAttempt> {
   const result = await verifyServiceToken(token);
 
   if (!result.valid || !result.payload) {
     logger.warn({ error: result.error }, 'Invalid team agent JWT token');
-    return null;
+    return {
+      authResult: null,
+      failureMessage: `Invalid team agent token: ${result.error || 'Invalid token'}`,
+    };
   }
 
   const payload = result.payload;
@@ -205,14 +209,16 @@ async function tryTeamAgentAuth(
   );
 
   return {
-    apiKey: 'team-agent-jwt',
-    tenantId: payload.tenantId,
-    projectId: payload.projectId,
-    agentId: payload.aud,
-    apiKeyId: 'team-agent-token',
-    metadata: {
-      teamDelegation: true,
-      originAgentId: payload.sub,
+    authResult: {
+      apiKey: 'team-agent-jwt',
+      tenantId: payload.tenantId,
+      projectId: payload.projectId,
+      agentId: payload.aud,
+      apiKeyId: 'team-agent-token',
+      metadata: {
+        teamDelegation: true,
+        originAgentId: payload.sub,
+      },
     },
   };
 }
@@ -250,13 +256,30 @@ function tryBypassAuth(apiKey: string, reqData: RequestData): AuthResult | null 
  * Create default development context
  */
 function createDevContext(reqData: RequestData): AuthResult {
-  return {
+  const result = {
     apiKey: 'development',
     tenantId: reqData.tenantId || 'test-tenant',
     projectId: reqData.projectId || 'test-project',
     agentId: reqData.agentId || 'test-agent',
     apiKeyId: 'test-key',
   };
+  
+  // Log when falling back to test values to help debug auth issues
+  if (!reqData.tenantId || !reqData.projectId) {
+    logger.warn(
+      {
+        hasTenantId: !!reqData.tenantId,
+        hasProjectId: !!reqData.projectId,
+        hasApiKey: !!reqData.apiKey,
+        apiKeyPrefix: reqData.apiKey?.substring(0, 10),
+        resultTenantId: result.tenantId,
+        resultProjectId: result.projectId,
+      },
+      'createDevContext: Using fallback test values due to missing tenant/project in request'
+    );
+  }
+  
+  return result;
 }
 
 // ============================================================================
@@ -266,30 +289,30 @@ function createDevContext(reqData: RequestData): AuthResult {
 /**
  * Try all auth strategies in order, returning the first successful result
  */
-async function authenticateRequest(reqData: RequestData): Promise<AuthResult | null> {
+async function authenticateRequest(reqData: RequestData): Promise<AuthAttempt> {
   const { apiKey, subAgentId } = reqData;
 
   if (!apiKey) {
-    return null;
+    return { authResult: null };
   }
 
   // 1. Try JWT temp token
   const jwtResult = await tryTempJwtAuth(apiKey);
-  if (jwtResult) return jwtResult;
+  if (jwtResult) return { authResult: jwtResult };
 
   // 2. Try bypass secret
   const bypassResult = tryBypassAuth(apiKey, reqData);
-  if (bypassResult) return bypassResult;
+  if (bypassResult) return { authResult: bypassResult };
 
   // 3. Try regular API key
   const apiKeyResult = await tryApiKeyAuth(apiKey);
-  if (apiKeyResult) return apiKeyResult;
+  if (apiKeyResult) return { authResult: apiKeyResult };
 
   // 4. Try team agent token
-  const teamResult = await tryTeamAgentAuth(apiKey, subAgentId);
-  if (teamResult) return teamResult;
+  const teamAttempt = await tryTeamAgentAuth(apiKey, subAgentId);
+  if (teamAttempt.authResult) return { authResult: teamAttempt.authResult };
 
-  return null;
+  return { authResult: null, failureMessage: teamAttempt.failureMessage };
 }
 
 export const apiKeyAuth = () =>
@@ -310,10 +333,10 @@ export const apiKeyAuth = () =>
     if (isDev) {
       logger.info({}, 'development environment');
 
-      const authResult = await authenticateRequest(reqData);
+      const attempt = await authenticateRequest(reqData);
 
-      if (authResult) {
-        c.set('executionContext', buildExecutionContext(authResult, reqData));
+      if (attempt.authResult) {
+        c.set('executionContext', buildExecutionContext(attempt.authResult, reqData));
       } else {
         logger.info(
           {},
@@ -341,26 +364,55 @@ export const apiKeyAuth = () =>
       });
     }
 
-    const authResult = await authenticateRequest(reqData);
+    let attempt: AuthAttempt = { authResult: null };
+    try {
+      attempt = await authenticateRequest(reqData);
+    } catch (error) {
+      if (error instanceof HTTPException) {
+        throw error;
+      }
+      logger.error({ error }, 'Authentication failed');
+      throw new HTTPException(500, { message: 'Authentication failed' });
+    }
 
-    if (!authResult) {
+    if (!attempt.authResult) {
       logger.error({}, 'API key authentication error - no valid auth method found');
       throw new HTTPException(401, {
-        message: 'Invalid Token',
+        message: attempt.failureMessage || 'Invalid Token',
       });
     }
 
     logger.debug(
       {
-        tenantId: authResult.tenantId,
-        projectId: authResult.projectId,
-        agentId: authResult.agentId,
+        tenantId: attempt.authResult.tenantId,
+        projectId: attempt.authResult.projectId,
+        agentId: attempt.authResult.agentId,
         subAgentId: reqData.subAgentId,
       },
       'API key authenticated successfully'
     );
 
-    c.set('executionContext', buildExecutionContext(authResult, reqData));
+    c.set('executionContext', buildExecutionContext(attempt.authResult, reqData));
     await next();
   });
 
+
+  /**
+ * Helper middleware for endpoints that optionally support API key authentication
+ * If no auth header is present, it continues without setting the executionContext
+ */
+export const optionalAuth = () =>
+  createMiddleware<{
+    Variables: {
+      executionContext?: BaseExecutionContext;
+    };
+  }>(async (c, next) => {
+    const authHeader = c.req.header('Authorization');
+
+    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+      await next();
+      return;
+    }
+
+    return apiKeyAuth()(c as any, next);
+  });

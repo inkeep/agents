@@ -203,6 +203,12 @@ app.openapi(chatCompletionsRoute, async (c) => {
     const ctxWithBaggage = propagation.setBaggage(otelContext.active(), currentBag);
     return await otelContext.with(ctxWithBaggage, async () => {
       const fullAgent = executionContext.project.agents[agentId];
+      if (!fullAgent) {
+        throw createApiError({
+          code: 'not_found',
+          message: 'Agent not found',
+        });
+      }
 
       let agent = fullAgent;
       let defaultSubAgentId: string;
