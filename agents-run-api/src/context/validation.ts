@@ -280,30 +280,18 @@ export async function validateHeaders({
 }): Promise<ContextValidationResult> {
   try {
     const { tenantId, projectId, agentId, project } = executionContext;
-    logger.debug({ tenantId, projectId, agentId }, 'Validating headers');
+    logger.info({ tenantId, projectId, agentId }, 'Validating headers');
     const agent = project.agents[agentId];
-    logger.debug({ agent }, 'Agent found');
-    if (!agent?.contextConfigId) {
-      logger.debug({ agentId }, 'No context config found for agent, skipping validation');
+
+    const contextConfig = agent.contextConfig;
+    logger.info({ contextConfig }, 'Context config found');
+
+    if (!contextConfig) {
+      logger.info({ agentId }, 'No context config found for agent, skipping validation');
       return {
         valid: true,
         errors: [],
         validatedContext: parsedRequest,
-      };
-    }
-
-    const contextConfig = agent.contextConfig;
-
-    if (!contextConfig) {
-      logger.warn({ contextConfigId: agent.contextConfigId }, 'Context config not found');
-      return {
-        valid: false,
-        errors: [
-          {
-            field: 'contextConfig',
-            message: 'Context configuration not found',
-          },
-        ],
       };
     }
 

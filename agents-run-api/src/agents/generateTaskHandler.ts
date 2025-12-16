@@ -543,8 +543,8 @@ export const createTaskHandlerConfig = async (params: {
     name: subAgent.name,
     description: subAgent.description || undefined,
     conversationHistoryConfig: effectiveConversationHistoryConfig as AgentConversationHistoryConfig,
-    contextConfigId: agent?.contextConfigId || undefined,
-    sandboxConfig: params.sandboxConfig,
+    contextConfigId: agent?.contextConfig?.id || undefined,
+    sandboxConfig,
     userId: params.userId,
   };
 };

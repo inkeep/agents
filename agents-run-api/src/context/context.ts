@@ -85,33 +85,28 @@ import {
         let trigger: 'initialization' | 'invocation';
   
         try {
-          if (!agent?.contextConfigId) {
-            logger.debug({ agentId: agentId }, 'No context config found for agent');
+          const contextConfig = agent.contextConfig;
+
+  
+          if (!contextConfig) {
+            logger.warn(
+              {},
+              'Context config not found, proceeding without context resolution'
+            );
+            parentSpan.setStatus({ code: SpanStatusCode.ERROR });
+            parentSpan.addEvent('context.config_not_found');
             return null;
           }
   
           await handleContextConfigChange(
             executionContext,
             conversationId,
-            agent.contextConfigId,
+            contextConfig.id,
             credentialStores
           );
   
           trigger = await determineContextTrigger(tenantId, projectId, conversationId);
-  
-          const contextConfig = agent.contextConfig;
-  
-          if (!contextConfig) {
-            logger.warn(
-              { contextConfigId: agent.contextConfigId },
-              'Context config not found, proceeding without context resolution'
-            );
-            parentSpan.setStatus({ code: SpanStatusCode.ERROR });
-            parentSpan.addEvent('context.config_not_found', {
-              contextConfigId: agent.contextConfigId,
-            });
-            return null;
-          }
+
   
           const contextResolver = new ContextResolver(
             executionContext,
@@ -124,6 +119,8 @@ import {
             headers,
             tenantId,
           });
+
+          logger.info({ contextResult }, 'Context result');
   
           const resolvedContext = {
             ...contextResult.resolvedContext,
@@ -174,7 +171,7 @@ import {
           logger.error(
             {
               error: errorMessage,
-              contextConfigId: agent?.contextConfigId,
+              contextConfigId: agent?.contextConfig?.id,
               trigger: await determineContextTrigger(
                 tenantId,
                 projectId,
