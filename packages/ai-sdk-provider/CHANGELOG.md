@@ -1,5 +1,19 @@
 # @inkeep/ai-sdk-provider
 
+## 0.38.3
+
+### Patch Changes
+
+- @inkeep/agents-core@0.38.3
+
+## 0.38.2
+
+### Patch Changes
+
+- 907fb8f: updated models to have gpt-5-2
+- Updated dependencies [907fb8f]
+  - @inkeep/agents-core@0.38.2
+
 ## 0.38.1
 
 ### Patch Changes

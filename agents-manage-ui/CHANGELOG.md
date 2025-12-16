@@ -1,5 +1,24 @@
 # @inkeep/agents-manage-ui
 
+## 0.38.3
+
+### Patch Changes
+
+- @inkeep/agents-manage-api@0.38.3
+- @inkeep/agents-run-api@0.38.3
+- @inkeep/agents-core@0.38.3
+
+## 0.38.2
+
+### Patch Changes
+
+- 907fb8f: updated models to have gpt-5-2
+- 5f4fa55: Update tool parsing to match tool name changes in updated mcp
+- Updated dependencies [907fb8f]
+  - @inkeep/agents-core@0.38.2
+  - @inkeep/agents-manage-api@0.38.2
+  - @inkeep/agents-run-api@0.38.2
+
 ## 0.38.1
 
 ### Patch Changes
