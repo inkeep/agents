@@ -2,7 +2,7 @@
 
 import type * as Monaco from 'monaco-editor';
 import { type ComponentProps, type FC, useCallback, useEffect, useId, useState } from 'react';
-import { monacoStore, useMonacoStore } from '@/features/agent/state/use-monaco-store';
+import { agentStore } from '@/features/agent/state/use-agent-store';
 import { cleanupDisposables } from '@/lib/monaco-editor/monaco-utils';
 import { MonacoEditor } from './monaco-editor.client';
 
@@ -15,16 +15,16 @@ export const PromptEditor: FC<PromptEditorProps> = ({ uri, editorOptions, onMoun
   uri ??= `${id}.template`;
 
   const [editor, setEditor] = useState<Monaco.editor.IStandaloneCodeEditor>();
-  const monaco = useMonacoStore((state) => state.monaco);
   useEffect(() => {
     const model = editor?.getModel();
-    if (!monaco || !editor || !model) {
+    if (!editor || !model) {
       return;
     }
+    const { monaco } = window;
 
     // Function to validate template variables and set markers
     const validateTemplateVariables = () => {
-      const validVariables = new Set(monacoStore.getState().variableSuggestions);
+      const validVariables = new Set(agentStore.getState().variableSuggestions);
       const regex = /\{\{([^}]+)}}/g;
       const markers: Monaco.editor.IMarkerData[] = [];
 
@@ -68,7 +68,7 @@ export const PromptEditor: FC<PromptEditorProps> = ({ uri, editorOptions, onMoun
     validateTemplateVariables();
 
     return cleanupDisposables(disposables);
-  }, [editor, monaco]);
+  }, [editor]);
 
   const handleOnMount: NonNullable<ComponentProps<typeof MonacoEditor>['onMount']> = useCallback(
     (editorInstance) => {

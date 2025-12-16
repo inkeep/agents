@@ -11,7 +11,6 @@ import {
   DialogTrigger,
 } from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
-import { useMonacoStore } from '@/features/agent/state/use-monaco-store';
 import { cn } from '@/lib/utils';
 
 type DialogProps = Required<ComponentProps<typeof Dialog>>;
@@ -40,16 +39,12 @@ export function ExpandableField({
   onOpenChange,
   hasError,
 }: ExpandableFieldProps) {
-  const monaco = useMonacoStore((state) => state.monaco);
-
   const handleClick = useCallback(() => {
-    if (!monaco) {
-      return;
-    }
+    const { monaco } = window;
     const model = monaco.editor.getModel(monaco.Uri.parse(uri));
     const [editor] = monaco.editor.getEditors().filter((editor) => editor.getModel() === model);
     editor?.focus();
-  }, [monaco, uri]);
+  }, [uri]);
 
   const content = (
     <>
