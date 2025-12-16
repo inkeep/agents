@@ -292,8 +292,8 @@ THE details PROPERTY MUST CONTAIN JMESPATH SELECTORS THAT EXTRACT DATA FROM THE 
 ❌ NEVER: [?text ~ contains(@, 'word')] (~ with @ operator)
 ❌ NEVER: contains(@, 'text') (@ operator usage)
 ❌ NEVER: [?field=="value"] (double quotes in filters)
-❌ NEVER: [?field=='value'] (escaped quotes in filters)  
-❌ NEVER: [?field=='"'"'value'"'"'] (nightmare quote mixing)
+❌ NEVER: [?field==\'value\'] (escaped quotes in filters)  
+❌ NEVER: [?field=='\"'\"'value'\"'\"'] (nightmare quote mixing)
 ❌ NEVER: result.items[?type=='doc'][?status=='active'] (chained filters)
 
 ✅ CORRECT JMESPATH SYNTAX:
