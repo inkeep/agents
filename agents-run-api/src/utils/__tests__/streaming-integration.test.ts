@@ -71,13 +71,11 @@ describe('Streaming Integration Tests', () => {
 
     parser = new IncrementalStreamParser(
       mockStreamHelper,
-      'test-tenant',
-      'test-context',
       {} as any,
+      'test-context',
       {
         sessionId: 'test-session',
         taskId: 'test-task',
-        projectId: 'test-project',
         subAgentId: 'test-agent',
         streamRequestId: 'test-stream-request',
       }

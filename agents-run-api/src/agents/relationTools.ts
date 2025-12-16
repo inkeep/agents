@@ -514,6 +514,9 @@ export async function buildTransferRelationConfig(
         toolId: item.tool.id,
         ref: executionContext.resolvedRef.name,
       });
+      if (item.relationshipId) {
+        mcpTool.relationshipId = item.relationshipId;
+      }
       if (item.selectedTools && item.selectedTools.length > 0) {
         const selectedToolsSet = new Set(item.selectedTools);
         mcpTool.availableTools =

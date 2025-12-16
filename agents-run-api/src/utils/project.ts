@@ -244,6 +244,7 @@ export type ToolForAgent = {
   selectedTools: string[] | null | undefined;
   headers: Record<string, string> | null | undefined;
   toolPolicies: Record<string, { needsApproval?: boolean }> | null | undefined;
+  relationshipId: string | undefined;
 };
 
 /**
@@ -268,6 +269,7 @@ export function getToolsForSubAgent(params: {
         selectedTools: canUseItem.toolSelection,
         headers: canUseItem.headers,
         toolPolicies: canUseItem.toolPolicies as Record<string, { needsApproval?: boolean }> | null | undefined,
+        relationshipId: canUseItem.agentToolRelationId,
       };
     })
     .filter((item): item is ToolForAgent => item !== null);

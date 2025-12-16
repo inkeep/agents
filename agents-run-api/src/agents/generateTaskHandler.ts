@@ -151,6 +151,9 @@ export const createTaskHandler = (
               toolId: item.tool.id,
               ref: resolvedRef.name,
             });
+            if (item.relationshipId) {
+              mcpTool.relationshipId = item.relationshipId;
+            }
             // Filter available tools based on selectedTools for this agent-tool relationship
             if (item.selectedTools && item.selectedTools.length > 0) {
               const selectedToolsSet = new Set(item.selectedTools);
