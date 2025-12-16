@@ -1,11 +1,10 @@
 'use client';
 
 import type * as Monaco from 'monaco-editor';
-import { useTheme } from 'next-themes';
 import type { ComponentPropsWithoutRef, FC } from 'react';
 import { useEffect, useRef } from 'react';
 import { Skeleton } from '@/components/ui/skeleton';
-import { useMonacoActions, useMonacoStore } from '@/features/agent/state/use-monaco-store';
+import { useMonacoStore } from '@/features/agent/state/use-monaco-store';
 import { cleanupDisposables, getOrCreateModel } from '@/lib/monaco-editor/monaco-utils';
 import { cn } from '@/lib/utils';
 import '@/lib/monaco-editor/setup-monaco-workers';
@@ -54,7 +53,6 @@ export const MonacoEditor: FC<MonacoEditorProps> = ({
   const editorRef = useRef<Monaco.editor.IStandaloneCodeEditor>(null);
   const onChangeRef = useRef<typeof onChange>(undefined);
   const monaco = useMonacoStore((state) => state.monaco);
-  const { setupHighlighter } = useMonacoActions();
   // Update editor options when `readOnly` or `disabled` changes
   useEffect(() => {
     const wordWrap: Monaco.editor.IEditorOptions['wordWrap'] = editorOptions?.wordWrap ?? 'on';
@@ -81,7 +79,6 @@ export const MonacoEditor: FC<MonacoEditorProps> = ({
   useEffect(() => {
     onChangeRef.current = onChange;
   }, [onChange]);
-  const isDark = useTheme().resolvedTheme === 'dark';
   // biome-ignore lint/correctness/useExhaustiveDependencies: Initialize Monaco Editor (runs only on mount)
   useEffect(() => {
     const container = containerRef.current;
@@ -92,6 +89,7 @@ export const MonacoEditor: FC<MonacoEditorProps> = ({
     const { model, language } = getOrCreateModel({ monaco, uri, value });
 
     const editorInstance = editor.create(container, {
+      // theme: 'vitesse-dark',
       model,
       language,
       extraEditorClassName: [
@@ -190,7 +188,6 @@ export const MonacoEditor: FC<MonacoEditorProps> = ({
       updateHeight();
       disposables.push(editorInstance.onDidContentSizeChange(updateHeight));
     }
-    setupHighlighter(isDark);
     onMount?.(editorInstance);
     return cleanupDisposables(disposables);
   }, [monaco]);
