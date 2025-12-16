@@ -1,4 +1,4 @@
-import { shikiToMonaco } from '@shikijs/monaco';
+import { shikiToMonaco, textmateThemeToMonacoTheme } from '@shikijs/monaco';
 import type * as Monaco from 'monaco-editor';
 import { createHighlighter, type HighlighterGeneric } from 'shiki';
 import { create, type StateCreator } from 'zustand';
@@ -62,38 +62,35 @@ const monacoState: StateCreator<MonacoState> = (set, get) => ({
       set({ variableSuggestions });
     },
     setMonacoTheme(isDark) {
-      const monaco = get().monaco;
-      if (!monaco) return;
+      const { monaco, highlighter } = get();
+      if (!monaco || !highlighter) return;
 
-      // Define custom themes with blue diff colors to match TextDiff
-      monaco.editor.defineTheme('github-light-default', {
-        base: 'vs',
-        inherit: true,
-        rules: [],
+      const themeName = isDark ? MONACO_THEME_NAME.dark : MONACO_THEME_NAME.light;
+
+      // Get the Shiki theme and convert to Monaco format
+      const shikiTheme = highlighter.getTheme(themeName);
+      // Cast to Monaco's IStandaloneThemeData since @shikijs/monaco types use monaco-editor-core
+      const monacoThemeConfig = textmateThemeToMonacoTheme(
+        shikiTheme
+      ) as Monaco.editor.IStandaloneThemeData;
+
+      // Define theme with Shiki's colors merged with custom diff editor colors
+      monaco.editor.defineTheme(themeName, {
+        base: monacoThemeConfig.base,
+        inherit: monacoThemeConfig.inherit,
+        rules: monacoThemeConfig.rules,
         colors: {
-          'diffEditor.insertedTextBackground': '#3784ff19',
-          'diffEditor.insertedLineBackground': '#3784ff0d',
-          'scrollbarSlider.background': '#ccc5',
+          ...monacoThemeConfig.colors,
+          // Custom diff editor colors to match TextDiff
+          'diffEditor.insertedTextBackground': isDark ? '#69a3ff4d' : '#3784ff19',
+          'diffEditor.insertedLineBackground': isDark ? '#69a3ff33' : '#3784ff0d',
+          'scrollbarSlider.background': isDark ? '#aaa5' : '#ccc5',
           'scrollbarSlider.hoverBackground': '#bbb5',
-          'scrollbarSlider.activeBackground': '#aaa5',
+          'scrollbarSlider.activeBackground': isDark ? '#ccc5' : '#aaa5',
         },
       });
 
-      monaco.editor.defineTheme('github-dark-default', {
-        base: 'vs-dark',
-        inherit: true,
-        rules: [],
-        colors: {
-          'diffEditor.insertedTextBackground': '#69a3ff4d',
-          'diffEditor.insertedLineBackground': '#69a3ff33',
-          'scrollbarSlider.background': '#aaa5',
-          'scrollbarSlider.hoverBackground': '#bbb5',
-          'scrollbarSlider.activeBackground': '#ccc5',
-        },
-      });
-
-      const monacoTheme = isDark ? MONACO_THEME_NAME.dark : MONACO_THEME_NAME.light;
-      monaco.editor.setTheme(monacoTheme);
+      monaco.editor.setTheme(themeName);
     },
     async setupHighlighter(isDark) {
       const { highlighter: prevHighlighter, monaco, actions } = get();
