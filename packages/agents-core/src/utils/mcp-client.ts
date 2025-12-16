@@ -252,7 +252,7 @@ export class McpClient {
         };
 
         const schema = createZodSchema(def.inputSchema);
-        
+
         const createdTool = tool({
           id: `${this.name}.${def.name}` as const,
           description: def.description || '',
