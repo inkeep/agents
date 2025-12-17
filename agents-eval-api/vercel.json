@@ -1,0 +1,12 @@
+{
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "framework": "hono",
+  "functions": {
+    "dist/index.js": {
+      "includeFiles": "dist/**",
+      "memory": 1024,
+      "maxDuration": 60
+    }
+  }
+}
+
