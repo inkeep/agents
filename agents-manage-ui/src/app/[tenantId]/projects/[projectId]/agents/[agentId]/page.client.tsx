@@ -7,6 +7,7 @@ import {
   type Edge,
   type Node,
   Panel,
+  ReactFlow,
   useOnSelectionChange,
   useReactFlow,
 } from '@xyflow/react';
@@ -76,12 +77,6 @@ import { getErrorSummaryMessage, parseAgentValidationErrors } from '@/lib/utils/
 import { generateId } from '@/lib/utils/id-utils';
 import { detectOrphanedToolsAndGetWarning } from '@/lib/utils/orphaned-tools-detector';
 import { convertFullProjectToProject } from '@/lib/utils/project-converter';
-import { AgentLoadingSkeleton } from './loading';
-
-const ReactFlow = dynamic(() => import('@xyflow/react').then((mod) => mod.ReactFlow), {
-  ssr: false,
-  loading: () => <AgentLoadingSkeleton />,
-});
 
 // The Widget component is heavy, so we load it on the client only after the user clicks the "Try it" button.
 const Playground = dynamic(
