@@ -23,7 +23,6 @@ import {
   updateTool,
   AgentsManageDatabaseClient,
 } from '@inkeep/agents-core';
-import dbClient from '../data/db/dbClient';
 import { getLogger } from '../logger';
 import { requirePermission } from '../middleware/require-permission';
 import type { AppVariablesWithServerConfig } from '../types/app';
@@ -113,7 +112,7 @@ app.openapi(
         data: (
           await Promise.all(
             dbResult.data.map(
-              async (tool) => await dbResultToMcpTool(tool, dbClient, credentialStores)
+              async (tool) => await dbResultToMcpTool(tool, db, credentialStores)
             )
           )
         ).filter((tool: McpTool) => tool.status === status),
@@ -128,7 +127,7 @@ app.openapi(
       result = {
         data: await Promise.all(
           dbResult.data.map(
-            async (tool) => await dbResultToMcpTool(tool, dbClient, credentialStores)
+            async (tool) => await dbResultToMcpTool(tool, db, credentialStores)
           )
         ),
         pagination: dbResult.pagination,
@@ -176,7 +175,7 @@ app.openapi(
     const userId = c.get('userId');
 
     return c.json({
-      data: await dbResultToMcpTool(tool, dbClient, credentialStores),
+      data: await dbResultToMcpTool(tool, db, credentialStores),
     });
   }
 );
@@ -235,7 +234,7 @@ app.openapi(
 
     return c.json(
       {
-        data: await dbResultToMcpTool(tool, dbClient, credentialStores),
+        data: await dbResultToMcpTool(tool, db, credentialStores),
       },
       201
     );
@@ -306,7 +305,7 @@ app.openapi(
     }
 
     return c.json({
-      data: await dbResultToMcpTool(updatedTool, dbClient, credentialStores),
+      data: await dbResultToMcpTool(updatedTool, db, credentialStores),
     });
   }
 );
@@ -336,6 +335,7 @@ app.openapi(
   }),
   async (c) => {
     const { tenantId, projectId, id: toolId } = c.req.valid('param');
+    const db = c.get('db');
     const userId = c.get('userId');
 
     if (!userId) {
@@ -345,7 +345,7 @@ app.openapi(
       });
     }
 
-    const credential = await getUserScopedCredentialReference(dbClient)({
+    const credential = await getUserScopedCredentialReference(db)({
       scopes: { tenantId, projectId },
       toolId,
       userId,

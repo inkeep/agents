@@ -62,6 +62,19 @@ CREATE TABLE "conversations" (
 	CONSTRAINT "conversations_tenant_id_project_id_id_pk" PRIMARY KEY("tenant_id","project_id","id")
 );
 --> statement-breakpoint
+CREATE TABLE "device_code" (
+	"id" text PRIMARY KEY NOT NULL,
+	"device_code" text NOT NULL,
+	"user_code" text NOT NULL,
+	"user_id" text,
+	"expires_at" timestamp NOT NULL,
+	"status" text NOT NULL,
+	"last_polled_at" timestamp,
+	"polling_interval" integer,
+	"client_id" text,
+	"scope" text
+);
+--> statement-breakpoint
 CREATE TABLE "invitation" (
 	"id" text PRIMARY KEY NOT NULL,
 	"organization_id" text NOT NULL,

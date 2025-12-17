@@ -22,6 +22,7 @@ import type {
 // Re-export Better Auth generated tables (runtime entities)
 export {
   account,
+  deviceCode,
   invitation,
   member,
   organization,
