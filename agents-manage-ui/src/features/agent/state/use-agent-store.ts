@@ -14,7 +14,6 @@ import {
 } from '@/components/agent/configuration/node-types';
 import type { ArtifactComponent } from '@/lib/api/artifact-components';
 import type { DataComponent } from '@/lib/api/data-components';
-import { getContextSuggestions } from '@/lib/context-suggestions';
 import type {
   AgentToolConfigLookup,
   SubAgentExternalAgentConfigLookup,
@@ -110,6 +109,8 @@ interface AgentActions {
   toggleTextWrap(): void;
 
   animateGraph: EventListenerOrEventListenerObject;
+
+  setVariableSuggestions: (variableSuggestions: string[]) => void;
 }
 
 type AllAgentStateData = AgentStateData & AgentPersistedStateData;
@@ -149,17 +150,6 @@ const initialAgentState: AgentStateData = {
   variableSuggestions: [],
 };
 
-function tryJsonParse(json = ''): object {
-  if (!json.trim()) {
-    return {};
-  }
-  try {
-    return JSON.parse(json);
-  } catch {
-    return {};
-  }
-}
-
 const agentState: StateCreator<AgentState> = (set, get) => ({
   ...initialAgentState,
   jsonSchemaMode: false,
@@ -179,14 +169,6 @@ const agentState: StateCreator<AgentState> = (set, get) => ({
       externalAgentLookup = {},
       subAgentExternalAgentConfigLookup = {}
     ) {
-      const { contextConfig } = metadata;
-      const contextVariables = tryJsonParse(contextConfig.contextVariables);
-      const headersSchema = tryJsonParse(contextConfig.headersSchema);
-      const variableSuggestions = getContextSuggestions({
-        headersSchema,
-        // @ts-expect-error -- todo: improve type
-        contextVariables,
-      });
       set({
         nodes,
         edges,
@@ -202,7 +184,6 @@ const agentState: StateCreator<AgentState> = (set, get) => ({
         future: [],
         errors: null,
         showErrors: false,
-        variableSuggestions,
       });
     },
     reset() {
@@ -545,6 +526,9 @@ const agentState: StateCreator<AgentState> = (set, get) => ({
       set((prevState) => ({
         hasTextWrap: !prevState.hasTextWrap,
       }));
+    },
+    setVariableSuggestions(variableSuggestions) {
+      set({ variableSuggestions });
     },
   },
 });
