@@ -1,5 +1,13 @@
 # @inkeep/ai-sdk-provider
 
+## 0.39.2
+
+### Patch Changes
+
+- 0f2b040: added backup parser
+- Updated dependencies [0f2b040]
+  - @inkeep/agents-core@0.39.2
+
 ## 0.39.1
 
 ### Patch Changes

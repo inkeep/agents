@@ -1,5 +1,16 @@
 # @inkeep/agents-manage-ui
 
+## 0.39.2
+
+### Patch Changes
+
+- bc3cd69: Bump agents ui and improve stat opts
+- 0f2b040: added backup parser
+- Updated dependencies [0f2b040]
+  - @inkeep/agents-core@0.39.2
+  - @inkeep/agents-run-api@0.39.2
+  - @inkeep/agents-manage-api@0.39.2
+
 ## 0.39.1
 
 ### Patch Changes

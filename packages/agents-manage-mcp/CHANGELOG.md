@@ -1,5 +1,11 @@
 # @inkeep/agents-manage-mcp
 
+## 0.39.2
+
+### Patch Changes
+
+- 0f2b040: added backup parser
+
 ## 0.39.1
 
 ### Patch Changes
