@@ -18,7 +18,7 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "tsup",
+    "build": "tsdown",
     "start": "node dist/index.js",
     "test": "vitest --run",
     "test:watch": "vitest",
