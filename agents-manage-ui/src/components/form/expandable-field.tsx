@@ -16,8 +16,7 @@ import { cn } from '@/lib/utils';
 
 type DialogProps = Required<ComponentProps<typeof Dialog>>;
 
-interface ExpandableFieldProps {
-  uri: string;
+interface ExpandableFieldPropsBase {
   label: string;
   className?: string;
   children: ReactNode;
@@ -29,6 +28,16 @@ interface ExpandableFieldProps {
   id: string;
 }
 
+type ExpandableFieldProps =
+  | (ExpandableFieldPropsBase & {
+      uri: string;
+      onLabelClick?: never;
+    })
+  | (ExpandableFieldPropsBase & {
+      uri?: never;
+      onLabelClick: () => void;
+    });
+
 export function ExpandableField({
   id,
   uri,
@@ -39,17 +48,22 @@ export function ExpandableField({
   open,
   onOpenChange,
   hasError,
+  onLabelClick,
 }: ExpandableFieldProps) {
   const monaco = useMonacoStore((state) => state.monaco);
 
   const handleClick = useCallback(() => {
+    if (onLabelClick) {
+      onLabelClick();
+      return;
+    }
     if (!monaco) {
       return;
     }
     const model = monaco.editor.getModel(monaco.Uri.parse(uri));
     const [editor] = monaco.editor.getEditors().filter((editor) => editor.getModel() === model);
     editor?.focus();
-  }, [monaco, uri]);
+  }, [monaco, onLabelClick, uri]);
 
   const content = (
     <>

@@ -1,95 +1,174 @@
 'use client';
 
-import type * as Monaco from 'monaco-editor';
-import { type ComponentProps, type FC, useCallback, useEffect, useId, useState } from 'react';
-import { monacoStore, useMonacoStore } from '@/features/agent/state/use-monaco-store';
-import { cleanupDisposables } from '@/lib/monaco-editor/monaco-utils';
-import { MonacoEditor } from './monaco-editor';
+import { TaskItem, TaskList } from '@tiptap/extension-list';
+import { Placeholder } from '@tiptap/extension-placeholder';
+import { TableKit } from '@tiptap/extension-table';
+import { Markdown } from '@tiptap/markdown';
+import { EditorContent, type UseEditorOptions, useEditor } from '@tiptap/react';
+import { StarterKit } from '@tiptap/starter-kit';
+import { TextInitial } from 'lucide-react';
+import type { ComponentPropsWithoutRef, FC, RefObject } from 'react';
+import { useEffect, useImperativeHandle } from 'react';
+import { Button } from '@/components/ui/button';
+import { useAgentActions, useAgentStore } from '@/features/agent/state/use-agent-store';
+import { MarkdownIcon } from '@/icons';
+import { cn } from '@/lib/utils';
+import { variableSuggestionExtension } from './tiptap/variable-suggestion';
+import './prompt-editor.css';
 
-interface PromptEditorProps extends Omit<ComponentProps<typeof MonacoEditor>, 'uri'> {
-  uri?: `${string}.template`;
+interface PromptEditorProps extends Omit<ComponentPropsWithoutRef<'div'>, 'onChange'> {
+  value?: string;
+  onChange?: (value: string) => void;
+  placeholder?: string;
+  autoFocus?: boolean;
+  readOnly?: boolean;
+  disabled?: boolean;
+  hasDynamicHeight?: boolean;
+  ref: RefObject<PromptEditorHandle | null>;
 }
 
-export const PromptEditor: FC<PromptEditorProps> = ({ uri, editorOptions, onMount, ...props }) => {
-  const id = useId();
-  uri ??= `${id}.template`;
+const editorOptions: UseEditorOptions = {
+  parseOptions: {
+    // do not collapse new lines in text editor
+    preserveWhitespace: 'full',
+  },
+};
 
-  const [editor, setEditor] = useState<Monaco.editor.IStandaloneCodeEditor>();
-  const monaco = useMonacoStore((state) => state.monaco);
-  useEffect(() => {
-    const model = editor?.getModel();
-    if (!monaco || !editor || !model) {
-      return;
-    }
+export interface PromptEditorHandle {
+  focus: () => void;
+  insertVariableTrigger: () => void;
+}
 
-    // Function to validate template variables and set markers
-    const validateTemplateVariables = () => {
-      const validVariables = new Set(monacoStore.getState().variableSuggestions);
-      const regex = /\{\{([^}]+)}}/g;
-      const markers: Monaco.editor.IMarkerData[] = [];
+export const PromptEditor: FC<PromptEditorProps> = ({
+  className,
+  hasDynamicHeight,
+  disabled,
+  readOnly,
+  ref,
+  value,
+  'aria-invalid': ariaInvalid,
+  placeholder,
+  autoFocus,
+  onChange,
+}) => {
+  const { toggleMarkdownEditor } = useAgentActions();
+  const isMarkdownMode = useAgentStore((state) => state.isMarkdownEditor);
+  const editable = !(readOnly || disabled);
 
-      for (let lineNumber = 1; lineNumber <= model.getLineCount(); lineNumber++) {
-        const line = model.getLineContent(lineNumber);
-        let match: RegExpExecArray | null;
-
-        while ((match = regex.exec(line)) !== null) {
-          const variableName = match[1];
-
-          // Check if variable is valid (in suggestions) or reserved env
-          const isValid =
-            validVariables.has(variableName) ||
-            variableName.startsWith('$env.') ||
-            // Exclude arrays from linting, as they are indicated with [*] in the suggestions
-            variableName.includes('[') ||
-            // JMESPath expressions
-            variableName.startsWith('length(');
-
-          if (!isValid) {
-            markers.push({
-              startLineNumber: lineNumber,
-              startColumn: match.index + 3,
-              endLineNumber: lineNumber,
-              endColumn: match.index + match[0].length - 1,
-              message: `Unknown variable: ${variableName}`,
-              severity: monaco.MarkerSeverity.Error,
-            });
-          }
-        }
-      }
-
-      monaco.editor.setModelMarkers(model, 'template-variables', markers);
-    };
-
-    const disposables: Monaco.IDisposable[] = [];
-
-    // Add model change listener to trigger validation for this specific editor
-    disposables.push(model.onDidChangeContent(validateTemplateVariables));
-    // Initial validation
-    validateTemplateVariables();
-
-    return cleanupDisposables(disposables);
-  }, [editor, monaco]);
-
-  const handleOnMount: NonNullable<ComponentProps<typeof MonacoEditor>['onMount']> = useCallback(
-    (editorInstance) => {
-      setEditor(editorInstance);
-      onMount?.(editorInstance);
+  const editor = useEditor(
+    {
+      ...editorOptions,
+      autofocus: autoFocus,
+      // to see placeholder on initial rendering
+      immediatelyRender: true,
+      extensions: [
+        StarterKit.configure({
+          // they are intended to be rendered as code here since it is part of the instruction to the LLM to include backticks when providing code
+          codeBlock: false,
+          ...(!isMarkdownMode && {
+            // this is needed to remove node formatting for text mode
+            bold: false,
+            italic: false,
+            orderedList: false,
+            bulletList: false,
+            code: false,
+            strike: false,
+            heading: false,
+            blockquote: false,
+          }),
+        }),
+        Placeholder.configure({ placeholder }),
+        Markdown,
+        TaskList,
+        TaskItem.configure({ nested: true }),
+        TableKit,
+        // todo: add dropdown suggestions for text mode too
+        ...(isMarkdownMode ? [variableSuggestionExtension] : []),
+      ],
+      content: value,
+      contentType: isMarkdownMode ? 'markdown' : undefined,
+      onUpdate({ editor }) {
+        const nextValue = isMarkdownMode ? editor.getMarkdown() : editor.getText();
+        onChange?.(nextValue);
+      },
     },
-    [onMount]
+    [isMarkdownMode]
   );
 
+  useEffect(() => {
+    if (!editor) {
+      return;
+    }
+    // Add a class to an existing editor instance
+    editor.setOptions({
+      editorProps: {
+        attributes: {
+          class: cn(
+            'prose prose-sm dark:prose-invert',
+            'focus:outline-none overflow-scroll min-w-full',
+            'dark:bg-input/30 text-sm focus:outline-none px-3 py-2',
+            'rounded-md border border-input shadow-xs transition-colors',
+            hasDynamicHeight ? 'min-h-16' : 'min-h-80',
+            editable
+              ? 'focus-within:border-ring focus-within:ring-2 focus-within:ring-ring/40'
+              : 'bg-muted/50 text-muted-foreground opacity-70 cursor-not-allowed',
+            ariaInvalid === 'true' &&
+              'border-destructive focus-within:border-destructive focus-within:ring-destructive/30',
+            className
+          ),
+        },
+      },
+    });
+    editor.setEditable(editable);
+  }, [editor, hasDynamicHeight, editable, ariaInvalid, className]);
+
+  useEffect(() => {
+    if (!editor) {
+      return;
+    }
+    // When `Markdown` extension is enabled placeholder isn't rendered on initial loading
+    // and loaded only after focusing editor, this dispatch fix it
+    editor.view.dispatch(editor.state.tr.setMeta('placeholder-init', true));
+  }, [editor]);
+
+  useImperativeHandle(
+    ref,
+    () => ({
+      focus() {
+        editor?.chain().focus('end').run();
+      },
+      insertVariableTrigger() {
+        if (!editor) {
+          return;
+        }
+        const { from } = editor.state.selection;
+        // Get the character **before** caret
+        const charBefore = editor.state.doc.textBetween(from - 1, from);
+
+        editor
+          .chain()
+          .focus()
+          // @tiptap/extension-mention don't show dropdown if there is some character before, we insert space to fix it
+          .insertContent(charBefore ? ' {' : '{')
+          .run();
+      },
+    }),
+    [editor]
+  );
+
+  const IconToUse = isMarkdownMode ? TextInitial : MarkdownIcon;
+
   return (
-    <MonacoEditor
-      uri={uri}
-      onMount={handleOnMount}
-      editorOptions={{
-        autoClosingBrackets: 'never',
-        renderLineHighlight: 'none', // disable active line highlight
-        ariaLabel: 'Prompt input editor',
-        quickSuggestions: false,
-        ...editorOptions,
-      }}
-      {...props}
-    />
+    <EditorContent editor={editor} className="relative">
+      <Button
+        variant="default"
+        className="absolute end-2 top-2 z-1"
+        size="icon-sm"
+        title={`Switch to ${isMarkdownMode ? 'Text' : 'Markdown'}`}
+        onClick={toggleMarkdownEditor}
+      >
+        <IconToUse />
+      </Button>
+    </EditorContent>
   );
 };

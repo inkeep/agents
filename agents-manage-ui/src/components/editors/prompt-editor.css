@@ -1,0 +1,21 @@
+.tiptap {
+  [data-type="taskList"] {
+    li {
+      display: flex;
+      align-items: flex-start;
+      gap: 0.25rem;
+    }
+    & > li > div > p:first-child {
+      margin: 0;
+      line-height: 1.2;
+    }
+  }
+  /* https://tiptap.dev/docs/editor/extensions/functionality/placeholder#additional-setup */
+  p.is-editor-empty:first-child::before {
+    color: var(--muted-foreground);
+    content: attr(data-placeholder);
+    float: left;
+    height: 0;
+    pointer-events: none;
+  }
+}
