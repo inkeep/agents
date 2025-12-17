@@ -23,6 +23,7 @@ export * from './manage/tools';
 
 // Runtime data access (Postgres - not versioned)
 export * from './runtime/apiKeys';
+export * from './runtime/cascade-delete';
 export * from './runtime/contextCache';
 export * from './runtime/conversations';
 export * from './runtime/ledgerArtifacts';

@@ -16,10 +16,12 @@ import {
   TenantProjectAgentIdParamsSchema,
   TenantProjectAgentParamsSchema,
   updateContextConfig,
+  cascadeDeleteByContextConfig,
 } from '@inkeep/agents-core';
 import { requirePermission } from '../middleware/require-permission';
 import type { BaseAppVariables } from '../types/app';
 import { speakeasyOffsetLimitPagination } from './shared';
+import runDbClient from '../data/db/runDbClient';
 
 const app = new OpenAPIHono<{ Variables: BaseAppVariables }>();
 
@@ -235,8 +237,17 @@ app.openapi(
   }),
   async (c) => {
     const db = c.get('db');
+    const resolvedRef = c.get('resolvedRef');
     const { tenantId, projectId, agentId, id } = c.req.valid('param');
 
+    // Delete contextCache entries for this contextConfig on this branch
+    await cascadeDeleteByContextConfig(runDbClient)({
+      scopes: { tenantId, projectId },
+      contextConfigId: id,
+      fullBranchName: resolvedRef.name,
+    });
+
+    // Delete the contextConfig from the config DB
     const deleted = await deleteContextConfig(db)({
       scopes: { tenantId, projectId, agentId },
       id,

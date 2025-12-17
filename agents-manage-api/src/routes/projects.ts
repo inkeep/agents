@@ -15,10 +15,12 @@ import {
   TenantIdParamsSchema,
   TenantParamsSchema,
   updateProject,
+  cascadeDeleteByProject,
 } from '@inkeep/agents-core';
 import { requirePermission } from '../middleware/require-permission';
 import type { BaseAppVariables } from '../types/app';
 import { speakeasyOffsetLimitPagination } from './shared';
+import runDbClient from '../data/db/runDbClient';
 
 const app = new OpenAPIHono<{ Variables: BaseAppVariables }>();
 
@@ -259,9 +261,17 @@ app.openapi(
   }),
   async (c) => {
     const db = c.get('db');
+    const resolvedRef = c.get('resolvedRef');
     const { tenantId, id } = c.req.valid('param');
 
     try {
+      // First delete runtime entities for this project on this branch
+      await cascadeDeleteByProject(runDbClient)({
+        scopes: { tenantId, projectId: id },
+        fullBranchName: resolvedRef.name,
+      });
+
+      // Then delete the project from the config DB
       const deleted = await deleteProject(db)({
         scopes: { tenantId, projectId: id },
       });

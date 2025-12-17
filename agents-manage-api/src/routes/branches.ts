@@ -14,9 +14,11 @@ import {
   listBranchesForAgent,
   TenantProjectAgentParamsSchema,
   TenantProjectParamsSchema,
+  cascadeDeleteByBranch,
 } from '@inkeep/agents-core';
 import { OpenAPIHono } from '@hono/zod-openapi';
 import type { BaseAppVariables } from '../types/app';
+import runDbClient from '../data/db/runDbClient';
 
 const app = new OpenAPIHono<{ Variables: BaseAppVariables }>();
 
@@ -234,6 +236,14 @@ app.openapi(
     const { tenantId, projectId, branchName } = c.req.valid('param');
 
     try {
+      // First delete runtime entities associated with this branch
+      const fullBranchName = `${tenantId}_${projectId}_${branchName}`;
+      await cascadeDeleteByBranch(runDbClient)({
+        scopes: { tenantId, projectId },
+        fullBranchName,
+      });
+
+      // Then delete the branch from the config DB
       await deleteBranch(db)({ tenantId, projectId, name: branchName });
       return c.body(null, 204);
     } catch (error: any) {

@@ -15,6 +15,7 @@ import {
   getAgentSubAgentInfos,
   getFullAgentDefinition,
   listAgentsPaginated,
+  listSubAgents,
   PaginationQueryParamsSchema,
   RelatedAgentInfoListResponse,
   TenantProjectAgentParamsSchema,
@@ -22,10 +23,12 @@ import {
   TenantProjectIdParamsSchema,
   TenantProjectParamsSchema,
   updateAgent,
+  cascadeDeleteByAgent,
 } from '@inkeep/agents-core';
 import { requirePermission } from '../middleware/require-permission';
 import type { BaseAppVariables } from '../types/app';
 import { speakeasyOffsetLimitPagination } from './shared';
+import runDbClient from '../data/db/runDbClient';
 
 const app = new OpenAPIHono<{ Variables: BaseAppVariables }>();
 
@@ -350,7 +353,23 @@ app.openapi(
   }),
   async (c) => {
     const db = c.get('db');
+    const resolvedRef = c.get('resolvedRef');
     const { tenantId, projectId, id } = c.req.valid('param');
+
+    // Get all subAgentIds for this agent before deleting
+    const subAgents = await listSubAgents(db)({
+      scopes: { tenantId, projectId, agentId: id },
+    });
+    const subAgentIds = subAgents.map((sa) => sa.id);
+
+    // Delete runtime entities for this agent on this branch
+    await cascadeDeleteByAgent(runDbClient)({
+      scopes: { tenantId, projectId, agentId: id },
+      fullBranchName: resolvedRef.name,
+      subAgentIds,
+    });
+
+    // Delete the agent from the config DB
     const deleted = await deleteAgent(db)({
       scopes: { tenantId, projectId, agentId: id },
     });

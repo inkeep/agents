@@ -17,10 +17,12 @@ import {
   TenantProjectAgentIdParamsSchema,
   TenantProjectAgentParamsSchema,
   updateSubAgent,
+  cascadeDeleteBySubAgent,
 } from '@inkeep/agents-core';
 import { requirePermission } from '../middleware/require-permission';
 import type { BaseAppVariables } from '../types/app';
 import { speakeasyOffsetLimitPagination } from './shared';
+import runDbClient from '../data/db/runDbClient';
 
 const app = new OpenAPIHono<{ Variables: BaseAppVariables }>();
 
@@ -280,8 +282,17 @@ app.openapi(
   async (c) => {
     const { tenantId, projectId, agentId, id } = c.req.valid('param');
     const db = c.get('db');
-    
+    const resolvedRef = c.get('resolvedRef');
+
     try {
+      // Delete runtime entities for this subAgent on this branch
+      await cascadeDeleteBySubAgent(runDbClient)({
+        scopes: { tenantId, projectId },
+        subAgentId: id,
+        fullBranchName: resolvedRef.name,
+      });
+
+      // Delete the subAgent from the config DB
       const deleted = await deleteSubAgent(db)({
         scopes: { tenantId, projectId, agentId },
         subAgentId: id,
