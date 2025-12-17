@@ -5,6 +5,7 @@ import {
   getAgentById,
   projectExists,
   signTempToken,
+  TenantParamsSchema,
 } from '@inkeep/agents-core';
 import dbClient from '../data/db/dbClient';
 import { env } from '../env';
@@ -40,6 +41,7 @@ app.openapi(
       'Generates a short-lived API key (1 hour expiry) for authenticated users to access the run-api from the playground',
     security: [{ cookieAuth: [] }],
     request: {
+      params: TenantParamsSchema,
       body: {
         content: {
           'application/json': {

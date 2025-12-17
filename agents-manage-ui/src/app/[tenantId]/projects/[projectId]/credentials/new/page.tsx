@@ -86,7 +86,7 @@ async function NewCredentialsPage({
           <p>
             Nango Store is recommended to create credentials. Otherwise, make sure Keychain Store is
             available.
-            <ExternalLink href={`${DOCS_BASE_URL}/get-started/credentials`}>
+            <ExternalLink href={`${DOCS_BASE_URL}/typescript-sdk/credentials/overview`}>
               Learn more
             </ExternalLink>
           </p>

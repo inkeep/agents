@@ -1,6 +1,6 @@
 {
   "name": "@inkeep/agents-manage-mcp",
-  "version": "0.39.0",
+  "version": "0.39.2",
   "author": "Speakeasy",
   "type": "module",
   "sideEffects": false,
@@ -9,7 +9,7 @@
     "mcp": "bin/mcp-server.js"
   },
   "scripts": {
-    "build": "bun i && bun src/mcp-server/build.mts && tsup",
+    "build": "bun i && bun src/mcp-server/build.mts && tsdown",
     "check": "npm run lint",
     "lint": "eslint --cache --max-warnings=0 src",
     "prepublishOnly": "npm run build",
@@ -35,7 +35,7 @@
     "eslint": "^9.26.0",
     "find-up": "^7.0.0",
     "globals": "^16.0.0",
-    "tsup": "^8.5.0",
+    "tsdown": "^0.18.0",
     "typescript": "~5.8.3",
     "typescript-eslint": "^8.31.1",
     "zod": "^3.25.7"

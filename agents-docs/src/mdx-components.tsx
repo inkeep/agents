@@ -25,6 +25,7 @@ import { createAPIPage } from 'fumadocs-openapi/ui';
 import { createGenerator } from 'fumadocs-typescript';
 import defaultMdxComponents from 'fumadocs-ui/mdx';
 import type { MDXComponents } from 'mdx/types';
+import { ComparisonTable } from '@/components/comparisons-table';
 import { AutoTypeTable } from '@/components/mdx/auto-type-table';
 import { Card } from '@/components/mdx/card'; // Add this line
 import { openapi } from '@/lib/openapi';
@@ -77,5 +78,6 @@ export function getMDXComponents(components?: MDXComponents): MDXComponents {
     Tab,
     Video,
     Snippet,
+    ComparisonTable,
   };
 }

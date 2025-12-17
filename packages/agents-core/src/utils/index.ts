@@ -6,6 +6,7 @@ export * from './date';
 export * from './error';
 export * from './execution';
 export * from './format-messages';
+export * from './json-parser';
 export * from './logger';
 export * from './mcp-client';
 export * from './model-factory';

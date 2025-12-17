@@ -1,4 +1,4 @@
-import { TaskState } from '@inkeep/agents-core';
+import { parseEmbeddedJson, TaskState } from '@inkeep/agents-core';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import type { A2ATask } from '../../a2a/types';
 import {
@@ -8,7 +8,6 @@ import {
   serializeTaskHandlerConfig,
   type TaskHandlerConfig,
 } from '../../agents/generateTaskHandler';
-import { parseEmbeddedJson } from '../../utils/json-parser';
 
 // Mock @inkeep/agents-core functions using hoisted pattern
 const {
@@ -237,41 +236,45 @@ const {
   };
 });
 
-vi.mock('@inkeep/agents-core', () => ({
-  getRelatedAgentsForAgent: getRelatedAgentsForAgentMock,
-  getToolsForAgent: getToolsForAgentMock,
-  getSubAgentById: getAgentByIdMock,
-  getAgentById: getAgentAgentMock,
-  getAgentAgent: getAgentAgentMock,
-  getAgentAgentById: getAgentAgentByIdMock,
-  getTeamAgentsForSubAgent: getTeamAgentsForSubAgentMock,
-  getAgentWithDefaultSubAgent: getAgentWithDefaultSubAgentMock,
-  getTracer: vi.fn().mockReturnValue({
-    startSpan: vi.fn().mockReturnValue({
-      setAttributes: vi.fn(),
-      setStatus: vi.fn(),
-      end: vi.fn(),
+vi.mock('@inkeep/agents-core', async (importOriginal) => {
+  const actual = await importOriginal();
+  return {
+    ...(actual as any),
+    getRelatedAgentsForAgent: getRelatedAgentsForAgentMock,
+    getToolsForAgent: getToolsForAgentMock,
+    getSubAgentById: getAgentByIdMock,
+    getAgentById: getAgentAgentMock,
+    getAgentAgent: getAgentAgentMock,
+    getAgentAgentById: getAgentAgentByIdMock,
+    getTeamAgentsForSubAgent: getTeamAgentsForSubAgentMock,
+    getAgentWithDefaultSubAgent: getAgentWithDefaultSubAgentMock,
+    getTracer: vi.fn().mockReturnValue({
+      startSpan: vi.fn().mockReturnValue({
+        setAttributes: vi.fn(),
+        setStatus: vi.fn(),
+        end: vi.fn(),
+      }),
     }),
-  }),
-  getDataComponentsForAgent: getDataComponentsForAgentMock,
-  getArtifactComponentsForAgent: getArtifactComponentsForAgentMock,
-  getExternalAgentsForSubAgent: getExternalAgentsForSubAgentMock,
-  getProject: getProjectMock,
-  dbResultToMcpTool: dbResultToMcpToolMock,
-  getLogger: vi.fn(() => ({
-    info: vi.fn(),
-    warn: vi.fn(),
-    error: vi.fn(),
-    debug: vi.fn(),
-  })),
-  generateId: vi.fn(() => 'test-id-123'),
-  loadEnvironmentFiles: vi.fn(),
-  TaskState: {
-    Completed: 'completed',
-    Failed: 'failed',
-    Working: 'working',
-  },
-}));
+    getDataComponentsForAgent: getDataComponentsForAgentMock,
+    getArtifactComponentsForAgent: getArtifactComponentsForAgentMock,
+    getExternalAgentsForSubAgent: getExternalAgentsForSubAgentMock,
+    getProject: getProjectMock,
+    dbResultToMcpTool: dbResultToMcpToolMock,
+    getLogger: vi.fn(() => ({
+      info: vi.fn(),
+      warn: vi.fn(),
+      error: vi.fn(),
+      debug: vi.fn(),
+    })),
+    generateId: vi.fn(() => 'test-id-123'),
+    loadEnvironmentFiles: vi.fn(),
+    TaskState: {
+      Completed: 'completed',
+      Failed: 'failed',
+      Working: 'working',
+    },
+  };
+});
 
 // Mock database client
 vi.mock('../../data/db/dbClient.js', () => ({

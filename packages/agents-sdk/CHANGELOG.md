@@ -1,5 +1,24 @@
 # @inkeep/agents-sdk
 
+## 0.39.2
+
+### Patch Changes
+
+- 0f2b040: added backup parser
+- Updated dependencies [0f2b040]
+  - @inkeep/agents-core@0.39.2
+
+## 0.39.1
+
+### Patch Changes
+
+- cbb7c09: batch flushing
+- 00be449: found bug in system prpomt
+- Updated dependencies [cbb7c09]
+- Updated dependencies [00be449]
+- Updated dependencies [71a83d0]
+  - @inkeep/agents-core@0.39.1
+
 ## 0.39.0
 
 ### Minor Changes

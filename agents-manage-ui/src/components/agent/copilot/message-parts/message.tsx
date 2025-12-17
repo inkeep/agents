@@ -64,12 +64,7 @@ function StreamMarkdown({ parts }: { parts: any[] }) {
         if (part.type === 'data-operation') {
           const { type } = part.data as any;
           // Only add inline operations for non-top-level operations
-          const isTopLevelOperation = [
-            'agent_initializing',
-            'agent_ready',
-            'completion',
-            'error',
-          ].includes(type);
+          const isTopLevelOperation = ['agent_initializing', 'agent_ready', 'error'].includes(type);
           if (!isTopLevelOperation) {
             // Add the inline operation
             processed.push({ type: 'inline-operation', operation: part.data });

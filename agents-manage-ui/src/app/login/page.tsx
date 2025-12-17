@@ -12,32 +12,41 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useRuntimeConfig } from '@/contexts/runtime-config-context';
 import { useAuthClient } from '@/lib/auth-client';
+import { getSafeReturnUrl, isValidReturnUrl } from '@/lib/utils/auth-redirect';
 
 function LoginForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const invitationId = searchParams.get('invitation');
-  const callbackUrl = searchParams.get('callbackUrl');
+  const returnUrl = searchParams.get('returnUrl');
   const authClient = useAuthClient();
   const { PUBLIC_AUTH0_DOMAIN, PUBLIC_GOOGLE_CLIENT_ID } = useRuntimeConfig();
 
+  // Get the validated return URL for post-login redirect (used for email login)
+  const getRedirectUrl = (): string => {
+    if (invitationId) {
+      return `/accept-invitation/${invitationId}`;
+    }
+    return getSafeReturnUrl(returnUrl, '/');
+  };
+
   // For OAuth, we need the full URL to redirect back to the UI
+  // OAuth must callback to `/` (home page) which handles the auth completion
+  // We pass returnUrl/invitation as query params for post-auth redirect
   const getFullCallbackURL = () => {
     if (typeof window === 'undefined') return '/';
-    const baseURL = window.location.origin; // http://localhost:3000
-    // Priority: callbackUrl > invitation > home
-    if (callbackUrl) {
-      // If callbackUrl is a relative path, prepend baseURL
-      if (callbackUrl.startsWith('/')) {
-        return `${baseURL}${callbackUrl}`;
-      }
-      return callbackUrl;
-    }
-    // If there's a pending invitation, include it in callback
+    const baseURL = window.location.origin;
+
+    // Build callback URL with appropriate query params
+    const params = new URLSearchParams();
     if (invitationId) {
-      return `${baseURL}/?invitation=${invitationId}`;
+      params.set('invitation', invitationId);
+    } else if (returnUrl && isValidReturnUrl(returnUrl)) {
+      params.set('returnUrl', returnUrl);
     }
-    return `${baseURL}/`;
+
+    const queryString = params.toString();
+    return queryString ? `${baseURL}/?${queryString}` : `${baseURL}/`;
   };
 
   const [isLoading, setIsLoading] = useState(false);
@@ -72,15 +81,8 @@ function LoginForm() {
         return;
       }
 
-      // Redirect after successful login
-      // Priority: callbackUrl > invitation > home
-      if (callbackUrl) {
-        router.push(callbackUrl);
-      } else if (invitationId) {
-        router.push(`/accept-invitation/${invitationId}`);
-      } else {
-        router.push('/');
-      }
+      // Redirect to the intended destination
+      router.push(getRedirectUrl());
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Authentication failed');
       setIsLoading(false);

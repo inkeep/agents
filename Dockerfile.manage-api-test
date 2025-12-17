@@ -21,7 +21,7 @@ RUN pnpm fetch
 COPY packages/agents-core/ ./packages/agents-core/
 COPY packages/agents-manage-mcp/ ./packages/agents-manage-mcp/
 COPY agents-manage-api/ ./agents-manage-api/
-COPY tsup.config.ts ./
+COPY tsdown.config.ts ./
 
 # Install dependencies
 RUN pnpm install --frozen-lockfile --offline
@@ -33,7 +33,7 @@ WORKDIR /app/packages/agents-core
 RUN pnpm build
 
 WORKDIR /app/packages/agents-manage-mcp
-RUN pnpm tsup
+RUN pnpm tsdown
 
 WORKDIR /app/agents-manage-api
 RUN pnpm build
