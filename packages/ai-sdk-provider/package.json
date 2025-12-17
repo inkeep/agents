@@ -14,7 +14,7 @@
     }
   },
   "scripts": {
-    "build": "tsup",
+    "build": "tsdown",
     "test": "vitest --run",
     "test:watch": "vitest --watch",
     "lint": "biome lint --error-on-warnings",

@@ -1,4 +1,4 @@
-import { defineConfig } from 'tsup';
+import { defineConfig } from 'tsdown';
 
 export default defineConfig({
   watch: process.env.MODE === 'watch',
@@ -9,7 +9,6 @@ export default defineConfig({
   format: ['esm'],
   target: 'node20',
   dts: process.env.MODE !== 'watch',
-  bundle: true,
   // Minimal external list - just problematic packages
   // @nangohq/node uses axios which has CommonJS dependencies (form-data, combined-stream)
   // that use dynamic require('util') which can't be bundled into ESM
@@ -23,12 +22,18 @@ export default defineConfig({
     '@nangohq/node',
     '@nangohq/types',
   ],
-  // Bundle workspace packages
-  noExternal: ['@inkeep/agents-core'],
+  // Bundle workspace packages (use regex to match all subpath imports)
+  noExternal: [/^@inkeep\/agents-core/],
   banner: {
     js: '#!/usr/bin/env node',
   },
   outDir: 'dist',
   shims: true,
   splitting: false,
+  // Disable hash in filenames for predictable DTS file paths
+  hash: false,
+  // Keep .js extension (tsdown 0.18+ defaults to .mjs)
+  outExtensions() {
+    return { js: '.js', dts: '.d.ts' };
+  },
 });
