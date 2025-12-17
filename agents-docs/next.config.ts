@@ -11,6 +11,14 @@ const config: NextConfig = {
   reactStrictMode: true,
   // Increase timeout for static page generation in CI environments
   staticPageGenerationTimeout: 120, // 2 minutes instead of default 60 seconds
+  images: {
+    remotePatterns: [
+      {
+        protocol: 'https',
+        hostname: 'docs.inkeep.com',
+      },
+    ],
+  },
   async redirects() {
     const cloudRedirects = await fetchCloudRedirects();
 
