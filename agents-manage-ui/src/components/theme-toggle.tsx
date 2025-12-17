@@ -13,7 +13,7 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { MONACO_THEME_NAME } from '@/constants/theme';
-import { useMonacoStore } from "@/features/agent/state/use-monaco-store";
+import { useMonacoStore } from '@/features/agent/state/use-monaco-store';
 
 export type ThemeValue = NonNullable<ToasterProps['theme']>;
 
@@ -25,7 +25,7 @@ export const ThemeMap: Record<ThemeValue, FC<ComponentProps<'svg'>>> = {
 
 export const ThemeToggle: FC = () => {
   const { setTheme, resolvedTheme } = useTheme();
-  const monaco = useMonacoStore(state => state.monaco)
+  const monaco = useMonacoStore((state) => state.monaco);
 
   const handleTheme = useCallback<MouseEventHandler<HTMLDivElement>>(
     (event) => {
