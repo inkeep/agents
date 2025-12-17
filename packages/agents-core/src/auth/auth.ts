@@ -225,6 +225,9 @@ export function createAuth(config: BetterAuthConfig) {
           admin: adminRole,
           owner: ownerRole,
         },
+        membershipLimit: 300,
+        invitationLimit: 300,
+        invitationExpiresIn: 7 * 24 * 60 * 60, // 7 days (in seconds)
         async sendInvitationEmail(data) {
           console.log('📧 Invitation created:', {
             email: data.email,
