@@ -22,7 +22,7 @@ interface MonacoState extends MonacoStateData {
 
 let wasInitialized = false;
 
-const monacoState: StateCreator<MonacoState> = (set, get) => ({
+const monacoState: StateCreator<MonacoState> = (set, _get) => ({
   monaco: null,
   // Separate "namespace" for actions
   actions: {
