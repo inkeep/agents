@@ -5,7 +5,7 @@ const { Pool } = pg;
 
 async function deleteDatabase() {
   const databaseUrl = process.env.DATABASE_URL;
-  
+
   if (!databaseUrl) {
     console.error('❌ DATABASE_URL environment variable is not set');
     process.exit(1);
@@ -43,4 +43,3 @@ async function deleteDatabase() {
 }
 
 deleteDatabase();
-
