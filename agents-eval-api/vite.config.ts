@@ -26,6 +26,11 @@ if (!process.env.WORKFLOW_POSTGRES_URL && process.env.DATABASE_URL) {
 if (!process.env.WORKFLOW_POSTGRES_JOB_PREFIX) {
   process.env.WORKFLOW_POSTGRES_JOB_PREFIX = 'inkeep-agents-eval';
 }
+// Set PORT for workflow library - it needs this to know where to send HTTP requests
+// The postgres world uses local world internally which calls /.well-known/workflow/v1/* endpoints
+if (!process.env.PORT) {
+  process.env.PORT = '3005';
+}
 
 import devServer from '@hono/vite-dev-server';
 import { createRequire } from 'node:module';

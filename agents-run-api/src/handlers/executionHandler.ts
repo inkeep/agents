@@ -29,8 +29,7 @@ import dbClient from '../data/db/dbClient.js';
 import { flushBatchProcessor } from '../instrumentation.js';
 import { getLogger } from '../logger.js';
 import { agentSessionManager } from '../services/AgentSession.js';
-import { evaluateConversationWorkflow } from '@inkeep/agents-eval-api';
-import { start } from 'workflow/api';
+import { startConversationEvaluation } from '@inkeep/agents-eval-api';
 import { conversationEvaluationTrigger } from '../services/ConversationEvaluationTrigger.js';
 import { evaluationRunConfigMatchesConversation } from '../services/evaluationRunConfigMatcher.js';
 import { agentInitializingOp, completionOp, errorOp } from '../utils/agent-operations.js';
@@ -557,13 +556,13 @@ export class ExecutionHandler {
                           evaluationRunConfigId: runConfig.id,
                         });
 
-                        await start(evaluateConversationWorkflow, [{
+                        await startConversationEvaluation({
                           tenantId,
                           projectId,
                           conversationId,
                           evaluatorIds,
                           evaluationRunId: evaluationRun.id,
-                        }]);
+                        });
 
                         logger.info(
                           {
@@ -694,13 +693,13 @@ export class ExecutionHandler {
                       evaluationRunConfigId: runConfig.id,
                     });
 
-                    await start(evaluateConversationWorkflow, [{
+                    await startConversationEvaluation({
                       tenantId,
                       projectId,
                       conversationId,
                       evaluatorIds,
                       evaluationRunId: evaluationRun.id,
-                    }]);
+                    });
 
                     logger.info(
                       {
