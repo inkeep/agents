@@ -1,34 +1,11 @@
-import { shikiToMonaco } from '@shikijs/monaco';
 import type * as Monaco from 'monaco-editor';
-import * as monaco from 'monaco-editor';
+import { useTheme } from 'next-themes';
 import type { ComponentPropsWithoutRef, FC } from 'react';
 import { useEffect, useRef } from 'react';
-import { createHighlighter } from 'shiki';
 import { Skeleton } from '@/components/ui/skeleton';
-import { MONACO_THEME_NAME, TEMPLATE_LANGUAGE, VARIABLE_TOKEN } from '@/constants/theme';
-import { agentStore } from '@/features/agent/state/use-agent-store';
-import monacoCompatibleSchema from '@/lib/monaco-editor/dynamic-ref-compatible-json-schema.json';
+import { useMonacoActions, useMonacoStore } from '@/features/agent/state/use-monaco-store';
 import { cleanupDisposables, getOrCreateModel } from '@/lib/monaco-editor/monaco-utils';
 import { cn } from '@/lib/utils';
-import '@/lib/monaco-editor/setup-monaco-workers';
-
-setupMonaco();
-
-/**
- * @see https://shiki.style/packages/monaco#usage
- */
-const SUPPORTED_LANGUAGES = ['javascript', 'typescript', 'json'] as const;
-const SUPPORTED_THEMES = [MONACO_THEME_NAME.light, MONACO_THEME_NAME.dark] as const;
-const highlighter = await createHighlighter({
-  themes: [...SUPPORTED_THEMES],
-  langs: [...SUPPORTED_LANGUAGES],
-});
-
-monaco.languages.register({ id: 'json' });
-monaco.languages.register({ id: 'typescript' });
-monaco.languages.register({ id: 'javascript' });
-
-shikiToMonaco(highlighter, monaco);
 
 interface MonacoEditorProps extends Omit<ComponentPropsWithoutRef<'div'>, 'onChange'> {
   /** @default '' */
@@ -73,6 +50,14 @@ export const MonacoEditor: FC<MonacoEditorProps> = ({
   const containerRef = useRef<HTMLDivElement>(null);
   const editorRef = useRef<Monaco.editor.IStandaloneCodeEditor>(null);
   const onChangeRef = useRef<typeof onChange>(undefined);
+  const monaco = useMonacoStore((state) => state.monaco);
+  const { setMonaco } = useMonacoActions();
+  const { resolvedTheme } = useTheme();
+  // biome-ignore lint/correctness/useExhaustiveDependencies: only on mount
+  useEffect(() => {
+    setMonaco(resolvedTheme === 'dark');
+  }, []);
+
   // Update editor options when `readOnly` or `disabled` changes
   useEffect(() => {
     const wordWrap: Monaco.editor.IEditorOptions['wordWrap'] = editorOptions?.wordWrap ?? 'on';
@@ -102,7 +87,7 @@ export const MonacoEditor: FC<MonacoEditorProps> = ({
   // biome-ignore lint/correctness/useExhaustiveDependencies: Initialize Monaco Editor (runs only on mount)
   useEffect(() => {
     const container = containerRef.current;
-    if (!container) {
+    if (!container || !monaco) {
       return;
     }
     const { editor } = monaco;
@@ -161,12 +146,12 @@ export const MonacoEditor: FC<MonacoEditorProps> = ({
       }),
       editorInstance,
       // Disable command palette
-      // editorInstance.addAction({
-      //   id: 'disable-command-palette',
-      //   label: 'Disable Command Palette',
-      //   keybindings: [monaco.KeyCode.F1],
-      //   run() {}, // Do nothing - prevents command palette from opening
-      // }),
+      editorInstance.addAction({
+        id: 'disable-command-palette',
+        label: 'Disable Command Palette',
+        keybindings: [monaco.KeyCode.F1],
+        run() {}, // Do nothing - prevents command palette from opening
+      }),
       editorInstance.onKeyDown((event) => {
         if (event.code !== 'Space') {
           return;
@@ -209,118 +194,34 @@ export const MonacoEditor: FC<MonacoEditorProps> = ({
     }
     onMount?.(editorInstance);
     return cleanupDisposables(disposables);
-  }, []);
+  }, [monaco]);
 
   return (
     <div
       className={cn(
         'max-h-screen', // set fixed max height, otherwise page freezes up / lags when clicking into it
         !hasDynamicHeight && 'h-full',
-        'rounded-md relative dark:bg-input/30 transition-colors text-foreground',
+        'rounded-md relative dark:bg-input/30 transition-colors',
         'border border-input shadow-xs',
         disabled
           ? 'cursor-not-allowed opacity-50 bg-muted [&>.monaco-editor]:pointer-events-none'
           : 'has-[&>.focused]:border-ring has-[&>.focused]:ring-ring/50 has-[&>.focused]:ring-[3px]',
         'aria-invalid:border-destructive aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40',
         className,
-        // !monaco && 'px-3 py-4',
+        !monaco && 'px-3 py-4',
         // Fixes cursor blinking at the beginning of the line
         '[&_.native-edit-context]:caret-transparent'
       )}
       {...props}
       ref={containerRef}
     >
-      {/*{!monaco && (*/}
-      {/*  <>*/}
-      {/*    <Skeleton className="h-4 w-4/5" />*/}
-      {/*    <Skeleton className="h-4 w-3/5 mt-3 mb-full" />*/}
-      {/*  </>*/}
-      {/*)}*/}
+      {!monaco && (
+        <>
+          <Skeleton className="h-4 w-4/5" />
+          <Skeleton className="h-4 w-3/5 mt-3 mb-full" />
+        </>
+      )}
       {children}
     </div>
   );
 };
-
-function setupMonaco() {
-  window.monaco = monaco;
-
-  monaco.languages.register({ id: TEMPLATE_LANGUAGE });
-  monaco.languages.json.jsonDefaults.setDiagnosticsOptions({
-    // Fixes when `$schema` is `https://json-schema.org/draft/2020-12/schema`
-    // The schema uses meta-schema features ($dynamicRef) that are not yet supported by the validator
-    schemas: [
-      {
-        // Configure JSON language service with Monaco-compatible schema
-        uri: 'https://json-schema.org/draft/2020-12/schema',
-        fileMatch: ['json-schema-*.json'],
-        schema: monacoCompatibleSchema,
-      },
-    ],
-    enableSchemaRequest: true,
-  });
-  // Define tokens for template variables
-  monaco.languages.setMonarchTokensProvider(TEMPLATE_LANGUAGE, {
-    tokenizer: {
-      root: [[/\{\{([^}]+)}}/, VARIABLE_TOKEN]],
-    },
-  });
-  monaco.languages.registerCompletionItemProvider(TEMPLATE_LANGUAGE, {
-    triggerCharacters: ['{'],
-    provideCompletionItems(model, position) {
-      const { variableSuggestions } = agentStore.getState();
-
-      const textUntilPosition = model.getValueInRange({
-        startLineNumber: 1,
-        startColumn: 1,
-        endLineNumber: position.lineNumber,
-        endColumn: position.column,
-      });
-
-      // Check if we're inside a template variable (after {)
-      const match = textUntilPosition.match(/\{([^}]*)$/);
-      if (!match) {
-        console.log('No template variable match found');
-        return { suggestions: [] };
-      }
-
-      const query = match[1].toLowerCase();
-      const filteredSuggestions = variableSuggestions.filter((suggestion) =>
-        suggestion.toLowerCase().includes(query)
-      );
-
-      const word = model.getWordUntilPosition(position);
-      const range = new monaco.Range(
-        position.lineNumber,
-        word.startColumn,
-        position.lineNumber,
-        word.endColumn
-      );
-
-      const completionItems: Omit<
-        Monaco.languages.CompletionItem,
-        'kind' | 'range' | 'insertText'
-      >[] = [
-        // Add context suggestions
-        ...filteredSuggestions.map((label) => ({
-          label,
-          detail: 'Context variable',
-          sortText: '0',
-        })),
-        // Add environment variables
-        {
-          label: '$env.',
-          detail: 'Environment variable',
-          sortText: '1',
-        },
-      ];
-      return {
-        suggestions: completionItems.map((item) => ({
-          kind: monaco.languages.CompletionItemKind.Module,
-          range,
-          insertText: `{${item.label}}}`,
-          ...item,
-        })),
-      };
-    },
-  });
-}

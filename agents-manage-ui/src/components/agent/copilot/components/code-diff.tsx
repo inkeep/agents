@@ -9,7 +9,6 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { useMonacoActions, useMonacoStore } from '@/features/agent/state/use-monaco-store';
 import { cleanupDisposables, getOrCreateModel } from '@/lib/monaco-editor/monaco-utils';
 import { cn } from '@/lib/utils';
-import '@/lib/monaco-editor/setup-monaco-workers';
 
 interface CodeDiffProps extends Omit<ComponentPropsWithoutRef<'div'>, 'onChange'> {
   originalValue: string;
@@ -39,8 +38,12 @@ export const CodeDiff: FC<CodeDiffProps> = ({
   const containerRef = useRef<HTMLDivElement>(null);
   const editorRef = useRef<Monaco.editor.IStandaloneDiffEditor | null>(null);
   const monaco = useMonacoStore((state) => state.monaco);
-  const { setupHighlighter } = useMonacoActions();
-  const isDark = useTheme().resolvedTheme === 'dark';
+  const { setMonaco } = useMonacoActions();
+  const { resolvedTheme } = useTheme();
+  // biome-ignore lint/correctness/useExhaustiveDependencies: only on mount
+  useEffect(() => {
+    setMonaco(resolvedTheme === 'dark');
+  }, []);
 
   useEffect(() => {
     if (!hasOriginalValue) return;
@@ -163,8 +166,6 @@ export const CodeDiff: FC<CodeDiffProps> = ({
         },
       },
     ];
-
-    setupHighlighter(isDark);
     onMount?.(diffEditor);
 
     return cleanupDisposables(disposables);
@@ -180,7 +181,7 @@ export const CodeDiff: FC<CodeDiffProps> = ({
     <div
       className={cn(
         'w-full',
-        'rounded-md relative dark:bg-input/30 transition-colors text-foreground',
+        'rounded-md relative dark:bg-input/30 transition-colors',
         'border border-input shadow-xs',
         className,
         !monaco && 'px-3 py-4',
