@@ -11,6 +11,7 @@
     "dev:ui": "inkeep dev",
     "dev:mcp": "turbo dev --filter mcp-quickstart",
     "db:migrate": "drizzle-kit migrate",
+    "db:drop": "tsx scripts/db-drop.ts",
     "upgrade-agents": "node scripts/upgrade.ts --experimental-strip-types",
     "postinstall": "node scripts/postinstall.ts --experimental-strip-types",
     "setup-dev": "node scripts/setup.js",
