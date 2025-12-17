@@ -48,12 +48,15 @@ const monacoState: StateCreator<MonacoState> = (set, get) => ({
         { createHighlighter },
         { shikiToMonaco },
         monacoCompatibleSchema,
-        //
+        { default: githubLightTheme },
+        { default: githubDarkTheme },
       ] = await Promise.all([
         import('monaco-editor'),
         import('shiki'),
         import('@shikijs/monaco'),
         import('@/lib/monaco-editor/dynamic-ref-compatible-json-schema.json'),
+        import('shiki/themes/github-light-default.mjs'),
+        import('shiki/themes/github-dark-default.mjs'),
         import('@/lib/monaco-editor/setup-monaco-workers'),
       ]);
       monaco.languages.register({ id: TEMPLATE_LANGUAGE });
@@ -148,7 +151,32 @@ const monacoState: StateCreator<MonacoState> = (set, get) => ({
        * @see https://shiki.style/packages/monaco#usage
        */
       const highlighter = await createHighlighter({
-        themes: [MONACO_THEME_NAME.light, MONACO_THEME_NAME.dark],
+        themes: [
+          {
+            ...githubLightTheme,
+            name: MONACO_THEME_NAME.light,
+            colors: {
+              ...githubLightTheme.colors,
+              'diffEditor.insertedLineBackground': '#3784ff0d',
+              'diffEditor.insertedTextBackground': '#3784ff19',
+              'scrollbarSlider.activeBackground': '#aaa5',
+              'scrollbarSlider.background': '#ccc5',
+              'scrollbarSlider.hoverBackground': '#bbb5',
+            },
+          },
+          {
+            ...githubDarkTheme,
+            name: MONACO_THEME_NAME.dark,
+            colors: {
+              ...githubDarkTheme.colors,
+              'diffEditor.insertedLineBackground': '#69a3ff33',
+              'diffEditor.insertedTextBackground': '#69a3ff4d',
+              'scrollbarSlider.activeBackground': '#ccc5',
+              'scrollbarSlider.background': '#aaa5',
+              'scrollbarSlider.hoverBackground': '#bbb5',
+            },
+          },
+        ],
         langs: ['javascript', 'typescript', 'json'],
       });
       // Register the themes from Shiki, and provide syntax highlighting for Monaco
