@@ -19,12 +19,16 @@ import { workflowRoutes } from './workflow/routes';
 
 const logger = getLogger('agents-eval-api');
 
-// Start the workflow worker to process queued jobs
-world.start?.().then(() => {
-  logger.info({}, 'Workflow worker started');
-}).catch((err: unknown) => {
-  logger.error({ error: err }, 'Failed to start workflow worker');
-});
+// Only start the workflow worker if we're running as the main eval-api server
+// Skip if we're being imported as a library (e.g., by agents-run-api)
+// The SKIP_WORKFLOW_WORKER env var allows run-api to import without starting worker
+if (!process.env.SKIP_WORKFLOW_WORKER) {
+  world.start?.().then(() => {
+    logger.info({}, 'Workflow worker started');
+  }).catch((err: unknown) => {
+    logger.error({ error: err }, 'Failed to start workflow worker');
+  });
+}
 
 logger.info({ logger: logger.getTransports() }, 'Logger initialized');
 
