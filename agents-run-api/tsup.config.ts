@@ -24,6 +24,12 @@ export default defineConfig({
       ...options.loader,
       '.xml': 'text',
     };
+    // Also externalize transitive deps that do dynamic requires
+    if (!options.external) options.external = [];
+    const externalPackages = ['debug', 'supports-color', 'ms'];
+    if (Array.isArray(options.external)) {
+      options.external.push(...externalPackages);
+    }
   },
   async onSuccess() {},
 });
