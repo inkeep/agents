@@ -9,12 +9,6 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 const API_CONFIGS = {
-  'eval-api': {
-    port: 3005,
-    title: 'Evaluation API',
-    titleCompact: 'EvalAPI',
-    description: 'handles evaluations, datasets, and evaluation runs',
-  },
   'manage-api': {
     port: 3002,
     title: 'Manage API',
@@ -132,6 +126,7 @@ async function main() {
     { src: 'package.json.template', dest: 'package.json' },
     { src: 'README.md.template', dest: 'README.md' },
     { src: 'tsconfig.json.template', dest: 'tsconfig.json' },
+    { src: 'tsup.config.ts.template', dest: 'tsup.config.ts' },
     { src: 'eslint.config.mjs.template', dest: 'eslint.config.mjs' },
     { src: '.npmrc.template', dest: '.npmrc' },
     { src: 'scripts/fetch-openapi.mjs.template', dest: 'scripts/fetch-openapi.mjs' },

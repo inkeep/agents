@@ -16,20 +16,17 @@ node scripts/generate-mcp-package.mjs <api-name>
 ```
 
 **Available API names:**
-- `eval-api` - Evaluation API (port 3005)
 - `manage-api` - Manage API (port 3002)
-
-> **Note**: The Run API (port 3003) already has a built-in `/mcp` endpoint and doesn't need a separate MCP package.
 
 ### Example
 
 ```bash
-# Generate MCP package for the Evaluation API
-node scripts/generate-mcp-package.mjs eval-api
+# Generate MCP package for the Manage API
+node scripts/generate-mcp-package.mjs manage-api
 ```
 
 This will:
-1. Create `packages/agents-eval-api-mcp/` with all necessary files
+1. Create `packages/agents-manage-mcp/` with all necessary files
 2. Install dependencies via pnpm
 3. Add the package to the workspace
 4. Display next steps for completing the setup
@@ -39,9 +36,10 @@ This will:
 The generator creates a complete package structure:
 
 ```
-packages/agents-{apiname}-mcp/
+packages/agents-{service}-mcp/
 ├── package.json              # Package manifest with MCP-specific config
 ├── tsconfig.json            # TypeScript configuration
+├── tsup.config.ts           # Build configuration
 ├── eslint.config.mjs        # ESLint configuration
 ├── README.md                # Package documentation
 ├── scripts/
@@ -70,7 +68,7 @@ After generating a package, follow this workflow to complete the setup:
 ### 1. Navigate to Package
 
 ```bash
-cd packages/agents-{apiname}-mcp
+cd packages/agents-{service}-mcp
 ```
 
 ### 2. Fetch OpenAPI Specification
@@ -135,13 +133,13 @@ pnpm --filter @inkeep/agents-{apiname} dev
 
 **Terminal 2** - Watch for API changes:
 ```bash
-cd packages/agents-{apiname}-mcp
+cd packages/agents-{service}-mcp
 pnpm watch
 ```
 
 **Terminal 3** - Watch for OpenAPI changes:
 ```bash
-cd packages/agents-{apiname}-mcp
+cd packages/agents-{service}-mcp
 speakeasy run --watch
 ```
 
@@ -161,6 +159,7 @@ All templates are stored in `scripts/mcp-templates/`:
 - `package.json.template`
 - `README.md.template`
 - `tsconfig.json.template`
+- `tsup.config.ts.template`
 - `eslint.config.mjs.template`
 - `scripts/*.template`
 
@@ -170,13 +169,13 @@ Templates use these replacement tokens:
 
 | Token | Example Value | Description |
 |-------|---------------|-------------|
-| `{{API_NAME}}` | `eval-api` | API name (kebab-case) |
-| `{{API_NAME_UPPER}}` | `EVAL_API` | API name (uppercase, underscores) |
-| `{{PACKAGE_NAME}}` | `agents-eval-api-mcp` | Full package name |
-| `{{API_PORT}}` | `3001` | Default API port |
-| `{{API_TITLE}}` | `Evaluation API` | Human-readable API title |
-| `{{API_TITLE_COMPACT}}` | `EvalAPI` | Compact API title (no spaces) |
-| `{{API_DESCRIPTION}}` | `handles evaluations...` | API description |
+| `{{API_NAME}}` | `manage-api` | API name (kebab-case) |
+| `{{API_NAME_UPPER}}` | `MANAGE_API` | API name (uppercase, underscores) |
+| `{{PACKAGE_NAME}}` | `agents-manage-mcp` | Full package name |
+| `{{API_PORT}}` | `3002` | Default API port |
+| `{{API_TITLE}}` | `Manage API` | Human-readable API title |
+| `{{API_TITLE_COMPACT}}` | `ManageAPI` | Compact API title (no spaces) |
+| `{{API_DESCRIPTION}}` | `handles CRUD...` | API description |
 
 ### Modifying Templates
 
@@ -198,7 +197,6 @@ const API_CONFIGS = {
     titleCompact: 'NewAPI',
     description: 'description of what it does',
   },
-  'eval-api': { port: 3005, title: 'Evaluation API', ... },
   'manage-api': { port: 3002, title: 'Manage API', ... }
 };
 ```
@@ -247,10 +245,10 @@ Each API has these configuration properties:
 
 ```javascript
 {
-  port: 3005,                    // Default API port
-  title: 'Evaluation API',       // Human-readable name
-  titleCompact: 'EvalAPI',       // No-space version for identifiers
-  description: 'handles eval...' // Brief description
+  port: 3002,                    // Default API port
+  title: 'Manage API',           // Human-readable name
+  titleCompact: 'ManageAPI',     // No-space version for identifiers
+  description: 'handles CRUD...' // Brief description
 }
 ```
 
@@ -259,7 +257,7 @@ Each API has these configuration properties:
 Generated packages support these environment variables:
 
 - `INKEEP_AGENTS_{API_NAME_UPPER}_API_URL` - Override default API URL
-  - Example: `INKEEP_AGENTS_EVAL_API_API_URL=http://localhost:3001`
+  - Example: `INKEEP_AGENTS_MANAGE_API_API_URL=http://localhost:3002`
 
 ## Troubleshooting
 
@@ -267,7 +265,7 @@ Generated packages support these environment variables:
 
 If you see "Target package already exists":
 ```bash
-rm -rf packages/agents-{apiname}-mcp
+rm -rf packages/agents-{service}-mcp
 node scripts/generate-mcp-package.mjs {apiname}
 ```
 
@@ -374,7 +372,7 @@ Regenerate the MCP package when:
 Override the default API URL when fetching:
 
 ```bash
-INKEEP_AGENTS_EVAL_API_API_URL=http://custom-host:8080 pnpm fetch-openapi
+INKEEP_AGENTS_MANAGE_API_API_URL=http://custom-host:8080 pnpm fetch-openapi
 ```
 
 ### Skip Auto-Start
@@ -383,10 +381,10 @@ If you want to manage the API yourself:
 
 ```bash
 # Terminal 1: Start API manually
-pnpm --filter @inkeep/agents-eval-api dev
+pnpm --filter @inkeep/agents-manage-api dev
 
 # Terminal 2: Fetch OpenAPI (won't auto-start)
-cd packages/agents-eval-api-mcp
+cd packages/agents-manage-mcp
 pnpm fetch-openapi
 ```
 
@@ -395,7 +393,7 @@ pnpm fetch-openapi
 For more control over Speakeasy:
 
 ```bash
-cd packages/agents-eval-api-mcp
+cd packages/agents-manage-mcp
 speakeasy run --target typescript --schema openapi.json
 ```
 
@@ -404,7 +402,7 @@ speakeasy run --target typescript --schema openapi.json
 Use the MCP Inspector to test:
 
 ```bash
-cd packages/agents-eval-api-mcp
+cd packages/agents-manage-mcp
 pnpm build
 npx @modelcontextprotocol/inspector node ./bin/mcp-server.js start
 ```
@@ -444,4 +442,3 @@ Potential improvements for the generator:
 - CI/CD integration
 - Multi-API package generation
 - Template versioning
-
