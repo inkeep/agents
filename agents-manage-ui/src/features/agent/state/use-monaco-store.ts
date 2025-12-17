@@ -57,26 +57,7 @@ const monacoState: StateCreator<MonacoState> = (set, get) => ({
         import('@/lib/monaco-editor/dynamic-ref-compatible-json-schema.json'),
         import('@/lib/monaco-editor/setup-monaco-workers'),
       ]);
-      /**
-       * Create the highlighter
-       * @see https://shiki.style/packages/monaco#usage
-       */
-      const highlighter = await createHighlighter({
-        themes: [MONACO_THEME_NAME.light, MONACO_THEME_NAME.dark],
-        langs: ['javascript', 'typescript', 'json'],
-      });
-      // Register the languageIds first. Only registered languages will be highlighted
-      monaco.languages.register({ id: 'json' });
-      monaco.languages.register({ id: 'typescript' });
-      monaco.languages.register({ id: 'javascript' });
       monaco.languages.register({ id: TEMPLATE_LANGUAGE });
-      // Register the themes from Shiki, and provide syntax highlighting for Monaco
-      shikiToMonaco(highlighter, monaco);
-
-      // for cypress
-      window.monaco = monaco;
-      set({ monaco });
-
       monaco.json.jsonDefaults.setDiagnosticsOptions({
         // Fixes when `$schema` is `https://json-schema.org/draft/2020-12/schema`
         // The schema uses meta-schema features ($dynamicRef) that are not yet supported by the validator
@@ -89,6 +70,13 @@ const monacoState: StateCreator<MonacoState> = (set, get) => ({
           },
         ],
         enableSchemaRequest: true,
+      });
+      monaco.json.jsonDefaults.setModeConfiguration({
+        /**
+         * Disable due to an issue where the `json` language is not highlighted correctly.
+         * @see https://github.com/shikijs/shiki/issues/865
+         */
+        tokens: false,
       });
 
       // Define tokens for template variables
@@ -156,6 +144,19 @@ const monacoState: StateCreator<MonacoState> = (set, get) => ({
           };
         },
       });
+      /**
+       * Create the highlighter
+       * @see https://shiki.style/packages/monaco#usage
+       */
+      const highlighter = await createHighlighter({
+        themes: [MONACO_THEME_NAME.light, MONACO_THEME_NAME.dark],
+        langs: ['javascript', 'typescript', 'json'],
+      });
+      // Register the themes from Shiki, and provide syntax highlighting for Monaco
+      shikiToMonaco(highlighter, monaco);
+      // for cypress
+      window.monaco = monaco;
+      set({ monaco });
     },
   },
 });
