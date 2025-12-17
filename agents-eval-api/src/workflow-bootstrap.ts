@@ -12,15 +12,24 @@
 
 import { loadEnvironmentFiles } from '@inkeep/agents-core';
 
-// Static imports to help bundlers trace dependencies
+// Static imports to help Vercel's Node File Trace detect dependencies
 // The workflow library dynamically imports based on WORKFLOW_TARGET_WORLD env var,
-// but bundlers can't trace dynamic imports. These imports ensure modules are included.
-import * as _worldPostgres from '@workflow/world-postgres';
-import * as _worldVercel from '@workflow/world-vercel';
+// but Vercel's NFT can't trace dynamic imports. These imports ensure modules are included.
+import '@workflow/world-postgres';
+import '@workflow/world-vercel';
 
-// Force modules to be retained in the bundle (prevents tree-shaking)
-// @ts-ignore - intentionally checking for truthy modules
-if (!_worldPostgres && !_worldVercel) throw new Error('No workflow world loaded');
+// Also import and reference the packages to prevent tree-shaking
+import * as worldPostgres from '@workflow/world-postgres';
+import * as worldVercel from '@workflow/world-vercel';
+
+// Force side-effect to retain imports (log to ensure they're loaded)
+if (typeof worldPostgres === 'undefined' || typeof worldVercel === 'undefined') {
+  throw new Error('Workflow worlds not loaded');
+}
+console.log('[workflow-bootstrap] Workflow worlds loaded:', {
+  postgres: !!worldPostgres,
+  vercel: !!worldVercel,
+});
 
 // Load .env files from current dir and root monorepo
 loadEnvironmentFiles();
