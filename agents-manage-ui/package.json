@@ -34,7 +34,7 @@
   "scripts": {
     "dev": "next -p 3000",
     "build:sync": "cp -r public .next/standalone/agents-manage-ui && mkdir -p .next/standalone/agents-manage-ui/.next/ && cp -r .next/static .next/standalone/agents-manage-ui/.next/static",
-    "build": "next build --webpack && pnpm build:sync",
+    "build": "next build && pnpm build:sync",
     "start": "node .next/standalone/agents-manage-ui/server.js",
     "lint": "biome lint --error-on-warnings",
     "lint:fix": "biome check --write",
