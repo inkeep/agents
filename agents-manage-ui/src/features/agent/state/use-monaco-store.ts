@@ -14,7 +14,7 @@ interface MonacoActions {
   /**
    * Dynamically import `monaco-editor` since it relies on `window`, which isn't available during SSR
    */
-  setMonaco: (isDark: boolean) => Promise<void>;
+  setMonaco: () => Promise<void>;
 }
 
 interface MonacoState extends MonacoStateData {
@@ -24,6 +24,8 @@ interface MonacoState extends MonacoStateData {
 const initialMonacoState: MonacoStateData = {
   monaco: null,
 };
+
+let wasInitialized = false;
 
 const monacoState: StateCreator<MonacoState> = (set, get) => ({
   ...initialMonacoState,
@@ -36,7 +38,12 @@ const monacoState: StateCreator<MonacoState> = (set, get) => ({
       const monacoTheme = isDark ? MONACO_THEME_NAME.dark : MONACO_THEME_NAME.light;
       monaco.editor.setTheme(monacoTheme);
     },
-    async setMonaco(isDark) {
+    async setMonaco() {
+      if (wasInitialized) {
+        return;
+      }
+      wasInitialized = true;
+      console.log('called');
       const [
         monaco,
         { createHighlighter },
@@ -55,8 +62,8 @@ const monacoState: StateCreator<MonacoState> = (set, get) => ({
        * @see https://shiki.style/packages/monaco#usage
        */
       const highlighter = await createHighlighter({
-        themes: ['javascript', 'typescript', 'json'],
-        langs: [MONACO_THEME_NAME.light, MONACO_THEME_NAME.dark],
+        themes: [MONACO_THEME_NAME.light, MONACO_THEME_NAME.dark],
+        langs: ['javascript', 'typescript', 'json'],
       });
       // Register the languageIds first. Only registered languages will be highlighted
       monaco.languages.register({ id: 'json' });

@@ -1,7 +1,6 @@
 'use client';
 
 import type * as Monaco from 'monaco-editor';
-import { useTheme } from 'next-themes';
 import type { ComponentPropsWithoutRef, FC } from 'react';
 import { useEffect, useId, useRef } from 'react';
 import { MonacoEditor } from '@/components/editors/monaco-editor';
@@ -39,10 +38,9 @@ export const CodeDiff: FC<CodeDiffProps> = ({
   const editorRef = useRef<Monaco.editor.IStandaloneDiffEditor | null>(null);
   const monaco = useMonacoStore((state) => state.monaco);
   const { setMonaco } = useMonacoActions();
-  const { resolvedTheme } = useTheme();
   // biome-ignore lint/correctness/useExhaustiveDependencies: only on mount
   useEffect(() => {
-    setMonaco(resolvedTheme === 'dark');
+    setMonaco();
   }, []);
 
   useEffect(() => {

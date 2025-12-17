@@ -1,5 +1,4 @@
 import type * as Monaco from 'monaco-editor';
-import { useTheme } from 'next-themes';
 import type { ComponentPropsWithoutRef, FC } from 'react';
 import { useEffect, useRef } from 'react';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -52,10 +51,9 @@ export const MonacoEditor: FC<MonacoEditorProps> = ({
   const onChangeRef = useRef<typeof onChange>(undefined);
   const monaco = useMonacoStore((state) => state.monaco);
   const { setMonaco } = useMonacoActions();
-  const { resolvedTheme } = useTheme();
   // biome-ignore lint/correctness/useExhaustiveDependencies: only on mount
   useEffect(() => {
-    setMonaco(resolvedTheme === 'dark');
+    setMonaco();
   }, []);
 
   // Update editor options when `readOnly` or `disabled` changes
