@@ -86,9 +86,14 @@ export default defineConfig(({ command }) => ({
       /\.well-known\/workflow\/v1\/.*/,
     ],
     // Let Vite process workspace packages (TypeScript sources)
+    // And bundle workflow packages (they use dynamic imports that NFT can't trace)
     noExternal: [
       '@inkeep/agents-core',
       /^@inkeep\/.*/,
+      'workflow',
+      '@workflow/world-postgres',
+      '@workflow/world-vercel',
+      /^@workflow\/.*/,
     ],
     // Resolve conditions for proper CJS/ESM handling
     resolve: {
