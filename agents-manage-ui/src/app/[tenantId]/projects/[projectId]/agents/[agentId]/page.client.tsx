@@ -109,6 +109,14 @@ interface AgentProps {
 
 type ReactFlowProps = Required<ComponentProps<typeof ReactFlow>>;
 
+// Handle non-validation errors (permission, auth, not found, server errors)
+const nonValidationErrors = new Set([
+  'forbidden',
+  'unauthorized',
+  'not_found',
+  'internal_server_error',
+  'bad_request',
+]);
 export const Agent: FC<AgentProps> = ({
   agent,
   dataComponentLookup = {},
@@ -921,15 +929,7 @@ export const Agent: FC<AgentProps> = ({
       return true;
     }
 
-    // Handle non-validation errors (permission, auth, not found, server errors)
-    const nonValidationErrors = [
-      'forbidden',
-      'unauthorized',
-      'not_found',
-      'internal_server_error',
-      'bad_request',
-    ];
-    if (res.code && nonValidationErrors.includes(res.code)) {
+    if (res.code && nonValidationErrors.has(res.code)) {
       toast.error(res.error || 'An error occurred while saving the agent', {
         closeButton: true,
       });
