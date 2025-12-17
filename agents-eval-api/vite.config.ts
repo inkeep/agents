@@ -57,6 +57,7 @@ export default defineConfig(({ command }) => ({
       'keytar',
       'workflow',
       '@workflow/world-postgres',
+      '@workflow/world-vercel',
       '@workflow/core',
       '@workflow/world-local',
       // find-up chain has ESM interop issues
@@ -112,9 +113,12 @@ export default defineConfig(({ command }) => ({
       external: [
         /^node:/,
         'keytar',
-        // Externalize all dependencies - Vercel will install them from package.json
-        // This avoids bundling issues with dynamic imports in workflow packages
-        ...Object.keys(pkg.dependencies || {}),
+        // Externalize all dependencies EXCEPT workflow packages
+        // Workflow packages must be bundled because they use dynamic imports
+        // that Vercel's NFT can't trace properly
+        ...Object.keys(pkg.dependencies || {}).filter(
+          (dep) => !dep.startsWith('workflow') && !dep.startsWith('@workflow/')
+        ),
         ...Object.keys(pkg.optionalDependencies || {}),
       ],
     },
