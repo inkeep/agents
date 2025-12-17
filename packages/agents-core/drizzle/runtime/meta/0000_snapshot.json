@@ -1,5 +1,5 @@
 {
-  "id": "8de3e342-7f8a-4881-9708-8a0786597441",
+  "id": "e45d1c86-b705-49e2-a8e0-4cc37f1f40a1",
   "prevId": "00000000-0000-0000-0000-000000000000",
   "version": "7",
   "dialect": "postgresql",
@@ -388,7 +388,25 @@
           "with": {}
         }
       },
-      "foreignKeys": {},
+      "foreignKeys": {
+        "context_cache_conversation_fk": {
+          "name": "context_cache_conversation_fk",
+          "tableFrom": "context_cache",
+          "tableTo": "conversations",
+          "columnsFrom": [
+            "tenant_id",
+            "project_id",
+            "conversation_id"
+          ],
+          "columnsTo": [
+            "tenant_id",
+            "project_id",
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
       "compositePrimaryKeys": {
         "context_cache_tenant_id_project_id_id_pk": {
           "name": "context_cache_tenant_id_project_id_id_pk",
@@ -779,7 +797,25 @@
           "with": {}
         }
       },
-      "foreignKeys": {},
+      "foreignKeys": {
+        "ledger_artifacts_task_fk": {
+          "name": "ledger_artifacts_task_fk",
+          "tableFrom": "ledger_artifacts",
+          "tableTo": "tasks",
+          "columnsFrom": [
+            "tenant_id",
+            "project_id",
+            "task_id"
+          ],
+          "columnsTo": [
+            "tenant_id",
+            "project_id",
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
       "compositePrimaryKeys": {
         "ledger_artifacts_tenant_id_project_id_id_task_id_pk": {
           "name": "ledger_artifacts_tenant_id_project_id_id_task_id_pk",
@@ -1044,7 +1080,25 @@
         }
       },
       "indexes": {},
-      "foreignKeys": {},
+      "foreignKeys": {
+        "messages_conversation_fk": {
+          "name": "messages_conversation_fk",
+          "tableFrom": "messages",
+          "tableTo": "conversations",
+          "columnsFrom": [
+            "tenant_id",
+            "project_id",
+            "conversation_id"
+          ],
+          "columnsTo": [
+            "tenant_id",
+            "project_id",
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
       "compositePrimaryKeys": {
         "messages_tenant_id_project_id_id_pk": {
           "name": "messages_tenant_id_project_id_id_pk",
@@ -1363,7 +1417,42 @@
         }
       },
       "indexes": {},
-      "foreignKeys": {},
+      "foreignKeys": {
+        "task_relations_parent_fk": {
+          "name": "task_relations_parent_fk",
+          "tableFrom": "task_relations",
+          "tableTo": "tasks",
+          "columnsFrom": [
+            "tenant_id",
+            "project_id",
+            "parent_task_id"
+          ],
+          "columnsTo": [
+            "tenant_id",
+            "project_id",
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        },
+        "task_relations_child_fk": {
+          "name": "task_relations_child_fk",
+          "tableFrom": "task_relations",
+          "tableTo": "tasks",
+          "columnsFrom": [
+            "tenant_id",
+            "project_id",
+            "child_task_id"
+          ],
+          "columnsTo": [
+            "tenant_id",
+            "project_id",
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
       "compositePrimaryKeys": {
         "task_relations_tenant_id_project_id_id_pk": {
           "name": "task_relations_tenant_id_project_id_id_pk",

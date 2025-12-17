@@ -1,5 +1,6 @@
 import { relations } from 'drizzle-orm';
 import {
+  foreignKey,
   index,
   jsonb,
   pgTable,
@@ -55,7 +56,12 @@ const timestamps = {
 // RUNTIME TABLES (Postgres - Not Versioned)
 // ============================================================================
 // NOTE: These tables have no foreign keys to config tables since they're in
-// a different database. Application code must enforce referential integrity.
+// a different database. Application code must enforce referential integrity
+// for cross-database references (e.g., agentId, subAgentId, contextConfigId).
+//
+// Within-runtime-DB foreign keys use CASCADE or SET NULL for automatic cleanup.
+
+// --- Root tables (no FK dependencies) ---
 
 export const conversations = pgTable(
   'conversations',
@@ -73,6 +79,43 @@ export const conversations = pgTable(
     primaryKey({ columns: [table.tenantId, table.projectId, table.id] }),
   ]
 );
+
+export const tasks = pgTable(
+  'tasks',
+  {
+    ...subAgentScoped,
+    contextId: varchar('context_id', { length: 256 }).notNull(),
+    ref: jsonb('ref').$type<ResolvedRef>().notNull(),
+    status: varchar('status', { length: 256 }).notNull(),
+    metadata: jsonb('metadata').$type<TaskMetadataConfig>(),
+    ...timestamps,
+  },
+  (table) => [
+    primaryKey({ columns: [table.tenantId, table.projectId, table.id] }),
+  ]
+);
+
+export const apiKeys = pgTable(
+  'api_keys',
+  {
+    ...projectScoped,
+    agentId: varchar('agent_id', { length: 256 }).notNull(),
+    publicId: varchar('public_id', { length: 256 }).notNull().unique(),
+    keyHash: varchar('key_hash', { length: 256 }).notNull(),
+    keyPrefix: varchar('key_prefix', { length: 256 }).notNull(),
+    name: varchar('name', { length: 256 }),
+    lastUsedAt: timestamp('last_used_at', { mode: 'string' }),
+    expiresAt: timestamp('expires_at', { mode: 'string' }),
+    ...timestamps,
+  },
+  (t) => [
+    index('api_keys_tenant_agent_idx').on(t.tenantId, t.agentId),
+    index('api_keys_prefix_idx').on(t.keyPrefix),
+    index('api_keys_public_id_idx').on(t.publicId),
+  ]
+);
+
+// --- Tables with FK dependencies ---
 
 export const messages = pgTable(
   'messages',
@@ -98,21 +141,16 @@ export const messages = pgTable(
   },
   (table) => [
     primaryKey({ columns: [table.tenantId, table.projectId, table.id] }),
-  ]
-);
-
-export const tasks = pgTable(
-  'tasks',
-  {
-    ...subAgentScoped,
-    contextId: varchar('context_id', { length: 256 }).notNull(),
-    ref: jsonb('ref').$type<ResolvedRef>().notNull(),
-    status: varchar('status', { length: 256 }).notNull(),
-    metadata: jsonb('metadata').$type<TaskMetadataConfig>(),
-    ...timestamps,
-  },
-  (table) => [
-    primaryKey({ columns: [table.tenantId, table.projectId, table.id] }),
+    // Cascade delete messages when conversation is deleted
+    foreignKey({
+      columns: [table.tenantId, table.projectId, table.conversationId],
+      foreignColumns: [conversations.tenantId, conversations.projectId, conversations.id],
+      name: 'messages_conversation_fk',
+    }).onDelete('cascade'),
+    // NOTE: taskId and parentMessageId FKs are intentionally omitted.
+    // Composite FKs with SET NULL don't work when other columns (tenantId, projectId)
+    // are NOT NULL - PostgreSQL tries to NULL all FK columns.
+    // These optional references should be handled in application code if needed.
   ]
 );
 
@@ -125,7 +163,21 @@ export const taskRelations = pgTable(
     relationType: varchar('relation_type', { length: 256 }).default('parent_child'),
     ...timestamps,
   },
-  (table) => [primaryKey({ columns: [table.tenantId, table.projectId, table.id] })]
+  (table) => [
+    primaryKey({ columns: [table.tenantId, table.projectId, table.id] }),
+    // Cascade delete when parent task is deleted
+    foreignKey({
+      columns: [table.tenantId, table.projectId, table.parentTaskId],
+      foreignColumns: [tasks.tenantId, tasks.projectId, tasks.id],
+      name: 'task_relations_parent_fk',
+    }).onDelete('cascade'),
+    // Cascade delete when child task is deleted
+    foreignKey({
+      columns: [table.tenantId, table.projectId, table.childTaskId],
+      foreignColumns: [tasks.tenantId, tasks.projectId, tasks.id],
+      name: 'task_relations_child_fk',
+    }).onDelete('cascade'),
+  ]
 );
 
 export const ledgerArtifacts = pgTable(
@@ -157,26 +209,12 @@ export const ledgerArtifacts = pgTable(
       table.contextId,
       table.name
     ),
-  ]
-);
-
-export const apiKeys = pgTable(
-  'api_keys',
-  {
-    ...projectScoped,
-    agentId: varchar('agent_id', { length: 256 }).notNull(),
-    publicId: varchar('public_id', { length: 256 }).notNull().unique(),
-    keyHash: varchar('key_hash', { length: 256 }).notNull(),
-    keyPrefix: varchar('key_prefix', { length: 256 }).notNull(),
-    name: varchar('name', { length: 256 }),
-    lastUsedAt: timestamp('last_used_at', { mode: 'string' }),
-    expiresAt: timestamp('expires_at', { mode: 'string' }),
-    ...timestamps,
-  },
-  (t) => [
-    index('api_keys_tenant_agent_idx').on(t.tenantId, t.agentId),
-    index('api_keys_prefix_idx').on(t.keyPrefix),
-    index('api_keys_public_id_idx').on(t.publicId),
+    // Cascade delete when task is deleted
+    foreignKey({
+      columns: [table.tenantId, table.projectId, table.taskId],
+      foreignColumns: [tasks.tenantId, tasks.projectId, tasks.id],
+      name: 'ledger_artifacts_task_fk',
+    }).onDelete('cascade'),
   ]
 );
 
@@ -201,6 +239,12 @@ export const contextCache = pgTable(
       table.contextConfigId,
       table.contextVariableKey
     ),
+    // Cascade delete when conversation is deleted
+    foreignKey({
+      columns: [table.tenantId, table.projectId, table.conversationId],
+      foreignColumns: [conversations.tenantId, conversations.projectId, conversations.id],
+      name: 'context_cache_conversation_fk',
+    }).onDelete('cascade'),
   ]
 );
 
