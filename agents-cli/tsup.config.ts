@@ -11,7 +11,18 @@ export default defineConfig({
   dts: process.env.MODE !== 'watch',
   bundle: true,
   // Minimal external list - just problematic packages
-  external: ['keytar', 'pino', 'pino-pretty', 'pg', 'traverse', 'destr'],
+  // @nangohq/node uses axios which has CommonJS dependencies (form-data, combined-stream)
+  // that use dynamic require('util') which can't be bundled into ESM
+  external: [
+    'keytar',
+    'pino',
+    'pino-pretty',
+    'pg',
+    'traverse',
+    'destr',
+    '@nangohq/node',
+    '@nangohq/types',
+  ],
   // Bundle workspace packages
   noExternal: ['@inkeep/agents-core'],
   banner: {

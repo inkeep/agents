@@ -105,13 +105,15 @@ describe('CLI Authentication', () => {
     });
 
     it('should format expiry in days for long durations', () => {
+      // Use 3.5 days to ensure we get '3d' even with timing variations
+      // (Math.floor of hours/24 could give 2 if exactly 3 days due to ms precision)
       const expiresIn3Days: CLICredentials = {
         accessToken: 'token',
         userId: 'user',
         userEmail: 'test@example.com',
         organizationId: 'org',
         createdAt: new Date().toISOString(),
-        expiresAt: new Date(Date.now() + 3 * 24 * 3600000).toISOString(),
+        expiresAt: new Date(Date.now() + 3.5 * 24 * 3600000).toISOString(),
       };
 
       const info = getCredentialExpiryInfo(expiresIn3Days);
