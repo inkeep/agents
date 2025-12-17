@@ -1,4 +1,4 @@
-import { CodeDiff } from './code-diff.client';
+import { CodeDiff } from './code-diff';
 import { TextDiff } from './text-diff';
 
 export const FieldLabel = ({ children }: { children: React.ReactNode }) => {

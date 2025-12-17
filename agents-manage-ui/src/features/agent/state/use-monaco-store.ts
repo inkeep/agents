@@ -43,7 +43,6 @@ const monacoState: StateCreator<MonacoState> = (set, get) => ({
         return;
       }
       wasInitialized = true;
-      console.log('called');
       const [
         monaco,
         { createHighlighter },

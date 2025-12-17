@@ -1,3 +1,5 @@
+'use client';
+
 import type * as Monaco from 'monaco-editor';
 import type { ComponentPropsWithoutRef, FC } from 'react';
 import { useEffect, useRef } from 'react';
