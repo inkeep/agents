@@ -47,9 +47,14 @@ CREATE TABLE "credential_references" (
 	"type" varchar(256) NOT NULL,
 	"credential_store_id" varchar(256) NOT NULL,
 	"retrieval_params" jsonb,
+	"tool_id" varchar(256),
+	"user_id" varchar(256),
+	"created_by" varchar(256),
 	"created_at" timestamp DEFAULT now() NOT NULL,
 	"updated_at" timestamp DEFAULT now() NOT NULL,
-	CONSTRAINT "credential_references_tenant_id_project_id_id_pk" PRIMARY KEY("tenant_id","project_id","id")
+	CONSTRAINT "credential_references_tenant_id_project_id_id_pk" PRIMARY KEY("tenant_id","project_id","id"),
+	CONSTRAINT "credential_references_id_unique" UNIQUE("id"),
+	CONSTRAINT "credential_references_tool_user_unique" UNIQUE("tool_id","user_id")
 );
 --> statement-breakpoint
 CREATE TABLE "data_components" (
@@ -227,6 +232,7 @@ CREATE TABLE "tools" (
 	"description" text,
 	"config" jsonb NOT NULL,
 	"credential_reference_id" varchar(256),
+	"credential_scope" varchar(50) DEFAULT 'project' NOT NULL,
 	"headers" jsonb,
 	"image_url" text,
 	"capabilities" jsonb,
@@ -242,7 +248,7 @@ ALTER TABLE "context_configs" ADD CONSTRAINT "context_configs_agent_fk" FOREIGN 
 ALTER TABLE "credential_references" ADD CONSTRAINT "credential_references_project_fk" FOREIGN KEY ("tenant_id","project_id") REFERENCES "public"."projects"("tenant_id","id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "data_components" ADD CONSTRAINT "data_components_project_fk" FOREIGN KEY ("tenant_id","project_id") REFERENCES "public"."projects"("tenant_id","id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "external_agents" ADD CONSTRAINT "external_agents_project_fk" FOREIGN KEY ("tenant_id","project_id") REFERENCES "public"."projects"("tenant_id","id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
-ALTER TABLE "external_agents" ADD CONSTRAINT "external_agents_credential_reference_fk" FOREIGN KEY ("tenant_id","project_id","credential_reference_id") REFERENCES "public"."credential_references"("tenant_id","project_id","id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
+ALTER TABLE "external_agents" ADD CONSTRAINT "external_agents_credential_reference_fk" FOREIGN KEY ("credential_reference_id") REFERENCES "public"."credential_references"("id") ON DELETE set null ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "function_tools" ADD CONSTRAINT "function_tools_agent_fk" FOREIGN KEY ("tenant_id","project_id","agent_id") REFERENCES "public"."agent"("tenant_id","project_id","id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "function_tools" ADD CONSTRAINT "function_tools_function_fk" FOREIGN KEY ("tenant_id","project_id","function_id") REFERENCES "public"."functions"("tenant_id","project_id","id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "functions" ADD CONSTRAINT "functions_project_fk" FOREIGN KEY ("tenant_id","project_id") REFERENCES "public"."projects"("tenant_id","id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
@@ -260,4 +266,5 @@ ALTER TABLE "sub_agent_team_agent_relations" ADD CONSTRAINT "sub_agent_team_agen
 ALTER TABLE "sub_agent_tool_relations" ADD CONSTRAINT "sub_agent_tool_relations_agent_fk" FOREIGN KEY ("tenant_id","project_id","agent_id","sub_agent_id") REFERENCES "public"."sub_agents"("tenant_id","project_id","agent_id","id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "sub_agent_tool_relations" ADD CONSTRAINT "sub_agent_tool_relations_tool_fk" FOREIGN KEY ("tenant_id","project_id","tool_id") REFERENCES "public"."tools"("tenant_id","project_id","id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "sub_agents" ADD CONSTRAINT "sub_agents_agents_fk" FOREIGN KEY ("tenant_id","project_id","agent_id") REFERENCES "public"."agent"("tenant_id","project_id","id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
-ALTER TABLE "tools" ADD CONSTRAINT "tools_project_fk" FOREIGN KEY ("tenant_id","project_id") REFERENCES "public"."projects"("tenant_id","id") ON DELETE cascade ON UPDATE no action;
+ALTER TABLE "tools" ADD CONSTRAINT "tools_project_fk" FOREIGN KEY ("tenant_id","project_id") REFERENCES "public"."projects"("tenant_id","id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
+ALTER TABLE "tools" ADD CONSTRAINT "tools_credential_reference_fk" FOREIGN KEY ("credential_reference_id") REFERENCES "public"."credential_references"("id") ON DELETE set null ON UPDATE no action;

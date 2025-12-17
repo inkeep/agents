@@ -8,8 +8,6 @@ import {
   type DataComponentApiInsert,
   getLedgerArtifacts,
   createMessage,
-  getToolsForAgent,
-  getUserScopedCredentialReference,
   listTaskIdsByContextId,
   MCPServerType,
   type MCPToolConfig,
@@ -1000,14 +998,11 @@ export class Agent {
 
     if (isUserScoped && userId && this.credentialStuffer) {
       // User-scoped: look up credential by (toolId, userId)
-      const userCredentialReference = await getUserScopedCredentialReference(dbClient)({
-        scopes: {
-          tenantId: this.config.tenantId,
-          projectId: this.config.projectId,
-        },
-        toolId: tool.id,
-        userId,
-      });
+      const userCredentialReference = project.credentialReferences
+        ? Object.values(project.credentialReferences).find(
+            (c) => c.toolId === tool.id && c.userId === userId
+          )
+        : undefined;
 
       if (userCredentialReference) {
         const storeReference = {

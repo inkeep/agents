@@ -38,7 +38,7 @@ export const getCredentialReference =
  * Get a user-scoped credential reference by toolId and userId
  */
 export const getUserScopedCredentialReference =
-  (db: DatabaseClient) =>
+  (db: AgentsManageDatabaseClient) =>
   async (params: {
     scopes: ProjectScopeConfig;
     toolId: string;

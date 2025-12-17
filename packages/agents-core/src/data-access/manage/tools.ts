@@ -115,7 +115,7 @@ const convertToMCPToolConfig = (tool: ToolSelect): MCPToolConfig => {
   };
 };
 
-const discoverToolsFromManageServer = async (
+const discoverToolsFromServer = async (
   tool: ToolSelect,
   dbClient: AgentsManageDatabaseClient,
   credentialStoreRegistry?: CredentialStoreRegistry,
@@ -218,7 +218,7 @@ const discoverToolsFromManageServer = async (
   }
 };
 
-export const manageDbResultToMcpTool = async (
+export const dbResultToMcpTool = async (
   dbResult: ToolSelect,
   dbClient: AgentsManageDatabaseClient,
   credentialStoreRegistry?: CredentialStoreRegistry,
@@ -272,7 +272,7 @@ export const manageDbResultToMcpTool = async (
   const mcpServerUrl = dbResult.config.mcp.server.url;
 
   try {
-    availableTools = await discoverToolsFromManageServer(
+    availableTools = await discoverToolsFromServer(
       dbResult,
       dbClient,
       credentialStoreRegistry,

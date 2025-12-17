@@ -157,12 +157,13 @@ export interface GetMcpToolParams {
   scopes: TenantProjectParams;
   toolId: string;
   ref?: string;
+  userId?: string;
 }
 
 export const getMcpTool =
   (config: ManageApiConfig) =>
   async (params: GetMcpToolParams): Promise<McpTool> => {
-    const { scopes: { tenantId, projectId }, toolId, ref } = params;
+    const { scopes: { tenantId, projectId }, toolId, ref, userId } = params;
     const path = `/tenants/${tenantId}/projects/${projectId}/tools/${toolId}`;
     const url = buildUrl(config.baseUrl, path, { ref });
 

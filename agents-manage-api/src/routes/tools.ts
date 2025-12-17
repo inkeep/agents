@@ -5,7 +5,7 @@ import {
   commonGetErrorResponses,
   createApiError,
   createTool,
-  manageDbResultToMcpTool,
+  dbResultToMcpTool,
   deleteTool,
   generateId,
   getToolById,
@@ -113,7 +113,7 @@ app.openapi(
         data: (
           await Promise.all(
             dbResult.data.map(
-              async (tool) => await manageDbResultToMcpTool(tool, dbClient, credentialStores)
+              async (tool) => await dbResultToMcpTool(tool, dbClient, credentialStores)
             )
           )
         ).filter((tool: McpTool) => tool.status === status),
@@ -128,7 +128,7 @@ app.openapi(
       result = {
         data: await Promise.all(
           dbResult.data.map(
-            async (tool) => await manageDbResultToMcpTool(tool, dbClient, credentialStores)
+            async (tool) => await dbResultToMcpTool(tool, dbClient, credentialStores)
           )
         ),
         pagination: dbResult.pagination,
@@ -176,7 +176,7 @@ app.openapi(
     const userId = c.get('userId');
 
     return c.json({
-      data: await manageDbResultToMcpTool(tool, dbClient, credentialStores),
+      data: await dbResultToMcpTool(tool, dbClient, credentialStores),
     });
   }
 );
@@ -235,7 +235,7 @@ app.openapi(
 
     return c.json(
       {
-        data: await manageDbResultToMcpTool(tool, dbClient, credentialStores),
+        data: await dbResultToMcpTool(tool, dbClient, credentialStores),
       },
       201
     );
@@ -306,7 +306,7 @@ app.openapi(
     }
 
     return c.json({
-      data: await manageDbResultToMcpTool(updatedTool, dbClient, credentialStores),
+      data: await dbResultToMcpTool(updatedTool, dbClient, credentialStores),
     });
   }
 );

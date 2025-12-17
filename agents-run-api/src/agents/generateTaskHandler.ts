@@ -142,13 +142,13 @@ export const createTaskHandler = (
         (await Promise.all(
           toolsForAgent.map(async (item) => {
             // Doing a api call here rather than using the full project because the mcp's available tools are not available in the project context
-            
             const mcpTool = await getMcpTool({ baseUrl: env.INKEEP_AGENTS_MANAGE_API_URL })({
               scopes: {
                 tenantId,
                 projectId,
               },
               toolId: item.tool.id,
+              userId: config.userId,
               ref: resolvedRef.name,
             });
             if (item.relationshipId) {

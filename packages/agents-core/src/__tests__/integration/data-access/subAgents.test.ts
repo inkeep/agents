@@ -10,7 +10,7 @@ import {
   updateSubAgent,
 } from '../../../data-access/manage/subAgents';
 import type { AgentsManageDatabaseClient } from '../../../db/manage/manage-client';
-import * as schema from '../../../db/schema';
+import * as schema from '../../../db/manage/manage-schema';
 import { createTestOrganization } from '../../../db/runtime/test-runtime-client';
 import { SubAgentInsertSchema } from '../../../validation/schemas';
 import { testManageDbClient, testRunDbClient } from '../../setup';

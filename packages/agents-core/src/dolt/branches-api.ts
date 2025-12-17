@@ -2,6 +2,7 @@ import { sql } from 'drizzle-orm';
 import type { AgentsManageDatabaseClient } from '../db/manage/manage-client';
 import type { AgentScopeConfig, ProjectScopeConfig } from '../types/utility';
 import { doltBranch, doltDeleteBranch, doltGetBranchNamespace, doltListBranches } from './branch';
+import type { BranchInfo } from '../validation/dolt-schemas';
 
 export const MAIN_BRANCH_SUFFIX = 'main';
 

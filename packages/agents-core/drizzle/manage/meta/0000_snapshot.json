@@ -1,5 +1,5 @@
 {
-  "id": "42c88a66-430b-48ca-9032-7215c5046c24",
+  "id": "ba947dcc-75f7-4e71-af3b-009dd19509fa",
   "prevId": "00000000-0000-0000-0000-000000000000",
   "version": "7",
   "dialect": "postgresql",
@@ -347,6 +347,24 @@
           "primaryKey": false,
           "notNull": false
         },
+        "tool_id": {
+          "name": "tool_id",
+          "type": "varchar(256)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "user_id": {
+          "name": "user_id",
+          "type": "varchar(256)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "created_by": {
+          "name": "created_by",
+          "type": "varchar(256)",
+          "primaryKey": false,
+          "notNull": false
+        },
         "created_at": {
           "name": "created_at",
           "type": "timestamp",
@@ -390,7 +408,23 @@
           ]
         }
       },
-      "uniqueConstraints": {},
+      "uniqueConstraints": {
+        "credential_references_id_unique": {
+          "name": "credential_references_id_unique",
+          "nullsNotDistinct": false,
+          "columns": [
+            "id"
+          ]
+        },
+        "credential_references_tool_user_unique": {
+          "name": "credential_references_tool_user_unique",
+          "nullsNotDistinct": false,
+          "columns": [
+            "tool_id",
+            "user_id"
+          ]
+        }
+      },
       "policies": {},
       "checkConstraints": {},
       "isRLSEnabled": false
@@ -572,16 +606,12 @@
           "tableFrom": "external_agents",
           "tableTo": "credential_references",
           "columnsFrom": [
-            "tenant_id",
-            "project_id",
             "credential_reference_id"
           ],
           "columnsTo": [
-            "tenant_id",
-            "project_id",
             "id"
           ],
-          "onDelete": "cascade",
+          "onDelete": "set null",
           "onUpdate": "no action"
         }
       },
@@ -1810,6 +1840,13 @@
           "primaryKey": false,
           "notNull": false
         },
+        "credential_scope": {
+          "name": "credential_scope",
+          "type": "varchar(50)",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'project'"
+        },
         "headers": {
           "name": "headers",
           "type": "jsonb",
@@ -1864,6 +1901,19 @@
             "id"
           ],
           "onDelete": "cascade",
+          "onUpdate": "no action"
+        },
+        "tools_credential_reference_fk": {
+          "name": "tools_credential_reference_fk",
+          "tableFrom": "tools",
+          "tableTo": "credential_references",
+          "columnsFrom": [
+            "credential_reference_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "set null",
           "onUpdate": "no action"
         }
       },

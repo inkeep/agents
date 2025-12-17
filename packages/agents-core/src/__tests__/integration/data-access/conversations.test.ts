@@ -4,8 +4,6 @@ import {
   getConversation,
   updateConversationActiveAgent,
 } from '../../../data-access/runtime/conversations';
-import * as schema from '../../../db/schema';
-import { createTestOrganization } from '../../../db/runtime/test-runtime-client';
 import type { ConversationInsert } from '../../../types/index';
 import { testRunDbClient } from '../../setup';
 import { createTestAgentData, createTestSubAgentData } from '../helpers';
