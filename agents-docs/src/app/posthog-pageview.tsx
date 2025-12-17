@@ -11,7 +11,7 @@ export default function PostHogPageview() {
   useEffect(() => {
     if (pathname && posthog) {
       let url = window.origin + pathname;
-      if (searchParams && searchParams.toString()) {
+      if (searchParams?.toString()) {
         url += `?${searchParams.toString()}`;
       }
 

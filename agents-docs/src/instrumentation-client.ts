@@ -22,7 +22,7 @@ if (typeof window !== "undefined") {
     session_recording: {
       maskAllInputs: true,
       maskTextFn: (text, element) => {
-        if (element?.dataset["demo"] === "true") {
+        if (element?.dataset.demo === "true") {
           return text;
         }
         return "*".repeat(text.length);
