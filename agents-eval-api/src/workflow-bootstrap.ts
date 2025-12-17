@@ -51,11 +51,18 @@ if (process.env.WORKFLOW_TARGET_WORLD === '@workflow/world-postgres') {
   if (!process.env.WORKFLOW_POSTGRES_JOB_PREFIX) {
     process.env.WORKFLOW_POSTGRES_JOB_PREFIX = 'inkeep-agents-eval';
   }
+
+  // Set PORT for workflow library - postgres world internally uses local world
+  // which needs PORT to know where to send HTTP requests to /.well-known/workflow/v1/* endpoints
+  if (!process.env.PORT) {
+    process.env.PORT = '3005';
+  }
 }
 
 console.log('[workflow-bootstrap] Configured workflow environment:', {
   WORKFLOW_TARGET_WORLD: process.env.WORKFLOW_TARGET_WORLD,
   WORKFLOW_POSTGRES_URL: process.env.WORKFLOW_POSTGRES_URL ? '[SET]' : '[NOT SET]',
   WORKFLOW_POSTGRES_JOB_PREFIX: process.env.WORKFLOW_POSTGRES_JOB_PREFIX,
+  PORT: process.env.PORT,
 });
 
