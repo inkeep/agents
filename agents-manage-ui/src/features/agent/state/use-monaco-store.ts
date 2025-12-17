@@ -20,14 +20,10 @@ interface MonacoState extends MonacoStateData {
   actions: MonacoActions;
 }
 
-const initialMonacoState: MonacoStateData = {
-  monaco: null,
-};
-
 let wasInitialized = false;
 
 const monacoState: StateCreator<MonacoState> = (set, get) => ({
-  ...initialMonacoState,
+  monaco: null,
   // Separate "namespace" for actions
   actions: {
     async setMonaco() {
