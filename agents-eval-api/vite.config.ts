@@ -112,8 +112,12 @@ export default defineConfig(({ command }) => ({
       external: [
         /^node:/,
         'keytar',
-        // Externalize all dependencies - they'll be installed at runtime
-        ...Object.keys(pkg.dependencies || {}),
+        // Externalize all dependencies EXCEPT workflow packages - they'll be installed at runtime
+        // Workflow packages must be bundled because the workflow library does dynamic imports
+        // that Vercel's NFT can't trace without static imports
+        ...Object.keys(pkg.dependencies || {}).filter(
+          (dep) => !dep.startsWith('workflow') && !dep.startsWith('@workflow/')
+        ),
       ],
     },
   },

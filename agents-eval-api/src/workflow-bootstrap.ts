@@ -6,6 +6,11 @@
 
 import { loadEnvironmentFiles } from '@inkeep/agents-core';
 
+// Static import to help Vercel's bundler trace the dependency
+// The workflow library dynamically imports this based on WORKFLOW_TARGET_WORLD env var,
+// but Vercel can't trace dynamic imports. This import ensures the module is included.
+import '@workflow/world-postgres';
+
 // Load .env files from current dir and root monorepo
 loadEnvironmentFiles();
 
