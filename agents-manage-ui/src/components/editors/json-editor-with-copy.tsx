@@ -5,6 +5,7 @@ import { toast } from 'sonner';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { useAgentActions, useAgentStore } from '@/features/agent/state/use-agent-store';
+import { useMonacoStore } from '@/features/agent/state/use-monaco-store';
 import { addDecorations } from '@/lib/monaco-editor/monaco-utils';
 import { JsonEditor } from './json-editor';
 import './json-editor-with-copy.css';
@@ -45,6 +46,7 @@ type JsonEditorWithCopyProps = Pick<ComponentProps<typeof JsonEditor>, 'uri' | '
 
 export const JsonEditorWithCopy: FC<JsonEditorWithCopyProps> = ({ title, uri, value }) => {
   const [editor, setEditor] = useState<Monaco.editor.IStandaloneCodeEditor>();
+  const monaco = useMonacoStore((state) => state.monaco);
   const { toggleTextWrap } = useAgentActions();
   const hasTextWrap = useAgentStore((state) => state.hasTextWrap);
 
@@ -80,10 +82,9 @@ export const JsonEditorWithCopy: FC<JsonEditorWithCopyProps> = ({ title, uri, va
   // biome-ignore lint/correctness/useExhaustiveDependencies: intentionally ignore `value` changes — run only on mount
   useEffect(() => {
     const model = editor?.getModel();
-    if (!editor || !model) {
+    if (!monaco || !editor || !model) {
       return;
     }
-    const { monaco } = window;
 
     // Add copy decorations after Monaco workers initialize
     const timerId = setTimeout(() => {
@@ -105,7 +106,7 @@ export const JsonEditorWithCopy: FC<JsonEditorWithCopyProps> = ({ title, uri, va
       clearTimeout(timerId);
       onMouseDown.dispose();
     };
-  }, [editor]);
+  }, [editor, monaco]);
 
   const handleOnMount = useCallback<NonNullable<ComponentProps<typeof JsonEditor>['onMount']>>(
     (editor) => {
