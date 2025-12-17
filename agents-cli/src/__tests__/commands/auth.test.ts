@@ -61,13 +61,15 @@ describe('CLI Authentication', () => {
     });
 
     it('should get credential expiry info for valid credentials', () => {
+      // Use 2.5 hours to ensure we get '2h' even with timing variations
+      // (Math.floor of ms could give 1h if exactly 2 hours due to ms precision)
       const expiresIn2Hours: CLICredentials = {
         accessToken: 'token',
         userId: 'user',
         userEmail: 'test@example.com',
         organizationId: 'org',
         createdAt: new Date().toISOString(),
-        expiresAt: new Date(Date.now() + 2 * 3600000).toISOString(),
+        expiresAt: new Date(Date.now() + 2.5 * 3600000).toISOString(),
       };
 
       const info = getCredentialExpiryInfo(expiresIn2Hours);
