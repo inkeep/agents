@@ -95,6 +95,8 @@ async function makeApiRequestInternal<T>(
     const response = await fetch(url, {
       ...options,
       headers: defaultHeaders,
+      // Disable Next.js caching to always get fresh data
+      cache: 'no-store',
     });
 
     if (!response.ok) {

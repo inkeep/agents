@@ -1,3 +1,5 @@
+import './workflow-bootstrap';
+
 import { createEvaluationHono } from './app';
 
 const app = createEvaluationHono();

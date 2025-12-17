@@ -29,6 +29,7 @@ import dbClient from '../data/db/dbClient.js';
 import { getLogger } from '../logger.js';
 import { agentSessionManager } from '../services/AgentSession.js';
 import { evaluateConversationWorkflow } from '@inkeep/agents-eval-api';
+import { start } from 'workflow/api';
 import { conversationEvaluationTrigger } from '../services/ConversationEvaluationTrigger.js';
 import { evaluationRunConfigMatchesConversation } from '../services/evaluationRunConfigMatcher.js';
 import { agentInitializingOp, completionOp, errorOp } from '../utils/agent-operations.js';
@@ -489,72 +490,19 @@ export class ExecutionHandler {
 
               logger.info({}, 'ExecutionHandler returning success');
 
-              // Unified evaluation handling for ALL conversations (dataset and regular)
+              // Evaluation handling for regular conversations only
+              // Dataset run evaluations are handled by the runDatasetItemWorkflow
               (async () => {
                 try {
                   const isDatasetRun = !!params.datasetRunId;
 
                   if (isDatasetRun) {
-                    logger.info(
+                    // Skip - dataset run evaluations are handled by workflow
+                    logger.debug(
                       { conversationId, datasetRunId: params.datasetRunId },
-                      'Triggering evaluation for dataset conversation'
+                      'Skipping evaluation trigger - handled by workflow'
                     );
-
-                    const evalJobConfig = await getEvaluationJobConfigByDatasetRunId(dbClient)({
-                      scopes: { tenantId, projectId },
-                      datasetRunId: params.datasetRunId!,
-                    });
-
-                    if (!evalJobConfig) {
-                      logger.warn(
-                        { conversationId, datasetRunId: params.datasetRunId },
-                        'No eval job config found for dataset run'
-                      );
-                      return;
-                    }
-
-                    const evaluatorRelations = await getEvaluationJobConfigEvaluatorRelations(
-                      dbClient
-                    )({
-                      scopes: { tenantId, projectId, evaluationJobConfigId: evalJobConfig.id },
-                    });
-
-                    if (evaluatorRelations.length === 0) {
-                      logger.warn(
-                        { conversationId, evalJobConfigId: evalJobConfig.id },
-                        'No evaluators configured for dataset eval job'
-                      );
-                      return;
-                    }
-
-                    const evaluatorIds = evaluatorRelations.map((r) => r.evaluatorId);
-
-                    const evaluationRun = await getEvaluationRunByJobConfigId(dbClient)({
-                      scopes: { tenantId, projectId },
-                      evaluationJobConfigId: evalJobConfig.id,
-                    });
-
-                    const evaluationRunId = evaluationRun?.id;
-                    if (!evaluationRunId) {
-                      logger.error(
-                        { conversationId, evalJobConfigId: evalJobConfig.id },
-                        'No evaluation run found for dataset eval job'
-                      );
-                      return;
-                    }
-
-                    await evaluateConversationWorkflow({
-                      tenantId,
-                      projectId,
-                      conversationId,
-                      evaluatorIds,
-                      evaluationRunId,
-                    });
-
-                    logger.info(
-                      { conversationId, evaluatorCount: evaluatorIds.length, evaluationRunId },
-                      'Dataset conversation evaluation queued via Workflow'
-                    );
+                    return;
                   } else {
                     logger.info({ conversationId }, 'Triggering evaluation for regular conversation');
 
@@ -608,21 +556,22 @@ export class ExecutionHandler {
                           evaluationRunConfigId: runConfig.id,
                         });
 
-                        await evaluateConversationWorkflow({
+                        await start(evaluateConversationWorkflow, [{
                           tenantId,
                           projectId,
                           conversationId,
                           evaluatorIds,
                           evaluationRunId: evaluationRun.id,
-                        });
+                        }]);
 
                         logger.info(
                           {
                             conversationId,
                             runConfigId: runConfig.id,
                             evaluatorCount: evaluatorIds.length,
+                            evaluationRunId: evaluationRun.id,
                           },
-                          'Regular conversation evaluation queued via Vercel workflow'
+                          'Regular conversation evaluation queued via workflow'
                         );
                       }
                     }
@@ -674,71 +623,19 @@ export class ExecutionHandler {
 
           await agentSessionManager.endSession(requestId);
           unregisterStreamHelper(requestId);
+          // Evaluation handling for regular conversations only
+          // Dataset run evaluations are handled by the runDatasetItemWorkflow
           (async () => {
             try {
               const isDatasetRun = !!params.datasetRunId;
 
               if (isDatasetRun) {
-                logger.info(
+                // Skip - dataset run evaluations are handled by workflow
+                logger.debug(
                   { conversationId, datasetRunId: params.datasetRunId },
-                  'Triggering evaluation for dataset conversation'
+                  'Skipping evaluation trigger - handled by workflow'
                 );
-
-                const evalJobConfig = await getEvaluationJobConfigByDatasetRunId(dbClient)({
-                  scopes: { tenantId, projectId },
-                  datasetRunId: params.datasetRunId!,
-                });
-
-                if (!evalJobConfig) {
-                  logger.warn(
-                    { conversationId, datasetRunId: params.datasetRunId },
-                    'No eval job config found for dataset run'
-                  );
-                  return;
-                }
-
-                const evaluatorRelations = await getEvaluationJobConfigEvaluatorRelations(
-                  dbClient
-                )({
-                  scopes: { tenantId, projectId, evaluationJobConfigId: evalJobConfig.id },
-                });
-
-                if (evaluatorRelations.length === 0) {
-                  logger.warn(
-                    { conversationId, evalJobConfigId: evalJobConfig.id },
-                    'No evaluators configured for dataset eval job'
-                  );
-                  return;
-                }
-
-                const evaluatorIds = evaluatorRelations.map((r) => r.evaluatorId);
-
-                const evaluationRun = await getEvaluationRunByJobConfigId(dbClient)({
-                  scopes: { tenantId, projectId },
-                  evaluationJobConfigId: evalJobConfig.id,
-                });
-
-                const evaluationRunId = evaluationRun?.id;
-                if (!evaluationRunId) {
-                  logger.error(
-                    { conversationId, evalJobConfigId: evalJobConfig.id },
-                    'No evaluation run found for dataset eval job'
-                  );
-                  return;
-                }
-
-                await evaluateConversationWorkflow({
-                  tenantId,
-                  projectId,
-                  conversationId,
-                  evaluatorIds,
-                  evaluationRunId,
-                });
-
-                logger.info(
-                  { conversationId, evaluatorCount: evaluatorIds.length, evaluationRunId },
-                  'Dataset conversation evaluation queued via Vercel workflow'
-                );
+                return;
               } else {
                 logger.info({ conversationId }, 'Triggering evaluation for regular conversation');
 
@@ -792,21 +689,22 @@ export class ExecutionHandler {
                       evaluationRunConfigId: runConfig.id,
                     });
 
-                    await evaluateConversationWorkflow({
+                    await start(evaluateConversationWorkflow, [{
                       tenantId,
                       projectId,
                       conversationId,
                       evaluatorIds,
                       evaluationRunId: evaluationRun.id,
-                    });
+                    }]);
 
                     logger.info(
                       {
                         conversationId,
                         runConfigId: runConfig.id,
                         evaluatorCount: evaluatorIds.length,
+                        evaluationRunId: evaluationRun.id,
                       },
-                      'Regular conversation evaluation queued via Vercel workflow'
+                      'Regular conversation evaluation queued via workflow'
                     );
                   }
                 }

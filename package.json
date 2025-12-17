@@ -98,7 +98,8 @@
       "zod": "^4.1.11",
       "@inkeep/agents-manage-mcp>zod": "^3.25.7",
       "@modelcontextprotocol/sdk>zod": "^3.25.7",
-      "@anthropic-ai/mcpb>zod": "^3.25.7"
+      "@anthropic-ai/mcpb>zod": "^3.25.7",
+      "unicorn-magic": "^0.3.0"
     },
     "patchedDependencies": {
       "@changesets/assemble-release-plan@6.0.9": "patches/@changesets__assemble-release-plan.patch",
