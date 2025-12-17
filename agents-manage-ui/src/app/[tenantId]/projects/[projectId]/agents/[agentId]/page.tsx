@@ -7,7 +7,7 @@ import { fetchDataComponentsAction } from '@/lib/actions/data-components';
 import { fetchExternalAgentsAction } from '@/lib/actions/external-agents';
 import { fetchToolsAction } from '@/lib/actions/tools';
 import { createLookup } from '@/lib/utils';
-import { Agent } from './page.client';
+import { Agent } from './page.dynamic';
 
 export const dynamic = 'force-dynamic';
 
