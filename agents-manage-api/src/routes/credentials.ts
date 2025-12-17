@@ -1,5 +1,4 @@
 import { createRoute, OpenAPIHono } from '@hono/zod-openapi';
-import { speakeasyOffsetLimitPagination } from './shared';
 import {
   CredentialReferenceApiInsertSchema,
   CredentialReferenceApiSelectSchema,
@@ -24,6 +23,7 @@ import {
 import dbClient from '../data/db/dbClient';
 import { requirePermission } from '../middleware/require-permission';
 import type { AppVariablesWithCredentials } from '../types/app';
+import { speakeasyOffsetLimitPagination } from './shared';
 
 const app = new OpenAPIHono<{ Variables: AppVariablesWithCredentials }>();
 

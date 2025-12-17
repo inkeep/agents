@@ -116,40 +116,40 @@ export default function Layout({ children }: LayoutProps<'/'>) {
           <PostHogPageview />
         </Suspense>
         <PostHogProvider>
-        <RootProvider search={{ SearchDialog }}>
-          <DocsLayout
-            tree={source.pageTree}
-            nav={{
-              title: <Logo className="!w-[110px] !h-[32px]" />,
-            }}
-            sidebar={{
-              className: 'bg-background',
-              banner: (
-                <div className="flex gap-2">
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    className="grow text-primary border-primary/30 hover:bg-primary/5 dark:bg-primary/5 hover:text-primary dark:text-primary dark:border-primary/30 dark:hover:bg-primary/10"
-                    asChild
-                  >
-                    <a
-                      href="https://inkeep.com/cloud-waitlist?cta_id=docs_nav"
-                      target="_blank"
-                      rel="noreferrer"
+          <RootProvider search={{ SearchDialog }}>
+            <DocsLayout
+              tree={source.pageTree}
+              nav={{
+                title: <Logo className="!w-[110px] !h-[32px]" />,
+              }}
+              sidebar={{
+                className: 'bg-background',
+                banner: (
+                  <div className="flex gap-2">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="grow text-primary border-primary/30 hover:bg-primary/5 dark:bg-primary/5 hover:text-primary dark:text-primary dark:border-primary/30 dark:hover:bg-primary/10"
+                      asChild
                     >
-                      <Cloud />
-                      Inkeep Cloud
-                    </a>
-                  </Button>
-                  <GithubStars />
-                </div>
-              ),
-            }}
-            links={linkItems}
-          >
-            {children}
-          </DocsLayout>
-        </RootProvider>
+                      <a
+                        href="https://inkeep.com/cloud-waitlist?cta_id=docs_nav"
+                        target="_blank"
+                        rel="noreferrer"
+                      >
+                        <Cloud />
+                        Inkeep Cloud
+                      </a>
+                    </Button>
+                    <GithubStars />
+                  </div>
+                ),
+              }}
+              links={linkItems}
+            >
+              {children}
+            </DocsLayout>
+          </RootProvider>
         </PostHogProvider>
       </body>
     </html>

@@ -1,5 +1,4 @@
 import { createRoute, OpenAPIHono } from '@hono/zod-openapi';
-import { speakeasyOffsetLimitPagination } from './shared';
 import {
   commonGetErrorResponses,
   createApiError,
@@ -21,6 +20,7 @@ import dbClient from '../data/db/dbClient';
 import { getLogger } from '../logger';
 import { requirePermission } from '../middleware/require-permission';
 import type { BaseAppVariables } from '../types/app';
+import { speakeasyOffsetLimitPagination } from './shared';
 
 const logger = getLogger('functionTools');
 

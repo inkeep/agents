@@ -1,5 +1,4 @@
 import { createRoute, OpenAPIHono } from '@hono/zod-openapi';
-import { speakeasyOffsetLimitPagination } from './shared';
 import {
   commonGetErrorResponses,
   createApiError,
@@ -10,7 +9,7 @@ import {
   FunctionResponse,
   generateId,
   getFunction,
-  listFunctions,
+  listFunctionsPaginated,
   PaginationQueryParamsSchema,
   TenantProjectIdParamsSchema,
   TenantProjectParamsSchema,
@@ -20,6 +19,7 @@ import dbClient from '../data/db/dbClient';
 import { getLogger } from '../logger';
 import { requirePermission } from '../middleware/require-permission';
 import type { BaseAppVariables } from '../types/app';
+import { speakeasyOffsetLimitPagination } from './shared';
 
 const logger = getLogger('functions');
 
@@ -69,19 +69,16 @@ app.openapi(
   }),
   async (c) => {
     const { tenantId, projectId } = c.req.valid('param');
+    const page = Number(c.req.query('page')) || 1;
+    const limit = Math.min(Number(c.req.query('limit')) || 10, 100);
 
     try {
-      const functions = await listFunctions(dbClient)({ scopes: { tenantId, projectId } });
+      const result = await listFunctionsPaginated(dbClient)({
+        scopes: { tenantId, projectId },
+        pagination: { page, limit },
+      });
 
-      return c.json({
-        data: functions as any,
-        pagination: {
-          page: 1,
-          limit: functions.length,
-          total: functions.length,
-          pages: 1,
-        },
-      }) as any;
+      return c.json(result) as any;
     } catch (error) {
       logger.error({ error, tenantId }, 'Failed to list functions');
       return c.json(
