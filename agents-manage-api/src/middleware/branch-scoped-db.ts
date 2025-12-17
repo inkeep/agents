@@ -1,6 +1,6 @@
 import type { AgentsManageDatabaseClient, ResolvedRef } from '@inkeep/agents-core';
 import { doltAddAndCommit, doltStatus } from '@inkeep/agents-core';
-import * as schema from '@inkeep/agents-core/schema';
+import * as schema from '@inkeep/agents-core/db/manage-schema';
 import { drizzle } from 'drizzle-orm/node-postgres';
 import type { Context, Next } from 'hono';
 import type { Pool, PoolClient } from 'pg';

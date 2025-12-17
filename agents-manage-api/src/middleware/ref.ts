@@ -17,6 +17,17 @@ export type RefContext = {
 
 export const refMiddleware = async (c: Context, next: Next) => {
   if (process.env.ENVIRONMENT === 'test') {
+    // Set a default resolvedRef for test mode
+    // Extract tenantId from path for test default
+    const path = c.req.path;
+    const pathSplit = path.split('/');
+    const tenantId = pathSplit[2];
+    const defaultRef: ResolvedRef = {
+      type: 'branch',
+      name: tenantId ? `${tenantId}_main` : 'main',
+      hash: 'test-hash',
+    };
+    c.set('resolvedRef', defaultRef);
     await next();
     return;
   }

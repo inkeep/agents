@@ -955,6 +955,24 @@ export const CanUseItemSchema = z
   .openapi('CanRelateToInternalSubAgent');
 
 
+// INSERT schemas - relation ID is optional (will be assigned on creation)
+export const canDelegateToExternalAgentInsertSchema = z
+  .object({
+    externalAgentId: z.string(),
+    subAgentExternalAgentRelationId: z.string().optional(),
+    headers: z.record(z.string(), z.string()).nullish(),
+  })
+  .openapi('CanDelegateToExternalAgentInsert');
+
+export const canDelegateToTeamAgentInsertSchema = z
+  .object({
+    agentId: z.string(),
+    subAgentTeamAgentRelationId: z.string().optional(),
+    headers: z.record(z.string(), z.string()).nullish(),
+  })
+  .openapi('CanDelegateToTeamAgentInsert');
+
+// SELECT schemas - relation ID is required (returned from database)
 export const canDelegateToExternalAgentSchema = z
   .object({
     externalAgentId: z.string(),
@@ -990,8 +1008,8 @@ export const FullAgentAgentInsertSchema = SubAgentApiInsertSchema.extend({
     .array(
       z.union([
         z.string(), // Internal subAgent ID
-        canDelegateToExternalAgentSchema, // External agent with headers (INSERT - no relation ID)
-        canDelegateToTeamAgentSchema, // Team agent with headers (INSERT - no relation ID)
+        canDelegateToExternalAgentInsertSchema, // External agent with headers (INSERT - relation ID optional)
+        canDelegateToTeamAgentInsertSchema, // Team agent with headers (INSERT - relation ID optional)
       ])
     )
     .optional(),

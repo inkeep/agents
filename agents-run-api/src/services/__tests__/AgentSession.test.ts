@@ -1,4 +1,4 @@
-import type { ModelSettings, StatusComponent, StatusUpdateSettings } from '@inkeep/agents-core';
+import type { FullExecutionContext, ModelSettings, StatusComponent, StatusUpdateSettings } from '@inkeep/agents-core';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { StreamHelper } from '../../utils/stream-helpers';
 import { AgentSession, agentSessionManager } from '../AgentSession';
@@ -55,6 +55,7 @@ vi.mock('../../utils/stream-registry.js', () => ({
 describe('AgentSession', () => {
   let session: AgentSession;
   let mockStreamHelper: StreamHelper;
+  let mockExecutionContext: FullExecutionContext;
 
   beforeEach(() => {
     vi.clearAllMocks();
@@ -71,30 +72,38 @@ describe('AgentSession', () => {
       writeSummary: vi.fn().mockResolvedValue(undefined),
     };
 
+    mockExecutionContext = {
+      apiKey: 'test-api-key',
+      apiKeyId: 'test-api-key-id',
+      tenantId: 'test-tenant',
+      projectId: 'test-project',
+      agentId: 'test-agent',
+      baseUrl: 'http://localhost:3000',
+      resolvedRef: { name: 'main', type: 'branch' as const, hash: 'test-hash' },
+      project: {
+        id: 'test-project',
+        name: 'Test Project',
+        description: null,
+        models: null,
+        stopWhen: null,
+        createdAt: '2024-01-01T00:00:00Z',
+        updatedAt: '2024-01-01T00:00:00Z',
+        agents: {},
+        tools: {},
+        functionTools: {},
+        functions: {},
+        dataComponents: {},
+        artifactComponents: {},
+        externalAgents: {},
+        credentialReferences: {},
+        statusUpdates: null,
+      },
+    };
+
     session = new AgentSession(
       'test-session',
       'test-message',
-      {
-        tenantId: 'test-tenant',
-        projectId: 'test-project',
-        agentId: 'test-agent',
-        apiKey: 'test-api-key',
-        apiKeyId: 'test-api-key-id',
-        baseUrl: 'http://localhost:3003',
-        resolvedRef: { type: 'branch', name: 'main', hash: 'test-hash' },
-        project: {
-          id: 'test-project',
-          tenantId: 'test-tenant',
-          name: 'Test Project',
-          agents: {},
-          tools: {},
-          functions: {},
-          dataComponents: {},
-          artifactComponents: {},
-          externalAgents: {},
-          credentialReferences: {},
-        },
-      } as any,
+      mockExecutionContext,
       'test-context'
     );
   });
@@ -535,7 +544,7 @@ describe('AgentSession', () => {
 
   describe('AgentSessionManager', () => {
     it('should create and retrieve sessions', () => {
-      const sessionId = agentSessionManager.createSession('manager-test', {} as any, 'test-agent');
+      const sessionId = agentSessionManager.createSession('manager-test', mockExecutionContext, 'test-context');
       expect(sessionId).toBe('manager-test');
 
       const retrieved = agentSessionManager.getSession('manager-test');
@@ -544,7 +553,7 @@ describe('AgentSession', () => {
     });
 
     it('should record events via manager', () => {
-      agentSessionManager.createSession('manager-test', {} as any, 'test-agent');
+      agentSessionManager.createSession('manager-test', mockExecutionContext, 'test-context');
 
       agentSessionManager.recordEvent('manager-test', 'tool_call', 'agent-1', {
         toolName: 'test-tool',
@@ -572,7 +581,7 @@ describe('AgentSession', () => {
     });
 
     it('should set text streaming state via manager', () => {
-      agentSessionManager.createSession('manager-test', {} as any, 'test-agent');
+      agentSessionManager.createSession('manager-test', mockExecutionContext, 'test-context');
       const retrieved = agentSessionManager.getSession('manager-test');
 
       expect(retrieved?.isCurrentlyStreaming()).toBe(false);
@@ -606,7 +615,7 @@ describe('AgentSession', () => {
     });
 
     it('should end sessions via manager', async () => {
-      agentSessionManager.createSession('manager-test', 'test-agent');
+      agentSessionManager.createSession('manager-test', mockExecutionContext);
       const retrieved = agentSessionManager.getSession('manager-test');
 
       // Test that session can record events before ending
@@ -926,12 +935,38 @@ describe('AgentSession', () => {
 
       // Create session through manager
       const sessionId = 'test-manager-session';
+      const managerExecutionContext = {
+        apiKey: 'test-api-key',
+        apiKeyId: 'test-api-key-id',
+        tenantId: 'tenant-1',
+        projectId: 'project-1',
+        agentId: 'test-agent',
+        baseUrl: 'http://localhost:3000',
+        resolvedRef: { name: 'main', type: 'branch' as const, hash: 'test-hash' },
+        project: {
+          id: 'project-1',
+          tenantId: 'tenant-1',
+          name: 'Test Project',
+          description: null,
+          models: null,
+          stopWhen: null,
+          createdAt: '2024-01-01T00:00:00Z',
+          updatedAt: '2024-01-01T00:00:00Z',
+          agents: {},
+          tools: {},
+          functionTools: {},
+          functions: {},
+          dataComponents: {},
+          artifactComponents: {},
+          externalAgents: {},
+          credentialReferences: {},
+          statusUpdates: null,
+        },
+      };
       agentSessionManager.createSession(
         sessionId,
-        {} as any,
-        'test-agent',
-        'tenant-1',
-        'project-1'
+        managerExecutionContext,
+        'test-context'
       );
 
       // Initialize status updates through manager

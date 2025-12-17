@@ -9,6 +9,7 @@ import type {
   SummaryEvent,
   TransferData,
 } from '@inkeep/agents-core';
+import {  getLedgerArtifacts } from '@inkeep/agents-core';
 import {
   CONVERSATION_HISTORY_DEFAULT_LIMIT,
   CONVERSATION_HISTORY_MAX_OUTPUT_TOKENS_DEFAULT,
@@ -33,6 +34,7 @@ import { getStreamHelper } from '../utils/stream-registry';
 import { setSpanWithError, tracer } from '../utils/tracer';
 import { ArtifactParser } from './ArtifactParser';
 import { ArtifactService } from './ArtifactService';
+import dbClient from '../data/db/dbClient';
 
 const logger = getLogger('AgentSession');
 

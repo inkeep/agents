@@ -44,244 +44,11 @@ vi.mock('../../api/manage-api.js', () => ({
 }));
 
 // Mock @inkeep/agents-core functions using hoisted pattern
-const {
-  getRelatedAgentsForAgentMock,
-  getToolsForAgentMock,
-  getSubAgentByIdMock: getAgentByIdMock,
-  getAgentAgentMock,
-  getAgentAgentByIdMock,
-  getDataComponentsForAgentMock,
-  getArtifactComponentsForAgentMock,
-  getExternalAgentsForSubAgentMock,
-  getTeamAgentsForSubAgentMock,
-  getAgentWithDefaultSubAgentMock,
-  getProjectMock,
-  dbResultToMcpToolMock,
-} = vi.hoisted(() => {
-  const getRelatedAgentsForAgentMock = vi.fn(() =>
-    vi.fn().mockResolvedValue({
-      data: [
-        {
-          id: 'agent-2',
-          name: 'Test Agent 2',
-          description: 'Test description',
-          relationType: 'transfer',
-        },
-      ],
-    })
-  );
-
-  const getToolsForAgentMock = vi.fn(() =>
-    vi.fn().mockResolvedValue({
-      data: [
-        {
-          tool: {
-            id: 'tool-1',
-            name: 'Test Tool',
-            type: 'mcp',
-            status: 'active',
-            createdAt: '2024-01-01T00:00:00Z',
-            updatedAt: '2024-01-01T00:00:00Z',
-          },
-        },
-      ],
-    })
-  );
-
-  const getSubAgentByIdMock = vi.fn(() =>
-    vi.fn().mockResolvedValue({
-      id: 'test-agent',
-      name: 'Test Agent',
-      description: 'Test agent description',
-      prompt: 'You are a helpful test agent',
-      conversationHistoryConfig: {
-        mode: 'full',
-        limit: 10,
-      },
-      models: null,
-      createdAt: '2024-01-01T00:00:00Z',
-      updatedAt: '2024-01-01T00:00:00Z',
-    })
-  );
-
-  const getAgentAgentMock = vi.fn(() =>
-    vi.fn().mockResolvedValue({
-      id: 'test-agent',
-      contextConfigId: 'context-123',
-      models: null,
-    })
-  );
-  const getAgentAgentByIdMock = vi.fn(() =>
-    vi.fn().mockResolvedValue({
-      id: 'test-agent',
-      contextConfigId: 'context-123',
-      models: {
-        base: { model: 'openai/gpt-4' },
-        structuredOutput: { model: 'openai/gpt-4' },
-        summarizer: { model: 'openai/gpt-3.5-turbo' },
-      },
-    })
-  );
-
-  const dbResultToMcpToolMock = vi.fn(() =>
-    vi.fn().mockResolvedValue({
-      // Core tool fields
-      tenantId: 'test-tenant',
-      projectId: 'test-project',
-      id: 'tool-1',
-      name: 'Test Tool',
-      config: {
-        type: 'mcp' as const,
-        mcp: {
-          server: {
-            url: 'http://localhost:3000/mcp',
-            timeout: 30000,
-          },
-          transport: {
-            type: 'http' as const,
-          },
-        },
-      },
-
-      // Optional fields that can be undefined
-      credentialReferenceId: undefined,
-      headers: undefined,
-      imageUrl: undefined,
-      capabilities: undefined,
-      lastError: undefined,
-
-      // Computed fields from dbResultToMcpTool
-      status: 'healthy' as const,
-      availableTools: [
-        {
-          name: 'test_tool_function',
-          description: 'A test tool function',
-          inputSchema: {
-            type: 'object',
-            properties: {
-              query: { type: 'string', description: 'Query parameter' },
-            },
-            required: ['query'],
-          },
-        },
-      ],
-      createdAt: new Date('2024-01-15T09:00:00Z'),
-      updatedAt: new Date('2024-01-15T10:00:00Z'),
-    })
-  );
-
-  const getDataComponentsForAgentMock = vi.fn(() =>
-    vi.fn().mockResolvedValue([
-      {
-        id: 'data-1',
-        name: 'Test Data Component',
-        type: 'test',
-      },
-    ])
-  );
-
-  const getArtifactComponentsForAgentMock = vi.fn(() =>
-    vi.fn().mockResolvedValue([
-      {
-        id: 'artifact-1',
-        name: 'Test Artifact Component',
-        type: 'test',
-      },
-    ])
-  );
-
-  const getExternalAgentsForSubAgentMock = vi.fn(() =>
-    vi.fn().mockResolvedValue({
-      data: [],
-      pagination: { page: 1, limit: 10, total: 0, pages: 0 },
-    })
-  );
-
-  const getTeamAgentsForSubAgentMock = vi.fn(() =>
-    vi.fn().mockResolvedValue({
-      data: [
-        {
-          id: 'team-relation-1',
-          targetAgentId: 'team-agent-1',
-          targetAgent: {
-            id: 'team-agent-1',
-            name: 'Team Agent 1',
-            description: 'A team agent for delegation',
-          },
-          headers: { 'X-Custom-Header': 'team-value' },
-        },
-      ],
-      pagination: { page: 1, limit: 10, total: 1, pages: 1 },
-    })
-  );
-
-  const getAgentWithDefaultSubAgentMock = vi.fn(() =>
-    vi.fn().mockResolvedValue({
-      id: 'team-agent-1',
-      name: 'Team Agent 1',
-      description: 'A team agent for delegation',
-      defaultSubAgent: {
-        id: 'team-agent-1-default',
-        name: 'Team Agent 1 Default',
-        description: 'Default sub agent for team agent 1',
-        prompt: 'You are a helpful team agent',
-        conversationHistoryConfig: {
-          mode: 'full',
-          limit: 10,
-        },
-        models: null,
-        createdAt: '2024-01-01T00:00:00Z',
-        updatedAt: '2024-01-01T00:00:00Z',
-      },
-    })
-  );
-
-  const getProjectMock = vi.fn(() =>
-    vi.fn().mockResolvedValue({
-      id: 'test-project',
-      name: 'Test Project',
-      models: {
-        base: {
-          model: 'openai/gpt-4',
-        },
-        structuredOutput: {
-          model: 'openai/gpt-4',
-        },
-        summarizer: {
-          model: 'openai/gpt-3.5-turbo',
-        },
-      },
-    })
-  );
-
-  return {
-    getRelatedAgentsForAgentMock,
-    getToolsForAgentMock,
-    getSubAgentByIdMock,
-    getAgentAgentMock,
-    getAgentAgentByIdMock,
-    getDataComponentsForAgentMock,
-    getArtifactComponentsForAgentMock,
-    getExternalAgentsForSubAgentMock,
-    getTeamAgentsForSubAgentMock,
-    getAgentWithDefaultSubAgentMock,
-    getProjectMock,
-    dbResultToMcpToolMock,
-  };
-});
-
+// Note: Most database access functions are no longer used - data comes from execution context
 vi.mock('@inkeep/agents-core', async (importOriginal) => {
   const actual = await importOriginal();
   return {
     ...(actual as any),
-    getRelatedAgentsForAgent: getRelatedAgentsForAgentMock,
-    getToolsForAgent: getToolsForAgentMock,
-    getSubAgentById: getAgentByIdMock,
-    getAgentById: getAgentAgentMock,
-    getAgentAgent: getAgentAgentMock,
-    getAgentAgentById: getAgentAgentByIdMock,
-    getTeamAgentsForSubAgent: getTeamAgentsForSubAgentMock,
-    getAgentWithDefaultSubAgent: getAgentWithDefaultSubAgentMock,
     getTracer: vi.fn().mockReturnValue({
       startSpan: vi.fn().mockReturnValue({
         setAttributes: vi.fn(),
@@ -289,11 +56,6 @@ vi.mock('@inkeep/agents-core', async (importOriginal) => {
         end: vi.fn(),
       }),
     }),
-    getDataComponentsForAgent: getDataComponentsForAgentMock,
-    getArtifactComponentsForAgent: getArtifactComponentsForAgentMock,
-    getExternalAgentsForSubAgent: getExternalAgentsForSubAgentMock,
-    getProject: getProjectMock,
-    dbResultToMcpTool: dbResultToMcpToolMock,
     getLogger: vi.fn(() => ({
       info: vi.fn(),
       warn: vi.fn(),
@@ -459,8 +221,14 @@ function createMockExecutionContext(overrides: {
           tenantId,
           projectId,
           name: 'Test Tool',
+          description: 'Test tool description',
           config: { type: 'mcp', mcp: { server: { url: 'http://localhost:3000/mcp' } } },
-          status: 'healthy',
+          credentialReferenceId: null,
+          credentialScope: 'project',
+          headers: null,
+          imageUrl: null,
+          capabilities: null,
+          lastError: null,
           createdAt: '2024-01-01T00:00:00Z',
           updatedAt: '2024-01-01T00:00:00Z',
         },
@@ -501,7 +269,11 @@ function createMockExecutionContext(overrides: {
           projectId,
           name: 'Test Agent',
           description: 'Test agent description',
-          contextConfigId: 'context-123',
+          contextConfig: {
+            id: 'context-123',
+            headersSchema: null,
+            contextVariables: {},
+          },
           models: baseAgentModels,
           defaultSubAgentId: agentId,
           tools: {},
@@ -537,7 +309,7 @@ function createMockExecutionContext(overrides: {
                   toolSelection: null,
                   headers: null,
                   toolPolicies: null,
-                  subAgentToolRelationId: 'sub-agent-tool-rel-1',
+                  agentToolRelationId: 'sub-agent-tool-rel-1',
                 },
               ],
               canTransferTo: [

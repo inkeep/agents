@@ -56,15 +56,42 @@ describe('IncrementalStreamParser', () => {
     // Create mock constructor that returns the same mock instance
     vi.mocked(ArtifactParser).mockImplementation(() => mockArtifactParser);
 
+    const mockExecutionContext = {
+      apiKey: 'test-api-key',
+      apiKeyId: 'test-api-key-id',
+      tenantId: 'test-tenant',
+      projectId: 'test-project',
+      agentId: 'test-agent',
+      baseUrl: 'http://localhost:3000',
+      resolvedRef: { name: 'main', type: 'branch' as const, hash: 'test-hash' },
+      project: {
+        id: 'test-project',
+        tenantId: 'test-tenant',
+        name: 'Test Project',
+        description: null,
+        models: null,
+        stopWhen: null,
+        createdAt: '2024-01-01T00:00:00Z',
+        updatedAt: '2024-01-01T00:00:00Z',
+        agents: {},
+        tools: {},
+        functionTools: {},
+        functions: {},
+        dataComponents: {},
+        artifactComponents: {},
+        externalAgents: {},
+        credentialReferences: {},
+        statusUpdates: null,
+      },
+    };
+
     parser = new IncrementalStreamParser(
       mockStreamHelper,
-      'test-tenant',
+      mockExecutionContext,
       'test-context',
-      {} as any,
       {
         sessionId: 'test-session',
         taskId: 'test-task',
-        projectId: 'test-project',
         subAgentId: 'test-agent',
         streamRequestId: 'test-stream-request',
       }

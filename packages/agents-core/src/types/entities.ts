@@ -47,7 +47,9 @@ import type {
   CredentialReferenceSelectSchema,
   CredentialReferenceUpdateSchema,
   canDelegateToExternalAgentSchema,
+  canDelegateToExternalAgentInsertSchema,
   canDelegateToTeamAgentSchema,
+  canDelegateToTeamAgentInsertSchema,
   DataComponentApiInsertSchema,
   DataComponentApiSelectSchema,
   DataComponentApiUpdateSchema,
@@ -375,8 +377,11 @@ export type AgentWithinContextOfProjectSelect = z.infer<typeof AgentWithinContex
 export type AgentWithinContextOfProjectSelectWithRelationIds = z.infer<typeof AgentWithinContextOfProjectSelectSchemaWithRelationIds>;
 export type CanUseItem = z.infer<typeof CanUseItemSchema>;
 export type CanDelegateToExternalAgent = z.infer<typeof canDelegateToExternalAgentSchema>;
+export type CanDelegateToExternalAgentInsert = z.infer<typeof canDelegateToExternalAgentInsertSchema>;
 export type CanDelegateToTeamAgent = z.infer<typeof canDelegateToTeamAgentSchema>;
+export type CanDelegateToTeamAgentInsert = z.infer<typeof canDelegateToTeamAgentInsertSchema>;
 export type CanDelegateToItem = CanRelateToInternalSubAgent | CanDelegateToExternalAgent | CanDelegateToTeamAgent;
+export type CanDelegateToItemInsert = string | CanDelegateToExternalAgentInsert | CanDelegateToTeamAgentInsert;
 export type CanRelateToInternalSubAgent = z.infer<typeof canRelateToInternalSubAgentSchema>;
 
 export type SubAgentDefinition = z.infer<typeof SubAgentApiInsertSchema> & {

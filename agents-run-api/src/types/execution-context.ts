@@ -1,10 +1,10 @@
-import type { BaseExecutionContext, ResolvedRef } from '@inkeep/agents-core';
+import type { BaseExecutionContext, FullExecutionContext } from '@inkeep/agents-core';
 
 /**
  * Extract userId from execution context metadata (when available)
  * Only available when request originates from an authenticated user session (e.g., playground)
  */
-export function getUserIdFromContext(ctx: ExecutionContext): string | undefined {
+export function getUserIdFromContext(ctx: FullExecutionContext): string | undefined {
   const metadata = ctx.metadata as
     | { initiatedBy?: { type: 'user' | 'api_key'; id: string } }
     | undefined;

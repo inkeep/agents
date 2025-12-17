@@ -15,8 +15,8 @@
       "import": "./dist/db/manage/manage-schema.js"
     },
     "./db/run-schema": {
-      "types": "./dist/db/run/run-schema.d.ts",
-      "import": "./dist/db/run/run-schema.js"
+      "types": "./dist/db/runtime/runtime-schema.d.ts",
+      "import": "./dist/db/runtime/runtime-schema.js"
     },
     "./db/manage-client": {
       "types": "./dist/db/manage/manage-client.d.ts",
@@ -31,8 +31,8 @@
       "import": "./dist/db/runtime/test-runtime-client.js"
     },
     "./db/run-client": {
-      "types": "./dist/db/run/run-client.d.ts",
-      "import": "./dist/db/run/run-client.js"
+      "types": "./dist/db/runtime/runtime-client.d.ts",
+      "import": "./dist/db/runtime/runtime-client.js"
     },
     "./types": {
       "types": "./dist/types/index.d.ts",
