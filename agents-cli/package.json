@@ -42,6 +42,7 @@
     "@better-auth/sso": "^1.4.0",
     "@clack/prompts": "^0.11.0",
     "@inkeep/agents-core": "workspace:^",
+    "@nangohq/node": "^0.69.14",
     "@inkeep/agents-sdk": "workspace:^",
     "@opentelemetry/api-logs": "^0.206.0",
     "@opentelemetry/instrumentation": "^0.206.0",
