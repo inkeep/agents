@@ -115,21 +115,33 @@ async function executeEvaluatorStep(
   }
 }
 
+/**
+ * Step: Log workflow progress
+ */
+async function logStep(message: string, data: Record<string, any>) {
+  'use step';
+  logger.info(data, message);
+}
+
+/**
+ * Main workflow function - orchestrates the evaluation steps.
+ * 
+ * IMPORTANT: This runs in a deterministic sandbox.
+ * - Do NOT call Node.js APIs directly here (no DB, no fs, etc.)
+ * - All side effects must happen in step functions
+ */
 export async function evaluateConversationWorkflow(payload: EvaluationPayload) {
   'use workflow';
 
-  const { tenantId, projectId, conversationId, evaluatorIds, evaluationRunId } = payload;
+  const { conversationId, evaluatorIds } = payload;
 
-  logger.info(
-    { tenantId, projectId, conversationId, evaluatorIds, evaluationRunId },
-    'Starting conversation evaluation'
-  );
+  await logStep('Starting conversation evaluation', payload);
 
   const conversation = await getConversationStep(payload);
   const evaluators = await getEvaluatorsStep(payload);
 
   if (evaluators.length === 0) {
-    logger.warn({ conversationId, evaluatorIds }, 'No valid evaluators found');
+    await logStep('No valid evaluators found', { conversationId, evaluatorIds });
     return { success: false, reason: 'No valid evaluators' };
   }
 

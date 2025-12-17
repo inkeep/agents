@@ -1,3 +1,7 @@
+
+import './workflow-bootstrap';
+import { world } from './workflow';
+
 import { createRoute, OpenAPIHono } from '@hono/zod-openapi';
 import { handleApiError } from '@inkeep/agents-core';
 import { Hono } from 'hono';
@@ -11,8 +15,16 @@ import { getLogger } from './logger';
 import { apiKeyAuth } from './middleware/auth';
 import { setupOpenAPIRoutes } from './openapi';
 import evaluationsRoutes from './routes/evaluations';
+import { workflowRoutes } from './workflow/routes';
 
 const logger = getLogger('agents-eval-api');
+
+// Start the workflow worker to process queued jobs
+world.start?.().then(() => {
+  logger.info({}, 'Workflow worker started');
+}).catch((err: unknown) => {
+  logger.error({ error: err }, 'Failed to start workflow worker');
+});
 
 logger.info({ logger: logger.getTransports() }, 'Logger initialized');
 
@@ -162,6 +174,10 @@ function createEvaluationHono() {
 
   // Mount evaluation routes under tenant scope
   app.route('/tenants/:tenantId/projects/:projectId/evaluations', evaluationsRoutes);
+
+  // Mount workflow routes for internal workflow execution
+  // The postgres world's internal local world calls these endpoints
+  app.route('/.well-known/workflow', workflowRoutes);
 
   // Setup OpenAPI documentation endpoints (/openapi.json and /docs)
   setupOpenAPIRoutes(app);

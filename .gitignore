@@ -69,3 +69,6 @@ vite.config.d.ts
 
 # Turborepo
 .turbo
+
+# Generated workflow bundles
+agents-eval-api/.well-known/

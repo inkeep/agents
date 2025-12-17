@@ -1,13 +1,7 @@
-import { createWorld } from '@workflow/world-postgres';
-import { env } from '../env';
+import { getWorld } from 'workflow/runtime';
 
-if (!env.DATABASE_URL) {
-  throw new Error('DATABASE_URL is required for workflow persistence');
-}
-
-export const world: ReturnType<typeof createWorld> = createWorld({
-  connectionString: env.DATABASE_URL,
-  jobPrefix: 'inkeep-agents-eval',
-  queueConcurrency: 20,
-});
+// Get the world instance - this uses postgres world based on env vars
+// set in workflow-bootstrap.ts (must be imported first in index.ts)
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export const world: any = getWorld();
 

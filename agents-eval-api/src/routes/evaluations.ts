@@ -73,8 +73,9 @@ import {
 } from '@inkeep/agents-core';
 import { and, eq } from 'drizzle-orm';
 import { z } from 'zod';
+import { start } from 'workflow/api';
 import dbClient from '../data/db/dbClient';
-import { evaluateConversationWorkflow } from '../workflow';
+import { evaluateConversationWorkflow, runDatasetItemWorkflow } from '../workflow';
 import { getLogger } from '../logger';
 import { EvaluationService } from '../services/EvaluationService';
 
@@ -1661,13 +1662,13 @@ app.openapi(
             // Fan out: start workflow for each conversation
             await Promise.all(
               conversations.map((conv) =>
-                evaluateConversationWorkflow({
+                start(evaluateConversationWorkflow, [{
                   tenantId,
                   projectId,
                   conversationId: conv.id,
                   evaluatorIds,
                   evaluationRunId: evaluationRun.id,
-                })
+                }])
               )
             );
 
@@ -2404,13 +2405,13 @@ app.openapi(
       // Trigger evaluations via Workflow
       await Promise.all(
         conversationIds.map((conversationId) =>
-          evaluateConversationWorkflow({
+          start(evaluateConversationWorkflow, [{
             tenantId,
             projectId,
             conversationId,
             evaluatorIds,
             evaluationRunId,
-          })
+          }])
         )
       );
 
@@ -2667,10 +2668,10 @@ app.openapi(
             datasetRunId,
             hasEvaluators: !!(evaluatorIds && Array.isArray(evaluatorIds) && evaluatorIds.length > 0),
           },
-          'Dataset run created, processing items asynchronously'
+          'Dataset run created, processing items'
         );
 
-        // Process dataset items asynchronously (fire-and-forget)
+        // Process dataset items (evaluations will be queued via workflow)
         const evaluationService = new EvaluationService();
         logger.info(
           {
@@ -2684,255 +2685,105 @@ app.openapi(
             evaluatorIdsLength: Array.isArray(evaluatorIds) ? evaluatorIds.length : 0,
             hasEvaluators: evaluatorIds && Array.isArray(evaluatorIds) && evaluatorIds.length > 0,
           },
-          'Starting async dataset run processing with evaluators in closure'
+          'Starting dataset run processing with evaluators'
         );
 
-        (async () => {
-          try {
-            logger.info(
-              {
+        // Queue all dataset items via workflow system (fire-and-forget)
+        // Get all dataset items and agents
+        const datasetItems = await listDatasetItems(dbClient)({
+          scopes: { tenantId, projectId, datasetId: runConfigData.datasetId },
+        });
+
+        const agentRelations = await getDatasetRunConfigAgentRelations(dbClient)({
+          scopes: { tenantId, projectId, datasetRunConfigId: id },
+        });
+
+        // Create evaluation run if evaluators are configured
+        let evaluationRunId: string | undefined;
+        let evalJobConfigId: string | undefined;
+        if (evaluatorIds && Array.isArray(evaluatorIds) && evaluatorIds.length > 0) {
+          // Create evaluation job config first
+          evalJobConfigId = generateId();
+          await createEvaluationJobConfig(dbClient)({
+            id: evalJobConfigId,
+            tenantId,
+            projectId,
+            jobFilters: {
+              datasetRunIds: [datasetRunId],
+            },
+          } as any);
+
+          // Create evaluator relations
+          await Promise.all(
+            evaluatorIds.map((evaluatorId: string) =>
+              createEvaluationJobConfigEvaluatorRelation(dbClient)({
                 tenantId,
                 projectId,
-                datasetRunId,
-                evaluatorIds,
-                evaluatorIdsType: typeof evaluatorIds,
-                isArray: Array.isArray(evaluatorIds),
-              },
-              'Inside async closure - checking evaluatorIds'
-            );
-
-            // Get all dataset items
-            const datasetItems = await listDatasetItems(dbClient)({
-              scopes: { tenantId, projectId, datasetId: runConfigData.datasetId },
-            });
-
-            // Get all agents for this run config
-            const agentRelations = await getDatasetRunConfigAgentRelations(dbClient)({
-              scopes: { tenantId, projectId, datasetRunConfigId: id },
-            });
-
-            const conversationRelations: Array<{
-              tenantId: string;
-              projectId: string;
-              id: string;
-              datasetRunId: string;
-              conversationId: string;
-              datasetItemId: string;
-            }> = [];
-
-            for (const agentRelation of agentRelations) {
-              for (const datasetItem of datasetItems) {
-                try {
-                  // Pass datasetRunId to the chat API via header so it can link to the evaluation job
-                  // The relation will be created after the conversation completes
-                  const result = await evaluationService.runDatasetItem({
-                    tenantId,
-                    projectId,
-                    agentId: agentRelation.agentId,
-                    datasetItem,
-                    datasetRunId,
-                  });
-
-                  // Create conversation relation if we got a conversationId
-                  // This includes both successful and failed conversations so evaluators can assess failures
-                  if (result.conversationId) {
-                    const relationId = generateId();
-                    conversationRelations.push({
-                      tenantId,
-                      projectId,
-                      id: relationId,
-                      datasetRunId: datasetRunId,
-                      conversationId: result.conversationId,
-                      datasetItemId: datasetItem.id,
-                    });
-
-                    // Create conversation relation immediately as each item completes
-                    // Note: agentId is extracted at query time from conversation → subAgent
-                    try {
-                      await createDatasetRunConversationRelation(dbClient)({
-                        tenantId,
-                        projectId,
-                        id: relationId,
-                        datasetRunId: datasetRunId,
-                        conversationId: result.conversationId,
-                        datasetItemId: datasetItem.id,
-                      });
-                    } catch (relationError: any) {
-                      // If foreign key constraint fails, the conversation doesn't exist
-                      // Log and continue - this is expected for failed API calls
-                      if (
-                        relationError?.cause?.code === '23503' ||
-                        relationError?.code === '23503'
-                      ) {
-                        logger.warn(
-                          {
-                            tenantId,
-                            projectId,
-                            datasetRunId,
-                            datasetItemId: datasetItem.id,
-                            conversationId: result.conversationId,
-                            error: result.error,
-                          },
-                          'Conversation does not exist, skipping relation creation (API call likely failed)'
-                        );
-                      } else {
-                        throw relationError;
-                      }
-                    }
-                  } else {
-                    logger.warn(
-                      {
-                        tenantId,
-                        projectId,
-                        datasetRunId,
-                        datasetItemId: datasetItem.id,
-                        conversationId: result.conversationId,
-                        error: result.error,
-                      },
-                      'Skipping conversation relation creation due to API error'
-                    );
-                  }
-                } catch (itemError) {
-                  logger.error(
-                    {
-                      error: itemError,
-                      tenantId,
-                      projectId,
-                      datasetRunId,
-                      datasetItemId: datasetItem.id,
-                      agentId: agentRelation.agentId,
-                    },
-                    'Failed to process dataset item (non-blocking)'
-                  );
-                  // Continue processing other items
-                }
-              }
-            }
-
-            logger.info(
-              {
-                tenantId,
-                projectId,
-                runConfigId: id,
-                datasetRunId,
-                itemsProcessed: datasetItems.length,
-                agentsUsed: agentRelations.length,
-                conversationsCreated: conversationRelations.length,
-              },
-              'Dataset run processing completed'
-            );
-
-            // Now create evaluation job config AFTER conversations exist
-            // This allows the automatic eval job config trigger to work properly
-            if (evaluatorIds && Array.isArray(evaluatorIds) && evaluatorIds.length > 0 && conversationRelations.length > 0) {
-              logger.info(
-                {
-                  tenantId,
-                  projectId,
-                  datasetRunId,
-                  conversationCount: conversationRelations.length,
-                  evaluatorCount: evaluatorIds.length,
-                },
-                'Creating evaluation job config now that conversations exist'
-              );
-
-              const evalJobConfigId = generateId();
-              await createEvaluationJobConfig(dbClient)({
-                id: evalJobConfigId,
-                tenantId,
-                projectId,
-                jobFilters: {
-                  datasetRunIds: [datasetRunId],
-                },
-              } as any);
-
-              // Create evaluator relations
-              await Promise.all(
-                evaluatorIds.map((evaluatorId: string) =>
-                  createEvaluationJobConfigEvaluatorRelation(dbClient)({
-                    tenantId,
-                    projectId,
-                    id: generateId(),
-                    evaluationJobConfigId: evalJobConfigId,
-                    evaluatorId,
-                  } as any)
-                )
-              );
-
-              // Update dataset run to link the eval job config
-              await dbClient
-                .update(datasetRun)
-                .set({ evaluationJobConfigId: evalJobConfigId })
-                .where(
-                  and(
-                    eq(datasetRun.tenantId, tenantId),
-                    eq(datasetRun.projectId, projectId),
-                    eq(datasetRun.id, datasetRunId)
-                  )
-                );
-
-              // Trigger evaluations for all conversations
-              const uniqueConversationIds = [...new Set(conversationRelations.map(rel => rel.conversationId))];
-              
-              // Create evaluation run
-              const evaluationRunId = generateId();
-              await createEvaluationRun(dbClient)({
-                id: evaluationRunId,
-                tenantId,
-                projectId,
+                id: generateId(),
                 evaluationJobConfigId: evalJobConfigId,
-              });
+                evaluatorId,
+              } as any)
+            )
+          );
 
-              // Trigger evaluations via Workflow
-              await Promise.all(
-                uniqueConversationIds.map((conversationId) =>
-                  evaluateConversationWorkflow({
-                    tenantId,
-                    projectId,
-                    conversationId,
-                    evaluatorIds,
-                    evaluationRunId,
-                  })
-                )
-              );
+          // Update dataset run to link the eval job config
+          await dbClient
+            .update(datasetRun)
+            .set({ evaluationJobConfigId: evalJobConfigId })
+            .where(
+              and(
+                eq(datasetRun.tenantId, tenantId),
+                eq(datasetRun.projectId, projectId),
+                eq(datasetRun.id, datasetRunId)
+              )
+            );
 
-              logger.info(
-                {
-                  tenantId,
-                  projectId,
-                  datasetRunId,
-                  evalJobConfigId,
-                  evaluationRunId,
-                  evaluatorCount: evaluatorIds.length,
-                  conversationsTriggered: uniqueConversationIds.length,
-                },
-                'Evaluation job config created and evaluations triggered'
-              );
-            } else {
-              logger.info(
-                {
-                  tenantId,
-                  projectId,
-                  datasetRunId,
-                  hasEvaluatorIds: !!(evaluatorIds && Array.isArray(evaluatorIds) && evaluatorIds.length > 0),
-                  conversationCount: conversationRelations.length,
-                },
-                'Dataset run processing complete - no evaluations configured'
-              );
-            }
-          } catch (processError) {
-            logger.error(
-              {
-                error: processError,
+          // Create evaluation run linked to the job config
+          evaluationRunId = generateId();
+          await createEvaluationRun(dbClient)({
+            id: evaluationRunId,
+            tenantId,
+            projectId,
+            evaluationJobConfigId: evalJobConfigId,
+          });
+        }
+
+        // Queue each dataset item as a workflow - fire and forget
+        const workflowPromises: Promise<any>[] = [];
+        for (const agentRelation of agentRelations) {
+          for (const datasetItem of datasetItems) {
+            workflowPromises.push(
+              start(runDatasetItemWorkflow, [{
                 tenantId,
                 projectId,
+                agentId: agentRelation.agentId,
+                datasetItemId: datasetItem.id,
+                datasetItemInput: datasetItem.input,
+                datasetItemSimulationAgent: datasetItem.simulationAgent as any,
                 datasetRunId,
-                runConfigId: id,
-              },
-              'Failed to process dataset run items (non-blocking)'
+                evaluatorIds: evaluatorIds && Array.isArray(evaluatorIds) ? evaluatorIds : undefined,
+                evaluationRunId,
+              }])
             );
           }
-        })();
+        }
+
+        // Queue all workflows (this returns immediately, doesn't wait for completion)
+        await Promise.all(workflowPromises);
+
+        logger.info(
+          {
+            tenantId,
+            projectId,
+            runConfigId: id,
+            datasetRunId,
+            itemsQueued: workflowPromises.length,
+            agentsUsed: agentRelations.length,
+            datasetItemCount: datasetItems.length,
+            hasEvaluators: !!(evaluatorIds && Array.isArray(evaluatorIds) && evaluatorIds.length > 0),
+          },
+          'Dataset run items queued via workflow'
+        );
       } catch (runError) {
         // Log error but don't fail the config creation
         logger.error(
@@ -3240,122 +3091,97 @@ app.openapi(
         evaluationJobConfigId: undefined,
       });
 
-      logger.info(
-        { tenantId, projectId, datasetId, datasetRunId, agentIds, evaluatorIds },
-        'Dataset run created, processing items asynchronously'
-      );
+      // Get all dataset items
+      const datasetItems = await listDatasetItems(dbClient)({
+        scopes: { tenantId, projectId, datasetId },
+      });
 
-      // Process dataset items asynchronously (fire-and-forget)
-      const evaluationService = new EvaluationService();
-      
-      (async () => {
-        try {
-          // Get all dataset items
-          const datasetItems = await listDatasetItems(dbClient)({
-            scopes: { tenantId, projectId, datasetId },
-          });
+      // Create evaluation job config and run if evaluators provided
+      let evaluationRunId: string | undefined;
+      let evalJobConfigId: string | undefined;
+      if (evaluatorIds && evaluatorIds.length > 0) {
+        // Create evaluation job config
+        evalJobConfigId = generateId();
+        await createEvaluationJobConfig(dbClient)({
+          id: evalJobConfigId,
+          tenantId,
+          projectId,
+          jobFilters: {
+            datasetRunIds: [datasetRunId],
+          },
+        } as any);
 
-          const conversationRelations: Array<{
-            tenantId: string;
-            projectId: string;
-            id: string;
-            datasetRunId: string;
-            conversationId: string;
-            datasetItemId: string;
-          }> = [];
-
-          for (const agentId of agentIds) {
-            for (const datasetItem of datasetItems) {
-              try {
-                const result = await evaluationService.runDatasetItem({
-                  tenantId,
-                  projectId,
-                  agentId,
-                  datasetItem,
-                  datasetRunId,
-                });
-
-                if (result.conversationId) {
-                  const relationId = generateId();
-                  conversationRelations.push({
-                    tenantId,
-                    projectId,
-                    id: relationId,
-                    datasetRunId: datasetRunId,
-                    conversationId: result.conversationId,
-                    datasetItemId: datasetItem.id,
-                  });
-
-                  await createDatasetRunConversationRelation(dbClient)({
-                    tenantId,
-                    projectId,
-                    id: relationId,
-                    datasetRunId,
-                    conversationId: result.conversationId,
-                    datasetItemId: datasetItem.id,
-                  });
-                }
-              } catch (itemError) {
-                logger.error(
-                  { error: itemError, tenantId, projectId, datasetItemId: datasetItem.id },
-                  'Failed to run dataset item'
-                );
-              }
-            }
-          }
-
-          // Trigger evaluations if evaluatorIds provided
-          if (evaluatorIds && evaluatorIds.length > 0 && conversationRelations.length > 0) {
-            const evaluationRunId = generateId();
-            await createEvaluationRun(dbClient)({
-              id: evaluationRunId,
+        // Create evaluator relations
+        await Promise.all(
+          evaluatorIds.map((evaluatorId: string) =>
+            createEvaluationJobConfigEvaluatorRelation(dbClient)({
               tenantId,
               projectId,
-            });
+              id: generateId(),
+              evaluationJobConfigId: evalJobConfigId,
+              evaluatorId,
+            } as any)
+          )
+        );
 
-            const uniqueConversationIds = [...new Set(conversationRelations.map(rel => rel.conversationId))];
-            
-            await Promise.all(
-              uniqueConversationIds.map((conversationId) =>
-                evaluateConversationWorkflow({
-                  tenantId,
-                  projectId,
-                  conversationId,
-                  evaluatorIds,
-                  evaluationRunId,
-                })
-              )
-            );
-
-            logger.info(
-              {
-                tenantId,
-                projectId,
-                datasetRunId,
-                evaluationRunId,
-                conversationCount: uniqueConversationIds.length,
-                evaluatorCount: evaluatorIds.length,
-              },
-              'Dataset run evaluations triggered'
-            );
-          }
-
-          logger.info(
-            {
-              tenantId,
-              projectId,
-              datasetRunId,
-              conversationCount: conversationRelations.length,
-            },
-            'Dataset run processing complete'
+        // Update dataset run to link the eval job config
+        await dbClient
+          .update(datasetRun)
+          .set({ evaluationJobConfigId: evalJobConfigId })
+          .where(
+            and(
+              eq(datasetRun.tenantId, tenantId),
+              eq(datasetRun.projectId, projectId),
+              eq(datasetRun.id, datasetRunId)
+            )
           );
-        } catch (processError) {
-          logger.error(
-            { error: processError, tenantId, projectId, datasetRunId },
-            'Failed to process dataset run asynchronously'
+
+        // Create evaluation run linked to job config
+        evaluationRunId = generateId();
+        await createEvaluationRun(dbClient)({
+          id: evaluationRunId,
+          tenantId,
+          projectId,
+          evaluationJobConfigId: evalJobConfigId,
+        });
+      }
+
+      // Queue all dataset items via workflow (fire-and-forget)
+      const workflowPromises: Promise<any>[] = [];
+      for (const agentId of agentIds) {
+        for (const datasetItem of datasetItems) {
+          workflowPromises.push(
+            start(runDatasetItemWorkflow, [{
+              tenantId,
+              projectId,
+              agentId,
+              datasetItemId: datasetItem.id,
+              datasetItemInput: datasetItem.input,
+              datasetItemSimulationAgent: datasetItem.simulationAgent as any,
+              datasetRunId,
+              evaluatorIds: evaluatorIds && evaluatorIds.length > 0 ? evaluatorIds : undefined,
+              evaluationRunId,
+            }])
           );
         }
-      })();
+      }
+
+      // Queue all workflows
+      await Promise.all(workflowPromises);
+
+      logger.info(
+        {
+          tenantId,
+          projectId,
+          datasetId,
+          datasetRunId,
+          itemsQueued: workflowPromises.length,
+          agentCount: agentIds.length,
+          datasetItemCount: datasetItems.length,
+          hasEvaluators: !!(evaluatorIds && evaluatorIds.length > 0),
+        },
+        'Dataset run items queued via workflow'
+      );
 
       return c.json(
         {

@@ -11,6 +11,7 @@ const envSchema = z.object({
   AGENTS_RUN_API_URL: z.string().optional().default('http://localhost:3003'),
   AGENTS_MANAGE_UI_URL: z.string().optional().default('http://localhost:3000'),
   DATABASE_URL: z.string(),
+  WORKFLOW_TARGET_WORLD: z.string().optional(),
   WORKFLOW_POSTGRES_URL: z.string().optional(),
   WORKFLOW_POSTGRES_JOB_PREFIX: z.string().optional(),
   WORKFLOW_POSTGRES_WORKER_CONCURRENCY: z.string().optional(),
