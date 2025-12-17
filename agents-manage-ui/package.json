@@ -84,7 +84,7 @@
     "@radix-ui/react-tooltip": "^1.2.7",
     "@shikijs/monaco": "^3.20.0",
     "@sinclair/typebox": "^0.34.40",
-    "@xyflow/react": "^12.8.2",
+    "@xyflow/react": "^12.10.0",
     "ai": "6.0.0-beta.124",
     "axios": "^1.11.0",
     "axios-retry": "^4.5.0",
