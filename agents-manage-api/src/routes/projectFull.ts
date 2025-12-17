@@ -15,11 +15,13 @@ import {
   TenantParamsSchema,
   TenantProjectParamsSchema,
   updateFullProjectServerSide,
+  cascadeDeleteByProject,
 } from '@inkeep/agents-core';
 
 import { getLogger } from '../logger';
 import { requirePermission } from '../middleware/require-permission';
 import type { BaseAppVariables } from '../types/app';
+import runDbClient from '../data/db/runDbClient';
 
 const logger = getLogger('projectFull');
 
@@ -340,8 +342,16 @@ app.openapi(
   async (c) => {
     const { tenantId, projectId } = c.req.valid('param');
     const db = c.get('db');
+    const resolvedRef = c.get('resolvedRef');
 
     try {
+      // Delete runtime entities for this project on this branch
+      await cascadeDeleteByProject(runDbClient)({
+        scopes: { tenantId, projectId },
+        fullBranchName: resolvedRef.name,
+      });
+
+      // Delete the full project from the config DB
       const deleted = await deleteFullProject(
         db
       )({

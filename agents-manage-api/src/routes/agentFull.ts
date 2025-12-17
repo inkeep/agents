@@ -9,13 +9,16 @@ import {
   ErrorResponseSchema,
   type FullAgentDefinition,
   getFullAgent,
+  listSubAgents,
   TenantProjectAgentParamsSchema,
   TenantProjectParamsSchema,
   updateFullAgentServerSide,
+  cascadeDeleteByAgent,
 } from '@inkeep/agents-core';
 import { getLogger } from '../logger';
 import { requirePermission } from '../middleware/require-permission';
 import type { BaseAppVariables } from '../types/app';
+import runDbClient from '../data/db/runDbClient';
 
 const logger = getLogger('agentFull');
 
@@ -266,9 +269,24 @@ app.openapi(
   }),
   async (c) => {
     const db = c.get('db');
+    const resolvedRef = c.get('resolvedRef');
     const { tenantId, projectId, agentId } = c.req.valid('param');
 
     try {
+      // Get all subAgentIds for this agent before deleting
+      const subAgents = await listSubAgents(db)({
+        scopes: { tenantId, projectId, agentId },
+      });
+      const subAgentIds = subAgents.map((sa) => sa.id);
+
+      // Delete runtime entities for this agent on this branch
+      await cascadeDeleteByAgent(runDbClient)({
+        scopes: { tenantId, projectId, agentId },
+        fullBranchName: resolvedRef.name,
+        subAgentIds,
+      });
+
+      // Delete the full agent from the config DB
       const deleted = await deleteFullAgent(
         db,
         logger
