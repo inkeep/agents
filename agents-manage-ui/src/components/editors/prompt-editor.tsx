@@ -3,6 +3,7 @@
 import type * as Monaco from 'monaco-editor';
 import { type ComponentProps, type FC, useCallback, useEffect, useId, useState } from 'react';
 import { agentStore } from '@/features/agent/state/use-agent-store';
+import { useMonacoStore } from '@/features/agent/state/use-monaco-store';
 import { cleanupDisposables } from '@/lib/monaco-editor/monaco-utils';
 import { MonacoEditor } from './monaco-editor.client';
 
@@ -15,12 +16,12 @@ export const PromptEditor: FC<PromptEditorProps> = ({ uri, editorOptions, onMoun
   uri ??= `${id}.template`;
 
   const [editor, setEditor] = useState<Monaco.editor.IStandaloneCodeEditor>();
+  const monaco = useMonacoStore((state) => state.monaco);
   useEffect(() => {
     const model = editor?.getModel();
-    if (!editor || !model) {
+    if (!monaco || !editor || !model) {
       return;
     }
-    const { monaco } = window;
 
     // Function to validate template variables and set markers
     const validateTemplateVariables = () => {
@@ -68,7 +69,7 @@ export const PromptEditor: FC<PromptEditorProps> = ({ uri, editorOptions, onMoun
     validateTemplateVariables();
 
     return cleanupDisposables(disposables);
-  }, [editor]);
+  }, [editor, monaco]);
 
   const handleOnMount: NonNullable<ComponentProps<typeof MonacoEditor>['onMount']> = useCallback(
     (editorInstance) => {
