@@ -37,10 +37,10 @@ export const CodeDiff: FC<CodeDiffProps> = ({
   const containerRef = useRef<HTMLDivElement>(null);
   const editorRef = useRef<Monaco.editor.IStandaloneDiffEditor | null>(null);
   const monaco = useMonacoStore((state) => state.monaco);
-  const { setMonaco } = useMonacoActions();
+  const { importMonaco } = useMonacoActions();
   // biome-ignore lint/correctness/useExhaustiveDependencies: only on mount
   useEffect(() => {
-    setMonaco();
+    importMonaco();
   }, []);
 
   useEffect(() => {

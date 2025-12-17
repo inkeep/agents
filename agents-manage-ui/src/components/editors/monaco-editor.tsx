@@ -52,10 +52,10 @@ export const MonacoEditor: FC<MonacoEditorProps> = ({
   const editorRef = useRef<Monaco.editor.IStandaloneCodeEditor>(null);
   const onChangeRef = useRef<typeof onChange>(undefined);
   const monaco = useMonacoStore((state) => state.monaco);
-  const { setMonaco } = useMonacoActions();
+  const { importMonaco } = useMonacoActions();
   // biome-ignore lint/correctness/useExhaustiveDependencies: only on mount
   useEffect(() => {
-    setMonaco();
+    importMonaco();
   }, []);
 
   // Update editor options when `readOnly` or `disabled` changes

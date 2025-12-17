@@ -1,6 +1,6 @@
 import type * as Monaco from 'monaco-editor';
-import { addDecorations, getOrCreateModel } from '@/lib/monaco-editor/monaco-utils';
 import { monacoStore } from '@/features/agent/state/use-monaco-store';
+import { addDecorations, getOrCreateModel } from '@/lib/monaco-editor/monaco-utils';
 
 const obj = {
   null: null,
@@ -23,8 +23,8 @@ describe('Monaco-Editor Functionality', async () => {
   let editor: Monaco.editor.IStandaloneCodeEditor;
   let model: Monaco.editor.ITextModel;
   let container: HTMLDivElement;
-  await monacoStore.getState().actions.setMonaco();
-  // biome-ignore lint/style/noNonNullAssertion: was set after setMonaco
+  await monacoStore.getState().actions.importMonaco();
+  // biome-ignore lint/style/noNonNullAssertion: was set after importMonaco
   const monaco = monacoStore.getState().monaco!;
 
   beforeEach(() => {
@@ -59,7 +59,7 @@ describe('Monaco-Editor Functionality', async () => {
     const modelValue = model.getValue();
     expect(modelValue).toBe(JSON.stringify(obj, null, 2));
     await expect(monaco.editor.tokenize(modelValue, 'json')).toMatchFileSnapshot(
-      './markers-tokenize.json'
+      './markers-tokenize.snapshot'
     );
 
     const { decorations } = addDecorations({

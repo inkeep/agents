@@ -13,7 +13,7 @@ interface MonacoActions {
   /**
    * Dynamically import `monaco-editor` since it relies on `window`, which isn't available during SSR
    */
-  setMonaco: () => Promise<void>;
+  importMonaco: () => Promise<void>;
 }
 
 interface MonacoState extends MonacoStateData {
@@ -22,11 +22,10 @@ interface MonacoState extends MonacoStateData {
 
 let wasInitialized = false;
 
-const monacoState: StateCreator<MonacoState> = (set, _get) => ({
+const monacoState: StateCreator<MonacoState> = (set) => ({
   monaco: null,
-  // Separate "namespace" for actions
   actions: {
-    async setMonaco() {
+    async importMonaco() {
       if (wasInitialized) {
         return;
       }
