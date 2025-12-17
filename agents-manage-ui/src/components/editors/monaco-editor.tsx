@@ -96,11 +96,6 @@ export const MonacoEditor: FC<MonacoEditorProps> = ({
     const editorInstance = editor.create(container, {
       model,
       language,
-      extraEditorClassName: [
-        '[--vscode-editor-background:transparent]!',
-        '[--vscode-editorGutter-background:transparent]!',
-        '[--vscode-focusBorder:transparent]!',
-      ].join(' '),
       automaticLayout: true,
       minimap: { enabled: false }, // disable the minimap
       overviewRulerLanes: 0, // remove unnecessary error highlight on the scroll
@@ -208,9 +203,7 @@ export const MonacoEditor: FC<MonacoEditorProps> = ({
           : 'has-[&>.focused]:border-ring has-[&>.focused]:ring-ring/50 has-[&>.focused]:ring-[3px]',
         'aria-invalid:border-destructive aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40',
         className,
-        !monaco && 'px-3 py-4',
-        // Fixes cursor blinking at the beginning of the line
-        '[&_.native-edit-context]:caret-transparent'
+        !monaco && 'px-3 py-4'
       )}
       {...props}
       ref={containerRef}

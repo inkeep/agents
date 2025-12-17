@@ -47,14 +47,18 @@ const monacoState: StateCreator<MonacoState> = (set, get) => ({
         monaco,
         { createHighlighter },
         { shikiToMonaco },
-        monacoCompatibleSchema,
+        { default: monacoCompatibleSchema },
         { default: githubLightTheme },
         { default: githubDarkTheme },
       ] = await Promise.all([
         import('monaco-editor'),
         import('shiki'),
         import('@shikijs/monaco'),
-        import('@/lib/monaco-editor/dynamic-ref-compatible-json-schema.json'),
+        import('@/lib/monaco-editor/dynamic-ref-compatible-json-schema.json', {
+          with: {
+            type: 'json',
+          },
+        }),
         import('shiki/themes/github-light-default.mjs'),
         import('shiki/themes/github-dark-default.mjs'),
         import('@/lib/monaco-editor/setup-monaco-workers'),
@@ -157,6 +161,7 @@ const monacoState: StateCreator<MonacoState> = (set, get) => ({
             name: MONACO_THEME_NAME.light,
             colors: {
               ...githubLightTheme.colors,
+              'editor.background': 'transparent',
               'diffEditor.insertedLineBackground': '#3784ff0d',
               'diffEditor.insertedTextBackground': '#3784ff19',
               'scrollbarSlider.activeBackground': '#aaa5',
@@ -169,6 +174,7 @@ const monacoState: StateCreator<MonacoState> = (set, get) => ({
             name: MONACO_THEME_NAME.dark,
             colors: {
               ...githubDarkTheme.colors,
+              'editor.background': 'transparent',
               'diffEditor.insertedLineBackground': '#69a3ff33',
               'diffEditor.insertedTextBackground': '#69a3ff4d',
               'scrollbarSlider.activeBackground': '#ccc5',

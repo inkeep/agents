@@ -183,7 +183,6 @@ export const CodeDiff: FC<CodeDiffProps> = ({
         'border border-input shadow-xs',
         className,
         !monaco && 'px-3 py-4',
-        '[&_.native-edit-context]:caret-transparent',
         // Fix for inline diff double character rendering - align both editors
         '[&_.editor.original]:left-1!',
         '[&_.editor.modified]:left-1!'
