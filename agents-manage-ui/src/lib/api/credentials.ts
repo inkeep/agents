@@ -25,7 +25,7 @@ export async function fetchCredentials(
   tenantId: string,
   projectId: string,
   page = 1,
-  pageSize = 50
+  pageSize = 100
 ): Promise<Credential[]> {
   validateTenantId(tenantId);
   validateProjectId(projectId);

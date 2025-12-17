@@ -117,7 +117,7 @@ export class ManagementApiClient extends BaseApiClient {
     const projectId = this.getProjectId();
 
     const response = await this.authenticatedFetch(
-      `${this.apiUrl}/tenants/${tenantId}/projects/${projectId}/agents`,
+      `${this.apiUrl}/tenants/${tenantId}/projects/${projectId}/agents?limit=100`,
       {
         method: 'GET',
       }
