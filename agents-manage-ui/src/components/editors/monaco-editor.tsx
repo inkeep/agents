@@ -1,101 +1,34 @@
-'use client';
-
 import { shikiToMonaco } from '@shikijs/monaco';
 import type * as Monaco from 'monaco-editor';
-import monaco from 'monaco-editor';
+import * as monaco from 'monaco-editor';
 import type { ComponentPropsWithoutRef, FC } from 'react';
 import { useEffect, useRef } from 'react';
 import { createHighlighter } from 'shiki';
 import { Skeleton } from '@/components/ui/skeleton';
-import { TEMPLATE_LANGUAGE, VARIABLE_TOKEN } from '@/constants/theme';
+import { MONACO_THEME_NAME, TEMPLATE_LANGUAGE, VARIABLE_TOKEN } from '@/constants/theme';
+import { agentStore } from '@/features/agent/state/use-agent-store';
 import monacoCompatibleSchema from '@/lib/monaco-editor/dynamic-ref-compatible-json-schema.json';
 import { cleanupDisposables, getOrCreateModel } from '@/lib/monaco-editor/monaco-utils';
 import { cn } from '@/lib/utils';
 import '@/lib/monaco-editor/setup-monaco-workers';
-import { agentStore } from '@/features/agent/state/use-agent-store';
 
-// for cypress
-window.monaco = monaco;
+setupMonaco();
 
-monaco.languages.register({ id: TEMPLATE_LANGUAGE });
-monaco.languages.json.jsonDefaults.setDiagnosticsOptions({
-  // Fixes when `$schema` is `https://json-schema.org/draft/2020-12/schema`
-  // The schema uses meta-schema features ($dynamicRef) that are not yet supported by the validator
-  schemas: [
-    {
-      // Configure JSON language service with Monaco-compatible schema
-      uri: 'https://json-schema.org/draft/2020-12/schema',
-      fileMatch: ['json-schema-*.json'],
-      schema: monacoCompatibleSchema,
-    },
-  ],
-  enableSchemaRequest: true,
+/**
+ * @see https://shiki.style/packages/monaco#usage
+ */
+const SUPPORTED_LANGUAGES = ['javascript', 'typescript', 'json'] as const;
+const SUPPORTED_THEMES = [MONACO_THEME_NAME.light, MONACO_THEME_NAME.dark] as const;
+const highlighter = await createHighlighter({
+  themes: [...SUPPORTED_THEMES],
+  langs: [...SUPPORTED_LANGUAGES],
 });
-// Define tokens for template variables
-monaco.languages.setMonarchTokensProvider(TEMPLATE_LANGUAGE, {
-  tokenizer: {
-    root: [[/\{\{([^}]+)}}/, VARIABLE_TOKEN]],
-  },
-});
-monaco.languages.registerCompletionItemProvider(TEMPLATE_LANGUAGE, {
-  triggerCharacters: ['{'],
-  provideCompletionItems(model, position) {
-    const { variableSuggestions } = agentStore.getState();
 
-    const textUntilPosition = model.getValueInRange({
-      startLineNumber: 1,
-      startColumn: 1,
-      endLineNumber: position.lineNumber,
-      endColumn: position.column,
-    });
+monaco.languages.register({ id: 'json' });
+monaco.languages.register({ id: 'typescript' });
+monaco.languages.register({ id: 'javascript' });
 
-    // Check if we're inside a template variable (after {)
-    const match = textUntilPosition.match(/\{([^}]*)$/);
-    if (!match) {
-      console.log('No template variable match found');
-      return { suggestions: [] };
-    }
-
-    const query = match[1].toLowerCase();
-    const filteredSuggestions = variableSuggestions.filter((suggestion) =>
-      suggestion.toLowerCase().includes(query)
-    );
-
-    const word = model.getWordUntilPosition(position);
-    const range = new monaco.Range(
-      position.lineNumber,
-      word.startColumn,
-      position.lineNumber,
-      word.endColumn
-    );
-
-    const completionItems: Omit<
-      Monaco.languages.CompletionItem,
-      'kind' | 'range' | 'insertText'
-    >[] = [
-      // Add context suggestions
-      ...filteredSuggestions.map((label) => ({
-        label,
-        detail: 'Context variable',
-        sortText: '0',
-      })),
-      // Add environment variables
-      {
-        label: '$env.',
-        detail: 'Environment variable',
-        sortText: '1',
-      },
-    ];
-    return {
-      suggestions: completionItems.map((item) => ({
-        kind: monaco.languages.CompletionItemKind.Module,
-        range,
-        insertText: `{${item.label}}}`,
-        ...item,
-      })),
-    };
-  },
-});
+shikiToMonaco(highlighter, monaco);
 
 interface MonacoEditorProps extends Omit<ComponentPropsWithoutRef<'div'>, 'onChange'> {
   /** @default '' */
@@ -228,12 +161,12 @@ export const MonacoEditor: FC<MonacoEditorProps> = ({
       }),
       editorInstance,
       // Disable command palette
-      editorInstance.addAction({
-        id: 'disable-command-palette',
-        label: 'Disable Command Palette',
-        keybindings: [monaco.KeyCode.F1],
-        run() {}, // Do nothing - prevents command palette from opening
-      }),
+      // editorInstance.addAction({
+      //   id: 'disable-command-palette',
+      //   label: 'Disable Command Palette',
+      //   keybindings: [monaco.KeyCode.F1],
+      //   run() {}, // Do nothing - prevents command palette from opening
+      // }),
       editorInstance.onKeyDown((event) => {
         if (event.code !== 'Space') {
           return;
@@ -276,7 +209,7 @@ export const MonacoEditor: FC<MonacoEditorProps> = ({
     }
     onMount?.(editorInstance);
     return cleanupDisposables(disposables);
-  }, [monaco]);
+  }, []);
 
   return (
     <div
@@ -307,3 +240,87 @@ export const MonacoEditor: FC<MonacoEditorProps> = ({
     </div>
   );
 };
+
+function setupMonaco() {
+  window.monaco = monaco;
+
+  monaco.languages.register({ id: TEMPLATE_LANGUAGE });
+  monaco.languages.json.jsonDefaults.setDiagnosticsOptions({
+    // Fixes when `$schema` is `https://json-schema.org/draft/2020-12/schema`
+    // The schema uses meta-schema features ($dynamicRef) that are not yet supported by the validator
+    schemas: [
+      {
+        // Configure JSON language service with Monaco-compatible schema
+        uri: 'https://json-schema.org/draft/2020-12/schema',
+        fileMatch: ['json-schema-*.json'],
+        schema: monacoCompatibleSchema,
+      },
+    ],
+    enableSchemaRequest: true,
+  });
+  // Define tokens for template variables
+  monaco.languages.setMonarchTokensProvider(TEMPLATE_LANGUAGE, {
+    tokenizer: {
+      root: [[/\{\{([^}]+)}}/, VARIABLE_TOKEN]],
+    },
+  });
+  monaco.languages.registerCompletionItemProvider(TEMPLATE_LANGUAGE, {
+    triggerCharacters: ['{'],
+    provideCompletionItems(model, position) {
+      const { variableSuggestions } = agentStore.getState();
+
+      const textUntilPosition = model.getValueInRange({
+        startLineNumber: 1,
+        startColumn: 1,
+        endLineNumber: position.lineNumber,
+        endColumn: position.column,
+      });
+
+      // Check if we're inside a template variable (after {)
+      const match = textUntilPosition.match(/\{([^}]*)$/);
+      if (!match) {
+        console.log('No template variable match found');
+        return { suggestions: [] };
+      }
+
+      const query = match[1].toLowerCase();
+      const filteredSuggestions = variableSuggestions.filter((suggestion) =>
+        suggestion.toLowerCase().includes(query)
+      );
+
+      const word = model.getWordUntilPosition(position);
+      const range = new monaco.Range(
+        position.lineNumber,
+        word.startColumn,
+        position.lineNumber,
+        word.endColumn
+      );
+
+      const completionItems: Omit<
+        Monaco.languages.CompletionItem,
+        'kind' | 'range' | 'insertText'
+      >[] = [
+        // Add context suggestions
+        ...filteredSuggestions.map((label) => ({
+          label,
+          detail: 'Context variable',
+          sortText: '0',
+        })),
+        // Add environment variables
+        {
+          label: '$env.',
+          detail: 'Environment variable',
+          sortText: '1',
+        },
+      ];
+      return {
+        suggestions: completionItems.map((item) => ({
+          kind: monaco.languages.CompletionItemKind.Module,
+          range,
+          insertText: `{${item.label}}}`,
+          ...item,
+        })),
+      };
+    },
+  });
+}
