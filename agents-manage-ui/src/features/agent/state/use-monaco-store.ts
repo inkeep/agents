@@ -10,7 +10,6 @@ interface MonacoStateData {
 }
 
 interface MonacoActions {
-  setMonacoTheme: (isDark: boolean) => void;
   /**
    * Dynamically import `monaco-editor` since it relies on `window`, which isn't available during SSR
    */
@@ -31,13 +30,6 @@ const monacoState: StateCreator<MonacoState> = (set, get) => ({
   ...initialMonacoState,
   // Separate "namespace" for actions
   actions: {
-    setMonacoTheme(isDark) {
-      const monaco = get().monaco;
-      if (!monaco) return;
-
-      const monacoTheme = isDark ? MONACO_THEME_NAME.dark : MONACO_THEME_NAME.light;
-      monaco.editor.setTheme(monacoTheme);
-    },
     async setMonaco() {
       if (wasInitialized) {
         return;
