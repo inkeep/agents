@@ -15,6 +15,9 @@ import { createMetadata } from '@/lib/metadata';
 import { source } from '@/lib/source';
 import { cn } from '@/lib/utils';
 import '@/app/global.css';
+import { Suspense } from 'react';
+import PostHogPageview from '@/app/posthog-pageview';
+import { PostHogProvider } from '@/lib/analytics/posthog-provider';
 
 const inter = Inter({
   subsets: ['latin'],
@@ -109,6 +112,10 @@ export default function Layout({ children }: LayoutProps<'/'>) {
         suppressHydrationWarning={process.env.NODE_ENV !== 'production'}
       >
         <JsonLd json={[orgLd, siteLd]} />
+        <Suspense>
+          <PostHogPageview />
+        </Suspense>
+        <PostHogProvider>
         <RootProvider search={{ SearchDialog }}>
           <DocsLayout
             tree={source.pageTree}
@@ -143,6 +150,7 @@ export default function Layout({ children }: LayoutProps<'/'>) {
             {children}
           </DocsLayout>
         </RootProvider>
+        </PostHogProvider>
       </body>
     </html>
   );
