@@ -20,6 +20,7 @@ import dbClient from '../data/db/dbClient';
 import { getLogger } from '../logger';
 import { requirePermission } from '../middleware/require-permission';
 import type { BaseAppVariables } from '../types/app';
+import { speakeasyOffsetLimitPagination } from './shared';
 
 const logger = getLogger('functionTools');
 
@@ -64,6 +65,7 @@ app.openapi(
       },
       ...commonGetErrorResponses,
     },
+    ...speakeasyOffsetLimitPagination,
   }),
   async (c) => {
     const { tenantId, projectId, agentId } = c.req.valid('param');

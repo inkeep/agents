@@ -14,7 +14,7 @@ import {
   getAgentById,
   getAgentSubAgentInfos,
   getFullAgentDefinition,
-  listAgents,
+  listAgentsPaginated,
   PaginationQueryParamsSchema,
   RelatedAgentInfoListResponse,
   TenantProjectAgentParamsSchema,
@@ -26,6 +26,7 @@ import {
 import dbClient from '../data/db/dbClient';
 import { requirePermission } from '../middleware/require-permission';
 import type { BaseAppVariables } from '../types/app';
+import { speakeasyOffsetLimitPagination } from './shared';
 
 const app = new OpenAPIHono<{ Variables: BaseAppVariables }>();
 
@@ -68,22 +69,18 @@ app.openapi(
       },
       ...commonGetErrorResponses,
     },
+    ...speakeasyOffsetLimitPagination,
   }),
   async (c) => {
     const { tenantId, projectId } = c.req.valid('param');
     const page = Number(c.req.query('page')) || 1;
     const limit = Math.min(Number(c.req.query('limit')) || 10, 100);
 
-    const agent = await listAgents(dbClient)({ scopes: { tenantId, projectId } });
-    return c.json({
-      data: agent,
-      pagination: {
-        page,
-        limit,
-        total: agent.length,
-        pages: Math.ceil(agent.length / limit),
-      },
+    const result = await listAgentsPaginated(dbClient)({
+      scopes: { tenantId, projectId },
+      pagination: { page, limit },
     });
+    return c.json(result);
   }
 );
 
