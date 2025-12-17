@@ -2,7 +2,7 @@ import type { FC } from 'react';
 import { BodyTemplate } from '@/components/layout/body-template';
 import { Skeleton } from '@/components/ui/skeleton';
 
-export const AgentLoadingSkeleton: FC = () => {
+export const AgentSkeleton: FC = () => {
   return (
     <div className="flex h-screen bg-muted/20 dark:bg-background p-4">
       <div className="flex flex-col gap-2" style={{ width: 160 }}>
@@ -30,7 +30,7 @@ export const AgentLoadingSkeleton: FC = () => {
 export default function Loading() {
   return (
     <BodyTemplate breadcrumbs={[{ label: 'Agents' }, { label: '' }]}>
-      <AgentLoadingSkeleton />
+      <AgentSkeleton />
     </BodyTemplate>
   );
 }
