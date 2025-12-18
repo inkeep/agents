@@ -3965,4 +3965,95 @@ app.openapi(
   }
 );
 
+// ==============================================================================
+// Conversation Evaluation Trigger Endpoint
+// ==============================================================================
+
+const TriggerConversationEvaluationSchema = z.object({
+  conversationId: z.string(),
+  evaluatorIds: z.array(z.string()),
+  evaluationRunId: z.string(),
+});
+
+const triggerConversationEvaluationRoute = createRoute({
+  method: 'post',
+  path: '/trigger',
+  request: {
+    params: TenantProjectParamsSchema,
+    body: {
+      content: {
+        'application/json': {
+          schema: TriggerConversationEvaluationSchema,
+        },
+      },
+    },
+  },
+  responses: {
+    200: {
+      description: 'Evaluation triggered successfully',
+      content: {
+        'application/json': {
+          schema: z.object({
+            success: z.boolean(),
+            message: z.string(),
+          }),
+        },
+      },
+    },
+    ...commonGetErrorResponses,
+  },
+  tags: ['Evaluations'],
+  summary: 'Trigger a conversation evaluation',
+  description: 'Trigger an evaluation workflow for a specific conversation. This is called by run-api after a conversation completes.',
+});
+
+app.openapi(triggerConversationEvaluationRoute, async (c) => {
+  const { tenantId, projectId } = c.req.param();
+  const body = c.req.valid('json');
+
+  try {
+    logger.info(
+      {
+        tenantId,
+        projectId,
+        conversationId: body.conversationId,
+        evaluatorIds: body.evaluatorIds,
+        evaluationRunId: body.evaluationRunId,
+      },
+      'Triggering conversation evaluation via HTTP endpoint'
+    );
+
+    // Start the evaluation workflow
+    await start(evaluateConversationWorkflow, [{
+      tenantId,
+      projectId,
+      conversationId: body.conversationId,
+      evaluatorIds: body.evaluatorIds,
+      evaluationRunId: body.evaluationRunId,
+    }]);
+
+    return c.json({
+      success: true,
+      message: 'Evaluation triggered successfully',
+    });
+  } catch (error: any) {
+    logger.error(
+      {
+        error,
+        tenantId,
+        projectId,
+        conversationId: body.conversationId,
+      },
+      'Failed to trigger conversation evaluation'
+    );
+    return c.json(
+      createApiError({
+        code: 'internal_server_error',
+        message: error?.message || 'Failed to trigger evaluation',
+      }),
+      500
+    );
+  }
+});
+
 export default app;
