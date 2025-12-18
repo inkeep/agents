@@ -250,6 +250,22 @@ function createEvaluationHono() {
   // The postgres world's internal local world calls these endpoints
   app.route('/.well-known/workflow', workflowRoutes);
 
+  // Handle /index POST - Vercel Queue delivers CloudEvents here
+  // Forward to the workflow flow handler
+  app.post('/index', async (c) => {
+    console.log('[QUEUE-CALLBACK] /index hit, forwarding to workflow handler');
+    const url = new URL(c.req.url);
+    url.pathname = '/.well-known/workflow/v1/flow';
+    const forwardedRequest = new Request(url.toString(), {
+      method: c.req.method,
+      headers: c.req.raw.headers,
+      body: c.req.raw.body,
+      // @ts-expect-error duplex is required for streams
+      duplex: 'half',
+    });
+    return app.fetch(forwardedRequest);
+  });
+
   // Setup OpenAPI documentation endpoints (/openapi.json and /docs)
   setupOpenAPIRoutes(app);
 
