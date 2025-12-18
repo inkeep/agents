@@ -175,7 +175,7 @@ app.openapi(
     const userId = c.get('userId');
 
     return c.json({
-      data: await dbResultToMcpTool(tool, db, credentialStores),
+      data: await dbResultToMcpTool(tool, db, credentialStores, undefined, userId),
     });
   }
 );
@@ -234,7 +234,7 @@ app.openapi(
 
     return c.json(
       {
-        data: await dbResultToMcpTool(tool, db, credentialStores),
+        data: await dbResultToMcpTool(tool, db, credentialStores, undefined, userId),
       },
       201
     );
@@ -305,7 +305,7 @@ app.openapi(
     }
 
     return c.json({
-      data: await dbResultToMcpTool(updatedTool, db, credentialStores),
+      data: await dbResultToMcpTool(updatedTool, db, credentialStores, undefined, userId),
     });
   }
 );

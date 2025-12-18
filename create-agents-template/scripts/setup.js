@@ -142,20 +142,22 @@ async function setupProjectInDatabase(skipDocker) {
   } else {
     logInfo('JWT keys already configured, skipping generation');
   }
-  // Step 1: Start database (skip if --skip-docker flag is set)
+  // Step 1: Start databases (skip if --skip-docker flag is set)
   if (skipDocker) {
     logStep(
       1,
-      'Skipping docker database startup. Please ensure that your DATABASE_URL environment variable is configured for cloud database'
+      'Skipping docker database startup. Please ensure that INKEEP_AGENTS_MANAGE_DATABASE_URL and INKEEP_AGENTS_RUN_DATABASE_URL environment variables are configured for your cloud databases'
     );
   } else {
-    logStep(1, 'Starting PostgreSQL database with Docker');
+    logStep(1, 'Starting databases with Docker (DoltgreSQL + PostgreSQL)');
     try {
       await execAsync('docker-compose -f docker-compose.db.yml up -d');
-      logSuccess('Database container started successfully');
-      logInfo('Waiting for database to be ready (5 seconds)...');
-      await new Promise((resolve) => setTimeout(resolve, 5000));
-      logSuccess('Database should be ready');
+      logSuccess('Database containers started successfully');
+      logInfo('DoltgreSQL (port 5432) - Manage API database');
+      logInfo('PostgreSQL (port 5433) - Run API database');
+      logInfo('Waiting for databases to be ready (10 seconds)...');
+      await new Promise((resolve) => setTimeout(resolve, 10000));
+      logSuccess('Databases should be ready');
     } catch (error) {
       const errorMessage = error.message || error.toString();
       const stderr = error.stderr || '';
@@ -165,14 +167,15 @@ async function setupProjectInDatabase(skipDocker) {
       const isPortConflict =
         combinedError.includes('port is already allocated') ||
         combinedError.includes('address already in use') ||
-        combinedError.includes('Bind for 0.0.0.0:5432 failed');
+        combinedError.includes('Bind for 0.0.0.0:5432 failed') ||
+        combinedError.includes('Bind for 0.0.0.0:5433 failed');
 
       if (isPortConflict) {
         logWarning('Database port is already in use (database might already be running)');
         logInfo('Continuing with setup...');
       } else {
         // For other errors, fail fast with clear error message
-        logError('Failed to start database container', error);
+        logError('Failed to start database containers', error);
         console.error(`\n${colors.red}${colors.bright}Common issues:${colors.reset}`);
         console.error(`${colors.yellow}  • Docker is not installed or not running${colors.reset}`);
         console.error(`${colors.yellow}  • Insufficient permissions to run Docker${colors.reset}`);

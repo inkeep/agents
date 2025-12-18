@@ -33,7 +33,7 @@ export function createAgentsRunDatabaseClient(config: AgentsRunDatabaseConfig): 
 
   if (!connectionString) {
     throw new Error(
-      'DATABASE_URL environment variable is required. Please set it to your PostgreSQL connection string.'
+      'INKEEP_AGENTS_RUN_DATABASE_URL environment variable is required. Please set it to your PostgreSQL connection string.'
     );
   }
 

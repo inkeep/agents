@@ -131,6 +131,19 @@ jobs:
           --health-timeout 5s
           --health-retries 5
           --health-start-period 20s
+      postgres:
+        image: postgres:18
+        env:
+          POSTGRES_DB: inkeep_agents
+          POSTGRES_USER: appuser
+          POSTGRES_PASSWORD: password
+        options: >-
+          --health-cmd "pg_isready -U appuser"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 5433:5432
 
     steps:
       - name: Checkout code
@@ -188,3 +201,6 @@ jobs:
 
       - name: Run create-agents E2E tests
         run: pnpm test:e2e --filter @inkeep/create-agents
+        env:
+          INKEEP_AGENTS_MANAGE_DATABASE_URL: postgresql://postgres:password@localhost:5432/inkeep_agents
+          INKEEP_AGENTS_RUN_DATABASE_URL: postgresql://postgres:password@localhost:5433/inkeep_agents

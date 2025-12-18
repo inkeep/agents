@@ -38,7 +38,6 @@ export const doltCommit =
 
     args.push("'-a'");
 
-    console.log('message', params.message.replace(/'/g, "''"));
     args.push("'-m'", `'${params.message.replace(/'/g, "''")}'`);
 
     if (params.author) {

@@ -10,7 +10,6 @@ const envSchema = z.object({
     .enum(['development', 'production', 'pentest', 'test'])
     .optional()
     .default('development'),
-  DATABASE_URL: z.string().optional(),
   INKEEP_AGENTS_RUN_API_URL: z.string().optional().default('http://localhost:3003'),
   INKEEP_AGENTS_MANAGE_API_URL: z.string().optional().default('http://localhost:3002'),
   INKEEP_AGENTS_RUN_DATABASE_URL: z.string(),
