@@ -8,7 +8,6 @@
   },
   "functions": {
     "index.js": {
-      "runtime": "nodejs20.x",
       "experimentalTriggers": [
         {
           "type": "queue/v1beta",
