@@ -2,9 +2,7 @@ import { Plus } from 'lucide-react';
 import Link from 'next/link';
 import FullPageError from '@/components/errors/full-page-error';
 import { ExternalAgentsList } from '@/components/external-agents/external-agents-list';
-import { BodyTemplate } from '@/components/layout/body-template';
 import EmptyState from '@/components/layout/empty-state';
-import { MainContent } from '@/components/layout/main-content';
 import { PageHeader } from '@/components/layout/page-header';
 import { Button } from '@/components/ui/button';
 import { fetchExternalAgents } from '@/lib/api/external-agents';
@@ -20,38 +18,32 @@ async function ExternalAgentsPage({
 
   try {
     const externalAgents = await fetchExternalAgents(tenantId, projectId);
-    return (
-      <BodyTemplate breadcrumbs={[{ label: 'External agents' }]}>
-        <MainContent className="min-h-full">
-          {externalAgents.length > 0 ? (
-            <>
-              <PageHeader
-                title="External agents"
-                description={externalAgentsDescription}
-                action={
-                  <Button asChild>
-                    <Link
-                      href={`/${tenantId}/projects/${projectId}/external-agents/new`}
-                      className="flex items-center gap-2"
-                    >
-                      <Plus className="size-4" />
-                      New external agent
-                    </Link>
-                  </Button>
-                }
-              />
-              <ExternalAgentsList externalAgents={externalAgents} />
-            </>
-          ) : (
-            <EmptyState
-              title="No external agents yet."
-              description={externalAgentsDescription}
-              link={`/${tenantId}/projects/${projectId}/external-agents/new`}
-              linkText="Create external agent"
-            />
-          )}
-        </MainContent>
-      </BodyTemplate>
+    return externalAgents.length > 0 ? (
+      <>
+        <PageHeader
+          title="External agents"
+          description={externalAgentsDescription}
+          action={
+            <Button asChild>
+              <Link
+                href={`/${tenantId}/projects/${projectId}/external-agents/new`}
+                className="flex items-center gap-2"
+              >
+                <Plus className="size-4" />
+                New external agent
+              </Link>
+            </Button>
+          }
+        />
+        <ExternalAgentsList externalAgents={externalAgents} />
+      </>
+    ) : (
+      <EmptyState
+        title="No external agents yet."
+        description={externalAgentsDescription}
+        link={`/${tenantId}/projects/${projectId}/external-agents/new`}
+        linkText="Create external agent"
+      />
     );
   } catch (error) {
     return <FullPageError errorCode={getErrorCode(error)} context="external agents" />;
