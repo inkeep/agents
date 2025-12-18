@@ -2752,18 +2752,61 @@ app.openapi(
         const workflowPromises: Promise<any>[] = [];
         for (const agentRelation of agentRelations) {
           for (const datasetItem of datasetItems) {
-            workflowPromises.push(
-              start(runDatasetItemWorkflow, [{
-                tenantId,
-                projectId,
-                agentId: agentRelation.agentId,
+            const workflowPayload = {
+              tenantId,
+              projectId,
+              agentId: agentRelation.agentId,
+              datasetItemId: datasetItem.id,
+              datasetItemInput: datasetItem.input,
+              datasetItemSimulationAgent: datasetItem.simulationAgent as any,
+              datasetRunId,
+              evaluatorIds: evaluatorIds && Array.isArray(evaluatorIds) ? evaluatorIds : undefined,
+              evaluationRunId,
+            };
+
+            // Calculate payload size to detect if it's too large for queue
+            const payloadJson = JSON.stringify(workflowPayload);
+            const payloadBytes = Buffer.byteLength(payloadJson, 'utf8');
+
+            logger.info(
+              {
                 datasetItemId: datasetItem.id,
-                datasetItemInput: datasetItem.input,
-                datasetItemSimulationAgent: datasetItem.simulationAgent as any,
-                datasetRunId,
-                evaluatorIds: evaluatorIds && Array.isArray(evaluatorIds) ? evaluatorIds : undefined,
-                evaluationRunId,
-              }])
+                agentId: agentRelation.agentId,
+                payloadKeys: Object.keys(workflowPayload),
+                payloadBytes,
+                payloadKB: (payloadBytes / 1024).toFixed(2),
+                hasInput: !!datasetItem.input,
+                inputType: typeof datasetItem.input,
+                inputLength: typeof datasetItem.input === 'string' ? datasetItem.input.length : JSON.stringify(datasetItem.input)?.length,
+                hasSimulationAgent: !!datasetItem.simulationAgent,
+              },
+              'Starting workflow for dataset item'
+            );
+
+            workflowPromises.push(
+              start(runDatasetItemWorkflow, [workflowPayload])
+                .then((result) => {
+                  logger.info(
+                    { datasetItemId: datasetItem.id, result },
+                    'Workflow started successfully'
+                  );
+                  return result;
+                })
+                .catch((err) => {
+                  logger.error(
+                    {
+                      datasetItemId: datasetItem.id,
+                      error: err,
+                      errorName: err?.name,
+                      errorMessage: err?.message,
+                      errorStack: err?.stack,
+                      errorStatus: err?.status,
+                      errorUrl: err?.url,
+                    },
+                    'Failed to start workflow for dataset item'
+                  );
+                  throw err;
+                })
             );
           }
         }
