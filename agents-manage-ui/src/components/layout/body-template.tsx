@@ -18,7 +18,14 @@ export function BodyTemplate({ children, breadcrumbs, className }: BodyTemplateP
           'scrollbar-thumb-muted-foreground/30 dark:scrollbar-thumb-muted-foreground/50 scrollbar-track-transparent h-full w-full min-h-0 bg-muted/20 dark:bg-background'
         )}
       >
-        <div id="main-content" className={cn('p-6 grow', className)}>
+        <div
+          id="main-content"
+          className={cn(
+            '@container', // do not overflow the container
+            'p-6 grow',
+            className
+          )}
+        >
           {children}
         </div>
       </div>
