@@ -1,5 +1,12 @@
 # @inkeep/agents-core
 
+## 0.39.4
+
+### Patch Changes
+
+- fcb3adc: added gemini 3 flash
+- 9403533: improve mcp connect for chat to edit
+
 ## 0.39.3
 
 ### Patch Changes
