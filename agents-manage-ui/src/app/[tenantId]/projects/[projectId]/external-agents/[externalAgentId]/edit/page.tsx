@@ -2,7 +2,6 @@ import FullPageError from '@/components/errors/full-page-error';
 import { ExternalAgentForm } from '@/components/external-agents/form/external-agent-form';
 import type { ExternalAgentFormData } from '@/components/external-agents/form/validation';
 import { BodyTemplate } from '@/components/layout/body-template';
-import { MainContent } from '@/components/layout/main-content';
 import { type Credential, fetchCredentials } from '@/lib/api/credentials';
 import { fetchExternalAgent } from '@/lib/api/external-agents';
 import type { ExternalAgent } from '@/lib/types/external-agents';
@@ -63,21 +62,18 @@ async function EditExternalAgentPage({
           label: externalAgent.name,
           href: `/${tenantId}/projects/${projectId}/external-agents/${externalAgentId}`,
         },
-        { label: 'Edit' },
+        'Edit',
       ]}
+      className="max-w-2xl mx-auto"
     >
-      <MainContent>
-        <div className="max-w-2xl mx-auto py-4">
-          <ExternalAgentForm
-            initialData={initialFormData}
-            mode="update"
-            externalAgent={externalAgent}
-            credentials={credentials}
-            tenantId={tenantId}
-            projectId={projectId}
-          />
-        </div>
-      </MainContent>
+      <ExternalAgentForm
+        initialData={initialFormData}
+        mode="update"
+        externalAgent={externalAgent}
+        credentials={credentials}
+        tenantId={tenantId}
+        projectId={projectId}
+      />
     </BodyTemplate>
   );
 }

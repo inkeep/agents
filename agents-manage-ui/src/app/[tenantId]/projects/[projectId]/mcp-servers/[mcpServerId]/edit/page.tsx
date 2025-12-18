@@ -1,7 +1,6 @@
 import { MCPTransportType } from '@inkeep/agents-core/client-exports';
 import FullPageError from '@/components/errors/full-page-error';
 import { BodyTemplate } from '@/components/layout/body-template';
-import { MainContent } from '@/components/layout/main-content';
 import { MCPServerForm } from '@/components/mcp-servers/form/mcp-server-form';
 import {
   type CredentialScope,
@@ -91,21 +90,18 @@ async function EditMCPPage({
           label: mcpTool.name,
           href: `/${tenantId}/projects/${projectId}/mcp-servers/${mcpServerId}`,
         },
-        { label: 'Edit' },
+        'Edit',
       ]}
+      className="max-w-2xl mx-auto"
     >
-      <MainContent>
-        <div className="max-w-2xl mx-auto py-4">
-          <MCPServerForm
-            initialData={initialFormData}
-            mode="update"
-            tool={mcpTool}
-            credentials={credentials}
-            tenantId={tenantId}
-            projectId={projectId}
-          />
-        </div>
-      </MainContent>
+      <MCPServerForm
+        initialData={initialFormData}
+        mode="update"
+        tool={mcpTool}
+        credentials={credentials}
+        tenantId={tenantId}
+        projectId={projectId}
+      />
     </BodyTemplate>
   );
 }

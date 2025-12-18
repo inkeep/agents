@@ -1,3 +1,4 @@
+import { BodyTemplate } from '@/components/layout/body-template';
 import { MCPServerSelection } from '@/components/mcp-servers/selection/mcp-server-selection';
 import { type Credential, fetchCredentials } from '@/lib/api/credentials';
 
@@ -12,7 +13,19 @@ async function NewMCPServerPage({
     console.error('Failed to load credentials:', error);
   }
 
-  return <MCPServerSelection credentials={credentials} tenantId={tenantId} projectId={projectId} />;
+  return (
+    <BodyTemplate
+      breadcrumbs={[
+        {
+          label: 'MCP servers',
+          href: `/${tenantId}/projects/${projectId}/mcp-servers`,
+        },
+        'New MCP server',
+      ]}
+    >
+      <MCPServerSelection credentials={credentials} tenantId={tenantId} projectId={projectId} />
+    </BodyTemplate>
+  );
 }
 
 export default NewMCPServerPage;

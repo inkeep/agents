@@ -109,6 +109,8 @@ interface AgentProps {
 
 type ReactFlowProps = Required<ComponentProps<typeof ReactFlow>>;
 
+const SHOW_CHAT_TO_CREATE = false;
+
 // Handle non-validation errors (permission, auth, not found, server errors)
 const nonValidationErrors = new Set([
   'forbidden',
@@ -117,6 +119,7 @@ const nonValidationErrors = new Set([
   'internal_server_error',
   'bad_request',
 ]);
+
 export const Agent: FC<AgentProps> = ({
   agent,
   dataComponentLookup = {},
@@ -371,7 +374,7 @@ export const Agent: FC<AgentProps> = ({
     );
 
     // After initialization, if there are no nodes and copilot is not configured, auto-add initial node
-    if (agentNodes.length === 0 && !isCopilotConfigured) {
+    if (agentNodes.length === 0 && (!isCopilotConfigured || !SHOW_CHAT_TO_CREATE)) {
       onAddInitialNode();
     }
 
@@ -1006,7 +1009,8 @@ export const Agent: FC<AgentProps> = ({
   const isMounted = useIsMounted();
 
   const showEmptyState = useMemo(
-    () => nodes.length === 0 && agentNodes.length === 0 && isCopilotConfigured,
+    () =>
+      nodes.length === 0 && agentNodes.length === 0 && isCopilotConfigured && SHOW_CHAT_TO_CREATE,
     [nodes, agentNodes, isCopilotConfigured]
   );
 
@@ -1016,7 +1020,7 @@ export const Agent: FC<AgentProps> = ({
       id="agent-panel-group"
       direction="horizontal"
       autoSaveId="agent-resizable-layout-state"
-      className="w-full h-full relative bg-muted/20 dark:bg-background flex rounded-b-[14px] overflow-hidden"
+      className="relative bg-muted/20 dark:bg-background flex rounded-b-[14px] overflow-hidden"
     >
       <CopilotChat
         agentId={agent.id}
