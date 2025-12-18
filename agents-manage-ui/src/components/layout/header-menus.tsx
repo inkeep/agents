@@ -1,14 +1,14 @@
 'use client';
 
+import { useIsMounted } from '@inkeep/agents-ui';
+import { useTheme } from 'next-themes';
 import { useEffect } from 'react';
+import { MONACO_THEME_NAME } from '@/constants/theme';
+import { useMonacoStore } from '@/features/agent/state/use-monaco-store';
 import { useAuthSession } from '@/hooks/use-auth';
 import { UserMenu } from '../auth/user-menu';
 import { ThemeToggle } from '../theme-toggle';
 import { Skeleton } from '../ui/skeleton';
-import { MONACO_THEME_NAME } from '@/constants/theme';
-import { useMonacoStore } from '@/features/agent/state/use-monaco-store';
-import { useTheme } from 'next-themes';
-import { useIsMounted } from '@inkeep/agents-ui';
 
 export function HeaderMenus() {
   const { user, isLoading } = useAuthSession();
