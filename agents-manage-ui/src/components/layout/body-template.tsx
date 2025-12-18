@@ -14,11 +14,11 @@ export function BodyTemplate({ children, breadcrumbs, className }: BodyTemplateP
       <SiteHeader breadcrumbs={breadcrumbs} />
       <div
         className={cn(
-          'flex-1 overflow-y-auto scrollbar-thin',
+          'flex flex-col flex-1 overflow-y-auto scrollbar-thin',
           'scrollbar-thumb-muted-foreground/30 dark:scrollbar-thumb-muted-foreground/50 scrollbar-track-transparent h-full w-full min-h-0 bg-muted/20 dark:bg-background'
         )}
       >
-        <div id="main-content" className={cn('p-6', className)}>
+        <div id="main-content" className={cn('p-6 grow', className)}>
           {children}
         </div>
       </div>
