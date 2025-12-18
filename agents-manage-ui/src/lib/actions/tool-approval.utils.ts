@@ -1,5 +1,5 @@
-import type { GetEntityParams, ToolMetadata } from './tool-approval';
 import { makeManagementApiRequest } from '@/lib/api/api-config';
+import type { GetEntityParams, ToolMetadata } from './tool-approval';
 
 function parseToolName(toolName: string): ToolMetadata {
   const parts = toolName.split('-');
@@ -66,17 +66,17 @@ function pluralizeResource(resource: string): string {
 }
 
 function buildApiPath(
-    metadata: ToolMetadata,
-    tenantId: string,
-    projectId: string,
-    entityId: string,
-    additionalParams?: { agentId?: string }
+  metadata: ToolMetadata,
+  tenantId: string,
+  projectId: string,
+  entityId: string,
+  additionalParams?: { agentId?: string }
 ): string {
   const { resource } = metadata;
 
   const pathMappings: Record<
-      string,
-      (tid: string, pid: string, eid: string, params?: any) => string
+    string,
+    (tid: string, pid: string, eid: string, params?: any) => string
   > = {
     projects: (tid, _pid, eid) => `tenants/${tid}/projects/${eid}`,
     project: (tid, _pid, eid) => `tenants/${tid}/projects/${eid}`,
@@ -104,14 +104,14 @@ function buildApiPath(
 }
 
 async function fetchCurrentEntityState(
-    params: GetEntityParams
+  params: GetEntityParams
 ): Promise<Record<string, any> | null> {
   const { toolName, input, tenantId, projectId } = params;
 
   if (
-      !toolName.includes('update') &&
-      !toolName.includes('create') &&
-      !toolName.includes('delete')
+    !toolName.includes('update') &&
+    !toolName.includes('create') &&
+    !toolName.includes('delete')
   ) {
     return null;
   }
@@ -153,8 +153,8 @@ function extractFieldsToUpdate(input: Record<string, any>): Record<string, any> 
 }
 
 function computeDiff(
-    currentState: Record<string, any> | null,
-    newValues: Record<string, any>
+  currentState: Record<string, any> | null,
+  newValues: Record<string, any>
 ): Array<{ field: string; oldValue: any; newValue: any }> {
   const diffs: Array<{ field: string; oldValue: any; newValue: any }> = [];
 
@@ -182,12 +182,4 @@ function computeDiff(
  *
  * Client components should only import: fetchToolApprovalDiff()
  */
-export {
-  fetchCurrentEntityState,
-  extractFieldsToUpdate,
-  computeDiff,
-  parseToolName,
-  extractEntityId,
-  buildApiPath,
-  pluralizeResource,
-};
+export { fetchCurrentEntityState, extractFieldsToUpdate, computeDiff, pluralizeResource };

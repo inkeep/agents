@@ -10,15 +10,8 @@
  */
 'use server';
 
-import { makeManagementApiRequest } from '../api/api-config';
+import { computeDiff, extractFieldsToUpdate, fetchCurrentEntityState } from './tool-approval.utils';
 import type { ActionResult } from './types';
-import {
-  buildApiPath,
-  computeDiff,
-  extractEntityId,
-  extractFieldsToUpdate,
-  parseToolName,
-} from './tool-approval.utils';
 
 interface ToolMetadata {
   resource: string;
