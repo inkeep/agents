@@ -5,12 +5,13 @@ import { createWorld as createPostgresWorld } from '@workflow/world-postgres';
 import { createVercelWorld } from '@workflow/world-vercel';
 
 // Manually select and initialize world based on env var
+// Accept both 'vercel' and '@workflow/world-vercel' for convenience
 const targetWorld = process.env.WORKFLOW_TARGET_WORLD || '@workflow/world-postgres';
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 let world: any;
 
-if (targetWorld === '@workflow/world-vercel') {
+if (targetWorld === '@workflow/world-vercel' || targetWorld === 'vercel') {
   // Vercel world configuration (for cloud deployments)
   world = createVercelWorld({
     token: process.env.WORKFLOW_VERCEL_AUTH_TOKEN,
