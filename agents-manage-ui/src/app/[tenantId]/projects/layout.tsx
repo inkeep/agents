@@ -20,9 +20,9 @@ const SEGMENT_LABELS: Record<string, string> = {
   // 'ai-calls': 'AI calls',
   // 'tool-calls': 'Tool calls',
   // new: 'New',
-  // edit: 'Edit',
-  // providers: 'Providers',
-  // bearer: 'Bearer',
+  edit: 'Edit',
+  providers: 'Providers',
+  bearer: 'Bearer',
 };
 
 export default function ProjectsLayout(props: LayoutProps<'/[tenantId]/projects'>) {
@@ -42,7 +42,7 @@ export default function ProjectsLayout(props: LayoutProps<'/[tenantId]/projects'
       const isLast = index === array.length - 1;
       url += `/${name}`;
 
-      const label = [0, 2].includes(index) ? SEGMENT_LABELS[name] : name;
+      const label = [0, 2, 4].includes(index) ? SEGMENT_LABELS[name] : name;
 
       if (!label) {
         throw new Error(`Label "${name}" is not defined`);
