@@ -2,7 +2,7 @@
 
 import { useParams, useRouter } from 'next/navigation';
 import { useEffect } from 'react';
-import AgentLoading from './agents/loading';
+import AgentLoading from '../loading';
 
 export default function ProjectPage() {
   const { tenantId, projectId } = useParams<{ tenantId: string; projectId: string }>();
