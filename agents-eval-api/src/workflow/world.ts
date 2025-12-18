@@ -12,10 +12,24 @@ const targetWorld = process.env.WORKFLOW_TARGET_WORLD || '@workflow/world-postgr
 let world: any;
 
 if (targetWorld === '@workflow/world-vercel' || targetWorld === 'vercel') {
+  // Debug logging for vercel world config
+  const token = process.env.WORKFLOW_VERCEL_AUTH_TOKEN;
+  console.log('[vercel-world-config]', {
+    projectId: process.env.VERCEL_PROJECT_ID,
+    teamIdPresent: Boolean(process.env.VERCEL_TEAM_ID),
+    teamIdLen: process.env.VERCEL_TEAM_ID?.length ?? 0,
+    env: process.env.VERCEL_ENV,
+    tokenPresent: Boolean(token),
+    tokenLen: token?.length ?? 0,
+    // If token is empty string, OIDC should be used instead
+    willUseOidc: !token || token.trim() === '',
+  });
+
   // Vercel world configuration (for cloud deployments)
+  // Use || instead of ?? to treat empty string as "not provided" and fall back to OIDC
   world = createVercelWorld({
-    token: process.env.WORKFLOW_VERCEL_AUTH_TOKEN,
-    baseUrl: process.env.WORKFLOW_VERCEL_BASE_URL,
+    token: token && token.trim() ? token : undefined, // Let OIDC handle auth if token is empty
+    baseUrl: process.env.WORKFLOW_VERCEL_BASE_URL || undefined,
     projectConfig: {
       projectId: process.env.VERCEL_PROJECT_ID,
       teamId: process.env.VERCEL_TEAM_ID,
