@@ -22,14 +22,14 @@ function extractModelIdForLlmInfo(modelSettings?: ModelSettings): string | null 
 
   const modelString = modelSettings.model.trim();
 
-  // Remove provider prefix for llm-info lookup
+  // Get the last part after the final slash
   // Examples: "google/gemini-3-flash-preview" -> "gemini-3-flash-preview"
-  //           "anthropic/claude-sonnet-4" -> "claude-sonnet-4"
+  //           "provider/sub/model-name" -> "model-name"
   //           "openai/gpt-4.1" -> "gpt-4.1"
 
   if (modelString.includes('/')) {
     const parts = modelString.split('/');
-    return parts.slice(1).join('/'); // Everything after the first slash
+    return parts[parts.length - 1];
   }
 
   return modelString;
