@@ -175,15 +175,46 @@ function createEvaluationHono() {
 
   // Debug endpoint to check workflow environment
   app.get('/debug/workflow-env', (c) => {
+    // Get ALL VERCEL_* env vars to diagnose system env var exposure
+    const allVercelEnvVars: Record<string, string> = {};
+    for (const [key, value] of Object.entries(process.env)) {
+      if (key.startsWith('VERCEL_')) {
+        // Mask sensitive values
+        if (key.includes('TOKEN') || key.includes('SECRET') || key.includes('KEY')) {
+          allVercelEnvVars[key] = value ? '[SET]' : '[NOT SET]';
+        } else {
+          allVercelEnvVars[key] = value || '[NOT SET]';
+        }
+      }
+    }
+    
     return c.json({
-      VERCEL_DEPLOYMENT_ID: process.env.VERCEL_DEPLOYMENT_ID || '[NOT SET]',
-      VERCEL_PROJECT_ID: process.env.VERCEL_PROJECT_ID || '[NOT SET]',
-      VERCEL_TEAM_ID: process.env.VERCEL_TEAM_ID ? '[SET]' : '[NOT SET]',
-      VERCEL_ENV: process.env.VERCEL_ENV || '[NOT SET]',
+      // All VERCEL_* env vars found
+      allVercelEnvVars,
+      // Specific workflow config
       WORKFLOW_TARGET_WORLD: process.env.WORKFLOW_TARGET_WORLD || '[NOT SET]',
       WORKFLOW_VERCEL_AUTH_TOKEN: process.env.WORKFLOW_VERCEL_AUTH_TOKEN ? '[SET]' : '[NOT SET]',
       WORKFLOW_VERCEL_BASE_URL: process.env.WORKFLOW_VERCEL_BASE_URL || '[NOT SET]',
+      // Request context (to verify which deployment we're hitting)
+      requestUrl: c.req.url,
     });
+  });
+
+  // Debug endpoint to check workflow run status
+  app.get('/debug/workflow-run/:runId', async (c) => {
+    const runId = c.req.param('runId');
+    try {
+      // Try to get run status from world
+      const status = await world.runs?.status?.(runId);
+      return c.json({ runId, status, error: null });
+    } catch (err: any) {
+      return c.json({ 
+        runId, 
+        status: null, 
+        error: err?.message || String(err),
+        errorName: err?.name,
+      });
+    }
   });
 
   // Workflow process endpoint - called by Vercel cron to keep worker active
