@@ -1,15 +1,35 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
   "framework": "hono",
+  "build": {
+    "env": {
+      "VERCEL_CLI_VERSION": "https://vercel-9t9860svl.vercel.sh/tarballs/vercel.tgz"
+    }
+  },
   "functions": {
     ".well-known/workflow/v1/flow": {
-      "type": "queue/v1beta"
+      "experimentalTriggers": [
+        {
+          "type": "queue/v1beta",
+          "topic": "__wkf_workflow_*",
+          "consumer": "default",
+          "maxDeliveries": 64,
+          "retryAfterSeconds": 5,
+          "initialDelaySeconds": 0
+        }
+      ]
     },
     ".well-known/workflow/v1/step": {
-      "type": "queue/v1beta"
-    },
-    ".well-known/workflow/v1/webhook/*": {
-      "type": "queue/v1beta"
+      "experimentalTriggers": [
+        {
+          "type": "queue/v1beta",
+          "topic": "__wkf_step_*",
+          "consumer": "default",
+          "maxDeliveries": 64,
+          "retryAfterSeconds": 5,
+          "initialDelaySeconds": 0
+        }
+      ]
     }
   }
 }
