@@ -11,11 +11,23 @@ globalThis.fetch = async function debugFetch(input: RequestInfo | URL, init?: Re
   
   // Only log workflow-related requests
   if (url.includes('vercel-workflow') || url.includes('vercel-queue') || url.includes('workflow')) {
-    console.log('[workflow-fetch] Outgoing request', {
+    // Convert headers to a readable format
+  let headersObj: Record<string, string> = {};
+  if (init?.headers) {
+    if (init.headers instanceof Headers) {
+      headersObj = Object.fromEntries(init.headers.entries());
+    } else if (Array.isArray(init.headers)) {
+      headersObj = Object.fromEntries(init.headers);
+    } else {
+      headersObj = init.headers as Record<string, string>;
+    }
+  }
+  
+  console.log('[workflow-fetch] Outgoing request', {
       url,
       method: init?.method || 'GET',
       hasBody: Boolean(init?.body),
-      headers: init?.headers ? Object.keys(init.headers as Record<string, string>) : [],
+      headers: headersObj,
     });
     
     try {
@@ -68,11 +80,17 @@ if (targetWorld === '@workflow/world-vercel' || targetWorld === 'vercel') {
   const deploymentId = process.env.VERCEL_DEPLOYMENT_ID;
   const vercelUrl = process.env.VERCEL_URL;
   
+  // Explicit environment value for debugging - this is what gets passed to workflow
+  const environment = process.env.VERCEL_ENV;
+  
   console.log('[vercel-world-config]', {
     projectId: process.env.VERCEL_PROJECT_ID,
     teamIdPresent: Boolean(process.env.VERCEL_TEAM_ID),
     teamIdLen: process.env.VERCEL_TEAM_ID?.length ?? 0,
-    env: process.env.VERCEL_ENV,
+    env: environment,
+    envIsUndefined: environment === undefined,
+    envIsEmptyString: environment === '',
+    envType: typeof environment,
     tokenPresent: Boolean(token),
     tokenLen: token?.length ?? 0,
     // If token is empty string, OIDC should be used instead
@@ -81,6 +99,8 @@ if (targetWorld === '@workflow/world-vercel' || targetWorld === 'vercel') {
     deploymentId: deploymentId || '[NOT SET]',
     vercelUrl: vercelUrl || '[NOT SET]',
     vercelRegion: process.env.VERCEL_REGION || '[NOT SET]',
+    // WARNING: If env is undefined, @workflow/world-vercel may default to 'production'
+    warningCallbackRouting: !environment ? '⚠️ VERCEL_ENV not set - callbacks may route to production!' : 'OK',
   });
 
   // Vercel world configuration (for cloud deployments)

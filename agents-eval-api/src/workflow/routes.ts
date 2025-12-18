@@ -101,6 +101,29 @@ async function loadWebhookHandler() {
 
 export const workflowRoutes = new Hono();
 
+// CRITICAL: Catch-all logger for ANY request to workflow routes
+// This will log even if method is wrong, path doesn't match exactly, etc.
+workflowRoutes.use('*', async (c, next) => {
+  const timestamp = new Date().toISOString();
+  console.log(`[WORKFLOW-CALLBACK] ${timestamp} INCOMING REQUEST`, {
+    method: c.req.method,
+    path: c.req.path,
+    url: c.req.url,
+    contentType: c.req.header('content-type'),
+    userAgent: c.req.header('user-agent'),
+    vercelId: c.req.header('x-vercel-id'),
+    // Check for Vercel internal headers
+    vercelDeploymentUrl: c.req.header('x-vercel-deployment-url'),
+    forwardedFor: c.req.header('x-forwarded-for'),
+  });
+  await next();
+  console.log(`[WORKFLOW-CALLBACK] ${timestamp} RESPONSE`, {
+    method: c.req.method,
+    path: c.req.path,
+    status: c.res.status,
+  });
+});
+
 // Workflow orchestration endpoint
 workflowRoutes.post('/v1/flow', async (c) => {
   console.log('[workflow-routes] POST /v1/flow received');
