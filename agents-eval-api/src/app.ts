@@ -251,19 +251,23 @@ function createEvaluationHono() {
   app.route('/.well-known/workflow', workflowRoutes);
 
   // Handle /index POST - Vercel Queue delivers CloudEvents here
-  // Forward to the workflow flow handler
+  // Forward to the workflow flow handler using real HTTP fetch (not app.fetch)
+  // to preserve the full path for workflow handler resolution
   app.post('/index', async (c) => {
-    console.log('[QUEUE-CALLBACK] /index hit, forwarding to workflow handler');
-    const url = new URL(c.req.url);
-    url.pathname = '/.well-known/workflow/v1/flow';
-    const forwardedRequest = new Request(url.toString(), {
+    const originalUrl = new URL(c.req.url);
+    const forwardUrl = new URL('/.well-known/workflow/v1/flow', originalUrl.origin);
+
+    console.log('[QUEUE-CALLBACK] forwarding CloudEvent to', forwardUrl.pathname);
+
+    // Create a new Request object with the original body
+    const forwardedRequest = new Request(forwardUrl.toString(), {
       method: c.req.method,
       headers: c.req.raw.headers,
-      body: c.req.raw.body,
-      // @ts-expect-error duplex is required for streams
-      duplex: 'half',
+      body: await c.req.arrayBuffer(),
     });
-    return app.fetch(forwardedRequest);
+
+    // Use global fetch to bypass Hono's internal path normalization
+    return fetch(forwardedRequest);
   });
 
   // Setup OpenAPI documentation endpoints (/openapi.json and /docs)
