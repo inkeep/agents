@@ -7,31 +7,23 @@
     }
   },
   "functions": {
-    ".well-known/workflow/v1/flow": {
+    "api/.well-known/workflow/v1/flow": {
       "experimentalTriggers": [
         {
           "type": "queue/v1beta",
           "topic": "__wkf_workflow_*",
-          "consumer": "default",
-          "maxDeliveries": 64,
-          "retryAfterSeconds": 5,
-          "initialDelaySeconds": 0
+          "consumer": "default"
         }
       ]
     },
-    ".well-known/workflow/v1/step": {
+    "api/.well-known/workflow/v1/step": {
       "experimentalTriggers": [
         {
           "type": "queue/v1beta",
           "topic": "__wkf_step_*",
-          "consumer": "default",
-          "maxDeliveries": 64,
-          "retryAfterSeconds": 5,
-          "initialDelaySeconds": 0
+          "consumer": "default"
         }
       ]
     }
   }
 }
-
-
