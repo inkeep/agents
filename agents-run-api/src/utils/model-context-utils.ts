@@ -121,6 +121,23 @@ export function getModelContextWindow(modelSettings?: ModelSettings): ModelConte
 }
 
 /**
+ * Get model-size aware compression parameters
+ * Uses aggressive thresholds for better utilization, especially on large models
+ */
+function getCompressionParams(contextWindow: number): { threshold: number; bufferPct: number } {
+  if (contextWindow < 100000) {
+    // Small models (< 100K): Aggressive but safe
+    return { threshold: 0.85, bufferPct: 0.1 }; // 75% trigger point
+  } else if (contextWindow < 500000) {
+    // Medium models (100K - 500K): Very aggressive  
+    return { threshold: 0.9, bufferPct: 0.07 }; // 83% trigger point
+  } else {
+    // Large models (> 500K): Extremely aggressive utilization
+    return { threshold: 0.95, bufferPct: 0.04 }; // 91% trigger point
+  }
+}
+
+/**
  * Get compression configuration based on model context window
  * Uses actual model context window when available, otherwise falls back to environment variables
  */
@@ -139,11 +156,12 @@ export function getCompressionConfigForModel(modelSettings?: ModelSettings): {
   const enabled = process.env.AGENTS_COMPRESSION_ENABLED !== 'false';
 
   if (modelContextInfo.hasValidContextWindow && modelContextInfo.contextWindow) {
-    // Calculate compression thresholds based on actual context window
-    // Use a percentage-based approach: start compressing at 80% of context window
-    const compressionThreshold = 0.8;
-    const hardLimit = Math.floor(modelContextInfo.contextWindow * compressionThreshold);
-    const safetyBuffer = Math.floor(modelContextInfo.contextWindow * 0.15); // 15% safety buffer
+    // Use model-size aware compression parameters
+    const params = getCompressionParams(modelContextInfo.contextWindow);
+    const hardLimit = Math.floor(modelContextInfo.contextWindow * params.threshold);
+    const safetyBuffer = Math.floor(modelContextInfo.contextWindow * params.bufferPct);
+    const triggerPoint = hardLimit - safetyBuffer;
+    const triggerPercentage = (triggerPoint / modelContextInfo.contextWindow * 100).toFixed(1);
 
     logger.info(
       {
@@ -151,9 +169,12 @@ export function getCompressionConfigForModel(modelSettings?: ModelSettings): {
         contextWindow: modelContextInfo.contextWindow,
         hardLimit,
         safetyBuffer,
-        threshold: compressionThreshold,
+        triggerPoint,
+        triggerPercentage: `${triggerPercentage}%`,
+        threshold: params.threshold,
+        bufferPct: params.bufferPct,
       },
-      'Using model-specific compression configuration'
+      'Using model-size aware compression configuration'
     );
 
     return {
