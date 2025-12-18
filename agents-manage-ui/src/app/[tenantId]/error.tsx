@@ -2,7 +2,7 @@
 
 import FullPageError from '@/components/errors/full-page-error';
 
-export default function SettingsErrorBoundary({
+export default function TenantErrorBoundary({
   error,
   reset,
 }: {
