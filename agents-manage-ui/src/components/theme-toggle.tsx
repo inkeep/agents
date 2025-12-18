@@ -2,7 +2,9 @@
 
 import { Monitor, Moon, Sun } from 'lucide-react';
 import { useTheme } from 'next-themes';
-import { type ComponentProps, type FC, type MouseEventHandler, useCallback } from 'react';
+import type { ComponentProps, FC, MouseEventHandler } from 'react';
+import { useCallback, useEffect } from 'react';
+import type { ToasterProps } from 'sonner';
 import { Button } from '@/components/ui/button';
 import {
   DropdownMenu,
@@ -10,8 +12,10 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
+import { MONACO_THEME_NAME } from '@/constants/theme';
+import { useMonacoStore } from '@/features/agent/state/use-monaco-store';
 
-export type ThemeValue = 'dark' | 'light' | 'system';
+export type ThemeValue = NonNullable<ToasterProps['theme']>;
 
 export const ThemeMap: Record<ThemeValue, FC<ComponentProps<'svg'>>> = {
   light: Sun,
@@ -20,7 +24,8 @@ export const ThemeMap: Record<ThemeValue, FC<ComponentProps<'svg'>>> = {
 };
 
 export const ThemeToggle: FC = () => {
-  const { setTheme } = useTheme();
+  const { setTheme, resolvedTheme } = useTheme();
+  const monaco = useMonacoStore((state) => state.monaco);
 
   const handleTheme = useCallback<MouseEventHandler<HTMLDivElement>>(
     (event) => {
@@ -29,6 +34,13 @@ export const ThemeToggle: FC = () => {
     },
     [setTheme]
   );
+
+  useEffect(() => {
+    const isDark = resolvedTheme === 'dark';
+    const monacoTheme = isDark ? MONACO_THEME_NAME.dark : MONACO_THEME_NAME.light;
+    monaco?.editor.setTheme(monacoTheme);
+  }, [resolvedTheme, monaco]);
+
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
