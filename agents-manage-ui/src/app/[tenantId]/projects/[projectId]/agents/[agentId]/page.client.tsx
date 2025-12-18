@@ -1068,7 +1068,7 @@ export const Agent: FC<AgentProps> = ({
           isValidConnection={isValidConnection}
           onNodeClick={onNodeClick}
         >
-          <Background color="#a8a29e" gap={20} />
+          <Background color="#a8a29e" gap={20} className="animated-dots" />
           <Controls className="text-foreground" showInteractive={false} />
           {!showEmptyState && (
             <Panel position="top-left">
