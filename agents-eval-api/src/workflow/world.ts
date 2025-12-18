@@ -14,6 +14,9 @@ let world: any;
 if (targetWorld === '@workflow/world-vercel' || targetWorld === 'vercel') {
   // Debug logging for vercel world config
   const token = process.env.WORKFLOW_VERCEL_AUTH_TOKEN;
+  const deploymentId = process.env.VERCEL_DEPLOYMENT_ID;
+  const vercelUrl = process.env.VERCEL_URL;
+  
   console.log('[vercel-world-config]', {
     projectId: process.env.VERCEL_PROJECT_ID,
     teamIdPresent: Boolean(process.env.VERCEL_TEAM_ID),
@@ -23,6 +26,10 @@ if (targetWorld === '@workflow/world-vercel' || targetWorld === 'vercel') {
     tokenLen: token?.length ?? 0,
     // If token is empty string, OIDC should be used instead
     willUseOidc: !token || token.trim() === '',
+    // Additional debug info for callback routing
+    deploymentId: deploymentId || '[NOT SET]',
+    vercelUrl: vercelUrl || '[NOT SET]',
+    vercelRegion: process.env.VERCEL_REGION || '[NOT SET]',
   });
 
   // Vercel world configuration (for cloud deployments)
@@ -35,6 +42,15 @@ if (targetWorld === '@workflow/world-vercel' || targetWorld === 'vercel') {
       teamId: process.env.VERCEL_TEAM_ID,
       environment: process.env.VERCEL_ENV,
     },
+  });
+
+  // Log world capabilities for debugging
+  console.log('[vercel-world-created]', {
+    hasRuns: Boolean(world.runs),
+    hasQueue: Boolean(world.queue),
+    hasStart: Boolean(world.start),
+    runsKeys: world.runs ? Object.keys(world.runs) : [],
+    queueKeys: world.queue ? Object.keys(world.queue) : [],
   });
 } else {
   // Postgres world configuration (for local dev and self-hosted)
