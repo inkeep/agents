@@ -28,7 +28,7 @@ export async function fetchAgents(
   validateProjectId(projectId);
 
   return makeManagementApiRequest<ListResponse<Agent>>(
-    `tenants/${tenantId}/projects/${projectId}/agents`
+    `tenants/${tenantId}/projects/${projectId}/agents?limit=100`
   );
 }
 

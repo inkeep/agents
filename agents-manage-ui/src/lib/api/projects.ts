@@ -10,7 +10,7 @@ export async function fetchProjects(tenantId: string): Promise<ListResponse<Proj
   validateTenantId(tenantId);
 
   const response = await makeManagementApiRequest<ListResponse<any>>(
-    `tenants/${tenantId}/projects`
+    `tenants/${tenantId}/projects?limit=100`
   );
 
   if (response.data) {

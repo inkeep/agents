@@ -157,14 +157,14 @@ describe('Agent CRUD Routes - Integration Tests', () => {
       await createTestProject(dbClient, tenantId, projectId);
       await createMultipleAgents({ tenantId, count: 5 });
 
+      // Test first page
       const page1Res = await makeRequest(
         `/tenants/${tenantId}/projects/${projectId}/agents?page=1&limit=2`
       );
       expect(page1Res.status).toBe(200);
 
       const page1Body = await page1Res.json();
-      // Note: The current implementation doesn't actually paginate, it returns all items
-      expect(page1Body.data).toHaveLength(5);
+      expect(page1Body.data).toHaveLength(2);
       expect(page1Body.pagination).toEqual({
         page: 1,
         limit: 2,
@@ -172,8 +172,29 @@ describe('Agent CRUD Routes - Integration Tests', () => {
         pages: 3,
       });
 
-      // Verify all agents are present
+      // Verify all returned agents belong to the tenant
       expect(page1Body.data.every((g: any) => g.tenantId === tenantId)).toBe(true);
+
+      // Test second page
+      const page2Res = await makeRequest(
+        `/tenants/${tenantId}/projects/${projectId}/agents?page=2&limit=2`
+      );
+      expect(page2Res.status).toBe(200);
+
+      const page2Body = await page2Res.json();
+      expect(page2Body.data).toHaveLength(2);
+      expect(page2Body.pagination).toEqual({
+        page: 2,
+        limit: 2,
+        total: 5,
+        pages: 3,
+      });
+
+      // Ensure no overlap between pages
+      const page1Ids = page1Body.data.map((g: any) => g.id);
+      const page2Ids = page2Body.data.map((g: any) => g.id);
+      const intersection = page1Ids.filter((id: string) => page2Ids.includes(id));
+      expect(intersection).toHaveLength(0);
     });
   });
 

@@ -26,7 +26,7 @@ export async function fetchMCPTools(
   tenantId: string,
   projectId: string,
   page = 1,
-  pageSize = 50,
+  pageSize = 100,
   status?: McpTool['status']
 ): Promise<McpTool[]> {
   validateTenantId(tenantId);
