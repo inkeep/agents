@@ -9,7 +9,11 @@ import {
   getConversationHistory,
 } from '@inkeep/agents-core';
 import { CONVERSATION_HISTORY_DEFAULT_LIMIT } from '../constants/execution-limits';
+import { ConversationCompressor } from '../services/ConversationCompressor';
+import { getLogger } from '../logger';
 import dbClient from './db/dbClient';
+
+const logger = getLogger('conversations');
 
 /**
  * Creates default conversation history configuration
@@ -249,6 +253,8 @@ export async function getFormattedConversationHistory({
   currentMessage,
   options,
   filters,
+  sessionId,
+  summarizerModel,
 }: {
   tenantId: string;
   projectId: string;
@@ -256,6 +262,8 @@ export async function getFormattedConversationHistory({
   currentMessage?: string;
   options?: ConversationHistoryConfig;
   filters?: ConversationScopeOptions;
+  sessionId?: string;
+  summarizerModel?: any;
 }): Promise<string> {
   const historyOptions = options ?? createDefaultConversationHistoryConfig();
 
@@ -279,7 +287,22 @@ export async function getFormattedConversationHistory({
     return '';
   }
 
-  const formattedHistory = messagesToFormat
+  // Apply conversation compression if needed and enabled
+  let finalMessagesToFormat = messagesToFormat;
+  if (sessionId && summarizerModel) {
+    finalMessagesToFormat = await applyConversationCompressionIfNeeded(
+      messagesToFormat,
+      {
+        sessionId,
+        conversationId,
+        tenantId,
+        projectId,
+        summarizerModel,
+      }
+    );
+  }
+
+  const formattedHistory = finalMessagesToFormat
     .map((msg: any) => {
       let roleLabel: string;
 
@@ -305,6 +328,235 @@ export async function getFormattedConversationHistory({
       }
 
       return `${roleLabel}: """${msg.content.text}"""`; // TODO: add timestamp?
+    })
+    .join('\n');
+
+  return `<conversation_history>\n${formattedHistory}\n</conversation_history>\n`;
+}
+
+/**
+ * Modern conversation history retrieval with compression support
+ * Replaces getFormattedConversationHistory with built-in compression when needed
+ */
+export async function getConversationHistoryWithCompression({
+  tenantId,
+  projectId,
+  conversationId,
+  currentMessage,
+  options,
+  filters,
+  summarizerModel,
+}: {
+  tenantId: string;
+  projectId: string;
+  conversationId: string;
+  currentMessage?: string;
+  options?: ConversationHistoryConfig;
+  filters?: ConversationScopeOptions;
+  summarizerModel?: any;
+}): Promise<string> {
+  const historyOptions = options ?? createDefaultConversationHistoryConfig();
+
+  // Get scoped history (same as legacy method)
+  const conversationHistory = await getScopedHistory({
+    tenantId,
+    projectId,
+    conversationId,
+    filters,
+    options: historyOptions,
+  });
+
+  // Remove current message if it matches the last message (same as legacy)
+  let messagesToFormat = conversationHistory;
+  if (currentMessage && conversationHistory.length > 0) {
+    const lastMessage = conversationHistory[conversationHistory.length - 1];
+    if (lastMessage.content.text === currentMessage) {
+      messagesToFormat = conversationHistory.slice(0, -1);
+    }
+  }
+
+  if (!messagesToFormat.length) {
+    return '';
+  }
+
+  // Apply conversation compression if needed and summarizerModel is provided
+  if (summarizerModel) {
+    messagesToFormat = await compressConversationIfNeeded(
+      messagesToFormat,
+      {
+        conversationId,
+        tenantId,
+        projectId,
+        summarizerModel,
+      }
+    );
+  }
+
+  // Format messages into conversation history string
+  return formatMessagesAsConversationHistory(messagesToFormat);
+}
+
+/**
+ * Apply conversation compression using the BaseCompressor infrastructure
+ */
+async function compressConversationIfNeeded(
+  messages: any[],
+  params: {
+    conversationId: string;
+    tenantId: string;
+    projectId: string;
+    summarizerModel: any;
+  }
+): Promise<any[]> {
+  const { conversationId, tenantId, projectId, summarizerModel } = params;
+  
+  // Use conversationId as sessionId since this is conversation-level compression
+  const compressor = new ConversationCompressor(
+    conversationId, // Use conversationId as sessionId for conversation-level ops
+    conversationId,
+    tenantId,
+    projectId,
+    undefined, // Use default conversation compression config
+    summarizerModel
+  );
+
+  // Check if compression is needed
+  if (!compressor.isCompressionNeeded(messages)) {
+    return messages;
+  }
+
+  logger.info(
+    {
+      conversationId,
+      messageCount: messages.length,
+    },
+    'Applying conversation-level compression'
+  );
+
+  try {
+    const compressionResult = await compressor.compress(messages);
+
+    // Build compressed message array
+    const compressedMessages: any[] = [];
+
+    // Add compression summary as a system message
+    if (compressionResult.summary) {
+      compressedMessages.push({
+        role: 'system',
+        messageType: 'system',
+        content: {
+          text: buildCompressionSummaryMessage(compressionResult.summary, compressionResult.artifactIds),
+        },
+        createdAt: new Date().toISOString(),
+        metadata: {
+          compressionType: 'conversation_history',
+          artifactIds: compressionResult.artifactIds,
+          originalMessageCount: messages.length,
+        },
+      });
+    }
+
+    // Compression replaces everything - no original messages retained
+
+    logger.info(
+      {
+        conversationId,
+        originalMessageCount: messages.length,
+        compressedMessageCount: compressedMessages.length,
+        artifactCount: compressionResult.artifactIds?.length || 0,
+      },
+      'Conversation compression completed'
+    );
+
+    return compressedMessages;
+  } catch (error) {
+    logger.error(
+      {
+        conversationId,
+        error: error instanceof Error ? error.message : String(error),
+      },
+      'Conversation compression failed, using original messages'
+    );
+    return messages;
+  }
+}
+
+/**
+ * Build a summary message for compressed conversation content
+ */
+function buildCompressionSummaryMessage(summary: any, artifactIds: string[]): string {
+  const parts: string[] = [];
+
+  parts.push('=== CONVERSATION SUMMARY ===');
+  parts.push('Previous conversation has been compressed to save context space.');
+  parts.push('');
+
+  if (summary.high_level) {
+    parts.push(`📋 Overview: ${summary.high_level}`);
+  }
+
+  if (summary.user_intent) {
+    parts.push(`🎯 User Goal: ${summary.user_intent}`);
+  }
+
+  if (summary.decisions && summary.decisions.length > 0) {
+    parts.push(`✅ Key Decisions Made:`);
+    summary.decisions.forEach((decision: string) => parts.push(`  • ${decision}`));
+  }
+
+  if (summary.next_steps && summary.next_steps.length > 0) {
+    parts.push(`📝 Planned Next Steps:`);
+    summary.next_steps.forEach((step: string) => parts.push(`  • ${step}`));
+  }
+
+  if (summary.open_questions && summary.open_questions.length > 0) {
+    parts.push(`❓ Outstanding Questions:`);
+    summary.open_questions.forEach((question: string) => parts.push(`  • ${question}`));
+  }
+
+  if (artifactIds && artifactIds.length > 0) {
+    parts.push(`💾 Related Data: ${artifactIds.length} artifacts saved from previous work`);
+    parts.push('   (Reference using artifact IDs if needed)');
+  }
+
+  parts.push('');
+  parts.push('=== END SUMMARY ===');
+  parts.push('Recent conversation continues below...');
+
+  return parts.join('\n');
+}
+
+/**
+ * Format messages into conversation history string (extracted from legacy method)
+ */
+function formatMessagesAsConversationHistory(messages: any[]): string {
+  const formattedHistory = messages
+    .map((msg: any) => {
+      let roleLabel: string;
+
+      if (msg.role === 'user') {
+        roleLabel = 'user';
+      } else if (
+        msg.role === 'agent' &&
+        (msg.messageType === 'a2a-request' || msg.messageType === 'a2a-response')
+      ) {
+        const fromSubAgent = msg.fromSubAgentId || msg.fromExternalAgentId || 'unknown';
+        const toSubAgent = msg.toSubAgentId || msg.toExternalAgentId || 'unknown';
+        roleLabel = `${fromSubAgent} to ${toSubAgent}`;
+      } else if (msg.role === 'agent' && msg.messageType === 'chat') {
+        const fromSubAgent = msg.fromSubAgentId || 'unknown';
+        roleLabel = `${fromSubAgent} to User`;
+      } else if (msg.role === 'assistant' && msg.messageType === 'tool-result') {
+        const fromSubAgent = msg.fromSubAgentId || 'unknown';
+        const toolName = msg.metadata?.a2a_metadata?.toolName || 'unknown';
+        roleLabel = `${fromSubAgent} tool: ${toolName}`;
+      } else if (msg.role === 'system') {
+        roleLabel = 'system';
+      } else {
+        roleLabel = msg.role || 'system';
+      }
+
+      return `${roleLabel}: """${msg.content.text}"""`; 
     })
     .join('\n');
 
