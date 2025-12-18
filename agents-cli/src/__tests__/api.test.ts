@@ -75,7 +75,7 @@ describe('ApiClient', () => {
       const result = await apiClient.listAgents();
 
       expect(mockFetch).toHaveBeenCalledWith(
-        'http://localhost:3002/tenants/test-tenant-id/projects/test-project-id/agents',
+        'http://localhost:3002/tenants/test-tenant-id/projects/test-project-id/agents?limit=100',
         {
           method: 'GET',
           headers: {
@@ -160,7 +160,7 @@ describe('ApiClient', () => {
       await clientWithApiKey.listAgents();
 
       expect(mockFetch).toHaveBeenCalledWith(
-        'http://localhost:3002/tenants/test-tenant-id/projects/test-project-id/agents',
+        'http://localhost:3002/tenants/test-tenant-id/projects/test-project-id/agents?limit=100',
         {
           method: 'GET',
           headers: {
