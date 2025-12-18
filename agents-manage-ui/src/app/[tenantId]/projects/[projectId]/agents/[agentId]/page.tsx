@@ -1,5 +1,4 @@
 import FullPageError from '@/components/errors/full-page-error';
-import { BodyTemplate } from '@/components/layout/body-template';
 import { getFullAgentAction } from '@/lib/actions/agent-full';
 import { fetchArtifactComponentsAction } from '@/lib/actions/artifact-components';
 import { fetchCredentialsAction } from '@/lib/actions/credentials';
@@ -65,20 +64,13 @@ async function AgentPage({
   const credentialLookup = createLookup(credentials.success ? credentials.data : undefined);
 
   return (
-    <BodyTemplate
-      breadcrumbs={[
-        { label: 'Agents', href: `/${tenantId}/projects/${projectId}/agents` },
-        { label: agent.data.name },
-      ]}
-    >
-      <Agent
-        agent={agent.data}
-        dataComponentLookup={dataComponentLookup}
-        artifactComponentLookup={artifactComponentLookup}
-        toolLookup={toolLookup}
-        credentialLookup={credentialLookup}
-      />
-    </BodyTemplate>
+    <Agent
+      agent={agent.data}
+      dataComponentLookup={dataComponentLookup}
+      artifactComponentLookup={artifactComponentLookup}
+      toolLookup={toolLookup}
+      credentialLookup={credentialLookup}
+    />
   );
 }
 
