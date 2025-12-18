@@ -1,5 +1,5 @@
 import { BodyTemplate } from '@/components/layout/body-template';
-import BaseSkeleton from '../(index)/loading'
+import BaseSkeleton from '../(index)/loading';
 
 /**
  * Base loading skeleton for this route segment.
