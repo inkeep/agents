@@ -73,28 +73,28 @@ const AgentPage: FC<PageProps<'/[tenantId]/projects/[projectId]/agents/[agentId]
   const { agentId, tenantId, projectId } = await params;
   const agent = await getFullAgentAction(tenantId, projectId, agentId);
 
-  const content = agent.success ? (
-    <Suspense fallback={<AgentSkeleton />}>
-      <AgentData agent={agent.data} tenantId={tenantId} projectId={projectId} />
-    </Suspense>
-  ) : (
-    <FullPageError
-      errorCode={agent.code}
-      context="agent"
-      link={`/${tenantId}/projects/${projectId}/agents`}
-      linkText="Back to agents"
-    />
-  );
+  if (!agent.success) {
+    return (
+      <FullPageError
+        errorCode={agent.code}
+        context="agent"
+        link={`/${tenantId}/projects/${projectId}/agents`}
+        linkText="Back to agents"
+      />
+    );
+  }
 
   return (
     <BodyTemplate
       breadcrumbs={[
         { label: 'Agents', href: `/${tenantId}/projects/${projectId}/agents` },
-        agent.success ? agent.data.name : agentId,
+        agent.data.name,
       ]}
       className="p-0"
     >
-      {content}
+      <Suspense fallback={<AgentSkeleton />}>
+        <AgentData agent={agent.data} tenantId={tenantId} projectId={projectId} />
+      </Suspense>
     </BodyTemplate>
   );
 };
