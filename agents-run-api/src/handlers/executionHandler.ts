@@ -28,7 +28,7 @@ import { AGENT_EXECUTION_MAX_CONSECUTIVE_ERRORS } from '../constants/execution-l
 import dbClient from '../data/db/dbClient.js';
 import { getLogger } from '../logger.js';
 import { agentSessionManager } from '../services/AgentSession.js';
-import { startConversationEvaluation } from '@inkeep/agents-eval-api';
+import { startConversationEvaluationHttp } from '../services/evaluationHttpClient.js';
 import { conversationEvaluationTrigger } from '../services/ConversationEvaluationTrigger.js';
 import { evaluationRunConfigMatchesConversation } from '../services/evaluationRunConfigMatcher.js';
 import { agentInitializingOp, completionOp, errorOp } from '../utils/agent-operations.js';
@@ -555,7 +555,7 @@ export class ExecutionHandler {
                           evaluationRunConfigId: runConfig.id,
                         });
 
-                        await startConversationEvaluation({
+                        await startConversationEvaluationHttp({
                           tenantId,
                           projectId,
                           conversationId,
@@ -688,7 +688,7 @@ export class ExecutionHandler {
                       evaluationRunConfigId: runConfig.id,
                     });
 
-                    await startConversationEvaluation({
+                    await startConversationEvaluationHttp({
                       tenantId,
                       projectId,
                       conversationId,
