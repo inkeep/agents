@@ -42,7 +42,7 @@ export async function fetchMCPTools(
   }
 
   const response = await makeManagementApiRequest<ListResponse<McpTool>>(
-    `tenants/${tenantId}/projects/${projectId}/tools?${params}`,
+    `tenants/${tenantId}/projects/${projectId}/tools?${params}`
   );
 
   // Filter to only return MCP tools (config.type === 'mcp')

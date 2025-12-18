@@ -11,9 +11,7 @@ import { getErrorCode } from '@/lib/utils/error-serialization';
 
 export const dynamic = 'force-dynamic';
 
-async function AgentsPage({
-  params,
-}: PageProps<'/[tenantId]/projects/[projectId]/agents'>) {
+async function AgentsPage({ params }: PageProps<'/[tenantId]/projects/[projectId]/agents'>) {
   const { tenantId, projectId } = await params;
   try {
     const agents = await fetchAgents(tenantId, projectId);
