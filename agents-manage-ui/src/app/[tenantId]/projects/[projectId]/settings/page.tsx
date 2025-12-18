@@ -15,19 +15,17 @@ export default async function SettingsPage({
   try {
     const projectData = await fetchProject(tenantId, projectId);
     return (
-      <BodyTemplate breadcrumbs={[{ label: 'Settings' }]}>
-        <div className="max-w-2xl mx-auto">
-          <ProjectForm
-            projectId={projectData.data.id}
-            initialData={
-              {
-                ...projectData.data,
-                id: projectData.data.id as string,
-              } as ProjectFormData
-            }
-            tenantId={tenantId}
-          />
-        </div>
+      <BodyTemplate breadcrumbs={[{ label: 'Settings' }]} className="max-w-2xl mx-auto">
+        <ProjectForm
+          projectId={projectData.data.id}
+          initialData={
+            {
+              ...projectData.data,
+              id: projectData.data.id as string,
+            } as ProjectFormData
+          }
+          tenantId={tenantId}
+        />
       </BodyTemplate>
     );
   } catch (error) {

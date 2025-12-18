@@ -18,10 +18,9 @@ async function NewBearerCredentialsPage({
         },
         { label: 'Bearer' },
       ]}
+      className="max-w-2xl mx-auto"
     >
-      <div className="max-w-2xl mx-auto">
-        <NewCredentialForm />
-      </div>
+      <NewCredentialForm />
     </BodyTemplate>
   );
 }

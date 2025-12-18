@@ -14,10 +14,9 @@ async function NewDataComponentPage({
         },
         { label: 'New Component' },
       ]}
+      className="max-w-2xl mx-auto"
     >
-      <div className="max-w-2xl mx-auto">
-        <DataComponentForm tenantId={tenantId} projectId={projectId} />
-      </div>
+      <DataComponentForm tenantId={tenantId} projectId={projectId} />
     </BodyTemplate>
   );
 }

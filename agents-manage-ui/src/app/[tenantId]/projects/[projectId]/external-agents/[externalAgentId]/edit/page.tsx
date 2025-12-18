@@ -64,17 +64,16 @@ async function EditExternalAgentPage({
         },
         { label: 'Edit' },
       ]}
+      className="max-w-2xl mx-auto"
     >
-      <div className="max-w-2xl mx-auto">
-        <ExternalAgentForm
-          initialData={initialFormData}
-          mode="update"
-          externalAgent={externalAgent}
-          credentials={credentials}
-          tenantId={tenantId}
-          projectId={projectId}
-        />
-      </div>
+      <ExternalAgentForm
+        initialData={initialFormData}
+        mode="update"
+        externalAgent={externalAgent}
+        credentials={credentials}
+        tenantId={tenantId}
+        projectId={projectId}
+      />
     </BodyTemplate>
   );
 }

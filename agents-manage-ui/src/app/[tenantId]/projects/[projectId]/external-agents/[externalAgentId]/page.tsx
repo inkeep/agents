@@ -23,6 +23,7 @@ async function ExternalAgentPage({
             href: `/${tenantId}/projects/${projectId}/external-agents/${externalAgentId}`,
           },
         ]}
+        className="max-w-2xl mx-auto"
       >
         <ViewExternalAgentDetails
           externalAgent={externalAgent}

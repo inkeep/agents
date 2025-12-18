@@ -22,7 +22,7 @@ export function Breadcrumbs({ items }: BreadcrumbsProps) {
 
   const allItems = useMemo(() => {
     const result: BreadcrumbItem[] = [];
-    const isSettingsRoute = pathname?.includes('/settings');
+    const isSettingsRoute = pathname.startsWith(`/${tenantId}/settings`);
 
     if (!isSettingsRoute) {
       result.push({

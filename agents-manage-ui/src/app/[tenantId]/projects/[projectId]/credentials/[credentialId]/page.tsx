@@ -41,15 +41,14 @@ async function EditCredentialsPage({
           },
           { label: 'Edit' },
         ]}
+        className="max-w-2xl mx-auto"
       >
-        <div className="max-w-2xl mx-auto">
-          <EditCredentialForm
-            tenantId={tenantId}
-            projectId={projectId}
-            credential={credential}
-            initialFormData={initialFormData}
-          />
-        </div>
+        <EditCredentialForm
+          tenantId={tenantId}
+          projectId={projectId}
+          credential={credential}
+          initialFormData={initialFormData}
+        />
       </BodyTemplate>
     );
   } catch (error) {

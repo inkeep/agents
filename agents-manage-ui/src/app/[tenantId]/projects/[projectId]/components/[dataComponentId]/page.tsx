@@ -23,21 +23,20 @@ export default async function DataComponentPage({
           },
           { label: dataComponent.name },
         ]}
+        className="max-w-2xl mx-auto"
       >
-        <div className="max-w-2xl mx-auto">
-          <DataComponentForm
-            tenantId={tenantId}
-            projectId={projectId}
-            id={dataComponentId}
-            initialData={{
-              id: dataComponentId,
-              name,
-              description: description ?? '',
-              props,
-              render,
-            }}
-          />
-        </div>
+        <DataComponentForm
+          tenantId={tenantId}
+          projectId={projectId}
+          id={dataComponentId}
+          initialData={{
+            id: dataComponentId,
+            name,
+            description: description ?? '',
+            props,
+            render,
+          }}
+        />
       </BodyTemplate>
     );
   } catch (error) {

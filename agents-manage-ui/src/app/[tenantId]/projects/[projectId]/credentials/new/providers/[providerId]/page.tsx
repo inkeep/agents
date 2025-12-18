@@ -185,15 +185,14 @@ function ProviderSetupPage({
         },
         { label: provider.display_name },
       ]}
+      className="max-w-2xl mx-auto"
     >
-      <div className="max-w-2xl mx-auto">
-        <GenericAuthForm
-          provider={provider}
-          onBack={handleBack}
-          onSubmit={handleCreateCredential}
-          loading={loading}
-        />
-      </div>
+      <GenericAuthForm
+        provider={provider}
+        onBack={handleBack}
+        onSubmit={handleCreateCredential}
+        loading={loading}
+      />
     </BodyTemplate>
   );
 }
