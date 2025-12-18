@@ -63,5 +63,3 @@ export async function fetchToolApprovalDiff(
     };
   }
 }
-
-export type { FieldDiff };
