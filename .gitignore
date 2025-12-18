@@ -36,7 +36,9 @@ yarn-error.log*
 
 # env files (can opt-in for committing if needed)
 .env
-.env.*
+.env.local
+.env.*.local
+.env.docker
 
 # Keep providers.yaml for Nango integrations
 !providers.yaml
