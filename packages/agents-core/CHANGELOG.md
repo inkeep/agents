@@ -1,5 +1,12 @@
 # @inkeep/agents-core
 
+## 0.39.5
+
+### Patch Changes
+
+- d13e4c2: Fix quickstart
+- 9e4deda: Added dynamic model context limit checks
+
 ## 0.39.4
 
 ### Patch Changes
