@@ -1,6 +1,6 @@
 import { SiteHeader } from '@/components/layout/site-header';
-import { cn } from '@/lib/utils';
 import type { BreadcrumbItem } from '@/components/ui/breadcrumbs';
+import { cn } from '@/lib/utils';
 
 type BodyTemplateProps = {
   children: React.ReactNode;

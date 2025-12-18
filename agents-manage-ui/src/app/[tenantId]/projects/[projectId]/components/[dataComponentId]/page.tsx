@@ -1,5 +1,6 @@
 import { DataComponentForm } from '@/components/data-components/form/data-component-form';
 import FullPageError from '@/components/errors/full-page-error';
+import { BodyTemplate } from '@/components/layout/body-template';
 import { fetchDataComponent } from '@/lib/api/data-components';
 import { getErrorCode } from '@/lib/utils/error-serialization';
 
@@ -14,20 +15,30 @@ export default async function DataComponentPage({
     const dataComponent = await fetchDataComponent(tenantId, projectId, dataComponentId);
     const { name, description, props, render } = dataComponent;
     return (
-      <div className="max-w-2xl mx-auto">
-        <DataComponentForm
-          tenantId={tenantId}
-          projectId={projectId}
-          id={dataComponentId}
-          initialData={{
-            id: dataComponentId,
-            name,
-            description: description ?? '',
-            props,
-            render,
-          }}
-        />
-      </div>
+      <BodyTemplate
+        breadcrumbs={[
+          {
+            label: 'Components',
+            href: `/${tenantId}/projects/${projectId}/components`,
+          },
+          { label: dataComponent.name },
+        ]}
+      >
+        <div className="max-w-2xl mx-auto">
+          <DataComponentForm
+            tenantId={tenantId}
+            projectId={projectId}
+            id={dataComponentId}
+            initialData={{
+              id: dataComponentId,
+              name,
+              description: description ?? '',
+              props,
+              render,
+            }}
+          />
+        </div>
+      </BodyTemplate>
     );
   } catch (error) {
     return (

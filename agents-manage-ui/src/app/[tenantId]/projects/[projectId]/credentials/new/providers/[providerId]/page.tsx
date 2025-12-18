@@ -7,6 +7,7 @@ import { use, useCallback, useEffect, useState } from 'react';
 import { toast } from 'sonner';
 import { requiresCredentialForm } from '@/components/credentials/views/auth-form-config';
 import { GenericAuthForm } from '@/components/credentials/views/generic-auth-form';
+import { BodyTemplate } from '@/components/layout/body-template';
 import { Button } from '@/components/ui/button';
 import { useAuthSession } from '@/hooks/use-auth';
 import { useNangoConnect } from '@/hooks/use-nango-connect';
@@ -168,14 +169,32 @@ function ProviderSetupPage({
   }
 
   return (
-    <div className="max-w-2xl mx-auto">
-      <GenericAuthForm
-        provider={provider}
-        onBack={handleBack}
-        onSubmit={handleCreateCredential}
-        loading={loading}
-      />
-    </div>
+    <BodyTemplate
+      breadcrumbs={[
+        {
+          label: 'Credentials',
+          href: `/${tenantId}/projects/${projectId}/credentials`,
+        },
+        {
+          label: 'New credential',
+          href: `/${tenantId}/projects/${projectId}/credentials/new`,
+        },
+        {
+          label: 'Providers',
+          href: `/${tenantId}/projects/${projectId}/credentials/new/providers`,
+        },
+        { label: provider.display_name },
+      ]}
+    >
+      <div className="max-w-2xl mx-auto">
+        <GenericAuthForm
+          provider={provider}
+          onBack={handleBack}
+          onSubmit={handleCreateCredential}
+          loading={loading}
+        />
+      </div>
+    </BodyTemplate>
   );
 }
 

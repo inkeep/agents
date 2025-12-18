@@ -1,6 +1,6 @@
+import type { FC } from 'react';
 import { BodyTemplate } from '@/components/layout/body-template';
 import { Skeleton } from '@/components/ui/skeleton';
-import type { FC } from 'react';
 
 export const AgentSkeleton: FC = () => {
   return (

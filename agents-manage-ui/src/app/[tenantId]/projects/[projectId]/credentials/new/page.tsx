@@ -1,5 +1,6 @@
 import { KeyRound, Search } from 'lucide-react';
 import type { ReactNode } from 'react';
+import { BodyTemplate } from '@/components/layout/body-template';
 import {
   PageHeader,
   PageHeaderContent,
@@ -94,7 +95,15 @@ async function NewCredentialsPage({
   );
 
   return (
-    <>
+    <BodyTemplate
+      breadcrumbs={[
+        {
+          label: 'Credentials',
+          href: `/${tenantId}/projects/${projectId}/credentials`,
+        },
+        { label: 'New credential' },
+      ]}
+    >
       {pageHeaderComponent}
       <ItemCardGrid
         items={credentialOptions}
@@ -104,7 +113,7 @@ async function NewCredentialsPage({
         renderContent={renderCredentialContent}
         isDisabled={(option) => option.isDisabled ?? false}
       />
-    </>
+    </BodyTemplate>
   );
 }
 
