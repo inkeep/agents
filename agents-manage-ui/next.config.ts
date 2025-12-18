@@ -25,12 +25,6 @@ const nextConfig: NextConfig = {
       },
     },
   },
-  serverExternalPackages: [
-    // Fixes
-    // ./node_modules/.pnpm/thread-stream@3.1.0/node_modules/thread-stream/bench.js:3:15
-    // Module not found: Can't resolve 'fastbench'
-    'pino',
-  ],
   images: {
     // Allow all external image domains since users can provide any URL
     remotePatterns: [
