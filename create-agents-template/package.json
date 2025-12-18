@@ -43,7 +43,7 @@
   "packageManager": "pnpm@10.10.0",
   "pnpm": {
     "overrides": {
-      "next": "^16.0.10",
+      "next": "16.0.10",
       "@modelcontextprotocol/sdk": "1.24.3"
     },
     "onlyBuiltDependencies": [
