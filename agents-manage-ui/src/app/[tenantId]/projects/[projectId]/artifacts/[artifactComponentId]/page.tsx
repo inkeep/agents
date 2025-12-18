@@ -1,7 +1,5 @@
 import { ArtifactComponentForm } from '@/components/artifact-components/form/artifact-component-form';
 import FullPageError from '@/components/errors/full-page-error';
-import { BodyTemplate } from '@/components/layout/body-template';
-import { MainContent } from '@/components/layout/main-content';
 import { fetchArtifactComponent } from '@/lib/api/artifact-components';
 import { getErrorCode } from '@/lib/utils/error-serialization';
 
@@ -18,29 +16,17 @@ export default async function ArtifactComponentPage({
       artifactComponentId
     );
     return (
-      <BodyTemplate
-        breadcrumbs={[
-          {
-            label: 'Artifacts',
-            href: `/${tenantId}/projects/${projectId}/artifacts`,
-          },
-          { label: name },
-        ]}
-      >
-        <MainContent>
-          <ArtifactComponentForm
-            tenantId={tenantId}
-            projectId={projectId}
-            id={artifactComponentId}
-            initialData={{
-              id: artifactComponentId,
-              name,
-              description: description ?? '',
-              props,
-            }}
-          />
-        </MainContent>
-      </BodyTemplate>
+      <ArtifactComponentForm
+        tenantId={tenantId}
+        projectId={projectId}
+        id={artifactComponentId}
+        initialData={{
+          id: artifactComponentId,
+          name,
+          description: description ?? '',
+          props,
+        }}
+      />
     );
   } catch (error) {
     return (

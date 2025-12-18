@@ -1,26 +1,10 @@
 import { ArtifactComponentForm } from '@/components/artifact-components/form/artifact-component-form';
-import { BodyTemplate } from '@/components/layout/body-template';
-import { MainContent } from '@/components/layout/main-content';
 
 async function NewArtifactComponentPage({
   params,
 }: PageProps<'/[tenantId]/projects/[projectId]/artifacts/new'>) {
   const { tenantId, projectId } = await params;
-  return (
-    <BodyTemplate
-      breadcrumbs={[
-        {
-          label: 'Artifacts',
-          href: `/${tenantId}/projects/${projectId}/artifacts`,
-        },
-        { label: 'New Artifact' },
-      ]}
-    >
-      <MainContent>
-        <ArtifactComponentForm tenantId={tenantId} projectId={projectId} />
-      </MainContent>
-    </BodyTemplate>
-  );
+  return <ArtifactComponentForm tenantId={tenantId} projectId={projectId} />;
 }
 
 export default NewArtifactComponentPage;
