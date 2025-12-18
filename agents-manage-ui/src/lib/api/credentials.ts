@@ -8,7 +8,7 @@ import type {
 } from '@inkeep/agents-core';
 import type { ListResponse, SingleResponse } from '../types/response';
 // Default configuration
-import { type ApiRequestOptions, makeManagementApiRequest } from './api-config';
+import { makeManagementApiRequest } from './api-config';
 import { validateProjectId, validateTenantId } from './resource-validation';
 
 // Re-export types from core package for convenience
@@ -23,7 +23,6 @@ export type Credential = CredentialReferenceApiSelect & {
 export async function fetchCredentials(
   tenantId: string,
   projectId: string,
-  options?: ApiRequestOptions,
   page = 1,
   pageSize = 100
 ): Promise<Credential[]> {
@@ -36,8 +35,7 @@ export async function fetchCredentials(
   });
 
   const response = await makeManagementApiRequest<ListResponse<CredentialReferenceApiSelect>>(
-    `tenants/${tenantId}/projects/${projectId}/credentials?${params}`,
-    options
+    `tenants/${tenantId}/projects/${projectId}/credentials?${params}`
   );
 
   // Cast to Credential type (includes optional tools field)
@@ -50,15 +48,13 @@ export async function fetchCredentials(
 export async function fetchCredential(
   tenantId: string,
   projectId: string,
-  id: string,
-  options?: ApiRequestOptions
+  id: string
 ): Promise<Credential> {
   validateTenantId(tenantId);
   validateProjectId(projectId);
 
   const response = await makeManagementApiRequest<SingleResponse<CredentialReferenceApiSelect>>(
-    `tenants/${tenantId}/projects/${projectId}/credentials/${id}`,
-    options
+    `tenants/${tenantId}/projects/${projectId}/credentials/${id}`
   );
 
   // Cast to Credential type (includes optional tools field)
@@ -71,8 +67,7 @@ export async function fetchCredential(
 export async function createCredential(
   tenantId: string,
   projectId: string,
-  data: CredentialReferenceApiInsert,
-  options?: ApiRequestOptions
+  data: CredentialReferenceApiInsert
 ): Promise<Credential> {
   validateTenantId(tenantId);
   validateProjectId(projectId);
@@ -80,7 +75,6 @@ export async function createCredential(
   const response = await makeManagementApiRequest<SingleResponse<CredentialReferenceApiSelect>>(
     `tenants/${tenantId}/projects/${projectId}/credentials`,
     {
-      ...options,
       method: 'POST',
       body: JSON.stringify(data),
     }
@@ -97,8 +91,7 @@ export async function updateCredential(
   tenantId: string,
   projectId: string,
   id: string,
-  data: Partial<CredentialReferenceApiInsert>,
-  options?: ApiRequestOptions
+  data: Partial<CredentialReferenceApiInsert>
 ): Promise<Credential> {
   validateTenantId(tenantId);
   validateProjectId(projectId);
@@ -106,7 +99,6 @@ export async function updateCredential(
   const response = await makeManagementApiRequest<SingleResponse<CredentialReferenceApiSelect>>(
     `tenants/${tenantId}/projects/${projectId}/credentials/${id}`,
     {
-      ...options,
       method: 'PUT',
       body: JSON.stringify(data),
     }
@@ -122,8 +114,7 @@ export async function updateCredential(
 export async function deleteCredential(
   tenantId: string,
   projectId: string,
-  id: string,
-  options?: ApiRequestOptions
+  id: string
 ): Promise<void> {
   validateTenantId(tenantId);
   validateProjectId(projectId);
@@ -131,7 +122,6 @@ export async function deleteCredential(
   await makeManagementApiRequest<void>(
     `tenants/${tenantId}/projects/${projectId}/credentials/${id}`,
     {
-      ...options,
       method: 'DELETE',
     }
   );

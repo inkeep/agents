@@ -17,7 +17,6 @@ import { ProjectItemMenu } from './project-item-menu';
 interface ProjectItemProps extends Project {
   tenantId: string;
   projectId: string;
-  ref?: string;
 }
 
 export function ProjectItem({
@@ -29,7 +28,6 @@ export function ProjectItem({
   stopWhen,
   createdAt,
   tenantId,
-  ref,
 }: ProjectItemProps) {
   const linkPath = `/${tenantId}/projects/${id}`;
 
@@ -43,7 +41,6 @@ export function ProjectItem({
           projectName={name}
           projectData={{ id: projectId, name, description, models, stopWhen } as ProjectFormData}
           tenantId={tenantId}
-          ref={ref}
         />
       </ItemCardHeader>
       <ItemCardLink href={linkPath} className="group">

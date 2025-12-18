@@ -4,7 +4,7 @@ import type { ExternalAgentApiInsert, ExternalAgentApiSelect } from '@inkeep/age
 
 import type { ListResponse, SingleResponse } from '../types/response';
 // Default configuration
-import { type ApiRequestOptions, makeManagementApiRequest } from './api-config';
+import { makeManagementApiRequest } from './api-config';
 import { validateProjectId, validateTenantId } from './resource-validation';
 
 // Use Omit to make id optional for creation
@@ -20,7 +20,6 @@ export type ExternalAgent = ExternalAgentApiSelect;
 export async function fetchExternalAgents(
   tenantId: string,
   projectId: string,
-  options?: ApiRequestOptions,
   page = 1,
   pageSize = 100
 ): Promise<ExternalAgent[]> {
@@ -33,8 +32,7 @@ export async function fetchExternalAgents(
   });
 
   const response = await makeManagementApiRequest<ListResponse<ExternalAgent>>(
-    `tenants/${tenantId}/projects/${projectId}/external-agents?${params}`,
-    options
+    `tenants/${tenantId}/projects/${projectId}/external-agents?${params}`
   );
 
   return response.data;
@@ -46,15 +44,13 @@ export async function fetchExternalAgents(
 export async function fetchExternalAgent(
   tenantId: string,
   projectId: string,
-  id: string,
-  options?: ApiRequestOptions
+  id: string
 ): Promise<ExternalAgent> {
   validateTenantId(tenantId);
   validateProjectId(projectId);
 
   const response = await makeManagementApiRequest<SingleResponse<ExternalAgent>>(
-    `tenants/${tenantId}/projects/${projectId}/external-agents/${id}`,
-    options
+    `tenants/${tenantId}/projects/${projectId}/external-agents/${id}`
   );
 
   return response.data;
@@ -66,8 +62,7 @@ export async function fetchExternalAgent(
 export async function createExternalAgent(
   tenantId: string,
   projectId: string,
-  data: CreateExternalAgentRequest,
-  options?: ApiRequestOptions
+  data: CreateExternalAgentRequest
 ): Promise<ExternalAgent> {
   validateTenantId(tenantId);
   validateProjectId(projectId);
@@ -75,7 +70,6 @@ export async function createExternalAgent(
   const response = await makeManagementApiRequest<SingleResponse<ExternalAgent>>(
     `tenants/${tenantId}/projects/${projectId}/external-agents`,
     {
-      ...options,
       method: 'POST',
       body: JSON.stringify(data),
     }
@@ -91,8 +85,7 @@ export async function updateExternalAgent(
   tenantId: string,
   projectId: string,
   id: string,
-  data: Partial<CreateExternalAgentRequest>,
-  options?: ApiRequestOptions
+  data: Partial<CreateExternalAgentRequest>
 ): Promise<ExternalAgent> {
   validateTenantId(tenantId);
   validateProjectId(projectId);
@@ -100,7 +93,6 @@ export async function updateExternalAgent(
   const response = await makeManagementApiRequest<SingleResponse<ExternalAgent>>(
     `tenants/${tenantId}/projects/${projectId}/external-agents/${id}`,
     {
-      ...options,
       method: 'PUT',
       body: JSON.stringify(data),
     }
@@ -115,8 +107,7 @@ export async function updateExternalAgent(
 export async function deleteExternalAgent(
   tenantId: string,
   projectId: string,
-  id: string,
-  options?: ApiRequestOptions
+  id: string
 ): Promise<void> {
   validateTenantId(tenantId);
   validateProjectId(projectId);
@@ -124,7 +115,6 @@ export async function deleteExternalAgent(
   await makeManagementApiRequest<void>(
     `tenants/${tenantId}/projects/${projectId}/external-agents/${id}`,
     {
-      ...options,
       method: 'DELETE',
     }
   );

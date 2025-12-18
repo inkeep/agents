@@ -16,7 +16,6 @@ interface PlaygroundProps {
   agentId: string;
   projectId: string;
   tenantId: string;
-  currentBranch: string;
   setShowPlayground: (show: boolean) => void;
   closeSidePane: () => void;
   dataComponentLookup?: Record<string, DataComponent>;
@@ -28,7 +27,6 @@ export const Playground = ({
   agentId,
   projectId,
   tenantId,
-  currentBranch,
   closeSidePane,
   setShowPlayground,
   dataComponentLookup = {},
@@ -126,7 +124,6 @@ export const Playground = ({
               dataComponentLookup={dataComponentLookup}
               key={JSON.stringify(customHeaders)}
               setShowTraces={setShowTraces}
-              ref={currentBranch}
             />
           </ResizablePanel>
 

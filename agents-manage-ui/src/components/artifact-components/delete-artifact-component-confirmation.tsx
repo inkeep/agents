@@ -4,7 +4,6 @@ import { useParams, useRouter } from 'next/navigation';
 import { useState } from 'react';
 import { toast } from 'sonner';
 import { DeleteConfirmation } from '@/components/ui/delete-confirmation';
-import { useCurrentRef } from '@/hooks/use-current-ref';
 import { deleteArtifactComponentAction } from '@/lib/actions/artifact-components';
 
 interface DeleteArtifactComponentConfirmationProps {
@@ -26,17 +25,11 @@ export function DeleteArtifactComponentConfirmation({
     tenantId: string;
     projectId: string;
   }>();
-  const ref = useCurrentRef();
 
   const handleDelete = async () => {
     setIsSubmitting(true);
     try {
-      const result = await deleteArtifactComponentAction(
-        tenantId,
-        projectId,
-        artifactComponentId,
-        ref
-      );
+      const result = await deleteArtifactComponentAction(tenantId, projectId, artifactComponentId);
       if (result.success) {
         setIsOpen(false);
         toast.success('Artifact deleted.');

@@ -3,23 +3,18 @@ import FullPageError from '@/components/errors/full-page-error';
 import { BodyTemplate } from '@/components/layout/body-template';
 import { fetchArtifactComponent } from '@/lib/api/artifact-components';
 import { getErrorCode } from '@/lib/utils/error-serialization';
-import { getValidSearchParamsAsync } from '@/lib/utils/search-params';
 
 export const dynamic = 'force-dynamic';
 
 export default async function ArtifactComponentPage({
   params,
-  searchParams,
 }: PageProps<'/[tenantId]/projects/[projectId]/artifacts/[artifactComponentId]'>) {
   const { artifactComponentId, tenantId, projectId } = await params;
   try {
-    const ref = await getValidSearchParamsAsync(searchParams);
-
     const { name, description, props } = await fetchArtifactComponent(
       tenantId,
       projectId,
-      artifactComponentId,
-      { queryParams: ref }
+      artifactComponentId
     );
     return (
       <BodyTemplate

@@ -20,13 +20,10 @@ import type { ActionResult } from './types';
  */
 export async function fetchArtifactComponentsAction(
   tenantId: string,
-  projectId: string,
-  ref?: string
+  projectId: string
 ): Promise<ActionResult<ArtifactComponent[]>> {
   try {
-    const result = await fetchArtifactComponents(tenantId, projectId, {
-      queryParams: { ref },
-    });
+    const result = await fetchArtifactComponents(tenantId, projectId);
     return {
       success: true,
       data: result.data,
@@ -54,13 +51,10 @@ export async function fetchArtifactComponentsAction(
 export async function createArtifactComponentAction(
   tenantId: string,
   projectId: string,
-  data: ArtifactComponent,
-  ref?: string
+  data: ArtifactComponent
 ): Promise<ActionResult<ArtifactComponent>> {
   try {
-    const result = await createArtifactComponent(tenantId, projectId, data, {
-      queryParams: { ref },
-    });
+    const result = await createArtifactComponent(tenantId, projectId, data);
     revalidatePath(`/${tenantId}/projects/${projectId}/artifacts`);
     return {
       success: true,
@@ -89,13 +83,10 @@ export async function createArtifactComponentAction(
 export async function updateArtifactComponentAction(
   tenantId: string,
   projectId: string,
-  data: ArtifactComponent,
-  ref?: string
+  data: ArtifactComponent
 ): Promise<ActionResult<ArtifactComponent>> {
   try {
-    const result = await updateArtifactComponent(tenantId, projectId, data, {
-      queryParams: { ref },
-    });
+    const result = await updateArtifactComponent(tenantId, projectId, data);
     revalidatePath(`/${tenantId}/projects/${projectId}/artifacts`);
     revalidatePath(`/${tenantId}/projects/${projectId}/artifacts/${data.id}`);
     return {
@@ -125,13 +116,10 @@ export async function updateArtifactComponentAction(
 export async function deleteArtifactComponentAction(
   tenantId: string,
   projectId: string,
-  artifactComponentId: string,
-  ref?: string
+  artifactComponentId: string
 ): Promise<ActionResult<void>> {
   try {
-    await deleteArtifactComponent(tenantId, projectId, artifactComponentId, {
-      queryParams: { ref },
-    });
+    await deleteArtifactComponent(tenantId, projectId, artifactComponentId);
     revalidatePath(`/${tenantId}/projects/${projectId}/artifacts`);
     return {
       success: true,

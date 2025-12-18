@@ -4,12 +4,9 @@ import { useParams } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import { useProjectActions, useProjectStore } from '@/features/project/state/use-project-store';
 import { fetchProjectAction } from '@/lib/actions/projects';
-import { useCurrentRef } from './use-current-ref';
 
 export function useProjectData() {
   const { tenantId, projectId } = useParams();
-
-  const ref = useCurrentRef();
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -37,7 +34,7 @@ export function useProjectData() {
         setError(null);
 
         // Use server action to fetch project data
-        const result = await fetchProjectAction(tenantId as string, projectId as string, ref);
+        const result = await fetchProjectAction(tenantId as string, projectId as string);
 
         if (!result.success) {
           throw new Error(result.error || 'Failed to fetch project');
@@ -62,7 +59,7 @@ export function useProjectData() {
     } else {
       setLoading(false);
     }
-  }, [tenantId, projectId, storedProjectId, setProjectStore, ref]);
+  }, [tenantId, projectId, storedProjectId, setProjectStore]);
 
   return { project, loading, error };
 }

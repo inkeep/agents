@@ -15,13 +15,10 @@ import type { ActionResult } from './types';
  */
 export async function fetchExternalAgentsAction(
   tenantId: string,
-  projectId: string,
-  ref?: string
+  projectId: string
 ): Promise<ActionResult<ExternalAgent[]>> {
   try {
-    const externalAgents = await fetchExternalAgents(tenantId, projectId, {
-      queryParams: { ref },
-    });
+    const externalAgents = await fetchExternalAgents(tenantId, projectId);
     return {
       success: true,
       data: externalAgents,
@@ -49,13 +46,10 @@ export async function fetchExternalAgentsAction(
 export async function deleteExternalAgentAction(
   tenantId: string,
   projectId: string,
-  externalAgentId: string,
-  ref?: string
+  externalAgentId: string
 ): Promise<ActionResult<void>> {
   try {
-    await deleteExternalAgent(tenantId, projectId, externalAgentId, {
-      queryParams: { ref },
-    });
+    await deleteExternalAgent(tenantId, projectId, externalAgentId);
     revalidatePath(`/${tenantId}/projects/${projectId}/external-agents`);
     revalidatePath(`/${tenantId}/projects/${projectId}/external-agents/${externalAgentId}`);
     return {

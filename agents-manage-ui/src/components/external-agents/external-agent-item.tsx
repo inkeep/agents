@@ -21,7 +21,6 @@ import {
   ItemCardRoot,
   ItemCardTitle,
 } from '@/components/ui/item-card';
-import { useCurrentRef } from '@/hooks/use-current-ref';
 import { deleteExternalAgentAction } from '@/lib/actions/external-agents';
 import type { ExternalAgent } from '@/lib/types/external-agents';
 import { ProviderIcon } from '../icons/provider-icon';
@@ -58,7 +57,6 @@ function ExternalAgentDialogMenu({
     tenantId: string;
     projectId: string;
   }>();
-  const ref = useCurrentRef();
 
   const [isOpen, setIsOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -70,7 +68,7 @@ function ExternalAgentDialogMenu({
   const handleDelete = async () => {
     setIsSubmitting(true);
     try {
-      const result = await deleteExternalAgentAction(tenantId, projectId, externalAgentId, ref);
+      const result = await deleteExternalAgentAction(tenantId, projectId, externalAgentId);
       if (result.success) {
         setIsOpen(false);
         toast.success('External agent deleted.');

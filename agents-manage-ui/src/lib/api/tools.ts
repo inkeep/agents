@@ -4,7 +4,6 @@ import type { McpTool, ToolApiInsert } from '@inkeep/agents-core';
 
 import type { ListResponse, SingleResponse } from '../types/response';
 // Default configuration
-import type { ApiRequestOptions } from './api-config';
 import { makeManagementApiRequest } from './api-config';
 import { validateProjectId, validateTenantId } from './resource-validation';
 
@@ -56,15 +55,13 @@ export async function fetchMCPTools(
 export async function fetchMCPTool(
   tenantId: string,
   projectId: string,
-  id: string,
-  options?: ApiRequestOptions
+  id: string
 ): Promise<McpTool> {
   validateTenantId(tenantId);
   validateProjectId(projectId);
 
   const response = await makeManagementApiRequest<SingleResponse<McpTool>>(
-    `tenants/${tenantId}/projects/${projectId}/tools/${id}`,
-    options
+    `tenants/${tenantId}/projects/${projectId}/tools/${id}`
   );
 
   return response.data;
@@ -76,8 +73,7 @@ export async function fetchMCPTool(
 export async function createMCPTool(
   tenantId: string,
   projectId: string,
-  data: CreateMCPToolRequest,
-  options?: ApiRequestOptions
+  data: CreateMCPToolRequest
 ): Promise<McpTool> {
   validateTenantId(tenantId);
   validateProjectId(projectId);
@@ -85,7 +81,6 @@ export async function createMCPTool(
   const response = await makeManagementApiRequest<SingleResponse<McpTool>>(
     `tenants/${tenantId}/projects/${projectId}/tools`,
     {
-      ...options,
       method: 'POST',
       body: JSON.stringify(data),
     }
@@ -101,8 +96,7 @@ export async function updateMCPTool(
   tenantId: string,
   projectId: string,
   id: string,
-  data: Partial<CreateMCPToolRequest>,
-  options?: ApiRequestOptions
+  data: Partial<CreateMCPToolRequest>
 ): Promise<McpTool> {
   validateTenantId(tenantId);
   validateProjectId(projectId);
@@ -110,7 +104,6 @@ export async function updateMCPTool(
   const response = await makeManagementApiRequest<SingleResponse<McpTool>>(
     `tenants/${tenantId}/projects/${projectId}/tools/${id}`,
     {
-      ...options,
       method: 'PUT',
       body: JSON.stringify(data),
     }
@@ -125,14 +118,12 @@ export async function updateMCPTool(
 export async function deleteMCPTool(
   tenantId: string,
   projectId: string,
-  id: string,
-  options?: ApiRequestOptions
+  id: string
 ): Promise<void> {
   validateTenantId(tenantId);
   validateProjectId(projectId);
 
   await makeManagementApiRequest<void>(`tenants/${tenantId}/projects/${projectId}/tools/${id}`, {
-    ...options,
     method: 'DELETE',
   });
 }

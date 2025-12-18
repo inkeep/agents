@@ -14,7 +14,7 @@ import type {
 } from '@inkeep/agents-core';
 import type { ListResponse, SingleResponse } from '../types/response';
 // Configuration for the API client
-import { type ApiRequestOptions, makeManagementApiRequest } from './api-config';
+import { makeManagementApiRequest } from './api-config';
 import { validateProjectId, validateTenantId } from './resource-validation';
 
 // Re-export types from core package for convenience
@@ -32,8 +32,7 @@ export type DataComponent = Omit<DataComponentApiSelect, 'props'> & {
  */
 export async function fetchDataComponents(
   tenantId: string,
-  projectId: string,
-  options?: ApiRequestOptions
+  projectId: string
 ): Promise<ListResponse<DataComponent>> {
   validateTenantId(tenantId);
   validateProjectId(projectId);
@@ -58,15 +57,13 @@ export async function fetchDataComponents(
 export async function fetchDataComponent(
   tenantId: string,
   projectId: string,
-  dataComponentId: string,
-  options?: ApiRequestOptions
+  dataComponentId: string
 ): Promise<DataComponent> {
   validateTenantId(tenantId);
   validateProjectId(projectId);
 
   const response = await makeManagementApiRequest<SingleResponse<DataComponentApiSelect>>(
-    `tenants/${tenantId}/projects/${projectId}/data-components/${dataComponentId}`,
-    options
+    `tenants/${tenantId}/projects/${projectId}/data-components/${dataComponentId}`
   );
 
   // Transform the response to ensure props is non-nullable
@@ -82,8 +79,7 @@ export async function fetchDataComponent(
 export async function createDataComponent(
   tenantId: string,
   projectId: string,
-  dataComponent: DataComponentApiInsert,
-  options?: ApiRequestOptions
+  dataComponent: DataComponentApiInsert
 ): Promise<DataComponent> {
   validateTenantId(tenantId);
   validateProjectId(projectId);
@@ -91,7 +87,6 @@ export async function createDataComponent(
   const response = await makeManagementApiRequest<SingleResponse<DataComponentApiSelect>>(
     `tenants/${tenantId}/projects/${projectId}/data-components`,
     {
-      ...options,
       method: 'POST',
       body: JSON.stringify(dataComponent),
     }
@@ -110,8 +105,7 @@ export async function createDataComponent(
 export async function updateDataComponent(
   tenantId: string,
   projectId: string,
-  dataComponent: DataComponentApiUpdate & { id: string },
-  options?: ApiRequestOptions
+  dataComponent: DataComponentApiUpdate & { id: string }
 ): Promise<DataComponent> {
   validateTenantId(tenantId);
   validateProjectId(projectId);
@@ -119,7 +113,6 @@ export async function updateDataComponent(
   const response = await makeManagementApiRequest<SingleResponse<DataComponentApiSelect>>(
     `tenants/${tenantId}/projects/${projectId}/data-components/${dataComponent.id}`,
     {
-      ...options,
       method: 'PUT',
       body: JSON.stringify(dataComponent),
     }
@@ -138,8 +131,7 @@ export async function updateDataComponent(
 export async function deleteDataComponent(
   tenantId: string,
   projectId: string,
-  dataComponentId: string,
-  options?: ApiRequestOptions
+  dataComponentId: string
 ): Promise<void> {
   validateTenantId(tenantId);
   validateProjectId(projectId);
@@ -147,7 +139,6 @@ export async function deleteDataComponent(
   await makeManagementApiRequest(
     `tenants/${tenantId}/projects/${projectId}/data-components/${dataComponentId}`,
     {
-      ...options,
       method: 'DELETE',
     }
   );

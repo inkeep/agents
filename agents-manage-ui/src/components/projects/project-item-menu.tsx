@@ -15,10 +15,9 @@ interface ProjectItemMenuProps {
   projectName?: string;
   projectData: ProjectFormData;
   tenantId: string;
-  ref?: string;
 }
 
-export function ProjectItemMenu({ projectName, projectData, tenantId, ref }: ProjectItemMenuProps) {
+export function ProjectItemMenu({ projectName, projectData, tenantId }: ProjectItemMenuProps) {
   const [isDeleteOpen, setIsDeleteOpen] = useState(false);
   const [isEditOpen, setIsEditOpen] = useState(false);
 
@@ -58,7 +57,6 @@ export function ProjectItemMenu({ projectName, projectData, tenantId, ref }: Pro
           setIsOpen={setIsEditOpen}
           tenantId={tenantId}
           projectData={projectData}
-          ref={ref}
         />
       )}
 

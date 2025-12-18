@@ -16,7 +16,6 @@ interface ApiKeyUpdateFormProps {
   projectId: string;
   apiKey: ApiKey;
   onApiKeyUpdated?: (apiKeyData: ApiKey) => void;
-  ref?: string;
 }
 
 const convertDurationToDate = (duration: string): string | undefined => {
@@ -83,7 +82,6 @@ export function ApiKeyUpdateForm({
   projectId,
   apiKey,
   onApiKeyUpdated,
-  ref,
 }: ApiKeyUpdateFormProps) {
   const form = useForm<ApiKeyUpdateData>({
     resolver: zodResolver(apiKeyUpdateSchema),
@@ -106,7 +104,7 @@ export function ApiKeyUpdateForm({
         name,
       };
 
-      const res = await updateApiKeyAction(tenantId, projectId, payload, ref);
+      const res = await updateApiKeyAction(tenantId, projectId, payload);
       if (!res.success) {
         toast.error(res.error || 'Failed to update api key');
         return;

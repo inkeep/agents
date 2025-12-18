@@ -22,7 +22,6 @@ interface ProjectFormProps {
   onSuccess?: (projectId: string) => void;
   onCancel?: () => void;
   initialData?: ProjectFormData;
-  ref?: string;
 }
 
 const serializeData = (data: ProjectFormData) => {
@@ -95,7 +94,6 @@ export function ProjectForm({
   onSuccess,
   onCancel,
   initialData,
-  ref,
 }: ProjectFormProps) {
   const form = useForm<ProjectFormData>({
     resolver: zodResolver(projectSchema),
@@ -118,7 +116,7 @@ export function ProjectForm({
 
     try {
       if (projectId) {
-        const res = await updateProjectAction(tenantId, projectId, serializedData, ref);
+        const res = await updateProjectAction(tenantId, projectId, serializedData);
         if (!res.success) {
           toast.error(res.error || 'Failed to update project');
           return;

@@ -15,13 +15,10 @@ import type { ActionResult } from './types';
 export async function deleteCredentialAction(
   tenantId: string,
   projectId: string,
-  credentialId: string,
-  ref?: string
+  credentialId: string
 ): Promise<ActionResult<void>> {
   try {
-    await deleteCredential(tenantId, projectId, credentialId, {
-      queryParams: { ref },
-    });
+    await deleteCredential(tenantId, projectId, credentialId);
     revalidatePath(`/${tenantId}/projects/${projectId}/credentials`);
     return {
       success: true,
@@ -48,13 +45,10 @@ export async function deleteCredentialAction(
  */
 export async function fetchCredentialsAction(
   tenantId: string,
-  projectId: string,
-  ref?: string
+  projectId: string
 ): Promise<ActionResult<Credential[]>> {
   try {
-    const result = await fetchCredentials(tenantId, projectId, {
-      queryParams: { ref },
-    });
+    const result = await fetchCredentials(tenantId, projectId);
     return {
       success: true,
       data: result,

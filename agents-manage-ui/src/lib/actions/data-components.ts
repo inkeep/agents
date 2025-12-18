@@ -20,13 +20,10 @@ import type { ActionResult } from './types';
  */
 export async function fetchDataComponentsAction(
   tenantId: string,
-  projectId: string,
-  ref?: string
+  projectId: string
 ): Promise<ActionResult<DataComponent[]>> {
   try {
-    const result = await fetchDataComponents(tenantId, projectId, {
-      queryParams: { ref },
-    });
+    const result = await fetchDataComponents(tenantId, projectId);
     return {
       success: true,
       data: result.data,
@@ -54,13 +51,10 @@ export async function fetchDataComponentsAction(
 export async function createDataComponentAction(
   tenantId: string,
   projectId: string,
-  data: DataComponent,
-  ref?: string
+  data: DataComponent
 ): Promise<ActionResult<DataComponent>> {
   try {
-    const result = await createDataComponent(tenantId, projectId, data, {
-      queryParams: { ref },
-    });
+    const result = await createDataComponent(tenantId, projectId, data);
     revalidatePath(`/${tenantId}/projects/${projectId}/components`);
     return {
       success: true,
@@ -89,13 +83,10 @@ export async function createDataComponentAction(
 export async function updateDataComponentAction(
   tenantId: string,
   projectId: string,
-  data: DataComponent,
-  ref?: string
+  data: DataComponent
 ): Promise<ActionResult<DataComponent>> {
   try {
-    const result = await updateDataComponent(tenantId, projectId, data, {
-      queryParams: { ref },
-    });
+    const result = await updateDataComponent(tenantId, projectId, data);
     revalidatePath(`/${tenantId}/projects/${projectId}/components`);
     revalidatePath(`/${tenantId}/projects/${projectId}/components/${data.id}`);
     return {
@@ -126,13 +117,10 @@ export async function updateDataComponentAction(
 export async function deleteDataComponentAction(
   tenantId: string,
   projectId: string,
-  dataComponentId: string,
-  ref?: string
+  dataComponentId: string
 ): Promise<ActionResult<void>> {
   try {
-    await deleteDataComponent(tenantId, projectId, dataComponentId, {
-      queryParams: { ref },
-    });
+    await deleteDataComponent(tenantId, projectId, dataComponentId);
     revalidatePath(`/${tenantId}/projects/${projectId}/components`);
     return {
       success: true,

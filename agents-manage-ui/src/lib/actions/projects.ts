@@ -45,13 +45,10 @@ export async function fetchProjectsAction(tenantId: string): Promise<ActionResul
  */
 export async function fetchProjectAction(
   tenantId: string,
-  projectId: string,
-  ref?: string
+  projectId: string
 ): Promise<ActionResult<Project>> {
   try {
-    const result = await fetchProject(tenantId, projectId, {
-      queryParams: { ref },
-    });
+    const result = await fetchProject(tenantId, projectId);
     return {
       success: true,
       data: result.data,
@@ -109,13 +106,10 @@ export async function createProjectAction(
 export async function updateProjectAction(
   tenantId: string,
   projectId: string,
-  project: ProjectFormData,
-  ref?: string
+  project: ProjectFormData
 ): Promise<ActionResult<Project>> {
   try {
-    const result = await updateProject(tenantId, projectId, project, {
-      queryParams: { ref },
-    });
+    const result = await updateProject(tenantId, projectId, project);
     revalidatePath(`/${tenantId}/projects`);
     revalidatePath(`/${tenantId}/projects/${projectId}`);
     revalidatePath(`/${tenantId}/projects/${projectId}/settings`);

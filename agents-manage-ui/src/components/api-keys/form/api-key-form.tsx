@@ -20,7 +20,6 @@ interface ApiKeyFormProps {
   initialData?: ApiKeyFormData;
   agentsOptions: SelectOption[];
   onApiKeyCreated?: (apiKeyData: ApiKeyCreateResponse) => void;
-  ref?: string;
 }
 
 const convertDurationToDate = (duration: string): string | undefined => {
@@ -59,7 +58,6 @@ export function ApiKeyForm({
   initialData,
   agentsOptions,
   onApiKeyCreated,
-  ref,
 }: ApiKeyFormProps) {
   const form = useForm<ApiKeyFormData>({
     resolver: zodResolver(apiKeySchema),
@@ -79,7 +77,7 @@ export function ApiKeyForm({
         name,
       };
 
-      const res = await createApiKeyAction(tenantId, projectId, payload, ref);
+      const res = await createApiKeyAction(tenantId, projectId, payload);
       if (!res.success) {
         toast.error(res.error || 'Failed to create api key');
         return;

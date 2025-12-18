@@ -15,7 +15,6 @@ interface EditProjectDialogProps {
   projectData: ProjectFormData;
   isOpen: boolean;
   setIsOpen: (open: boolean) => void;
-  ref?: string;
 }
 
 export function EditProjectDialog({
@@ -23,7 +22,6 @@ export function EditProjectDialog({
   projectData,
   isOpen,
   setIsOpen,
-  ref,
 }: EditProjectDialogProps) {
   const handleSuccess = () => {
     setIsOpen(false);
@@ -46,7 +44,6 @@ export function EditProjectDialog({
           tenantId={tenantId}
           onSuccess={handleSuccess}
           onCancel={handleCancel}
-          ref={ref}
         />
       </DialogContent>
     </Dialog>

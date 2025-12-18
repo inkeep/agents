@@ -21,7 +21,6 @@ import {
   ItemCardRoot,
   ItemCardTitle,
 } from '@/components/ui/item-card';
-import { useCurrentRef } from '@/hooks/use-current-ref';
 import { deleteCredentialAction } from '@/lib/actions/credentials';
 import type { Credential } from '@/lib/api/credentials';
 import { ProviderIcon } from '../icons/provider-icon';
@@ -37,7 +36,6 @@ function CredentialDialogMenu({ credentialId, credentialName }: CredentialDialog
     tenantId: string;
     projectId: string;
   }>();
-  const ref = useCurrentRef();
 
   const [isOpen, setIsOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -49,7 +47,7 @@ function CredentialDialogMenu({ credentialId, credentialName }: CredentialDialog
   const handleDelete = async () => {
     setIsSubmitting(true);
     try {
-      const result = await deleteCredentialAction(tenantId, projectId, credentialId, ref);
+      const result = await deleteCredentialAction(tenantId, projectId, credentialId);
       if (result.success) {
         setIsOpen(false);
         toast.success('Credential deleted.');
