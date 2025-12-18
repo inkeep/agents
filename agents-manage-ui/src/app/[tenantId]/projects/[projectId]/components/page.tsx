@@ -50,7 +50,7 @@ async function DataComponentsPage({
         linkText="Create component"
       />
     );
-    return <BodyTemplate breadcrumbs={[{ label: 'Components' }]}>{content}</BodyTemplate>;
+    return <BodyTemplate breadcrumbs={['Components']}>{content}</BodyTemplate>;
   } catch (error) {
     return <FullPageError errorCode={getErrorCode(error)} context="components" />;
   }

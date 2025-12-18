@@ -15,7 +15,7 @@ export default async function SettingsPage({
   try {
     const projectData = await fetchProject(tenantId, projectId);
     return (
-      <BodyTemplate breadcrumbs={[{ label: 'Settings' }]} className="max-w-2xl mx-auto">
+      <BodyTemplate breadcrumbs={['Settings']} className="max-w-2xl mx-auto">
         <ProjectForm
           projectId={projectData.data.id}
           initialData={

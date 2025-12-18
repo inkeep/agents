@@ -20,7 +20,7 @@ async function NewMCPServerPage({
           label: 'MCP servers',
           href: `/${tenantId}/projects/${projectId}/mcp-servers`,
         },
-        { label: 'New MCP server' },
+        'New MCP server',
       ]}
     >
       <MCPServerSelection credentials={credentials} tenantId={tenantId} projectId={projectId} />

@@ -21,7 +21,7 @@ export default async function DataComponentPage({
             label: 'Components',
             href: `/${tenantId}/projects/${projectId}/components`,
           },
-          { label: dataComponent.name },
+          dataComponent.name,
         ]}
         className="max-w-2xl mx-auto"
       >

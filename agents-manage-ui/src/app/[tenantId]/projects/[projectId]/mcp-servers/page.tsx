@@ -45,7 +45,7 @@ async function MCPServersPage({
         linkText="Create MCP server"
       />
     );
-    return <BodyTemplate breadcrumbs={[{ label: 'MCP servers' }]}>{content}</BodyTemplate>;
+    return <BodyTemplate breadcrumbs={['MCP servers']}>{content}</BodyTemplate>;
   } catch (error) {
     return <FullPageError errorCode={getErrorCode(error)} context="MCP servers" />;
   }

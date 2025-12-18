@@ -62,7 +62,7 @@ async function CredentialsPage({
         icon={<CredentialsIcon />}
       />
     );
-    return <BodyTemplate breadcrumbs={[{ label: 'Credentials' }]}>{content}</BodyTemplate>;
+    return <BodyTemplate breadcrumbs={['Credentials']}>{content}</BodyTemplate>;
   } catch (error) {
     return <FullPageError errorCode={getErrorCode(error)} context="credentials" />;
   }

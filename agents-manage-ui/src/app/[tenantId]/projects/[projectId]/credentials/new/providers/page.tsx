@@ -49,7 +49,7 @@ async function ProvidersPage({
             label: 'New credential',
             href: `/${tenantId}/projects/${projectId}/credentials/new`,
           },
-          { label: 'Providers' },
+          'Providers',
         ]}
       >
         <NangoProvidersGrid providers={providers} />

@@ -23,7 +23,7 @@ export default async function ArtifactComponentPage({
             label: 'Artifacts',
             href: `/${tenantId}/projects/${projectId}/artifacts`,
           },
-          { label: name },
+          name,
         ]}
       >
         <ArtifactComponentForm

@@ -8,9 +8,7 @@ import { Button } from '@/components/ui/button';
 export default function FullPageError({ statusCode, errorCode, ...props }: FullPageErrorProps) {
   const resolvedStatusCode = statusCode ?? getStatusCodeFromErrorCode(errorCode);
   return (
-    <BodyTemplate
-      breadcrumbs={[{ label: resolvedStatusCode ? `${resolvedStatusCode} Error` : 'Error' }]}
-    >
+    <BodyTemplate breadcrumbs={[resolvedStatusCode ? `${resolvedStatusCode} Error` : 'Error']}>
       <ErrorContent statusCode={resolvedStatusCode} errorCode={errorCode} {...props} />
     </BodyTemplate>
   );

@@ -183,7 +183,7 @@ function ProviderSetupPage({
           label: 'Providers',
           href: `/${tenantId}/projects/${projectId}/credentials/new/providers`,
         },
-        { label: provider.display_name },
+        provider.display_name,
       ]}
       className="max-w-2xl mx-auto"
     >

@@ -101,7 +101,7 @@ async function NewCredentialsPage({
           label: 'Credentials',
           href: `/${tenantId}/projects/${projectId}/credentials`,
         },
-        { label: 'New credential' },
+        'New credential',
       ]}
     >
       {pageHeaderComponent}

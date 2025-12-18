@@ -25,7 +25,7 @@ export default function AICallsPage() {
     <BodyTemplate
       breadcrumbs={[
         { label: 'Traces', href: `/${tenantId}/projects/${projectId}/traces` },
-        { label: 'AI Calls Breakdown' },
+        'AI Calls Breakdown',
       ]}
     >
       <AICallsBreakdown onBack={handleBackToTraces} />

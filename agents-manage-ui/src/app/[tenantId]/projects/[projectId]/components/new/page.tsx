@@ -12,7 +12,7 @@ async function NewDataComponentPage({
           label: 'Components',
           href: `/${tenantId}/projects/${projectId}/components`,
         },
-        { label: 'New Component' },
+        'New Component',
       ]}
       className="max-w-2xl mx-auto"
     >

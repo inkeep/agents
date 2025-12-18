@@ -39,7 +39,7 @@ async function EditCredentialsPage({
             label: 'Credentials',
             href: `/${tenantId}/projects/${projectId}/credentials`,
           },
-          { label: 'Edit' },
+          'Edit',
         ]}
         className="max-w-2xl mx-auto"
       >

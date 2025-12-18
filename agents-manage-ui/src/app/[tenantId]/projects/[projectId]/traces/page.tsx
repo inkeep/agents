@@ -8,7 +8,7 @@ function TracesPage() {
   const [refreshKey, _setRefreshKey] = useState(0);
 
   return (
-    <BodyTemplate breadcrumbs={[{ label: 'Traces' }]}>
+    <BodyTemplate breadcrumbs={['Traces']}>
       <TracesOverview key={`overview-${refreshKey}`} refreshKey={refreshKey} />
     </BodyTemplate>
   );

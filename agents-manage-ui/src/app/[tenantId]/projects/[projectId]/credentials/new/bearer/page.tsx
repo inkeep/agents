@@ -16,7 +16,7 @@ async function NewBearerCredentialsPage({
           label: 'New credential',
           href: `/${tenantId}/projects/${projectId}/credentials/new`,
         },
-        { label: 'Bearer' },
+        'Bearer',
       ]}
       className="max-w-2xl mx-auto"
     >

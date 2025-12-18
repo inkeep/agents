@@ -20,7 +20,7 @@ export default function ConversationPage() {
     <BodyTemplate
       breadcrumbs={[
         { label: 'Traces', href: `/${tenantId}/projects/${projectId}/traces` },
-        { label: 'Conversation' },
+        'Conversation',
       ]}
     >
       <ConversationDetail conversationId={conversationId} onBack={handleBackToTraces} />

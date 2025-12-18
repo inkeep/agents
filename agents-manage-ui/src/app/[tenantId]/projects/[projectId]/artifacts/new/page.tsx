@@ -12,7 +12,7 @@ async function NewArtifactComponentPage({
           label: 'Artifacts',
           href: `/${tenantId}/projects/${projectId}/artifacts`,
         },
-        { label: 'New Artifact' },
+        'New Artifact',
       ]}
     >
       <ArtifactComponentForm tenantId={tenantId} projectId={projectId} />
