@@ -6,6 +6,12 @@
       "VERCEL_CLI_VERSION": "https://vercel-9t9860svl.vercel.sh/tarballs/vercel.tgz"
     }
   },
+  "rewrites": [
+    {
+      "source": "/index",
+      "destination": "/.well-known/workflow/v1/flow"
+    }
+  ],
   "functions": {
     "*": {
       "experimentalTriggers": [
