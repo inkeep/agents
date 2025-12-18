@@ -3986,7 +3986,7 @@ app.post('/trigger', async (c) => {
   } catch (parseError) {
     return c.json(
       createApiError({
-        code: 'validation_error',
+        code: 'bad_request',
         message: 'Invalid request body',
       }),
       400
@@ -4006,13 +4006,14 @@ app.post('/trigger', async (c) => {
     );
 
     // Start the evaluation workflow
-    await start(evaluateConversationWorkflow, [{
-      tenantId,
-      projectId,
+    const payload = {
+      tenantId: tenantId as string,
+      projectId: projectId as string,
       conversationId: body.conversationId,
       evaluatorIds: body.evaluatorIds,
       evaluationRunId: body.evaluationRunId,
-    }]);
+    };
+    await start(evaluateConversationWorkflow, [payload]);
 
     return c.json({
       success: true,
