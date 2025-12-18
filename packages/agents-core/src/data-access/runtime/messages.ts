@@ -10,7 +10,8 @@ import type {
 } from '../../types/index';
 
 export const getMessageById =
-  (db: AgentsRunDatabaseClient) => async (params: { scopes: ProjectScopeConfig; messageId: string }) => {
+  (db: AgentsRunDatabaseClient) =>
+  async (params: { scopes: ProjectScopeConfig; messageId: string }) => {
     return db.query.messages.findFirst({
       where: and(
         eq(messages.tenantId, params.scopes.tenantId),
@@ -166,7 +167,8 @@ export const updateMessage =
   };
 
 export const deleteMessage =
-  (db: AgentsRunDatabaseClient) => async (params: { scopes: ProjectScopeConfig; messageId: string }) => {
+  (db: AgentsRunDatabaseClient) =>
+  async (params: { scopes: ProjectScopeConfig; messageId: string }) => {
     const [deleted] = await db
       .delete(messages)
       .where(

@@ -73,37 +73,38 @@ export const listContextConfigsPaginated =
     };
   };
 
-export const createContextConfig = (db: AgentsManageDatabaseClient) => async (params: ContextConfigInsert) => {
-  const id = params.id || generateId();
-  const now = new Date().toISOString();
+export const createContextConfig =
+  (db: AgentsManageDatabaseClient) => async (params: ContextConfigInsert) => {
+    const id = params.id || generateId();
+    const now = new Date().toISOString();
 
-  // Process contextVariables: empty object should be treated as null for consistency
-  let contextVariables = params.contextVariables;
-  if (
-    contextVariables !== undefined &&
-    contextVariables !== null &&
-    typeof contextVariables === 'object' &&
-    Object.keys(contextVariables).length === 0
-  ) {
-    contextVariables = null;
-  }
+    // Process contextVariables: empty object should be treated as null for consistency
+    let contextVariables = params.contextVariables;
+    if (
+      contextVariables !== undefined &&
+      contextVariables !== null &&
+      typeof contextVariables === 'object' &&
+      Object.keys(contextVariables).length === 0
+    ) {
+      contextVariables = null;
+    }
 
-  const contextConfig = await db
-    .insert(contextConfigs)
-    .values({
-      id,
-      tenantId: params.tenantId,
-      projectId: params.projectId,
-      agentId: params.agentId,
-      headersSchema: (params.headersSchema ?? null) as any,
-      contextVariables: (contextVariables ?? null) as any,
-      createdAt: now,
-      updatedAt: now,
-    })
-    .returning();
+    const contextConfig = await db
+      .insert(contextConfigs)
+      .values({
+        id,
+        tenantId: params.tenantId,
+        projectId: params.projectId,
+        agentId: params.agentId,
+        headersSchema: (params.headersSchema ?? null) as any,
+        contextVariables: (contextVariables ?? null) as any,
+        createdAt: now,
+        updatedAt: now,
+      })
+      .returning();
 
-  return contextConfig[0];
-};
+    return contextConfig[0];
+  };
 
 export const updateContextConfig =
   (db: AgentsManageDatabaseClient) =>

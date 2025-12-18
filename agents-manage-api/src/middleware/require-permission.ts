@@ -30,7 +30,9 @@ function formatPermissionsForDisplay(permissions: Permission): string[] {
   return formatted;
 }
 
-export const requirePermission = <Env extends { Variables: BaseAppVariables } = { Variables: BaseAppVariables }>(
+export const requirePermission = <
+  Env extends { Variables: BaseAppVariables } = { Variables: BaseAppVariables },
+>(
   permissions: Permission
 ) =>
   createMiddleware<Env>(async (c, next) => {

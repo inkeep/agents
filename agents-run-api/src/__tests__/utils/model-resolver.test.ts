@@ -88,7 +88,10 @@ describe('resolveModelConfig', () => {
         },
       } as any;
 
-      const result = await resolveModelConfig(createExecutionContext({ agentId: mockAgentId }), subAgent);
+      const result = await resolveModelConfig(
+        createExecutionContext({ agentId: mockAgentId }),
+        subAgent
+      );
 
       expect(result).toEqual({
         base: { model: 'gpt-4' },
@@ -107,7 +110,10 @@ describe('resolveModelConfig', () => {
         },
       } as any;
 
-      const result = await resolveModelConfig(createExecutionContext({ agentId: mockAgentId }), subAgent);
+      const result = await resolveModelConfig(
+        createExecutionContext({ agentId: mockAgentId }),
+        subAgent
+      );
 
       expect(result).toEqual({
         base: { model: 'gpt-4' },
@@ -126,7 +132,10 @@ describe('resolveModelConfig', () => {
         },
       } as any;
 
-      const result = await resolveModelConfig(createExecutionContext({ agentId: mockAgentId }), subAgent);
+      const result = await resolveModelConfig(
+        createExecutionContext({ agentId: mockAgentId }),
+        subAgent
+      );
 
       expect(result).toEqual({
         base: { model: 'gpt-4' },

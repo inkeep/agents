@@ -5,7 +5,8 @@ import type { SubAgentInsert, SubAgentSelect, SubAgentUpdate } from '../../types
 import type { AgentScopeConfig, PaginationConfig } from '../../types/utility';
 
 export const getSubAgentById =
-  (db: AgentsManageDatabaseClient) => async (params: { scopes: AgentScopeConfig; subAgentId: string }) => {
+  (db: AgentsManageDatabaseClient) =>
+  async (params: { scopes: AgentScopeConfig; subAgentId: string }) => {
     const result = await db.query.subAgents.findFirst({
       where: and(
         eq(subAgents.tenantId, params.scopes.tenantId),
@@ -16,7 +17,6 @@ export const getSubAgentById =
     });
     return result;
   };
-
 
 export const listSubAgents =
   (db: AgentsManageDatabaseClient) => async (params: { scopes: AgentScopeConfig }) => {
@@ -62,8 +62,9 @@ export const listSubAgentsPaginated =
     };
   };
 
-export const createSubAgent = (db: AgentsManageDatabaseClient) => async (params: SubAgentInsert) => {
-  const agent = await db.insert(subAgents).values(params).returning();
+export const createSubAgent =
+  (db: AgentsManageDatabaseClient) => async (params: SubAgentInsert) => {
+    const agent = await db.insert(subAgents).values(params).returning();
 
     return agent[0];
   };
@@ -107,8 +108,7 @@ export const updateSubAgent =
       .returning();
 
     return agent[0] ?? null;
-  }
-
+  };
 
 /**
  * Upsert agent (create if it doesn't exist, update if it does)
@@ -196,10 +196,11 @@ export const deleteSubAgent =
       subAgentId: params.subAgentId,
     });
     return deletedSubAgent === undefined;
-  }
+  };
 
 export const getSubAgentsByIds =
-  (db: AgentsManageDatabaseClient) => async (params: { scopes: AgentScopeConfig; subAgentIds: string[] }) => {
+  (db: AgentsManageDatabaseClient) =>
+  async (params: { scopes: AgentScopeConfig; subAgentIds: string[] }) => {
     if (params.subAgentIds.length === 0) {
       return [];
     }

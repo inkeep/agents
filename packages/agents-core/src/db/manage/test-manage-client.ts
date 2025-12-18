@@ -5,13 +5,14 @@ import type { AgentsManageDatabaseClient } from './manage-client';
 import * as schema from './manage-schema';
 import { sql } from 'drizzle-orm';
 
-
 /**
  * Creates a test database client using an in-memory PostgreSQL database (PGlite)
  * This provides real database operations for integration testing with perfect isolation
  * Each call creates a fresh database with all migrations applied
  */
-export async function createTestManageDatabaseClient(drizzleDir: string): Promise<AgentsManageDatabaseClient> {
+export async function createTestManageDatabaseClient(
+  drizzleDir: string
+): Promise<AgentsManageDatabaseClient> {
   const client = new PGlite();
   const db = drizzle(client, { schema });
 
@@ -32,8 +33,6 @@ export function createTestManageDatabaseClientNoMigrations(): AgentsManageDataba
 
   return db;
 }
-
-
 
 /**
  * Cleans up test database by removing all data but keeping schema
@@ -79,7 +78,6 @@ export async function closeTestManageDatabase(db: AgentsManageDatabaseClient): P
   }
 }
 
-
 /**
  * Creates a test project in the database
  * NOTE: original implementation ensured the organization exists first but that is a runtime db entity now
@@ -89,7 +87,6 @@ export async function createTestProject(
   tenantId: string,
   projectId = 'default'
 ): Promise<void> {
-
   await db
     .insert(schema.projects)
     .values({

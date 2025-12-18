@@ -1,8 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import {
-  type ParsedHttpRequest,
-  validateHttpRequestHeaders,
-} from '../../context/validation';
+import { type ParsedHttpRequest, validateHttpRequestHeaders } from '../../context/validation';
 
 describe('Schema Key Filtering - Headers Only', () => {
   it('should filter out extra headers not defined in schema', async () => {
@@ -240,4 +237,3 @@ describe('Schema Key Filtering - Headers Only', () => {
     });
   });
 });
-

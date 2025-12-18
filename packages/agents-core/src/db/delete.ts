@@ -7,11 +7,12 @@ import { createAgentsRunDatabaseClient } from './runtime/runtime-client';
  * Drops all tables, sequences, types, and functions from the public schema
  * WARNING: This is destructive and cannot be undone!
  */
-export async function deleteDatabase( type: 'manage' | 'run' ) {
+export async function deleteDatabase(type: 'manage' | 'run') {
   console.log(`🗑️  Deleting all database objects for environment: ${env.ENVIRONMENT}`);
   console.log('---');
 
-  const dbClient = type === 'manage' ? createAgentsManageDatabaseClient({}) : createAgentsRunDatabaseClient({});
+  const dbClient =
+    type === 'manage' ? createAgentsManageDatabaseClient({}) : createAgentsRunDatabaseClient({});
 
   try {
     // Drop the entire public schema and everything in it

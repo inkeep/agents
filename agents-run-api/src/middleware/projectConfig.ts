@@ -1,13 +1,10 @@
-import {
-  type FullExecutionContext
-} from '@inkeep/agents-core';
+import { type FullExecutionContext } from '@inkeep/agents-core';
 import { createMiddleware } from 'hono/factory';
 import { getFullProject, getResolvedRef, ManageApiError } from '../api/manage-api';
 import { env } from '../env';
 import { getLogger } from '../logger';
 
 const logger = getLogger('projectConfigMiddleware');
-
 
 /**
  * Middleware that fetches the full project definition from the Management API
@@ -39,9 +36,9 @@ export const projectConfigMiddleware = createMiddleware<{
     };
 
     const resolvedRef = await getResolvedRef(manageApiConfig)({
-        scopes: { tenantId, projectId },
-        ref,
-      });
+      scopes: { tenantId, projectId },
+      ref,
+    });
 
     if (!resolvedRef) {
       throw new Error('Resolved ref not found');
@@ -49,14 +46,15 @@ export const projectConfigMiddleware = createMiddleware<{
 
     //TODO: support tag and commit refs (just branch for now)
     if (resolvedRef.type !== 'branch') {
-      throw new Error(`Runtime operations require a branch ref. Got ${resolvedRef.type} '${resolvedRef.name}'.`)
+      throw new Error(
+        `Runtime operations require a branch ref. Got ${resolvedRef.type} '${resolvedRef.name}'.`
+      );
     }
 
     const projectConfig = await getFullProject(manageApiConfig)({
       scopes: { tenantId, projectId },
       ref: resolvedRef.name,
     });
-
 
     c.set('executionContext', {
       ...executionContext,
@@ -126,6 +124,3 @@ export const projectConfigMiddleware = createMiddleware<{
     );
   }
 });
-
-
-

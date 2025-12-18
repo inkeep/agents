@@ -1,11 +1,6 @@
 import { and, eq, inArray, sql } from 'drizzle-orm';
 import type { AgentsRunDatabaseClient } from '../../db/runtime/runtime-client';
-import {
-  conversations,
-  tasks,
-  contextCache,
-  apiKeys,
-} from '../../db/runtime/runtime-schema';
+import { conversations, tasks, contextCache, apiKeys } from '../../db/runtime/runtime-schema';
 import type { ProjectScopeConfig, AgentScopeConfig } from '../../types/index';
 
 /**
@@ -133,9 +128,7 @@ export const cascadeDeleteByProject =
     // Delete all API keys for this project (API keys are branch-agnostic)
     const apiKeysResult = await db
       .delete(apiKeys)
-      .where(
-        and(eq(apiKeys.tenantId, scopes.tenantId), eq(apiKeys.projectId, scopes.projectId))
-      )
+      .where(and(eq(apiKeys.tenantId, scopes.tenantId), eq(apiKeys.projectId, scopes.projectId)))
       .returning();
 
     return {

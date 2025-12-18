@@ -168,27 +168,27 @@ async function handleMessageSend(
       },
       'A2A contextId resolution for delegation'
     );
-        await createTask(dbClient)({
-          id: task.id,
-          tenantId: agent.tenantId,
-          projectId: agent.projectId,
-          agentId: agentId || '',
-          contextId: effectiveContextId,
-          status: 'working',
-          metadata: {
-            conversation_id: effectiveContextId,
-            message_id: params.message.messageId || '',
-            created_at: new Date().toISOString(),
-            updated_at: new Date().toISOString(),
-            sub_agent_id: agent.subAgentId,
-            agent_id: agentId || '',
-            stream_request_id: params.message.metadata?.stream_request_id,
-          },
-          ref: resolvedRef,
-          subAgentId: agent.subAgentId,
-          createdAt: new Date().toISOString(),
-          updatedAt: new Date().toISOString(),
-        });
+    await createTask(dbClient)({
+      id: task.id,
+      tenantId: agent.tenantId,
+      projectId: agent.projectId,
+      agentId: agentId || '',
+      contextId: effectiveContextId,
+      status: 'working',
+      metadata: {
+        conversation_id: effectiveContextId,
+        message_id: params.message.messageId || '',
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+        sub_agent_id: agent.subAgentId,
+        agent_id: agentId || '',
+        stream_request_id: params.message.metadata?.stream_request_id,
+      },
+      ref: resolvedRef,
+      subAgentId: agent.subAgentId,
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    });
 
     logger.info({ metadata: params.message.metadata }, 'message metadata');
 
@@ -260,22 +260,20 @@ async function handleMessageSend(
 
     const result = await agent.taskHandler(task);
 
-
-      await updateTask(dbClient)({
-        taskId: task.id,
-        data: {
-          status: result.status.state.toLowerCase(),
-          metadata: {
-            conversation_id: params.message.contextId || '',
-            message_id: params.message.messageId || '',
-            created_at: new Date().toISOString(),
-            updated_at: new Date().toISOString(),
-            sub_agent_id: agent.subAgentId,
-            agent_id: agentId || '',
-          },
+    await updateTask(dbClient)({
+      taskId: task.id,
+      data: {
+        status: result.status.state.toLowerCase(),
+        metadata: {
+          conversation_id: params.message.contextId || '',
+          message_id: params.message.messageId || '',
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString(),
+          sub_agent_id: agent.subAgentId,
+          agent_id: agentId || '',
         },
-      });
-
+      },
+    });
 
     const transferArtifact = result.artifacts?.find((artifact) =>
       artifact.parts?.some(

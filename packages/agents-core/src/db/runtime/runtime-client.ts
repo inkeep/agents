@@ -20,11 +20,12 @@ export interface AgentsRunDatabaseConfig {
   };
 }
 
-
 /**
  * Creates a PostgreSQL database client with connection pooling
  */
-export function createAgentsRunDatabaseClient(config: AgentsRunDatabaseConfig): AgentsRunDatabaseClient {
+export function createAgentsRunDatabaseClient(
+  config: AgentsRunDatabaseConfig
+): AgentsRunDatabaseClient {
   let connectionString = config.connectionString || process.env.AGENTS_RUN_DATABASE_URL;
 
   if (env.ENVIRONMENT === 'test') {

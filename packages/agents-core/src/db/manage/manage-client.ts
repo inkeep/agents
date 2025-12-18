@@ -9,7 +9,9 @@ import * as schema from './manage-schema';
 loadEnvironmentFiles();
 
 // Union type that accepts both production (node-postgres) and test (PGlite) clients
-export type AgentsManageDatabaseClient = NodePgDatabase<typeof schema> | PgliteDatabase<typeof schema>;
+export type AgentsManageDatabaseClient =
+  | NodePgDatabase<typeof schema>
+  | PgliteDatabase<typeof schema>;
 
 export interface AgentsManageDatabaseConfig {
   connectionString?: string;
@@ -20,11 +22,12 @@ export interface AgentsManageDatabaseConfig {
   };
 }
 
-
 /**
  * Creates a PostgreSQL database client with connection pooling
  */
-export function createAgentsManageDatabaseClient(config: AgentsManageDatabaseConfig): AgentsManageDatabaseClient {
+export function createAgentsManageDatabaseClient(
+  config: AgentsManageDatabaseConfig
+): AgentsManageDatabaseClient {
   let connectionString = config.connectionString || env.INKEEP_AGENTS_MANAGE_DATABASE_URL;
 
   if (env.ENVIRONMENT === 'test') {

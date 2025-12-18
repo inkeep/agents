@@ -73,7 +73,7 @@ export type InternalRelation = {
   name: string;
   description: string | null;
   relationType: 'transfer' | 'delegate';
-  relationId: string; 
+  relationId: string;
 };
 
 export type ExternalRelation = {
@@ -165,7 +165,8 @@ export function parseDelegateRelations(params: {
       const extAgentId = item.externalAgentId;
       const extHeaders = item.headers;
       const extRelationId = item.subAgentExternalAgentRelationId;
-      const externalAgent = agent.externalAgents?.[extAgentId] || project.externalAgents?.[extAgentId];
+      const externalAgent =
+        agent.externalAgents?.[extAgentId] || project.externalAgents?.[extAgentId];
       if (externalAgent) {
         externalRelations.push({
           externalAgent: {
@@ -220,7 +221,7 @@ export function getSubAgentRelations(params: {
   const { agent, project, subAgent } = params;
 
   const canTransferTo = subAgent.canTransferTo || [];
-  const canDelegateTo = subAgent.canDelegateTo || []
+  const canDelegateTo = subAgent.canDelegateTo || [];
 
   const transferRelations = extractTransferRelations({ agent, canTransferTo });
   const { internalDelegateRelations, externalRelations, teamRelations } = parseDelegateRelations({
@@ -268,7 +269,10 @@ export function getToolsForSubAgent(params: {
         tool,
         selectedTools: canUseItem.toolSelection,
         headers: canUseItem.headers,
-        toolPolicies: canUseItem.toolPolicies as Record<string, { needsApproval?: boolean }> | null | undefined,
+        toolPolicies: canUseItem.toolPolicies as
+          | Record<string, { needsApproval?: boolean }>
+          | null
+          | undefined,
         relationshipId: canUseItem.agentToolRelationId,
       };
     })
@@ -342,7 +346,14 @@ export function getTransferRelationsForTargetSubAgent(params: {
   return (targetSubAgent.canTransferTo || [])
     .map((relation) => {
       const target = agent.subAgents?.[relation.subAgentId];
-      return target ? { id: relation.subAgentId, name: target.name, description: target.description, relationId: relation.subAgentSubAgentRelationId } : null;
+      return target
+        ? {
+            id: relation.subAgentId,
+            name: target.name,
+            description: target.description,
+            relationId: relation.subAgentSubAgentRelationId,
+          }
+        : null;
     })
     .filter((r): r is TargetTransferRelation => r !== null);
 }
@@ -369,7 +380,8 @@ export function getExternalAgentRelationsForTargetSubAgent(params: {
     )
     .map((item) => {
       const extAgent =
-        agent.externalAgents?.[item.externalAgentId] || project.externalAgents?.[item.externalAgentId];
+        agent.externalAgents?.[item.externalAgentId] ||
+        project.externalAgents?.[item.externalAgentId];
       return extAgent
         ? {
             externalAgent: { ...extAgent, id: item.externalAgentId },
@@ -425,7 +437,15 @@ export function buildRelationsForDescription(params: {
   const internalRelations: RelationForDescription[] = canTransferTo
     .map((relation) => {
       const target = agent.subAgents?.[relation.subAgentId];
-      return target ? { id: relation.subAgentId, name: target.name, description: target.description, relationType: 'transfer' as const, relationId: relation.subAgentSubAgentRelationId } : null;
+      return target
+        ? {
+            id: relation.subAgentId,
+            name: target.name,
+            description: target.description,
+            relationType: 'transfer' as const,
+            relationId: relation.subAgentSubAgentRelationId,
+          }
+        : null;
     })
     .filter((r): r is NonNullable<typeof r> => r !== null);
 
@@ -467,7 +487,6 @@ export function enhanceInternalRelation(params: {
   relation: InternalRelation;
   agent: AgentWithinContextOfProjectSelectWithRelationIds;
   project: FullProjectSelectWithRelationIds;
-
 }): InternalRelation {
   const { relation, agent, project } = params;
 

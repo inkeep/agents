@@ -6,10 +6,7 @@ import { ContextFetcher, MissingRequiredVariableError } from '../../context/Cont
 const mockFetch = vi.fn();
 global.fetch = mockFetch;
 
-function createMockExecutionContext(overrides: {
-  tenantId?: string;
-  projectId?: string;
-} = {}) {
+function createMockExecutionContext(overrides: { tenantId?: string; projectId?: string } = {}) {
   const tenantId = overrides.tenantId ?? 'test-tenant';
   const projectId = overrides.projectId ?? 'test-project';
 
@@ -741,4 +738,3 @@ describe('ContextFetcher', () => {
     });
   });
 });
-

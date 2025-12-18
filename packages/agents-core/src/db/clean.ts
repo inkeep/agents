@@ -6,7 +6,9 @@ import { sql } from 'drizzle-orm';
  * Cleans up test database by removing all data but keeping schema
  * Dynamically gets all tables from the public schema and truncates them
  */
-export async function cleanupDatabase(db: AgentsManageDatabaseClient | AgentsRunDatabaseClient): Promise<void> {
+export async function cleanupDatabase(
+  db: AgentsManageDatabaseClient | AgentsRunDatabaseClient
+): Promise<void> {
   try {
     // Get all table names from the public schema
     const result = await db.execute(

@@ -10,7 +10,9 @@ import { sql } from 'drizzle-orm';
  * This provides real database operations for integration testing with perfect isolation
  * Each call creates a fresh database with all migrations applied
  */
-export async function createTestRuntimeDatabaseClient(drizzleDir: string): Promise<AgentsRunDatabaseClient> {
+export async function createTestRuntimeDatabaseClient(
+  drizzleDir: string
+): Promise<AgentsRunDatabaseClient> {
   const client = new PGlite();
   const db = drizzle(client, { schema });
 
@@ -31,8 +33,6 @@ export function createTestRuntimeDatabaseClientNoMigrations(): AgentsRunDatabase
 
   return db;
 }
-
-
 
 /**
  * Cleans up test database by removing all data but keeping schema
@@ -77,12 +77,14 @@ export async function closeTestRuntimeDatabase(db: AgentsRunDatabaseClient): Pro
   }
 }
 
-
 /**
  * Creates a test organization in the database
  * This is a helper for tests that need organization records before creating projects/agents
  */
-export async function createTestOrganization(db: AgentsRunDatabaseClient, tenantId: string): Promise<void> {
+export async function createTestOrganization(
+  db: AgentsRunDatabaseClient,
+  tenantId: string
+): Promise<void> {
   const slug = tenantId.replace(/^test-tenant-/, '').substring(0, 50);
 
   await db

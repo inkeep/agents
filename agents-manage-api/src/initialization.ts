@@ -18,7 +18,11 @@ export async function initializeDefaultUser(authInstance?: ReturnType<typeof cre
 
   // Upsert organization - get existing or create new (always happens regardless of auth)
   const orgId = env.TENANT_ID;
-  const existingOrg = await runDbClient.select().from(orgTable).where(eq(orgTable.id, orgId)).limit(1);
+  const existingOrg = await runDbClient
+    .select()
+    .from(orgTable)
+    .where(eq(orgTable.id, orgId))
+    .limit(1);
 
   if (existingOrg.length === 0) {
     await runDbClient.insert(orgTable).values({

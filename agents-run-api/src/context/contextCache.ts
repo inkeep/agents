@@ -58,15 +58,14 @@ export class ContextCache {
     requestHash?: string;
   }): Promise<CacheEntry | null> {
     try {
-
       let cacheEntry: ContextCacheSelect | null;
 
-        cacheEntry = await getCacheEntry(dbClient)({
-              conversationId,
-              contextConfigId,
-              contextVariableKey,
-              requestHash,
-        });
+      cacheEntry = await getCacheEntry(dbClient)({
+        conversationId,
+        contextConfigId,
+        contextVariableKey,
+        requestHash,
+      });
       if (!cacheEntry) {
         return null;
       }
@@ -184,7 +183,7 @@ export class ContextCache {
   ): Promise<void> {
     try {
       const result = await clearContextConfigCache(dbClient)({
-              scopes: { tenantId, projectId },
+        scopes: { tenantId, projectId },
         contextConfigId,
       });
 
@@ -242,12 +241,11 @@ export class ContextCache {
     definitionIds: string[]
   ): Promise<void> {
     const result = await invalidateInvocationDefinitionsCache(dbClient)({
-        scopes: { tenantId, projectId },
-        conversationId,
-        contextConfigId,
-        invocationDefinitionIds: definitionIds,
-      });
-
+      scopes: { tenantId, projectId },
+      conversationId,
+      contextConfigId,
+      invocationDefinitionIds: definitionIds,
+    });
   }
 
   async invalidateHeaders(
@@ -257,10 +255,9 @@ export class ContextCache {
     contextConfigId: string
   ): Promise<void> {
     const result = await invalidateHeadersCache(dbClient)({
-            scopes: { tenantId, projectId },
-        conversationId,
-        contextConfigId,
-      });
+      scopes: { tenantId, projectId },
+      conversationId,
+      contextConfigId,
+    });
   }
 }
-

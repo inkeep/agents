@@ -163,4 +163,3 @@ export function hasIssuer(token: string, issuer: string): boolean {
   const payload = decodeJwtPayload(token);
   return payload?.iss === issuer;
 }
-

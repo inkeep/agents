@@ -15,7 +15,7 @@ import { testManageDbClient } from '../setup';
 
 describe('projectFull data access', () => {
   let db: AgentsManageDatabaseClient;
-  let runDb: AgentsRunDatabaseClient
+  let runDb: AgentsRunDatabaseClient;
   const tenantId = `tenant-${generateId()}`;
 
   beforeEach(async () => {
@@ -251,7 +251,10 @@ describe('projectFull data access', () => {
       const originalData = createTestProjectDefinition(projectId);
 
       // Create the project first
-      await createFullProjectServerSide(db)({ scopes: { tenantId, projectId }, projectData: originalData });
+      await createFullProjectServerSide(db)({
+        scopes: { tenantId, projectId },
+        projectData: originalData,
+      });
 
       // Update it
       const updatedData = {
@@ -291,7 +294,10 @@ describe('projectFull data access', () => {
       const originalData = createTestProjectDefinition(projectId);
 
       // Create the project first
-      await createFullProjectServerSide(db)({ scopes: { tenantId, projectId }, projectData: originalData });
+      await createFullProjectServerSide(db)({
+        scopes: { tenantId, projectId },
+        projectData: originalData,
+      });
 
       // Update with new models and stopWhen
       const updatedData = {
@@ -351,7 +357,10 @@ describe('projectFull data access', () => {
         },
       };
 
-      await createFullProjectServerSide(db)({ scopes: { tenantId, projectId }, projectData: projectWithTools });
+      await createFullProjectServerSide(db)({
+        scopes: { tenantId, projectId },
+        projectData: projectWithTools,
+      });
 
       let result = await getFullProject(db)({
         scopes: { tenantId, projectId },
@@ -403,7 +412,10 @@ describe('projectFull data access', () => {
         },
       };
 
-      await createFullProjectServerSide(db)({ scopes: { tenantId, projectId }, projectData: projectWithFunctions });
+      await createFullProjectServerSide(db)({
+        scopes: { tenantId, projectId },
+        projectData: projectWithFunctions,
+      });
 
       let result = await getFullProject(db)({
         scopes: { tenantId, projectId },
@@ -718,7 +730,10 @@ describe('projectFull data access', () => {
         },
       };
 
-      await createFullProjectServerSide(db)({ scopes: { tenantId, projectId }, projectData: projectWithAgents });
+      await createFullProjectServerSide(db)({
+        scopes: { tenantId, projectId },
+        projectData: projectWithAgents,
+      });
 
       let result = await getFullProject(db)({
         scopes: { tenantId, projectId },
@@ -769,7 +784,10 @@ describe('projectFull data access', () => {
         },
       };
 
-      await createFullProjectServerSide(db)({ scopes: { tenantId, projectId }, projectData: projectWithTools });
+      await createFullProjectServerSide(db)({
+        scopes: { tenantId, projectId },
+        projectData: projectWithTools,
+      });
 
       let result = await getFullProject(db)({
         scopes: { tenantId, projectId },

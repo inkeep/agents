@@ -1,4 +1,4 @@
-import { createRoute, OpenAPIHono} from '@hono/zod-openapi';
+import { createRoute, OpenAPIHono } from '@hono/zod-openapi';
 import {
   AgentApiInsertSchema,
   AgentApiUpdateSchema,
@@ -248,14 +248,14 @@ app.openapi(
     const validatedBody = c.req.valid('json');
 
     try {
-    const agent = await createAgent(db)({
-      tenantId,
-      projectId,
-      id: validatedBody.id || generateId(),
-      name: validatedBody.name,
-      defaultSubAgentId: validatedBody.defaultSubAgentId,
-      contextConfigId: validatedBody.contextConfigId ?? undefined,
-    });
+      const agent = await createAgent(db)({
+        tenantId,
+        projectId,
+        id: validatedBody.id || generateId(),
+        name: validatedBody.name,
+        defaultSubAgentId: validatedBody.defaultSubAgentId,
+        contextConfigId: validatedBody.contextConfigId ?? undefined,
+      });
 
       return c.json({ data: agent }, 201);
     } catch (error: any) {

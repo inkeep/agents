@@ -12,7 +12,8 @@ const logger = getLogger('functionTools');
  * Get a function tool by ID (agent-scoped)
  */
 export const getFunctionToolById =
-  (db: AgentsManageDatabaseClient) => async (params: { scopes: AgentScopeConfig; functionToolId: string }) => {
+  (db: AgentsManageDatabaseClient) =>
+  async (params: { scopes: AgentScopeConfig; functionToolId: string }) => {
     const result = await db
       .select()
       .from(functionTools)
@@ -127,7 +128,8 @@ export const updateFunctionTool =
  * Delete a function tool (agent-scoped)
  */
 export const deleteFunctionTool =
-  (db: AgentsManageDatabaseClient) => async (params: { scopes: AgentScopeConfig; functionToolId: string }) => {
+  (db: AgentsManageDatabaseClient) =>
+  async (params: { scopes: AgentScopeConfig; functionToolId: string }) => {
     const [deleted] = await db
       .delete(functionTools)
       .where(
@@ -307,14 +309,17 @@ export const addFunctionToolToSubAgent = (db: AgentsManageDatabaseClient) => {
     try {
       const relationId = generateId();
 
-      const [result] = await db.insert(subAgentFunctionToolRelations).values({
-        id: relationId,
-        tenantId,
-        projectId,
-        agentId,
-        subAgentId,
-        functionToolId,
-      }).returning();
+      const [result] = await db
+        .insert(subAgentFunctionToolRelations)
+        .values({
+          id: relationId,
+          tenantId,
+          projectId,
+          agentId,
+          subAgentId,
+          functionToolId,
+        })
+        .returning();
 
       logger.info(
         { tenantId, projectId, agentId, subAgentId, functionToolId, relationId },
@@ -383,10 +388,7 @@ export const updateSubAgentFunctionToolRelation = (db: AgentsManageDatabaseClien
  * Get all sub-agents that use a specific function tool
  */
 export const getSubAgentsUsingFunctionTool = (db: AgentsManageDatabaseClient) => {
-  return async (params: {
-    scopes: AgentScopeConfig;
-    functionToolId: string;
-  }) => {
+  return async (params: { scopes: AgentScopeConfig; functionToolId: string }) => {
     const { scopes, functionToolId } = params;
     const { tenantId, projectId, agentId } = scopes;
 

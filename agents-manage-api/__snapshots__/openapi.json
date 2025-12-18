@@ -550,6 +550,126 @@
         ],
         "type": "object"
       },
+      "AgentWithinContextOfProjectSelect": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/Agent"
+          },
+          {
+            "properties": {
+              "contextConfig": {
+                "allOf": [
+                  {
+                    "$ref": "#/components/schemas/ContextConfig"
+                  },
+                  {
+                    "nullable": true
+                  }
+                ]
+              },
+              "externalAgents": {
+                "additionalProperties": {
+                  "$ref": "#/components/schemas/ExternalAgent"
+                },
+                "nullable": true,
+                "type": "object"
+              },
+              "functionTools": {
+                "additionalProperties": {
+                  "$ref": "#/components/schemas/FunctionTool"
+                },
+                "nullable": true,
+                "type": "object"
+              },
+              "functions": {
+                "additionalProperties": {
+                  "$ref": "#/components/schemas/Function"
+                },
+                "nullable": true,
+                "type": "object"
+              },
+              "models": {
+                "allOf": [
+                  {
+                    "$ref": "#/components/schemas/Model"
+                  },
+                  {
+                    "nullable": true
+                  }
+                ]
+              },
+              "statusUpdates": {
+                "allOf": [
+                  {
+                    "$ref": "#/components/schemas/StatusUpdate"
+                  },
+                  {
+                    "nullable": true
+                  }
+                ]
+              },
+              "stopWhen": {
+                "allOf": [
+                  {
+                    "$ref": "#/components/schemas/AgentStopWhen"
+                  },
+                  {
+                    "nullable": true
+                  }
+                ]
+              },
+              "subAgents": {
+                "additionalProperties": {
+                  "$ref": "#/components/schemas/FullAgentSubAgentSelect"
+                },
+                "type": "object"
+              },
+              "teamAgents": {
+                "additionalProperties": {
+                  "$ref": "#/components/schemas/TeamAgent"
+                },
+                "nullable": true,
+                "type": "object"
+              },
+              "tools": {
+                "additionalProperties": {
+                  "$ref": "#/components/schemas/Tool"
+                },
+                "nullable": true,
+                "type": "object"
+              }
+            },
+            "required": [
+              "subAgents",
+              "tools",
+              "externalAgents",
+              "teamAgents",
+              "functionTools",
+              "functions",
+              "contextConfig"
+            ],
+            "type": "object"
+          }
+        ]
+      },
+      "AgentWithinContextOfProjectSelectWithRelationIds": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/AgentWithinContextOfProjectSelect"
+          },
+          {
+            "properties": {
+              "subAgents": {
+                "additionalProperties": {
+                  "$ref": "#/components/schemas/FullAgentSubAgentSelectWithRelationIds"
+                },
+                "type": "object"
+              }
+            },
+            "type": "object"
+          }
+        ]
+      },
       "ApiKey": {
         "properties": {
           "agentId": {
@@ -970,7 +1090,76 @@
           }
         ]
       },
+      "BranchInfo": {
+        "properties": {
+          "baseName": {
+            "description": "User-provided branch name",
+            "type": "string"
+          },
+          "fullName": {
+            "description": "Full namespaced branch name",
+            "type": "string"
+          },
+          "hash": {
+            "description": "Current commit hash of the branch",
+            "type": "string"
+          }
+        },
+        "required": [
+          "baseName",
+          "fullName",
+          "hash"
+        ],
+        "type": "object"
+      },
+      "BranchListResponse": {
+        "properties": {
+          "data": {
+            "items": {
+              "$ref": "#/components/schemas/BranchInfo"
+            },
+            "type": "array"
+          }
+        },
+        "required": [
+          "data"
+        ],
+        "type": "object"
+      },
+      "BranchResponse": {
+        "properties": {
+          "data": {
+            "$ref": "#/components/schemas/BranchInfo"
+          }
+        },
+        "required": [
+          "data"
+        ],
+        "type": "object"
+      },
       "CanDelegateToExternalAgent": {
+        "properties": {
+          "externalAgentId": {
+            "type": "string"
+          },
+          "headers": {
+            "additionalProperties": {
+              "type": "string"
+            },
+            "nullable": true,
+            "type": "object"
+          },
+          "subAgentExternalAgentRelationId": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "externalAgentId",
+          "subAgentExternalAgentRelationId"
+        ],
+        "type": "object"
+      },
+      "CanDelegateToExternalAgentInsert": {
         "properties": {
           "externalAgentId": {
             "type": "string"
@@ -1008,7 +1197,44 @@
           }
         },
         "required": [
+          "agentId",
+          "subAgentTeamAgentRelationId"
+        ],
+        "type": "object"
+      },
+      "CanDelegateToTeamAgentInsert": {
+        "properties": {
+          "agentId": {
+            "type": "string"
+          },
+          "headers": {
+            "additionalProperties": {
+              "type": "string"
+            },
+            "nullable": true,
+            "type": "object"
+          },
+          "subAgentTeamAgentRelationId": {
+            "type": "string"
+          }
+        },
+        "required": [
           "agentId"
+        ],
+        "type": "object"
+      },
+      "CanRelateToInternalSubAgent": {
+        "properties": {
+          "subAgentId": {
+            "type": "string"
+          },
+          "subAgentSubAgentRelationId": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "subAgentId",
+          "subAgentSubAgentRelationId"
         ],
         "type": "object"
       },
@@ -1239,6 +1465,26 @@
         },
         "required": [
           "data"
+        ],
+        "type": "object"
+      },
+      "CreateBranchRequest": {
+        "properties": {
+          "from": {
+            "description": "Branch or commit to create from. Defaults to tenant main branch.",
+            "type": "string"
+          },
+          "name": {
+            "description": "Name of the branch",
+            "example": "feature-x",
+            "maxLength": 255,
+            "minLength": 1,
+            "pattern": "^[a-zA-Z0-9\\-_./]+$",
+            "type": "string"
+          }
+        },
+        "required": [
+          "name"
         ],
         "type": "object"
       },
@@ -2372,10 +2618,10 @@
                       "type": "string"
                     },
                     {
-                      "$ref": "#/components/schemas/CanDelegateToExternalAgent"
+                      "$ref": "#/components/schemas/CanDelegateToExternalAgentInsert"
                     },
                     {
-                      "$ref": "#/components/schemas/CanDelegateToTeamAgent"
+                      "$ref": "#/components/schemas/CanDelegateToTeamAgentInsert"
                     }
                   ]
                 },
@@ -2413,6 +2659,112 @@
               "type",
               "canUse"
             ],
+            "type": "object"
+          }
+        ]
+      },
+      "FullAgentSubAgentSelect": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/SubAgent"
+          },
+          {
+            "properties": {
+              "artifactComponents": {
+                "items": {
+                  "type": "string"
+                },
+                "nullable": true,
+                "type": "array"
+              },
+              "canDelegateTo": {
+                "items": {
+                  "anyOf": [
+                    {
+                      "type": "string"
+                    },
+                    {
+                      "$ref": "#/components/schemas/CanDelegateToExternalAgent"
+                    },
+                    {
+                      "$ref": "#/components/schemas/CanDelegateToTeamAgent"
+                    }
+                  ]
+                },
+                "nullable": true,
+                "type": "array"
+              },
+              "canTransferTo": {
+                "items": {
+                  "type": "string"
+                },
+                "nullable": true,
+                "type": "array"
+              },
+              "canUse": {
+                "items": {
+                  "$ref": "#/components/schemas/CanUseItem"
+                },
+                "type": "array"
+              },
+              "dataComponents": {
+                "items": {
+                  "type": "string"
+                },
+                "nullable": true,
+                "type": "array"
+              },
+              "type": {
+                "enum": [
+                  "internal"
+                ],
+                "type": "string"
+              }
+            },
+            "required": [
+              "type",
+              "canUse",
+              "dataComponents",
+              "artifactComponents",
+              "canTransferTo",
+              "canDelegateTo"
+            ],
+            "type": "object"
+          }
+        ]
+      },
+      "FullAgentSubAgentSelectWithRelationIds": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/FullAgentSubAgentSelect"
+          },
+          {
+            "properties": {
+              "canDelegateTo": {
+                "items": {
+                  "anyOf": [
+                    {
+                      "$ref": "#/components/schemas/CanRelateToInternalSubAgent"
+                    },
+                    {
+                      "$ref": "#/components/schemas/CanDelegateToExternalAgent"
+                    },
+                    {
+                      "$ref": "#/components/schemas/CanDelegateToTeamAgent"
+                    }
+                  ]
+                },
+                "nullable": true,
+                "type": "array"
+              },
+              "canTransferTo": {
+                "items": {
+                  "$ref": "#/components/schemas/CanRelateToInternalSubAgent"
+                },
+                "nullable": true,
+                "type": "array"
+              }
+            },
             "type": "object"
           }
         ]
@@ -2490,10 +2842,126 @@
           }
         ]
       },
-      "FullProjectDefinitionResponse": {
+      "FullProjectSelect": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/Project"
+          },
+          {
+            "properties": {
+              "agents": {
+                "additionalProperties": {
+                  "$ref": "#/components/schemas/AgentWithinContextOfProjectSelect"
+                },
+                "type": "object"
+              },
+              "artifactComponents": {
+                "additionalProperties": {
+                  "$ref": "#/components/schemas/ArtifactComponent"
+                },
+                "nullable": true,
+                "type": "object"
+              },
+              "credentialReferences": {
+                "additionalProperties": {
+                  "$ref": "#/components/schemas/CredentialReference"
+                },
+                "nullable": true,
+                "type": "object"
+              },
+              "dataComponents": {
+                "additionalProperties": {
+                  "$ref": "#/components/schemas/DataComponent"
+                },
+                "nullable": true,
+                "type": "object"
+              },
+              "externalAgents": {
+                "additionalProperties": {
+                  "$ref": "#/components/schemas/ExternalAgent"
+                },
+                "nullable": true,
+                "type": "object"
+              },
+              "functionTools": {
+                "additionalProperties": {
+                  "$ref": "#/components/schemas/FunctionTool"
+                },
+                "nullable": true,
+                "type": "object"
+              },
+              "functions": {
+                "additionalProperties": {
+                  "$ref": "#/components/schemas/Function"
+                },
+                "nullable": true,
+                "type": "object"
+              },
+              "statusUpdates": {
+                "allOf": [
+                  {
+                    "$ref": "#/components/schemas/StatusUpdate"
+                  },
+                  {
+                    "nullable": true
+                  }
+                ]
+              },
+              "tools": {
+                "additionalProperties": {
+                  "$ref": "#/components/schemas/Tool"
+                },
+                "type": "object"
+              }
+            },
+            "required": [
+              "agents",
+              "tools",
+              "functionTools",
+              "functions",
+              "dataComponents",
+              "artifactComponents",
+              "externalAgents",
+              "statusUpdates",
+              "credentialReferences"
+            ],
+            "type": "object"
+          }
+        ]
+      },
+      "FullProjectSelectResponse": {
         "properties": {
           "data": {
-            "$ref": "#/components/schemas/FullProjectDefinition"
+            "$ref": "#/components/schemas/FullProjectSelect"
+          }
+        },
+        "required": [
+          "data"
+        ],
+        "type": "object"
+      },
+      "FullProjectSelectWithRelationIds": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/FullProjectSelect"
+          },
+          {
+            "properties": {
+              "agents": {
+                "additionalProperties": {
+                  "$ref": "#/components/schemas/AgentWithinContextOfProjectSelectWithRelationIds"
+                },
+                "type": "object"
+              }
+            },
+            "type": "object"
+          }
+        ]
+      },
+      "FullProjectSelectWithRelationIdsResponse": {
+        "properties": {
+          "data": {
+            "$ref": "#/components/schemas/FullProjectSelectWithRelationIds"
           }
         },
         "required": [
@@ -3683,6 +4151,44 @@
         ],
         "type": "object"
       },
+      "ResolvedRef": {
+        "properties": {
+          "hash": {
+            "description": "The commit hash this ref resolves to",
+            "type": "string"
+          },
+          "name": {
+            "description": "The name of the ref (branch name, tag name, or commit hash)",
+            "type": "string"
+          },
+          "type": {
+            "description": "The type of ref",
+            "enum": [
+              "commit",
+              "tag",
+              "branch"
+            ],
+            "type": "string"
+          }
+        },
+        "required": [
+          "type",
+          "name",
+          "hash"
+        ],
+        "type": "object"
+      },
+      "ResolvedRefResponse": {
+        "properties": {
+          "data": {
+            "$ref": "#/components/schemas/ResolvedRef"
+          }
+        },
+        "required": [
+          "data"
+        ],
+        "type": "object"
+      },
       "StatusComponent": {
         "properties": {
           "description": {
@@ -4229,6 +4735,72 @@
             "type": "string"
           }
         },
+        "type": "object"
+      },
+      "SubAgentFunctionToolRelation": {
+        "properties": {
+          "createdAt": {
+            "type": "string"
+          },
+          "functionToolId": {
+            "maxLength": 256,
+            "type": "string"
+          },
+          "id": {
+            "maxLength": 256,
+            "type": "string"
+          },
+          "subAgentId": {
+            "maxLength": 256,
+            "type": "string"
+          },
+          "updatedAt": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "subAgentId",
+          "functionToolId",
+          "createdAt",
+          "updatedAt"
+        ],
+        "type": "object"
+      },
+      "SubAgentFunctionToolRelationCreate": {
+        "properties": {
+          "functionToolId": {
+            "description": "Resource identifier",
+            "example": "resource_789",
+            "maxLength": 255,
+            "minLength": 1,
+            "pattern": "^[a-zA-Z0-9\\-_.]+$",
+            "type": "string"
+          },
+          "subAgentId": {
+            "description": "Resource identifier",
+            "example": "resource_789",
+            "maxLength": 255,
+            "minLength": 1,
+            "pattern": "^[a-zA-Z0-9\\-_.]+$",
+            "type": "string"
+          }
+        },
+        "required": [
+          "subAgentId",
+          "functionToolId"
+        ],
+        "type": "object"
+      },
+      "SubAgentFunctionToolRelationResponse": {
+        "properties": {
+          "data": {
+            "$ref": "#/components/schemas/SubAgentFunctionToolRelation"
+          }
+        },
+        "required": [
+          "data"
+        ],
         "type": "object"
       },
       "SubAgentIdPathParam": {
@@ -5076,6 +5648,153 @@
         },
         "required": [
           "data"
+        ],
+        "type": "object"
+      },
+      "Tool": {
+        "properties": {
+          "capabilities": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "number"
+              },
+              {
+                "type": "boolean"
+              },
+              {
+                "nullable": true
+              },
+              {
+                "additionalProperties": {
+                  "nullable": true
+                },
+                "type": "object"
+              },
+              {
+                "items": {
+                  "nullable": true
+                },
+                "type": "array"
+              },
+              {
+                "nullable": true
+              }
+            ]
+          },
+          "config": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "number"
+              },
+              {
+                "type": "boolean"
+              },
+              {
+                "nullable": true
+              },
+              {
+                "additionalProperties": {
+                  "nullable": true
+                },
+                "type": "object"
+              },
+              {
+                "items": {
+                  "nullable": true
+                },
+                "type": "array"
+              },
+              {
+                "nullable": true
+              }
+            ]
+          },
+          "createdAt": {
+            "type": "string"
+          },
+          "credentialReferenceId": {
+            "maxLength": 256,
+            "nullable": true,
+            "type": "string"
+          },
+          "credentialScope": {
+            "maxLength": 50,
+            "type": "string"
+          },
+          "description": {
+            "nullable": true,
+            "type": "string"
+          },
+          "headers": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "number"
+              },
+              {
+                "type": "boolean"
+              },
+              {
+                "nullable": true
+              },
+              {
+                "additionalProperties": {
+                  "nullable": true
+                },
+                "type": "object"
+              },
+              {
+                "items": {
+                  "nullable": true
+                },
+                "type": "array"
+              },
+              {
+                "nullable": true
+              }
+            ]
+          },
+          "id": {
+            "maxLength": 256,
+            "type": "string"
+          },
+          "imageUrl": {
+            "nullable": true,
+            "type": "string"
+          },
+          "lastError": {
+            "nullable": true,
+            "type": "string"
+          },
+          "name": {
+            "maxLength": 256,
+            "type": "string"
+          },
+          "updatedAt": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "description",
+          "config",
+          "credentialReferenceId",
+          "credentialScope",
+          "headers",
+          "imageUrl",
+          "capabilities",
+          "lastError",
+          "createdAt",
+          "updatedAt"
         ],
         "type": "object"
       },
@@ -6160,7 +6879,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/FullProjectDefinitionResponse"
+                  "$ref": "#/components/schemas/FullProjectSelectResponse"
                 }
               }
             },
@@ -6365,7 +7084,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/FullProjectDefinitionResponse"
+                  "$ref": "#/components/schemas/FullProjectSelectResponse"
                 }
               }
             },
@@ -6474,7 +7193,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/FullProjectDefinitionResponse"
+                  "$ref": "#/components/schemas/FullProjectSelectResponse"
                 }
               }
             },
@@ -6484,7 +7203,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/FullProjectDefinitionResponse"
+                  "$ref": "#/components/schemas/FullProjectSelectResponse"
                 }
               }
             },
@@ -6552,6 +7271,108 @@
           }
         },
         "summary": "Update Full Project",
+        "tags": [
+          "Full Project"
+        ]
+      }
+    },
+    "/tenants/{tenantId}/project-full/{projectId}/with-relation-ids": {
+      "get": {
+        "description": "Retrieve a complete project definition with all Agents, Sub Agents, tools, and relationships",
+        "operationId": "get-full-project-with-relation-ids",
+        "parameters": [
+          {
+            "description": "Tenant identifier",
+            "in": "path",
+            "name": "tenantId",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/TenantIdPathParam"
+            }
+          },
+          {
+            "description": "Project identifier",
+            "in": "path",
+            "name": "projectId",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/ProjectIdPathParam"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FullProjectSelectWithRelationIdsResponse"
+                }
+              }
+            },
+            "description": "Full project found"
+          },
+          "400": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BadRequest"
+                }
+              }
+            },
+            "description": "Bad Request"
+          },
+          "401": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Unauthorized"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "403": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Forbidden"
+                }
+              }
+            },
+            "description": "Forbidden"
+          },
+          "404": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NotFound"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "422": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UnprocessableEntity"
+                }
+              }
+            },
+            "description": "Unprocessable Entity"
+          },
+          "500": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InternalServerError"
+                }
+              }
+            },
+            "description": "Internal Server Error"
+          }
+        },
+        "summary": "Get Full Project with Relation IDs",
         "tags": [
           "Full Project"
         ]
@@ -10483,6 +11304,626 @@
         "summary": "Get Agents Using Data Component",
         "tags": [
           "Agent Data Component Relations"
+        ]
+      }
+    },
+    "/tenants/{tenantId}/projects/{projectId}/agents/{agentId}/sub-agent-function-tools": {
+      "post": {
+        "operationId": "associate-function-tool-with-sub-agent",
+        "parameters": [
+          {
+            "description": "Tenant identifier",
+            "in": "path",
+            "name": "tenantId",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/TenantIdPathParam"
+            }
+          },
+          {
+            "description": "Project identifier",
+            "in": "path",
+            "name": "projectId",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/ProjectIdPathParam"
+            }
+          },
+          {
+            "description": "Agent identifier",
+            "in": "path",
+            "name": "agentId",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/AgentIdPathParam"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SubAgentFunctionToolRelationCreate"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SubAgentFunctionToolRelationResponse"
+                }
+              }
+            },
+            "description": "SubAgent function tool association created successfully"
+          },
+          "400": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BadRequest"
+                }
+              }
+            },
+            "description": "Bad Request"
+          },
+          "401": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Unauthorized"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "403": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Forbidden"
+                }
+              }
+            },
+            "description": "Forbidden"
+          },
+          "404": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NotFound"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Association already exists"
+          },
+          "422": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UnprocessableEntity"
+                }
+              }
+            },
+            "description": "Unprocessable Entity"
+          },
+          "500": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InternalServerError"
+                }
+              }
+            },
+            "description": "Internal Server Error"
+          }
+        },
+        "summary": "Associate Function Tool with SubAgent",
+        "tags": [
+          "SubAgent Function Tool Relations"
+        ]
+      }
+    },
+    "/tenants/{tenantId}/projects/{projectId}/agents/{agentId}/sub-agent-function-tools/function-tool/{functionToolId}/sub-agents": {
+      "get": {
+        "operationId": "get-sub-agents-using-function-tool",
+        "parameters": [
+          {
+            "description": "Tenant identifier",
+            "in": "path",
+            "name": "tenantId",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/TenantIdPathParam"
+            }
+          },
+          {
+            "description": "Project identifier",
+            "in": "path",
+            "name": "projectId",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/ProjectIdPathParam"
+            }
+          },
+          {
+            "description": "Agent identifier",
+            "in": "path",
+            "name": "agentId",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/AgentIdPathParam"
+            }
+          },
+          {
+            "in": "path",
+            "name": "functionToolId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ComponentAssociationListResponse"
+                }
+              }
+            },
+            "description": "SubAgents retrieved successfully"
+          },
+          "400": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BadRequest"
+                }
+              }
+            },
+            "description": "Bad Request"
+          },
+          "401": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Unauthorized"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "403": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Forbidden"
+                }
+              }
+            },
+            "description": "Forbidden"
+          },
+          "404": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NotFound"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "422": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UnprocessableEntity"
+                }
+              }
+            },
+            "description": "Unprocessable Entity"
+          },
+          "500": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InternalServerError"
+                }
+              }
+            },
+            "description": "Internal Server Error"
+          }
+        },
+        "summary": "Get SubAgents Using Function Tool",
+        "tags": [
+          "SubAgent Function Tool Relations"
+        ]
+      }
+    },
+    "/tenants/{tenantId}/projects/{projectId}/agents/{agentId}/sub-agent-function-tools/sub-agent/{subAgentId}": {
+      "get": {
+        "operationId": "get-function-tools-for-sub-agent",
+        "parameters": [
+          {
+            "description": "Tenant identifier",
+            "in": "path",
+            "name": "tenantId",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/TenantIdPathParam"
+            }
+          },
+          {
+            "description": "Project identifier",
+            "in": "path",
+            "name": "projectId",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/ProjectIdPathParam"
+            }
+          },
+          {
+            "description": "Agent identifier",
+            "in": "path",
+            "name": "agentId",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/AgentIdPathParam"
+            }
+          },
+          {
+            "description": "Sub-agent identifier",
+            "in": "path",
+            "name": "subAgentId",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/SubAgentIdPathParam"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FunctionToolListResponse"
+                }
+              }
+            },
+            "description": "Function tools retrieved successfully"
+          },
+          "400": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BadRequest"
+                }
+              }
+            },
+            "description": "Bad Request"
+          },
+          "401": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Unauthorized"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "403": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Forbidden"
+                }
+              }
+            },
+            "description": "Forbidden"
+          },
+          "404": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NotFound"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "422": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UnprocessableEntity"
+                }
+              }
+            },
+            "description": "Unprocessable Entity"
+          },
+          "500": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InternalServerError"
+                }
+              }
+            },
+            "description": "Internal Server Error"
+          }
+        },
+        "summary": "Get Function Tools for SubAgent",
+        "tags": [
+          "SubAgent Function Tool Relations"
+        ]
+      }
+    },
+    "/tenants/{tenantId}/projects/{projectId}/agents/{agentId}/sub-agent-function-tools/sub-agent/{subAgentId}/function-tool/{functionToolId}": {
+      "delete": {
+        "operationId": "remove-function-tool-from-sub-agent",
+        "parameters": [
+          {
+            "description": "Tenant identifier",
+            "in": "path",
+            "name": "tenantId",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/TenantIdPathParam"
+            }
+          },
+          {
+            "description": "Project identifier",
+            "in": "path",
+            "name": "projectId",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/ProjectIdPathParam"
+            }
+          },
+          {
+            "description": "Agent identifier",
+            "in": "path",
+            "name": "agentId",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/AgentIdPathParam"
+            }
+          },
+          {
+            "description": "Sub-agent identifier",
+            "in": "path",
+            "name": "subAgentId",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/SubAgentIdPathParam"
+            }
+          },
+          {
+            "in": "path",
+            "name": "functionToolId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RemovedResponse"
+                }
+              }
+            },
+            "description": "Association removed successfully"
+          },
+          "400": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BadRequest"
+                }
+              }
+            },
+            "description": "Bad Request"
+          },
+          "401": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Unauthorized"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "403": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Forbidden"
+                }
+              }
+            },
+            "description": "Forbidden"
+          },
+          "404": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NotFound"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "422": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UnprocessableEntity"
+                }
+              }
+            },
+            "description": "Unprocessable Entity"
+          },
+          "500": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InternalServerError"
+                }
+              }
+            },
+            "description": "Internal Server Error"
+          }
+        },
+        "summary": "Remove Function Tool from SubAgent",
+        "tags": [
+          "SubAgent Function Tool Relations"
+        ]
+      }
+    },
+    "/tenants/{tenantId}/projects/{projectId}/agents/{agentId}/sub-agent-function-tools/sub-agent/{subAgentId}/function-tool/{functionToolId}/exists": {
+      "get": {
+        "operationId": "check-function-tool-sub-agent-association",
+        "parameters": [
+          {
+            "description": "Tenant identifier",
+            "in": "path",
+            "name": "tenantId",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/TenantIdPathParam"
+            }
+          },
+          {
+            "description": "Project identifier",
+            "in": "path",
+            "name": "projectId",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/ProjectIdPathParam"
+            }
+          },
+          {
+            "description": "Agent identifier",
+            "in": "path",
+            "name": "agentId",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/AgentIdPathParam"
+            }
+          },
+          {
+            "description": "Sub-agent identifier",
+            "in": "path",
+            "name": "subAgentId",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/SubAgentIdPathParam"
+            }
+          },
+          {
+            "in": "path",
+            "name": "functionToolId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ExistsResponse"
+                }
+              }
+            },
+            "description": "Association status retrieved successfully"
+          },
+          "400": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BadRequest"
+                }
+              }
+            },
+            "description": "Bad Request"
+          },
+          "401": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Unauthorized"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "403": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Forbidden"
+                }
+              }
+            },
+            "description": "Forbidden"
+          },
+          "404": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NotFound"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "422": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UnprocessableEntity"
+                }
+              }
+            },
+            "description": "Unprocessable Entity"
+          },
+          "500": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InternalServerError"
+                }
+              }
+            },
+            "description": "Internal Server Error"
+          }
+        },
+        "summary": "Check if Function Tool is Associated with SubAgent",
+        "tags": [
+          "SubAgent Function Tool Relations"
         ]
       }
     },
@@ -15193,6 +16634,545 @@
         ]
       }
     },
+    "/tenants/{tenantId}/projects/{projectId}/branches": {
+      "get": {
+        "description": "List all branches within a project",
+        "operationId": "list-branches",
+        "parameters": [
+          {
+            "description": "Tenant identifier",
+            "in": "path",
+            "name": "tenantId",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/TenantIdPathParam"
+            }
+          },
+          {
+            "description": "Project identifier",
+            "in": "path",
+            "name": "projectId",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/ProjectIdPathParam"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BranchListResponse"
+                }
+              }
+            },
+            "description": "List of branches retrieved successfully"
+          },
+          "400": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BadRequest"
+                }
+              }
+            },
+            "description": "Bad Request"
+          },
+          "401": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Unauthorized"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "403": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Forbidden"
+                }
+              }
+            },
+            "description": "Forbidden"
+          },
+          "404": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NotFound"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "422": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UnprocessableEntity"
+                }
+              }
+            },
+            "description": "Unprocessable Entity"
+          },
+          "500": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InternalServerError"
+                }
+              }
+            },
+            "description": "Internal Server Error"
+          }
+        },
+        "summary": "List Branches",
+        "tags": [
+          "Branches"
+        ]
+      },
+      "post": {
+        "description": "Create a new branch",
+        "operationId": "create-branch",
+        "parameters": [
+          {
+            "description": "Tenant identifier",
+            "in": "path",
+            "name": "tenantId",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/TenantIdPathParam"
+            }
+          },
+          {
+            "description": "Project identifier",
+            "in": "path",
+            "name": "projectId",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/ProjectIdPathParam"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateBranchRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BranchResponse"
+                }
+              }
+            },
+            "description": "Branch created successfully"
+          },
+          "400": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BadRequest"
+                }
+              }
+            },
+            "description": "Bad Request"
+          },
+          "401": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Unauthorized"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "403": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Forbidden"
+                }
+              }
+            },
+            "description": "Forbidden"
+          },
+          "404": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NotFound"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Branch already exists"
+          },
+          "422": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UnprocessableEntity"
+                }
+              }
+            },
+            "description": "Unprocessable Entity"
+          },
+          "500": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InternalServerError"
+                }
+              }
+            },
+            "description": "Internal Server Error"
+          }
+        },
+        "summary": "Create Branch",
+        "tags": [
+          "Branches"
+        ]
+      }
+    },
+    "/tenants/{tenantId}/projects/{projectId}/branches/agents/{agentId}": {
+      "get": {
+        "description": "List all branches within a project that contain the agent",
+        "operationId": "list-branches-for-agent",
+        "parameters": [
+          {
+            "description": "Tenant identifier",
+            "in": "path",
+            "name": "tenantId",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/TenantIdPathParam"
+            }
+          },
+          {
+            "description": "Project identifier",
+            "in": "path",
+            "name": "projectId",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/ProjectIdPathParam"
+            }
+          },
+          {
+            "description": "Agent identifier",
+            "in": "path",
+            "name": "agentId",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/AgentIdPathParam"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BranchListResponse"
+                }
+              }
+            },
+            "description": "List of branches retrieved successfully"
+          },
+          "400": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BadRequest"
+                }
+              }
+            },
+            "description": "Bad Request"
+          },
+          "401": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Unauthorized"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "403": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Forbidden"
+                }
+              }
+            },
+            "description": "Forbidden"
+          },
+          "404": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NotFound"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "422": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UnprocessableEntity"
+                }
+              }
+            },
+            "description": "Unprocessable Entity"
+          },
+          "500": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InternalServerError"
+                }
+              }
+            },
+            "description": "Internal Server Error"
+          }
+        },
+        "summary": "List Branches for Agent",
+        "tags": [
+          "Branches"
+        ]
+      }
+    },
+    "/tenants/{tenantId}/projects/{projectId}/branches/{branchName}": {
+      "delete": {
+        "description": "Delete a branch. Cannot delete protected branches like main.",
+        "operationId": "delete-branch",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "tenantId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "projectId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "branchName",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Branch deleted successfully"
+          },
+          "400": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BadRequest"
+                }
+              }
+            },
+            "description": "Bad Request"
+          },
+          "401": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Unauthorized"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Cannot delete protected branch"
+          },
+          "404": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NotFound"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "422": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UnprocessableEntity"
+                }
+              }
+            },
+            "description": "Unprocessable Entity"
+          },
+          "500": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InternalServerError"
+                }
+              }
+            },
+            "description": "Internal Server Error"
+          }
+        },
+        "summary": "Delete Branch",
+        "tags": [
+          "Branches"
+        ]
+      },
+      "get": {
+        "description": "Get a single branch by name",
+        "operationId": "get-branch",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "tenantId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "projectId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "branchName",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BranchResponse"
+                }
+              }
+            },
+            "description": "Branch found"
+          },
+          "400": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BadRequest"
+                }
+              }
+            },
+            "description": "Bad Request"
+          },
+          "401": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Unauthorized"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "403": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Forbidden"
+                }
+              }
+            },
+            "description": "Forbidden"
+          },
+          "404": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NotFound"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "422": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UnprocessableEntity"
+                }
+              }
+            },
+            "description": "Unprocessable Entity"
+          },
+          "500": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InternalServerError"
+                }
+              }
+            },
+            "description": "Internal Server Error"
+          }
+        },
+        "summary": "Get Branch",
+        "tags": [
+          "Branches"
+        ]
+      }
+    },
     "/tenants/{tenantId}/projects/{projectId}/conversations/{id}": {
       "get": {
         "operationId": "get-conversation",
@@ -17847,6 +19827,108 @@
         "summary": "List MCP Server Catalog",
         "tags": [
           "MCP Catalog"
+        ]
+      }
+    },
+    "/tenants/{tenantId}/projects/{projectId}/refs/resolve": {
+      "get": {
+        "description": "Resolve a ref string (branch name, tag name, or commit hash) to its full resolved ref with type and commit hash. Pass the ref as a query parameter.",
+        "operationId": "resolve-ref",
+        "parameters": [
+          {
+            "description": "Tenant identifier",
+            "in": "path",
+            "name": "tenantId",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/TenantIdPathParam"
+            }
+          },
+          {
+            "description": "Project identifier",
+            "in": "path",
+            "name": "projectId",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/ProjectIdPathParam"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResolvedRefResponse"
+                }
+              }
+            },
+            "description": "Ref resolved successfully"
+          },
+          "400": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BadRequest"
+                }
+              }
+            },
+            "description": "Bad Request"
+          },
+          "401": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Unauthorized"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "403": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Forbidden"
+                }
+              }
+            },
+            "description": "Forbidden"
+          },
+          "404": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NotFound"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "422": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UnprocessableEntity"
+                }
+              }
+            },
+            "description": "Unprocessable Entity"
+          },
+          "500": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InternalServerError"
+                }
+              }
+            },
+            "description": "Internal Server Error"
+          }
+        },
+        "summary": "Resolve Ref",
+        "tags": [
+          "Refs"
         ]
       }
     },

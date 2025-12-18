@@ -215,25 +215,13 @@ describe('Schema Version Module', () => {
         .mockResolvedValueOnce({ rows: [] })
         // getCurrentSchemaVersion (feature) - version 5
         .mockResolvedValueOnce({
-          rows: [
-            { hash: 'm1' },
-            { hash: 'm2' },
-            { hash: 'm3' },
-            { hash: 'm4' },
-            { hash: 'm5' },
-          ],
+          rows: [{ hash: 'm1' }, { hash: 'm2' }, { hash: 'm3' }, { hash: 'm4' }, { hash: 'm5' }],
         })
         // checkoutRef (back to main)
         .mockResolvedValueOnce({ rows: [] })
         // getCurrentSchemaVersion (main) - version 5
         .mockResolvedValueOnce({
-          rows: [
-            { hash: 'm1' },
-            { hash: 'm2' },
-            { hash: 'm3' },
-            { hash: 'm4' },
-            { hash: 'm5' },
-          ],
+          rows: [{ hash: 'm1' }, { hash: 'm2' }, { hash: 'm3' }, { hash: 'm4' }, { hash: 'm5' }],
         })
         // getMinViableSchemaVersion - version 3
         .mockResolvedValueOnce({ rows: [{ value: '3' }] });
@@ -273,13 +261,7 @@ describe('Schema Version Module', () => {
         .mockResolvedValueOnce({ rows: [] })
         // getCurrentSchemaVersion (main) - version 5
         .mockResolvedValueOnce({
-          rows: [
-            { hash: 'm1' },
-            { hash: 'm2' },
-            { hash: 'm3' },
-            { hash: 'm4' },
-            { hash: 'm5' },
-          ],
+          rows: [{ hash: 'm1' }, { hash: 'm2' }, { hash: 'm3' }, { hash: 'm4' }, { hash: 'm5' }],
         })
         // getMinViableSchemaVersion - version 3
         .mockResolvedValueOnce({ rows: [{ value: '3' }] });
@@ -356,13 +338,7 @@ describe('Schema Version Module', () => {
         .mockResolvedValueOnce({ rows: [] })
         // getCurrentSchemaVersion (main)
         .mockResolvedValueOnce({
-          rows: [
-            { hash: 'm1' },
-            { hash: 'm2' },
-            { hash: 'm3' },
-            { hash: 'm4' },
-            { hash: 'm5' },
-          ],
+          rows: [{ hash: 'm1' }, { hash: 'm2' }, { hash: 'm3' }, { hash: 'm4' }, { hash: 'm5' }],
         })
         // getMinViableSchemaVersion
         .mockResolvedValueOnce({ rows: [{ value: '2' }] });

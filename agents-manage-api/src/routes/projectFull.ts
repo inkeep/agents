@@ -90,9 +90,10 @@ app.openapi(
 
     const validatedProjectData = FullProjectDefinitionSchema.parse(projectData);
     try {
-      const createdProject = await createFullProjectServerSide(db)(
-        { scopes: { tenantId, projectId: validatedProjectData.id }, projectData: validatedProjectData }
-      );
+      const createdProject = await createFullProjectServerSide(db)({
+        scopes: { tenantId, projectId: validatedProjectData.id },
+        projectData: validatedProjectData,
+      });
 
       return c.json({ data: createdProject }, 201);
     } catch (error: any) {
@@ -140,8 +141,9 @@ app.openapi(
     const db = c.get('db');
 
     try {
-      const project: FullProjectSelect | null = await getFullProject(db)(
-        { scopes: { tenantId, projectId } });
+      const project: FullProjectSelect | null = await getFullProject(db)({
+        scopes: { tenantId, projectId },
+      });
 
       if (!project) {
         throw createApiError({
@@ -166,7 +168,6 @@ app.openapi(
     }
   }
 );
-
 
 app.openapi(
   createRoute({
@@ -197,8 +198,9 @@ app.openapi(
     const db = c.get('db');
 
     try {
-      const project: FullProjectSelectWithRelationIds | null = await getFullProjectWithRelationIds(db)(
-        { scopes: { tenantId, projectId } });
+      const project: FullProjectSelectWithRelationIds | null = await getFullProjectWithRelationIds(
+        db
+      )({ scopes: { tenantId, projectId } });
 
       if (!project) {
         throw createApiError({
@@ -223,7 +225,6 @@ app.openapi(
     }
   }
 );
-
 
 // Update/upsert full project
 app.openapi(
@@ -352,9 +353,7 @@ app.openapi(
       });
 
       // Delete the full project from the config DB
-      const deleted = await deleteFullProject(
-        db
-      )({
+      const deleted = await deleteFullProject(db)({
         scopes: { tenantId, projectId },
       });
 

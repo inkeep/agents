@@ -1,8 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import {
-  type ParsedHttpRequest,
-  validateHttpRequestHeaders,
-} from '../../context/validation';
+import { type ParsedHttpRequest, validateHttpRequestHeaders } from '../../context/validation';
 
 describe('validateHttpRequestHeaders', () => {
   it('should validate headers successfully with valid data', async () => {

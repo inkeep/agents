@@ -85,17 +85,12 @@ describe('IncrementalStreamParser', () => {
       },
     };
 
-    parser = new IncrementalStreamParser(
-      mockStreamHelper,
-      mockExecutionContext,
-      'test-context',
-      {
-        sessionId: 'test-session',
-        taskId: 'test-task',
-        subAgentId: 'test-agent',
-        streamRequestId: 'test-stream-request',
-      }
-    );
+    parser = new IncrementalStreamParser(mockStreamHelper, mockExecutionContext, 'test-context', {
+      sessionId: 'test-session',
+      taskId: 'test-task',
+      subAgentId: 'test-agent',
+      streamRequestId: 'test-stream-request',
+    });
 
     // Initialize artifact map
     await parser.initializeArtifactMap();

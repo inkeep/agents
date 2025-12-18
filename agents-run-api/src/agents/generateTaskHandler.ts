@@ -84,24 +84,27 @@ export const createTaskHandler = (
       }
 
       // Extract relations using helper functions
-      const {
-        externalRelations,
-        teamRelations,
-        transferRelations, 
-        internalDelegateRelations
-      } = getSubAgentRelations({
-        agent: currentAgent,
-        project,
-        subAgent: currentSubAgent,
-      });
+      const { externalRelations, teamRelations, transferRelations, internalDelegateRelations } =
+        getSubAgentRelations({
+          agent: currentAgent,
+          project,
+          subAgent: currentSubAgent,
+        });
 
       // Combine transfer and delegate internal relations for processing
       const allInternalRelations = [...transferRelations, ...internalDelegateRelations];
 
       // Get tools, data components, and artifact components using helper functions
-      const toolsForAgent = getToolsForSubAgent({ agent: currentAgent, project, subAgent: currentSubAgent });
+      const toolsForAgent = getToolsForSubAgent({
+        agent: currentAgent,
+        project,
+        subAgent: currentSubAgent,
+      });
       const dataComponents = getDataComponentsForSubAgent({ project, subAgent: currentSubAgent });
-      const artifactComponents = getArtifactComponentsForSubAgent({ project, subAgent: currentSubAgent });
+      const artifactComponents = getArtifactComponentsForSubAgent({
+        project,
+        subAgent: currentSubAgent,
+      });
 
       // Enhance internal relations with description data from project context
       const enhancedInternalRelations = allInternalRelations.map((relation) => {
@@ -320,7 +323,7 @@ export const createTaskHandler = (
 
       logger.info({ contextId }, 'Context ID');
       logger.info({ userMessage }, 'User Message');
-      
+
       const response = await agent.generate(userMessage, {
         contextId,
         metadata: {

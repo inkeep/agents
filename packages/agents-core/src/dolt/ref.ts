@@ -6,7 +6,6 @@ import type { ResolvedRef } from '../validation/dolt-schemas';
 
 export type RefType = 'commit' | 'tag' | 'branch';
 
-
 export const isValidCommitHash = (ref: string): boolean => {
   // Dolt uses base32 encoding for commit hashes (characters 0-9 and a-v)
   return /^[0-9a-v]{32}$/.test(ref);
@@ -75,9 +74,7 @@ export const getCurrentBranchOrCommit =
       };
     }
 
-    const hashResult = await db.execute(
-      sql`SELECT DOLT_HASHOF('HEAD') as hash`
-    );
+    const hashResult = await db.execute(sql`SELECT DOLT_HASHOF('HEAD') as hash`);
     const hash = hashResult.rows[0]?.hash as string;
 
     return {

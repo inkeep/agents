@@ -32,8 +32,6 @@ async function resolveModelConfig(
     };
   }
 
- 
-
   if (project?.models?.base?.model) {
     return {
       base: project.models.base,

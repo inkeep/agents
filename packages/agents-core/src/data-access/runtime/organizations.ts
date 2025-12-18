@@ -43,28 +43,29 @@ export const getUserOrganizations =
  * Get pending invitations for a user by email
  * Returns invitations with status 'pending' that haven't expired
  */
-export const getPendingInvitationsByEmail = (db: AgentsRunDatabaseClient) => async (email: string) => {
-  const now = new Date();
+export const getPendingInvitationsByEmail =
+  (db: AgentsRunDatabaseClient) => async (email: string) => {
+    const now = new Date();
 
-  const result = await db
-    .select({
-      id: invitation.id,
-      email: invitation.email,
-      organizationId: invitation.organizationId,
-      organizationName: organization.name,
-      organizationSlug: organization.slug,
-      role: invitation.role,
-      status: invitation.status,
-      expiresAt: invitation.expiresAt,
-      inviterId: invitation.inviterId,
-    })
-    .from(invitation)
-    .leftJoin(organization, eq(invitation.organizationId, organization.id))
-    .where(and(eq(invitation.email, email), eq(invitation.status, 'pending')));
+    const result = await db
+      .select({
+        id: invitation.id,
+        email: invitation.email,
+        organizationId: invitation.organizationId,
+        organizationName: organization.name,
+        organizationSlug: organization.slug,
+        role: invitation.role,
+        status: invitation.status,
+        expiresAt: invitation.expiresAt,
+        inviterId: invitation.inviterId,
+      })
+      .from(invitation)
+      .leftJoin(organization, eq(invitation.organizationId, organization.id))
+      .where(and(eq(invitation.email, email), eq(invitation.status, 'pending')));
 
-  // Filter out expired invitations
-  return result.filter((inv) => new Date(inv.expiresAt) > now);
-};
+    // Filter out expired invitations
+    return result.filter((inv) => new Date(inv.expiresAt) > now);
+  };
 
 /**
  * Add user to organization

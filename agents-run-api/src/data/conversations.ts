@@ -237,13 +237,13 @@ export async function getFullConversationContext(
 ): Promise<any[]> {
   const defaultConfig = createDefaultConversationHistoryConfig();
   return await getConversationHistory(dbClient)({
-        scopes: { tenantId, projectId },
-        conversationId,
-        options: {
-          ...defaultConfig,
-          limit: 100,
-          includeInternal: true,
-          maxOutputTokens: maxTokens,
+    scopes: { tenantId, projectId },
+    conversationId,
+    options: {
+      ...defaultConfig,
+      limit: 100,
+      includeInternal: true,
+      maxOutputTokens: maxTokens,
     },
   });
 }
@@ -347,7 +347,7 @@ export async function getConversationScopedArtifacts(params: {
       tenantId,
       projectId,
       conversationId,
-      options: historyConfig
+      options: historyConfig,
     });
 
     if (visibleMessages.length === 0) {
@@ -375,8 +375,8 @@ export async function getConversationScopedArtifacts(params: {
     const referenceArtifacts: Artifact[] = [];
     for (const taskId of visibleTaskIds) {
       const artifacts = await getLedgerArtifacts(dbClient)({
-            scopes: { tenantId, projectId },
-            taskId: taskId,
+        scopes: { tenantId, projectId },
+        taskId: taskId,
       });
       referenceArtifacts.push(...artifacts);
     }

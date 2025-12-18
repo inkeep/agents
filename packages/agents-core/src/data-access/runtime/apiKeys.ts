@@ -8,7 +8,12 @@ import type {
   PaginationConfig,
   ProjectScopeConfig,
 } from '../../types/utility';
-import { extractPublicId, generateApiKey, isApiKeyExpired, validateApiKey } from '../../utils/apiKeys';
+import {
+  extractPublicId,
+  generateApiKey,
+  isApiKeyExpired,
+  validateApiKey,
+} from '../../utils/apiKeys';
 
 export const getApiKeyById =
   (db: AgentsRunDatabaseClient) => async (params: { scopes: ProjectScopeConfig; id: string }) => {
@@ -28,7 +33,8 @@ export const getApiKeyByPublicId = (db: AgentsRunDatabaseClient) => async (publi
 };
 
 export const listApiKeys =
-  (db: AgentsRunDatabaseClient) => async (params: { scopes: ProjectScopeConfig; agentId?: string }) => {
+  (db: AgentsRunDatabaseClient) =>
+  async (params: { scopes: ProjectScopeConfig; agentId?: string }) => {
     const conditions = [
       eq(apiKeys.tenantId, params.scopes.tenantId),
       eq(apiKeys.projectId, params.scopes.projectId),

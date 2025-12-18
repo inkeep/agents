@@ -25,8 +25,16 @@ describe('Cascade Delete Utilities', () => {
   const projectId = 'test-project';
   const agentId = 'test-agent';
   const subAgentId = 'test-sub-agent';
-  const branch1Ref: ResolvedRef = { type: 'branch', name: 'tenant_project_branch1', hash: 'abc123' };
-  const branch2Ref: ResolvedRef = { type: 'branch', name: 'tenant_project_branch2', hash: 'def456' };
+  const branch1Ref: ResolvedRef = {
+    type: 'branch',
+    name: 'tenant_project_branch1',
+    hash: 'abc123',
+  };
+  const branch2Ref: ResolvedRef = {
+    type: 'branch',
+    name: 'tenant_project_branch2',
+    hash: 'def456',
+  };
 
   beforeAll(async () => {
     db = testRunDbClient;
@@ -114,10 +122,7 @@ describe('Cascade Delete Utilities', () => {
       expect(remainingConvs).toHaveLength(1);
       expect(remainingConvs[0].id).toBe(conv2Id);
 
-      const remainingTasks = await db
-        .select()
-        .from(tasks)
-        .where(eq(tasks.projectId, projectId));
+      const remainingTasks = await db.select().from(tasks).where(eq(tasks.projectId, projectId));
       expect(remainingTasks).toHaveLength(1);
       expect(remainingTasks[0].id).toBe(task2Id);
     });
@@ -222,10 +227,7 @@ describe('Cascade Delete Utilities', () => {
 
       expect(result.apiKeysDeleted).toBe(2);
 
-      const remainingKeys = await db
-        .select()
-        .from(apiKeys)
-        .where(eq(apiKeys.projectId, projectId));
+      const remainingKeys = await db.select().from(apiKeys).where(eq(apiKeys.projectId, projectId));
       expect(remainingKeys).toHaveLength(0);
     });
   });

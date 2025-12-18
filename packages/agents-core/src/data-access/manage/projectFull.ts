@@ -41,7 +41,7 @@ import { deleteDataComponent, listDataComponents, upsertDataComponent } from './
 import { deleteExternalAgent, listExternalAgents, upsertExternalAgent } from './externalAgents';
 import { deleteFunction, listFunctions, upsertFunction } from './functions';
 import { createProject, deleteProject, getProject, updateProject } from './projects';
-import {deleteTool, listTools, upsertTool} from './tools';
+import { deleteTool, listTools, upsertTool } from './tools';
 
 const defaultLogger = getLogger('projectFull');
 
@@ -489,7 +489,7 @@ export const createFullProjectServerSide =
       );
       throw error;
     }
-  }
+  };
 
 /**
  * Server-side implementation of updateFullProject that performs actual database operations.
@@ -525,7 +525,10 @@ export const updateFullProjectServerSide =
 
       if (!existingProject) {
         logger.info({ projectId: typed.id }, 'Project not found, creating new project');
-        return await createFullProjectServerSide(db, logger)({
+        return await createFullProjectServerSide(
+          db,
+          logger
+        )({
           scopes: { tenantId, projectId: typed.id },
           projectData,
         });
@@ -1117,7 +1120,7 @@ export const updateFullProjectServerSide =
 
       logger.info({ projectId: typed.id }, 'Full project updated successfully');
 
-      const fullProject  = await getFullProject(
+      const fullProject = await getFullProject(
         db,
         logger
       )({
@@ -1140,14 +1143,17 @@ export const updateFullProjectServerSide =
       );
       throw error;
     }
-  }
+  };
 
 /**
  * Get a complete project definition with all nested resources
  */
 const getFullProjectInternal =
   (db: AgentsManageDatabaseClient, logger: ProjectLogger = defaultLogger) =>
-  async (params: { scopes: ProjectScopeConfig; includeRelationIds?: boolean }): Promise<FullProjectSelect | FullProjectSelectWithRelationIds | null> => {
+  async (params: {
+    scopes: ProjectScopeConfig;
+    includeRelationIds?: boolean;
+  }): Promise<FullProjectSelect | FullProjectSelectWithRelationIds | null> => {
     const { scopes, includeRelationIds = false } = params;
     const { tenantId, projectId } = scopes;
 
@@ -1346,10 +1352,14 @@ const getFullProjectInternal =
         agents,
         tools: projectTools,
         functions: Object.keys(projectFunctions).length > 0 ? projectFunctions : null,
-        externalAgents: Object.keys(projectExternalAgents).length > 0 ? projectExternalAgents : null,
-        dataComponents: Object.keys(projectDataComponents).length > 0 ? projectDataComponents : null,
-        artifactComponents: Object.keys(projectArtifactComponents).length > 0 ? projectArtifactComponents : null,
-        credentialReferences: Object.keys(projectCredentialReferences).length > 0 ? projectCredentialReferences : null,
+        externalAgents:
+          Object.keys(projectExternalAgents).length > 0 ? projectExternalAgents : null,
+        dataComponents:
+          Object.keys(projectDataComponents).length > 0 ? projectDataComponents : null,
+        artifactComponents:
+          Object.keys(projectArtifactComponents).length > 0 ? projectArtifactComponents : null,
+        credentialReferences:
+          Object.keys(projectCredentialReferences).length > 0 ? projectCredentialReferences : null,
         statusUpdates: null, // Not currently loaded
         functionTools: null, // Loaded at agent level
         createdAt: project.createdAt,
@@ -1382,14 +1392,25 @@ const getFullProjectInternal =
 export const getFullProject =
   (db: AgentsManageDatabaseClient, logger: ProjectLogger = defaultLogger) =>
   async (params: { scopes: ProjectScopeConfig }): Promise<FullProjectSelect | null> => {
-    return getFullProjectInternal(db, logger)({ scopes: params.scopes, includeRelationIds: false }) as Promise<FullProjectSelect | null>;
+    return getFullProjectInternal(
+      db,
+      logger
+    )({ scopes: params.scopes, includeRelationIds: false }) as Promise<FullProjectSelect | null>;
   };
 
 export const getFullProjectWithRelationIds =
   (db: AgentsManageDatabaseClient, logger: ProjectLogger = defaultLogger) =>
-  async (params: { scopes: ProjectScopeConfig }): Promise<FullProjectSelectWithRelationIds | null> => {
-    return getFullProjectInternal(db, logger)({ scopes: params.scopes, includeRelationIds: true }) as Promise<FullProjectSelectWithRelationIds | null>;
-  }
+  async (params: {
+    scopes: ProjectScopeConfig;
+  }): Promise<FullProjectSelectWithRelationIds | null> => {
+    return getFullProjectInternal(
+      db,
+      logger
+    )({
+      scopes: params.scopes,
+      includeRelationIds: true,
+    }) as Promise<FullProjectSelectWithRelationIds | null>;
+  };
 
 /**
  * Delete a complete project and cascade to all related entities
@@ -1482,4 +1503,4 @@ export const deleteFullProject =
       );
       throw error;
     }
-  }
+  };

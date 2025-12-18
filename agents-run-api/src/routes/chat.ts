@@ -229,9 +229,8 @@ app.openapi(chatCompletionsRoute, async (c) => {
         projectId,
         id: conversationId,
         activeSubAgentId: defaultSubAgentId,
-        ref: executionContext.resolvedRef
+        ref: executionContext.resolvedRef,
       });
-        
 
       const activeAgent = await getActiveAgentForConversation(dbClient)({
         scopes: { tenantId, projectId },
@@ -242,7 +241,7 @@ app.openapi(chatCompletionsRoute, async (c) => {
           scopes: { tenantId, projectId },
           conversationId,
           subAgentId: defaultSubAgentId,
-          ref: executionContext.resolvedRef
+          ref: executionContext.resolvedRef,
         });
       }
       const subAgentId = activeAgent?.activeSubAgentId || defaultSubAgentId;

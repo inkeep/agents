@@ -4,7 +4,7 @@ import {
   isRefWritable,
   type ResolvedRef,
   resolveRef,
-  getLogger
+  getLogger,
 } from '@inkeep/agents-core';
 import dbClient from '../data/db/dbClient';
 import type { Context, Next } from 'hono';
@@ -36,34 +36,32 @@ export const refMiddleware = async (c: Context, next: Next) => {
   const path = c.req.path;
   const pathSplit = path.split('/');
 
-
   let tenantId: string | undefined;
   let projectId: string | undefined;
 
-    if (pathSplit.length < 4 && ref !== 'main' && ref !== undefined) {
-      throw createApiError({
-        code: 'bad_request',
-        message: 'Ref is not supported for this path',
-      });
-    }
-    // Extract tenantId from /tenants/:tenantId/... path structure (only for agents-manage-api routes)
-    // For /tenants/123/projects, split('/') = ['', 'tenants', '123', 'projects']
-    // tenantId is at index 2, projectId is at index 4
-    // Only use path-based extraction if path matches the expected pattern
-    if (!tenantId) {
-      tenantId = pathSplit[2];
-    }
-    if (!projectId && pathSplit.length >= 5) {
-      projectId = pathSplit[4];
-    }
+  if (pathSplit.length < 4 && ref !== 'main' && ref !== undefined) {
+    throw createApiError({
+      code: 'bad_request',
+      message: 'Ref is not supported for this path',
+    });
+  }
+  // Extract tenantId from /tenants/:tenantId/... path structure (only for agents-manage-api routes)
+  // For /tenants/123/projects, split('/') = ['', 'tenants', '123', 'projects']
+  // tenantId is at index 2, projectId is at index 4
+  // Only use path-based extraction if path matches the expected pattern
+  if (!tenantId) {
+    tenantId = pathSplit[2];
+  }
+  if (!projectId && pathSplit.length >= 5) {
+    projectId = pathSplit[4];
+  }
 
-    if (!tenantId) {
-      throw createApiError({
-        code: 'bad_request',
-        message: 'Missing tenantId',
-      });
-    }
-  
+  if (!tenantId) {
+    throw createApiError({
+      code: 'bad_request',
+      message: 'Missing tenantId',
+    });
+  }
 
   const tenantMain = `${tenantId}_main`;
   const projectScopedRef = `${tenantId}_${projectId}_${ref}`;

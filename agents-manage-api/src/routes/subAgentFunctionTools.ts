@@ -282,4 +282,3 @@ app.openapi(
 );
 
 export default app;
-

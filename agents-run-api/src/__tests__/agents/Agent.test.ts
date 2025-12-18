@@ -286,13 +286,15 @@ import { generateObject, generateText } from 'ai';
 // Import the mocked module - these will automatically be mocked
 import { getFormattedConversationHistory } from '../../data/conversations';
 
-function createMockExecutionContext(overrides: {
-  tenantId?: string;
-  projectId?: string;
-  agentId?: string;
-  additionalAgents?: Record<string, any>;
-  credentialReferences?: Record<string, any>;
-} = {}) {
+function createMockExecutionContext(
+  overrides: {
+    tenantId?: string;
+    projectId?: string;
+    agentId?: string;
+    additionalAgents?: Record<string, any>;
+    credentialReferences?: Record<string, any>;
+  } = {}
+) {
   const tenantId = overrides.tenantId ?? 'test-tenant';
   const projectId = overrides.projectId ?? 'test-project';
   const agentId = overrides.agentId ?? 'test-agent';
@@ -1054,11 +1056,7 @@ describe('Agent Credential Integration', () => {
       tools: [mockToolConfig],
     };
 
-    const agent = new Agent(
-      configWithCredentials,
-      mockExecutionContext,
-      mockAgentFramework
-    );
+    const agent = new Agent(configWithCredentials, mockExecutionContext, mockAgentFramework);
 
     // Mock the credential stuffer to simulate credential loading
     (agent as any).credentialStuffer = mockCredentialStuffer;
@@ -1125,11 +1123,7 @@ describe('Agent Credential Integration', () => {
       tools: [mockToolConfig],
     };
 
-    const agent = new Agent(
-      configWithoutCredentials,
-      mockExecutionContext,
-      mockAgentFramework
-    );
+    const agent = new Agent(configWithoutCredentials, mockExecutionContext, mockAgentFramework);
 
     // Mock the credential stuffer
     (agent as any).credentialStuffer = {

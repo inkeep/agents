@@ -6,7 +6,7 @@ import {
   type ContextConfigApiSelect,
   createApiError,
   getLogger,
-  FullExecutionContext
+  FullExecutionContext,
 } from '@inkeep/agents-core';
 
 const logger = getLogger('context-validation');
@@ -372,77 +372,77 @@ export async function validateHeaders({
 }
 
 export async function contextValidationMiddleware(c: Context, next: Next) {
-    try {
-      const executionContext = c.get('executionContext');
-      let { tenantId, projectId, agentId, ref } = executionContext;
-      if (!tenantId || !projectId || !agentId) {
-        tenantId = c.req.param('tenantId');
-        projectId = c.req.param('projectId');
-        agentId = c.req.param('agentId');
-      }
+  try {
+    const executionContext = c.get('executionContext');
+    let { tenantId, projectId, agentId, ref } = executionContext;
+    if (!tenantId || !projectId || !agentId) {
+      tenantId = c.req.param('tenantId');
+      projectId = c.req.param('projectId');
+      agentId = c.req.param('agentId');
+    }
 
-      if (!tenantId || !projectId || !agentId) {
-        return next();
-      }
+    if (!tenantId || !projectId || !agentId) {
+      return next();
+    }
 
-      const body = (c as any).get('requestBody') || {};
-      const conversationId = body.conversationId || '';
+    const body = (c as any).get('requestBody') || {};
+    const conversationId = body.conversationId || '';
 
-      const headers: Record<string, string> = {};
-      c.req.raw.headers.forEach((value, key) => {
-        headers[key.toLowerCase()] = value;
-      });
-      const credentialStores = c.get('credentialStores') as CredentialStoreRegistry;
+    const headers: Record<string, string> = {};
+    c.req.raw.headers.forEach((value, key) => {
+      headers[key.toLowerCase()] = value;
+    });
+    const credentialStores = c.get('credentialStores') as CredentialStoreRegistry;
 
-      const parsedRequest = {
-        headers,
-      } as ParsedHttpRequest;
+    const parsedRequest = {
+      headers,
+    } as ParsedHttpRequest;
 
-      const validationResult = await validateHeaders({
-          executionContext,
-          conversationId,
-          parsedRequest,
-          credentialStores,
-        });
+    const validationResult = await validateHeaders({
+      executionContext,
+      conversationId,
+      parsedRequest,
+      credentialStores,
+    });
 
-      if (!validationResult.valid) {
-        logger.warn(
-          {
-            tenantId,
-            agentId,
-            errors: validationResult.errors,
-          },
-          'Headers validation failed'
-        );
-        const errorMessage = `Invalid headers: ${validationResult.errors.map((e) => `${e.field}: ${e.message}`).join(', ')}`;
-        throw createApiError({
-          code: 'bad_request',
-          message: errorMessage,
-        });
-      }
-
-      (c as any).set('validatedContext', validationResult.validatedContext);
-
-      logger.debug(
+    if (!validationResult.valid) {
+      logger.warn(
         {
           tenantId,
           agentId,
-          contextKeys: Object.keys(validationResult.validatedContext || {}),
+          errors: validationResult.errors,
         },
-        'Request context validation successful'
+        'Headers validation failed'
       );
-
-      return next();
-    } catch (error) {
-      logger.error(
-        {
-          error: error instanceof Error ? error.message : 'Unknown error',
-        },
-        'Context validation middleware error'
-      );
+      const errorMessage = `Invalid headers: ${validationResult.errors.map((e) => `${e.field}: ${e.message}`).join(', ')}`;
       throw createApiError({
-        code: 'internal_server_error',
-        message: 'Context validation failed',
+        code: 'bad_request',
+        message: errorMessage,
       });
     }
+
+    (c as any).set('validatedContext', validationResult.validatedContext);
+
+    logger.debug(
+      {
+        tenantId,
+        agentId,
+        contextKeys: Object.keys(validationResult.validatedContext || {}),
+      },
+      'Request context validation successful'
+    );
+
+    return next();
+  } catch (error) {
+    logger.error(
+      {
+        error: error instanceof Error ? error.message : 'Unknown error',
+      },
+      'Context validation middleware error'
+    );
+    throw createApiError({
+      code: 'internal_server_error',
+      message: 'Context validation failed',
+    });
+  }
 }

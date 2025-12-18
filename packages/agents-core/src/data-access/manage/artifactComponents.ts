@@ -21,7 +21,8 @@ import { generateId } from '../../utils/conversations';
 import { validatePropsAsJsonSchema } from '../../validation/props-validation';
 
 export const getArtifactComponentById =
-  (db: AgentsManageDatabaseClient) => async (params: { scopes: ProjectScopeConfig; id: string }) => {
+  (db: AgentsManageDatabaseClient) =>
+  async (params: { scopes: ProjectScopeConfig; id: string }) => {
     return await db.query.artifactComponents.findFirst({
       where: and(
         eq(artifactComponents.tenantId, params.scopes.tenantId),

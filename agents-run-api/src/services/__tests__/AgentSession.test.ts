@@ -1,4 +1,9 @@
-import type { FullExecutionContext, ModelSettings, StatusComponent, StatusUpdateSettings } from '@inkeep/agents-core';
+import type {
+  FullExecutionContext,
+  ModelSettings,
+  StatusComponent,
+  StatusUpdateSettings,
+} from '@inkeep/agents-core';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { StreamHelper } from '../../utils/stream-helpers';
 import { AgentSession, agentSessionManager } from '../AgentSession';
@@ -544,7 +549,11 @@ describe('AgentSession', () => {
 
   describe('AgentSessionManager', () => {
     it('should create and retrieve sessions', () => {
-      const sessionId = agentSessionManager.createSession('manager-test', mockExecutionContext, 'test-context');
+      const sessionId = agentSessionManager.createSession(
+        'manager-test',
+        mockExecutionContext,
+        'test-context'
+      );
       expect(sessionId).toBe('manager-test');
 
       const retrieved = agentSessionManager.getSession('manager-test');
@@ -963,11 +972,7 @@ describe('AgentSession', () => {
           statusUpdates: null,
         },
       };
-      agentSessionManager.createSession(
-        sessionId,
-        managerExecutionContext,
-        'test-context'
-      );
+      agentSessionManager.createSession(sessionId, managerExecutionContext, 'test-context');
 
       // Initialize status updates through manager
       agentSessionManager.initializeStatusUpdates(sessionId, config, { model: 'test-model' });

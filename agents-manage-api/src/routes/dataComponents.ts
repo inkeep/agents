@@ -40,7 +40,7 @@ app.use('/:id', async (c, next) => {
   }
   return next();
 });
-  
+
 app.openapi(
   createRoute({
     method: 'get',

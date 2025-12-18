@@ -1,7 +1,11 @@
 import { and, eq, inArray, not } from 'drizzle-orm';
 import type { AgentsManageDatabaseClient } from '../../db/manage/manage-client';
 import { projects, subAgents, subAgentToolRelations } from '../../db/manage/manage-schema';
-import type { FullAgentDefinition, FullAgentSelect, FullAgentSelectWithRelationIds } from '../../types/entities';
+import type {
+  FullAgentDefinition,
+  FullAgentSelect,
+  FullAgentSelectWithRelationIds,
+} from '../../types/entities';
 import type { AgentScopeConfig, ProjectScopeConfig } from '../../types/utility';
 import { generateId } from '../../utils/conversations';
 import { validateAgentStructure, validateAndTypeAgentData } from '../../validation/agentFull';
@@ -1631,7 +1635,10 @@ export const getFullAgentWithRelationIds =
     const { scopes } = params;
     const { tenantId, projectId } = scopes;
 
-    logger.info({ tenantId, agentId: scopes.agentId }, 'Retrieving full agent definition with relation ids');
+    logger.info(
+      { tenantId, agentId: scopes.agentId },
+      'Retrieving full agent definition with relation ids'
+    );
 
     try {
       const agent = await getFullAgentDefinitionWithRelationIds(db)({

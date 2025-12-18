@@ -73,7 +73,8 @@ describe('create-agents quickstart e2e', () => {
       'apps/manage-ui',
       '.env',
       'package.json',
-      'drizzle.config.ts',
+      'drizzle.manage.config.ts',
+      'drizzle.run.config.ts',
     ]);
     console.log('Directory structure verified');
 

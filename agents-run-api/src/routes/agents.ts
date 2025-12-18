@@ -167,7 +167,6 @@ app.post('/a2a', async (c: Context) => {
     'agent-level a2a endpoint'
   );
 
-
   // fetch the agent and the default agent
   const agent = project.agents[agentId];
 

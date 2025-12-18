@@ -33,14 +33,12 @@ export async function executeTransfer({
   );
 
   try {
-
     await setActiveAgentForThread(dbClient)({
       scopes: { tenantId, projectId },
       threadId,
       subAgentId: targetSubAgentId,
       ref,
     });
-
 
     logger.info(
       { targetAgent: targetSubAgentId, threadId },

@@ -247,8 +247,8 @@ function createManagementHono(
   app.route('/oauth', oauthRoutes);
 
   app.route('/mcp', mcpRoutes);
-  
-// Setup OpenAPI documentation endpoints (/openapi.json and /docs)
+
+  // Setup OpenAPI documentation endpoints (/openapi.json and /docs)
   setupOpenAPIRoutes(app);
 
   const baseApp = new Hono();

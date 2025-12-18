@@ -89,8 +89,8 @@ export class ArtifactService {
 
     try {
       const taskIds = await listTaskIdsByContextId(dbClient)({
-            contextId: contextId,
-          });
+        contextId: contextId,
+      });
 
       for (const taskId of taskIds) {
         const task = await getTask(dbClient)({
@@ -102,9 +102,9 @@ export class ArtifactService {
         }
 
         const taskArtifacts = await getLedgerArtifacts(dbClient)({
-              scopes: { tenantId, projectId },
-              taskId,
-            });
+          scopes: { tenantId, projectId },
+          taskId,
+        });
 
         for (const artifact of taskArtifacts) {
           const toolCallId = artifact.metadata?.toolCallId || '';
@@ -271,7 +271,7 @@ export class ArtifactService {
     const key = `${artifactId}:${toolCallId}`;
 
     const { tenantId, projectId } = this.context.executionContext;
-     
+
     if (this.context.streamRequestId) {
       const cachedArtifact = await agentSessionManager.getArtifactCache(
         this.context.streamRequestId,
@@ -303,20 +303,20 @@ export class ArtifactService {
 
       let artifacts: any[] = [];
       artifacts = await getLedgerArtifacts(dbClient)({
-            scopes: { tenantId, projectId },
-            artifactId,
-            toolCallId: toolCallId,
-          });
+        scopes: { tenantId, projectId },
+        artifactId,
+        toolCallId: toolCallId,
+      });
 
       if (artifacts.length > 0) {
         return this.formatArtifactSummaryData(artifacts[0], artifactId, toolCallId);
       }
 
       artifacts = await getLedgerArtifacts(dbClient)({
-            scopes: { tenantId, projectId },
-            artifactId,
-            taskId: this.context.taskId,
-          });
+        scopes: { tenantId, projectId },
+        artifactId,
+        taskId: this.context.taskId,
+      });
 
       if (artifacts.length > 0) {
         return this.formatArtifactSummaryData(artifacts[0], artifactId, toolCallId);
@@ -342,7 +342,7 @@ export class ArtifactService {
     const key = `${artifactId}:${toolCallId}`;
 
     const { tenantId, projectId } = this.context.executionContext;
-     
+
     if (this.context.streamRequestId) {
       const cachedArtifact = await agentSessionManager.getArtifactCache(
         this.context.streamRequestId,
@@ -375,21 +375,20 @@ export class ArtifactService {
       let artifacts: any[] = [];
 
       artifacts = await getLedgerArtifacts(dbClient)({
-            scopes: { tenantId, projectId },
-            artifactId,
-            toolCallId: toolCallId,
-          });
-
+        scopes: { tenantId, projectId },
+        artifactId,
+        toolCallId: toolCallId,
+      });
 
       if (artifacts.length > 0) {
         return this.formatArtifactFullData(artifacts[0], artifactId, toolCallId);
       }
 
       artifacts = await getLedgerArtifacts(dbClient)({
-            scopes: { tenantId, projectId },
-            artifactId,
-            taskId: this.context.taskId,
-          });
+        scopes: { tenantId, projectId },
+        artifactId,
+        taskId: this.context.taskId,
+      });
 
       if (artifacts.length > 0) {
         return this.formatArtifactFullData(artifacts[0], artifactId, toolCallId);
@@ -847,16 +846,15 @@ export class ArtifactService {
     };
 
     const result = await upsertLedgerArtifact(dbClient)({
-          scopes: {
-            tenantId,
-            projectId,
-          },
-          contextId: this.context.contextId!,
-          taskId: this.context.taskId!,
-          toolCallId: artifact.toolCallId,
-          artifact: artifactToSave,
-        });
-
+      scopes: {
+        tenantId,
+        projectId,
+      },
+      contextId: this.context.contextId!,
+      taskId: this.context.taskId!,
+      toolCallId: artifact.toolCallId,
+      artifact: artifactToSave,
+    });
 
     if (!result.created && result.existing) {
       logger.debug(

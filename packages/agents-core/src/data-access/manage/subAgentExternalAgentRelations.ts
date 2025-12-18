@@ -1,12 +1,17 @@
 import { and, count, desc, eq } from 'drizzle-orm';
 import { nanoid } from 'nanoid';
 import type { AgentsManageDatabaseClient } from '../../db/manage/manage-client';
-import { externalAgents, subAgentExternalAgentRelations, subAgents } from '../../db/manage/manage-schema';
+import {
+  externalAgents,
+  subAgentExternalAgentRelations,
+  subAgents,
+} from '../../db/manage/manage-schema';
 import type { SubAgentExternalAgentRelationInsert } from '../../types/entities';
 import type { AgentScopeConfig, PaginationConfig, SubAgentScopeConfig } from '../../types/utility';
 
 export const getSubAgentExternalAgentRelationById =
-  (db: AgentsManageDatabaseClient) => async (params: { scopes: SubAgentScopeConfig; relationId: string }) => {
+  (db: AgentsManageDatabaseClient) =>
+  async (params: { scopes: SubAgentScopeConfig; relationId: string }) => {
     return db.query.subAgentExternalAgentRelations.findFirst({
       where: and(
         eq(subAgentExternalAgentRelations.tenantId, params.scopes.tenantId),
@@ -376,7 +381,8 @@ export const updateSubAgentExternalAgentRelation =
   };
 
 export const deleteSubAgentExternalAgentRelation =
-  (db: AgentsManageDatabaseClient) => async (params: { scopes: SubAgentScopeConfig; relationId: string }) => {
+  (db: AgentsManageDatabaseClient) =>
+  async (params: { scopes: SubAgentScopeConfig; relationId: string }) => {
     const result = await db
       .delete(subAgentExternalAgentRelations)
       .where(

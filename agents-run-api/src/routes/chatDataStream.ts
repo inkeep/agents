@@ -152,7 +152,7 @@ app.openapi(chatDataStreamRoute, async (c) => {
           scopes: { tenantId, projectId },
           conversationId,
           subAgentId: defaultSubAgentId,
-          ref: executionContext.resolvedRef
+          ref: executionContext.resolvedRef,
         });
       }
       const subAgentId = activeAgent?.activeSubAgentId || defaultSubAgentId;

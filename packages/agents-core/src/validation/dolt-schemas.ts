@@ -57,7 +57,7 @@ export const BranchNameParamsSchema = z
   })
   .openapi('BranchNameParams');
 
-  export const ResolvedRefSchema = z
+export const ResolvedRefSchema = z
   .object({
     type: z.enum(['commit', 'tag', 'branch']).describe('The type of ref'),
     name: z.string().describe('The name of the ref (branch name, tag name, or commit hash)'),

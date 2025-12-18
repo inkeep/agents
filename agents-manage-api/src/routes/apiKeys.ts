@@ -71,7 +71,6 @@ app.openapi(
     ...speakeasyOffsetLimitPagination,
   }),
   async (c) => {
-
     const { tenantId, projectId } = c.req.valid('param');
     const page = Number(c.req.query('page')) || 1;
     const limit = Math.min(Number(c.req.query('limit')) || 10, 100);

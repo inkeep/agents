@@ -76,9 +76,7 @@ export const conversations = pgTable(
     metadata: jsonb('metadata').$type<ConversationMetadata>(),
     ...timestamps,
   },
-  (table) => [
-    primaryKey({ columns: [table.tenantId, table.projectId, table.id] }),
-  ]
+  (table) => [primaryKey({ columns: [table.tenantId, table.projectId, table.id] })]
 );
 
 export const tasks = pgTable(
@@ -91,9 +89,7 @@ export const tasks = pgTable(
     metadata: jsonb('metadata').$type<TaskMetadataConfig>(),
     ...timestamps,
   },
-  (table) => [
-    primaryKey({ columns: [table.tenantId, table.projectId, table.id] }),
-  ]
+  (table) => [primaryKey({ columns: [table.tenantId, table.projectId, table.id] })]
 );
 
 export const apiKeys = pgTable(

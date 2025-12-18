@@ -75,7 +75,7 @@ const buildUrl = (
 ): string => {
   const normalizedBase = baseUrl.replace(/\/$/, '');
   const url = new URL(`${normalizedBase}${path}`);
-  if (params?.ref !== undefined && params.ref != "main") {
+  if (params?.ref !== undefined && params.ref != 'main') {
     url.searchParams.set('ref', params.ref);
   }
   if (params?.page !== undefined) {
@@ -87,7 +87,10 @@ const buildUrl = (
   return url.toString();
 };
 
-const getInternalServiceAuthHeaders = async (tenantId: string, projectId: string): Promise<Record<string, string>> => {
+const getInternalServiceAuthHeaders = async (
+  tenantId: string,
+  projectId: string
+): Promise<Record<string, string>> => {
   const token = await generateInternalServiceToken({
     serviceId: InternalServices.AGENTS_RUN_API,
     tenantId,
@@ -102,7 +105,10 @@ const getInternalServiceAuthHeaders = async (tenantId: string, projectId: string
 export const getFullProject =
   (config: ManageApiConfig) =>
   async (params: GetProjectConfigParams): Promise<FullProjectSelectWithRelationIds> => {
-    const { scopes: { tenantId, projectId }, ref } = params;
+    const {
+      scopes: { tenantId, projectId },
+      ref,
+    } = params;
     const path = `/tenants/${tenantId}/project-full/${projectId}/with-relation-ids`;
     const url = buildUrl(config.baseUrl, path, { ref });
 
@@ -129,7 +135,10 @@ export const getFullProject =
 export const getResolvedRef =
   (config: ManageApiConfig) =>
   async (params: ResolveRefParams): Promise<ResolvedRef> => {
-    const { scopes: { tenantId, projectId }, ref } = params;
+    const {
+      scopes: { tenantId, projectId },
+      ref,
+    } = params;
     const path = `/tenants/${tenantId}/projects/${projectId}/refs/resolve`;
     const url = buildUrl(config.baseUrl, path, { ref });
 
@@ -163,7 +172,12 @@ export interface GetMcpToolParams {
 export const getMcpTool =
   (config: ManageApiConfig) =>
   async (params: GetMcpToolParams): Promise<McpTool> => {
-    const { scopes: { tenantId, projectId }, toolId, ref, userId } = params;
+    const {
+      scopes: { tenantId, projectId },
+      toolId,
+      ref,
+      userId,
+    } = params;
     const path = `/tenants/${tenantId}/projects/${projectId}/tools/${toolId}`;
     const url = buildUrl(config.baseUrl, path, { ref });
 
@@ -192,9 +206,13 @@ export interface GetFunctionToolsForSubAgentParams {
   ref?: string;
 }
 
-export const getFunctionToolsForSubAgent = (config: ManageApiConfig) =>
+export const getFunctionToolsForSubAgent =
+  (config: ManageApiConfig) =>
   async (params: GetFunctionToolsForSubAgentParams): Promise<FunctionToolApiSelect[]> => {
-    const { scopes: { tenantId, projectId, agentId, subAgentId }, ref } = params;
+    const {
+      scopes: { tenantId, projectId, agentId, subAgentId },
+      ref,
+    } = params;
     const path = `/tenants/${tenantId}/projects/${projectId}/agents/${agentId}/sub-agent-function-tools/sub-agent/${subAgentId}`;
 
     const headers = await getInternalServiceAuthHeaders(tenantId, projectId);
@@ -219,7 +237,7 @@ export const getFunctionToolsForSubAgent = (config: ManageApiConfig) =>
         );
       }
 
-      const json = await response.json() as PaginatedResponse<FunctionToolApiSelect>;
+      const json = (await response.json()) as PaginatedResponse<FunctionToolApiSelect>;
       allItems.push(...json.data);
 
       if (currentPage >= json.pagination.pages) {

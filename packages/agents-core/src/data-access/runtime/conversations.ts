@@ -56,20 +56,21 @@ export const listConversations =
     };
   };
 
-export const createConversation = (db: AgentsRunDatabaseClient) => async (params: ConversationInsert) => {
-  const now = new Date().toISOString();
+export const createConversation =
+  (db: AgentsRunDatabaseClient) => async (params: ConversationInsert) => {
+    const now = new Date().toISOString();
 
-  const [created] = await db
-    .insert(conversations)
-    .values({
-      ...params,
-      createdAt: now,
-      updatedAt: now,
-    })
-    .returning();
+    const [created] = await db
+      .insert(conversations)
+      .values({
+        ...params,
+        createdAt: now,
+        updatedAt: now,
+      })
+      .returning();
 
-  return created;
-};
+    return created;
+  };
 
 export const updateConversation =
   (db: AgentsRunDatabaseClient) =>
@@ -358,7 +359,6 @@ export const setActiveAgentForConversation =
           updatedAt: new Date().toISOString(),
         },
       });
-
   };
 
 export const setActiveAgentForThread =

@@ -217,17 +217,17 @@ const processUserMessage = async (
     });
   }
   await createMessage(dbClient)({
-      id: generateId(),
-      tenantId,
-      projectId,
-      conversationId,
-      role: 'user',
-      content: {
-        text: query,
-      },
-      visibility: 'user-facing',
-      messageType: 'chat',
-    });
+    id: generateId(),
+    tenantId,
+    projectId,
+    conversationId,
+    role: 'user',
+    content: {
+      text: query,
+    },
+    visibility: 'user-facing',
+    messageType: 'chat',
+  });
 };
 
 /**
@@ -402,7 +402,9 @@ app.use('/', async (c, next) => {
  */
 const validateRequestParameters = (
   c: any
-): { valid: true; executionContext: FullExecutionContext } | { valid: false; response: Response } => {
+):
+  | { valid: true; executionContext: FullExecutionContext }
+  | { valid: false; response: Response } => {
   try {
     const executionContext = c.get('executionContext');
     const { tenantId, projectId, agentId } = executionContext;
@@ -487,20 +489,20 @@ const handleInitializationRequest = async (
 
     const activeSubAgentId = agent.defaultSubAgentId;
     const conversation = await createOrGetConversation(dbClient)({
-        id: sessionId,
-        tenantId,
-        projectId,
-        activeSubAgentId,
-        ref: resolvedRef,
-        metadata: {
-          sessionData: {
-            agentId,
-            sessionType: 'mcp',
-            mcpProtocolVersion: c.req.header('mcp-protocol-version'),
-            initialized: false, // Track initialization state
-          },
+      id: sessionId,
+      tenantId,
+      projectId,
+      activeSubAgentId,
+      ref: resolvedRef,
+      metadata: {
+        sessionData: {
+          agentId,
+          sessionType: 'mcp',
+          mcpProtocolVersion: c.req.header('mcp-protocol-version'),
+          initialized: false, // Track initialization state
         },
-      });
+      },
+    });
 
     logger.info(
       { sessionId, conversationId: conversation.id },
@@ -545,7 +547,15 @@ const handleExistingSessionRequest = async (
   credentialStores?: CredentialStoreRegistry
 ) => {
   const { tenantId, projectId, agentId, resolvedRef } = executionContext;
-  const conversation = await validateSession(req, res, body, tenantId, projectId, agentId, resolvedRef);
+  const conversation = await validateSession(
+    req,
+    res,
+    body,
+    tenantId,
+    projectId,
+    agentId,
+    resolvedRef
+  );
   if (!conversation) {
     return toFetchResponse(res);
   }

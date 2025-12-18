@@ -9,7 +9,9 @@ loadEnvironmentFiles();
  * Get a database client for cleanup operations
  * Allows passing a custom client or uses a default one
  */
-export const getIntegrationTestClient = (db?: AgentsManageDatabaseClient): AgentsManageDatabaseClient => {
+export const getIntegrationTestClient = (
+  db?: AgentsManageDatabaseClient
+): AgentsManageDatabaseClient => {
   if (db) return db;
   return createAgentsManageDatabaseClient({});
 };
@@ -48,7 +50,10 @@ export const cleanupBranchesByPrefix = async (
  * Delete all tags matching a prefix pattern
  * Used for cleaning up integration test data
  */
-export const cleanupTagsByPrefix = async (prefix: string, db?: AgentsManageDatabaseClient): Promise<void> => {
+export const cleanupTagsByPrefix = async (
+  prefix: string,
+  db?: AgentsManageDatabaseClient
+): Promise<void> => {
   const dbClient = getIntegrationTestClient(db);
   try {
     // Get all tags matching the prefix
@@ -92,7 +97,10 @@ export const cleanupBranches = async (
  * Delete specific tags by name
  * Used for cleaning up integration test data
  */
-export const cleanupTags = async (tagNames: Set<string>, db?: AgentsManageDatabaseClient): Promise<void> => {
+export const cleanupTags = async (
+  tagNames: Set<string>,
+  db?: AgentsManageDatabaseClient
+): Promise<void> => {
   const dbClient = getIntegrationTestClient(db);
   for (const tagName of tagNames) {
     try {

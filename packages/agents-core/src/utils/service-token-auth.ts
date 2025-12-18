@@ -1,10 +1,5 @@
 import { getLogger } from './logger';
-import {
-  signJwt,
-  verifyJwt,
-  extractBearerToken,
-  type JwtVerifyResult,
-} from './jwt-helpers';
+import { signJwt, verifyJwt, extractBearerToken, type JwtVerifyResult } from './jwt-helpers';
 
 const logger = getLogger('service-token-auth');
 

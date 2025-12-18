@@ -6,7 +6,8 @@ import type { SubAgentTeamAgentRelationInsert } from '../../types/entities';
 import type { AgentScopeConfig, PaginationConfig, SubAgentScopeConfig } from '../../types/utility';
 
 export const getSubAgentTeamAgentRelationById =
-  (db: AgentsManageDatabaseClient) => async (params: { scopes: SubAgentScopeConfig; relationId: string }) => {
+  (db: AgentsManageDatabaseClient) =>
+  async (params: { scopes: SubAgentScopeConfig; relationId: string }) => {
     return db.query.subAgentTeamAgentRelations.findFirst({
       where: and(
         eq(subAgentTeamAgentRelations.tenantId, params.scopes.tenantId),
@@ -377,7 +378,8 @@ export const updateSubAgentTeamAgentRelation =
   };
 
 export const deleteSubAgentTeamAgentRelation =
-  (db: AgentsManageDatabaseClient) => async (params: { scopes: SubAgentScopeConfig; relationId: string }) => {
+  (db: AgentsManageDatabaseClient) =>
+  async (params: { scopes: SubAgentScopeConfig; relationId: string }) => {
     const result = await db
       .delete(subAgentTeamAgentRelations)
       .where(

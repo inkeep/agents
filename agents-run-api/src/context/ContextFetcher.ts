@@ -2,7 +2,12 @@ import jmespath from 'jmespath';
 import type { CredentialStoreRegistry } from '@inkeep/agents-core';
 import { CredentialStuffer } from '@inkeep/agents-core';
 import type { ContextFetchDefinition } from '@inkeep/agents-core';
-import { getLogger, TemplateEngine, type TemplateContext, type FullExecutionContext } from '@inkeep/agents-core';
+import {
+  getLogger,
+  TemplateEngine,
+  type TemplateContext,
+  type FullExecutionContext,
+} from '@inkeep/agents-core';
 import { validateAgainstJsonSchema } from './validation';
 
 const logger = getLogger('context-fetcher');
@@ -149,7 +154,6 @@ export class ContextFetcher {
   private async getCredential(credentialReferenceId: string) {
     const { project, tenantId, projectId } = this.executionContext;
     try {
-
       const credentialReference = project.credentialReferences?.[credentialReferenceId];
 
       logger.info({ credentialReference }, 'Credential reference');
@@ -468,4 +472,3 @@ export class ContextFetcher {
     };
   }
 }
-

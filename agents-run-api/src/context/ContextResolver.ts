@@ -40,7 +40,7 @@ export class ContextResolver {
 
   constructor(
     executionContext: FullExecutionContext,
-    credentialStoreRegistry?: CredentialStoreRegistry,
+    credentialStoreRegistry?: CredentialStoreRegistry
   ) {
     this.executionContext = executionContext;
     this.fetcher = new ContextFetcher(executionContext, credentialStoreRegistry);
@@ -416,4 +416,3 @@ export class ContextResolver {
     );
   }
 }
-

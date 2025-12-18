@@ -250,4 +250,3 @@ describe('JWT Helpers', () => {
     });
   });
 });
-

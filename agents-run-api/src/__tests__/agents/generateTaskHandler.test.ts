@@ -28,7 +28,11 @@ const { getMcpToolMock } = vi.hoisted(() => {
         {
           name: 'search_database',
           description: 'Search the database for information',
-          inputSchema: { type: 'object', properties: { query: { type: 'string' } }, required: ['query'] },
+          inputSchema: {
+            type: 'object',
+            properties: { query: { type: 'string' } },
+            required: ['query'],
+          },
         },
       ],
       createdAt: '2024-01-01T00:00:00Z',
@@ -178,15 +182,17 @@ vi.mock('../../logger.js', () => ({
   }),
 }));
 
-function createMockExecutionContext(overrides: {
-  tenantId?: string;
-  projectId?: string;
-  agentId?: string;
-  resolvedRefName?: string;
-  projectModels?: any;
-  agentModels?: any;
-  subAgentModels?: any;
-} = {}): any {
+function createMockExecutionContext(
+  overrides: {
+    tenantId?: string;
+    projectId?: string;
+    agentId?: string;
+    resolvedRefName?: string;
+    projectModels?: any;
+    agentModels?: any;
+    subAgentModels?: any;
+  } = {}
+): any {
   const tenantId = overrides.tenantId ?? 'test-tenant';
   const projectId = overrides.projectId ?? 'test-project';
   const agentId = overrides.agentId ?? 'test-agent';
@@ -736,7 +742,9 @@ describe('generateTaskHandler', () => {
       // Mock Agent to throw error
       const { Agent } = await import('../../agents/Agent.js');
       const originalGenerate = vi.mocked(Agent).prototype.generate;
-      vi.mocked(Agent).prototype.generate = vi.fn().mockRejectedValue(new Error('Generation failed'));
+      vi.mocked(Agent).prototype.generate = vi
+        .fn()
+        .mockRejectedValue(new Error('Generation failed'));
 
       const task: A2ATask = {
         id: 'task-123',
@@ -896,7 +904,9 @@ describe('generateTaskHandler', () => {
         subAgentModels: {
           base: {
             model: 'openai/gpt-4o',
-            providerOptions: { openai: { temperature: 0.3, frequencyPenalty: 0.1, presencePenalty: 0.2 } },
+            providerOptions: {
+              openai: { temperature: 0.3, frequencyPenalty: 0.1, presencePenalty: 0.2 },
+            },
           },
         },
       });
@@ -909,15 +919,21 @@ describe('generateTaskHandler', () => {
       expect(config.agentSchema.models).toEqual({
         base: {
           model: 'openai/gpt-4o',
-          providerOptions: { openai: { temperature: 0.3, frequencyPenalty: 0.1, presencePenalty: 0.2 } },
+          providerOptions: {
+            openai: { temperature: 0.3, frequencyPenalty: 0.1, presencePenalty: 0.2 },
+          },
         },
         structuredOutput: {
           model: 'openai/gpt-4o',
-          providerOptions: { openai: { temperature: 0.3, frequencyPenalty: 0.1, presencePenalty: 0.2 } },
+          providerOptions: {
+            openai: { temperature: 0.3, frequencyPenalty: 0.1, presencePenalty: 0.2 },
+          },
         },
         summarizer: {
           model: 'openai/gpt-4o',
-          providerOptions: { openai: { temperature: 0.3, frequencyPenalty: 0.1, presencePenalty: 0.2 } },
+          providerOptions: {
+            openai: { temperature: 0.3, frequencyPenalty: 0.1, presencePenalty: 0.2 },
+          },
         },
       });
     });

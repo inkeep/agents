@@ -72,7 +72,8 @@ export class ExecutionHandler {
       emitOperations,
     } = params;
 
-    const { tenantId, projectId, project, agentId, apiKey, baseUrl, resolvedRef } = executionContext;
+    const { tenantId, projectId, project, agentId, apiKey, baseUrl, resolvedRef } =
+      executionContext;
 
     registerStreamHelper(requestId, sseHelper);
 
@@ -291,9 +292,9 @@ export class ExecutionHandler {
         if (!messageResponse?.result) {
           errorCount++;
           logger.error(
-            { 
-              currentAgentId, 
-              iterations, 
+            {
+              currentAgentId,
+              iterations,
               errorCount,
               hasError: !!(messageResponse as any)?.error,
               errorDetails: (messageResponse as any)?.error,
@@ -310,16 +311,16 @@ export class ExecutionHandler {
 
             if (task) {
               await updateTask(dbClient)({
-                    taskId: task.id,
-                    data: {
-                      status: 'failed',
-                      metadata: {
-                        ...task.metadata,
-                        failed_at: new Date().toISOString(),
-                        error: errorMessage,
-                      },
-                    },
-                });
+                taskId: task.id,
+                data: {
+                  status: 'failed',
+                  metadata: {
+                    ...task.metadata,
+                    failed_at: new Date().toISOString(),
+                    error: errorMessage,
+                  },
+                },
+              });
             }
 
             await agentSessionManager.endSession(requestId);
@@ -466,26 +467,26 @@ export class ExecutionHandler {
                 visibility: 'user-facing',
                 messageType: 'chat',
                 fromSubAgentId: currentAgentId,
-                taskId: task.id
+                taskId: task.id,
               });
 
               // Mark task as completed
               const updateTaskStart = Date.now();
               await updateTask(dbClient)({
-                  taskId: task.id,
-                  data: {
-                    status: 'completed',
-                    metadata: {
-                      ...task.metadata,
-                      completed_at: new Date(),
-                      response: {
-                        text: textContent,
-                        parts: responseParts,
-                        hasText: !!textContent,
-                        hasData: responseParts.some((p: any) => p.kind === 'data'),
-                      },
+                taskId: task.id,
+                data: {
+                  status: 'completed',
+                  metadata: {
+                    ...task.metadata,
+                    completed_at: new Date(),
+                    response: {
+                      text: textContent,
+                      parts: responseParts,
+                      hasText: !!textContent,
+                      hasData: responseParts.some((p: any) => p.kind === 'data'),
                     },
                   },
+                },
               });
 
               const updateTaskEnd = Date.now();
@@ -601,18 +602,18 @@ export class ExecutionHandler {
 
       // Mark task as failed
       if (task) {
-          await updateTask(dbClient)({
-            taskId: task.id,
-            data: {
-              status: 'failed',
-              metadata: {
-                ...task.metadata,
-                failed_at: new Date(),
-                error: errorMessage,
-              },
+        await updateTask(dbClient)({
+          taskId: task.id,
+          data: {
+            status: 'failed',
+            metadata: {
+              ...task.metadata,
+              failed_at: new Date(),
+              error: errorMessage,
             },
-          });
-        }
+          },
+        });
+      }
       // Clean up AgentSession and streamHelper on exception
       await agentSessionManager.endSession(requestId);
       unregisterStreamHelper(requestId);

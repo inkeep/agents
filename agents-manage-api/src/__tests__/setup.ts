@@ -12,7 +12,8 @@ beforeAll(async () => {
 
     // Use path relative to project root to work with both direct and turbo execution
     // When running from agents-manage-api, go up one level to project root
-    const isInPackageDir = process.cwd().includes('agents-manage-api') || process.cwd().includes('agents-run-api');
+    const isInPackageDir =
+      process.cwd().includes('agents-manage-api') || process.cwd().includes('agents-run-api');
     const manageMigrationsPath = isInPackageDir
       ? '../packages/agents-core/drizzle/manage'
       : './packages/agents-core/drizzle/manage';

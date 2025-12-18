@@ -97,7 +97,8 @@ export const doltMergeStatus =
  * Get list of tables with conflicts
  */
 export const doltConflicts =
-  (db: AgentsManageDatabaseClient) => async (): Promise<{ table: string; numConflicts: number }[]> => {
+  (db: AgentsManageDatabaseClient) =>
+  async (): Promise<{ table: string; numConflicts: number }[]> => {
     const result = await db.execute(sql`SELECT * FROM dolt_conflicts`);
     return result.rows as any[];
   };
@@ -126,7 +127,7 @@ export const doltSchemaConflicts = (db: AgentsManageDatabaseClient) => async ():
 export const doltResolveConflicts =
   (db: AgentsManageDatabaseClient) =>
   async (params: { tableName: string; strategy: 'ours' | 'theirs' }): Promise<void> => {
-    await db.execute(sql`SET dolt_allow_commit_conflicts = 1`); 
+    await db.execute(sql`SET dolt_allow_commit_conflicts = 1`);
     await db.execute(
       sql.raw(`SELECT DOLT_CONFLICTS_RESOLVE('--${params.strategy}', '${params.tableName}')`)
     );

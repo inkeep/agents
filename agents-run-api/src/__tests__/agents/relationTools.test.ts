@@ -12,12 +12,14 @@ import type { AgentConfig, ExternalAgentRelationConfig } from '../../agents/Agen
 import { createDelegateToAgentTool, createTransferToAgentTool } from '../../agents/relationTools';
 import { saveA2AMessageResponse } from '../../data/conversations';
 
-function createMockExecutionContext(overrides: {
-  tenantId?: string;
-  projectId?: string;
-  agentId?: string;
-  credentialReferences?: Record<string, any>;
-} = {}) {
+function createMockExecutionContext(
+  overrides: {
+    tenantId?: string;
+    projectId?: string;
+    agentId?: string;
+    credentialReferences?: Record<string, any>;
+  } = {}
+) {
   const tenantId = overrides.tenantId ?? 'test-tenant';
   const projectId = overrides.projectId ?? 'test-project';
   const agentId = overrides.agentId ?? 'test-agent';

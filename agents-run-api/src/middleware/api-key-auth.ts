@@ -14,15 +14,14 @@ import { createBaseExecutionContext } from '../types/execution-context';
 
 const logger = getLogger('env-key-auth');
 
-
- // ============================================================================
- // Supported auth strategies
- // ============================================================================
- // 1. JWT temp token: generated with user session cookies
- // 2. Bypass secret: override used for development purposes
- // 3. Database API key: validated against database, created in the dashboard
- // 4. Team agent token: used for intra-tenant team-agent delegation
- // ============================================================================
+// ============================================================================
+// Supported auth strategies
+// ============================================================================
+// 1. JWT temp token: generated with user session cookies
+// 2. Bypass secret: override used for development purposes
+// 3. Database API key: validated against database, created in the dashboard
+// 4. Team agent token: used for intra-tenant team-agent delegation
+// ============================================================================
 
 /**
  * Common request data extracted once at the start of auth
@@ -168,10 +167,7 @@ async function tryApiKeyAuth(apiKey: string): Promise<AuthResult | null> {
 /**
  * Authenticate using a team agent JWT token (for intra-tenant delegation)
  */
-async function tryTeamAgentAuth(
-  token: string,
-  expectedSubAgentId?: string
-): Promise<AuthAttempt> {
+async function tryTeamAgentAuth(token: string, expectedSubAgentId?: string): Promise<AuthAttempt> {
   const result = await verifyServiceToken(token);
 
   if (!result.valid || !result.payload) {
@@ -263,7 +259,7 @@ function createDevContext(reqData: RequestData): AuthResult {
     agentId: reqData.agentId || 'test-agent',
     apiKeyId: 'test-key',
   };
-  
+
   // Log when falling back to test values to help debug auth issues
   if (!reqData.tenantId || !reqData.projectId) {
     logger.warn(
@@ -278,7 +274,7 @@ function createDevContext(reqData: RequestData): AuthResult {
       'createDevContext: Using fallback test values due to missing tenant/project in request'
     );
   }
-  
+
   return result;
 }
 
@@ -396,8 +392,7 @@ export const apiKeyAuth = () =>
     await next();
   });
 
-
-  /**
+/**
  * Helper middleware for endpoints that optionally support API key authentication
  * If no auth header is present, it continues without setting the executionContext
  */

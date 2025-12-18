@@ -2,8 +2,14 @@ import path from 'node:path';
 import { afterEach, beforeAll } from 'vitest';
 import type { AgentsManageDatabaseClient } from '../db/manage/manage-client';
 import type { AgentsRunDatabaseClient } from '../db/runtime/runtime-client';
-import { createTestManageDatabaseClient, cleanupTestManageDatabase } from '../db/manage/test-manage-client';
-import { createTestRuntimeDatabaseClient, cleanupTestRuntimeDatabase } from '../db/runtime/test-runtime-client';
+import {
+  createTestManageDatabaseClient,
+  cleanupTestManageDatabase,
+} from '../db/manage/test-manage-client';
+import {
+  createTestRuntimeDatabaseClient,
+  cleanupTestRuntimeDatabase,
+} from '../db/runtime/test-runtime-client';
 import { getLogger } from '../utils/logger';
 
 const DRIZZLE_MANAGE_DIR = path.resolve(import.meta.dirname, '../../drizzle/manage');

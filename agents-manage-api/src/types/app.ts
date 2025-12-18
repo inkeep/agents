@@ -1,4 +1,9 @@
-import type { CredentialStoreRegistry, AgentsManageDatabaseClient, ResolvedRef, ServerConfig } from '@inkeep/agents-core';
+import type {
+  CredentialStoreRegistry,
+  AgentsManageDatabaseClient,
+  ResolvedRef,
+  ServerConfig,
+} from '@inkeep/agents-core';
 import type { createAuth } from '@inkeep/agents-core/auth';
 
 /**

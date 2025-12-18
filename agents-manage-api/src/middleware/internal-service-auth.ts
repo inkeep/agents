@@ -19,12 +19,12 @@ export interface InternalServiceAuthVariables {
 
 /**
  * Middleware to authenticate internal service-to-service requests.
- * 
+ *
  * This middleware:
  * 1. Checks if the Bearer token is an internal service token (by issuer)
  * 2. If so, validates the token and sets context
  * 3. If not an internal service token, calls next() to allow other auth to handle it
- * 
+ *
  * Use this BEFORE other auth middleware in the chain.
  */
 export const internalServiceAuth = () =>
@@ -89,12 +89,10 @@ export const internalServiceAuth = () =>
 /**
  * Middleware to validate that internal service has access to the requested tenant.
  * Should be used after internalServiceAuth() and after tenant is determined from path/headers.
- * 
+ *
  * @param getTenantId - Function to extract tenant ID from context (e.g., from params or headers)
  */
-export const requireInternalServiceTenantAccess = (
-  getTenantId: (c: Context) => string
-) =>
+export const requireInternalServiceTenantAccess = (getTenantId: (c: Context) => string) =>
   createMiddleware<{
     Variables: InternalServiceAuthVariables;
   }>(async (c, next) => {
@@ -120,12 +118,10 @@ export const requireInternalServiceTenantAccess = (
 /**
  * Middleware to validate that internal service has access to the requested project.
  * Should be used after internalServiceAuth() and after project is determined from path/headers.
- * 
+ *
  * @param getProjectId - Function to extract project ID from context (e.g., from params or headers)
  */
-export const requireInternalServiceProjectAccess = (
-  getProjectId: (c: Context) => string
-) =>
+export const requireInternalServiceProjectAccess = (getProjectId: (c: Context) => string) =>
   createMiddleware<{
     Variables: InternalServiceAuthVariables;
   }>(async (c, next) => {
@@ -158,9 +154,6 @@ export const isInternalServiceRequest = (c: Context): boolean => {
 /**
  * Helper to get the internal service payload if present
  */
-export const getInternalServicePayload = (
-  c: Context
-): InternalServiceTokenPayload | undefined => {
+export const getInternalServicePayload = (c: Context): InternalServiceTokenPayload | undefined => {
   return c.get('internalServicePayload');
 };
-

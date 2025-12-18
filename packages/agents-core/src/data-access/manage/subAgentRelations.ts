@@ -1,6 +1,11 @@
 import { and, count, desc, eq, isNotNull } from 'drizzle-orm';
 import type { AgentsManageDatabaseClient } from '../../db/manage/manage-client';
-import { subAgentRelations, subAgents, subAgentToolRelations, tools } from '../../db/manage/manage-schema';
+import {
+  subAgentRelations,
+  subAgents,
+  subAgentToolRelations,
+  tools,
+} from '../../db/manage/manage-schema';
 import type {
   SubAgentRelationInsert,
   SubAgentRelationUpdate,
@@ -10,7 +15,8 @@ import type { AgentScopeConfig, PaginationConfig, SubAgentScopeConfig } from '..
 import { generateId } from '../../utils/conversations';
 
 export const getAgentRelationById =
-  (db: AgentsManageDatabaseClient) => async (params: { scopes: AgentScopeConfig; relationId: string }) => {
+  (db: AgentsManageDatabaseClient) =>
+  async (params: { scopes: AgentScopeConfig; relationId: string }) => {
     return db.query.subAgentRelations.findFirst({
       where: and(
         eq(subAgentRelations.tenantId, params.scopes.tenantId),
@@ -151,7 +157,8 @@ export const getSubAgentRelationsByTarget =
   };
 
 export const getRelatedAgentsForAgent =
-  (db: AgentsManageDatabaseClient) => async (params: { scopes: AgentScopeConfig; subAgentId: string }) => {
+  (db: AgentsManageDatabaseClient) =>
+  async (params: { scopes: AgentScopeConfig; subAgentId: string }) => {
     const data = await db
       .select({
         id: subAgents.id,
@@ -290,7 +297,8 @@ export const updateAgentRelation =
   };
 
 export const deleteSubAgentRelation =
-  (db: AgentsManageDatabaseClient) => async (params: { scopes: AgentScopeConfig; relationId: string }) => {
+  (db: AgentsManageDatabaseClient) =>
+  async (params: { scopes: AgentScopeConfig; relationId: string }) => {
     const result = await db
       .delete(subAgentRelations)
       .where(
@@ -382,7 +390,8 @@ export const updateAgentToolRelation =
   };
 
 export const deleteAgentToolRelation =
-  (db: AgentsManageDatabaseClient) => async (params: { scopes: AgentScopeConfig; relationId: string }) => {
+  (db: AgentsManageDatabaseClient) =>
+  async (params: { scopes: AgentScopeConfig; relationId: string }) => {
     const result = await db
       .delete(subAgentToolRelations)
       .where(
@@ -415,7 +424,8 @@ export const deleteAgentToolRelationByAgent =
   };
 
 export const getAgentToolRelationById =
-  (db: AgentsManageDatabaseClient) => async (params: { scopes: SubAgentScopeConfig; relationId: string }) => {
+  (db: AgentsManageDatabaseClient) =>
+  async (params: { scopes: SubAgentScopeConfig; relationId: string }) => {
     return await db.query.subAgentToolRelations.findFirst({
       where: and(
         eq(subAgentToolRelations.tenantId, params.scopes.tenantId),

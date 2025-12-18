@@ -1,7 +1,4 @@
-import type {
-  ExternalAgentInsert,
-  SubAgentDataComponentInsert,
-} from '@inkeep/agents-core';
+import type { ExternalAgentInsert, SubAgentDataComponentInsert } from '@inkeep/agents-core';
 import { eq } from 'drizzle-orm';
 import { beforeAll, beforeEach, describe, expect, it } from 'vitest';
 import type { AgentsManageDatabaseClient } from '../../db/manage/manage-client';
@@ -607,10 +604,7 @@ describe('Cascading Delete Tests (Runtime DB)', () => {
       expect(relationsAfter).toHaveLength(0);
 
       // Child task should still exist
-      const childTaskAfter = await dbClient
-        .select()
-        .from(tasks)
-        .where(eq(tasks.id, childTaskId));
+      const childTaskAfter = await dbClient.select().from(tasks).where(eq(tasks.id, childTaskId));
       expect(childTaskAfter).toHaveLength(1);
     });
 
@@ -670,10 +664,7 @@ describe('Cascading Delete Tests (Runtime DB)', () => {
       expect(relationsAfter).toHaveLength(0);
 
       // Parent task should still exist
-      const parentTaskAfter = await dbClient
-        .select()
-        .from(tasks)
-        .where(eq(tasks.id, parentTaskId));
+      const parentTaskAfter = await dbClient.select().from(tasks).where(eq(tasks.id, parentTaskId));
       expect(parentTaskAfter).toHaveLength(1);
     });
 
@@ -738,10 +729,7 @@ describe('Cascading Delete Tests (Runtime DB)', () => {
         .where(eq(conversations.id, conv1Id));
       expect(conv1After).toHaveLength(0);
 
-      const msg1After = await dbClient
-        .select()
-        .from(messages)
-        .where(eq(messages.id, msg1Id));
+      const msg1After = await dbClient.select().from(messages).where(eq(messages.id, msg1Id));
       expect(msg1After).toHaveLength(0);
 
       // Verify conv2 and its message still exist
@@ -751,10 +739,7 @@ describe('Cascading Delete Tests (Runtime DB)', () => {
         .where(eq(conversations.id, conv2Id));
       expect(conv2After).toHaveLength(1);
 
-      const msg2After = await dbClient
-        .select()
-        .from(messages)
-        .where(eq(messages.id, msg2Id));
+      const msg2After = await dbClient.select().from(messages).where(eq(messages.id, msg2Id));
       expect(msg2After).toHaveLength(1);
     });
 
@@ -842,10 +827,7 @@ describe('Cascading Delete Tests (Runtime DB)', () => {
       expect(cacheAfter).toHaveLength(0);
 
       // Task and artifacts should still exist (not cascaded from conversation)
-      const taskAfter = await dbClient
-        .select()
-        .from(tasks)
-        .where(eq(tasks.id, taskId));
+      const taskAfter = await dbClient.select().from(tasks).where(eq(tasks.id, taskId));
       expect(taskAfter).toHaveLength(1);
 
       const artifactsAfter = await dbClient
@@ -857,10 +839,7 @@ describe('Cascading Delete Tests (Runtime DB)', () => {
       // Now delete task - should cascade to artifacts
       await dbClient.delete(tasks).where(eq(tasks.id, taskId));
 
-      const taskAfterDelete = await dbClient
-        .select()
-        .from(tasks)
-        .where(eq(tasks.id, taskId));
+      const taskAfterDelete = await dbClient.select().from(tasks).where(eq(tasks.id, taskId));
       expect(taskAfterDelete).toHaveLength(0);
 
       const artifactsAfterDelete = await dbClient

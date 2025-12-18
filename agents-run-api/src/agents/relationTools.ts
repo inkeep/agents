@@ -307,10 +307,7 @@ export function createDelegateToAgentTool({
           (delegateConfig.config.credentialReferenceId || delegateConfig.config.headers) &&
           credentialStoreRegistry
         ) {
-          const contextResolver = new ContextResolver(
-            executionContext,
-            credentialStoreRegistry,
-          );
+          const contextResolver = new ContextResolver(executionContext, credentialStoreRegistry);
           const credentialStuffer = new CredentialStuffer(credentialStoreRegistry, contextResolver);
 
           const credentialContext = {
@@ -339,10 +336,7 @@ export function createDelegateToAgentTool({
           });
         }
       } else if (isTeam) {
-        const contextResolver = new ContextResolver(
-          executionContext,
-          credentialStoreRegistry,
-        );
+        const contextResolver = new ContextResolver(executionContext, credentialStoreRegistry);
         const context = await contextResolver.resolveHeaders(metadata.conversationId, contextId);
 
         for (const [key, value] of Object.entries(headers)) {
@@ -486,8 +480,7 @@ export type BuildTransferRelationConfigParams = {
 export async function buildTransferRelationConfig(
   params: BuildTransferRelationConfigParams
 ): Promise<AgentConfig> {
-  const { relation, executionContext, baseUrl, apiKey } =
-    params;
+  const { relation, executionContext, baseUrl, apiKey } = params;
   const { tenantId, projectId, project, agentId } = executionContext;
 
   const agent = executionContext.project.agents[agentId];

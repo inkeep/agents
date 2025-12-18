@@ -46,7 +46,6 @@ describe('Conversations Data Access - Integration Tests', () => {
 
   describe('createConversation & getConversation', () => {
     it('should create and retrieve a conversation with full configuration', async () => {
-
       const conversationData = createTestConversationData(testTenantId, testProjectId, '1');
 
       // Create conversation

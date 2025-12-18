@@ -19,37 +19,40 @@ export type SchemaCompatibilityCheck = {
 export const MAIN_BRANCH = 'main';
 export const MIN_VIABLE_SCHEMA_VERSION_KEY = 'min_viable_schema_version';
 
-const getAppliedMigrations = (db: AgentsManageDatabaseClient) => async (): Promise<SchemaVersion[]> => {
-  try {
-    const result = await db.execute(
-      sql`SELECT * FROM __drizzle_migrations ORDER BY created_at ASC`
-    );
-    return result.rows.map((row: any, index) => ({
-      version: index + 1,
-      description: row.hash,
-      appliedAt: new Date(row.created_at),
-    }));
-  } catch (error) {
-    return [];
-  }
-};
+const getAppliedMigrations =
+  (db: AgentsManageDatabaseClient) => async (): Promise<SchemaVersion[]> => {
+    try {
+      const result = await db.execute(
+        sql`SELECT * FROM __drizzle_migrations ORDER BY created_at ASC`
+      );
+      return result.rows.map((row: any, index) => ({
+        version: index + 1,
+        description: row.hash,
+        appliedAt: new Date(row.created_at),
+      }));
+    } catch (error) {
+      return [];
+    }
+  };
 
-export const getCurrentSchemaVersion = (db: AgentsManageDatabaseClient) => async (): Promise<number> => {
-  const migrations = await getAppliedMigrations(db)();
-  return migrations.length;
-};
+export const getCurrentSchemaVersion =
+  (db: AgentsManageDatabaseClient) => async (): Promise<number> => {
+    const migrations = await getAppliedMigrations(db)();
+    return migrations.length;
+  };
 
-export const getMinViableSchemaVersion = (db: AgentsManageDatabaseClient) => async (): Promise<number> => {
-  try {
-    const result = await db.execute(
-      sql`SELECT value FROM dolt_config WHERE name = ${MIN_VIABLE_SCHEMA_VERSION_KEY}`
-    );
-    const value = result.rows[0]?.value;
-    return value ? Number.parseInt(value as string, 10) : 0;
-  } catch (error) {
-    return 0;
-  }
-};
+export const getMinViableSchemaVersion =
+  (db: AgentsManageDatabaseClient) => async (): Promise<number> => {
+    try {
+      const result = await db.execute(
+        sql`SELECT value FROM dolt_config WHERE name = ${MIN_VIABLE_SCHEMA_VERSION_KEY}`
+      );
+      const value = result.rows[0]?.value;
+      return value ? Number.parseInt(value as string, 10) : 0;
+    } catch (error) {
+      return 0;
+    }
+  };
 
 export const setMinViableSchemaVersion =
   (db: AgentsManageDatabaseClient) =>

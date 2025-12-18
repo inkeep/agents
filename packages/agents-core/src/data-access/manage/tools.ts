@@ -223,7 +223,7 @@ export const dbResultToMcpTool = async (
   dbClient: AgentsManageDatabaseClient,
   credentialStoreRegistry?: CredentialStoreRegistry,
   relationshipId?: string,
-  userId?: string,
+  userId?: string
 ): Promise<McpTool> => {
   const { headers, capabilities, credentialReferenceId, imageUrl, createdAt, ...rest } = dbResult;
 
@@ -345,7 +345,8 @@ export const dbResultToMcpTool = async (
 };
 
 export const getToolById =
-  (db: AgentsManageDatabaseClient) => async (params: { scopes: ProjectScopeConfig; toolId: string }) => {
+  (db: AgentsManageDatabaseClient) =>
+  async (params: { scopes: ProjectScopeConfig; toolId: string }) => {
     const result = await db.query.tools.findFirst({
       where: and(
         eq(tools.tenantId, params.scopes.tenantId),
@@ -427,7 +428,8 @@ export const updateTool =
   };
 
 export const deleteTool =
-  (db: AgentsManageDatabaseClient) => async (params: { scopes: ProjectScopeConfig; toolId: string }) => {
+  (db: AgentsManageDatabaseClient) =>
+  async (params: { scopes: ProjectScopeConfig; toolId: string }) => {
     const [deleted] = await db
       .delete(tools)
       .where(
@@ -528,26 +530,27 @@ export const upsertSubAgentToolRelation =
 /**
  * Upsert a tool (create if it doesn't exist, update if it does)
  */
-export const upsertTool = (db: AgentsManageDatabaseClient) => async (params: { data: ToolInsert }) => {
-  const scopes = { tenantId: params.data.tenantId, projectId: params.data.projectId };
+export const upsertTool =
+  (db: AgentsManageDatabaseClient) => async (params: { data: ToolInsert }) => {
+    const scopes = { tenantId: params.data.tenantId, projectId: params.data.projectId };
 
-  const existing = await getToolById(db)({
-    scopes,
-    toolId: params.data.id,
-  });
-
-  if (existing) {
-    return await updateTool(db)({
+    const existing = await getToolById(db)({
       scopes,
       toolId: params.data.id,
-      data: {
-        name: params.data.name,
-        config: params.data.config,
-        credentialReferenceId: params.data.credentialReferenceId,
-        imageUrl: params.data.imageUrl,
-        headers: params.data.headers,
-      },
     });
-  }
-  return await createTool(db)(params.data);
-};
+
+    if (existing) {
+      return await updateTool(db)({
+        scopes,
+        toolId: params.data.id,
+        data: {
+          name: params.data.name,
+          config: params.data.config,
+          credentialReferenceId: params.data.credentialReferenceId,
+          imageUrl: params.data.imageUrl,
+          headers: params.data.headers,
+        },
+      });
+    }
+    return await createTool(db)(params.data);
+  };

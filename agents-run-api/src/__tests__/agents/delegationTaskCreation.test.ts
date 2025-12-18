@@ -10,10 +10,8 @@ describe('Delegation Task Creation Fixes', () => {
   beforeAll(async () => {
     //TODO: add this back when we have cross db foreign key constraints
     // await createTestProject(dbClient, tenantId, projectId);
-
     // // Import necessary modules
     // const { agents: agent } = await import('@inkeep/agents-core');
-
     // // Create a test agent first
     // const agentId = 'test-agent';
     // await dbClient.insert(agent).values({
@@ -25,7 +23,6 @@ describe('Delegation Task Creation Fixes', () => {
     //   createdAt: new Date().toISOString(),
     //   updatedAt: new Date().toISOString(),
     // });
-
     // // Create test agents with agentId
     // await dbClient.insert(subAgents).values([
     //   {
@@ -60,7 +57,6 @@ describe('Delegation Task Creation Fixes', () => {
   afterAll(async () => {
     // Clean up test data in reverse order of creation
     await dbClient.delete(tasks);
-
   });
 
   it('should create tasks with correct contextId and message content', async () => {
