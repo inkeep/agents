@@ -1,8 +1,7 @@
 import type { ApiProvider, AuthModeType } from '@nangohq/types';
 import { NangoProvidersGrid } from '@/components/credentials/views/nango-providers-grid';
 import FullPageError from '@/components/errors/full-page-error';
-import { BodyTemplate } from '@/components/layout/body-template';
-import { MainContent } from '@/components/layout/main-content';
+import { SetBreadcrumbs } from '@/components/layout/set-breadcrumbs';
 import { fetchNangoProviders } from '@/lib/mcp-tools/nango';
 
 // Supported authentication modes (add new modes here as you implement them)
@@ -46,25 +45,7 @@ async function ProvidersPage({
     return <FullPageError title="Failed to load providers" description={error} />;
   }
 
-  return (
-    <BodyTemplate
-      breadcrumbs={[
-        {
-          label: 'Credentials',
-          href: `/${tenantId}/projects/${projectId}/credentials`,
-        },
-        {
-          label: 'New credential',
-          href: `/${tenantId}/projects/${projectId}/credentials/new`,
-        },
-        { label: 'Providers' },
-      ]}
-    >
-      <MainContent>
-        <NangoProvidersGrid providers={providers} />
-      </MainContent>
-    </BodyTemplate>
-  );
+  return <NangoProvidersGrid providers={providers} />;
 }
 
 export default ProvidersPage;
