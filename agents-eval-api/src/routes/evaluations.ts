@@ -3975,41 +3975,23 @@ const TriggerConversationEvaluationSchema = z.object({
   evaluationRunId: z.string(),
 });
 
-const triggerConversationEvaluationRoute = createRoute({
-  method: 'post',
-  path: '/trigger',
-  request: {
-    params: TenantProjectParamsSchema,
-    body: {
-      content: {
-        'application/json': {
-          schema: TriggerConversationEvaluationSchema,
-        },
-      },
-    },
-  },
-  responses: {
-    200: {
-      description: 'Evaluation triggered successfully',
-      content: {
-        'application/json': {
-          schema: z.object({
-            success: z.boolean(),
-            message: z.string(),
-          }),
-        },
-      },
-    },
-    ...commonGetErrorResponses,
-  },
-  tags: ['Evaluations'],
-  summary: 'Trigger a conversation evaluation',
-  description: 'Trigger an evaluation workflow for a specific conversation. This is called by run-api after a conversation completes.',
-});
-
-app.openapi(triggerConversationEvaluationRoute, async (c) => {
-  const { tenantId, projectId } = c.req.param();
-  const body = c.req.valid('json');
+// Using regular Hono route instead of OpenAPI to avoid type complexity
+app.post('/trigger', async (c) => {
+  const tenantId = c.req.param('tenantId');
+  const projectId = c.req.param('projectId');
+  
+  let body: z.infer<typeof TriggerConversationEvaluationSchema>;
+  try {
+    body = TriggerConversationEvaluationSchema.parse(await c.req.json());
+  } catch (parseError) {
+    return c.json(
+      createApiError({
+        code: 'validation_error',
+        message: 'Invalid request body',
+      }),
+      400
+    );
+  }
 
   try {
     logger.info(
