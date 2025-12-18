@@ -90,7 +90,8 @@ const AgentPage: FC<PageProps<'/[tenantId]/projects/[projectId]/agents/[agentId]
         { label: 'Agents', href: `/${tenantId}/projects/${projectId}/agents` },
         agent.data.name,
       ]}
-      className="p-0"
+      // Remove inner div from the layout so the p-6 padding doesn’t apply
+      className="contents"
     >
       <Suspense fallback={<AgentSkeleton />}>
         <AgentData agent={agent.data} tenantId={tenantId} projectId={projectId} />

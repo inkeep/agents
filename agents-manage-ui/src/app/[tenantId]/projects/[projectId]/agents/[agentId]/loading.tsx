@@ -24,7 +24,11 @@ export const AgentSkeleton: FC = () => {
 // To avoid have flash of skeleton from `[projectId]/loading.tsx` until `agents` is fetched from `getFullAgentAction` in `page.tsx` file
 const AgentLoading: FC = () => {
   return (
-    <BodyTemplate breadcrumbs={[]} className="p-0">
+    <BodyTemplate
+      breadcrumbs={[]}
+      // Remove inner div from the layout so the p-6 padding doesn’t apply
+      className="contents"
+    >
       <AgentSkeleton />
     </BodyTemplate>
   );
