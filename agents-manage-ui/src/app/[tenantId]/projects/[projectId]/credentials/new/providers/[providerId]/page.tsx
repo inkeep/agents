@@ -7,7 +7,6 @@ import { use, useCallback, useEffect, useState } from 'react';
 import { toast } from 'sonner';
 import { requiresCredentialForm } from '@/components/credentials/views/auth-form-config';
 import { GenericAuthForm } from '@/components/credentials/views/generic-auth-form';
-import { SetBreadcrumbs } from '@/components/layout/set-breadcrumbs';
 import { Button } from '@/components/ui/button';
 import { useAuthSession } from '@/hooks/use-auth';
 import { useNangoConnect } from '@/hooks/use-nango-connect';

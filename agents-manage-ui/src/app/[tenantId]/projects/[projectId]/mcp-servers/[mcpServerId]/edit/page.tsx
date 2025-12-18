@@ -1,6 +1,5 @@
 import { MCPTransportType } from '@inkeep/agents-core/client-exports';
 import FullPageError from '@/components/errors/full-page-error';
-import { SetBreadcrumbs } from '@/components/layout/set-breadcrumbs';
 import { MCPServerForm } from '@/components/mcp-servers/form/mcp-server-form';
 import {
   type CredentialScope,

@@ -1,5 +1,4 @@
 import FullPageError from '@/components/errors/full-page-error';
-import { SetBreadcrumbs } from '@/components/layout/set-breadcrumbs';
 import { ViewMCPServerDetailsProjectScope } from '@/components/mcp-servers/view-mcp-server-details-project-scope';
 import { ViewMCPServerDetailsUserScope } from '@/components/mcp-servers/view-mcp-server-details-user-scope';
 import { fetchMCPTool } from '@/lib/api/tools';

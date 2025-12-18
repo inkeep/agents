@@ -1,6 +1,5 @@
 import FullPageError from '@/components/errors/full-page-error';
 import { ViewExternalAgentDetails } from '@/components/external-agents/view-external-agent-details';
-import { SetBreadcrumbs } from '@/components/layout/set-breadcrumbs';
 import { fetchExternalAgent } from '@/lib/api/external-agents';
 import { getErrorCode } from '@/lib/utils/error-serialization';
 

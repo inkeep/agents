@@ -1,7 +1,6 @@
 import type { ApiProvider, AuthModeType } from '@nangohq/types';
 import { NangoProvidersGrid } from '@/components/credentials/views/nango-providers-grid';
 import FullPageError from '@/components/errors/full-page-error';
-import { SetBreadcrumbs } from '@/components/layout/set-breadcrumbs';
 import { fetchNangoProviders } from '@/lib/mcp-tools/nango';
 
 // Supported authentication modes (add new modes here as you implement them)
