@@ -46,7 +46,7 @@ async function ExternalAgentsPage({
         linkText="Create external agent"
       />
     );
-    return <BodyTemplate breadcrumbs={[{ label: 'External agents' }]}>{content}</BodyTemplate>;
+    return <BodyTemplate breadcrumbs={['External agents']}>{content}</BodyTemplate>;
   } catch (error) {
     return <FullPageError errorCode={getErrorCode(error)} context="external agents" />;
   }

@@ -20,7 +20,7 @@ async function NewExternalAgentPage({
           label: 'External agents',
           href: `/${tenantId}/projects/${projectId}/external-agents`,
         },
-        { label: 'New' },
+        'New',
       ]}
     >
       <div className="max-w-2xl mx-auto">

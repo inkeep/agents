@@ -62,7 +62,7 @@ async function EditExternalAgentPage({
           label: externalAgent.name,
           href: `/${tenantId}/projects/${projectId}/external-agents/${externalAgentId}`,
         },
-        { label: 'Edit' },
+        'Edit',
       ]}
       className="max-w-2xl mx-auto"
     >

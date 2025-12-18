@@ -24,7 +24,7 @@ export default function ToolCallsPage() {
     <BodyTemplate
       breadcrumbs={[
         { label: 'Traces', href: `/${tenantId}/projects/${projectId}/traces` },
-        { label: 'Tool Calls Breakdown' },
+        'Tool Calls Breakdown',
       ]}
     >
       <ToolCallsBreakdown onBack={handleBackToTraces} />

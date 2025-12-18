@@ -90,7 +90,7 @@ const AgentPage: FC<PageProps<'/[tenantId]/projects/[projectId]/agents/[agentId]
     <BodyTemplate
       breadcrumbs={[
         { label: 'Agents', href: `/${tenantId}/projects/${projectId}/agents` },
-        { label: agent.success ? agent.data.name : agentId },
+        agent.success ? agent.data.name : agentId,
       ]}
       className="p-0"
     >
