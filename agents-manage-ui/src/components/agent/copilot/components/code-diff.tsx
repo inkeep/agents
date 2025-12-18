@@ -1,7 +1,6 @@
 'use client';
 
 import type * as Monaco from 'monaco-editor';
-import { useTheme } from 'next-themes';
 import type { ComponentPropsWithoutRef, FC } from 'react';
 import { useEffect, useId, useRef } from 'react';
 import { MonacoEditor } from '@/components/editors/monaco-editor';
@@ -9,7 +8,6 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { useMonacoActions, useMonacoStore } from '@/features/agent/state/use-monaco-store';
 import { cleanupDisposables, getOrCreateModel } from '@/lib/monaco-editor/monaco-utils';
 import { cn } from '@/lib/utils';
-import '@/lib/monaco-editor/setup-monaco-workers';
 
 interface CodeDiffProps extends Omit<ComponentPropsWithoutRef<'div'>, 'onChange'> {
   originalValue: string;
@@ -39,8 +37,11 @@ export const CodeDiff: FC<CodeDiffProps> = ({
   const containerRef = useRef<HTMLDivElement>(null);
   const editorRef = useRef<Monaco.editor.IStandaloneDiffEditor | null>(null);
   const monaco = useMonacoStore((state) => state.monaco);
-  const { setupHighlighter } = useMonacoActions();
-  const isDark = useTheme().resolvedTheme === 'dark';
+  const { importMonaco } = useMonacoActions();
+  // biome-ignore lint/correctness/useExhaustiveDependencies: only on mount
+  useEffect(() => {
+    importMonaco();
+  }, []);
 
   useEffect(() => {
     if (!hasOriginalValue) return;
@@ -163,8 +164,6 @@ export const CodeDiff: FC<CodeDiffProps> = ({
         },
       },
     ];
-
-    setupHighlighter(isDark);
     onMount?.(diffEditor);
 
     return cleanupDisposables(disposables);
@@ -180,11 +179,10 @@ export const CodeDiff: FC<CodeDiffProps> = ({
     <div
       className={cn(
         'w-full',
-        'rounded-md relative dark:bg-input/30 transition-colors text-foreground',
+        'rounded-md relative dark:bg-input/30 transition-colors',
         'border border-input shadow-xs',
         className,
         !monaco && 'px-3 py-4',
-        '[&_.native-edit-context]:caret-transparent',
         // Fix for inline diff double character rendering - align both editors
         '[&_.editor.original]:left-1!',
         '[&_.editor.modified]:left-1!'

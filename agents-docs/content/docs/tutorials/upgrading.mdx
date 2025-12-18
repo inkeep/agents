@@ -19,6 +19,10 @@ The Inkeep Agent Framework is composed of several npm packages:
 
 ## Upgrading the quickstart template
 
+<Warning>
+Because the packages are pre-1.0.0, updates may contain breaking changes that require you to reset your database. Please upgrade at your own risk.
+</Warning>
+
 If you used the `npx @inkeep/create-agents` CLI command to create your workspace, run the following command from the workspace root:
 
 ```bash
@@ -27,6 +31,12 @@ pnpm upgrade-agents
 
 This will update all the packages to the latest version and migrate your database schema to the latest version.
 
+### Troubleshooting:
+
+If you encounter migration errors during the upgrade, this indicates a breaking schema change. You'll need to reset your database:
+1. Drop your database: `pnpm db:drop`
+2. Try again: `pnpm upgrade-agents`
+
 ## Upgrading the Agent CLI
 
 If you installed the `@inkeep/agents-cli` package globally, you can upgrade it to the latest version by running the following command:
@@ -34,4 +44,3 @@ If you installed the `@inkeep/agents-cli` package globally, you can upgrade it t
 ```bash
 inkeep update
 ```
-
