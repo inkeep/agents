@@ -1,5 +1,17 @@
 import { makeManagementApiRequest } from '@/lib/api/api-config';
-import type { GetEntityParams, ToolMetadata } from './tool-approval';
+
+interface ToolMetadata {
+  resource: string;
+  action: string;
+  entity: string;
+}
+
+interface GetEntityParams {
+  toolName: string;
+  input: Record<string, any>;
+  tenantId: string;
+  projectId: string;
+}
 
 function parseToolName(toolName: string): ToolMetadata {
   const parts = toolName.split('-');

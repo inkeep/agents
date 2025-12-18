@@ -13,19 +13,6 @@
 import { computeDiff, extractFieldsToUpdate, fetchCurrentEntityState } from './tool-approval.utils';
 import type { ActionResult } from './types';
 
-interface ToolMetadata {
-  resource: string;
-  action: string;
-  entity: string;
-}
-
-interface GetEntityParams {
-  toolName: string;
-  input: Record<string, any>;
-  tenantId: string;
-  projectId: string;
-}
-
 interface FieldDiff {
   field: string;
   oldValue: any;
@@ -77,4 +64,4 @@ export async function fetchToolApprovalDiff(
   }
 }
 
-export type { ToolMetadata, GetEntityParams, FieldDiff };
+export type { FieldDiff };
