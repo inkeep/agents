@@ -2748,8 +2748,11 @@ app.openapi(
           });
         }
 
-        // Queue each dataset item as a workflow - fire and forget
-        const workflowPromises: Promise<any>[] = [];
+        // Queue each dataset item as a workflow - process sequentially to avoid TransactionConflict
+        // Vercel Queue doesn't handle parallel writes well, so we process one at a time
+        let itemsQueued = 0;
+        let itemsFailed = 0;
+
         for (const agentRelation of agentRelations) {
           for (const datasetItem of datasetItems) {
             const workflowPayload = {
@@ -2768,10 +2771,14 @@ app.openapi(
             const payloadJson = JSON.stringify(workflowPayload);
             const payloadBytes = Buffer.byteLength(payloadJson, 'utf8');
 
+            // Use unique ID per dataset item to avoid TransactionConflict in Vercel Queue
+            const uniqueRunId = `${datasetRunId}:${agentRelation.agentId}:${datasetItem.id}`;
+
             logger.info(
               {
                 datasetItemId: datasetItem.id,
                 agentId: agentRelation.agentId,
+                uniqueRunId,
                 payloadKeys: Object.keys(workflowPayload),
                 payloadBytes,
                 payloadKB: (payloadBytes / 1024).toFixed(2),
@@ -2783,36 +2790,34 @@ app.openapi(
               'Starting workflow for dataset item'
             );
 
-            workflowPromises.push(
-              start(runDatasetItemWorkflow, [workflowPayload])
-                .then((result) => {
-                  logger.info(
-                    { datasetItemId: datasetItem.id, result },
-                    'Workflow started successfully'
-                  );
-                  return result;
-                })
-                .catch((err) => {
-                  logger.error(
-                    {
-                      datasetItemId: datasetItem.id,
-                      error: err,
-                      errorName: err?.name,
-                      errorMessage: err?.message,
-                      errorStack: err?.stack,
-                      errorStatus: err?.status,
-                      errorUrl: err?.url,
-                    },
-                    'Failed to start workflow for dataset item'
-                  );
-                  throw err;
-                })
-            );
+            try {
+              // Sequential processing prevents TransactionConflict in Vercel Queue
+              // The uniqueRunId is for logging/debugging only (start() doesn't support idempotency keys)
+              const result = await start(runDatasetItemWorkflow, [workflowPayload]);
+              logger.info(
+                { datasetItemId: datasetItem.id, uniqueRunId, result },
+                'Workflow started successfully'
+              );
+              itemsQueued++;
+            } catch (err: any) {
+              logger.error(
+                {
+                  datasetItemId: datasetItem.id,
+                  uniqueRunId,
+                  error: err,
+                  errorName: err?.name,
+                  errorMessage: err?.message,
+                  errorStack: err?.stack,
+                  errorStatus: err?.status,
+                  errorUrl: err?.url,
+                },
+                'Failed to start workflow for dataset item'
+              );
+              itemsFailed++;
+              // Continue with other items instead of failing the whole batch
+            }
           }
         }
-
-        // Queue all workflows (this returns immediately, doesn't wait for completion)
-        await Promise.all(workflowPromises);
 
         logger.info(
           {
@@ -2820,13 +2825,19 @@ app.openapi(
             projectId,
             runConfigId: id,
             datasetRunId,
-            itemsQueued: workflowPromises.length,
+            itemsQueued,
+            itemsFailed,
             agentsUsed: agentRelations.length,
             datasetItemCount: datasetItems.length,
             hasEvaluators: !!(evaluatorIds && Array.isArray(evaluatorIds) && evaluatorIds.length > 0),
           },
           'Dataset run items queued via workflow'
         );
+
+        // If all items failed, throw an error
+        if (itemsQueued === 0 && itemsFailed > 0) {
+          throw new Error(`All ${itemsFailed} workflow items failed to queue`);
+        }
       } catch (runError) {
         // Log error but don't fail the config creation
         logger.error(
@@ -3189,12 +3200,15 @@ app.openapi(
         });
       }
 
-      // Queue all dataset items via workflow (fire-and-forget)
-      const workflowPromises: Promise<any>[] = [];
+      // Queue all dataset items via workflow SEQUENTIALLY to avoid TransactionConflict in Vercel Queue
+      // (start() doesn't support idempotency keys, so we must process one at a time)
+      let itemsQueued = 0;
+      let itemsFailed = 0;
       for (const agentId of agentIds) {
         for (const datasetItem of datasetItems) {
-          workflowPromises.push(
-            start(runDatasetItemWorkflow, [{
+          const uniqueRunId = `${datasetRunId}:${agentId}:${datasetItem.id}`;
+          try {
+            await start(runDatasetItemWorkflow, [{
               tenantId,
               projectId,
               agentId,
@@ -3204,13 +3218,28 @@ app.openapi(
               datasetRunId,
               evaluatorIds: evaluatorIds && evaluatorIds.length > 0 ? evaluatorIds : undefined,
               evaluationRunId,
-            }])
-          );
+            }]);
+            itemsQueued++;
+            logger.info(
+              { datasetItemId: datasetItem.id, agentId, uniqueRunId },
+              'Workflow started successfully'
+            );
+          } catch (err: any) {
+            itemsFailed++;
+            logger.error(
+              {
+                datasetItemId: datasetItem.id,
+                agentId,
+                uniqueRunId,
+                error: err,
+                errorName: err?.name,
+                errorMessage: err?.message,
+              },
+              'Failed to start workflow for dataset item'
+            );
+          }
         }
       }
-
-      // Queue all workflows
-      await Promise.all(workflowPromises);
 
       logger.info(
         {
@@ -3218,7 +3247,8 @@ app.openapi(
           projectId,
           datasetId,
           datasetRunId,
-          itemsQueued: workflowPromises.length,
+          itemsQueued,
+          itemsFailed,
           agentCount: agentIds.length,
           datasetItemCount: datasetItems.length,
           hasEvaluators: !!(evaluatorIds && evaluatorIds.length > 0),
