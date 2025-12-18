@@ -1,15 +1,12 @@
 import { BodyTemplate } from '@/components/layout/body-template';
-import { MainContent } from '@/components/layout/main-content';
 import { PageHeader } from '@/components/layout/page-header';
 import { SettingsContent } from '@/components/settings/settings-content';
 
 function SettingsPage() {
   return (
     <BodyTemplate breadcrumbs={[{ label: 'Settings' }]}>
-      <MainContent>
-        <PageHeader title="Organization Settings" description="Manage your organization settings" />
-        <SettingsContent />
-      </MainContent>
+      <PageHeader title="Organization Settings" description="Manage your organization settings" />
+      <SettingsContent />
     </BodyTemplate>
   );
 }

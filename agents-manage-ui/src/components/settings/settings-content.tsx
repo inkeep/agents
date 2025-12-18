@@ -66,7 +66,7 @@ export function SettingsContent() {
 
   return (
     <div className="space-y-6">
-      <div className=" flex items-center gap-6 rounded-lg border p-4">
+      <div className="flex items-center gap-6 rounded-lg border p-4">
         <div className="flex flex-col gap-2 flex-1">
           <p className="text-sm font-medium">Organization name</p>
           <CopyableSingleLineCode code={organization.name} />

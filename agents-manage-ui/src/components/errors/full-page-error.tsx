@@ -3,7 +3,6 @@
 import { AlertTriangle, ArrowLeft, type LucideIcon, RefreshCw } from 'lucide-react';
 import Link from 'next/link';
 import { BodyTemplate } from '@/components/layout/body-template';
-import { MainContent } from '@/components/layout/main-content';
 import { Button } from '@/components/ui/button';
 
 export default function FullPageError({ statusCode, errorCode, ...props }: FullPageErrorProps) {
@@ -12,9 +11,7 @@ export default function FullPageError({ statusCode, errorCode, ...props }: FullP
     <BodyTemplate
       breadcrumbs={[{ label: resolvedStatusCode ? `${resolvedStatusCode} Error` : 'Error' }]}
     >
-      <MainContent className="flex-1">
-        <ErrorContent statusCode={resolvedStatusCode} errorCode={errorCode} {...props} />
-      </MainContent>
+      <ErrorContent statusCode={resolvedStatusCode} errorCode={errorCode} {...props} />
     </BodyTemplate>
   );
 }
