@@ -22,15 +22,14 @@ async function NewExternalAgentPage({
         },
         'New',
       ]}
+      className="max-w-2xl mx-auto"
     >
-      <div className="max-w-2xl mx-auto">
-        <ExternalAgentForm
-          mode="create"
-          credentials={credentials}
-          tenantId={tenantId}
-          projectId={projectId}
-        />
-      </div>
+      <ExternalAgentForm
+        mode="create"
+        credentials={credentials}
+        tenantId={tenantId}
+        projectId={projectId}
+      />
     </BodyTemplate>
   );
 }
