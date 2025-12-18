@@ -8,6 +8,7 @@ import { useAuthSession } from '@/hooks/use-auth';
 import { getPendingInvitations } from '@/lib/actions/invitations';
 import { getUserOrganizations } from '@/lib/actions/user-organizations';
 import { DEFAULT_TENANT_ID } from '@/lib/runtime-config/defaults';
+import { isValidReturnUrl } from '@/lib/utils/auth-redirect';
 
 function HomeContent() {
   const router = useRouter();
@@ -41,10 +42,24 @@ function HomeContent() {
         return;
       }
 
-      // Not authenticated - redirect to login
+      // Check for returnUrl (from OAuth callback after login redirect)
+      const returnUrl = searchParams.get('returnUrl');
+
+      // Not authenticated - redirect to login (preserve returnUrl if present)
       if (!user) {
         setIsRedirecting(true);
-        router.push('/login');
+        const loginUrl =
+          returnUrl && isValidReturnUrl(returnUrl)
+            ? `/login?returnUrl=${encodeURIComponent(returnUrl)}`
+            : '/login';
+        router.push(loginUrl);
+        return;
+      }
+
+      // Authenticated with valid returnUrl - redirect to that destination
+      if (returnUrl && isValidReturnUrl(returnUrl)) {
+        setIsRedirecting(true);
+        router.push(returnUrl);
         return;
       }
 

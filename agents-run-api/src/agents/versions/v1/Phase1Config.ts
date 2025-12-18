@@ -1,4 +1,5 @@
 import type { Artifact, McpTool } from '@inkeep/agents-core';
+import { convertZodToJsonSchema, isZodSchema } from '@inkeep/agents-core/utils/schema-conversion';
 import systemPromptTemplate from '../../../../templates/v1/phase1/system-prompt.xml?raw';
 import thinkingPreparationTemplate from '../../../../templates/v1/phase1/thinking-preparation.xml?raw';
 import toolTemplate from '../../../../templates/v1/phase1/tool.xml?raw';
@@ -49,6 +50,22 @@ export class Phase1Config implements VersionConfig<SystemPromptV1> {
     return 'usageGuidelines' in firstItem && !('config' in firstItem);
   }
 
+  private normalizeSchema(inputSchema: any): Record<string, unknown> {
+    if (!inputSchema || typeof inputSchema !== 'object') {
+      return inputSchema || {};
+    }
+
+    if (isZodSchema(inputSchema)) {
+      try {
+        return convertZodToJsonSchema(inputSchema);
+      } catch (error) {
+        return {};
+      }
+    }
+
+    return inputSchema;
+  }
+
   assemble(templates: Map<string, string>, config: SystemPromptV1): string {
     const systemPromptTemplate = templates.get('system-prompt');
     if (!systemPromptTemplate) {
@@ -71,9 +88,15 @@ export class Phase1Config implements VersionConfig<SystemPromptV1> {
     const agentContextSection = this.generateAgentContextSection(config.prompt);
     systemPrompt = systemPrompt.replace('{{AGENT_CONTEXT_SECTION}}', agentContextSection);
 
-    const toolData = this.isToolDataArray(config.tools)
+    const rawToolData = this.isToolDataArray(config.tools)
       ? config.tools
       : Phase1Config.convertMcpToolsToToolData(config.tools as McpTool[]);
+
+    // Normalize any Zod schemas to JSON schemas
+    const toolData = rawToolData.map((tool) => ({
+      ...tool,
+      inputSchema: this.normalizeSchema(tool.inputSchema),
+    }));
 
     const hasArtifactComponents = config.artifactComponents && config.artifactComponents.length > 0;
 
@@ -539,6 +562,7 @@ ${creationInstructions}
         const isRequired = required.includes(key);
         const propType = (value as any)?.type || 'string';
         const propDescription = (value as any)?.description || 'No description';
+
         return `        ${key}: {\n          "type": "${propType}",\n          "description": "${propDescription}",\n          "required": ${isRequired}\n        }`;
       })
       .join('\n');

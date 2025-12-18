@@ -10,4 +10,4 @@
 "@inkeep/create-agents": patch
 ---
 
-batch flushing
+Added dynamic model context limit checks

@@ -1,5 +1,5 @@
-import { defineConfig } from 'tsup';
-import rootConfig from '../tsup.config';
+import { defineConfig } from 'tsdown';
+import rootConfig from '../tsdown.config.ts';
 
 export default defineConfig({
   ...rootConfig,
@@ -7,5 +7,4 @@ export default defineConfig({
   format: ['esm'],
   external: ['keytar'],
   noExternal: ['@inkeep/agents-manage-mcp'],
-  async onSuccess() {},
 });

@@ -1,5 +1,5 @@
-import { defineConfig } from 'tsup';
-import rootConfig from '../../tsup.config';
+import { defineConfig } from 'tsdown';
+import rootConfig from '../../tsdown.config.ts';
 
 export default defineConfig({
   ...rootConfig,
@@ -15,5 +15,4 @@ export default defineConfig({
     'os',
     'crypto',
   ],
-  async onSuccess() {},
 });

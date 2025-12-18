@@ -23,6 +23,7 @@ import {
 import dbClient from '../data/db/dbClient';
 import { requirePermission } from '../middleware/require-permission';
 import type { AppVariablesWithCredentials } from '../types/app';
+import { speakeasyOffsetLimitPagination } from './shared';
 
 const app = new OpenAPIHono<{ Variables: AppVariablesWithCredentials }>();
 
@@ -72,6 +73,7 @@ app.openapi(
       },
       ...commonGetErrorResponses,
     },
+    ...speakeasyOffsetLimitPagination,
   }),
   async (c) => {
     const { tenantId, projectId } = c.req.valid('param');

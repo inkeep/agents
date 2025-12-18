@@ -5574,6 +5574,17 @@
       "post": {
         "description": "Generates a short-lived API key (1 hour expiry) for authenticated users to access the run-api from the playground",
         "operationId": "create-playground-token",
+        "parameters": [
+          {
+            "description": "Tenant identifier",
+            "in": "path",
+            "name": "tenantId",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/TenantIdPathParam"
+            }
+          }
+        ],
         "requestBody": {
           "content": {
             "application/json": {
@@ -6156,7 +6167,25 @@
           }
         },
         "summary": "List Projects",
-        "tags": ["Projects"]
+        "tags": ["Projects"],
+        "x-speakeasy-pagination": {
+          "inputs": [
+            {
+              "in": "parameters",
+              "name": "page",
+              "type": "page"
+            },
+            {
+              "in": "parameters",
+              "name": "limit",
+              "type": "limit"
+            }
+          ],
+          "outputs": {
+            "numPages": "$.pagination.pages"
+          },
+          "type": "offsetLimit"
+        }
       },
       "post": {
         "description": "Create a new project",
@@ -7156,7 +7185,25 @@
           }
         },
         "summary": "List Agents",
-        "tags": ["Agents"]
+        "tags": ["Agents"],
+        "x-speakeasy-pagination": {
+          "inputs": [
+            {
+              "in": "parameters",
+              "name": "page",
+              "type": "page"
+            },
+            {
+              "in": "parameters",
+              "name": "limit",
+              "type": "limit"
+            }
+          ],
+          "outputs": {
+            "numPages": "$.pagination.pages"
+          },
+          "type": "offsetLimit"
+        }
       },
       "post": {
         "operationId": "create-agent",
@@ -7386,7 +7433,25 @@
           }
         },
         "summary": "List Context Configurations",
-        "tags": ["Context Config"]
+        "tags": ["Context Config"],
+        "x-speakeasy-pagination": {
+          "inputs": [
+            {
+              "in": "parameters",
+              "name": "page",
+              "type": "page"
+            },
+            {
+              "in": "parameters",
+              "name": "limit",
+              "type": "limit"
+            }
+          ],
+          "outputs": {
+            "numPages": "$.pagination.pages"
+          },
+          "type": "offsetLimit"
+        }
       },
       "post": {
         "operationId": "create-context-config",
@@ -8097,7 +8162,25 @@
           }
         },
         "summary": "List Function Tools",
-        "tags": ["Function Tools"]
+        "tags": ["Function Tools"],
+        "x-speakeasy-pagination": {
+          "inputs": [
+            {
+              "in": "parameters",
+              "name": "page",
+              "type": "page"
+            },
+            {
+              "in": "parameters",
+              "name": "limit",
+              "type": "limit"
+            }
+          ],
+          "outputs": {
+            "numPages": "$.pagination.pages"
+          },
+          "type": "offsetLimit"
+        }
       },
       "post": {
         "operationId": "create-function-tool",
@@ -9990,7 +10073,25 @@
           }
         },
         "summary": "List Sub Agent Relations",
-        "tags": ["Sub Agent Relations"]
+        "tags": ["Sub Agent Relations"],
+        "x-speakeasy-pagination": {
+          "inputs": [
+            {
+              "in": "parameters",
+              "name": "page",
+              "type": "page"
+            },
+            {
+              "in": "parameters",
+              "name": "limit",
+              "type": "limit"
+            }
+          ],
+          "outputs": {
+            "numPages": "$.pagination.pages"
+          },
+          "type": "offsetLimit"
+        }
       },
       "post": {
         "operationId": "create-sub-agent-relation",
@@ -10559,7 +10660,25 @@
           }
         },
         "summary": "List SubAgent Tool Relations",
-        "tags": ["SubAgent Tool Relations"]
+        "tags": ["SubAgent Tool Relations"],
+        "x-speakeasy-pagination": {
+          "inputs": [
+            {
+              "in": "parameters",
+              "name": "page",
+              "type": "page"
+            },
+            {
+              "in": "parameters",
+              "name": "limit",
+              "type": "limit"
+            }
+          ],
+          "outputs": {
+            "numPages": "$.pagination.pages"
+          },
+          "type": "offsetLimit"
+        }
       },
       "post": {
         "operationId": "create-subagent-tool-relation",
@@ -11244,7 +11363,25 @@
           }
         },
         "summary": "List SubAgents",
-        "tags": ["SubAgent"]
+        "tags": ["SubAgent"],
+        "x-speakeasy-pagination": {
+          "inputs": [
+            {
+              "in": "parameters",
+              "name": "page",
+              "type": "page"
+            },
+            {
+              "in": "parameters",
+              "name": "limit",
+              "type": "limit"
+            }
+          ],
+          "outputs": {
+            "numPages": "$.pagination.pages"
+          },
+          "type": "offsetLimit"
+        }
       },
       "post": {
         "operationId": "create-subagent",
@@ -11816,7 +11953,25 @@
           }
         },
         "summary": "List Sub Agent External Agent Relations",
-        "tags": ["Sub Agent External Agent Relations"]
+        "tags": ["Sub Agent External Agent Relations"],
+        "x-speakeasy-pagination": {
+          "inputs": [
+            {
+              "in": "parameters",
+              "name": "page",
+              "type": "page"
+            },
+            {
+              "in": "parameters",
+              "name": "limit",
+              "type": "limit"
+            }
+          ],
+          "outputs": {
+            "numPages": "$.pagination.pages"
+          },
+          "type": "offsetLimit"
+        }
       },
       "post": {
         "operationId": "create-sub-agent-external-agent-relation",
@@ -12531,7 +12686,25 @@
           }
         },
         "summary": "List Sub Agent Team Agent Relations",
-        "tags": ["Sub Agent Team Agent Relations"]
+        "tags": ["Sub Agent Team Agent Relations"],
+        "x-speakeasy-pagination": {
+          "inputs": [
+            {
+              "in": "parameters",
+              "name": "page",
+              "type": "page"
+            },
+            {
+              "in": "parameters",
+              "name": "limit",
+              "type": "limit"
+            }
+          ],
+          "outputs": {
+            "numPages": "$.pagination.pages"
+          },
+          "type": "offsetLimit"
+        }
       },
       "post": {
         "operationId": "create-sub-agent-team-agent-relation",
@@ -13409,7 +13582,25 @@
           }
         },
         "summary": "List API Keys",
-        "tags": ["API Keys"]
+        "tags": ["API Keys"],
+        "x-speakeasy-pagination": {
+          "inputs": [
+            {
+              "in": "parameters",
+              "name": "page",
+              "type": "page"
+            },
+            {
+              "in": "parameters",
+              "name": "limit",
+              "type": "limit"
+            }
+          ],
+          "outputs": {
+            "numPages": "$.pagination.pages"
+          },
+          "type": "offsetLimit"
+        }
       },
       "post": {
         "description": "Create a new API key for an agent. Returns the full key (shown only once).",
@@ -13937,7 +14128,25 @@
           }
         },
         "summary": "List Artifact Components",
-        "tags": ["Artifact Component"]
+        "tags": ["Artifact Component"],
+        "x-speakeasy-pagination": {
+          "inputs": [
+            {
+              "in": "parameters",
+              "name": "page",
+              "type": "page"
+            },
+            {
+              "in": "parameters",
+              "name": "limit",
+              "type": "limit"
+            }
+          ],
+          "outputs": {
+            "numPages": "$.pagination.pages"
+          },
+          "type": "offsetLimit"
+        }
       },
       "post": {
         "operationId": "create-artifact-component",
@@ -14800,7 +15009,25 @@
           }
         },
         "summary": "List Credentials",
-        "tags": ["Credential"]
+        "tags": ["Credential"],
+        "x-speakeasy-pagination": {
+          "inputs": [
+            {
+              "in": "parameters",
+              "name": "page",
+              "type": "page"
+            },
+            {
+              "in": "parameters",
+              "name": "limit",
+              "type": "limit"
+            }
+          ],
+          "outputs": {
+            "numPages": "$.pagination.pages"
+          },
+          "type": "offsetLimit"
+        }
       },
       "post": {
         "operationId": "create-credential",
@@ -15308,7 +15535,25 @@
           }
         },
         "summary": "List Data Components",
-        "tags": ["Data Component"]
+        "tags": ["Data Component"],
+        "x-speakeasy-pagination": {
+          "inputs": [
+            {
+              "in": "parameters",
+              "name": "page",
+              "type": "page"
+            },
+            {
+              "in": "parameters",
+              "name": "limit",
+              "type": "limit"
+            }
+          ],
+          "outputs": {
+            "numPages": "$.pagination.pages"
+          },
+          "type": "offsetLimit"
+        }
       },
       "post": {
         "operationId": "create-data-component",
@@ -15816,7 +16061,25 @@
           }
         },
         "summary": "List External Agents",
-        "tags": ["External Agents"]
+        "tags": ["External Agents"],
+        "x-speakeasy-pagination": {
+          "inputs": [
+            {
+              "in": "parameters",
+              "name": "page",
+              "type": "page"
+            },
+            {
+              "in": "parameters",
+              "name": "limit",
+              "type": "limit"
+            }
+          ],
+          "outputs": {
+            "numPages": "$.pagination.pages"
+          },
+          "type": "offsetLimit"
+        }
       },
       "post": {
         "operationId": "create-external-agent",
@@ -16324,7 +16587,25 @@
           }
         },
         "summary": "List Functions",
-        "tags": ["Functions"]
+        "tags": ["Functions"],
+        "x-speakeasy-pagination": {
+          "inputs": [
+            {
+              "in": "parameters",
+              "name": "page",
+              "type": "page"
+            },
+            {
+              "in": "parameters",
+              "name": "limit",
+              "type": "limit"
+            }
+          ],
+          "outputs": {
+            "numPages": "$.pagination.pages"
+          },
+          "type": "offsetLimit"
+        }
       },
       "post": {
         "operationId": "create-function",
@@ -17248,7 +17529,25 @@
           }
         },
         "summary": "List Tools",
-        "tags": ["Tools"]
+        "tags": ["Tools"],
+        "x-speakeasy-pagination": {
+          "inputs": [
+            {
+              "in": "parameters",
+              "name": "page",
+              "type": "page"
+            },
+            {
+              "in": "parameters",
+              "name": "limit",
+              "type": "limit"
+            }
+          ],
+          "outputs": {
+            "numPages": "$.pagination.pages"
+          },
+          "type": "offsetLimit"
+        }
       },
       "post": {
         "operationId": "create-tool",

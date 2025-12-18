@@ -2,8 +2,11 @@
 
 import { AlertTriangle, ArrowLeft, type LucideIcon, RefreshCw } from 'lucide-react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
+import { useEffect, useState } from 'react';
 import { BodyTemplate } from '@/components/layout/body-template';
 import { Button } from '@/components/ui/button';
+import { buildLoginUrlWithCurrentPath } from '@/lib/utils/auth-redirect';
 
 export default function FullPageError({ statusCode, errorCode, ...props }: FullPageErrorProps) {
   const resolvedStatusCode = statusCode ?? getStatusCodeFromErrorCode(errorCode);
@@ -148,6 +151,9 @@ export function ErrorContent({
   onRetry,
   context = 'resource',
 }: FullPageErrorProps) {
+  const router = useRouter();
+  const [isRedirecting, setIsRedirecting] = useState(false);
+
   // Resolve error code from props or error object
   let errorCode = propErrorCode;
   let statusCode = propStatusCode;
@@ -168,6 +174,15 @@ export function ErrorContent({
   } else if (statusCode && !errorCode) {
     errorCode = getErrorCodeFromStatusCode(statusCode);
   }
+
+  // Handle 401 unauthorized errors by redirecting to login
+  useEffect(() => {
+    if ((statusCode === 401 || errorCode === 'unauthorized') && !isRedirecting) {
+      setIsRedirecting(true);
+      const loginUrl = buildLoginUrlWithCurrentPath();
+      router.push(loginUrl);
+    }
+  }, [statusCode, errorCode, router, isRedirecting]);
 
   // Generate title and description
   let title = propTitle;
@@ -194,6 +209,21 @@ export function ErrorContent({
       window.location.reload();
     }
   };
+
+  // Show redirecting message for 401 errors
+  if (isRedirecting && (statusCode === 401 || errorCode === 'unauthorized')) {
+    return (
+      <main
+        aria-labelledby="redirect-title"
+        className="flex flex-col items-center justify-center h-full gap-10 px-4"
+      >
+        <h1 id="redirect-title" className="sr-only">
+          Redirecting to login
+        </h1>
+        <div className="text-muted-foreground text-sm">Redirecting to login...</div>
+      </main>
+    );
+  }
 
   return (
     <main

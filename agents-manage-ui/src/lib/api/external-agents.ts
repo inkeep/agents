@@ -21,7 +21,7 @@ export async function fetchExternalAgents(
   tenantId: string,
   projectId: string,
   page = 1,
-  pageSize = 50
+  pageSize = 100
 ): Promise<ExternalAgent[]> {
   validateTenantId(tenantId);
   validateProjectId(projectId);

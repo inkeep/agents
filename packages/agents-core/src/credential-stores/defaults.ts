@@ -2,7 +2,7 @@ import type { CredentialStore } from '../types/server';
 import { DEFAULT_NANGO_STORE_ID } from './default-constants';
 import { createKeyChainStore } from './keychain-store';
 import { InMemoryCredentialStore } from './memory-store';
-import { createNangoCredentialStore, isNangoAvailable } from './nango-store';
+import { createNangoCredentialStore } from './nango-store';
 
 /**
  * Create default credential stores based on environment variables
@@ -13,18 +13,14 @@ export function createDefaultCredentialStores(): CredentialStore[] {
   // Always include in-memory store
   stores.push(new InMemoryCredentialStore('memory-default'));
 
-  // Include Nango store if NANGO_SECRET_KEY is set AND Nango is installed
-  if (process.env.NANGO_SECRET_KEY && isNangoAvailable()) {
-    try {
-      stores.push(
-        createNangoCredentialStore(DEFAULT_NANGO_STORE_ID, {
-          apiUrl: process.env.NANGO_SERVER_URL || 'https://api.nango.dev',
-          secretKey: process.env.NANGO_SECRET_KEY,
-        })
-      );
-    } catch (error) {
-      console.warn('Failed to create Nango store:', error instanceof Error ? error.message : error);
-    }
+  // Include Nango store if NANGO_SECRET_KEY is set
+  if (process.env.NANGO_SECRET_KEY) {
+    stores.push(
+      createNangoCredentialStore(DEFAULT_NANGO_STORE_ID, {
+        apiUrl: process.env.NANGO_SERVER_URL || 'https://api.nango.dev',
+        secretKey: process.env.NANGO_SECRET_KEY,
+      })
+    );
   }
 
   try {

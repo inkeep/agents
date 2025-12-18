@@ -1,5 +1,5 @@
-import { defineConfig } from 'tsup';
-import rootConfig from '../../tsup.config';
+import { defineConfig } from 'tsdown';
+import rootConfig from '../../tsdown.config.ts';
 
 export default defineConfig({
   ...rootConfig,
@@ -22,5 +22,4 @@ export default defineConfig({
     'src/db/test-client.ts',
   ],
   external: ['keytar', 'zod', '@hono/zod-openapi', 'drizzle-zod'],
-  async onSuccess() {},
 });

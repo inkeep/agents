@@ -32,6 +32,7 @@ interface ToolResultProps {
   targetProjectId?: string;
   targetAgentId?: string;
   onOAuthLogin?: OAuthLoginHandler;
+  refreshAgentGraph?: (options?: { fetchTools?: boolean }) => Promise<void>;
 }
 
 // ============================================================================
@@ -101,6 +102,7 @@ export const ToolResult = ({
   targetTenantId,
   targetProjectId,
   onOAuthLogin,
+  refreshAgentGraph,
 }: ToolResultProps) => {
   const content = data.details.data.output?.result?.content || [];
 
@@ -129,6 +131,7 @@ export const ToolResult = ({
         targetTenantId={targetTenantId}
         targetProjectId={targetProjectId}
         onConnect={handleConnect}
+        refreshAgentGraph={refreshAgentGraph}
       />
 
       {/* Add more result renderers here as new types are supported:
