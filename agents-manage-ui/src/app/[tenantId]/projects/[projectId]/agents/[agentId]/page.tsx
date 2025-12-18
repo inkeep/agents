@@ -1,5 +1,7 @@
+import { type FC, Suspense } from 'react';
 import FullPageError from '@/components/errors/full-page-error';
 import { BodyTemplate } from '@/components/layout/body-template';
+import type { FullAgentDefinition } from '@/lib';
 import { getFullAgentAction } from '@/lib/actions/agent-full';
 import { fetchArtifactComponentsAction } from '@/lib/actions/artifact-components';
 import { fetchCredentialsAction } from '@/lib/actions/credentials';
@@ -7,18 +9,18 @@ import { fetchDataComponentsAction } from '@/lib/actions/data-components';
 import { fetchExternalAgentsAction } from '@/lib/actions/external-agents';
 import { fetchToolsAction } from '@/lib/actions/tools';
 import { createLookup } from '@/lib/utils';
+import { AgentSkeleton } from './loading';
 import { Agent } from './page.client';
 
 export const dynamic = 'force-dynamic';
 
-async function AgentPage({
-  params,
-}: PageProps<'/[tenantId]/projects/[projectId]/agents/[agentId]'>) {
-  const { agentId, tenantId, projectId } = await params;
-
-  const [agent, dataComponents, artifactComponents, credentials, tools, externalAgents] =
+const AgentData: FC<{
+  agent: FullAgentDefinition;
+  tenantId: string;
+  projectId: string;
+}> = async ({ agent, tenantId, projectId }) => {
+  const [dataComponents, artifactComponents, credentials, tools, externalAgents] =
     await Promise.all([
-      getFullAgentAction(tenantId, projectId, agentId),
       fetchDataComponentsAction(tenantId, projectId),
       fetchArtifactComponentsAction(tenantId, projectId),
       fetchCredentialsAction(tenantId, projectId),
@@ -26,16 +28,6 @@ async function AgentPage({
       fetchExternalAgentsAction(tenantId, projectId),
     ]);
 
-  if (!agent.success) {
-    return (
-      <FullPageError
-        errorCode={agent.code}
-        context="agent"
-        link={`/${tenantId}/projects/${projectId}/agents`}
-        linkText="Back to agents"
-      />
-    );
-  }
   if (
     !dataComponents.success ||
     !artifactComponents.success ||
@@ -65,21 +57,47 @@ async function AgentPage({
   const credentialLookup = createLookup(credentials.success ? credentials.data : undefined);
 
   return (
+    <Agent
+      agent={agent}
+      dataComponentLookup={dataComponentLookup}
+      artifactComponentLookup={artifactComponentLookup}
+      toolLookup={toolLookup}
+      credentialLookup={credentialLookup}
+    />
+  );
+};
+
+const AgentPage: FC<PageProps<'/[tenantId]/projects/[projectId]/agents/[agentId]'>> = async ({
+  params,
+}) => {
+  const { agentId, tenantId, projectId } = await params;
+  const agent = await getFullAgentAction(tenantId, projectId, agentId);
+
+  if (!agent.success) {
+    return (
+      <FullPageError
+        errorCode={agent.code}
+        context="agent"
+        link={`/${tenantId}/projects/${projectId}/agents`}
+        linkText="Back to agents"
+      />
+    );
+  }
+
+  return (
     <BodyTemplate
       breadcrumbs={[
         { label: 'Agents', href: `/${tenantId}/projects/${projectId}/agents` },
-        { label: agent.data.name },
+        agent.data.name,
       ]}
+      // Remove inner div from the layout so the p-6 padding doesn’t apply
+      className="contents"
     >
-      <Agent
-        agent={agent.data}
-        dataComponentLookup={dataComponentLookup}
-        artifactComponentLookup={artifactComponentLookup}
-        toolLookup={toolLookup}
-        credentialLookup={credentialLookup}
-      />
+      <Suspense fallback={<AgentSkeleton />}>
+        <AgentData agent={agent.data} tenantId={tenantId} projectId={projectId} />
+      </Suspense>
     </BodyTemplate>
   );
-}
+};
 
 export default AgentPage;

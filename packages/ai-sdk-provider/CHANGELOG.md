@@ -1,5 +1,29 @@
 # @inkeep/ai-sdk-provider
 
+## 0.39.4
+
+### Patch Changes
+
+- fcb3adc: added gemini 3 flash
+- Updated dependencies [fcb3adc]
+- Updated dependencies [9403533]
+  - @inkeep/agents-core@0.39.4
+
+## 0.39.3
+
+### Patch Changes
+
+- eba0e6b: Increase default page size to 100 (API max) for all list endpoints to show more resources without full pagination
+- 2b156b6: migrate from tsup to tsdown
+- 9afba48: fix: resolve create-agents test mock issue with node:util and node:child_process module paths
+- 68ef774: Add x-speakeasy-pagination extension to all paginated list endpoints for Speakeasy SDK native pagination support
+- Updated dependencies [eba0e6b]
+- Updated dependencies [a3b79b2]
+- Updated dependencies [2b156b6]
+- Updated dependencies [9afba48]
+- Updated dependencies [68ef774]
+  - @inkeep/agents-core@0.39.3
+
 ## 0.39.2
 
 ### Patch Changes

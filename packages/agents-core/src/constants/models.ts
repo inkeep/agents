@@ -38,6 +38,7 @@ export const OPENAI_MODELS = {
 
 export const GOOGLE_MODELS = {
   GEMINI_3_PRO_PREVIEW: 'google/gemini-3-pro-preview',
+  GEMINI_3_FLASH_PREVIEW: 'google/gemini-3-flash-preview',
   GEMINI_2_5_PRO: 'google/gemini-2.5-pro',
   GEMINI_2_5_FLASH: 'google/gemini-2.5-flash',
   GEMINI_2_5_FLASH_LITE: 'google/gemini-2.5-flash-lite',

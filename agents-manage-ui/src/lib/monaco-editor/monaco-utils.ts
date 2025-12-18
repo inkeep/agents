@@ -3,9 +3,7 @@ import type * as Monaco from 'monaco-editor';
 // Function to check if a token should show a copy icon
 function shouldShowCopyIcon(tokenType: string): boolean {
   switch (tokenType) {
-    case 'string.value.json':
-    case 'number.json':
-    case 'keyword.json':
+    case 'constant':
     case 'string':
       return true;
   }

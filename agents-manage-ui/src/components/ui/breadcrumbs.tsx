@@ -6,13 +6,15 @@ import { useMemo } from 'react';
 import { useProject } from '@/contexts/project-context';
 import { cn } from '@/lib/utils';
 
-export type BreadcrumbItem = {
-  label: string;
-  href?: string;
-};
+export type BreadcrumbItem =
+  | {
+      label: string;
+      href: string;
+    }
+  | string;
 
 interface BreadcrumbsProps {
-  items?: BreadcrumbItem[];
+  items: BreadcrumbItem[];
 }
 
 export function Breadcrumbs({ items }: BreadcrumbsProps) {
@@ -22,7 +24,7 @@ export function Breadcrumbs({ items }: BreadcrumbsProps) {
 
   const allItems = useMemo(() => {
     const result: BreadcrumbItem[] = [];
-    const isSettingsRoute = pathname?.includes('/settings');
+    const isSettingsRoute = pathname.startsWith(`/${tenantId}/settings`);
 
     if (!isSettingsRoute) {
       result.push({
@@ -51,8 +53,10 @@ export function Breadcrumbs({ items }: BreadcrumbsProps) {
   return (
     <nav className="text-sm text-muted-foreground" aria-label="Breadcrumb">
       <ol className="flex items-center gap-2">
-        {allItems.map((item, idx, arr) => {
+        {allItems.map((label, idx, arr) => {
           const isLast = idx === arr.length - 1;
+          const item: { label: string; href?: string } =
+            typeof label === 'string' ? { label } : label;
           return (
             <li
               key={`${item.label}-${idx}`}

@@ -2,7 +2,9 @@
 
 import { Monitor, Moon, Sun } from 'lucide-react';
 import { useTheme } from 'next-themes';
-import { type ComponentProps, type FC, type MouseEventHandler, useCallback } from 'react';
+import type { ComponentProps, FC, MouseEventHandler } from 'react';
+import { useCallback } from 'react';
+import type { ToasterProps } from 'sonner';
 import { Button } from '@/components/ui/button';
 import {
   DropdownMenu,
@@ -11,7 +13,7 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 
-export type ThemeValue = 'dark' | 'light' | 'system';
+export type ThemeValue = NonNullable<ToasterProps['theme']>;
 
 export const ThemeMap: Record<ThemeValue, FC<ComponentProps<'svg'>>> = {
   light: Sun,
@@ -29,6 +31,7 @@ export const ThemeToggle: FC = () => {
     },
     [setTheme]
   );
+
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>

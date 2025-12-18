@@ -1,0 +1,392 @@
+[
+  [
+    Token {
+      "_tokenBrand": undefined,
+      "language": "json",
+      "offset": 0,
+      "type": "variable.parameter.function",
+    },
+  ],
+  [
+    Token {
+      "_tokenBrand": undefined,
+      "language": "json",
+      "offset": 0,
+      "type": "variable.parameter.function",
+    },
+    Token {
+      "_tokenBrand": undefined,
+      "language": "json",
+      "offset": 2,
+      "type": "entity.name.tag",
+    },
+    Token {
+      "_tokenBrand": undefined,
+      "language": "json",
+      "offset": 8,
+      "type": "variable.parameter.function",
+    },
+    Token {
+      "_tokenBrand": undefined,
+      "language": "json",
+      "offset": 10,
+      "type": "constant",
+    },
+    Token {
+      "_tokenBrand": undefined,
+      "language": "json",
+      "offset": 14,
+      "type": "variable.parameter.function",
+    },
+  ],
+  [
+    Token {
+      "_tokenBrand": undefined,
+      "language": "json",
+      "offset": 0,
+      "type": "variable.parameter.function",
+    },
+    Token {
+      "_tokenBrand": undefined,
+      "language": "json",
+      "offset": 2,
+      "type": "entity.name.tag",
+    },
+    Token {
+      "_tokenBrand": undefined,
+      "language": "json",
+      "offset": 10,
+      "type": "variable.parameter.function",
+    },
+    Token {
+      "_tokenBrand": undefined,
+      "language": "json",
+      "offset": 12,
+      "type": "constant",
+    },
+    Token {
+      "_tokenBrand": undefined,
+      "language": "json",
+      "offset": 13,
+      "type": "variable.parameter.function",
+    },
+  ],
+  [
+    Token {
+      "_tokenBrand": undefined,
+      "language": "json",
+      "offset": 0,
+      "type": "variable.parameter.function",
+    },
+    Token {
+      "_tokenBrand": undefined,
+      "language": "json",
+      "offset": 2,
+      "type": "entity.name.tag",
+    },
+    Token {
+      "_tokenBrand": undefined,
+      "language": "json",
+      "offset": 11,
+      "type": "variable.parameter.function",
+    },
+    Token {
+      "_tokenBrand": undefined,
+      "language": "json",
+      "offset": 13,
+      "type": "constant",
+    },
+    Token {
+      "_tokenBrand": undefined,
+      "language": "json",
+      "offset": 18,
+      "type": "variable.parameter.function",
+    },
+  ],
+  [
+    Token {
+      "_tokenBrand": undefined,
+      "language": "json",
+      "offset": 0,
+      "type": "variable.parameter.function",
+    },
+    Token {
+      "_tokenBrand": undefined,
+      "language": "json",
+      "offset": 2,
+      "type": "entity.name.tag",
+    },
+    Token {
+      "_tokenBrand": undefined,
+      "language": "json",
+      "offset": 9,
+      "type": "variable.parameter.function",
+    },
+  ],
+  [
+    Token {
+      "_tokenBrand": undefined,
+      "language": "json",
+      "offset": 0,
+      "type": "variable.parameter.function",
+    },
+    Token {
+      "_tokenBrand": undefined,
+      "language": "json",
+      "offset": 4,
+      "type": "constant",
+    },
+    Token {
+      "_tokenBrand": undefined,
+      "language": "json",
+      "offset": 8,
+      "type": "variable.parameter.function",
+    },
+  ],
+  [
+    Token {
+      "_tokenBrand": undefined,
+      "language": "json",
+      "offset": 0,
+      "type": "variable.parameter.function",
+    },
+  ],
+  [
+    Token {
+      "_tokenBrand": undefined,
+      "language": "json",
+      "offset": 0,
+      "type": "variable.parameter.function",
+    },
+    Token {
+      "_tokenBrand": undefined,
+      "language": "json",
+      "offset": 6,
+      "type": "entity.name.tag",
+    },
+    Token {
+      "_tokenBrand": undefined,
+      "language": "json",
+      "offset": 11,
+      "type": "variable.parameter.function",
+    },
+    Token {
+      "_tokenBrand": undefined,
+      "language": "json",
+      "offset": 13,
+      "type": "string",
+    },
+  ],
+  [
+    Token {
+      "_tokenBrand": undefined,
+      "language": "json",
+      "offset": 0,
+      "type": "variable.parameter.function",
+    },
+  ],
+  [
+    Token {
+      "_tokenBrand": undefined,
+      "language": "json",
+      "offset": 0,
+      "type": "variable.parameter.function",
+    },
+  ],
+  [
+    Token {
+      "_tokenBrand": undefined,
+      "language": "json",
+      "offset": 0,
+      "type": "variable.parameter.function",
+    },
+    Token {
+      "_tokenBrand": undefined,
+      "language": "json",
+      "offset": 6,
+      "type": "constant",
+    },
+    Token {
+      "_tokenBrand": undefined,
+      "language": "json",
+      "offset": 7,
+      "type": "variable.parameter.function",
+    },
+  ],
+  [
+    Token {
+      "_tokenBrand": undefined,
+      "language": "json",
+      "offset": 0,
+      "type": "variable.parameter.function",
+    },
+    Token {
+      "_tokenBrand": undefined,
+      "language": "json",
+      "offset": 6,
+      "type": "string",
+    },
+  ],
+  [
+    Token {
+      "_tokenBrand": undefined,
+      "language": "json",
+      "offset": 0,
+      "type": "variable.parameter.function",
+    },
+  ],
+  [
+    Token {
+      "_tokenBrand": undefined,
+      "language": "json",
+      "offset": 0,
+      "type": "variable.parameter.function",
+    },
+  ],
+  [
+    Token {
+      "_tokenBrand": undefined,
+      "language": "json",
+      "offset": 0,
+      "type": "variable.parameter.function",
+    },
+    Token {
+      "_tokenBrand": undefined,
+      "language": "json",
+      "offset": 2,
+      "type": "entity.name.tag",
+    },
+    Token {
+      "_tokenBrand": undefined,
+      "language": "json",
+      "offset": 10,
+      "type": "variable.parameter.function",
+    },
+    Token {
+      "_tokenBrand": undefined,
+      "language": "json",
+      "offset": 12,
+      "type": "string",
+    },
+    Token {
+      "_tokenBrand": undefined,
+      "language": "json",
+      "offset": 19,
+      "type": "variable.parameter.function",
+    },
+  ],
+  [
+    Token {
+      "_tokenBrand": undefined,
+      "language": "json",
+      "offset": 0,
+      "type": "variable.parameter.function",
+    },
+    Token {
+      "_tokenBrand": undefined,
+      "language": "json",
+      "offset": 2,
+      "type": "entity.name.tag",
+    },
+    Token {
+      "_tokenBrand": undefined,
+      "language": "json",
+      "offset": 15,
+      "type": "variable.parameter.function",
+    },
+    Token {
+      "_tokenBrand": undefined,
+      "language": "json",
+      "offset": 17,
+      "type": "string",
+    },
+    Token {
+      "_tokenBrand": undefined,
+      "language": "json",
+      "offset": 19,
+      "type": "variable.parameter.function",
+    },
+  ],
+  [
+    Token {
+      "_tokenBrand": undefined,
+      "language": "json",
+      "offset": 0,
+      "type": "variable.parameter.function",
+    },
+    Token {
+      "_tokenBrand": undefined,
+      "language": "json",
+      "offset": 2,
+      "type": "entity.name.tag",
+    },
+    Token {
+      "_tokenBrand": undefined,
+      "language": "json",
+      "offset": 18,
+      "type": "variable.parameter.function",
+    },
+    Token {
+      "_tokenBrand": undefined,
+      "language": "json",
+      "offset": 20,
+      "type": "string",
+    },
+    Token {
+      "_tokenBrand": undefined,
+      "language": "json",
+      "offset": 22,
+      "type": "constant.other.placeholder",
+    },
+    Token {
+      "_tokenBrand": undefined,
+      "language": "json",
+      "offset": 24,
+      "type": "string",
+    },
+    Token {
+      "_tokenBrand": undefined,
+      "language": "json",
+      "offset": 87,
+      "type": "constant.other.placeholder",
+    },
+    Token {
+      "_tokenBrand": undefined,
+      "language": "json",
+      "offset": 89,
+      "type": "string",
+    },
+    Token {
+      "_tokenBrand": undefined,
+      "language": "json",
+      "offset": 90,
+      "type": "constant.other.placeholder",
+    },
+    Token {
+      "_tokenBrand": undefined,
+      "language": "json",
+      "offset": 92,
+      "type": "string",
+    },
+    Token {
+      "_tokenBrand": undefined,
+      "language": "json",
+      "offset": 165,
+      "type": "constant.other.placeholder",
+    },
+    Token {
+      "_tokenBrand": undefined,
+      "language": "json",
+      "offset": 167,
+      "type": "string",
+    },
+  ],
+  [
+    Token {
+      "_tokenBrand": undefined,
+      "language": "json",
+      "offset": 0,
+      "type": "variable.parameter.function",
+    },
+  ],
+]

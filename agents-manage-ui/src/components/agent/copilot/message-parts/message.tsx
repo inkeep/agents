@@ -28,6 +28,7 @@ interface IkpMessageProps {
   targetProjectId?: string;
   targetAgentId?: string;
   onOAuthLogin?: OAuthLoginHandler;
+  refreshAgentGraph?: (options?: { fetchTools?: boolean }) => Promise<void>;
   cookieHeader?: string;
   copilotToken?: string;
 }
@@ -162,6 +163,7 @@ export const IkpMessageComponent: FC<IkpMessageProps> = ({
   targetProjectId,
   targetAgentId,
   onOAuthLogin,
+  refreshAgentGraph,
   cookieHeader,
   copilotToken,
 }) => {
@@ -327,6 +329,7 @@ export const IkpMessageComponent: FC<IkpMessageProps> = ({
                               targetProjectId={targetProjectId}
                               targetAgentId={targetAgentId}
                               onOAuthLogin={onOAuthLogin}
+                              refreshAgentGraph={refreshAgentGraph}
                             />
                           )}
                         </div>
@@ -385,6 +388,7 @@ export const IkpMessage = (props: any) => {
         targetProjectId={otherProps.targetProjectId}
         targetAgentId={otherProps.targetAgentId}
         onOAuthLogin={otherProps.onOAuthLogin}
+        refreshAgentGraph={otherProps.refreshAgentGraph}
         cookieHeader={otherProps.cookieHeader}
         copilotToken={otherProps.copilotToken}
       />

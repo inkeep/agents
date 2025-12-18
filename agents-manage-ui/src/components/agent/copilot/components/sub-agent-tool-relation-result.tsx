@@ -10,6 +10,7 @@ interface SubAgentToolRelationResultProps {
   targetTenantId?: string;
   targetProjectId?: string;
   onConnect: OAuthLoginHandler;
+  refreshAgentGraph?: (options?: { fetchTools?: boolean }) => Promise<void>;
 }
 
 /**
@@ -21,6 +22,7 @@ export function SubAgentToolRelationResult({
   targetTenantId,
   targetProjectId,
   onConnect,
+  refreshAgentGraph,
 }: SubAgentToolRelationResultProps) {
   if (relations.length === 0) {
     return null;
@@ -35,6 +37,7 @@ export function SubAgentToolRelationResult({
           targetTenantId={targetTenantId}
           targetProjectId={targetProjectId}
           onConnect={onConnect}
+          refreshAgentGraph={refreshAgentGraph}
         />
       ))}
     </>
