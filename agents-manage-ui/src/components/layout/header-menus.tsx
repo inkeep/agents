@@ -1,11 +1,11 @@
 'use client';
 
-import { useIsMounted } from '@inkeep/agents-ui';
 import { useTheme } from 'next-themes';
 import { useEffect } from 'react';
 import { MONACO_THEME_NAME } from '@/constants/theme';
 import { useMonacoStore } from '@/features/agent/state/use-monaco-store';
 import { useAuthSession } from '@/hooks/use-auth';
+import { useIsMounted } from '@/hooks/use-is-mounted';
 import { UserMenu } from '../auth/user-menu';
 import { ThemeToggle } from '../theme-toggle';
 import { Skeleton } from '../ui/skeleton';
