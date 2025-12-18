@@ -1,5 +1,16 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
-  "framework": "hono"
+  "framework": "hono",
+  "functions": {
+    ".well-known/workflow/v1/flow": {
+      "type": "queue/v1beta"
+    },
+    ".well-known/workflow/v1/step": {
+      "type": "queue/v1beta"
+    },
+    ".well-known/workflow/v1/webhook/*": {
+      "type": "queue/v1beta"
+    }
+  }
 }
 
