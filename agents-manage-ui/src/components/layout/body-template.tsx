@@ -5,7 +5,7 @@ type BodyTemplateProps = {
   breadcrumbs?: { label: string; href?: string }[];
 };
 
-export function BodyTemplate({ children, breadcrumbs }: BodyTemplateProps) {
+export function BodyTemplate({ children, breadcrumbs = [] }: BodyTemplateProps) {
   return (
     <div className="h-[calc(100vh-16px)] flex flex-col overflow-hidden">
       <SiteHeader breadcrumbs={breadcrumbs} />
