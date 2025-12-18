@@ -34,10 +34,27 @@ if (!process.env.PORT) {
 
 import devServer from '@hono/vite-dev-server';
 import { createRequire } from 'node:module';
+import { cpSync, existsSync as fsExistsSync, mkdirSync } from 'node:fs';
 import path from 'node:path';
-import { defineConfig } from 'vite';
+import { defineConfig, type Plugin } from 'vite';
 import tsconfigPaths from 'vite-tsconfig-paths';
 import { workflow } from 'workflow/vite';
+
+// Custom plugin to copy .well-known folder to dist after build
+function copyWellKnown(): Plugin {
+  return {
+    name: 'copy-well-known',
+    closeBundle() {
+      const src = path.resolve(__dirname, '.well-known');
+      const dest = path.resolve(__dirname, 'dist/.well-known');
+      if (fsExistsSync(src)) {
+        mkdirSync(path.dirname(dest), { recursive: true });
+        cpSync(src, dest, { recursive: true });
+        console.log('[vite] Copied .well-known to dist/.well-known');
+      }
+    },
+  };
+}
 
 const require = createRequire(import.meta.url);
 const __dirname = path.dirname(new URL(import.meta.url).pathname);
@@ -47,6 +64,8 @@ export default defineConfig(({ command }) => ({
   plugins: [
     tsconfigPaths(),
     workflow(),
+    // Copy .well-known workflow handlers to dist after build
+    copyWellKnown(),
     // Only include dev server for serve command
     ...(command === 'serve' ? [devServer({ entry: 'src/index.ts' })] : []),
   ],
