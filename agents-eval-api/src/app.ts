@@ -256,13 +256,51 @@ function createEvaluationHono() {
   // to preserve the full path for workflow handler resolution
   app.post('/index', async (c) => {
     const originalUrl = new URL(c.req.url);
-    const fullPath = '/.well-known/workflow/v1/flow';
-    const targetUrl = new URL(fullPath, originalUrl.origin);
-
-    console.log('[QUEUE-CALLBACK] forwarding CloudEvent to', targetUrl.pathname);
-
+    
     // Read the original body
     const bodyBuffer = await c.req.arrayBuffer();
+    
+    // Determine the target endpoint based on the topic
+    // Topic is in CloudEvents header (ce-subject) or in the body
+    // Note: ce-type is usually generic (e.g. "com.vercel.queue.message"), not the topic
+    const ceType = c.req.header('ce-type') || c.req.header('Ce-Type');
+    const ceSubject = c.req.header('ce-subject') || c.req.header('Ce-Subject');
+    let topic = ceSubject;
+    
+    console.log('[QUEUE-CALLBACK] CloudEvents headers:', {
+      'ce-type': ceType,
+      'ce-subject': ceSubject,
+    });
+    
+    // If not in headers, try to parse from body
+    if (!topic) {
+      try {
+        const bodyText = new TextDecoder().decode(bodyBuffer);
+        const body = JSON.parse(bodyText);
+        console.log('[QUEUE-CALLBACK] CloudEvents body fields:', {
+          type: body.type,
+          subject: body.subject,
+          'data.topic': body.data?.topic,
+          'data.subject': body.data?.subject,
+        });
+        topic = body.subject || body.data?.topic || body.data?.subject;
+      } catch (err) {
+        console.log('[QUEUE-CALLBACK] Failed to parse body for topic:', err);
+      }
+    }
+    
+    console.log('[QUEUE-CALLBACK] Resolved topic:', topic);
+    
+    // Route based on topic prefix:
+    // - __wkf_step_* -> /step endpoint
+    // - __wkf_workflow_* -> /flow endpoint (default)
+    const isStepTopic = topic?.startsWith('__wkf_step_');
+    const fullPath = isStepTopic 
+      ? '/.well-known/workflow/v1/step'
+      : '/.well-known/workflow/v1/flow';
+    const targetUrl = new URL(fullPath, originalUrl.origin);
+
+    console.log('[QUEUE-CALLBACK] forwarding CloudEvent to', targetUrl.pathname, { topic, isStepTopic });
 
     // Build a new Request with the exact full URL
     const forwardedRequest = new Request(targetUrl.toString(), {
