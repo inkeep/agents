@@ -7,17 +7,14 @@
     }
   },
   "functions": {
-    "api/.well-known/workflow/v1/flow": {
+    "index.js": {
+      "runtime": "nodejs20.x",
       "experimentalTriggers": [
         {
           "type": "queue/v1beta",
           "topic": "__wkf_workflow_*",
           "consumer": "default"
-        }
-      ]
-    },
-    "api/.well-known/workflow/v1/step": {
-      "experimentalTriggers": [
+        },
         {
           "type": "queue/v1beta",
           "topic": "__wkf_step_*",
