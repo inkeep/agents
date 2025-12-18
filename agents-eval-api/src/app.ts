@@ -248,7 +248,8 @@ function createEvaluationHono() {
 
   // Mount workflow routes for internal workflow execution
   // The postgres world's internal local world calls these endpoints
-  app.route('/.well-known/workflow', workflowRoutes);
+  // Mount at /.well-known - routes inside define /workflow/v1/flow etc.
+  app.route('/.well-known', workflowRoutes);
 
   // Handle /index POST - Vercel Queue delivers CloudEvents here
   // Forward to the workflow flow handler using real HTTP fetch (not app.fetch)
@@ -266,7 +267,7 @@ function createEvaluationHono() {
     // Build a new Request with the exact full URL
     const forwardedRequest = new Request(targetUrl.toString(), {
       method: 'POST',
-      headers: c.req.headers,
+      headers: new Headers(c.req.raw.headers),
       body: bodyBuffer,
     });
 

@@ -125,81 +125,70 @@ workflowRoutes.use('*', async (c, next) => {
 });
 
 // Workflow orchestration endpoint
-workflowRoutes.post('/v1/flow', async (c) => {
-  console.log('[workflow-routes] POST /v1/flow received');
+workflowRoutes.post('/workflow/v1/flow', async (c) => {
+  console.log('[workflow-routes] POST /workflow/v1/flow received');
   try {
     loadCjsHandlers();
-    // Handle both default export and named export patterns
-    const handler = flowHandler.POST || flowHandler.default?.POST;
-    if (!handler) {
-      console.error('[workflow-routes] Flow handler POST method not found');
-      return c.json({ error: 'Flow handler not found' }, 500);
-    }
     
-    // Log the URL that will be passed to the handler
-    const rawUrl = c.req.raw.url;
-    console.log('[workflow-routes] Calling flow handler with URL:', rawUrl);
-    
-    // Ensure the request URL has the full path the workflow handler expects
-    // The handler may use the URL path for internal routing
-    const url = new URL(rawUrl);
-    if (!url.pathname.includes('.well-known')) {
-      // If path was stripped by Hono routing, reconstruct with full path
-      url.pathname = '/.well-known/workflow/v1/flow';
-      console.log('[workflow-routes] Reconstructed URL path to:', url.pathname);
-      const fixedRequest = new Request(url.toString(), {
-        method: c.req.method,
-        headers: c.req.raw.headers,
-        body: await c.req.arrayBuffer(),
+    // Robust handler selection - workflow builds may export different patterns
+    const handler =
+      flowHandler?.POST ??
+      flowHandler?.default?.POST ??
+      flowHandler?.default ??
+      flowHandler;
+
+    if (typeof handler !== 'function') {
+      console.error('[workflow-routes] Flow handler not callable', {
+        flowHandlerKeys: Object.keys(flowHandler || {}),
+        defaultKeys: Object.keys(flowHandler?.default || {}),
       });
-      return handler(fixedRequest);
+      return c.json({ error: 'Flow handler not callable' }, 500);
     }
     
+    console.log('[workflow-routes] Calling flow handler with URL:', c.req.raw.url);
+    
+    // Pass the raw request as-is
     return handler(c.req.raw);
   } catch (err) {
-    console.error('[workflow-routes] Error in /v1/flow:', err);
+    console.error('[workflow-routes] Error in /workflow/v1/flow:', err);
     return c.json({ error: String(err) }, 500);
   }
 });
 
 // Step execution endpoint
-workflowRoutes.post('/v1/step', async (c) => {
-  console.log('[workflow-routes] POST /v1/step received');
+workflowRoutes.post('/workflow/v1/step', async (c) => {
+  console.log('[workflow-routes] POST /workflow/v1/step received');
   try {
     loadCjsHandlers();
-    const handler = stepHandler.POST || stepHandler.default?.POST;
-    if (!handler) {
-      console.error('[workflow-routes] Step handler POST method not found');
-      return c.json({ error: 'Step handler not found' }, 500);
-    }
     
-    // Log the URL that will be passed to the handler
-    const rawUrl = c.req.raw.url;
-    console.log('[workflow-routes] Calling step handler with URL:', rawUrl);
-    
-    // Ensure the request URL has the full path the workflow handler expects
-    const url = new URL(rawUrl);
-    if (!url.pathname.includes('.well-known')) {
-      url.pathname = '/.well-known/workflow/v1/step';
-      console.log('[workflow-routes] Reconstructed URL path to:', url.pathname);
-      const fixedRequest = new Request(url.toString(), {
-        method: c.req.method,
-        headers: c.req.raw.headers,
-        body: await c.req.arrayBuffer(),
+    // Robust handler selection - workflow builds may export different patterns
+    const handler =
+      stepHandler?.POST ??
+      stepHandler?.default?.POST ??
+      stepHandler?.default ??
+      stepHandler;
+
+    if (typeof handler !== 'function') {
+      console.error('[workflow-routes] Step handler not callable', {
+        stepHandlerKeys: Object.keys(stepHandler || {}),
+        defaultKeys: Object.keys(stepHandler?.default || {}),
       });
-      return handler(fixedRequest);
+      return c.json({ error: 'Step handler not callable' }, 500);
     }
     
+    console.log('[workflow-routes] Calling step handler with URL:', c.req.raw.url);
+    
+    // Pass the raw request as-is
     return handler(c.req.raw);
   } catch (err) {
-    console.error('[workflow-routes] Error in /v1/step:', err);
+    console.error('[workflow-routes] Error in /workflow/v1/step:', err);
     return c.json({ error: String(err) }, 500);
   }
 });
 
 // Webhook delivery endpoint
-workflowRoutes.all('/v1/webhook/:token', async (c) => {
-  console.log('[workflow-routes] /v1/webhook received, method:', c.req.method);
+workflowRoutes.all('/workflow/v1/webhook/:token', async (c) => {
+  console.log('[workflow-routes] /workflow/v1/webhook received, method:', c.req.method);
   try {
     await loadWebhookHandler();
     const req = c.req.raw;
