@@ -118,14 +118,96 @@ export async function introspectGenerate(
     generatedFiles.push(envIndexFile);
 
     // 3. Generate function tools (if any)
-    if (project.functions) {
-      for (const [funcId, funcData] of Object.entries(project.functions)) {
-        const functionFile = join(paths.toolsDir, 'functions', `${funcId}.ts`);
-        const functionContent = generateFunctionToolFile(funcId, funcData, style);
+    // Function tools are stored in two tables that need to be joined:
+    // - functionTools: has name, description, functionId (agent-scoped naming)
+    // - functions: has inputSchema, executeCode, dependencies (project-scoped code)
+    // We need to combine these to create the full FunctionToolConfig
+    const functionToolsGenerated = new Set<string>();
+
+    // First, check project-level functionTools and functions
+    if (project.functionTools) {
+      for (const [toolId, toolData] of Object.entries(project.functionTools)) {
+        // Get the code from the functions table using functionId
+        const functionId = (toolData as any).functionId;
+        const funcData = functionId ? project.functions?.[functionId] : undefined;
+
+        // Merge functionTools (name/description) with functions (code)
+        const mergedData = {
+          name: (toolData as any).name,
+          description: (toolData as any).description,
+          inputSchema: funcData?.inputSchema,
+          executeCode: funcData?.executeCode,
+          execute: funcData?.executeCode,
+          dependencies: funcData?.dependencies,
+        };
+
+        const functionFile = join(paths.toolsDir, 'functions', `${toolId}.ts`);
+        const functionContent = generateFunctionToolFile(toolId, mergedData, style);
 
         ensureDir(functionFile);
         writeFileSync(functionFile, functionContent, 'utf-8');
         generatedFiles.push(functionFile);
+        functionToolsGenerated.add(toolId);
+      }
+    }
+
+    // Also check agent-level functionTools (each agent can have its own)
+    if (project.agents) {
+      for (const [agentId, agentData] of Object.entries(project.agents)) {
+        const agentFunctionTools = (agentData as any).functionTools;
+        const agentFunctions = (agentData as any).functions;
+
+        if (agentFunctionTools) {
+          for (const [toolId, toolData] of Object.entries(agentFunctionTools)) {
+            // Skip if already generated at project level
+            if (functionToolsGenerated.has(toolId)) continue;
+
+            // Get the code from the agent's functions or project functions
+            const functionId = (toolData as any).functionId;
+            const funcData = functionId
+              ? (agentFunctions?.[functionId] || project.functions?.[functionId])
+              : undefined;
+
+            // Merge functionTools (name/description) with functions (code)
+            const mergedData = {
+              name: (toolData as any).name,
+              description: (toolData as any).description,
+              inputSchema: funcData?.inputSchema,
+              executeCode: funcData?.executeCode,
+              execute: funcData?.executeCode,
+              dependencies: funcData?.dependencies,
+            };
+
+            const functionFile = join(paths.toolsDir, 'functions', `${toolId}.ts`);
+            const functionContent = generateFunctionToolFile(toolId, mergedData, style);
+
+            ensureDir(functionFile);
+            writeFileSync(functionFile, functionContent, 'utf-8');
+            generatedFiles.push(functionFile);
+            functionToolsGenerated.add(toolId);
+          }
+        }
+      }
+    }
+
+    // Fallback: If there are functions without corresponding functionTools entries,
+    // they may be orphaned or the data structure is different - skip them with a warning
+    if (project.functions) {
+      for (const [funcId, funcData] of Object.entries(project.functions)) {
+        if (!functionToolsGenerated.has(funcId)) {
+          // Check if this function is referenced by any functionTool
+          const isReferenced = Object.values(project.functionTools || {}).some(
+            (ft: any) => ft.functionId === funcId
+          ) || Object.values(project.agents || {}).some(
+            (agent: any) => Object.values(agent.functionTools || {}).some(
+              (ft: any) => ft.functionId === funcId
+            )
+          );
+
+          if (!isReferenced && debug) {
+            console.log(chalk.yellow(`⚠️  Skipping orphaned function '${funcId}' - no functionTool references it`));
+          }
+        }
       }
     }
 
