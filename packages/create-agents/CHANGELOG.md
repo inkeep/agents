@@ -1,5 +1,14 @@
 # @inkeep/create-agents
 
+## 0.39.4
+
+### Patch Changes
+
+- fcb3adc: added gemini 3 flash
+- Updated dependencies [fcb3adc]
+- Updated dependencies [9403533]
+  - @inkeep/agents-core@0.39.4
+
 ## 0.39.3
 
 ### Patch Changes

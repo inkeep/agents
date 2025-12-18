@@ -1,5 +1,17 @@
 # @inkeep/agents-manage-ui
 
+## 0.39.4
+
+### Patch Changes
+
+- fcb3adc: added gemini 3 flash
+- 9403533: improve mcp connect for chat to edit
+- Updated dependencies [fcb3adc]
+- Updated dependencies [9403533]
+  - @inkeep/agents-core@0.39.4
+  - @inkeep/agents-manage-api@0.39.4
+  - @inkeep/agents-run-api@0.39.4
+
 ## 0.39.3
 
 ### Patch Changes

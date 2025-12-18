@@ -1,5 +1,11 @@
 # @inkeep/agents-manage-mcp
 
+## 0.39.4
+
+### Patch Changes
+
+- fcb3adc: added gemini 3 flash
+
 ## 0.39.3
 
 ## 0.39.2
