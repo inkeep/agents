@@ -6,7 +6,10 @@ import {
 import { useRouter } from 'next/navigation';
 import { useCallback, useRef } from 'react';
 import { toast } from 'sonner';
-import type { OAuthLoginHandler, OAuthLoginParams } from '@/components/agent/copilot/components/connect-tool-card';
+import type {
+  OAuthLoginHandler,
+  OAuthLoginParams,
+} from '@/components/agent/copilot/components/connect-tool-card';
 import { useRuntimeConfig } from '@/contexts/runtime-config-context';
 import { listCredentialStores } from '@/lib/api/credentialStores';
 import { updateMCPTool } from '@/lib/api/tools';
