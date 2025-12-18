@@ -3,6 +3,7 @@
 import { BodyTemplate } from '@/components/layout/body-template';
 import { useParams, usePathname } from 'next/navigation';
 import { useMemo } from 'react';
+import { cn } from '@/lib/utils';
 
 const SEGMENT_LABELS: Record<string, string> = {
   projects: 'Projects',
@@ -25,11 +26,11 @@ const SEGMENT_LABELS: Record<string, string> = {
 };
 
 export default function ProjectsLayout(props: LayoutProps<'/[tenantId]/projects'>) {
-  // const { projectId, tenantId, agentId } = useParams<{
-  //   projectId?: string;
-  //   tenantId: string;
-  //   agentId?: string;
-  // }>();
+  const { projectId, tenantId, agentId } = useParams<{
+    projectId?: string;
+    tenantId: string;
+    agentId?: string;
+  }>();
   const pathname = usePathname();
 
   type Item = { label: string; href?: string };
@@ -76,5 +77,9 @@ export default function ProjectsLayout(props: LayoutProps<'/[tenantId]/projects'
 
   // console.log({ projectId, tenantId, agentId, pathname });
 
-  return <BodyTemplate breadcrumbs={breadcrumbs}>{props.children}</BodyTemplate>;
+  return (
+    <BodyTemplate breadcrumbs={breadcrumbs} className={cn(agentId && 'p-0')}>
+      {props.children}
+    </BodyTemplate>
+  );
 }
