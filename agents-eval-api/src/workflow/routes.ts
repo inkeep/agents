@@ -13,12 +13,17 @@ import { Hono } from 'hono';
 import { createRequire } from 'node:module';
 import { fileURLToPath } from 'node:url';
 import { dirname, resolve } from 'node:path';
-import { existsSync } from 'node:fs';
+import { existsSync, readdirSync } from 'node:fs';
 
 // Use createRequire for CJS modules in ESM context
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 const require = createRequire(import.meta.url);
+
+// Log initial path info for debugging
+console.log('[workflow-routes] Initializing workflow routes');
+console.log('[workflow-routes] __dirname:', __dirname);
+console.log('[workflow-routes] __filename:', __filename);
 
 // Resolve paths to generated handlers
 // In dev: code runs from src/workflow/, .well-known is at ../../.well-known
@@ -26,16 +31,28 @@ const require = createRequire(import.meta.url);
 function resolveWorkflowPath(filename: string): string {
   // Try dist-relative path first (production)
   const prodPath = resolve(__dirname, '.well-known/workflow/v1', filename);
+  console.log(`[workflow-routes] Checking prod path: ${prodPath}, exists: ${existsSync(prodPath)}`);
   if (existsSync(prodPath)) {
     return prodPath;
   }
   // Fall back to dev path (source-relative)
   const devPath = resolve(__dirname, '../../.well-known/workflow/v1', filename);
+  console.log(`[workflow-routes] Checking dev path: ${devPath}, exists: ${existsSync(devPath)}`);
   if (existsSync(devPath)) {
     return devPath;
   }
-  // If neither exists, return prod path and let the error happen at load time
-  console.warn(`[workflow] Handler not found at ${prodPath} or ${devPath}`);
+  // If neither exists, log directory contents for debugging
+  console.error(`[workflow-routes] Handler ${filename} not found!`);
+  try {
+    const parentDir = resolve(__dirname);
+    console.log(`[workflow-routes] Contents of ${parentDir}:`, readdirSync(parentDir));
+    const wellKnownDir = resolve(__dirname, '.well-known');
+    if (existsSync(wellKnownDir)) {
+      console.log(`[workflow-routes] Contents of ${wellKnownDir}:`, readdirSync(wellKnownDir));
+    }
+  } catch (e) {
+    console.error('[workflow-routes] Error listing directory:', e);
+  }
   return prodPath;
 }
 
@@ -43,6 +60,8 @@ const flowPath = resolveWorkflowPath('flow.cjs');
 const stepPath = resolveWorkflowPath('step.cjs');
 // Webhook path for dynamic import (it's ESM, use .mjs)
 const webhookPath = resolveWorkflowPath('webhook.mjs');
+
+console.log('[workflow-routes] Resolved paths:', { flowPath, stepPath, webhookPath });
 
 // Lazy-load handlers
 let flowHandler: any;
@@ -52,16 +71,31 @@ let webhook: any;
 // Load CJS handlers synchronously
 function loadCjsHandlers() {
   if (!flowHandler) {
-    flowHandler = require(flowPath);
-    stepHandler = require(stepPath);
+    console.log('[workflow-routes] Loading CJS handlers...');
+    try {
+      flowHandler = require(flowPath);
+      stepHandler = require(stepPath);
+      console.log('[workflow-routes] CJS handlers loaded successfully');
+      console.log('[workflow-routes] flowHandler keys:', Object.keys(flowHandler || {}));
+      console.log('[workflow-routes] stepHandler keys:', Object.keys(stepHandler || {}));
+    } catch (err) {
+      console.error('[workflow-routes] Failed to load CJS handlers:', err);
+      throw err;
+    }
   }
 }
 
 // Load ESM webhook handler asynchronously
 async function loadWebhookHandler() {
   if (!webhook) {
-    // Dynamic import for ESM module
-    webhook = await import(webhookPath);
+    console.log('[workflow-routes] Loading ESM webhook handler...');
+    try {
+      webhook = await import(webhookPath);
+      console.log('[workflow-routes] Webhook handler loaded, keys:', Object.keys(webhook || {}));
+    } catch (err) {
+      console.error('[workflow-routes] Failed to load webhook handler:', err);
+      throw err;
+    }
   }
 }
 
@@ -69,33 +103,56 @@ export const workflowRoutes = new Hono();
 
 // Workflow orchestration endpoint
 workflowRoutes.post('/v1/flow', async (c) => {
-  loadCjsHandlers();
-  // Handle both default export and named export patterns
-  const handler = flowHandler.POST || flowHandler.default?.POST;
-  if (!handler) {
-    return c.json({ error: 'Flow handler not found' }, 500);
+  console.log('[workflow-routes] POST /v1/flow received');
+  try {
+    loadCjsHandlers();
+    // Handle both default export and named export patterns
+    const handler = flowHandler.POST || flowHandler.default?.POST;
+    if (!handler) {
+      console.error('[workflow-routes] Flow handler POST method not found');
+      return c.json({ error: 'Flow handler not found' }, 500);
+    }
+    console.log('[workflow-routes] Calling flow handler...');
+    return handler(c.req.raw);
+  } catch (err) {
+    console.error('[workflow-routes] Error in /v1/flow:', err);
+    return c.json({ error: String(err) }, 500);
   }
-  return handler(c.req.raw);
 });
 
 // Step execution endpoint
 workflowRoutes.post('/v1/step', async (c) => {
-  loadCjsHandlers();
-  const handler = stepHandler.POST || stepHandler.default?.POST;
-  if (!handler) {
-    return c.json({ error: 'Step handler not found' }, 500);
+  console.log('[workflow-routes] POST /v1/step received');
+  try {
+    loadCjsHandlers();
+    const handler = stepHandler.POST || stepHandler.default?.POST;
+    if (!handler) {
+      console.error('[workflow-routes] Step handler POST method not found');
+      return c.json({ error: 'Step handler not found' }, 500);
+    }
+    console.log('[workflow-routes] Calling step handler...');
+    return handler(c.req.raw);
+  } catch (err) {
+    console.error('[workflow-routes] Error in /v1/step:', err);
+    return c.json({ error: String(err) }, 500);
   }
-  return handler(c.req.raw);
 });
 
 // Webhook delivery endpoint
 workflowRoutes.all('/v1/webhook/:token', async (c) => {
-  await loadWebhookHandler();
-  const req = c.req.raw;
-  const method = req.method as string;
-  const handler = webhook[method] ?? webhook.default?.[method] ?? webhook.default;
-  if (handler) {
-    return handler(req);
+  console.log('[workflow-routes] /v1/webhook received, method:', c.req.method);
+  try {
+    await loadWebhookHandler();
+    const req = c.req.raw;
+    const method = req.method as string;
+    const handler = webhook[method] ?? webhook.default?.[method] ?? webhook.default;
+    if (handler) {
+      console.log('[workflow-routes] Calling webhook handler for method:', method);
+      return handler(req);
+    }
+    return c.json({ error: 'Method not allowed' }, 405);
+  } catch (err) {
+    console.error('[workflow-routes] Error in /v1/webhook:', err);
+    return c.json({ error: String(err) }, 500);
   }
-  return c.json({ error: 'Method not allowed' }, 405);
 });
