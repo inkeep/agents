@@ -21,7 +21,9 @@ Cypress.on('uncaught:exception', (err) => {
     // Promise from monaco-editor
     err.message.includes('  > Canceled') ||
     err.message.includes('  > ResizeObserver loop completed with undelivered notifications.') ||
-    err.message.includes('  > Uncaught NetworkError: Failed to execute 'importScripts' on 'WorkerGlobalScope': The script at')
+    err.message.includes(
+      "  > Uncaught NetworkError: Failed to execute 'importScripts' on 'WorkerGlobalScope': The script at"
+    )
   ) {
     return false;
   }
