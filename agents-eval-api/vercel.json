@@ -7,7 +7,7 @@
     }
   },
   "functions": {
-    "dist/index.js": {
+    "index.js": {
       "experimentalTriggers": [
         {
           "type": "queue/v1beta",

@@ -272,21 +272,23 @@ function createEvaluationHono() {
       'ce-subject': ceSubject,
     });
     
-    // If not in headers, try to parse from body
-    if (!topic) {
-      try {
-        const bodyText = new TextDecoder().decode(bodyBuffer);
-        const body = JSON.parse(bodyText);
-        console.log('[QUEUE-CALLBACK] CloudEvents body fields:', {
-          type: body.type,
-          subject: body.subject,
-          'data.topic': body.data?.topic,
-          'data.subject': body.data?.subject,
-        });
-        topic = body.subject || body.data?.topic || body.data?.subject;
-      } catch (err) {
-        console.log('[QUEUE-CALLBACK] Failed to parse body for topic:', err);
+    // For Vercel Queue CloudEvents, the workflow topic is in body.data.topic
+    // Always parse body to get the topic (headers may not have it)
+    try {
+      const bodyText = new TextDecoder().decode(bodyBuffer);
+      const body = JSON.parse(bodyText);
+      console.log('[QUEUE-CALLBACK] CloudEvents body fields:', {
+        type: body.type,
+        subject: body.subject,
+        'data.topic': body.data?.topic,
+        'data.subject': body.data?.subject,
+      });
+      // Prioritize body.data.topic for Vercel Queue, then fall back to other fields
+      if (!topic) {
+        topic = body.data?.topic || body.subject || body.data?.subject;
       }
+    } catch (err) {
+      console.log('[QUEUE-CALLBACK] Failed to parse body for topic:', err);
     }
     
     console.log('[QUEUE-CALLBACK] Resolved topic:', topic);
