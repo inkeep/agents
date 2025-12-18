@@ -1,6 +1,6 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { getModelContextWindow, getCompressionConfigForModel } from '../model-context-utils';
 import type { ModelSettings } from '@inkeep/agents-core';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { getCompressionConfigForModel, getModelContextWindow } from '../model-context-utils';
 
 // Mock the llm-info module
 vi.mock('llm-info', () => ({
@@ -75,15 +75,30 @@ describe('Model Context Utils', () => {
         const testCases = [
           {
             input: { model: 'google/gemini-2.5-pro' },
-            expected: { modelId: 'gemini-2.5-pro', contextWindow: 1048576, hasValidContextWindow: true, source: 'llm-info' },
+            expected: {
+              modelId: 'gemini-2.5-pro',
+              contextWindow: 1048576,
+              hasValidContextWindow: true,
+              source: 'llm-info',
+            },
           },
           {
             input: { model: 'openai/gpt-4o' },
-            expected: { modelId: 'gpt-4o', contextWindow: 128000, hasValidContextWindow: true, source: 'llm-info' },
+            expected: {
+              modelId: 'gpt-4o',
+              contextWindow: 128000,
+              hasValidContextWindow: true,
+              source: 'llm-info',
+            },
           },
           {
             input: { model: 'anthropic/claude-3-opus' },
-            expected: { modelId: 'claude-3-opus', contextWindow: 200000, hasValidContextWindow: true, source: 'llm-info' },
+            expected: {
+              modelId: 'claude-3-opus',
+              contextWindow: 200000,
+              hasValidContextWindow: true,
+              source: 'llm-info',
+            },
           },
         ];
 
@@ -197,10 +212,10 @@ describe('Model Context Utils', () => {
     describe('Model-size aware compression parameters', () => {
       it('should apply aggressive thresholds for large models (>500K)', () => {
         const result = getCompressionConfigForModel({ model: 'gemini-2.5-pro' });
-        
+
         const expectedHardLimit = Math.floor(1048576 * 0.95); // 95% threshold
         const expectedSafetyBuffer = Math.floor(1048576 * 0.04); // 4% buffer
-        
+
         expect(result).toEqual({
           hardLimit: expectedHardLimit,
           safetyBuffer: expectedSafetyBuffer,
@@ -220,10 +235,10 @@ describe('Model Context Utils', () => {
 
       it('should apply moderate thresholds for medium models (100K-500K)', () => {
         const result = getCompressionConfigForModel({ model: 'gpt-4-turbo' });
-        
+
         const expectedHardLimit = Math.floor(200000 * 0.9); // 90% threshold
         const expectedSafetyBuffer = Math.floor(200000 * 0.07); // 7% buffer
-        
+
         expect(result.hardLimit).toBe(expectedHardLimit);
         expect(result.safetyBuffer).toBe(expectedSafetyBuffer);
 
@@ -235,10 +250,10 @@ describe('Model Context Utils', () => {
 
       it('should apply conservative thresholds for small models (<100K)', () => {
         const result = getCompressionConfigForModel({ model: 'small-model' });
-        
+
         const expectedHardLimit = Math.floor(50000 * 0.85); // 85% threshold
         const expectedSafetyBuffer = Math.floor(50000 * 0.1); // 10% buffer
-        
+
         expect(result.hardLimit).toBe(expectedHardLimit);
         expect(result.safetyBuffer).toBe(expectedSafetyBuffer);
 
@@ -250,10 +265,10 @@ describe('Model Context Utils', () => {
 
       it('should handle GPT-4o specifically (medium threshold)', () => {
         const result = getCompressionConfigForModel({ model: 'gpt-4o' });
-        
+
         const expectedHardLimit = Math.floor(128000 * 0.9); // 90% threshold
         const expectedSafetyBuffer = Math.floor(128000 * 0.07); // 7% buffer
-        
+
         expect(result.hardLimit).toBe(expectedHardLimit);
         expect(result.safetyBuffer).toBe(expectedSafetyBuffer);
         expect(result.source).toBe('model-specific');
@@ -267,7 +282,7 @@ describe('Model Context Utils', () => {
         process.env.AGENTS_COMPRESSION_ENABLED = 'true';
 
         const result = getCompressionConfigForModel({ model: 'unknown-model' });
-        
+
         expect(result).toEqual({
           hardLimit: 150000,
           safetyBuffer: 25000,
@@ -282,7 +297,7 @@ describe('Model Context Utils', () => {
 
       it('should use default values when environment variables not set', () => {
         const result = getCompressionConfigForModel({ model: 'unknown-model' });
-        
+
         expect(result).toEqual({
           hardLimit: 120000,
           safetyBuffer: 20000,
@@ -297,7 +312,7 @@ describe('Model Context Utils', () => {
 
       it('should handle disabled compression', () => {
         process.env.AGENTS_COMPRESSION_ENABLED = 'false';
-        
+
         const result = getCompressionConfigForModel({ model: 'gpt-4o' });
         expect(result.enabled).toBe(false);
       });
@@ -333,7 +348,7 @@ describe('Model Context Utils', () => {
     it('should provide consistent results for the same model', () => {
       const result1 = getCompressionConfigForModel({ model: 'google/gemini-2.5-flash' });
       const result2 = getCompressionConfigForModel({ model: 'gemini-2.5-flash' });
-      
+
       // Both should resolve to the same configuration
       expect(result1.hardLimit).toBe(result2.hardLimit);
       expect(result1.safetyBuffer).toBe(result2.safetyBuffer);
