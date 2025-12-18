@@ -570,7 +570,7 @@ importers:
         specifier: ^0.34.40
         version: 0.34.41
       '@xyflow/react':
-        specifier: ^12.8.2
+        specifier: ^12.10.0
         version: 12.10.0(@types/react@19.2.7)(react-dom@19.2.0(react@19.2.0))(react@19.2.0)
       ai:
         specifier: 6.0.0-beta.124
