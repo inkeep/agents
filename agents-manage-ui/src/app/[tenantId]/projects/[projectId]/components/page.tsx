@@ -18,49 +18,48 @@ async function DataComponentsPage({
 }: PageProps<'/[tenantId]/projects/[projectId]/components'>) {
   const { tenantId, projectId } = await params;
 
-  let dataComponents: Awaited<ReturnType<typeof fetchDataComponents>>;
   try {
-    dataComponents = await fetchDataComponents(tenantId, projectId);
+    const dataComponents = await fetchDataComponents(tenantId, projectId);
+    return (
+      <BodyTemplate breadcrumbs={[{ label: 'Components' }]}>
+        <MainContent className="min-h-full">
+          {dataComponents.data.length > 0 ? (
+            <>
+              <PageHeader
+                title="Components"
+                description={dataComponentDescription}
+                action={
+                  <Button asChild>
+                    <Link
+                      href={`/${tenantId}/projects/${projectId}/components/new`}
+                      className="flex items-center gap-2"
+                    >
+                      <Plus className="size-4" />
+                      New component
+                    </Link>
+                  </Button>
+                }
+              />
+              <DataComponentsList
+                tenantId={tenantId}
+                projectId={projectId}
+                dataComponents={dataComponents.data}
+              />
+            </>
+          ) : (
+            <EmptyState
+              title="No components yet."
+              description={dataComponentDescription}
+              link={`/${tenantId}/projects/${projectId}/components/new`}
+              linkText="Create component"
+            />
+          )}
+        </MainContent>
+      </BodyTemplate>
+    );
   } catch (error) {
     return <FullPageError errorCode={getErrorCode(error)} context="components" />;
   }
-  return (
-    <BodyTemplate breadcrumbs={[{ label: 'Components' }]}>
-      <MainContent className="min-h-full">
-        {dataComponents.data.length > 0 ? (
-          <>
-            <PageHeader
-              title="Components"
-              description={dataComponentDescription}
-              action={
-                <Button asChild>
-                  <Link
-                    href={`/${tenantId}/projects/${projectId}/components/new`}
-                    className="flex items-center gap-2"
-                  >
-                    <Plus className="size-4" />
-                    New component
-                  </Link>
-                </Button>
-              }
-            />
-            <DataComponentsList
-              tenantId={tenantId}
-              projectId={projectId}
-              dataComponents={dataComponents.data}
-            />
-          </>
-        ) : (
-          <EmptyState
-            title="No components yet."
-            description={dataComponentDescription}
-            link={`/${tenantId}/projects/${projectId}/components/new`}
-            linkText="Create component"
-          />
-        )}
-      </MainContent>
-    </BodyTemplate>
-  );
 }
 
 export default DataComponentsPage;

@@ -14,49 +14,47 @@ import { getErrorCode } from '@/lib/utils/error-serialization';
 async function ProjectsPage({ params }: PageProps<'/[tenantId]/projects'>) {
   const { tenantId } = await params;
 
-  let projects: Awaited<ReturnType<typeof fetchProjects>>;
   try {
-    projects = await fetchProjects(tenantId);
-  } catch (error) {
-    return <FullPageError errorCode={getErrorCode(error)} context="projects" />;
-  }
-
-  return (
-    <BodyTemplate>
-      <MainContent className="min-h-full">
-        {projects.data.length > 0 ? (
-          <>
-            <PageHeader
-              title="Projects"
-              description={projectDescription}
+    const projects = await fetchProjects(tenantId);
+    return (
+      <BodyTemplate>
+        <MainContent className="min-h-full">
+          {projects.data.length > 0 ? (
+            <>
+              <PageHeader
+                title="Projects"
+                description={projectDescription}
+                action={
+                  <NewProjectDialog tenantId={tenantId}>
+                    <Button>
+                      <Plus />
+                      Create project
+                    </Button>
+                  </NewProjectDialog>
+                }
+              />
+              <ProjectList tenantId={tenantId} projects={projects.data} />
+            </>
+          ) : (
+            <EmptyState
+              title="No projects yet."
+              description={emptyStateProjectDescription}
               action={
                 <NewProjectDialog tenantId={tenantId}>
-                  <Button>
+                  <Button size="lg">
                     <Plus />
-                    Create project
+                    Create your first project
                   </Button>
                 </NewProjectDialog>
               }
             />
-            <ProjectList tenantId={tenantId} projects={projects.data} />
-          </>
-        ) : (
-          <EmptyState
-            title="No projects yet."
-            description={emptyStateProjectDescription}
-            action={
-              <NewProjectDialog tenantId={tenantId}>
-                <Button size="lg">
-                  <Plus />
-                  Create your first project
-                </Button>
-              </NewProjectDialog>
-            }
-          />
-        )}
-      </MainContent>
-    </BodyTemplate>
-  );
+          )}
+        </MainContent>
+      </BodyTemplate>
+    );
+  } catch (error) {
+    return <FullPageError errorCode={getErrorCode(error)} context="projects" />;
+  }
 }
 
 export default ProjectsPage;

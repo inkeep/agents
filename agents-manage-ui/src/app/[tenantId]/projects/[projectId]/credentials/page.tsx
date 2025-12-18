@@ -21,59 +21,57 @@ async function CredentialsPage({
 }: PageProps<'/[tenantId]/projects/[projectId]/credentials'>) {
   const { tenantId, projectId } = await params;
 
-  let credentials: Awaited<ReturnType<typeof fetchCredentials>>;
   try {
-    credentials = await fetchCredentials(tenantId, projectId);
+    const credentials = await fetchCredentials(tenantId, projectId);
+    return (
+      <BodyTemplate breadcrumbs={[{ label: 'Credentials' }]}>
+        <MainContent className="min-h-full">
+          {credentials.length > 0 ? (
+            <>
+              <PageHeader
+                title="Credentials"
+                description={credentialDescription}
+                action={
+                  <Button asChild>
+                    <Link
+                      href={`/${tenantId}/projects/${projectId}/credentials/new`}
+                      className="flex items-center gap-2"
+                    >
+                      <Plus className="size-4" />
+                      New credential
+                    </Link>
+                  </Button>
+                }
+              />
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3 md:gap-4">
+                {credentials?.map((cred) => (
+                  <CredentialItem
+                    key={cred.id}
+                    id={cred.id}
+                    name={cred.name}
+                    createdAt={cred.createdAt}
+                    createdBy={cred.createdBy}
+                    tenantId={tenantId}
+                    projectId={projectId}
+                  />
+                ))}
+              </div>
+            </>
+          ) : (
+            <EmptyState
+              title="No credentials yet."
+              description={credentialDescription}
+              link={`/${tenantId}/projects/${projectId}/credentials/new`}
+              linkText="Create credential"
+              icon={<CredentialsIcon />}
+            />
+          )}
+        </MainContent>
+      </BodyTemplate>
+    );
   } catch (error) {
     return <FullPageError errorCode={getErrorCode(error)} context="credentials" />;
   }
-
-  return (
-    <BodyTemplate breadcrumbs={[{ label: 'Credentials' }]}>
-      <MainContent className="min-h-full">
-        {credentials.length > 0 ? (
-          <>
-            <PageHeader
-              title="Credentials"
-              description={credentialDescription}
-              action={
-                <Button asChild>
-                  <Link
-                    href={`/${tenantId}/projects/${projectId}/credentials/new`}
-                    className="flex items-center gap-2"
-                  >
-                    <Plus className="size-4" />
-                    New credential
-                  </Link>
-                </Button>
-              }
-            />
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3 md:gap-4">
-              {credentials?.map((cred) => (
-                <CredentialItem
-                  key={cred.id}
-                  id={cred.id}
-                  name={cred.name}
-                  createdAt={cred.createdAt}
-                  createdBy={cred.createdBy}
-                  tenantId={tenantId}
-                  projectId={projectId}
-                />
-              ))}
-            </div>
-          </>
-        ) : (
-          <EmptyState
-            title="No credentials yet."
-            description={credentialDescription}
-            link={`/${tenantId}/projects/${projectId}/credentials/new`}
-            linkText="Create credential"
-            icon={<CredentialsIcon />}
-          />
-        )}
-      </MainContent>
-    </BodyTemplate>
-  );
 }
 
 export default CredentialsPage;

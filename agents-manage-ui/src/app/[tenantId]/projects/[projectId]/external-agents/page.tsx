@@ -18,46 +18,44 @@ async function ExternalAgentsPage({
 }: PageProps<'/[tenantId]/projects/[projectId]/external-agents'>) {
   const { tenantId, projectId } = await params;
 
-  let externalAgents: Awaited<ReturnType<typeof fetchExternalAgents>>;
   try {
-    externalAgents = await fetchExternalAgents(tenantId, projectId);
+    const externalAgents = await fetchExternalAgents(tenantId, projectId);
+    return (
+      <BodyTemplate breadcrumbs={[{ label: 'External agents' }]}>
+        <MainContent className="min-h-full">
+          {externalAgents.length > 0 ? (
+            <>
+              <PageHeader
+                title="External agents"
+                description={externalAgentsDescription}
+                action={
+                  <Button asChild>
+                    <Link
+                      href={`/${tenantId}/projects/${projectId}/external-agents/new`}
+                      className="flex items-center gap-2"
+                    >
+                      <Plus className="size-4" />
+                      New external agent
+                    </Link>
+                  </Button>
+                }
+              />
+              <ExternalAgentsList externalAgents={externalAgents} />
+            </>
+          ) : (
+            <EmptyState
+              title="No external agents yet."
+              description={externalAgentsDescription}
+              link={`/${tenantId}/projects/${projectId}/external-agents/new`}
+              linkText="Create external agent"
+            />
+          )}
+        </MainContent>
+      </BodyTemplate>
+    );
   } catch (error) {
     return <FullPageError errorCode={getErrorCode(error)} context="external agents" />;
   }
-
-  return (
-    <BodyTemplate breadcrumbs={[{ label: 'External agents' }]}>
-      <MainContent className="min-h-full">
-        {externalAgents.length > 0 ? (
-          <>
-            <PageHeader
-              title="External agents"
-              description={externalAgentsDescription}
-              action={
-                <Button asChild>
-                  <Link
-                    href={`/${tenantId}/projects/${projectId}/external-agents/new`}
-                    className="flex items-center gap-2"
-                  >
-                    <Plus className="size-4" />
-                    New external agent
-                  </Link>
-                </Button>
-              }
-            />
-            <ExternalAgentsList externalAgents={externalAgents} />
-          </>
-        ) : (
-          <EmptyState
-            title="No external agents yet."
-            description={externalAgentsDescription}
-            link={`/${tenantId}/projects/${projectId}/external-agents/new`}
-            linkText="Create external agent"
-          />
-        )}
-      </MainContent>
-    </BodyTemplate>
-  );
 }
 
 export default ExternalAgentsPage;

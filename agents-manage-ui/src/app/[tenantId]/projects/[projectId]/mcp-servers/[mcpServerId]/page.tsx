@@ -11,9 +11,34 @@ async function MCPPage({
 }: PageProps<'/[tenantId]/projects/[projectId]/mcp-servers/[mcpServerId]'>) {
   const { mcpServerId, tenantId, projectId } = await params;
 
-  let tool: Awaited<ReturnType<typeof fetchMCPTool>>;
   try {
-    tool = await fetchMCPTool(tenantId, projectId, mcpServerId);
+    const tool = await fetchMCPTool(tenantId, projectId, mcpServerId);
+    return (
+      <BodyTemplate
+        breadcrumbs={[
+          {
+            label: 'MCP servers',
+            href: `/${tenantId}/projects/${projectId}/mcp-servers`,
+          },
+          {
+            label: tool.name,
+            href: `/${tenantId}/projects/${projectId}/mcp-servers/${mcpServerId}`,
+          },
+        ]}
+      >
+        <MainContent>
+          {tool.credentialScope === 'user' ? (
+            <ViewMCPServerDetailsUserScope tool={tool} tenantId={tenantId} projectId={projectId} />
+          ) : (
+            <ViewMCPServerDetailsProjectScope
+              tool={tool}
+              tenantId={tenantId}
+              projectId={projectId}
+            />
+          )}
+        </MainContent>
+      </BodyTemplate>
+    );
   } catch (error) {
     return (
       <FullPageError
@@ -24,29 +49,6 @@ async function MCPPage({
       />
     );
   }
-
-  return (
-    <BodyTemplate
-      breadcrumbs={[
-        {
-          label: 'MCP servers',
-          href: `/${tenantId}/projects/${projectId}/mcp-servers`,
-        },
-        {
-          label: tool.name,
-          href: `/${tenantId}/projects/${projectId}/mcp-servers/${mcpServerId}`,
-        },
-      ]}
-    >
-      <MainContent>
-        {tool.credentialScope === 'user' ? (
-          <ViewMCPServerDetailsUserScope tool={tool} tenantId={tenantId} projectId={projectId} />
-        ) : (
-          <ViewMCPServerDetailsProjectScope tool={tool} tenantId={tenantId} projectId={projectId} />
-        )}
-      </MainContent>
-    </BodyTemplate>
-  );
 }
 
 export default MCPPage;

@@ -10,9 +10,30 @@ async function ExternalAgentPage({
 }: PageProps<'/[tenantId]/projects/[projectId]/external-agents/[externalAgentId]'>) {
   const { externalAgentId, tenantId, projectId } = await params;
 
-  let externalAgent: Awaited<ReturnType<typeof fetchExternalAgent>>;
   try {
-    externalAgent = await fetchExternalAgent(tenantId, projectId, externalAgentId);
+    const externalAgent = await fetchExternalAgent(tenantId, projectId, externalAgentId);
+    return (
+      <BodyTemplate
+        breadcrumbs={[
+          {
+            label: 'External agents',
+            href: `/${tenantId}/projects/${projectId}/external-agents`,
+          },
+          {
+            label: externalAgent.name,
+            href: `/${tenantId}/projects/${projectId}/external-agents/${externalAgentId}`,
+          },
+        ]}
+      >
+        <MainContent>
+          <ViewExternalAgentDetails
+            externalAgent={externalAgent}
+            tenantId={tenantId}
+            projectId={projectId}
+          />
+        </MainContent>
+      </BodyTemplate>
+    );
   } catch (error) {
     return (
       <FullPageError
@@ -23,29 +44,6 @@ async function ExternalAgentPage({
       />
     );
   }
-
-  return (
-    <BodyTemplate
-      breadcrumbs={[
-        {
-          label: 'External agents',
-          href: `/${tenantId}/projects/${projectId}/external-agents`,
-        },
-        {
-          label: externalAgent.name,
-          href: `/${tenantId}/projects/${projectId}/external-agents/${externalAgentId}`,
-        },
-      ]}
-    >
-      <MainContent>
-        <ViewExternalAgentDetails
-          externalAgent={externalAgent}
-          tenantId={tenantId}
-          projectId={projectId}
-        />
-      </MainContent>
-    </BodyTemplate>
-  );
 }
 
 export default ExternalAgentPage;

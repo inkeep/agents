@@ -12,9 +12,37 @@ export default async function DataComponentPage({
 }: PageProps<'/[tenantId]/projects/[projectId]/components/[dataComponentId]'>) {
   const { tenantId, projectId, dataComponentId } = await params;
 
-  let dataComponent: Awaited<ReturnType<typeof fetchDataComponent>>;
   try {
-    dataComponent = await fetchDataComponent(tenantId, projectId, dataComponentId);
+    const dataComponent = await fetchDataComponent(tenantId, projectId, dataComponentId);
+    const { name, description, props, render } = dataComponent;
+    return (
+      <BodyTemplate
+        breadcrumbs={[
+          {
+            label: 'Components',
+            href: `/${tenantId}/projects/${projectId}/components`,
+          },
+          { label: dataComponent.name },
+        ]}
+      >
+        <MainContent>
+          <div className="max-w-2xl mx-auto py-4">
+            <DataComponentForm
+              tenantId={tenantId}
+              projectId={projectId}
+              id={dataComponentId}
+              initialData={{
+                id: dataComponentId,
+                name,
+                description: description ?? '',
+                props,
+                render,
+              }}
+            />
+          </div>
+        </MainContent>
+      </BodyTemplate>
+    );
   } catch (error) {
     return (
       <FullPageError
@@ -25,34 +53,4 @@ export default async function DataComponentPage({
       />
     );
   }
-
-  const { name, description, props, render } = dataComponent;
-  return (
-    <BodyTemplate
-      breadcrumbs={[
-        {
-          label: 'Components',
-          href: `/${tenantId}/projects/${projectId}/components`,
-        },
-        { label: dataComponent.name },
-      ]}
-    >
-      <MainContent>
-        <div className="max-w-2xl mx-auto py-4">
-          <DataComponentForm
-            tenantId={tenantId}
-            projectId={projectId}
-            id={dataComponentId}
-            initialData={{
-              id: dataComponentId,
-              name,
-              description: description ?? '',
-              props,
-              render,
-            }}
-          />
-        </div>
-      </MainContent>
-    </BodyTemplate>
-  );
 }
