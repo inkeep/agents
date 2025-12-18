@@ -123,11 +123,13 @@ export function CredentialItem({
         <CredentialDialogMenu credentialId={id} credentialName={name} />
       </ItemCardHeader>
       <ItemCardContent className="gap-2">
-        <div className="relative flex items-center justify-between">
-          <div className="flex items-center text-xs text-muted-foreground">
-            Created by {createdBy}
+        {createdBy && (
+          <div className="relative flex items-center justify-between">
+            <div className="flex items-center text-xs text-muted-foreground">
+              Created by {createdBy}
+            </div>
           </div>
-        </div>
+        )}
         <ItemCardFooter footerText={`Created ${formatDate(createdAt)}`} />
       </ItemCardContent>
     </ItemCardRoot>
