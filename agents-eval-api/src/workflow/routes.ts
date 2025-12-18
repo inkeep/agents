@@ -135,7 +135,26 @@ workflowRoutes.post('/v1/flow', async (c) => {
       console.error('[workflow-routes] Flow handler POST method not found');
       return c.json({ error: 'Flow handler not found' }, 500);
     }
-    console.log('[workflow-routes] Calling flow handler...');
+    
+    // Log the URL that will be passed to the handler
+    const rawUrl = c.req.raw.url;
+    console.log('[workflow-routes] Calling flow handler with URL:', rawUrl);
+    
+    // Ensure the request URL has the full path the workflow handler expects
+    // The handler may use the URL path for internal routing
+    const url = new URL(rawUrl);
+    if (!url.pathname.includes('.well-known')) {
+      // If path was stripped by Hono routing, reconstruct with full path
+      url.pathname = '/.well-known/workflow/v1/flow';
+      console.log('[workflow-routes] Reconstructed URL path to:', url.pathname);
+      const fixedRequest = new Request(url.toString(), {
+        method: c.req.method,
+        headers: c.req.raw.headers,
+        body: await c.req.arrayBuffer(),
+      });
+      return handler(fixedRequest);
+    }
+    
     return handler(c.req.raw);
   } catch (err) {
     console.error('[workflow-routes] Error in /v1/flow:', err);
@@ -153,7 +172,24 @@ workflowRoutes.post('/v1/step', async (c) => {
       console.error('[workflow-routes] Step handler POST method not found');
       return c.json({ error: 'Step handler not found' }, 500);
     }
-    console.log('[workflow-routes] Calling step handler...');
+    
+    // Log the URL that will be passed to the handler
+    const rawUrl = c.req.raw.url;
+    console.log('[workflow-routes] Calling step handler with URL:', rawUrl);
+    
+    // Ensure the request URL has the full path the workflow handler expects
+    const url = new URL(rawUrl);
+    if (!url.pathname.includes('.well-known')) {
+      url.pathname = '/.well-known/workflow/v1/step';
+      console.log('[workflow-routes] Reconstructed URL path to:', url.pathname);
+      const fixedRequest = new Request(url.toString(), {
+        method: c.req.method,
+        headers: c.req.raw.headers,
+        body: await c.req.arrayBuffer(),
+      });
+      return handler(fixedRequest);
+    }
+    
     return handler(c.req.raw);
   } catch (err) {
     console.error('[workflow-routes] Error in /v1/step:', err);

@@ -255,18 +255,22 @@ function createEvaluationHono() {
   // to preserve the full path for workflow handler resolution
   app.post('/index', async (c) => {
     const originalUrl = new URL(c.req.url);
-    const forwardUrl = new URL('/.well-known/workflow/v1/flow', originalUrl.origin);
+    const fullPath = '/.well-known/workflow/v1/flow';
+    const targetUrl = new URL(fullPath, originalUrl.origin);
 
-    console.log('[QUEUE-CALLBACK] forwarding CloudEvent to', forwardUrl.pathname);
+    console.log('[QUEUE-CALLBACK] forwarding CloudEvent to', targetUrl.pathname);
 
-    // Create a new Request object with the original body
-    const forwardedRequest = new Request(forwardUrl.toString(), {
-      method: c.req.method,
-      headers: c.req.raw.headers,
-      body: await c.req.arrayBuffer(),
+    // Read the original body
+    const bodyBuffer = await c.req.arrayBuffer();
+
+    // Build a new Request with the exact full URL
+    const forwardedRequest = new Request(targetUrl.toString(), {
+      method: 'POST',
+      headers: c.req.headers,
+      body: bodyBuffer,
     });
 
-    // Use global fetch to bypass Hono's internal path normalization
+    // Pass to the runtime fetch
     return fetch(forwardedRequest);
   });
 
