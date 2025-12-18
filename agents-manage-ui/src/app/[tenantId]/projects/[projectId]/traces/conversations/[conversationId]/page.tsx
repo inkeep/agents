@@ -1,9 +1,8 @@
 'use client';
 
 import { useParams, useRouter } from 'next/navigation';
-import { BodyTemplate } from '@/components/layout/body-template';
-import { MainContent } from '@/components/layout/main-content';
 import { ConversationDetail } from '@/components/traces/conversation-detail';
+import { BodyTemplate } from '@/components/layout/body-template';
 
 export default function ConversationPage() {
   const router = useRouter();
@@ -24,9 +23,7 @@ export default function ConversationPage() {
         { label: 'Conversation' },
       ]}
     >
-      <MainContent className="h-full flex flex-col">
-        <ConversationDetail conversationId={conversationId} onBack={handleBackToTraces} />
-      </MainContent>
+      <ConversationDetail conversationId={conversationId} onBack={handleBackToTraces} />
     </BodyTemplate>
   );
 }

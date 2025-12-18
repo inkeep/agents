@@ -1,9 +1,8 @@
 'use client';
 
 import { useParams, useRouter, useSearchParams } from 'next/navigation';
-import { BodyTemplate } from '@/components/layout/body-template';
-import { MainContent } from '@/components/layout/main-content';
 import { ToolCallsBreakdown } from '@/components/traces/tool-calls-breakdown';
+import { BodyTemplate } from '@/components/layout/body-template';
 
 export default function ToolCallsPage() {
   const router = useRouter();
@@ -28,9 +27,7 @@ export default function ToolCallsPage() {
         { label: 'Tool Calls Breakdown' },
       ]}
     >
-      <MainContent>
-        <ToolCallsBreakdown onBack={handleBackToTraces} />
-      </MainContent>
+      <ToolCallsBreakdown onBack={handleBackToTraces} />
     </BodyTemplate>
   );
 }

@@ -1,13 +1,14 @@
 import { SiteHeader } from '@/components/layout/site-header';
 import { cn } from '@/lib/utils';
+import type { BreadcrumbItem } from '@/components/ui/breadcrumbs';
 
 type BodyTemplateProps = {
   children: React.ReactNode;
-  breadcrumbs?: { label: string; href?: string }[];
+  breadcrumbs: BreadcrumbItem[];
   className?: string;
 };
 
-export function BodyTemplate({ children, breadcrumbs = [], className }: BodyTemplateProps) {
+export function BodyTemplate({ children, breadcrumbs, className }: BodyTemplateProps) {
   return (
     <div className="h-[calc(100vh-16px)] flex flex-col overflow-hidden">
       <SiteHeader breadcrumbs={breadcrumbs} />
