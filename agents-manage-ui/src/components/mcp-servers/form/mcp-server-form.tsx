@@ -160,6 +160,7 @@ export function MCPServerForm({
           toolId: newTool.id,
           mcpServerUrl: data.config.mcp.server.url,
           toolName: mcpServerName,
+          credentialScope: data.credentialScope,
         });
 
         return;

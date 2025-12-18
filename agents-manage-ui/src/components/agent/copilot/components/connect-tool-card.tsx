@@ -16,7 +16,7 @@ export interface OAuthLoginParams {
   mcpServerUrl: string;
   toolName: string;
   thirdPartyConnectAccountUrl?: string;
-  credentialScope?: 'project' | 'user';
+  credentialScope: 'project' | 'user';
 }
 
 /**
