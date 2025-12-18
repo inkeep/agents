@@ -173,6 +173,19 @@ function createEvaluationHono() {
     }
   );
 
+  // Debug endpoint to check workflow environment
+  app.get('/debug/workflow-env', (c) => {
+    return c.json({
+      VERCEL_DEPLOYMENT_ID: process.env.VERCEL_DEPLOYMENT_ID || '[NOT SET]',
+      VERCEL_PROJECT_ID: process.env.VERCEL_PROJECT_ID || '[NOT SET]',
+      VERCEL_TEAM_ID: process.env.VERCEL_TEAM_ID ? '[SET]' : '[NOT SET]',
+      VERCEL_ENV: process.env.VERCEL_ENV || '[NOT SET]',
+      WORKFLOW_TARGET_WORLD: process.env.WORKFLOW_TARGET_WORLD || '[NOT SET]',
+      WORKFLOW_VERCEL_AUTH_TOKEN: process.env.WORKFLOW_VERCEL_AUTH_TOKEN ? '[SET]' : '[NOT SET]',
+      WORKFLOW_VERCEL_BASE_URL: process.env.WORKFLOW_VERCEL_BASE_URL || '[NOT SET]',
+    });
+  });
+
   // Workflow process endpoint - called by Vercel cron to keep worker active
   // The worker processes queued jobs while this request is active
   app.openapi(
