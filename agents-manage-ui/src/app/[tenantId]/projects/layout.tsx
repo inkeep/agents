@@ -1,12 +1,10 @@
 'use client';
 
 import { BodyTemplate } from '@/components/layout/body-template';
-import { MainContent } from '@/components/layout/main-content';
 import { useParams, usePathname } from 'next/navigation';
 import { useMemo } from 'react';
 
 export default function ProjectsLayout(props: LayoutProps<'/[tenantId]/projects'>) {
-  // const { tenantId, projectId } = props;
   const { projectId, tenantId, agentId } = useParams<{
     projectId?: string;
     tenantId: string;
@@ -15,7 +13,7 @@ export default function ProjectsLayout(props: LayoutProps<'/[tenantId]/projects'
   const pathname = usePathname();
 
   const breadcrumbs = useMemo(() => {
-    const items = [
+    const items: { label: string; href?: string }[] = [
       {
         label: 'Projects',
         href: `/${tenantId}/projects`,
@@ -27,14 +25,16 @@ export default function ProjectsLayout(props: LayoutProps<'/[tenantId]/projects'
         href: `/${tenantId}/projects/${projectId}`,
       });
     }
+    if (agentId) {
+      items.push(
+        { label: 'Agents', href: `/${tenantId}/projects/${projectId}/agents` },
+        { label: agentId }
+      );
+    }
     return items;
-  }, [projectId, tenantId]);
+  }, [projectId, tenantId, agentId]);
 
   console.log({ projectId, tenantId, agentId, pathname });
 
-  return (
-    <BodyTemplate breadcrumbs={breadcrumbs}>
-      <MainContent>{props.children}</MainContent>
-    </BodyTemplate>
-  );
+  return <BodyTemplate breadcrumbs={breadcrumbs}>{props.children}</BodyTemplate>;
 }
