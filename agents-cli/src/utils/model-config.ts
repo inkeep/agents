@@ -95,6 +95,7 @@ export async function promptForModelConfiguration(): Promise<ModelConfigurationR
 
   const googleModels = [
     { label: 'Gemini 3 Pro Preview', value: GOOGLE_MODELS.GEMINI_3_PRO_PREVIEW },
+    { label: 'Gemini 3 Flash Preview', value: GOOGLE_MODELS.GEMINI_3_FLASH_PREVIEW },
     { label: 'Gemini 2.5 Pro', value: GOOGLE_MODELS.GEMINI_2_5_PRO },
     { label: 'Gemini 2.5 Flash', value: GOOGLE_MODELS.GEMINI_2_5_FLASH },
     { label: 'Gemini 2.5 Flash Lite', value: GOOGLE_MODELS.GEMINI_2_5_FLASH_LITE },
