@@ -12,7 +12,7 @@ export type BreadcrumbItem = {
 };
 
 interface BreadcrumbsProps {
-  items?: BreadcrumbItem[];
+  items: BreadcrumbItem[];
 }
 
 export function Breadcrumbs({ items }: BreadcrumbsProps) {
