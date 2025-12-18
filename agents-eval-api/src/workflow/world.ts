@@ -4,6 +4,57 @@
 import { createWorld as createPostgresWorld } from '@workflow/world-postgres';
 import { createVercelWorld } from '@workflow/world-vercel';
 
+// Debug: Intercept fetch calls to Vercel Workflow API
+const originalFetch = globalThis.fetch;
+globalThis.fetch = async function debugFetch(input: RequestInfo | URL, init?: RequestInit) {
+  const url = typeof input === 'string' ? input : input instanceof URL ? input.toString() : input.url;
+  
+  // Only log workflow-related requests
+  if (url.includes('vercel-workflow') || url.includes('vercel-queue') || url.includes('workflow')) {
+    console.log('[workflow-fetch] Outgoing request', {
+      url,
+      method: init?.method || 'GET',
+      hasBody: Boolean(init?.body),
+      headers: init?.headers ? Object.keys(init.headers as Record<string, string>) : [],
+    });
+    
+    try {
+      const response = await originalFetch(input, init);
+      const clonedResponse = response.clone();
+      
+      console.log('[workflow-fetch] Response received', {
+        url,
+        status: response.status,
+        statusText: response.statusText,
+        ok: response.ok,
+      });
+      
+      // Try to log response body for debugging (only for errors or important calls)
+      if (!response.ok || url.includes('/runs/create') || url.includes('/messages')) {
+        try {
+          const body = await clonedResponse.text();
+          console.log('[workflow-fetch] Response body', {
+            url,
+            body: body.substring(0, 500), // Truncate for safety
+          });
+        } catch (e) {
+          // Ignore body parsing errors
+        }
+      }
+      
+      return response;
+    } catch (error: any) {
+      console.error('[workflow-fetch] Request failed', {
+        url,
+        error: error?.message || String(error),
+      });
+      throw error;
+    }
+  }
+  
+  return originalFetch(input, init);
+};
+
 // Manually select and initialize world based on env var
 // Accept both 'vercel' and '@workflow/world-vercel' for convenience
 const targetWorld = process.env.WORKFLOW_TARGET_WORLD || '@workflow/world-postgres';
