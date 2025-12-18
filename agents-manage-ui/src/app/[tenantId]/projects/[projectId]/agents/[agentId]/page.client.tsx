@@ -109,6 +109,8 @@ interface AgentProps {
 
 type ReactFlowProps = Required<ComponentProps<typeof ReactFlow>>;
 
+const SHOW_CHAT_TO_CREATE = false;
+
 export const Agent: FC<AgentProps> = ({
   agent,
   dataComponentLookup = {},
@@ -368,7 +370,7 @@ export const Agent: FC<AgentProps> = ({
     );
 
     // After initialization, if there are no nodes and copilot is not configured, auto-add initial node
-    if (agentNodes.length === 0 && !isCopilotConfigured) {
+    if (agentNodes.length === 0 && (!isCopilotConfigured || !SHOW_CHAT_TO_CREATE)) {
       onAddInitialNode();
     }
 
@@ -1011,7 +1013,8 @@ export const Agent: FC<AgentProps> = ({
   const isMounted = useIsMounted();
 
   const showEmptyState = useMemo(
-    () => nodes.length === 0 && agentNodes.length === 0 && isCopilotConfigured,
+    () =>
+      nodes.length === 0 && agentNodes.length === 0 && isCopilotConfigured && SHOW_CHAT_TO_CREATE,
     [nodes, agentNodes, isCopilotConfigured]
   );
 
