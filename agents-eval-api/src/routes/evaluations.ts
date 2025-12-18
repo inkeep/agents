@@ -2777,7 +2777,7 @@ app.openapi(
                 payloadKB: (payloadBytes / 1024).toFixed(2),
                 hasInput: !!datasetItem.input,
                 inputType: typeof datasetItem.input,
-                inputLength: typeof datasetItem.input === 'string' ? datasetItem.input.length : JSON.stringify(datasetItem.input)?.length,
+                inputLength: typeof datasetItem.input === 'string' ? (datasetItem.input as string).length : JSON.stringify(datasetItem.input)?.length ?? 0,
                 hasSimulationAgent: !!datasetItem.simulationAgent,
               },
               'Starting workflow for dataset item'
