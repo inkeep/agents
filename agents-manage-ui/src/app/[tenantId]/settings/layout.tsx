@@ -1,5 +1,5 @@
-import { PageHeader } from '@/components/layout/page-header';
 import { BodyTemplate } from '@/components/layout/body-template';
+import { PageHeader } from '@/components/layout/page-header';
 
 export default function Layout({ children }: LayoutProps<'/[tenantId]/projects'>) {
   return (

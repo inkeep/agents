@@ -1,8 +1,8 @@
 'use client';
 
 import { useParams, useRouter, useSearchParams } from 'next/navigation';
-import { AICallsBreakdown } from '@/components/traces/ai-calls-breakdown';
 import { BodyTemplate } from '@/components/layout/body-template';
+import { AICallsBreakdown } from '@/components/traces/ai-calls-breakdown';
 
 export default function AICallsPage() {
   const router = useRouter();

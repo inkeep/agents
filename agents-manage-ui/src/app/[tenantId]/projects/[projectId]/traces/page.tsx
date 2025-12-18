@@ -1,8 +1,8 @@
 'use client';
 
 import { useState } from 'react';
-import { TracesOverview } from '@/components/traces/traces-overview';
 import { BodyTemplate } from '@/components/layout/body-template';
+import { TracesOverview } from '@/components/traces/traces-overview';
 
 function TracesPage() {
   const [refreshKey, _setRefreshKey] = useState(0);

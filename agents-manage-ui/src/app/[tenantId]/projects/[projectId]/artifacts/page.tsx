@@ -2,6 +2,7 @@ import { Plus } from 'lucide-react';
 import Link from 'next/link';
 import { ArtifactComponentsList } from '@/components/artifact-components/artifact-component-list';
 import FullPageError from '@/components/errors/full-page-error';
+import { BodyTemplate } from '@/components/layout/body-template';
 import EmptyState from '@/components/layout/empty-state';
 import { PageHeader } from '@/components/layout/page-header';
 import { Button } from '@/components/ui/button';
@@ -17,7 +18,7 @@ async function ArtifactComponentsPage({
   const { tenantId, projectId } = await params;
   try {
     const { data } = await fetchArtifactComponents(tenantId, projectId);
-    return data.length > 0 ? (
+    const content = data.length ? (
       <>
         <PageHeader
           title="Artifacts"
@@ -39,6 +40,18 @@ async function ArtifactComponentsPage({
         link={`/${tenantId}/projects/${projectId}/artifacts/new`}
         linkText="Create artifact"
       />
+    );
+    return (
+      <BodyTemplate
+        breadcrumbs={[
+          {
+            label: 'Artifacts',
+            href: `/${tenantId}/projects/${projectId}/artifacts`,
+          },
+        ]}
+      >
+        {content}
+      </BodyTemplate>
     );
   } catch (error) {
     return <FullPageError errorCode={getErrorCode(error)} context="artifacts" />;

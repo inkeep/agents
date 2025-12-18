@@ -1,8 +1,8 @@
 'use client';
 
 import { useParams, useRouter } from 'next/navigation';
-import { ConversationDetail } from '@/components/traces/conversation-detail';
 import { BodyTemplate } from '@/components/layout/body-template';
+import { ConversationDetail } from '@/components/traces/conversation-detail';
 
 export default function ConversationPage() {
   const router = useRouter();
