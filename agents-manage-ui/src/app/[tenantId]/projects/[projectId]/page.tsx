@@ -2,7 +2,7 @@
 
 import { useParams, useRouter } from 'next/navigation';
 import { useEffect } from 'react';
-import AgentLoading from '../loading';
+import BaseLoading from './loading';
 
 export default function ProjectPage() {
   const { tenantId, projectId } = useParams<{ tenantId: string; projectId: string }>();
@@ -14,5 +14,5 @@ export default function ProjectPage() {
   }, [tenantId, projectId, router]);
 
   // Show loading state while redirecting
-  return <AgentLoading />;
+  return <BaseLoading />;
 }
