@@ -34,7 +34,7 @@
   "scripts": {
     "dev": "next -p 3000",
     "build:sync": "cp -r public .next/standalone/agents-manage-ui && mkdir -p .next/standalone/agents-manage-ui/.next/ && cp -r .next/static .next/standalone/agents-manage-ui/.next/static",
-    "build": "next build --webpack && pnpm build:sync",
+    "build": "next build && pnpm build:sync",
     "start": "node .next/standalone/agents-manage-ui/server.js",
     "lint": "biome lint --error-on-warnings",
     "lint:fix": "biome check --write",
@@ -98,7 +98,7 @@
     "lucide-react": "^0.555.0",
     "monaco-editor": "0.55.1",
     "nanoid": "^5.1.5",
-    "next": "16.0.10",
+    "next": "16.1.0",
     "next-themes": "^0.4.6",
     "nuqs": "^2.4.3",
     "pino": "^9.9.0",

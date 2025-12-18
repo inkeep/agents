@@ -1,8 +1,9 @@
 import { defineProject } from 'vitest/config';
+import packageJson from './package.json' with { type: 'json' };
 
 export default defineProject({
   test: {
-    name: 'agents-core',
+    name: packageJson.name,
     globals: true,
     environment: 'node',
     setupFiles: ['./src/__tests__/setup.ts'],
