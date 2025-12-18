@@ -5,15 +5,10 @@ import { SettingsContent } from '@/components/settings/settings-content';
 
 function SettingsPage() {
   return (
-    <BodyTemplate>
+    <BodyTemplate breadcrumbs={[{ label: 'Settings' }]}>
       <MainContent>
-        <div className="max-w-4xl mx-auto py-4">
-          <PageHeader
-            title="Organization Settings"
-            description="Manage your organization settings"
-          />
-          <SettingsContent />
-        </div>
+        <PageHeader title="Organization Settings" description="Manage your organization settings" />
+        <SettingsContent />
       </MainContent>
     </BodyTemplate>
   );
