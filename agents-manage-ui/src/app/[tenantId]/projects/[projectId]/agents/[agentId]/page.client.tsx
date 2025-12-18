@@ -109,6 +109,14 @@ interface AgentProps {
 
 type ReactFlowProps = Required<ComponentProps<typeof ReactFlow>>;
 
+// Handle non-validation errors (permission, auth, not found, server errors)
+const nonValidationErrors = new Set([
+  'forbidden',
+  'unauthorized',
+  'not_found',
+  'internal_server_error',
+  'bad_request',
+]);
 export const Agent: FC<AgentProps> = ({
   agent,
   dataComponentLookup = {},
@@ -289,14 +297,8 @@ export const Agent: FC<AgentProps> = ({
     return lookup;
   }, [agent.subAgents]);
 
-  const {
-    screenToFlowPosition,
-    updateNodeData,
-    fitView,
-    getNodes,
-    getEdges,
-    getIntersectingNodes,
-  } = useReactFlow();
+  const { screenToFlowPosition, updateNodeData, fitView, getEdges, getIntersectingNodes } =
+    useReactFlow();
   const { storeNodes, edges, metadata } = useAgentStore((state) => ({
     storeNodes: state.nodes,
     edges: state.edges,
@@ -336,23 +338,24 @@ export const Agent: FC<AgentProps> = ({
       // Using `setTimeout` instead of `requestAnimationFrame` ensures updated node positions are available,
       // as `requestAnimationFrame` may run too early, causing `hasIntersections` to incorrectly return false.
       setTimeout(() => {
-        const currentNodes = getNodes();
-        for (const change of replaceChanges) {
-          const node = currentNodes.find((n) => n.id === change.id);
-          if (!node) {
-            continue;
+        setNodes((prev) => {
+          for (const change of replaceChanges) {
+            const node = prev.find((n) => n.id === change.id);
+            if (!node) {
+              continue;
+            }
+            // Use React Flow's intersection detection
+            const intersectingNodes = getIntersectingNodes(node);
+            if (intersectingNodes.length > 0) {
+              // Apply Dagre layout to resolve intersections
+              return applyDagreLayout(prev, getEdges());
+            }
           }
-          // Use React Flow's intersection detection
-          const intersectingNodes = getIntersectingNodes(node);
-          if (intersectingNodes.length > 0) {
-            // Apply Dagre layout to resolve intersections
-            setNodes((prev) => applyDagreLayout(prev, getEdges()));
-            return; // exit loop
-          }
-        }
+          return prev;
+        });
       }, 0);
     },
-    [getNodes, getEdges, getIntersectingNodes, setNodes, storeOnNodesChange]
+    [getEdges, getIntersectingNodes, setNodes, storeOnNodesChange]
   );
 
   // biome-ignore lint/correctness/useExhaustiveDependencies: we only want to run this effect on first render
@@ -921,15 +924,7 @@ export const Agent: FC<AgentProps> = ({
       return true;
     }
 
-    // Handle non-validation errors (permission, auth, not found, server errors)
-    const nonValidationErrors = [
-      'forbidden',
-      'unauthorized',
-      'not_found',
-      'internal_server_error',
-      'bad_request',
-    ];
-    if (res.code && nonValidationErrors.includes(res.code)) {
+    if (res.code && nonValidationErrors.has(res.code)) {
       toast.error(res.error || 'An error occurred while saving the agent', {
         closeButton: true,
       });
