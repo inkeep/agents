@@ -8,13 +8,14 @@ import { Button } from '@/components/ui/button';
 import { emptyStateProjectDescription, projectDescription } from '@/constants/page-descriptions';
 import { fetchProjects } from '@/lib/api/projects';
 import { getErrorCode } from '@/lib/utils/error-serialization';
+import { BodyTemplate } from '@/components/layout/body-template';
 
 async function ProjectsPage({ params }: PageProps<'/[tenantId]/projects'>) {
   const { tenantId } = await params;
 
   try {
     const projects = await fetchProjects(tenantId);
-    return projects.data.length > 0 ? (
+    const content = projects.data.length ? (
       <>
         <PageHeader
           title="Projects"
@@ -44,6 +45,7 @@ async function ProjectsPage({ params }: PageProps<'/[tenantId]/projects'>) {
         }
       />
     );
+    return <BodyTemplate breadcrumbs={[]}>{content}</BodyTemplate>;
   } catch (error) {
     return <FullPageError errorCode={getErrorCode(error)} context="projects" />;
   }
