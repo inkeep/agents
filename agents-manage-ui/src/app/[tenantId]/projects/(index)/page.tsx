@@ -1,4 +1,4 @@
-import { Plus } from 'lucide-react';
+import { PartyPopper, Plus } from 'lucide-react';
 import FullPageError from '@/components/errors/full-page-error';
 import EmptyState from '@/components/layout/empty-state';
 import { PageHeader } from '@/components/layout/page-header';
@@ -9,6 +9,19 @@ import { emptyStateProjectDescription, projectDescription } from '@/constants/pa
 import { fetchProjects } from '@/lib/api/projects';
 import { getErrorCode } from '@/lib/utils/error-serialization';
 
+function PreviewBranchBanner() {
+  return (
+    <div className="mb-6 flex items-center gap-3 rounded-lg border border-green-500/50 bg-green-500/10 p-4">
+      <PartyPopper className="h-6 w-6 text-green-500" />
+      <div>
+        <h3 className="font-semibold text-green-500">
+          🎉 Congrats, you made it to my preview branch!
+        </h3>
+      </div>
+    </div>
+  );
+}
+
 async function ProjectsPage({ params }: PageProps<'/[tenantId]/projects'>) {
   const { tenantId } = await params;
 
@@ -16,6 +29,7 @@ async function ProjectsPage({ params }: PageProps<'/[tenantId]/projects'>) {
     const projects = await fetchProjects(tenantId);
     return projects.data.length > 0 ? (
       <>
+        <PreviewBranchBanner />
         <PageHeader
           title="Projects"
           description={projectDescription}
@@ -31,18 +45,21 @@ async function ProjectsPage({ params }: PageProps<'/[tenantId]/projects'>) {
         <ProjectList tenantId={tenantId} projects={projects.data} />
       </>
     ) : (
-      <EmptyState
-        title="No projects yet."
-        description={emptyStateProjectDescription}
-        action={
-          <NewProjectDialog tenantId={tenantId}>
-            <Button size="lg">
-              <Plus />
-              Create your first project
-            </Button>
-          </NewProjectDialog>
-        }
-      />
+      <>
+        <PreviewBranchBanner />
+        <EmptyState
+          title="No projects yet."
+          description={emptyStateProjectDescription}
+          action={
+            <NewProjectDialog tenantId={tenantId}>
+              <Button size="lg">
+                <Plus />
+                Create your first project
+              </Button>
+            </NewProjectDialog>
+          }
+        />
+      </>
     );
   } catch (error) {
     return <FullPageError errorCode={getErrorCode(error)} context="projects" />;
