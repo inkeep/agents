@@ -23,7 +23,7 @@ import type { Agent, FullAgentDefinition } from '../types/agent-full';
 /**
  * Result type for server actions - follows a consistent pattern
  */
-export type ActionResult<T = void> =
+type ActionResult<T = void> =
   | {
       success: true;
       data: T;

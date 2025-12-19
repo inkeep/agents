@@ -17,7 +17,7 @@ const ATTRIBUTE_KEYS = {
  * Using for all span attributes (not possible via Trace API)
  */
 
-export type SpanRow = {
+type SpanRow = {
   trace_id: string;
   span_id: string;
   timestamp: string;

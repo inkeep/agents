@@ -4,7 +4,7 @@ import { cookies } from 'next/headers';
 
 import { DEFAULT_INKEEP_AGENTS_MANAGE_API_URL } from '../runtime-config/defaults';
 
-export type ActionResult<T = void> =
+type ActionResult<T = void> =
   | {
       success: true;
       data: T;
@@ -15,7 +15,7 @@ export type ActionResult<T = void> =
       code?: string;
     };
 
-export interface CopilotTokenResponse {
+interface CopilotTokenResponse {
   apiKey: string;
   expiresAt: string;
   cookieHeader?: string;

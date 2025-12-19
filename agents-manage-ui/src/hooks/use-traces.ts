@@ -10,7 +10,7 @@ import {
 
 const _MILLISECONDS_PER_DAY = 24 * 60 * 60 * 1000;
 
-export interface UseConversationStatsResult {
+interface UseConversationStatsResult {
   stats: ConversationStats[];
   loading: boolean;
   error: string | null;
@@ -28,7 +28,7 @@ export interface UseConversationStatsResult {
   };
 }
 
-export interface UseConversationStatsOptions {
+interface UseConversationStatsOptions {
   startTime?: number;
   endTime?: number;
   filters?: SpanFilterOptions;

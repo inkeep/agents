@@ -12,7 +12,7 @@ class ResourceValidationError extends Error {
   }
 }
 
-export interface ResourceValidationOptions {
+interface ResourceValidationOptions {
   /** Display name for error messages (e.g., "Tenant ID", "Project ID") */
   resourceName: string;
   /** Minimum allowed length (default: 1) */

@@ -13,7 +13,7 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 
-export type ThemeValue = NonNullable<ToasterProps['theme']>;
+type ThemeValue = NonNullable<ToasterProps['theme']>;
 
 export const ThemeMap: Record<ThemeValue, FC<ComponentProps<'svg'>>> = {
   light: Sun,

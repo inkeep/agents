@@ -4,7 +4,7 @@ import { useCallback, useState } from 'react';
 import type { CredentialScope } from '@/components/mcp-servers/form/validation';
 import { ScopeSelectionDialog } from '@/components/mcp-servers/selection/scope-selection-dialog';
 
-export interface UseScopeSelectionOptions<T = void> {
+interface UseScopeSelectionOptions<T = void> {
   /**
    * Called when the user confirms their scope selection.
    * Receives the selected scope and any context data passed to requestScopeSelection.
@@ -12,7 +12,7 @@ export interface UseScopeSelectionOptions<T = void> {
   onConfirm: (scope: CredentialScope, context: T) => void | Promise<void>;
 }
 
-export interface UseScopeSelectionReturn<T = void> {
+interface UseScopeSelectionReturn<T = void> {
   /**
    * Opens the scope selection dialog.
    * @param name - Display name for the dialog (e.g., server or tool name)

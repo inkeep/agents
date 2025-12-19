@@ -1,7 +1,6 @@
 import { parseAsString, parseAsStringLiteral, useQueryStates } from 'nuqs';
 
 const PANE_TYPES = ['agent', 'node', 'edge'] as const;
-export type PaneType = (typeof PANE_TYPES)[number];
 
 export function useSidePane() {
   const [queryState, setQueryState] = useQueryStates({

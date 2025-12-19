@@ -40,13 +40,13 @@ const JsonSchemaObjectSchema = Type.Object({
 const propertyValidator = TypeCompiler.Compile(JsonSchemaPropertySchema);
 const objectValidator = TypeCompiler.Compile(JsonSchemaObjectSchema);
 
-export interface ValidationError {
+interface ValidationError {
   path: string;
   message: string;
   type: 'syntax' | 'schema' | 'llm_requirement';
 }
 
-export interface ValidationResult {
+interface ValidationResult {
   isValid: boolean;
   errors: ValidationError[];
   warnings: string[];

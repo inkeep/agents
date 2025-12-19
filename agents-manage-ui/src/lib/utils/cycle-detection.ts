@@ -1,7 +1,7 @@
 import type { Edge } from '@xyflow/react';
 import type { A2AEdgeData } from '@/components/agent/configuration/edge-types';
 
-export type DelegationEdge = {
+type DelegationEdge = {
   source: string;
   target: string;
 };

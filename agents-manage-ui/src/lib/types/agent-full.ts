@@ -1,5 +1,3 @@
-import { z } from 'zod';
-
 /**
  * Agent Full API Types and Schemas
  *
@@ -8,17 +6,13 @@ import { z } from 'zod';
  */
 
 // Import core types and schemas
-import {
-  type AgentAgentInsert,
-  type AgentApiInsert,
-  type FullAgentDefinition as CoreFullAgentDefinition,
-  type ExternalAgentApiInsert,
-  type ExternalAgentDefinition,
-  type FunctionApiInsert,
-  type InternalAgentDefinition,
-  TenantParamsSchema,
-  type ToolApiInsert,
-  type ToolInsert,
+import type {
+  AgentApiInsert,
+  FullAgentDefinition as CoreFullAgentDefinition,
+  ExternalAgentApiInsert,
+  FunctionApiInsert,
+  InternalAgentDefinition,
+  ToolApiInsert,
 } from '@inkeep/agents-core/client-exports';
 import type { SingleResponse } from './response';
 import type { TeamAgent } from './team-agents';
@@ -32,28 +26,8 @@ export type FullAgentDefinition = CoreFullAgentDefinition & {
   functions?: Record<string, FunctionApiInsert>;
 };
 
-// Re-export core types with aliases
-export type AgentApi = AgentApiInsert;
-export type AgentAgentApi = AgentAgentInsert;
-export type ToolApi = ToolInsert;
-
 // Re-export types and schemas
-export type { ExternalAgentDefinition, InternalAgentDefinition };
-
-// Agent-builder specific parameter schema
-const AgentIdParamsSchema = TenantParamsSchema.extend({
-  agentId: z.string(),
-});
-
-// Inferred Types
-export type TenantParams = z.infer<typeof TenantParamsSchema>;
-export type AgentIdParams = z.infer<typeof AgentIdParamsSchema>;
-
-export type ErrorResponse = {
-  error: string;
-  message?: string;
-  details?: unknown;
-};
+export type { InternalAgentDefinition };
 
 export interface Agent {
   id: string;
@@ -68,12 +42,6 @@ export type CreateFullAgentResponse = SingleResponse<FullAgentDefinition>;
 export type CreateAgentResponse = SingleResponse<AgentApiInsert>;
 export type GetAgentResponse = SingleResponse<FullAgentDefinition>;
 export type UpdateAgentResponse = SingleResponse<FullAgentDefinition>;
-
-// API Error Types
-export type AgentApiError = {
-  code: 'not_found' | 'bad_request' | 'internal_server_error' | 'conflict';
-  message: string;
-};
 
 export type SubAgentTeamAgentConfig = {
   agentId: string;

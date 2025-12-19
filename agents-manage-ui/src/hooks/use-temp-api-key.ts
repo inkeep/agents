@@ -2,14 +2,14 @@ import { useCallback, useEffect, useState } from 'react';
 
 import { useRuntimeConfig } from '@/contexts/runtime-config-context';
 
-export interface UseTempApiKeyParams {
+interface UseTempApiKeyParams {
   tenantId: string;
   projectId: string;
   agentId: string;
   enabled?: boolean;
 }
 
-export interface UseTempApiKeyResult {
+interface UseTempApiKeyResult {
   apiKey: string | null;
   isLoading: boolean;
   error: Error | null;

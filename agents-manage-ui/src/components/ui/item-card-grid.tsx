@@ -10,7 +10,7 @@ import {
   ItemCardTitle,
 } from './item-card';
 
-export interface ItemCardGridProps<T> {
+interface ItemCardGridProps<T> {
   /** Array of items to render as cards */
   items: T[];
   /** Function to extract a unique key from each item */
@@ -105,10 +105,4 @@ export function ItemCardGrid<T>({
       })}
     </div>
   );
-}
-
-// Convenience type for simple card data with id
-export interface CardItem {
-  id: string | number;
-  [key: string]: any;
 }
