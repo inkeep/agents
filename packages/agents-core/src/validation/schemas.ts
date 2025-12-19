@@ -520,6 +520,7 @@ export const SubAgentPolicyApiUpdateSchema = createAgentScopedApiUpdateSchema(
 export const SubAgentPolicyWithIndexSchema = PolicyApiSelectSchema.extend({
   index: z.number().min(0),
   subAgentPolicyId: resourceIdSchema.optional(),
+  subAgentId: resourceIdSchema.optional(),
 }).openapi('SubAgentPolicyWithIndex');
 
 export const ExternalAgentSelectSchema = createSelectSchema(externalAgents).extend({
@@ -1201,6 +1202,13 @@ export const FunctionToolListResponse = z
     pagination: PaginationSchema,
   })
   .openapi('FunctionToolListResponse');
+export const PolicyResponse = z.object({ data: PolicyApiSelectSchema }).openapi('PolicyResponse');
+export const PolicyListResponse = z
+  .object({
+    data: z.array(PolicyApiSelectSchema),
+    pagination: PaginationSchema,
+  })
+  .openapi('PolicyListResponse');
 export const DataComponentListResponse = z
   .object({
     data: z.array(DataComponentApiSelectSchema),
@@ -1255,6 +1263,18 @@ export const SubAgentArtifactComponentListResponse = z
     pagination: PaginationSchema,
   })
   .openapi('SubAgentArtifactComponentListResponse');
+export const SubAgentPolicyResponse = z
+  .object({ data: SubAgentPolicyApiSelectSchema })
+  .openapi('SubAgentPolicyResponse');
+export const SubAgentPolicyListResponse = z
+  .object({
+    data: z.array(SubAgentPolicyApiSelectSchema),
+    pagination: PaginationSchema,
+  })
+  .openapi('SubAgentPolicyListResponse');
+export const SubAgentPolicyWithIndexArrayResponse = z
+  .object({ data: z.array(SubAgentPolicyWithIndexSchema) })
+  .openapi('SubAgentPolicyWithIndexArrayResponse');
 
 // Missing response schemas for factory function replacement
 export const FullProjectDefinitionResponse = z
