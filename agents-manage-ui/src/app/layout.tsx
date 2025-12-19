@@ -2,9 +2,10 @@ import type { Metadata } from 'next';
 import { Inter, JetBrains_Mono } from 'next/font/google';
 import { ThemeProvider } from 'next-themes';
 import { NuqsAdapter } from 'nuqs/adapters/next/app';
-import { ClientProviders } from '@/components/providers/client-providers';
+import { QueryProvider } from '@/components/providers/query-provider';
 import { Toaster } from '@/components/ui/sonner';
 import { RuntimeConfigProvider } from '@/contexts/runtime-config-context';
+import { AuthClientProvider } from '@/lib/auth-client';
 import {
   DEFAULT_INKEEP_AGENTS_MANAGE_API_URL,
   DEFAULT_INKEEP_AGENTS_RUN_API_URL,
@@ -89,10 +90,12 @@ export default function RootLayout({ children }: LayoutProps<'/'>) {
         >
           <NuqsAdapter>
             <RuntimeConfigProvider value={runtimeConfig}>
-              <ClientProviders>
-                {children}
-                <Toaster />
-              </ClientProviders>
+              <QueryProvider>
+                <AuthClientProvider>
+                  {children}
+                  <Toaster />
+                </AuthClientProvider>
+              </QueryProvider>
             </RuntimeConfigProvider>
           </NuqsAdapter>
         </ThemeProvider>
