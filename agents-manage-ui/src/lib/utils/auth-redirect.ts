@@ -10,7 +10,7 @@
  * @param returnUrl - The URL to redirect to after login (optional)
  * @returns The login URL with encoded return URL parameter
  */
-export function buildLoginUrl(returnUrl?: string): string {
+function buildLoginUrl(returnUrl?: string): string {
   const loginPath = '/login';
 
   if (!returnUrl) {
@@ -27,7 +27,7 @@ export function buildLoginUrl(returnUrl?: string): string {
  *
  * @returns The current pathname and search string, or undefined if on server
  */
-export function getCurrentPath(): string | undefined {
+function getCurrentPath(): string | undefined {
   if (typeof window === 'undefined') {
     return undefined;
   }

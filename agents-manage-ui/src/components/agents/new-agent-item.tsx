@@ -18,7 +18,7 @@ interface NewAgentItemProps {
 
 interface NewAgentDialogContentProps extends NewAgentItemProps {}
 
-export const NewAgentDialogContent = ({ tenantId, projectId }: NewAgentDialogContentProps) => {
+const NewAgentDialogContent = ({ tenantId, projectId }: NewAgentDialogContentProps) => {
   return (
     <DialogContent>
       <DialogHeader>

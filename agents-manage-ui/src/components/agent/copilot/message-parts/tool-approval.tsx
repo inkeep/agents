@@ -45,7 +45,7 @@ interface ToolApprovalProps {
   copilotToken?: string;
 }
 
-export const FallbackApproval = ({ toolName }: { toolName: string }) => {
+const FallbackApproval = ({ toolName }: { toolName: string }) => {
   return (
     <div className="text-sm text-muted-foreground">
       Would you like to run <Badge variant="code">{toolName}</Badge>?
@@ -53,7 +53,7 @@ export const FallbackApproval = ({ toolName }: { toolName: string }) => {
   );
 };
 
-export const DeleteEntityApproval = ({
+const DeleteEntityApproval = ({
   entityData,
   toolName,
 }: {
@@ -74,7 +74,7 @@ export const DeleteEntityApproval = ({
   );
 };
 
-export const DiffApproval = ({ diffs }: { diffs: FieldDiff[] }) => {
+const DiffApproval = ({ diffs }: { diffs: FieldDiff[] }) => {
   return (
     <div className="flex flex-col gap-5">
       {diffs.map(({ field, oldValue, newValue }) => (

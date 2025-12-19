@@ -193,7 +193,7 @@ export async function makeManagementApiRequest<T>(
 }
 
 // Evaluation API requests (evaluations, datasets, evaluation runs)
-export async function makeEvalApiRequest<T>(
+async function makeEvalApiRequest<T>(
   endpoint: string,
   options: RequestInit = {}
 ): Promise<T> {

@@ -150,7 +150,7 @@ function StreamMarkdown({ parts }: { parts: any[] }) {
   );
 }
 
-export const IkpMessageComponent: FC<IkpMessageProps> = ({
+const IkpMessageComponent: FC<IkpMessageProps> = ({
   message,
   isStreaming = false,
   renderMarkdown: _renderMarkdown,

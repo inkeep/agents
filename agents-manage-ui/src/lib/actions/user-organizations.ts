@@ -12,7 +12,7 @@ export interface CreateUserOrganizationParams {
   role: string;
 }
 
-export async function addUserToOrganization(params: CreateUserOrganizationParams) {
+async function addUserToOrganization(params: CreateUserOrganizationParams) {
   const { userId, organizationId, role } = params;
 
   return await makeManagementApiRequest<AddUserToOrganizationResponse>(

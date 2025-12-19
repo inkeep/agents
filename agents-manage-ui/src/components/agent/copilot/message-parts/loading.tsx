@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 
-export const LoadingDots = () => {
+const LoadingDots = () => {
   return (
     <div className="flex space-x-1">
       {[0, 1, 2].map((i) => (

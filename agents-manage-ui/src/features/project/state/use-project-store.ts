@@ -34,7 +34,7 @@ const projectState: StateCreator<ProjectState> = (set) => ({
   },
 });
 
-export const projectStore = create<ProjectState>()(
+const projectStore = create<ProjectState>()(
   devtools(projectState, { name: 'inkeep:project' })
 );
 
