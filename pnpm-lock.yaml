@@ -721,7 +721,7 @@ importers:
         specifier: ^26.1.0
         version: 26.1.0
       knip:
-        specifier: ^5.67.1
+        specifier: ^5.75.1
         version: 5.75.1(@types/node@20.19.25)(typescript@5.9.3)
       start-server-and-test:
         specifier: ^2.1.2

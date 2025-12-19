@@ -194,4 +194,4 @@ function computeDiff(
  *
  * Client components should only import: fetchToolApprovalDiff()
  */
-export { fetchCurrentEntityState, extractFieldsToUpdate, computeDiff,  };
+export { fetchCurrentEntityState, extractFieldsToUpdate, computeDiff };

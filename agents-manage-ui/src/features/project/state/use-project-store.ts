@@ -34,9 +34,7 @@ const projectState: StateCreator<ProjectState> = (set) => ({
   },
 });
 
-const projectStore = create<ProjectState>()(
-  devtools(projectState, { name: 'inkeep:project' })
-);
+const projectStore = create<ProjectState>()(devtools(projectState, { name: 'inkeep:project' }));
 
 /**
  * Actions are functions that update values in your store.
