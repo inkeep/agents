@@ -52,14 +52,7 @@ export const ProjectSwitcher: FC = () => {
     setIsProjectDialogOpen(true);
   }, []);
 
-  const handleProjectCreated = useCallback(
-    async (_projectId: string) => {
-      await invalidateProjects();
-    },
-    [invalidateProjects]
-  );
-
-  if (!tenantId || isPending) {
+  if (isPending) {
     return <Skeleton className="h-12" />;
   }
 
@@ -108,7 +101,7 @@ export const ProjectSwitcher: FC = () => {
         tenantId={tenantId}
         open={isProjectDialogOpen}
         onOpenChange={setIsProjectDialogOpen}
-        onSuccess={handleProjectCreated}
+        onSuccess={invalidateProjects}
       />
     </DropdownMenu>
   );

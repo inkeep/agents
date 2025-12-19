@@ -1,6 +1,6 @@
 'use client';
 
-import { QueryClient, QueryClientProvider, type QueryClientConfig } from '@tanstack/react-query';
+import { QueryClient, type QueryClientConfig, QueryClientProvider } from '@tanstack/react-query';
 import type { FC, ReactNode } from 'react';
 import { useState } from 'react';
 
@@ -9,6 +9,7 @@ const QUERY_CONFIG: QueryClientConfig = {
     queries: {
       staleTime: 30_000,
       refetchOnWindowFocus: false,
+      throwOnError: true,
     },
   },
 };
