@@ -3,7 +3,6 @@ import type { DatabaseClient } from '../db/client';
 import { functions } from '../db/schema';
 import type { FunctionApiInsert } from '../types/entities';
 import type { PaginationConfig, ProjectScopeConfig } from '../types/utility';
-import { autoDetectDependencies } from '../utils/detectDependencies';
 
 /**
  * Create or update a function (project-scoped)
@@ -17,6 +16,7 @@ export const upsertFunction =
     // Auto-detect dependencies if not provided
     let dependencies = data.dependencies;
     if (!dependencies || Object.keys(dependencies).length === 0) {
+      const { autoDetectDependencies } = await import('../utils/detectDependencies');
       dependencies = autoDetectDependencies(data.executeCode);
     }
 
