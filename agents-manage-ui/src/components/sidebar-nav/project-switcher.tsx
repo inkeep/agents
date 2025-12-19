@@ -22,11 +22,11 @@ const ProjectItem: FC<{
   description: string;
   icon: FC<ComponentProps<'svg'>> | false;
   showIcon: boolean;
-}> = ({ name, description, icon: Icon, showIcon = true }) => {
+}> = ({ name, description, icon: Icon, showIcon }) => {
   return (
     <>
       {showIcon && (
-        <Avatar className={`h-8 w-8 rounded-lg `}>
+        <Avatar className="h-8 w-8 rounded-lg">
           <AvatarFallback className="rounded-lg uppercase">{name.slice(0, 2)}</AvatarFallback>
         </Avatar>
       )}
