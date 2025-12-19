@@ -91,6 +91,20 @@ export interface ToolResult {
   result: any;
   error?: string;
 }
+
+export interface PolicyDefinition {
+  id: string;
+  name: string;
+  description?: string;
+  content: string;
+  metadata?: Record<string, unknown> | null;
+}
+
+export type PolicyReference =
+  | string
+  | { id: string; index?: number }
+  | { policyId: string; index?: number }
+  | (PolicyDefinition & { index?: number });
 export type AllDelegateInputInterface =
   | SubAgentInterface
   | subAgentExternalAgentInterface
@@ -110,6 +124,7 @@ export interface SubAgentConfig extends Omit<SubAgentApiInsert, 'projectId'> {
   canUse?: () => SubAgentCanUseType[];
   canTransferTo?: () => SubAgentInterface[];
   canDelegateTo?: () => AllDelegateInputInterface[];
+  policies?: () => PolicyReference[];
   dataComponents?: () => (
     | DataComponentApiInsert
     | DataComponentInterface
@@ -303,6 +318,7 @@ export interface SubAgentInterface {
   getExternalAgentDelegates(): subAgentExternalAgentInterface[];
   getDataComponents(): DataComponentApiInsert[];
   getArtifactComponents(): ArtifactComponentApiInsert[];
+  getPolicies(): Array<{ id: string; index?: number; policy?: PolicyDefinition }>;
   setContext(tenantId: string, projectId: string, baseURL?: string): void;
   addTool(name: string, tool: any): void;
   addTransfer(...agents: SubAgentInterface[]): void;
@@ -335,7 +351,12 @@ export type subAgentTeamAgentInterface = {
 
 export interface AgentInterface {
   init(): Promise<void>;
-  setConfig(tenantId: string, projectId: string, apiUrl: string): void;
+  setConfig(
+    tenantId: string,
+    projectId: string,
+    apiUrl: string,
+    policies?: PolicyDefinition[]
+  ): void;
   getId(): string;
   getName(): string;
   getDescription(): string | undefined;

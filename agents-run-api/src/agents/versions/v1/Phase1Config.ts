@@ -166,13 +166,13 @@ export class Phase1Config implements VersionConfig<SystemPromptV1> {
       return '';
     }
 
-    const sortedPolicies = [...policies].sort(
-      (a, b) => (a.index ?? 0) - (b.index ?? 0)
-    );
+    const sortedPolicies = [...policies].sort((a, b) => (a.index ?? 0) - (b.index ?? 0));
 
     const policyEntries = sortedPolicies
       .map((policy) => {
-        const description = policy.description ? `<description>${policy.description}</description>` : '';
+        const description = policy.description
+          ? `<description>${policy.description}</description>`
+          : '';
         return `
   <policy>
     <name>${policy.name}</name>

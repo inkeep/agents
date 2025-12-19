@@ -29,8 +29,8 @@ import {
   ModelFactory,
   type ModelSettings,
   type Models,
-  type SubAgentPolicyWithIndex,
   parseEmbeddedJson,
+  type SubAgentPolicyWithIndex,
   type SubAgentStopWhen,
   TemplateEngine,
 } from '@inkeep/agents-core';

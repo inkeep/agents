@@ -198,6 +198,19 @@ export function generateSubAgentDefinition(
     lines.push(`${indentation}},`);
   }
 
+  // policies - ordered policy attachments by id
+  if (agentData.policies && Array.isArray(agentData.policies) && agentData.policies.length > 0) {
+    lines.push(`${indentation}policies: () => [`);
+    for (const policy of agentData.policies) {
+      const parts = [`id: ${formatString(policy.id, q)}`];
+      if (policy.index !== undefined) {
+        parts.push(`index: ${policy.index}`);
+      }
+      lines.push(`${indentation}${indentation}{ ${parts.join(', ')} },`);
+    }
+    lines.push(`${indentation}],`);
+  }
+
   // canUse - tools that this agent can use directly (with .with() configuration if present)
   if (agentData.canUse && Array.isArray(agentData.canUse) && agentData.canUse.length > 0) {
     const toolReferences: string[] = [];

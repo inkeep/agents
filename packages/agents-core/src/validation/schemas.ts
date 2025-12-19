@@ -409,8 +409,10 @@ export const PolicyInsertSchema = createInsertSchema(policies).extend({
 export const PolicyUpdateSchema = PolicyInsertSchema.partial();
 
 export const PolicyApiSelectSchema = createApiSchema(PolicySelectSchema).openapi('Policy');
-export const PolicyApiInsertSchema = createApiInsertSchema(PolicyInsertSchema).openapi('PolicyCreate');
-export const PolicyApiUpdateSchema = createApiUpdateSchema(PolicyUpdateSchema).openapi('PolicyUpdate');
+export const PolicyApiInsertSchema =
+  createApiInsertSchema(PolicyInsertSchema).openapi('PolicyCreate');
+export const PolicyApiUpdateSchema =
+  createApiUpdateSchema(PolicyUpdateSchema).openapi('PolicyUpdate');
 
 export const DataComponentSelectSchema = createSelectSchema(dataComponents);
 export const DataComponentInsertSchema = createInsertSchema(dataComponents).extend({
@@ -1085,6 +1087,7 @@ export const FullProjectDefinitionSchema = ProjectApiInsertSchema.extend({
   tools: z.record(z.string(), ToolApiInsertSchema),
   functionTools: z.record(z.string(), FunctionToolApiInsertSchema).optional(),
   functions: z.record(z.string(), FunctionApiInsertSchema).optional(),
+  policies: z.record(z.string(), PolicyApiInsertSchema).optional(),
   dataComponents: z.record(z.string(), DataComponentApiInsertSchema).optional(),
   artifactComponents: z.record(z.string(), ArtifactComponentApiInsertSchema).optional(),
   externalAgents: z.record(z.string(), ExternalAgentApiInsertSchema).optional(),

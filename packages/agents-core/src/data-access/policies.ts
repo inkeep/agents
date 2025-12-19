@@ -135,8 +135,7 @@ export const deletePolicy =
   };
 
 export const getPoliciesForSubAgents =
-  (db: DatabaseClient) =>
-  async (params: { scopes: AgentScopeConfig; subAgentIds: string[] }) => {
+  (db: DatabaseClient) => async (params: { scopes: AgentScopeConfig; subAgentIds: string[] }) => {
     if (params.subAgentIds.length === 0) {
       return [] as SubAgentPolicyWithDetails[];
     }

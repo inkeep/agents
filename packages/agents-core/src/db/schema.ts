@@ -1056,11 +1056,7 @@ export const subAgentPoliciesRelations = relations(subAgentPolicies, ({ one }) =
     references: [subAgents.tenantId, subAgents.projectId, subAgents.agentId, subAgents.id],
   }),
   policy: one(policies, {
-    fields: [
-      subAgentPolicies.tenantId,
-      subAgentPolicies.projectId,
-      subAgentPolicies.policyId,
-    ],
+    fields: [subAgentPolicies.tenantId, subAgentPolicies.projectId, subAgentPolicies.policyId],
     references: [policies.tenantId, policies.projectId, policies.id],
   }),
 }));
