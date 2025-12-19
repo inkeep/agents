@@ -1,5 +1,34 @@
 # @inkeep/agents-manage-ui
 
+## 0.39.5
+
+### Patch Changes
+
+- 9f654ab: move `monaco.setTheme` call from `<ThemeToggle />` component to `<HeaderMenus />`
+- 9474027: fix missing scope for mcp server
+- 31e0d6e: dashboard: improve navigation by proper using Next.js `loading` files and `React.Suspense` in agent page
+- d13e4c2: Fix quickstart
+- 231abec: Hide chat to create
+- 9e4deda: Added dynamic model context limit checks
+- e420660: dashbord: dynamically load `<Agent />` page only on client
+- Updated dependencies [d13e4c2]
+- Updated dependencies [9e4deda]
+  - @inkeep/agents-manage-api@0.39.5
+  - @inkeep/agents-run-api@0.39.5
+  - @inkeep/agents-core@0.39.5
+
+## 0.39.4
+
+### Patch Changes
+
+- fcb3adc: added gemini 3 flash
+- 9403533: improve mcp connect for chat to edit
+- Updated dependencies [fcb3adc]
+- Updated dependencies [9403533]
+  - @inkeep/agents-core@0.39.4
+  - @inkeep/agents-manage-api@0.39.4
+  - @inkeep/agents-run-api@0.39.4
+
 ## 0.39.3
 
 ### Patch Changes

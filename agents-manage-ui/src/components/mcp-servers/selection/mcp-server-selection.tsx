@@ -12,13 +12,13 @@ import {
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { useOAuthLogin } from '@/hooks/use-oauth-login';
+import { useScopeSelection } from '@/hooks/use-scope-selection';
 import type { Credential } from '@/lib/api/credentials';
 import { getThirdPartyOAuthRedirectUrl } from '@/lib/api/mcp-catalog';
 import { createMCPTool } from '@/lib/api/tools';
 import type { PrebuiltMCPServer } from '@/lib/data/prebuilt-mcp-servers';
 import { generateId } from '@/lib/utils/id-utils';
 import { PrebuiltServersGrid } from './prebuilt-servers-grid';
-import { ScopeSelectionDialog } from './scope-selection-dialog';
 
 /**
  * Remove user_id from Composio URLs before storing in DB.
@@ -48,8 +48,6 @@ export function MCPServerSelection({ credentials, tenantId, projectId }: MCPServ
   const [loadingServerId, setLoadingServerId] = useState<string>();
   const [selectedMode, setSelectedMode] = useState<SelectionMode>('popular');
   const [searchQuery, setSearchQuery] = useState('');
-  const [scopeDialogOpen, setScopeDialogOpen] = useState(false);
-  const [pendingServer, setPendingServer] = useState<PrebuiltMCPServer | null>(null);
   const router = useRouter();
 
   const { handleOAuthLogin } = useOAuthLogin({
@@ -57,20 +55,14 @@ export function MCPServerSelection({ credentials, tenantId, projectId }: MCPServ
     projectId,
   });
 
-  const handleSelectPrebuiltServer = (server: PrebuiltMCPServer) => {
-    // For servers that require auth, show scope selection dialog first
-    if (server.isOpen) {
-      // Open servers don't need credentials, proceed directly
-      createServerWithScope(server, CredentialScopeEnum.project);
-    } else {
-      setPendingServer(server);
-      setScopeDialogOpen(true);
-    }
-  };
-
-  const createServerWithScope = async (server: PrebuiltMCPServer, scope: CredentialScope) => {
+  const createServerWithScope = async ({
+    server,
+    scope,
+  }: {
+    server: PrebuiltMCPServer;
+    scope: CredentialScope;
+  }) => {
     setLoadingServerId(server.id);
-    setPendingServer(null);
 
     const mcpServerName = server.name;
     const serverUrl = removeComposioUserId(server.url);
@@ -97,35 +89,26 @@ export function MCPServerSelection({ credentials, tenantId, projectId }: MCPServ
 
       const newTool = await createMCPTool(tenantId, projectId, mcpToolData);
 
-      // For user-scoped, don't start OAuth - just redirect to detail page
-      if (scope === CredentialScopeEnum.user) {
-        toast.success(
-          `${server.name} MCP server created. Users can connect their own accounts from the detail page.`
-        );
-        router.push(`/${tenantId}/projects/${projectId}/mcp-servers/${newTool.id}`);
-        return;
-      }
-
-      // For project-scoped, proceed with OAuth
+      // proceed with OAuth flow
       const isThirdPartyServer = serverUrl.includes('composio.dev');
 
       if (server.isOpen) {
         toast.success(`${server.name} MCP server created successfully`);
         router.push(`/${tenantId}/projects/${projectId}/mcp-servers/${newTool.id}`);
       } else if (isThirdPartyServer) {
-        // For third-party servers, get the correct OAuth URL for project scope
-        const projectScopedRedirectUrl = await getThirdPartyOAuthRedirectUrl(
+        const credentialScopedRedirectUrl = await getThirdPartyOAuthRedirectUrl(
           tenantId,
           projectId,
           serverUrl,
-          'project'
+          scope
         );
-        if (projectScopedRedirectUrl) {
+        if (credentialScopedRedirectUrl) {
           handleOAuthLogin({
             toolId: newTool.id,
             mcpServerUrl: serverUrl,
             toolName: mcpServerName,
-            thirdPartyConnectAccountUrl: projectScopedRedirectUrl,
+            thirdPartyConnectAccountUrl: credentialScopedRedirectUrl,
+            credentialScope: scope,
           });
         } else {
           // Fallback: redirect to detail page if we couldn't get the OAuth URL
@@ -133,7 +116,12 @@ export function MCPServerSelection({ credentials, tenantId, projectId }: MCPServ
           router.push(`/${tenantId}/projects/${projectId}/mcp-servers/${newTool.id}`);
         }
       } else {
-        handleOAuthLogin({ toolId: newTool.id, mcpServerUrl: serverUrl, toolName: mcpServerName });
+        handleOAuthLogin({
+          toolId: newTool.id,
+          mcpServerUrl: serverUrl,
+          toolName: mcpServerName,
+          credentialScope: scope,
+        });
       }
     } catch (error) {
       console.error('Failed to create prebuilt MCP server:', error);
@@ -142,9 +130,19 @@ export function MCPServerSelection({ credentials, tenantId, projectId }: MCPServ
     }
   };
 
-  const handleScopeConfirm = (scope: CredentialScope) => {
-    if (pendingServer) {
-      createServerWithScope(pendingServer, scope);
+  const { requestScopeSelection, ScopeDialog } = useScopeSelection<PrebuiltMCPServer>({
+    onConfirm: (scope, server) => {
+      createServerWithScope({ server, scope });
+    },
+  });
+
+  const handleSelectPrebuiltServer = (server: PrebuiltMCPServer) => {
+    // For servers that require auth, show scope selection dialog first
+    if (server.isOpen) {
+      // Open servers don't need credentials, proceed directly
+      createServerWithScope({ server, scope: CredentialScopeEnum.project });
+    } else {
+      requestScopeSelection(server.name, server);
     }
   };
 
@@ -203,12 +201,7 @@ export function MCPServerSelection({ credentials, tenantId, projectId }: MCPServ
       )}
 
       {/* Scope selection dialog for prebuilt servers */}
-      <ScopeSelectionDialog
-        open={scopeDialogOpen}
-        onOpenChange={setScopeDialogOpen}
-        serverName={pendingServer?.name ?? ''}
-        onConfirm={handleScopeConfirm}
-      />
+      {ScopeDialog}
     </>
   );
 }

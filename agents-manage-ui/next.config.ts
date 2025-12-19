@@ -25,39 +25,11 @@ const nextConfig: NextConfig = {
       },
     },
   },
-  webpack(config) {
-    const { test: _test, ...imageLoaderOptions } = config.module.rules.find(
-      // @ts-expect-error -- fixme
-      (rule) => rule.test?.test?.('.svg')
-    );
-    config.module.rules.push({
-      test: /\.svg$/,
-      oneOf: [
-        {
-          // to avoid conflicts with default Next.js svg loader we only match images with resourceQuery ?svgr
-          resourceQuery: /svgr/,
-          use: ['@svgr/webpack'],
-        },
-        imageLoaderOptions,
-      ],
-    });
-
-    return config;
-  },
-  typescript: {
-    ignoreBuildErrors: process.env.NEXTJS_IGNORE_TYPECHECK === 'true',
-  },
   images: {
     // Allow all external image domains since users can provide any URL
     remotePatterns: [
-      {
-        protocol: 'https',
-        hostname: '**',
-      },
-      {
-        protocol: 'http',
-        hostname: '**',
-      },
+      { protocol: 'https', hostname: '**' },
+      { protocol: 'http', hostname: '**' },
     ],
   },
 };

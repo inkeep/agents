@@ -70,6 +70,7 @@ import type { SandboxConfig } from '../types/execution-context';
 import { generateToolId } from '../utils/agent-operations';
 import { ArtifactCreateSchema, ArtifactReferenceSchema } from '../utils/artifact-component-schema';
 import { jsonSchemaToZod } from '../utils/data-component-schema';
+import { getCompressionConfigForModel } from '../utils/model-context-utils';
 import type { StreamHelper } from '../utils/stream-helpers';
 import { getStreamHelper } from '../utils/stream-registry';
 import { setSpanWithError, tracer } from '../utils/tracer';
@@ -2365,7 +2366,12 @@ ${output}`;
 
           // Capture original message count and initialize compressor for this generation
           const originalMessageCount = messages.length;
-          const compressionConfig = getCompressionConfigFromEnv();
+          const compressionConfigResult = getCompressionConfigForModel(primaryModelSettings);
+          const compressionConfig = {
+            hardLimit: compressionConfigResult.hardLimit,
+            safetyBuffer: compressionConfigResult.safetyBuffer,
+            enabled: compressionConfigResult.enabled,
+          };
           const compressor = compressionConfig.enabled
             ? new MidGenerationCompressor(
                 sessionId,

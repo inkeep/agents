@@ -39,7 +39,7 @@ const customHeadersSchema = z.object({
     }, 'All header values must be strings'),
 });
 
-export type CustomHeadersFormData = z.infer<typeof customHeadersSchema>;
+type CustomHeadersFormData = z.infer<typeof customHeadersSchema>;
 
 interface CustomHeadersDialogProps {
   customHeaders: Record<string, string>;

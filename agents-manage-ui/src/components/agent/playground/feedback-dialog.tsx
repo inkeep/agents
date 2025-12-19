@@ -30,7 +30,7 @@ const feedbackSchema = z.object({
     .max(1000, 'Feedback must be less than 1000 characters'),
 });
 
-export type FeedbackFormData = z.infer<typeof feedbackSchema>;
+type FeedbackFormData = z.infer<typeof feedbackSchema>;
 
 export const FeedbackDialog = ({
   isOpen,

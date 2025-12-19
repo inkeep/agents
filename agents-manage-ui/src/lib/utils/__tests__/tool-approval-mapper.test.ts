@@ -1,9 +1,8 @@
-import { beforeEach, describe, expect, it, vi } from 'vitest';
 import {
   computeDiff,
   extractFieldsToUpdate,
   fetchCurrentEntityState,
-} from '../../actions/tool-approval';
+} from '../../actions/tool-approval.utils';
 import * as apiConfig from '../../api/api-config';
 
 vi.mock('../../api/api-config', () => ({

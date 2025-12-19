@@ -2,7 +2,6 @@
 
 import { useParams, useRouter, useSearchParams } from 'next/navigation';
 import { BodyTemplate } from '@/components/layout/body-template';
-import { MainContent } from '@/components/layout/main-content';
 import { AICallsBreakdown } from '@/components/traces/ai-calls-breakdown';
 
 export default function AICallsPage() {
@@ -26,12 +25,10 @@ export default function AICallsPage() {
     <BodyTemplate
       breadcrumbs={[
         { label: 'Traces', href: `/${tenantId}/projects/${projectId}/traces` },
-        { label: 'AI Calls Breakdown' },
+        'AI Calls Breakdown',
       ]}
     >
-      <MainContent>
-        <AICallsBreakdown onBack={handleBackToTraces} />
-      </MainContent>
+      <AICallsBreakdown onBack={handleBackToTraces} />
     </BodyTemplate>
   );
 }

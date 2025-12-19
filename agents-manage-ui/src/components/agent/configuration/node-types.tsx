@@ -29,9 +29,6 @@ export interface MCPNodeData extends Record<string, unknown>, AnimatedNode {
   provider?: string;
 }
 
-// Re-export the shared type for consistency
-export type { SubAgentStopWhen };
-
 export interface AgentNodeData extends Record<string, unknown>, AnimatedNode {
   id: string;
   name: string;

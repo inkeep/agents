@@ -14,7 +14,7 @@ import type { Project } from '@/lib/types/project';
 import type { ProjectFormData } from './form/validation';
 import { ProjectItemMenu } from './project-item-menu';
 
-export interface ProjectItemProps extends Project {
+interface ProjectItemProps extends Project {
   tenantId: string;
   projectId: string;
 }

@@ -1,6 +1,6 @@
 {
   "name": "@inkeep/agents-run-api",
-  "version": "0.39.3",
+  "version": "0.39.5",
   "description": "Agents Run API for Inkeep Agent Framework - handles chat, agent execution, and streaming",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
@@ -63,6 +63,7 @@
     "jmespath": "^0.16.0",
     "jose": "^6.1.0",
     "json-schema-to-zod": "^2.6.1",
+    "llm-info": "^1.0.69",
     "nanoid": "^5.1.5",
     "pino": "^9.11.0",
     "traverse": "^0.6.11",

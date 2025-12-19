@@ -2,7 +2,6 @@
 
 import { useParams, useRouter, useSearchParams } from 'next/navigation';
 import { BodyTemplate } from '@/components/layout/body-template';
-import { MainContent } from '@/components/layout/main-content';
 import { ToolCallsBreakdown } from '@/components/traces/tool-calls-breakdown';
 
 export default function ToolCallsPage() {
@@ -25,12 +24,10 @@ export default function ToolCallsPage() {
     <BodyTemplate
       breadcrumbs={[
         { label: 'Traces', href: `/${tenantId}/projects/${projectId}/traces` },
-        { label: 'Tool Calls Breakdown' },
+        'Tool Calls Breakdown',
       ]}
     >
-      <MainContent>
-        <ToolCallsBreakdown onBack={handleBackToTraces} />
-      </MainContent>
+      <ToolCallsBreakdown onBack={handleBackToTraces} />
     </BodyTemplate>
   );
 }

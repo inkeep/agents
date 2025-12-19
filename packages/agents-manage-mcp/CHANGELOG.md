@@ -1,5 +1,18 @@
 # @inkeep/agents-manage-mcp
 
+## 0.39.5
+
+### Patch Changes
+
+- d13e4c2: Fix quickstart
+- 9e4deda: Added dynamic model context limit checks
+
+## 0.39.4
+
+### Patch Changes
+
+- fcb3adc: added gemini 3 flash
+
 ## 0.39.3
 
 ## 0.39.2

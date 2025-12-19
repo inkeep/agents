@@ -1,5 +1,33 @@
 # @inkeep/agents-cli
 
+## 0.39.5
+
+### Patch Changes
+
+- d13e4c2: Fix quickstart
+- 9e4deda: Added dynamic model context limit checks
+- Updated dependencies [9f654ab]
+- Updated dependencies [9474027]
+- Updated dependencies [31e0d6e]
+- Updated dependencies [d13e4c2]
+- Updated dependencies [231abec]
+- Updated dependencies [9e4deda]
+- Updated dependencies [e420660]
+  - @inkeep/agents-manage-ui@0.39.5
+  - @inkeep/agents-core@0.39.5
+  - @inkeep/agents-sdk@0.39.5
+
+## 0.39.4
+
+### Patch Changes
+
+- fcb3adc: added gemini 3 flash
+- Updated dependencies [fcb3adc]
+- Updated dependencies [9403533]
+  - @inkeep/agents-core@0.39.4
+  - @inkeep/agents-manage-ui@0.39.4
+  - @inkeep/agents-sdk@0.39.4
+
 ## 0.39.3
 
 ### Patch Changes

@@ -1,6 +1,5 @@
 import { DataComponentForm } from '@/components/data-components/form/data-component-form';
 import { BodyTemplate } from '@/components/layout/body-template';
-import { MainContent } from '@/components/layout/main-content';
 
 async function NewDataComponentPage({
   params,
@@ -13,14 +12,11 @@ async function NewDataComponentPage({
           label: 'Components',
           href: `/${tenantId}/projects/${projectId}/components`,
         },
-        { label: 'New Component' },
+        'New Component',
       ]}
+      className="max-w-2xl mx-auto"
     >
-      <MainContent>
-        <div className="max-w-2xl mx-auto py-4">
-          <DataComponentForm tenantId={tenantId} projectId={projectId} />
-        </div>
-      </MainContent>
+      <DataComponentForm tenantId={tenantId} projectId={projectId} />
     </BodyTemplate>
   );
 }

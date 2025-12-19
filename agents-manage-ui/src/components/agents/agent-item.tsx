@@ -13,7 +13,7 @@ import {
 import type { Agent } from '@/lib/types/agent-full';
 import { AgentItemMenu } from './agent-item-menu';
 
-export interface AgentItemProps extends Agent {
+interface AgentItemProps extends Agent {
   tenantId: string;
   projectId: string;
 }
