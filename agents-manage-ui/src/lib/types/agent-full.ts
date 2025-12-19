@@ -1,5 +1,3 @@
-import { z } from 'zod';
-
 /**
  * Agent Full API Types and Schemas
  *
@@ -8,16 +6,13 @@ import { z } from 'zod';
  */
 
 // Import core types and schemas
-import {
-  type AgentAgentInsert,
-  type AgentApiInsert,
-  type FullAgentDefinition as CoreFullAgentDefinition,
-  type ExternalAgentApiInsert,
-  type FunctionApiInsert,
-  type InternalAgentDefinition,
-  TenantParamsSchema,
-  type ToolApiInsert,
-  type ToolInsert,
+import type {
+  AgentApiInsert,
+  FullAgentDefinition as CoreFullAgentDefinition,
+  ExternalAgentApiInsert,
+  FunctionApiInsert,
+  InternalAgentDefinition,
+  ToolApiInsert,
 } from '@inkeep/agents-core/client-exports';
 import type { SingleResponse } from './response';
 import type { TeamAgent } from './team-agents';
@@ -33,11 +28,6 @@ export type FullAgentDefinition = CoreFullAgentDefinition & {
 
 // Re-export types and schemas
 export type { InternalAgentDefinition };
-
-// Agent-builder specific parameter schema
-const AgentIdParamsSchema = TenantParamsSchema.extend({
-  agentId: z.string(),
-});
 
 export interface Agent {
   id: string;

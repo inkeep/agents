@@ -15,12 +15,6 @@ interface CredentialStoresListResponse {
   data: CredentialStoreStatus[];
 }
 
-interface CreateCredentialInStoreRequest {
-  key: string;
-  value: string;
-  metadata?: Record<string, string>;
-}
-
 interface CreateCredentialInStoreResponse {
   data: {
     key: string;
