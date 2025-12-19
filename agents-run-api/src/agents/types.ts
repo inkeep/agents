@@ -10,9 +10,20 @@ export interface VersionConfig<TConfig> {
   assemble(templates: Map<string, string>, config: TConfig): string;
 }
 
+export interface PolicyData {
+  id?: string;
+  subAgentPolicyId?: string;
+  name: string;
+  description?: string | null;
+  content: string;
+  metadata?: Record<string, unknown> | null;
+  index?: number;
+}
+
 export interface SystemPromptV1 {
   corePrompt: string; // Just the agent's prompt string
   prompt?: string; // Agent-level context and instructions
+  policies?: PolicyData[];
   artifacts: Artifact[];
   tools: ToolData[]; // Support both formats
   dataComponents: DataComponentApiInsert[];

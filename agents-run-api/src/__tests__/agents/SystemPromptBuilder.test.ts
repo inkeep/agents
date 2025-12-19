@@ -164,6 +164,28 @@ describe('SystemPromptBuilder', () => {
       expect(result).toContain('Second tool');
     });
 
+    test('should include policies section in order when provided', () => {
+      const config: SystemPromptV1 = {
+        corePrompt: 'You are a policy-aware assistant.',
+        tools: [],
+        dataComponents: [],
+        artifacts: [],
+        isThinkingPreparation: false,
+        policies: [
+          { name: 'Second Policy', content: 'Second content', index: 2 },
+          { name: 'First Policy', content: 'First content', index: 1 },
+        ],
+      };
+
+      const result = builder.buildSystemPrompt(config);
+      expect(result).toContain('<policies>');
+      expect(result).toContain('First Policy');
+      expect(result).toContain('Second Policy');
+      expect(result).toContain('First content');
+      expect(result).toContain('Second content');
+      expect(result.indexOf('First Policy')).toBeLessThan(result.indexOf('Second Policy'));
+    });
+
     test('should handle tools with complex parameter schemas', () => {
       const mockTool = createMockMcpTool('complex-server', [
         {
