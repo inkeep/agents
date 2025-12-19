@@ -106,7 +106,10 @@ export class MidGenerationCompressor extends BaseCompressor {
     );
 
     // For mid-generation, process messages from where we left off (incremental)
-    const toolCallToArtifactMap = await this.saveToolResultsAsArtifacts(messages, this.lastProcessedMessageIndex);
+    const toolCallToArtifactMap = await this.saveToolResultsAsArtifacts(
+      messages,
+      this.lastProcessedMessageIndex
+    );
 
     // Create conversation summary using base class method
     const summary = await this.createConversationSummary(messages, toolCallToArtifactMap);

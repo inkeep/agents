@@ -1,7 +1,11 @@
 import type { ModelSettings } from '@inkeep/agents-core';
 import { ModelInfoMap } from 'llm-info';
+import {
+  COMPRESSION_ENABLED,
+  COMPRESSION_HARD_LIMIT,
+  COMPRESSION_SAFETY_BUFFER,
+} from '../constants/execution-limits';
 import { getLogger } from '../logger';
-import { COMPRESSION_HARD_LIMIT, COMPRESSION_SAFETY_BUFFER, COMPRESSION_ENABLED } from '../constants/execution-limits';
 
 const logger = getLogger('ModelContextUtils');
 
@@ -157,8 +161,12 @@ export function getCompressionConfigForModel(
   const modelContextInfo = getModelContextWindow(modelSettings);
 
   // Default values from environment or fallback
-  const envHardLimit = parseInt(process.env.AGENTS_COMPRESSION_HARD_LIMIT || COMPRESSION_HARD_LIMIT.toString());
-  const envSafetyBuffer = parseInt(process.env.AGENTS_COMPRESSION_SAFETY_BUFFER || COMPRESSION_SAFETY_BUFFER.toString());
+  const envHardLimit = parseInt(
+    process.env.AGENTS_COMPRESSION_HARD_LIMIT || COMPRESSION_HARD_LIMIT.toString()
+  );
+  const envSafetyBuffer = parseInt(
+    process.env.AGENTS_COMPRESSION_SAFETY_BUFFER || COMPRESSION_SAFETY_BUFFER.toString()
+  );
   const enabled = process.env.AGENTS_COMPRESSION_ENABLED !== 'false' && COMPRESSION_ENABLED;
 
   if (modelContextInfo.hasValidContextWindow && modelContextInfo.contextWindow) {
@@ -172,7 +180,7 @@ export function getCompressionConfigForModel(
       safetyBuffer = Math.floor(modelContextInfo.contextWindow * 0.05); // Fixed 5% safety buffer
       const triggerPoint = hardLimit - safetyBuffer;
       const triggerPercentage = ((triggerPoint / modelContextInfo.contextWindow) * 100).toFixed(1);
-      
+
       logContext = {
         modelId: modelContextInfo.modelId,
         contextWindow: modelContextInfo.contextWindow,
@@ -183,7 +191,7 @@ export function getCompressionConfigForModel(
         targetPercentage: `${(targetPercentage * 100).toFixed(1)}%`,
         compressionType: targetPercentage <= 0.6 ? 'conversation' : 'mid-generation',
       };
-      
+
       logger.info(logContext, 'Using percentage-based compression configuration');
     } else {
       // Use model-size aware compression parameters (original aggressive logic)
@@ -203,7 +211,7 @@ export function getCompressionConfigForModel(
         threshold: params.threshold,
         bufferPct: params.bufferPct,
       };
-      
+
       logger.info(logContext, 'Using model-size aware compression configuration');
     }
 

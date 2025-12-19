@@ -8,9 +8,12 @@ import {
   generateId,
   getConversationHistory,
 } from '@inkeep/agents-core';
-import { CONVERSATION_HISTORY_DEFAULT_LIMIT, CONVERSATION_ARTIFACTS_LIMIT } from '../constants/execution-limits';
-import { ConversationCompressor } from '../services/ConversationCompressor';
+import {
+  CONVERSATION_ARTIFACTS_LIMIT,
+  CONVERSATION_HISTORY_DEFAULT_LIMIT,
+} from '../constants/execution-limits';
 import { getLogger } from '../logger';
+import { ConversationCompressor } from '../services/ConversationCompressor';
 import { getCompressionConfigForModel } from '../utils/model-context-utils';
 import dbClient from './db/dbClient';
 
@@ -128,7 +131,6 @@ export async function getScopedHistory({
   options?: ConversationHistoryConfig;
 }): Promise<any[]> {
   try {
-
     // First, get ALL messages to find the latest compression summary
     // IMPORTANT: Always include internal messages and disable truncation to ensure tool results are available
     const allMessages = await getConversationHistory(dbClient)({
@@ -137,18 +139,19 @@ export async function getScopedHistory({
       options: { ...options, limit: 10000, includeInternal: true, maxOutputTokens: undefined }, // Disable truncation
     });
 
-
     // Find the latest compression summary (highest order/createdAt)
-    const compressionSummaries = allMessages.filter(msg => 
-      msg.messageType === 'compression_summary' && 
-      msg.metadata?.compressionType === 'conversation_history'
+    const compressionSummaries = allMessages.filter(
+      (msg) =>
+        msg.messageType === 'compression_summary' &&
+        msg.metadata?.compressionType === 'conversation_history'
     );
-    
-    const latestCompressionSummary = compressionSummaries.length > 0 
-      ? compressionSummaries.reduce((latest, current) => 
-          new Date(current.createdAt) > new Date(latest.createdAt) ? current : latest
-        )
-      : null;
+
+    const latestCompressionSummary =
+      compressionSummaries.length > 0
+        ? compressionSummaries.reduce((latest, current) =>
+            new Date(current.createdAt) > new Date(latest.createdAt) ? current : latest
+          )
+        : null;
 
     let messages: any[];
     if (latestCompressionSummary) {
@@ -156,27 +159,33 @@ export async function getScopedHistory({
       const summaryDate = new Date(latestCompressionSummary.createdAt);
       messages = [
         latestCompressionSummary,
-        ...allMessages.filter(msg => 
-          new Date(msg.createdAt) > summaryDate && 
-          msg.messageType !== 'compression_summary'
-        )
+        ...allMessages.filter(
+          (msg) =>
+            new Date(msg.createdAt) > summaryDate && msg.messageType !== 'compression_summary'
+        ),
       ];
-      
-      logger.debug({
-        conversationId,
-        latestCompressionSummaryId: latestCompressionSummary.id,
-        summaryDate: summaryDate.toISOString(),
-        messagesAfterCompression: messages.length - 1,
-        totalMessages: allMessages.length,
-      }, 'Retrieved conversation with compression summary');
+
+      logger.debug(
+        {
+          conversationId,
+          latestCompressionSummaryId: latestCompressionSummary.id,
+          summaryDate: summaryDate.toISOString(),
+          messagesAfterCompression: messages.length - 1,
+          totalMessages: allMessages.length,
+        },
+        'Retrieved conversation with compression summary'
+      );
     } else {
       // No compression summary, use all messages
       messages = allMessages;
-      
-      logger.debug({
-        conversationId,
-        totalMessages: messages.length,
-      }, 'Retrieved conversation without compression summary');
+
+      logger.debug(
+        {
+          conversationId,
+          totalMessages: messages.length,
+        },
+        'Retrieved conversation without compression summary'
+      );
     }
 
     if (
@@ -224,7 +233,6 @@ export async function getScopedHistory({
             // If we ARE delegated but no specific ID, show any delegated tool results
             matchesDelegation = messageIsDelegated === true;
           }
-
         }
         // Non-tool-result messages are not affected by delegation filtering
       }
@@ -337,16 +345,13 @@ export async function getFormattedConversationHistory({
   // Apply conversation compression if needed and enabled
   let finalMessagesToFormat = messagesToFormat;
   if (sessionId && summarizerModel) {
-    finalMessagesToFormat = await applyConversationCompressionIfNeeded(
-      messagesToFormat,
-      {
-        sessionId,
-        conversationId,
-        tenantId,
-        projectId,
-        summarizerModel,
-      }
-    );
+    finalMessagesToFormat = await applyConversationCompressionIfNeeded(messagesToFormat, {
+      sessionId,
+      conversationId,
+      tenantId,
+      projectId,
+      summarizerModel,
+    });
   }
 
   const formattedHistory = finalMessagesToFormat
@@ -405,7 +410,7 @@ export async function getConversationHistoryWithCompression({
   streamRequestId?: string;
 }): Promise<string> {
   const historyOptions = options ?? createDefaultConversationHistoryConfig();
-  
+
   // IMPORTANT: For conversation compression, we MUST include internal messages (tool results)
   // Tool results are saved with visibility: 'internal' and are essential for compression summaries
   const compressionOptions = {
@@ -421,7 +426,6 @@ export async function getConversationHistoryWithCompression({
     filters,
     options: compressionOptions,
   });
-
 
   // Remove current message if it matches the last message (same as legacy)
   let messagesToFormat = conversationHistory;
@@ -443,10 +447,10 @@ export async function getConversationHistoryWithCompression({
       const text = typeof msg.content === 'string' ? msg.content : JSON.stringify(msg.content);
       return total + Math.ceil(text.length / 4); // 4 chars = 1 token estimate
     }, 0);
-    
+
     const remaining = compressionInfo.hardLimit - estimatedTokens;
     const compressionNeeded = remaining <= compressionInfo.safetyBuffer;
-    const contextWindowUtilization = compressionInfo.modelContextInfo.contextWindow 
+    const contextWindowUtilization = compressionInfo.modelContextInfo.contextWindow
       ? ((estimatedTokens / compressionInfo.modelContextInfo.contextWindow) * 100).toFixed(1)
       : 'unknown';
 
@@ -468,43 +472,52 @@ export async function getConversationHistoryWithCompression({
     );
 
     // Check if we need to re-compress based on messages since last compression
-    const compressionSummary = messagesToFormat.find(msg => 
-      msg.messageType === 'compression_summary' && 
-      msg.metadata?.compressionType === 'conversation_history'
+    const compressionSummary = messagesToFormat.find(
+      (msg) =>
+        msg.messageType === 'compression_summary' &&
+        msg.metadata?.compressionType === 'conversation_history'
     );
-    
+
     if (compressionSummary) {
-      const messagesAfterCompression = messagesToFormat.filter(msg => 
-        new Date(msg.createdAt) > new Date(compressionSummary.createdAt) && 
-        msg.messageType !== 'compression_summary'
+      const messagesAfterCompression = messagesToFormat.filter(
+        (msg) =>
+          new Date(msg.createdAt) > new Date(compressionSummary.createdAt) &&
+          msg.messageType !== 'compression_summary'
       );
-      
+
       // Only re-compress if we have significant new messages AND they exceed context limits
-      if (messagesAfterCompression.length >= 10) {  // At least 10 new messages
-        logger.info({
-          conversationId,
-          messagesAfterLastCompression: messagesAfterCompression.length,
-          lastCompressionDate: compressionSummary.createdAt,
-        }, 'Checking if re-compression needed for new messages');
-        
-        const newMessagesCompressed = await compressConversationIfNeeded(
-          messagesAfterCompression,
+      if (messagesAfterCompression.length >= 10) {
+        // At least 10 new messages
+        logger.info(
           {
             conversationId,
-            tenantId,
-            projectId,
-            summarizerModel,
-            streamRequestId,
-          }
+            messagesAfterLastCompression: messagesAfterCompression.length,
+            lastCompressionDate: compressionSummary.createdAt,
+          },
+          'Checking if re-compression needed for new messages'
         );
-        
+
+        const newMessagesCompressed = await compressConversationIfNeeded(messagesAfterCompression, {
+          conversationId,
+          tenantId,
+          projectId,
+          summarizerModel,
+          streamRequestId,
+        });
+
         // If new messages were compressed, combine with existing summary
-        if (newMessagesCompressed.length === 1 && newMessagesCompressed[0].messageType === 'compression_summary') {
+        if (
+          newMessagesCompressed.length === 1 &&
+          newMessagesCompressed[0].messageType === 'compression_summary'
+        ) {
           messagesToFormat = [compressionSummary, ...newMessagesCompressed];
-          logger.info({
-            conversationId,
-            totalCompressedMessages: messagesToFormat.length,
-          }, 'Re-compression completed - combined with existing summary');
+          logger.info(
+            {
+              conversationId,
+              totalCompressedMessages: messagesToFormat.length,
+            },
+            'Re-compression completed - combined with existing summary'
+          );
         } else {
           // No re-compression needed, keep messages as-is
           messagesToFormat = [compressionSummary, ...messagesAfterCompression];
@@ -513,26 +526,23 @@ export async function getConversationHistoryWithCompression({
     } else {
       // No existing compression, check if we need to compress for the first time
       const originalMessageCount = messagesToFormat.length;
-      messagesToFormat = await compressConversationIfNeeded(
-        messagesToFormat,
-        {
-          conversationId,
-          tenantId,
-          projectId,
-          summarizerModel,
-          streamRequestId,
-        }
-      );
+      messagesToFormat = await compressConversationIfNeeded(messagesToFormat, {
+        conversationId,
+        tenantId,
+        projectId,
+        summarizerModel,
+        streamRequestId,
+      });
     }
 
-    // Log final message composition 
+    // Log final message composition
     const compressedTokens = messagesToFormat.reduce((total, msg) => {
       const text = typeof msg.content === 'string' ? msg.content : JSON.stringify(msg.content);
       return total + Math.ceil(text.length / 4);
     }, 0);
 
-    const compressionSummaryMessages = messagesToFormat.filter(msg => 
-      msg.messageType === 'compression_summary'
+    const compressionSummaryMessages = messagesToFormat.filter(
+      (msg) => msg.messageType === 'compression_summary'
     );
 
     if (compressionSummaryMessages.length > 0) {
@@ -567,7 +577,7 @@ async function compressConversationIfNeeded(
   }
 ): Promise<any[]> {
   const { conversationId, tenantId, projectId, summarizerModel, streamRequestId } = params;
-  
+
   // Use streamRequestId when available (for agent transfers), otherwise conversationId
   const sessionIdForCompression = streamRequestId || conversationId;
   const compressor = new ConversationCompressor(
@@ -592,7 +602,6 @@ async function compressConversationIfNeeded(
     'Applying conversation-level compression'
   );
 
-
   try {
     const compressionResult = await compressor.compress(messages);
 
@@ -605,7 +614,10 @@ async function compressConversationIfNeeded(
         conversationId,
         role: 'system',
         content: {
-          text: buildCompressionSummaryMessage(compressionResult.summary, compressionResult.artifactIds),
+          text: buildCompressionSummaryMessage(
+            compressionResult.summary,
+            compressionResult.artifactIds
+          ),
         },
         visibility: 'internal',
         messageType: 'compression_summary',
@@ -673,12 +685,14 @@ function buildCompressionSummaryMessage(summary: any, artifactIds: string[]): st
       parts.push(`✅ Completed:`);
       summary.key_outcomes.completed.forEach((item: string) => parts.push(`  • ${item}`));
     }
-    
+
     if (summary.key_outcomes.discoveries && summary.key_outcomes.discoveries.length > 0) {
       parts.push(`💡 Key Discoveries:`);
-      summary.key_outcomes.discoveries.forEach((discovery: string) => parts.push(`  • ${discovery}`));
+      summary.key_outcomes.discoveries.forEach((discovery: string) =>
+        parts.push(`  • ${discovery}`)
+      );
     }
-    
+
     if (summary.key_outcomes.partial && summary.key_outcomes.partial.length > 0) {
       parts.push(`⏳ In Progress:`);
       summary.key_outcomes.partial.forEach((item: string) => parts.push(`  • ${item}`));
@@ -689,32 +703,55 @@ function buildCompressionSummaryMessage(summary: any, artifactIds: string[]): st
     if (summary.context_for_continuation.current_state) {
       parts.push(`📍 Current State: ${summary.context_for_continuation.current_state}`);
     }
-    
-    if (summary.context_for_continuation.next_logical_steps && summary.context_for_continuation.next_logical_steps.length > 0) {
+
+    if (
+      summary.context_for_continuation.next_logical_steps &&
+      summary.context_for_continuation.next_logical_steps.length > 0
+    ) {
       parts.push(`📝 Next Steps:`);
-      summary.context_for_continuation.next_logical_steps.forEach((step: string) => parts.push(`  • ${step}`));
+      summary.context_for_continuation.next_logical_steps.forEach((step: string) =>
+        parts.push(`  • ${step}`)
+      );
     }
-    
-    if (summary.context_for_continuation.important_context && summary.context_for_continuation.important_context.length > 0) {
+
+    if (
+      summary.context_for_continuation.important_context &&
+      summary.context_for_continuation.important_context.length > 0
+    ) {
       parts.push(`🔑 Key Context:`);
-      summary.context_for_continuation.important_context.forEach((context: string) => parts.push(`  • ${context}`));
+      summary.context_for_continuation.important_context.forEach((context: string) =>
+        parts.push(`  • ${context}`)
+      );
     }
   }
 
   // Handle technical context if present
   if (summary.technical_context) {
-    if (summary.technical_context.technologies && summary.technical_context.technologies.length > 0) {
+    if (
+      summary.technical_context.technologies &&
+      summary.technical_context.technologies.length > 0
+    ) {
       parts.push(`🔧 Technologies: ${summary.technical_context.technologies.join(', ')}`);
     }
-    
-    if (summary.technical_context.issues_encountered && summary.technical_context.issues_encountered.length > 0) {
+
+    if (
+      summary.technical_context.issues_encountered &&
+      summary.technical_context.issues_encountered.length > 0
+    ) {
       parts.push(`⚠️ Issues Encountered:`);
-      summary.technical_context.issues_encountered.forEach((issue: string) => parts.push(`  • ${issue}`));
+      summary.technical_context.issues_encountered.forEach((issue: string) =>
+        parts.push(`  • ${issue}`)
+      );
     }
-    
-    if (summary.technical_context.solutions_applied && summary.technical_context.solutions_applied.length > 0) {
+
+    if (
+      summary.technical_context.solutions_applied &&
+      summary.technical_context.solutions_applied.length > 0
+    ) {
       parts.push(`✨ Solutions Applied:`);
-      summary.technical_context.solutions_applied.forEach((solution: string) => parts.push(`  • ${solution}`));
+      summary.technical_context.solutions_applied.forEach((solution: string) =>
+        parts.push(`  • ${solution}`)
+      );
     }
   }
 
@@ -744,7 +781,9 @@ function buildCompressionSummaryMessage(summary: any, artifactIds: string[]): st
 
   // Handle conversation artifacts with detailed information and proper reference format
   if (summary.conversation_artifacts && summary.conversation_artifacts.length > 0) {
-    parts.push(`💾 Research Artifacts: ${summary.conversation_artifacts.length} created from previous work`);
+    parts.push(
+      `💾 Research Artifacts: ${summary.conversation_artifacts.length} created from previous work`
+    );
     summary.conversation_artifacts.forEach((artifact: any) => {
       parts.push(`   [ARTIFACT: ${artifact.id}]`);
       parts.push(`   📋 ${artifact.name || 'Research Data'}`);
@@ -754,7 +793,9 @@ function buildCompressionSummaryMessage(summary: any, artifactIds: string[]): st
       if (artifact.tool_name && artifact.tool_name !== 'unknown') {
         parts.push(`   🔧 Source: ${artifact.tool_name}`);
       }
-      parts.push(`   🔗 Reference: <artifact:ref id="${artifact.id}" tool_call_id="${artifact.tool_call_id}" />`);
+      parts.push(
+        `   🔗 Reference: <artifact:ref id="${artifact.id}" tool_call_id="${artifact.tool_call_id}" />`
+      );
       parts.push('');
     });
   } else if (artifactIds && artifactIds.length > 0) {
@@ -803,7 +844,7 @@ function formatMessagesAsConversationHistory(messages: any[]): string {
         roleLabel = msg.role || 'system';
       }
 
-      return `${roleLabel}: """${msg.content.text}"""`; 
+      return `${roleLabel}: """${msg.content.text}"""`;
     })
     .join('\n');
 
@@ -874,13 +915,13 @@ export async function getConversationScopedArtifacts(params: {
     }
 
     const logger = (await import('../logger')).getLogger('conversations');
-    
+
     // Apply artifact count limit to prevent system prompt bloat
     const ARTIFACT_COUNT_LIMIT = CONVERSATION_ARTIFACTS_LIMIT;
     const limitedArtifacts = referenceArtifacts
       .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()) // Most recent first
       .slice(0, ARTIFACT_COUNT_LIMIT); // Take only the most recent N artifacts
-    
+
     logger.debug(
       {
         conversationId,

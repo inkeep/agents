@@ -97,7 +97,7 @@ export async function distillConversation(params: {
             } else if (block.type === 'tool-result') {
               const artifactId = toolCallToArtifactMap?.[block.toolCallId];
               const artifactInfo = artifactId ? `\n[ARTIFACT CREATED: ${artifactId}]` : '';
-              
+
               // Debug log the actual tool result structure
               logger.debug(
                 {
@@ -112,7 +112,7 @@ export async function distillConversation(params: {
                 },
                 'Tool result block structure analysis'
               );
-              
+
               parts.push(
                 `[TOOL RESULT] ${block.toolName} [ID: ${block.toolCallId}]${artifactInfo}\nResult: ${JSON.stringify(block.output)}`
               );

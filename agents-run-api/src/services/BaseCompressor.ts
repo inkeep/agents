@@ -1,11 +1,11 @@
 import type { ModelSettings } from '@inkeep/agents-core';
 import { createLedgerArtifact, getLedgerArtifacts } from '@inkeep/agents-core';
 import { randomUUID } from 'crypto';
+import dbClient from '../data/db/dbClient';
 import { getLogger } from '../logger';
 import { type ConversationSummary, distillConversation } from '../tools/distill-conversation-tool';
-import { agentSessionManager } from './AgentSession';
 import { getCompressionConfigForModel } from '../utils/model-context-utils';
-import dbClient from '../data/db/dbClient';
+import { agentSessionManager } from './AgentSession';
 
 const logger = getLogger('BaseCompressor');
 
@@ -121,32 +121,37 @@ export abstract class BaseCompressor {
     const toolCallToArtifactMap: Record<string, string> = {};
     const messagesToProcess = messages.slice(startIndex);
 
-
-
     for (const message of messagesToProcess) {
       // Convert database format tool-result messages to Vercel AI SDK format
-      if (message.messageType === 'tool-result' && !Array.isArray(message.content) && message.content?.text) {
+      if (
+        message.messageType === 'tool-result' &&
+        !Array.isArray(message.content) &&
+        message.content?.text
+      ) {
         const toolName = message.metadata?.a2a_metadata?.toolName;
         const toolCallId = message.metadata?.a2a_metadata?.toolCallId;
-        
+
         // Skip internal tools from database format too
-        if (toolName && (
-          toolName === 'get_reference_artifact' ||
-          toolName === 'thinking_complete' ||
-          toolName.includes('save_tool_result') ||
-          toolName.startsWith('transfer_to_')
-        )) {
+        if (
+          toolName &&
+          (toolName === 'get_reference_artifact' ||
+            toolName === 'thinking_complete' ||
+            toolName.includes('save_tool_result') ||
+            toolName.startsWith('transfer_to_'))
+        ) {
           continue; // Skip this entire message
         }
-        
+
         if (toolName && toolCallId) {
           // Convert to SDK format by creating a content array
-          message.content = [{
-            type: 'tool-result',
-            toolCallId: toolCallId,
-            toolName: toolName,
-            output: message.content.text, // Use the raw text as output
-          }];
+          message.content = [
+            {
+              type: 'tool-result',
+              toolCallId: toolCallId,
+              toolName: toolName,
+              output: message.content.text, // Use the raw text as output
+            },
+          ];
         }
       }
 
@@ -191,7 +196,7 @@ export abstract class BaseCompressor {
                 scopes: { tenantId: this.tenantId, projectId: this.projectId },
                 filters: { toolCallId: block.toolCallId },
               });
-              
+
               if (existingArtifacts.length > 0) {
                 artifactId = existingArtifacts[0].id;
                 toolCallToArtifactMap[block.toolCallId] = artifactId;
@@ -316,7 +321,6 @@ export abstract class BaseCompressor {
       }
     }
 
-
     return toolCallToArtifactMap;
   }
 
@@ -327,7 +331,6 @@ export abstract class BaseCompressor {
     messages: any[],
     toolCallToArtifactMap: Record<string, string>
   ): Promise<any> {
-
     const summary = await distillConversation({
       messages: messages,
       conversationId: this.conversationId,
@@ -338,7 +341,6 @@ export abstract class BaseCompressor {
 
     // Update cumulative summary for next compression cycle
     this.cumulativeSummary = summary;
-
 
     return summary;
   }
@@ -352,7 +354,7 @@ export abstract class BaseCompressor {
   protected generateResultPreview(toolResult: any): string {
     try {
       if (!toolResult) return 'No result data';
-      
+
       let preview: string;
       if (typeof toolResult === 'string') {
         preview = toolResult;
@@ -361,12 +363,11 @@ export abstract class BaseCompressor {
       } else {
         preview = String(toolResult);
       }
-      
+
       // Limit to 150 characters and clean up
-      return preview
-        .slice(0, 150)
-        .replace(/\s+/g, ' ')
-        .trim() + (preview.length > 150 ? '...' : '');
+      return (
+        preview.slice(0, 150).replace(/\s+/g, ' ').trim() + (preview.length > 150 ? '...' : '')
+      );
     } catch (error) {
       return 'Preview unavailable';
     }
@@ -484,15 +485,14 @@ export abstract class BaseCompressor {
  * @param targetPercentage - Target percentage of context window (e.g., 0.5 for conversation, undefined for aggressive)
  */
 export function getModelAwareCompressionConfig(
-  modelSettings?: ModelSettings, 
+  modelSettings?: ModelSettings,
   targetPercentage?: number
 ): CompressionConfig {
   const config = getCompressionConfigForModel(modelSettings, targetPercentage);
-  
+
   return {
     hardLimit: config.hardLimit,
     safetyBuffer: config.safetyBuffer,
     enabled: config.enabled,
   };
 }
-

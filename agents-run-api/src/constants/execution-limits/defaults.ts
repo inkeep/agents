@@ -156,10 +156,10 @@ export const executionLimitsDefaults = {
   // Conversation Compression Context Limits
   // COMPRESSION_HARD_LIMIT: Maximum token limit before compression is triggered
   COMPRESSION_HARD_LIMIT: 120_000,
-  
+
   // COMPRESSION_SAFETY_BUFFER: Buffer to ensure we don't exceed context windows
   COMPRESSION_SAFETY_BUFFER: 20_000,
-  
+
   // COMPRESSION_ENABLED: Whether compression is enabled (set to false to disable)
   COMPRESSION_ENABLED: true,
 } as const;
