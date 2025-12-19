@@ -6,42 +6,21 @@
  */
 
 // Server Actions exports
-export {
-  type ActionResult,
-  createFullAgentAction,
-  deleteFullAgentAction,
-  getFullAgentAction,
-  updateFullAgentAction,
-  validateAgentData,
-} from './actions/agent-full';
+export { type ActionResult } from './actions/agent-full';
 
 // API Client exports (for advanced use cases)
-export {
-  ApiError,
-  createFullAgent,
-  deleteFullAgent,
-  getFullAgent,
-  updateFullAgent,
-} from './api/agent-full-client';
+
 // Agent Full API exports
-export {
-  type AgentAgentApi,
-  AgentAgentApiSchema,
-  type AgentApi,
-  type AgentApiError,
-  AgentApiSchema,
-  type AgentIdParams,
-  AgentIdParamsSchema,
-  type CreateFullAgentResponse,
-  type ErrorResponse,
-  ErrorResponseSchema,
-  type FullAgentDefinition,
-  FullAgentDefinitionSchema,
-  type GetAgentResponse,
-  SingleResponseSchema,
-  type TenantParams,
-  TenantParamsSchema,
-  type ToolApi,
-  ToolApiSchema,
-  type UpdateAgentResponse,
+export type {
+  AgentAgentApi,
+  AgentApi,
+  AgentApiError,
+  AgentIdParams,
+  CreateFullAgentResponse,
+  ErrorResponse,
+  FullAgentDefinition,
+  GetAgentResponse,
+  TenantParams,
+  ToolApi,
+  UpdateAgentResponse,
 } from './types/agent-full';
