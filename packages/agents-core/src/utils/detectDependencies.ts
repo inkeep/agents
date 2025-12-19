@@ -14,8 +14,8 @@ let ts: typeof TypeScript | null = null;
 
 try {
   // Only import in server environments
-  builtinModules = require('node:module').builtinModules;
-  ts = require('typescript');
+  builtinModules = globalThis.require('node:module').builtinModules;
+  ts = globalThis.require('typescript');
 } catch {}
 
 const NODE_BUILTINS = new Set(builtinModules.concat(builtinModules.map((m) => `node:${m}`)));
