@@ -723,6 +723,9 @@ importers:
       '@alcyone-labs/modelcontextprotocol-sdk':
         specifier: ^1.16.0
         version: 1.16.0
+      '@electric-sql/pglite':
+        specifier: ^0.3.13
+        version: 0.3.14
       '@hono/node-server':
         specifier: ^1.14.3
         version: 1.19.6(hono@4.10.7)
@@ -832,9 +835,6 @@ importers:
         specifier: ^4.1.11
         version: 4.1.13
     devDependencies:
-      '@electric-sql/pglite':
-        specifier: ^0.3.13
-        version: 0.3.14
       '@hono/vite-dev-server':
         specifier: ^0.20.1
         version: 0.20.1(hono@4.10.7)
