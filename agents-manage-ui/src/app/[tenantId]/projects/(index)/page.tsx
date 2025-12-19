@@ -1,5 +1,6 @@
 import { Plus } from 'lucide-react';
 import FullPageError from '@/components/errors/full-page-error';
+import { BodyTemplate } from '@/components/layout/body-template';
 import EmptyState from '@/components/layout/empty-state';
 import { PageHeader } from '@/components/layout/page-header';
 import { NewProjectDialog } from '@/components/projects/new-project-dialog';
@@ -8,7 +9,6 @@ import { Button } from '@/components/ui/button';
 import { emptyStateProjectDescription, projectDescription } from '@/constants/page-descriptions';
 import { fetchProjects } from '@/lib/api/projects';
 import { getErrorCode } from '@/lib/utils/error-serialization';
-import { BodyTemplate } from '@/components/layout/body-template';
 
 async function ProjectsPage({ params }: PageProps<'/[tenantId]/projects'>) {
   const { tenantId } = await params;
