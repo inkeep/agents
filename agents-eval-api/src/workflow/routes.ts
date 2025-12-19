@@ -124,67 +124,55 @@ workflowRoutes.use('*', async (c, next) => {
   });
 });
 
+// Smart dispatcher that routes to flow or step handler based on queueName
+// This handles cases where Vercel Queue delivers step messages to /flow endpoint
+async function dispatchFlowOrStep(c: any) {
+  loadCjsHandlers();
+
+  const bodyBuf = await c.req.arrayBuffer();
+
+  let queueName: string | undefined;
+  try {
+    const evt = JSON.parse(new TextDecoder().decode(bodyBuf));
+    queueName = evt?.data?.queueName; // Vercel Queue envelope field
+  } catch {
+    // Ignore parse errors
+  }
+
+  const isStep = typeof queueName === 'string' && queueName.startsWith('__wkf_step_');
+
+  const rawUrl = c.req.raw.url;
+  const url = new URL(rawUrl);
+
+  // Point the URL pathname at the handler's expected path
+  url.pathname = isStep
+    ? '/.well-known/workflow/v1/step'
+    : '/.well-known/workflow/v1/flow';
+
+  const fixedRequest = new Request(url.toString(), {
+    method: 'POST',
+    headers: c.req.raw.headers,
+    body: bodyBuf,
+  });
+
+  const flow = flowHandler?.POST || flowHandler?.default?.POST || flowHandler?.default || flowHandler;
+  const step = stepHandler?.POST || stepHandler?.default?.POST || stepHandler?.default || stepHandler;
+
+  const handler = isStep ? step : flow;
+  if (typeof handler !== 'function') {
+    console.error('[workflow-routes] Handler not callable', { isStep, queueName });
+    return c.json({ error: 'Handler not found' }, 500);
+  }
+
+  console.log('[workflow-routes] dispatching', { queueName, isStep, to: url.pathname });
+  return handler(fixedRequest);
+}
+
 // Workflow orchestration endpoint
-workflowRoutes.post('/workflow/v1/flow', async (c) => {
-  console.log('[workflow-routes] POST /workflow/v1/flow received');
-  try {
-    loadCjsHandlers();
-    
-    // Robust handler selection - workflow builds may export different patterns
-    const handler =
-      flowHandler?.POST ??
-      flowHandler?.default?.POST ??
-      flowHandler?.default ??
-      flowHandler;
+workflowRoutes.post('/workflow/v1/flow', dispatchFlowOrStep);
 
-    if (typeof handler !== 'function') {
-      console.error('[workflow-routes] Flow handler not callable', {
-        flowHandlerKeys: Object.keys(flowHandler || {}),
-        defaultKeys: Object.keys(flowHandler?.default || {}),
-      });
-      return c.json({ error: 'Flow handler not callable' }, 500);
-    }
-    
-    console.log('[workflow-routes] Calling flow handler with URL:', c.req.raw.url);
-    
-    // Pass the raw request as-is
-    return handler(c.req.raw);
-  } catch (err) {
-    console.error('[workflow-routes] Error in /workflow/v1/flow:', err);
-    return c.json({ error: String(err) }, 500);
-  }
-});
-
-// Step execution endpoint
-workflowRoutes.post('/workflow/v1/step', async (c) => {
-  console.log('[workflow-routes] POST /workflow/v1/step received');
-  try {
-    loadCjsHandlers();
-    
-    // Robust handler selection - workflow builds may export different patterns
-    const handler =
-      stepHandler?.POST ??
-      stepHandler?.default?.POST ??
-      stepHandler?.default ??
-      stepHandler;
-
-    if (typeof handler !== 'function') {
-      console.error('[workflow-routes] Step handler not callable', {
-        stepHandlerKeys: Object.keys(stepHandler || {}),
-        defaultKeys: Object.keys(stepHandler?.default || {}),
-      });
-      return c.json({ error: 'Step handler not callable' }, 500);
-    }
-    
-    console.log('[workflow-routes] Calling step handler with URL:', c.req.raw.url);
-    
-    // Pass the raw request as-is
-    return handler(c.req.raw);
-  } catch (err) {
-    console.error('[workflow-routes] Error in /workflow/v1/step:', err);
-    return c.json({ error: String(err) }, 500);
-  }
-});
+// Step execution endpoint - also uses dispatcher as safety net
+workflowRoutes.post('/workflow/v1/step', dispatchFlowOrStep);
 
 // Webhook delivery endpoint
 workflowRoutes.all('/workflow/v1/webhook/:token', async (c) => {
