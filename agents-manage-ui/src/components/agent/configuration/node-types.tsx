@@ -28,7 +28,6 @@ export interface MCPNodeData extends Record<string, unknown>, AnimatedNode {
   imageUrl?: string;
   provider?: string;
 }
-;
 
 export interface AgentNodeData extends Record<string, unknown>, AnimatedNode {
   id: string;

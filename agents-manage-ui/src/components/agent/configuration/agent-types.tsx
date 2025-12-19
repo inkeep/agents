@@ -11,7 +11,6 @@ export type AgentModels = {
   summarizer?: ModelSettings;
 };
 
-
 type StatusUpdateSettings = {
   enabled?: boolean;
   prompt?: string;

@@ -38,7 +38,7 @@ type AgentAgentApi = AgentAgentInsert;
 type ToolApi = ToolInsert;
 
 // Re-export types and schemas
-export type {  InternalAgentDefinition };
+export type { InternalAgentDefinition };
 
 // Agent-builder specific parameter schema
 const AgentIdParamsSchema = TenantParamsSchema.extend({

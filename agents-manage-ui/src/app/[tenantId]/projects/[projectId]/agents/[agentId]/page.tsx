@@ -1,13 +1,13 @@
 import { type FC, Suspense } from 'react';
 import FullPageError from '@/components/errors/full-page-error';
 import { BodyTemplate } from '@/components/layout/body-template';
-import type { FullAgentDefinition } from '@/lib/types/agent-full';
 import { getFullAgentAction } from '@/lib/actions/agent-full';
 import { fetchArtifactComponentsAction } from '@/lib/actions/artifact-components';
 import { fetchCredentialsAction } from '@/lib/actions/credentials';
 import { fetchDataComponentsAction } from '@/lib/actions/data-components';
 import { fetchExternalAgentsAction } from '@/lib/actions/external-agents';
 import { fetchToolsAction } from '@/lib/actions/tools';
+import type { FullAgentDefinition } from '@/lib/types/agent-full';
 import { createLookup } from '@/lib/utils';
 import { AgentSkeleton } from './loading';
 import { Agent } from './page.client';
