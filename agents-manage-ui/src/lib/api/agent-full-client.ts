@@ -52,7 +52,7 @@ export async function createAgent(
 /**
  * Fetch barebones metadata for all agents in a project to be used with team agent relations
  */
-export async function fetchTeamAgents(tenantId: string, projectId: string): Promise<TeamAgent[]> {
+async function fetchTeamAgents(tenantId: string, projectId: string): Promise<TeamAgent[]> {
   validateTenantId(tenantId);
   validateProjectId(projectId);
 
