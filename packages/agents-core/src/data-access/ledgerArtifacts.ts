@@ -366,6 +366,7 @@ export const getLedgerArtifacts =
         description: row.description ?? undefined,
         parts: (row.parts ?? []) as Part[], // row.parts may be null in DB
         metadata: row.metadata || {},
+        createdAt: row.createdAt, // Added for sorting artifacts by creation time
       })
     );
   };

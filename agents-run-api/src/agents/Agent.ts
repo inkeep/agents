@@ -2375,7 +2375,7 @@ ${output}`;
             const generationType = response.object ? 'object_generation' : 'text_generation';
 
             agentSessionManager.recordEvent(streamRequestId, 'agent_generate', this.config.id, {
-              parts: (formattedResponse.formattedContent?.parts || []).map((part) => ({
+              parts: (formattedResponse.formattedContent?.parts || []).map((part: any) => ({
                 type:
                   part.kind === 'text'
                     ? ('text' as const)
@@ -2513,7 +2513,7 @@ ${output}`;
     contextId: string,
     taskId: string,
     userMessage: string,
-    streamRequestId: string
+    streamRequestId: string | undefined
   ): Promise<string> {
     let conversationHistory = '';
     const historyConfig =
@@ -2567,7 +2567,9 @@ ${output}`;
     const modelSettings = ModelFactory.prepareGenerationConfig(primaryModelSettings);
 
     // Check if we have structured output components
-    const hasStructuredOutput = this.config.dataComponents && this.config.dataComponents.length > 0;
+    const hasStructuredOutput = Boolean(
+      this.config.dataComponents && this.config.dataComponents.length > 0
+    );
 
     // Phase 1: Stream only if no structured output needed
     const shouldStreamPhase1 = this.getStreamingHelper() && !hasStructuredOutput;
@@ -2899,14 +2901,14 @@ ${output}`;
       toolChoice,
       messages,
       tools: sanitizedTools,
-      prepareStep: async ({ messages: stepMessages }) => {
+      prepareStep: async ({ messages: stepMessages }: { messages: any[] }) => {
         return await this.handlePrepareStepCompression(
           stepMessages,
           compressor,
           originalMessageCount
         );
       },
-      stopWhen: async ({ steps }) => {
+      stopWhen: async ({ steps }: { steps: any[] }) => {
         return await this.handleStopWhenConditions(steps, includeThinkingComplete);
       },
       experimental_telemetry: this.buildTelemetryConfig(phase),
@@ -3142,7 +3144,7 @@ ${output}${structureHintsFormatted}`;
     const collectedParts = parser.getCollectedParts();
     if (collectedParts.length > 0) {
       response.formattedContent = {
-        parts: collectedParts.map((part) => ({
+        parts: collectedParts.map((part: any) => ({
           kind: part.kind,
           ...(part.kind === 'text' && { text: part.text }),
           ...(part.kind === 'data' && { data: part.data }),
@@ -3261,7 +3263,7 @@ ${output}${structureHintsFormatted}`;
     const collectedParts = parser.getCollectedParts();
     if (collectedParts.length > 0) {
       response.formattedContent = {
-        parts: collectedParts.map((part) => ({
+        parts: collectedParts.map((part: any) => ({
           kind: part.kind,
           ...(part.kind === 'text' && { text: part.text }),
           ...(part.kind === 'data' && { data: part.data }),

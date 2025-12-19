@@ -1,5 +1,5 @@
 import type { ModelSettings } from '@inkeep/agents-core';
-import { createLedgerArtifact, getLedgerArtifacts } from '@inkeep/agents-core';
+import { getLedgerArtifacts, upsertLedgerArtifact } from '@inkeep/agents-core';
 import { randomUUID } from 'crypto';
 import dbClient from '../data/db/dbClient';
 import { getLogger } from '../logger';
@@ -26,7 +26,7 @@ export interface CompressionEventData {
   artifactCount: number;
   contextSizeBefore: number;
   contextSizeAfter: number;
-  compressionType: string;
+  compressionType: 'mid_generation' | 'full_conversation';
 }
 
 /**
@@ -194,11 +194,11 @@ export abstract class BaseCompressor {
             try {
               const existingArtifacts = await getLedgerArtifacts(dbClient)({
                 scopes: { tenantId: this.tenantId, projectId: this.projectId },
-                filters: { toolCallId: block.toolCallId },
+                toolCallId: block.toolCallId,
               });
 
               if (existingArtifacts.length > 0) {
-                artifactId = existingArtifacts[0].id;
+                artifactId = existingArtifacts[0].artifactId;
                 toolCallToArtifactMap[block.toolCallId] = artifactId;
                 logger.debug(
                   {

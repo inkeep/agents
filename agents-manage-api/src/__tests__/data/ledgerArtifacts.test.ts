@@ -117,6 +117,7 @@ describe('Ledger Artifacts – Data Layer', () => {
         ],
         taskId,
         metadata: { foo: 'bar' },
+        createdAt: '2024-01-16T01:30:00.000Z',
       },
       {
         artifactId: generateId(),
@@ -130,6 +131,7 @@ describe('Ledger Artifacts – Data Layer', () => {
         ],
         taskId,
         metadata: { baz: 'qux' },
+        createdAt: '2024-01-16T02:30:00.000Z',
       },
     ];
 
@@ -173,6 +175,7 @@ describe('Ledger Artifacts – Data Layer', () => {
         },
       ],
       taskId,
+      createdAt: '2024-01-16T03:30:00.000Z',
     };
 
     await addLedgerArtifacts(dbClient)({
@@ -269,6 +272,7 @@ describe('Ledger Artifacts – Data Layer', () => {
               data: { secret: 'tenant1-secret' },
             },
           ],
+          createdAt: '2024-01-16T04:30:00.000Z',
         },
       ],
     });
@@ -289,6 +293,7 @@ describe('Ledger Artifacts – Data Layer', () => {
               data: { secret: 'tenant2-secret' },
             },
           ],
+          createdAt: '2024-01-16T05:30:00.000Z',
         },
       ],
     });

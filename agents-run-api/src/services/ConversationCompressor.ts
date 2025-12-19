@@ -99,7 +99,7 @@ export class ConversationCompressor extends BaseCompressor {
       artifactCount: Object.keys(toolCallToArtifactMap).length,
       contextSizeBefore,
       contextSizeAfter,
-      compressionType: 'conversation_level',
+      compressionType: 'full_conversation',
     });
 
     logger.info(

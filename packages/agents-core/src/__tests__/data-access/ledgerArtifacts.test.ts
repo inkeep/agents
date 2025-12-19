@@ -39,6 +39,7 @@ describe('Ledger Artifacts Data Access', () => {
             visibility: 'public',
             allowedAgents: ['agent-1', 'agent-2'],
           },
+          createdAt: '2024-01-15T10:30:00.000Z',
         },
         {
           artifactId: 'artifact-2',
@@ -46,6 +47,7 @@ describe('Ledger Artifacts Data Access', () => {
           description: 'Another test artifact',
           parts: [{ kind: 'file', file: { name: 'test.txt', uri: 'file://test.txt' } } as const],
           metadata: { source: 'test' },
+          createdAt: '2024-01-15T11:30:00.000Z',
         },
       ];
 
@@ -81,6 +83,7 @@ describe('Ledger Artifacts Data Access', () => {
           description: 'An artifact without ID',
           parts: [{ kind: 'text', text: 'Content' } as const],
           metadata: {},
+          createdAt: '2024-01-15T12:30:00.000Z',
         },
       ];
 
@@ -112,6 +115,7 @@ describe('Ledger Artifacts Data Access', () => {
           taskId: 'artifact-task-id',
           parts: [],
           metadata: { taskId: 'metadata-task-id' },
+          createdAt: '2024-01-15T13:30:00.000Z',
         },
       ];
 
@@ -167,6 +171,7 @@ describe('Ledger Artifacts Data Access', () => {
             allowedAgents: ['agent-1'],
             derivedFrom: 'parent-artifact',
           },
+          createdAt: '2024-01-15T14:30:00.000Z',
         },
       ];
 

@@ -345,12 +345,12 @@ export async function getFormattedConversationHistory({
   // Apply conversation compression if needed and enabled
   let finalMessagesToFormat = messagesToFormat;
   if (sessionId && summarizerModel) {
-    finalMessagesToFormat = await applyConversationCompressionIfNeeded(messagesToFormat, {
-      sessionId,
+    finalMessagesToFormat = await compressConversationIfNeeded(messagesToFormat, {
       conversationId,
       tenantId,
       projectId,
       summarizerModel,
+      streamRequestId: sessionId,
     });
   }
 
@@ -552,7 +552,9 @@ export async function getConversationHistoryWithCompression({
           finalMessages: messagesToFormat.length,
           compressionSummaries: compressionSummaryMessages.length,
           finalTokens: compressedTokens,
-          contextWindowUtilization: `${((compressedTokens / compressionInfo.modelContextInfo.contextWindow) * 100).toFixed(1)}%`,
+          contextWindowUtilization: compressionInfo.modelContextInfo.contextWindow
+            ? `${((compressedTokens / compressionInfo.modelContextInfo.contextWindow) * 100).toFixed(1)}%`
+            : 'unknown',
         },
         'Final conversation history with compression summaries'
       );
@@ -622,11 +624,13 @@ async function compressConversationIfNeeded(
         visibility: 'internal',
         messageType: 'compression_summary',
         metadata: {
-          compressionType: 'conversation_history',
-          artifactIds: compressionResult.artifactIds,
-          originalMessageCount: messages.length,
-          compressedAt: new Date().toISOString(),
-          summaryData: compressionResult.summary,
+          a2a_metadata: {
+            compressionType: 'conversation_history',
+            artifactIds: compressionResult.artifactIds,
+            originalMessageCount: messages.length,
+            compressedAt: new Date().toISOString(),
+            summaryData: compressionResult.summary,
+          },
         },
       });
 

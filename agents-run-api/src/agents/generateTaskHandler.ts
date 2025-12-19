@@ -658,6 +658,7 @@ export const createTaskHandler = (
                         data: artifactData,
                       },
                     ],
+                    createdAt: new Date().toISOString(),
                   },
                 ],
               };
@@ -687,6 +688,7 @@ export const createTaskHandler = (
           {
             artifactId: generateId(),
             parts,
+            createdAt: new Date().toISOString(),
           },
         ],
       };

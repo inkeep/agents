@@ -42,7 +42,7 @@ export class MidGenerationCompressor extends BaseCompressor {
   /**
    * Get compression type for this compressor
    */
-  getCompressionType(): string {
+  getCompressionType(): 'mid_generation' | 'full_conversation' {
     return 'mid_generation';
   }
 
