@@ -219,6 +219,7 @@ export function createAuth(config: BetterAuthConfig) {
       'http://localhost:3002',
       env.INKEEP_AGENTS_MANAGE_UI_URL,
       env.INKEEP_AGENTS_MANAGE_API_URL,
+      env.TRUSTED_ORIGIN,
     ].filter((origin): origin is string => typeof origin === 'string' && origin.length > 0),
     plugins: [
       bearer(),
