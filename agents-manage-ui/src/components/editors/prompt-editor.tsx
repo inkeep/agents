@@ -2,7 +2,8 @@
 
 import type * as Monaco from 'monaco-editor';
 import { type ComponentProps, type FC, useCallback, useEffect, useId, useState } from 'react';
-import { monacoStore, useMonacoStore } from '@/features/agent/state/use-monaco-store';
+import { agentStore } from '@/features/agent/state/use-agent-store';
+import { useMonacoStore } from '@/features/agent/state/use-monaco-store';
 import { cleanupDisposables } from '@/lib/monaco-editor/monaco-utils';
 import { MonacoEditor } from './monaco-editor';
 
@@ -24,7 +25,7 @@ export const PromptEditor: FC<PromptEditorProps> = ({ uri, editorOptions, onMoun
 
     // Function to validate template variables and set markers
     const validateTemplateVariables = () => {
-      const validVariables = new Set(monacoStore.getState().variableSuggestions);
+      const validVariables = new Set(agentStore.getState().variableSuggestions);
       const regex = /\{\{([^}]+)}}/g;
       const markers: Monaco.editor.IMarkerData[] = [];
 

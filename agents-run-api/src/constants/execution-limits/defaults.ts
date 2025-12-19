@@ -148,4 +148,18 @@ export const executionLimitsDefaults = {
   // Conversation History Message Retrieval
   // CONVERSATION_HISTORY_DEFAULT_LIMIT: Default number of recent conversation messages to retrieve
   CONVERSATION_HISTORY_DEFAULT_LIMIT: 50,
+
+  // CONVERSATION_ARTIFACTS_LIMIT: Maximum number of artifacts to include in agent system prompts
+  // Prevents system prompt bloat in long conversations by keeping only the most recent artifacts
+  CONVERSATION_ARTIFACTS_LIMIT: 12,
+
+  // Conversation Compression Context Limits
+  // COMPRESSION_HARD_LIMIT: Maximum token limit before compression is triggered
+  COMPRESSION_HARD_LIMIT: 120_000,
+  
+  // COMPRESSION_SAFETY_BUFFER: Buffer to ensure we don't exceed context windows
+  COMPRESSION_SAFETY_BUFFER: 20_000,
+  
+  // COMPRESSION_ENABLED: Whether compression is enabled (set to false to disable)
+  COMPRESSION_ENABLED: true,
 } as const;

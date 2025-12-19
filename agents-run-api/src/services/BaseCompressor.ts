@@ -1,8 +1,11 @@
 import type { ModelSettings } from '@inkeep/agents-core';
+import { createLedgerArtifact, getLedgerArtifacts } from '@inkeep/agents-core';
 import { randomUUID } from 'crypto';
 import { getLogger } from '../logger';
 import { type ConversationSummary, distillConversation } from '../tools/distill-conversation-tool';
 import { agentSessionManager } from './AgentSession';
+import { getCompressionConfigForModel } from '../utils/model-context-utils';
+import dbClient from '../data/db/dbClient';
 
 const logger = getLogger('BaseCompressor');
 
@@ -118,24 +121,45 @@ export abstract class BaseCompressor {
     const toolCallToArtifactMap: Record<string, string> = {};
     const messagesToProcess = messages.slice(startIndex);
 
-    logger.debug(
-      {
-        totalMessages: messages.length,
-        messagesToProcess: messagesToProcess.length,
-        startIndex,
-      },
-      'Starting artifact processing'
-    );
+
 
     for (const message of messagesToProcess) {
+      // Convert database format tool-result messages to Vercel AI SDK format
+      if (message.messageType === 'tool-result' && !Array.isArray(message.content) && message.content?.text) {
+        const toolName = message.metadata?.a2a_metadata?.toolName;
+        const toolCallId = message.metadata?.a2a_metadata?.toolCallId;
+        
+        // Skip internal tools from database format too
+        if (toolName && (
+          toolName === 'get_reference_artifact' ||
+          toolName === 'thinking_complete' ||
+          toolName.includes('save_tool_result') ||
+          toolName.startsWith('transfer_to_')
+        )) {
+          continue; // Skip this entire message
+        }
+        
+        if (toolName && toolCallId) {
+          // Convert to SDK format by creating a content array
+          message.content = [{
+            type: 'tool-result',
+            toolCallId: toolCallId,
+            toolName: toolName,
+            output: message.content.text, // Use the raw text as output
+          }];
+        }
+      }
+
       // Handle Vercel AI SDK message format
       if (Array.isArray(message.content)) {
         for (const block of message.content) {
           if (block.type === 'tool-result') {
-            // Skip special tools that shouldn't be compressed at all
+            // Skip internal tools that shouldn't be compressed at all
             if (
               block.toolName === 'get_reference_artifact' ||
-              block.toolName === 'thinking_complete'
+              block.toolName === 'thinking_complete' ||
+              block.toolName.includes('save_tool_result') ||
+              block.toolName.startsWith('transfer_to_')
             ) {
               logger.debug(
                 {
@@ -160,7 +184,38 @@ export abstract class BaseCompressor {
               continue;
             }
 
-            const artifactId = `compress_${block.toolName || 'tool'}_${block.toolCallId || Date.now()}_${randomUUID().slice(0, 8)}`;
+            // Check if an artifact already exists for this tool call ID
+            let artifactId;
+            try {
+              const existingArtifacts = await getLedgerArtifacts(dbClient)({
+                scopes: { tenantId: this.tenantId, projectId: this.projectId },
+                filters: { toolCallId: block.toolCallId },
+              });
+              
+              if (existingArtifacts.length > 0) {
+                artifactId = existingArtifacts[0].id;
+                toolCallToArtifactMap[block.toolCallId] = artifactId;
+                logger.debug(
+                  {
+                    toolCallId: block.toolCallId,
+                    existingArtifactId: artifactId,
+                    toolName: block.toolName,
+                  },
+                  'Reusing existing artifact for tool call'
+                );
+                continue; // Skip creating a new artifact
+              }
+            } catch (error) {
+              logger.debug(
+                {
+                  toolCallId: block.toolCallId,
+                  error: error instanceof Error ? error.message : String(error),
+                },
+                'Could not check for existing artifacts, creating new one'
+              );
+            }
+
+            artifactId = `compress_${block.toolName || 'tool'}_${block.toolCallId || Date.now()}_${randomUUID().slice(0, 8)}`;
 
             logger.debug(
               {
@@ -168,7 +223,7 @@ export abstract class BaseCompressor {
                 toolName: block.toolName,
                 toolCallId: block.toolCallId,
               },
-              'Saving compression artifact'
+              'Creating new compression artifact'
             );
 
             // Find corresponding tool-call for input
@@ -220,8 +275,10 @@ export abstract class BaseCompressor {
                 compressionReason: this.getCompressionType(),
               },
               summaryData: {
+                toolCallId: block.toolCallId,
                 toolName: block.toolName,
-                note: 'Compressed tool result - see full data for details',
+                resultPreview: this.generateResultPreview(cleanToolResult),
+                note: `Tool result from ${block.toolName} - compressed to save context space`,
               },
               data: toolResultData,
             };
@@ -259,12 +316,6 @@ export abstract class BaseCompressor {
       }
     }
 
-    logger.debug(
-      {
-        totalArtifactsCreated: Object.keys(toolCallToArtifactMap).length,
-      },
-      'Artifact processing completed'
-    );
 
     return toolCallToArtifactMap;
   }
@@ -276,20 +327,6 @@ export abstract class BaseCompressor {
     messages: any[],
     toolCallToArtifactMap: Record<string, string>
   ): Promise<any> {
-    logger.debug(
-      {
-        sessionId: this.sessionId,
-        messageCount: messages.length,
-        artifactCount: Object.keys(toolCallToArtifactMap).length,
-        sampleMessages: messages.slice(0, 2).map((m) => ({
-          role: m.role,
-          contentType: typeof m.content,
-          contentPreview:
-            typeof m.content === 'string' ? m.content.substring(0, 100) : 'array/object',
-        })),
-      },
-      'Starting distillation with debug info'
-    );
 
     const summary = await distillConversation({
       messages: messages,
@@ -302,15 +339,6 @@ export abstract class BaseCompressor {
     // Update cumulative summary for next compression cycle
     this.cumulativeSummary = summary;
 
-    logger.debug(
-      {
-        sessionId: this.sessionId,
-        summaryGenerated: !!summary,
-        summaryHighLevel: summary?.high_level,
-        artifactsCount: summary?.related_artifacts?.length || 0,
-      },
-      'Distillation completed'
-    );
 
     return summary;
   }
@@ -318,6 +346,32 @@ export abstract class BaseCompressor {
   /**
    * Record compression event in session
    */
+  /**
+   * Generate a preview of the tool result for the artifact summary
+   */
+  protected generateResultPreview(toolResult: any): string {
+    try {
+      if (!toolResult) return 'No result data';
+      
+      let preview: string;
+      if (typeof toolResult === 'string') {
+        preview = toolResult;
+      } else if (typeof toolResult === 'object') {
+        preview = JSON.stringify(toolResult);
+      } else {
+        preview = String(toolResult);
+      }
+      
+      // Limit to 150 characters and clean up
+      return preview
+        .slice(0, 150)
+        .replace(/\s+/g, ' ')
+        .trim() + (preview.length > 150 ? '...' : '');
+    } catch (error) {
+      return 'Preview unavailable';
+    }
+  }
+
   protected recordCompressionEvent(eventData: CompressionEventData): void {
     const session = agentSessionManager.getSession(this.sessionId);
     if (session) {
@@ -425,30 +479,20 @@ export abstract class BaseCompressor {
 }
 
 /**
- * Get mid-generation compression config from environment variables (emergency brake - higher limits)
+ * Get model-aware compression config for any model
+ * @param modelSettings - Model settings to get context window for
+ * @param targetPercentage - Target percentage of context window (e.g., 0.5 for conversation, undefined for aggressive)
  */
-export function getMidGenerationCompressionConfigFromEnv(): CompressionConfig {
+export function getModelAwareCompressionConfig(
+  modelSettings?: ModelSettings, 
+  targetPercentage?: number
+): CompressionConfig {
+  const config = getCompressionConfigForModel(modelSettings, targetPercentage);
+  
   return {
-    hardLimit: parseInt(process.env.AGENTS_MID_GENERATION_HARD_LIMIT || '120000'),
-    safetyBuffer: parseInt(process.env.AGENTS_MID_GENERATION_SAFETY_BUFFER || '20000'),
-    enabled: process.env.AGENTS_MID_GENERATION_COMPRESSION_ENABLED !== 'false',
+    hardLimit: config.hardLimit,
+    safetyBuffer: config.safetyBuffer,
+    enabled: config.enabled,
   };
 }
 
-/**
- * Get conversation compression config from environment variables (proactive - lower limits)
- */
-export function getConversationCompressionConfigFromEnv(): CompressionConfig {
-  return {
-    hardLimit: parseInt(process.env.AGENTS_CONVERSATION_HARD_LIMIT || '80000'),
-    safetyBuffer: parseInt(process.env.AGENTS_CONVERSATION_SAFETY_BUFFER || '10000'),
-    enabled: process.env.AGENTS_CONVERSATION_COMPRESSION_ENABLED !== 'false',
-  };
-}
-
-/**
- * @deprecated Use getMidGenerationCompressionConfigFromEnv() or getConversationCompressionConfigFromEnv()
- */
-export function getCompressionConfigFromEnv(): CompressionConfig {
-  return getMidGenerationCompressionConfigFromEnv();
-}

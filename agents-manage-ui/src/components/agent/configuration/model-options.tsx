@@ -83,6 +83,10 @@ export const modelOptions = {
       label: 'Gemini 3 Pro Preview',
     },
     {
+      value: GOOGLE_MODELS.GEMINI_3_FLASH_PREVIEW,
+      label: 'Gemini 3 Flash Preview',
+    },
+    {
       value: GOOGLE_MODELS.GEMINI_2_5_PRO,
       label: 'Gemini 2.5 Pro',
     },

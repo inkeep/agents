@@ -97,8 +97,24 @@ export async function distillConversation(params: {
             } else if (block.type === 'tool-result') {
               const artifactId = toolCallToArtifactMap?.[block.toolCallId];
               const artifactInfo = artifactId ? `\n[ARTIFACT CREATED: ${artifactId}]` : '';
+              
+              // Debug log the actual tool result structure
+              logger.debug(
+                {
+                  toolCallId: block.toolCallId,
+                  toolName: block.toolName,
+                  blockKeys: Object.keys(block),
+                  hasResult: 'result' in block,
+                  hasOutput: 'output' in block,
+                  hasData: 'data' in block,
+                  hasContent: 'content' in block,
+                  blockStructure: JSON.stringify(block, null, 2),
+                },
+                'Tool result block structure analysis'
+              );
+              
               parts.push(
-                `[TOOL RESULT] ${block.toolName} [ID: ${block.toolCallId}]${artifactInfo}\nResult: ${JSON.stringify(block.result)}`
+                `[TOOL RESULT] ${block.toolName} [ID: ${block.toolCallId}]${artifactInfo}\nResult: ${JSON.stringify(block.output)}`
               );
             }
           }
@@ -180,11 +196,40 @@ Create/update a summary using this exact JSON schema:
 
 Return **only** valid JSON.`;
 
+    // Log the full prompt being sent for distillation analysis
+    logger.info(
+      {
+        conversationId,
+        promptLength: prompt.length,
+        messageCount: messages.length,
+        hasExistingSummary: !!currentSummary,
+        artifactMapSize: Object.keys(toolCallToArtifactMap || {}).length,
+        fullPrompt: prompt,
+      },
+      'Distillation input - full prompt being sent to LLM'
+    );
+
     const { object: summary } = await generateObject({
       model,
       prompt,
       schema: ConversationSummarySchema,
     });
+
+    // Log the summary result for analysis
+    logger.info(
+      {
+        conversationId,
+        summaryResult: summary,
+        highLevelSummary: summary.high_level,
+        userIntent: summary.user_intent,
+        decisionsCount: summary.decisions.length,
+        openQuestionsCount: summary.open_questions.length,
+        artifactsCount: summary.related_artifacts?.length || 0,
+        agentNextSteps: summary.next_steps.for_agent,
+        userNextSteps: summary.next_steps.for_user,
+      },
+      'Distillation output - LLM generated summary'
+    );
 
     // Set session ID
     summary.session_id = conversationId;

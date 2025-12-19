@@ -5,7 +5,7 @@ import {
   BaseCompressor,
   type CompressionConfig,
   type CompressionResult,
-  getConversationCompressionConfigFromEnv,
+  getModelAwareCompressionConfig,
 } from './BaseCompressor';
 
 const logger = getLogger('ConversationCompressor');
@@ -24,8 +24,8 @@ export class ConversationCompressor extends BaseCompressor {
     summarizerModel?: ModelSettings,
     baseModel?: ModelSettings
   ) {
-    // Use conversation-specific config by default, or fall back to provided config
-    const compressionConfig = config || getConversationCompressionConfigFromEnv();
+    // Use conversation-specific config (50% of context window) by default, or fall back to provided config
+    const compressionConfig = config || getModelAwareCompressionConfig(summarizerModel, 0.5);
     super(
       sessionId,
       conversationId,

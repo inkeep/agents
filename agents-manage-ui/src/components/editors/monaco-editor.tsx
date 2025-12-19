@@ -1,14 +1,12 @@
 'use client';
 
 import type * as Monaco from 'monaco-editor';
-import { useTheme } from 'next-themes';
 import type { ComponentPropsWithoutRef, FC } from 'react';
 import { useEffect, useRef } from 'react';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useMonacoActions, useMonacoStore } from '@/features/agent/state/use-monaco-store';
 import { cleanupDisposables, getOrCreateModel } from '@/lib/monaco-editor/monaco-utils';
 import { cn } from '@/lib/utils';
-import '@/lib/monaco-editor/setup-monaco-workers';
 
 interface MonacoEditorProps extends Omit<ComponentPropsWithoutRef<'div'>, 'onChange'> {
   /** @default '' */
@@ -54,7 +52,12 @@ export const MonacoEditor: FC<MonacoEditorProps> = ({
   const editorRef = useRef<Monaco.editor.IStandaloneCodeEditor>(null);
   const onChangeRef = useRef<typeof onChange>(undefined);
   const monaco = useMonacoStore((state) => state.monaco);
-  const { setupHighlighter } = useMonacoActions();
+  const { importMonaco } = useMonacoActions();
+  // biome-ignore lint/correctness/useExhaustiveDependencies: only on mount
+  useEffect(() => {
+    importMonaco();
+  }, []);
+
   // Update editor options when `readOnly` or `disabled` changes
   useEffect(() => {
     const wordWrap: Monaco.editor.IEditorOptions['wordWrap'] = editorOptions?.wordWrap ?? 'on';
@@ -81,7 +84,6 @@ export const MonacoEditor: FC<MonacoEditorProps> = ({
   useEffect(() => {
     onChangeRef.current = onChange;
   }, [onChange]);
-  const isDark = useTheme().resolvedTheme === 'dark';
   // biome-ignore lint/correctness/useExhaustiveDependencies: Initialize Monaco Editor (runs only on mount)
   useEffect(() => {
     const container = containerRef.current;
@@ -94,11 +96,6 @@ export const MonacoEditor: FC<MonacoEditorProps> = ({
     const editorInstance = editor.create(container, {
       model,
       language,
-      extraEditorClassName: [
-        '[--vscode-editor-background:transparent]!',
-        '[--vscode-editorGutter-background:transparent]!',
-        '[--vscode-focusBorder:transparent]!',
-      ].join(' '),
       automaticLayout: true,
       minimap: { enabled: false }, // disable the minimap
       overviewRulerLanes: 0, // remove unnecessary error highlight on the scroll
@@ -190,7 +187,6 @@ export const MonacoEditor: FC<MonacoEditorProps> = ({
       updateHeight();
       disposables.push(editorInstance.onDidContentSizeChange(updateHeight));
     }
-    setupHighlighter(isDark);
     onMount?.(editorInstance);
     return cleanupDisposables(disposables);
   }, [monaco]);
@@ -200,16 +196,14 @@ export const MonacoEditor: FC<MonacoEditorProps> = ({
       className={cn(
         'max-h-screen', // set fixed max height, otherwise page freezes up / lags when clicking into it
         !hasDynamicHeight && 'h-full',
-        'rounded-md relative dark:bg-input/30 transition-colors text-foreground',
+        'rounded-md relative dark:bg-input/30 transition-colors',
         'border border-input shadow-xs',
         disabled
           ? 'cursor-not-allowed opacity-50 bg-muted [&>.monaco-editor]:pointer-events-none'
           : 'has-[&>.focused]:border-ring has-[&>.focused]:ring-ring/50 has-[&>.focused]:ring-[3px]',
         'aria-invalid:border-destructive aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40',
         className,
-        !monaco && 'px-3 py-4',
-        // Fixes cursor blinking at the beginning of the line
-        '[&_.native-edit-context]:caret-transparent'
+        !monaco && 'px-3 py-4'
       )}
       {...props}
       ref={containerRef}

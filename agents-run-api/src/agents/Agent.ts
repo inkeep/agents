@@ -54,17 +54,14 @@ import {
 } from '../constants/execution-limits';
 import {
   createDefaultConversationHistoryConfig,
-  getFormattedConversationHistory,
   getConversationHistoryWithCompression,
 } from '../data/conversations';
 import dbClient from '../data/db/dbClient';
 import { getLogger } from '../logger';
 import { agentSessionManager, type ToolCallData } from '../services/AgentSession';
 import { IncrementalStreamParser } from '../services/IncrementalStreamParser';
-import {
-  getCompressionConfigFromEnv,
-  MidGenerationCompressor,
-} from '../services/MidGenerationCompressor';
+import { MidGenerationCompressor } from '../services/MidGenerationCompressor';
+import { getModelAwareCompressionConfig } from '../services/BaseCompressor';
 import { ConversationCompressor } from '../services/ConversationCompressor';
 import { pendingToolApprovalManager } from '../services/PendingToolApprovalManager';
 import { ResponseFormatter } from '../services/ResponseFormatter';
@@ -73,6 +70,7 @@ import { generateToolId } from '../utils/agent-operations';
 import { ArtifactCreateSchema, ArtifactReferenceSchema } from '../utils/artifact-component-schema';
 import { jsonSchemaToZod } from '../utils/data-component-schema';
 import { withJsonPostProcessing } from '../utils/json-postprocessor';
+import { getCompressionConfigForModel } from '../utils/model-context-utils';
 import type { StreamHelper } from '../utils/stream-helpers';
 import { getStreamHelper } from '../utils/stream-registry';
 import { setSpanWithError, tracer } from '../utils/tracer';
@@ -552,6 +550,9 @@ export class Agent {
 
           // Store tool result in conversation history
           const toolResultConversationId = this.getToolResultConversationId();
+          
+          // Debug: Log tool result saving decision
+          
           if (streamRequestId && !isInternalTool && toolResultConversationId) {
             try {
               const messageId = generateId();
@@ -578,7 +579,8 @@ export class Agent {
                 },
               };
 
-              await createMessage(dbClient)(messagePayload);
+              const savedMessage = await createMessage(dbClient)(messagePayload);
+              
             } catch (error) {
               logger.warn(
                 { error, toolName, toolCallId, conversationId: toolResultConversationId },
@@ -1529,7 +1531,7 @@ export class Agent {
     };
   }): Promise<string> {
     const phase2Config = new Phase2Config();
-    const compressionConfig = getCompressionConfigFromEnv();
+    const compressionConfig = getModelAwareCompressionConfig();
     const hasAgentArtifactComponents =
       (await this.hasAgentArtifactComponents()) || compressionConfig.enabled;
 
@@ -1690,7 +1692,7 @@ export class Agent {
 
     const shouldIncludeArtifactComponents = !excludeDataComponents;
 
-    const compressionConfig = getCompressionConfigFromEnv();
+    const compressionConfig = getModelAwareCompressionConfig();
     const hasAgentArtifactComponents =
       (await this.hasAgentArtifactComponents()) || compressionConfig.enabled;
 
@@ -1767,7 +1769,7 @@ export class Agent {
 
     // Add get_reference_artifact if any agent has artifact components OR compression is enabled
     // This enables cross-agent artifact collaboration and access to compressed artifacts
-    const compressionConfig = getCompressionConfigFromEnv();
+    const compressionConfig = getModelAwareCompressionConfig();
     if ((await this.agentHasArtifactComponents()) || compressionConfig.enabled) {
       defaultTools.get_reference_artifact = this.getArtifactTools();
     }
@@ -2216,7 +2218,7 @@ ${output}`;
           );
 
           // Build conversation history based on configuration
-          const conversationHistory = await this.buildConversationHistory(contextId, taskId, userMessage);
+          const conversationHistory = await this.buildConversationHistory(contextId, taskId, userMessage, streamRequestId);
 
           // Configure model settings and behavior
           const { primaryModelSettings, modelSettings, hasStructuredOutput, shouldStreamPhase1, timeoutMs } = this.configureModelSettings();
@@ -2506,7 +2508,8 @@ ${output}`;
   private async buildConversationHistory(
     contextId: string,
     taskId: string,
-    userMessage: string
+    userMessage: string,
+    streamRequestId: string
   ): Promise<string> {
     let conversationHistory = '';
     const historyConfig =
@@ -2519,16 +2522,18 @@ ${output}`;
           isDelegated: this.isDelegatedAgent,
         };
 
-        conversationHistory = await getFormattedConversationHistory({
+        conversationHistory = await getConversationHistoryWithCompression({
           tenantId: this.config.tenantId,
           projectId: this.config.projectId,
           conversationId: contextId,
           currentMessage: userMessage,
           options: historyConfig,
           filters,
+          summarizerModel: this.getSummarizerModel(),
+          streamRequestId,
         });
       } else if (historyConfig.mode === 'scoped') {
-        conversationHistory = await getFormattedConversationHistory({
+        conversationHistory = await getConversationHistoryWithCompression({
           tenantId: this.config.tenantId,
           projectId: this.config.projectId,
           conversationId: contextId,
@@ -2540,6 +2545,8 @@ ${output}`;
             delegationId: this.delegationId,
             isDelegated: this.isDelegatedAgent,
           },
+          summarizerModel: this.getSummarizerModel(),
+          streamRequestId,
         });
       }
     }
@@ -2633,7 +2640,12 @@ ${output}`;
   ) {
     // Capture original message count and initialize compressor for this generation
     const originalMessageCount = messages.length;
-    const compressionConfig = getCompressionConfigFromEnv();
+    const compressionConfigResult = getCompressionConfigForModel(primaryModelSettings);
+    const compressionConfig = {
+      hardLimit: compressionConfigResult.hardLimit,
+      safetyBuffer: compressionConfigResult.safetyBuffer,
+      enabled: compressionConfigResult.enabled,
+    };
     const compressor = compressionConfig.enabled
       ? new MidGenerationCompressor(
           sessionId,
@@ -2697,19 +2709,29 @@ ${output}`;
           }
 
           // Add compressed summary message last (provides context for artifacts)
-          const summaryMessage = JSON.stringify({
-            high_level: compressionResult.summary?.summary?.high_level,
-            user_intent: compressionResult.summary?.summary?.user_intent,
-            decisions: compressionResult.summary?.summary?.decisions,
-            open_questions: compressionResult.summary?.summary?.open_questions,
-            next_steps: compressionResult.summary?.summary?.next_steps,
-            related_artifacts: compressionResult?.summary?.summary?.related_artifacts,
-          });
+          const summaryData = {
+            high_level: compressionResult.summary?.high_level,
+            user_intent: compressionResult.summary?.user_intent,
+            decisions: compressionResult.summary?.decisions,
+            open_questions: compressionResult.summary?.open_questions,
+            next_steps: compressionResult.summary?.next_steps,
+            related_artifacts: compressionResult.summary?.related_artifacts,
+          };
+
+          // Add artifact reference examples to the related_artifacts
+          if (summaryData.related_artifacts && summaryData.related_artifacts.length > 0) {
+            summaryData.related_artifacts = summaryData.related_artifacts.map((artifact: any) => ({
+              ...artifact,
+              artifact_reference: `<artifact:ref id="${artifact.id}" tool="${artifact.tool_call_id}" />`
+            }));
+          }
+
+          const summaryMessage = JSON.stringify(summaryData);
           finalMessages.push({
             role: 'user',
             content: `Based on your research, here's what you've discovered: ${summaryMessage}
 
-Now please provide your answer to my original question using this context, if you want to refer to artifacts please reference the \`artifact_id\` and \`tool_call_id\` from the research summary with an <artifact:ref id="artifact_id" tool="tool_call_id" /> tag.`,
+**IMPORTANT**: If you have enough information from this compressed research to answer my original question, please provide your answer now. Only continue with additional tool calls if you need critical missing information that wasn't captured in the research above. When referencing any artifacts from the compressed research, you MUST use <artifact:ref id="artifact_id" tool="tool_call_id" /> tags with the exact IDs from the related_artifacts above.`,
           });
 
           logger.info(

@@ -43,6 +43,7 @@ interface AgentStateData {
    * Temporary state used to control whether the sidebar is open on the agents page.
    */
   isSidebarSessionOpen: boolean;
+  variableSuggestions: string[];
 }
 
 interface AgentPersistedStateData {
@@ -108,6 +109,8 @@ interface AgentActions {
   toggleTextWrap(): void;
 
   animateGraph: EventListenerOrEventListenerObject;
+
+  setVariableSuggestions: (variableSuggestions: string[]) => void;
 }
 
 type AllAgentStateData = AgentStateData & AgentPersistedStateData;
@@ -144,6 +147,7 @@ const initialAgentState: AgentStateData = {
   errors: null,
   showErrors: false,
   isSidebarSessionOpen: true,
+  variableSuggestions: [],
 };
 
 const agentState: StateCreator<AgentState> = (set, get) => ({
@@ -151,6 +155,7 @@ const agentState: StateCreator<AgentState> = (set, get) => ({
   jsonSchemaMode: false,
   isSidebarPinnedOpen: true,
   hasTextWrap: true,
+  variableSuggestions: [],
   // Separate "namespace" for actions
   actions: {
     setInitial(
@@ -521,6 +526,9 @@ const agentState: StateCreator<AgentState> = (set, get) => ({
       set((prevState) => ({
         hasTextWrap: !prevState.hasTextWrap,
       }));
+    },
+    setVariableSuggestions(variableSuggestions) {
+      set({ variableSuggestions });
     },
   },
 });
