@@ -180,7 +180,7 @@ jobs:
           HUSKY: 0
 
       - name: Build create-agents
-        run: pnpm --filter @inkeep/create-agents build
+        run: npx turbo build --filter='@inkeep/create-agents'
         env:
           TURBO_TELEMETRY_DISABLED: 1
           TURBO_CACHE_DIR: .turbo
