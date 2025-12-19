@@ -63,10 +63,18 @@ vi.mock('../logger', () => ({
 describe('Model Context Utils', () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    // Clear environment variables
+    // Clear environment variables that might affect default values
     delete process.env.AGENTS_COMPRESSION_HARD_LIMIT;
     delete process.env.AGENTS_COMPRESSION_SAFETY_BUFFER;
     delete process.env.AGENTS_COMPRESSION_ENABLED;
+
+    // Also clear any other compression-related env vars that might contaminate defaults
+    delete process.env.AGENTS_HARD_LIMIT;
+    delete process.env.AGENTS_SAFETY_BUFFER;
+    delete process.env.AGENTS_ENABLED;
+
+    // Reset any cached module state
+    vi.resetModules();
   });
 
   describe('getModelContextWindow', () => {

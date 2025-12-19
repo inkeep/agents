@@ -19,6 +19,9 @@ import dbClient from './db/dbClient';
 
 const logger = getLogger('conversations');
 
+// In-memory lock to prevent concurrent compression for the same conversation
+export const compressionLocks = new Map<string, Promise<any>>();
+
 /**
  * Creates default conversation history configuration
  * @param mode - The conversation history mode ('full' | 'scoped' | 'none')
@@ -568,7 +571,43 @@ export async function getConversationHistoryWithCompression({
 /**
  * Apply conversation compression using the BaseCompressor infrastructure
  */
-async function compressConversationIfNeeded(
+export async function compressConversationIfNeeded(
+  messages: any[],
+  params: {
+    conversationId: string;
+    tenantId: string;
+    projectId: string;
+    summarizerModel: any;
+    streamRequestId?: string;
+  }
+): Promise<any[]> {
+  const { conversationId, tenantId, projectId, summarizerModel, streamRequestId } = params;
+
+  // Prevent race conditions by using conversation-level locking
+  const lockKey = `${conversationId}_${tenantId}_${projectId}`;
+
+  // If there's already a compression in progress, wait for it to complete
+  if (compressionLocks.has(lockKey)) {
+    logger.debug({ conversationId }, 'Waiting for existing compression to complete');
+    await compressionLocks.get(lockKey);
+    // Return original messages since compression was already handled
+    return messages;
+  }
+
+  // Create a new compression promise and store it in the lock
+  const compressionPromise = performActualCompression(messages, params);
+  compressionLocks.set(lockKey, compressionPromise);
+
+  try {
+    const result = await compressionPromise;
+    return result;
+  } finally {
+    // Always clean up the lock when done
+    compressionLocks.delete(lockKey);
+  }
+}
+
+async function performActualCompression(
   messages: any[],
   params: {
     conversationId: string;
@@ -605,7 +644,7 @@ async function compressConversationIfNeeded(
   );
 
   try {
-    const compressionResult = await compressor.compress(messages);
+    const compressionResult = await compressor.safeCompress(messages);
 
     // Save compression summary as a message in the database with proper ordering
     if (compressionResult.summary) {
@@ -645,9 +684,11 @@ async function compressConversationIfNeeded(
       );
 
       // Return just the compression summary message
+      compressor.partialCleanup();
       return [compressionMessage];
     }
 
+    compressor.partialCleanup();
     return messages;
   } catch (error) {
     logger.error(
@@ -657,6 +698,7 @@ async function compressConversationIfNeeded(
       },
       'Conversation compression failed, using original messages'
     );
+    compressor.partialCleanup();
     return messages;
   }
 }

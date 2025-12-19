@@ -109,7 +109,7 @@ export abstract class BaseCompressor {
   /**
    * Save tool results as artifacts
    */
-  protected async saveToolResultsAsArtifacts(
+  async saveToolResultsAsArtifacts(
     messages: any[],
     startIndex: number = 0
   ): Promise<Record<string, string>> {
@@ -118,210 +118,368 @@ export abstract class BaseCompressor {
       throw new Error(`No session found: ${this.sessionId}`);
     }
 
-    const toolCallToArtifactMap: Record<string, string> = {};
     const messagesToProcess = messages.slice(startIndex);
 
+    // Step 1: Extract all tool call IDs and batch lookup existing artifacts (solve N+1)
+    const toolCallIds = this.extractToolCallIds(messagesToProcess);
+    const existingArtifacts = await this.batchFindExistingArtifacts(toolCallIds);
+
+    const toolCallToArtifactMap: Record<string, string> = {};
+
+    // Step 2: Process messages with existing artifacts cache
     for (const message of messagesToProcess) {
-      // Convert database format tool-result messages to Vercel AI SDK format
-      if (
-        message.messageType === 'tool-result' &&
-        !Array.isArray(message.content) &&
-        message.content?.text
-      ) {
-        const toolName = message.metadata?.a2a_metadata?.toolName;
+      // Convert database format to SDK format if needed
+      this.convertDatabaseFormatMessage(message);
+
+      // Process SDK format messages
+      if (Array.isArray(message.content)) {
+        const messageArtifacts = await this.processMessageToolResults(
+          message,
+          session,
+          existingArtifacts
+        );
+        Object.assign(toolCallToArtifactMap, messageArtifacts);
+      }
+    }
+
+    return toolCallToArtifactMap;
+  }
+
+  /**
+   * Extract all tool call IDs from messages for batch lookup
+   */
+  private extractToolCallIds(messages: any[]): string[] {
+    const toolCallIds: string[] = [];
+
+    for (const message of messages) {
+      // Handle database format
+      if (message.messageType === 'tool-result' && !Array.isArray(message.content)) {
         const toolCallId = message.metadata?.a2a_metadata?.toolCallId;
-
-        // Skip internal tools from database format too
-        if (
-          toolName &&
-          (toolName === 'get_reference_artifact' ||
-            toolName === 'thinking_complete' ||
-            toolName.includes('save_tool_result') ||
-            toolName.startsWith('transfer_to_'))
-        ) {
-          continue; // Skip this entire message
-        }
-
-        if (toolName && toolCallId) {
-          // Convert to SDK format by creating a content array
-          message.content = [
-            {
-              type: 'tool-result',
-              toolCallId: toolCallId,
-              toolName: toolName,
-              output: message.content.text, // Use the raw text as output
-            },
-          ];
+        if (toolCallId && !this.shouldSkipToolCall(message.metadata?.a2a_metadata?.toolName)) {
+          toolCallIds.push(toolCallId);
         }
       }
 
-      // Handle Vercel AI SDK message format
+      // Handle SDK format
       if (Array.isArray(message.content)) {
         for (const block of message.content) {
-          if (block.type === 'tool-result') {
-            // Skip internal tools that shouldn't be compressed at all
-            if (
-              block.toolName === 'get_reference_artifact' ||
-              block.toolName === 'thinking_complete' ||
-              block.toolName.includes('save_tool_result') ||
-              block.toolName.startsWith('transfer_to_')
-            ) {
-              logger.debug(
-                {
-                  toolCallId: block.toolCallId,
-                  toolName: block.toolName,
-                },
-                'Skipping special tool - not creating artifacts'
-              );
-              this.processedToolCalls.add(block.toolCallId);
-              continue;
-            }
-
-            // Skip if this tool call has already been processed
-            if (this.processedToolCalls.has(block.toolCallId)) {
-              logger.debug(
-                {
-                  toolCallId: block.toolCallId,
-                  toolName: block.toolName,
-                },
-                'Skipping already processed tool call'
-              );
-              continue;
-            }
-
-            // Check if an artifact already exists for this tool call ID
-            let artifactId;
-            try {
-              const existingArtifacts = await getLedgerArtifacts(dbClient)({
-                scopes: { tenantId: this.tenantId, projectId: this.projectId },
-                toolCallId: block.toolCallId,
-              });
-
-              if (existingArtifacts.length > 0) {
-                artifactId = existingArtifacts[0].artifactId;
-                toolCallToArtifactMap[block.toolCallId] = artifactId;
-                logger.debug(
-                  {
-                    toolCallId: block.toolCallId,
-                    existingArtifactId: artifactId,
-                    toolName: block.toolName,
-                  },
-                  'Reusing existing artifact for tool call'
-                );
-                continue; // Skip creating a new artifact
-              }
-            } catch (error) {
-              logger.debug(
-                {
-                  toolCallId: block.toolCallId,
-                  error: error instanceof Error ? error.message : String(error),
-                },
-                'Could not check for existing artifacts, creating new one'
-              );
-            }
-
-            artifactId = `compress_${block.toolName || 'tool'}_${block.toolCallId || Date.now()}_${randomUUID().slice(0, 8)}`;
-
-            logger.debug(
-              {
-                artifactId,
-                toolName: block.toolName,
-                toolCallId: block.toolCallId,
-              },
-              'Creating new compression artifact'
-            );
-
-            // Find corresponding tool-call for input
-            let toolInput = null;
-            if (Array.isArray(message.content)) {
-              const toolCall = message.content.find(
-                (b: any) => b.type === 'tool-call' && b.toolCallId === block.toolCallId
-              );
-              toolInput = toolCall?.input;
-            }
-
-            // Clean tool result by recursively removing _structureHints before storing
-            const cleanToolResult = this.removeStructureHints(block.output);
-
-            // Create the tool result data
-            const toolResultData = {
-              toolName: block.toolName,
-              toolInput: toolInput,
-              toolResult: cleanToolResult,
-              compressedAt: new Date().toISOString(),
-            };
-
-            // Skip artifact creation if toolResultData is empty
-            if (this.isEmpty(toolResultData)) {
-              logger.debug(
-                {
-                  toolName: block.toolName,
-                  toolCallId: block.toolCallId,
-                },
-                'Skipping empty tool result'
-              );
-              continue;
-            }
-
-            // Create artifact data structure
-            const artifactData = {
-              artifactId,
-              taskId: `task_${this.conversationId}-${this.sessionId}`,
-              toolCallId: block.toolCallId,
-              artifactType: 'tool_result',
-              pendingGeneration: true, // Triggers LLM-generated name/description
-              tenantId: this.tenantId,
-              projectId: this.projectId,
-              contextId: this.conversationId,
-              subAgentId: this.sessionId,
-              metadata: {
-                toolCallId: block.toolCallId,
-                toolName: block.toolName,
-                compressionReason: this.getCompressionType(),
-              },
-              summaryData: {
-                toolCallId: block.toolCallId,
-                toolName: block.toolName,
-                resultPreview: this.generateResultPreview(cleanToolResult),
-                note: `Tool result from ${block.toolName} - compressed to save context space`,
-              },
-              data: toolResultData,
-            };
-
-            // Validate artifact has meaningful data
-            const fullData = artifactData.data;
-            const hasFullData =
-              fullData &&
-              typeof fullData === 'object' &&
-              Object.keys(fullData).length > 0 &&
-              fullData.toolResult &&
-              (typeof fullData.toolResult !== 'object' ||
-                Object.keys(fullData.toolResult).length > 0);
-
-            if (!hasFullData) {
-              logger.debug(
-                {
-                  artifactId,
-                  toolName: block.toolName,
-                  toolCallId: block.toolCallId,
-                },
-                'Skipping empty compression artifact'
-              );
-              continue;
-            }
-
-            // Use existing AgentSession artifact processing
-            session.recordEvent('artifact_saved', this.sessionId, artifactData);
-
-            // Mark this tool call as processed to avoid reprocessing
-            this.processedToolCalls.add(block.toolCallId);
-            toolCallToArtifactMap[block.toolCallId] = artifactId;
+          if (block.type === 'tool-result' && !this.shouldSkipToolCall(block.toolName)) {
+            toolCallIds.push(block.toolCallId);
           }
         }
       }
     }
 
+    return [...new Set(toolCallIds)]; // Remove duplicates
+  }
+
+  /**
+   * Batch lookup existing artifacts for multiple tool call IDs (solves N+1 query problem)
+   */
+  private async batchFindExistingArtifacts(toolCallIds: string[]): Promise<Map<string, string>> {
+    const existingArtifacts = new Map<string, string>();
+
+    if (toolCallIds.length === 0) {
+      return existingArtifacts;
+    }
+
+    try {
+      // Use SQL IN clause to batch query all tool call IDs at once
+      const artifacts = await this.queryExistingArtifactsBatch(toolCallIds);
+
+      for (const artifact of artifacts) {
+        if (artifact.toolCallId) {
+          existingArtifacts.set(artifact.toolCallId, artifact.artifactId);
+        }
+      }
+
+      logger.debug(
+        {
+          sessionId: this.sessionId,
+          toolCallIds: toolCallIds.length,
+          foundArtifacts: existingArtifacts.size,
+        },
+        'Batched artifact lookup completed'
+      );
+    } catch (error) {
+      logger.debug(
+        {
+          sessionId: this.sessionId,
+          error: error instanceof Error ? error.message : String(error),
+        },
+        'Batch artifact lookup failed, will create new artifacts'
+      );
+    }
+
+    return existingArtifacts;
+  }
+
+  /**
+   * Query database for existing artifacts using enhanced getLedgerArtifacts with batch support
+   */
+  private async queryExistingArtifactsBatch(toolCallIds: string[]): Promise<any[]> {
+    if (toolCallIds.length === 0) {
+      return [];
+    }
+
+    try {
+      // Use the enhanced getLedgerArtifacts with toolCallIds for batch query
+      const artifacts = await getLedgerArtifacts(dbClient)({
+        scopes: { tenantId: this.tenantId, projectId: this.projectId },
+        toolCallIds: toolCallIds,
+      });
+
+      // Map to expected format for compatibility
+      return artifacts.map((artifact) => ({
+        artifactId: artifact.artifactId,
+        toolCallId: artifact.toolCallId,
+      }));
+    } catch (error) {
+      logger.debug(
+        {
+          sessionId: this.sessionId,
+          toolCallIds: toolCallIds.length,
+          error: error instanceof Error ? error.message : String(error),
+        },
+        'Batch artifact lookup failed'
+      );
+      return [];
+    }
+  }
+
+  /**
+   * Convert database format tool-result messages to Vercel AI SDK format
+   */
+  private convertDatabaseFormatMessage(message: any): void {
+    if (
+      message.messageType === 'tool-result' &&
+      !Array.isArray(message.content) &&
+      message.content?.text
+    ) {
+      const toolName = message.metadata?.a2a_metadata?.toolName;
+      const toolCallId = message.metadata?.a2a_metadata?.toolCallId;
+
+      // Skip internal tools
+      if (this.shouldSkipToolCall(toolName)) {
+        return;
+      }
+
+      if (toolName && toolCallId) {
+        // Convert to SDK format
+        message.content = [
+          {
+            type: 'tool-result',
+            toolCallId: toolCallId,
+            toolName: toolName,
+            output: message.content.text,
+          },
+        ];
+      }
+    }
+  }
+
+  /**
+   * Process all tool results in a message
+   */
+  private async processMessageToolResults(
+    message: any,
+    session: any,
+    existingArtifacts: Map<string, string>
+  ): Promise<Record<string, string>> {
+    const toolCallToArtifactMap: Record<string, string> = {};
+
+    for (const block of message.content) {
+      if (block.type === 'tool-result') {
+        const artifactId = await this.processToolResult(block, message, session, existingArtifacts);
+        if (artifactId) {
+          toolCallToArtifactMap[block.toolCallId] = artifactId;
+        }
+      }
+    }
+
     return toolCallToArtifactMap;
+  }
+
+  /**
+   * Process a single tool result block
+   */
+  private async processToolResult(
+    block: any,
+    message: any,
+    session: any,
+    existingArtifacts: Map<string, string>
+  ): Promise<string | null> {
+    // Skip internal tools
+    if (this.shouldSkipToolCall(block.toolName)) {
+      logger.debug(
+        {
+          toolCallId: block.toolCallId,
+          toolName: block.toolName,
+        },
+        'Skipping special tool - not creating artifacts'
+      );
+      this.processedToolCalls.add(block.toolCallId);
+      return null;
+    }
+
+    // Skip already processed tool calls
+    if (this.processedToolCalls.has(block.toolCallId)) {
+      logger.debug(
+        {
+          toolCallId: block.toolCallId,
+          toolName: block.toolName,
+        },
+        'Skipping already processed tool call'
+      );
+      return null;
+    }
+
+    // Check for existing artifact in cache (no more N+1 queries!)
+    const existingArtifactId = existingArtifacts.get(block.toolCallId);
+    if (existingArtifactId) {
+      logger.debug(
+        {
+          toolCallId: block.toolCallId,
+          existingArtifactId: existingArtifactId,
+          toolName: block.toolName,
+        },
+        'Reusing existing artifact from batch lookup'
+      );
+      return existingArtifactId;
+    }
+
+    // Create new artifact
+    return await this.createNewArtifact(block, message, session);
+  }
+
+  /**
+   * Check if a tool should be skipped
+   */
+  private shouldSkipToolCall(toolName: string): boolean {
+    return (
+      toolName === 'get_reference_artifact' ||
+      toolName === 'thinking_complete' ||
+      toolName?.includes('save_tool_result') ||
+      toolName?.startsWith('transfer_to_')
+    );
+  }
+
+  /**
+   * Create a new artifact for a tool call
+   */
+  private async createNewArtifact(block: any, message: any, session: any): Promise<string | null> {
+    const artifactId = `compress_${block.toolName || 'tool'}_${block.toolCallId || Date.now()}_${randomUUID().slice(0, 8)}`;
+
+    // Find corresponding tool input
+    const toolInput = this.findToolInput(message, block.toolCallId);
+
+    // Prepare tool result data
+    const toolResultData = {
+      toolName: block.toolName,
+      toolInput: toolInput,
+      toolResult: this.removeStructureHints(block.output),
+      compressedAt: new Date().toISOString(),
+    };
+
+    // Skip if data is empty
+    if (this.isEmpty(toolResultData)) {
+      logger.debug(
+        {
+          toolName: block.toolName,
+          toolCallId: block.toolCallId,
+        },
+        'Skipping empty tool result'
+      );
+      return null;
+    }
+
+    // Create artifact data
+    const artifactData = this.buildArtifactData(artifactId, block, toolResultData);
+
+    // Final validation
+    if (!this.validateArtifactData(artifactData)) {
+      logger.debug(
+        {
+          artifactId,
+          toolName: block.toolName,
+          toolCallId: block.toolCallId,
+        },
+        'Skipping empty compression artifact'
+      );
+      return null;
+    }
+
+    // Save artifact
+    session.recordEvent('artifact_saved', this.sessionId, artifactData);
+    this.processedToolCalls.add(block.toolCallId);
+
+    logger.debug(
+      {
+        artifactId,
+        toolName: block.toolName,
+        toolCallId: block.toolCallId,
+      },
+      'Created new compression artifact'
+    );
+
+    return artifactId;
+  }
+
+  /**
+   * Find tool input for a given tool call ID
+   */
+  private findToolInput(message: any, toolCallId: string): any {
+    if (!Array.isArray(message.content)) {
+      return null;
+    }
+
+    const toolCall = message.content.find(
+      (b: any) => b.type === 'tool-call' && b.toolCallId === toolCallId
+    );
+    return toolCall?.input || null;
+  }
+
+  /**
+   * Build artifact data structure
+   */
+  private buildArtifactData(artifactId: string, block: any, toolResultData: any): any {
+    return {
+      artifactId,
+      taskId: `task_${this.conversationId}-${this.sessionId}`,
+      toolCallId: block.toolCallId,
+      artifactType: 'tool_result',
+      pendingGeneration: true,
+      tenantId: this.tenantId,
+      projectId: this.projectId,
+      contextId: this.conversationId,
+      subAgentId: this.sessionId,
+      metadata: {
+        toolCallId: block.toolCallId,
+        toolName: block.toolName,
+        compressionReason: this.getCompressionType(),
+      },
+      summaryData: {
+        toolCallId: block.toolCallId,
+        toolName: block.toolName,
+        resultPreview: this.generateResultPreview(toolResultData.toolResult),
+        note: `Tool result from ${block.toolName} - compressed to save context space`,
+      },
+      data: toolResultData,
+    };
+  }
+
+  /**
+   * Validate artifact data has meaningful content
+   */
+  private validateArtifactData(artifactData: any): boolean {
+    const fullData = artifactData.data;
+    return (
+      fullData &&
+      typeof fullData === 'object' &&
+      Object.keys(fullData).length > 0 &&
+      fullData.toolResult &&
+      (typeof fullData.toolResult !== 'object' || Object.keys(fullData.toolResult).length > 0)
+    );
   }
 
   /**
@@ -463,6 +621,51 @@ export abstract class BaseCompressor {
   }
 
   /**
+   * Clean up memory by clearing processed tool calls and optionally resetting summary
+   * Call this at the end of agent generation or after compression cycles
+   */
+  cleanup(options: { resetSummary?: boolean; keepRecentToolCalls?: number } = {}): void {
+    const { resetSummary = false, keepRecentToolCalls = 0 } = options;
+
+    // Clear processed tool calls, optionally keeping some recent ones
+    if (keepRecentToolCalls > 0) {
+      const recentCalls = Array.from(this.processedToolCalls).slice(-keepRecentToolCalls);
+      this.processedToolCalls = new Set(recentCalls);
+    } else {
+      this.processedToolCalls.clear();
+    }
+
+    // Optionally reset cumulative summary
+    if (resetSummary) {
+      this.cumulativeSummary = null;
+    }
+
+    logger.debug(
+      {
+        sessionId: this.sessionId,
+        conversationId: this.conversationId,
+        processedToolCallsSize: this.processedToolCalls.size,
+        summaryReset: resetSummary,
+      },
+      'BaseCompressor cleanup completed'
+    );
+  }
+
+  /**
+   * Partial cleanup that preserves recent state for ongoing conversations
+   */
+  partialCleanup(): void {
+    this.cleanup({ keepRecentToolCalls: 50 }); // Keep last 50 tool calls
+  }
+
+  /**
+   * Full cleanup that resets all state - use when conversation/session ends
+   */
+  fullCleanup(): void {
+    this.cleanup({ resetSummary: true });
+  }
+
+  /**
    * Get current state for debugging
    */
   getState() {
@@ -470,6 +673,78 @@ export abstract class BaseCompressor {
       config: this.config,
       processedToolCalls: Array.from(this.processedToolCalls),
       cumulativeSummary: this.cumulativeSummary,
+    };
+  }
+
+  /**
+   * Safe compression wrapper with fallback handling
+   */
+  async safeCompress(messages: any[]): Promise<CompressionResult> {
+    try {
+      return await this.compress(messages);
+    } catch (error) {
+      logger.error(
+        {
+          sessionId: this.sessionId,
+          conversationId: this.conversationId,
+          error: error instanceof Error ? error.message : String(error),
+          stack: error instanceof Error ? error.stack : undefined,
+        },
+        'Compression failed, using simple fallback'
+      );
+
+      // Use simple compression fallback - same logic as Agent.simpleCompression
+      return await this.simpleCompressionFallback(messages);
+    }
+  }
+
+  /**
+   * Simple compression fallback using the same logic as Agent.simpleCompression
+   * Returns the compressed messages, not just a summary
+   */
+  protected async simpleCompressionFallback(messages: any[]): Promise<CompressionResult> {
+    if (messages.length === 0) {
+      return {
+        artifactIds: [],
+        summary: [],
+      };
+    }
+
+    // Use 50% of hard limit as target
+    const targetTokens = Math.floor(this.getHardLimit() * 0.5);
+    let totalTokens = this.calculateContextSize(messages);
+
+    if (totalTokens <= targetTokens) {
+      return {
+        artifactIds: [],
+        summary: messages, // Return original messages if no compression needed
+      };
+    }
+
+    // Keep dropping messages from the beginning until we're under the limit
+    const result = [...messages];
+    while (totalTokens > targetTokens && result.length > 1) {
+      const dropped = result.shift();
+      if (dropped) {
+        totalTokens -= this.estimateTokens(dropped);
+      }
+    }
+
+    logger.info(
+      {
+        sessionId: this.sessionId,
+        conversationId: this.conversationId,
+        originalCount: messages.length,
+        compressedCount: result.length,
+        compressionType: 'simple_fallback',
+      },
+      'Simple compression fallback completed'
+    );
+
+    // Return the compressed messages in the summary field
+    return {
+      artifactIds: [],
+      summary: result,
     };
   }
 

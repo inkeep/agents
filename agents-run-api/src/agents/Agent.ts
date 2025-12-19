@@ -422,31 +422,6 @@ export class Agent {
   /**
    * Simple compression fallback: drop oldest messages to fit under token limit
    */
-  private simpleCompression(messages: any[], targetTokens: number): any[] {
-    if (messages.length === 0) return messages;
-
-    const estimateTokens = (msg: any) => {
-      const content = typeof msg.content === 'string' ? msg.content : JSON.stringify(msg.content);
-      return Math.ceil(content.length / 4);
-    };
-
-    let totalTokens = messages.reduce((sum, msg) => sum + estimateTokens(msg), 0);
-
-    if (totalTokens <= targetTokens) {
-      return messages; // Already under limit
-    }
-
-    // Keep dropping messages from the beginning until we're under the limit
-    const result = [...messages];
-    while (totalTokens > targetTokens && result.length > 1) {
-      const dropped = result.shift();
-      if (dropped) {
-        totalTokens -= estimateTokens(dropped);
-      }
-    }
-
-    return result;
-  }
 
   /**
    * Set delegation status for this agent instance
@@ -2389,6 +2364,9 @@ ${output}`;
           }
 
           // Clear compressor reference to prevent memory leaks
+          if (compressor) {
+            compressor.partialCleanup();
+          }
           this.currentCompressor = null;
 
           return formattedResponse;
@@ -2693,101 +2671,83 @@ ${output}`;
         'Triggering layered mid-generation compression'
       );
 
-      try {
-        // Split messages into original vs generated
-        const originalMessages = stepMessages.slice(0, originalMessageCount);
-        const generatedMessages = stepMessages.slice(originalMessageCount);
+      // Split messages into original vs generated
+      const originalMessages = stepMessages.slice(0, originalMessageCount);
+      const generatedMessages = stepMessages.slice(originalMessageCount);
 
-        if (generatedMessages.length > 0) {
-          // Compress ONLY the generated content (tool results, intermediate steps)
-          const compressionResult = await compressor.compress(generatedMessages);
+      if (generatedMessages.length > 0) {
+        // Compress ONLY the generated content (tool results, intermediate steps)
+        // safeCompress() handles all error cases and fallbacks internally
+        const compressionResult = await compressor.safeCompress(generatedMessages);
 
-          // Build final messages: original + preserved text + summary
-          const finalMessages = [...originalMessages];
-
-          // Add preserved text messages first (so they appear in natural order)
-          if (
-            compressionResult.summary.text_messages &&
-            compressionResult.summary.text_messages.length > 0
-          ) {
-            finalMessages.push(...compressionResult.summary.text_messages);
-          }
-
-          // Add compressed summary message last (provides context for artifacts)
-          const summaryData = {
-            high_level: compressionResult.summary?.high_level,
-            user_intent: compressionResult.summary?.user_intent,
-            decisions: compressionResult.summary?.decisions,
-            open_questions: compressionResult.summary?.open_questions,
-            next_steps: compressionResult.summary?.next_steps,
-            related_artifacts: compressionResult.summary?.related_artifacts,
-          };
-
-          // Add artifact reference examples to the related_artifacts
-          if (summaryData.related_artifacts && summaryData.related_artifacts.length > 0) {
-            summaryData.related_artifacts = summaryData.related_artifacts.map((artifact: any) => ({
-              ...artifact,
-              artifact_reference: `<artifact:ref id="${artifact.id}" tool="${artifact.tool_call_id}" />`,
-            }));
-          }
-
-          const summaryMessage = JSON.stringify(summaryData);
-          finalMessages.push({
-            role: 'user',
-            content: `Based on your research, here's what you've discovered: ${summaryMessage}
-
-**IMPORTANT**: If you have enough information from this compressed research to answer my original question, please provide your answer now. Only continue with additional tool calls if you need critical missing information that wasn't captured in the research above. When referencing any artifacts from the compressed research, you MUST use <artifact:ref id="artifact_id" tool="tool_call_id" /> tags with the exact IDs from the related_artifacts above.`,
-          });
-
+        // Handle different types of compression results
+        if (Array.isArray(compressionResult.summary)) {
+          // Simple compression fallback - summary contains the compressed messages
+          const compressedMessages = compressionResult.summary;
           logger.info(
             {
               originalTotal: stepMessages.length,
-              compressed: finalMessages.length,
+              compressed: originalMessages.length + compressedMessages.length,
               originalKept: originalMessages.length,
-              generatedCompressed: generatedMessages.length,
+              generatedCompressed: compressedMessages.length,
             },
-            'Generated content compression completed'
+            'Simple compression fallback applied'
           );
-
-          return { messages: finalMessages };
+          return { messages: [...originalMessages, ...compressedMessages] };
         }
 
-        // No generated messages yet, nothing to compress
-        return {};
-      } catch (error) {
-        logger.error(
+        // AI compression succeeded - summary is a proper summary object
+        const finalMessages = [...originalMessages];
+
+        // Add preserved text messages first (so they appear in natural order)
+        if (
+          compressionResult.summary.text_messages &&
+          compressionResult.summary.text_messages.length > 0
+        ) {
+          finalMessages.push(...compressionResult.summary.text_messages);
+        }
+
+        // Add compressed summary message last (provides context for artifacts)
+        const summaryData = {
+          high_level: compressionResult.summary?.high_level,
+          user_intent: compressionResult.summary?.user_intent,
+          decisions: compressionResult.summary?.decisions,
+          open_questions: compressionResult.summary?.open_questions,
+          next_steps: compressionResult.summary?.next_steps,
+          related_artifacts: compressionResult.summary?.related_artifacts,
+        };
+
+        // Add artifact reference examples to the related_artifacts
+        if (summaryData.related_artifacts && summaryData.related_artifacts.length > 0) {
+          summaryData.related_artifacts = summaryData.related_artifacts.map((artifact: any) => ({
+            ...artifact,
+            artifact_reference: `<artifact:ref id="${artifact.id}" tool="${artifact.tool_call_id}" />`,
+          }));
+        }
+
+        const summaryMessage = JSON.stringify(summaryData);
+        finalMessages.push({
+          role: 'user',
+          content: `Based on your research, here's what you've discovered: ${summaryMessage}
+
+**IMPORTANT**: If you have enough information from this compressed research to answer my original question, please provide your answer now. Only continue with additional tool calls if you need critical missing information that wasn't captured in the research above. When referencing any artifacts from the compressed research, you MUST use <artifact:ref id="artifact_id" tool="tool_call_id" /> tags with the exact IDs from the related_artifacts above.`,
+        });
+
+        logger.info(
           {
-            error: error instanceof Error ? error.message : String(error),
-            stack: error instanceof Error ? error.stack : undefined,
+            originalTotal: stepMessages.length,
+            compressed: finalMessages.length,
+            originalKept: originalMessages.length,
+            generatedCompressed: generatedMessages.length,
           },
-          'Smart compression failed, falling back to simple compression'
+          'AI compression completed successfully'
         );
 
-        // Fallback: simple compression by dropping oldest messages
-        try {
-          const targetSize = Math.floor(compressor.getHardLimit() * 0.5); // Use 50% of limit as target
-          const fallbackMessages = this.simpleCompression(stepMessages, targetSize);
-
-          logger.info(
-            {
-              originalCount: stepMessages.length,
-              compressedCount: fallbackMessages.length,
-              compressionType: 'simple_fallback',
-            },
-            'Simple compression fallback completed'
-          );
-
-          return { messages: fallbackMessages };
-        } catch (fallbackError) {
-          logger.error(
-            {
-              error: fallbackError instanceof Error ? fallbackError.message : String(fallbackError),
-            },
-            'Fallback compression also failed, continuing without compression'
-          );
-          return {};
-        }
+        return { messages: finalMessages };
       }
+
+      // No generated messages yet, nothing to compress
+      return {};
     }
 
     return {};
@@ -3219,7 +3179,10 @@ ${output}${structureHintsFormatted}`;
   }
 
   private handleGenerationError(error: unknown, span: Span) {
-    // Clear compressor reference to prevent memory leaks
+    // Clear compressor reference and clean up memory before error
+    if (this.currentCompressor) {
+      this.currentCompressor.partialCleanup();
+    }
     this.currentCompressor = null;
 
     // Don't clean up ToolSession on error - let ToolSessionManager handle cleanup

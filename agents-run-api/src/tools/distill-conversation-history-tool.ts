@@ -207,15 +207,19 @@ Create a comprehensive summary using this exact JSON schema:
 
 🎯 **NO OPERATIONAL DETAILS**: Focus on WHAT was accomplished, not HOW (tools used, compression, etc.)
 
+🎯 **HANDLE TRANSFERS SIMPLY**: Agent transfers/delegations are just routing - don't look for reasons or justifications. Simply note "conversation transferred to [specialist]" if relevant to context.
+
 **Examples of GOOD content:**
 ✅ "User was implementing OAuth2 authentication in React app using Auth0, encountered CORS errors on localhost:3000, resolved by adding domain to Auth0 dashboard allowed origins"
 ✅ "Discovered that the API supports both REST and GraphQL endpoints, with GraphQL providing better performance for complex queries"
 ✅ "Configured webpack dev server with proxy settings to handle API calls during development"
+✅ "Conversation transferred to QA specialist to handle testing questions"
 
 **Examples of BAD content:**
 ❌ "Assistant used search tool to find information"
 ❌ "Multiple tool calls were made"
 ❌ "Artifacts were created for reference"
+❌ "Assistant needed to transfer because user required specialized help" (don't invent reasons for transfers)
 
 **REMEMBER**: This summary is REPLACING the entire conversation history. Include everything essential for context continuation.
 

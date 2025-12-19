@@ -184,6 +184,7 @@ Create/update a summary using this exact JSON schema:
 🎯 **BE CONCRETE**: Use specific details from tool results, not generic descriptions
 🎯 **BE CONCISE**: Keep ALL fields brief - you are compressing to save context, not writing a report
 🎯 **LIMIT NEXT STEPS**: Agent has already done substantial work - suggest minimal follow-up actions only
+🎯 **HANDLE TRANSFERS SIMPLY**: Agent transfers/delegations are just routing - don't look for reasons or justifications. Simply note "conversation transferred to [specialist]" if relevant.
 
 **Examples:**
 ❌ BAD: "Assistant used search tool and created artifacts"
@@ -191,6 +192,9 @@ Create/update a summary using this exact JSON schema:
 
 ❌ BAD: "Tool calls were made to gather information"  
 ✅ GOOD: "Platform includes 10 feature categories: chat widgets, knowledge base, analytics, integrations, theming options"
+
+❌ BAD: "Assistant needed to transfer to QA because user required specialized testing help"
+✅ GOOD: "Conversation transferred to QA specialist"
 
 **Focus on WHAT WAS LEARNED, not HOW IT WAS LEARNED**
 
