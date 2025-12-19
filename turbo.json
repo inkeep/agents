@@ -168,6 +168,10 @@
       "dependsOn": ["build", "lint", "typecheck", "test"],
       "cache": false,
       "outputs": []
+    },
+    "test:e2e": {
+      "dependsOn": ["^build"],
+      "outputs": []
     }
   }
 }

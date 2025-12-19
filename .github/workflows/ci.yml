@@ -188,4 +188,4 @@ jobs:
           TURBO_TEAM: ${{ secrets.TURBO_TEAM }}
 
       - name: Run create-agents E2E tests
-        run: pnpm --filter @inkeep/create-agents test:e2e
+        run: turbo test:e2e

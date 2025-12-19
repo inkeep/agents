@@ -16,6 +16,7 @@
     "prepack": "pnpm sync:licenses && turbo prepack",
     "dev:apis": "turbo dev:apis",
     "test": "turbo test --filter='!agents-cookbook-templates'",
+    "test:e2e": "turbo run test:e2e --filter=@inkeep/create-agents",
     "test:watch": "turbo test:watch",
     "test:coverage": "turbo test:coverage --filter='!agents-cookbook-templates'",
     "coverage": "pnpm test:coverage && node scripts/merge-coverage.mjs && node scripts/generate-badges.mjs",
