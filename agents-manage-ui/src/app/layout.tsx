@@ -16,6 +16,7 @@ import {
 import type { RuntimeConfig } from '@/lib/runtime-config/types';
 import { cn } from '@/lib/utils';
 import './globals.css';
+import { PostHogProvider } from './providers';
 
 const jetBrainsMono = JetBrains_Mono({
   variable: '--font-jetbrains-mono',
@@ -90,12 +91,14 @@ export default function RootLayout({ children }: LayoutProps<'/'>) {
         >
           <NuqsAdapter>
             <RuntimeConfigProvider value={runtimeConfig}>
-              <QueryProvider>
-                <AuthClientProvider>
-                  {children}
-                  <Toaster />
-                </AuthClientProvider>
-              </QueryProvider>
+              <PostHogProvider>
+                <QueryProvider>
+                  <AuthClientProvider>
+                    {children}
+                    <Toaster />
+                  </AuthClientProvider>
+                </QueryProvider>
+              </PostHogProvider>
             </RuntimeConfigProvider>
           </NuqsAdapter>
         </ThemeProvider>

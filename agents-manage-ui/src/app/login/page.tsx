@@ -13,6 +13,7 @@ import { Label } from '@/components/ui/label';
 import { useRuntimeConfig } from '@/contexts/runtime-config-context';
 import { useAuthClient } from '@/lib/auth-client';
 import { getSafeReturnUrl, isValidReturnUrl } from '@/lib/utils/auth-redirect';
+import { usePostHog } from '../providers';
 
 function LoginForm() {
   const router = useRouter();
@@ -21,6 +22,7 @@ function LoginForm() {
   const returnUrl = searchParams.get('returnUrl');
   const authClient = useAuthClient();
   const { PUBLIC_AUTH0_DOMAIN, PUBLIC_GOOGLE_CLIENT_ID } = useRuntimeConfig();
+  const posthog = usePostHog();
 
   // Get the validated return URL for post-login redirect (used for email login)
   const getRedirectUrl = (): string => {
@@ -79,6 +81,15 @@ function LoginForm() {
         setError(result.error.message || 'Sign in failed');
         setIsLoading(false);
         return;
+      }
+
+      // Identify user in analytics after successful login
+      if (result?.data?.user) {
+        const user = result.data.user;
+        posthog?.identify(user.id, {
+          email: user.email,
+          name: user.name,
+        });
       }
 
       // Redirect to the intended destination

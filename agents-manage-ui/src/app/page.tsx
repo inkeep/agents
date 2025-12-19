@@ -9,6 +9,7 @@ import { getPendingInvitations } from '@/lib/actions/invitations';
 import { getUserOrganizations } from '@/lib/actions/user-organizations';
 import { DEFAULT_TENANT_ID } from '@/lib/runtime-config/defaults';
 import { isValidReturnUrl } from '@/lib/utils/auth-redirect';
+import { usePostHog } from './providers';
 
 function HomeContent() {
   const router = useRouter();
@@ -16,8 +17,20 @@ function HomeContent() {
   const { user, session, isLoading } = useAuthSession();
   const [isRedirecting, setIsRedirecting] = useState(false);
   const { PUBLIC_DISABLE_AUTH } = useRuntimeConfig();
+  const posthog = usePostHog();
+  console.log('posthog', posthog);
 
   const tenantId = process.env.NEXT_PUBLIC_TENANT_ID || DEFAULT_TENANT_ID;
+
+  // Identify user in analytics when authenticated (handles OAuth callback)
+  useEffect(() => {
+    if (user && !isLoading) {
+      posthog?.identify(user.id, {
+        email: user.email,
+        name: user.name,
+      });
+    }
+  }, [user, isLoading, posthog]);
 
   useEffect(() => {
     async function handleRedirect() {
