@@ -5,4 +5,5 @@ export default defineConfig({
   ...rootConfig,
   format: ['esm'],
   entry: ['src/**/*.ts', '!**/__tests__', '!**/*.test.ts'],
+  unbundle: true,
 });
