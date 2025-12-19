@@ -153,7 +153,7 @@ const SECTION_DEFINITIONS = {
  * Form configurations mapped by auth mode
  * These are derived from the ApiPublicIntegrationCredentials union type
  */
-export const FORM_CONFIGS: Record<string, FormConfig> = {
+const FORM_CONFIGS: Record<string, FormConfig> = {
   OAUTH1: {
     authMode: 'OAUTH1',
     sections: [SECTION_DEFINITIONS.oauth],

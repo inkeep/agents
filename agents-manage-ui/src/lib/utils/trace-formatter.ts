@@ -65,9 +65,7 @@ function orderObjectKeys<T extends Record<string, any>>(obj: T): T {
 /**
  * Formats conversation detail data into a prettified OTEL trace structure
  */
-export function formatConversationAsPrettifiedTrace(
-  conversation: ConversationDetail
-): PrettifiedTrace {
+function formatConversationAsPrettifiedTrace(conversation: ConversationDetail): PrettifiedTrace {
   const trace: PrettifiedTrace = {
     metadata: {
       conversationId: conversation.conversationId,
@@ -99,7 +97,7 @@ export function formatConversationAsPrettifiedTrace(
 /**
  * Converts the trace to a prettified JSON string
  */
-export function traceToJSON(trace: PrettifiedTrace, indent = 2): string {
+function traceToJSON(trace: PrettifiedTrace, indent = 2): string {
   return JSON.stringify(trace, null, indent);
 }
 

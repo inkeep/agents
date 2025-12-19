@@ -63,7 +63,7 @@ export function buildActivityTree(activities: ActivityItem[]): TreeNode[] {
   return rootNodes;
 }
 
-export function flattenTree(nodes: TreeNode[]): ActivityItem[] {
+function flattenTree(nodes: TreeNode[]): ActivityItem[] {
   const result: ActivityItem[] = [];
 
   function traverse(node: TreeNode) {

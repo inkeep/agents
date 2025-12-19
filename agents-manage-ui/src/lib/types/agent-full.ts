@@ -9,22 +9,16 @@ import { z } from 'zod';
 
 // Import core types and schemas
 import {
-  AgentAgentApiInsertSchema,
   type AgentAgentInsert,
   type AgentApiInsert,
-  AgentApiInsertSchema,
   type FullAgentDefinition as CoreFullAgentDefinition,
-  ErrorResponseSchema,
   type ExternalAgentApiInsert,
   type ExternalAgentDefinition,
   FullAgentDefinitionSchema,
   type FunctionApiInsert,
   type InternalAgentDefinition,
-  ListResponseSchema,
-  SingleResponseSchema,
   TenantParamsSchema,
   type ToolApiInsert,
-  ToolApiInsertSchema,
   type ToolInsert,
 } from '@inkeep/agents-core/client-exports';
 import type { SingleResponse } from './response';
@@ -43,23 +37,12 @@ export type FullAgentDefinition = CoreFullAgentDefinition & {
 export type AgentApi = AgentApiInsert;
 export type AgentAgentApi = AgentAgentInsert;
 export type ToolApi = ToolInsert;
-export const AgentApiSchema = AgentApiInsertSchema;
-export const AgentAgentApiSchema = AgentAgentApiInsertSchema;
-export const ToolApiSchema = ToolApiInsertSchema;
 
 // Re-export types and schemas
-export {
-  ErrorResponseSchema,
-  type ExternalAgentDefinition,
-  FullAgentDefinitionSchema,
-  type InternalAgentDefinition,
-  ListResponseSchema,
-  SingleResponseSchema,
-  TenantParamsSchema,
-};
+export { type ExternalAgentDefinition, FullAgentDefinitionSchema, type InternalAgentDefinition };
 
 // Agent-builder specific parameter schema
-export const AgentIdParamsSchema = TenantParamsSchema.extend({
+const AgentIdParamsSchema = TenantParamsSchema.extend({
   agentId: z.string(),
 });
 

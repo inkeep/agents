@@ -32,7 +32,8 @@
     "directory": "agents-manage-ui"
   },
   "scripts": {
-    "dev": "next -p 3000",
+    "knip": "knip --fix-type exports --include exports",
+    "dev": "next --port 3000",
     "build:sync": "cp -r public .next/standalone/agents-manage-ui && mkdir -p .next/standalone/agents-manage-ui/.next/ && cp -r .next/static .next/standalone/agents-manage-ui/.next/static",
     "build": "next build && pnpm build:sync",
     "start": "node .next/standalone/agents-manage-ui/server.js",
@@ -122,6 +123,7 @@
     "zustand": "^5.0.7"
   },
   "devDependencies": {
+    "knip": "^5.75.1",
     "@svgr/webpack": "^8.1.0",
     "@tailwindcss/postcss": "^4",
     "@testing-library/jest-dom": "^6.8.0",

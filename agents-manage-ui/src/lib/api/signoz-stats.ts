@@ -3040,5 +3040,3 @@ export function getSigNozStatsClient(tenantId?: string): SigNozStatsAPI {
 
   return client;
 }
-
-export { SigNozStatsAPI };
