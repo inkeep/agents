@@ -248,7 +248,8 @@ function StreamMarkdown({ parts }: { parts: any[] }) {
               {part.content}
             </Streamdown>
           );
-        } else if (part.type === 'inline-operation') {
+        }
+        if (part.type === 'inline-operation') {
           const isLast = inlineOpIndex === inlineOperations.length - 1;
           inlineOpIndex++;
           return <InlineEvent key={index} operation={part.operation} isLast={isLast} />;
@@ -414,7 +415,8 @@ export const IkpMessage: FC<IkpMessageProps> = ({
                         <StreamMarkdown parts={group.parts} />
                       </div>
                     );
-                  } else if (group.type === 'data-component') {
+                  }
+                  if (group.type === 'data-component') {
                     const dataComponentId = group.data.id;
                     const dataComponent = dataComponentId
                       ? dataComponentLookup[dataComponentId]
@@ -448,14 +450,52 @@ export const IkpMessage: FC<IkpMessageProps> = ({
                         </div>
                       </div>
                     );
-                  } else if (group.type === 'data-operation') {
+                  }
+                  if (group.type === 'data-operation') {
+                    if (group.data.type === 'tool_call') {
+                      return (
+                        <div key={`operation-${index}`}>
+                          <StreamMarkdown parts={[group]} />
+
+                          {group.data.details.data.needsApproval && (
+                            <button
+                              className="px-4 py-2 bg-blue-500 hover:bg-blue-600 text-white rounded-md transition-colors duration-200 font-medium text-sm"
+                              type="button"
+                              onClick={() => {
+                                // RUN API URL
+                                fetch(`http://localhost:3003/api/tool-approvals`, {
+                                  method: 'POST',
+                                  headers: {
+                                    // Same as chat headers
+                                    'x-inkeep-tenant-id': 'default',
+                                    'x-inkeep-project-id': 'activities-planner',
+                                    'x-inkeep-agent-id': 'activities-planner',
+                                    'Content-Type': 'application/json',
+                                    // Authorization: `Bearer ${process.env.API KEY}`,
+                                  },
+                                  body: JSON.stringify({
+                                    conversationId: group.data.details.data.conversationId,
+                                    toolCallId: group.data.details.data.toolCallId,
+                                    approved: true,
+                                  }),
+                                });
+                              }}
+                            >
+                              Approve {group.data.label}?
+                            </button>
+                          )}
+                        </div>
+                      );
+                    }
+
                     // Handle inline operations in order
                     return (
                       <div key={`operation-${index}`}>
                         <StreamMarkdown parts={[group]} />
                       </div>
                     );
-                  } else if (group.type === 'data-summary') {
+                  }
+                  if (group.type === 'data-summary') {
                     // Handle inline summaries in order
                     return (
                       <div key={`summary-${index}`}>

@@ -319,13 +319,32 @@ export async function getAvailableTemplates(localPrefix?: string): Promise<strin
     return response.filter((item: any) =>
       fs.stat(path.join(fullTemplatePath, item)).then((stat) => stat.isDirectory())
     );
-  } else {
-    // Fetch the list of templates from your repo
-    const response = await fetch(
-      `https://api.github.com/repos/inkeep/agents/contents/agents-cookbook/template-projects`
-    );
-    const contents = await response.json();
-
-    return contents.filter((item: any) => item.type === 'dir').map((item: any) => item.name);
   }
+  // Fetch the list of templates from your repo
+  const response = await fetch(
+    `https://api.github.com/repos/inkeep/agents/contents/agents-cookbook/template-projects`
+  );
+
+  if (!response.ok) {
+    throw new Error(
+      `Failed to fetch templates. Please check your internet connection and try again.`
+    );
+  }
+
+  let contents: any;
+  try {
+    contents = await response.json();
+  } catch (error) {
+    throw new Error(
+      `Failed to parse templates response. Please check your internet connection and try again. ${error}`
+    );
+  }
+
+  if (!Array.isArray(contents)) {
+    throw new Error(
+      'Unexpected response format from templates. Please check your internet connection and try again'
+    );
+  }
+
+  return contents.filter((item: any) => item.type === 'dir').map((item: any) => item.name);
 }

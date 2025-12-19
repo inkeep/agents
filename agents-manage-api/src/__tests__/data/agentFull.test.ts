@@ -6,12 +6,12 @@ import {
   getFullAgent,
   updateFullAgentServerSide,
 } from '@inkeep/agents-core';
+import { createTestProject } from '@inkeep/agents-core/db/test-client';
 import { describe, expect, it, vi } from 'vitest';
 import dbClient from '../../data/db/dbClient';
 import { createTestContextConfigData } from '../utils/testHelpers';
-import { ensureTestProject } from '../utils/testProject';
 import { createTestSubAgentData } from '../utils/testSubAgent';
-import { createTestTenantId } from '../utils/testTenant';
+import { createTestTenantWithOrg } from '../utils/testTenant';
 
 // Mock the logger to reduce noise in tests
 vi.mock('../../logger.js', () => ({
@@ -24,51 +24,6 @@ vi.mock('../../logger.js', () => ({
 }));
 
 describe('Agent Full Service Layer - Unit Tests', () => {
-  // Helper function to create test tool data
-  // const createTestToolData = (id: string, suffix = '') => ({
-  //   id,
-  //   name: `Test Tool${suffix}`,
-  //   config: {
-  //     type: 'mcp',
-  //     mcp: {
-  //       server: {
-  //         url: `http://localhost:300${suffix || '1'}`,
-  //       },
-  //     },
-  //   },
-  //   status: 'unknown' as const,
-  //   capabilities: { tools: true },
-  //   lastHealthCheck: new Date().toISOString(),
-  //   availableTools: [
-  //     {
-  //       name: `testTool${suffix}`,
-  //       description: `Test tool function${suffix}`,
-  //     },
-  //   ],
-  // });
-
-  // Helper function to create test data component data
-  // const createTestDataComponentData = (id: string, suffix = '') => ({
-  //   id,
-  //   name: `Test DataComponent${suffix}`,
-  //   description: `Test data component description${suffix}`,
-  //   props: {
-  //     type: 'object',
-  //     properties: {
-  //       items: {
-  //         type: 'array',
-  //         items: { type: 'string' },
-  //         description: `Test items array${suffix}`,
-  //       },
-  //       title: {
-  //         type: 'string',
-  //         description: `Test title${suffix}`,
-  //       },
-  //     },
-  //     required: ['items'],
-  //   },
-  // });
-
   // Helper function to create full agent data
   const createFullAgentData = (
     agentId?: string,
@@ -137,8 +92,8 @@ describe('Agent Full Service Layer - Unit Tests', () => {
 
   describe('createFullAgent', () => {
     it('should create a basic agent with agents only', async () => {
-      const tenantId = createTestTenantId('service-create-basic');
-      await ensureTestProject(tenantId, 'default');
+      const tenantId = await createTestTenantWithOrg('service-create-basic');
+      await createTestProject(dbClient, tenantId, 'default');
       const projectId = 'default';
 
       // Create a simple agent with just agents (no project-scoped resources)
@@ -180,8 +135,8 @@ describe('Agent Full Service Layer - Unit Tests', () => {
     });
 
     it('should create a complete agent with all entities', async () => {
-      const tenantId = createTestTenantId('service-create');
-      await ensureTestProject(tenantId, 'default');
+      const tenantId = await createTestTenantWithOrg('service-create');
+      await createTestProject(dbClient, tenantId, 'default');
       const projectId = 'default';
 
       const agentData = createFullAgentData();
@@ -213,8 +168,8 @@ describe('Agent Full Service Layer - Unit Tests', () => {
     });
 
     it('should handle agent with single agent and no relationships', async () => {
-      const tenantId = createTestTenantId('service-single-agent');
-      await ensureTestProject(tenantId, 'default');
+      const tenantId = await createTestTenantWithOrg('service-single-agent');
+      await createTestProject(dbClient, tenantId, 'default');
       const projectId = 'default';
 
       const subAgentId = generateId();
@@ -255,8 +210,8 @@ describe('Agent Full Service Layer - Unit Tests', () => {
     });
 
     it('should handle upsert behavior for existing agent', async () => {
-      const tenantId = createTestTenantId('service-upsert');
-      await ensureTestProject(tenantId, 'default');
+      const tenantId = await createTestTenantWithOrg('service-upsert');
+      await createTestProject(dbClient, tenantId, 'default');
       const projectId = 'default';
 
       const agentData = createFullAgentData();
@@ -284,8 +239,8 @@ describe('Agent Full Service Layer - Unit Tests', () => {
     });
 
     it('should create an agent with dataComponent references', async () => {
-      const tenantId = createTestTenantId('service-create-datacomponents');
-      await ensureTestProject(tenantId, 'default');
+      const tenantId = await createTestTenantWithOrg('service-create-datacomponents');
+      await createTestProject(dbClient, tenantId, 'default');
       const projectId = 'default';
 
       const agentData = createFullAgentData(undefined, { includeDataComponents: true });
@@ -308,8 +263,8 @@ describe('Agent Full Service Layer - Unit Tests', () => {
     });
 
     it('should create an agent with external agents', async () => {
-      const tenantId = createTestTenantId('service-create-external');
-      await ensureTestProject(tenantId, 'default');
+      const tenantId = await createTestTenantWithOrg('service-create-external');
+      await createTestProject(dbClient, tenantId, 'default');
       const projectId = 'default';
 
       const agentData = createFullAgentData(undefined, { includeExternalAgents: true });
@@ -334,8 +289,8 @@ describe('Agent Full Service Layer - Unit Tests', () => {
     });
 
     it('should create an agent with context config', async () => {
-      const tenantId = createTestTenantId('service-create-context');
-      await ensureTestProject(tenantId, 'default');
+      const tenantId = await createTestTenantWithOrg('service-create-context');
+      await createTestProject(dbClient, tenantId, 'default');
       const projectId = 'default';
 
       const agentData = createFullAgentData(undefined, { includeContextConfig: true });
@@ -348,8 +303,8 @@ describe('Agent Full Service Layer - Unit Tests', () => {
     });
 
     it('should create an agent with all components (comprehensive test)', async () => {
-      const tenantId = createTestTenantId('service-create-comprehensive');
-      await ensureTestProject(tenantId, 'default');
+      const tenantId = await createTestTenantWithOrg('service-create-comprehensive');
+      await createTestProject(dbClient, tenantId, 'default');
       const projectId = 'default';
 
       const agentData = createFullAgentData(undefined, {
@@ -388,8 +343,8 @@ describe('Agent Full Service Layer - Unit Tests', () => {
 
   describe('getFullAgent', () => {
     it.skip('should retrieve an existing agent', async () => {
-      const tenantId = createTestTenantId('service-get');
-      await ensureTestProject(tenantId, 'default');
+      const tenantId = await createTestTenantWithOrg('service-get');
+      await createTestProject(dbClient, tenantId, 'default');
       const projectId = 'default';
 
       const agentData = createFullAgentData();
@@ -411,8 +366,8 @@ describe('Agent Full Service Layer - Unit Tests', () => {
     });
 
     it.skip('should return null for non-existent agent', async () => {
-      const tenantId = createTestTenantId('service-get-nonexistent');
-      await ensureTestProject(tenantId, 'default');
+      const tenantId = await createTestTenantWithOrg('service-get-nonexistent');
+      await createTestProject(dbClient, tenantId, 'default');
       const projectId = 'default';
 
       const nonExistentId = generateId();
@@ -428,8 +383,8 @@ describe('Agent Full Service Layer - Unit Tests', () => {
   describe('updateFullAgent', () => {
     it.skip('should update an existing agent', async () => {
       // TODO: Update this test to work with new scoped architecture
-      const tenantId = createTestTenantId('service-update');
-      await ensureTestProject(tenantId, 'default');
+      const tenantId = await createTestTenantWithOrg('service-update');
+      await createTestProject(dbClient, tenantId, 'default');
       const projectId = 'default';
 
       const agentData = createFullAgentData();
@@ -457,8 +412,8 @@ describe('Agent Full Service Layer - Unit Tests', () => {
     });
 
     it.skip('should create a new agent if it does not exist', async () => {
-      const tenantId = createTestTenantId('service-update-create');
-      await ensureTestProject(tenantId, 'default');
+      const tenantId = await createTestTenantWithOrg('service-update-create');
+      await createTestProject(dbClient, tenantId, 'default');
       const projectId = 'default';
 
       const agentData = createFullAgentData();
@@ -474,7 +429,7 @@ describe('Agent Full Service Layer - Unit Tests', () => {
 
     // NOTE: ID mismatch validation may have changed in the new implementation
     it.skip('should throw error for ID mismatch', async () => {
-      const tenantId = createTestTenantId('service-update-mismatch');
+      const tenantId = await createTestTenantWithOrg('service-update-mismatch');
       const projectId = 'default';
 
       const agentData = createFullAgentData();
@@ -489,8 +444,8 @@ describe('Agent Full Service Layer - Unit Tests', () => {
     });
 
     it.skip('should handle adding new subAgents in update', async () => {
-      const tenantId = createTestTenantId('service-update-add-sub-agents');
-      await ensureTestProject(tenantId, 'default');
+      const tenantId = await createTestTenantWithOrg('service-update-add-sub-agents');
+      await createTestProject(dbClient, tenantId, 'default');
       const projectId = 'default';
 
       const agentData = createFullAgentData();
@@ -535,8 +490,8 @@ describe('Agent Full Service Layer - Unit Tests', () => {
     });
 
     it.skip('should update agent with dataComponents', async () => {
-      const tenantId = createTestTenantId('service-update-datacomponents');
-      await ensureTestProject(tenantId, 'default');
+      const tenantId = await createTestTenantWithOrg('service-update-datacomponents');
+      await createTestProject(dbClient, tenantId, 'default');
       const projectId = 'default';
 
       const agentData = createFullAgentData();
@@ -569,8 +524,8 @@ describe('Agent Full Service Layer - Unit Tests', () => {
     });
 
     it.skip('should update agent with external agents', async () => {
-      const tenantId = createTestTenantId('service-update-external');
-      await ensureTestProject(tenantId, 'default');
+      const tenantId = await createTestTenantWithOrg('service-update-external');
+      await createTestProject(dbClient, tenantId, 'default');
       const projectId = 'default';
 
       const agentData = createFullAgentData();
@@ -603,8 +558,8 @@ describe('Agent Full Service Layer - Unit Tests', () => {
     });
 
     it.skip('should update agent removing dataComponents', async () => {
-      const tenantId = createTestTenantId('service-update-remove-datacomponents');
-      await ensureTestProject(tenantId, 'default');
+      const tenantId = await createTestTenantWithOrg('service-update-remove-datacomponents');
+      await createTestProject(dbClient, tenantId, 'default');
       const projectId = 'default';
 
       const agentData = createFullAgentData(undefined, { includeDataComponents: true });
@@ -632,8 +587,8 @@ describe('Agent Full Service Layer - Unit Tests', () => {
     });
 
     it.skip('should handle complex update with all components', async () => {
-      const tenantId = createTestTenantId('service-update-comprehensive');
-      await ensureTestProject(tenantId, 'default');
+      const tenantId = await createTestTenantWithOrg('service-update-comprehensive');
+      await createTestProject(dbClient, tenantId, 'default');
       const projectId = 'default';
 
       const initialAgentData = createFullAgentData();
@@ -663,8 +618,8 @@ describe('Agent Full Service Layer - Unit Tests', () => {
 
   describe('Validation', () => {
     it.skip('should validate tool references in subAgents', async () => {
-      const tenantId = createTestTenantId('service-validate-tools');
-      await ensureTestProject(tenantId, 'default');
+      const tenantId = await createTestTenantWithOrg('service-validate-tools');
+      await createTestProject(dbClient, tenantId, 'default');
       const projectId = 'default';
 
       const agentData = createFullAgentData();
@@ -681,8 +636,8 @@ describe('Agent Full Service Layer - Unit Tests', () => {
     });
 
     it.skip('should validate dataComponent references in subAgents', async () => {
-      const tenantId = createTestTenantId('service-validate-datacomponents');
-      await ensureTestProject(tenantId, 'default');
+      const tenantId = await createTestTenantWithOrg('service-validate-datacomponents');
+      await createTestProject(dbClient, tenantId, 'default');
       const projectId = 'default';
 
       const agentData = createFullAgentData();
@@ -699,8 +654,8 @@ describe('Agent Full Service Layer - Unit Tests', () => {
     });
 
     it.skip('should validate default subAgent exists', async () => {
-      const tenantId = createTestTenantId('service-validate-default-subAgent');
-      await ensureTestProject(tenantId, 'default');
+      const tenantId = await createTestTenantWithOrg('service-validate-default-subAgent');
+      await createTestProject(dbClient, tenantId, 'default');
       const projectId = 'default';
 
       const agentData = createFullAgentData();
@@ -714,8 +669,8 @@ describe('Agent Full Service Layer - Unit Tests', () => {
     });
 
     it.skip('should validate subAgent relationship references', async () => {
-      const tenantId = createTestTenantId('service-validate-relationships');
-      await ensureTestProject(tenantId, 'default');
+      const tenantId = await createTestTenantWithOrg('service-validate-relationships');
+      await createTestProject(dbClient, tenantId, 'default');
       const projectId = 'default';
 
       const agentData = createFullAgentData();
@@ -734,8 +689,8 @@ describe('Agent Full Service Layer - Unit Tests', () => {
 
   describe('deleteFullAgent', () => {
     it.skip('should delete an existing agent', async () => {
-      const tenantId = createTestTenantId('service-delete');
-      await ensureTestProject(tenantId, 'default');
+      const tenantId = await createTestTenantWithOrg('service-delete');
+      await createTestProject(dbClient, tenantId, 'default');
       const projectId = 'default';
 
       const agentData = createFullAgentData();
@@ -763,8 +718,8 @@ describe('Agent Full Service Layer - Unit Tests', () => {
     });
 
     it.skip('should return false for non-existent agent', async () => {
-      const tenantId = createTestTenantId('service-delete-nonexistent');
-      await ensureTestProject(tenantId, 'default');
+      const tenantId = await createTestTenantWithOrg('service-delete-nonexistent');
+      await createTestProject(dbClient, tenantId, 'default');
       const projectId = 'default';
 
       const nonExistentId = generateId();
@@ -777,8 +732,8 @@ describe('Agent Full Service Layer - Unit Tests', () => {
     });
 
     it.skip('should handle deletion of agent with complex relationships', async () => {
-      const tenantId = createTestTenantId('service-delete-complex');
-      await ensureTestProject(tenantId, 'default');
+      const tenantId = await createTestTenantWithOrg('service-delete-complex');
+      await createTestProject(dbClient, tenantId, 'default');
       const projectId = 'default';
 
       const agentData = createFullAgentData();
@@ -807,8 +762,8 @@ describe('Agent Full Service Layer - Unit Tests', () => {
 
   describe('Error handling', () => {
     it.skip('should handle invalid agent data', async () => {
-      const tenantId = createTestTenantId('service-error');
-      await ensureTestProject(tenantId, 'default');
+      const tenantId = await createTestTenantWithOrg('service-error');
+      await createTestProject(dbClient, tenantId, 'default');
       const projectId = 'default';
 
       // Create agent data with empty subAgents object
@@ -831,8 +786,8 @@ describe('Agent Full Service Layer - Unit Tests', () => {
 
   describe('Parallel operations', () => {
     it.skip('should handle concurrent agent operations on same tenant', async () => {
-      const tenantId = createTestTenantId('service-concurrent');
-      await ensureTestProject(tenantId, 'default');
+      const tenantId = await createTestTenantWithOrg('service-concurrent');
+      await createTestProject(dbClient, tenantId, 'default');
       const projectId = 'default';
 
       const agent1Data = createFullAgentData();
@@ -861,8 +816,8 @@ describe('Agent Full Service Layer - Unit Tests', () => {
     });
 
     it.skip('should handle concurrent operations on same agent', async () => {
-      const tenantId = createTestTenantId('service-concurrent-same');
-      await ensureTestProject(tenantId, 'default');
+      const tenantId = await createTestTenantWithOrg('service-concurrent-same');
+      await createTestProject(dbClient, tenantId, 'default');
       const projectId = 'default';
 
       const agentData = createFullAgentData();

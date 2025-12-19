@@ -406,7 +406,8 @@ export const createFullAgentServerSide =
             agentToolPromises.push(
               (async () => {
                 try {
-                  const { toolId, toolSelection, headers, agentToolRelationId } = canUseItem;
+                  const { toolId, toolSelection, headers, toolPolicies, agentToolRelationId } =
+                    canUseItem;
                   const isFunctionTool = typed.functionTools && toolId in typed.functionTools;
 
                   logger.info(
@@ -438,8 +439,14 @@ export const createFullAgentServerSide =
                       scopes: { tenantId, projectId, agentId: finalAgentId },
                       subAgentId,
                       toolId,
-                      selectedTools: toolSelection || undefined,
-                      headers: headers || undefined,
+                      // Preserve null vs undefined distinction:
+                      // - null = all tools (updates DB to NULL)
+                      // - undefined = don't change (Drizzle skips field)
+                      // - [] = zero tools
+                      // - ['tool1', ...] = specific tools
+                      selectedTools: toolSelection,
+                      headers: headers,
+                      toolPolicies: toolPolicies,
                       relationId: agentToolRelationId,
                     });
                     logger.info(
@@ -1218,8 +1225,9 @@ export const updateFullAgentServerSide =
                   eq(subAgentToolRelations.agentId, finalAgentId),
                   eq(subAgentToolRelations.subAgentId, subAgentId)
                 )
-              );
-            deletedCount = result.rowsAffected || 0;
+              )
+              .returning();
+            deletedCount = result.length;
           } else {
             const result = await db
               .delete(subAgentToolRelations)
@@ -1231,8 +1239,9 @@ export const updateFullAgentServerSide =
                   eq(subAgentToolRelations.subAgentId, subAgentId),
                   not(inArray(subAgentToolRelations.id, Array.from(incomingRelationshipIds)))
                 )
-              );
-            deletedCount = result.rowsAffected || 0;
+              )
+              .returning();
+            deletedCount = result.length;
           }
 
           if (deletedCount > 0) {
@@ -1251,7 +1260,8 @@ export const updateFullAgentServerSide =
             subAgentToolPromises.push(
               (async () => {
                 try {
-                  const { toolId, toolSelection, headers, agentToolRelationId } = canUseItem;
+                  const { toolId, toolSelection, headers, toolPolicies, agentToolRelationId } =
+                    canUseItem;
 
                   const isFunctionTool =
                     typedAgentDefinition.functionTools &&
@@ -1278,8 +1288,14 @@ export const updateFullAgentServerSide =
                       scopes: { tenantId, projectId, agentId: finalAgentId },
                       subAgentId,
                       toolId,
-                      selectedTools: toolSelection || undefined,
-                      headers: headers || undefined,
+                      // Preserve null vs undefined distinction:
+                      // - null = all tools (updates DB to NULL)
+                      // - undefined = don't change (Drizzle skips field)
+                      // - [] = zero tools
+                      // - ['tool1', ...] = specific tools
+                      selectedTools: toolSelection,
+                      headers: headers,
+                      toolPolicies: toolPolicies,
                       relationId: agentToolRelationId,
                     });
                     logger.info(

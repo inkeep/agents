@@ -146,6 +146,7 @@ export const deleteApiKey =
       });
 
       if (!existingKey) {
+        console.error('API key not found', { params });
         return false;
       }
 

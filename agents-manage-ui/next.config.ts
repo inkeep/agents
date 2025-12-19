@@ -13,6 +13,9 @@ if (process.env.NODE_ENV !== 'production') {
 }
 
 const nextConfig: NextConfig = {
+  env: {
+    NEXT_PUBLIC_CI: process.env.CI,
+  },
   output: 'standalone',
   turbopack: {
     rules: {
@@ -22,42 +25,11 @@ const nextConfig: NextConfig = {
       },
     },
   },
-  webpack(config) {
-    const { test: _test, ...imageLoaderOptions } = config.module.rules.find(
-      // @ts-expect-error -- fixme
-      (rule) => rule.test?.test?.('.svg')
-    );
-    config.module.rules.push({
-      test: /\.svg$/,
-      oneOf: [
-        {
-          // to avoid conflicts with default Next.js svg loader we only match images with resourceQuery ?svgr
-          resourceQuery: /svgr/,
-          use: ['@svgr/webpack'],
-        },
-        imageLoaderOptions,
-      ],
-    });
-    return config;
-  },
-  eslint: {
-    // Disable ESLint during builds on Vercel to avoid deployment failures
-    ignoreDuringBuilds: true,
-  },
-  typescript: {
-    ignoreBuildErrors: process.env.NEXTJS_IGNORE_TYPECHECK === 'true',
-  },
   images: {
     // Allow all external image domains since users can provide any URL
     remotePatterns: [
-      {
-        protocol: 'https',
-        hostname: '**',
-      },
-      {
-        protocol: 'http',
-        hostname: '**',
-      },
+      { protocol: 'https', hostname: '**' },
+      { protocol: 'http', hostname: '**' },
     ],
   },
 };

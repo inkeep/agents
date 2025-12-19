@@ -82,11 +82,13 @@ export function createApiError({
   message,
   instance,
   requestId,
+  extensions,
 }: {
   code: ErrorCodes;
   message: string;
   instance?: string;
   requestId?: string;
+  extensions?: Record<string, unknown>;
 }): HTTPException {
   const status = errorCodeToHttpStatus[code];
   const title = getTitleFromCode(code);
@@ -106,6 +108,7 @@ export function createApiError({
   const responseBody = {
     ...problemDetails,
     error: { code, message: errorMessage },
+    ...(extensions && extensions),
   };
 
   const res = new Response(JSON.stringify(responseBody), {
@@ -261,7 +264,7 @@ export const errorSchemaFactory = (code: ErrorCodes, description: string) => ({
           //   description: "A URI reference that identifies the problem type.",
           //   example: `${ERROR_DOCS_BASE_URL}#${code}`,
           // }),
-          status: z.literal(errorCodeToHttpStatus[code]).openapi({
+          status: z.number().int().openapi({
             description: 'The HTTP status code.',
             example: errorCodeToHttpStatus[code],
           }),

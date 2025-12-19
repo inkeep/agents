@@ -1,149 +1,70 @@
-# create-agents
+## Launch your first agent
 
-Create an Inkeep Agent Framework directory with multi-service architecture.
+### Prerequisites
 
-## Quick Start
+Before getting started, ensure you have the following installed on your system:
+
+- [Node.js](https://nodejs.org/en/download/) version 22 or higher
+- [Docker](https://docs.docker.com/get-docker/)
+- [pnpm](https://pnpm.io/installation) version 10 or higher
+
+You can verify by running:
 
 ```bash
-# Interactive mode
-npx create-agents
-
-# With directory name
-npx create-agents my-agent-directory
-
-# With options
-npx create-agents my-agent-directory  --project-id my-project --openai-key sk-... --anthropic-key sk-ant-...
+node --version
+pnpm --version
+docker --version
 ```
 
-## Usage
+### Step 1: Create a new agents project
 
-`@inkeep/create-agents` is a wrapper around the Inkeep CLI's `create` command that sets up a complete Agent Framework directory with:
+Run the quickstart script on a target folder:
 
-### Interactive Mode
-Run without arguments for an interactive setup experience:
 ```bash
-npx create-agents
+npx @inkeep/create-agents my-agents
 ```
 
-You'll be prompted for:
-- Directory name
-- Tenant ID
-- Project ID  
-- Anthropic API key (recommended)
-- OpenAI API key (optional)
+Navigate to the folder
 
-### Direct Mode
-Specify options directly:
 ```bash
-pnpm create-agents my-agent-directory --project-id my-project-id --anthropic-key sk-ant-... --openai-key sk-...
+cd my-agents
 ```
 
-## Options
+Open the folder using your coding editor. To open with Cursor, you can run `cursor .`
 
-- `--project-id <project-id>` - Project identifier for your agents
-- `--openai-key <openai-key>` - OpenAI API key (optional)
-- `--anthropic-key <anthropic-key>` - Anthropic API key (recommended)
+### Step 2: Run the setup script
 
-## What's Created
+Ensure Docker Desktop (or Docker daemon) is running before running the setup script.
 
-After running `@inkeep/create-agents`, you'll have a complete Agent Framework Directory:
-
-```
-my-agent-directory/
-├── src/
-│   └── <project-id>/           # Agent configurations
-│       ├── hello-agent.ts      # Example agent configuration
-│       ├── inkeep.config.ts    # Inkeep CLI configuration
-│       └── .env                # CLI environment variables
-├── apps/
-│   ├── manage-api/             # Manage API service
-│   │   ├── src/index.ts        # API server entry point
-│   │   ├── package.json        # Service dependencies
-│   │   ├── tsconfig.json       # TypeScript config
-│   │   └── .env                # Service environment
-│   ├── run-api/                # Run API service  
-│   │   ├── src/index.ts        # API server entry point
-│   │   ├── package.json        # Service dependencies
-│   │   ├── tsconfig.json       # TypeScript config
-│   │   └── .env                # Service environment
-│   └── shared/                 # Shared code
-│       └── credential-stores.ts # Credential store config
-├── package.json                # Root package with workspaces
-├── turbo.json                  # Turbo build configuration
-├── drizzle.config.ts           # Database configuration
-├── biome.json                  # Linting and formatting
-├── .env                        # Root environment variables
-├── .env.example                # Environment template
-├── .gitignore                  # Git ignore rules
-└── README.md                   # Project documentation
-```
-
-## Next Steps
-
-1. **Navigate to your directory:**
-   ```bash
-   cd my-agent-directory
-   ```
-
-2. **Start the services:**
-   ```bash
-   # Start both Manage API and Run API
-   pnpm dev
-   ```
-
-3. **In a new terminal, start the Manage UI:**
-   ```bash
-   inkeep dev
-   ```
-
-4. **Deploy your project:**
-   ```bash
-   cd src/<project-id>/
-   pnpm inkeep push
-   ```
-
-## Available Services
-
-After setup, you'll have access to:
-
-- **Manage API** (Port 3002): Agent configuration and management
-- **Run API** (Port 3003): Agent execution and chat processing  
-- **Manage UI** (Port 3000): Visual agent builder (via `npx inkeep dev`)
-
-## Commands Available in Your Directory
-
-- `pnpm dev` - Start both API services with hot reload
-- `pnpm db:migrate` - Apply database migrations
-- `inkeep dev` - Start the Manage UI
-- `inkeep push` - Deploy project configurations
-
-## Environment Variables
-
-The directory includes multiple environment files:
-
-### Root `.env` (shared configuration)
 ```bash
-# AI Provider Keys
-ANTHROPIC_API_KEY=your-anthropic-key-here
-OPENAI_API_KEY=your-openai-key-here
-
-# Service Ports
-MANAGE_API_PORT=3002
-RUN_API_PORT=3003
-
-# Database
-DB_FILE_NAME=file:./local.db
-
-# Environment
-ENVIRONMENT=development
-LOG_LEVEL=debug
+pnpm setup-dev
 ```
 
-### Service-specific `.env` files
-- `apps/manage-api/.env` - Manage API configuration
-- `apps/run-api/.env` - Run API configuration  
-- `src/<project-id>/.env` - CLI configuration
+Or if you are using a cloud database, you can skip the docker database startup by running:
 
-## Learn More
+```bash
+pnpm setup-dev --skip-docker
+```
 
-- 📚 [Documentation](https://docs.inkeep.com)
+Make sure your DATABASE_URL environment variable is configured for your cloud database.
+
+### Step 3: Launch the dev environment
+
+```bash
+pnpm dev
+```
+
+The Visual Builder will auto-open at http://localhost:3000.
+
+### Step 4: Chat with your agent
+
+Navigate to the **Activities Planner** agent at http://localhost:3000 and ask about fun activities at a location of your choice:
+
+![Chat with your agent](https://docs.inkeep.com/gifs/activities-planner.gif) 
+
+### Next steps
+
+- Learn about [inkeep push / pull](https://docs.inkeep.com/get-started/push-pull) so you can go from `SDK -> Visual Builder` and `Visual Builder -> SDK`.
+- Follow our [meeting prep agent tutorial](https://docs.inkeep.com/tutorials/agents/meeting-prep-assistant) to create an agent using the Visual Builder.
+- Follow our [fact finder agent tutorial](https://docs.inkeep.com/tutorials/agents/fact-finder) to create an agent using the TypeScript SDK.
+- Install the [Inkeep MCP](https://docs.inkeep.com/get-started/inkeep-mcp) in your IDE to enable AI coding assistants to "vibe code" your Inkeep agents.

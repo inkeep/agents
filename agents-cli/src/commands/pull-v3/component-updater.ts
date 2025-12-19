@@ -10,10 +10,13 @@ import {
   readdirSync,
   readFileSync,
   statSync,
+  symlinkSync,
+  unlinkSync,
   writeFileSync,
 } from 'node:fs';
-import { basename, dirname, extname, join } from 'node:path';
+import { basename, dirname, extname, join, relative, resolve } from 'node:path';
 import type { FullProjectDefinition } from '@inkeep/agents-core';
+import { generateText } from 'ai';
 import chalk from 'chalk';
 import { generateAgentFile } from './components/agent-generator';
 import { generateArtifactComponentFile } from './components/artifact-component-generator';
@@ -32,6 +35,7 @@ import type { ProjectComparison } from './project-comparator';
 import { validateTempDirectory } from './project-validator';
 import type { ComponentInfo, ComponentRegistry } from './utils/component-registry';
 import { findSubAgentWithParent } from './utils/component-registry';
+import { getAvailableModel } from './utils/model-provider-detector';
 
 interface ComponentUpdateResult {
   componentId: string;
@@ -44,7 +48,8 @@ interface ComponentUpdateResult {
 }
 
 /**
- * Copy entire project to temp directory
+ * Copy entire project to temp directory, including symlinks to parent files
+ * that might be imported (e.g., ../../env.ts)
  */
 export function copyProjectToTemp(projectRoot: string, tempDirName: string): void {
   const tempDir = join(projectRoot, tempDirName);
@@ -72,6 +77,532 @@ export function copyProjectToTemp(projectRoot: string, tempDirName: string): voi
   }
 
   copyRecursively(projectRoot, tempDir);
+
+  // Create symlinks for parent directories that might be imported
+  // This handles cases like ../../env.ts being imported from project files
+  createParentSymlinks(projectRoot, tempDir);
+}
+
+/**
+ * Create symlinks in the temp directory for parent files that might be imported
+ * Scans project files for parent imports (../) and creates appropriate symlinks
+ */
+function createParentSymlinks(projectRoot: string, tempDir: string): void {
+  const parentImports = findParentImports(tempDir);
+
+  for (const parentPath of parentImports) {
+    // Calculate the actual source path
+    const sourcePath = resolve(projectRoot, parentPath);
+
+    // Skip if source doesn't exist
+    if (!existsSync(sourcePath)) continue;
+
+    // Calculate target path in temp directory
+    const targetPath = join(tempDir, parentPath);
+
+    // Skip if already exists
+    if (existsSync(targetPath)) continue;
+
+    // Create parent directories if needed
+    const targetDir = dirname(targetPath);
+    mkdirSync(targetDir, { recursive: true });
+
+    try {
+      // Create symlink to the actual file/directory
+      symlinkSync(sourcePath, targetPath);
+    } catch {
+      // If symlink fails (e.g., on Windows), try copying instead
+      try {
+        const stat = statSync(sourcePath);
+        if (stat.isFile()) {
+          copyFileSync(sourcePath, targetPath);
+        }
+      } catch {
+        // Ignore if we can't create symlink or copy
+      }
+    }
+  }
+}
+
+/**
+ * Find all parent imports (../) in TypeScript files within a directory
+ */
+function findParentImports(dir: string): string[] {
+  const parentImports = new Set<string>();
+  const importRegex = /(?:from\s+['"]|import\s+['"]|require\s*\(\s*['"])(\.\.[^'"]+)['"]/g;
+
+  function scanDir(currentDir: string): void {
+    if (!existsSync(currentDir)) return;
+
+    try {
+      const entries = readdirSync(currentDir);
+
+      for (const entry of entries) {
+        if (entry === 'node_modules' || entry.startsWith('.temp-')) continue;
+
+        const fullPath = join(currentDir, entry);
+        const stat = statSync(fullPath);
+
+        if (stat.isDirectory()) {
+          scanDir(fullPath);
+        } else if (stat.isFile() && /\.[tj]sx?$/.test(entry)) {
+          const content = readFileSync(fullPath, 'utf8');
+          let match;
+
+          while ((match = importRegex.exec(content)) !== null) {
+            const importPath = match[1];
+            // Resolve the import relative to the file's directory
+            const fileDir = dirname(fullPath);
+            const relativeToDirRoot = relative(dir, fileDir);
+            const resolvedImport = join(relativeToDirRoot, importPath);
+
+            // Only add if it goes outside the temp directory (starts with ..)
+            if (resolvedImport.startsWith('..')) {
+              // Add both .ts and the bare path
+              parentImports.add(resolvedImport);
+              if (!resolvedImport.endsWith('.ts') && !resolvedImport.endsWith('.js')) {
+                parentImports.add(resolvedImport + '.ts');
+              }
+            }
+          }
+        }
+      }
+    } catch {
+      // Ignore errors scanning directories
+    }
+  }
+
+  scanDir(dir);
+  return Array.from(parentImports);
+}
+
+/**
+ * Check for stale components and prompt user for cleanup permission
+ */
+export async function checkAndPromptForStaleComponentCleanup(
+  projectRoot: string,
+  remoteProject: FullProjectDefinition,
+  localRegistry: ComponentRegistry
+): Promise<boolean> {
+  // Get stale components (same logic as cleanup function)
+  const remoteComponentIds = new Set<string>();
+
+  // Add all remote component IDs (same logic as cleanupStaleComponents)
+  if (remoteProject.agents) {
+    Object.keys(remoteProject.agents).forEach((id) => remoteComponentIds.add(id));
+  }
+  if (remoteProject.tools) {
+    Object.keys(remoteProject.tools).forEach((id) => remoteComponentIds.add(id));
+  }
+  if (remoteProject.functionTools) {
+    Object.keys(remoteProject.functionTools).forEach((id) => remoteComponentIds.add(id));
+  }
+  if (remoteProject.functions) {
+    Object.keys(remoteProject.functions).forEach((id) => remoteComponentIds.add(id));
+  }
+  if (remoteProject.dataComponents) {
+    Object.keys(remoteProject.dataComponents).forEach((id) => remoteComponentIds.add(id));
+  }
+  if (remoteProject.artifactComponents) {
+    Object.keys(remoteProject.artifactComponents).forEach((id) => remoteComponentIds.add(id));
+  }
+  if (remoteProject.credentialReferences) {
+    Object.keys(remoteProject.credentialReferences).forEach((id) => remoteComponentIds.add(id));
+  }
+  if (remoteProject.externalAgents) {
+    Object.keys(remoteProject.externalAgents).forEach((id) => remoteComponentIds.add(id));
+  }
+
+  // Environments (if they exist as separate entities)
+  if ((remoteProject as any).environments) {
+    Object.keys((remoteProject as any).environments).forEach((id) => remoteComponentIds.add(id));
+  }
+
+  // Headers (if they exist as separate entities)
+  if ((remoteProject as any).headers) {
+    Object.keys((remoteProject as any).headers).forEach((id) => remoteComponentIds.add(id));
+  }
+
+  // Models - project level
+  if (remoteProject.models) {
+    remoteComponentIds.add('project'); // models:project component
+  }
+
+  // Project component (the project itself)
+  if (remoteProject.name || remoteProject.description) {
+    remoteComponentIds.add(remoteProject.name || 'project');
+  }
+
+  // Add nested components within agents
+  if (remoteProject.agents) {
+    Object.values(remoteProject.agents).forEach((agent) => {
+      if (agent.subAgents) {
+        Object.keys(agent.subAgents).forEach((id) => remoteComponentIds.add(id));
+
+        // Check for function tools within each sub-agent
+        Object.values(agent.subAgents).forEach((subAgent: any) => {
+          if (subAgent.functionTools) {
+            Object.keys(subAgent.functionTools).forEach((id) => remoteComponentIds.add(id));
+          }
+          if (subAgent.tools) {
+            Object.keys(subAgent.tools).forEach((id) => remoteComponentIds.add(id));
+          }
+        });
+      }
+      if (agent.contextConfig && agent.contextConfig.id) {
+        remoteComponentIds.add(agent.contextConfig.id);
+        if (agent.contextConfig.contextVariables) {
+          Object.values(agent.contextConfig.contextVariables).forEach((variable: any) => {
+            if (variable && typeof variable === 'object' && variable.id) {
+              remoteComponentIds.add(variable.id);
+            }
+          });
+        }
+
+        // Headers within context configs (if any)
+        if ((agent.contextConfig as any).headers) {
+          Object.keys((agent.contextConfig as any).headers).forEach((id) =>
+            remoteComponentIds.add(id)
+          );
+        }
+      }
+
+      // Status components
+      if ((agent as any).statusUpdates?.statusComponents) {
+        (agent as any).statusUpdates.statusComponents.forEach((statusComp: any) => {
+          const statusCompId = statusComp.type || statusComp.id;
+          if (statusCompId) {
+            remoteComponentIds.add(statusCompId);
+          }
+        });
+      }
+
+      // Agent-level models (if any)
+      if (agent.models) {
+        remoteComponentIds.add(`${agent.id || 'unknown'}-models`);
+      }
+    });
+  }
+
+  // Find stale components (excluding the project root itself)
+  const staleComponents: ComponentInfo[] = [];
+  for (const component of localRegistry.getAllComponents()) {
+    // Skip the project component itself - it's the root and should never be "stale"
+    if (component.type === 'project') {
+      continue;
+    }
+    if (!remoteComponentIds.has(component.id)) {
+      staleComponents.push(component);
+    }
+  }
+
+  if (staleComponents.length === 0) {
+    return false; // No cleanup needed
+  }
+
+  // Show stale components to user with clearer formatting
+  console.log(
+    chalk.yellow(
+      `\n🧹 Found ${staleComponents.length} stale component(s) that don't exist in remote project:`
+    )
+  );
+  staleComponents.forEach((comp) => {
+    // Format type for better readability (e.g., "agents" -> "Agent", "tools" -> "Tool")
+    const typeLabel = comp.type.replace(/s$/, '').replace(/^./, (c) => c.toUpperCase());
+    console.log(chalk.gray(`   • ${typeLabel}: ${chalk.cyan(comp.id)}`));
+    console.log(chalk.gray(`     └─ File: ${comp.filePath}`));
+  });
+
+  console.log(
+    chalk.cyan(`\n❓ Would you like to remove these stale components from your project?`)
+  );
+  console.log(chalk.green(`   [Y] Yes - Clean up stale components`));
+  console.log(chalk.red(`   [N] No - Keep existing components`));
+
+  return new Promise<boolean>((resolve) => {
+    // Clean up any existing listeners first to prevent leaks
+    process.stdin.removeAllListeners('data');
+    process.stdin.removeAllListeners('keypress');
+    process.stdin.removeAllListeners('end');
+
+    // Ensure stdin is properly configured
+    if (process.stdin.isTTY) {
+      process.stdin.setRawMode(true);
+    }
+    process.stdin.resume();
+    process.stdin.setEncoding('utf8');
+
+    const onKeypress = (key: string) => {
+      // Clean up immediately to prevent leaks
+      process.stdin.removeAllListeners('data');
+      process.stdin.removeAllListeners('keypress');
+      process.stdin.removeAllListeners('end');
+      if (process.stdin.isTTY) {
+        process.stdin.setRawMode(false);
+      }
+      process.stdin.pause();
+
+      const normalizedKey = key.toLowerCase();
+      if (normalizedKey === 'y') {
+        console.log(chalk.green(`\n✅ Selected: Yes - Will clean up stale components`));
+        resolve(true);
+      } else if (normalizedKey === 'n') {
+        console.log(chalk.yellow(`\n❌ Selected: No - Keeping existing components`));
+        resolve(false);
+      } else {
+        console.log(chalk.red(`\n❌ Invalid key: "${key}". Skipping cleanup.`));
+        resolve(false);
+      }
+    };
+
+    process.stdin.once('data', onKeypress);
+    process.stdout.write(chalk.cyan('\nPress [Y] for Yes or [N] for No: '));
+  });
+}
+
+/**
+ * Clean up stale components that don't exist in remote project
+ * @param projectRoot - Root project directory
+ * @param tempDirName - Temp directory name (empty string = operate on original project)
+ * @param remoteProject - Remote project definition
+ * @param localRegistry - Local component registry
+ */
+export async function cleanupStaleComponents(
+  projectRoot: string,
+  tempDirName: string,
+  remoteProject: FullProjectDefinition,
+  localRegistry: ComponentRegistry
+): Promise<void> {
+  const tempDir = join(projectRoot, tempDirName);
+
+  // Get all component IDs that exist in remote project
+  const remoteComponentIds = new Set<string>();
+
+  // Add ALL remote component IDs from ALL possible locations
+
+  // Top-level components
+  if (remoteProject.agents) {
+    Object.keys(remoteProject.agents).forEach((id) => remoteComponentIds.add(id));
+  }
+  if (remoteProject.tools) {
+    Object.keys(remoteProject.tools).forEach((id) => remoteComponentIds.add(id));
+  }
+  if (remoteProject.functionTools) {
+    Object.keys(remoteProject.functionTools).forEach((id) => remoteComponentIds.add(id));
+  }
+  if (remoteProject.functions) {
+    Object.keys(remoteProject.functions).forEach((id) => remoteComponentIds.add(id));
+  }
+  if (remoteProject.dataComponents) {
+    Object.keys(remoteProject.dataComponents).forEach((id) => remoteComponentIds.add(id));
+  }
+  if (remoteProject.artifactComponents) {
+    Object.keys(remoteProject.artifactComponents).forEach((id) => remoteComponentIds.add(id));
+  }
+  if (remoteProject.credentialReferences) {
+    Object.keys(remoteProject.credentialReferences).forEach((id) => remoteComponentIds.add(id));
+  }
+  if (remoteProject.externalAgents) {
+    Object.keys(remoteProject.externalAgents).forEach((id) => remoteComponentIds.add(id));
+  }
+
+  // Environments (if they exist as separate entities)
+  if ((remoteProject as any).environments) {
+    Object.keys((remoteProject as any).environments).forEach((id) => remoteComponentIds.add(id));
+  }
+
+  // Headers (if they exist as separate entities)
+  if ((remoteProject as any).headers) {
+    Object.keys((remoteProject as any).headers).forEach((id) => remoteComponentIds.add(id));
+  }
+
+  // Models - project level
+  if (remoteProject.models) {
+    remoteComponentIds.add('project'); // models:project component
+  }
+
+  // Project component (the project itself)
+  if (remoteProject.name || remoteProject.description) {
+    remoteComponentIds.add(remoteProject.name || 'project');
+  }
+
+  // Nested components within agents
+  if (remoteProject.agents) {
+    Object.values(remoteProject.agents).forEach((agent) => {
+      // Sub-agents
+      if (agent.subAgents) {
+        Object.keys(agent.subAgents).forEach((id) => remoteComponentIds.add(id));
+
+        // Check for function tools within each sub-agent
+        Object.values(agent.subAgents).forEach((subAgent: any) => {
+          if (subAgent.functionTools) {
+            Object.keys(subAgent.functionTools).forEach((id) => remoteComponentIds.add(id));
+          }
+          if (subAgent.tools) {
+            Object.keys(subAgent.tools).forEach((id) => remoteComponentIds.add(id));
+          }
+        });
+      }
+
+      // Context configs
+      if (agent.contextConfig && agent.contextConfig.id) {
+        remoteComponentIds.add(agent.contextConfig.id);
+
+        // Fetch definitions within context configs
+        if (agent.contextConfig.contextVariables) {
+          Object.values(agent.contextConfig.contextVariables).forEach((variable: any) => {
+            if (variable && typeof variable === 'object' && variable.id) {
+              remoteComponentIds.add(variable.id);
+            }
+          });
+        }
+
+        // Headers within context configs (if any)
+        if ((agent.contextConfig as any).headers) {
+          Object.keys((agent.contextConfig as any).headers).forEach((id) =>
+            remoteComponentIds.add(id)
+          );
+        }
+      }
+
+      // Status components
+      if ((agent as any).statusUpdates?.statusComponents) {
+        (agent as any).statusUpdates.statusComponents.forEach((statusComp: any) => {
+          const statusCompId = statusComp.type || statusComp.id;
+          if (statusCompId) {
+            remoteComponentIds.add(statusCompId);
+          }
+        });
+      }
+
+      // Agent-level models (if any)
+      if (agent.models) {
+        remoteComponentIds.add(`${agent.id || 'unknown'}-models`);
+      }
+    });
+  }
+
+  const allLocalComponents = localRegistry.getAllComponents();
+
+  // Get all local components that don't exist remotely (stale components)
+  // Skip the project component itself - it's the root and should never be "stale"
+  const staleComponents: ComponentInfo[] = [];
+  for (const component of localRegistry.getAllComponents()) {
+    if (component.type === 'project') {
+      continue;
+    }
+    if (!remoteComponentIds.has(component.id)) {
+      staleComponents.push(component);
+    }
+  }
+
+  if (staleComponents.length === 0) {
+    return; // No cleanup needed
+  }
+
+  // Group stale components by file path
+  const staleComponentsByFile = new Map<string, ComponentInfo[]>();
+  for (const component of staleComponents) {
+    const filePath = component.filePath;
+    if (!staleComponentsByFile.has(filePath)) {
+      staleComponentsByFile.set(filePath, []);
+    }
+    staleComponentsByFile.get(filePath)!.push(component);
+  }
+
+  // Process each file that contains stale components
+  for (const [originalFilePath, staleComponentsInFile] of staleComponentsByFile) {
+    const tempFilePath = join(tempDir, originalFilePath.replace(projectRoot + '/', ''));
+
+    if (!existsSync(tempFilePath)) {
+      continue; // File doesn't exist in temp, skip
+    }
+
+    // Get all components in this file (both stale and valid)
+    const allComponentsInFile = localRegistry.getComponentsInFile(originalFilePath);
+    const validComponentsRemaining = allComponentsInFile.filter(
+      (component) => !staleComponentsInFile.some((stale) => stale.id === component.id)
+    );
+
+    if (validComponentsRemaining.length === 0) {
+      // ALL components in this file are stale → delete entire file
+      unlinkSync(tempFilePath);
+    } else {
+      // MIXED file → use LLM to surgically remove only stale components
+      const currentContent = readFileSync(tempFilePath, 'utf8');
+
+      // Use LLM to remove stale components
+      const cleanedContent = await removeComponentsFromFile(
+        currentContent,
+        staleComponentsInFile.map((c) => ({ id: c.id, type: c.type })),
+        tempFilePath
+      );
+
+      if (cleanedContent !== currentContent) {
+        writeFileSync(tempFilePath, cleanedContent, 'utf8');
+      }
+    }
+  }
+
+  // Update the registry to remove stale components so index.ts generation works correctly
+  for (const staleComponent of staleComponents) {
+    localRegistry.removeComponent(staleComponent.type, staleComponent.id);
+  }
+}
+
+/**
+ * Use LLM specifically for component removal with custom prompt
+ */
+async function removeComponentsWithLLM(fileContent: string, prompt: string): Promise<string> {
+  try {
+    const model = await getAvailableModel();
+    const result = await generateText({
+      model,
+      prompt: prompt + '\n\nFile content:\n```typescript\n' + fileContent + '\n```',
+    });
+
+    // Strip code fences from response if present
+    let cleanedResponse = result.text.replace(/^```(?:typescript|ts|javascript|js)?\s*\n?/i, '');
+    cleanedResponse = cleanedResponse.replace(/\n?```\s*$/i, '');
+
+    return cleanedResponse.trim();
+  } catch (error) {
+    console.error('LLM removal failed:', error);
+    return fileContent; // Return original content on error
+  }
+}
+
+/**
+ * Use LLM to remove specific components from file content
+ */
+async function removeComponentsFromFile(
+  fileContent: string,
+  componentsToRemove: Array<{ id: string; type: string }>,
+  filePath: string
+): Promise<string> {
+  const componentList = componentsToRemove.map((c) => `${c.type}:${c.id}`).join(', ');
+
+  const prompt = `Remove the following components from this TypeScript file: ${componentList}
+
+Please remove these components completely, including:
+- Their export statements
+- Their variable declarations/definitions  
+- Any imports that are no longer needed after removal
+- Any related helper code specific to these components
+
+Keep all other components, imports, and code that are still needed. Ensure the file remains syntactically valid TypeScript.
+
+Original file content:
+${fileContent}
+
+Return only the cleaned TypeScript code with the specified components removed.`;
+
+  try {
+    // Use the dedicated LLM removal function
+    return await removeComponentsWithLLM(fileContent, prompt);
+  } catch (error) {
+    return fileContent;
+  }
 }
 
 /**
@@ -201,7 +732,8 @@ function generateUpdatedComponentContent(
   componentData: any,
   remoteProject: FullProjectDefinition,
   localRegistry: ComponentRegistry,
-  environment: string
+  environment: string,
+  actualFilePath?: string
 ): string {
   const defaultStyle = {
     quotes: 'single' as const,
@@ -210,13 +742,28 @@ function generateUpdatedComponentContent(
   };
 
   switch (componentType) {
-    case 'agents':
-      return generateAgentFile(componentId, componentData, defaultStyle, localRegistry);
+    case 'agents': {
+      // Get contextConfig data if agent has one
+      const contextConfigData = componentData.contextConfig;
+      const projectModels = remoteProject.models;
+      return generateAgentFile(
+        componentId,
+        componentData,
+        defaultStyle,
+        localRegistry,
+        contextConfigData,
+        projectModels,
+        actualFilePath
+      );
+    }
     case 'subAgents': {
       // Find parent agent info for contextConfig handling
       const parentInfo = findSubAgentWithParent(remoteProject, componentId);
       const parentAgentId = parentInfo?.parentAgentId;
       const contextConfigData = parentInfo?.contextConfigData;
+      const parentModels = parentInfo
+        ? remoteProject.agents?.[parentInfo.parentAgentId]?.models
+        : undefined;
 
       return generateSubAgentFile(
         componentId,
@@ -224,7 +771,9 @@ function generateUpdatedComponentContent(
         defaultStyle,
         localRegistry,
         parentAgentId,
-        contextConfigData
+        contextConfigData,
+        parentModels,
+        actualFilePath
       );
     }
     case 'tools':
@@ -278,7 +827,12 @@ export async function updateModifiedComponents(
   projectRoot: string,
   environment: string,
   debug: boolean = false,
-  providedTempDirName?: string
+  providedTempDirName?: string,
+  newComponents?: Array<{
+    componentId: string;
+    componentType: string;
+    filePath: string;
+  }>
 ): Promise<ComponentUpdateResult[]> {
   const results: ComponentUpdateResult[] = [];
 
@@ -342,8 +896,20 @@ export async function updateModifiedComponents(
     chalk.cyan(`\n🔄 Updating ${componentsByFile.size} files with modified components...`)
   );
 
+  let fileIndex = 0;
+  const totalFiles = componentsByFile.size;
+
   for (const [filePath, fileComponents] of componentsByFile) {
+    fileIndex++;
     try {
+      // Convert absolute path back to relative path for generators
+      const relativeFilePath = filePath.replace(projectRoot + '/', '');
+
+      // Log which file/components are being processed BEFORE the LLM call
+      const componentNames = fileComponents.map((c) => `${c.type}:${c.id}`).join(', ');
+      console.log(chalk.gray(`   [${fileIndex}/${totalFiles}] Processing: ${relativeFilePath}`));
+      console.log(chalk.gray(`            Components: ${componentNames}`));
+
       // Read current file content
       const oldContent = readFileSync(filePath, 'utf8');
 
@@ -411,10 +977,68 @@ export async function updateModifiedComponents(
         } else if (componentType === 'credentials') {
           // Credentials are in credentialReferences
           componentData = remoteProject.credentialReferences?.[componentId];
+        } else if (componentType === 'environments') {
+          // Environments are generated programmatically based on environment name
+          componentData = {
+            name: `${componentId} Environment`,
+            description: `Environment configuration for ${componentId}`,
+            credentials: remoteProject.credentialReferences || {},
+          };
         } else {
           // Standard top-level component lookup
           const remoteComponents = (remoteProject as any)[componentType] || {};
           componentData = remoteComponents[componentId];
+
+          // FIX: Reconstruct missing credentials field for agents
+          if (
+            componentType === 'agents' &&
+            componentData &&
+            !componentData.credentials &&
+            remoteProject.credentialReferences
+          ) {
+            const agentCredentials: any[] = [];
+            const credentialSet = new Set<string>();
+
+            // Scan contextConfig.contextVariables for fetchDefinitions that reference credentials
+            if (componentData.contextConfig?.contextVariables) {
+              for (const [varName, varData] of Object.entries(
+                componentData.contextConfig.contextVariables
+              )) {
+                if (
+                  varData &&
+                  typeof varData === 'object' &&
+                  (varData as any).credentialReferenceId
+                ) {
+                  const credId = (varData as any).credentialReferenceId;
+                  if (remoteProject.credentialReferences[credId] && !credentialSet.has(credId)) {
+                    credentialSet.add(credId);
+                    agentCredentials.push({ id: credId });
+                  }
+                }
+              }
+            }
+
+            // Also check for usedBy field (in case it exists in some responses)
+            for (const [credId, credData] of Object.entries(remoteProject.credentialReferences)) {
+              if ((credData as any).usedBy) {
+                for (const usage of (credData as any).usedBy) {
+                  if (
+                    usage.type === 'agent' &&
+                    usage.id === componentId &&
+                    !credentialSet.has(credId)
+                  ) {
+                    credentialSet.add(credId);
+                    agentCredentials.push({ id: credId });
+                    break;
+                  }
+                }
+              }
+            }
+
+            if (agentCredentials.length > 0) {
+              componentData.credentials = agentCredentials;
+            }
+          }
         }
 
         if (!componentData) {
@@ -435,7 +1059,8 @@ export async function updateModifiedComponents(
             componentData,
             remoteProject,
             localRegistry,
-            environment
+            environment,
+            relativeFilePath
           );
 
           componentContentParts.push(`// ${componentType}:${componentId}\n${componentContent}`);
@@ -480,6 +1105,23 @@ export async function updateModifiedComponents(
 
       // Use LLM to intelligently merge old content with new component definitions
 
+      // Analyze which existing components need to be exported for new components
+      let componentsToExport: Array<{
+        componentId: string;
+        variableName: string;
+        reason: string;
+      }> = [];
+
+      try {
+        componentsToExport = analyzeComponentsToExport(
+          newComponents || [],
+          relativeFilePath,
+          localRegistry
+        );
+      } catch (error) {
+        // Continue without componentsToExport rather than failing completely
+      }
+
       const mergeResult = await mergeComponentsWithLLM({
         oldContent,
         newContent: newComponentContent,
@@ -488,6 +1130,8 @@ export async function updateModifiedComponents(
           componentType: c.type,
         })),
         filePath,
+        newComponents,
+        componentsToExport,
       });
 
       let finalContent: string;
@@ -643,8 +1287,102 @@ export async function updateModifiedComponents(
   const tempDir = join(projectRoot, tempDirName);
   await runBiomeOnDirectory(tempDir);
 
-  // Validate the temp directory (silently)
-  await validateTempDirectory(projectRoot, tempDirName, remoteProject);
+  // Note: Validation is now handled by the main flow after index.ts generation
+  // This allows the index.ts to be properly regenerated before validation
 
   return results;
+}
+
+/**
+ * Analyze which existing components need to be exported because they're referenced by new components
+ */
+function analyzeComponentsToExport(
+  newComponents: Array<{
+    componentId: string;
+    componentType: string;
+    filePath: string;
+  }>,
+  currentFilePath: string,
+  localRegistry: ComponentRegistry
+): Array<{
+  componentId: string;
+  variableName: string;
+  reason: string;
+}> {
+  const componentsToExport: Array<{
+    componentId: string;
+    variableName: string;
+    reason: string;
+  }> = [];
+
+  // For each new component, check if it imports from the current file
+  for (const newComp of newComponents) {
+    // Skip if the new component is in the same file as current file
+    if (newComp.filePath === currentFilePath) {
+      continue;
+    }
+
+    // Check all components in the current file that might be referenced by new components
+    const allLocalComponents = localRegistry.getAllComponents();
+    for (const localComp of allLocalComponents) {
+      // Convert the absolute path from registry back to relative for comparison
+      const localCompRelativePath = localComp.filePath.startsWith('/')
+        ? localComp.filePath
+            .split('/')
+            .slice(-2)
+            .join('/') // Take last 2 parts (dir/file)
+        : localComp.filePath;
+
+      if (localCompRelativePath === currentFilePath) {
+        // This component is in the current file
+        // Check if any new component might reference it (simplified heuristic)
+        // For now, we'll be conservative and export commonly referenced components
+        if (shouldComponentBeExported(localComp, newComponents)) {
+          const existingExport = componentsToExport.find((c) => c.componentId === localComp.id);
+          if (!existingExport) {
+            componentsToExport.push({
+              componentId: localComp.id,
+              variableName: localComp.name,
+              reason: `referenced by new component ${newComp.componentType}:${newComp.componentId}`,
+            });
+          }
+        }
+      }
+    }
+  }
+
+  return componentsToExport;
+}
+
+/**
+ * Determine if a component should be exported based on heuristics
+ */
+function shouldComponentBeExported(
+  localComponent: ComponentInfo,
+  newComponents: Array<{ componentId: string; componentType: string; filePath: string }>
+): boolean {
+  // Export components that are likely to be referenced by new components
+  // This is a heuristic - in reality, we'd need to parse the new component files to see exact references
+
+  // Export all agents and subAgents as they're commonly referenced
+  if (localComponent.type === 'agents' || localComponent.type === 'subAgents') {
+    return true;
+  }
+
+  // Export tools that are commonly used
+  if (localComponent.type === 'tools' || localComponent.type === 'functionTools') {
+    return true;
+  }
+
+  // Export context configs as they're often referenced
+  if (localComponent.type === 'contextConfigs') {
+    return true;
+  }
+
+  // Export artifact components
+  if (localComponent.type === 'artifactComponents') {
+    return true;
+  }
+
+  return false;
 }

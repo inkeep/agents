@@ -387,9 +387,10 @@ export const deleteSubAgentExternalAgentRelation =
           eq(subAgentExternalAgentRelations.subAgentId, params.scopes.subAgentId),
           eq(subAgentExternalAgentRelations.id, params.relationId)
         )
-      );
+      )
+      .returning();
 
-    return (result.rowsAffected || 0) > 0;
+    return result.length > 0;
   };
 
 export const deleteSubAgentExternalAgentRelationsBySubAgent =
@@ -403,8 +404,9 @@ export const deleteSubAgentExternalAgentRelationsBySubAgent =
           eq(subAgentExternalAgentRelations.agentId, params.scopes.agentId),
           eq(subAgentExternalAgentRelations.subAgentId, params.scopes.subAgentId)
         )
-      );
-    return (result.rowsAffected || 0) > 0;
+      )
+      .returning();
+    return result.length > 0;
   };
 
 export const deleteSubAgentExternalAgentRelationsByAgent =
@@ -417,6 +419,7 @@ export const deleteSubAgentExternalAgentRelationsByAgent =
           eq(subAgentExternalAgentRelations.projectId, params.scopes.projectId),
           eq(subAgentExternalAgentRelations.agentId, params.scopes.agentId)
         )
-      );
-    return (result.rowsAffected || 0) > 0;
+      )
+      .returning();
+    return result.length > 0;
   };

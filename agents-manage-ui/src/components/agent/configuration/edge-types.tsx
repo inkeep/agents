@@ -19,18 +19,21 @@ export enum EdgeType {
   SelfLoop = 'self-loop',
 }
 
-export type A2AEdgeData = {
+export interface AnimatedEdge {
+  /**
+   * Indicates whether this node delegates its task to another node.
+   */
+  status?: 'delegating' | 'inverted-delegating' | null;
+}
+
+export interface A2AEdgeData {
   relationships: {
     transferTargetToSource: boolean;
     transferSourceToTarget: boolean;
     delegateTargetToSource: boolean;
     delegateSourceToTarget: boolean;
   };
-  /**
-   * Indicates whether this node delegates its task to another node.
-   */
-  delegating: boolean | 'inverted';
-};
+}
 
 export const edgeTypes = {
   [EdgeType.A2A]: AgentToAgentEdge,

@@ -9,20 +9,17 @@
  * 4. Streams NDJSON response back to client
  */
 
+import { jsonSchemaToZod, ModelFactory } from '@inkeep/agents-core';
 import { streamObject } from 'ai';
 import type { NextRequest } from 'next/server';
 import { z } from 'zod';
-import { ModelFactory } from '@/lib/ai/model-factory';
 import { fetchDataComponent } from '@/lib/api/data-components';
 import { fetchProject } from '@/lib/api/projects';
 
-interface RouteContext {
-  params: Promise<{
-    dataComponentId: string;
-  }>;
-}
-
-export async function POST(request: NextRequest, context: RouteContext) {
+export async function POST(
+  request: NextRequest,
+  context: RouteContext<'/api/data-components/[dataComponentId]/generate-render'>
+) {
   try {
     const { dataComponentId } = await context.params;
     const body = await request.json();
@@ -67,9 +64,12 @@ export async function POST(request: NextRequest, context: RouteContext) {
     const modelConfig = ModelFactory.prepareGenerationConfig(project.models?.base as any);
 
     // Define schema for generated output
+    // Dynamically create mockData schema from component's props JSON Schema.
+    // This ensures Anthropic gets proper types instead of z.any() which it rejects.
+    const mockDataSchema = jsonSchemaToZod(dataComponent.props);
     const renderSchema = z.object({
       component: z.string().describe('The React component code'),
-      mockData: z.any().describe('Sample data matching the props schema'),
+      mockData: mockDataSchema.describe('Sample data matching the props schema'),
     });
 
     // Generate using AI SDK streamObject
@@ -97,7 +97,7 @@ export async function POST(request: NextRequest, context: RouteContext) {
             // If modifying with instructions, preserve existing data
             const outputObject =
               instructions && existingData
-                ? { ...(partialObject as any), mockData: existingData }
+                ? { ...(partialObject as object), mockData: existingData }
                 : partialObject;
 
             // Write NDJSON (newline-delimited JSON)
@@ -136,7 +136,7 @@ export async function POST(request: NextRequest, context: RouteContext) {
 function buildGenerationPrompt(
   dataComponent: {
     name: string;
-    description: string;
+    description: string | null;
     props: Record<string, unknown> | null;
   },
   instructions?: string,
@@ -153,7 +153,7 @@ function buildGenerationPrompt(
 COMPONENT DETAILS:
 - Original Name: ${dataComponent.name}
 - Component Function Name: ${componentName}
-- Description: ${dataComponent.description}
+- Description: ${dataComponent.description || ''}
 - Props Schema (JSON Schema): ${propsJson}
 
 EXISTING COMPONENT CODE:
@@ -193,7 +193,7 @@ Focus on making the requested changes while maintaining the component's quality 
 COMPONENT DETAILS:
 - Original Name: ${dataComponent.name}
 - Component Function Name: ${componentName}
-- Description: ${dataComponent.description}
+- Description: ${dataComponent.description || ''}
 - Props Schema (JSON Schema): ${propsJson}
 
 REQUIREMENTS:

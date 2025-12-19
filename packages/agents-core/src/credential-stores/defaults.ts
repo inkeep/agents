@@ -1,4 +1,5 @@
 import type { CredentialStore } from '../types/server';
+import { DEFAULT_NANGO_STORE_ID } from './default-constants';
 import { createKeyChainStore } from './keychain-store';
 import { InMemoryCredentialStore } from './memory-store';
 import { createNangoCredentialStore } from './nango-store';
@@ -15,7 +16,7 @@ export function createDefaultCredentialStores(): CredentialStore[] {
   // Include Nango store if NANGO_SECRET_KEY is set
   if (process.env.NANGO_SECRET_KEY) {
     stores.push(
-      createNangoCredentialStore('nango-default', {
+      createNangoCredentialStore(DEFAULT_NANGO_STORE_ID, {
         apiUrl: process.env.NANGO_SERVER_URL || 'https://api.nango.dev',
         secretKey: process.env.NANGO_SECRET_KEY,
       })

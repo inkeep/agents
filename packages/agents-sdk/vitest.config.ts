@@ -8,7 +8,6 @@ export default defineProject({
     include: ['src/**/*.test.ts'],
     env: {
       ENVIRONMENT: 'test',
-      DB_FILE_NAME: ':memory:',
     },
     testTimeout: 60000,
     poolOptions: {

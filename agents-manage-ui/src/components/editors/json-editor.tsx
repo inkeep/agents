@@ -7,8 +7,17 @@ interface JsonEditorProps extends Omit<ComponentProps<typeof MonacoEditor>, 'uri
   uri?: `${string}.json`;
 }
 
-export const JsonEditor: FC<JsonEditorProps> = ({ uri, ...props }) => {
+export const JsonEditor: FC<JsonEditorProps> = ({ uri, editorOptions, ...props }) => {
   const id = useId();
   uri ??= `${id}.json`;
-  return <MonacoEditor uri={uri} {...props} />;
+  return (
+    <MonacoEditor
+      uri={uri}
+      editorOptions={{
+        ariaLabel: 'JSON editor',
+        ...editorOptions,
+      }}
+      {...props}
+    />
+  );
 };

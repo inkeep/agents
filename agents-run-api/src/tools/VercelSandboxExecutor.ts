@@ -1,5 +1,10 @@
 import crypto from 'node:crypto';
 import { Sandbox } from '@vercel/sandbox';
+import {
+  FUNCTION_TOOL_SANDBOX_CLEANUP_INTERVAL_MS,
+  FUNCTION_TOOL_SANDBOX_MAX_USE_COUNT,
+  FUNCTION_TOOL_SANDBOX_POOL_TTL_MS,
+} from '../constants/execution-limits';
 import { getLogger } from '../logger';
 import type { VercelSandboxConfig } from '../types/execution-context';
 import type { FunctionToolConfig } from './NativeSandboxExecutor';
@@ -31,8 +36,6 @@ export class VercelSandboxExecutor {
   private static instance: VercelSandboxExecutor;
   private config: VercelSandboxConfig;
   private sandboxPool: Map<string, CachedSandbox> = new Map();
-  private readonly POOL_TTL = 5 * 60 * 1000; // 5 minutes
-  private readonly MAX_USE_COUNT = 50;
   private cleanupInterval: ReturnType<typeof setInterval> | null = null;
 
   private constructor(config: VercelSandboxConfig) {
@@ -82,14 +85,17 @@ export class VercelSandboxExecutor {
     const age = now - cached.createdAt;
 
     // Check if sandbox is still valid
-    if (age > this.POOL_TTL || cached.useCount >= this.MAX_USE_COUNT) {
+    if (
+      age > FUNCTION_TOOL_SANDBOX_POOL_TTL_MS ||
+      cached.useCount >= FUNCTION_TOOL_SANDBOX_MAX_USE_COUNT
+    ) {
       logger.debug(
         {
           dependencyHash,
           age,
           useCount: cached.useCount,
-          ttl: this.POOL_TTL,
-          maxUseCount: this.MAX_USE_COUNT,
+          ttl: FUNCTION_TOOL_SANDBOX_POOL_TTL_MS,
+          maxUseCount: FUNCTION_TOOL_SANDBOX_MAX_USE_COUNT,
         },
         'Sandbox expired, will create new one'
       );
@@ -163,34 +169,34 @@ export class VercelSandboxExecutor {
    * Start periodic cleanup of expired sandboxes
    */
   private startPoolCleanup(): void {
-    this.cleanupInterval = setInterval(
-      () => {
-        const now = Date.now();
-        const toRemove: string[] = [];
+    this.cleanupInterval = setInterval(() => {
+      const now = Date.now();
+      const toRemove: string[] = [];
 
-        for (const [hash, cached] of this.sandboxPool.entries()) {
-          const age = now - cached.createdAt;
-          if (age > this.POOL_TTL || cached.useCount >= this.MAX_USE_COUNT) {
-            toRemove.push(hash);
-          }
+      for (const [hash, cached] of this.sandboxPool.entries()) {
+        const age = now - cached.createdAt;
+        if (
+          age > FUNCTION_TOOL_SANDBOX_POOL_TTL_MS ||
+          cached.useCount >= FUNCTION_TOOL_SANDBOX_MAX_USE_COUNT
+        ) {
+          toRemove.push(hash);
         }
+      }
 
-        if (toRemove.length > 0) {
-          logger.info(
-            {
-              count: toRemove.length,
-              poolSize: this.sandboxPool.size,
-            },
-            'Cleaning up expired sandboxes'
-          );
+      if (toRemove.length > 0) {
+        logger.info(
+          {
+            count: toRemove.length,
+            poolSize: this.sandboxPool.size,
+          },
+          'Cleaning up expired sandboxes'
+        );
 
-          for (const hash of toRemove) {
-            this.removeSandbox(hash);
-          }
+        for (const hash of toRemove) {
+          this.removeSandbox(hash);
         }
-      },
-      60 * 1000 // Run every minute
-    );
+      }
+    }, FUNCTION_TOOL_SANDBOX_CLEANUP_INTERVAL_MS);
   }
 
   /**

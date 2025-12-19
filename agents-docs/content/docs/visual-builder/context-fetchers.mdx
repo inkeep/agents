@@ -2,7 +2,7 @@
 title: Context Fetchers
 sidebarTitle: Context Fetchers
 description: Learn how to use context fetchers to fetch data from external sources and make it available to your agents
-icon: "LuCirclePlus"
+icon: LuCirclePlus
 ---
 
 ## Overview
@@ -60,31 +60,33 @@ Each key in the JSON should map to a fetch definition with the following propert
 Here is an example of a valid Context Variables JSON object:
 ```json
 {
-  "userInfo": {
-    "id": "user-info",
-    "name": "User Information",
-    "trigger": "initialization",
+  "timeInfo": {
+    "id": "time-info",
+    "name": "Time Information",
+    "trigger": "invocation",
     "fetchConfig": {
-      "url": "https://api.example.com/users/{{headers.user_id}}",
+      "url": "https://world-time-api3.p.rapidapi.com/timezone/US/Pacific",
       "method": "GET",
       "headers": {
-        "Authorization": "Bearer {{headers.api_key}}"
-      },
-      "transform": "user"
+        "x-rapidapi-key": "590c52974dmsh0da44377420ef4bp1c64ebjsnf8d55149e28d"
+      }
     },
+    "defaultValue": "Unable to fetch time information",
     "responseSchema": {
-      "$schema": "http://json-schema.org/draft-07/schema#",
       "type": "object",
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "required": [
+        "datetime"
+      ],
       "properties": {
-        "name": {
+        "datetime": {
           "type": "string"
         },
-        "email": {
+        "timezone": {
           "type": "string"
         }
-      },
-    },
-    "defaultValue": "Unable to fetch user information"
+      }
+    }
   }
 }
 ```
@@ -97,9 +99,5 @@ Once you have defined your context variables, you can use them in your agent pro
 Here is an example of an agent prompt using the context variable defined above:
 
 ```
-You are a helpful assistant for {{userInfo.name}}.
+You are a helpful assistant, the time in the US Pacific timezone is {{timeInfo.datetime}}.
 ```
-
-# Related documentation
-
-- [Headers](/visual-builder/headers) - Learn how to pass dynamic context to your agents via HTTP headers

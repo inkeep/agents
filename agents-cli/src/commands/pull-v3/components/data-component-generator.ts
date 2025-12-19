@@ -74,11 +74,16 @@ export function generateDataComponentDefinition(
   }
 
   // Validate required data component fields
-  const requiredFields = ['name', 'description', 'props'];
+  const requiredFields = ['name']; // Description is optional, props validation handled separately
   const missingFields = requiredFields.filter(
     (field) =>
       !componentData[field] || componentData[field] === null || componentData[field] === undefined
   );
+
+  // Check for props (required)
+  if (!componentData.props) {
+    missingFields.push('props');
+  }
 
   if (missingFields.length > 0) {
     throw new Error(
@@ -106,6 +111,33 @@ export function generateDataComponentDefinition(
   if (schema) {
     const zodSchema = convertJsonSchemaToZod(schema);
     lines.push(`${indentation}props: ${zodSchema},`);
+  }
+
+  // Render attribute - handle { component: string, mockData: object }
+  if (componentData.render && typeof componentData.render === 'object') {
+    const render = componentData.render;
+    if (render.component && typeof render.component === 'string') {
+      lines.push(`${indentation}render: {`);
+
+      // For complex render components, use JSON.stringify to properly escape as string
+      const componentString = JSON.stringify(render.component);
+      lines.push(`${indentation}${indentation}component: ${componentString},`);
+
+      // Add mockData if present
+      if (render.mockData && typeof render.mockData === 'object') {
+        const mockDataStr = JSON.stringify(render.mockData, null, 2);
+        const formattedMockData = mockDataStr
+          .split('\n')
+          .map((line, index) => {
+            if (index === 0) return line;
+            return `${indentation}${indentation}${line}`;
+          })
+          .join('\n');
+        lines.push(`${indentation}${indentation}mockData: ${formattedMockData},`);
+      }
+
+      lines.push(`${indentation}},`);
+    }
   }
 
   // Remove trailing comma from last line

@@ -1,29 +1,24 @@
 'use client';
 
-import { Loader2, RefreshCw, Sparkles, Trash2 } from 'lucide-react';
+import { Info, Loader2, RefreshCw, Sparkles, Trash2 } from 'lucide-react';
 import { useCallback, useMemo, useState } from 'react';
 import { toast } from 'sonner';
 import { Streamdown } from 'streamdown';
 import { CodeEditor } from '@/components/editors/code-editor';
 import { JsonEditor } from '@/components/editors/json-editor';
+import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
+import { ExternalLink } from '@/components/ui/external-link';
 import { InfoCard } from '@/components/ui/info-card';
 import { Label } from '@/components/ui/label';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Textarea } from '@/components/ui/textarea';
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
+import { useProject } from '@/contexts/project-context';
 import { updateDataComponent } from '@/lib/api/data-components';
 import { DynamicComponentRenderer } from './dynamic-component-renderer';
-
-const StyledTabsTrigger = (props: React.ComponentProps<typeof TabsTrigger>) => {
-  return (
-    <TabsTrigger
-      {...props}
-      className="bg-transparent data-[state=active]:border-primary dark:data-[state=active]:border-primary h-full rounded-none border-0 border-b-2 border-transparent data-[state=active]:shadow-none data-[state=active]:text-primary data-[state=active]:bg-transparent uppercase font-mono text-xs mt-0.5 pt-2"
-    />
-  );
-};
 
 interface ComponentPreviewGeneratorProps {
   tenantId: string;
@@ -53,6 +48,8 @@ export function ComponentRenderGenerator({
   const [isSaved, setIsSaved] = useState(!!existingRender);
   const [regenerateInstructions, setRegenerateInstructions] = useState('');
   const [isPopoverOpen, setIsPopoverOpen] = useState(false);
+  const project = useProject();
+  const baseModel = project?.models?.base?.model;
 
   const generatePreview = async (instructions?: string) => {
     setIsGenerating(true);
@@ -179,10 +176,35 @@ export function ComponentRenderGenerator({
     <div className="space-y-4">
       <div className="flex items-center justify-between">
         <div className="space-y-2">
-          <h3 className="text-md font-medium">Component Renderer</h3>
-          <p className="text-sm text-muted-foreground">
-            Generate a React/Tailwind component based on your schema.
-          </p>
+          <div className="flex items-center gap-1">
+            <h3 className="text-md font-medium">Component Renderer</h3>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Info className="w-3 h-3 text-muted-foreground ml-1" />
+              </TooltipTrigger>
+              <TooltipContent>
+                <p className="text-sm text-muted-foreground">
+                  Generates a React/Tailwind component from your schema using your project's base
+                  model
+                  {baseModel && (
+                    <>
+                      {' '}
+                      <Badge variant="code">{baseModel}</Badge>
+                    </>
+                  )}
+                  .
+                  <div className="flex mt-1">
+                    <ExternalLink
+                      href={`/${tenantId}/projects/${projectId}/settings`}
+                      className="text-xs ml-0"
+                    >
+                      Edit in settings
+                    </ExternalLink>
+                  </div>
+                </p>
+              </TooltipContent>
+            </Tooltip>
+          </div>
         </div>
         <div className="flex gap-2">
           {!hasRender && (
@@ -306,9 +328,15 @@ export function ComponentRenderGenerator({
         <Card className="px-2 py-4 pt-0">
           <Tabs defaultValue="render" className="w-full">
             <TabsList className="bg-transparent relative rounded-none border-b p-0 w-full justify-start gap-2">
-              <StyledTabsTrigger value="render">Render</StyledTabsTrigger>
-              <StyledTabsTrigger value="code">Code</StyledTabsTrigger>
-              <StyledTabsTrigger value="data">Sample Data</StyledTabsTrigger>
+              <TabsTrigger variant="underline" value="render">
+                Render
+              </TabsTrigger>
+              <TabsTrigger variant="underline" value="code">
+                Code
+              </TabsTrigger>
+              <TabsTrigger variant="underline" value="data">
+                Sample Data
+              </TabsTrigger>
             </TabsList>
 
             <TabsContent value="render">

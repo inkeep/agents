@@ -11,6 +11,7 @@ import {
   PaginationQueryParamsSchema,
   SubAgentApiInsertSchema,
   SubAgentApiUpdateSchema,
+  SubAgentIsDefaultError,
   SubAgentListResponse,
   SubAgentResponse,
   TenantProjectAgentIdParamsSchema,
@@ -18,8 +19,28 @@ import {
   updateSubAgent,
 } from '@inkeep/agents-core';
 import dbClient from '../data/db/dbClient';
+import { requirePermission } from '../middleware/require-permission';
+import type { BaseAppVariables } from '../types/app';
+import { speakeasyOffsetLimitPagination } from './shared';
 
-const app = new OpenAPIHono();
+const app = new OpenAPIHono<{ Variables: BaseAppVariables }>();
+
+app.use('/', async (c, next) => {
+  if (c.req.method === 'POST') {
+    return requirePermission({ sub_agent: ['create'] })(c, next);
+  }
+  return next();
+});
+
+app.use('/:id', async (c, next) => {
+  if (c.req.method === 'PUT') {
+    return requirePermission({ sub_agent: ['update'] })(c, next);
+  }
+  if (c.req.method === 'DELETE') {
+    return requirePermission({ sub_agent: ['delete'] })(c, next);
+  }
+  return next();
+});
 
 app.openapi(
   createRoute({
@@ -43,6 +64,7 @@ app.openapi(
       },
       ...commonGetErrorResponses,
     },
+    ...speakeasyOffsetLimitPagination,
   }),
   async (c) => {
     const { tenantId, projectId, agentId } = c.req.valid('param');
@@ -241,24 +263,42 @@ app.openapi(
           },
         },
       },
+      409: {
+        description: 'SubAgent is set as default and cannot be deleted',
+        content: {
+          'application/json': {
+            schema: ErrorResponseSchema,
+          },
+        },
+      },
     },
   }),
   async (c) => {
     const { tenantId, projectId, agentId, id } = c.req.valid('param');
 
-    const deleted = await deleteSubAgent(dbClient)({
-      scopes: { tenantId, projectId, agentId },
-      subAgentId: id,
-    });
-
-    if (!deleted) {
-      throw createApiError({
-        code: 'not_found',
-        message: 'SubAgent not found',
+    try {
+      const deleted = await deleteSubAgent(dbClient)({
+        scopes: { tenantId, projectId, agentId },
+        subAgentId: id,
       });
-    }
 
-    return c.body(null, 204);
+      if (!deleted) {
+        throw createApiError({
+          code: 'not_found',
+          message: 'SubAgent not found',
+        });
+      }
+
+      return c.body(null, 204);
+    } catch (error) {
+      if (error instanceof SubAgentIsDefaultError) {
+        throw createApiError({
+          code: 'conflict',
+          message: error.message,
+        });
+      }
+      throw error;
+    }
   }
 );
 

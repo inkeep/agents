@@ -10,12 +10,14 @@ on:
       - "agents-run-api/**"
     branches:
       - main
+      - chat-to-edit
 
 permissions:
   contents: write
   pull-requests: write
   issues: write
   packages: write
+  id-token: write
 
 jobs:
   release:
@@ -27,16 +29,17 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Configure npm and verify auth
-        run: |
-          npm config set //registry.npmjs.org/:_authToken=$NODE_AUTH_TOKEN
-          echo "Verifying npm authentication..."
-          npm whoami
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
-
       - name: Install
         uses: ./.github/composite-actions/install
+
+      - name: Setup npm for OIDC publishing
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          registry-url: 'https://registry.npmjs.org'
+
+      - name: Ensure npm 11.5.1+ for OIDC support
+        run: npm install -g npm@latest
 
       - name: Setup Turborepo cache
         uses: actions/cache@v4
@@ -59,17 +62,22 @@ jobs:
         with:
           publish: pnpm release
         env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           HUSKY: 0
 
-      - name: Release to dev tag
+      - name: Release to snapshot tag
         if: steps.changesets.outputs.published != 'true'
         run: |
-          git checkout main
-          pnpm changeset version --snapshot dev
-          pnpm changeset publish --tag dev
+          BRANCH_NAME="${GITHUB_REF#refs/heads/}"
+          if [ "$BRANCH_NAME" = "chat-to-edit" ]; then
+            TAG_NAME="chat-to-edit"
+          else
+            TAG_NAME="dev"
+          fi
+          echo "Publishing to tag: $TAG_NAME"
+          git checkout $BRANCH_NAME
+          pnpm changeset version --snapshot $TAG_NAME
+          pnpm changeset publish --tag $TAG_NAME
         env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           HUSKY: 0

@@ -1,5 +1,5 @@
+import { z } from '@hono/zod-openapi';
 import { loadEnvironmentFiles } from '@inkeep/agents-core';
-import { z } from 'zod';
 
 // Load all environment files using shared logic
 loadEnvironmentFiles();
@@ -10,10 +10,9 @@ const envSchema = z.object({
     .enum(['development', 'production', 'pentest', 'test'])
     .optional()
     .default('development'),
-  DB_FILE_NAME: z.string().optional(),
-  TURSO_DATABASE_URL: z.string().optional(),
-  TURSO_AUTH_TOKEN: z.string().optional(),
-  AGENTS_RUN_API_URL: z.string().optional().default('http://localhost:3003'),
+  DATABASE_URL: z.string().optional(),
+  INKEEP_AGENTS_RUN_API_URL: z.string().optional().default('http://localhost:3003'),
+  AGENTS_MANAGE_UI_URL: z.string().optional().default('http://localhost:3000'),
   LOG_LEVEL: z.enum(['trace', 'debug', 'info', 'warn', 'error']).optional().default('debug'),
   NANGO_SERVER_URL: z.string().optional().default('https://api.nango.dev'),
   NANGO_SECRET_KEY: z.string().optional(),
@@ -22,15 +21,14 @@ const envSchema = z.object({
   GOOGLE_GENERATIVE_AI_API_KEY: z.string().optional(),
   INKEEP_AGENTS_RUN_API_BYPASS_SECRET: z.string().optional(),
   INKEEP_AGENTS_JWT_SIGNING_SECRET: z.string().optional(),
+  INKEEP_AGENTS_TEMP_JWT_PUBLIC_KEY: z.string().optional(),
   OTEL_BSP_SCHEDULE_DELAY: z.coerce.number().optional().default(500),
   OTEL_BSP_MAX_EXPORT_BATCH_SIZE: z.coerce.number().optional().default(64),
 });
 
 const parseEnv = () => {
   try {
-    const parsedEnv = envSchema.parse(process.env);
-
-    return parsedEnv;
+    return envSchema.parse(process.env);
   } catch (error) {
     if (error instanceof z.ZodError) {
       const missingVars = error.issues.map((issue) => issue.path.join('.'));

@@ -17,6 +17,7 @@ import { Form } from '@/components/ui/form';
 import { InfoCard } from '@/components/ui/info-card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { useRuntimeConfig } from '@/contexts/runtime-config-context';
 import { deleteCredentialAction } from '@/lib/actions/credentials';
 import { type Credential, updateCredential } from '@/lib/api/credentials';
 import { setNangoConnectionMetadata } from '@/lib/mcp-tools/nango';
@@ -79,6 +80,7 @@ export function EditCredentialForm({
   const router = useRouter();
   const [isDeleteOpen, setIsDeleteOpen] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
+  const { PUBLIC_IS_INKEEP_CLOUD_DEPLOYMENT } = useRuntimeConfig();
 
   const form = useForm({
     resolver: zodResolver(editCredentialFormSchema),
@@ -135,6 +137,7 @@ export function EditCredentialForm({
   };
 
   const credentialAuthenticationType = getCredentialAuthenticationType(credential);
+  const forceCredentialType = PUBLIC_IS_INKEEP_CLOUD_DEPLOYMENT === 'true' ? 'API Key' : undefined;
 
   return (
     <Dialog open={isDeleteOpen} onOpenChange={setIsDeleteOpen}>
@@ -155,11 +158,7 @@ export function EditCredentialForm({
               <Input
                 type="text"
                 disabled={true}
-                value={
-                  credentialAuthenticationType
-                    ? `${credentialAuthenticationType} (${credential.type})`
-                    : credential.type
-                }
+                value={credentialAuthenticationType ?? forceCredentialType ?? credential.type}
               />
               {credentialAuthenticationType === 'Bearer authentication' && (
                 <InfoCard title="How this works">
@@ -176,6 +175,14 @@ export function EditCredentialForm({
                 </InfoCard>
               )}
             </div>
+
+            {/* Created By Display */}
+            {credential.createdBy && (
+              <div className="space-y-3">
+                <Label>Created by</Label>
+                <Input type="text" disabled={true} value={credential.createdBy} />
+              </div>
+            )}
 
             {/* Metadata / Headers Section */}
             {credential.type === CredentialStoreType.nango && (

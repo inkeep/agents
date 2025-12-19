@@ -35,6 +35,26 @@ export const getCredentialReference =
   };
 
 /**
+ * Get a user-scoped credential reference by toolId and userId
+ */
+export const getUserScopedCredentialReference =
+  (db: DatabaseClient) =>
+  async (params: {
+    scopes: ProjectScopeConfig;
+    toolId: string;
+    userId: string;
+  }): Promise<CredentialReferenceSelect | undefined> => {
+    return await db.query.credentialReferences.findFirst({
+      where: and(
+        eq(credentialReferences.tenantId, params.scopes.tenantId),
+        eq(credentialReferences.projectId, params.scopes.projectId),
+        eq(credentialReferences.toolId, params.toolId),
+        eq(credentialReferences.userId, params.userId)
+      ),
+    });
+  };
+
+/**
  * Get a credential reference by ID with its related tools
  */
 export const getCredentialReferenceWithResources =
@@ -305,7 +325,6 @@ export const upsertCredentialReference =
         throw new Error('Failed to update credential reference - no rows affected');
       }
       return updated;
-    } else {
-      return await createCredentialReference(db)(params.data);
     }
+    return await createCredentialReference(db)(params.data);
   };

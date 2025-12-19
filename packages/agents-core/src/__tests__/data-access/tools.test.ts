@@ -9,8 +9,8 @@ import {
   updateTool,
 } from '../../data-access/tools';
 import type { DatabaseClient } from '../../db/client';
-import { createInMemoryDatabaseClient } from '../../db/client';
 import type { ToolInsert } from '../../types/index';
+import { testDbClient } from '../setup';
 
 describe('Tools Data Access', () => {
   let db: DatabaseClient;
@@ -20,9 +20,9 @@ describe('Tools Data Access', () => {
   const testToolId = 'test-tool';
   const testSubAgentId = 'test-sub-agent';
 
-  beforeEach(() => {
-    db = createInMemoryDatabaseClient();
-    vi.restoreAllMocks();
+  beforeEach(async () => {
+    db = testDbClient;
+    vi.clearAllMocks();
   });
 
   describe('getToolById', () => {

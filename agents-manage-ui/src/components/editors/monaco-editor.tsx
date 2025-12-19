@@ -1,14 +1,12 @@
 'use client';
 
 import type * as Monaco from 'monaco-editor';
-import { useTheme } from 'next-themes';
 import type { ComponentPropsWithoutRef, FC } from 'react';
 import { useEffect, useRef } from 'react';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useMonacoActions, useMonacoStore } from '@/features/agent/state/use-monaco-store';
 import { cleanupDisposables, getOrCreateModel } from '@/lib/monaco-editor/monaco-utils';
 import { cn } from '@/lib/utils';
-import '@/lib/monaco-editor/setup-monaco-workers';
 
 interface MonacoEditorProps extends Omit<ComponentPropsWithoutRef<'div'>, 'onChange'> {
   /** @default '' */
@@ -45,7 +43,7 @@ export const MonacoEditor: FC<MonacoEditorProps> = ({
   onChange,
   placeholder = '',
   autoFocus,
-  editorOptions = {},
+  editorOptions,
   hasDynamicHeight = true,
   onMount,
   ...props
@@ -54,13 +52,25 @@ export const MonacoEditor: FC<MonacoEditorProps> = ({
   const editorRef = useRef<Monaco.editor.IStandaloneCodeEditor>(null);
   const onChangeRef = useRef<typeof onChange>(undefined);
   const monaco = useMonacoStore((state) => state.monaco);
-  const { setupHighlighter } = useMonacoActions();
+  const { importMonaco } = useMonacoActions();
+  // biome-ignore lint/correctness/useExhaustiveDependencies: only on mount
+  useEffect(() => {
+    importMonaco();
+  }, []);
+
   // Update editor options when `readOnly` or `disabled` changes
   useEffect(() => {
+    const wordWrap: Monaco.editor.IEditorOptions['wordWrap'] = editorOptions?.wordWrap ?? 'on';
+
     editorRef.current?.updateOptions({
       readOnly: readOnly || disabled,
+      wordWrap,
+      scrollbar: {
+        horizontal: wordWrap === 'on' ? 'hidden' : 'auto',
+        alwaysConsumeMouseWheel: wordWrap !== 'on',
+      },
     });
-  }, [readOnly, disabled]);
+  }, [readOnly, disabled, editorOptions?.wordWrap]);
 
   // Sync model value when `value` prop changes
   useEffect(() => {
@@ -74,7 +84,6 @@ export const MonacoEditor: FC<MonacoEditorProps> = ({
   useEffect(() => {
     onChangeRef.current = onChange;
   }, [onChange]);
-  const isDark = useTheme().resolvedTheme === 'dark';
   // biome-ignore lint/correctness/useExhaustiveDependencies: Initialize Monaco Editor (runs only on mount)
   useEffect(() => {
     const container = containerRef.current;
@@ -87,11 +96,6 @@ export const MonacoEditor: FC<MonacoEditorProps> = ({
     const editorInstance = editor.create(container, {
       model,
       language,
-      extraEditorClassName: [
-        '[--vscode-editor-background:transparent]!',
-        '[--vscode-editorGutter-background:transparent]!',
-        '[--vscode-focusBorder:transparent]!',
-      ].join('\n'),
       automaticLayout: true,
       minimap: { enabled: false }, // disable the minimap
       overviewRulerLanes: 0, // remove unnecessary error highlight on the scroll
@@ -105,7 +109,6 @@ export const MonacoEditor: FC<MonacoEditorProps> = ({
         bottom: 12,
       },
       scrollbar: {
-        vertical: 'hidden', // Hide vertical scrollbar
         horizontal: 'hidden', // Hide horizontal scrollbar
         useShadows: false, // Disable shadow effects
         alwaysConsumeMouseWheel: false, // Monaco grabs the mouse wheel by default
@@ -119,6 +122,7 @@ export const MonacoEditor: FC<MonacoEditorProps> = ({
       ),
       fontSize: 12,
       lineDecorationsWidth: 0, // removes the blank margin where the extra caret shows
+      editContext: false,
       ...editorOptions,
     });
     editorRef.current = editorInstance;
@@ -179,10 +183,10 @@ export const MonacoEditor: FC<MonacoEditorProps> = ({
           container.style.height = `${contentHeight}px`;
         }
       }
-
+      // Initial update — otherwise, when the Monaco editor is inside a tab, the page may jump on scroll without it
+      updateHeight();
       disposables.push(editorInstance.onDidContentSizeChange(updateHeight));
     }
-    setupHighlighter(isDark);
     onMount?.(editorInstance);
     return cleanupDisposables(disposables);
   }, [monaco]);
@@ -190,6 +194,7 @@ export const MonacoEditor: FC<MonacoEditorProps> = ({
   return (
     <div
       className={cn(
+        'max-h-screen', // set fixed max height, otherwise page freezes up / lags when clicking into it
         !hasDynamicHeight && 'h-full',
         'rounded-md relative dark:bg-input/30 transition-colors',
         'border border-input shadow-xs',
@@ -198,9 +203,7 @@ export const MonacoEditor: FC<MonacoEditorProps> = ({
           : 'has-[&>.focused]:border-ring has-[&>.focused]:ring-ring/50 has-[&>.focused]:ring-[3px]',
         'aria-invalid:border-destructive aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40',
         className,
-        !monaco && 'px-3 py-4',
-        // Fixes cursor blinking at the beginning of the line
-        '[&_.native-edit-context]:caret-transparent'
+        !monaco && 'px-3 py-4'
       )}
       {...props}
       ref={containerRef}

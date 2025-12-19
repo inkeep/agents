@@ -152,6 +152,11 @@ export function MCPToolItem({
 
           {/* Key metrics in a structured layout */}
           <div className="flex items-center gap-2 flex-wrap">
+            {/* Credential scope badge */}
+            <Badge variant="code" className="uppercase bg-transparent">
+              {tool.credentialScope === 'user' ? 'User' : 'Project'}
+            </Badge>
+
             {(tool.status === 'unhealthy' || tool.status === 'unknown') && (
               <Badge variant="error">{tool.status}</Badge>
             )}
@@ -171,7 +176,7 @@ export function MCPToolItem({
           </div>
         </div>
         <ItemCardFooter
-          footerText={`Created ${formatDate(typeof tool.createdAt === 'string' ? tool.createdAt : tool.createdAt.toISOString())}`}
+          footerText={tool.createdAt ? `Created ${formatDate(tool.createdAt)}` : 'Created recently'}
         />
       </ItemCardContent>
     </ItemCardRoot>

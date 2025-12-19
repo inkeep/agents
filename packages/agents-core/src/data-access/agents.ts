@@ -1,5 +1,5 @@
 import { and, count, desc, eq, inArray } from 'drizzle-orm';
-import type { SQLiteTable } from 'drizzle-orm/sqlite-core';
+import type { PgTable } from 'drizzle-orm/pg-core';
 import type { DatabaseClient } from '../db/client';
 import {
   agents,
@@ -198,8 +198,8 @@ export const fetchComponentRelationships =
     scopes: ProjectScopeConfig,
     subAgentIds: string[],
     config: {
-      relationTable: SQLiteTable<any>;
-      componentTable: SQLiteTable<any>;
+      relationTable: PgTable<any>;
+      componentTable: PgTable<any>;
       relationIdField: unknown;
       componentIdField: unknown;
       subAgentIdField: unknown;
@@ -381,6 +381,7 @@ export const getFullAgentDefinition =
             imageUrl: tools.imageUrl,
             selectedTools: subAgentToolRelations.selectedTools,
             headers: subAgentToolRelations.headers,
+            toolPolicies: subAgentToolRelations.toolPolicies,
             agentToolRelationId: subAgentToolRelations.id,
           })
           .from(subAgentToolRelations)
@@ -456,6 +457,7 @@ export const getFullAgentDefinition =
           toolId: tool.id,
           toolSelection: tool.selectedTools || null,
           headers: tool.headers || null,
+          toolPolicies: tool.toolPolicies || null,
         }));
 
         const functionToolCanUse = agentFunctionTools.map((tool) => ({
@@ -463,6 +465,7 @@ export const getFullAgentDefinition =
           toolId: tool.id,
           toolSelection: null, // Function tools don't have tool selection
           headers: null, // Function tools don't have headers
+          toolPolicies: null, // Function tools don't have tool policies (yet)
         }));
 
         const canUse = [...mcpToolCanUse, ...functionToolCanUse];
@@ -611,12 +614,12 @@ export const getFullAgentDefinition =
       subAgents: agentsObject,
       createdAt:
         agent.createdAt && !Number.isNaN(new Date(agent.createdAt).getTime())
-          ? new Date(agent.createdAt).toISOString()
-          : new Date().toISOString(),
+          ? new Date(agent.createdAt)
+          : new Date(),
       updatedAt:
         agent.updatedAt && !Number.isNaN(new Date(agent.updatedAt).getTime())
-          ? new Date(agent.updatedAt).toISOString()
-          : new Date().toISOString(),
+          ? new Date(agent.updatedAt)
+          : new Date(),
     };
 
     // Add external agents if any exist

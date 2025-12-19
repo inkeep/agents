@@ -29,7 +29,8 @@
       "!**/out/**",
       "!**/*.css",
       "!**/.source/**",
-      "!**/.vercel/**"
+      "!**/.vercel/**",
+      "!**/tsconfig.json"
     ],
     "rules": {
       "recommended": true,
@@ -50,6 +51,7 @@
       "style": {
         "noUnusedTemplateLiteral": "off",
         "noNonNullAssertion": "warn",
+        "noUselessElse": "error",
         "useImportType": "error"
       },
       "performance": {
@@ -76,6 +78,7 @@
     }
   },
   "formatter": {
+    "includes": ["**", "!**/drizzle/**"],
     "enabled": true,
     "lineWidth": 100,
     "indentStyle": "space",

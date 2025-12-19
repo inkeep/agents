@@ -1,5 +1,6 @@
 import { exec } from 'node:child_process';
 import crypto from 'node:crypto';
+import os from 'node:os';
 import path from 'node:path';
 import { promisify } from 'node:util';
 import * as p from '@clack/prompts';
@@ -57,7 +58,7 @@ export const defaultGoogleModelConfigurations = {
 
 export const defaultOpenaiModelConfigurations = {
   base: {
-    model: OPENAI_MODELS.GPT_4_1,
+    model: OPENAI_MODELS.GPT_5_2,
   },
   structuredOutput: {
     model: OPENAI_MODELS.GPT_4_1_MINI,
@@ -90,6 +91,7 @@ type FileConfig = {
   customProject?: boolean;
   disableGit?: boolean;
   localPrefix?: string;
+  installInkeepCLI?: boolean;
 };
 
 export const createAgents = async (
@@ -104,6 +106,8 @@ export const createAgents = async (
     disableGit?: boolean;
     localAgentsPrefix?: string;
     localTemplatesPrefix?: string;
+    skipInkeepCli?: boolean;
+    skipInkeepMcp?: boolean;
   } = {}
 ) => {
   let {
@@ -116,7 +120,10 @@ export const createAgents = async (
     disableGit,
     localAgentsPrefix,
     localTemplatesPrefix,
+    skipInkeepCli,
+    skipInkeepMcp,
   } = args;
+
   const tenantId = 'default';
 
   let projectId: string;
@@ -326,27 +333,49 @@ export const createAgents = async (
       await initializeGit();
     }
 
-    s.message('Setting up database...');
-    await setupDatabase();
-
-    s.message('Pushing project...');
-    await setupProjectInDatabase(config);
-    s.message('Project setup complete!');
+    await checkPortsAvailability();
 
     s.stop();
 
+    if (!skipInkeepCli) {
+      let isGloballyInstalled = false;
+
+      try {
+        const { stdout } = await execAsync('pnpm list -g @inkeep/agents-cli --json');
+        const result = JSON.parse(stdout);
+        isGloballyInstalled = result?.[0]?.dependencies?.['@inkeep/agents-cli'] !== undefined;
+      } catch (_error) {
+        try {
+          await execAsync('npm list -g @inkeep/agents-cli');
+          isGloballyInstalled = true;
+        } catch (_npmError) {
+          isGloballyInstalled = false;
+        }
+      }
+
+      if (!isGloballyInstalled) {
+        const installInkeepCLIResponse = await p.confirm({
+          message: 'Would you like to install the Inkeep CLI globally?',
+        });
+        if (!p.isCancel(installInkeepCLIResponse) && installInkeepCLIResponse) {
+          await installInkeepCLIGlobally();
+        }
+      }
+    }
+
+    if (!skipInkeepMcp) {
+      await addInkeepMcp();
+    }
+
     p.note(
-      `${color.green('✓')} Project created at: ${color.cyan(directoryPath)}\n\n` +
-        `${color.yellow('Ready to go!')}\n\n` +
-        `${color.green('✓')} Project created in file system\n` +
-        `${color.green('✓')} Database configured\n` +
-        `${color.green('✓')} Project added to database\n\n` +
+      `${color.green('✓')} Workspace created at: ${color.cyan(directoryPath)}\n\n` +
         `${color.yellow('Next steps:')}\n` +
         `  cd ${dirName}\n` +
+        `  pnpm setup   # Setup project in database\n` +
         `  pnpm dev     # Start development servers\n\n` +
         `${color.yellow('Available services:')}\n` +
-        `  • Manage API: http://localhost:3002\n` +
-        `  • Run API: http://localhost:3003\n` +
+        `  • Manage API: http://127.0.0.1:3002\n` +
+        `  • Run API: http://127.0.0.1:3003\n` +
         `  • Manage UI: Available with management API\n` +
         `\n${color.yellow('Configuration:')}\n` +
         `  • Edit .env for environment variables\n` +
@@ -369,15 +398,33 @@ async function createWorkspaceStructure() {
 
 async function createEnvironmentFiles(config: FileConfig) {
   // Convert to forward slashes for cross-platform SQLite URI compatibility
-  const dbPath = process.cwd().replace(/\\/g, '/');
 
   const jwtSigningSecret = crypto.randomBytes(32).toString('hex');
+
+  const betterAuthSecret = crypto.randomBytes(32).toString('hex');
+
+  // Generate RSA key pair for temporary JWT tokens
+  let tempJwtPrivateKey = '';
+  let tempJwtPublicKey = '';
+  try {
+    const { generateKeyPairSync } = await import('node:crypto');
+    const { privateKey, publicKey } = generateKeyPairSync('rsa', {
+      modulusLength: 2048,
+      publicKeyEncoding: { type: 'spki', format: 'pem' },
+      privateKeyEncoding: { type: 'pkcs8', format: 'pem' },
+    });
+    tempJwtPrivateKey = Buffer.from(privateKey).toString('base64');
+    tempJwtPublicKey = Buffer.from(publicKey).toString('base64');
+  } catch {
+    console.warn('Warning: Failed to generate JWT keys. Playground may not work.');
+    console.warn('You can manually generate keys later with: pnpm run generate-jwt-keys');
+  }
 
   const envContent = `# Environment
 ENVIRONMENT=development
 
 # Database
-DB_FILE_NAME=file:${dbPath}/local.db
+DATABASE_URL=postgresql://appuser:password@localhost:5432/inkeep_agents
 
 # AI Provider Keys  
 ANTHROPIC_API_KEY=${config.anthropicKey || 'your-anthropic-key-here'}
@@ -385,8 +432,14 @@ OPENAI_API_KEY=${config.openAiKey || 'your-openai-key-here'}
 GOOGLE_GENERATIVE_AI_API_KEY=${config.googleKey || 'your-google-key-here'}
 
 # Inkeep API URLs
-INKEEP_AGENTS_MANAGE_API_URL="http://localhost:3002"
-INKEEP_AGENTS_RUN_API_URL="http://localhost:3003"
+# Internal URLs (server-side, Docker internal networking)
+# Using 127.0.0.1 instead of localhost to avoid IPv6/IPv4 resolution issues
+INKEEP_AGENTS_MANAGE_API_URL="http://127.0.0.1:3002"
+INKEEP_AGENTS_RUN_API_URL="http://127.0.0.1:3003"
+
+# Public URLs (client-side, browser accessible)
+PUBLIC_INKEEP_AGENTS_MANAGE_API_URL="http://127.0.0.1:3002"
+PUBLIC_INKEEP_AGENTS_RUN_API_URL="http://127.0.0.1:3003"
 
 # SigNoz Configuration
 SIGNOZ_URL=your-signoz-url-here
@@ -401,6 +454,20 @@ NANGO_SECRET_KEY=
 
 # JWT Signing Secret
 INKEEP_AGENTS_JWT_SIGNING_SECRET=${jwtSigningSecret}
+
+# Temporary JWT Keys for Playground
+INKEEP_AGENTS_TEMP_JWT_PRIVATE_KEY=${tempJwtPrivateKey}
+INKEEP_AGENTS_TEMP_JWT_PUBLIC_KEY=${tempJwtPublicKey}
+
+# initial project information
+DEFAULT_PROJECT_ID=${config.projectId}
+
+# Auth Configuration
+# INKEEP_AGENTS_MANAGE_UI_USERNAME=admin@example.com
+# INKEEP_AGENTS_MANAGE_UI_PASSWORD=adminADMIN!@12
+BETTER_AUTH_SECRET=${betterAuthSecret}
+DISABLE_AUTH=true
+
 `;
 
   await fs.writeFile('.env', envContent);
@@ -412,10 +479,11 @@ async function createInkeepConfig(config: FileConfig) {
 const config = defineConfig({
   tenantId: "${config.tenantId}",
   agentsManageApi: {
-    url: 'http://localhost:3002',
+    // Using 127.0.0.1 instead of localhost to avoid IPv6/IPv4 resolution issues
+    url: 'http://127.0.0.1:3002',
   },
   agentsRunApi: {
-    url: 'http://localhost:3003',
+    url: 'http://127.0.0.1:3003',
   },
 });
     
@@ -436,13 +504,51 @@ export const myProject = project({
   }
 }
 
-async function installDependencies() {
-  await execAsync('pnpm install');
+async function installInkeepCLIGlobally() {
+  const s = p.spinner();
+  s.start('Installing Inkeep CLI globally with pnpm...');
+
   try {
-    await execAsync('pnpm upgrade-agents');
-  } catch (error) {
-    console.warn('Warning: Package upgrade failed, continuing with current versions');
-    console.warn(error instanceof Error ? error.message : 'Unknown error');
+    await execAsync('pnpm add -g @inkeep/agents-cli');
+    s.stop('✓ Inkeep CLI installed successfully with pnpm');
+    return;
+  } catch (_pnpmError) {
+    s.message('pnpm failed, trying npm...');
+
+    try {
+      await execAsync('npm install -g @inkeep/agents-cli');
+      s.stop('✓ Inkeep CLI installed successfully with npm');
+      return;
+    } catch (_npmError) {
+      s.stop('⚠️  Could not automatically install Inkeep CLI globally');
+      console.warn('You can install it manually later by running:');
+      console.warn('  npm install -g @inkeep/agents-cli');
+      console.warn('  or');
+      console.warn('  pnpm add -g @inkeep/agents-cli\n');
+    }
+  }
+}
+
+async function installDependencies() {
+  try {
+    const { stderr } = await execAsync('pnpm install');
+    if (process.env.CI && stderr) {
+      console.log('pnpm install stderr:', stderr);
+    }
+  } catch (error: any) {
+    // Capture and log full error details for debugging
+    console.error('pnpm install failed!');
+    console.error('Exit code:', error.code);
+    if (error.stdout) {
+      console.error('stdout:', error.stdout);
+    }
+    if (error.stderr) {
+      console.error('stderr:', error.stderr);
+    }
+    if (error.message) {
+      console.error('Error message:', error.message);
+    }
+    throw error;
   }
 }
 
@@ -467,7 +573,7 @@ async function isPortAvailable(port: number): Promise<boolean> {
     const server = net.createServer();
     server.once('error', (err: NodeJS.ErrnoException) => {
       // Only treat EADDRINUSE as "port in use", other errors might be transient
-      resolve(err.code === 'EADDRINUSE' ? false : true);
+      resolve(err.code !== 'EADDRINUSE');
     });
     server.once('listening', () => {
       server.close(() => {
@@ -517,124 +623,6 @@ async function checkPortsAvailability(): Promise<void> {
   }
 }
 
-/**
- * Wait for a server to be ready by polling a health endpoint
- */
-async function waitForServerReady(url: string, timeout: number): Promise<void> {
-  const start = Date.now();
-  while (Date.now() - start < timeout) {
-    try {
-      const response = await fetch(url);
-      if (response.ok) {
-        return;
-      }
-    } catch {
-      // Server not ready yet, continue polling
-    }
-    await new Promise((resolve) => setTimeout(resolve, 1000)); // Check every second
-  }
-  throw new Error(`Server not ready at ${url} after ${timeout}ms`);
-}
-
-async function setupProjectInDatabase(config: FileConfig) {
-  // Proactively check if ports are available BEFORE starting servers
-  await checkPortsAvailability();
-
-  // Start development servers in background
-  const { spawn } = await import('node:child_process');
-  const devProcess = spawn('pnpm', ['dev:apis'], {
-    stdio: ['pipe', 'pipe', 'pipe'],
-    detached: true,
-    cwd: process.cwd(),
-    shell: true,
-    windowsHide: true,
-  });
-
-  // Track if port errors occur during startup (as a safety fallback)
-  const portErrors = { runApi: false, manageApi: false };
-
-  // Regex patterns for detecting port errors in output
-  const portErrorPatterns = {
-    runApi: new RegExp(
-      `(EADDRINUSE.*:${runApiPort}|port ${runApiPort}.*already|Port ${runApiPort}.*already|run-api.*Error.*Port)`,
-      'i'
-    ),
-    manageApi: new RegExp(
-      `(EADDRINUSE.*:${manageApiPort}|port ${manageApiPort}.*already|Port ${manageApiPort}.*already|manage-api.*Error.*Port)`,
-      'i'
-    ),
-  };
-
-  // Monitor output for port errors (fallback in case ports become unavailable between check and start)
-  const checkForPortErrors = (data: Buffer) => {
-    const output = data.toString();
-    if (portErrorPatterns.runApi.test(output)) {
-      portErrors.runApi = true;
-    }
-    if (portErrorPatterns.manageApi.test(output)) {
-      portErrors.manageApi = true;
-    }
-  };
-
-  devProcess.stdout.on('data', checkForPortErrors);
-
-  // Wait for servers to be ready
-  try {
-    await waitForServerReady(`http://localhost:${manageApiPort}/health`, 60000);
-    await waitForServerReady(`http://localhost:${runApiPort}/health`, 60000);
-  } catch (error) {
-    // If servers don't start, we'll still try push but it will likely fail
-    console.warn(
-      'Warning: Servers may not be fully ready:',
-      error instanceof Error ? error.message : String(error)
-    );
-  }
-
-  // Check if any port errors occurred during startup
-  if (portErrors.runApi || portErrors.manageApi) {
-    displayPortConflictError(portErrors);
-  }
-
-  // Run inkeep push
-  try {
-    await execAsync(
-      `pnpm inkeep push --project src/projects/${config.projectId} --config src/inkeep.config.ts`
-    );
-  } catch (_error) {
-  } finally {
-    if (devProcess.pid) {
-      try {
-        if (process.platform === 'win32') {
-          // Windows: Use taskkill to kill process tree
-          await execAsync(`taskkill /pid ${devProcess.pid} /T /F`);
-        } else {
-          // Unix: Use negative PID to kill process group
-          process.kill(-devProcess.pid, 'SIGTERM');
-
-          await new Promise((resolve) => setTimeout(resolve, 1000));
-
-          try {
-            process.kill(-devProcess.pid, 'SIGKILL');
-          } catch {}
-        }
-      } catch (_error) {
-        console.log('Note: Dev servers may still be running in background');
-      }
-    }
-  }
-}
-
-async function setupDatabase() {
-  try {
-    await execAsync('pnpm db:migrate');
-    await new Promise((resolve) => setTimeout(resolve, 1000));
-  } catch (error) {
-    throw new Error(
-      `Failed to setup database: ${error instanceof Error ? error.message : 'Unknown error'}`
-    );
-  }
-}
-
 async function cloneTemplateHelper(options: {
   targetPath: string;
   templateName?: string;
@@ -664,4 +652,166 @@ export async function createCommand(dirName?: string, options?: any) {
     dirName,
     ...options,
   });
+}
+
+export async function addInkeepMcp() {
+  const editorChoice = await p.select({
+    message: 'Give your IDE access to Inkeep docs and types? (Adds Inkeep MCP)',
+    options: [
+      { value: 'cursor-project', label: 'Cursor (project only)' },
+      { value: 'cursor-global', label: 'Cursor (global, all projects)' },
+      { value: 'windsurf', label: 'Windsurf' },
+      { value: 'vscode', label: 'VSCode' },
+      { value: 'skip', label: 'Skip' },
+    ],
+    initialValue: 'cursor-project',
+  });
+
+  if (p.isCancel(editorChoice)) {
+    return;
+  }
+
+  if (!editorChoice) {
+    return;
+  }
+
+  const s = p.spinner();
+
+  try {
+    const mcpConfig = {
+      mcpServers: {
+        inkeep: {
+          type: 'mcp',
+          url: 'https://agents.inkeep.com/mcp',
+        },
+      },
+    };
+
+    const homeDir = os.homedir();
+
+    switch (editorChoice) {
+      case 'cursor-project': {
+        s.start('Adding Inkeep MCP to Cursor (project)...');
+        const cursorDir = path.join(process.cwd(), '.cursor');
+        const configPath = path.join(cursorDir, 'mcp.json');
+
+        await fs.ensureDir(cursorDir);
+
+        let existingConfig = {};
+        if (await fs.pathExists(configPath)) {
+          existingConfig = await fs.readJson(configPath);
+        }
+
+        const mergedConfig = {
+          ...existingConfig,
+          mcpServers: {
+            ...(existingConfig as any).mcpServers,
+            ...mcpConfig.mcpServers,
+          },
+        };
+
+        await fs.writeJson(configPath, mergedConfig, { spaces: 2 });
+        s.stop(`${color.green('✓')} Inkeep MCP added to .cursor/mcp.json`);
+        break;
+      }
+
+      case 'cursor-global': {
+        s.start('Adding Inkeep MCP to Cursor (global)...');
+        const configPath = path.join(homeDir, '.cursor', 'mcp.json');
+
+        await fs.ensureDir(path.dirname(configPath));
+
+        let existingConfig = {};
+        if (await fs.pathExists(configPath)) {
+          existingConfig = await fs.readJson(configPath);
+        }
+
+        const mergedConfig = {
+          ...existingConfig,
+          mcpServers: {
+            ...(existingConfig as any).mcpServers,
+            ...mcpConfig.mcpServers,
+          },
+        };
+
+        await fs.writeJson(configPath, mergedConfig, { spaces: 2 });
+        s.stop(`${color.green('✓')} Inkeep MCP added to global Cursor settings`);
+        break;
+      }
+
+      case 'windsurf': {
+        s.start('Adding Inkeep MCP to Windsurf...');
+        const configPath = path.join(homeDir, '.codeium', 'windsurf', 'mcp_config.json');
+
+        await fs.ensureDir(path.dirname(configPath));
+
+        let existingConfig = {};
+        if (await fs.pathExists(configPath)) {
+          existingConfig = await fs.readJson(configPath);
+        }
+
+        const mergedConfig = {
+          ...existingConfig,
+          mcpServers: {
+            ...(existingConfig as any).mcpServers,
+            ...mcpConfig.mcpServers,
+          },
+        };
+
+        await fs.writeJson(configPath, mergedConfig, { spaces: 2 });
+        s.stop(`${color.green('✓')} Inkeep MCP added to Windsurf settings`);
+        break;
+      }
+
+      case 'vscode': {
+        s.start('Adding Inkeep MCP to VSCode...');
+
+        let configPath: string;
+
+        if (process.platform === 'darwin') {
+          configPath = path.join(
+            homeDir,
+            'Library',
+            'Application Support',
+            'Code',
+            'User',
+            'mcp.json'
+          );
+        } else if (process.platform === 'win32') {
+          configPath = path.join(homeDir, 'AppData', 'Roaming', 'Code', 'User', 'mcp.json');
+        } else {
+          configPath = path.join(homeDir, '.config', 'Code', 'User', 'mcp.json');
+        }
+
+        await fs.ensureDir(path.dirname(configPath));
+
+        let existingConfig = {};
+        if (await fs.pathExists(configPath)) {
+          existingConfig = await fs.readJson(configPath);
+        }
+
+        const mergedConfig = {
+          ...existingConfig,
+          servers: {
+            ...(existingConfig as any).servers,
+            ...mcpConfig.mcpServers,
+          },
+        };
+
+        await fs.writeJson(configPath, mergedConfig, { spaces: 2 });
+        s.stop(
+          `${color.green('✓')} Inkeep MCP added to VSCode settings\n\n${color.yellow('Next steps:')}\n` +
+            `  start the MCP by going to ${configPath} and clicking start`
+        );
+        break;
+      }
+
+      case 'skip': {
+        break;
+      }
+    }
+  } catch (error) {
+    s.stop();
+    console.error(`${color.yellow('⚠')}  Could not automatically configure MCP server: ${error}`);
+  }
 }

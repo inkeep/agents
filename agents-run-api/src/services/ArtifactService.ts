@@ -298,7 +298,18 @@ export class ArtifactService {
         return null;
       }
 
-      const artifacts = await getLedgerArtifacts(dbClient)({
+      let artifacts: any[] = [];
+      artifacts = await getLedgerArtifacts(dbClient)({
+        scopes: { tenantId: this.context.tenantId, projectId: this.context.projectId },
+        artifactId,
+        toolCallId: toolCallId,
+      });
+
+      if (artifacts.length > 0) {
+        return this.formatArtifactSummaryData(artifacts[0], artifactId, toolCallId);
+      }
+
+      artifacts = await getLedgerArtifacts(dbClient)({
         scopes: { tenantId: this.context.tenantId, projectId: this.context.projectId },
         artifactId,
         taskId: this.context.taskId,
@@ -356,7 +367,19 @@ export class ArtifactService {
         return null;
       }
 
-      const artifacts = await getLedgerArtifacts(dbClient)({
+      let artifacts: any[] = [];
+
+      artifacts = await getLedgerArtifacts(dbClient)({
+        scopes: { tenantId: this.context.tenantId, projectId: this.context.projectId },
+        artifactId,
+        toolCallId: toolCallId,
+      });
+
+      if (artifacts.length > 0) {
+        return this.formatArtifactFullData(artifacts[0], artifactId, toolCallId);
+      }
+
+      artifacts = await getLedgerArtifacts(dbClient)({
         scopes: { tenantId: this.context.tenantId, projectId: this.context.projectId },
         artifactId,
         taskId: this.context.taskId,
@@ -575,10 +598,15 @@ export class ArtifactService {
           actualFields: summaryValidation.actualFields,
           schemaExpected: previewSchema?.properties ? Object.keys(previewSchema.properties) : [],
         },
-        'Blocking artifact save due to missing required fields'
+        'Artifact creation failed due to missing required fields - continuing with generation'
       );
 
-      throw error;
+      // Return validation result indicating failure to prevent generation crash
+      return {
+        summary: summaryValidation,
+        full: fullValidation,
+        schemaFound: !!previewSchema,
+      };
     }
 
     // Log validation results
@@ -761,10 +789,12 @@ export class ArtifactService {
     description: string;
     type: string;
     data: Record<string, any>;
+    summaryData?: Record<string, any>;
     metadata?: Record<string, any>;
     toolCallId?: string;
   }): Promise<void> {
-    let summaryData = artifact.data;
+    // Use provided summaryData if available, otherwise default to artifact.data
+    let summaryData = artifact.summaryData || artifact.data;
     let fullData = artifact.data;
 
     if (this.context.artifactComponents) {

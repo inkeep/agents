@@ -1,41 +1,67 @@
 import { createRoute, OpenAPIHono } from '@hono/zod-openapi';
-import type { CredentialStoreRegistry, ServerConfig } from '@inkeep/agents-core';
-import { handleApiError } from '@inkeep/agents-core';
+import type { ServerConfig } from '@inkeep/agents-core';
+import type { auth as authForTypes, createAuth } from '@inkeep/agents-core/auth';
+import type { CredentialStoreRegistry } from '@inkeep/agents-core/credential-stores';
 import { Hono } from 'hono';
 import { cors } from 'hono/cors';
-import { HTTPException } from 'hono/http-exception';
 import { requestId } from 'hono/request-id';
-import type { StatusCode } from 'hono/utils/http-status';
 import { pinoLogger } from 'hono-pino';
+import { env } from './env';
 import { getLogger } from './logger';
 import { apiKeyAuth } from './middleware/auth';
+import { errorHandler } from './middleware/error-handler';
+import { sessionAuth } from './middleware/session-auth';
+import { requireTenantAccess } from './middleware/tenant-access';
 import { setupOpenAPIRoutes } from './openapi';
+import cliAuthRoutes from './routes/cliAuth';
 import crudRoutes from './routes/index';
+import invitationsRoutes from './routes/invitations';
+import mcpRoutes from './routes/mcp';
 import oauthRoutes from './routes/oauth';
+import playgroundTokenRoutes from './routes/playgroundToken';
 import projectFullRoutes from './routes/projectFull';
+import signozRoutes from './routes/signoz';
+import userOrganizationsRoutes from './routes/userOrganizations';
+import {
+  authCorsConfig,
+  defaultCorsConfig,
+  isOriginAllowed,
+  playgroundCorsConfig,
+} from './utils/cors';
 
 const logger = getLogger('agents-manage-api');
 
 logger.info({ logger: logger.getTransports() }, 'Logger initialized');
 
-type AppVariables = {
+const isTestEnvironment = () => process.env.ENVIRONMENT === 'test';
+
+export type AppVariables = {
   serverConfig: ServerConfig;
   credentialStores: CredentialStoreRegistry;
+  auth: ReturnType<typeof createAuth> | null;
+  user: typeof authForTypes.$Infer.Session.user | null;
+  session: typeof authForTypes.$Infer.Session.session | null;
+  userId?: string;
+  userEmail?: string;
+  tenantId?: string;
+  tenantRole?: string;
 };
 
 function createManagementHono(
   serverConfig: ServerConfig,
-  credentialStores: CredentialStoreRegistry
+  credentialStores: CredentialStoreRegistry,
+  auth: ReturnType<typeof createAuth> | null
 ) {
   const app = new OpenAPIHono<{ Variables: AppVariables }>();
 
   // Request ID middleware
   app.use('*', requestId());
 
-  // Server config and credential stores middleware
+  // Server config, credential stores, and auth middleware
   app.use('*', async (c, next) => {
     c.set('serverConfig', serverConfig);
     c.set('credentialStores', credentialStores);
+    c.set('auth', auth);
     return next();
   });
 
@@ -55,112 +81,97 @@ function createManagementHono(
   );
 
   // Error handling
-  app.onError(async (err, c) => {
-    const isExpectedError = err instanceof HTTPException;
-    const status = isExpectedError ? err.status : 500;
-    const requestId = c.get('requestId') || 'unknown';
+  app.onError(errorHandler);
 
-    // Zod validation error detection
-    let zodIssues: Array<any> | undefined;
-    if (err && typeof err === 'object') {
-      if (err.cause && Array.isArray((err.cause as any).issues)) {
-        zodIssues = (err.cause as any).issues;
-      } else if (Array.isArray((err as any).issues)) {
-        zodIssues = (err as any).issues;
-      }
-    }
+  // Better Auth routes - only mount if auth is enabled
+  if (auth) {
+    // CORS middleware for Better Auth routes (must be registered before the handler)
+    app.use('/api/auth/*', cors(authCorsConfig));
 
-    if (status === 400 && Array.isArray(zodIssues)) {
-      c.status(400);
-      c.header('Content-Type', 'application/problem+json');
-      c.header('X-Content-Type-Options', 'nosniff');
-      return c.json({
-        type: 'https://docs.inkeep.com/agents-api/errors#bad_request',
-        title: 'Validation Failed',
-        status: 400,
-        detail: 'Request validation failed',
-        errors: zodIssues.map((issue) => ({
-          detail: issue.message,
-          pointer: issue.path ? `/${issue.path.join('/')}` : undefined,
-          name: issue.path ? issue.path.join('.') : undefined,
-          reason: issue.message,
-        })),
-      });
-    }
-
-    if (status >= 500) {
-      if (!isExpectedError) {
-        const errorMessage = err instanceof Error ? err.message : String(err);
-        const errorStack = err instanceof Error ? err.stack : undefined;
-        logger.error(
-          {
-            error: err,
-            message: errorMessage,
-            stack: errorStack,
-            path: c.req.path,
-            requestId,
-          },
-          'Unexpected server error occurred'
-        );
-      } else {
-        logger.error(
-          {
-            error: err,
-            path: c.req.path,
-            requestId,
-            status,
-          },
-          'Server error occurred'
-        );
-      }
-    }
-
-    if (isExpectedError) {
-      try {
-        const response = err.getResponse();
-        return response;
-      } catch (responseError) {
-        logger.error({ error: responseError }, 'Error while handling HTTPException response');
-      }
-    }
-
-    const { status: respStatus, title, detail, instance } = await handleApiError(err, requestId);
-    c.status(respStatus as StatusCode);
-    c.header('Content-Type', 'application/problem+json');
-    c.header('X-Content-Type-Options', 'nosniff');
-    return c.json({
-      type: 'https://docs.inkeep.com/agents-api/errors#internal_server_error',
-      title,
-      status: respStatus,
-      detail,
-      ...(instance && { instance }),
+    // Mount the Better Auth handler (OPTIONS handled by cors middleware above)
+    app.on(['POST', 'GET'], '/api/auth/*', (c) => {
+      return auth.handler(c.req.raw);
     });
-  });
+  }
 
-  // CORS middleware
+  // CORS middleware for playground routes (must be registered before global CORS)
+  app.use('/tenants/*/playground/token', cors(playgroundCorsConfig));
+
+  // CORS middleware for SigNoz proxy routes (must be registered before global CORS)
   app.use(
-    '*',
+    '/tenants/*/signoz/*',
     cors({
       origin: (origin) => {
-        if (!origin) return origin;
-        return origin.startsWith('http://localhost:') || origin.startsWith('https://localhost:')
-          ? origin
-          : null;
+        return isOriginAllowed(origin) ? origin : null;
       },
-      allowMethods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS', 'PATCH'],
-      allowHeaders: ['*'],
-      exposeHeaders: ['Content-Length'],
-      maxAge: 86400,
+      allowHeaders: [
+        'content-type',
+        'Content-Type',
+        'authorization',
+        'Authorization',
+        'User-Agent',
+        'Cookie',
+        'X-Forwarded-Cookie',
+      ],
+      allowMethods: ['GET', 'POST', 'OPTIONS'],
+      exposeHeaders: ['Content-Length', 'Set-Cookie'],
+      maxAge: 600,
       credentials: true,
     })
   );
+
+  // CORS middleware - handles all other routes
+  app.use('*', async (c, next) => {
+    // Skip CORS middleware for routes with their own CORS config
+    if (auth && c.req.path.startsWith('/api/auth/')) {
+      return next();
+    }
+    if (c.req.path.includes('/playground/token')) {
+      return next();
+    }
+    if (c.req.path.includes('/signoz/')) {
+      return next();
+    }
+
+    return cors(defaultCorsConfig)(c, next);
+  });
+
+  // Global session middleware - sets user and session in context for all routes
+  app.use('*', async (c, next) => {
+    if (env.DISABLE_AUTH || !auth) {
+      c.set('user', null);
+      c.set('session', null);
+      await next();
+      return;
+    }
+
+    // Create headers with x-forwarded-cookie mapped to cookie (browsers forbid setting Cookie header directly)
+    const headers = new Headers(c.req.raw.headers);
+    const forwardedCookie = headers.get('x-forwarded-cookie');
+    if (forwardedCookie && !headers.get('cookie')) {
+      headers.set('cookie', forwardedCookie);
+    }
+
+    const session = await auth.api.getSession({ headers });
+
+    if (!session) {
+      c.set('user', null);
+      c.set('session', null);
+      await next();
+      return;
+    }
+
+    c.set('user', session.user);
+    c.set('session', session.session);
+    await next();
+  });
 
   // Health check endpoint
   app.openapi(
     createRoute({
       method: 'get',
       path: '/health',
-      tags: ['health'],
+      operationId: 'health',
       summary: 'Health check',
       description: 'Check if the management service is healthy',
       responses: {
@@ -174,11 +185,54 @@ function createManagementHono(
     }
   );
 
-  // API Key authentication middleware for protected routes
-  app.use('/tenants/*', apiKeyAuth());
+  // Authentication middleware for protected routes
+  app.use('/tenants/*', async (c, next) => {
+    // Skip auth if DISABLE_AUTH is true or in test environment
+    if (env.DISABLE_AUTH || isTestEnvironment()) {
+      await next();
+      return;
+    }
+
+    const authHeader = c.req.header('Authorization');
+    if (authHeader?.startsWith('Bearer ')) {
+      return apiKeyAuth()(c as any, next);
+    }
+
+    return sessionAuth()(c as any, next);
+  });
+
+  // Tenant access check (skip in DISABLE_AUTH and test environments)
+  if (env.DISABLE_AUTH || isTestEnvironment()) {
+    // When auth is disabled, just extract tenantId from URL param
+    app.use('/tenants/:tenantId/*', async (c, next) => {
+      const tenantId = c.req.param('tenantId');
+      if (tenantId) {
+        c.set('tenantId', tenantId);
+        c.set('userId', 'anonymous'); // Set a default user ID for disabled auth
+      }
+      await next();
+    });
+  } else {
+    app.use('/tenants/:tenantId/*', requireTenantAccess());
+  }
+
+  // Mount user-organizations routes - global user endpoint
+  app.route('/api/users/:userId/organizations', userOrganizationsRoutes);
+
+  // Mount CLI auth routes - for CLI login flow
+  app.route('/api/cli', cliAuthRoutes);
+
+  // Mount invitations routes - global invitations endpoint
+  app.route('/api/invitations', invitationsRoutes);
 
   // Mount routes for all entities
   app.route('/tenants/:tenantId', crudRoutes);
+
+  // Mount playground token routes under tenant (uses requireTenantAccess middleware)
+  app.route('/tenants/:tenantId/playground/token', playgroundTokenRoutes);
+
+  // Mount SigNoz proxy routes under tenant (uses requireTenantAccess middleware for authorization)
+  app.route('/tenants/:tenantId/signoz', signozRoutes);
 
   // Mount full project routes directly under tenant
   app.route('/tenants/:tenantId', projectFullRoutes);
@@ -186,6 +240,7 @@ function createManagementHono(
   // Mount OAuth routes - global OAuth callback endpoint
   app.route('/oauth', oauthRoutes);
 
+  app.route('/mcp', mcpRoutes);
   // Setup OpenAPI documentation endpoints (/openapi.json and /docs)
   setupOpenAPIRoutes(app);
 

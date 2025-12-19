@@ -109,7 +109,6 @@ export function validationHelper(jsonSchema: Record<string, unknown>) {
 }
 
 export function validateAgainstJsonSchema(jsonSchema: Record<string, unknown>, context: unknown) {
-  logger.debug({ jsonSchema, context }, 'Validating context against JSON Schema');
   const validate = validationHelper(jsonSchema);
   return validate(context);
 }
@@ -165,7 +164,8 @@ function filterContextToSchemaKeys(
   if (filteredHeaders !== null && filteredHeaders !== undefined) {
     if (typeof filteredHeaders === 'object' && Object.keys(filteredHeaders).length > 0) {
       return filteredHeaders;
-    } else if (typeof filteredHeaders !== 'object') {
+    }
+    if (typeof filteredHeaders !== 'object') {
       return filteredHeaders;
     }
   }

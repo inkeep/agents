@@ -158,6 +158,7 @@ export const getRelatedAgentsForAgent =
         name: subAgents.name,
         description: subAgents.description,
         relationType: subAgentRelations.relationType,
+        relationId: subAgentRelations.id,
       })
       .from(subAgentRelations)
       .innerJoin(
@@ -299,9 +300,10 @@ export const deleteSubAgentRelation =
           eq(subAgentRelations.agentId, params.scopes.agentId),
           eq(subAgentRelations.id, params.relationId)
         )
-      );
+      )
+      .returning();
 
-    return (result.rowsAffected || 0) > 0;
+    return result.length > 0;
   };
 
 export const deleteAgentRelationsByAgent =
@@ -313,8 +315,9 @@ export const deleteAgentRelationsByAgent =
           eq(subAgentRelations.tenantId, params.scopes.tenantId),
           eq(subAgentRelations.agentId, params.scopes.agentId)
         )
-      );
-    return (result.rowsAffected || 0) > 0;
+      )
+      .returning();
+    return result.length > 0;
   };
 
 export const createAgentToolRelation =
@@ -327,6 +330,7 @@ export const createAgentToolRelation =
       toolId: string;
       selectedTools?: string[] | null;
       headers?: Record<string, string> | null;
+      toolPolicies?: Record<string, { needsApproval?: boolean }> | null;
     };
   }) => {
     const finalRelationId = params.relationId ?? generateId();
@@ -342,6 +346,7 @@ export const createAgentToolRelation =
         toolId: params.data.toolId,
         selectedTools: params.data.selectedTools,
         headers: params.data.headers,
+        toolPolicies: params.data.toolPolicies,
       })
       .returning();
 
@@ -387,9 +392,10 @@ export const deleteAgentToolRelation =
           eq(subAgentToolRelations.agentId, params.scopes.agentId),
           eq(subAgentToolRelations.id, params.relationId)
         )
-      );
+      )
+      .returning();
 
-    return (result.rowsAffected || 0) > 0;
+    return result.length > 0;
   };
 
 export const deleteAgentToolRelationByAgent =
@@ -403,8 +409,9 @@ export const deleteAgentToolRelationByAgent =
           eq(subAgentToolRelations.agentId, params.scopes.agentId),
           eq(subAgentToolRelations.subAgentId, params.scopes.subAgentId)
         )
-      );
-    return (result.rowsAffected || 0) > 0;
+      )
+      .returning();
+    return result.length > 0;
   };
 
 export const getAgentToolRelationById =
@@ -562,6 +569,7 @@ export const getToolsForAgent =
           toolId: subAgentToolRelations.toolId,
           selectedTools: subAgentToolRelations.selectedTools,
           headers: subAgentToolRelations.headers,
+          toolPolicies: subAgentToolRelations.toolPolicies,
           createdAt: subAgentToolRelations.createdAt,
           updatedAt: subAgentToolRelations.updatedAt,
           tool: {
@@ -574,6 +582,7 @@ export const getToolsForAgent =
             capabilities: tools.capabilities,
             lastError: tools.lastError,
             credentialReferenceId: tools.credentialReferenceId,
+            credentialScope: tools.credentialScope,
             tenantId: tools.tenantId,
             projectId: tools.projectId,
             headers: tools.headers,
@@ -638,6 +647,7 @@ export const getAgentsForTool =
           toolId: subAgentToolRelations.toolId,
           selectedTools: subAgentToolRelations.selectedTools,
           headers: subAgentToolRelations.headers,
+          toolPolicies: subAgentToolRelations.toolPolicies,
           createdAt: subAgentToolRelations.createdAt,
           updatedAt: subAgentToolRelations.updatedAt,
           subAgent: {

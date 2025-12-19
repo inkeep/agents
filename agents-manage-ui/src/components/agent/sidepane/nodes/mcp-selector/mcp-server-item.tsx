@@ -35,13 +35,16 @@ export function MCPServerItem({ mcp, onClick }: MCPServerItemProps) {
         <div className="flex-1 min-w-0">
           <div className="flex items-center justify-between mb-1 gap-2 min-w-0 truncate">
             <span className="font-medium text-sm truncate">{name}</span>
-            {availableTools && (
-              <div>
-                <Badge variant="code" className="text-2xs flex-shrink-0">
+            <div className="flex items-center gap-1.5 shrink-0">
+              <Badge variant="outline" className="text-2xs">
+                {mcp.credentialScope === 'user' ? 'User' : 'Project'}
+              </Badge>
+              {availableTools && (
+                <Badge variant="code" className="text-2xs">
                   {toolCount === 1 ? '1 tool' : `${toolCount} tools`}
                 </Badge>
-              </div>
-            )}
+              )}
+            </div>
           </div>
           <p className="text-xs text-muted-foreground truncate">{server?.url}</p>
         </div>

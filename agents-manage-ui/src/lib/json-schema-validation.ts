@@ -115,7 +115,7 @@ function validateJsonSchema(schema: any): ValidationError[] {
       });
     }
 
-    if (!schema.required || !Array.isArray(schema.required)) {
+    if (schema.required && !Array.isArray(schema.required)) {
       errors.push({
         path: 'required',
         message: 'Schema must have a "required" array (can be empty)',

@@ -14,7 +14,7 @@ import {
   upsertSubAgentExternalAgentRelation,
 } from '../../data-access/subAgentExternalAgentRelations';
 import type { DatabaseClient } from '../../db/client';
-import { createTestDatabaseClient } from '../../db/test-client';
+import { testDbClient } from '../setup';
 
 describe('SubAgentExternalAgentRelations Data Access', () => {
   let db: DatabaseClient;
@@ -45,7 +45,8 @@ describe('SubAgentExternalAgentRelations Data Access', () => {
   };
 
   beforeEach(async () => {
-    db = await createTestDatabaseClient();
+    db = testDbClient;
+    vi.clearAllMocks();
   });
 
   describe('getSubAgentExternalAgentRelationById', () => {
@@ -328,7 +329,9 @@ describe('SubAgentExternalAgentRelations Data Access', () => {
   describe('deleteSubAgentExternalAgentRelation', () => {
     it('should delete a sub-agent external agent relation', async () => {
       const mockDelete = vi.fn().mockReturnValue({
-        where: vi.fn().mockResolvedValue({ rowsAffected: 1 }),
+        where: vi.fn().mockReturnValue({
+          returning: vi.fn().mockResolvedValue([{ id: testRelationId }]),
+        }),
       });
 
       const mockDb = {
@@ -347,7 +350,9 @@ describe('SubAgentExternalAgentRelations Data Access', () => {
 
     it('should return false when no rows affected', async () => {
       const mockDelete = vi.fn().mockReturnValue({
-        where: vi.fn().mockResolvedValue({ rowsAffected: 0 }),
+        where: vi.fn().mockReturnValue({
+          returning: vi.fn().mockResolvedValue([]),
+        }),
       });
 
       const mockDb = {
@@ -439,7 +444,9 @@ describe('SubAgentExternalAgentRelations Data Access', () => {
   describe('deleteSubAgentExternalAgentRelationsBySubAgent', () => {
     it('should delete all relations for a subagent', async () => {
       const mockDelete = vi.fn().mockReturnValue({
-        where: vi.fn().mockResolvedValue({ rowsAffected: 2 }),
+        where: vi.fn().mockReturnValue({
+          returning: vi.fn().mockResolvedValue([{ id: 'rel-1' }, { id: 'rel-2' }]),
+        }),
       });
 
       const mockDb = {
@@ -463,7 +470,9 @@ describe('SubAgentExternalAgentRelations Data Access', () => {
       };
 
       const mockDelete = vi.fn().mockReturnValue({
-        where: vi.fn().mockResolvedValue({ rowsAffected: 3 }),
+        where: vi.fn().mockReturnValue({
+          returning: vi.fn().mockResolvedValue([{ id: 'rel-1' }, { id: 'rel-2' }, { id: 'rel-3' }]),
+        }),
       });
 
       const mockDb = {

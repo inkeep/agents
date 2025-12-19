@@ -13,5 +13,19 @@
 // https://on.cypress.io/configuration
 // ***********************************************************
 
-// Import commands.js using ES2015 syntax:
 import './commands';
+
+Cypress.on('uncaught:exception', (err) => {
+  // returning false prevents Cypress from failing the test
+  if (
+    // Promise from monaco-editor
+    err.message.includes('  > Canceled') ||
+    err.message.includes('  > ResizeObserver loop completed with undelivered notifications.') ||
+    err.message.includes(
+      "  > Uncaught NetworkError: Failed to execute 'importScripts' on 'WorkerGlobalScope': The script at"
+    )
+  ) {
+    return false;
+  }
+  console.error('Cypress uncaught exception', [err.message]);
+});

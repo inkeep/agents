@@ -24,10 +24,10 @@ This file provides guidance for AI coding agents (Claude Code, Cursor, Codex, Am
 - **Check schema**: `pnpm db:check`
 
 ### Making a changelog entry
-`pnpm changeset:quick <major|minor|patch> "<changelog message>"`
+`pnpm cs <major|minor|patch> "<changelog message>"`
 Example:
 ```bash
-pnpm changeset:quick minor "Add new feature"
+pnpm cs minor "Add new feature"
 ```
 This will create a changeset file in the `.changeset` directory that is used by a GH Action to update packages versions.
 
@@ -127,7 +127,7 @@ describe('MyFeature', () => {
 Required environment variables in `.env` files:
 ```
 ENVIRONMENT=development|production|test
-DB_FILE_NAME=path/to/sqlite.db
+DATABASE_URL=postgresql://appuser:password@localhost:5432/inkeep_agents
 PORT=3002
 ANTHROPIC_API_KEY=required
 OPENAI_API_KEY=optional
@@ -167,6 +167,7 @@ LOG_LEVEL=debug|info|warn|error
 - [ ] UI components implemented in agents-manage-ui
 - [ ] Documentation added to `/agents-docs/`
 - [ ] All linting passes (`pnpm lint`)
+- [ ] Code is formatted (`pnpm format` to auto-fix, `pnpm format:check` to verify)
 
 ### 📋 Standard Development Workflow
 
@@ -183,6 +184,7 @@ LOG_LEVEL=debug|info|warn|error
    pnpm typecheck  # or pnpm tsc --noEmit
    pnpm build
    pnpm lint
+   pnpm format     # IMPORTANT: Always run formatter before committing
    ```
 
 3. **Commit your changes** with a descriptive message

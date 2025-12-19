@@ -31,8 +31,7 @@ interface TracesOverviewProps {
 
 export function TracesOverview({ refreshKey }: TracesOverviewProps) {
   const router = useRouter();
-  const params = useParams();
-  const projectId = params.projectId;
+  const { tenantId, projectId } = useParams();
   const searchParams = useSearchParams();
   const {
     timeRange: selectedTimeRange,
@@ -49,15 +48,10 @@ export function TracesOverview({ refreshKey }: TracesOverviewProps) {
   const { isLoading: isSignozConfigLoading, configError: signozConfigError } = useSignozConfig();
 
   const [selectedAgent, setSelectedAgent] = useState<string | undefined>(undefined);
-  const [searchQuery, setSearchQuery] = useState<string>('');
-  const [debouncedSearchQuery, setDebouncedSearchQuery] = useState<string>('');
+  const [searchQuery, setSearchQuery] = useState('');
+  const [debouncedSearchQuery, setDebouncedSearchQuery] = useState('');
   const [availableSpanNames, setAvailableSpanNames] = useState<string[]>([]);
   const [spanNamesLoading, setSpanNamesLoading] = useState(false);
-  // Aggregate stats now come from useAggregateStats hook
-  const [aiCallsByAgent, setAiCallsByAgent] = useState<
-    Array<{ agentId: string; totalCalls: number }>
-  >([]);
-  const [_aiCallsLoading, setAiCallsLoading] = useState(true);
   const [activityData, setActivityData] = useState<Array<{ date: string; count: number }>>([]);
   const [activityLoading, setActivityLoading] = useState(true);
 
@@ -81,14 +75,13 @@ export function TracesOverview({ refreshKey }: TracesOverviewProps) {
           startTime: startDate.getTime(),
           endTime: clampedEndMs,
         };
-      } else {
-        // Default to 15 days if custom dates not set
-        const hoursBack = TIME_RANGES['15d'].hours;
-        return {
-          startTime: currentEndTime - hoursBack * 60 * 60 * 1000,
-          endTime: currentEndTime,
-        };
       }
+      // Default to 15 days if custom dates not set
+      const hoursBack = TIME_RANGES['15d'].hours;
+      return {
+        startTime: currentEndTime - hoursBack * 60 * 60 * 1000,
+        endTime: currentEndTime,
+      };
     }
 
     const hoursBack = TIME_RANGES[selectedTimeRange].hours;
@@ -131,6 +124,7 @@ export function TracesOverview({ refreshKey }: TracesOverviewProps) {
     endTime,
     filters: spanFilters,
     projectId: projectId as string,
+    tenantId: tenantId as string,
     agentId: selectedAgent,
   });
 
@@ -139,8 +133,9 @@ export function TracesOverview({ refreshKey }: TracesOverviewProps) {
     endTime,
     filters: spanFilters,
     projectId: projectId as string,
+    tenantId: tenantId as string,
     searchQuery: debouncedSearchQuery,
-    pagination: { enabled: true, pageSize: 10 },
+    pagination: { pageSize: 10 },
     agentId: selectedAgent,
   });
 
@@ -156,30 +151,12 @@ export function TracesOverview({ refreshKey }: TracesOverviewProps) {
 
   // Aggregate stats now come directly from server-side aggregation
 
-  // Fetch AI calls by agent
-  useEffect(() => {
-    const fetchAICallsByAgent = async () => {
-      try {
-        setAiCallsLoading(true);
-        const client = getSigNozStatsClient();
-        const aiCallsData = await client.getAICallsByAgent(startTime, endTime, projectId as string);
-        setAiCallsByAgent(aiCallsData);
-      } catch (err) {
-        console.error('Error fetching AI calls by agent:', err);
-      } finally {
-        setAiCallsLoading(false);
-      }
-    };
-
-    fetchAICallsByAgent();
-  }, [startTime, endTime, projectId]);
-
   // Fetch conversations per day activity
   useEffect(() => {
     const fetchActivity = async () => {
       try {
         setActivityLoading(true);
-        const client = getSigNozStatsClient();
+        const client = getSigNozStatsClient(tenantId as string);
         const agentId = selectedAgent ? selectedAgent : undefined;
         console.log('🔍 Fetching activity data:', {
           startTime,
@@ -202,19 +179,19 @@ export function TracesOverview({ refreshKey }: TracesOverviewProps) {
         setActivityLoading(false);
       }
     };
-    if (startTime && endTime) {
+    if (startTime && endTime && tenantId) {
       fetchActivity();
     }
-  }, [startTime, endTime, selectedAgent, projectId]);
+  }, [startTime, endTime, selectedAgent, projectId, tenantId]);
 
   // Fetch available span names when time range or selected agent changes
   useEffect(() => {
     const fetchSpanNames = async () => {
-      if (!startTime || !endTime) return;
+      if (!startTime || !endTime || !tenantId) return;
 
       setSpanNamesLoading(true);
       try {
-        const client = getSigNozStatsClient();
+        const client = getSigNozStatsClient(tenantId as string);
         const spanNames = await client.getAvailableSpanNames(
           startTime,
           endTime,
@@ -231,22 +208,13 @@ export function TracesOverview({ refreshKey }: TracesOverviewProps) {
     };
 
     // Only fetch if we have valid time range
-    if (startTime && endTime) {
+    if (startTime && endTime && tenantId) {
       fetchSpanNames();
     }
-  }, [startTime, endTime, selectedAgent, projectId]);
+  }, [startTime, endTime, selectedAgent, projectId, tenantId]);
 
   // Filter stats based on selected agent (for aggregate calculations)
   // Server-side pagination and filtering is now handled by the hooks
-
-  // Get AI calls for selected agent
-  const selectedAgentAICalls = useMemo(() => {
-    if (!selectedAgent) {
-      return aggregateStats.totalAICalls;
-    }
-    const agentAICalls = aiCallsByAgent.find((ac) => ac.agentId === selectedAgent);
-    return agentAICalls?.totalCalls || 0;
-  }, [selectedAgent, aiCallsByAgent, aggregateStats.totalAICalls]);
 
   if (error) {
     return (
@@ -396,11 +364,16 @@ export function TracesOverview({ refreshKey }: TracesOverviewProps) {
           <div className="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-4 xl:grid-cols-2 gap-4 h-full">
             {/* Total MCP Tool Calls */}
             <StatCard
-              title="Tool calls"
+              title="MCP Tool calls"
               stat={aggregateStats.totalToolCalls}
               statDescription={`Over ${aggregateStats.totalConversations} conversations`}
               isLoading={aggregateLoading}
               Icon={Wrench}
+              onClick={() => {
+                const current = new URLSearchParams(searchParams.toString());
+                const href = `/${tenantId}/projects/${projectId}/traces/tool-calls?${current.toString()}`;
+                router.push(href);
+              }}
             />
 
             {/* Agent Transfers */}
@@ -424,13 +397,13 @@ export function TracesOverview({ refreshKey }: TracesOverviewProps) {
             {/* AI Usage */}
             <StatCard
               title="AI calls"
-              stat={selectedAgentAICalls}
+              stat={aggregateStats.totalAICalls}
               statDescription={`Over ${aggregateStats.totalConversations} conversations`}
               isLoading={aggregateLoading}
               Icon={SparklesIcon}
               onClick={() => {
                 const current = new URLSearchParams(searchParams.toString());
-                const href = `/${params.tenantId}/projects/${projectId}/traces/ai-calls?${current.toString()}`;
+                const href = `/${tenantId}/projects/${projectId}/traces/ai-calls?${current.toString()}`;
                 router.push(href);
               }}
             />
@@ -448,6 +421,7 @@ export function TracesOverview({ refreshKey }: TracesOverviewProps) {
         pagination={pagination}
         searchQuery={searchQuery}
         onSearchChange={setSearchQuery}
+        totalConversations={aggregateStats.totalConversations}
       />
     </div>
   );

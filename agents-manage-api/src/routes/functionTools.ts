@@ -5,24 +5,43 @@ import {
   createFunctionTool,
   deleteFunctionTool,
   FunctionToolApiInsertSchema,
-  FunctionToolApiSelectSchema,
   FunctionToolApiUpdateSchema,
+  FunctionToolListResponse,
+  FunctionToolResponse,
   generateId,
   getFunctionToolById,
-  ListResponseSchema,
   listFunctionTools,
   PaginationQueryParamsSchema,
-  SingleResponseSchema,
+  TenantProjectAgentIdParamsSchema,
   TenantProjectAgentParamsSchema,
   updateFunctionTool,
 } from '@inkeep/agents-core';
-import { z } from 'zod';
 import dbClient from '../data/db/dbClient';
 import { getLogger } from '../logger';
+import { requirePermission } from '../middleware/require-permission';
+import type { BaseAppVariables } from '../types/app';
+import { speakeasyOffsetLimitPagination } from './shared';
 
 const logger = getLogger('functionTools');
 
-const app = new OpenAPIHono();
+const app = new OpenAPIHono<{ Variables: BaseAppVariables }>();
+
+app.use('/', async (c, next) => {
+  if (c.req.method === 'POST') {
+    return requirePermission({ function: ['create'] })(c, next);
+  }
+  return next();
+});
+
+app.use('/:id', async (c, next) => {
+  if (c.req.method === 'PUT') {
+    return requirePermission({ function: ['update'] })(c, next);
+  }
+  if (c.req.method === 'DELETE') {
+    return requirePermission({ function: ['delete'] })(c, next);
+  }
+  return next();
+});
 
 app.openapi(
   createRoute({
@@ -40,12 +59,13 @@ app.openapi(
         description: 'List of function tools retrieved successfully',
         content: {
           'application/json': {
-            schema: ListResponseSchema(FunctionToolApiSelectSchema),
+            schema: FunctionToolListResponse,
           },
         },
       },
       ...commonGetErrorResponses,
     },
+    ...speakeasyOffsetLimitPagination,
   }),
   async (c) => {
     const { tenantId, projectId, agentId } = c.req.valid('param');
@@ -71,21 +91,19 @@ app.openapi(
 app.openapi(
   createRoute({
     method: 'get',
-    path: '/:id',
+    path: '/{id}',
     summary: 'Get Function Tool by ID',
     operationId: 'get-function-tool',
     tags: ['Function Tools'],
     request: {
-      params: TenantProjectAgentParamsSchema.extend({
-        id: z.string(),
-      }),
+      params: TenantProjectAgentIdParamsSchema,
     },
     responses: {
       200: {
         description: 'Function tool retrieved successfully',
         content: {
           'application/json': {
-            schema: SingleResponseSchema(FunctionToolApiSelectSchema),
+            schema: FunctionToolResponse,
           },
         },
       },
@@ -141,7 +159,7 @@ app.openapi(
         description: 'Function tool created successfully',
         content: {
           'application/json': {
-            schema: SingleResponseSchema(FunctionToolApiSelectSchema),
+            schema: FunctionToolResponse,
           },
         },
       },
@@ -180,14 +198,12 @@ app.openapi(
 app.openapi(
   createRoute({
     method: 'put',
-    path: '/:id',
+    path: '/{id}',
     summary: 'Update Function Tool',
     operationId: 'update-function-tool',
     tags: ['Function Tools'],
     request: {
-      params: TenantProjectAgentParamsSchema.extend({
-        id: z.string(),
-      }),
+      params: TenantProjectAgentIdParamsSchema,
       body: {
         content: {
           'application/json': {
@@ -201,7 +217,7 @@ app.openapi(
         description: 'Function tool updated successfully',
         content: {
           'application/json': {
-            schema: SingleResponseSchema(FunctionToolApiSelectSchema),
+            schema: FunctionToolResponse,
           },
         },
       },
@@ -246,14 +262,12 @@ app.openapi(
 app.openapi(
   createRoute({
     method: 'delete',
-    path: '/:id',
+    path: '/{id}',
     summary: 'Delete Function Tool',
     operationId: 'delete-function-tool',
     tags: ['Function Tools'],
     request: {
-      params: TenantProjectAgentParamsSchema.extend({
-        id: z.string(),
-      }),
+      params: TenantProjectAgentIdParamsSchema,
     },
     responses: {
       204: {

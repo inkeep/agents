@@ -1,16 +1,17 @@
 import type { Edge, Node } from '@xyflow/react';
-import type {
-  AgentToolConfigLookup,
-  SubAgentExternalAgentConfigLookup,
-  SubAgentTeamAgentConfigLookup,
-} from '@/components/agent/agent';
 import type { AgentMetadata } from '@/components/agent/configuration/agent-types';
 import type { A2AEdgeData } from '@/components/agent/configuration/edge-types';
 import { EdgeType } from '@/components/agent/configuration/edge-types';
 import { NodeType } from '@/components/agent/configuration/node-types';
 import type { ArtifactComponent } from '@/lib/api/artifact-components';
 import type { DataComponent } from '@/lib/api/data-components';
-import type { FullAgentDefinition, InternalAgentDefinition } from '@/lib/types/agent-full';
+import type {
+  AgentToolConfigLookup,
+  FullAgentDefinition,
+  InternalAgentDefinition,
+  SubAgentExternalAgentConfigLookup,
+  SubAgentTeamAgentConfigLookup,
+} from '@/lib/types/agent-full';
 import type { ExternalAgent } from '@/lib/types/external-agents';
 import type { TeamAgent } from '@/lib/types/team-agents';
 import { generateId } from '@/lib/utils/id-utils';
@@ -21,6 +22,31 @@ export type ExtendedAgent = InternalAgentDefinition & {
   models?: AgentMetadata['models'];
   type: 'internal';
 };
+
+type ContextConfigParseError = Error & {
+  field: 'contextVariables' | 'headersSchema';
+};
+
+const createContextConfigParseError = (
+  field: ContextConfigParseError['field']
+): ContextConfigParseError => {
+  const message =
+    field === 'contextVariables'
+      ? 'Context variables must be valid JSON'
+      : 'Headers schema must be valid JSON';
+  const error = new Error(message) as ContextConfigParseError;
+  error.name = 'ContextConfigParseError';
+  error.field = field;
+  return error;
+};
+
+export function isContextConfigParseError(error: unknown): error is ContextConfigParseError {
+  if (!error || typeof error !== 'object') {
+    return false;
+  }
+  const candidate = error as Record<string, unknown>;
+  return candidate.name === 'ContextConfigParseError' && typeof candidate.field === 'string';
+}
 
 // Note: Tools are now project-scoped, not part of FullAgentDefinition
 
@@ -33,7 +59,7 @@ function safeJsonParse(jsonString: string | undefined | null): any {
   try {
     return JSON.parse(jsonString);
   } catch (error) {
-    console.error('Error parsing JSON:', error);
+    console.warn('Error parsing JSON:', error);
     return undefined;
   }
 }
@@ -93,7 +119,7 @@ export function serializeAgentData(
 
   for (const node of nodes) {
     if (node.type === NodeType.SubAgent) {
-      const subAgentId = (node.data.id as string) || node.id;
+      const subAgentId = (node.data.id as string) ?? node.id;
       const subAgentDataComponents = (node.data.dataComponents as string[]) || [];
       const subAgentArtifactComponents = (node.data.artifactComponents as string[]) || [];
 
@@ -176,10 +202,32 @@ export function serializeAgentData(
               }
             }
 
+            const tempToolPolicies = (mcpNode.data as any).tempToolPolicies;
+            let toolPolicies: Record<string, { needsApproval?: boolean }> | null = null;
+
+            if (tempToolPolicies !== undefined) {
+              if (
+                typeof tempToolPolicies === 'object' &&
+                tempToolPolicies !== null &&
+                !Array.isArray(tempToolPolicies)
+              ) {
+                toolPolicies = tempToolPolicies;
+              }
+            } else {
+              // No changes made to tool policies - preserve existing policies
+              const existingConfig = relationshipId
+                ? agentToolConfigLookup?.[subAgentId]?.[relationshipId]
+                : null;
+              if (existingConfig?.toolPolicies) {
+                toolPolicies = existingConfig.toolPolicies;
+              }
+            }
+
             canUse.push({
               toolId,
               toolSelection,
               headers: toolHeaders,
+              toolPolicies,
               ...(relationshipId && { agentToolRelationId: relationshipId }),
             });
           }
@@ -353,8 +401,8 @@ export function serializeAgentData(
         agent: ExtendedAgent,
         relationshipType: 'canTransferTo' | 'canDelegateTo',
         targetId: string,
-        isExternal: boolean = false,
-        isTeamAgent: boolean = false,
+        isExternal = false,
+        isTeamAgent = false,
         headers?: Record<string, string>,
         relationshipId?: string
       ) => {
@@ -519,21 +567,29 @@ export function serializeAgentData(
       }
     }
   }
+  const contextVariablesInput = metadata?.contextConfig?.contextVariables?.trim();
+  const parsedContextVariables = safeJsonParse(contextVariablesInput);
+  if (contextVariablesInput && !parsedContextVariables) {
+    throw createContextConfigParseError('contextVariables');
+  }
 
-  const parsedContextVariables = safeJsonParse(metadata?.contextConfig?.contextVariables);
-
-  const parsedHeadersSchema = safeJsonParse(metadata?.contextConfig?.headersSchema);
+  const headersSchemaInput = metadata?.contextConfig?.headersSchema?.trim();
+  const parsedHeadersSchema = safeJsonParse(headersSchemaInput);
+  if (headersSchemaInput && !parsedHeadersSchema) {
+    throw createContextConfigParseError('headersSchema');
+  }
 
   const hasContextConfig =
-    metadata?.contextConfig &&
-    ((parsedContextVariables &&
-      typeof parsedContextVariables === 'object' &&
-      parsedContextVariables !== null &&
-      Object.keys(parsedContextVariables).length > 0) ||
-      (parsedHeadersSchema &&
+    Boolean(
+      parsedContextVariables &&
+        typeof parsedContextVariables === 'object' &&
+        Object.keys(parsedContextVariables).length
+    ) ||
+    Boolean(
+      parsedHeadersSchema &&
         typeof parsedHeadersSchema === 'object' &&
-        parsedHeadersSchema !== null &&
-        Object.keys(parsedHeadersSchema).length > 0));
+        Object.keys(parsedHeadersSchema).length
+    );
 
   const dataComponents: Record<string, DataComponent> = {};
   if (dataComponentLookup) {
@@ -557,7 +613,7 @@ export function serializeAgentData(
 
   const result: FullAgentDefinition = {
     id: metadata?.id || generateId(),
-    name: metadata?.name || 'Untitled Agent',
+    name: metadata?.name ?? '',
     description: metadata?.description || undefined,
     defaultSubAgentId,
     subAgents: subAgents,
@@ -596,7 +652,7 @@ export function serializeAgentData(
     (result as any).stopWhen = metadata.stopWhen;
   }
 
-  if (metadata?.prompt) {
+  if (metadata) {
     (result as any).prompt = metadata.prompt;
   }
 

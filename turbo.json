@@ -11,7 +11,7 @@
     "ANTHROPIC_API_KEY",
     "OPENAI_API_KEY",
     "ENVIRONMENT",
-    "DB_FILE_NAME",
+    "DATABASE_URL",
     "PORT",
     "LOG_LEVEL"
   ],
@@ -80,6 +80,11 @@
       "inputs": ["$TURBO_DEFAULT$", "**/*.{test,spec}.{js,jsx,ts,tsx}"],
       "outputs": []
     },
+    "@inkeep/ai-sdk-provider#test": {
+      "dependsOn": ["build"],
+      "inputs": ["$TURBO_DEFAULT$", "**/*.{test,spec}.{js,jsx,ts,tsx}"],
+      "outputs": []
+    },
     "@inkeep/agents-ui#test": {
       "dependsOn": ["build"],
       "inputs": ["$TURBO_DEFAULT$", "**/*.{test,spec}.{js,jsx,ts,tsx}"],
@@ -90,9 +95,19 @@
       "inputs": ["$TURBO_DEFAULT$", "**/*.{test,spec}.{js,jsx,ts,tsx}"],
       "outputs": []
     },
+    "@inkeep/agents-manage-mcp#build": {
+      "dependsOn": ["^build", "sync:licenses"],
+      "inputs": ["$TURBO_DEFAULT$", ".env*"],
+      "outputs": ["dist/**", "bin/**", ".tsbuildinfo"]
+    },
     "chat-widget#test": {
       "dependsOn": ["build"],
       "outputs": []
+    },
+    "@inkeep/agents-docs#typecheck": {
+      "dependsOn": ["build"],
+      "inputs": ["$TURBO_DEFAULT$"],
+      "outputs": [".next/**"]
     },
     "test:watch": {
       "cache": false,
@@ -151,7 +166,8 @@
     },
     "check:husky": {
       "dependsOn": ["build", "lint", "typecheck", "test"],
-      "cache": false
+      "cache": false,
+      "outputs": []
     }
   }
 }

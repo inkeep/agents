@@ -8,6 +8,7 @@ import { useChatActivitiesPolling } from '@/hooks/use-chat-activities-polling';
 import type { DataComponent } from '@/lib/api/data-components';
 import { generateId } from '@/lib/utils/id-utils';
 import { copyTraceToClipboard } from '@/lib/utils/trace-formatter';
+import { useCopilotContext } from '../copilot/copilot-context';
 import { ChatWidget } from './chat-widget';
 import CustomHeadersDialog from './custom-headers-dialog';
 
@@ -32,6 +33,7 @@ export const Playground = ({
   showTraces,
   setShowTraces,
 }: PlaygroundProps) => {
+  const { setIsOpen: setIsCopilotOpen } = useCopilotContext();
   const [conversationId, setConversationId] = useState(generateId);
   const [customHeaders, setCustomHeaders] = useState<Record<string, string>>({});
   const [isCopying, setIsCopying] = useState(false);
@@ -45,6 +47,8 @@ export const Playground = ({
     refreshOnce,
   } = useChatActivitiesPolling({
     conversationId,
+    tenantId,
+    projectId,
   });
 
   const handleCopyTrace = async () => {
@@ -74,7 +78,7 @@ export const Playground = ({
 
   return (
     <div className="bg-background flex flex-col h-full">
-      <div className="flex min-h-0 items-center justify-between py-2 px-4 border-b flex-shrink-0">
+      <div className="flex min-h-0 items-center justify-between py-2 px-4 border-b shrink-0">
         <CustomHeadersDialog customHeaders={customHeaders} setCustomHeaders={setCustomHeaders} />
         <div className="flex items-center gap-2">
           <Button
@@ -85,21 +89,23 @@ export const Playground = ({
               setShowTraces(!showTraces);
               if (!showTraces) {
                 closeSidePane();
+                setIsCopilotOpen(false);
               }
             }}
           >
             <Bug className="h-4 w-4" />
             {showTraces ? 'Hide debug' : 'Debug'}
           </Button>
-
-          <Button
-            variant="ghost"
-            size="sm"
-            className="h-6"
-            onClick={() => setShowPlayground(false)}
-          >
-            <X className="h-4 w-4" />
-          </Button>
+          {!showTraces && (
+            <Button
+              variant="ghost"
+              size="icon-sm"
+              className="h-6"
+              onClick={() => setShowPlayground(false)}
+            >
+              <X className="h-4 w-4" />
+            </Button>
+          )}
         </div>
       </div>
       <div className="flex-1 min-h-0 w-full">
@@ -117,6 +123,7 @@ export const Playground = ({
               chatActivities={chatActivities}
               dataComponentLookup={dataComponentLookup}
               key={JSON.stringify(customHeaders)}
+              setShowTraces={setShowTraces}
             />
           </ResizablePanel>
 

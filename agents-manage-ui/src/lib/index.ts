@@ -12,6 +12,7 @@ export {
   deleteFullAgentAction,
   getFullAgentAction,
   updateFullAgentAction,
+  validateAgentData,
 } from './actions/agent-full';
 
 // API Client exports (for advanced use cases)
@@ -25,15 +26,22 @@ export {
 // Agent Full API exports
 export {
   type AgentAgentApi,
+  AgentAgentApiSchema,
   type AgentApi,
   type AgentApiError,
+  AgentApiSchema,
   type AgentIdParams,
-  type CreateAgentResponse,
+  AgentIdParamsSchema,
+  type CreateFullAgentResponse,
   type ErrorResponse,
+  ErrorResponseSchema,
   type FullAgentDefinition,
   FullAgentDefinitionSchema,
   type GetAgentResponse,
+  SingleResponseSchema,
   type TenantParams,
+  TenantParamsSchema,
   type ToolApi,
+  ToolApiSchema,
   type UpdateAgentResponse,
 } from './types/agent-full';

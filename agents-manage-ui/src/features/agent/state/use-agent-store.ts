@@ -1,23 +1,30 @@
+'use client';
+
 import type { Connection, Edge, EdgeChange, Node, NodeChange } from '@xyflow/react';
 import { addEdge, applyEdgeChanges, applyNodeChanges } from '@xyflow/react';
 import { create, type StateCreator } from 'zustand';
 import { devtools, persist } from 'zustand/middleware';
 import { useShallow } from 'zustand/react/shallow';
+import type { AgentMetadata } from '@/components/agent/configuration/agent-types';
+import type { AnimatedEdge } from '@/components/agent/configuration/edge-types';
+import {
+  type AnimatedNode,
+  mcpNodeHandleId,
+  NodeType,
+} from '@/components/agent/configuration/node-types';
+import type { ArtifactComponent } from '@/lib/api/artifact-components';
+import type { DataComponent } from '@/lib/api/data-components';
 import type {
   AgentToolConfigLookup,
   SubAgentExternalAgentConfigLookup,
-} from '@/components/agent/agent';
-import type { AgentMetadata } from '@/components/agent/configuration/agent-types';
-import { mcpNodeHandleId, NodeType } from '@/components/agent/configuration/node-types';
-import type { ArtifactComponent } from '@/lib/api/artifact-components';
-import type { DataComponent } from '@/lib/api/data-components';
+} from '@/lib/types/agent-full';
 import type { ExternalAgent } from '@/lib/types/external-agents';
 import type { MCPTool } from '@/lib/types/tools';
 import type { AgentErrorSummary } from '@/lib/utils/agent-error-parser';
 
 type HistoryEntry = { nodes: Node[]; edges: Edge[] };
 
-type AgentStateData = {
+interface AgentStateData {
   nodes: Node[];
   edges: Edge[];
   metadata: AgentMetadata;
@@ -33,12 +40,22 @@ type AgentStateData = {
   errors: AgentErrorSummary | null;
   showErrors: boolean;
   /**
+   * Temporary state used to control whether the sidebar is open on the agents page.
+   */
+  isSidebarSessionOpen: boolean;
+  variableSuggestions: string[];
+}
+
+interface AgentPersistedStateData {
+  /**
    * Setting for using JSON Schema editor instead of Form builder.
    */
   jsonSchemaMode: boolean;
-};
+  isSidebarPinnedOpen: boolean;
+  hasTextWrap: boolean;
+}
 
-type AgentActions = {
+interface AgentActions {
   setInitial(
     nodes: Node[],
     edges: Edge[],
@@ -82,11 +99,25 @@ type AgentActions = {
    * Setter for `jsonSchemaMode` field.
    */
   setJsonSchemaMode(jsonSchemaMode: boolean): void;
-};
+  /**
+   * Setter for `isSidebarSessionOpen` and `isSidebarPinnedOpen` fields.
+   */
+  setSidebarOpen(state: { isSidebarSessionOpen: boolean; isSidebarPinnedOpen?: boolean }): void;
+  /**
+   * Toggle of `hasTextWrap` field.
+   */
+  toggleTextWrap(): void;
 
-type AgentState = AgentStateData & {
+  animateGraph: EventListenerOrEventListenerObject;
+
+  setVariableSuggestions: (variableSuggestions: string[]) => void;
+}
+
+type AllAgentStateData = AgentStateData & AgentPersistedStateData;
+
+interface AgentState extends AllAgentStateData {
   actions: AgentActions;
-};
+}
 
 const initialAgentState: AgentStateData = {
   nodes: [],
@@ -115,11 +146,16 @@ const initialAgentState: AgentStateData = {
   future: [],
   errors: null,
   showErrors: false,
-  jsonSchemaMode: false,
+  isSidebarSessionOpen: true,
+  variableSuggestions: [],
 };
 
 const agentState: StateCreator<AgentState> = (set, get) => ({
   ...initialAgentState,
+  jsonSchemaMode: false,
+  isSidebarPinnedOpen: true,
+  hasTextWrap: true,
+  variableSuggestions: [],
   // Separate "namespace" for actions
   actions: {
     setInitial(
@@ -151,7 +187,11 @@ const agentState: StateCreator<AgentState> = (set, get) => ({
       });
     },
     reset() {
-      set(initialAgentState);
+      // Exclude `isSidebarSessionOpen` from the initial state.
+      // If we kept it, the sidebar on the agents page would collapse (from the temp state)
+      // and then immediately re-expand due to the user’s persisted preference.
+      const { isSidebarSessionOpen: _, ...state } = initialAgentState;
+      set(state);
     },
     setDataComponentLookup(dataComponentLookup) {
       set({ dataComponentLookup });
@@ -315,6 +355,181 @@ const agentState: StateCreator<AgentState> = (set, get) => ({
     setJsonSchemaMode(jsonSchemaMode) {
       set({ jsonSchemaMode });
     },
+    animateGraph(event) {
+      // @ts-expect-error -- improve types
+      const data = event.detail;
+      set((state) => {
+        const { edges: prevEdges, nodes: prevNodes } = state;
+
+        function updateNodeStatus(
+          cb: (node: Node<AnimatedNode & Record<string, unknown>>) => AnimatedNode['status']
+        ) {
+          return prevNodes.map((node) => {
+            return {
+              ...node,
+              data: {
+                ...node.data,
+                status: cb(node),
+              },
+            };
+          });
+        }
+        function updateEdgeStatus(
+          cb: (edge: Edge<AnimatedEdge & Record<string, unknown>>) => AnimatedEdge['status']
+        ) {
+          return prevEdges.map((node) => {
+            return {
+              ...node,
+              data: {
+                ...node.data,
+                status: cb(node),
+              },
+            };
+          });
+        }
+        switch (data.type) {
+          case 'agent_initializing': {
+            return {
+              nodes: updateNodeStatus((node) => {
+                // this prevents the node from highlighting if the copilot triggers this event
+                if (data?.details?.agentId !== state.metadata.id) {
+                  return;
+                }
+                if (node.data.isDefault) {
+                  return 'delegating';
+                }
+                return node.data.status;
+              }),
+            };
+          }
+          case 'delegation_sent':
+          case 'transfer': {
+            const { fromSubAgent, targetSubAgent } = data.details.data;
+
+            return {
+              edges: updateEdgeStatus((edge) =>
+                edge.source === fromSubAgent && edge.target === targetSubAgent
+                  ? 'delegating'
+                  : edge.data?.status
+              ),
+              nodes: updateNodeStatus((node) =>
+                node.id === fromSubAgent || node.id === targetSubAgent
+                  ? 'delegating'
+                  : node.data.status
+              ),
+            };
+          }
+          case 'delegation_returned': {
+            const { targetSubAgent, fromSubAgent } = data.details.data;
+            return {
+              edges: updateEdgeStatus((edge) =>
+                edge.source === targetSubAgent && edge.target === fromSubAgent
+                  ? 'inverted-delegating'
+                  : edge.data?.status
+              ),
+              nodes: updateNodeStatus((node) => {
+                if (node.id === targetSubAgent) {
+                  return 'delegating';
+                }
+                return node.id === fromSubAgent ? 'inverted-delegating' : node.data.status;
+              }),
+            };
+          }
+          case 'tool_call': {
+            const { relationshipId } = data.details.data;
+            const { subAgentId } = data.details;
+            if (!relationshipId) {
+              console.warn('[type: tool_call] relationshipId is missing');
+            }
+            return {
+              edges: updateEdgeStatus((edge) => {
+                const node = prevNodes.find((node) => node.id === edge.target);
+                return !!relationshipId && relationshipId === node?.data.relationshipId
+                  ? 'delegating'
+                  : edge.data?.status;
+              }),
+              nodes: updateNodeStatus((node) =>
+                node.data.id === subAgentId ||
+                (relationshipId && relationshipId === node.data.relationshipId)
+                  ? 'delegating'
+                  : node.data.status
+              ),
+            };
+          }
+          case 'error': {
+            const { relationshipId } = data.details ?? {};
+            if (!relationshipId) {
+              console.warn('[type: error] relationshipId is missing');
+            }
+            return {
+              nodes: updateNodeStatus((node) =>
+                relationshipId && relationshipId === node.data.relationshipId
+                  ? 'error'
+                  : node.data.status
+              ),
+            };
+          }
+          case 'tool_result': {
+            const { error, relationshipId } = data.details.data;
+            const { subAgentId } = data.details;
+            if (!relationshipId) {
+              console.warn('[type: tool_result] relationshipId is missing');
+            }
+            return {
+              edges: updateEdgeStatus((edge) => {
+                const node = prevNodes.find((node) => node.id === edge.target);
+
+                return subAgentId === edge.source &&
+                  relationshipId &&
+                  relationshipId === node?.data.relationshipId
+                  ? 'inverted-delegating'
+                  : edge.data?.status;
+              }),
+              nodes: updateNodeStatus((node) => {
+                if (relationshipId && relationshipId === node.data.relationshipId) {
+                  return error ? 'error' : 'inverted-delegating';
+                }
+                if (node.id === subAgentId) {
+                  return 'delegating';
+                }
+
+                return node.data.status;
+              }),
+            };
+          }
+          case 'completion': {
+            return {
+              edges: updateEdgeStatus(() => null),
+              nodes: updateNodeStatus(() => null),
+            };
+          }
+          case 'agent_reasoning':
+          case 'agent_generate': {
+            const { subAgentId } = data.details;
+            return {
+              nodes: updateNodeStatus((node) =>
+                node.id === subAgentId ? 'executing' : node.data.status
+              ),
+            };
+          }
+        }
+        return state;
+      });
+    },
+    setSidebarOpen({ isSidebarSessionOpen, isSidebarPinnedOpen }) {
+      set({
+        isSidebarSessionOpen,
+        ...(typeof isSidebarPinnedOpen === 'boolean' && { isSidebarPinnedOpen }),
+      });
+    },
+    toggleTextWrap() {
+      set((prevState) => ({
+        hasTextWrap: !prevState.hasTextWrap,
+      }));
+    },
+    setVariableSuggestions(variableSuggestions) {
+      set({ variableSuggestions });
+    },
   },
 });
 
@@ -325,6 +540,8 @@ export const agentStore = create<AgentState>()(
       partialize(state) {
         return {
           jsonSchemaMode: state.jsonSchemaMode,
+          isSidebarPinnedOpen: state.isSidebarPinnedOpen,
+          hasTextWrap: state.hasTextWrap,
         };
       },
     })
@@ -342,10 +559,10 @@ export const useAgentActions = () => agentStore((state) => state.actions);
 /**
  * Select values from the agent store (excluding actions).
  *
- * We explicitly use `AgentStateData` instead of `AgentState`,
+ * We explicitly use `AllAgentStateData` instead of `AgentState`,
  * which includes actions, to encourage using `useAgentActions`
  * when accessing or calling actions.
  */
-export function useAgentStore<T>(selector: (state: AgentStateData) => T): T {
+export function useAgentStore<T>(selector: (state: AllAgentStateData) => T): T {
   return agentStore(useShallow(selector));
 }

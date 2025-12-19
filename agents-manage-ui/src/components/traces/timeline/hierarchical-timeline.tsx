@@ -44,7 +44,7 @@ function TreeNodeItem({
           className="absolute left-0 top-0 border-l border-border"
           style={{
             left: node.depth > 0 ? `${(node.depth - 1) * indentSize + 7}px` : '7px',
-            bottom: '-16px',
+            bottom: '-19px',
           }}
         />
       )}
@@ -55,11 +55,11 @@ function TreeNodeItem({
             width: `${node.depth * indentSize}px`,
             minWidth: `${node.depth * indentSize}px`,
           }}
-          className="relative flex-shrink-0"
+          className="relative shrink-0"
         >
           {node.depth > 0 && (
             <div
-              className="absolute top-[16px] border-t border-border"
+              className="absolute top-[19px] border-t border-border"
               style={{
                 left: `${(node.depth - 1) * indentSize + 7}px`,
                 width: `${indentSize - 7}px`,

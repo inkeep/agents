@@ -21,30 +21,30 @@ if [ ! -f "pnpm-workspace.yaml" ]; then
   exit 1
 fi
 
+# Check Node.js version (reads from .node-version)
+NODE_VERSION=$(node -v | sed 's/v//')
+REQUIRED_VERSION=$(cat .node-version | tr -d '[:space:]')
+if [ "$(printf '%s\n' "$REQUIRED_VERSION" "$NODE_VERSION" | sort -V | head -n1)" != "$REQUIRED_VERSION" ]; then
+  echo "❌ Error: Node.js >= $REQUIRED_VERSION is required (found v$NODE_VERSION)"
+  echo "   Run 'nvm use' or install Node.js $REQUIRED_VERSION"
+  exit 1
+fi
+echo -e "${GREEN}✓${NC} Node.js v$NODE_VERSION detected"
+
+# Enable corepack for package manager version management
+echo "Enabling corepack..."
+corepack enable
+echo -e "${GREEN}✓${NC} Corepack enabled"
+
 # 1. Create .env from template if it doesn't exist
 if [ ! -f ".env" ]; then
   cp .env.example .env
   
   # Get the current directory path for the database file
   CURRENT_DIR=$(pwd)
-  DB_PATH="${CURRENT_DIR}/local.db"
-  
-  # Replace the empty DB_FILE_NAME with the current directory path
-  if command -v sed >/dev/null 2>&1; then
-    if [[ "$OSTYPE" == "darwin"* ]]; then
-      # macOS requires -i '' for in-place editing
-      sed -i '' "s|^DB_FILE_NAME=.*|DB_FILE_NAME=file:${DB_PATH}|" .env
-    else
-      # Linux
-      sed -i "s|^DB_FILE_NAME=.*|DB_FILE_NAME=file:${DB_PATH}|" .env
-    fi
-  else
-    echo -e "${RED}  ⚠ sed not available, please manually set DB_FILE_NAME=file:${DB_PATH}${NC} and then rerun this script."
-    exit 1
-  fi
+  DATABASE_URL="postgresql://appuser:password@localhost:5432/inkeep_agents"
   
   echo -e "${GREEN}✓${NC} Created .env from template"
-  echo -e "${GREEN}✓${NC} Set DB_FILE_NAME to file:${DB_PATH}"
   echo -e "${YELLOW}  → Please edit .env with your API keys and configuration${NC}"
 else
   echo -e "${GREEN}✓${NC} .env already exists"
@@ -93,6 +93,14 @@ echo -e "${GREEN}✓${NC} Dependencies installed"
 # 7. Setup database
 echo ""
 echo "Setting up database..."
+if ! docker compose -f docker-compose.db.yml up -d; then
+  echo -e "${YELLOW}⚠️  Warning: Could not start local database with Docker${NC}"
+  echo "   This is OK if the db is already running or you're using a cloud-hosted database (Neon, Vercel Postgres, etc.)"
+  echo "   Make sure DATABASE_URL is set in your .env file"
+  echo "\n"
+  echo "\n"
+fi
+
 pnpm --filter @inkeep/agents-core db:migrate
 echo -e "${GREEN}✓${NC} Database ready"
 

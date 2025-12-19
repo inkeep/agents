@@ -1,59 +1,30 @@
-import { readdirSync, readFileSync, unlinkSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { createClient } from '@libsql/client';
+import { PGlite } from '@electric-sql/pglite';
 import { sql } from 'drizzle-orm';
-import type { LibSQLDatabase } from 'drizzle-orm/libsql';
-import { drizzle } from 'drizzle-orm/libsql';
+import { drizzle } from 'drizzle-orm/pglite';
+import { migrate } from 'drizzle-orm/pglite/migrator';
+import type { DatabaseClient } from './client';
 import * as schema from './schema';
 
-export type DatabaseClient = LibSQLDatabase<typeof schema>;
-
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = dirname(__filename);
+const FILENAME = fileURLToPath(import.meta.url);
+const DIRNAME = dirname(FILENAME);
 
 /**
- * Creates a test database client using an in-memory SQLite database
+ * Creates a test database client using an in-memory PostgreSQL database (PGlite)
  * This provides real database operations for integration testing with perfect isolation
  * Each call creates a fresh database with all migrations applied
  */
-export async function createTestDatabaseClient(): Promise<DatabaseClient> {
-  const client = createClient({
-    url: ':memory:',
-  });
-
+export async function createTestDatabaseClient(drizzleDir?: string): Promise<DatabaseClient> {
+  const client = new PGlite();
   const db = drizzle(client, { schema });
 
   // Initialize schema by running ALL migration SQL files
   try {
-    const drizzleDir = join(__dirname, '../../drizzle');
-    const files = readdirSync(drizzleDir);
-
-    // Find all SQL migration files and sort them
-    const migrationFiles = files.filter((f) => f.endsWith('.sql')).sort(); // This sorts 0000_, 0001_, 0002_, etc. in order
-
-    if (migrationFiles.length === 0) {
-      throw new Error('No migration files found. Run: pnpm drizzle-kit generate');
+    if (!drizzleDir) {
+      drizzleDir = join(DIRNAME, '../../drizzle');
     }
-
-    // Run all migrations in order
-    for (const migrationFile of migrationFiles) {
-      const migrationPath = join(drizzleDir, migrationFile);
-      const migrationSql = readFileSync(migrationPath, 'utf8');
-
-      // Parse and execute SQL statements
-      const statements = migrationSql
-        .split('-->')
-        .map((s) => s.replace(/statement-breakpoint/g, '').trim())
-        .filter((s) => s.length > 0 && !s.startsWith('--'));
-
-      for (const statement of statements) {
-        // Execute all SQL statements (CREATE, ALTER, etc.)
-        if (statement.trim().length > 0) {
-          await db.run(sql.raw(statement));
-        }
-      }
-    }
+    await migrate(db, { migrationsFolder: drizzleDir });
   } catch (error) {
     console.error('Failed to initialize test database schema:', error);
     throw error;
@@ -64,55 +35,38 @@ export async function createTestDatabaseClient(): Promise<DatabaseClient> {
 
 /**
  * Cleans up test database by removing all data but keeping schema
- * @deprecated Use fresh in-memory databases with beforeEach instead for better test isolation
+ * Dynamically gets all tables from the public schema and truncates them
  */
 export async function cleanupTestDatabase(db: DatabaseClient): Promise<void> {
-  const cleanupTables = [
-    'messages',
-    'conversations',
-    'tasks',
-    'task_relations',
-    'agent_relations',
-    'agent',
-    'agent_tool_relations',
-    'tools',
-    'agents',
-    'api_keys',
-    'context_cache',
-    'ledger_artifacts',
-    'agent_artifact_components',
-    'agent_data_components',
-    'artifact_components',
-    'context_configs',
-    'credential_references',
-    'data_components',
-    'external_agents',
-    'functions', // Global functions table
-    'projects',
-  ];
-
-  for (const table of cleanupTables) {
-    try {
-      await db.run(sql.raw(`DELETE FROM ${table}`));
-    } catch (error) {
-      // Table might not exist, continue with others
-      console.debug(`Could not clean table ${table}:`, error);
-    }
-  }
-
-  // Reset auto-increment counters
   try {
-    await db.run(sql.raw(`DELETE FROM sqlite_sequence`));
-  } catch {
-    // sqlite_sequence might not exist if no auto-increment columns used
+    // Get all table names from the public schema
+    const result = await db.execute(
+      sql.raw(`
+      SELECT tablename 
+      FROM pg_tables 
+      WHERE schemaname = 'public'
+    `)
+    );
+
+    const tables = result.rows.map((row: any) => row.tablename);
+
+    if (tables.length === 0) {
+      return;
+    }
+
+    // Use TRUNCATE with CASCADE to handle foreign key constraints automatically
+    // RESTART IDENTITY resets any sequences (auto-increment counters)
+    const tableList = tables.map((t: string) => `"${t}"`).join(', ');
+    await db.execute(sql.raw(`TRUNCATE TABLE ${tableList} RESTART IDENTITY CASCADE`));
+  } catch (error) {
+    console.debug('Could not clean test database:', error);
   }
 }
 
 /**
  * Closes the test database and removes the file
- * @deprecated Use in-memory databases which auto-cleanup instead
  */
-export async function closeTestDatabase(db: DatabaseClient, testDbPath: string): Promise<void> {
+export async function closeTestDatabase(db: DatabaseClient): Promise<void> {
   // Close the database connection
   try {
     if ('close' in db && typeof db.close === 'function') {
@@ -121,24 +75,45 @@ export async function closeTestDatabase(db: DatabaseClient, testDbPath: string):
   } catch (error) {
     console.debug('Error closing database:', error);
   }
-
-  // Remove the test database file
-  try {
-    unlinkSync(testDbPath);
-  } catch (error) {
-    console.debug('Could not remove test database file:', testDbPath, error);
-  }
 }
 
 /**
- * Creates an in-memory database client for very fast unit tests
- * Note: This requires schema initialization which can be complex
+ * Creates a test organization in the database
+ * This is a helper for tests that need organization records before creating projects/agents
  */
-export function createInMemoryDatabaseClient(): DatabaseClient {
-  const client = createClient({ url: ':memory:' });
-  const db = drizzle(client, { schema });
+export async function createTestOrganization(db: DatabaseClient, tenantId: string): Promise<void> {
+  const slug = tenantId.replace(/^test-tenant-/, '').substring(0, 50);
 
-  // For in-memory, we'd need to create the schema manually
-  // Using the test file approach is more reliable
-  return db;
+  await db
+    .insert(schema.organization)
+    .values({
+      id: tenantId,
+      name: `Test Organization ${tenantId}`,
+      slug,
+      createdAt: new Date(),
+      metadata: null,
+    })
+    .onConflictDoNothing();
+}
+
+/**
+ * Creates a test project in the database
+ * Ensures the organization exists first
+ */
+export async function createTestProject(
+  db: DatabaseClient,
+  tenantId: string,
+  projectId = 'default'
+): Promise<void> {
+  await createTestOrganization(db, tenantId);
+
+  await db
+    .insert(schema.projects)
+    .values({
+      tenantId,
+      id: projectId,
+      name: `Test Project ${projectId}`,
+      description: `Test project for ${projectId}`,
+    })
+    .onConflictDoNothing();
 }

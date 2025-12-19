@@ -7,6 +7,7 @@
 
 import type { FullProjectDefinition } from '@inkeep/agents-core';
 import chalk from 'chalk';
+import { compareJsonObjects } from '../../utils/json-comparator';
 import type { ComponentRegistry, ComponentType } from './utils/component-registry';
 
 export interface ComponentChange {
@@ -455,15 +456,17 @@ function generateSubAgentChangeSummary(fieldChanges: FieldChange[]): string {
 
   if (changeTypes.has('modified') && fieldNames.length === 1) {
     return `Modified ${fieldNames[0]}`;
-  } else if (changeTypes.has('added') && changeTypes.has('deleted')) {
-    return `Updated configuration (${fieldChanges.length} changes)`;
-  } else if (changeTypes.has('added')) {
-    return `Added ${fieldNames.join(', ')}`;
-  } else if (changeTypes.has('deleted')) {
-    return `Removed ${fieldNames.join(', ')}`;
-  } else {
-    return `Modified ${fieldNames.join(', ')}`;
   }
+  if (changeTypes.has('added') && changeTypes.has('deleted')) {
+    return `Updated configuration (${fieldChanges.length} changes)`;
+  }
+  if (changeTypes.has('added')) {
+    return `Added ${fieldNames.join(', ')}`;
+  }
+  if (changeTypes.has('deleted')) {
+    return `Removed ${fieldNames.join(', ')}`;
+  }
+  return `Modified ${fieldNames.join(', ')}`;
 }
 
 /**
@@ -717,16 +720,35 @@ function compareComponentMaps(
   // Find modified components with detailed field changes
   const commonIds = localIds.filter((id) => remoteIds.includes(id));
   commonIds.forEach((id) => {
-    const fieldChanges = getDetailedFieldChanges('', localMap[id], remoteMap[id]);
-    if (fieldChanges.length > 0) {
-      const summary = generateComponentChangeSummary(componentType, fieldChanges);
-      changes.push({
-        componentType,
-        componentId: id,
-        changeType: 'modified',
-        changedFields: fieldChanges,
-        summary,
+    // For artifact components, use semantic JSON comparison to ignore property ordering
+    if (componentType === 'artifactComponents') {
+      const comparison = compareJsonObjects(localMap[id], remoteMap[id], {
+        ignoreArrayOrder: true,
+        showDetails: false,
       });
+
+      if (!comparison.isEqual) {
+        changes.push({
+          componentType,
+          componentId: id,
+          changeType: 'modified',
+          summary: `Modified ${componentType}: ${id}`,
+        });
+      }
+    } else {
+      // Use detailed field changes for other component types
+      const fieldChanges = getDetailedFieldChanges('', localMap[id], remoteMap[id]);
+
+      if (fieldChanges.length > 0) {
+        const summary = generateComponentChangeSummary(componentType, fieldChanges);
+        changes.push({
+          componentType,
+          componentId: id,
+          changeType: 'modified',
+          changedFields: fieldChanges,
+          summary,
+        });
+      }
     }
   });
 
@@ -827,6 +849,33 @@ function compareArraysAsSet(
 }
 
 /**
+ * Extract credential IDs from an agent object, handling different storage structures
+ */
+function extractCredentialIds(agentObj: any): string[] {
+  const credentialIds: string[] = [];
+
+  // Method 1: Direct credentials array (remote API format)
+  if (agentObj.credentials && Array.isArray(agentObj.credentials)) {
+    agentObj.credentials.forEach((cred: any) => {
+      if (cred.id) {
+        credentialIds.push(cred.id);
+      }
+    });
+  }
+
+  // Method 2: Via contextConfig fetchDefinitions (generated format)
+  if (agentObj.contextConfig?.contextVariables) {
+    Object.values(agentObj.contextConfig.contextVariables).forEach((variable: any) => {
+      if (variable && typeof variable === 'object' && variable.credentialReferenceId) {
+        credentialIds.push(variable.credentialReferenceId);
+      }
+    });
+  }
+
+  return [...new Set(credentialIds)]; // Remove duplicates
+}
+
+/**
  * Get detailed field-level changes between two objects
  */
 function getDetailedFieldChanges(
@@ -840,22 +889,16 @@ function getDetailedFieldChanges(
   // Prevent infinite recursion
   if (depth > 10) return changes;
 
-  // Ignore database/SDK generated fields that shouldn't affect comparison
+  // Ignore SDK/runtime generated fields that shouldn't affect comparison
+  // Note: Database-generated IDs (like agentToolRelationId) are NOT ignored - they represent meaningful structural differences
   const ignoredFields = [
-    // Database-generated IDs
-    'agentToolRelationId',
-    'subAgentExternalAgentRelationId',
-    'subAgentTeamAgentRelationId',
-    'subAgentToolRelationId',
-    'agentExternalAgentRelationId',
-    'teamAgentRelationId',
+    // Internal temporary fields (prefixed with _)
     '_agentId',
-    'teamAgents',
     '_parentAgentId',
     '_contextConfigData',
-    // SDK-generated metadata
+    // SDK-generated metadata (added at runtime when loading project)
     'type',
-    // Runtime context fields
+    // Runtime context fields (set dynamically)
     'tenantId',
     'projectId',
     'agentId',
@@ -868,7 +911,6 @@ function getDetailedFieldChanges(
     'usedBy', // Computed field
     // Agent-level fields that shouldn't be compared (tools only for sub-agents via canUse)
     'tools', // Tools are handled at project level and sub-agent level via canUse
-    'teamAgents', // Team relationships are handled elsewhere
     // Timestamps
     'createdAt',
     'updatedAt',
@@ -943,10 +985,28 @@ function getDetailedFieldChanges(
       });
 
       if (shouldIgnore) {
-        if (basePath === '' && key === 'statusUpdates') {
-          console.log(`   ⚠️ statusUpdates field is being IGNORED due to ignored fields check`);
-        }
         continue; // Skip this field
+      }
+
+      // Special handling for credentials - compare actual credential usage regardless of structure
+      if (key === 'credentials' && basePath === '') {
+        const oldCredIds = extractCredentialIds(oldObj);
+        const newCredIds = extractCredentialIds(newObj);
+
+        // Sort both arrays for comparison
+        oldCredIds.sort();
+        newCredIds.sort();
+
+        if (JSON.stringify(oldCredIds) !== JSON.stringify(newCredIds)) {
+          changes.push({
+            field: fieldPath,
+            changeType: 'modified',
+            oldValue: oldCredIds,
+            newValue: newCredIds,
+            description: `Credential usage differs: [${oldCredIds.join(', ')}] vs [${newCredIds.join(', ')}]`,
+          });
+        }
+        continue; // Skip normal comparison for credentials
       }
 
       const oldValue = oldObj[key];
@@ -973,7 +1033,27 @@ function getDetailedFieldChanges(
           });
         }
       } else {
-        // Both exist, compare recursively
+        // Check if both values are empty using our isEmpty equivalence
+        const oldIsEmpty = isEmpty(oldValue);
+        const newIsEmpty = isEmpty(newValue);
+
+        // If both are empty, they're equivalent - no change
+        if (oldIsEmpty && newIsEmpty) {
+          continue;
+        }
+
+        // Special handling for models field - treat inherited models as equivalent to null
+        if (key === 'models') {
+          const oldIsNull = oldValue === null || oldValue === undefined;
+          const newIsNull = newValue === null || newValue === undefined;
+
+          // If one is null and the other has models, assume inherited models = null equivalence
+          if (oldIsNull !== newIsNull) {
+            continue; // Skip comparison - treat inherited models as equivalent to null
+          }
+        }
+
+        // Both exist and at least one is not empty, compare recursively
         const recursiveChanges = getDetailedFieldChanges(fieldPath, oldValue, newValue, depth + 1);
         changes.push(...recursiveChanges);
       }
@@ -984,6 +1064,7 @@ function getDetailedFieldChanges(
   // Handle primitives
   if (oldObj !== newObj) {
     const fieldPath = basePath || 'value';
+
     changes.push({
       field: fieldPath,
       changeType: 'modified',
@@ -1039,11 +1120,11 @@ function formatValue(value: any): string {
         const val = value[key];
         if (typeof val === 'string') {
           return `${key}: "${val.length > 15 ? val.substring(0, 12) + '...' : val}"`;
-        } else if (typeof val === 'object' && val !== null) {
-          return `${key}: {...}`;
-        } else {
-          return `${key}: ${val}`;
         }
+        if (typeof val === 'object' && val !== null) {
+          return `${key}: {...}`;
+        }
+        return `${key}: ${val}`;
       });
       return `{${pairs.join(', ')}}`;
     }
@@ -1473,9 +1554,12 @@ function compareFetchDefinitions(
         summary: `Removed fetchDefinition: ${fetchId}`,
       });
     } else if (local && remote) {
-      const localStr = JSON.stringify(local, null, 2);
-      const remoteStr = JSON.stringify(remote, null, 2);
-      if (localStr !== remoteStr) {
+      const comparison = compareJsonObjects(local, remote, {
+        ignoreArrayOrder: true,
+        showDetails: true,
+      });
+
+      if (!comparison.isEqual) {
         changes.push({
           componentType: 'fetchDefinitions' as ComponentType,
           componentId: fetchId,

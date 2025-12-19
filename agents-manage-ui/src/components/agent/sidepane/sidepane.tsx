@@ -2,17 +2,18 @@ import type { Edge, Node } from '@xyflow/react';
 import { useEdges, useNodesData } from '@xyflow/react';
 import { type LucideIcon, Workflow } from 'lucide-react';
 import { useMemo } from 'react';
+import { useAgentStore } from '@/features/agent/state/use-agent-store';
 import { useAgentErrors } from '@/hooks/use-agent-errors';
 import type { ArtifactComponent } from '@/lib/api/artifact-components';
 import type { Credential } from '@/lib/api/credentials';
 import type { DataComponent } from '@/lib/api/data-components';
-import { cn } from '@/lib/utils';
-import { SidePane as SidePaneLayout } from '../../layout/sidepane';
 import type {
   AgentToolConfigLookup,
   SubAgentExternalAgentConfigLookup,
   SubAgentTeamAgentConfigLookup,
-} from '../agent';
+} from '@/lib/types/agent-full';
+import { cn } from '@/lib/utils';
+import { SidePane as SidePaneLayout } from '../../layout/sidepane';
 import { edgeTypeMap } from '../configuration/edge-types';
 import {
   type AgentNodeData,
@@ -47,6 +48,7 @@ interface SidePaneProps {
   subAgentExternalAgentConfigLookup: SubAgentExternalAgentConfigLookup;
   subAgentTeamAgentConfigLookup: SubAgentTeamAgentConfigLookup;
   credentialLookup: Record<string, Credential>;
+  disabled?: boolean;
 }
 
 export function SidePane({
@@ -60,10 +62,12 @@ export function SidePane({
   subAgentExternalAgentConfigLookup,
   subAgentTeamAgentConfigLookup,
   credentialLookup,
+  disabled = false,
 }: SidePaneProps) {
   const selectedNode = useNodesData(selectedNodeId || '');
   const edges = useEdges();
   const { hasFieldError, getFieldErrorMessage, getFirstErrorField } = useAgentErrors();
+  const errors = useAgentStore((state) => state.errors);
 
   const selectedEdge = useMemo(
     () => (selectedEdgeId ? edges.find((edge) => edge.id === selectedEdgeId) : null),
@@ -92,6 +96,7 @@ export function SidePane({
     return { heading, HeadingIcon };
   }, [selectedNode, selectedEdge, selectedNodeId, selectedEdgeId]);
 
+  // biome-ignore lint/correctness/useExhaustiveDependencies: ignore `errors` dependency, it rerender sidepane when errors changes
   const editorContent = useMemo(() => {
     if (selectedNodeId && !selectedNode) {
       return <EditorLoadingSkeleton />;
@@ -183,6 +188,7 @@ export function SidePane({
     credentialLookup,
     subAgentExternalAgentConfigLookup,
     subAgentTeamAgentConfigLookup,
+    errors,
   ]);
 
   const showBackButton = selectedNode || selectedEdge;
@@ -202,7 +208,11 @@ export function SidePane({
         </div>
         <SidePaneLayout.CloseButton onClick={onClose} />
       </SidePaneLayout.Header>
-      <SidePaneLayout.Content>{editorContent}</SidePaneLayout.Content>
+      <SidePaneLayout.Content>
+        <fieldset disabled={disabled} className="contents">
+          {editorContent}
+        </fieldset>
+      </SidePaneLayout.Content>
     </SidePaneLayout.Root>
   );
 }

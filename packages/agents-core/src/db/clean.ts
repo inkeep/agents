@@ -18,20 +18,10 @@ import {
   tasks,
   tools,
 } from '@inkeep/agents-core';
-import { sql } from 'drizzle-orm';
 import { env } from '../env';
 import { createDatabaseClient } from './client';
 
-const dbClient = createDatabaseClient(
-  env.TURSO_DATABASE_URL && env.TURSO_AUTH_TOKEN
-    ? {
-        url: env.TURSO_DATABASE_URL,
-        authToken: env.TURSO_AUTH_TOKEN,
-      }
-    : {
-        url: env.DB_FILE_NAME ?? 'local.db',
-      }
-);
+const dbClient = createDatabaseClient();
 
 /**
  * Truncates all tables in the database, respecting foreign key constraints
@@ -39,13 +29,8 @@ const dbClient = createDatabaseClient(
  */
 export async function cleanDatabase() {
   console.log(`🗑️  Cleaning database for environment: ${env.ENVIRONMENT}`);
-  console.log(`📁 Using database: ${env.DB_FILE_NAME}`);
-  console.log('---');
 
   try {
-    // Disable foreign key constraints temporarily to make cleanup easier
-    await dbClient.run(sql`PRAGMA foreign_keys = OFF`);
-
     // Order matters: clear dependent tables first
     const tablesToClear = [
       { table: messages, name: 'messages' },
@@ -70,17 +55,19 @@ export async function cleanDatabase() {
 
     for (const { table, name } of tablesToClear) {
       try {
-        await dbClient.delete(table).run();
+        await dbClient.delete(table);
         console.log(`✅ Cleared table: ${name}`);
       } catch (error: any) {
         // Handle case where table doesn't exist
         const errorMessage = error?.message || '';
         const causeMessage = error?.cause?.message || '';
-
+        const errorCode = error?.code || error?.cause?.code || '';
         if (
           errorMessage.includes('no such table') ||
           causeMessage.includes('no such table') ||
-          (error?.cause?.code === 'SQLITE_ERROR' && causeMessage.includes('no such table'))
+          errorMessage.includes('does not exist') ||
+          causeMessage.includes('does not exist') ||
+          errorCode === '42P01'
         ) {
           console.log(`⚠️  Table ${name} doesn't exist, skipping`);
         } else {
@@ -88,9 +75,6 @@ export async function cleanDatabase() {
         }
       }
     }
-
-    // Re-enable foreign key constraints
-    await dbClient.run(sql`PRAGMA foreign_keys = ON`);
 
     console.log('---');
     console.log('🎉 Database cleaned successfully');

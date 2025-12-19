@@ -5,6 +5,7 @@
  * Sub-agents are the individual agents within an agent graph that handle specific tasks
  */
 
+import { compareJsonObjects } from '../../../utils/json-comparator';
 import type { ComponentRegistry, ComponentType } from '../utils/component-registry';
 import {
   type CodeStyle,
@@ -52,8 +53,12 @@ function hasDistinctModels(subAgentModels: any, parentModels: any): boolean {
           // One is falsy, other isn't - they're different
           return true;
         }
-        // Both exist, compare as JSON
-        if (JSON.stringify(subAgentOptions) !== JSON.stringify(parentOptions)) {
+        // Both exist, compare semantically to ignore property ordering
+        const comparison = compareJsonObjects(subAgentOptions, parentOptions, {
+          ignoreArrayOrder: true,
+          showDetails: false,
+        });
+        if (!comparison.isEqual) {
           return true;
         }
       }
@@ -84,17 +89,8 @@ export function generateSubAgentDefinition(
     throw new Error(`agentData is required for sub-agent '${agentId}'`);
   }
 
-  // Validate required sub-agent fields
-  const requiredFields = ['name', 'description', 'prompt'];
-  const missingFields = requiredFields.filter(
-    (field) => !agentData[field] || agentData[field] === null || agentData[field] === undefined
-  );
-
-  if (missingFields.length > 0) {
-    throw new Error(
-      `Missing required fields for sub-agent '${agentId}': ${missingFields.join(', ')}`
-    );
-  }
+  // No required fields - name, description, and prompt are all optional
+  // If name is missing, generate one from the ID
 
   const { quotes, semicolons, indentation } = style;
   const q = quotes === 'single' ? "'" : '"';
@@ -110,13 +106,24 @@ export function generateSubAgentDefinition(
     }
   }
 
+  // Generate a human-readable name from ID if not provided
+  // Note: Only auto-generate if name is undefined/null, NOT if it's an empty string
+  // (empty string might be intentional in the remote project)
+  const agentName =
+    agentData.name !== undefined && agentData.name !== null
+      ? agentData.name
+      : agentId
+          .replace(/[-_]/g, ' ')
+          .replace(/([a-z])([A-Z])/g, '$1 $2')
+          .replace(/\b\w/g, (c) => c.toUpperCase());
+
   const lines: string[] = [];
 
   lines.push(`export const ${agentVarName} = subAgent({`);
   lines.push(`${indentation}id: ${formatString(agentId, q)},`);
 
-  // Required fields - these must be present
-  lines.push(`${indentation}name: ${formatString(agentData.name, q)},`);
+  // Name - use provided name or generated from ID
+  lines.push(`${indentation}name: ${formatString(agentName, q)},`);
   lines.push(`${indentation}description: ${formatString(agentData.description, q, true)},`);
 
   // Prompt - can be multiline, use context.toTemplate() or headers.toTemplate() based on schema analysis
@@ -448,7 +455,8 @@ export function generateSubAgentImports(
   style: CodeStyle = DEFAULT_STYLE,
   registry?: ComponentRegistry,
   parentAgentId?: string,
-  contextConfigData?: any
+  contextConfigData?: any,
+  actualFilePath?: string
 ): string[] {
   const imports: string[] = [];
 
@@ -458,7 +466,7 @@ export function generateSubAgentImports(
   // Import context config or headers if prompt has template variables
   if (hasTemplateVariables(agentData.prompt) && parentAgentId && registry && contextConfigData) {
     const contextConfigId = contextConfigData.id;
-    const currentFilePath = `agents/sub-agents/${agentId}.ts`;
+    const currentFilePath = actualFilePath || `agents/sub-agents/${agentId}.ts`;
     const importStatement = registry.getImportStatement(
       currentFilePath,
       contextConfigId,
@@ -471,7 +479,7 @@ export function generateSubAgentImports(
 
   // Generate imports for referenced components if registry is available
   if (registry) {
-    const currentFilePath = `agents/sub-agents/${agentId}.ts`;
+    const currentFilePath = actualFilePath || `agents/sub-agents/${agentId}.ts`;
 
     // Build typed component references based on sub-agent data structure
     const referencedComponents: Array<{ id: string; type: ComponentType }> = [];
@@ -566,7 +574,8 @@ export function generateSubAgentFile(
   registry?: ComponentRegistry,
   parentAgentId?: string,
   contextConfigData?: any,
-  parentModels?: any
+  parentModels?: any,
+  actualFilePath?: string
 ): string {
   const imports = generateSubAgentImports(
     agentId,
@@ -574,7 +583,8 @@ export function generateSubAgentFile(
     style,
     registry,
     parentAgentId,
-    contextConfigData
+    contextConfigData,
+    actualFilePath
   );
   const definition = generateSubAgentDefinition(
     agentId,

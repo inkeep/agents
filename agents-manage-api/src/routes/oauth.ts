@@ -13,17 +13,18 @@ import { createRoute, OpenAPIHono, z } from '@hono/zod-openapi';
 import {
   type CredentialReferenceApiInsert,
   CredentialReferenceApiSelectSchema,
-  type CredentialStoreRegistry,
   CredentialStoreType,
   createCredentialReference,
   generateId,
   getCredentialReferenceWithResources,
   getToolById,
-  type ServerConfig,
+  OAuthCallbackQuerySchema,
+  OAuthLoginQuerySchema,
   updateTool,
 } from '@inkeep/agents-core';
 import dbClient from '../data/db/dbClient';
 import { getLogger } from '../logger';
+import type { PublicAppVariablesWithServerConfig } from '../types/app';
 import { oauthService, retrievePKCEVerifier } from '../utils/oauth-service';
 
 /**
@@ -64,12 +65,7 @@ async function findOrCreateCredential(
   }
 }
 
-type AppVariables = {
-  serverConfig: ServerConfig;
-  credentialStores: CredentialStoreRegistry;
-};
-
-const app = new OpenAPIHono<{ Variables: AppVariables }>();
+const app = new OpenAPIHono<{ Variables: PublicAppVariablesWithServerConfig }>();
 const logger = getLogger('oauth-callback');
 
 /**
@@ -161,21 +157,6 @@ function generateOAuthCallbackPage(params: {
     </html>
   `;
 }
-
-// OAuth login endpoint schema
-const OAuthLoginQuerySchema = z.object({
-  tenantId: z.string().min(1, 'Tenant ID is required'),
-  projectId: z.string().min(1, 'Project ID is required'),
-  toolId: z.string().min(1, 'Tool ID is required'),
-});
-
-// OAuth callback endpoint schema
-const OAuthCallbackQuerySchema = z.object({
-  code: z.string().min(1, 'Authorization code is required'),
-  state: z.string().min(1, 'State parameter is required'),
-  error: z.string().optional(),
-  error_description: z.string().optional(),
-});
 
 // OAuth login initiation endpoint (public - no API key required)
 app.openapi(

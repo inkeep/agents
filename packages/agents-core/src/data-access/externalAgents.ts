@@ -197,9 +197,8 @@ export const upsertExternalAgent =
         throw new Error('Failed to update external agent - no rows affected');
       }
       return updated;
-    } else {
-      return await createExternalAgent(db)(params.data);
     }
+    return await createExternalAgent(db)(params.data);
   };
 
 /**

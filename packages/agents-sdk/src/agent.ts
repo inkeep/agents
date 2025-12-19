@@ -1,15 +1,15 @@
 import {
   type AgentStopWhen,
   type CredentialReferenceApiInsert,
-  createDatabaseClient,
   type FullAgentDefinition,
   getLogger,
-  getProject,
   type StatusUpdateSettings,
+  type ToolPolicy,
 } from '@inkeep/agents-core';
 import { convertZodToJsonSchema, isZodSchema } from '@inkeep/agents-core/utils/schema-conversion';
 import { updateFullAgentViaAPI } from './agentFullClient';
 import { FunctionTool } from './function-tool';
+import { getFullProjectViaAPI } from './projectFullClient';
 import type {
   AgentConfig,
   AgentInterface,
@@ -54,7 +54,6 @@ export class Agent implements AgentInterface {
   private statusUpdateSettings?: StatusUpdateSettings;
   private prompt?: string;
   private stopWhen?: AgentStopWhen;
-  private dbClient: ReturnType<typeof createDatabaseClient>;
 
   constructor(config: AgentConfig) {
     this.defaultSubAgent = config.defaultSubAgent;
@@ -69,16 +68,6 @@ export class Agent implements AgentInterface {
     this.credentials = resolveGetter(config.credentials);
     this.models = config.models;
 
-    // Initialize database client
-    // In test environment, always use in-memory database
-    const dbUrl =
-      process.env.ENVIRONMENT === 'test'
-        ? ':memory:'
-        : process.env.DB_FILE_NAME || process.env.DATABASE_URL || ':memory:';
-
-    this.dbClient = createDatabaseClient({
-      url: dbUrl,
-    });
     this.statusUpdateSettings = config.statusUpdates;
     this.prompt = config.prompt;
     // Set stopWhen - preserve original config or set default during inheritance
@@ -183,6 +172,7 @@ export class Agent implements AgentInterface {
       const tools: string[] = [];
       const selectedToolsMapping: Record<string, string[]> = {};
       const headersMapping: Record<string, Record<string, string>> = {};
+      const toolPoliciesMapping: Record<string, Record<string, ToolPolicy>> = {};
       const subAgentTools = subAgent.getTools();
 
       for (const [_toolName, toolInstance] of Object.entries(subAgentTools)) {
@@ -194,6 +184,10 @@ export class Agent implements AgentInterface {
 
         if (toolInstance.headers) {
           headersMapping[toolId] = toolInstance.headers;
+        }
+
+        if (toolInstance.toolPolicies) {
+          toolPoliciesMapping[toolId] = toolInstance.toolPolicies;
         }
 
         tools.push(toolId);
@@ -264,12 +258,13 @@ export class Agent implements AgentInterface {
         toolId,
         toolSelection: selectedToolsMapping[toolId] || null,
         headers: headersMapping[toolId] || null,
+        toolPolicies: toolPoliciesMapping[toolId] || null,
       }));
 
       subAgentsObject[subAgent.getId()] = {
         id: subAgent.getId(),
         name: subAgent.getName(),
-        description: subAgent.config.description || `Agent ${subAgent.getName()}`,
+        description: subAgent.config.description || '',
         prompt: subAgent.getInstructions(),
         models: subAgent.config.models,
         stopWhen: subAgent.config.stopWhen,
@@ -280,7 +275,8 @@ export class Agent implements AgentInterface {
               externalAgentId: d.externalAgent.getId(),
               ...(d.headers && { headers: d.headers }),
             };
-          } else if (typeof d === 'object' && 'agent' in d) {
+          }
+          if (typeof d === 'object' && 'agent' in d) {
             return {
               agentId: d.agent.getId(),
               ...(d.headers && { headers: d.headers }),
@@ -377,8 +373,6 @@ export class Agent implements AgentInterface {
       subAgents: subAgentsObject,
       externalAgents: externalAgentsObject,
       contextConfig: this.contextConfig?.toObject(),
-      // Include tools used by subAgents at agent level (MCP tools only)
-      ...(Object.keys(agentToolsObject).length > 0 && { tools: agentToolsObject }),
       // Include function tools at agent level
       ...(Object.keys(functionToolsObject).length > 0 && { functionTools: functionToolsObject }),
       ...(Object.keys(functionsObject).length > 0 && { functions: functionsObject }),
@@ -880,9 +874,7 @@ export class Agent implements AgentInterface {
    */
   private async getProjectModelDefaults(): Promise<typeof this.models | undefined> {
     try {
-      const project = await getProject(this.dbClient)({
-        scopes: { tenantId: this.tenantId, projectId: this.projectId },
-      });
+      const project = await getFullProjectViaAPI(this.tenantId, this.projectId, this.baseURL);
 
       return (project as any)?.models;
     } catch (error) {
@@ -905,9 +897,7 @@ export class Agent implements AgentInterface {
     { transferCountIs?: number; stepCountIs?: number } | undefined
   > {
     try {
-      const project = await getProject(this.dbClient)({
-        scopes: { tenantId: this.tenantId, projectId: this.projectId },
-      });
+      const project = await getFullProjectViaAPI(this.tenantId, this.projectId, this.baseURL);
 
       return (project as any)?.stopWhen;
     } catch (error) {
@@ -1135,234 +1125,6 @@ export class Agent implements AgentInterface {
       return input.map((msg) => (typeof msg === 'string' ? { role: 'user', content: msg } : msg));
     }
     return [input];
-  }
-
-  private async saveToDatabase(): Promise<void> {
-    try {
-      // Check if agent already exists
-      const getUrl = `${this.baseURL}/tenants/${this.tenantId}/agents/${this.agentId}`;
-
-      try {
-        const getResponse = await fetch(getUrl, {
-          method: 'GET',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-        });
-
-        if (getResponse.ok) {
-          logger.info({ agentId: this.agentId }, 'Agent already exists in backend');
-          return;
-        }
-
-        if (getResponse.status !== 404) {
-          throw new Error(`HTTP ${getResponse.status}: ${getResponse.statusText}`);
-        }
-      } catch (error: any) {
-        if (!error.message.includes('404')) {
-          throw error;
-        }
-      }
-
-      // Agent doesn't exist, create it
-      logger.info({ agentId: this.agentId }, 'Creating agent in backend');
-
-      const createUrl = `${this.baseURL}/tenants/${this.tenantId}/agents`;
-      const createResponse = await fetch(createUrl, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          id: this.agentId,
-          name: this.agentName,
-          defaultSubAgentId: this.defaultSubAgent?.getId() || '',
-          contextConfigId: this.contextConfig?.getId(),
-          models: this.models,
-        }),
-      });
-
-      if (!createResponse.ok) {
-        throw new Error(`HTTP ${createResponse.status}: ${createResponse.statusText}`);
-      }
-
-      const createData = (await createResponse.json()) as {
-        data: { id: string };
-      };
-      this.agentId = createData.data.id;
-      logger.info({ agent: createData.data }, 'Agent created in backend');
-    } catch (error) {
-      throw new Error(
-        `Failed to save agent to database: ${error instanceof Error ? error.message : 'Unknown error'}`
-      );
-    }
-  }
-
-  private async saveRelations(): Promise<void> {
-    if (this.defaultSubAgent) {
-      try {
-        const updateUrl = `${this.baseURL}/tenants/${this.tenantId}/agents/${this.agentId}`;
-        const updateResponse = await fetch(updateUrl, {
-          method: 'PUT',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            id: this.agentId,
-            defaultSubAgentId: this.defaultSubAgent.getId(),
-            contextConfigId: this.contextConfig?.getId(),
-          }),
-        });
-
-        if (!updateResponse.ok) {
-          throw new Error(`HTTP ${updateResponse.status}: ${updateResponse.statusText}`);
-        }
-
-        logger.debug(
-          {
-            agentId: this.agentId,
-            defaultSubAgent: this.defaultSubAgent.getName(),
-          },
-          'Agent relationships configured'
-        );
-      } catch (error) {
-        logger.error(
-          {
-            agentId: this.agentId,
-            error: error instanceof Error ? error.message : 'Unknown error',
-          },
-          'Failed to update agent relationships'
-        );
-        throw error;
-      }
-    }
-  }
-
-  private async createSubAgentRelations(): Promise<void> {
-    // Create both transfer and delegation relations for all agents now that they have agentId
-    const allSubAgentRelationPromises: Promise<void>[] = [];
-
-    // Collect all relation creation promises from all agents
-    for (const subAgent of this.subAgents) {
-      // Create internal transfer relations
-      const transfers = subAgent.getTransfers();
-      for (const transferAgent of transfers) {
-        allSubAgentRelationPromises.push(
-          this.createSubAgentRelation(subAgent, transferAgent, 'transfer')
-        );
-      }
-
-      // Create internal delegation relations
-      const delegates = subAgent.getSubAgentDelegates();
-      for (const delegate of delegates) {
-        // Must be an internal agent (AgentInterface)
-        if (this.isInternalAgent(delegate)) {
-          allSubAgentRelationPromises.push(
-            this.createSubAgentRelation(subAgent, delegate as SubAgentInterface, 'delegate')
-          );
-        }
-      }
-    }
-
-    // Use Promise.allSettled for better error handling - allows all operations to complete
-    const results = await Promise.allSettled(allSubAgentRelationPromises);
-
-    // Log and collect errors without failing the entire operation
-    const errors: Error[] = [];
-    let successCount = 0;
-
-    for (const result of results) {
-      if (result.status === 'fulfilled') {
-        successCount++;
-      } else {
-        errors.push(result.reason);
-        logger.error(
-          {
-            error: result.reason instanceof Error ? result.reason.message : 'Unknown error',
-            agentId: this.agentId,
-          },
-          'Failed to create agent relation'
-        );
-      }
-    }
-
-    logger.info(
-      {
-        agentId: this.agentId,
-        totalRelations: allSubAgentRelationPromises.length,
-        successCount,
-        errorCount: errors.length,
-      },
-      'Completed agent relation creation batch'
-    );
-
-    // Only throw if ALL relations failed, allowing partial success
-    if (errors.length > 0 && successCount === 0) {
-      throw new Error(`All ${errors.length} agent relation creations failed`);
-    }
-  }
-
-  private async createSubAgentRelation(
-    sourceAgent: SubAgentInterface,
-    targetAgent: SubAgentInterface,
-    relationType: 'transfer' | 'delegate'
-  ): Promise<void> {
-    try {
-      const response = await fetch(`${this.baseURL}/tenants/${this.tenantId}/agent-relations`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          agentId: this.agentId,
-          sourceSubAgentId: sourceAgent.getId(),
-          targetSubAgentId: targetAgent.getId(),
-          relationType,
-        }),
-      });
-
-      if (!response.ok) {
-        const errorText = await response.text().catch(() => 'Unknown error');
-
-        // Check if this is a duplicate relation (which is acceptable)
-        if (response.status === 422 && errorText.includes('already exists')) {
-          logger.info(
-            {
-              sourceSubAgentId: sourceAgent.getId(),
-              targetSubAgentId: targetAgent.getId(),
-              agentId: this.agentId,
-              relationType,
-            },
-            `${relationType} relation already exists, skipping creation`
-          );
-          return;
-        }
-
-        throw new Error(`Failed to create subAgent relation: ${response.status} - ${errorText}`);
-      }
-
-      logger.info(
-        {
-          sourceSubAgentId: sourceAgent.getId(),
-          targetSubAgentId: targetAgent.getId(),
-          agentId: this.agentId,
-          relationType,
-        },
-        `${relationType} subAgent relation created successfully`
-      );
-    } catch (error) {
-      logger.error(
-        {
-          sourceSubAgentId: sourceAgent.getId(),
-          targetSubAgentId: targetAgent.getId(),
-          agentId: this.agentId,
-          relationType,
-          error: error instanceof Error ? error.message : 'Unknown error',
-        },
-        `Failed to create ${relationType} subAgent relation`
-      );
-      throw error;
-    }
   }
 }
 

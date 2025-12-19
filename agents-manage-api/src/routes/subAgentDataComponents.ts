@@ -1,9 +1,10 @@
-import { createRoute, OpenAPIHono } from '@hono/zod-openapi';
+import { createRoute, OpenAPIHono, z } from '@hono/zod-openapi';
 import {
   associateDataComponentWithAgent,
+  ComponentAssociationListResponse,
   commonGetErrorResponses,
   createApiError,
-  DataComponentApiSelectSchema,
+  DataComponentArrayResponse,
   ErrorResponseSchema,
   ExistsResponseSchema,
   getAgentsUsingDataComponent,
@@ -13,36 +14,47 @@ import {
   isDataComponentAssociatedWithAgent,
   RemovedResponseSchema,
   removeDataComponentFromAgent,
-  SingleResponseSchema,
   SubAgentDataComponentApiInsertSchema,
-  SubAgentDataComponentApiSelectSchema,
+  SubAgentDataComponentResponse,
   TenantProjectAgentParamsSchema,
+  TenantProjectAgentSubAgentParamsSchema,
 } from '@inkeep/agents-core';
-import { z } from 'zod';
 import dbClient from '../data/db/dbClient';
+import { requirePermission } from '../middleware/require-permission';
+import type { BaseAppVariables } from '../types/app';
 
-const app = new OpenAPIHono();
+const app = new OpenAPIHono<{ Variables: BaseAppVariables }>();
+
+app.use('/', async (c, next) => {
+  if (c.req.method === 'POST') {
+    return requirePermission({ sub_agent: ['create'] })(c, next);
+  }
+  return next();
+});
+
+app.use('/agent/:subAgentId/component/:dataComponentId', async (c, next) => {
+  if (c.req.method === 'DELETE') {
+    return requirePermission({ sub_agent: ['delete'] })(c, next);
+  }
+  return next();
+});
 
 app.openapi(
   createRoute({
     method: 'get',
-    path: '/agent/:subAgentId',
+    path: '/agent/{subAgentId}',
     summary: 'Get Data Components for Agent',
     operationId: 'get-data-components-for-agent',
     tags: ['Agent Data Component Relations'],
     request: {
-      params: TenantProjectAgentParamsSchema.extend({
-        subAgentId: z.string(),
-      }),
+      params: TenantProjectAgentSubAgentParamsSchema,
     },
     responses: {
       200: {
         description: 'Data components retrieved successfully',
         content: {
           'application/json': {
-            schema: z.object({
-              data: z.array(DataComponentApiSelectSchema),
-            }),
+            schema: DataComponentArrayResponse,
           },
         },
       },
@@ -63,7 +75,7 @@ app.openapi(
 app.openapi(
   createRoute({
     method: 'get',
-    path: '/component/:dataComponentId/agents',
+    path: '/component/{dataComponentId}/agents',
     summary: 'Get Agents Using Data Component',
     operationId: 'get-agents-using-data-component',
     tags: ['Agent Data Component Relations'],
@@ -77,14 +89,7 @@ app.openapi(
         description: 'Agents retrieved successfully',
         content: {
           'application/json': {
-            schema: z.object({
-              data: z.array(
-                z.object({
-                  subAgentId: z.string(),
-                  createdAt: z.string(),
-                })
-              ),
-            }),
+            schema: ComponentAssociationListResponse,
           },
         },
       },
@@ -125,7 +130,7 @@ app.openapi(
         description: 'Agent data component association created successfully',
         content: {
           'application/json': {
-            schema: SingleResponseSchema(SubAgentDataComponentApiSelectSchema),
+            schema: SubAgentDataComponentResponse,
           },
         },
       },
@@ -188,13 +193,12 @@ app.openapi(
 app.openapi(
   createRoute({
     method: 'delete',
-    path: '/agent/:subAgentId/component/:dataComponentId',
+    path: '/agent/{subAgentId}/component/{dataComponentId}',
     summary: 'Remove Data Component from Agent',
     operationId: 'remove-data-component-from-agent',
     tags: ['Agent Data Component Relations'],
     request: {
-      params: TenantProjectAgentParamsSchema.extend({
-        subAgentId: z.string(),
+      params: TenantProjectAgentSubAgentParamsSchema.extend({
         dataComponentId: z.string(),
       }),
     },
@@ -235,13 +239,12 @@ app.openapi(
 app.openapi(
   createRoute({
     method: 'get',
-    path: '/agent/:subAgentId/component/:dataComponentId/exists',
+    path: '/agent/{subAgentId}/component/{dataComponentId}/exists',
     summary: 'Check if Data Component is Associated with Agent',
     operationId: 'check-data-component-agent-association',
     tags: ['Agent Data Component Relations'],
     request: {
-      params: TenantProjectAgentParamsSchema.extend({
-        subAgentId: z.string(),
+      params: TenantProjectAgentSubAgentParamsSchema.extend({
         dataComponentId: z.string(),
       }),
     },

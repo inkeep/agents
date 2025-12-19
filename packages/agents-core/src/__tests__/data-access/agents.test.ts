@@ -9,15 +9,16 @@ import {
   updateAgent,
 } from '../../data-access/agents';
 import type { DatabaseClient } from '../../db/client';
-import { createInMemoryDatabaseClient } from '../../db/client';
+import { testDbClient } from '../setup';
 
 describe('Agent Data Access', () => {
   let db: DatabaseClient;
   const testTenantId = 'test-tenant';
   const testProjectId = 'test-project';
 
-  beforeEach(() => {
-    db = createInMemoryDatabaseClient();
+  beforeEach(async () => {
+    db = testDbClient;
+    vi.clearAllMocks();
   });
 
   describe('getAgentAgentById', () => {
@@ -328,7 +329,7 @@ describe('Agent Data Access', () => {
               {
                 id: agentId,
                 models: null,
-                updatedAt: new Date().toISOString(),
+                updatedAt: new Date(),
               },
             ]),
           }),

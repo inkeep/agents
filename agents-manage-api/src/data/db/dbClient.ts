@@ -1,31 +1,21 @@
-import { createDatabaseClient } from '@inkeep/agents-core';
+import { PGlite } from '@electric-sql/pglite';
+import { createDatabaseClient, type DatabaseClient } from '@inkeep/agents-core';
+import * as schema from '@inkeep/agents-core/db/schema';
+import { drizzle } from 'drizzle-orm/pglite';
 import { env } from '../../env';
 
-const getDbConfig = () => {
-  // Use in-memory database for tests - each worker gets its own isolated database
-  if (env.ENVIRONMENT === 'test') {
-    return { url: ':memory:' };
-  }
+// Create the database client
+// For test environment, create a PGlite in-memory database (migrations applied in setup.ts)
+// For other environments, use PostgreSQL with connection pooling
+let dbClient: DatabaseClient;
 
-  // Prefer Turso if both URL + token are set
-  if (env.TURSO_DATABASE_URL && env.TURSO_AUTH_TOKEN) {
-    return {
-      url: env.TURSO_DATABASE_URL,
-      authToken: env.TURSO_AUTH_TOKEN,
-    };
-  }
+if (env.ENVIRONMENT === 'test') {
+  // Create in-memory PGlite database for tests
+  // Migrations will be applied by the test setup file
+  const pglite = new PGlite();
+  dbClient = drizzle({ client: pglite, schema });
+} else {
+  dbClient = createDatabaseClient({ connectionString: env.DATABASE_URL });
+}
 
-  if (!env.DB_FILE_NAME) {
-    throw new Error(
-      'Database configuration error: DB_FILE_NAME must be set if Turso is not configured.'
-    );
-  }
-
-  // Otherwise, fallback to file (must be explicitly set)
-  return {
-    url: env.DB_FILE_NAME,
-  };
-};
-
-const dbClient = createDatabaseClient(getDbConfig());
 export default dbClient;

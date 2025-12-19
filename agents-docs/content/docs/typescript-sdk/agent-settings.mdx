@@ -1,7 +1,7 @@
 ---
 title: Agents & Sub Agents
 description: Learn how to customize your Agents.
-icon: "LuUser"
+icon: LuUser
 ---
 
 Agents and Sub Agents are the core building blocks of the Inkeep Agent framework.
@@ -12,14 +12,13 @@ An Agent is made up of one or more Sub Agents that can delegate or transfer cont
 
 An Agent is your top-level entity that you as a user interact with or can trigger programmatically.
 
-An Agent is made up of sub-agents, like so: 
+An Agent is made up of sub-agents, like so:
 
 ```typescript
 // Agent-level prompt that gets added to all Sub Agents
 const customerSupportAgent = agent({
   id: "support-agent",
-  prompt: `You work for Acme Corp. Always be professional and helpful.
-Follow company policies and escalate complex issues appropriately.`,
+  prompt: `You work for Acme Corp. Always be professional and helpful.`,
   subAgents: () => [supportAgent, escalationAgent],
 });
 ```
@@ -36,7 +35,7 @@ import { subAgent } from "@inkeep/agents-sdk";
 const supportAgent = subAgent({
   id: "customer-support",
   name: "Customer Support Agent",
-  prompt: `You are a customer support specialist. Always be helpful, professional, and empathetic.`,
+  prompt: `You are a customer support specialist.`,
 });
 ```
 
@@ -85,7 +84,7 @@ Beyond model configuration, Sub Agents define tools, structured outputs, and age
 | `description`        | string   | No       | Brief description of the Sub Agent's purpose and capabilities |
 | `models`             | object   | No       | Model configuration for this Sub Agent. See [Model Configuration](/typescript-sdk/models) |
 | `stopWhen`           | object   | No       | Stop conditions (`stepCountIs`). See [Configuring StopWhen](#configuring-stopwhen) |
-| `canUse`             | function | No       | Returns the list of MCP/tools the Sub Agent can use. See [MCP Servers](/typescript-sdk/tools/mcp-servers) |
+| `canUse`             | function | No       | Returns the list of MCP/tools the Sub Agent can use. See [MCP Servers](/tutorials/mcp-servers/overview) for how to find or build MCP servers |
 | `dataComponents`     | array    | No       | Structured output components for rich, interactive responses. See [Data Components](/typescript-sdk/structured-outputs/data-components) |
 | `artifactComponents` | array    | No       | Components for handling tool or Sub Agent outputs. See [Artifact Components](/typescript-sdk/structured-outputs/artifact-components) |
 | `canTransferTo`      | function | No       | Function returning array of Sub Agents this Sub Agent can transfer to. See [Transfer Relationships](/typescript-sdk/agent-relationships#transfer-relationships) |

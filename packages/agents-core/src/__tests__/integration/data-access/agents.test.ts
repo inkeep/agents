@@ -15,7 +15,8 @@ import {
 import { createSubAgent, deleteSubAgent } from '../../../data-access/subAgents';
 import type { DatabaseClient } from '../../../db/client';
 import * as schema from '../../../db/schema';
-import { createTestDatabaseClient } from '../../../db/test-client';
+import { createTestOrganization } from '../../../db/test-client';
+import { testDbClient } from '../../setup';
 import { createTestAgentData, createTestRelationData, createTestSubAgentData } from '../helpers';
 
 describe('Agent Agent Data Access - Integration Tests', () => {
@@ -24,12 +25,16 @@ describe('Agent Agent Data Access - Integration Tests', () => {
   const testProjectId = 'test-project';
 
   beforeEach(async () => {
-    // Create fresh in-memory database for each test
-    db = await createTestDatabaseClient();
+    // Use shared database client (migrations already applied once in setup.ts)
+    db = testDbClient;
 
-    // Create test projects for all tenant IDs used in tests
+    // Create test organizations and projects for all tenant IDs used in tests
     const tenantIds = [testTenantId, 'other-tenant', 'tenant-1', 'tenant-2'];
     for (const tenantId of tenantIds) {
+      // First ensure organization exists
+      await createTestOrganization(db, tenantId);
+
+      // Then create project
       await db
         .insert(schema.projects)
         .values({
@@ -72,6 +77,12 @@ describe('Agent Agent Data Access - Integration Tests', () => {
       expect(fetchedAgent).not.toBeNull();
       expect(fetchedAgent).toMatchObject(agentData);
 
+      // Clear defaultSubAgentId before deleting sub-agent
+      await updateAgent(db)({
+        scopes: { tenantId: testTenantId, projectId: testProjectId, agentId: agentData.id },
+        data: { defaultSubAgentId: null },
+      });
+
       // Delete the agent and agent
       await deleteSubAgent(db)({
         scopes: { tenantId: testTenantId, projectId: testProjectId, agentId: agentData.id },
@@ -110,6 +121,12 @@ describe('Agent Agent Data Access - Integration Tests', () => {
       // Fetch with relations
       const agentWithAgent = await getAgentWithDefaultSubAgent(db)({
         scopes: { tenantId: testTenantId, projectId: testProjectId, agentId: agentData.id },
+      });
+
+      // Clear defaultSubAgentId before deleting sub-agent
+      await updateAgent(db)({
+        scopes: { tenantId: testTenantId, projectId: testProjectId, agentId: agentData.id },
+        data: { defaultSubAgentId: null },
       });
 
       // Delete the agent and agent

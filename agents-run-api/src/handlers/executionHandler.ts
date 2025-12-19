@@ -1,9 +1,11 @@
 import {
+  AGENT_EXECUTION_TRANSFER_COUNT_DEFAULT,
   createMessage,
   createTask,
   type ExecutionContext,
   generateId,
   getActiveAgentForConversation,
+  getAgentWithDefaultSubAgent,
   getFullAgent,
   getTask,
   type SendMessageResponse,
@@ -14,10 +16,13 @@ import { tracer } from 'src/utils/tracer.js';
 import { A2AClient } from '../a2a/client.js';
 import { executeTransfer } from '../a2a/transfer.js';
 import { extractTransferData, isTransferTask } from '../a2a/types.js';
+import { AGENT_EXECUTION_MAX_CONSECUTIVE_ERRORS } from '../constants/execution-limits';
 import dbClient from '../data/db/dbClient.js';
+import { flushBatchProcessor } from '../instrumentation.js';
 import { getLogger } from '../logger.js';
 import { agentSessionManager } from '../services/AgentSession.js';
 import { agentInitializingOp, completionOp, errorOp } from '../utils/agent-operations.js';
+import { resolveModelConfig } from '../utils/model-resolver.js';
 import type { StreamHelper } from '../utils/stream-helpers.js';
 import { BufferingStreamHelper } from '../utils/stream-helpers.js';
 import { registerStreamHelper, unregisterStreamHelper } from '../utils/stream-registry.js';
@@ -42,7 +47,7 @@ interface ExecutionResult {
 }
 
 export class ExecutionHandler {
-  private readonly MAX_ERRORS = 3;
+  private readonly MAX_ERRORS = AGENT_EXECUTION_MAX_CONSECUTIVE_ERRORS;
 
   /**
    * performs exeuction loop
@@ -91,11 +96,47 @@ export class ExecutionHandler {
       });
 
       if (agentConfig?.statusUpdates && agentConfig.statusUpdates.enabled !== false) {
-        agentSessionManager.initializeStatusUpdates(
-          requestId,
-          agentConfig.statusUpdates,
-          agentConfig.models?.summarizer
-        );
+        try {
+          // Get the default sub-agent to resolve models properly with inheritance
+          const agentWithDefault = await getAgentWithDefaultSubAgent(dbClient)({
+            scopes: { tenantId, projectId, agentId },
+          });
+
+          if (agentWithDefault?.defaultSubAgent) {
+            const resolvedModels = await resolveModelConfig(
+              agentId,
+              agentWithDefault.defaultSubAgent
+            );
+
+            agentSessionManager.initializeStatusUpdates(
+              requestId,
+              agentConfig.statusUpdates,
+              resolvedModels.summarizer,
+              resolvedModels.base
+            );
+          } else {
+            // Fallback to agent-level config if no default sub-agent
+            agentSessionManager.initializeStatusUpdates(
+              requestId,
+              agentConfig.statusUpdates,
+              agentConfig.models?.summarizer
+            );
+          }
+        } catch (modelError) {
+          logger.warn(
+            {
+              error: modelError instanceof Error ? modelError.message : 'Unknown error',
+              agentId,
+            },
+            'Failed to resolve models for status updates, using agent-level config'
+          );
+          // Fallback to agent-level config
+          agentSessionManager.initializeStatusUpdates(
+            requestId,
+            agentConfig.statusUpdates,
+            agentConfig.models?.summarizer
+          );
+        }
       }
     } catch (error) {
       logger.error(
@@ -151,11 +192,8 @@ export class ExecutionHandler {
           'Task created with metadata'
         );
       } catch (error: any) {
-        if (
-          error?.message?.includes('UNIQUE constraint failed') ||
-          error?.message?.includes('PRIMARY KEY constraint failed') ||
-          error?.code === 'SQLITE_CONSTRAINT_PRIMARYKEY'
-        ) {
+        // Handle duplicate task (PostgreSQL unique constraint violation)
+        if (error?.cause?.code === '23505') {
           logger.info(
             { taskId, error: error.message },
             'Task already exists, fetching existing task'
@@ -180,7 +218,7 @@ export class ExecutionHandler {
 
       logger.debug(
         {
-          timestamp: new Date().toISOString(),
+          timestamp: new Date(),
           executionType: 'create_initial_task',
           conversationId,
           agentId,
@@ -195,7 +233,8 @@ export class ExecutionHandler {
 
       let currentMessage = userMessage;
 
-      const maxTransfers = agentConfig?.stopWhen?.transferCountIs ?? 10;
+      const maxTransfers =
+        agentConfig?.stopWhen?.transferCountIs ?? AGENT_EXECUTION_TRANSFER_COUNT_DEFAULT;
 
       while (iterations < maxTransfers) {
         iterations++;
@@ -282,7 +321,7 @@ export class ExecutionHandler {
               });
             }
 
-            agentSessionManager.endSession(requestId);
+            await agentSessionManager.endSession(requestId);
             unregisterStreamHelper(requestId);
             return { success: false, error: errorMessage, iterations };
           }
@@ -311,7 +350,32 @@ export class ExecutionHandler {
 
           logger.info({ targetSubAgentId, transferReason, transferFromAgent }, 'Transfer response');
 
-          currentMessage = `<transfer_context> ${transferReason} </transfer_context>`;
+          // Store the transfer response as an assistant message in conversation history
+          await createMessage(dbClient)({
+            id: generateId(),
+            tenantId,
+            projectId,
+            conversationId,
+            role: 'agent',
+            content: {
+              text: transferReason,
+              parts: [
+                {
+                  kind: 'text',
+                  text: transferReason,
+                },
+              ],
+            },
+            visibility: 'user-facing',
+            messageType: 'chat',
+            fromSubAgentId: currentAgentId,
+            taskId: task.id,
+          });
+
+          // Keep the original user message and add a continuation prompt
+          currentMessage =
+            currentMessage +
+            '\n\nPlease continue this conversation seamlessly. The previous response in conversation history was from another internal agent, but you must continue as if YOU made that response. All responses must appear as one unified agent - do not repeat what was already communicated.';
 
           const { success, targetSubAgentId: newAgentId } = await executeTransfer({
             projectId,
@@ -412,7 +476,7 @@ export class ExecutionHandler {
                   status: 'completed',
                   metadata: {
                     ...task.metadata,
-                    completed_at: new Date().toISOString(),
+                    completed_at: new Date(),
                     response: {
                       text: textContent,
                       parts: responseParts,
@@ -436,7 +500,7 @@ export class ExecutionHandler {
 
               // End the AgentSession and clean up resources
               logger.info({}, 'Ending AgentSession and cleaning up');
-              agentSessionManager.endSession(requestId);
+              await agentSessionManager.endSession(requestId);
 
               // Clean up streamHelper
               logger.info({}, 'Cleaning up streamHelper');
@@ -450,12 +514,17 @@ export class ExecutionHandler {
               }
 
               logger.info({}, 'ExecutionHandler returning success');
+
               return { success: true, iterations, response };
             } catch (error) {
               setSpanWithError(span, error instanceof Error ? error : new Error(String(error)));
               throw error;
             } finally {
               span.end();
+              // Flush immediately after span ends to ensure it's sent to SignOz
+              // Use setImmediate to allow span to be processed before flushing
+              await new Promise((resolve) => setImmediate(resolve));
+              await flushBatchProcessor();
             }
           });
         }
@@ -480,14 +549,14 @@ export class ExecutionHandler {
                 status: 'failed',
                 metadata: {
                   ...task.metadata,
-                  failed_at: new Date().toISOString(),
+                  failed_at: new Date(),
                   error: errorMessage,
                 },
               },
             });
           }
 
-          agentSessionManager.endSession(requestId);
+          await agentSessionManager.endSession(requestId);
           unregisterStreamHelper(requestId);
           return { success: false, error: errorMessage, iterations };
         }
@@ -508,14 +577,14 @@ export class ExecutionHandler {
             status: 'failed',
             metadata: {
               ...task.metadata,
-              failed_at: new Date().toISOString(),
+              failed_at: new Date(),
               error: errorMessage,
             },
           },
         });
       }
       // Clean up AgentSession and streamHelper on error
-      agentSessionManager.endSession(requestId);
+      await agentSessionManager.endSession(requestId);
       unregisterStreamHelper(requestId);
       return { success: false, error: errorMessage, iterations };
     } catch (error) {
@@ -536,14 +605,14 @@ export class ExecutionHandler {
             status: 'failed',
             metadata: {
               ...task.metadata,
-              failed_at: new Date().toISOString(),
+              failed_at: new Date(),
               error: errorMessage,
             },
           },
         });
       }
       // Clean up AgentSession and streamHelper on exception
-      agentSessionManager.endSession(requestId);
+      await agentSessionManager.endSession(requestId);
       unregisterStreamHelper(requestId);
       return { success: false, error: errorMessage, iterations };
     }

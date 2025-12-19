@@ -6,23 +6,42 @@ import {
   deleteSubAgentTeamAgentRelation,
   ErrorResponseSchema,
   getSubAgentTeamAgentRelationById,
-  ListResponseSchema,
   listSubAgentTeamAgentRelations,
   type Pagination,
   PaginationQueryParamsSchema,
-  SingleResponseSchema,
   SubAgentTeamAgentRelationApiInsertSchema,
   type SubAgentTeamAgentRelationApiSelect,
-  SubAgentTeamAgentRelationApiSelectSchema,
   SubAgentTeamAgentRelationApiUpdateSchema,
+  SubAgentTeamAgentRelationListResponse,
+  SubAgentTeamAgentRelationResponse,
   TenantProjectAgentSubAgentIdParamsSchema,
   TenantProjectAgentSubAgentParamsSchema,
   updateSubAgentTeamAgentRelation,
 } from '@inkeep/agents-core';
 import { nanoid } from 'nanoid';
+import { requirePermission } from 'src/middleware/require-permission';
+import type { BaseAppVariables } from 'src/types/app';
 import dbClient from '../data/db/dbClient';
+import { speakeasyOffsetLimitPagination } from './shared';
 
-const app = new OpenAPIHono();
+const app = new OpenAPIHono<{ Variables: BaseAppVariables }>();
+
+app.use('/', async (c, next) => {
+  if (c.req.method === 'POST') {
+    return requirePermission({ sub_agent: ['create'] })(c, next);
+  }
+  return next();
+});
+
+app.use('/:id', async (c, next) => {
+  if (c.req.method === 'PUT') {
+    return requirePermission({ sub_agent: ['update'] })(c, next);
+  }
+  if (c.req.method === 'DELETE') {
+    return requirePermission({ sub_agent: ['delete'] })(c, next);
+  }
+  return next();
+});
 
 app.openapi(
   createRoute({
@@ -40,12 +59,13 @@ app.openapi(
         description: 'List of sub agent team agent relations retrieved successfully',
         content: {
           'application/json': {
-            schema: ListResponseSchema(SubAgentTeamAgentRelationApiSelectSchema),
+            schema: SubAgentTeamAgentRelationListResponse,
           },
         },
       },
       ...commonGetErrorResponses,
     },
+    ...speakeasyOffsetLimitPagination,
   }),
   async (c) => {
     const { tenantId, projectId, agentId, subAgentId } = c.req.valid('param');
@@ -85,7 +105,7 @@ app.openapi(
         description: 'Sub Agent team agent relation found',
         content: {
           'application/json': {
-            schema: SingleResponseSchema(SubAgentTeamAgentRelationApiSelectSchema),
+            schema: SubAgentTeamAgentRelationResponse,
           },
         },
       },
@@ -132,7 +152,7 @@ app.openapi(
         description: 'Sub Agent Team Agent Relation created successfully',
         content: {
           'application/json': {
-            schema: SingleResponseSchema(SubAgentTeamAgentRelationApiSelectSchema),
+            schema: SubAgentTeamAgentRelationResponse,
           },
         },
       },
@@ -196,7 +216,7 @@ app.openapi(
         description: 'Sub Agent team agent relation updated successfully',
         content: {
           'application/json': {
-            schema: SingleResponseSchema(SubAgentTeamAgentRelationApiSelectSchema),
+            schema: SubAgentTeamAgentRelationResponse,
           },
         },
       },

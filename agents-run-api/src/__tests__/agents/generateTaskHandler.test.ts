@@ -1,4 +1,4 @@
-import { TaskState } from '@inkeep/agents-core';
+import { parseEmbeddedJson, TaskState } from '@inkeep/agents-core';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import type { A2ATask } from '../../a2a/types';
 import {
@@ -8,7 +8,6 @@ import {
   serializeTaskHandlerConfig,
   type TaskHandlerConfig,
 } from '../../agents/generateTaskHandler';
-import { parseEmbeddedJson } from '../../utils/json-parser';
 
 // Mock @inkeep/agents-core functions using hoisted pattern
 const {
@@ -237,40 +236,45 @@ const {
   };
 });
 
-vi.mock('@inkeep/agents-core', () => ({
-  getRelatedAgentsForAgent: getRelatedAgentsForAgentMock,
-  getToolsForAgent: getToolsForAgentMock,
-  getSubAgentById: getAgentByIdMock,
-  getAgentById: getAgentAgentMock,
-  getAgentAgent: getAgentAgentMock,
-  getAgentAgentById: getAgentAgentByIdMock,
-  getTeamAgentsForSubAgent: getTeamAgentsForSubAgentMock,
-  getAgentWithDefaultSubAgent: getAgentWithDefaultSubAgentMock,
-  getTracer: vi.fn().mockReturnValue({
-    startSpan: vi.fn().mockReturnValue({
-      setAttributes: vi.fn(),
-      setStatus: vi.fn(),
-      end: vi.fn(),
+vi.mock('@inkeep/agents-core', async (importOriginal) => {
+  const actual = await importOriginal();
+  return {
+    ...(actual as any),
+    getRelatedAgentsForAgent: getRelatedAgentsForAgentMock,
+    getToolsForAgent: getToolsForAgentMock,
+    getSubAgentById: getAgentByIdMock,
+    getAgentById: getAgentAgentMock,
+    getAgentAgent: getAgentAgentMock,
+    getAgentAgentById: getAgentAgentByIdMock,
+    getTeamAgentsForSubAgent: getTeamAgentsForSubAgentMock,
+    getAgentWithDefaultSubAgent: getAgentWithDefaultSubAgentMock,
+    getTracer: vi.fn().mockReturnValue({
+      startSpan: vi.fn().mockReturnValue({
+        setAttributes: vi.fn(),
+        setStatus: vi.fn(),
+        end: vi.fn(),
+      }),
     }),
-  }),
-  getDataComponentsForAgent: getDataComponentsForAgentMock,
-  getArtifactComponentsForAgent: getArtifactComponentsForAgentMock,
-  getExternalAgentsForSubAgent: getExternalAgentsForSubAgentMock,
-  getProject: getProjectMock,
-  dbResultToMcpTool: dbResultToMcpToolMock,
-  getLogger: vi.fn(() => ({
-    info: vi.fn(),
-    warn: vi.fn(),
-    error: vi.fn(),
-    debug: vi.fn(),
-  })),
-  generateId: vi.fn(() => 'test-id-123'),
-  TaskState: {
-    Completed: 'completed',
-    Failed: 'failed',
-    Working: 'working',
-  },
-}));
+    getDataComponentsForAgent: getDataComponentsForAgentMock,
+    getArtifactComponentsForAgent: getArtifactComponentsForAgentMock,
+    getExternalAgentsForSubAgent: getExternalAgentsForSubAgentMock,
+    getProject: getProjectMock,
+    dbResultToMcpTool: dbResultToMcpToolMock,
+    getLogger: vi.fn(() => ({
+      info: vi.fn(),
+      warn: vi.fn(),
+      error: vi.fn(),
+      debug: vi.fn(),
+    })),
+    generateId: vi.fn(() => 'test-id-123'),
+    loadEnvironmentFiles: vi.fn(),
+    TaskState: {
+      Completed: 'completed',
+      Failed: 'failed',
+      Working: 'working',
+    },
+  };
+});
 
 // Mock database client
 vi.mock('../../data/db/dbClient.js', () => ({
@@ -290,6 +294,14 @@ vi.mock('../../agents/Agent.js', () => ({
       this.config = config;
       // Capture constructor arguments for testing
       lastAgentConstructorArgs = config;
+    }
+
+    setDelegationStatus(_isDelegated: boolean) {
+      // Mock implementation
+    }
+
+    setDelegationId(_delegationId: string | undefined) {
+      // Mock implementation
     }
 
     async generate(message: string, _options: any) {
@@ -355,10 +367,6 @@ vi.mock('../../agents/Agent.js', () => ({
         },
       };
     }
-
-    setDelegationStatus(_isDelegated: boolean) {
-      // Mock implementation
-    }
   },
 }));
 
@@ -387,7 +395,13 @@ describe('generateTaskHandler', () => {
       description: 'Test agent description',
       prompt: 'You are a helpful test agent',
       models: null,
-      conversationHistoryConfig: null,
+      conversationHistoryConfig: {
+        mode: 'full',
+        limit: 50,
+        maxOutputTokens: 4000,
+        includeInternal: false,
+        messageTypes: ['chat', 'tool-result'],
+      },
       stopWhen: null,
       createdAt: '2024-01-01T00:00:00Z',
       updatedAt: '2024-01-01T00:00:00Z',

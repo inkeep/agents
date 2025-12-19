@@ -1,7 +1,7 @@
 ---
 title: CLI Reference
 description: Complete reference for the Inkeep CLI commands
-icon: "LuTerminal"
+icon: LuTerminal
 ---
 
 ## Overview
@@ -67,6 +67,7 @@ inkeep push
 **Options:**
 
 - `--project <project-id>` - Project ID or path to project directory
+- `--all` - Push all projects found in the current directory tree
 - `--env <environment>` - Load environment-specific credentials from `environments/<environment>.env.ts`
 - `--config <path>` - Override config file path (bypasses automatic config discovery)
 - `--tenant-id <id>` - Override tenant ID
@@ -74,14 +75,35 @@ inkeep push
 - `--agents-run-api-url <url>` - Override agents run API URL
 - `--json` - Generate project data as JSON file instead of pushing to server
 
+#### Single Project Push
+
+The most common workflow is to run `inkeep push` from inside a project directory. A project directory is identified by having an `index.ts` file that exports a project object (with `__type = "project"`).
+
+```bash
+# Navigate to your project directory
+cd my-project
+
+# Push the current project
+inkeep push
+```
+
+The CLI will:
+1. Detect `index.ts` in the current directory
+2. Load the project export from `index.ts`
+3. Search upward for `inkeep.config.ts` to get tenant/API configuration
+4. Push the project to the server
+
 **Examples:**
 
 ```bash
-# Push project from current directory
-inkeep push
+# Push project from current directory (most common)
+cd my-project && inkeep push
 
 # Push specific project directory
 inkeep push --project ./my-project
+
+# Push all projects in current directory tree
+inkeep push --all
 
 # Push with development environment credentials
 inkeep push --env development
@@ -98,6 +120,61 @@ inkeep push --agents-run-api-url https://run.example.com
 
 # Use specific config file
 inkeep push --config ./custom-config/inkeep.config.ts
+```
+
+#### Batch Push with `--all`
+
+The `--all` flag discovers and pushes all projects in the current directory tree. A directory is considered a project if its `index.ts` file exports an object with `__type = "project"`.
+
+```bash
+# From a workspace root containing multiple projects
+inkeep push --all
+```
+
+**Project Discovery:**
+
+1. Searches recursively for directories containing `index.ts` files
+2. Validates each `index.ts` exports a project (checks for `__type = "project"`)
+3. Ensures each project can access an `inkeep.config.ts` (in the same directory or a parent directory)
+
+**Shared Configuration:**
+
+You can use a single `inkeep.config.ts` at the workspace root for multiple projects:
+
+```
+workspace-root/
+├── inkeep.config.ts          # Shared config for all projects
+└── projects/
+    ├── project-a/
+    │   └── index.ts          # Project A
+    ├── project-b/
+    │   └── index.ts          # Project B
+    └── project-c/
+        └── index.ts          # Project C
+```
+
+Running `inkeep push --all` from `workspace-root/` or `workspace-root/projects/` will discover and push all three projects using the shared configuration.
+
+**Output:**
+
+```
+🚀 Batch Push: Finding all projects...
+
+Found 3 project(s) to push:
+
+  • project-a
+  • project-b
+  • project-c
+
+[1/3] Pushing project-a...
+  ✓ Project A
+[2/3] Pushing project-b...
+  ✓ Project B
+[3/3] Pushing project-c...
+  ✓ Project C
+
+📊 Batch Push Summary:
+  ✓ Succeeded: 3
 ```
 
 **Environment Credentials:**
@@ -185,29 +262,57 @@ inkeep pull
 
 **Options:**
 
-- `--project <project-id>` - Project ID or path to project directory
-- `--config <path>` - Override config file path (bypasses automatic config discovery)
-- `--agents-manage-api-url <url>` - Override the management API URL from config
+- `--project <project-id>` - Project ID to pull (or path to project directory). If in project directory, validates against local project ID.
+- `--all` - Pull all projects from the server to the current directory
+- `--config <path>` - Path to configuration file
 - `--env <environment>` - Environment file to generate (development, staging, production). Defaults to development
-- `--json` - Save project data as JSON file instead of updating TypeScript files
-- `--debug` - Enable debug logging for LLM generation
+- `--json` - Output project data as JSON instead of generating files
+- `--debug` - Enable debug logging
+- `--verbose` - Enable verbose logging
+- `--force` - Force regeneration even if no changes detected
+- `--introspect` - Completely regenerate all files from scratch (no comparison needed)
 
-**Directory-Aware Pull (Mirrors `inkeep push` behavior):**
+#### Single Project Pull
 
-The pull command automatically detects if you're in a project directory and pulls to that location:
+The most common workflow is to run `inkeep pull` from inside a project directory. A project directory is identified by having an `index.ts` file that exports a project object (with `__type = "project"`).
 
-1. **Automatic Detection**: If your current directory contains an `index.ts` file that exports a project, the command automatically uses that project's ID
-2. **Current Directory Pull**: Files are pulled directly to your current directory (no subdirectory is created)
-3. **Conflict Prevention**: If you specify `--project` while in a project directory, an error is shown to prevent confusion
+```bash
+# Navigate to your project directory
+cd my-project
+
+# Pull updates from the server
+inkeep pull
+```
+
+The CLI will:
+1. Detect `index.ts` in the current directory
+2. Load the project export to get the project ID
+3. Fetch the latest configuration from the server
+4. Update your local TypeScript files with any changes
+
+**Smart Project Detection:**
+
+The pull command intelligently handles different scenarios:
+
+1. **Project Directory Detection**: If your current directory contains an `index.ts` file that exports a project, the command automatically uses that project's ID
+2. **Project ID Validation**: If you specify `--project` while in a project directory, it validates that the ID matches your local project
+3. **Subdirectory Creation**: When not in a project directory, creates a new subdirectory named after the project ID
+
+**`--project` Flag Behavior:**
+
+The `--project` flag has dual functionality:
+- **Directory Path**: If the value points to a directory containing `index.ts`, it uses that directory
+- **Project ID**: If the value doesn't match a valid directory path, it treats it as a project ID
 
 **Pull Modes:**
 
 | Scenario | Command | Behavior |
 |----------|---------|----------|
 | In project directory | `inkeep pull` | ✅ Automatically detects project, pulls to current directory |
-| In project directory | `inkeep pull --project <id>` | ❌ Error: Cannot specify --project when in project directory |
-| Not in project directory | `inkeep pull` | Prompts for project ID, creates subdirectory |
-| Not in project directory | `inkeep pull --project <id>` | Pulls specified project to subdirectory |
+| In project directory | `inkeep pull --project <matching-id>` | ✅ Validates ID matches local project, pulls to current directory |
+| In project directory | `inkeep pull --project <different-id>` | ❌ Error: Project ID doesn't match local project |
+| Not in project directory | `inkeep pull` | ❌ Error: Requires --project flag |
+| Not in project directory | `inkeep pull --project <id>` | ✅ Creates `<id>/` subdirectory with project files |
 
 **How it Works:**
 
@@ -237,37 +342,101 @@ By default, the pull command updates your existing TypeScript files using LLM ge
 cd my-project  # Directory contains index.ts with project export
 inkeep pull    # Pulls to current directory, no subdirectory created
 
-# Pull when NOT in a project directory (prompts for project ID)
-cd ~/projects
-inkeep pull    # Prompts for project ID, creates subdirectory
-
-# Pull specific project (only works when NOT in a project directory)
-cd ~/projects
-inkeep pull --project my-project  # Creates my-project/ subdirectory
-
-# Error case: --project flag in project directory
+# Validate project ID while in project directory
 cd my-project  # Directory contains index.ts
-inkeep pull --project my-project  # ERROR: Cannot specify --project in project directory
+inkeep pull --project my-project  # Validates ID matches, pulls to current directory
+
+# Error case: Wrong project ID in project directory
+cd my-project  # Directory contains index.ts with different project ID
+inkeep pull --project different-project  # ERROR: Project ID mismatch
+
+# Pull when NOT in a project directory (requires --project)
+cd ~/projects
+inkeep pull  # ERROR: Requires --project flag
+
+# Pull specific project to new subdirectory
+cd ~/projects
+inkeep pull --project my-project  # Creates ./my-project/ subdirectory
 
 # Save project data as JSON file instead of updating files
 inkeep pull --json
 
-# Pull with custom API endpoint
-inkeep pull --agents-manage-api-url https://api.example.com
-
 # Enable debug logging
 inkeep pull --debug
+
+# Enable verbose logging
+inkeep pull --verbose
+
+# Force regeneration even if no changes detected
+inkeep pull --force
+
+# Completely regenerate all files from scratch
+inkeep pull --introspect
 
 # Generate environment-specific credentials
 inkeep pull --env production
 
 # Use specific config file
 inkeep pull --config ./custom-config/inkeep.config.ts
+
+# Pull all projects from server
+inkeep pull --all
+```
+
+#### Batch Pull with `--all`
+
+The `--all` flag fetches all projects from your tenant and pulls them to the current directory. Each project is created as a subdirectory.
+
+```bash
+# From a workspace directory
+inkeep pull --all
+```
+
+**How it Works:**
+
+1. Fetches all projects from the API for your tenant
+2. Categorizes each project as "existing" or "new":
+   - **Existing**: Directory with `index.ts` already exists → uses smart comparison mode
+   - **New**: No local directory → uses introspect mode for fresh generation
+3. Processes each project sequentially
+
+**Output:**
+
+```
+🔄 Batch Pull: Sequential processing with smart comparison
+
+  • Existing projects: Smart comparison + LLM merging + confirmation prompts
+  • New projects: Fresh generation with introspect mode
+
+Projects to pull:
+
+  Existing (smart comparison):
+    • My Agent (my-agent)
+  New (introspect):
+    • New Project (new-project)
+
+──────────────────────────────────────────────────────────
+[1/2] Pulling My Agent...
+  ✓ My Agent → ./my-agent
+
+──────────────────────────────────────────────────────────
+[2/2] Pulling New Project...
+  ✓ New Project → ./new-project
+
+════════════════════════════════════════════════════════════
+📊 Batch Pull Summary:
+  ✓ Succeeded: 2
 ```
 
 #### Model Configuration
 
-The `inkeep pull` command currently uses a fixed model for LLM generation: `anthropic/claude-sonnet-4-20250514`.
+The `inkeep pull` command automatically selects the best available model for LLM generation based on your API keys:
+
+1. **Anthropic Claude** (if `ANTHROPIC_API_KEY` is set): `claude-sonnet-4-5`
+2. **OpenAI GPT** (if `OPENAI_API_KEY` is set): `gpt-5.1`
+3. **Google Gemini** (if `GOOGLE_GENERATIVE_AI_API_KEY` is set): `gemini-2.5-flash`
+
+The models are used for intelligent content merging when updating modified components, ensuring your local customizations are preserved while incorporating upstream changes.
 
 #### Validation Process
 

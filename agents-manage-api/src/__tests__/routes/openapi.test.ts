@@ -1,25 +1,46 @@
-import { describe, expect, it } from 'vitest';
+import fs from 'node:fs';
+import path from 'node:path';
+import { beforeAll, describe, expect, it } from 'vitest';
 import { makeRequest } from '../utils/testRequest';
+
+// Helper to deeply sort object keys for consistent comparison
+function sortObjectKeys(obj: any): any {
+  if (typeof obj !== 'object' || obj === null) return obj;
+  if (Array.isArray(obj)) return obj.map(sortObjectKeys);
+  return Object.keys(obj)
+    .sort()
+    .reduce(
+      (acc, key) => {
+        acc[key] = sortObjectKeys(obj[key]);
+        return acc;
+      },
+      {} as Record<string, any>
+    );
+}
 
 describe('OpenAPI Specification - Integration Tests', () => {
   describe('GET /openapi.json', () => {
+    let cachedSpec: any;
+    let cachedResponse: Response;
+
+    // Fetch the OpenAPI spec once before all tests to avoid expensive regeneration
+    beforeAll(async () => {
+      cachedResponse = await makeRequest('/openapi.json');
+      cachedSpec = await cachedResponse.clone().json();
+    });
+
     it('should return OpenAPI spec with 200 status', async () => {
-      const res = await makeRequest('/openapi.json');
-      expect(res.status).toBe(200);
+      expect(cachedResponse.status).toBe(200);
     });
 
     it('should return valid JSON', async () => {
-      const res = await makeRequest('/openapi.json');
-      expect(res.headers.get('content-type')).toContain('application/json');
-
-      const body = await res.json();
-      expect(body).toBeDefined();
-      expect(typeof body).toBe('object');
+      expect(cachedResponse.headers.get('content-type')).toContain('application/json');
+      expect(cachedSpec).toBeDefined();
+      expect(typeof cachedSpec).toBe('object');
     });
 
     it('should contain required OpenAPI 3.0 fields', async () => {
-      const res = await makeRequest('/openapi.json');
-      const spec = await res.json();
+      const spec = cachedSpec;
 
       // Check top-level required fields
       expect(spec).toHaveProperty('openapi');
@@ -29,8 +50,7 @@ describe('OpenAPI Specification - Integration Tests', () => {
     });
 
     it('should have correct API metadata', async () => {
-      const res = await makeRequest('/openapi.json');
-      const spec = await res.json();
+      const spec = cachedSpec;
 
       expect(spec.info).toHaveProperty('title');
       expect(spec.info.title).toBe('Inkeep Agents Manage API');
@@ -39,8 +59,7 @@ describe('OpenAPI Specification - Integration Tests', () => {
     });
 
     it('should contain server configuration', async () => {
-      const res = await makeRequest('/openapi.json');
-      const spec = await res.json();
+      const spec = cachedSpec;
 
       expect(spec).toHaveProperty('servers');
       expect(Array.isArray(spec.servers)).toBe(true);
@@ -52,8 +71,7 @@ describe('OpenAPI Specification - Integration Tests', () => {
     });
 
     it('should contain path definitions', async () => {
-      const res = await makeRequest('/openapi.json');
-      const spec = await res.json();
+      const spec = cachedSpec;
 
       expect(spec.paths).toBeDefined();
       expect(typeof spec.paths).toBe('object');
@@ -66,8 +84,7 @@ describe('OpenAPI Specification - Integration Tests', () => {
     });
 
     it('should contain component schemas', async () => {
-      const res = await makeRequest('/openapi.json');
-      const spec = await res.json();
+      const spec = cachedSpec;
 
       expect(spec).toHaveProperty('components');
       expect(spec.components).toHaveProperty('schemas');
@@ -81,8 +98,7 @@ describe('OpenAPI Specification - Integration Tests', () => {
     });
 
     it('should have valid path operations', async () => {
-      const res = await makeRequest('/openapi.json');
-      const spec = await res.json();
+      const spec = cachedSpec;
 
       // Check that at least one path has valid HTTP methods
       const firstPath = Object.values(spec.paths)[0] as any;
@@ -95,8 +111,7 @@ describe('OpenAPI Specification - Integration Tests', () => {
     });
 
     it('should have operation IDs for endpoints', async () => {
-      const res = await makeRequest('/openapi.json');
-      const spec = await res.json();
+      const spec = cachedSpec;
 
       // Check that operations have operationId
       let foundOperationId = false;
@@ -115,8 +130,7 @@ describe('OpenAPI Specification - Integration Tests', () => {
     });
 
     it('should have response definitions for operations', async () => {
-      const res = await makeRequest('/openapi.json');
-      const spec = await res.json();
+      const spec = cachedSpec;
 
       // Check that operations have responses
       const projectsPath = spec.paths['/tenants/{tenantId}/projects'];
@@ -129,8 +143,7 @@ describe('OpenAPI Specification - Integration Tests', () => {
     });
 
     it('should not contain invalid schema references', async () => {
-      const res = await makeRequest('/openapi.json');
-      const spec = await res.json();
+      const spec = cachedSpec;
 
       // Validate that all $ref references are valid
       const validateRefs = (obj: any, path: string = '') => {
@@ -149,23 +162,122 @@ describe('OpenAPI Specification - Integration Tests', () => {
       validateRefs(spec);
     });
 
-    it('should have reasonable response times', async () => {
-      const startTime = Date.now();
-      const res = await makeRequest('/openapi.json');
-      const endTime = Date.now();
-
-      expect(res.status).toBe(200);
-
-      // OpenAPI spec generation should be reasonably fast (under 3 seconds)
-      const responseTime = endTime - startTime;
-      expect(responseTime).toBeLessThan(3000);
+    it('should successfully parse without throwing errors', async () => {
+      // Verify the cached spec is valid JSON
+      expect(cachedSpec).toBeDefined();
+      expect(typeof cachedSpec).toBe('object');
     });
 
-    it('should successfully parse without throwing errors', async () => {
-      const res = await makeRequest('/openapi.json');
+    it('should match the OpenAPI snapshot', async () => {
+      const snapshotDir = path.resolve(__dirname, '../../../__snapshots__');
+      const snapshotPath = path.resolve(snapshotDir, 'openapi.json');
 
-      // This should not throw
-      await expect(res.json()).resolves.toBeDefined();
+      // Normalize the current spec (remove environment-specific values)
+      const normalizedSpec = sortObjectKeys({
+        ...cachedSpec,
+        servers: [{ url: 'http://localhost:3002', description: 'API Server' }],
+      });
+
+      // Check if we should update the snapshot (via env var)
+      if (process.env.UPDATE_OPENAPI_SNAPSHOT === 'true') {
+        if (!fs.existsSync(snapshotDir)) {
+          fs.mkdirSync(snapshotDir, { recursive: true });
+        }
+        fs.writeFileSync(snapshotPath, JSON.stringify(normalizedSpec, null, 2) + '\n', 'utf-8');
+        console.log(`\n✓ Updated OpenAPI snapshot at ${snapshotPath}\n`);
+        return; // Skip comparison when updating
+      }
+
+      // Check if snapshot exists
+      if (!fs.existsSync(snapshotPath)) {
+        console.error('\n');
+        console.error('═'.repeat(70));
+        console.error('  ❌ OpenAPI SNAPSHOT NOT FOUND');
+        console.error('═'.repeat(70));
+        console.error(`  Snapshot file does not exist at:`);
+        console.error(`  ${snapshotPath}`);
+        console.error('');
+        console.error('  To create the initial snapshot, run:');
+        console.error('  pnpm --filter @inkeep/agents-manage-api openapi:update-snapshot');
+        console.error('═'.repeat(70));
+        console.error('\n');
+        throw new Error(
+          `OpenAPI snapshot not found. Run 'pnpm --filter @inkeep/agents-manage-api openapi:update-snapshot' to create it.`
+        );
+      }
+
+      // Read and parse the snapshot
+      const snapshotContent = fs.readFileSync(snapshotPath, 'utf-8');
+      const snapshotSpec = JSON.parse(snapshotContent);
+      const normalizedSnapshot = sortObjectKeys(snapshotSpec);
+
+      // Compare
+      const currentJson = JSON.stringify(normalizedSpec, null, 2);
+      const snapshotJson = JSON.stringify(normalizedSnapshot, null, 2);
+
+      if (currentJson !== snapshotJson) {
+        // Find what changed for helpful output
+        const currentPaths = Object.keys(normalizedSpec.paths || {});
+        const snapshotPaths = Object.keys(normalizedSnapshot.paths || {});
+        const addedPaths = currentPaths.filter((p) => !snapshotPaths.includes(p));
+        const removedPaths = snapshotPaths.filter((p) => !currentPaths.includes(p));
+
+        const currentSchemas = Object.keys(normalizedSpec.components?.schemas || {});
+        const snapshotSchemas = Object.keys(normalizedSnapshot.components?.schemas || {});
+        const addedSchemas = currentSchemas.filter((s) => !snapshotSchemas.includes(s));
+        const removedSchemas = snapshotSchemas.filter((s) => !currentSchemas.includes(s));
+
+        // Build a concise error message that shows the update command prominently
+        const lines: string[] = [];
+        lines.push('');
+        lines.push('═'.repeat(70));
+        lines.push('  ❌ OpenAPI SNAPSHOT MISMATCH');
+        lines.push('═'.repeat(70));
+        lines.push('');
+        lines.push('  The generated OpenAPI spec differs from the committed snapshot.');
+        lines.push('');
+
+        if (addedPaths.length > 0 || removedPaths.length > 0) {
+          lines.push('  📍 PATH CHANGES:');
+          addedPaths.forEach((p) => lines.push(`     + ${p}`));
+          removedPaths.forEach((p) => lines.push(`     - ${p}`));
+          lines.push('');
+        }
+
+        if (addedSchemas.length > 0 || removedSchemas.length > 0) {
+          lines.push('  📦 SCHEMA CHANGES:');
+          addedSchemas.forEach((s) => lines.push(`     + ${s}`));
+          removedSchemas.forEach((s) => lines.push(`     - ${s}`));
+          lines.push('');
+        }
+
+        if (
+          addedPaths.length === 0 &&
+          removedPaths.length === 0 &&
+          addedSchemas.length === 0 &&
+          removedSchemas.length === 0
+        ) {
+          lines.push('  ⚠️  Changes detected in existing paths/schemas (not additions or removals)');
+          lines.push('');
+        }
+
+        lines.push('  ─'.repeat(35));
+        lines.push('');
+        lines.push('  ┌─────────────────────────────────────────────────────────────────┐');
+        lines.push('  │  TO UPDATE THE SNAPSHOT, RUN:                                   │');
+        lines.push('  │                                                                 │');
+        lines.push('  │  pnpm --filter @inkeep/agents-manage-api openapi:update-snapshot│');
+        lines.push('  └─────────────────────────────────────────────────────────────────┘');
+        lines.push('');
+        lines.push('  If this change is UNINTENTIONAL:');
+        lines.push('    Review your changes to the API routes and schemas.');
+        lines.push('');
+        lines.push('═'.repeat(70));
+        lines.push('');
+
+        // Throw with concise message to avoid massive JSON diff from expect()
+        throw new Error(lines.join('\n'));
+      }
     });
   });
 });

@@ -22,7 +22,7 @@ export const createFullAgent = async (
   );
 
   try {
-    const baseUrl = env.AGENTS_MANAGE_API_URL;
+    const baseUrl = env.INKEEP_AGENTS_MANAGE_API_URL;
     const endpoint = `${baseUrl}/tenants/${tenantId}/agent`;
 
     const response = await fetch(endpoint, {
@@ -87,7 +87,7 @@ export const updateFullAgent = async (
   );
 
   try {
-    const baseUrl = env.AGENTS_MANAGE_API_URL;
+    const baseUrl = env.INKEEP_AGENTS_MANAGE_API_URL;
     const endpoint = `${baseUrl}/tenants/${tenantId}/agent/${agentId}`;
 
     const response = await fetch(endpoint, {

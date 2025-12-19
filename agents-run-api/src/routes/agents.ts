@@ -1,4 +1,4 @@
-import { createRoute, OpenAPIHono } from '@hono/zod-openapi';
+import { createRoute, OpenAPIHono, z } from '@hono/zod-openapi';
 import {
   type CredentialStoreRegistry,
   createApiError,
@@ -7,7 +7,6 @@ import {
   HeadersScopeSchema,
 } from '@inkeep/agents-core';
 import type { Context } from 'hono';
-import { z } from 'zod';
 import { a2aHandler } from '../a2a/handlers';
 import { getRegisteredAgent } from '../data/agents';
 import dbClient from '../data/db/dbClient';
@@ -158,67 +157,66 @@ app.post('/a2a', async (c: Context) => {
     }
 
     return a2aHandler(c, agent);
-  } else {
-    // Run agent-level logic
-    logger.info(
-      {
-        message: 'a2a (agent-level)',
-        tenantId,
-        projectId,
-        agentId,
-      },
-      'agent-level a2a endpoint'
-    );
-
-    // fetch the agent and the default agent
-    const agent = await getAgentWithDefaultSubAgent(dbClient)({
-      scopes: { tenantId, projectId, agentId },
-    });
-
-    if (!agent) {
-      return c.json(
-        {
-          jsonrpc: '2.0',
-          error: { code: -32004, message: 'Agent not found' },
-          id: null,
-        },
-        404
-      );
-    }
-    if (!agent.defaultSubAgentId) {
-      return c.json(
-        {
-          jsonrpc: '2.0',
-          error: { code: -32004, message: 'Agent does not have a default agent configured' },
-          id: null,
-        },
-        400
-      );
-    }
-    executionContext.subAgentId = agent.defaultSubAgentId;
-    // fetch the default agent and use it as entry point for the agent
-    const credentialStores = c.get('credentialStores');
-    const sandboxConfig = c.get('sandboxConfig');
-    const defaultSubAgent = await getRegisteredAgent({
-      executionContext,
-      credentialStoreRegistry: credentialStores,
-      sandboxConfig,
-    });
-
-    if (!defaultSubAgent) {
-      return c.json(
-        {
-          jsonrpc: '2.0',
-          error: { code: -32004, message: 'Agent not found' },
-          id: null,
-        },
-        404
-      );
-    }
-
-    // Use the existing a2aHandler with the default agent as a registered agent
-    return a2aHandler(c, defaultSubAgent);
   }
+  // Run agent-level logic
+  logger.info(
+    {
+      message: 'a2a (agent-level)',
+      tenantId,
+      projectId,
+      agentId,
+    },
+    'agent-level a2a endpoint'
+  );
+
+  // fetch the agent and the default agent
+  const agent = await getAgentWithDefaultSubAgent(dbClient)({
+    scopes: { tenantId, projectId, agentId },
+  });
+
+  if (!agent) {
+    return c.json(
+      {
+        jsonrpc: '2.0',
+        error: { code: -32004, message: 'Agent not found' },
+        id: null,
+      },
+      404
+    );
+  }
+  if (!agent.defaultSubAgentId) {
+    return c.json(
+      {
+        jsonrpc: '2.0',
+        error: { code: -32004, message: 'Agent does not have a default agent configured' },
+        id: null,
+      },
+      400
+    );
+  }
+  executionContext.subAgentId = agent.defaultSubAgentId;
+  // fetch the default agent and use it as entry point for the agent
+  const credentialStores = c.get('credentialStores');
+  const sandboxConfig = c.get('sandboxConfig');
+  const defaultSubAgent = await getRegisteredAgent({
+    executionContext,
+    credentialStoreRegistry: credentialStores,
+    sandboxConfig,
+  });
+
+  if (!defaultSubAgent) {
+    return c.json(
+      {
+        jsonrpc: '2.0',
+        error: { code: -32004, message: 'Agent not found' },
+        id: null,
+      },
+      404
+    );
+  }
+
+  // Use the existing a2aHandler with the default agent as a registered agent
+  return a2aHandler(c, defaultSubAgent);
 });
 
 export default app;

@@ -43,8 +43,8 @@ vi.mock('@inkeep/agents-core', async (importOriginal) => {
         name: 'Test Agent',
         description: 'A helpful assistant',
         prompt: 'You are a helpful assistant.',
-        createdAt: new Date(),
-        updatedAt: new Date(),
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
       })
     ),
     createMessage: vi.fn().mockReturnValue(
@@ -85,11 +85,11 @@ describe('Chat Data Stream Advanced', () => {
 
     // Import here to avoid circular dependencies
     const { createSubAgent, createAgent } = await import('@inkeep/agents-core');
+    const { createTestProject } = await import('@inkeep/agents-core/db/test-client');
     const dbClient = (await import('../../../data/db/dbClient.js')).default;
-    const { ensureTestProject } = await import('../../utils/testProject.js');
 
     // Ensure project exists first
-    await ensureTestProject(tenantId, projectId);
+    await createTestProject(dbClient, tenantId, projectId);
 
     // Create agent first
     await createAgent(dbClient)({

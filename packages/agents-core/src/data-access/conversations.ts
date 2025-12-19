@@ -1,4 +1,4 @@
-import { and, count, desc, eq } from 'drizzle-orm';
+import { and, count, desc, eq, inArray } from 'drizzle-orm';
 import type { DatabaseClient } from '../db/client';
 import { conversations, messages } from '../db/schema';
 import type {
@@ -275,6 +275,7 @@ export const getConversationHistory =
       limit = options.limit ?? 50,
       includeInternal = options.includeInternal ?? false,
       maxOutputTokens,
+      messageTypes,
     } = options;
 
     const whereConditions = [
@@ -286,6 +287,11 @@ export const getConversationHistory =
     // Filter by visibility unless explicitly including internal messages
     if (!includeInternal) {
       whereConditions.push(eq(messages.visibility, 'user-facing'));
+    }
+
+    // Filter by messageTypes if specified
+    if (messageTypes && messageTypes.length > 0) {
+      whereConditions.push(inArray(messages.messageType, messageTypes));
     }
 
     const messageHistory = await db

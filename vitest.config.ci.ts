@@ -57,7 +57,6 @@ export default defineConfig({
     // Environment variables for CI
     env: {
       ENVIRONMENT: 'test',
-      DB_FILE_NAME: ':memory:',
     },
 
     // Root-level coverage configuration using the sophisticated coverage system

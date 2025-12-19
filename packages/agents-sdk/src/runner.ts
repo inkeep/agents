@@ -193,9 +193,6 @@ export class Runner {
       if (!defaultSubAgent.getName()) {
         errors.push('Default agent name is required');
       }
-      if (!defaultSubAgent.getInstructions()) {
-        errors.push('Default agent instructions are required');
-      }
     }
 
     // Validate all agents in the agent

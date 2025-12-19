@@ -9,11 +9,11 @@ export const BaseNode: FC<BaseNodeProps> = ({ className, isSelected, ...props })
   <div
     className={cn(
       'relative rounded-lg border bg-card text-card-foreground',
-      // React Flow displays node elements inside of a `NodeWrapper` component,
-      // which compiles down to a div with a the class `react-flow__node`.
+      // React Flow displays node elements inside a `NodeWrapper` component,
+      // which compiles down to a div with a class `react-flow__node`.
       // When a node is selected, the class `selected` is added to the
       // `react-flow__node` element. This allows us to style the node when it
-      isSelected ? 'ring-2 ring-primary' : 'hover:ring-2 hover:ring-gray-700/5',
+      isSelected && 'ring-2 ring-primary',
       className
     )}
     // tabIndex={0}
@@ -63,7 +63,7 @@ export const BaseNodeContent = forwardRef<HTMLDivElement, HTMLAttributes<HTMLDiv
     <div
       ref={ref}
       data-slot="base-node-content"
-      className={cn('flex flex-col gap-y-2 p-4 text-foreground', className)}
+      className={cn('flex flex-col gap-y-2 p-4 text-foreground break-words', className)}
       {...props}
     />
   )

@@ -10,10 +10,21 @@ interface CodeEditorProps extends Omit<ComponentProps<typeof MonacoEditor>, 'uri
 export const CodeEditor: FC<CodeEditorProps> = ({
   uri,
   placeholder = 'Enter code...',
+  editorOptions,
   ...props
 }) => {
   const id = useId();
   uri ??= `${id}.jsx`;
 
-  return <MonacoEditor uri={uri} placeholder={placeholder} {...props} />;
+  return (
+    <MonacoEditor
+      uri={uri}
+      placeholder={placeholder}
+      editorOptions={{
+        ariaLabel: 'Code editor',
+        ...editorOptions,
+      }}
+      {...props}
+    />
+  );
 };

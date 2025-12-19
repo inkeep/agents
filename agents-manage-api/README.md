@@ -41,7 +41,7 @@ pnpm db:migrate
 ```env
 ENVIRONMENT=development|production|test
 PORT=3002
-DB_FILE_NAME=path/to/sqlite.db
+DATABASE_URL=pg_db_url
 LOG_LEVEL=debug|info|warn|error
 ```
 

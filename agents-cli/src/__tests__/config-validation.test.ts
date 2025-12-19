@@ -46,6 +46,11 @@ vi.mock('@inkeep/agents-core', async () => {
   };
 });
 
+// Mock credentials to prevent CLI login credentials from interfering with tests
+vi.mock('../utils/credentials', () => ({
+  loadCredentials: vi.fn(() => Promise.resolve(null)),
+}));
+
 describe('maskSensitiveConfig', () => {
   it('should mask API keys showing only last 4 characters', () => {
     const config = {

@@ -33,6 +33,7 @@ interface AICallsBreakdownProps {
 
 export function AICallsBreakdown({ onBack }: AICallsBreakdownProps) {
   const params = useParams();
+  const tenantId = params.tenantId as string;
 
   // Use nuqs for type-safe query state management
   const {
@@ -97,14 +98,13 @@ export function AICallsBreakdown({ onBack }: AICallsBreakdownProps) {
           startTime: startDate.getTime(),
           endTime: clampedEndMs,
         };
-      } else {
-        // Default to 15 days if custom dates not set
-        const hoursBack = TIME_RANGES['15d'].hours;
-        return {
-          startTime: currentEndTime - hoursBack * 60 * 60 * 1000,
-          endTime: currentEndTime,
-        };
       }
+      // Default to 15 days if custom dates not set
+      const hoursBack = TIME_RANGES['15d'].hours;
+      return {
+        startTime: currentEndTime - hoursBack * 60 * 60 * 1000,
+        endTime: currentEndTime,
+      };
     }
 
     const hoursBack = TIME_RANGES[timeRange].hours;
@@ -121,7 +121,7 @@ export function AICallsBreakdown({ onBack }: AICallsBreakdownProps) {
         setLoading(true);
         setError(null);
 
-        const client = getSigNozStatsClient();
+        const client = getSigNozStatsClient(tenantId);
 
         const agentId = selectedAgent === 'all' ? undefined : selectedAgent;
         const modelId = selectedModel === 'all' ? undefined : selectedModel;
@@ -153,7 +153,7 @@ export function AICallsBreakdown({ onBack }: AICallsBreakdownProps) {
     };
 
     fetchData();
-  }, [selectedAgent, selectedModel, startTime, endTime, params.projectId]);
+  }, [selectedAgent, selectedModel, startTime, endTime, params.projectId, tenantId]);
 
   const totalAICalls = agentCalls.reduce((sum, item) => sum + item.totalCalls, 0);
 

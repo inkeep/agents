@@ -1,7 +1,9 @@
 import {
   ArrowRight,
+  Check,
   ChevronDown,
   ChevronRight,
+  Clock,
   Cpu,
   Database,
   Hammer,
@@ -9,6 +11,7 @@ import {
   Settings,
   Sparkles,
   User,
+  X,
 } from 'lucide-react';
 import { Streamdown } from 'streamdown';
 import { formatDateTime } from '@/app/utils/format-date';
@@ -17,6 +20,7 @@ import { Bubble } from '@/components/traces/timeline/bubble';
 import { Flow } from '@/components/traces/timeline/flow';
 import { TagRow } from '@/components/traces/timeline/tag-row';
 import {
+  ACTIVITY_STATUS,
   ACTIVITY_TYPES,
   type ActivityItem,
   type ActivityKind,
@@ -38,7 +42,15 @@ function formatJsonSafely(content: string): string {
 }
 
 function statusIcon(
-  type: ActivityKind | 'delegation' | 'transfer' | 'generic_tool' | 'tool_purpose',
+  type:
+    | ActivityKind
+    | 'delegation'
+    | 'transfer'
+    | 'generic_tool'
+    | 'tool_purpose'
+    | 'tool_approval_requested'
+    | 'tool_approval_approved'
+    | 'tool_approval_denied',
   status: ActivityItem['status']
 ) {
   const base: Record<string, { Icon: any; cls: string }> = {
@@ -56,17 +68,22 @@ function statusIcon(
     generic_tool: { Icon: Hammer, cls: 'text-muted-foreground' },
     tool_purpose: { Icon: Hammer, cls: 'text-muted-foreground' },
     artifact_processing: { Icon: Library, cls: 'text-emerald-600' },
+    tool_approval_requested: { Icon: Clock, cls: 'text-muted-foreground' },
+    tool_approval_approved: { Icon: Check, cls: 'text-blue-500' },
+    tool_approval_denied: { Icon: X, cls: 'text-red-500' },
   };
 
   const map = base[type] || base.tool_call;
   const cls =
-    status === 'success'
+    status === ACTIVITY_STATUS.SUCCESS
       ? map.cls
-      : status === 'error'
+      : status === ACTIVITY_STATUS.ERROR
         ? 'text-red-500'
-        : status === 'pending'
+        : status === ACTIVITY_STATUS.WARNING
           ? 'text-yellow-500'
-          : map.cls;
+          : status === ACTIVITY_STATUS.PENDING
+            ? 'text-yellow-500'
+            : map.cls;
 
   return { Icon: map.Icon, className: cls };
 }
@@ -103,7 +120,13 @@ export function TimelineItem({
           ? 'tool_purpose'
           : activity.type === ACTIVITY_TYPES.TOOL_CALL
             ? 'generic_tool'
-            : activity.type;
+            : activity.type === ACTIVITY_TYPES.TOOL_APPROVAL_REQUESTED
+              ? 'tool_approval_requested'
+              : activity.type === ACTIVITY_TYPES.TOOL_APPROVAL_APPROVED
+                ? 'tool_approval_approved'
+                : activity.type === ACTIVITY_TYPES.TOOL_APPROVAL_DENIED
+                  ? 'tool_approval_denied'
+                  : activity.type;
 
   const { Icon, className } = statusIcon(typeForIcon as any, activity.status);
   const formattedDateTime = formatDateTime(activity.timestamp);
@@ -111,12 +134,17 @@ export function TimelineItem({
 
   // Determine text color based on status
   const textColorClass =
-    activity.status === 'error'
+    activity.status === ACTIVITY_STATUS.ERROR
       ? 'text-red-500 hover:text-red-700'
-      : 'text-foreground hover:text-primary';
+      : activity.status === ACTIVITY_STATUS.WARNING
+        ? 'text-yellow-500 hover:text-yellow-700'
+        : 'text-foreground hover:text-primary';
 
   return (
-    <div className={`flex flex-col text-muted-foreground relative text-xs`}>
+    <div
+      className={`flex flex-col text-muted-foreground relative text-xs`}
+      data-has-error={activity.status === ACTIVITY_STATUS.ERROR || undefined}
+    >
       <div className="flex items-start">
         <div className="mr-2 py-2" style={{ width: '16px' }}>
           <div className="absolute left-[7px] top-[8px] -translate-x-1/2 flex items-center justify-center w-5 h-5 rounded bg-white dark:bg-background z-10">
@@ -323,6 +351,17 @@ export function TimelineItem({
               <Bubble className="line-clamp-2">{activity.toolPurpose}</Bubble>
             )}
 
+          {/* MCP server badge for MCP tool calls */}
+          {activity.type === ACTIVITY_TYPES.TOOL_CALL &&
+            activity.toolType === TOOL_TYPES.MCP &&
+            activity.mcpServerName && (
+              <div className="mb-1">
+                <Badge variant="code" className="text-xs">
+                  MCP: {activity.mcpServerName}
+                </Badge>
+              </div>
+            )}
+
           {/* artifact processing */}
           {activity.type === ACTIVITY_TYPES.ARTIFACT_PROCESSING && (
             <div className="mt-2 p-3 bg-emerald-50 border border-emerald-200 dark:bg-emerald-900/20 dark:border-emerald-800 rounded-lg max-w-4xl">
@@ -379,6 +418,18 @@ export function TimelineItem({
             activity.subAgentId &&
             activity.toolType !== 'delegation' &&
             activity.toolType !== 'transfer' && (
+              <div className="mb-1">
+                <Badge variant="code" className="text-xs">
+                  {activity.subAgentId}
+                </Badge>
+              </div>
+            )}
+
+          {/* Sub-agent badge for tool approval activities */}
+          {(activity.type === ACTIVITY_TYPES.TOOL_APPROVAL_REQUESTED ||
+            activity.type === ACTIVITY_TYPES.TOOL_APPROVAL_APPROVED ||
+            activity.type === ACTIVITY_TYPES.TOOL_APPROVAL_DENIED) &&
+            activity.subAgentId && (
               <div className="mb-1">
                 <Badge variant="code" className="text-xs">
                   {activity.subAgentId}

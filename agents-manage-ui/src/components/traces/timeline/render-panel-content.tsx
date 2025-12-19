@@ -13,7 +13,11 @@ import {
 } from '@/components/traces/timeline/blocks';
 import { Bubble, CodeBubble } from '@/components/traces/timeline/bubble';
 import { SpanAttributes } from '@/components/traces/timeline/span-attributes';
-import type { ConversationDetail, SelectedPanel } from '@/components/traces/timeline/types';
+import {
+  ACTIVITY_STATUS,
+  type ConversationDetail,
+  type SelectedPanel,
+} from '@/components/traces/timeline/types';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 
@@ -216,6 +220,13 @@ export function renderPanelContent({
             <Bubble className=" break-all">{a.toolResult || 'URL not available'}</Bubble>
           </LabeledBlock>
           <StatusBadge status={a.status} />
+          {a.status === 'error' && a.otelStatusDescription && (
+            <LabeledBlock label="Status message">
+              <Bubble className="bg-red-50 border-red-200 text-red-800 dark:bg-red-900/20 dark:border-red-800 dark:text-red-300">
+                {a.otelStatusDescription}
+              </Bubble>
+            </LabeledBlock>
+          )}
           <Info label="Timestamp" value={formatDateTime(a.timestamp)} />
         </Section>
       );
@@ -257,7 +268,7 @@ export function renderPanelContent({
               value={<Badge variant="code">{a.toolName || 'Unknown Tool'}</Badge>}
             />
             <StatusBadge status={a.status} />
-            {a.status === 'error' && a.toolStatusMessage && (
+            {a.status === ACTIVITY_STATUS.ERROR && a.toolStatusMessage && (
               <LabeledBlock label="Status message">
                 <Bubble className="bg-red-50 border-red-200 text-red-800 dark:bg-red-900/20 dark:border-red-800 dark:text-red-300">
                   {a.toolStatusMessage}
@@ -301,7 +312,7 @@ export function renderPanelContent({
               value={<Badge variant="code">{a.toolName || 'Unknown tool'}</Badge>}
             />
             <StatusBadge status={a.status} />
-            {a.status === 'error' && a.toolStatusMessage && (
+            {a.status === ACTIVITY_STATUS.ERROR && a.toolStatusMessage && (
               <LabeledBlock label="Status message">
                 <Bubble className="bg-red-50 border-red-200 text-red-800 dark:bg-red-900/20 dark:border-red-800 dark:text-red-300">
                   {a.toolStatusMessage}
@@ -345,10 +356,13 @@ export function renderPanelContent({
                 </Badge>
               </LabeledBlock>
             )}
+            {a.toolType === 'mcp' && a.mcpServerName && (
+              <Info label="MCP server" value={<Badge variant="code">{a.mcpServerName}</Badge>} />
+            )}
             <Info label="Purpose" value={a.toolPurpose || 'No purpose information available'} />
             <Info label="Sub agent" value={a.subAgentName || 'Unknown sub agent'} />
             <StatusBadge status={a.status} />
-            {a.status === 'error' && a.toolStatusMessage && (
+            {a.status === ACTIVITY_STATUS.ERROR && a.toolStatusMessage && (
               <LabeledBlock label="Status message">
                 <Bubble className="bg-red-50 border-red-200 text-red-800 dark:bg-red-900/20 dark:border-red-800 dark:text-red-300">
                   {a.toolStatusMessage}
@@ -392,10 +406,20 @@ export function renderPanelContent({
                 </Badge>
               </LabeledBlock>
             )}
+            {a.toolType === 'mcp' && a.mcpServerName && (
+              <Info label="MCP server" value={<Badge variant="code">{a.mcpServerName}</Badge>} />
+            )}
             <StatusBadge status={a.status} />
-            {a.status === 'error' && a.toolStatusMessage && (
+            {a.status === ACTIVITY_STATUS.ERROR && a.toolStatusMessage && (
               <LabeledBlock label="Status message">
                 <Bubble className="bg-red-50 border-red-200 text-red-800 dark:bg-red-900/20 dark:border-red-800 dark:text-red-300">
+                  {a.toolStatusMessage}
+                </Bubble>
+              </LabeledBlock>
+            )}
+            {a.status === ACTIVITY_STATUS.WARNING && a.toolStatusMessage && (
+              <LabeledBlock label="Status message">
+                <Bubble className="bg-yellow-50 border-yellow-200 text-yellow-800 dark:bg-yellow-900/20 dark:border-yellow-800 dark:text-yellow-300">
                   {a.toolStatusMessage}
                 </Bubble>
               </LabeledBlock>
@@ -437,6 +461,13 @@ export function renderPanelContent({
             <Info label="Input tokens" value={a.inputTokens?.toLocaleString() || '0'} />
             <Info label="Output tokens" value={a.outputTokens?.toLocaleString() || '0'} />
             <StatusBadge status={a.status} />
+            {a.status === 'error' && a.otelStatusDescription && (
+              <LabeledBlock label="Status message">
+                <Bubble className="bg-red-50 border-red-200 text-red-800 dark:bg-red-900/20 dark:border-red-800 dark:text-red-300">
+                  {a.otelStatusDescription}
+                </Bubble>
+              </LabeledBlock>
+            )}
             <Info label="Timestamp" value={formatDateTime(a.timestamp)} />
           </Section>
           <Divider />
@@ -468,6 +499,13 @@ export function renderPanelContent({
               </LabeledBlock>
             )}
             <StatusBadge status={a.status} />
+            {a.status === 'error' && a.otelStatusDescription && (
+              <LabeledBlock label="Status message">
+                <Bubble className="bg-red-50 border-red-200 text-red-800 dark:bg-red-900/20 dark:border-red-800 dark:text-red-300">
+                  {a.otelStatusDescription}
+                </Bubble>
+              </LabeledBlock>
+            )}
             <Info label="Timestamp" value={formatDateTime(a.timestamp)} />
           </Section>
           <Divider />
@@ -491,6 +529,13 @@ export function renderPanelContent({
               />
             )}
             <StatusBadge status={a.status} />
+            {a.status === 'error' && a.otelStatusDescription && (
+              <LabeledBlock label="Status message">
+                <Bubble className="bg-red-50 border-red-200 text-red-800 dark:bg-red-900/20 dark:border-red-800 dark:text-red-300">
+                  {a.otelStatusDescription}
+                </Bubble>
+              </LabeledBlock>
+            )}
             {a.artifactSubAgentId && (
               <Info label="Sub agent" value={a.artifactSubAgentId || 'Unknown Sub Agent'} />
             )}
@@ -503,6 +548,69 @@ export function renderPanelContent({
                 value={<Badge variant="code">{a.artifactToolCallId}</Badge>}
               />
             )}
+            <Info label="Timestamp" value={formatDateTime(a.timestamp)} />
+          </Section>
+          <Divider />
+          {SignozButton}
+          {AdvancedBlock}
+        </>
+      );
+
+    case 'tool_approval_requested':
+      return (
+        <>
+          <Section>
+            <Info
+              label="Tool name"
+              value={<Badge variant="code">{a.approvalToolName || 'Unknown Tool'}</Badge>}
+            />
+            <LabeledBlock label="Status">
+              <Badge variant="outline" className="text-yellow-600 border-yellow-600">
+                Waiting for approval
+              </Badge>
+            </LabeledBlock>
+            <Info label="Timestamp" value={formatDateTime(a.timestamp)} />
+          </Section>
+          <Divider />
+          {SignozButton}
+          {AdvancedBlock}
+        </>
+      );
+
+    case 'tool_approval_approved':
+      return (
+        <>
+          <Section>
+            <Info
+              label="Tool name"
+              value={<Badge variant="code">{a.approvalToolName || 'Unknown Tool'}</Badge>}
+            />
+            <LabeledBlock label="Status">
+              <Badge variant="outline" className="text-blue-600 border-blue-600">
+                Approved by user
+              </Badge>
+            </LabeledBlock>
+            <Info label="Timestamp" value={formatDateTime(a.timestamp)} />
+          </Section>
+          <Divider />
+          {SignozButton}
+          {AdvancedBlock}
+        </>
+      );
+
+    case 'tool_approval_denied':
+      return (
+        <>
+          <Section>
+            <Info
+              label="Tool name"
+              value={<Badge variant="code">{a.approvalToolName || 'Unknown Tool'}</Badge>}
+            />
+            <LabeledBlock label="Status">
+              <Badge variant="outline" className="text-red-600 border-red-600">
+                Denied by user
+              </Badge>
+            </LabeledBlock>
             <Info label="Timestamp" value={formatDateTime(a.timestamp)} />
           </Section>
           <Divider />

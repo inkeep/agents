@@ -13,7 +13,6 @@ import {
   updateApiKeyLastUsed,
 } from '../../data-access/apiKeys';
 import type { DatabaseClient } from '../../db/client';
-import { createInMemoryDatabaseClient } from '../../db/client';
 import {
   extractPublicId,
   generateApiKey,
@@ -22,6 +21,7 @@ import {
   maskApiKey,
   validateApiKey,
 } from '../../utils/apiKeys';
+import { testDbClient } from '../setup';
 
 describe('API Keys Data Access', () => {
   let db: DatabaseClient;
@@ -29,8 +29,9 @@ describe('API Keys Data Access', () => {
   const testProjectId = 'test-project';
   const testAgentId = 'test-agent';
 
-  beforeEach(() => {
-    db = createInMemoryDatabaseClient();
+  beforeEach(async () => {
+    db = testDbClient;
+    vi.clearAllMocks();
   });
 
   describe('getApiKeyById', () => {
@@ -333,7 +334,7 @@ describe('API Keys Data Access', () => {
         publicId: 'pub-1',
         keyHash: 'hash123',
         keyPrefix: 'ik_test',
-        expiresAt: '2024-12-31T23:59:59Z',
+        expiresAt: new Date().toISOString(),
       } satisfies ApiKeyInsert;
 
       const expectedApiKey = {

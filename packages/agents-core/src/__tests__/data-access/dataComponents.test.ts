@@ -14,8 +14,8 @@ import {
   updateDataComponent,
 } from '../../data-access/dataComponents';
 import type { DatabaseClient } from '../../db/client';
-import { createInMemoryDatabaseClient } from '../../db/client';
 import type { DataComponentInsert } from '../../types/index';
+import { testDbClient } from '../setup';
 
 describe('Data Components Data Access', () => {
   let db: DatabaseClient;
@@ -25,8 +25,9 @@ describe('Data Components Data Access', () => {
   const testDataComponentId = 'component-789';
   const testSubAgentId = 'sub-agent-123';
 
-  beforeEach(() => {
-    db = createInMemoryDatabaseClient();
+  beforeEach(async () => {
+    db = testDbClient;
+    vi.clearAllMocks();
   });
 
   describe('getDataComponent', () => {

@@ -12,7 +12,8 @@ import {
   waitForServerReady,
 } from './utils';
 
-const manageApiUrl = 'http://localhost:3002';
+// Use 127.0.0.1 instead of localhost to avoid IPv6/IPv4 resolution issues on CI (Ubuntu)
+const manageApiUrl = 'http://127.0.0.1:3002';
 
 describe('create-agents quickstart e2e', () => {
   let testDir: string;
@@ -47,11 +48,16 @@ describe('create-agents quickstart e2e', () => {
         createAgentsPrefix,
         '--local-templates-prefix',
         projectTemplatesPrefix,
+        '--skip-inkeep-cli',
+        '--skip-inkeep-mcp',
       ],
       testDir
     );
     // Verify the CLI completed successfully
-    expect(result.exitCode).toBe(0);
+    expect(
+      result.exitCode,
+      `CLI failed with exit code ${result.exitCode}\nstdout: ${result.stdout}\nstderr: ${result.stderr}`
+    ).toBe(0);
 
     console.log('CLI completed successfully');
 
@@ -76,9 +82,9 @@ describe('create-agents quickstart e2e', () => {
     await verifyFile(path.join(projectDir, '.env'), [
       /ENVIRONMENT=development/,
       /OPENAI_API_KEY=test-openai-key/,
-      /DB_FILE_NAME=file:.*\/local\.db/,
-      /INKEEP_AGENTS_MANAGE_API_URL="http:\/\/localhost:3002"/,
-      /INKEEP_AGENTS_RUN_API_URL="http:\/\/localhost:3003"/,
+      /DATABASE_URL=postgresql:\/\/appuser:password@localhost:5432\/inkeep_agents/,
+      /INKEEP_AGENTS_MANAGE_API_URL="http:\/\/127\.0\.0\.1:3002"/,
+      /INKEEP_AGENTS_RUN_API_URL="http:\/\/127\.0\.0\.1:3003"/,
       /INKEEP_AGENTS_JWT_SIGNING_SECRET=\w+/, // Random secret should be generated
     ]);
     console.log('.env file verified');
@@ -87,6 +93,10 @@ describe('create-agents quickstart e2e', () => {
     console.log('Verifying inkeep.config.ts...');
     await verifyFile(path.join(projectDir, 'src/inkeep.config.ts'));
     console.log('inkeep.config.ts verified');
+
+    console.log('Setting up project in database');
+    await runCommand('pnpm', ['setup-dev:cloud'], projectDir);
+    console.log('Project setup in database');
 
     console.log('Starting dev servers');
     // Start dev servers in background with output monitoring
@@ -144,7 +154,10 @@ describe('create-agents quickstart e2e', () => {
         30000
       );
 
-      expect(pushResult.exitCode).toBe(0);
+      expect(
+        pushResult.exitCode,
+        `Push failed with exit code ${pushResult.exitCode}\nstdout: ${pushResult.stdout}\nstderr: ${pushResult.stderr}`
+      ).toBe(0);
 
       console.log('Testing API requests');
       // Test API requests
@@ -171,7 +184,10 @@ describe('create-agents quickstart e2e', () => {
         30000
       );
 
-      expect(pushResultLocal.exitCode).toBe(0);
+      expect(
+        pushResultLocal.exitCode,
+        `Push with local packages failed with exit code ${pushResultLocal.exitCode}\nstdout: ${pushResultLocal.stdout}\nstderr: ${pushResultLocal.stderr}`
+      ).toBe(0);
 
       // Test that the project works with local packages
       const responseLocal = await fetch(`${manageApiUrl}/tenants/default/projects/${projectId}`);
