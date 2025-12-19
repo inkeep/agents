@@ -16,6 +16,7 @@ import type {
   AgentTool,
   AllDelegateInputInterface,
   AllDelegateOutputInterface,
+  PolicyDefinition,
   SubAgentCanUseType,
   SubAgentConfig,
   SubAgentInterface,
@@ -229,6 +230,33 @@ export class SubAgent implements SubAgentInterface {
       ...this.getTeamAgentDelegates(),
       ...this.getExternalAgentDelegates(),
     ];
+  }
+
+  getPolicies(): { id: string; index?: number; policy?: PolicyDefinition }[] {
+    const policies = resolveGetter(this.config.policies);
+    if (!policies) {
+      return [];
+    }
+
+    return policies
+      .map((entry, idx) => {
+        if (!entry) return null;
+        if (typeof entry === 'string') {
+          return { id: entry, index: idx };
+        }
+        if ('id' in entry) {
+          return {
+            id: (entry as any).id,
+            index: (entry as any).index ?? idx,
+            policy: entry as any,
+          };
+        }
+        if ('policyId' in entry) {
+          return { id: (entry as any).policyId, index: (entry as any).index ?? idx };
+        }
+        return null;
+      })
+      .filter((p) => !!p);
   }
 
   getDataComponents(): DataComponentApiInsert[] {

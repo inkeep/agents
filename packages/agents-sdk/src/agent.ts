@@ -17,6 +17,7 @@ import type {
   GenerateOptions,
   MessageInput,
   ModelSettings,
+  PolicyDefinition,
   RunResult,
   StreamResponse,
   SubAgentInterface,
@@ -54,6 +55,7 @@ export class Agent implements AgentInterface {
   private statusUpdateSettings?: StatusUpdateSettings;
   private prompt?: string;
   private stopWhen?: AgentStopWhen;
+  private policies: PolicyDefinition[] = [];
 
   constructor(config: AgentConfig) {
     this.defaultSubAgent = config.defaultSubAgent;
@@ -110,7 +112,12 @@ export class Agent implements AgentInterface {
    * Set or update the configuration (tenantId, projectId and apiUrl)
    * This is used by the CLI to inject configuration from inkeep.config.ts
    */
-  setConfig(tenantId: string, projectId: string, apiUrl: string): void {
+  setConfig(
+    tenantId: string,
+    projectId: string,
+    apiUrl: string,
+    policies?: PolicyDefinition[]
+  ): void {
     if (this.initialized) {
       throw new Error('Cannot set config after agent has been initialized');
     }
@@ -118,6 +125,9 @@ export class Agent implements AgentInterface {
     this.tenantId = tenantId;
     this.projectId = projectId;
     this.baseURL = apiUrl;
+    if (policies) {
+      this.policies = policies;
+    }
 
     // Propagate tenantId, projectId, and apiUrl to all agents and their tools
     for (const subAgent of this.subAgents) {
@@ -154,6 +164,10 @@ export class Agent implements AgentInterface {
     );
   }
 
+  setPolicies(policies: PolicyDefinition[]): void {
+    this.policies = policies;
+  }
+
   /**
    * Convert the Agent to FullAgentDefinition format for the new agent endpoint
    */
@@ -162,6 +176,11 @@ export class Agent implements AgentInterface {
     const externalAgentsObject: Record<string, any> = {};
     const functionToolsObject: Record<string, any> = {};
     const functionsObject: Record<string, any> = {};
+    const policiesById = new Map<string, PolicyDefinition>();
+
+    for (const policy of this.policies) {
+      policiesById.set(policy.id, policy);
+    }
 
     for (const subAgent of this.subAgents) {
       // Get agent relationships
@@ -261,6 +280,20 @@ export class Agent implements AgentInterface {
         toolPolicies: toolPoliciesMapping[toolId] || null,
       }));
 
+      const resolvedPolicies = subAgent
+        .getPolicies()
+        .map((policyRef, idx) => {
+          const policyDef = policyRef.policy || policiesById.get(policyRef.id);
+          if (!policyDef) {
+            return null;
+          }
+          return {
+            ...policyDef,
+            index: policyRef.index ?? idx,
+          };
+        })
+        .filter((p) => !!p);
+
       subAgentsObject[subAgent.getId()] = {
         id: subAgent.getId(),
         name: subAgent.getName(),
@@ -287,6 +320,7 @@ export class Agent implements AgentInterface {
         canUse,
         dataComponents: dataComponents.length > 0 ? dataComponents : undefined,
         artifactComponents: artifactComponents.length > 0 ? artifactComponents : undefined,
+        policies: resolvedPolicies.length > 0 ? resolvedPolicies : undefined,
         type: 'internal',
       };
     }
