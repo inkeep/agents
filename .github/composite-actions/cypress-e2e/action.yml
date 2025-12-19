@@ -45,6 +45,10 @@ runs:
       shell: bash
       run: npx turbo build --filter='@inkeep/agents-manage-ui'
 
+    - name: Build cookbook monorepo dependencies
+      shell: bash
+      run: npx turbo run build --filter="agents-cookbook-templates"
+
     - name: Push Weather Example Project
       shell: bash
       run: cd agents-cookbook/template-projects && npx inkeep push --project weather-project

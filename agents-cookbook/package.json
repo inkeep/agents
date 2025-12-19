@@ -9,7 +9,8 @@
     "start:weather": "tsx weather-project/index.ts",
     "dev:weather": "tsx --watch weather-project/index.ts",
     "type-check": "tsc --noEmit",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "build": "echo \"No build script\""
   },
   "dependencies": {
     "@inkeep/agents-cli": "workspace:*",
