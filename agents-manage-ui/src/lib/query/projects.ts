@@ -5,7 +5,7 @@ import { useCallback } from 'react';
 import { fetchProjectsAction } from '@/lib/actions/projects';
 import type { Project } from '@/lib/types/project';
 
-export const projectQueryKeys = {
+const projectQueryKeys = {
   list: (tenantId: string) => ['projects', tenantId] as const,
 };
 
