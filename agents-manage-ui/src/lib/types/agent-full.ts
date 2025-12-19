@@ -14,7 +14,6 @@ import {
   type FullAgentDefinition as CoreFullAgentDefinition,
   type ExternalAgentApiInsert,
   type ExternalAgentDefinition,
-  FullAgentDefinitionSchema,
   type FunctionApiInsert,
   type InternalAgentDefinition,
   TenantParamsSchema,
