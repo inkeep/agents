@@ -83,10 +83,11 @@
     "@radix-ui/react-switch": "^1.2.6",
     "@radix-ui/react-tabs": "^1.1.13",
     "@radix-ui/react-tooltip": "^1.2.7",
+    "@sentry/nextjs": "^10.32.0",
     "@shikijs/monaco": "^3.20.0",
     "@sinclair/typebox": "^0.34.40",
-    "@xyflow/react": "^12.10.0",
     "@tanstack/react-query": "^5.90.12",
+    "@xyflow/react": "^12.10.0",
     "ai": "6.0.0-beta.124",
     "axios": "^1.11.0",
     "axios-retry": "^4.5.0",
@@ -124,7 +125,6 @@
     "zustand": "^5.0.7"
   },
   "devDependencies": {
-    "knip": "^5.75.1",
     "@svgr/webpack": "^8.1.0",
     "@tailwindcss/postcss": "^4",
     "@testing-library/jest-dom": "^6.8.0",
@@ -139,6 +139,7 @@
     "@vitest/web-worker": "^3.2.4",
     "cypress": "^15.5.0",
     "jsdom": "^26.1.0",
+    "knip": "^5.75.1",
     "start-server-and-test": "^2.1.2",
     "tailwind-scrollbar": "^4.0.2",
     "tailwindcss": "^4",
