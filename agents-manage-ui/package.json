@@ -32,7 +32,7 @@
     "directory": "agents-manage-ui"
   },
   "scripts": {
-    "knip": "knip --fix-type exports",
+    "knip": "knip --fix-type exports --include exports",
     "dev": "next --port 3000",
     "build:sync": "cp -r public .next/standalone/agents-manage-ui && mkdir -p .next/standalone/agents-manage-ui/.next/ && cp -r .next/static .next/standalone/agents-manage-ui/.next/static",
     "build": "next build && pnpm build:sync",
