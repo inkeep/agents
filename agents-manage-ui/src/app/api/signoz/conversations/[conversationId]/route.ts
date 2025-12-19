@@ -78,6 +78,12 @@ async function signozQuery(
       headers.Cookie = cookieHeader;
     }
 
+    // Only use bypass secret for server-to-server calls (no cookies = from eval-api)
+    // This prevents users from using the bypass secret to access other tenants
+    if (!cookieHeader && process.env.INKEEP_AGENTS_MANAGE_API_BYPASS_SECRET) {
+      headers.Authorization = `Bearer ${process.env.INKEEP_AGENTS_MANAGE_API_BYPASS_SECRET}`;
+    }
+
     logger.debug({ endpoint }, 'Calling secure manage-api for conversation traces');
 
     const response = await axios.post(endpoint, payload, {
