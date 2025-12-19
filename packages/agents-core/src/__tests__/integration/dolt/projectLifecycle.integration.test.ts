@@ -6,7 +6,7 @@ import {
   createProjectMetadataAndBranch,
   deleteProjectWithBranch,
   getProjectMainBranchName,
-} from '../../../data-access/manage/project-lifecycle';
+} from '../../../data-access/manage/projectLifecycle';
 import {
   createProjectMetadata,
   getProjectMetadata,

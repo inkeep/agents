@@ -46,6 +46,8 @@ export type AppVariables = {
   userEmail?: string;
   tenantId?: string;
   tenantRole?: string;
+  isInternalService?: boolean;
+  internalServicePayload?: import('@inkeep/agents-core').InternalServiceTokenPayload;
 };
 
 function createManagementHono(

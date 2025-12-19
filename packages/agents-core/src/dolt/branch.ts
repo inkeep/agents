@@ -53,6 +53,15 @@ export const doltListBranches =
   };
 
 /**
+ * Check if a branch exists
+ */
+export const doltBranchExists =
+  (db: AgentsManageDatabaseClient) =>
+  async (params: { name: string }): Promise<boolean> => {
+    const result = await db.execute(sql.raw(`SELECT * FROM dolt_branches WHERE name = '${params.name}'`));
+    return result.rows.length > 0;
+  };
+/**
  * Checkout a branch or create and checkout a new branch
  */
 export const doltCheckout =

@@ -7,10 +7,13 @@ import {
   TenantProjectAgentSubAgentParamsSchema,
   TenantProjectAgentParamsSchema,
   TenantProjectParamsSchema,
+  getLogger,
   type ResolvedRef,
   type FunctionToolApiSelect,
 } from '@inkeep/agents-core';
 import { z } from '@hono/zod-openapi';
+
+const logger = getLogger('manage-api-helper');
 
 type TenantProjectAgentSubAgentParams = z.infer<typeof TenantProjectAgentSubAgentParamsSchema>;
 type TenantProjectAgentParams = z.infer<typeof TenantProjectAgentParamsSchema>;
@@ -139,6 +142,7 @@ export const getResolvedRef =
       scopes: { tenantId, projectId },
       ref,
     } = params;
+    logger.info({ tenantId, projectId, ref }, 'Resolving ref');
     const path = `/tenants/${tenantId}/projects/${projectId}/refs/resolve`;
     const url = buildUrl(config.baseUrl, path, { ref });
 

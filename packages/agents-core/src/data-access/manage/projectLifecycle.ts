@@ -1,7 +1,7 @@
 import { sql } from 'drizzle-orm';
 import type { AgentsManageDatabaseClient } from '../../db/manage/manage-client';
 import type { AgentsRunDatabaseClient } from '../../db/runtime/runtime-client';
-import { doltBranch, doltDeleteBranch } from '../../dolt/branch';
+import { doltBranch, doltDeleteBranch, doltBranchExists } from '../../dolt/branch';
 import {
   createProjectMetadata,
   deleteProjectMetadata,
@@ -74,8 +74,12 @@ export const createProjectMetadataAndBranch =
 
     // 2. Create the project main branch in config DB
     try {
-      await doltBranch(configDb)({ name: mainBranchName });
-      logger.debug({ mainBranchName }, 'Created project main branch');
+      // Branch may exist already if project is created in the updated endpoint
+      const branchExists = await doltBranchExists(configDb)({name: mainBranchName});
+      if (!branchExists) {
+        await doltBranch(configDb)({ name: mainBranchName });
+        logger.debug({ mainBranchName }, 'Created project main branch');
+      }
     } catch (error) {
       // If branch creation fails, clean up the runtime record
       logger.error({ error, mainBranchName }, 'Failed to create project branch, rolling back');

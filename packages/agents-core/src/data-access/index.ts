@@ -13,7 +13,7 @@ export * from './manage/dataComponents';
 export * from './manage/externalAgents';
 export * from './manage/functions';
 export * from './manage/functionTools';
-export * from './manage/project-lifecycle';
+export * from './manage/projectLifecycle';
 export * from './manage/projectFull';
 export * from './manage/projects';
 export * from './manage/subAgentExternalAgentRelations';

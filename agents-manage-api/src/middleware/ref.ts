@@ -11,9 +11,11 @@ import type { Context, Next } from 'hono';
 
 const logger = getLogger('ref');
 
+
 export type RefContext = {
   resolvedRef?: ResolvedRef;
 };
+
 
 export const refMiddleware = async (c: Context, next: Next) => {
   const ref = c.req.query('ref');
@@ -23,14 +25,19 @@ export const refMiddleware = async (c: Context, next: Next) => {
   let tenantId: string | undefined;
   let projectId: string | undefined;
 
-  // Extract tenantId from /tenants/:tenantId/... path structure
-  // For /tenants/123/projects, split('/') = ['', 'tenants', '123', 'projects']
-  // tenantId is at index 2, projectId is at index 4
-  tenantId = pathSplit[2];
+  // Use regex to extract tenantId and projectId if the path matches /tenants/{tenantId}/projects or /tenants/{tenantId}/projects/{projectId} or similar
+  // Example: /tenants/123/projects or /tenants/123/projects/456
+  const tenantPathRegex = /^\/tenants\/([^/]+)/;
+  const tenantPathMatch = path.match(tenantPathRegex);
+  if (tenantPathMatch) {
+    tenantId = tenantPathMatch[1];
+  }
 
-  // Try to extract projectId from URL path first
-  if (pathSplit.length >= 5) {
-    projectId = pathSplit[4];
+  // Match /tenants/{tenantId}/projects/{projectId} OR /tenants/{tenantId}/project-full/{projectId}
+  const projectPathRegex = /^\/tenants\/[^/]+\/(?:projects|project-full)(?:\/([^/]+))?/;
+  const projectPathMatch = path.match(projectPathRegex);
+  if (projectPathMatch) {
+    projectId = projectPathMatch[1];
   }
 
   // If projectId not in path, try to extract from body for POST/PUT/PATCH requests
