@@ -88,22 +88,6 @@ if (result.success) {
 }
 ```
 
-### Validate agent data
-
-Use this for form validation before submitting:
-
-```typescript
-const result = await validateAgentData(formData);
-
-if (result.success) {
-  // Data is valid, proceed with submission
-  const validatedData = result.data;
-} else {
-  // Show validation errors
-  console.error('Validation error:', result.error);
-}
-```
-
 ## Type Safety
 
 All functions return an `ActionResult<T>` type that ensures proper error handling:
