@@ -47,7 +47,7 @@ Cypress.Commands.add('deleteAgent', (tenantId: string, projectId: string, agentI
 Cypress.Commands.add('typeInMonaco', (uri: string, value: string) => {
   const selector = `[data-uri="file:///${uri}"] textarea`;
   cy.get(selector, { timeout: 7_000 }).type('{selectall}{del}', { force: true });
-  return cy.get(selector).type(value, {
+  return cy.get(selector, { timeout: 7_000 }).type(value, {
     parseSpecialCharSequences: false,
     delay: 0,
   });
