@@ -24,9 +24,9 @@ export interface AgentsRunDatabaseConfig {
  * Creates a PostgreSQL database client with connection pooling
  */
 export function createAgentsRunDatabaseClient(
-  config: AgentsRunDatabaseConfig
+  config?: AgentsRunDatabaseConfig
 ): AgentsRunDatabaseClient {
-  let connectionString = config.connectionString || process.env.AGENTS_RUN_DATABASE_URL;
+  let connectionString = config?.connectionString || env.INKEEP_AGENTS_RUN_DATABASE_URL;
 
   if (env.ENVIRONMENT === 'test') {
     return createTestRuntimeDatabaseClientNoMigrations();
@@ -40,7 +40,7 @@ export function createAgentsRunDatabaseClient(
 
   const pool = new Pool({
     connectionString,
-    max: config.poolSize || Number(env.POSTGRES_POOL_SIZE) || 10,
+    max: config?.poolSize || Number(env.POSTGRES_POOL_SIZE) || 10,
   });
 
   // Handle pool errors
@@ -50,6 +50,6 @@ export function createAgentsRunDatabaseClient(
 
   return drizzle(pool, {
     schema,
-    logger: config.logger,
+    logger: config?.logger,
   });
 }

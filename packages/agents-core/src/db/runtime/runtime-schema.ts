@@ -64,6 +64,29 @@ const timestamps = {
 
 // --- Root tables (no FK dependencies) ---
 
+/**
+ * Runtime projects table - source of truth for which projects exist in a tenant.
+ * This is NOT versioned - project existence is tracked here while
+ * project configuration/content lives in the versioned config DB.
+ * 
+ * Named 'project_metadata' to avoid conflict with the manage-schema 'projects' table.
+ */
+export const projectMetadata = pgTable(
+  'project_metadata',
+  {
+    id: varchar('id', { length: 256 }).notNull(),
+    tenantId: varchar('tenant_id', { length: 256 }).notNull(),
+    createdAt: timestamp('created_at', { mode: 'string' }).notNull().defaultNow(),
+    createdBy: varchar('created_by', { length: 256 }),
+    mainBranchName: varchar('main_branch_name', { length: 512 }).notNull(),
+  },
+  (table) => [
+    primaryKey({ columns: [table.tenantId, table.id] }),
+    index('project_metadata_tenant_idx').on(table.tenantId),
+    index('project_metadata_main_branch_idx').on(table.mainBranchName),
+  ]
+);
+
 export const conversations = pgTable(
   'conversations',
   {

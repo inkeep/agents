@@ -3,7 +3,10 @@ import {
   commonGetErrorResponses,
   createApiError,
   createFullProjectServerSide,
+  createProjectMetadataAndBranch,
   deleteFullProject,
+  deleteProjectWithBranch,
+  doltCheckout,
   ErrorResponseSchema,
   FullProjectDefinitionSchema,
   FullProjectSelect,
@@ -12,16 +15,20 @@ import {
   FullProjectSelectWithRelationIdsResponse,
   getFullProject,
   getFullProjectWithRelationIds,
+  getProjectMetadata,
+  getProjectMainBranchName,
   TenantParamsSchema,
   TenantProjectParamsSchema,
   updateFullProjectServerSide,
   cascadeDeleteByProject,
+  type ResolvedRef,
 } from '@inkeep/agents-core';
 
 import { getLogger } from '../logger';
 import { requirePermission } from '../middleware/require-permission';
 import type { BaseAppVariables } from '../types/app';
 import runDbClient from '../data/db/runDbClient';
+import dbClient from '../data/db/dbClient';
 
 const logger = getLogger('projectFull');
 
@@ -84,13 +91,43 @@ app.openapi(
     },
   }),
   async (c) => {
-    const db = c.get('db');
+    const configDb = c.get('db');
+    const userId = c.get('userId');
     const { tenantId } = c.req.valid('param');
     const projectData = c.req.valid('json');
 
     const validatedProjectData = FullProjectDefinitionSchema.parse(projectData);
+    
     try {
-      const createdProject = await createFullProjectServerSide(db)({
+      // 1. Create project in runtime DB and create project main branch
+      await createProjectMetadataAndBranch(runDbClient, dbClient)({
+        tenantId,
+        projectId: validatedProjectData.id,
+        createdBy: userId,
+      });
+
+      logger.info(
+        { tenantId, projectId: validatedProjectData.id },
+        'Created project with branch, now populating config'
+      );
+
+      // 2. Checkout the newly created project branch on the middleware's connection
+      // This ensures writes go to the project branch, not tenant main
+      const projectMainBranch = getProjectMainBranchName(tenantId, validatedProjectData.id);
+      await doltCheckout(configDb)({ branch: projectMainBranch });
+
+      // Update resolvedRef so the middleware commits to the correct branch
+      const newResolvedRef: ResolvedRef = {
+        type: 'branch',
+        name: projectMainBranch,
+        hash: '', // Hash will be determined at commit time
+      };
+      c.set('resolvedRef', newResolvedRef);
+
+      logger.debug({ projectMainBranch }, 'Checked out project branch for config writes');
+
+      // 3. Create full project config in the project branch
+      const createdProject = await createFullProjectServerSide(configDb)({
         scopes: { tenantId, projectId: validatedProjectData.id },
         projectData: validatedProjectData,
       });
@@ -99,7 +136,7 @@ app.openapi(
     } catch (error: any) {
       // Handle duplicate project creation (PostgreSQL unique constraint violation)
       logger.error({ error }, 'Error creating project');
-      if (error?.cause?.code === '23505') {
+      if (error?.cause?.code === '23505' || error?.message?.includes('already exists')) {
         throw createApiError({
           code: 'conflict',
           message: `Project with ID '${projectData.id}' already exists`,
@@ -269,7 +306,8 @@ app.openapi(
   async (c) => {
     const { tenantId, projectId } = c.req.valid('param');
     const projectData = c.req.valid('json');
-    const db = c.get('db');
+    const configDb = c.get('db');
+    const userId = c.get('userId');
 
     try {
       const validatedProjectData = FullProjectDefinitionSchema.parse(projectData);
@@ -281,18 +319,31 @@ app.openapi(
         });
       }
 
-      const existingProject: FullProjectSelect | null = await getFullProject(db)({
-        scopes: { tenantId, projectId },
-      });
-      const isCreate = !existingProject;
+      // Check if project exists in runtime DB (source of truth)
+      const runtimeProject = await getProjectMetadata(runDbClient)({ tenantId, projectId });
+      const isCreate = !runtimeProject;
+
+      if (isCreate) {
+        // Project doesn't exist - create it with branch first
+        await createProjectMetadataAndBranch(runDbClient, dbClient)({
+          tenantId,
+          projectId,
+          createdBy: userId,
+        });
+
+        logger.info(
+          { tenantId, projectId },
+          'Created project with branch for PUT (upsert)'
+        );
+      }
 
       // Update/create the full project using server-side data layer operations
       const updatedProject: FullProjectSelect = isCreate
-        ? await createFullProjectServerSide(db)({
+        ? await createFullProjectServerSide(configDb)({
             scopes: { tenantId, projectId },
             projectData: validatedProjectData,
           })
-        : await updateFullProjectServerSide(db)({
+        : await updateFullProjectServerSide(configDb)({
             scopes: { tenantId, projectId },
             projectData: validatedProjectData,
           });
@@ -342,19 +393,34 @@ app.openapi(
   }),
   async (c) => {
     const { tenantId, projectId } = c.req.valid('param');
-    const db = c.get('db');
+    const configDb = c.get('db');
     const resolvedRef = c.get('resolvedRef');
 
+    // Enforce that deletion only happens from the main branch
+    const expectedMainBranch = `${tenantId}_${projectId}_main`;
+    if (resolvedRef?.name !== expectedMainBranch) {
+      throw createApiError({
+        code: 'bad_request',
+        message: 'Project deletion must be performed from the main branch',
+      });
+    }
+    
     try {
-      // Delete runtime entities for this project on this branch
+      // 1. Delete runtime entities for this project
       await cascadeDeleteByProject(runDbClient)({
         scopes: { tenantId, projectId },
         fullBranchName: resolvedRef.name,
       });
 
-      // Delete the full project from the config DB
-      const deleted = await deleteFullProject(db)({
+      // 2. Delete the full project config from the config DB
+      await deleteFullProject(configDb)({
         scopes: { tenantId, projectId },
+      });
+
+      // 3. Delete project from runtime DB and delete project branch
+      const deleted = await deleteProjectWithBranch(runDbClient, dbClient)({
+        tenantId,
+        projectId,
       });
 
       if (!deleted) {

@@ -152,6 +152,15 @@ CREATE TABLE "organization" (
 	CONSTRAINT "organization_slug_unique" UNIQUE("slug")
 );
 --> statement-breakpoint
+CREATE TABLE "project_metadata" (
+	"id" varchar(256) NOT NULL,
+	"tenant_id" varchar(256) NOT NULL,
+	"created_at" timestamp DEFAULT now() NOT NULL,
+	"created_by" varchar(256),
+	"main_branch_name" varchar(512) NOT NULL,
+	CONSTRAINT "project_metadata_tenant_id_id_pk" PRIMARY KEY("tenant_id","id")
+);
+--> statement-breakpoint
 CREATE TABLE "session" (
 	"id" text PRIMARY KEY NOT NULL,
 	"expires_at" timestamp NOT NULL,
@@ -248,5 +257,7 @@ CREATE INDEX "ledger_artifacts_tool_call_id_idx" ON "ledger_artifacts" USING btr
 CREATE INDEX "ledger_artifacts_context_id_idx" ON "ledger_artifacts" USING btree ("context_id");--> statement-breakpoint
 CREATE INDEX "member_organizationId_idx" ON "member" USING btree ("organization_id");--> statement-breakpoint
 CREATE INDEX "member_userId_idx" ON "member" USING btree ("user_id");--> statement-breakpoint
+CREATE INDEX "project_metadata_tenant_idx" ON "project_metadata" USING btree ("tenant_id");--> statement-breakpoint
+CREATE INDEX "project_metadata_main_branch_idx" ON "project_metadata" USING btree ("main_branch_name");--> statement-breakpoint
 CREATE INDEX "session_userId_idx" ON "session" USING btree ("user_id");--> statement-breakpoint
 CREATE INDEX "verification_identifier_idx" ON "verification" USING btree ("identifier");

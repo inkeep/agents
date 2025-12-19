@@ -43,6 +43,7 @@ import {
   conversations,
   ledgerArtifacts,
   messages,
+  projectMetadata,
   taskRelations,
   tasks,
 } from '../db/runtime/runtime-schema';
@@ -1563,3 +1564,9 @@ export const ThirdPartyMCPServerResponse = z
   .openapi('ThirdPartyMCPServerResponse');
 export const PaginationWithRefQueryParamsSchema =
   PaginationQueryParamsSchema.merge(RefQueryParamSchema);
+
+// Project Metadata Schemas (Runtime DB - unversioned)
+export const ProjectMetadataSelectSchema = createSelectSchema(projectMetadata);
+export const ProjectMetadataInsertSchema = createInsertSchema(projectMetadata).omit({
+  createdAt: true,
+});

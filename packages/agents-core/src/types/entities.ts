@@ -166,6 +166,8 @@ import type {
   ToolSelectSchema,
   ToolUpdateSchema,
   canRelateToInternalSubAgentSchema,
+  ProjectMetadataSelectSchema,
+  ProjectMetadataInsertSchema,
 } from '../validation/schemas';
 
 export type SubAgentSelect = z.infer<typeof SubAgentSelectSchema>;
@@ -417,6 +419,9 @@ export type ProjectUpdate = z.infer<typeof ProjectUpdateSchema>;
 export type ProjectApiSelect = z.infer<typeof ProjectApiSelectSchema>;
 export type ProjectApiInsert = z.infer<typeof ProjectApiInsertSchema>;
 export type ProjectApiUpdate = z.infer<typeof ProjectApiUpdateSchema>;
+
+export type ProjectMetadataSelect = z.infer<typeof ProjectMetadataSelectSchema>;
+export type ProjectMetadataInsert = z.infer<typeof ProjectMetadataInsertSchema>;
 
 export type Pagination = z.infer<typeof PaginationSchema>;
 

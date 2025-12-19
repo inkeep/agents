@@ -13,6 +13,7 @@ export * from './manage/dataComponents';
 export * from './manage/externalAgents';
 export * from './manage/functions';
 export * from './manage/functionTools';
+export * from './manage/project-lifecycle';
 export * from './manage/projectFull';
 export * from './manage/projects';
 export * from './manage/subAgentExternalAgentRelations';
@@ -29,6 +30,7 @@ export * from './runtime/conversations';
 export * from './runtime/ledgerArtifacts';
 export * from './runtime/messages';
 export * from './runtime/organizations';
+export * from './runtime/projects';
 export * from './runtime/users';
 export * from './runtime/tasks';
 
