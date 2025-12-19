@@ -224,9 +224,9 @@ export function createAuth(config: BetterAuthConfig) {
     plugins: [
       bearer(),
       sso(),
-      ...(env.OAUTH_PROXY_PRODUCTION_URL
-        ? [oAuthProxy({ productionURL: env.OAUTH_PROXY_PRODUCTION_URL })]
-        : []),
+      oAuthProxy({
+        productionURL: env.OAUTH_PROXY_PRODUCTION_URL || config.baseURL,
+      }),
       organization({
         allowUserToCreateOrganization: true,
         ac,
