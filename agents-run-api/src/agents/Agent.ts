@@ -551,8 +551,6 @@ export class Agent {
           // Store tool result in conversation history
           const toolResultConversationId = this.getToolResultConversationId();
           
-          // Debug: Log tool result saving decision
-          
           if (streamRequestId && !isInternalTool && toolResultConversationId) {
             try {
               const messageId = generateId();
@@ -579,8 +577,7 @@ export class Agent {
                 },
               };
 
-              const savedMessage = await createMessage(dbClient)(messagePayload);
-              
+              await createMessage(dbClient)(messagePayload);
             } catch (error) {
               logger.warn(
                 { error, toolName, toolCallId, conversationId: toolResultConversationId },
@@ -2743,7 +2740,6 @@ ${output}`;
             },
             'Generated content compression completed'
           );
-          logger.info({ summaryMessage }, 'Summary message');
 
           return { messages: finalMessages };
         }
