@@ -127,6 +127,9 @@
       "outputs": [],
       "cache": false
     },
+    "knip": {
+      "cache": false
+    },
     "typecheck": {
       "dependsOn": ["^build"],
       "inputs": ["$TURBO_DEFAULT$"],

@@ -5,6 +5,7 @@
   "type": "module",
   "license": "SEE LICENSE IN LICENSE.md",
   "scripts": {
+    "knip": "knip --fix-type exports --fix-type types --include exports,types",
     "build": "next build",
     "dev": "next --port 3010",
     "start": "next start --port 3010",
