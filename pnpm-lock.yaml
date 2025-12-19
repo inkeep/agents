@@ -318,6 +318,9 @@ importers:
       '@composio/core':
         specifier: ^0.2.4
         version: 0.2.6(ws@8.18.3)(zod@4.1.13)
+      '@electric-sql/pglite':
+        specifier: ^0.3.13
+        version: 0.3.14
       '@hono/mcp':
         specifier: ^0.1.5
         version: 0.1.5(@modelcontextprotocol/sdk@1.24.3(zod@4.1.13))(hono@4.10.7)
@@ -376,9 +379,6 @@ importers:
         specifier: ^4.1.11
         version: 4.1.13
     devDependencies:
-      '@electric-sql/pglite':
-        specifier: ^0.3.13
-        version: 0.3.14
       '@hono/vite-dev-server':
         specifier: ^0.20.1
         version: 0.20.1(hono@4.10.7)
