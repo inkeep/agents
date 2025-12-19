@@ -1,7 +1,7 @@
 import { type FC, Suspense } from 'react';
 import FullPageError from '@/components/errors/full-page-error';
 import { BodyTemplate } from '@/components/layout/body-template';
-import type { FullAgentDefinition } from '@/lib';
+import type { FullAgentDefinition } from '@/lib/types/agent-full';
 import { getFullAgentAction } from '@/lib/actions/agent-full';
 import { fetchArtifactComponentsAction } from '@/lib/actions/artifact-components';
 import { fetchCredentialsAction } from '@/lib/actions/credentials';

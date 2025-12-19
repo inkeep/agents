@@ -13,21 +13,6 @@ INKEEP_AGENTS_MANAGE_API_URL="http://localhost:3002"
 
 ## Usage
 
-### Import the server actions and types
-
-```typescript
-import {
-  createFullAgentAction,
-  deleteFullAgentAction,
-  getFullAgentAction,
-  updateFullAgentAction,
-  validateAgentData,
-  FullAgentDefinitionSchema,
-  type FullAgentDefinition,
-  type ActionResult,
-} from '@/lib';
-```
-
 ### Create a new agent
 
 ```typescript
