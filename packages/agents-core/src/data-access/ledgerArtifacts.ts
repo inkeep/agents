@@ -331,12 +331,16 @@ export const getLedgerArtifacts =
     const { scopes, taskId, toolCallId, toolCallIds, artifactId } = params;
 
     if (!taskId && !toolCallId && !toolCallIds && !artifactId) {
-      throw new Error('At least one of taskId, toolCallId, toolCallIds, or artifactId must be provided');
+      throw new Error(
+        'At least one of taskId, toolCallId, toolCallIds, or artifactId must be provided'
+      );
     }
 
     // Validate that both toolCallId and toolCallIds are not provided
     if (toolCallId && toolCallIds) {
-      throw new Error('Cannot provide both toolCallId and toolCallIds. Use toolCallIds for batch queries.');
+      throw new Error(
+        'Cannot provide both toolCallId and toolCallIds. Use toolCallIds for batch queries.'
+      );
     }
 
     const conditions = [
