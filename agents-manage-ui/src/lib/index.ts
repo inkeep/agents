@@ -6,7 +6,7 @@
  */
 
 // Server Actions exports
-export { type ActionResult } from './actions/agent-full';
+export type { ActionResult } from './actions/agent-full';
 
 // API Client exports (for advanced use cases)
 

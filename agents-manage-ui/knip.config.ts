@@ -6,5 +6,7 @@ export default {
   ignoreIssues: {
     'src/components/ui/*': ['exports'],
     'src/components/agent/configuration/model-options.tsx': ['exports'],
+    'cypress/env.d.ts': ['files'],
+    'cypress/cypress.config.ts': ['files'],
   },
 } satisfies KnipConfig;
