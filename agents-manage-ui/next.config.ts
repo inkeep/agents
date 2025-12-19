@@ -39,9 +39,9 @@ export default withSentryConfig(nextConfig, {
   // For all available options, see:
   // https://npmjs.com/package/@sentry/webpack-plugin#options
 
-  org: 'inkeep',
+  org: process.env.SENTRY_ORG,
 
-  project: 'pilot-inkeep-com',
+  project: process.env.SENTRY_PROJECT,
 
   // Only print logs for uploading source maps in CI
   silent: !process.env.CI,
