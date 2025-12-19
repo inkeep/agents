@@ -131,12 +131,17 @@ async function dispatchFlowOrStep(c: any) {
 
   const bodyBuf = await c.req.arrayBuffer();
 
-  let queueName: string | undefined;
-  try {
-    const evt = JSON.parse(new TextDecoder().decode(bodyBuf));
-    queueName = evt?.data?.queueName; // Vercel Queue envelope field
-  } catch {
-    // Ignore parse errors
+  // Check header first (postgres world/local world uses x-vqs-queue-name header)
+  let queueName: string | undefined = c.req.header('x-vqs-queue-name');
+  
+  // Fall back to body for Vercel Queue envelope
+  if (!queueName) {
+    try {
+      const evt = JSON.parse(new TextDecoder().decode(bodyBuf));
+      queueName = evt?.data?.queueName; // Vercel Queue envelope field
+    } catch {
+      // Ignore parse errors
+    }
   }
 
   const isStep = typeof queueName === 'string' && queueName.startsWith('__wkf_step_');
