@@ -37,7 +37,7 @@ export interface FormSection {
 /**
  * Complete form configuration for an auth mode
  */
-export interface FormConfig {
+interface FormConfig {
   /** Auth mode this config applies to */
   authMode: AuthModeType;
   /** Form sections */

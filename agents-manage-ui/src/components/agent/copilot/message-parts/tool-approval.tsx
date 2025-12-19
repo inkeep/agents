@@ -15,7 +15,7 @@ interface ToolCallData {
   conversationId: string;
 }
 
-export type ToolCallApprovalData = DataOperationEvent & {
+type ToolCallApprovalData = DataOperationEvent & {
   type: 'tool_call';
   details: DataOperationEvent['details'] & {
     data: ToolCallData;
