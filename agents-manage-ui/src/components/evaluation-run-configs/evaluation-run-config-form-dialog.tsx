@@ -20,13 +20,13 @@ import {
 } from '@/components/ui/dialog';
 import { Form, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { Switch } from '@/components/ui/switch';
+import { getAllAgentsAction } from '@/lib/actions/agent-full';
 import {
   createEvaluationRunConfigAction,
   updateEvaluationRunConfigAction,
 } from '@/lib/actions/evaluation-run-configs';
 import { createEvaluationSuiteConfigAction } from '@/lib/actions/evaluation-suite-configs';
 import type { ActionResult } from '@/lib/actions/types';
-import { fetchAgents } from '@/lib/api/agent-full-client';
 import type { EvaluationRunConfig } from '@/lib/api/evaluation-run-configs';
 import type { Evaluator } from '@/lib/api/evaluators';
 import { fetchEvaluators } from '@/lib/api/evaluators';
@@ -121,10 +121,12 @@ export function EvaluationRunConfigFormDialog({
     try {
       const [evaluatorsRes, agentsRes] = await Promise.all([
         fetchEvaluators(tenantId, projectId),
-        fetchAgents(tenantId, projectId),
+        getAllAgentsAction(tenantId, projectId),
       ]);
       setEvaluators(evaluatorsRes.data || []);
-      setAgents(agentsRes.data || []);
+      if (agentsRes.success && agentsRes.data) {
+        setAgents(agentsRes.data);
+      }
     } catch (error) {
       console.error('Error loading data:', error);
       toast.error('Failed to load data');
