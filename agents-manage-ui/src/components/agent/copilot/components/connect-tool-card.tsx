@@ -16,7 +16,7 @@ export interface OAuthLoginParams {
   mcpServerUrl: string;
   toolName: string;
   thirdPartyConnectAccountUrl?: string;
-  credentialScope?: 'project' | 'user';
+  credentialScope: 'project' | 'user';
 }
 
 /**
@@ -24,7 +24,7 @@ export interface OAuthLoginParams {
  */
 export type OAuthLoginHandler = (params: OAuthLoginParams) => Promise<void>;
 
-export interface ConnectToolCardProps {
+interface ConnectToolCardProps {
   toolId: string;
   targetTenantId?: string;
   targetProjectId?: string;

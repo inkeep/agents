@@ -116,7 +116,12 @@ export function MCPServerSelection({ credentials, tenantId, projectId }: MCPServ
           router.push(`/${tenantId}/projects/${projectId}/mcp-servers/${newTool.id}`);
         }
       } else {
-        handleOAuthLogin({ toolId: newTool.id, mcpServerUrl: serverUrl, toolName: mcpServerName });
+        handleOAuthLogin({
+          toolId: newTool.id,
+          mcpServerUrl: serverUrl,
+          toolName: mcpServerName,
+          credentialScope: scope,
+        });
       }
     } catch (error) {
       console.error('Failed to create prebuilt MCP server:', error);

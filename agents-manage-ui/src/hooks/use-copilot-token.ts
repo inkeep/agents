@@ -4,7 +4,7 @@ import { getCopilotTokenAction } from '@/lib/actions/copilot-token';
 const MAX_RETRIES = 3;
 const INITIAL_RETRY_DELAY_MS = 1000;
 
-export interface UseCopilotTokenResult {
+interface UseCopilotTokenResult {
   apiKey: string | null;
   cookieHeader: string | null;
   isLoading: boolean;

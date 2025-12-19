@@ -6,7 +6,10 @@ import {
 import { useRouter } from 'next/navigation';
 import { useCallback, useRef } from 'react';
 import { toast } from 'sonner';
-import type { OAuthLoginHandler } from '@/components/agent/copilot/components/connect-tool-card';
+import type {
+  OAuthLoginHandler,
+  OAuthLoginParams,
+} from '@/components/agent/copilot/components/connect-tool-card';
 import { useRuntimeConfig } from '@/contexts/runtime-config-context';
 import { listCredentialStores } from '@/lib/api/credentialStores';
 import { updateMCPTool } from '@/lib/api/tools';
@@ -210,13 +213,7 @@ export function useOAuthLogin({
       toolName,
       thirdPartyConnectAccountUrl,
       credentialScope,
-    }: {
-      toolId: string;
-      mcpServerUrl: string;
-      toolName: string;
-      thirdPartyConnectAccountUrl?: string;
-      credentialScope?: 'project' | 'user';
-    }): Promise<void> => {
+    }: OAuthLoginParams): Promise<void> => {
       if (thirdPartyConnectAccountUrl) {
         await handleOAuthLoginManually(toolId, thirdPartyConnectAccountUrl);
         return;

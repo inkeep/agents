@@ -122,6 +122,7 @@ export function ViewMCPServerDetailsProjectScope({
                       mcpServerUrl: tool.config.mcp.server.url,
                       toolName: tool.name,
                       thirdPartyConnectAccountUrl: thirdPartyConnectUrl,
+                      credentialScope: 'project',
                     });
                   }}
                 >

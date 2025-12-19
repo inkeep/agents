@@ -10,4 +10,4 @@
 "@inkeep/create-agents": patch
 ---
 
-Added dynamic model context limit checks
+user info for spans

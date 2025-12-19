@@ -16,7 +16,7 @@ import type { ExternalAgent } from '@/lib/types/external-agents';
 import type { TeamAgent } from '@/lib/types/team-agents';
 import { generateId } from '@/lib/utils/id-utils';
 
-export type ExtendedAgent = InternalAgentDefinition & {
+type ExtendedAgent = InternalAgentDefinition & {
   dataComponents: string[];
   artifactComponents: string[];
   models?: AgentMetadata['models'];

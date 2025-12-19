@@ -1,6 +1,6 @@
 {
   "name": "@inkeep/agents-manage-ui",
-  "version": "0.39.4",
+  "version": "0.39.5",
   "license": "SEE LICENSE IN LICENSE.md",
   "main": "index.js",
   "types": "index.d.ts",
@@ -32,9 +32,10 @@
     "directory": "agents-manage-ui"
   },
   "scripts": {
-    "dev": "next -p 3000",
+    "knip": "knip --fix-type exports --fix-type types --include exports,types",
+    "dev": "next --port 3000",
     "build:sync": "cp -r public .next/standalone/agents-manage-ui && mkdir -p .next/standalone/agents-manage-ui/.next/ && cp -r .next/static .next/standalone/agents-manage-ui/.next/static",
-    "build": "next build --webpack && pnpm build:sync",
+    "build": "next build && pnpm build:sync",
     "start": "node .next/standalone/agents-manage-ui/server.js",
     "lint": "biome lint --error-on-warnings",
     "lint:fix": "biome check --write",
@@ -84,7 +85,8 @@
     "@radix-ui/react-tooltip": "^1.2.7",
     "@shikijs/monaco": "^3.20.0",
     "@sinclair/typebox": "^0.34.40",
-    "@xyflow/react": "^12.8.2",
+    "@xyflow/react": "^12.10.0",
+    "@tanstack/react-query": "^5.90.12",
     "ai": "6.0.0-beta.124",
     "axios": "^1.11.0",
     "axios-retry": "^4.5.0",
@@ -98,7 +100,7 @@
     "lucide-react": "^0.555.0",
     "monaco-editor": "0.55.1",
     "nanoid": "^5.1.5",
-    "next": "16.0.10",
+    "next": "16.1.0",
     "next-themes": "^0.4.6",
     "nuqs": "^2.4.3",
     "pino": "^9.9.0",
@@ -122,6 +124,7 @@
     "zustand": "^5.0.7"
   },
   "devDependencies": {
+    "knip": "^5.75.1",
     "@svgr/webpack": "^8.1.0",
     "@tailwindcss/postcss": "^4",
     "@testing-library/jest-dom": "^6.8.0",

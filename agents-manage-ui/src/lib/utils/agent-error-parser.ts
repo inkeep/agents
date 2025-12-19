@@ -5,7 +5,7 @@
  * error messages with node/edge mapping for visual feedback.
  */
 
-export interface ValidationErrorDetail {
+interface ValidationErrorDetail {
   code: string;
   message: string;
   path: string[];

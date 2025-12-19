@@ -227,26 +227,28 @@ describe('OpenAPI Specification - Integration Tests', () => {
         const addedSchemas = currentSchemas.filter((s) => !snapshotSchemas.includes(s));
         const removedSchemas = snapshotSchemas.filter((s) => !currentSchemas.includes(s));
 
-        console.error('\n');
-        console.error('═'.repeat(70));
-        console.error('  ❌ OpenAPI SNAPSHOT MISMATCH');
-        console.error('═'.repeat(70));
-        console.error('');
-        console.error('  The generated OpenAPI spec differs from the committed snapshot.');
-        console.error('');
+        // Build a concise error message that shows the update command prominently
+        const lines: string[] = [];
+        lines.push('');
+        lines.push('═'.repeat(70));
+        lines.push('  ❌ OpenAPI SNAPSHOT MISMATCH');
+        lines.push('═'.repeat(70));
+        lines.push('');
+        lines.push('  The generated OpenAPI spec differs from the committed snapshot.');
+        lines.push('');
 
         if (addedPaths.length > 0 || removedPaths.length > 0) {
-          console.error('  📍 PATH CHANGES:');
-          addedPaths.forEach((p) => console.error(`     + ${p}`));
-          removedPaths.forEach((p) => console.error(`     - ${p}`));
-          console.error('');
+          lines.push('  📍 PATH CHANGES:');
+          addedPaths.forEach((p) => lines.push(`     + ${p}`));
+          removedPaths.forEach((p) => lines.push(`     - ${p}`));
+          lines.push('');
         }
 
         if (addedSchemas.length > 0 || removedSchemas.length > 0) {
-          console.error('  📦 SCHEMA CHANGES:');
-          addedSchemas.forEach((s) => console.error(`     + ${s}`));
-          removedSchemas.forEach((s) => console.error(`     - ${s}`));
-          console.error('');
+          lines.push('  📦 SCHEMA CHANGES:');
+          addedSchemas.forEach((s) => lines.push(`     + ${s}`));
+          removedSchemas.forEach((s) => lines.push(`     - ${s}`));
+          lines.push('');
         }
 
         if (
@@ -255,25 +257,26 @@ describe('OpenAPI Specification - Integration Tests', () => {
           addedSchemas.length === 0 &&
           removedSchemas.length === 0
         ) {
-          console.error(
-            '  ⚠️  Changes detected in existing paths/schemas (not additions or removals)'
-          );
-          console.error('');
+          lines.push('  ⚠️  Changes detected in existing paths/schemas (not additions or removals)');
+          lines.push('');
         }
 
-        console.error('  ─'.repeat(35));
-        console.error('');
-        console.error('  If this change is INTENTIONAL:');
-        console.error('    pnpm --filter @inkeep/agents-manage-api openapi:update-snapshot');
-        console.error('');
-        console.error('  If this change is UNINTENTIONAL:');
-        console.error('    Review your changes to the API routes and schemas.');
-        console.error('');
-        console.error('═'.repeat(70));
-        console.error('\n');
+        lines.push('  ─'.repeat(35));
+        lines.push('');
+        lines.push('  ┌─────────────────────────────────────────────────────────────────┐');
+        lines.push('  │  TO UPDATE THE SNAPSHOT, RUN:                                   │');
+        lines.push('  │                                                                 │');
+        lines.push('  │  pnpm --filter @inkeep/agents-manage-api openapi:update-snapshot│');
+        lines.push('  └─────────────────────────────────────────────────────────────────┘');
+        lines.push('');
+        lines.push('  If this change is UNINTENTIONAL:');
+        lines.push('    Review your changes to the API routes and schemas.');
+        lines.push('');
+        lines.push('═'.repeat(70));
+        lines.push('');
 
-        // Use expect for the actual assertion (will show in test output)
-        expect(currentJson).toBe(snapshotJson);
+        // Throw with concise message to avoid massive JSON diff from expect()
+        throw new Error(lines.join('\n'));
       }
     });
   });

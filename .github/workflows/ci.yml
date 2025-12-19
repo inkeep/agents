@@ -92,6 +92,9 @@ jobs:
       - name: Biome Format
         run: pnpm format:check
 
+      - name: Knip Unused Exports/Types Check
+        run: pnpm --filter @inkeep/agents-manage-ui knip
+
       # Create summary report
       - name: Create CI Summary
         if: always()

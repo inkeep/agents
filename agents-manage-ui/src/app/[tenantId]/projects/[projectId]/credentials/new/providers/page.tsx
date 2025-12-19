@@ -2,7 +2,6 @@ import type { ApiProvider, AuthModeType } from '@nangohq/types';
 import { NangoProvidersGrid } from '@/components/credentials/views/nango-providers-grid';
 import FullPageError from '@/components/errors/full-page-error';
 import { BodyTemplate } from '@/components/layout/body-template';
-import { MainContent } from '@/components/layout/main-content';
 import { fetchNangoProviders } from '@/lib/mcp-tools/nango';
 
 // Supported authentication modes (add new modes here as you implement them)
@@ -36,35 +35,30 @@ async function ProvidersPage({
   params,
 }: PageProps<'/[tenantId]/projects/[projectId]/credentials/new/providers'>) {
   const { tenantId, projectId } = await params;
-  let providers: ApiProvider[];
-
   try {
     const nangoProviders = await fetchNangoProviders();
-    providers = filterSupportedProviders(nangoProviders);
+    const providers = filterSupportedProviders(nangoProviders);
+    return (
+      <BodyTemplate
+        breadcrumbs={[
+          {
+            label: 'Credentials',
+            href: `/${tenantId}/projects/${projectId}/credentials`,
+          },
+          {
+            label: 'New credential',
+            href: `/${tenantId}/projects/${projectId}/credentials/new`,
+          },
+          'Providers',
+        ]}
+      >
+        <NangoProvidersGrid providers={providers} />
+      </BodyTemplate>
+    );
   } catch (err) {
     const error = err instanceof Error ? err.message : 'Failed to load providers';
     return <FullPageError title="Failed to load providers" description={error} />;
   }
-
-  return (
-    <BodyTemplate
-      breadcrumbs={[
-        {
-          label: 'Credentials',
-          href: `/${tenantId}/projects/${projectId}/credentials`,
-        },
-        {
-          label: 'New credential',
-          href: `/${tenantId}/projects/${projectId}/credentials/new`,
-        },
-        { label: 'Providers' },
-      ]}
-    >
-      <MainContent>
-        <NangoProvidersGrid providers={providers} />
-      </MainContent>
-    </BodyTemplate>
-  );
 }
 
 export default ProvidersPage;

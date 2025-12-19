@@ -21,7 +21,7 @@ const styleOverrides = `
   }
 `;
 
-export interface ChatUIPreviewProps {
+interface ChatUIPreviewProps {
   component: ChatUIComponent;
   baseSettings: InkeepBaseSettings;
   aiChatSettings: InkeepAIChatSettings;

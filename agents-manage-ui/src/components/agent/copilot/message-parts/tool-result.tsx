@@ -15,7 +15,7 @@ interface ToolResultData {
   needsApproval: true;
 }
 
-export type ToolCallResultData = DataOperationEvent & {
+type ToolCallResultData = DataOperationEvent & {
   type: 'tool_result';
   details: DataOperationEvent['details'] & {
     data: ToolResultData;

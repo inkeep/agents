@@ -5,19 +5,14 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import { BodyTemplate } from '@/components/layout/body-template';
-import { MainContent } from '@/components/layout/main-content';
 import { Button } from '@/components/ui/button';
 import { buildLoginUrlWithCurrentPath } from '@/lib/utils/auth-redirect';
 
 export default function FullPageError({ statusCode, errorCode, ...props }: FullPageErrorProps) {
   const resolvedStatusCode = statusCode ?? getStatusCodeFromErrorCode(errorCode);
   return (
-    <BodyTemplate
-      breadcrumbs={[{ label: resolvedStatusCode ? `${resolvedStatusCode} Error` : 'Error' }]}
-    >
-      <MainContent className="flex-1">
-        <ErrorContent statusCode={resolvedStatusCode} errorCode={errorCode} {...props} />
-      </MainContent>
+    <BodyTemplate breadcrumbs={[resolvedStatusCode ? `${resolvedStatusCode} Error` : 'Error']}>
+      <ErrorContent statusCode={resolvedStatusCode} errorCode={errorCode} {...props} />
     </BodyTemplate>
   );
 }
