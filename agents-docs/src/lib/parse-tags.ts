@@ -1,9 +1,9 @@
-export interface ParameterTag {
+interface ParameterTag {
   name: string;
   description?: string;
 }
 
-export interface TypedTags {
+interface TypedTags {
   default?: string;
   params?: ParameterTag[];
   returns?: string;

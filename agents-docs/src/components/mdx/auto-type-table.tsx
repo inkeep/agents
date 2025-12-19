@@ -7,17 +7,14 @@ import 'server-only';
 import type { ReactNode } from 'react';
 import { parseTags } from '@/lib/parse-tags';
 
-export type AutoTypeTableProps = any;
-
 export async function AutoTypeTable({
   generator,
   options = {},
   renderType = renderTypeDefault,
   renderMarkdown = renderMarkdownDefault,
   ...props
-}: AutoTypeTableProps & {
+}: {
   generator: any;
-
   renderMarkdown?: typeof renderMarkdownDefault;
   renderType?: typeof renderTypeDefault;
   options?: any;
