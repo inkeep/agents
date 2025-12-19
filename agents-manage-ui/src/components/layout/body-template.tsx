@@ -22,7 +22,7 @@ export function BodyTemplate({ children, breadcrumbs, className }: BodyTemplateP
           id="main-content"
           className={cn(
             '@container', // do not overflow the container
-            'p-6 grow',
+            'w-full p-6 grow',
             className
           )}
         >
