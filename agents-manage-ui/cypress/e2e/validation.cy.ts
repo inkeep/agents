@@ -2,9 +2,7 @@
 
 describe('Validation', () => {
   it('should not allow save invalid JSON', () => {
-    cy.visit('/default/projects/my-weather-project/agents/weather-agent');
-    cy.get('.react-flow__node').eq(1).click();
-    cy.get('[data-panel-id=side-pane]').contains('Back').click();
+    cy.visit('/default/projects/my-weather-project/agents/weather-agent?pane=agent');
     cy.get('.monaco-editor').should('be.visible');
     cy.typeInMonaco('contextVariables.json', 'foo bar');
     cy.contains('Save changes').click();
