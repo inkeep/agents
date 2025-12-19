@@ -88,6 +88,12 @@ import type {
   MessageInsertSchema,
   MessageSelectSchema,
   MessageUpdateSchema,
+  PolicyApiInsertSchema,
+  PolicyApiSelectSchema,
+  PolicyApiUpdateSchema,
+  PolicyInsertSchema,
+  PolicySelectSchema,
+  PolicyUpdateSchema,
   PaginationSchema,
   ProjectApiInsertSchema,
   ProjectApiSelectSchema,
@@ -117,6 +123,13 @@ import type {
   SubAgentExternalAgentRelationSelectSchema,
   SubAgentExternalAgentRelationUpdateSchema,
   SubAgentInsertSchema,
+  SubAgentPolicyApiInsertSchema,
+  SubAgentPolicyApiSelectSchema,
+  SubAgentPolicyApiUpdateSchema,
+  SubAgentPolicyInsertSchema,
+  SubAgentPolicySelectSchema,
+  SubAgentPolicyUpdateSchema,
+  SubAgentPolicyWithIndexSchema,
   SubAgentRelationApiInsertSchema,
   SubAgentRelationApiSelectSchema,
   SubAgentRelationApiUpdateSchema,
@@ -249,6 +262,13 @@ export type ContextCacheApiSelect = z.infer<typeof ContextCacheApiSelectSchema>;
 export type ContextCacheApiInsert = z.infer<typeof ContextCacheApiInsertSchema>;
 export type ContextCacheApiUpdate = z.infer<typeof ContextCacheApiUpdateSchema>;
 
+export type PolicySelect = z.infer<typeof PolicySelectSchema>;
+export type PolicyInsert = z.infer<typeof PolicyInsertSchema>;
+export type PolicyUpdate = z.infer<typeof PolicyUpdateSchema>;
+export type PolicyApiSelect = z.infer<typeof PolicyApiSelectSchema>;
+export type PolicyApiInsert = z.infer<typeof PolicyApiInsertSchema>;
+export type PolicyApiUpdate = z.infer<typeof PolicyApiUpdateSchema>;
+
 export type DataComponentSelect = z.infer<typeof DataComponentSelectSchema>;
 export type DataComponentInsert = z.infer<typeof DataComponentInsertSchema>;
 export type DataComponentUpdate = z.infer<typeof DataComponentUpdateSchema>;
@@ -282,6 +302,14 @@ export type SubAgentArtifactComponentApiInsert = z.infer<
 export type SubAgentArtifactComponentApiUpdate = z.infer<
   typeof SubAgentArtifactComponentApiUpdateSchema
 >;
+
+export type SubAgentPolicySelect = z.infer<typeof SubAgentPolicySelectSchema>;
+export type SubAgentPolicyInsert = z.infer<typeof SubAgentPolicyInsertSchema>;
+export type SubAgentPolicyUpdate = z.infer<typeof SubAgentPolicyUpdateSchema>;
+export type SubAgentPolicyApiSelect = z.infer<typeof SubAgentPolicyApiSelectSchema>;
+export type SubAgentPolicyApiInsert = z.infer<typeof SubAgentPolicyApiInsertSchema>;
+export type SubAgentPolicyApiUpdate = z.infer<typeof SubAgentPolicyApiUpdateSchema>;
+export type SubAgentPolicyWithIndex = z.infer<typeof SubAgentPolicyWithIndexSchema>;
 
 export type ExternalAgentSelect = z.infer<typeof ExternalAgentSelectSchema>;
 export type ExternalAgentInsert = z.infer<typeof ExternalAgentInsertSchema>;

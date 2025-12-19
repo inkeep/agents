@@ -201,6 +201,50 @@ export const subAgents = pgTable(
   ]
 );
 
+export const policies = pgTable(
+  'policies',
+  {
+    ...projectScoped,
+    ...uiProperties,
+    content: text('content').notNull(),
+    metadata: jsonb('metadata').$type<Record<string, unknown> | null>(),
+    ...timestamps,
+  },
+  (table) => [
+    primaryKey({ columns: [table.tenantId, table.projectId, table.id] }),
+    foreignKey({
+      columns: [table.tenantId, table.projectId],
+      foreignColumns: [projects.tenantId, projects.id],
+      name: 'policies_project_fk',
+    }).onDelete('cascade'),
+  ]
+);
+
+export const subAgentPolicies = pgTable(
+  'sub_agent_policies',
+  {
+    ...subAgentScoped,
+    policyId: varchar('policy_id', { length: 256 }).notNull(),
+    index: integer('index').notNull().default(0),
+    ...timestamps,
+  },
+  (table) => [
+    primaryKey({ columns: [table.tenantId, table.projectId, table.agentId, table.id] }),
+    foreignKey({
+      columns: [table.tenantId, table.projectId, table.agentId, table.subAgentId],
+      foreignColumns: [subAgents.tenantId, subAgents.projectId, subAgents.agentId, subAgents.id],
+      name: 'sub_agent_policies_sub_agent_fk',
+    }).onDelete('cascade'),
+    foreignKey({
+      columns: [table.tenantId, table.projectId, table.policyId],
+      foreignColumns: [policies.tenantId, policies.projectId, policies.id],
+      name: 'sub_agent_policies_policy_fk',
+    }).onDelete('cascade'),
+    unique('sub_agent_policies_sub_agent_policy_unique').on(table.subAgentId, table.policyId),
+    index('sub_agent_policies_policy_idx').on(table.policyId),
+  ]
+);
+
 export const subAgentRelations = pgTable(
   'sub_agent_relations',
   {
@@ -762,6 +806,7 @@ export const projectsRelations = relations(projects, ({ many }) => ({
   artifactComponents: many(artifactComponents),
   ledgerArtifacts: many(ledgerArtifacts),
   credentialReferences: many(credentialReferences),
+  policies: many(policies),
 }));
 
 export const taskRelationsRelations = relations(taskRelations, ({ one }) => ({
@@ -816,6 +861,7 @@ export const subAgentsRelations = relations(subAgents, ({ many, one }) => ({
   functionToolRelations: many(subAgentFunctionToolRelations),
   dataComponentRelations: many(subAgentDataComponents),
   artifactComponentRelations: many(subAgentArtifactComponents),
+  policyRelations: many(subAgentPolicies),
 }));
 
 export const agentRelations = relations(agents, ({ one, many }) => ({
@@ -988,6 +1034,34 @@ export const subAgentDataComponentsRelations = relations(subAgentDataComponents,
   dataComponent: one(dataComponents, {
     fields: [subAgentDataComponents.dataComponentId],
     references: [dataComponents.id],
+  }),
+}));
+
+export const policiesRelations = relations(policies, ({ one, many }) => ({
+  project: one(projects, {
+    fields: [policies.tenantId, policies.projectId],
+    references: [projects.tenantId, projects.id],
+  }),
+  subAgentRelations: many(subAgentPolicies),
+}));
+
+export const subAgentPoliciesRelations = relations(subAgentPolicies, ({ one }) => ({
+  subAgent: one(subAgents, {
+    fields: [
+      subAgentPolicies.tenantId,
+      subAgentPolicies.projectId,
+      subAgentPolicies.agentId,
+      subAgentPolicies.subAgentId,
+    ],
+    references: [subAgents.tenantId, subAgents.projectId, subAgents.agentId, subAgents.id],
+  }),
+  policy: one(policies, {
+    fields: [
+      subAgentPolicies.tenantId,
+      subAgentPolicies.projectId,
+      subAgentPolicies.policyId,
+    ],
+    references: [policies.tenantId, policies.projectId, policies.id],
   }),
 }));
 

@@ -21,6 +21,7 @@ import { getContextConfigById } from './contextConfigs';
 import { getExternalAgent } from './externalAgents';
 import { getFunction } from './functions';
 import { listFunctionTools } from './functionTools';
+import { getPoliciesForSubAgents } from './policies';
 import { getSubAgentExternalAgentRelationsByAgent } from './subAgentExternalAgentRelations';
 import { getAgentRelations, getAgentRelationsByAgent } from './subAgentRelations';
 import { getSubAgentById } from './subAgents';
@@ -300,6 +301,8 @@ export const getFullAgentDefinition =
       ),
     });
 
+    const subAgentIds = agentSubAgents.map((subAgent) => subAgent.id);
+
     const externalAgentRelations = await getSubAgentExternalAgentRelationsByAgent(db)({
       scopes: { tenantId, projectId, agentId },
     });
@@ -316,6 +319,44 @@ export const getFullAgentDefinition =
     const externalSubAgentIds = new Set<string>();
     for (const relation of externalAgentRelations) {
       externalSubAgentIds.add(relation.externalAgentId);
+    }
+
+    type PolicyWithIndex = {
+      id: string;
+      name: string;
+      description: string | null;
+      content: string;
+      metadata: Record<string, unknown> | null;
+      index: number;
+      subAgentPolicyId: string;
+      subAgentId: string;
+      createdAt: string | null;
+      updatedAt: string | null;
+    };
+
+    const subAgentPoliciesList = await getPoliciesForSubAgents(db)({
+      scopes: { tenantId, projectId, agentId },
+      subAgentIds,
+    });
+
+    const policiesBySubAgent: Record<string, PolicyWithIndex[]> = {};
+    for (const policy of subAgentPoliciesList) {
+      if (!policiesBySubAgent[policy.subAgentId]) {
+        policiesBySubAgent[policy.subAgentId] = [];
+      }
+
+      policiesBySubAgent[policy.subAgentId].push({
+        id: policy.id,
+        name: policy.name,
+        description: policy.description,
+        content: policy.content,
+        metadata: policy.metadata,
+        index: policy.index,
+        subAgentPolicyId: policy.subAgentPolicyId,
+        subAgentId: policy.subAgentId,
+        createdAt: policy.createdAt,
+        updatedAt: policy.updatedAt,
+      });
     }
 
     const processedSubAgents = await Promise.all(
@@ -479,6 +520,7 @@ export const getFullAgentDefinition =
           stopWhen: agent.stopWhen,
           canTransferTo,
           canDelegateTo,
+          policies: policiesBySubAgent[agent.id] || [],
           dataComponents: agentDataComponentIds,
           artifactComponents: agentArtifactComponentIds,
           canUse,
@@ -565,9 +607,6 @@ export const getFullAgentDefinition =
     }
 
     try {
-      const internalAgentIds = agentSubAgents.map((subAgent) => subAgent.id);
-      const subAgentIds = Array.from(internalAgentIds);
-
       await fetchComponentRelationships(db)({ tenantId, projectId }, subAgentIds, {
         relationTable: subAgentDataComponents,
         componentTable: dataComponents,
@@ -586,9 +625,6 @@ export const getFullAgentDefinition =
     }
 
     try {
-      const internalAgentIds = agentSubAgents.map((subAgent) => subAgent.id);
-      const subAgentIds = Array.from(internalAgentIds);
-
       await fetchComponentRelationships(db)({ tenantId, projectId }, subAgentIds, {
         relationTable: subAgentArtifactComponents,
         componentTable: artifactComponents,

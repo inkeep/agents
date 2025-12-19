@@ -28,10 +28,12 @@ import {
   functionTools,
   ledgerArtifacts,
   messages,
+  policies,
   projects,
   subAgentArtifactComponents,
   subAgentDataComponents,
   subAgentExternalAgentRelations,
+  subAgentPolicies,
   subAgentRelations,
   subAgents,
   subAgentTeamAgentRelations,
@@ -397,6 +399,19 @@ export const ContextCacheApiSelectSchema = createApiSchema(ContextCacheSelectSch
 export const ContextCacheApiInsertSchema = createApiInsertSchema(ContextCacheInsertSchema);
 export const ContextCacheApiUpdateSchema = createApiUpdateSchema(ContextCacheUpdateSchema);
 
+export const PolicySelectSchema = createSelectSchema(policies).extend({
+  metadata: z.record(z.string(), z.unknown()).nullable(),
+});
+export const PolicyInsertSchema = createInsertSchema(policies).extend({
+  id: resourceIdSchema,
+  metadata: z.record(z.string(), z.unknown()).nullable().optional(),
+});
+export const PolicyUpdateSchema = PolicyInsertSchema.partial();
+
+export const PolicyApiSelectSchema = createApiSchema(PolicySelectSchema).openapi('Policy');
+export const PolicyApiInsertSchema = createApiInsertSchema(PolicyInsertSchema).openapi('PolicyCreate');
+export const PolicyApiUpdateSchema = createApiUpdateSchema(PolicyUpdateSchema).openapi('PolicyUpdate');
+
 export const DataComponentSelectSchema = createSelectSchema(dataComponents);
 export const DataComponentInsertSchema = createInsertSchema(dataComponents).extend({
   id: resourceIdSchema,
@@ -474,6 +489,36 @@ export const SubAgentArtifactComponentApiInsertSchema = SubAgentArtifactComponen
 export const SubAgentArtifactComponentApiUpdateSchema = createAgentScopedApiUpdateSchema(
   SubAgentArtifactComponentUpdateSchema
 );
+
+export const SubAgentPolicySelectSchema = createSelectSchema(subAgentPolicies).extend({
+  index: z.number().min(0),
+});
+export const SubAgentPolicyInsertSchema = createInsertSchema(subAgentPolicies).extend({
+  id: resourceIdSchema,
+  subAgentId: resourceIdSchema,
+  policyId: resourceIdSchema,
+  index: z.number().min(0),
+});
+export const SubAgentPolicyUpdateSchema = SubAgentPolicyInsertSchema.partial();
+
+export const SubAgentPolicyApiSelectSchema = createAgentScopedApiSchema(
+  SubAgentPolicySelectSchema
+).openapi('SubAgentPolicy');
+export const SubAgentPolicyApiInsertSchema = SubAgentPolicyInsertSchema.omit({
+  tenantId: true,
+  projectId: true,
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+}).openapi('SubAgentPolicyCreate');
+export const SubAgentPolicyApiUpdateSchema = createAgentScopedApiUpdateSchema(
+  SubAgentPolicyUpdateSchema
+).openapi('SubAgentPolicyUpdate');
+
+export const SubAgentPolicyWithIndexSchema = PolicyApiSelectSchema.extend({
+  index: z.number().min(0),
+  subAgentPolicyId: resourceIdSchema.optional(),
+}).openapi('SubAgentPolicyWithIndex');
 
 export const ExternalAgentSelectSchema = createSelectSchema(externalAgents).extend({
   credentialReferenceId: z.string().nullable().optional(),
@@ -928,6 +973,7 @@ export const FullAgentAgentInsertSchema = SubAgentApiInsertSchema.extend({
   canUse: z.array(CanUseItemSchema), // All tools (both MCP and function tools)
   dataComponents: z.array(z.string()).optional(),
   artifactComponents: z.array(z.string()).optional(),
+  policies: z.array(SubAgentPolicyWithIndexSchema).optional(),
   canTransferTo: z.array(z.string()).optional(),
   prompt: z.string().trim().optional(),
   canDelegateTo: z
