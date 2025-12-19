@@ -200,6 +200,12 @@ app.openapi(chatDataStreamRoute, async (c) => {
           'message.content': userText,
           'agent.name': agentName,
         });
+
+        // Add user information from execution context metadata if available
+        if (executionContext.metadata?.initiatedBy) {
+          messageSpan.setAttribute('user.type', executionContext.metadata.initiatedBy.type);
+          messageSpan.setAttribute('user.id', executionContext.metadata.initiatedBy.id);
+        }
       }
       await createMessage(dbClient)({
         id: generateId(),
