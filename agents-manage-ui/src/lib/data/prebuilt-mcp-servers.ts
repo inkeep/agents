@@ -7,7 +7,7 @@ import { fetchMCPCatalogAction } from '../actions/mcp-catalog';
 
 export type PrebuiltMCPServer = z.infer<typeof PrebuiltMCPServerSchema>;
 
-export interface UsePrebuiltMCPServersResult {
+interface UsePrebuiltMCPServersResult {
   servers: PrebuiltMCPServer[];
   isLoading: boolean;
 }

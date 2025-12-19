@@ -33,12 +33,12 @@ export type FullAgentDefinition = CoreFullAgentDefinition & {
 };
 
 // Re-export core types with aliases
-export type AgentApi = AgentApiInsert;
-export type AgentAgentApi = AgentAgentInsert;
-export type ToolApi = ToolInsert;
+type AgentApi = AgentApiInsert;
+type AgentAgentApi = AgentAgentInsert;
+type ToolApi = ToolInsert;
 
 // Re-export types and schemas
-export type { ExternalAgentDefinition, InternalAgentDefinition };
+export type {  InternalAgentDefinition };
 
 // Agent-builder specific parameter schema
 const AgentIdParamsSchema = TenantParamsSchema.extend({
@@ -46,10 +46,10 @@ const AgentIdParamsSchema = TenantParamsSchema.extend({
 });
 
 // Inferred Types
-export type TenantParams = z.infer<typeof TenantParamsSchema>;
-export type AgentIdParams = z.infer<typeof AgentIdParamsSchema>;
+type TenantParams = z.infer<typeof TenantParamsSchema>;
+type AgentIdParams = z.infer<typeof AgentIdParamsSchema>;
 
-export type ErrorResponse = {
+type ErrorResponse = {
   error: string;
   message?: string;
   details?: unknown;
@@ -70,7 +70,7 @@ export type GetAgentResponse = SingleResponse<FullAgentDefinition>;
 export type UpdateAgentResponse = SingleResponse<FullAgentDefinition>;
 
 // API Error Types
-export type AgentApiError = {
+type AgentApiError = {
   code: 'not_found' | 'bad_request' | 'internal_server_error' | 'conflict';
   message: string;
 };

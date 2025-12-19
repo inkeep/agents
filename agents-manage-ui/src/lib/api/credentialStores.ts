@@ -11,17 +11,17 @@ export interface CredentialStoreStatus {
   reason: string | null;
 }
 
-export interface CredentialStoresListResponse {
+interface CredentialStoresListResponse {
   data: CredentialStoreStatus[];
 }
 
-export interface CreateCredentialInStoreRequest {
+interface CreateCredentialInStoreRequest {
   key: string;
   value: string;
   metadata?: Record<string, string>;
 }
 
-export interface CreateCredentialInStoreResponse {
+interface CreateCredentialInStoreResponse {
   data: {
     key: string;
     storeId: string;

@@ -5,7 +5,7 @@
 
 import type { ActivityItem, ConversationDetail } from '@/components/traces/timeline/types';
 
-export interface PrettifiedTrace {
+interface PrettifiedTrace {
   metadata: {
     conversationId: string;
     traceId?: string;

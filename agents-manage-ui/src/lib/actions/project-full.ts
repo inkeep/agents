@@ -13,7 +13,7 @@ import { ApiError, getFullProject as apiGetFullProject } from '../api/project-fu
 /**
  * Result type for server actions - follows a consistent pattern
  */
-export type ActionResult<T = void> =
+type ActionResult<T = void> =
   | {
       success: true;
       data: T;

@@ -2,7 +2,7 @@
  * Simple utility to extract autocomplete suggestions from context schemas
  */
 
-export interface ContextSchema {
+interface ContextSchema {
   headersSchema?: Record<string, any>;
   contextVariables?: Record<
     string,

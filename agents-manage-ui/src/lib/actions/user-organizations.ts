@@ -3,7 +3,7 @@
 import type { UserOrganizationsResponse } from '@inkeep/agents-core/auth/validation';
 import { makeManagementApiRequest } from '../api/api-config';
 
-export interface CreateUserOrganizationParams {
+interface CreateUserOrganizationParams {
   userId: string;
   organizationId: string;
   role: string;
