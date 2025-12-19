@@ -1,7 +1,7 @@
 import { sso } from '@better-auth/sso';
 import { type BetterAuthAdvancedOptions, betterAuth } from 'better-auth';
 import { drizzleAdapter } from 'better-auth/adapters/drizzle';
-import { bearer, deviceAuthorization, organization } from 'better-auth/plugins';
+import { bearer, deviceAuthorization, oAuthProxy, organization } from 'better-auth/plugins';
 import type { GoogleOptions } from 'better-auth/social-providers';
 import { eq } from 'drizzle-orm';
 import type { DatabaseClient } from '../db/client';
@@ -183,7 +183,13 @@ export function createAuth(config: BetterAuthConfig) {
       autoSignIn: true,
     },
     socialProviders: config.socialProviders?.google && {
-      google: config.socialProviders.google,
+      google: {
+        ...config.socialProviders.google,
+        // For local/preview env, redirect to production URL registered in Google Console
+        ...(env.OAUTH_PROXY_PRODUCTION_URL && {
+          redirectURI: `${env.OAUTH_PROXY_PRODUCTION_URL}/api/auth/callback/google`,
+        }),
+      },
     },
     session: {
       expiresIn: 60 * 60 * 24 * 7,
@@ -217,6 +223,9 @@ export function createAuth(config: BetterAuthConfig) {
     plugins: [
       bearer(),
       sso(),
+      oAuthProxy({
+        productionURL: env.OAUTH_PROXY_PRODUCTION_URL || config.baseURL,
+      }),
       organization({
         allowUserToCreateOrganization: true,
         ac,
