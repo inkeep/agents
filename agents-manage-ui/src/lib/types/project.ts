@@ -8,7 +8,6 @@ export interface ProjectModels {
   structuredOutput?: ModelSettings;
   summarizer?: ModelSettings;
 }
-// Re-export the shared type with the original name for backward compatibility
 
 export interface Project {
   id?: string; // Backend field
