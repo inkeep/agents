@@ -14,7 +14,6 @@ import {
   type FullAgentDefinition as CoreFullAgentDefinition,
   type ExternalAgentApiInsert,
   type ExternalAgentDefinition,
-  FullAgentDefinitionSchema,
   type FunctionApiInsert,
   type InternalAgentDefinition,
   TenantParamsSchema,
@@ -39,7 +38,7 @@ export type AgentAgentApi = AgentAgentInsert;
 export type ToolApi = ToolInsert;
 
 // Re-export types and schemas
-export { type ExternalAgentDefinition, FullAgentDefinitionSchema, type InternalAgentDefinition };
+export type { ExternalAgentDefinition, InternalAgentDefinition };
 
 // Agent-builder specific parameter schema
 const AgentIdParamsSchema = TenantParamsSchema.extend({

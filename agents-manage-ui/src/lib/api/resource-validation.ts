@@ -54,18 +54,6 @@ function validateResourceId(id: string, options: ResourceValidationOptions): voi
   }
 }
 
-/**
- * Safe validation that returns boolean instead of throwing
- */
-function isValidResourceId(id: string, options: ResourceValidationOptions): boolean {
-  try {
-    validateResourceId(id, options);
-    return true;
-  } catch {
-    return false;
-  }
-}
-
 // Convenience functions for common resource types
 
 /**
@@ -85,25 +73,5 @@ export function validateProjectId(projectId: string): void {
   validateResourceId(projectId, {
     resourceName: 'Project ID',
     maxLength: 255, // Projects can have longer IDs
-  });
-}
-
-/**
- * Safe tenant ID validation
- */
-function isValidTenantId(tenantId: string): boolean {
-  return isValidResourceId(tenantId, {
-    resourceName: 'Tenant ID',
-    maxLength: 50,
-  });
-}
-
-/**
- * Safe project ID validation
- */
-function isValidProjectId(projectId: string): boolean {
-  return isValidResourceId(projectId, {
-    resourceName: 'Project ID',
-    maxLength: 255,
   });
 }

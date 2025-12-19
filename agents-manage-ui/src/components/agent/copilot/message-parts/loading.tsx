@@ -1,23 +1,5 @@
 import { useEffect, useState } from 'react';
 
-const LoadingDots = () => {
-  return (
-    <div className="flex space-x-1">
-      {[0, 1, 2].map((i) => (
-        <span
-          key={i}
-          className={`animate-bounce-dot opacity-30`}
-          style={{
-            animationDelay: `${i * 0.2}s`,
-          }}
-        >
-          .
-        </span>
-      ))}
-    </div>
-  );
-};
-
 export function LoadingIndicator({
   messages = ['Thinking', 'Looking for content', 'Analyzing'],
   variant = 'inkeep',

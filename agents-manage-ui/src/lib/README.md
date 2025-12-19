@@ -21,7 +21,6 @@ import {
   deleteFullAgentAction,
   getFullAgentAction,
   updateFullAgentAction,
-  validateAgentData,
   FullAgentDefinitionSchema,
   type FullAgentDefinition,
   type ActionResult,
@@ -100,22 +99,6 @@ if (result.success) {
   console.log('Agent deleted successfully');
 } else {
   console.error('Error:', result.error);
-}
-```
-
-### Validate agent data
-
-Use this for form validation before submitting:
-
-```typescript
-const result = await validateAgentData(formData);
-
-if (result.success) {
-  // Data is valid, proceed with submission
-  const validatedData = result.data;
-} else {
-  // Show validation errors
-  console.error('Validation error:', result.error);
 }
 ```
 
