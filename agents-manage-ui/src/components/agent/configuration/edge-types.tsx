@@ -4,11 +4,6 @@ import { AgentToAgentEdge } from '../edges/agent-to-agent-edge';
 import { DefaultEdge } from '../edges/default-edge';
 import { SelfLoopEdge } from '../edges/self-loop-edge';
 
-enum A2AEdgeType {
-  Transfer = 'transfer',
-  Delegate = 'delegate',
-}
-
 export enum EdgeType {
   A2A = 'a2a',
   A2AExternal = 'a2a-external',
@@ -42,8 +37,6 @@ export const edgeTypes = {
   [EdgeType.A2ATeam]: DefaultEdge,
   [EdgeType.SelfLoop]: SelfLoopEdge,
 } as const;
-
-type EdgeTypesMap = typeof edgeTypes;
 
 export const edgeTypeMap = {
   [EdgeType.A2A]: {

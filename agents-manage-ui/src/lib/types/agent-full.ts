@@ -13,7 +13,6 @@ import {
   type AgentApiInsert,
   type FullAgentDefinition as CoreFullAgentDefinition,
   type ExternalAgentApiInsert,
-  type ExternalAgentDefinition,
   type FunctionApiInsert,
   type InternalAgentDefinition,
   TenantParamsSchema,
@@ -32,11 +31,6 @@ export type FullAgentDefinition = CoreFullAgentDefinition & {
   functions?: Record<string, FunctionApiInsert>;
 };
 
-// Re-export core types with aliases
-type AgentApi = AgentApiInsert;
-type AgentAgentApi = AgentAgentInsert;
-type ToolApi = ToolInsert;
-
 // Re-export types and schemas
 export type { InternalAgentDefinition };
 
@@ -44,16 +38,6 @@ export type { InternalAgentDefinition };
 const AgentIdParamsSchema = TenantParamsSchema.extend({
   agentId: z.string(),
 });
-
-// Inferred Types
-type TenantParams = z.infer<typeof TenantParamsSchema>;
-type AgentIdParams = z.infer<typeof AgentIdParamsSchema>;
-
-type ErrorResponse = {
-  error: string;
-  message?: string;
-  details?: unknown;
-};
 
 export interface Agent {
   id: string;
@@ -68,12 +52,6 @@ export type CreateFullAgentResponse = SingleResponse<FullAgentDefinition>;
 export type CreateAgentResponse = SingleResponse<AgentApiInsert>;
 export type GetAgentResponse = SingleResponse<FullAgentDefinition>;
 export type UpdateAgentResponse = SingleResponse<FullAgentDefinition>;
-
-// API Error Types
-type AgentApiError = {
-  code: 'not_found' | 'bad_request' | 'internal_server_error' | 'conflict';
-  message: string;
-};
 
 export type SubAgentTeamAgentConfig = {
   agentId: string;

@@ -16,7 +16,6 @@ export type Credential = CredentialReferenceApiSelect & {
   tools?: McpTool[];
   externalAgents?: ExternalAgentApiSelect[];
 };
-type CreateCredentialRequest = CredentialReferenceApiInsert;
 
 /**
  * List all credentials for the current tenant

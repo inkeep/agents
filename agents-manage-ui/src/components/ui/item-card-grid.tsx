@@ -107,8 +107,3 @@ export function ItemCardGrid<T>({
   );
 }
 
-// Convenience type for simple card data with id
-interface CardItem {
-  id: string | number;
-  [key: string]: any;
-}
