@@ -18,11 +18,9 @@ function HomeContent() {
   const [isRedirecting, setIsRedirecting] = useState(false);
   const { PUBLIC_DISABLE_AUTH } = useRuntimeConfig();
   const posthog = usePostHog();
-  console.log('posthog', posthog);
 
   const tenantId = process.env.NEXT_PUBLIC_TENANT_ID || DEFAULT_TENANT_ID;
 
-  // Identify user in analytics when authenticated (handles OAuth callback)
   useEffect(() => {
     if (user && !isLoading) {
       posthog?.identify(user.id, {

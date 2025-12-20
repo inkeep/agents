@@ -83,7 +83,6 @@ function LoginForm() {
         return;
       }
 
-      // Identify user in analytics after successful login
       if (result?.data?.user) {
         const user = result.data.user;
         posthog?.identify(user.id, {
