@@ -13,7 +13,7 @@
     "./package.json": "./package.json"
   },
   "scripts": {
-    "knip": "knip --include dependencies",
+    "knip": "knip --directory .. --workspace agents-cli --dependencies",
     "build": "tsdown",
     "cli": "node ./dist/index.js",
     "postinstall": "node scripts/ensure-keytar.mjs || true",
