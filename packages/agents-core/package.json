@@ -70,7 +70,7 @@
     "./package.json": "./package.json"
   },
   "scripts": {
-    "knip": "knip --include dependencies",
+    "knip": "knip --directory ../.. --workspace packages/agents-core --dependencies",
     "build": "tsdown",
     "test": "vitest --run",
     "test:unit": "vitest --run src/__tests__ --exclude src/__tests__/integration/**",
@@ -101,7 +101,6 @@
     "@composio/core": "^0.2.4",
     "@electric-sql/pglite": "^0.3.13",
     "@better-auth/sso": "^1.4.0",
-    "@hono/node-server": "^1.14.3",
     "@modelcontextprotocol/sdk": "^1.17.2",
     "@nangohq/node": "^0.69.5",
     "@nangohq/types": "^0.69.5",
@@ -109,7 +108,6 @@
     "@opentelemetry/api": "^1.9.0",
     "ai": "6.0.0-beta.124",
     "ajv": "^8.17.1",
-    "ajv-formats": "^3.0.1",
     "better-auth": "^1.4.0",
     "destr": "^2.0.3",
     "dotenv": "^17.2.1",
