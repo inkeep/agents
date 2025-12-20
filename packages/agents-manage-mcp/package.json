@@ -12,8 +12,7 @@
     "build": "bun i && bun src/mcp-server/build.mts && tsdown",
     "mcpb:build": "bun i && bun src/mcp-server/build.mts --pack && tsdown",
     "check": "npm run lint",
-    "lint": "biome lint --error-on-warnings",
-    "format": "biome format --write",
+    "lint": "eslint --cache --max-warnings=0 src",
     "prepublishOnly": "npm run build"
   },
   "dependencies": {
