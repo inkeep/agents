@@ -17,6 +17,7 @@
   },
   "type": "module",
   "scripts": {
+    "knip": "knip --include dependencies",
     "dev": "vite",
     "build": "tsdown",
     "start": "node dist/index.js",
