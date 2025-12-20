@@ -14,7 +14,7 @@ import {
   WorkflowIcon,
 } from 'lucide-react';
 
-export type OperationType =
+type OperationType =
   | 'create'
   | 'update'
   | 'delete'
@@ -25,7 +25,7 @@ export type OperationType =
   | 'check'
   | 'unknown';
 
-export interface ParsedToolName {
+interface ParsedToolName {
   resource: string;
   operationType: OperationType;
   displayName: string;
@@ -108,12 +108,4 @@ export const parseToolNameForDisplay = (toolName: string): ParsedToolName => {
     displayName: config?.displayName ?? formatDisplayName(resource),
     icon: config?.icon ?? SettingsIcon,
   };
-};
-
-export const getEntityIcon = (resource: string): LucideIcon => {
-  return ENTITY_DISPLAY_CONFIG[resource]?.icon ?? SettingsIcon;
-};
-
-export const getEntityDisplayName = (resource: string): string => {
-  return ENTITY_DISPLAY_CONFIG[resource]?.displayName ?? formatDisplayName(resource);
 };
