@@ -29,6 +29,7 @@ import {
   ModelFactory,
   type ModelSettings,
   type Models,
+  type SubAgentPolicyWithIndex,
   parseEmbeddedJson,
   type SubAgentStopWhen,
   TemplateEngine,
@@ -133,6 +134,7 @@ export type AgentConfig = {
   }>;
   contextConfigId?: string;
   dataComponents?: DataComponentApiInsert[];
+  policies?: SubAgentPolicyWithIndex[];
   artifactComponents?: ArtifactComponentApiInsert[];
   conversationHistoryConfig?: AgentConversationHistoryConfig;
   models?: Models;
@@ -1695,6 +1697,7 @@ export class Agent {
     const config: SystemPromptV1 = {
       corePrompt: processedPrompt,
       prompt,
+      policies: this.config.policies || [],
       tools: toolDefinitions,
       dataComponents: componentDataComponents,
       artifacts: referenceArtifacts,

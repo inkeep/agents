@@ -18,6 +18,7 @@ export * from './messages';
 export * from './organizations';
 export * from './projectFull';
 export * from './projects';
+export * from './policies';
 export * from './subAgentExternalAgentRelations';
 export * from './subAgentRelations';
 export * from './subAgents';
