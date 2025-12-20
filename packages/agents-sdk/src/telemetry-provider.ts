@@ -507,6 +507,7 @@ function wrapOtelSpan(otelSpan: {
  */
 function isOpenTelemetryAvailable(): boolean {
   try {
+    /** @lintignore Skip report as unlisted dependencies by Knip */
     require.resolve('@opentelemetry/api');
     return true;
   } catch {

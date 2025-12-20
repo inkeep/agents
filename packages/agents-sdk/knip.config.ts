@@ -1,5 +1,5 @@
 import type { KnipConfig } from 'knip';
 
 export default {
-  ignoreDependencies: ['@opentelemetry/api'],
+  tags: ['-lintignore'],
 } satisfies KnipConfig;
