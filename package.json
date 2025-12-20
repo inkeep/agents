@@ -17,7 +17,7 @@
     "prepack": "pnpm sync:licenses && turbo prepack",
     "dev:apis": "turbo dev:apis",
     "test": "turbo test --filter='!agents-cookbook-templates'",
-    "test:e2e": "turbo run test:e2e --filter=@inkeep/create-agents",
+    "test:e2e": "turbo run test:e2e",
     "test:watch": "turbo test:watch",
     "test:coverage": "turbo test:coverage --filter='!agents-cookbook-templates'",
     "coverage": "pnpm test:coverage && node scripts/merge-coverage.mjs && node scripts/generate-badges.mjs",
@@ -76,7 +76,7 @@
     "drizzle-kit": "^0.31.5",
     "husky": "^9.1.6",
     "lint-staged": "^16.1.5",
-    "turbo": "^2.6.1",
+    "turbo": "^2.7.0",
     "unique-names-generator": "^4.7.1",
     "vitest": "^3.2.4"
   },

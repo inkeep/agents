@@ -104,11 +104,6 @@
       "dependsOn": ["build"],
       "outputs": []
     },
-    "@inkeep/agents-docs#typecheck": {
-      "dependsOn": ["build"],
-      "inputs": ["$TURBO_DEFAULT$"],
-      "outputs": [".next/**"]
-    },
     "test:watch": {
       "cache": false,
       "persistent": true
@@ -169,6 +164,9 @@
       "dependsOn": ["build", "lint", "typecheck", "test"],
       "cache": false,
       "outputs": []
+    },
+    "test:e2e": {
+      "dependsOn": ["^build"]
     }
   }
 }
