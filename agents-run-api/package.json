@@ -13,7 +13,7 @@
   "type": "module",
   "license": "SEE LICENSE IN LICENSE.md",
   "scripts": {
-    "knip": "knip --include dependencies",
+    "knip": "knip --directory .. --workspace agents-run-api --dependencies",
     "dev": "vite",
     "dev:with-bypass": "PORT=3003 vite",
     "dev:without-bypass": "PORT=3004 INKEEP_AGENTS_RUN_API_BYPASS_SECRET= vite",
@@ -51,7 +51,6 @@
     "@vercel/sandbox": "^0.0.24",
     "ai": "6.0.0-beta.124",
     "ajv": "^8.17.1",
-    "dotenv": "^17.2.1",
     "drizzle-orm": "^0.44.4",
     "fetch-to-node": "^2.1.0",
     "hono": "^4.10.4",

@@ -17,7 +17,7 @@
   },
   "type": "module",
   "scripts": {
-    "knip": "knip --include dependencies",
+    "knip": "knip --directory .. --workspace agents-manage-api --dependencies",
     "dev": "vite",
     "build": "tsdown",
     "start": "node dist/index.js",
