@@ -33,7 +33,6 @@
     "@ai-sdk/google": "3.0.0-beta.62",
     "@ai-sdk/openai": "3.0.0-beta.74",
     "@ai-sdk/openai-compatible": "2.0.0-beta.41",
-    "@ai-sdk/react": "3.0.0-beta.124",
     "@alcyone-labs/modelcontextprotocol-sdk": "^1.16.0",
     "@hono/otel": "^0.4.0",
     "@hono/swagger-ui": "^0.5.1",
@@ -48,7 +47,6 @@
     "@opentelemetry/resources": "^2.1.0",
     "@opentelemetry/sdk-node": "^0.205.0",
     "@opentelemetry/sdk-trace-base": "^2.1.0",
-    "@opentelemetry/sdk-trace-node": "^2.1.0",
     "@opentelemetry/semantic-conventions": "^1.37.0",
     "@vercel/sandbox": "^0.0.24",
     "ai": "6.0.0-beta.124",
@@ -58,9 +56,7 @@
     "fetch-to-node": "^2.1.0",
     "hono": "^4.10.4",
     "jmespath": "^0.16.0",
-    "jose": "^6.1.0",
-    "llm-info": "^1.0.69",
-    "pino": "^9.11.0"
+    "llm-info": "^1.0.69"
   },
   "peerDependencies": {
     "@hono/zod-openapi": "^1.1.5",
@@ -73,7 +69,6 @@
     "@hono/vite-dev-server": "^0.20.1",
     "@opentelemetry/exporter-trace-otlp-proto": "^0.203.0",
     "@opentelemetry/sdk-metrics": "^2.1.0",
-    "@types/ajv": "^1.0.4",
     "@types/jmespath": "^0.15.2",
     "@types/node": "^20.11.24",
     "@vitest/coverage-v8": "^3.2.4",
