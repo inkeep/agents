@@ -3,11 +3,11 @@ speakeasyVersion: latest
 sources:
     Inkeep Agents Manage API:
         inputs:
-            - location: openapi.json
+            - location: ./openapi.json
         output: .speakeasy/out.openapi.yaml
         registry:
             location: registry.speakeasyapi.dev/inkeep/inkeep/inkeep-agents-manage-api
 targets:
-    inkeep-agents:
+    inkeep-agents-manage:
         target: mcp-typescript
         source: Inkeep Agents Manage API

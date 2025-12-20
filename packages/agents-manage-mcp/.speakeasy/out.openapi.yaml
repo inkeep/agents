@@ -100,6 +100,7 @@ components:
           maxLength: 256
         "description":
           type: "string"
+          nullable: true
         "models": {"$ref": "#/components/schemas/ProjectModel"}
         "stopWhen": {"$ref": "#/components/schemas/StopWhen"}
         "createdAt":
@@ -466,12 +467,12 @@ components:
           maxLength: 256
         "description":
           type: "string"
+          nullable: true
         "models": {"$ref": "#/components/schemas/ProjectModel"}
         "stopWhen": {"$ref": "#/components/schemas/StopWhen"}
       required:
         - "id"
         - "name"
-        - "description"
         - "models"
     "ProjectUpdate":
       type: "object"
@@ -481,6 +482,7 @@ components:
           maxLength: 256
         "description":
           type: "string"
+          nullable: true
         "models": {"$ref": "#/components/schemas/ProjectModel"}
         "stopWhen": {"$ref": "#/components/schemas/StopWhen"}
     "SubAgent":
@@ -494,8 +496,10 @@ components:
           maxLength: 256
         "description":
           type: "string"
+          nullable: true
         "prompt":
           type: "string"
+          nullable: true
         "conversationHistoryConfig":
           anyOf:
             - type: "string"
@@ -594,8 +598,10 @@ components:
           maxLength: 256
         "description":
           type: "string"
+          nullable: true
         "prompt":
           type: "string"
+          nullable: true
         "conversationHistoryConfig":
           anyOf:
             - type: "string"
@@ -630,8 +636,6 @@ components:
       required:
         - "id"
         - "name"
-        - "description"
-        - "prompt"
     "SubAgentUpdate":
       type: "object"
       properties:
@@ -647,8 +651,10 @@ components:
           maxLength: 256
         "description":
           type: "string"
+          nullable: true
         "prompt":
           type: "string"
+          nullable: true
         "conversationHistoryConfig":
           anyOf:
             - type: "string"
@@ -1141,6 +1147,7 @@ components:
           type: "string"
         "description":
           type: "string"
+          nullable: true
       required:
         - "id"
         - "name"
@@ -1271,7 +1278,6 @@ components:
           properties:
             "prompt":
               type: "string"
-              minLength: 1
             "type":
               type: "string"
               enum:
@@ -1371,6 +1377,9 @@ components:
           type: "string"
           nullable: true
           maxLength: 256
+        "credentialScope":
+          type: "string"
+          maxLength: 50
         "headers":
           anyOf:
             - type: "string"
@@ -1425,6 +1434,7 @@ components:
           maxLength: 256
         "description":
           type: "string"
+          nullable: true
         "baseUrl":
           type: "string"
         "credentialReferenceId":
@@ -1438,7 +1448,6 @@ components:
       required:
         - "id"
         - "name"
-        - "description"
         - "baseUrl"
     "TeamAgent":
       type: "object"
@@ -1554,13 +1563,18 @@ components:
         "name":
           type: "string"
           minLength: 1
+          description: "Agent name"
         "description":
           type: "string"
           nullable: true
         "defaultSubAgentId":
           type: "string"
           nullable: true
-          maxLength: 256
+          minLength: 1
+          maxLength: 255
+          pattern: "^[a-zA-Z0-9\\-_.]+$"
+          description: "ID of the default sub-agent that handles initial user messages. Required at runtime but nullable on creation to avoid circular FK dependency. Workflow: 1) POST Agent (without defaultSubAgentId), 2) POST SubAgent, 3) PATCH Agent with defaultSubAgentId."
+          example: "my-default-subagent"
         "contextConfigId":
           type: "string"
           nullable: true
@@ -1665,13 +1679,18 @@ components:
         "name":
           type: "string"
           minLength: 1
+          description: "Agent name"
         "description":
           type: "string"
           nullable: true
         "defaultSubAgentId":
           type: "string"
           nullable: true
-          maxLength: 256
+          minLength: 1
+          maxLength: 255
+          pattern: "^[a-zA-Z0-9\\-_.]+$"
+          description: "ID of the default sub-agent that handles initial user messages. Required at runtime but nullable on creation to avoid circular FK dependency. Workflow: 1) POST Agent (without defaultSubAgentId), 2) POST SubAgent, 3) PATCH Agent with defaultSubAgentId."
+          example: "my-default-subagent"
         "contextConfigId":
           type: "string"
           nullable: true
@@ -1909,6 +1928,7 @@ components:
           maxLength: 256
         "description":
           type: "string"
+          nullable: true
         "props":
           anyOf:
             - type: "string"
@@ -2011,6 +2031,7 @@ components:
           maxLength: 256
         "description":
           type: "string"
+          nullable: true
         "props":
           anyOf:
             - type: "string"
@@ -2112,6 +2133,7 @@ components:
           maxLength: 256
         "description":
           type: "string"
+          nullable: true
         "props":
           anyOf:
             - type: "string"
@@ -2128,7 +2150,6 @@ components:
       required:
         - "id"
         - "name"
-        - "description"
     "ArtifactComponentUpdate":
       type: "object"
       properties:
@@ -2144,6 +2165,7 @@ components:
           maxLength: 256
         "description":
           type: "string"
+          nullable: true
         "props":
           anyOf:
             - type: "string"
@@ -2251,8 +2273,10 @@ components:
       properties:
         "id":
           type: "string"
+          maxLength: 256
         "name":
           type: "string"
+          maxLength: 256
         "type":
           type: "string"
           enum:
@@ -2261,11 +2285,32 @@ components:
             - "nango"
         "credentialStoreId":
           type: "string"
+          maxLength: 256
         "retrievalParams":
-          type: "object"
+          anyOf:
+            - type: "string"
+            - type: "number"
+            - type: "boolean"
+            - nullable: true
+            - type: "object"
+              additionalProperties:
+                nullable: true
+            - type: "array"
+              items:
+                nullable: true
+            - nullable: true
+        "toolId":
+          type: "string"
           nullable: true
-          additionalProperties:
-            nullable: true
+          maxLength: 256
+        "userId":
+          type: "string"
+          nullable: true
+          maxLength: 256
+        "createdBy":
+          type: "string"
+          nullable: true
+          maxLength: 256
         "createdAt":
           type: "string"
         "updatedAt":
@@ -2307,6 +2352,9 @@ components:
                 type: "string"
                 nullable: true
                 maxLength: 256
+              "credentialScope":
+                type: "string"
+                maxLength: 50
               "headers":
                 anyOf:
                   - type: "string"
@@ -2351,6 +2399,7 @@ components:
               - "description"
               - "config"
               - "credentialReferenceId"
+              - "credentialScope"
               - "headers"
               - "imageUrl"
               - "capabilities"
@@ -2376,6 +2425,7 @@ components:
                 maxLength: 256
               "description":
                 type: "string"
+                nullable: true
               "baseUrl":
                 type: "string"
               "credentialReferenceId":
@@ -2399,6 +2449,10 @@ components:
         - "name"
         - "type"
         - "credentialStoreId"
+        - "retrievalParams"
+        - "toolId"
+        - "userId"
+        - "createdBy"
         - "createdAt"
         - "updatedAt"
     "CredentialReferenceListResponse":
@@ -2448,6 +2502,18 @@ components:
           nullable: true
           additionalProperties:
             nullable: true
+        "toolId":
+          type: "string"
+          nullable: true
+          maxLength: 256
+        "userId":
+          type: "string"
+          nullable: true
+          maxLength: 256
+        "createdBy":
+          type: "string"
+          nullable: true
+          maxLength: 256
         "createdAt":
           type: "string"
         "updatedAt":
@@ -2488,6 +2554,18 @@ components:
           nullable: true
           additionalProperties:
             nullable: true
+        "toolId":
+          type: "string"
+          nullable: true
+          maxLength: 256
+        "userId":
+          type: "string"
+          nullable: true
+          maxLength: 256
+        "createdBy":
+          type: "string"
+          nullable: true
+          maxLength: 256
         "createdAt":
           type: "string"
         "updatedAt":
@@ -2595,6 +2673,7 @@ components:
           maxLength: 256
         "description":
           type: "string"
+          nullable: true
         "props":
           anyOf:
             - type: "string"
@@ -2628,7 +2707,6 @@ components:
       required:
         - "id"
         - "name"
-        - "description"
     "DataComponentUpdate":
       type: "object"
       properties:
@@ -2644,6 +2722,7 @@ components:
           maxLength: 256
         "description":
           type: "string"
+          nullable: true
         "props":
           anyOf:
             - type: "string"
@@ -2685,6 +2764,7 @@ components:
           maxLength: 256
         "description":
           type: "string"
+          nullable: true
         "baseUrl":
           type: "string"
         "credentialReferenceId":
@@ -2732,6 +2812,7 @@ components:
           maxLength: 256
         "description":
           type: "string"
+          nullable: true
         "baseUrl":
           type: "string"
         "credentialReferenceId":
@@ -2993,6 +3074,9 @@ components:
           type: "string"
           nullable: true
           maxLength: 256
+        "credentialScope":
+          type: "string"
+          maxLength: 50
         "headers":
           anyOf:
             - type: "string"
@@ -3054,6 +3138,8 @@ components:
         "version":
           type: "string"
         "expiresAt":
+          type: "string"
+        "createdBy":
           type: "string"
         "relationshipId":
           type: "string"
@@ -3149,6 +3235,9 @@ components:
           type: "string"
           nullable: true
           maxLength: 256
+        "credentialScope":
+          type: "string"
+          maxLength: 50
         "headers":
           anyOf:
             - type: "string"
@@ -3422,6 +3511,17 @@ components:
         "data": {"$ref": "#/components/schemas/FullProjectDefinition"}
       required:
         - "data"
+  securitySchemes:
+    "cookieAuth":
+      type: "apiKey"
+      in: "cookie"
+      name: "better-auth.session_token"
+      description: "Session-based authentication using HTTP-only cookies. Cookies are automatically sent by browsers. For server-side requests, include cookies with names starting with \"better-auth.\" in the Cookie header."
+    "bearerAuth":
+      type: "http"
+      scheme: "bearer"
+      bearerFormat: "Token"
+      description: "Bearer token authentication. Use this for API clients and service-to-service communication. Set the Authorization header to \"Bearer <token>\"."
 paths:
   "/health":
     get:
@@ -3431,6 +3531,208 @@ paths:
       responses:
         "204":
           description: "Service is healthy"
+  "/api/users/{userId}/organizations":
+    get:
+      tags:
+        - "user-organizations"
+      summary: "List user organizations"
+      description: "Get all organizations associated with a user"
+      parameters:
+        - schema:
+            type: "string"
+            description: "User ID"
+          required: true
+          description: "User ID"
+          name: "userId"
+          in: "path"
+      responses:
+        "200":
+          description: "List of user organizations"
+          content:
+            "application/json":
+              schema:
+                type: "array"
+                items:
+                  type: "object"
+                  properties:
+                    "id":
+                      type: "string"
+                    "userId":
+                      type: "string"
+                    "organizationId":
+                      type: "string"
+                    "role":
+                      type: "string"
+                    "createdAt":
+                      anyOf:
+                        - type: "string"
+                        - type: "string"
+                          format: "date"
+                    "organizationName":
+                      type: "string"
+                      nullable: true
+                    "organizationSlug":
+                      type: "string"
+                      nullable: true
+                  required:
+                    - "id"
+                    - "userId"
+                    - "organizationId"
+                    - "role"
+                    - "createdAt"
+                    - "organizationName"
+                    - "organizationSlug"
+    post:
+      tags:
+        - "user-organizations"
+      summary: "Add user to organization"
+      description: "Associate a user with an organization"
+      parameters:
+        - schema:
+            type: "string"
+            description: "User ID"
+          required: true
+          description: "User ID"
+          name: "userId"
+          in: "path"
+      requestBody:
+        content:
+          "application/json":
+            schema:
+              type: "object"
+              properties:
+                "organizationId":
+                  type: "string"
+                "role":
+                  type: "string"
+                  default: "member"
+              required:
+                - "organizationId"
+      responses:
+        "201":
+          description: "User added to organization"
+          content:
+            "application/json":
+              schema:
+                type: "object"
+                properties:
+                  "organizationId":
+                    type: "string"
+                  "role":
+                    type: "string"
+                  "createdAt":
+                    type: "string"
+                required:
+                  - "organizationId"
+                  - "role"
+                  - "createdAt"
+  "/api/cli/me":
+    get:
+      tags:
+        - "cli"
+      summary: "Get CLI user info"
+      description: "Get the current authenticated user and their organization for CLI usage"
+      responses:
+        "200":
+          description: "User info with organization"
+          content:
+            "application/json":
+              schema:
+                type: "object"
+                properties:
+                  "user":
+                    type: "object"
+                    properties:
+                      "id":
+                        type: "string"
+                      "email":
+                        type: "string"
+                      "name":
+                        type: "string"
+                        nullable: true
+                    required:
+                      - "id"
+                      - "email"
+                      - "name"
+                  "organization":
+                    type: "object"
+                    properties:
+                      "id":
+                        type: "string"
+                      "name":
+                        type: "string"
+                      "slug":
+                        type: "string"
+                      "role":
+                        type: "string"
+                    required:
+                      - "id"
+                      - "name"
+                      - "slug"
+                      - "role"
+                required:
+                  - "user"
+                  - "organization"
+        "401":
+          description: "Not authenticated"
+        "404":
+          description: "User has no organization"
+  "/api/invitations/pending":
+    get:
+      tags:
+        - "invitations"
+      summary: "Get pending invitations"
+      description: "Get all pending (non-expired) invitations for a given email address"
+      parameters:
+        - schema:
+            type: "string"
+            format: "email"
+            description: "Email address to check for invitations"
+          required: true
+          description: "Email address to check for invitations"
+          name: "email"
+          in: "query"
+      responses:
+        "200":
+          description: "List of pending invitations"
+          content:
+            "application/json":
+              schema:
+                type: "array"
+                items:
+                  type: "object"
+                  properties:
+                    "id":
+                      type: "string"
+                    "email":
+                      type: "string"
+                    "organizationId":
+                      type: "string"
+                    "organizationName":
+                      type: "string"
+                      nullable: true
+                    "organizationSlug":
+                      type: "string"
+                      nullable: true
+                    "role":
+                      type: "string"
+                      nullable: true
+                    "status":
+                      type: "string"
+                    "expiresAt":
+                      type: "number"
+                    "inviterId":
+                      type: "string"
+                  required:
+                    - "id"
+                    - "email"
+                    - "organizationId"
+                    - "organizationName"
+                    - "organizationSlug"
+                    - "role"
+                    - "status"
+                    - "expiresAt"
+                    - "inviterId"
   "/tenants/{tenantId}/projects":
     get:
       summary: "List Projects"
@@ -3438,6 +3740,7 @@ paths:
       operationId: "list-projects"
       tags:
         - "Projects"
+      x-speakeasy-pagination: {"type": "offsetLimit", "inputs": [{"name": "page", "in": "parameters", "type": "page"}, {"name": "limit", "in": "parameters", "type": "limit"}], "outputs": {"numPages": "$.pagination.pages"}}
       parameters:
         - schema: {"$ref": "#/components/schemas/TenantIdPathParam"}
           required: true
@@ -3735,6 +4038,7 @@ paths:
       operationId: "list-subagents"
       tags:
         - "SubAgent"
+      x-speakeasy-pagination: {"type": "offsetLimit", "inputs": [{"name": "page", "in": "parameters", "type": "page"}, {"name": "limit", "in": "parameters", "type": "limit"}], "outputs": {"numPages": "$.pagination.pages"}}
       parameters:
         - schema: {"$ref": "#/components/schemas/TenantIdPathParam"}
           required: true
@@ -4037,12 +4341,18 @@ paths:
           content:
             "application/json":
               schema: {"$ref": "#/components/schemas/ErrorResponse"}
+        "409":
+          description: "SubAgent is set as default and cannot be deleted"
+          content:
+            "application/json":
+              schema: {"$ref": "#/components/schemas/ErrorResponse"}
   "/tenants/{tenantId}/projects/{projectId}/agents/{agentId}/sub-agent-relations":
     get:
       summary: "List Sub Agent Relations"
       operationId: "list-sub-agent-relations"
       tags:
         - "Sub Agent Relations"
+      x-speakeasy-pagination: {"type": "offsetLimit", "inputs": [{"name": "page", "in": "parameters", "type": "page"}, {"name": "limit", "in": "parameters", "type": "limit"}], "outputs": {"numPages": "$.pagination.pages"}}
       parameters:
         - schema: {"$ref": "#/components/schemas/TenantIdPathParam"}
           required: true
@@ -4371,6 +4681,7 @@ paths:
       operationId: "list-sub-agent-external-agent-relations"
       tags:
         - "Sub Agent External Agent Relations"
+      x-speakeasy-pagination: {"type": "offsetLimit", "inputs": [{"name": "page", "in": "parameters", "type": "page"}, {"name": "limit", "in": "parameters", "type": "limit"}], "outputs": {"numPages": "$.pagination.pages"}}
       parameters:
         - schema: {"$ref": "#/components/schemas/TenantIdPathParam"}
           required: true
@@ -4704,6 +5015,7 @@ paths:
       operationId: "list-sub-agent-team-agent-relations"
       tags:
         - "Sub Agent Team Agent Relations"
+      x-speakeasy-pagination: {"type": "offsetLimit", "inputs": [{"name": "page", "in": "parameters", "type": "page"}, {"name": "limit", "in": "parameters", "type": "limit"}], "outputs": {"numPages": "$.pagination.pages"}}
       parameters:
         - schema: {"$ref": "#/components/schemas/TenantIdPathParam"}
           required: true
@@ -5037,6 +5349,7 @@ paths:
       operationId: "list-agents"
       tags:
         - "Agents"
+      x-speakeasy-pagination: {"type": "offsetLimit", "inputs": [{"name": "page", "in": "parameters", "type": "page"}, {"name": "limit", "in": "parameters", "type": "limit"}], "outputs": {"numPages": "$.pagination.pages"}}
       parameters:
         - schema: {"$ref": "#/components/schemas/TenantIdPathParam"}
           required: true
@@ -5441,6 +5754,7 @@ paths:
       operationId: "list-subagent-tool-relations"
       tags:
         - "SubAgent Tool Relations"
+      x-speakeasy-pagination: {"type": "offsetLimit", "inputs": [{"name": "page", "in": "parameters", "type": "page"}, {"name": "limit", "in": "parameters", "type": "limit"}], "outputs": {"numPages": "$.pagination.pages"}}
       parameters:
         - schema: {"$ref": "#/components/schemas/TenantIdPathParam"}
           required: true
@@ -6526,6 +6840,7 @@ paths:
       operationId: "list-artifact-components"
       tags:
         - "Artifact Component"
+      x-speakeasy-pagination: {"type": "offsetLimit", "inputs": [{"name": "page", "in": "parameters", "type": "page"}, {"name": "limit", "in": "parameters", "type": "limit"}], "outputs": {"numPages": "$.pagination.pages"}}
       parameters:
         - schema: {"$ref": "#/components/schemas/TenantIdPathParam"}
           required: true
@@ -6809,6 +7124,7 @@ paths:
       operationId: "list-context-configs"
       tags:
         - "Context Config"
+      x-speakeasy-pagination: {"type": "offsetLimit", "inputs": [{"name": "page", "in": "parameters", "type": "page"}, {"name": "limit", "in": "parameters", "type": "limit"}], "outputs": {"numPages": "$.pagination.pages"}}
       parameters:
         - schema: {"$ref": "#/components/schemas/TenantIdPathParam"}
           required: true
@@ -7221,6 +7537,7 @@ paths:
       operationId: "list-credentials"
       tags:
         - "Credential"
+      x-speakeasy-pagination: {"type": "offsetLimit", "inputs": [{"name": "page", "in": "parameters", "type": "page"}, {"name": "limit", "in": "parameters", "type": "limit"}], "outputs": {"numPages": "$.pagination.pages"}}
       parameters:
         - schema: {"$ref": "#/components/schemas/TenantIdPathParam"}
           required: true
@@ -7625,6 +7942,7 @@ paths:
       operationId: "list-data-components"
       tags:
         - "Data Component"
+      x-speakeasy-pagination: {"type": "offsetLimit", "inputs": [{"name": "page", "in": "parameters", "type": "page"}, {"name": "limit", "in": "parameters", "type": "limit"}], "outputs": {"numPages": "$.pagination.pages"}}
       parameters:
         - schema: {"$ref": "#/components/schemas/TenantIdPathParam"}
           required: true
@@ -7908,6 +8226,7 @@ paths:
       operationId: "list-external-agents"
       tags:
         - "External Agents"
+      x-speakeasy-pagination: {"type": "offsetLimit", "inputs": [{"name": "page", "in": "parameters", "type": "page"}, {"name": "limit", "in": "parameters", "type": "limit"}], "outputs": {"numPages": "$.pagination.pages"}}
       parameters:
         - schema: {"$ref": "#/components/schemas/TenantIdPathParam"}
           required: true
@@ -8191,6 +8510,7 @@ paths:
       operationId: "list-function-tools"
       tags:
         - "Function Tools"
+      x-speakeasy-pagination: {"type": "offsetLimit", "inputs": [{"name": "page", "in": "parameters", "type": "page"}, {"name": "limit", "in": "parameters", "type": "limit"}], "outputs": {"numPages": "$.pagination.pages"}}
       parameters:
         - schema: {"$ref": "#/components/schemas/TenantIdPathParam"}
           required: true
@@ -8524,6 +8844,7 @@ paths:
       operationId: "list-functions"
       tags:
         - "Functions"
+      x-speakeasy-pagination: {"type": "offsetLimit", "inputs": [{"name": "page", "in": "parameters", "type": "page"}, {"name": "limit", "in": "parameters", "type": "limit"}], "outputs": {"numPages": "$.pagination.pages"}}
       parameters:
         - schema: {"$ref": "#/components/schemas/TenantIdPathParam"}
           required: true
@@ -8832,6 +9153,7 @@ paths:
       operationId: "list-tools"
       tags:
         - "Tools"
+      x-speakeasy-pagination: {"type": "offsetLimit", "inputs": [{"name": "page", "in": "parameters", "type": "page"}, {"name": "limit", "in": "parameters", "type": "limit"}], "outputs": {"numPages": "$.pagination.pages"}}
       parameters:
         - schema: {"$ref": "#/components/schemas/TenantIdPathParam"}
           required: true
@@ -9114,11 +9436,100 @@ paths:
       responses:
         "204":
           description: "Tool deleted successfully"
+        "400":
+          description: "Bad Request"
+          content:
+            "application/problem+json":
+              schema: {"$ref": "#/components/schemas/BadRequest"}
+        "401":
+          description: "Unauthorized"
+          content:
+            "application/problem+json":
+              schema: {"$ref": "#/components/schemas/Unauthorized"}
+        "403":
+          description: "Forbidden"
+          content:
+            "application/problem+json":
+              schema: {"$ref": "#/components/schemas/Forbidden"}
         "404":
-          description: "Tool not found"
+          description: "Not Found"
+          content:
+            "application/problem+json":
+              schema: {"$ref": "#/components/schemas/NotFound"}
+        "422":
+          description: "Unprocessable Entity"
+          content:
+            "application/problem+json":
+              schema: {"$ref": "#/components/schemas/UnprocessableEntity"}
+        "500":
+          description: "Internal Server Error"
+          content:
+            "application/problem+json":
+              schema: {"$ref": "#/components/schemas/InternalServerError"}
+  "/tenants/{tenantId}/projects/{projectId}/tools/{id}/user-credential":
+    get:
+      summary: "Get User Credential for Tool"
+      operationId: "get-user-credential-for-tool"
+      tags:
+        - "Tools"
+      parameters:
+        - schema: {"$ref": "#/components/schemas/TenantIdPathParam"}
+          required: true
+          description: "Tenant identifier"
+          name: "tenantId"
+          in: "path"
+        - schema: {"$ref": "#/components/schemas/ProjectIdPathParam"}
+          required: true
+          description: "Project identifier"
+          name: "projectId"
+          in: "path"
+        - schema:
+            type: "string"
+            minLength: 1
+            maxLength: 255
+            pattern: "^[a-zA-Z0-9\\-_.]+$"
+            description: "Resource identifier"
+            example: "resource_789"
+          required: true
+          description: "Resource identifier"
+          name: "id"
+          in: "path"
+      responses:
+        "200":
+          description: "User credential retrieved successfully"
           content:
             "application/json":
-              schema: {"$ref": "#/components/schemas/ErrorResponse"}
+              schema: {"$ref": "#/components/schemas/CredentialReferenceResponse"}
+        "400":
+          description: "Bad Request"
+          content:
+            "application/problem+json":
+              schema: {"$ref": "#/components/schemas/BadRequest"}
+        "401":
+          description: "Unauthorized"
+          content:
+            "application/problem+json":
+              schema: {"$ref": "#/components/schemas/Unauthorized"}
+        "403":
+          description: "Forbidden"
+          content:
+            "application/problem+json":
+              schema: {"$ref": "#/components/schemas/Forbidden"}
+        "404":
+          description: "Not Found"
+          content:
+            "application/problem+json":
+              schema: {"$ref": "#/components/schemas/NotFound"}
+        "422":
+          description: "Unprocessable Entity"
+          content:
+            "application/problem+json":
+              schema: {"$ref": "#/components/schemas/UnprocessableEntity"}
+        "500":
+          description: "Internal Server Error"
+          content:
+            "application/problem+json":
+              schema: {"$ref": "#/components/schemas/InternalServerError"}
   "/tenants/{tenantId}/projects/{projectId}/api-keys":
     get:
       summary: "List API Keys"
@@ -9126,6 +9537,7 @@ paths:
       operationId: "list-api-keys"
       tags:
         - "API Keys"
+      x-speakeasy-pagination: {"type": "offsetLimit", "inputs": [{"name": "page", "in": "parameters", "type": "page"}, {"name": "limit", "in": "parameters", "type": "limit"}], "outputs": {"numPages": "$.pagination.pages"}}
       parameters:
         - schema: {"$ref": "#/components/schemas/TenantIdPathParam"}
           required: true
@@ -9754,6 +10166,12 @@ paths:
                   type: "string"
                   format: "uri"
                   description: "The MCP server URL to fetch details for"
+                "credentialScope":
+                  type: "string"
+                  enum:
+                    - "project"
+                    - "user"
+                  default: "project"
               required:
                 - "url"
       responses:
@@ -9792,6 +10210,141 @@ paths:
           content:
             "application/problem+json":
               schema: {"$ref": "#/components/schemas/InternalServerError"}
+  "/tenants/{tenantId}/projects/{projectId}/third-party-mcp-servers/oauth-redirect":
+    post:
+      summary: "Get OAuth Redirect URL"
+      operationId: "get-oauth-redirect-url"
+      tags:
+        - "Third-Party MCP Servers"
+      description: "Get the OAuth redirect URL for a third-party MCP server. Call this after scope selection to get the correct URL for the selected scope."
+      parameters:
+        - schema: {"$ref": "#/components/schemas/TenantIdPathParam"}
+          required: true
+          description: "Tenant identifier"
+          name: "tenantId"
+          in: "path"
+        - schema: {"$ref": "#/components/schemas/ProjectIdPathParam"}
+          required: true
+          description: "Project identifier"
+          name: "projectId"
+          in: "path"
+      requestBody:
+        content:
+          "application/json":
+            schema:
+              type: "object"
+              properties:
+                "url":
+                  type: "string"
+                  format: "uri"
+                  description: "The MCP server URL"
+                "credentialScope":
+                  type: "string"
+                  enum:
+                    - "project"
+                    - "user"
+                  description: "The credential scope"
+              required:
+                - "url"
+                - "credentialScope"
+      responses:
+        "200":
+          description: "OAuth redirect URL"
+          content:
+            "application/json":
+              schema:
+                type: "object"
+                properties:
+                  "data":
+                    type: "object"
+                    properties:
+                      "redirectUrl":
+                        type: "string"
+                        nullable: true
+                    required:
+                      - "redirectUrl"
+                required:
+                  - "data"
+        "400":
+          description: "Bad Request"
+          content:
+            "application/problem+json":
+              schema: {"$ref": "#/components/schemas/BadRequest"}
+        "401":
+          description: "Unauthorized"
+          content:
+            "application/problem+json":
+              schema: {"$ref": "#/components/schemas/Unauthorized"}
+        "403":
+          description: "Forbidden"
+          content:
+            "application/problem+json":
+              schema: {"$ref": "#/components/schemas/Forbidden"}
+        "404":
+          description: "Not Found"
+          content:
+            "application/problem+json":
+              schema: {"$ref": "#/components/schemas/NotFound"}
+        "422":
+          description: "Unprocessable Entity"
+          content:
+            "application/problem+json":
+              schema: {"$ref": "#/components/schemas/UnprocessableEntity"}
+        "500":
+          description: "Internal Server Error"
+          content:
+            "application/problem+json":
+              schema: {"$ref": "#/components/schemas/InternalServerError"}
+  "/tenants/{tenantId}/playground/token":
+    post:
+      summary: "Generate temporary API key for playground"
+      operationId: "create-playground-token"
+      tags:
+        - "Playground"
+      description: "Generates a short-lived API key (1 hour expiry) for authenticated users to access the run-api from the playground"
+      security:
+        - cookieAuth: []
+      parameters:
+        - schema: {"$ref": "#/components/schemas/TenantIdPathParam"}
+          required: true
+          description: "Tenant identifier"
+          name: "tenantId"
+          in: "path"
+      requestBody:
+        content:
+          "application/json":
+            schema:
+              type: "object"
+              properties:
+                "projectId":
+                  type: "string"
+                "agentId":
+                  type: "string"
+              required:
+                - "projectId"
+                - "agentId"
+      responses:
+        "200":
+          description: "Temporary API key generated successfully"
+          content:
+            "application/json":
+              schema:
+                type: "object"
+                properties:
+                  "apiKey":
+                    type: "string"
+                    description: "Temporary API key for playground use"
+                  "expiresAt":
+                    type: "string"
+                    description: "ISO 8601 timestamp when the key expires"
+                required:
+                  - "apiKey"
+                  - "expiresAt"
+        "401":
+          description: "Unauthorized - session required"
+          content:
+            "application/json":
+              schema: {"$ref": "#/components/schemas/ErrorResponse"}
   "/tenants/{tenantId}/project-full":
     post:
       summary: "Create Full Project"
@@ -10108,3 +10661,6 @@ paths:
             "text/html":
               schema:
                 type: "string"
+security:
+  - cookieAuth: []
+    bearerAuth: []

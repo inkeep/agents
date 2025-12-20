@@ -16,7 +16,7 @@ import { setupOpenAPIRoutes } from './openapi';
 import cliAuthRoutes from './routes/cliAuth';
 import crudRoutes from './routes/index';
 import invitationsRoutes from './routes/invitations';
-import mcpRoutes from './routes/mcp';
+// import mcpRoutes from './routes/mcp';
 import oauthRoutes from './routes/oauth';
 import playgroundTokenRoutes from './routes/playgroundToken';
 import projectFullRoutes from './routes/projectFull';
@@ -240,7 +240,7 @@ function createManagementHono(
   // Mount OAuth routes - global OAuth callback endpoint
   app.route('/oauth', oauthRoutes);
 
-  app.route('/mcp', mcpRoutes);
+  // app.route('/mcp', mcpRoutes);
   // Setup OpenAPI documentation endpoints (/openapi.json and /docs)
   setupOpenAPIRoutes(app);
 

@@ -1,29 +1,29 @@
-speakeasyVersion: 1.658.2
+speakeasyVersion: 1.680.3
 sources:
     Inkeep Agents Manage API:
         sourceNamespace: inkeep-agents-manage-api
-        sourceRevisionDigest: sha256:c6650fba9772e2b037d967564e1e12f8d843611d7bf6173067468a0cb81d77ae
-        sourceBlobDigest: sha256:26eaa7bb23810bdbe85add2909ce0eba923d9aa4ed990217269c9fe334736067
+        sourceRevisionDigest: sha256:8cf0ee699475d347388ebef04b8a028b2d287541a31b86a49ca6033e00028efc
+        sourceBlobDigest: sha256:401fa4da2bd4342f7491f0ba2819c299efd7d8bbeec9825ad2257eb0d5862180
         tags:
             - latest
             - 1.0.0
 targets:
-    inkeep-agents:
+    inkeep-agents-manage:
         source: Inkeep Agents Manage API
         sourceNamespace: inkeep-agents-manage-api
-        sourceRevisionDigest: sha256:c6650fba9772e2b037d967564e1e12f8d843611d7bf6173067468a0cb81d77ae
-        sourceBlobDigest: sha256:26eaa7bb23810bdbe85add2909ce0eba923d9aa4ed990217269c9fe334736067
+        sourceRevisionDigest: sha256:8cf0ee699475d347388ebef04b8a028b2d287541a31b86a49ca6033e00028efc
+        sourceBlobDigest: sha256:401fa4da2bd4342f7491f0ba2819c299efd7d8bbeec9825ad2257eb0d5862180
 workflow:
     workflowVersion: 1.0.0
     speakeasyVersion: latest
     sources:
         Inkeep Agents Manage API:
             inputs:
-                - location: openapi.json
+                - location: ./openapi.json
             output: .speakeasy/out.openapi.yaml
             registry:
                 location: registry.speakeasyapi.dev/inkeep/inkeep/inkeep-agents-manage-api
     targets:
-        inkeep-agents:
+        inkeep-agents-manage:
             target: mcp-typescript
             source: Inkeep Agents Manage API
