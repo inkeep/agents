@@ -1,6 +1,7 @@
 'use client';
 
 import { createContext, useContext, useEffect, useState } from 'react';
+import { useRuntimeConfig } from '@/contexts/runtime-config-context';
 
 type PostHogClient = {
   identify: (
@@ -24,7 +25,8 @@ export function usePostHog() {
 }
 
 export function PostHogProvider({ children }: { children: React.ReactNode }) {
-  const ENABLE_POSTHOG = Boolean(process.env.NEXT_PUBLIC_POSTHOG_KEY);
+  const { PUBLIC_POSTHOG_KEY, PUBLIC_POSTHOG_HOST, PUBLIC_POSTHOG_SITE_TAG } = useRuntimeConfig();
+  const ENABLE_POSTHOG = Boolean(PUBLIC_POSTHOG_KEY);
   const [modules, setModules] = useState<PosthogModules | null>(null);
 
   useEffect(() => {
@@ -42,13 +44,13 @@ export function PostHogProvider({ children }: { children: React.ReactNode }) {
         if (cancelled) return;
 
         if (!posthog.__loaded) {
-          posthog.init(process.env.NEXT_PUBLIC_POSTHOG_KEY!, {
-            api_host: process.env.NEXT_PUBLIC_POSTHOG_HOST,
+          posthog.init(PUBLIC_POSTHOG_KEY, {
+            api_host: PUBLIC_POSTHOG_HOST,
             defaults: '2025-11-30',
             enable_recording_console_log: true,
           });
 
-          const siteTag = process.env.NEXT_PUBLIC_POSTHOG_SITE_TAG;
+          const siteTag = PUBLIC_POSTHOG_SITE_TAG;
           if (siteTag) {
             posthog.register({
               site: siteTag,

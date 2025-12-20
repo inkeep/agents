@@ -73,6 +73,10 @@ const runtimeConfig: RuntimeConfig = {
     process.env.PUBLIC_IS_INKEEP_CLOUD_DEPLOYMENT ||
     process.env.NEXT_PUBLIC_IS_INKEEP_CLOUD_DEPLOYMENT ||
     'false',
+  PUBLIC_POSTHOG_KEY: process.env.PUBLIC_POSTHOG_KEY || process.env.NEXT_PUBLIC_POSTHOG_KEY,
+  PUBLIC_POSTHOG_HOST: process.env.PUBLIC_POSTHOG_HOST || process.env.NEXT_PUBLIC_POSTHOG_HOST,
+  PUBLIC_POSTHOG_SITE_TAG:
+    process.env.PUBLIC_POSTHOG_SITE_TAG || process.env.NEXT_PUBLIC_POSTHOG_SITE_TAG,
 };
 
 export default function RootLayout({ children }: LayoutProps<'/'>) {
