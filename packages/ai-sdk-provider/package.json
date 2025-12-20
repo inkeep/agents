@@ -14,7 +14,7 @@
     }
   },
   "scripts": {
-    "knip": "knip --include dependencies",
+    "knip": "knip --directory ../.. --workspace packages/ai-sdk-provider --dependencies",
     "build": "tsdown",
     "test": "vitest --run",
     "test:watch": "vitest --watch",
