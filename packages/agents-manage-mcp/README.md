@@ -2,14 +2,6 @@
 
 Model Context Protocol (MCP) Server for the *@inkeep/agents-manage-mcp* API.
 
-[![Built by Speakeasy](https://img.shields.io/badge/Built_by-SPEAKEASY-374151?style=for-the-badge&labelColor=f3f4f6)](https://www.speakeasy.com/?utm_source=@inkeep/agents-manage-mcp&utm_campaign=mcp-typescript)
-[![License: MIT](https://img.shields.io/badge/LICENSE_//_MIT-3b5bdb?style=for-the-badge&labelColor=eff6ff)](https://opensource.org/licenses/MIT)
-
-
-<br /><br />
-> [!IMPORTANT]
-> This MCP Server is not yet ready for production use. To complete setup please follow the steps outlined in your [workspace](https://app.speakeasy.com/org/inkeep/inkeep). Delete this notice before publishing to a package manager.
-
 <!-- Start Summary [summary] -->
 ## Summary
 
