@@ -13,7 +13,7 @@
     "SUPPLEMENTAL_TERMS.md"
   ],
   "scripts": {
-    "knip": "knip --include dependencies",
+    "knip": "knip --directory ../.. --workspace packages/create-agents --dependencies",
     "dev": "tsx src/index.ts",
     "build": "tsc",
     "lint": "biome lint --error-on-warnings",
