@@ -93,7 +93,7 @@ jobs:
         run: pnpm format:check
 
       - name: Knip Unused Exports/Types Check
-        run: pnpm --filter @inkeep/agents-manage-ui knip
+        run: pnpm knip
 
       # Create summary report
       - name: Create CI Summary

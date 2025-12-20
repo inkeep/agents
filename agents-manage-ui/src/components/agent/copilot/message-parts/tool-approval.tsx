@@ -1,9 +1,11 @@
 import type { DataOperationEvent } from '@inkeep/agents-core';
-import { CheckIcon, Trash2Icon } from 'lucide-react';
+import { CheckIcon, type LucideIcon, SettingsIcon, Trash2Icon } from 'lucide-react';
 import { useEffect, useState } from 'react';
+import { Heading } from '@/components/agent/sidepane/heading';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { fetchToolApprovalDiff } from '@/lib/actions/tool-approval';
+import { parseToolNameForDisplay } from '@/lib/utils/tool-name-display';
 import { DiffField } from '../components/diff-viewer';
 import { LoadingIndicator } from './loading';
 
@@ -53,19 +55,11 @@ const FallbackApproval = ({ toolName }: { toolName: string }) => {
   );
 };
 
-const DeleteEntityApproval = ({
-  entityData,
-  toolName,
-}: {
-  entityData: EntityData;
-  toolName: string;
-}) => {
+const DeleteEntityApproval = ({ entityData }: { entityData: EntityData }) => {
   const displayName = entityData.name || entityData.id;
-  const entityType = toolName.split('-').pop() || 'entity';
   return (
     <div className="flex items-start gap-3">
       <div className="flex flex-col gap-1 flex-1">
-        <div className="text-sm font-medium">Delete {entityType}?</div>
         <div className="text-sm text-muted-foreground">
           Are you sure you want to delete <Badge variant="code">{displayName}</Badge>?
         </div>
@@ -84,9 +78,29 @@ const DiffApproval = ({ diffs }: { diffs: FieldDiff[] }) => {
   );
 };
 
-const ApprovalWrapper = ({ children }: { children: React.ReactNode }) => {
+const ApprovalWrapper = ({
+  children,
+  entityType,
+  operationType,
+  icon: Icon = SettingsIcon,
+}: {
+  children: React.ReactNode;
+  entityType?: string;
+  operationType?: string;
+  icon?: LucideIcon;
+}) => {
   return (
     <div className="flex flex-col rounded-lg border px-4 py-3 gap-5 my-3 text-foreground">
+      {entityType && (
+        <div className="flex items-center gap-2 justify-between">
+          <Heading heading={entityType} Icon={Icon} />
+          {operationType && (
+            <Badge variant={operationType === 'delete' ? 'error' : 'primary'} className="uppercase">
+              {operationType}
+            </Badge>
+          )}
+        </div>
+      )}
       {children}
     </div>
   );
@@ -108,6 +122,7 @@ export const ToolApproval = ({
   const [submitted, setSubmitted] = useState(false);
 
   const { conversationId, toolCallId, input, toolName } = data.details.data;
+  const { displayName: entityType, operationType, icon } = parseToolNameForDisplay(toolName);
   const { projectId, tenantId } = input.request || input;
   const isDeleteOperation = toolName.includes('delete');
 
@@ -208,8 +223,8 @@ export const ToolApproval = ({
 
   if (isDeleteOperation && entityData) {
     return (
-      <ApprovalWrapper>
-        <DeleteEntityApproval entityData={entityData} toolName={toolName} />
+      <ApprovalWrapper entityType={entityType} operationType={operationType} icon={icon}>
+        <DeleteEntityApproval entityData={entityData} />
         <ApprovalButtons
           approveLabel="Delete"
           approveVariant="destructive"
@@ -222,7 +237,7 @@ export const ToolApproval = ({
 
   if (diffs.length > 0) {
     return (
-      <ApprovalWrapper>
+      <ApprovalWrapper entityType={entityType} operationType={operationType} icon={icon}>
         <DiffApproval diffs={diffs} />
         <ApprovalButtons />
       </ApprovalWrapper>
@@ -230,7 +245,7 @@ export const ToolApproval = ({
   }
 
   return (
-    <ApprovalWrapper>
+    <ApprovalWrapper entityType={entityType} operationType={operationType} icon={icon}>
       <FallbackApproval toolName={toolName} />
       <ApprovalButtons />
     </ApprovalWrapper>

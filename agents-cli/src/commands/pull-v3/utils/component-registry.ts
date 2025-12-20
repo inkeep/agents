@@ -532,22 +532,29 @@ export function registerAllComponents(
     }
   }
 
-  // Register function tools - prevent double registration
-  const processedFunctionIds = new Set<string>();
+  // Register function tools - functionTools has the name/description, functions has the code
+  // We generate files based on functionTools IDs since that's the user-facing entity
+  const registeredFunctionToolIds = new Set<string>();
 
-  // Register functions first (they take priority)
-  if (project.functions) {
-    for (const funcId of Object.keys(project.functions)) {
-      registry.register(funcId, 'functionTools', `tools/functions/${funcId}.ts`);
-      processedFunctionIds.add(funcId);
+  // Register functionTools first (they have the name that identifies the tool)
+  if (project.functionTools) {
+    for (const funcToolId of Object.keys(project.functionTools)) {
+      registry.register(funcToolId, 'functionTools', `tools/functions/${funcToolId}.ts`);
+      registeredFunctionToolIds.add(funcToolId);
     }
   }
 
-  // Register functionTools (only if not already registered)
-  if (project.functionTools) {
-    for (const funcToolId of Object.keys(project.functionTools)) {
-      if (!processedFunctionIds.has(funcToolId)) {
-        registry.register(funcToolId, 'functionTools', `tools/functions/${funcToolId}.ts`);
+  // Also check agent-level functionTools
+  if (project.agents) {
+    for (const agentData of Object.values(project.agents)) {
+      const agentFunctionTools = (agentData as any).functionTools;
+      if (agentFunctionTools) {
+        for (const funcToolId of Object.keys(agentFunctionTools)) {
+          if (!registeredFunctionToolIds.has(funcToolId)) {
+            registry.register(funcToolId, 'functionTools', `tools/functions/${funcToolId}.ts`);
+            registeredFunctionToolIds.add(funcToolId);
+          }
+        }
       }
     }
   }

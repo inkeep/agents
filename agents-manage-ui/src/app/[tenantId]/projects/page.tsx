@@ -1,5 +1,6 @@
 import { Plus } from 'lucide-react';
 import FullPageError from '@/components/errors/full-page-error';
+import { BodyTemplate } from '@/components/layout/body-template';
 import EmptyState from '@/components/layout/empty-state';
 import { PageHeader } from '@/components/layout/page-header';
 import { NewProjectDialog } from '@/components/projects/new-project-dialog';
@@ -14,7 +15,7 @@ async function ProjectsPage({ params }: PageProps<'/[tenantId]/projects'>) {
 
   try {
     const projects = await fetchProjects(tenantId);
-    return projects.data.length > 0 ? (
+    const content = projects.data.length ? (
       <>
         <PageHeader
           title="Projects"
@@ -44,6 +45,7 @@ async function ProjectsPage({ params }: PageProps<'/[tenantId]/projects'>) {
         }
       />
     );
+    return <BodyTemplate breadcrumbs={[]}>{content}</BodyTemplate>;
   } catch (error) {
     return <FullPageError errorCode={getErrorCode(error)} context="projects" />;
   }

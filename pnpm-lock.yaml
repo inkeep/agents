@@ -48,6 +48,9 @@ importers:
       husky:
         specifier: ^9.1.6
         version: 9.1.7
+      knip:
+        specifier: ^5.75.1
+        version: 5.75.1(@types/node@24.10.1)(typescript@5.9.3)
       lint-staged:
         specifier: ^16.1.5
         version: 16.2.7
@@ -675,9 +678,6 @@ importers:
       jsdom:
         specifier: ^26.1.0
         version: 26.1.0
-      knip:
-        specifier: ^5.75.1
-        version: 5.75.1(@types/node@20.19.25)(typescript@5.9.3)
       start-server-and-test:
         specifier: ^2.1.2
         version: 2.1.3
@@ -21090,10 +21090,10 @@ snapshots:
 
   kind-of@6.0.3: {}
 
-  knip@5.75.1(@types/node@20.19.25)(typescript@5.9.3):
+  knip@5.75.1(@types/node@24.10.1)(typescript@5.9.3):
     dependencies:
       '@nodelib/fs.walk': 1.2.8
-      '@types/node': 20.19.25
+      '@types/node': 24.10.1
       fast-glob: 3.3.3
       formatly: 0.3.0
       jiti: 2.6.1
