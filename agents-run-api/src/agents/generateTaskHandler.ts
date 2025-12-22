@@ -55,7 +55,7 @@ export const createTaskHandler = (
 ) => {
   return async (task: A2ATask): Promise<A2ATaskResult> => {
     let agent: Agent | undefined; // Declare agent outside try block for cleanup access
-    
+
     try {
       const userMessage = task.input.parts
         .filter((part) => part.text)
