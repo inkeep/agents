@@ -20,11 +20,10 @@ jobs:
     services:
       doltgres:
         image: dolthub/doltgresql:latest
-        environment:
+        env:
           DOLTGRES_USER: appuser
           DOLTGRES_PASSWORD: password
           DOLTGRES_DB: inkeep_agents
-        env:
           DOLTGRES_DATA_DIR: /var/lib/doltgres
         ports:
           - 5432:5432
