@@ -129,15 +129,6 @@ export async function distillConversationHistory(params: {
       .filter((line) => line.trim().length > 0)
       .join('\n\n');
 
-    logger.debug(
-      {
-        conversationId,
-        messageCount: messages.length,
-        formattedLength: formattedMessages.length,
-      },
-      'Formatting messages for conversation history distillation'
-    );
-
     const prompt = `You are a conversation history summarization assistant. Your job is to create a comprehensive summary that can COMPLETELY REPLACE the original conversation history while preserving all essential context.
 
 **Complete Conversation to Summarize:**
@@ -233,22 +224,6 @@ Return **only** valid JSON.`;
 
     // Set session ID
     summary.session_id = conversationId;
-
-    logger.info(
-      {
-        conversationId,
-        messageCount: messages.length,
-        artifactsCount: summary.conversation_artifacts?.length || 0,
-        outcomesCount:
-          summary.key_outcomes.completed.length +
-          summary.key_outcomes.partial.length +
-          summary.key_outcomes.discoveries.length,
-        technicalItemsCount:
-          summary.technical_context.technologies.length +
-          summary.technical_context.configurations.length,
-      },
-      'Successfully distilled conversation history'
-    );
 
     return summary;
   } catch (error) {
