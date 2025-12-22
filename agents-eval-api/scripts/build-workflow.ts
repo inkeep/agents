@@ -10,8 +10,6 @@ const config = {
   dirs: ['./src/workflow'],
   workingDir: process.cwd(),
   buildTarget: 'standalone' as const,
-  // Use .cjs extension for CJS bundles since package.json has "type": "module"
-  // Webhook is ESM (builder doesn't convert it) so use .mjs
   stepsBundlePath: './.well-known/workflow/v1/step.cjs',
   workflowsBundlePath: './.well-known/workflow/v1/flow.cjs',
   webhookBundlePath: './.well-known/workflow/v1/webhook.mjs',

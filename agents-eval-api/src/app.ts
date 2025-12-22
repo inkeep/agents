@@ -1,7 +1,3 @@
-
-import './workflow-bootstrap';
-import { world } from './workflow';
-
 import { createRoute, OpenAPIHono } from '@hono/zod-openapi';
 import { handleApiError } from '@inkeep/agents-core';
 import { Hono } from 'hono';
@@ -10,7 +6,6 @@ import { HTTPException } from 'hono/http-exception';
 import { requestId } from 'hono/request-id';
 import type { StatusCode } from 'hono/utils/http-status';
 import { pinoLogger } from 'hono-pino';
-import { env } from './env';
 import { getLogger } from './logger';
 import { apiKeyAuth } from './middleware/auth';
 import { setupOpenAPIRoutes } from './openapi';
@@ -18,19 +13,6 @@ import evaluationsRoutes from './routes/evaluations';
 import { workflowRoutes } from './workflow/routes';
 
 const logger = getLogger('agents-eval-api');
-
-// Only start the workflow worker if we're running as the main eval-api server
-// Skip if we're being imported as a library (e.g., by agents-run-api)
-// The SKIP_WORKFLOW_WORKER env var allows run-api to import without starting worker
-if (!process.env.SKIP_WORKFLOW_WORKER && world) {
-  world.start?.().then(() => {
-    logger.info({}, 'Workflow worker started');
-  }).catch((err: unknown) => {
-    logger.error({ error: err }, 'Failed to start workflow worker');
-  });
-}
-
-logger.info({ logger: logger.getTransports() }, 'Logger initialized');
 
 function createEvaluationHono() {
   const app = new OpenAPIHono();
