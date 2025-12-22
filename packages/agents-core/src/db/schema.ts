@@ -742,7 +742,7 @@ export const credentialReferences = pgTable(
 
 /**
 /**
- * Dataset table (CONFIG LAYER)
+ * Dataset table (CONFIG LAYER) DOLTGRES
  * 
  * A collection of test cases/items used for evaluation. Contains dataset items
  * that define input/output pairs for testing agents. Used for batch evaluation
@@ -771,7 +771,7 @@ export const dataset = pgTable(
 );
 
 /**
- * Dataset Item table (CONFIG LAYER)
+ * Dataset Item table (CONFIG LAYER) DOLTGRES
  *
  * Individual test case within a dataset. Contains the input messages to send
  * to an agent and optionally expected output or simulation configuration.
@@ -813,7 +813,7 @@ export const datasetItem = pgTable(
 );
 
 /**
- * Evaluator table (CONFIG LAYER)
+ * Evaluator table (CONFIG LAYER) DOLTGRES
  *
  * Contains
  * the prompt/instructions for the evaluator, output schema for structured

@@ -25,7 +25,6 @@ import * as worldLocal from '@workflow/world-local';
 import * as worldPostgres from '@workflow/world-postgres';
 import * as worldVercel from '@workflow/world-vercel';
 
-// Force side-effect to retain imports (log to ensure they're loaded)
 if (typeof worldLocal === 'undefined' || typeof worldPostgres === 'undefined' || typeof worldVercel === 'undefined') {
   throw new Error('Workflow worlds not loaded');
 }
@@ -37,13 +36,6 @@ console.log('[workflow-bootstrap] Workflow worlds loaded:', {
 
 // Load .env files from current dir and root monorepo
 loadEnvironmentFiles();
-
-// Default to local world for quickstart/local dev (no external deps needed)
-// On Vercel, set WORKFLOW_TARGET_WORLD=vercel
-// For self-hosted, set WORKFLOW_TARGET_WORLD=postgres
-// if (!process.env.WORKFLOW_TARGET_WORLD) {
-//   process.env.WORKFLOW_TARGET_WORLD = 'local';
-// }
 
 // Set PORT for workflow library - local world needs PORT to know where to send HTTP requests
 if (!process.env.PORT) {
@@ -62,11 +54,3 @@ if (process.env.WORKFLOW_TARGET_WORLD === '@workflow/world-postgres' || process.
     process.env.WORKFLOW_POSTGRES_JOB_PREFIX = 'inkeep-agents-eval';
   }
 }
-
-console.log('[workflow-bootstrap] Configured workflow environment:', {
-  WORKFLOW_TARGET_WORLD: process.env.WORKFLOW_TARGET_WORLD,
-  WORKFLOW_POSTGRES_URL: process.env.WORKFLOW_POSTGRES_URL ? '[SET]' : '[NOT SET]',
-  WORKFLOW_POSTGRES_JOB_PREFIX: process.env.WORKFLOW_POSTGRES_JOB_PREFIX,
-  PORT: process.env.PORT,
-});
-

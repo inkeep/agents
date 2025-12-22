@@ -190,66 +190,21 @@ function createEvaluationHono() {
   app.route('/.well-known', workflowRoutes);
 
   // Handle /index POST - Vercel Queue delivers CloudEvents here
-  // Forward to the workflow flow handler using real HTTP fetch (not app.fetch)
-  // to preserve the full path for workflow handler resolution
+  // Forward to the workflow flow handler - the dispatchFlowOrStep in routes.ts
+  // handles the actual flow/step routing based on x-vqs-queue-name header
   app.post('/index', async (c) => {
     const originalUrl = new URL(c.req.url);
-    
-    // Read the original body
     const bodyBuffer = await c.req.arrayBuffer();
     
-    // Determine the target endpoint based on the topic
-    // Topic is in CloudEvents header (ce-subject) or in the body
-    // Note: ce-type is usually generic (e.g. "com.vercel.queue.message"), not the topic
-    const ceType = c.req.header('ce-type') || c.req.header('Ce-Type');
-    const ceSubject = c.req.header('ce-subject') || c.req.header('Ce-Subject');
-    let topic = ceSubject;
-    
-    console.log('[QUEUE-CALLBACK] CloudEvents headers:', {
-      'ce-type': ceType,
-      'ce-subject': ceSubject,
-    });
-    
-    // For Vercel Queue CloudEvents, the workflow topic is in body.data.topic
-    // Always parse body to get the topic (headers may not have it)
-    try {
-      const bodyText = new TextDecoder().decode(bodyBuffer);
-      const body = JSON.parse(bodyText);
-      console.log('[QUEUE-CALLBACK] CloudEvents body fields:', {
-        type: body.type,
-        subject: body.subject,
-        'data.topic': body.data?.topic,
-        'data.subject': body.data?.subject,
-      });
-      // Prioritize body.data.topic for Vercel Queue, then fall back to other fields
-      if (!topic) {
-        topic = body.data?.topic || body.subject || body.data?.subject;
-      }
-    } catch (err) {
-      console.log('[QUEUE-CALLBACK] Failed to parse body for topic:', err);
-    }
-    
-    console.log('[QUEUE-CALLBACK] Resolved topic:', topic);
-    
-    // Route based on topic prefix:
-    // - __wkf_step_* -> /step endpoint
-    // - __wkf_workflow_* -> /flow endpoint (default)
-    const isStepTopic = topic?.startsWith('__wkf_step_');
-    const fullPath = isStepTopic 
-      ? '/.well-known/workflow/v1/step'
-      : '/.well-known/workflow/v1/flow';
-    const targetUrl = new URL(fullPath, originalUrl.origin);
+    // Always forward to /flow - the dispatcher in routes.ts handles flow/step routing
+    const targetUrl = new URL('/.well-known/workflow/v1/flow', originalUrl.origin);
 
-    console.log('[QUEUE-CALLBACK] forwarding CloudEvent to', targetUrl.pathname, { topic, isStepTopic });
-
-    // Build a new Request with the exact full URL
     const forwardedRequest = new Request(targetUrl.toString(), {
       method: 'POST',
       headers: new Headers(c.req.raw.headers),
       body: bodyBuffer,
     });
 
-    // Pass to the runtime fetch
     return fetch(forwardedRequest);
   });
 

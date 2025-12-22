@@ -16,21 +16,6 @@ export const apiKeyAuth = () =>
     };
   }>(async (c, next) => {
     const authHeader = c.req.header('Authorization');
-    const bypassSecretSet = !!env.INKEEP_AGENTS_EVAL_API_BYPASS_SECRET;
-    const bypassSecretLength = env.INKEEP_AGENTS_EVAL_API_BYPASS_SECRET?.length || 0;
-    const authHeaderPresent = !!authHeader;
-    const authHeaderLength = authHeader?.length || 0;
-
-    // Log auth state for debugging
-    console.log('[AUTH DEBUG]', {
-      path: c.req.path,
-      bypassSecretSet,
-      bypassSecretLength,
-      authHeaderPresent,
-      authHeaderLength,
-      authHeaderPrefix: authHeader?.substring(0, 20),
-    });
-
     // If bypass secret is configured, only allow bypass authentication
     if (env.INKEEP_AGENTS_EVAL_API_BYPASS_SECRET) {
       // Check for Bearer token
@@ -43,15 +28,6 @@ export const apiKeyAuth = () =>
 
       const apiKey = authHeader.substring(7); // Remove 'Bearer ' prefix
       const tokenMatches = apiKey === env.INKEEP_AGENTS_EVAL_API_BYPASS_SECRET;
-
-      console.log('[AUTH DEBUG]', {
-        tokenLength: apiKey.length,
-        expectedLength: env.INKEEP_AGENTS_EVAL_API_BYPASS_SECRET.length,
-        tokenMatches,
-        tokenFirst5: apiKey.substring(0, 5),
-        expectedFirst5: env.INKEEP_AGENTS_EVAL_API_BYPASS_SECRET.substring(0, 5),
-      });
-
       if (tokenMatches) {
         logger.info({}, 'Bypass secret authenticated successfully');
         await next();

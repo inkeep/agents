@@ -59,65 +59,17 @@ function jsonSchemaToZod(jsonSchema: any): z.ZodType<any> {
 
     case 'array': {
       const itemSchema = jsonSchema.items ? jsonSchemaToZod(jsonSchema.items) : z.unknown();
-      let arraySchema = z.array(itemSchema);
-
-      // Apply array constraints
-      if (jsonSchema.minItems !== undefined) {
-        arraySchema = arraySchema.min(jsonSchema.minItems);
-      }
-      if (jsonSchema.maxItems !== undefined) {
-        arraySchema = arraySchema.max(jsonSchema.maxItems);
-      }
-
-      return arraySchema;
+      return z.array(itemSchema);
     }
 
-    case 'string': {
-      // Handle enum first (enum takes precedence)
-      if (jsonSchema.enum && Array.isArray(jsonSchema.enum)) {
-        const [first, ...rest] = jsonSchema.enum;
-        return z.enum([String(first), ...rest.map(String)] as [string, ...string[]]);
-      }
-
-      let stringSchema = z.string();
-
-      // Handle minLength/maxLength
-      if (jsonSchema.minLength !== undefined) {
-        stringSchema = stringSchema.min(jsonSchema.minLength);
-      }
-      if (jsonSchema.maxLength !== undefined) {
-        stringSchema = stringSchema.max(jsonSchema.maxLength);
-      }
-
-      return stringSchema;
-    }
+    case 'string':
+      return z.string();
 
     case 'number':
-    case 'integer': {
-      let numberSchema = jsonSchema.type === 'integer' ? z.number().int() : z.number();
+      return z.number();
 
-      // Handle enum for numbers (use union of literals)
-      if (jsonSchema.enum && Array.isArray(jsonSchema.enum)) {
-        const enumValues = jsonSchema.enum as number[];
-        if (enumValues.length > 0) {
-          const [first, ...rest] = enumValues;
-          return z.union([z.literal(first), ...rest.map((val) => z.literal(val))] as [
-            z.ZodLiteral<number>,
-            ...z.ZodLiteral<number>[],
-          ]);
-        }
-      }
-
-      // Apply number constraints
-      if (jsonSchema.minimum !== undefined) {
-        numberSchema = numberSchema.min(jsonSchema.minimum);
-      }
-      if (jsonSchema.maximum !== undefined) {
-        numberSchema = numberSchema.max(jsonSchema.maximum);
-      }
-
-      return numberSchema;
-    }
+    case 'integer':
+      return z.number().int();
 
     case 'boolean':
       return z.boolean();

@@ -225,43 +225,6 @@ export function EvaluatorFormDialog({
               label="Output Schema"
               description="JSON Schema defining the structure of the evaluation output. Use standard JSON Schema format."
               isRequired
-              placeholder={`{
-  "type": "object",
-  "properties": {
-    "clarity": {
-      "type": "number",
-      "minimum": 0,
-      "maximum": 10,
-      "description": "How clear and understandable the responses were"
-    },
-    "helpfulness": {
-      "type": "number",
-      "minimum": 0,
-      "maximum": 10,
-      "description": "How helpful the agent was in addressing user needs"
-    },
-    "professionalism": {
-      "type": "number",
-      "minimum": 0,
-      "maximum": 10,
-      "description": "How professional and appropriate the tone was"
-    },
-    "efficiency": {
-      "type": "number",
-      "minimum": 0,
-      "maximum": 10,
-      "description": "How efficiently the agent completed the task"
-    },
-    "issues": {
-      "type": "array",
-      "items": {
-        "type": "string"
-      },
-      "description": "Any issues or problems in the conversation"
-    }
-  },
-  "required": ["clarity", "helpfulness", "professionalism", "efficiency"]
-}`}
             />
 
             <div className="space-y-4">
