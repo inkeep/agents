@@ -248,7 +248,8 @@ describe('ContextFetcher', () => {
 
       const result = await fetcher.fetch(definition, {});
 
-      expect(result).toEqual(expectedData);
+      expect(result.data).toEqual(expectedData);
+      expect(result.resolvedUrl).toBe('https://api.example.com/data');
     });
 
     it('should handle successful text responses', async () => {
@@ -272,7 +273,8 @@ describe('ContextFetcher', () => {
 
       const result = await fetcher.fetch(definition, {});
 
-      expect(result).toBe(expectedText);
+      expect(result.data).toBe(expectedText);
+      expect(result.resolvedUrl).toBe('https://api.example.com/data');
     });
 
     it('should handle HTTP error responses', async () => {
@@ -379,7 +381,8 @@ describe('ContextFetcher', () => {
 
       const result = await fetcher.fetch(definition, {});
 
-      expect(result).toBe('John Doe');
+      expect(result.data).toBe('John Doe');
+      expect(result.resolvedUrl).toBe('https://api.example.com/data');
     });
 
     it('should transform response using JMESPath expressions', async () => {
@@ -407,7 +410,8 @@ describe('ContextFetcher', () => {
 
       const result = await fetcher.fetch(definition, {});
 
-      expect(result).toBe(3);
+      expect(result.data).toBe(3);
+      expect(result.resolvedUrl).toBe('https://api.example.com/data');
     });
 
     it('should return original data if transformation fails', async () => {
@@ -432,7 +436,8 @@ describe('ContextFetcher', () => {
 
       const result = await fetcher.fetch(definition, {});
 
-      expect(result).toEqual(responseData);
+      expect(result.data).toEqual(responseData);
+      expect(result.resolvedUrl).toBe('https://api.example.com/data');
     });
   });
 
@@ -466,7 +471,8 @@ describe('ContextFetcher', () => {
 
       const result = await fetcher.fetch(definition, {});
 
-      expect(result).toEqual(validResponse);
+      expect(result.data).toEqual(validResponse);
+      expect(result.resolvedUrl).toBe('https://api.example.com/user');
     });
 
     it('should reject response that fails JSON schema validation', async () => {
@@ -522,7 +528,8 @@ describe('ContextFetcher', () => {
       });
       const result = await fetcher.fetch(definition, {});
 
-      expect(result).toEqual(validResponse);
+      expect(result.data).toEqual(validResponse);
+      expect(result.resolvedUrl).toBe('https://api.example.com/users');
     });
   });
 
@@ -550,6 +557,7 @@ describe('ContextFetcher', () => {
 
       expect(result.success).toBe(true);
       expect(result.data).toEqual(responseData);
+      expect(result.resolvedUrl).toBe('https://api.example.com/data');
       expect(result.error).toBeUndefined();
     });
 
@@ -599,7 +607,8 @@ describe('ContextFetcher', () => {
 
       const result = await fetcher.fetch(definition, context);
 
-      expect(result).toEqual({ data: 'success' });
+      expect(result.data).toEqual({ data: 'success' });
+      expect(result.resolvedUrl).toBe('https://api.example.com/users/user-123');
       expect(mockFetch).toHaveBeenCalledWith(
         'https://api.example.com/users/user-123',
         expect.any(Object)
@@ -727,7 +736,7 @@ describe('ContextFetcher', () => {
 
       const result = await fetcher.fetch(definition, {});
 
-      expect(result).toEqual({
+      expect(result.data).toEqual({
         data: {
           user: {
             id: '123',
@@ -735,6 +744,7 @@ describe('ContextFetcher', () => {
           },
         },
       });
+      expect(result.resolvedUrl).toBe('https://api.example.com/agentql');
     });
   });
 });

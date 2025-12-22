@@ -76,7 +76,10 @@ export class ContextFetcher {
   /**
    * Fetch data according to a fetch definition
    */
-  async fetch(definition: ContextFetchDefinition, context: TemplateContext): Promise<unknown> {
+  async fetch(
+    definition: ContextFetchDefinition,
+    context: TemplateContext
+  ): Promise<{ data: unknown; resolvedUrl: string }> {
     const startTime = Date.now();
 
     logger.info(
@@ -123,7 +126,7 @@ export class ContextFetcher {
         'Context fetch completed successfully'
       );
 
-      return transformedData;
+      return { data: transformedData, resolvedUrl: resolvedConfig.url };
     } catch (error) {
       const durationMs = Date.now() - startTime;
       const errorMessage = error instanceof Error ? error.message : 'Unknown error';
@@ -437,16 +440,18 @@ export class ContextFetcher {
   ): Promise<{
     success: boolean;
     data?: unknown;
+    resolvedUrl?: string;
     error?: string;
     durationMs: number;
   }> {
     const startTime = Date.now();
 
     try {
-      const data = await this.fetch(definition, context);
+      const result = await this.fetch(definition, context);
       return {
         success: true,
-        data,
+        data: result.data,
+        resolvedUrl: result.resolvedUrl,
         durationMs: Date.now() - startTime,
       };
     } catch (error) {
