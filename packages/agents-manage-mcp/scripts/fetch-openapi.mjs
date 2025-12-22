@@ -22,7 +22,7 @@ if (fs.existsSync(packageEnv)) {
 
 const apiUrl = process.env.INKEEP_AGENTS_MANAGE_API_URL || 'http://localhost:3002';
 const openapiUrl = `${apiUrl}/openapi.json`;
-const outputPath = path.resolve(__dirname, '../openapi.json');
+const pidFile = path.resolve(__dirname, '../.speakeasy/manage-api.pid');
 
 async function checkApiRunning() {
   try {
@@ -48,10 +48,12 @@ async function startManageApi() {
   return new Promise((resolve, reject) => {
     const proc = spawn('pnpm', ['--filter', '@inkeep/agents-manage-api', 'dev'], {
       cwd: rootDir,
-      stdio: 'inherit',
-      detached: false,
+      stdio: 'ignore',
+      detached: true,
       shell: true,
     });
+
+    proc.unref();
 
     proc.on('error', (err) => {
       reject(new Error(`Failed to start manage-api: ${err.message}`));
@@ -70,36 +72,15 @@ async function startManageApi() {
         resolve(proc);
       } else if (attempts >= maxAttempts) {
         clearInterval(checkInterval);
-        proc.kill();
+        try {
+          process.kill(-proc.pid, 'SIGTERM');
+        } catch {
+          // best-effort cleanup
+        }
         reject(new Error('Timeout waiting for manage-api to start'));
       }
     }, 1000);
   });
-}
-
-async function fetchOpenApiSpec() {
-  console.log(`Fetching OpenAPI spec from: ${openapiUrl}`);
-  console.log(`Writing to: ${outputPath}\n`);
-
-  try {
-    const response = await fetch(openapiUrl);
-
-    if (!response.ok) {
-      const errorText = await response.text().catch(() => '');
-      throw new Error(
-        `Failed to fetch OpenAPI spec: ${response.status} ${response.statusText}${errorText ? `\n${errorText}` : ''}`
-      );
-    }
-
-    const openapiJson = await response.json();
-
-    // Write the JSON file with proper formatting
-    fs.writeFileSync(outputPath, JSON.stringify(openapiJson, null, 2) + '\n', 'utf8');
-
-    console.log('✓ Successfully fetched and wrote OpenAPI spec');
-  } catch (error) {
-    throw error;
-  }
 }
 
 async function main() {
@@ -107,28 +88,29 @@ async function main() {
     // Check if manage-api is already running
     const isRunning = await checkApiRunning();
 
+    // Clear any stale pid file
+    if (fs.existsSync(pidFile)) {
+      fs.rmSync(pidFile);
+    }
+
     if (!isRunning) {
       console.log('⚠️  agents-manage-api is not running');
       console.log('💡 To avoid auto-starting, run: pnpm --filter @inkeep/agents-manage-api dev\n');
 
       const manageApiProc = await startManageApi();
 
-      try {
-        await fetchOpenApiSpec();
-      } finally {
-        // Clean up: stop the manage-api we started
-        console.log('\n🛑 Stopping agents-manage-api...');
-        manageApiProc.kill('SIGTERM');
+      // Record the process id so callers can shut it down after generation
+      fs.mkdirSync(path.dirname(pidFile), { recursive: true });
+      fs.writeFileSync(pidFile, String(manageApiProc.pid), 'utf8');
 
-        // Give it a moment to shut down gracefully
-        await new Promise((resolve) => setTimeout(resolve, 1000));
-      }
+      console.log(`PID recorded at ${pidFile}`);
+      console.log('Manage API will remain running until the caller stops it.\n');
     } else {
-      await fetchOpenApiSpec();
+      console.log('✓ agents-manage-api already running. No action needed.\n');
     }
   } catch (error) {
     if (error.cause) {
-      console.error('\n✗ Error fetching OpenAPI spec:', error.message);
+      console.error('\n✗ Error ensuring manage-api is running:', error.message);
       console.error('  Cause:', error.cause.message || error.cause);
       console.error(`\n  Make sure ${apiUrl} is running and accessible.`);
     } else {
