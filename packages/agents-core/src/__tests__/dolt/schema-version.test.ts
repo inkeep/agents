@@ -219,10 +219,6 @@ describe('Schema Version Module', () => {
         })
         // checkoutRef (back to main)
         .mockResolvedValueOnce({ rows: [] })
-        // getCurrentSchemaVersion (main) - version 5
-        .mockResolvedValueOnce({
-          rows: [{ hash: 'm1' }, { hash: 'm2' }, { hash: 'm3' }, { hash: 'm4' }, { hash: 'm5' }],
-        })
         // getMinViableSchemaVersion - version 3
         .mockResolvedValueOnce({ rows: [{ value: '3' }] });
 
@@ -259,10 +255,6 @@ describe('Schema Version Module', () => {
         .mockResolvedValueOnce({ rows: [{ hash: 'm1' }, { hash: 'm2' }] })
         // checkoutRef (back to main)
         .mockResolvedValueOnce({ rows: [] })
-        // getCurrentSchemaVersion (main) - version 5
-        .mockResolvedValueOnce({
-          rows: [{ hash: 'm1' }, { hash: 'm2' }, { hash: 'm3' }, { hash: 'm4' }, { hash: 'm5' }],
-        })
         // getMinViableSchemaVersion - version 3
         .mockResolvedValueOnce({ rows: [{ value: '3' }] });
 
