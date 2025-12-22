@@ -27,7 +27,7 @@ export default async function DatasetPage({
             label: 'Test Suites',
             href: `/${tenantId}/projects/${projectId}/datasets`,
           },
-          { label: dataset.name || 'Test Suite' },
+          dataset.name || 'Test Suite',
         ]}
       >
         <MainContent>

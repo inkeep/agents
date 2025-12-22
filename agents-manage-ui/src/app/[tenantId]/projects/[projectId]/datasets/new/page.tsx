@@ -13,7 +13,7 @@ async function NewDatasetPage({
           label: 'Test Suites',
           href: `/${tenantId}/projects/${projectId}/datasets`,
         },
-        { label: 'New Test Suite' },
+        'New Test Suite',
       ]}
     >
       <MainContent>
