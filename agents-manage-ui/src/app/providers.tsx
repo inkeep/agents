@@ -30,7 +30,7 @@ export function PostHogProvider({ children }: { children: React.ReactNode }) {
   const [modules, setModules] = useState<PosthogModules | null>(null);
 
   useEffect(() => {
-    if (!ENABLE_POSTHOG) return;
+    if (!ENABLE_POSTHOG || !PUBLIC_POSTHOG_KEY) return;
 
     let cancelled = false;
 
@@ -68,7 +68,7 @@ export function PostHogProvider({ children }: { children: React.ReactNode }) {
     return () => {
       cancelled = true;
     };
-  }, [ENABLE_POSTHOG]);
+  }, [ENABLE_POSTHOG, PUBLIC_POSTHOG_KEY, PUBLIC_POSTHOG_HOST, PUBLIC_POSTHOG_SITE_TAG]);
 
   // Analytics disabled → behave like a passthrough provider
   if (!ENABLE_POSTHOG || !modules) {
