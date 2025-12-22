@@ -10,10 +10,11 @@ const frontmatterSchema = z.object({
   metadata: z.record(z.string(), z.unknown()).optional(),
 });
 
-function toPolicyId(root: string, filePath: string): string {
-  const relativePath = path.relative(root, filePath);
-  const withoutExt = relativePath.replace(path.extname(relativePath), '');
-  return withoutExt.split(path.sep).filter(Boolean).join('-');
+function toPolicyId(filePath: string): string {
+  const { dir, name } = path.parse(filePath);
+  const withoutExt = path.join(dir, name);
+
+  return withoutExt.replaceAll(path.sep, '-');
 }
 
 export function loadPolicies(directoryPath: string): PolicyDefinition[] {
@@ -21,16 +22,17 @@ export function loadPolicies(directoryPath: string): PolicyDefinition[] {
     cwd: directoryPath,
   });
   return files.map((filePath) => {
-    const fileContent = fs.readFileSync(path.join(directoryPath, filePath), 'utf8');
-    const parsed = matter(fileContent);
-    console.log({ parsed });
-    const frontmatter = frontmatterSchema.parse(parsed.data);
-    console.log({ frontmatter });
+    const resolvedPath = path.join(directoryPath, filePath);
+    const fileContent = fs.readFileSync(resolvedPath, 'utf8');
+    const { data, content } = matter(fileContent);
+    const frontmatter = frontmatterSchema.parse(data);
+    const id = toPolicyId(filePath);
+
     return {
-      id: toPolicyId(directoryPath, filePath),
+      id,
       name: frontmatter.name,
       description: frontmatter.description,
-      content: parsed.content.trim(),
+      content: content.trim(),
       metadata: frontmatter.metadata ?? null,
     };
   });
