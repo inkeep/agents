@@ -3,12 +3,10 @@
  * This file MUST be imported FIRST before any other imports in the application.
  * It sets up the environment variables needed for the workflow world.
  *
- * Supports three worlds:
- * - @workflow/world-local: For quickstart and local development (no external deps)
- * - @workflow/world-postgres: For self-hosted deployments with durable workflows
- * - @workflow/world-vercel: For Vercel cloud deployments (production)
- *
- * Set WORKFLOW_TARGET_WORLD env var to choose which world to use.
+ * Set WORKFLOW_TARGET_WORLD env var to one of:
+ * - 'local': For quickstart and local development (no external deps)
+ * - 'vercel': For Vercel cloud deployments (production)
+ * - '@workflow/world-postgres': For self-hosted deployments with durable workflows
  */
 
 import { loadEnvironmentFiles } from '@inkeep/agents-core';
@@ -43,7 +41,7 @@ if (!process.env.PORT) {
 }
 
 // Only set postgres-specific vars if using postgres world
-if (process.env.WORKFLOW_TARGET_WORLD === '@workflow/world-postgres' || process.env.WORKFLOW_TARGET_WORLD === 'postgres') {
+if (process.env.WORKFLOW_TARGET_WORLD === '@workflow/world-postgres') {
   // Use DATABASE_URL as fallback for WORKFLOW_POSTGRES_URL
   if (!process.env.WORKFLOW_POSTGRES_URL && process.env.DATABASE_URL) {
     process.env.WORKFLOW_POSTGRES_URL = process.env.DATABASE_URL;
