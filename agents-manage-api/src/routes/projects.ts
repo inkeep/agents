@@ -80,7 +80,10 @@ app.openapi(
 
     // Use the new function that gets projects from runtime DB
     // and fetches metadata from each project's branch in config DB
-    const result = await listProjectsWithMetadataPaginated(runDbClient, configDb)({
+    const result = await listProjectsWithMetadataPaginated(
+      runDbClient,
+      configDb
+    )({
       tenantId,
       pagination: { page, limit },
     });
@@ -189,7 +192,10 @@ app.openapi(
 
     try {
       // 1. Create project in runtime DB and create project main branch
-      const runtimeProject = await createProjectMetadataAndBranch(runDbClient, dbClient)({
+      const runtimeProject = await createProjectMetadataAndBranch(
+        runDbClient,
+        dbClient
+      )({
         tenantId,
         projectId: body.id,
         createdBy: userId,
@@ -214,12 +220,15 @@ app.openapi(
         ...body,
       });
 
-      return c.json({
-        data: {
-          ...projectConfig,
-          mainBranchName: runtimeProject.mainBranchName,
+      return c.json(
+        {
+          data: {
+            ...projectConfig,
+            mainBranchName: runtimeProject.mainBranchName,
+          },
         },
-      }, 201);
+        201
+      );
     } catch (error: any) {
       // Handle duplicate project (PostgreSQL unique constraint violation)
       if (error?.cause?.code === '23505' || error?.message?.includes('already exists')) {
@@ -339,7 +348,10 @@ app.openapi(
       });
 
       // 3. Delete project from runtime DB and delete project branch
-      const deleted = await deleteProjectWithBranch(runDbClient, dbClient)({
+      const deleted = await deleteProjectWithBranch(
+        runDbClient,
+        dbClient
+      )({
         tenantId,
         projectId: id,
       });

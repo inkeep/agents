@@ -60,7 +60,10 @@ describe('Project Lifecycle - Integration Tests', () => {
       createdBranches.add(expectedBranchName);
       createdProjects.push({ tenantId, projectId });
 
-      const result = await createProjectMetadataAndBranch(runDb, configDb)({
+      const result = await createProjectMetadataAndBranch(
+        runDb,
+        configDb
+      )({
         tenantId,
         projectId,
         createdBy: 'test-user',
@@ -94,7 +97,10 @@ describe('Project Lifecycle - Integration Tests', () => {
       createdBranches.add(expectedBranchName);
       createdProjects.push({ tenantId, projectId });
 
-      const result = await createProjectMetadataAndBranch(runDb, configDb)({
+      const result = await createProjectMetadataAndBranch(
+        runDb,
+        configDb
+      )({
         tenantId,
         projectId,
       });
@@ -118,14 +124,20 @@ describe('Project Lifecycle - Integration Tests', () => {
       createdProjects.push({ tenantId, projectId });
 
       // Create the first project
-      await createProjectMetadataAndBranch(runDb, configDb)({
+      await createProjectMetadataAndBranch(
+        runDb,
+        configDb
+      )({
         tenantId,
         projectId,
       });
 
       // Try to create duplicate - should fail
       await expect(
-        createProjectMetadataAndBranch(runDb, configDb)({
+        createProjectMetadataAndBranch(
+          runDb,
+          configDb
+        )({
           tenantId,
           projectId,
         })
@@ -142,7 +154,10 @@ describe('Project Lifecycle - Integration Tests', () => {
       createdProjects.push({ tenantId, projectId });
 
       // Create the project first
-      await createProjectMetadataAndBranch(runDb, configDb)({
+      await createProjectMetadataAndBranch(
+        runDb,
+        configDb
+      )({
         tenantId,
         projectId,
       });
@@ -155,7 +170,10 @@ describe('Project Lifecycle - Integration Tests', () => {
       expect(branches.find((b) => b.name === branchName)).toBeDefined();
 
       // Delete it
-      const result = await deleteProjectWithBranch(runDb, configDb)({
+      const result = await deleteProjectWithBranch(
+        runDb,
+        configDb
+      )({
         tenantId,
         projectId,
       });
@@ -183,7 +201,10 @@ describe('Project Lifecycle - Integration Tests', () => {
       const tenantId = getTestId('tenant-nonexistent');
       const projectId = getTestId('project-nonexistent');
 
-      const result = await deleteProjectWithBranch(runDb, configDb)({
+      const result = await deleteProjectWithBranch(
+        runDb,
+        configDb
+      )({
         tenantId,
         projectId,
       });
@@ -209,7 +230,10 @@ describe('Project Lifecycle - Integration Tests', () => {
       expect(projectMetadata).not.toBeNull();
 
       // Delete - should succeed even though branch doesn't exist
-      const result = await deleteProjectWithBranch(runDb, configDb)({
+      const result = await deleteProjectWithBranch(
+        runDb,
+        configDb
+      )({
         tenantId,
         projectId,
       });
@@ -237,7 +261,10 @@ describe('Project Lifecycle - Integration Tests', () => {
 
       createdProjects.push({ tenantId, projectId });
 
-      const result = await createProjectMetadataAndBranch(runDb, configDb)({
+      const result = await createProjectMetadataAndBranch(
+        runDb,
+        configDb
+      )({
         tenantId,
         projectId,
       });
@@ -260,7 +287,10 @@ describe('Project Lifecycle - Integration Tests', () => {
 
       createdProjects.push({ tenantId, projectId });
 
-      const result = await createProjectMetadataAndBranch(runDb, configDb)({
+      const result = await createProjectMetadataAndBranch(
+        runDb,
+        configDb
+      )({
         tenantId,
         projectId,
       });
@@ -285,14 +315,20 @@ describe('Project Lifecycle - Integration Tests', () => {
       createdProjects.push({ tenantId, projectId: projectId2 });
 
       // Create first project
-      const result1 = await createProjectMetadataAndBranch(runDb, configDb)({
+      const result1 = await createProjectMetadataAndBranch(
+        runDb,
+        configDb
+      )({
         tenantId,
         projectId: projectId1,
       });
       createdBranches.add(result1.mainBranchName);
 
       // Create second project
-      const result2 = await createProjectMetadataAndBranch(runDb, configDb)({
+      const result2 = await createProjectMetadataAndBranch(
+        runDb,
+        configDb
+      )({
         tenantId,
         projectId: projectId2,
       });
@@ -318,4 +354,3 @@ describe('Project Lifecycle - Integration Tests', () => {
     });
   });
 });
-

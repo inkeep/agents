@@ -57,10 +57,7 @@ export const createProjectMetadataAndBranch =
     const { tenantId, projectId, createdBy } = params;
     const mainBranchName = getProjectMainBranchName(tenantId, projectId);
 
-    logger.info(
-      { tenantId, projectId, mainBranchName },
-      'Creating project with branch'
-    );
+    logger.info({ tenantId, projectId, mainBranchName }, 'Creating project with branch');
 
     // 1. Create project record in runtime DB
     const runtimeProject = await createProjectMetadata(runDb)({
@@ -75,7 +72,7 @@ export const createProjectMetadataAndBranch =
     // 2. Create the project main branch in config DB
     try {
       // Branch may exist already if project is created in the updated endpoint
-      const branchExists = await doltBranchExists(configDb)({name: mainBranchName});
+      const branchExists = await doltBranchExists(configDb)({ name: mainBranchName });
       if (!branchExists) {
         await doltBranch(configDb)({ name: mainBranchName });
         logger.debug({ mainBranchName }, 'Created project main branch');
@@ -167,7 +164,10 @@ export const deleteProjectWithBranch =
  */
 export const getProjectWithBranchInfo =
   (runDb: AgentsRunDatabaseClient) =>
-  async (params: { tenantId: string; projectId: string }): Promise<ProjectMetadataSelect | null> => {
+  async (params: {
+    tenantId: string;
+    projectId: string;
+  }): Promise<ProjectMetadataSelect | null> => {
     return await getProjectMetadata(runDb)(params);
   };
 
@@ -348,4 +348,3 @@ export const getProjectWithMetadata =
       configUpdatedAt: metadata?.updatedAt ?? null,
     };
   };
-

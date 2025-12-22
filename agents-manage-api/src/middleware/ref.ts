@@ -11,11 +11,9 @@ import type { Context, Next } from 'hono';
 
 const logger = getLogger('ref');
 
-
 export type RefContext = {
   resolvedRef?: ResolvedRef;
 };
-
 
 export const refMiddleware = async (c: Context, next: Next) => {
   const ref = c.req.query('ref');
@@ -66,9 +64,7 @@ export const refMiddleware = async (c: Context, next: Next) => {
 
   if (process.env.ENVIRONMENT === 'test') {
     // Set a default resolvedRef for test mode using project-scoped branch if available
-    const defaultBranchName = projectId
-      ? `${tenantId}_${projectId}_main`
-      : `${tenantId}_main`;
+    const defaultBranchName = projectId ? `${tenantId}_${projectId}_main` : `${tenantId}_main`;
     const defaultRef: ResolvedRef = {
       type: 'branch',
       name: defaultBranchName,

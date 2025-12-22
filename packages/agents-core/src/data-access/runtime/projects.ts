@@ -19,9 +19,15 @@ export interface ProjectMetadataPaginatedResult {
  */
 export const getProjectMetadata =
   (db: AgentsRunDatabaseClient) =>
-  async (params: { tenantId: string; projectId: string }): Promise<ProjectMetadataSelect | null> => {
+  async (params: {
+    tenantId: string;
+    projectId: string;
+  }): Promise<ProjectMetadataSelect | null> => {
     const result = await db.query.projectMetadata.findFirst({
-      where: and(eq(projectMetadata.tenantId, params.tenantId), eq(projectMetadata.id, params.projectId)),
+      where: and(
+        eq(projectMetadata.tenantId, params.tenantId),
+        eq(projectMetadata.id, params.projectId)
+      ),
     });
     return result ?? null;
   };
@@ -29,7 +35,7 @@ export const getProjectMetadata =
 /**
  * List all runtimeProjects for a tenant from the runtime DB
  */
-export const listProjectsMetadata = 
+export const listProjectsMetadata =
   (db: AgentsRunDatabaseClient) =>
   async (params: { tenantId: string }): Promise<ProjectMetadataSelect[]> => {
     return await db.query.projectMetadata.findMany({
@@ -104,7 +110,9 @@ export const deleteProjectMetadata =
   async (params: { tenantId: string; projectId: string }): Promise<boolean> => {
     const result = await db
       .delete(projectMetadata)
-      .where(and(eq(projectMetadata.tenantId, params.tenantId), eq(projectMetadata.id, params.projectId)))
+      .where(
+        and(eq(projectMetadata.tenantId, params.tenantId), eq(projectMetadata.id, params.projectId))
+      )
       .returning();
 
     return result.length > 0;
@@ -134,4 +142,3 @@ export const countProjectsInRuntime =
     const total = result[0]?.count || 0;
     return typeof total === 'string' ? Number.parseInt(total, 10) : (total as number);
   };
-

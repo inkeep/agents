@@ -1,4 +1,10 @@
-import { type BaseExecutionContext, getLogger, isInternalServiceToken, validateAndGetApiKey, verifyInternalServiceAuthHeader } from '@inkeep/agents-core';
+import {
+  type BaseExecutionContext,
+  getLogger,
+  isInternalServiceToken,
+  validateAndGetApiKey,
+  verifyInternalServiceAuthHeader,
+} from '@inkeep/agents-core';
 import type { createAuth } from '@inkeep/agents-core/auth';
 import { createMiddleware } from 'hono/factory';
 import { HTTPException } from 'hono/http-exception';

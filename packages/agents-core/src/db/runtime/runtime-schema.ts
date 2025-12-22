@@ -68,7 +68,7 @@ const timestamps = {
  * Runtime projects table - source of truth for which projects exist in a tenant.
  * This is NOT versioned - project existence is tracked here while
  * project configuration/content lives in the versioned config DB.
- * 
+ *
  * Named 'project_metadata' to avoid conflict with the manage-schema 'projects' table.
  */
 export const projectMetadata = pgTable(

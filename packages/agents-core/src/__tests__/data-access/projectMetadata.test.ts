@@ -372,4 +372,3 @@ describe('Runtime Project Metadata Data Access', () => {
     });
   });
 });
-

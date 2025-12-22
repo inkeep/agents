@@ -58,7 +58,9 @@ export const doltListBranches =
 export const doltBranchExists =
   (db: AgentsManageDatabaseClient) =>
   async (params: { name: string }): Promise<boolean> => {
-    const result = await db.execute(sql.raw(`SELECT * FROM dolt_branches WHERE name = '${params.name}'`));
+    const result = await db.execute(
+      sql.raw(`SELECT * FROM dolt_branches WHERE name = '${params.name}'`)
+    );
     return result.rows.length > 0;
   };
 /**

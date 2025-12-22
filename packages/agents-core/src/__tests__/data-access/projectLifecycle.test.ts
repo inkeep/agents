@@ -6,10 +6,7 @@ import {
   createProjectMetadataAndBranch,
   deleteProjectWithBranch,
 } from '../../data-access/manage/projectLifecycle';
-import {
-  createProjectMetadata,
-  getProjectMetadata,
-} from '../../data-access/runtime/projects';
+import { createProjectMetadata, getProjectMetadata } from '../../data-access/runtime/projects';
 
 // Mock the dolt branch operations
 vi.mock('../../dolt/branch', () => ({
@@ -63,7 +60,10 @@ describe('Project Lifecycle Utilities', () => {
       const mockDoltBranchFn = vi.fn().mockResolvedValue(undefined);
       mockedDoltBranch.mockReturnValue(mockDoltBranchFn);
 
-      const result = await createProjectMetadataAndBranch(testRunDbClient, mockConfigDb)({
+      const result = await createProjectMetadataAndBranch(
+        testRunDbClient,
+        mockConfigDb
+      )({
         tenantId: testTenantId,
         projectId: 'lifecycle-test-project',
         createdBy: 'test-user',
@@ -98,7 +98,10 @@ describe('Project Lifecycle Utilities', () => {
       mockedDoltBranch.mockReturnValue(mockDoltBranchFn);
 
       await expect(
-        createProjectMetadataAndBranch(testRunDbClient, mockConfigDb)({
+        createProjectMetadataAndBranch(
+          testRunDbClient,
+          mockConfigDb
+        )({
           tenantId: testTenantId,
           projectId: 'rollback-test-project',
         })
@@ -119,7 +122,10 @@ describe('Project Lifecycle Utilities', () => {
       const mockDoltBranchFn = vi.fn().mockResolvedValue(undefined);
       mockedDoltBranch.mockReturnValue(mockDoltBranchFn);
 
-      const result = await createProjectMetadataAndBranch(testRunDbClient, mockConfigDb)({
+      const result = await createProjectMetadataAndBranch(
+        testRunDbClient,
+        mockConfigDb
+      )({
         tenantId: testTenantId,
         projectId: 'no-creator-project',
       });
@@ -142,7 +148,10 @@ describe('Project Lifecycle Utilities', () => {
       const mockDoltDeleteBranchFn = vi.fn().mockResolvedValue(undefined);
       mockedDoltDeleteBranch.mockReturnValue(mockDoltDeleteBranchFn);
 
-      const result = await deleteProjectWithBranch(testRunDbClient, mockConfigDb)({
+      const result = await deleteProjectWithBranch(
+        testRunDbClient,
+        mockConfigDb
+      )({
         tenantId: testTenantId,
         projectId: 'delete-lifecycle-project',
       });
@@ -167,7 +176,10 @@ describe('Project Lifecycle Utilities', () => {
     it('should return false for non-existent project', async () => {
       const mockConfigDb = {} as any;
 
-      const result = await deleteProjectWithBranch(testRunDbClient, mockConfigDb)({
+      const result = await deleteProjectWithBranch(
+        testRunDbClient,
+        mockConfigDb
+      )({
         tenantId: testTenantId,
         projectId: 'non-existent-project',
       });
@@ -192,7 +204,10 @@ describe('Project Lifecycle Utilities', () => {
       mockedDoltDeleteBranch.mockReturnValue(mockDoltDeleteBranchFn);
 
       // Should not throw, but continue with cleanup
-      const result = await deleteProjectWithBranch(testRunDbClient, mockConfigDb)({
+      const result = await deleteProjectWithBranch(
+        testRunDbClient,
+        mockConfigDb
+      )({
         tenantId: testTenantId,
         projectId: 'branch-fail-project',
       });
@@ -208,4 +223,3 @@ describe('Project Lifecycle Utilities', () => {
     });
   });
 });
-

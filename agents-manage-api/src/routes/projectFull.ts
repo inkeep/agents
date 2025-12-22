@@ -97,10 +97,13 @@ app.openapi(
     const projectData = c.req.valid('json');
 
     const validatedProjectData = FullProjectDefinitionSchema.parse(projectData);
-    
+
     try {
       // 1. Create project in runtime DB and create project main branch
-      await createProjectMetadataAndBranch(runDbClient, dbClient)({
+      await createProjectMetadataAndBranch(
+        runDbClient,
+        dbClient
+      )({
         tenantId,
         projectId: validatedProjectData.id,
         createdBy: userId,
@@ -325,16 +328,16 @@ app.openapi(
 
       if (isCreate) {
         // Project doesn't exist - create it with branch first
-        await createProjectMetadataAndBranch(runDbClient, dbClient)({
+        await createProjectMetadataAndBranch(
+          runDbClient,
+          dbClient
+        )({
           tenantId,
           projectId,
           createdBy: userId,
         });
 
-        logger.info(
-          { tenantId, projectId },
-          'Created project with branch for PUT (upsert)'
-        );
+        logger.info({ tenantId, projectId }, 'Created project with branch for PUT (upsert)');
       }
 
       // Update/create the full project using server-side data layer operations
@@ -404,7 +407,7 @@ app.openapi(
         message: 'Project deletion must be performed from the main branch',
       });
     }
-    
+
     try {
       // 1. Delete runtime entities for this project
       await cascadeDeleteByProject(runDbClient)({
@@ -418,7 +421,10 @@ app.openapi(
       });
 
       // 3. Delete project from runtime DB and delete project branch
-      const deleted = await deleteProjectWithBranch(runDbClient, dbClient)({
+      const deleted = await deleteProjectWithBranch(
+        runDbClient,
+        dbClient
+      )({
         tenantId,
         projectId,
       });
