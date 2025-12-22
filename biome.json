@@ -30,7 +30,8 @@
       "!**/*.css",
       "!**/.source/**",
       "!**/.vercel/**",
-      "!**/tsconfig.json"
+      "!**/tsconfig.json",
+      "!packages/agents-manage-mcp/**/*"
     ],
     "rules": {
       "recommended": true,
@@ -82,7 +83,7 @@
       "**",
       "!**/drizzle/**",
       "!**/__snapshots__/*.json",
-      "!packages/agents-manage-mcp/**/*.ts"
+      "!packages/agents-manage-mcp/**/*"
     ],
     "enabled": true,
     "lineWidth": 100,
