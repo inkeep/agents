@@ -2,7 +2,7 @@ import type { CredentialStore, ServerConfig } from '@inkeep/agents-core';
 import { CredentialStoreRegistry, createDefaultCredentialStores } from '@inkeep/agents-core';
 import type { SSOProviderConfig, UserAuthConfig } from '@inkeep/agents-core/auth';
 import { createAuth } from '@inkeep/agents-core/auth';
-import { createManagementHono } from './app';
+import { createManagementHono } from './create-app';
 import dbClient from './data/db/dbClient';
 import { env } from './env';
 import { initializeDefaultUser } from './initialization';

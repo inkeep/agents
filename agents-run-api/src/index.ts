@@ -9,7 +9,7 @@ import {
   createDefaultCredentialStores,
   type ServerConfig,
 } from '@inkeep/agents-core';
-import { createExecutionHono } from './app';
+import { createExecutionHono } from './create-app';
 import type { SandboxConfig } from './types/execution-context';
 
 // Create default configuration
