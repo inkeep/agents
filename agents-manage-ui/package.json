@@ -138,7 +138,6 @@
     "@vitest/web-worker": "^3.2.4",
     "cypress": "^15.5.0",
     "jsdom": "^26.1.0",
-    "knip": "^5.75.1",
     "start-server-and-test": "^2.1.2",
     "tailwind-scrollbar": "^4.0.2",
     "tailwindcss": "^4",
