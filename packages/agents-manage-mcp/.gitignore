@@ -6,8 +6,8 @@
 /bin
 /esm
 /node_modules
-*.mcpb
 bun.lock
 .DS_Store
 .env
 .env.local
+*.mcpb
