@@ -10,6 +10,7 @@ vi.mock('../services/ConversationCompressor', () => ({
       summary: { compressed: true },
     }),
     partialCleanup: vi.fn(),
+    fullCleanup: vi.fn(),
   })),
 }));
 
