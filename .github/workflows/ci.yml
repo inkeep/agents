@@ -194,8 +194,16 @@ jobs:
         env:
           HUSKY: 0
 
-      - name: Build create-agents
-        run: npx turbo build --filter='@inkeep/create-agents'
+      - name: Build create-agents and dependencies
+        run: |
+          # Build all packages that the e2e test links to local versions
+          # These need dist/ directories for subpath exports like ./factory
+          pnpm --filter @inkeep/agents-core build
+          pnpm --filter @inkeep/agents-sdk build
+          pnpm --filter @inkeep/agents-manage-api build
+          pnpm --filter @inkeep/agents-run-api build
+          pnpm --filter @inkeep/agents-cli build
+          pnpm --filter @inkeep/create-agents build
         env:
           TURBO_TELEMETRY_DISABLED: 1
           TURBO_CACHE_DIR: .turbo
