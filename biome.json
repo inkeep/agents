@@ -78,7 +78,12 @@
     }
   },
   "formatter": {
-    "includes": ["**", "!**/drizzle/**", "!**/__snapshots__/*.json"],
+    "includes": [
+      "**",
+      "!**/drizzle/**",
+      "!**/__snapshots__/*.json",
+      "!packages/agents-manage-mcp/**/*.ts"
+    ],
     "enabled": true,
     "lineWidth": 100,
     "indentStyle": "space",
