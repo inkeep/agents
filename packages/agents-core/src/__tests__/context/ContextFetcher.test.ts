@@ -223,7 +223,7 @@ describe('ContextFetcher', () => {
 
       const result = await fetcher.fetch(definition, {});
 
-      expect(result).toEqual(expectedData);
+      expect(result.data).toEqual(expectedData);
     });
 
     it('should handle successful text responses', async () => {
@@ -247,7 +247,7 @@ describe('ContextFetcher', () => {
 
       const result = await fetcher.fetch(definition, {});
 
-      expect(result).toBe(expectedText);
+      expect(result.data).toBe(expectedText);
     });
 
     it('should handle HTTP error responses', async () => {
@@ -356,7 +356,7 @@ describe('ContextFetcher', () => {
 
       const result = await fetcher.fetch(definition, {});
 
-      expect(result).toBe('John Doe');
+      expect(result.data).toBe('John Doe');
     });
 
     it('should transform response using JMESPath expressions', async () => {
@@ -384,7 +384,7 @@ describe('ContextFetcher', () => {
 
       const result = await fetcher.fetch(definition, {});
 
-      expect(result).toBe(3);
+      expect(result.data).toBe(3);
     });
 
     it('should return original data if transformation fails', async () => {
@@ -409,7 +409,7 @@ describe('ContextFetcher', () => {
 
       const result = await fetcher.fetch(definition, {});
 
-      expect(result).toEqual(responseData);
+      expect(result.data).toEqual(responseData);
     });
   });
 
@@ -443,7 +443,7 @@ describe('ContextFetcher', () => {
 
       const result = await fetcher.fetch(definition, {});
 
-      expect(result).toEqual(validResponse);
+      expect(result.data).toEqual(validResponse);
     });
 
     it('should reject response that fails JSON schema validation', async () => {
@@ -500,7 +500,7 @@ describe('ContextFetcher', () => {
 
       const result = await fetcher.fetch(definition, {});
 
-      expect(result).toEqual(validResponse);
+      expect(result.data).toEqual(validResponse);
     });
 
     it('should validate primitive type responses', async () => {
@@ -527,7 +527,7 @@ describe('ContextFetcher', () => {
 
       const result = await fetcher.fetch(definition, {});
 
-      expect(result).toBe(validResponse);
+      expect(result.data).toBe(validResponse);
     });
   });
 
@@ -600,7 +600,7 @@ describe('ContextFetcher', () => {
 
       const result = await fetcher.fetch(definition, {});
 
-      expect(result).toEqual({ data: 'static' });
+      expect(result.data).toEqual({ data: 'static' });
     });
 
     it('should handle malformed JSON responses', async () => {
@@ -646,7 +646,7 @@ describe('ContextFetcher', () => {
 
       const result = await fetcher.fetch(definition, {});
 
-      expect(result).toBe('plain text response');
+      expect(result.data).toBe('plain text response');
     });
 
     it('should handle complex nested template interpolation', async () => {
@@ -780,7 +780,7 @@ describe('ContextFetcher', () => {
 
       const result = await fetcher.fetch(definition, context);
 
-      expect(result).toEqual({ data: 'success' });
+      expect(result.data).toEqual({ data: 'success' });
       expect(mockFetch).toHaveBeenCalledWith(
         'https://api.example.com/users/user-123',
         expect.any(Object)
@@ -857,7 +857,7 @@ describe('ContextFetcher', () => {
 
       const result = await fetcher.fetch(definition, context);
 
-      expect(result).toEqual({ data: 'success' });
+      expect(result.data).toEqual({ data: 'success' });
     });
 
     it('should throw on first missing variable when multiple are required', async () => {
@@ -903,7 +903,7 @@ describe('ContextFetcher', () => {
 
       const result = await fetcher.fetch(definition, context);
 
-      expect(result).toEqual({ data: 'success' });
+      expect(result.data).toEqual({ data: 'success' });
     });
 
     it('should skip validation when requiredToFetch is empty array', async () => {
@@ -928,7 +928,7 @@ describe('ContextFetcher', () => {
 
       const result = await fetcher.fetch(definition, context);
 
-      expect(result).toEqual({ data: 'success' });
+      expect(result.data).toEqual({ data: 'success' });
     });
 
     it('should validate nested required variables', async () => {
@@ -961,7 +961,7 @@ describe('ContextFetcher', () => {
 
       const result = await fetcher.fetch(definition, context);
 
-      expect(result).toEqual({ data: 'success' });
+      expect(result.data).toEqual({ data: 'success' });
     });
 
     it('should filter out non-template variables (without {{ }}) and not validate them', async () => {
@@ -986,7 +986,7 @@ describe('ContextFetcher', () => {
 
       const result = await fetcher.fetch(definition, context);
 
-      expect(result).toEqual({ data: 'success' });
+      expect(result.data).toEqual({ data: 'success' });
       expect(mockFetch).toHaveBeenCalled();
     });
 
@@ -1014,7 +1014,7 @@ describe('ContextFetcher', () => {
 
       const result = await fetcher.fetch(definition, context);
 
-      expect(result).toEqual({ data: 'success' });
+      expect(result.data).toEqual({ data: 'success' });
       expect(mockFetch).toHaveBeenCalledWith(
         'https://api.example.com/users/user-123',
         expect.any(Object)
@@ -1069,7 +1069,10 @@ describe('ContextFetcher', () => {
 
       const result = await fetcher.fetch(definition, context);
 
-      expect(result).toEqual({ data: 'success' });
+      expect(result).toEqual({
+        data: { data: 'success' },
+        resolvedUrl: 'https://api.example.com/data',
+      });
       expect(mockFetch).toHaveBeenCalled();
     });
   });
@@ -1153,11 +1156,14 @@ describe('ContextFetcher', () => {
 
       expect(result).toEqual({
         data: {
-          user: {
-            id: '123',
-            name: 'John Doe',
+          data: {
+            user: {
+              id: '123',
+              name: 'John Doe',
+            },
           },
         },
+        resolvedUrl: 'https://api.example.com/agentql',
       });
     });
 
@@ -1186,8 +1192,11 @@ describe('ContextFetcher', () => {
       const result = await fetcher.fetch(definition, {});
 
       expect(result).toEqual({
-        data: { user: { id: '123' } },
-        errors: [],
+        data: {
+          data: { user: { id: '123' } },
+          errors: [],
+        },
+        resolvedUrl: 'https://api.example.com/agentql',
       });
     });
 

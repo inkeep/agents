@@ -75,8 +75,8 @@
     "@radix-ui/react-tooltip": "^1.2.7",
     "@shikijs/monaco": "^3.20.0",
     "@sinclair/typebox": "^0.34.40",
-    "@xyflow/react": "^12.10.0",
     "@tanstack/react-query": "^5.90.12",
+    "@xyflow/react": "^12.10.0",
     "ai": "6.0.0-beta.124",
     "axios": "^1.11.0",
     "axios-retry": "^4.5.0",
@@ -134,5 +134,9 @@
     "typescript": "^5",
     "vitest": "^3.2.4",
     "vitest-canvas-mock": "^0.3.3"
+  },
+  "optionalDependencies": {
+    "@posthog/react": "^1.5.2",
+    "posthog-js": "^1.308.0"
   }
 }

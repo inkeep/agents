@@ -13,7 +13,8 @@
     "useIgnoreFile": true
   },
   "files": {
-    "ignoreUnknown": false
+    "ignoreUnknown": false,
+    "includes": ["**", "!packages/agents-manage-mcp"]
   },
   "linter": {
     "enabled": true,

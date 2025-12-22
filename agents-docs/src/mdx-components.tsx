@@ -29,6 +29,7 @@ import { ComparisonTable } from '@/components/comparisons-table';
 import { AutoTypeTable } from '@/components/mdx/auto-type-table';
 import { Card } from '@/components/mdx/card'; // Add this line
 import { openapi } from '@/lib/openapi';
+import { BigVideo } from '@/components/mdx/big-video';
 
 // Snippet component for MDX snippets
 // This is a placeholder that should be replaced by remark-mdx-snippets plugin
@@ -58,6 +59,7 @@ export function getMDXComponents(components?: MDXComponents): MDXComponents {
     ...components,
     Accordions,
     Accordion,
+    BigVideo,
     Note,
     Warning,
     Tip,

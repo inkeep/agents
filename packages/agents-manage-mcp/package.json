@@ -1,6 +1,6 @@
 {
   "name": "@inkeep/agents-manage-mcp",
-  "version": "0.39.5",
+  "version": "0.0.6",
   "author": "Speakeasy",
   "type": "module",
   "sideEffects": false,
@@ -10,35 +10,35 @@
   },
   "scripts": {
     "build": "bun i && bun src/mcp-server/build.mts && tsdown",
+    "mcpb:build": "bun i && bun src/mcp-server/build.mts --pack && tsdown",
     "check": "npm run lint",
     "lint": "eslint --cache --max-warnings=0 src",
     "prepublishOnly": "npm run build",
-    "format": "biome format --write src",
-    "format:check": "biome format src",
-    "fetch-openapi": "node scripts/fetch-openapi.mjs",
-    "generate": "node scripts/generate.mjs",
-    "watch": "node scripts/watch-and-fetch.mjs"
+    "generate": "node scripts/generate.mjs"
   },
   "dependencies": {
-    "@modelcontextprotocol/sdk": "^1.17.0",
     "@stricli/core": "^1.1.2",
     "bun": "^1.2.12",
-    "express": "^5.1.0"
+    "express": "^5.1.0",
+    "zod": "^4.0.0"
   },
   "devDependencies": {
     "@anthropic-ai/mcpb": "^1.2.0",
     "@eslint/js": "^9.26.0",
     "@types/bun": "^1.2.13",
     "@types/express": "^5.0.1",
-    "@types/node": "^22.15.20",
-    "dotenv": "^16.4.7",
+    "@types/node": "^18.19.3",
+    "@modelcontextprotocol/sdk": "1.24.3",
     "eslint": "^9.26.0",
-    "find-up": "^7.0.0",
     "globals": "^16.0.0",
     "tsdown": "^0.18.0",
     "typescript": "~5.8.3",
     "typescript-eslint": "^8.31.1",
-    "zod": "^3.25.7"
+    "dotenv": "^16.4.7",
+    "find-up": "^7.0.0"
+  },
+  "peerDependencies": {
+    "@modelcontextprotocol/sdk": "1.24.3"
   },
   "main": "./dist/index.cjs",
   "module": "./dist/index.js",
