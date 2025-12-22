@@ -8,6 +8,7 @@
   },
   "functions": {
     "index.js": {
+      "maxDuration": 300,
       "experimentalTriggers": [
         {
           "type": "queue/v1beta",
