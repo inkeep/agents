@@ -107,7 +107,7 @@
     "db:studio": "echo 'Use db:manage:studio or db:run:studio'",
     "db:check": "pnpm db:manage:check && pnpm db:run:check",
     "db:manage:generate": "drizzle-kit generate --config=drizzle.manage.config.ts",
-    "db:manage:migrate": "drizzle-kit migrate --config=drizzle.manage.config.ts",
+    "db:manage:migrate": "tsx src/dolt/migrate-dolt.ts",
     "db:manage:drop": "drizzle-kit drop --config=drizzle.manage.config.ts",
     "db:manage:studio": "drizzle-kit studio --config=drizzle.manage.config.ts",
     "db:manage:check": "drizzle-kit check --config=drizzle.manage.config.ts",
