@@ -11,13 +11,15 @@ import { readFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { Command } from 'commander';
-import { addCommand } from './commands/add';
+
+// Import command implementations
+import { addCommand, type AddOptions } from './commands/add';
 import { configGetCommand, configListCommand, configSetCommand } from './commands/config';
-import { devCommand } from './commands/dev';
-import { initCommand } from './commands/init';
-import { listAgentsCommand } from './commands/list-agents';
-import { loginCommand } from './commands/login';
-import { logoutCommand } from './commands/logout';
+import { devCommand, type DevOptions } from './commands/dev';
+import { initCommand, type InitOptions } from './commands/init';
+import { listAgentsCommand, type ListAgentsOptions } from './commands/list-agents';
+import { loginCommand, type LoginOptions } from './commands/login';
+import { logoutCommand, type LogoutOptions } from './commands/logout';
 import {
   profileAddCommand,
   profileCurrentCommand,
@@ -25,11 +27,29 @@ import {
   profileRemoveCommand,
   profileUseCommand,
 } from './commands/profile';
-import { pullV3Command } from './commands/pull-v3/index';
-import { pushCommand } from './commands/push';
-import { statusCommand } from './commands/status';
-import { updateCommand } from './commands/update';
+import { pullV3Command, type PullV3Options } from './commands/pull-v3/index';
+import { pushCommand, type PushOptions } from './commands/push';
+import { statusCommand, type StatusOptions } from './commands/status';
+import { updateCommand, type UpdateOptions } from './commands/update';
 import { whoamiCommand } from './commands/whoami';
+
+// Import command schemas for building CLI
+import { registerCommand, registerParentCommand } from './schemas/commander-builder.js';
+import {
+  addCommand as addSchema,
+  devCommand as devSchema,
+  initCommand as initSchema,
+  listAgentsCommand as listAgentsSchema,
+  loginCommand as loginSchema,
+  logoutCommand as logoutSchema,
+  pullCommand as pullSchema,
+  pushCommand as pushSchema,
+  statusCommand as statusSchema,
+  updateCommand as updateSchema,
+  whoamiCommand as whoamiSchema,
+  configCommand as configSchema,
+  profileCommand as profileSchema,
+} from './schemas/commands/index.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -44,226 +64,129 @@ program
   .description('CLI tool for Inkeep Agent Framework')
   .version(packageJson.version);
 
-program
-  .command('add [template]')
-  .description('Add a new template to the project')
-  .option('--project <template>', 'Project template to add')
-  .option('--mcp <template>', 'MCP template to add')
-  .option('--target-path <path>', 'Target path to add the template to')
-  .option('--local-prefix <path_prefix>', 'Use local templates from the given path prefix')
-  .option('--config <path>', 'Path to configuration file')
-  .action(async (template, options) => {
-    await addCommand({ template, ...options });
+// Register commands using schemas
+// Each command uses the schema for definition but custom action handlers for implementation
+
+// add command
+registerCommand<AddOptions>(program, addSchema, async (options) => {
+  await addCommand(options);
+});
+
+// init command
+registerCommand<InitOptions>(program, initSchema, async (options) => {
+  await initCommand(options);
+});
+
+// push command
+registerCommand<PushOptions>(program, pushSchema, async (options) => {
+  await pushCommand(options);
+});
+
+// pull command
+registerCommand<PullV3Options>(program, pullSchema, async (options) => {
+  await pullV3Command(options);
+});
+
+// list-agent command
+registerCommand<ListAgentsOptions & { configFilePath?: string }>(
+  program,
+  listAgentsSchema,
+  async (options) => {
+    // Handle deprecated option
+    const config = options.config || options.configFilePath;
+    await listAgentsCommand({ ...options, config });
+  }
+);
+
+// dev command - needs special handling for port parsing
+registerCommand<DevOptions & { port?: string | number }>(program, devSchema, async (options) => {
+  await devCommand({
+    port: typeof options.port === 'string' ? parseInt(options.port, 10) : (options.port ?? 3000),
+    host: options.host ?? 'localhost',
+    build: options.build ?? false,
+    outputDir: options.outputDir ?? './inkeep-dev',
+    path: options.path ?? false,
+    export: options.export ?? false,
+    openBrowser: options.openBrowser ?? false,
   });
+});
 
-program
-  .command('init [path]')
-  .description('Initialize a new Inkeep project (runs cloud onboarding wizard by default)')
-  .option('--local', 'Use local/self-hosted mode instead of cloud onboarding')
-  .option('--no-interactive', 'Skip interactive prompts')
-  .option('--config <path>', 'Path to use as template for new configuration')
-  .action(async (path, options) => {
-    await initCommand({ path, ...options });
-  });
+// update command
+registerCommand<UpdateOptions>(program, updateSchema, async (options) => {
+  await updateCommand(options);
+});
 
-const configCommand = program.command('config').description('Manage Inkeep configuration');
+// login command
+registerCommand<LoginOptions>(program, loginSchema, async (options) => {
+  await loginCommand(options);
+});
 
-configCommand
+// logout command
+registerCommand<LogoutOptions>(program, logoutSchema, async (options) => {
+  await logoutCommand(options);
+});
+
+// status command
+registerCommand<StatusOptions>(program, statusSchema, async (options) => {
+  await statusCommand(options);
+});
+
+// whoami command
+registerCommand(program, whoamiSchema, async () => {
+  await whoamiCommand();
+});
+
+// config command (parent with subcommands)
+// Need to handle deprecated --config-file-path option
+const configCmd = program.command('config').description(configSchema.description);
+
+configCmd
   .command('get [key]')
-  .description('Get configuration value(s)')
+  .description(configSchema.subcommands.get.description)
   .option('--config <path>', 'Path to configuration file')
   .option('--config-file-path <path>', 'Path to configuration file (deprecated, use --config)')
-  .action(async (key, options) => {
+  .action(async (key: string | undefined, options: { config?: string; configFilePath?: string }) => {
     const config = options.config || options.configFilePath;
     await configGetCommand(key, { config });
   });
 
-configCommand
+configCmd
   .command('set <key> <value>')
-  .description('Set a configuration value')
+  .description(configSchema.subcommands.set.description)
   .option('--config <path>', 'Path to configuration file')
   .option('--config-file-path <path>', 'Path to configuration file (deprecated, use --config)')
-  .action(async (key, value, options) => {
+  .action(async (key: string, value: string, options: { config?: string; configFilePath?: string }) => {
     const config = options.config || options.configFilePath;
     await configSetCommand(key, value, { config });
   });
 
-configCommand
+configCmd
   .command('list')
-  .description('List all configuration values')
+  .description(configSchema.subcommands.list.description)
   .option('--config <path>', 'Path to configuration file')
   .option('--config-file-path <path>', 'Path to configuration file (deprecated, use --config)')
-  .action(async (options) => {
+  .action(async (options: { config?: string; configFilePath?: string }) => {
     const config = options.config || options.configFilePath;
     await configListCommand({ config });
   });
 
-program
-  .command('push')
-  .description('Push a project configuration to the backend')
-  .option('--project <project-id>', 'Project ID or path to project directory')
-  .option('--config <path>', 'Path to configuration file')
-  .option('--profile <name>', 'Profile to use for remote URLs and authentication')
-  .option('--tenant-id <id>', 'Override tenant ID')
-  .option('--agents-manage-api-url <url>', 'Override agents manage API URL')
-  .option('--agents-run-api-url <url>', 'Override agents run API URL')
-  .option(
-    '--env <environment>',
-    'Environment to use for credential resolution (e.g., development, production)'
-  )
-  .option('--json', 'Generate project data JSON file instead of pushing to backend')
-  .option('--all', 'Push all projects found in current directory tree')
-  .option(
-    '--tag <tag>',
-    'Use tagged config file (e.g., --tag prod loads prod.__inkeep.config.ts__)'
-  )
-  .option('--quiet', 'Suppress profile/config logging')
-  .action(async (options) => {
-    await pushCommand(options);
-  });
-
-program
-  .command('pull')
-  .description('Pull project configuration with clean, efficient code generation')
-  .option(
-    '--project <project-id>',
-    'Project ID to pull (or path to project directory). If in project directory, validates against local project ID.'
-  )
-  .option('--config <path>', 'Path to configuration file')
-  .option('--profile <name>', 'Profile to use for remote URLs and authentication')
-  .option(
-    '--env <environment>',
-    'Environment file to generate (development, staging, production). Defaults to development'
-  )
-  .option('--json', 'Output project data as JSON instead of generating files')
-  .option('--debug', 'Enable debug logging')
-  .option('--verbose', 'Enable verbose logging')
-  .option('--force', 'Force regeneration even if no changes detected')
-  .option('--introspect', 'Completely regenerate all files from scratch (no comparison needed)')
-  .option('--all', 'Pull all projects for current tenant')
-  .option(
-    '--tag <tag>',
-    'Use tagged config file (e.g., --tag prod loads prod.__inkeep.config.ts__)'
-  )
-  .option('--quiet', 'Suppress profile/config logging')
-  .action(async (options) => {
-    await pullV3Command(options);
-  });
-
-program
-  .command('list-agent')
-  .description('List all available agents for a specific project')
-  .requiredOption('--project <project-id>', 'Project ID to list agent for')
-  .option('--tenant-id <tenant-id>', 'Tenant ID')
-  .option('--agents-manage-api-url <url>', 'Agents manage API URL')
-  .option('--config <path>', 'Path to configuration file')
-  .option('--config-file-path <path>', 'Path to configuration file (deprecated, use --config)')
-  .action(async (options) => {
-    const config = options.config || options.configFilePath;
-    await listAgentsCommand({ ...options, config });
-  });
-
-program
-  .command('dev')
-  .description('Start the Inkeep dashboard server')
-  .option('--port <port>', 'Port to run the server on', '3000')
-  .option('--host <host>', 'Host to bind the server to', 'localhost')
-  .option('--build', 'Build the Dashboard UI for production', false)
-  .option('--export', 'Export the Next.js project source files', false)
-  .option('--output-dir <dir>', 'Output directory for build files', './inkeep-dev')
-  .option('--path', 'Output the path to the Dashboard UI', false)
-  .option('--open-browser', 'Open the browser', false)
-  .action(async (options) => {
-    await devCommand({
-      port: parseInt(options.port, 10),
-      host: options.host,
-      build: options.build,
-      outputDir: options.outputDir,
-      path: options.path,
-      export: options.export,
-      openBrowser: options.openBrowser,
-    });
-  });
-
-program
-  .command('update')
-  .description('Update @inkeep/agents-cli to the latest version')
-  .option('--check', 'Check for updates without installing')
-  .option('--force', 'Force update even if already on latest version')
-  .action(async (options) => {
-    await updateCommand(options);
-  });
-
-// Authentication commands
-program
-  .command('login')
-  .description('Authenticate with Inkeep Cloud')
-  .option('--profile <name>', 'Profile to authenticate (defaults to active profile)')
-  .action(async (options) => {
-    await loginCommand(options);
-  });
-
-program
-  .command('logout')
-  .description('Log out of Inkeep Cloud')
-  .option('--profile <name>', 'Profile to log out (defaults to active profile)')
-  .action(async (options) => {
-    await logoutCommand(options);
-  });
-
-program
-  .command('status')
-  .description('Show current profile, authentication state, and remote URLs')
-  .option('--profile <name>', 'Profile to show status for (defaults to active profile)')
-  .action(async (options) => {
-    await statusCommand(options);
-  });
-
-program
-  .command('whoami')
-  .description('Display current authentication status (alias for status)')
-  .action(async () => {
-    await whoamiCommand();
-  });
-
-// Profile management commands
-const profileCommand = program
-  .command('profile')
-  .description('Manage CLI profiles for connecting to different remotes');
-
-profileCommand
-  .command('list')
-  .description('List all profiles')
-  .action(async () => {
+// profile command (parent with subcommands)
+registerParentCommand(program, profileSchema, {
+  list: async () => {
     await profileListCommand();
-  });
-
-profileCommand
-  .command('add [name]')
-  .description('Add a new profile')
-  .action(async (name) => {
-    await profileAddCommand(name);
-  });
-
-profileCommand
-  .command('use <name>')
-  .description('Set the active profile')
-  .action(async (name) => {
-    await profileUseCommand(name);
-  });
-
-profileCommand
-  .command('current')
-  .description('Display the active profile details')
-  .action(async () => {
+  },
+  add: async (name: unknown) => {
+    await profileAddCommand(name as string | undefined);
+  },
+  use: async (name: unknown) => {
+    await profileUseCommand(name as string);
+  },
+  current: async () => {
     await profileCurrentCommand();
-  });
-
-profileCommand
-  .command('remove <name>')
-  .description('Remove a profile')
-  .action(async (name) => {
-    await profileRemoveCommand(name);
-  });
+  },
+  remove: async (name: unknown) => {
+    await profileRemoveCommand(name as string);
+  },
+});
 
 program.parse();
