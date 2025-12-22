@@ -22,7 +22,7 @@ const logger = getLogger('agents-eval-api');
 // Only start the workflow worker if we're running as the main eval-api server
 // Skip if we're being imported as a library (e.g., by agents-run-api)
 // The SKIP_WORKFLOW_WORKER env var allows run-api to import without starting worker
-if (!process.env.SKIP_WORKFLOW_WORKER) {
+if (!process.env.SKIP_WORKFLOW_WORKER && world) {
   world.start?.().then(() => {
     logger.info({}, 'Workflow worker started');
   }).catch((err: unknown) => {
@@ -172,50 +172,6 @@ function createEvaluationHono() {
       return c.body(null, 204);
     }
   );
-
-  // Debug endpoint to check workflow environment
-  app.get('/debug/workflow-env', (c) => {
-    // Get ALL VERCEL_* env vars to diagnose system env var exposure
-    const allVercelEnvVars: Record<string, string> = {};
-    for (const [key, value] of Object.entries(process.env)) {
-      if (key.startsWith('VERCEL_')) {
-        // Mask sensitive values
-        if (key.includes('TOKEN') || key.includes('SECRET') || key.includes('KEY')) {
-          allVercelEnvVars[key] = value ? '[SET]' : '[NOT SET]';
-        } else {
-          allVercelEnvVars[key] = value || '[NOT SET]';
-        }
-      }
-    }
-    
-    return c.json({
-      // All VERCEL_* env vars found
-      allVercelEnvVars,
-      // Specific workflow config
-      WORKFLOW_TARGET_WORLD: process.env.WORKFLOW_TARGET_WORLD || '[NOT SET]',
-      WORKFLOW_VERCEL_AUTH_TOKEN: process.env.WORKFLOW_VERCEL_AUTH_TOKEN ? '[SET]' : '[NOT SET]',
-      WORKFLOW_VERCEL_BASE_URL: process.env.WORKFLOW_VERCEL_BASE_URL || '[NOT SET]',
-      // Request context (to verify which deployment we're hitting)
-      requestUrl: c.req.url,
-    });
-  });
-
-  // Debug endpoint to check workflow run status
-  app.get('/debug/workflow-run/:runId', async (c) => {
-    const runId = c.req.param('runId');
-    try {
-      // Try to get run status from world
-      const status = await world.runs?.status?.(runId);
-      return c.json({ runId, status, error: null });
-    } catch (err: any) {
-      return c.json({ 
-        runId, 
-        status: null, 
-        error: err?.message || String(err),
-        errorName: err?.name,
-      });
-    }
-  });
 
   // Workflow process endpoint - called by Vercel cron to keep worker active
   // The worker processes queued jobs while this request is active
