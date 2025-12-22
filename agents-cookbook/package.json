@@ -9,8 +9,7 @@
     "start:weather": "tsx weather-project/index.ts",
     "dev:weather": "tsx --watch weather-project/index.ts",
     "type-check": "tsc --noEmit",
-    "typecheck": "tsc --noEmit",
-    "build": "echo \"No build step for this package (required for Turbo pipeline)\""
+    "typecheck": "tsc --noEmit"
   },
   "dependencies": {
     "@inkeep/agents-cli": "workspace:*",
