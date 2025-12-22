@@ -13,20 +13,37 @@ const logger = getLogger('ref');
 
 /**
  * Create a branch if it doesn't exist, handling race conditions gracefully.
- * If multiple concurrent requests try to create the same branch, only one will succeed
- * and the others will catch the "already exists" error and continue.
+ * If multiple concurrent requests try to create the same branch, only one will succeed.
+ * Others may fail with various errors (XX000 internal error, duplicate key, etc.)
+ * Instead of checking error messages, we verify the desired end state: branch exists.
  */
 const ensureBranchExists = async (branchName: string): Promise<void> => {
+  // First, check if branch already exists to avoid unnecessary errors
+  const existingBranch = await resolveRef(dbClient)(branchName);
+  if (existingBranch) {
+    logger.debug({ branchName }, 'Branch already exists, skipping creation');
+    return;
+  }
+
+  // Try to create the branch
   try {
     await doltBranch(dbClient)({ name: branchName });
+    logger.debug({ branchName }, 'Branch created successfully');
   } catch (error) {
-    // Check if it's a "branch already exists" error - this is expected in concurrent scenarios
-    const errorMessage = error instanceof Error ? error.message : String(error);
-    if (errorMessage.includes('already exists') || errorMessage.includes('duplicate')) {
-      logger.debug({ branchName }, 'Branch already exists (concurrent creation), continuing');
+    // Branch creation failed - this could be due to a race condition where
+    // another concurrent request created it between our check and create.
+    // Verify if the branch now exists.
+    const branchNowExists = await resolveRef(dbClient)(branchName);
+    if (branchNowExists) {
+      logger.debug(
+        { branchName },
+        'Branch creation failed but branch exists (concurrent creation), continuing'
+      );
       return;
     }
-    // Re-throw unexpected errors
+
+    // Branch still doesn't exist - this is a real error
+    logger.error({ branchName, error }, 'Branch creation failed and branch does not exist');
     throw error;
   }
 };
