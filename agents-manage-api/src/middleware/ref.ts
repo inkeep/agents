@@ -11,6 +11,26 @@ import dbClient from '../data/db/dbClient';
 
 const logger = getLogger('ref');
 
+/**
+ * Create a branch if it doesn't exist, handling race conditions gracefully.
+ * If multiple concurrent requests try to create the same branch, only one will succeed
+ * and the others will catch the "already exists" error and continue.
+ */
+const ensureBranchExists = async (branchName: string): Promise<void> => {
+  try {
+    await doltBranch(dbClient)({ name: branchName });
+  } catch (error) {
+    // Check if it's a "branch already exists" error - this is expected in concurrent scenarios
+    const errorMessage = error instanceof Error ? error.message : String(error);
+    if (errorMessage.includes('already exists') || errorMessage.includes('duplicate')) {
+      logger.debug({ branchName }, 'Branch already exists (concurrent creation), continuing');
+      return;
+    }
+    // Re-throw unexpected errors
+    throw error;
+  }
+};
+
 export type RefContext = {
   resolvedRef?: ResolvedRef;
 };
@@ -127,8 +147,8 @@ export const refMiddleware = async (c: Context, next: Next) => {
           const tenantMain = `${tenantId}_main`;
           let tenantRefResult = await resolveRef(dbClient)(tenantMain);
           if (!tenantRefResult) {
-            // Create tenant main if it doesn't exist
-            await doltBranch(dbClient)({ name: tenantMain });
+            // Create tenant main if it doesn't exist (handles concurrent creation gracefully)
+            await ensureBranchExists(tenantMain);
             tenantRefResult = await resolveRef(dbClient)(tenantMain);
           }
           if (tenantRefResult) {
@@ -175,8 +195,8 @@ export const refMiddleware = async (c: Context, next: Next) => {
       let refResult = await resolveRef(dbClient)(tenantMain);
 
       if (!refResult) {
-        // Tenant main doesn't exist, create it
-        await doltBranch(dbClient)({ name: tenantMain });
+        // Tenant main doesn't exist, create it (handles concurrent creation gracefully)
+        await ensureBranchExists(tenantMain);
 
         refResult = await resolveRef(dbClient)(tenantMain);
 

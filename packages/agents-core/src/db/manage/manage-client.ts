@@ -3,8 +3,8 @@ import { drizzle } from 'drizzle-orm/node-postgres';
 import type { PgliteDatabase } from 'drizzle-orm/pglite';
 import { Pool } from 'pg';
 import { env, loadEnvironmentFiles } from '../../env';
+import { createTestManageDatabaseClientNoMigrations as createTestManageDatabaseClientNoMigrations } from './test-manage-client';
 import * as schema from './manage-schema';
-import { createTestManageDatabaseClientNoMigrations } from './test-manage-client';
 
 loadEnvironmentFiles();
 
@@ -28,7 +28,7 @@ export interface AgentsManageDatabaseConfig {
 export function createAgentsManageDatabaseClient(
   config: AgentsManageDatabaseConfig
 ): AgentsManageDatabaseClient {
-  const connectionString = config.connectionString || env.INKEEP_AGENTS_MANAGE_DATABASE_URL;
+  let connectionString = config.connectionString || env.INKEEP_AGENTS_MANAGE_DATABASE_URL;
 
   if (env.ENVIRONMENT === 'test') {
     return createTestManageDatabaseClientNoMigrations();
