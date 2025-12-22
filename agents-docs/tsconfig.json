@@ -30,8 +30,8 @@
     "**/*.ts",
     "**/*.tsx",
     ".next/types/**/*.ts",
-    "content/talk-to-your-agents/a2a.mdx",
-    "content/talk-to-your-agents/mcp-server.mdx",
+    "content/docs/talk-to-your-agents/a2a.mdx",
+    "content/docs/talk-to-your-agents/mcp-server.mdx",
     ".next/dev/types/**/*.ts",
     "scripts/generate-classnames.mjs"
   ],
