@@ -1,6 +1,5 @@
 'use client';
 
-import * as Sentry from '@sentry/nextjs';
 import NextError from 'next/error';
 import { type FC, useEffect } from 'react';
 
@@ -8,7 +7,11 @@ const GlobalError: FC<{
   error: Error & { digest?: string };
 }> = ({ error }) => {
   useEffect(() => {
-    Sentry.captureException(error);
+    if (process.env.NEXT_PUBLIC_SENTRY_ENABLED === 'true') {
+      import('@sentry/nextjs').then((Sentry) => {
+        Sentry.captureException(error);
+      });
+    }
   }, [error]);
   // global-error must include html and body tags
   return (
