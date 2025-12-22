@@ -71,11 +71,17 @@ describe('Introspect Generator - End-to-End', () => {
         retrievalParams: { username: 'db-user', password: 'db-pass' },
       },
     },
-    functions: {
+    functionTools: {
       'calculate-priority': {
         id: 'calculate-priority',
         name: 'Calculate Priority',
         description: 'Calculate ticket priority based on customer tier and issue type',
+        functionId: 'calculate-priority',
+      },
+    },
+    functions: {
+      'calculate-priority': {
+        id: 'calculate-priority',
         inputSchema: {
           type: 'object',
           properties: {
@@ -207,6 +213,7 @@ describe('Introspect Generator - End-to-End', () => {
           },
         },
         contextConfig: {
+          id: 'support-agent-context',
           headers: 'supportHeaders',
           headersSchema: {
             type: 'object',

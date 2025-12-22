@@ -156,8 +156,12 @@
             "type": "string"
           },
           "defaultSubAgentId": {
-            "maxLength": 256,
+            "description": "ID of the default sub-agent that handles initial user messages. Required at runtime but nullable on creation to avoid circular FK dependency. Workflow: 1) POST Agent (without defaultSubAgentId), 2) POST SubAgent, 3) PATCH Agent with defaultSubAgentId.",
+            "example": "my-default-subagent",
+            "maxLength": 255,
+            "minLength": 1,
             "nullable": true,
+            "pattern": "^[a-zA-Z0-9\\-_.]+$",
             "type": "string"
           },
           "description": {
@@ -204,6 +208,7 @@
             ]
           },
           "name": {
+            "description": "Agent name",
             "minLength": 1,
             "type": "string"
           },
@@ -277,7 +282,10 @@
             "type": "string"
           }
         },
-        "required": ["id", "name"],
+        "required": [
+          "id",
+          "name"
+        ],
         "type": "object"
       },
       "AgentIdPathParam": {
@@ -297,7 +305,10 @@
             "$ref": "#/components/schemas/Pagination"
           }
         },
-        "required": ["data", "pagination"],
+        "required": [
+          "data",
+          "pagination"
+        ],
         "type": "object"
       },
       "AgentResponse": {
@@ -306,7 +317,9 @@
             "$ref": "#/components/schemas/Agent"
           }
         },
-        "required": ["data"],
+        "required": [
+          "data"
+        ],
         "type": "object"
       },
       "AgentStopWhen": {
@@ -331,8 +344,12 @@
             "type": "string"
           },
           "defaultSubAgentId": {
-            "maxLength": 256,
+            "description": "ID of the default sub-agent that handles initial user messages. Required at runtime but nullable on creation to avoid circular FK dependency. Workflow: 1) POST Agent (without defaultSubAgentId), 2) POST SubAgent, 3) PATCH Agent with defaultSubAgentId.",
+            "example": "my-default-subagent",
+            "maxLength": 255,
+            "minLength": 1,
             "nullable": true,
+            "pattern": "^[a-zA-Z0-9\\-_.]+$",
             "type": "string"
           },
           "description": {
@@ -379,6 +396,7 @@
             ]
           },
           "name": {
+            "description": "Agent name",
             "minLength": 1,
             "type": "string"
           },
@@ -514,7 +532,9 @@
                 "type": "object"
               }
             },
-            "required": ["subAgents"],
+            "required": [
+              "subAgents"
+            ],
             "type": "object"
           }
         ]
@@ -525,7 +545,9 @@
             "$ref": "#/components/schemas/AgentWithinContextOfProject"
           }
         },
-        "required": ["data"],
+        "required": [
+          "data"
+        ],
         "type": "object"
       },
       "ApiKey": {
@@ -605,7 +627,9 @@
             "type": "string"
           }
         },
-        "required": ["agentId"],
+        "required": [
+          "agentId"
+        ],
         "type": "object"
       },
       "ApiKeyListResponse": {
@@ -620,7 +644,10 @@
             "$ref": "#/components/schemas/Pagination"
           }
         },
-        "required": ["data", "pagination"],
+        "required": [
+          "data",
+          "pagination"
+        ],
         "type": "object"
       },
       "ApiKeyResponse": {
@@ -629,7 +656,9 @@
             "$ref": "#/components/schemas/ApiKey"
           }
         },
-        "required": ["data"],
+        "required": [
+          "data"
+        ],
         "type": "object"
       },
       "ApiKeyUpdate": {
@@ -713,7 +742,14 @@
             "type": "string"
           }
         },
-        "required": ["id", "name", "description", "props", "createdAt", "updatedAt"],
+        "required": [
+          "id",
+          "name",
+          "description",
+          "props",
+          "createdAt",
+          "updatedAt"
+        ],
         "type": "object"
       },
       "ArtifactComponentArrayResponse": {
@@ -725,7 +761,9 @@
             "type": "array"
           }
         },
-        "required": ["data"],
+        "required": [
+          "data"
+        ],
         "type": "object"
       },
       "ArtifactComponentCreate": {
@@ -778,7 +816,10 @@
             ]
           }
         },
-        "required": ["id", "name"],
+        "required": [
+          "id",
+          "name"
+        ],
         "type": "object"
       },
       "ArtifactComponentListResponse": {
@@ -793,7 +834,10 @@
             "$ref": "#/components/schemas/Pagination"
           }
         },
-        "required": ["data", "pagination"],
+        "required": [
+          "data",
+          "pagination"
+        ],
         "type": "object"
       },
       "ArtifactComponentResponse": {
@@ -802,7 +846,9 @@
             "$ref": "#/components/schemas/ArtifactComponent"
           }
         },
-        "required": ["data"],
+        "required": [
+          "data"
+        ],
         "type": "object"
       },
       "ArtifactComponentUpdate": {
@@ -872,7 +918,9 @@
             "properties": {
               "code": {
                 "description": "A short code indicating the error code returned.",
-                "enum": ["bad_request"],
+                "enum": [
+                  "bad_request"
+                ],
                 "example": "bad_request",
                 "type": "string"
               },
@@ -886,7 +934,9 @@
                 "properties": {
                   "code": {
                     "description": "A short code indicating the error code returned.",
-                    "enum": ["bad_request"],
+                    "enum": [
+                      "bad_request"
+                    ],
                     "example": "bad_request",
                     "type": "string"
                   },
@@ -896,7 +946,10 @@
                     "type": "string"
                   }
                 },
-                "required": ["code", "message"],
+                "required": [
+                  "code",
+                  "message"
+                ],
                 "type": "object"
               },
               "status": {
@@ -910,7 +963,9 @@
                 "type": "string"
               }
             },
-            "required": ["error"],
+            "required": [
+              "error"
+            ],
             "type": "object"
           }
         ]
@@ -931,7 +986,9 @@
             "type": "string"
           }
         },
-        "required": ["externalAgentId"],
+        "required": [
+          "externalAgentId"
+        ],
         "type": "object"
       },
       "CanDelegateToTeamAgent": {
@@ -950,7 +1007,9 @@
             "type": "string"
           }
         },
-        "required": ["agentId"],
+        "required": [
+          "agentId"
+        ],
         "type": "object"
       },
       "CanUseItem": {
@@ -988,7 +1047,9 @@
             "type": "array"
           }
         },
-        "required": ["toolId"],
+        "required": [
+          "toolId"
+        ],
         "type": "object"
       },
       "ComponentAssociation": {
@@ -1000,7 +1061,10 @@
             "type": "string"
           }
         },
-        "required": ["subAgentId", "createdAt"],
+        "required": [
+          "subAgentId",
+          "createdAt"
+        ],
         "type": "object"
       },
       "ComponentAssociationListResponse": {
@@ -1012,7 +1076,9 @@
             "type": "array"
           }
         },
-        "required": ["data"],
+        "required": [
+          "data"
+        ],
         "type": "object"
       },
       "ContextConfig": {
@@ -1063,7 +1129,12 @@
             "type": "string"
           }
         },
-        "required": ["id", "contextVariables", "createdAt", "updatedAt"],
+        "required": [
+          "id",
+          "contextVariables",
+          "createdAt",
+          "updatedAt"
+        ],
         "type": "object"
       },
       "ContextConfigCreate": {
@@ -1099,7 +1170,10 @@
             "$ref": "#/components/schemas/Pagination"
           }
         },
-        "required": ["data", "pagination"],
+        "required": [
+          "data",
+          "pagination"
+        ],
         "type": "object"
       },
       "ContextConfigResponse": {
@@ -1108,7 +1182,9 @@
             "$ref": "#/components/schemas/ContextConfig"
           }
         },
-        "required": ["data"],
+        "required": [
+          "data"
+        ],
         "type": "object"
       },
       "ContextConfigUpdate": {
@@ -1142,7 +1218,9 @@
                     "type": "string"
                   }
                 },
-                "required": ["llmContext"],
+                "required": [
+                  "llmContext"
+                ],
                 "type": "object"
               },
               "messages": {
@@ -1152,11 +1230,16 @@
                 "type": "array"
               }
             },
-            "required": ["messages", "formatted"],
+            "required": [
+              "messages",
+              "formatted"
+            ],
             "type": "object"
           }
         },
-        "required": ["data"],
+        "required": [
+          "data"
+        ],
         "type": "object"
       },
       "CreateCredentialInStoreRequest": {
@@ -1178,7 +1261,10 @@
             "type": "string"
           }
         },
-        "required": ["key", "value"],
+        "required": [
+          "key",
+          "value"
+        ],
         "type": "object"
       },
       "CreateCredentialInStoreResponse": {
@@ -1198,11 +1284,17 @@
                 "type": "string"
               }
             },
-            "required": ["key", "storeId", "createdAt"],
+            "required": [
+              "key",
+              "storeId",
+              "createdAt"
+            ],
             "type": "object"
           }
         },
-        "required": ["data"],
+        "required": [
+          "data"
+        ],
         "type": "object"
       },
       "CredentialReference": {
@@ -1475,7 +1567,11 @@
             "type": "array"
           },
           "type": {
-            "enum": ["memory", "keychain", "nango"],
+            "enum": [
+              "memory",
+              "keychain",
+              "nango"
+            ],
             "type": "string"
           },
           "updatedAt": {
@@ -1544,7 +1640,11 @@
             "type": "string"
           },
           "type": {
-            "enum": ["memory", "keychain", "nango"],
+            "enum": [
+              "memory",
+              "keychain",
+              "nango"
+            ],
             "type": "string"
           },
           "updatedAt": {
@@ -1556,7 +1656,12 @@
             "type": "string"
           }
         },
-        "required": ["id", "name", "type", "credentialStoreId"],
+        "required": [
+          "id",
+          "name",
+          "type",
+          "credentialStoreId"
+        ],
         "type": "object"
       },
       "CredentialReferenceListResponse": {
@@ -1571,7 +1676,10 @@
             "$ref": "#/components/schemas/Pagination"
           }
         },
-        "required": ["data", "pagination"],
+        "required": [
+          "data",
+          "pagination"
+        ],
         "type": "object"
       },
       "CredentialReferenceResponse": {
@@ -1580,7 +1688,9 @@
             "$ref": "#/components/schemas/CredentialReference"
           }
         },
-        "required": ["data"],
+        "required": [
+          "data"
+        ],
         "type": "object"
       },
       "CredentialReferenceUpdate": {
@@ -1626,7 +1736,11 @@
             "type": "string"
           },
           "type": {
-            "enum": ["memory", "keychain", "nango"],
+            "enum": [
+              "memory",
+              "keychain",
+              "nango"
+            ],
             "type": "string"
           },
           "updatedAt": {
@@ -1656,11 +1770,20 @@
             "type": "string"
           },
           "type": {
-            "enum": ["memory", "keychain", "nango"],
+            "enum": [
+              "memory",
+              "keychain",
+              "nango"
+            ],
             "type": "string"
           }
         },
-        "required": ["id", "type", "available", "reason"],
+        "required": [
+          "id",
+          "type",
+          "available",
+          "reason"
+        ],
         "type": "object"
       },
       "CredentialStoreListResponse": {
@@ -1673,7 +1796,9 @@
             "type": "array"
           }
         },
-        "required": ["data"],
+        "required": [
+          "data"
+        ],
         "type": "object"
       },
       "DataComponent": {
@@ -1759,7 +1884,15 @@
             "type": "string"
           }
         },
-        "required": ["id", "name", "description", "props", "render", "createdAt", "updatedAt"],
+        "required": [
+          "id",
+          "name",
+          "description",
+          "props",
+          "render",
+          "createdAt",
+          "updatedAt"
+        ],
         "type": "object"
       },
       "DataComponentArrayResponse": {
@@ -1771,7 +1904,9 @@
             "type": "array"
           }
         },
-        "required": ["data"],
+        "required": [
+          "data"
+        ],
         "type": "object"
       },
       "DataComponentCreate": {
@@ -1861,7 +1996,10 @@
             "type": "string"
           }
         },
-        "required": ["id", "name"],
+        "required": [
+          "id",
+          "name"
+        ],
         "type": "object"
       },
       "DataComponentListResponse": {
@@ -1876,7 +2014,10 @@
             "$ref": "#/components/schemas/Pagination"
           }
         },
-        "required": ["data", "pagination"],
+        "required": [
+          "data",
+          "pagination"
+        ],
         "type": "object"
       },
       "DataComponentResponse": {
@@ -1885,7 +2026,9 @@
             "$ref": "#/components/schemas/DataComponent"
           }
         },
-        "required": ["data"],
+        "required": [
+          "data"
+        ],
         "type": "object"
       },
       "DataComponentUpdate": {
@@ -1990,7 +2133,9 @@
             "type": "string"
           }
         },
-        "required": ["error"],
+        "required": [
+          "error"
+        ],
         "type": "object"
       },
       "ExistsResponse": {
@@ -1999,7 +2144,9 @@
             "type": "boolean"
           }
         },
-        "required": ["exists"],
+        "required": [
+          "exists"
+        ],
         "type": "object"
       },
       "ExternalAgent": {
@@ -2030,7 +2177,14 @@
             "type": "string"
           }
         },
-        "required": ["id", "name", "description", "baseUrl", "createdAt", "updatedAt"],
+        "required": [
+          "id",
+          "name",
+          "description",
+          "baseUrl",
+          "createdAt",
+          "updatedAt"
+        ],
         "type": "object"
       },
       "ExternalAgentCreate": {
@@ -2066,7 +2220,11 @@
             "type": "string"
           }
         },
-        "required": ["id", "name", "baseUrl"],
+        "required": [
+          "id",
+          "name",
+          "baseUrl"
+        ],
         "type": "object"
       },
       "ExternalAgentListResponse": {
@@ -2081,7 +2239,10 @@
             "$ref": "#/components/schemas/Pagination"
           }
         },
-        "required": ["data", "pagination"],
+        "required": [
+          "data",
+          "pagination"
+        ],
         "type": "object"
       },
       "ExternalAgentResponse": {
@@ -2090,7 +2251,9 @@
             "$ref": "#/components/schemas/ExternalAgent"
           }
         },
-        "required": ["data"],
+        "required": [
+          "data"
+        ],
         "type": "object"
       },
       "ExternalAgentUpdate": {
@@ -2137,7 +2300,9 @@
             "properties": {
               "code": {
                 "description": "A short code indicating the error code returned.",
-                "enum": ["forbidden"],
+                "enum": [
+                  "forbidden"
+                ],
                 "example": "forbidden",
                 "type": "string"
               },
@@ -2151,7 +2316,9 @@
                 "properties": {
                   "code": {
                     "description": "A short code indicating the error code returned.",
-                    "enum": ["forbidden"],
+                    "enum": [
+                      "forbidden"
+                    ],
                     "example": "forbidden",
                     "type": "string"
                   },
@@ -2161,7 +2328,10 @@
                     "type": "string"
                   }
                 },
-                "required": ["code", "message"],
+                "required": [
+                  "code",
+                  "message"
+                ],
                 "type": "object"
               },
               "status": {
@@ -2175,7 +2345,9 @@
                 "type": "string"
               }
             },
-            "required": ["error"],
+            "required": [
+              "error"
+            ],
             "type": "object"
           }
         ]
@@ -2231,11 +2403,16 @@
                 "type": "string"
               },
               "type": {
-                "enum": ["internal"],
+                "enum": [
+                  "internal"
+                ],
                 "type": "string"
               }
             },
-            "required": ["type", "canUse"],
+            "required": [
+              "type",
+              "canUse"
+            ],
             "type": "object"
           }
         ]
@@ -2305,7 +2482,10 @@
                 "type": "string"
               }
             },
-            "required": ["agents", "tools"],
+            "required": [
+              "agents",
+              "tools"
+            ],
             "type": "object"
           }
         ]
@@ -2316,7 +2496,9 @@
             "$ref": "#/components/schemas/FullProjectDefinition"
           }
         },
-        "required": ["data"],
+        "required": [
+          "data"
+        ],
         "type": "object"
       },
       "Function": {
@@ -2397,7 +2579,14 @@
             "type": "string"
           }
         },
-        "required": ["id", "inputSchema", "executeCode", "dependencies", "createdAt", "updatedAt"],
+        "required": [
+          "id",
+          "inputSchema",
+          "executeCode",
+          "dependencies",
+          "createdAt",
+          "updatedAt"
+        ],
         "type": "object"
       },
       "FunctionCreate": {
@@ -2482,7 +2671,10 @@
             "type": "string"
           }
         },
-        "required": ["id", "executeCode"],
+        "required": [
+          "id",
+          "executeCode"
+        ],
         "type": "object"
       },
       "FunctionListResponse": {
@@ -2497,7 +2689,10 @@
             "$ref": "#/components/schemas/Pagination"
           }
         },
-        "required": ["data", "pagination"],
+        "required": [
+          "data",
+          "pagination"
+        ],
         "type": "object"
       },
       "FunctionResponse": {
@@ -2506,7 +2701,9 @@
             "$ref": "#/components/schemas/Function"
           }
         },
-        "required": ["data"],
+        "required": [
+          "data"
+        ],
         "type": "object"
       },
       "FunctionTool": {
@@ -2578,7 +2775,11 @@
             "type": "string"
           }
         },
-        "required": ["id", "name", "functionId"],
+        "required": [
+          "id",
+          "name",
+          "functionId"
+        ],
         "type": "object"
       },
       "FunctionToolListResponse": {
@@ -2593,7 +2794,10 @@
             "$ref": "#/components/schemas/Pagination"
           }
         },
-        "required": ["data", "pagination"],
+        "required": [
+          "data",
+          "pagination"
+        ],
         "type": "object"
       },
       "FunctionToolResponse": {
@@ -2602,7 +2806,9 @@
             "$ref": "#/components/schemas/FunctionTool"
           }
         },
-        "required": ["data"],
+        "required": [
+          "data"
+        ],
         "type": "object"
       },
       "FunctionToolUpdate": {
@@ -2733,7 +2939,9 @@
             "properties": {
               "code": {
                 "description": "A short code indicating the error code returned.",
-                "enum": ["internal_server_error"],
+                "enum": [
+                  "internal_server_error"
+                ],
                 "example": "internal_server_error",
                 "type": "string"
               },
@@ -2747,7 +2955,9 @@
                 "properties": {
                   "code": {
                     "description": "A short code indicating the error code returned.",
-                    "enum": ["internal_server_error"],
+                    "enum": [
+                      "internal_server_error"
+                    ],
                     "example": "internal_server_error",
                     "type": "string"
                   },
@@ -2757,7 +2967,10 @@
                     "type": "string"
                   }
                 },
-                "required": ["code", "message"],
+                "required": [
+                  "code",
+                  "message"
+                ],
                 "type": "object"
               },
               "status": {
@@ -2771,7 +2984,9 @@
                 "type": "string"
               }
             },
-            "required": ["error"],
+            "required": [
+              "error"
+            ],
             "type": "object"
           }
         ]
@@ -2813,7 +3028,10 @@
                 },
                 "transport": {
                   "description": "Transport protocol type",
-                  "enum": ["streamable_http", "sse"],
+                  "enum": [
+                    "streamable_http",
+                    "sse"
+                  ],
                   "type": "string"
                 },
                 "url": {
@@ -2822,13 +3040,20 @@
                   "type": "string"
                 }
               },
-              "required": ["id", "name", "url", "transport"],
+              "required": [
+                "id",
+                "name",
+                "url",
+                "transport"
+              ],
               "type": "object"
             },
             "type": "array"
           }
         },
-        "required": ["data"],
+        "required": [
+          "data"
+        ],
         "type": "object"
       },
       "McpTool": {
@@ -2849,7 +3074,9 @@
                   "type": "string"
                 }
               },
-              "required": ["name"],
+              "required": [
+                "name"
+              ],
               "type": "object"
             },
             "type": "array"
@@ -2902,7 +3129,9 @@
                         "type": "string"
                       }
                     },
-                    "required": ["url"],
+                    "required": [
+                      "url"
+                    ],
                     "type": "object"
                   },
                   "transport": {
@@ -2927,23 +3156,35 @@
                         "type": "string"
                       },
                       "type": {
-                        "enum": ["streamable_http", "sse"],
+                        "enum": [
+                          "streamable_http",
+                          "sse"
+                        ],
                         "type": "string"
                       }
                     },
-                    "required": ["type"],
+                    "required": [
+                      "type"
+                    ],
                     "type": "object"
                   }
                 },
-                "required": ["server"],
+                "required": [
+                  "server"
+                ],
                 "type": "object"
               },
               "type": {
-                "enum": ["mcp"],
+                "enum": [
+                  "mcp"
+                ],
                 "type": "string"
               }
             },
-            "required": ["type", "mcp"],
+            "required": [
+              "type",
+              "mcp"
+            ],
             "type": "object"
           },
           "createdAt": {
@@ -3027,7 +3268,12 @@
           },
           "status": {
             "default": "unknown",
-            "enum": ["healthy", "unhealthy", "unknown", "needs_auth"],
+            "enum": [
+              "healthy",
+              "unhealthy",
+              "unknown",
+              "needs_auth"
+            ],
             "type": "string"
           },
           "tenantId": {
@@ -3041,7 +3287,13 @@
             "type": "string"
           }
         },
-        "required": ["tenantId", "id", "projectId", "name", "config"],
+        "required": [
+          "tenantId",
+          "id",
+          "projectId",
+          "name",
+          "config"
+        ],
         "type": "object"
       },
       "McpToolListResponse": {
@@ -3056,7 +3308,10 @@
             "$ref": "#/components/schemas/Pagination"
           }
         },
-        "required": ["data", "pagination"],
+        "required": [
+          "data",
+          "pagination"
+        ],
         "type": "object"
       },
       "McpToolResponse": {
@@ -3065,7 +3320,9 @@
             "$ref": "#/components/schemas/McpTool"
           }
         },
-        "required": ["data"],
+        "required": [
+          "data"
+        ],
         "type": "object"
       },
       "Model": {
@@ -3107,7 +3364,9 @@
             "properties": {
               "code": {
                 "description": "A short code indicating the error code returned.",
-                "enum": ["not_found"],
+                "enum": [
+                  "not_found"
+                ],
                 "example": "not_found",
                 "type": "string"
               },
@@ -3121,7 +3380,9 @@
                 "properties": {
                   "code": {
                     "description": "A short code indicating the error code returned.",
-                    "enum": ["not_found"],
+                    "enum": [
+                      "not_found"
+                    ],
                     "example": "not_found",
                     "type": "string"
                   },
@@ -3131,7 +3392,10 @@
                     "type": "string"
                   }
                 },
-                "required": ["code", "message"],
+                "required": [
+                  "code",
+                  "message"
+                ],
                 "type": "object"
               },
               "title": {
@@ -3140,7 +3404,9 @@
                 "type": "string"
               }
             },
-            "required": ["error"],
+            "required": [
+              "error"
+            ],
             "type": "object"
           }
         ]
@@ -3160,7 +3426,10 @@
             "type": "number"
           }
         },
-        "required": ["total", "pages"],
+        "required": [
+          "total",
+          "pages"
+        ],
         "type": "object"
       },
       "PaginationLimitQueryParam": {
@@ -3216,7 +3485,12 @@
             "type": "string"
           }
         },
-        "required": ["title", "status", "detail", "code"],
+        "required": [
+          "title",
+          "status",
+          "detail",
+          "code"
+        ],
         "type": "object"
       },
       "Project": {
@@ -3246,7 +3520,15 @@
             "type": "string"
           }
         },
-        "required": ["id", "name", "description", "models", "stopWhen", "createdAt", "updatedAt"],
+        "required": [
+          "id",
+          "name",
+          "description",
+          "models",
+          "stopWhen",
+          "createdAt",
+          "updatedAt"
+        ],
         "type": "object"
       },
       "ProjectCreate": {
@@ -3270,7 +3552,11 @@
             "$ref": "#/components/schemas/StopWhen"
           }
         },
-        "required": ["id", "name", "models"],
+        "required": [
+          "id",
+          "name",
+          "models"
+        ],
         "type": "object"
       },
       "ProjectIdPathParam": {
@@ -3290,7 +3576,10 @@
             "$ref": "#/components/schemas/Pagination"
           }
         },
-        "required": ["data", "pagination"],
+        "required": [
+          "data",
+          "pagination"
+        ],
         "type": "object"
       },
       "ProjectModel": {
@@ -3306,7 +3595,9 @@
             "$ref": "#/components/schemas/ModelSettings"
           }
         },
-        "required": ["base"],
+        "required": [
+          "base"
+        ],
         "type": "object"
       },
       "ProjectResponse": {
@@ -3315,7 +3606,9 @@
             "$ref": "#/components/schemas/Project"
           }
         },
-        "required": ["data"],
+        "required": [
+          "data"
+        ],
         "type": "object"
       },
       "ProjectUpdate": {
@@ -3350,7 +3643,11 @@
             "type": "string"
           }
         },
-        "required": ["id", "name", "description"],
+        "required": [
+          "id",
+          "name",
+          "description"
+        ],
         "type": "object"
       },
       "RelatedAgentInfoListResponse": {
@@ -3365,7 +3662,10 @@
             "$ref": "#/components/schemas/Pagination"
           }
         },
-        "required": ["data", "pagination"],
+        "required": [
+          "data",
+          "pagination"
+        ],
         "type": "object"
       },
       "RemovedResponse": {
@@ -3377,7 +3677,10 @@
             "type": "boolean"
           }
         },
-        "required": ["message", "removed"],
+        "required": [
+          "message",
+          "removed"
+        ],
         "type": "object"
       },
       "StatusComponent": {
@@ -3400,18 +3703,25 @@
                 "type": "array"
               },
               "type": {
-                "enum": ["object"],
+                "enum": [
+                  "object"
+                ],
                 "type": "string"
               }
             },
-            "required": ["type", "properties"],
+            "required": [
+              "type",
+              "properties"
+            ],
             "type": "object"
           },
           "type": {
             "type": "string"
           }
         },
-        "required": ["type"],
+        "required": [
+          "type"
+        ],
         "type": "object"
       },
       "StatusUpdate": {
@@ -3611,11 +3921,18 @@
                 "type": "string"
               }
             },
-            "required": ["id", "subAgentId", "artifactComponentId", "createdAt"],
+            "required": [
+              "id",
+              "subAgentId",
+              "artifactComponentId",
+              "createdAt"
+            ],
             "type": "object"
           }
         },
-        "required": ["data"],
+        "required": [
+          "data"
+        ],
         "type": "object"
       },
       "SubAgentCreate": {
@@ -3712,7 +4029,10 @@
             "type": "string"
           }
         },
-        "required": ["id", "name"],
+        "required": [
+          "id",
+          "name"
+        ],
         "type": "object"
       },
       "SubAgentDataComponentResponse": {
@@ -3735,11 +4055,18 @@
                 "type": "string"
               }
             },
-            "required": ["id", "subAgentId", "dataComponentId", "createdAt"],
+            "required": [
+              "id",
+              "subAgentId",
+              "dataComponentId",
+              "createdAt"
+            ],
             "type": "object"
           }
         },
-        "required": ["data"],
+        "required": [
+          "data"
+        ],
         "type": "object"
       },
       "SubAgentExternalAgentRelation": {
@@ -3794,7 +4121,14 @@
             "type": "string"
           }
         },
-        "required": ["id", "subAgentId", "externalAgentId", "headers", "createdAt", "updatedAt"],
+        "required": [
+          "id",
+          "subAgentId",
+          "externalAgentId",
+          "headers",
+          "createdAt",
+          "updatedAt"
+        ],
         "type": "object"
       },
       "SubAgentExternalAgentRelationCreate": {
@@ -3821,7 +4155,9 @@
             "type": "string"
           }
         },
-        "required": ["externalAgentId"],
+        "required": [
+          "externalAgentId"
+        ],
         "type": "object"
       },
       "SubAgentExternalAgentRelationListResponse": {
@@ -3836,7 +4172,10 @@
             "$ref": "#/components/schemas/Pagination"
           }
         },
-        "required": ["data", "pagination"],
+        "required": [
+          "data",
+          "pagination"
+        ],
         "type": "object"
       },
       "SubAgentExternalAgentRelationResponse": {
@@ -3845,7 +4184,9 @@
             "$ref": "#/components/schemas/SubAgentExternalAgentRelation"
           }
         },
-        "required": ["data"],
+        "required": [
+          "data"
+        ],
         "type": "object"
       },
       "SubAgentExternalAgentRelationUpdate": {
@@ -3907,7 +4248,10 @@
             "$ref": "#/components/schemas/Pagination"
           }
         },
-        "required": ["data", "pagination"],
+        "required": [
+          "data",
+          "pagination"
+        ],
         "type": "object"
       },
       "SubAgentRelation": {
@@ -3969,7 +4313,10 @@
             "type": "string"
           },
           "relationType": {
-            "enum": ["transfer", "delegate"],
+            "enum": [
+              "transfer",
+              "delegate"
+            ],
             "type": "string"
           },
           "sourceSubAgentId": {
@@ -4000,7 +4347,11 @@
             "type": "string"
           }
         },
-        "required": ["id", "sourceSubAgentId", "relationType"],
+        "required": [
+          "id",
+          "sourceSubAgentId",
+          "relationType"
+        ],
         "type": "object"
       },
       "SubAgentRelationListResponse": {
@@ -4015,7 +4366,10 @@
             "$ref": "#/components/schemas/Pagination"
           }
         },
-        "required": ["data", "pagination"],
+        "required": [
+          "data",
+          "pagination"
+        ],
         "type": "object"
       },
       "SubAgentRelationResponse": {
@@ -4024,7 +4378,9 @@
             "$ref": "#/components/schemas/SubAgentRelation"
           }
         },
-        "required": ["data"],
+        "required": [
+          "data"
+        ],
         "type": "object"
       },
       "SubAgentRelationUpdate": {
@@ -4049,7 +4405,10 @@
             "type": "string"
           },
           "relationType": {
-            "enum": ["transfer", "delegate"],
+            "enum": [
+              "transfer",
+              "delegate"
+            ],
             "type": "string"
           },
           "sourceSubAgentId": {
@@ -4088,7 +4447,9 @@
             "$ref": "#/components/schemas/SubAgent"
           }
         },
-        "required": ["data"],
+        "required": [
+          "data"
+        ],
         "type": "object"
       },
       "SubAgentTeamAgentRelation": {
@@ -4143,7 +4504,14 @@
             "type": "string"
           }
         },
-        "required": ["id", "subAgentId", "targetAgentId", "headers", "createdAt", "updatedAt"],
+        "required": [
+          "id",
+          "subAgentId",
+          "targetAgentId",
+          "headers",
+          "createdAt",
+          "updatedAt"
+        ],
         "type": "object"
       },
       "SubAgentTeamAgentRelationCreate": {
@@ -4170,7 +4538,9 @@
             "type": "string"
           }
         },
-        "required": ["targetAgentId"],
+        "required": [
+          "targetAgentId"
+        ],
         "type": "object"
       },
       "SubAgentTeamAgentRelationListResponse": {
@@ -4185,7 +4555,10 @@
             "$ref": "#/components/schemas/Pagination"
           }
         },
-        "required": ["data", "pagination"],
+        "required": [
+          "data",
+          "pagination"
+        ],
         "type": "object"
       },
       "SubAgentTeamAgentRelationResponse": {
@@ -4194,7 +4567,9 @@
             "$ref": "#/components/schemas/SubAgentTeamAgentRelation"
           }
         },
-        "required": ["data"],
+        "required": [
+          "data"
+        ],
         "type": "object"
       },
       "SubAgentTeamAgentRelationUpdate": {
@@ -4424,7 +4799,11 @@
             "type": "string"
           }
         },
-        "required": ["id", "subAgentId", "toolId"],
+        "required": [
+          "id",
+          "subAgentId",
+          "toolId"
+        ],
         "type": "object"
       },
       "SubAgentToolRelationListResponse": {
@@ -4439,7 +4818,10 @@
             "$ref": "#/components/schemas/Pagination"
           }
         },
-        "required": ["data", "pagination"],
+        "required": [
+          "data",
+          "pagination"
+        ],
         "type": "object"
       },
       "SubAgentToolRelationResponse": {
@@ -4448,7 +4830,9 @@
             "$ref": "#/components/schemas/SubAgentToolRelation"
           }
         },
-        "required": ["data"],
+        "required": [
+          "data"
+        ],
         "type": "object"
       },
       "SubAgentToolRelationUpdate": {
@@ -4620,7 +5004,11 @@
             "type": "string"
           }
         },
-        "required": ["id", "name", "description"],
+        "required": [
+          "id",
+          "name",
+          "description"
+        ],
         "type": "object"
       },
       "TenantIdPathParam": {
@@ -4665,7 +5053,10 @@
               },
               "transport": {
                 "description": "Transport protocol type",
-                "enum": ["streamable_http", "sse"],
+                "enum": [
+                  "streamable_http",
+                  "sse"
+                ],
                 "type": "string"
               },
               "url": {
@@ -4674,11 +5065,18 @@
                 "type": "string"
               }
             },
-            "required": ["id", "name", "url", "transport"],
+            "required": [
+              "id",
+              "name",
+              "url",
+              "transport"
+            ],
             "type": "object"
           }
         },
-        "required": ["data"],
+        "required": [
+          "data"
+        ],
         "type": "object"
       },
       "ToolCreate": {
@@ -4731,7 +5129,9 @@
                         "type": "string"
                       }
                     },
-                    "required": ["url"],
+                    "required": [
+                      "url"
+                    ],
                     "type": "object"
                   },
                   "transport": {
@@ -4756,23 +5156,35 @@
                         "type": "string"
                       },
                       "type": {
-                        "enum": ["streamable_http", "sse"],
+                        "enum": [
+                          "streamable_http",
+                          "sse"
+                        ],
                         "type": "string"
                       }
                     },
-                    "required": ["type"],
+                    "required": [
+                      "type"
+                    ],
                     "type": "object"
                   }
                 },
-                "required": ["server"],
+                "required": [
+                  "server"
+                ],
                 "type": "object"
               },
               "type": {
-                "enum": ["mcp"],
+                "enum": [
+                  "mcp"
+                ],
                 "type": "string"
               }
             },
-            "required": ["type", "mcp"],
+            "required": [
+              "type",
+              "mcp"
+            ],
             "type": "object"
           },
           "createdAt": {
@@ -4845,7 +5257,11 @@
             "type": "string"
           }
         },
-        "required": ["id", "name", "config"],
+        "required": [
+          "id",
+          "name",
+          "config"
+        ],
         "type": "object"
       },
       "ToolUpdate": {
@@ -4898,7 +5314,9 @@
                         "type": "string"
                       }
                     },
-                    "required": ["url"],
+                    "required": [
+                      "url"
+                    ],
                     "type": "object"
                   },
                   "transport": {
@@ -4923,23 +5341,35 @@
                         "type": "string"
                       },
                       "type": {
-                        "enum": ["streamable_http", "sse"],
+                        "enum": [
+                          "streamable_http",
+                          "sse"
+                        ],
                         "type": "string"
                       }
                     },
-                    "required": ["type"],
+                    "required": [
+                      "type"
+                    ],
                     "type": "object"
                   }
                 },
-                "required": ["server"],
+                "required": [
+                  "server"
+                ],
                 "type": "object"
               },
               "type": {
-                "enum": ["mcp"],
+                "enum": [
+                  "mcp"
+                ],
                 "type": "string"
               }
             },
-            "required": ["type", "mcp"],
+            "required": [
+              "type",
+              "mcp"
+            ],
             "type": "object"
           },
           "createdAt": {
@@ -5023,7 +5453,9 @@
             "properties": {
               "code": {
                 "description": "A short code indicating the error code returned.",
-                "enum": ["unauthorized"],
+                "enum": [
+                  "unauthorized"
+                ],
                 "example": "unauthorized",
                 "type": "string"
               },
@@ -5037,7 +5469,9 @@
                 "properties": {
                   "code": {
                     "description": "A short code indicating the error code returned.",
-                    "enum": ["unauthorized"],
+                    "enum": [
+                      "unauthorized"
+                    ],
                     "example": "unauthorized",
                     "type": "string"
                   },
@@ -5047,7 +5481,10 @@
                     "type": "string"
                   }
                 },
-                "required": ["code", "message"],
+                "required": [
+                  "code",
+                  "message"
+                ],
                 "type": "object"
               },
               "status": {
@@ -5061,7 +5498,9 @@
                 "type": "string"
               }
             },
-            "required": ["error"],
+            "required": [
+              "error"
+            ],
             "type": "object"
           }
         ]
@@ -5075,7 +5514,9 @@
             "properties": {
               "code": {
                 "description": "A short code indicating the error code returned.",
-                "enum": ["unprocessable_entity"],
+                "enum": [
+                  "unprocessable_entity"
+                ],
                 "example": "unprocessable_entity",
                 "type": "string"
               },
@@ -5089,7 +5530,9 @@
                 "properties": {
                   "code": {
                     "description": "A short code indicating the error code returned.",
-                    "enum": ["unprocessable_entity"],
+                    "enum": [
+                      "unprocessable_entity"
+                    ],
                     "example": "unprocessable_entity",
                     "type": "string"
                   },
@@ -5099,7 +5542,10 @@
                     "type": "string"
                   }
                 },
-                "required": ["code", "message"],
+                "required": [
+                  "code",
+                  "message"
+                ],
                 "type": "object"
               },
               "status": {
@@ -5113,7 +5559,9 @@
                 "type": "string"
               }
             },
-            "required": ["error"],
+            "required": [
+              "error"
+            ],
             "type": "object"
           }
         ]
@@ -5165,7 +5613,12 @@
                           "type": "string"
                         }
                       },
-                      "required": ["id", "name", "slug", "role"],
+                      "required": [
+                        "id",
+                        "name",
+                        "slug",
+                        "role"
+                      ],
                       "type": "object"
                     },
                     "user": {
@@ -5181,11 +5634,18 @@
                           "type": "string"
                         }
                       },
-                      "required": ["id", "email", "name"],
+                      "required": [
+                        "id",
+                        "email",
+                        "name"
+                      ],
                       "type": "object"
                     }
                   },
-                  "required": ["user", "organization"],
+                  "required": [
+                    "user",
+                    "organization"
+                  ],
                   "type": "object"
                 }
               }
@@ -5200,7 +5660,9 @@
           }
         },
         "summary": "Get CLI user info",
-        "tags": ["cli"]
+        "tags": [
+          "cli"
+        ]
       }
     },
     "/api/invitations/pending": {
@@ -5278,7 +5740,9 @@
           }
         },
         "summary": "Get pending invitations",
-        "tags": ["invitations"]
+        "tags": [
+          "invitations"
+        ]
       }
     },
     "/api/users/{userId}/organizations": {
@@ -5354,7 +5818,9 @@
           }
         },
         "summary": "List user organizations",
-        "tags": ["user-organizations"]
+        "tags": [
+          "user-organizations"
+        ]
       },
       "post": {
         "description": "Associate a user with an organization",
@@ -5383,7 +5849,9 @@
                     "type": "string"
                   }
                 },
-                "required": ["organizationId"],
+                "required": [
+                  "organizationId"
+                ],
                 "type": "object"
               }
             }
@@ -5405,7 +5873,11 @@
                       "type": "string"
                     }
                   },
-                  "required": ["organizationId", "role", "createdAt"],
+                  "required": [
+                    "organizationId",
+                    "role",
+                    "createdAt"
+                  ],
                   "type": "object"
                 }
               }
@@ -5414,7 +5886,9 @@
           }
         },
         "summary": "Add user to organization",
-        "tags": ["user-organizations"]
+        "tags": [
+          "user-organizations"
+        ]
       }
     },
     "/health": {
@@ -5495,7 +5969,9 @@
           }
         },
         "summary": "OAuth authorization callback",
-        "tags": ["OAuth"]
+        "tags": [
+          "OAuth"
+        ]
       }
     },
     "/oauth/login": {
@@ -5567,7 +6043,9 @@
           }
         },
         "summary": "Initiate OAuth login for MCP tool",
-        "tags": ["OAuth"]
+        "tags": [
+          "OAuth"
+        ]
       }
     },
     "/tenants/{tenantId}/playground/token": {
@@ -5597,7 +6075,10 @@
                     "type": "string"
                   }
                 },
-                "required": ["projectId", "agentId"],
+                "required": [
+                  "projectId",
+                  "agentId"
+                ],
                 "type": "object"
               }
             }
@@ -5618,7 +6099,10 @@
                       "type": "string"
                     }
                   },
-                  "required": ["apiKey", "expiresAt"],
+                  "required": [
+                    "apiKey",
+                    "expiresAt"
+                  ],
                   "type": "object"
                 }
               }
@@ -5642,7 +6126,9 @@
           }
         ],
         "summary": "Generate temporary API key for playground",
-        "tags": ["Playground"]
+        "tags": [
+          "Playground"
+        ]
       }
     },
     "/tenants/{tenantId}/project-full": {
@@ -5752,7 +6238,9 @@
           }
         },
         "summary": "Create Full Project",
-        "tags": ["Full Project"]
+        "tags": [
+          "Full Project"
+        ]
       }
     },
     "/tenants/{tenantId}/project-full/{projectId}": {
@@ -5845,7 +6333,9 @@
           }
         },
         "summary": "Delete Full Project",
-        "tags": ["Full Project"]
+        "tags": [
+          "Full Project"
+        ]
       },
       "get": {
         "description": "Retrieve a complete project definition with all Agents, Sub Agents, tools, and relationships",
@@ -5943,7 +6433,9 @@
           }
         },
         "summary": "Get Full Project",
-        "tags": ["Full Project"]
+        "tags": [
+          "Full Project"
+        ]
       },
       "put": {
         "description": "Update or create a complete project with all Agents, Sub Agents, tools, and relationships from JSON definition",
@@ -6060,7 +6552,9 @@
           }
         },
         "summary": "Update Full Project",
-        "tags": ["Full Project"]
+        "tags": [
+          "Full Project"
+        ]
       }
     },
     "/tenants/{tenantId}/projects": {
@@ -6167,7 +6661,9 @@
           }
         },
         "summary": "List Projects",
-        "tags": ["Projects"],
+        "tags": [
+          "Projects"
+        ],
         "x-speakeasy-pagination": {
           "inputs": [
             {
@@ -6293,7 +6789,9 @@
           }
         },
         "summary": "Create Project",
-        "tags": ["Projects"]
+        "tags": [
+          "Projects"
+        ]
       }
     },
     "/tenants/{tenantId}/projects/{id}": {
@@ -6401,7 +6899,9 @@
           }
         },
         "summary": "Delete Project",
-        "tags": ["Projects"]
+        "tags": [
+          "Projects"
+        ]
       },
       "get": {
         "description": "Get a single project by ID",
@@ -6504,7 +7004,9 @@
           }
         },
         "summary": "Get Project",
-        "tags": ["Projects"]
+        "tags": [
+          "Projects"
+        ]
       },
       "patch": {
         "description": "Update an existing project",
@@ -6616,7 +7118,9 @@
           }
         },
         "summary": "Update Project",
-        "tags": ["Projects"]
+        "tags": [
+          "Projects"
+        ]
       }
     },
     "/tenants/{tenantId}/projects/{projectId}/agent": {
@@ -6735,7 +7239,9 @@
           }
         },
         "summary": "Create Full Agent",
-        "tags": ["Full Agent"]
+        "tags": [
+          "Full Agent"
+        ]
       }
     },
     "/tenants/{tenantId}/projects/{projectId}/agent/{agentId}": {
@@ -6837,7 +7343,9 @@
           }
         },
         "summary": "Delete Full Agent",
-        "tags": ["Full Agent"]
+        "tags": [
+          "Full Agent"
+        ]
       },
       "get": {
         "description": "Retrieve a complete agent definition with all agents, tools, and relationships",
@@ -6944,7 +7452,9 @@
           }
         },
         "summary": "Get Full Agent",
-        "tags": ["Full Agent"]
+        "tags": [
+          "Full Agent"
+        ]
       },
       "put": {
         "description": "Update or create a complete agent with all agents, tools, and relationships from JSON definition",
@@ -7070,7 +7580,9 @@
           }
         },
         "summary": "Update Full Agent",
-        "tags": ["Full Agent"]
+        "tags": [
+          "Full Agent"
+        ]
       }
     },
     "/tenants/{tenantId}/projects/{projectId}/agents": {
@@ -7185,7 +7697,9 @@
           }
         },
         "summary": "List Agents",
-        "tags": ["Agents"],
+        "tags": [
+          "Agents"
+        ],
         "x-speakeasy-pagination": {
           "inputs": [
             {
@@ -7309,7 +7823,9 @@
           }
         },
         "summary": "Create Agent",
-        "tags": ["Agents"]
+        "tags": [
+          "Agents"
+        ]
       }
     },
     "/tenants/{tenantId}/projects/{projectId}/agents/{agentId}/context-configs": {
@@ -7433,7 +7949,9 @@
           }
         },
         "summary": "List Context Configurations",
-        "tags": ["Context Config"],
+        "tags": [
+          "Context Config"
+        ],
         "x-speakeasy-pagination": {
           "inputs": [
             {
@@ -7566,7 +8084,9 @@
           }
         },
         "summary": "Create Context Configuration",
-        "tags": ["Context Config"]
+        "tags": [
+          "Context Config"
+        ]
       }
     },
     "/tenants/{tenantId}/projects/{projectId}/agents/{agentId}/context-configs/{id}": {
@@ -7681,7 +8201,9 @@
           }
         },
         "summary": "Delete Context Configuration",
-        "tags": ["Context Config"]
+        "tags": [
+          "Context Config"
+        ]
       },
       "get": {
         "operationId": "get-context-config-by-id",
@@ -7801,7 +8323,9 @@
           }
         },
         "summary": "Get Context Configuration",
-        "tags": ["Context Config"]
+        "tags": [
+          "Context Config"
+        ]
       },
       "put": {
         "operationId": "update-context-config",
@@ -7930,7 +8454,9 @@
           }
         },
         "summary": "Update Context Configuration",
-        "tags": ["Context Config"]
+        "tags": [
+          "Context Config"
+        ]
       }
     },
     "/tenants/{tenantId}/projects/{projectId}/agents/{agentId}/full": {
@@ -8038,7 +8564,9 @@
           }
         },
         "summary": "Get Full Agent Definition",
-        "tags": ["Agent"]
+        "tags": [
+          "Agent"
+        ]
       }
     },
     "/tenants/{tenantId}/projects/{projectId}/agents/{agentId}/function-tools": {
@@ -8162,7 +8690,9 @@
           }
         },
         "summary": "List Function Tools",
-        "tags": ["Function Tools"],
+        "tags": [
+          "Function Tools"
+        ],
         "x-speakeasy-pagination": {
           "inputs": [
             {
@@ -8295,7 +8825,9 @@
           }
         },
         "summary": "Create Function Tool",
-        "tags": ["Function Tools"]
+        "tags": [
+          "Function Tools"
+        ]
       }
     },
     "/tenants/{tenantId}/projects/{projectId}/agents/{agentId}/function-tools/{id}": {
@@ -8410,7 +8942,9 @@
           }
         },
         "summary": "Delete Function Tool",
-        "tags": ["Function Tools"]
+        "tags": [
+          "Function Tools"
+        ]
       },
       "get": {
         "operationId": "get-function-tool",
@@ -8530,7 +9064,9 @@
           }
         },
         "summary": "Get Function Tool by ID",
-        "tags": ["Function Tools"]
+        "tags": [
+          "Function Tools"
+        ]
       },
       "put": {
         "operationId": "update-function-tool",
@@ -8659,7 +9195,9 @@
           }
         },
         "summary": "Update Function Tool",
-        "tags": ["Function Tools"]
+        "tags": [
+          "Function Tools"
+        ]
       }
     },
     "/tenants/{tenantId}/projects/{projectId}/agents/{agentId}/sub-agent-artifact-components": {
@@ -8720,7 +9258,11 @@
                     "type": "string"
                   }
                 },
-                "required": ["agentId", "subAgentId", "artifactComponentId"],
+                "required": [
+                  "agentId",
+                  "subAgentId",
+                  "artifactComponentId"
+                ],
                 "type": "object"
               }
             }
@@ -8809,7 +9351,9 @@
           }
         },
         "summary": "Associate Artifact Component with Agent",
-        "tags": ["Agent Artifact Component Relations"]
+        "tags": [
+          "Agent Artifact Component Relations"
+        ]
       }
     },
     "/tenants/{tenantId}/projects/{projectId}/agents/{agentId}/sub-agent-artifact-components/agent/{subAgentId}": {
@@ -8926,7 +9470,9 @@
           }
         },
         "summary": "Get Artifact Components for Agent",
-        "tags": ["Agent Artifact Component Relations"]
+        "tags": [
+          "Agent Artifact Component Relations"
+        ]
       }
     },
     "/tenants/{tenantId}/projects/{projectId}/agents/{agentId}/sub-agent-artifact-components/agent/{subAgentId}/component/{artifactComponentId}": {
@@ -9051,7 +9597,9 @@
           }
         },
         "summary": "Remove Artifact Component from Agent",
-        "tags": ["Agent Artifact Component Relations"]
+        "tags": [
+          "Agent Artifact Component Relations"
+        ]
       }
     },
     "/tenants/{tenantId}/projects/{projectId}/agents/{agentId}/sub-agent-artifact-components/agent/{subAgentId}/component/{artifactComponentId}/exists": {
@@ -9176,7 +9724,9 @@
           }
         },
         "summary": "Check if Artifact Component is Associated with Agent",
-        "tags": ["Agent Artifact Component Relations"]
+        "tags": [
+          "Agent Artifact Component Relations"
+        ]
       }
     },
     "/tenants/{tenantId}/projects/{projectId}/agents/{agentId}/sub-agent-artifact-components/component/{artifactComponentId}/agents": {
@@ -9292,7 +9842,9 @@
           }
         },
         "summary": "Get Agents Using Artifact Component",
-        "tags": ["Agent Artifact Component Relations"]
+        "tags": [
+          "Agent Artifact Component Relations"
+        ]
       }
     },
     "/tenants/{tenantId}/projects/{projectId}/agents/{agentId}/sub-agent-data-components": {
@@ -9345,7 +9897,11 @@
                     "type": "string"
                   }
                 },
-                "required": ["agentId", "subAgentId", "dataComponentId"],
+                "required": [
+                  "agentId",
+                  "subAgentId",
+                  "dataComponentId"
+                ],
                 "type": "object"
               }
             }
@@ -9434,7 +9990,9 @@
           }
         },
         "summary": "Associate Data Component with Agent",
-        "tags": ["Agent Data Component Relations"]
+        "tags": [
+          "Agent Data Component Relations"
+        ]
       }
     },
     "/tenants/{tenantId}/projects/{projectId}/agents/{agentId}/sub-agent-data-components/agent/{subAgentId}": {
@@ -9551,7 +10109,9 @@
           }
         },
         "summary": "Get Data Components for Agent",
-        "tags": ["Agent Data Component Relations"]
+        "tags": [
+          "Agent Data Component Relations"
+        ]
       }
     },
     "/tenants/{tenantId}/projects/{projectId}/agents/{agentId}/sub-agent-data-components/agent/{subAgentId}/component/{dataComponentId}": {
@@ -9676,7 +10236,9 @@
           }
         },
         "summary": "Remove Data Component from Agent",
-        "tags": ["Agent Data Component Relations"]
+        "tags": [
+          "Agent Data Component Relations"
+        ]
       }
     },
     "/tenants/{tenantId}/projects/{projectId}/agents/{agentId}/sub-agent-data-components/agent/{subAgentId}/component/{dataComponentId}/exists": {
@@ -9801,7 +10363,9 @@
           }
         },
         "summary": "Check if Data Component is Associated with Agent",
-        "tags": ["Agent Data Component Relations"]
+        "tags": [
+          "Agent Data Component Relations"
+        ]
       }
     },
     "/tenants/{tenantId}/projects/{projectId}/agents/{agentId}/sub-agent-data-components/component/{dataComponentId}/agents": {
@@ -9917,7 +10481,9 @@
           }
         },
         "summary": "Get Agents Using Data Component",
-        "tags": ["Agent Data Component Relations"]
+        "tags": [
+          "Agent Data Component Relations"
+        ]
       }
     },
     "/tenants/{tenantId}/projects/{projectId}/agents/{agentId}/sub-agent-relations": {
@@ -10073,7 +10639,9 @@
           }
         },
         "summary": "List Sub Agent Relations",
-        "tags": ["Sub Agent Relations"],
+        "tags": [
+          "Sub Agent Relations"
+        ],
         "x-speakeasy-pagination": {
           "inputs": [
             {
@@ -10206,7 +10774,9 @@
           }
         },
         "summary": "Create Sub Agent Relation",
-        "tags": ["Sub Agent Relations"]
+        "tags": [
+          "Sub Agent Relations"
+        ]
       }
     },
     "/tenants/{tenantId}/projects/{projectId}/agents/{agentId}/sub-agent-relations/{id}": {
@@ -10271,7 +10841,9 @@
           }
         },
         "summary": "Delete Sub Agent Relation",
-        "tags": ["Sub Agent Relations"]
+        "tags": [
+          "Sub Agent Relations"
+        ]
       },
       "get": {
         "operationId": "get-sub-agent-relation-by-id",
@@ -10391,7 +10963,9 @@
           }
         },
         "summary": "Get Sub Agent Relation",
-        "tags": ["Sub Agent Relations"]
+        "tags": [
+          "Sub Agent Relations"
+        ]
       },
       "put": {
         "operationId": "update-sub-agent-relation",
@@ -10520,7 +11094,9 @@
           }
         },
         "summary": "Update Sub Agent Relation",
-        "tags": ["Sub Agent Relations"]
+        "tags": [
+          "Sub Agent Relations"
+        ]
       }
     },
     "/tenants/{tenantId}/projects/{projectId}/agents/{agentId}/sub-agent-tool-relations": {
@@ -10660,7 +11236,9 @@
           }
         },
         "summary": "List SubAgent Tool Relations",
-        "tags": ["SubAgent Tool Relations"],
+        "tags": [
+          "SubAgent Tool Relations"
+        ],
         "x-speakeasy-pagination": {
           "inputs": [
             {
@@ -10793,7 +11371,9 @@
           }
         },
         "summary": "Create SubAgent Tool Relation",
-        "tags": ["SubAgent Tool Relations"]
+        "tags": [
+          "SubAgent Tool Relations"
+        ]
       }
     },
     "/tenants/{tenantId}/projects/{projectId}/agents/{agentId}/sub-agent-tool-relations/tool/{toolId}/sub-agents": {
@@ -10925,7 +11505,9 @@
           }
         },
         "summary": "Get SubAgents for Tool",
-        "tags": ["SubAgent Tool Relations"]
+        "tags": [
+          "SubAgent Tool Relations"
+        ]
       }
     },
     "/tenants/{tenantId}/projects/{projectId}/agents/{agentId}/sub-agent-tool-relations/{id}": {
@@ -10990,7 +11572,9 @@
           }
         },
         "summary": "Delete SubAgent Tool Relation",
-        "tags": ["SubAgent Tool Relations"]
+        "tags": [
+          "SubAgent Tool Relations"
+        ]
       },
       "get": {
         "operationId": "get-subagent-tool-relation",
@@ -11110,7 +11694,9 @@
           }
         },
         "summary": "Get SubAgent Tool Relation",
-        "tags": ["SubAgent Tool Relations"]
+        "tags": [
+          "SubAgent Tool Relations"
+        ]
       },
       "put": {
         "operationId": "update-subagent-tool-relation",
@@ -11239,7 +11825,9 @@
           }
         },
         "summary": "Update SubAgent Tool Relation",
-        "tags": ["SubAgent Tool Relations"]
+        "tags": [
+          "SubAgent Tool Relations"
+        ]
       }
     },
     "/tenants/{tenantId}/projects/{projectId}/agents/{agentId}/sub-agents": {
@@ -11363,7 +11951,9 @@
           }
         },
         "summary": "List SubAgents",
-        "tags": ["SubAgent"],
+        "tags": [
+          "SubAgent"
+        ],
         "x-speakeasy-pagination": {
           "inputs": [
             {
@@ -11496,7 +12086,9 @@
           }
         },
         "summary": "Create SubAgent",
-        "tags": ["SubAgent"]
+        "tags": [
+          "SubAgent"
+        ]
       }
     },
     "/tenants/{tenantId}/projects/{projectId}/agents/{agentId}/sub-agents/{id}": {
@@ -11571,7 +12163,9 @@
           }
         },
         "summary": "Delete SubAgent",
-        "tags": ["SubAgent"]
+        "tags": [
+          "SubAgent"
+        ]
       },
       "get": {
         "operationId": "get-subagent-by-id",
@@ -11691,7 +12285,9 @@
           }
         },
         "summary": "Get SubAgent",
-        "tags": ["SubAgent"]
+        "tags": [
+          "SubAgent"
+        ]
       },
       "put": {
         "operationId": "update-subagent",
@@ -11820,7 +12416,9 @@
           }
         },
         "summary": "Update SubAgent",
-        "tags": ["SubAgent"]
+        "tags": [
+          "SubAgent"
+        ]
       }
     },
     "/tenants/{tenantId}/projects/{projectId}/agents/{agentId}/sub-agents/{subAgentId}/external-agent-relations": {
@@ -11953,7 +12551,9 @@
           }
         },
         "summary": "List Sub Agent External Agent Relations",
-        "tags": ["Sub Agent External Agent Relations"],
+        "tags": [
+          "Sub Agent External Agent Relations"
+        ],
         "x-speakeasy-pagination": {
           "inputs": [
             {
@@ -12095,7 +12695,9 @@
           }
         },
         "summary": "Create Sub Agent External Agent Relation",
-        "tags": ["Sub Agent External Agent Relations"]
+        "tags": [
+          "Sub Agent External Agent Relations"
+        ]
       }
     },
     "/tenants/{tenantId}/projects/{projectId}/agents/{agentId}/sub-agents/{subAgentId}/external-agent-relations/{id}": {
@@ -12169,7 +12771,9 @@
           }
         },
         "summary": "Delete Sub Agent External Agent Relation",
-        "tags": ["Sub Agent External Agent Relations"]
+        "tags": [
+          "Sub Agent External Agent Relations"
+        ]
       },
       "get": {
         "operationId": "get-sub-agent-external-agent-relation-by-id",
@@ -12298,7 +12902,9 @@
           }
         },
         "summary": "Get Sub Agent External Agent Relation",
-        "tags": ["Sub Agent External Agent Relations"]
+        "tags": [
+          "Sub Agent External Agent Relations"
+        ]
       },
       "put": {
         "operationId": "update-sub-agent-external-agent-relation",
@@ -12436,7 +13042,9 @@
           }
         },
         "summary": "Update Sub Agent External Agent Relation",
-        "tags": ["Sub Agent External Agent Relations"]
+        "tags": [
+          "Sub Agent External Agent Relations"
+        ]
       }
     },
     "/tenants/{tenantId}/projects/{projectId}/agents/{agentId}/sub-agents/{subAgentId}/related": {
@@ -12553,7 +13161,9 @@
           }
         },
         "summary": "Get Related Agent Infos",
-        "tags": ["Agent"]
+        "tags": [
+          "Agent"
+        ]
       }
     },
     "/tenants/{tenantId}/projects/{projectId}/agents/{agentId}/sub-agents/{subAgentId}/team-agent-relations": {
@@ -12686,7 +13296,9 @@
           }
         },
         "summary": "List Sub Agent Team Agent Relations",
-        "tags": ["Sub Agent Team Agent Relations"],
+        "tags": [
+          "Sub Agent Team Agent Relations"
+        ],
         "x-speakeasy-pagination": {
           "inputs": [
             {
@@ -12828,7 +13440,9 @@
           }
         },
         "summary": "Create Sub Agent Team Agent Relation",
-        "tags": ["Sub Agent Team Agent Relations"]
+        "tags": [
+          "Sub Agent Team Agent Relations"
+        ]
       }
     },
     "/tenants/{tenantId}/projects/{projectId}/agents/{agentId}/sub-agents/{subAgentId}/team-agent-relations/{id}": {
@@ -12902,7 +13516,9 @@
           }
         },
         "summary": "Delete Sub Agent Team Agent Relation",
-        "tags": ["Sub Agent Team Agent Relations"]
+        "tags": [
+          "Sub Agent Team Agent Relations"
+        ]
       },
       "get": {
         "operationId": "get-sub-agent-team-agent-relation-by-id",
@@ -13031,7 +13647,9 @@
           }
         },
         "summary": "Get Sub Agent Team Agent Relation",
-        "tags": ["Sub Agent Team Agent Relations"]
+        "tags": [
+          "Sub Agent Team Agent Relations"
+        ]
       },
       "put": {
         "operationId": "update-sub-agent-team-agent-relation",
@@ -13169,7 +13787,9 @@
           }
         },
         "summary": "Update Sub Agent Team Agent Relation",
-        "tags": ["Sub Agent Team Agent Relations"]
+        "tags": [
+          "Sub Agent Team Agent Relations"
+        ]
       }
     },
     "/tenants/{tenantId}/projects/{projectId}/agents/{id}": {
@@ -13225,7 +13845,9 @@
           }
         },
         "summary": "Delete Agent",
-        "tags": ["Agents"]
+        "tags": [
+          "Agents"
+        ]
       },
       "get": {
         "operationId": "get-agent",
@@ -13336,7 +13958,9 @@
           }
         },
         "summary": "Get Agent",
-        "tags": ["Agents"]
+        "tags": [
+          "Agents"
+        ]
       },
       "put": {
         "operationId": "update-agent",
@@ -13456,7 +14080,9 @@
           }
         },
         "summary": "Update Agent",
-        "tags": ["Agents"]
+        "tags": [
+          "Agents"
+        ]
       }
     },
     "/tenants/{tenantId}/projects/{projectId}/api-keys": {
@@ -13582,7 +14208,9 @@
           }
         },
         "summary": "List API Keys",
-        "tags": ["API Keys"],
+        "tags": [
+          "API Keys"
+        ],
         "x-speakeasy-pagination": {
           "inputs": [
             {
@@ -13650,11 +14278,16 @@
                           "type": "string"
                         }
                       },
-                      "required": ["apiKey", "key"],
+                      "required": [
+                        "apiKey",
+                        "key"
+                      ],
                       "type": "object"
                     }
                   },
-                  "required": ["data"],
+                  "required": [
+                    "data"
+                  ],
                   "type": "object"
                 }
               }
@@ -13723,7 +14356,9 @@
           }
         },
         "summary": "Create API Key",
-        "tags": ["API Keys"]
+        "tags": [
+          "API Keys"
+        ]
       }
     },
     "/tenants/{tenantId}/projects/{projectId}/api-keys/{id}": {
@@ -13780,7 +14415,9 @@
           }
         },
         "summary": "Delete API Key",
-        "tags": ["API Keys"]
+        "tags": [
+          "API Keys"
+        ]
       },
       "get": {
         "description": "Get a specific API key by ID (does not return the actual key)",
@@ -13892,7 +14529,9 @@
           }
         },
         "summary": "Get API Key",
-        "tags": ["API Keys"]
+        "tags": [
+          "API Keys"
+        ]
       },
       "put": {
         "description": "Update an API key (currently only expiration date can be changed)",
@@ -14013,7 +14652,9 @@
           }
         },
         "summary": "Update API Key",
-        "tags": ["API Keys"]
+        "tags": [
+          "API Keys"
+        ]
       }
     },
     "/tenants/{tenantId}/projects/{projectId}/artifact-components": {
@@ -14128,7 +14769,9 @@
           }
         },
         "summary": "List Artifact Components",
-        "tags": ["Artifact Component"],
+        "tags": [
+          "Artifact Component"
+        ],
         "x-speakeasy-pagination": {
           "inputs": [
             {
@@ -14252,7 +14895,9 @@
           }
         },
         "summary": "Create Artifact Component",
-        "tags": ["Artifact Component"]
+        "tags": [
+          "Artifact Component"
+        ]
       }
     },
     "/tenants/{tenantId}/projects/{projectId}/artifact-components/{id}": {
@@ -14308,7 +14953,9 @@
           }
         },
         "summary": "Delete Artifact Component",
-        "tags": ["Artifact Component"]
+        "tags": [
+          "Artifact Component"
+        ]
       },
       "get": {
         "operationId": "get-artifact-component-by-id",
@@ -14419,7 +15066,9 @@
           }
         },
         "summary": "Get Artifact Component",
-        "tags": ["Artifact Component"]
+        "tags": [
+          "Artifact Component"
+        ]
       },
       "put": {
         "operationId": "update-artifact-component",
@@ -14539,7 +15188,9 @@
           }
         },
         "summary": "Update Artifact Component",
-        "tags": ["Artifact Component"]
+        "tags": [
+          "Artifact Component"
+        ]
       }
     },
     "/tenants/{tenantId}/projects/{projectId}/conversations/{id}": {
@@ -14673,7 +15324,9 @@
           }
         },
         "summary": "Get Conversation",
-        "tags": ["Conversations"]
+        "tags": [
+          "Conversations"
+        ]
       }
     },
     "/tenants/{tenantId}/projects/{projectId}/credential-stores": {
@@ -14772,7 +15425,9 @@
           }
         },
         "summary": "List Credential Stores",
-        "tags": ["Credential Store"]
+        "tags": [
+          "Credential Store"
+        ]
       }
     },
     "/tenants/{tenantId}/projects/{projectId}/credential-stores/{id}/credentials": {
@@ -14894,7 +15549,9 @@
           }
         },
         "summary": "Create Credential in Store",
-        "tags": ["Credential Store"]
+        "tags": [
+          "Credential Store"
+        ]
       }
     },
     "/tenants/{tenantId}/projects/{projectId}/credentials": {
@@ -15009,7 +15666,9 @@
           }
         },
         "summary": "List Credentials",
-        "tags": ["Credential"],
+        "tags": [
+          "Credential"
+        ],
         "x-speakeasy-pagination": {
           "inputs": [
             {
@@ -15133,7 +15792,9 @@
           }
         },
         "summary": "Create Credential",
-        "tags": ["Credential"]
+        "tags": [
+          "Credential"
+        ]
       }
     },
     "/tenants/{tenantId}/projects/{projectId}/credentials/{id}": {
@@ -15189,7 +15850,9 @@
           }
         },
         "summary": "Delete Credential",
-        "tags": ["Credential"]
+        "tags": [
+          "Credential"
+        ]
       },
       "get": {
         "operationId": "get-credential-by-id",
@@ -15300,7 +15963,9 @@
           }
         },
         "summary": "Get Credential",
-        "tags": ["Credential"]
+        "tags": [
+          "Credential"
+        ]
       },
       "put": {
         "operationId": "update-credential",
@@ -15420,7 +16085,9 @@
           }
         },
         "summary": "Update Credential",
-        "tags": ["Credential"]
+        "tags": [
+          "Credential"
+        ]
       }
     },
     "/tenants/{tenantId}/projects/{projectId}/data-components": {
@@ -15535,7 +16202,9 @@
           }
         },
         "summary": "List Data Components",
-        "tags": ["Data Component"],
+        "tags": [
+          "Data Component"
+        ],
         "x-speakeasy-pagination": {
           "inputs": [
             {
@@ -15659,7 +16328,9 @@
           }
         },
         "summary": "Create Data Component",
-        "tags": ["Data Component"]
+        "tags": [
+          "Data Component"
+        ]
       }
     },
     "/tenants/{tenantId}/projects/{projectId}/data-components/{id}": {
@@ -15715,7 +16386,9 @@
           }
         },
         "summary": "Delete Data Component",
-        "tags": ["Data Component"]
+        "tags": [
+          "Data Component"
+        ]
       },
       "get": {
         "operationId": "get-data-component-by-id",
@@ -15826,7 +16499,9 @@
           }
         },
         "summary": "Get Data Component",
-        "tags": ["Data Component"]
+        "tags": [
+          "Data Component"
+        ]
       },
       "put": {
         "operationId": "update-data-component",
@@ -15946,7 +16621,9 @@
           }
         },
         "summary": "Update Data Component",
-        "tags": ["Data Component"]
+        "tags": [
+          "Data Component"
+        ]
       }
     },
     "/tenants/{tenantId}/projects/{projectId}/external-agents": {
@@ -16061,7 +16738,9 @@
           }
         },
         "summary": "List External Agents",
-        "tags": ["External Agents"],
+        "tags": [
+          "External Agents"
+        ],
         "x-speakeasy-pagination": {
           "inputs": [
             {
@@ -16185,7 +16864,9 @@
           }
         },
         "summary": "Create External Agent",
-        "tags": ["External Agents"]
+        "tags": [
+          "External Agents"
+        ]
       }
     },
     "/tenants/{tenantId}/projects/{projectId}/external-agents/{id}": {
@@ -16241,7 +16922,9 @@
           }
         },
         "summary": "Delete External Agent",
-        "tags": ["External Agents"]
+        "tags": [
+          "External Agents"
+        ]
       },
       "get": {
         "operationId": "get-external-agent-by-id",
@@ -16352,7 +17035,9 @@
           }
         },
         "summary": "Get External Agent",
-        "tags": ["External Agents"]
+        "tags": [
+          "External Agents"
+        ]
       },
       "put": {
         "operationId": "update-external-agent",
@@ -16472,7 +17157,9 @@
           }
         },
         "summary": "Update External Agent",
-        "tags": ["External Agents"]
+        "tags": [
+          "External Agents"
+        ]
       }
     },
     "/tenants/{tenantId}/projects/{projectId}/functions": {
@@ -16587,7 +17274,9 @@
           }
         },
         "summary": "List Functions",
-        "tags": ["Functions"],
+        "tags": [
+          "Functions"
+        ],
         "x-speakeasy-pagination": {
           "inputs": [
             {
@@ -16711,7 +17400,9 @@
           }
         },
         "summary": "Create Function",
-        "tags": ["Functions"]
+        "tags": [
+          "Functions"
+        ]
       }
     },
     "/tenants/{tenantId}/projects/{projectId}/functions/{id}": {
@@ -16817,7 +17508,9 @@
           }
         },
         "summary": "Delete Function",
-        "tags": ["Functions"]
+        "tags": [
+          "Functions"
+        ]
       },
       "get": {
         "operationId": "get-function",
@@ -16928,7 +17621,9 @@
           }
         },
         "summary": "Get Function by ID",
-        "tags": ["Functions"]
+        "tags": [
+          "Functions"
+        ]
       },
       "put": {
         "operationId": "update-function",
@@ -17048,7 +17743,9 @@
           }
         },
         "summary": "Update Function",
-        "tags": ["Functions"]
+        "tags": [
+          "Functions"
+        ]
       }
     },
     "/tenants/{tenantId}/projects/{projectId}/mcp-catalog": {
@@ -17148,7 +17845,9 @@
           }
         },
         "summary": "List MCP Server Catalog",
-        "tags": ["MCP Catalog"]
+        "tags": [
+          "MCP Catalog"
+        ]
       }
     },
     "/tenants/{tenantId}/projects/{projectId}/third-party-mcp-servers": {
@@ -17182,7 +17881,10 @@
                 "properties": {
                   "credentialScope": {
                     "default": "project",
-                    "enum": ["project", "user"],
+                    "enum": [
+                      "project",
+                      "user"
+                    ],
                     "type": "string"
                   },
                   "url": {
@@ -17191,7 +17893,9 @@
                     "type": "string"
                   }
                 },
-                "required": ["url"],
+                "required": [
+                  "url"
+                ],
                 "type": "object"
               }
             }
@@ -17270,7 +17974,9 @@
           }
         },
         "summary": "Get Third-Party MCP Server Details",
-        "tags": ["Third-Party MCP Servers"]
+        "tags": [
+          "Third-Party MCP Servers"
+        ]
       }
     },
     "/tenants/{tenantId}/projects/{projectId}/third-party-mcp-servers/oauth-redirect": {
@@ -17304,7 +18010,10 @@
                 "properties": {
                   "credentialScope": {
                     "description": "The credential scope",
-                    "enum": ["project", "user"],
+                    "enum": [
+                      "project",
+                      "user"
+                    ],
                     "type": "string"
                   },
                   "url": {
@@ -17313,7 +18022,10 @@
                     "type": "string"
                   }
                 },
-                "required": ["url", "credentialScope"],
+                "required": [
+                  "url",
+                  "credentialScope"
+                ],
                 "type": "object"
               }
             }
@@ -17332,11 +18044,15 @@
                           "type": "string"
                         }
                       },
-                      "required": ["redirectUrl"],
+                      "required": [
+                        "redirectUrl"
+                      ],
                       "type": "object"
                     }
                   },
-                  "required": ["data"],
+                  "required": [
+                    "data"
+                  ],
                   "type": "object"
                 }
               }
@@ -17405,7 +18121,9 @@
           }
         },
         "summary": "Get OAuth Redirect URL",
-        "tags": ["Third-Party MCP Servers"]
+        "tags": [
+          "Third-Party MCP Servers"
+        ]
       }
     },
     "/tenants/{tenantId}/projects/{projectId}/tools": {
@@ -17451,7 +18169,12 @@
             "name": "status",
             "required": false,
             "schema": {
-              "enum": ["healthy", "unhealthy", "unknown", "needs_auth"],
+              "enum": [
+                "healthy",
+                "unhealthy",
+                "unknown",
+                "needs_auth"
+              ],
               "type": "string"
             }
           }
@@ -17529,7 +18252,9 @@
           }
         },
         "summary": "List Tools",
-        "tags": ["Tools"],
+        "tags": [
+          "Tools"
+        ],
         "x-speakeasy-pagination": {
           "inputs": [
             {
@@ -17653,7 +18378,9 @@
           }
         },
         "summary": "Create Tool",
-        "tags": ["Tools"]
+        "tags": [
+          "Tools"
+        ]
       }
     },
     "/tenants/{tenantId}/projects/{projectId}/tools/{id}": {
@@ -17759,7 +18486,9 @@
           }
         },
         "summary": "Delete Tool",
-        "tags": ["Tools"]
+        "tags": [
+          "Tools"
+        ]
       },
       "get": {
         "operationId": "get-tool",
@@ -17870,7 +18599,9 @@
           }
         },
         "summary": "Get Tool",
-        "tags": ["Tools"]
+        "tags": [
+          "Tools"
+        ]
       },
       "put": {
         "operationId": "update-tool",
@@ -17990,7 +18721,9 @@
           }
         },
         "summary": "Update Tool",
-        "tags": ["Tools"]
+        "tags": [
+          "Tools"
+        ]
       }
     },
     "/tenants/{tenantId}/projects/{projectId}/tools/{id}/user-credential": {
@@ -18103,7 +18836,9 @@
           }
         },
         "summary": "Get User Credential for Tool",
-        "tags": ["Tools"]
+        "tags": [
+          "Tools"
+        ]
       }
     }
   },
