@@ -1,5 +1,3 @@
-import React from 'react';
-
 interface BigVideoProps {
   src: string;
   maxWidth?: string;
@@ -8,6 +6,7 @@ interface BigVideoProps {
 
 export function BigVideo({ src, height = 'auto' }: BigVideoProps) {
   return (
+    // biome-ignore lint/a11y/useMediaCaption: ignore `.vtt` captions
     <video
       src={src}
       controls
@@ -16,7 +15,7 @@ export function BigVideo({ src, height = 'auto' }: BigVideoProps) {
         display: 'block',
         maxWidth: '800px',
         width: '100%',
-        height: height,
+        height,
         margin: '0 auto',
       }}
     >
