@@ -54,6 +54,8 @@ export const createTaskHandler = (
   credentialStoreRegistry?: CredentialStoreRegistry
 ) => {
   return async (task: A2ATask): Promise<A2ATaskResult> => {
+    let agent: Agent | undefined; // Declare agent outside try block for cleanup access
+    
     try {
       const userMessage = task.input.parts
         .filter((part) => part.text)
@@ -282,7 +284,7 @@ export const createTaskHandler = (
           })
         )) ?? [];
 
-      const agent = new Agent(
+      agent = new Agent(
         {
           id: config.subAgentId,
           tenantId: config.tenantId,
@@ -700,7 +702,7 @@ export const createTaskHandler = (
 
       // Cleanup compression state on error (if agent was created)
       try {
-        if (typeof agent !== 'undefined') {
+        if (agent) {
           agent.cleanupCompression();
         }
       } catch (cleanupError) {
