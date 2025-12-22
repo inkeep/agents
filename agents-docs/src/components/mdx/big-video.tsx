@@ -6,10 +6,7 @@ interface BigVideoProps {
   height?: string;
 }
 
-export function BigVideo({ 
-  src, 
-  height = 'auto' 
-}: BigVideoProps) {
+export function BigVideo({ src, height = 'auto' }: BigVideoProps) {
   return (
     <video
       src={src}
@@ -17,7 +14,7 @@ export function BigVideo({
       style={{
         borderRadius: '10px',
         display: 'block',
-        maxWidth: "800px",
+        maxWidth: '800px',
         width: '100%',
         height: height,
         margin: '0 auto',
