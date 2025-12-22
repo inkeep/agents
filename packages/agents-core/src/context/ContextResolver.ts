@@ -328,23 +328,24 @@ export class ContextResolver {
         attributes: {
           'context.definition_id': definition.id,
           'context.template_key': templateKey,
-          'context.url': definition.fetchConfig.url,
+          'context.url_template': definition.fetchConfig.url,
           'context.method': definition.fetchConfig.method,
           'context.trigger': definition.trigger,
         },
       },
       async (parentSpan: Span) => {
         try {
-          const data = await this.fetcher.fetch(
+          const { data, resolvedUrl } = await this.fetcher.fetch(
             definitionWithConversationId,
             result.resolvedContext
           );
 
+          parentSpan.setAttribute('context.url', resolvedUrl);
           parentSpan.setStatus({ code: SpanStatusCode.OK });
           parentSpan.addEvent('context.fetch_success', {
             definition_id: definition.id,
             template_key: templateKey,
-            source: definition.fetchConfig.url,
+            source: resolvedUrl,
           });
 
           return data;

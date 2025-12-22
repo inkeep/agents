@@ -3,11 +3,12 @@ import type {
   ArtifactComponentApiInsert,
   DataComponentApiInsert,
 } from '@inkeep/agents-core';
+import type { AssembleResult } from '../utils/token-estimator';
 
 // Base interfaces for version-agnostic system prompt building
 export interface VersionConfig<TConfig> {
   loadTemplates(): Map<string, string>;
-  assemble(templates: Map<string, string>, config: TConfig): string;
+  assemble(templates: Map<string, string>, config: TConfig): AssembleResult;
 }
 
 export interface PolicyData {

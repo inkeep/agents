@@ -7,7 +7,14 @@ import artifactTemplate from '../../../../templates/v1/shared/artifact.xml?raw';
 import artifactRetrievalGuidance from '../../../../templates/v1/shared/artifact-retrieval-guidance.xml?raw';
 
 import { getLogger } from '../../../logger';
-import type { PolicyData, SystemPromptV1, ToolData, VersionConfig } from '../../types';
+import {
+  type PolicyData,
+  type AssembleResult,
+  calculateBreakdownTotal,
+  createEmptyBreakdown,
+  estimateTokens,
+} from '../../../utils/token-estimator';
+import type { SystemPromptV1, ToolData, VersionConfig } from '../../types';
 
 const _logger = getLogger('Phase1Config');
 
@@ -66,16 +73,31 @@ export class Phase1Config implements VersionConfig<SystemPromptV1> {
     return inputSchema;
   }
 
-  assemble(templates: Map<string, string>, config: SystemPromptV1): string {
-    const systemPromptTemplate = templates.get('system-prompt');
-    if (!systemPromptTemplate) {
+  assemble(templates: Map<string, string>, config: SystemPromptV1): AssembleResult {
+    const breakdown = createEmptyBreakdown();
+
+    const systemPromptTemplateContent = templates.get('system-prompt');
+    if (!systemPromptTemplateContent) {
       throw new Error('System prompt template not loaded');
     }
 
-    let systemPrompt = systemPromptTemplate;
+    // Track base template tokens (without placeholders - estimate overhead)
+    breakdown.systemPromptTemplate = estimateTokens(
+      systemPromptTemplateContent
+        .replace('{{CORE_INSTRUCTIONS}}', '')
+        .replace('{{AGENT_CONTEXT_SECTION}}', '')
+        .replace('{{ARTIFACTS_SECTION}}', '')
+        .replace('{{TOOLS_SECTION}}', '')
+        .replace('{{THINKING_PREPARATION_INSTRUCTIONS}}', '')
+        .replace('{{TRANSFER_INSTRUCTIONS}}', '')
+        .replace('{{DELEGATION_INSTRUCTIONS}}', '')
+    );
+
+    let systemPrompt = systemPromptTemplateContent;
 
     // Handle core instructions - omit entire section if empty
     if (config.corePrompt && config.corePrompt.trim()) {
+      breakdown.coreInstructions = estimateTokens(config.corePrompt);
       systemPrompt = systemPrompt.replace('{{CORE_INSTRUCTIONS}}', config.corePrompt);
     } else {
       // Remove the entire core_instructions section if empty
@@ -86,6 +108,7 @@ export class Phase1Config implements VersionConfig<SystemPromptV1> {
     }
 
     const agentContextSection = this.generateAgentContextSection(config.prompt);
+    breakdown.agentPrompt = estimateTokens(agentContextSection);
     systemPrompt = systemPrompt.replace('{{AGENT_CONTEXT_SECTION}}', agentContextSection);
 
     const policiesSection = this.generatePoliciesSection(config.policies);
@@ -110,28 +133,47 @@ export class Phase1Config implements VersionConfig<SystemPromptV1> {
       config.artifactComponents,
       config.hasAgentArtifactComponents
     );
+    breakdown.artifactsSection = estimateTokens(artifactsSection);
+    // Track artifact components separately (creation instructions)
+    if (hasArtifactComponents) {
+      const creationInstructions = this.getArtifactCreationInstructions(
+        hasArtifactComponents,
+        config.artifactComponents
+      );
+      breakdown.artifactComponents = estimateTokens(creationInstructions);
+    }
 
     systemPrompt = systemPrompt.replace('{{ARTIFACTS_SECTION}}', artifactsSection);
 
     const toolsSection = this.generateToolsSection(templates, toolData);
+    breakdown.toolsSection = estimateTokens(toolsSection);
     systemPrompt = systemPrompt.replace('{{TOOLS_SECTION}}', toolsSection);
 
     const thinkingPreparationSection = this.generateThinkingPreparationSection(
       templates,
       config.isThinkingPreparation
     );
+    breakdown.thinkingPreparation = estimateTokens(thinkingPreparationSection);
     systemPrompt = systemPrompt.replace(
       '{{THINKING_PREPARATION_INSTRUCTIONS}}',
       thinkingPreparationSection
     );
 
     const transferSection = this.generateTransferInstructions(config.hasTransferRelations);
+    breakdown.transferInstructions = estimateTokens(transferSection);
     systemPrompt = systemPrompt.replace('{{TRANSFER_INSTRUCTIONS}}', transferSection);
 
     const delegationSection = this.generateDelegationInstructions(config.hasDelegateRelations);
+    breakdown.delegationInstructions = estimateTokens(delegationSection);
     systemPrompt = systemPrompt.replace('{{DELEGATION_INSTRUCTIONS}}', delegationSection);
 
-    return systemPrompt;
+    // Calculate total
+    calculateBreakdownTotal(breakdown);
+
+    return {
+      prompt: systemPrompt,
+      breakdown,
+    };
   }
 
   private generateAgentContextSection(prompt?: string): string {

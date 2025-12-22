@@ -1,11 +1,10 @@
 import { readFileSync } from 'node:fs';
 import { dirname, resolve } from 'node:path';
-import type { Plugin } from 'rolldown';
-import { defineConfig } from 'tsdown';
+import { defineConfig, type UserConfig } from 'tsdown';
 import rootConfig from '../tsdown.config.ts';
 
 // Plugin to handle ?raw imports (Vite-style)
-function rawPlugin(): Plugin {
+function rawPlugin(): UserConfig['plugins'] {
   return {
     name: 'raw-import',
     resolveId(source, importer) {
@@ -30,7 +29,8 @@ function rawPlugin(): Plugin {
 
 export default defineConfig({
   ...rootConfig,
-  entry: ['src/index.ts', 'src/instrumentation.ts'],
-  external: ['keytar'],
+  entry: ['src/**/*.ts', '!**/__tests__', '!**/*.test.ts'],
+  unbundle: true,
+  format: 'esm',
   plugins: [rawPlugin()],
 });

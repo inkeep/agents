@@ -10,7 +10,6 @@
     "skipLibCheck": true,
     "forceConsistentCasingInFileNames": true,
     "declaration": true,
-    "declarationMap": true,
     "sourceMap": true,
     "allowSyntheticDefaultImports": true,
     "baseUrl": ".",
