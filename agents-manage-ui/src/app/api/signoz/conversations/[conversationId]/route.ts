@@ -1114,6 +1114,43 @@ export async function GET(
       spanIdToParentSpanId.set(spanAttr.spanId, parentSpanId);
     }
 
+    // Build map from spanId to context breakdown (from agent.generate spans)
+    type ContextBreakdownData = {
+      systemPromptTemplate: number;
+      coreInstructions: number;
+      agentPrompt: number;
+      toolsSection: number;
+      artifactsSection: number;
+      dataComponents: number;
+      artifactComponents: number;
+      transferInstructions: number;
+      delegationInstructions: number;
+      thinkingPreparation: number;
+      conversationHistory: number;
+      total: number;
+    };
+    const spanIdToContextBreakdown = new Map<string, ContextBreakdownData>();
+    for (const spanAttr of allSpanAttributes) {
+      const data = spanAttr.data;
+      if (data['context.breakdown.total_tokens'] !== undefined) {
+        spanIdToContextBreakdown.set(spanAttr.spanId, {
+          systemPromptTemplate: Number(data['context.breakdown.system_template_tokens']) || 0,
+          coreInstructions: Number(data['context.breakdown.core_instructions_tokens']) || 0,
+          agentPrompt: Number(data['context.breakdown.agent_prompt_tokens']) || 0,
+          toolsSection: Number(data['context.breakdown.tools_tokens']) || 0,
+          artifactsSection: Number(data['context.breakdown.artifacts_tokens']) || 0,
+          dataComponents: Number(data['context.breakdown.data_components_tokens']) || 0,
+          artifactComponents: Number(data['context.breakdown.artifact_components_tokens']) || 0,
+          transferInstructions: Number(data['context.breakdown.transfer_instructions_tokens']) || 0,
+          delegationInstructions:
+            Number(data['context.breakdown.delegation_instructions_tokens']) || 0,
+          thinkingPreparation: Number(data['context.breakdown.thinking_preparation_tokens']) || 0,
+          conversationHistory: Number(data['context.breakdown.conversation_history_tokens']) || 0,
+          total: Number(data['context.breakdown.total_tokens']) || 0,
+        });
+      }
+    }
+
     // activities
     type Activity = {
       id: string;
@@ -1181,6 +1218,21 @@ export async function GET(
       aiStreamObjectContent?: string;
       aiStreamObjectModel?: string;
       aiStreamObjectOperationId?: string;
+      // context breakdown (for AI streaming spans)
+      contextBreakdown?: {
+        systemPromptTemplate: number;
+        coreInstructions: number;
+        agentPrompt: number;
+        toolsSection: number;
+        artifactsSection: number;
+        dataComponents: number;
+        artifactComponents: number;
+        transferInstructions: number;
+        delegationInstructions: number;
+        thinkingPreparation: number;
+        conversationHistory: number;
+        total: number;
+      };
       // ai generation specifics
       aiResponseToolCalls?: string;
       aiPromptMessages?: string;
@@ -1424,6 +1476,7 @@ export async function GET(
         otelStatusDescription: hasError ? otelStatusDescription || statusMessage : undefined,
         subAgentId: getString(span, SPAN_KEYS.SUB_AGENT_ID, ACTIVITY_NAMES.UNKNOWN_AGENT),
         subAgentName: getString(span, SPAN_KEYS.SUB_AGENT_NAME, ACTIVITY_NAMES.UNKNOWN_AGENT),
+        contextBreakdown: spanIdToContextBreakdown.get(agentGeneration),
       });
     }
 

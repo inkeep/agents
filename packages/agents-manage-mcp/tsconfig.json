@@ -1,3 +1,5 @@
+
+
 {
   "compilerOptions": {
     "allowJs": true,
@@ -26,8 +28,7 @@
     "sourceMap": true,
     "strict": true,
     "target": "es2022",
-    "tsBuildInfoFile": ".tsbuildinfo",
-    "useUnknownInCatchVariables": true
+    "useUnknownInCatchVariables": true,
   },
   "exclude": ["node_modules"],
   "include": ["src/**/*.ts"]

@@ -147,5 +147,9 @@
     "typescript": "^5",
     "vitest": "^3.2.4",
     "vitest-canvas-mock": "^0.3.3"
+  },
+  "optionalDependencies": {
+    "@posthog/react": "^1.5.2",
+    "posthog-js": "^1.308.0"
   }
 }

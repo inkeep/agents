@@ -12,4 +12,7 @@ export interface RuntimeConfig {
   PUBLIC_GOOGLE_CLIENT_ID?: string;
   PUBLIC_DISABLE_AUTH?: string;
   PUBLIC_IS_INKEEP_CLOUD_DEPLOYMENT?: string;
+  PUBLIC_POSTHOG_KEY?: string;
+  PUBLIC_POSTHOG_HOST?: string;
+  PUBLIC_POSTHOG_SITE_TAG?: string;
 }
