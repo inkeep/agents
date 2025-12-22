@@ -109,6 +109,20 @@ export const SPAN_KEYS = {
   ARTIFACT_DATA: 'artifact.data',
   ARTIFACT_NAME: 'artifact.name',
   ARTIFACT_DESCRIPTION: 'artifact.description',
+
+  // Context breakdown attributes (estimated token counts)
+  CONTEXT_BREAKDOWN_SYSTEM_TEMPLATE: 'context.breakdown.system_template_tokens',
+  CONTEXT_BREAKDOWN_CORE_INSTRUCTIONS: 'context.breakdown.core_instructions_tokens',
+  CONTEXT_BREAKDOWN_AGENT_PROMPT: 'context.breakdown.agent_prompt_tokens',
+  CONTEXT_BREAKDOWN_TOOLS: 'context.breakdown.tools_tokens',
+  CONTEXT_BREAKDOWN_ARTIFACTS: 'context.breakdown.artifacts_tokens',
+  CONTEXT_BREAKDOWN_DATA_COMPONENTS: 'context.breakdown.data_components_tokens',
+  CONTEXT_BREAKDOWN_ARTIFACT_COMPONENTS: 'context.breakdown.artifact_components_tokens',
+  CONTEXT_BREAKDOWN_TRANSFER_INSTRUCTIONS: 'context.breakdown.transfer_instructions_tokens',
+  CONTEXT_BREAKDOWN_DELEGATION_INSTRUCTIONS: 'context.breakdown.delegation_instructions_tokens',
+  CONTEXT_BREAKDOWN_THINKING_PREPARATION: 'context.breakdown.thinking_preparation_tokens',
+  CONTEXT_BREAKDOWN_CONVERSATION_HISTORY: 'context.breakdown.conversation_history_tokens',
+  CONTEXT_BREAKDOWN_TOTAL: 'context.breakdown.total_tokens',
 } as const;
 
 export const UNKNOWN_VALUE = 'unknown' as const;

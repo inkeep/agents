@@ -121,6 +121,8 @@ export interface ActivityItem {
   // Tool approval fields
   approvalToolName?: string;
   approvalToolCallId?: string;
+  // Context breakdown for AI generation spans
+  contextBreakdown?: ContextBreakdown;
 }
 
 interface ToolCall {
@@ -143,6 +145,34 @@ interface AgentInteraction {
   timestamp: string;
   messageCount: number;
   toolCalls: ToolCall[];
+}
+
+/** Context breakdown showing estimated token usage by component */
+export interface ContextBreakdown {
+  /** Base system prompt template tokens */
+  systemPromptTemplate: number;
+  /** Core instructions (corePrompt) tokens */
+  coreInstructions: number;
+  /** Agent-level context (prompt) tokens */
+  agentPrompt: number;
+  /** Tools section (MCP, function, relation tools) tokens */
+  toolsSection: number;
+  /** Artifacts section tokens */
+  artifactsSection: number;
+  /** Data components section tokens (Phase 2) */
+  dataComponents: number;
+  /** Artifact component instructions tokens */
+  artifactComponents: number;
+  /** Transfer instructions tokens */
+  transferInstructions: number;
+  /** Delegation instructions tokens */
+  delegationInstructions: number;
+  /** Thinking preparation instructions tokens */
+  thinkingPreparation: number;
+  /** Conversation history tokens */
+  conversationHistory: number;
+  /** Total estimated tokens */
+  total: number;
 }
 
 export interface ConversationDetail {
