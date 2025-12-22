@@ -51,6 +51,7 @@ import {
 } from '../types/utility';
 import {
   createInsertSchema,
+  createResourceIdSchema,
   createSelectSchema,
   MAX_ID_LENGTH,
   MIN_ID_LENGTH,
@@ -254,9 +255,20 @@ export const ExternalSubAgentRelationApiInsertSchema = createApiInsertSchema(
 );
 
 export const AgentSelectSchema = createSelectSchema(agents);
-export const AgentInsertSchema = createInsertSchema(agents).extend({
-  id: resourceIdSchema,
-  name: z.string().trim().nonempty(),
+
+const DEFAULT_SUB_AGENT_ID_DESCRIPTION =
+  'ID of the default sub-agent that handles initial user messages. ' +
+  'Required at runtime but nullable on creation to avoid circular FK dependency. ' +
+  'Workflow: 1) POST Agent (without defaultSubAgentId), 2) POST SubAgent, 3) PATCH Agent with defaultSubAgentId.';
+
+export const AgentInsertSchema = createInsertSchema(agents, {
+  id: () => resourceIdSchema,
+  name: () =>
+    z.string().trim().nonempty().describe('Agent name').openapi({ description: 'Agent name' }),
+  defaultSubAgentId: () =>
+    createResourceIdSchema(DEFAULT_SUB_AGENT_ID_DESCRIPTION, { example: 'my-default-subagent' })
+      .nullable()
+      .optional(),
 });
 export const AgentUpdateSchema = AgentInsertSchema.partial();
 

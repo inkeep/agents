@@ -1,6 +1,6 @@
 configVersion: 2.0.0
 generation:
-  sdkClassName: InkeepAgents
+  sdkClassName: InkeepAgentsManage
   maintainOpenAPIOrder: true
   usageSnippets:
     optionalPropertyRendering: withExample
@@ -22,22 +22,29 @@ generation:
   schemas:
     allOfMergeStrategy: shallowMerge
   requestBodyFieldName: body
+  persistentEdits:
+    enabled: "true"
   tests:
     generateTests: false
     generateNewTests: true
     skipResponseBodyAssertions: false
 mcp-typescript:
-  version: 0.0.12
+  version: 0.0.6
   additionalDependencies:
     dependencies: {}
     devDependencies: {}
     peerDependencies: {}
+  advancedFlags: []
   author: Speakeasy
-  baseErrorName: InkeepAgentsError
+  baseErrorName: InkeepAgentsManageError
   cloudflareEnabled: false
-  defaultErrorName: InkeepAgentsDefaultError
-  envVarPrefix: INKEEPAGENTS
+  defaultErrorName: InkeepAgentsManageDefaultError
+  envVarPrefix: INKEEPAGENTSMANAGE
+  formStringArrayEncodeMode: array
+  inferUnionDiscriminators: true
   inputModelSuffix: input
   maxMethodParams: 0
+  multipartArrayFormat: standard
   outputModelSuffix: output
   packageName: '@inkeep/agents-manage-mcp'
+  responseFormat: envelope

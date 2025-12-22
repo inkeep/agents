@@ -74,6 +74,8 @@ inkeep push
 - `--agents-manage-api-url <url>` - Override the management API URL from config
 - `--agents-run-api-url <url>` - Override agents run API URL
 - `--json` - Generate project data as JSON file instead of pushing to server
+- `--profile <name>` - Use a specific CLI profile (overrides the active profile)
+- `--quiet` - Suppress interactive prompts and extra logs
 
 #### Single Project Push
 
@@ -120,6 +122,12 @@ inkeep push --agents-run-api-url https://run.example.com
 
 # Use specific config file
 inkeep push --config ./custom-config/inkeep.config.ts
+
+# Use a named profile (overrides the active profile)
+inkeep push --profile staging
+
+# Quiet non-essential output for CI
+inkeep push --quiet
 ```
 
 #### Batch Push with `--all`
@@ -271,6 +279,8 @@ inkeep pull
 - `--verbose` - Enable verbose logging
 - `--force` - Force regeneration even if no changes detected
 - `--introspect` - Completely regenerate all files from scratch (no comparison needed)
+- `--profile <name>` - Use a specific CLI profile (overrides the active profile)
+- `--quiet` - Suppress interactive prompts and extra logs
 
 #### Single Project Pull
 
@@ -381,6 +391,12 @@ inkeep pull --config ./custom-config/inkeep.config.ts
 
 # Pull all projects from server
 inkeep pull --all
+
+# Pull using a specific profile (overrides active)
+inkeep pull --profile staging
+
+# Quiet non-essential output for CI
+inkeep pull --quiet
 ```
 
 #### Batch Pull with `--all`
@@ -633,6 +649,78 @@ inkeep config list
 
 - `--config <path>` - Path to configuration file
 - `--config-file-path <path>` - Path to configuration file (deprecated, use --config)
+
+### `inkeep profile`
+
+Manage named CLI profiles for multiple remotes, credentials, and environments. Profiles are stored in `~/.inkeep/profiles.yaml`. A default `cloud` profile points to hosted endpoints.
+
+```yaml
+# ~/.inkeep/profiles.yaml
+activeProfile: cloud
+profiles:
+  cloud:
+    remote: cloud
+    credential: inkeep-cloud
+    environment: production
+  local:
+    remote:
+      manageApi: http://localhost:3002
+      manageUi: http://localhost:3000
+      runApi: http://localhost:3003
+    credential: inkeep-local
+    environment: development
+```
+
+**Subcommands:**
+
+- `inkeep profile list` — Show all profiles and the active one.
+- `inkeep profile add <name>` — Interactive creation for cloud or custom URLs; writes to `profiles.yaml`.
+- `inkeep profile use <name>` — Switch the active profile.
+- `inkeep profile current` — Show the active profile details and credential key.
+- `inkeep profile remove <name>` — Delete a profile (cannot remove the active one).
+
+**Examples:**
+
+```bash
+# Create a local profile and switch to it
+inkeep profile add local
+inkeep profile use local
+
+# Inspect which profile is active
+inkeep profile current
+
+# List all profiles
+inkeep profile list
+
+# Remove an unused profile
+inkeep profile remove staging
+```
+
+**How profiles are used:**
+
+- `inkeep login --profile <name>` stores credentials under the profile’s credential key.
+- Commands that talk to the APIs (`push`, `pull`, `status`, `login`, `logout`) honor `--profile <name>`; if omitted, the active profile is used.
+- Each profile bundles remote URLs, an environment name, and a credential reference so you can move between cloud and self-hosted deployments without editing config files.
+
+#### Using profiles with authenticated deployments
+
+If your deployment requires authentication (cloud or self-hosted), run `inkeep login` for each profile so its credential slot in `profiles.yaml` has a token in the system keychain:
+
+```bash
+# Authenticate against your secured deployment
+inkeep login --profile local
+
+# Validate which profile is active before running commands
+inkeep profile current
+
+# Use the profile when pushing/pulling
+inkeep push --profile local
+inkeep pull --profile local
+```
+
+- The `credential` field in the profile is the key used to store the token; `login` writes to that key and `push/pull/status` read from it.
+- Repeat `login --profile <name>` for every profile/remote you operate against.
+- Use `inkeep logout --profile <name>` to clear a profile’s stored credentials if you need to rotate access.
 
 ### `inkeep add`
 

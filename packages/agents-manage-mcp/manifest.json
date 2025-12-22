@@ -1,7 +1,7 @@
 {
   "manifest_version": "0.3",
   "name": "@inkeep/agents-manage-mcp",
-  "version": "0.0.12",
+  "version": "0.0.6",
   "description": "",
   "long_description": "Inkeep Agents Manage API: REST API for the management of the Inkeep Agent Framework.",
   "author": {
@@ -12,14 +12,63 @@
     "entry_point": "./bin/mcp-server.js",
     "mcp_config": {
       "command": "node",
-      "args": ["${__dirname}/bin/mcp-server.js", "start"]
+      "args": [
+        "${__dirname}/bin/mcp-server.js",
+        "start",
+        "--cookie-auth",
+        "${user_config.cookie_auth}",
+        "--bearer-auth",
+        "${user_config.bearer_auth}"
+      ]
     }
   },
   "display_name": "@inkeep/agents Manage Mcp",
+  "prompts": [],
+  "keywords": [
+    "@inkeep/agents",
+    "manage",
+    "mcp",
+    "inkeep",
+    "agents",
+    "api",
+    "rest"
+  ],
+  "user_config": {
+    "cookie_auth": {
+      "type": "string",
+      "title": "cookieAuth",
+      "description": "The cookieAuth to use for the request",
+      "required": true,
+      "sensitive": true
+    },
+    "bearer_auth": {
+      "type": "string",
+      "title": "bearerAuth",
+      "description": "The bearerAuth to use for the request",
+      "required": true,
+      "sensitive": true
+    }
+  },
   "tools": [
     {
       "name": "health",
       "description": "Health check\n\nCheck if the management service is healthy"
+    },
+    {
+      "name": "user-organizations-get-api-users-user-id-organizations",
+      "description": "List user organizations\n\nGet all organizations associated with a user"
+    },
+    {
+      "name": "user-organizations-post-api-users-user-id-organizations",
+      "description": "Add user to organization\n\nAssociate a user with an organization"
+    },
+    {
+      "name": "cli-get-api-cli-me",
+      "description": "Get CLI user info\n\nGet the current authenticated user and their organization for CLI usage"
+    },
+    {
+      "name": "invitations-get-api-invitations-pending",
+      "description": "Get pending invitations\n\nGet all pending (non-expired) invitations for a given email address"
     },
     {
       "name": "projects-list-projects",
@@ -386,6 +435,10 @@
       "description": "Delete Tool"
     },
     {
+      "name": "tools-get-user-credential-for-tool",
+      "description": "Get User Credential for Tool"
+    },
+    {
       "name": "API-keys-list-api-keys",
       "description": "List API Keys\n\nList all API keys for a tenant with optional pagination"
     },
@@ -430,6 +483,10 @@
       "description": "Get Third-Party MCP Server Details\n\nFetch details for a specific third-party MCP server (e.g., Composio) including authentication status and connect URL"
     },
     {
+      "name": "third-party-MCP-servers-get-oauth-redirect-url",
+      "description": "Get OAuth Redirect URL\n\nGet the OAuth redirect URL for a third-party MCP server. Call this after scope selection to get the correct URL for the selected scope."
+    },
+    {
       "name": "full-project-create-full-project",
       "description": "Create Full Project\n\nCreate a complete project with all Agents, Sub Agents, tools, and relationships from JSON definition"
     },
@@ -453,7 +510,5 @@
       "name": "O-auth-oauth-callback",
       "description": "OAuth authorization callback\n\nHandles OAuth authorization codes and completes the authentication flow"
     }
-  ],
-  "prompts": [],
-  "keywords": ["@inkeep/agents", "manage", "mcp", "inkeep", "agents", "api", "rest"]
+  ]
 }
