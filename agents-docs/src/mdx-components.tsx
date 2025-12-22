@@ -27,6 +27,7 @@ import defaultMdxComponents from 'fumadocs-ui/mdx';
 import type { MDXComponents } from 'mdx/types';
 import { ComparisonTable } from '@/components/comparisons-table';
 import { AutoTypeTable } from '@/components/mdx/auto-type-table';
+import { BigVideo } from '@/components/mdx/big-video';
 import { Card } from '@/components/mdx/card'; // Add this line
 import { openapi } from '@/lib/openapi';
 
@@ -58,6 +59,7 @@ export function getMDXComponents(components?: MDXComponents): MDXComponents {
     ...components,
     Accordions,
     Accordion,
+    BigVideo,
     Note,
     Warning,
     Tip,

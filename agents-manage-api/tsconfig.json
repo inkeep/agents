@@ -15,7 +15,6 @@
     },
     "allowSyntheticDefaultImports": true,
     "declaration": true,
-    "declarationMap": true,
     "noEmit": false
   },
   "include": ["src/**/*", "examples/**/*.ts"],

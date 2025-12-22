@@ -3,8 +3,7 @@ import rootConfig from '../tsdown.config.ts';
 
 export default defineConfig({
   ...rootConfig,
-  entry: ['src/index.ts', 'src/factory.ts'],
+  entry: ['src/**/*.ts', '!**/__tests__', '!**/*.test.ts'],
+  unbundle: true,
   format: ['esm'],
-  external: ['keytar'],
-  noExternal: ['@inkeep/agents-manage-mcp'],
 });
