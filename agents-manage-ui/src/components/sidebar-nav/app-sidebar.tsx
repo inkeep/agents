@@ -10,6 +10,7 @@ import {
   Library,
   LifeBuoy,
   Lock,
+  ScrollText,
   Settings,
   Workflow,
 } from 'lucide-react';
@@ -80,6 +81,11 @@ export const AppSidebar: FC<AppSidebarProps> = ({ open, setOpen, ...props }) => 
           title: 'Agents',
           url: `/${tenantId}/projects/${projectId}/agents`,
           icon: Workflow,
+        },
+        {
+          title: 'Policies',
+          url: `/${tenantId}/projects/${projectId}/policies`,
+          icon: ScrollText,
         },
         {
           title: 'API Keys',
