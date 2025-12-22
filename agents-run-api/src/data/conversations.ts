@@ -684,11 +684,11 @@ async function performActualCompression(
       );
 
       // Return just the compression summary message
-      compressor.partialCleanup();
+      compressor.fullCleanup();
       return [compressionMessage];
     }
 
-    compressor.partialCleanup();
+    compressor.fullCleanup();
     return messages;
   } catch (error) {
     logger.error(
@@ -698,7 +698,7 @@ async function performActualCompression(
       },
       'Conversation compression failed, using original messages'
     );
-    compressor.partialCleanup();
+    compressor.fullCleanup();
     return messages;
   }
 }

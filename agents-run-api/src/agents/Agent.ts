@@ -2365,7 +2365,7 @@ ${output}`;
 
           // Clear compressor reference to prevent memory leaks
           if (compressor) {
-            compressor.partialCleanup();
+            compressor.fullCleanup();
           }
           this.currentCompressor = null;
 
@@ -3179,9 +3179,9 @@ ${output}${structureHintsFormatted}`;
   }
 
   private handleGenerationError(error: unknown, span: Span) {
-    // Clear compressor reference and clean up memory before error
+    // Use full cleanup since compressor is being discarded on error
     if (this.currentCompressor) {
-      this.currentCompressor.partialCleanup();
+      this.currentCompressor.fullCleanup();
     }
     this.currentCompressor = null;
 
@@ -3190,6 +3190,17 @@ ${output}${structureHintsFormatted}`;
     setSpanWithError(span, errorToThrow);
     span.end();
     throw errorToThrow;
+  }
+
+  /**
+   * Public cleanup method for external lifecycle management (e.g., session cleanup)
+   * Performs full cleanup of compression state when agent/session is ending
+   */
+  public cleanupCompression(): void {
+    if (this.currentCompressor) {
+      this.currentCompressor.fullCleanup();
+      this.currentCompressor = null;
+    }
   }
 
   private async processStreamEvents(streamResult: any, parser: any) {
