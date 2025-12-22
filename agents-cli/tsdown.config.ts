@@ -5,6 +5,9 @@ export default defineConfig({
   entry: {
     index: 'src/index.ts',
     config: 'src/config.ts',
+    'schemas/types': 'src/schemas/types.ts',
+    'schemas/commander-builder': 'src/schemas/commander-builder.ts',
+    'schemas/commands/index': 'src/schemas/commands/index.ts',
   },
   format: ['esm'],
   target: 'node20',
@@ -21,6 +24,7 @@ export default defineConfig({
     'destr',
     '@nangohq/node',
     '@nangohq/types',
+    'zod', // Peer dependency used by schemas
   ],
   // Bundle workspace packages (use regex to match all subpath imports)
   noExternal: [/^@inkeep\/agents-core/],

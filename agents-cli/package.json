@@ -10,6 +10,9 @@
   "exports": {
     ".": "./dist/index.js",
     "./config": "./dist/config.js",
+    "./schemas/types": "./dist/schemas/types.js",
+    "./schemas/commands": "./dist/schemas/commands/index.js",
+    "./schemas/commander-builder": "./dist/schemas/commander-builder.js",
     "./package.json": "./package.json"
   },
   "scripts": {
