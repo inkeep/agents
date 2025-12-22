@@ -1,0 +1,5 @@
+{
+  "editor.formatOnSave": false,
+  "editor.codeActionsOnSave": {},
+  "editor.defaultFormatter": "biomejs.biome"
+}
