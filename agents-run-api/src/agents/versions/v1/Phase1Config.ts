@@ -550,23 +550,92 @@ ${creationInstructions}
 
   private generateParametersXml(inputSchema: Record<string, unknown> | null | undefined): string {
     if (!inputSchema) {
-      return '<type>object</type>\n      <properties>\n      </properties>\n      <required>[]</required>';
+      return `<parameters>
+FORMAT: parameter_name (TYPE) [REQUIRED/OPTIONAL] - Description - Example: value
+
+No parameters required for this tool.
+</parameters>`;
     }
 
-    const schemaType = (inputSchema.type as string) || 'object';
     const properties = (inputSchema.properties as Record<string, any>) || {};
     const required = (inputSchema.required as string[]) || [];
 
-    const propertiesXml = Object.entries(properties)
+    if (Object.keys(properties).length === 0) {
+      return `<parameters>
+FORMAT: parameter_name (TYPE) [REQUIRED/OPTIONAL] - Description - Example: value
+
+No parameters required for this tool.
+</parameters>`;
+    }
+
+    const parametersXml = Object.entries(properties)
       .map(([key, value]) => {
         const isRequired = required.includes(key);
-        const propType = (value as any)?.type || 'string';
+        const propType = ((value as any)?.type || 'string').toUpperCase();
         const propDescription = (value as any)?.description || 'No description';
+        const propDefault = (value as any)?.default;
+        const propEnum = (value as any)?.enum;
 
-        return `        ${key}: {\n          "type": "${propType}",\n          "description": "${propDescription}",\n          "required": ${isRequired}\n        }`;
+        // Generate generic example based on type
+        const exampleValue = this.generateGenericExample(value as any, propType.toLowerCase());
+        
+        // Build status indicator
+        let statusIndicator = isRequired ? '[REQUIRED]' : '[OPTIONAL';
+        if (!isRequired && propDefault !== undefined) {
+          statusIndicator += `, default: ${JSON.stringify(propDefault)}`;
+        }
+        statusIndicator += ']';
+
+        // Add enum info to description if available
+        let enhancedDescription = propDescription;
+        if (propEnum && Array.isArray(propEnum)) {
+          enhancedDescription += `. Allowed values: ${propEnum.map(v => `"${v}"`).join(', ')}`;
+        }
+
+        return `• ${key} (${propType}) ${statusIndicator}
+  Description: ${enhancedDescription}
+  Example: ${JSON.stringify(exampleValue)}`;
       })
-      .join('\n');
+      .join('\n\n');
 
-    return `<type>${schemaType}</type>\n      <properties>\n${propertiesXml}\n      </properties>\n      <required>${JSON.stringify(required)}</required>`;
+    return `<parameters>
+FORMAT: parameter_name (TYPE) [REQUIRED/OPTIONAL] - Description - Example: value
+
+${parametersXml}
+</parameters>`;
+  }
+
+  private generateGenericExample(propertySchema: any, type: string): any {
+    // Use explicit schema values first
+    if (propertySchema?.example !== undefined) {
+      return propertySchema.example;
+    }
+    if (propertySchema?.examples && Array.isArray(propertySchema.examples) && propertySchema.examples.length > 0) {
+      return propertySchema.examples[0];
+    }
+    if (propertySchema?.default !== undefined) {
+      return propertySchema.default;
+    }
+    if (propertySchema?.enum && Array.isArray(propertySchema.enum) && propertySchema.enum.length > 0) {
+      return propertySchema.enum[0];
+    }
+    
+    // Generic type-based examples
+    switch (type) {
+      case 'string':
+        return 'string_value';
+      case 'number':
+        return 123;
+      case 'integer':
+        return 42;
+      case 'boolean':
+        return true;
+      case 'array':
+        return ['item1', 'item2'];
+      case 'object':
+        return { key: 'value' };
+      default:
+        return 'value';
+    }
   }
 }
