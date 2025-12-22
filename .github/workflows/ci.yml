@@ -92,7 +92,7 @@ jobs:
       - name: Biome Format
         run: pnpm format:check
 
-      - name: Knip Unused Exports/Types Check
+      - name: Check for unused dependencies, exports, and types
         run: pnpm knip
 
       # Create summary report
