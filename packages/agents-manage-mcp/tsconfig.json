@@ -2,6 +2,7 @@
 
 {
   "compilerOptions": {
+    "verbatimModuleSyntax": true,
     "allowJs": true,
     "allowUnreachableCode": false,
     "allowUnusedLabels": false,

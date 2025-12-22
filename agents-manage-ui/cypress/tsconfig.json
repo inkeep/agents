@@ -1,5 +1,6 @@
 {
   "compilerOptions": {
+    "verbatimModuleSyntax": true,
     "target": "es6",
     "lib": ["es2021", "dom"],
     "sourceMap": true,
