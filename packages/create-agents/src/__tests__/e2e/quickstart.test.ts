@@ -96,6 +96,15 @@ describe('create-agents quickstart e2e', () => {
     await verifyFile(path.join(projectDir, 'src/inkeep.config.ts'));
     console.log('inkeep.config.ts verified');
 
+    // Link to local monorepo packages
+    console.log('Linking local monorepo packages...');
+    await linkLocalPackages(projectDir, monorepoRoot);
+    console.log('Local monorepo packages linked');
+
+    console.log('Installing dependencies...');
+    await runCommand('pnpm', ['install'], projectDir);
+    console.log('Dependencies installed');
+
     console.log('Setting up project in database');
     await runCommand('pnpm', ['setup-dev:cloud'], projectDir);
     console.log('Project setup in database');
@@ -169,31 +178,6 @@ describe('create-agents quickstart e2e', () => {
       expect(data.data.tenantId).toBe('default');
       expect(data.data.id).toBe(projectId);
 
-      // Link to local monorepo packages
-      await linkLocalPackages(projectDir, monorepoRoot);
-
-      const pushResultLocal = await runCommand(
-        'pnpm',
-        [
-          'inkeep',
-          'push',
-          '--project',
-          `src/projects/${projectId}`,
-          '--config',
-          'src/inkeep.config.ts',
-        ],
-        projectDir,
-        30000
-      );
-
-      expect(
-        pushResultLocal.exitCode,
-        `Push with local packages failed with exit code ${pushResultLocal.exitCode}\nstdout: ${pushResultLocal.stdout}\nstderr: ${pushResultLocal.stderr}`
-      ).toBe(0);
-
-      // Test that the project works with local packages
-      const responseLocal = await fetch(`${manageApiUrl}/tenants/default/projects/${projectId}`);
-      expect(responseLocal.status).toBe(200);
     } catch (error) {
       console.error('Test failed with error:', error);
       // Print server output for debugging
