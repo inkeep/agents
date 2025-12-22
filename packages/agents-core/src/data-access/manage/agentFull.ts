@@ -1,11 +1,7 @@
 import { and, eq, inArray, not } from 'drizzle-orm';
 import type { AgentsManageDatabaseClient } from '../../db/manage/manage-client';
 import { projects, subAgents, subAgentToolRelations } from '../../db/manage/manage-schema';
-import type {
-  FullAgentDefinition,
-  FullAgentSelect,
-  FullAgentSelectWithRelationIds,
-} from '../../types/entities';
+import type { FullAgentDefinition, FullAgentSelectWithRelationIds } from '../../types/entities';
 import type { AgentScopeConfig, ProjectScopeConfig } from '../../types/utility';
 import { generateId } from '../../utils/conversations';
 import { validateAgentStructure, validateAndTypeAgentData } from '../../validation/agentFull';

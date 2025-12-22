@@ -1,9 +1,9 @@
 import { PGlite } from '@electric-sql/pglite';
+import { sql } from 'drizzle-orm';
 import { drizzle } from 'drizzle-orm/pglite';
 import { migrate } from 'drizzle-orm/pglite/migrator';
 import type { AgentsManageDatabaseClient } from './manage-client';
 import * as schema from './manage-schema';
-import { sql } from 'drizzle-orm';
 
 /**
  * Creates a test database client using an in-memory PostgreSQL database (PGlite)

@@ -1,11 +1,11 @@
-import { getLogger } from './logger';
 import {
-  signJwt,
-  verifyJwt,
   extractBearerToken,
   hasIssuer,
   type JwtVerifyResult,
+  signJwt,
+  verifyJwt,
 } from './jwt-helpers';
+import { getLogger } from './logger';
 
 const logger = getLogger('internal-service-auth');
 

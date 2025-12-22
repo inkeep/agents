@@ -2,12 +2,12 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import {
   generateInternalServiceToken,
   InternalServices,
+  type InternalServiceTokenPayload,
   isInternalServiceToken,
   validateInternalServiceProjectAccess,
   validateInternalServiceTenantAccess,
   verifyInternalServiceAuthHeader,
   verifyInternalServiceToken,
-  type InternalServiceTokenPayload,
 } from '../../utils/internal-service-auth';
 
 vi.mock('../../env', () => ({
@@ -312,12 +312,32 @@ describe('Internal Service Auth', () => {
       expect(result.valid).toBe(true);
 
       // Validate tenant access
-      expect(validateInternalServiceTenantAccess(result.payload!, 'tenant-abc')).toBe(true);
-      expect(validateInternalServiceTenantAccess(result.payload!, 'wrong-tenant')).toBe(false);
+      expect(
+        validateInternalServiceTenantAccess(
+          result.payload as InternalServiceTokenPayload,
+          'tenant-abc'
+        )
+      ).toBe(true);
+      expect(
+        validateInternalServiceTenantAccess(
+          result.payload as InternalServiceTokenPayload,
+          'wrong-tenant'
+        )
+      ).toBe(false);
 
       // Validate project access
-      expect(validateInternalServiceProjectAccess(result.payload!, 'project-xyz')).toBe(true);
-      expect(validateInternalServiceProjectAccess(result.payload!, 'wrong-project')).toBe(false);
+      expect(
+        validateInternalServiceProjectAccess(
+          result.payload as InternalServiceTokenPayload,
+          'project-xyz'
+        )
+      ).toBe(true);
+      expect(
+        validateInternalServiceProjectAccess(
+          result.payload as InternalServiceTokenPayload,
+          'wrong-project'
+        )
+      ).toBe(false);
     });
 
     it('should work for all service types', async () => {

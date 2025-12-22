@@ -1,8 +1,8 @@
-import type { AgentsManageDatabaseClient } from '../db/manage/manage-client';
 import { sql } from 'drizzle-orm';
-import { doltListBranches } from './branch';
-import { doltListTags, doltHashOf } from './commit';
+import type { AgentsManageDatabaseClient } from '../db/manage/manage-client';
 import type { ResolvedRef } from '../validation/dolt-schemas';
+import { doltListBranches } from './branch';
+import { doltHashOf, doltListTags } from './commit';
 
 export type RefType = 'commit' | 'tag' | 'branch';
 

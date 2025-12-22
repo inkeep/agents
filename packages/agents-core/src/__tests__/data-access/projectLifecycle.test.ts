@@ -1,12 +1,12 @@
-import { describe, it, expect, beforeEach, vi } from 'vitest';
-import { testRunDbClient } from '../setup';
-import { createTestOrganization } from '../../db/runtime/test-runtime-client';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 import {
-  getProjectMainBranchName,
   createProjectMetadataAndBranch,
   deleteProjectWithBranch,
+  getProjectMainBranchName,
 } from '../../data-access/manage/projectLifecycle';
 import { createProjectMetadata, getProjectMetadata } from '../../data-access/runtime/projects';
+import { createTestOrganization } from '../../db/runtime/test-runtime-client';
+import { testRunDbClient } from '../setup';
 
 // Mock the dolt branch operations
 vi.mock('../../dolt/branch', () => ({

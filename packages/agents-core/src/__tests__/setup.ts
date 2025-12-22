@@ -1,14 +1,14 @@
 import path from 'node:path';
 import { afterEach, beforeAll } from 'vitest';
 import type { AgentsManageDatabaseClient } from '../db/manage/manage-client';
+import {
+  cleanupTestManageDatabase,
+  createTestManageDatabaseClient,
+} from '../db/manage/test-manage-client';
 import type { AgentsRunDatabaseClient } from '../db/runtime/runtime-client';
 import {
-  createTestManageDatabaseClient,
-  cleanupTestManageDatabase,
-} from '../db/manage/test-manage-client';
-import {
-  createTestRuntimeDatabaseClient,
   cleanupTestRuntimeDatabase,
+  createTestRuntimeDatabaseClient,
 } from '../db/runtime/test-runtime-client';
 import { getLogger } from '../utils/logger';
 

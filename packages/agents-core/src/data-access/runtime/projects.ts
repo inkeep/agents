@@ -1,8 +1,8 @@
 import { and, count, desc, eq } from 'drizzle-orm';
 import type { AgentsRunDatabaseClient } from '../../db/runtime/runtime-client';
 import { projectMetadata } from '../../db/runtime/runtime-schema';
-import type { PaginationConfig } from '../../types/utility';
 import type { ProjectMetadataInsert, ProjectMetadataSelect } from '../../types/entities';
+import type { PaginationConfig } from '../../types/utility';
 
 export interface ProjectMetadataPaginatedResult {
   data: ProjectMetadataSelect[];

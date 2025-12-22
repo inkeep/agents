@@ -10,6 +10,7 @@ import {
   isValidCommitHash,
   resolveRef,
 } from '../../../dolt/ref';
+import type { ResolvedRef } from '../../../validation/dolt-schemas';
 
 const dbClient = getIntegrationTestClient();
 
@@ -39,7 +40,7 @@ describe('Ref Operations - Integration Tests', () => {
     if (originalBranch) {
       try {
         await doltCheckout(dbClient)({ branch: originalBranch });
-      } catch (error) {
+      } catch {
         // Ignore checkout errors during cleanup
       }
     }
@@ -82,10 +83,10 @@ describe('Ref Operations - Integration Tests', () => {
       const resolved = await resolveRef(dbClient)(branchName);
 
       expect(resolved).toBeDefined();
-      expect(resolved!.type).toBe('branch');
-      expect(resolved!.name).toBe(branchName);
-      expect(resolved!.hash).toHaveLength(32);
-      expect(/^[0-9a-v]{32}$/.test(resolved!.hash)).toBe(true);
+      expect(resolved?.type).toBe('branch');
+      expect(resolved?.name).toBe(branchName);
+      expect(resolved?.hash).toHaveLength(32);
+      expect(/^[0-9a-v]{32}$/.test(resolved?.hash ?? '')).toBe(true);
     });
 
     it('should resolve a tag ref', async () => {
@@ -111,9 +112,9 @@ describe('Ref Operations - Integration Tests', () => {
       const resolved = await resolveRef(dbClient)(tagName);
 
       expect(resolved).toBeDefined();
-      expect(resolved!.type).toBe('tag');
-      expect(resolved!.name).toBe(tagName);
-      expect(resolved!.hash).toHaveLength(32);
+      expect(resolved?.type).toBe('tag');
+      expect(resolved?.name).toBe(tagName);
+      expect(resolved?.hash).toHaveLength(32);
     });
 
     it('should resolve a commit hash ref', async () => {
@@ -136,9 +137,9 @@ describe('Ref Operations - Integration Tests', () => {
       const resolved = await resolveRef(dbClient)(commitHash);
 
       expect(resolved).toBeDefined();
-      expect(resolved!.type).toBe('commit');
-      expect(resolved!.name).toBe(commitHash);
-      expect(resolved!.hash).toBe(commitHash);
+      expect(resolved?.type).toBe('commit');
+      expect(resolved?.name).toBe(commitHash);
+      expect(resolved?.hash).toBe(commitHash);
     });
 
     it('should return null for non-existent ref', async () => {
@@ -168,7 +169,7 @@ describe('Ref Operations - Integration Tests', () => {
       const resolved = await resolveRef(dbClient)(commitHash);
 
       expect(resolved).toBeDefined();
-      expect(resolved!.type).toBe('commit');
+      expect(resolved?.type).toBe('commit');
     });
   });
 
@@ -182,7 +183,7 @@ describe('Ref Operations - Integration Tests', () => {
       const resolved = await resolveRef(dbClient)(branchName);
       expect(resolved).toBeDefined();
 
-      const writable = isRefWritable(resolved!);
+      const writable = isRefWritable(resolved as ResolvedRef);
       expect(writable).toBe(true);
     });
 
@@ -195,7 +196,7 @@ describe('Ref Operations - Integration Tests', () => {
       const resolved = await resolveRef(dbClient)(tagName);
       expect(resolved).toBeDefined();
 
-      const writable = isRefWritable(resolved!);
+      const writable = isRefWritable(resolved as ResolvedRef);
       expect(writable).toBe(false);
     });
 
@@ -218,7 +219,7 @@ describe('Ref Operations - Integration Tests', () => {
       const resolved = await resolveRef(dbClient)(commitHash);
       expect(resolved).toBeDefined();
 
-      const writable = isRefWritable(resolved!);
+      const writable = isRefWritable(resolved as ResolvedRef);
       expect(writable).toBe(false);
     });
   });
@@ -233,7 +234,7 @@ describe('Ref Operations - Integration Tests', () => {
       const resolved = await resolveRef(dbClient)(branchName);
       expect(resolved).toBeDefined();
 
-      await checkoutRef(dbClient)(resolved!);
+      await checkoutRef(dbClient)(resolved as ResolvedRef);
 
       const activeBranch = await doltActiveBranch(dbClient)();
       expect(activeBranch).toBe(branchName);

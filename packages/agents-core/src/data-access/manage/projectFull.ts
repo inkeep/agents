@@ -6,16 +6,16 @@
 
 import type { AgentsManageDatabaseClient } from '../../db/manage/manage-client';
 import type {
+  ArtifactComponentApiSelect,
+  CredentialReferenceApiSelect,
+  DataComponentApiSelect,
+  ExternalAgentApiSelect,
   FullProjectDefinition,
   FullProjectSelect,
   FullProjectSelectWithRelationIds,
+  FunctionApiSelect,
   ProjectSelect,
   ToolApiSelect,
-  ExternalAgentApiSelect,
-  DataComponentApiSelect,
-  ArtifactComponentApiSelect,
-  CredentialReferenceApiSelect,
-  FunctionApiSelect,
 } from '../../types/entities';
 import type { ProjectScopeConfig } from '../../types/utility';
 import { getLogger } from '../../utils/logger';

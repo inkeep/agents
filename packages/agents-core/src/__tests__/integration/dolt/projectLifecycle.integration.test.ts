@@ -1,7 +1,4 @@
 import { afterEach, describe, expect, it } from 'vitest';
-import { cleanupTestData, getIntegrationTestClient } from '../../../db/manage/dolt-cleanup';
-import { createAgentsRunDatabaseClient } from '../../../db/runtime/runtime-client';
-import { doltListBranches } from '../../../dolt/branch';
 import {
   createProjectMetadataAndBranch,
   deleteProjectWithBranch,
@@ -9,9 +6,12 @@ import {
 } from '../../../data-access/manage/projectLifecycle';
 import {
   createProjectMetadata,
-  getProjectMetadata,
   deleteProjectMetadata,
+  getProjectMetadata,
 } from '../../../data-access/runtime/projects';
+import { cleanupTestData, getIntegrationTestClient } from '../../../db/manage/dolt-cleanup';
+import { createAgentsRunDatabaseClient } from '../../../db/runtime/runtime-client';
+import { doltListBranches } from '../../../dolt/branch';
 
 const configDb = getIntegrationTestClient();
 const runDb = createAgentsRunDatabaseClient();
@@ -79,14 +79,14 @@ describe('Project Lifecycle - Integration Tests', () => {
       // Verify project metadata exists in runtime DB
       const projectMetadata = await getProjectMetadata(runDb)({ tenantId, projectId });
       expect(projectMetadata).not.toBeNull();
-      expect(projectMetadata!.id).toBe(projectId);
-      expect(projectMetadata!.mainBranchName).toBe(expectedBranchName);
+      expect(projectMetadata?.id).toBe(projectId);
+      expect(projectMetadata?.mainBranchName).toBe(expectedBranchName);
 
       // Verify branch was created in Dolt
       const branches = await doltListBranches(configDb)();
       const createdBranch = branches.find((b) => b.name === expectedBranchName);
       expect(createdBranch).toBeDefined();
-      expect(createdBranch!.hash).toHaveLength(32);
+      expect(createdBranch?.hash).toHaveLength(32);
     });
 
     it('should create project without createdBy', async () => {
@@ -341,7 +341,7 @@ describe('Project Lifecycle - Integration Tests', () => {
 
       expect(branch1).toBeDefined();
       expect(branch2).toBeDefined();
-      expect(branch1!.name).not.toBe(branch2!.name);
+      expect(branch1?.name).not.toBe(branch2?.name);
 
       // Verify both projects exist in runtime DB
       const metadata1 = await getProjectMetadata(runDb)({ tenantId, projectId: projectId1 });
@@ -349,8 +349,8 @@ describe('Project Lifecycle - Integration Tests', () => {
 
       expect(metadata1).not.toBeNull();
       expect(metadata2).not.toBeNull();
-      expect(metadata1!.mainBranchName).toBe(result1.mainBranchName);
-      expect(metadata2!.mainBranchName).toBe(result2.mainBranchName);
+      expect(metadata1?.mainBranchName).toBe(result1.mainBranchName);
+      expect(metadata2?.mainBranchName).toBe(result2.mainBranchName);
     });
   });
 });

@@ -3,8 +3,8 @@ import { drizzle } from 'drizzle-orm/node-postgres';
 import type { PgliteDatabase } from 'drizzle-orm/pglite';
 import { Pool } from 'pg';
 import { env, loadEnvironmentFiles } from '../../env';
-import { createTestRuntimeDatabaseClientNoMigrations } from './test-runtime-client';
 import * as schema from './runtime-schema';
+import { createTestRuntimeDatabaseClientNoMigrations } from './test-runtime-client';
 
 loadEnvironmentFiles();
 
@@ -26,7 +26,7 @@ export interface AgentsRunDatabaseConfig {
 export function createAgentsRunDatabaseClient(
   config?: AgentsRunDatabaseConfig
 ): AgentsRunDatabaseClient {
-  let connectionString = config?.connectionString || env.INKEEP_AGENTS_RUN_DATABASE_URL;
+  const connectionString = config?.connectionString || env.INKEEP_AGENTS_RUN_DATABASE_URL;
 
   if (env.ENVIRONMENT === 'test') {
     return createTestRuntimeDatabaseClientNoMigrations();

@@ -3,8 +3,8 @@ import type { CredentialStoreRegistry } from '../../credential-stores';
 import type { NangoCredentialData } from '../../credential-stores/nango-store';
 import { CredentialStuffer } from '../../credential-stuffer';
 import type { AgentsManageDatabaseClient } from '../../db/manage/manage-client';
-import type { CredentialReferenceSelect } from '../../types/index';
 import { subAgentToolRelations, tools } from '../../db/manage/manage-schema';
+import type { CredentialReferenceSelect } from '../../types/index';
 import {
   type AgentScopeConfig,
   CredentialStoreType,

@@ -1,17 +1,17 @@
 import { sql } from 'drizzle-orm';
 import type { AgentsManageDatabaseClient } from '../../db/manage/manage-client';
 import type { AgentsRunDatabaseClient } from '../../db/runtime/runtime-client';
-import { doltBranch, doltDeleteBranch, doltBranchExists } from '../../dolt/branch';
+import { doltBranch, doltBranchExists, doltDeleteBranch } from '../../dolt/branch';
+import type { ProjectMetadataSelect } from '../../types/entities';
+import type { PaginationConfig, PaginationResult, ProjectModels } from '../../types/utility';
+import { getLogger } from '../../utils/logger';
+import type { StopWhen } from '../../validation/schemas';
 import {
   createProjectMetadata,
   deleteProjectMetadata,
   getProjectMetadata,
   listProjectsMetadataPaginated,
 } from '../runtime/projects';
-import type { ProjectMetadataSelect } from '../../types/entities';
-import { getLogger } from '../../utils/logger';
-import type { PaginationConfig, PaginationResult, ProjectModels } from '../../types/utility';
-import type { StopWhen } from '../../validation/schemas';
 
 const logger = getLogger('project-lifecycle');
 

@@ -345,7 +345,7 @@ const getFullAgentDefinitionInternal =
                   rel.targetSubAgentId !== null
               )
               .map((rel) => ({
-                subAgentId: rel.targetSubAgentId!,
+                subAgentId: rel.targetSubAgentId as string,
                 subAgentSubAgentRelationId: rel.id,
               }))
           : subAgentRelationsList
@@ -363,7 +363,7 @@ const getFullAgentDefinitionInternal =
                   rel.targetSubAgentId !== null
               )
               .map((rel) => ({
-                subAgentId: rel.targetSubAgentId!,
+                subAgentId: rel.targetSubAgentId as string,
                 subAgentSubAgentRelationId: rel.id,
               }))
           : subAgentRelationsList

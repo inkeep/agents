@@ -1,6 +1,6 @@
+import { sql } from 'drizzle-orm';
 import type { AgentsManageDatabaseClient } from '../db/manage/manage-client';
 import { doltCheckout } from './branch';
-import { sql } from 'drizzle-orm';
 /**
  * Merge another branch into the current branch
  * Returns merge status and handles conflicts by allowing commit with conflicts

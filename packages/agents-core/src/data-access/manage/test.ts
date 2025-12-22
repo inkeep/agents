@@ -1,11 +1,7 @@
+import { eq } from 'drizzle-orm';
 import { drizzle } from 'drizzle-orm/node-postgres';
 import { Pool } from 'pg';
 import * as schema from '../../db/manage/manage-schema';
-import { projectExists } from './projects';
-import { createProject } from './projects';
-import { createAgent } from './agents';
-import { createContextConfig } from './contextConfigs';
-import { eq } from 'drizzle-orm';
 
 const pool = new Pool({
   connectionString: 'postgresql://appuser:password@localhost:5432/inkeep_agents',
@@ -19,7 +15,7 @@ const dbClient = drizzle(connection, {
   logger: true,
 });
 
-const testId = 'test-exact-' + Date.now();
+const testId = `test-exact-${Date.now()}`;
 
 const contextObject = {
   id: testId,

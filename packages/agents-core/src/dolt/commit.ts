@@ -1,6 +1,6 @@
 import { sql } from 'drizzle-orm';
-import { doltListBranches } from './branch';
 import type { AgentsManageDatabaseClient } from '../db/manage/manage-client';
+import { doltListBranches } from './branch';
 /**
  * Stage all changes for commit
  * params: { tables?: string[] }

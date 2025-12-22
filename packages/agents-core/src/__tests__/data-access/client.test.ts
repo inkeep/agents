@@ -1,7 +1,7 @@
-import { afterEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, describe, expect, it } from 'vitest';
 import { createAgentsManageDatabaseClient } from '../../db/manage/manage-client';
-import { createAgentsRunDatabaseClient } from '../../db/runtime/runtime-client';
 import { createTestManageDatabaseClient } from '../../db/manage/test-manage-client';
+import { createAgentsRunDatabaseClient } from '../../db/runtime/runtime-client';
 import { createTestRuntimeDatabaseClient } from '../../db/runtime/test-runtime-client';
 
 describe('Database Clients', () => {

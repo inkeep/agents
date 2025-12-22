@@ -14,8 +14,8 @@ import {
 } from '../../../data-access/manage/subAgentRelations';
 import { createSubAgent, deleteSubAgent } from '../../../data-access/manage/subAgents';
 import type { AgentsManageDatabaseClient } from '../../../db/manage/manage-client';
-import type { AgentsRunDatabaseClient } from '../../../db/runtime/runtime-client';
 import * as schema from '../../../db/manage/manage-schema';
+import type { AgentsRunDatabaseClient } from '../../../db/runtime/runtime-client';
 import { createTestOrganization } from '../../../db/runtime/test-runtime-client';
 import { testManageDbClient, testRunDbClient } from '../../setup';
 import { createTestAgentData, createTestRelationData, createTestSubAgentData } from '../helpers';

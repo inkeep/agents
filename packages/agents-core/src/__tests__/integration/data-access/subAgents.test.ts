@@ -1,3 +1,4 @@
+import type { AgentsRunDatabaseClient } from '@inkeep/agents-core/db/runtime/runtime-client';
 import type { SubAgentInsert } from '@inkeep/agents-core/types';
 import { and, eq } from 'drizzle-orm';
 import { beforeEach, describe, expect, it } from 'vitest';
@@ -14,7 +15,6 @@ import * as schema from '../../../db/manage/manage-schema';
 import { createTestOrganization } from '../../../db/runtime/test-runtime-client';
 import { SubAgentInsertSchema } from '../../../validation/schemas';
 import { testManageDbClient, testRunDbClient } from '../../setup';
-import { AgentsRunDatabaseClient } from '@inkeep/agents-core/db/runtime/runtime-client';
 
 describe('Agents Data Access - Integration Tests', () => {
   let db: AgentsManageDatabaseClient;

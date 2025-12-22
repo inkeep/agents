@@ -1,5 +1,3 @@
-import type { AgentsManageDatabaseClient } from '../../../db/manage/manage-client';
-import type { AgentsRunDatabaseClient } from '../../../db/runtime/runtime-client';
 import { beforeEach, describe, expect, it } from 'vitest';
 import {
   createTool,
@@ -8,11 +6,11 @@ import {
   listTools,
   updateTool,
 } from '../../../data-access/manage/tools';
-import { createTestOrganization } from '../../../db/runtime/test-runtime-client';
+import type { AgentsManageDatabaseClient } from '../../../db/manage/manage-client';
 import { createTestProject } from '../../../db/manage/test-manage-client';
 import { MCPTransportType, type ToolInsert, type ToolUpdate } from '../../../types/index';
 import { ToolInsertSchema } from '../../../validation/schemas';
-import { testManageDbClient, testRunDbClient } from '../../setup';
+import { testManageDbClient } from '../../setup';
 
 // Helper function to create test project data with unique IDs
 const createProjectData = ({ suffix = '' }: { suffix?: string } = {}) => {
@@ -64,14 +62,12 @@ const createToolData = ({
 
 describe('Tools Data Access - Integration Tests', () => {
   let db: AgentsManageDatabaseClient;
-  let runDb: AgentsRunDatabaseClient;
   const testTenantId = 'test-tenant';
   const testProjectId = 'test-project';
 
   beforeEach(async () => {
     // Create fresh in-memory database for each test
     db = testManageDbClient;
-    runDb = testRunDbClient;
   });
 
   describe('createTool & getToolById', () => {

@@ -1,5 +1,5 @@
-import type { AgentsManageDatabaseClient } from '../db/manage/manage-client';
 import { sql } from 'drizzle-orm';
+import type { AgentsManageDatabaseClient } from '../db/manage/manage-client';
 
 /**
  * Get diff between two commits/branches

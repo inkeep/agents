@@ -2,7 +2,6 @@ import type { ExternalAgentInsert, SubAgentDataComponentInsert } from '@inkeep/a
 import { eq } from 'drizzle-orm';
 import { beforeAll, beforeEach, describe, expect, it } from 'vitest';
 import type { AgentsManageDatabaseClient } from '../../db/manage/manage-client';
-import type { AgentsRunDatabaseClient } from '../../db/runtime/runtime-client';
 import {
   agents,
   artifactComponents,
@@ -18,18 +17,18 @@ import {
   subAgentToolRelations,
   tools,
 } from '../../db/manage/manage-schema';
-import {
-  conversations,
-  messages,
-  tasks,
-  taskRelations,
-  ledgerArtifacts,
-  contextCache,
-} from '../../db/runtime/runtime-schema';
-import type { ResolvedRef } from '../../validation/dolt-schemas';
-
 import { createTestProject } from '../../db/manage/test-manage-client';
+import type { AgentsRunDatabaseClient } from '../../db/runtime/runtime-client';
+import {
+  contextCache,
+  conversations,
+  ledgerArtifacts,
+  messages,
+  taskRelations,
+  tasks,
+} from '../../db/runtime/runtime-schema';
 import { generateId } from '../../utils/conversations';
+import type { ResolvedRef } from '../../validation/dolt-schemas';
 import { testManageDbClient, testRunDbClient } from '../setup';
 
 describe('Cascading Delete Tests (Manage DB)', () => {

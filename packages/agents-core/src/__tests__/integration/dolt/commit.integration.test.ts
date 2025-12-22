@@ -40,7 +40,7 @@ describe('Commit Operations - Integration Tests', () => {
     if (originalBranch) {
       try {
         await doltCheckout(dbClient)({ branch: originalBranch });
-      } catch (error) {
+      } catch {
         // Ignore checkout errors during cleanup
       }
     }
@@ -288,8 +288,8 @@ describe('Commit Operations - Integration Tests', () => {
       const createdTag = tags.find((t) => t.tag_name === tagName);
 
       expect(createdTag).toBeDefined();
-      expect(createdTag!.tag_name).toBe(tagName);
-      expect(createdTag!.tag_hash).toHaveLength(32);
+      expect(createdTag?.tag_name).toBe(tagName);
+      expect(createdTag?.tag_hash).toHaveLength(32);
     });
 
     it('should create a tag at a specific ref', async () => {
@@ -318,7 +318,7 @@ describe('Commit Operations - Integration Tests', () => {
       const createdTag = tags.find((t) => t.tag_name === tagName);
 
       expect(createdTag).toBeDefined();
-      expect(createdTag!.tag_hash).toBe(commitHash);
+      expect(createdTag?.tag_hash).toBe(commitHash);
     });
 
     it('should create a tag with a message', async () => {
@@ -332,7 +332,7 @@ describe('Commit Operations - Integration Tests', () => {
       const createdTag = tags.find((t) => t.tag_name === tagName);
 
       expect(createdTag).toBeDefined();
-      expect(createdTag!.message).toBe(tagMessage);
+      expect(createdTag?.message).toBe(tagMessage);
     });
   });
 

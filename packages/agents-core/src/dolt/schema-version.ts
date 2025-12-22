@@ -1,5 +1,5 @@
-import type { AgentsManageDatabaseClient } from '../db/manage/manage-client';
 import { sql } from 'drizzle-orm';
+import type { AgentsManageDatabaseClient } from '../db/manage/manage-client';
 import type { ResolvedRef } from '../validation/dolt-schemas';
 import { checkoutRef, getCurrentBranchOrCommit } from './ref';
 
@@ -30,7 +30,7 @@ const getAppliedMigrations =
         description: row.hash,
         appliedAt: new Date(row.created_at),
       }));
-    } catch (error) {
+    } catch {
       return [];
     }
   };
@@ -49,7 +49,7 @@ export const getMinViableSchemaVersion =
       );
       const value = result.rows[0]?.value;
       return value ? Number.parseInt(value as string, 10) : 0;
-    } catch (error) {
+    } catch {
       return 0;
     }
   };
@@ -77,8 +77,6 @@ export const checkSchemaCompatibility =
         name: currentState.ref,
         hash: currentState.hash,
       });
-
-      const mainSchemaVersion = await getCurrentSchemaVersion(db)();
 
       const minViableVersion = await getMinViableSchemaVersion(db)();
 

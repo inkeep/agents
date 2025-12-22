@@ -6,12 +6,11 @@ import {
   updateFullProjectServerSide,
 } from '../../data-access/manage/projectFull';
 import type { AgentsManageDatabaseClient } from '../../db/manage/manage-client';
-import { createTestOrganization } from '../../db/runtime/test-runtime-client';
 import type { AgentsRunDatabaseClient } from '../../db/runtime/runtime-client';
-import { testRunDbClient } from '../setup';
+import { createTestOrganization } from '../../db/runtime/test-runtime-client';
 import type { FullProjectDefinition } from '../../types/entities';
 import { generateId } from '../../utils/conversations';
-import { testManageDbClient } from '../setup';
+import { testManageDbClient, testRunDbClient } from '../setup';
 
 describe('projectFull data access', () => {
   let db: AgentsManageDatabaseClient;

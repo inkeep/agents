@@ -1,13 +1,13 @@
-import { describe, it, expect, beforeEach } from 'vitest';
+import { beforeEach, describe, expect, it } from 'vitest';
 import { testRunDbClient } from '../../__tests__/setup';
 import {
+  countProjectsInRuntime,
   createProjectMetadata,
   deleteProjectMetadata,
   getProjectMetadata,
   listProjectsMetadata,
   listProjectsMetadataPaginated,
   projectsMetadataExists,
-  countProjectsInRuntime,
 } from '../../data-access/runtime/projects';
 import { createTestOrganization } from '../../db/runtime/test-runtime-client';
 

@@ -1,6 +1,6 @@
-import { AgentsManageDatabaseClient } from './manage/manage-client';
-import { AgentsRunDatabaseClient } from './runtime/runtime-client';
 import { sql } from 'drizzle-orm';
+import type { AgentsManageDatabaseClient } from './manage/manage-client';
+import type { AgentsRunDatabaseClient } from './runtime/runtime-client';
 
 /**
  * Cleans up test database by removing all data but keeping schema

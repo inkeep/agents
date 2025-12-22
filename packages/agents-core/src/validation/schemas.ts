@@ -47,8 +47,6 @@ import {
   taskRelations,
   tasks,
 } from '../db/runtime/runtime-schema';
-
-import { ResolvedRefSchema } from './dolt-schemas';
 import {
   CredentialStoreType,
   MCPServerType,
@@ -56,6 +54,7 @@ import {
   TOOL_STATUS_VALUES,
   VALID_RELATION_TYPES,
 } from '../types/utility';
+import { ResolvedRefSchema } from './dolt-schemas';
 import {
   createInsertSchema,
   createResourceIdSchema,

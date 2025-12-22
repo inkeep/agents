@@ -1,3 +1,5 @@
+import type { AgentsRunDatabaseClient } from '@inkeep/agents-core/db/runtime/runtime-client';
+import type { ResolvedRef } from '@inkeep/agents-core/validation/dolt-schemas';
 import { beforeEach, describe, expect, it } from 'vitest';
 import {
   createConversation,
@@ -7,8 +9,6 @@ import {
 import type { ConversationInsert } from '../../../types/index';
 import { testRunDbClient } from '../../setup';
 import { createTestAgentData, createTestSubAgentData } from '../helpers';
-import { AgentsRunDatabaseClient } from '@inkeep/agents-core/db/runtime/runtime-client';
-import { ResolvedRef } from '@inkeep/agents-core/validation/dolt-schemas';
 
 const createTestConversationData = (
   tenantId: string,

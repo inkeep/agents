@@ -1,7 +1,7 @@
 import { and, eq, inArray, sql } from 'drizzle-orm';
 import type { AgentsRunDatabaseClient } from '../../db/runtime/runtime-client';
-import { conversations, tasks, contextCache, apiKeys } from '../../db/runtime/runtime-schema';
-import type { ProjectScopeConfig, AgentScopeConfig } from '../../types/index';
+import { apiKeys, contextCache, conversations, tasks } from '../../db/runtime/runtime-schema';
+import type { AgentScopeConfig, ProjectScopeConfig } from '../../types/index';
 
 /**
  * Result of a cascade delete operation

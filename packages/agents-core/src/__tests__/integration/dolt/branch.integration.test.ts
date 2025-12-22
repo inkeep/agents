@@ -38,9 +38,9 @@ describe('Branch Operations - Integration Tests', () => {
       const created = branches.find((b) => b.name === branchName);
 
       expect(created).toBeDefined();
-      expect(created!.name).toBe(branchName);
-      expect(created!.hash).toBeDefined();
-      expect(created!.hash).toHaveLength(32);
+      expect(created?.name).toBe(branchName);
+      expect(created?.hash).toBeDefined();
+      expect(created?.hash).toHaveLength(32);
     });
 
     it('should create a new branch from a start point', async () => {
@@ -55,7 +55,7 @@ describe('Branch Operations - Integration Tests', () => {
       // Get base branch hash
       const branches = await doltListBranches(dbClient)();
       const base = branches.find((b) => b.name === baseBranch);
-      const baseHash = base!.hash;
+      const baseHash = base?.hash;
 
       // Create derived branch from base
       await doltBranch(dbClient)({ name: derivedBranch, startPoint: baseBranch });
@@ -65,7 +65,7 @@ describe('Branch Operations - Integration Tests', () => {
       const derived = updatedBranches.find((b) => b.name === derivedBranch);
 
       expect(derived).toBeDefined();
-      expect(derived!.hash).toBe(baseHash);
+      expect(derived?.hash).toBe(baseHash);
     });
 
     it('should fail when creating a branch that already exists', async () => {
@@ -118,7 +118,7 @@ describe('Branch Operations - Integration Tests', () => {
 
       // Get original hash
       let branches = await doltListBranches(dbClient)();
-      const originalHash = branches.find((b) => b.name === oldName)!.hash;
+      const originalHash = branches.find((b) => b.name === oldName)?.hash;
 
       // Rename it
       await doltRenameBranch(dbClient)({ oldName, newName });
@@ -131,7 +131,7 @@ describe('Branch Operations - Integration Tests', () => {
 
       const renamed = branches.find((b) => b.name === newName);
       expect(renamed).toBeDefined();
-      expect(renamed!.hash).toBe(originalHash);
+      expect(renamed?.hash).toBe(originalHash);
     });
   });
 
