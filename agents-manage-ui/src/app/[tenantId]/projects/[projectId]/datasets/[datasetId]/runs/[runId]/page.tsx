@@ -20,7 +20,7 @@ export default async function DatasetRunPage({
           label: 'Test Suite',
           href: `/${tenantId}/projects/${projectId}/datasets/${datasetId}`,
         },
-        { label: 'Run' },
+        'Run',
       ]}
     >
       <MainContent>

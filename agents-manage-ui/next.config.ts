@@ -18,6 +18,7 @@ const nextConfig: NextConfig = {
     NEXT_PUBLIC_CI: process.env.CI,
   },
   output: 'standalone',
+  serverExternalPackages: ['pino', 'pino-pretty', 'thread-stream'],
   turbopack: {
     rules: {
       './**/icons/*.svg': {
