@@ -1,6 +1,7 @@
-// Import both world creation functions
+// Import all world creation functions
 // Must use static imports instead of getWorld() which does dynamic imports
 // that Vercel's NFT can't trace in bundled code
+import { createLocalWorld } from '@workflow/world-local';
 import { createWorld as createPostgresWorld } from '@workflow/world-postgres';
 import { createVercelWorld } from '@workflow/world-vercel';
 
@@ -68,9 +69,9 @@ globalThis.fetch = async function debugFetch(input: RequestInfo | URL, init?: Re
 };
 
 // Manually select and initialize world based on env var
-// Accept both 'vercel' and '@workflow/world-vercel' for convenience
-const targetWorld = process.env.WORKFLOW_TARGET_WORLD || '@workflow/world-postgres';
-
+// Accept both short names ('local', 'vercel', 'postgres') and full package names
+// const targetWorld = process.env.WORKFLOW_TARGET_WORLD || 'local';
+const targetWorld = process.env.WORKFLOW_TARGET_WORLD || '';
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 let world: any;
 
@@ -123,8 +124,14 @@ if (targetWorld === '@workflow/world-vercel' || targetWorld === 'vercel') {
     runsKeys: world.runs ? Object.keys(world.runs) : [],
     queueKeys: world.queue ? Object.keys(world.queue) : [],
   });
-} else {
-  // Postgres world configuration (for local dev and self-hosted)
+} else if (targetWorld === '@workflow/world-postgres' || targetWorld === 'postgres') {
+  // Postgres world configuration (for self-hosted deployments)
+  console.log('[postgres-world-config]', {
+    connectionStringPresent: Boolean(process.env.WORKFLOW_POSTGRES_URL),
+    jobPrefix: process.env.WORKFLOW_POSTGRES_JOB_PREFIX,
+    concurrency: Number(process.env.WORKFLOW_POSTGRES_WORKER_CONCURRENCY) || 10,
+  });
+
   world = createPostgresWorld({
     connectionString:
       process.env.WORKFLOW_POSTGRES_URL ||
@@ -132,6 +139,33 @@ if (targetWorld === '@workflow/world-vercel' || targetWorld === 'vercel') {
     jobPrefix: process.env.WORKFLOW_POSTGRES_JOB_PREFIX,
     queueConcurrency: Number(process.env.WORKFLOW_POSTGRES_WORKER_CONCURRENCY) || 10,
   });
+
+  console.log('[postgres-world-created]', {
+    hasRuns: Boolean(world.runs),
+    hasQueue: Boolean(world.queue),
+    hasStart: Boolean(world.start),
+  });
+} else if (targetWorld === '@workflow/world-local' || targetWorld === 'local') {
+  // Local world configuration (for quickstart and local development)
+  // No external dependencies needed - uses in-memory queuing and filesystem storage
+  console.log('[local-world-config]', {
+    port: process.env.PORT || '3005',
+    targetWorld,
+  });
+
+  world = createLocalWorld();
+
+  console.log('[local-world-created]', {
+    hasRuns: Boolean(world.runs),
+    hasQueue: Boolean(world.queue),
+    hasStart: Boolean(world.start),
+    runsKeys: world.runs ? Object.keys(world.runs) : [],
+    queueKeys: world.queue ? Object.keys(world.queue) : [],
+  });
+} else {
+  // Unknown world - fall back to local
+//   console.warn('[world-config] Unknown WORKFLOW_TARGET_WORLD:', targetWorld, '- falling back to local world');
+//   world = createLocalWorld();
 }
 
 export { world };

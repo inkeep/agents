@@ -16,20 +16,24 @@ if (existsSync(rootEnv)) {
 }
 
 // Set default workflow target if not already set
-if (!process.env.WORKFLOW_TARGET_WORLD) {
-  process.env.WORKFLOW_TARGET_WORLD = '@workflow/world-postgres';
-}
-// Use DATABASE_URL as fallback for WORKFLOW_POSTGRES_URL
-if (!process.env.WORKFLOW_POSTGRES_URL && process.env.DATABASE_URL) {
-  process.env.WORKFLOW_POSTGRES_URL = process.env.DATABASE_URL;
-}
-if (!process.env.WORKFLOW_POSTGRES_JOB_PREFIX) {
-  process.env.WORKFLOW_POSTGRES_JOB_PREFIX = 'inkeep-agents-eval';
-}
+// Default to local world for quickstart/local dev (no external deps needed)
+// if (!process.env.WORKFLOW_TARGET_WORLD) {
+//   process.env.WORKFLOW_TARGET_WORLD = 'local';
+// }
 // Set PORT for workflow library - it needs this to know where to send HTTP requests
-// The postgres world uses local world internally which calls /.well-known/workflow/v1/* endpoints
+// The local world calls /.well-known/workflow/v1/* endpoints
 if (!process.env.PORT) {
   process.env.PORT = '3005';
+}
+// Only set postgres-specific vars if using postgres world
+if (process.env.WORKFLOW_TARGET_WORLD === '@workflow/world-postgres' || process.env.WORKFLOW_TARGET_WORLD === 'postgres') {
+  // Use DATABASE_URL as fallback for WORKFLOW_POSTGRES_URL
+  if (!process.env.WORKFLOW_POSTGRES_URL && process.env.DATABASE_URL) {
+    process.env.WORKFLOW_POSTGRES_URL = process.env.DATABASE_URL;
+  }
+  if (!process.env.WORKFLOW_POSTGRES_JOB_PREFIX) {
+    process.env.WORKFLOW_POSTGRES_JOB_PREFIX = 'inkeep-agents-eval';
+  }
 }
 
 import devServer from '@hono/vite-dev-server';
@@ -80,10 +84,10 @@ export default defineConfig(({ command }) => ({
     exclude: [
       'keytar',
       'workflow',
+      '@workflow/world-local',
       '@workflow/world-postgres',
       '@workflow/world-vercel',
       '@workflow/core',
-      '@workflow/world-local',
       // find-up chain has ESM interop issues
       'find-up',
       'unicorn-magic',
@@ -115,6 +119,7 @@ export default defineConfig(({ command }) => ({
       '@inkeep/agents-core',
       /^@inkeep\/.*/,
       'workflow',
+      '@workflow/world-local',
       '@workflow/world-postgres',
       '@workflow/world-vercel',
       /^@workflow\/.*/,
