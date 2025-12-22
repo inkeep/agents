@@ -89,16 +89,15 @@ export function getModelContextWindow(modelSettings?: ModelSettings): ModelConte
         modelId,
         source: 'llm-info',
       };
-    } else {
-      logger.debug(
-        {
-          modelId,
-          modelDetails,
-          originalModel: modelSettings.model,
-        },
-        'No valid context window found in llm-info'
-      );
     }
+    logger.debug(
+      {
+        modelId,
+        modelDetails,
+        originalModel: modelSettings.model,
+      },
+      'No valid context window found in llm-info'
+    );
   } catch (error) {
     logger.debug(
       {
@@ -128,13 +127,13 @@ function getCompressionParams(contextWindow: number): { threshold: number; buffe
   if (contextWindow < 100000) {
     // Small models (< 100K): Aggressive but safe
     return { threshold: 0.85, bufferPct: 0.1 }; // 75% trigger point
-  } else if (contextWindow < 500000) {
+  }
+  if (contextWindow < 500000) {
     // Medium models (100K - 500K): Very aggressive
     return { threshold: 0.9, bufferPct: 0.07 }; // 83% trigger point
-  } else {
-    // Large models (> 500K): Extremely aggressive utilization
-    return { threshold: 0.95, bufferPct: 0.04 }; // 91% trigger point
   }
+  // Large models (> 500K): Extremely aggressive utilization
+  return { threshold: 0.95, bufferPct: 0.04 }; // 91% trigger point
 }
 
 /**
@@ -184,26 +183,25 @@ export function getCompressionConfigForModel(modelSettings?: ModelSettings): {
       source: 'model-specific',
       modelContextInfo,
     };
-  } else {
-    // Use environment variables or defaults
-    const source = process.env.AGENTS_COMPRESSION_HARD_LIMIT ? 'environment' : 'default';
+  }
+  // Use environment variables or defaults
+  const source = process.env.AGENTS_COMPRESSION_HARD_LIMIT ? 'environment' : 'default';
 
-    logger.debug(
-      {
-        modelId: modelContextInfo.modelId,
-        hardLimit: envHardLimit,
-        safetyBuffer: envSafetyBuffer,
-        source,
-      },
-      'Using fallback compression configuration'
-    );
-
-    return {
+  logger.debug(
+    {
+      modelId: modelContextInfo.modelId,
       hardLimit: envHardLimit,
       safetyBuffer: envSafetyBuffer,
-      enabled,
       source,
-      modelContextInfo,
-    };
-  }
+    },
+    'Using fallback compression configuration'
+  );
+
+  return {
+    hardLimit: envHardLimit,
+    safetyBuffer: envSafetyBuffer,
+    enabled,
+    source,
+    modelContextInfo,
+  };
 }

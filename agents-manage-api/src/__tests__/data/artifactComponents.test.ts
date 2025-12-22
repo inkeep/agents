@@ -1,5 +1,5 @@
 import { getArtifactComponentsForAgent } from '@inkeep/agents-core';
-import { createTestProject } from '@inkeep/agents-core/db/test-client';
+import { createTestProject } from '@inkeep/agents-core/db/test-manage-client';
 import { beforeAll, describe, expect, it } from 'vitest';
 import dbClient from '../../data/db/dbClient';
 import { createTestTenantWithOrg } from '../utils/testTenant';

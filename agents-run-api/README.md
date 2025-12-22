@@ -44,7 +44,8 @@ pnpm db:migrate
 ```env
 ENVIRONMENT=development|production|test
 PORT=3003
-DATABASE_URL=postgresql://dbuser:secretpassword@database.server.com:3211/mydb
+INKEEP_AGENTS_MANAGE_DATABASE_URL=postgresql://dbuser:secretpassword@database.server.com:3211/mydb
+INKEEP_AGENTS_RUN_DATABASE_URL=postgresql://dbuser:secretpassword@database.server.com:3212/mydb
 ANTHROPIC_API_KEY=required
 OPENAI_API_KEY=optional
 LOG_LEVEL=debug|info|warn|error

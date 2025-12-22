@@ -1,5 +1,5 @@
 import { generateId } from '@inkeep/agents-core';
-import { createTestProject } from '@inkeep/agents-core/db/test-client';
+import { createTestProject } from '@inkeep/agents-core/db/test-manage-client';
 import { describe, expect, it } from 'vitest';
 import dbClient from '../../../data/db/dbClient';
 import { createTestContextConfigDataFull } from '../../utils/testHelpers';

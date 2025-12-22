@@ -11,8 +11,8 @@ import {
   listApiKeysPaginated,
   updateApiKey,
   updateApiKeyLastUsed,
-} from '../../data-access/apiKeys';
-import type { DatabaseClient } from '../../db/client';
+} from '../../data-access/runtime/apiKeys';
+import type { AgentsRunDatabaseClient } from '../../db/runtime/runtime-client';
 import {
   extractPublicId,
   generateApiKey,
@@ -21,16 +21,16 @@ import {
   maskApiKey,
   validateApiKey,
 } from '../../utils/apiKeys';
-import { testDbClient } from '../setup';
+import { testRunDbClient } from '../setup';
 
 describe('API Keys Data Access', () => {
-  let db: DatabaseClient;
+  let db: AgentsRunDatabaseClient;
   const testTenantId = 'test-tenant';
   const testProjectId = 'test-project';
   const testAgentId = 'test-agent';
 
   beforeEach(async () => {
-    db = testDbClient;
+    db = testRunDbClient;
     vi.clearAllMocks();
   });
 

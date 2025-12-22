@@ -18,7 +18,7 @@ import {
   TenantProjectParamsSchema,
   updateApiKey,
 } from '@inkeep/agents-core';
-import dbClient from '../data/db/dbClient';
+import runDbClient from '../data/db/runDbClient';
 import { requirePermission } from '../middleware/require-permission';
 import type { BaseAppVariables } from '../types/app';
 import { speakeasyOffsetLimitPagination } from './shared';
@@ -76,7 +76,7 @@ app.openapi(
     const limit = Math.min(Number(c.req.query('limit')) || 10, 100);
     const agentId = c.req.query('agentId');
 
-    const result = await listApiKeysPaginated(dbClient)({
+    const result = await listApiKeysPaginated(runDbClient)({
       scopes: { tenantId, projectId },
       pagination: { page, limit },
       agentId: agentId,
@@ -116,7 +116,7 @@ app.openapi(
   }),
   async (c) => {
     const { tenantId, projectId, id } = c.req.valid('param');
-    const apiKey = await getApiKeyById(dbClient)({
+    const apiKey = await getApiKeyById(runDbClient)({
       scopes: { tenantId, projectId },
       id,
     });
@@ -187,7 +187,7 @@ app.openapi(
     };
 
     try {
-      const result = await createApiKey(dbClient)(insertData);
+      const result = await createApiKey(runDbClient)(insertData);
       // Remove sensitive fields from the apiKey object (but keep the full key)
       const { keyHash: _, tenantId: __, projectId: ___, ...sanitizedApiKey } = result;
 
@@ -253,7 +253,7 @@ app.openapi(
     const { tenantId, projectId, id } = c.req.valid('param');
     const body = c.req.valid('json');
 
-    const updatedApiKey = await updateApiKey(dbClient)({
+    const updatedApiKey = await updateApiKey(runDbClient)({
       scopes: { tenantId, projectId },
       id,
       data: {
@@ -308,9 +308,10 @@ app.openapi(
     },
   }),
   async (c) => {
+    const ref = c.get('resolvedRef');
     const { tenantId, projectId, id } = c.req.valid('param');
 
-    const deleted = await deleteApiKey(dbClient)({
+    const deleted = await deleteApiKey(runDbClient)({
       scopes: { tenantId, projectId },
       id,
     });

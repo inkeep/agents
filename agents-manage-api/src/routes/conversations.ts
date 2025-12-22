@@ -6,7 +6,7 @@ import {
   getConversationHistory,
   TenantProjectIdParamsSchema,
 } from '@inkeep/agents-core';
-import dbClient from '../data/db/dbClient';
+import runDbClient from '../data/db/runDbClient';
 
 const app = new OpenAPIHono();
 
@@ -53,7 +53,7 @@ app.openapi(
     const { tenantId, projectId, id } = c.req.valid('param');
     const { limit = 20, includeInternal = true } = c.req.valid('query');
 
-    const messages = await getConversationHistory(dbClient)({
+    const messages = await getConversationHistory(runDbClient)({
       scopes: { tenantId, projectId },
       conversationId: id,
       options: {

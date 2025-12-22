@@ -14,32 +14,39 @@ const {
   VALIDATION_SUB_AGENT_PROMPT_MAX_CHARS,
 } = schemaValidationDefaults;
 
+// Config DB imports (Doltgres - versioned)
 import {
   agents,
-  apiKeys,
   artifactComponents,
-  contextCache,
   contextConfigs,
-  conversations,
   credentialReferences,
   dataComponents,
   externalAgents,
   functions,
   functionTools,
-  ledgerArtifacts,
-  messages,
   projects,
   subAgentArtifactComponents,
   subAgentDataComponents,
   subAgentExternalAgentRelations,
+  subAgentFunctionToolRelations,
   subAgentRelations,
   subAgents,
   subAgentTeamAgentRelations,
   subAgentToolRelations,
+  tools,
+} from '../db/manage/manage-schema';
+
+// Runtime DB imports (Postgres - not versioned)
+import {
+  apiKeys,
+  contextCache,
+  conversations,
+  ledgerArtifacts,
+  messages,
+  projectMetadata,
   taskRelations,
   tasks,
-  tools,
-} from '../db/schema';
+} from '../db/runtime/runtime-schema';
 import {
   CredentialStoreType,
   MCPServerType,
@@ -47,6 +54,7 @@ import {
   TOOL_STATUS_VALUES,
   VALID_RELATION_TYPES,
 } from '../types/utility';
+import { ResolvedRefSchema } from './dolt-schemas';
 import {
   createInsertSchema,
   createResourceIdSchema,
@@ -282,6 +290,7 @@ export const TaskSelectSchema = createSelectSchema(tasks);
 export const TaskInsertSchema = createInsertSchema(tasks).extend({
   id: resourceIdSchema,
   conversationId: resourceIdSchema.optional(),
+  ref: ResolvedRefSchema,
 });
 export const TaskUpdateSchema = TaskInsertSchema.partial();
 
@@ -377,6 +386,7 @@ export const ConversationSelectSchema = createSelectSchema(conversations);
 export const ConversationInsertSchema = createInsertSchema(conversations).extend({
   id: resourceIdSchema,
   contextConfigId: resourceIdSchema.optional(),
+  ref: ResolvedRefSchema,
 });
 export const ConversationUpdateSchema = ConversationInsertSchema.partial();
 
@@ -402,7 +412,9 @@ export const MessageApiUpdateSchema =
   createApiUpdateSchema(MessageUpdateSchema).openapi('MessageUpdate');
 
 export const ContextCacheSelectSchema = createSelectSchema(contextCache);
-export const ContextCacheInsertSchema = createInsertSchema(contextCache);
+export const ContextCacheInsertSchema = createInsertSchema(contextCache).extend({
+  ref: ResolvedRefSchema,
+});
 export const ContextCacheUpdateSchema = ContextCacheInsertSchema.partial();
 
 export const ContextCacheApiSelectSchema = createApiSchema(ContextCacheSelectSchema);
@@ -701,6 +713,30 @@ export const FunctionToolApiInsertSchema =
 export const FunctionToolApiUpdateSchema =
   createApiUpdateSchema(FunctionToolUpdateSchema).openapi('FunctionToolUpdate');
 
+export const SubAgentFunctionToolRelationSelectSchema = createSelectSchema(
+  subAgentFunctionToolRelations
+);
+export const SubAgentFunctionToolRelationInsertSchema = createInsertSchema(
+  subAgentFunctionToolRelations
+).extend({
+  id: resourceIdSchema,
+  subAgentId: resourceIdSchema,
+  functionToolId: resourceIdSchema,
+});
+
+export const SubAgentFunctionToolRelationApiSelectSchema = createAgentScopedApiSchema(
+  SubAgentFunctionToolRelationSelectSchema
+).openapi('SubAgentFunctionToolRelation');
+export const SubAgentFunctionToolRelationApiInsertSchema =
+  SubAgentFunctionToolRelationInsertSchema.omit({
+    tenantId: true,
+    projectId: true,
+    agentId: true,
+    id: true,
+    createdAt: true,
+    updatedAt: true,
+  }).openapi('SubAgentFunctionToolRelationCreate');
+
 export const FunctionSelectSchema = createSelectSchema(functions);
 export const FunctionInsertSchema = createInsertSchema(functions).extend({
   id: resourceIdSchema,
@@ -911,10 +947,35 @@ export const CanUseItemSchema = z
   })
   .openapi('CanUseItem');
 
-export const canDelegateToExternalAgentSchema = z
+export const canRelateToInternalSubAgentSchema = z
+  .object({
+    subAgentId: z.string(),
+    subAgentSubAgentRelationId: z.string(),
+  })
+  .openapi('CanRelateToInternalSubAgent');
+
+// INSERT schemas - relation ID is optional (will be assigned on creation)
+export const canDelegateToExternalAgentInsertSchema = z
   .object({
     externalAgentId: z.string(),
     subAgentExternalAgentRelationId: z.string().optional(),
+    headers: z.record(z.string(), z.string()).nullish(),
+  })
+  .openapi('CanDelegateToExternalAgentInsert');
+
+export const canDelegateToTeamAgentInsertSchema = z
+  .object({
+    agentId: z.string(),
+    subAgentTeamAgentRelationId: z.string().optional(),
+    headers: z.record(z.string(), z.string()).nullish(),
+  })
+  .openapi('CanDelegateToTeamAgentInsert');
+
+// SELECT schemas - relation ID is required (returned from database)
+export const canDelegateToExternalAgentSchema = z
+  .object({
+    externalAgentId: z.string(),
+    subAgentExternalAgentRelationId: z.string(),
     headers: z.record(z.string(), z.string()).nullish(),
   })
   .openapi('CanDelegateToExternalAgent');
@@ -922,7 +983,7 @@ export const canDelegateToExternalAgentSchema = z
 export const canDelegateToTeamAgentSchema = z
   .object({
     agentId: z.string(),
-    subAgentTeamAgentRelationId: z.string().optional(),
+    subAgentTeamAgentRelationId: z.string(),
     headers: z.record(z.string(), z.string()).nullish(),
   })
   .openapi('CanDelegateToTeamAgent');
@@ -946,8 +1007,8 @@ export const FullAgentAgentInsertSchema = SubAgentApiInsertSchema.extend({
     .array(
       z.union([
         z.string(), // Internal subAgent ID
-        canDelegateToExternalAgentSchema, // External agent with headers
-        canDelegateToTeamAgentSchema, // Team agent with headers
+        canDelegateToExternalAgentInsertSchema, // External agent with headers (INSERT - relation ID optional)
+        canDelegateToTeamAgentInsertSchema, // Team agent with headers (INSERT - relation ID optional)
       ])
     )
     .optional(),
@@ -1060,6 +1121,79 @@ export const FullProjectDefinitionSchema = ProjectApiInsertSchema.extend({
   updatedAt: z.string().optional(),
 }).openapi('FullProjectDefinition');
 
+// ============================================================================
+// Full Project SELECT Schemas - Used when reading data from the database
+// These use nullable() instead of optional() to match database SELECT behavior
+// ============================================================================
+
+export const FullAgentSubAgentSelectSchema = SubAgentApiSelectSchema.extend({
+  type: z.literal('internal'),
+  canUse: z.array(CanUseItemSchema),
+  dataComponents: z.array(z.string()).nullable(),
+  artifactComponents: z.array(z.string()).nullable(),
+  canTransferTo: z.array(z.string()).nullable(),
+  prompt: z.string().nullable(),
+  canDelegateTo: z
+    .array(
+      z.union([
+        z.string(), // Internal subAgent ID
+        canDelegateToExternalAgentSchema,
+        canDelegateToTeamAgentSchema,
+      ])
+    )
+    .nullable(),
+}).openapi('FullAgentSubAgentSelect');
+
+//This is a temporary schema. It is used to get the relation ids for internal sub-agent relations.
+//Eventually this should be used everywhere instead of FullAgentSubAgentSelectSchema
+export const FullAgentSubAgentSelectSchemaWithRelationIds = FullAgentSubAgentSelectSchema.extend({
+  canTransferTo: z.array(canRelateToInternalSubAgentSchema).nullable(),
+  canDelegateTo: z
+    .array(
+      z.union([
+        canRelateToInternalSubAgentSchema,
+        canDelegateToExternalAgentSchema,
+        canDelegateToTeamAgentSchema,
+      ])
+    )
+    .nullable(),
+}).openapi('FullAgentSubAgentSelectWithRelationIds');
+
+export const AgentWithinContextOfProjectSelectSchema = AgentApiSelectSchema.extend({
+  subAgents: z.record(z.string(), FullAgentSubAgentSelectSchema),
+  tools: z.record(z.string(), ToolApiSelectSchema).nullable(),
+  externalAgents: z.record(z.string(), ExternalAgentApiSelectSchema).nullable(),
+  teamAgents: z.record(z.string(), TeamAgentSchema).nullable(),
+  functionTools: z.record(z.string(), FunctionToolApiSelectSchema).nullable(),
+  functions: z.record(z.string(), FunctionApiSelectSchema).nullable(),
+  contextConfig: ContextConfigApiSelectSchema.nullable(),
+  statusUpdates: StatusUpdateSchema.nullable(),
+  models: ModelSchema.nullable(),
+  stopWhen: AgentStopWhenSchema.nullable(),
+  prompt: z.string().nullable(),
+}).openapi('AgentWithinContextOfProjectSelect');
+
+export const AgentWithinContextOfProjectSelectSchemaWithRelationIds =
+  AgentWithinContextOfProjectSelectSchema.extend({
+    subAgents: z.record(z.string(), FullAgentSubAgentSelectSchemaWithRelationIds),
+  }).openapi('AgentWithinContextOfProjectSelectWithRelationIds');
+
+export const FullProjectSelectSchema = ProjectApiSelectSchema.extend({
+  agents: z.record(z.string(), AgentWithinContextOfProjectSelectSchema),
+  tools: z.record(z.string(), ToolApiSelectSchema),
+  functionTools: z.record(z.string(), FunctionToolApiSelectSchema).nullable(),
+  functions: z.record(z.string(), FunctionApiSelectSchema).nullable(),
+  dataComponents: z.record(z.string(), DataComponentApiSelectSchema).nullable(),
+  artifactComponents: z.record(z.string(), ArtifactComponentApiSelectSchema).nullable(),
+  externalAgents: z.record(z.string(), ExternalAgentApiSelectSchema).nullable(),
+  statusUpdates: StatusUpdateSchema.nullable(),
+  credentialReferences: z.record(z.string(), CredentialReferenceApiSelectSchema).nullable(),
+}).openapi('FullProjectSelect');
+
+export const FullProjectSelectSchemaWithRelationIds = FullProjectSelectSchema.extend({
+  agents: z.record(z.string(), AgentWithinContextOfProjectSelectSchemaWithRelationIds),
+}).openapi('FullProjectSelectWithRelationIds');
+
 // Single item response wrappers
 export const ProjectResponse = z
   .object({ data: ProjectApiSelectSchema })
@@ -1085,6 +1219,9 @@ export const FunctionResponse = z
 export const FunctionToolResponse = z
   .object({ data: FunctionToolApiSelectSchema })
   .openapi('FunctionToolResponse');
+export const SubAgentFunctionToolRelationResponse = z
+  .object({ data: SubAgentFunctionToolRelationApiSelectSchema })
+  .openapi('SubAgentFunctionToolRelationResponse');
 export const DataComponentResponse = z
   .object({ data: DataComponentApiSelectSchema })
   .openapi('DataComponentResponse');
@@ -1164,6 +1301,12 @@ export const FunctionToolListResponse = z
     pagination: PaginationSchema,
   })
   .openapi('FunctionToolListResponse');
+export const SubAgentFunctionToolRelationListResponse = z
+  .object({
+    data: z.array(SubAgentFunctionToolRelationApiSelectSchema),
+    pagination: PaginationSchema,
+  })
+  .openapi('SubAgentFunctionToolRelationListResponse');
 export const DataComponentListResponse = z
   .object({
     data: z.array(DataComponentApiSelectSchema),
@@ -1224,9 +1367,21 @@ export const FullProjectDefinitionResponse = z
   .object({ data: FullProjectDefinitionSchema })
   .openapi('FullProjectDefinitionResponse');
 
+export const FullProjectSelectResponse = z
+  .object({ data: FullProjectSelectSchema })
+  .openapi('FullProjectSelectResponse');
+
+export const FullProjectSelectWithRelationIdsResponse = z
+  .object({ data: FullProjectSelectSchemaWithRelationIds })
+  .openapi('FullProjectSelectWithRelationIdsResponse');
+
 export const AgentWithinContextOfProjectResponse = z
   .object({ data: AgentWithinContextOfProjectSchema })
   .openapi('AgentWithinContextOfProjectResponse');
+
+export const AgentWithinContextOfProjectSelectResponse = z
+  .object({ data: AgentWithinContextOfProjectSelectSchema })
+  .openapi('AgentWithinContextOfProjectSelectResponse');
 
 export const RelatedAgentInfoListResponse = z
   .object({
@@ -1363,6 +1518,10 @@ export const TenantProjectAgentSubAgentIdParamsSchema =
     id: resourceIdSchema,
   });
 
+export const RefQueryParamSchema = z.object({
+  ref: z.string().optional().describe('Branch name, tag name, or commit hash to query from'),
+});
+
 export const PaginationQueryParamsSchema = z
   .object({
     page: pageNumber,
@@ -1402,3 +1561,11 @@ export const ThirdPartyMCPServerResponse = z
     data: PrebuiltMCPServerSchema.nullable(),
   })
   .openapi('ThirdPartyMCPServerResponse');
+export const PaginationWithRefQueryParamsSchema =
+  PaginationQueryParamsSchema.merge(RefQueryParamSchema);
+
+// Project Metadata Schemas (Runtime DB - unversioned)
+export const ProjectMetadataSelectSchema = createSelectSchema(projectMetadata);
+export const ProjectMetadataInsertSchema = createInsertSchema(projectMetadata).omit({
+  createdAt: true,
+});

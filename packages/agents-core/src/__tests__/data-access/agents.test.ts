@@ -7,17 +7,17 @@ import {
   listAgents,
   listAgentsPaginated,
   updateAgent,
-} from '../../data-access/agents';
-import type { DatabaseClient } from '../../db/client';
-import { testDbClient } from '../setup';
+} from '../../data-access/manage/agents';
+import type { AgentsManageDatabaseClient } from '../../db/manage/manage-client';
+import { testManageDbClient } from '../setup';
 
 describe('Agent Data Access', () => {
-  let db: DatabaseClient;
+  let db: AgentsManageDatabaseClient;
   const testTenantId = 'test-tenant';
   const testProjectId = 'test-project';
 
   beforeEach(async () => {
-    db = testDbClient;
+    db = testManageDbClient;
     vi.clearAllMocks();
   });
 

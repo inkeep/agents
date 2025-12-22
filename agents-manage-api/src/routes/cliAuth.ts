@@ -1,7 +1,7 @@
 import { createRoute, OpenAPIHono, z } from '@hono/zod-openapi';
 import { getUserOrganizations } from '@inkeep/agents-core';
 import type { AppVariables } from '../create-app';
-import dbClient from '../data/db/dbClient';
+import runDbClient from '../data/db/runDbClient';
 import { sessionAuth } from '../middleware/session-auth';
 
 const cliAuthRoutes = new OpenAPIHono<{ Variables: AppVariables }>();
@@ -56,7 +56,7 @@ cliAuthRoutes.openapi(
     }
 
     // Get user's organizations (assuming single org per user)
-    const organizations = await getUserOrganizations(dbClient)(userId);
+    const organizations = await getUserOrganizations(runDbClient)(userId);
 
     if (organizations.length === 0) {
       return c.json({ error: 'User has no organization' }, 404);

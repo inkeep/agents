@@ -31,7 +31,7 @@ runs:
     - name: Seed default organization for CI
       shell: bash
       run: |
-        PGPASSWORD=password psql -h localhost -U appuser -d inkeep_agents -c "
+        PGPASSWORD=password psql -h localhost -p 5433 -U appuser -d inkeep_agents -c "
           INSERT INTO organization (id, name, slug, created_at)
           VALUES ('default', 'Default Organization', 'default', NOW())
           ON CONFLICT (id) DO NOTHING;

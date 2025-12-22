@@ -1,4 +1,5 @@
-// Context system exports
+// Context configuration exports (builder patterns for defining context configs)
+// Note: Context resolution runtime (ContextResolver, ContextFetcher, etc.) is in agents-run-api
 
 export type { ContextConfigBuilderOptions } from './ContextConfig';
 export {
@@ -7,20 +8,6 @@ export {
   fetchDefinition,
   headers,
 } from './ContextConfig';
-export type { FetchResult } from './ContextFetcher';
-export { ContextFetcher } from './ContextFetcher';
-export type {
-  ContextResolutionOptions,
-  ContextResolutionResult,
-  ResolvedContext,
-} from './ContextResolver';
-export { ContextResolver } from './ContextResolver';
-export {
-  determineContextTrigger,
-  handleContextConfigChange,
-  handleContextResolution,
-} from './context';
-export { ContextCache } from './contextCache';
 export type {
   TemplateContext,
   TemplateRenderOptions,

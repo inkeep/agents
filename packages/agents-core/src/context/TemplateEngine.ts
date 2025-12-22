@@ -120,7 +120,6 @@ export class TemplateEngine {
                 variable: trimmedPath,
                 normalizedPath,
                 availableKeys: Object.keys(context),
-                contextStructure: JSON.stringify(context, null, 2),
                 headersContent: context.headers
                   ? JSON.stringify(context.headers, null, 2)
                   : 'undefined',

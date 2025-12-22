@@ -1,7 +1,6 @@
 import { projectExists } from '@inkeep/agents-core';
 import axios from 'axios';
 import { Hono } from 'hono';
-import dbClient from '../data/db/dbClient';
 import { env } from '../env';
 import { getLogger } from '../logger';
 import type { BaseAppVariables } from '../types/app';
@@ -16,6 +15,7 @@ app.post('/query', async (c) => {
   let payload = await c.req.json();
   const requestedProjectId = payload.projectId;
   const tenantId = c.get('tenantId');
+  const db = c.get('db');
 
   logger.info(
     { tenantId, projectId: requestedProjectId, hasProjectId: !!requestedProjectId },
@@ -24,7 +24,7 @@ app.post('/query', async (c) => {
 
   // If projectId is provided, validate access and enforce filter
   if (requestedProjectId) {
-    const projectExistsCheck = await projectExists(dbClient)({
+    const projectExistsCheck = await projectExists(db)({
       tenantId,
       projectId: requestedProjectId,
     });

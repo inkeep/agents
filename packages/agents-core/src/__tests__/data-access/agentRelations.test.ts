@@ -14,18 +14,18 @@ import {
   updateAgentRelation,
   updateAgentToolRelation,
   validateSubAgent,
-} from '../../data-access/subAgentRelations';
-import type { DatabaseClient } from '../../db/client';
-import { testDbClient } from '../setup';
+} from '../../data-access/manage/subAgentRelations';
+import type { AgentsManageDatabaseClient } from '../../db/manage/manage-client';
+import { testManageDbClient } from '../setup';
 
 describe('Agent Relations Data Access', () => {
-  let db: DatabaseClient;
+  let db: AgentsManageDatabaseClient;
   const testTenantId = 'test-tenant';
   const testProjectId = 'test-project';
   const testAgentId = 'test-agent';
 
   beforeEach(async () => {
-    db = testDbClient;
+    db = testManageDbClient;
     vi.clearAllMocks();
   });
 

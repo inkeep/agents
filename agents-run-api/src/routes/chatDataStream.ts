@@ -2,23 +2,20 @@ import { createRoute, OpenAPIHono, z } from '@hono/zod-openapi';
 import {
   type CredentialStoreRegistry,
   commonGetErrorResponses,
-  contextValidationMiddleware,
   createApiError,
   createMessage,
+  type FullExecutionContext,
   generateId,
   getActiveAgentForConversation,
-  getAgentWithDefaultSubAgent,
   getConversation,
   getConversationId,
-  getRequestExecutionContext,
-  getSubAgentById,
-  handleContextResolution,
   loggerFactory,
   setActiveAgentForConversation,
 } from '@inkeep/agents-core';
 import { context as otelContext, propagation, trace } from '@opentelemetry/api';
 import { createUIMessageStream, JsonToSseTransformStream } from 'ai';
 import { stream } from 'hono/streaming';
+import { contextValidationMiddleware, handleContextResolution } from '../context';
 import dbClient from '../data/db/dbClient';
 import { ExecutionHandler } from '../handlers/executionHandler';
 import { getLogger } from '../logger';
@@ -29,6 +26,7 @@ import { createBufferingStreamHelper, createVercelStreamHelper } from '../utils/
 type AppVariables = {
   credentialStores: CredentialStoreRegistry;
   requestBody?: any;
+  executionContext: FullExecutionContext;
 };
 
 const app = new OpenAPIHono<{ Variables: AppVariables }>();
@@ -90,13 +88,13 @@ const chatDataStreamRoute = createRoute({
   },
 });
 // Apply context validation middleware
-app.use('/chat', contextValidationMiddleware(dbClient));
+app.use('/chat', contextValidationMiddleware);
 
 app.openapi(chatDataStreamRoute, async (c) => {
   try {
     // Get execution context from API key authentication
-    const executionContext = getRequestExecutionContext(c);
-    const { tenantId, projectId, agentId } = executionContext;
+    const executionContext = c.get('executionContext');
+    const { tenantId, projectId, agentId, resolvedRef } = executionContext;
 
     loggerFactory
       .getLogger('chatDataStream')
@@ -126,9 +124,8 @@ app.openapi(chatDataStreamRoute, async (c) => {
     const ctxWithBaggage = propagation.setBaggage(otelContext.active(), currentBag);
     // Execute remaining handler within the baggage context so child spans inherit attributes
     return await otelContext.with(ctxWithBaggage, async () => {
-      const agent = await getAgentWithDefaultSubAgent(dbClient)({
-        scopes: { tenantId, projectId, agentId },
-      });
+      const agent = executionContext.project.agents[agentId];
+
       if (!agent) {
         throw createApiError({
           code: 'not_found',
@@ -151,19 +148,19 @@ app.openapi(chatDataStreamRoute, async (c) => {
         conversationId,
       });
       if (!activeAgent) {
-        setActiveAgentForConversation(dbClient)({
+        await setActiveAgentForConversation(dbClient)({
           scopes: { tenantId, projectId },
           conversationId,
           subAgentId: defaultSubAgentId,
+          ref: executionContext.resolvedRef,
         });
       }
       const subAgentId = activeAgent?.activeSubAgentId || defaultSubAgentId;
 
-      const agentInfo = await getSubAgentById(dbClient)({
-        scopes: { tenantId, projectId, agentId },
-        subAgentId: subAgentId as string,
-      });
+      logger.info({ subAgentId }, 'subAgentId');
+      const agentInfo = executionContext.project.agents[agentId]?.subAgents[subAgentId];
       if (!agentInfo) {
+        logger.error({ subAgentId }, 'subAgentId not found');
         throw createApiError({
           code: 'not_found',
           message: 'Agent not found',
@@ -177,12 +174,9 @@ app.openapi(chatDataStreamRoute, async (c) => {
 
       // Context resolution with intelligent conversation state detection
       await handleContextResolution({
-        tenantId,
-        projectId,
-        agentId,
+        executionContext,
         conversationId,
         headers: validatedContext,
-        dbClient,
         credentialStores,
       });
 
@@ -409,7 +403,7 @@ app.openapi(toolApprovalRoute, async (c) => {
 
   return tracer.startActiveSpan('tool_approval_request', async (span) => {
     try {
-      const executionContext = getRequestExecutionContext(c);
+      const executionContext = c.get('executionContext');
       const { tenantId, projectId } = executionContext;
 
       const requestBody = await c.req.json();

@@ -2,6 +2,7 @@ import { createRoute, OpenAPIHono, z } from '@hono/zod-openapi';
 import {
   AgentWithinContextOfProjectResponse,
   AgentWithinContextOfProjectSchema,
+  cascadeDeleteByAgent,
   commonGetErrorResponses,
   createApiError,
   createFullAgentServerSide,
@@ -9,11 +10,12 @@ import {
   ErrorResponseSchema,
   type FullAgentDefinition,
   getFullAgent,
+  listSubAgents,
   TenantProjectAgentParamsSchema,
   TenantProjectParamsSchema,
   updateFullAgentServerSide,
 } from '@inkeep/agents-core';
-import dbClient from '../data/db/dbClient';
+import runDbClient from '../data/db/runDbClient';
 import { getLogger } from '../logger';
 import { requirePermission } from '../middleware/require-permission';
 import type { BaseAppVariables } from '../types/app';
@@ -24,17 +26,17 @@ const app = new OpenAPIHono<{ Variables: BaseAppVariables }>();
 
 app.use('/', async (c, next) => {
   if (c.req.method === 'POST') {
-    return requirePermission({ agent: ['create'] })(c, next);
+    return requirePermission<{ Variables: BaseAppVariables }>({ agent: ['create'] })(c, next);
   }
   return next();
 });
 
 app.use('/:agentId', async (c, next) => {
   if (c.req.method === 'PUT') {
-    return requirePermission({ agent: ['update'] })(c, next);
+    return requirePermission<{ Variables: BaseAppVariables }>({ agent: ['update'] })(c, next);
   }
   if (c.req.method === 'DELETE') {
-    return requirePermission({ agent: ['delete'] })(c, next);
+    return requirePermission<{ Variables: BaseAppVariables }>({ agent: ['delete'] })(c, next);
   }
   return next();
 });
@@ -79,12 +81,13 @@ app.openapi(
     },
   }),
   async (c) => {
+    const db = c.get('db');
     const { tenantId, projectId } = c.req.valid('param');
     const agentData = c.req.valid('json');
 
     const validatedAgentData = AgentWithinContextOfProjectSchema.parse(agentData);
 
-    const createdAgent = await createFullAgentServerSide(dbClient, logger)(
+    const createdAgent = await createFullAgentServerSide(db)(
       { tenantId, projectId },
       validatedAgentData
     );
@@ -117,11 +120,12 @@ app.openapi(
     },
   }),
   async (c) => {
+    const db = c.get('db');
     const { tenantId, projectId, agentId } = c.req.valid('param');
 
     try {
       const agent: FullAgentDefinition | null = await getFullAgent(
-        dbClient,
+        db,
         logger
       )({
         scopes: { tenantId, projectId, agentId },
@@ -192,6 +196,7 @@ app.openapi(
     },
   }),
   async (c) => {
+    const db = c.get('db');
     const { tenantId, projectId, agentId } = c.req.valid('param');
     const agentData = c.req.valid('json');
 
@@ -207,7 +212,7 @@ app.openapi(
       }
 
       const existingAgent: FullAgentDefinition | null = await getFullAgent(
-        dbClient,
+        db,
         logger
       )({
         scopes: { tenantId, projectId, agentId },
@@ -216,14 +221,8 @@ app.openapi(
 
       // Update/create the full agent using server-side data layer operations
       const updatedAgent: FullAgentDefinition = isCreate
-        ? await createFullAgentServerSide(dbClient, logger)(
-            { tenantId, projectId },
-            validatedAgentData
-          )
-        : await updateFullAgentServerSide(dbClient, logger)(
-            { tenantId, projectId },
-            validatedAgentData
-          );
+        ? await createFullAgentServerSide(db)({ tenantId, projectId }, validatedAgentData)
+        : await updateFullAgentServerSide(db)({ tenantId, projectId }, validatedAgentData);
 
       return c.json({ data: updatedAgent }, isCreate ? 201 : 200);
     } catch (error) {
@@ -269,11 +268,27 @@ app.openapi(
     },
   }),
   async (c) => {
+    const db = c.get('db');
+    const resolvedRef = c.get('resolvedRef');
     const { tenantId, projectId, agentId } = c.req.valid('param');
 
     try {
+      // Get all subAgentIds for this agent before deleting
+      const subAgents = await listSubAgents(db)({
+        scopes: { tenantId, projectId, agentId },
+      });
+      const subAgentIds = subAgents.map((sa) => sa.id);
+
+      // Delete runtime entities for this agent on this branch
+      await cascadeDeleteByAgent(runDbClient)({
+        scopes: { tenantId, projectId, agentId },
+        fullBranchName: resolvedRef.name,
+        subAgentIds,
+      });
+
+      // Delete the full agent from the config DB
       const deleted = await deleteFullAgent(
-        dbClient,
+        db,
         logger
       )({
         scopes: { tenantId, projectId, agentId },

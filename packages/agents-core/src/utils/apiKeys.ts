@@ -49,6 +49,26 @@ export async function generateApiKey(): Promise<ApiKeyGenerationResult> {
   };
 }
 
+export const getMetadataFromApiKey = (
+  key: string
+): { tenantId: string; projectId: string } | null => {
+  const parts = key.split('.');
+  if (parts.length !== 2) {
+    return null;
+  }
+
+  const prefixPart = parts[0]; // e.g., "sk_test_abc123def456" or "sk_abc123def456"
+  const segments = prefixPart.split('_');
+  if (segments.length < 3) {
+    return null;
+  }
+
+  return {
+    tenantId: segments[1],
+    projectId: segments[2],
+  };
+};
+
 /**
  * Hash an API key using scrypt
  */
