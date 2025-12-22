@@ -54,5 +54,5 @@ export const GetApiInvitationsPendingResponse$zodSchema: z.ZodType<
   ResponseBodies: z.array(
     z.lazy(() => GetApiInvitationsPendingResponseBody$zodSchema),
   ).describe("List of pending invitations").optional(),
-  StatusCode: z.int(),
+  StatusCode: z.number().int(),
 });

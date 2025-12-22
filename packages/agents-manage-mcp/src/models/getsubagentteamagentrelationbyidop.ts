@@ -63,7 +63,7 @@ export const GetSubAgentTeamAgentRelationByIdResponse$zodSchema: z.ZodType<
   InternalServerError: InternalServerError$zodSchema.optional(),
   NotFound: NotFound$zodSchema.optional(),
   RawResponse: z.custom<Response>(x => x instanceof Response),
-  StatusCode: z.int(),
+  StatusCode: z.number().int(),
   SubAgentTeamAgentRelationResponse: SubAgentTeamAgentRelationResponse$zodSchema
     .optional(),
   Unauthorized: Unauthorized$zodSchema.optional(),

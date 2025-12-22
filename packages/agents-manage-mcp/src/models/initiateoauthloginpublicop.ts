@@ -33,7 +33,7 @@ export const InitiateOauthLoginPublicResponse$zodSchema: z.ZodType<
 > = z.object({
   ContentType: z.string(),
   RawResponse: z.custom<Response>(x => x instanceof Response),
-  StatusCode: z.int(),
+  StatusCode: z.number().int(),
   fiveHundredTextHtmlRes: z.string().describe("Internal server error")
     .optional(),
   fourHundredAndFourTextHtmlRes: z.string().describe("Tool not found")

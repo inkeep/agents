@@ -62,6 +62,6 @@ export const BadRequest$zodSchema: z.ZodType<BadRequest> = z.object({
   error: z.lazy(() => BadRequestError$zodSchema),
   instance: z.string().optional(),
   requestId: z.string().optional(),
-  status: z.int(),
+  status: z.number().int(),
   title: z.string(),
 });

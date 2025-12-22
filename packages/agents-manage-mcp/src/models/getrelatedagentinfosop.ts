@@ -61,7 +61,7 @@ export const GetRelatedAgentInfosResponse$zodSchema: z.ZodType<
   RawResponse: z.custom<Response>(x => x instanceof Response),
   RelatedAgentInfoListResponse: RelatedAgentInfoListResponse$zodSchema
     .optional(),
-  StatusCode: z.int(),
+  StatusCode: z.number().int(),
   Unauthorized: Unauthorized$zodSchema.optional(),
   UnprocessableEntity: UnprocessableEntity$zodSchema.optional(),
 });

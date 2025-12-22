@@ -64,7 +64,7 @@ export const CreateFunctionToolResponse$zodSchema: z.ZodType<
   InternalServerError: InternalServerError$zodSchema.optional(),
   NotFound: NotFound$zodSchema.optional(),
   RawResponse: z.custom<Response>(x => x instanceof Response),
-  StatusCode: z.int(),
+  StatusCode: z.number().int(),
   Unauthorized: Unauthorized$zodSchema.optional(),
   UnprocessableEntity: UnprocessableEntity$zodSchema.optional(),
 });

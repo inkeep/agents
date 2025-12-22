@@ -34,5 +34,5 @@ export const DeleteSubagentResponse$zodSchema: z.ZodType<
   ContentType: z.string(),
   ErrorResponse: ErrorResponse$zodSchema.optional(),
   RawResponse: z.custom<Response>(x => x instanceof Response),
-  StatusCode: z.int(),
+  StatusCode: z.number().int(),
 });

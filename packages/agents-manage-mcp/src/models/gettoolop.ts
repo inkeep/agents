@@ -54,7 +54,7 @@ export const GetToolResponse$zodSchema: z.ZodType<GetToolResponse> = z.object({
   McpToolResponse: McpToolResponse$zodSchema.optional(),
   NotFound: NotFound$zodSchema.optional(),
   RawResponse: z.custom<Response>(x => x instanceof Response),
-  StatusCode: z.int(),
+  StatusCode: z.number().int(),
   Unauthorized: Unauthorized$zodSchema.optional(),
   UnprocessableEntity: UnprocessableEntity$zodSchema.optional(),
 });

@@ -158,7 +158,7 @@ export function createRegisterTool(
         tool.name,
         tool.description,
         tool.annotations,
-        async (_, ctx) => {
+        async (ctx) => {
           return tool.tool(getSDK(), ctx);
         },
       );

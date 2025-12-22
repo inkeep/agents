@@ -56,7 +56,7 @@ export const ListProjectsResponse$zodSchema: z.ZodType<ListProjectsResponse> = z
     NotFound: NotFound$zodSchema.optional(),
     ProjectListResponse: ProjectListResponse$zodSchema.optional(),
     RawResponse: z.custom<Response>(x => x instanceof Response),
-    StatusCode: z.int(),
+    StatusCode: z.number().int(),
     Unauthorized: Unauthorized$zodSchema.optional(),
     UnprocessableEntity: UnprocessableEntity$zodSchema.optional(),
   });

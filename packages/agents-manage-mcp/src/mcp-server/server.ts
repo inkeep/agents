@@ -3,6 +3,7 @@
  * @generated-id: ca25da86fb4c
  */
 
+import '../zod-int.js';
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { InkeepAgentsManageCore } from '../core.js';
 import type { SDKOptions } from '../lib/config.js';

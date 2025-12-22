@@ -53,6 +53,6 @@ export const GetApiCliMeResponse$zodSchema: z.ZodType<GetApiCliMeResponse> = z
   .object({
     ContentType: z.string(),
     RawResponse: z.custom<Response>(x => x instanceof Response),
-    StatusCode: z.int(),
+    StatusCode: z.number().int(),
     object: z.lazy(() => GetApiCliMeResponseBody$zodSchema).optional(),
   });

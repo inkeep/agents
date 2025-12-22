@@ -52,5 +52,5 @@ export const GetApiUsersUserIdOrganizationsResponse$zodSchema: z.ZodType<
   ResponseBodies: z.array(
     z.lazy(() => GetApiUsersUserIdOrganizationsResponseBody$zodSchema),
   ).describe("List of user organizations").optional(),
-  StatusCode: z.int(),
+  StatusCode: z.number().int(),
 });

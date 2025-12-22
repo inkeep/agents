@@ -62,6 +62,6 @@ export const Forbidden$zodSchema: z.ZodType<Forbidden> = z.object({
   error: z.lazy(() => ForbiddenError$zodSchema),
   instance: z.string().optional(),
   requestId: z.string().optional(),
-  status: z.int(),
+  status: z.number().int(),
   title: z.string(),
 });

@@ -78,7 +78,7 @@ export const AssociateArtifactComponentWithAgentResponse$zodSchema: z.ZodType<
   InternalServerError: InternalServerError$zodSchema.optional(),
   NotFound: NotFound$zodSchema.optional(),
   RawResponse: z.custom<Response>(x => x instanceof Response),
-  StatusCode: z.int(),
+  StatusCode: z.number().int(),
   SubAgentArtifactComponentResponse: SubAgentArtifactComponentResponse$zodSchema
     .optional(),
   Unauthorized: Unauthorized$zodSchema.optional(),

@@ -62,7 +62,7 @@ export const RemoveArtifactComponentFromAgentResponse$zodSchema: z.ZodType<
   NotFound: NotFound$zodSchema.optional(),
   RawResponse: z.custom<Response>(x => x instanceof Response),
   RemovedResponse: RemovedResponse$zodSchema.optional(),
-  StatusCode: z.int(),
+  StatusCode: z.number().int(),
   Unauthorized: Unauthorized$zodSchema.optional(),
   UnprocessableEntity: UnprocessableEntity$zodSchema.optional(),
 });

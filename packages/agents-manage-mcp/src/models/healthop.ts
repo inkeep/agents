@@ -14,5 +14,5 @@ export type HealthResponse = {
 export const HealthResponse$zodSchema: z.ZodType<HealthResponse> = z.object({
   ContentType: z.string(),
   RawResponse: z.custom<Response>(x => x instanceof Response),
-  StatusCode: z.int(),
+  StatusCode: z.number().int(),
 });

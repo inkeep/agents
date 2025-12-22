@@ -67,7 +67,7 @@ export const CreateSubAgentExternalAgentRelationResponse$zodSchema: z.ZodType<
   InternalServerError: InternalServerError$zodSchema.optional(),
   NotFound: NotFound$zodSchema.optional(),
   RawResponse: z.custom<Response>(x => x instanceof Response),
-  StatusCode: z.int(),
+  StatusCode: z.number().int(),
   SubAgentExternalAgentRelationResponse:
     SubAgentExternalAgentRelationResponse$zodSchema.optional(),
   Unauthorized: Unauthorized$zodSchema.optional(),

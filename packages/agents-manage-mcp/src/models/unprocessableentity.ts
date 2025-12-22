@@ -72,6 +72,6 @@ export const UnprocessableEntity$zodSchema: z.ZodType<UnprocessableEntity> = z
     error: z.lazy(() => UnprocessableEntityError$zodSchema),
     instance: z.string().optional(),
     requestId: z.string().optional(),
-    status: z.int(),
+    status: z.number().int(),
     title: z.string(),
   });

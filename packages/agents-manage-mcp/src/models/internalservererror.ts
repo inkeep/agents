@@ -72,6 +72,6 @@ export const InternalServerError$zodSchema: z.ZodType<InternalServerError> = z
     error: z.lazy(() => InternalServerErrorError$zodSchema),
     instance: z.string().optional(),
     requestId: z.string().optional(),
-    status: z.int(),
+    status: z.number().int(),
     title: z.string(),
   });

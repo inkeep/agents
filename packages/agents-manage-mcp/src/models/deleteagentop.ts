@@ -31,5 +31,5 @@ export const DeleteAgentResponse$zodSchema: z.ZodType<DeleteAgentResponse> = z
     ContentType: z.string(),
     ErrorResponse: ErrorResponse$zodSchema.optional(),
     RawResponse: z.custom<Response>(x => x instanceof Response),
-    StatusCode: z.int(),
+    StatusCode: z.number().int(),
   });

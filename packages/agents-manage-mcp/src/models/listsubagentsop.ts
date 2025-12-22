@@ -59,7 +59,7 @@ export const ListSubagentsResponse$zodSchema: z.ZodType<ListSubagentsResponse> =
     InternalServerError: InternalServerError$zodSchema.optional(),
     NotFound: NotFound$zodSchema.optional(),
     RawResponse: z.custom<Response>(x => x instanceof Response),
-    StatusCode: z.int(),
+    StatusCode: z.number().int(),
     SubAgentListResponse: SubAgentListResponse$zodSchema.optional(),
     Unauthorized: Unauthorized$zodSchema.optional(),
     UnprocessableEntity: UnprocessableEntity$zodSchema.optional(),
