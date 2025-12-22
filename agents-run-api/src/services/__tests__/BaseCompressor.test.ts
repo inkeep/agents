@@ -148,12 +148,14 @@ describe('BaseCompressor', () => {
       // Mock getLedgerArtifacts to return existing artifacts
       const { getLedgerArtifacts } = await import('@inkeep/agents-core');
       const mockGetLedgerArtifacts = vi.mocked(getLedgerArtifacts);
-      
+
       // Mock the curried function call
-      mockGetLedgerArtifacts.mockReturnValue(vi.fn().mockResolvedValue([
-        { artifactId: 'existing-1', toolCallId: 'call-1' },
-        { artifactId: 'existing-2', toolCallId: 'call-2' },
-      ]));
+      mockGetLedgerArtifacts.mockReturnValue(
+        vi.fn().mockResolvedValue([
+          { artifactId: 'existing-1', toolCallId: 'call-1' },
+          { artifactId: 'existing-2', toolCallId: 'call-2' },
+        ])
+      );
 
       await compressor.saveToolResultsAsArtifacts(messages);
 

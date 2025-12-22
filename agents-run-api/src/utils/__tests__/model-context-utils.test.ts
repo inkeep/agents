@@ -310,7 +310,7 @@ describe('Model Context Utils', () => {
         // The key is that it uses the 'default' source when no model-specific config is found
         expect(result).toEqual({
           hardLimit: expect.any(Number),
-          safetyBuffer: expect.any(Number), 
+          safetyBuffer: expect.any(Number),
           enabled: true,
           source: 'default',
           modelContextInfo: expect.objectContaining({
@@ -318,7 +318,7 @@ describe('Model Context Utils', () => {
             source: 'fallback',
           }),
         });
-        
+
         // Verify the values are reasonable defaults
         expect(result.hardLimit).toBeGreaterThan(20000);
         expect(result.safetyBuffer).toBeGreaterThan(10000);

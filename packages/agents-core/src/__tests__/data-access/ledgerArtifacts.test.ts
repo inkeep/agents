@@ -344,7 +344,9 @@ describe('Ledger Artifacts Data Access', () => {
         getLedgerArtifacts(mockDb)({
           scopes: { tenantId: testTenantId, projectId: testProjectId },
         })
-      ).rejects.toThrow('At least one of taskId, toolCallId, toolCallIds, or artifactId must be provided');
+      ).rejects.toThrow(
+        'At least one of taskId, toolCallId, toolCallIds, or artifactId must be provided'
+      );
     });
 
     it('should return empty array when no artifacts found', async () => {
