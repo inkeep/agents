@@ -42,7 +42,7 @@ export function createAgentsManageDatabaseClient(
 
   const pool = new Pool({
     connectionString,
-    max: config.poolSize || Number(env.POSTGRES_POOL_SIZE) || 10,
+    max: config.poolSize || Number(env.POSTGRES_POOL_SIZE) || 100,
   });
 
   // Handle pool errors
