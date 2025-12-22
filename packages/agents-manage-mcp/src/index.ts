@@ -3,6 +3,14 @@
  */
 
 export { InkeepAgentsCore } from './core.js';
+export { HeaderForwardingHook } from './hooks/header-forwarding-hook.js';
+export { SDKHooks } from './hooks/hooks.js';
+export type {
+  BeforeCreateRequestContext,
+  BeforeCreateRequestHook,
+  BeforeRequestContext,
+  BeforeRequestHook,
+} from './hooks/types.js';
 export type { SDKOptions } from './lib/config.js';
 export type { ConsoleLogger, ConsoleLoggerLevel } from './mcp-server/console-logger.js';
 export { createConsoleLogger } from './mcp-server/console-logger.js';

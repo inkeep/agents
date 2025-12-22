@@ -8,7 +8,7 @@ import {
 import type { AgentCard, RegisteredAgent } from '../a2a/types';
 import { createTaskHandler, createTaskHandlerConfig } from '../agents/generateTaskHandler';
 import { getLogger } from '../logger';
-import type { SandboxConfig } from '../types/execution-context';
+import { getUserIdFromContext, type SandboxConfig } from '../types/execution-context';
 import dbClient from './db/dbClient';
 
 const logger = getLogger('agents');
@@ -120,6 +120,7 @@ async function hydrateAgent({
   apiKey,
   credentialStoreRegistry,
   sandboxConfig,
+  userId,
 }: {
   dbAgent: SubAgentSelect;
   agentId: string;
@@ -127,6 +128,7 @@ async function hydrateAgent({
   apiKey?: string;
   credentialStoreRegistry?: CredentialStoreRegistry;
   sandboxConfig?: SandboxConfig;
+  userId?: string;
 }): Promise<RegisteredAgent> {
   try {
     // Create task handler for the agent
@@ -138,6 +140,7 @@ async function hydrateAgent({
       baseUrl: baseUrl,
       apiKey: apiKey,
       sandboxConfig,
+      userId,
     });
     const taskHandler = createTaskHandler(taskHandlerConfig, credentialStoreRegistry);
 
@@ -170,6 +173,7 @@ export async function getRegisteredAgent(params: {
 }): Promise<RegisteredAgent | null> {
   const { executionContext, credentialStoreRegistry, sandboxConfig } = params;
   const { tenantId, projectId, agentId, subAgentId, baseUrl, apiKey } = executionContext;
+  const userId = getUserIdFromContext(executionContext);
   let dbAgent: SubAgentSelect;
 
   if (!subAgentId) {
@@ -205,5 +209,6 @@ export async function getRegisteredAgent(params: {
     credentialStoreRegistry,
     apiKey,
     sandboxConfig,
+    userId,
   });
 }

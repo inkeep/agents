@@ -8,8 +8,8 @@ export const DEFAULT_ANTHROPIC_BASE_MODEL = ANTHROPIC_MODELS.CLAUDE_SONNET_4_5;
 export const DEFAULT_ANTHROPIC_STRUCTURED_OUTPUT_MODEL = ANTHROPIC_MODELS.CLAUDE_SONNET_4_5;
 export const DEFAULT_ANTHROPIC_SUMMARIZER_MODEL = ANTHROPIC_MODELS.CLAUDE_SONNET_4_5;
 
-export const DEFAULT_OPENAI_BASE_MODEL = OPENAI_MODELS.GPT_4_1;
-export const DEFAULT_OPENAI_STRUCTURED_OUTPUT_MODEL = OPENAI_MODELS.GPT_4_1;
+export const DEFAULT_OPENAI_BASE_MODEL = OPENAI_MODELS.GPT_5_2;
+export const DEFAULT_OPENAI_STRUCTURED_OUTPUT_MODEL = OPENAI_MODELS.GPT_5_2;
 export const DEFAULT_OPENAI_SUMMARIZER_MODEL = OPENAI_MODELS.GPT_4_1_NANO;
 
 export const DEFAULT_GOOGLE_BASE_MODEL = GOOGLE_MODELS.GEMINI_2_5_FLASH;
@@ -18,6 +18,10 @@ export const DEFAULT_GOOGLE_SUMMARIZER_MODEL = GOOGLE_MODELS.GEMINI_2_5_FLASH_LI
 
 export const modelOptions = {
   anthropic: [
+    {
+      value: ANTHROPIC_MODELS.CLAUDE_OPUS_4_5,
+      label: 'Claude Opus 4.5',
+    },
     {
       value: ANTHROPIC_MODELS.CLAUDE_OPUS_4_1,
       label: 'Claude Opus 4.1',
@@ -40,6 +44,10 @@ export const modelOptions = {
     },
   ],
   openai: [
+    {
+      value: OPENAI_MODELS.GPT_5_2,
+      label: 'GPT-5.2',
+    },
     {
       value: OPENAI_MODELS.GPT_5_1,
       label: 'GPT-5.1',
@@ -73,6 +81,10 @@ export const modelOptions = {
     {
       value: GOOGLE_MODELS.GEMINI_3_PRO_PREVIEW,
       label: 'Gemini 3 Pro Preview',
+    },
+    {
+      value: GOOGLE_MODELS.GEMINI_3_FLASH_PREVIEW,
+      label: 'Gemini 3 Flash Preview',
     },
     {
       value: GOOGLE_MODELS.GEMINI_2_5_PRO,

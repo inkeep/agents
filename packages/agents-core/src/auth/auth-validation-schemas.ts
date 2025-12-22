@@ -1,5 +1,5 @@
+import { z } from '@hono/zod-openapi';
 import { createInsertSchema, createSelectSchema } from 'drizzle-zod';
-import { z } from 'zod';
 import * as authSchema from './auth-schema';
 
 export const UserSelectSchema = createSelectSchema(authSchema.user);
@@ -19,6 +19,9 @@ export const MemberInsertSchema = createInsertSchema(authSchema.member);
 
 export const InvitationSelectSchema = createSelectSchema(authSchema.invitation);
 export const InvitationInsertSchema = createInsertSchema(authSchema.invitation);
+
+export const DeviceCodeSelectSchema = createSelectSchema(authSchema.deviceCode);
+export const DeviceCodeInsertSchema = createInsertSchema(authSchema.deviceCode);
 
 export const VerificationSelectSchema = createSelectSchema(authSchema.verification);
 export const VerificationInsertSchema = createInsertSchema(authSchema.verification);
@@ -68,6 +71,9 @@ export type InvitationInsert = z.infer<typeof InvitationInsertSchema>;
 
 export type Verification = z.infer<typeof VerificationSelectSchema>;
 export type VerificationInsert = z.infer<typeof VerificationInsertSchema>;
+
+export type DeviceCode = z.infer<typeof DeviceCodeSelectSchema>;
+export type DeviceCodeInsert = z.infer<typeof DeviceCodeInsertSchema>;
 
 export type UserOrganization = z.infer<typeof UserOrganizationSchema>;
 export type UserOrganizationsResponse = z.infer<typeof UserOrganizationsResponseSchema>;

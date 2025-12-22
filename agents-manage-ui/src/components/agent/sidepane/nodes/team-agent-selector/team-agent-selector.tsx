@@ -2,7 +2,7 @@ import { type Node, useReactFlow } from '@xyflow/react';
 import { useParams } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import { toast } from 'sonner';
-import { fetchAgents } from '@/lib/api/agent-full-client';
+import { getAllAgentsAction } from '@/lib/actions/agent-full';
 import type { Agent } from '@/lib/types/agent-full';
 import { NodeType } from '../../../configuration/node-types';
 import { EmptyState } from '../empty-state';
@@ -30,12 +30,17 @@ const useFetchAvailableAgents = (): TeamAgentSelectorState => {
       try {
         setIsLoading(true);
         setError(null);
-        const response = await fetchAgents(tenantId, projectId);
-        // Filter out the current agent to prevent self-selection
-        const filteredAgents = agentId
-          ? response.data.filter((agent) => agent.id !== agentId)
-          : response.data;
-        setAgents(filteredAgents);
+        const response = await getAllAgentsAction(tenantId, projectId);
+        if (response.success) {
+          // Filter out the current agent to prevent self-selection
+          const filteredAgents = agentId
+            ? response.data.filter((agent) => agent.id !== agentId)
+            : response.data;
+          setAgents(filteredAgents);
+        } else {
+          setError(response.error);
+          toast.error(response.error);
+        }
       } catch (err) {
         const errorMessage = err instanceof Error ? err.message : 'Failed to load agents';
         setError(errorMessage);

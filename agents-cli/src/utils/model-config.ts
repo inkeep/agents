@@ -29,7 +29,7 @@ export const defaultGeminiModelConfigurations = {
 
 export const defaultOpenaiModelConfigurations = {
   base: {
-    model: OPENAI_MODELS.GPT_4_1,
+    model: OPENAI_MODELS.GPT_5_2,
   },
   structuredOutput: {
     model: OPENAI_MODELS.GPT_4_1_MINI,
@@ -74,6 +74,7 @@ export async function promptForModelConfiguration(): Promise<ModelConfigurationR
 
   // Available models for each provider (matching frontend options)
   const anthropicModels = [
+    { label: 'Claude Opus 4.5', value: ANTHROPIC_MODELS.CLAUDE_OPUS_4_5 },
     { label: 'Claude Opus 4.1', value: ANTHROPIC_MODELS.CLAUDE_OPUS_4_1 },
     { label: 'Claude Sonnet 4.5', value: ANTHROPIC_MODELS.CLAUDE_SONNET_4_5 },
     { label: 'Claude Sonnet 4', value: ANTHROPIC_MODELS.CLAUDE_SONNET_4 },
@@ -82,6 +83,7 @@ export async function promptForModelConfiguration(): Promise<ModelConfigurationR
   ];
 
   const openaiModels = [
+    { label: 'GPT-5.2', value: OPENAI_MODELS.GPT_5_2 },
     { label: 'GPT-5.1', value: OPENAI_MODELS.GPT_5_1 },
     { label: 'GPT-4.1', value: OPENAI_MODELS.GPT_4_1 },
     { label: 'GPT-4.1 Mini', value: OPENAI_MODELS.GPT_4_1_MINI },
@@ -93,6 +95,7 @@ export async function promptForModelConfiguration(): Promise<ModelConfigurationR
 
   const googleModels = [
     { label: 'Gemini 3 Pro Preview', value: GOOGLE_MODELS.GEMINI_3_PRO_PREVIEW },
+    { label: 'Gemini 3 Flash Preview', value: GOOGLE_MODELS.GEMINI_3_FLASH_PREVIEW },
     { label: 'Gemini 2.5 Pro', value: GOOGLE_MODELS.GEMINI_2_5_PRO },
     { label: 'Gemini 2.5 Flash', value: GOOGLE_MODELS.GEMINI_2_5_FLASH },
     { label: 'Gemini 2.5 Flash Lite', value: GOOGLE_MODELS.GEMINI_2_5_FLASH_LITE },

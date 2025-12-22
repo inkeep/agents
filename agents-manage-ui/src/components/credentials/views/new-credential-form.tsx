@@ -5,20 +5,24 @@ import { CredentialStoreType } from '@inkeep/agents-core/types';
 import { useParams, useRouter } from 'next/navigation';
 import { toast } from 'sonner';
 import type { CredentialFormData } from '@/components/credentials/views/credential-form-validation';
+import { useRuntimeConfig } from '@/contexts/runtime-config-context';
+import { useAuthSession } from '@/hooks/use-auth';
 import { createCredentialInStore } from '@/lib/api/credentialStores';
 import { updateExternalAgent } from '@/lib/api/external-agents';
 import { updateMCPTool } from '@/lib/api/tools';
 import { findOrCreateCredential } from '@/lib/utils/credentials-utils';
 import { generateId } from '@/lib/utils/id-utils';
 import { CredentialForm } from './credential-form';
+import { CredentialFormInkeepCloud } from './credential-form-inkeep-cloud';
 
 export function NewCredentialForm() {
   const router = useRouter();
+  const { PUBLIC_IS_INKEEP_CLOUD_DEPLOYMENT } = useRuntimeConfig();
   const { tenantId, projectId } = useParams<{
     tenantId: string;
     projectId: string;
   }>();
-
+  const { user } = useAuthSession();
   const handleCreateCredential = async (data: CredentialFormData) => {
     try {
       const newCredentialId = generateId();
@@ -70,6 +74,7 @@ export function NewCredentialForm() {
 
       newCredential = await findOrCreateCredential(tenantId, projectId, {
         id: newCredentialId,
+        createdBy: user?.email ?? undefined,
         name: data.name.trim(),
         type: data.credentialStoreType,
         credentialStoreId: data.credentialStoreId,
@@ -102,6 +107,16 @@ export function NewCredentialForm() {
       toast.error('Failed to create credential. Please try again.');
     }
   };
+
+  if (PUBLIC_IS_INKEEP_CLOUD_DEPLOYMENT === 'true') {
+    return (
+      <CredentialFormInkeepCloud
+        onCreateCredential={handleCreateCredential}
+        tenantId={tenantId}
+        projectId={projectId}
+      />
+    );
+  }
 
   return (
     <CredentialForm

@@ -22,6 +22,7 @@ import { nanoid } from 'nanoid';
 import { requirePermission } from 'src/middleware/require-permission';
 import type { BaseAppVariables } from 'src/types/app';
 import dbClient from '../data/db/dbClient';
+import { speakeasyOffsetLimitPagination } from './shared';
 
 const app = new OpenAPIHono<{ Variables: BaseAppVariables }>();
 
@@ -64,6 +65,7 @@ app.openapi(
       },
       ...commonGetErrorResponses,
     },
+    ...speakeasyOffsetLimitPagination,
   }),
   async (c) => {
     const { tenantId, projectId, agentId, subAgentId } = c.req.valid('param');

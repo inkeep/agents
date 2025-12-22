@@ -9,7 +9,7 @@ export type PanelType =
   | 'tool_approval_approved'
   | 'tool_approval_denied';
 
-export type MCPError = NonNullable<ConversationDetail['mcpToolErrors']>[number];
+type MCPError = NonNullable<ConversationDetail['mcpToolErrors']>[number];
 
 export type SelectedPanel =
   | { type: Exclude<PanelType, 'mcp_tool_error'>; item: ActivityItem }
@@ -33,6 +33,15 @@ export const ACTIVITY_TYPES = {
 
 export type ActivityKind = (typeof ACTIVITY_TYPES)[keyof typeof ACTIVITY_TYPES];
 
+export const ACTIVITY_STATUS = {
+  SUCCESS: 'success',
+  ERROR: 'error',
+  PENDING: 'pending',
+  WARNING: 'warning',
+} as const;
+
+type ActivityStatus = (typeof ACTIVITY_STATUS)[keyof typeof ACTIVITY_STATUS];
+
 export interface ActivityItem {
   id: string;
   type: ActivityKind;
@@ -44,7 +53,7 @@ export interface ActivityItem {
   subAgentName?: string;
   toolName?: string;
   toolResult?: string;
-  status: 'success' | 'error' | 'pending';
+  status: ActivityStatus;
   toolDescription?: string;
   result?: string;
   saveResultSaved?: boolean;
@@ -72,6 +81,8 @@ export interface ActivityItem {
   transferToSubAgentId?: string;
   toolType?: string;
   toolPurpose?: string;
+  mcpServerId?: string;
+  mcpServerName?: string;
   contextConfigId?: string;
   contextAgentId?: string;
   contextRequestKeys?: string[];
@@ -112,12 +123,12 @@ export interface ActivityItem {
   approvalToolCallId?: string;
 }
 
-export interface ToolCall {
+interface ToolCall {
   toolName: string;
   toolType: string;
   timestamp: string;
   duration?: number;
-  status: 'success' | 'error' | 'pending';
+  status: ActivityStatus;
   arguments?: any;
   result?: any;
   id?: string;
@@ -126,7 +137,7 @@ export interface ToolCall {
   toolDescription?: string;
 }
 
-export interface AgentInteraction {
+interface AgentInteraction {
   subAgentId: string;
   agentName: string;
   timestamp: string;

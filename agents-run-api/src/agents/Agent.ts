@@ -1,3 +1,4 @@
+import { z } from '@hono/zod-openapi';
 import {
   type AgentConversationHistoryConfig,
   type Artifact,
@@ -16,6 +17,7 @@ import {
   getFunctionToolsForSubAgent,
   getLedgerArtifacts,
   getToolsForAgent,
+  getUserScopedCredentialReference,
   listTaskIdsByContextId,
   MCPServerType,
   type MCPToolConfig,
@@ -27,6 +29,7 @@ import {
   ModelFactory,
   type ModelSettings,
   type Models,
+  parseEmbeddedJson,
   type SubAgentStopWhen,
   TemplateEngine,
 } from '@inkeep/agents-core';
@@ -40,7 +43,6 @@ import {
   type ToolSet,
   tool,
 } from 'ai';
-import { z } from 'zod';
 import {
   AGENT_EXECUTION_MAX_GENERATION_STEPS,
   FUNCTION_TOOL_EXECUTION_TIMEOUT_MS_DEFAULT,
@@ -58,13 +60,17 @@ import dbClient from '../data/db/dbClient';
 import { getLogger } from '../logger';
 import { agentSessionManager, type ToolCallData } from '../services/AgentSession';
 import { IncrementalStreamParser } from '../services/IncrementalStreamParser';
+import {
+  getCompressionConfigFromEnv,
+  MidGenerationCompressor,
+} from '../services/MidGenerationCompressor';
 import { pendingToolApprovalManager } from '../services/PendingToolApprovalManager';
 import { ResponseFormatter } from '../services/ResponseFormatter';
 import type { SandboxConfig } from '../types/execution-context';
 import { generateToolId } from '../utils/agent-operations';
 import { ArtifactCreateSchema, ArtifactReferenceSchema } from '../utils/artifact-component-schema';
 import { jsonSchemaToZod } from '../utils/data-component-schema';
-import { parseEmbeddedJson } from '../utils/json-parser';
+import { getCompressionConfigForModel } from '../utils/model-context-utils';
 import type { StreamHelper } from '../utils/stream-helpers';
 import { getStreamHelper } from '../utils/stream-registry';
 import { setSpanWithError, tracer } from '../utils/tracer';
@@ -106,12 +112,13 @@ export type AgentConfig = {
   tenantId: string;
   projectId: string;
   agentId: string;
+  relationId?: string;
   baseUrl: string;
   apiKey?: string;
   apiKeyId?: string;
   name: string;
-  description: string;
-  prompt: string;
+  description?: string;
+  prompt?: string;
   subAgentRelations: AgentConfig[];
   transferRelations: AgentConfig[];
   delegateRelations: DelegateRelation[];
@@ -131,6 +138,8 @@ export type AgentConfig = {
   models?: Models;
   stopWhen?: SubAgentStopWhen;
   sandboxConfig?: SandboxConfig;
+  /** User ID for user-scoped credential lookup (from temp JWT) */
+  userId?: string;
 };
 
 export type ExternalAgentRelationConfig = {
@@ -186,6 +195,7 @@ export class Agent {
   private credentialStoreRegistry?: CredentialStoreRegistry;
   private mcpClientCache: Map<string, McpClient> = new Map();
   private mcpConnectionLocks: Map<string, Promise<McpClient>> = new Map();
+  private currentCompressor: MidGenerationCompressor | null = null;
 
   constructor(config: AgentConfig, credentialStoreRegistry?: CredentialStoreRegistry) {
     this.artifactComponents = config.artifactComponents || [];
@@ -291,6 +301,40 @@ export class Agent {
     return sanitizedTools;
   }
 
+  #createRelationToolName(prefix: string, targetId: string): string {
+    return `${prefix}_to_${targetId.toLowerCase().replace(/\s+/g, '_')}`;
+  }
+
+  #getRelationshipIdForTool(toolName: string, toolType?: ToolType): string | undefined {
+    if (toolType === 'mcp') {
+      const matchingTool = this.config.tools?.find((tool) => {
+        if (tool.config?.type !== 'mcp') {
+          return false;
+        }
+
+        if (tool.availableTools?.some((available) => available.name === toolName)) {
+          return true;
+        }
+
+        if (tool.config.mcp.activeTools?.includes(toolName)) {
+          return true;
+        }
+
+        return tool.name === toolName;
+      });
+
+      return matchingTool?.relationshipId;
+    }
+
+    if (toolType === 'delegation') {
+      const relation = this.config.delegateRelations.find(
+        (relation) => this.#createRelationToolName('delegate', relation.config.id) === toolName
+      );
+
+      return relation?.config.relationId;
+    }
+  }
+
   /**
    * Get the primary model settings for text generation and thinking
    * Requires model to be configured at project level
@@ -339,8 +383,69 @@ export class Agent {
     };
   }
 
+  /**
+   * Get the model settings for summarization/distillation
+   * Falls back to base model if summarizer not configured
+   */
+  private getSummarizerModel(): ModelSettings {
+    if (!this.config.models) {
+      throw new Error(
+        'Model configuration is required. Please configure models at the project level.'
+      );
+    }
+
+    const summarizerConfig = this.config.models.summarizer;
+    const baseConfig = this.config.models.base;
+
+    if (summarizerConfig) {
+      return {
+        model: validateModel(summarizerConfig.model, 'Summarizer'),
+        providerOptions: summarizerConfig.providerOptions,
+      };
+    }
+
+    if (!baseConfig) {
+      throw new Error(
+        'Base model configuration is required for summarizer fallback. Please configure models at the project level.'
+      );
+    }
+    return {
+      model: validateModel(baseConfig.model, 'Base (fallback for summarizer)'),
+      providerOptions: baseConfig.providerOptions,
+    };
+  }
+
   setConversationId(conversationId: string) {
     this.conversationId = conversationId;
+  }
+
+  /**
+   * Simple compression fallback: drop oldest messages to fit under token limit
+   */
+  private simpleCompression(messages: any[], targetTokens: number): any[] {
+    if (messages.length === 0) return messages;
+
+    const estimateTokens = (msg: any) => {
+      const content = typeof msg.content === 'string' ? msg.content : JSON.stringify(msg.content);
+      return Math.ceil(content.length / 4);
+    };
+
+    let totalTokens = messages.reduce((sum, msg) => sum + estimateTokens(msg), 0);
+
+    if (totalTokens <= targetTokens) {
+      return messages; // Already under limit
+    }
+
+    // Keep dropping messages from the beginning until we're under the limit
+    const result = [...messages];
+    while (totalTokens > targetTokens && result.length > 1) {
+      const dropped = result.shift();
+      if (dropped) {
+        totalTokens -= estimateTokens(dropped);
+      }
+    }
+
+    return result;
   }
 
   /**
@@ -373,12 +478,12 @@ export class Agent {
     toolDefinition: any,
     streamRequestId?: string,
     toolType?: ToolType,
-    relationshipId?: string,
-    options?: { needsApproval?: boolean }
+    options?: { needsApproval?: boolean; mcpServerId?: string; mcpServerName?: string }
   ) {
     if (!toolDefinition || typeof toolDefinition !== 'object' || !('execute' in toolDefinition)) {
       return toolDefinition;
     }
+    const relationshipId = this.#getRelationshipIdForTool(toolName, toolType);
 
     const originalExecute = toolDefinition.execute;
     return {
@@ -389,14 +494,23 @@ export class Agent {
 
         const activeSpan = trace.getActiveSpan();
         if (activeSpan) {
-          activeSpan.setAttributes({
+          const attributes: Record<string, any> = {
             'conversation.id': this.conversationId,
             'tool.purpose': toolDefinition.description || 'No description provided',
             'ai.toolType': toolType || 'unknown',
             'subAgent.name': this.config.name || 'unknown',
             'subAgent.id': this.config.id || 'unknown',
             'agent.id': this.config.agentId || 'unknown',
-          });
+          };
+
+          if (options?.mcpServerId) {
+            attributes['ai.toolCall.mcpServerId'] = options.mcpServerId;
+          }
+          if (options?.mcpServerName) {
+            attributes['ai.toolCall.mcpServerName'] = options.mcpServerName;
+          }
+
+          activeSpan.setAttributes(attributes);
         }
 
         const isInternalTool =
@@ -520,11 +634,9 @@ export class Agent {
     sessionId?: string
   ) {
     const { transferRelations = [], delegateRelations = [] } = this.config;
-    const createToolName = (prefix: string, subAgentId: string) =>
-      `${prefix}_to_${subAgentId.toLowerCase().replace(/\s+/g, '_')}`;
     return Object.fromEntries([
       ...transferRelations.map((agentConfig) => {
-        const toolName = createToolName('transfer', agentConfig.id);
+        const toolName = this.#createRelationToolName('transfer', agentConfig.id);
         return [
           toolName,
           this.wrapToolWithStreaming(
@@ -541,7 +653,7 @@ export class Agent {
         ];
       }),
       ...delegateRelations.map((relation) => {
-        const toolName = createToolName('delegate', relation.config.id);
+        const toolName = this.#createRelationToolName('delegate', relation.config.id);
 
         return [
           toolName,
@@ -579,13 +691,8 @@ export class Agent {
       }) || [];
     const tools = (await Promise.all(mcpTools.map((tool) => this.getMcpTool(tool)) || [])) || [];
     if (!sessionId) {
-      // TODO check if we need reduce
-      // const combinedTools = tools.reduce((acc, toolResult) => {
-      //     return Object.assign(acc, toolResult.tools) as ToolSet;
-      // }, {} as ToolSet);
       const wrappedTools: ToolSet = {};
-      for (const [index, toolSet] of tools.entries()) {
-        const relationshipId = mcpTools[index]?.relationshipId;
+      for (const toolSet of tools) {
         for (const [toolName, toolDef] of Object.entries(toolSet.tools)) {
           // Find toolPolicies for this tool
           const needsApproval = toolSet.toolPolicies?.[toolName]?.needsApproval || false;
@@ -600,8 +707,11 @@ export class Agent {
             enhancedTool,
             streamRequestId,
             'mcp',
-            relationshipId,
-            { needsApproval }
+            {
+              needsApproval,
+              mcpServerId: toolSet.mcpServerId,
+              mcpServerName: toolSet.mcpServerName,
+            }
           );
         }
       }
@@ -609,8 +719,7 @@ export class Agent {
     }
 
     const wrappedTools: ToolSet = {};
-    for (const [index, toolResult] of tools.entries()) {
-      const relationshipId = mcpTools[index]?.relationshipId;
+    for (const toolResult of tools) {
       for (const [toolName, originalTool] of Object.entries(toolResult.tools)) {
         if (!isValidTool(originalTool)) {
           logger.error({ toolName }, 'Invalid MCP tool structure - missing required properties');
@@ -634,10 +743,34 @@ export class Agent {
           description: originalTool.description,
           inputSchema: originalTool.inputSchema,
           execute: async (args, { toolCallId }) => {
+            // Fix Claude's stringified JSON issue - convert any stringified JSON back to objects
+            // This must happen first, before any logging or tracing, so spans show correct data
+            let processedArgs: typeof args;
+            try {
+              processedArgs = parseEmbeddedJson(args);
+
+              // Warn if we had to fix stringified JSON (indicates schema ambiguity issue)
+              if (JSON.stringify(args) !== JSON.stringify(processedArgs)) {
+                logger.warn(
+                  { toolName, toolCallId },
+                  'Fixed stringified JSON parameters (indicates schema ambiguity)'
+                );
+              }
+            } catch (error) {
+              logger.warn(
+                { toolName, toolCallId, error: (error as Error).message },
+                'Failed to parse embedded JSON, using original args'
+              );
+              processedArgs = args;
+            }
+
+            // Use processed args for all subsequent operations
+            const finalArgs = processedArgs;
+
             // Check for approval requirement before execution
             if (needsApproval) {
               logger.info(
-                { toolName, toolCallId, args },
+                { toolName, toolCallId, args: finalArgs },
                 'Tool requires approval - waiting for user response'
               );
 
@@ -725,7 +858,7 @@ export class Agent {
             logger.debug({ toolName, toolCallId }, 'MCP Tool Called');
 
             try {
-              const rawResult = await originalTool.execute(args, { toolCallId });
+              const rawResult = await originalTool.execute(finalArgs, { toolCallId });
 
               if (rawResult && typeof rawResult === 'object' && rawResult.isError) {
                 const errorMessage = rawResult.content?.[0]?.text || 'MCP tool returned an error';
@@ -737,12 +870,13 @@ export class Agent {
                 toolSessionManager.recordToolResult(sessionId, {
                   toolCallId,
                   toolName,
-                  args,
+                  args: finalArgs,
                   result: { error: errorMessage, failed: true },
                   timestamp: Date.now(),
                 });
 
                 if (streamRequestId) {
+                  const relationshipId = this.#getRelationshipIdForTool(toolName, 'mcp');
                   agentSessionManager.recordEvent(streamRequestId, 'error', this.config.id, {
                     message: `MCP tool "${toolName}" failed: ${errorMessage}`,
                     code: 'mcp_tool_error',
@@ -780,7 +914,7 @@ export class Agent {
               toolSessionManager.recordToolResult(sessionId, {
                 toolCallId,
                 toolName,
-                args,
+                args: finalArgs,
                 result: enhancedResult,
                 timestamp: Date.now(),
               });
@@ -798,8 +932,11 @@ export class Agent {
           sessionWrappedTool,
           streamRequestId,
           'mcp',
-          relationshipId,
-          { needsApproval }
+          {
+            needsApproval,
+            mcpServerId: toolResult.mcpServerId,
+            mcpServerName: toolResult.mcpServerName,
+          }
         );
       }
     }
@@ -856,7 +993,58 @@ export class Agent {
 
     let serverConfig: McpServerConfig;
 
-    if (credentialReferenceId && this.credentialStuffer) {
+    // Check for user-scoped credential first (uses toolId + userId lookup)
+    const isUserScoped = tool.credentialScope === 'user';
+    const userId = this.config.userId;
+
+    if (isUserScoped && userId && this.credentialStuffer) {
+      // User-scoped: look up credential by (toolId, userId)
+      const userCredentialReference = await getUserScopedCredentialReference(dbClient)({
+        scopes: {
+          tenantId: this.config.tenantId,
+          projectId: this.config.projectId,
+        },
+        toolId: tool.id,
+        userId,
+      });
+
+      if (userCredentialReference) {
+        const storeReference = {
+          credentialStoreId: userCredentialReference.credentialStoreId,
+          retrievalParams: userCredentialReference.retrievalParams || {},
+        };
+
+        serverConfig = await this.credentialStuffer.buildMcpServerConfig(
+          {
+            tenantId: this.config.tenantId,
+            projectId: this.config.projectId,
+            contextConfigId: this.config.contextConfigId || undefined,
+            conversationId: this.conversationId || undefined,
+          },
+          this.convertToMCPToolConfig(tool, agentToolRelationHeaders),
+          storeReference,
+          selectedTools
+        );
+      } else {
+        // User hasn't connected their credential yet - build config without auth
+        logger.warn(
+          { toolId: tool.id, userId },
+          'User-scoped tool has no credential connected for this user'
+        );
+        serverConfig = await this.credentialStuffer.buildMcpServerConfig(
+          {
+            tenantId: this.config.tenantId,
+            projectId: this.config.projectId,
+            contextConfigId: this.config.contextConfigId || undefined,
+            conversationId: this.conversationId || undefined,
+          },
+          this.convertToMCPToolConfig(tool, agentToolRelationHeaders),
+          undefined,
+          selectedTools
+        );
+      }
+    } else if (credentialReferenceId && this.credentialStuffer) {
+      // Project-scoped: look up credential by credentialReferenceId
       const credentialReference = await getCredentialReference(dbClient)({
         scopes: {
           tenantId: this.config.tenantId,
@@ -910,6 +1098,23 @@ export class Agent {
         selectedTools,
         headers: agentToolRelationHeaders,
       };
+    }
+
+    // Inject user_id for Composio servers at runtime
+    if (serverConfig.url?.toString().includes('composio.dev')) {
+      const urlObj = new URL(serverConfig.url.toString());
+      if (isUserScoped && userId) {
+        // User-scoped: use actual userId
+        urlObj.searchParams.set('user_id', userId);
+      } else {
+        // Project-scoped: use tenantId||projectId
+        const SEPARATOR = '||';
+        urlObj.searchParams.set(
+          'user_id',
+          `${this.config.tenantId}${SEPARATOR}${this.config.projectId}`
+        );
+      }
+      serverConfig.url = urlObj.toString();
     }
 
     logger.info(
@@ -999,7 +1204,7 @@ export class Agent {
       }
     }
 
-    return { tools, toolPolicies };
+    return { tools, toolPolicies, mcpServerId: tool.id, mcpServerName: tool.name };
   }
 
   private async createMcpConnection(
@@ -1092,8 +1297,31 @@ export class Agent {
           description: functionToolDef.description || functionToolDef.name,
           inputSchema: zodSchema,
           execute: async (args, { toolCallId }) => {
+            // Fix Claude's stringified JSON issue - convert any stringified JSON back to objects
+            let processedArgs: typeof args;
+            try {
+              processedArgs = parseEmbeddedJson(args);
+
+              // Warn if we had to fix stringified JSON (indicates schema ambiguity issue)
+              if (JSON.stringify(args) !== JSON.stringify(processedArgs)) {
+                logger.warn(
+                  { toolName: functionToolDef.name, toolCallId },
+                  'Fixed stringified JSON parameters (indicates schema ambiguity)'
+                );
+              }
+            } catch (error) {
+              logger.warn(
+                { toolName: functionToolDef.name, toolCallId, error: (error as Error).message },
+                'Failed to parse embedded JSON, using original args'
+              );
+              processedArgs = args;
+            }
+
+            // Use processed args for all subsequent operations
+            const finalArgs = processedArgs;
+
             logger.debug(
-              { toolName: functionToolDef.name, toolCallId, args },
+              { toolName: functionToolDef.name, toolCallId, args: finalArgs },
               'Function Tool Called'
             );
 
@@ -1105,18 +1333,22 @@ export class Agent {
                 vcpus: FUNCTION_TOOL_SANDBOX_VCPUS_DEFAULT,
               };
 
-              const result = await sandboxExecutor.executeFunctionTool(functionToolDef.id, args, {
-                description: functionToolDef.description || functionToolDef.name,
-                inputSchema: functionData.inputSchema || {},
-                executeCode: functionData.executeCode,
-                dependencies: functionData.dependencies || {},
-                sandboxConfig: this.config.sandboxConfig || defaultSandboxConfig,
-              });
+              const result = await sandboxExecutor.executeFunctionTool(
+                functionToolDef.id,
+                finalArgs,
+                {
+                  description: functionToolDef.description || functionToolDef.name,
+                  inputSchema: functionData.inputSchema || {},
+                  executeCode: functionData.executeCode,
+                  dependencies: functionData.dependencies || {},
+                  sandboxConfig: this.config.sandboxConfig || defaultSandboxConfig,
+                }
+              );
 
               toolSessionManager.recordToolResult(sessionId || '', {
                 toolCallId,
                 toolName: functionToolDef.name,
-                args,
+                args: finalArgs,
                 result,
                 timestamp: Date.now(),
               });
@@ -1295,13 +1527,15 @@ export class Agent {
     };
   }): Promise<string> {
     const phase2Config = new Phase2Config();
-    const hasAgentArtifactComponents = await this.hasAgentArtifactComponents();
+    const compressionConfig = getCompressionConfigFromEnv();
+    const hasAgentArtifactComponents =
+      (await this.hasAgentArtifactComponents()) || compressionConfig.enabled;
 
     const conversationId = runtimeContext?.metadata?.conversationId || runtimeContext?.contextId;
     const resolvedContext = conversationId ? await this.getResolvedContext(conversationId) : null;
 
-    let processedPrompt = this.config.prompt;
-    if (resolvedContext) {
+    let processedPrompt = this.config.prompt || '';
+    if (resolvedContext && this.config.prompt) {
       try {
         processedPrompt = TemplateEngine.render(this.config.prompt, resolvedContext, {
           strict: false,
@@ -1364,8 +1598,9 @@ export class Agent {
     }
 
     const resolvedContext = conversationId ? await this.getResolvedContext(conversationId) : null;
-    let processedPrompt = this.config.prompt;
-    if (resolvedContext) {
+
+    let processedPrompt = this.config.prompt || '';
+    if (resolvedContext && this.config.prompt) {
       try {
         processedPrompt = TemplateEngine.render(this.config.prompt, resolvedContext, {
           strict: false,
@@ -1453,7 +1688,9 @@ export class Agent {
 
     const shouldIncludeArtifactComponents = !excludeDataComponents;
 
-    const hasAgentArtifactComponents = await this.hasAgentArtifactComponents();
+    const compressionConfig = getCompressionConfigFromEnv();
+    const hasAgentArtifactComponents =
+      (await this.hasAgentArtifactComponents()) || compressionConfig.enabled;
 
     const config: SystemPromptV1 = {
       corePrompt: processedPrompt,
@@ -1526,9 +1763,10 @@ export class Agent {
   private async getDefaultTools(streamRequestId?: string): Promise<ToolSet> {
     const defaultTools: ToolSet = {};
 
-    // Add get_reference_artifact if any agent in the agent has artifact components
-    // This enables cross-agent artifact collaboration within the same agent
-    if (await this.agentHasArtifactComponents()) {
+    // Add get_reference_artifact if any agent has artifact components OR compression is enabled
+    // This enables cross-agent artifact collaboration and access to compressed artifacts
+    const compressionConfig = getCompressionConfigFromEnv();
+    if ((await this.agentHasArtifactComponents()) || compressionConfig.enabled) {
       defaultTools.get_reference_artifact = this.getArtifactTools();
     }
 
@@ -1550,6 +1788,46 @@ export class Agent {
       }
     }
 
+    // Add manual compression tool
+    logger.info(
+      { agentId: this.config.id, streamRequestId },
+      'Adding compress_context tool to defaultTools'
+    );
+    defaultTools.compress_context = tool({
+      description:
+        'Manually compress the current conversation context to save space. Use when shifting topics, completing major tasks, or when context feels cluttered.',
+      inputSchema: z.object({
+        reason: z
+          .string()
+          .describe(
+            'Why you are requesting compression (e.g., "shifting from research to coding", "completed analysis phase")'
+          ),
+      }),
+      execute: async ({ reason }) => {
+        logger.info(
+          {
+            agentId: this.config.id,
+            streamRequestId,
+            reason,
+          },
+          'Manual compression requested by LLM'
+        );
+
+        // Set compression flag on the current compressor instance
+        if (this.currentCompressor) {
+          this.currentCompressor.requestManualCompression(reason);
+        }
+
+        return {
+          status: 'compression_requested',
+          reason,
+          message:
+            'Context compression will be applied on the next generation step. Previous work has been summarized and saved as artifacts.',
+        };
+      },
+    });
+
+    logger.info('getDefaultTools returning tools:', Object.keys(defaultTools).join(', '));
     return defaultTools;
   }
 
@@ -2086,6 +2364,29 @@ ${output}`;
             content: userMessage,
           });
 
+          // Capture original message count and initialize compressor for this generation
+          const originalMessageCount = messages.length;
+          const compressionConfigResult = getCompressionConfigForModel(primaryModelSettings);
+          const compressionConfig = {
+            hardLimit: compressionConfigResult.hardLimit,
+            safetyBuffer: compressionConfigResult.safetyBuffer,
+            enabled: compressionConfigResult.enabled,
+          };
+          const compressor = compressionConfig.enabled
+            ? new MidGenerationCompressor(
+                sessionId,
+                contextId,
+                this.config.tenantId,
+                this.config.projectId,
+                compressionConfig,
+                this.getSummarizerModel(),
+                primaryModelSettings
+              )
+            : null;
+
+          // Store compressor for tool access
+          this.currentCompressor = compressor;
+
           // ----- PHASE 1: Planning with tools -----
 
           if (shouldStreamPhase1) {
@@ -2100,6 +2401,116 @@ ${output}`;
               ...streamConfig,
               messages,
               tools: sanitizedTools,
+              prepareStep: async ({ messages: stepMessages }) => {
+                // Check if compression is enabled
+                if (!compressor) {
+                  return {};
+                }
+
+                // Check if compression is needed (manual or automatic)
+                const compressionNeeded = compressor.isCompressionNeeded(stepMessages);
+
+                if (compressionNeeded) {
+                  logger.info(
+                    {
+                      compressorState: compressor.getState(),
+                    },
+                    'Triggering layered mid-generation compression'
+                  );
+
+                  try {
+                    // Split messages into original vs generated
+                    const originalMessages = stepMessages.slice(0, originalMessageCount);
+                    const generatedMessages = stepMessages.slice(originalMessageCount);
+
+                    if (generatedMessages.length > 0) {
+                      // Compress ONLY the generated content (tool results, intermediate steps)
+                      const compressionResult = await compressor.compress(generatedMessages);
+
+                      // Build final messages: original + preserved text + summary
+                      const finalMessages = [...originalMessages];
+
+                      // Add preserved text messages first (so they appear in natural order)
+                      if (
+                        compressionResult.summary.text_messages &&
+                        compressionResult.summary.text_messages.length > 0
+                      ) {
+                        finalMessages.push(...compressionResult.summary.text_messages);
+                      }
+
+                      // Add compressed summary message last (provides context for artifacts)
+                      const summaryMessage = JSON.stringify({
+                        high_level: compressionResult.summary?.summary?.high_level,
+                        user_intent: compressionResult.summary?.summary?.user_intent,
+                        decisions: compressionResult.summary?.summary?.decisions,
+                        open_questions: compressionResult.summary?.summary?.open_questions,
+                        next_steps: compressionResult.summary?.summary?.next_steps,
+                        related_artifacts: compressionResult?.summary?.summary?.related_artifacts,
+                      });
+                      finalMessages.push({
+                        role: 'user',
+                        content: `Based on your research, here's what you've discovered: ${summaryMessage}
+
+Now please provide your answer to my original question using this context.`,
+                      });
+
+                      logger.info(
+                        {
+                          originalTotal: stepMessages.length,
+                          compressed: finalMessages.length,
+                          originalKept: originalMessages.length,
+                          generatedCompressed: generatedMessages.length,
+                        },
+                        'Generated content compression completed'
+                      );
+                      logger.info({ summaryMessage }, 'Summary message');
+
+                      return { messages: finalMessages };
+                    }
+
+                    // No generated messages yet, nothing to compress
+                    return {};
+                  } catch (error) {
+                    logger.error(
+                      {
+                        error: error instanceof Error ? error.message : String(error),
+                        stack: error instanceof Error ? error.stack : undefined,
+                      },
+                      'Smart compression failed, falling back to simple compression'
+                    );
+
+                    // Fallback: simple compression by dropping oldest messages
+                    try {
+                      const targetSize = Math.floor(compressor.getHardLimit() * 0.5); // Use 50% of limit as target
+                      const fallbackMessages = this.simpleCompression(stepMessages, targetSize);
+
+                      logger.info(
+                        {
+                          originalCount: stepMessages.length,
+                          compressedCount: fallbackMessages.length,
+                          compressionType: 'simple_fallback',
+                        },
+                        'Simple compression fallback completed'
+                      );
+
+                      return { messages: fallbackMessages };
+                    } catch (fallbackError) {
+                      logger.error(
+                        {
+                          error:
+                            fallbackError instanceof Error
+                              ? fallbackError.message
+                              : String(fallbackError),
+                        },
+                        'Fallback compression also failed, continuing without compression'
+                      );
+                      return {};
+                    }
+                  }
+                }
+
+                return {};
+              },
               stopWhen: async ({ steps }) => {
                 const last = steps.at(-1);
                 if (last && 'text' in last && last.text) {
@@ -2117,10 +2528,15 @@ ${output}`;
                   }
                 }
                 if (last && last['content'] && last['content'].length > 0) {
-                  const lastContent = last['content'][last['content'].length - 1];  
+                  const lastContent = last['content'][last['content'].length - 1];
                   if (lastContent['type'] === 'tool-error') {
                     const error = lastContent['error'];
-                    if (error && typeof error === 'object' && 'name' in error && error.name === 'connection_refused') {
+                    if (
+                      error &&
+                      typeof error === 'object' &&
+                      'name' in error &&
+                      error.name === 'connection_refused'
+                    ) {
                       return true;
                     }
                   }
@@ -2246,6 +2662,116 @@ ${output}`;
               ...genConfig,
               messages,
               tools: sanitizedTools,
+              prepareStep: async ({ messages: stepMessages }) => {
+                // Check if compression is enabled
+                if (!compressor) {
+                  return {};
+                }
+
+                // Check if compression is needed (manual or automatic)
+                const compressionNeeded = compressor.isCompressionNeeded(stepMessages);
+
+                if (compressionNeeded) {
+                  logger.info(
+                    {
+                      compressorState: compressor.getState(),
+                    },
+                    'Triggering layered mid-generation compression'
+                  );
+
+                  try {
+                    // Split messages into original vs generated
+                    const originalMessages = stepMessages.slice(0, originalMessageCount);
+                    const generatedMessages = stepMessages.slice(originalMessageCount);
+
+                    if (generatedMessages.length > 0) {
+                      // Compress ONLY the generated content (tool results, intermediate steps)
+                      const compressionResult = await compressor.compress(generatedMessages);
+
+                      // Build final messages: original + preserved text + summary
+                      const finalMessages = [...originalMessages];
+
+                      // Add preserved text messages first (so they appear in natural order)
+                      if (
+                        compressionResult.summary.text_messages &&
+                        compressionResult.summary.text_messages.length > 0
+                      ) {
+                        finalMessages.push(...compressionResult.summary.text_messages);
+                      }
+
+                      // Add compressed summary message last (provides context for artifacts)
+                      const summaryMessage = JSON.stringify({
+                        high_level: compressionResult.summary?.summary?.high_level,
+                        user_intent: compressionResult.summary?.summary?.user_intent,
+                        decisions: compressionResult.summary?.summary?.decisions,
+                        open_questions: compressionResult.summary?.summary?.open_questions,
+                        next_steps: compressionResult.summary?.summary?.next_steps,
+                        related_artifacts: compressionResult?.summary?.summary?.related_artifacts,
+                      });
+                      finalMessages.push({
+                        role: 'user',
+                        content: `Based on your research, here's what you've discovered: ${summaryMessage}
+
+Now please provide your answer to my original question using this context.`,
+                      });
+
+                      logger.info(
+                        {
+                          originalTotal: stepMessages.length,
+                          compressed: finalMessages.length,
+                          originalKept: originalMessages.length,
+                          generatedCompressed: generatedMessages.length,
+                        },
+                        'Generated content compression completed'
+                      );
+                      logger.info({ summaryMessage }, 'Summary message');
+
+                      return { messages: finalMessages };
+                    }
+
+                    // No generated messages yet, nothing to compress
+                    return {};
+                  } catch (error) {
+                    logger.error(
+                      {
+                        error: error instanceof Error ? error.message : String(error),
+                        stack: error instanceof Error ? error.stack : undefined,
+                      },
+                      'Smart compression failed, falling back to simple compression'
+                    );
+
+                    // Fallback: simple compression by dropping oldest messages
+                    try {
+                      const targetSize = Math.floor(compressor.getHardLimit() * 0.5); // Use 50% of limit as target
+                      const fallbackMessages = this.simpleCompression(stepMessages, targetSize);
+
+                      logger.info(
+                        {
+                          originalCount: stepMessages.length,
+                          compressedCount: fallbackMessages.length,
+                          compressionType: 'simple_fallback',
+                        },
+                        'Simple compression fallback completed'
+                      );
+
+                      return { messages: fallbackMessages };
+                    } catch (fallbackError) {
+                      logger.error(
+                        {
+                          error:
+                            fallbackError instanceof Error
+                              ? fallbackError.message
+                              : String(fallbackError),
+                        },
+                        'Fallback compression also failed, continuing without compression'
+                      );
+                      return {};
+                    }
+                  }
+                }
+
+                return {};
+              },
               stopWhen: async ({ steps }) => {
                 const last = steps.at(-1);
                 if (last && 'text' in last && last.text) {
@@ -2306,7 +2832,19 @@ ${output}`;
 
             if (thinkingCompleteCall) {
               const reasoningFlow: any[] = [];
-              if (response.steps) {
+
+              // Check if compression has occurred and use compression summary instead of detailed tool results
+              const compressionSummary = this.currentCompressor?.getCompressionSummary();
+
+              if (compressionSummary) {
+                // Use the entire compression summary
+                const summaryContent = JSON.stringify(compressionSummary, null, 2);
+
+                reasoningFlow.push({
+                  role: 'assistant',
+                  content: `## Research Summary (Compressed)\n\nBased on tool executions, here's the comprehensive summary:\n\n\`\`\`json\n${summaryContent}\n\`\`\`\n\nThis summary represents all tool execution results in compressed form. Full details are preserved in artifacts.`,
+                });
+              } else if (response.steps) {
                 response.steps.forEach((step: any) => {
                   if (step.toolCalls && step.toolResults) {
                     step.toolCalls.forEach((call: any, index: number) => {
@@ -2476,6 +3014,17 @@ ${output}${structureHintsFormatted}`;
                 phase2Messages.push({ role: 'user', content: userMessage });
                 phase2Messages.push(...reasoningFlow);
 
+                // Ensure the last message is not an assistant message when using output_format
+                if (
+                  reasoningFlow.length > 0 &&
+                  reasoningFlow[reasoningFlow.length - 1]?.role === 'assistant'
+                ) {
+                  phase2Messages.push({
+                    role: 'user',
+                    content: 'Continue with the structured response.',
+                  });
+                }
+
                 const streamResult = streamObject({
                   ...structuredModelSettings,
                   messages: phase2Messages,
@@ -2555,6 +3104,17 @@ ${output}${structureHintsFormatted}`;
 
                 phase2Messages.push({ role: 'user', content: userMessage });
                 phase2Messages.push(...reasoningFlow);
+
+                // Ensure the last message is not an assistant message when using output_format
+                if (
+                  reasoningFlow.length > 0 &&
+                  reasoningFlow[reasoningFlow.length - 1]?.role === 'assistant'
+                ) {
+                  phase2Messages.push({
+                    role: 'user',
+                    content: 'Continue with the structured response.',
+                  });
+                }
 
                 const structuredResponse = await generateObject(
                   withJsonPostProcessing({
@@ -2640,8 +3200,14 @@ ${output}${structureHintsFormatted}`;
             });
           }
 
+          // Clear compressor reference to prevent memory leaks
+          this.currentCompressor = null;
+
           return formattedResponse;
         } catch (error) {
+          // Clear compressor reference to prevent memory leaks
+          this.currentCompressor = null;
+
           // Don't clean up ToolSession on error - let ToolSessionManager handle cleanup
           const errorToThrow = error instanceof Error ? error : new Error(String(error));
           setSpanWithError(span, errorToThrow);

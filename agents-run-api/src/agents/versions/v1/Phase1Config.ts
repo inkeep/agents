@@ -1,4 +1,5 @@
 import type { Artifact, McpTool } from '@inkeep/agents-core';
+import { convertZodToJsonSchema, isZodSchema } from '@inkeep/agents-core/utils/schema-conversion';
 import systemPromptTemplate from '../../../../templates/v1/phase1/system-prompt.xml?raw';
 import thinkingPreparationTemplate from '../../../../templates/v1/phase1/thinking-preparation.xml?raw';
 import toolTemplate from '../../../../templates/v1/phase1/tool.xml?raw';
@@ -49,6 +50,22 @@ export class Phase1Config implements VersionConfig<SystemPromptV1> {
     return 'usageGuidelines' in firstItem && !('config' in firstItem);
   }
 
+  private normalizeSchema(inputSchema: any): Record<string, unknown> {
+    if (!inputSchema || typeof inputSchema !== 'object') {
+      return inputSchema || {};
+    }
+
+    if (isZodSchema(inputSchema)) {
+      try {
+        return convertZodToJsonSchema(inputSchema);
+      } catch (error) {
+        return {};
+      }
+    }
+
+    return inputSchema;
+  }
+
   assemble(templates: Map<string, string>, config: SystemPromptV1): string {
     const systemPromptTemplate = templates.get('system-prompt');
     if (!systemPromptTemplate) {
@@ -57,14 +74,29 @@ export class Phase1Config implements VersionConfig<SystemPromptV1> {
 
     let systemPrompt = systemPromptTemplate;
 
-    systemPrompt = systemPrompt.replace('{{CORE_INSTRUCTIONS}}', config.corePrompt);
+    // Handle core instructions - omit entire section if empty
+    if (config.corePrompt && config.corePrompt.trim()) {
+      systemPrompt = systemPrompt.replace('{{CORE_INSTRUCTIONS}}', config.corePrompt);
+    } else {
+      // Remove the entire core_instructions section if empty
+      systemPrompt = systemPrompt.replace(
+        /<core_instructions>\s*\{\{CORE_INSTRUCTIONS\}\}\s*<\/core_instructions>/g,
+        ''
+      );
+    }
 
     const agentContextSection = this.generateAgentContextSection(config.prompt);
     systemPrompt = systemPrompt.replace('{{AGENT_CONTEXT_SECTION}}', agentContextSection);
 
-    const toolData = this.isToolDataArray(config.tools)
+    const rawToolData = this.isToolDataArray(config.tools)
       ? config.tools
       : Phase1Config.convertMcpToolsToToolData(config.tools as McpTool[]);
+
+    // Normalize any Zod schemas to JSON schemas
+    const toolData = rawToolData.map((tool) => ({
+      ...tool,
+      inputSchema: this.normalizeSchema(tool.inputSchema),
+    }));
 
     const hasArtifactComponents = config.artifactComponents && config.artifactComponents.length > 0;
 
@@ -100,7 +132,7 @@ export class Phase1Config implements VersionConfig<SystemPromptV1> {
   }
 
   private generateAgentContextSection(prompt?: string): string {
-    if (!prompt) {
+    if (!prompt || prompt.trim() === '') {
       return '';
     }
 
@@ -231,6 +263,8 @@ CREATING ARTIFACTS (SERVES AS CITATION):
 Use the artifact:create annotation to extract data from tool results. The creation itself serves as a citation.
 Format: <artifact:create id="unique-id" tool="tool_call_id" type="TypeName" base="selector.path" details='{"key":"jmespath_selector"}' />
 
+⚠️ IMPORTANT: Do not create artifacts from get_reference_artifact tool results - these are already compressed artifacts being retrieved. Only create artifacts from original research and analysis tools.
+
 🚨 CRITICAL: DETAILS PROPS USE JMESPATH SELECTORS, NOT LITERAL VALUES! 🚨
 
 ❌ WRONG - Using literal values:
@@ -255,6 +289,8 @@ THE details PROPERTY MUST CONTAIN JMESPATH SELECTORS THAT EXTRACT DATA FROM THE 
 ❌ NEVER: [?text ~ contains(@, 'word')] (~ with @ operator)
 ❌ NEVER: contains(@, 'text') (@ operator usage)
 ❌ NEVER: [?field=="value"] (double quotes in filters)
+❌ NEVER: [?field==\'value\'] (escaped quotes in filters)  
+❌ NEVER: [?field=='\"'\"'value'\"'\"'] (nightmare quote mixing)
 ❌ NEVER: result.items[?type=='doc'][?status=='active'] (chained filters)
 
 ✅ CORRECT JMESPATH SYNTAX:
@@ -265,6 +301,11 @@ THE details PROPERTY MUST CONTAIN JMESPATH SELECTORS THAT EXTRACT DATA FROM THE 
 ✅ [?type=='doc' && status=='active'] (single filter with &&)
 ✅ [?contains(text, 'Founder')] (contains haystack, needle format)
 ✅ source.content[?contains(text, 'Founder')].text (correct filter usage)
+
+🚨 MANDATORY QUOTE PATTERN - FOLLOW EXACTLY:
+- ALWAYS: base="path[?field=='value']" (double quotes outside, single inside)
+- This is the ONLY allowed pattern - any other pattern WILL FAIL
+- NEVER escape quotes, NEVER mix quote types, NEVER use complex quoting
 
 🚨 CRITICAL: EXAMINE TOOL RESULTS BEFORE CREATING SELECTORS! 🚨
 
@@ -304,7 +345,7 @@ Only use artifact:ref when you need to cite the SAME artifact again for a differ
 Format: <artifact:ref id="artifact-id" tool="tool_call_id" />
 
 EXAMPLE TEXT RESPONSE:
-"I found the authentication documentation. <artifact:create id='auth-doc-1' tool='call_xyz789' type='APIDoc' base='result.documents[?type=="auth"]' details='{"title":"metadata.title","endpoint":"api.endpoint","description":"content.description","parameters":"spec.parameters","examples":"examples.sample_code"}' /> The documentation explains OAuth 2.0 implementation in detail.
+"I found the authentication documentation. <artifact:create id='auth-doc-1' tool='call_xyz789' type='APIDoc' base="result.documents[?type=='auth']" details='{"title":"metadata.title","endpoint":"api.endpoint","description":"content.description","parameters":"spec.parameters","examples":"examples.sample_code"}' /> The documentation explains OAuth 2.0 implementation in detail.
 
 The process involves three main steps: registration, token exchange, and API calls. As mentioned in the authentication documentation <artifact:ref id='auth-doc-1' tool='call_xyz789' />, you'll need to register your application first."
 
@@ -521,6 +562,7 @@ ${creationInstructions}
         const isRequired = required.includes(key);
         const propType = (value as any)?.type || 'string';
         const propDescription = (value as any)?.description || 'No description';
+
         return `        ${key}: {\n          "type": "${propType}",\n          "description": "${propDescription}",\n          "required": ${isRequired}\n        }`;
       })
       .join('\n');

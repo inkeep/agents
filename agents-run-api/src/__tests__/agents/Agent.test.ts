@@ -100,6 +100,10 @@ const {
 
 vi.mock('@inkeep/agents-core', async (importOriginal) => {
   const actual = await importOriginal<typeof import('@inkeep/agents-core')>();
+  const mockModel = 'mocked-language-model';
+  const mockGenerationParams = { temperature: 0.7, maxTokens: 4096 };
+  const mockGenerationConfig = { model: mockModel, ...mockGenerationParams };
+
   return {
     ...actual,
     getCredentialReference: getCredentialReferenceMock,
@@ -129,23 +133,6 @@ vi.mock('@inkeep/agents-core', async (importOriginal) => {
         stuff: vi.fn().mockResolvedValue({}),
       };
     }),
-  };
-});
-
-// Mock anthropic
-vi.mock('@ai-sdk/anthropic', () => ({
-  anthropic: vi.fn().mockReturnValue('mocked-model'),
-}));
-
-// Mock ModelFactory
-vi.mock('@inkeep/agents-core', async () => {
-  const actual = await vi.importActual('@inkeep/agents-core');
-  const mockModel = 'mocked-language-model';
-  const mockGenerationParams = { temperature: 0.7, maxTokens: 4096 };
-  const mockGenerationConfig = { model: mockModel, ...mockGenerationParams };
-
-  return {
-    ...actual,
     ModelFactory: {
       createModel: vi.fn().mockReturnValue(mockModel),
       getGenerationParams: vi.fn().mockReturnValue(mockGenerationParams),
@@ -154,6 +141,11 @@ vi.mock('@inkeep/agents-core', async () => {
     },
   };
 });
+
+// Mock anthropic
+vi.mock('@ai-sdk/anthropic', () => ({
+  anthropic: vi.fn().mockReturnValue('mocked-model'),
+}));
 
 // Mock ToolSessionManager
 vi.mock('../../agents/ToolSessionManager.js', () => ({
@@ -1000,7 +992,12 @@ describe('Agent Credential Integration', () => {
       undefined
     );
 
-    expect(mcpTool).toEqual({ tools: mockMcpTools, toolPolicies: {} });
+    expect(mcpTool).toEqual({
+      tools: mockMcpTools,
+      toolPolicies: {},
+      mcpServerId: 'test-tool',
+      mcpServerName: 'Nango Tool',
+    });
   });
 
   test('should handle tools without credential reference', async () => {
@@ -1038,15 +1035,20 @@ describe('Agent Credential Integration', () => {
     // Mock the credential stuffer
     (agent as any).credentialStuffer = {
       buildMcpServerConfig: vi.fn().mockResolvedValue({
+        type: MCPTransportType.streamableHttp,
         url: 'https://mcp.example.com',
         headers: {},
-        transport: { type: MCPTransportType.streamableHttp },
       }),
     };
 
     const mcpTool = await (agent as any).getMcpTool(mockToolConfig);
 
-    expect(mcpTool).toEqual({ tools: mockMcpTools, toolPolicies: {} });
+    expect(mcpTool).toEqual({
+      tools: mockMcpTools,
+      toolPolicies: {},
+      mcpServerId: 'test-tool',
+      mcpServerName: 'Generic Tool',
+    });
   });
 
   test('should pass correct context to credential stuffer', async () => {

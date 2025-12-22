@@ -1,13 +1,14 @@
 'use client';
 import { InkeepEmbeddedChat } from '@inkeep/agents-ui';
 import type { InkeepCallbackEvent, InvokeMessageCallbackActionArgs } from '@inkeep/agents-ui/types';
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { type Dispatch, useCallback, useEffect, useRef, useState } from 'react';
 import { DynamicComponentRenderer } from '@/components/data-components/render/dynamic-component-renderer';
 import type { ConversationDetail } from '@/components/traces/timeline/types';
 import { useRuntimeConfig } from '@/contexts/runtime-config-context';
 import { useTempApiKey } from '@/hooks/use-temp-api-key';
 import type { DataComponent } from '@/lib/api/data-components';
 import { generateId } from '@/lib/utils/id-utils';
+import { useCopilotContext } from '../copilot/copilot-context';
 import { FeedbackDialog } from './feedback-dialog';
 
 interface ChatWidgetProps {
@@ -21,6 +22,7 @@ interface ChatWidgetProps {
   customHeaders?: Record<string, string>;
   chatActivities: ConversationDetail | null;
   dataComponentLookup?: Record<string, DataComponent>;
+  setShowTraces: Dispatch<boolean>;
 }
 
 const styleOverrides = `
@@ -57,15 +59,13 @@ export function ChatWidget({
   customHeaders = {},
   chatActivities,
   dataComponentLookup = {},
+  setShowTraces,
 }: ChatWidgetProps) {
   const { PUBLIC_INKEEP_AGENTS_RUN_API_URL } = useRuntimeConfig();
+  const { isCopilotConfigured } = useCopilotContext();
   const [isFeedbackDialogOpen, setIsFeedbackDialogOpen] = useState(false);
   const [messageId, setMessageId] = useState<string | undefined>(undefined);
-  const {
-    apiKey: tempApiKey,
-    isLoading: isLoadingKey,
-    refresh: refreshToken,
-  } = useTempApiKey({
+  const { apiKey: tempApiKey, isLoading: isLoadingKey } = useTempApiKey({
     tenantId,
     projectId,
     agentId: agentId || '',
@@ -112,7 +112,7 @@ export function ChatWidget({
   if (isLoadingKey || !tempApiKey) {
     return (
       <div className="h-full flex items-center justify-center">
-        <p className="text-muted-foreground">
+        <p className="text-muted-foreground text-sm">
           {isLoadingKey ? 'Initializing playground...' : 'Failed to initialize playground'}
         </p>
       </div>
@@ -206,19 +206,21 @@ export function ChatWidget({
               Authorization: `Bearer ${tempApiKey}`,
               ...customHeaders,
             },
-            messageActions: [
-              {
-                label: 'Improve with AI',
-                icon: { builtIn: 'LuSparkles' },
-                action: {
-                  type: 'invoke_message_callback',
-                  callback: ({ messageId }: InvokeMessageCallbackActionArgs) => {
-                    setMessageId(messageId);
-                    setIsFeedbackDialogOpen(true);
+            messageActions: isCopilotConfigured
+              ? [
+                  {
+                    label: 'Improve with AI',
+                    icon: { builtIn: 'LuSparkles' },
+                    action: {
+                      type: 'invoke_message_callback',
+                      callback: ({ messageId }: InvokeMessageCallbackActionArgs) => {
+                        setMessageId(messageId);
+                        setIsFeedbackDialogOpen(true);
+                      },
+                    },
                   },
-                },
-              },
-            ],
+                ]
+              : undefined,
             components: new Proxy(
               {},
               {
@@ -253,6 +255,7 @@ export function ChatWidget({
           onOpenChange={setIsFeedbackDialogOpen}
           conversationId={conversationId}
           messageId={messageId}
+          setShowTraces={setShowTraces}
         />
       )}
     </div>

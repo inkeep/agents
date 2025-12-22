@@ -2,9 +2,9 @@
 
 import { InkeepSidebarChat } from '@inkeep/agents-ui';
 import type { InkeepCallbackEvent } from '@inkeep/agents-ui/types';
-import { AlertCircle, Loader2, RefreshCw } from 'lucide-react';
+import { Loader2, RefreshCw } from 'lucide-react';
 import { useEffect, useState } from 'react';
-import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { useRuntimeConfig } from '@/contexts/runtime-config-context';
 import { useCopilotToken } from '@/hooks/use-copilot-token';
@@ -33,8 +33,15 @@ const styleOverrides = `
 `;
 
 export function CopilotChat({ agentId, tenantId, projectId, refreshAgentGraph }: CopilotChatProps) {
-  const { chatFunctionsRef, isOpen, setIsOpen, setIsStreaming, dynamicHeaders, setDynamicHeaders } =
-    useCopilotContext();
+  const {
+    chatFunctionsRef,
+    isOpen,
+    setIsOpen,
+    setIsStreaming,
+    dynamicHeaders,
+    setDynamicHeaders,
+    isCopilotConfigured,
+  } = useCopilotContext();
   const [conversationId, setConversationId] = useState(generateId);
 
   const { handleOAuthLogin } = useOAuthLogin({
@@ -44,6 +51,10 @@ export function CopilotChat({ agentId, tenantId, projectId, refreshAgentGraph }:
       refreshAgentGraph({ fetchTools: true });
     },
   });
+
+  useEffect(() => {
+    return () => setIsStreaming(false);
+  }, [setIsStreaming]);
 
   useEffect(() => {
     const updateAgentGraph = (event: any) => {
@@ -68,53 +79,47 @@ export function CopilotChat({ agentId, tenantId, projectId, refreshAgentGraph }:
 
   const {
     apiKey: copilotToken,
+    cookieHeader,
     isLoading: isLoadingToken,
     error: tokenError,
     retryCount,
     refresh: refreshToken,
   } = useCopilotToken();
 
-  if (
-    !PUBLIC_INKEEP_COPILOT_AGENT_ID ||
-    !PUBLIC_INKEEP_COPILOT_PROJECT_ID ||
-    !PUBLIC_INKEEP_COPILOT_TENANT_ID
-  ) {
-    console.error(
-      'PUBLIC_INKEEP_COPILOT_AGENT_ID, PUBLIC_INKEEP_COPILOT_PROJECT_ID, PUBLIC_INKEEP_COPILOT_TENANT_ID are not set, copilot chat will not be displayed'
-    );
+  useEffect(() => {
+    if (tokenError && !isLoadingToken && isOpen) {
+      const isConfigError = tokenError.message?.includes('not configured');
+      const errorMessage = isConfigError
+        ? tokenError.message
+        : 'Unable to connect to the Agent Editor. This may be due to a temporary network issue.';
+      toast.error(errorMessage, {
+        action: isConfigError ? undefined : (
+          <Button
+            variant="destructive-outline"
+            size="sm"
+            onClick={() => {
+              refreshToken();
+              setIsOpen(true);
+            }}
+            className="gap-2"
+          >
+            <RefreshCw className="h-4 w-4" />
+            Try Again
+          </Button>
+        ),
+      });
+      setIsOpen(false);
+    }
+  }, [tokenError, isLoadingToken, isOpen, setIsOpen, refreshToken]);
+
+  if (!isCopilotConfigured) {
     return null;
   }
 
-  // Show error state when token fetch failed
-  if (tokenError && !isLoadingToken) {
-    const isConfigError = tokenError.message?.includes('not configured');
-    return (
-      <div className="p-4">
-        <Alert variant="destructive">
-          <AlertCircle className="h-4 w-4" />
-          <AlertTitle>Agent Editor Unavailable</AlertTitle>
-          <AlertDescription className="mt-2">
-            <p className="mb-3">
-              {isConfigError
-                ? tokenError.message
-                : 'Unable to connect to the Agent Editor. This may be due to a temporary network issue.'}
-            </p>
-            {!isConfigError && (
-              <Button variant="outline" size="sm" onClick={() => refreshToken()} className="gap-2">
-                <RefreshCw className="h-4 w-4" />
-                Try Again
-              </Button>
-            )}
-          </AlertDescription>
-        </Alert>
-      </div>
-    );
-  }
-
   // Show loading state (including retries)
-  if (isLoadingToken) {
+  if (isLoadingToken && isOpen) {
     return (
-      <div className="flex items-center justify-center p-4 text-muted-foreground">
+      <div className="flex items-center justify-center p-4 text-muted-foreground text-sm">
         <Loader2 className="h-4 w-4 animate-spin mr-2" />
         <span>{retryCount > 0 ? `Reconnecting (attempt ${retryCount}/3)...` : 'Loading...'}</span>
       </div>
@@ -204,6 +209,9 @@ export function CopilotChat({ agentId, tenantId, projectId, refreshAgentGraph }:
                         targetProjectId: projectId,
                         targetAgentId: agentId,
                         onOAuthLogin: handleOAuthLogin,
+                        refreshAgentGraph: refreshAgentGraph,
+                        cookieHeader: cookieHeader,
+                        copilotToken: copilotToken,
                       }),
                   }
                 : {}),
@@ -218,9 +226,9 @@ export function CopilotChat({ agentId, tenantId, projectId, refreshAgentGraph }:
             headers: {
               'x-emit-operations': 'true',
               Authorization: `Bearer ${copilotToken}`,
-              'x-inkeep-tenant-id': PUBLIC_INKEEP_COPILOT_TENANT_ID,
-              'x-inkeep-project-id': PUBLIC_INKEEP_COPILOT_PROJECT_ID,
-              'x-inkeep-agent-id': PUBLIC_INKEEP_COPILOT_AGENT_ID,
+              'x-inkeep-tenant-id': PUBLIC_INKEEP_COPILOT_TENANT_ID || '',
+              'x-inkeep-project-id': PUBLIC_INKEEP_COPILOT_PROJECT_ID || '',
+              'x-inkeep-agent-id': PUBLIC_INKEEP_COPILOT_AGENT_ID || '',
               // Target is the agent that the copilot is building or editing.
               'x-target-tenant-id': tenantId,
               'x-target-project-id': projectId,
@@ -232,6 +240,8 @@ export function CopilotChat({ agentId, tenantId, projectId, refreshAgentGraph }:
               ...(dynamicHeaders?.messageId
                 ? { 'x-inkeep-from-message-id': dynamicHeaders.messageId }
                 : {}),
+              // Forward cookies from the server action using custom header (Cookie is a forbidden header in browsers)
+              ...(cookieHeader ? { 'x-forwarded-cookie': cookieHeader } : {}),
             },
             exampleQuestionsLabel: agentId ? undefined : 'Try one of these examples:',
             exampleQuestions: agentId

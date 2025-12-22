@@ -9,9 +9,6 @@ export interface ProjectModels {
   summarizer?: ModelSettings;
 }
 
-// Re-export the shared type with the original name for backward compatibility
-export type { ProjectStopWhen };
-
 export interface Project {
   id?: string; // Backend field
   projectId: string; // Frontend field (mapped from id)

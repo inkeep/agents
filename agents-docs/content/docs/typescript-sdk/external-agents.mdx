@@ -2,7 +2,7 @@
 title: Add External Agents to your Agent
 sidebarTitle: External Agents
 description: Learn how to configure and use external agents using the A2A protocol
-icon: "LuGlobe"
+icon: LuGlobe
 ---
 
 External agents let you integrate agents built outside of Inkeep (using other frameworks or platforms) into your Agent. They communicate over the A2A (Agent‑to‑Agent) protocol so your Inkeep sub-agents can delegate tasks to them as if they were native. Note that Inkeep Agents are available via an [A2A endpoint](/talk-to-your-agents/a2a) themselves and used from other platforms.
@@ -98,10 +98,10 @@ const supportSubAgent = subAgent({
 });
 ```
 
-| Parameter             | Type                | Required | Description                                                                                                                                                      |
-| --------------------- | ------------------- | -------- |------------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| `id`                  | string              | Yes      | Stable agent identifier used for consistency and persistence                                                                                                     |
-| `name`                | string              | Yes      | Human-readable name for the external agent                                                                                                                       |
-| `description`         | string              | Yes      | Brief description of the agent's purpose and capabilities                                                                                                        |
-| `baseUrl`             | string              | Yes      | The A2A endpoint URL where the external agent can be reached                                                                                                     |
-| `credentialReference` | CredentialReference | No       | Reference to dynamic credentials for authentication. See [Credentials](/typescript-sdk/credentials/overview) for details                                                 |
+| Parameter             | Type                | Required | Description                                                                                                                                                     |
+| --------------------- | ------------------- | -------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `id`                  | string              | Yes      | Stable agent identifier used for consistency and persistence                                                                                                    |
+| `name`                | string              | Yes      | Human-readable name for the external agent                                                                                                                      |
+| `description`         | string              | Yes      | Brief description of the agent's purpose and capabilities                                                                                                       |
+| `baseUrl`             | string              | Yes      | The A2A endpoint URL where the external agent can be reached                                                                                                    |
+| `credentialReference` | CredentialReference | No       | Reference to dynamic credentials for authentication. See [Credentials](/typescript-sdk/tools/credentials) for details                                                 |

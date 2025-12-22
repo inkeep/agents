@@ -1,0 +1,24 @@
+{
+  "pages": [
+    "overview",
+    "get-started",
+    "concepts",
+    "comparisons",
+    "pricing",
+    "---TUTORIALS---",
+    "...tutorials",
+    "---TYPESCRIPT SDK---",
+    "...typescript-sdk",
+    "---VISUAL BUILDER---",
+    "...visual-builder",
+    "---TALK TO YOUR AGENTS---",
+    "...talk-to-your-agents",
+    "---API REFERENCE---",
+    "...api-reference",
+    "---DEPLOYMENT---",
+    "...deployment",
+    "---COMMUNITY---",
+    "...community",
+    "..."
+  ]
+}

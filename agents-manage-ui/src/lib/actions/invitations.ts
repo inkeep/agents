@@ -2,7 +2,7 @@
 
 import { makeManagementApiRequest } from '../api/api-config';
 
-export interface PendingInvitation {
+interface PendingInvitation {
   id: string;
   email: string;
   organizationId: string;

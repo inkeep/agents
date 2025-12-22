@@ -1,5 +1,6 @@
 import { zodResolver } from '@hookform/resolvers/zod';
 import { SparklesIcon } from 'lucide-react';
+import type { Dispatch } from 'react';
 import { useForm } from 'react-hook-form';
 import { z } from 'zod';
 import { GenericTextarea } from '@/components/form/generic-textarea';
@@ -19,6 +20,7 @@ interface FeedbackDialogProps {
   onOpenChange: (open: boolean) => void;
   conversationId?: string;
   messageId?: string;
+  setShowTraces: Dispatch<boolean>;
 }
 
 const feedbackSchema = z.object({
@@ -28,13 +30,14 @@ const feedbackSchema = z.object({
     .max(1000, 'Feedback must be less than 1000 characters'),
 });
 
-export type FeedbackFormData = z.infer<typeof feedbackSchema>;
+type FeedbackFormData = z.infer<typeof feedbackSchema>;
 
 export const FeedbackDialog = ({
   isOpen,
   onOpenChange,
   conversationId,
   messageId,
+  setShowTraces,
 }: FeedbackDialogProps) => {
   const { chatFunctionsRef, openCopilot, setDynamicHeaders } = useCopilotContext();
   const form = useForm<FeedbackFormData>({
@@ -48,6 +51,7 @@ export const FeedbackDialog = ({
   const onSubmit = async ({ feedback }: FeedbackFormData) => {
     if (chatFunctionsRef?.current) {
       openCopilot();
+      setShowTraces(false);
       setDynamicHeaders({ conversationId, messageId });
       // todo this is a hack to ensure the message is submitted after the conversation id is set
       setTimeout(() => {

@@ -6,41 +6,10 @@ import {
   type ApiKeyCreateResponse,
   createApiKey,
   deleteApiKey,
-  fetchApiKeys,
   updateApiKey,
 } from '../api/api-keys';
 import { ApiError } from '../types/errors';
 import type { ActionResult } from './types';
-
-/**
- * Fetch all API keys
- */
-export async function fetchApiKeysAction(
-  tenantId: string,
-  projectId: string
-): Promise<ActionResult<ApiKey[]>> {
-  try {
-    const result = await fetchApiKeys(tenantId, projectId);
-    return {
-      success: true,
-      data: result.data,
-    };
-  } catch (error) {
-    if (error instanceof ApiError) {
-      return {
-        success: false,
-        error: error.message,
-        code: error.error.code,
-      };
-    }
-
-    return {
-      success: false,
-      error: error instanceof Error ? error.message : 'Unknown error occurred',
-      code: 'unknown_error',
-    };
-  }
-}
 
 export async function createApiKeyAction(
   tenantId: string,

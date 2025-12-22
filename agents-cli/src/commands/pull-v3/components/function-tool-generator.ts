@@ -109,10 +109,20 @@ export function generateFunctionToolDefinition(
   }
 
   // Validate required function tool fields
-  const requiredFields = ['name', 'inputSchema', 'executeCode'];
+  const requiredFields = ['name']; // Name is required, others checked separately
   const missingFields = requiredFields.filter(
     (field) => !toolData[field] || toolData[field] === null || toolData[field] === undefined
   );
+
+  // Check for input schema (either inputSchema or schema)
+  if (!toolData.inputSchema && !toolData.schema) {
+    missingFields.push('inputSchema');
+  }
+
+  // Check for execute code (either executeCode or execute)
+  if (!toolData.executeCode && !toolData.execute) {
+    missingFields.push('executeCode');
+  }
 
   if (missingFields.length > 0) {
     throw new Error(

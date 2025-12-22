@@ -18,6 +18,7 @@ import { executeTransfer } from '../a2a/transfer.js';
 import { extractTransferData, isTransferTask } from '../a2a/types.js';
 import { AGENT_EXECUTION_MAX_CONSECUTIVE_ERRORS } from '../constants/execution-limits';
 import dbClient from '../data/db/dbClient.js';
+import { flushBatchProcessor } from '../instrumentation.js';
 import { getLogger } from '../logger.js';
 import { agentSessionManager } from '../services/AgentSession.js';
 import { agentInitializingOp, completionOp, errorOp } from '../utils/agent-operations.js';
@@ -320,7 +321,7 @@ export class ExecutionHandler {
               });
             }
 
-            agentSessionManager.endSession(requestId);
+            await agentSessionManager.endSession(requestId);
             unregisterStreamHelper(requestId);
             return { success: false, error: errorMessage, iterations };
           }
@@ -499,7 +500,7 @@ export class ExecutionHandler {
 
               // End the AgentSession and clean up resources
               logger.info({}, 'Ending AgentSession and cleaning up');
-              agentSessionManager.endSession(requestId);
+              await agentSessionManager.endSession(requestId);
 
               // Clean up streamHelper
               logger.info({}, 'Cleaning up streamHelper');
@@ -520,6 +521,10 @@ export class ExecutionHandler {
               throw error;
             } finally {
               span.end();
+              // Flush immediately after span ends to ensure it's sent to SignOz
+              // Use setImmediate to allow span to be processed before flushing
+              await new Promise((resolve) => setImmediate(resolve));
+              await flushBatchProcessor();
             }
           });
         }
@@ -551,7 +556,7 @@ export class ExecutionHandler {
             });
           }
 
-          agentSessionManager.endSession(requestId);
+          await agentSessionManager.endSession(requestId);
           unregisterStreamHelper(requestId);
           return { success: false, error: errorMessage, iterations };
         }
@@ -579,7 +584,7 @@ export class ExecutionHandler {
         });
       }
       // Clean up AgentSession and streamHelper on error
-      agentSessionManager.endSession(requestId);
+      await agentSessionManager.endSession(requestId);
       unregisterStreamHelper(requestId);
       return { success: false, error: errorMessage, iterations };
     } catch (error) {
@@ -607,7 +612,7 @@ export class ExecutionHandler {
         });
       }
       // Clean up AgentSession and streamHelper on exception
-      agentSessionManager.endSession(requestId);
+      await agentSessionManager.endSession(requestId);
       unregisterStreamHelper(requestId);
       return { success: false, error: errorMessage, iterations };
     }

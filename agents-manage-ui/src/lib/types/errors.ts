@@ -2,7 +2,7 @@
  * Generic API error interface and class for handling API errors consistently across the application
  */
 
-export interface ApiErrorData {
+interface ApiErrorData {
   code: string;
   message: string;
 }

@@ -3,7 +3,7 @@
 import { Check, ChevronsUpDown, Plus } from 'lucide-react';
 import NextLink from 'next/link';
 import { useParams } from 'next/navigation';
-import { type ComponentProps, type FC, useCallback, useEffect, useState } from 'react';
+import { type ComponentProps, type FC, useCallback, useState } from 'react';
 import { NewProjectDialog } from '@/components/projects/new-project-dialog';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import {
@@ -15,22 +15,26 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { SidebarMenuButton, useSidebar } from '@/components/ui/sidebar';
 import { Skeleton } from '@/components/ui/skeleton';
-import { fetchProjectsAction } from '@/lib/actions/projects';
-import type { Project } from '@/lib/types/project';
+import { useProjectsInvalidation, useProjectsQuery } from '@/lib/query/projects';
 
 const ProjectItem: FC<{
   name: string;
   description: string;
   icon: FC<ComponentProps<'svg'>> | false;
-}> = ({ name, description, icon: Icon }) => {
+  showIcon: boolean;
+}> = ({ name, description, icon: Icon, showIcon }) => {
   return (
     <>
-      <Avatar className="h-8 w-8 rounded-lg">
-        <AvatarFallback className="rounded-lg uppercase">{name.slice(0, 2)}</AvatarFallback>
-      </Avatar>
-      <div className="grid flex-1 text-left text-sm leading-tight">
+      {showIcon && (
+        <Avatar className="h-8 w-8 rounded-lg">
+          <AvatarFallback className="rounded-lg uppercase">{name.slice(0, 2)}</AvatarFallback>
+        </Avatar>
+      )}
+      <div className="grid flex-1 gap-0.5 text-left text-sm leading-tight">
         <span className="truncate font-medium">{name}</span>
-        <span className="truncate text-xs">{description}</span>
+        <span className="truncate text-xs text-muted-foreground group-hover/project-switcher:text-sidebar-accent-foreground group-data-[state=open]/project-switcher:text-sidebar-accent-foreground">
+          {description}
+        </span>
       </div>
       {Icon && <Icon className="ml-auto size-4" />}
     </>
@@ -38,37 +42,17 @@ const ProjectItem: FC<{
 };
 
 export const ProjectSwitcher: FC = () => {
-  const [isLoading, setIsLoading] = useState(true);
-  const [projects, setProjects] = useState<Project[]>([]);
   const [isProjectDialogOpen, setIsProjectDialogOpen] = useState(false);
   const { tenantId, projectId } = useParams<{ tenantId: string; projectId: string }>();
-  const { isMobile } = useSidebar();
+  const { isMobile, state } = useSidebar();
+  const { data: projects = [], isPending } = useProjectsQuery(tenantId);
+  const invalidateProjects = useProjectsInvalidation(tenantId);
 
   const handleCreateProject = useCallback(() => {
     setIsProjectDialogOpen(true);
   }, []);
 
-  const fetchProjects = useCallback(() => {
-    if (!tenantId) return;
-
-    setIsLoading(true);
-    fetchProjectsAction(tenantId)
-      .then((res) => (res.success && res.data ? res.data : []))
-      .catch((error) => {
-        console.error('Error fetching projects:', error);
-        return [] as Project[];
-      })
-      .then((projects) => {
-        setIsLoading(false);
-        setProjects(projects);
-      });
-  }, [tenantId]);
-
-  useEffect(() => {
-    fetchProjects();
-  }, [fetchProjects]);
-
-  if (isLoading) {
+  if (isPending) {
     return <Skeleton className="h-12" />;
   }
 
@@ -79,9 +63,14 @@ export const ProjectSwitcher: FC = () => {
       <DropdownMenuTrigger asChild>
         <SidebarMenuButton
           size="lg"
-          className="data-[state=open]:bg-sidebar-accent data-[state=open]:text-sidebar-accent-foreground"
+          className="group/project-switcher data-[state=open]:bg-sidebar-accent data-[state=open]:text-sidebar-accent-foreground"
         >
-          <ProjectItem name={projectName} description={tenantId} icon={ChevronsUpDown} />
+          <ProjectItem
+            name={projectName}
+            description={tenantId}
+            icon={ChevronsUpDown}
+            showIcon={state === 'collapsed'}
+          />
         </SidebarMenuButton>
       </DropdownMenuTrigger>
       <DropdownMenuContent
@@ -97,6 +86,7 @@ export const ProjectSwitcher: FC = () => {
                 name={project.name}
                 description={project.description}
                 icon={project.projectId === projectId && Check}
+                showIcon={false}
               />
             </NextLink>
           </DropdownMenuItem>
@@ -111,7 +101,7 @@ export const ProjectSwitcher: FC = () => {
         tenantId={tenantId}
         open={isProjectDialogOpen}
         onOpenChange={setIsProjectDialogOpen}
-        onSuccess={fetchProjects}
+        onSuccess={invalidateProjects}
       />
     </DropdownMenu>
   );

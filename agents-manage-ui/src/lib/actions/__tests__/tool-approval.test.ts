@@ -1,6 +1,10 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import * as apiConfig from '../../api/api-config';
-import { computeDiff, extractFieldsToUpdate, fetchCurrentEntityState } from '../tool-approval';
+import {
+  computeDiff,
+  extractFieldsToUpdate,
+  fetchCurrentEntityState,
+} from '../tool-approval.utils';
 
 vi.mock('../../api/api-config', () => ({
   makeManagementApiRequest: vi.fn(),
@@ -214,9 +218,9 @@ describe('tool-approval-mapper', () => {
       expect(mockMakeManagementApiRequest).not.toHaveBeenCalled();
     });
 
-    it('should return null for non-update/create operations', async () => {
+    it('should return null for non-update/create/delete operations', async () => {
       const result = await fetchCurrentEntityState({
-        toolName: 'sub-agent-delete-subagent',
+        toolName: 'sub-agent-get-subagent-by-id',
         input: {
           request: {
             id: 'test-sub-agent',

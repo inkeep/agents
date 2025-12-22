@@ -6,7 +6,7 @@
   "scripts": {
     "dev": "vite",
     "build": "tsc -b && vite build",
-    "lint": "biome lint",
+    "lint": "biome lint --error-on-warnings",
     "lint:fix": "biome check --write",
     "format": "biome format --write",
     "format:check": "biome format",
@@ -14,7 +14,7 @@
     "test": "echo 'No tests configured for chat-widget'"
   },
   "dependencies": {
-    "@inkeep/agents-ui": "^0.15.4",
+    "@inkeep/agents-ui": "^0.15.5",
     "lucide-react": "^0.539.0",
     "react": "^19.1.1",
     "react-dom": "^19.1.1"
@@ -26,9 +26,6 @@
     "@vitejs/plugin-react": "^5.0.0",
     "typescript": "~5.9.2",
     "vite": "^7.1.11"
-  },
-  "engines": {
-    "node": ">=22.0.0"
   },
   "publishConfig": {
     "access": "public",

@@ -122,7 +122,7 @@ describe('agent serialize/deserialize', () => {
         target: 'a2',
         data: {
           relationships: {
-            transferSourceToTarget: false,
+            transferSourceToTarget: true,
             transferTargetToSource: false,
             delegateSourceToTarget: true,
             delegateTargetToSource: false,
@@ -148,8 +148,9 @@ describe('agent serialize/deserialize', () => {
     if ('tools' in a1) {
       expect(a1.tools).toContain('t1');
     }
-    if ('canTransferTo' in a1) {
-      expect(a1.canTransferTo).toContain('a2');
+    // Edge has delegateSourceToTarget: true, not transfer
+    if ('canDelegateTo' in a1) {
+      expect(a1.canDelegateTo).toContain('a2');
     }
 
     const deserialized = deserializeAgentData(serialized);

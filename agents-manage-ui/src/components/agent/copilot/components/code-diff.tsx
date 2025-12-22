@@ -1,15 +1,13 @@
 'use client';
 
 import type * as Monaco from 'monaco-editor';
-import { useTheme } from 'next-themes';
 import type { ComponentPropsWithoutRef, FC } from 'react';
-import { useEffect, useRef } from 'react';
+import { useEffect, useId, useRef } from 'react';
 import { MonacoEditor } from '@/components/editors/monaco-editor';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useMonacoActions, useMonacoStore } from '@/features/agent/state/use-monaco-store';
 import { cleanupDisposables, getOrCreateModel } from '@/lib/monaco-editor/monaco-utils';
 import { cn } from '@/lib/utils';
-import '@/lib/monaco-editor/setup-monaco-workers';
 
 interface CodeDiffProps extends Omit<ComponentPropsWithoutRef<'div'>, 'onChange'> {
   originalValue: string;
@@ -23,21 +21,27 @@ interface CodeDiffProps extends Omit<ComponentPropsWithoutRef<'div'>, 'onChange'
 export const CodeDiff: FC<CodeDiffProps> = ({
   originalValue,
   newValue,
-  originalUri = 'code-original.txt',
-  modifiedUri = 'code-modified.txt',
+  originalUri: originalUriProp,
+  modifiedUri: modifiedUriProp,
   className,
   editorOptions = {},
   onMount,
   ...props
 }) => {
+  const instanceId = useId();
+  const originalUri = originalUriProp ?? `code-original-${instanceId}.txt`;
+  const modifiedUri = modifiedUriProp ?? `code-modified-${instanceId}.txt`;
   // If there's no original value, show a regular editor instead of a diff
   const hasOriginalValue = originalValue && originalValue.trim() !== '';
 
   const containerRef = useRef<HTMLDivElement>(null);
   const editorRef = useRef<Monaco.editor.IStandaloneDiffEditor | null>(null);
   const monaco = useMonacoStore((state) => state.monaco);
-  const { setupHighlighter } = useMonacoActions();
-  const isDark = useTheme().resolvedTheme === 'dark';
+  const { importMonaco } = useMonacoActions();
+  // biome-ignore lint/correctness/useExhaustiveDependencies: only on mount
+  useEffect(() => {
+    importMonaco();
+  }, []);
 
   useEffect(() => {
     if (!hasOriginalValue) return;
@@ -160,15 +164,12 @@ export const CodeDiff: FC<CodeDiffProps> = ({
         },
       },
     ];
-
-    setupHighlighter(isDark);
     onMount?.(diffEditor);
 
     return cleanupDisposables(disposables);
   }, [monaco, hasOriginalValue]);
 
   if (!hasOriginalValue) {
-    modifiedUri ??= `new-code.json`;
     return (
       <MonacoEditor value={newValue} uri={modifiedUri} readOnly className={className} {...props} />
     );
@@ -182,7 +183,6 @@ export const CodeDiff: FC<CodeDiffProps> = ({
         'border border-input shadow-xs',
         className,
         !monaco && 'px-3 py-4',
-        '[&_.native-edit-context]:caret-transparent',
         // Fix for inline diff double character rendering - align both editors
         '[&_.editor.original]:left-1!',
         '[&_.editor.modified]:left-1!'

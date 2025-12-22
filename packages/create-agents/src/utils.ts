@@ -58,7 +58,7 @@ export const defaultGoogleModelConfigurations = {
 
 export const defaultOpenaiModelConfigurations = {
   base: {
-    model: OPENAI_MODELS.GPT_4_1,
+    model: OPENAI_MODELS.GPT_5_2,
   },
   structuredOutput: {
     model: OPENAI_MODELS.GPT_4_1_MINI,
@@ -374,8 +374,8 @@ export const createAgents = async (
         `  pnpm setup   # Setup project in database\n` +
         `  pnpm dev     # Start development servers\n\n` +
         `${color.yellow('Available services:')}\n` +
-        `  • Manage API: http://localhost:3002\n` +
-        `  • Run API: http://localhost:3003\n` +
+        `  • Manage API: http://127.0.0.1:3002\n` +
+        `  • Run API: http://127.0.0.1:3003\n` +
         `  • Manage UI: Available with management API\n` +
         `\n${color.yellow('Configuration:')}\n` +
         `  • Edit .env for environment variables\n` +
@@ -415,7 +415,7 @@ async function createEnvironmentFiles(config: FileConfig) {
     });
     tempJwtPrivateKey = Buffer.from(privateKey).toString('base64');
     tempJwtPublicKey = Buffer.from(publicKey).toString('base64');
-  } catch (error) {
+  } catch {
     console.warn('Warning: Failed to generate JWT keys. Playground may not work.');
     console.warn('You can manually generate keys later with: pnpm run generate-jwt-keys');
   }
@@ -433,12 +433,13 @@ GOOGLE_GENERATIVE_AI_API_KEY=${config.googleKey || 'your-google-key-here'}
 
 # Inkeep API URLs
 # Internal URLs (server-side, Docker internal networking)
-INKEEP_AGENTS_MANAGE_API_URL="http://localhost:3002"
-INKEEP_AGENTS_RUN_API_URL="http://localhost:3003"
+# Using 127.0.0.1 instead of localhost to avoid IPv6/IPv4 resolution issues
+INKEEP_AGENTS_MANAGE_API_URL="http://127.0.0.1:3002"
+INKEEP_AGENTS_RUN_API_URL="http://127.0.0.1:3003"
 
 # Public URLs (client-side, browser accessible)
-PUBLIC_INKEEP_AGENTS_MANAGE_API_URL="http://localhost:3002"
-PUBLIC_INKEEP_AGENTS_RUN_API_URL="http://localhost:3003"
+PUBLIC_INKEEP_AGENTS_MANAGE_API_URL="http://127.0.0.1:3002"
+PUBLIC_INKEEP_AGENTS_RUN_API_URL="http://127.0.0.1:3003"
 
 # SigNoz Configuration
 SIGNOZ_URL=your-signoz-url-here
@@ -478,10 +479,11 @@ async function createInkeepConfig(config: FileConfig) {
 const config = defineConfig({
   tenantId: "${config.tenantId}",
   agentsManageApi: {
-    url: 'http://localhost:3002',
+    // Using 127.0.0.1 instead of localhost to avoid IPv6/IPv4 resolution issues
+    url: 'http://127.0.0.1:3002',
   },
   agentsRunApi: {
-    url: 'http://localhost:3003',
+    url: 'http://127.0.0.1:3003',
   },
 });
     
@@ -571,7 +573,7 @@ async function isPortAvailable(port: number): Promise<boolean> {
     const server = net.createServer();
     server.once('error', (err: NodeJS.ErrnoException) => {
       // Only treat EADDRINUSE as "port in use", other errors might be transient
-      resolve(err.code === 'EADDRINUSE' ? false : true);
+      resolve(err.code !== 'EADDRINUSE');
     });
     server.once('listening', () => {
       server.close(() => {

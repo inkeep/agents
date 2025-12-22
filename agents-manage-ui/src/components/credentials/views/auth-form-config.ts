@@ -37,7 +37,7 @@ export interface FormSection {
 /**
  * Complete form configuration for an auth mode
  */
-export interface FormConfig {
+interface FormConfig {
   /** Auth mode this config applies to */
   authMode: AuthModeType;
   /** Form sections */
@@ -153,7 +153,7 @@ const SECTION_DEFINITIONS = {
  * Form configurations mapped by auth mode
  * These are derived from the ApiPublicIntegrationCredentials union type
  */
-export const FORM_CONFIGS: Record<string, FormConfig> = {
+const FORM_CONFIGS: Record<string, FormConfig> = {
   OAUTH1: {
     authMode: 'OAUTH1',
     sections: [SECTION_DEFINITIONS.oauth],

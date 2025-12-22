@@ -1,5 +1,218 @@
 # @inkeep/agents-manage-ui
 
+## 0.39.5
+
+### Patch Changes
+
+- 9f654ab: move `monaco.setTheme` call from `<ThemeToggle />` component to `<HeaderMenus />`
+- 9474027: fix missing scope for mcp server
+- 31e0d6e: dashboard: improve navigation by proper using Next.js `loading` files and `React.Suspense` in agent page
+- d13e4c2: Fix quickstart
+- 231abec: Hide chat to create
+- 9e4deda: Added dynamic model context limit checks
+- e420660: dashbord: dynamically load `<Agent />` page only on client
+- Updated dependencies [d13e4c2]
+- Updated dependencies [9e4deda]
+  - @inkeep/agents-manage-api@0.39.5
+  - @inkeep/agents-run-api@0.39.5
+  - @inkeep/agents-core@0.39.5
+
+## 0.39.4
+
+### Patch Changes
+
+- fcb3adc: added gemini 3 flash
+- 9403533: improve mcp connect for chat to edit
+- Updated dependencies [fcb3adc]
+- Updated dependencies [9403533]
+  - @inkeep/agents-core@0.39.4
+  - @inkeep/agents-manage-api@0.39.4
+  - @inkeep/agents-run-api@0.39.4
+
+## 0.39.3
+
+### Patch Changes
+
+- eba0e6b: Increase default page size to 100 (API max) for all list endpoints to show more resources without full pagination
+- a3b79b2: adjust auth settings
+- 2b156b6: migrate from tsup to tsdown
+- 9afba48: fix: resolve create-agents test mock issue with node:util and node:child_process module paths
+- e4b0e1b: - fix shiki theme being wrongly overwritten in monaco-editor
+  - lazy loading monaco only pages with editors
+- 68ef774: Add x-speakeasy-pagination extension to all paginated list endpoints for Speakeasy SDK native pagination support
+- Updated dependencies [eba0e6b]
+- Updated dependencies [a3b79b2]
+- Updated dependencies [2b156b6]
+- Updated dependencies [9afba48]
+- Updated dependencies [68ef774]
+  - @inkeep/agents-core@0.39.3
+  - @inkeep/agents-manage-api@0.39.3
+  - @inkeep/agents-run-api@0.39.3
+
+## 0.39.2
+
+### Patch Changes
+
+- bc3cd69: Bump agents ui and improve stat opts
+- 0f2b040: added backup parser
+- Updated dependencies [0f2b040]
+  - @inkeep/agents-core@0.39.2
+  - @inkeep/agents-run-api@0.39.2
+  - @inkeep/agents-manage-api@0.39.2
+
+## 0.39.1
+
+### Patch Changes
+
+- cbb7c09: batch flushing
+- 00be449: found bug in system prpomt
+- 6411569: remove `React.CSSProperties` type override
+- 71a83d0: improve redirect logic and better-auth session use
+- Updated dependencies [cbb7c09]
+- Updated dependencies [00be449]
+- Updated dependencies [71a83d0]
+  - @inkeep/agents-run-api@0.39.1
+  - @inkeep/agents-manage-api@0.39.1
+  - @inkeep/agents-core@0.39.1
+
+## 0.39.0
+
+### Minor Changes
+
+- f76e412: Add device_code table for CLI device authentication flow
+
+### Patch Changes
+
+- f76e412: Add InkeepTelemetryProvider for observability and tracing
+- f76e412: Add CI/CD support for headless operation with INKEEP_API_KEY and environment variable overrides
+- f76e412: Add --all flag to push/pull for batch project operations and --tag for tagged config files
+- f76e412: Enhance init command with cloud onboarding wizard (scaffolds projects from remote tenant)
+- f76e412: Add profile management system for multi-remote support (profile list/add/use/current/remove)
+- f76e412: Wire profiles into push/pull commands with --profile and --quiet flags
+- f76e412: Add CLI authentication commands (login, logout, status, whoami) with device code OAuth flow
+- f76e412: Add /api/cli/me endpoint for CLI user authentication
+- f76e412: Add InkeepCredentialProvider abstraction for credential management
+- f76e412: Add device authorization page for CLI OAuth flow
+- Updated dependencies [f76e412]
+- Updated dependencies [f76e412]
+- Updated dependencies [f76e412]
+- Updated dependencies [f76e412]
+- Updated dependencies [f76e412]
+- Updated dependencies [f76e412]
+- Updated dependencies [f76e412]
+- Updated dependencies [f76e412]
+- Updated dependencies [f76e412]
+- Updated dependencies [f76e412]
+- Updated dependencies [f76e412]
+  - @inkeep/agents-core@0.39.0
+  - @inkeep/agents-manage-api@0.39.0
+  - @inkeep/agents-run-api@0.39.0
+
+## 0.38.3
+
+### Patch Changes
+
+- @inkeep/agents-manage-api@0.38.3
+- @inkeep/agents-run-api@0.38.3
+- @inkeep/agents-core@0.38.3
+
+## 0.38.2
+
+### Patch Changes
+
+- 907fb8f: updated models to have gpt-5-2
+- 5f4fa55: Update tool parsing to match tool name changes in updated mcp
+- Updated dependencies [907fb8f]
+  - @inkeep/agents-core@0.38.2
+  - @inkeep/agents-manage-api@0.38.2
+  - @inkeep/agents-run-api@0.38.2
+
+## 0.38.1
+
+### Patch Changes
+
+- 32c4c34: improve ux for scoped credentials
+- 8c81242: ui for tool breakdown and warnings for tool calls
+- 4d28a93: Fix text contrast in approval dialogs and Monaco editor wrappers for dark mode
+- 251cecd: added mid generation compression
+- ce60f56: multi tenant auth for signoz queries
+- Updated dependencies [32c4c34]
+- Updated dependencies [8c81242]
+- Updated dependencies [251cecd]
+- Updated dependencies [ce60f56]
+  - @inkeep/agents-core@0.38.1
+  - @inkeep/agents-manage-api@0.38.1
+  - @inkeep/agents-run-api@0.38.1
+
+## 0.38.0
+
+### Minor Changes
+
+- c3ffb34: Add GET /logout endpoint for debugging login/logout issues. Supports direct URL-based logout without requiring JavaScript execution. Includes security hardening to prevent open redirect vulnerabilities.
+- 515d808: Upgrade to Vercel AI SDK v6 beta
+- 4b64b94: - add spinner in `Save changes` button in agent workflow
+  - remove `inPreviewDisabled` prop from `<Toolbar />` component
+
+### Patch Changes
+
+- b69b814: fix biome warnings
+- 8114afc: Update to open id connect for release action
+- bcee35f: add requiredToFetch on fetch definitions
+- f4628aa: fix multiple copy value icons when value contains multiple quotes
+- a2928eb: filter out disabled providers
+- 4f2b325: Add missing repo field to package json
+- bc2bb7e: fix: update tool-approval tests to use correct underscore-based tool name format
+- a46303b: fix blue dot appears on inverted delegation on top left corner, refactor retrieving relationshipId in agents-core
+- d29440f: Bump next
+- af7704c: fix empty agent prompt field not updating in database
+- 4801d35: status messages for traces shown
+- f791c6d: updated artifact handlin
+- f1f68cf: new models
+- 6dcb6b7: fix signoz for vercel
+- 5e2c81d: - set max height for monaco editor to avoid page freezes up / lags when clicking into it
+  - add toggle text wrap action button for `JsonEditorWithCopy`
+- b3e49d9: updated schemas
+- 5fbd137: fix `Module not found: Can't resolve '../build/Release/keytar.node'` in dashboard, ignore `keytar` from bundling with `webpackIgnore` comment
+- 576c9d9: fix `TypeError: Cannot destructure property 'relationshipId' of 'data.details' as it is undefined.`
+- 609e8fe: Fix bug with team agent fetch
+- 31be157: cloud deployment does not have signoz links
+- fcbf008: add creator to mcp server name
+- e53c50a: remove `(with-react-flow-provider)` folder group
+- 6001b74: Fix schema for render generations when using anthropic models
+- Updated dependencies [b69b814]
+- Updated dependencies [8114afc]
+- Updated dependencies [2cf1070]
+- Updated dependencies [515d808]
+- Updated dependencies [bcee35f]
+- Updated dependencies [6ee52a8]
+- Updated dependencies [a46303b]
+- Updated dependencies [4801d35]
+- Updated dependencies [f791c6d]
+- Updated dependencies [f1f68cf]
+- Updated dependencies [6dcb6b7]
+- Updated dependencies [b3e49d9]
+- Updated dependencies [5fbd137]
+- Updated dependencies [31be157]
+- Updated dependencies [fcbf008]
+  - @inkeep/agents-core@0.38.0
+  - @inkeep/agents-manage-api@0.38.0
+  - @inkeep/agents-run-api@0.38.0
+
+## 0.37.2
+
+### Patch Changes
+
+- 6cdde56: add org settings page
+- 78163b1: mcp hard fail
+- f47e391: Use hono zod in run and manage packages
+- 1f77578: Fix broken tests: mcpTool.with() returns undefined for empty selectedTools, update agentFull test canUse structure, fix projectFull dataComponents props schema
+- Updated dependencies [78163b1]
+- Updated dependencies [f47e391]
+- Updated dependencies [1f77578]
+  - @inkeep/agents-run-api@0.37.2
+  - @inkeep/agents-manage-api@0.37.2
+  - @inkeep/agents-core@0.37.2
+
 ## 0.37.1
 
 ### Patch Changes

@@ -1,5 +1,16 @@
-import type { FC } from 'react';
-import { useState } from 'react';
+import {
+  ArrowRight,
+  Brain,
+  CheckCheck,
+  CircleDot,
+  Dot,
+  Download,
+  Forward,
+  Hammer,
+  RefreshCw,
+  TriangleAlert,
+} from 'lucide-react';
+import type { FC, ReactElement } from 'react';
 
 const getOperationLabel = (operation: any) => {
   // Use LLM-generated label if available for data-operations
@@ -14,21 +25,30 @@ const getOperationLabel = (operation: any) => {
     case 'agent_ready':
       return 'Agent ready';
     case 'completion':
-      return 'Completion';
+      return 'Agent finished';
     default:
       return type.replace(/_/g, ' ').replace(/\b\w/g, (l: string) => l.toUpperCase());
   }
 };
 
-export const InlineEvent: FC<{ operation: any; isLast: boolean }> = ({ operation, isLast }) => {
-  const [isExpanded, setIsExpanded] = useState(false);
+const OPERATION_ICON_MAP: Record<string | 'default', ReactElement> = {
+  agent_generate: <RefreshCw className="w-3 h-3 text-gray-500 dark:text-white-alpha-500" />,
+  agent_reasoning: <Brain className="w-3 h-3 text-gray-500 dark:text-white-alpha-500" />,
+  tool_call: <Hammer className="w-3 h-3 text-gray-500 dark:text-white-alpha-500" />,
+  tool_result: <Hammer className="w-3 h-3 text-gray-500 dark:text-white-alpha-500" />,
+  transfer: <ArrowRight className="w-3 h-3 text-gray-500 dark:text-white-alpha-500" />,
+  delegation_sent: <Forward className="w-3 h-3 text-gray-500 dark:text-white-alpha-500" />,
+  delegation_returned: <CheckCheck className="w-3 h-3 text-gray-500 dark:text-white-alpha-500" />,
+  artifact_saved: <Download className="w-3 h-3 text-gray-500 dark:text-white-alpha-500" />,
+  error: <TriangleAlert className="w-3 h-3 text-gray-500 dark:text-white-alpha-500" />,
+  agent_initializing: <CircleDot className="w-3 h-3 animate-spin" />,
+  completion: <CheckCheck className="w-3 h-3 text-gray-500 dark:text-white-alpha-500" />,
+  default: <Dot className="w-3 h-3 text-gray-500 dark:text-white-alpha-500" />,
+};
 
+export const InlineEvent: FC<{ operation: any; isLast: boolean }> = ({ operation, isLast }) => {
   const getLabel = () => {
     return getOperationLabel(operation);
-  };
-
-  const getExpandedContent = () => {
-    return operation.details || {};
   };
 
   return (
@@ -38,7 +58,10 @@ export const InlineEvent: FC<{ operation: any; isLast: boolean }> = ({ operation
         <div className="absolute left-1.5 top-6 bottom-0 w-px bg-gray-200 dark:bg-border" />
       )}
       <div className="inline-flex items-center gap-1 text-xs text-gray-500 dark:text-gray-400 dark:hover:text-gray-300 transition-colors ml-[5px] justify-start">
-        <span className="w-1 h-1 bg-gray-400 rounded-full" />
+        <span className="flex items-center justify-center w-3 h-3 relative z-10 mt-0.5">
+          {OPERATION_ICON_MAP[operation.type as keyof typeof OPERATION_ICON_MAP] ||
+            OPERATION_ICON_MAP.default}
+        </span>
         <span className="font-medium ml-1 text-left">{getLabel()}</span>
       </div>
       {/* <button

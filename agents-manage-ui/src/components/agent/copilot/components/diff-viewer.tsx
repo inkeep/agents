@@ -1,9 +1,8 @@
 import { CodeDiff } from './code-diff';
-// import { RelationalDiff } from './relational-diff';
 import { TextDiff } from './text-diff';
 
-export const FieldLabel = ({ children }: { children: React.ReactNode }) => {
-  return <div className="text-sm font-medium mb-2">{children}</div>;
+const FieldLabel = ({ children }: { children: React.ReactNode }) => {
+  return <div className="text-sm font-medium mb-2 text-foreground">{children}</div>;
 };
 
 interface DiffFieldProps {

@@ -1,9 +1,8 @@
-import { beforeEach, describe, expect, it, vi } from 'vitest';
 import {
   computeDiff,
   extractFieldsToUpdate,
   fetchCurrentEntityState,
-} from '../../actions/tool-approval';
+} from '../../actions/tool-approval.utils';
 import * as apiConfig from '../../api/api-config';
 
 vi.mock('../../api/api-config', () => ({
@@ -155,6 +154,7 @@ describe('tool-approval-mapper', () => {
         input: {
           request: {
             id: 'test-sub-agent',
+            agentId: 'test-agent',
             tenantId: 'default',
             projectId: 'test-project',
           },
@@ -165,7 +165,7 @@ describe('tool-approval-mapper', () => {
 
       expect(result).toEqual(mockResponse.data);
       expect(mockMakeManagementApiRequest).toHaveBeenCalledWith(
-        'tenants/default/projects/test-project/sub-agents/test-sub-agent',
+        'tenants/default/projects/test-project/agents/test-agent/sub-agents/test-sub-agent',
         { method: 'GET' }
       );
     });
@@ -217,9 +217,9 @@ describe('tool-approval-mapper', () => {
       expect(mockMakeManagementApiRequest).not.toHaveBeenCalled();
     });
 
-    it('should return null for non-update/create operations', async () => {
+    it('should return null for non-update/create/delete operations', async () => {
       const result = await fetchCurrentEntityState({
-        toolName: 'sub-agent-delete-subagent',
+        toolName: 'sub-agent-get-subagent-by-id',
         input: {
           request: {
             id: 'test-sub-agent',
@@ -243,6 +243,7 @@ describe('tool-approval-mapper', () => {
         input: {
           request: {
             id: 'test-sub-agent',
+            agentId: 'test-agent',
             tenantId: 'default',
             projectId: 'test-project',
           },

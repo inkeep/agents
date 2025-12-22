@@ -11,7 +11,7 @@ Create a pull request with proper changeset notes, ensuring version management a
 - Check if changeset files exist in the `.changeset/` directory
 - If changeset notes exist, verify they accurately describe the current changes
 - If no changeset exists or updates are needed:
-  - Use `pnpm changeset:quick <major|minor|patch> "<changelog message>"` to create changeset
+  - Use `pnpm cs <major|minor|patch> "<changelog message>"` to create changeset
   - Choose appropriate semver level:
     - **patch**: Bug fixes and additive new features (most common)
     - **minor**: Schema changes requiring database migration or significant behavior changes
@@ -58,7 +58,7 @@ Create a pull request with proper changeset notes, ensuring version management a
 ```
 
 ## Checklist
-- [ ] Changeset file created with `pnpm changeset:quick`
+- [ ] Changeset file created with `pnpm cs`
 - [ ] Changeset message accurately describes changes
 - [ ] All changes committed (including changeset files)
 - [ ] PR opened with `chat-to-edit` as base branch

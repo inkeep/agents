@@ -9,9 +9,7 @@ import { ApiError } from '../types/errors';
 
 // Lazy initialization with runtime warnings
 let INKEEP_AGENTS_MANAGE_API_URL: string | null = null;
-let INKEEP_AGENTS_EVAL_API_URL: string | null = null;
 let hasWarnedManageApi = false;
-let hasWarnedEvalApi = false;
 
 export function getManageApiUrl(): string {
   if (INKEEP_AGENTS_MANAGE_API_URL === null) {
@@ -28,25 +26,6 @@ export function getManageApiUrl(): string {
   return INKEEP_AGENTS_MANAGE_API_URL;
 }
 
-function getEvalApiUrl(): string {
-  if (INKEEP_AGENTS_EVAL_API_URL === null) {
-    INKEEP_AGENTS_EVAL_API_URL =
-      process.env.INKEEP_AGENTS_EVAL_API_URL ||
-      process.env.PUBLIC_INKEEP_AGENTS_EVAL_API_URL ||
-      'http://localhost:3005';
-
-    if (
-      !process.env.INKEEP_AGENTS_EVAL_API_URL &&
-      !process.env.PUBLIC_INKEEP_AGENTS_EVAL_API_URL &&
-      !hasWarnedEvalApi
-    ) {
-      console.warn(`INKEEP_AGENTS_EVAL_API_URL is not set, falling back to: http://localhost:3005`);
-      hasWarnedEvalApi = true;
-    }
-  }
-  return INKEEP_AGENTS_EVAL_API_URL;
-}
-
 async function makeApiRequestInternal<T>(
   baseUrl: string,
   endpoint: string,
@@ -61,14 +40,14 @@ async function makeApiRequestInternal<T>(
       const { headers } = await import('next/headers');
       const headerStore = await headers();
       const rawCookieHeader = headerStore.get('cookie');
-      
+
       if (rawCookieHeader) {
         // Filter to only forward Better Auth cookies for security
-        const cookiePairs = rawCookieHeader.split(';').map(c => c.trim());
-        const authCookies = cookiePairs.filter(c => c.includes('better-auth'));
+        const cookiePairs = rawCookieHeader.split(';').map((c) => c.trim());
+        const authCookies = cookiePairs.filter((c) => c.includes('better-auth'));
         cookieHeader = authCookies.join('; ');
       }
-      
+
       // Fallback to cookies() if headers() didn't have the cookie
       if (!cookieHeader) {
         const { cookies } = await import('next/headers');
@@ -190,12 +169,4 @@ export async function makeManagementApiRequest<T>(
   options: RequestInit = {}
 ): Promise<T> {
   return makeApiRequestInternal<T>(getManageApiUrl(), endpoint, options);
-}
-
-// Evaluation API requests (evaluations, datasets, evaluation runs)
-export async function makeEvalApiRequest<T>(
-  endpoint: string,
-  options: RequestInit = {}
-): Promise<T> {
-  return makeApiRequestInternal<T>(getEvalApiUrl(), endpoint, options);
 }

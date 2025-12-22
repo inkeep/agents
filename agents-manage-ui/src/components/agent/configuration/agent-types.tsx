@@ -1,4 +1,4 @@
-export type ModelSettings = {
+type ModelSettings = {
   model: string;
   providerOptions?: string; // JSON string representation for form compatibility
 };
@@ -11,10 +11,7 @@ export type AgentModels = {
   summarizer?: ModelSettings;
 };
 
-// Re-export the shared type for consistency
-export type { AgentStopWhen };
-
-export type StatusUpdateSettings = {
+type StatusUpdateSettings = {
   enabled?: boolean;
   prompt?: string;
   numEvents?: number; // Trigger after N events (default: 10)

@@ -55,6 +55,7 @@ export function CredentialForm({ onCreateCredential, tenantId, projectId }: Cred
 
   const { isSubmitting } = form.formState;
 
+  // loadAvailableTools
   useEffect(() => {
     const loadAvailableTools = async () => {
       try {
@@ -71,6 +72,7 @@ export function CredentialForm({ onCreateCredential, tenantId, projectId }: Cred
     loadAvailableTools();
   }, [tenantId, projectId]);
 
+  // loadAvailableExternalAgents
   useEffect(() => {
     const loadAvailableExternalAgents = async () => {
       try {
@@ -89,6 +91,7 @@ export function CredentialForm({ onCreateCredential, tenantId, projectId }: Cred
     loadAvailableExternalAgents();
   }, [tenantId, projectId]);
 
+  // loadCredentialStores
   useEffect(() => {
     const loadCredentialStores = async () => {
       try {

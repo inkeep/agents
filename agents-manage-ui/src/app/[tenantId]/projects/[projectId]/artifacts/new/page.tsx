@@ -1,6 +1,5 @@
 import { ArtifactComponentForm } from '@/components/artifact-components/form/artifact-component-form';
 import { BodyTemplate } from '@/components/layout/body-template';
-import { MainContent } from '@/components/layout/main-content';
 
 async function NewArtifactComponentPage({
   params,
@@ -13,12 +12,10 @@ async function NewArtifactComponentPage({
           label: 'Artifacts',
           href: `/${tenantId}/projects/${projectId}/artifacts`,
         },
-        { label: 'New Artifact' },
+        'New Artifact',
       ]}
     >
-      <MainContent>
-        <ArtifactComponentForm tenantId={tenantId} projectId={projectId} />
-      </MainContent>
+      <ArtifactComponentForm tenantId={tenantId} projectId={projectId} />
     </BodyTemplate>
   );
 }

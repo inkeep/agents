@@ -1,7 +1,7 @@
 import { sso } from '@better-auth/sso';
 import { type BetterAuthAdvancedOptions, betterAuth } from 'better-auth';
 import { drizzleAdapter } from 'better-auth/adapters/drizzle';
-import { organization } from 'better-auth/plugins';
+import { bearer, deviceAuthorization, oAuthProxy, organization } from 'better-auth/plugins';
 import type { GoogleOptions } from 'better-auth/social-providers';
 import { eq } from 'drizzle-orm';
 import type { DatabaseClient } from '../db/client';
@@ -183,11 +183,22 @@ export function createAuth(config: BetterAuthConfig) {
       autoSignIn: true,
     },
     socialProviders: config.socialProviders?.google && {
-      google: config.socialProviders.google,
+      google: {
+        ...config.socialProviders.google,
+        // For local/preview env, redirect to production URL registered in Google Console
+        ...(env.OAUTH_PROXY_PRODUCTION_URL && {
+          redirectURI: `${env.OAUTH_PROXY_PRODUCTION_URL}/api/auth/callback/google`,
+        }),
+      },
     },
     session: {
       expiresIn: 60 * 60 * 24 * 7,
       updateAge: 60 * 60 * 24,
+      cookieCache: {
+        enabled: true,
+        maxAge: 5 * 60,
+        strategy: 'compact',
+      },
     },
     advanced: {
       crossSubDomainCookies: {
@@ -208,9 +219,14 @@ export function createAuth(config: BetterAuthConfig) {
       'http://localhost:3002',
       env.INKEEP_AGENTS_MANAGE_UI_URL,
       env.INKEEP_AGENTS_MANAGE_API_URL,
+      env.TRUSTED_ORIGIN,
     ].filter((origin): origin is string => typeof origin === 'string' && origin.length > 0),
     plugins: [
+      bearer(),
       sso(),
+      oAuthProxy({
+        productionURL: env.OAUTH_PROXY_PRODUCTION_URL || config.baseURL,
+      }),
       organization({
         allowUserToCreateOrganization: true,
         ac,
@@ -219,6 +235,9 @@ export function createAuth(config: BetterAuthConfig) {
           admin: adminRole,
           owner: ownerRole,
         },
+        membershipLimit: 300,
+        invitationLimit: 300,
+        invitationExpiresIn: 7 * 24 * 60 * 60, // 7 days (in seconds)
         async sendInvitationEmail(data) {
           console.log('📧 Invitation created:', {
             email: data.email,
@@ -234,6 +253,12 @@ export function createAuth(config: BetterAuthConfig) {
           // - AWS SES: await ses.sendEmail({ ... })
           // - Postmark: await postmark.sendEmail({ ... })
         },
+      }),
+      deviceAuthorization({
+        verificationUri: '/device',
+        expiresIn: '60m', // 30 minutes
+        interval: '5s', // 5 second polling interval
+        userCodeLength: 8, // e.g., "ABCD-EFGH"
       }),
     ],
   });

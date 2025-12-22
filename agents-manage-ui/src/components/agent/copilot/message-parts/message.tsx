@@ -28,6 +28,9 @@ interface IkpMessageProps {
   targetProjectId?: string;
   targetAgentId?: string;
   onOAuthLogin?: OAuthLoginHandler;
+  refreshAgentGraph?: (options?: { fetchTools?: boolean }) => Promise<void>;
+  cookieHeader?: string;
+  copilotToken?: string;
 }
 
 // StreamMarkdown component that renders with inline citations and data operations
@@ -62,12 +65,7 @@ function StreamMarkdown({ parts }: { parts: any[] }) {
         if (part.type === 'data-operation') {
           const { type } = part.data as any;
           // Only add inline operations for non-top-level operations
-          const isTopLevelOperation = [
-            'agent_initializing',
-            'agent_ready',
-            'completion',
-            'error',
-          ].includes(type);
+          const isTopLevelOperation = ['agent_initializing', 'agent_ready', 'error'].includes(type);
           if (!isTopLevelOperation) {
             // Add the inline operation
             processed.push({ type: 'inline-operation', operation: part.data });
@@ -152,7 +150,7 @@ function StreamMarkdown({ parts }: { parts: any[] }) {
   );
 }
 
-export const IkpMessageComponent: FC<IkpMessageProps> = ({
+const IkpMessageComponent: FC<IkpMessageProps> = ({
   message,
   isStreaming = false,
   renderMarkdown: _renderMarkdown,
@@ -165,6 +163,9 @@ export const IkpMessageComponent: FC<IkpMessageProps> = ({
   targetProjectId,
   targetAgentId,
   onOAuthLogin,
+  refreshAgentGraph,
+  cookieHeader,
+  copilotToken,
 }) => {
   const { operations, textContent, artifacts } = useProcessedOperations(message.parts);
   // Just use operations in chronological order
@@ -306,6 +307,8 @@ export const IkpMessageComponent: FC<IkpMessageProps> = ({
                               copilotProjectId={copilotProjectId}
                               copilotTenantId={copilotTenantId}
                               runApiUrl={runApiUrl}
+                              cookieHeader={cookieHeader}
+                              copilotToken={copilotToken}
                             />
                           )}
                         </div>
@@ -326,6 +329,7 @@ export const IkpMessageComponent: FC<IkpMessageProps> = ({
                               targetProjectId={targetProjectId}
                               targetAgentId={targetAgentId}
                               onOAuthLogin={onOAuthLogin}
+                              refreshAgentGraph={refreshAgentGraph}
                             />
                           )}
                         </div>
@@ -384,6 +388,9 @@ export const IkpMessage = (props: any) => {
         targetProjectId={otherProps.targetProjectId}
         targetAgentId={otherProps.targetAgentId}
         onOAuthLogin={otherProps.onOAuthLogin}
+        refreshAgentGraph={otherProps.refreshAgentGraph}
+        cookieHeader={otherProps.cookieHeader}
+        copilotToken={otherProps.copilotToken}
       />
     </div>
   );

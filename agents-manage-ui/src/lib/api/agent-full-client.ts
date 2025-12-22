@@ -16,7 +16,6 @@ import type {
 } from '../types/agent-full';
 import { ApiError } from '../types/errors';
 import type { ListResponse } from '../types/response';
-import type { TeamAgent } from '../types/team-agents';
 import { makeManagementApiRequest } from './api-config';
 import { validateProjectId, validateTenantId } from './resource-validation';
 
@@ -28,7 +27,7 @@ export async function fetchAgents(
   validateProjectId(projectId);
 
   return makeManagementApiRequest<ListResponse<Agent>>(
-    `tenants/${tenantId}/projects/${projectId}/agents`
+    `tenants/${tenantId}/projects/${projectId}/agents?limit=100`
   );
 }
 
@@ -47,23 +46,6 @@ export async function createAgent(
       body: JSON.stringify(agentData),
     }
   );
-}
-
-/**
- * Fetch barebones metadata for all agents in a project to be used with team agent relations
- */
-export async function fetchTeamAgents(tenantId: string, projectId: string): Promise<TeamAgent[]> {
-  validateTenantId(tenantId);
-  validateProjectId(projectId);
-
-  const agents = await fetchAgents(tenantId, projectId);
-  return agents.data.map((agent) => {
-    return {
-      id: agent.id,
-      name: agent.name,
-      description: agent.description || '',
-    };
-  });
 }
 
 /**

@@ -1,14 +1,22 @@
-import { CredentialStoreType, generateIdFromName } from '@inkeep/agents-core/client-exports';
+import {
+  CredentialStoreType,
+  DEFAULT_NANGO_STORE_ID,
+  generateIdFromName,
+} from '@inkeep/agents-core/client-exports';
 import { useRouter } from 'next/navigation';
 import { useCallback, useRef } from 'react';
 import { toast } from 'sonner';
-import type { OAuthLoginHandler } from '@/components/agent/copilot/components/connect-tool-card';
+import type {
+  OAuthLoginHandler,
+  OAuthLoginParams,
+} from '@/components/agent/copilot/components/connect-tool-card';
 import { useRuntimeConfig } from '@/contexts/runtime-config-context';
 import { listCredentialStores } from '@/lib/api/credentialStores';
 import { updateMCPTool } from '@/lib/api/tools';
 import { findOrCreateCredential } from '@/lib/utils/credentials-utils';
 import { generateId } from '@/lib/utils/id-utils';
 import { getOAuthLoginUrl } from '@/lib/utils/mcp-urls';
+import { useAuthSession } from './use-auth';
 import { useNangoConnect } from './use-nango-connect';
 
 interface UseOAuthLoginProps {
@@ -29,6 +37,7 @@ export function useOAuthLogin({
   const router = useRouter();
   const { PUBLIC_INKEEP_AGENTS_MANAGE_API_URL } = useRuntimeConfig();
   const { openNangoConnectHeadless } = useNangoConnect();
+  const { user } = useAuthSession();
 
   // Track active OAuth attempts to prevent conflicts
   const activeAttemptsRef = useRef(new Map<string, () => void>());
@@ -139,22 +148,36 @@ export function useOAuthLogin({
       toolId,
       mcpServerUrl,
       toolName,
+      credentialScope,
     }: {
       toolId: string;
       mcpServerUrl: string;
       toolName: string;
+      credentialScope?: 'project' | 'user';
     }): Promise<void> => {
+      if (!user) {
+        throw new Error('User not found');
+      }
+
       const authResult = await openNangoConnectHeadless({
         mcpServerUrl,
-        providerUniqueKey: `${generateIdFromName(toolName)}_${toolId}`,
+        providerUniqueKey: `${generateIdFromName(toolName)}_${toolId.slice(0, 4)}`,
         providerDisplayName: toolName,
       });
 
+      const isUserScoped = credentialScope === 'user';
+
       const newCredentialData = {
         id: generateId(),
-        name: `${toolName} OAuth Credential`,
+        name: toolName,
         type: CredentialStoreType.nango,
-        credentialStoreId: 'nango-default',
+        credentialStoreId: DEFAULT_NANGO_STORE_ID,
+        createdBy: user?.email ?? undefined,
+        // For user-scoped: set toolId and userId on the credential reference
+        ...(isUserScoped && {
+          toolId,
+          userId: user.id,
+        }),
         retrievalParams: {
           connectionId: authResult.connectionId,
           providerConfigKey: authResult.providerConfigKey,
@@ -165,9 +188,13 @@ export function useOAuthLogin({
 
       const newCredential = await findOrCreateCredential(tenantId, projectId, newCredentialData);
 
-      await updateMCPTool(tenantId, projectId, toolId, {
-        credentialReferenceId: newCredential.id,
-      });
+      // For project-scoped: update the tool's credentialReferenceId
+      // For user-scoped: don't update the tool (credential is linked via toolId + userId)
+      if (!isUserScoped) {
+        await updateMCPTool(tenantId, projectId, toolId, {
+          credentialReferenceId: newCredential.id,
+        });
+      }
 
       // Call custom success handler or default behavior
       if (onFinish) {
@@ -176,7 +203,7 @@ export function useOAuthLogin({
         router.push(`/${tenantId}/projects/${projectId}/mcp-servers/${toolId}`);
       }
     },
-    [openNangoConnectHeadless, onFinish, router, tenantId, projectId]
+    [openNangoConnectHeadless, onFinish, router, tenantId, projectId, user]
   );
 
   const handleOAuthLogin = useCallback(
@@ -185,12 +212,8 @@ export function useOAuthLogin({
       mcpServerUrl,
       toolName,
       thirdPartyConnectAccountUrl,
-    }: {
-      toolId: string;
-      mcpServerUrl: string;
-      toolName: string;
-      thirdPartyConnectAccountUrl?: string;
-    }): Promise<void> => {
+      credentialScope,
+    }: OAuthLoginParams): Promise<void> => {
       if (thirdPartyConnectAccountUrl) {
         await handleOAuthLoginManually(toolId, thirdPartyConnectAccountUrl);
         return;
@@ -210,7 +233,12 @@ export function useOAuthLogin({
 
         // Choose authentication method based on availability
         if (isNangoReady) {
-          await handleOAuthLoginWithNangoMCPGeneric({ toolId, mcpServerUrl, toolName });
+          await handleOAuthLoginWithNangoMCPGeneric({
+            toolId,
+            mcpServerUrl,
+            toolName,
+            credentialScope,
+          });
         } else if (isKeychainReady) {
           await handleOAuthLoginManually(toolId);
         } else {

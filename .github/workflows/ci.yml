@@ -6,12 +6,12 @@ on:
       - main
       - master
   pull_request:
-    branches: ['*']
+    branches: ["*"]
   merge_group:
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
-  cancel-in-progress: true
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 jobs:
   ci:
@@ -91,6 +91,9 @@ jobs:
 
       - name: Biome Format
         run: pnpm format:check
+
+      - name: Knip Unused Exports/Types Check
+        run: pnpm knip
 
       # Create summary report
       - name: Create CI Summary

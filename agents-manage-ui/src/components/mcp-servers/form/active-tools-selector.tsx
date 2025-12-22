@@ -138,9 +138,7 @@ export function ActiveToolsSelector<
         <FormItem>
           <FormLabel>
             {label}
-            <Badge variant="code" className="border-none px-2 text-[10px] text-muted-foreground">
-              {getSelectedCount()}
-            </Badge>
+            <Badge variant="count">{getSelectedCount()}</Badge>
           </FormLabel>
 
           {description && <p className="text-sm text-muted-foreground">{description}</p>}

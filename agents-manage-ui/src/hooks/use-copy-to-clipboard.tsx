@@ -2,7 +2,7 @@
 
 import * as React from 'react';
 
-export interface useCopyToClipboardProps {
+interface useCopyToClipboardProps {
   timeout?: number;
 }
 

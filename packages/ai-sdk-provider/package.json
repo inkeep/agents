@@ -1,6 +1,6 @@
 {
   "name": "@inkeep/ai-sdk-provider",
-  "version": "0.37.1",
+  "version": "0.39.5",
   "description": "AI SDK provider for Inkeep Agent Framework",
   "type": "module",
   "license": "SEE LICENSE IN LICENSE.md",
@@ -14,10 +14,10 @@
     }
   },
   "scripts": {
-    "build": "tsup",
+    "build": "tsdown",
     "test": "vitest --run",
     "test:watch": "vitest --watch",
-    "lint": "biome lint src",
+    "lint": "biome lint --error-on-warnings",
     "lint:fix": "biome check --write src",
     "format": "biome format --write src",
     "format:check": "biome format src",
@@ -34,10 +34,14 @@
   ],
   "packageManager": "pnpm@10.10.0",
   "dependencies": {
-    "@ai-sdk/provider": "^2.0.0",
-    "@ai-sdk/provider-utils": "^3.0.12",
+    "@ai-sdk/provider": "3.0.0-beta.22",
+    "@ai-sdk/provider-utils": "4.0.0-beta.40",
     "@inkeep/agents-core": "workspace:*",
-    "ai": "5.0.11"
+    "ai": "6.0.0-beta.124"
+  },
+  "publishConfig": {
+    "access": "public",
+    "registry": "https://registry.npmjs.org/"
   },
   "devDependencies": {
     "@types/node": "^20.11.24",
@@ -46,7 +50,7 @@
     "vitest": "^3.2.4"
   },
   "engines": {
-    "node": ">=22.0.0"
+    "node": ">=22.18.0"
   },
   "files": [
     "dist",

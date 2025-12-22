@@ -158,6 +158,7 @@ export const getRelatedAgentsForAgent =
         name: subAgents.name,
         description: subAgents.description,
         relationType: subAgentRelations.relationType,
+        relationId: subAgentRelations.id,
       })
       .from(subAgentRelations)
       .innerJoin(
@@ -581,6 +582,7 @@ export const getToolsForAgent =
             capabilities: tools.capabilities,
             lastError: tools.lastError,
             credentialReferenceId: tools.credentialReferenceId,
+            credentialScope: tools.credentialScope,
             tenantId: tools.tenantId,
             projectId: tools.projectId,
             headers: tools.headers,

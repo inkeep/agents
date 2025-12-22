@@ -1,7 +1,6 @@
 import { KeyRound, Search } from 'lucide-react';
 import type { ReactNode } from 'react';
 import { BodyTemplate } from '@/components/layout/body-template';
-import { MainContent } from '@/components/layout/main-content';
 import {
   PageHeader,
   PageHeaderContent,
@@ -86,7 +85,7 @@ async function NewCredentialsPage({
           <p>
             Nango Store is recommended to create credentials. Otherwise, make sure Keychain Store is
             available.
-            <ExternalLink href={`${DOCS_BASE_URL}/get-started/credentials`}>
+            <ExternalLink href={`${DOCS_BASE_URL}/typescript-sdk/credentials/overview`}>
               Learn more
             </ExternalLink>
           </p>
@@ -102,20 +101,18 @@ async function NewCredentialsPage({
           label: 'Credentials',
           href: `/${tenantId}/projects/${projectId}/credentials`,
         },
-        { label: 'New credential' },
+        'New credential',
       ]}
     >
-      <MainContent>
-        {pageHeaderComponent}
-        <ItemCardGrid
-          items={credentialOptions}
-          getKey={(option) => option.id}
-          getHref={(option) => option.href}
-          renderHeader={renderCredentialHeader}
-          renderContent={renderCredentialContent}
-          isDisabled={(option) => option.isDisabled ?? false}
-        />
-      </MainContent>
+      {pageHeaderComponent}
+      <ItemCardGrid
+        items={credentialOptions}
+        getKey={(option) => option.id}
+        getHref={(option) => option.href}
+        renderHeader={renderCredentialHeader}
+        renderContent={renderCredentialContent}
+        isDisabled={(option) => option.isDisabled ?? false}
+      />
     </BodyTemplate>
   );
 }

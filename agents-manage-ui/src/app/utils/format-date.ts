@@ -14,7 +14,7 @@ function normalizeDateString(dateString: string | Date): string | Date {
 
   if (pgTimestampPattern.test(dateString)) {
     // Replace space with 'T' and add 'Z' for UTC
-    return dateString.replace(' ', 'T') + 'Z';
+    return `${dateString.replace(' ', 'T')}Z`;
   }
 
   return dateString;
@@ -59,22 +59,6 @@ export function formatDateTime(dateString: string): string {
     second: '2-digit',
     hour12: true,
   }).format(date); // e.g. "Aug 28, 2024, 5:42:30 PM"
-}
-
-export function formatDateTimeTable(dateString: string): string {
-  const normalized = normalizeDateString(dateString);
-  const date = new Date(normalized);
-  if (Number.isNaN(date.getTime())) return 'Invalid date';
-
-  // Format as YYYY-MM-DD HH:mm:ss
-  const year = date.getFullYear();
-  const month = String(date.getMonth() + 1).padStart(2, '0');
-  const day = String(date.getDate()).padStart(2, '0');
-  const hours = String(date.getHours()).padStart(2, '0');
-  const minutes = String(date.getMinutes()).padStart(2, '0');
-  const seconds = String(date.getSeconds()).padStart(2, '0');
-
-  return `${year}-${month}-${day} ${hours}:${minutes}:${seconds}`;
 }
 
 export function formatDateAgo(dateString: string) {

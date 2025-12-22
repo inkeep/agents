@@ -1,16 +1,19 @@
 import { type Node, useReactFlow } from '@xyflow/react';
 import {
+  AlertTriangle,
   Check,
   CircleAlert,
   //  Shield,
   Trash2,
   X,
 } from 'lucide-react';
+import Link from 'next/link';
 import { useParams } from 'next/navigation';
 import { useCallback, useEffect, useState } from 'react';
 import { getActiveTools } from '@/app/utils/active-tools';
 import { ExpandableJsonEditor } from '@/components/editors/expandable-json-editor';
 import { MCPToolImage } from '@/components/mcp-servers/mcp-tool-image';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
@@ -21,12 +24,12 @@ import { Separator } from '@/components/ui/separator';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { useAgentActions, useAgentStore } from '@/features/agent/state/use-agent-store';
 import { useNodeEditor } from '@/hooks/use-node-editor';
+import type { AgentToolConfigLookup } from '@/lib/types/agent-full';
 import {
   getCurrentHeadersForNode,
   getCurrentSelectedToolsForNode,
   getCurrentToolPoliciesForNode,
 } from '@/lib/utils/orphaned-tools-detector';
-import type { AgentToolConfigLookup } from '../../agent';
 import type { MCPNodeData } from '../../configuration/node-types';
 
 interface MCPServerNodeEditorProps {
@@ -139,23 +142,23 @@ export function MCPServerNodeEditor({
     markUnsaved();
   };
 
-  // const toggleToolApproval = (toolName: string) => {
-  //   const updatedPolicies = { ...currentToolPolicies };
+  const toggleToolApproval = (toolName: string) => {
+    const updatedPolicies = { ...currentToolPolicies };
 
-  //   if (updatedPolicies[toolName]?.needsApproval) {
-  //     // Remove approval requirement
-  //     delete updatedPolicies[toolName];
-  //   } else {
-  //     // Add approval requirement
-  //     updatedPolicies[toolName] = { needsApproval: true };
-  //   }
+    if (updatedPolicies[toolName]?.needsApproval) {
+      // Remove approval requirement
+      delete updatedPolicies[toolName];
+    } else {
+      // Add approval requirement
+      updatedPolicies[toolName] = { needsApproval: true };
+    }
 
-  //   updateNodeData(selectedNode.id, {
-  //     ...selectedNode.data,
-  //     tempToolPolicies: updatedPolicies,
-  //   });
-  //   markUnsaved();
-  // };
+    updateNodeData(selectedNode.id, {
+      ...selectedNode.data,
+      tempToolPolicies: updatedPolicies,
+    });
+    markUnsaved();
+  };
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
@@ -204,6 +207,26 @@ export function MCPServerNodeEditor({
           <span className="font-medium text-sm truncate">{toolData.name}</span>
         </div>
       )}
+
+      {/* Warning banner for needs_auth status */}
+      {toolData?.status === 'needs_auth' && (
+        <Alert className="border-amber-300 dark:border-amber-700 bg-amber-50 dark:bg-amber-950/20 [&>svg]:text-amber-600">
+          <AlertTriangle className="h-4 w-4" />
+          <AlertTitle className="text-foreground">Authentication Required</AlertTitle>
+          <AlertDescription className="text-muted-foreground">
+            This MCP server requires authentication to work properly.{' '}
+            <Link
+              href={`/${tenantId}/projects/${projectId}/mcp-servers/${selectedNode.data.toolId}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="font-medium text-foreground underline hover:no-underline"
+            >
+              Go to MCP Server details to connect
+            </Link>
+          </AlertDescription>
+        </Alert>
+      )}
+
       <div className="space-y-2">
         <Label htmlFor="node-id">Id</Label>
         <Input id="node-id" value={selectedNode.data.toolId} disabled />
@@ -249,13 +272,10 @@ export function MCPServerNodeEditor({
         </div>
       )}
       <div className="flex flex-col gap-2">
-        <div className="flex items-center justify-between">
+        <div className="flex items-center justify-between gap-2">
           <div className="flex items-center gap-2">
             <Label>Tool Configuration</Label>
-            <Badge
-              variant="code"
-              className="border-none px-2 text-[10px] text-gray-700 dark:text-gray-300"
-            >
+            <Badge variant="count">
               {
                 selectedTools === null
                   ? (activeTools?.length ?? 0) // All tools selected
@@ -338,7 +358,7 @@ export function MCPServerNodeEditor({
                 selectedTools === null
                   ? true // If null, all tools are selected
                   : selectedTools.includes(tool.name);
-              // const needsApproval = currentToolPolicies[tool.name]?.needsApproval || false;
+              const needsApproval = currentToolPolicies[tool.name]?.needsApproval || false;
 
               return (
                 <div
@@ -364,20 +384,21 @@ export function MCPServerNodeEditor({
                       </TooltipContent>
                     </Tooltip>
                   </div>
-                  {/* <div className="flex items-center">
+                  {/* Needs Approval Checkbox hidden b/c we don't support it yet */}
+                  <div className="items-center hidden mcp-needs-approval">
                     <Checkbox
                       checked={needsApproval}
                       disabled={!isSelected}
                       onCheckedChange={() => toggleToolApproval(tool.name)}
                     />
-                  </div> */}
+                  </div>
                 </div>
               );
             })}
 
             {/* Orphaned tools (selected but no longer available) */}
             {orphanedTools.map((toolName) => {
-              // const needsApproval = currentToolPolicies[toolName]?.needsApproval || false;
+              const needsApproval = currentToolPolicies[toolName]?.needsApproval || false;
 
               return (
                 <div
@@ -407,12 +428,13 @@ export function MCPServerNodeEditor({
                       </TooltipContent>
                     </Tooltip>
                   </div>
-                  {/* <div className="flex items-center">
+                  {/* Needs Approval Checkbox hidden b/c we don't support it yet */}
+                  <div className="hidden items-center mcp-needs-approval">
                     <Checkbox
                       checked={needsApproval}
                       onCheckedChange={() => toggleToolApproval(toolName)}
                     />
-                  </div> */}
+                  </div>
                 </div>
               );
             })}

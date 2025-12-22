@@ -45,6 +45,8 @@ export interface TaskHandlerConfig {
   contextConfigId?: string;
   conversationHistoryConfig?: AgentConversationHistoryConfig;
   sandboxConfig?: SandboxConfig;
+  /** User ID for user-scoped credential lookups (available when request is from authenticated user) */
+  userId?: string;
 }
 
 export const createTaskHandler = (
@@ -253,7 +255,7 @@ export const createTaskHandler = (
         })
       );
 
-      const prompt = 'prompt' in config.agentSchema ? config.agentSchema.prompt : '';
+      const prompt = 'prompt' in config.agentSchema ? config.agentSchema.prompt || undefined : '';
       const models = 'models' in config.agentSchema ? config.agentSchema.models : undefined;
       const stopWhen = 'stopWhen' in config.agentSchema ? config.agentSchema.stopWhen : undefined;
 
@@ -265,7 +267,8 @@ export const createTaskHandler = (
               item.tool,
               dbClient,
               credentialStoreRegistry,
-              item.id
+              item.id,
+              config.userId
             );
 
             // Filter available tools based on selectedTools for this agent-tool relationship
@@ -287,6 +290,7 @@ export const createTaskHandler = (
           agentId: config.agentId,
           baseUrl: config.baseUrl,
           apiKey: config.apiKey,
+          userId: config.userId,
           name: config.name,
           description: config.description || '',
           prompt,
@@ -300,7 +304,7 @@ export const createTaskHandler = (
             baseUrl: config.baseUrl,
             apiKey: config.apiKey,
             name: relation.name,
-            description: relation.description,
+            description: relation.description || undefined,
             prompt: '',
             delegateRelations: [],
             subAgentRelations: [],
@@ -364,7 +368,8 @@ export const createTaskHandler = (
                         item.tool,
                         dbClient,
                         credentialStoreRegistry,
-                        item.id
+                        item.id,
+                        config.userId
                       );
 
                       // Filter available tools based on selectedTools for this agent-tool relationship
@@ -424,7 +429,7 @@ export const createTaskHandler = (
                   projectId: config.projectId,
                   agentId: config.agentId,
                   name: relation.name,
-                  description: relation.description,
+                  description: relation.description || undefined,
                   prompt: '',
                   delegateRelations: targetDelegateRelationsConfig,
                   subAgentRelations: [],
@@ -440,13 +445,14 @@ export const createTaskHandler = (
                 type: 'internal' as const,
                 config: {
                   id: relation.id,
+                  relationId: relation.relationId,
                   tenantId: config.tenantId,
                   projectId: config.projectId,
                   agentId: config.agentId,
                   baseUrl: config.baseUrl,
                   apiKey: config.apiKey,
                   name: relation.name,
-                  description: relation.description,
+                  description: relation.description || undefined,
                   prompt: '',
                   delegateRelations: [], // Simplified - no nested relations
                   subAgentRelations: [],
@@ -688,7 +694,9 @@ export const createTaskHandler = (
       console.error('Task handler error:', error);
 
       const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
-      const isConnectionRefused = errorMessage.includes('Connection refused. Please check if the MCP server is running.');
+      const isConnectionRefused = errorMessage.includes(
+        'Connection refused. Please check if the MCP server is running.'
+      );
 
       return {
         status: {
@@ -727,6 +735,7 @@ export const createTaskHandlerConfig = async (params: {
   baseUrl: string;
   apiKey?: string;
   sandboxConfig?: SandboxConfig;
+  userId?: string;
 }): Promise<TaskHandlerConfig> => {
   const subAgent = await getSubAgentById(dbClient)({
     scopes: {
@@ -771,9 +780,10 @@ export const createTaskHandlerConfig = async (params: {
     baseUrl: params.baseUrl,
     apiKey: params.apiKey,
     name: subAgent.name,
-    description: subAgent.description,
+    description: subAgent.description || undefined,
     conversationHistoryConfig: effectiveConversationHistoryConfig as AgentConversationHistoryConfig,
     contextConfigId: agent?.contextConfigId || undefined,
     sandboxConfig: params.sandboxConfig,
+    userId: params.userId,
   };
 };

@@ -1,4 +1,4 @@
-import type { z } from 'zod';
+import type { z } from '@hono/zod-openapi';
 import type { ApiKeySelect } from '../index';
 import type {
   McpTransportConfigSchema,
@@ -129,6 +129,7 @@ export type ContextFetchDefinition = {
     body?: Record<string, unknown>;
     transform?: string;
     timeout?: number;
+    requiredToFetch?: Array<string>; // Context variables that are required to run the fetch request. If the given variables cannot be resolved, the fetch request will be skipped.
   };
   responseSchema?: Record<string, unknown>; // JSON Schema for validating HTTP response
   defaultValue?: unknown;
@@ -279,6 +280,10 @@ export interface ExecutionContext {
   metadata?: {
     teamDelegation?: boolean;
     originAgentId?: string;
+    initiatedBy?: {
+      type: 'user' | 'api_key';
+      id: string;
+    };
   };
 }
 

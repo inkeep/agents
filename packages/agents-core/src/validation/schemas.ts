@@ -49,6 +49,7 @@ import {
 } from '../types/utility';
 import {
   createInsertSchema,
+  createResourceIdSchema,
   createSelectSchema,
   MAX_ID_LENGTH,
   MIN_ID_LENGTH,
@@ -252,9 +253,20 @@ export const ExternalSubAgentRelationApiInsertSchema = createApiInsertSchema(
 );
 
 export const AgentSelectSchema = createSelectSchema(agents);
-export const AgentInsertSchema = createInsertSchema(agents).extend({
-  id: resourceIdSchema,
-  name: z.string().trim().nonempty(),
+
+const DEFAULT_SUB_AGENT_ID_DESCRIPTION =
+  'ID of the default sub-agent that handles initial user messages. ' +
+  'Required at runtime but nullable on creation to avoid circular FK dependency. ' +
+  'Workflow: 1) POST Agent (without defaultSubAgentId), 2) POST SubAgent, 3) PATCH Agent with defaultSubAgentId.';
+
+export const AgentInsertSchema = createInsertSchema(agents, {
+  id: () => resourceIdSchema,
+  name: () =>
+    z.string().trim().nonempty().describe('Agent name').openapi({ description: 'Agent name' }),
+  defaultSubAgentId: () =>
+    createResourceIdSchema(DEFAULT_SUB_AGENT_ID_DESCRIPTION, { example: 'my-default-subagent' })
+      .nullable()
+      .optional(),
 });
 export const AgentUpdateSchema = AgentInsertSchema.partial();
 
@@ -537,17 +549,7 @@ export const ApiKeyApiInsertSchema = ApiKeyInsertSchema.omit({
 
 export const ApiKeyApiUpdateSchema = ApiKeyUpdateSchema.openapi('ApiKeyUpdate');
 
-export const CredentialReferenceSelectSchema = z.object({
-  id: z.string(),
-  tenantId: z.string(),
-  projectId: z.string(),
-  name: z.string(),
-  type: z.string(),
-  credentialStoreId: z.string(),
-  retrievalParams: z.record(z.string(), z.unknown()).nullish(),
-  createdAt: z.string(),
-  updatedAt: z.string(),
-});
+export const CredentialReferenceSelectSchema = createSelectSchema(credentialReferences);
 
 export const CredentialReferenceInsertSchema = createInsertSchema(credentialReferences).extend({
   id: resourceIdSchema,
@@ -620,7 +622,7 @@ export const RelatedAgentInfoSchema = z
   .object({
     id: z.string(),
     name: z.string(),
-    description: z.string(),
+    description: z.string().nullable(),
   })
   .openapi('RelatedAgentInfo');
 
@@ -654,6 +656,7 @@ export const McpToolSchema = ToolInsertSchema.extend({
   status: ToolStatusSchema.default('unknown'),
   version: z.string().optional(),
   expiresAt: z.string().optional(),
+  createdBy: z.string().optional(),
   relationshipId: z.string().optional(),
 }).openapi('McpTool');
 
@@ -718,6 +721,7 @@ export const FetchConfigSchema = z
     headers: z.record(z.string(), z.string()).optional(),
     body: z.record(z.string(), z.unknown()).optional(),
     transform: z.string().optional(), // JSONPath or JS transform function
+    requiredToFetch: z.array(z.string()).optional(), // Context variables that are required to run the fetch request. If the given variables cannot be resolved, the fetch request will be skipped.
     timeout: z
       .number()
       .min(0)
@@ -937,7 +941,7 @@ export const FullAgentAgentInsertSchema = SubAgentApiInsertSchema.extend({
   dataComponents: z.array(z.string()).optional(),
   artifactComponents: z.array(z.string()).optional(),
   canTransferTo: z.array(z.string()).optional(),
-  prompt: z.string().trim().nonempty(),
+  prompt: z.string().trim().optional(),
   canDelegateTo: z
     .array(
       z.union([

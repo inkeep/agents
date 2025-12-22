@@ -1,117 +1,57 @@
-import { shikiToMonaco } from '@shikijs/monaco';
 import type * as Monaco from 'monaco-editor';
-import { createHighlighter, type HighlighterGeneric } from 'shiki';
 import { create, type StateCreator } from 'zustand';
 import { devtools } from 'zustand/middleware';
 import { useShallow } from 'zustand/react/shallow';
 import { MONACO_THEME_NAME, TEMPLATE_LANGUAGE, VARIABLE_TOKEN } from '@/constants/theme';
-import monacoCompatibleSchema from '@/lib/monaco-editor/dynamic-ref-compatible-json-schema.json';
-
-const SUPPORTED_LANGUAGES = ['javascript', 'typescript', 'json'] as const;
-const SUPPORTED_THEMES = [MONACO_THEME_NAME.light, MONACO_THEME_NAME.dark] as const;
-
-type SupportedLanguage = (typeof SUPPORTED_LANGUAGES)[number];
-type SupportedTheme = (typeof SUPPORTED_THEMES)[number];
-
-type ShikiHighlighter = HighlighterGeneric<SupportedLanguage, SupportedTheme>;
+import { agentStore } from '@/features/agent/state/use-agent-store';
 
 interface MonacoStateData {
   monaco: typeof Monaco | null;
-  variableSuggestions: string[];
-  highlighter: ShikiHighlighter | null;
 }
 
 interface MonacoActions {
-  setMonacoTheme: (isDark: boolean) => void;
   /**
    * Dynamically import `monaco-editor` since it relies on `window`, which isn't available during SSR
    */
-  setMonaco: () => Promise<Monaco.IDisposable[]>;
-  setVariableSuggestions: (variableSuggestions: string[]) => void;
-  setupHighlighter: (isDark: boolean) => void;
+  importMonaco: () => Promise<void>;
 }
 
 interface MonacoState extends MonacoStateData {
   actions: MonacoActions;
 }
 
-const initialMonacoState: MonacoStateData = {
+let wasInitialized = false;
+
+const monacoState: StateCreator<MonacoState> = (set) => ({
   monaco: null,
-  variableSuggestions: [],
-  highlighter: null,
-};
-
-let highlighterPromise: Promise<ShikiHighlighter> | null = null;
-
-// Fixes console warning:
-// [Shiki] 10 instances have been created. Shiki is supposed to be used as a singleton, consider refactoring your code
-// to cache your highlighter instance; Or call `highlighter.dispose()` to release unused instances.
-const getHighlighter = async (): Promise<ShikiHighlighter> => {
-  highlighterPromise ??= createHighlighter({
-    themes: [...SUPPORTED_THEMES],
-    langs: [...SUPPORTED_LANGUAGES],
-  });
-  return await highlighterPromise;
-};
-
-const monacoState: StateCreator<MonacoState> = (set, get) => ({
-  ...initialMonacoState,
-  // Separate "namespace" for actions
   actions: {
-    setVariableSuggestions(variableSuggestions) {
-      set({ variableSuggestions });
-    },
-    setMonacoTheme(isDark) {
-      const monaco = get().monaco;
-      if (!monaco) return;
-
-      // Define custom themes with blue diff colors to match TextDiff
-      monaco.editor.defineTheme('github-light-default', {
-        base: 'vs',
-        inherit: true,
-        rules: [],
-        colors: {
-          'diffEditor.insertedTextBackground': '#3784ff19',
-          'diffEditor.insertedLineBackground': '#3784ff0d',
-        },
-      });
-
-      monaco.editor.defineTheme('github-dark-default', {
-        base: 'vs-dark',
-        inherit: true,
-        rules: [],
-        colors: {
-          'diffEditor.insertedTextBackground': '#69a3ff4d',
-          'diffEditor.insertedLineBackground': '#69a3ff33',
-        },
-      });
-
-      const monacoTheme = isDark ? MONACO_THEME_NAME.dark : MONACO_THEME_NAME.light;
-      monaco.editor.setTheme(monacoTheme);
-    },
-    async setupHighlighter(isDark) {
-      const { highlighter: prevHighlighter, monaco, actions } = get();
-      if (!monaco) return;
-
-      const highlighter = prevHighlighter ?? (await getHighlighter());
-      // Create the highlighter
-      // Register the themes from Shiki, and provide syntax highlighting for Monaco.
-      shikiToMonaco(highlighter, monaco);
-
-      // setMonacoTheme will define the custom themes and apply the correct one
-      actions.setMonacoTheme(isDark);
-      if (!prevHighlighter) {
-        set({ highlighter });
-        highlighterPromise = null;
+    async importMonaco() {
+      if (wasInitialized) {
+        return;
       }
-    },
-    async setMonaco() {
-      const monaco = await import('monaco-editor');
-      // for cypress
-      window.monaco = monaco;
-      set({ monaco });
+      wasInitialized = true;
+      const [
+        monaco,
+        { createHighlighter },
+        { shikiToMonaco },
+        { default: monacoCompatibleSchema },
+        { default: githubLightTheme },
+        { default: githubDarkTheme },
+      ] = await Promise.all([
+        import('monaco-editor'),
+        import('shiki'),
+        import('@shikijs/monaco'),
+        import('@/lib/monaco-editor/dynamic-ref-compatible-json-schema.json', {
+          with: {
+            type: 'json',
+          },
+        }),
+        import('shiki/themes/github-light-default.mjs'),
+        import('shiki/themes/github-dark-default.mjs'),
+        import('@/lib/monaco-editor/setup-monaco-workers'),
+      ]);
       monaco.languages.register({ id: TEMPLATE_LANGUAGE });
-      monaco.languages.json.jsonDefaults.setDiagnosticsOptions({
+      monaco.json.jsonDefaults.setDiagnosticsOptions({
         // Fixes when `$schema` is `https://json-schema.org/draft/2020-12/schema`
         // The schema uses meta-schema features ($dynamicRef) that are not yet supported by the validator
         schemas: [
@@ -124,73 +64,119 @@ const monacoState: StateCreator<MonacoState> = (set, get) => ({
         ],
         enableSchemaRequest: true,
       });
-      return [
-        // Define tokens for template variables
-        monaco.languages.setMonarchTokensProvider(TEMPLATE_LANGUAGE, {
-          tokenizer: {
-            root: [[/\{\{([^}]+)}}/, VARIABLE_TOKEN]],
+      monaco.json.jsonDefaults.setModeConfiguration({
+        /**
+         * Disable due to an issue where the `json` language is not highlighted correctly.
+         * @see https://github.com/shikijs/shiki/issues/865
+         */
+        tokens: false,
+      });
+
+      // Define tokens for template variables
+      monaco.languages.setMonarchTokensProvider(TEMPLATE_LANGUAGE, {
+        tokenizer: {
+          root: [[/\{\{([^}]+)}}/, VARIABLE_TOKEN]],
+        },
+      });
+      monaco.languages.registerCompletionItemProvider(TEMPLATE_LANGUAGE, {
+        triggerCharacters: ['{'],
+        provideCompletionItems(model, position) {
+          const { variableSuggestions } = agentStore.getState();
+
+          const textUntilPosition = model.getValueInRange({
+            startLineNumber: 1,
+            startColumn: 1,
+            endLineNumber: position.lineNumber,
+            endColumn: position.column,
+          });
+
+          // Check if we're inside a template variable (after {)
+          const match = textUntilPosition.match(/\{([^}]*)$/);
+          if (!match) {
+            console.log('No template variable match found');
+            return { suggestions: [] };
+          }
+
+          const query = match[1].toLowerCase();
+          const filteredSuggestions = variableSuggestions.filter((suggestion) =>
+            suggestion.toLowerCase().includes(query)
+          );
+
+          const word = model.getWordUntilPosition(position);
+          const range = new monaco.Range(
+            position.lineNumber,
+            word.startColumn,
+            position.lineNumber,
+            word.endColumn
+          );
+
+          const completionItems: Omit<
+            Monaco.languages.CompletionItem,
+            'kind' | 'range' | 'insertText'
+          >[] = [
+            // Add context suggestions
+            ...filteredSuggestions.map((label) => ({
+              label,
+              detail: 'Context variable',
+              sortText: '0',
+            })),
+            // Add environment variables
+            {
+              label: '$env.',
+              detail: 'Environment variable',
+              sortText: '1',
+            },
+          ];
+          return {
+            suggestions: completionItems.map((item) => ({
+              kind: monaco.languages.CompletionItemKind.Module,
+              range,
+              insertText: `{${item.label}}}`,
+              ...item,
+            })),
+          };
+        },
+      });
+      /**
+       * Create the highlighter
+       * @see https://shiki.style/packages/monaco#usage
+       */
+      const highlighter = await createHighlighter({
+        themes: [
+          {
+            ...githubLightTheme,
+            name: MONACO_THEME_NAME.light,
+            colors: {
+              ...githubLightTheme.colors,
+              'editor.background': 'transparent',
+              'diffEditor.insertedLineBackground': '#3784ff0d',
+              'diffEditor.insertedTextBackground': '#3784ff19',
+              'scrollbarSlider.activeBackground': '#aaa5',
+              'scrollbarSlider.background': '#ccc5',
+              'scrollbarSlider.hoverBackground': '#bbb5',
+            },
           },
-        }),
-        monaco.languages.registerCompletionItemProvider(TEMPLATE_LANGUAGE, {
-          triggerCharacters: ['{'],
-          provideCompletionItems(model, position) {
-            const { variableSuggestions } = get();
-
-            const textUntilPosition = model.getValueInRange({
-              startLineNumber: 1,
-              startColumn: 1,
-              endLineNumber: position.lineNumber,
-              endColumn: position.column,
-            });
-
-            // Check if we're inside a template variable (after {)
-            const match = textUntilPosition.match(/\{([^}]*)$/);
-            if (!match) {
-              console.log('No template variable match found');
-              return { suggestions: [] };
-            }
-
-            const query = match[1].toLowerCase();
-            const filteredSuggestions = variableSuggestions.filter((suggestion) =>
-              suggestion.toLowerCase().includes(query)
-            );
-
-            const word = model.getWordUntilPosition(position);
-            const range = new monaco.Range(
-              position.lineNumber,
-              word.startColumn,
-              position.lineNumber,
-              word.endColumn
-            );
-
-            const completionItems: Omit<
-              Monaco.languages.CompletionItem,
-              'kind' | 'range' | 'insertText'
-            >[] = [
-              // Add context suggestions
-              ...filteredSuggestions.map((label) => ({
-                label,
-                detail: 'Context variable',
-                sortText: '0',
-              })),
-              // Add environment variables
-              {
-                label: '$env.',
-                detail: 'Environment variable',
-                sortText: '1',
-              },
-            ];
-            return {
-              suggestions: completionItems.map((item) => ({
-                kind: monaco.languages.CompletionItemKind.Module,
-                range,
-                insertText: `{${item.label}}}`,
-                ...item,
-              })),
-            };
+          {
+            ...githubDarkTheme,
+            name: MONACO_THEME_NAME.dark,
+            colors: {
+              ...githubDarkTheme.colors,
+              'editor.background': 'transparent',
+              'diffEditor.insertedLineBackground': '#69a3ff33',
+              'diffEditor.insertedTextBackground': '#69a3ff4d',
+              'scrollbarSlider.activeBackground': '#ccc5',
+              'scrollbarSlider.background': '#aaa5',
+              'scrollbarSlider.hoverBackground': '#bbb5',
+            },
           },
-        }),
-      ];
+        ],
+        langs: ['javascript', 'typescript', 'json'],
+      });
+      // Register the themes from Shiki, and provide syntax highlighting for Monaco
+      shikiToMonaco(highlighter, monaco);
+      // for cypress
+      window.monaco = monaco;
+      set({ monaco });
     },
   },
 });

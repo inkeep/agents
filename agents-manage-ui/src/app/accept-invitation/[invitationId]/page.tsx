@@ -1,8 +1,11 @@
 'use client';
 
-import { CheckCircle2, Loader2, XCircle } from 'lucide-react';
+import { AlertCircleIcon, CheckCircle2, Loader2, XCircle } from 'lucide-react';
 import { useParams, useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
+import { ErrorContent } from '@/components/errors/full-page-error';
+import { InkeepIcon } from '@/components/icons/inkeep';
+import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { useAuthSession } from '@/hooks/use-auth';
@@ -54,7 +57,7 @@ export default function AcceptInvitationPage() {
     }
 
     fetchInvitation();
-  }, [invitationId, user]);
+  }, [invitationId, user, authClient.organization.getInvitation]);
 
   const handleAccept = async () => {
     if (!user) {
@@ -112,10 +115,10 @@ export default function AcceptInvitationPage() {
   if (isLoading || isAuthLoading) {
     return (
       <div className="flex min-h-screen items-center justify-center">
-        <Card className="w-full max-w-md">
-          <CardContent className="flex flex-col items-center justify-center p-8">
-            <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
-            <p className="mt-4 text-sm text-muted-foreground">Loading invitation...</p>
+        <Card className="w-full max-w-md shadow-none border-none bg-transparent">
+          <CardContent className="flex items-center justify-center p-8 space-x-2">
+            <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
+            <p className="text-sm text-muted-foreground">Loading invitation...</p>
           </CardContent>
         </Card>
       </div>
@@ -125,20 +128,17 @@ export default function AcceptInvitationPage() {
   if (error && !invitation) {
     return (
       <div className="flex min-h-screen items-center justify-center p-4">
-        <Card className="w-full max-w-md">
-          <CardHeader>
-            <div className="flex items-center gap-2">
-              <XCircle className="h-6 w-6 text-destructive" />
-              <CardTitle>Invalid Invitation</CardTitle>
-            </div>
-            <CardDescription>{error}</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <Button onClick={() => router.push('/')} className="w-full">
-              Go to Dashboard
-            </Button>
-          </CardContent>
-        </Card>
+        <ErrorContent
+          title="Invalid invitation"
+          icon={XCircle}
+          showRetry={false}
+          description={
+            error ||
+            'This invitation is no longer valid. Please contact the administrator of the organization to request a new invitation.'
+          }
+          link="/"
+          linkText="Go home"
+        />
       </div>
     );
   }
@@ -146,11 +146,13 @@ export default function AcceptInvitationPage() {
   if (success) {
     return (
       <div className="flex min-h-screen items-center justify-center p-4">
-        <Card className="w-full max-w-md">
+        <Card className="w-full max-w-md shadow-none border-none bg-transparent">
           <CardHeader>
             <div className="flex items-center gap-2">
-              <CheckCircle2 className="h-6 w-6 text-green-600 dark:text-green-500" />
-              <CardTitle>Invitation Accepted!</CardTitle>
+              <CheckCircle2 className="h-6 w-6 text-emerald-500 dark:text-emerald-400" />
+              <CardTitle className="text-2xl font-medium tracking-tight text-foreground">
+                Invitation accepted
+              </CardTitle>
             </div>
             <CardDescription>
               You've successfully joined the organization. Redirecting...
@@ -165,16 +167,27 @@ export default function AcceptInvitationPage() {
   if (!user) {
     return (
       <div className="flex min-h-screen items-center justify-center p-4">
-        <Card className="w-full max-w-md">
+        <Card className="w-full max-w-md shadow-none border-none bg-transparent space-y-3">
+          <div className="px-6">
+            <InkeepIcon size={48} />
+          </div>
           <CardHeader>
-            <CardTitle>Organization Invitation</CardTitle>
-            <CardDescription>You've been invited to join an organization</CardDescription>
+            <CardTitle className="text-2xl font-medium tracking-tight text-foreground">
+              {invitation?.organizationName
+                ? `Join ${invitation.organizationName} on Inkeep`
+                : 'Accept invitation'}
+            </CardTitle>
+            <CardDescription>
+              You've been invited to join{' '}
+              {invitation?.organizationName ? (
+                <span className="font-medium">{invitation?.organizationName}</span>
+              ) : (
+                'an organization'
+              )}{' '}
+              on Inkeep, please sign in to continue.
+            </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
-            <div className="rounded-md bg-blue-500/10 p-3 text-sm text-blue-600 dark:text-blue-400">
-              Sign in to view invitation details and accept.
-            </div>
-
             <Button onClick={handleAccept} disabled={isAccepting} className="w-full">
               {isAccepting ? (
                 <>
@@ -182,7 +195,7 @@ export default function AcceptInvitationPage() {
                   Redirecting...
                 </>
               ) : (
-                'Sign In to Continue'
+                'Sign in to continue'
               )}
             </Button>
           </CardContent>
@@ -194,36 +207,37 @@ export default function AcceptInvitationPage() {
   // Show full invitation details when authenticated
   return (
     <div className="flex min-h-screen items-center justify-center p-4">
-      <Card className="w-full max-w-md">
+      <Card className="w-full max-w-md shadow-none border-none bg-transparent space-y-3">
+        <div className="px-6">
+          <InkeepIcon size={48} />
+        </div>
         <CardHeader>
-          <CardTitle>Organization Invitation</CardTitle>
+          <CardTitle className="text-2xl font-medium tracking-tight text-foreground">
+            {invitation?.organizationName
+              ? `Join ${invitation.organizationName} on Inkeep`
+              : 'Accept invitation on Inkeep'}
+          </CardTitle>
           <CardDescription>
-            You've been invited to join {invitation?.organizationName || 'an organization'}
+            {invitation?.organizationName ? (
+              <>
+                You've been invited to join{' '}
+                <span className="font-medium">{invitation.organizationName}</span> on Inkeep by{' '}
+                <span className="font-medium">{invitation.inviterEmail}</span>.
+              </>
+            ) : (
+              "You've been invited to join an organization on Inkeep."
+            )}
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
-          {invitation && (
-            <div className="rounded-lg border bg-muted/50 p-4 space-y-2">
-              <div className="flex justify-between text-sm">
-                <span className="text-muted-foreground">Organization:</span>
-                <span className="font-medium">{invitation.organizationName}</span>
-              </div>
-              <div className="flex justify-between text-sm">
-                <span className="text-muted-foreground">Role:</span>
-                <span className="font-medium capitalize">{invitation.role}</span>
-              </div>
-              <div className="flex justify-between text-sm">
-                <span className="text-muted-foreground">Invited by:</span>
-                <span className="font-medium">{invitation.inviterEmail}</span>
-              </div>
-            </div>
-          )}
-
           {error && (
-            <div className="rounded-md bg-destructive/10 p-3 text-sm text-destructive">{error}</div>
+            <Alert variant="destructive" className="border-destructive/10 dark:border-border">
+              <AlertCircleIcon className="h-4 w-4" />
+              <AlertDescription>{error}</AlertDescription>
+            </Alert>
           )}
 
-          <div className="flex gap-2">
+          <div className="flex gap-3">
             <Button onClick={handleAccept} disabled={isAccepting || !invitation} className="flex-1">
               {isAccepting ? (
                 <>

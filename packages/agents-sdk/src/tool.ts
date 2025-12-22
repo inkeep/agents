@@ -206,7 +206,9 @@ export class Tool implements ToolInterface {
    * ```
    */
   with(config: AgentMcpConfigInput): AgentMcpConfig {
-    const { selectedTools, toolPolicies } = normalizeToolSelections(config.selectedTools ?? undefined);
+    const { selectedTools, toolPolicies } = normalizeToolSelections(
+      config.selectedTools ?? undefined
+    );
 
     // Preserve semantic distinction:
     // - undefined/null input = all tools (return undefined)

@@ -1,5 +1,5 @@
+import { z } from '@hono/zod-openapi';
 import { loadEnvironmentFiles } from '@inkeep/agents-core';
-import { z } from 'zod';
 
 // Load all environment files using shared logic
 loadEnvironmentFiles();
@@ -34,6 +34,9 @@ const envSchema = z.object({
     .default('false')
     .transform((val) => val === 'true'),
   INKEEP_AGENTS_TEMP_JWT_PRIVATE_KEY: z.string().optional(),
+  SIGNOZ_URL: z.string().optional(),
+  SIGNOZ_API_KEY: z.string().optional(),
+  PUBLIC_SIGNOZ_URL: z.string().optional(),
 });
 
 const parseEnv = () => {
