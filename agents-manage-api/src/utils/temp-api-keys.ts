@@ -1,4 +1,4 @@
-import { createApiKey, type AgentsRunDatabaseClient, generateApiKey } from '@inkeep/agents-core';
+import { type AgentsRunDatabaseClient, createApiKey, generateApiKey } from '@inkeep/agents-core';
 
 export interface CreateTempApiKeyParams {
   tenantId: string;

@@ -5,9 +5,11 @@ import {
   type ArtifactComponentApiInsert,
   type CredentialStoreRegistry,
   CredentialStuffer,
-  type DataComponentApiInsert,
-  getLedgerArtifacts,
   createMessage,
+  type DataComponentApiInsert,
+  type FullExecutionContext,
+  generateId,
+  getLedgerArtifacts,
   listTaskIdsByContextId,
   MCPServerType,
   type MCPToolConfig,
@@ -22,11 +24,8 @@ import {
   parseEmbeddedJson,
   type ResolvedRef,
   type SubAgentStopWhen,
-  generateId,
   TemplateEngine,
-  type FullExecutionContext,
 } from '@inkeep/agents-core';
-import { ContextResolver } from '../context';
 import { type Span, SpanStatusCode, trace } from '@opentelemetry/api';
 import {
   generateObject,
@@ -37,6 +36,7 @@ import {
   type ToolSet,
   tool,
 } from 'ai';
+import { getFunctionToolsForSubAgent } from '../api/manage-api';
 import {
   AGENT_EXECUTION_MAX_GENERATION_STEPS,
   FUNCTION_TOOL_EXECUTION_TIMEOUT_MS_DEFAULT,
@@ -46,11 +46,13 @@ import {
   LLM_GENERATION_MAX_ALLOWED_TIMEOUT_MS,
   LLM_GENERATION_SUBSEQUENT_CALL_TIMEOUT_MS,
 } from '../constants/execution-limits';
+import { ContextResolver } from '../context';
 import {
   createDefaultConversationHistoryConfig,
   getFormattedConversationHistory,
 } from '../data/conversations';
 import dbClient from '../data/db/dbClient';
+import { env } from '../env';
 import { getLogger } from '../logger';
 import { agentSessionManager, type ToolCallData } from '../services/AgentSession';
 import { IncrementalStreamParser } from '../services/IncrementalStreamParser';
@@ -79,8 +81,6 @@ import { toolSessionManager } from './ToolSessionManager';
 import type { SystemPromptV1 } from './types';
 import { Phase1Config } from './versions/v1/Phase1Config';
 import { Phase2Config } from './versions/v1/Phase2Config';
-import { getFunctionToolsForSubAgent } from '../api/manage-api';
-import { env } from '../env';
 /**
  * Creates a stopWhen condition that stops when any tool call name starts with the given prefix
  * @param prefix - The prefix to check for in tool call names

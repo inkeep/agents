@@ -1,5 +1,6 @@
 import { createRoute, OpenAPIHono } from '@hono/zod-openapi';
 import {
+  AgentsManageDatabaseClient,
   CredentialReferenceApiSelectSchema,
   CredentialReferenceResponse,
   commonGetErrorResponses,
@@ -21,7 +22,6 @@ import {
   ToolApiUpdateSchema,
   ToolStatusSchema,
   updateTool,
-  AgentsManageDatabaseClient,
 } from '@inkeep/agents-core';
 import { getLogger } from '../logger';
 import { requirePermission } from '../middleware/require-permission';

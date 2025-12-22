@@ -15,9 +15,9 @@ import {
   type ResolvedRef,
   updateConversation,
 } from '@inkeep/agents-core';
-import { contextValidationMiddleware, handleContextResolution } from '../context';
 import { context as otelContext, propagation, trace } from '@opentelemetry/api';
 import { toFetchResponse, toReqRes } from 'fetch-to-node';
+import { contextValidationMiddleware, handleContextResolution } from '../context';
 import dbClient from '../data/db/dbClient';
 import { ExecutionHandler } from '../handlers/executionHandler';
 import { getLogger } from '../logger';

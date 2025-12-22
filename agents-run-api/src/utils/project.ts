@@ -1,17 +1,17 @@
-import { getLogger } from '../logger';
 import type {
-  CanDelegateToItem,
-  ToolApiSelect,
-  ExternalAgentApiSelect,
-  DataComponentApiSelect,
+  AgentWithinContextOfProjectSelectWithRelationIds,
   ArtifactComponentApiSelect,
   CanDelegateToExternalAgent,
-  FullProjectSelectWithRelationIds,
-  AgentWithinContextOfProjectSelectWithRelationIds,
+  CanDelegateToItem,
   CanRelateToInternalSubAgent,
+  DataComponentApiSelect,
+  ExternalAgentApiSelect,
   FullAgentSubAgentSelectWithRelationIds,
+  FullProjectSelectWithRelationIds,
+  ToolApiSelect,
 } from '@inkeep/agents-core';
 import { generateDescriptionWithRelationData } from '../data/agents';
+import { getLogger } from '../logger';
 
 const logger = getLogger('project-helper');
 

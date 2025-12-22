@@ -9,10 +9,10 @@ import type {
   SummaryEvent,
   TransferData,
 } from '@inkeep/agents-core';
-import { getLedgerArtifacts } from '@inkeep/agents-core';
 import {
   CONVERSATION_HISTORY_DEFAULT_LIMIT,
   CONVERSATION_HISTORY_MAX_OUTPUT_TOKENS_DEFAULT,
+  getLedgerArtifacts,
   ModelFactory,
 } from '@inkeep/agents-core';
 import { SpanStatusCode } from '@opentelemetry/api';
@@ -28,13 +28,13 @@ import {
   STATUS_UPDATE_DEFAULT_NUM_EVENTS,
 } from '../constants/execution-limits';
 import { getFormattedConversationHistory } from '../data/conversations';
+import dbClient from '../data/db/dbClient';
 import { getLogger } from '../logger';
 import { defaultStatusSchemas } from '../utils/default-status-schemas';
 import { getStreamHelper } from '../utils/stream-registry';
 import { setSpanWithError, tracer } from '../utils/tracer';
 import { ArtifactParser } from './ArtifactParser';
 import { ArtifactService } from './ArtifactService';
-import dbClient from '../data/db/dbClient';
 
 const logger = getLogger('AgentSession');
 

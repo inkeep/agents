@@ -1,13 +1,13 @@
+import {
+  type ContextConfigApiSelect,
+  type CredentialStoreRegistry,
+  createApiError,
+  FullExecutionContext,
+  getLogger,
+} from '@inkeep/agents-core';
 import Ajv, { type ValidateFunction } from 'ajv';
 import type { Context, Next } from 'hono';
 import { ContextResolver } from './ContextResolver';
-import {
-  type CredentialStoreRegistry,
-  type ContextConfigApiSelect,
-  createApiError,
-  getLogger,
-  FullExecutionContext,
-} from '@inkeep/agents-core';
 
 const logger = getLogger('context-validation');
 

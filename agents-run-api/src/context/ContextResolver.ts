@@ -1,8 +1,12 @@
 import crypto from 'node:crypto';
+import type {
+  ContextConfigApiSelect,
+  ContextFetchDefinition,
+  CredentialStoreRegistry,
+  FullExecutionContext,
+} from '@inkeep/agents-core';
+import { getLogger, getTracer, setSpanWithError } from '@inkeep/agents-core';
 import { type Span, SpanStatusCode } from '@opentelemetry/api';
-import type { CredentialStoreRegistry, FullExecutionContext } from '@inkeep/agents-core';
-import type { ContextConfigApiSelect, ContextFetchDefinition } from '@inkeep/agents-core';
-import { getLogger, setSpanWithError, getTracer } from '@inkeep/agents-core';
 import { ContextFetcher } from './ContextFetcher';
 import { ContextCache } from './contextCache';
 

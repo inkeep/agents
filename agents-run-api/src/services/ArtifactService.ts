@@ -8,13 +8,13 @@ import {
 } from '@inkeep/agents-core';
 import jmespath from 'jmespath';
 import { toolSessionManager } from '../agents/ToolSessionManager';
+import dbClient from '../data/db/dbClient';
 import { getLogger } from '../logger';
 import {
   type ExtendedJsonSchema,
   extractFullFields,
   extractPreviewFields,
 } from '../utils/schema-validation';
-import dbClient from '../data/db/dbClient';
 import { agentSessionManager } from './AgentSession';
 
 const logger = getLogger('ArtifactService');

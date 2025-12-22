@@ -1,5 +1,6 @@
 import { createRoute, OpenAPIHono } from '@hono/zod-openapi';
 import {
+  cascadeDeleteByProject,
   commonGetErrorResponses,
   createApiError,
   createProject,
@@ -16,17 +17,16 @@ import {
   ProjectApiUpdateSchema,
   ProjectListResponse,
   ProjectResponse,
+  type ResolvedRef,
   TenantIdParamsSchema,
   TenantParamsSchema,
   updateProject,
-  cascadeDeleteByProject,
-  type ResolvedRef,
 } from '@inkeep/agents-core';
+import dbClient from '../data/db/dbClient';
+import runDbClient from '../data/db/runDbClient';
 import { requirePermission } from '../middleware/require-permission';
 import type { BaseAppVariables } from '../types/app';
 import { speakeasyOffsetLimitPagination } from './shared';
-import runDbClient from '../data/db/runDbClient';
-import dbClient from '../data/db/dbClient';
 
 const app = new OpenAPIHono<{ Variables: BaseAppVariables }>();
 

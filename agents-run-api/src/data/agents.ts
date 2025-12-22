@@ -1,14 +1,14 @@
 import {
   type CredentialStoreRegistry,
+  type FullAgentSubAgentSelectWithRelationIds,
   type FullExecutionContext,
   type SubAgentSelect,
-  type FullAgentSubAgentSelectWithRelationIds,
 } from '@inkeep/agents-core';
-import { getSubAgentFromProject } from '../utils/project';
 import type { AgentCard, RegisteredAgent } from '../a2a/types';
 import { createTaskHandler, createTaskHandlerConfig } from '../agents/generateTaskHandler';
 import { getLogger } from '../logger';
 import { getUserIdFromContext, type SandboxConfig } from '../types/execution-context';
+import { getSubAgentFromProject } from '../utils/project';
 
 const logger = getLogger('agents');
 

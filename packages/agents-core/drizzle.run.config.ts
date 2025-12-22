@@ -13,4 +13,3 @@ export default defineConfig({
     url: env.INKEEP_AGENTS_RUN_DATABASE_URL,
   },
 });
-

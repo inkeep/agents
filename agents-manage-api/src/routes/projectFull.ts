@@ -1,5 +1,6 @@
 import { createRoute, OpenAPIHono, z } from '@hono/zod-openapi';
 import {
+  cascadeDeleteByProject,
   commonGetErrorResponses,
   createApiError,
   createFullProjectServerSide,
@@ -15,20 +16,18 @@ import {
   FullProjectSelectWithRelationIdsResponse,
   getFullProject,
   getFullProjectWithRelationIds,
-  getProjectMetadata,
   getProjectMainBranchName,
+  getProjectMetadata,
+  type ResolvedRef,
   TenantParamsSchema,
   TenantProjectParamsSchema,
   updateFullProjectServerSide,
-  cascadeDeleteByProject,
-  type ResolvedRef,
 } from '@inkeep/agents-core';
-
+import dbClient from '../data/db/dbClient';
+import runDbClient from '../data/db/runDbClient';
 import { getLogger } from '../logger';
 import { requirePermission } from '../middleware/require-permission';
 import type { BaseAppVariables } from '../types/app';
-import runDbClient from '../data/db/runDbClient';
-import dbClient from '../data/db/dbClient';
 
 const logger = getLogger('projectFull');
 

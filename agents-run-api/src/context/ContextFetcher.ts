@@ -1,13 +1,12 @@
-import jmespath from 'jmespath';
-import type { CredentialStoreRegistry } from '@inkeep/agents-core';
-import { CredentialStuffer } from '@inkeep/agents-core';
-import type { ContextFetchDefinition } from '@inkeep/agents-core';
+import type { ContextFetchDefinition, CredentialStoreRegistry } from '@inkeep/agents-core';
 import {
-  getLogger,
-  TemplateEngine,
-  type TemplateContext,
+  CredentialStuffer,
   type FullExecutionContext,
+  getLogger,
+  type TemplateContext,
+  TemplateEngine,
 } from '@inkeep/agents-core';
+import jmespath from 'jmespath';
 import { validateAgainstJsonSchema } from './validation';
 
 const logger = getLogger('context-fetcher');

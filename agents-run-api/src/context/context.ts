@@ -1,16 +1,16 @@
 import {
+  type CredentialStoreRegistry,
+  FullExecutionContext,
   getAgentWithDefaultSubAgent,
   getContextConfigById,
   getConversation,
-  updateConversation,
-  type CredentialStoreRegistry,
   getLogger,
-  setSpanWithError,
   getTracer,
-  FullExecutionContext,
+  setSpanWithError,
+  updateConversation,
 } from '@inkeep/agents-core';
-import dbClient from '../data/db/dbClient';
 import { type Span, SpanStatusCode } from '@opentelemetry/api';
+import dbClient from '../data/db/dbClient';
 import { ContextResolver, type ResolvedContext } from './ContextResolver';
 
 const logger = getLogger('context');

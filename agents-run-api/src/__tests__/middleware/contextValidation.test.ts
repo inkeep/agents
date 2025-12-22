@@ -1,7 +1,7 @@
 import { z } from '@hono/zod-openapi';
+import { convertZodToJsonSchema } from '@inkeep/agents-core';
 import { describe, expect, it } from 'vitest';
 import { validationHelper } from '../../context/validation';
-import { convertZodToJsonSchema } from '@inkeep/agents-core';
 
 describe('Context Validation with Zod to JSON Schema conversion and AJV', () => {
   describe('Basic Zod to JSON Schema conversion', () => {

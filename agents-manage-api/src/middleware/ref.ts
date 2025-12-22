@@ -1,13 +1,13 @@
 import {
   createApiError,
   doltBranch,
+  getLogger,
   isRefWritable,
   type ResolvedRef,
   resolveRef,
-  getLogger,
 } from '@inkeep/agents-core';
-import dbClient from '../data/db/dbClient';
 import type { Context, Next } from 'hono';
+import dbClient from '../data/db/dbClient';
 
 const logger = getLogger('ref');
 

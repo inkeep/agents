@@ -1,18 +1,18 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 import {
-  getAgentFromProject,
-  getSubAgentFromProject,
-  extractTransferRelations,
-  parseDelegateRelations,
-  getSubAgentRelations,
-  getToolsForSubAgent,
-  getDataComponentsForSubAgent,
-  getArtifactComponentsForSubAgent,
-  getTransferRelationsForTargetSubAgent,
-  getExternalAgentRelationsForTargetSubAgent,
   buildRelationsForDescription,
   enhanceInternalRelation,
   enhanceTeamRelation,
+  extractTransferRelations,
+  getAgentFromProject,
+  getArtifactComponentsForSubAgent,
+  getDataComponentsForSubAgent,
+  getExternalAgentRelationsForTargetSubAgent,
+  getSubAgentFromProject,
+  getSubAgentRelations,
+  getToolsForSubAgent,
+  getTransferRelationsForTargetSubAgent,
+  parseDelegateRelations,
 } from '../project';
 
 // Mock the logger

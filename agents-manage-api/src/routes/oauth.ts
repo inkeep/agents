@@ -11,11 +11,11 @@
 
 import { createRoute, OpenAPIHono, z } from '@hono/zod-openapi';
 import {
+  type AgentsManageDatabaseClient,
   type CredentialReferenceApiInsert,
   CredentialReferenceApiSelectSchema,
   CredentialStoreType,
   createCredentialReference,
-  type AgentsManageDatabaseClient,
   generateId,
   getCredentialReferenceWithResources,
   getToolById,

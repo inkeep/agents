@@ -2,6 +2,7 @@ import { createRoute, OpenAPIHono, z } from '@hono/zod-openapi';
 import {
   AgentWithinContextOfProjectResponse,
   AgentWithinContextOfProjectSchema,
+  cascadeDeleteByAgent,
   commonGetErrorResponses,
   createApiError,
   createFullAgentServerSide,
@@ -13,12 +14,11 @@ import {
   TenantProjectAgentParamsSchema,
   TenantProjectParamsSchema,
   updateFullAgentServerSide,
-  cascadeDeleteByAgent,
 } from '@inkeep/agents-core';
+import runDbClient from '../data/db/runDbClient';
 import { getLogger } from '../logger';
 import { requirePermission } from '../middleware/require-permission';
 import type { BaseAppVariables } from '../types/app';
-import runDbClient from '../data/db/runDbClient';
 
 const logger = getLogger('agentFull');
 

@@ -1,8 +1,8 @@
+import type { ResolvedRef } from '@inkeep/agents-core';
 import { getLedgerArtifacts, getTask, listTaskIdsByContextId } from '@inkeep/agents-core';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { toolSessionManager } from '../../agents/ToolSessionManager';
 import { agentSessionManager } from '../AgentSession';
-import type { ResolvedRef } from '@inkeep/agents-core';
 import {
   type ArtifactCreateRequest,
   ArtifactService,

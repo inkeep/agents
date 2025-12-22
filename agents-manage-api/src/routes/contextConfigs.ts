@@ -4,6 +4,7 @@ import {
   ContextConfigApiUpdateSchema,
   ContextConfigListResponse,
   ContextConfigResponse,
+  cascadeDeleteByContextConfig,
   commonDeleteErrorResponses,
   commonGetErrorResponses,
   commonUpdateErrorResponses,
@@ -16,12 +17,11 @@ import {
   TenantProjectAgentIdParamsSchema,
   TenantProjectAgentParamsSchema,
   updateContextConfig,
-  cascadeDeleteByContextConfig,
 } from '@inkeep/agents-core';
+import runDbClient from '../data/db/runDbClient';
 import { requirePermission } from '../middleware/require-permission';
 import type { BaseAppVariables } from '../types/app';
 import { speakeasyOffsetLimitPagination } from './shared';
-import runDbClient from '../data/db/runDbClient';
 
 const app = new OpenAPIHono<{ Variables: BaseAppVariables }>();
 

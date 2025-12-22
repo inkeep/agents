@@ -1,41 +1,41 @@
 import { z } from '@hono/zod-openapi';
 import {
-  type FullExecutionContext,
-  type McpTool,
   type CredentialStoreReference,
   type CredentialStoreRegistry,
   CredentialStuffer,
   createMessage,
+  type FullExecutionContext,
   generateId,
   generateServiceToken,
   headers,
+  type McpTool,
   SPAN_KEYS,
   TemplateEngine,
 } from '@inkeep/agents-core';
-import { ContextResolver } from '../context';
 import { trace } from '@opentelemetry/api';
 import { tool } from 'ai';
 import { A2AClient } from '../a2a/client';
-import { env } from '../env';
+import { getMcpTool } from '../api/manage-api';
 import {
   DELEGATION_TOOL_BACKOFF_EXPONENT,
   DELEGATION_TOOL_BACKOFF_INITIAL_INTERVAL_MS,
   DELEGATION_TOOL_BACKOFF_MAX_ELAPSED_TIME_MS,
   DELEGATION_TOOL_BACKOFF_MAX_INTERVAL_MS,
 } from '../constants/execution-limits';
+import { ContextResolver } from '../context';
 import { saveA2AMessageResponse } from '../data/conversations';
 import dbClient from '../data/db/dbClient';
+import { env } from '../env';
 import { getLogger } from '../logger';
 import { agentSessionManager } from '../services/AgentSession';
-import type { AgentConfig, DelegateRelation } from './Agent';
-import { toolSessionManager } from './ToolSessionManager';
 import {
+  getExternalAgentRelationsForTargetSubAgent,
   getToolsForSubAgent,
   getTransferRelationsForTargetSubAgent,
-  getExternalAgentRelationsForTargetSubAgent,
   type InternalRelation,
 } from '../utils/project';
-import { getMcpTool } from '../api/manage-api';
+import type { AgentConfig, DelegateRelation } from './Agent';
+import { toolSessionManager } from './ToolSessionManager';
 
 const logger = getLogger('relationships Tools');
 

@@ -1,6 +1,6 @@
 import type {
-  CredentialStoreRegistry,
   AgentsManageDatabaseClient,
+  CredentialStoreRegistry,
   ResolvedRef,
   ServerConfig,
 } from '@inkeep/agents-core';

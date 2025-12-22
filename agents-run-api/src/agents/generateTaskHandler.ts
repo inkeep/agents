@@ -1,7 +1,7 @@
 import {
   type AgentConversationHistoryConfig,
-  type FullExecutionContext,
   type CredentialStoreRegistry,
+  type FullExecutionContext,
   generateId,
   type McpTool,
   type Part,
@@ -9,21 +9,21 @@ import {
   TaskState,
 } from '@inkeep/agents-core';
 import type { A2ATask, A2ATaskResult } from '../a2a/types';
+import { getMcpTool } from '../api/manage-api';
 import { env } from '../env';
 import { getLogger } from '../logger';
 import { agentSessionManager } from '../services/AgentSession';
 import type { SandboxConfig } from '../types/execution-context';
 import { resolveModelConfig } from '../utils/model-resolver';
 import {
-  getSubAgentRelations,
-  getToolsForSubAgent,
-  getDataComponentsForSubAgent,
-  getArtifactComponentsForSubAgent,
   enhanceInternalRelation,
   enhanceTeamRelation,
+  getArtifactComponentsForSubAgent,
+  getDataComponentsForSubAgent,
+  getSubAgentRelations,
+  getToolsForSubAgent,
 } from '../utils/project';
 import { Agent } from './Agent';
-import { getMcpTool } from '../api/manage-api';
 import { buildTransferRelationConfig } from './relationTools';
 import { toolSessionManager } from './ToolSessionManager';
 

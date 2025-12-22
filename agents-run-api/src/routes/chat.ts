@@ -1,18 +1,18 @@
 import { createRoute, OpenAPIHono, z } from '@hono/zod-openapi';
 import {
   type CredentialStoreRegistry,
-  type FullExecutionContext,
   createApiError,
   createMessage,
   createOrGetConversation,
+  type FullExecutionContext,
   generateId,
   getActiveAgentForConversation,
   getConversationId,
   setActiveAgentForConversation,
 } from '@inkeep/agents-core';
-import { contextValidationMiddleware, handleContextResolution } from '../context';
 import { context as otelContext, propagation, trace } from '@opentelemetry/api';
 import { streamSSE } from 'hono/streaming';
+import { contextValidationMiddleware, handleContextResolution } from '../context';
 import dbClient from '../data/db/dbClient';
 import { ExecutionHandler } from '../handlers/executionHandler';
 import { getLogger } from '../logger';

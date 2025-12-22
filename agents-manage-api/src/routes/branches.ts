@@ -1,9 +1,10 @@
-import { createRoute } from '@hono/zod-openapi';
+import { createRoute, OpenAPIHono } from '@hono/zod-openapi';
 import {
   BranchListResponseSchema,
   BranchNameParamsSchema,
   BranchResponseSchema,
   CreateBranchRequestSchema,
+  cascadeDeleteByBranch,
   commonGetErrorResponses,
   createApiError,
   createBranch,
@@ -14,11 +15,9 @@ import {
   listBranchesForAgent,
   TenantProjectAgentParamsSchema,
   TenantProjectParamsSchema,
-  cascadeDeleteByBranch,
 } from '@inkeep/agents-core';
-import { OpenAPIHono } from '@hono/zod-openapi';
-import type { BaseAppVariables } from '../types/app';
 import runDbClient from '../data/db/runDbClient';
+import type { BaseAppVariables } from '../types/app';
 
 const app = new OpenAPIHono<{ Variables: BaseAppVariables }>();
 

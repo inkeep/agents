@@ -1,8 +1,8 @@
 import { otel } from '@hono/otel';
 import { createRoute, OpenAPIHono } from '@hono/zod-openapi';
 import {
-  type CredentialStoreRegistry,
   type BaseExecutionContext,
+  type CredentialStoreRegistry,
   type FullProjectDefinition,
   handleApiError,
   type ServerConfig,
