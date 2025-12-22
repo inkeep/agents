@@ -241,10 +241,12 @@ describe('Ledger Artifacts Data Access', () => {
         artifactId: testArtifactId,
         type: 'source',
         taskId: testTaskId,
+        toolCallId: undefined,
         name: 'Test Artifact',
         description: 'A test artifact',
         parts: [{ kind: 'text', text: 'Hello' }],
         metadata: { key: 'value' },
+        createdAt: '2024-01-01T00:00:00Z',
       });
     });
 
@@ -287,10 +289,12 @@ describe('Ledger Artifacts Data Access', () => {
         artifactId: testArtifactId,
         type: 'generated',
         taskId: undefined,
+        toolCallId: undefined,
         name: undefined,
         description: undefined,
         parts: [],
         metadata: {},
+        createdAt: '2024-01-01T00:00:00Z',
       });
     });
 
@@ -340,7 +344,7 @@ describe('Ledger Artifacts Data Access', () => {
         getLedgerArtifacts(mockDb)({
           scopes: { tenantId: testTenantId, projectId: testProjectId },
         })
-      ).rejects.toThrow('At least one of taskId, toolCallId, or artifactId must be provided');
+      ).rejects.toThrow('At least one of taskId, toolCallId, toolCallIds, or artifactId must be provided');
     });
 
     it('should return empty array when no artifacts found', async () => {
