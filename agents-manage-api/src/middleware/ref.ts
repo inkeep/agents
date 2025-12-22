@@ -112,24 +112,47 @@ export const refMiddleware = async (c: Context, next: Next) => {
       resolvedRef = refResult;
     } else {
       // No ref provided, use project main
-      let refResult = await resolveRef(dbClient)(projectMain);
-
-      if (!refResult) {
-        // Project main doesn't exist, create it
-        await doltBranch(dbClient)({ name: projectMain });
-
-        // Resolve the newly created branch
+      let refResult: Awaited<ReturnType<ReturnType<typeof resolveRef>>> = null;
+      try {
         refResult = await resolveRef(dbClient)(projectMain);
-
-        if (!refResult) {
-          throw createApiError({
-            code: 'internal_server_error',
-            message: `Failed to create project main branch: ${projectMain}`,
-          });
-        }
+      } catch (error) {
+        // If resolveRef fails (e.g., database connection issue), treat as project not found
+        logger.warn({ error, projectMain }, 'Failed to resolve project main branch');
+        refResult = null;
       }
 
-      resolvedRef = refResult;
+      if (!refResult) {
+        // Project main doesn't exist - the project doesn't exist
+        // For PUT requests (upsert behavior), fall back to tenant_main to allow project creation
+        // For GET/DELETE, return 404
+        const method = c.req.method;
+        if (method === 'PUT') {
+          // Fall back to tenant_main for upsert - let the route handler create the project
+          const tenantMain = `${tenantId}_main`;
+          let tenantRefResult = await resolveRef(dbClient)(tenantMain);
+          if (!tenantRefResult) {
+            // Create tenant main if it doesn't exist
+            await doltBranch(dbClient)({ name: tenantMain });
+            tenantRefResult = await resolveRef(dbClient)(tenantMain);
+          }
+          if (tenantRefResult) {
+            resolvedRef = tenantRefResult;
+          } else {
+            throw createApiError({
+              code: 'internal_server_error',
+              message: `Failed to create tenant main branch for upsert`,
+            });
+          }
+        } else {
+          // For GET, DELETE, etc. - project doesn't exist
+          throw createApiError({
+            code: 'not_found',
+            message: `Project not found: ${projectId}`,
+          });
+        }
+      } else {
+        resolvedRef = refResult;
+      }
     }
   } else {
     // Tenant-level branch resolution (for /projects endpoint, etc.)

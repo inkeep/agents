@@ -14,14 +14,16 @@ import {
 // Mock the dolt branch operations
 vi.mock('../../dolt/branch', () => ({
   doltBranch: vi.fn(),
+  doltBranchExists: vi.fn(),
   doltDeleteBranch: vi.fn(),
 }));
 
 // Import mocked modules
-import { doltBranch, doltDeleteBranch } from '../../dolt/branch';
+import { doltBranch, doltBranchExists, doltDeleteBranch } from '../../dolt/branch';
 
 // Type the mocked functions
 const mockedDoltBranch = doltBranch as ReturnType<typeof vi.fn>;
+const mockedDoltBranchExists = doltBranchExists as ReturnType<typeof vi.fn>;
 const mockedDoltDeleteBranch = doltDeleteBranch as ReturnType<typeof vi.fn>;
 
 describe('Project Lifecycle Utilities', () => {
@@ -56,6 +58,8 @@ describe('Project Lifecycle Utilities', () => {
   describe('createProjectMetadataAndBranch', () => {
     it('should create project metadata and call doltBranch', async () => {
       const mockConfigDb = {} as any;
+      const mockDoltBranchExistsFn = vi.fn().mockResolvedValue(false);
+      mockedDoltBranchExists.mockReturnValue(mockDoltBranchExistsFn);
       const mockDoltBranchFn = vi.fn().mockResolvedValue(undefined);
       mockedDoltBranch.mockReturnValue(mockDoltBranchFn);
 
@@ -88,6 +92,8 @@ describe('Project Lifecycle Utilities', () => {
 
     it('should rollback project metadata if branch creation fails', async () => {
       const mockConfigDb = {} as any;
+      const mockDoltBranchExistsFn = vi.fn().mockResolvedValue(false);
+      mockedDoltBranchExists.mockReturnValue(mockDoltBranchExistsFn);
       const mockDoltBranchFn = vi.fn().mockRejectedValue(new Error('Branch creation failed'));
       mockedDoltBranch.mockReturnValue(mockDoltBranchFn);
 
@@ -108,6 +114,8 @@ describe('Project Lifecycle Utilities', () => {
 
     it('should create project without createdBy', async () => {
       const mockConfigDb = {} as any;
+      const mockDoltBranchExistsFn = vi.fn().mockResolvedValue(false);
+      mockedDoltBranchExists.mockReturnValue(mockDoltBranchExistsFn);
       const mockDoltBranchFn = vi.fn().mockResolvedValue(undefined);
       mockedDoltBranch.mockReturnValue(mockDoltBranchFn);
 

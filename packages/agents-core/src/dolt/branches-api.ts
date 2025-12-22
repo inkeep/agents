@@ -130,11 +130,9 @@ export const getBranch =
   async (params: GetBranchParams): Promise<BranchInfo | null> => {
     const { tenantId, projectId, name } = params;
 
-    // Special case: "main" refers to the tenant main branch
-    const fullName =
-      name === MAIN_BRANCH_SUFFIX
-        ? getTenantMainBranch(tenantId)
-        : doltGetBranchNamespace({ tenantId, projectId, branchName: name })();
+    // All branch names are project-scoped: {tenantId}_{projectId}_{branchName}
+    // "main" refers to the project's main branch, not the tenant main branch
+    const fullName = doltGetBranchNamespace({ tenantId, projectId, branchName: name })();
 
     // Find the branch
     const branches = await doltListBranches(db)();
@@ -153,7 +151,8 @@ export const getBranch =
 
 /**
  * List all branches for a project
- * Includes the tenant main branch and all project-specific branches
+ * Returns only project-specific branches (e.g., {tenantId}_{projectId}_main, {tenantId}_{projectId}_feature-x)
+ * Does NOT include the tenant_main branch as that's an organizational branch, not a project development branch
  */
 export const listBranches =
   (db: AgentsManageDatabaseClient) =>
@@ -163,20 +162,7 @@ export const listBranches =
     // Get all branches
     const allBranches = await doltListBranches(db)();
 
-    const branches: BranchInfo[] = [];
-
-    // Add tenant main branch
-    const tenantMain = getTenantMainBranch(tenantId);
-    const mainBranch = allBranches.find((b) => b.name === tenantMain);
-    if (mainBranch) {
-      branches.push({
-        baseName: MAIN_BRANCH_SUFFIX,
-        fullName: mainBranch.name,
-        hash: mainBranch.hash,
-      });
-    }
-
-    // Filter and add branches that match the project namespace
+    // Filter branches that match the project namespace: {tenantId}_{projectId}_*
     const prefix = `${tenantId}_${projectId}_`;
     const projectBranches = allBranches
       .filter((b) => b.name.startsWith(prefix))
@@ -186,9 +172,7 @@ export const listBranches =
         hash: b.hash,
       }));
 
-    branches.push(...projectBranches);
-
-    return branches;
+    return projectBranches;
   };
 
 export const listBranchesForAgent =

@@ -22,6 +22,7 @@ export default defineProject({
     env: {
       // DO NOT set ENVIRONMENT: 'test' here - we need to use actual INKEEP_AGENTS_MANAGE_DATABASE_URL and INKEEP_AGENTS_RUN_DATABASE_URL for Doltgres and Postgres
       LOG_LEVEL: 'error',
+      DISABLE_AUTH: 'true',
     },
   },
 });

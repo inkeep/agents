@@ -19,7 +19,11 @@ jobs:
 
     services:
       doltgres:
-        image: inkeep/doltgres:latest
+        image: dolthub/doltgresql:latest
+        environment:
+          DOLTGRES_USER: appuser
+          DOLTGRES_PASSWORD: password
+          DOLTGRES_DB: inkeep_agents
         env:
           DOLTGRES_DATA_DIR: /var/lib/doltgres
         ports:
@@ -105,5 +109,5 @@ jobs:
           TURBO_CACHE_DIR: .turbo
           TURBO_TOKEN: ${{ secrets.TURBO_TOKEN }}
           TURBO_TEAM: ${{ secrets.TURBO_TEAM }}
-          INKEEP_AGENTS_MANAGE_DATABASE_URL: postgresql://postgres:password@localhost:5432/inkeep_agents
-          INKEEP_AGENTS_RUN_DATABASE_URL: postgresql://postgres:password@localhost:5433/inkeep_agents
+          INKEEP_AGENTS_MANAGE_DATABASE_URL: postgresql://appuser:password@localhost:5432/inkeep_agents
+          INKEEP_AGENTS_RUN_DATABASE_URL: postgresql://appuser:password@localhost:5433/inkeep_agents

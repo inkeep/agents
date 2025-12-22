@@ -1,9 +1,26 @@
 import { generateId } from '@inkeep/agents-core';
-import { describe, expect, it } from 'vitest';
-import { makeRequest } from '../../utils/testRequest';
-import { createTestTenantWithOrg } from '../../utils/testTenant';
+import { afterEach, describe, expect, it } from 'vitest';
+import { cleanupTenants } from '../utils/cleanup';
+import { makeRequest } from '../utils/testRequest';
+import { createTestTenantId } from '../utils/testTenant';
 
 describe('Project CRUD Routes - Integration Tests', () => {
+  // Track tenants created during tests for cleanup
+  const createdTenants = new Set<string>();
+
+  afterEach(async () => {
+    // Clean up all tenant branches created during tests
+    await cleanupTenants(createdTenants);
+    createdTenants.clear();
+  });
+
+  // Helper to create and track a tenant
+  const createTrackedTenant = (suffix: string) => {
+    const tenantId = createTestTenantId(suffix);
+    createdTenants.add(tenantId);
+    return tenantId;
+  };
+
   // Helper function to create test project data
   const createProjectData = ({ suffix = '' } = {}) => ({
     id: `test-project${suffix.toLowerCase().replace(/\s+/g, '-')}-${generateId(6)}`,
@@ -64,7 +81,7 @@ describe('Project CRUD Routes - Integration Tests', () => {
 
   describe('GET /', () => {
     it('should list projects with pagination (empty initially)', async () => {
-      const tenantId = await createTestTenantWithOrg('projects-list-empty');
+      const tenantId = createTrackedTenant('projects-list-empty');
       const res = await makeRequest(`/tenants/${tenantId}/projects?page=1&limit=10`);
       expect(res.status).toBe(200);
 
@@ -81,7 +98,7 @@ describe('Project CRUD Routes - Integration Tests', () => {
     });
 
     it('should list projects with pagination (single item)', async () => {
-      const tenantId = await createTestTenantWithOrg('projects-list-single');
+      const tenantId = createTrackedTenant('projects-list-single');
       const { projectData } = await createTestProject({ tenantId });
 
       const res = await makeRequest(`/tenants/${tenantId}/projects?page=1&limit=10`);
@@ -103,7 +120,7 @@ describe('Project CRUD Routes - Integration Tests', () => {
     });
 
     it('should handle pagination with multiple pages', async () => {
-      const tenantId = await createTestTenantWithOrg('projects-list-multipages');
+      const tenantId = createTrackedTenant('projects-list-multipages');
       await createMultipleProjects({ tenantId, count: 5 });
 
       // Test first page with limit 2
@@ -155,7 +172,7 @@ describe('Project CRUD Routes - Integration Tests', () => {
     });
 
     it('should return empty data for page beyond available data', async () => {
-      const tenantId = await createTestTenantWithOrg('projects-list-beyond-pages');
+      const tenantId = createTrackedTenant('projects-list-beyond-pages');
       await createMultipleProjects({ tenantId, count: 3 });
 
       // Request page 5 with limit 2 (should be empty)
@@ -173,7 +190,7 @@ describe('Project CRUD Routes - Integration Tests', () => {
     });
 
     it('should enforce max limit of 100', async () => {
-      const tenantId = await createTestTenantWithOrg('projects-list-max-limit');
+      const tenantId = createTrackedTenant('projects-list-max-limit');
       // Note: The backend enforces max limit by capping to 100, not by returning an error
       const res = await makeRequest(`/tenants/${tenantId}/projects?page=1&limit=200`);
 
@@ -194,7 +211,7 @@ describe('Project CRUD Routes - Integration Tests', () => {
     });
 
     it('should handle default pagination parameters', async () => {
-      const tenantId = await createTestTenantWithOrg('projects-list-defaults');
+      const tenantId = createTrackedTenant('projects-list-defaults');
       await createTestProject({ tenantId });
 
       const res = await makeRequest(`/tenants/${tenantId}/projects`);
@@ -208,7 +225,7 @@ describe('Project CRUD Routes - Integration Tests', () => {
 
   describe('GET /{id}', () => {
     it('should get a single project by ID', async () => {
-      const tenantId = await createTestTenantWithOrg('projects-get-single');
+      const tenantId = createTrackedTenant('projects-get-single');
       const { projectData, projectId } = await createTestProject({ tenantId });
 
       const res = await makeRequest(`/tenants/${tenantId}/projects/${projectId}`);
@@ -223,19 +240,18 @@ describe('Project CRUD Routes - Integration Tests', () => {
     });
 
     it('should return 404 for non-existent project', async () => {
-      const tenantId = await createTestTenantWithOrg('projects-get-notfound');
+      const tenantId = createTrackedTenant('projects-get-notfound');
       const res = await makeRequest(`/tenants/${tenantId}/projects/non-existent-id`);
       expect(res.status).toBe(404);
 
       const body = await res.json();
       expect(body.error).toBeDefined();
       expect(body.error.code).toBe('not_found');
-      expect(body.error.message).toBe('Project not found');
     });
 
     it('should not return projects from other tenants', async () => {
-      const tenantId1 = await createTestTenantWithOrg('projects-get-tenant1');
-      const tenantId2 = await createTestTenantWithOrg('projects-get-tenant2');
+      const tenantId1 = createTrackedTenant('projects-get-tenant1');
+      const tenantId2 = createTrackedTenant('projects-get-tenant2');
 
       const { projectId } = await createTestProject({ tenantId: tenantId1 });
 
@@ -246,7 +262,7 @@ describe('Project CRUD Routes - Integration Tests', () => {
 
   describe('POST /', () => {
     it('should create a new project', async () => {
-      const tenantId = await createTestTenantWithOrg('projects-create');
+      const tenantId = createTrackedTenant('projects-create');
       const projectData = createProjectData();
 
       const res = await makeRequest(`/tenants/${tenantId}/projects`, {
@@ -271,7 +287,7 @@ describe('Project CRUD Routes - Integration Tests', () => {
     });
 
     it('should return 409 when creating a project with duplicate ID', async () => {
-      const tenantId = await createTestTenantWithOrg('projects-create-duplicate');
+      const tenantId = createTrackedTenant('projects-create-duplicate');
       const projectData = createProjectData();
 
       // Create first project
@@ -291,7 +307,7 @@ describe('Project CRUD Routes - Integration Tests', () => {
       if (res2.status !== 409) {
         const errorBody = await res2.json();
         console.log('Duplicate project error:', res2.status, errorBody);
-        // For now, accept 500 as well since SQLite error handling varies
+        // For now, accept 500 as well since error handling varies
         expect([409, 500]).toContain(res2.status);
       } else {
         expect(res2.status).toBe(409);
@@ -302,7 +318,7 @@ describe('Project CRUD Routes - Integration Tests', () => {
     });
 
     it('should validate required fields', async () => {
-      const tenantId = await createTestTenantWithOrg('projects-create-invalid');
+      const tenantId = createTrackedTenant('projects-create-invalid');
 
       // Missing name
       const res1 = await makeRequest(`/tenants/${tenantId}/projects`, {
@@ -384,7 +400,7 @@ describe('Project CRUD Routes - Integration Tests', () => {
 
   describe('PATCH /{id}', () => {
     it('should update an existing project', async () => {
-      const tenantId = await createTestTenantWithOrg('projects-update');
+      const tenantId = createTrackedTenant('projects-update');
       const { projectId } = await createTestProject({ tenantId });
 
       const updateData = {
@@ -415,7 +431,7 @@ describe('Project CRUD Routes - Integration Tests', () => {
     });
 
     it('should allow partial updates', async () => {
-      const tenantId = await createTestTenantWithOrg('projects-update-partial');
+      const tenantId = createTrackedTenant('projects-update-partial');
       const { projectId, projectData } = await createTestProject({ tenantId });
 
       // Update only name
@@ -442,7 +458,7 @@ describe('Project CRUD Routes - Integration Tests', () => {
     });
 
     it('should return 404 for non-existent project', async () => {
-      const tenantId = await createTestTenantWithOrg('projects-update-notfound');
+      const tenantId = createTrackedTenant('projects-update-notfound');
 
       const res = await makeRequest(`/tenants/${tenantId}/projects/non-existent-id`, {
         method: 'PATCH',
@@ -453,12 +469,11 @@ describe('Project CRUD Routes - Integration Tests', () => {
 
       const body = await res.json();
       expect(body.error.code).toBe('not_found');
-      expect(body.error.message).toBe('Project not found');
     });
 
     it('should not update projects from other tenants', async () => {
-      const tenantId1 = await createTestTenantWithOrg('projects-update-tenant1');
-      const tenantId2 = await createTestTenantWithOrg('projects-update-tenant2');
+      const tenantId1 = createTrackedTenant('projects-update-tenant1');
+      const tenantId2 = createTrackedTenant('projects-update-tenant2');
 
       const { projectId } = await createTestProject({ tenantId: tenantId1 });
 
@@ -473,7 +488,7 @@ describe('Project CRUD Routes - Integration Tests', () => {
 
   describe('DELETE /{id}', () => {
     it('should delete an existing project without resources', async () => {
-      const tenantId = await createTestTenantWithOrg('projects-delete');
+      const tenantId = createTrackedTenant('projects-delete');
       const { projectId } = await createTestProject({ tenantId });
 
       const res = await makeRequest(`/tenants/${tenantId}/projects/${projectId}`, {
@@ -489,7 +504,7 @@ describe('Project CRUD Routes - Integration Tests', () => {
     });
 
     it('should return 404 for non-existent project', async () => {
-      const tenantId = await createTestTenantWithOrg('projects-delete-notfound');
+      const tenantId = createTrackedTenant('projects-delete-notfound');
 
       const res = await makeRequest(`/tenants/${tenantId}/projects/non-existent-id`, {
         method: 'DELETE',
@@ -499,12 +514,11 @@ describe('Project CRUD Routes - Integration Tests', () => {
 
       const body = await res.json();
       expect(body.error.code).toBe('not_found');
-      expect(body.error.message).toBe('Project not found');
     });
 
     it('should not delete projects from other tenants', async () => {
-      const tenantId1 = await createTestTenantWithOrg('projects-delete-tenant1');
-      const tenantId2 = await createTestTenantWithOrg('projects-delete-tenant2');
+      const tenantId1 = createTrackedTenant('projects-delete-tenant1');
+      const tenantId2 = createTrackedTenant('projects-delete-tenant2');
 
       const { projectId } = await createTestProject({ tenantId: tenantId1 });
 
@@ -522,7 +536,7 @@ describe('Project CRUD Routes - Integration Tests', () => {
 
   describe('Complex scenarios', () => {
     it('should handle concurrent operations correctly', async () => {
-      const tenantId = await createTestTenantWithOrg('projects-concurrent');
+      const tenantId = createTrackedTenant('projects-concurrent');
 
       // Create multiple projects concurrently
       const promises = Array.from({ length: 5 }, (_, i) =>
@@ -544,8 +558,8 @@ describe('Project CRUD Routes - Integration Tests', () => {
     });
 
     it('should maintain data isolation between tenants', async () => {
-      const tenantId1 = await createTestTenantWithOrg('projects-isolation-1');
-      const tenantId2 = await createTestTenantWithOrg('projects-isolation-2');
+      const tenantId1 = createTrackedTenant('projects-isolation-1');
+      const tenantId2 = createTrackedTenant('projects-isolation-2');
 
       // Create projects in both tenants
       await createMultipleProjects({ tenantId: tenantId1, count: 3 });

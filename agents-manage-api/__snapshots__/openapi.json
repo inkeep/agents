@@ -7617,7 +7617,7 @@
     },
     "/tenants/{tenantId}/projects/{id}": {
       "delete": {
-        "description": "Delete a project. Will fail if the project has existing resources.",
+        "description": "Delete a project and its branch. Must be called from the main branch.",
         "operationId": "delete-project",
         "parameters": [
           {

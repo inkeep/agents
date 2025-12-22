@@ -73,7 +73,7 @@ describe('Branch CRUD Routes - Integration Tests', () => {
   };
 
   describe('GET /', () => {
-    it('should list branches (empty initially except main)', async () => {
+    it('should list branches (project main after creating project)', async () => {
       const tenantId = createTestTenantId('branches-list-empty');
       const projectId = await createTestProject(tenantId);
 
@@ -81,6 +81,7 @@ describe('Branch CRUD Routes - Integration Tests', () => {
       expect(res.status).toBe(200);
 
       const body = await res.json();
+      // With project-per-branch architecture, creating a project also creates a project main branch
       expect(body.data).toHaveLength(1);
       expect(body.data[0].baseName).toBe('main');
     });
@@ -98,7 +99,8 @@ describe('Branch CRUD Routes - Integration Tests', () => {
       expect(res.status).toBe(200);
 
       const body = await res.json();
-      expect(body.data).toHaveLength(4); // tenant main + 3 feature branches
+      // With project-per-branch: project main + 3 feature branches = 4
+      expect(body.data).toHaveLength(4);
 
       const branchNames = body.data.map((b: any) => b.baseName).sort();
       expect(branchNames).toEqual(['feature-a', 'feature-b', 'feature-c', 'main']);
@@ -125,19 +127,23 @@ describe('Branch CRUD Routes - Integration Tests', () => {
       // Create branches in project 2
       await createTestBranch({ tenantId, projectId: projectId2, name: 'project2-branch' });
 
-      // List branches for project 1
+      // List branches for project 1 - should only see project1's branches
       const res1 = await makeRequest(`/tenants/${tenantId}/projects/${projectId1}/branches`);
       expect(res1.status).toBe(200);
       const body1 = await res1.json();
-      expect(body1.data).toHaveLength(2); // tenant main + project1-branch
-      expect(body1.data[1].baseName).toBe('project1-branch');
+      // Project 1: project1_main + project1-branch = 2 branches
+      expect(body1.data).toHaveLength(2);
+      const branch1Names = body1.data.map((b: any) => b.baseName).sort();
+      expect(branch1Names).toEqual(['main', 'project1-branch']);
 
-      // List branches for project 2
+      // List branches for project 2 - should only see project2's branches
       const res2 = await makeRequest(`/tenants/${tenantId}/projects/${projectId2}/branches`);
       expect(res2.status).toBe(200);
       const body2 = await res2.json();
-      expect(body2.data).toHaveLength(2); // tenant main + project2-branch
-      expect(body2.data[1].baseName).toBe('project2-branch');
+      // Project 2: project2_main + project2-branch = 2 branches
+      expect(body2.data).toHaveLength(2);
+      const branch2Names = body2.data.map((b: any) => b.baseName).sort();
+      expect(branch2Names).toEqual(['main', 'project2-branch']);
     });
   });
 
