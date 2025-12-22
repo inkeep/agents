@@ -2,7 +2,7 @@ import {
   type ContextConfigApiSelect,
   type CredentialStoreRegistry,
   createApiError,
-  FullExecutionContext,
+  type FullExecutionContext,
   getLogger,
 } from '@inkeep/agents-core';
 import Ajv, { type ValidateFunction } from 'ajv';

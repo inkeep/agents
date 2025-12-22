@@ -1,8 +1,8 @@
-import {
-  type CredentialStoreRegistry,
-  type FullAgentSubAgentSelectWithRelationIds,
-  type FullExecutionContext,
-  type SubAgentSelect,
+import type {
+  CredentialStoreRegistry,
+  FullAgentSubAgentSelectWithRelationIds,
+  FullExecutionContext,
+  SubAgentSelect,
 } from '@inkeep/agents-core';
 import type { AgentCard, RegisteredAgent } from '../a2a/types';
 import { createTaskHandler, createTaskHandlerConfig } from '../agents/generateTaskHandler';

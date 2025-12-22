@@ -1,6 +1,6 @@
 import {
   type CredentialStoreRegistry,
-  FullExecutionContext,
+  type FullExecutionContext,
   getAgentWithDefaultSubAgent,
   getContextConfigById,
   getConversation,
@@ -81,7 +81,7 @@ async function handleContextResolution({
     },
     async (parentSpan: Span) => {
       const { tenantId, projectId, agentId, project } = executionContext;
-      let agent = project.agents[agentId];
+      const agent = project.agents[agentId];
       let trigger: 'initialization' | 'invocation';
 
       try {

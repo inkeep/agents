@@ -1,5 +1,9 @@
 import { createRoute, OpenAPIHono } from '@hono/zod-openapi';
-import { CredentialStoreRegistry, handleApiError, type ServerConfig } from '@inkeep/agents-core';
+import {
+  type CredentialStoreRegistry,
+  handleApiError,
+  type ServerConfig,
+} from '@inkeep/agents-core';
 import type { auth as authForTypes, createAuth } from '@inkeep/agents-core/auth';
 import { Hono } from 'hono';
 import { cors } from 'hono/cors';

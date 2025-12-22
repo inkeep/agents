@@ -1,4 +1,4 @@
-import { type FullExecutionContext } from '@inkeep/agents-core';
+import type { FullExecutionContext } from '@inkeep/agents-core';
 import { createMiddleware } from 'hono/factory';
 import { getFullProject, getResolvedRef, ManageApiError } from '../api/manage-api';
 import { env } from '../env';

@@ -1,7 +1,7 @@
-import {
-  type AgentCard,
-  type AgentWithinContextOfProjectSelectWithRelationIds,
-  type FullExecutionContext,
+import type {
+  AgentCard,
+  AgentWithinContextOfProjectSelectWithRelationIds,
+  FullExecutionContext,
 } from '@inkeep/agents-core';
 import { getAgentFromProject, getSubAgentFromProject } from 'src/utils/project';
 import type { RegisteredAgent } from '../a2a/types';

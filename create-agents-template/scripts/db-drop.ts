@@ -20,7 +20,6 @@ async function deleteDatabase() {
   const apiUrls = [manageDatabaseUrl, runDatabaseUrl];
 
   for (const url of apiUrls) {
-
     console.log('🗑️  Dropping and recreating public schema...');
 
     const pool = new Pool({ connectionString: runDatabaseUrl });

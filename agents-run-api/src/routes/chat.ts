@@ -210,7 +210,7 @@ app.openapi(chatCompletionsRoute, async (c) => {
         });
       }
 
-      let agent = fullAgent;
+      const agent = fullAgent;
       let defaultSubAgentId: string;
 
       const agentKeys = Object.keys((fullAgent.subAgents as Record<string, any>) || {});

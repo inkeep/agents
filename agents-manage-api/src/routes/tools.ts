@@ -1,6 +1,6 @@
 import { createRoute, OpenAPIHono } from '@hono/zod-openapi';
 import {
-  AgentsManageDatabaseClient,
+  type AgentsManageDatabaseClient,
   CredentialReferenceApiSelectSchema,
   CredentialReferenceResponse,
   commonGetErrorResponses,

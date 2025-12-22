@@ -88,7 +88,7 @@ export class ExecutionHandler {
       'Created AgentSession for message execution'
     );
 
-    let agentConfig: any = null;
+    const agentConfig: any = null;
     try {
       const agent = project.agents[agentId];
 

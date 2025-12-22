@@ -1,16 +1,16 @@
-import { z } from '@hono/zod-openapi';
+import type { z } from '@hono/zod-openapi';
 import {
   apiFetch,
-  FullProjectSelectWithRelationIds,
+  type FullProjectSelectWithRelationIds,
   type FunctionToolApiSelect,
   generateInternalServiceToken,
   getLogger,
   InternalServices,
-  McpTool,
+  type McpTool,
   type ResolvedRef,
-  TenantProjectAgentParamsSchema,
-  TenantProjectAgentSubAgentParamsSchema,
-  TenantProjectParamsSchema,
+  type TenantProjectAgentParamsSchema,
+  type TenantProjectAgentSubAgentParamsSchema,
+  type TenantProjectParamsSchema,
 } from '@inkeep/agents-core';
 
 const logger = getLogger('manage-api-helper');

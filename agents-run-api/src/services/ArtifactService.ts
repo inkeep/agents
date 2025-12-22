@@ -1,6 +1,6 @@
 import {
   type ArtifactComponentApiInsert,
-  FullExecutionContext,
+  type FullExecutionContext,
   getLedgerArtifacts,
   getTask,
   listTaskIdsByContextId,

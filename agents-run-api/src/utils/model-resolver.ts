@@ -1,8 +1,8 @@
-import {
-  type FullAgentSubAgentSelect,
-  type FullAgentSubAgentSelectWithRelationIds,
+import type {
+  FullAgentSubAgentSelect,
+  FullAgentSubAgentSelectWithRelationIds,
   FullExecutionContext,
-  type Models,
+  Models,
 } from '@inkeep/agents-core';
 
 async function resolveModelConfig(
