@@ -177,7 +177,6 @@ describe('create-agents quickstart e2e', () => {
       const data = await response.json();
       expect(data.data.tenantId).toBe('default');
       expect(data.data.id).toBe(projectId);
-
     } catch (error) {
       console.error('Test failed with error:', error);
       // Print server output for debugging

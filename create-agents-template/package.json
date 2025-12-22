@@ -16,8 +16,8 @@
     "db:run:migrate": "drizzle-kit migrate --config=drizzle.run.config.ts",
     "upgrade-agents": "node scripts/upgrade.ts --experimental-strip-types",
     "postinstall": "node scripts/postinstall.ts --experimental-strip-types",
-    "setup-dev": "node scripts/setup.js",
-    "setup-dev:cloud": "node scripts/setup.js --skip-docker",
+    "setup-dev": "tsx scripts/setup.js",
+    "setup-dev:cloud": "tsx scripts/setup.js --skip-docker",
     "generate-jwt-keys": "bash scripts/generate-jwt-keys.sh"
   },
   "dependencies": {
