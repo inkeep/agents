@@ -2,7 +2,6 @@
   "name": "@inkeep/agents-run-api",
   "version": "0.39.5",
   "description": "Agents Run API for Inkeep Agent Framework - handles chat, agent execution, and streaming",
-  "main": "dist/index.js",
   "types": "dist/index.d.ts",
   "exports": {
     ".": "./dist/index.js",
@@ -27,6 +26,7 @@
     "typecheck:watch": "tsc --noEmit --watch"
   },
   "dependencies": {
+    "@electric-sql/pglite": "^0.3.13",
     "@ai-sdk/anthropic": "3.0.0-beta.66",
     "@ai-sdk/gateway": "2.0.0-beta.68",
     "@ai-sdk/google": "3.0.0-beta.62",
@@ -77,7 +77,6 @@
     "keytar": "^7.9.0"
   },
   "devDependencies": {
-    "@electric-sql/pglite": "^0.3.13",
     "@hono/vite-dev-server": "^0.20.1",
     "@opentelemetry/exporter-trace-otlp-proto": "^0.203.0",
     "@opentelemetry/sdk-metrics": "^2.1.0",

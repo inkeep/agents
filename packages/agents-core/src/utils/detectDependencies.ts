@@ -1,4 +1,5 @@
-import type * as TypeScript from 'typescript';
+import { builtinModules } from 'node:module';
+import ts from 'typescript';
 
 const collapseSubpath = (spec: string) => {
   if (spec.startsWith('@')) {
@@ -7,16 +8,6 @@ const collapseSubpath = (spec: string) => {
   }
   return spec.split('/')[0];
 };
-
-// Conditional imports to avoid breaking CLI bundling
-let builtinModules: string[] = [];
-let ts: typeof TypeScript | null = null;
-
-try {
-  // Only import in server environments
-  builtinModules = require('node:module').builtinModules;
-  ts = require('typescript');
-} catch {}
 
 const NODE_BUILTINS = new Set(builtinModules.concat(builtinModules.map((m) => `node:${m}`)));
 /**

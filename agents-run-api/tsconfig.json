@@ -12,7 +12,6 @@
     "baseUrl": ".",
     "allowSyntheticDefaultImports": true,
     "declaration": true,
-    "declarationMap": true,
     "noEmit": false
   },
   "include": ["src/**/*", "src/types/**/*", "examples/**/*.ts"],

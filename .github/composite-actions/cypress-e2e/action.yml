@@ -37,13 +37,13 @@ runs:
           ON CONFLICT (id) DO NOTHING;
         "
 
-    - name: Start Backend API Server
+    - name: Start backend API server
       shell: bash
-      run: pnpm --filter @inkeep/agents-manage-api dev & # & means run job in background
+      run: pnpm dev --filter='@inkeep/agents-manage-api' & # & means run job in background
 
-    - name: Build Dashboard
+    - name: Build dashboard and cookbook monorepo dependencies
       shell: bash
-      run: npx turbo build --filter='@inkeep/agents-manage-ui'
+      run: npx turbo build --filter='@inkeep/agents-manage-ui' --filter='@inkeep/agents-cli' --filter='@inkeep/agents-core' --filter='@inkeep/agents-sdk'
 
     - name: Push Weather Example Project
       shell: bash

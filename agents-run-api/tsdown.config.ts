@@ -30,7 +30,8 @@ function rawPlugin(): Plugin {
 
 export default defineConfig({
   ...rootConfig,
-  entry: ['src/index.ts', 'src/instrumentation.ts'],
-  external: ['keytar'],
+  entry: ['src/**/*.ts', '!**/__tests__', '!**/*.test.ts'],
+  unbundle: true,
+  format: 'esm',
   plugins: [rawPlugin()],
 });

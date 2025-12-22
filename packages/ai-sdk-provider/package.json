@@ -34,6 +34,7 @@
   ],
   "packageManager": "pnpm@10.10.0",
   "dependencies": {
+    "zod": "^4.1.12",
     "@ai-sdk/provider": "3.0.0-beta.22",
     "@ai-sdk/provider-utils": "4.0.0-beta.40",
     "@inkeep/agents-core": "workspace:*",
