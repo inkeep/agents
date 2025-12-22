@@ -35,7 +35,7 @@ const nextConfig: NextConfig = {
   },
 };
 
-export default process.env.NEXT_PUBLIC_SENTRY_ENABLED === 'true'
+export default process.env.NEXT_PUBLIC_SENTRY_DSN
   ? withSentryConfig(nextConfig, {
       // For all available options, see:
       // https://npmjs.com/package/@sentry/webpack-plugin#options

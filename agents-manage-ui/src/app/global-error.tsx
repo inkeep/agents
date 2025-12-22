@@ -7,7 +7,7 @@ const GlobalError: FC<{
   error: Error & { digest?: string };
 }> = ({ error }) => {
   useEffect(() => {
-    if (process.env.NEXT_PUBLIC_SENTRY_ENABLED === 'true') {
+    if (process.env.NEXT_PUBLIC_SENTRY_DSN) {
       import('@sentry/nextjs').then((Sentry) => {
         Sentry.captureException(error);
       });

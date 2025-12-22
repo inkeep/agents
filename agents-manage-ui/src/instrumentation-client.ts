@@ -6,7 +6,7 @@ import type * as SentryNs from '@sentry/nextjs';
 
 export let onRouterTransitionStart: typeof SentryNs.captureRouterTransitionStart;
 
-if (process.env.NEXT_PUBLIC_SENTRY_ENABLED === 'true') {
+if (process.env.NEXT_PUBLIC_SENTRY_DSN) {
   const Sentry = await import('@sentry/nextjs');
   onRouterTransitionStart = Sentry.captureRouterTransitionStart;
 
