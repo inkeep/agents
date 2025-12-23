@@ -12,7 +12,9 @@ import { type NextRequest, NextResponse } from 'next/server';
  */
 export async function GET(request: NextRequest) {
   // Only enable this route for cloud deployments
-  const isCloudDeployment = process.env.PUBLIC_IS_INKEEP_CLOUD_DEPLOYMENT === 'true';
+  const isCloudDeployment =
+    process.env.PUBLIC_IS_INKEEP_CLOUD_DEPLOYMENT === 'true' ||
+    process.env.NEXT_PUBLIC_IS_INKEEP_CLOUD_DEPLOYMENT === 'true';
   if (!isCloudDeployment) {
     return NextResponse.json({ error: 'Not found' }, { status: 404 });
   }
@@ -33,4 +35,3 @@ export async function GET(request: NextRequest) {
   // Use 308 Permanent Redirect to preserve the HTTP method
   return NextResponse.redirect(nangoCallbackUrl.toString(), 308);
 }
-
