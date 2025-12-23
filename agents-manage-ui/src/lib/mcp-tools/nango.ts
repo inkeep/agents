@@ -21,10 +21,11 @@ const getNangoClient = () => {
     throw new NangoError('NANGO_SECRET_KEY environment variable is required for Nango integration');
   }
 
-  const host = process.env.PUBLIC_NANGO_SERVER_URL ||
-  process.env.NEXT_PUBLIC_NANGO_SERVER_URL ||
-  process.env.NANGO_SERVER_URL ||
-  'https://api.nango.dev';
+  const host =
+    process.env.PUBLIC_NANGO_SERVER_URL ||
+    process.env.NEXT_PUBLIC_NANGO_SERVER_URL ||
+    process.env.NANGO_SERVER_URL ||
+    'https://api.nango.dev';
 
   try {
     return new Nango({
