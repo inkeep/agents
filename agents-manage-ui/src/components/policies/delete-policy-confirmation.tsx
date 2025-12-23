@@ -53,7 +53,7 @@ export function DeletePolicyConfirmation({
         <AlertDialogHeader>
           <AlertDialogTitle>Delete policy?</AlertDialogTitle>
           <AlertDialogDescription>
-            This will remove {policyName}. Sub-agents referencing this policy will lose the
+            This will remove "{policyName}" policy. Sub-agents referencing this policy will lose the
             association.
           </AlertDialogDescription>
         </AlertDialogHeader>

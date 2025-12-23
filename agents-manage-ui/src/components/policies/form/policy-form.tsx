@@ -1,7 +1,7 @@
 'use client';
 
 import { zodResolver } from '@hookform/resolvers/zod';
-import { useRouter } from 'next/navigation';
+import { useParams, useRouter } from 'next/navigation';
 import { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { toast } from 'sonner';
@@ -20,9 +20,8 @@ import { defaultValues, type PolicyFormData, parseMetadataField, policySchema } 
 import { ExpandableJsonEditor } from '@/components/editors/expandable-json-editor';
 
 interface PolicyFormProps {
-  tenantId: string;
-  projectId: string;
   initialData?: Policy;
+  onSaved?: () => void;
 }
 
 const formatFormData = (data?: Policy): PolicyFormData => {
@@ -37,7 +36,8 @@ const formatFormData = (data?: Policy): PolicyFormData => {
   };
 };
 
-export function PolicyForm({ tenantId, projectId, initialData }: PolicyFormProps) {
+export function PolicyForm({ initialData, onSaved }: PolicyFormProps) {
+  const { tenantId, projectId } = useParams<{ tenantId: string; projectId: string }>();
   const [isDeleteOpen, setIsDeleteOpen] = useState(false);
   const form = useForm<PolicyFormData>({
     resolver: zodResolver(policySchema),
@@ -71,15 +71,20 @@ export function PolicyForm({ tenantId, projectId, initialData }: PolicyFormProps
           return;
         }
         toast.success('Policy updated');
-      } else {
-        const res = await createPolicyAction(tenantId, projectId, payload);
-        if (!res.success) {
-          toast.error(res.error || 'Failed to create policy');
-          return;
-        }
-        toast.success('Policy created');
-        router.push(`/${tenantId}/projects/${projectId}/policies`);
+        onSaved?.();
+        return;
       }
+      const res = await createPolicyAction(tenantId, projectId, payload);
+      if (!res.success) {
+        toast.error(res.error || 'Failed to create policy');
+        return;
+      }
+      toast.success('Policy created');
+      if (onSaved) {
+        onSaved();
+        return;
+      }
+      router.push(`/${tenantId}/projects/${projectId}/policies`);
     } catch (error) {
       if (error instanceof Error && error.message.includes('Metadata')) {
         form.setError('metadata', { message: error.message });
@@ -166,7 +171,6 @@ export function PolicyForm({ tenantId, projectId, initialData }: PolicyFormProps
           policyId={initialData.id}
           policyName={initialData.name}
           setIsOpen={setIsDeleteOpen}
-          redirectOnDelete
         />
       )}
     </Dialog>
