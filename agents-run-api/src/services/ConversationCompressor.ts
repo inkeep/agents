@@ -1,5 +1,6 @@
 import type { ModelSettings } from '@inkeep/agents-core';
 import { getLogger } from '../logger';
+import { distillConversationHistory } from '../tools/distill-conversation-history-tool';
 import {
   BaseCompressor,
   type CompressionConfig,
@@ -7,16 +8,13 @@ import {
   getModelAwareCompressionConfig,
 } from './BaseCompressor';
 
-const logger = getLogger('MidGenerationCompressor');
+const logger = getLogger('ConversationCompressor');
 
 /**
- * Mid-generation compressor
- * Compresses context when generate() steps get too large with manual compression support
+ * Conversation-level compressor
+ * Compresses entire conversations for long-term storage or analysis
  */
-export class MidGenerationCompressor extends BaseCompressor {
-  private shouldCompress = false;
-  private lastProcessedMessageIndex = 0; // Track where we left off in message processing
-
+export class ConversationCompressor extends BaseCompressor {
   constructor(
     sessionId: string,
     conversationId: string,
@@ -26,8 +24,8 @@ export class MidGenerationCompressor extends BaseCompressor {
     summarizerModel?: ModelSettings,
     baseModel?: ModelSettings
   ) {
-    // Use aggressive model-aware config by default, or fall back to provided config
-    const compressionConfig = config || getModelAwareCompressionConfig(summarizerModel);
+    // Use conversation-specific config (50% of context window) by default, or fall back to provided config
+    const compressionConfig = config || getModelAwareCompressionConfig(summarizerModel, 0.5);
     super(
       sessionId,
       conversationId,
@@ -42,33 +40,14 @@ export class MidGenerationCompressor extends BaseCompressor {
   /**
    * Get compression type for this compressor
    */
-  getCompressionType(): 'mid_generation' {
-    return 'mid_generation';
+  getCompressionType(): 'conversation_level' {
+    return 'conversation_level';
   }
 
   /**
-   * Manual compression request from LLM tool
-   */
-  requestManualCompression(reason?: string): void {
-    this.shouldCompress = true;
-    logger.info(
-      {
-        sessionId: this.sessionId,
-        reason: reason || 'Manual request from LLM',
-      },
-      'Manual compression requested'
-    );
-  }
-
-  /**
-   * Check if compression is needed (either automatic or manual)
-   * Supports manual compression requests unique to mid-generation
+   * Check if compression is needed based on total context size exceeding conversation limits
    */
   isCompressionNeeded(messages: any[]): boolean {
-    // Check manual request first - no calculation needed
-    if (this.shouldCompress) return true;
-
-    // Use base class logic for automatic compression
     const contextSize = this.calculateContextSize(messages);
     const remaining = this.config.hardLimit - contextSize;
     const needsCompression = remaining <= this.config.safetyBuffer;
@@ -81,17 +60,16 @@ export class MidGenerationCompressor extends BaseCompressor {
         safetyBuffer: this.config.safetyBuffer,
         remaining,
         needsCompression,
-        manualRequest: this.shouldCompress,
       },
-      'Checking mid-generation compression criteria'
+      'Checking conversation compression criteria'
     );
 
     return needsCompression;
   }
 
   /**
-   * Perform mid-generation compression with incremental processing
-   * Uses base class functionality with mid-generation specific logic
+   * Perform conversation-level compression
+   * Unlike mid-generation, this compresses ALL messages in the conversation
    */
   async compress(messages: any[]): Promise<CompressionResult> {
     const contextSizeBefore = this.calculateContextSize(messages);
@@ -102,34 +80,27 @@ export class MidGenerationCompressor extends BaseCompressor {
         messageCount: messages.length,
         contextSize: contextSizeBefore,
       },
-      'MID-GENERATION COMPRESSION: Starting compression'
+      'CONVERSATION COMPRESSION: Starting compression'
     );
 
-    // For mid-generation, process messages from where we left off (incremental)
-    const toolCallToArtifactMap = await this.saveToolResultsAsArtifacts(
-      messages,
-      this.lastProcessedMessageIndex
-    );
+    // For conversation-level compression, process ALL messages (no partial processing)
+    const toolCallToArtifactMap = await this.saveToolResultsAsArtifacts(messages, 0);
 
-    // Create conversation summary using base class method
+    // Create comprehensive conversation summary
     const summary = await this.createConversationSummary(messages, toolCallToArtifactMap);
 
     // Calculate context size after compression
     const contextSizeAfter = this.estimateTokens(JSON.stringify(summary));
 
-    // Record compression event using base class method
+    // Record compression event
     this.recordCompressionEvent({
-      reason: this.shouldCompress ? 'manual' : 'automatic',
+      reason: 'automatic',
       messageCount: messages.length,
       artifactCount: Object.keys(toolCallToArtifactMap).length,
       contextSizeBefore,
       contextSizeAfter,
       compressionType: this.getCompressionType(),
     });
-
-    // Update state for next compression cycle
-    this.shouldCompress = false;
-    this.lastProcessedMessageIndex = messages.length;
 
     logger.info(
       {
@@ -141,7 +112,7 @@ export class MidGenerationCompressor extends BaseCompressor {
         compressionRatio: contextSizeAfter / contextSizeBefore,
         artifactIds: Object.values(toolCallToArtifactMap),
       },
-      'MID-GENERATION COMPRESSION: Compression completed successfully'
+      'CONVERSATION COMPRESSION: Compression completed successfully'
     );
 
     return {
@@ -151,13 +122,23 @@ export class MidGenerationCompressor extends BaseCompressor {
   }
 
   /**
-   * Get current state for debugging
+   * Override createConversationSummary for conversation-level compression
+   * Uses specialized conversation history distillation instead of the base implementation
    */
-  getState() {
-    return {
-      ...super.getState(),
-      shouldCompress: this.shouldCompress,
-      lastProcessedMessageIndex: this.lastProcessedMessageIndex,
-    };
+  protected async createConversationSummary(
+    messages: any[],
+    toolCallToArtifactMap: Record<string, string>
+  ): Promise<any> {
+    if (!this.summarizerModel) {
+      throw new Error('Summarizer model is required for conversation history compression');
+    }
+
+    // Use the specialized conversation history distillation
+    return await distillConversationHistory({
+      messages,
+      conversationId: this.conversationId,
+      summarizerModel: this.summarizerModel,
+      toolCallToArtifactMap,
+    });
   }
 }

@@ -85,3 +85,55 @@ The tool results include both the input parameters and output results, formatted
   "results": [...]
 }
 ```
+
+## Conversation Compacting System
+
+For very long conversations that exceed model context limits, the framework includes an intelligent compacting system that automatically manages memory by condensing older messages while preserving essential context.
+
+### How Compacting Works
+
+The compacting system activates automatically when conversations approach token limits:
+
+<Steps>
+  <Step>
+    **Context Monitoring**: System continuously monitors conversation size against model limits
+  </Step>
+  <Step>
+    **Automatic Triggering**: Compacting triggers at 50% of context window for conversation-level, or at model-aware thresholds (~75-91% depending on model size) for sub-agent generation
+  </Step>
+  <Step>
+    **Tool Result Archiving**: Large tool results are stored as artifacts and replaced with summary references
+  </Step>
+  <Step>
+    **AI Summarization**: Older conversation parts are summarized by AI while preserving key context
+  </Step>
+  <Step>
+    **Fallback Protection**: If AI summarization fails, system falls back to simple message truncation
+  </Step>
+</Steps>
+
+### Model-Specific Behavior
+
+Different models have different context windows, and compacting adapts accordingly:
+
+| Model | Context Window | Conversation Threshold | Sub-Agent Generation Threshold |
+|-------|----------------|------------------------|--------------------------------|
+| GPT-5.1 | 400K tokens | 200K (50%) | ~332K (83%) |
+| Claude-4.5 Sonnet | 200K tokens | 100K (50%) | ~166K (83%) |
+| Gemini 3 Flash | 1M tokens | 500K (50%) | ~910K (91%) |
+
+### Compacting Types
+
+#### Conversation-Level Compacting
+- **Trigger**: When conversation reaches 50% of model's context window
+- **Action**: Compacts entire conversation history into summary + artifacts
+- **Use Case**: Long conversations with extensive history
+
+#### Sub-Agent Generation Compacting  
+- **Trigger**: During sub-agent execution when tool results exceed model-aware limits (75-91% depending on model size)
+- **Action**: Compacts generated tool results while preserving original context
+- **Use Case**: Sub-agents performing many tool operations during generation
+
+<Note>
+  Compacting happens automatically and transparently. Your agents will continue to work normally even with compacted conversations, as the system preserves all essential context and provides artifact references for detailed information.
+</Note>

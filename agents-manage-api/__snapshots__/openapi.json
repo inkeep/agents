@@ -5905,8 +5905,8 @@
     },
     "/oauth/callback": {
       "get": {
-        "description": "Handles OAuth authorization codes and completes the authentication flow",
-        "operationId": "oauth-callback",
+        "description": "Handles OAuth authorization codes for MCP tools and completes the authentication flow",
+        "operationId": "mcp-oauth-callback",
         "parameters": [
           {
             "in": "query",
@@ -5968,7 +5968,7 @@
             "description": "Internal server error"
           }
         },
-        "summary": "OAuth authorization callback",
+        "summary": "MCP OAuth authorization callback",
         "tags": [
           "OAuth"
         ]

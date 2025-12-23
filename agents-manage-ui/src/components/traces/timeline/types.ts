@@ -29,6 +29,7 @@ export const ACTIVITY_TYPES = {
   TOOL_APPROVAL_REQUESTED: 'tool_approval_requested',
   TOOL_APPROVAL_APPROVED: 'tool_approval_approved',
   TOOL_APPROVAL_DENIED: 'tool_approval_denied',
+  COMPRESSION: 'compression',
 } as const;
 
 export type ActivityKind = (typeof ACTIVITY_TYPES)[keyof typeof ACTIVITY_TYPES];
@@ -123,6 +124,17 @@ export interface ActivityItem {
   approvalToolCallId?: string;
   // Context breakdown for AI generation spans
   contextBreakdown?: ContextBreakdown;
+  // Compression fields
+  compressionType?: string;
+  compressionInputTokens?: number;
+  compressionOutputTokens?: number;
+  compressionRatio?: number;
+  compressionArtifactCount?: number;
+  compressionMessageCount?: number;
+  compressionHardLimit?: number;
+  compressionSafetyBuffer?: number;
+  compressionFallbackUsed?: boolean;
+  compressionError?: string;
 }
 
 interface ToolCall {

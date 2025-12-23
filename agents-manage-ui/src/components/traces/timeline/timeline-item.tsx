@@ -1,4 +1,5 @@
 import {
+  Archive,
   ArrowRight,
   Check,
   ChevronDown,
@@ -71,6 +72,7 @@ function statusIcon(
     tool_approval_requested: { Icon: Clock, cls: 'text-muted-foreground' },
     tool_approval_approved: { Icon: Check, cls: 'text-blue-500' },
     tool_approval_denied: { Icon: X, cls: 'text-red-500' },
+    compression: { Icon: Archive, cls: 'text-orange-500' },
   };
 
   const map = base[type] || base.tool_call;
