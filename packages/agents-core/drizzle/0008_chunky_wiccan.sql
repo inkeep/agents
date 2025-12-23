@@ -1,1 +1,0 @@
-ALTER TABLE "dataset" DROP COLUMN "description";

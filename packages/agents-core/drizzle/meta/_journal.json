@@ -54,15 +54,8 @@
     {
       "idx": 7,
       "version": "7",
-      "when": 1766448666390,
-      "tag": "0007_lying_selene",
-      "breakpoints": true
-    },
-    {
-      "idx": 8,
-      "version": "7",
-      "when": 1766460170185,
-      "tag": "0008_chunky_wiccan",
+      "when": 1766498428564,
+      "tag": "0007_charming_silver_surfer",
       "breakpoints": true
     }
   ]

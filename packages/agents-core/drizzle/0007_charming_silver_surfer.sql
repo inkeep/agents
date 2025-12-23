@@ -3,7 +3,6 @@ CREATE TABLE "dataset" (
 	"id" varchar(256) NOT NULL,
 	"project_id" varchar(256) NOT NULL,
 	"name" varchar(256) NOT NULL,
-	"description" text,
 	"created_at" timestamp DEFAULT now() NOT NULL,
 	"updated_at" timestamp DEFAULT now() NOT NULL,
 	CONSTRAINT "dataset_tenant_id_project_id_id_pk" PRIMARY KEY("tenant_id","project_id","id")
