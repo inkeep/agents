@@ -164,7 +164,7 @@ export function EvaluatorFormDialog({
         }
       }
 
-      onOpenChange(false);
+      setIsOpen(false);
       form.reset();
     } catch (error) {
       console.error('Error submitting evaluator:', error);
@@ -287,7 +287,7 @@ export function EvaluatorFormDialog({
             />
 
             <div className="flex justify-end gap-2">
-              <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
+              <Button type="button" variant="outline" onClick={() => setIsOpen(false)}>
                 Cancel
               </Button>
               <Button type="submit" disabled={isSubmitting}>

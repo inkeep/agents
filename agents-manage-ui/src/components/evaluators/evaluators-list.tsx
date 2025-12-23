@@ -1,6 +1,6 @@
 'use client';
 
-import { MoreVertical, Pencil, Trash2 } from 'lucide-react';
+import { MoreVertical, Pencil, Plus, Trash2 } from 'lucide-react';
 import { useState } from 'react';
 import { formatDate } from '@/app/utils/format-date';
 import { Button } from '@/components/ui/button';
@@ -32,6 +32,7 @@ interface EvaluatorsListProps {
 export function EvaluatorsList({ tenantId, projectId, evaluators }: EvaluatorsListProps) {
   const [editingEvaluator, setEditingEvaluator] = useState<Evaluator | undefined>();
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
+  const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
   const [deletingEvaluator, setDeletingEvaluator] = useState<Evaluator | undefined>();
   const [viewingEvaluator, setViewingEvaluator] = useState<Evaluator | undefined>();
 
@@ -60,8 +61,22 @@ export function EvaluatorsList({ tenantId, projectId, evaluators }: EvaluatorsLi
           <TableBody>
             {evaluators.length === 0 ? (
               <TableRow noHover>
-                <TableCell colSpan={5} className="text-center text-muted-foreground py-8">
-                  No evaluators yet. Click &quot;+ New evaluator&quot; to create one.
+                <TableCell colSpan={5} className="py-12">
+                  <div className="flex flex-col items-center gap-4">
+                    <span className="text-muted-foreground">No evaluators yet</span>
+                    <EvaluatorFormDialog
+                      tenantId={tenantId}
+                      projectId={projectId}
+                      isOpen={isCreateDialogOpen}
+                      onOpenChange={setIsCreateDialogOpen}
+                      trigger={
+                        <Button variant="outline" size="sm">
+                          <Plus className="h-4 w-4" />
+                          Add first evaluator
+                        </Button>
+                      }
+                    />
+                  </div>
                 </TableCell>
               </TableRow>
             ) : (

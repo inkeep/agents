@@ -1,6 +1,7 @@
 'use client';
 
 import { zodResolver } from '@hookform/resolvers/zod';
+import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { toast } from 'sonner';
@@ -34,6 +35,7 @@ interface DatasetItemFormDialogProps {
   isOpen: boolean;
   onOpenChange: (open: boolean) => void;
   trigger?: React.ReactNode;
+  onSuccess?: () => void;
 }
 
 const formatFormData = (data?: DatasetItem): DatasetItemFormData => {
@@ -93,7 +95,9 @@ export function DatasetItemFormDialog({
   isOpen: controlledIsOpen,
   onOpenChange,
   trigger,
+  onSuccess,
 }: DatasetItemFormDialogProps) {
+  const router = useRouter();
   const [internalIsOpen, setInternalIsOpen] = useState(false);
   const isOpen = trigger ? internalIsOpen : controlledIsOpen;
   const setIsOpen = trigger ? setInternalIsOpen : onOpenChange;
@@ -236,8 +240,10 @@ export function DatasetItemFormDialog({
         }
       }
 
-      onOpenChange(false);
+      setIsOpen(false);
       form.reset();
+      router.refresh();
+      onSuccess?.();
     } catch (error) {
       console.error('Error submitting dataset item:', error);
       const errorMessage = error instanceof Error ? error.message : 'An unexpected error occurred';
@@ -302,7 +308,7 @@ export function DatasetItemFormDialog({
             />
 
             <div className="flex justify-end gap-2">
-              <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
+              <Button type="button" variant="outline" onClick={() => setIsOpen(false)}>
                 Cancel
               </Button>
               <Button type="submit" disabled={isSubmitting}>

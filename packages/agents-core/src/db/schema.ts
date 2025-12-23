@@ -37,9 +37,6 @@ import type {
   SubAgentStopWhen,
 } from '../validation/schemas';
 
-// Re-export workflow tables for unified schema management
-export * from '@workflow/world-postgres/schema';
-
 // Re-export Better Auth generated tables
 export {
   account,
@@ -751,13 +748,13 @@ export const credentialReferences = pgTable(
  * 
  * one to many relationship with datasetItem
  * 
- * Includes: name, description, and timestamps
+ * Includes: name and timestamps
  */
 export const dataset = pgTable(
   'dataset',
   {
     ...projectScoped,
-    ...uiProperties,
+    name: varchar('name', { length: 256 }).notNull(),
     ...timestamps,
   },
   (table) => [

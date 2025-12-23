@@ -14,7 +14,6 @@ import { validateProjectId, validateTenantId } from './resource-validation';
 export interface Dataset {
   id: string;
   name?: string | null;
-  description?: string | null;
   createdAt: string;
   updatedAt: string;
   tenantId: string;
@@ -24,12 +23,10 @@ export interface Dataset {
 export interface DatasetInsert {
   id?: string;
   name?: string | null;
-  description?: string | null;
 }
 
 export interface DatasetUpdate {
   name?: string | null;
-  description?: string | null;
 }
 
 /**

@@ -4039,23 +4039,27 @@ app.openapi(
 );
 
 // ==============================================================================
-// Conversation Evaluation Trigger Endpoint
+// Conversation Evaluation Trigger Endpoint (Simple - eval-api handles all logic)
 // ==============================================================================
 
-const TriggerConversationEvaluationSchema = z.object({
+const TriggerConversationSchema = z.object({
   conversationId: z.string(),
-  evaluatorIds: z.array(z.string()),
-  evaluationRunId: z.string(),
 });
 
-// Using regular Hono route instead of OpenAPI to avoid type complexity
-app.post('/trigger', async (c) => {
-  const tenantId = c.req.param('tenantId');
-  const projectId = c.req.param('projectId');
+/**
+ * New endpoint that handles all evaluation logic in eval-api:
+ * - Finds matching run configs
+ * - Checks sample rates
+ * - Creates evaluation runs
+ * - Triggers evaluators
+ */
+app.post('/trigger-conversation', async (c) => {
+  const tenantId = c.req.param('tenantId') as string;
+  const projectId = c.req.param('projectId') as string;
   
-  let body: z.infer<typeof TriggerConversationEvaluationSchema>;
+  let body: z.infer<typeof TriggerConversationSchema>;
   try {
-    body = TriggerConversationEvaluationSchema.parse(await c.req.json());
+    body = TriggerConversationSchema.parse(await c.req.json());
   } catch (parseError) {
     return c.json(
       createApiError({
@@ -4066,31 +4070,143 @@ app.post('/trigger', async (c) => {
     );
   }
 
+  const { conversationId } = body;
+
   try {
     logger.info(
-      {
-        tenantId,
-        projectId,
-        conversationId: body.conversationId,
-        evaluatorIds: body.evaluatorIds,
-        evaluationRunId: body.evaluationRunId,
-      },
-      'Triggering conversation evaluation via HTTP endpoint'
+      { tenantId, projectId, conversationId },
+      'Triggering conversation evaluation (eval-api handling all logic)'
     );
 
-    // Start the evaluation workflow
-    const payload = {
-      tenantId: tenantId as string,
-      projectId: projectId as string,
-      conversationId: body.conversationId,
-      evaluatorIds: body.evaluatorIds,
-      evaluationRunId: body.evaluationRunId,
-    };
-    await start(evaluateConversationWorkflow, [payload]);
+    // Get the conversation
+    const conversation = await getConversation(dbClient)({
+      scopes: { tenantId, projectId },
+      conversationId,
+    });
+
+    if (!conversation) {
+      logger.warn({ conversationId }, 'Conversation not found');
+      return c.json(
+        createApiError({
+          code: 'not_found',
+          message: 'Conversation not found',
+        }),
+        404
+      );
+    }
+
+    // Get all active evaluation run configs
+    const allRunConfigs = await listEvaluationRunConfigs(dbClient)({
+      scopes: { tenantId, projectId },
+    });
+    const runConfigs = allRunConfigs.filter((config) => config.isActive);
+
+    if (runConfigs.length === 0) {
+      logger.debug({ tenantId, projectId }, 'No active evaluation run configs found');
+      return c.json({
+        success: true,
+        message: 'No active evaluation run configs',
+        evaluationsTriggered: 0,
+      });
+    }
+
+    let evaluationsTriggered = 0;
+
+    for (const runConfig of runConfigs) {
+      // Check if run config matches conversation (using filters)
+      // For now, we match all - can add filter logic later if needed
+      
+      // Get suite configs linked to this run config
+      const suiteRelations = await getEvaluationRunConfigEvaluationSuiteConfigRelations(dbClient)({
+        scopes: { tenantId, projectId, evaluationRunConfigId: runConfig.id },
+      });
+
+      for (const suiteRelation of suiteRelations) {
+        const suiteConfig = await getEvaluationSuiteConfigById(dbClient)({
+          scopes: {
+            tenantId,
+            projectId,
+            evaluationSuiteConfigId: suiteRelation.evaluationSuiteConfigId,
+          },
+        });
+
+        if (!suiteConfig) {
+          logger.warn(
+            { suiteConfigId: suiteRelation.evaluationSuiteConfigId },
+            'Suite config not found, skipping'
+          );
+          continue;
+        }
+
+        // Apply sample rate check
+        if (suiteConfig.sampleRate !== null && suiteConfig.sampleRate !== undefined) {
+          const random = Math.random();
+          if (random > suiteConfig.sampleRate) {
+            logger.info(
+              {
+                suiteConfigId: suiteConfig.id,
+                sampleRate: suiteConfig.sampleRate,
+                random,
+                conversationId,
+              },
+              'Conversation filtered out by sample rate'
+            );
+            continue;
+          }
+        }
+
+        // Get evaluators for this suite config
+        const evaluatorRelations = await getEvaluationSuiteConfigEvaluatorRelations(dbClient)({
+          scopes: {
+            tenantId,
+            projectId,
+            evaluationSuiteConfigId: suiteRelation.evaluationSuiteConfigId,
+          },
+        });
+
+        const evaluatorIds = evaluatorRelations.map((r) => r.evaluatorId);
+
+        if (evaluatorIds.length === 0) continue;
+
+        // Create evaluation run
+        const evaluationRunId = generateId();
+        await createEvaluationRun(dbClient)({
+          id: evaluationRunId,
+          tenantId,
+          projectId,
+          evaluationRunConfigId: runConfig.id,
+        });
+
+        logger.info(
+          {
+            conversationId,
+            runConfigId: runConfig.id,
+            evaluationRunId,
+            evaluatorCount: evaluatorIds.length,
+            sampleRate: suiteConfig.sampleRate,
+          },
+          'Created evaluation run, starting workflow'
+        );
+
+        // Start the evaluation workflow
+        await start(evaluateConversationWorkflow, [{
+          tenantId,
+          projectId,
+          conversationId,
+          evaluatorIds,
+          evaluationRunId,
+        }]);
+
+        evaluationsTriggered++;
+      }
+    }
 
     return c.json({
       success: true,
-      message: 'Evaluation triggered successfully',
+      message: evaluationsTriggered > 0 
+        ? `Triggered ${evaluationsTriggered} evaluation(s)` 
+        : 'No evaluations matched (filtered by sample rate or no evaluators)',
+      evaluationsTriggered,
     });
   } catch (error: any) {
     logger.error(
@@ -4098,7 +4214,7 @@ app.post('/trigger', async (c) => {
         error,
         tenantId,
         projectId,
-        conversationId: body.conversationId,
+        conversationId,
       },
       'Failed to trigger conversation evaluation'
     );
