@@ -57,6 +57,11 @@ async function PoliciesPage({ params }: PageProps<'/[tenantId]/projects/[project
             {data.map((policy) => (
               <TableRow key={policy.id} className="relative">
                 <TableCell className="align-top">
+                  <NextLink
+                    // <tr> cannot contain a nested <a>.
+                    href={`/${tenantId}/projects/${projectId}/policies/${policy.id}`}
+                    className="absolute inset-0"
+                  />
                   <Badge variant="code">{policy.id}</Badge>
                 </TableCell>
                 <TableCell className={colClass}>{policy.name}</TableCell>
@@ -73,10 +78,6 @@ async function PoliciesPage({ params }: PageProps<'/[tenantId]/projects/[project
                 </TableCell>
                 <TableCell className="align-top">{formatDate(policy.createdAt)}</TableCell>
                 <TableCell className="align-top">{formatDateAgo(policy.updatedAt)}</TableCell>
-                <NextLink
-                  href={`/${tenantId}/projects/${projectId}/policies/${policy.id}`}
-                  className="absolute inset-0"
-                />
               </TableRow>
             ))}
           </TableBody>

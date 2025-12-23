@@ -69,3 +69,6 @@ vite.config.d.ts
 
 # Turborepo
 .turbo
+
+# inkeep pull temp folder
+.temp-validation-*/
