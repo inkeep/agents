@@ -16,8 +16,9 @@
     "typecheck": "next typegen && tsc --noEmit",
     "postinstall": "fumadocs-mdx",
     "generate-openapi": "node --experimental-strip-types scripts/generate-openapi-docs.ts",
+    "generate-changelog": "node --experimental-strip-types scripts/generate-changelog.ts",
     "generate-classnames": "node --experimental-strip-types scripts/generate-classnames.ts",
-    "prebuild": "pnpm generate-openapi",
+    "prebuild": "pnpm generate-openapi && pnpm generate-changelog",
     "validate-link": "node --experimental-strip-types scripts/validate-link.ts"
   },
   "dependencies": {
