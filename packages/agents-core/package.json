@@ -4,27 +4,73 @@
   "description": "Agents Core contains the database schema, types, and validation schemas for Inkeep Agent Framework, along with core components.",
   "type": "module",
   "license": "SEE LICENSE IN LICENSE.md",
-  "main": "./src/index.ts",
   "types": "./dist/index.d.ts",
   "exports": {
-    ".": "./src/index.ts",
-    "./constants/models": "./src/constants/models.ts",
-    "./constants/schema-validation": "./src/constants/schema-validation/index.ts",
-    "./schema": "./src/db/schema.ts",
-    "./db/schema": "./src/db/schema.ts",
-    "./auth": "./src/auth/auth.ts",
-    "./auth/schema": "./src/auth/auth-schema.ts",
-    "./auth/validation": "./src/auth/auth-validation-schemas.ts",
-    "./auth/permissions": "./src/auth/permissions.ts",
-    "./db/test-client": "./src/db/test-client.ts",
-    "./types": "./src/types/index.ts",
-    "./validation": "./src/validation/index.ts",
-    "./client-exports": "./src/client-exports.ts",
-    "./credential-stores": "./src/credential-stores/index.ts",
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    },
+    "./schema": {
+      "types": "./dist/db/schema.d.ts",
+      "import": "./dist/db/schema.js"
+    },
+    "./db/schema": {
+      "types": "./dist/db/schema.d.ts",
+      "import": "./dist/db/schema.js"
+    },
+    "./types": {
+      "types": "./dist/types/index.d.ts",
+      "import": "./dist/types/index.js"
+    },
+    "./validation": {
+      "types": "./dist/validation/index.d.ts",
+      "import": "./dist/validation/index.js"
+    },
+    "./client-exports": {
+      "types": "./dist/client-exports.d.ts",
+      "import": "./dist/client-exports.js"
+    },
+    "./constants/models": {
+      "types": "./dist/constants/models.d.ts",
+      "import": "./dist/constants/models.js"
+    },
+    "./constants/schema-validation": {
+      "types": "./dist/constants/schema-validation/index.d.ts",
+      "import": "./dist/constants/schema-validation/index.js"
+    },
+    "./credential-stores": {
+      "types": "./dist/credential-stores/index.d.ts",
+      "import": "./dist/credential-stores/index.js"
+    },
+    "./db/test-client": {
+      "types": "./dist/db/test-client.d.ts",
+      "import": "./dist/db/test-client.js"
+    },
+    "./utils/schema-conversion": {
+      "types": "./dist/utils/schema-conversion.d.ts",
+      "import": "./dist/utils/schema-conversion.js"
+    },
+    "./auth": {
+      "types": "./dist/auth/auth.d.ts",
+      "import": "./dist/auth/auth.js"
+    },
+    "./auth/schema": {
+      "types": "./dist/auth/auth-schema.d.ts",
+      "import": "./dist/auth/auth-schema.js"
+    },
+    "./auth/validation": {
+      "types": "./dist/auth/auth-validation-schemas.d.ts",
+      "import": "./dist/auth/auth-validation-schemas.js"
+    },
+    "./auth/permissions": {
+      "types": "./dist/auth/permissions.d.ts",
+      "import": "./dist/auth/permissions.js"
+    },
     "./drizzle": "./drizzle/",
-    "./utils/schema-conversion": "./src/utils/schema-conversion.ts"
+    "./package.json": "./package.json"
   },
   "scripts": {
+    "knip": "knip --directory ../.. --workspace packages/agents-core --dependencies",
     "build": "tsdown",
     "test": "vitest --run",
     "test:unit": "vitest --run src/__tests__ --exclude src/__tests__/integration/**",
@@ -44,11 +90,8 @@
     "db:delete": "tsx src/db/delete.ts",
     "db:reset": "pnpm db:delete && pnpm db:migrate",
     "db:studio": "drizzle-kit studio",
-    "db:check": "drizzle-kit check",
-    "prepack": "clean-package",
-    "postpack": "clean-package restore"
+    "db:check": "drizzle-kit check"
   },
-  "clean-package": "./clean-package.config.json",
   "dependencies": {
     "@ai-sdk/anthropic": "3.0.0-beta.66",
     "@ai-sdk/gateway": "2.0.0-beta.68",
@@ -58,7 +101,6 @@
     "@composio/core": "^0.2.4",
     "@electric-sql/pglite": "^0.3.13",
     "@better-auth/sso": "^1.4.0",
-    "@hono/node-server": "^1.14.3",
     "@modelcontextprotocol/sdk": "^1.17.2",
     "@nangohq/node": "^0.69.5",
     "@nangohq/types": "^0.69.5",
@@ -66,7 +108,6 @@
     "@opentelemetry/api": "^1.9.0",
     "ai": "6.0.0-beta.124",
     "ajv": "^8.17.1",
-    "ajv-formats": "^3.0.1",
     "better-auth": "^1.4.0",
     "destr": "^2.0.3",
     "dotenv": "^17.2.1",
@@ -106,7 +147,6 @@
     "@types/pg": "^8.15.6",
     "@types/traverse": "^0.6.37",
     "@vitest/coverage-v8": "^3.2.4",
-    "clean-package": "^2.2.0",
     "drizzle-kit": "^0.31.6",
     "tsx": "^4.19.2",
     "typescript": "^5.9.2",

@@ -16,6 +16,7 @@ import {
 import type { RuntimeConfig } from '@/lib/runtime-config/types';
 import { cn } from '@/lib/utils';
 import './globals.css';
+import { PostHogProvider } from './providers';
 
 const jetBrainsMono = JetBrains_Mono({
   variable: '--font-jetbrains-mono',
@@ -72,6 +73,10 @@ const runtimeConfig: RuntimeConfig = {
     process.env.PUBLIC_IS_INKEEP_CLOUD_DEPLOYMENT ||
     process.env.NEXT_PUBLIC_IS_INKEEP_CLOUD_DEPLOYMENT ||
     'false',
+  PUBLIC_POSTHOG_KEY: process.env.PUBLIC_POSTHOG_KEY || process.env.NEXT_PUBLIC_POSTHOG_KEY,
+  PUBLIC_POSTHOG_HOST: process.env.PUBLIC_POSTHOG_HOST || process.env.NEXT_PUBLIC_POSTHOG_HOST,
+  PUBLIC_POSTHOG_SITE_TAG:
+    process.env.PUBLIC_POSTHOG_SITE_TAG || process.env.NEXT_PUBLIC_POSTHOG_SITE_TAG,
 };
 
 export default function RootLayout({ children }: LayoutProps<'/'>) {
@@ -90,12 +95,14 @@ export default function RootLayout({ children }: LayoutProps<'/'>) {
         >
           <NuqsAdapter>
             <RuntimeConfigProvider value={runtimeConfig}>
-              <QueryProvider>
-                <AuthClientProvider>
-                  {children}
-                  <Toaster />
-                </AuthClientProvider>
-              </QueryProvider>
+              <PostHogProvider>
+                <QueryProvider>
+                  <AuthClientProvider>
+                    {children}
+                    <Toaster />
+                  </AuthClientProvider>
+                </QueryProvider>
+              </PostHogProvider>
             </RuntimeConfigProvider>
           </NuqsAdapter>
         </ThemeProvider>

@@ -1,14 +1,8 @@
 // A2A Protocol Types based on Google's specification
-import {
-  AgentCard,
-  type Artifact,
-  type Message,
-  type Task,
-  type TaskState,
-} from '@inkeep/agents-core';
+import type { AgentCard, Artifact, Message, Task, TaskState } from '@inkeep/agents-core';
 
 // Re-export AgentCard from the official schema
-export { AgentCard };
+export type { AgentCard };
 
 export interface RegisteredAgent {
   subAgentId: string;

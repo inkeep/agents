@@ -14,6 +14,7 @@
     }
   },
   "scripts": {
+    "knip": "knip --directory ../.. --workspace packages/ai-sdk-provider --dependencies",
     "build": "tsdown",
     "test": "vitest --run",
     "test:watch": "vitest --watch",
@@ -34,10 +35,10 @@
   ],
   "packageManager": "pnpm@10.10.0",
   "dependencies": {
+    "zod": "^4.1.12",
     "@ai-sdk/provider": "3.0.0-beta.22",
     "@ai-sdk/provider-utils": "4.0.0-beta.40",
-    "@inkeep/agents-core": "workspace:*",
-    "ai": "6.0.0-beta.124"
+    "@inkeep/agents-core": "workspace:*"
   },
   "publishConfig": {
     "access": "public",

@@ -73,6 +73,12 @@ import { withJsonPostProcessing } from '../utils/json-postprocessor';
 import { getCompressionConfigForModel } from '../utils/model-context-utils';
 import type { StreamHelper } from '../utils/stream-helpers';
 import { getStreamHelper } from '../utils/stream-registry';
+import {
+  type AssembleResult,
+  calculateBreakdownTotal,
+  type ContextBreakdown,
+  estimateTokens,
+} from '../utils/token-estimator';
 import { setSpanWithError, tracer } from '../utils/tracer';
 import { createDelegateToAgentTool, createTransferToAgentTool } from './relationTools';
 import { SystemPromptBuilder } from './SystemPromptBuilder';
@@ -1566,7 +1572,7 @@ export class Agent {
       };
     },
     excludeDataComponents: boolean = false
-  ): Promise<string> {
+  ): Promise<AssembleResult> {
     const conversationId = runtimeContext?.metadata?.conversationId || runtimeContext?.contextId;
 
     if (conversationId) {
@@ -2184,16 +2190,44 @@ ${output}`;
 
         try {
           // Load all tools and system prompts in parallel
-          const { systemPrompt, thinkingSystemPrompt, sanitizedTools } =
+          const { systemPrompt, thinkingSystemPrompt, sanitizedTools, contextBreakdown: initialContextBreakdown } =
             await this.loadToolsAndPrompts(sessionId, streamRequestId, runtimeContext);
 
+          // Update ArtifactService with this agent's artifact components
+          if (streamRequestId && this.artifactComponents.length > 0) {
+            agentSessionManager.updateArtifactComponents(streamRequestId, this.artifactComponents);
+          }
+          const conversationId = runtimeContext?.metadata?.conversationId;
+
+          if (conversationId) {
+            this.setConversationId(conversationId);
+          }
+
           // Build conversation history based on configuration
-          const conversationHistory = await this.buildConversationHistory(
+          const { conversationHistory, contextBreakdown } = await this.buildConversationHistory(
             contextId,
             taskId,
             userMessage,
-            streamRequestId
+            streamRequestId,
+            initialContextBreakdown
           );
+
+          // Record context breakdown as span attributes for trace viewer
+          span.setAttributes({
+            'context.breakdown.system_template_tokens': contextBreakdown.systemPromptTemplate,
+            'context.breakdown.core_instructions_tokens': contextBreakdown.coreInstructions,
+            'context.breakdown.agent_prompt_tokens': contextBreakdown.agentPrompt,
+            'context.breakdown.tools_tokens': contextBreakdown.toolsSection,
+            'context.breakdown.artifacts_tokens': contextBreakdown.artifactsSection,
+            'context.breakdown.data_components_tokens': contextBreakdown.dataComponents,
+            'context.breakdown.artifact_components_tokens': contextBreakdown.artifactComponents,
+            'context.breakdown.transfer_instructions_tokens': contextBreakdown.transferInstructions,
+            'context.breakdown.delegation_instructions_tokens':
+              contextBreakdown.delegationInstructions,
+            'context.breakdown.thinking_preparation_tokens': contextBreakdown.thinkingPreparation,
+            'context.breakdown.conversation_history_tokens': contextBreakdown.conversationHistory,
+            'context.breakdown.total_tokens': contextBreakdown.total,
+          });
 
           // Configure model settings and behavior
           const {
@@ -2433,8 +2467,8 @@ ${output}`;
     // Note: getDefaultTools needs to be called after streamHelper is set above
     const [
       mcpTools,
-      systemPrompt,
-      thinkingSystemPrompt,
+      systemPromptResult,
+      thinkingSystemPromptResult,
       functionTools,
       relationTools,
       defaultTools,
@@ -2470,6 +2504,11 @@ ${output}`;
       }
     );
 
+    // Extract prompts and breakdown from results
+    const systemPrompt = systemPromptResult.prompt;
+    const thinkingSystemPrompt = thinkingSystemPromptResult.prompt;
+    const contextBreakdown = systemPromptResult.breakdown;
+
     // Combine all tools for AI SDK
     const allTools = {
       ...mcpTools,
@@ -2481,7 +2520,7 @@ ${output}`;
     // Sanitize tool names at runtime for AI SDK compatibility
     const sanitizedTools = this.sanitizeToolsForAISDK(allTools);
 
-    return { systemPrompt, thinkingSystemPrompt, sanitizedTools };
+    return { systemPrompt, thinkingSystemPrompt, sanitizedTools, contextBreakdown };
   }
 
   /**
@@ -2491,8 +2530,9 @@ ${output}`;
     contextId: string,
     taskId: string,
     userMessage: string,
-    streamRequestId: string | undefined
-  ): Promise<string> {
+    streamRequestId: string | undefined,
+    initialContextBreakdown: ContextBreakdown
+  ): Promise<{ conversationHistory: string; contextBreakdown: ContextBreakdown }> {
     let conversationHistory = '';
     const historyConfig =
       this.config.conversationHistoryConfig ?? createDefaultConversationHistoryConfig();
@@ -2533,7 +2573,17 @@ ${output}`;
       }
     }
 
-    return conversationHistory;
+    // Track conversation history tokens and add to context breakdown
+    const conversationHistoryTokens = estimateTokens(conversationHistory);
+    const updatedContextBreakdown = {
+      ...initialContextBreakdown,
+      conversationHistory: conversationHistoryTokens,
+    };
+
+    // Recalculate total with conversation history
+    calculateBreakdownTotal(updatedContextBreakdown);
+
+    return { conversationHistory, contextBreakdown: updatedContextBreakdown };
   }
 
   /**

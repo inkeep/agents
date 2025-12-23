@@ -40,7 +40,7 @@ export class ConversationCompressor extends BaseCompressor {
   /**
    * Get compression type for this compressor
    */
-  getCompressionType(): string {
+  getCompressionType(): 'conversation_level' {
     return 'conversation_level';
   }
 
@@ -99,7 +99,7 @@ export class ConversationCompressor extends BaseCompressor {
       artifactCount: Object.keys(toolCallToArtifactMap).length,
       contextSizeBefore,
       contextSizeAfter,
-      compressionType: 'full_conversation',
+      compressionType: this.getCompressionType(),
     });
 
     logger.info(

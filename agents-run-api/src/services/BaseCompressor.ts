@@ -1,10 +1,12 @@
 import type { ModelSettings } from '@inkeep/agents-core';
 import { getLedgerArtifacts, upsertLedgerArtifact } from '@inkeep/agents-core';
+import { type Span, SpanStatusCode } from '@opentelemetry/api';
 import { randomUUID } from 'crypto';
 import dbClient from '../data/db/dbClient';
 import { getLogger } from '../logger';
 import { type ConversationSummary, distillConversation } from '../tools/distill-conversation-tool';
 import { getCompressionConfigForModel } from '../utils/model-context-utils';
+import { setSpanWithError, tracer } from '../utils/tracer';
 import { agentSessionManager } from './AgentSession';
 
 const logger = getLogger('BaseCompressor');
@@ -26,7 +28,7 @@ export interface CompressionEventData {
   artifactCount: number;
   contextSizeBefore: number;
   contextSizeAfter: number;
-  compressionType: 'mid_generation' | 'full_conversation';
+  compressionType: 'mid_generation' | 'conversation_level';
 }
 
 /**
@@ -680,22 +682,79 @@ export abstract class BaseCompressor {
    * Safe compression wrapper with fallback handling
    */
   async safeCompress(messages: any[]): Promise<CompressionResult> {
-    try {
-      return await this.compress(messages);
-    } catch (error) {
-      logger.error(
-        {
-          sessionId: this.sessionId,
-          conversationId: this.conversationId,
-          error: error instanceof Error ? error.message : String(error),
-          stack: error instanceof Error ? error.stack : undefined,
+    return await tracer.startActiveSpan(
+      'compressor.safe_compress',
+      {
+        attributes: {
+          'compression.type': this.getCompressionType(),
+          'compression.session_id': this.sessionId,
+          'compression.conversation_id': this.conversationId,
+          'compression.message_count': messages.length,
+          'compression.input_tokens': this.calculateContextSize(messages),
+          'compression.hard_limit': this.getHardLimit(),
+          'compression.safety_buffer': this.config.safetyBuffer,
         },
-        'Compression failed, using simple fallback'
-      );
+      },
+      async (compressionSpan: Span) => {
+        try {
+          const result = await this.compress(messages);
+          
+          // Add result attributes
+          const resultTokens = Array.isArray(result.summary) 
+            ? this.calculateContextSize(result.summary)
+            : this.estimateTokens(result.summary);
+            
+          compressionSpan.setAttributes({
+            'compression.result.artifact_count': result.artifactIds.length,
+            'compression.result.output_tokens': resultTokens,
+            'compression.result.compression_ratio': messages.length > 0 
+              ? (this.calculateContextSize(messages) - resultTokens) / this.calculateContextSize(messages)
+              : 0,
+            'compression.success': true,
+            'compression.fallback_used': false,
+          });
 
-      // Use simple compression fallback - same logic as Agent.simpleCompression
-      return await this.simpleCompressionFallback(messages);
-    }
+          compressionSpan.setStatus({ code: SpanStatusCode.OK });
+          return result;
+        } catch (error) {
+          logger.error(
+            {
+              sessionId: this.sessionId,
+              conversationId: this.conversationId,
+              error: error instanceof Error ? error.message : String(error),
+              stack: error instanceof Error ? error.stack : undefined,
+            },
+            'Compression failed, using simple fallback'
+          );
+
+          compressionSpan.setAttributes({
+            'compression.error': error instanceof Error ? error.message : String(error),
+            'compression.fallback_used': true,
+          });
+
+          // Use simple compression fallback - same logic as Agent.simpleCompression
+          const fallbackResult = await this.simpleCompressionFallback(messages);
+          
+          const fallbackTokens = Array.isArray(fallbackResult.summary)
+            ? this.calculateContextSize(fallbackResult.summary)
+            : this.estimateTokens(fallbackResult.summary);
+            
+          compressionSpan.setAttributes({
+            'compression.result.artifact_count': fallbackResult.artifactIds.length,
+            'compression.result.output_tokens': fallbackTokens,
+            'compression.result.compression_ratio': messages.length > 0
+              ? (this.calculateContextSize(messages) - fallbackTokens) / this.calculateContextSize(messages)
+              : 0,
+            'compression.success': true,
+          });
+
+          compressionSpan.setStatus({ code: SpanStatusCode.OK });
+          return fallbackResult;
+        } finally {
+          compressionSpan.end();
+        }
+      }
+    );
   }
 
   /**

@@ -18,6 +18,7 @@ export default function ConversationPage() {
 
   return (
     <BodyTemplate
+      disableScroll
       breadcrumbs={[
         { label: 'Traces', href: `/${tenantId}/projects/${projectId}/traces` },
         'Conversation',

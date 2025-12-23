@@ -260,9 +260,23 @@ vi.mock('../../logger.js', () => ({
 // Mock the SystemPromptBuilder
 vi.mock('../../agents/SystemPromptBuilder.js', () => ({
   SystemPromptBuilder: vi.fn().mockImplementation(() => ({
-    buildSystemPrompt: vi
-      .fn()
-      .mockResolvedValue('<system_message>Mock system prompt with tools</system_message>'),
+    buildSystemPrompt: vi.fn().mockResolvedValue({
+      prompt: '<system_message>Mock system prompt with tools</system_message>',
+      breakdown: {
+        systemPromptTemplate: 0,
+        coreInstructions: 0,
+        agentPrompt: 0,
+        toolsSection: 0,
+        artifactsSection: 0,
+        dataComponents: 0,
+        artifactComponents: 0,
+        transferInstructions: 0,
+        delegationInstructions: 0,
+        thinkingPreparation: 0,
+        conversationHistory: 0,
+        total: 0,
+      },
+    }),
   })),
 }));
 
@@ -401,7 +415,7 @@ describe('Agent Integration with SystemPromptBuilder', () => {
     const buildSystemPrompt = (agent as any).buildSystemPrompt.bind(agent);
     const result = await buildSystemPrompt();
 
-    expect(result).toContain('Mock system prompt with tools');
+    expect(result.prompt).toContain('Mock system prompt with tools');
     expect(systemPromptBuilder.buildSystemPrompt).toHaveBeenCalledWith({
       corePrompt: `You are a helpful test agent that can search databases and assist users.`,
       prompt: undefined,
