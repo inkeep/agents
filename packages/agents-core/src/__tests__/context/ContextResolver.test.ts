@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { ContextResolver, MissingRequiredVariableError } from '../../context';
+import { ContextResolver } from '../../context';
 import type { DatabaseClient } from '../../db/client';
 import { createTestDatabaseClient } from '../../db/test-client';
 import type { ContextConfigSelect } from '../../types';
@@ -331,4 +331,3 @@ describe('ContextResolver', () => {
     });
   });
 });
-
