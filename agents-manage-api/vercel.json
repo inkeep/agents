@@ -3,10 +3,5 @@
   "framework": "hono",
   "buildCommand": "turbo build --filter=@inkeep/agents-manage-api",
   "outputDirectory": "dist",
-  "installCommand": "pnpm install",
-  "functions": {
-    "api/**/*.ts": {
-      "maxDuration": 800
-    }
-  }
+  "installCommand": "pnpm install"
 }
