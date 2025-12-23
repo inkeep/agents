@@ -10,5 +10,8 @@ export const myProject = project({
   description: 'Activities planner project template',
   agents: () => [activitiesPlannerAdvancedAgent],
   policies: () => loadPolicies(path.join('activities-planner-advanced/policies')),
+  models: {
+    base: { model: 'openai/gpt-4o-mini' },
+  },
   tools: () => [weatherMcpTool, exaMcpTool],
 });

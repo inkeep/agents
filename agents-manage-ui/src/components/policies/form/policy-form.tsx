@@ -17,6 +17,7 @@ import type { Policy } from '@/lib/types/policies';
 import { formatJsonField } from '@/lib/utils';
 import { DeletePolicyConfirmation } from '../delete-policy-confirmation';
 import { defaultValues, type PolicyFormData, parseMetadataField, policySchema } from './validation';
+import { ExpandableJsonEditor } from '@/components/editors/expandable-json-editor';
 
 interface PolicyFormProps {
   tenantId: string;
@@ -99,14 +100,14 @@ export function PolicyForm({ tenantId, projectId, initialData }: PolicyFormProps
             control={form.control}
             name="name"
             label="Name"
-            placeholder="Guardrails"
+            placeholder="My policy"
             isRequired
           />
           <GenericInput
             control={form.control}
             name="id"
             label="Id"
-            placeholder="guardrails"
+            placeholder="my-policy"
             description={
               initialData
                 ? ''
@@ -119,7 +120,7 @@ export function PolicyForm({ tenantId, projectId, initialData }: PolicyFormProps
             control={form.control}
             name="description"
             label="Description"
-            placeholder="High-level summary of what this policy enforces"
+            placeholder="High-level summary of what this policy enforces."
             className="min-h-[80px]"
             isRequired
           />
@@ -132,12 +133,15 @@ export function PolicyForm({ tenantId, projectId, initialData }: PolicyFormProps
             error={form.formState.errors.content?.message}
             isRequired
           />
-          <GenericTextarea
-            control={form.control}
+          <ExpandableJsonEditor
+            value={form.watch('metadata') ?? ''}
+            onChange={(value) => form.setValue('metadata', value)}
             name="metadata"
-            label="Metadata (JSON, optional)"
-            placeholder='{"version":"1.0.0","tags":["safety"]}'
-            className="font-mono"
+            label="Metadata (JSON)"
+            placeholder={`{
+  "version": "1.0.0",
+  "tags": ["safety"]
+}`}
           />
 
           <div className="flex w-full justify-between">
