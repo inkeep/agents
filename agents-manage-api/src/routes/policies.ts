@@ -15,6 +15,7 @@ import {
   RemovedResponseSchema,
   TenantProjectIdParamsSchema,
   TenantProjectParamsSchema,
+  updatePolicy,
 } from '@inkeep/agents-core';
 import dbClient from '../data/db/dbClient';
 import { requirePermission } from '../middleware/require-permission';

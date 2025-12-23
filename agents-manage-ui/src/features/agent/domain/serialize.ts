@@ -13,6 +13,7 @@ import type {
   SubAgentTeamAgentConfigLookup,
 } from '@/lib/types/agent-full';
 import type { ExternalAgent } from '@/lib/types/external-agents';
+import type { Policy } from '@/lib/types/policies';
 import type { TeamAgent } from '@/lib/types/team-agents';
 import { generateId } from '@/lib/utils/id-utils';
 
@@ -105,7 +106,8 @@ export function serializeAgentData(
   artifactComponentLookup?: Record<string, ArtifactComponent>,
   agentToolConfigLookup?: AgentToolConfigLookup,
   subAgentExternalAgentConfigLookup?: SubAgentExternalAgentConfigLookup,
-  subAgentTeamAgentConfigLookup?: SubAgentTeamAgentConfigLookup
+  subAgentTeamAgentConfigLookup?: SubAgentTeamAgentConfigLookup,
+  policyLookup?: Record<string, Policy>
 ): FullAgentDefinition {
   const subAgents: Record<string, ExtendedAgent> = {};
   const externalAgents: Record<string, ExternalAgent> = {};
@@ -134,6 +136,36 @@ export function serializeAgentData(
       const processedModels = processModels(modelsData);
 
       const stopWhen = (node.data as any).stopWhen;
+
+      const nodePolicies: {
+        id: string;
+        name?: string;
+        description?: string | null;
+        content?: string;
+        metadata?: Record<string, unknown> | null;
+        index: number;
+        subAgentPolicyId?: string;
+      }[] = (node.data as any).policies || [];
+      const resolvedPolicies = nodePolicies
+        .map((policyEntry, idx) => {
+          const resolved = policyLookup?.[policyEntry.id] || policyEntry;
+          if (!resolved?.id) {
+            return null;
+          }
+
+          const index = policyEntry.index ?? idx;
+          return {
+            id: resolved.id,
+            name: resolved.name,
+            description: resolved.description ?? null,
+            content: (resolved as any).content ?? '',
+            metadata: (resolved as any).metadata ?? null,
+            index,
+            subAgentPolicyId: (policyEntry as any).subAgentPolicyId,
+          };
+        })
+        .filter((policy) => !!policy)
+        .sort((a, b) => a.index - b.index);
 
       const canUse: Array<{
         toolId: string;
@@ -293,6 +325,7 @@ export function serializeAgentData(
         artifactComponents: subAgentArtifactComponents,
         ...(processedModels && { models: processedModels }),
         type: 'internal',
+        ...(resolvedPolicies.length > 0 && { policies: resolvedPolicies }),
         ...(stopWhen && { stopWhen }),
       };
 
@@ -714,7 +747,8 @@ interface StructuredValidationError {
 
 export function validateSerializedData(
   data: FullAgentDefinition,
-  functionToolNodeMap?: Map<string, string>
+  functionToolNodeMap?: Map<string, string>,
+  policyLookup?: Record<string, Policy>
 ): StructuredValidationError[] {
   const errors: StructuredValidationError[] = [];
 
@@ -817,6 +851,19 @@ export function validateSerializedData(
               functionToolId: nodeId,
             });
           }
+        }
+      }
+    }
+
+    if ((agent as any).policies && policyLookup && Object.keys(policyLookup).length > 0) {
+      for (const policy of (agent as any).policies as Array<{ id: string }>) {
+        if (policy.id && !policyLookup[policy.id]) {
+          errors.push({
+            message: `Policy '${policy.id}' not found.`,
+            field: 'policies',
+            code: 'invalid_reference',
+            path: ['agents', subAgentId, 'policies'],
+          });
         }
       }
     }

@@ -6,6 +6,7 @@ import { fetchArtifactComponentsAction } from '@/lib/actions/artifact-components
 import { fetchCredentialsAction } from '@/lib/actions/credentials';
 import { fetchDataComponentsAction } from '@/lib/actions/data-components';
 import { fetchExternalAgentsAction } from '@/lib/actions/external-agents';
+import { fetchPoliciesAction } from '@/lib/actions/policies';
 import { fetchToolsAction } from '@/lib/actions/tools';
 import type { FullAgentDefinition } from '@/lib/types/agent-full';
 import { createLookup } from '@/lib/utils';
@@ -19,13 +20,14 @@ const AgentData: FC<{
   tenantId: string;
   projectId: string;
 }> = async ({ agent, tenantId, projectId }) => {
-  const [dataComponents, artifactComponents, credentials, tools, externalAgents] =
+  const [dataComponents, artifactComponents, credentials, tools, externalAgents, policies] =
     await Promise.all([
       fetchDataComponentsAction(tenantId, projectId),
       fetchArtifactComponentsAction(tenantId, projectId),
       fetchCredentialsAction(tenantId, projectId),
       fetchToolsAction(tenantId, projectId),
       fetchExternalAgentsAction(tenantId, projectId),
+      fetchPoliciesAction(tenantId, projectId),
     ]);
 
   if (
@@ -33,7 +35,8 @@ const AgentData: FC<{
     !artifactComponents.success ||
     !credentials.success ||
     !tools.success ||
-    !externalAgents.success
+    !externalAgents.success ||
+    !policies.success
   ) {
     console.error(
       'Failed to fetch components:',
@@ -41,7 +44,8 @@ const AgentData: FC<{
       artifactComponents.error,
       credentials.error,
       tools.error,
-      externalAgents.error
+      externalAgents.error,
+      policies.error
     );
   }
 
@@ -55,6 +59,7 @@ const AgentData: FC<{
 
   const toolLookup = createLookup(tools.success ? tools.data : undefined);
   const credentialLookup = createLookup(credentials.success ? credentials.data : undefined);
+  const policyLookup = createLookup(policies.success ? policies.data : undefined);
 
   return (
     <Agent
@@ -63,6 +68,7 @@ const AgentData: FC<{
       artifactComponentLookup={artifactComponentLookup}
       toolLookup={toolLookup}
       credentialLookup={credentialLookup}
+      policyLookup={policyLookup}
     />
   );
 };

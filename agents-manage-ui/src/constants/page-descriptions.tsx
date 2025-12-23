@@ -48,3 +48,12 @@ export const emptyStateProjectDescription = (
     <ExternalLink href={`${DOCS_BASE_URL}/`}>Check out the docs</ExternalLink>
   </>
 );
+
+export const policyDescription = (
+  <>
+    Policies are reusable instruction blocks that can be attached to multiple sub-agents and ordered
+    for priority.
+    {'\n'}
+    <ExternalLink href={`${DOCS_BASE_URL}/visual-builder/agent`}>Learn more</ExternalLink>
+  </>
+);

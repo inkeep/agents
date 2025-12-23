@@ -6,17 +6,13 @@ import toolTemplate from '../../../../templates/v1/phase1/tool.xml?raw';
 import artifactTemplate from '../../../../templates/v1/shared/artifact.xml?raw';
 import artifactRetrievalGuidance from '../../../../templates/v1/shared/artifact-retrieval-guidance.xml?raw';
 
-import { getLogger } from '../../../logger';
 import {
-  type PolicyData,
   type AssembleResult,
   calculateBreakdownTotal,
   createEmptyBreakdown,
   estimateTokens,
 } from '../../../utils/token-estimator';
-import type { SystemPromptV1, ToolData, VersionConfig } from '../../types';
-
-const _logger = getLogger('Phase1Config');
+import type { PolicyData, SystemPromptV1, ToolData, VersionConfig } from '../../types';
 
 export class Phase1Config implements VersionConfig<SystemPromptV1> {
   loadTemplates(): Map<string, string> {

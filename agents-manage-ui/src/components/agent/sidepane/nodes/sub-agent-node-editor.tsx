@@ -2,6 +2,7 @@ import type { Node } from '@xyflow/react';
 import { Trash2 } from 'lucide-react';
 import { useParams } from 'next/navigation';
 import { useCallback } from 'react';
+import { PolicySelector } from '@/components/policies/policy-selector';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import {
@@ -69,6 +70,8 @@ export function SubAgentNodeEditor({
   const selectedDataComponents = selectedNode.data?.dataComponents || [];
   const selectedArtifactComponents = selectedNode.data?.artifactComponents || [];
   const isDefaultSubAgent = selectedNode.data?.isDefault || false;
+  const policyLookup = useAgentStore((state) => state.policyLookup);
+  const selectedPolicies = (selectedNode.data?.policies as AgentNodeData['policies']) || [];
 
   const { project } = useProjectData();
   const metadata = useAgentStore((state) => state.metadata);
@@ -220,6 +223,21 @@ export function SubAgentNodeEditor({
           </p>
         </div>
       </div>
+      <Separator />
+      <PolicySelector
+        policyLookup={policyLookup}
+        selectedPolicies={selectedPolicies}
+        onChange={(policies) => {
+          const enriched = policies.map((policy) => ({
+            ...policy,
+            name: policyLookup[policy.id]?.name,
+            description: policyLookup[policy.id]?.description,
+            content: policyLookup[policy.id]?.content,
+          }));
+          updatePath('policies', enriched);
+        }}
+        error={getFieldError('policies')}
+      />
       <Separator />
       <ComponentSelector
         label="Components"
