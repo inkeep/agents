@@ -5,9 +5,9 @@ import { z } from 'zod';
 import type { PolicyDefinition } from './types';
 
 const frontmatterSchema = z.object({
-  name: z.string().nonempty('name is required'),
-  description: z.string().nonempty('description is required'),
-  metadata: z.record(z.string(), z.unknown()).optional(),
+  name: z.string().trim().nonempty(),
+  description: z.string().trim().nonempty(),
+  metadata: z.record(z.string(), z.unknown()).nullable().default(null),
 });
 
 function toPolicyId(filePath: string): string {
@@ -25,15 +25,15 @@ export function loadPolicies(directoryPath: string): PolicyDefinition[] {
     const resolvedPath = path.join(directoryPath, filePath);
     const fileContent = fs.readFileSync(resolvedPath, 'utf8');
     const { data, content } = matter(fileContent);
-    const frontmatter = frontmatterSchema.parse(data);
+    const { name, description, metadata } = frontmatterSchema.parse(data);
     const id = toPolicyId(filePath);
 
     return {
       id,
-      name: frontmatter.name,
-      description: frontmatter.description,
+      name,
+      description,
+      metadata,
       content: content.trim(),
-      metadata: frontmatter.metadata ?? null,
     };
   });
 }

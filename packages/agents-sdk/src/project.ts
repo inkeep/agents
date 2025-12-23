@@ -106,13 +106,13 @@ export class Project implements ProjectInterface {
   };
   private stopWhen?: StopWhen;
   private agents: Agent[] = [];
-  private agentMap: Map<string, Agent> = new Map();
+  private agentMap = new Map<string, Agent>();
   private credentialReferences?: Array<CredentialReferenceApiInsert> = [];
   private projectTools: Tool[] = [];
   private projectDataComponents: DataComponent[] = [];
   private projectArtifactComponents: ArtifactComponent[] = [];
   private projectExternalAgents: ExternalAgent[] = [];
-  private externalAgentMap: Map<string, ExternalAgent> = new Map();
+  private externalAgentMap = new Map<string, ExternalAgent>();
   private policies: PolicyDefinition[] = [];
 
   constructor(config: ProjectConfig) {
