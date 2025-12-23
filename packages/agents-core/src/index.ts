@@ -12,7 +12,8 @@ export * from './credential-stuffer/index';
 export * from './data-access/index';
 export * from './db/client';
 export * from './db/schema';
-export * from './db/test-client';
+// NOTE: test-client is NOT exported here to avoid bundling import.meta.url in CJS builds
+// Import directly from '@inkeep/agents-core/db/test-client' for tests
 export { loadEnvironmentFiles } from './env';
 export * from './middleware/index';
 export * from './types/index';

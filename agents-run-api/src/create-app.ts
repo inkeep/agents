@@ -12,6 +12,7 @@ import { cors } from 'hono/cors';
 import { HTTPException } from 'hono/http-exception';
 import { requestId } from 'hono/request-id';
 import type { StatusCode } from 'hono/utils/http-status';
+import { env } from './env';
 import { flushBatchProcessor } from './instrumentation';
 import { getLogger } from './logger';
 import { apiKeyAuth } from './middleware/api-key-auth';

@@ -6,6 +6,9 @@ import {
   generateId,
   getActiveAgentForConversation,
   getAgentWithDefaultSubAgent,
+  getEvaluationJobConfigByDatasetRunId,
+  getEvaluationJobConfigEvaluatorRelations,
+  getEvaluationRunByJobConfigId,
   getFullAgent,
   getTask,
   type SendMessageResponse,
@@ -21,8 +24,8 @@ import dbClient from '../data/db/dbClient.js';
 import { flushBatchProcessor } from '../instrumentation.js';
 import { getLogger } from '../logger.js';
 import { agentSessionManager } from '../services/AgentSession.js';
+import { triggerConversationEvaluationHttp } from '../services/evaluationHttpClient.js';
 import { agentInitializingOp, completionOp, errorOp } from '../utils/agent-operations.js';
-import { resolveModelConfig } from '../utils/model-resolver.js';
 import type { StreamHelper } from '../utils/stream-helpers.js';
 import { BufferingStreamHelper } from '../utils/stream-helpers.js';
 import { registerStreamHelper, unregisterStreamHelper } from '../utils/stream-registry.js';
@@ -37,6 +40,7 @@ interface ExecutionHandlerParams {
   requestId: string;
   sseHelper: StreamHelper;
   emitOperations?: boolean;
+  datasetRunId?: string; // Optional: ID of the dataset run this conversation belongs to
 }
 
 interface ExecutionResult {
@@ -96,47 +100,11 @@ export class ExecutionHandler {
       });
 
       if (agentConfig?.statusUpdates && agentConfig.statusUpdates.enabled !== false) {
-        try {
-          // Get the default sub-agent to resolve models properly with inheritance
-          const agentWithDefault = await getAgentWithDefaultSubAgent(dbClient)({
-            scopes: { tenantId, projectId, agentId },
-          });
-
-          if (agentWithDefault?.defaultSubAgent) {
-            const resolvedModels = await resolveModelConfig(
-              agentId,
-              agentWithDefault.defaultSubAgent
-            );
-
-            agentSessionManager.initializeStatusUpdates(
-              requestId,
-              agentConfig.statusUpdates,
-              resolvedModels.summarizer,
-              resolvedModels.base
-            );
-          } else {
-            // Fallback to agent-level config if no default sub-agent
-            agentSessionManager.initializeStatusUpdates(
-              requestId,
-              agentConfig.statusUpdates,
-              agentConfig.models?.summarizer
-            );
-          }
-        } catch (modelError) {
-          logger.warn(
-            {
-              error: modelError instanceof Error ? modelError.message : 'Unknown error',
-              agentId,
-            },
-            'Failed to resolve models for status updates, using agent-level config'
-          );
-          // Fallback to agent-level config
-          agentSessionManager.initializeStatusUpdates(
-            requestId,
-            agentConfig.statusUpdates,
-            agentConfig.models?.summarizer
-          );
-        }
+        agentSessionManager.initializeStatusUpdates(
+          requestId,
+          agentConfig.statusUpdates,
+          agentConfig.models?.summarizer
+        );
       }
     } catch (error) {
       logger.error(
@@ -515,6 +483,20 @@ export class ExecutionHandler {
 
               logger.info({}, 'ExecutionHandler returning success');
 
+              // Trigger evaluation 
+              if (!params.datasetRunId) {
+                triggerConversationEvaluationHttp({
+                  tenantId,
+                  projectId,
+                  conversationId,
+                }).catch((error) => {
+                  logger.error(
+                    { error, conversationId, tenantId, projectId },
+                    'Failed to trigger conversation evaluation (non-blocking)'
+                  );
+                });
+              }
+
               return { success: true, iterations, response };
             } catch (error) {
               setSpanWithError(span, error instanceof Error ? error : new Error(String(error)));
@@ -558,6 +540,21 @@ export class ExecutionHandler {
 
           await agentSessionManager.endSession(requestId);
           unregisterStreamHelper(requestId);
+
+          // Trigger evaluation for regular conversations (not dataset runs)
+          if (!params.datasetRunId) {
+            triggerConversationEvaluationHttp({
+              tenantId,
+              projectId,
+              conversationId,
+            }).catch((error) => {
+              logger.error(
+                { error, conversationId, tenantId, projectId },
+                'Failed to trigger conversation evaluation (non-blocking)'
+              );
+            });
+          }
+
           return { success: false, error: errorMessage, iterations };
         }
       }
