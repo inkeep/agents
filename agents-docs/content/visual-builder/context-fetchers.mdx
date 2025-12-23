@@ -53,6 +53,7 @@ Each key in the JSON should map to a fetch definition with the following propert
   - **`body`** (optional): Request body for POST/PUT/PATCH requests
   - **`transform`** (optional): JSONPath expression or JavaScript transform function to extract specific data from the response
   - **`timeout`** (optional): Request timeout in milliseconds (defaults to 10000)
+  - **`requiredToFetch`** (optional): Array of template variables that must resolve to non-empty values for the fetch to execute. If any variable is missing or empty, the fetch is skipped and `defaultValue` is used instead. Useful for optional fetches that depend on request headers.
 - **`responseSchema`** (optional): Valid JSON Schema object to validate the API response structure.
 - **`defaultValue`** (optional): Default value to use if the fetch fails or returns no data
 - **`credential`** (optional): Reference to stored credentials for authentication
@@ -90,6 +91,33 @@ Here is an example of a valid Context Variables JSON object:
   }
 }
 ```
+
+### Optional Context Fetches
+
+Use `requiredToFetch` when you want a fetch to only execute when certain headers are provided. This is useful for optional data that enhances the agent experience but isn't required.
+
+Here's an example that fetches conversation history only when the `x-conversation-id` header is provided:
+
+```json
+{
+  "conversationHistory": {
+    "id": "conversation-history",
+    "name": "Conversation History",
+    "trigger": "initialization",
+    "fetchConfig": {
+      "url": "https://api.example.com/conversations/{{headers.x-conversation-id}}",
+      "method": "GET",
+      "requiredToFetch": ["{{headers.x-conversation-id}}"]
+    },
+    "defaultValue": { "messages": [] }
+  }
+}
+```
+
+When `x-conversation-id` is not provided in the request headers:
+- The fetch is **skipped** (not treated as an error)
+- The `defaultValue` is used instead
+- The agent continues normally with an empty message history
 
 ## Using Context Variables
 Once you have defined your context variables, you can use them in your agent prompts.

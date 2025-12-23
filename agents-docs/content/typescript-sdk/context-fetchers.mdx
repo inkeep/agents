@@ -130,6 +130,59 @@ transform: "user.profile.displayName"; // Result: "John Doe"
 transform: "items[0].name"; // Result: "First Item"
 ```
 
+## Optional Context Fetches
+
+Sometimes you want to fetch context data only when certain conditions are met—for example, when a specific header is provided. The `requiredToFetch` property lets you specify template variables that must resolve to non-empty values for the fetch to execute.
+
+If any required variable is missing or resolves to an empty string, the fetch is **skipped** (not treated as an error), and the `defaultValue` is used if provided.
+
+```typescript
+import { agent, subAgent } from "@inkeep/agents-sdk";
+import { contextConfig, fetchDefinition, headers } from "@inkeep/agents-core";
+import { z } from "zod";
+
+// Define headers schema - x-conversation-id is optional
+const chatHeaders = headers({
+  schema: z.object({
+    "x-tenant-id": z.string(),
+    "x-project-id": z.string(),
+    "x-conversation-id": z.string().optional(), // Optional header
+  })
+});
+
+// This fetch only runs when x-conversation-id header is provided
+const conversationHistoryFetcher = fetchDefinition({
+  id: "conversation-history",
+  name: "Conversation History",
+  trigger: "initialization",
+  fetchConfig: {
+    url: `https://api.example.com/conversations/${chatHeaders.toTemplate('x-conversation-id')}`,
+    method: "GET",
+    // Only fetch if x-conversation-id header is present and non-empty
+    requiredToFetch: [chatHeaders.toTemplate('x-conversation-id')],
+  },
+  responseSchema: z.object({
+    messages: z.array(z.object({
+      role: z.string(),
+      content: z.string(),
+    })),
+  }),
+  defaultValue: { messages: [] }, // Used when header is not provided
+});
+
+const chatContext = contextConfig({
+  headers: chatHeaders,
+  contextVariables: {
+    history: conversationHistoryFetcher,
+  },
+});
+```
+
+**When to use `requiredToFetch`:**
+- Fetching user-specific data when an optional user ID header is provided
+- Loading conversation history only when continuing an existing conversation
+- Conditional data loading based on optional API keys or authentication headers
+
 ## Best Practices
 
 1. **Use Appropriate Triggers**
@@ -141,6 +194,11 @@ transform: "items[0].name"; // Result: "First Item"
 
    - Always provide a `defaultValue`
    - Use appropriate response schemas
+
+3. **Use `requiredToFetch` for Optional Dependencies**
+
+   - Specify required template variables for conditional fetches
+   - Provide a `defaultValue` to handle skipped fetches gracefully
 
 ## Related documentation
 
