@@ -232,14 +232,14 @@ app.openapi(
   }
 );
 
-// OAuth callback endpoint
+// MCP OAuth callback endpoint (for direct MCP tool OAuth flows)
 app.openapi(
   createRoute({
     method: 'get',
     path: '/callback',
-    summary: 'OAuth authorization callback',
-    description: 'Handles OAuth authorization codes and completes the authentication flow',
-    operationId: 'oauth-callback',
+    summary: 'MCP OAuth authorization callback',
+    description: 'Handles OAuth authorization codes for MCP tools and completes the authentication flow',
+    operationId: 'mcp-oauth-callback',
     tags: ['OAuth'],
     request: {
       query: OAuthCallbackQuerySchema,

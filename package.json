@@ -17,6 +17,7 @@
     "prepack": "pnpm sync:licenses && turbo prepack",
     "dev:apis": "turbo dev:apis",
     "test": "turbo test --filter='!agents-cookbook-templates'",
+    "test:e2e": "turbo test:e2e",
     "test:watch": "turbo test:watch",
     "test:coverage": "turbo test:coverage --filter='!agents-cookbook-templates'",
     "coverage": "pnpm test:coverage && node scripts/merge-coverage.mjs && node scripts/generate-badges.mjs",
@@ -35,8 +36,8 @@
     "check": "turbo check --filter='!agents-cookbook-templates'",
     "check:husky": "turbo check:husky --filter='!agents-cookbook-templates'",
     "check:fix": "biome check --write",
-    "clean": "pnpm -r --parallel exec rm -rf node_modules dist build .next .turbo",
-    "clean:turbo": "rm -rf .turbo",
+    "clean": "pnpm -r --parallel exec rm -rf node_modules/ dist/ build/ .next/ .turbo/",
+    "clean:turbo": "rm -rf .turbo/",
     "turbo:login": "turbo login && turbo link",
     "turbo:setup-cache": "sh scripts/setup-turbo-cache.sh",
     "prepare": "husky",
@@ -63,19 +64,18 @@
   },
   "version": "0.1.0",
   "dependencies": {
-    "npm-run-all": "^4.1.5",
     "tsdown": "^0.18.0",
     "zod": "^4.1.12",
     "@hono/zod-openapi": "^1.1.5"
   },
   "devDependencies": {
-    "knip": "^5.75.1",
+    "knip": "^5.75.2",
     "@biomejs/biome": "2.2.4",
     "@changesets/cli": "2.29.7",
     "drizzle-kit": "^0.31.5",
     "husky": "^9.1.6",
     "lint-staged": "^16.1.5",
-    "turbo": "^2.6.1",
+    "turbo": "^2.7.0",
     "unique-names-generator": "^4.7.1",
     "vitest": "^3.2.4"
   },
@@ -96,7 +96,6 @@
     "overrides": {
       "esbuild": "0.25.9",
       "zod": "^4.1.11",
-      "@inkeep/agents-manage-mcp>zod": "^3.25.7",
       "@modelcontextprotocol/sdk>zod": "^3.25.7",
       "@anthropic-ai/mcpb>zod": "^3.25.7"
     },

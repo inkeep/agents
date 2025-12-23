@@ -5,7 +5,7 @@ import {
   AddUserToOrganizationResponseSchema,
   UserOrganizationsResponseSchema,
 } from '@inkeep/agents-core/auth/validation';
-import type { AppVariables } from '../app';
+import type { AppVariables } from '../create-app';
 import dbClient from '../data/db/dbClient';
 
 const userOrganizationsRoutes = new OpenAPIHono<{ Variables: AppVariables }>();

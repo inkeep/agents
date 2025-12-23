@@ -1,6 +1,6 @@
 import { createRoute, OpenAPIHono, z } from '@hono/zod-openapi';
 import { getPendingInvitationsByEmail } from '@inkeep/agents-core';
-import type { AppVariables } from '../app';
+import type { AppVariables } from '../create-app';
 import dbClient from '../data/db/dbClient';
 
 const invitationsRoutes = new OpenAPIHono<{ Variables: AppVariables }>();

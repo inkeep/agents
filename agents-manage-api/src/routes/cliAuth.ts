@@ -1,6 +1,6 @@
 import { createRoute, OpenAPIHono, z } from '@hono/zod-openapi';
 import { getUserOrganizations } from '@inkeep/agents-core';
-import type { AppVariables } from '../app';
+import type { AppVariables } from '../create-app';
 import dbClient from '../data/db/dbClient';
 import { sessionAuth } from '../middleware/session-auth';
 
