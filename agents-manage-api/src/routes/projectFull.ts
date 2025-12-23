@@ -218,7 +218,6 @@ app.openapi(
           message: `Project ID mismatch: expected ${projectId}, got ${validatedProjectData.id}`,
         });
       }
-
       const existingProject: FullProjectDefinition | null = await getFullProject(
         dbClient,
         logger
@@ -226,17 +225,13 @@ app.openapi(
         scopes: { tenantId, projectId },
       });
       const isCreate = !existingProject;
+      const methodToUse = isCreate ? createFullProjectServerSide : updateFullProjectServerSide;
 
       // Update/create the full project using server-side data layer operations
-      const updatedProject: FullProjectDefinition = isCreate
-        ? await createFullProjectServerSide(dbClient, logger)(
-            { tenantId, projectId },
-            validatedProjectData
-          )
-        : await updateFullProjectServerSide(dbClient, logger)(
-            { tenantId, projectId },
-            validatedProjectData
-          );
+      const updatedProject = await methodToUse(dbClient, logger)(
+        { tenantId, projectId },
+        validatedProjectData
+      );
 
       return c.json({ data: updatedProject }, isCreate ? 201 : 200);
     } catch (error) {
