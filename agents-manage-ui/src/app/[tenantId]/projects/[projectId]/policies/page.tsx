@@ -22,7 +22,7 @@ import { CreatePolicyModal } from '@/components/policies/create-policy-modal';
 
 export const dynamic = 'force-dynamic';
 
-const colClass = 'w-1/7 align-top whitespace-pre-wrap';
+const colClass = 'align-top whitespace-pre-wrap';
 const description = (
   <>
     Policies are reusable instruction blocks that can be attached to multiple sub-agents and ordered
@@ -44,8 +44,8 @@ async function PoliciesPage({ params }: PageProps<'/[tenantId]/projects/[project
         <Table>
           <TableHeader>
             <TableRow noHover>
-              <TableHead>Name</TableHead>
               <TableHead>ID</TableHead>
+              <TableHead>Name</TableHead>
               <TableHead>Description</TableHead>
               <TableHead>Content</TableHead>
               <TableHead>Metadata</TableHead>
@@ -56,8 +56,10 @@ async function PoliciesPage({ params }: PageProps<'/[tenantId]/projects/[project
           <TableBody>
             {data.map((policy) => (
               <TableRow key={policy.id} className="relative">
+                <TableCell className="align-top">
+                  <Badge variant="code">{policy.id}</Badge>
+                </TableCell>
                 <TableCell className={colClass}>{policy.name}</TableCell>
-                <TableCell className={colClass}>{policy.id}</TableCell>
                 <TableCell className={colClass}>{policy.description}</TableCell>
                 <TableCell className={colClass}>
                   <Badge variant="code" className={cn('line-clamp-3 whitespace-normal')}>
@@ -69,8 +71,8 @@ async function PoliciesPage({ params }: PageProps<'/[tenantId]/projects/[project
                     {JSON.stringify(policy.metadata)}
                   </Badge>
                 </TableCell>
-                <TableCell className={colClass}>{formatDate(policy.createdAt)}</TableCell>
-                <TableCell className={colClass}>{formatDateAgo(policy.updatedAt)}</TableCell>
+                <TableCell className="align-top">{formatDate(policy.createdAt)}</TableCell>
+                <TableCell className="align-top">{formatDateAgo(policy.updatedAt)}</TableCell>
                 <NextLink
                   href={`/${tenantId}/projects/${projectId}/policies/${policy.id}`}
                   className="absolute inset-0"

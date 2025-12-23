@@ -32,7 +32,7 @@ async function PolicyDetailPage({
       ]}
       className="max-w-2xl mx-auto"
     >
-      <PolicyForm tenantId={tenantId} projectId={projectId} initialData={policyResult.data} />
+      <PolicyForm initialData={policyResult.data} />
     </BodyTemplate>
   );
 }
