@@ -1,24 +1,31 @@
 import { relations } from 'drizzle-orm';
 import {
+  doublePrecision,
   foreignKey,
   jsonb,
   pgTable,
   primaryKey,
   text,
   timestamp,
+  boolean,
   unique,
   varchar,
 } from 'drizzle-orm/pg-core';
 import type {
   ContextFetchDefinition,
   ConversationHistoryConfig,
+  Filter,
+  MessageContent,
   Models,
+  PassCriteria,
   ProjectModels,
   StatusUpdateSettings,
   ToolMcpConfig,
   ToolServerCapabilities,
+  EvaluationSuiteFilterCriteria,
+  EvaluationJobFilterCriteria,
 } from '../../types/utility';
-import type { AgentStopWhen, StopWhen, SubAgentStopWhen } from '../../validation/schemas';
+import type { AgentStopWhen, ModelSettings, StopWhen, SubAgentStopWhen } from '../../validation/schemas';
 
 const tenantScoped = {
   tenantId: varchar('tenant_id', { length: 256 }).notNull(),
@@ -490,6 +497,346 @@ export const credentialReferences = pgTable(
   ]
 );
 
+/**
+ * A collection of test cases/items used for evaluation. Contains dataset items
+ * that define input/output pairs for testing agents. Used for batch evaluation
+ * runs where conversations are created from dataset items. Each datasetRun
+ * specifies which agent to use when executing the dataset.
+ * 
+ * one to many relationship with datasetItem
+ * 
+ * Includes: name and timestamps
+ */
+export const dataset = pgTable(
+  'dataset',
+  {
+    ...projectScoped,
+    name: varchar('name', { length: 256 }).notNull(),
+    ...timestamps,
+  },
+  (table) => [
+    primaryKey({ columns: [table.tenantId, table.projectId, table.id] }),
+    foreignKey({
+      columns: [table.tenantId, table.projectId],
+      foreignColumns: [projects.tenantId, projects.id],
+      name: 'dataset_project_fk',
+    }).onDelete('cascade'),
+  ]
+);
+
+/**
+ *
+ * Individual test case within a dataset. Contains the input messages to send
+ * to an agent and optionally expected output or simulation configuration.
+ * When a dataset run executes, it creates conversations from these items.
+ *
+ *
+ * Includes: input (messages array with optional headers), expected output (array of messages),
+ * simulation agent (stopWhen conditions, prompt/modelConfig), and timestamps
+ * simulationAgent is for when a user wants to create a multi-turn simulation aka a simulating agent is creating input messages based on a persona
+ */
+export const datasetItem = pgTable(
+  'dataset_item',
+  {
+    ...projectScoped,
+    datasetId: text('dataset_id').notNull(),
+    input: jsonb('input')
+      .$type<{
+        messages: Array<{ role: string; content: MessageContent }>;
+        headers?: Record<string, string>;
+      }>()
+      .notNull(),
+    expectedOutput:
+      jsonb('expected_output').$type<Array<{ role: string; content: MessageContent }>>(),
+    simulationAgent: jsonb('simulation_agent').$type<{
+      stopWhen?: StopWhen;
+      prompt: string;
+      model: ModelSettings;
+    }>(),
+    ...timestamps,
+  },
+  (table) => [
+    primaryKey({ columns: [table.tenantId, table.projectId, table.id] }),
+    foreignKey({
+      columns: [table.tenantId, table.projectId, table.datasetId],
+      foreignColumns: [dataset.tenantId, dataset.projectId, dataset.id],
+      name: 'dataset_item_dataset_fk',
+    }).onDelete('cascade'),
+  ]
+);
+
+/*
+* Contains `the prompt/instructions for the evaluator, output schema for structured
+* results, and model configuration.
+*
+* Includes: name, description, prompt, schema (output structure),
+* model (required model config for the evaluator LLM), and timestamps
+*/
+export const evaluator = pgTable(
+ 'evaluator',
+ {
+   ...projectScoped,
+   ...uiProperties,
+   prompt: text('prompt').notNull(),
+   schema: jsonb('schema').$type<Record<string, unknown>>().notNull(),
+   model: jsonb('model').$type<ModelSettings>().notNull(),
+   passCriteria: jsonb('pass_criteria').$type<PassCriteria>(),
+   ...timestamps,
+ },
+ (table) => [
+   primaryKey({ columns: [table.tenantId, table.projectId, table.id] }),
+   foreignKey({
+     columns: [table.tenantId, table.projectId],
+     foreignColumns: [projects.tenantId, projects.id],
+     name: 'evaluator_project_fk',
+   }).onDelete('cascade'),
+ ]
+);
+
+
+/*
+* Holds the config for running datasets (datasetId).
+* Join table with agents (many-to-many).
+*
+* Example: "Run weekly with agent X against dataset Y"
+* Run (and evaluate) after every change to agent X.
+*
+* If you want to also run the evals, link to evaluationRunConfig via join table.
+*
+* one to many relationship with datasetRun
+* many to many relationship with agents (via join table)
+* many to many relationship with evaluationRunConfig (via join table)
+*
+* Includes: name, description, datasetId (which dataset to run), and timestamps
+*/
+export const datasetRunConfig = pgTable(
+ 'dataset_run_config',
+ {
+   ...projectScoped,
+   ...uiProperties,
+   datasetId: text('dataset_id').notNull(),
+   ...timestamps,
+ },
+ (table) => [
+   primaryKey({ columns: [table.tenantId, table.projectId, table.id] }),
+   foreignKey({
+     columns: [table.tenantId, table.projectId],
+     foreignColumns: [projects.tenantId, projects.id],
+     name: 'dataset_run_config_project_fk',
+   }).onDelete('cascade'),
+   foreignKey({
+     columns: [table.tenantId, table.projectId, table.datasetId],
+     foreignColumns: [dataset.tenantId, dataset.projectId, dataset.id],
+     name: 'dataset_run_config_dataset_fk',
+   }).onDelete('cascade'),
+ ]
+);
+
+/**
+ * Configuration that defines what to evaluate. Contains filters and evaluators.
+ * Example: "Evaluate conversations for agentId X with filters Y"
+ *
+ * Linked to one or more evaluationRunConfigs (via join table) that define when to run.
+ * When triggered, creates an evaluationRun with computed filters based on the criteria.
+ *
+ * Configuration-level filters:
+ * - Filters stored in filters JSONB field
+ *
+ * many to many relationship with evaluationRunConfig
+ *
+ * Includes: name, description, filters (JSONB for evaluation criteria),
+ * sampleRate for sampling, and timestamps
+ */
+
+export const evaluationSuiteConfig = pgTable(
+  'evaluation_suite_config',
+  {
+    ...projectScoped,
+    filters: jsonb('filters').$type<Filter<EvaluationSuiteFilterCriteria>>(), // Filters for the evaluation suite (supports and/or operations)
+    sampleRate: doublePrecision('sample_rate'),
+    ...timestamps,
+  },
+  (table) => [
+    primaryKey({ columns: [table.tenantId, table.projectId, table.id] }),
+    foreignKey({
+      columns: [table.tenantId, table.projectId],
+      foreignColumns: [projects.tenantId, projects.id],
+      name: 'evaluation_suite_config_project_fk',
+    }).onDelete('cascade'),
+  ]
+);
+
+
+/**
+ * Links evaluators to evaluation suite configs. Many-to-many relationship that
+ * attaches evaluators to an evaluation suite configuration. Each evaluator must
+ * have its own model configuration defined.
+ *
+ * Includes: evaluationSuiteConfigId, evaluatorId, and timestamps
+ */
+export const evaluationSuiteConfigEvaluatorRelations = pgTable(
+  'evaluation_suite_config_evaluator_relations',
+  {
+    ...projectScoped,
+    evaluationSuiteConfigId: text('evaluation_suite_config_id').notNull(),
+    evaluatorId: text('evaluator_id').notNull(),
+    ...timestamps,
+  },
+  (table) => [
+    primaryKey({ columns: [table.tenantId, table.projectId, table.id] }),
+    foreignKey({
+      columns: [table.tenantId, table.projectId, table.evaluationSuiteConfigId],
+      foreignColumns: [
+        evaluationSuiteConfig.tenantId,
+        evaluationSuiteConfig.projectId,
+        evaluationSuiteConfig.id,
+      ],
+      name: 'evaluation_suite_config_evaluator_relations_evaluation_suite_config_fk',
+    }).onDelete('cascade'),
+    foreignKey({
+      columns: [table.tenantId, table.projectId, table.evaluatorId],
+      foreignColumns: [evaluator.tenantId, evaluator.projectId, evaluator.id],
+      name: 'evaluation_suite_config_evaluator_relations_evaluator_fk',
+    }).onDelete('cascade'),
+  ]
+);
+
+/**
+ * Links evaluation run configs to evaluation suite configs. Many-to-many relationship that
+ * allows one suite config to have multiple run schedules, and one run config to be used
+ * by multiple suite configs.
+ *
+ * Includes: evaluationRunConfigId, evaluationSuiteConfigId, and timestamps
+ */
+export const evaluationRunConfigEvaluationSuiteConfigRelations = pgTable(
+  'evaluation_run_config_evaluation_suite_config_relations',
+  {
+    ...projectScoped,
+    evaluationRunConfigId: text('evaluation_run_config_id').notNull(),
+    evaluationSuiteConfigId: text('evaluation_suite_config_id').notNull(),
+    ...timestamps,
+  },
+  (table) => [
+    primaryKey({ columns: [table.tenantId, table.projectId, table.id] }),
+    foreignKey({
+      columns: [table.tenantId, table.projectId, table.evaluationRunConfigId],
+      foreignColumns: [
+        evaluationRunConfig.tenantId,
+        evaluationRunConfig.projectId,
+        evaluationRunConfig.id,
+      ],
+      name: 'eval_run_config_eval_suite_rel_run_config_fk',
+    }).onDelete('cascade'),
+    foreignKey({
+      columns: [table.tenantId, table.projectId, table.evaluationSuiteConfigId],
+      foreignColumns: [
+        evaluationSuiteConfig.tenantId,
+        evaluationSuiteConfig.projectId,
+        evaluationSuiteConfig.id,
+      ],
+      name: 'eval_run_config_eval_suite_rel_suite_config_fk',
+    }).onDelete('cascade'),
+  ]
+);
+
+
+/**
+ * Configuration for automated evaluation runs. Trigger policies is conversation end.
+ * Can be linked to multiple evaluation suite configs via join table.
+ * many to many relationship with evaluationSuiteConfig
+ *
+ * Evaluations are automatically triggered when regular conversations complete.
+ * When a conversation ends, creates an evaluationRun that evaluates that conversation.
+ *
+ * NOTE: Evaluation run configs ONLY run on regular conversations, NOT dataset run conversations.
+ * Dataset runs create their own evaluationJobConfig with specific evaluators at run-time.
+ *
+ * one to many relationship with evaluationRun
+ */
+export const evaluationRunConfig = pgTable(
+  'evaluation_run_config',
+  {
+    ...projectScoped,
+    ...uiProperties,
+    isActive: boolean('is_active').notNull().default(true),
+    ...timestamps,
+  },
+  (table) => [
+    primaryKey({ columns: [table.tenantId, table.projectId, table.id] }),
+    foreignKey({
+      columns: [table.tenantId, table.projectId],
+      foreignColumns: [projects.tenantId, projects.id],
+      name: 'evaluation_run_config_project_fk',
+    }).onDelete('cascade'),
+  ]
+);
+
+
+/**
+ * Configuration for a one-off evaluation job to be executed.
+ * Example: "Evaluate all conversations in datasetRunId 1234"
+ *
+ * Created manually or by external systems. Contains job-specific filters like
+ * datasetRunIds, conversationIds, and absolute dateRange.
+ *
+ * one to many relationship with evaluationRun
+ *
+ * When a job completes, an evaluationRun is created with evaluationJobConfigId set.
+ *
+ * Includes: jobFilters (specific filters for this job execution: datasetRunIds, conversationIds,
+ * dateRange with absolute dates), and timestamps
+ */
+export const evaluationJobConfig = pgTable(
+  'evaluation_job_config',
+  {
+    ...projectScoped,
+    jobFilters: jsonb('job_filters').$type<Filter<EvaluationJobFilterCriteria>>(),
+    ...timestamps,
+  },
+  (table) => [
+    primaryKey({ columns: [table.tenantId, table.projectId, table.id] }),
+    foreignKey({
+      columns: [table.tenantId, table.projectId],
+      foreignColumns: [projects.tenantId, projects.id],
+      name: 'evaluation_job_config_project_fk',
+    }).onDelete('cascade'),
+  ]
+);
+
+/**
+ * Links evaluators to evaluation job configs. Many-to-many relationship that
+ * attaches evaluators to an evaluation job configuration. Each evaluator must
+ * have its own model configuration defined.
+ *
+ * Includes: evaluationJobConfigId, evaluatorId, and timestamps
+ */
+export const evaluationJobConfigEvaluatorRelations = pgTable(
+  'evaluation_job_config_evaluator_relations',
+  {
+    ...projectScoped,
+    evaluationJobConfigId: text('evaluation_job_config_id').notNull(),
+    evaluatorId: text('evaluator_id').notNull(),
+    ...timestamps,
+  },
+  (table) => [
+    primaryKey({ columns: [table.tenantId, table.projectId, table.id] }),
+    foreignKey({
+      columns: [table.tenantId, table.projectId, table.evaluationJobConfigId],
+      foreignColumns: [
+        evaluationJobConfig.tenantId,
+        evaluationJobConfig.projectId,
+        evaluationJobConfig.id,
+      ],
+      name: 'evaluation_job_config_evaluator_relations_evaluation_job_config_fk',
+    }).onDelete('cascade'),
+    foreignKey({
+      columns: [table.tenantId, table.projectId, table.evaluatorId],
+      foreignColumns: [evaluator.tenantId, evaluator.projectId, evaluator.id],
+      name: 'evaluation_job_config_evaluator_relations_evaluator_fk',
+    }).onDelete('cascade'),
+  ]
+);
+
 // ============================================================================
 // CONFIG RELATIONS
 // ============================================================================
@@ -732,4 +1079,35 @@ export const subAgentTeamAgentRelationsRelations = relations(
       references: [agents.tenantId, agents.projectId, agents.id],
     }),
   })
+);
+
+
+/**
+ * Links agents to dataset run configs. Many-to-many relationship that
+ * allows one dataset run config to use multiple agents, and one agent to be used
+ * by multiple dataset run configs.
+ *
+ * Includes: datasetRunConfigId, agentId, and timestamps
+ */
+export const datasetRunConfigAgentRelations = pgTable(
+  'dataset_run_config_agent_relations',
+  {
+    ...projectScoped,
+    datasetRunConfigId: text('dataset_run_config_id').notNull(),
+    agentId: text('agent_id').notNull(),
+    ...timestamps,
+  },
+  (table) => [
+    primaryKey({ columns: [table.tenantId, table.projectId, table.id] }),
+    foreignKey({
+      columns: [table.tenantId, table.projectId, table.datasetRunConfigId],
+      foreignColumns: [datasetRunConfig.tenantId, datasetRunConfig.projectId, datasetRunConfig.id],
+      name: 'dataset_run_config_agent_relations_dataset_run_config_fk',
+    }).onDelete('cascade'),
+    foreignKey({
+      columns: [table.tenantId, table.projectId, table.agentId],
+      foreignColumns: [agents.tenantId, agents.projectId, agents.id],
+      name: 'dataset_run_config_agent_relations_agent_fk',
+    }).onDelete('cascade'),
+  ]
 );

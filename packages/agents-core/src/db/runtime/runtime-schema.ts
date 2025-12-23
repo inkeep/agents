@@ -268,6 +268,133 @@ export const contextCache = pgTable(
   ]
 );
 
+
+/**
+ * Execution of a suite of items from a dataset. Represents a batch run that
+ * processes dataset items and creates conversations (basically a batch run of conversations). Tracks the execution
+ * status and links to conversations created during the run via
+ * datasetRunConversationRelations join table.
+ *
+ * When evaluators are specified, an evaluation job is automatically created after the run completes,
+ * and the evaluationJobConfigId links to that job.
+ *
+ * Includes: datasetId (which dataset to run),
+ * datasetRunConfigId (required: always created from a config),
+ * evaluationJobConfigId (optional: links to evaluation job created for this run), and timestamps
+ */
+export const datasetRun = pgTable(
+  'dataset_run',
+  {
+    ...projectScoped,
+    datasetId: text('dataset_id').notNull(),
+    datasetRunConfigId: text('dataset_run_config_id').notNull(),
+    evaluationJobConfigId: text('evaluation_job_config_id'),
+    ...timestamps,
+  },
+  (table) => [
+    primaryKey({ columns: [table.tenantId, table.projectId, table.id] })
+  ]
+);
+
+/**
+ * Links conversations created during a dataset run execution. One-to-many
+ * relationship where one datasetRun can create many conversations, but each
+ * conversation belongs to exactly one datasetRun. Used to track which
+ * conversations were generated from which dataset run.
+ *
+ * Includes: datasetRunId (composite FK to datasetRun), conversationId (composite FK to conversations),
+ * datasetItemId (composite FK to datasetItem) to directly link conversations to their source dataset items,
+ * unique constraint on (datasetRunId, conversationId) ensures one conversation per datasetRun,
+ * and timestamps
+ */
+export const datasetRunConversationRelations = pgTable(
+  'dataset_run_conversation_relations',
+  {
+    ...projectScoped,
+    datasetRunId: text('dataset_run_id').notNull(),
+    conversationId: text('conversation_id').notNull(),
+    datasetItemId: text('dataset_item_id').notNull(),
+    ...timestamps,
+  },
+  (table) => [
+    primaryKey({ columns: [table.tenantId, table.projectId, table.id] }),
+    foreignKey({
+      columns: [table.tenantId, table.projectId, table.datasetRunId],
+      foreignColumns: [datasetRun.tenantId, datasetRun.projectId, datasetRun.id],
+      name: 'dataset_run_conversation_relations_run_fk',
+    }).onDelete('cascade'),
+    foreignKey({
+      columns: [table.tenantId, table.projectId, table.conversationId],
+      foreignColumns: [conversations.tenantId, conversations.projectId, conversations.id],
+      name: 'dataset_run_conversation_relations_conversation_fk',
+    }).onDelete('cascade'),
+    unique('dataset_run_conversation_relations_unique').on(
+      table.datasetRunId,
+      table.conversationId
+    ),
+  ]
+);
+
+
+/**
+ * Record created when an evaluation job config or evaluation run config is triggered.
+ * Represents a completed evaluation run. Links to the evaluationJobConfig (if created from a job)
+ * or evaluationRunConfig (if created from a run config).
+ * Results are stored in evaluationResult table.
+ * one to many relationship with evaluationResult
+ *
+ * Includes: evaluationJobConfigId (optional: if created from a job),
+ * evaluationRunConfigId (optional: if created from a run config),
+ * and timestamps
+ */
+export const evaluationRun = pgTable(
+  'evaluation_run',
+  {
+    ...projectScoped,
+    evaluationJobConfigId: text('evaluation_job_config_id'), // Optional: if created from a job
+    evaluationRunConfigId: text('evaluation_run_config_id'), // Optional: if created from a run config
+    ...timestamps,
+  },
+  (table) => [
+    primaryKey({ columns: [table.tenantId, table.projectId, table.id] })
+  ]
+);
+
+
+/**
+ * Stores the result of evaluating a conversation with a specific evaluator.
+ * Contains the evaluation output. Linked to an evaluation run.
+ * Each result represents one evaluator's assessment of one conversation.
+ *
+ * Includes: conversationId (required), evaluatorId (required),
+ * evaluationRunId (optional, links to evaluationRun),
+ * output (evaluation result as MessageContent), and timestamps
+ */
+export const evaluationResult = pgTable(
+  'evaluation_result',
+  {
+    ...projectScoped,
+    conversationId: text('conversation_id').notNull(),
+    evaluatorId: text('evaluator_id').notNull(),
+    evaluationRunId: text('evaluation_run_id'),
+    output: jsonb('output').$type<MessageContent>(),
+    ...timestamps,
+  },
+  (table) => [
+    primaryKey({ columns: [table.tenantId, table.projectId, table.id] }),
+    foreignKey({
+      columns: [table.tenantId, table.projectId, table.conversationId],
+      foreignColumns: [conversations.tenantId, conversations.projectId, conversations.id],
+      name: 'evaluation_result_conversation_fk',
+    }).onDelete('cascade'),
+    foreignKey({
+      columns: [table.tenantId, table.projectId, table.evaluationRunId],
+      foreignColumns: [evaluationRun.tenantId, evaluationRun.projectId, evaluationRun.id],
+      name: 'evaluation_result_evaluation_run_fk',
+    }).onDelete('cascade'),
+  ]
+);
+
 // ============================================================================
 // RUNTIME RELATIONS
 // ============================================================================

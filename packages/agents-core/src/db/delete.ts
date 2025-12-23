@@ -15,6 +15,11 @@ export async function deleteDatabase(type: 'manage' | 'run') {
     type === 'manage' ? createAgentsManageDatabaseClient({}) : createAgentsRunDatabaseClient({});
 
   try {
+    // Drop the workflow schema if it exists
+    console.log('Dropping workflow schema...');
+    await dbClient.execute(sql`DROP SCHEMA IF EXISTS workflow CASCADE`);
+    console.log('✅ Workflow schema dropped');
+
     // Drop the entire public schema and everything in it
     console.log('Dropping public schema and all objects...');
     await dbClient.execute(sql`DROP SCHEMA IF EXISTS public CASCADE`);

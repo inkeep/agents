@@ -274,6 +274,9 @@ app.openapi(chatDataStreamRoute, async (c) => {
 
             const executionHandler = new ExecutionHandler();
 
+            // Check if this is a dataset run conversation via header
+            const datasetRunId = c.req.header('x-inkeep-dataset-run-id');
+
             const result = await executionHandler.execute({
               executionContext,
               conversationId,
@@ -282,6 +285,7 @@ app.openapi(chatDataStreamRoute, async (c) => {
               requestId: `chatds-${Date.now()}`,
               sseHelper: streamHelper,
               emitOperations,
+              datasetRunId: datasetRunId || undefined,
             });
 
             if (!result.success) {
