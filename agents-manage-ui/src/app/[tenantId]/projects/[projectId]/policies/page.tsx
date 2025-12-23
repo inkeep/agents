@@ -8,7 +8,7 @@ import { Button } from '@/components/ui/button';
 import { policyDescription } from '@/constants/page-descriptions';
 import { fetchPolicies } from '@/lib/api/policies';
 import { getErrorCode } from '@/lib/utils/error-serialization';
-import { PolicyItem } from '@/components/policies/policy-item';
+import NextLink from 'next/link';
 import {
   Table,
   TableBody,
@@ -17,7 +17,9 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
-import { formatDate } from '@/app/utils/format-date';
+import { formatDate, formatDateAgo } from '@/app/utils/format-date';
+import { Badge } from '@/components/ui/badge';
+import { cn } from '@/lib/utils';
 
 export const dynamic = 'force-dynamic';
 
@@ -26,6 +28,8 @@ async function PoliciesPage({ params }: PageProps<'/[tenantId]/projects/[project
 
   try {
     const { data } = await fetchPolicies(tenantId, projectId);
+    const colClass = 'w-1/7 align-top whitespace-pre-wrap';
+
     const content = data.length ? (
       <>
         <PageHeader
@@ -43,17 +47,7 @@ async function PoliciesPage({ params }: PageProps<'/[tenantId]/projects/[project
             </Button>
           }
         />
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3 md:gap-4">
-          {data.map((policy) => (
-            <PolicyItem key={policy.id} {...policy} tenantId={tenantId} projectId={projectId} />
-          ))}
-        </div>
-        <Table
-          style={{
-            tableLayout: 'fixed',
-            width: '100%',
-          }}
-        >
+        <Table>
           <TableHeader>
             <TableRow noHover>
               <TableHead>Name</TableHead>
@@ -62,23 +56,37 @@ async function PoliciesPage({ params }: PageProps<'/[tenantId]/projects/[project
               <TableHead>Content</TableHead>
               <TableHead>Metadata</TableHead>
               <TableHead>Created At</TableHead>
+              <TableHead>Updated</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
             {data.length ? (
               data.map((policy) => (
-                <TableRow key={policy.id}>
-                  <TableCell>{policy.name}</TableCell>
-                  <TableCell>{policy.id}</TableCell>
-                  <TableCell>{policy.description}</TableCell>
-                  <TableCell>{policy.content}</TableCell>
-                  <TableCell>{JSON.stringify(policy.metadata)}</TableCell>
-                  <TableCell>{formatDate(policy.createdAt)}</TableCell>
+                <TableRow key={policy.id} className="relative">
+                  <TableCell className={colClass}>{policy.name}</TableCell>
+                  <TableCell className={colClass}>{policy.id}</TableCell>
+                  <TableCell className={colClass}>{policy.description}</TableCell>
+                  <TableCell className={colClass}>
+                    <Badge variant="code" className={cn('line-clamp-3 whitespace-normal')}>
+                      {policy.content}
+                    </Badge>
+                  </TableCell>
+                  <TableCell className={colClass}>
+                    <Badge variant="code" className={cn('line-clamp-3 whitespace-normal')}>
+                      {JSON.stringify(policy.metadata)}
+                    </Badge>
+                  </TableCell>
+                  <TableCell className={colClass}>{formatDate(policy.createdAt)}</TableCell>
+                  <TableCell className={colClass}>{formatDateAgo(policy.updatedAt)}</TableCell>
+                  <NextLink
+                    href={`/${tenantId}/projects/${projectId}/policies/${policy.id}`}
+                    className="absolute inset-0"
+                  />
                 </TableRow>
               ))
             ) : (
               <TableRow noHover>
-                <TableCell colSpan={5} className="text-center text-muted-foreground">
+                <TableCell colSpan={7} className="text-center text-muted-foreground">
                   No policies yet.
                 </TableCell>
               </TableRow>
