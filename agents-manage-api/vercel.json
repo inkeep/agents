@@ -1,7 +1,7 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
   "framework": "hono",
-  "buildCommand": "pnpm --dir ../packages/agents-core build && pnpm --dir ../packages/agents-manage-mcp build && pnpm build",
+  "buildCommand": "turbo build --filter=@inkeep/agents-manage-api",
   "outputDirectory": "dist",
   "installCommand": "pnpm install",
   "functions": {
