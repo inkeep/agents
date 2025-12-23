@@ -1,10 +1,7 @@
-import { Plus } from 'lucide-react';
-import Link from 'next/link';
 import FullPageError from '@/components/errors/full-page-error';
 import { BodyTemplate } from '@/components/layout/body-template';
 import EmptyState from '@/components/layout/empty-state';
 import { PageHeader } from '@/components/layout/page-header';
-import { Button } from '@/components/ui/button';
 import { fetchPolicies } from '@/lib/api/policies';
 import { getErrorCode } from '@/lib/utils/error-serialization';
 import NextLink from 'next/link';
@@ -21,11 +18,11 @@ import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
 import { ExternalLink } from '@/components/ui/external-link';
 import { DOCS_BASE_URL } from '@/constants/page-descriptions';
+import { CreatePolicyModal } from '@/components/policies/create-policy-modal';
 
 export const dynamic = 'force-dynamic';
 
 const colClass = 'w-1/7 align-top whitespace-pre-wrap';
-
 const description = (
   <>
     Policies are reusable instruction blocks that can be attached to multiple sub-agents and ordered
@@ -39,24 +36,11 @@ async function PoliciesPage({ params }: PageProps<'/[tenantId]/projects/[project
 
   try {
     const { data } = await fetchPolicies(tenantId, projectId);
+    const action = <CreatePolicyModal />;
 
     const content = data.length ? (
       <>
-        <PageHeader
-          title="Policies"
-          description={description}
-          action={
-            <Button asChild>
-              <Link
-                href={`/${tenantId}/projects/${projectId}/policies/new`}
-                className="flex items-center gap-2"
-              >
-                <Plus className="size-4" />
-                New policy
-              </Link>
-            </Button>
-          }
-        />
+        <PageHeader title="Policies" description={description} action={action} />
         <Table>
           <TableHeader>
             <TableRow noHover>
@@ -97,12 +81,7 @@ async function PoliciesPage({ params }: PageProps<'/[tenantId]/projects/[project
         </Table>
       </>
     ) : (
-      <EmptyState
-        title="No policies yet."
-        description={description}
-        link={`/${tenantId}/projects/${projectId}/policies/new`}
-        linkText="Create policy"
-      />
+      <EmptyState title="No policies yet." description={description} action={action} />
     );
 
     return <BodyTemplate breadcrumbs={['Policies']}>{content}</BodyTemplate>;
