@@ -1,0 +1,3 @@
+{
+    "ignoreCommand": "git diff --quiet HEAD^ HEAD -- . ../agents-run-api/CHANGELOG.md ../agents-manage-api/CHANGELOG.md ../agents-manage-ui/CHANGELOG.md ../agents-cli/CHANGELOG.md ../packages/agents-sdk/CHANGELOG.md ../packages/agents-core/CHANGELOG.md ../packages/create-agents/CHANGELOG.md ../packages/ai-sdk-provider/CHANGELOG.md"
+  }

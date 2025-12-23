@@ -1,0 +1,5 @@
+{
+  "title": "Changelog",
+  "icon": "LuHistory",
+  "pages": ["run-api", "manage-api", "manage-ui", "cli", "agents-sdk", "agents-core", "create-agents", "ai-sdk-provider", "..."]
+}
