@@ -25,12 +25,10 @@ export function PolicyItem({
   tenantId,
   projectId,
 }: PolicyItemProps) {
-  const linkPath = `/${tenantId}/projects/${projectId}/policies/${id}`;
-
   return (
     <ItemCardRoot>
       <ItemCardHeader>
-        <ItemCardLink href={linkPath}>
+        <ItemCardLink href={`/${tenantId}/projects/${projectId}/policies/${id}`}>
           <ItemCardTitle className="text-md">{name}</ItemCardTitle>
         </ItemCardLink>
       </ItemCardHeader>
