@@ -1,6 +1,6 @@
 {
   "name": "@inkeep/agents-manage-mcp",
-  "version": "0.0.6",
+  "version": "0.40.0",
   "author": "Speakeasy",
   "type": "module",
   "sideEffects": false,
