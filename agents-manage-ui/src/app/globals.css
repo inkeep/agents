@@ -330,6 +330,46 @@ li[data-sonner-toast][data-type="error"] {
   --xy-edge-stroke: var(--muted-foreground);
 }
 
+/* Animated dot pattern background for ReactFlow */
+@keyframes dot-float {
+  0%,
+  100% {
+    transform: translate(0, 0);
+  }
+  25% {
+    transform: translate(2px, 2px);
+  }
+  50% {
+    transform: translate(0, 4px);
+  }
+  75% {
+    transform: translate(-2px, 2px);
+  }
+}
+
+@keyframes dot-pulse {
+  0%,
+  100% {
+    opacity: 0.4;
+  }
+  50% {
+    opacity: 0.7;
+  }
+}
+
+.react-flow__background.animated-dots pattern {
+  animation: dot-float 20s ease-in-out infinite;
+}
+
+.react-flow__background.animated-dots pattern circle {
+  animation: dot-pulse 4s ease-in-out infinite;
+}
+
+/* Stagger animation for different dots (creates wave effect) */
+.react-flow__background.animated-dots pattern circle:nth-child(odd) {
+  animation-delay: -2s;
+}
+
 .edge-delegating {
   --xy-edge-stroke: var(--primary);
 }
