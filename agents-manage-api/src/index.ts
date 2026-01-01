@@ -84,8 +84,9 @@ export const auth = createManagementAuth({
 
 const app: Hono = createManagementHono(defaultConfig, defaultRegistry, auth);
 
-// Initialize default user for development environment only
-if (env.ENVIRONMENT === 'development') {
+// Initialize default user unless in test environment
+// This ensures the default organization is created for projects to reference
+if (env.ENVIRONMENT !== 'test') {
   void initializeDefaultUser(auth);
 }
 
