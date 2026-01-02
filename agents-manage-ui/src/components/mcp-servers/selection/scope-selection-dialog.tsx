@@ -1,7 +1,8 @@
 'use client';
 
-import { User, Users } from 'lucide-react';
+import { Info, User, Users } from 'lucide-react';
 import { useState } from 'react';
+import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
 import {
   Dialog,
@@ -11,6 +12,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
+import { useRuntimeConfig } from '@/contexts/runtime-config-context';
 import { type CredentialScope, CredentialScopeEnum } from '../form/validation';
 
 interface ScopeSelectionDialogProps {
@@ -27,6 +29,10 @@ export function ScopeSelectionDialog({
   onConfirm,
 }: ScopeSelectionDialogProps) {
   const [selectedScope, setSelectedScope] = useState<CredentialScope>(CredentialScopeEnum.project);
+  const { PUBLIC_DISABLE_AUTH } = useRuntimeConfig();
+
+  const isAuthDisabled = PUBLIC_DISABLE_AUTH === 'true';
+  const isUserScopeDisabled = isAuthDisabled;
 
   const handleConfirm = () => {
     onConfirm(selectedScope);
@@ -53,7 +59,7 @@ export function ScopeSelectionDialog({
                 : 'border-border hover:border-primary/50'
             }`}
           >
-            <Users className="w-5 h-5 mt-0.5 text-muted-foreground" />
+            <Users className="h-4 w-4 mt-1 shrink-0 text-muted-foreground" />
             <div className="flex-1">
               <div className="font-medium">Project (Shared)</div>
               <p className="text-sm text-muted-foreground mt-1">
@@ -64,14 +70,21 @@ export function ScopeSelectionDialog({
 
           <button
             type="button"
-            onClick={() => setSelectedScope(CredentialScopeEnum.user)}
+            onClick={() => {
+              if (!isUserScopeDisabled) {
+                setSelectedScope(CredentialScopeEnum.user);
+              }
+            }}
+            disabled={isUserScopeDisabled}
             className={`flex items-start gap-4 p-4 rounded-lg border-2 text-left transition-colors ${
-              selectedScope === CredentialScopeEnum.user
-                ? 'border-primary bg-primary/5'
-                : 'border-border hover:border-primary/50'
+              isUserScopeDisabled
+                ? 'opacity-50 cursor-not-allowed border-border bg-muted/30'
+                : selectedScope === CredentialScopeEnum.user
+                  ? 'border-primary bg-primary/5'
+                  : 'border-border hover:border-primary/50'
             }`}
           >
-            <User className="w-5 h-5 mt-0.5 text-muted-foreground" />
+            <User className="h-4 w-4 mt-1 shrink-0 text-muted-foreground" />
             <div className="flex-1">
               <div className="font-medium">User (Per-user)</div>
               <p className="text-sm text-muted-foreground mt-1">
@@ -79,6 +92,15 @@ export function ScopeSelectionDialog({
               </p>
             </div>
           </button>
+
+          {isUserScopeDisabled && (
+            <Alert variant="default" className="bg-muted/50">
+              <Info className="h-4 w-4" />
+              <AlertDescription>
+                User-scoped credentials require authentication to be enabled.
+              </AlertDescription>
+            </Alert>
+          )}
         </div>
 
         <DialogFooter>
