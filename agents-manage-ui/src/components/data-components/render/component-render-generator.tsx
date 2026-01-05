@@ -49,7 +49,7 @@ export function ComponentRenderGenerator({
   const [regenerateInstructions, setRegenerateInstructions] = useState('');
   const [isPopoverOpen, setIsPopoverOpen] = useState(false);
   const project = useProject();
-  const baseModel = project?.models?.base?.model;
+  const baseModel = project.models?.base?.model;
 
   const generatePreview = async (instructions?: string) => {
     setIsGenerating(true);
