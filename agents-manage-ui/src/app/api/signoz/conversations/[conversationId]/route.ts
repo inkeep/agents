@@ -1122,6 +1122,10 @@ function buildConversationListPayload(
               key: 'compression.error',
               ...QUERY_FIELD_CONFIGS.STRING_TAG,
             },
+            {
+              key: 'compression.result.summary',
+              ...QUERY_FIELD_CONFIGS.STRING_TAG,
+            },
           ]
         ),
       },
@@ -1353,6 +1357,7 @@ export async function GET(
       compressionSafetyBuffer?: number;
       compressionFallbackUsed?: boolean;
       compressionError?: string;
+      compressionSummary?: string;
     };
 
     const activities: Activity[] = [];
@@ -1782,6 +1787,7 @@ export async function GET(
       const safetyBuffer = getNumber(span, 'compression.safety_buffer', 0);
       const fallbackUsed = getField(span, 'compression.fallback_used') === true;
       const compressionError = getString(span, 'compression.error', '');
+      const compressionSummary = getString(span, 'compression.result.summary', '');
 
       const compressionTypeDisplay =
         compressionType === 'mid_generation'
@@ -1819,6 +1825,7 @@ export async function GET(
         compressionSafetyBuffer: safetyBuffer,
         compressionFallbackUsed: fallbackUsed,
         compressionError: compressionError || undefined,
+        compressionSummary: compressionSummary || undefined,
       });
     }
 

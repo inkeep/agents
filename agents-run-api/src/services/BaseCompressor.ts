@@ -714,6 +714,7 @@ export abstract class BaseCompressor {
                 : 0,
             'compression.success': true,
             'compression.fallback_used': false,
+            'compression.result.summary': result.summary?.high_level || '',
           });
 
           compressionSpan.setStatus({ code: SpanStatusCode.OK });

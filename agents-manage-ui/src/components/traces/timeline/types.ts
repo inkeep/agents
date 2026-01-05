@@ -135,6 +135,7 @@ export interface ActivityItem {
   compressionSafetyBuffer?: number;
   compressionFallbackUsed?: boolean;
   compressionError?: string;
+  compressionSummary?: string;
 }
 
 interface ToolCall {
