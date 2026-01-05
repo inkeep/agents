@@ -37,6 +37,7 @@ const monacoState: StateCreator<MonacoState> = (set) => ({
         { default: monacoCompatibleSchema },
         { default: githubLightTheme },
         { default: githubDarkTheme },
+        { default: markdownShikiLangs },
       ] = await Promise.all([
         import('monaco-editor'),
         import('shiki'),
@@ -48,9 +49,9 @@ const monacoState: StateCreator<MonacoState> = (set) => ({
         }),
         import('shiki/themes/github-light-default.mjs'),
         import('shiki/themes/github-dark-default.mjs'),
+        import('shiki/langs/markdown.mjs'),
         import('@/lib/monaco-editor/setup-monaco-workers'),
       ]);
-      monaco.languages.register({ id: TEMPLATE_LANGUAGE });
       monaco.json.jsonDefaults.setDiagnosticsOptions({
         // Fixes when `$schema` is `https://json-schema.org/draft/2020-12/schema`
         // The schema uses meta-schema features ($dynamicRef) that are not yet supported by the validator
@@ -72,12 +73,6 @@ const monacoState: StateCreator<MonacoState> = (set) => ({
         tokens: false,
       });
 
-      // Define tokens for template variables
-      monaco.languages.setMonarchTokensProvider(TEMPLATE_LANGUAGE, {
-        tokenizer: {
-          root: [[/\{\{([^}]+)}}/, VARIABLE_TOKEN]],
-        },
-      });
       monaco.languages.registerCompletionItemProvider(TEMPLATE_LANGUAGE, {
         triggerCharacters: ['{'],
         provideCompletionItems(model, position) {
@@ -137,6 +132,10 @@ const monacoState: StateCreator<MonacoState> = (set) => ({
           };
         },
       });
+      const token = `${VARIABLE_TOKEN}.${TEMPLATE_LANGUAGE}`;
+      const [markdownShikiGrammar] = markdownShikiLangs;
+      const repo = markdownShikiGrammar.repository;
+
       /**
        * Create the highlighter
        * @see https://shiki.style/packages/monaco#usage
@@ -151,10 +150,15 @@ const monacoState: StateCreator<MonacoState> = (set) => ({
               'editor.background': 'transparent',
               'diffEditor.insertedLineBackground': '#3784ff0d',
               'diffEditor.insertedTextBackground': '#3784ff19',
-              'scrollbarSlider.activeBackground': '#aaa5',
-              'scrollbarSlider.background': '#ccc5',
-              'scrollbarSlider.hoverBackground': '#bbb5',
+              'editorHoverWidget.background': '#fff',
             },
+            tokenColors: [
+              {
+                scope: token,
+                settings: { foreground: '#e67e22', fontStyle: 'bold' },
+              },
+              ...(githubLightTheme.tokenColors || []),
+            ],
           },
           {
             ...githubDarkTheme,
@@ -164,14 +168,43 @@ const monacoState: StateCreator<MonacoState> = (set) => ({
               'editor.background': 'transparent',
               'diffEditor.insertedLineBackground': '#69a3ff33',
               'diffEditor.insertedTextBackground': '#69a3ff4d',
-              'scrollbarSlider.activeBackground': '#ccc5',
-              'scrollbarSlider.background': '#aaa5',
-              'scrollbarSlider.hoverBackground': '#bbb5',
+              'editorHoverWidget.background': '#141416',
+            },
+            tokenColors: [
+              {
+                scope: token,
+                settings: { foreground: '#f39c12', fontStyle: 'bold' },
+              },
+              ...(githubDarkTheme.tokenColors || []),
+            ],
+          },
+        ],
+        langs: [
+          'javascript',
+          'typescript',
+          'json',
+          'html-derivative',
+          {
+            ...markdownShikiGrammar,
+            aliases: [],
+            displayName: 'Template',
+            name: TEMPLATE_LANGUAGE,
+            repository: {
+              ...(repo as Record<string, unknown>),
+              inline: {
+                ...repo.inline,
+                patterns: [
+                  { name: token, match: '\\{\\{[^}]+}}' },
+                  // @ts-expect-error -- exist
+                  ...repo.inline.patterns,
+                ],
+              },
             },
           },
         ],
-        langs: ['javascript', 'typescript', 'json'],
       });
+      monaco.languages.register({ id: TEMPLATE_LANGUAGE });
+
       // Register the themes from Shiki, and provide syntax highlighting for Monaco
       shikiToMonaco(highlighter, monaco);
       // for cypress
