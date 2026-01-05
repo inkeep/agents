@@ -78,7 +78,7 @@ export function CompressionModelsTable() {
           </tr>
         </thead>
         <tbody>
-          {rows.map((row) => 
+          {rows.map((row) =>
             row ? (
               <tr key={row.model}>
                 <td>{row.model}</td>
