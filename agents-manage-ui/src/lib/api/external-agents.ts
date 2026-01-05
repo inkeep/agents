@@ -1,7 +1,7 @@
 'use server';
 
 import type { ExternalAgentApiInsert, ExternalAgentApiSelect } from '@inkeep/agents-core';
-
+import { cache } from 'react';
 import type { ListResponse, SingleResponse } from '../types/response';
 // Default configuration
 import { makeManagementApiRequest } from './api-config';
@@ -41,7 +41,7 @@ export async function fetchExternalAgents(
 /**
  * Get a single external agent by ID
  */
-export async function fetchExternalAgent(
+async function $fetchExternalAgent(
   tenantId: string,
   projectId: string,
   id: string
@@ -55,6 +55,8 @@ export async function fetchExternalAgent(
 
   return response.data;
 }
+
+export const fetchExternalAgent = cache($fetchExternalAgent);
 
 /**
  * Create a new external agent
