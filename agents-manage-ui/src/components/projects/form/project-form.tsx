@@ -11,6 +11,7 @@ import { Form } from '@/components/ui/form';
 import { Separator } from '@/components/ui/separator';
 import { useAutoPrefillId } from '@/hooks/use-auto-prefill-id';
 import { createProjectAction, updateProjectAction } from '@/lib/actions/projects';
+import { cn } from '@/lib/utils';
 import { defaultValues } from './form-configuration';
 import { ProjectModelsSection } from './project-models-section';
 import { ProjectStopWhenSection } from './project-stopwhen-section';
@@ -22,6 +23,7 @@ interface ProjectFormProps {
   onSuccess?: (projectId: string) => void;
   onCancel?: () => void;
   initialData?: ProjectFormData;
+  className?: string;
 }
 
 const serializeData = (data: ProjectFormData) => {
@@ -94,6 +96,7 @@ export function ProjectForm({
   onSuccess,
   onCancel,
   initialData,
+  className,
 }: ProjectFormProps) {
   const form = useForm<ProjectFormData>({
     resolver: zodResolver(projectSchema),
@@ -149,7 +152,7 @@ export function ProjectForm({
 
   return (
     <Form {...form}>
-      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
+      <form onSubmit={form.handleSubmit(onSubmit)} className={cn('space-y-8', className)}>
         <GenericInput
           control={form.control}
           name="name"
@@ -183,7 +186,7 @@ export function ProjectForm({
 
         <ProjectStopWhenSection control={form.control} />
 
-        <div className={`flex gap-3 ${onCancel ? 'justify-end' : 'justify-start'}`}>
+        <div className={cn('flex gap-3', onCancel ? 'justify-end' : 'justify-start')}>
           {onCancel && (
             <Button type="button" variant="outline" onClick={onCancel} disabled={isSubmitting}>
               Cancel

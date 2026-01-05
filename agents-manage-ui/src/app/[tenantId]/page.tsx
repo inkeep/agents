@@ -1,4 +1,4 @@
-import { redirectToProject } from '../../lib/utils/project-redirect';
+import { redirectToProject } from '@/lib/utils/project-redirect';
 
 async function TenantPage({ params }: PageProps<'/[tenantId]'>) {
   const { tenantId } = await params;

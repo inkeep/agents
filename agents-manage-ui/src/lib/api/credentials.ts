@@ -6,6 +6,7 @@ import type {
   ExternalAgentApiSelect,
   McpTool,
 } from '@inkeep/agents-core';
+import { cache } from 'react';
 import type { ListResponse, SingleResponse } from '../types/response';
 // Default configuration
 import { makeManagementApiRequest } from './api-config';
@@ -45,7 +46,7 @@ export async function fetchCredentials(
 /**
  * Get a single credential by ID
  */
-export async function fetchCredential(
+async function $fetchCredential(
   tenantId: string,
   projectId: string,
   id: string
@@ -60,6 +61,8 @@ export async function fetchCredential(
   // Cast to Credential type (includes optional tools field)
   return response.data as Credential;
 }
+
+export const fetchCredential = cache($fetchCredential);
 
 /**
  * Create a new credential

@@ -9,6 +9,7 @@
 
 import type { AgentApiInsert } from '@inkeep/agents-core/client-exports';
 import { revalidatePath } from 'next/cache';
+import { cache } from 'react';
 import {
   ApiError,
   createAgent as apiCreateAgent,
@@ -124,7 +125,7 @@ export async function createFullAgentAction(
 /**
  * Get a full agent by ID
  */
-export async function getFullAgentAction(
+async function $getFullAgentAction(
   tenantId: string,
   projectId: string,
   agentId: string
@@ -152,6 +153,8 @@ export async function getFullAgentAction(
     };
   }
 }
+
+export const getFullAgentAction = cache($getFullAgentAction);
 
 /**
  * Update or create a full agent (upsert)

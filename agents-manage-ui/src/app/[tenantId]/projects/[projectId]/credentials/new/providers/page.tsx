@@ -1,7 +1,6 @@
 import type { ApiProvider, AuthModeType } from '@nangohq/types';
 import { NangoProvidersGrid } from '@/components/credentials/views/nango-providers-grid';
 import FullPageError from '@/components/errors/full-page-error';
-import { BodyTemplate } from '@/components/layout/body-template';
 import { fetchNangoProviders } from '@/lib/mcp-tools/nango';
 
 // Supported authentication modes (add new modes here as you implement them)
@@ -31,30 +30,11 @@ function filterSupportedProviders(providers: ApiProvider[]): ApiProvider[] {
   );
 }
 
-async function ProvidersPage({
-  params,
-}: PageProps<'/[tenantId]/projects/[projectId]/credentials/new/providers'>) {
-  const { tenantId, projectId } = await params;
+async function ProvidersPage() {
   try {
     const nangoProviders = await fetchNangoProviders();
     const providers = filterSupportedProviders(nangoProviders);
-    return (
-      <BodyTemplate
-        breadcrumbs={[
-          {
-            label: 'Credentials',
-            href: `/${tenantId}/projects/${projectId}/credentials`,
-          },
-          {
-            label: 'New credential',
-            href: `/${tenantId}/projects/${projectId}/credentials/new`,
-          },
-          'Providers',
-        ]}
-      >
-        <NangoProvidersGrid providers={providers} />
-      </BodyTemplate>
-    );
+    return <NangoProvidersGrid providers={providers} />;
   } catch (err) {
     const error = err instanceof Error ? err.message : 'Failed to load providers';
     return <FullPageError title="Failed to load providers" description={error} />;

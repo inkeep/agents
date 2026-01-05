@@ -1,5 +1,4 @@
 import FullPageError from '@/components/errors/full-page-error';
-import { BodyTemplate } from '@/components/layout/body-template';
 import { ViewMCPServerDetailsProjectScope } from '@/components/mcp-servers/view-mcp-server-details-project-scope';
 import { ViewMCPServerDetailsUserScope } from '@/components/mcp-servers/view-mcp-server-details-user-scope';
 import { fetchMCPTool } from '@/lib/api/tools';
@@ -12,27 +11,10 @@ async function MCPPage({
 
   try {
     const tool = await fetchMCPTool(tenantId, projectId, mcpServerId);
-    const content =
-      tool.credentialScope === 'user' ? (
-        <ViewMCPServerDetailsUserScope tool={tool} tenantId={tenantId} projectId={projectId} />
-      ) : (
-        <ViewMCPServerDetailsProjectScope tool={tool} tenantId={tenantId} projectId={projectId} />
-      );
-    return (
-      <BodyTemplate
-        breadcrumbs={[
-          {
-            label: 'MCP servers',
-            href: `/${tenantId}/projects/${projectId}/mcp-servers`,
-          },
-          {
-            label: tool.name,
-            href: `/${tenantId}/projects/${projectId}/mcp-servers/${mcpServerId}`,
-          },
-        ]}
-      >
-        {content}
-      </BodyTemplate>
+    return tool.credentialScope === 'user' ? (
+      <ViewMCPServerDetailsUserScope tool={tool} tenantId={tenantId} projectId={projectId} />
+    ) : (
+      <ViewMCPServerDetailsProjectScope tool={tool} tenantId={tenantId} projectId={projectId} />
     );
   } catch (error) {
     return (

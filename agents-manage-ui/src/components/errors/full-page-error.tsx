@@ -4,17 +4,13 @@ import { AlertTriangle, ArrowLeft, type LucideIcon, RefreshCw } from 'lucide-rea
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
-import { BodyTemplate } from '@/components/layout/body-template';
 import { Button } from '@/components/ui/button';
 import { buildLoginUrlWithCurrentPath } from '@/lib/utils/auth-redirect';
+import { getStatusCodeFromErrorCode } from '@/lib/utils/error-serialization';
 
-export default function FullPageError({ statusCode, errorCode, ...props }: FullPageErrorProps) {
-  const resolvedStatusCode = statusCode ?? getStatusCodeFromErrorCode(errorCode);
-  return (
-    <BodyTemplate breadcrumbs={[resolvedStatusCode ? `${resolvedStatusCode} Error` : 'Error']}>
-      <ErrorContent statusCode={resolvedStatusCode} errorCode={errorCode} {...props} />
-    </BodyTemplate>
-  );
+export default function FullPageError(props: FullPageErrorProps) {
+  const resolvedStatusCode = getStatusCodeFromErrorCode(props.errorCode);
+  return <ErrorContent statusCode={resolvedStatusCode} {...props} />;
 }
 
 function hasStatusCode(obj: unknown): obj is { status: number } {
@@ -44,17 +40,6 @@ function isApiError(obj: unknown): obj is { status: number; error: { message: st
   );
 }
 
-const ERROR_CODE_STATUS_MAP: Record<string, number> = {
-  not_found: 404,
-  forbidden: 403,
-  unauthorized: 401,
-  internal_server_error: 500,
-  service_unavailable: 503,
-  bad_request: 400,
-  validation_error: 400,
-  unprocessable_entity: 422,
-};
-
 const STATUS_CODE_ERROR_MAP: Record<number, string> = {
   404: 'not_found',
   403: 'forbidden',
@@ -64,11 +49,6 @@ const STATUS_CODE_ERROR_MAP: Record<number, string> = {
   400: 'bad_request',
   422: 'unprocessable_entity',
 };
-
-function getStatusCodeFromErrorCode(errorCode?: string): number | undefined {
-  if (!errorCode) return undefined;
-  return ERROR_CODE_STATUS_MAP[errorCode];
-}
 
 function getErrorCodeFromStatusCode(statusCode?: number): string | undefined {
   if (!statusCode) return undefined;
@@ -127,10 +107,9 @@ interface FullPageErrorProps {
   errorCode?: string;
   reset?: () => void;
   title?: string;
-  description?: string | React.ReactNode;
+  description?: React.ReactNode;
   link?: string;
   linkText?: string;
-  statusCode?: number;
   showRetry?: boolean;
   onRetry?: () => void;
   context?: string;
@@ -150,7 +129,9 @@ export function ErrorContent({
   showRetry = true,
   onRetry,
   context = 'resource',
-}: FullPageErrorProps) {
+}: FullPageErrorProps & {
+  statusCode?: number;
+}) {
   const router = useRouter();
   const [isRedirecting, setIsRedirecting] = useState(false);
 

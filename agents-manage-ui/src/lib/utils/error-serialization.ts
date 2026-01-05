@@ -55,3 +55,19 @@ function getCodeFromStatus(status: number): string {
       return 'unknown_error';
   }
 }
+
+const ERROR_CODE_STATUS_MAP: Record<string, number> = {
+  not_found: 404,
+  forbidden: 403,
+  unauthorized: 401,
+  internal_server_error: 500,
+  service_unavailable: 503,
+  bad_request: 400,
+  validation_error: 400,
+  unprocessable_entity: 422,
+};
+
+export function getStatusCodeFromErrorCode(errorCode?: string): number | undefined {
+  if (!errorCode) return undefined;
+  return ERROR_CODE_STATUS_MAP[errorCode];
+}

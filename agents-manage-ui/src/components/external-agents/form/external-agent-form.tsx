@@ -14,15 +14,16 @@ import { InfoCard } from '@/components/ui/info-card';
 import type { Credential } from '@/lib/api/credentials';
 import { createExternalAgent, updateExternalAgent } from '@/lib/api/external-agents';
 import type { ExternalAgent } from '@/lib/types/external-agents';
+import { cn } from '@/lib/utils';
 import { type ExternalAgentFormData, externalAgentSchema } from './validation';
 
 interface ExternalAgentFormProps {
   initialData?: ExternalAgentFormData;
-  mode?: 'create' | 'update';
   externalAgent?: ExternalAgent;
   credentials: Credential[];
   tenantId: string;
   projectId: string;
+  className?: string;
 }
 
 const defaultValues: ExternalAgentFormData = {
@@ -34,11 +35,11 @@ const defaultValues: ExternalAgentFormData = {
 
 export function ExternalAgentForm({
   initialData,
-  mode = 'create',
   externalAgent,
   credentials,
   tenantId,
   projectId,
+  className,
 }: ExternalAgentFormProps) {
   const router = useRouter();
 
@@ -53,6 +54,8 @@ export function ExternalAgentForm({
   const { isSubmitting } = form.formState;
 
   const onSubmit = async (data: ExternalAgentFormData) => {
+    const mode = externalAgent ? 'update' : 'create';
+
     try {
       // Transform form data to API format
       const transformedData = {
@@ -62,7 +65,7 @@ export function ExternalAgentForm({
           data.credentialReferenceId === 'none' ? null : data.credentialReferenceId,
       };
 
-      if (mode === 'update' && externalAgent) {
+      if (externalAgent) {
         await updateExternalAgent(tenantId, projectId, externalAgent.id, transformedData);
         toast.success('External agent updated successfully');
         router.push(`/${tenantId}/projects/${projectId}/external-agents/${externalAgent.id}`);
@@ -82,7 +85,7 @@ export function ExternalAgentForm({
 
   return (
     <Form {...form}>
-      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
+      <form onSubmit={form.handleSubmit(onSubmit)} className={cn('space-y-8', className)}>
         <GenericInput
           control={form.control}
           name="name"
@@ -138,7 +141,7 @@ export function ExternalAgentForm({
         </div>
 
         <Button type="submit" disabled={isSubmitting}>
-          {mode === 'update' ? 'Save' : 'Create'}
+          {externalAgent ? 'Save' : 'Create'}
         </Button>
       </form>
     </Form>

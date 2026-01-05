@@ -1,12 +1,13 @@
 'use server';
 
+import { cache } from 'react';
 import type { ProjectFormData } from '@/components/projects/form/validation';
 import type { Project } from '../types/project';
 import type { ListResponse, SingleResponse } from '../types/response';
 import { makeManagementApiRequest } from './api-config';
 import { validateTenantId } from './resource-validation';
 
-export async function fetchProjects(tenantId: string): Promise<ListResponse<Project>> {
+async function $fetchProjects(tenantId: string): Promise<ListResponse<Project>> {
   validateTenantId(tenantId);
 
   const response = await makeManagementApiRequest<ListResponse<any>>(
@@ -22,8 +23,9 @@ export async function fetchProjects(tenantId: string): Promise<ListResponse<Proj
 
   return response as ListResponse<Project>;
 }
+export const fetchProjects = cache($fetchProjects);
 
-export async function fetchProject(
+async function $fetchProject(
   tenantId: string,
   projectId: string
 ): Promise<SingleResponse<Project>> {
@@ -42,6 +44,7 @@ export async function fetchProject(
 
   return response as SingleResponse<Project>;
 }
+export const fetchProject = cache($fetchProject);
 
 export async function createProject(
   tenantId: string,

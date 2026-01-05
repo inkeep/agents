@@ -12,6 +12,7 @@ import type {
   DataComponentApiSelect,
   DataComponentApiUpdate,
 } from '@inkeep/agents-core';
+import { cache } from 'react';
 import type { ListResponse, SingleResponse } from '../types/response';
 // Configuration for the API client
 import { makeManagementApiRequest } from './api-config';
@@ -54,7 +55,7 @@ export async function fetchDataComponents(
 /**
  * Fetch a single data component by ID
  */
-export async function fetchDataComponent(
+async function $fetchDataComponent(
   tenantId: string,
   projectId: string,
   dataComponentId: string
@@ -72,6 +73,8 @@ export async function fetchDataComponent(
     props: response.data.props || {},
   };
 }
+
+export const fetchDataComponent = cache($fetchDataComponent);
 
 /**
  * Create a new data component
