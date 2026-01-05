@@ -78,16 +78,18 @@ export function CompressionModelsTable() {
           </tr>
         </thead>
         <tbody>
-          {rows.map((row) => (
-            <tr key={row!.model}>
-              <td>{row!.model}</td>
-              <td>{formatTokens(row!.contextWindow)} tokens</td>
-              <td>{formatTokens(row!.conversationThreshold)} (50%)</td>
-              <td>
-                ~{formatTokens(row!.contextCompactingThreshold)} ({row!.contextCompactingPct}%)
-              </td>
-            </tr>
-          ))}
+          {rows.map((row) => 
+            row ? (
+              <tr key={row.model}>
+                <td>{row.model}</td>
+                <td>{formatTokens(row.contextWindow)} tokens</td>
+                <td>{formatTokens(row.conversationThreshold)} (50%)</td>
+                <td>
+                  ~{formatTokens(row.contextCompactingThreshold)} ({row.contextCompactingPct}%)
+                </td>
+              </tr>
+            ) : null
+          )}
         </tbody>
       </table>
     </div>
