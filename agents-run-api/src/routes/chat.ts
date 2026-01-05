@@ -200,7 +200,6 @@ app.openapi(chatCompletionsRoute, async (c) => {
         'tenant.id': tenantId,
         'agent.id': agentId,
         'project.id': projectId,
-        // Target context for copilot traces (the agent being edited)
         ...(targetTenantId && { 'target.tenant.id': targetTenantId }),
         ...(targetProjectId && { 'target.project.id': targetProjectId }),
         ...(targetAgentId && { 'target.agent.id': targetAgentId }),
