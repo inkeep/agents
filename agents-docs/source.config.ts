@@ -1,5 +1,6 @@
 import path from 'node:path';
 import html from '@shikijs/langs/html';
+import { remarkMermaid } from '@theguild/remark-mermaid';
 import { defineConfig, defineDocs, frontmatterSchema } from 'fumadocs-mdx/config';
 import emoji from 'remark-emoji';
 import { mdxSnippet } from 'remark-mdx-snippets';
@@ -9,7 +10,7 @@ import { z } from 'zod';
 // You can customise Zod schemas for frontmatter here
 // see https://fumadocs.vercel.app/docs/mdx/collections#define-docs
 export const docs = defineDocs({
-  dir: 'content/docs',
+  dir: 'content',
   docs: {
     schema: frontmatterSchema.extend({
       sidebarTitle: z.string().optional(),
@@ -21,6 +22,7 @@ export const docs = defineDocs({
 export default defineConfig({
   mdxOptions: {
     remarkPlugins: (v) => [
+      remarkMermaid,
       [remarkSourceCode, { baseDir: '..' }],
       [mdxSnippet, { snippetsDir: path.resolve(process.cwd(), '_snippets') }],
       [emoji, { accessible: true }],

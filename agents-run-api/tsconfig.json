@@ -1,5 +1,6 @@
 {
   "compilerOptions": {
+    "verbatimModuleSyntax": true,
     "target": "ES2022",
     "module": "ESNext",
     "moduleResolution": "bundler",
@@ -12,7 +13,6 @@
     "baseUrl": ".",
     "allowSyntheticDefaultImports": true,
     "declaration": true,
-    "declarationMap": true,
     "noEmit": false
   },
   "include": ["src/**/*", "src/types/**/*", "examples/**/*.ts"],

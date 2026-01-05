@@ -8,9 +8,9 @@ import {
   subAgents,
   tasks,
 } from '@inkeep/agents-core';
+import { createTestProject } from '@inkeep/agents-core/db/test-client';
 import { afterAll, afterEach, describe, expect, it } from 'vitest';
 import dbClient from '../../data/db/dbClient';
-import { ensureTestProject } from '../utils/testProject';
 
 /**
  * Integration tests for the ledger artifact helper functions.
@@ -30,7 +30,7 @@ describe('Ledger Artifacts – Data Layer', () => {
     const conversationId = contextId;
 
     // Ensure project exists for this tenant
-    await ensureTestProject(tenantId, projectId);
+    await createTestProject(dbClient, tenantId, projectId);
 
     // Create agent first
     const agentId = 'test-agent';
@@ -117,6 +117,7 @@ describe('Ledger Artifacts – Data Layer', () => {
         ],
         taskId,
         metadata: { foo: 'bar' },
+        createdAt: '2024-01-16T01:30:00.000Z',
       },
       {
         artifactId: generateId(),
@@ -130,6 +131,7 @@ describe('Ledger Artifacts – Data Layer', () => {
         ],
         taskId,
         metadata: { baz: 'qux' },
+        createdAt: '2024-01-16T02:30:00.000Z',
       },
     ];
 
@@ -173,6 +175,7 @@ describe('Ledger Artifacts – Data Layer', () => {
         },
       ],
       taskId,
+      createdAt: '2024-01-16T03:30:00.000Z',
     };
 
     await addLedgerArtifacts(dbClient)({
@@ -222,7 +225,7 @@ describe('Ledger Artifacts – Data Layer', () => {
     // Intentionally passing an invalid param to trigger validation error
     // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
     await expect(getLedgerArtifacts(dbClient)({} as any)).rejects.toThrow(
-      'At least one of taskId, toolCallId, or artifactId must be provided'
+      'At least one of taskId, toolCallId, toolCallIds, or artifactId must be provided'
     );
   });
 
@@ -269,6 +272,7 @@ describe('Ledger Artifacts – Data Layer', () => {
               data: { secret: 'tenant1-secret' },
             },
           ],
+          createdAt: '2024-01-16T04:30:00.000Z',
         },
       ],
     });
@@ -289,6 +293,7 @@ describe('Ledger Artifacts – Data Layer', () => {
               data: { secret: 'tenant2-secret' },
             },
           ],
+          createdAt: '2024-01-16T05:30:00.000Z',
         },
       ],
     });

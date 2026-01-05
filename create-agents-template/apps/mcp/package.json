@@ -10,13 +10,13 @@
   },
   "devDependencies": {
     "@types/node": "24.9.2",
-    "@types/react": "19.2.2",
+    "@types/react": "^19.2.4",
     "mcp-handler": "^1.0.3",
-    "next": "^16.0.1",
+    "next": "16.0.10",
     "typescript": "5.9.3",
     "zod": "^3.24.2"
   },
   "engines": {
-    "node": ">=22.x"
+    "node": ">=22.18.0"
   }
 }

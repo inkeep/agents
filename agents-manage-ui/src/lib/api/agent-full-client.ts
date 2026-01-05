@@ -5,16 +5,17 @@
  * inkeep-chat backend AgentFull REST API endpoints.
  */
 
+import type { AgentApiInsert } from '@inkeep/agents-core/client-exports';
 import type {
   Agent,
   CreateAgentResponse,
+  CreateFullAgentResponse,
   FullAgentDefinition,
   GetAgentResponse,
   UpdateAgentResponse,
 } from '../types/agent-full';
 import { ApiError } from '../types/errors';
 import type { ListResponse } from '../types/response';
-import type { TeamAgent } from '../types/team-agents';
 import { makeManagementApiRequest } from './api-config';
 import { validateProjectId, validateTenantId } from './resource-validation';
 
@@ -26,25 +27,25 @@ export async function fetchAgents(
   validateProjectId(projectId);
 
   return makeManagementApiRequest<ListResponse<Agent>>(
-    `tenants/${tenantId}/projects/${projectId}/agents`
+    `tenants/${tenantId}/projects/${projectId}/agents?limit=100`
   );
 }
 
-/**
- * Fetch barebones metadata for all agents in a project to be used with team agent relations
- */
-export async function fetchTeamAgents(tenantId: string, projectId: string): Promise<TeamAgent[]> {
+export async function createAgent(
+  tenantId: string,
+  projectId: string,
+  agentData: AgentApiInsert
+): Promise<CreateAgentResponse> {
   validateTenantId(tenantId);
   validateProjectId(projectId);
 
-  const agents = await fetchAgents(tenantId, projectId);
-  return agents.data.map((agent) => {
-    return {
-      id: agent.id,
-      name: agent.name,
-      description: agent.description || '',
-    };
-  });
+  return makeManagementApiRequest<CreateAgentResponse>(
+    `tenants/${tenantId}/projects/${projectId}/agents`,
+    {
+      method: 'POST',
+      body: JSON.stringify(agentData),
+    }
+  );
 }
 
 /**
@@ -54,11 +55,11 @@ export async function createFullAgent(
   tenantId: string,
   projectId: string,
   agentData: FullAgentDefinition
-): Promise<CreateAgentResponse> {
+): Promise<CreateFullAgentResponse> {
   validateTenantId(tenantId);
   validateProjectId(projectId);
 
-  return makeManagementApiRequest<CreateAgentResponse>(
+  return makeManagementApiRequest<CreateFullAgentResponse>(
     `tenants/${tenantId}/projects/${projectId}/agent`,
     {
       method: 'POST',

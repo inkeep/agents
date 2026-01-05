@@ -276,7 +276,8 @@ export class ComponentRegistry {
   private extractIdFromReference(ref: any): string | null {
     if (typeof ref === 'string') {
       return ref;
-    } else if (typeof ref === 'object' && ref) {
+    }
+    if (typeof ref === 'object' && ref) {
       // Handle different component types by their specific ID fields (confirmed from debug output)
 
       // Tool references (MCP tools and function tools)
@@ -455,9 +456,8 @@ export class ComponentRegistry {
     // Clean up path format
     if (relativePath.startsWith('../')) {
       return relativePath;
-    } else {
-      return './' + relativePath;
     }
+    return './' + relativePath;
   }
 
   /**
@@ -465,6 +465,37 @@ export class ComponentRegistry {
    */
   getAllComponents(): ComponentInfo[] {
     return Array.from(this.componentsByTypeAndId.values());
+  }
+
+  /**
+   * Get all components in a specific file
+   */
+  getComponentsInFile(filePath: string): ComponentInfo[] {
+    return Array.from(this.componentsByTypeAndId.values()).filter(
+      (component) => component.filePath === filePath
+    );
+  }
+
+  /**
+   * Remove a component from the registry
+   */
+  removeComponent(type: string, id: string): void {
+    const key = `${type}:${id}`;
+    const component = this.componentsByTypeAndId.get(key);
+
+    if (component) {
+      // Remove from both maps
+      this.componentsByTypeAndId.delete(key);
+      this.components.delete(component.name);
+
+      // Remove from used names if no other component uses it
+      const nameStillUsed = Array.from(this.componentsByTypeAndId.values()).some(
+        (comp) => comp.name === component.name
+      );
+      if (!nameStillUsed) {
+        this.usedNames.delete(component.name);
+      }
+    }
   }
 
   /**
@@ -501,22 +532,29 @@ export function registerAllComponents(
     }
   }
 
-  // Register function tools - prevent double registration
-  const processedFunctionIds = new Set<string>();
+  // Register function tools - functionTools has the name/description, functions has the code
+  // We generate files based on functionTools IDs since that's the user-facing entity
+  const registeredFunctionToolIds = new Set<string>();
 
-  // Register functions first (they take priority)
-  if (project.functions) {
-    for (const funcId of Object.keys(project.functions)) {
-      registry.register(funcId, 'functionTools', `tools/functions/${funcId}.ts`);
-      processedFunctionIds.add(funcId);
+  // Register functionTools first (they have the name that identifies the tool)
+  if (project.functionTools) {
+    for (const funcToolId of Object.keys(project.functionTools)) {
+      registry.register(funcToolId, 'functionTools', `tools/functions/${funcToolId}.ts`);
+      registeredFunctionToolIds.add(funcToolId);
     }
   }
 
-  // Register functionTools (only if not already registered)
-  if (project.functionTools) {
-    for (const funcToolId of Object.keys(project.functionTools)) {
-      if (!processedFunctionIds.has(funcToolId)) {
-        registry.register(funcToolId, 'functionTools', `tools/functions/${funcToolId}.ts`);
+  // Also check agent-level functionTools
+  if (project.agents) {
+    for (const agentData of Object.values(project.agents)) {
+      const agentFunctionTools = (agentData as any).functionTools;
+      if (agentFunctionTools) {
+        for (const funcToolId of Object.keys(agentFunctionTools)) {
+          if (!registeredFunctionToolIds.has(funcToolId)) {
+            registry.register(funcToolId, 'functionTools', `tools/functions/${funcToolId}.ts`);
+            registeredFunctionToolIds.add(funcToolId);
+          }
+        }
       }
     }
   }

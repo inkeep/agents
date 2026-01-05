@@ -1,0 +1,892 @@
+---
+title: CLI Reference
+description: Complete reference for the Inkeep CLI commands
+icon: LuTerminal
+---
+
+## Overview
+
+The Inkeep CLI is the primary tool for interacting with the Inkeep Agent Framework. It allows you to push Agent configurations and interact with your multi-agent system.
+
+## Installation
+
+```bash
+# Install the CLI globally
+npm install -g @inkeep/agents-cli
+
+# Install the dashboard package (for visual agents orchestration)
+npm install @inkeep/agents-manage-ui
+```
+
+## Global Options
+
+All commands support the following global options:
+
+- `--version` - Display CLI version
+- `--help` - Display help for a command
+
+## Commands
+
+### `inkeep init`
+
+Initialize a new Inkeep configuration file in your project.
+
+```bash
+inkeep init [path]
+```
+
+**Options:**
+
+- `--no-interactive` - Skip interactive path selection
+- `--config <path>` - Path to use as template for new configuration
+
+**Examples:**
+
+```bash
+# Interactive initialization
+inkeep init
+
+# Initialize in specific directory
+inkeep init ./my-project
+
+# Non-interactive mode
+inkeep init --no-interactive
+
+# Use specific config as template
+inkeep init --config ./template-config.ts
+```
+
+### `inkeep push`
+
+**Primary use case:** Push a project containing Agent configurations to your server. This command deploys your entire multi-agent project, including all Agents, Sub Agents, and tools.
+
+```bash
+inkeep push
+```
+
+**Options:**
+
+- `--project <project-id>` - Project ID or path to project directory
+- `--all` - Push all projects found in the current directory tree
+- `--env <environment>` - Load environment-specific credentials from `environments/<environment>.env.ts`
+- `--config <path>` - Override config file path (bypasses automatic config discovery)
+- `--tenant-id <id>` - Override tenant ID
+- `--agents-manage-api-url <url>` - Override the management API URL from config
+- `--agents-run-api-url <url>` - Override agents run API URL
+- `--json` - Generate project data as JSON file instead of pushing to server
+- `--profile <name>` - Use a specific CLI profile (overrides the active profile)
+- `--quiet` - Suppress interactive prompts and extra logs
+
+#### Single Project Push
+
+The most common workflow is to run `inkeep push` from inside a project directory. A project directory is identified by having an `index.ts` file that exports a project object (with `__type = "project"`).
+
+```bash
+# Navigate to your project directory
+cd my-project
+
+# Push the current project
+inkeep push
+```
+
+The CLI will:
+1. Detect `index.ts` in the current directory
+2. Load the project export from `index.ts`
+3. Search upward for `inkeep.config.ts` to get tenant/API configuration
+4. Push the project to the server
+
+**Examples:**
+
+```bash
+# Push project from current directory (most common)
+cd my-project && inkeep push
+
+# Push specific project directory
+inkeep push --project ./my-project
+
+# Push all projects in current directory tree
+inkeep push --all
+
+# Push with development environment credentials
+inkeep push --env development
+
+# Generate project JSON without pushing
+inkeep push --json
+
+# Override tenant ID
+inkeep push --tenant-id my-tenant
+
+# Override API URLs
+inkeep push --agents-manage-api-url https://api.example.com
+inkeep push --agents-run-api-url https://run.example.com
+
+# Use specific config file
+inkeep push --config ./custom-config/inkeep.config.ts
+
+# Use a named profile (overrides the active profile)
+inkeep push --profile staging
+
+# Quiet non-essential output for CI
+inkeep push --quiet
+```
+
+#### Batch Push with `--all`
+
+The `--all` flag discovers and pushes all projects in the current directory tree. A directory is considered a project if its `index.ts` file exports an object with `__type = "project"`.
+
+```bash
+# From a workspace root containing multiple projects
+inkeep push --all
+```
+
+**Project Discovery:**
+
+1. Searches recursively for directories containing `index.ts` files
+2. Validates each `index.ts` exports a project (checks for `__type = "project"`)
+3. Ensures each project can access an `inkeep.config.ts` (in the same directory or a parent directory)
+
+**Shared Configuration:**
+
+You can use a single `inkeep.config.ts` at the workspace root for multiple projects:
+
+```
+workspace-root/
+├── inkeep.config.ts          # Shared config for all projects
+└── projects/
+    ├── project-a/
+    │   └── index.ts          # Project A
+    ├── project-b/
+    │   └── index.ts          # Project B
+    └── project-c/
+        └── index.ts          # Project C
+```
+
+Running `inkeep push --all` from `workspace-root/` or `workspace-root/projects/` will discover and push all three projects using the shared configuration.
+
+**Output:**
+
+```
+🚀 Batch Push: Finding all projects...
+
+Found 3 project(s) to push:
+
+  • project-a
+  • project-b
+  • project-c
+
+[1/3] Pushing project-a...
+  ✓ Project A
+[2/3] Pushing project-b...
+  ✓ Project B
+[3/3] Pushing project-c...
+  ✓ Project C
+
+📊 Batch Push Summary:
+  ✓ Succeeded: 3
+```
+
+**Environment Credentials:**
+
+The `--env` flag loads environment-specific credentials when pushing your project. This will look for files like `environments/development.env.ts` or `environments/production.env.ts` in your project directory and load the credential configurations defined there.
+
+**Example environment file:**
+
+```typescript
+// environments/development.env.ts
+import { CredentialStoreType } from "@inkeep/agents-core";
+import { registerEnvironmentSettings } from "@inkeep/agents-sdk";
+
+export const development = registerEnvironmentSettings({
+  credentials: {
+    "api-key-dev": {
+      id: "api-key-dev",
+      type: CredentialStoreType.memory,
+      credentialStoreId: "memory-default",
+      retrievalParams: {
+        key: "API_KEY_DEV",
+      },
+    },
+  },
+});
+```
+
+#### Project Discovery and Structure
+
+The `inkeep push` command follows this discovery process:
+
+1. **Config File Discovery**: Searches for `inkeep.config.ts` using this pattern:
+
+   - Starts from current working directory
+   - Traverses **upward** through parent directories until found
+   - Can be overridden by providing a path to the config file with the `--config` flag
+
+2. **Workspace Structure**: Expects this directory layout:
+
+   ```
+   workspace-root/
+   ├── package.json              # Workspace package.json
+   ├── tsconfig.json             # Workspace TypeScript config
+   ├── inkeep.config.ts          # Inkeep configuration file
+   ├── my-project/               # Individual project directory
+   │   ├── index.ts              # Project entry point
+   │   ├── agents/               # Agent definitions
+   │   │   └── *.ts
+   │   ├── tools/                # Tool definitions
+   │   │   └── *.ts
+   │   ├── data-components/      # Data component definitions
+   │   │   └── *.ts
+   │   └── environments/         # Environment-specific configs
+   │       ├── development.env.ts
+   │       └── production.env.ts
+   └── another-project/          # Additional projects
+       └── index.ts
+   ```
+
+3. **Resource Compilation**: Automatically discovers and compiles:
+   - All project directories containing `index.ts`
+   - All TypeScript files within each project directory
+   - Categorizes files by type (agents, Sub Agents, tools, data components)
+   - Resolves dependencies and relationships within each project
+
+#### Push Behavior
+
+When pushing, the CLI:
+
+- Finds and loads configuration from `inkeep.config.ts` at workspace root
+- Discovers all project directories containing `index.ts`
+- Applies environment-specific settings if `--env` is specified
+- Compiles all project resources defined in each project's `index.ts`
+- Validates Sub Agent relationships and tool configurations across all projects
+- Deploys all projects to the management API
+- Prints deployment summary with resource counts per project
+
+### `inkeep pull`
+
+Pull project configuration from the server and update all TypeScript files in your local project using LLM generation.
+
+```bash
+inkeep pull
+```
+
+**Options:**
+
+- `--project <project-id>` - Project ID to pull (or path to project directory). If in project directory, validates against local project ID.
+- `--all` - Pull all projects from the server to the current directory
+- `--config <path>` - Path to configuration file
+- `--env <environment>` - Environment file to generate (development, staging, production). Defaults to development
+- `--json` - Output project data as JSON instead of generating files
+- `--debug` - Enable debug logging
+- `--verbose` - Enable verbose logging
+- `--force` - Force regeneration even if no changes detected
+- `--introspect` - Completely regenerate all files from scratch (no comparison needed)
+- `--profile <name>` - Use a specific CLI profile (overrides the active profile)
+- `--quiet` - Suppress interactive prompts and extra logs
+
+#### Single Project Pull
+
+The most common workflow is to run `inkeep pull` from inside a project directory. A project directory is identified by having an `index.ts` file that exports a project object (with `__type = "project"`).
+
+```bash
+# Navigate to your project directory
+cd my-project
+
+# Pull updates from the server
+inkeep pull
+```
+
+The CLI will:
+1. Detect `index.ts` in the current directory
+2. Load the project export to get the project ID
+3. Fetch the latest configuration from the server
+4. Update your local TypeScript files with any changes
+
+**Smart Project Detection:**
+
+The pull command intelligently handles different scenarios:
+
+1. **Project Directory Detection**: If your current directory contains an `index.ts` file that exports a project, the command automatically uses that project's ID
+2. **Project ID Validation**: If you specify `--project` while in a project directory, it validates that the ID matches your local project
+3. **Subdirectory Creation**: When not in a project directory, creates a new subdirectory named after the project ID
+
+**`--project` Flag Behavior:**
+
+The `--project` flag has dual functionality:
+- **Directory Path**: If the value points to a directory containing `index.ts`, it uses that directory
+- **Project ID**: If the value doesn't match a valid directory path, it treats it as a project ID
+
+**Pull Modes:**
+
+| Scenario | Command | Behavior |
+|----------|---------|----------|
+| In project directory | `inkeep pull` | ✅ Automatically detects project, pulls to current directory |
+| In project directory | `inkeep pull --project <matching-id>` | ✅ Validates ID matches local project, pulls to current directory |
+| In project directory | `inkeep pull --project <different-id>` | ❌ Error: Project ID doesn't match local project |
+| Not in project directory | `inkeep pull` | ❌ Error: Requires --project flag |
+| Not in project directory | `inkeep pull --project <id>` | ✅ Creates `<id>/` subdirectory with project files |
+
+**How it Works:**
+
+The pull command discovers and updates all TypeScript files in your project based on the latest configuration from the server:
+
+1. **File Discovery**: Recursively finds all `.ts` files in your project (excluding `environments/` and `node_modules/`)
+2. **Smart Categorization**: Categorizes files as index, agents, Sub Agents, tools, or other files
+3. **Context-Aware Updates**: Updates each file with relevant context from the server:
+   - **Agent files**: Updated with specific agent data
+   - **Sub Agent files**: Updated with specific Sub Agent configurations
+   - **Tool files**: Updated with specific tool definitions
+   - **Other files**: Updated with full project context
+4. **LLM Generation**: Uses AI to maintain code structure while updating with latest data
+
+#### TypeScript Updates (Default)
+
+By default, the pull command updates your existing TypeScript files using LLM generation:
+
+1. **Context Preservation**: Maintains your existing code structure and patterns
+2. **Selective Updates**: Only updates relevant parts based on server configuration changes
+3. **File-Specific Context**: Each file type receives appropriate context (Agents get Agent data, Sub Agents get Sub Agent data, etc.)
+
+**Examples:**
+
+```bash
+# Directory-aware pull: Automatically detects project from current directory
+cd my-project  # Directory contains index.ts with project export
+inkeep pull    # Pulls to current directory, no subdirectory created
+
+# Validate project ID while in project directory
+cd my-project  # Directory contains index.ts
+inkeep pull --project my-project  # Validates ID matches, pulls to current directory
+
+# Error case: Wrong project ID in project directory
+cd my-project  # Directory contains index.ts with different project ID
+inkeep pull --project different-project  # ERROR: Project ID mismatch
+
+# Pull when NOT in a project directory (requires --project)
+cd ~/projects
+inkeep pull  # ERROR: Requires --project flag
+
+# Pull specific project to new subdirectory
+cd ~/projects
+inkeep pull --project my-project  # Creates ./my-project/ subdirectory
+
+# Save project data as JSON file instead of updating files
+inkeep pull --json
+
+# Enable debug logging
+inkeep pull --debug
+
+# Enable verbose logging
+inkeep pull --verbose
+
+# Force regeneration even if no changes detected
+inkeep pull --force
+
+# Completely regenerate all files from scratch
+inkeep pull --introspect
+
+# Generate environment-specific credentials
+inkeep pull --env production
+
+# Use specific config file
+inkeep pull --config ./custom-config/inkeep.config.ts
+
+# Pull all projects from server
+inkeep pull --all
+
+# Pull using a specific profile (overrides active)
+inkeep pull --profile staging
+
+# Quiet non-essential output for CI
+inkeep pull --quiet
+```
+
+#### Batch Pull with `--all`
+
+The `--all` flag fetches all projects from your tenant and pulls them to the current directory. Each project is created as a subdirectory.
+
+```bash
+# From a workspace directory
+inkeep pull --all
+```
+
+**How it Works:**
+
+1. Fetches all projects from the API for your tenant
+2. Categorizes each project as "existing" or "new":
+   - **Existing**: Directory with `index.ts` already exists → uses smart comparison mode
+   - **New**: No local directory → uses introspect mode for fresh generation
+3. Processes each project sequentially
+
+**Output:**
+
+```
+🔄 Batch Pull: Sequential processing with smart comparison
+
+  • Existing projects: Smart comparison + LLM merging + confirmation prompts
+  • New projects: Fresh generation with introspect mode
+
+Projects to pull:
+
+  Existing (smart comparison):
+    • My Agent (my-agent)
+  New (introspect):
+    • New Project (new-project)
+
+──────────────────────────────────────────────────────────
+[1/2] Pulling My Agent...
+  ✓ My Agent → ./my-agent
+
+──────────────────────────────────────────────────────────
+[2/2] Pulling New Project...
+  ✓ New Project → ./new-project
+
+════════════════════════════════════════════════════════════
+📊 Batch Pull Summary:
+  ✓ Succeeded: 2
+```
+
+#### Model Configuration
+
+The `inkeep pull` command automatically selects the best available model for LLM generation based on your API keys:
+
+1. **Anthropic Claude** (if `ANTHROPIC_API_KEY` is set): `claude-sonnet-4-5`
+2. **OpenAI GPT** (if `OPENAI_API_KEY` is set): `gpt-5.1`
+3. **Google Gemini** (if `GOOGLE_GENERATIVE_AI_API_KEY` is set): `gemini-2.5-flash`
+
+The models are used for intelligent content merging when updating modified components, ensuring your local customizations are preserved while incorporating upstream changes.
+
+#### Validation Process
+
+The `inkeep pull` command includes a two-stage validation process to ensure generated TypeScript files accurately represent your backend configuration:
+
+**1. Basic File Verification**
+- Checks that all expected files exist (index.ts, agent files, tool files, component files)
+- Verifies file naming conventions match (kebab-case)
+- Ensures project export is present in index.ts
+
+**2. Round-Trip Validation** *(New in v0.24.0)*
+- Loads the generated TypeScript using the same logic as `inkeep push`
+- Serializes it back to JSON format
+- Compares the serialized JSON with the original backend data
+- Reports any differences found
+
+This round-trip validation ensures:
+- ✅ Generated TypeScript can be successfully loaded and imported
+- ✅ The serialization logic (TS → JSON) works correctly
+- ✅ Generated files will work with `inkeep push` without errors
+- ✅ No data loss or corruption during the pull process
+
+**Validation Output:**
+
+```bash
+✓ Basic file verification passed
+✓ Round-trip validation passed - generated TS matches backend data
+```
+
+**If validation fails:**
+
+The CLI will display specific differences between the generated and expected data:
+
+```bash
+✗ Round-trip validation failed
+
+❌ Round-trip validation errors:
+   The generated TypeScript does not serialize back to match the original backend data.
+  • Value mismatch at agents.my-agent.name: "Original Name" vs "Generated Name"
+  • Missing tool in generated: tool-id
+
+⚠️  This indicates an issue with LLM generation or schema mappings.
+The generated files may not work correctly with `inkeep push`.
+```
+
+**TypeScript generation fails:**
+
+- Ensure your network connectivity and API endpoints are correct
+- Check that your model provider credentials (if required by backend) are set up
+- Try using `--json` flag as a fallback to get the raw project data
+
+**Validation errors during pull:**
+
+- The generated TypeScript may have syntax errors or missing dependencies
+- Check the generated file manually for obvious issues
+- Try pulling as JSON first to verify the source data: `inkeep pull --json`
+- If round-trip validation fails, report the issue with the error details
+
+### `inkeep list-agents`
+
+List all available agents for a specific project.
+
+```bash
+inkeep list-agents --project <project-id>
+```
+
+**Options:**
+
+- `--project <project-id>` - **Required.** Project ID to list agents for
+- `--tenant-id <tenant-id>` - Tenant ID
+- `--agents-manage-api-url <url>` - Agents manage API URL
+- `--config <path>` - Path to configuration file
+- `--config-file-path <path>` - Path to configuration file (deprecated, use --config)
+
+**Examples:**
+
+```bash
+# List agents for a specific project
+inkeep list-agents --project my-project
+
+# List agents using a specific config file
+inkeep list-agents --project my-project --config ./inkeep.config.ts
+
+# Override tenant and API URL
+inkeep list-agents --project my-project --tenant-id my-tenant --agents-manage-api-url https://api.example.com
+```
+
+### `inkeep dev`
+
+Start the Inkeep dashboard server, build for production, or export the Next.js project.
+
+> **Note:** This command requires `@inkeep/agents-manage-ui` to be installed for visual agents orchestration.
+
+```bash
+inkeep dev
+```
+
+**Options:**
+
+- `--port <port>` - Port to run the server on (default: 3000)
+- `--host <host>` - Host to bind the server to (default: localhost)
+- `--build` - Build the Dashboard UI for production (packages standalone build)
+- `--export` - Export the Next.js project source files
+- `--output-dir <dir>` - Output directory for build files (default: ./inkeep-dev)
+- `--path` - Output the path to the Dashboard UI
+
+**Examples:**
+
+```bash
+# Start development server
+inkeep dev
+
+# Start on custom port and host
+inkeep dev --port 3001 --host 0.0.0.0
+
+# Build for production (packages standalone build)
+inkeep dev --build --output-dir ./build
+
+# Export Next.js project source files
+inkeep dev --export --output-dir ./my-dashboard
+
+# Get dashboard path for deployment
+DASHBOARD_PATH=$(inkeep dev --path)
+echo "Dashboard built at: $DASHBOARD_PATH"
+
+# Use with Vercel
+vercel --cwd $(inkeep dev --path) -Q .vercel build
+
+# Use with Docker
+docker build -t inkeep-dashboard $(inkeep dev --path)
+
+# Use with other deployment tools
+rsync -av $(inkeep dev --path)/ user@server:/var/www/dashboard/
+```
+
+### `inkeep config`
+
+Manage Inkeep configuration values.
+
+**Subcommands:**
+
+#### `inkeep config get [key]`
+
+Get configuration value(s).
+
+```bash
+inkeep config get [key]
+```
+
+**Options:**
+
+- `--config <path>` - Path to configuration file
+- `--config-file-path <path>` - Path to configuration file (deprecated, use --config)
+
+**Examples:**
+
+```bash
+# Get all config values
+inkeep config get
+
+# Get specific value
+inkeep config get tenantId
+```
+
+#### `inkeep config set <key> <value>`
+
+Set a configuration value.
+
+```bash
+inkeep config set <key> <value>
+```
+
+**Options:**
+
+- `--config <path>` - Path to configuration file
+- `--config-file-path <path>` - Path to configuration file (deprecated, use --config)
+
+**Examples:**
+
+```bash
+inkeep config set tenantId my-tenant-id
+inkeep config set apiUrl http://localhost:3002
+```
+
+#### `inkeep config list`
+
+List all configuration values.
+
+```bash
+inkeep config list
+```
+
+**Options:**
+
+- `--config <path>` - Path to configuration file
+- `--config-file-path <path>` - Path to configuration file (deprecated, use --config)
+
+### `inkeep profile`
+
+Manage named CLI profiles for multiple remotes, credentials, and environments. Profiles are stored in `~/.inkeep/profiles.yaml`. A default `cloud` profile points to hosted endpoints.
+
+```yaml
+# ~/.inkeep/profiles.yaml
+activeProfile: cloud
+profiles:
+  cloud:
+    remote: cloud
+    credential: inkeep-cloud
+    environment: production
+  local:
+    remote:
+      manageApi: http://localhost:3002
+      manageUi: http://localhost:3000
+      runApi: http://localhost:3003
+    credential: inkeep-local
+    environment: development
+```
+
+**Subcommands:**
+
+- `inkeep profile list` — Show all profiles and the active one.
+- `inkeep profile add <name>` — Interactive creation for cloud or custom URLs; writes to `profiles.yaml`.
+- `inkeep profile use <name>` — Switch the active profile.
+- `inkeep profile current` — Show the active profile details and credential key.
+- `inkeep profile remove <name>` — Delete a profile (cannot remove the active one).
+
+**Examples:**
+
+```bash
+# Create a local profile and switch to it
+inkeep profile add local
+inkeep profile use local
+
+# Inspect which profile is active
+inkeep profile current
+
+# List all profiles
+inkeep profile list
+
+# Remove an unused profile
+inkeep profile remove staging
+```
+
+**How profiles are used:**
+
+- `inkeep login --profile <name>` stores credentials under the profile’s credential key.
+- Commands that talk to the APIs (`push`, `pull`, `status`, `login`, `logout`) honor `--profile <name>`; if omitted, the active profile is used.
+- Each profile bundles remote URLs, an environment name, and a credential reference so you can move between cloud and self-hosted deployments without editing config files.
+
+#### Using profiles with authenticated deployments
+
+If your deployment requires authentication (cloud or self-hosted), run `inkeep login` for each profile so its credential slot in `profiles.yaml` has a token in the system keychain:
+
+```bash
+# Authenticate against your secured deployment
+inkeep login --profile local
+
+# Validate which profile is active before running commands
+inkeep profile current
+
+# Use the profile when pushing/pulling
+inkeep push --profile local
+inkeep pull --profile local
+```
+
+- The `credential` field in the profile is the key used to store the token; `login` writes to that key and `push/pull/status` read from it.
+- Repeat `login --profile <name>` for every profile/remote you operate against.
+- Use `inkeep logout --profile <name>` to clear a profile’s stored credentials if you need to rotate access.
+
+### `inkeep add`
+
+Pull a template project or MCP from the [Inkeep Agents Cookbook](https://github.com/inkeep/agents/tree/main/agents-cookbook).
+
+```bash
+inkeep add [options]
+```
+
+**Options:**
+
+- `--project <name>` - Add a project template
+- `--mcp <name>` - Add a custom MCP server template for common use cases (adds server code to your project)
+- `--target-path <path>` - Target path to add the template to
+- `--config <path>` - Path to configuration file
+
+**Examples:**
+
+```bash
+# List available templates (both project and MCP)
+inkeep add
+
+# Add a project template
+inkeep add --project activities-planner
+
+# Add project template to specific path
+inkeep add --project activities-planner --target-path ./examples
+
+# Add a custom MCP server template (auto-detects apps/mcp/app directory)
+inkeep add --mcp zendesk
+
+# Add MCP server template to specific path
+inkeep add --mcp zendesk --target-path ./apps/mcp/app
+
+# Using specific config file
+inkeep add --project activities-planner --config ./my-config.ts
+```
+
+**Behavior:**
+
+- When adding an MCP server template without `--target-path`, the CLI automatically searches for an `apps/mcp/app` directory in your project
+- If no app directory is found, you'll be prompted to confirm whether to add to the current directory
+- Project templates are added to the current directory or specified `--target-path`
+- Model configurations are automatically injected based on available API keys in your environment (`ANTHROPIC_API_KEY`, `OPENAI_API_KEY`, or `GOOGLE_GENERATIVE_AI_API_KEY`)
+
+### `inkeep update`
+
+Update the Inkeep CLI to the latest version from npm.
+
+```bash
+inkeep update
+```
+
+**Options:**
+
+- `--check` - Check for updates without installing
+- `--force` - Force update even if already on latest version
+
+**How it Works:**
+
+The update command automatically:
+
+1. **Detects Package Manager**: Identifies which package manager (npm, pnpm, bun, or yarn) was used to install the CLI globally
+2. **Checks Version**: Compares your current version with the latest available on npm
+3. **Updates CLI**: Executes the appropriate update command for your package manager
+4. **Displays Changelog**: Shows a link to the changelog for release notes
+
+**Examples:**
+
+```bash
+# Check if an update is available (no installation)
+inkeep update --check
+
+# Update to latest version (with confirmation prompt)
+inkeep update
+
+# Force reinstall current version
+inkeep update --force
+
+# Skip confirmation prompt (useful for CI/CD)
+inkeep update --force
+```
+
+**Output Example:**
+
+```
+📦 Version Information:
+  • Current version: 0.22.3
+  • Latest version:  0.23.0
+
+📖 Changelog:
+  • https://github.com/inkeep/agents/blob/main/agents-cli/CHANGELOG.md
+
+🔍 Detected package manager: pnpm
+
+✅ Updated to version 0.23.0
+```
+
+**Troubleshooting:**
+
+If you encounter permission errors, try running with elevated permissions:
+
+```bash
+# For npm, pnpm, yarn
+sudo inkeep update
+
+# For bun
+sudo -E bun add -g @inkeep/agents-cli@latest
+```
+
+**Package Manager Detection:**
+
+The CLI automatically detects which package manager you used by checking global package installations:
+- npm: Checks `npm list -g @inkeep/agents-cli`
+- pnpm: Checks `pnpm list -g @inkeep/agents-cli`
+- bun: Checks `bun pm ls -g`
+- yarn: Checks `yarn global list`
+
+If automatic detection fails, the CLI will prompt you to select your package manager.
+
+## Configuration File
+
+The CLI uses a configuration file (typically `inkeep.config.ts`) to store settings:
+
+```typescript
+import { defineConfig } from "@inkeep/agents-cli/config";
+
+export default defineConfig({
+  tenantId: "your-tenant-id",
+  agentsManageApiUrl: "http://localhost:3002",
+  agentsRunApiUrl: "http://localhost:3003",
+});
+```
+
+### Configuration Priority
+
+Effective resolution order:
+
+1. Command-line flags (highest)
+2. Environment variables (override config values)
+3. `inkeep.config.ts` values
+
+## Environment Variables
+
+The CLI and SDK respect the following environment variables:
+
+- `INKEEP_TENANT_ID` - Tenant identifier
+- `INKEEP_AGENTS_MANAGE_API_URL` - Management API base URL
+- `INKEEP_AGENTS_RUN_API_URL` - Run API base URL
+- `INKEEP_ENV` - Environment name for credentials loading during `inkeep push`
+- `INKEEP_AGENTS_MANAGE_API_BYPASS_SECRET` - Optional bearer for Manage API (advanced)
+- `INKEEP_AGENTS_RUN_API_BYPASS_SECRET` - Optional bearer for Run API (advanced)
+
+## Troubleshooting
+
+**Project Not Found:**
+
+- Projects are automatically managed based on your tenantId
+- `inkeep push` will create resources as needed
+
+### Getting Help
+
+For additional help with any command:
+
+```bash
+inkeep [command] --help
+```
+
+For issues or feature requests, visit: [GitHub Issues](https://github.com/inkeep/agents/issues)

@@ -34,7 +34,7 @@ const tabsTriggerVariants = cva(
   }
 );
 
-export interface TabsTriggerProps
+interface TabsTriggerProps
   extends React.ComponentPropsWithoutRef<typeof TabsPrimitive.Trigger>,
     VariantProps<typeof tabsTriggerVariants> {}
 

@@ -3,7 +3,7 @@ import type { InkeepAIChatSettings, InkeepBaseSettings } from '@inkeep/agents-ui
 import { SidebarIcon } from 'lucide-react';
 import { useParams } from 'next/navigation';
 import { Button } from '@/components/ui/button';
-import { useRuntimeConfig } from '@/contexts/runtime-config-context';
+import { useTempApiKey } from '@/hooks/use-temp-api-key';
 import { ChatUIComponent } from './chat-ui-preview-form';
 
 const styleOverrides = `
@@ -21,7 +21,7 @@ const styleOverrides = `
   }
 `;
 
-export interface ChatUIPreviewProps {
+interface ChatUIPreviewProps {
   component: ChatUIComponent;
   baseSettings: InkeepBaseSettings;
   aiChatSettings: InkeepAIChatSettings;
@@ -44,9 +44,23 @@ export function ChatUIPreview({
     projectId: string;
     agentId: string;
   }>();
-  const { PUBLIC_INKEEP_AGENTS_RUN_API_BYPASS_SECRET } = useRuntimeConfig();
+  const { apiKey: tempApiKey, isLoading: isLoadingKey } = useTempApiKey({
+    tenantId,
+    projectId,
+    agentId,
+  });
 
   const Component = componentMap[component];
+
+  if (isLoadingKey || !tempApiKey) {
+    return (
+      <div className="h-full flex items-center justify-center">
+        <p className="text-muted-foreground">
+          {isLoadingKey ? 'Loading preview...' : 'Failed to load preview'}
+        </p>
+      </div>
+    );
+  }
 
   return (
     <div
@@ -94,7 +108,7 @@ export function ChatUIPreview({
               'x-inkeep-tenant-id': tenantId,
               'x-inkeep-project-id': projectId,
               'x-inkeep-agent-id': agentId,
-              Authorization: `Bearer ${PUBLIC_INKEEP_AGENTS_RUN_API_BYPASS_SECRET}`,
+              Authorization: `Bearer ${tempApiKey}`,
               'x-emit-operations': shouldEmitDataOperations ? 'true' : 'false',
             },
           }}

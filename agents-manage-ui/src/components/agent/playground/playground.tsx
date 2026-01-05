@@ -8,6 +8,7 @@ import { useChatActivitiesPolling } from '@/hooks/use-chat-activities-polling';
 import type { DataComponent } from '@/lib/api/data-components';
 import { generateId } from '@/lib/utils/id-utils';
 import { copyTraceToClipboard } from '@/lib/utils/trace-formatter';
+import { useCopilotContext } from '../copilot/copilot-context';
 import { ChatWidget } from './chat-widget';
 import CustomHeadersDialog from './custom-headers-dialog';
 
@@ -32,6 +33,7 @@ export const Playground = ({
   showTraces,
   setShowTraces,
 }: PlaygroundProps) => {
+  const { setIsOpen: setIsCopilotOpen } = useCopilotContext();
   const [conversationId, setConversationId] = useState(generateId);
   const [customHeaders, setCustomHeaders] = useState<Record<string, string>>({});
   const [isCopying, setIsCopying] = useState(false);
@@ -45,6 +47,8 @@ export const Playground = ({
     refreshOnce,
   } = useChatActivitiesPolling({
     conversationId,
+    tenantId,
+    projectId,
   });
 
   const handleCopyTrace = async () => {
@@ -85,6 +89,7 @@ export const Playground = ({
               setShowTraces(!showTraces);
               if (!showTraces) {
                 closeSidePane();
+                setIsCopilotOpen(false);
               }
             }}
           >
@@ -118,6 +123,7 @@ export const Playground = ({
               chatActivities={chatActivities}
               dataComponentLookup={dataComponentLookup}
               key={JSON.stringify(customHeaders)}
+              setShowTraces={setShowTraces}
             />
           </ResizablePanel>
 

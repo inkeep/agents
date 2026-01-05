@@ -109,7 +109,6 @@ export function validationHelper(jsonSchema: Record<string, unknown>) {
 }
 
 export function validateAgainstJsonSchema(jsonSchema: Record<string, unknown>, context: unknown) {
-  logger.debug({ jsonSchema, context }, 'Validating context against JSON Schema');
   const validate = validationHelper(jsonSchema);
   return validate(context);
 }

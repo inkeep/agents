@@ -13,21 +13,6 @@ INKEEP_AGENTS_MANAGE_API_URL="http://localhost:3002"
 
 ## Usage
 
-### Import the server actions and types
-
-```typescript
-import {
-  createFullAgentAction,
-  deleteFullAgentAction,
-  getFullAgentAction,
-  updateFullAgentAction,
-  validateAgentData,
-  FullAgentDefinitionSchema,
-  type FullAgentDefinition,
-  type ActionResult,
-} from '@/lib';
-```
-
 ### Create a new agent
 
 ```typescript
@@ -100,22 +85,6 @@ if (result.success) {
   console.log('Agent deleted successfully');
 } else {
   console.error('Error:', result.error);
-}
-```
-
-### Validate agent data
-
-Use this for form validation before submitting:
-
-```typescript
-const result = await validateAgentData(formData);
-
-if (result.success) {
-  // Data is valid, proceed with submission
-  const validatedData = result.data;
-} else {
-  // Show validation errors
-  console.error('Validation error:', result.error);
 }
 ```
 

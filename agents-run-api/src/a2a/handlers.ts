@@ -331,6 +331,22 @@ async function handleMessageSend(
         });
       }
     }
+    if (result.status.state === TaskState.Failed) {
+      const isConnectionRefused = result.status.type === 'connection_refused';
+
+      if (isConnectionRefused) {
+        return c.json({
+          jsonrpc: '2.0',
+          error: {
+            code: -32603,
+            message: result.status.message || 'Agent execution failed',
+            data: {
+              type: 'connection_refused',
+            },
+          },
+        } satisfies JsonRpcResponse);
+      }
+    }
 
     const taskStatus = {
       state: result.status.state,
@@ -579,6 +595,7 @@ async function handleTasksGet(
               text: `Task ${params.id} completed successfully`,
             },
           ],
+          createdAt: new Date().toISOString(),
         },
       ],
       kind: 'task',

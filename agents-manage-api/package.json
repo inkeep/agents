@@ -1,38 +1,50 @@
 {
   "name": "@inkeep/agents-manage-api",
-  "version": "0.33.0",
+  "version": "0.40.0",
   "description": "Agents Manage API for Inkeep Agent Framework - handles CRUD operations and OAuth",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
   "license": "SEE LICENSE IN LICENSE.md",
   "exports": {
-    ".": "./dist/index.js"
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    },
+    "./factory": {
+      "types": "./dist/factory.d.ts",
+      "default": "./dist/factory.js"
+    }
   },
   "type": "module",
   "scripts": {
+    "knip": "knip --directory .. --workspace agents-manage-api --dependencies",
     "dev": "vite",
-    "build": "tsup",
+    "build": "tsdown",
     "start": "node dist/index.js",
     "test": "vitest --run",
     "test:watch": "vitest",
     "test:coverage": "vitest --run --coverage",
     "typecheck": "tsc --noEmit",
-    "typecheck:watch": "tsc --noEmit --watch"
+    "typecheck:watch": "tsc --noEmit --watch",
+    "openapi:update-snapshot": "UPDATE_OPENAPI_SNAPSHOT=true vitest --run src/__tests__/routes/openapi.test.ts"
   },
   "dependencies": {
-    "@hono/node-server": "^1.14.3",
+    "@electric-sql/pglite": "^0.3.13",
+    "@hono/mcp": "^0.1.5",
     "@hono/swagger-ui": "^0.5.1",
-    "@hono/zod-openapi": "^1.0.2",
     "@inkeep/agents-core": "workspace:^",
-    "@nangohq/node": "^0.69.5",
-    "@nangohq/types": "^0.69.5",
-    "dotenv": "^17.2.1",
+    "@inkeep/agents-manage-mcp": "workspace:^",
+    "@modelcontextprotocol/sdk": "1.24.3",
+    "axios": "^1.7.9",
     "drizzle-orm": "^0.44.4",
     "hono": "^4.10.4",
     "hono-pino": "^0.10.1",
     "nanoid": "^5.1.5",
     "openid-client": "^6.6.4",
-    "pino": "^9.7.0",
+    "pino": "^9.7.0"
+  },
+  "peerDependencies": {
+    "@hono/zod-openapi": "^1.1.5",
     "zod": "^4.1.11"
   },
   "optionalDependencies": {
@@ -42,19 +54,13 @@
     "@hono/vite-dev-server": "^0.20.1",
     "@types/node": "^20.11.24",
     "@vitest/coverage-v8": "^3.2.4",
-    "nodemon": "^3.1.0",
-    "pino-pretty": "^13.0.0",
     "tsx": "^4.7.1",
     "typescript": "^5.3.3",
     "vite": "^7.1.11",
     "vite-tsconfig-paths": "^5.1.4",
-    "vitest": "^3.2.4",
-    "@electric-sql/pglite": "^0.3.13"
+    "vitest": "^3.2.4"
   },
   "packageManager": "pnpm@10.11.0",
-  "engines": {
-    "node": ">=22.0.0"
-  },
   "publishConfig": {
     "access": "public",
     "registry": "https://registry.npmjs.org/"

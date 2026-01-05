@@ -1,6 +1,6 @@
 import type { ContextFetchDefinition } from '@inkeep/agents-core';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { ContextFetcher } from '../../context/ContextFetcher';
+import { ContextFetcher, MissingRequiredVariableError } from '../../context/ContextFetcher';
 import type { DatabaseClient } from '../../db/client';
 import { createTestDatabaseClient } from '../../db/test-client';
 
@@ -223,7 +223,7 @@ describe('ContextFetcher', () => {
 
       const result = await fetcher.fetch(definition, {});
 
-      expect(result).toEqual(expectedData);
+      expect(result.data).toEqual(expectedData);
     });
 
     it('should handle successful text responses', async () => {
@@ -247,7 +247,7 @@ describe('ContextFetcher', () => {
 
       const result = await fetcher.fetch(definition, {});
 
-      expect(result).toBe(expectedText);
+      expect(result.data).toBe(expectedText);
     });
 
     it('should handle HTTP error responses', async () => {
@@ -356,7 +356,7 @@ describe('ContextFetcher', () => {
 
       const result = await fetcher.fetch(definition, {});
 
-      expect(result).toBe('John Doe');
+      expect(result.data).toBe('John Doe');
     });
 
     it('should transform response using JMESPath expressions', async () => {
@@ -384,7 +384,7 @@ describe('ContextFetcher', () => {
 
       const result = await fetcher.fetch(definition, {});
 
-      expect(result).toBe(3);
+      expect(result.data).toBe(3);
     });
 
     it('should return original data if transformation fails', async () => {
@@ -409,7 +409,7 @@ describe('ContextFetcher', () => {
 
       const result = await fetcher.fetch(definition, {});
 
-      expect(result).toEqual(responseData);
+      expect(result.data).toEqual(responseData);
     });
   });
 
@@ -443,7 +443,7 @@ describe('ContextFetcher', () => {
 
       const result = await fetcher.fetch(definition, {});
 
-      expect(result).toEqual(validResponse);
+      expect(result.data).toEqual(validResponse);
     });
 
     it('should reject response that fails JSON schema validation', async () => {
@@ -500,7 +500,7 @@ describe('ContextFetcher', () => {
 
       const result = await fetcher.fetch(definition, {});
 
-      expect(result).toEqual(validResponse);
+      expect(result.data).toEqual(validResponse);
     });
 
     it('should validate primitive type responses', async () => {
@@ -527,7 +527,7 @@ describe('ContextFetcher', () => {
 
       const result = await fetcher.fetch(definition, {});
 
-      expect(result).toBe(validResponse);
+      expect(result.data).toBe(validResponse);
     });
   });
 
@@ -600,7 +600,7 @@ describe('ContextFetcher', () => {
 
       const result = await fetcher.fetch(definition, {});
 
-      expect(result).toEqual({ data: 'static' });
+      expect(result.data).toEqual({ data: 'static' });
     });
 
     it('should handle malformed JSON responses', async () => {
@@ -646,7 +646,7 @@ describe('ContextFetcher', () => {
 
       const result = await fetcher.fetch(definition, {});
 
-      expect(result).toBe('plain text response');
+      expect(result.data).toBe('plain text response');
     });
 
     it('should handle complex nested template interpolation', async () => {
@@ -755,6 +755,328 @@ describe('ContextFetcher', () => {
     });
   });
 
+  describe('requiredToFetch validation', () => {
+    it('should succeed when all required variables are present', async () => {
+      const definition: ContextFetchDefinition = {
+        id: 'test-fetch',
+        trigger: 'initialization',
+        fetchConfig: {
+          url: 'https://api.example.com/users/{{user.id}}',
+          method: 'GET',
+          requiredToFetch: ['{{user.id}}'],
+        },
+      };
+
+      const context = {
+        user: { id: 'user-123' },
+      };
+
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        status: 200,
+        headers: new Map([['content-type', 'application/json']]),
+        json: async () => ({ data: 'success' }),
+      });
+
+      const result = await fetcher.fetch(definition, context);
+
+      expect(result.data).toEqual({ data: 'success' });
+      expect(mockFetch).toHaveBeenCalledWith(
+        'https://api.example.com/users/user-123',
+        expect.any(Object)
+      );
+    });
+
+    it('should throw MissingRequiredVariableError when required variable resolves to empty string', async () => {
+      const definition: ContextFetchDefinition = {
+        id: 'test-fetch',
+        trigger: 'initialization',
+        fetchConfig: {
+          url: 'https://api.example.com/users/{{user.id}}',
+          method: 'GET',
+          requiredToFetch: ['{{user.id}}'],
+        },
+      };
+
+      const context = {
+        user: { id: '' },
+      };
+
+      await expect(fetcher.fetch(definition, context)).rejects.toThrow(
+        MissingRequiredVariableError
+      );
+      await expect(fetcher.fetch(definition, context)).rejects.toThrow(
+        'Missing required variable: {{user.id}}'
+      );
+      expect(mockFetch).not.toHaveBeenCalled();
+    });
+
+    it('should throw MissingRequiredVariableError when required variable path does not exist', async () => {
+      const definition: ContextFetchDefinition = {
+        id: 'test-fetch',
+        trigger: 'initialization',
+        fetchConfig: {
+          url: 'https://api.example.com/users/{{user.id}}',
+          method: 'GET',
+          requiredToFetch: ['{{user.id}}'],
+        },
+      };
+
+      const context = {
+        other: { value: 'test' },
+      };
+
+      await expect(fetcher.fetch(definition, context)).rejects.toThrow(
+        MissingRequiredVariableError
+      );
+      expect(mockFetch).not.toHaveBeenCalled();
+    });
+
+    it('should validate multiple required variables - all present', async () => {
+      const definition: ContextFetchDefinition = {
+        id: 'test-fetch',
+        trigger: 'initialization',
+        fetchConfig: {
+          url: 'https://api.example.com/{{org.id}}/users/{{user.id}}',
+          method: 'GET',
+          requiredToFetch: ['{{org.id}}', '{{user.id}}'],
+        },
+      };
+
+      const context = {
+        org: { id: 'org-456' },
+        user: { id: 'user-123' },
+      };
+
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        status: 200,
+        headers: new Map([['content-type', 'application/json']]),
+        json: async () => ({ data: 'success' }),
+      });
+
+      const result = await fetcher.fetch(definition, context);
+
+      expect(result.data).toEqual({ data: 'success' });
+    });
+
+    it('should throw on first missing variable when multiple are required', async () => {
+      const definition: ContextFetchDefinition = {
+        id: 'test-fetch',
+        trigger: 'initialization',
+        fetchConfig: {
+          url: 'https://api.example.com/{{org.id}}/users/{{user.id}}',
+          method: 'GET',
+          requiredToFetch: ['{{org.id}}', '{{user.id}}'],
+        },
+      };
+
+      const context = {
+        org: { id: '' },
+        user: { id: 'user-123' },
+      };
+
+      await expect(fetcher.fetch(definition, context)).rejects.toThrow(
+        'Missing required variable: {{org.id}}'
+      );
+      expect(mockFetch).not.toHaveBeenCalled();
+    });
+
+    it('should skip validation when requiredToFetch is not specified', async () => {
+      const definition: ContextFetchDefinition = {
+        id: 'test-fetch',
+        trigger: 'initialization',
+        fetchConfig: {
+          url: 'https://api.example.com/users/{{user.id}}',
+          method: 'GET',
+        },
+      };
+
+      const context = {};
+
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        status: 200,
+        headers: new Map([['content-type', 'application/json']]),
+        json: async () => ({ data: 'success' }),
+      });
+
+      const result = await fetcher.fetch(definition, context);
+
+      expect(result.data).toEqual({ data: 'success' });
+    });
+
+    it('should skip validation when requiredToFetch is empty array', async () => {
+      const definition: ContextFetchDefinition = {
+        id: 'test-fetch',
+        trigger: 'initialization',
+        fetchConfig: {
+          url: 'https://api.example.com/users/{{user.id}}',
+          method: 'GET',
+          requiredToFetch: [],
+        },
+      };
+
+      const context = {};
+
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        status: 200,
+        headers: new Map([['content-type', 'application/json']]),
+        json: async () => ({ data: 'success' }),
+      });
+
+      const result = await fetcher.fetch(definition, context);
+
+      expect(result.data).toEqual({ data: 'success' });
+    });
+
+    it('should validate nested required variables', async () => {
+      const definition: ContextFetchDefinition = {
+        id: 'test-fetch',
+        trigger: 'initialization',
+        fetchConfig: {
+          url: 'https://api.example.com/data',
+          method: 'GET',
+          requiredToFetch: ['{{user.profile.settings.apiKey}}'],
+        },
+      };
+
+      const context = {
+        user: {
+          profile: {
+            settings: {
+              apiKey: 'secret-key-123',
+            },
+          },
+        },
+      };
+
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        status: 200,
+        headers: new Map([['content-type', 'application/json']]),
+        json: async () => ({ data: 'success' }),
+      });
+
+      const result = await fetcher.fetch(definition, context);
+
+      expect(result.data).toEqual({ data: 'success' });
+    });
+
+    it('should filter out non-template variables (without {{ }}) and not validate them', async () => {
+      const definition: ContextFetchDefinition = {
+        id: 'test-fetch',
+        trigger: 'initialization',
+        fetchConfig: {
+          url: 'https://api.example.com/data',
+          method: 'GET',
+          requiredToFetch: ['plainVariable', 'anotherPlain'],
+        },
+      };
+
+      const context = {};
+
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        status: 200,
+        headers: new Map([['content-type', 'application/json']]),
+        json: async () => ({ data: 'success' }),
+      });
+
+      const result = await fetcher.fetch(definition, context);
+
+      expect(result.data).toEqual({ data: 'success' });
+      expect(mockFetch).toHaveBeenCalled();
+    });
+
+    it('should only validate template variables and ignore non-template ones in mixed array', async () => {
+      const definition: ContextFetchDefinition = {
+        id: 'test-fetch',
+        trigger: 'initialization',
+        fetchConfig: {
+          url: 'https://api.example.com/users/{{user.id}}',
+          method: 'GET',
+          requiredToFetch: ['plainVariable', '{{user.id}}', 'anotherPlain'],
+        },
+      };
+
+      const context = {
+        user: { id: 'user-123' },
+      };
+
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        status: 200,
+        headers: new Map([['content-type', 'application/json']]),
+        json: async () => ({ data: 'success' }),
+      });
+
+      const result = await fetcher.fetch(definition, context);
+
+      expect(result.data).toEqual({ data: 'success' });
+      expect(mockFetch).toHaveBeenCalledWith(
+        'https://api.example.com/users/user-123',
+        expect.any(Object)
+      );
+    });
+
+    it('should throw for missing template variable but ignore non-template ones', async () => {
+      const definition: ContextFetchDefinition = {
+        id: 'test-fetch',
+        trigger: 'initialization',
+        fetchConfig: {
+          url: 'https://api.example.com/users/{{user.id}}',
+          method: 'GET',
+          requiredToFetch: ['plainVariable', '{{user.id}}'],
+        },
+      };
+
+      const context = {
+        user: { id: '' },
+      };
+
+      await expect(fetcher.fetch(definition, context)).rejects.toThrow(
+        MissingRequiredVariableError
+      );
+      await expect(fetcher.fetch(definition, context)).rejects.toThrow(
+        'Missing required variable: {{user.id}}'
+      );
+      expect(mockFetch).not.toHaveBeenCalled();
+    });
+
+    it('should filter out variables with partial template syntax', async () => {
+      const definition: ContextFetchDefinition = {
+        id: 'test-fetch',
+        trigger: 'initialization',
+        fetchConfig: {
+          url: 'https://api.example.com/data',
+          method: 'GET',
+          requiredToFetch: ['{{noClosing', 'noOpening}}', '{ {spaced} }', '{{valid}}'],
+        },
+      };
+
+      const context = {
+        valid: 'value',
+      };
+
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        status: 200,
+        headers: new Map([['content-type', 'application/json']]),
+        json: async () => ({ data: 'success' }),
+      });
+
+      const result = await fetcher.fetch(definition, context);
+
+      expect(result).toEqual({
+        data: { data: 'success' },
+        resolvedUrl: 'https://api.example.com/data',
+      });
+      expect(mockFetch).toHaveBeenCalled();
+    });
+  });
+
   describe('GraphQL error handling', () => {
     it('should detect and throw on GraphQL errors in response', async () => {
       const definition: ContextFetchDefinition = {
@@ -834,11 +1156,14 @@ describe('ContextFetcher', () => {
 
       expect(result).toEqual({
         data: {
-          user: {
-            id: '123',
-            name: 'John Doe',
+          data: {
+            user: {
+              id: '123',
+              name: 'John Doe',
+            },
           },
         },
+        resolvedUrl: 'https://api.example.com/agentql',
       });
     });
 
@@ -867,8 +1192,11 @@ describe('ContextFetcher', () => {
       const result = await fetcher.fetch(definition, {});
 
       expect(result).toEqual({
-        data: { user: { id: '123' } },
-        errors: [],
+        data: {
+          data: { user: { id: '123' } },
+          errors: [],
+        },
+        resolvedUrl: 'https://api.example.com/agentql',
       });
     });
 

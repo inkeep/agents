@@ -20,7 +20,7 @@ import { createMCPTool, updateMCPTool } from '@/lib/api/tools';
 import type { MCPTool } from '@/lib/types/tools';
 import { generateId } from '@/lib/utils/id-utils';
 import { ActiveToolsSelector } from './active-tools-selector';
-import { type MCPToolFormData, mcpToolSchema } from './validation';
+import { CredentialScopeEnum, type MCPToolFormData, mcpToolSchema } from './validation';
 
 interface MCPServerFormProps {
   initialData?: MCPToolFormData;
@@ -47,6 +47,7 @@ const defaultValues: MCPToolFormData = {
   },
   imageUrl: '', // Initialize as empty string to avoid uncontrolled/controlled warning
   credentialReferenceId: 'oauth',
+  credentialScope: CredentialScopeEnum.project,
 };
 
 export function MCPServerForm({
@@ -86,8 +87,40 @@ export function MCPServerForm({
 
   const onSubmit = async (data: MCPToolFormData) => {
     try {
-      // handle oauth login
-      if (data.credentialReferenceId === 'oauth') {
+      const mcpServerName = data.name;
+      const isUserScoped = data.credentialScope === CredentialScopeEnum.user;
+
+      // For user-scoped in CREATE mode: skip OAuth (users connect later from detail page)
+      if (isUserScoped && mode === 'create') {
+        const mcpToolData = {
+          id: generateId(),
+          name: mcpServerName,
+          config: {
+            type: 'mcp' as const,
+            mcp: {
+              server: {
+                url: data.config.mcp.server.url,
+              },
+              transport: {
+                type: data.config.mcp.transport.type,
+              },
+            },
+          },
+          credentialReferenceId: null,
+          credentialScope: CredentialScopeEnum.user,
+          imageUrl: data.imageUrl,
+        };
+
+        const newTool = await createMCPTool(tenantId, projectId, mcpToolData);
+        toast.success(
+          'MCP server created. Users can connect their own accounts from the detail page.'
+        );
+        router.push(`/${tenantId}/projects/${projectId}/mcp-servers/${newTool.id}`);
+        return;
+      }
+
+      // Handle OAuth login for project-scoped in CREATE mode
+      if (data.credentialReferenceId === 'oauth' && mode === 'create') {
         const result = await detectOAuthServerAction(data.config.mcp.server.url);
 
         if (!result.success) {
@@ -104,7 +137,7 @@ export function MCPServerForm({
 
         const mcpToolData = {
           id: generateId(),
-          name: data.name,
+          name: mcpServerName,
           config: {
             type: 'mcp' as const,
             mcp: {
@@ -117,6 +150,7 @@ export function MCPServerForm({
             },
           },
           credentialReferenceId: null,
+          credentialScope: CredentialScopeEnum.project,
           imageUrl: data.imageUrl,
         };
 
@@ -125,17 +159,20 @@ export function MCPServerForm({
         handleOAuthLogin({
           toolId: newTool.id,
           mcpServerUrl: data.config.mcp.server.url,
-          toolName: data.name,
+          toolName: mcpServerName,
+          credentialScope: data.credentialScope,
         });
 
         return;
       }
 
-      // Transform form data to API format
+      // Transform form data to API format (for both create and update)
       const transformedData = {
         ...data,
+        name: mcpServerName,
         credentialReferenceId:
           data.credentialReferenceId === 'none' ? null : data.credentialReferenceId,
+        credentialScope: data.credentialScope,
         config: {
           ...data.config,
           mcp: {
@@ -225,36 +262,65 @@ export function MCPServerForm({
             <GenericSelect
               control={form.control}
               selectTriggerClassName="w-full"
-              name="credentialReferenceId"
-              label="Credential"
-              placeholder="Select a credential"
+              name="credentialScope"
+              label="Credential Scope"
+              placeholder="Select credential scope"
+              disabled={mode === 'update'}
               options={[
-                { value: 'oauth', label: 'OAuth' },
-                { value: 'none', label: 'No Authentication' },
-                ...credentials.map((credential) => ({
-                  value: credential.id,
-                  label: credential.name,
-                })),
+                { value: CredentialScopeEnum.project, label: 'Project (shared team credential)' },
+                { value: CredentialScopeEnum.user, label: 'User (each user connects their own)' },
               ]}
             />
-            <InfoCard title="How this works">
+            <InfoCard title="Credential Scope">
               <div className="space-y-2">
                 <p>
-                  Select <code className="bg-background px-1.5 py-0.5 rounded border">OAuth</code>{' '}
-                  to authenticate with the MCP server's OAuth flow, which will start after you click
-                  "Create".
+                  <strong>Project:</strong> One shared credential for the entire team. You'll
+                  connect an OAuth account now that everyone will use.
                 </p>
                 <p>
-                  Select{' '}
-                  <code className="bg-background px-1.5 py-0.5 rounded border">
-                    No Authentication
-                  </code>{' '}
-                  to skip authentication (i.e. none required or add a credential later).
+                  <strong>User:</strong> Each team member connects their own account. No OAuth
+                  required during setup — users connect later from the detail page.
                 </p>
-                <p>Or select from the existing credentials you have already created.</p>
               </div>
             </InfoCard>
           </div>
+
+          {form.watch('credentialScope') === CredentialScopeEnum.project && (
+            <div className="space-y-3">
+              <GenericSelect
+                control={form.control}
+                selectTriggerClassName="w-full"
+                name="credentialReferenceId"
+                label="Credential"
+                placeholder="Select a credential"
+                options={[
+                  { value: 'oauth', label: 'OAuth' },
+                  { value: 'none', label: 'No Authentication' },
+                  ...credentials.map((credential) => ({
+                    value: credential.id,
+                    label: credential.name,
+                  })),
+                ]}
+              />
+              <InfoCard title="How this works">
+                <div className="space-y-2">
+                  <p>
+                    Select <code className="bg-background px-1.5 py-0.5 rounded border">OAuth</code>{' '}
+                    to authenticate with the MCP server's OAuth flow, which will start after you
+                    click "Create".
+                  </p>
+                  <p>
+                    Select{' '}
+                    <code className="bg-background px-1.5 py-0.5 rounded border">
+                      No Authentication
+                    </code>{' '}
+                    to skip authentication (i.e. none required or add a credential later).
+                  </p>
+                  <p>Or select from the existing credentials you have already created.</p>
+                </div>
+              </InfoCard>
+            </div>
+          )}
 
           {mode === 'update' && (
             <ActiveToolsSelector

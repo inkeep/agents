@@ -38,5 +38,6 @@ export const executionLimitsSharedDefaults = {
   // CONVERSATION_HISTORY_MAX_OUTPUT_TOKENS_DEFAULT: Maximum number of tokens from previous conversation messages
   // to include in the LLM prompt. Prevents excessive token usage while maintaining relevant conversation context.
   // Messages exceeding this limit are truncated from the beginning of the conversation.
-  CONVERSATION_HISTORY_MAX_OUTPUT_TOKENS_DEFAULT: 4_000,
+  // Increased from 4,000 to 8,000 to accommodate tool results in conversation history.
+  CONVERSATION_HISTORY_MAX_OUTPUT_TOKENS_DEFAULT: 8_000,
 } as const;

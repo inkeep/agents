@@ -8,16 +8,43 @@
  * Step 5: Use LLM to correct modified components
  */
 
+import { EventEmitter } from 'node:events';
 import { existsSync, mkdirSync } from 'node:fs';
-import { dirname, join, resolve } from 'node:path';
+import { basename, dirname, join, resolve } from 'node:path';
 import * as p from '@clack/prompts';
 import type { FullProjectDefinition } from '@inkeep/agents-core';
 import chalk from 'chalk';
+
+// Increase max listeners to prevent warnings during complex CLI flows
+// This is needed because @clack/prompts + multiple interactive prompts + spinners all add listeners
+EventEmitter.defaultMaxListeners = 20;
+
+/**
+ * Clean up stdin state between interactive prompts to prevent listener leaks
+ */
+function resetStdinState(): void {
+  process.stdin.removeAllListeners('data');
+  process.stdin.removeAllListeners('keypress');
+  process.stdin.removeAllListeners('end');
+  if (process.stdin.isTTY && process.stdin.isRaw) {
+    process.stdin.setRawMode(false);
+  }
+  if (!process.stdin.isPaused()) {
+    process.stdin.pause();
+  }
+}
+
 import { ManagementApiClient } from '../../api';
 import { performBackgroundVersionCheck } from '../../utils/background-version-check';
 import { initializeCommand } from '../../utils/cli-pipeline';
+import { findConfigFile } from '../../utils/config';
 import { compareProjectDefinitions } from '../../utils/json-comparison';
 import { loadProject } from '../../utils/project-loader';
+import {
+  checkAndPromptForStaleComponentCleanup,
+  cleanupStaleComponents,
+  copyProjectToTemp,
+} from './component-updater';
 import { introspectGenerate } from './introspect-generator';
 import { compareProjects, type ProjectComparison } from './project-comparator';
 import { extractSubAgents } from './utils/component-registry';
@@ -25,12 +52,33 @@ import { extractSubAgents } from './utils/component-registry';
 export interface PullV3Options {
   project?: string;
   config?: string;
+  profile?: string;
   env?: string;
   json?: boolean;
   debug?: boolean;
   verbose?: boolean;
   force?: boolean;
   introspect?: boolean;
+  all?: boolean;
+  tag?: string;
+  quiet?: boolean;
+  /** Internal: used for batch operations to return results instead of calling process.exit() */
+  _batchMode?: boolean;
+}
+
+export interface PullResult {
+  success: boolean;
+  skipped?: boolean;
+  upToDate?: boolean;
+  error?: string;
+}
+
+interface BatchPullResult {
+  projectId: string;
+  projectName?: string;
+  targetDir: string;
+  success: boolean;
+  error?: string;
 }
 
 interface ProjectPaths {
@@ -180,8 +228,17 @@ async function readExistingProject(
 
 /**
  * Main pull-v3 command
+ * @returns PullResult when in batch mode, otherwise void (exits process)
  */
-export async function pullV3Command(options: PullV3Options): Promise<void> {
+export async function pullV3Command(options: PullV3Options): Promise<PullResult | void> {
+  // Handle --all flag for batch operations
+  if (options.all) {
+    await pullAllProjects(options);
+    return;
+  }
+
+  const batchMode = options._batchMode ?? false;
+
   // Suppress SDK logging for cleaner output
   const originalLogLevel = process.env.LOG_LEVEL;
   process.env.LOG_LEVEL = 'silent';
@@ -194,8 +251,10 @@ export async function pullV3Command(options: PullV3Options): Promise<void> {
     }
   };
 
-  // Background version check
-  performBackgroundVersionCheck();
+  // Background version check (skip in batch mode - already done)
+  if (!batchMode) {
+    performBackgroundVersionCheck();
+  }
 
   console.log(chalk.blue('\nInkeep Pull:'));
   if (options.introspect) {
@@ -208,61 +267,100 @@ export async function pullV3Command(options: PullV3Options): Promise<void> {
 
   try {
     // Step 1: Load configuration (same as push command)
-    const { config } = await initializeCommand({
+    const { config, profile, isCI } = await initializeCommand({
       configPath: options.config,
+      profileName: options.profile,
+      tag: options.tag,
       showSpinner: true,
       spinnerText: 'Loading configuration...',
       logConfig: true,
+      quiet: options.quiet,
     });
 
-    // Step 2: Determine project directory - match push command behavior
+    // Step 2: Determine project directory and ID
     s.start('Detecting project...');
     let projectDir: string;
+    let projectId: string;
+    let localProjectForId: any = null;
 
-    if (options.project) {
-      // If project path is explicitly specified, use it and require index.ts
-      projectDir = resolve(process.cwd(), options.project);
-      if (!existsSync(join(projectDir, 'index.ts'))) {
-        s.stop(`No index.ts found in specified project directory: ${projectDir}`);
-        console.error(
-          chalk.yellow('The specified project directory must contain an index.ts file')
+    const currentDir = process.cwd();
+    const hasIndexInCurrent = existsSync(join(currentDir, 'index.ts'));
+
+    if (hasIndexInCurrent) {
+      // We're in a project directory
+      projectDir = currentDir;
+
+      s.start('Loading local project...');
+      try {
+        localProjectForId = await loadProject(projectDir);
+        const localProjectId = localProjectForId.getId();
+
+        if (options.project) {
+          // Validate that --project matches local project ID
+          if (localProjectId !== options.project) {
+            s.stop('Project ID mismatch');
+            console.error(
+              chalk.red(
+                `Local project ID "${localProjectId}" doesn't match --project "${options.project}"`
+              )
+            );
+            console.error(
+              chalk.yellow('Either remove --project flag or ensure it matches the local project ID')
+            );
+            if (batchMode) {
+              return { success: false, error: 'Project ID mismatch' };
+            }
+            process.exit(1);
+          }
+        }
+
+        projectId = localProjectId;
+        s.stop(`Using local project: ${projectId}`);
+      } catch (error) {
+        s.stop('Failed to load local project');
+        throw new Error(
+          `Could not load local project: ${error instanceof Error ? error.message : String(error)}`
         );
-        process.exit(1);
       }
     } else {
-      // Look for index.ts in current directory (same as push)
-      const currentDir = process.cwd();
-      if (existsSync(join(currentDir, 'index.ts'))) {
-        projectDir = currentDir;
-      } else {
+      // No index.ts in current directory
+      if (!options.project) {
         s.stop('No index.ts found in current directory');
         console.error(
           chalk.yellow(
-            'Please run this command from a directory containing index.ts or use --project <path>'
+            'Please run this command from a directory containing index.ts or use --project <project-id>'
           )
         );
+        if (batchMode) {
+          return { success: false, error: 'No index.ts found and no --project specified' };
+        }
         process.exit(1);
       }
-    }
 
-    s.stop(`Project found: ${projectDir}`);
+      // Try --project as directory path first
+      const projectPath = resolve(currentDir, options.project);
+      const hasIndexInPath = existsSync(join(projectPath, 'index.ts'));
 
-    // Step 3: Load existing project to get project ID (like push does)
-    s.start('Loading local project to get project ID...');
-
-    let localProjectForId: any;
-    let projectId: string;
-
-    try {
-      localProjectForId = await loadProject(projectDir);
-      projectId = localProjectForId.getId();
-
-      s.stop(`Project ID: ${projectId}`);
-    } catch (error) {
-      s.stop('Failed to load local project');
-      throw new Error(
-        `Could not determine project ID. Local project failed to load: ${error instanceof Error ? error.message : String(error)}`
-      );
+      if (hasIndexInPath) {
+        // --project is a valid directory path
+        projectDir = projectPath;
+        s.start('Loading project from specified path...');
+        try {
+          localProjectForId = await loadProject(projectDir);
+          projectId = localProjectForId.getId();
+          s.stop(`Using project from path: ${projectId}`);
+        } catch (error) {
+          s.stop('Failed to load project from path');
+          throw new Error(
+            `Could not load project from ${projectPath}: ${error instanceof Error ? error.message : String(error)}`
+          );
+        }
+      } else {
+        // Treat --project as project ID, create subdirectory
+        projectId = options.project;
+        projectDir = join(currentDir, projectId);
+        s.stop(`Creating new project directory: ${projectDir}`);
+      }
     }
 
     // Step 4: Fetch project data from API
@@ -272,7 +370,9 @@ export async function pullV3Command(options: PullV3Options): Promise<void> {
       config.agentsManageApiUrl,
       options.config,
       config.tenantId,
-      projectId
+      projectId,
+      isCI,
+      config.agentsManageApiKey
     );
 
     const remoteProject = await apiClient.getFullProject(projectId);
@@ -380,6 +480,9 @@ export async function pullV3Command(options: PullV3Options): Promise<void> {
       console.log(chalk.gray(`   🚀 Mode: Complete regeneration (no comparison)`));
 
       restoreLogLevel();
+      if (batchMode) {
+        return { success: true };
+      }
       process.exit(0);
     }
 
@@ -442,6 +545,9 @@ export async function pullV3Command(options: PullV3Options): Promise<void> {
       console.log(chalk.green('✅ Project is already up to date'));
       console.log(chalk.gray('   No differences detected between local and remote projects'));
       restoreLogLevel();
+      if (batchMode) {
+        return { success: true, upToDate: true };
+      }
       process.exit(0);
     }
 
@@ -451,11 +557,30 @@ export async function pullV3Command(options: PullV3Options): Promise<void> {
     const tempDirName = `.temp-validation-${Date.now()}`;
     s.start('Preparing temp directory...');
 
-    const { copyProjectToTemp } = await import('./component-updater');
+    let performedCleanup = false;
+
     if (localProject) {
       // Copy existing project to temp directory
       copyProjectToTemp(paths.projectRoot, tempDirName);
       console.log(chalk.green(`✅ Existing project copied to temp directory`));
+
+      // Check for stale components and ask user permission to clean them up (in temp directory first)
+      s.start('Checking for stale components...');
+      const shouldCleanupStale = await checkAndPromptForStaleComponentCleanup(
+        paths.projectRoot,
+        remoteProject,
+        localRegistry
+      );
+
+      // Reset stdin state after interactive prompt to prevent listener leaks
+      resetStdinState();
+
+      if (shouldCleanupStale) {
+        s.start('Cleaning up stale components from temp directory...');
+        await cleanupStaleComponents(paths.projectRoot, tempDirName, remoteProject, localRegistry);
+        console.log(chalk.green(`✅ Stale components cleaned up from temp directory`));
+        performedCleanup = true;
+      }
     } else {
       // Start with empty temp directory for new projects
       const tempDir = join(paths.projectRoot, tempDirName);
@@ -524,7 +649,8 @@ export async function pullV3Command(options: PullV3Options): Promise<void> {
     );
 
     if (modifiedCount > 0) {
-      s.start('Applying modified components to temp directory...');
+      // Stop spinner - updateModifiedComponents will log its own progress
+      s.stop();
       const { updateModifiedComponents } = await import('./component-updater');
 
       // Transform new component results for LLM context
@@ -549,7 +675,6 @@ export async function pullV3Command(options: PullV3Options): Promise<void> {
         tempDirName, // Use the temp directory we created
         newComponentsForContext
       );
-      s.message('Modified components applied');
     }
 
     // Step 14: Create index.ts in temp directory only
@@ -567,16 +692,30 @@ export async function pullV3Command(options: PullV3Options): Promise<void> {
     s.message('Project index file created');
 
     // Step 15: Run validation and user interaction on complete temp directory
-    if (newComponentCount > 0 || modifiedCount > 0) {
-      s.start('Running validation on complete project...');
+    if (newComponentCount > 0 || modifiedCount > 0 || performedCleanup) {
+      // Stop spinner before validation - validateTempDirectory handles its own user interaction
+      s.stop('Running validation on complete project...');
       const { validateTempDirectory } = await import('./project-validator');
-      await validateTempDirectory(paths.projectRoot, tempDirName, remoteProject);
-      s.message('Validation completed');
+      const validationResult = await validateTempDirectory(
+        paths.projectRoot,
+        tempDirName,
+        remoteProject,
+        { skipExit: batchMode }
+      );
+      if (batchMode) {
+        restoreLogLevel();
+        return { success: validationResult.success, upToDate: validationResult.upToDate };
+      }
+      // Note: validateTempDirectory calls process.exit() internally when not in batch mode
     } else {
+      s.stop();
       console.log(chalk.green('\n✅ No changes detected - project is up to date'));
     }
 
     restoreLogLevel();
+    if (batchMode) {
+      return { success: true };
+    }
     process.exit(0);
   } catch (error) {
     s.stop();
@@ -585,6 +724,247 @@ export async function pullV3Command(options: PullV3Options): Promise<void> {
       console.error(chalk.red(error.stack || ''));
     }
     restoreLogLevel();
+    if (batchMode) {
+      return { success: false, error: error instanceof Error ? error.message : String(error) };
+    }
     process.exit(1);
+  }
+}
+
+/**
+ * Pull all projects for the current tenant
+ * Uses smart comparison with LLM merging for existing projects, introspect for new projects
+ */
+async function pullAllProjects(options: PullV3Options): Promise<void> {
+  console.log(chalk.blue('\n🔄 Batch Pull: Sequential processing with smart comparison\n'));
+  console.log(
+    chalk.gray('  • Existing projects: Smart comparison + LLM merging + confirmation prompts')
+  );
+  console.log(chalk.gray('  • New projects: Fresh generation with introspect mode\n'));
+
+  // Background version check (only once for batch)
+  performBackgroundVersionCheck();
+
+  // Load configuration first
+  const { config, profile, isCI } = await initializeCommand({
+    configPath: options.config,
+    profileName: options.profile,
+    tag: options.tag,
+    showSpinner: true,
+    spinnerText: 'Loading configuration...',
+    logConfig: true,
+    quiet: options.quiet,
+  });
+
+  const s = p.spinner();
+
+  try {
+    // Fetch all projects from the API
+    s.start('Fetching project list from API...');
+    const apiClient = await ManagementApiClient.create(
+      config.agentsManageApiUrl,
+      options.config,
+      config.tenantId,
+      undefined,
+      isCI,
+      config.agentsManageApiKey
+    );
+
+    const projects = await apiClient.listAllProjects();
+    s.stop(`Found ${projects.length} project(s)`);
+
+    if (projects.length === 0) {
+      console.log(chalk.yellow('No projects found for this tenant.'));
+      process.exit(0);
+    }
+
+    // Categorize projects
+    const existingProjects: typeof projects = [];
+    const newProjects: typeof projects = [];
+
+    for (const project of projects) {
+      const targetDir = join(process.cwd(), project.id);
+      if (existsSync(join(targetDir, 'index.ts'))) {
+        existingProjects.push(project);
+      } else {
+        newProjects.push(project);
+      }
+    }
+
+    console.log(chalk.gray('\nProjects to pull:\n'));
+    if (existingProjects.length > 0) {
+      console.log(chalk.cyan('  Existing (smart comparison):'));
+      for (const project of existingProjects) {
+        console.log(chalk.gray(`    • ${project.name || project.id} (${project.id})`));
+      }
+    }
+    if (newProjects.length > 0) {
+      console.log(chalk.cyan('  New (introspect):'));
+      for (const project of newProjects) {
+        console.log(chalk.gray(`    • ${project.name || project.id} (${project.id})`));
+      }
+    }
+    console.log();
+
+    const results: BatchPullResult[] = [];
+    const total = projects.length;
+
+    for (let i = 0; i < projects.length; i++) {
+      const project = projects[i];
+      const progress = `[${i + 1}/${total}]`;
+
+      console.log(chalk.cyan(`\n${'─'.repeat(60)}`));
+      console.log(chalk.cyan(`${progress} Pulling ${project.name || project.id}...`));
+
+      const result = await pullSingleProject(project.id, project.name, options, config, isCI);
+      results.push(result);
+
+      if (result.success) {
+        console.log(
+          chalk.green(`\n  ✓ ${result.projectName || result.projectId} → ${result.targetDir}`)
+        );
+      } else {
+        console.log(chalk.red(`\n  ✗ ${result.projectName || result.projectId}: ${result.error}`));
+      }
+    }
+
+    // Print summary
+    const succeeded = results.filter((r) => r.success).length;
+    const failed = results.filter((r) => !r.success).length;
+
+    console.log(chalk.cyan(`\n${'═'.repeat(60)}`));
+    console.log(chalk.cyan('📊 Batch Pull Summary:'));
+    console.log(chalk.green(`  ✓ Succeeded: ${succeeded}`));
+    if (failed > 0) {
+      console.log(chalk.red(`  ✗ Failed: ${failed}`));
+
+      console.log(chalk.red('\nFailed projects:'));
+      for (const result of results) {
+        if (!result.success) {
+          console.log(chalk.red(`  • ${result.projectId}: ${result.error}`));
+        }
+      }
+    }
+
+    process.exit(failed > 0 ? 1 : 0);
+  } catch (error) {
+    s.stop();
+    console.error(chalk.red(`\nError: ${error instanceof Error ? error.message : String(error)}`));
+    process.exit(1);
+  }
+}
+
+/**
+ * Pull a single project (used by batch operations)
+ * Uses smart comparison flow for existing projects, introspect for new projects
+ */
+async function pullSingleProject(
+  projectId: string,
+  projectName: string | undefined,
+  options: PullV3Options,
+  config: any,
+  isCI?: boolean
+): Promise<BatchPullResult> {
+  const targetDir = join(process.cwd(), projectId);
+  const hasExistingProject = existsSync(join(targetDir, 'index.ts'));
+
+  try {
+    if (hasExistingProject) {
+      // Project exists locally - use smart comparison flow with LLM merging and user prompts
+      console.log(chalk.gray(`   📂 Existing project found - using smart comparison mode`));
+
+      // Save current directory and change to project directory
+      const originalDir = process.cwd();
+      process.chdir(targetDir);
+
+      try {
+        // Call the main pull command in batch mode (returns results instead of exiting)
+        const result = await pullV3Command({
+          ...options,
+          project: projectId,
+          all: false, // Don't recurse into batch mode
+          _batchMode: true,
+        });
+
+        // Restore original directory
+        process.chdir(originalDir);
+
+        if (result && typeof result === 'object') {
+          return {
+            projectId,
+            projectName,
+            targetDir,
+            success: result.success,
+            error: result.error,
+          };
+        }
+
+        return {
+          projectId,
+          projectName,
+          targetDir,
+          success: true,
+        };
+      } catch (error) {
+        // Restore original directory even on error
+        process.chdir(originalDir);
+        throw error;
+      }
+    }
+
+    // No existing project - use introspect mode to generate fresh
+    console.log(chalk.gray(`   🆕 New project - using introspect mode`));
+
+    // Suppress SDK logging
+    const originalLogLevel = process.env.LOG_LEVEL;
+    process.env.LOG_LEVEL = 'silent';
+
+    const restoreLogLevel = () => {
+      if (originalLogLevel !== undefined) {
+        process.env.LOG_LEVEL = originalLogLevel;
+      } else {
+        delete process.env.LOG_LEVEL;
+      }
+    };
+
+    // Fetch project data from API
+    const apiClient = await ManagementApiClient.create(
+      config.agentsManageApiUrl,
+      options.config,
+      config.tenantId,
+      projectId,
+      isCI,
+      config.agentsManageApiKey
+    );
+
+    const remoteProject = await apiClient.getFullProject(projectId);
+
+    // Create project structure
+    const paths = createProjectStructure(targetDir, projectId);
+
+    // Generate all files using introspect mode for new projects
+    await introspectGenerate(
+      remoteProject,
+      paths,
+      options.env || 'development',
+      false // debug
+    );
+
+    restoreLogLevel();
+
+    return {
+      projectId,
+      projectName: projectName || remoteProject.name,
+      targetDir,
+      success: true,
+    };
+  } catch (error) {
+    return {
+      projectId,
+      projectName,
+      targetDir,
+      success: false,
+      error: error instanceof Error ? error.message : String(error),
+    };
   }
 }

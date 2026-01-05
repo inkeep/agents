@@ -11,7 +11,7 @@ import { ApiError } from '../types/errors';
 let INKEEP_AGENTS_MANAGE_API_URL: string | null = null;
 let hasWarnedManageApi = false;
 
-function getManageApiUrl(): string {
+export function getManageApiUrl(): string {
   if (INKEEP_AGENTS_MANAGE_API_URL === null) {
     INKEEP_AGENTS_MANAGE_API_URL =
       process.env.INKEEP_AGENTS_MANAGE_API_URL || DEFAULT_INKEEP_AGENTS_MANAGE_API_URL;
@@ -32,9 +32,39 @@ async function makeApiRequestInternal<T>(
   options: RequestInit = {}
 ): Promise<T> {
   const url = `${baseUrl}/${endpoint}`;
-  const defaultHeaders = {
+
+  let cookieHeader: string | undefined;
+  if (typeof window === 'undefined') {
+    try {
+      // Try using headers() first - this forwards the raw Cookie header from the incoming request
+      const { headers } = await import('next/headers');
+      const headerStore = await headers();
+      const rawCookieHeader = headerStore.get('cookie');
+
+      if (rawCookieHeader) {
+        // Filter to only forward Better Auth cookies for security
+        const cookiePairs = rawCookieHeader.split(';').map((c) => c.trim());
+        const authCookies = cookiePairs.filter((c) => c.includes('better-auth'));
+        cookieHeader = authCookies.join('; ');
+      }
+
+      // Fallback to cookies() if headers() didn't have the cookie
+      if (!cookieHeader) {
+        const { cookies } = await import('next/headers');
+        const cookieStore = await cookies();
+        const allCookies = cookieStore.getAll();
+        const authCookies = allCookies.filter((c) => c.name.includes('better-auth'));
+        cookieHeader = authCookies.map((c) => `${c.name}=${c.value}`).join('; ');
+      }
+    } catch {
+      // Not in a server component context, skip cookie forwarding
+    }
+  }
+
+  const defaultHeaders: HeadersInit = {
     'Content-Type': 'application/json',
     ...options.headers,
+    ...(cookieHeader && { Cookie: cookieHeader }),
     ...(process.env.INKEEP_AGENTS_MANAGE_API_BYPASS_SECRET && {
       Authorization: `Bearer ${process.env.INKEEP_AGENTS_MANAGE_API_BYPASS_SECRET}`,
     }),
@@ -47,14 +77,60 @@ async function makeApiRequestInternal<T>(
     });
 
     if (!response.ok) {
-      const errorData = await response.json().catch(() => ({
-        error: { code: 'unknown', message: 'Unknown error occurred' },
-      }));
+      let errorData: any;
+      try {
+        const text = await response.text();
+        errorData = text ? JSON.parse(text) : null;
+      } catch {
+        errorData = null;
+      }
+
+      // Handle Zod validation errors (400 status with errors array)
+      if (response.status === 400 && errorData?.errors && Array.isArray(errorData.errors)) {
+        const validationErrors = errorData.errors
+          .map(
+            (err: any) =>
+              `${err.name || err.pointer || 'field'}: ${err.detail || err.reason || err.message}`
+          )
+          .join(', ');
+        const errorMessage = `Validation failed: ${validationErrors}`;
+
+        console.error('API Validation Error Response:', {
+          status: response.status,
+          errorData,
+          validationErrors,
+        });
+
+        throw new ApiError(
+          {
+            code: 'validation_error',
+            message: errorMessage,
+          },
+          response.status
+        );
+      }
+
+      const errorMessage =
+        errorData?.error?.message ||
+        errorData?.message ||
+        errorData?.detail ||
+        `HTTP ${response.status}: ${response.statusText}` ||
+        'Unknown error occurred';
+
+      const errorCode = errorData?.error?.code || errorData?.code || 'unknown';
+
+      console.error('API Error Response:', {
+        status: response.status,
+        statusText: response.statusText,
+        errorData,
+        errorMessage,
+        errorCode,
+      });
 
       throw new ApiError(
-        errorData.error || {
-          code: 'unknown',
-          message: 'Unknown error occurred',
+        {
+          code: errorCode,
+          message: errorMessage,
         },
         response.status
       );

@@ -1,6 +1,6 @@
 'use client';
 
-import type { Control, FieldPath, FieldValues } from 'react-hook-form';
+import { type Control, type FieldPath, type FieldValues, useFormState } from 'react-hook-form';
 import { JsonSchemaBuilder } from '@/components/form/json-schema-builder';
 import { Switch } from '@/components/ui/switch';
 import { useAgentActions, useAgentStore } from '@/features/agent/state/use-agent-store';
@@ -16,6 +16,13 @@ interface JsonSchemaInputProps<T extends FieldValues> {
   description?: string;
   readOnly?: boolean;
   isRequired?: boolean;
+  hasInPreview?: boolean;
+  /**
+   * URIs that start with `json-schema-...` are validated against the JSON schema.
+   * In artifacts, we use custom JSON schemas with `inPreview` fields. To skip
+   * JSON schema validation, use a URI that starts with `custom-json-schema-...`.
+   */
+  uri?: `${string}json-schema-${string}.json`;
 }
 
 export function JsonSchemaInput<T extends FieldValues>({
@@ -27,9 +34,14 @@ export function JsonSchemaInput<T extends FieldValues>({
   description,
   readOnly,
   isRequired = false,
+  hasInPreview,
+  uri,
 }: JsonSchemaInputProps<T>) {
   const isJsonSchemaModeChecked = useAgentStore((state) => state.jsonSchemaMode);
   const { setJsonSchemaMode } = useAgentActions();
+  const formState = useFormState({ name });
+  const fieldState = control.getFieldState(name, formState);
+
   return (
     <FormFieldWrapper
       control={control}
@@ -51,9 +63,16 @@ export function JsonSchemaInput<T extends FieldValues>({
                 onChange={field.onChange}
                 readOnly={readOnly}
                 disabled={disabled}
+                aria-invalid={!!fieldState.error}
+                uri={uri}
               />
             ) : (
-              <JsonSchemaBuilder value={value} onChange={field.onChange} />
+              <JsonSchemaBuilder
+                value={value}
+                onChange={field.onChange}
+                hasInPreview={hasInPreview}
+                hasError={!!fieldState.error}
+              />
             )}
             <span className="absolute flex items-center end-0 -top-[2.5px] gap-2 text-sm font-medium">
               JSON

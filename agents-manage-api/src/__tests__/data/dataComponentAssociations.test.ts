@@ -9,18 +9,19 @@ import {
   isDataComponentAssociatedWithAgent,
   removeDataComponentFromAgent,
 } from '@inkeep/agents-core';
+import { createTestProject } from '@inkeep/agents-core/db/test-client';
 import { beforeAll, beforeEach, describe, expect, it } from 'vitest';
 import dbClient from '../../data/db/dbClient';
-import { ensureTestProject } from '../utils/testProject';
-import { createTestTenantId } from '../utils/testTenant';
+import { createTestTenantWithOrg } from '../utils/testTenant';
 
 describe('Data Component Agent Associations', () => {
-  const tenantId = createTestTenantId('datacomponent-associations');
+  let tenantId: string;
+  const projectId = 'default';
 
   beforeAll(async () => {
-    await ensureTestProject(tenantId, 'default');
+    tenantId = await createTestTenantWithOrg('datacomponent-associations');
+    await createTestProject(dbClient, tenantId, 'default');
   });
-  const projectId = 'default';
   let subAgentId: string;
   let dataComponentId: string;
   let agentId: string;

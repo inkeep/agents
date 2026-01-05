@@ -49,6 +49,7 @@ import {
 } from '../types/utility';
 import {
   createInsertSchema,
+  createResourceIdSchema,
   createSelectSchema,
   MAX_ID_LENGTH,
   MIN_ID_LENGTH,
@@ -137,24 +138,22 @@ export type FunctionToolConfig = Omit<z.infer<typeof FunctionToolConfigSchema>, 
 };
 
 const createApiSchema = <T extends z.ZodRawShape>(schema: z.ZodObject<T>) =>
-  schema.omit({ tenantId: true, projectId: true }) satisfies z.ZodObject<any>;
+  schema.omit({ tenantId: true, projectId: true });
 
 const createApiInsertSchema = <T extends z.ZodRawShape>(schema: z.ZodObject<T>) =>
-  schema.omit({ tenantId: true, projectId: true }) satisfies z.ZodObject<any>;
+  schema.omit({ tenantId: true, projectId: true });
 
 const createApiUpdateSchema = <T extends z.ZodRawShape>(schema: z.ZodObject<T>) =>
-  schema.omit({ tenantId: true, projectId: true }).partial() satisfies z.ZodObject<any>;
+  schema.omit({ tenantId: true, projectId: true }).partial();
 
 const createAgentScopedApiSchema = <T extends z.ZodRawShape>(schema: z.ZodObject<T>) =>
-  schema.omit({ tenantId: true, projectId: true, agentId: true }) satisfies z.ZodObject<any>;
+  schema.omit({ tenantId: true, projectId: true, agentId: true });
 
 const createAgentScopedApiInsertSchema = <T extends z.ZodRawShape>(schema: z.ZodObject<T>) =>
-  schema.omit({ tenantId: true, projectId: true, agentId: true }) satisfies z.ZodObject<any>;
+  schema.omit({ tenantId: true, projectId: true, agentId: true });
 
 const createAgentScopedApiUpdateSchema = <T extends z.ZodRawShape>(schema: z.ZodObject<T>) =>
-  schema
-    .omit({ tenantId: true, projectId: true, agentId: true })
-    .partial() satisfies z.ZodObject<any>;
+  schema.omit({ tenantId: true, projectId: true, agentId: true }).partial();
 
 export const SubAgentSelectSchema = createSelectSchema(subAgents);
 
@@ -254,9 +253,20 @@ export const ExternalSubAgentRelationApiInsertSchema = createApiInsertSchema(
 );
 
 export const AgentSelectSchema = createSelectSchema(agents);
-export const AgentInsertSchema = createInsertSchema(agents).extend({
-  id: resourceIdSchema,
-  name: z.string().trim().nonempty(),
+
+const DEFAULT_SUB_AGENT_ID_DESCRIPTION =
+  'ID of the default sub-agent that handles initial user messages. ' +
+  'Required at runtime but nullable on creation to avoid circular FK dependency. ' +
+  'Workflow: 1) POST Agent (without defaultSubAgentId), 2) POST SubAgent, 3) PATCH Agent with defaultSubAgentId.';
+
+export const AgentInsertSchema = createInsertSchema(agents, {
+  id: () => resourceIdSchema,
+  name: () =>
+    z.string().trim().nonempty().describe('Agent name').openapi({ description: 'Agent name' }),
+  defaultSubAgentId: () =>
+    createResourceIdSchema(DEFAULT_SUB_AGENT_ID_DESCRIPTION, { example: 'my-default-subagent' })
+      .nullable()
+      .optional(),
 });
 export const AgentUpdateSchema = AgentInsertSchema.partial();
 
@@ -539,17 +549,7 @@ export const ApiKeyApiInsertSchema = ApiKeyInsertSchema.omit({
 
 export const ApiKeyApiUpdateSchema = ApiKeyUpdateSchema.openapi('ApiKeyUpdate');
 
-export const CredentialReferenceSelectSchema = z.object({
-  id: z.string(),
-  tenantId: z.string(),
-  projectId: z.string(),
-  name: z.string(),
-  type: z.string(),
-  credentialStoreId: z.string(),
-  retrievalParams: z.record(z.string(), z.unknown()).nullish(),
-  createdAt: z.string(),
-  updatedAt: z.string(),
-});
+export const CredentialReferenceSelectSchema = createSelectSchema(credentialReferences);
 
 export const CredentialReferenceInsertSchema = createInsertSchema(credentialReferences).extend({
   id: resourceIdSchema,
@@ -622,7 +622,7 @@ export const RelatedAgentInfoSchema = z
   .object({
     id: z.string(),
     name: z.string(),
-    description: z.string(),
+    description: z.string().nullable(),
   })
   .openapi('RelatedAgentInfo');
 
@@ -655,9 +655,9 @@ export const McpToolSchema = ToolInsertSchema.extend({
   availableTools: z.array(McpToolDefinitionSchema).optional(),
   status: ToolStatusSchema.default('unknown'),
   version: z.string().optional(),
-  createdAt: z.date(),
-  updatedAt: z.date(),
-  expiresAt: z.date().optional(),
+  expiresAt: z.string().optional(),
+  createdBy: z.string().optional(),
+  relationshipId: z.string().optional(),
 }).openapi('McpTool');
 
 export const MCPToolConfigSchema = McpToolSchema.omit({
@@ -721,6 +721,15 @@ export const FetchConfigSchema = z
     headers: z.record(z.string(), z.string()).optional(),
     body: z.record(z.string(), z.unknown()).optional(),
     transform: z.string().optional(), // JSONPath or JS transform function
+    requiredToFetch: z
+      .array(z.string())
+      .optional()
+      .describe(
+        'Template variables that must resolve to non-empty values for the fetch to execute. ' +
+          'If any variable cannot be resolved or resolves to an empty string, the fetch is skipped (not errored). ' +
+          'Use this for optional context fetches that depend on request headers. ' +
+          'Example: ["{{headers.x-user-id}}", "{{headers.x-api-key}}"]'
+      ),
     timeout: z
       .number()
       .min(0)
@@ -791,6 +800,7 @@ export const SubAgentToolRelationInsertSchema = createInsertSchema(subAgentToolR
   toolId: resourceIdSchema,
   selectedTools: z.array(z.string()).nullish(),
   headers: z.record(z.string(), z.string()).nullish(),
+  toolPolicies: z.record(z.string(), z.object({ needsApproval: z.boolean().optional() })).nullish(),
 });
 
 export const SubAgentToolRelationUpdateSchema = SubAgentToolRelationInsertSchema.partial();
@@ -903,6 +913,9 @@ export const CanUseItemSchema = z
     toolId: z.string(),
     toolSelection: z.array(z.string()).nullish(),
     headers: z.record(z.string(), z.string()).nullish(),
+    toolPolicies: z
+      .record(z.string(), z.object({ needsApproval: z.boolean().optional() }))
+      .nullish(),
   })
   .openapi('CanUseItem');
 
@@ -936,7 +949,7 @@ export const FullAgentAgentInsertSchema = SubAgentApiInsertSchema.extend({
   dataComponents: z.array(z.string()).optional(),
   artifactComponents: z.array(z.string()).optional(),
   canTransferTo: z.array(z.string()).optional(),
-  prompt: z.string().trim().nonempty(),
+  prompt: z.string().trim().optional(),
   canDelegateTo: z
     .array(
       z.union([
@@ -1364,3 +1377,36 @@ export const PaginationQueryParamsSchema = z
     limit: limitNumber,
   })
   .openapi('PaginationQueryParams');
+
+export const PrebuiltMCPServerSchema = z.object({
+  id: z.string().describe('Unique identifier for the MCP server'),
+  name: z.string().describe('Display name of the MCP server'),
+  url: z.url().describe('URL endpoint for the MCP server'),
+  transport: z.enum(MCPTransportType).describe('Transport protocol type'),
+  imageUrl: z.url().optional().describe('Logo/icon URL for the MCP server'),
+  isOpen: z
+    .boolean()
+    .optional()
+    .describe("Whether the MCP server is open (doesn't require authentication)"),
+  category: z
+    .string()
+    .optional()
+    .describe('Category of the MCP server (e.g., communication, project_management)'),
+  description: z.string().optional().describe('Brief description of what the MCP server does'),
+  thirdPartyConnectAccountUrl: z
+    .url()
+    .optional()
+    .describe('URL to connect to the third party account'),
+});
+
+export const MCPCatalogListResponse = z
+  .object({
+    data: z.array(PrebuiltMCPServerSchema),
+  })
+  .openapi('MCPCatalogListResponse');
+
+export const ThirdPartyMCPServerResponse = z
+  .object({
+    data: PrebuiltMCPServerSchema.nullable(),
+  })
+  .openapi('ThirdPartyMCPServerResponse');

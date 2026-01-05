@@ -1,0 +1,23 @@
+import destr from 'destr'; // safe JSON.parse-if-JSON
+import traverse from 'traverse'; // tiny object walker
+
+/**
+ * Turn any string value that is valid JSON into an object/array (in place).
+ * Useful for parsing MCP tool results and other string data that may contain embedded JSON.
+ */
+export function parseEmbeddedJson<T>(data: T): T {
+  // Handle null/undefined/primitive values that can't be traversed
+  if (data === null || data === undefined || typeof data !== 'object') {
+    return data;
+  }
+
+  // biome-ignore lint/suspicious/useIterableCallbackReturn: traverse.map() works via this.update(), not return values
+  return traverse(data).map(function (this: traverse.TraverseContext, x: any) {
+    if (typeof x === 'string') {
+      const v = destr(x); // returns original string if not JSON
+      if (v !== x && (Array.isArray(v) || (v && typeof v === 'object'))) {
+        this.update(v); // replace the string with the parsed value
+      }
+    }
+  });
+}

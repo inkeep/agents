@@ -45,6 +45,8 @@ export interface TaskHandlerConfig {
   contextConfigId?: string;
   conversationHistoryConfig?: AgentConversationHistoryConfig;
   sandboxConfig?: SandboxConfig;
+  /** User ID for user-scoped credential lookups (available when request is from authenticated user) */
+  userId?: string;
 }
 
 export const createTaskHandler = (
@@ -52,6 +54,8 @@ export const createTaskHandler = (
   credentialStoreRegistry?: CredentialStoreRegistry
 ) => {
   return async (task: A2ATask): Promise<A2ATaskResult> => {
+    let agent: Agent | undefined; // Declare agent outside try block for cleanup access
+
     try {
       const userMessage = task.input.parts
         .filter((part) => part.text)
@@ -125,8 +129,6 @@ export const createTaskHandler = (
           },
         }),
       ]);
-
-      logger.info({ toolsForAgent, internalRelations, externalRelations }, 'agent stuff');
 
       const enhancedInternalRelations = await Promise.all(
         internalRelations.data.map(async (relation) => {
@@ -255,7 +257,7 @@ export const createTaskHandler = (
         })
       );
 
-      const prompt = 'prompt' in config.agentSchema ? config.agentSchema.prompt : '';
+      const prompt = 'prompt' in config.agentSchema ? config.agentSchema.prompt || undefined : '';
       const models = 'models' in config.agentSchema ? config.agentSchema.models : undefined;
       const stopWhen = 'stopWhen' in config.agentSchema ? config.agentSchema.stopWhen : undefined;
 
@@ -263,7 +265,13 @@ export const createTaskHandler = (
       const toolsForAgentResult: McpTool[] =
         (await Promise.all(
           toolsForAgent.data.map(async (item) => {
-            const mcpTool = await dbResultToMcpTool(item.tool, dbClient, credentialStoreRegistry);
+            const mcpTool = await dbResultToMcpTool(
+              item.tool,
+              dbClient,
+              credentialStoreRegistry,
+              item.id,
+              config.userId
+            );
 
             // Filter available tools based on selectedTools for this agent-tool relationship
             if (item.selectedTools && item.selectedTools.length > 0) {
@@ -276,7 +284,7 @@ export const createTaskHandler = (
           })
         )) ?? [];
 
-      const agent = new Agent(
+      agent = new Agent(
         {
           id: config.subAgentId,
           tenantId: config.tenantId,
@@ -284,6 +292,7 @@ export const createTaskHandler = (
           agentId: config.agentId,
           baseUrl: config.baseUrl,
           apiKey: config.apiKey,
+          userId: config.userId,
           name: config.name,
           description: config.description || '',
           prompt,
@@ -297,7 +306,7 @@ export const createTaskHandler = (
             baseUrl: config.baseUrl,
             apiKey: config.apiKey,
             name: relation.name,
-            description: relation.description,
+            description: relation.description || undefined,
             prompt: '',
             delegateRelations: [],
             subAgentRelations: [],
@@ -360,7 +369,9 @@ export const createTaskHandler = (
                       const mcpTool = await dbResultToMcpTool(
                         item.tool,
                         dbClient,
-                        credentialStoreRegistry
+                        credentialStoreRegistry,
+                        item.id,
+                        config.userId
                       );
 
                       // Filter available tools based on selectedTools for this agent-tool relationship
@@ -420,7 +431,7 @@ export const createTaskHandler = (
                   projectId: config.projectId,
                   agentId: config.agentId,
                   name: relation.name,
-                  description: relation.description,
+                  description: relation.description || undefined,
                   prompt: '',
                   delegateRelations: targetDelegateRelationsConfig,
                   subAgentRelations: [],
@@ -436,13 +447,14 @@ export const createTaskHandler = (
                 type: 'internal' as const,
                 config: {
                   id: relation.id,
+                  relationId: relation.relationId,
                   tenantId: config.tenantId,
                   projectId: config.projectId,
                   agentId: config.agentId,
                   baseUrl: config.baseUrl,
                   apiKey: config.apiKey,
                   name: relation.name,
-                  description: relation.description,
+                  description: relation.description || undefined,
                   prompt: '',
                   delegateRelations: [], // Simplified - no nested relations
                   subAgentRelations: [],
@@ -514,10 +526,14 @@ export const createTaskHandler = (
         task.context?.metadata?.stream_request_id || task.context?.metadata?.streamRequestId;
 
       const isDelegation = task.context?.metadata?.isDelegation === true;
+      const delegationId = task.context?.metadata?.delegationId;
+
       agent.setDelegationStatus(isDelegation);
+      agent.setDelegationId(delegationId);
+
       if (isDelegation) {
         logger.info(
-          { subAgentId: config.subAgentId, taskId: task.id },
+          { subAgentId: config.subAgentId, taskId: task.id, delegationId },
           'Delegated agent - streaming disabled'
         );
 
@@ -542,6 +558,9 @@ export const createTaskHandler = (
           ...(config.apiKey ? { apiKey: config.apiKey } : {}),
         },
       });
+
+      // Perform full cleanup of compression state when agent task completes
+      agent.cleanupCompression();
 
       const stepContents =
         response.steps && Array.isArray(response.steps)
@@ -644,20 +663,20 @@ export const createTaskHandler = (
                         data: artifactData,
                       },
                     ],
+                    createdAt: new Date().toISOString(),
                   },
                 ],
               };
-            } else {
-              logger.warn(
-                {
-                  hasToolResult: !!toolResult,
-                  hasOutput: !!toolResult?.output,
-                  validationPassed: false,
-                  output: toolResult?.output,
-                },
-                '[DEBUG] Transfer validation FAILED'
-              );
             }
+            logger.warn(
+              {
+                hasToolResult: !!toolResult,
+                hasOutput: !!toolResult?.output,
+                validationPassed: false,
+                output: toolResult?.output,
+              },
+              '[DEBUG] Transfer validation FAILED'
+            );
           }
         }
       }
@@ -674,16 +693,32 @@ export const createTaskHandler = (
           {
             artifactId: generateId(),
             parts,
+            createdAt: new Date().toISOString(),
           },
         ],
       };
     } catch (error) {
       console.error('Task handler error:', error);
 
+      // Cleanup compression state on error (if agent was created)
+      try {
+        if (agent) {
+          agent.cleanupCompression();
+        }
+      } catch (cleanupError) {
+        logger.warn({ cleanupError }, 'Failed to cleanup agent compression on error');
+      }
+
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
+      const isConnectionRefused = errorMessage.includes(
+        'Connection refused. Please check if the MCP server is running.'
+      );
+
       return {
         status: {
           state: TaskState.Failed,
-          message: error instanceof Error ? error.message : 'Unknown error occurred',
+          message: errorMessage,
+          type: isConnectionRefused ? 'connection_refused' : 'unknown',
         },
         artifacts: [],
       };
@@ -716,6 +751,7 @@ export const createTaskHandlerConfig = async (params: {
   baseUrl: string;
   apiKey?: string;
   sandboxConfig?: SandboxConfig;
+  userId?: string;
 }): Promise<TaskHandlerConfig> => {
   const subAgent = await getSubAgentById(dbClient)({
     scopes: {
@@ -739,7 +775,7 @@ export const createTaskHandlerConfig = async (params: {
   }
 
   const effectiveModels = await resolveModelConfig(params.agentId, subAgent);
-  const effectiveConversationHistoryConfig = subAgent.conversationHistoryConfig || { mode: 'full' };
+  const effectiveConversationHistoryConfig = subAgent.conversationHistoryConfig;
 
   return {
     tenantId: params.tenantId,
@@ -760,9 +796,10 @@ export const createTaskHandlerConfig = async (params: {
     baseUrl: params.baseUrl,
     apiKey: params.apiKey,
     name: subAgent.name,
-    description: subAgent.description,
+    description: subAgent.description || undefined,
     conversationHistoryConfig: effectiveConversationHistoryConfig as AgentConversationHistoryConfig,
     contextConfigId: agent?.contextConfigId || undefined,
     sandboxConfig: params.sandboxConfig,
+    userId: params.userId,
   };
 };

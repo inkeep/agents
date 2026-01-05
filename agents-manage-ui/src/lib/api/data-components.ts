@@ -38,7 +38,7 @@ export async function fetchDataComponents(
   validateProjectId(projectId);
 
   const response = await makeManagementApiRequest<ListResponse<DataComponentApiSelect>>(
-    `tenants/${tenantId}/projects/${projectId}/data-components`
+    `tenants/${tenantId}/projects/${projectId}/data-components?limit=100`
   );
 
   // Transform the response to ensure props is non-nullable

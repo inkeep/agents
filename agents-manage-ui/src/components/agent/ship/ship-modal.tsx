@@ -82,8 +82,7 @@ const shipModalTabItems: TabItem[] = [
 ];
 
 export const ShipModal: FC<{ buttonClassName: string }> = ({ buttonClassName }) => {
-  const params = useParams();
-  const { tenantId, projectId } = params;
+  const { tenantId, projectId } = useParams();
   return (
     <Dialog>
       <DialogTrigger asChild>
@@ -92,7 +91,13 @@ export const ShipModal: FC<{ buttonClassName: string }> = ({ buttonClassName }) 
           Ship
         </Button>
       </DialogTrigger>
-      <DialogContent className="max-w-full! w-7xl" position="top" showCloseButton={false}>
+      <DialogContent
+        className="max-w-full! w-7xl"
+        position="top"
+        showCloseButton={false}
+        onWheel={(e) => e.stopPropagation()} // to make scroll work on the widgets
+        onTouchMove={(e) => e.stopPropagation()} // to make scroll work on the widgets
+      >
         <DialogHeader>
           <div className="flex items-center justify-between w-full gap-2">
             <DialogTitle>Talk to your agent</DialogTitle>

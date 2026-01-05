@@ -187,7 +187,7 @@ Ensure these components have export statements (convert \`const\` to \`export co
 6. **Preserve non-component code**: Keep any non-component logic, comments, or utilities
 7. **Smart import handling**: 
    - Please leave all imports at the top of the file. Don't use .js imports, use .ts imports instead. (import example from './example')
-   - Preserve all imports from the original content that are not modified.
+   - Preserve all imports from the original content that are not modified, if a component is modified or no longer exists, remove the import.
    - For NEW components listed above, add proper import statements
    - For components that exist in the same file (modified components), DO NOT add import statements
    - Remove any incorrect imports from the NEW component definitions that reference same-file components

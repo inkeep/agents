@@ -45,7 +45,7 @@ export function generateOGImage(options: GenerateProps & ImageResponseOptions): 
   );
 }
 
-export function generate({
+function generate({
   primaryColor = 'rgba(255,150,255,0.5)',
   primaryTextColor = 'rgb(255,150,255)',
   ...props
@@ -139,7 +139,7 @@ interface GridPatternProps {
   primaryColor: string;
 }
 
-export function GridPattern({ primaryColor }: GridPatternProps): ReactElement {
+function GridPattern({ primaryColor }: GridPatternProps): ReactElement {
   return (
     <svg
       role="img"

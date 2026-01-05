@@ -7,9 +7,9 @@
 import { Nango } from '@nangohq/node';
 import type {
   ApiProvider,
-  ApiPublicConnection,
   ApiPublicIntegration,
   ApiPublicIntegrationCredentials,
+  PostConnectSessions,
 } from '@nangohq/types';
 import { DEFAULT_TENANT_ID } from '@/lib/runtime-config/defaults';
 import { NangoError, wrapNangoError } from './nango-types';
@@ -21,24 +21,21 @@ const getNangoClient = () => {
     throw new NangoError('NANGO_SECRET_KEY environment variable is required for Nango integration');
   }
 
+  const host =
+    process.env.PUBLIC_NANGO_SERVER_URL ||
+    process.env.NEXT_PUBLIC_NANGO_SERVER_URL ||
+    process.env.NANGO_SERVER_URL ||
+    'https://api.nango.dev';
+
   try {
     return new Nango({
       secretKey,
-      host: process.env.NANGO_SERVER_URL || 'https://api.nango.dev',
+      host,
     });
   } catch (error) {
     throw new NangoError('Failed to initialize Nango client', 'new Nango', error);
   }
 };
-
-/**
- * Check if Nango is properly configured
- * Returns true if NANGO_SECRET_KEY is set and not empty
- */
-export async function isNangoConfigured(): Promise<boolean> {
-  const secretKey = process.env.NANGO_SECRET_KEY;
-  return !!(secretKey && secretKey.trim() !== '');
-}
 
 /**
  * Fetch all available Nango providers
@@ -55,37 +52,9 @@ export async function fetchNangoProviders(): Promise<ApiProvider[]> {
 }
 
 /**
- * Get details for a specific Nango provider
- */
-export async function fetchNangoProvider(providerName: string): Promise<ApiProvider> {
-  try {
-    const nango = getNangoClient();
-    const response = await nango.getProvider({ provider: providerName });
-    return response.data;
-  } catch (error) {
-    console.error(`Failed to fetch provider ${providerName}:`, error);
-    wrapNangoError(error, `Provider '${providerName}' not found or inaccessible`, 'getProvider');
-  }
-}
-
-/**
- * Fetch user's existing Nango integrations
- */
-export async function fetchNangoIntegrations(): Promise<ApiPublicIntegration[]> {
-  try {
-    const nango = getNangoClient();
-    const response = await nango.listIntegrations();
-    return response.configs;
-  } catch (error) {
-    console.error('Failed to fetch integrations:', error);
-    wrapNangoError(error, 'Unable to retrieve existing integrations', 'listIntegrations');
-  }
-}
-
-/**
  * Fetch a specific Nango integration
  */
-export async function fetchNangoIntegration(
+async function fetchNangoIntegration(
   uniqueKey: string
 ): Promise<(ApiPublicIntegration & { areCredentialsSet: boolean }) | null> {
   try {
@@ -131,7 +100,7 @@ export async function fetchNangoIntegration(
 /**
  * Create a new Nango integration
  */
-export async function createNangoIntegration(params: {
+async function createNangoIntegration(params: {
   provider: string;
   uniqueKey: string;
   displayName?: string;
@@ -156,7 +125,7 @@ export async function createNangoIntegration(params: {
   }
 }
 
-export async function updateMCPGenericIntegration({
+async function updateMCPGenericIntegration({
   uniqueKey,
 }: {
   uniqueKey: string;
@@ -166,7 +135,11 @@ export async function updateMCPGenericIntegration({
     throw new NangoError('NANGO_SECRET_KEY environment variable is required for Nango integration');
   }
 
-  const host = process.env.NANGO_SERVER_URL || 'https://api.nango.dev';
+  const host =
+    process.env.PUBLIC_NANGO_SERVER_URL ||
+    process.env.NEXT_PUBLIC_NANGO_SERVER_URL ||
+    process.env.NANGO_SERVER_URL ||
+    'https://api.nango.dev';
 
   const clientName = process.env.OAUTH_CLIENT_NAME || 'Inkeep Agent Framework';
   const clientUri = process.env.OAUTH_CLIENT_URI || 'https://inkeep.com';
@@ -200,23 +173,6 @@ export async function updateMCPGenericIntegration({
   return await response.json();
 }
 
-/**
- * Get connections for a specific integration
- */
-export async function fetchNangoConnections(
-  integrationKey?: string
-): Promise<ApiPublicConnection[]> {
-  try {
-    const nango = getNangoClient();
-    const response = await nango.listConnections();
-    return response.connections;
-  } catch (error) {
-    const context = integrationKey ? ` for integration '${integrationKey}'` : '';
-    console.error(`Failed to fetch connections${context}:`, error);
-    wrapNangoError(error, `Unable to retrieve connections${context}`, 'listConnections');
-  }
-}
-
 async function createNangoConnectSession({
   endUserId = 'test-tenant',
   endUserEmail = 'test@test-tenant.com',
@@ -231,10 +187,7 @@ async function createNangoConnectSession({
   organizationId?: string;
   organizationDisplayName?: string;
   integrationId: string;
-}): Promise<{
-  token: string;
-  expires_at: string;
-}> {
+}): Promise<PostConnectSessions['Success']['data']> {
   try {
     const nango = getNangoClient();
     const { data } = await nango.createConnectSession({
@@ -268,11 +221,21 @@ export async function createProviderConnectSession({
   uniqueKey,
   displayName,
   credentials,
+  endUserId,
+  endUserEmail,
+  endUserDisplayName,
+  organizationId,
+  organizationDisplayName,
 }: {
   providerName: string;
   uniqueKey: string;
   displayName: string;
   credentials?: ApiPublicIntegrationCredentials;
+  endUserId?: string;
+  endUserEmail?: string;
+  endUserDisplayName?: string;
+  organizationId?: string;
+  organizationDisplayName?: string;
 }): Promise<string> {
   try {
     let integration: ApiPublicIntegration;
@@ -320,6 +283,11 @@ export async function createProviderConnectSession({
     try {
       const connectSession = await createNangoConnectSession({
         integrationId: integration.unique_key,
+        endUserId,
+        endUserEmail,
+        endUserDisplayName,
+        organizationId,
+        organizationDisplayName,
       });
 
       return connectSession.token;

@@ -11,6 +11,7 @@ import {
   unique,
   varchar,
 } from 'drizzle-orm/pg-core';
+import { organization } from '../auth/auth-schema';
 import type { Part } from '../types/a2a';
 import type {
   ContextFetchDefinition,
@@ -26,6 +27,19 @@ import type {
   ToolServerCapabilities,
 } from '../types/utility';
 import type { AgentStopWhen, StopWhen, SubAgentStopWhen } from '../validation/schemas';
+
+// Re-export Better Auth generated tables
+export {
+  account,
+  deviceCode,
+  invitation,
+  member,
+  organization,
+  session,
+  ssoProvider,
+  user,
+  verification,
+} from '../auth/auth-schema';
 
 const tenantScoped = {
   tenantId: varchar('tenant_id', { length: 256 }).notNull(),
@@ -49,7 +63,7 @@ const subAgentScoped = {
 
 const uiProperties = {
   name: varchar('name', { length: 256 }).notNull(),
-  description: text('description').notNull(),
+  description: text('description'),
 };
 
 const timestamps = {
@@ -69,7 +83,14 @@ export const projects = pgTable(
 
     ...timestamps,
   },
-  (table) => [primaryKey({ columns: [table.tenantId, table.id] })]
+  (table) => [
+    primaryKey({ columns: [table.tenantId, table.id] }),
+    foreignKey({
+      columns: [table.tenantId],
+      foreignColumns: [organization.id],
+      name: 'projects_tenant_id_fk',
+    }).onDelete('cascade'),
+  ]
 );
 
 export const agents = pgTable(
@@ -156,10 +177,16 @@ export const subAgents = pgTable(
   {
     ...agentScoped,
     ...uiProperties,
-    prompt: text('prompt').notNull(),
-    conversationHistoryConfig: jsonb(
-      'conversation_history_config'
-    ).$type<ConversationHistoryConfig>(),
+    prompt: text('prompt'),
+    conversationHistoryConfig: jsonb('conversation_history_config')
+      .$type<ConversationHistoryConfig>()
+      .default({
+        mode: 'full',
+        limit: 50,
+        maxOutputTokens: 4000,
+        includeInternal: false,
+        messageTypes: ['chat', 'tool-result'],
+      }),
     models: jsonb('models').$type<Models>(),
     stopWhen: jsonb('stop_when').$type<SubAgentStopWhen>(),
     ...timestamps,
@@ -210,14 +237,10 @@ export const externalAgents = pgTable(
       name: 'external_agents_project_fk',
     }).onDelete('cascade'),
     foreignKey({
-      columns: [table.tenantId, table.projectId, table.credentialReferenceId],
-      foreignColumns: [
-        credentialReferences.tenantId,
-        credentialReferences.projectId,
-        credentialReferences.id,
-      ],
+      columns: [table.credentialReferenceId],
+      foreignColumns: [credentialReferences.id],
       name: 'external_agents_credential_reference_fk',
-    }).onDelete('cascade'),
+    }).onDelete('set null'),
   ]
 );
 
@@ -368,6 +391,7 @@ export const tools = pgTable(
       .notNull(),
 
     credentialReferenceId: varchar('credential_reference_id', { length: 256 }),
+    credentialScope: varchar('credential_scope', { length: 50 }).notNull().default('project'), // 'project' | 'user'
     headers: jsonb('headers').$type<Record<string, string>>(),
 
     imageUrl: text('image_url'),
@@ -385,6 +409,11 @@ export const tools = pgTable(
       foreignColumns: [projects.tenantId, projects.id],
       name: 'tools_project_fk',
     }).onDelete('cascade'),
+    foreignKey({
+      columns: [table.credentialReferenceId],
+      foreignColumns: [credentialReferences.id],
+      name: 'tools_credential_reference_fk',
+    }).onDelete('set null'),
   ]
 );
 
@@ -438,6 +467,10 @@ export const subAgentToolRelations = pgTable(
     toolId: varchar('tool_id', { length: 256 }).notNull(),
     selectedTools: jsonb('selected_tools').$type<string[] | null>(),
     headers: jsonb('headers').$type<Record<string, string> | null>(),
+    toolPolicies: jsonb('tool_policies').$type<Record<
+      string,
+      { needsApproval?: boolean }
+    > | null>(),
     ...timestamps,
   },
   (table) => [
@@ -647,6 +680,11 @@ export const apiKeys = pgTable(
   },
   (t) => [
     foreignKey({
+      columns: [t.tenantId],
+      foreignColumns: [organization.id],
+      name: 'api_keys_organization_fk',
+    }).onDelete('cascade'),
+    foreignKey({
       columns: [t.tenantId, t.projectId],
       foreignColumns: [projects.tenantId, projects.id],
       name: 'api_keys_project_fk',
@@ -671,6 +709,12 @@ export const credentialReferences = pgTable(
     type: varchar('type', { length: 256 }).notNull(),
     credentialStoreId: varchar('credential_store_id', { length: 256 }).notNull(),
     retrievalParams: jsonb('retrieval_params').$type<Record<string, unknown>>(),
+
+    // For user-scoped credentials
+    toolId: varchar('tool_id', { length: 256 }), // Links to the tool this credential is for
+    userId: varchar('user_id', { length: 256 }), // User who owns this credential (null = project-scoped)
+    createdBy: varchar('created_by', { length: 256 }), // User who created this credential
+
     ...timestamps,
   },
   (t) => [
@@ -680,6 +724,11 @@ export const credentialReferences = pgTable(
       foreignColumns: [projects.tenantId, projects.id],
       name: 'credential_references_project_fk',
     }).onDelete('cascade'),
+    // Unique constraint on id alone to support simple FK references
+    // (id is globally unique via nanoid generation)
+    unique('credential_references_id_unique').on(t.id),
+    // One credential per user per tool (for user-scoped credentials)
+    unique('credential_references_tool_user_unique').on(t.toolId, t.userId),
   ]
 );
 

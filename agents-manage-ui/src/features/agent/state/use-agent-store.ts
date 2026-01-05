@@ -5,11 +5,8 @@ import { addEdge, applyEdgeChanges, applyNodeChanges } from '@xyflow/react';
 import { create, type StateCreator } from 'zustand';
 import { devtools, persist } from 'zustand/middleware';
 import { useShallow } from 'zustand/react/shallow';
-import type {
-  AgentToolConfigLookup,
-  SubAgentExternalAgentConfigLookup,
-} from '@/components/agent/agent';
 import type { AgentMetadata } from '@/components/agent/configuration/agent-types';
+import type { AnimatedEdge } from '@/components/agent/configuration/edge-types';
 import {
   type AnimatedNode,
   mcpNodeHandleId,
@@ -17,13 +14,17 @@ import {
 } from '@/components/agent/configuration/node-types';
 import type { ArtifactComponent } from '@/lib/api/artifact-components';
 import type { DataComponent } from '@/lib/api/data-components';
+import type {
+  AgentToolConfigLookup,
+  SubAgentExternalAgentConfigLookup,
+} from '@/lib/types/agent-full';
 import type { ExternalAgent } from '@/lib/types/external-agents';
 import type { MCPTool } from '@/lib/types/tools';
 import type { AgentErrorSummary } from '@/lib/utils/agent-error-parser';
 
 type HistoryEntry = { nodes: Node[]; edges: Edge[] };
 
-type AgentStateData = {
+interface AgentStateData {
   nodes: Node[];
   edges: Edge[];
   metadata: AgentMetadata;
@@ -39,12 +40,22 @@ type AgentStateData = {
   errors: AgentErrorSummary | null;
   showErrors: boolean;
   /**
+   * Temporary state used to control whether the sidebar is open on the agents page.
+   */
+  isSidebarSessionOpen: boolean;
+  variableSuggestions: string[];
+}
+
+interface AgentPersistedStateData {
+  /**
    * Setting for using JSON Schema editor instead of Form builder.
    */
   jsonSchemaMode: boolean;
-};
+  isSidebarPinnedOpen: boolean;
+  hasTextWrap: boolean;
+}
 
-type AgentActions = {
+interface AgentActions {
   setInitial(
     nodes: Node[],
     edges: Edge[],
@@ -88,13 +99,25 @@ type AgentActions = {
    * Setter for `jsonSchemaMode` field.
    */
   setJsonSchemaMode(jsonSchemaMode: boolean): void;
+  /**
+   * Setter for `isSidebarSessionOpen` and `isSidebarPinnedOpen` fields.
+   */
+  setSidebarOpen(state: { isSidebarSessionOpen: boolean; isSidebarPinnedOpen?: boolean }): void;
+  /**
+   * Toggle of `hasTextWrap` field.
+   */
+  toggleTextWrap(): void;
 
   animateGraph: EventListenerOrEventListenerObject;
-};
 
-type AgentState = AgentStateData & {
+  setVariableSuggestions: (variableSuggestions: string[]) => void;
+}
+
+type AllAgentStateData = AgentStateData & AgentPersistedStateData;
+
+interface AgentState extends AllAgentStateData {
   actions: AgentActions;
-};
+}
 
 const initialAgentState: AgentStateData = {
   nodes: [],
@@ -123,11 +146,16 @@ const initialAgentState: AgentStateData = {
   future: [],
   errors: null,
   showErrors: false,
-  jsonSchemaMode: false,
+  isSidebarSessionOpen: true,
+  variableSuggestions: [],
 };
 
 const agentState: StateCreator<AgentState> = (set, get) => ({
   ...initialAgentState,
+  jsonSchemaMode: false,
+  isSidebarPinnedOpen: true,
+  hasTextWrap: true,
+  variableSuggestions: [],
   // Separate "namespace" for actions
   actions: {
     setInitial(
@@ -159,7 +187,11 @@ const agentState: StateCreator<AgentState> = (set, get) => ({
       });
     },
     reset() {
-      set(initialAgentState);
+      // Exclude `isSidebarSessionOpen` from the initial state.
+      // If we kept it, the sidebar on the agents page would collapse (from the temp state)
+      // and then immediately re-expand due to the user’s persisted preference.
+      const { isSidebarSessionOpen: _, ...state } = initialAgentState;
+      set(state);
     },
     setDataComponentLookup(dataComponentLookup) {
       set({ dataComponentLookup });
@@ -324,34 +356,15 @@ const agentState: StateCreator<AgentState> = (set, get) => ({
       set({ jsonSchemaMode });
     },
     animateGraph(event) {
-      function hasRelationWithSubAgent({
-        relationshipId,
-        subAgentId,
-      }: {
-        relationshipId: unknown;
-        subAgentId: string;
-      }): boolean {
-        if (typeof relationshipId !== 'string') {
-          return false;
-        }
-        const config = get().agentToolConfigLookup[subAgentId];
-        if (!config) {
-          return false;
-        }
-        return Object.keys(config).includes(relationshipId);
-      }
       // @ts-expect-error -- improve types
       const data = event.detail;
       set((state) => {
         const { edges: prevEdges, nodes: prevNodes } = state;
 
-        /** Wrapper function to always keep error state */
-        function changeNodeStatus(cb: (node: Node) => AnimatedNode['status']) {
+        function updateNodeStatus(
+          cb: (node: Node<AnimatedNode & Record<string, unknown>>) => AnimatedNode['status']
+        ) {
           return prevNodes.map((node) => {
-            if (node.data.status === 'error') {
-              return node;
-            }
-
             return {
               ...node,
               data: {
@@ -361,146 +374,161 @@ const agentState: StateCreator<AgentState> = (set, get) => ({
             };
           });
         }
-
+        function updateEdgeStatus(
+          cb: (edge: Edge<AnimatedEdge & Record<string, unknown>>) => AnimatedEdge['status']
+        ) {
+          return prevEdges.map((node) => {
+            return {
+              ...node,
+              data: {
+                ...node.data,
+                status: cb(node),
+              },
+            };
+          });
+        }
         switch (data.type) {
           case 'agent_initializing': {
-            // TODO
-            break;
+            return {
+              nodes: updateNodeStatus((node) => {
+                // this prevents the node from highlighting if the copilot triggers this event
+                if (data?.details?.agentId !== state.metadata.id) {
+                  return;
+                }
+                if (node.data.isDefault) {
+                  return 'delegating';
+                }
+                return node.data.status;
+              }),
+            };
           }
           case 'delegation_sent':
           case 'transfer': {
             const { fromSubAgent, targetSubAgent } = data.details.data;
 
             return {
-              edges: prevEdges.map((edge) => ({
-                ...edge,
-                data: {
-                  ...edge.data,
-                  delegating: edge.source === fromSubAgent && edge.target === targetSubAgent,
-                },
-              })),
-              nodes: changeNodeStatus((node) =>
-                node.id === fromSubAgent || node.id === targetSubAgent ? 'delegating' : null
+              edges: updateEdgeStatus((edge) =>
+                edge.source === fromSubAgent && edge.target === targetSubAgent
+                  ? 'delegating'
+                  : edge.data?.status
+              ),
+              nodes: updateNodeStatus((node) =>
+                node.id === fromSubAgent || node.id === targetSubAgent
+                  ? 'delegating'
+                  : node.data.status
               ),
             };
           }
           case 'delegation_returned': {
             const { targetSubAgent, fromSubAgent } = data.details.data;
             return {
-              edges: prevEdges.map((edge) => ({
-                ...edge,
-                data: {
-                  ...edge.data,
-                  delegating:
-                    edge.source === targetSubAgent && edge.target === fromSubAgent
-                      ? 'inverted'
-                      : false,
-                },
-              })),
-              nodes: changeNodeStatus((node) =>
-                node.id === targetSubAgent || node.id === fromSubAgent ? 'delegating' : null
+              edges: updateEdgeStatus((edge) =>
+                edge.source === targetSubAgent && edge.target === fromSubAgent
+                  ? 'inverted-delegating'
+                  : edge.data?.status
               ),
+              nodes: updateNodeStatus((node) => {
+                if (node.id === targetSubAgent) {
+                  return 'delegating';
+                }
+                return node.id === fromSubAgent ? 'inverted-delegating' : node.data.status;
+              }),
             };
           }
           case 'tool_call': {
-            const { toolName } = data.details.data;
+            const { relationshipId } = data.details.data;
             const { subAgentId } = data.details;
+            if (!relationshipId) {
+              console.warn('[type: tool_call] relationshipId is missing');
+            }
             return {
-              edges: prevEdges.map((edge) => {
+              edges: updateEdgeStatus((edge) => {
                 const node = prevNodes.find((node) => node.id === edge.target);
-                const toolId = node?.data.toolId as string;
-                const toolData = get().toolLookup[toolId];
-                const hasTool = toolData?.availableTools?.some((tool) => tool.name === toolName);
-                const hasDots = edge.source === subAgentId && hasTool;
-                return {
-                  ...edge,
-                  data: { ...edge.data, delegating: hasDots },
-                };
-              }),
-              nodes: changeNodeStatus((node) =>
-                node.data.id === subAgentId ||
-                hasRelationWithSubAgent({
-                  relationshipId: node.data.relationshipId,
-                  subAgentId,
-                })
+                return !!relationshipId && relationshipId === node?.data.relationshipId
                   ? 'delegating'
-                  : null
+                  : edge.data?.status;
+              }),
+              nodes: updateNodeStatus((node) =>
+                node.data.id === subAgentId ||
+                (relationshipId && relationshipId === node.data.relationshipId)
+                  ? 'delegating'
+                  : node.data.status
               ),
             };
           }
           case 'error': {
-            const { subAgentId } = data.details;
+            const { relationshipId } = data.details ?? {};
+            if (!relationshipId) {
+              console.warn('[type: error] relationshipId is missing');
+            }
             return {
-              nodes: changeNodeStatus((node) =>
-                hasRelationWithSubAgent({
-                  relationshipId: node.data.relationshipId,
-                  subAgentId,
-                })
+              nodes: updateNodeStatus((node) =>
+                relationshipId && relationshipId === node.data.relationshipId
                   ? 'error'
-                  : null
+                  : node.data.status
               ),
             };
           }
           case 'tool_result': {
-            const { toolName, error } = data.details.data;
+            const { error, relationshipId } = data.details.data;
             const { subAgentId } = data.details;
+            if (!relationshipId) {
+              console.warn('[type: tool_result] relationshipId is missing');
+            }
             return {
-              edges: prevEdges.map((edge) => {
+              edges: updateEdgeStatus((edge) => {
                 const node = prevNodes.find((node) => node.id === edge.target);
-                const toolId = node?.data.toolId as string;
-                const toolData = get().toolLookup[toolId];
-                const hasTool = toolData?.availableTools?.some((tool) => tool.name === toolName);
 
-                return {
-                  ...edge,
-                  data: {
-                    ...edge.data,
-                    delegating: subAgentId === edge.source && hasTool ? 'inverted' : false,
-                  },
-                };
+                return subAgentId === edge.source &&
+                  relationshipId &&
+                  relationshipId === node?.data.relationshipId
+                  ? 'inverted-delegating'
+                  : edge.data?.status;
               }),
-              nodes: changeNodeStatus((node) => {
-                let status: AnimatedNode['status'] = null;
-                if (
-                  hasRelationWithSubAgent({
-                    subAgentId,
-                    relationshipId: node.data.relationshipId,
-                  })
-                ) {
-                  status = error ? 'error' : 'executing';
-                } else if (node.id === subAgentId) {
-                  status = 'delegating';
+              nodes: updateNodeStatus((node) => {
+                if (relationshipId && relationshipId === node.data.relationshipId) {
+                  return error ? 'error' : 'inverted-delegating';
+                }
+                if (node.id === subAgentId) {
+                  return 'delegating';
                 }
 
-                return status;
+                return node.data.status;
               }),
             };
           }
           case 'completion': {
             return {
-              edges: prevEdges.map((edge) => ({
-                ...edge,
-                data: { ...edge.data, delegating: false },
-              })),
-              nodes: prevNodes.map((node) => ({
-                ...node,
-                data: { ...node.data, status: null },
-              })),
+              edges: updateEdgeStatus(() => null),
+              nodes: updateNodeStatus(() => null),
             };
           }
+          case 'agent_reasoning':
           case 'agent_generate': {
             const { subAgentId } = data.details;
             return {
-              edges: prevEdges.map((node) => ({
-                ...node,
-                data: { ...node.data, delegating: false },
-              })),
-              nodes: changeNodeStatus((node) => (node.id === subAgentId ? 'executing' : null)),
+              nodes: updateNodeStatus((node) =>
+                node.id === subAgentId ? 'executing' : node.data.status
+              ),
             };
           }
         }
         return state;
       });
+    },
+    setSidebarOpen({ isSidebarSessionOpen, isSidebarPinnedOpen }) {
+      set({
+        isSidebarSessionOpen,
+        ...(typeof isSidebarPinnedOpen === 'boolean' && { isSidebarPinnedOpen }),
+      });
+    },
+    toggleTextWrap() {
+      set((prevState) => ({
+        hasTextWrap: !prevState.hasTextWrap,
+      }));
+    },
+    setVariableSuggestions(variableSuggestions) {
+      set({ variableSuggestions });
     },
   },
 });
@@ -512,6 +540,8 @@ export const agentStore = create<AgentState>()(
       partialize(state) {
         return {
           jsonSchemaMode: state.jsonSchemaMode,
+          isSidebarPinnedOpen: state.isSidebarPinnedOpen,
+          hasTextWrap: state.hasTextWrap,
         };
       },
     })
@@ -529,10 +559,10 @@ export const useAgentActions = () => agentStore((state) => state.actions);
 /**
  * Select values from the agent store (excluding actions).
  *
- * We explicitly use `AgentStateData` instead of `AgentState`,
+ * We explicitly use `AllAgentStateData` instead of `AgentState`,
  * which includes actions, to encourage using `useAgentActions`
  * when accessing or calling actions.
  */
-export function useAgentStore<T>(selector: (state: AgentStateData) => T): T {
+export function useAgentStore<T>(selector: (state: AllAgentStateData) => T): T {
   return agentStore(useShallow(selector));
 }

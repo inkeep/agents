@@ -10,6 +10,13 @@ import { type TemplateContext, TemplateEngine } from './TemplateEngine';
 
 const logger = getLogger('context-fetcher');
 
+export class MissingRequiredVariableError extends Error {
+  constructor(variable: string) {
+    super(`Missing required variable: ${variable}`);
+    this.name = 'MissingRequiredVariableError';
+  }
+}
+
 // Response validator type - checks for errors and throws if found
 type ResponseErrorChecker = (data: unknown) => void;
 
@@ -74,7 +81,10 @@ export class ContextFetcher {
   /**
    * Fetch data according to a fetch definition
    */
-  async fetch(definition: ContextFetchDefinition, context: TemplateContext): Promise<unknown> {
+  async fetch(
+    definition: ContextFetchDefinition,
+    context: TemplateContext
+  ): Promise<{ data: unknown; resolvedUrl: string }> {
     const startTime = Date.now();
 
     logger.info(
@@ -95,7 +105,6 @@ export class ContextFetcher {
       // Perform the HTTP request with retry logic
       const response = await this.performRequest(resolvedConfig);
 
-      logger.info({ response }, 'ContextFetcher Response');
       // Transform the response if needed
       let transformedData = response.data;
 
@@ -122,11 +131,20 @@ export class ContextFetcher {
         'Context fetch completed successfully'
       );
 
-      return transformedData;
+      return { data: transformedData, resolvedUrl: resolvedConfig.url };
     } catch (error) {
       const durationMs = Date.now() - startTime;
       const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-
+      if (error instanceof MissingRequiredVariableError) {
+        logger.error(
+          {
+            definitionId: definition.id,
+            error: errorMessage,
+            durationMs,
+          },
+          'Context fetch skipped due to missing required variable'
+        );
+      }
       logger.error(
         {
           definitionId: definition.id,
@@ -189,6 +207,24 @@ export class ContextFetcher {
     credentialReferenceId?: string
   ): Promise<ContextFetchDefinition['fetchConfig']> {
     const resolved = { ...fetchConfig };
+
+    const filteredRequiredToFetch = fetchConfig.requiredToFetch?.filter(
+      (variable) => variable.startsWith('{{') && variable.endsWith('}}')
+    );
+
+    if (filteredRequiredToFetch) {
+      for (const variable of filteredRequiredToFetch) {
+        let resolvedVariable: string;
+        try {
+          resolvedVariable = this.interpolateTemplate(variable, context);
+        } catch {
+          throw new MissingRequiredVariableError(variable);
+        }
+        if (resolvedVariable === '' || resolvedVariable === variable) {
+          throw new MissingRequiredVariableError(variable);
+        }
+      }
+    }
 
     // Resolve URL template variables
     resolved.url = this.interpolateTemplate(fetchConfig.url, context);
@@ -386,15 +422,6 @@ export class ContextFetcher {
       if (!isValid) {
         throw new Error('Data does not match JSON Schema');
       }
-
-      logger.debug(
-        {
-          definitionId,
-          dataType: typeof data,
-          validationResult: 'success',
-        },
-        'JSON Schema response validation passed'
-      );
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Unknown validation error';
       logger.error(
@@ -419,16 +446,18 @@ export class ContextFetcher {
   ): Promise<{
     success: boolean;
     data?: unknown;
+    resolvedUrl?: string;
     error?: string;
     durationMs: number;
   }> {
     const startTime = Date.now();
 
     try {
-      const data = await this.fetch(definition, context);
+      const result = await this.fetch(definition, context);
       return {
         success: true,
-        data,
+        data: result.data,
+        resolvedUrl: result.resolvedUrl,
         durationMs: Date.now() - startTime,
       };
     } catch (error) {

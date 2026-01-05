@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { Streamdown } from 'streamdown';
 import { formatDateTime } from '@/app/utils/format-date';
 import { JsonEditorWithCopy } from '@/components/editors/json-editor-with-copy';
@@ -13,7 +13,12 @@ import {
 } from '@/components/traces/timeline/blocks';
 import { Bubble, CodeBubble } from '@/components/traces/timeline/bubble';
 import { SpanAttributes } from '@/components/traces/timeline/span-attributes';
-import type { ConversationDetail, SelectedPanel } from '@/components/traces/timeline/types';
+import {
+  ACTIVITY_STATUS,
+  type ContextBreakdown,
+  type ConversationDetail,
+  type SelectedPanel,
+} from '@/components/traces/timeline/types';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 
@@ -23,6 +28,84 @@ function formatJsonSafely(content: string): string {
   } catch {
     return content;
   }
+}
+
+/** Compact context breakdown for the side panel */
+function ContextBreakdownPanel({ breakdown }: { breakdown: ContextBreakdown }) {
+  const items = useMemo(() => {
+    const config: Array<{
+      key: keyof Omit<ContextBreakdown, 'total'>;
+      label: string;
+      color: string;
+    }> = [
+      { key: 'toolsSection', label: 'Tools (MCP/Function/Relation)', color: 'bg-emerald-500' },
+      { key: 'coreInstructions', label: 'Core Instructions', color: 'bg-indigo-500' },
+      { key: 'systemPromptTemplate', label: 'System Prompt Template', color: 'bg-blue-500' },
+      { key: 'transferInstructions', label: 'Transfer Instructions', color: 'bg-cyan-500' },
+      { key: 'agentPrompt', label: 'Agent Prompt', color: 'bg-violet-500' },
+      { key: 'artifactsSection', label: 'Artifacts', color: 'bg-amber-500' },
+      { key: 'dataComponents', label: 'Data Components', color: 'bg-orange-500' },
+      { key: 'artifactComponents', label: 'Artifact Components', color: 'bg-rose-500' },
+      { key: 'delegationInstructions', label: 'Delegation Instructions', color: 'bg-teal-500' },
+      { key: 'thinkingPreparation', label: 'Thinking Preparation', color: 'bg-purple-500' },
+      { key: 'conversationHistory', label: 'Conversation History', color: 'bg-sky-500' },
+    ];
+
+    return config
+      .map((c) => ({ ...c, value: breakdown[c.key] }))
+      .filter((item) => item.value > 0)
+      .sort((a, b) => b.value - a.value);
+  }, [breakdown]);
+
+  if (breakdown.total === 0) return null;
+
+  return (
+    <LabeledBlock label="Context token breakdown">
+      <div className="space-y-3">
+        {/* Total */}
+        <div className="flex items-center justify-between">
+          <Badge variant="code" className="text-sm font-semibold">
+            ~{breakdown.total.toLocaleString()} tokens
+          </Badge>
+          <span className="text-xs text-muted-foreground">estimated</span>
+        </div>
+
+        {/* Stacked bar */}
+        <div className="h-3 rounded-full overflow-hidden flex bg-muted">
+          {items.map((item) => {
+            const percentage = (item.value / breakdown.total) * 100;
+            if (percentage < 0.5) return null;
+            return (
+              <div
+                key={item.key}
+                className={`${item.color}`}
+                style={{ width: `${percentage}%` }}
+                title={`${item.label}: ${item.value.toLocaleString()} tokens (${percentage.toFixed(1)}%)`}
+              />
+            );
+          })}
+        </div>
+
+        {/* Legend */}
+        <div className="space-y-1.5">
+          {items.map((item) => {
+            const percentage = (item.value / breakdown.total) * 100;
+            return (
+              <div key={item.key} className="flex items-center justify-between text-xs">
+                <div className="flex items-center gap-1.5">
+                  <div className={`w-2.5 h-2.5 rounded-sm ${item.color}`} />
+                  <span className="text-muted-foreground">{item.label}</span>
+                </div>
+                <span className="font-mono text-foreground">
+                  {item.value.toLocaleString()} ({percentage.toFixed(1)}%)
+                </span>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+    </LabeledBlock>
+  );
 }
 
 function AssistantMessageContent({ content }: { content: string }) {
@@ -165,6 +248,7 @@ export function renderPanelContent({
             {a.hasError && a.otelStatusCode && (
               <Info label="Status code" value={a.otelStatusCode} />
             )}
+            {a.contextBreakdown && <ContextBreakdownPanel breakdown={a.contextBreakdown} />}
             <StatusBadge status={a.status} />
             <Info label="Timestamp" value={formatDateTime(a.timestamp)} />
           </Section>
@@ -216,6 +300,13 @@ export function renderPanelContent({
             <Bubble className=" break-all">{a.toolResult || 'URL not available'}</Bubble>
           </LabeledBlock>
           <StatusBadge status={a.status} />
+          {a.status === 'error' && a.otelStatusDescription && (
+            <LabeledBlock label="Status message">
+              <Bubble className="bg-red-50 border-red-200 text-red-800 dark:bg-red-900/20 dark:border-red-800 dark:text-red-300">
+                {a.otelStatusDescription}
+              </Bubble>
+            </LabeledBlock>
+          )}
           <Info label="Timestamp" value={formatDateTime(a.timestamp)} />
         </Section>
       );
@@ -257,7 +348,7 @@ export function renderPanelContent({
               value={<Badge variant="code">{a.toolName || 'Unknown Tool'}</Badge>}
             />
             <StatusBadge status={a.status} />
-            {a.status === 'error' && a.toolStatusMessage && (
+            {a.status === ACTIVITY_STATUS.ERROR && a.toolStatusMessage && (
               <LabeledBlock label="Status message">
                 <Bubble className="bg-red-50 border-red-200 text-red-800 dark:bg-red-900/20 dark:border-red-800 dark:text-red-300">
                   {a.toolStatusMessage}
@@ -301,7 +392,7 @@ export function renderPanelContent({
               value={<Badge variant="code">{a.toolName || 'Unknown tool'}</Badge>}
             />
             <StatusBadge status={a.status} />
-            {a.status === 'error' && a.toolStatusMessage && (
+            {a.status === ACTIVITY_STATUS.ERROR && a.toolStatusMessage && (
               <LabeledBlock label="Status message">
                 <Bubble className="bg-red-50 border-red-200 text-red-800 dark:bg-red-900/20 dark:border-red-800 dark:text-red-300">
                   {a.toolStatusMessage}
@@ -345,10 +436,13 @@ export function renderPanelContent({
                 </Badge>
               </LabeledBlock>
             )}
+            {a.toolType === 'mcp' && a.mcpServerName && (
+              <Info label="MCP server" value={<Badge variant="code">{a.mcpServerName}</Badge>} />
+            )}
             <Info label="Purpose" value={a.toolPurpose || 'No purpose information available'} />
             <Info label="Sub agent" value={a.subAgentName || 'Unknown sub agent'} />
             <StatusBadge status={a.status} />
-            {a.status === 'error' && a.toolStatusMessage && (
+            {a.status === ACTIVITY_STATUS.ERROR && a.toolStatusMessage && (
               <LabeledBlock label="Status message">
                 <Bubble className="bg-red-50 border-red-200 text-red-800 dark:bg-red-900/20 dark:border-red-800 dark:text-red-300">
                   {a.toolStatusMessage}
@@ -392,10 +486,20 @@ export function renderPanelContent({
                 </Badge>
               </LabeledBlock>
             )}
+            {a.toolType === 'mcp' && a.mcpServerName && (
+              <Info label="MCP server" value={<Badge variant="code">{a.mcpServerName}</Badge>} />
+            )}
             <StatusBadge status={a.status} />
-            {a.status === 'error' && a.toolStatusMessage && (
+            {a.status === ACTIVITY_STATUS.ERROR && a.toolStatusMessage && (
               <LabeledBlock label="Status message">
                 <Bubble className="bg-red-50 border-red-200 text-red-800 dark:bg-red-900/20 dark:border-red-800 dark:text-red-300">
+                  {a.toolStatusMessage}
+                </Bubble>
+              </LabeledBlock>
+            )}
+            {a.status === ACTIVITY_STATUS.WARNING && a.toolStatusMessage && (
+              <LabeledBlock label="Status message">
+                <Bubble className="bg-yellow-50 border-yellow-200 text-yellow-800 dark:bg-yellow-900/20 dark:border-yellow-800 dark:text-yellow-300">
                   {a.toolStatusMessage}
                 </Bubble>
               </LabeledBlock>
@@ -437,6 +541,13 @@ export function renderPanelContent({
             <Info label="Input tokens" value={a.inputTokens?.toLocaleString() || '0'} />
             <Info label="Output tokens" value={a.outputTokens?.toLocaleString() || '0'} />
             <StatusBadge status={a.status} />
+            {a.status === 'error' && a.otelStatusDescription && (
+              <LabeledBlock label="Status message">
+                <Bubble className="bg-red-50 border-red-200 text-red-800 dark:bg-red-900/20 dark:border-red-800 dark:text-red-300">
+                  {a.otelStatusDescription}
+                </Bubble>
+              </LabeledBlock>
+            )}
             <Info label="Timestamp" value={formatDateTime(a.timestamp)} />
           </Section>
           <Divider />
@@ -468,6 +579,13 @@ export function renderPanelContent({
               </LabeledBlock>
             )}
             <StatusBadge status={a.status} />
+            {a.status === 'error' && a.otelStatusDescription && (
+              <LabeledBlock label="Status message">
+                <Bubble className="bg-red-50 border-red-200 text-red-800 dark:bg-red-900/20 dark:border-red-800 dark:text-red-300">
+                  {a.otelStatusDescription}
+                </Bubble>
+              </LabeledBlock>
+            )}
             <Info label="Timestamp" value={formatDateTime(a.timestamp)} />
           </Section>
           <Divider />
@@ -491,6 +609,13 @@ export function renderPanelContent({
               />
             )}
             <StatusBadge status={a.status} />
+            {a.status === 'error' && a.otelStatusDescription && (
+              <LabeledBlock label="Status message">
+                <Bubble className="bg-red-50 border-red-200 text-red-800 dark:bg-red-900/20 dark:border-red-800 dark:text-red-300">
+                  {a.otelStatusDescription}
+                </Bubble>
+              </LabeledBlock>
+            )}
             {a.artifactSubAgentId && (
               <Info label="Sub agent" value={a.artifactSubAgentId || 'Unknown Sub Agent'} />
             )}
@@ -503,6 +628,142 @@ export function renderPanelContent({
                 value={<Badge variant="code">{a.artifactToolCallId}</Badge>}
               />
             )}
+            <Info label="Timestamp" value={formatDateTime(a.timestamp)} />
+          </Section>
+          <Divider />
+          {SignozButton}
+          {AdvancedBlock}
+        </>
+      );
+
+    case 'tool_approval_requested':
+      return (
+        <>
+          <Section>
+            <Info
+              label="Tool name"
+              value={<Badge variant="code">{a.approvalToolName || 'Unknown Tool'}</Badge>}
+            />
+            <LabeledBlock label="Status">
+              <Badge variant="outline" className="text-yellow-600 border-yellow-600">
+                Waiting for approval
+              </Badge>
+            </LabeledBlock>
+            <Info label="Timestamp" value={formatDateTime(a.timestamp)} />
+          </Section>
+          <Divider />
+          {SignozButton}
+          {AdvancedBlock}
+        </>
+      );
+
+    case 'tool_approval_approved':
+      return (
+        <>
+          <Section>
+            <Info
+              label="Tool name"
+              value={<Badge variant="code">{a.approvalToolName || 'Unknown Tool'}</Badge>}
+            />
+            <LabeledBlock label="Status">
+              <Badge variant="outline" className="text-blue-600 border-blue-600">
+                Approved by user
+              </Badge>
+            </LabeledBlock>
+            <Info label="Timestamp" value={formatDateTime(a.timestamp)} />
+          </Section>
+          <Divider />
+          {SignozButton}
+          {AdvancedBlock}
+        </>
+      );
+
+    case 'tool_approval_denied':
+      return (
+        <>
+          <Section>
+            <Info
+              label="Tool name"
+              value={<Badge variant="code">{a.approvalToolName || 'Unknown Tool'}</Badge>}
+            />
+            <LabeledBlock label="Status">
+              <Badge variant="outline" className="text-red-600 border-red-600">
+                Denied by user
+              </Badge>
+            </LabeledBlock>
+            <Info label="Timestamp" value={formatDateTime(a.timestamp)} />
+          </Section>
+          <Divider />
+          {SignozButton}
+          {AdvancedBlock}
+        </>
+      );
+
+    case 'compression':
+      return (
+        <>
+          <Section>
+            <Info
+              label="Compression type"
+              value={
+                <Badge variant={a.compressionType === 'mid_generation' ? 'secondary' : 'default'}>
+                  {a.compressionType === 'mid_generation'
+                    ? 'Context Compacting'
+                    : a.compressionType === 'conversation_level'
+                      ? 'Conversation History Compacting'
+                      : a.compressionType || 'Unknown'}
+                </Badge>
+              }
+            />
+            <Info
+              label="Session ID"
+              value={a.subAgentId ? <Badge variant="code">{a.subAgentId}</Badge> : '-'}
+            />
+            <Info
+              label="Messages processed"
+              value={a.compressionMessageCount?.toLocaleString() || '0'}
+            />
+            <Info label="Input tokens" value={a.compressionInputTokens?.toLocaleString() || '0'} />
+            <Info
+              label="Output tokens"
+              value={a.compressionOutputTokens?.toLocaleString() || '0'}
+            />
+            {a.compressionRatio !== undefined && (
+              <Info
+                label="Compression ratio"
+                value={
+                  <Badge variant="code" className="font-mono">
+                    {(a.compressionRatio * 100).toFixed(1)}%
+                  </Badge>
+                }
+              />
+            )}
+            {a.compressionArtifactCount !== undefined && a.compressionArtifactCount > 0 && (
+              <Info label="Artifacts created" value={a.compressionArtifactCount.toLocaleString()} />
+            )}
+            <Info
+              label="Hard limit"
+              value={`${a.compressionHardLimit?.toLocaleString() || '0'} tokens`}
+            />
+            <Info
+              label="Safety buffer"
+              value={`${a.compressionSafetyBuffer?.toLocaleString() || '0'} tokens`}
+            />
+            {a.compressionFallbackUsed && (
+              <LabeledBlock label="Fallback used">
+                <Badge variant="outline" className="text-amber-600 border-amber-600">
+                  Simple compression fallback
+                </Badge>
+              </LabeledBlock>
+            )}
+            {a.compressionError && (
+              <LabeledBlock label="Error">
+                <Bubble className="bg-red-50 border-red-200 text-red-800 dark:bg-red-900/20 dark:border-red-800 dark:text-red-300">
+                  {a.compressionError}
+                </Bubble>
+              </LabeledBlock>
+            )}
+            <StatusBadge status={a.status} />
             <Info label="Timestamp" value={formatDateTime(a.timestamp)} />
           </Section>
           <Divider />

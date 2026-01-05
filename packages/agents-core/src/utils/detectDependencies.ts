@@ -1,3 +1,6 @@
+import { builtinModules } from 'node:module';
+import ts from 'typescript';
+
 const collapseSubpath = (spec: string) => {
   if (spec.startsWith('@')) {
     const [scope, name] = spec.split('/');
@@ -5,16 +8,6 @@ const collapseSubpath = (spec: string) => {
   }
   return spec.split('/')[0];
 };
-
-// Conditional imports to avoid breaking CLI bundling
-let builtinModules: string[] = [];
-let ts: typeof import('typescript') | null = null;
-
-try {
-  // Only import in server environments
-  builtinModules = require('node:module').builtinModules;
-  ts = require('typescript');
-} catch {}
 
 const NODE_BUILTINS = new Set(builtinModules.concat(builtinModules.map((m) => `node:${m}`)));
 /**
@@ -37,8 +30,8 @@ export function collectDepsFromCode(code: string): Set<string> {
     try {
       const info = ts.preProcessFile(
         code,
-        /*readImportFiles*/ true,
-        /*detectJavaScriptImports*/ true
+        /* readImportFiles */ true,
+        /* detectJavaScriptImports */ true
       );
 
       // Process imports detected by TypeScript compiler

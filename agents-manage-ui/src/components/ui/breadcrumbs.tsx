@@ -1,48 +1,62 @@
 'use client';
 
 import Link from 'next/link';
-import { useParams } from 'next/navigation';
+import { useParams, usePathname } from 'next/navigation';
 import { useMemo } from 'react';
 import { useProject } from '@/contexts/project-context';
 import { cn } from '@/lib/utils';
 
-export type BreadcrumbItem = {
-  label: string;
-  href?: string;
-};
+export type BreadcrumbItem =
+  | {
+      label: string;
+      href: string;
+    }
+  | string;
 
 interface BreadcrumbsProps {
-  items?: BreadcrumbItem[];
+  items: BreadcrumbItem[];
 }
 
 export function Breadcrumbs({ items }: BreadcrumbsProps) {
   const project = useProject();
   const { tenantId } = useParams<{ tenantId: string }>();
+  const pathname = usePathname();
 
   const allItems = useMemo(() => {
-    const result: BreadcrumbItem[] = [
-      {
+    const result: BreadcrumbItem[] = [];
+    const isSettingsRoute = pathname.startsWith(`/${tenantId}/settings`);
+
+    if (!isSettingsRoute) {
+      result.push({
         label: 'Projects',
         href: `/${tenantId}/projects`,
-      },
-    ];
-    if (project) {
-      result.push({
-        label: project.name,
-        href: `/${tenantId}/projects/${project.id}`,
       });
+
+      if (project) {
+        result.push({
+          label: project.name,
+          href: `/${tenantId}/projects/${project.id}`,
+        });
+      }
     }
+
     if (items) {
       result.push(...items);
     }
     return result;
-  }, [items, tenantId, project]);
+  }, [items, tenantId, project, pathname]);
+
+  if (allItems.length === 0) {
+    return null;
+  }
 
   return (
     <nav className="text-sm text-muted-foreground" aria-label="Breadcrumb">
       <ol className="flex items-center gap-2">
-        {allItems.map((item, idx, arr) => {
+        {allItems.map((label, idx, arr) => {
           const isLast = idx === arr.length - 1;
+          const item = typeof label === 'string' ? { label } : label;
+
           return (
             <li
               key={`${item.label}-${idx}`}
@@ -51,7 +65,7 @@ export function Breadcrumbs({ items }: BreadcrumbsProps) {
                 !isLast && 'after:content-["›"] after:text-muted-foreground/60'
               )}
             >
-              {item.href && !isLast ? (
+              {'href' in item && !isLast ? (
                 <Link href={item.href} className="hover:text-foreground">
                   {item.label}
                 </Link>

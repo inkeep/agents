@@ -1,0 +1,189 @@
+---
+title: Agents & Sub Agents
+description: Learn how to customize your Agents.
+icon: LuUser
+---
+
+Agents and Sub Agents are the core building blocks of the Inkeep Agent framework.
+
+An Agent is made up of one or more Sub Agents that can delegate or transfer control with each other, share context, use tools to respond to a user or complete a task.
+
+## Creating an Agent
+
+An Agent is your top-level entity that you as a user interact with or can trigger programmatically.
+
+An Agent is made up of sub-agents, like so:
+
+```typescript
+// Agent-level prompt that gets added to all Sub Agents
+const customerSupportAgent = agent({
+  id: "support-agent",
+  prompt: `You work for Acme Corp. Always be professional and helpful.`,
+  subAgents: () => [supportAgent, escalationAgent],
+});
+```
+
+**The `prompt` is automatically put into context and added into each Sub Agent's system prompt.** This provides consistent behavior and tone to all Sub Agents so they can act and respond as one cohesive unit to the end-user.
+
+## Creating a Sub Agent
+
+Like an Agent, a Sub Agent needs an id, name, and clear prompt that define its behavior:
+
+```typescript
+import { subAgent } from "@inkeep/agents-sdk";
+
+const supportAgent = subAgent({
+  id: "customer-support",
+  name: "Customer Support Agent",
+  prompt: `You are a customer support specialist.`,
+});
+```
+
+## Configuring Models
+
+Configure AI models for your agents. See [Model Configuration](/typescript-sdk/models) for detailed information about supported providers, configuration options, and examples.
+
+## Configuring StopWhen
+
+Control stopping conditions to prevent infinite loops:
+
+```typescript
+// Agent level - limit transfers between Sub Agents
+agent({
+  id: "support-agent",
+  stopWhen: {
+    transferCountIs: 5  // Max transfers in one conversation
+  },
+});
+
+// Sub Agent level - limit generation steps
+subAgent({
+  id: "my-sub-agent",
+  stopWhen: {
+    stepCountIs: 20  // Max tool calls + LLM responses
+  },
+});
+```
+
+**Configuration levels:**
+- `transferCountIs`: Project or Agent level
+- `stepCountIs`: Project or Sub Agent level
+
+Settings inherit from Project → Agent → Sub Agent.
+
+
+## Sub Agent overview
+
+Beyond model configuration, Sub Agents define tools, structured outputs, and agent-to-agent relationships available to the Sub Agent.
+
+| Parameter            | Type     | Required | Description |
+| -------------------- | -------- | -------- | ----------- |
+| `id`                 | string   | Yes      | Stable Sub Agent identifier used for consistency and persistence |
+| `name`               | string   | Yes      | Human-readable name for the Sub Agent |
+| `prompt`             | string   | Yes      | Detailed behavior guidelines and system prompt for the Sub Agent |
+| `description`        | string   | No       | Brief description of the Sub Agent's purpose and capabilities |
+| `models`             | object   | No       | Model configuration for this Sub Agent. See [Model Configuration](/typescript-sdk/models) |
+| `stopWhen`           | object   | No       | Stop conditions (`stepCountIs`). See [Configuring StopWhen](#configuring-stopwhen) |
+| `canUse`             | function | No       | Returns the list of MCP/tools the Sub Agent can use. See [MCP Servers](/tutorials/mcp-servers/overview) for how to find or build MCP servers |
+| `dataComponents`     | array    | No       | Structured output components for rich, interactive responses. See [Data Components](/typescript-sdk/structured-outputs/data-components) |
+| `artifactComponents` | array    | No       | Components for handling tool or Sub Agent outputs. See [Artifact Components](/typescript-sdk/structured-outputs/artifact-components) |
+| `canTransferTo`      | function | No       | Function returning array of Sub Agents this Sub Agent can transfer to. See [Transfer Relationships](/typescript-sdk/agent-relationships#transfer-relationships) |
+| `canDelegateTo`      | function | No       | Function returning array of Sub Agents this Sub Agent can delegate to. See [Delegation Relationships](/typescript-sdk/agent-relationships#delegation-relationships) |
+
+
+### Tools & MCPs
+
+Enable tools for a Sub Agent to perform actions like looking up information or calling external APIs.
+
+Tools can be:
+- **[MCP Servers](/typescript-sdk/tools/mcp-tools)** - Connect to external services and APIs using the Model Context Protocol
+- **[Function Tools](/typescript-sdk/tools/function-tools)** - Custom JavaScript functions that execute directly in secure sandboxes
+
+```typescript
+import { subAgent, functionTool, mcpTool } from "@inkeep/agents-sdk";
+
+const mySubAgent = subAgent({
+  id: "my-agent-id",
+  name: "My Sub Agent",
+  prompt: "Detailed behavior guidelines",
+  canUse: () => [
+    functionTool({
+      name: "get-current-time",
+      description: "Get the current time",
+      execute: async () => ({ time: new Date().toISOString() }),
+    }),
+    mcpTool({
+      id: "inkeep-kb-rag",
+      name: "Knowledge Base Search",
+      description: "Search the company knowledge base.",
+      serverUrl: "https://rag.inkeep.com/mcp",
+    }),
+  ],
+});
+```
+
+### Data components
+
+Structured output components for rich, interactive responses. See [Data Components](/typescript-sdk/structured-outputs/data-components).
+
+```typescript
+import { z } from 'zod';
+
+const mySubAgent = subAgent({
+  id: "my-agent-id",
+  name: "My Sub Agent",
+  prompt: "Detailed behavior guidelines",
+  dataComponents: [
+    {
+      id: "customer-info",
+      name: "CustomerInfo",
+      description: "Customer information display component",
+      props: z.object({
+        name: z.string().describe("Customer name"),
+        email: z.string().describe("Customer email"),
+        issue: z.string().describe("Customer issue description"),
+      }),
+    },
+  ],
+});
+```
+
+### Artifact components
+
+Components for handling tool or Sub Agent outputs. See [Artifact Components](/typescript-sdk/structured-outputs/artifact-components).
+
+```typescript
+import { z } from 'zod';
+import { preview } from '@inkeep/agents-core';
+
+const mySubAgent = subAgent({
+  id: "my-agent-id",
+  name: "My Sub Agent",
+  prompt: "Detailed behavior guidelines",
+  artifactComponents: [
+    {
+      id: "customer-info",
+      name: "CustomerInfo",
+      description: "Customer information display component",
+      props: z.object({
+        name: preview(z.string().describe("Customer name")),
+        customer_info: z.string().describe("Customer information"),
+      }),
+    },
+  ],
+});
+```
+
+### Sub Agent relationships
+
+Define other Sub Agents this Sub Agent can transfer control to or delegate tasks to.
+
+```typescript
+const mySubAgent = subAgent({
+  // ...
+  canTransferTo: () => [subAgent1],
+  canDelegateTo: () => [subAgent2],
+});
+```
+
+As a next step, see [Sub Agent Relationships](/typescript-sdk/agent-relationships) to learn how to design transfer and delegation relationships between Sub Agents.

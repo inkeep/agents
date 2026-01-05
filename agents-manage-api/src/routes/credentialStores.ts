@@ -3,18 +3,14 @@ import {
   CreateCredentialInStoreRequestSchema,
   CreateCredentialInStoreResponseSchema,
   CredentialStoreListResponseSchema,
-  type CredentialStoreRegistry,
   commonGetErrorResponses,
   createApiError,
   TenantProjectIdParamsSchema,
   TenantProjectParamsSchema,
 } from '@inkeep/agents-core';
+import type { PublicAppVariables } from '../types/app';
 
-type AppVariables = {
-  credentialStores: CredentialStoreRegistry;
-};
-
-const app = new OpenAPIHono<{ Variables: AppVariables }>();
+const app = new OpenAPIHono<{ Variables: PublicAppVariables }>();
 
 app.openapi(
   createRoute({

@@ -4,12 +4,27 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { cloneTemplate, cloneTemplateLocal, getAvailableTemplates } from '../templates';
 import { createAgents } from '../utils';
 
+// Create the mock execAsync function that will be used by promisify - hoisted so it's available in mocks
+const { mockExecAsync } = vi.hoisted(() => ({
+  mockExecAsync: vi.fn().mockResolvedValue({ stdout: '', stderr: '' }),
+}));
+
 // Mock all dependencies
 vi.mock('fs-extra');
 vi.mock('../templates');
 vi.mock('@clack/prompts');
-vi.mock('child_process');
-vi.mock('util');
+vi.mock('node:child_process', () => ({
+  exec: vi.fn(),
+  spawn: vi.fn(() => ({
+    pid: 12345,
+    stdio: ['pipe', 'pipe', 'pipe'],
+    on: vi.fn(),
+    kill: vi.fn(),
+  })),
+}));
+vi.mock('node:util', () => ({
+  promisify: vi.fn(() => mockExecAsync),
+}));
 
 // Setup default mocks
 const mockSpinner = {
@@ -24,6 +39,9 @@ describe('createAgents - Template and Project ID Logic', () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
+
+    // Reset the mockExecAsync to default behavior
+    mockExecAsync.mockResolvedValue({ stdout: '', stderr: '' });
 
     // Mock process methods
     processExitSpy = vi.spyOn(process, 'exit').mockImplementation((code) => {
@@ -53,6 +71,8 @@ describe('createAgents - Template and Project ID Logic', () => {
     vi.mocked(fs.pathExists).mockResolvedValue(false as any);
     vi.mocked(fs.ensureDir).mockResolvedValue(undefined);
     vi.mocked(fs.writeFile).mockResolvedValue(undefined);
+    vi.mocked(fs.writeJson).mockResolvedValue(undefined);
+    vi.mocked(fs.readJson).mockResolvedValue({});
     vi.mocked(fs.mkdir).mockResolvedValue(undefined);
     vi.mocked(fs.remove).mockResolvedValue(undefined);
 
@@ -64,20 +84,6 @@ describe('createAgents - Template and Project ID Logic', () => {
     ]);
     vi.mocked(cloneTemplate).mockResolvedValue(undefined);
     vi.mocked(cloneTemplateLocal).mockResolvedValue(undefined);
-
-    // Mock util.promisify to return a mock exec function
-    const mockExecAsync = vi.fn().mockResolvedValue({ stdout: '', stderr: '' });
-    const util = require('node:util');
-    util.promisify = vi.fn(() => mockExecAsync);
-
-    // Mock child_process.spawn
-    const childProcess = require('node:child_process');
-    childProcess.spawn = vi.fn(() => ({
-      pid: 12345,
-      stdio: ['pipe', 'pipe', 'pipe'],
-      on: vi.fn(),
-      kill: vi.fn(),
-    }));
   });
 
   afterEach(() => {
@@ -473,7 +479,11 @@ function setupDefaultMocks() {
   vi.mocked(fs.pathExists).mockResolvedValue(false as any);
   vi.mocked(fs.ensureDir).mockResolvedValue(undefined);
   vi.mocked(fs.writeFile).mockResolvedValue(undefined);
+  vi.mocked(fs.writeJson).mockResolvedValue(undefined);
+  vi.mocked(fs.readJson).mockResolvedValue({});
   vi.mocked(getAvailableTemplates).mockResolvedValue(['event-planner', 'chatbot', 'data-analysis']);
   vi.mocked(cloneTemplate).mockResolvedValue(undefined);
   vi.mocked(cloneTemplateLocal).mockResolvedValue(undefined);
+  // Reset mockExecAsync for tests that clear mocks
+  mockExecAsync.mockResolvedValue({ stdout: '', stderr: '' });
 }

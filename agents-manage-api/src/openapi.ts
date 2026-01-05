@@ -31,7 +31,132 @@ export function setupOpenAPIRoutes<E extends Env = Env>(app: OpenAPIHono<E>) {
             description: 'API Server',
           },
         ],
+        tags: [
+          {
+            name: 'Agent',
+            description: 'Operations for managing individual agents',
+          },
+          {
+            name: 'Agent Artifact Component Relations',
+            description: 'Operations for managing agent artifact component relationships',
+          },
+          {
+            name: 'Agent Data Component Relations',
+            description: 'Operations for managing agent data component relationships',
+          },
+          {
+            name: 'Agents',
+            description: 'Operations for managing agents',
+          },
+          {
+            name: 'API Keys',
+            description: 'Operations for managing API keys',
+          },
+          {
+            name: 'Artifact Component',
+            description: 'Operations for managing artifact components',
+          },
+          {
+            name: 'Context Config',
+            description: 'Operations for managing context configurations',
+          },
+          {
+            name: 'Credential',
+            description: 'Operations for managing credentials',
+          },
+          {
+            name: 'Credential Store',
+            description: 'Operations for managing credential stores',
+          },
+          {
+            name: 'Data Component',
+            description: 'Operations for managing data components',
+          },
+          {
+            name: 'External Agents',
+            description: 'Operations for managing external agents',
+          },
+          {
+            name: 'Full Agent',
+            description: 'Operations for managing complete agent definitions',
+          },
+          {
+            name: 'Full Project',
+            description: 'Operations for managing complete project definitions',
+          },
+          {
+            name: 'Function Tools',
+            description: 'Operations for managing function tools',
+          },
+          {
+            name: 'Functions',
+            description: 'Operations for managing functions',
+          },
+          {
+            name: 'OAuth',
+            description: 'OAuth authentication endpoints for MCP tools',
+          },
+          {
+            name: 'Projects',
+            description: 'Operations for managing projects',
+          },
+          {
+            name: 'Sub Agent External Agent Relations',
+            description: 'Operations for managing sub agent external agent relationships',
+          },
+          {
+            name: 'Sub Agent Relations',
+            description: 'Operations for managing sub agent relationships',
+          },
+          {
+            name: 'Sub Agent Team Agent Relations',
+            description: 'Operations for managing sub agent team agent relationships',
+          },
+          {
+            name: 'SubAgent',
+            description: 'Operations for managing sub agents',
+          },
+          {
+            name: 'SubAgent Tool Relations',
+            description: 'Operations for managing sub agent tool relationships',
+          },
+          {
+            name: 'Tools',
+            description: 'Operations for managing MCP tools',
+          },
+        ],
       });
+
+      // Add security schemes and global security requirements
+      document.components = {
+        ...document.components,
+        securitySchemes: {
+          ...(document.components?.securitySchemes || {}),
+          cookieAuth: {
+            type: 'apiKey',
+            in: 'cookie',
+            name: 'better-auth.session_token',
+            description:
+              'Session-based authentication using HTTP-only cookies. Cookies are automatically sent by browsers. For server-side requests, include cookies with names starting with "better-auth." in the Cookie header.',
+          },
+          bearerAuth: {
+            type: 'http',
+            scheme: 'bearer',
+            bearerFormat: 'Token',
+            description:
+              'Bearer token authentication. Use this for API clients and service-to-service communication. Set the Authorization header to "Bearer <token>".',
+          },
+        },
+      };
+
+      // Set global security (applies to all routes unless overridden)
+      // This allows either cookieAuth OR bearerAuth (both are valid)
+      document.security = [
+        {
+          cookieAuth: [],
+          bearerAuth: [],
+        },
+      ];
       return c.json(document);
     } catch (error) {
       console.error('OpenAPI document generation failed:', error);

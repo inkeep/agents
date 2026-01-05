@@ -155,6 +155,7 @@ export interface Artifact {
   taskId?: string;
   toolCallId?: string; // Added for traceability to the specific tool execution
   metadata?: { [key: string]: any };
+  createdAt: string; // Required field for sorting artifacts by creation time
 }
 
 export interface Message {

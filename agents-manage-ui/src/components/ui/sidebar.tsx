@@ -123,8 +123,8 @@ function SidebarProvider({
         <div
           data-slot="sidebar-wrapper"
           style={{
-            '--sidebar-width': SIDEBAR_WIDTH,
-            '--sidebar-width-icon': SIDEBAR_WIDTH_ICON,
+            ['--sidebar-width' as string]: SIDEBAR_WIDTH,
+            ['--sidebar-width-icon' as string]: SIDEBAR_WIDTH_ICON,
             ...style,
           }}
           className={cn(
@@ -146,6 +146,8 @@ function Sidebar({
   collapsible = 'offcanvas',
   className,
   children,
+  onMouseEnter,
+  onMouseLeave,
   ...props
 }: React.ComponentProps<'div'> & {
   side?: 'left' | 'right';
@@ -178,7 +180,7 @@ function Sidebar({
           data-mobile="true"
           className="bg-sidebar text-sidebar-foreground w-(--sidebar-width) p-0 [&>button]:hidden"
           style={{
-            '--sidebar-width': SIDEBAR_WIDTH_MOBILE,
+            ['--sidebar-width' as string]: SIDEBAR_WIDTH_MOBILE,
           }}
           side={side}
         >
@@ -194,12 +196,15 @@ function Sidebar({
 
   return (
     <div
+      role="group"
       className="group peer text-sidebar-foreground hidden md:block"
       data-state={state}
       data-collapsible={state === 'collapsed' ? collapsible : ''}
       data-variant={variant}
       data-side={side}
       data-slot="sidebar"
+      onMouseEnter={onMouseEnter}
+      onMouseLeave={onMouseLeave}
     >
       {/* This is what handles the sidebar gap on desktop */}
       <div
@@ -294,7 +299,7 @@ function SidebarInset({ className, ...props }: React.ComponentProps<'main'>) {
       data-slot="sidebar-inset"
       className={cn(
         'bg-background relative flex w-full flex-1 flex-col',
-        'md:peer-data-[variant=inset]:m-2 md:peer-data-[variant=inset]:ml-0 md:peer-data-[variant=inset]:rounded-xl md:peer-data-[variant=inset]:shadow-sm md:peer-data-[variant=inset]:peer-data-[state=collapsed]:ml-2',
+        'md:peer-data-[variant=inset]:m-2 md:peer-data-[variant=inset]:ml-0 md:peer-data-[variant=inset]:rounded-xl md:peer-data-[variant=inset]:shadow-sm md:peer-data-[variant=inset]:peer-data-[state=collapsed]:ml-0',
         className
       )}
       {...props}
@@ -596,7 +601,7 @@ function SidebarMenuSkeleton({
         className="h-4 max-w-(--skeleton-width) flex-1"
         data-sidebar="menu-skeleton-text"
         style={{
-          '--skeleton-width': width,
+          ['--skeleton-width' as string]: width,
         }}
       />
     </div>

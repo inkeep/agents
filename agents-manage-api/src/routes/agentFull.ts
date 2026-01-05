@@ -1,4 +1,4 @@
-import { createRoute, OpenAPIHono } from '@hono/zod-openapi';
+import { createRoute, OpenAPIHono, z } from '@hono/zod-openapi';
 import {
   AgentWithinContextOfProjectResponse,
   AgentWithinContextOfProjectSchema,
@@ -13,13 +13,31 @@ import {
   TenantProjectParamsSchema,
   updateFullAgentServerSide,
 } from '@inkeep/agents-core';
-import { z } from 'zod';
 import dbClient from '../data/db/dbClient';
 import { getLogger } from '../logger';
+import { requirePermission } from '../middleware/require-permission';
+import type { BaseAppVariables } from '../types/app';
 
 const logger = getLogger('agentFull');
 
-const app = new OpenAPIHono();
+const app = new OpenAPIHono<{ Variables: BaseAppVariables }>();
+
+app.use('/', async (c, next) => {
+  if (c.req.method === 'POST') {
+    return requirePermission({ agent: ['create'] })(c, next);
+  }
+  return next();
+});
+
+app.use('/:agentId', async (c, next) => {
+  if (c.req.method === 'PUT') {
+    return requirePermission({ agent: ['update'] })(c, next);
+  }
+  if (c.req.method === 'DELETE') {
+    return requirePermission({ agent: ['delete'] })(c, next);
+  }
+  return next();
+});
 
 app.openapi(
   createRoute({

@@ -4,13 +4,12 @@ import {
   createApiError,
   deleteFunction,
   FunctionApiInsertSchema,
-  FunctionApiSelectSchema,
   FunctionApiUpdateSchema,
   FunctionListResponse,
   FunctionResponse,
   generateId,
   getFunction,
-  listFunctions,
+  listFunctionsPaginated,
   PaginationQueryParamsSchema,
   TenantProjectIdParamsSchema,
   TenantProjectParamsSchema,
@@ -18,10 +17,31 @@ import {
 } from '@inkeep/agents-core';
 import dbClient from '../data/db/dbClient';
 import { getLogger } from '../logger';
+import { requirePermission } from '../middleware/require-permission';
+import type { BaseAppVariables } from '../types/app';
+import { speakeasyOffsetLimitPagination } from './shared';
 
 const logger = getLogger('functions');
 
-const app = new OpenAPIHono();
+const app = new OpenAPIHono<{ Variables: BaseAppVariables }>();
+
+// Apply permission middleware by HTTP method
+app.use('/', async (c, next) => {
+  if (c.req.method === 'POST') {
+    return requirePermission({ function: ['create'] })(c, next);
+  }
+  return next();
+});
+
+app.use('/:id', async (c, next) => {
+  if (c.req.method === 'PUT') {
+    return requirePermission({ function: ['update'] })(c, next);
+  }
+  if (c.req.method === 'DELETE') {
+    return requirePermission({ function: ['delete'] })(c, next);
+  }
+  return next();
+});
 
 app.openapi(
   createRoute({
@@ -45,22 +65,20 @@ app.openapi(
       },
       ...commonGetErrorResponses,
     },
+    ...speakeasyOffsetLimitPagination,
   }),
   async (c) => {
     const { tenantId, projectId } = c.req.valid('param');
+    const page = Number(c.req.query('page')) || 1;
+    const limit = Math.min(Number(c.req.query('limit')) || 10, 100);
 
     try {
-      const functions = await listFunctions(dbClient)({ scopes: { tenantId, projectId } });
+      const result = await listFunctionsPaginated(dbClient)({
+        scopes: { tenantId, projectId },
+        pagination: { page, limit },
+      });
 
-      return c.json({
-        data: functions as any,
-        pagination: {
-          page: 1,
-          limit: functions.length,
-          total: functions.length,
-          pages: 1,
-        },
-      }) as any;
+      return c.json(result) as any;
     } catch (error) {
       logger.error({ error, tenantId }, 'Failed to list functions');
       return c.json(

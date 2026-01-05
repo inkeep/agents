@@ -32,6 +32,7 @@
       "outputs": ["dist/**", "build/**", ".next/**", "!.next/cache/**"]
     },
     "dev": {
+      "dependsOn": ["^build"],
       "cache": false,
       "persistent": true
     },
@@ -80,6 +81,11 @@
       "inputs": ["$TURBO_DEFAULT$", "**/*.{test,spec}.{js,jsx,ts,tsx}"],
       "outputs": []
     },
+    "@inkeep/ai-sdk-provider#test": {
+      "dependsOn": ["build"],
+      "inputs": ["$TURBO_DEFAULT$", "**/*.{test,spec}.{js,jsx,ts,tsx}"],
+      "outputs": []
+    },
     "@inkeep/agents-ui#test": {
       "dependsOn": ["build"],
       "inputs": ["$TURBO_DEFAULT$", "**/*.{test,spec}.{js,jsx,ts,tsx}"],
@@ -89,6 +95,14 @@
       "dependsOn": ["build"],
       "inputs": ["$TURBO_DEFAULT$", "**/*.{test,spec}.{js,jsx,ts,tsx}"],
       "outputs": []
+    },
+    "@inkeep/create-agents#test:e2e": {
+      "dependsOn": ["^build", "agents-cookbook-templates#build"]
+    },
+    "@inkeep/agents-manage-mcp#build": {
+      "dependsOn": ["^build", "sync:licenses"],
+      "inputs": ["$TURBO_DEFAULT$", ".env*"],
+      "outputs": ["dist/**", "bin/**", ".tsbuildinfo"]
     },
     "chat-widget#test": {
       "dependsOn": ["build"],
@@ -112,6 +126,7 @@
       "outputs": [],
       "cache": false
     },
+    "knip": {},
     "typecheck": {
       "dependsOn": ["^build"],
       "inputs": ["$TURBO_DEFAULT$"],

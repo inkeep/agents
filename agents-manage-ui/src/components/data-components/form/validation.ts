@@ -5,7 +5,7 @@ import { idSchema } from '@/lib/validation';
 export const dataComponentSchema = z.object({
   id: idSchema,
   name: z.string().min(1, 'Name is required.'),
-  description: z.string().min(1, 'Description is required.'),
+  description: z.string().optional(),
   props: z
     .string()
     .min(1, 'Props schema is required.')
@@ -22,7 +22,7 @@ export const dataComponentSchema = z.object({
           });
           return z.NEVER;
         }
-
+        parsed.required ??= [];
         return parsed;
       } catch (error) {
         ctx.addIssue({

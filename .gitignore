@@ -2,7 +2,8 @@
 
 inkeep-qa-project
 # dependencies
-node_modules
+node_modules/
+package-lock.json
 /.pnp
 .pnp.*
 .yarn/*
@@ -57,11 +58,14 @@ local.db
 .vercel/
 .idea/
 agents-manage-ui/cypress/screenshots/
+agents-manage-ui/cypress/videos/
 
 .turbo/
 dist/
 .next/
 out/
 .source/
-drizzle/
 vite.config.d.ts
+
+# Turborepo
+.turbo

@@ -76,7 +76,7 @@ export function ExpandablePromptEditor({
         uri={uri}
         autoFocus={open}
         aria-invalid={error ? 'true' : undefined}
-        className={cn(!open && 'max-h-96', className)}
+        className={cn(!open && 'max-h-96', 'min-h-16', className)}
         hasDynamicHeight={!open}
         aria-labelledby={id}
         {...props}

@@ -28,13 +28,22 @@ runs:
     - run: pnpm setup-dev
       shell: bash
 
-    - name: Start Backend API Server
+    - name: Seed default organization for CI
       shell: bash
-      run: pnpm --filter @inkeep/agents-manage-api dev & # & means run job in background
+      run: |
+        PGPASSWORD=password psql -h localhost -U appuser -d inkeep_agents -c "
+          INSERT INTO organization (id, name, slug, created_at)
+          VALUES ('default', 'Default Organization', 'default', NOW())
+          ON CONFLICT (id) DO NOTHING;
+        "
 
-    - name: Build Dashboard
+    - name: Start backend API server
       shell: bash
-      run: npx turbo build --filter='@inkeep/agents-manage-ui'
+      run: pnpm dev --filter='@inkeep/agents-manage-api' & # & means run job in background
+
+    - name: Build dashboard and cookbook monorepo dependencies
+      shell: bash
+      run: npx turbo build --filter='@inkeep/agents-manage-ui' --filter='@inkeep/agents-cli' --filter='@inkeep/agents-core' --filter='@inkeep/agents-sdk'
 
     - name: Push Weather Example Project
       shell: bash

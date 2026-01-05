@@ -26,6 +26,39 @@ resourceIdSchema.meta({
   description: 'Resource identifier',
 });
 
+/**
+ * Creates a resource ID schema with custom description.
+ * Inherits all validation from resourceIdSchema (min, max, regex pattern).
+ * Use this to extend resourceIdSchema with entity-specific documentation.
+ *
+ * @example
+ * // For Agent.defaultSubAgentId
+ * createResourceIdSchema('ID of the default sub-agent. Workflow: ...', { example: 'my-subagent' })
+ *
+ * // For Tool.credentialReferenceId
+ * createResourceIdSchema('Reference to credential for authentication', { example: 'cred-123' })
+ */
+export function createResourceIdSchema(
+  description: string,
+  options?: { example?: string }
+): z.ZodString {
+  const example = options?.example ?? 'resource_789';
+  const modified = z
+    .string()
+    .min(MIN_ID_LENGTH)
+    .max(MAX_ID_LENGTH)
+    .describe(description)
+    .regex(URL_SAFE_ID_PATTERN, {
+      message: 'ID must contain only letters, numbers, hyphens, underscores, and dots',
+    })
+    .openapi({
+      description,
+      example,
+    });
+  modified.meta({ description });
+  return modified;
+}
+
 const FIELD_MODIFIERS: Record<string, (schema: z.ZodTypeAny) => z.ZodTypeAny> = {
   id: (schema) => {
     const modified = (schema as z.ZodString)

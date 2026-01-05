@@ -2,7 +2,6 @@
 
 import { useParams, useRouter } from 'next/navigation';
 import { BodyTemplate } from '@/components/layout/body-template';
-import { MainContent } from '@/components/layout/main-content';
 import { ConversationDetail } from '@/components/traces/conversation-detail';
 
 export default function ConversationPage() {
@@ -19,14 +18,13 @@ export default function ConversationPage() {
 
   return (
     <BodyTemplate
+      disableScroll
       breadcrumbs={[
         { label: 'Traces', href: `/${tenantId}/projects/${projectId}/traces` },
-        { label: 'Conversation' },
+        'Conversation',
       ]}
     >
-      <MainContent className="h-full flex flex-col">
-        <ConversationDetail conversationId={conversationId} onBack={handleBackToTraces} />
-      </MainContent>
+      <ConversationDetail conversationId={conversationId} onBack={handleBackToTraces} />
     </BodyTemplate>
   );
 }

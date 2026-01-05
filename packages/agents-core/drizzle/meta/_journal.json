@@ -12,8 +12,43 @@
     {
       "idx": 1,
       "version": "7",
-      "when": 1763067839798,
-      "tag": "0001_rare_hellcat",
+      "when": 1764024513126,
+      "tag": "0001_calm_sheva_callister",
+      "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1764045769142,
+      "tag": "0002_puzzling_goblin_queen",
+      "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1764060547473,
+      "tag": "0003_sweet_human_robot",
+      "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1764095962055,
+      "tag": "0004_cuddly_shooting_star",
+      "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1765392765706,
+      "tag": "0005_reflective_starfox",
+      "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1765583388864,
+      "tag": "0006_stale_thaddeus_ross",
       "breakpoints": true
     }
   ]

@@ -58,6 +58,23 @@ function ensureDir(filePath: string): void {
 }
 
 /**
+ * Check if an agent is complete enough for code generation
+ * An agent needs a name, defaultSubAgentId, and at least one sub-agent
+ */
+function isAgentComplete(agentId: string, agentData: any): { complete: boolean; reason?: string } {
+  if (!agentData.name) {
+    return { complete: false, reason: 'missing name' };
+  }
+  if (!agentData.defaultSubAgentId) {
+    return { complete: false, reason: 'missing defaultSubAgentId (no sub-agents configured)' };
+  }
+  if (!agentData.subAgents || Object.keys(agentData.subAgents).length === 0) {
+    return { complete: false, reason: 'no sub-agents defined' };
+  }
+  return { complete: true };
+}
+
+/**
  * Generate all files from scratch using deterministic generation
  */
 export async function introspectGenerate(
@@ -73,6 +90,7 @@ export async function introspectGenerate(
 
   const generatedFiles: string[] = [];
   const style = { ...DEFAULT_STYLE, ...options.codeStyle };
+  const skippedAgents: Array<{ id: string; reason: string }> = [];
 
   // Note: Context configs will be extracted by registerAllComponents() and available in registry
 
@@ -118,14 +136,100 @@ export async function introspectGenerate(
     generatedFiles.push(envIndexFile);
 
     // 3. Generate function tools (if any)
-    if (project.functions) {
-      for (const [funcId, funcData] of Object.entries(project.functions)) {
-        const functionFile = join(paths.toolsDir, 'functions', `${funcId}.ts`);
-        const functionContent = generateFunctionToolFile(funcId, funcData, style);
+    // Function tools are stored in two tables that need to be joined:
+    // - functionTools: has name, description, functionId (agent-scoped naming)
+    // - functions: has inputSchema, executeCode, dependencies (project-scoped code)
+    // We need to combine these to create the full FunctionToolConfig
+    const functionToolsGenerated = new Set<string>();
+
+    // First, check project-level functionTools and functions
+    if (project.functionTools) {
+      for (const [toolId, toolData] of Object.entries(project.functionTools)) {
+        // Get the code from the functions table using functionId
+        const functionId = (toolData as any).functionId;
+        const funcData = functionId ? project.functions?.[functionId] : undefined;
+
+        // Merge functionTools (name/description) with functions (code)
+        const mergedData = {
+          name: (toolData as any).name,
+          description: (toolData as any).description,
+          inputSchema: funcData?.inputSchema,
+          executeCode: funcData?.executeCode,
+          execute: funcData?.executeCode,
+          dependencies: funcData?.dependencies,
+        };
+
+        const functionFile = join(paths.toolsDir, 'functions', `${toolId}.ts`);
+        const functionContent = generateFunctionToolFile(toolId, mergedData, style);
 
         ensureDir(functionFile);
         writeFileSync(functionFile, functionContent, 'utf-8');
         generatedFiles.push(functionFile);
+        functionToolsGenerated.add(toolId);
+      }
+    }
+
+    // Also check agent-level functionTools (each agent can have its own)
+    if (project.agents) {
+      for (const [agentId, agentData] of Object.entries(project.agents)) {
+        const agentFunctionTools = (agentData as any).functionTools;
+        const agentFunctions = (agentData as any).functions;
+
+        if (agentFunctionTools) {
+          for (const [toolId, toolData] of Object.entries(agentFunctionTools)) {
+            // Skip if already generated at project level
+            if (functionToolsGenerated.has(toolId)) continue;
+
+            // Get the code from the agent's functions or project functions
+            const functionId = (toolData as any).functionId;
+            const funcData = functionId
+              ? agentFunctions?.[functionId] || project.functions?.[functionId]
+              : undefined;
+
+            // Merge functionTools (name/description) with functions (code)
+            const mergedData = {
+              name: (toolData as any).name,
+              description: (toolData as any).description,
+              inputSchema: funcData?.inputSchema,
+              executeCode: funcData?.executeCode,
+              execute: funcData?.executeCode,
+              dependencies: funcData?.dependencies,
+            };
+
+            const functionFile = join(paths.toolsDir, 'functions', `${toolId}.ts`);
+            const functionContent = generateFunctionToolFile(toolId, mergedData, style);
+
+            ensureDir(functionFile);
+            writeFileSync(functionFile, functionContent, 'utf-8');
+            generatedFiles.push(functionFile);
+            functionToolsGenerated.add(toolId);
+          }
+        }
+      }
+    }
+
+    // Fallback: If there are functions without corresponding functionTools entries,
+    // they may be orphaned or the data structure is different - skip them with a warning
+    if (project.functions) {
+      for (const [funcId, funcData] of Object.entries(project.functions)) {
+        if (!functionToolsGenerated.has(funcId)) {
+          // Check if this function is referenced by any functionTool
+          const isReferenced =
+            Object.values(project.functionTools || {}).some(
+              (ft: any) => ft.functionId === funcId
+            ) ||
+            Object.values(project.agents || {}).some((agent: any) =>
+              Object.values(agent.functionTools || {}).some((ft: any) => ft.functionId === funcId)
+            );
+
+          if (!isReferenced && debug) {
+            console.log(
+              chalk.yellow(
+                `⚠️  Skipping orphaned function '${funcId}' - no functionTool references it`
+              )
+            );
+          }
+        }
       }
     }
 
@@ -226,10 +330,31 @@ export async function introspectGenerate(
     }
 
     // 10. Generate sub-agents (from agents, preserving parent relationship)
+    // First, identify which agents are complete and can be generated
+    const completeAgentIds = new Set<string>();
+    if (project.agents) {
+      for (const [agentId, agentData] of Object.entries(project.agents)) {
+        const completeness = isAgentComplete(agentId, agentData);
+        if (completeness.complete) {
+          completeAgentIds.add(agentId);
+        } else {
+          skippedAgents.push({ id: agentId, reason: completeness.reason || 'incomplete' });
+          if (debug) {
+            console.log(
+              chalk.yellow(`⚠️  Skipping incomplete agent '${agentId}': ${completeness.reason}`)
+            );
+          }
+        }
+      }
+    }
+
     if (project.agents && Object.keys(project.agents).length > 0) {
       let totalSubAgents = 0;
 
       for (const [agentId, agentData] of Object.entries(project.agents)) {
+        // Skip incomplete agents
+        if (!completeAgentIds.has(agentId)) continue;
+
         if (agentData.subAgents) {
           for (const [subAgentId, subAgentData] of Object.entries(agentData.subAgents)) {
             totalSubAgents++;
@@ -239,6 +364,9 @@ export async function introspectGenerate(
 
       if (totalSubAgents > 0) {
         for (const [agentId, agentData] of Object.entries(project.agents)) {
+          // Skip incomplete agents
+          if (!completeAgentIds.has(agentId)) continue;
+
           if (agentData.subAgents) {
             // Find the context config data for this agent using agent-based ID
             const contextConfigData = agentData.contextConfig?.id
@@ -271,6 +399,9 @@ export async function introspectGenerate(
     // 11. Generate main agents
     if (project.agents) {
       for (const [agentId, agentData] of Object.entries(project.agents)) {
+        // Skip incomplete agents
+        if (!completeAgentIds.has(agentId)) continue;
+
         const agentFile = join(paths.agentsDir, `${agentId}.ts`);
 
         // Find the context config data for this agent using agent-based ID
@@ -297,10 +428,14 @@ export async function introspectGenerate(
     // 12. Generate main project file
 
     // Transform project data to include component references for the project generator
+    // Only include complete agents
     const projectDataForGenerator = {
       ...project,
       // Transform object keys to arrays of IDs for the project generator
-      agents: project.agents ? Object.keys(project.agents) : [],
+      // Only include agents that are complete
+      agents: project.agents
+        ? Object.keys(project.agents).filter((id) => completeAgentIds.has(id))
+        : [],
       tools: project.tools ? Object.keys(project.tools) : [],
       externalAgents: project.externalAgents ? Object.keys(project.externalAgents) : [],
       dataComponents: project.dataComponents ? Object.keys(project.dataComponents) : [],
@@ -325,6 +460,19 @@ export async function introspectGenerate(
     // Success summary
     if (debug) {
       console.log(chalk.green(`✅ Generated ${generatedFiles.length} files`));
+    }
+
+    // Warn about skipped agents
+    if (skippedAgents.length > 0) {
+      console.log(chalk.yellow(`\n⚠️  Skipped ${skippedAgents.length} incomplete agent(s):`));
+      for (const { id, reason } of skippedAgents) {
+        console.log(chalk.yellow(`   • ${id}: ${reason}`));
+      }
+      console.log(
+        chalk.gray(
+          '   To fix: Add at least one sub-agent to each agent in the UI and set it as default.'
+        )
+      );
     }
   } catch (error) {
     console.error(chalk.red('\n❌ Introspect regeneration failed:'));

@@ -32,7 +32,7 @@ export async function fetchArtifactComponents(
   validateProjectId(projectId);
 
   const response = await makeManagementApiRequest<ListResponse<ArtifactComponentApiSelect>>(
-    `tenants/${tenantId}/projects/${projectId}/artifact-components`
+    `tenants/${tenantId}/projects/${projectId}/artifact-components?limit=100`
   );
 
   return response;

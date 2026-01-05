@@ -1,5 +1,3 @@
-import { z } from 'zod';
-
 /**
  * Agent Full API Types and Schemas
  *
@@ -8,24 +6,13 @@ import { z } from 'zod';
  */
 
 // Import core types and schemas
-import {
-  AgentAgentApiInsertSchema,
-  type AgentAgentInsert,
-  type AgentApiInsert,
-  AgentApiInsertSchema,
-  type FullAgentDefinition as CoreFullAgentDefinition,
-  ErrorResponseSchema,
-  type ExternalAgentApiInsert,
-  type ExternalAgentDefinition,
-  FullAgentDefinitionSchema,
-  type FunctionApiInsert,
-  type InternalAgentDefinition,
-  ListResponseSchema,
-  SingleResponseSchema,
-  TenantParamsSchema,
-  type ToolApiInsert,
-  ToolApiInsertSchema,
-  type ToolInsert,
+import type {
+  AgentApiInsert,
+  FullAgentDefinition as CoreFullAgentDefinition,
+  ExternalAgentApiInsert,
+  FunctionApiInsert,
+  InternalAgentDefinition,
+  ToolApiInsert,
 } from '@inkeep/agents-core/client-exports';
 import type { SingleResponse } from './response';
 import type { TeamAgent } from './team-agents';
@@ -39,39 +26,8 @@ export type FullAgentDefinition = CoreFullAgentDefinition & {
   functions?: Record<string, FunctionApiInsert>;
 };
 
-// Re-export core types with aliases
-export type AgentApi = AgentApiInsert;
-export type AgentAgentApi = AgentAgentInsert;
-export type ToolApi = ToolInsert;
-export const AgentApiSchema = AgentApiInsertSchema;
-export const AgentAgentApiSchema = AgentAgentApiInsertSchema;
-export const ToolApiSchema = ToolApiInsertSchema;
-
 // Re-export types and schemas
-export {
-  ErrorResponseSchema,
-  type ExternalAgentDefinition,
-  FullAgentDefinitionSchema,
-  type InternalAgentDefinition,
-  ListResponseSchema,
-  SingleResponseSchema,
-  TenantParamsSchema,
-};
-
-// Agent-builder specific parameter schema
-export const AgentIdParamsSchema = TenantParamsSchema.extend({
-  agentId: z.string(),
-});
-
-// Inferred Types
-export type TenantParams = z.infer<typeof TenantParamsSchema>;
-export type AgentIdParams = z.infer<typeof AgentIdParamsSchema>;
-
-export type ErrorResponse = {
-  error: string;
-  message?: string;
-  details?: unknown;
-};
+export type { InternalAgentDefinition };
 
 export interface Agent {
   id: string;
@@ -82,12 +38,37 @@ export interface Agent {
 }
 
 // API Response Types
-export type CreateAgentResponse = SingleResponse<FullAgentDefinition>;
+export type CreateFullAgentResponse = SingleResponse<FullAgentDefinition>;
+export type CreateAgentResponse = SingleResponse<AgentApiInsert>;
 export type GetAgentResponse = SingleResponse<FullAgentDefinition>;
 export type UpdateAgentResponse = SingleResponse<FullAgentDefinition>;
 
-// API Error Types
-export type AgentApiError = {
-  code: 'not_found' | 'bad_request' | 'internal_server_error' | 'conflict';
-  message: string;
+export type SubAgentTeamAgentConfig = {
+  agentId: string;
+  headers?: Record<string, string>;
 };
+
+export type SubAgentExternalAgentConfig = {
+  externalAgentId: string;
+  headers?: Record<string, string>;
+};
+
+// SubAgentTeamAgentConfigLookup: subAgentId -> relationshipId -> config
+export type SubAgentTeamAgentConfigLookup = Record<string, Record<string, SubAgentTeamAgentConfig>>;
+
+// SubAgentExternalAgentConfigLookup: subAgentId -> relationshipId -> config
+export type SubAgentExternalAgentConfigLookup = Record<
+  string,
+  Record<string, SubAgentExternalAgentConfig>
+>;
+
+// Type for agent tool configuration lookup including both selection and headers
+export type AgentToolConfig = {
+  toolId: string;
+  toolSelection?: string[] | null;
+  headers?: Record<string, string>;
+  toolPolicies?: Record<string, { needsApproval?: boolean }>;
+};
+
+// AgentToolConfigLookup: subAgentId -> relationshipId -> config
+export type AgentToolConfigLookup = Record<string, Record<string, AgentToolConfig>>;

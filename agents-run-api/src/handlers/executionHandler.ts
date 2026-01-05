@@ -5,7 +5,7 @@ import {
   type ExecutionContext,
   generateId,
   getActiveAgentForConversation,
-  getArtifactComponentsForAgent,
+  getAgentWithDefaultSubAgent,
   getFullAgent,
   getTask,
   type SendMessageResponse,
@@ -18,9 +18,11 @@ import { executeTransfer } from '../a2a/transfer.js';
 import { extractTransferData, isTransferTask } from '../a2a/types.js';
 import { AGENT_EXECUTION_MAX_CONSECUTIVE_ERRORS } from '../constants/execution-limits';
 import dbClient from '../data/db/dbClient.js';
+import { flushBatchProcessor } from '../instrumentation.js';
 import { getLogger } from '../logger.js';
 import { agentSessionManager } from '../services/AgentSession.js';
 import { agentInitializingOp, completionOp, errorOp } from '../utils/agent-operations.js';
+import { resolveModelConfig } from '../utils/model-resolver.js';
 import type { StreamHelper } from '../utils/stream-helpers.js';
 import { BufferingStreamHelper } from '../utils/stream-helpers.js';
 import { registerStreamHelper, unregisterStreamHelper } from '../utils/stream-registry.js';
@@ -94,11 +96,47 @@ export class ExecutionHandler {
       });
 
       if (agentConfig?.statusUpdates && agentConfig.statusUpdates.enabled !== false) {
-        agentSessionManager.initializeStatusUpdates(
-          requestId,
-          agentConfig.statusUpdates,
-          agentConfig.models?.summarizer
-        );
+        try {
+          // Get the default sub-agent to resolve models properly with inheritance
+          const agentWithDefault = await getAgentWithDefaultSubAgent(dbClient)({
+            scopes: { tenantId, projectId, agentId },
+          });
+
+          if (agentWithDefault?.defaultSubAgent) {
+            const resolvedModels = await resolveModelConfig(
+              agentId,
+              agentWithDefault.defaultSubAgent
+            );
+
+            agentSessionManager.initializeStatusUpdates(
+              requestId,
+              agentConfig.statusUpdates,
+              resolvedModels.summarizer,
+              resolvedModels.base
+            );
+          } else {
+            // Fallback to agent-level config if no default sub-agent
+            agentSessionManager.initializeStatusUpdates(
+              requestId,
+              agentConfig.statusUpdates,
+              agentConfig.models?.summarizer
+            );
+          }
+        } catch (modelError) {
+          logger.warn(
+            {
+              error: modelError instanceof Error ? modelError.message : 'Unknown error',
+              agentId,
+            },
+            'Failed to resolve models for status updates, using agent-level config'
+          );
+          // Fallback to agent-level config
+          agentSessionManager.initializeStatusUpdates(
+            requestId,
+            agentConfig.statusUpdates,
+            agentConfig.models?.summarizer
+          );
+        }
       }
     } catch (error) {
       logger.error(
@@ -283,7 +321,7 @@ export class ExecutionHandler {
               });
             }
 
-            agentSessionManager.endSession(requestId);
+            await agentSessionManager.endSession(requestId);
             unregisterStreamHelper(requestId);
             return { success: false, error: errorMessage, iterations };
           }
@@ -462,7 +500,7 @@ export class ExecutionHandler {
 
               // End the AgentSession and clean up resources
               logger.info({}, 'Ending AgentSession and cleaning up');
-              agentSessionManager.endSession(requestId);
+              await agentSessionManager.endSession(requestId);
 
               // Clean up streamHelper
               logger.info({}, 'Cleaning up streamHelper');
@@ -476,12 +514,17 @@ export class ExecutionHandler {
               }
 
               logger.info({}, 'ExecutionHandler returning success');
+
               return { success: true, iterations, response };
             } catch (error) {
               setSpanWithError(span, error instanceof Error ? error : new Error(String(error)));
               throw error;
             } finally {
               span.end();
+              // Flush immediately after span ends to ensure it's sent to SignOz
+              // Use setImmediate to allow span to be processed before flushing
+              await new Promise((resolve) => setImmediate(resolve));
+              await flushBatchProcessor();
             }
           });
         }
@@ -513,7 +556,7 @@ export class ExecutionHandler {
             });
           }
 
-          agentSessionManager.endSession(requestId);
+          await agentSessionManager.endSession(requestId);
           unregisterStreamHelper(requestId);
           return { success: false, error: errorMessage, iterations };
         }
@@ -541,7 +584,7 @@ export class ExecutionHandler {
         });
       }
       // Clean up AgentSession and streamHelper on error
-      agentSessionManager.endSession(requestId);
+      await agentSessionManager.endSession(requestId);
       unregisterStreamHelper(requestId);
       return { success: false, error: errorMessage, iterations };
     } catch (error) {
@@ -569,7 +612,7 @@ export class ExecutionHandler {
         });
       }
       // Clean up AgentSession and streamHelper on exception
-      agentSessionManager.endSession(requestId);
+      await agentSessionManager.endSession(requestId);
       unregisterStreamHelper(requestId);
       return { success: false, error: errorMessage, iterations };
     }

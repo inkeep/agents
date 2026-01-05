@@ -1,4 +1,5 @@
 import type { Artifact, McpTool } from '@inkeep/agents-core';
+import { convertZodToJsonSchema, isZodSchema } from '@inkeep/agents-core/utils/schema-conversion';
 import systemPromptTemplate from '../../../../templates/v1/phase1/system-prompt.xml?raw';
 import thinkingPreparationTemplate from '../../../../templates/v1/phase1/thinking-preparation.xml?raw';
 import toolTemplate from '../../../../templates/v1/phase1/tool.xml?raw';
@@ -6,6 +7,12 @@ import artifactTemplate from '../../../../templates/v1/shared/artifact.xml?raw';
 import artifactRetrievalGuidance from '../../../../templates/v1/shared/artifact-retrieval-guidance.xml?raw';
 
 import { getLogger } from '../../../logger';
+import {
+  type AssembleResult,
+  calculateBreakdownTotal,
+  createEmptyBreakdown,
+  estimateTokens,
+} from '../../../utils/token-estimator';
 import type { SystemPromptV1, ToolData, VersionConfig } from '../../types';
 
 const _logger = getLogger('Phase1Config');
@@ -49,24 +56,73 @@ export class Phase1Config implements VersionConfig<SystemPromptV1> {
     return 'usageGuidelines' in firstItem && !('config' in firstItem);
   }
 
-  assemble(templates: Map<string, string>, config: SystemPromptV1): string {
-    const systemPromptTemplate = templates.get('system-prompt');
-    if (!systemPromptTemplate) {
+  private normalizeSchema(inputSchema: any): Record<string, unknown> {
+    if (!inputSchema || typeof inputSchema !== 'object') {
+      return inputSchema || {};
+    }
+
+    if (isZodSchema(inputSchema)) {
+      try {
+        return convertZodToJsonSchema(inputSchema);
+      } catch (error) {
+        return {};
+      }
+    }
+
+    return inputSchema;
+  }
+
+  assemble(templates: Map<string, string>, config: SystemPromptV1): AssembleResult {
+    const breakdown = createEmptyBreakdown();
+
+    const systemPromptTemplateContent = templates.get('system-prompt');
+    if (!systemPromptTemplateContent) {
       throw new Error('System prompt template not loaded');
     }
 
-    let systemPrompt = systemPromptTemplate;
+    // Track base template tokens (without placeholders - estimate overhead)
+    breakdown.systemPromptTemplate = estimateTokens(
+      systemPromptTemplateContent
+        .replace('{{CORE_INSTRUCTIONS}}', '')
+        .replace('{{AGENT_CONTEXT_SECTION}}', '')
+        .replace('{{ARTIFACTS_SECTION}}', '')
+        .replace('{{TOOLS_SECTION}}', '')
+        .replace('{{THINKING_PREPARATION_INSTRUCTIONS}}', '')
+        .replace('{{TRANSFER_INSTRUCTIONS}}', '')
+        .replace('{{DELEGATION_INSTRUCTIONS}}', '')
+    );
 
-    systemPrompt = systemPrompt.replace('{{CORE_INSTRUCTIONS}}', config.corePrompt);
+    let systemPrompt = systemPromptTemplateContent;
+
+    // Handle core instructions - omit entire section if empty
+    if (config.corePrompt && config.corePrompt.trim()) {
+      breakdown.coreInstructions = estimateTokens(config.corePrompt);
+      systemPrompt = systemPrompt.replace('{{CORE_INSTRUCTIONS}}', config.corePrompt);
+    } else {
+      // Remove the entire core_instructions section if empty
+      systemPrompt = systemPrompt.replace(
+        /<core_instructions>\s*\{\{CORE_INSTRUCTIONS\}\}\s*<\/core_instructions>/g,
+        ''
+      );
+    }
 
     const agentContextSection = this.generateAgentContextSection(config.prompt);
+    breakdown.agentPrompt = estimateTokens(agentContextSection);
     systemPrompt = systemPrompt.replace('{{AGENT_CONTEXT_SECTION}}', agentContextSection);
 
-    const toolData = this.isToolDataArray(config.tools)
+    const rawToolData = this.isToolDataArray(config.tools)
       ? config.tools
       : Phase1Config.convertMcpToolsToToolData(config.tools as McpTool[]);
 
-    const hasArtifactComponents = config.artifactComponents && config.artifactComponents.length > 0;
+    // Normalize any Zod schemas to JSON schemas
+    const toolData = rawToolData.map((tool) => ({
+      ...tool,
+      inputSchema: this.normalizeSchema(tool.inputSchema),
+    }));
+
+    const hasArtifactComponents = Boolean(
+      config.artifactComponents && config.artifactComponents.length > 0
+    );
 
     const artifactsSection = this.generateArtifactsSection(
       templates,
@@ -76,31 +132,66 @@ export class Phase1Config implements VersionConfig<SystemPromptV1> {
       config.hasAgentArtifactComponents
     );
 
+    const artifactInstructionsTokens = this.getArtifactInstructionsTokens(
+      templates,
+      hasArtifactComponents,
+      config.artifactComponents,
+      config.hasAgentArtifactComponents,
+      (config.artifacts?.length ?? 0) > 0
+    );
+    breakdown.systemPromptTemplate += artifactInstructionsTokens;
+
+    const actualArtifactsXml =
+      config.artifacts?.length > 0
+        ? config.artifacts
+            .map((artifact) => this.generateArtifactXml(templates, artifact))
+            .join('\n  ')
+        : '';
+    breakdown.artifactsSection = estimateTokens(actualArtifactsXml);
+
+    if (hasArtifactComponents) {
+      const creationInstructions = this.getArtifactCreationInstructions(
+        hasArtifactComponents,
+        config.artifactComponents
+      );
+      breakdown.artifactComponents = estimateTokens(creationInstructions);
+    }
+
     systemPrompt = systemPrompt.replace('{{ARTIFACTS_SECTION}}', artifactsSection);
 
     const toolsSection = this.generateToolsSection(templates, toolData);
+    breakdown.toolsSection = estimateTokens(toolsSection);
     systemPrompt = systemPrompt.replace('{{TOOLS_SECTION}}', toolsSection);
 
     const thinkingPreparationSection = this.generateThinkingPreparationSection(
       templates,
       config.isThinkingPreparation
     );
+    breakdown.thinkingPreparation = estimateTokens(thinkingPreparationSection);
     systemPrompt = systemPrompt.replace(
       '{{THINKING_PREPARATION_INSTRUCTIONS}}',
       thinkingPreparationSection
     );
 
     const transferSection = this.generateTransferInstructions(config.hasTransferRelations);
+    breakdown.transferInstructions = estimateTokens(transferSection);
     systemPrompt = systemPrompt.replace('{{TRANSFER_INSTRUCTIONS}}', transferSection);
 
     const delegationSection = this.generateDelegationInstructions(config.hasDelegateRelations);
+    breakdown.delegationInstructions = estimateTokens(delegationSection);
     systemPrompt = systemPrompt.replace('{{DELEGATION_INSTRUCTIONS}}', delegationSection);
 
-    return systemPrompt;
+    // Calculate total
+    calculateBreakdownTotal(breakdown);
+
+    return {
+      prompt: systemPrompt,
+      breakdown,
+    };
   }
 
   private generateAgentContextSection(prompt?: string): string {
-    if (!prompt) {
+    if (!prompt || prompt.trim() === '') {
       return '';
     }
 
@@ -160,6 +251,34 @@ Your goal: preserve the illusion of a single, seamless, intelligent assistant. A
 - Treat these exactly like other tools - call them to get results
 - Present results as YOUR work: "I found", "I've analyzed"
 - NEVER say you're delegating or that another agent helped`;
+  }
+
+  private getArtifactInstructionsTokens(
+    templates: Map<string, string>,
+    hasArtifactComponents: boolean,
+    artifactComponents?: any[],
+    hasAgentArtifactComponents?: boolean,
+    hasArtifacts?: boolean
+  ): number {
+    const shouldShowReferencingRules = hasAgentArtifactComponents || hasArtifacts;
+
+    const rules = this.getArtifactReferencingRules(
+      hasArtifactComponents,
+      templates,
+      shouldShowReferencingRules
+    );
+
+    const wrapperDescription = hasArtifacts
+      ? 'These are the artifacts available for you to use in generating responses.'
+      : 'No artifacts are currently available, but you may create them during execution.';
+
+    const wrapperXml = `<available_artifacts description="${wrapperDescription}
+
+${rules}
+
+"></available_artifacts>`;
+
+    return estimateTokens(wrapperXml);
   }
 
   private getArtifactCreationGuidance(): string {
@@ -231,6 +350,8 @@ CREATING ARTIFACTS (SERVES AS CITATION):
 Use the artifact:create annotation to extract data from tool results. The creation itself serves as a citation.
 Format: <artifact:create id="unique-id" tool="tool_call_id" type="TypeName" base="selector.path" details='{"key":"jmespath_selector"}' />
 
+⚠️ IMPORTANT: Do not create artifacts from get_reference_artifact tool results - these are already compressed artifacts being retrieved. Only create artifacts from original research and analysis tools.
+
 🚨 CRITICAL: DETAILS PROPS USE JMESPATH SELECTORS, NOT LITERAL VALUES! 🚨
 
 ❌ WRONG - Using literal values:
@@ -255,6 +376,8 @@ THE details PROPERTY MUST CONTAIN JMESPATH SELECTORS THAT EXTRACT DATA FROM THE 
 ❌ NEVER: [?text ~ contains(@, 'word')] (~ with @ operator)
 ❌ NEVER: contains(@, 'text') (@ operator usage)
 ❌ NEVER: [?field=="value"] (double quotes in filters)
+❌ NEVER: [?field=='value'] (escaped quotes in filters)  
+❌ NEVER: [?field=='"'"'value'"'"'] (nightmare quote mixing)
 ❌ NEVER: result.items[?type=='doc'][?status=='active'] (chained filters)
 
 ✅ CORRECT JMESPATH SYNTAX:
@@ -265,6 +388,11 @@ THE details PROPERTY MUST CONTAIN JMESPATH SELECTORS THAT EXTRACT DATA FROM THE 
 ✅ [?type=='doc' && status=='active'] (single filter with &&)
 ✅ [?contains(text, 'Founder')] (contains haystack, needle format)
 ✅ source.content[?contains(text, 'Founder')].text (correct filter usage)
+
+🚨 MANDATORY QUOTE PATTERN - FOLLOW EXACTLY:
+- ALWAYS: base="path[?field=='value']" (double quotes outside, single inside)
+- This is the ONLY allowed pattern - any other pattern WILL FAIL
+- NEVER escape quotes, NEVER mix quote types, NEVER use complex quoting
 
 🚨 CRITICAL: EXAMINE TOOL RESULTS BEFORE CREATING SELECTORS! 🚨
 
@@ -304,7 +432,7 @@ Only use artifact:ref when you need to cite the SAME artifact again for a differ
 Format: <artifact:ref id="artifact-id" tool="tool_call_id" />
 
 EXAMPLE TEXT RESPONSE:
-"I found the authentication documentation. <artifact:create id='auth-doc-1' tool='call_xyz789' type='APIDoc' base='result.documents[?type=="auth"]' details='{"title":"metadata.title","endpoint":"api.endpoint","description":"content.description","parameters":"spec.parameters","examples":"examples.sample_code"}' /> The documentation explains OAuth 2.0 implementation in detail.
+"I found the authentication documentation. <artifact:create id='auth-doc-1' tool='call_xyz789' type='APIDoc' base="result.documents[?type=='auth']" details='{"title":"metadata.title","endpoint":"api.endpoint","description":"content.description","parameters":"spec.parameters","examples":"examples.sample_code"}' /> The documentation explains OAuth 2.0 implementation in detail.
 
 The process involves three main steps: registration, token exchange, and API calls. As mentioned in the authentication documentation <artifact:ref id='auth-doc-1' tool='call_xyz789' />, you'll need to register your application first."
 
@@ -521,6 +649,7 @@ ${creationInstructions}
         const isRequired = required.includes(key);
         const propType = (value as any)?.type || 'string';
         const propDescription = (value as any)?.description || 'No description';
+
         return `        ${key}: {\n          "type": "${propType}",\n          "description": "${propDescription}",\n          "required": ${isRequired}\n        }`;
       })
       .join('\n');

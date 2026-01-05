@@ -31,8 +31,7 @@ interface TracesOverviewProps {
 
 export function TracesOverview({ refreshKey }: TracesOverviewProps) {
   const router = useRouter();
-  const params = useParams();
-  const projectId = params.projectId;
+  const { tenantId, projectId } = useParams();
   const searchParams = useSearchParams();
   const {
     timeRange: selectedTimeRange,
@@ -49,8 +48,8 @@ export function TracesOverview({ refreshKey }: TracesOverviewProps) {
   const { isLoading: isSignozConfigLoading, configError: signozConfigError } = useSignozConfig();
 
   const [selectedAgent, setSelectedAgent] = useState<string | undefined>(undefined);
-  const [searchQuery, setSearchQuery] = useState<string>('');
-  const [debouncedSearchQuery, setDebouncedSearchQuery] = useState<string>('');
+  const [searchQuery, setSearchQuery] = useState('');
+  const [debouncedSearchQuery, setDebouncedSearchQuery] = useState('');
   const [availableSpanNames, setAvailableSpanNames] = useState<string[]>([]);
   const [spanNamesLoading, setSpanNamesLoading] = useState(false);
   const [activityData, setActivityData] = useState<Array<{ date: string; count: number }>>([]);
@@ -125,6 +124,7 @@ export function TracesOverview({ refreshKey }: TracesOverviewProps) {
     endTime,
     filters: spanFilters,
     projectId: projectId as string,
+    tenantId: tenantId as string,
     agentId: selectedAgent,
   });
 
@@ -133,6 +133,7 @@ export function TracesOverview({ refreshKey }: TracesOverviewProps) {
     endTime,
     filters: spanFilters,
     projectId: projectId as string,
+    tenantId: tenantId as string,
     searchQuery: debouncedSearchQuery,
     pagination: { pageSize: 10 },
     agentId: selectedAgent,
@@ -155,7 +156,7 @@ export function TracesOverview({ refreshKey }: TracesOverviewProps) {
     const fetchActivity = async () => {
       try {
         setActivityLoading(true);
-        const client = getSigNozStatsClient();
+        const client = getSigNozStatsClient(tenantId as string);
         const agentId = selectedAgent ? selectedAgent : undefined;
         console.log('🔍 Fetching activity data:', {
           startTime,
@@ -178,19 +179,19 @@ export function TracesOverview({ refreshKey }: TracesOverviewProps) {
         setActivityLoading(false);
       }
     };
-    if (startTime && endTime) {
+    if (startTime && endTime && tenantId) {
       fetchActivity();
     }
-  }, [startTime, endTime, selectedAgent, projectId]);
+  }, [startTime, endTime, selectedAgent, projectId, tenantId]);
 
   // Fetch available span names when time range or selected agent changes
   useEffect(() => {
     const fetchSpanNames = async () => {
-      if (!startTime || !endTime) return;
+      if (!startTime || !endTime || !tenantId) return;
 
       setSpanNamesLoading(true);
       try {
-        const client = getSigNozStatsClient();
+        const client = getSigNozStatsClient(tenantId as string);
         const spanNames = await client.getAvailableSpanNames(
           startTime,
           endTime,
@@ -207,10 +208,10 @@ export function TracesOverview({ refreshKey }: TracesOverviewProps) {
     };
 
     // Only fetch if we have valid time range
-    if (startTime && endTime) {
+    if (startTime && endTime && tenantId) {
       fetchSpanNames();
     }
-  }, [startTime, endTime, selectedAgent, projectId]);
+  }, [startTime, endTime, selectedAgent, projectId, tenantId]);
 
   // Filter stats based on selected agent (for aggregate calculations)
   // Server-side pagination and filtering is now handled by the hooks
@@ -363,11 +364,16 @@ export function TracesOverview({ refreshKey }: TracesOverviewProps) {
           <div className="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-4 xl:grid-cols-2 gap-4 h-full">
             {/* Total MCP Tool Calls */}
             <StatCard
-              title="Tool calls"
+              title="MCP Tool calls"
               stat={aggregateStats.totalToolCalls}
               statDescription={`Over ${aggregateStats.totalConversations} conversations`}
               isLoading={aggregateLoading}
               Icon={Wrench}
+              onClick={() => {
+                const current = new URLSearchParams(searchParams.toString());
+                const href = `/${tenantId}/projects/${projectId}/traces/tool-calls?${current.toString()}`;
+                router.push(href);
+              }}
             />
 
             {/* Agent Transfers */}
@@ -397,7 +403,7 @@ export function TracesOverview({ refreshKey }: TracesOverviewProps) {
               Icon={SparklesIcon}
               onClick={() => {
                 const current = new URLSearchParams(searchParams.toString());
-                const href = `/${params.tenantId}/projects/${projectId}/traces/ai-calls?${current.toString()}`;
+                const href = `/${tenantId}/projects/${projectId}/traces/ai-calls?${current.toString()}`;
                 router.push(href);
               }}
             />

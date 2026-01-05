@@ -21,11 +21,11 @@ const PROVIDER_CONFIGS: SimpleProviderConfig[] = [
   {
     name: 'openai',
     envVars: ['OPENAI_API_KEY'],
-    model: 'gpt-4.1',
+    model: 'gpt-5.1',
   },
   {
     name: 'google',
-    envVars: ['GOOGLE_API_KEY', 'GOOGLE_GENERATIVE_AI_API_KEY'],
+    envVars: ['GOOGLE_GENERATIVE_AI_API_KEY'],
     model: 'gemini-2.5-flash',
   },
 ];
@@ -56,6 +56,6 @@ export function getAvailableModel(): any {
   }
 
   throw new Error(
-    'No API keys detected. Please set ANTHROPIC_API_KEY, OPENAI_API_KEY, or GOOGLE_API_KEY'
+    'No API keys detected. Please set ANTHROPIC_API_KEY, OPENAI_API_KEY, or GOOGLE_GENERATIVE_AI_API_KEY'
   );
 }

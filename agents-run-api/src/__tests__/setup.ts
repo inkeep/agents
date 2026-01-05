@@ -1,5 +1,8 @@
 import { vi } from 'vitest';
 
+// Disable compression in test environment
+process.env.AGENTS_COMPRESSION_ENABLED = 'false';
+
 // Mock the local logger module globally - this will be hoisted automatically by Vitest
 vi.mock('../logger.js', () => {
   const mockLogger = {

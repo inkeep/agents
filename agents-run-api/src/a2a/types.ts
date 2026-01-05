@@ -1,14 +1,8 @@
 // A2A Protocol Types based on Google's specification
-import {
-  AgentCard,
-  type Artifact,
-  type Message,
-  type Task,
-  type TaskState,
-} from '@inkeep/agents-core';
+import type { AgentCard, Artifact, Message, Task, TaskState } from '@inkeep/agents-core';
 
 // Re-export AgentCard from the official schema
-export { AgentCard };
+export type { AgentCard };
 
 export interface RegisteredAgent {
   subAgentId: string;
@@ -35,10 +29,13 @@ export interface A2ATask {
   };
 }
 
+export type A2ATaskErrorType = 'connection_refused' | 'unknown';
+
 export interface A2ATaskResult {
   status: {
     state: TaskState;
     message?: string;
+    type?: A2ATaskErrorType;
   };
   artifacts?: Artifact[];
 }
@@ -67,31 +64,7 @@ export interface TransferTask extends Task {
  * Type guard to check if a Task contains transfer data
  */
 export function isTransferTask(result: Task | Message): result is TransferTask {
-  console.log(
-    '[isTransferTask] Checking result:',
-    JSON.stringify(
-      {
-        hasArtifacts: 'artifacts' in result,
-        artifactsLength: result.kind === 'task' ? result.artifacts?.length : 0,
-        firstArtifactParts: result.kind === 'task' ? result.artifacts?.[0]?.parts?.length : 0,
-        allParts:
-          result.kind === 'task'
-            ? result.artifacts?.[0]?.parts?.map((p, i) => ({
-                index: i,
-                kind: p.kind,
-                hasData: !!(p.kind === 'data' && p.data),
-                dataType: p.kind === 'data' ? p.data?.type : undefined,
-                dataKeys: p.kind === 'data' ? Object.keys(p.data) : [],
-              }))
-            : [],
-      },
-      null,
-      2
-    )
-  );
-
   if (!('artifacts' in result) || !result.artifacts) {
-    console.log('[isTransferTask] No artifacts found');
     return false;
   }
 
@@ -101,14 +74,10 @@ export function isTransferTask(result: Task | Message): result is TransferTask {
       // Type-safe check without as any
       const isTransfer =
         typeof part.data === 'object' && 'type' in part.data && part.data.type === 'transfer';
-      if (isTransfer) {
-        console.log('[isTransferTask] Found transfer data:', JSON.stringify(part.data, null, 2));
-      }
       return isTransfer;
     })
   );
 
-  console.log('[isTransferTask] Result:', hasTransfer);
   return hasTransfer;
 }
 

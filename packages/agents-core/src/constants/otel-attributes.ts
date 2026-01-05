@@ -12,6 +12,10 @@ export const SPAN_NAMES = {
   AGENT_GENERATION: 'agent.generate',
   CONTEXT_FETCHER: 'context-fetcher.http-request',
   ARTIFACT_PROCESSING: 'agent_session.process_artifact',
+  TOOL_APPROVAL_REQUESTED: 'tool.approval_requested',
+  TOOL_APPROVAL_APPROVED: 'tool.approval_approved',
+  TOOL_APPROVAL_DENIED: 'tool.approval_denied',
+  COMPRESSOR_SAFE_COMPRESS: 'compressor.safe_compress',
 } as const;
 
 export const AI_OPERATIONS = {
@@ -61,7 +65,11 @@ export const SPAN_KEYS = {
   AI_TOOL_CALL_ARGS: 'ai.toolCall.args',
   AI_TOOL_CALL_ID: 'ai.toolCall.id',
   AI_TOOL_TYPE: 'ai.toolType',
+  AI_TOOL_CALL_MCP_SERVER_ID: 'ai.toolCall.mcpServerId',
+  AI_TOOL_CALL_MCP_SERVER_NAME: 'ai.toolCall.mcpServerName',
   TOOL_PURPOSE: 'tool.purpose',
+  TOOL_NAME: 'tool.name',
+  TOOL_CALL_ID: 'tool.callId',
 
   // Token usage
   GEN_AI_USAGE_INPUT_TOKENS: 'gen_ai.usage.input_tokens',
@@ -102,6 +110,20 @@ export const SPAN_KEYS = {
   ARTIFACT_DATA: 'artifact.data',
   ARTIFACT_NAME: 'artifact.name',
   ARTIFACT_DESCRIPTION: 'artifact.description',
+
+  // Context breakdown attributes (estimated token counts)
+  CONTEXT_BREAKDOWN_SYSTEM_TEMPLATE: 'context.breakdown.system_template_tokens',
+  CONTEXT_BREAKDOWN_CORE_INSTRUCTIONS: 'context.breakdown.core_instructions_tokens',
+  CONTEXT_BREAKDOWN_AGENT_PROMPT: 'context.breakdown.agent_prompt_tokens',
+  CONTEXT_BREAKDOWN_TOOLS: 'context.breakdown.tools_tokens',
+  CONTEXT_BREAKDOWN_ARTIFACTS: 'context.breakdown.artifacts_tokens',
+  CONTEXT_BREAKDOWN_DATA_COMPONENTS: 'context.breakdown.data_components_tokens',
+  CONTEXT_BREAKDOWN_ARTIFACT_COMPONENTS: 'context.breakdown.artifact_components_tokens',
+  CONTEXT_BREAKDOWN_TRANSFER_INSTRUCTIONS: 'context.breakdown.transfer_instructions_tokens',
+  CONTEXT_BREAKDOWN_DELEGATION_INSTRUCTIONS: 'context.breakdown.delegation_instructions_tokens',
+  CONTEXT_BREAKDOWN_THINKING_PREPARATION: 'context.breakdown.thinking_preparation_tokens',
+  CONTEXT_BREAKDOWN_CONVERSATION_HISTORY: 'context.breakdown.conversation_history_tokens',
+  CONTEXT_BREAKDOWN_TOTAL: 'context.breakdown.total_tokens',
 } as const;
 
 export const UNKNOWN_VALUE = 'unknown' as const;
@@ -117,6 +139,10 @@ export const ACTIVITY_TYPES = {
   AI_ASSISTANT_MESSAGE: 'ai_assistant_message',
   AI_MODEL_STREAMED_TEXT: 'ai_model_streamed_text',
   AI_MODEL_STREAMED_OBJECT: 'ai_model_streamed_object',
+  TOOL_APPROVAL_REQUESTED: 'tool_approval_requested',
+  TOOL_APPROVAL_APPROVED: 'tool_approval_approved',
+  TOOL_APPROVAL_DENIED: 'tool_approval_denied',
+  COMPRESSION: 'compression',
 } as const;
 
 /** Activity Status Values */
@@ -124,6 +150,7 @@ export const ACTIVITY_STATUS = {
   SUCCESS: 'success',
   ERROR: 'error',
   PENDING: 'pending',
+  WARNING: 'warning',
 } as const;
 
 /** Agent IDs */

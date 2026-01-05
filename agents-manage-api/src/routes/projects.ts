@@ -9,7 +9,6 @@ import {
   listProjectsPaginated,
   PaginationQueryParamsSchema,
   ProjectApiInsertSchema,
-  ProjectApiSelectSchema,
   ProjectApiUpdateSchema,
   ProjectListResponse,
   ProjectResponse,
@@ -17,10 +16,29 @@ import {
   TenantParamsSchema,
   updateProject,
 } from '@inkeep/agents-core';
-
 import dbClient from '../data/db/dbClient';
+import { requirePermission } from '../middleware/require-permission';
+import type { BaseAppVariables } from '../types/app';
+import { speakeasyOffsetLimitPagination } from './shared';
 
-const app = new OpenAPIHono();
+const app = new OpenAPIHono<{ Variables: BaseAppVariables }>();
+
+app.use('/', async (c, next) => {
+  if (c.req.method === 'POST') {
+    return requirePermission({ project: ['create'] })(c, next);
+  }
+  return next();
+});
+
+app.use('/:id', async (c, next) => {
+  if (c.req.method === 'PATCH') {
+    return requirePermission({ project: ['update'] })(c, next);
+  }
+  if (c.req.method === 'DELETE') {
+    return requirePermission({ project: ['delete'] })(c, next);
+  }
+  return next();
+});
 
 app.openapi(
   createRoute({
@@ -45,6 +63,7 @@ app.openapi(
       },
       ...commonGetErrorResponses,
     },
+    ...speakeasyOffsetLimitPagination,
   }),
   async (c) => {
     const { tenantId } = c.req.valid('param');

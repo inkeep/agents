@@ -1,4 +1,4 @@
-import { and, count, eq } from 'drizzle-orm';
+import { and, count, eq, inArray } from 'drizzle-orm';
 import type { DatabaseClient } from '../db/client';
 import { ledgerArtifacts } from '../db/schema';
 import type { Artifact, LedgerArtifactSelect, Part, ProjectScopeConfig } from '../types/index';
@@ -183,7 +183,27 @@ export const upsertLedgerArtifact =
           return { created: false, existing: existing[0] };
         }
       }
-      throw error;
+
+      // Create a cleaner error message without exposing massive artifact data
+      const sanitizedError = new Error(
+        `Failed to insert artifact ${artifactRow.id}: ${error.message?.split('\nparams:')[0] || error.message}`
+      );
+      sanitizedError.name = error.name;
+      sanitizedError.cause = error.code || error.errno;
+
+      // TEMPORARY DEBUG: Log full error for debugging compression artifacts
+      if (artifactRow.id?.includes('compress_')) {
+        console.error('COMPRESSION ARTIFACT FULL ERROR:', {
+          artifactId: artifactRow.id,
+          errorMessage: error.message,
+          errorCode: error.code,
+          errorName: error.name,
+          errorStack: error.stack,
+          fullError: error,
+        });
+      }
+
+      throw sanitizedError;
     }
   };
 
@@ -268,12 +288,36 @@ export const addLedgerArtifacts =
       }
     }
 
-    throw lastError;
+    // Create a cleaner error message without exposing massive artifact data
+    const sanitizedError = new Error(
+      `Failed to insert ${rows.length} artifacts after ${maxRetries} attempts: ${lastError?.message?.split('\nparams:')[0] || lastError?.message}`
+    );
+    sanitizedError.name = lastError?.name;
+    sanitizedError.cause = lastError?.code || lastError?.errno;
+
+    // TEMPORARY DEBUG: Log full error for debugging compression artifacts
+    const hasCompressionArtifacts = rows.some((row) => row.id?.includes('compress_'));
+    if (hasCompressionArtifacts) {
+      console.error('COMPRESSION ARTIFACTS BULK INSERT FULL ERROR:', {
+        artifactCount: rows.length,
+        compressionArtifacts: rows
+          .filter((row) => row.id?.includes('compress_'))
+          .map((row) => row.id),
+        errorMessage: lastError?.message,
+        errorCode: lastError?.code,
+        errorName: lastError?.name,
+        errorStack: lastError?.stack,
+        fullError: lastError,
+      });
+    }
+
+    throw sanitizedError;
   };
 
 /**
- * Retrieve artifacts by taskId, toolCallId, and/or artifactId.
- * At least one of taskId, toolCallId, or artifactId must be provided.
+ * Retrieve artifacts by taskId, toolCallId, toolCallIds, and/or artifactId.
+ * At least one of taskId, toolCallId, toolCallIds, or artifactId must be provided.
+ * Use toolCallIds for batch queries to avoid N+1 query problems.
  */
 export const getLedgerArtifacts =
   (db: DatabaseClient) =>
@@ -281,12 +325,22 @@ export const getLedgerArtifacts =
     scopes: ProjectScopeConfig;
     taskId?: string;
     toolCallId?: string;
+    toolCallIds?: string[];
     artifactId?: string;
   }): Promise<Artifact[]> => {
-    const { scopes, taskId, toolCallId, artifactId } = params;
+    const { scopes, taskId, toolCallId, toolCallIds, artifactId } = params;
 
-    if (!taskId && !toolCallId && !artifactId) {
-      throw new Error('At least one of taskId, toolCallId, or artifactId must be provided');
+    if (!taskId && !toolCallId && !toolCallIds && !artifactId) {
+      throw new Error(
+        'At least one of taskId, toolCallId, toolCallIds, or artifactId must be provided'
+      );
+    }
+
+    // Validate that both toolCallId and toolCallIds are not provided
+    if (toolCallId && toolCallIds) {
+      throw new Error(
+        'Cannot provide both toolCallId and toolCallIds. Use toolCallIds for batch queries.'
+      );
     }
 
     const conditions = [
@@ -306,6 +360,10 @@ export const getLedgerArtifacts =
       conditions.push(eq(ledgerArtifacts.toolCallId, toolCallId));
     }
 
+    if (toolCallIds && toolCallIds.length > 0) {
+      conditions.push(inArray(ledgerArtifacts.toolCallId, toolCallIds));
+    }
+
     const query = db
       .select()
       .from(ledgerArtifacts)
@@ -323,6 +381,7 @@ export const getLedgerArtifacts =
         description: row.description ?? undefined,
         parts: (row.parts ?? []) as Part[], // row.parts may be null in DB
         metadata: row.metadata || {},
+        createdAt: row.createdAt, // Added for sorting artifacts by creation time
       })
     );
   };

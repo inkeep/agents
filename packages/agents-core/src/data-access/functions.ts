@@ -1,9 +1,8 @@
-import { and, eq } from 'drizzle-orm';
+import { and, count, desc, eq } from 'drizzle-orm';
 import type { DatabaseClient } from '../db/client';
 import { functions } from '../db/schema';
 import type { FunctionApiInsert } from '../types/entities';
-import type { ProjectScopeConfig } from '../types/utility';
-import { autoDetectDependencies } from '../utils/detectDependencies';
+import type { PaginationConfig, ProjectScopeConfig } from '../types/utility';
 
 /**
  * Create or update a function (project-scoped)
@@ -17,6 +16,7 @@ export const upsertFunction =
     // Auto-detect dependencies if not provided
     let dependencies = data.dependencies;
     if (!dependencies || Object.keys(dependencies).length === 0) {
+      const { autoDetectDependencies } = await import('../utils/detectDependencies');
       dependencies = autoDetectDependencies(data.executeCode);
     }
 
@@ -104,6 +104,40 @@ export const listFunctions =
       .where(and(eq(functions.tenantId, tenantId), eq(functions.projectId, projectId)));
 
     return result;
+  };
+
+/**
+ * List all functions for a project with pagination
+ */
+export const listFunctionsPaginated =
+  (db: DatabaseClient) =>
+  async (params: { scopes: ProjectScopeConfig; pagination?: PaginationConfig }) => {
+    const { scopes, pagination } = params;
+    const { tenantId, projectId } = scopes;
+    const page = pagination?.page || 1;
+    const limit = Math.min(pagination?.limit || 10, 100);
+    const offset = (page - 1) * limit;
+
+    const whereClause = and(eq(functions.tenantId, tenantId), eq(functions.projectId, projectId));
+
+    const [data, totalResult] = await Promise.all([
+      db
+        .select()
+        .from(functions)
+        .where(whereClause)
+        .limit(limit)
+        .offset(offset)
+        .orderBy(desc(functions.createdAt)),
+      db.select({ count: count() }).from(functions).where(whereClause),
+    ]);
+
+    const total = totalResult[0]?.count || 0;
+    const pages = Math.ceil(total / limit);
+
+    return {
+      data,
+      pagination: { page, limit, total, pages },
+    };
   };
 
 /**

@@ -1,21 +1,22 @@
 import type { Edge, Node } from '@xyflow/react';
-import type {
-  AgentToolConfigLookup,
-  SubAgentExternalAgentConfigLookup,
-  SubAgentTeamAgentConfigLookup,
-} from '@/components/agent/agent';
 import type { AgentMetadata } from '@/components/agent/configuration/agent-types';
 import type { A2AEdgeData } from '@/components/agent/configuration/edge-types';
 import { EdgeType } from '@/components/agent/configuration/edge-types';
 import { NodeType } from '@/components/agent/configuration/node-types';
 import type { ArtifactComponent } from '@/lib/api/artifact-components';
 import type { DataComponent } from '@/lib/api/data-components';
-import type { FullAgentDefinition, InternalAgentDefinition } from '@/lib/types/agent-full';
+import type {
+  AgentToolConfigLookup,
+  FullAgentDefinition,
+  InternalAgentDefinition,
+  SubAgentExternalAgentConfigLookup,
+  SubAgentTeamAgentConfigLookup,
+} from '@/lib/types/agent-full';
 import type { ExternalAgent } from '@/lib/types/external-agents';
 import type { TeamAgent } from '@/lib/types/team-agents';
 import { generateId } from '@/lib/utils/id-utils';
 
-export type ExtendedAgent = InternalAgentDefinition & {
+type ExtendedAgent = InternalAgentDefinition & {
   dataComponents: string[];
   artifactComponents: string[];
   models?: AgentMetadata['models'];
@@ -201,10 +202,32 @@ export function serializeAgentData(
               }
             }
 
+            const tempToolPolicies = (mcpNode.data as any).tempToolPolicies;
+            let toolPolicies: Record<string, { needsApproval?: boolean }> | null = null;
+
+            if (tempToolPolicies !== undefined) {
+              if (
+                typeof tempToolPolicies === 'object' &&
+                tempToolPolicies !== null &&
+                !Array.isArray(tempToolPolicies)
+              ) {
+                toolPolicies = tempToolPolicies;
+              }
+            } else {
+              // No changes made to tool policies - preserve existing policies
+              const existingConfig = relationshipId
+                ? agentToolConfigLookup?.[subAgentId]?.[relationshipId]
+                : null;
+              if (existingConfig?.toolPolicies) {
+                toolPolicies = existingConfig.toolPolicies;
+              }
+            }
+
             canUse.push({
               toolId,
               toolSelection,
               headers: toolHeaders,
+              toolPolicies,
               ...(relationshipId && { agentToolRelationId: relationshipId }),
             });
           }
@@ -378,8 +401,8 @@ export function serializeAgentData(
         agent: ExtendedAgent,
         relationshipType: 'canTransferTo' | 'canDelegateTo',
         targetId: string,
-        isExternal: boolean = false,
-        isTeamAgent: boolean = false,
+        isExternal = false,
+        isTeamAgent = false,
         headers?: Record<string, string>,
         relationshipId?: string
       ) => {
@@ -629,7 +652,7 @@ export function serializeAgentData(
     (result as any).stopWhen = metadata.stopWhen;
   }
 
-  if (metadata?.prompt) {
+  if (metadata) {
     (result as any).prompt = metadata.prompt;
   }
 

@@ -85,7 +85,7 @@ export class ArtifactComponent implements ArtifactComponentInterface {
   }
 
   getDescription(): string {
-    return this.config.description;
+    return this.config.description || '';
   }
 
   getProps(): ArtifactComponentType['props'] {

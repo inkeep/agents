@@ -7,27 +7,23 @@
  * type-safe functions that can be called from React components.
  */
 
+import type { AgentApiInsert } from '@inkeep/agents-core/client-exports';
 import { revalidatePath } from 'next/cache';
 import {
   ApiError,
+  createAgent as apiCreateAgent,
   createFullAgent as apiCreateFullAgent,
   deleteFullAgent as apiDeleteFullAgent,
   fetchAgents as apiFetchAgents,
-  fetchTeamAgents as apiFetchTeamAgents,
   getFullAgent as apiGetFullAgent,
   updateFullAgent as apiUpdateFullAgent,
 } from '../api/agent-full-client';
-import {
-  type Agent,
-  type FullAgentDefinition,
-  FullAgentDefinitionSchema,
-} from '../types/agent-full';
-import type { TeamAgent } from '../types/team-agents';
+import type { Agent, FullAgentDefinition } from '../types/agent-full';
 
 /**
  * Result type for server actions - follows a consistent pattern
  */
-export type ActionResult<T = void> =
+type ActionResult<T = void> =
   | {
       success: true;
       data: T;
@@ -57,24 +53,34 @@ export async function getAllAgentsAction(
   }
 }
 
-/**
- * Fetch barebones metadata for all agents in a project to be used with team agent relations
- */
-export async function fetchTeamAgentsAction(
+export async function createAgentAction(
   tenantId: string,
-  projectId: string
-): Promise<ActionResult<TeamAgent[]>> {
+  projectId: string,
+  agentData: AgentApiInsert
+): Promise<ActionResult<AgentApiInsert>> {
   try {
-    const response = await apiFetchTeamAgents(tenantId, projectId);
+    const response = await apiCreateAgent(tenantId, projectId, agentData);
+    // Revalidate relevant pages
+    revalidatePath(`/${tenantId}/projects/${projectId}/agents`);
+    revalidatePath(`/${tenantId}/projects/${projectId}/agents/${response.data.id}`);
+
     return {
       success: true,
-      data: response,
+      data: response.data,
     };
   } catch (error) {
+    if (error instanceof ApiError) {
+      return {
+        success: false,
+        error: error.message,
+        code: error.error.code,
+      };
+    }
+
     return {
       success: false,
-      error: error instanceof Error ? error.message : 'Failed to fetch team agents',
-      code: 'unknown_error',
+      error: error instanceof Error ? error.message : 'Failed to create agent',
+      code: 'validation_error',
     };
   }
 }
@@ -224,26 +230,6 @@ export async function deleteFullAgentAction(
       success: false,
       error: error instanceof Error ? error.message : 'Failed to delete agent',
       code: 'unknown_error',
-    };
-  }
-}
-
-/**
- * Validate agent data without making an API call
- * Useful for form validation on the client side
- */
-export async function validateAgentData(data: unknown): Promise<ActionResult<FullAgentDefinition>> {
-  try {
-    const validatedData = FullAgentDefinitionSchema.parse(data);
-    return {
-      success: true,
-      data: validatedData,
-    };
-  } catch (error) {
-    return {
-      success: false,
-      error: error instanceof Error ? error.message : 'Validation failed',
-      code: 'validation_error',
     };
   }
 }

@@ -24,8 +24,28 @@ import {
   validateSubAgent,
 } from '@inkeep/agents-core';
 import dbClient from '../data/db/dbClient';
+import { requirePermission } from '../middleware/require-permission';
+import type { BaseAppVariables } from '../types/app';
+import { speakeasyOffsetLimitPagination } from './shared';
 
-const app = new OpenAPIHono();
+const app = new OpenAPIHono<{ Variables: BaseAppVariables }>();
+
+app.use('/', async (c, next) => {
+  if (c.req.method === 'POST') {
+    return requirePermission({ sub_agent: ['create'] })(c, next);
+  }
+  return next();
+});
+
+app.use('/:id', async (c, next) => {
+  if (c.req.method === 'PUT') {
+    return requirePermission({ sub_agent: ['update'] })(c, next);
+  }
+  if (c.req.method === 'DELETE') {
+    return requirePermission({ sub_agent: ['delete'] })(c, next);
+  }
+  return next();
+});
 
 app.openapi(
   createRoute({
@@ -49,6 +69,7 @@ app.openapi(
       },
       ...commonGetErrorResponses,
     },
+    ...speakeasyOffsetLimitPagination,
   }),
   async (c) => {
     const { tenantId, projectId, agentId } = c.req.valid('param');

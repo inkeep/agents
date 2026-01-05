@@ -6,12 +6,12 @@ on:
       - main
       - master
   pull_request:
-    branches: ['*']
+    branches: ["*"]
   merge_group:
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
-  cancel-in-progress: true
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 jobs:
   ci:
@@ -91,6 +91,9 @@ jobs:
 
       - name: Biome Format
         run: pnpm format:check
+
+      - name: Check for unused dependencies, exports, and types
+        run: pnpm knip
 
       # Create summary report
       - name: Create CI Summary
@@ -177,7 +180,7 @@ jobs:
           HUSKY: 0
 
       - name: Build create-agents
-        run: pnpm --filter @inkeep/create-agents build
+        run: npx turbo build --filter='@inkeep/create-agents'
         env:
           TURBO_TELEMETRY_DISABLED: 1
           TURBO_CACHE_DIR: .turbo
@@ -185,4 +188,4 @@ jobs:
           TURBO_TEAM: ${{ secrets.TURBO_TEAM }}
 
       - name: Run create-agents E2E tests
-        run: pnpm --filter @inkeep/create-agents test:e2e
+        run: pnpm test:e2e --filter @inkeep/create-agents

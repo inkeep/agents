@@ -7,7 +7,8 @@ import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
 import { useNodeEditor } from '@/hooks/use-node-editor';
 import type { FunctionToolNodeData } from '../../configuration/node-types';
-import { InputField, TextareaField } from './form-fields';
+import { InputField } from '../form-components/input';
+import { TextareaField } from '../form-components/text-area';
 
 interface FunctionToolNodeEditorProps {
   selectedNode: Node<FunctionToolNodeData>;
@@ -131,7 +132,6 @@ export function FunctionToolNodeEditor({ selectedNode }: FunctionToolNodeEditorP
         onChange={handleDescriptionChange}
         placeholder="Enter function tool description..."
         error={getFieldError('description')}
-        isRequired
         maxHeight="max-h-32"
       />
       <div className="space-y-2">

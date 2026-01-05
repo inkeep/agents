@@ -1,6 +1,6 @@
 # Inkeep Agents
 
-Build AI Agents with a **No-Code Visual Builder** or **TypeScript SDK**. Agents can be edited in either with **full 2-way sync**, so technical and non-technical teams can create and manage Agents in a single platform. 
+Build AI Agents with a **No-Code Visual Builder** or **TypeScript SDK**. Agents can be edited in either with **full 2-way sync**, so technical and non-technical teams can create and manage Agents in one platform. 
 
 Get started with the [docs](https://docs.inkeep.com) or [1-minute quick start](https://docs.inkeep.com/get-started/quick-start).
 
@@ -8,7 +8,7 @@ Get started with the [docs](https://docs.inkeep.com) or [1-minute quick start](h
 
 ### No-Code Visual Builder
 
-A no-code, drag-and-drop canvas so any team can create and own the Agents they care about. 
+A drag-and-drop canvas so any team can create and own the Agents they care about.
 
 <img
   src="agents-docs/public/gifs/drag-n-drop.gif"
@@ -30,7 +30,7 @@ const helloAgent = subAgent({
   name: "Hello Agent",
   description: "Says hello",
   canUse: () => [consoleMcp], 
-  prompt: 'Reply to the user and console log "hello world" in fun variations like h3llo world.',
+  prompt: `Reply to the user and console log "hello world" with fun variations like h3llo world`,
 });
 
 export const basicAgent = agent({
@@ -78,9 +78,9 @@ The Inkeep Agent Platform is composed of several key services and libraries that
 - **agents-sdk**: TypeScript SDK (`@inkeep/agents-sdk`) for declaratively defining Agents and custom tools in code. Writes to `agents-manage-api`.
 - **agents-cli**: Includes various handy utilities, including `inkeep push` and `inkeep pull` which sync your TypeScript SDK code with the Visual Builder.
 - **agents-run-api**: The Runtime API that exposes Agents as APIs and executes Agent conversations. Keeps conversation state and emits OTEL traces.
-- **agents-ui**: A UI component library of chat interfaces for embedding rich, dynamic Agent conversational experiences in web apps.
+- **agents-ui**: A UI component library of chat interfaces for embedding rich, dynamic conversational AI experiences in web apps.
 
-Under the hood, the framework uses the [Vercel AI SDK](https://ai-sdk.dev/docs/introduction) for interfacing with LLM providers, so it's compatible with Vercel's [`useChat`](https://ai-sdk.dev/docs/ai-sdk-ui) hook other AI primatives.
+Under the hood, the framework uses the [Vercel AI SDK](https://ai-sdk.dev/docs/introduction) for interfacing with LLM providers, so it's compatible with Vercel's [`useChat`](https://ai-sdk.dev/docs/ai-sdk-ui) hook and other AI primatives.
 
 ## License and Community
 

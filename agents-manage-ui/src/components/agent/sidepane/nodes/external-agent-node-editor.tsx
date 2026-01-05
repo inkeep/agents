@@ -11,10 +11,11 @@ import type { ErrorHelpers } from '@/hooks/use-agent-errors';
 import { useAutoPrefillIdZustand } from '@/hooks/use-auto-prefill-id-zustand';
 import { useNodeEditor } from '@/hooks/use-node-editor';
 import type { Credential } from '@/lib/api/credentials';
+import type { SubAgentExternalAgentConfigLookup } from '@/lib/types/agent-full';
 import { getCurrentHeadersForExternalAgentNode } from '@/lib/utils/external-agent-utils';
-import type { SubAgentExternalAgentConfigLookup } from '../../agent';
 import type { ExternalAgentNodeData } from '../../configuration/node-types';
-import { InputField, TextareaField } from './form-fields';
+import { InputField } from '../form-components/input';
+import { TextareaField } from '../form-components/text-area';
 
 interface ExternalAgentNodeEditorProps {
   selectedNode: Node<ExternalAgentNodeData>;

@@ -1,3 +1,4 @@
+import { z } from '@hono/zod-openapi';
 import { Client } from '@modelcontextprotocol/sdk/client/index.js';
 import type { SSEClientTransportOptions } from '@modelcontextprotocol/sdk/client/sse.js';
 import { SSEClientTransport } from '@modelcontextprotocol/sdk/client/sse.js';
@@ -10,11 +11,9 @@ import {
   type ClientCapabilities,
   type Tool,
 } from '@modelcontextprotocol/sdk/types.js';
-
 import { tool } from 'ai';
 import { asyncExitHook, gracefulExit } from 'exit-hook';
 import { match } from 'ts-pattern';
-import { z } from 'zod';
 import {
   MCP_TOOL_CONNECTION_TIMEOUT_MS,
   MCP_TOOL_INITIAL_RECONNECTION_DELAY_MS,
@@ -176,7 +175,7 @@ export class McpClient {
   }
 
   private async selectTools() {
-    const { tools } = await this.client.listTools({ timeout: this.timeout });
+    const { tools } = await this.client.listTools();
 
     const { selectedTools, activeTools } = this.serverConfig;
 
@@ -231,6 +230,9 @@ export class McpClient {
               case 'array':
                 zodType = z.array(z.any());
                 break;
+              case 'object':
+                zodType = createZodSchema(propDef);
+                break;
               default:
                 zodType = z.any();
             }
@@ -246,7 +248,6 @@ export class McpClient {
 
             zodProperties[key] = zodType;
           }
-
           return z.object(zodProperties);
         };
 

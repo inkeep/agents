@@ -39,7 +39,9 @@ export function ModelSelector({
   canClear = true,
 }: ModelSelectorProps) {
   const [open, setOpen] = useState(false);
-  const [showCustomInput, setShowCustomInput] = useState<'openrouter' | 'gateway' | null>(null);
+  const [showCustomInput, setShowCustomInput] = useState<
+    'openrouter' | 'gateway' | 'nim' | 'custom' | null
+  >(null);
   const [customModelInput, setCustomModelInput] = useState('');
 
   const selectedModel = useMemo(() => {
@@ -56,6 +58,14 @@ export function ModelSelector({
       if (value.startsWith('gateway/')) {
         const modelName = value.replace('gateway/', '');
         return { value, label: modelName, prefix: 'gateway/' };
+      }
+      if (value.startsWith('nim/')) {
+        const modelName = value.replace('nim/', '');
+        return { value, label: modelName, prefix: 'nim/' };
+      }
+      if (value.startsWith('custom/')) {
+        const modelName = value.replace('custom/', '');
+        return { value, label: modelName, prefix: 'custom/' };
       }
       return { value, label: `${value} (custom)` };
     }
@@ -153,7 +163,9 @@ export function ModelSelector({
                                 if (
                                   modelValue.includes('/') &&
                                   !modelValue.startsWith('openrouter/') &&
-                                  !modelValue.startsWith('gateway/')
+                                  !modelValue.startsWith('gateway/') &&
+                                  !modelValue.startsWith('nim/') &&
+                                  !modelValue.startsWith('custom/')
                                 ) {
                                   // Could be openrouter format, let user decide or add logic here
                                 }
@@ -175,6 +187,20 @@ export function ModelSelector({
                       );
                     })()}
                   </CommandEmpty>
+                  {/* Custom OpenAI-compatible */}
+                  <CommandGroup heading="Custom OpenAI-compatible">
+                    <CommandItem
+                      className="flex items-center justify-between cursor-pointer text-foreground"
+                      value="__custom__"
+                      onSelect={() => {
+                        setShowCustomInput('custom');
+                        setOpen(false);
+                        setCustomModelInput('');
+                      }}
+                    >
+                      Custom OpenAI-compatible ...
+                    </CommandItem>
+                  </CommandGroup>
                   {/* LLM Gateway options */}
                   <CommandGroup heading="LLM Gateway">
                     <CommandItem
@@ -198,6 +224,17 @@ export function ModelSelector({
                       }}
                     >
                       Vercel AI Gateway ...
+                    </CommandItem>
+                    <CommandItem
+                      className="flex items-center justify-between cursor-pointer text-foreground"
+                      value="__nim__"
+                      onSelect={() => {
+                        setShowCustomInput('nim');
+                        setOpen(false);
+                        setCustomModelInput('');
+                      }}
+                    >
+                      NVIDIA NIM ...
                     </CommandItem>
                   </CommandGroup>
                   {/* Predefined models */}
@@ -236,12 +273,20 @@ export function ModelSelector({
                 <div className="text-sm font-medium">
                   {showCustomInput === 'openrouter'
                     ? 'OpenRouter Model ID'
-                    : 'Vercel AI Gateway Model ID'}
+                    : showCustomInput === 'gateway'
+                      ? 'Vercel AI Gateway Model ID'
+                      : showCustomInput === 'nim'
+                        ? 'NVIDIA NIM Model ID'
+                        : 'Custom Model ID'}
                 </div>
                 <div className="text-xs text-muted-foreground">
                   {showCustomInput === 'openrouter'
                     ? 'Examples: anthropic/claude-3-5-sonnet, meta-llama/llama-3.1-405b-instruct'
-                    : 'Examples: openai/gpt-4o, anthropic/claude-3-5-sonnet'}
+                    : showCustomInput === 'gateway'
+                      ? 'Examples: openai/gpt-4o, anthropic/claude-3-5-sonnet'
+                      : showCustomInput === 'nim'
+                        ? 'Examples: nvidia/llama-3.3-nemotron-super-49b-v1.5, nvidia/nemotron-4-340b-instruct'
+                        : 'Examples: my-custom-model, llama-3-custom, custom-finetuned'}
                 </div>
                 <div className="flex gap-2 items-center">
                   <input
@@ -249,14 +294,24 @@ export function ModelSelector({
                     placeholder={
                       showCustomInput === 'openrouter'
                         ? 'anthropic/claude-3-5-sonnet'
-                        : 'openai/gpt-4o'
+                        : showCustomInput === 'gateway'
+                          ? 'openai/gpt-4o'
+                          : showCustomInput === 'nim'
+                            ? 'nvidia/llama-3.3-nemotron-super-49b-v1.5'
+                            : 'my-custom-model'
                     }
                     value={customModelInput}
                     onChange={(e) => setCustomModelInput(e.target.value)}
                     onKeyDown={(e) => {
                       if (e.key === 'Enter' && customModelInput.trim()) {
                         const prefix =
-                          showCustomInput === 'openrouter' ? 'openrouter/' : 'gateway/';
+                          showCustomInput === 'openrouter'
+                            ? 'openrouter/'
+                            : showCustomInput === 'gateway'
+                              ? 'gateway/'
+                              : showCustomInput === 'nim'
+                                ? 'nim/'
+                                : 'custom/';
                         onValueChange?.(`${prefix}${customModelInput.trim()}`);
                         setShowCustomInput(null);
                         setCustomModelInput('');
@@ -273,7 +328,13 @@ export function ModelSelector({
                     onClick={() => {
                       if (customModelInput.trim()) {
                         const prefix =
-                          showCustomInput === 'openrouter' ? 'openrouter/' : 'gateway/';
+                          showCustomInput === 'openrouter'
+                            ? 'openrouter/'
+                            : showCustomInput === 'gateway'
+                              ? 'gateway/'
+                              : showCustomInput === 'nim'
+                                ? 'nim/'
+                                : 'custom/';
                         onValueChange?.(`${prefix}${customModelInput.trim()}`);
                         setShowCustomInput(null);
                         setCustomModelInput('');
