@@ -187,6 +187,9 @@ importers:
       '@inkeep/agents-cli':
         specifier: workspace:*
         version: link:../agents-cli
+      '@inkeep/agents-core':
+        specifier: workspace:*
+        version: link:../packages/agents-core
       '@inkeep/agents-ui':
         specifier: ^0.15.5
         version: 0.15.5(@types/react-dom@19.2.3(@types/react@19.2.7))(@types/react@19.2.7)(react-dom@19.2.0(react@19.2.0))(react@19.2.0)
@@ -235,6 +238,9 @@ importers:
       hast-util-to-jsx-runtime:
         specifier: ^2.3.6
         version: 2.3.6
+      llm-info:
+        specifier: ^1.0.69
+        version: 1.0.69
       lucide-react:
         specifier: ^0.503.0
         version: 0.503.0(react@19.2.0)

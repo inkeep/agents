@@ -27,7 +27,6 @@ describe('ContextResolver', () => {
         tenantId,
         projectId,
         agentId: 'test-agent',
-        name: 'Test Context Config',
         contextVariables: {
           conversationHistory: {
             id: 'conversation-history-fetch',
@@ -40,8 +39,8 @@ describe('ContextResolver', () => {
             },
           },
         },
-        createdAt: new Date(),
-        updatedAt: new Date(),
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
       };
 
       const options = {
@@ -71,7 +70,6 @@ describe('ContextResolver', () => {
         tenantId,
         projectId,
         agentId: 'test-agent',
-        name: 'Test Context Config',
         contextVariables: {
           conversationHistory: {
             id: 'conversation-history-fetch',
@@ -84,8 +82,8 @@ describe('ContextResolver', () => {
             },
           },
         },
-        createdAt: new Date(),
-        updatedAt: new Date(),
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
       };
 
       const options = {
@@ -114,7 +112,6 @@ describe('ContextResolver', () => {
         tenantId,
         projectId,
         agentId: 'test-agent',
-        name: 'Test Context Config',
         contextVariables: {
           conversationHistory: {
             id: 'conversation-history-fetch',
@@ -128,8 +125,8 @@ describe('ContextResolver', () => {
             defaultValue: { messages: [] }, // Default value provided
           },
         },
-        createdAt: new Date(),
-        updatedAt: new Date(),
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
       };
 
       const options = {
@@ -157,7 +154,6 @@ describe('ContextResolver', () => {
         tenantId,
         projectId,
         agentId: 'test-agent',
-        name: 'Test Context Config',
         contextVariables: {
           conversationHistory: {
             id: 'conversation-history-fetch',
@@ -170,8 +166,8 @@ describe('ContextResolver', () => {
             },
           },
         },
-        createdAt: new Date(),
-        updatedAt: new Date(),
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
       };
 
       const mockResponseData = {
@@ -222,7 +218,6 @@ describe('ContextResolver', () => {
         tenantId,
         projectId,
         agentId: 'test-agent',
-        name: 'Test Context Config',
         contextVariables: {
           conversationHistory: {
             id: 'conversation-history-fetch',
@@ -235,8 +230,8 @@ describe('ContextResolver', () => {
             },
           },
         },
-        createdAt: new Date(),
-        updatedAt: new Date(),
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
       };
 
       // Mock a failed HTTP response
@@ -271,7 +266,6 @@ describe('ContextResolver', () => {
         tenantId,
         projectId,
         agentId: 'test-agent',
-        name: 'Test Context Config',
         contextVariables: {
           conversationHistory: {
             id: 'conversation-history-fetch',
@@ -294,8 +288,8 @@ describe('ContextResolver', () => {
             },
           },
         },
-        createdAt: new Date(),
-        updatedAt: new Date(),
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
       };
 
       const mockUserProfile = { id: 'user-123', name: 'John' };

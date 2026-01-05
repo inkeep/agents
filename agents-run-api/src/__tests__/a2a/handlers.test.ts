@@ -184,6 +184,7 @@ describe('A2A Handlers', () => {
           {
             artifactId: 'artifact-123',
             parts: [{ kind: 'text', text: 'Response message' }],
+            createdAt: '2024-01-15T15:30:00.000Z',
           },
         ],
       };
@@ -233,6 +234,7 @@ describe('A2A Handlers', () => {
           {
             artifactId: 'artifact-123',
             parts: [{ kind: 'text', text: 'Response message' }],
+            createdAt: '2024-01-15T16:30:00.000Z',
           },
         ],
       };
@@ -280,6 +282,7 @@ describe('A2A Handlers', () => {
                 },
               },
             ],
+            createdAt: '2024-01-15T17:30:00.000Z',
           },
         ],
       };

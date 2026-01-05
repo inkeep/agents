@@ -699,6 +699,79 @@ export function renderPanelContent({
         </>
       );
 
+    case 'compression':
+      return (
+        <>
+          <Section>
+            <Info
+              label="Compression type"
+              value={
+                <Badge variant={a.compressionType === 'mid_generation' ? 'secondary' : 'default'}>
+                  {a.compressionType === 'mid_generation'
+                    ? 'Context Compacting'
+                    : a.compressionType === 'conversation_level'
+                      ? 'Conversation History Compacting'
+                      : a.compressionType || 'Unknown'}
+                </Badge>
+              }
+            />
+            <Info
+              label="Session ID"
+              value={a.subAgentId ? <Badge variant="code">{a.subAgentId}</Badge> : '-'}
+            />
+            <Info
+              label="Messages processed"
+              value={a.compressionMessageCount?.toLocaleString() || '0'}
+            />
+            <Info label="Input tokens" value={a.compressionInputTokens?.toLocaleString() || '0'} />
+            <Info
+              label="Output tokens"
+              value={a.compressionOutputTokens?.toLocaleString() || '0'}
+            />
+            {a.compressionRatio !== undefined && (
+              <Info
+                label="Compression ratio"
+                value={
+                  <Badge variant="code" className="font-mono">
+                    {(a.compressionRatio * 100).toFixed(1)}%
+                  </Badge>
+                }
+              />
+            )}
+            {a.compressionArtifactCount !== undefined && a.compressionArtifactCount > 0 && (
+              <Info label="Artifacts created" value={a.compressionArtifactCount.toLocaleString()} />
+            )}
+            <Info
+              label="Hard limit"
+              value={`${a.compressionHardLimit?.toLocaleString() || '0'} tokens`}
+            />
+            <Info
+              label="Safety buffer"
+              value={`${a.compressionSafetyBuffer?.toLocaleString() || '0'} tokens`}
+            />
+            {a.compressionFallbackUsed && (
+              <LabeledBlock label="Fallback used">
+                <Badge variant="outline" className="text-amber-600 border-amber-600">
+                  Simple compression fallback
+                </Badge>
+              </LabeledBlock>
+            )}
+            {a.compressionError && (
+              <LabeledBlock label="Error">
+                <Bubble className="bg-red-50 border-red-200 text-red-800 dark:bg-red-900/20 dark:border-red-800 dark:text-red-300">
+                  {a.compressionError}
+                </Bubble>
+              </LabeledBlock>
+            )}
+            <StatusBadge status={a.status} />
+            <Info label="Timestamp" value={formatDateTime(a.timestamp)} />
+          </Section>
+          <Divider />
+          {SignozButton}
+          {AdvancedBlock}
+        </>
+      );
+
     default:
       return null;
   }

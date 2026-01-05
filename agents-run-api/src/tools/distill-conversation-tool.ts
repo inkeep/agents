@@ -97,8 +97,9 @@ export async function distillConversation(params: {
             } else if (block.type === 'tool-result') {
               const artifactId = toolCallToArtifactMap?.[block.toolCallId];
               const artifactInfo = artifactId ? `\n[ARTIFACT CREATED: ${artifactId}]` : '';
+
               parts.push(
-                `[TOOL RESULT] ${block.toolName} [ID: ${block.toolCallId}]${artifactInfo}\nResult: ${JSON.stringify(block.result)}`
+                `[TOOL RESULT] ${block.toolName} [ID: ${block.toolCallId}]${artifactInfo}\nResult: ${JSON.stringify(block.output)}`
               );
             }
           }
@@ -110,18 +111,6 @@ export async function distillConversation(params: {
       })
       .filter((line) => line.trim().length > 0) // Remove empty lines
       .join('\n\n');
-
-    logger.debug(
-      {
-        conversationId,
-        messageCount: messages.length,
-        formattedLength: formattedMessages.length,
-        sampleMessages: messages
-          .slice(0, 2)
-          .map((m) => ({ role: m.role, contentType: typeof m.content, hasContent: !!m.content })),
-      },
-      'Formatting messages for distillation'
-    );
 
     const prompt = `You are a conversation summarization assistant. Your job is to create or update a compact, structured summary that captures VALUABLE CONTENT and FINDINGS, not just operational details.
 
@@ -168,6 +157,7 @@ Create/update a summary using this exact JSON schema:
 🎯 **BE CONCRETE**: Use specific details from tool results, not generic descriptions
 🎯 **BE CONCISE**: Keep ALL fields brief - you are compressing to save context, not writing a report
 🎯 **LIMIT NEXT STEPS**: Agent has already done substantial work - suggest minimal follow-up actions only
+🎯 **HANDLE TRANSFERS SIMPLY**: Agent transfers/delegations are just routing - don't look for reasons or justifications. Simply note "conversation transferred to [specialist]" if relevant.
 
 **Examples:**
 ❌ BAD: "Assistant used search tool and created artifacts"
@@ -175,6 +165,9 @@ Create/update a summary using this exact JSON schema:
 
 ❌ BAD: "Tool calls were made to gather information"  
 ✅ GOOD: "Platform includes 10 feature categories: chat widgets, knowledge base, analytics, integrations, theming options"
+
+❌ BAD: "Assistant needed to transfer to QA because user required specialized testing help"
+✅ GOOD: "Conversation transferred to QA specialist"
 
 **Focus on WHAT WAS LEARNED, not HOW IT WAS LEARNED**
 
@@ -188,16 +181,6 @@ Return **only** valid JSON.`;
 
     // Set session ID
     summary.session_id = conversationId;
-
-    logger.info(
-      {
-        conversationId,
-        messageCount: messages.length,
-        artifactsCount: summary.related_artifacts?.length || 0,
-        decisionsCount: summary.decisions.length,
-      },
-      'Successfully distilled conversation'
-    );
 
     return summary;
   } catch (error) {

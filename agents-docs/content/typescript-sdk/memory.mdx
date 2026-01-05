@@ -6,6 +6,8 @@ icon: LuBrain
 keywords: memory, context window, conversation history, message limits, token limits, delegation, tool results
 ---
 
+import { CompressionModelsTable } from '../../src/components/compression-models-table';
+
 ## Overview
 
 Conversation memory determines how much of the conversation history is included in the context window when your Agent processes a new message. The Inkeep Agent Framework automatically manages conversation history to balance context retention with token efficiency, with specialized handling for delegated agents and tool results.
@@ -18,31 +20,97 @@ The conversation history now includes:
 - **Tool results**: Results from tool executions, providing context about what actions were performed
 - **Agent communications**: Messages exchanged between agents during transfers and delegations
 
-## Default Limits
+## Memory Management
 
-By default, the system includes conversation history using these limits:
+The system uses two approaches for managing conversation history:
 
+### Intelligent Compression (Primary Method)
+When agents have a summarizer model configured (standard setup):
+- **Up to 10,000 messages**: Retrieves extensive conversation history to find compression summaries and make intelligent decisions
+- **No token limits**: Model-aware compression manages context based on each model's actual capabilities
+- **Dynamic optimization**: Automatically compresses when approaching model-specific thresholds (50% for conversation-level, 75-91% for sub-agent operations)
+
+### Fixed Limits (Fallback Method)
+For agents without a summarizer model:
 - **50 messages**: Up to the 50 most recent messages from the conversation
 - **8,000 tokens**: Maximum of 8,000 tokens from previous conversation messages
 
 <Note>
-  The 50-message and 8,000-token limits are the default values. The token limit can be adjusted via the `AGENTS_CONVERSATION_HISTORY_MAX_OUTPUT_TOKENS_DEFAULT` environment variable if needed.
+  Most agents use intelligent compression, which provides superior context management tailored to each model's capabilities. The fixed limits serve as safety nets when a summarizer model is not available.
+</Note>
+
+## Intelligent Compression System
+
+The framework's intelligent compression system is the primary method for managing conversation memory. It automatically analyzes model capabilities and compresses context when needed to optimize performance.
+
+### How Compression Works
+
+The compression system operates continuously, making intelligent decisions about context management:
+
+<Steps>
+  <Step>
+    **Context Monitoring**: System continuously monitors conversation size against model limits
+  </Step>
+  <Step>
+    **Automatic Triggering**: Compression triggers at 50% of context window for conversation-level, or at model-aware thresholds (~75-91% depending on model size) for sub-agent generation
+  </Step>
+  <Step>
+    **Tool Result Archiving**: Large tool results are stored as artifacts and replaced with summary references
+  </Step>
+  <Step>
+    **AI Summarization**: Older conversation parts are summarized by AI while preserving key context
+  </Step>
+  <Step>
+    **Fallback Protection**: If compression is unavailable, system falls back to fixed message and token limits
+  </Step>
+</Steps>
+
+### Model-Specific Behavior
+
+Different models have different context windows, and compression adapts accordingly:
+
+<CompressionModelsTable />
+
+### Compression Types
+
+#### Conversation-Level Compression
+- **Trigger**: When conversation reaches 50% of model's context window
+- **Action**: Compresses entire conversation history into summary + artifacts
+- **Use Case**: Long conversations with extensive history
+
+**Example**: You have a 20-message conversation about planning a software project. The conversation includes requirements gathering, architecture discussions, and code reviews. When it hits the 50% threshold, the system creates a summary like "User discussed project requirements for e-commerce platform, decided on microservices architecture, reviewed authentication flow..." and stores detailed tool outputs as artifacts.
+
+#### Sub-Agent Generation Compression  
+- **Trigger**: During sub-agent execution when tool results exceed model-aware limits (75-91% depending on model size)
+- **Action**: Compresses generated tool results while preserving original context
+- **Use Case**: Sub-agents performing many tool operations during generation
+
+**Example**: A sub-agent is tasked with "analyze this codebase for security issues." During execution, it uses tools to:
+1. Read 15 different files (large outputs)
+2. Run security scans (detailed reports) 
+3. Check dependencies (long lists)
+4. Analyze configurations (verbose JSON)
+
+When these tool results fill up the context window, the system compresses them into: "Analyzed 15 files, found 3 SQL injection risks in auth.py, 2 XSS vulnerabilities in templates..." while keeping the original conversation and task intact.
+
+<Note>
+  Compression happens automatically and transparently. Your agents will continue to work normally even with compressed conversations, as the system preserves all essential context and provides artifact references for detailed information.
 </Note>
 
 ## How It Works
 
 <Steps>
   <Step>
-    **Message Retrieval**: The system retrieves up to 50 most recent messages from the conversation history
+    **Message Retrieval**: The system retrieves conversation history (up to 10,000 messages with intelligent compression, or 50 messages with fixed limits)
   </Step>
   <Step>
     **Delegation Filtering**: Messages are filtered based on delegation context - delegated agents see their own tool results plus top-level conversation context
   </Step>
   <Step>
-    **Token Calculation**: Remaining messages are processed, calculating token count for each message
+    **Context Management**: With intelligent compression, the system analyzes model capabilities and compresses when needed. With fixed limits, messages are truncated at token thresholds.
   </Step>
   <Step>
-    **Exclusion**: If the total token count exceeds 4,000 tokens, older messages are excluded from the context window
+    **Optimization**: Intelligent compression creates summaries and artifacts to preserve essential context while staying within model limits
   </Step>
 </Steps>
 
