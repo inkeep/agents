@@ -6,6 +6,8 @@ icon: LuBrain
 keywords: memory, context window, conversation history, message limits, token limits, delegation, tool results
 ---
 
+import { CompressionModelsTable } from '../../src/components/compression-models-table';
+
 ## Overview
 
 Conversation memory determines how much of the conversation history is included in the context window when your Agent processes a new message. The Inkeep Agent Framework automatically manages conversation history to balance context retention with token efficiency, with specialized handling for delegated agents and tool results.
@@ -116,11 +118,7 @@ The compacting system activates automatically when conversations approach token 
 
 Different models have different context windows, and compacting adapts accordingly:
 
-| Model | Context Window | Conversation Threshold | Sub-Agent Generation Threshold |
-|-------|----------------|------------------------|--------------------------------|
-| GPT-5.1 | 400K tokens | 200K (50%) | ~332K (83%) |
-| Claude-4.5 Sonnet | 200K tokens | 100K (50%) | ~166K (83%) |
-| Gemini 3 Flash | 1M tokens | 500K (50%) | ~910K (91%) |
+<CompressionModelsTable />
 
 ### Compacting Types
 
@@ -129,10 +127,20 @@ Different models have different context windows, and compacting adapts according
 - **Action**: Compacts entire conversation history into summary + artifacts
 - **Use Case**: Long conversations with extensive history
 
+**Example**: You have a 20-message conversation about planning a software project. The conversation includes requirements gathering, architecture discussions, and code reviews. When it hits the 50% threshold, the system creates a summary like "User discussed project requirements for e-commerce platform, decided on microservices architecture, reviewed authentication flow..." and stores detailed tool outputs as artifacts.
+
 #### Sub-Agent Generation Compacting  
 - **Trigger**: During sub-agent execution when tool results exceed model-aware limits (75-91% depending on model size)
 - **Action**: Compacts generated tool results while preserving original context
 - **Use Case**: Sub-agents performing many tool operations during generation
+
+**Example**: A sub-agent is tasked with "analyze this codebase for security issues." During execution, it uses tools to:
+1. Read 15 different files (large outputs)
+2. Run security scans (detailed reports) 
+3. Check dependencies (long lists)
+4. Analyze configurations (verbose JSON)
+
+When these tool results fill up the context window, the system compacts them into: "Analyzed 15 files, found 3 SQL injection risks in auth.py, 2 XSS vulnerabilities in templates..." while keeping the original conversation and task intact.
 
 <Note>
   Compacting happens automatically and transparently. Your agents will continue to work normally even with compacted conversations, as the system preserves all essential context and provides artifact references for detailed information.
