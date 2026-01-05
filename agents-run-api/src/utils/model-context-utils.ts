@@ -27,7 +27,7 @@ export function extractModelIdForLlmInfo(modelInput: string): string;
 export function extractModelIdForLlmInfo(modelSettings?: ModelSettings): string | null;
 export function extractModelIdForLlmInfo(modelInput?: string | ModelSettings): string | null {
   let modelString: string;
-  
+
   if (typeof modelInput === 'string') {
     modelString = modelInput.trim();
     if (!modelString) return null; // Return null for empty strings
@@ -37,7 +37,7 @@ export function extractModelIdForLlmInfo(modelInput?: string | ModelSettings): s
   } else {
     return null;
   }
-  
+
   // Get the last part after the final slash
   let modelId: string;
   if (modelString.includes('/')) {
@@ -51,11 +51,11 @@ export function extractModelIdForLlmInfo(modelInput?: string | ModelSettings): s
   if (modelId in ModelInfoMap) {
     return modelId;
   }
-  
+
   // If not found, try to find the latest dated version
   const allKeys = Object.keys(ModelInfoMap);
-  const matchingModels = allKeys.filter(key => key.startsWith(modelId));
-  
+  const matchingModels = allKeys.filter((key) => key.startsWith(modelId));
+
   if (matchingModels.length > 0) {
     // Sort by date (assuming YYYYMMDD format) and take the latest
     const sortedModels = matchingModels.sort().reverse();

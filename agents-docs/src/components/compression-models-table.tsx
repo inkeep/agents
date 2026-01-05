@@ -34,33 +34,30 @@ function formatTokens(tokens: number): string {
   return tokens.toString();
 }
 
-
 export function CompressionModelsTable() {
-  const rows = FEATURED_MODELS
-    .map((modelString) => {
-      const modelId = extractModelIdForLlmInfo(modelString);
-      const modelDetails = ModelInfoMap[modelId as keyof typeof ModelInfoMap];
+  const rows = FEATURED_MODELS.map((modelString) => {
+    const modelId = extractModelIdForLlmInfo(modelString);
+    const modelDetails = ModelInfoMap[modelId as keyof typeof ModelInfoMap];
 
-      // Only use models that exist in llm-info
-      if (!modelDetails?.contextWindowTokenLimit) {
-        return null;
-      }
+    // Only use models that exist in llm-info
+    if (!modelDetails?.contextWindowTokenLimit) {
+      return null;
+    }
 
-      const contextWindow = modelDetails.contextWindowTokenLimit;
-      const conversationThreshold = Math.floor(contextWindow * 0.5);
-      const params = getCompressionParams(contextWindow);
-      const contextCompactingThreshold = Math.floor(contextWindow * params.threshold);
-      const contextCompactingPct = Math.round(params.threshold * 100);
+    const contextWindow = modelDetails.contextWindowTokenLimit;
+    const conversationThreshold = Math.floor(contextWindow * 0.5);
+    const params = getCompressionParams(contextWindow);
+    const contextCompactingThreshold = Math.floor(contextWindow * params.threshold);
+    const contextCompactingPct = Math.round(params.threshold * 100);
 
-      return {
-        model: modelString,
-        contextWindow,
-        conversationThreshold,
-        contextCompactingThreshold,
-        contextCompactingPct,
-      };
-    })
-    .filter((row): row is NonNullable<typeof row> => row !== null);
+    return {
+      model: modelString,
+      contextWindow,
+      conversationThreshold,
+      contextCompactingThreshold,
+      contextCompactingPct,
+    };
+  }).filter((row): row is NonNullable<typeof row> => row !== null);
 
   return (
     <div className="overflow-x-auto">
