@@ -1785,14 +1785,14 @@ export async function GET(
 
       const compressionTypeDisplay =
         compressionType === 'mid_generation'
-          ? 'Context Compacting'
+          ? 'Context compacting'
           : compressionType === 'conversation_level'
-            ? 'Conversation History Compacting'
+            ? 'Conversation history compacting'
             : compressionType || 'Unknown';
 
       const description = fallbackUsed
-        ? `${compressionTypeDisplay} compacting (fallback used)`
-        : `${compressionTypeDisplay} compacting`;
+        ? `${compressionTypeDisplay}`
+        : compressionTypeDisplay;
 
       activities.push({
         id: compressionSpanId,
