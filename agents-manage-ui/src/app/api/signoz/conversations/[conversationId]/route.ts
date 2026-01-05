@@ -1790,9 +1790,7 @@ export async function GET(
             ? 'Conversation history compacting'
             : compressionType || 'Unknown';
 
-      const description = fallbackUsed
-        ? `${compressionTypeDisplay}`
-        : compressionTypeDisplay;
+      const description = fallbackUsed ? `${compressionTypeDisplay}` : compressionTypeDisplay;
 
       activities.push({
         id: compressionSpanId,
