@@ -188,6 +188,11 @@ app.openapi(chatCompletionsRoute, async (c) => {
     const body = c.get('requestBody') || {};
     const conversationId = body.conversationId || getConversationId();
 
+    // Extract target context headers (for copilot/chat-to-edit scenarios)
+    const targetTenantId = c.req.header('x-target-tenant-id');
+    const targetProjectId = c.req.header('x-target-project-id');
+    const targetAgentId = c.req.header('x-target-agent-id');
+
     const activeSpan = trace.getActiveSpan();
     if (activeSpan) {
       activeSpan.setAttributes({
@@ -195,6 +200,10 @@ app.openapi(chatCompletionsRoute, async (c) => {
         'tenant.id': tenantId,
         'agent.id': agentId,
         'project.id': projectId,
+        // Target context for copilot traces (the agent being edited)
+        ...(targetTenantId && { 'target.tenant.id': targetTenantId }),
+        ...(targetProjectId && { 'target.project.id': targetProjectId }),
+        ...(targetAgentId && { 'target.agent.id': targetAgentId }),
       });
     }
 
