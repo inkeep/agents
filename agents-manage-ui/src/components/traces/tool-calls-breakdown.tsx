@@ -1,8 +1,9 @@
 'use client';
 
 import { ArrowLeft, Calendar, Server, Wrench } from 'lucide-react';
-import { useParams } from 'next/navigation';
-import { useEffect, useMemo, useState } from 'react';
+import NextLink from 'next/link';
+import { useSearchParams } from 'next/navigation';
+import { use, useEffect, useMemo, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -26,12 +27,20 @@ const TIME_RANGES = {
   custom: { label: 'Custom range', hours: 0 },
 } as const;
 
-interface ToolCallsBreakdownProps {
-  onBack: () => void;
-}
+export default function ToolCallsBreakdown({
+  params,
+}: PageProps<'/[tenantId]/projects/[projectId]/traces/tool-calls'>) {
+  const { tenantId, projectId } = use(params);
+  const searchParams = useSearchParams();
 
-export function ToolCallsBreakdown({ onBack }: ToolCallsBreakdownProps) {
-  const params = useParams();
+  const backLink = useMemo(() => {
+    const current = new URLSearchParams(searchParams.toString());
+    const queryString = current.toString();
+
+    return queryString
+      ? `/${tenantId}/projects/${projectId}/traces?${queryString}`
+      : `/${tenantId}/projects/${projectId}/traces`;
+  }, [tenantId, projectId, searchParams]);
 
   const {
     timeRange,
@@ -115,9 +124,9 @@ export function ToolCallsBreakdown({ onBack }: ToolCallsBreakdownProps) {
         const serverFilter = selectedServer === 'all' ? undefined : selectedServer;
 
         const [toolData, uniqueServers, uniqueTools] = await Promise.all([
-          client.getToolCallsByTool(startTime, endTime, serverFilter, params.projectId as string),
-          client.getUniqueToolServers(startTime, endTime, params.projectId as string),
-          client.getUniqueToolNames(startTime, endTime, params.projectId as string),
+          client.getToolCallsByTool(startTime, endTime, serverFilter, projectId),
+          client.getUniqueToolServers(startTime, endTime, projectId),
+          client.getUniqueToolNames(startTime, endTime, projectId),
         ]);
 
         setToolCalls(toolData);
@@ -132,7 +141,7 @@ export function ToolCallsBreakdown({ onBack }: ToolCallsBreakdownProps) {
     };
 
     fetchData();
-  }, [selectedServer, startTime, endTime, params.projectId]);
+  }, [selectedServer, startTime, endTime, projectId]);
 
   const filteredToolCalls = useMemo(() => {
     return toolCalls.filter((tool) => selectedTool === 'all' || tool.toolName === selectedTool);
@@ -161,9 +170,11 @@ export function ToolCallsBreakdown({ onBack }: ToolCallsBreakdownProps) {
   return (
     <div className="space-y-4">
       <div className="flex items-center gap-4">
-        <Button variant="ghost" size="sm" onClick={onBack} className="gap-2">
-          <ArrowLeft className="h-4 w-4" />
-          Back to Overview
+        <Button variant="ghost" size="sm" asChild className="gap-2">
+          <NextLink href={backLink}>
+            <ArrowLeft className="h-4 w-4" />
+            Back to Overview
+          </NextLink>
         </Button>
         <div>
           <h1 className="text-2xl font-bold text-foreground">Tool Calls Breakdown</h1>
