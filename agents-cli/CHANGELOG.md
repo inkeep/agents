@@ -1,5 +1,41 @@
 # @inkeep/agents-cli
 
+## 0.40.0
+
+### Minor Changes
+
+- e5172e2: remove unused dependencies, lint unused dependencies with Knip
+- 178d5b1: keep file structure for build `dist` directory
+
+### Patch Changes
+
+- be0131e: user info for spans
+- 8b95949: context tracking in traces
+- b2c2fd9: fix trace viewer panes to scroll independently
+- b231869: set `compilerOptions.verbatimModuleSyntax: true` in all `tsconfig.json` files
+- 153d4e5: Added Conversation COmpression
+- Updated dependencies [7317cb1]
+- Updated dependencies [be0131e]
+- Updated dependencies [e5172e2]
+- Updated dependencies [07f77ab]
+- Updated dependencies [8b95949]
+- Updated dependencies [811b6e2]
+- Updated dependencies [90c4cfb]
+- Updated dependencies [b2c2fd9]
+- Updated dependencies [b231869]
+- Updated dependencies [178d5b1]
+- Updated dependencies [ff51b72]
+- Updated dependencies [1ef2557]
+- Updated dependencies [5b32e12]
+- Updated dependencies [d27e015]
+- Updated dependencies [44d5516]
+- Updated dependencies [153d4e5]
+- Updated dependencies [970a7bd]
+- Updated dependencies [50ed255]
+  - @inkeep/agents-manage-ui@0.40.0
+  - @inkeep/agents-core@0.40.0
+  - @inkeep/agents-sdk@0.40.0
+
 ## 0.39.5
 
 ### Patch Changes
