@@ -272,13 +272,13 @@ export function renderPanelContent({
               value={a.messageContent || 'Message content not available'}
             />
             {targetTenantId && (
-              <Info label="Target Tenant Id" value={<Badge variant="code">{targetTenantId}</Badge>} />
+              <Info label="Target tenant" value={<Badge variant="code">{targetTenantId}</Badge>} />
             )}
             {targetProjectId && (
-              <Info label="Target Project Id" value={<Badge variant="code">{targetProjectId}</Badge>} />
+              <Info label="Target project" value={<Badge variant="code">{targetProjectId}</Badge>} />
             )}
             {targetAgentId && (
-              <Info label="Target Agent Id" value={<Badge variant="code">{targetAgentId}</Badge>} />
+              <Info label="Target agent" value={<Badge variant="code">{targetAgentId}</Badge>} />
             )}
             <StatusBadge status={a.status} />
             <Info label="Timestamp" value={formatDateTime(a.timestamp)} />
