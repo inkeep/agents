@@ -20,24 +20,50 @@ export interface ModelContextInfo {
 }
 
 /**
- * Extract model ID from model settings for llm-info lookup
+ * Extract model ID from model string for llm-info lookup
+ * Includes smart mapping to find dated versions for models that don't have exact matches
  */
-function extractModelIdForLlmInfo(modelSettings?: ModelSettings): string | null {
-  if (!modelSettings?.model) return null;
-
-  const modelString = modelSettings.model.trim();
-
+export function extractModelIdForLlmInfo(modelInput: string): string;
+export function extractModelIdForLlmInfo(modelSettings?: ModelSettings): string | null;
+export function extractModelIdForLlmInfo(modelInput?: string | ModelSettings): string | null {
+  let modelString: string;
+  
+  if (typeof modelInput === 'string') {
+    modelString = modelInput.trim();
+    if (!modelString) return null; // Return null for empty strings
+  } else if (modelInput?.model) {
+    modelString = modelInput.model.trim();
+    if (!modelString) return null; // Return null for empty strings
+  } else {
+    return null;
+  }
+  
   // Get the last part after the final slash
-  // Examples: "google/gemini-3-flash-preview" -> "gemini-3-flash-preview"
-  //           "provider/sub/model-name" -> "model-name"
-  //           "openai/gpt-4.1" -> "gpt-4.1"
-
+  let modelId: string;
   if (modelString.includes('/')) {
     const parts = modelString.split('/');
-    return parts[parts.length - 1];
+    modelId = parts[parts.length - 1];
+  } else {
+    modelId = modelString;
   }
 
-  return modelString;
+  // If the exact model ID exists in ModelInfoMap, use it
+  if (modelId in ModelInfoMap) {
+    return modelId;
+  }
+  
+  // If not found, try to find the latest dated version
+  const allKeys = Object.keys(ModelInfoMap);
+  const matchingModels = allKeys.filter(key => key.startsWith(modelId));
+  
+  if (matchingModels.length > 0) {
+    // Sort by date (assuming YYYYMMDD format) and take the latest
+    const sortedModels = matchingModels.sort().reverse();
+    return sortedModels[0];
+  }
+
+  // Return original if no matches found
+  return modelId;
 }
 
 /**

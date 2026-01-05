@@ -4,12 +4,13 @@ import {
   OPENAI_MODELS,
 } from '@inkeep/agents-core/constants/models';
 import { ModelInfoMap } from 'llm-info';
+import { extractModelIdForLlmInfo } from '../../../agents-run-api/src/utils/model-context-utils';
 
 // Select representative models from our supported set
 const FEATURED_MODELS = [
-  OPENAI_MODELS.GPT_5_1,
+  OPENAI_MODELS.GPT_5_2,
   ANTHROPIC_MODELS.CLAUDE_SONNET_4_5,
-  GOOGLE_MODELS.GEMINI_3_FLASH_PREVIEW,
+  GOOGLE_MODELS.GEMINI_3_PRO_PREVIEW,
 ] as const;
 
 // Same compression logic as the runtime
@@ -33,38 +34,33 @@ function formatTokens(tokens: number): string {
   return tokens.toString();
 }
 
-function extractModelIdForLlmInfo(modelString: string): string {
-  // Same logic as runtime: "provider/model" -> "model"
-  if (modelString.includes('/')) {
-    const parts = modelString.split('/');
-    return parts[parts.length - 1];
-  }
-  return modelString;
-}
 
 export function CompressionModelsTable() {
-  const rows = FEATURED_MODELS.map((modelString) => {
-    const modelId = extractModelIdForLlmInfo(modelString);
-    const modelDetails = ModelInfoMap[modelId as keyof typeof ModelInfoMap];
+  const rows = FEATURED_MODELS
+    .map((modelString) => {
+      const modelId = extractModelIdForLlmInfo(modelString);
+      const modelDetails = ModelInfoMap[modelId as keyof typeof ModelInfoMap];
 
-    if (!modelDetails?.contextWindowTokenLimit) {
-      return null;
-    }
+      // Only use models that exist in llm-info
+      if (!modelDetails?.contextWindowTokenLimit) {
+        return null;
+      }
 
-    const contextWindow = modelDetails.contextWindowTokenLimit;
-    const conversationThreshold = Math.floor(contextWindow * 0.5);
-    const params = getCompressionParams(contextWindow);
-    const contextCompactingThreshold = Math.floor(contextWindow * params.threshold);
-    const contextCompactingPct = Math.round(params.threshold * 100);
+      const contextWindow = modelDetails.contextWindowTokenLimit;
+      const conversationThreshold = Math.floor(contextWindow * 0.5);
+      const params = getCompressionParams(contextWindow);
+      const contextCompactingThreshold = Math.floor(contextWindow * params.threshold);
+      const contextCompactingPct = Math.round(params.threshold * 100);
 
-    return {
-      model: modelId,
-      contextWindow,
-      conversationThreshold,
-      contextCompactingThreshold,
-      contextCompactingPct,
-    };
-  }).filter(Boolean);
+      return {
+        model: modelString,
+        contextWindow,
+        conversationThreshold,
+        contextCompactingThreshold,
+        contextCompactingPct,
+      };
+    })
+    .filter((row): row is NonNullable<typeof row> => row !== null);
 
   return (
     <div className="overflow-x-auto">
@@ -78,18 +74,16 @@ export function CompressionModelsTable() {
           </tr>
         </thead>
         <tbody>
-          {rows.map((row) =>
-            row ? (
-              <tr key={row.model}>
-                <td>{row.model}</td>
-                <td>{formatTokens(row.contextWindow)} tokens</td>
-                <td>{formatTokens(row.conversationThreshold)} (50%)</td>
-                <td>
-                  ~{formatTokens(row.contextCompactingThreshold)} ({row.contextCompactingPct}%)
-                </td>
-              </tr>
-            ) : null
-          )}
+          {rows.map((row) => (
+            <tr key={row.model}>
+              <td>{row.model}</td>
+              <td>{formatTokens(row.contextWindow)} tokens</td>
+              <td>{formatTokens(row.conversationThreshold)} (50%)</td>
+              <td>
+                ~{formatTokens(row.contextCompactingThreshold)} ({row.contextCompactingPct}%)
+              </td>
+            </tr>
+          ))}
         </tbody>
       </table>
     </div>
