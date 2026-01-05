@@ -65,6 +65,8 @@ const monacoState: StateCreator<MonacoState> = (set) => ({
         enableSchemaRequest: true,
       });
       monaco.json.jsonDefaults.setModeConfiguration({
+        /** Highlight diagnostics errors */
+        diagnostics: true,
         /**
          * Disable due to an issue where the `json` language is not highlighted correctly.
          * @see https://github.com/shikijs/shiki/issues/865
