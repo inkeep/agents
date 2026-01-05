@@ -681,7 +681,7 @@ export abstract class BaseCompressor {
   /**
    * Safe compression wrapper with fallback handling
    */
-  async safeCompress(messages: any[]): Promise<CompressionResult> {
+  async safeCompress(messages: any[], fullContextSize?: number): Promise<CompressionResult> {
     return await tracer.startActiveSpan(
       'compressor.safe_compress',
       {
@@ -690,7 +690,7 @@ export abstract class BaseCompressor {
           'compression.session_id': this.sessionId,
           'compression.conversation_id': this.conversationId,
           'compression.message_count': messages.length,
-          'compression.input_tokens': this.calculateContextSize(messages),
+          'compression.input_tokens': fullContextSize ?? this.calculateContextSize(messages),
           'compression.hard_limit': this.getHardLimit(),
           'compression.safety_buffer': this.config.safetyBuffer,
         },
@@ -707,8 +707,8 @@ export abstract class BaseCompressor {
           compressionSpan.setAttributes({
             'compression.result.artifact_count': result.artifactIds.length,
             'compression.result.output_tokens': resultTokens,
-            'compression.result.compression_ratio': messages.length > 0 
-              ? (this.calculateContextSize(messages) - resultTokens) / this.calculateContextSize(messages)
+            'compression.result.compression_ratio': (fullContextSize ?? this.calculateContextSize(messages)) > 0 
+              ? ((fullContextSize ?? this.calculateContextSize(messages)) - resultTokens) / (fullContextSize ?? this.calculateContextSize(messages))
               : 0,
             'compression.success': true,
             'compression.fallback_used': false,
@@ -742,8 +742,8 @@ export abstract class BaseCompressor {
           compressionSpan.setAttributes({
             'compression.result.artifact_count': fallbackResult.artifactIds.length,
             'compression.result.output_tokens': fallbackTokens,
-            'compression.result.compression_ratio': messages.length > 0
-              ? (this.calculateContextSize(messages) - fallbackTokens) / this.calculateContextSize(messages)
+            'compression.result.compression_ratio': (fullContextSize ?? this.calculateContextSize(messages)) > 0
+              ? ((fullContextSize ?? this.calculateContextSize(messages)) - fallbackTokens) / (fullContextSize ?? this.calculateContextSize(messages))
               : 0,
             'compression.success': true,
           });

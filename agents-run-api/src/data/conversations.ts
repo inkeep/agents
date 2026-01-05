@@ -402,6 +402,7 @@ export async function getConversationHistoryWithCompression({
   filters,
   summarizerModel,
   streamRequestId,
+  fullContextSize,
 }: {
   tenantId: string;
   projectId: string;
@@ -411,6 +412,7 @@ export async function getConversationHistoryWithCompression({
   filters?: ConversationScopeOptions;
   summarizerModel?: any;
   streamRequestId?: string;
+  fullContextSize?: number;
 }): Promise<string> {
   const historyOptions = options ?? createDefaultConversationHistoryConfig();
 
@@ -506,6 +508,7 @@ export async function getConversationHistoryWithCompression({
           projectId,
           summarizerModel,
           streamRequestId,
+          fullContextSize,
         });
 
         // If new messages were compressed, combine with existing summary
@@ -535,6 +538,7 @@ export async function getConversationHistoryWithCompression({
         projectId,
         summarizerModel,
         streamRequestId,
+        fullContextSize,
       });
     }
 
@@ -579,6 +583,7 @@ export async function compressConversationIfNeeded(
     projectId: string;
     summarizerModel: any;
     streamRequestId?: string;
+    fullContextSize?: number;
   }
 ): Promise<any[]> {
   const { conversationId, tenantId, projectId, summarizerModel, streamRequestId } = params;
@@ -615,6 +620,7 @@ async function performActualCompression(
     projectId: string;
     summarizerModel: any;
     streamRequestId?: string;
+    fullContextSize?: number;
   }
 ): Promise<any[]> {
   const { conversationId, tenantId, projectId, summarizerModel, streamRequestId } = params;
@@ -644,7 +650,7 @@ async function performActualCompression(
   );
 
   try {
-    const compressionResult = await compressor.safeCompress(messages);
+    const compressionResult = await compressor.safeCompress(messages, params.fullContextSize);
 
     // Save compression summary as a message in the database with proper ordering
     if (compressionResult.summary) {

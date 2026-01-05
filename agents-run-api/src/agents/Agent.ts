@@ -2277,7 +2277,8 @@ ${output}`;
                 timeoutMs,
                 'auto',
                 undefined,
-                false
+                false,
+                contextBreakdown.total
               )
             );
 
@@ -2300,7 +2301,8 @@ ${output}`;
                 timeoutMs,
                 toolChoice,
                 'planning',
-                true
+                true,
+                contextBreakdown.total
               )
             );
           }
@@ -2553,6 +2555,7 @@ ${output}`;
           filters,
           summarizerModel: this.getSummarizerModel(),
           streamRequestId,
+          fullContextSize: initialContextBreakdown.total,
         });
       } else if (historyConfig.mode === 'scoped') {
         conversationHistory = await getConversationHistoryWithCompression({
@@ -2569,6 +2572,7 @@ ${output}`;
           },
           summarizerModel: this.getSummarizerModel(),
           streamRequestId,
+          fullContextSize: initialContextBreakdown.total,
         });
       }
     }
@@ -2703,7 +2707,8 @@ ${output}`;
   private async handlePrepareStepCompression(
     stepMessages: any[],
     compressor: any,
-    originalMessageCount: number
+    originalMessageCount: number,
+    fullContextSize?: number
   ) {
     // Check if compression is enabled
     if (!compressor) {
@@ -2727,8 +2732,8 @@ ${output}`;
 
       if (generatedMessages.length > 0) {
         // Compress ONLY the generated content (tool results, intermediate steps)
-        // safeCompress() handles all error cases and fallbacks internally
-        const compressionResult = await compressor.safeCompress(generatedMessages);
+        // but track full context size for accurate compression metrics
+        const compressionResult = await compressor.safeCompress(generatedMessages, fullContextSize);
 
         // Handle different types of compression results
         if (Array.isArray(compressionResult.summary)) {
@@ -2904,7 +2909,8 @@ ${output}`;
     timeoutMs: number,
     toolChoice: 'auto' | 'required' = 'auto',
     phase?: string,
-    includeThinkingComplete = false
+    includeThinkingComplete = false,
+    fullContextSize?: number
   ) {
     return {
       ...modelSettings,
@@ -2915,7 +2921,8 @@ ${output}`;
         return await this.handlePrepareStepCompression(
           stepMessages,
           compressor,
-          originalMessageCount
+          originalMessageCount,
+          fullContextSize
         );
       },
       stopWhen: async ({ steps }: { steps: any[] }) => {
