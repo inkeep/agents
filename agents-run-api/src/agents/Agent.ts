@@ -75,8 +75,8 @@ import type { StreamHelper } from '../utils/stream-helpers';
 import { getStreamHelper } from '../utils/stream-registry';
 import {
   type AssembleResult,
-  calculateBreakdownTotal,
   type ContextBreakdown,
+  calculateBreakdownTotal,
   estimateTokens,
 } from '../utils/token-estimator';
 import { setSpanWithError, tracer } from '../utils/tracer';
@@ -2190,8 +2190,12 @@ ${output}`;
 
         try {
           // Load all tools and system prompts in parallel
-          const { systemPrompt, thinkingSystemPrompt, sanitizedTools, contextBreakdown: initialContextBreakdown } =
-            await this.loadToolsAndPrompts(sessionId, streamRequestId, runtimeContext);
+          const {
+            systemPrompt,
+            thinkingSystemPrompt,
+            sanitizedTools,
+            contextBreakdown: initialContextBreakdown,
+          } = await this.loadToolsAndPrompts(sessionId, streamRequestId, runtimeContext);
 
           // Update ArtifactService with this agent's artifact components
           if (streamRequestId && this.artifactComponents.length > 0) {

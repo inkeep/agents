@@ -703,49 +703,51 @@ export function renderPanelContent({
       return (
         <>
           <Section>
-            <Info 
-              label="Compression type" 
+            <Info
+              label="Compression type"
               value={
                 <Badge variant={a.compressionType === 'mid_generation' ? 'secondary' : 'default'}>
-                  {a.compressionType === 'mid_generation' ? 'Context Compacting' : 
-                   a.compressionType === 'conversation_level' ? 'Conversation History Compacting' : 
-                   a.compressionType || 'Unknown'}
+                  {a.compressionType === 'mid_generation'
+                    ? 'Context Compacting'
+                    : a.compressionType === 'conversation_level'
+                      ? 'Conversation History Compacting'
+                      : a.compressionType || 'Unknown'}
                 </Badge>
-              } 
+              }
             />
-            <Info label="Session ID" value={a.subAgentId ? <Badge variant="code">{a.subAgentId}</Badge> : '-'} />
-            <Info label="Messages processed" value={a.compressionMessageCount?.toLocaleString() || '0'} />
-            <Info 
-              label="Input tokens" 
-              value={a.compressionInputTokens?.toLocaleString() || '0'} 
+            <Info
+              label="Session ID"
+              value={a.subAgentId ? <Badge variant="code">{a.subAgentId}</Badge> : '-'}
             />
-            <Info 
-              label="Output tokens" 
-              value={a.compressionOutputTokens?.toLocaleString() || '0'} 
+            <Info
+              label="Messages processed"
+              value={a.compressionMessageCount?.toLocaleString() || '0'}
+            />
+            <Info label="Input tokens" value={a.compressionInputTokens?.toLocaleString() || '0'} />
+            <Info
+              label="Output tokens"
+              value={a.compressionOutputTokens?.toLocaleString() || '0'}
             />
             {a.compressionRatio !== undefined && (
-              <Info 
-                label="Compression ratio" 
+              <Info
+                label="Compression ratio"
                 value={
                   <Badge variant="code" className="font-mono">
                     {(a.compressionRatio * 100).toFixed(1)}%
                   </Badge>
-                } 
+                }
               />
             )}
             {a.compressionArtifactCount !== undefined && a.compressionArtifactCount > 0 && (
-              <Info 
-                label="Artifacts created" 
-                value={a.compressionArtifactCount.toLocaleString()} 
-              />
+              <Info label="Artifacts created" value={a.compressionArtifactCount.toLocaleString()} />
             )}
-            <Info 
-              label="Hard limit" 
-              value={`${a.compressionHardLimit?.toLocaleString() || '0'} tokens`} 
+            <Info
+              label="Hard limit"
+              value={`${a.compressionHardLimit?.toLocaleString() || '0'} tokens`}
             />
-            <Info 
-              label="Safety buffer" 
-              value={`${a.compressionSafetyBuffer?.toLocaleString() || '0'} tokens`} 
+            <Info
+              label="Safety buffer"
+              value={`${a.compressionSafetyBuffer?.toLocaleString() || '0'} tokens`}
             />
             {a.compressionFallbackUsed && (
               <LabeledBlock label="Fallback used">

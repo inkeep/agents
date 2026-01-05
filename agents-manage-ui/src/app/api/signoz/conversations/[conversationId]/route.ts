@@ -1770,7 +1770,7 @@ export async function GET(
     for (const span of compressionSpans) {
       const hasError = getField(span, SPAN_KEYS.HAS_ERROR) === true;
       const compressionSpanId = getString(span, SPAN_KEYS.SPAN_ID, '');
-      
+
       // Extract compression-specific attributes
       const compressionType = getString(span, 'compression.type', '');
       const inputTokens = getNumber(span, 'compression.input_tokens', 0);
@@ -1783,11 +1783,14 @@ export async function GET(
       const fallbackUsed = getField(span, 'compression.fallback_used') === true;
       const compressionError = getString(span, 'compression.error', '');
 
-      const compressionTypeDisplay = compressionType === 'mid_generation' ? 'Context Compacting' : 
-                                    compressionType === 'conversation_level' ? 'Conversation History Compacting' : 
-                                    compressionType || 'Unknown';
-                                    
-      const description = fallbackUsed 
+      const compressionTypeDisplay =
+        compressionType === 'mid_generation'
+          ? 'Context Compacting'
+          : compressionType === 'conversation_level'
+            ? 'Conversation History Compacting'
+            : compressionType || 'Unknown';
+
+      const description = fallbackUsed
         ? `${compressionTypeDisplay} compacting (fallback used)`
         : `${compressionTypeDisplay} compacting`;
 
@@ -1798,9 +1801,15 @@ export async function GET(
         timestamp: span.timestamp,
         parentSpanId: spanIdToParentSpanId.get(compressionSpanId) || undefined,
         status: hasError ? ACTIVITY_STATUS.ERROR : ACTIVITY_STATUS.SUCCESS,
-        subAgentId: getString(span, 'compression.session_id', getString(span, SPAN_KEYS.SUB_AGENT_ID, ACTIVITY_NAMES.UNKNOWN_AGENT)),
+        subAgentId: getString(
+          span,
+          'compression.session_id',
+          getString(span, SPAN_KEYS.SUB_AGENT_ID, ACTIVITY_NAMES.UNKNOWN_AGENT)
+        ),
         subAgentName: getString(span, SPAN_KEYS.SUB_AGENT_NAME, ACTIVITY_NAMES.UNKNOWN_AGENT),
-        result: compressionError || `Compressed ${messageCount} messages, ${inputTokens} → ${outputTokens} tokens`,
+        result:
+          compressionError ||
+          `Compressed ${messageCount} messages, ${inputTokens} → ${outputTokens} tokens`,
         // Compression-specific fields
         compressionType,
         compressionInputTokens: inputTokens,

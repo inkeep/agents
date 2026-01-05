@@ -1,10 +1,14 @@
-import { ANTHROPIC_MODELS, OPENAI_MODELS, GOOGLE_MODELS } from '@inkeep/agents-core/constants/models';
+import {
+  ANTHROPIC_MODELS,
+  GOOGLE_MODELS,
+  OPENAI_MODELS,
+} from '@inkeep/agents-core/constants/models';
 import { ModelInfoMap } from 'llm-info';
 
 // Select representative models from our supported set
 const FEATURED_MODELS = [
   OPENAI_MODELS.GPT_5_1,
-  ANTHROPIC_MODELS.CLAUDE_SONNET_4_5, 
+  ANTHROPIC_MODELS.CLAUDE_SONNET_4_5,
   GOOGLE_MODELS.GEMINI_3_FLASH_PREVIEW,
 ] as const;
 
@@ -14,7 +18,7 @@ function getCompressionParams(contextWindow: number) {
     return { threshold: 0.85, bufferPct: 0.1 }; // 75% trigger point
   }
   if (contextWindow < 500000) {
-    return { threshold: 0.9, bufferPct: 0.07 }; // 83% trigger point  
+    return { threshold: 0.9, bufferPct: 0.07 }; // 83% trigger point
   }
   return { threshold: 0.91, bufferPct: 0.05 }; // 86% trigger point
 }
@@ -39,10 +43,10 @@ function extractModelIdForLlmInfo(modelString: string): string {
 }
 
 export function CompressionModelsTable() {
-  const rows = FEATURED_MODELS.map(modelString => {
+  const rows = FEATURED_MODELS.map((modelString) => {
     const modelId = extractModelIdForLlmInfo(modelString);
     const modelDetails = ModelInfoMap[modelId as keyof typeof ModelInfoMap];
-    
+
     if (!modelDetails?.contextWindowTokenLimit) {
       return null;
     }
@@ -52,7 +56,7 @@ export function CompressionModelsTable() {
     const params = getCompressionParams(contextWindow);
     const contextCompactingThreshold = Math.floor(contextWindow * params.threshold);
     const contextCompactingPct = Math.round(params.threshold * 100);
-    
+
     return {
       model: modelId,
       contextWindow,
@@ -79,7 +83,9 @@ export function CompressionModelsTable() {
               <td>{row!.model}</td>
               <td>{formatTokens(row!.contextWindow)} tokens</td>
               <td>{formatTokens(row!.conversationThreshold)} (50%)</td>
-              <td>~{formatTokens(row!.contextCompactingThreshold)} ({row!.contextCompactingPct}%)</td>
+              <td>
+                ~{formatTokens(row!.contextCompactingThreshold)} ({row!.contextCompactingPct}%)
+              </td>
             </tr>
           ))}
         </tbody>

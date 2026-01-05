@@ -698,18 +698,20 @@ export abstract class BaseCompressor {
       async (compressionSpan: Span) => {
         try {
           const result = await this.compress(messages);
-          
+
           // Add result attributes
-          const resultTokens = Array.isArray(result.summary) 
+          const resultTokens = Array.isArray(result.summary)
             ? this.calculateContextSize(result.summary)
             : this.estimateTokens(result.summary);
-            
+
           compressionSpan.setAttributes({
             'compression.result.artifact_count': result.artifactIds.length,
             'compression.result.output_tokens': resultTokens,
-            'compression.result.compression_ratio': (fullContextSize ?? this.calculateContextSize(messages)) > 0 
-              ? ((fullContextSize ?? this.calculateContextSize(messages)) - resultTokens) / (fullContextSize ?? this.calculateContextSize(messages))
-              : 0,
+            'compression.result.compression_ratio':
+              (fullContextSize ?? this.calculateContextSize(messages)) > 0
+                ? ((fullContextSize ?? this.calculateContextSize(messages)) - resultTokens) /
+                  (fullContextSize ?? this.calculateContextSize(messages))
+                : 0,
             'compression.success': true,
             'compression.fallback_used': false,
           });
@@ -734,17 +736,19 @@ export abstract class BaseCompressor {
 
           // Use simple compression fallback - same logic as Agent.simpleCompression
           const fallbackResult = await this.simpleCompressionFallback(messages);
-          
+
           const fallbackTokens = Array.isArray(fallbackResult.summary)
             ? this.calculateContextSize(fallbackResult.summary)
             : this.estimateTokens(fallbackResult.summary);
-            
+
           compressionSpan.setAttributes({
             'compression.result.artifact_count': fallbackResult.artifactIds.length,
             'compression.result.output_tokens': fallbackTokens,
-            'compression.result.compression_ratio': (fullContextSize ?? this.calculateContextSize(messages)) > 0
-              ? ((fullContextSize ?? this.calculateContextSize(messages)) - fallbackTokens) / (fullContextSize ?? this.calculateContextSize(messages))
-              : 0,
+            'compression.result.compression_ratio':
+              (fullContextSize ?? this.calculateContextSize(messages)) > 0
+                ? ((fullContextSize ?? this.calculateContextSize(messages)) - fallbackTokens) /
+                  (fullContextSize ?? this.calculateContextSize(messages))
+                : 0,
             'compression.success': true,
           });
 
