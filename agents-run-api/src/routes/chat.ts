@@ -228,6 +228,7 @@ app.openapi(chatCompletionsRoute, async (c) => {
         tenantId,
         projectId,
         id: conversationId,
+        agentId: agentId,
         activeSubAgentId: defaultSubAgentId,
         ref: executionContext.resolvedRef,
       });

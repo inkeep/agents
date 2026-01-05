@@ -1,0 +1,170 @@
+import {
+  commonGetErrorResponses,
+  createApiError,
+  createEvaluationSuiteConfigEvaluatorRelation,
+  deleteEvaluationSuiteConfigEvaluatorRelation,
+  generateId,
+  getEvaluationSuiteConfigEvaluatorRelations,
+  TenantProjectParamsSchema,
+} from '@inkeep/agents-core';
+import { z, createRoute, OpenAPIHono } from '@hono/zod-openapi';
+import manageDbClient from '../../data/db/manageDbClient';
+import { getLogger } from '../../logger';
+
+const app = new OpenAPIHono();
+const logger = getLogger('evaluationSuiteConfigEvaluatorRelations');
+
+app.openapi(
+  createRoute({
+    method: 'get',
+    path: '/evaluation-suite-configs/{configId}/evaluators',
+    summary: 'List Evaluators for Evaluation Suite Config',
+    operationId: 'list-evaluation-suite-config-evaluators',
+    tags: ['Evaluations'],
+    request: {
+      params: TenantProjectParamsSchema.extend({ configId: z.string() }),
+    },
+    responses: {
+      200: {
+        description: 'List of evaluator relations',
+        content: {
+          'application/json': {
+            schema: z.array(z.any()),
+          },
+        },
+      },
+      ...commonGetErrorResponses,
+    },
+  }),
+  async (c) => {
+    const { tenantId, projectId, configId } = c.req.valid('param');
+
+    try {
+      const relations = await getEvaluationSuiteConfigEvaluatorRelations(manageDbClient)({
+        scopes: { tenantId, projectId, evaluationSuiteConfigId: configId },
+      });
+      return c.json({ data: relations as any }) as any;
+    } catch (error) {
+      logger.error({ error, tenantId, projectId, configId }, 'Failed to list evaluator relations');
+      return c.json(
+        createApiError({
+          code: 'internal_server_error',
+          message: 'Failed to list evaluator relations',
+        }),
+        500
+      );
+    }
+  }
+);
+
+app.openapi(
+  createRoute({
+    method: 'post',
+    path: '/evaluation-suite-configs/{configId}/evaluators/{evaluatorId}',
+    summary: 'Add Evaluator to Evaluation Suite Config',
+    operationId: 'add-evaluator-to-suite-config',
+    tags: ['Evaluations'],
+    request: {
+      params: TenantProjectParamsSchema.extend({
+        configId: z.string(),
+        evaluatorId: z.string(),
+      }),
+    },
+    responses: {
+      201: {
+        description: 'Evaluator relation created',
+        content: {
+          'application/json': {
+            schema: z.any(),
+          },
+        },
+      },
+      ...commonGetErrorResponses,
+    },
+  }),
+  async (c) => {
+    const { tenantId, projectId, configId, evaluatorId } = c.req.valid('param');
+
+    try {
+      const id = generateId();
+      const created = await createEvaluationSuiteConfigEvaluatorRelation(manageDbClient)({
+        id,
+        tenantId,
+        projectId,
+        evaluationSuiteConfigId: configId,
+        evaluatorId,
+      } as any);
+
+      logger.info({ tenantId, projectId, configId, evaluatorId }, 'Evaluator relation created');
+      return c.json({ data: created as any }, 201) as any;
+    } catch (error) {
+      logger.error(
+        { error, tenantId, projectId, configId, evaluatorId },
+        'Failed to create evaluator relation'
+      );
+      return c.json(
+        createApiError({
+          code: 'internal_server_error',
+          message: 'Failed to create evaluator relation',
+        }),
+        500
+      );
+    }
+  }
+);
+
+app.openapi(
+  createRoute({
+    method: 'delete',
+    path: '/evaluation-suite-configs/{configId}/evaluators/{evaluatorId}',
+    summary: 'Remove Evaluator from Evaluation Suite Config',
+    operationId: 'remove-evaluator-from-suite-config',
+    tags: ['Evaluations'],
+    request: {
+      params: TenantProjectParamsSchema.extend({
+        configId: z.string(),
+        evaluatorId: z.string(),
+      }),
+    },
+    responses: {
+      204: {
+        description: 'Evaluator relation deleted',
+      },
+      ...commonGetErrorResponses,
+    },
+  }),
+  async (c) => {
+    const { tenantId, projectId, configId, evaluatorId } = c.req.valid('param');
+
+    try {
+      const deleted = await deleteEvaluationSuiteConfigEvaluatorRelation(manageDbClient)({
+        scopes: { tenantId, projectId, evaluationSuiteConfigId: configId, evaluatorId },
+      });
+
+      if (!deleted) {
+        return c.json(
+          createApiError({ code: 'not_found', message: 'Evaluator relation not found' }),
+          404
+        ) as any;
+      }
+
+      logger.info({ tenantId, projectId, configId, evaluatorId }, 'Evaluator relation deleted');
+      return c.body(null, 204) as any;
+    } catch (error) {
+      logger.error(
+        { error, tenantId, projectId, configId, evaluatorId },
+        'Failed to delete evaluator relation'
+      );
+      return c.json(
+        createApiError({
+          code: 'internal_server_error',
+          message: 'Failed to delete evaluator relation',
+        }),
+        500
+      );
+    }
+  }
+);
+
+export default app;
+

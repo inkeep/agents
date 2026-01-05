@@ -130,7 +130,7 @@ export const deleteConversation =
     }
   };
 
-export const updateConversationActiveAgent =
+export const updateConversationActiveSubAgent =
   (db: AgentsRunDatabaseClient) =>
   async (params: {
     scopes: ProjectScopeConfig;
@@ -189,6 +189,7 @@ export const createOrGetConversation =
       tenantId: input.tenantId,
       projectId: input.projectId,
       userId: input.userId,
+      agentId: input.agentId,
       activeSubAgentId: input.activeSubAgentId,
       title: input.title,
       lastContextResolution: input.lastContextResolution,

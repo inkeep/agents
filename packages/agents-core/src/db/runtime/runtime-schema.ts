@@ -92,6 +92,7 @@ export const conversations = pgTable(
   {
     ...projectScoped,
     userId: varchar('user_id', { length: 256 }),
+    agentId: varchar('agent_id', { length: 256 }),
     activeSubAgentId: varchar('active_sub_agent_id', { length: 256 }).notNull(),
     ref: jsonb('ref').$type<ResolvedRef>().notNull(),
     title: text('title'),
@@ -279,7 +280,7 @@ export const contextCache = pgTable(
  * and the evaluationJobConfigId links to that job.
  *
  * Includes: datasetId (which dataset to run),
- * datasetRunConfigId (required: always created from a config),
+ * datasetRunConfigId (optional: if created from a config),
  * evaluationJobConfigId (optional: links to evaluation job created for this run), and timestamps
  */
 export const datasetRun = pgTable(
@@ -287,7 +288,7 @@ export const datasetRun = pgTable(
   {
     ...projectScoped,
     datasetId: text('dataset_id').notNull(),
-    datasetRunConfigId: text('dataset_run_config_id').notNull(),
+    datasetRunConfigId: text('dataset_run_config_id'),
     evaluationJobConfigId: text('evaluation_job_config_id'),
     ...timestamps,
   },

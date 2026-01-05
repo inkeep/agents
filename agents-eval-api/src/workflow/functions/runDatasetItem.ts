@@ -7,15 +7,16 @@
 import {
   createDatasetRunConversationRelation,
   createEvaluationResult,
-  createEvaluationRun,
   generateId,
   getConversation,
-  getEvaluatorById,
+  InternalServices,
+  ManagementApiClient,
   updateEvaluationResult,
 } from '@inkeep/agents-core';
-import dbClient from '../../data/db/dbClient';
+import runDbClient from '../../data/db/runDbClient';
 import { getLogger } from '../../logger';
 import { EvaluationService } from '../../services/EvaluationService';
+import { env } from 'src/env';
 
 const logger = getLogger('workflow-run-dataset-item');
 
@@ -89,7 +90,7 @@ async function createRelationStep(
   const relationId = generateId();
 
   try {
-    await createDatasetRunConversationRelation(dbClient)({
+    await createDatasetRunConversationRelation(runDbClient)({
       tenantId,
       projectId,
       id: relationId,
@@ -129,9 +130,14 @@ async function executeEvaluatorStep(
 ) {
   'use step';
 
-  const evaluator = await getEvaluatorById(dbClient)({
-    scopes: { tenantId, projectId, evaluatorId },
+  const client = new ManagementApiClient({
+    apiUrl: env.INKEEP_AGENTS_MANAGE_API_URL,
+    tenantId,
+    projectId,
+    auth: { mode: 'internalService', internalServiceName: InternalServices.EVALUATION_API },
   });
+
+  const evaluator = await client.getEvaluatorById(evaluatorId);
 
   if (!evaluator) {
     logger.warn({ evaluatorId }, 'Evaluator not found');
@@ -139,7 +145,7 @@ async function executeEvaluatorStep(
   }
 
   // Fetch full conversation (needed for activeSubAgentId to get agent definition)
-  const conversation = await getConversation(dbClient)({
+  const conversation = await getConversation(runDbClient)({
     scopes: { tenantId, projectId },
     conversationId,
   });
@@ -148,7 +154,7 @@ async function executeEvaluatorStep(
     throw new Error(`Conversation not found: ${conversationId}`);
   }
 
-  const evalResult = await createEvaluationResult(dbClient)({
+  const evalResult = await createEvaluationResult(runDbClient)({
     id: generateId(),
     tenantId,
     projectId,
@@ -166,7 +172,7 @@ async function executeEvaluatorStep(
       projectId,
     });
 
-    await updateEvaluationResult(dbClient)({
+    await updateEvaluationResult(runDbClient)({
       scopes: { tenantId, projectId, evaluationResultId: evalResult.id },
       data: { output: output as any },
     });
@@ -185,7 +191,7 @@ async function executeEvaluatorStep(
       'Evaluation failed'
     );
 
-    await updateEvaluationResult(dbClient)({
+    await updateEvaluationResult(runDbClient)({
       scopes: { tenantId, projectId, evaluationResultId: evalResult.id },
       data: { output: { text: `Evaluation failed: ${errorMessage}` } as any },
     });

@@ -1,6 +1,6 @@
-import type { FullExecutionContext } from '@inkeep/agents-core';
+import { type FullExecutionContext, InternalServices, ManageApiError, ManagementApiClient } from '@inkeep/agents-core';
 import { createMiddleware } from 'hono/factory';
-import { getFullProject, getResolvedRef, ManageApiError } from '../api/manage-api';
+
 import { env } from '../env';
 import { getLogger } from '../logger';
 
@@ -31,14 +31,15 @@ export const projectConfigMiddleware = createMiddleware<{
   );
 
   try {
-    const manageApiConfig = {
-      baseUrl: env.INKEEP_AGENTS_MANAGE_API_URL,
-    };
-
-    const resolvedRef = await getResolvedRef(manageApiConfig)({
-      scopes: { tenantId, projectId },
+    const client = new ManagementApiClient({
+      apiUrl: env.INKEEP_AGENTS_MANAGE_API_URL,
+      tenantId,
+      projectId,
+      auth: { mode: 'internalService', internalServiceName: InternalServices.AGENTS_RUN_API },
       ref,
     });
+
+    const resolvedRef = await client.getResolvedRef();
 
     if (!resolvedRef) {
       throw new Error('Resolved ref not found');
@@ -51,10 +52,7 @@ export const projectConfigMiddleware = createMiddleware<{
       );
     }
 
-    const projectConfig = await getFullProject(manageApiConfig)({
-      scopes: { tenantId, projectId },
-      ref: resolvedRef.name,
-    });
+    const projectConfig = await client.getFullProject();
 
     c.set('executionContext', {
       ...executionContext,

@@ -9,7 +9,7 @@ import { pinoLogger } from 'hono-pino';
 import { getLogger } from './logger';
 import { apiKeyAuth } from './middleware/auth';
 import { setupOpenAPIRoutes } from './openapi';
-import evaluationsRoutes from './routes/evaluations';
+import evaluationsRoutes from './routes';
 import { workflowRoutes } from './workflow/routes';
 
 const logger = getLogger('agents-eval-api');

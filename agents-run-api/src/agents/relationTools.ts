@@ -8,6 +8,8 @@ import {
   generateId,
   generateServiceToken,
   headers,
+  InternalServices,
+  ManagementApiClient,
   type McpTool,
   SPAN_KEYS,
   TemplateEngine,
@@ -15,7 +17,6 @@ import {
 import { trace } from '@opentelemetry/api';
 import { tool } from 'ai';
 import { A2AClient } from '../a2a/client';
-import { getMcpTool } from '../api/manage-api';
 import {
   DELEGATION_TOOL_BACKOFF_EXPONENT,
   DELEGATION_TOOL_BACKOFF_INITIAL_INTERVAL_MS,
@@ -500,13 +501,16 @@ export async function buildTransferRelationConfig(
 
   // Convert ToolForAgent[] to McpTool[] via Management API calls
   //TODO: add user id to the scopes
+  const manageApiClient = new ManagementApiClient({
+    apiUrl: env.INKEEP_AGENTS_MANAGE_API_URL,
+    tenantId,
+    projectId,
+    auth: { mode: 'internalService', internalServiceName: InternalServices.AGENTS_RUN_API },
+    ref: executionContext.resolvedRef.name,
+  });
   const targetAgentTools: McpTool[] = await Promise.all(
     targetToolsForSubAgent.map(async (item) => {
-      const mcpTool = await getMcpTool({ baseUrl: env.INKEEP_AGENTS_MANAGE_API_URL })({
-        scopes: { tenantId, projectId },
-        toolId: item.tool.id,
-        ref: executionContext.resolvedRef.name,
-      });
+      const mcpTool = await manageApiClient.getMcpTool(item.tool.id);
       if (item.relationshipId) {
         mcpTool.relationshipId = item.relationshipId;
       }

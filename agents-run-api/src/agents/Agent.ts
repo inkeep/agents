@@ -10,7 +10,9 @@ import {
   type FullExecutionContext,
   generateId,
   getLedgerArtifacts,
+  InternalServices,
   listTaskIdsByContextId,
+  ManagementApiClient,
   MCPServerType,
   type MCPToolConfig,
   MCPTransportType,
@@ -36,7 +38,6 @@ import {
   type ToolSet,
   tool,
 } from 'ai';
-import { getFunctionToolsForSubAgent } from '../api/manage-api';
 import {
   AGENT_EXECUTION_MAX_GENERATION_STEPS,
   FUNCTION_TOOL_EXECUTION_TIMEOUT_MS_DEFAULT,
@@ -1236,17 +1237,17 @@ export class Agent {
     const functionTools: ToolSet = {};
     const project = this.executionContext.project;
     try {
-      const functionToolsForAgent = await getFunctionToolsForSubAgent({
-        baseUrl: env.INKEEP_AGENTS_MANAGE_API_URL,
-      })({
-        scopes: {
-          tenantId: this.config.tenantId,
-          projectId: this.config.projectId,
-          agentId: this.config.agentId,
-          subAgentId: this.config.id,
-        },
-        ref: this.executionContext.resolvedRef.name,
+      const client = new ManagementApiClient({
+        apiUrl: env.INKEEP_AGENTS_MANAGE_API_URL,
+        tenantId: this.config.tenantId,
+        projectId: this.config.projectId,
+        auth: { mode: 'internalService', internalServiceName: InternalServices.AGENTS_RUN_API },
       });
+      const functionToolsForAgent = await client.getFunctionToolsForSubAgent(
+        this.config.agentId,
+        this.config.id,
+        this.executionContext.resolvedRef.name
+      );
 
       const functionToolsData = functionToolsForAgent ?? [];
 

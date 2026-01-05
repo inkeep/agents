@@ -16,6 +16,7 @@ const ISSUER = 'inkeep-agents-internal';
  */
 export const InternalServices = {
   AGENTS_RUN_API: 'agents-run-api',
+  EVALUATION_API: 'evaluation-api',
 } as const;
 
 export type InternalServiceId = (typeof InternalServices)[keyof typeof InternalServices];

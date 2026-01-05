@@ -4,7 +4,7 @@ import { beforeEach, describe, expect, it } from 'vitest';
 import {
   createConversation,
   getConversation,
-  updateConversationActiveAgent,
+  updateConversationActiveSubAgent,
 } from '../../../data-access/runtime/conversations';
 import type { ConversationInsert } from '../../../types/index';
 import { testRunDbClient } from '../../setup';
@@ -147,7 +147,7 @@ describe('Conversations Data Access - Integration Tests', () => {
       await new Promise((resolve) => setTimeout(resolve, 10));
 
       // Update active agent
-      const updatedConversation = await updateConversationActiveAgent(db)({
+      const updatedConversation = await updateConversationActiveSubAgent(db)({
         scopes: { tenantId: testTenantId, projectId: testProjectId },
         conversationId: conversationData.id,
         activeSubAgentId: newAgentData.id,
@@ -173,7 +173,7 @@ describe('Conversations Data Access - Integration Tests', () => {
       await createConversation(db)(conversationData);
 
       // Try to update from different tenant
-      const result = await updateConversationActiveAgent(db)({
+      const result = await updateConversationActiveSubAgent(db)({
         scopes: { tenantId: 'tenant-2', projectId: testProjectId },
         conversationId: conversationData.id,
         activeSubAgentId: 'non-existent-agent',
@@ -192,7 +192,7 @@ describe('Conversations Data Access - Integration Tests', () => {
     });
 
     it('should return undefined when updating non-existent conversation', async () => {
-      const result = await updateConversationActiveAgent(db)({
+      const result = await updateConversationActiveSubAgent(db)({
         scopes: { tenantId: testTenantId, projectId: testProjectId },
         conversationId: 'non-existent-conversation',
         activeSubAgentId: 'non-existent-agent',

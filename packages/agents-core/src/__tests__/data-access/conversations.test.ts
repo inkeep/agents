@@ -9,7 +9,7 @@ import {
   listConversations,
   setActiveAgentForConversation,
   updateConversation,
-  updateConversationActiveAgent,
+  updateConversationActiveSubAgent,
 } from '../../data-access/runtime/conversations';
 import type { AgentsRunDatabaseClient } from '../../db/runtime/runtime-client';
 import type { ConversationUpdate } from '../../types/index';
@@ -391,7 +391,7 @@ describe('Conversations Data Access', () => {
         update: mockUpdate,
       } as any;
 
-      const result = await updateConversationActiveAgent(mockDb)({
+      const result = await updateConversationActiveSubAgent(mockDb)({
         scopes: { tenantId: testTenantId, projectId: testProjectId },
         conversationId,
         activeSubAgentId: newActiveAgentId,

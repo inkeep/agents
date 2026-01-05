@@ -3,13 +3,14 @@ import {
   type CredentialStoreRegistry,
   type FullExecutionContext,
   generateId,
+  InternalServices,
+  ManagementApiClient,
   type McpTool,
   type Part,
   type SubAgentApiSelect,
   TaskState,
 } from '@inkeep/agents-core';
 import type { A2ATask, A2ATaskResult } from '../a2a/types';
-import { getMcpTool } from '../api/manage-api';
 import { env } from '../env';
 import { getLogger } from '../logger';
 import { agentSessionManager } from '../services/AgentSession';
@@ -141,19 +142,18 @@ export const createTaskHandler = (
       const stopWhen = 'stopWhen' in config.agentSchema ? config.agentSchema.stopWhen : undefined;
 
       // Convert db tools to MCP tools and filter by selectedTools
+      const manageApiClient = new ManagementApiClient({
+        apiUrl: env.INKEEP_AGENTS_MANAGE_API_URL,
+        tenantId,
+        projectId,
+        auth: { mode: 'internalService', internalServiceName: InternalServices.AGENTS_RUN_API },
+        ref: resolvedRef.name,
+      });
       const toolsForAgentResult: McpTool[] =
         (await Promise.all(
           toolsForAgent.map(async (item) => {
             // Doing a api call here rather than using the full project because the mcp's available tools are not available in the project context
-            const mcpTool = await getMcpTool({ baseUrl: env.INKEEP_AGENTS_MANAGE_API_URL })({
-              scopes: {
-                tenantId,
-                projectId,
-              },
-              toolId: item.tool.id,
-              userId: config.userId,
-              ref: resolvedRef.name,
-            });
+            const mcpTool = await manageApiClient.getMcpTool(item.tool.id);
             if (item.relationshipId) {
               mcpTool.relationshipId = item.relationshipId;
             }

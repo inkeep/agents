@@ -493,6 +493,7 @@ const handleInitializationRequest = async (
       tenantId,
       projectId,
       activeSubAgentId,
+      agentId,
       ref: resolvedRef,
       metadata: {
         sessionData: {

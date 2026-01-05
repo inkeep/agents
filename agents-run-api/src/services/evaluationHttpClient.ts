@@ -5,7 +5,7 @@
  */
 
 import { getLogger } from '../logger.js';
-
+import { env } from '../env.js';
 const logger = getLogger('evaluationHttpClient');
 
 type StartEvaluationParams = {
@@ -21,7 +21,7 @@ type StartEvaluationParams = {
  * This is a fire-and-forget operation - we don't wait for the evaluation to complete.
  */
 export async function startConversationEvaluationHttp(params: StartEvaluationParams): Promise<void> {
-  const evalApiUrl = process.env.AGENTS_EVAL_API_URL || process.env.INKEEP_AGENTS_EVAL_API_URL;
+  const evalApiUrl = env.INKEEP_AGENTS_EVAL_API_URL;
   
   if (!evalApiUrl) {
     logger.warn({}, 'AGENTS_EVAL_API_URL not set, skipping evaluation trigger');

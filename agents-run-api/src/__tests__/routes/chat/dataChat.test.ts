@@ -37,7 +37,7 @@ vi.mock('../../../context', () => ({
 
 // Mock Management API calls used by projectConfigMiddleware so we don't hit network
 vi.mock('../../../api/manage-api', async (importOriginal) => {
-  const actual = await importOriginal<typeof import('../../../api/manage-api')>();
+  const actual = await importOriginal<typeof import('../../../../../packages/agents-core/src/utils/manage-api-client')>();
   return {
     ...actual,
     getResolvedRef: vi.fn().mockImplementation(() =>

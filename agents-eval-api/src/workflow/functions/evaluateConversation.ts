@@ -2,12 +2,14 @@ import {
   createEvaluationResult,
   generateId,
   getConversation,
-  getEvaluatorById,
+  InternalServices,
+  ManagementApiClient,
   updateEvaluationResult,
 } from '@inkeep/agents-core';
-import dbClient from '../../data/db/dbClient';
+import runDbClient from '../../data/db/runDbClient';
 import { getLogger } from '../../logger';
 import { EvaluationService } from '../../services/EvaluationService';
+import { env } from 'src/env';
 
 const logger = getLogger('workflow-evaluate-conversation');
 
@@ -24,7 +26,7 @@ async function getConversationStep(payload: EvaluationPayload) {
   
   const { tenantId, projectId, conversationId } = payload;
   
-  const conv = await getConversation(dbClient)({
+  const conv = await getConversation(runDbClient)({
     scopes: { tenantId, projectId },
     conversationId,
   });
@@ -38,18 +40,19 @@ async function getConversationStep(payload: EvaluationPayload) {
 
 async function getEvaluatorsStep(payload: EvaluationPayload) {
   'use step';
-  
   const { tenantId, projectId, evaluatorIds } = payload;
-  
-  const evals = await Promise.all(
-    evaluatorIds.map((id: string) =>
-      getEvaluatorById(dbClient)({
-        scopes: { tenantId, projectId, evaluatorId: id },
-      })
-    )
-  );
 
-  return evals.filter((e) => e !== null);
+    
+  const client = new ManagementApiClient({
+    apiUrl: env.INKEEP_AGENTS_MANAGE_API_URL,
+    tenantId,
+    projectId,
+    auth: { mode: 'internalService', internalServiceName: InternalServices.EVALUATION_API },
+  });
+  
+  const evals = await client.getEvaluatorsByIds(evaluatorIds);  
+
+  return evals;
 }
 
 async function executeEvaluatorStep(
@@ -61,15 +64,19 @@ async function executeEvaluatorStep(
   
   const { tenantId, projectId, conversationId, evaluationRunId } = payload;
   
-  const evaluator = await getEvaluatorById(dbClient)({
-    scopes: { tenantId, projectId, evaluatorId },
+  const client = new ManagementApiClient({
+    apiUrl: env.INKEEP_AGENTS_MANAGE_API_URL,
+    tenantId,
+    projectId,
+    auth: { mode: 'internalService', internalServiceName: InternalServices.EVALUATION_API },
   });
+  const evaluator = await client.getEvaluatorById(evaluatorId);
 
   if (!evaluator) {
     throw new Error(`Evaluator not found: ${evaluatorId}`);
   }
 
-  const evalResult = await createEvaluationResult(dbClient)({
+  const evalResult = await createEvaluationResult(runDbClient)({
     id: generateId(),
     tenantId,
     projectId,
@@ -87,7 +94,7 @@ async function executeEvaluatorStep(
       projectId,
     });
 
-    const updated = await updateEvaluationResult(dbClient)({
+    const updated = await updateEvaluationResult(runDbClient)({
       scopes: { tenantId, projectId, evaluationResultId: evalResult.id },
       data: { output: output as any },
     });
@@ -106,7 +113,7 @@ async function executeEvaluatorStep(
       'Evaluation execution failed'
     );
 
-    const failed = await updateEvaluationResult(dbClient)({
+    const failed = await updateEvaluationResult(runDbClient)({
       scopes: { tenantId, projectId, evaluationResultId: evalResult.id },
       data: { output: { text: `Evaluation failed: ${errorMessage}` } as any },
     });

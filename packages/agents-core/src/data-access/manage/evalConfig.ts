@@ -1,4 +1,4 @@
-import { and, eq } from 'drizzle-orm';
+import { and, eq, inArray } from 'drizzle-orm';
 import type { AgentsManageDatabaseClient } from '../../db/manage/manage-client';
 import {
   dataset,
@@ -458,6 +458,27 @@ export const listEvaluators =
         and(
           eq(evaluator.tenantId, params.scopes.tenantId),
           eq(evaluator.projectId, params.scopes.projectId)
+        )
+      );
+  };
+
+export const getEvaluatorsByIds =
+  (db: AgentsManageDatabaseClient) =>
+  async (params: {
+    scopes: ProjectScopeConfig;
+    evaluatorIds: string[];
+  }): Promise<EvaluatorSelect[]> => {
+    if (params.evaluatorIds.length === 0) {
+      return [];
+    }
+    return await db
+      .select()
+      .from(evaluator)
+      .where(
+        and(
+          eq(evaluator.tenantId, params.scopes.tenantId),
+          eq(evaluator.projectId, params.scopes.projectId),
+          inArray(evaluator.id, params.evaluatorIds)
         )
       );
   };

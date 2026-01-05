@@ -1,4 +1,4 @@
-import type { DatasetItemSelect, FullAgentDefinition, ModelSettings } from '@inkeep/agents-core';
+import type { ConversationSelect, DatasetItemSelect, EvaluatorSelect, FullAgentDefinition, ModelSettings } from '@inkeep/agents-core';
 import {
   ModelFactory,
   conversations,
@@ -7,16 +7,16 @@ import {
   generateId,
   getConversationHistory,
   getDatasetRunConversationRelations,
-  getEvaluationJobConfigById,
-  getEvaluationJobConfigEvaluatorRelations,
-  getEvaluatorById,
-  getFullAgent,
   updateEvaluationResult,
+  EvaluationResultSelect,
+  ManagementApiClient,
+  InternalServices,
+
 } from '@inkeep/agents-core';
 import { generateObject, generateText } from 'ai';
 import { and, eq, gte, inArray, lte } from 'drizzle-orm';
 import { z } from 'zod';
-import dbClient from '../data/db/dbClient';
+import runDbClient from '../data/db/runDbClient';
 import { env } from '../env';
 import { getLogger } from '../logger';
 
@@ -754,24 +754,27 @@ Generate the next user message:`;
     projectId: string;
     evaluationJobConfigId: string;
     sampleRate?: number | null;
-  }): Promise<Array<typeof import('@inkeep/agents-core').evaluationResult.$inferSelect>> {
+  }): Promise<Array<EvaluationResultSelect>> {
     const { tenantId, projectId, evaluationJobConfigId, sampleRate } = params;
+
+    const client = new ManagementApiClient({
+      apiUrl: env.INKEEP_AGENTS_MANAGE_API_URL,
+      tenantId,
+      projectId,
+      auth: { mode: 'internalService', internalServiceName: InternalServices.EVALUATION_API },
+    });
 
     logger.info({ tenantId, projectId, evaluationJobConfigId, sampleRate }, 'Starting evaluation job');
 
     // Get the evaluation job config
-    const config = await getEvaluationJobConfigById(dbClient)({
-      scopes: { tenantId, projectId, evaluationJobConfigId },
-    });
+    const config = await client.getEvaluationJobConfigById(evaluationJobConfigId);
 
     if (!config) {
       throw new Error(`Evaluation job config not found: ${evaluationJobConfigId}`);
     }
 
     // Get evaluators for this job
-    const evaluatorRelations = await getEvaluationJobConfigEvaluatorRelations(dbClient)({
-      scopes: { tenantId, projectId, evaluationJobConfigId },
-    });
+    const evaluatorRelations = await client.getEvaluationJobConfigEvaluatorRelations(evaluationJobConfigId);
 
     if (evaluatorRelations.length === 0) {
       throw new Error(`No evaluators found for job config: ${evaluationJobConfigId}`);
@@ -779,9 +782,7 @@ Generate the next user message:`;
 
     const evaluators = await Promise.all(
       evaluatorRelations.map((relation) =>
-        getEvaluatorById(dbClient)({
-          scopes: { tenantId, projectId, evaluatorId: relation.evaluatorId },
-        })
+        client.getEvaluatorById(relation.evaluatorId)
       )
     );
 
@@ -832,14 +833,14 @@ Generate the next user message:`;
     }
 
     // Create evaluation run
-    const evaluationRun = await createEvaluationRun(dbClient)({
+    const evaluationRun = await createEvaluationRun(runDbClient)({
       id: generateId(),
       tenantId,
       projectId,
       evaluationJobConfigId,
     });
 
-    const results: Array<typeof import('@inkeep/agents-core').evaluationResult.$inferSelect> = [];
+    const results: Array<EvaluationResultSelect> = [];
 
     // Run evaluations for each conversation with each evaluator
     for (const conversation of conversationsToEvaluate) {
@@ -850,7 +851,7 @@ Generate the next user message:`;
             'Running evaluation'
           );
 
-          const evalResult = await createEvaluationResult(dbClient)({
+          const evalResult = await createEvaluationResult(runDbClient)({
             id: generateId(),
             tenantId,
             projectId,
@@ -867,7 +868,7 @@ Generate the next user message:`;
               projectId,
             });
 
-            const updatedResult = await updateEvaluationResult(dbClient)({
+            const updatedResult = await updateEvaluationResult(runDbClient)({
               scopes: { tenantId, projectId, evaluationResultId: evalResult.id },
               data: {
                 output: evaluationResult.output as any,
@@ -900,7 +901,7 @@ Generate the next user message:`;
             );
 
             const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-            const failedResult = await updateEvaluationResult(dbClient)({
+            const failedResult = await updateEvaluationResult(runDbClient)({
               scopes: { tenantId, projectId, evaluationResultId: evalResult.id },
               data: {
                 output: { text: `Evaluation failed: ${errorMessage}` } as any,
@@ -942,7 +943,7 @@ Generate the next user message:`;
     tenantId: string;
     projectId: string;
     jobFilters: any;
-  }): Promise<Array<typeof import('@inkeep/agents-core').conversations.$inferSelect>> {
+  }): Promise<Array<ConversationSelect>> {
     const { tenantId, projectId, jobFilters } = params;
 
     const whereConditions = [
@@ -979,7 +980,7 @@ Generate the next user message:`;
       // Get conversation IDs from dataset run relations
       const allConversationIds = new Set<string>();
       for (const datasetRunId of jobFilters.datasetRunIds) {
-        const relations = await getDatasetRunConversationRelations(dbClient)({
+        const relations = await getDatasetRunConversationRelations(runDbClient)({
           scopes: { tenantId, projectId, datasetRunId },
         });
         for (const relation of relations) {
@@ -995,7 +996,7 @@ Generate the next user message:`;
       }
     }
 
-    const filteredConversations = await dbClient
+    const filteredConversations = await runDbClient
       .select()
       .from(conversations)
       .where(and(...whereConditions));
@@ -1034,15 +1035,22 @@ Generate the next user message:`;
    * Execute an evaluation by calling the LLM with the evaluator prompt and conversation data
    */
   async executeEvaluation(params: {
-    conversation: typeof import('@inkeep/agents-core').conversations.$inferSelect;
-    evaluator: typeof import('@inkeep/agents-core').evaluator.$inferSelect;
+    conversation: ConversationSelect;
+    evaluator: EvaluatorSelect;
     tenantId: string;
     projectId: string;
   }): Promise<{ output: any; metadata: Record<string, unknown> }> {
     const { conversation, evaluator, tenantId, projectId } = params;
 
+    const client = new ManagementApiClient({
+      apiUrl: env.INKEEP_AGENTS_MANAGE_API_URL,
+      tenantId,
+      projectId,
+      auth: { mode: 'internalService', internalServiceName: InternalServices.EVALUATION_API },
+      ref: conversation.ref.name,
+    });
     // Get conversation history
-    const conversationHistory = await getConversationHistory(dbClient)({
+    const conversationHistory = await getConversationHistory(runDbClient)({
       scopes: { tenantId, projectId },
       conversationId: conversation.id,
       options: {
@@ -1057,39 +1065,19 @@ Generate the next user message:`;
 
     try {
       // Get agentId from subagent
-      const activeSubAgentId = conversation.activeSubAgentId;
-      if (activeSubAgentId) {
-        // Query subagent to get its agentId
-        const subAgent = await dbClient.query.subAgents.findFirst({
-          where: (subAgents, { eq, and }) =>
-            and(
-              eq(subAgents.tenantId, tenantId),
-              eq(subAgents.projectId, projectId),
-              eq(subAgents.id, activeSubAgentId)
-            ),
-        });
+      const agentId = conversation.agentId;
 
-        if (subAgent) {
-          agentId = subAgent.agentId;
-        } else {
-          logger.warn(
-            { conversationId: conversation.id, activeSubAgentId },
-            'Subagent not found, cannot get agentId'
-          );
-        }
-
-        if (agentId) {
-          agentDefinition = await getFullAgent(
-            dbClient,
-            logger
-          )({
-            scopes: { tenantId, projectId, agentId },
-          });
-        }
+      if (agentId) {
+          agentDefinition = await client.getFullAgent(agentId);
+      } else {
+        logger.warn(
+          { conversationId: conversation.id, agentId: conversation.agentId },
+          'AgentId not found, cannot get agent definition'
+        );
       }
     } catch (error) {
       logger.warn(
-        { error, conversationId: conversation.id, activeSubAgentId: conversation.activeSubAgentId },
+        { error, conversationId: conversation.id, agentId: conversation.agentId },
         'Failed to fetch agent definition for evaluation'
       );
     }
