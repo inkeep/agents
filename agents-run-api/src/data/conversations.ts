@@ -418,9 +418,11 @@ export async function getConversationHistoryWithCompression({
 
   // IMPORTANT: For conversation compression, we MUST include internal messages (tool results)
   // Tool results are saved with visibility: 'internal' and are essential for compression summaries
+  // Also disable maxOutputTokens limit to let compression system handle context management
   const compressionOptions = {
     ...historyOptions,
     includeInternal: true, // Override to ensure tool results are always included for compression
+    maxOutputTokens: undefined, // Disable token limit - let compression system manage context intelligently
   };
 
   // Get scoped history (same as legacy method)
