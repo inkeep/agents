@@ -1,8 +1,9 @@
 'use client';
 
 import { ArrowLeft, Brain, Calendar, Cpu, MessageSquare } from 'lucide-react';
-import { useParams } from 'next/navigation';
-import { useEffect, useMemo, useState } from 'react';
+import NextLink from 'next/link';
+import { useSearchParams } from 'next/navigation';
+import { use, useEffect, useMemo, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -27,13 +28,21 @@ const TIME_RANGES = {
   custom: { label: 'Custom range', hours: 0 },
 } as const;
 
-interface AICallsBreakdownProps {
-  onBack: () => void;
-}
+export default function AICallsBreakdown({
+  params,
+}: PageProps<'/[tenantId]/projects/[projectId]/traces/ai-calls'>) {
+  const { tenantId, projectId } = use(params);
+  const searchParams = useSearchParams();
 
-export function AICallsBreakdown({ onBack }: AICallsBreakdownProps) {
-  const params = useParams();
-  const tenantId = params.tenantId as string;
+  const backLink = useMemo(() => {
+    // Preserve the current search params when going back to traces
+    const current = new URLSearchParams(searchParams.toString());
+    const queryString = current.toString();
+
+    return queryString
+      ? `/${tenantId}/projects/${projectId}/traces?${queryString}`
+      : `/${tenantId}/projects/${projectId}/traces`;
+  }, [projectId, tenantId, searchParams]);
 
   // Use nuqs for type-safe query state management
   const {
@@ -48,14 +57,14 @@ export function AICallsBreakdown({ onBack }: AICallsBreakdownProps) {
     setModelFilter,
   } = useAICallsQueryState();
   const [agentCalls, setAgentCalls] = useState<
-    Array<{
+    {
       subAgentId: string;
       agentId: string;
       modelId: string;
       totalCalls: number;
-    }>
+    }[]
   >([]);
-  const [modelCalls, setModelCalls] = useState<Array<{ modelId: string; totalCalls: number }>>([]);
+  const [modelCalls, setModelCalls] = useState<{ modelId: string; totalCalls: number }[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [agent, setAgents] = useState<string[]>([]);
@@ -128,16 +137,10 @@ export function AICallsBreakdown({ onBack }: AICallsBreakdownProps) {
 
         // Fetch all data in parallel using SigNoz aggregations
         const [agentData, modelData, uniqueAgents, uniqueModels] = await Promise.all([
-          client.getAICallsBySubAgent(
-            startTime,
-            endTime,
-            agentId,
-            modelId,
-            params.projectId as string
-          ),
-          client.getAICallsByModel(startTime, endTime, agentId, params.projectId as string),
-          client.getUniqueAgents(startTime, endTime, params.projectId as string),
-          client.getUniqueModels(startTime, endTime, params.projectId as string),
+          client.getAICallsBySubAgent(startTime, endTime, agentId, modelId, projectId),
+          client.getAICallsByModel(startTime, endTime, agentId, projectId),
+          client.getUniqueAgents(startTime, endTime, projectId),
+          client.getUniqueModels(startTime, endTime, projectId),
         ]);
 
         setAgentCalls(agentData);
@@ -153,7 +156,7 @@ export function AICallsBreakdown({ onBack }: AICallsBreakdownProps) {
     };
 
     fetchData();
-  }, [selectedAgent, selectedModel, startTime, endTime, params.projectId, tenantId]);
+  }, [selectedAgent, selectedModel, startTime, endTime, projectId, tenantId]);
 
   const totalAICalls = agentCalls.reduce((sum, item) => sum + item.totalCalls, 0);
 
@@ -177,9 +180,11 @@ export function AICallsBreakdown({ onBack }: AICallsBreakdownProps) {
     <div className="space-y-4">
       {/* Header */}
       <div className="flex items-center gap-4">
-        <Button variant="ghost" size="sm" onClick={onBack} className="gap-2">
-          <ArrowLeft className="h-4 w-4" />
-          Back to Overview
+        <Button variant="ghost" size="sm" asChild className="gap-2">
+          <NextLink href={backLink}>
+            <ArrowLeft className="h-4 w-4" />
+            Back to Overview
+          </NextLink>
         </Button>
         <div>
           <h1 className="text-2xl font-bold text-foreground">AI Calls Breakdown</h1>
