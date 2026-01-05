@@ -1,7 +1,6 @@
 'use client';
 
-import { useParams } from 'next/navigation';
-import { useEffect, useState } from 'react';
+import { use, useEffect, useState } from 'react';
 import { ErrorContent } from '@/components/errors/full-page-error';
 import { MembersTable } from '@/components/settings/members-table';
 import { CopyableSingleLineCode } from '@/components/ui/copyable-single-line-code';
@@ -14,9 +13,9 @@ type FullOrganization = NonNullable<
   >['data']
 >;
 
-export default function SettingsPage() {
+export default function SettingsPage({ params }: PageProps<'/[tenantId]/settings'>) {
   const authClient = useAuthClient();
-  const { tenantId } = useParams<{ tenantId: string }>();
+  const { tenantId } = use(params);
   const [organization, setOrganization] = useState<FullOrganization | null>();
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
