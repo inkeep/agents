@@ -771,6 +771,7 @@ describe('Agent conversationHistoryConfig Functionality', () => {
         delegationId: undefined,
         isDelegated: false,
       },
+      fullContextSize: 0,
       streamRequestId: undefined,
       summarizerModel: {
         model: 'anthropic/claude-sonnet-4-20250514',
@@ -806,6 +807,7 @@ describe('Agent conversationHistoryConfig Functionality', () => {
         subAgentId: 'test-agent',
         taskId: 'test-task-id',
       },
+      fullContextSize: 0,
       streamRequestId: undefined,
       summarizerModel: {
         model: 'anthropic/claude-sonnet-4-20250514',
