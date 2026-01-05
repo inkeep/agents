@@ -44,8 +44,7 @@ function DeviceVerificationForm() {
   // Redirect to login if not authenticated
   useEffect(() => {
     if (!authLoading && !isAuthenticated) {
-      const currentUrl = typeof window !== 'undefined' ? window.location.href : '/device';
-      router.push(`/login?callbackUrl=${encodeURIComponent(currentUrl)}`);
+      router.push(`/login?callbackUrl=${encodeURIComponent(window.location.href)}`);
     }
   }, [authLoading, isAuthenticated, router]);
 
