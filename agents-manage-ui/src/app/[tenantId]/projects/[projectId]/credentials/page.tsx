@@ -3,7 +3,6 @@ import Link from 'next/link';
 import { CredentialItem } from '@/components/credentials/credential-item';
 import FullPageError from '@/components/errors/full-page-error';
 import { CredentialsIcon } from '@/components/icons/empty-state/credentials';
-import { BodyTemplate } from '@/components/layout/body-template';
 import EmptyState from '@/components/layout/empty-state';
 import { PageHeader } from '@/components/layout/page-header';
 import { Button } from '@/components/ui/button';
@@ -22,7 +21,7 @@ async function CredentialsPage({
 
   try {
     const credentials = await fetchCredentials(tenantId, projectId);
-    const content = credentials.length ? (
+    return credentials.length ? (
       <>
         <PageHeader
           title="Credentials"
@@ -62,7 +61,6 @@ async function CredentialsPage({
         icon={<CredentialsIcon />}
       />
     );
-    return <BodyTemplate breadcrumbs={['Credentials']}>{content}</BodyTemplate>;
   } catch (error) {
     return <FullPageError errorCode={getErrorCode(error)} context="credentials" />;
   }
