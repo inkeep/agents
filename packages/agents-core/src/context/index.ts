@@ -8,7 +8,7 @@ export {
   headers,
 } from './ContextConfig';
 export type { FetchResult } from './ContextFetcher';
-export { ContextFetcher } from './ContextFetcher';
+export { ContextFetcher, MissingRequiredVariableError } from './ContextFetcher';
 export type {
   ContextResolutionOptions,
   ContextResolutionResult,

@@ -238,7 +238,8 @@ app.openapi(
     method: 'get',
     path: '/callback',
     summary: 'MCP OAuth authorization callback',
-    description: 'Handles OAuth authorization codes for MCP tools and completes the authentication flow',
+    description:
+      'Handles OAuth authorization codes for MCP tools and completes the authentication flow',
     operationId: 'mcp-oauth-callback',
     tags: ['OAuth'],
     request: {
