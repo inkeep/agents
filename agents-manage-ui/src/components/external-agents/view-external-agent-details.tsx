@@ -9,15 +9,27 @@ import { cn } from '@/lib/utils';
 import { Button } from '../ui/button';
 import { CopyableSingleLineCode } from '../ui/copyable-single-line-code';
 
+interface ExternalAgentProps {
+  externalAgent: ExternalAgent;
+  tenantId: string;
+  projectId: string;
+  className?: string;
+}
+
+const ItemLabel = ({ children, className }: { children: React.ReactNode; className?: string }) => {
+  return <div className={cn('text-sm font-medium leading-none', className)}>{children}</div>;
+};
+
+const ItemValue = ({ children, className }: { children: React.ReactNode; className?: string }) => {
+  return <div className={cn('flex w-full text-sm', className)}>{children}</div>;
+};
+
 export function ViewExternalAgentDetails({
   externalAgent,
   tenantId,
   projectId,
-}: {
-  externalAgent: ExternalAgent;
-  tenantId: string;
-  projectId: string;
-}) {
+  className,
+}: ExternalAgentProps) {
   const formatDate = (dateString: string) => {
     return new Date(dateString).toLocaleDateString('en-US', {
       year: 'numeric',
@@ -28,28 +40,8 @@ export function ViewExternalAgentDetails({
     });
   };
 
-  const ItemLabel = ({
-    children,
-    className,
-  }: {
-    children: React.ReactNode;
-    className?: string;
-  }) => {
-    return <div className={cn('text-sm font-medium leading-none', className)}>{children}</div>;
-  };
-
-  const ItemValue = ({
-    children,
-    className,
-  }: {
-    children: React.ReactNode;
-    className?: string;
-  }) => {
-    return <div className={cn('flex w-full text-sm', className)}>{children}</div>;
-  };
-
   return (
-    <div className="space-y-8">
+    <div className={cn('space-y-8', className)}>
       {/* Header */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-3">
