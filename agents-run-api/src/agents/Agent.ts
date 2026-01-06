@@ -2576,9 +2576,12 @@ ${output}`;
 
     // Track conversation history tokens and add to context breakdown
     const conversationHistoryTokens = estimateTokens(conversationHistory);
-    const updatedContextBreakdown = {
-      ...initialContextBreakdown,
-      conversationHistory: conversationHistoryTokens,
+    const updatedContextBreakdown: ContextBreakdown = {
+      components: {
+        ...initialContextBreakdown.components,
+        conversationHistory: conversationHistoryTokens,
+      },
+      total: initialContextBreakdown.total,
     };
 
     // Recalculate total with conversation history
