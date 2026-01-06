@@ -8,3 +8,7 @@ packages:
   - agents-cookbook
   - test-agents
   - "packages/*"
+
+catalog:
+  better-auth: ^1.4.0
+  "@better-auth/sso": ^1.4.0
