@@ -2,6 +2,7 @@
 
 import { ModelSelector } from '@/components/agent/sidepane/nodes/model-selector';
 import { ExpandableJsonEditor } from '@/components/editors/expandable-json-editor';
+import { AzureConfigurationSection } from './azure-configuration-section';
 
 interface ModelConfigurationProps {
   /** Current model value */
@@ -123,97 +124,11 @@ export function ModelConfiguration({
 
       {/* Azure Configuration Fields */}
       {value?.startsWith('azure/') && (
-        <div className="space-y-4 p-3 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-md">
-          <div>
-            <p className="text-sm font-medium text-gray-800 dark:text-gray-200 mb-2">
-              Azure Configuration
-            </p>
-            <p className="text-xs text-gray-600 dark:text-gray-400 mb-3">
-              Set <code className="bg-gray-100 dark:bg-gray-700 px-1 rounded">AZURE_API_KEY</code>{' '}
-              environment variable
-            </p>
-          </div>
-
-          <div className="space-y-3">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                Azure Resource Name
-              </label>
-              <input
-                type="text"
-                placeholder="your-azure-resource"
-                className="w-full px-3 py-2 text-sm border rounded-md bg-white dark:bg-gray-900 border-gray-300 dark:border-gray-600"
-                value={(() => {
-                  try {
-                    const options =
-                      typeof providerOptions === 'string'
-                        ? JSON.parse(providerOptions || '{}')
-                        : (providerOptions as Record<string, unknown>) || {};
-                    return (options.resourceName as string) || '';
-                  } catch {
-                    return '';
-                  }
-                })()}
-                onChange={(e) => {
-                  try {
-                    const currentOptions =
-                      typeof providerOptions === 'string'
-                        ? JSON.parse(providerOptions || '{}')
-                        : (providerOptions as Record<string, unknown>) || {};
-                    const newOptions = { ...currentOptions, resourceName: e.target.value };
-                    onProviderOptionsChange?.(JSON.stringify(newOptions, null, 2));
-                  } catch {
-                    const newOptions = { resourceName: e.target.value };
-                    onProviderOptionsChange?.(JSON.stringify(newOptions, null, 2));
-                  }
-                }}
-              />
-              <p className="text-xs text-gray-600 dark:text-gray-400 mt-1">
-                Your Azure OpenAI resource name
-              </p>
-            </div>
-
-            <div className="text-center text-xs text-gray-600 dark:text-gray-400">— OR —</div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                Custom Base URL
-              </label>
-              <input
-                type="text"
-                placeholder="https://your-custom-endpoint.com"
-                className="w-full px-3 py-2 text-sm border rounded-md bg-white dark:bg-gray-900 border-gray-300 dark:border-gray-600"
-                value={(() => {
-                  try {
-                    const options =
-                      typeof providerOptions === 'string'
-                        ? JSON.parse(providerOptions || '{}')
-                        : (providerOptions as Record<string, unknown>) || {};
-                    return (options.baseURL as string) || '';
-                  } catch {
-                    return '';
-                  }
-                })()}
-                onChange={(e) => {
-                  try {
-                    const currentOptions =
-                      typeof providerOptions === 'string'
-                        ? JSON.parse(providerOptions || '{}')
-                        : (providerOptions as Record<string, unknown>) || {};
-                    const newOptions = { ...currentOptions, baseURL: e.target.value };
-                    onProviderOptionsChange?.(JSON.stringify(newOptions, null, 2));
-                  } catch {
-                    const newOptions = { baseURL: e.target.value };
-                    onProviderOptionsChange?.(JSON.stringify(newOptions, null, 2));
-                  }
-                }}
-              />
-              <p className="text-xs text-gray-600 dark:text-gray-400 mt-1">
-                For custom Azure endpoints or proxies
-              </p>
-            </div>
-          </div>
-        </div>
+        <AzureConfigurationSection
+          providerOptions={providerOptions}
+          onProviderOptionsChange={onProviderOptionsChange}
+          editorNamePrefix={editorNamePrefix}
+        />
       )}
     </div>
   );

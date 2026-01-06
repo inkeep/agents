@@ -39,10 +39,15 @@ export class ModelFactory {
         return createAnthropic(config);
       case 'azure': {
         if (!config.resourceName && !config.baseURL) {
-          throw new Error(
-            'Azure provider requires either resourceName or baseURL. ' +
+          const hasApiKey = !!process.env.AZURE_OPENAI_API_KEY;
+          const errorMessage = hasApiKey
+            ? 'Azure provider requires either resourceName or baseURL in provider options. ' +
               'Provide resourceName for standard Azure OpenAI, or baseURL for custom endpoints.'
-          );
+            : 'Azure provider requires either resourceName or baseURL in provider options, ' +
+              'and AZURE_OPENAI_API_KEY environment variable must be set. ' +
+              'Provide resourceName for standard Azure OpenAI, or baseURL for custom endpoints.';
+
+          throw new Error(errorMessage);
         }
         return createAzure(config) as unknown as {
           languageModel: (modelId: string) => LanguageModel;
