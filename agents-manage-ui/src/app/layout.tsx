@@ -83,7 +83,12 @@ export default function RootLayout({ children }: LayoutProps<'/'>) {
   return (
     <html lang="en" suppressHydrationWarning>
       <body
-        className={cn(inter.variable, jetBrainsMono.variable, 'antialiased')}
+        className={cn(
+          inter.variable,
+          jetBrainsMono.variable,
+          'bg-background has-data-[slot=sidebar-wrapper]:bg-sidebar',
+          'antialiased text-foreground'
+        )}
         // Suppress hydration warnings in development caused by browser extensions
         suppressHydrationWarning={process.env.NODE_ENV !== 'production'}
       >

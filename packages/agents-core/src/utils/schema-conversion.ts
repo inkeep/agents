@@ -17,7 +17,7 @@ type PreviewZodType = z.ZodTypeAny & {
  * Converts JSON Schema to Zod schema at runtime.
  *
  * This is useful for dynamically creating Zod schemas from JSON Schema definitions,
- * such as when using AI SDK's generateObject/streamObject with data component props.
+ * such as when using AI SDK's structured generateText/streamText with data component props.
  *
  * Note: Uses z.string() as fallback for unknown types to ensure Anthropic compatibility
  * (Anthropic requires explicit types - z.any()/z.unknown() produce invalid JSON Schema).

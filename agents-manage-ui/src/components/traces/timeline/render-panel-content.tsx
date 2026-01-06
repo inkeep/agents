@@ -258,7 +258,12 @@ export function renderPanelContent({
         </>
       );
 
-    case 'user_message':
+    case 'user_message': {
+      // Extract target context from span attributes (for copilot/chat-to-edit scenarios)
+      const targetTenantId = span?.data?.['target.tenant.id'] as string | undefined;
+      const targetProjectId = span?.data?.['target.project.id'] as string | undefined;
+      const targetAgentId = span?.data?.['target.agent.id'] as string | undefined;
+
       return (
         <>
           <Section>
@@ -266,6 +271,18 @@ export function renderPanelContent({
               label="Message content"
               value={a.messageContent || 'Message content not available'}
             />
+            {targetTenantId && (
+              <Info label="Target tenant" value={<Badge variant="code">{targetTenantId}</Badge>} />
+            )}
+            {targetProjectId && (
+              <Info
+                label="Target project"
+                value={<Badge variant="code">{targetProjectId}</Badge>}
+              />
+            )}
+            {targetAgentId && (
+              <Info label="Target agent" value={<Badge variant="code">{targetAgentId}</Badge>} />
+            )}
             <StatusBadge status={a.status} />
             <Info label="Timestamp" value={formatDateTime(a.timestamp)} />
           </Section>
@@ -274,6 +291,7 @@ export function renderPanelContent({
           {AdvancedBlock}
         </>
       );
+    }
 
     case 'ai_assistant_message':
       return (
@@ -703,26 +721,6 @@ export function renderPanelContent({
       return (
         <>
           <Section>
-            <Info
-              label="Compression type"
-              value={
-                <Badge variant={a.compressionType === 'mid_generation' ? 'secondary' : 'default'}>
-                  {a.compressionType === 'mid_generation'
-                    ? 'Context Compacting'
-                    : a.compressionType === 'conversation_level'
-                      ? 'Conversation History Compacting'
-                      : a.compressionType || 'Unknown'}
-                </Badge>
-              }
-            />
-            <Info
-              label="Session ID"
-              value={a.subAgentId ? <Badge variant="code">{a.subAgentId}</Badge> : '-'}
-            />
-            <Info
-              label="Messages processed"
-              value={a.compressionMessageCount?.toLocaleString() || '0'}
-            />
             <Info label="Input tokens" value={a.compressionInputTokens?.toLocaleString() || '0'} />
             <Info
               label="Output tokens"
@@ -738,22 +736,9 @@ export function renderPanelContent({
                 }
               />
             )}
-            {a.compressionArtifactCount !== undefined && a.compressionArtifactCount > 0 && (
-              <Info label="Artifacts created" value={a.compressionArtifactCount.toLocaleString()} />
-            )}
-            <Info
-              label="Hard limit"
-              value={`${a.compressionHardLimit?.toLocaleString() || '0'} tokens`}
-            />
-            <Info
-              label="Safety buffer"
-              value={`${a.compressionSafetyBuffer?.toLocaleString() || '0'} tokens`}
-            />
-            {a.compressionFallbackUsed && (
-              <LabeledBlock label="Fallback used">
-                <Badge variant="outline" className="text-amber-600 border-amber-600">
-                  Simple compression fallback
-                </Badge>
+            {a.compressionSummary && (
+              <LabeledBlock label="Summary">
+                <Bubble className="text-sm text-foreground">{a.compressionSummary}</Bubble>
               </LabeledBlock>
             )}
             {a.compressionError && (

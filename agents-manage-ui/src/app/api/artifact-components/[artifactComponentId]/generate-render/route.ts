@@ -1,9 +1,9 @@
 /**
  * API Route: Generate Component Render
  *
- * Generates a React/Tailwind component using AI based on a data component's schema.
+ * Generates a React/Tailwind component using AI based on an artifact component's schema.
  * This route:
- * 1. Fetches the data component from manage-api
+ * 1. Fetches the artifact component from manage-api
  * 2. Fetches the project to get base model configuration
  * 3. Uses AI SDK structured output streamText to generate component code and sample data
  * 4. Streams NDJSON response back to client
@@ -13,15 +13,15 @@ import { jsonSchemaToZod, ModelFactory } from '@inkeep/agents-core';
 import { streamText, Output } from 'ai';
 import type { NextRequest } from 'next/server';
 import { z } from 'zod';
-import { fetchDataComponent } from '@/lib/api/data-components';
+import { fetchArtifactComponent } from '@/lib/api/artifact-components';
 import { fetchProject } from '@/lib/api/projects';
 
 export async function POST(
   request: NextRequest,
-  context: RouteContext<'/api/data-components/[dataComponentId]/generate-render'>
+  context: RouteContext<'/api/artifact-components/[artifactComponentId]/generate-render'>
 ) {
   try {
-    const { dataComponentId } = await context.params;
+    const { artifactComponentId } = await context.params;
     const body = await request.json();
     const { tenantId, projectId, instructions, existingCode } = body;
 
@@ -29,19 +29,23 @@ export async function POST(
       return new Response('Missing tenantId or projectId', { status: 400 });
     }
 
-    console.log('Generating component render', {
+    console.log('Generating artifact component render', {
       tenantId,
       projectId,
-      dataComponentId,
+      artifactComponentId,
       hasInstructions: !!instructions,
       hasExistingCode: !!existingCode,
     });
 
-    // Fetch data component from manage-api
-    const dataComponent = await fetchDataComponent(tenantId, projectId, dataComponentId);
+    // Fetch artifact component from manage-api
+    const artifactComponent = await fetchArtifactComponent(
+      tenantId,
+      projectId,
+      artifactComponentId
+    );
 
-    if (!dataComponent) {
-      return new Response('Data component not found', { status: 404 });
+    if (!artifactComponent) {
+      return new Response('Artifact component not found', { status: 404 });
     }
 
     // Fetch project to get model configuration
@@ -58,21 +62,18 @@ export async function POST(
     }
 
     // Build prompt for AI generation
-    const prompt = buildGenerationPrompt(dataComponent, instructions, existingCode);
+    const prompt = buildGenerationPrompt(artifactComponent, instructions, existingCode);
 
     // Prepare model configuration
     const modelConfig = ModelFactory.prepareGenerationConfig(project.models?.base as any);
 
     // Define schema for generated output
-    // Dynamically create mockData schema from component's props JSON Schema.
-    // This ensures Anthropic gets proper types instead of z.any() which it rejects.
-    const mockDataSchema = jsonSchemaToZod(dataComponent.props);
+    const mockDataSchema = jsonSchemaToZod(artifactComponent.props);
     const renderSchema = z.object({
       component: z.string().describe('The React component code'),
       mockData: mockDataSchema.describe('Sample data matching the props schema'),
     });
 
-    // Generate using AI SDK structured output streamText
     const result = streamText({
       ...modelConfig,
       prompt,
@@ -85,10 +86,10 @@ export async function POST(
     // Get existing data if we're modifying (to preserve sample data)
     const existingData =
       existingCode &&
-      dataComponent.render &&
-      typeof dataComponent.render === 'object' &&
-      'mockData' in dataComponent.render
-        ? (dataComponent.render as any).mockData
+      artifactComponent.render &&
+      typeof artifactComponent.render === 'object' &&
+      'mockData' in artifactComponent.render
+        ? (artifactComponent.render as any).mockData
         : null;
 
     // Create a ReadableStream for NDJSON streaming
@@ -99,7 +100,7 @@ export async function POST(
             // If modifying with instructions, preserve existing data
             const outputObject =
               instructions && existingData
-                ? { ...(partialObject as object), mockData: existingData }
+                ? { ...(partialObject as any), mockData: existingData }
                 : partialObject;
 
             // Write NDJSON (newline-delimited JSON)
@@ -125,7 +126,7 @@ export async function POST(
       },
     });
   } catch (error) {
-    console.error('Error generating component render:', error);
+    console.error('Error generating artifact component render:', error);
     return new Response(error instanceof Error ? error.message : 'Internal server error', {
       status: 500,
     });
@@ -136,7 +137,7 @@ export async function POST(
  * Build the prompt for AI generation
  */
 function buildGenerationPrompt(
-  dataComponent: {
+  artifactComponent: {
     name: string;
     description: string | null;
     props: Record<string, unknown> | null;
@@ -144,18 +145,18 @@ function buildGenerationPrompt(
   instructions?: string,
   existingCode?: string
 ): string {
-  const propsSchema = dataComponent.props || {};
+  const propsSchema = artifactComponent.props || {};
   const propsJson = JSON.stringify(propsSchema, null, 2);
-  const componentName = sanitizeComponentName(dataComponent.name);
+  const componentName = sanitizeComponentName(artifactComponent.name);
 
   // If we have custom instructions and existing code, modify the prompt
   if (instructions && existingCode) {
     return `You are an expert React and Tailwind CSS developer. You need to modify an existing React component based on specific instructions.
 
 COMPONENT DETAILS:
-- Original Name: ${dataComponent.name}
+- Original Name: ${artifactComponent.name}
 - Component Function Name: ${componentName}
-- Description: ${dataComponent.description || ''}
+- Description: ${artifactComponent.description}
 - Props Schema (JSON Schema): ${propsJson}
 
 EXISTING COMPONENT CODE:
@@ -190,12 +191,12 @@ EXAMPLE OUTPUT:
 Focus on making the requested changes while maintaining the component's quality and design principles.`;
   }
 
-  return `You are an expert React and Tailwind CSS developer. Generate a beautiful, modern React component for displaying data and sample data to preview it.
+  return `You are an expert React and Tailwind CSS developer. Generate a beautiful, modern React component for displaying artifact data and sample data to preview it.
 
 COMPONENT DETAILS:
-- Original Name: ${dataComponent.name}
+- Original Name: ${artifactComponent.name}
 - Component Function Name: ${componentName}
-- Description: ${dataComponent.description || ''}
+- Description: ${artifactComponent.description}
 - Props Schema (JSON Schema): ${propsJson}
 
 REQUIREMENTS:
@@ -211,17 +212,17 @@ REQUIREMENTS:
    - Use appropriate text sizes: text-sm for body, text-base for headings, text-xs for captions
    - Use balanced spacing: gap-2.5, gap-3, space-y-2, mt-2, mb-3
    - Aim for a clean, professional look with good readability
-4. Design for embedding - this component blends into existing content:
-   - DO NOT add redundant titles or headers unless they're part of the actual data schema
-   - Focus on displaying the data directly and elegantly
-   - Assume the component is part of a larger conversation or content flow
-   - If the schema has a "title" or "name" property, display it as data, not as a wrapper heading
+4. Design for artifact display - focus on showcasing structured artifact information:
+   - Display artifact properties clearly and attractively
+   - Use appropriate icons to represent different types of artifacts
+   - Consider the artifact might represent citations, documents, media, or other structured content
+   - Make it suitable for embedding in conversations or content flows
 5. Use LUCIDE-REACT ICONS to enhance UI aesthetics:
-   - Import icons from lucide-react: import { User, Mail, Clock } from 'lucide-react'
+   - Import icons from lucide-react: import { FileText, Link, Calendar, User } from 'lucide-react'
    - Use icons with size-4 or size-5 classes for balanced visibility
    - Place icons inline with text or as visual indicators
-   - Example: <User className="size-4" /> or <Mail className="size-4 text-muted-foreground" />
-   - Common useful icons: User, Mail, Calendar, Clock, Check, X, Star, Heart, Settings, Search, etc.
+   - Example: <FileText className="size-4" /> or <Link className="size-4 text-muted-foreground" />
+   - Common useful icons: FileText, Link, Calendar, User, Tag, MapPin, Clock, Star, etc.
 6. The component should accept props that match the JSON Schema properties
 7. Make it visually appealing and professional - clean with good whitespace
 8. Use semantic HTML elements
@@ -242,13 +243,13 @@ You need to generate two things:
 1. "component": The complete React component code as a string
 2. "mockData": Realistic sample data that matches the props schema (as a JSON object)
 
-EXAMPLE OUTPUT (for a user profile schema with name, email, role):
+EXAMPLE OUTPUT (for an artifact with title, url, type):
 {
-  "component": "import { Mail, User } from 'lucide-react';\\n\\nfunction ${componentName}(props) {\\n  return (\\n    <div className=\\"p-4 rounded-lg border border-border bg-card\\">\\n      <div className=\\"flex items-center gap-2.5 mb-2\\">\\n        <User className=\\"size-4 text-muted-foreground\\" />\\n        <span className=\\"text-base font-medium text-foreground\\">{props.name}</span>\\n      </div>\\n      <div className=\\"flex items-center gap-2 text-sm text-muted-foreground\\">\\n        <Mail className=\\"size-4\\" />\\n        <span>{props.email}</span>\\n      </div>\\n      <div className=\\"text-xs text-muted-foreground mt-2\\">Role: {props.role}</div>\\n    </div>\\n  );\\n}",
+  "component": "import { FileText, Link } from 'lucide-react';\\n\\nfunction ${componentName}(props) {\\n  return (\\n    <div className=\\"p-4 rounded-lg border border-border bg-card\\">\\n      <div className=\\"flex items-center gap-2.5 mb-2\\">\\n        <FileText className=\\"size-4 text-muted-foreground\\" />\\n        <span className=\\"text-base font-medium text-foreground\\">{props.title}</span>\\n      </div>\\n      <div className=\\"flex items-center gap-2 text-sm text-muted-foreground\\">\\n        <Link className=\\"size-4\\" />\\n        <span>{props.url}</span>\\n      </div>\\n      <div className=\\"text-xs text-muted-foreground mt-2\\">Type: {props.type}</div>\\n    </div>\\n  );\\n}",
   "mockData": {
-    "name": "Sarah Chen",
-    "email": "sarah.chen@example.com",
-    "role": "Product Manager"
+    "title": "React Best Practices Guide",
+    "url": "https://example.com/react-guide",
+    "type": "documentation"
   }
 }
 
@@ -257,9 +258,9 @@ REMEMBER:
 - NO direct colors (bg-white, text-gray-900, etc.)
 - NO dark: prefix needed - semantic classes adapt automatically
 - Use balanced spacing (p-4, gap-2.5/gap-3, text-sm for body, text-base for headings)
-- Use lucide-react icons where appropriate for better UI
-- NO redundant titles - just display the actual data from props
-- Design for embedding - this blends into existing content, not a standalone card
+- Use lucide-react icons where appropriate for better artifact representation
+- Focus on displaying structured artifact data clearly
+- Design for embedding - this blends into existing content
 - Make the sample data realistic and useful for previewing the component`;
 }
 

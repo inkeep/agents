@@ -16,7 +16,7 @@ import {
   ModelFactory,
 } from '@inkeep/agents-core';
 import { SpanStatusCode } from '@opentelemetry/api';
-import { generateObject } from 'ai';
+import { generateText, Output } from 'ai';
 import { toolSessionManager } from '../agents/ToolSessionManager';
 import {
   ARTIFACT_GENERATION_BACKOFF_INITIAL_MS,
@@ -1065,10 +1065,12 @@ ${this.statusUpdateState?.config.prompt?.trim() || ''}`;
           }
           const model = ModelFactory.createModel(modelToUse);
 
-          const { object } = await generateObject({
+          const { output: object } = await generateText({
             model,
             prompt,
-            schema: selectionSchema,
+            output: Output.object({
+              schema: selectionSchema,
+            }),
             experimental_telemetry: {
               isEnabled: true,
               functionId: `structured_update_${this.sessionId}`,
@@ -1542,7 +1544,7 @@ Make the name extremely specific to what this tool call actually returned, not g
                 .describe("Brief description of the artifact's relevance to the user's question"),
             });
 
-            const { object } = await tracer.startActiveSpan(
+            const { output: object } = await tracer.startActiveSpan(
               'agent_session.generate_artifact_metadata',
               {
                 attributes: {
@@ -1565,10 +1567,12 @@ Make the name extremely specific to what this tool call actually returned, not g
 
                 for (let attempt = 1; attempt <= maxRetries; attempt++) {
                   try {
-                    const result = await generateObject({
+                    const result = await generateText({
                       model,
                       prompt,
-                      schema,
+                      output: Output.object({
+                        schema,
+                      }),
                       experimental_telemetry: {
                         isEnabled: true,
                         functionId: `artifact_processing_${artifactData.artifactId}`,
@@ -1585,16 +1589,16 @@ Make the name extremely specific to what this tool call actually returned, not g
                     generationSpan.setAttributes({
                       'artifact.id': artifactData.artifactId,
                       'artifact.type': artifactData.artifactType,
-                      'artifact.name': result.object.name,
-                      'artifact.description': result.object.description,
+                      'artifact.name': result.output.name,
+                      'artifact.description': result.output.description,
                       'artifact.summary': JSON.stringify(artifactData.summaryData, null, 2),
                       'artifact.full': JSON.stringify(
                         artifactData.data || artifactData.summaryData,
                         null,
                         2
                       ),
-                      'generation.name_length': result.object.name.length,
-                      'generation.description_length': result.object.description.length,
+                      'generation.name_length': result.output.name.length,
+                      'generation.description_length': result.output.description.length,
                       'generation.attempts': attempt,
                     });
 
