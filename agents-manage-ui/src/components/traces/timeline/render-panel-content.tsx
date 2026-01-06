@@ -723,13 +723,6 @@ export function renderPanelContent({
                 <Bubble className="text-sm text-foreground">{a.compressionSummary}</Bubble>
               </LabeledBlock>
             )}
-            {a.compressionFallbackUsed && (
-              <LabeledBlock label="Fallback used">
-                <Badge variant="outline" className="text-amber-600 border-amber-600">
-                  Simple compression fallback
-                </Badge>
-              </LabeledBlock>
-            )}
             {a.compressionError && (
               <LabeledBlock label="Error">
                 <Bubble className="bg-red-50 border-red-200 text-red-800 dark:bg-red-900/20 dark:border-red-800 dark:text-red-300">
