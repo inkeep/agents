@@ -120,7 +120,9 @@ export class Phase1Config implements VersionConfig<SystemPromptV1> {
       inputSchema: this.normalizeSchema(tool.inputSchema),
     }));
 
-    const hasArtifactComponents = config.artifactComponents && config.artifactComponents.length > 0;
+    const hasArtifactComponents = Boolean(
+      config.artifactComponents && config.artifactComponents.length > 0
+    );
 
     const artifactsSection = this.generateArtifactsSection(
       templates,
@@ -129,8 +131,24 @@ export class Phase1Config implements VersionConfig<SystemPromptV1> {
       config.artifactComponents,
       config.hasAgentArtifactComponents
     );
-    breakdown.artifactsSection = estimateTokens(artifactsSection);
-    // Track artifact components separately (creation instructions)
+
+    const artifactInstructionsTokens = this.getArtifactInstructionsTokens(
+      templates,
+      hasArtifactComponents,
+      config.artifactComponents,
+      config.hasAgentArtifactComponents,
+      (config.artifacts?.length ?? 0) > 0
+    );
+    breakdown.systemPromptTemplate += artifactInstructionsTokens;
+
+    const actualArtifactsXml =
+      config.artifacts?.length > 0
+        ? config.artifacts
+            .map((artifact) => this.generateArtifactXml(templates, artifact))
+            .join('\n  ')
+        : '';
+    breakdown.artifactsSection = estimateTokens(actualArtifactsXml);
+
     if (hasArtifactComponents) {
       const creationInstructions = this.getArtifactCreationInstructions(
         hasArtifactComponents,
@@ -264,6 +282,34 @@ Your goal: preserve the illusion of a single, seamless, intelligent assistant. A
 - NEVER say you're delegating or that another agent helped`;
   }
 
+  private getArtifactInstructionsTokens(
+    templates: Map<string, string>,
+    hasArtifactComponents: boolean,
+    artifactComponents?: any[],
+    hasAgentArtifactComponents?: boolean,
+    hasArtifacts?: boolean
+  ): number {
+    const shouldShowReferencingRules = hasAgentArtifactComponents || hasArtifacts;
+
+    const rules = this.getArtifactReferencingRules(
+      hasArtifactComponents,
+      templates,
+      shouldShowReferencingRules
+    );
+
+    const wrapperDescription = hasArtifacts
+      ? 'These are the artifacts available for you to use in generating responses.'
+      : 'No artifacts are currently available, but you may create them during execution.';
+
+    const wrapperXml = `<available_artifacts description="${wrapperDescription}
+
+${rules}
+
+"></available_artifacts>`;
+
+    return estimateTokens(wrapperXml);
+  }
+
   private getArtifactCreationGuidance(): string {
     return `🚨 MANDATORY ARTIFACT CREATION 🚨
 You MUST create artifacts from tool results to provide citations. This is REQUIRED, not optional.
@@ -359,8 +405,8 @@ THE details PROPERTY MUST CONTAIN JMESPATH SELECTORS THAT EXTRACT DATA FROM THE 
 ❌ NEVER: [?text ~ contains(@, 'word')] (~ with @ operator)
 ❌ NEVER: contains(@, 'text') (@ operator usage)
 ❌ NEVER: [?field=="value"] (double quotes in filters)
-❌ NEVER: [?field==\'value\'] (escaped quotes in filters)  
-❌ NEVER: [?field=='\"'\"'value'\"'\"'] (nightmare quote mixing)
+❌ NEVER: [?field=='value'] (escaped quotes in filters)  
+❌ NEVER: [?field=='"'"'value'"'"'] (nightmare quote mixing)
 ❌ NEVER: result.items[?type=='doc'][?status=='active'] (chained filters)
 
 ✅ CORRECT JMESPATH SYNTAX:

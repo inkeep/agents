@@ -769,7 +769,15 @@ export const FetchConfigSchema = z
     headers: z.record(z.string(), z.string()).optional(),
     body: z.record(z.string(), z.unknown()).optional(),
     transform: z.string().optional(), // JSONPath or JS transform function
-    requiredToFetch: z.array(z.string()).optional(), // Context variables that are required to run the fetch request. If the given variables cannot be resolved, the fetch request will be skipped.
+    requiredToFetch: z
+      .array(z.string())
+      .optional()
+      .describe(
+        'Template variables that must resolve to non-empty values for the fetch to execute. ' +
+          'If any variable cannot be resolved or resolves to an empty string, the fetch is skipped (not errored). ' +
+          'Use this for optional context fetches that depend on request headers. ' +
+          'Example: ["{{headers.x-user-id}}", "{{headers.x-api-key}}"]'
+      ),
     timeout: z
       .number()
       .min(0)

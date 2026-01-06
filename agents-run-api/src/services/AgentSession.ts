@@ -180,7 +180,7 @@ export interface CompressionEventData {
   artifactCount: number;
   contextSizeBefore: number;
   contextSizeAfter: number;
-  compressionType: 'mid_generation' | 'full_conversation';
+  compressionType: 'mid_generation' | 'conversation_level';
 }
 
 export interface ErrorEventData {

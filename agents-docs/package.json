@@ -17,11 +17,12 @@
     "postinstall": "fumadocs-mdx",
     "generate-openapi": "node --experimental-strip-types scripts/generate-openapi-docs.ts",
     "generate-classnames": "node --experimental-strip-types scripts/generate-classnames.ts",
-    "prebuild": "pnpm generate-openapi",
+    "prebuild": "pnpm generate-classnames && pnpm generate-openapi && pnpm validate-link",
     "validate-link": "node --experimental-strip-types scripts/validate-link.ts"
   },
   "dependencies": {
     "@inkeep/agents-cli": "workspace:*",
+    "@inkeep/agents-core": "workspace:*",
     "@inkeep/agents-ui": "^0.15.5",
     "@inkeep/cxkit-react": "^0.5.98",
     "@inkeep/docskit": "^0.0.8",
@@ -38,6 +39,7 @@
     "fumadocs-typescript": "^4.0.13",
     "fumadocs-ui": "^16.1.0",
     "hast-util-to-jsx-runtime": "^2.3.6",
+    "llm-info": "^1.0.69",
     "lucide-react": "^0.503.0",
     "next": "16.1.0",
     "posthog-js": "^1.308.0",

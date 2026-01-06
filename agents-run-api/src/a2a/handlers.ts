@@ -595,6 +595,7 @@ async function handleTasksGet(
               text: `Task ${params.id} completed successfully`,
             },
           ],
+          createdAt: new Date().toISOString(),
         },
       ],
       kind: 'task',

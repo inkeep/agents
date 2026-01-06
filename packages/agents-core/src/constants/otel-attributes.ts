@@ -15,6 +15,7 @@ export const SPAN_NAMES = {
   TOOL_APPROVAL_REQUESTED: 'tool.approval_requested',
   TOOL_APPROVAL_APPROVED: 'tool.approval_approved',
   TOOL_APPROVAL_DENIED: 'tool.approval_denied',
+  COMPRESSOR_SAFE_COMPRESS: 'compressor.safe_compress',
 } as const;
 
 export const AI_OPERATIONS = {
@@ -141,6 +142,7 @@ export const ACTIVITY_TYPES = {
   TOOL_APPROVAL_REQUESTED: 'tool_approval_requested',
   TOOL_APPROVAL_APPROVED: 'tool_approval_approved',
   TOOL_APPROVAL_DENIED: 'tool_approval_denied',
+  COMPRESSION: 'compression',
 } as const;
 
 /** Activity Status Values */

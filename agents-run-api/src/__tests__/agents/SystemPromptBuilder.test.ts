@@ -356,6 +356,7 @@ describe('SystemPromptBuilder', () => {
                 type: 'documentation',
               },
             },
+            createdAt: '2024-01-15T18:30:00.000Z',
           },
           {
             artifactId: 'test-artifact-2',
@@ -374,6 +375,7 @@ describe('SystemPromptBuilder', () => {
                 type: 'api',
               },
             },
+            createdAt: '2024-01-15T19:30:00.000Z',
           },
         ],
         isThinkingPreparation: false,
@@ -421,6 +423,7 @@ describe('SystemPromptBuilder', () => {
               },
             ],
             // No metadata field
+            createdAt: '2024-01-15T20:30:00.000Z',
           },
         ],
         isThinkingPreparation: false,

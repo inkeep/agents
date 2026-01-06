@@ -147,6 +147,17 @@ vi.mock('@ai-sdk/anthropic', () => ({
   anthropic: vi.fn().mockReturnValue('mocked-model'),
 }));
 
+// Mock conversations module
+vi.mock('../../data/conversations', async (importOriginal) => {
+  const actual = (await importOriginal()) as any;
+  return {
+    ...actual,
+    getConversationHistoryWithCompression: vi
+      .fn()
+      .mockResolvedValue('Mock conversation history as string'),
+  };
+});
+
 // Mock ToolSessionManager
 vi.mock('../../agents/ToolSessionManager.js', () => ({
   toolSessionManager: {
@@ -279,12 +290,18 @@ vi.mock('../../data/conversations.js', () => ({
   }),
   getFormattedConversationHistory: vi.fn().mockResolvedValue('Mock conversation history'),
   getConversationScopedArtifacts: vi.fn().mockResolvedValue([]),
+  getConversationHistoryWithCompression: vi
+    .fn()
+    .mockResolvedValue('Mock conversation history as string'),
 }));
 
 // Import the mocked functions so we can reference them in tests
 import { generateObject, generateText } from 'ai';
 // Import the mocked module - these will automatically be mocked
-import { getFormattedConversationHistory } from '../../data/conversations';
+import {
+  getConversationHistoryWithCompression,
+  getFormattedConversationHistory,
+} from '../../data/conversations';
 
 describe('Agent Integration with SystemPromptBuilder', () => {
   let mockAgentConfig: AgentConfig;
@@ -746,9 +763,9 @@ describe('Agent conversationHistoryConfig Functionality', () => {
 
     const agent = new Agent(configWithFullMode);
     await agent.generate('Test prompt', mockRuntimeContext);
-    expect(getFormattedConversationHistory).toHaveBeenCalled();
+    expect(getConversationHistoryWithCompression).toHaveBeenCalled();
 
-    expect(getFormattedConversationHistory).toHaveBeenCalledWith({
+    expect(getConversationHistoryWithCompression).toHaveBeenCalledWith({
       tenantId: 'test-tenant',
       projectId: 'test-project',
       conversationId: 'test-conversation-id',
@@ -757,6 +774,12 @@ describe('Agent conversationHistoryConfig Functionality', () => {
       filters: {
         delegationId: undefined,
         isDelegated: false,
+      },
+      fullContextSize: 0,
+      streamRequestId: undefined,
+      summarizerModel: {
+        model: 'anthropic/claude-sonnet-4-20250514',
+        providerOptions: undefined,
       },
     });
   });
@@ -776,7 +799,7 @@ describe('Agent conversationHistoryConfig Functionality', () => {
     const agent = new Agent(configWithScopedMode);
     await agent.generate('Test prompt', mockRuntimeContext);
 
-    expect(getFormattedConversationHistory).toHaveBeenCalledWith({
+    expect(getConversationHistoryWithCompression).toHaveBeenCalledWith({
       tenantId: 'test-tenant',
       conversationId: 'test-conversation-id',
       projectId: 'test-project',
@@ -787,6 +810,12 @@ describe('Agent conversationHistoryConfig Functionality', () => {
         isDelegated: false,
         subAgentId: 'test-agent',
         taskId: 'test-task-id',
+      },
+      fullContextSize: 0,
+      streamRequestId: undefined,
+      summarizerModel: {
+        model: 'anthropic/claude-sonnet-4-20250514',
+        providerOptions: undefined,
       },
     });
   });

@@ -76,12 +76,14 @@ describe('ArtifactService', () => {
           taskId: 'task1',
           parts: [{ kind: 'data' as const, data: {} }],
           metadata: { toolCallId: 'tool1' },
+          createdAt: '2024-01-15T21:30:00.000Z',
         },
         {
           artifactId: 'artifact2',
           taskId: 'task2',
           parts: [{ kind: 'data' as const, data: {} }],
           metadata: { toolCallId: 'tool2' },
+          createdAt: '2024-01-15T22:30:00.000Z',
         },
       ];
 
@@ -125,6 +127,7 @@ describe('ArtifactService', () => {
             taskId: 'task1',
             parts: [{ kind: 'data', data: {} }],
             metadata: { toolCallId: 'tool1' },
+            createdAt: '2024-01-15T23:30:00.000Z',
           },
         ])
       );
@@ -353,6 +356,7 @@ describe('ArtifactService', () => {
         description: 'DB Description',
         parts: [{ kind: 'data' as const, data: { summary: { db: 'data' } } }],
         metadata: { artifactType: 'DBType' },
+        createdAt: '2024-01-16T00:30:00.000Z',
       };
       vi.mocked(getLedgerArtifacts).mockReturnValue(() => Promise.resolve([mockDbArtifact]));
 

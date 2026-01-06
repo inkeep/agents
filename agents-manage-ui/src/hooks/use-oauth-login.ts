@@ -155,10 +155,6 @@ export function useOAuthLogin({
       toolName: string;
       credentialScope?: 'project' | 'user';
     }): Promise<void> => {
-      if (!user) {
-        throw new Error('User not found');
-      }
-
       const authResult = await openNangoConnectHeadless({
         mcpServerUrl,
         providerUniqueKey: `${generateIdFromName(toolName)}_${toolId.slice(0, 4)}`,
@@ -166,6 +162,14 @@ export function useOAuthLogin({
       });
 
       const isUserScoped = credentialScope === 'user';
+
+      let userId: string | undefined;
+      if (isUserScoped) {
+        if (!user) {
+          throw new Error('User not found');
+        }
+        userId = user.id;
+      }
 
       const newCredentialData = {
         id: generateId(),
@@ -176,7 +180,7 @@ export function useOAuthLogin({
         // For user-scoped: set toolId and userId on the credential reference
         ...(isUserScoped && {
           toolId,
-          userId: user.id,
+          userId,
         }),
         retrievalParams: {
           connectionId: authResult.connectionId,

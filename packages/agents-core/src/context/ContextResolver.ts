@@ -5,7 +5,7 @@ import type { DatabaseClient } from '../db/client';
 import type { ContextConfigSelect, ContextFetchDefinition } from '../types/index';
 import { getLogger } from '../utils';
 import { setSpanWithError, tracer } from '../utils/tracer';
-import { ContextFetcher } from './ContextFetcher';
+import { ContextFetcher, MissingRequiredVariableError } from './ContextFetcher';
 import { ContextCache } from './contextCache';
 
 const logger = getLogger('context-resolver');
@@ -30,6 +30,10 @@ export interface ContextResolutionResult {
   errors: Array<{
     definitionId: string;
     error: string;
+  }>;
+  skipped: Array<{
+    definitionId: string;
+    reason: string;
   }>;
   totalDurationMs: number;
 }
@@ -95,6 +99,7 @@ export class ContextResolver {
             cacheHits: [],
             cacheMisses: [],
             errors: [],
+            skipped: [],
             totalDurationMs: 0,
           };
 
@@ -187,6 +192,40 @@ export class ContextResolver {
               result
             ).catch((error) => {
               const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+
+              // Handle MissingRequiredVariableError as a skip, not an error
+              if (error instanceof MissingRequiredVariableError) {
+                logger.info(
+                  {
+                    contextConfigId: contextConfig.id,
+                    definitionId: definition.id,
+                    templateKey,
+                    reason: errorMessage,
+                  },
+                  'Context fetch skipped due to missing required variable'
+                );
+
+                result.skipped.push({
+                  definitionId: definition.id,
+                  reason: errorMessage,
+                });
+
+                // Use default value if available for skipped fetches
+                if (definition.defaultValue !== undefined) {
+                  result.resolvedContext[templateKey] = definition.defaultValue;
+                  logger.info(
+                    {
+                      contextConfigId: contextConfig.id,
+                      definitionId: definition.id,
+                      templateKey,
+                    },
+                    'Using default value for skipped context variable'
+                  );
+                }
+                return;
+              }
+
+              // Handle actual errors
               logger.error(
                 {
                   contextConfigId: contextConfig.id,
@@ -223,6 +262,7 @@ export class ContextResolver {
           parentSpan.addEvent('context.resolution.completed', {
             resolved_keys: Object.keys(result.resolvedContext),
             fetched_definitions: result.fetchedDefinitions,
+            skipped_definitions: result.skipped.map((s) => s.definitionId),
           });
 
           if (result.errors.length > 0) {
@@ -231,6 +271,7 @@ export class ContextResolver {
               message: `Context resolution completed with errors`,
             });
           } else {
+            // Skipped fetches are not errors - mark as OK
             parentSpan.setStatus({ code: SpanStatusCode.OK });
           }
 
@@ -242,6 +283,7 @@ export class ContextResolver {
               cacheHits: result.cacheHits.length,
               cacheMisses: result.cacheMisses.length,
               errors: result.errors.length,
+              skipped: result.skipped.length,
               totalDurationMs: result.totalDurationMs,
             },
             'Context resolution completed'
@@ -350,7 +392,17 @@ export class ContextResolver {
 
           return data;
         } catch (error) {
-          setSpanWithError(parentSpan, error instanceof Error ? error : new Error(String(error)));
+          // Handle MissingRequiredVariableError as a skip, not an error
+          if (error instanceof MissingRequiredVariableError) {
+            parentSpan.setStatus({ code: SpanStatusCode.OK });
+            parentSpan.addEvent('context.fetch_skipped', {
+              definition_id: definition.id,
+              template_key: templateKey,
+              reason: error.message,
+            });
+          } else {
+            setSpanWithError(parentSpan, error instanceof Error ? error : new Error(String(error)));
+          }
           throw error;
         } finally {
           parentSpan.end();

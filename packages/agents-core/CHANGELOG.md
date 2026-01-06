@@ -1,5 +1,20 @@
 # @inkeep/agents-core
 
+## 0.40.0
+
+### Minor Changes
+
+- e5172e2: remove unused dependencies, lint unused dependencies with Knip
+- 178d5b1: keep file structure for build `dist` directory
+
+### Patch Changes
+
+- be0131e: user info for spans
+- 8b95949: context tracking in traces
+- b2c2fd9: fix trace viewer panes to scroll independently
+- b231869: set `compilerOptions.verbatimModuleSyntax: true` in all `tsconfig.json` files
+- 153d4e5: Added Conversation COmpression
+
 ## 0.39.5
 
 ### Patch Changes

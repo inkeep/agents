@@ -1,5 +1,38 @@
 # @inkeep/agents-manage-ui
 
+## 0.40.0
+
+### Minor Changes
+
+- e5172e2: remove unused dependencies, lint unused dependencies with Knip
+- 811b6e2: Deduplicate Data Fetching with `@tanstack/react-query`
+- 90c4cfb: remove unused variables/functions
+- 44d5516: setup sentry for pilot.inkeep.com
+- 50ed255: remove unused types
+
+### Patch Changes
+
+- 7317cb1: fix user not found error
+- be0131e: user info for spans
+- 07f77ab: Remove unused exports using Knip automation tool
+- 8b95949: context tracking in traces
+- b2c2fd9: fix trace viewer panes to scroll independently
+- b231869: set `compilerOptions.verbatimModuleSyntax: true` in all `tsconfig.json` files
+- ff51b72: fix diagnostics highlighting in JSON editor
+- 1ef2557: dashboard: do not overflow main content container
+- 5b32e12: Fix container size
+- d27e015: fix double breadcrumbs on `/projects` error page
+- 153d4e5: Added Conversation COmpression
+- 970a7bd: update Next.js to 16.1.0, use Turbopack for build
+- Updated dependencies [be0131e]
+- Updated dependencies [e5172e2]
+- Updated dependencies [8b95949]
+- Updated dependencies [b2c2fd9]
+- Updated dependencies [b231869]
+- Updated dependencies [178d5b1]
+- Updated dependencies [153d4e5]
+  - @inkeep/agents-core@0.40.0
+
 ## 0.39.5
 
 ### Patch Changes
