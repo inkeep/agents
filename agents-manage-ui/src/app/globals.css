@@ -206,9 +206,6 @@
   * {
     @apply border-border outline-ring/50;
   }
-  body {
-    @apply bg-sidebar text-foreground;
-  }
   button:not(:disabled),
   [role="button"]:not(:disabled) {
     cursor: pointer;
