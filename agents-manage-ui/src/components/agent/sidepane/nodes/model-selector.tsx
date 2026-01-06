@@ -412,7 +412,9 @@ export function ModelSelector({
                   </p>
 
                   <div>
-                    <label htmlFor="azure-resource-name" className="block text-xs font-medium mb-1">Azure Resource Name</label>
+                    <label htmlFor="azure-resource-name" className="block text-xs font-medium mb-1">
+                      Azure Resource Name
+                    </label>
                     <input
                       id="azure-resource-name"
                       className="w-full px-3 py-2 text-sm border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
@@ -425,7 +427,9 @@ export function ModelSelector({
                   <div className="text-center text-xs text-muted-foreground my-2">— OR —</div>
 
                   <div>
-                    <label htmlFor="azure-base-url" className="block text-xs font-medium mb-1">Custom Base URL</label>
+                    <label htmlFor="azure-base-url" className="block text-xs font-medium mb-1">
+                      Custom Base URL
+                    </label>
                     <input
                       id="azure-base-url"
                       className="w-full px-3 py-2 text-sm border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"

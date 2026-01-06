@@ -91,9 +91,9 @@ export function AzureConfigurationSection({
 
       <div className="text-xs text-muted-foreground">
         <p>
-          <strong>Note:</strong> You must provide either <em>Resource Name</em> (for standard Azure OpenAI
-          deployments) or <em>Base URL</em> (for custom endpoints). API keys should be set via the{' '}
-          <code>AZURE_OPENAI_API_KEY</code> environment variable.
+          <strong>Note:</strong> You must provide either <em>Resource Name</em> (for standard Azure
+          OpenAI deployments) or <em>Base URL</em> (for custom endpoints). API keys should be set
+          via the <code>AZURE_OPENAI_API_KEY</code> environment variable.
         </p>
       </div>
     </div>

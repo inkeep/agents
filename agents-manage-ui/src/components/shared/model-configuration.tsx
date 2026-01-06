@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { ModelSelector } from '@/components/agent/sidepane/nodes/model-selector';
 import { ExpandableJsonEditor } from '@/components/editors/expandable-json-editor';
 import { AzureConfigurationSection } from './azure-configuration-section';
@@ -47,7 +47,9 @@ export function ModelConfiguration({
   getJsonPlaceholder,
 }: ModelConfigurationProps) {
   // Internal state for provider options to handle immediate updates
-  const [internalProviderOptions, setInternalProviderOptions] = useState<string | Record<string, unknown> | undefined>(providerOptions);
+  const [internalProviderOptions, setInternalProviderOptions] = useState<
+    string | Record<string, unknown> | undefined
+  >(providerOptions);
 
   // Sync internal state when prop changes
   useEffect(() => {
@@ -57,7 +59,7 @@ export function ModelConfiguration({
   const handleModelChange = (modelValue: string) => {
     const previousModel = value;
     const newModel = modelValue || undefined;
-    
+
     // Clear provider options when switching between different provider types or models
     const previousProvider = previousModel?.includes('/') ? previousModel.split('/')[0] : null;
     const newProvider = newModel?.includes('/') ? newModel.split('/')[0] : null;
