@@ -105,6 +105,12 @@ app.openapi(chatDataStreamRoute, async (c) => {
     // Get parsed body from middleware (shared across all handlers)
     const body = c.get('requestBody') || {};
     const conversationId = body.conversationId || getConversationId();
+
+    // Extract target context headers (for copilot/chat-to-edit scenarios)
+    const targetTenantId = c.req.header('x-target-tenant-id');
+    const targetProjectId = c.req.header('x-target-project-id');
+    const targetAgentId = c.req.header('x-target-agent-id');
+
     // Add conversation ID to parent span
     const activeSpan = trace.getActiveSpan();
     if (activeSpan) {
@@ -113,6 +119,9 @@ app.openapi(chatDataStreamRoute, async (c) => {
         'tenant.id': tenantId,
         'agent.id': agentId,
         'project.id': projectId,
+        ...(targetTenantId && { 'target.tenant.id': targetTenantId }),
+        ...(targetProjectId && { 'target.project.id': targetProjectId }),
+        ...(targetAgentId && { 'target.agent.id': targetAgentId }),
       });
     }
 

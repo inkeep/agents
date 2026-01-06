@@ -258,7 +258,12 @@ export function renderPanelContent({
         </>
       );
 
-    case 'user_message':
+    case 'user_message': {
+      // Extract target context from span attributes (for copilot/chat-to-edit scenarios)
+      const targetTenantId = span?.data?.['target.tenant.id'] as string | undefined;
+      const targetProjectId = span?.data?.['target.project.id'] as string | undefined;
+      const targetAgentId = span?.data?.['target.agent.id'] as string | undefined;
+
       return (
         <>
           <Section>
@@ -266,6 +271,15 @@ export function renderPanelContent({
               label="Message content"
               value={a.messageContent || 'Message content not available'}
             />
+            {targetTenantId && (
+              <Info label="Target tenant" value={<Badge variant="code">{targetTenantId}</Badge>} />
+            )}
+            {targetProjectId && (
+              <Info label="Target project" value={<Badge variant="code">{targetProjectId}</Badge>} />
+            )}
+            {targetAgentId && (
+              <Info label="Target agent" value={<Badge variant="code">{targetAgentId}</Badge>} />
+            )}
             <StatusBadge status={a.status} />
             <Info label="Timestamp" value={formatDateTime(a.timestamp)} />
           </Section>
@@ -274,6 +288,7 @@ export function renderPanelContent({
           {AdvancedBlock}
         </>
       );
+    }
 
     case 'ai_assistant_message':
       return (
