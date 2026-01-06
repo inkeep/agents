@@ -34,14 +34,7 @@ import {
   TemplateEngine,
 } from '@inkeep/agents-core';
 import { type Span, SpanStatusCode, trace } from '@opentelemetry/api';
-import {
-  generateText,
-  streamText,
-  Output,
-  type Tool,
-  type ToolSet,
-  tool,
-} from 'ai';
+import { generateText, Output, streamText, type Tool, type ToolSet, tool } from 'ai';
 import {
   AGENT_EXECUTION_MAX_GENERATION_STEPS,
   FUNCTION_TOOL_EXECUTION_TIMEOUT_MS_DEFAULT,

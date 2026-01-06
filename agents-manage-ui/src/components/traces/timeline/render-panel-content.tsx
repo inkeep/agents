@@ -565,11 +565,11 @@ export function renderPanelContent({
             <Info label="Input tokens" value={a.inputTokens?.toLocaleString() || '0'} />
             <Info label="Output tokens" value={a.outputTokens?.toLocaleString() || '0'} />
             {structuredContent && (
-                <JsonEditorWithCopy
-                  value={structuredContent}
-                  title="Structured output"
-                  uri="structured-output.json"
-                />
+              <JsonEditorWithCopy
+                value={structuredContent}
+                title="Structured output"
+                uri="structured-output.json"
+              />
             )}
             <StatusBadge status={a.status} />
             {a.status === 'error' && a.otelStatusDescription && (
