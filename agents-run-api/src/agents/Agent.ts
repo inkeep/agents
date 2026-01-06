@@ -3175,8 +3175,8 @@ ${output}${structureHintsFormatted}`;
 
     return {
       ...response,
-      object: structuredResponse.object,
-      textResponse: JSON.stringify(structuredResponse.object, null, 2),
+      object: structuredResponse.output,
+      textResponse: JSON.stringify(structuredResponse.output, null, 2),
     };
   }
 
