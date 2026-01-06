@@ -70,7 +70,9 @@ describe('Phase1Config Token Counting', () => {
       const resultWithoutArtifacts = builder.buildSystemPrompt(configWithoutArtifacts);
 
       expect(resultWithoutArtifacts.breakdown.components['artifactsSection']).toBe(0);
-      expect(resultWithoutArtifacts.breakdown.components['systemPromptTemplate']).toBeGreaterThan(0);
+      expect(resultWithoutArtifacts.breakdown.components['systemPromptTemplate']).toBeGreaterThan(
+        0
+      );
       expect(resultWithoutArtifacts.prompt).toContain('<available_artifacts');
       expect(resultWithoutArtifacts.prompt).toContain('ARTIFACT');
     });

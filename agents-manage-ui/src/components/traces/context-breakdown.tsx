@@ -35,9 +35,7 @@ interface BreakdownItem {
   label: string;
   value: number;
   color: string;
-  icon: React.ReactNode;
 }
-
 
 export function ContextBreakdown({ breakdown }: ContextBreakdownProps) {
   const items = useMemo<BreakdownItem[]>(() => {

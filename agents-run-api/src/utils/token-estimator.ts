@@ -10,10 +10,10 @@
 
 // Re-export breakdown types and utilities from agents-core
 export {
-  calculateBreakdownTotal,
-  createEmptyBreakdown,
   type BreakdownComponentDef,
   type ContextBreakdown,
+  calculateBreakdownTotal,
+  createEmptyBreakdown,
 } from '@inkeep/agents-core';
 
 // Average ~4 characters per token across most LLM tokenizers (BPE-based)

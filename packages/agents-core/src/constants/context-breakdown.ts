@@ -150,9 +150,7 @@ export function parseContextBreakdownFromSpan(
   }
 
   const totalValue = data[CONTEXT_BREAKDOWN_TOTAL_SPAN_ATTRIBUTE];
-  breakdown.total =
-    typeof totalValue === 'number' ? totalValue : Number(totalValue) || 0;
+  breakdown.total = typeof totalValue === 'number' ? totalValue : Number(totalValue) || 0;
 
   return breakdown;
 }
-
