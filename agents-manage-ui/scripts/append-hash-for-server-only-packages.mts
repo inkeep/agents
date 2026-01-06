@@ -13,7 +13,7 @@ import appPackageJson from '../package.json' with { type: 'json' };
 const NODE_MODULES_PATH = '.next/node_modules';
 
 fs.readdir(NODE_MODULES_PATH).then(async (dirs) => {
-  const newAppPkgJson = structuredClone(appPackageJson)
+  const newAppPkgJson = structuredClone(appPackageJson);
   for (const dir of dirs) {
     const pkgJsonPath = path.join('..', NODE_MODULES_PATH, dir, 'package.json');
     // @ts-expect-error -- ignore type error
