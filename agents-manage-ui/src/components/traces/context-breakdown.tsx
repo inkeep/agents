@@ -1,7 +1,7 @@
 'use client';
 
 import { V1_BREAKDOWN_SCHEMA } from '@inkeep/agents-core/client-exports';
-import { FileText, MessageSquare, PieChart, Settings, Wrench } from 'lucide-react';
+import { PieChart } from 'lucide-react';
 import { useMemo } from 'react';
 import type { ContextBreakdown as ContextBreakdownType } from '@/components/traces/timeline/types';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
