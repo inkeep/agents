@@ -35,10 +35,9 @@ import {
 } from '@inkeep/agents-core';
 import { type Span, SpanStatusCode, trace } from '@opentelemetry/api';
 import {
-  generateObject,
   generateText,
-  streamObject,
   streamText,
+  Output,
   type Tool,
   type ToolSet,
   tool,
@@ -60,7 +59,6 @@ import dbClient from '../data/db/dbClient';
 import { getLogger } from '../logger';
 import { agentSessionManager, type ToolCallData } from '../services/AgentSession';
 import { getModelAwareCompressionConfig } from '../services/BaseCompressor';
-import { ConversationCompressor } from '../services/ConversationCompressor';
 import { IncrementalStreamParser } from '../services/IncrementalStreamParser';
 import { MidGenerationCompressor } from '../services/MidGenerationCompressor';
 import { pendingToolApprovalManager } from '../services/PendingToolApprovalManager';
@@ -3139,11 +3137,13 @@ ${output}${structureHintsFormatted}`;
     contextId: string,
     response: any
   ) {
-    const streamResult = streamObject({
+    const streamResult = streamText({
       ...structuredModelSettings,
       messages: phase2Messages,
-      schema: z.object({
-        dataComponents: z.array(dataComponentsSchema),
+      output: Output.object({
+        schema: z.object({
+          dataComponents: z.array(dataComponentsSchema),
+        }),
       }),
       experimental_telemetry: this.buildTelemetryConfig('structured_generation'),
       abortSignal: AbortSignal.timeout(phase2TimeoutMs),
@@ -3151,7 +3151,7 @@ ${output}${structureHintsFormatted}`;
 
     const parser = this.setupStreamParser(sessionId, contextId);
 
-    for await (const delta of streamResult.partialObjectStream) {
+    for await (const delta of streamResult.partialOutputStream) {
       if (delta) {
         await parser.processObjectDelta(delta);
       }
@@ -3187,12 +3187,14 @@ ${output}${structureHintsFormatted}`;
     phase2TimeoutMs: number,
     response: any
   ) {
-    const structuredResponse = await generateObject(
+    const structuredResponse = await generateText(
       withJsonPostProcessing({
         ...structuredModelSettings,
         messages: phase2Messages,
-        schema: z.object({
-          dataComponents: z.array(dataComponentsSchema),
+        output: Output.object({
+          schema: z.object({
+            dataComponents: z.array(dataComponentsSchema),
+          }),
         }),
         experimental_telemetry: this.buildTelemetryConfig('structured_generation'),
         abortSignal: AbortSignal.timeout(phase2TimeoutMs),
@@ -3201,8 +3203,8 @@ ${output}${structureHintsFormatted}`;
 
     return {
       ...response,
-      object: structuredResponse.object,
-      textResponse: JSON.stringify(structuredResponse.object, null, 2),
+      object: structuredResponse.output,
+      textResponse: JSON.stringify(structuredResponse.output, null, 2),
     };
   }
 
