@@ -38,20 +38,6 @@ interface BreakdownItem {
   icon: React.ReactNode;
 }
 
-// Map component keys to icons (icons are UI-specific, not part of schema)
-const COMPONENT_ICONS: Record<string, React.ReactNode> = {
-  systemPromptTemplate: <FileText className="h-4 w-4" />,
-  coreInstructions: <Settings className="h-4 w-4" />,
-  agentPrompt: <FileText className="h-4 w-4" />,
-  toolsSection: <Wrench className="h-4 w-4" />,
-  artifactsSection: <FileText className="h-4 w-4" />,
-  dataComponents: <PieChart className="h-4 w-4" />,
-  artifactComponents: <FileText className="h-4 w-4" />,
-  transferInstructions: <Settings className="h-4 w-4" />,
-  delegationInstructions: <Settings className="h-4 w-4" />,
-  thinkingPreparation: <Settings className="h-4 w-4" />,
-  conversationHistory: <MessageSquare className="h-4 w-4" />,
-};
 
 export function ContextBreakdown({ breakdown }: ContextBreakdownProps) {
   const items = useMemo<BreakdownItem[]>(() => {
@@ -61,7 +47,6 @@ export function ContextBreakdown({ breakdown }: ContextBreakdownProps) {
       label: def.label,
       value: breakdown.components[def.key] ?? 0,
       color: def.color || 'bg-gray-500',
-      icon: COMPONENT_ICONS[def.key] || <FileText className="h-4 w-4" />,
     }))
       .filter((item) => item.value > 0)
       .sort((a, b) => b.value - a.value);

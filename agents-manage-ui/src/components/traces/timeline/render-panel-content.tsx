@@ -54,7 +54,6 @@ const _TAILWIND_SAFELIST = [
 /** Compact context breakdown for the side panel */
 function ContextBreakdownPanel({ breakdown }: { breakdown: ContextBreakdown }) {
   const items = useMemo(() => {
-    // Use V1_BREAKDOWN_SCHEMA to dynamically build breakdown display
     return V1_BREAKDOWN_SCHEMA.map((def) => ({
       key: def.key,
       label: def.label,
