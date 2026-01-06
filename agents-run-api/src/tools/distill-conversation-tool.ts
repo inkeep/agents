@@ -1,6 +1,6 @@
 import type { ModelSettings } from '@inkeep/agents-core';
 import { ModelFactory } from '@inkeep/agents-core';
-import { generateObject, tool } from 'ai';
+import { generateText, Output } from 'ai';
 import { z } from 'zod';
 import { getLogger } from '../logger';
 
@@ -173,10 +173,12 @@ Create/update a summary using this exact JSON schema:
 
 Return **only** valid JSON.`;
 
-    const { object: summary } = await generateObject({
+    const { output: summary } = await generateText({
       model,
       prompt,
-      schema: ConversationSummarySchema,
+      output: Output.object({
+        schema: ConversationSummarySchema,
+      }),
     });
 
     // Set session ID

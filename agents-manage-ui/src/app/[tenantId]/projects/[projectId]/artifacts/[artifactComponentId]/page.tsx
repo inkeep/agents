@@ -11,7 +11,7 @@ export default async function ArtifactComponentPage({
 }: PageProps<'/[tenantId]/projects/[projectId]/artifacts/[artifactComponentId]'>) {
   const { artifactComponentId, tenantId, projectId } = await params;
   try {
-    const { name, description, props } = await fetchArtifactComponent(
+    const { name, description, props, render } = await fetchArtifactComponent(
       tenantId,
       projectId,
       artifactComponentId
@@ -35,6 +35,7 @@ export default async function ArtifactComponentPage({
             name,
             description: description ?? '',
             props,
+            render,
           }}
         />
       </BodyTemplate>

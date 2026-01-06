@@ -4,7 +4,7 @@ import { type FC, useEffect, useState } from 'react';
 import supersub from 'remark-supersub';
 import { Streamdown } from 'streamdown';
 import type { OAuthLoginHandler } from '@/components/agent/copilot/components/connect-tool-card';
-import { DynamicComponentRenderer } from '@/components/data-components/render/dynamic-component-renderer';
+import { DynamicComponentRenderer } from '@/components/dynamic-component-renderer';
 import type { DataComponent } from '@/lib/api/data-components';
 import { CitationBadge } from './citation-badge';
 import { Citations } from './citations';
