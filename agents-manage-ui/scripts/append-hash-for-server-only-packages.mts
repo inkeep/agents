@@ -15,9 +15,9 @@ const NODE_MODULES_PATH = '.next/node_modules';
 fs.readdir(NODE_MODULES_PATH).then(async (dirs) => {
   const deps: Record<string, `npm:${string}@${string}`> = {};
   for (const dir of dirs) {
-    const pkgJsonPath = path.join(NODE_MODULES_PATH, dir, 'package.json');
-    const content = await fs.readFile(pkgJsonPath, 'utf8');
-    const pkgJson = JSON.parse(content);
+    const pkgJsonPath = path.join('..', NODE_MODULES_PATH, dir, 'package.json');
+    // @ts-expect-error -- ignore type error
+    const pkgJson = await import(pkgJsonPath, { with: { type: 'json' } });
     deps[dir] = `npm:${pkgJson.name}@${pkgJson.version}`;
   }
   const newAppPkgJson = {
