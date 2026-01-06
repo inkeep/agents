@@ -147,6 +147,18 @@ export function deserializeAgentData(data: FullAgentDefinition): TransformResult
                 : undefined,
             }
           : undefined,
+        policies: subAgent.policies
+          ? [...subAgent.policies]
+              .sort((a, b) => (a.index ?? 0) - (b.index ?? 0))
+              .map((policy) => ({
+                id: policy.id,
+                index: policy.index,
+                name: policy.name,
+                description: policy.description || '',
+                content: (policy as any).content || '',
+                subAgentPolicyId: (policy as any).subAgentPolicyId,
+              }))
+          : undefined,
         stopWhen: subAgent.stopWhen ? { stepCountIs: subAgent.stopWhen.stepCountIs } : undefined,
         type: subAgent.type,
         tools: subAgent.canUse ? subAgent.canUse.map((item) => item.toolId) : [],

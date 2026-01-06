@@ -92,6 +92,7 @@ interface ProjectPaths {
   credentialsDir: string;
   contextConfigsDir: string;
   externalAgentsDir: string;
+  policiesDir: string;
 }
 
 /**
@@ -111,6 +112,7 @@ function createProjectStructure(projectDir: string, projectId: string): ProjectP
     credentialsDir: join(projectRoot, 'credentials'),
     contextConfigsDir: join(projectRoot, 'context-configs'),
     externalAgentsDir: join(projectRoot, 'external-agents'),
+    policiesDir: join(projectRoot, 'policies'),
   };
 
   // Ensure all directories exist
@@ -460,6 +462,11 @@ export async function pullV3Command(options: PullV3Options): Promise<PullResult 
 
     // Step 5: Set up project structure
     const paths = createProjectStructure(projectDir, projectId);
+
+    if (remoteProject.policies && Object.keys(remoteProject.policies).length > 0) {
+      const { generatePolicies } = await import('./components/policy-generator');
+      await generatePolicies(remoteProject.policies, paths.policiesDir);
+    }
 
     // Step 6: Introspect mode - skip comparison, regenerate everything
     if (options.introspect) {

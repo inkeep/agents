@@ -6,16 +6,13 @@ import toolTemplate from '../../../../templates/v1/phase1/tool.xml?raw';
 import artifactTemplate from '../../../../templates/v1/shared/artifact.xml?raw';
 import artifactRetrievalGuidance from '../../../../templates/v1/shared/artifact-retrieval-guidance.xml?raw';
 
-import { getLogger } from '../../../logger';
 import {
   type AssembleResult,
   calculateBreakdownTotal,
   createEmptyBreakdown,
   estimateTokens,
 } from '../../../utils/token-estimator';
-import type { SystemPromptV1, ToolData, VersionConfig } from '../../types';
-
-const _logger = getLogger('Phase1Config');
+import type { PolicyData, SystemPromptV1, ToolData, VersionConfig } from '../../types';
 
 export class Phase1Config implements VersionConfig<SystemPromptV1> {
   loadTemplates(): Map<string, string> {
@@ -109,6 +106,9 @@ export class Phase1Config implements VersionConfig<SystemPromptV1> {
     const agentContextSection = this.generateAgentContextSection(config.prompt);
     breakdown.agentPrompt = estimateTokens(agentContextSection);
     systemPrompt = systemPrompt.replace('{{AGENT_CONTEXT_SECTION}}', agentContextSection);
+
+    const policiesSection = this.generatePoliciesSection(config.policies);
+    systemPrompt = systemPrompt.replace('{{POLICIES_SECTION}}', policiesSection);
 
     const rawToolData = this.isToolDataArray(config.tools)
       ? config.tools
@@ -215,6 +215,35 @@ export class Phase1Config implements VersionConfig<SystemPromptV1> {
     }
 
     return thinkingPreparationTemplate;
+  }
+
+  private generatePoliciesSection(policies?: PolicyData[]): string {
+    if (!policies || policies.length === 0) {
+      return '';
+    }
+
+    const sortedPolicies = [...policies].sort((a, b) => (a.index ?? 0) - (b.index ?? 0));
+
+    const policyEntries = sortedPolicies
+      .map((policy) => {
+        const description = policy.description
+          ? `<description>${policy.description}</description>`
+          : '';
+        return `
+  <policy>
+    <name>${policy.name}</name>
+    ${description}
+    <content>
+      ${policy.content}
+    </content>
+  </policy>`;
+      })
+      .join('\n');
+
+    return `
+  <policies>
+    ${policyEntries}
+  </policies>`;
   }
 
   private generateTransferInstructions(hasTransferRelations?: boolean): string {

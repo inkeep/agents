@@ -75,6 +75,10 @@ export function generateProjectDefinition(
     lines.push(`${indentation}models: ${formatObject(projectData.models, style, 2)},`);
   }
 
+  if (shouldInclude(projectData.policies)) {
+    lines.push(`${indentation}policies: () => policies,`);
+  }
+
   // stopWhen configuration - project-level limits
   if (shouldInclude(projectData.stopWhen)) {
     lines.push(`${indentation}stopWhen: {`);
@@ -184,7 +188,11 @@ export function generateProjectImports(
   const imports: string[] = [];
 
   // Always import project from SDK
-  imports.push(generateImport(['project'], '@inkeep/agents-sdk', style));
+  const sdkImports = ['project'];
+  if (shouldInclude(projectData.policies)) {
+    sdkImports.push('loadPolicies');
+  }
+  imports.push(generateImport(sdkImports, '@inkeep/agents-sdk', style));
 
   // Generate imports for referenced components if registry is available
   if (registry) {
@@ -301,5 +309,13 @@ export function generateProjectFile(
   const imports = generateProjectImports(projectId, projectData, style, registry);
   const definition = generateProjectDefinition(projectId, projectData, style, registry);
 
-  return generateFileContent(imports, [definition]);
+  const definitions: string[] = [];
+
+  if (shouldInclude(projectData.policies)) {
+    definitions.push(`const policies = loadPolicies('./policies');`);
+  }
+
+  definitions.push(definition);
+
+  return generateFileContent(imports, definitions);
 }

@@ -28,7 +28,8 @@ export type ComponentType =
   | 'fetchDefinitions'
   | 'headers'
   | 'models'
-  | 'project';
+  | 'project'
+  | 'policies';
 
 export interface ComponentInfo {
   id: string; // Original component ID
@@ -577,6 +578,13 @@ export function registerAllComponents(
   if (project.externalAgents) {
     for (const extAgentId of Object.keys(project.externalAgents)) {
       registry.register(extAgentId, 'externalAgents', `external-agents/${extAgentId}.ts`);
+    }
+  }
+
+  // Register policies
+  if (project.policies) {
+    for (const policyId of Object.keys(project.policies)) {
+      registry.register(policyId, 'policies', `policies/${policyId}.md`);
     }
   }
 
