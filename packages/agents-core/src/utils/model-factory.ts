@@ -1,5 +1,5 @@
 import { anthropic, createAnthropic } from '@ai-sdk/anthropic';
-import { azure, createAzure } from '@ai-sdk/azure';
+import { createAzure } from '@ai-sdk/azure';
 import { createGateway, gateway } from '@ai-sdk/gateway';
 import { createGoogleGenerativeAI, google } from '@ai-sdk/google';
 import { createOpenAI, openai } from '@ai-sdk/openai';
