@@ -283,7 +283,10 @@ export function renderPanelContent({
               <Info label="Target tenant" value={<Badge variant="code">{targetTenantId}</Badge>} />
             )}
             {targetProjectId && (
-              <Info label="Target project" value={<Badge variant="code">{targetProjectId}</Badge>} />
+              <Info
+                label="Target project"
+                value={<Badge variant="code">{targetProjectId}</Badge>}
+              />
             )}
             {targetAgentId && (
               <Info label="Target agent" value={<Badge variant="code">{targetAgentId}</Badge>} />

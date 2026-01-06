@@ -19,6 +19,7 @@ import type {
 } from '../types/utility';
 import { generateId } from '../utils/conversations';
 import { validatePropsAsJsonSchema } from '../validation/props-validation';
+import { validateRender } from '../validation/render-validation';
 
 export const getArtifactComponentById =
   (db: DatabaseClient) => async (params: { scopes: ProjectScopeConfig; id: string }) => {
@@ -96,6 +97,25 @@ export const createArtifactComponent =
       }
     }
 
+    if (params.render !== undefined && params.render !== null) {
+      if (
+        typeof params.render === 'object' &&
+        params.render !== null &&
+        'component' in params.render &&
+        'mockData' in params.render
+      ) {
+        const renderValidation = validateRender(
+          params.render as { component: string; mockData: Record<string, unknown> }
+        );
+        if (!renderValidation.isValid) {
+          const errorMessages = renderValidation.errors
+            .map((e) => `${e.field}: ${e.message}`)
+            .join(', ');
+          throw new Error(`Invalid render: ${errorMessages}`);
+        }
+      }
+    }
+
     const now = new Date().toISOString();
 
     const [artifactComponent] = await db
@@ -120,6 +140,25 @@ export const updateArtifactComponent =
           .map((e) => `${e.field}: ${e.message}`)
           .join(', ');
         throw new Error(`Invalid props schema: ${errorMessages}`);
+      }
+    }
+
+    if (params.data.render !== undefined && params.data.render !== null) {
+      if (
+        typeof params.data.render === 'object' &&
+        params.data.render !== null &&
+        'component' in params.data.render &&
+        'mockData' in params.data.render
+      ) {
+        const renderValidation = validateRender(
+          params.data.render as { component: string; mockData: Record<string, unknown> }
+        );
+        if (!renderValidation.isValid) {
+          const errorMessages = renderValidation.errors
+            .map((e) => `${e.field}: ${e.message}`)
+            .join(', ');
+          throw new Error(`Invalid render: ${errorMessages}`);
+        }
       }
     }
 
@@ -175,6 +214,7 @@ export const getArtifactComponentsForAgent =
         name: artifactComponents.name,
         description: artifactComponents.description,
         props: artifactComponents.props,
+        render: artifactComponents.render,
         createdAt: artifactComponents.createdAt,
         updatedAt: artifactComponents.updatedAt,
       })
@@ -403,6 +443,7 @@ export const upsertArtifactComponent =
           name: params.data.name,
           description: params.data.description,
           props: params.data.props,
+          render: params.data.render,
         },
       });
     }
