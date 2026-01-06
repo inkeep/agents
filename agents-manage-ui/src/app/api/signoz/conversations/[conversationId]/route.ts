@@ -1079,10 +1079,6 @@ function buildConversationListPayload(
               ...QUERY_FIELD_CONFIGS.STRING_TAG,
             },
             {
-              key: 'compression.conversation_id',
-              ...QUERY_FIELD_CONFIGS.STRING_TAG,
-            },
-            {
               key: 'compression.input_tokens',
               ...QUERY_FIELD_CONFIGS.INT64_TAG,
             },
@@ -1111,15 +1107,15 @@ function buildConversationListPayload(
               ...QUERY_FIELD_CONFIGS.INT64_TAG,
             },
             {
-              key: 'compression.fallback_used',
-              ...QUERY_FIELD_CONFIGS.BOOL_TAG,
-            },
-            {
               key: 'compression.success',
               ...QUERY_FIELD_CONFIGS.BOOL_TAG,
             },
             {
               key: 'compression.error',
+              ...QUERY_FIELD_CONFIGS.STRING_TAG,
+            },
+            {
+              key: 'compression.result.summary',
               ...QUERY_FIELD_CONFIGS.STRING_TAG,
             },
           ]
@@ -1351,8 +1347,8 @@ export async function GET(
       compressionMessageCount?: number;
       compressionHardLimit?: number;
       compressionSafetyBuffer?: number;
-      compressionFallbackUsed?: boolean;
       compressionError?: string;
+      compressionSummary?: string;
     };
 
     const activities: Activity[] = [];
@@ -1780,19 +1776,15 @@ export async function GET(
       const messageCount = getNumber(span, 'compression.message_count', 0);
       const hardLimit = getNumber(span, 'compression.hard_limit', 0);
       const safetyBuffer = getNumber(span, 'compression.safety_buffer', 0);
-      const fallbackUsed = getField(span, 'compression.fallback_used') === true;
       const compressionError = getString(span, 'compression.error', '');
+      const compressionSummary = getString(span, 'compression.result.summary', '');
 
-      const compressionTypeDisplay =
+      const description =
         compressionType === 'mid_generation'
-          ? 'Context Compacting'
+          ? 'Context compacting'
           : compressionType === 'conversation_level'
-            ? 'Conversation History Compacting'
+            ? 'Conversation history compacting'
             : compressionType || 'Unknown';
-
-      const description = fallbackUsed
-        ? `${compressionTypeDisplay} compacting (fallback used)`
-        : `${compressionTypeDisplay} compacting`;
 
       activities.push({
         id: compressionSpanId,
@@ -1819,8 +1811,8 @@ export async function GET(
         compressionMessageCount: messageCount,
         compressionHardLimit: hardLimit,
         compressionSafetyBuffer: safetyBuffer,
-        compressionFallbackUsed: fallbackUsed,
         compressionError: compressionError || undefined,
+        compressionSummary: compressionSummary || undefined,
       });
     }
 

@@ -703,26 +703,6 @@ export function renderPanelContent({
       return (
         <>
           <Section>
-            <Info
-              label="Compression type"
-              value={
-                <Badge variant={a.compressionType === 'mid_generation' ? 'secondary' : 'default'}>
-                  {a.compressionType === 'mid_generation'
-                    ? 'Context Compacting'
-                    : a.compressionType === 'conversation_level'
-                      ? 'Conversation History Compacting'
-                      : a.compressionType || 'Unknown'}
-                </Badge>
-              }
-            />
-            <Info
-              label="Session ID"
-              value={a.subAgentId ? <Badge variant="code">{a.subAgentId}</Badge> : '-'}
-            />
-            <Info
-              label="Messages processed"
-              value={a.compressionMessageCount?.toLocaleString() || '0'}
-            />
             <Info label="Input tokens" value={a.compressionInputTokens?.toLocaleString() || '0'} />
             <Info
               label="Output tokens"
@@ -738,22 +718,9 @@ export function renderPanelContent({
                 }
               />
             )}
-            {a.compressionArtifactCount !== undefined && a.compressionArtifactCount > 0 && (
-              <Info label="Artifacts created" value={a.compressionArtifactCount.toLocaleString()} />
-            )}
-            <Info
-              label="Hard limit"
-              value={`${a.compressionHardLimit?.toLocaleString() || '0'} tokens`}
-            />
-            <Info
-              label="Safety buffer"
-              value={`${a.compressionSafetyBuffer?.toLocaleString() || '0'} tokens`}
-            />
-            {a.compressionFallbackUsed && (
-              <LabeledBlock label="Fallback used">
-                <Badge variant="outline" className="text-amber-600 border-amber-600">
-                  Simple compression fallback
-                </Badge>
+            {a.compressionSummary && (
+              <LabeledBlock label="Summary">
+                <Bubble className="text-sm text-foreground">{a.compressionSummary}</Bubble>
               </LabeledBlock>
             )}
             {a.compressionError && (

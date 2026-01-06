@@ -688,7 +688,6 @@ export abstract class BaseCompressor {
         attributes: {
           'compression.type': this.getCompressionType(),
           'compression.session_id': this.sessionId,
-          'compression.conversation_id': this.conversationId,
           'compression.message_count': messages.length,
           'compression.input_tokens': fullContextSize ?? this.calculateContextSize(messages),
           'compression.hard_limit': this.getHardLimit(),
@@ -713,7 +712,7 @@ export abstract class BaseCompressor {
                   (fullContextSize ?? this.calculateContextSize(messages))
                 : 0,
             'compression.success': true,
-            'compression.fallback_used': false,
+            'compression.result.summary': result.summary?.high_level || '',
           });
 
           compressionSpan.setStatus({ code: SpanStatusCode.OK });
@@ -731,7 +730,6 @@ export abstract class BaseCompressor {
 
           compressionSpan.setAttributes({
             'compression.error': error instanceof Error ? error.message : String(error),
-            'compression.fallback_used': true,
           });
 
           // Use simple compression fallback - same logic as Agent.simpleCompression
