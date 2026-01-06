@@ -1,3 +1,4 @@
+import { V1_BREAKDOWN_SCHEMA } from '@inkeep/agents-core/client-exports';
 import { useMemo, useState } from 'react';
 import { Streamdown } from 'streamdown';
 import { formatDateTime } from '@/app/utils/format-date';
@@ -30,29 +31,36 @@ function formatJsonSafely(content: string): string {
   }
 }
 
+/**
+ * Tailwind safelist - these classes are dynamically applied from V1_BREAKDOWN_SCHEMA
+ * and must be listed here for Tailwind to include them in the CSS bundle.
+ * @see packages/agents-core/src/constants/context-breakdown.ts
+ */
+const _TAILWIND_SAFELIST = [
+  'bg-blue-500',
+  'bg-indigo-500',
+  'bg-violet-500',
+  'bg-emerald-500',
+  'bg-amber-500',
+  'bg-orange-500',
+  'bg-rose-500',
+  'bg-cyan-500',
+  'bg-teal-500',
+  'bg-purple-500',
+  'bg-sky-500',
+  'bg-gray-500',
+];
+
 /** Compact context breakdown for the side panel */
 function ContextBreakdownPanel({ breakdown }: { breakdown: ContextBreakdown }) {
   const items = useMemo(() => {
-    const config: Array<{
-      key: keyof Omit<ContextBreakdown, 'total'>;
-      label: string;
-      color: string;
-    }> = [
-      { key: 'toolsSection', label: 'Tools (MCP/Function/Relation)', color: 'bg-emerald-500' },
-      { key: 'coreInstructions', label: 'Core Instructions', color: 'bg-indigo-500' },
-      { key: 'systemPromptTemplate', label: 'System Prompt Template', color: 'bg-blue-500' },
-      { key: 'transferInstructions', label: 'Transfer Instructions', color: 'bg-cyan-500' },
-      { key: 'agentPrompt', label: 'Agent Prompt', color: 'bg-violet-500' },
-      { key: 'artifactsSection', label: 'Artifacts', color: 'bg-amber-500' },
-      { key: 'dataComponents', label: 'Data Components', color: 'bg-orange-500' },
-      { key: 'artifactComponents', label: 'Artifact Components', color: 'bg-rose-500' },
-      { key: 'delegationInstructions', label: 'Delegation Instructions', color: 'bg-teal-500' },
-      { key: 'thinkingPreparation', label: 'Thinking Preparation', color: 'bg-purple-500' },
-      { key: 'conversationHistory', label: 'Conversation History', color: 'bg-sky-500' },
-    ];
-
-    return config
-      .map((c) => ({ ...c, value: breakdown[c.key] }))
+    // Use V1_BREAKDOWN_SCHEMA to dynamically build breakdown display
+    return V1_BREAKDOWN_SCHEMA.map((def) => ({
+      key: def.key,
+      label: def.label,
+      color: def.color || 'bg-gray-500',
+      value: breakdown.components[def.key] ?? 0,
+    }))
       .filter((item) => item.value > 0)
       .sort((a, b) => b.value - a.value);
   }, [breakdown]);

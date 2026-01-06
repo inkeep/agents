@@ -1,9 +1,30 @@
 'use client';
 
+import { V1_BREAKDOWN_SCHEMA } from '@inkeep/agents-core/client-exports';
 import { FileText, MessageSquare, PieChart, Settings, Wrench } from 'lucide-react';
 import { useMemo } from 'react';
 import type { ContextBreakdown as ContextBreakdownType } from '@/components/traces/timeline/types';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+
+/**
+ * Tailwind safelist - these classes are dynamically applied from V1_BREAKDOWN_SCHEMA
+ * and must be listed here for Tailwind to include them in the CSS bundle.
+ * @see packages/agents-core/src/constants/context-breakdown.ts
+ */
+const _TAILWIND_SAFELIST = [
+  'bg-blue-500',
+  'bg-indigo-500',
+  'bg-violet-500',
+  'bg-emerald-500',
+  'bg-amber-500',
+  'bg-orange-500',
+  'bg-rose-500',
+  'bg-cyan-500',
+  'bg-teal-500',
+  'bg-purple-500',
+  'bg-sky-500',
+  'bg-gray-500',
+];
 
 interface ContextBreakdownProps {
   breakdown: ContextBreakdownType;
@@ -17,87 +38,33 @@ interface BreakdownItem {
   icon: React.ReactNode;
 }
 
-const BREAKDOWN_CONFIG: Record<
-  keyof Omit<ContextBreakdownType, 'total'>,
-  { label: string; color: string; icon: React.ReactNode }
-> = {
-  systemPromptTemplate: {
-    label: 'System Prompt Template',
-    color: 'bg-blue-500',
-    icon: <FileText className="h-4 w-4" />,
-  },
-  coreInstructions: {
-    label: 'Core Instructions',
-    color: 'bg-indigo-500',
-    icon: <Settings className="h-4 w-4" />,
-  },
-  agentPrompt: {
-    label: 'Agent Prompt',
-    color: 'bg-violet-500',
-    icon: <FileText className="h-4 w-4" />,
-  },
-  toolsSection: {
-    label: 'Tools (MCP/Function/Relation)',
-    color: 'bg-emerald-500',
-    icon: <Wrench className="h-4 w-4" />,
-  },
-  artifactsSection: {
-    label: 'Artifacts',
-    color: 'bg-amber-500',
-    icon: <FileText className="h-4 w-4" />,
-  },
-  dataComponents: {
-    label: 'Data Components',
-    color: 'bg-orange-500',
-    icon: <PieChart className="h-4 w-4" />,
-  },
-  artifactComponents: {
-    label: 'Artifact Components',
-    color: 'bg-rose-500',
-    icon: <FileText className="h-4 w-4" />,
-  },
-  transferInstructions: {
-    label: 'Transfer Instructions',
-    color: 'bg-cyan-500',
-    icon: <Settings className="h-4 w-4" />,
-  },
-  delegationInstructions: {
-    label: 'Delegation Instructions',
-    color: 'bg-teal-500',
-    icon: <Settings className="h-4 w-4" />,
-  },
-  thinkingPreparation: {
-    label: 'Thinking Preparation',
-    color: 'bg-purple-500',
-    icon: <Settings className="h-4 w-4" />,
-  },
-  conversationHistory: {
-    label: 'Conversation History',
-    color: 'bg-sky-500',
-    icon: <MessageSquare className="h-4 w-4" />,
-  },
+// Map component keys to icons (icons are UI-specific, not part of schema)
+const COMPONENT_ICONS: Record<string, React.ReactNode> = {
+  systemPromptTemplate: <FileText className="h-4 w-4" />,
+  coreInstructions: <Settings className="h-4 w-4" />,
+  agentPrompt: <FileText className="h-4 w-4" />,
+  toolsSection: <Wrench className="h-4 w-4" />,
+  artifactsSection: <FileText className="h-4 w-4" />,
+  dataComponents: <PieChart className="h-4 w-4" />,
+  artifactComponents: <FileText className="h-4 w-4" />,
+  transferInstructions: <Settings className="h-4 w-4" />,
+  delegationInstructions: <Settings className="h-4 w-4" />,
+  thinkingPreparation: <Settings className="h-4 w-4" />,
+  conversationHistory: <MessageSquare className="h-4 w-4" />,
 };
 
 export function ContextBreakdown({ breakdown }: ContextBreakdownProps) {
   const items = useMemo<BreakdownItem[]>(() => {
-    const result: BreakdownItem[] = [];
-
-    for (const [key, config] of Object.entries(BREAKDOWN_CONFIG)) {
-      const value = breakdown[key as keyof Omit<ContextBreakdownType, 'total'>];
-      if (value > 0) {
-        result.push({
-          key,
-          label: config.label,
-          value,
-          color: config.color,
-          icon: config.icon,
-        });
-      }
-    }
-
-    // Sort by value descending
-    result.sort((a, b) => b.value - a.value);
-    return result;
+    // Use V1_BREAKDOWN_SCHEMA to dynamically build breakdown display
+    return V1_BREAKDOWN_SCHEMA.map((def) => ({
+      key: def.key,
+      label: def.label,
+      value: breakdown.components[def.key] ?? 0,
+      color: def.color || 'bg-gray-500',
+      icon: COMPONENT_ICONS[def.key] || <FileText className="h-4 w-4" />,
+    }))
+      .filter((item) => item.value > 0)
+      .sort((a, b) => b.value - a.value);
   }, [breakdown]);
 
   const maxValue = useMemo(() => Math.max(...items.map((i) => i.value), 1), [items]);

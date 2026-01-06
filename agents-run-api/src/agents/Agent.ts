@@ -84,7 +84,7 @@ import { createDelegateToAgentTool, createTransferToAgentTool } from './relation
 import { SystemPromptBuilder } from './SystemPromptBuilder';
 import { toolSessionManager } from './ToolSessionManager';
 import type { SystemPromptV1 } from './types';
-import { Phase1Config } from './versions/v1/Phase1Config';
+import { Phase1Config, V1_BREAKDOWN_SCHEMA } from './versions/v1/Phase1Config';
 import { Phase2Config } from './versions/v1/Phase2Config';
 
 /**
@@ -2217,21 +2217,14 @@ ${output}`;
           );
 
           // Record context breakdown as span attributes for trace viewer
-          span.setAttributes({
-            'context.breakdown.system_template_tokens': contextBreakdown.systemPromptTemplate,
-            'context.breakdown.core_instructions_tokens': contextBreakdown.coreInstructions,
-            'context.breakdown.agent_prompt_tokens': contextBreakdown.agentPrompt,
-            'context.breakdown.tools_tokens': contextBreakdown.toolsSection,
-            'context.breakdown.artifacts_tokens': contextBreakdown.artifactsSection,
-            'context.breakdown.data_components_tokens': contextBreakdown.dataComponents,
-            'context.breakdown.artifact_components_tokens': contextBreakdown.artifactComponents,
-            'context.breakdown.transfer_instructions_tokens': contextBreakdown.transferInstructions,
-            'context.breakdown.delegation_instructions_tokens':
-              contextBreakdown.delegationInstructions,
-            'context.breakdown.thinking_preparation_tokens': contextBreakdown.thinkingPreparation,
-            'context.breakdown.conversation_history_tokens': contextBreakdown.conversationHistory,
-            'context.breakdown.total_tokens': contextBreakdown.total,
-          });
+          // Uses the schema to dynamically set span attributes
+          const breakdownAttributes: Record<string, number> = {};
+          for (const componentDef of V1_BREAKDOWN_SCHEMA) {
+            breakdownAttributes[componentDef.spanAttribute] =
+              contextBreakdown.components[componentDef.key] ?? 0;
+          }
+          breakdownAttributes['context.breakdown.total_tokens'] = contextBreakdown.total;
+          span.setAttributes(breakdownAttributes);
 
           // Configure model settings and behavior
           const {

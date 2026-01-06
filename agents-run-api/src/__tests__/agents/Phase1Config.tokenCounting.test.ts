@@ -22,7 +22,7 @@ describe('Phase1Config Token Counting', () => {
 
       const result = builder.buildSystemPrompt(config);
 
-      expect(result.breakdown.artifactsSection).toBe(0);
+      expect(result.breakdown.components['artifactsSection']).toBe(0);
     });
 
     test('should have artifactsSection tokens only for actual artifact XML content', () => {
@@ -52,7 +52,7 @@ describe('Phase1Config Token Counting', () => {
 
       const result = builder.buildSystemPrompt(config);
 
-      expect(result.breakdown.artifactsSection).toBeGreaterThan(0);
+      expect(result.breakdown.components['artifactsSection']).toBeGreaterThan(0);
       expect(result.prompt).toContain('<name>Test Documentation</name>');
       expect(result.prompt).toContain('<artifact_id>test-artifact-1</artifact_id>');
     });
@@ -69,8 +69,8 @@ describe('Phase1Config Token Counting', () => {
 
       const resultWithoutArtifacts = builder.buildSystemPrompt(configWithoutArtifacts);
 
-      expect(resultWithoutArtifacts.breakdown.artifactsSection).toBe(0);
-      expect(resultWithoutArtifacts.breakdown.systemPromptTemplate).toBeGreaterThan(0);
+      expect(resultWithoutArtifacts.breakdown.components['artifactsSection']).toBe(0);
+      expect(resultWithoutArtifacts.breakdown.components['systemPromptTemplate']).toBeGreaterThan(0);
       expect(resultWithoutArtifacts.prompt).toContain('<available_artifacts');
       expect(resultWithoutArtifacts.prompt).toContain('ARTIFACT');
     });
@@ -101,9 +101,9 @@ describe('Phase1Config Token Counting', () => {
 
       const result = builder.buildSystemPrompt(config);
 
-      expect(result.breakdown.artifactsSection).toBe(0);
-      expect(result.breakdown.artifactComponents).toBeGreaterThan(0);
-      expect(result.breakdown.systemPromptTemplate).toBeGreaterThan(0);
+      expect(result.breakdown.components['artifactsSection']).toBe(0);
+      expect(result.breakdown.components['artifactComponents']).toBeGreaterThan(0);
+      expect(result.breakdown.components['systemPromptTemplate']).toBeGreaterThan(0);
     });
 
     test('should have consistent total tokens regardless of artifact count', () => {
@@ -134,7 +134,7 @@ describe('Phase1Config Token Counting', () => {
       const resultWithout = builder.buildSystemPrompt(baseConfig);
       const resultWith = builder.buildSystemPrompt(configWithArtifact);
 
-      const artifactXmlTokens = resultWith.breakdown.artifactsSection;
+      const artifactXmlTokens = resultWith.breakdown.components['artifactsSection'];
       const expectedDifference = artifactXmlTokens;
 
       expect(resultWith.breakdown.total - resultWithout.breakdown.total).toBeCloseTo(
@@ -182,11 +182,11 @@ describe('Phase1Config Token Counting', () => {
       const resultSingle = builder.buildSystemPrompt(configSingleArtifact);
       const resultDouble = builder.buildSystemPrompt(configTwoArtifacts);
 
-      expect(resultDouble.breakdown.artifactsSection).toBeGreaterThan(
-        resultSingle.breakdown.artifactsSection
+      expect(resultDouble.breakdown.components['artifactsSection']).toBeGreaterThan(
+        resultSingle.breakdown.components['artifactsSection']
       );
-      expect(resultDouble.breakdown.systemPromptTemplate).toBe(
-        resultSingle.breakdown.systemPromptTemplate
+      expect(resultDouble.breakdown.components['systemPromptTemplate']).toBe(
+        resultSingle.breakdown.components['systemPromptTemplate']
       );
     });
 
@@ -202,7 +202,7 @@ describe('Phase1Config Token Counting', () => {
 
       const result = builder.buildSystemPrompt(config);
 
-      expect(result.breakdown.artifactsSection).toBe(0);
+      expect(result.breakdown.components['artifactsSection']).toBe(0);
       expect(result.prompt).not.toContain('ARTIFACT RETRIEVAL');
     });
   });
