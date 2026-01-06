@@ -10,7 +10,7 @@
  */
 
 import { jsonSchemaToZod, ModelFactory } from '@inkeep/agents-core';
-import { streamText, Output } from 'ai';
+import { Output, streamText } from 'ai';
 import type { NextRequest } from 'next/server';
 import { z } from 'zod';
 import { fetchDataComponent } from '@/lib/api/data-components';
