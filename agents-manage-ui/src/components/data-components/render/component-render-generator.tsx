@@ -53,6 +53,8 @@ export function ComponentRenderGenerator({
 
   const generatePreview = async (instructions?: string) => {
     setIsGenerating(true);
+    // Preserve existing mockData before clearing state (needed when regenerating with instructions)
+    const existingMockData = render?.mockData;
     setRender(null);
     setStreamingCode('');
     setIsComplete(false);
@@ -111,9 +113,18 @@ export function ComponentRenderGenerator({
       }
 
       if (lastValidObject) {
-        setRender(lastValidObject);
+        // If regenerating with instructions and response doesn't include mockData (or has empty one),
+        // preserve the existing mockData from before the regeneration
+        const finalRender =
+          instructions &&
+          existingMockData &&
+          (!lastValidObject.mockData || Object.keys(lastValidObject.mockData).length === 0)
+            ? { ...lastValidObject, mockData: existingMockData }
+            : lastValidObject;
+
+        setRender(finalRender);
         setIsComplete(true);
-        onRenderChanged?.(lastValidObject);
+        onRenderChanged?.(finalRender);
         toast.success('Render generated successfully');
       } else {
         throw new Error('No valid render generated');

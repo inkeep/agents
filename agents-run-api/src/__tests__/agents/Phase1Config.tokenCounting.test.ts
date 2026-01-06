@@ -37,6 +37,7 @@ describe('Phase1Config Token Counting', () => {
             description: 'Test artifact for documentation',
             taskId: 'task-1',
             toolCallId: 'tool-call-1',
+            createdAt: '2024-01-01T00:00:00Z',
             parts: [
               {
                 kind: 'data',
@@ -124,6 +125,7 @@ describe('Phase1Config Token Counting', () => {
             description: 'Test description',
             taskId: 'task-1',
             toolCallId: 'tool-call-1',
+            createdAt: '2024-01-01T00:00:00Z',
             parts: [{ kind: 'data', data: { summary: { title: 'Test' } } }],
           },
         ],
@@ -153,6 +155,7 @@ describe('Phase1Config Token Counting', () => {
             description: 'First description',
             taskId: 'task-1',
             toolCallId: 'tool-call-1',
+            createdAt: '2024-01-01T00:00:00Z',
             parts: [{ kind: 'data', data: { summary: { title: 'First' } } }],
           },
         ],
@@ -170,6 +173,7 @@ describe('Phase1Config Token Counting', () => {
             description: 'Second description',
             taskId: 'task-2',
             toolCallId: 'tool-call-2',
+            createdAt: '2024-01-01T00:00:00Z',
             parts: [{ kind: 'data', data: { summary: { title: 'Second' } } }],
           },
         ],

@@ -54,6 +54,8 @@ export const createTaskHandler = (
   credentialStoreRegistry?: CredentialStoreRegistry
 ) => {
   return async (task: A2ATask): Promise<A2ATaskResult> => {
+    let agent: Agent | undefined; // Declare agent outside try block for cleanup access
+
     try {
       const userMessage = task.input.parts
         .filter((part) => part.text)
@@ -282,7 +284,7 @@ export const createTaskHandler = (
           })
         )) ?? [];
 
-      const agent = new Agent(
+      agent = new Agent(
         {
           id: config.subAgentId,
           tenantId: config.tenantId,
@@ -557,6 +559,9 @@ export const createTaskHandler = (
         },
       });
 
+      // Perform full cleanup of compression state when agent task completes
+      agent.cleanupCompression();
+
       const stepContents =
         response.steps && Array.isArray(response.steps)
           ? response.steps.flatMap((step: any) => {
@@ -658,6 +663,7 @@ export const createTaskHandler = (
                         data: artifactData,
                       },
                     ],
+                    createdAt: new Date().toISOString(),
                   },
                 ],
               };
@@ -687,11 +693,21 @@ export const createTaskHandler = (
           {
             artifactId: generateId(),
             parts,
+            createdAt: new Date().toISOString(),
           },
         ],
       };
     } catch (error) {
       console.error('Task handler error:', error);
+
+      // Cleanup compression state on error (if agent was created)
+      try {
+        if (agent) {
+          agent.cleanupCompression();
+        }
+      } catch (cleanupError) {
+        logger.warn({ cleanupError }, 'Failed to cleanup agent compression on error');
+      }
 
       const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
       const isConnectionRefused = errorMessage.includes(

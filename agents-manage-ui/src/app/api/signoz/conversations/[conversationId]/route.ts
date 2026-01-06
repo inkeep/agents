@@ -1031,6 +1031,99 @@ function buildConversationListPayload(
             },
           ]
         ),
+
+        compression: listQuery(
+          QUERY_EXPRESSIONS.COMPRESSION,
+          [
+            {
+              key: {
+                key: SPAN_KEYS.NAME,
+                ...QUERY_FIELD_CONFIGS.STRING_TAG_COLUMN,
+              },
+              op: OPERATORS.EQUALS,
+              value: SPAN_NAMES.COMPRESSOR_SAFE_COMPRESS,
+            },
+          ],
+          [
+            {
+              key: SPAN_KEYS.SPAN_ID,
+              ...QUERY_FIELD_CONFIGS.STRING_TAG_COLUMN,
+            },
+            {
+              key: SPAN_KEYS.TRACE_ID,
+              ...QUERY_FIELD_CONFIGS.STRING_TAG_COLUMN,
+            },
+            {
+              key: SPAN_KEYS.TIMESTAMP,
+              ...QUERY_FIELD_CONFIGS.INT64_TAG_COLUMN,
+            },
+            {
+              key: SPAN_KEYS.HAS_ERROR,
+              ...QUERY_FIELD_CONFIGS.BOOL_TAG_COLUMN,
+            },
+            {
+              key: SPAN_KEYS.SUB_AGENT_ID,
+              ...QUERY_FIELD_CONFIGS.STRING_TAG,
+            },
+            {
+              key: SPAN_KEYS.SUB_AGENT_NAME,
+              ...QUERY_FIELD_CONFIGS.STRING_TAG,
+            },
+            // Compression-specific attributes
+            {
+              key: 'compression.type',
+              ...QUERY_FIELD_CONFIGS.STRING_TAG,
+            },
+            {
+              key: 'compression.session_id',
+              ...QUERY_FIELD_CONFIGS.STRING_TAG,
+            },
+            {
+              key: 'compression.conversation_id',
+              ...QUERY_FIELD_CONFIGS.STRING_TAG,
+            },
+            {
+              key: 'compression.input_tokens',
+              ...QUERY_FIELD_CONFIGS.INT64_TAG,
+            },
+            {
+              key: 'compression.result.output_tokens',
+              ...QUERY_FIELD_CONFIGS.INT64_TAG,
+            },
+            {
+              key: 'compression.result.compression_ratio',
+              ...QUERY_FIELD_CONFIGS.FLOAT64_TAG,
+            },
+            {
+              key: 'compression.result.artifact_count',
+              ...QUERY_FIELD_CONFIGS.INT64_TAG,
+            },
+            {
+              key: 'compression.message_count',
+              ...QUERY_FIELD_CONFIGS.INT64_TAG,
+            },
+            {
+              key: 'compression.hard_limit',
+              ...QUERY_FIELD_CONFIGS.INT64_TAG,
+            },
+            {
+              key: 'compression.safety_buffer',
+              ...QUERY_FIELD_CONFIGS.INT64_TAG,
+            },
+            {
+              key: 'compression.fallback_used',
+              ...QUERY_FIELD_CONFIGS.BOOL_TAG,
+            },
+            {
+              key: 'compression.success',
+              ...QUERY_FIELD_CONFIGS.BOOL_TAG,
+            },
+            {
+              key: 'compression.error',
+              ...QUERY_FIELD_CONFIGS.STRING_TAG,
+            },
+          ]
+        ),
       },
     },
     dataSource: DATA_SOURCES.TRACES,
@@ -1085,6 +1178,7 @@ export async function GET(
     const toolApprovalRequestedSpans = parseList(resp, QUERY_EXPRESSIONS.TOOL_APPROVAL_REQUESTED);
     const toolApprovalApprovedSpans = parseList(resp, QUERY_EXPRESSIONS.TOOL_APPROVAL_APPROVED);
     const toolApprovalDeniedSpans = parseList(resp, QUERY_EXPRESSIONS.TOOL_APPROVAL_DENIED);
+    const compressionSpans = parseList(resp, QUERY_EXPRESSIONS.COMPRESSION);
 
     let agentId: string | null = null;
     let agentName: string | null = null;
@@ -1167,7 +1261,8 @@ export async function GET(
         | 'artifact_processing'
         | 'tool_approval_requested'
         | 'tool_approval_approved'
-        | 'tool_approval_denied';
+        | 'tool_approval_denied'
+        | 'compression';
       description: string;
       timestamp: string;
       parentSpanId?: string | null;
@@ -1247,6 +1342,17 @@ export async function GET(
       hasError?: boolean;
       otelStatusCode?: string;
       otelStatusDescription?: string;
+      // compression specifics
+      compressionType?: string;
+      compressionInputTokens?: number;
+      compressionOutputTokens?: number;
+      compressionRatio?: number;
+      compressionArtifactCount?: number;
+      compressionMessageCount?: number;
+      compressionHardLimit?: number;
+      compressionSafetyBuffer?: number;
+      compressionFallbackUsed?: boolean;
+      compressionError?: string;
     };
 
     const activities: Activity[] = [];
@@ -1657,6 +1763,64 @@ export async function GET(
         result: `Tool denied by user`,
         approvalToolName: toolName || undefined,
         approvalToolCallId: toolCallId || undefined,
+      });
+    }
+
+    // compression spans
+    for (const span of compressionSpans) {
+      const hasError = getField(span, SPAN_KEYS.HAS_ERROR) === true;
+      const compressionSpanId = getString(span, SPAN_KEYS.SPAN_ID, '');
+
+      // Extract compression-specific attributes
+      const compressionType = getString(span, 'compression.type', '');
+      const inputTokens = getNumber(span, 'compression.input_tokens', 0);
+      const outputTokens = getNumber(span, 'compression.result.output_tokens', 0);
+      const compressionRatio = getNumber(span, 'compression.result.compression_ratio', 0);
+      const artifactCount = getNumber(span, 'compression.result.artifact_count', 0);
+      const messageCount = getNumber(span, 'compression.message_count', 0);
+      const hardLimit = getNumber(span, 'compression.hard_limit', 0);
+      const safetyBuffer = getNumber(span, 'compression.safety_buffer', 0);
+      const fallbackUsed = getField(span, 'compression.fallback_used') === true;
+      const compressionError = getString(span, 'compression.error', '');
+
+      const compressionTypeDisplay =
+        compressionType === 'mid_generation'
+          ? 'Context Compacting'
+          : compressionType === 'conversation_level'
+            ? 'Conversation History Compacting'
+            : compressionType || 'Unknown';
+
+      const description = fallbackUsed
+        ? `${compressionTypeDisplay} compacting (fallback used)`
+        : `${compressionTypeDisplay} compacting`;
+
+      activities.push({
+        id: compressionSpanId,
+        type: ACTIVITY_TYPES.COMPRESSION,
+        description,
+        timestamp: span.timestamp,
+        parentSpanId: spanIdToParentSpanId.get(compressionSpanId) || undefined,
+        status: hasError ? ACTIVITY_STATUS.ERROR : ACTIVITY_STATUS.SUCCESS,
+        subAgentId: getString(
+          span,
+          'compression.session_id',
+          getString(span, SPAN_KEYS.SUB_AGENT_ID, ACTIVITY_NAMES.UNKNOWN_AGENT)
+        ),
+        subAgentName: getString(span, SPAN_KEYS.SUB_AGENT_NAME, ACTIVITY_NAMES.UNKNOWN_AGENT),
+        result:
+          compressionError ||
+          `Compressed ${messageCount} messages, ${inputTokens} → ${outputTokens} tokens`,
+        // Compression-specific fields
+        compressionType,
+        compressionInputTokens: inputTokens,
+        compressionOutputTokens: outputTokens,
+        compressionRatio,
+        compressionArtifactCount: artifactCount,
+        compressionMessageCount: messageCount,
+        compressionHardLimit: hardLimit,
+        compressionSafetyBuffer: safetyBuffer,
+        compressionFallbackUsed: fallbackUsed,
+        compressionError: compressionError || undefined,
       });
     }
 
