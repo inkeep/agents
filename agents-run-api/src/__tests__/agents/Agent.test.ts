@@ -38,19 +38,6 @@ vi.mock('ai', () => ({
       },
     ],
   }),
-  generateObject: vi.fn().mockResolvedValue({
-    object: {
-      dataComponents: [
-        {
-          id: 'test-component-id',
-          name: 'TestComponent',
-          description: 'A test component',
-          props: { message: 'Hello, World!' },
-        },
-      ],
-    },
-    finishReason: 'stop',
-  }),
   tool: vi.fn().mockImplementation((config) => config),
 }));
 
@@ -295,8 +282,6 @@ vi.mock('../../data/conversations.js', () => ({
     .mockResolvedValue('Mock conversation history as string'),
 }));
 
-// Import the mocked functions so we can reference them in tests
-import { generateObject, generateText } from 'ai';
 // Import the mocked module - these will automatically be mocked
 import {
   getConversationHistoryWithCompression,
@@ -1214,46 +1199,6 @@ describe('Two-Pass Generation System', () => {
         },
       },
     };
-  });
-
-  test('should only call generateText when no data components configured', async () => {
-    const agent = new Agent({ ...mockAgentConfig, dataComponents: [] });
-    await agent.generate('Test prompt');
-
-    expect(vi.mocked(generateText)).toHaveBeenCalledTimes(1);
-    expect(vi.mocked(generateObject)).not.toHaveBeenCalled();
-  });
-
-  test('should call both generateText and generateObject when data components configured', async () => {
-    const agent = new Agent(mockAgentConfig);
-    await agent.generate('Test prompt');
-
-    expect(vi.mocked(generateText)).toHaveBeenCalledTimes(1);
-    expect(vi.mocked(generateObject)).toHaveBeenCalledTimes(1);
-  });
-
-  test('should skip generateObject when transfer detected', async () => {
-    vi.mocked(generateText).mockResolvedValueOnce({
-      text: 'Transfer needed',
-      finishReason: 'stop',
-      steps: [
-        {
-          content: [
-            {
-              type: 'text',
-              text: 'Transfer needed',
-            },
-          ],
-          toolCalls: [{ toolName: 'transfer_to_agent', args: {} }],
-        },
-      ],
-    } as any);
-
-    const agent = new Agent(mockAgentConfig);
-    await agent.generate('Test prompt');
-
-    expect(vi.mocked(generateText)).toHaveBeenCalledTimes(1);
-    expect(vi.mocked(generateObject)).not.toHaveBeenCalled();
   });
 
   test('should return text response when no data components', async () => {
