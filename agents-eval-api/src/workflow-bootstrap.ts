@@ -3,12 +3,10 @@
  * This file MUST be imported FIRST before any other imports in the application.
  * It sets up the environment variables needed for the workflow world.
  *
- * Supports three worlds:
- * - @workflow/world-local: For quickstart and local development (no external deps)
- * - @workflow/world-postgres: For self-hosted deployments with durable workflows
- * - @workflow/world-vercel: For Vercel cloud deployments (production)
- *
- * Set WORKFLOW_TARGET_WORLD env var to choose which world to use.
+ * Set WORKFLOW_TARGET_WORLD env var to one of:
+ * - 'local': For quickstart and local development (no external deps)
+ * - 'vercel': For Vercel cloud deployments (production)
+ * - '@workflow/world-postgres': For self-hosted deployments with durable workflows
  */
 
 import { loadEnvironmentFiles } from '@inkeep/agents-core';
@@ -25,7 +23,6 @@ import * as worldLocal from '@workflow/world-local';
 import * as worldPostgres from '@workflow/world-postgres';
 import * as worldVercel from '@workflow/world-vercel';
 
-// Force side-effect to retain imports (log to ensure they're loaded)
 if (typeof worldLocal === 'undefined' || typeof worldPostgres === 'undefined' || typeof worldVercel === 'undefined') {
   throw new Error('Workflow worlds not loaded');
 }
@@ -38,20 +35,13 @@ console.log('[workflow-bootstrap] Workflow worlds loaded:', {
 // Load .env files from current dir and root monorepo
 loadEnvironmentFiles();
 
-// Default to local world for quickstart/local dev (no external deps needed)
-// On Vercel, set WORKFLOW_TARGET_WORLD=vercel
-// For self-hosted, set WORKFLOW_TARGET_WORLD=postgres
-// if (!process.env.WORKFLOW_TARGET_WORLD) {
-//   process.env.WORKFLOW_TARGET_WORLD = 'local';
-// }
-
 // Set PORT for workflow library - local world needs PORT to know where to send HTTP requests
 if (!process.env.PORT) {
   process.env.PORT = '3005';
 }
 
 // Only set postgres-specific vars if using postgres world
-if (process.env.WORKFLOW_TARGET_WORLD === '@workflow/world-postgres' || process.env.WORKFLOW_TARGET_WORLD === 'postgres') {
+if (process.env.WORKFLOW_TARGET_WORLD === '@workflow/world-postgres') {
   // Use DATABASE_URL as fallback for WORKFLOW_POSTGRES_URL
   if (!process.env.WORKFLOW_POSTGRES_URL && process.env.DATABASE_URL) {
     process.env.WORKFLOW_POSTGRES_URL = process.env.DATABASE_URL;
@@ -62,11 +52,3 @@ if (process.env.WORKFLOW_TARGET_WORLD === '@workflow/world-postgres' || process.
     process.env.WORKFLOW_POSTGRES_JOB_PREFIX = 'inkeep-agents-eval';
   }
 }
-
-console.log('[workflow-bootstrap] Configured workflow environment:', {
-  WORKFLOW_TARGET_WORLD: process.env.WORKFLOW_TARGET_WORLD,
-  WORKFLOW_POSTGRES_URL: process.env.WORKFLOW_POSTGRES_URL ? '[SET]' : '[NOT SET]',
-  WORKFLOW_POSTGRES_JOB_PREFIX: process.env.WORKFLOW_POSTGRES_JOB_PREFIX,
-  PORT: process.env.PORT,
-});
-

@@ -3,7 +3,6 @@
 import { formatDate } from '@/app/utils/format-date';
 import {
   ItemCardContent,
-  ItemCardDescription,
   ItemCardFooter,
   ItemCardHeader,
   ItemCardLink,
@@ -21,7 +20,6 @@ export interface DatasetItemProps extends Dataset {
 export function DatasetItem({
   id,
   name,
-  description,
   createdAt,
   tenantId,
   projectId,
@@ -37,9 +35,6 @@ export function DatasetItem({
         <DatasetItemMenu datasetId={id} datasetName={name || 'Unnamed Test Suite'} />
       </ItemCardHeader>
       <ItemCardContent>
-        <ItemCardDescription hasContent={!!description}>
-          {description || 'No description'}
-        </ItemCardDescription>
         <ItemCardFooter footerText={`Created ${formatDate(createdAt)}`} />
       </ItemCardContent>
     </ItemCardRoot>

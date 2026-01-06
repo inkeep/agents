@@ -164,7 +164,7 @@ export function EvaluatorFormDialog({
         }
       }
 
-      onOpenChange(false);
+      setIsOpen(false);
       form.reset();
     } catch (error) {
       console.error('Error submitting evaluator:', error);
@@ -225,43 +225,6 @@ export function EvaluatorFormDialog({
               label="Output Schema"
               description="JSON Schema defining the structure of the evaluation output. Use standard JSON Schema format."
               isRequired
-              placeholder={`{
-  "type": "object",
-  "properties": {
-    "clarity": {
-      "type": "number",
-      "minimum": 0,
-      "maximum": 10,
-      "description": "How clear and understandable the responses were"
-    },
-    "helpfulness": {
-      "type": "number",
-      "minimum": 0,
-      "maximum": 10,
-      "description": "How helpful the agent was in addressing user needs"
-    },
-    "professionalism": {
-      "type": "number",
-      "minimum": 0,
-      "maximum": 10,
-      "description": "How professional and appropriate the tone was"
-    },
-    "efficiency": {
-      "type": "number",
-      "minimum": 0,
-      "maximum": 10,
-      "description": "How efficiently the agent completed the task"
-    },
-    "issues": {
-      "type": "array",
-      "items": {
-        "type": "string"
-      },
-      "description": "Any issues or problems in the conversation"
-    }
-  },
-  "required": ["clarity", "helpfulness", "professionalism", "efficiency"]
-}`}
             />
 
             <div className="space-y-4">
@@ -324,7 +287,7 @@ export function EvaluatorFormDialog({
             />
 
             <div className="flex justify-end gap-2">
-              <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
+              <Button type="button" variant="outline" onClick={() => setIsOpen(false)}>
                 Cancel
               </Button>
               <Button type="submit" disabled={isSubmitting}>

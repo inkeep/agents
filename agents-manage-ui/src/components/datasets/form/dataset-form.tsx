@@ -6,7 +6,6 @@ import { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { toast } from 'sonner';
 import { GenericInput } from '@/components/form/generic-input';
-import { GenericTextarea } from '@/components/form/generic-textarea';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogTrigger } from '@/components/ui/dialog';
 import { Form } from '@/components/ui/form';
@@ -26,13 +25,11 @@ const formatFormData = (data?: DatasetFormData): DatasetFormData => {
   if (!data) {
     return {
       name: '',
-      description: '',
     };
   }
 
   return {
     name: data.name || '',
-    description: data.description || '',
   };
 };
 
@@ -50,7 +47,6 @@ export function DatasetForm({ tenantId, projectId, id, initialData }: DatasetFor
     try {
       const payload: Partial<Dataset> = {
         name: data.name || null,
-        description: data.description || null,
       };
 
       if (id) {
@@ -86,13 +82,6 @@ export function DatasetForm({ tenantId, projectId, id, initialData }: DatasetFor
             label="Name"
             placeholder="Test Suite"
             description="A descriptive name for this test suite"
-          />
-          <GenericTextarea
-            control={form.control}
-            name="description"
-            label="Description"
-            placeholder="A collection of test cases for evaluating agent responses"
-            className="min-h-[80px]"
           />
 
           <div className="flex w-full justify-between">

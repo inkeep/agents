@@ -8,29 +8,24 @@ import { getLogger } from '../logger.js';
 import { env } from '../env.js';
 const logger = getLogger('evaluationHttpClient');
 
-type StartEvaluationParams = {
+type TriggerConversationEvaluationParams  = {
   tenantId: string;
   projectId: string;
   conversationId: string;
-  evaluatorIds: string[];
-  evaluationRunId: string;
 };
 
 /**
- * Trigger a conversation evaluation via HTTP call to eval-api.
+ * Trigger conversation evaluation via HTTP call to eval-api.
+ * The eval-api handles ALL evaluation logic: finding run configs, checking sample rates,
+ * creating evaluation runs, and executing evaluators.
  * This is a fire-and-forget operation - we don't wait for the evaluation to complete.
  */
-export async function startConversationEvaluationHttp(params: StartEvaluationParams): Promise<void> {
-  const evalApiUrl = env.INKEEP_AGENTS_EVAL_API_URL;
-  
-  if (!evalApiUrl) {
-    logger.warn({}, 'AGENTS_EVAL_API_URL not set, skipping evaluation trigger');
-    return;
-  }
+export async function triggerConversationEvaluationHttp(params: TriggerConversationEvaluationParams): Promise<void> {
+  const evalApiUrl = process.env.AGENTS_EVAL_API_URL || 'http://localhost:3005';
 
   const bypassSecret = process.env.INKEEP_AGENTS_EVAL_API_BYPASS_SECRET;
   
-  const url = `${evalApiUrl}/tenants/${params.tenantId}/projects/${params.projectId}/evaluations/trigger`;
+  const url = `${evalApiUrl}/tenants/${params.tenantId}/projects/${params.projectId}/evaluations/trigger-conversation`;
   
   try {
     const response = await fetch(url, {
@@ -41,8 +36,6 @@ export async function startConversationEvaluationHttp(params: StartEvaluationPar
       },
       body: JSON.stringify({
         conversationId: params.conversationId,
-        evaluatorIds: params.evaluatorIds,
-        evaluationRunId: params.evaluationRunId,
       }),
     });
 
@@ -55,15 +48,14 @@ export async function startConversationEvaluationHttp(params: StartEvaluationPar
           error: errorText,
           ...params,
         },
-        'Failed to trigger evaluation via HTTP'
+        'Failed to trigger conversation evaluation via HTTP'
       );
     } else {
       logger.info(
         {
           conversationId: params.conversationId,
-          evaluationRunId: params.evaluationRunId,
         },
-        'Evaluation triggered via HTTP'
+        'Conversation evaluation triggered via HTTP'
       );
     }
   } catch (error) {
@@ -72,7 +64,7 @@ export async function startConversationEvaluationHttp(params: StartEvaluationPar
         error,
         ...params,
       },
-      'Error triggering evaluation via HTTP'
+      'Error triggering conversation evaluation via HTTP'
     );
   }
 }
