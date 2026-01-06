@@ -5,6 +5,7 @@ import {
   getModelInheritanceStatus,
   InheritanceIndicator,
 } from '@/components/ui/inheritance-indicator';
+import { createProviderOptionsHandler } from '@/lib/utils';
 import { CollapsibleSettings } from '../collapsible-settings';
 import { SectionHeader } from '../section';
 
@@ -56,7 +57,9 @@ export function ModelSection({
         }
         description="Primary model for general sub agent responses"
         onModelChange={(value) => updatePath('models.base.model', value || undefined)}
-        onProviderOptionsChange={(value) => updatePath('models.base.providerOptions', value)}
+        onProviderOptionsChange={createProviderOptionsHandler((options) => {
+          updatePath('models.base.providerOptions', options);
+        })}
         editorNamePrefix="base"
       />
 
@@ -87,9 +90,9 @@ export function ModelSection({
           }
           description="The model used for structured output and components (defaults to base model)"
           onModelChange={(value) => updatePath('models.structuredOutput.model', value || undefined)}
-          onProviderOptionsChange={(value) =>
-            updatePath('models.structuredOutput.providerOptions', value)
-          }
+          onProviderOptionsChange={createProviderOptionsHandler((options) =>
+            updatePath('models.structuredOutput.providerOptions', options)
+          )}
           editorNamePrefix="structured"
         />
 
@@ -119,9 +122,9 @@ export function ModelSection({
           }
           description="The model used for summarization tasks (defaults to base model)"
           onModelChange={(value) => updatePath('models.summarizer.model', value || undefined)}
-          onProviderOptionsChange={(value) =>
-            updatePath('models.summarizer.providerOptions', value)
-          }
+          onProviderOptionsChange={createProviderOptionsHandler((options) =>
+            updatePath('models.summarizer.providerOptions', options)
+          )}
           editorNamePrefix="summarizer"
           getJsonPlaceholder={(model) => {
             if (model?.startsWith('azure/')) {

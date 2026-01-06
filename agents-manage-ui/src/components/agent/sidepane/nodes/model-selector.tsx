@@ -44,7 +44,6 @@ export function ModelSelector({
   const [showCustomInput, setShowCustomInput] = useState<
     'openrouter' | 'gateway' | 'nim' | 'custom' | 'azure' | null
   >(null);
-  const [showAzureConfig, setShowAzureConfig] = useState(false);
   const [azureDeploymentName, setAzureDeploymentName] = useState('');
   const [azureResourceName, setAzureResourceName] = useState('');
   const [azureBaseURL, setAzureBaseURL] = useState('');
@@ -392,10 +391,11 @@ export function ModelSelector({
                 </div>
 
                 <div>
-                  <label className="block text-xs font-medium mb-1">
+                  <label htmlFor="azure-deployment-name" className="block text-xs font-medium mb-1">
                     Deployment Name <span className="text-red-500">*</span>
                   </label>
                   <input
+                    id="azure-deployment-name"
                     className="w-full px-3 py-2 text-sm border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                     placeholder="my-gpt-4o-deployment"
                     value={azureDeploymentName}
@@ -412,8 +412,9 @@ export function ModelSelector({
                   </p>
 
                   <div>
-                    <label className="block text-xs font-medium mb-1">Azure Resource Name</label>
+                    <label htmlFor="azure-resource-name" className="block text-xs font-medium mb-1">Azure Resource Name</label>
                     <input
+                      id="azure-resource-name"
                       className="w-full px-3 py-2 text-sm border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                       placeholder="your-azure-resource"
                       value={azureResourceName}
@@ -424,8 +425,9 @@ export function ModelSelector({
                   <div className="text-center text-xs text-muted-foreground my-2">— OR —</div>
 
                   <div>
-                    <label className="block text-xs font-medium mb-1">Custom Base URL</label>
+                    <label htmlFor="azure-base-url" className="block text-xs font-medium mb-1">Custom Base URL</label>
                     <input
+                      id="azure-base-url"
                       className="w-full px-3 py-2 text-sm border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                       placeholder="https://your-endpoint.com"
                       value={azureBaseURL}
@@ -446,10 +448,7 @@ export function ModelSelector({
                         azureDeploymentName.trim() &&
                         (azureResourceName.trim() || azureBaseURL.trim())
                       ) {
-                        // Set the Azure model
-                        onValueChange?.(`azure/${azureDeploymentName.trim()}`);
-
-                        // Set the provider options
+                        // Set the provider options FIRST
                         const providerOptions: Record<string, any> = {};
                         if (azureResourceName.trim()) {
                           providerOptions.resourceName = azureResourceName.trim();
@@ -457,6 +456,9 @@ export function ModelSelector({
                           providerOptions.baseURL = azureBaseURL.trim();
                         }
                         onProviderOptionsChange?.(providerOptions);
+
+                        // Then set the Azure model
+                        onValueChange?.(`azure/${azureDeploymentName.trim()}`);
 
                         setShowCustomInput(null);
                         setAzureDeploymentName('');

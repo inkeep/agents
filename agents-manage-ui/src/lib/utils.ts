@@ -18,6 +18,27 @@ export function formatJson(jsonString: string) {
   }
 }
 
+/**
+ * Creates a standardized handler for provider options changes that parses JSON strings to objects
+ * @param updateFn Function to call with the parsed provider options
+ * @returns A handler function that can be used as onProviderOptionsChange
+ */
+export function createProviderOptionsHandler(updateFn: (options: any) => void) {
+  return (value: string | undefined) => {
+    if (!value?.trim()) {
+      updateFn(undefined);
+      return;
+    }
+    try {
+      const parsed = JSON.parse(value);
+      updateFn(parsed);
+    } catch (error) {
+      console.error('Failed to parse provider options JSON:', error);
+      // Invalid JSON - don't update the field value
+    }
+  };
+}
+
 export function formatJsonField(value: any): string {
   if (value === undefined || value === null) {
     return '';

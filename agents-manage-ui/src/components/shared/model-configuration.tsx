@@ -1,5 +1,6 @@
 'use client';
 
+import { useState, useEffect } from 'react';
 import { ModelSelector } from '@/components/agent/sidepane/nodes/model-selector';
 import { ExpandableJsonEditor } from '@/components/editors/expandable-json-editor';
 import { AzureConfigurationSection } from './azure-configuration-section';
@@ -45,20 +46,26 @@ export function ModelConfiguration({
   editorNamePrefix = 'model',
   getJsonPlaceholder,
 }: ModelConfigurationProps) {
+  // Internal state for provider options to handle immediate updates
+  const [internalProviderOptions, setInternalProviderOptions] = useState<string | Record<string, unknown> | undefined>(providerOptions);
+
+  // Sync internal state when prop changes
+  useEffect(() => {
+    setInternalProviderOptions(providerOptions);
+  }, [providerOptions]);
+
   const handleModelChange = (modelValue: string) => {
     const previousModel = value;
     const newModel = modelValue || undefined;
-
+    
     // Clear provider options when switching between different provider types or models
     const previousProvider = previousModel?.includes('/') ? previousModel.split('/')[0] : null;
     const newProvider = newModel?.includes('/') ? newModel.split('/')[0] : null;
 
-    // Clear if switching between different providers, or switching from custom/gateway/etc to built-in models
-    if (
-      (previousProvider && newProvider && previousProvider !== newProvider) ||
-      (previousProvider && !newProvider) ||
-      (!previousProvider && newProvider)
-    ) {
+    // Only clear if switching between different providers (but preserve existing options for same provider)
+    if (previousProvider && newProvider && previousProvider !== newProvider) {
+      onProviderOptionsChange?.(undefined);
+    } else if (previousProvider && !newProvider) {
       onProviderOptionsChange?.(undefined);
     }
 
@@ -66,7 +73,13 @@ export function ModelConfiguration({
   };
 
   const handleProviderOptionsChange = (options: Record<string, any>) => {
+    if (!options || Object.keys(options).length === 0) {
+      setInternalProviderOptions(undefined);
+      onProviderOptionsChange?.(undefined);
+      return;
+    }
     const jsonString = JSON.stringify(options, null, 2);
+    setInternalProviderOptions(jsonString);
     onProviderOptionsChange?.(jsonString);
   };
 
@@ -111,10 +124,10 @@ export function ModelConfiguration({
           label="Provider options"
           onChange={onProviderOptionsChange || (() => {})}
           value={
-            typeof providerOptions === 'string'
-              ? providerOptions
-              : providerOptions
-                ? JSON.stringify(providerOptions, null, 2)
+            typeof internalProviderOptions === 'string'
+              ? internalProviderOptions
+              : internalProviderOptions
+                ? JSON.stringify(internalProviderOptions, null, 2)
                 : ''
           }
           placeholder={jsonPlaceholder}
@@ -125,7 +138,7 @@ export function ModelConfiguration({
       {/* Azure Configuration Fields */}
       {value?.startsWith('azure/') && (
         <AzureConfigurationSection
-          providerOptions={providerOptions}
+          providerOptions={internalProviderOptions}
           onProviderOptionsChange={onProviderOptionsChange}
           editorNamePrefix={editorNamePrefix}
         />

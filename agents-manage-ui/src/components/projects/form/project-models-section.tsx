@@ -24,8 +24,6 @@ function BaseModelSection({ control }: { control: Control<ProjectFormData> }) {
     name: 'models.base.providerOptions',
   });
 
-  const baseModel = useWatch({ control, name: 'models.base.model' });
-
   return (
     <div className="space-y-4">
       <FormFieldWrapper
