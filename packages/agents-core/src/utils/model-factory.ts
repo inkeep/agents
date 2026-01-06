@@ -1,4 +1,5 @@
 import { anthropic, createAnthropic } from '@ai-sdk/anthropic';
+import { azure, createAzure } from '@ai-sdk/azure';
 import { createGateway, gateway } from '@ai-sdk/gateway';
 import { createGoogleGenerativeAI, google } from '@ai-sdk/google';
 import { createOpenAI, openai } from '@ai-sdk/openai';
@@ -36,6 +37,17 @@ export class ModelFactory {
     switch (provider) {
       case 'anthropic':
         return createAnthropic(config);
+      case 'azure': {
+        if (!config.resourceName && !config.baseURL) {
+          throw new Error(
+            'Azure provider requires either resourceName or baseURL. ' +
+              'Provide resourceName for standard Azure OpenAI, or baseURL for custom endpoints.'
+          );
+        }
+        return createAzure(config) as unknown as {
+          languageModel: (modelId: string) => LanguageModel;
+        };
+      }
       case 'openai':
         return createOpenAI(config);
       case 'google':
@@ -111,6 +123,14 @@ export class ModelFactory {
       providerConfig.headers = providerOptions.headers;
     }
 
+    if (providerOptions.resourceName) {
+      providerConfig.resourceName = providerOptions.resourceName;
+    }
+
+    if (providerOptions.apiVersion) {
+      providerConfig.apiVersion = providerOptions.apiVersion;
+    }
+
     if (providerOptions.gateway) {
       Object.assign(providerConfig, providerOptions.gateway);
     }
@@ -156,7 +176,8 @@ export class ModelFactory {
 
     const providerConfig = ModelFactory.extractProviderConfig(modelSettings.providerOptions);
 
-    if (Object.keys(providerConfig).length > 0) {
+    // Azure always needs custom configuration
+    if (provider === 'azure' || Object.keys(providerConfig).length > 0) {
       logger.info({ config: providerConfig }, `Applying custom ${provider} provider configuration`);
       const customProvider = ModelFactory.createProvider(provider, providerConfig);
       return customProvider.languageModel(modelName);
@@ -193,6 +214,7 @@ export class ModelFactory {
    */
   private static readonly BUILT_IN_PROVIDERS = [
     'anthropic',
+    'azure',
     'openai',
     'google',
     'openrouter',
@@ -242,6 +264,8 @@ export class ModelFactory {
       'apiKey',
       'baseURL',
       'baseUrl',
+      'resourceName',
+      'apiVersion',
       'maxDuration',
       'headers',
       'gateway',

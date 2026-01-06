@@ -44,7 +44,27 @@ export const GOOGLE_MODELS = {
   GEMINI_2_5_FLASH_LITE: 'google/gemini-2.5-flash-lite',
 } as const;
 
+export const AZURE_MODELS = {
+  GPT_5_2: 'azure/gpt-5.2',
+  GPT_5_2_20251211: 'azure/gpt-5.2-2025-12-11',
+  GPT_5_1: 'azure/gpt-5.1',
+  GPT_5_1_20251113: 'azure/gpt-5.1-2025-11-13',
+  GPT_5: 'azure/gpt-5',
+  GPT_5_20250807: 'azure/gpt-5-2025-08-07',
+  GPT_5_MINI: 'azure/gpt-5-mini',
+  GPT_5_MINI_20250807: 'azure/gpt-5-mini-2025-08-07',
+  GPT_5_NANO: 'azure/gpt-5-nano',
+  GPT_5_NANO_20250807: 'azure/gpt-5-nano-2025-08-07',
+  GPT_4_1: 'azure/gpt-4.1',
+  GPT_4_1_20250414: 'azure/gpt-4.1-2025-04-14',
+  GPT_4_1_MINI: 'azure/gpt-4.1-mini',
+  GPT_4_1_MINI_20250414: 'azure/gpt-4.1-mini-2025-04-14',
+  GPT_4_1_NANO: 'azure/gpt-4.1-nano',
+  GPT_4_1_NANO_20250414: 'azure/gpt-4.1-nano-2025-04-14',
+} as const;
+
 export type AnthropicModel = (typeof ANTHROPIC_MODELS)[keyof typeof ANTHROPIC_MODELS];
 export type OpenAIModel = (typeof OPENAI_MODELS)[keyof typeof OPENAI_MODELS];
 export type GoogleModel = (typeof GOOGLE_MODELS)[keyof typeof GOOGLE_MODELS];
-export type ModelName = AnthropicModel | OpenAIModel | GoogleModel;
+export type AzureModel = (typeof AZURE_MODELS)[keyof typeof AZURE_MODELS];
+export type ModelName = AnthropicModel | OpenAIModel | GoogleModel | AzureModel;

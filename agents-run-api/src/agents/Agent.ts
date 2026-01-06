@@ -1692,7 +1692,7 @@ export class Agent {
   private getArtifactTools() {
     return tool({
       description:
-        'Call this tool to get the complete artifact data with the given artifactId. This retrieves the full artifact content (not just the summary). Only use this when you need the complete artifact data and the summary shown in your context is insufficient.',
+        'Call this tool to retrieve EXISTING artifacts that were previously created and saved. This tool is for accessing artifacts that already exist, NOT for extracting tool results. Only use this when you need the complete artifact data and the summary shown in your context is insufficient.',
       inputSchema: z.object({
         artifactId: z.string().describe('The unique identifier of the artifact to get.'),
         toolCallId: z.string().describe('The tool call ID associated with this artifact.'),
@@ -2845,21 +2845,34 @@ ${output}`;
       }
     }
 
-    if (steps.length >= 2) {
-      const previousStep = steps[steps.length - 2];
-      if (previousStep && 'toolCalls' in previousStep && previousStep.toolCalls) {
+    if (steps.length >= 1) {
+      const currentStep = steps[steps.length - 1];
+      if (currentStep && 'toolCalls' in currentStep && currentStep.toolCalls) {
         const stopToolNames = includeThinkingComplete
           ? ['transfer_to_', 'thinking_complete']
           : ['transfer_to_'];
 
-        const hasStopTool = previousStep.toolCalls.some((tc: any) =>
-          stopToolNames.some((toolName) =>
-            toolName.endsWith('_') ? tc.toolName.startsWith(toolName) : tc.toolName === toolName
-          )
+        const hasTransferTool = currentStep.toolCalls.some((tc: any) =>
+          tc.toolName.startsWith('transfer_to_')
         );
 
-        if (hasStopTool && 'toolResults' in previousStep && previousStep.toolResults) {
-          return true; // Stop after transfer/thinking_complete tool has executed
+        const hasThinkingComplete = currentStep.toolCalls.some(
+          (tc: any) => tc.toolName === 'thinking_complete'
+        );
+
+        // Transfer tools stop immediately (no need to wait for result)
+        if (hasTransferTool) {
+          return true;
+        }
+
+        // Thinking complete tool waits for result
+        if (
+          includeThinkingComplete &&
+          hasThinkingComplete &&
+          'toolResults' in currentStep &&
+          currentStep.toolResults
+        ) {
+          return true;
         }
       }
     }
@@ -3060,10 +3073,12 @@ ${output}${structureHintsFormatted}`;
     let dataComponentsSchema: z.ZodType<any>;
     if (componentSchemas.length === 1) {
       dataComponentsSchema = componentSchemas[0];
+      logger.info({ agentId: this.config.id }, 'Using single schema (no union needed)');
     } else {
       dataComponentsSchema = z.union(
         componentSchemas as [z.ZodType<any>, z.ZodType<any>, ...z.ZodType<any>[]]
       );
+      logger.info({ agentId: this.config.id }, 'Created union schema');
     }
 
     return dataComponentsSchema;

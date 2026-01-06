@@ -5,6 +5,7 @@ import { useParams } from 'next/navigation';
 import { useCallback } from 'react';
 import { ExpandableJsonEditor } from '@/components/editors/expandable-json-editor';
 import { ModelInheritanceInfo } from '@/components/projects/form/model-inheritance-info';
+import { ModelConfiguration } from '@/components/shared/model-configuration';
 import { Checkbox } from '@/components/ui/checkbox';
 import { CopyableSingleLineCode } from '@/components/ui/copyable-single-line-code';
 import { ExternalLink } from '@/components/ui/external-link';
@@ -172,65 +173,57 @@ function MetadataEditor() {
             </div>
           }
         />
-        <div className="relative space-y-2">
-          <ModelSelector
-            value={models?.base?.model || ''}
-            inheritedValue={project?.models?.base?.model}
-            onValueChange={(value) => {
-              const newModels = {
-                ...(models || {}),
-                base: value
-                  ? {
-                      ...(models?.base || {}),
-                      model: value,
-                    }
-                  : undefined,
-              };
-              updateMetadata('models', newModels);
-            }}
-            label={
-              <div className="flex items-center gap-2">
-                Base model
-                <InheritanceIndicator
-                  {...getModelInheritanceStatus(
-                    'agent',
-                    models?.base?.model,
-                    project?.models?.base?.model
-                  )}
-                  size="sm"
-                />
-              </div>
+        <ModelConfiguration
+          value={models?.base?.model}
+          providerOptions={models?.base?.providerOptions}
+          inheritedValue={project?.models?.base?.model}
+          label={
+            <div className="flex items-center gap-2">
+              Base model
+              <InheritanceIndicator
+                {...getModelInheritanceStatus(
+                  'agent',
+                  models?.base?.model,
+                  project?.models?.base?.model
+                )}
+                size="sm"
+              />
+            </div>
+          }
+          description="Primary model for general agent responses"
+          onModelChange={(value) => {
+            const newModels = {
+              ...(models || {}),
+              base: value
+                ? {
+                    ...(models?.base || {}),
+                    model: value,
+                  }
+                : undefined,
+            };
+            updateMetadata('models', newModels);
+          }}
+          onProviderOptionsChange={(value) => {
+            // Ensure we don't lose the model when updating provider options
+            if (!models?.base?.model) {
+              return; // Don't update provider options if there's no model
             }
-          />
-          <p className="text-xs text-muted-foreground">Primary model for general agent responses</p>
-        </div>
+            const newModels = {
+              ...(models || {}),
+              base: {
+                ...(models?.base || {}),
+                providerOptions: value,
+              },
+            };
+            updateMetadata('models', newModels);
+          }}
+          editorNamePrefix="agent-base"
+        />
 
         <CollapsibleSettings
           defaultOpen={!!models?.structuredOutput || !!models?.summarizer}
           title="Advanced model options"
         >
-          {/* Base Model Provider Options */}
-          {models?.base?.model && (
-            <ExpandableJsonEditor
-              name="base-provider-options"
-              label="Base model provider options"
-              onChange={(value) => {
-                updateMetadata('models', {
-                  ...(models || {}),
-                  base: {
-                    model: models.base?.model || '',
-                    providerOptions: value,
-                  },
-                });
-              }}
-              value={models.base.providerOptions || ''}
-              placeholder={`{
-    "temperature": 0.7,
-    "maxOutputTokens": 2048
-}`}
-            />
-          )}
-
           <div className="relative space-y-2">
             <ModelSelector
               value={models?.structuredOutput?.model || ''}
