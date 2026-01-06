@@ -213,9 +213,6 @@
   pre {
     @apply overflow-auto;
   }
-  .cm-scroller {
-    @apply scrollbar-thin scrollbar-thumb-muted-foreground/30 dark:scrollbar-thumb-muted-foreground/50 scrollbar-track-transparent !font-mono;
-  }
   code,
   kbd,
   samp,
@@ -267,12 +264,6 @@
       width: 100%;
       height: 100%;
     }
-  }
-
-  /* UIW CodeMirror */
-
-  .cm-activeLine:has(.cm-placeholder) {
-    @apply !bg-transparent;
   }
 }
 
