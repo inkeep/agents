@@ -5,12 +5,12 @@
  * This route:
  * 1. Fetches the artifact component from manage-api
  * 2. Fetches the project to get base model configuration
- * 3. Uses AI SDK streamObject to generate component code and sample data
+ * 3. Uses AI SDK structured output streamText to generate component code and sample data
  * 4. Streams NDJSON response back to client
  */
 
 import { jsonSchemaToZod, ModelFactory } from '@inkeep/agents-core';
-import { streamObject } from 'ai';
+import { streamText, Output } from 'ai';
 import type { NextRequest } from 'next/server';
 import { z } from 'zod';
 import { fetchArtifactComponent } from '@/lib/api/artifact-components';
@@ -74,11 +74,12 @@ export async function POST(
       mockData: mockDataSchema.describe('Sample data matching the props schema'),
     });
 
-    // Generate using AI SDK streamObject
-    const result = streamObject({
+    const result = streamText({
       ...modelConfig,
       prompt,
-      schema: renderSchema,
+      output: Output.object({
+        schema: renderSchema,
+      }),
       temperature: 0.7,
     });
 
@@ -95,7 +96,7 @@ export async function POST(
     const stream = new ReadableStream({
       async start(controller) {
         try {
-          for await (const partialObject of result.partialObjectStream) {
+          for await (const partialObject of result.partialOutputStream) {
             // If modifying with instructions, preserve existing data
             const outputObject =
               instructions && existingData

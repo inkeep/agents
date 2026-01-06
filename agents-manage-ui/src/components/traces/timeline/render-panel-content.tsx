@@ -551,7 +551,13 @@ export function renderPanelContent({
         </>
       );
 
-    case 'ai_model_streamed_text':
+    case 'ai_model_streamed_text': {
+      const isStructuredGeneration = a.aiTelemetryPhase === 'structured_generation';
+      const structuredContent =
+        isStructuredGeneration && a.aiStreamTextContent
+          ? formatJsonSafely(a.aiStreamTextContent)
+          : null;
+
       return (
         <>
           <Section>
@@ -565,43 +571,12 @@ export function renderPanelContent({
             )}
             <Info label="Input tokens" value={a.inputTokens?.toLocaleString() || '0'} />
             <Info label="Output tokens" value={a.outputTokens?.toLocaleString() || '0'} />
-            <StatusBadge status={a.status} />
-            {a.status === 'error' && a.otelStatusDescription && (
-              <LabeledBlock label="Status message">
-                <Bubble className="bg-red-50 border-red-200 text-red-800 dark:bg-red-900/20 dark:border-red-800 dark:text-red-300">
-                  {a.otelStatusDescription}
-                </Bubble>
-              </LabeledBlock>
-            )}
-            <Info label="Timestamp" value={formatDateTime(a.timestamp)} />
-          </Section>
-          <Divider />
-          {SignozButton}
-          {AdvancedBlock}
-        </>
-      );
-
-    case 'ai_model_streamed_object':
-      return (
-        <>
-          <Section>
-            <Info label="Model" value={<ModelBadge model={a.aiStreamObjectModel || 'Unknown'} />} />
-            {a.aiTelemetryFunctionId && (
-              <Info
-                label="Sub agent"
-                value={<Badge variant="code">{a.aiTelemetryFunctionId}</Badge>}
-              />
-            )}
-            <Info label="Input tokens" value={a.inputTokens?.toLocaleString() || '0'} />
-            <Info label="Output tokens" value={a.outputTokens?.toLocaleString() || '0'} />
-            {a.aiStreamObjectContent && (
-              <LabeledBlock label="Structured object response">
+            {structuredContent && (
                 <JsonEditorWithCopy
-                  value={formatJsonSafely(a.aiStreamObjectContent)}
-                  title="Object content"
-                  uri="stream-object-response.json"
+                  value={structuredContent}
+                  title="Structured output"
+                  uri="structured-output.json"
                 />
-              </LabeledBlock>
             )}
             <StatusBadge status={a.status} />
             {a.status === 'error' && a.otelStatusDescription && (
@@ -618,6 +593,7 @@ export function renderPanelContent({
           {AdvancedBlock}
         </>
       );
+    }
 
     case 'artifact_processing':
       return (
