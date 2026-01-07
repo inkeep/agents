@@ -902,7 +902,7 @@ export class Agent {
                 timestamp: Date.now(),
               });
 
-              return { result: enhancedResult, toolCallId };
+              return enhancedResult;
             } catch (error) {
               logger.error({ toolName, toolCallId, error }, 'MCP tool execution failed');
               throw error;
@@ -1350,7 +1350,7 @@ export class Agent {
                 timestamp: Date.now(),
               });
 
-              return { result, toolCallId };
+              return result;
             } catch (error) {
               logger.error(
                 {
