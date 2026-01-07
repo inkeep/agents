@@ -12,7 +12,7 @@ import type {
 } from '../types/entities';
 import { getLogger } from '../utils/logger';
 import type { ResolvedRef } from '../validation/dolt-schemas';
-import { BaseApiClient, BaseApiError } from './base-client';
+import { BaseApiClient, BaseApiClientConfig, BaseApiError } from './base-client';
 
 const logger = getLogger('manage-api-client');
 
@@ -24,6 +24,10 @@ export class ManageApiError extends BaseApiError {
 }
 
 export class ManagementApiClient extends BaseApiClient {
+  constructor(config: BaseApiClientConfig) {
+    super(config);
+  }
+
   /**
    * Override to return ManageApiError
    */

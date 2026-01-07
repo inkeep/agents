@@ -4,7 +4,7 @@ import type {
   TriggerEvaluationJobRequest,
 } from '../types/entities';
 import { getLogger } from '../utils/logger';
-import { BaseApiClient, BaseApiError } from './base-client';
+import { BaseApiClient, BaseApiClientConfig, BaseApiError } from './base-client';
 
 const logger = getLogger('eval-api-client');
 
@@ -41,6 +41,10 @@ export interface TriggerEvaluationJobResponse {
 }
 
 export class EvalApiClient extends BaseApiClient {
+  constructor(config: BaseApiClientConfig) {
+    super(config);
+  }
+
   /**
    * Override to return EvalApiError
    */
