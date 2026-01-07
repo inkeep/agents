@@ -2,7 +2,7 @@ import type { Node } from '@xyflow/react';
 import { Trash2 } from 'lucide-react';
 import { useParams } from 'next/navigation';
 import { useCallback } from 'react';
-import { PolicySelector } from '@/components/policies/policy-selector';
+import { SkillSelector } from '@/components/skills/skill-selector';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import {
@@ -70,8 +70,8 @@ export function SubAgentNodeEditor({
   const selectedDataComponents = selectedNode.data?.dataComponents || [];
   const selectedArtifactComponents = selectedNode.data?.artifactComponents || [];
   const isDefaultSubAgent = selectedNode.data?.isDefault || false;
-  const policyLookup = useAgentStore((state) => state.policyLookup);
-  const selectedPolicies = (selectedNode.data?.policies as AgentNodeData['policies']) || [];
+  const skillLookup = useAgentStore((state) => state.skillLookup);
+  const selectedSkills = (selectedNode.data?.skills as AgentNodeData['skills']) || [];
 
   const { project } = useProjectData();
   const metadata = useAgentStore((state) => state.metadata);
@@ -224,19 +224,19 @@ export function SubAgentNodeEditor({
         </div>
       </div>
       <Separator />
-      <PolicySelector
-        policyLookup={policyLookup}
-        selectedPolicies={selectedPolicies}
-        onChange={(policies) => {
-          const enriched = policies.map((policy) => ({
-            ...policy,
-            name: policyLookup[policy.id]?.name,
-            description: policyLookup[policy.id]?.description,
-            content: policyLookup[policy.id]?.content,
+      <SkillSelector
+        skillLookup={skillLookup}
+        selectedSkills={selectedSkills}
+        onChange={(skills) => {
+          const enriched = skills.map((skill) => ({
+            ...skill,
+            name: skillLookup[skill.id]?.name,
+            description: skillLookup[skill.id]?.description,
+            content: skillLookup[skill.id]?.content,
           }));
-          updatePath('policies', enriched);
+          updatePath('skills', enriched);
         }}
-        error={getFieldError('policies')}
+        error={getFieldError('skills')}
       />
       <Separator />
       <ComponentSelector

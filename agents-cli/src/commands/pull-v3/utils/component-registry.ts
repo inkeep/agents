@@ -29,7 +29,7 @@ export type ComponentType =
   | 'headers'
   | 'models'
   | 'project'
-  | 'policies';
+  | 'skills';
 
 export interface ComponentInfo {
   id: string; // Original component ID
@@ -581,10 +581,10 @@ export function registerAllComponents(
     }
   }
 
-  // Register policies
-  if (project.policies) {
-    for (const policyId of Object.keys(project.policies)) {
-      registry.register(policyId, 'policies', `policies/${policyId}.md`);
+  // Register skills
+  if (project.skills) {
+    for (const skillId of Object.keys(project.skills)) {
+      registry.register(skillId, 'skills', `skills/${skillId}.md`);
     }
   }
 

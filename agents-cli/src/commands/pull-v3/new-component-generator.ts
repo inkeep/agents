@@ -34,7 +34,7 @@ interface ProjectPaths {
   credentialsDir: string;
   contextConfigsDir: string;
   externalAgentsDir: string;
-  policiesDir: string;
+  skillsDir: string;
 }
 
 interface NewComponentResult {
