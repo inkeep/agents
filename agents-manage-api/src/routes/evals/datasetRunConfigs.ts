@@ -38,7 +38,7 @@ const logger = getLogger('datasetRunConfigs');
 app.openapi(
   createRoute({
     method: 'get',
-    path: '/{datasetId}',
+    path: '/by-dataset/{datasetId}',
     summary: 'List Dataset Run Configs by Dataset ID',
     operationId: 'list-dataset-run-configs',
     tags: ['Evaluations'],

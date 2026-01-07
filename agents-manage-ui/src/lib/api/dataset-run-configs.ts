@@ -39,7 +39,7 @@ export async function fetchDatasetRunConfigs(
   validateProjectId(projectId);
 
   return makeManagementApiRequest<ListResponse<DatasetRunConfig>>(
-    `tenants/${tenantId}/projects/${projectId}/evals/dataset-run-configs/${datasetId}`
+    `tenants/${tenantId}/projects/${projectId}/evals/dataset-run-configs/by-dataset/${datasetId}`
   );
 }
 
