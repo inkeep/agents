@@ -62,7 +62,10 @@ export const apiKeyAuth = () =>
         const cookie = c.req.header('cookie');
         if (forwardedCookie) {
           headers.set('cookie', forwardedCookie);
-          logger.debug({ source: 'x-forwarded-cookie' }, 'Using x-forwarded-cookie for session validation');
+          logger.debug(
+            { source: 'x-forwarded-cookie' },
+            'Using x-forwarded-cookie for session validation'
+          );
         } else if (cookie) {
           headers.set('cookie', cookie);
           logger.debug({ source: 'cookie' }, 'Using cookie for session validation');
