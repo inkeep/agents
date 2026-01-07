@@ -83,8 +83,8 @@ export const AppSidebar: FC<AppSidebarProps> = ({ open, setOpen, ...props }) => 
           icon: Workflow,
         },
         {
-          title: 'Policies',
-          url: `/${tenantId}/projects/${projectId}/policies`,
+          title: 'Agent Skills',
+          url: `/${tenantId}/projects/${projectId}/skills`,
           icon: ScrollText,
         },
         {

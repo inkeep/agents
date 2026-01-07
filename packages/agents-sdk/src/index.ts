@@ -43,7 +43,7 @@ export {
   externalAgents,
 } from './external-agent';
 export { FunctionTool } from './function-tool';
-export { loadPolicies } from './policy-loader';
+export { loadSkills } from './skill-loader';
 export { Project } from './project';
 export {
   createFullProjectViaAPI,

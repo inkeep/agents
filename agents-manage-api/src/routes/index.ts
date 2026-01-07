@@ -12,12 +12,12 @@ import externalAgentsRoutes from './externalAgents';
 import functionsRoutes from './functions';
 import functionToolsRoutes from './functionTools';
 import mcpCatalogRoutes from './mcpCatalog';
-import policiesRoutes from './policies';
+import skillsRoutes from './skills';
 import projectsRoutes from './projects';
 import subAgentArtifactComponentsRoutes from './subAgentArtifactComponents';
 import subAgentDataComponentsRoutes from './subAgentDataComponents';
 import subAgentExternalAgentRelationsRoutes from './subAgentExternalAgentRelations';
-import subAgentPoliciesRoutes from './subAgentPolicies';
+import subAgentSkillsRoutes from './subAgentSkills';
 import subAgentRelationsRoutes from './subAgentRelations';
 // Import existing route modules (others can be added as they're created)
 import subAgentsRoutes from './subAgents';
@@ -55,8 +55,8 @@ app.route(
   '/projects/:projectId/agents/:agentId/sub-agent-data-components',
   subAgentDataComponentsRoutes
 );
-app.route('/projects/:projectId/policies', policiesRoutes);
-app.route('/projects/:projectId/agents/:agentId/sub-agent-policies', subAgentPoliciesRoutes);
+app.route('/projects/:projectId/skills', skillsRoutes);
+app.route('/projects/:projectId/agents/:agentId/sub-agent-skills', subAgentSkillsRoutes);
 app.route('/projects/:projectId/artifact-components', artifactComponentsRoutes);
 app.route('/projects/:projectId/agents/:agentId/context-configs', contextConfigsRoutes);
 app.route('/projects/:projectId/conversations', conversationsRoutes);

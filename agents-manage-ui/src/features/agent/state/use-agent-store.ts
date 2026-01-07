@@ -19,7 +19,7 @@ import type {
   SubAgentExternalAgentConfigLookup,
 } from '@/lib/types/agent-full';
 import type { ExternalAgent } from '@/lib/types/external-agents';
-import type { Policy } from '@/lib/types/policies';
+import type { Skill } from '@/lib/types/skills';
 import type { MCPTool } from '@/lib/types/tools';
 import type { AgentErrorSummary } from '@/lib/utils/agent-error-parser';
 
@@ -33,7 +33,7 @@ interface AgentStateData {
   artifactComponentLookup: Record<string, ArtifactComponent>;
   toolLookup: Record<string, MCPTool>;
   externalAgentLookup: Record<string, ExternalAgent>;
-  policyLookup: Record<string, Policy>;
+  skillLookup: Record<string, Skill>;
   agentToolConfigLookup: AgentToolConfigLookup;
   subAgentExternalAgentConfigLookup: SubAgentExternalAgentConfigLookup;
   dirty: boolean;
@@ -68,7 +68,7 @@ interface AgentActions {
     agentToolConfigLookup?: AgentToolConfigLookup,
     externalAgentLookup?: Record<string, ExternalAgent>,
     subAgentExternalAgentConfigLookup?: SubAgentExternalAgentConfigLookup,
-    policyLookup?: Record<string, Policy>
+    skillLookup?: Record<string, Skill>
   ): void;
   reset(): void;
   setDataComponentLookup(dataComponentLookup: Record<string, DataComponent>): void;
@@ -76,7 +76,7 @@ interface AgentActions {
   setToolLookup(toolLookup: Record<string, MCPTool>): void;
   setAgentToolConfigLookup(agentToolConfigLookup: AgentToolConfigLookup): void;
   setExternalAgentLookup(externalAgentLookup: Record<string, ExternalAgent>): void;
-  setPolicyLookup(policyLookup: Record<string, Policy>): void;
+  setSkillLookup(skillLookup: Record<string, Skill>): void;
   setSubAgentExternalAgentConfigLookup(
     subAgentExternalAgentConfigLookup: SubAgentExternalAgentConfigLookup
   ): void;
@@ -144,7 +144,7 @@ const initialAgentState: AgentStateData = {
   toolLookup: {},
   agentToolConfigLookup: {},
   externalAgentLookup: {},
-  policyLookup: {},
+  skillLookup: {},
   subAgentExternalAgentConfigLookup: {},
   dirty: false,
   history: [],
@@ -173,7 +173,7 @@ const agentState: StateCreator<AgentState> = (set, get) => ({
       agentToolConfigLookup = {},
       externalAgentLookup = {},
       subAgentExternalAgentConfigLookup = {},
-      policyLookup = {}
+      skillLookup = {}
     ) {
       set({
         nodes,
@@ -184,7 +184,7 @@ const agentState: StateCreator<AgentState> = (set, get) => ({
         toolLookup,
         agentToolConfigLookup,
         externalAgentLookup,
-        policyLookup,
+        skillLookup,
         subAgentExternalAgentConfigLookup,
         dirty: false,
         history: [],
@@ -215,8 +215,8 @@ const agentState: StateCreator<AgentState> = (set, get) => ({
     setExternalAgentLookup(externalAgentLookup) {
       set({ externalAgentLookup });
     },
-    setPolicyLookup(policyLookup) {
-      set({ policyLookup });
+    setSkillLookup(skillLookup) {
+      set({ skillLookup });
     },
     setSubAgentExternalAgentConfigLookup(subAgentExternalAgentConfigLookup) {
       set({ subAgentExternalAgentConfigLookup });
