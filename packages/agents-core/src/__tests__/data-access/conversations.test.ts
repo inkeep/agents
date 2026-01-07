@@ -589,6 +589,7 @@ describe('Conversations Data Access', () => {
         scopes: { tenantId: testTenantId, projectId: testProjectId },
         conversationId: testConversationId,
         subAgentId: 'agent-456',
+        agentId: 'agent-123',
         ref: testRef,
       });
 
@@ -599,6 +600,7 @@ describe('Conversations Data Access', () => {
         tenantId: testTenantId,
         projectId: testProjectId,
         activeSubAgentId: 'agent-456',
+        agentId: 'agent-123',
         ref: expect.any(Object),
         createdAt: expect.any(String),
         updatedAt: expect.any(String),

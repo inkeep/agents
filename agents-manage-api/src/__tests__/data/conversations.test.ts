@@ -81,6 +81,7 @@ describe.skip('Conversations', () => {
       id: 'conv-123',
       tenantId: 'test-tenant',
       projectId: 'test-project',
+      agentId: 'agent-1',
       activeSubAgentId: 'default-agent',
       ref: { type: 'branch', name: 'main', hash: 'abc123' },
     });

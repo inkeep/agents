@@ -340,6 +340,7 @@ export const setActiveAgentForConversation =
     scopes: ProjectScopeConfig;
     conversationId: string;
     subAgentId: string;
+    agentId: string
     ref: ResolvedRef;
   }): Promise<void> => {
     await db
@@ -349,6 +350,7 @@ export const setActiveAgentForConversation =
         tenantId: params.scopes.tenantId,
         projectId: params.scopes.projectId,
         activeSubAgentId: params.subAgentId,
+        agentId: params.agentId,
         ref: params.ref,
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString(),
@@ -368,17 +370,20 @@ export const setActiveAgentForThread =
     scopes,
     threadId,
     subAgentId,
+    agentId,
     ref,
   }: {
     scopes: ProjectScopeConfig;
     threadId: string;
     subAgentId: string;
+    agentId: string;
     ref: ResolvedRef;
   }) => {
     return setActiveAgentForConversation(db)({
       scopes,
       conversationId: threadId,
       subAgentId,
+      agentId,
       ref,
     });
   };

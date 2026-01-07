@@ -384,6 +384,7 @@ export class ExecutionHandler {
             projectId,
             tenantId,
             threadId: conversationId,
+            agentId: agentId,
             targetSubAgentId,
             ref: resolvedRef,
           });

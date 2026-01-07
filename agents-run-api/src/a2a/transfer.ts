@@ -10,12 +10,14 @@ export async function executeTransfer({
   tenantId,
   threadId,
   projectId,
+  agentId,
   targetSubAgentId,
   ref,
 }: {
   tenantId: string;
   threadId: string;
   projectId: string;
+  agentId: string;
   targetSubAgentId: string;
   ref: ResolvedRef;
 }): Promise<{
@@ -37,16 +39,17 @@ export async function executeTransfer({
       scopes: { tenantId, projectId },
       threadId,
       subAgentId: targetSubAgentId,
+      agentId,
       ref,
     });
 
     logger.info(
-      { targetAgent: targetSubAgentId, threadId },
+      { targetAgent: targetSubAgentId, threadId, agentId },
       'Successfully updated active_sub_agent_id in database'
     );
   } catch (error) {
     logger.error(
-      { error, targetAgent: targetSubAgentId, threadId },
+      { error, targetAgent: targetSubAgentId, threadId, agentId },
       'Failed to update active_sub_agent_id'
     );
     throw error;

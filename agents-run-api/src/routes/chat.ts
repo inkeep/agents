@@ -241,6 +241,7 @@ app.openapi(chatCompletionsRoute, async (c) => {
         await setActiveAgentForConversation(dbClient)({
           scopes: { tenantId, projectId },
           conversationId,
+          agentId: agentId,
           subAgentId: defaultSubAgentId,
           ref: executionContext.resolvedRef,
         });
