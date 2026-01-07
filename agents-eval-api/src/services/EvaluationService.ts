@@ -955,11 +955,11 @@ Generate the next user message:`;
 
     // Get agent definition
     let agentDefinition: FullAgentDefinition | null = null;
-    const agentId: string | null = null;
+    let agentId: string | null = null;
 
     try {
       // Get agentId from subagent
-      const agentId = conversation.agentId;
+      agentId = conversation.agentId ?? null;
 
       if (agentId) {
         agentDefinition = await client.getFullAgent(agentId);
