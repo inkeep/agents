@@ -3,7 +3,7 @@ import {
   AlertTriangle,
   Check,
   CircleAlert,
-  //  Shield,
+  Shield,
   Trash2,
   X,
 } from 'lucide-react';
@@ -336,7 +336,7 @@ export function MCPServerNodeEditor({
             {/* Header */}
             <div className="grid grid-cols-[1fr_auto] gap-4 px-3 py-2.5 text-xs font-medium text-muted-foreground rounded-t-md border-b">
               <div>Tool</div>
-              {/* <Tooltip>
+              <Tooltip>
                 <TooltipTrigger asChild>
                   <div className="flex items-center gap-1 cursor-help">
                     <Shield className="w-3 h-3" />
@@ -349,7 +349,7 @@ export function MCPServerNodeEditor({
                     before running.
                   </div>
                 </TooltipContent>
-              </Tooltip> */}
+              </Tooltip>
             </div>
 
             {/* Active tools */}
@@ -385,7 +385,7 @@ export function MCPServerNodeEditor({
                     </Tooltip>
                   </div>
                   {/* Needs Approval Checkbox hidden b/c we don't support it yet */}
-                  <div className="items-center hidden mcp-needs-approval">
+                  <div className="items-center mcp-needs-approval">
                     <Checkbox
                       checked={needsApproval}
                       disabled={!isSelected}
@@ -429,7 +429,7 @@ export function MCPServerNodeEditor({
                     </Tooltip>
                   </div>
                   {/* Needs Approval Checkbox hidden b/c we don't support it yet */}
-                  <div className="hidden items-center mcp-needs-approval">
+                  <div className="items-center mcp-needs-approval">
                     <Checkbox
                       checked={needsApproval}
                       onCheckedChange={() => toggleToolApproval(toolName)}
