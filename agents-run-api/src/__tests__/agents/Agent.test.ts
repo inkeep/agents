@@ -501,7 +501,7 @@ describe('Agent Integration with SystemPromptBuilder', () => {
           usageGuidelines: 'Use this tool when appropriate for the task at hand.',
         },
       ],
-      policies: [],
+      skills: [],
       dataComponents: [],
       artifacts: [],
       artifactComponents: [],
@@ -524,7 +524,7 @@ describe('Agent Integration with SystemPromptBuilder', () => {
     expect(systemPromptBuilder.buildSystemPrompt).toHaveBeenCalledWith({
       corePrompt: `You are a helpful test agent that can search databases and assist users.`,
       prompt: undefined,
-      policies: [],
+      skills: [],
       tools: [],
       dataComponents: [],
       artifacts: [],
@@ -548,7 +548,7 @@ describe('Agent Integration with SystemPromptBuilder', () => {
     expect(systemPromptBuilder.buildSystemPrompt).toHaveBeenCalledWith({
       corePrompt: `You are a helpful test agent that can search databases and assist users.`,
       prompt: undefined,
-      policies: [],
+      skills: [],
       tools: [],
       dataComponents: [],
       artifacts: [],
@@ -584,7 +584,7 @@ describe('Agent Integration with SystemPromptBuilder', () => {
       corePrompt: `You are a helpful test agent that can search databases and assist users.`,
       prompt: undefined,
       tools: [], // Empty tools array since availableTools is undefined
-      policies: [],
+      skills: [],
       dataComponents: [],
       artifacts: [],
       artifactComponents: [],

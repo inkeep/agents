@@ -1,20 +1,23 @@
-import path from 'node:path';
-import { loadPolicies, project } from '@inkeep/agents-sdk';
-import { activitiesPlannerAdvancedAgent } from './agents/activities-planner-advanced.js';
-import { exaMcpTool } from './tools/exa-mcp.js';
-import { weatherMcpTool } from './tools/weather-mcp.js';
+import { project, loadSkills } from '@inkeep/agents-sdk';
+import { activitiesPlannerAdvancedAgent } from './agents/activities-planner-advanced';
+import { exaMcpTool } from './tools/exa-mcp';
+import { weatherMcpTool } from './tools/weather-mcp';
+import { activities } from './data-components/activities';
+import { citation } from './artifact-components/citation';
 
-export const myProject = project({
+export const activitiesPlannerAdvanced = project({
   id: 'activities-planner-advanced',
   name: 'Activities planner advanced',
   description: 'Activities planner project template',
   agents: () => [activitiesPlannerAdvancedAgent],
-  policies: () => loadPolicies(path.join('activities-planner-advanced/policies')),
+  // or path.join('activities-planner-advanced/policies')
+  skills: () => loadSkills('./skills'),
   models: {
-    base: { model: 'openai/gpt-4o-mini' },
+    base: {
+      model: 'openai/gpt-4o-mini'
+    }
   },
   tools: () => [weatherMcpTool, exaMcpTool],
-  models: {
-    base: { model: 'openai/gpt-4o-mini' },
-  },
+  dataComponents: () => [activities],
+  artifactComponents: () => [citation]
 });

@@ -1,6 +1,6 @@
 ---
-name: Weather safety guardrails
-description: Keep activity suggestions safe and respect local conditions
+name: "Weather safety guardrails"
+description: "Keep activity suggestions safe and respect local conditions"
 metadata:
   tags:
     - safety
