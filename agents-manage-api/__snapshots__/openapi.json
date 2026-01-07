@@ -858,37 +858,6 @@
               }
             ]
           },
-          "render": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "number"
-              },
-              {
-                "type": "boolean"
-              },
-              {
-                "nullable": true
-              },
-              {
-                "additionalProperties": {
-                  "nullable": true
-                },
-                "type": "object"
-              },
-              {
-                "items": {
-                  "nullable": true
-                },
-                "type": "array"
-              },
-              {
-                "nullable": true
-              }
-            ]
-          },
           "updatedAt": {
             "type": "string"
           }
@@ -898,7 +867,6 @@
           "name",
           "description",
           "props",
-          "render",
           "createdAt",
           "updatedAt"
         ],
@@ -937,37 +905,6 @@
             "type": "string"
           },
           "props": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "number"
-              },
-              {
-                "type": "boolean"
-              },
-              {
-                "nullable": true
-              },
-              {
-                "additionalProperties": {
-                  "nullable": true
-                },
-                "type": "object"
-              },
-              {
-                "items": {
-                  "nullable": true
-                },
-                "type": "array"
-              },
-              {
-                "nullable": true
-              }
-            ]
-          },
-          "render": {
             "anyOf": [
               {
                 "type": "string"
@@ -1056,37 +993,6 @@
             "type": "string"
           },
           "props": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "number"
-              },
-              {
-                "type": "boolean"
-              },
-              {
-                "nullable": true
-              },
-              {
-                "additionalProperties": {
-                  "nullable": true
-                },
-                "type": "object"
-              },
-              {
-                "items": {
-                  "nullable": true
-                },
-                "type": "array"
-              },
-              {
-                "nullable": true
-              }
-            ]
-          },
-          "render": {
             "anyOf": [
               {
                 "type": "string"
@@ -2490,14 +2396,6 @@
           "createdAt": {
             "type": "string"
           },
-          "id": {
-            "description": "Resource identifier",
-            "example": "resource_789",
-            "maxLength": 255,
-            "minLength": 1,
-            "pattern": "^[a-zA-Z0-9\\-_.]+$",
-            "type": "string"
-          },
           "name": {
             "maxLength": 256,
             "type": "string"
@@ -2507,7 +2405,6 @@
           }
         },
         "required": [
-          "id",
           "name"
         ],
         "type": "object"
@@ -2637,9 +2534,6 @@
           "createdAt": {
             "type": "string"
           },
-          "datasetId": {
-            "type": "string"
-          },
           "expectedOutput": {
             "anyOf": [
               {
@@ -2670,14 +2564,6 @@
                 "nullable": true
               }
             ]
-          },
-          "id": {
-            "description": "Resource identifier",
-            "example": "resource_789",
-            "maxLength": 255,
-            "minLength": 1,
-            "pattern": "^[a-zA-Z0-9\\-_.]+$",
-            "type": "string"
           },
           "input": {
             "anyOf": [
@@ -2746,8 +2632,6 @@
           }
         },
         "required": [
-          "id",
-          "datasetId",
           "input"
         ],
         "type": "object"
@@ -2755,9 +2639,6 @@
       "DatasetItemUpdate": {
         "properties": {
           "createdAt": {
-            "type": "string"
-          },
-          "datasetId": {
             "type": "string"
           },
           "expectedOutput": {
@@ -2790,14 +2671,6 @@
                 "nullable": true
               }
             ]
-          },
-          "id": {
-            "description": "Resource identifier",
-            "example": "resource_789",
-            "maxLength": 255,
-            "minLength": 1,
-            "pattern": "^[a-zA-Z0-9\\-_.]+$",
-            "type": "string"
           },
           "input": {
             "anyOf": [
@@ -2947,14 +2820,6 @@
             "nullable": true,
             "type": "string"
           },
-          "id": {
-            "description": "Resource identifier",
-            "example": "resource_789",
-            "maxLength": 255,
-            "minLength": 1,
-            "pattern": "^[a-zA-Z0-9\\-_.]+$",
-            "type": "string"
-          },
           "name": {
             "maxLength": 256,
             "type": "string"
@@ -2964,7 +2829,6 @@
           }
         },
         "required": [
-          "id",
           "name",
           "datasetId"
         ],
@@ -2982,14 +2846,6 @@
             "nullable": true,
             "type": "string"
           },
-          "id": {
-            "description": "Resource identifier",
-            "example": "resource_789",
-            "maxLength": 255,
-            "minLength": 1,
-            "pattern": "^[a-zA-Z0-9\\-_.]+$",
-            "type": "string"
-          },
           "name": {
             "maxLength": 256,
             "type": "string"
@@ -3003,14 +2859,6 @@
       "DatasetUpdate": {
         "properties": {
           "createdAt": {
-            "type": "string"
-          },
-          "id": {
-            "description": "Resource identifier",
-            "example": "resource_789",
-            "maxLength": 255,
-            "minLength": 1,
-            "pattern": "^[a-zA-Z0-9\\-_.]+$",
             "type": "string"
           },
           "name": {
@@ -3098,13 +2946,12 @@
           "createdAt": {
             "type": "string"
           },
-          "id": {
-            "description": "Resource identifier",
-            "example": "resource_789",
-            "maxLength": 255,
-            "minLength": 1,
-            "pattern": "^[a-zA-Z0-9\\-_.]+$",
-            "type": "string"
+          "evaluatorIds": {
+            "items": {
+              "type": "string"
+            },
+            "minItems": 1,
+            "type": "array"
           },
           "jobFilters": {
             "anyOf": [
@@ -3142,7 +2989,7 @@
           }
         },
         "required": [
-          "id"
+          "evaluatorIds"
         ],
         "type": "object"
       },
@@ -3211,6 +3058,114 @@
         ],
         "type": "object"
       },
+      "EvaluationResultCreate": {
+        "properties": {
+          "conversationId": {
+            "type": "string"
+          },
+          "createdAt": {
+            "type": "string"
+          },
+          "evaluationRunId": {
+            "nullable": true,
+            "type": "string"
+          },
+          "evaluatorId": {
+            "type": "string"
+          },
+          "output": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "number"
+              },
+              {
+                "type": "boolean"
+              },
+              {
+                "nullable": true
+              },
+              {
+                "additionalProperties": {
+                  "nullable": true
+                },
+                "type": "object"
+              },
+              {
+                "items": {
+                  "nullable": true
+                },
+                "type": "array"
+              },
+              {
+                "nullable": true
+              }
+            ]
+          },
+          "updatedAt": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "conversationId",
+          "evaluatorId"
+        ],
+        "type": "object"
+      },
+      "EvaluationResultUpdate": {
+        "properties": {
+          "conversationId": {
+            "type": "string"
+          },
+          "createdAt": {
+            "type": "string"
+          },
+          "evaluationRunId": {
+            "nullable": true,
+            "type": "string"
+          },
+          "evaluatorId": {
+            "type": "string"
+          },
+          "output": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "number"
+              },
+              {
+                "type": "boolean"
+              },
+              {
+                "nullable": true
+              },
+              {
+                "additionalProperties": {
+                  "nullable": true
+                },
+                "type": "object"
+              },
+              {
+                "items": {
+                  "nullable": true
+                },
+                "type": "array"
+              },
+              {
+                "nullable": true
+              }
+            ]
+          },
+          "updatedAt": {
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
       "EvaluationRunConfig": {
         "properties": {
           "createdAt": {
@@ -3254,14 +3209,6 @@
             "nullable": true,
             "type": "string"
           },
-          "id": {
-            "description": "Resource identifier",
-            "example": "resource_789",
-            "maxLength": 255,
-            "minLength": 1,
-            "pattern": "^[a-zA-Z0-9\\-_.]+$",
-            "type": "string"
-          },
           "isActive": {
             "type": "boolean"
           },
@@ -3269,13 +3216,20 @@
             "maxLength": 256,
             "type": "string"
           },
+          "suiteConfigIds": {
+            "items": {
+              "type": "string"
+            },
+            "minItems": 1,
+            "type": "array"
+          },
           "updatedAt": {
             "type": "string"
           }
         },
         "required": [
-          "id",
-          "name"
+          "name",
+          "suiteConfigIds"
         ],
         "type": "object"
       },
@@ -3288,20 +3242,18 @@
             "nullable": true,
             "type": "string"
           },
-          "id": {
-            "description": "Resource identifier",
-            "example": "resource_789",
-            "maxLength": 255,
-            "minLength": 1,
-            "pattern": "^[a-zA-Z0-9\\-_.]+$",
-            "type": "string"
-          },
           "isActive": {
             "type": "boolean"
           },
           "name": {
             "maxLength": 256,
             "type": "string"
+          },
+          "suiteConfigIds": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
           },
           "updatedAt": {
             "type": "string"
@@ -3394,6 +3346,13 @@
           "createdAt": {
             "type": "string"
           },
+          "evaluatorIds": {
+            "items": {
+              "type": "string"
+            },
+            "minItems": 1,
+            "type": "array"
+          },
           "filters": {
             "anyOf": [
               {
@@ -3424,14 +3383,6 @@
                 "nullable": true
               }
             ]
-          },
-          "id": {
-            "description": "Resource identifier",
-            "example": "resource_789",
-            "maxLength": 255,
-            "minLength": 1,
-            "pattern": "^[a-zA-Z0-9\\-_.]+$",
-            "type": "string"
           },
           "sampleRate": {
             "maximum": 140737488355327,
@@ -3444,7 +3395,7 @@
           }
         },
         "required": [
-          "id"
+          "evaluatorIds"
         ],
         "type": "object"
       },
@@ -3452,6 +3403,12 @@
         "properties": {
           "createdAt": {
             "type": "string"
+          },
+          "evaluatorIds": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
           },
           "filters": {
             "anyOf": [
@@ -3483,14 +3440,6 @@
                 "nullable": true
               }
             ]
-          },
-          "id": {
-            "description": "Resource identifier",
-            "example": "resource_789",
-            "maxLength": 255,
-            "minLength": 1,
-            "pattern": "^[a-zA-Z0-9\\-_.]+$",
-            "type": "string"
           },
           "sampleRate": {
             "maximum": 140737488355327,
@@ -3643,14 +3592,6 @@
             "nullable": true,
             "type": "string"
           },
-          "id": {
-            "description": "Resource identifier",
-            "example": "resource_789",
-            "maxLength": 255,
-            "minLength": 1,
-            "pattern": "^[a-zA-Z0-9\\-_.]+$",
-            "type": "string"
-          },
           "model": {
             "anyOf": [
               {
@@ -3756,7 +3697,6 @@
           }
         },
         "required": [
-          "id",
           "name",
           "prompt",
           "schema",
@@ -3771,14 +3711,6 @@
           },
           "description": {
             "nullable": true,
-            "type": "string"
-          },
-          "id": {
-            "description": "Resource identifier",
-            "example": "resource_789",
-            "maxLength": 255,
-            "minLength": 1,
-            "pattern": "^[a-zA-Z0-9\\-_.]+$",
             "type": "string"
           },
           "model": {
@@ -20999,7 +20931,7 @@
         ]
       }
     },
-    "/tenants/{tenantId}/projects/{projectId}/evals/dataset-run-configs/{datasetId}": {
+    "/tenants/{tenantId}/projects/{projectId}/evals/dataset-run-configs/by-dataset/{datasetId}": {
       "get": {
         "operationId": "list-dataset-run-configs",
         "parameters": [
@@ -21485,7 +21417,7 @@
         ]
       }
     },
-    "/tenants/{tenantId}/projects/{projectId}/evals/dataset-runs/{datasetId}": {
+    "/tenants/{tenantId}/projects/{projectId}/evals/dataset-runs/by-dataset/{datasetId}": {
       "get": {
         "operationId": "list-dataset-runs",
         "parameters": [
@@ -23033,6 +22965,343 @@
         ]
       }
     },
+    "/tenants/{tenantId}/projects/{projectId}/evals/evaluation-job-configs/{configId}/evaluators": {
+      "get": {
+        "operationId": "list-evaluation-job-config-evaluators",
+        "parameters": [
+          {
+            "description": "Tenant identifier",
+            "in": "path",
+            "name": "tenantId",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/TenantIdPathParam"
+            }
+          },
+          {
+            "description": "Project identifier",
+            "in": "path",
+            "name": "projectId",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/ProjectIdPathParam"
+            }
+          },
+          {
+            "in": "path",
+            "name": "configId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "nullable": true
+                  },
+                  "type": "array"
+                }
+              }
+            },
+            "description": "List of evaluator relations"
+          },
+          "400": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BadRequest"
+                }
+              }
+            },
+            "description": "Bad Request"
+          },
+          "401": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Unauthorized"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "403": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Forbidden"
+                }
+              }
+            },
+            "description": "Forbidden"
+          },
+          "404": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NotFound"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "422": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UnprocessableEntity"
+                }
+              }
+            },
+            "description": "Unprocessable Entity"
+          },
+          "500": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InternalServerError"
+                }
+              }
+            },
+            "description": "Internal Server Error"
+          }
+        },
+        "summary": "List Evaluators for Evaluation Job Config",
+        "tags": [
+          "Evaluations"
+        ]
+      }
+    },
+    "/tenants/{tenantId}/projects/{projectId}/evals/evaluation-job-configs/{configId}/evaluators/{evaluatorId}": {
+      "delete": {
+        "operationId": "remove-evaluator-from-job-config",
+        "parameters": [
+          {
+            "description": "Tenant identifier",
+            "in": "path",
+            "name": "tenantId",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/TenantIdPathParam"
+            }
+          },
+          {
+            "description": "Project identifier",
+            "in": "path",
+            "name": "projectId",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/ProjectIdPathParam"
+            }
+          },
+          {
+            "in": "path",
+            "name": "configId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "evaluatorId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Evaluator relation deleted"
+          },
+          "400": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BadRequest"
+                }
+              }
+            },
+            "description": "Bad Request"
+          },
+          "401": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Unauthorized"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "403": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Forbidden"
+                }
+              }
+            },
+            "description": "Forbidden"
+          },
+          "404": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NotFound"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "422": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UnprocessableEntity"
+                }
+              }
+            },
+            "description": "Unprocessable Entity"
+          },
+          "500": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InternalServerError"
+                }
+              }
+            },
+            "description": "Internal Server Error"
+          }
+        },
+        "summary": "Remove Evaluator from Evaluation Job Config",
+        "tags": [
+          "Evaluations"
+        ]
+      },
+      "post": {
+        "operationId": "add-evaluator-to-job-config",
+        "parameters": [
+          {
+            "description": "Tenant identifier",
+            "in": "path",
+            "name": "tenantId",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/TenantIdPathParam"
+            }
+          },
+          {
+            "description": "Project identifier",
+            "in": "path",
+            "name": "projectId",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/ProjectIdPathParam"
+            }
+          },
+          {
+            "in": "path",
+            "name": "configId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "evaluatorId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "nullable": true
+                }
+              }
+            },
+            "description": "Evaluator relation created"
+          },
+          "400": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BadRequest"
+                }
+              }
+            },
+            "description": "Bad Request"
+          },
+          "401": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Unauthorized"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "403": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Forbidden"
+                }
+              }
+            },
+            "description": "Forbidden"
+          },
+          "404": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NotFound"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "422": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UnprocessableEntity"
+                }
+              }
+            },
+            "description": "Unprocessable Entity"
+          },
+          "500": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InternalServerError"
+                }
+              }
+            },
+            "description": "Internal Server Error"
+          }
+        },
+        "summary": "Add Evaluator to Evaluation Job Config",
+        "tags": [
+          "Evaluations"
+        ]
+      }
+    },
     "/tenants/{tenantId}/projects/{projectId}/evals/evaluation-job-configs/{configId}/results": {
       "get": {
         "operationId": "get-evaluation-job-config-results",
@@ -23152,6 +23421,465 @@
           }
         },
         "summary": "Get Evaluation Results by Job Config ID",
+        "tags": [
+          "Evaluations"
+        ]
+      }
+    },
+    "/tenants/{tenantId}/projects/{projectId}/evals/evaluation-results": {
+      "post": {
+        "operationId": "create-evaluation-result",
+        "parameters": [
+          {
+            "description": "Tenant identifier",
+            "in": "path",
+            "name": "tenantId",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/TenantIdPathParam"
+            }
+          },
+          {
+            "description": "Project identifier",
+            "in": "path",
+            "name": "projectId",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/ProjectIdPathParam"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/EvaluationResultCreate"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "data": {
+                      "$ref": "#/components/schemas/EvaluationResult"
+                    }
+                  },
+                  "required": [
+                    "data"
+                  ],
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Evaluation result created"
+          },
+          "400": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BadRequest"
+                }
+              }
+            },
+            "description": "Bad Request"
+          },
+          "401": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Unauthorized"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "403": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Forbidden"
+                }
+              }
+            },
+            "description": "Forbidden"
+          },
+          "404": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NotFound"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "422": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UnprocessableEntity"
+                }
+              }
+            },
+            "description": "Unprocessable Entity"
+          },
+          "500": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InternalServerError"
+                }
+              }
+            },
+            "description": "Internal Server Error"
+          }
+        },
+        "summary": "Create Evaluation Result",
+        "tags": [
+          "Evaluations"
+        ]
+      }
+    },
+    "/tenants/{tenantId}/projects/{projectId}/evals/evaluation-results/{resultId}": {
+      "delete": {
+        "operationId": "delete-evaluation-result",
+        "parameters": [
+          {
+            "description": "Tenant identifier",
+            "in": "path",
+            "name": "tenantId",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/TenantIdPathParam"
+            }
+          },
+          {
+            "description": "Project identifier",
+            "in": "path",
+            "name": "projectId",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/ProjectIdPathParam"
+            }
+          },
+          {
+            "in": "path",
+            "name": "resultId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Evaluation result deleted"
+          },
+          "400": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BadRequest"
+                }
+              }
+            },
+            "description": "Bad Request"
+          },
+          "401": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Unauthorized"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "403": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Forbidden"
+                }
+              }
+            },
+            "description": "Forbidden"
+          },
+          "404": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NotFound"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "422": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UnprocessableEntity"
+                }
+              }
+            },
+            "description": "Unprocessable Entity"
+          },
+          "500": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InternalServerError"
+                }
+              }
+            },
+            "description": "Internal Server Error"
+          }
+        },
+        "summary": "Delete Evaluation Result",
+        "tags": [
+          "Evaluations"
+        ]
+      },
+      "get": {
+        "operationId": "get-evaluation-result",
+        "parameters": [
+          {
+            "description": "Tenant identifier",
+            "in": "path",
+            "name": "tenantId",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/TenantIdPathParam"
+            }
+          },
+          {
+            "description": "Project identifier",
+            "in": "path",
+            "name": "projectId",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/ProjectIdPathParam"
+            }
+          },
+          {
+            "in": "path",
+            "name": "resultId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "data": {
+                      "$ref": "#/components/schemas/EvaluationResult"
+                    }
+                  },
+                  "required": [
+                    "data"
+                  ],
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Evaluation result details"
+          },
+          "400": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BadRequest"
+                }
+              }
+            },
+            "description": "Bad Request"
+          },
+          "401": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Unauthorized"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "403": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Forbidden"
+                }
+              }
+            },
+            "description": "Forbidden"
+          },
+          "404": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NotFound"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "422": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UnprocessableEntity"
+                }
+              }
+            },
+            "description": "Unprocessable Entity"
+          },
+          "500": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InternalServerError"
+                }
+              }
+            },
+            "description": "Internal Server Error"
+          }
+        },
+        "summary": "Get Evaluation Result by ID",
+        "tags": [
+          "Evaluations"
+        ]
+      },
+      "patch": {
+        "operationId": "update-evaluation-result",
+        "parameters": [
+          {
+            "description": "Tenant identifier",
+            "in": "path",
+            "name": "tenantId",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/TenantIdPathParam"
+            }
+          },
+          {
+            "description": "Project identifier",
+            "in": "path",
+            "name": "projectId",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/ProjectIdPathParam"
+            }
+          },
+          {
+            "in": "path",
+            "name": "resultId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/EvaluationResultUpdate"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "data": {
+                      "$ref": "#/components/schemas/EvaluationResult"
+                    }
+                  },
+                  "required": [
+                    "data"
+                  ],
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Evaluation result updated"
+          },
+          "400": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BadRequest"
+                }
+              }
+            },
+            "description": "Bad Request"
+          },
+          "401": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Unauthorized"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "403": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Forbidden"
+                }
+              }
+            },
+            "description": "Forbidden"
+          },
+          "404": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NotFound"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "422": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UnprocessableEntity"
+                }
+              }
+            },
+            "description": "Unprocessable Entity"
+          },
+          "500": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InternalServerError"
+                }
+              }
+            },
+            "description": "Internal Server Error"
+          }
+        },
+        "summary": "Update Evaluation Result",
         "tags": [
           "Evaluations"
         ]
@@ -24086,343 +24814,6 @@
         ]
       }
     },
-    "/tenants/{tenantId}/projects/{projectId}/evals/evaluation-suite-configs/evaluation-suite-configs/{configId}/evaluators": {
-      "get": {
-        "operationId": "list-evaluation-suite-config-evaluators",
-        "parameters": [
-          {
-            "description": "Tenant identifier",
-            "in": "path",
-            "name": "tenantId",
-            "required": true,
-            "schema": {
-              "$ref": "#/components/schemas/TenantIdPathParam"
-            }
-          },
-          {
-            "description": "Project identifier",
-            "in": "path",
-            "name": "projectId",
-            "required": true,
-            "schema": {
-              "$ref": "#/components/schemas/ProjectIdPathParam"
-            }
-          },
-          {
-            "in": "path",
-            "name": "configId",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "items": {
-                    "nullable": true
-                  },
-                  "type": "array"
-                }
-              }
-            },
-            "description": "List of evaluator relations"
-          },
-          "400": {
-            "content": {
-              "application/problem+json": {
-                "schema": {
-                  "$ref": "#/components/schemas/BadRequest"
-                }
-              }
-            },
-            "description": "Bad Request"
-          },
-          "401": {
-            "content": {
-              "application/problem+json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Unauthorized"
-                }
-              }
-            },
-            "description": "Unauthorized"
-          },
-          "403": {
-            "content": {
-              "application/problem+json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Forbidden"
-                }
-              }
-            },
-            "description": "Forbidden"
-          },
-          "404": {
-            "content": {
-              "application/problem+json": {
-                "schema": {
-                  "$ref": "#/components/schemas/NotFound"
-                }
-              }
-            },
-            "description": "Not Found"
-          },
-          "422": {
-            "content": {
-              "application/problem+json": {
-                "schema": {
-                  "$ref": "#/components/schemas/UnprocessableEntity"
-                }
-              }
-            },
-            "description": "Unprocessable Entity"
-          },
-          "500": {
-            "content": {
-              "application/problem+json": {
-                "schema": {
-                  "$ref": "#/components/schemas/InternalServerError"
-                }
-              }
-            },
-            "description": "Internal Server Error"
-          }
-        },
-        "summary": "List Evaluators for Evaluation Suite Config",
-        "tags": [
-          "Evaluations"
-        ]
-      }
-    },
-    "/tenants/{tenantId}/projects/{projectId}/evals/evaluation-suite-configs/evaluation-suite-configs/{configId}/evaluators/{evaluatorId}": {
-      "delete": {
-        "operationId": "remove-evaluator-from-suite-config",
-        "parameters": [
-          {
-            "description": "Tenant identifier",
-            "in": "path",
-            "name": "tenantId",
-            "required": true,
-            "schema": {
-              "$ref": "#/components/schemas/TenantIdPathParam"
-            }
-          },
-          {
-            "description": "Project identifier",
-            "in": "path",
-            "name": "projectId",
-            "required": true,
-            "schema": {
-              "$ref": "#/components/schemas/ProjectIdPathParam"
-            }
-          },
-          {
-            "in": "path",
-            "name": "configId",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "in": "path",
-            "name": "evaluatorId",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "204": {
-            "description": "Evaluator relation deleted"
-          },
-          "400": {
-            "content": {
-              "application/problem+json": {
-                "schema": {
-                  "$ref": "#/components/schemas/BadRequest"
-                }
-              }
-            },
-            "description": "Bad Request"
-          },
-          "401": {
-            "content": {
-              "application/problem+json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Unauthorized"
-                }
-              }
-            },
-            "description": "Unauthorized"
-          },
-          "403": {
-            "content": {
-              "application/problem+json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Forbidden"
-                }
-              }
-            },
-            "description": "Forbidden"
-          },
-          "404": {
-            "content": {
-              "application/problem+json": {
-                "schema": {
-                  "$ref": "#/components/schemas/NotFound"
-                }
-              }
-            },
-            "description": "Not Found"
-          },
-          "422": {
-            "content": {
-              "application/problem+json": {
-                "schema": {
-                  "$ref": "#/components/schemas/UnprocessableEntity"
-                }
-              }
-            },
-            "description": "Unprocessable Entity"
-          },
-          "500": {
-            "content": {
-              "application/problem+json": {
-                "schema": {
-                  "$ref": "#/components/schemas/InternalServerError"
-                }
-              }
-            },
-            "description": "Internal Server Error"
-          }
-        },
-        "summary": "Remove Evaluator from Evaluation Suite Config",
-        "tags": [
-          "Evaluations"
-        ]
-      },
-      "post": {
-        "operationId": "add-evaluator-to-suite-config",
-        "parameters": [
-          {
-            "description": "Tenant identifier",
-            "in": "path",
-            "name": "tenantId",
-            "required": true,
-            "schema": {
-              "$ref": "#/components/schemas/TenantIdPathParam"
-            }
-          },
-          {
-            "description": "Project identifier",
-            "in": "path",
-            "name": "projectId",
-            "required": true,
-            "schema": {
-              "$ref": "#/components/schemas/ProjectIdPathParam"
-            }
-          },
-          {
-            "in": "path",
-            "name": "configId",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "in": "path",
-            "name": "evaluatorId",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "201": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "nullable": true
-                }
-              }
-            },
-            "description": "Evaluator relation created"
-          },
-          "400": {
-            "content": {
-              "application/problem+json": {
-                "schema": {
-                  "$ref": "#/components/schemas/BadRequest"
-                }
-              }
-            },
-            "description": "Bad Request"
-          },
-          "401": {
-            "content": {
-              "application/problem+json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Unauthorized"
-                }
-              }
-            },
-            "description": "Unauthorized"
-          },
-          "403": {
-            "content": {
-              "application/problem+json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Forbidden"
-                }
-              }
-            },
-            "description": "Forbidden"
-          },
-          "404": {
-            "content": {
-              "application/problem+json": {
-                "schema": {
-                  "$ref": "#/components/schemas/NotFound"
-                }
-              }
-            },
-            "description": "Not Found"
-          },
-          "422": {
-            "content": {
-              "application/problem+json": {
-                "schema": {
-                  "$ref": "#/components/schemas/UnprocessableEntity"
-                }
-              }
-            },
-            "description": "Unprocessable Entity"
-          },
-          "500": {
-            "content": {
-              "application/problem+json": {
-                "schema": {
-                  "$ref": "#/components/schemas/InternalServerError"
-                }
-              }
-            },
-            "description": "Internal Server Error"
-          }
-        },
-        "summary": "Add Evaluator to Evaluation Suite Config",
-        "tags": [
-          "Evaluations"
-        ]
-      }
-    },
     "/tenants/{tenantId}/projects/{projectId}/evals/evaluation-suite-configs/{configId}": {
       "delete": {
         "operationId": "delete-evaluation-suite-config",
@@ -24759,6 +25150,343 @@
           }
         },
         "summary": "Update Evaluation Suite Config",
+        "tags": [
+          "Evaluations"
+        ]
+      }
+    },
+    "/tenants/{tenantId}/projects/{projectId}/evals/evaluation-suite-configs/{configId}/evaluators": {
+      "get": {
+        "operationId": "list-evaluation-suite-config-evaluators",
+        "parameters": [
+          {
+            "description": "Tenant identifier",
+            "in": "path",
+            "name": "tenantId",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/TenantIdPathParam"
+            }
+          },
+          {
+            "description": "Project identifier",
+            "in": "path",
+            "name": "projectId",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/ProjectIdPathParam"
+            }
+          },
+          {
+            "in": "path",
+            "name": "configId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "nullable": true
+                  },
+                  "type": "array"
+                }
+              }
+            },
+            "description": "List of evaluator relations"
+          },
+          "400": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BadRequest"
+                }
+              }
+            },
+            "description": "Bad Request"
+          },
+          "401": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Unauthorized"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "403": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Forbidden"
+                }
+              }
+            },
+            "description": "Forbidden"
+          },
+          "404": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NotFound"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "422": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UnprocessableEntity"
+                }
+              }
+            },
+            "description": "Unprocessable Entity"
+          },
+          "500": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InternalServerError"
+                }
+              }
+            },
+            "description": "Internal Server Error"
+          }
+        },
+        "summary": "List Evaluators for Evaluation Suite Config",
+        "tags": [
+          "Evaluations"
+        ]
+      }
+    },
+    "/tenants/{tenantId}/projects/{projectId}/evals/evaluation-suite-configs/{configId}/evaluators/{evaluatorId}": {
+      "delete": {
+        "operationId": "remove-evaluator-from-suite-config",
+        "parameters": [
+          {
+            "description": "Tenant identifier",
+            "in": "path",
+            "name": "tenantId",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/TenantIdPathParam"
+            }
+          },
+          {
+            "description": "Project identifier",
+            "in": "path",
+            "name": "projectId",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/ProjectIdPathParam"
+            }
+          },
+          {
+            "in": "path",
+            "name": "configId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "evaluatorId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Evaluator relation deleted"
+          },
+          "400": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BadRequest"
+                }
+              }
+            },
+            "description": "Bad Request"
+          },
+          "401": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Unauthorized"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "403": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Forbidden"
+                }
+              }
+            },
+            "description": "Forbidden"
+          },
+          "404": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NotFound"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "422": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UnprocessableEntity"
+                }
+              }
+            },
+            "description": "Unprocessable Entity"
+          },
+          "500": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InternalServerError"
+                }
+              }
+            },
+            "description": "Internal Server Error"
+          }
+        },
+        "summary": "Remove Evaluator from Evaluation Suite Config",
+        "tags": [
+          "Evaluations"
+        ]
+      },
+      "post": {
+        "operationId": "add-evaluator-to-suite-config",
+        "parameters": [
+          {
+            "description": "Tenant identifier",
+            "in": "path",
+            "name": "tenantId",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/TenantIdPathParam"
+            }
+          },
+          {
+            "description": "Project identifier",
+            "in": "path",
+            "name": "projectId",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/ProjectIdPathParam"
+            }
+          },
+          {
+            "in": "path",
+            "name": "configId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "evaluatorId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "nullable": true
+                }
+              }
+            },
+            "description": "Evaluator relation created"
+          },
+          "400": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BadRequest"
+                }
+              }
+            },
+            "description": "Bad Request"
+          },
+          "401": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Unauthorized"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "403": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Forbidden"
+                }
+              }
+            },
+            "description": "Forbidden"
+          },
+          "404": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NotFound"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "422": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UnprocessableEntity"
+                }
+              }
+            },
+            "description": "Unprocessable Entity"
+          },
+          "500": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InternalServerError"
+                }
+              }
+            },
+            "description": "Internal Server Error"
+          }
+        },
+        "summary": "Add Evaluator to Evaluation Suite Config",
         "tags": [
           "Evaluations"
         ]
