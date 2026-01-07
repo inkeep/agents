@@ -540,7 +540,12 @@ export const EvaluationJobConfigApiSelectSchema = createApiSchema(
 ).openapi('EvaluationJobConfig');
 export const EvaluationJobConfigApiInsertSchema = createApiInsertSchema(
   EvaluationJobConfigInsertSchema
-).omit({ id: true }).openapi('EvaluationJobConfigCreate');
+)
+  .omit({ id: true })
+  .extend({
+    evaluatorIds: z.array(z.string()).min(1, 'At least one evaluator is required'),
+  })
+  .openapi('EvaluationJobConfigCreate');
 export const EvaluationJobConfigApiUpdateSchema = createApiUpdateSchema(
   EvaluationJobConfigUpdateSchema
 ).omit({ id: true }).openapi('EvaluationJobConfigUpdate');
