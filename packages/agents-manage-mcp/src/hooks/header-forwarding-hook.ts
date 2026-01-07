@@ -19,8 +19,10 @@ export class HeaderForwardingHook implements BeforeRequestHook {
     const newHeaders = new Headers(request.headers);
 
     for (const [key, value] of Object.entries(this.headersToForward)) {
-      // Don't override if header already exists (e.g., from credentials or AuthHook)
-      if (!newHeaders.has(key)) {
+      // For cookie header: override if empty (SDK sets empty cookie by default)
+      // For other headers: don't override if already exists
+      const existingValue = newHeaders.get(key);
+      if (!existingValue || (key === 'cookie' && existingValue === '')) {
         newHeaders.set(key, value);
       }
     }

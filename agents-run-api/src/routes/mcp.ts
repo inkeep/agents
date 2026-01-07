@@ -664,6 +664,7 @@ app.openapi(
       const { req, res } = toReqRes(c.req.raw);
       const validatedContext = (c as any).get('validatedContext') || {};
       const credentialStores = c.get('credentialStores');
+
       logger.info({ validatedContext }, 'Validated context');
       logger.info({ req }, 'request');
       if (isInitRequest) {

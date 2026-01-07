@@ -7,6 +7,9 @@ import {
   ownerAc,
 } from 'better-auth/plugins/organization/access';
 
+// Re-export organizationClient so consumers use the same package instance as ac/roles
+export { organizationClient } from 'better-auth/client/plugins';
+
 const statement = {
   ...defaultStatements,
   project: ['create', 'read', 'update', 'delete'],

@@ -73,6 +73,11 @@ export const createTaskHandler = (
         };
       }
 
+      // Extract forwarded headers from task metadata (passed from A2A handlers)
+      const forwardedHeaders = task.context?.metadata?.forwardedHeaders as
+        | Record<string, string>
+        | undefined;
+
       const [
         internalRelations,
         externalRelations,
@@ -510,6 +515,7 @@ export const createTaskHandler = (
           contextConfigId: config.contextConfigId || undefined,
           conversationHistoryConfig: config.conversationHistoryConfig,
           sandboxConfig: config.sandboxConfig,
+          forwardedHeaders,
         },
         credentialStoreRegistry
       );

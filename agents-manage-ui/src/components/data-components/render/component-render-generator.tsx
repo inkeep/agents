@@ -18,7 +18,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { useProject } from '@/contexts/project-context';
 import { updateDataComponent } from '@/lib/api/data-components';
-import { DynamicComponentRenderer } from './dynamic-component-renderer';
+import { DynamicComponentRenderer } from '../../dynamic-component-renderer';
 
 interface ComponentPreviewGeneratorProps {
   tenantId: string;

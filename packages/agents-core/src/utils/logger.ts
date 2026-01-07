@@ -36,7 +36,12 @@ export class PinoLogger {
       serializers: {
         obj: (value: any) => ({ ...value }),
       },
-      redact: ['req.headers.authorization', 'req.headers["x-inkeep-admin-authentication"]'],
+      redact: [
+        'req.headers.authorization',
+        'req.headers["x-inkeep-admin-authentication"]',
+        'req.headers.cookie',
+        'req.headers["x-forwarded-cookie"]',
+      ],
       ...config.options,
     };
 

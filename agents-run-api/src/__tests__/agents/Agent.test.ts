@@ -11,46 +11,109 @@ import { Phase1Config } from '../../agents/versions/v1/Phase1Config';
 
 // Mock the AI SDK functions
 vi.mock('ai', () => ({
-  generateText: vi.fn().mockResolvedValue({
-    text: 'Mocked response',
-    toolCalls: [],
-    finishReason: 'stop',
-    steps: [
-      {
-        content: [
+  generateText: vi.fn().mockImplementation(async (options: any) => {
+    // When Output.object is present in options, return "output" with the correct shape
+    if (options?.output && typeof options.output === 'object') {
+      // Try to determine the expected output structure from the schema
+      const schema = options.output.schema;
+      let outputData: any = {};
+
+      // Check if schema expects dataComponents
+      if (schema?._def?.shape?.dataComponents) {
+        outputData = {
+          dataComponents: [
+            {
+              id: 'test-component',
+              name: 'TestComponent',
+              props: { message: 'Hello, World!' },
+            },
+          ],
+        };
+      } else if (schema?._def?.shape?.statusComponents) {
+        outputData = {
+          statusComponents: [
+            {
+              id: 'status-1',
+              type: 'text',
+              props: { text: 'Status update generated' },
+            },
+          ],
+        };
+      }
+
+      return {
+        text: 'Mocked response',
+        toolCalls: [],
+        finishReason: 'stop',
+        output: outputData,
+        steps: [
           {
-            type: 'text',
-            text: 'Mocked response',
+            content: [
+              {
+                type: 'text',
+                text: 'Mocked response',
+              },
+            ],
+            toolCalls: [
+              {
+                toolName: 'thinking_complete',
+                args: {},
+              },
+            ],
+            toolResults: [
+              {
+                toolCallId: 'call_1',
+                result: 'Thinking complete',
+              },
+            ],
           },
         ],
-        toolCalls: [
-          {
-            toolName: 'thinking_complete',
-            args: {},
-          },
-        ],
-        toolResults: [
-          {
-            toolCallId: 'call_1',
-            result: 'Thinking complete',
-          },
-        ],
-      },
-    ],
-  }),
-  generateObject: vi.fn().mockResolvedValue({
-    object: {
-      dataComponents: [
+      };
+    }
+    // Otherwise, return just text as fallback
+    return {
+      text: 'Mocked response',
+      toolCalls: [],
+      finishReason: 'stop',
+      steps: [
         {
-          id: 'test-component-id',
-          name: 'TestComponent',
-          description: 'A test component',
-          props: { message: 'Hello, World!' },
+          content: [
+            {
+              type: 'text',
+              text: 'Mocked response',
+            },
+          ],
+          toolCalls: [
+            {
+              toolName: 'thinking_complete',
+              args: {},
+            },
+          ],
+          toolResults: [
+            {
+              toolCallId: 'call_1',
+              result: 'Thinking complete',
+            },
+          ],
         },
       ],
-    },
-    finishReason: 'stop',
+    };
   }),
+  streamText: vi.fn().mockReturnValue({
+    textStream: (async function* () {
+      yield 'Mocked';
+      yield ' response';
+    })(),
+    fullStream: (async function* () {
+      yield { type: 'text-delta', textDelta: 'Mocked response' };
+    })(),
+  }),
+  Output: {
+    object: vi.fn().mockImplementation((config: any) => ({
+      type: 'object',
+      ...config,
+    })),
+  },
   tool: vi.fn().mockImplementation((config) => config),
 }));
 
@@ -295,8 +358,6 @@ vi.mock('../../data/conversations.js', () => ({
     .mockResolvedValue('Mock conversation history as string'),
 }));
 
-// Import the mocked functions so we can reference them in tests
-import { generateObject, generateText } from 'ai';
 // Import the mocked module - these will automatically be mocked
 import {
   getConversationHistoryWithCompression,
@@ -1218,46 +1279,6 @@ describe('Two-Pass Generation System', () => {
         },
       },
     };
-  });
-
-  test('should only call generateText when no data components configured', async () => {
-    const agent = new Agent({ ...mockAgentConfig, dataComponents: [] });
-    await agent.generate('Test prompt');
-
-    expect(vi.mocked(generateText)).toHaveBeenCalledTimes(1);
-    expect(vi.mocked(generateObject)).not.toHaveBeenCalled();
-  });
-
-  test('should call both generateText and generateObject when data components configured', async () => {
-    const agent = new Agent(mockAgentConfig);
-    await agent.generate('Test prompt');
-
-    expect(vi.mocked(generateText)).toHaveBeenCalledTimes(1);
-    expect(vi.mocked(generateObject)).toHaveBeenCalledTimes(1);
-  });
-
-  test('should skip generateObject when transfer detected', async () => {
-    vi.mocked(generateText).mockResolvedValueOnce({
-      text: 'Transfer needed',
-      finishReason: 'stop',
-      steps: [
-        {
-          content: [
-            {
-              type: 'text',
-              text: 'Transfer needed',
-            },
-          ],
-          toolCalls: [{ toolName: 'transfer_to_agent', args: {} }],
-        },
-      ],
-    } as any);
-
-    const agent = new Agent(mockAgentConfig);
-    await agent.generate('Test prompt');
-
-    expect(vi.mocked(generateText)).toHaveBeenCalledTimes(1);
-    expect(vi.mocked(generateObject)).not.toHaveBeenCalled();
   });
 
   test('should return text response when no data components', async () => {

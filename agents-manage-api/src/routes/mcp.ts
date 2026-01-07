@@ -46,6 +46,7 @@ app.all('/', async (c) => {
 
     // Create SDK with custom hooks
     // Note: hooks is passed as an extended option (not in SDKOptions type but accepted by ClientSDK)
+    // SECURITY: Do not pass debugLogger - it would log all headers including sensitive auth cookies
     return new InkeepAgentsCore({
       serverURL: env.INKEEP_AGENTS_MANAGE_API_URL,
       hooks,

@@ -188,6 +188,11 @@ app.openapi(chatCompletionsRoute, async (c) => {
     const body = c.get('requestBody') || {};
     const conversationId = body.conversationId || getConversationId();
 
+    // Extract target context headers (for copilot/chat-to-edit scenarios)
+    const targetTenantId = c.req.header('x-target-tenant-id');
+    const targetProjectId = c.req.header('x-target-project-id');
+    const targetAgentId = c.req.header('x-target-agent-id');
+
     const activeSpan = trace.getActiveSpan();
     if (activeSpan) {
       activeSpan.setAttributes({
@@ -195,6 +200,9 @@ app.openapi(chatCompletionsRoute, async (c) => {
         'tenant.id': tenantId,
         'agent.id': agentId,
         'project.id': projectId,
+        ...(targetTenantId && { 'target.tenant.id': targetTenantId }),
+        ...(targetProjectId && { 'target.project.id': targetProjectId }),
+        ...(targetAgentId && { 'target.agent.id': targetAgentId }),
       });
     }
 
@@ -356,6 +364,22 @@ app.openapi(chatCompletionsRoute, async (c) => {
           const emitOperationsHeader = c.req.header('x-emit-operations');
           const emitOperations = emitOperationsHeader === 'true';
 
+          // Extract headers to forward to MCP servers (for user session auth)
+          // Transform cookie -> x-forwarded-cookie since downstream services expect it
+          const forwardedHeaders: Record<string, string> = {};
+          const xForwardedCookie = c.req.header('x-forwarded-cookie');
+          const authorization = c.req.header('authorization');
+          const cookie = c.req.header('cookie');
+
+          // Priority: x-forwarded-cookie (explicit) > cookie (browser-sent)
+          // Transform cookie to x-forwarded-cookie for downstream forwarding
+          if (xForwardedCookie) {
+            forwardedHeaders['x-forwarded-cookie'] = xForwardedCookie;
+          } else if (cookie) {
+            forwardedHeaders['x-forwarded-cookie'] = cookie;
+          }
+          if (authorization) forwardedHeaders.authorization = authorization;
+
           const executionHandler = new ExecutionHandler();
           const result = await executionHandler.execute({
             executionContext,
@@ -365,6 +389,7 @@ app.openapi(chatCompletionsRoute, async (c) => {
             requestId,
             sseHelper,
             emitOperations,
+            forwardedHeaders,
           });
 
           logger.info(

@@ -36,9 +36,9 @@ import {
 } from '@inkeep/agents-core';
 import { type Span, SpanStatusCode, trace } from '@opentelemetry/api';
 import {
-  generateObject,
   generateText,
-  streamObject,
+  Output,
+  type StreamTextResult,
   streamText,
   type Tool,
   type ToolSet,
@@ -61,7 +61,6 @@ import dbClient from '../data/db/dbClient';
 import { getLogger } from '../logger';
 import { agentSessionManager, type ToolCallData } from '../services/AgentSession';
 import { getModelAwareCompressionConfig } from '../services/BaseCompressor';
-import { ConversationCompressor } from '../services/ConversationCompressor';
 import { IncrementalStreamParser } from '../services/IncrementalStreamParser';
 import { MidGenerationCompressor } from '../services/MidGenerationCompressor';
 import { pendingToolApprovalManager } from '../services/PendingToolApprovalManager';
@@ -148,6 +147,8 @@ export type AgentConfig = {
   sandboxConfig?: SandboxConfig;
   /** User ID for user-scoped credential lookup (from temp JWT) */
   userId?: string;
+  /** Headers to forward to MCP servers (e.g., x-forwarded-cookie for user session auth) */
+  forwardedHeaders?: Record<string, string>;
 };
 
 export type ExternalAgentRelationConfig = {
@@ -957,7 +958,12 @@ export class Agent {
   }
 
   async getMcpTool(tool: McpTool) {
-    const cacheKey = `${this.config.tenantId}-${this.config.projectId}-${tool.id}-${tool.credentialReferenceId || 'no-cred'}`;
+    // Include forwarded headers hash in cache key to ensure user session-specific connections
+    // This prevents reusing a connection created without cookies for requests that have them
+    const forwardedHeadersHash = this.config.forwardedHeaders
+      ? Object.keys(this.config.forwardedHeaders).sort().join(',')
+      : 'no-fwd';
+    const cacheKey = `${this.config.tenantId}-${this.config.projectId}-${tool.id}-${tool.credentialReferenceId || 'no-cred'}-${forwardedHeadersHash}`;
 
     const credentialReferenceId = tool.credentialReferenceId;
 
@@ -1101,12 +1107,21 @@ export class Agent {
       serverConfig.url = urlObj.toString();
     }
 
+    // Merge forwarded headers (user session auth) into server config
+    if (this.config.forwardedHeaders && Object.keys(this.config.forwardedHeaders).length > 0) {
+      serverConfig.headers = {
+        ...serverConfig.headers,
+        ...this.config.forwardedHeaders,
+      };
+    }
+
     logger.info(
       {
         toolName: tool.name,
         credentialReferenceId,
         transportType: serverConfig.type,
         headers: tool.headers,
+        hasForwardedHeaders: !!this.config.forwardedHeaders,
       },
       'Built MCP server config with credentials'
     );
@@ -3142,11 +3157,13 @@ ${output}${structureHintsFormatted}`;
     contextId: string,
     response: any
   ) {
-    const streamResult = streamObject({
+    const streamResult = streamText({
       ...structuredModelSettings,
       messages: phase2Messages,
-      schema: z.object({
-        dataComponents: z.array(dataComponentsSchema),
+      output: Output.object({
+        schema: z.object({
+          dataComponents: z.array(dataComponentsSchema),
+        }),
       }),
       experimental_telemetry: this.buildTelemetryConfig('structured_generation'),
       abortSignal: AbortSignal.timeout(phase2TimeoutMs),
@@ -3154,7 +3171,7 @@ ${output}${structureHintsFormatted}`;
 
     const parser = this.setupStreamParser(sessionId, contextId);
 
-    for await (const delta of streamResult.partialObjectStream) {
+    for await (const delta of streamResult.partialOutputStream) {
       if (delta) {
         await parser.processObjectDelta(delta);
       }
@@ -3178,8 +3195,8 @@ ${output}${structureHintsFormatted}`;
 
     return {
       ...response,
-      object: structuredResponse.object,
-      textResponse: JSON.stringify(structuredResponse.object, null, 2),
+      object: structuredResponse.output,
+      textResponse: JSON.stringify(structuredResponse.output, null, 2),
     };
   }
 
@@ -3190,12 +3207,14 @@ ${output}${structureHintsFormatted}`;
     phase2TimeoutMs: number,
     response: any
   ) {
-    const structuredResponse = await generateObject(
+    const structuredResponse = await generateText(
       withJsonPostProcessing({
         ...structuredModelSettings,
         messages: phase2Messages,
-        schema: z.object({
-          dataComponents: z.array(dataComponentsSchema),
+        output: Output.object({
+          schema: z.object({
+            dataComponents: z.array(dataComponentsSchema),
+          }),
         }),
         experimental_telemetry: this.buildTelemetryConfig('structured_generation'),
         abortSignal: AbortSignal.timeout(phase2TimeoutMs),
@@ -3204,8 +3223,8 @@ ${output}${structureHintsFormatted}`;
 
     return {
       ...response,
-      object: structuredResponse.object,
-      textResponse: JSON.stringify(structuredResponse.object, null, 2),
+      object: structuredResponse.output,
+      textResponse: JSON.stringify(structuredResponse.output, null, 2),
     };
   }
 
@@ -3267,7 +3286,10 @@ ${output}${structureHintsFormatted}`;
     }
   }
 
-  private async processStreamEvents(streamResult: any, parser: any) {
+  private async processStreamEvents(
+    streamResult: StreamTextResult<ToolSet, any>,
+    parser: IncrementalStreamParser
+  ) {
     for await (const event of streamResult.fullStream) {
       switch (event.type) {
         case 'text-delta':

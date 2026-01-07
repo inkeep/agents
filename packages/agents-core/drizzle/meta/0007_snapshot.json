@@ -477,6 +477,12 @@
           "primaryKey": false,
           "notNull": false
         },
+        "render": {
+          "name": "render",
+          "type": "jsonb",
+          "primaryKey": false,
+          "notNull": false
+        },
         "created_at": {
           "name": "created_at",
           "type": "timestamp",

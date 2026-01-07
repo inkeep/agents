@@ -681,75 +681,8 @@ function buildConversationListPayload(
               key: SPAN_KEYS.STATUS_MESSAGE,
               ...QUERY_FIELD_CONFIGS.STRING_TAG,
             },
-          ]
-        ),
-
-        // AI streaming object
-        aiStreamingObject: listQuery(
-          QUERY_EXPRESSIONS.AI_STREAMING_OBJECT,
-          [
             {
-              key: {
-                key: SPAN_KEYS.AI_OPERATION_ID,
-                ...QUERY_FIELD_CONFIGS.STRING_TAG,
-              },
-              op: OPERATORS.EQUALS,
-              value: AI_OPERATIONS.STREAM_OBJECT,
-            },
-          ],
-          [
-            {
-              key: SPAN_KEYS.SPAN_ID,
-              ...QUERY_FIELD_CONFIGS.STRING_TAG_COLUMN,
-            },
-            {
-              key: SPAN_KEYS.TRACE_ID,
-              ...QUERY_FIELD_CONFIGS.STRING_TAG_COLUMN,
-            },
-            {
-              key: SPAN_KEYS.TIMESTAMP,
-              ...QUERY_FIELD_CONFIGS.INT64_TAG_COLUMN,
-            },
-            {
-              key: SPAN_KEYS.HAS_ERROR,
-              ...QUERY_FIELD_CONFIGS.BOOL_TAG_COLUMN,
-            },
-            {
-              key: SPAN_KEYS.DURATION_NANO,
-              ...QUERY_FIELD_CONFIGS.FLOAT64_TAG_COLUMN,
-            },
-            { key: SPAN_KEYS.SUB_AGENT_ID, ...QUERY_FIELD_CONFIGS.STRING_TAG },
-            { key: SPAN_KEYS.SUB_AGENT_NAME, ...QUERY_FIELD_CONFIGS.STRING_TAG },
-            {
-              key: SPAN_KEYS.AI_RESPONSE_OBJECT,
-              ...QUERY_FIELD_CONFIGS.STRING_TAG,
-            },
-            {
-              key: SPAN_KEYS.AI_MODEL_ID,
-              ...QUERY_FIELD_CONFIGS.STRING_TAG,
-            },
-            {
-              key: SPAN_KEYS.AI_MODEL_PROVIDER,
-              ...QUERY_FIELD_CONFIGS.STRING_TAG,
-            },
-            {
-              key: SPAN_KEYS.AI_OPERATION_ID,
-              ...QUERY_FIELD_CONFIGS.STRING_TAG,
-            },
-            {
-              key: SPAN_KEYS.GEN_AI_USAGE_INPUT_TOKENS,
-              ...QUERY_FIELD_CONFIGS.INT64_TAG,
-            },
-            {
-              key: SPAN_KEYS.GEN_AI_USAGE_OUTPUT_TOKENS,
-              ...QUERY_FIELD_CONFIGS.INT64_TAG,
-            },
-            {
-              key: SPAN_KEYS.AI_TELEMETRY_FUNCTION_ID,
-              ...QUERY_FIELD_CONFIGS.STRING_TAG,
-            },
-            {
-              key: SPAN_KEYS.STATUS_MESSAGE,
+              key: SPAN_KEYS.AI_TELEMETRY_METADATA_PHASE,
               ...QUERY_FIELD_CONFIGS.STRING_TAG,
             },
           ]
@@ -1079,10 +1012,6 @@ function buildConversationListPayload(
               ...QUERY_FIELD_CONFIGS.STRING_TAG,
             },
             {
-              key: 'compression.conversation_id',
-              ...QUERY_FIELD_CONFIGS.STRING_TAG,
-            },
-            {
               key: 'compression.input_tokens',
               ...QUERY_FIELD_CONFIGS.INT64_TAG,
             },
@@ -1111,15 +1040,15 @@ function buildConversationListPayload(
               ...QUERY_FIELD_CONFIGS.INT64_TAG,
             },
             {
-              key: 'compression.fallback_used',
-              ...QUERY_FIELD_CONFIGS.BOOL_TAG,
-            },
-            {
               key: 'compression.success',
               ...QUERY_FIELD_CONFIGS.BOOL_TAG,
             },
             {
               key: 'compression.error',
+              ...QUERY_FIELD_CONFIGS.STRING_TAG,
+            },
+            {
+              key: 'compression.result.summary',
               ...QUERY_FIELD_CONFIGS.STRING_TAG,
             },
           ]
@@ -1171,7 +1100,6 @@ export async function GET(
     const aiAssistantSpans = parseList(resp, QUERY_EXPRESSIONS.AI_ASSISTANT_MESSAGES);
     const aiGenerationSpans = parseList(resp, QUERY_EXPRESSIONS.AI_GENERATIONS);
     const aiStreamingSpans = parseList(resp, QUERY_EXPRESSIONS.AI_STREAMING_TEXT);
-    const aiStreamingObjectSpans = parseList(resp, QUERY_EXPRESSIONS.AI_STREAMING_OBJECT);
     const contextFetcherSpans = parseList(resp, QUERY_EXPRESSIONS.CONTEXT_FETCHERS);
     const durationSpans = parseList(resp, QUERY_EXPRESSIONS.DURATION_SPANS);
     const artifactProcessingSpans = parseList(resp, QUERY_EXPRESSIONS.ARTIFACT_PROCESSING);
@@ -1257,7 +1185,6 @@ export async function GET(
         | 'user_message'
         | 'ai_assistant_message'
         | 'ai_model_streamed_text'
-        | 'ai_model_streamed_object'
         | 'artifact_processing'
         | 'tool_approval_requested'
         | 'tool_approval_approved'
@@ -1309,10 +1236,7 @@ export async function GET(
       aiStreamTextContent?: string;
       aiStreamTextModel?: string;
       aiStreamTextOperationId?: string;
-      // streaming object
-      aiStreamObjectContent?: string;
-      aiStreamObjectModel?: string;
-      aiStreamObjectOperationId?: string;
+      aiTelemetryPhase?: string;
       // context breakdown (for AI streaming spans)
       contextBreakdown?: {
         systemPromptTemplate: number;
@@ -1351,8 +1275,8 @@ export async function GET(
       compressionMessageCount?: number;
       compressionHardLimit?: number;
       compressionSafetyBuffer?: number;
-      compressionFallbackUsed?: boolean;
       compressionError?: string;
+      compressionSummary?: string;
     };
 
     const activities: Activity[] = [];
@@ -1618,34 +1542,7 @@ export async function GET(
         inputTokens: getNumber(span, SPAN_KEYS.GEN_AI_USAGE_INPUT_TOKENS, 0),
         outputTokens: getNumber(span, SPAN_KEYS.GEN_AI_USAGE_OUTPUT_TOKENS, 0),
         aiTelemetryFunctionId: getString(span, SPAN_KEYS.AI_TELEMETRY_FUNCTION_ID, '') || undefined,
-        otelStatusDescription: statusMessage || undefined,
-      });
-    }
-
-    // ai streaming object
-    for (const span of aiStreamingObjectSpans) {
-      const hasError = getField(span, SPAN_KEYS.HAS_ERROR) === true;
-      const durMs = getNumber(span, SPAN_KEYS.DURATION_NANO) / 1e6;
-      const aiStreamingObject = getString(span, SPAN_KEYS.SPAN_ID, '');
-      const statusMessage = hasError ? getString(span, SPAN_KEYS.STATUS_MESSAGE, '') : '';
-      activities.push({
-        id: aiStreamingObject,
-        type: ACTIVITY_TYPES.AI_MODEL_STREAMED_OBJECT,
-        description: 'AI model streaming object response',
-        timestamp: span.timestamp,
-        parentSpanId: spanIdToParentSpanId.get(aiStreamingObject) || undefined,
-        status: hasError ? ACTIVITY_STATUS.ERROR : ACTIVITY_STATUS.SUCCESS,
-        subAgentId: getString(span, SPAN_KEYS.SUB_AGENT_ID, ACTIVITY_NAMES.UNKNOWN_AGENT),
-        subAgentName: getString(span, SPAN_KEYS.SUB_AGENT_NAME, ACTIVITY_NAMES.UNKNOWN_AGENT),
-        result: hasError
-          ? 'AI streaming object failed'
-          : `AI object streamed successfully (${durMs.toFixed(2)}ms)`,
-        aiStreamObjectContent: getString(span, SPAN_KEYS.AI_RESPONSE_OBJECT, ''),
-        aiStreamObjectModel: getString(span, SPAN_KEYS.AI_MODEL_ID, 'Unknown Model'),
-        aiStreamObjectOperationId: getString(span, SPAN_KEYS.AI_OPERATION_ID, '') || undefined,
-        inputTokens: getNumber(span, SPAN_KEYS.GEN_AI_USAGE_INPUT_TOKENS, 0),
-        outputTokens: getNumber(span, SPAN_KEYS.GEN_AI_USAGE_OUTPUT_TOKENS, 0),
-        aiTelemetryFunctionId: getString(span, SPAN_KEYS.AI_TELEMETRY_FUNCTION_ID, '') || undefined,
+        aiTelemetryPhase: getString(span, SPAN_KEYS.AI_TELEMETRY_METADATA_PHASE, '') || undefined,
         otelStatusDescription: statusMessage || undefined,
       });
     }
@@ -1780,19 +1677,15 @@ export async function GET(
       const messageCount = getNumber(span, 'compression.message_count', 0);
       const hardLimit = getNumber(span, 'compression.hard_limit', 0);
       const safetyBuffer = getNumber(span, 'compression.safety_buffer', 0);
-      const fallbackUsed = getField(span, 'compression.fallback_used') === true;
       const compressionError = getString(span, 'compression.error', '');
+      const compressionSummary = getString(span, 'compression.result.summary', '');
 
-      const compressionTypeDisplay =
+      const description =
         compressionType === 'mid_generation'
-          ? 'Context Compacting'
+          ? 'Context compacting'
           : compressionType === 'conversation_level'
-            ? 'Conversation History Compacting'
+            ? 'Conversation history compacting'
             : compressionType || 'Unknown';
-
-      const description = fallbackUsed
-        ? `${compressionTypeDisplay} compacting (fallback used)`
-        : `${compressionTypeDisplay} compacting`;
 
       activities.push({
         id: compressionSpanId,
@@ -1819,8 +1712,8 @@ export async function GET(
         compressionMessageCount: messageCount,
         compressionHardLimit: hardLimit,
         compressionSafetyBuffer: safetyBuffer,
-        compressionFallbackUsed: fallbackUsed,
         compressionError: compressionError || undefined,
+        compressionSummary: compressionSummary || undefined,
       });
     }
 
@@ -1908,8 +1801,7 @@ export async function GET(
         (a) =>
           a.type === ACTIVITY_TYPES.AI_ASSISTANT_MESSAGE ||
           a.type === ACTIVITY_TYPES.AI_GENERATION ||
-          a.type === ACTIVITY_TYPES.AI_MODEL_STREAMED_TEXT ||
-          a.type === ACTIVITY_TYPES.AI_MODEL_STREAMED_OBJECT
+          a.type === ACTIVITY_TYPES.AI_MODEL_STREAMED_TEXT
       );
     const conversationStartTime = firstUser
       ? new Date(firstUser.timestamp).getTime()
@@ -1925,7 +1817,6 @@ export async function GET(
     const TOKEN_ACTIVITY_TYPES: Set<string> = new Set([
       ACTIVITY_TYPES.AI_GENERATION,
       ACTIVITY_TYPES.AI_MODEL_STREAMED_TEXT,
-      ACTIVITY_TYPES.AI_MODEL_STREAMED_OBJECT,
     ]);
     const { totalInputTokens, totalOutputTokens } = activities.reduce(
       (acc, a) => {

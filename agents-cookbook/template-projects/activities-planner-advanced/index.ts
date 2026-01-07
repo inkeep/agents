@@ -14,4 +14,7 @@ export const myProject = project({
     base: { model: 'openai/gpt-4o-mini' },
   },
   tools: () => [weatherMcpTool, exaMcpTool],
+  models: {
+    base: { model: 'openai/gpt-4o-mini' },
+  },
 });

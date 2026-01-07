@@ -54,6 +54,13 @@
     {
       "idx": 7,
       "version": "7",
+      "when": 1767651466654,
+      "tag": "0007_slim_karma",
+      "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "7",
       "when": 1766419366114,
       "tag": "0007_icy_stranger",
       "breakpoints": true
