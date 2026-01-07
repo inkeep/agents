@@ -65,7 +65,7 @@ export class ManagementApiClient extends BaseApiClient {
 
   async getFullAgent(agentId: string): Promise<FullAgentDefinition | null> {
     const tenantId = this.checkTenantId();
-    const path = `/tenants/${tenantId}/projects/${this.projectId}/agent-full/${agentId}`;
+    const path = `/tenants/${tenantId}/projects/${this.projectId}/agent/${agentId}`;
 
     try {
       return await this.makeGetRequest<FullAgentDefinition>(path, 'Failed to fetch full agent');
