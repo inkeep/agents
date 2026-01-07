@@ -3,6 +3,7 @@
 inkeep-qa-project
 # dependencies
 node_modules/
+node-compile-cache/
 package-lock.json
 /.pnp
 .pnp.*
