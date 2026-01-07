@@ -8,7 +8,7 @@
 'use server';
 
 import type { ListResponse, SingleResponse } from '../types/response';
-import { makeEvalApiRequest } from './api-config';
+import { makeManagementApiRequest } from './api-config';
 import { validateProjectId, validateTenantId } from './resource-validation';
 
 export interface Dataset {
@@ -39,8 +39,8 @@ export async function fetchDatasets(
   validateTenantId(tenantId);
   validateProjectId(projectId);
 
-  return makeEvalApiRequest<ListResponse<Dataset>>(
-    `tenants/${tenantId}/projects/${projectId}/evaluations/datasets`
+  return makeManagementApiRequest<ListResponse<Dataset>>(
+    `tenants/${tenantId}/projects/${projectId}/evals/datasets`
   );
 }
 
@@ -55,8 +55,8 @@ export async function fetchDataset(
   validateTenantId(tenantId);
   validateProjectId(projectId);
 
-  const response = await makeEvalApiRequest<SingleResponse<Dataset>>(
-    `tenants/${tenantId}/projects/${projectId}/evaluations/datasets/${datasetId}`
+  const response = await makeManagementApiRequest<SingleResponse<Dataset>>(
+    `tenants/${tenantId}/projects/${projectId}/evals/datasets/${datasetId}`
   );
 
   return response.data;
@@ -73,8 +73,8 @@ export async function createDataset(
   validateTenantId(tenantId);
   validateProjectId(projectId);
 
-  const response = await makeEvalApiRequest<SingleResponse<Dataset>>(
-    `tenants/${tenantId}/projects/${projectId}/evaluations/datasets`,
+  const response = await makeManagementApiRequest<SingleResponse<Dataset>>(
+    `tenants/${tenantId}/projects/${projectId}/evals/datasets`,
     {
       method: 'POST',
       body: JSON.stringify(dataset),
@@ -96,8 +96,8 @@ export async function updateDataset(
   validateTenantId(tenantId);
   validateProjectId(projectId);
 
-  const response = await makeEvalApiRequest<SingleResponse<Dataset>>(
-    `tenants/${tenantId}/projects/${projectId}/evaluations/datasets/${datasetId}`,
+  const response = await makeManagementApiRequest<SingleResponse<Dataset>>(
+    `tenants/${tenantId}/projects/${projectId}/evals/datasets/${datasetId}`,
     {
       method: 'PATCH',
       body: JSON.stringify(dataset),
@@ -118,8 +118,8 @@ export async function deleteDataset(
   validateTenantId(tenantId);
   validateProjectId(projectId);
 
-  await makeEvalApiRequest(
-    `tenants/${tenantId}/projects/${projectId}/evaluations/datasets/${datasetId}`,
+  await makeManagementApiRequest(
+    `tenants/${tenantId}/projects/${projectId}/evals/datasets/${datasetId}`,
     {
       method: 'DELETE',
     }

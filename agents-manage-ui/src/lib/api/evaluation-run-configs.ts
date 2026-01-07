@@ -8,7 +8,7 @@
 'use server';
 
 import type { ListResponse, SingleResponse } from '../types/response';
-import { makeEvalApiRequest } from './api-config';
+import { makeManagementApiRequest } from './api-config';
 import { validateProjectId, validateTenantId } from './resource-validation';
 
 export interface EvaluationRunConfig {
@@ -48,8 +48,8 @@ export async function fetchEvaluationRunConfigs(
   validateTenantId(tenantId);
   validateProjectId(projectId);
 
-  return makeEvalApiRequest<ListResponse<EvaluationRunConfig>>(
-    `tenants/${tenantId}/projects/${projectId}/evaluations/evaluation-run-configs`
+  return makeManagementApiRequest<ListResponse<EvaluationRunConfig>>(
+    `tenants/${tenantId}/projects/${projectId}/evals/evaluation-run-configs`
   );
 }
 
@@ -64,8 +64,8 @@ export async function fetchEvaluationRunConfig(
   validateTenantId(tenantId);
   validateProjectId(projectId);
 
-  const response = await makeEvalApiRequest<SingleResponse<EvaluationRunConfig>>(
-    `tenants/${tenantId}/projects/${projectId}/evaluations/evaluation-run-configs/${configId}`
+  const response = await makeManagementApiRequest<SingleResponse<EvaluationRunConfig>>(
+    `tenants/${tenantId}/projects/${projectId}/evals/evaluation-run-configs/${configId}`
   );
 
   return response.data;
@@ -82,8 +82,8 @@ export async function createEvaluationRunConfig(
   validateTenantId(tenantId);
   validateProjectId(projectId);
 
-  const response = await makeEvalApiRequest<SingleResponse<EvaluationRunConfig>>(
-    `tenants/${tenantId}/projects/${projectId}/evaluations/evaluation-run-configs`,
+  const response = await makeManagementApiRequest<SingleResponse<EvaluationRunConfig>>(
+    `tenants/${tenantId}/projects/${projectId}/evals/evaluation-run-configs`,
     {
       method: 'POST',
       body: JSON.stringify(config),
@@ -105,8 +105,8 @@ export async function updateEvaluationRunConfig(
   validateTenantId(tenantId);
   validateProjectId(projectId);
 
-  const response = await makeEvalApiRequest<SingleResponse<EvaluationRunConfig>>(
-    `tenants/${tenantId}/projects/${projectId}/evaluations/evaluation-run-configs/${configId}`,
+  const response = await makeManagementApiRequest<SingleResponse<EvaluationRunConfig>>(
+    `tenants/${tenantId}/projects/${projectId}/evals/evaluation-run-configs/${configId}`,
     {
       method: 'PATCH',
       body: JSON.stringify(config),
@@ -127,8 +127,8 @@ export async function deleteEvaluationRunConfig(
   validateTenantId(tenantId);
   validateProjectId(projectId);
 
-  await makeEvalApiRequest(
-    `tenants/${tenantId}/projects/${projectId}/evaluations/evaluation-run-configs/${configId}`,
+  await makeManagementApiRequest(
+    `tenants/${tenantId}/projects/${projectId}/evals/evaluation-run-configs/${configId}`,
     {
       method: 'DELETE',
     }

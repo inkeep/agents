@@ -5,7 +5,7 @@
 'use server';
 
 import type { ListResponse, SingleResponse } from '../types/response';
-import { makeEvalApiRequest } from './api-config';
+import { makeManagementApiRequest } from './api-config';
 import { validateProjectId, validateTenantId } from './resource-validation';
 
 export interface EvaluationSuiteConfig {
@@ -35,8 +35,8 @@ export async function fetchEvaluationSuiteConfigs(
   validateTenantId(tenantId);
   validateProjectId(projectId);
 
-  return makeEvalApiRequest<ListResponse<EvaluationSuiteConfig>>(
-    `tenants/${tenantId}/projects/${projectId}/evaluations/evaluation-suite-configs`
+  return makeManagementApiRequest<ListResponse<EvaluationSuiteConfig>>(
+    `tenants/${tenantId}/projects/${projectId}/evals/evaluation-suite-configs`
   );
 }
 
@@ -51,8 +51,8 @@ export async function fetchEvaluationSuiteConfig(
   validateTenantId(tenantId);
   validateProjectId(projectId);
 
-  return makeEvalApiRequest<SingleResponse<EvaluationSuiteConfig>>(
-    `tenants/${tenantId}/projects/${projectId}/evaluations/evaluation-suite-configs/${configId}`
+  return makeManagementApiRequest<SingleResponse<EvaluationSuiteConfig>>(
+    `tenants/${tenantId}/projects/${projectId}/evals/evaluation-suite-configs/${configId}`
   );
 }
 
@@ -67,8 +67,8 @@ export async function fetchEvaluationSuiteConfigEvaluators(
   validateTenantId(tenantId);
   validateProjectId(projectId);
 
-  return makeEvalApiRequest<ListResponse<{ evaluatorId: string }>>(
-    `tenants/${tenantId}/projects/${projectId}/evaluations/evaluation-suite-configs/${configId}/evaluators`
+  return makeManagementApiRequest<ListResponse<{ evaluatorId: string }>>(
+    `tenants/${tenantId}/projects/${projectId}/evals/evaluation-suite-configs/${configId}/evaluators`
   );
 }
 
@@ -83,8 +83,8 @@ export async function createEvaluationSuiteConfig(
   validateTenantId(tenantId);
   validateProjectId(projectId);
 
-  const response = await makeEvalApiRequest<SingleResponse<EvaluationSuiteConfig>>(
-    `tenants/${tenantId}/projects/${projectId}/evaluations/evaluation-suite-configs`,
+  const response = await makeManagementApiRequest<SingleResponse<EvaluationSuiteConfig>>(
+    `tenants/${tenantId}/projects/${projectId}/evals/evaluation-suite-configs`,
     {
       method: 'POST',
       body: JSON.stringify(config),

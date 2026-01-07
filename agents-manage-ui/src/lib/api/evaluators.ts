@@ -8,7 +8,7 @@
 'use server';
 
 import type { ListResponse, SingleResponse } from '../types/response';
-import { makeEvalApiRequest } from './api-config';
+import { makeManagementApiRequest } from './api-config';
 import { validateProjectId, validateTenantId } from './resource-validation';
 
 export interface ModelSettings {
@@ -70,8 +70,8 @@ export async function fetchEvaluators(
   validateTenantId(tenantId);
   validateProjectId(projectId);
 
-  return makeEvalApiRequest<ListResponse<Evaluator>>(
-    `tenants/${tenantId}/projects/${projectId}/evaluations/evaluators`
+  return makeManagementApiRequest<ListResponse<Evaluator>>(
+    `tenants/${tenantId}/projects/${projectId}/evals/evaluators`
   );
 }
 
@@ -86,8 +86,8 @@ export async function fetchEvaluator(
   validateTenantId(tenantId);
   validateProjectId(projectId);
 
-  const response = await makeEvalApiRequest<SingleResponse<Evaluator>>(
-    `tenants/${tenantId}/projects/${projectId}/evaluations/evaluators/${evaluatorId}`
+  const response = await makeManagementApiRequest<SingleResponse<Evaluator>>(
+    `tenants/${tenantId}/projects/${projectId}/evals/evaluators/${evaluatorId}`
   );
 
   return response.data;
@@ -104,8 +104,8 @@ export async function createEvaluator(
   validateTenantId(tenantId);
   validateProjectId(projectId);
 
-  const response = await makeEvalApiRequest<SingleResponse<Evaluator>>(
-    `tenants/${tenantId}/projects/${projectId}/evaluations/evaluators`,
+  const response = await makeManagementApiRequest<SingleResponse<Evaluator>>(
+    `tenants/${tenantId}/projects/${projectId}/evals/evaluators`,
     {
       method: 'POST',
       body: JSON.stringify(evaluator),
@@ -127,8 +127,8 @@ export async function updateEvaluator(
   validateTenantId(tenantId);
   validateProjectId(projectId);
 
-  const response = await makeEvalApiRequest<SingleResponse<Evaluator>>(
-    `tenants/${tenantId}/projects/${projectId}/evaluations/evaluators/${evaluatorId}`,
+  const response = await makeManagementApiRequest<SingleResponse<Evaluator>>(
+    `tenants/${tenantId}/projects/${projectId}/evals/evaluators/${evaluatorId}`,
     {
       method: 'PATCH',
       body: JSON.stringify(evaluator),
@@ -149,8 +149,8 @@ export async function deleteEvaluator(
   validateTenantId(tenantId);
   validateProjectId(projectId);
 
-  await makeEvalApiRequest(
-    `tenants/${tenantId}/projects/${projectId}/evaluations/evaluators/${evaluatorId}`,
+  await makeManagementApiRequest(
+    `tenants/${tenantId}/projects/${projectId}/evals/evaluators/${evaluatorId}`,
     {
       method: 'DELETE',
     }

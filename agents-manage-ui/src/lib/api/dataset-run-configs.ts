@@ -1,7 +1,7 @@
 'use server';
 
 import type { ListResponse, SingleResponse } from '../types/response';
-import { makeEvalApiRequest } from './api-config';
+import { makeManagementApiRequest } from './api-config';
 import { validateProjectId, validateTenantId } from './resource-validation';
 
 export interface DatasetRunConfig {
@@ -38,8 +38,8 @@ export async function fetchDatasetRunConfigs(
   validateTenantId(tenantId);
   validateProjectId(projectId);
 
-  return makeEvalApiRequest<ListResponse<DatasetRunConfig>>(
-    `tenants/${tenantId}/projects/${projectId}/evaluations/datasets/${datasetId}/run-configs`
+  return makeManagementApiRequest<ListResponse<DatasetRunConfig>>(
+    `tenants/${tenantId}/projects/${projectId}/evals/dataset-run-configs/${datasetId}`
   );
 }
 
@@ -51,8 +51,8 @@ export async function fetchDatasetRunConfig(
   validateTenantId(tenantId);
   validateProjectId(projectId);
 
-  return makeEvalApiRequest<SingleResponse<DatasetRunConfig>>(
-    `tenants/${tenantId}/projects/${projectId}/evaluations/dataset-run-configs/${runConfigId}`
+  return makeManagementApiRequest<SingleResponse<DatasetRunConfig>>(
+    `tenants/${tenantId}/projects/${projectId}/evals/dataset-run-configs/${runConfigId}`
   );
 }
 
@@ -64,8 +64,8 @@ export async function createDatasetRunConfig(
   validateTenantId(tenantId);
   validateProjectId(projectId);
 
-  return makeEvalApiRequest<SingleResponse<DatasetRunConfig>>(
-    `tenants/${tenantId}/projects/${projectId}/evaluations/dataset-run-configs`,
+  return makeManagementApiRequest<SingleResponse<DatasetRunConfig>>(
+    `tenants/${tenantId}/projects/${projectId}/evals/dataset-run-configs`,
     {
       method: 'POST',
       body: JSON.stringify(data),
@@ -82,8 +82,8 @@ export async function updateDatasetRunConfig(
   validateTenantId(tenantId);
   validateProjectId(projectId);
 
-  return makeEvalApiRequest<SingleResponse<DatasetRunConfig>>(
-    `tenants/${tenantId}/projects/${projectId}/evaluations/dataset-run-configs/${runConfigId}`,
+  return makeManagementApiRequest<SingleResponse<DatasetRunConfig>>(
+    `tenants/${tenantId}/projects/${projectId}/evals/dataset-run-configs/${runConfigId}`,
     {
       method: 'PATCH',
       body: JSON.stringify(data),
@@ -99,8 +99,8 @@ export async function deleteDatasetRunConfig(
   validateTenantId(tenantId);
   validateProjectId(projectId);
 
-  await makeEvalApiRequest(
-    `tenants/${tenantId}/projects/${projectId}/evaluations/dataset-run-configs/${runConfigId}`,
+  await makeManagementApiRequest(
+    `tenants/${tenantId}/projects/${projectId}/evals/dataset-run-configs/${runConfigId}`,
     {
       method: 'DELETE',
     }

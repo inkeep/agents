@@ -8,7 +8,7 @@
 'use server';
 
 import type { ListResponse, SingleResponse } from '../types/response';
-import { makeEvalApiRequest } from './api-config';
+import { makeManagementApiRequest } from './api-config';
 import { validateProjectId, validateTenantId } from './resource-validation';
 
 export interface EvaluationJobFilterCriteria {
@@ -50,8 +50,8 @@ export async function fetchEvaluationJobConfigs(
   validateTenantId(tenantId);
   validateProjectId(projectId);
 
-  return makeEvalApiRequest<ListResponse<EvaluationJobConfig>>(
-    `tenants/${tenantId}/projects/${projectId}/evaluations/evaluation-job-configs`
+  return makeManagementApiRequest<ListResponse<EvaluationJobConfig>>(
+    `tenants/${tenantId}/projects/${projectId}/evals/evaluation-job-configs`
   );
 }
 
@@ -66,8 +66,8 @@ export async function fetchEvaluationJobConfig(
   validateTenantId(tenantId);
   validateProjectId(projectId);
 
-  const response = await makeEvalApiRequest<SingleResponse<EvaluationJobConfig>>(
-    `tenants/${tenantId}/projects/${projectId}/evaluations/evaluation-job-configs/${configId}`
+  const response = await makeManagementApiRequest<SingleResponse<EvaluationJobConfig>>(
+    `tenants/${tenantId}/projects/${projectId}/evals/evaluation-job-configs/${configId}`
   );
 
   return response.data;
@@ -84,8 +84,8 @@ export async function createEvaluationJobConfig(
   validateTenantId(tenantId);
   validateProjectId(projectId);
 
-  const response = await makeEvalApiRequest<SingleResponse<EvaluationJobConfig>>(
-    `tenants/${tenantId}/projects/${projectId}/evaluations/evaluation-job-configs`,
+  const response = await makeManagementApiRequest<SingleResponse<EvaluationJobConfig>>(
+    `tenants/${tenantId}/projects/${projectId}/evals/evaluation-job-configs`,
     {
       method: 'POST',
       body: JSON.stringify(config),
@@ -106,8 +106,8 @@ export async function deleteEvaluationJobConfig(
   validateTenantId(tenantId);
   validateProjectId(projectId);
 
-  await makeEvalApiRequest(
-    `tenants/${tenantId}/projects/${projectId}/evaluations/evaluation-job-configs/${configId}`,
+  await makeManagementApiRequest(
+    `tenants/${tenantId}/projects/${projectId}/evals/evaluation-job-configs/${configId}`,
     {
       method: 'DELETE',
     }

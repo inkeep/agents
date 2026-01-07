@@ -8,7 +8,7 @@
 'use server';
 
 import type { ListResponse } from '../types/response';
-import { makeEvalApiRequest } from './api-config';
+import { makeManagementApiRequest } from './api-config';
 import { validateProjectId, validateTenantId } from './resource-validation';
 
 export interface EvaluationResult {
@@ -39,8 +39,8 @@ export async function fetchEvaluationResultsByJobConfig(
   validateTenantId(tenantId);
   validateProjectId(projectId);
 
-  return makeEvalApiRequest<ListResponse<EvaluationResult>>(
-    `tenants/${tenantId}/projects/${projectId}/evaluations/evaluation-job-configs/${configId}/results`
+  return makeManagementApiRequest<ListResponse<EvaluationResult>>(
+    `tenants/${tenantId}/projects/${projectId}/evals/evaluation-job-configs/${configId}/results`
   );
 }
 
@@ -55,7 +55,7 @@ export async function fetchEvaluationResultsByRunConfig(
   validateTenantId(tenantId);
   validateProjectId(projectId);
 
-  return makeEvalApiRequest<ListResponse<EvaluationResult>>(
-    `tenants/${tenantId}/projects/${projectId}/evaluations/evaluation-run-configs/${configId}/results`
+  return makeManagementApiRequest<ListResponse<EvaluationResult>>(
+    `tenants/${tenantId}/projects/${projectId}/evals/evaluation-run-configs/${configId}/results`
   );
 }

@@ -1,7 +1,7 @@
 'use server';
 
 import type { ListResponse, SingleResponse } from '../types/response';
-import { makeEvalApiRequest } from './api-config';
+import { makeManagementApiRequest } from './api-config';
 import { validateProjectId, validateTenantId } from './resource-validation';
 
 export interface DatasetRun {
@@ -60,8 +60,8 @@ export async function fetchDatasetRuns(
   validateTenantId(tenantId);
   validateProjectId(projectId);
 
-  return makeEvalApiRequest<ListResponse<DatasetRun>>(
-    `tenants/${tenantId}/projects/${projectId}/evaluations/datasets/${datasetId}/runs`
+  return makeManagementApiRequest<ListResponse<DatasetRun>>(
+    `tenants/${tenantId}/projects/${projectId}/evals/dataset-runs/${datasetId}`
   );
 }
 
@@ -73,7 +73,7 @@ export async function fetchDatasetRun(
   validateTenantId(tenantId);
   validateProjectId(projectId);
 
-  return makeEvalApiRequest<SingleResponse<DatasetRunWithConversations>>(
-    `tenants/${tenantId}/projects/${projectId}/evaluations/dataset-runs/${runId}`
+  return makeManagementApiRequest<SingleResponse<DatasetRunWithConversations>>(
+    `tenants/${tenantId}/projects/${projectId}/evals/dataset-runs/${runId}`
   );
 }
