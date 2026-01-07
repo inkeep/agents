@@ -12,7 +12,8 @@ import pinoPretty from 'pino-pretty';
  *
  * Checks in order:
  * 1. NO_COLOR env var (standard: https://no-color.org/) - if set to any non-empty value, disables colors
- * 2. Falls back to process.stdout.isTTY (colors enabled for interactive terminals)
+ * 2. VERCEL env var - disables colors when running on Vercel
+ * 3. Falls back to process.stdout.isTTY (colors enabled for interactive terminals)
  *
  * This helps ensure clean logs in environments like Vercel where ANSI codes
  * appear as raw escape sequences (e.g., [32m, [39m).
@@ -20,6 +21,11 @@ import pinoPretty from 'pino-pretty';
 function shouldColorize(): boolean {
   // NO_COLOR standard: any non-empty value disables colors
   if (process.env.NO_COLOR && process.env.NO_COLOR !== '') {
+    return false;
+  }
+
+  // Vercel sets VERCEL=1 in their environment
+  if (process.env.VERCEL) {
     return false;
   }
 
