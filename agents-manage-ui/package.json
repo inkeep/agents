@@ -1,6 +1,6 @@
 {
   "name": "@inkeep/agents-manage-ui",
-  "version": "0.40.0",
+  "version": "0.41.0",
   "license": "SEE LICENSE IN LICENSE.md",
   "main": "index.js",
   "types": "index.d.ts",
@@ -36,6 +36,7 @@
     "dev": "next --port 3000",
     "build:sync": "cp -r public .next/standalone/agents-manage-ui && mkdir -p .next/standalone/agents-manage-ui/.next/ && cp -r .next/static .next/standalone/agents-manage-ui/.next/static",
     "build": "next build && pnpm build:sync",
+    "prepublishOnly": "node --experimental-strip-types scripts/append-hash-for-server-only-packages.mts",
     "start": "node .next/standalone/agents-manage-ui/server.js",
     "lint": "biome lint --error-on-warnings",
     "lint:fix": "biome check --write",
