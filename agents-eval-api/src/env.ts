@@ -20,6 +20,7 @@ const envSchema = z.object({
   LOG_LEVEL: z.enum(['trace', 'debug', 'info', 'warn', 'error']).optional().default('debug'),
   INKEEP_AGENTS_EVAL_API_BYPASS_SECRET: z.string().optional(),
   INKEEP_AGENTS_RUN_API_BYPASS_SECRET: z.string().optional(),
+  INKEEP_AGENTS_JWT_SIGNING_SECRET: z.string().optional(),
 });
 
 const parseEnv = () => {
