@@ -1,0 +1,354 @@
+name: Weekly Coverage Report
+
+on:
+  schedule:
+    # Run every Monday at 6 AM UTC
+    - cron: '0 6 * * 1'
+  workflow_dispatch:
+    inputs:
+      create_issue:
+        description: 'Create/update coverage tracking issue'
+        required: false
+        default: 'true'
+        type: boolean
+
+concurrency:
+  group: coverage-report
+  cancel-in-progress: true
+
+jobs:
+  coverage-report:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      issues: write
+      actions: read
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v5
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22.x
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 10.10.0
+          run_install: false
+
+      - name: Get pnpm store directory
+        shell: bash
+        run: echo "STORE_PATH=$(pnpm store path --silent)" >> $GITHUB_ENV
+
+      - name: Prepare directories
+        run: |
+          mkdir -p agents-docs/.source
+          touch agents-docs/.source/index.ts
+
+      - name: Setup pnpm cache
+        uses: actions/cache@v4
+        with:
+          path: ${{ env.STORE_PATH }}
+          key: ${{ runner.os }}-pnpm-store-${{ hashFiles('**/pnpm-lock.yaml') }}
+          restore-keys: ${{ runner.os }}-pnpm-store-
+
+      - name: Setup Turborepo cache
+        uses: actions/cache@v4
+        with:
+          path: .turbo
+          key: ${{ runner.os }}-turbo-coverage-${{ github.sha }}
+          restore-keys: ${{ runner.os }}-turbo-coverage-
+
+      - name: Install dependencies
+        run: |
+          pnpm install --frozen-lockfile
+          cd agents-manage-ui && pnpm install --frozen-lockfile && cd ..
+        env:
+          HUSKY: 0
+
+      - name: Clean database files
+        run: |
+          echo "Cleaning up any existing database files..."
+          find . -name "*.db" -o -name "*.sqlite" | grep -v node_modules | xargs -r rm -f
+
+      - name: Build packages
+        run: pnpm build
+        env:
+          TURBO_TELEMETRY_DISABLED: 1
+          TURBO_CACHE_DIR: .turbo
+          NODE_OPTIONS: --max-old-space-size=4096
+
+      - name: Run tests with coverage
+        id: coverage
+        run: |
+          pnpm test:coverage || true
+        env:
+          TURBO_TELEMETRY_DISABLED: 1
+          TURBO_CACHE_DIR: .turbo
+          ENVIRONMENT: test
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY || 'sk-test-key-for-ci-testing' }}
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY || 'sk-ant-test-key-for-ci-testing' }}
+          NODE_OPTIONS: --max-old-space-size=4096
+          CI: true
+          HUSKY: 0
+
+      - name: Merge coverage reports
+        id: merge
+        run: |
+          node scripts/merge-coverage.mjs || true
+
+      - name: Generate coverage badges
+        run: |
+          node scripts/generate-badges.mjs || true
+
+      - name: Extract coverage metrics
+        id: metrics
+        run: |
+          if [ -f coverage/coverage-summary.json ]; then
+            LINES=$(jq -r '.total.lines.pct // 0' coverage/coverage-summary.json)
+            STATEMENTS=$(jq -r '.total.statements.pct // 0' coverage/coverage-summary.json)
+            FUNCTIONS=$(jq -r '.total.functions.pct // 0' coverage/coverage-summary.json)
+            BRANCHES=$(jq -r '.total.branches.pct // 0' coverage/coverage-summary.json)
+
+            LINES_TOTAL=$(jq -r '.total.lines.total // 0' coverage/coverage-summary.json)
+            LINES_COVERED=$(jq -r '.total.lines.covered // 0' coverage/coverage-summary.json)
+            STATEMENTS_TOTAL=$(jq -r '.total.statements.total // 0' coverage/coverage-summary.json)
+            STATEMENTS_COVERED=$(jq -r '.total.statements.covered // 0' coverage/coverage-summary.json)
+            FUNCTIONS_TOTAL=$(jq -r '.total.functions.total // 0' coverage/coverage-summary.json)
+            FUNCTIONS_COVERED=$(jq -r '.total.functions.covered // 0' coverage/coverage-summary.json)
+            BRANCHES_TOTAL=$(jq -r '.total.branches.total // 0' coverage/coverage-summary.json)
+            BRANCHES_COVERED=$(jq -r '.total.branches.covered // 0' coverage/coverage-summary.json)
+
+            echo "lines=$LINES" >> $GITHUB_OUTPUT
+            echo "statements=$STATEMENTS" >> $GITHUB_OUTPUT
+            echo "functions=$FUNCTIONS" >> $GITHUB_OUTPUT
+            echo "branches=$BRANCHES" >> $GITHUB_OUTPUT
+            echo "lines_total=$LINES_TOTAL" >> $GITHUB_OUTPUT
+            echo "lines_covered=$LINES_COVERED" >> $GITHUB_OUTPUT
+            echo "statements_total=$STATEMENTS_TOTAL" >> $GITHUB_OUTPUT
+            echo "statements_covered=$STATEMENTS_COVERED" >> $GITHUB_OUTPUT
+            echo "functions_total=$FUNCTIONS_TOTAL" >> $GITHUB_OUTPUT
+            echo "functions_covered=$FUNCTIONS_COVERED" >> $GITHUB_OUTPUT
+            echo "branches_total=$BRANCHES_TOTAL" >> $GITHUB_OUTPUT
+            echo "branches_covered=$BRANCHES_COVERED" >> $GITHUB_OUTPUT
+            echo "has_coverage=true" >> $GITHUB_OUTPUT
+          else
+            echo "has_coverage=false" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Extract package coverage
+        id: packages
+        run: |
+          if [ -f coverage/package-reports.json ]; then
+            # Create package summary for the report
+            jq -r '.[] | "| \(.package) | \(if .summary.lines then ((.summary.lines.covered // 0) / ((.summary.lines.total // 1) | if . == 0 then 1 else . end) * 100 | floor) else 0 end)% | \(if .summary.statements then ((.summary.statements.covered // 0) / ((.summary.statements.total // 1) | if . == 0 then 1 else . end) * 100 | floor) else 0 end)% | \(if .summary.functions then ((.summary.functions.covered // 0) / ((.summary.functions.total // 1) | if . == 0 then 1 else . end) * 100 | floor) else 0 end)% | \(if .summary.branches then ((.summary.branches.covered // 0) / ((.summary.branches.total // 1) | if . == 0 then 1 else . end) * 100 | floor) else 0 end)% |"' coverage/package-reports.json > /tmp/package-table.txt
+            echo "has_packages=true" >> $GITHUB_OUTPUT
+          else
+            echo "has_packages=false" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Create GitHub Summary
+        run: |
+          echo "# Weekly Code Coverage Report" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**Report Date:** $(date -u +'%Y-%m-%d %H:%M UTC')" >> $GITHUB_STEP_SUMMARY
+          echo "**Branch:** ${{ github.ref_name }}" >> $GITHUB_STEP_SUMMARY
+          echo "**Commit:** ${{ github.sha }}" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+
+          if [ "${{ steps.metrics.outputs.has_coverage }}" == "true" ]; then
+            echo "## Overall Coverage" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "| Metric | Coverage | Covered / Total |" >> $GITHUB_STEP_SUMMARY
+            echo "|--------|----------|-----------------|" >> $GITHUB_STEP_SUMMARY
+
+            # Format percentages
+            LINES_PCT=$(printf "%.2f" ${{ steps.metrics.outputs.lines }})
+            STATEMENTS_PCT=$(printf "%.2f" ${{ steps.metrics.outputs.statements }})
+            FUNCTIONS_PCT=$(printf "%.2f" ${{ steps.metrics.outputs.functions }})
+            BRANCHES_PCT=$(printf "%.2f" ${{ steps.metrics.outputs.branches }})
+
+            echo "| Lines | ${LINES_PCT}% | ${{ steps.metrics.outputs.lines_covered }} / ${{ steps.metrics.outputs.lines_total }} |" >> $GITHUB_STEP_SUMMARY
+            echo "| Statements | ${STATEMENTS_PCT}% | ${{ steps.metrics.outputs.statements_covered }} / ${{ steps.metrics.outputs.statements_total }} |" >> $GITHUB_STEP_SUMMARY
+            echo "| Functions | ${FUNCTIONS_PCT}% | ${{ steps.metrics.outputs.functions_covered }} / ${{ steps.metrics.outputs.functions_total }} |" >> $GITHUB_STEP_SUMMARY
+            echo "| Branches | ${BRANCHES_PCT}% | ${{ steps.metrics.outputs.branches_covered }} / ${{ steps.metrics.outputs.branches_total }} |" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+
+            # Coverage thresholds comparison
+            echo "## Coverage Thresholds" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "| Metric | Current | Baseline (30%) | Intermediate (60%) | Target (75%) |" >> $GITHUB_STEP_SUMMARY
+            echo "|--------|---------|----------------|--------------------|--------------| " >> $GITHUB_STEP_SUMMARY
+
+            # Helper function to get status emoji
+            get_status() {
+              local current=$1
+              local threshold=$2
+              if (( $(echo "$current >= $threshold" | bc -l) )); then
+                echo "pass"
+              else
+                echo "fail"
+              fi
+            }
+
+            for metric in lines statements functions branches; do
+              eval "current=\${{ steps.metrics.outputs.$metric }}"
+              baseline_status=$([ $(echo "$current >= 30" | bc -l) -eq 1 ] && echo "pass" || echo "fail")
+              intermediate_status=$([ $(echo "$current >= 60" | bc -l) -eq 1 ] && echo "pass" || echo "fail")
+              target_status=$([ $(echo "$current >= 75" | bc -l) -eq 1 ] && echo "pass" || echo "fail")
+
+              baseline_icon=$([ "$baseline_status" == "pass" ] && echo ":" || echo ":")
+              intermediate_icon=$([ "$intermediate_status" == "pass" ] && echo ":" || echo ":")
+              target_icon=$([ "$target_status" == "pass" ] && echo ":" || echo ":")
+
+              current_formatted=$(printf "%.2f" $current)
+
+              echo "| ${metric^} | ${current_formatted}% | $([ $(echo "$current >= 30" | bc -l) -eq 1 ] && echo 'pass' || echo 'fail') | $([ $(echo "$current >= 60" | bc -l) -eq 1 ] && echo 'pass' || echo 'fail') | $([ $(echo "$current >= 75" | bc -l) -eq 1 ] && echo 'pass' || echo 'fail') |" >> $GITHUB_STEP_SUMMARY
+            done
+            echo "" >> $GITHUB_STEP_SUMMARY
+
+            # Package breakdown
+            if [ "${{ steps.packages.outputs.has_packages }}" == "true" ]; then
+              echo "## Coverage by Package" >> $GITHUB_STEP_SUMMARY
+              echo "" >> $GITHUB_STEP_SUMMARY
+              echo "| Package | Lines | Statements | Functions | Branches |" >> $GITHUB_STEP_SUMMARY
+              echo "|---------|-------|------------|-----------|----------|" >> $GITHUB_STEP_SUMMARY
+              cat /tmp/package-table.txt >> $GITHUB_STEP_SUMMARY
+              echo "" >> $GITHUB_STEP_SUMMARY
+            fi
+
+            # Coverage improvement suggestions
+            echo "## Recommendations" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "Based on coverage analysis, focus on these areas:" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+
+            if [ -f coverage/package-reports.json ]; then
+              echo "### Packages Needing Attention" >> $GITHUB_STEP_SUMMARY
+              echo "" >> $GITHUB_STEP_SUMMARY
+              jq -r '.[] | select(.missing == true or .error == true or ((.summary.lines.covered // 0) / ((.summary.lines.total // 1) | if . == 0 then 1 else . end) * 100) < 30) | "- **\(.package)**: \(if .missing then "No coverage data" elif .error then "Error reading coverage" else "Low coverage - needs improvement" end)"' coverage/package-reports.json >> $GITHUB_STEP_SUMMARY || true
+            fi
+            echo "" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "## Coverage Data Not Available" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "Coverage report could not be generated. This may indicate:" >> $GITHUB_STEP_SUMMARY
+            echo "- Test failures preventing coverage collection" >> $GITHUB_STEP_SUMMARY
+            echo "- Missing test configuration" >> $GITHUB_STEP_SUMMARY
+            echo "- Build errors" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "Please check the workflow logs for details." >> $GITHUB_STEP_SUMMARY
+          fi
+
+          echo "---" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "*This report is generated weekly. [View workflow run](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }})*" >> $GITHUB_STEP_SUMMARY
+
+      - name: Upload coverage artifacts
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: coverage-report-${{ github.run_id }}
+          path: |
+            coverage/
+            **/coverage/
+          retention-days: 30
+
+      - name: Create or update coverage tracking issue
+        if: ${{ github.event.inputs.create_issue != 'false' && steps.metrics.outputs.has_coverage == 'true' }}
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const title = 'Weekly Code Coverage Report';
+            const labels = ['coverage', 'automated'];
+
+            // Get current date
+            const now = new Date();
+            const dateStr = now.toISOString().split('T')[0];
+
+            // Coverage metrics
+            const lines = parseFloat('${{ steps.metrics.outputs.lines }}') || 0;
+            const statements = parseFloat('${{ steps.metrics.outputs.statements }}') || 0;
+            const functions = parseFloat('${{ steps.metrics.outputs.functions }}') || 0;
+            const branches = parseFloat('${{ steps.metrics.outputs.branches }}') || 0;
+
+            // Read package reports if available
+            let packageSection = '';
+            const fs = require('fs');
+            if (fs.existsSync('coverage/package-reports.json')) {
+              try {
+                const reports = JSON.parse(fs.readFileSync('coverage/package-reports.json', 'utf8'));
+                packageSection = '\n### Package Coverage\n\n| Package | Lines | Status |\n|---------|-------|--------|\n';
+                for (const pkg of reports) {
+                  const linesPct = pkg.summary?.lines?.total > 0
+                    ? ((pkg.summary.lines.covered / pkg.summary.lines.total) * 100).toFixed(1)
+                    : '0.0';
+                  const status = pkg.missing ? 'No data' : pkg.error ? 'Error' : (parseFloat(linesPct) >= 30 ? 'OK' : 'Needs work');
+                  packageSection += `| ${pkg.package} | ${linesPct}% | ${status} |\n`;
+                }
+              } catch (e) {
+                console.log('Could not parse package reports:', e);
+              }
+            }
+
+            const body = `## Coverage Report - ${dateStr}
+
+            ### Overall Metrics
+
+            | Metric | Coverage | Target |
+            |--------|----------|--------|
+            | Lines | ${lines.toFixed(2)}% | 75% |
+            | Statements | ${statements.toFixed(2)}% | 75% |
+            | Functions | ${functions.toFixed(2)}% | 75% |
+            | Branches | ${branches.toFixed(2)}% | 75% |
+
+            ${packageSection}
+
+            ### Workflow Run
+
+            - **Run ID:** ${{ github.run_id }}
+            - **Commit:** ${{ github.sha }}
+            - **Branch:** ${{ github.ref_name }}
+            - [View Full Report](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }})
+
+            ---
+            *This issue is automatically updated weekly by the coverage report workflow.*
+            `;
+
+            // Find existing issue
+            const { data: issues } = await github.rest.issues.listForRepo({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              state: 'open',
+              labels: labels.join(','),
+              per_page: 1
+            });
+
+            if (issues.length > 0) {
+              // Update existing issue
+              const issue = issues[0];
+
+              // Add comment with new data
+              await github.rest.issues.createComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: issue.number,
+                body: body
+              });
+
+              console.log(`Updated issue #${issue.number}`);
+            } else {
+              // Create new issue
+              const { data: newIssue } = await github.rest.issues.create({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                title: title,
+                body: body,
+                labels: labels
+              });
+
+              console.log(`Created issue #${newIssue.number}`);
+            }
