@@ -3,7 +3,7 @@ import { getFullAgentDefinition } from '../../data-access/agents';
 import type { DatabaseClient } from '../../db/client';
 import { testDbClient } from '../setup';
 
-const createPolicySelectMock = (result: any[]) => {
+const createSkillSelectMock = (result: any[]) => {
   const orderBy = vi.fn().mockResolvedValue(result);
   const where = vi.fn().mockReturnValue({ orderBy });
   const innerJoin = vi.fn().mockReturnValue({ where });
@@ -142,7 +142,7 @@ describe('AgentFull Data Access - getFullAgentDefinition', () => {
         select: vi.fn().mockImplementation(() => {
           selectCall += 1;
           if (selectCall === 1) {
-            return createPolicySelectMock([]);
+            return createSkillSelectMock([]);
           }
           return createToolSelectMock([]);
         }),
@@ -165,7 +165,7 @@ describe('AgentFull Data Access - getFullAgentDefinition', () => {
         models: null,
         canTransferTo: [],
         canDelegateTo: [],
-        policies: [],
+        skills: [],
         dataComponents: [],
         artifactComponents: [],
         canUse: [],
@@ -271,7 +271,7 @@ describe('AgentFull Data Access - getFullAgentDefinition', () => {
         select: vi.fn().mockImplementation(() => {
           selectCall += 1;
           if (selectCall === 1) {
-            return createPolicySelectMock([]);
+            return createSkillSelectMock([]);
           }
           return createToolSelectMock([]);
         }),
@@ -370,7 +370,7 @@ describe('AgentFull Data Access - getFullAgentDefinition', () => {
         select: vi.fn().mockImplementation(() => {
           selectCall += 1;
           if (selectCall === 1) {
-            return createPolicySelectMock([]);
+            return createSkillSelectMock([]);
           }
           return createToolSelectMock([]);
         }),
@@ -476,7 +476,7 @@ describe('AgentFull Data Access - getFullAgentDefinition', () => {
         select: vi.fn().mockImplementation(() => {
           queryCallCount++;
           if (queryCallCount === 1) {
-            return createPolicySelectMock([]);
+            return createSkillSelectMock([]);
           }
           if (queryCallCount === 2) {
             return createToolSelectMock(mockTools);
@@ -500,7 +500,7 @@ describe('AgentFull Data Access - getFullAgentDefinition', () => {
       ]);
     });
 
-    it('should include ordered policies for subagents', async () => {
+    it('should include ordered skills for subagents', async () => {
       const mockAgent = {
         id: testAgentId,
         name: 'Test Agent',
@@ -526,26 +526,26 @@ describe('AgentFull Data Access - getFullAgentDefinition', () => {
         updatedAt: '2024-01-01T00:00:00.000Z',
       };
 
-      const unsortedPolicies = [
+      const unsortedSkills = [
         {
-          subAgentPolicyId: 'sap-2',
+          subAgentSkillId: 'sas-2',
           subAgentId: 'agent-1',
           index: 2,
-          id: 'policy-2',
-          name: 'Policy 2',
-          description: 'Second policy',
+          id: 'skill-2',
+          name: 'Skill 2',
+          description: 'Second skill',
           content: 'Content 2',
           metadata: { tag: 'b' },
           createdAt: '2024-01-02T00:00:00.000Z',
           updatedAt: '2024-01-02T00:00:00.000Z',
         },
         {
-          subAgentPolicyId: 'sap-1',
+          subAgentSkillId: 'sas-1',
           subAgentId: 'agent-1',
           index: 1,
-          id: 'policy-1',
-          name: 'Policy 1',
-          description: 'First policy',
+          id: 'skill-1',
+          name: 'Skill 1',
+          description: 'First skill',
           content: 'Content 1',
           metadata: null,
           createdAt: '2024-01-01T00:00:00.000Z',
@@ -553,7 +553,7 @@ describe('AgentFull Data Access - getFullAgentDefinition', () => {
         },
       ];
 
-      const sortedPolicies = [...unsortedPolicies].sort((a, b) => a.index - b.index);
+      const sortedSkills = [...unsortedSkills].sort((a, b) => a.index - b.index);
 
       const mockQuery = {
         agents: {
@@ -596,7 +596,7 @@ describe('AgentFull Data Access - getFullAgentDefinition', () => {
         select: vi.fn().mockImplementation(() => {
           selectCallCount += 1;
           if (selectCallCount === 1) {
-            return createPolicySelectMock(sortedPolicies);
+            return createSkillSelectMock(sortedSkills);
           }
           return createToolSelectMock([]);
         }),
@@ -606,7 +606,7 @@ describe('AgentFull Data Access - getFullAgentDefinition', () => {
         scopes: { tenantId: testTenantId, projectId: testProjectId, agentId: testAgentId },
       });
 
-      expect(result?.subAgents['agent-1']?.policies).toEqual(sortedPolicies);
+      expect(result?.subAgents['agent-1']?.skills).toEqual(sortedSkills);
     });
 
     it('should include model settings when present', async () => {
@@ -683,7 +683,7 @@ describe('AgentFull Data Access - getFullAgentDefinition', () => {
         select: vi.fn().mockImplementation(() => {
           selectCall += 1;
           if (selectCall === 1) {
-            return createPolicySelectMock([]);
+            return createSkillSelectMock([]);
           }
           return createToolSelectMock([]);
         }),
@@ -788,7 +788,7 @@ describe('AgentFull Data Access - getFullAgentDefinition', () => {
         select: vi.fn().mockImplementation(() => {
           selectCall += 1;
           if (selectCall === 1) {
-            return createPolicySelectMock([]);
+            return createSkillSelectMock([]);
           }
           return createToolSelectMock([]);
         }),
