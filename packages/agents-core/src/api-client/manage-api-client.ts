@@ -99,7 +99,7 @@ export class ManagementApiClient extends BaseApiClient {
     evaluationJobConfigId: string
   ): Promise<EvaluationJobConfigSelect | null> {
     const tenantId = this.checkTenantId();
-    const path = `/tenants/${tenantId}/projects/${this.projectId}/evaluation-job-configs/${evaluationJobConfigId}`;
+    const path = `/tenants/${tenantId}/projects/${this.projectId}/evals/evaluation-job-configs/${evaluationJobConfigId}`;
 
     try {
       return await this.makeGetRequest<EvaluationJobConfigSelect>(
@@ -118,7 +118,7 @@ export class ManagementApiClient extends BaseApiClient {
     evaluationJobConfigId: string
   ): Promise<EvaluationJobConfigEvaluatorRelationSelect[]> {
     const tenantId = this.checkTenantId();
-    const path = `/tenants/${tenantId}/projects/${this.projectId}/evaluation-job-configs/${evaluationJobConfigId}/evaluator-relations`;
+    const path = `/tenants/${tenantId}/projects/${this.projectId}/evals/evaluation-job-configs/${evaluationJobConfigId}/evaluator-relations`;
     return this.makePaginatedGetRequest<EvaluationJobConfigEvaluatorRelationSelect>(
       path,
       'Failed to fetch evaluation job config evaluator relations'
@@ -127,7 +127,7 @@ export class ManagementApiClient extends BaseApiClient {
 
   async getEvaluatorById(evaluatorId: string): Promise<EvaluatorSelect | null> {
     const tenantId = this.checkTenantId();
-    const path = `/tenants/${tenantId}/projects/${this.projectId}/evaluators/${evaluatorId}`;
+    const path = `/tenants/${tenantId}/projects/${this.projectId}/evals/evaluators/${evaluatorId}`;
 
     try {
       return await this.makeGetRequest<EvaluatorSelect>(path, 'Failed to fetch evaluator');
@@ -144,7 +144,7 @@ export class ManagementApiClient extends BaseApiClient {
       return [];
     }
     const tenantId = this.checkTenantId();
-    const path = `/tenants/${tenantId}/projects/${this.projectId}/evaluators/batch`;
+    const path = `/tenants/${tenantId}/projects/${this.projectId}/evals/evaluators/batch`;
     return this.makePostRequest<EvaluatorSelect[]>(
       path,
       { evaluatorIds },
@@ -154,7 +154,7 @@ export class ManagementApiClient extends BaseApiClient {
 
   async listEvaluationRunConfigs(): Promise<EvaluationRunConfigWithSuiteConfigs[]> {
     const tenantId = this.checkTenantId();
-    const path = `/tenants/${tenantId}/projects/${this.projectId}/evaluation-run-configs`;
+    const path = `/tenants/${tenantId}/projects/${this.projectId}/evals/evaluation-run-configs`;
     return this.makePaginatedGetRequest<EvaluationRunConfigWithSuiteConfigs>(
       path,
       'Failed to list evaluation run configs'
@@ -165,7 +165,7 @@ export class ManagementApiClient extends BaseApiClient {
     evaluationRunConfigId: string
   ): Promise<EvaluationRunConfigWithSuiteConfigs | null> {
     const tenantId = this.checkTenantId();
-    const path = `/tenants/${tenantId}/projects/${this.projectId}/evaluation-run-configs/${evaluationRunConfigId}`;
+    const path = `/tenants/${tenantId}/projects/${this.projectId}/evals/evaluation-run-configs/${evaluationRunConfigId}`;
     return this.makeGetRequest<EvaluationRunConfigWithSuiteConfigs>(
       path,
       'Failed to fetch evaluation run config'
@@ -176,7 +176,7 @@ export class ManagementApiClient extends BaseApiClient {
     evaluationSuiteConfigId: string
   ): Promise<EvaluationSuiteConfigSelect | null> {
     const tenantId = this.checkTenantId();
-    const path = `/tenants/${tenantId}/projects/${this.projectId}/evaluation-suite-configs/${evaluationSuiteConfigId}`;
+    const path = `/tenants/${tenantId}/projects/${this.projectId}/evals/evaluation-suite-configs/${evaluationSuiteConfigId}`;
     return this.makeGetRequest<EvaluationSuiteConfigSelect>(
       path,
       'Failed to fetch evaluation suite config'
@@ -187,7 +187,7 @@ export class ManagementApiClient extends BaseApiClient {
     evaluationSuiteConfigId: string
   ): Promise<EvaluationSuiteConfigEvaluatorRelationSelect[]> {
     const tenantId = this.checkTenantId();
-    const path = `/tenants/${tenantId}/projects/${this.projectId}/evaluation-suite-configs/${evaluationSuiteConfigId}/evaluator-relations`;
+    const path = `/tenants/${tenantId}/projects/${this.projectId}/evals/evaluation-suite-configs/${evaluationSuiteConfigId}/evaluators`;
     return this.makePaginatedGetRequest<EvaluationSuiteConfigEvaluatorRelationSelect>(
       path,
       'Failed to fetch evaluation suite config evaluator relations'
