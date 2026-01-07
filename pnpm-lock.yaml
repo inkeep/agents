@@ -834,6 +834,9 @@ importers:
       '@ai-sdk/anthropic':
         specifier: 3.0.7
         version: 3.0.7(zod@4.3.5)
+      '@ai-sdk/azure':
+        specifier: ^3.0.4
+        version: 3.0.7(zod@4.3.5)
       '@ai-sdk/gateway':
         specifier: 3.0.9
         version: 3.0.9(zod@4.3.5)
@@ -1172,6 +1175,12 @@ packages:
 
   '@ai-sdk/anthropic@3.0.7':
     resolution: {integrity: sha512-WFE56yxgjecd77f8pNj1TkusfCKh34E4h+0J0qVOKDNFXuOsZiAb6dIG9Q3PUrwY1MuiMQLD/9ir0s+dVcVfeA==}
+    engines: {node: '>=18'}
+    peerDependencies:
+      zod: ^4.1.11
+
+  '@ai-sdk/azure@3.0.7':
+    resolution: {integrity: sha512-TuoW5wIe8EXMlcLbBy8f19JLN8qJXR+4sej2SPhkeZONIoWMUgkxDjCnRUlFb5WFNYMqWmlnTzpMEJUgnwqAvw==}
     engines: {node: '>=18'}
     peerDependencies:
       zod: ^4.1.11
@@ -12236,6 +12245,13 @@ snapshots:
 
   '@ai-sdk/anthropic@3.0.7(zod@4.3.5)':
     dependencies:
+      '@ai-sdk/provider': 3.0.2
+      '@ai-sdk/provider-utils': 4.0.4(zod@4.3.5)
+      zod: 4.3.5
+
+  '@ai-sdk/azure@3.0.7(zod@4.3.5)':
+    dependencies:
+      '@ai-sdk/openai': 3.0.7(zod@4.3.5)
       '@ai-sdk/provider': 3.0.2
       '@ai-sdk/provider-utils': 4.0.4(zod@4.3.5)
       zod: 4.3.5
