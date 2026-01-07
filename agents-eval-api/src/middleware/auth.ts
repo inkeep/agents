@@ -23,6 +23,11 @@ export const apiKeyAuth = () =>
 
     // Check for Bearer token
     if (!authHeader || !authHeader.startsWith('Bearer ')) {
+      // In development environment, allow request without authentication
+      if (env.ENVIRONMENT === 'development') {
+        await next();
+        return;
+      }
       throw new HTTPException(401, {
         message: 'Missing or invalid authorization header. Expected: Bearer <api_key>',
       });
@@ -47,11 +52,6 @@ export const apiKeyAuth = () =>
         await next();
         return;
       }
-      // Bypass secret is set but token doesn't match - reject
-      console.log('[AUTH DEBUG] Rejecting: Token does not match bypass secret');
-      throw new HTTPException(401, {
-        message: 'Invalid Token',
-      });
     }
 
     // 4. Validate as an internal service token if not already authenticated
@@ -76,7 +76,7 @@ export const apiKeyAuth = () =>
       return;
     }
 
-    // If development environment, allow request
+    // If development environment, allow request with invalid token
     if (env.ENVIRONMENT === 'development') {
       await next();
       return;

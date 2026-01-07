@@ -62,7 +62,7 @@ export class EvalApiClient extends BaseApiClient {
    */
   async triggerDatasetRun(request: TriggerDatasetRunRequest): Promise<TriggerDatasetRunResponse> {
     const tenantId = this.checkTenantId();
-    const path = `/tenants/${tenantId}/projects/${this.projectId}/workflows/dataset-run`;
+    const path = `/tenants/${tenantId}/projects/${this.projectId}/run-dataset-items`;
 
     logger.info(
       {
@@ -89,7 +89,7 @@ export class EvalApiClient extends BaseApiClient {
     request: TriggerEvaluationJobRequest
   ): Promise<TriggerEvaluationJobResponse> {
     const tenantId = this.checkTenantId();
-    const path = `/tenants/${tenantId}/projects/${this.projectId}/workflows/evaluation-job`;
+    const path = `/tenants/${tenantId}/projects/${this.projectId}/evaluate-conversations-by-job`;
 
     logger.info(
       {
@@ -112,7 +112,7 @@ export class EvalApiClient extends BaseApiClient {
     request: TriggerConversationEvaluationRequest
   ): Promise<TriggerConversationEvaluationResponse> {
     const tenantId = this.checkTenantId();
-    const path = `/tenants/${tenantId}/projects/${this.projectId}/workflows/evaluate-conversation`;
+    const path = `/tenants/${tenantId}/projects/${this.projectId}/evaluate-conversation`;
 
     logger.info(
       { tenantId, projectId: this.projectId, conversationId: request.conversationId },
