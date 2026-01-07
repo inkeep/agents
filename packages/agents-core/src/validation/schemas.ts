@@ -490,10 +490,12 @@ export const DatasetRunUpdateSchema = DatasetRunInsertSchema.partial();
 
 export const DatasetRunApiSelectSchema =
   createApiSchema(DatasetRunSelectSchema).openapi('DatasetRun');
-export const DatasetRunApiInsertSchema =
-  createApiInsertSchema(DatasetRunInsertSchema).omit({ id: true }).openapi('DatasetRunCreate');
-export const DatasetRunApiUpdateSchema =
-  createApiUpdateSchema(DatasetRunUpdateSchema).omit({ id: true }).openapi('DatasetRunUpdate');
+export const DatasetRunApiInsertSchema = createApiInsertSchema(DatasetRunInsertSchema)
+  .omit({ id: true })
+  .openapi('DatasetRunCreate');
+export const DatasetRunApiUpdateSchema = createApiUpdateSchema(DatasetRunUpdateSchema)
+  .omit({ id: true })
+  .openapi('DatasetRunUpdate');
 
 export const DatasetRunConversationRelationSelectSchema = createSelectSchema(
   datasetRunConversationRelations
@@ -511,10 +513,14 @@ export const DatasetRunConversationRelationApiSelectSchema = createApiSchema(
 ).openapi('DatasetRunConversationRelation');
 export const DatasetRunConversationRelationApiInsertSchema = createApiInsertSchema(
   DatasetRunConversationRelationInsertSchema
-).omit({ id: true }).openapi('DatasetRunConversationRelationCreate');
+)
+  .omit({ id: true })
+  .openapi('DatasetRunConversationRelationCreate');
 export const DatasetRunConversationRelationApiUpdateSchema = createApiUpdateSchema(
   DatasetRunConversationRelationUpdateSchema
-).omit({ id: true }).openapi('DatasetRunConversationRelationUpdate');
+)
+  .omit({ id: true })
+  .openapi('DatasetRunConversationRelationUpdate');
 
 export const EvaluationResultSelectSchema = createSelectSchema(evaluationResult);
 export const EvaluationResultInsertSchema = createInsertSchema(evaluationResult).extend({
@@ -540,10 +546,12 @@ export const EvaluationRunUpdateSchema = EvaluationRunInsertSchema.partial();
 
 export const EvaluationRunApiSelectSchema =
   createApiSchema(EvaluationRunSelectSchema).openapi('EvaluationRun');
-export const EvaluationRunApiInsertSchema =
-  createApiInsertSchema(EvaluationRunInsertSchema).omit({ id: true }).openapi('EvaluationRunCreate');
-export const EvaluationRunApiUpdateSchema =
-  createApiUpdateSchema(EvaluationRunUpdateSchema).omit({ id: true }).openapi('EvaluationRunUpdate');
+export const EvaluationRunApiInsertSchema = createApiInsertSchema(EvaluationRunInsertSchema)
+  .omit({ id: true })
+  .openapi('EvaluationRunCreate');
+export const EvaluationRunApiUpdateSchema = createApiUpdateSchema(EvaluationRunUpdateSchema)
+  .omit({ id: true })
+  .openapi('EvaluationRunUpdate');
 
 export const EvaluationRunConfigSelectSchema = createSelectSchema(evaluationRunConfig);
 export const EvaluationRunConfigInsertSchema = createInsertSchema(evaluationRunConfig).extend({
@@ -594,7 +602,9 @@ export const EvaluationJobConfigApiInsertSchema = createApiInsertSchema(
   .openapi('EvaluationJobConfigCreate');
 export const EvaluationJobConfigApiUpdateSchema = createApiUpdateSchema(
   EvaluationJobConfigUpdateSchema
-).omit({ id: true }).openapi('EvaluationJobConfigUpdate');
+)
+  .omit({ id: true })
+  .openapi('EvaluationJobConfigUpdate');
 
 export const EvaluationSuiteConfigSelectSchema = createSelectSchema(evaluationSuiteConfig);
 export const EvaluationSuiteConfigInsertSchema = createInsertSchema(evaluationSuiteConfig).extend({
@@ -661,10 +671,14 @@ export const EvaluationJobConfigEvaluatorRelationApiSelectSchema = createApiSche
 ).openapi('EvaluationJobConfigEvaluatorRelation');
 export const EvaluationJobConfigEvaluatorRelationApiInsertSchema = createApiInsertSchema(
   EvaluationJobConfigEvaluatorRelationInsertSchema
-).omit({ id: true }).openapi('EvaluationJobConfigEvaluatorRelationCreate');
+)
+  .omit({ id: true })
+  .openapi('EvaluationJobConfigEvaluatorRelationCreate');
 export const EvaluationJobConfigEvaluatorRelationApiUpdateSchema = createApiUpdateSchema(
   EvaluationJobConfigEvaluatorRelationUpdateSchema
-).omit({ id: true }).openapi('EvaluationJobConfigEvaluatorRelationUpdate');
+)
+  .omit({ id: true })
+  .openapi('EvaluationJobConfigEvaluatorRelationUpdate');
 
 export const EvaluationSuiteConfigEvaluatorRelationSelectSchema = createSelectSchema(
   evaluationSuiteConfigEvaluatorRelations
@@ -682,10 +696,14 @@ export const EvaluationSuiteConfigEvaluatorRelationApiSelectSchema = createApiSc
 ).openapi('EvaluationSuiteConfigEvaluatorRelation');
 export const EvaluationSuiteConfigEvaluatorRelationApiInsertSchema = createApiInsertSchema(
   EvaluationSuiteConfigEvaluatorRelationInsertSchema
-).omit({ id: true }).openapi('EvaluationSuiteConfigEvaluatorRelationCreate');
+)
+  .omit({ id: true })
+  .openapi('EvaluationSuiteConfigEvaluatorRelationCreate');
 export const EvaluationSuiteConfigEvaluatorRelationApiUpdateSchema = createApiUpdateSchema(
   EvaluationSuiteConfigEvaluatorRelationUpdateSchema
-).omit({ id: true }).openapi('EvaluationSuiteConfigEvaluatorRelationUpdate');
+)
+  .omit({ id: true })
+  .openapi('EvaluationSuiteConfigEvaluatorRelationUpdate');
 
 export const EvaluatorSelectSchema = createSelectSchema(evaluator);
 export const EvaluatorInsertSchema = createInsertSchema(evaluator).extend({
@@ -694,10 +712,12 @@ export const EvaluatorInsertSchema = createInsertSchema(evaluator).extend({
 export const EvaluatorUpdateSchema = EvaluatorInsertSchema.partial();
 
 export const EvaluatorApiSelectSchema = createApiSchema(EvaluatorSelectSchema).openapi('Evaluator');
-export const EvaluatorApiInsertSchema =
-  createApiInsertSchema(EvaluatorInsertSchema).omit({ id: true }).openapi('EvaluatorCreate');
-export const EvaluatorApiUpdateSchema =
-  createApiUpdateSchema(EvaluatorUpdateSchema).omit({ id: true }).openapi('EvaluatorUpdate');
+export const EvaluatorApiInsertSchema = createApiInsertSchema(EvaluatorInsertSchema)
+  .omit({ id: true })
+  .openapi('EvaluatorCreate');
+export const EvaluatorApiUpdateSchema = createApiUpdateSchema(EvaluatorUpdateSchema)
+  .omit({ id: true })
+  .openapi('EvaluatorUpdate');
 
 export const DatasetSelectSchema = createSelectSchema(dataset);
 export const DatasetInsertSchema = createInsertSchema(dataset).extend({
@@ -709,8 +729,9 @@ export const DatasetApiSelectSchema = createApiSchema(DatasetSelectSchema).opena
 export const DatasetApiInsertSchema = createApiInsertSchema(DatasetInsertSchema)
   .omit({ id: true })
   .openapi('DatasetCreate');
-export const DatasetApiUpdateSchema =
-  createApiUpdateSchema(DatasetUpdateSchema).omit({ id: true }).openapi('DatasetUpdate');
+export const DatasetApiUpdateSchema = createApiUpdateSchema(DatasetUpdateSchema)
+  .omit({ id: true })
+  .openapi('DatasetUpdate');
 
 export const DatasetItemSelectSchema = createSelectSchema(datasetItem);
 export const DatasetItemInsertSchema = createInsertSchema(datasetItem).extend({
@@ -720,10 +741,12 @@ export const DatasetItemUpdateSchema = DatasetItemInsertSchema.partial();
 
 export const DatasetItemApiSelectSchema =
   createApiSchema(DatasetItemSelectSchema).openapi('DatasetItem');
-export const DatasetItemApiInsertSchema =
-  createApiInsertSchema(DatasetItemInsertSchema).omit({ id: true, datasetId: true }).openapi('DatasetItemCreate');
-export const DatasetItemApiUpdateSchema =
-  createApiUpdateSchema(DatasetItemUpdateSchema).omit({ id: true, datasetId: true }).openapi('DatasetItemUpdate');
+export const DatasetItemApiInsertSchema = createApiInsertSchema(DatasetItemInsertSchema)
+  .omit({ id: true, datasetId: true })
+  .openapi('DatasetItemCreate');
+export const DatasetItemApiUpdateSchema = createApiUpdateSchema(DatasetItemUpdateSchema)
+  .omit({ id: true, datasetId: true })
+  .openapi('DatasetItemUpdate');
 
 export const DatasetRunItemSchema = DatasetItemApiSelectSchema.pick({
   id: true,
@@ -792,12 +815,12 @@ export const DatasetRunConfigUpdateSchema = DatasetRunConfigInsertSchema.partial
 export const DatasetRunConfigApiSelectSchema = createApiSchema(
   DatasetRunConfigSelectSchema
 ).openapi('DatasetRunConfig');
-export const DatasetRunConfigApiInsertSchema = createApiInsertSchema(
-  DatasetRunConfigInsertSchema
-).omit({ id: true }).openapi('DatasetRunConfigCreate');
-export const DatasetRunConfigApiUpdateSchema = createApiUpdateSchema(
-  DatasetRunConfigUpdateSchema
-).omit({ id: true }).openapi('DatasetRunConfigUpdate');
+export const DatasetRunConfigApiInsertSchema = createApiInsertSchema(DatasetRunConfigInsertSchema)
+  .omit({ id: true })
+  .openapi('DatasetRunConfigCreate');
+export const DatasetRunConfigApiUpdateSchema = createApiUpdateSchema(DatasetRunConfigUpdateSchema)
+  .omit({ id: true })
+  .openapi('DatasetRunConfigUpdate');
 
 export const DatasetRunConfigAgentRelationSelectSchema = createSelectSchema(
   datasetRunConfigAgentRelations
@@ -815,10 +838,14 @@ export const DatasetRunConfigAgentRelationApiSelectSchema = createApiSchema(
 ).openapi('DatasetRunConfigAgentRelation');
 export const DatasetRunConfigAgentRelationApiInsertSchema = createApiInsertSchema(
   DatasetRunConfigAgentRelationInsertSchema
-).omit({ id: true }).openapi('DatasetRunConfigAgentRelationCreate');
+)
+  .omit({ id: true })
+  .openapi('DatasetRunConfigAgentRelationCreate');
 export const DatasetRunConfigAgentRelationApiUpdateSchema = createApiUpdateSchema(
   DatasetRunConfigAgentRelationUpdateSchema
-).omit({ id: true }).openapi('DatasetRunConfigAgentRelationUpdate');
+)
+  .omit({ id: true })
+  .openapi('DatasetRunConfigAgentRelationUpdate');
 
 export const DataComponentSelectSchema = createSelectSchema(dataComponents);
 export const DataComponentInsertSchema = createInsertSchema(dataComponents).extend({

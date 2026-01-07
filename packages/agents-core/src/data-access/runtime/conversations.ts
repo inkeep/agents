@@ -340,7 +340,7 @@ export const setActiveAgentForConversation =
     scopes: ProjectScopeConfig;
     conversationId: string;
     subAgentId: string;
-    agentId: string
+    agentId: string;
     ref: ResolvedRef;
   }): Promise<void> => {
     await db

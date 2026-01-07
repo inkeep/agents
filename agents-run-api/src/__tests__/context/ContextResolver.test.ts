@@ -1,32 +1,53 @@
+import type { ContextConfigApiSelect, FullExecutionContext } from '@inkeep/agents-core';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { ContextResolver } from '../../context';
-import type { DatabaseClient } from '../../db/client';
-import { createTestDatabaseClient } from '../../db/test-client';
-import type { ContextConfigSelect } from '../../types';
 
 // Mock fetch globally
 const mockFetch = vi.fn();
 global.fetch = mockFetch;
 
+function createMockExecutionContext(overrides: { tenantId?: string; projectId?: string } = {}): FullExecutionContext {
+  const tenantId = overrides.tenantId ?? 'test-tenant';
+  const projectId = overrides.projectId ?? 'test-project';
+
+  return {
+    apiKey: 'test-api-key',
+    apiKeyId: 'test-api-key-id',
+    tenantId,
+    projectId,
+    agentId: 'test-agent',
+    baseUrl: 'http://localhost:3000',
+    resolvedRef: { type: 'branch', name: 'main', hash: 'test-hash' },
+    project: {
+      id: projectId,
+      tenantId,
+      name: 'Test Project',
+      agents: {},
+      tools: {},
+      functions: {},
+      dataComponents: {},
+      artifactComponents: {},
+      externalAgents: {},
+      credentialReferences: {},
+      statusUpdates: null,
+    },
+  } as unknown as FullExecutionContext;
+}
+
 describe('ContextResolver', () => {
-  let dbClient: DatabaseClient;
   let resolver: ContextResolver;
   const tenantId = 'test-tenant';
   const projectId = 'test-project';
 
   beforeEach(async () => {
-    dbClient = await createTestDatabaseClient();
-    resolver = new ContextResolver(tenantId, projectId, dbClient);
+    resolver = new ContextResolver(createMockExecutionContext({ tenantId, projectId }));
     mockFetch.mockClear();
   });
 
   describe('skip behavior for missing required variables', () => {
     it('should mark context fetch as skipped (not errored) when required header variable is missing', async () => {
-      const contextConfig: ContextConfigSelect = {
+      const contextConfig: ContextConfigApiSelect = {
         id: 'test-context-config',
-        tenantId,
-        projectId,
-        agentId: 'test-agent',
         contextVariables: {
           conversationHistory: {
             id: 'conversation-history-fetch',
@@ -65,11 +86,8 @@ describe('ContextResolver', () => {
     });
 
     it('should mark context fetch as skipped when required header resolves to empty string', async () => {
-      const contextConfig: ContextConfigSelect = {
+      const contextConfig: ContextConfigApiSelect = {
         id: 'test-context-config',
-        tenantId,
-        projectId,
-        agentId: 'test-agent',
         contextVariables: {
           conversationHistory: {
             id: 'conversation-history-fetch',
@@ -107,11 +125,8 @@ describe('ContextResolver', () => {
     });
 
     it('should use default value for skipped context fetch when provided', async () => {
-      const contextConfig: ContextConfigSelect = {
+      const contextConfig: ContextConfigApiSelect = {
         id: 'test-context-config',
-        tenantId,
-        projectId,
-        agentId: 'test-agent',
         contextVariables: {
           conversationHistory: {
             id: 'conversation-history-fetch',
@@ -149,11 +164,8 @@ describe('ContextResolver', () => {
     });
 
     it('should proceed with fetch when required header variable is provided', async () => {
-      const contextConfig: ContextConfigSelect = {
+      const contextConfig: ContextConfigApiSelect = {
         id: 'test-context-config',
-        tenantId,
-        projectId,
-        agentId: 'test-agent',
         contextVariables: {
           conversationHistory: {
             id: 'conversation-history-fetch',
@@ -213,11 +225,8 @@ describe('ContextResolver', () => {
     });
 
     it('should still report actual fetch errors as errors, not skips', async () => {
-      const contextConfig: ContextConfigSelect = {
+      const contextConfig: ContextConfigApiSelect = {
         id: 'test-context-config',
-        tenantId,
-        projectId,
-        agentId: 'test-agent',
         contextVariables: {
           conversationHistory: {
             id: 'conversation-history-fetch',
@@ -261,11 +270,8 @@ describe('ContextResolver', () => {
     });
 
     it('should handle mixed skipped and successful fetches', async () => {
-      const contextConfig: ContextConfigSelect = {
+      const contextConfig: ContextConfigApiSelect = {
         id: 'test-context-config',
-        tenantId,
-        projectId,
-        agentId: 'test-agent',
         contextVariables: {
           conversationHistory: {
             id: 'conversation-history-fetch',
