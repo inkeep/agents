@@ -12,7 +12,7 @@ import {
   createEmptyBreakdown,
   estimateTokens,
 } from '../../../utils/token-estimator';
-import type { PolicyData, SystemPromptV1, ToolData, VersionConfig } from '../../types';
+import type { SkillData, SystemPromptV1, ToolData, VersionConfig } from '../../types';
 
 export class Phase1Config implements VersionConfig<SystemPromptV1> {
   loadTemplates(): Map<string, string> {
@@ -107,8 +107,8 @@ export class Phase1Config implements VersionConfig<SystemPromptV1> {
     breakdown.agentPrompt = estimateTokens(agentContextSection);
     systemPrompt = systemPrompt.replace('{{AGENT_CONTEXT_SECTION}}', agentContextSection);
 
-    const policiesSection = this.generatePoliciesSection(config.policies);
-    systemPrompt = systemPrompt.replace('{{POLICIES_SECTION}}', policiesSection);
+    const skillsSection = this.generateSkillsSection(config.skills);
+    systemPrompt = systemPrompt.replace('{{SKILLS_SECTION}}', skillsSection);
 
     const rawToolData = this.isToolDataArray(config.tools)
       ? config.tools
@@ -217,33 +217,33 @@ export class Phase1Config implements VersionConfig<SystemPromptV1> {
     return thinkingPreparationTemplate;
   }
 
-  private generatePoliciesSection(policies?: PolicyData[]): string {
-    if (!policies || policies.length === 0) {
+  private generateSkillsSection(skills: SkillData[] = []): string {
+    if (!skills.length) {
       return '';
     }
 
-    const sortedPolicies = [...policies].sort((a, b) => (a.index ?? 0) - (b.index ?? 0));
+    const sortedSkills = [...skills].sort((a, b) => (a.index ?? 0) - (b.index ?? 0));
 
-    const policyEntries = sortedPolicies
-      .map((policy) => {
-        const description = policy.description
-          ? `<description>${policy.description}</description>`
+    const skillEntries = sortedSkills
+      .map((skill) => {
+        const description = skill.description
+          ? `<description>${skill.description}</description>`
           : '';
         return `
-  <policy>
-    <name>${policy.name}</name>
+  <skill>
+    <name>${skill.name}</name>
     ${description}
     <content>
-      ${policy.content}
+      ${skill.content}
     </content>
-  </policy>`;
+  </skill>`;
       })
       .join('\n');
 
     return `
-  <policies>
-    ${policyEntries}
-  </policies>`;
+  <skills>
+    ${skillEntries}
+  </skills>`;
   }
 
   private generateTransferInstructions(hasTransferRelations?: boolean): string {

@@ -10,9 +10,9 @@ import {
   DialogTitle,
   DialogTrigger,
 } from '@/components/ui/dialog';
-import { PolicyForm } from './form/policy-form';
+import { SkillForm } from './form/skill-form';
 
-export function CreatePolicyModal() {
+export function CreateSkillModal() {
   const [open, setOpen] = useState(false);
 
   const handleSaved = useCallback(() => {
@@ -24,14 +24,14 @@ export function CreatePolicyModal() {
       <DialogTrigger asChild>
         <Button className="flex items-center gap-2">
           <Plus className="size-4" />
-          Create policy
+          Create skill
         </Button>
       </DialogTrigger>
       <DialogContent className="sm:max-w-4xl">
         <DialogHeader>
-          <DialogTitle>Create policy</DialogTitle>
+          <DialogTitle>Create skill</DialogTitle>
         </DialogHeader>
-        <PolicyForm onSaved={handleSaved} />
+        <SkillForm onSaved={handleSaved} />
       </DialogContent>
     </Dialog>
   );

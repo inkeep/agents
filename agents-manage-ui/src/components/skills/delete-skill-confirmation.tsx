@@ -12,38 +12,38 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
-import { deletePolicyAction } from '@/lib/actions/policies';
+import { deleteSkillAction } from '@/lib/actions/skills';
 
-interface DeletePolicyConfirmationProps {
+interface DeleteSkillConfirmationProps {
   tenantId: string;
   projectId: string;
-  policyId: string;
-  policyName: string;
+  skillId: string;
+  skillName: string;
   setIsOpen: (open: boolean) => void;
   redirectOnDelete?: boolean;
 }
 
-export function DeletePolicyConfirmation({
+export function DeleteSkillConfirmation({
   tenantId,
   projectId,
-  policyId,
-  policyName,
+  skillId,
+  skillName,
   setIsOpen,
   redirectOnDelete = true,
-}: DeletePolicyConfirmationProps) {
+}: DeleteSkillConfirmationProps) {
   const router = useRouter();
 
   const handleDelete = async () => {
-    const result = await deletePolicyAction(tenantId, projectId, policyId);
+    const result = await deleteSkillAction(tenantId, projectId, skillId);
     if (!result.success) {
-      toast.error(result.error || 'Failed to delete policy');
+      toast.error(result.error || 'Failed to delete skill');
       return;
     }
 
-    toast.success(`Policy "${policyName}" deleted.`);
+    toast.success(`Skill "${skillName}" deleted.`);
     setIsOpen(false);
     if (redirectOnDelete) {
-      router.push(`/${tenantId}/projects/${projectId}/policies`);
+      router.push(`/${tenantId}/projects/${projectId}/skills`);
     }
   };
 
@@ -51,9 +51,9 @@ export function DeletePolicyConfirmation({
     <AlertDialog open onOpenChange={setIsOpen}>
       <AlertDialogContent>
         <AlertDialogHeader>
-          <AlertDialogTitle>Delete policy?</AlertDialogTitle>
+          <AlertDialogTitle>Delete skill?</AlertDialogTitle>
           <AlertDialogDescription>
-            This will remove "{policyName}" policy. Sub-agents referencing this policy will lose the
+            This will remove "{skillName}" skill. Sub-agents referencing this skill will lose the
             association.
           </AlertDialogDescription>
         </AlertDialogHeader>

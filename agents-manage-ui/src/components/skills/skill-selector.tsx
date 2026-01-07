@@ -9,76 +9,76 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import type { Policy } from '@/lib/types/policies';
+import type { Skill } from '@/lib/types/skills';
 import { cn } from '@/lib/utils';
 
-type PolicySelection = {
+type SkillSelection = {
   id: string;
   index?: number;
 };
 
-interface PolicySelectorProps {
-  policyLookup: Record<string, Policy>;
-  selectedPolicies: PolicySelection[];
-  onChange: (policies: PolicySelection[]) => void;
+interface SkillSelectorProps {
+  skillLookup: Record<string, Skill>;
+  selectedSkills: SkillSelection[];
+  onChange: (skills: SkillSelection[]) => void;
   error?: string;
 }
 
-export function reorderPolicies(
-  policies: PolicySelection[],
+export function reorderSkills(
+  skills: SkillSelection[],
   fromId: string,
   toId: string
-): PolicySelection[] {
-  if (fromId === toId) return policies;
-  const current = [...policies];
+): SkillSelection[] {
+  if (fromId === toId) return skills;
+  const current = [...skills];
   const fromIndex = current.findIndex((p) => p.id === fromId);
   const toIndex = current.findIndex((p) => p.id === toId);
   if (fromIndex === -1 || toIndex === -1) {
-    return policies;
+    return skills;
   }
   const [moved] = current.splice(fromIndex, 1);
   current.splice(toIndex, 0, moved);
-  return current.map((policy, idx) => ({ ...policy, index: idx }));
+  return current.map((skill, idx) => ({ ...skill, index: idx }));
 }
 
-export function PolicySelector({
-  policyLookup,
-  selectedPolicies,
+export function SkillSelector({
+  skillLookup,
+  selectedSkills,
   onChange,
   error,
-}: PolicySelectorProps) {
+}: SkillSelectorProps) {
   const [pendingAdd, setPendingAdd] = useState<string>('');
   const [draggingId, setDraggingId] = useState<string | null>(null);
   const [dragOverId, setDragOverId] = useState<string | null>(null);
 
-  const orderedPolicies = useMemo(
-    () => [...selectedPolicies].sort((a, b) => (a.index ?? 0) - (b.index ?? 0)),
-    [selectedPolicies]
+  const orderedSkills = useMemo(
+    () => [...selectedSkills].sort((a, b) => (a.index ?? 0) - (b.index ?? 0)),
+    [selectedSkills]
   );
 
-  const availablePolicies = useMemo(
+  const availableSkills = useMemo(
     () =>
-      Object.values(policyLookup).filter(
-        (policy) => !orderedPolicies.some((selected) => selected.id === policy.id)
+      Object.values(skillLookup).filter(
+        (skill) => !orderedSkills.some((selected) => selected.id === skill.id)
       ),
-    [policyLookup, orderedPolicies]
+    [skillLookup, orderedSkills]
   );
 
   const handleAdd = () => {
     if (!pendingAdd || pendingAdd === '__none') return;
-    const next = [...orderedPolicies, { id: pendingAdd, index: orderedPolicies.length }];
+    const next = [...orderedSkills, { id: pendingAdd, index: orderedSkills.length }];
     onChange(next);
     setPendingAdd('');
   };
 
   const handleRemove = (id: string) => {
-    const next = orderedPolicies.filter((policy) => policy.id !== id);
-    onChange(next.map((policy, idx) => ({ ...policy, index: idx })));
+    const next = orderedSkills.filter((skill) => skill.id !== id);
+    onChange(next.map((skill, idx) => ({ ...skill, index: idx })));
   };
 
   const handleDrop = (targetId: string) => {
     if (!draggingId) return;
-    const next = reorderPolicies(orderedPolicies, draggingId, targetId);
+    const next = reorderSkills(orderedSkills, draggingId, targetId);
     onChange(next);
     setDraggingId(null);
     setDragOverId(null);
@@ -87,22 +87,22 @@ export function PolicySelector({
   return (
     <div className="space-y-3">
       <div className="flex items-center justify-between">
-        <Label className="text-sm font-medium">Policies</Label>
+        <Label className="text-sm font-medium">Skills</Label>
         <div className="flex items-center gap-2">
           <Select value={pendingAdd} onValueChange={setPendingAdd}>
             <SelectTrigger className="w-[220px]">
-              <SelectValue placeholder="Select policy" />
+              <SelectValue placeholder="Select skill" />
             </SelectTrigger>
             <SelectContent>
-              {availablePolicies.length ? (
-                availablePolicies.map((policy) => (
-                  <SelectItem key={policy.id} value={policy.id}>
-                    {policy.name}
+              {availableSkills.length ? (
+                availableSkills.map((skill) => (
+                  <SelectItem key={skill.id} value={skill.id}>
+                    {skill.name}
                   </SelectItem>
                 ))
               ) : (
                 <SelectItem value="__none" disabled>
-                  No available policies
+                  No available skills
                 </SelectItem>
               )}
             </SelectContent>
@@ -119,27 +119,27 @@ export function PolicySelector({
           </Button>
         </div>
       </div>
-      {orderedPolicies.length === 0 ? (
-        <p className="text-sm text-muted-foreground">No policies attached.</p>
+      {orderedSkills.length === 0 ? (
+        <p className="text-sm text-muted-foreground">No skills attached.</p>
       ) : (
         <ul className="space-y-2">
-          {orderedPolicies.map((policy) => {
-            const details = policyLookup[policy.id];
+          {orderedSkills.map((skill) => {
+            const details = skillLookup[skill.id];
             return (
               <li
-                key={policy.id}
+                key={skill.id}
                 className={cn(
                   'border rounded-md px-3 py-2 flex items-center justify-between gap-3 bg-background',
-                  dragOverId === policy.id && 'border-primary'
+                  dragOverId === skill.id && 'border-primary'
                 )}
                 draggable
-                onDragStart={() => setDraggingId(policy.id)}
+                onDragStart={() => setDraggingId(skill.id)}
                 onDragOver={(e) => {
                   e.preventDefault();
-                  setDragOverId(policy.id);
+                  setDragOverId(skill.id);
                 }}
                 onDragLeave={() => setDragOverId(null)}
-                onDrop={() => handleDrop(policy.id)}
+                onDrop={() => handleDrop(skill.id)}
                 onDragEnd={() => {
                   setDraggingId(null);
                   setDragOverId(null);
@@ -149,9 +149,9 @@ export function PolicySelector({
                   <GripVertical className="size-4 text-muted-foreground" />
                   <div>
                     <div className="text-sm font-medium">
-                      {details?.name || policy.id}{' '}
+                      {details?.name || skill.id}{' '}
                       <span className="text-xs text-muted-foreground">
-                        (#{(policy.index ?? 0) + 1})
+                        (#{(skill.index ?? 0) + 1})
                       </span>
                     </div>
                     {details?.description && (
@@ -161,7 +161,7 @@ export function PolicySelector({
                     )}
                   </div>
                 </div>
-                <Button variant="ghost" size="icon" onClick={() => handleRemove(policy.id)}>
+                <Button variant="ghost" size="icon" onClick={() => handleRemove(skill.id)}>
                   <X className="size-4" />
                 </Button>
               </li>
