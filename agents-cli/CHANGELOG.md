@@ -1,5 +1,16 @@
 # @inkeep/agents-cli
 
+## 0.41.1
+
+### Patch Changes
+
+- d1f60f3: added azure provider
+- Updated dependencies [d1f60f3]
+- Updated dependencies [53acc10]
+  - @inkeep/agents-core@0.41.1
+  - @inkeep/agents-manage-ui@0.41.1
+  - @inkeep/agents-sdk@0.41.1
+
 ## 0.41.0
 
 ### Patch Changes
