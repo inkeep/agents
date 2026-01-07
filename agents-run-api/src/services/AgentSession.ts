@@ -472,10 +472,7 @@ export class AgentSession {
     }
 
     try {
-      await streamHelper.writeToolOutputAvailable(
-        toolResultData.toolCallId,
-        toolResultData.output
-      );
+      await streamHelper.writeToolOutputAvailable(toolResultData.toolCallId, toolResultData.output);
     } catch (error) {
       logger.error(
         {
