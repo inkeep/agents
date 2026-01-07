@@ -138,6 +138,14 @@ function createManagementHono(
 
   // Global session middleware - sets user and session in context for all routes
   app.use('*', async (c, next) => {
+    // Skip session check for health endpoint - it should always be available
+    if (c.req.path === '/health') {
+      c.set('user', null);
+      c.set('session', null);
+      await next();
+      return;
+    }
+
     if (env.DISABLE_AUTH || !auth) {
       c.set('user', null);
       c.set('session', null);
@@ -152,17 +160,23 @@ function createManagementHono(
       headers.set('cookie', forwardedCookie);
     }
 
-    const session = await auth.api.getSession({ headers });
+    try {
+      const session = await auth.api.getSession({ headers });
 
-    if (!session) {
+      if (!session) {
+        c.set('user', null);
+        c.set('session', null);
+        await next();
+        return;
+      }
+
+      c.set('user', session.user);
+      c.set('session', session.session);
+    } catch {
+      // If session validation fails (e.g., database not ready), treat as unauthenticated
       c.set('user', null);
       c.set('session', null);
-      await next();
-      return;
     }
-
-    c.set('user', session.user);
-    c.set('session', session.session);
     await next();
   });
 
