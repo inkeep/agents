@@ -109,20 +109,20 @@ export async function promptForModelConfiguration(): Promise<ModelConfigurationR
   const azureConfigs: any = {};
   if (providers.includes('azure')) {
     p.note('Azure OpenAI requires custom deployment configuration.');
-    
+
     const deploymentName = await p.text({
       message: 'Enter your Azure deployment name:',
       placeholder: 'my-gpt-4o-deployment',
       validate: (value) => {
         if (!value?.trim()) return 'Deployment name is required';
-      }
+      },
     });
-    
+
     if (p.isCancel(deploymentName)) {
       p.cancel('Operation cancelled');
       process.exit(0);
     }
-    
+
     const connectionMethod = await p.select({
       message: 'How would you like to connect to Azure?',
       options: [
@@ -130,26 +130,26 @@ export async function promptForModelConfiguration(): Promise<ModelConfigurationR
         { value: 'url', label: 'Custom Base URL' },
       ],
     });
-    
+
     if (p.isCancel(connectionMethod)) {
       p.cancel('Operation cancelled');
       process.exit(0);
     }
-    
+
     if (connectionMethod === 'resource') {
       const resourceName = await p.text({
         message: 'Enter your Azure resource name:',
         placeholder: 'your-azure-resource',
         validate: (value) => {
           if (!value?.trim()) return 'Resource name is required';
-        }
+        },
       });
-      
+
       if (p.isCancel(resourceName)) {
         p.cancel('Operation cancelled');
         process.exit(0);
       }
-      
+
       azureConfigs.resourceName = resourceName;
     } else {
       const baseURL = await p.text({
@@ -158,17 +158,17 @@ export async function promptForModelConfiguration(): Promise<ModelConfigurationR
         validate: (value) => {
           if (!value?.trim()) return 'Base URL is required';
           if (!value.startsWith('https://')) return 'Base URL must start with https://';
-        }
+        },
       });
-      
+
       if (p.isCancel(baseURL)) {
         p.cancel('Operation cancelled');
         process.exit(0);
       }
-      
+
       azureConfigs.baseURL = baseURL;
     }
-    
+
     azureConfigs.deploymentName = deploymentName;
     azureConfigs.model = `azure/${deploymentName}`;
   }
@@ -185,9 +185,9 @@ export async function promptForModelConfiguration(): Promise<ModelConfigurationR
     availableModels.push(...googleModels);
   }
   if (providers.includes('azure') && azureConfigs.model) {
-    availableModels.push({ 
-      label: `${azureConfigs.deploymentName} (Azure)`, 
-      value: azureConfigs.model 
+    availableModels.push({
+      label: `${azureConfigs.deploymentName} (Azure)`,
+      value: azureConfigs.model,
     });
   }
 
@@ -274,7 +274,7 @@ export async function promptForModelConfiguration(): Promise<ModelConfigurationR
     modelSettings.structuredOutput = {
       model: structuredOutputModel,
     };
-    
+
     const structuredProviderOptions = addProviderOptions(structuredOutputModel);
     if (structuredProviderOptions) {
       modelSettings.structuredOutput.providerOptions = structuredProviderOptions;
@@ -285,7 +285,7 @@ export async function promptForModelConfiguration(): Promise<ModelConfigurationR
     modelSettings.summarizer = {
       model: summarizerModel,
     };
-    
+
     const summarizerProviderOptions = addProviderOptions(summarizerModel);
     if (summarizerProviderOptions) {
       modelSettings.summarizer.providerOptions = summarizerProviderOptions;

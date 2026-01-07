@@ -55,10 +55,10 @@ export function isContextConfigParseError(error: unknown): error is ContextConfi
  */
 function safeJsonParse(value: string | object | undefined | null): any {
   if (!value) return undefined;
-  
+
   // If it's already an object, return it as-is
   if (typeof value === 'object') return value;
-  
+
   // If it's a string, try to parse it
   if (typeof value === 'string') {
     try {
@@ -68,7 +68,7 @@ function safeJsonParse(value: string | object | undefined | null): any {
       return undefined;
     }
   }
-  
+
   return undefined;
 }
 function processModels(modelsData: AgentMetadata['models']): AgentMetadata['models'] | undefined {

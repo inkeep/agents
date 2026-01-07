@@ -268,20 +268,20 @@ export const createAgents = async (
   } else if (azureKey) {
     // Azure requires custom configuration - prompt for deployment details
     p.note('Azure OpenAI requires custom deployment configuration.');
-    
+
     const deploymentName = await p.text({
       message: 'Enter your Azure deployment name:',
       placeholder: 'my-gpt-4o-deployment',
       validate: (value) => {
         if (!value?.trim()) return 'Deployment name is required';
-      }
+      },
     });
-    
+
     if (p.isCancel(deploymentName)) {
       p.cancel('Operation cancelled');
       process.exit(0);
     }
-    
+
     const connectionMethod = await p.select({
       message: 'How would you like to connect to Azure?',
       options: [
@@ -289,28 +289,28 @@ export const createAgents = async (
         { value: 'url', label: 'Custom Base URL' },
       ],
     });
-    
+
     if (p.isCancel(connectionMethod)) {
       p.cancel('Operation cancelled');
       process.exit(0);
     }
-    
-    let azureProviderOptions: any = {};
-    
+
+    const azureProviderOptions: any = {};
+
     if (connectionMethod === 'resource') {
       const resourceName = await p.text({
         message: 'Enter your Azure resource name:',
         placeholder: 'your-azure-resource',
         validate: (value) => {
           if (!value?.trim()) return 'Resource name is required';
-        }
+        },
       });
-      
+
       if (p.isCancel(resourceName)) {
         p.cancel('Operation cancelled');
         process.exit(0);
       }
-      
+
       azureProviderOptions.resourceName = resourceName;
     } else {
       const baseURL = await p.text({
@@ -319,17 +319,17 @@ export const createAgents = async (
         validate: (value) => {
           if (!value?.trim()) return 'Base URL is required';
           if (!value.startsWith('https://')) return 'Base URL must start with https://';
-        }
+        },
       });
-      
+
       if (p.isCancel(baseURL)) {
         p.cancel('Operation cancelled');
         process.exit(0);
       }
-      
+
       azureProviderOptions.baseURL = baseURL;
     }
-    
+
     // Create Azure model configuration with user's deployment
     defaultModelSettings = {
       base: {

@@ -93,7 +93,7 @@ export function ModelConfiguration({
     if (value === '' && internalProviderOptions && internalProviderOptions !== '') {
       return;
     }
-    
+
     setInternalProviderOptions(value);
     onProviderOptionsChange?.(value);
   };
