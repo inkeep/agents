@@ -58,7 +58,9 @@ export function ModelSection({
         description="Primary model for general sub agent responses"
         onModelChange={(value) => updatePath('models.base.model', value || undefined)}
         onProviderOptionsChange={createProviderOptionsHandler((options) => {
+          console.log('model-section updatePath about to be called with options:', options);
           updatePath('models.base.providerOptions', options);
+          console.log('model-section updatePath completed');
         })}
         editorNamePrefix="base"
       />

@@ -66,8 +66,10 @@ export function ModelConfiguration({
 
     // Only clear if switching between different providers (but preserve existing options for same provider)
     if (previousProvider && newProvider && previousProvider !== newProvider) {
+      setInternalProviderOptions(undefined);
       onProviderOptionsChange?.(undefined);
     } else if (previousProvider && !newProvider) {
+      setInternalProviderOptions(undefined);
       onProviderOptionsChange?.(undefined);
     }
 
@@ -83,6 +85,17 @@ export function ModelConfiguration({
     const jsonString = JSON.stringify(options, null, 2);
     setInternalProviderOptions(jsonString);
     onProviderOptionsChange?.(jsonString);
+  };
+
+  // Handle both string (from JSON editors) and object (from ModelSelector) inputs
+  const handleProviderOptionsStringChange = (value: string | undefined) => {
+    // Don't update with empty string if we have valid internal state
+    if (value === '' && internalProviderOptions && internalProviderOptions !== '') {
+      return;
+    }
+    
+    setInternalProviderOptions(value);
+    onProviderOptionsChange?.(value);
   };
 
   const getDefaultJsonPlaceholder = (model?: string) => {
@@ -124,7 +137,7 @@ export function ModelConfiguration({
         <ExpandableJsonEditor
           name={`${editorNamePrefix}-provider-options`}
           label="Provider options"
-          onChange={onProviderOptionsChange || (() => {})}
+          onChange={handleProviderOptionsStringChange}
           value={
             typeof internalProviderOptions === 'string'
               ? internalProviderOptions
@@ -141,7 +154,7 @@ export function ModelConfiguration({
       {value?.startsWith('azure/') && (
         <AzureConfigurationSection
           providerOptions={internalProviderOptions}
-          onProviderOptionsChange={onProviderOptionsChange}
+          onProviderOptionsChange={handleProviderOptionsStringChange}
           editorNamePrefix={editorNamePrefix}
         />
       )}

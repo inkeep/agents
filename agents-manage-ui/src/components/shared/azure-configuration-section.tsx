@@ -32,9 +32,8 @@ export function AzureConfigurationSection({
       }
     });
 
-    onProviderOptionsChange(
-      Object.keys(updatedOptions).length > 0 ? JSON.stringify(updatedOptions, null, 2) : undefined
-    );
+    const finalValue = Object.keys(updatedOptions).length > 0 ? JSON.stringify(updatedOptions, null, 2) : undefined;
+    onProviderOptionsChange(finalValue);
   };
 
   return (

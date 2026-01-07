@@ -452,7 +452,10 @@ export function ModelSelector({
                         azureDeploymentName.trim() &&
                         (azureResourceName.trim() || azureBaseURL.trim())
                       ) {
-                        // Set the provider options FIRST
+                        // Set the Azure model FIRST so the store has it
+                        onValueChange?.(`azure/${azureDeploymentName.trim()}`);
+
+                        // Then set the provider options
                         const providerOptions: Record<string, any> = {};
                         if (azureResourceName.trim()) {
                           providerOptions.resourceName = azureResourceName.trim();
@@ -460,9 +463,6 @@ export function ModelSelector({
                           providerOptions.baseURL = azureBaseURL.trim();
                         }
                         onProviderOptionsChange?.(providerOptions);
-
-                        // Then set the Azure model
-                        onValueChange?.(`azure/${azureDeploymentName.trim()}`);
 
                         setShowCustomInput(null);
                         setAzureDeploymentName('');

@@ -25,16 +25,19 @@ export function formatJson(jsonString: string) {
  */
 export function createProviderOptionsHandler(updateFn: (options: any) => void) {
   return (value: string | undefined) => {
+    console.log('createProviderOptionsHandler received:', value);
     if (!value?.trim()) {
+      console.log('Calling updateFn with undefined');
       updateFn(undefined);
       return;
     }
     try {
       const parsed = JSON.parse(value);
+      console.log('Parsed JSON:', parsed);
+      console.log('Calling updateFn with parsed options');
       updateFn(parsed);
     } catch (error) {
       console.error('Failed to parse provider options JSON:', error);
-      // Invalid JSON - don't update the field value
     }
   };
 }
