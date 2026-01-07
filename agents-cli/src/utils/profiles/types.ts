@@ -108,3 +108,22 @@ export const DEFAULT_PROFILES_CONFIG: ProfilesConfig = {
     cloud: DEFAULT_CLOUD_PROFILE,
   },
 };
+
+/**
+ * Baked-in URLs for local development deployment
+ */
+export const LOCAL_REMOTE = {
+  manageApi: 'http://localhost:3002',
+  manageUi: 'http://localhost:3001',
+  runApi: 'http://localhost:3003',
+} as const;
+
+/**
+ * Default local profile configuration
+ * Note: credential is 'none' as local deployments typically don't require auth
+ */
+export const DEFAULT_LOCAL_PROFILE: Profile = {
+  remote: LOCAL_REMOTE,
+  credential: 'none',
+  environment: 'development',
+};
