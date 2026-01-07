@@ -89,15 +89,6 @@ export function useNodeEditor({ selectedNodeId, errorHelpers }: UseNodeEditorOpt
     [updateField]
   );
 
-  // Advanced path-based updates for nested objects
-  const updatePath = useCallback(
-    (path: string, value: any) => {
-      const currentNode = getNode(selectedNodeId);
-      updateNestedPath(path, value, currentNode?.data);
-    },
-    [getNode, selectedNodeId, updateNestedPath]
-  );
-
   // Enhanced updatePath that can handle nested objects
   const updateNestedPath = useCallback(
     (path: string, value: any, currentNodeData: any) => {
@@ -140,6 +131,15 @@ export function useNodeEditor({ selectedNodeId, errorHelpers }: UseNodeEditorOpt
       }
     },
     [updateField]
+  );
+
+  // Advanced path-based updates for nested objects
+  const updatePath = useCallback(
+    (path: string, value: any) => {
+      const currentNode = getNode(selectedNodeId);
+      updateNestedPath(path, value, currentNode?.data);
+    },
+    [getNode, selectedNodeId, updateNestedPath]
   );
 
   return {
