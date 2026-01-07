@@ -10,6 +10,7 @@ import evaluationSuiteConfigsRoutes from './evaluationSuiteConfigs';
 import evaluationSuiteConfigEvaluatorRelationsRoutes from './evaluationSuiteConfigEvaluatorRelations';
 import datasetRoutes from './datasets';
 import evaluatorsRoutes from './evaluators';
+import evaluationResultsRoutes from './evaluationResults';
 
 const app = new OpenAPIHono<{ Variables: BaseAppVariables }>();
 
@@ -23,5 +24,6 @@ app.route('evaluation-suite-configs', evaluationSuiteConfigsRoutes);
 app.route('evaluation-suite-configs', evaluationSuiteConfigEvaluatorRelationsRoutes);
 app.route('datasets', datasetRoutes);
 app.route('evaluators', evaluatorsRoutes);
+app.route('evaluation-results', evaluationResultsRoutes);
 
 export default app;
