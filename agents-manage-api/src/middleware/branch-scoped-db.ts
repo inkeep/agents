@@ -4,7 +4,7 @@ import * as schema from '@inkeep/agents-core/db/manage-schema';
 import { drizzle } from 'drizzle-orm/node-postgres';
 import type { Context, Next } from 'hono';
 import type { Pool, PoolClient } from 'pg';
-import dbClient from '../data/db/dbClient';
+import manageDbClient from '../data/db/dbClient';
 import { getLogger } from '../logger';
 
 const logger = getLogger('branch-scoped-db');
@@ -43,16 +43,16 @@ export const branchScopedDbMiddleware = async (c: Context, next: Next) => {
   const isWriteOperation = ['POST', 'PUT', 'PATCH', 'DELETE'].includes(method);
 
   // Get connection pool from dbClient
-  const pool = getPoolFromClient(dbClient);
+  const pool = getPoolFromClient(manageDbClient);
   if (!pool) {
     logger.error({}, 'Could not get connection pool from dbClient');
-    c.set('db', dbClient);
+    c.set('db', manageDbClient);
     await next();
     return;
   }
 
   if (process.env.ENVIRONMENT === 'test') {
-    c.set('db', dbClient);
+    c.set('db', manageDbClient);
     await next();
     return;
   }

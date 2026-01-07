@@ -1,7 +1,7 @@
 import { createFullAgentServerSide, extractPublicId, generateId } from '@inkeep/agents-core';
 import { createTestProject } from '@inkeep/agents-core/db/test-manage-client';
 import { describe, expect, it } from 'vitest';
-import dbClient from '../../../data/db/dbClient';
+import manageDbClient from '../../../data/db/dbClient';
 import { makeRequest } from '../../utils/testRequest';
 import { createTestSubAgentData } from '../../utils/testSubAgent';
 import { createTestTenantWithOrg } from '../../utils/testTenant';
@@ -35,11 +35,11 @@ describe('API Key CRUD Routes - Integration Tests', () => {
     projectId: string = 'default-project'
   ) => {
     // Ensure the project exists for this tenant before creating the agent
-    await createTestProject(dbClient, tenantId, projectId);
+    await createTestProject(manageDbClient, tenantId, projectId);
 
     const agentId = `test-agent${generateId(6)}`;
     const agentData = createFullAgentData(agentId);
-    await createFullAgentServerSide(dbClient)({ tenantId, projectId }, agentData);
+    await createFullAgentServerSide(manageDbClient)({ tenantId, projectId }, agentData);
     return { agentId, projectId }; // Return projectId as well
   };
 
@@ -78,7 +78,7 @@ describe('API Key CRUD Routes - Integration Tests', () => {
     it('should list API keys with pagination (empty initially)', async () => {
       const tenantId = await createTestTenantWithOrg('api-keys-list-empty');
       const projectId = 'default-project';
-      await createTestProject(dbClient, tenantId, projectId);
+      await createTestProject(manageDbClient, tenantId, projectId);
       const res = await makeRequest(
         `/tenants/${tenantId}/projects/${projectId}/api-keys?page=1&limit=10`
       );
@@ -98,7 +98,7 @@ describe('API Key CRUD Routes - Integration Tests', () => {
 
     it('should list API keys with pagination', async () => {
       const tenantId = await createTestTenantWithOrg('api-keys-list');
-      await createTestProject(dbClient, tenantId, 'default-project');
+      await createTestProject(manageDbClient, tenantId, 'default-project');
       const { agentId, projectId } = await createtestAgentAndAgent(tenantId);
 
       // Create multiple API keys
@@ -134,7 +134,7 @@ describe('API Key CRUD Routes - Integration Tests', () => {
 
     it('should filter API keys by agentId', async () => {
       const tenantId = await createTestTenantWithOrg('api-keys-filter-agent');
-      await createTestProject(dbClient, tenantId, 'project-1');
+      await createTestProject(manageDbClient, tenantId, 'project-1');
       const { agentId: agent1, projectId } = await createtestAgentAndAgent(tenantId, 'project-1');
       const { agentId: agent2 } = await createtestAgentAndAgent(tenantId, 'project-1');
 
@@ -154,7 +154,7 @@ describe('API Key CRUD Routes - Integration Tests', () => {
 
     it('should handle pagination correctly', async () => {
       const tenantId = await createTestTenantWithOrg('api-keys-pagination');
-      await createTestProject(dbClient, tenantId, 'default-project');
+      await createTestProject(manageDbClient, tenantId, 'default-project');
       const { agentId, projectId } = await createtestAgentAndAgent(tenantId);
 
       // Create 5 API keys
@@ -181,7 +181,7 @@ describe('API Key CRUD Routes - Integration Tests', () => {
   describe('GET /{id}', () => {
     it('should get API key by ID', async () => {
       const tenantId = await createTestTenantWithOrg('api-keys-get-by-id');
-      await createTestProject(dbClient, tenantId, 'default-project');
+      await createTestProject(manageDbClient, tenantId, 'default-project');
       const { agentId, projectId } = await createtestAgentAndAgent(tenantId);
       const { apiKey } = await createTestApiKey({ tenantId, projectId, agentId });
 
@@ -200,7 +200,7 @@ describe('API Key CRUD Routes - Integration Tests', () => {
     it('should return 404 for non-existent API key', async () => {
       const tenantId = await createTestTenantWithOrg('api-keys-get-not-found');
       const projectId = 'default-project';
-      await createTestProject(dbClient, tenantId, projectId);
+      await createTestProject(manageDbClient, tenantId, projectId);
       const nonExistentId = `non-existent-${generateId()}`;
 
       const res = await makeRequest(
@@ -217,7 +217,7 @@ describe('API Key CRUD Routes - Integration Tests', () => {
       const tenantId2 = await createTestTenantWithOrg('api-keys-tenant-2');
       const projectId = 'default-project';
 
-      await createTestProject(dbClient, tenantId1, projectId);
+      await createTestProject(manageDbClient, tenantId1, projectId);
       const { agentId } = await createtestAgentAndAgent(tenantId1, projectId);
       const { apiKey } = await createTestApiKey({ tenantId: tenantId1, projectId, agentId });
 
@@ -232,7 +232,7 @@ describe('API Key CRUD Routes - Integration Tests', () => {
   describe('POST /', () => {
     it('should create API key successfully', async () => {
       const tenantId = await createTestTenantWithOrg('api-keys-create');
-      await createTestProject(dbClient, tenantId, 'default-project');
+      await createTestProject(manageDbClient, tenantId, 'default-project');
       const { agentId, projectId } = await createtestAgentAndAgent(tenantId);
 
       const createData = {
@@ -279,7 +279,7 @@ describe('API Key CRUD Routes - Integration Tests', () => {
 
     it('should create API key with expiration date', async () => {
       const tenantId = await createTestTenantWithOrg('api-keys-create-expires');
-      await createTestProject(dbClient, tenantId, 'default-project');
+      await createTestProject(manageDbClient, tenantId, 'default-project');
       const { agentId, projectId } = await createtestAgentAndAgent(tenantId);
 
       const expiresAt = '2025-12-31 23:59:59';
@@ -323,7 +323,7 @@ describe('API Key CRUD Routes - Integration Tests', () => {
   describe('PUT /{id}', () => {
     it('should update API key expiration date', async () => {
       const tenantId = await createTestTenantWithOrg('api-keys-update');
-      await createTestProject(dbClient, tenantId, 'default-project');
+      await createTestProject(manageDbClient, tenantId, 'default-project');
       const { agentId, projectId } = await createtestAgentAndAgent(tenantId);
       const { apiKey } = await createTestApiKey({ tenantId, projectId, agentId });
 
@@ -352,7 +352,7 @@ describe('API Key CRUD Routes - Integration Tests', () => {
 
     it('should clear API key expiration date', async () => {
       const tenantId = await createTestTenantWithOrg('api-keys-update-clear');
-      await createTestProject(dbClient, tenantId, 'default-project');
+      await createTestProject(manageDbClient, tenantId, 'default-project');
       const { agentId, projectId } = await createtestAgentAndAgent(tenantId);
       const { apiKey } = await createTestApiKey({
         tenantId,
@@ -382,7 +382,7 @@ describe('API Key CRUD Routes - Integration Tests', () => {
     it('should return 404 for non-existent API key', async () => {
       const tenantId = await createTestTenantWithOrg('api-keys-update-not-found');
       const projectId = 'default-project';
-      await createTestProject(dbClient, tenantId, projectId);
+      await createTestProject(manageDbClient, tenantId, projectId);
       const nonExistentId = `non-existent-${generateId()}`;
 
       const updateData = {
@@ -405,7 +405,7 @@ describe('API Key CRUD Routes - Integration Tests', () => {
       const tenantId2 = await createTestTenantWithOrg('api-keys-update-tenant-2');
       const projectId = 'default-project';
 
-      await createTestProject(dbClient, tenantId1, projectId);
+      await createTestProject(manageDbClient, tenantId1, projectId);
       const { agentId } = await createtestAgentAndAgent(tenantId1, projectId);
       const { apiKey } = await createTestApiKey({ tenantId: tenantId1, projectId, agentId });
 
@@ -429,7 +429,7 @@ describe('API Key CRUD Routes - Integration Tests', () => {
   describe('DELETE /{id}', () => {
     it('should delete API key successfully', async () => {
       const tenantId = await createTestTenantWithOrg('api-keys-delete');
-      await createTestProject(dbClient, tenantId, 'default-project');
+      await createTestProject(manageDbClient, tenantId, 'default-project');
       const { agentId, projectId } = await createtestAgentAndAgent(tenantId);
       const { apiKey } = await createTestApiKey({ tenantId, projectId, agentId });
 
@@ -452,7 +452,7 @@ describe('API Key CRUD Routes - Integration Tests', () => {
     it('should return 404 for non-existent API key', async () => {
       const tenantId = await createTestTenantWithOrg('api-keys-delete-not-found');
       const projectId = 'default-project';
-      await createTestProject(dbClient, tenantId, projectId);
+      await createTestProject(manageDbClient, tenantId, projectId);
       const nonExistentId = `non-existent-${generateId()}`;
 
       const res = await makeRequest(
@@ -470,7 +470,7 @@ describe('API Key CRUD Routes - Integration Tests', () => {
       const tenantId2 = await createTestTenantWithOrg('api-keys-delete-tenant-2');
       const projectId = 'default-project';
 
-      await createTestProject(dbClient, tenantId1, projectId);
+      await createTestProject(manageDbClient, tenantId1, projectId);
       const { agentId } = await createtestAgentAndAgent(tenantId1, projectId);
       const { apiKey } = await createTestApiKey({ tenantId: tenantId1, projectId, agentId });
 
@@ -489,7 +489,7 @@ describe('API Key CRUD Routes - Integration Tests', () => {
   describe('Security', () => {
     it('should never expose keyHash in any response', async () => {
       const tenantId = await createTestTenantWithOrg('api-keys-security');
-      await createTestProject(dbClient, tenantId, 'default-project');
+      await createTestProject(manageDbClient, tenantId, 'default-project');
       const { agentId, projectId } = await createtestAgentAndAgent(tenantId);
       const { apiKey } = await createTestApiKey({ tenantId, projectId, agentId });
 
@@ -519,7 +519,7 @@ describe('API Key CRUD Routes - Integration Tests', () => {
 
     it('should only return full key once during creation', async () => {
       const tenantId = await createTestTenantWithOrg('api-keys-security-key-once');
-      await createTestProject(dbClient, tenantId, 'default-project');
+      await createTestProject(manageDbClient, tenantId, 'default-project');
       const { agentId, projectId } = await createtestAgentAndAgent(tenantId);
 
       // Create API key

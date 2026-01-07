@@ -1,7 +1,7 @@
 import { createTestProject } from '@inkeep/agents-core/db/test-manage-client';
 import { nanoid } from 'nanoid';
 import { describe, expect, it } from 'vitest';
-import dbClient from '../../../data/db/dbClient';
+import manageDbClient from '../../../data/db/dbClient';
 import { makeRequest } from '../../utils/testRequest';
 import { createTestExternalAgentData, createTestSubAgentData } from '../../utils/testSubAgent';
 import { createTestTenantWithOrg } from '../../utils/testTenant';
@@ -128,7 +128,7 @@ describe('Sub Agent External Agent Relations CRUD Routes - Integration Tests', (
   describe('POST /', () => {
     it('should create a new sub-agent external agent relation', async () => {
       const tenantId = await createTestTenantWithOrg('sub-agent-ext-relations-create-success');
-      await createTestProject(dbClient, tenantId, projectId);
+      await createTestProject(manageDbClient, tenantId, projectId);
       const { subAgentId, externalAgentId, agentId } = await setupTestEnvironment(tenantId);
 
       const relationData = {
@@ -158,7 +158,7 @@ describe('Sub Agent External Agent Relations CRUD Routes - Integration Tests', (
 
     it('should validate required fields', async () => {
       const tenantId = await createTestTenantWithOrg('sub-agent-ext-relations-create-validation');
-      await createTestProject(dbClient, tenantId, projectId);
+      await createTestProject(manageDbClient, tenantId, projectId);
       const { subAgentId, agentId } = await setupTestEnvironment(tenantId);
 
       const res = await makeRequest(
@@ -174,7 +174,7 @@ describe('Sub Agent External Agent Relations CRUD Routes - Integration Tests', (
 
     it('should create relation without headers', async () => {
       const tenantId = await createTestTenantWithOrg('sub-agent-ext-relations-no-headers');
-      await createTestProject(dbClient, tenantId, projectId);
+      await createTestProject(manageDbClient, tenantId, projectId);
       const { subAgentId, externalAgentId, agentId } = await setupTestEnvironment(tenantId);
 
       const relationData = {
@@ -200,7 +200,7 @@ describe('Sub Agent External Agent Relations CRUD Routes - Integration Tests', (
 
     it('should prevent duplicate relations', async () => {
       const tenantId = await createTestTenantWithOrg('sub-agent-ext-relations-duplicate');
-      await createTestProject(dbClient, tenantId, projectId);
+      await createTestProject(manageDbClient, tenantId, projectId);
       const { subAgentId, externalAgentId, agentId } = await setupTestEnvironment(tenantId);
 
       const relationData = {
@@ -233,7 +233,7 @@ describe('Sub Agent External Agent Relations CRUD Routes - Integration Tests', (
   describe('GET /', () => {
     it('should list sub-agent external agent relations with pagination (empty initially)', async () => {
       const tenantId = await createTestTenantWithOrg('sub-agent-ext-relations-list-empty');
-      await createTestProject(dbClient, tenantId, projectId);
+      await createTestProject(manageDbClient, tenantId, projectId);
       const { subAgentId, agentId } = await setupTestEnvironment(tenantId);
 
       const res = await makeRequest(
@@ -248,7 +248,7 @@ describe('Sub Agent External Agent Relations CRUD Routes - Integration Tests', (
 
     it('should list sub-agent external agent relations with pagination (single item)', async () => {
       const tenantId = await createTestTenantWithOrg('sub-agent-ext-relations-list-single');
-      await createTestProject(dbClient, tenantId, projectId);
+      await createTestProject(manageDbClient, tenantId, projectId);
       const { subAgentId, externalAgentId, agentId } = await setupTestEnvironment(tenantId);
 
       await createTestRelation({
@@ -274,7 +274,7 @@ describe('Sub Agent External Agent Relations CRUD Routes - Integration Tests', (
 
     it('should list multiple relations for same sub-agent', async () => {
       const tenantId = await createTestTenantWithOrg('sub-agent-ext-relations-list-multiple');
-      await createTestProject(dbClient, tenantId, projectId);
+      await createTestProject(manageDbClient, tenantId, projectId);
       const { subAgentId, externalAgentId, agentId } = await setupTestEnvironment(tenantId);
 
       // Create another external agent
@@ -311,7 +311,7 @@ describe('Sub Agent External Agent Relations CRUD Routes - Integration Tests', (
   describe('GET /{id}', () => {
     it('should get a sub-agent external agent relation by id', async () => {
       const tenantId = await createTestTenantWithOrg('sub-agent-ext-relations-get-by-id');
-      await createTestProject(dbClient, tenantId, projectId);
+      await createTestProject(manageDbClient, tenantId, projectId);
       const { subAgentId, externalAgentId, agentId } = await setupTestEnvironment(tenantId);
 
       const { relationId } = await createTestRelation({
@@ -338,7 +338,7 @@ describe('Sub Agent External Agent Relations CRUD Routes - Integration Tests', (
 
     it('should return 404 when relation not found', async () => {
       const tenantId = await createTestTenantWithOrg('sub-agent-ext-relations-get-not-found');
-      await createTestProject(dbClient, tenantId, projectId);
+      await createTestProject(manageDbClient, tenantId, projectId);
       const { subAgentId, agentId } = await setupTestEnvironment(tenantId);
 
       const res = await makeRequest(
@@ -351,7 +351,7 @@ describe('Sub Agent External Agent Relations CRUD Routes - Integration Tests', (
   describe('PUT /{id}', () => {
     it('should update an existing sub-agent external agent relation', async () => {
       const tenantId = await createTestTenantWithOrg('sub-agent-ext-relations-update-success');
-      await createTestProject(dbClient, tenantId, projectId);
+      await createTestProject(manageDbClient, tenantId, projectId);
       const { subAgentId, externalAgentId, agentId } = await setupTestEnvironment(tenantId);
 
       const { relationId } = await createTestRelation({
@@ -389,7 +389,7 @@ describe('Sub Agent External Agent Relations CRUD Routes - Integration Tests', (
       const tenantId = await createTestTenantWithOrg(
         'sub-agent-ext-relations-update-remove-headers'
       );
-      await createTestProject(dbClient, tenantId, projectId);
+      await createTestProject(manageDbClient, tenantId, projectId);
       const { subAgentId, externalAgentId, agentId } = await setupTestEnvironment(tenantId);
 
       const { relationId } = await createTestRelation({
@@ -420,7 +420,7 @@ describe('Sub Agent External Agent Relations CRUD Routes - Integration Tests', (
 
     it('should return 404 when updating non-existent relation', async () => {
       const tenantId = await createTestTenantWithOrg('sub-agent-ext-relations-update-not-found');
-      await createTestProject(dbClient, tenantId, projectId);
+      await createTestProject(manageDbClient, tenantId, projectId);
       const { subAgentId, agentId } = await setupTestEnvironment(tenantId);
 
       const updateData = { headers: { 'X-Test': 'value' } };
@@ -440,7 +440,7 @@ describe('Sub Agent External Agent Relations CRUD Routes - Integration Tests', (
   describe('DELETE /{id}', () => {
     it('should delete an existing sub-agent external agent relation', async () => {
       const tenantId = await createTestTenantWithOrg('sub-agent-ext-relations-delete-success');
-      await createTestProject(dbClient, tenantId, projectId);
+      await createTestProject(manageDbClient, tenantId, projectId);
       const { subAgentId, externalAgentId, agentId } = await setupTestEnvironment(tenantId);
 
       const { relationId } = await createTestRelation({
@@ -468,7 +468,7 @@ describe('Sub Agent External Agent Relations CRUD Routes - Integration Tests', (
 
     it('should return 404 when deleting non-existent relation', async () => {
       const tenantId = await createTestTenantWithOrg('sub-agent-ext-relations-delete-not-found');
-      await createTestProject(dbClient, tenantId, projectId);
+      await createTestProject(manageDbClient, tenantId, projectId);
       const { subAgentId, agentId } = await setupTestEnvironment(tenantId);
 
       const res = await makeRequest(

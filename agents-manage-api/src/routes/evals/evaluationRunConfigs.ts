@@ -13,21 +13,27 @@ import {
   SingleResponseSchema,
   TenantProjectParamsSchema,
   updateEvaluationRunConfig,
-  EvaluationRunConfigApiSelectSchema,
   EvaluationRunConfigApiInsertSchema,
   EvaluationRunConfigApiUpdateSchema,
+  EvaluationRunConfigWithSuiteConfigsApiSelectSchema,
+  EvaluationResultApiSelectSchema,
+  listEvaluationRuns,
+  listEvaluationResultsByRun,
+  getConversation,
+  getMessagesByConversation,
 } from '@inkeep/agents-core';
 import { z, createRoute, OpenAPIHono } from '@hono/zod-openapi';
-import manageDbClient from '../../data/db/manageDbClient';
 import { getLogger } from '../../logger';
+import type { BaseAppVariables } from '../../types/app';
+import runDbClient from '../../data/db/runDbClient';
 
-const app = new OpenAPIHono();
+const app = new OpenAPIHono<{ Variables: BaseAppVariables }>();
 const logger = getLogger('evaluationRunConfigs');
 
 app.openapi(
   createRoute({
     method: 'get',
-    path: '/evaluation-run-configs',
+    path: '/',
     summary: 'List Evaluation Run Configs',
     operationId: 'list-evaluation-run-configs',
     tags: ['Evaluations'],
@@ -39,7 +45,7 @@ app.openapi(
         description: 'List of evaluation run configs',
         content: {
           'application/json': {
-            schema: ListResponseSchema(EvaluationRunConfigApiSelectSchema),
+            schema: ListResponseSchema(EvaluationRunConfigWithSuiteConfigsApiSelectSchema),
           },
         },
       },
@@ -47,10 +53,11 @@ app.openapi(
     },
   }),
   async (c) => {
+    const db = c.get('db');
     const { tenantId, projectId } = c.req.valid('param');
 
     try {
-      const configs = await listEvaluationRunConfigs(manageDbClient)({
+      const configs = await listEvaluationRunConfigs(db)({
         scopes: { tenantId, projectId },
       });
 
@@ -58,7 +65,7 @@ app.openapi(
       const configsWithSuiteConfigs = await Promise.all(
         configs.map(async (config) => {
           const suiteConfigRelations = await getEvaluationRunConfigEvaluationSuiteConfigRelations(
-            manageDbClient
+            db
           )({
             scopes: { tenantId, projectId, evaluationRunConfigId: config.id },
           });
@@ -94,7 +101,7 @@ app.openapi(
 app.openapi(
   createRoute({
     method: 'get',
-    path: '/evaluation-run-configs/{configId}',
+    path: '/{configId}',
     summary: 'Get Evaluation Run Config by ID',
     operationId: 'get-evaluation-run-config',
     tags: ['Evaluations'],
@@ -106,7 +113,7 @@ app.openapi(
         description: 'Evaluation run config details',
         content: {
           'application/json': {
-            schema: SingleResponseSchema(EvaluationRunConfigApiSelectSchema),
+            schema: SingleResponseSchema(EvaluationRunConfigWithSuiteConfigsApiSelectSchema),
           },
         },
       },
@@ -114,10 +121,11 @@ app.openapi(
     },
   }),
   async (c) => {
+    const db = c.get('db');
     const { tenantId, projectId, configId } = c.req.valid('param');
 
     try {
-      const config = await getEvaluationRunConfigById(manageDbClient)({
+      const config = await getEvaluationRunConfigById(db)({
         scopes: { tenantId, projectId, evaluationRunConfigId: configId },
       });
 
@@ -130,7 +138,7 @@ app.openapi(
 
       // Get linked suite configs
       const suiteConfigRelations = await getEvaluationRunConfigEvaluationSuiteConfigRelations(
-        manageDbClient
+        db
       )({
         scopes: { tenantId, projectId, evaluationRunConfigId: configId },
       });
@@ -139,7 +147,7 @@ app.openapi(
         data: {
           ...config,
           suiteConfigIds: suiteConfigRelations.map((rel) => rel.evaluationSuiteConfigId),
-        } as any,
+        },
       }) as any;
     } catch (error) {
       logger.error({ error, tenantId, projectId, configId }, 'Failed to get evaluation run config');
@@ -154,10 +162,171 @@ app.openapi(
   }
 );
 
+
+app.openapi(
+  createRoute({
+    method: 'get',
+    path: '/{configId}/results',
+    summary: 'Get Evaluation Results by Run Config ID',
+    operationId: 'get-evaluation-run-config-results',
+    tags: ['Evaluations'],
+    request: {
+      params: TenantProjectParamsSchema.extend({ configId: z.string() }),
+    },
+    responses: {
+      200: {
+        description: 'Evaluation results retrieved',
+        content: {
+          'application/json': {
+            schema: ListResponseSchema(EvaluationResultApiSelectSchema),
+          },
+        },
+      },
+      ...commonGetErrorResponses,
+    },
+  }),
+  async (c) => {
+    const { tenantId, projectId, configId } = c.req.valid('param');
+
+    console.log('=== GET EVALUATION RESULTS FOR RUN CONFIG ===');
+    console.log('Request params:', { tenantId, projectId, configId });
+
+    try {
+      // Find evaluation run(s) for this run config
+      const evaluationRuns = await listEvaluationRuns(runDbClient)({
+        scopes: { tenantId, projectId },
+      });
+
+      const runConfigRuns = evaluationRuns.filter((run) => run.evaluationRunConfigId === configId);
+
+      console.log('Found evaluation runs for run config:', {
+        tenantId,
+        projectId,
+        configId,
+        totalEvaluationRuns: evaluationRuns.length,
+        matchingRunConfigRuns: runConfigRuns.length,
+        runConfigRunIds: runConfigRuns.map((r) => r.id),
+        allEvaluationRunConfigIds: evaluationRuns.map((r) => ({
+          id: r.id,
+          evaluationRunConfigId: r.evaluationRunConfigId,
+        })),
+      });
+
+      if (runConfigRuns.length === 0) {
+        console.warn('No evaluation runs found for run config:', {
+          tenantId,
+          projectId,
+          configId,
+          totalEvaluationRuns: evaluationRuns.length,
+        });
+        return c.json({ data: [], pagination: { page: 1, limit: 100, total: 0, pages: 0 } }) as any;
+      }
+
+      // Get all results for all runs
+      const allResults = await Promise.all(
+        runConfigRuns.map(async (run) => {
+          const runResults = await listEvaluationResultsByRun(runDbClient)({
+            scopes: { tenantId, projectId, evaluationRunId: run.id },
+          });
+          console.log('Results for evaluation run:', {
+            evaluationRunId: run.id,
+            resultCount: runResults.length,
+            conversationIds: runResults.map((r) => r.conversationId),
+            evaluatorIds: runResults.map((r) => r.evaluatorId),
+          });
+          return runResults;
+        })
+      );
+
+      const results = allResults.flat();
+
+      console.log('Retrieved evaluation results for run config:', {
+        tenantId,
+        projectId,
+        configId,
+        resultCount: results.length,
+        evaluationRunCount: runConfigRuns.length,
+        uniqueConversationIds: [...new Set(results.map((r) => r.conversationId))],
+        allResults: results.map((r) => ({
+          id: r.id,
+          conversationId: r.conversationId,
+          evaluatorId: r.evaluatorId,
+          evaluationRunId: r.evaluationRunId,
+        })),
+      });
+
+      const uniqueConversationIds = [...new Set(results.map((r) => r.conversationId))] as string[];
+      const conversationInputs = new Map<string, string>();
+      const conversationAgents = new Map<string, string>();
+
+      await Promise.all(
+        uniqueConversationIds.map(async (conversationId: string) => {
+          try {
+            // Fetch conversation to get sub-agent ID, then look up parent agent ID
+            const conversation = await getConversation(runDbClient)({
+              scopes: { tenantId, projectId },
+              conversationId,
+            });
+            if (conversation?.agentId) {
+              conversationAgents.set(conversationId, conversation.agentId);
+            }
+
+            const messages = await getMessagesByConversation(runDbClient)({
+              scopes: { tenantId, projectId },
+              conversationId,
+              pagination: { page: 1, limit: 10 },
+            });
+
+            const messagesChronological = [...messages].reverse();
+            const firstUserMessage = messagesChronological.find((msg) => msg.role === 'user');
+            if (firstUserMessage?.content) {
+              const text =
+                typeof firstUserMessage.content === 'string'
+                  ? firstUserMessage.content
+                  : firstUserMessage.content.text || '';
+              conversationInputs.set(conversationId, text);
+            }
+          } catch (error) {
+            logger.warn({ error, conversationId }, 'Failed to fetch conversation input');
+          }
+        })
+      );
+
+      const enrichedResults = results.map((result) => ({
+        ...result,
+        input: conversationInputs.get(result.conversationId) || null,
+        agentId: conversationAgents.get(result.conversationId) || null,
+      }));
+
+      return c.json({
+        data: enrichedResults as any[],
+        pagination: {
+          page: 1,
+          limit: enrichedResults.length,
+          total: enrichedResults.length,
+          pages: 1,
+        },
+      }) as any;
+    } catch (error) {
+      logger.error(
+        { error, tenantId, projectId, configId },
+        'Failed to get evaluation results for run config'
+      );
+      return c.json(
+        createApiError({
+          code: 'internal_server_error',
+          message: 'Failed to get evaluation results',
+        }),
+        500
+      );
+    }
+  }
+);
+
 app.openapi(
   createRoute({
     method: 'post',
-    path: '/evaluation-run-configs',
+    path: '/',
     summary: 'Create Evaluation Run Config',
     operationId: 'create-evaluation-run-config',
     tags: ['Evaluations'],
@@ -176,7 +345,7 @@ app.openapi(
         description: 'Evaluation run config created',
         content: {
           'application/json': {
-            schema: SingleResponseSchema(EvaluationRunConfigApiSelectSchema),
+            schema: SingleResponseSchema(EvaluationRunConfigWithSuiteConfigsApiSelectSchema),
           },
         },
       },
@@ -184,13 +353,14 @@ app.openapi(
     },
   }),
   async (c) => {
+    const db = c.get('db');
     const { tenantId, projectId } = c.req.valid('param');
     const configData = c.req.valid('json') as any;
     const { suiteConfigIds, ...runConfigData } = configData;
 
     try {
       const id = runConfigData.id || generateId();
-      const created = await createEvaluationRunConfig(manageDbClient)({
+      const created = await createEvaluationRunConfig(db)({
         ...runConfigData,
         id,
         tenantId,
@@ -202,7 +372,7 @@ app.openapi(
       if (suiteConfigIds && Array.isArray(suiteConfigIds) && suiteConfigIds.length > 0) {
         await Promise.all(
           suiteConfigIds.map((suiteConfigId: string) =>
-            createEvaluationRunConfigEvaluationSuiteConfigRelation(manageDbClient)({
+            createEvaluationRunConfigEvaluationSuiteConfigRelation(db)({
               tenantId,
               projectId,
               id: generateId(),
@@ -215,7 +385,7 @@ app.openapi(
 
       // Fetch suite config relations to include in response
       const suiteConfigRelations = await getEvaluationRunConfigEvaluationSuiteConfigRelations(
-        manageDbClient
+        db
       )({
         scopes: { tenantId, projectId, evaluationRunConfigId: id },
       });
@@ -249,7 +419,7 @@ app.openapi(
 app.openapi(
   createRoute({
     method: 'patch',
-    path: '/evaluation-run-configs/{configId}',
+    path: '/{configId}',
     summary: 'Update Evaluation Run Config',
     operationId: 'update-evaluation-run-config',
     tags: ['Evaluations'],
@@ -268,7 +438,7 @@ app.openapi(
         description: 'Evaluation run config updated',
         content: {
           'application/json': {
-            schema: SingleResponseSchema(EvaluationRunConfigApiSelectSchema),
+            schema: SingleResponseSchema(EvaluationRunConfigWithSuiteConfigsApiSelectSchema),
           },
         },
       },
@@ -276,12 +446,13 @@ app.openapi(
     },
   }),
   async (c) => {
+    const db = c.get('db');
     const { tenantId, projectId, configId } = c.req.valid('param');
     const configData = c.req.valid('json') as any;
     const { suiteConfigIds, ...runConfigUpdateData } = configData;
 
     try {
-      const updated = await updateEvaluationRunConfig(manageDbClient)({
+      const updated = await updateEvaluationRunConfig(db)({
         scopes: { tenantId, projectId, evaluationRunConfigId: configId },
         data: runConfigUpdateData,
       });
@@ -297,7 +468,7 @@ app.openapi(
       if (suiteConfigIds !== undefined) {
         // Get existing relations
         const existingRelations = await getEvaluationRunConfigEvaluationSuiteConfigRelations(
-          manageDbClient
+          db
         )({
           scopes: { tenantId, projectId, evaluationRunConfigId: configId },
         });
@@ -309,7 +480,7 @@ app.openapi(
         const toDelete = existingSuiteConfigIds.filter((id) => !newSuiteConfigIds.includes(id));
         await Promise.all(
           toDelete.map((suiteConfigId) =>
-            deleteEvaluationRunConfigEvaluationSuiteConfigRelation(manageDbClient)({
+            deleteEvaluationRunConfigEvaluationSuiteConfigRelation(db)({
               scopes: {
                 tenantId,
                 projectId,
@@ -324,7 +495,7 @@ app.openapi(
         const toCreate = newSuiteConfigIds.filter((id) => !existingSuiteConfigIds.includes(id));
         await Promise.all(
           toCreate.map((suiteConfigId) =>
-            createEvaluationRunConfigEvaluationSuiteConfigRelation(manageDbClient)({
+            createEvaluationRunConfigEvaluationSuiteConfigRelation(db)({
               tenantId,
               projectId,
               id: generateId(),
@@ -337,7 +508,7 @@ app.openapi(
 
       // Fetch suite config relations to include in response
       const suiteConfigRelations = await getEvaluationRunConfigEvaluationSuiteConfigRelations(
-        manageDbClient
+        db
       )({
         scopes: { tenantId, projectId, evaluationRunConfigId: configId },
       });
@@ -368,7 +539,7 @@ app.openapi(
 app.openapi(
   createRoute({
     method: 'delete',
-    path: '/evaluation-run-configs/{configId}',
+    path: '/{configId}',
     summary: 'Delete Evaluation Run Config',
     operationId: 'delete-evaluation-run-config',
     tags: ['Evaluations'],
@@ -383,10 +554,11 @@ app.openapi(
     },
   }),
   async (c) => {
+    const db = c.get('db');
     const { tenantId, projectId, configId } = c.req.valid('param');
 
     try {
-      const deleted = await deleteEvaluationRunConfig(manageDbClient)({
+      const deleted = await deleteEvaluationRunConfig(db)({
         scopes: { tenantId, projectId, evaluationRunConfigId: configId },
       });
 

@@ -9,7 +9,7 @@ import { pinoLogger } from 'hono-pino';
 import { getLogger } from './logger';
 import { apiKeyAuth } from './middleware/auth';
 import { setupOpenAPIRoutes } from './openapi';
-import evaluationsRoutes from './routes/evaluations';
+import triggerRoutes from './routes/index';
 import { workflowRoutes } from './workflow/routes';
 
 const logger = getLogger('agents-eval-api');
@@ -182,7 +182,7 @@ function createEvaluationHono() {
   app.use('/tenants/*', apiKeyAuth());
 
   // Mount evaluation routes under tenant scope
-  app.route('/tenants/:tenantId/projects/:projectId/evaluations', evaluationsRoutes);
+  app.route('/tenants/:tenantId/projects/:projectId/', triggerRoutes);
 
   // Mount workflow routes for internal workflow execution
   // The postgres world's internal local world calls these endpoints
@@ -195,7 +195,7 @@ function createEvaluationHono() {
   app.post('/index', async (c) => {
     const originalUrl = new URL(c.req.url);
     const bodyBuffer = await c.req.arrayBuffer();
-    
+
     // Always forward to /flow - the dispatcher in routes.ts handles flow/step routing
     const targetUrl = new URL('/.well-known/workflow/v1/flow', originalUrl.origin);
 

@@ -10,6 +10,7 @@ export * from './manage/artifactComponents';
 export * from './manage/contextConfigs';
 export * from './manage/credentialReferences';
 export * from './manage/dataComponents';
+export * from './manage/evalConfig';
 export * from './manage/externalAgents';
 export * from './manage/functions';
 export * from './manage/functionTools';
@@ -21,19 +22,18 @@ export * from './manage/subAgentRelations';
 export * from './manage/subAgents';
 export * from './manage/subAgentTeamAgentRelations';
 export * from './manage/tools';
-export * from './manage/evalConfig';
 
 // Runtime data access (Postgres - not versioned)
 export * from './runtime/apiKeys';
 export * from './runtime/cascade-delete';
 export * from './runtime/contextCache';
 export * from './runtime/conversations';
+export * from './runtime/evalRuns';
 export * from './runtime/ledgerArtifacts';
 export * from './runtime/messages';
 export * from './runtime/organizations';
 export * from './runtime/projects';
 export * from './runtime/tasks';
 export * from './runtime/users';
-export * from './runtime/evalRuns';
 
 export * from './validation';

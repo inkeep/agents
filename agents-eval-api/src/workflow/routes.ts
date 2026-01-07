@@ -93,8 +93,10 @@ async function dispatchFlowOrStep(c: any) {
     body: bodyBuf,
   });
 
-  const flow = flowHandler?.POST || flowHandler?.default?.POST || flowHandler?.default || flowHandler;
-  const step = stepHandler?.POST || stepHandler?.default?.POST || stepHandler?.default || stepHandler;
+  const flow =
+    flowHandler?.POST || flowHandler?.default?.POST || flowHandler?.default || flowHandler;
+  const step =
+    stepHandler?.POST || stepHandler?.default?.POST || stepHandler?.default || stepHandler;
 
   const handler = isStep ? step : flow;
   if (typeof handler !== 'function') {

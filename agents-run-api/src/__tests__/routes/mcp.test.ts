@@ -3,7 +3,12 @@ import * as execModule from '../../handlers/executionHandler';
 import { makeRequest } from '../utils/testRequest';
 
 // Mock context exports used by the MCP route (routes/mcp.ts imports from ../context)
-const { contextValidationMiddlewareMock, handleContextResolutionMock } = vi.hoisted(() => ({
+const {
+  contextValidationMiddlewareMock,
+  handleContextResolutionMock,
+  getFullProjectMock,
+  getResolvedRefMock,
+} = vi.hoisted(() => ({
   contextValidationMiddlewareMock: vi.fn().mockImplementation(async (c: any, next: any) => {
     c.set('validatedContext', {
       agentId: 'test-agent',
@@ -13,29 +18,19 @@ const { contextValidationMiddlewareMock, handleContextResolutionMock } = vi.hois
     await next();
   }),
   handleContextResolutionMock: vi.fn().mockResolvedValue({}),
+  // Mock Management API calls used by projectConfigMiddleware so tests don't hit network
+  getFullProjectMock: vi.fn(),
+  getResolvedRefMock: vi.fn().mockResolvedValue({
+    type: 'branch',
+    name: 'main',
+    hash: 'test-hash',
+  }),
 }));
 
 vi.mock('../../context', () => ({
   contextValidationMiddleware: contextValidationMiddlewareMock,
   handleContextResolution: handleContextResolutionMock,
 }));
-
-// Mock Management API calls used by projectConfigMiddleware so tests don't hit network
-const getFullProjectMock = vi.fn();
-vi.mock('../../api/manage-api', async (importOriginal) => {
-  const actual = await importOriginal<typeof import('../../../../packages/agents-core/src/utils/manage-api-client')>();
-  return {
-    ...actual,
-    getResolvedRef: vi.fn().mockImplementation(() =>
-      vi.fn().mockResolvedValue({
-        type: 'branch',
-        name: 'main',
-        hash: 'test-hash',
-      })
-    ),
-    getFullProject: vi.fn().mockImplementation(() => getFullProjectMock),
-  };
-});
 
 // Mock toReqRes to convert fetch request to node request/response
 vi.mock('fetch-to-node', () => ({
@@ -128,6 +123,11 @@ vi.mock('@inkeep/agents-core', async (importOriginal) => {
   const actual = await importOriginal<typeof import('@inkeep/agents-core')>();
   return {
     ...actual,
+    // Mock ManagementApiClient for projectConfigMiddleware
+    ManagementApiClient: vi.fn().mockImplementation(() => ({
+      getResolvedRef: getResolvedRefMock,
+      getFullProject: getFullProjectMock,
+    })),
     getAgentWithDefaultSubAgent: vi.fn().mockReturnValue(
       vi.fn().mockResolvedValue({
         id: 'test-agent',

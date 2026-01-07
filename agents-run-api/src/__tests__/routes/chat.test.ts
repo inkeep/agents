@@ -39,20 +39,6 @@ vi.mock('../../context', () => ({
 
 // Mock Management API calls used by projectConfigMiddleware so tests don't hit network
 const getFullProjectMock = vi.fn();
-vi.mock('../../api/manage-api', async (importOriginal) => {
-  const actual = await importOriginal<typeof import('../../../../packages/agents-core/src/utils/manage-api-client')>();
-  return {
-    ...actual,
-    getResolvedRef: vi.fn().mockImplementation(() =>
-      vi.fn().mockResolvedValue({
-        type: 'branch',
-        name: 'main',
-        hash: 'test-hash',
-      })
-    ),
-    getFullProject: vi.fn().mockImplementation(() => getFullProjectMock),
-  };
-});
 
 // Mock @inkeep/agents-core functions that are used by the chat routes
 // This mock is merged with the one below
@@ -138,6 +124,15 @@ vi.mock('@inkeep/agents-core', async (importOriginal) => {
   const actual = await importOriginal<typeof import('@inkeep/agents-core')>();
   return {
     ...actual,
+    // Mock ManagementApiClient for projectConfigMiddleware
+    ManagementApiClient: vi.fn().mockImplementation(() => ({
+      getResolvedRef: vi.fn().mockResolvedValue({
+        type: 'branch',
+        name: 'main',
+        hash: 'test-hash',
+      }),
+      getFullProject: getFullProjectMock,
+    })),
     createOrGetConversation: vi.fn().mockReturnValue(
       vi.fn().mockResolvedValue({
         id: 'conv-123',
@@ -231,6 +226,7 @@ describe('Chat Routes', () => {
           updatedAt: new Date().toISOString(),
           contextConfigId: null,
           contextConfig: null,
+          statusUpdates: { enabled: false },
         },
       },
       tools: {},

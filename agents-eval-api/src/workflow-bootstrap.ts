@@ -23,7 +23,11 @@ import * as worldLocal from '@workflow/world-local';
 import * as worldPostgres from '@workflow/world-postgres';
 import * as worldVercel from '@workflow/world-vercel';
 
-if (typeof worldLocal === 'undefined' || typeof worldPostgres === 'undefined' || typeof worldVercel === 'undefined') {
+if (
+  typeof worldLocal === 'undefined' ||
+  typeof worldPostgres === 'undefined' ||
+  typeof worldVercel === 'undefined'
+) {
   throw new Error('Workflow worlds not loaded');
 }
 console.log('[workflow-bootstrap] Workflow worlds loaded:', {

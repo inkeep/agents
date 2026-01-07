@@ -59,6 +59,52 @@ import type {
   DataComponentInsertSchema,
   DataComponentSelectSchema,
   DataComponentUpdateSchema,
+  DatasetInsertSchema,
+  DatasetItemInsertSchema,
+  DatasetItemSelectSchema,
+  DatasetItemUpdateSchema,
+  DatasetRunConfigAgentRelationInsertSchema,
+  DatasetRunConfigAgentRelationSelectSchema,
+  DatasetRunConfigAgentRelationUpdateSchema,
+  DatasetRunConfigInsertSchema,
+  DatasetRunConfigSelectSchema,
+  DatasetRunConfigUpdateSchema,
+  DatasetRunConversationRelationInsertSchema,
+  DatasetRunConversationRelationSelectSchema,
+  DatasetRunConversationRelationUpdateSchema,
+  DatasetRunInsertSchema,
+  DatasetRunSelectSchema,
+  DatasetRunUpdateSchema,
+  DatasetSelectSchema,
+  DatasetUpdateSchema,
+  EvaluationJobConfigEvaluatorRelationInsertSchema,
+  EvaluationJobConfigEvaluatorRelationSelectSchema,
+  EvaluationJobConfigEvaluatorRelationUpdateSchema,
+  EvaluationJobConfigInsertSchema,
+  EvaluationJobConfigSelectSchema,
+  EvaluationJobConfigUpdateSchema,
+  EvaluationResultInsertSchema,
+  EvaluationResultSelectSchema,
+  EvaluationResultUpdateSchema,
+  EvaluationRunConfigEvaluationSuiteConfigRelationInsertSchema,
+  EvaluationRunConfigEvaluationSuiteConfigRelationSelectSchema,
+  EvaluationRunConfigEvaluationSuiteConfigRelationUpdateSchema,
+  EvaluationRunConfigInsertSchema,
+  EvaluationRunConfigSelectSchema,
+  EvaluationRunConfigUpdateSchema,
+  EvaluationRunConfigWithSuiteConfigsApiSelectSchema,
+  EvaluationRunInsertSchema,
+  EvaluationRunSelectSchema,
+  EvaluationRunUpdateSchema,
+  EvaluationSuiteConfigEvaluatorRelationInsertSchema,
+  EvaluationSuiteConfigEvaluatorRelationSelectSchema,
+  EvaluationSuiteConfigEvaluatorRelationUpdateSchema,
+  EvaluationSuiteConfigInsertSchema,
+  EvaluationSuiteConfigSelectSchema,
+  EvaluationSuiteConfigUpdateSchema,
+  EvaluatorInsertSchema,
+  EvaluatorSelectSchema,
+  EvaluatorUpdateSchema,
   ExternalAgentApiInsertSchema,
   ExternalAgentApiSelectSchema,
   ExternalAgentApiUpdateSchema,
@@ -168,59 +214,24 @@ import type {
   ToolInsertSchema,
   ToolSelectSchema,
   ToolUpdateSchema,
-  DatasetRunSelectSchema,
-  DatasetRunInsertSchema,
-  DatasetRunUpdateSchema,
-  DatasetRunConversationRelationSelectSchema,
-  DatasetRunConversationRelationInsertSchema,
-  DatasetRunConversationRelationUpdateSchema,
-  EvaluationResultSelectSchema,
-  EvaluationResultInsertSchema,
-  EvaluationResultUpdateSchema,
-  EvaluationRunSelectSchema,
-  EvaluationRunInsertSchema,
-  EvaluationRunUpdateSchema,
-  EvaluationRunConfigSelectSchema,
-  EvaluationRunConfigInsertSchema,
-  EvaluationRunConfigUpdateSchema,
-  EvaluationJobConfigSelectSchema,
-  EvaluationJobConfigInsertSchema,
-  EvaluationJobConfigUpdateSchema,
-  EvaluationSuiteConfigSelectSchema,
-  EvaluationSuiteConfigInsertSchema,
-  EvaluationSuiteConfigUpdateSchema,
-  EvaluationRunConfigEvaluationSuiteConfigRelationSelectSchema,
-  EvaluationRunConfigEvaluationSuiteConfigRelationInsertSchema,
-  EvaluationRunConfigEvaluationSuiteConfigRelationUpdateSchema,
-  EvaluationJobConfigEvaluatorRelationSelectSchema,
-  EvaluationJobConfigEvaluatorRelationInsertSchema,
-  EvaluationJobConfigEvaluatorRelationUpdateSchema,
-  EvaluationSuiteConfigEvaluatorRelationSelectSchema,
-  EvaluationSuiteConfigEvaluatorRelationInsertSchema,
-  EvaluationSuiteConfigEvaluatorRelationUpdateSchema,
-  EvaluatorSelectSchema,
-  EvaluatorInsertSchema,
-  EvaluatorUpdateSchema,
-  DatasetSelectSchema,
-  DatasetInsertSchema,
-  DatasetUpdateSchema,
-  DatasetItemSelectSchema,
-  DatasetItemInsertSchema,
-  DatasetItemUpdateSchema,
-  DatasetRunConfigAgentRelationUpdateSchema,
-  DatasetRunConfigAgentRelationSelectSchema,
-  DatasetRunConfigAgentRelationInsertSchema,
-  DatasetRunConfigSelectSchema,
-  DatasetRunConfigInsertSchema,
-  DatasetRunConfigUpdateSchema,
+  TriggerBatchConversationEvaluationSchema,
+  TriggerConversationEvaluationSchema,
+  TriggerDatasetRunSchema,
+  TriggerEvaluationJobSchema,
 } from '../validation/schemas';
 
 export type DatasetRunSelect = z.infer<typeof DatasetRunSelectSchema>;
 export type DatasetRunInsert = z.infer<typeof DatasetRunInsertSchema>;
 export type DatasetRunUpdate = z.infer<typeof DatasetRunUpdateSchema>;
-export type DatasetRunConversationRelationSelect = z.infer<typeof DatasetRunConversationRelationSelectSchema>;
-export type DatasetRunConversationRelationInsert = z.infer<typeof DatasetRunConversationRelationInsertSchema>;
-export type DatasetRunConversationRelationUpdate = z.infer<typeof DatasetRunConversationRelationUpdateSchema>;
+export type DatasetRunConversationRelationSelect = z.infer<
+  typeof DatasetRunConversationRelationSelectSchema
+>;
+export type DatasetRunConversationRelationInsert = z.infer<
+  typeof DatasetRunConversationRelationInsertSchema
+>;
+export type DatasetRunConversationRelationUpdate = z.infer<
+  typeof DatasetRunConversationRelationUpdateSchema
+>;
 
 export type EvaluationResultSelect = z.infer<typeof EvaluationResultSelectSchema>;
 export type EvaluationResultInsert = z.infer<typeof EvaluationResultInsertSchema>;
@@ -232,6 +243,9 @@ export type EvaluationRunUpdate = z.infer<typeof EvaluationRunUpdateSchema>;
 export type EvaluationRunConfigSelect = z.infer<typeof EvaluationRunConfigSelectSchema>;
 export type EvaluationRunConfigInsert = z.infer<typeof EvaluationRunConfigInsertSchema>;
 export type EvaluationRunConfigUpdate = z.infer<typeof EvaluationRunConfigUpdateSchema>;
+export type EvaluationRunConfigWithSuiteConfigs = z.infer<
+  typeof EvaluationRunConfigWithSuiteConfigsApiSelectSchema
+>;
 export type EvaluationJobConfigSelect = z.infer<typeof EvaluationJobConfigSelectSchema>;
 export type EvaluationJobConfigInsert = z.infer<typeof EvaluationJobConfigInsertSchema>;
 export type EvaluationJobConfigUpdate = z.infer<typeof EvaluationJobConfigUpdateSchema>;
@@ -239,15 +253,33 @@ export type EvaluationSuiteConfigSelect = z.infer<typeof EvaluationSuiteConfigSe
 export type EvaluationSuiteConfigInsert = z.infer<typeof EvaluationSuiteConfigInsertSchema>;
 export type EvaluationSuiteConfigUpdate = z.infer<typeof EvaluationSuiteConfigUpdateSchema>;
 
-export type EvaluationRunConfigEvaluationSuiteConfigRelationSelect = z.infer<typeof EvaluationRunConfigEvaluationSuiteConfigRelationSelectSchema>;
-export type EvaluationRunConfigEvaluationSuiteConfigRelationInsert = z.infer<typeof EvaluationRunConfigEvaluationSuiteConfigRelationInsertSchema>;
-export type EvaluationRunConfigEvaluationSuiteConfigRelationUpdate = z.infer<typeof EvaluationRunConfigEvaluationSuiteConfigRelationUpdateSchema>;
-export type EvaluationJobConfigEvaluatorRelationSelect = z.infer<typeof EvaluationJobConfigEvaluatorRelationSelectSchema>;
-export type EvaluationJobConfigEvaluatorRelationInsert = z.infer<typeof EvaluationJobConfigEvaluatorRelationInsertSchema>;
-export type EvaluationJobConfigEvaluatorRelationUpdate = z.infer<typeof EvaluationJobConfigEvaluatorRelationUpdateSchema>;
-export type EvaluationSuiteConfigEvaluatorRelationSelect = z.infer<typeof EvaluationSuiteConfigEvaluatorRelationSelectSchema>;
-export type EvaluationSuiteConfigEvaluatorRelationInsert = z.infer<typeof EvaluationSuiteConfigEvaluatorRelationInsertSchema>;
-export type EvaluationSuiteConfigEvaluatorRelationUpdate = z.infer<typeof EvaluationSuiteConfigEvaluatorRelationUpdateSchema>;
+export type EvaluationRunConfigEvaluationSuiteConfigRelationSelect = z.infer<
+  typeof EvaluationRunConfigEvaluationSuiteConfigRelationSelectSchema
+>;
+export type EvaluationRunConfigEvaluationSuiteConfigRelationInsert = z.infer<
+  typeof EvaluationRunConfigEvaluationSuiteConfigRelationInsertSchema
+>;
+export type EvaluationRunConfigEvaluationSuiteConfigRelationUpdate = z.infer<
+  typeof EvaluationRunConfigEvaluationSuiteConfigRelationUpdateSchema
+>;
+export type EvaluationJobConfigEvaluatorRelationSelect = z.infer<
+  typeof EvaluationJobConfigEvaluatorRelationSelectSchema
+>;
+export type EvaluationJobConfigEvaluatorRelationInsert = z.infer<
+  typeof EvaluationJobConfigEvaluatorRelationInsertSchema
+>;
+export type EvaluationJobConfigEvaluatorRelationUpdate = z.infer<
+  typeof EvaluationJobConfigEvaluatorRelationUpdateSchema
+>;
+export type EvaluationSuiteConfigEvaluatorRelationSelect = z.infer<
+  typeof EvaluationSuiteConfigEvaluatorRelationSelectSchema
+>;
+export type EvaluationSuiteConfigEvaluatorRelationInsert = z.infer<
+  typeof EvaluationSuiteConfigEvaluatorRelationInsertSchema
+>;
+export type EvaluationSuiteConfigEvaluatorRelationUpdate = z.infer<
+  typeof EvaluationSuiteConfigEvaluatorRelationUpdateSchema
+>;
 export type EvaluatorSelect = z.infer<typeof EvaluatorSelectSchema>;
 export type EvaluatorInsert = z.infer<typeof EvaluatorInsertSchema>;
 export type EvaluatorUpdate = z.infer<typeof EvaluatorUpdateSchema>;
@@ -260,9 +292,23 @@ export type DatasetItemUpdate = z.infer<typeof DatasetItemUpdateSchema>;
 export type DatasetRunConfigSelect = z.infer<typeof DatasetRunConfigSelectSchema>;
 export type DatasetRunConfigInsert = z.infer<typeof DatasetRunConfigInsertSchema>;
 export type DatasetRunConfigUpdate = z.infer<typeof DatasetRunConfigUpdateSchema>;
-export type DatasetRunConfigAgentRelationSelect = z.infer<typeof DatasetRunConfigAgentRelationSelectSchema>;
-export type DatasetRunConfigAgentRelationInsert = z.infer<typeof DatasetRunConfigAgentRelationInsertSchema>;
-export type DatasetRunConfigAgentRelationUpdate = z.infer<typeof DatasetRunConfigAgentRelationUpdateSchema>;
+export type DatasetRunConfigAgentRelationSelect = z.infer<
+  typeof DatasetRunConfigAgentRelationSelectSchema
+>;
+export type DatasetRunConfigAgentRelationInsert = z.infer<
+  typeof DatasetRunConfigAgentRelationInsertSchema
+>;
+export type DatasetRunConfigAgentRelationUpdate = z.infer<
+  typeof DatasetRunConfigAgentRelationUpdateSchema
+>;
+export type TriggerDatasetRunRequest = z.infer<typeof TriggerDatasetRunSchema>;
+export type TriggerConversationEvaluationRequest = z.infer<
+  typeof TriggerConversationEvaluationSchema
+>;
+export type TriggerBatchConversationEvaluationRequest = z.infer<
+  typeof TriggerBatchConversationEvaluationSchema
+>;
+export type TriggerEvaluationJobRequest = z.infer<typeof TriggerEvaluationJobSchema>;
 
 export type SubAgentSelect = z.infer<typeof SubAgentSelectSchema>;
 export type SubAgentInsert = z.infer<typeof SubAgentInsertSchema>;

@@ -269,7 +269,6 @@ export const contextCache = pgTable(
   ]
 );
 
-
 /**
  * Execution of a suite of items from a dataset. Represents a batch run that
  * processes dataset items and creates conversations (basically a batch run of conversations). Tracks the execution
@@ -292,9 +291,7 @@ export const datasetRun = pgTable(
     evaluationJobConfigId: text('evaluation_job_config_id'),
     ...timestamps,
   },
-  (table) => [
-    primaryKey({ columns: [table.tenantId, table.projectId, table.id] })
-  ]
+  (table) => [primaryKey({ columns: [table.tenantId, table.projectId, table.id] })]
 );
 
 /**
@@ -336,7 +333,6 @@ export const datasetRunConversationRelations = pgTable(
   ]
 );
 
-
 /**
  * Record created when an evaluation job config or evaluation run config is triggered.
  * Represents a completed evaluation run. Links to the evaluationJobConfig (if created from a job)
@@ -356,11 +352,8 @@ export const evaluationRun = pgTable(
     evaluationRunConfigId: text('evaluation_run_config_id'), // Optional: if created from a run config
     ...timestamps,
   },
-  (table) => [
-    primaryKey({ columns: [table.tenantId, table.projectId, table.id] })
-  ]
+  (table) => [primaryKey({ columns: [table.tenantId, table.projectId, table.id] })]
 );
-
 
 /**
  * Stores the result of evaluating a conversation with a specific evaluator.

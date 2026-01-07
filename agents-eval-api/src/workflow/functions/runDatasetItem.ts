@@ -1,6 +1,6 @@
 /**
  * Workflow for running dataset items through the chat API.
- * 
+ *
  * This makes dataset run processing fire-and-forget - each item is queued
  * independently and processed in parallel by the workflow system.
  */
@@ -13,10 +13,10 @@ import {
   ManagementApiClient,
   updateEvaluationResult,
 } from '@inkeep/agents-core';
+import { env } from 'src/env';
 import runDbClient from '../../data/db/runDbClient';
 import { getLogger } from '../../logger';
 import { EvaluationService } from '../../services/EvaluationService';
-import { env } from 'src/env';
 
 const logger = getLogger('workflow-run-dataset-item');
 
@@ -43,7 +43,15 @@ type RunDatasetItemPayload = {
 async function callChatApiStep(payload: RunDatasetItemPayload) {
   'use step';
 
-  const { tenantId, projectId, agentId, datasetItemId, datasetItemInput, datasetItemSimulationAgent, datasetRunId } = payload;
+  const {
+    tenantId,
+    projectId,
+    agentId,
+    datasetItemId,
+    datasetItemInput,
+    datasetItemSimulationAgent,
+    datasetRunId,
+  } = payload;
 
   const evaluationService = new EvaluationService();
 
@@ -80,10 +88,7 @@ async function callChatApiStep(payload: RunDatasetItemPayload) {
 /**
  * Step: Create conversation relation in database
  */
-async function createRelationStep(
-  payload: RunDatasetItemPayload,
-  conversationId: string
-) {
+async function createRelationStep(payload: RunDatasetItemPayload, conversationId: string) {
   'use step';
 
   const { tenantId, projectId, datasetItemId, datasetRunId } = payload;
@@ -134,7 +139,7 @@ async function executeEvaluatorStep(
     apiUrl: env.INKEEP_AGENTS_MANAGE_API_URL,
     tenantId,
     projectId,
-    auth: { mode: 'internalService', internalServiceName: InternalServices.EVALUATION_API },
+    auth: { mode: 'internalService', internalServiceName: InternalServices.INKEEP_AGENTS_EVAL_API },
   });
 
   const evaluator = await client.getEvaluatorById(evaluatorId);
@@ -186,10 +191,7 @@ async function executeEvaluatorStep(
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : 'Unknown error';
 
-    logger.error(
-      { error, conversationId, evaluatorId: evaluator.id },
-      'Evaluation failed'
-    );
+    logger.error({ error, conversationId, evaluatorId: evaluator.id }, 'Evaluation failed');
 
     await updateEvaluationResult(runDbClient)({
       scopes: { tenantId, projectId, evaluationResultId: evalResult.id },
@@ -259,4 +261,3 @@ export async function runDatasetItemWorkflow(payload: RunDatasetItemPayload) {
     error: result.error || null,
   };
 }
-

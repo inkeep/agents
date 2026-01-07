@@ -22,7 +22,7 @@ const logger = getLogger('evaluationResults');
 app.openapi(
   createRoute({
     method: 'get',
-    path: '/evaluation-results/{resultId}',
+    path: '/{resultId}',
     summary: 'Get Evaluation Result by ID',
     operationId: 'get-evaluation-result',
     tags: ['Evaluations'],
@@ -73,7 +73,7 @@ app.openapi(
 app.openapi(
   createRoute({
     method: 'post',
-    path: '/evaluation-results',
+    path: '/',
     summary: 'Create Evaluation Result',
     operationId: 'create-evaluation-result',
     tags: ['Evaluations'],
@@ -133,7 +133,7 @@ app.openapi(
 app.openapi(
   createRoute({
     method: 'patch',
-    path: '/evaluation-results/{resultId}',
+    path: '/{resultId}',
     summary: 'Update Evaluation Result',
     operationId: 'update-evaluation-result',
     tags: ['Evaluations'],
@@ -194,7 +194,7 @@ app.openapi(
 app.openapi(
   createRoute({
     method: 'delete',
-    path: '/evaluation-results/{resultId}',
+    path: '/{resultId}',
     summary: 'Delete Evaluation Result',
     operationId: 'delete-evaluation-result',
     tags: ['Evaluations'],

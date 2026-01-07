@@ -6,6 +6,8 @@
 
 import { getLogger } from '../logger.js';
 import { env } from '../env.js';
+import { EvalApiClient, InternalServices } from '@inkeep/agents-core';
+
 const logger = getLogger('evaluationHttpClient');
 
 type TriggerConversationEvaluationParams  = {
@@ -21,35 +23,30 @@ type TriggerConversationEvaluationParams  = {
  * This is a fire-and-forget operation - we don't wait for the evaluation to complete.
  */
 export async function triggerConversationEvaluationHttp(params: TriggerConversationEvaluationParams): Promise<void> {
-  const evalApiUrl = process.env.AGENTS_EVAL_API_URL || 'http://localhost:3005';
-
-  const bypassSecret = process.env.INKEEP_AGENTS_EVAL_API_BYPASS_SECRET;
-  
-  const url = `${evalApiUrl}/tenants/${params.tenantId}/projects/${params.projectId}/evaluations/trigger-conversation`;
+  const evalApiClient = new EvalApiClient({
+    apiUrl: env.INKEEP_AGENTS_EVAL_API_URL,
+    tenantId: params.tenantId,
+    projectId: params.projectId,
+    auth: {
+      mode: 'internalService',
+      internalServiceName: InternalServices.INKEEP_AGENTS_RUN_API,
+    },
+  });
   
   try {
-    const response = await fetch(url, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        ...(bypassSecret && { Authorization: `Bearer ${bypassSecret}` }),
-      },
-      body: JSON.stringify({
-        conversationId: params.conversationId,
-      }),
+    const response = await evalApiClient.triggerConversationEvaluation({
+      conversationId: params.conversationId,
     });
 
-    if (!response.ok) {
-      const errorText = await response.text();
+    if (!response.success) {
       logger.error(
         {
-          status: response.status,
-          statusText: response.statusText,
-          error: errorText,
+          error: response.message,
           ...params,
         },
         'Failed to trigger conversation evaluation via HTTP'
       );
+      throw new Error(response.message);
     } else {
       logger.info(
         {

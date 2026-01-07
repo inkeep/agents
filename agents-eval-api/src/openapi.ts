@@ -16,7 +16,7 @@ export function setupOpenAPIRoutes(app: any) {
         },
         servers: [
           {
-            url: env.AGENTS_EVAL_API_URL,
+            url: env.INKEEP_AGENTS_EVAL_API_URL,
             description: 'Development server',
           },
         ],

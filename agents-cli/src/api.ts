@@ -4,8 +4,79 @@ import {
   type AgentApiSelect,
   apiFetch,
   OPENAI_MODELS,
-  BaseApiClient,
 } from '@inkeep/agents-core';
+
+abstract class BaseApiClient {
+  protected apiUrl: string;
+  protected tenantId: string | undefined;
+  protected projectId: string;
+  protected apiKey: string | undefined;
+  protected isCI: boolean;
+
+  protected constructor(
+    apiUrl: string,
+    tenantId: string | undefined,
+    projectId: string,
+    apiKey?: string,
+    isCI: boolean = false
+  ) {
+    this.apiUrl = apiUrl;
+    this.tenantId = tenantId;
+    this.projectId = projectId;
+    this.apiKey = apiKey;
+    this.isCI = isCI;
+  }
+
+  protected checkTenantId(): string {
+    if (!this.tenantId) {
+      throw new Error('No tenant ID configured. Please run: inkeep init');
+    }
+    return this.tenantId;
+  }
+
+  /**
+   * Wrapper around fetch that automatically includes auth header
+   * Uses X-API-Key for CI mode, Authorization Bearer for interactive mode
+   */
+  protected async authenticatedFetch(url: string, options: RequestInit = {}): Promise<Response> {
+    // Build headers with auth if API key is present
+    const headers: Record<string, string> = {
+      ...((options.headers as Record<string, string>) || {}),
+    };
+
+    // Add auth header based on mode
+    if (this.apiKey) {
+      if (this.isCI) {
+        // CI mode: use X-API-Key header for tenant-level API keys
+        headers['X-API-Key'] = this.apiKey;
+      } else {
+        // Interactive mode: use Bearer token for user session tokens
+        headers.Authorization = `Bearer ${this.apiKey}`;
+      }
+    }
+
+    return apiFetch(url, {
+      ...options,
+      headers,
+    });
+  }
+
+  getTenantId(): string | undefined {
+    return this.tenantId;
+  }
+
+  getProjectId(): string {
+    return this.projectId;
+  }
+
+  getApiUrl(): string {
+    return this.apiUrl;
+  }
+
+  getIsCI(): boolean {
+    return this.isCI;
+  }
+}
 
 export class ManagementApiClient extends BaseApiClient {
   private constructor(

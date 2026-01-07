@@ -1,20 +1,23 @@
-import type { ConversationSelect, DatasetItemSelect, EvaluatorSelect, FullAgentDefinition, ModelSettings } from '@inkeep/agents-core';
+import type {
+  ConversationSelect,
+  DatasetItemSelect,
+  EvaluatorSelect,
+  FullAgentDefinition,
+  ModelSettings,
+} from '@inkeep/agents-core';
 import {
-  ModelFactory,
-  conversations,
   createEvaluationResult,
   createEvaluationRun,
+  type EvaluationResultSelect,
+  filterConversationsForJob,
   generateId,
   getConversationHistory,
-  getDatasetRunConversationRelations,
-  updateEvaluationResult,
-  EvaluationResultSelect,
-  ManagementApiClient,
   InternalServices,
-
+  ManagementApiClient,
+  ModelFactory,
+  updateEvaluationResult,
 } from '@inkeep/agents-core';
 import { generateObject, generateText } from 'ai';
-import { and, eq, gte, inArray, lte } from 'drizzle-orm';
 import { z } from 'zod';
 import runDbClient from '../data/db/runDbClient';
 import { env } from '../env';
@@ -113,7 +116,7 @@ export class EvaluationService {
   private readonly runApiBypassSecret: string | undefined;
 
   constructor() {
-    this.agentsRunApiUrl = env.AGENTS_RUN_API_URL;
+    this.agentsRunApiUrl = env.INKEEP_AGENTS_RUN_API_URL;
     this.runApiBypassSecret = env.INKEEP_AGENTS_RUN_API_BYPASS_SECRET;
   }
 
@@ -122,15 +125,8 @@ export class EvaluationService {
    * Supports multi-turn conversations with simulation agents
    */
   async runDatasetItem(options: RunDatasetItemOptions): Promise<ChatApiResponse> {
-    const {
-      tenantId,
-      projectId,
-      agentId,
-      datasetItem,
-      datasetRunId,
-      conversationId,
-      apiKey,
-    } = options;
+    const { tenantId, projectId, agentId, datasetItem, datasetRunId, apiKey } =
+      options;
 
     try {
       // Extract messages from dataset item input
@@ -362,16 +358,16 @@ export class EvaluationService {
     let stepCount = 0;
 
     // Initial turn: send initial messages to agent under test
-      const initialResult = await this.runSingleTurn({
-        tenantId,
-        projectId,
-        agentId,
-        datasetItem,
-        datasetRunId,
-        conversationId,
-        apiKey,
-        messages: initialMessages,
-      });
+    const initialResult = await this.runSingleTurn({
+      tenantId,
+      projectId,
+      agentId,
+      datasetItem,
+      datasetRunId,
+      conversationId,
+      apiKey,
+      messages: initialMessages,
+    });
 
     if (initialResult.error || !initialResult.response) {
       return initialResult;
@@ -713,10 +709,16 @@ Generate the next user message:`;
       apiUrl: env.INKEEP_AGENTS_MANAGE_API_URL,
       tenantId,
       projectId,
-      auth: { mode: 'internalService', internalServiceName: InternalServices.EVALUATION_API },
+      auth: {
+        mode: 'internalService',
+        internalServiceName: InternalServices.INKEEP_AGENTS_EVAL_API,
+      },
     });
 
-    logger.info({ tenantId, projectId, evaluationJobConfigId, sampleRate }, 'Starting evaluation job');
+    logger.info(
+      { tenantId, projectId, evaluationJobConfigId, sampleRate },
+      'Starting evaluation job'
+    );
 
     // Get the evaluation job config
     const config = await client.getEvaluationJobConfigById(evaluationJobConfigId);
@@ -726,16 +728,15 @@ Generate the next user message:`;
     }
 
     // Get evaluators for this job
-    const evaluatorRelations = await client.getEvaluationJobConfigEvaluatorRelations(evaluationJobConfigId);
+    const evaluatorRelations =
+      await client.getEvaluationJobConfigEvaluatorRelations(evaluationJobConfigId);
 
     if (evaluatorRelations.length === 0) {
       throw new Error(`No evaluators found for job config: ${evaluationJobConfigId}`);
     }
 
     const evaluators = await Promise.all(
-      evaluatorRelations.map((relation) =>
-        client.getEvaluatorById(relation.evaluatorId)
-      )
+      evaluatorRelations.map((relation) => client.getEvaluatorById(relation.evaluatorId))
     );
 
     const validEvaluators = evaluators.filter((e): e is NonNullable<typeof e> => e !== null);
@@ -750,9 +751,8 @@ Generate the next user message:`;
     );
 
     // Filter conversations based on jobFilters
-    let conversationsToEvaluate = await this.filterConversationsForJob({
-      tenantId,
-      projectId,
+    let conversationsToEvaluate = await filterConversationsForJob(runDbClient)({
+      scopes: { tenantId, projectId },
       jobFilters: config.jobFilters,
     });
 
@@ -761,7 +761,14 @@ Generate the next user message:`;
       const originalCount = conversationsToEvaluate.length;
       conversationsToEvaluate = this.applySampleRate(conversationsToEvaluate, sampleRate);
       logger.info(
-        { tenantId, projectId, evaluationJobConfigId, originalCount, sampledCount: conversationsToEvaluate.length, sampleRate },
+        {
+          tenantId,
+          projectId,
+          evaluationJobConfigId,
+          originalCount,
+          sampledCount: conversationsToEvaluate.length,
+          sampleRate,
+        },
         'Applied sample rate to conversations'
       );
     }
@@ -889,74 +896,6 @@ Generate the next user message:`;
   }
 
   /**
-   * Filter conversations based on job filters
-   */
-  async filterConversationsForJob(params: {
-    tenantId: string;
-    projectId: string;
-    jobFilters: any;
-  }): Promise<Array<ConversationSelect>> {
-    const { tenantId, projectId, jobFilters } = params;
-
-    const whereConditions = [
-      eq(conversations.tenantId, tenantId),
-      eq(conversations.projectId, projectId),
-    ];
-
-    // Filter by conversation IDs if specified
-    if (
-      jobFilters?.conversationIds &&
-      Array.isArray(jobFilters.conversationIds) &&
-      jobFilters.conversationIds.length > 0
-    ) {
-      whereConditions.push(inArray(conversations.id, jobFilters.conversationIds));
-    }
-
-    // Filter by date range if specified
-    if (jobFilters?.dateRange) {
-      const { startDate, endDate } = jobFilters.dateRange;
-      if (startDate) {
-        whereConditions.push(gte(conversations.createdAt, startDate));
-      }
-      if (endDate) {
-        whereConditions.push(lte(conversations.createdAt, endDate));
-      }
-    }
-
-    // Filter by dataset run IDs if specified
-    if (
-      jobFilters?.datasetRunIds &&
-      Array.isArray(jobFilters.datasetRunIds) &&
-      jobFilters.datasetRunIds.length > 0
-    ) {
-      // Get conversation IDs from dataset run relations
-      const allConversationIds = new Set<string>();
-      for (const datasetRunId of jobFilters.datasetRunIds) {
-        const relations = await getDatasetRunConversationRelations(runDbClient)({
-          scopes: { tenantId, projectId, datasetRunId },
-        });
-        for (const relation of relations) {
-          allConversationIds.add(relation.conversationId);
-        }
-      }
-
-      if (allConversationIds.size > 0) {
-        whereConditions.push(inArray(conversations.id, Array.from(allConversationIds)));
-      } else {
-        // No conversations found in dataset runs, return empty array
-        return [];
-      }
-    }
-
-    const filteredConversations = await runDbClient
-      .select()
-      .from(conversations)
-      .where(and(...whereConditions));
-
-    return filteredConversations;
-  }
-
-  /**
    * Apply sample rate to conversations
    */
   applySampleRate<T>(items: T[], sampleRate: number | null | undefined): T[] {
@@ -998,7 +937,10 @@ Generate the next user message:`;
       apiUrl: env.INKEEP_AGENTS_MANAGE_API_URL,
       tenantId,
       projectId,
-      auth: { mode: 'internalService', internalServiceName: InternalServices.EVALUATION_API },
+      auth: {
+        mode: 'internalService',
+        internalServiceName: InternalServices.INKEEP_AGENTS_EVAL_API,
+      },
       ref: conversation.ref.name,
     });
     // Get conversation history
@@ -1013,14 +955,14 @@ Generate the next user message:`;
 
     // Get agent definition
     let agentDefinition: FullAgentDefinition | null = null;
-    let agentId: string | null = null;
+    const agentId: string | null = null;
 
     try {
       // Get agentId from subagent
       const agentId = conversation.agentId;
 
       if (agentId) {
-          agentDefinition = await client.getFullAgent(agentId);
+        agentDefinition = await client.getFullAgent(agentId);
       } else {
         logger.warn(
           { conversationId: conversation.id, agentId: conversation.agentId },
@@ -1214,14 +1156,17 @@ Return your evaluation as a JSON object matching the schema above.`;
    * Fetch trace from SigNoz (similar to the example)
    */
   private async fetchTraceFromSigNoz(conversationId: string): Promise<any | null> {
-    const manageUIUrl = env.AGENTS_MANAGE_UI_URL;
+    const manageUIUrl = env.INKEEP_AGENTS_MANAGE_UI_URL;
     const maxRetries = 2;
     const retryDelayMs = 20000;
     const initialDelayMs = 30000;
 
     try {
-      logger.info({ conversationId, manageUIUrl, initialDelayMs }, 'Waiting 30s before fetching trace from SigNoz');
-      
+      logger.info(
+        { conversationId, manageUIUrl, initialDelayMs },
+        'Waiting 30s before fetching trace from SigNoz'
+      );
+
       await new Promise((resolve) => setTimeout(resolve, initialDelayMs));
 
       for (let attempt = 0; attempt <= maxRetries; attempt++) {
@@ -1237,7 +1182,12 @@ Return your evaluation as a JSON object matching the schema above.`;
 
           if (!traceResponse.ok) {
             logger.warn(
-              { conversationId, status: traceResponse.status, statusText: traceResponse.statusText, attempt: attempt + 1 },
+              {
+                conversationId,
+                status: traceResponse.status,
+                statusText: traceResponse.statusText,
+                attempt: attempt + 1,
+              },
               'Failed to fetch trace from SigNoz'
             );
 
@@ -1268,11 +1218,12 @@ Return your evaluation as a JSON object matching the schema above.`;
 
           if (!hasAssistantMessage) {
             logger.warn(
-              { 
-                conversationId, 
-                attempt: attempt + 1, 
+              {
+                conversationId,
+                attempt: attempt + 1,
                 activityCount: conversationDetail.activities?.length || 0,
-                activityTypes: conversationDetail.activities?.slice(0, 5).map((a: any) => a.type) || []
+                activityTypes:
+                  conversationDetail.activities?.slice(0, 5).map((a: any) => a.type) || [],
               },
               'Trace fetched but ai_assistant_message not found in activities'
             );
@@ -1288,12 +1239,20 @@ Return your evaluation as a JSON object matching the schema above.`;
 
             // Max retries reached - still return the trace we have, just log a warning
             logger.warn(
-              { conversationId, maxRetries, activityCount: conversationDetail.activities?.length || 0 },
+              {
+                conversationId,
+                maxRetries,
+                activityCount: conversationDetail.activities?.length || 0,
+              },
               'Max retries reached, ai_assistant_message not found - proceeding with available trace data'
             );
           } else {
             logger.info(
-              { conversationId, activityCount: conversationDetail.activities?.length || 0, attempt: attempt + 1 },
+              {
+                conversationId,
+                activityCount: conversationDetail.activities?.length || 0,
+                attempt: attempt + 1,
+              },
               'Trace fetched successfully with ai_assistant_message'
             );
           }

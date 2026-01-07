@@ -1,6 +1,7 @@
 import type { z } from '@hono/zod-openapi';
 import type { ApiKeySelect, FullProjectSelectWithRelationIds, ResolvedRef } from '../index';
 import type {
+  EvaluationJobFilterCriteriaSchema,
   McpTransportConfigSchema,
   ModelSchema,
   ProjectModelSchema,
@@ -358,16 +359,16 @@ export type PassCriteria = {
   conditions: PassCriteriaCondition[];
 };
 
-export type EvaluationJobFilterCriteria = {
-  datasetRunIds?: string[];
-  conversationIds?: string[];
-  dateRange?: {
-    startDate: string;
-    endDate: string;
-  };
-  [key: string]: unknown;
-};
+export type EvaluationJobFilterCriteria = z.infer<typeof EvaluationJobFilterCriteriaSchema>;
+
 export type EvaluationSuiteFilterCriteria = {
   agentIds?: string[];
   [key: string]: unknown;
 };
+
+export type DatasetItemInput = {
+  messages: Array<{ role: string; content: MessageContent }>;
+  headers?: Record<string, string>;
+};
+
+export type DatasetItemExpectedOutput = Array<{ role: string; content: MessageContent }>;

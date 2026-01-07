@@ -1,7 +1,7 @@
 import { CredentialStoreType } from '@inkeep/agents-core';
 import { createTestProject } from '@inkeep/agents-core/db/test-manage-client';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import dbClient from '../../../data/db/dbClient';
+import manageDbClient from '../../../data/db/dbClient';
 import { makeRequest } from '../../utils/testRequest';
 import { createTestTenantWithOrg } from '../../utils/testTenant';
 
@@ -88,7 +88,7 @@ describe('Credential Stores - CRUD Operations', () => {
     currentRegistry = null; // Clear registry between tests
     tenantId = await createTestTenantWithOrg();
     projectId = 'default';
-    await createTestProject(dbClient, tenantId, projectId);
+    await createTestProject(manageDbClient, tenantId, projectId);
   });
 
   describe('GET /stores', () => {

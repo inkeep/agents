@@ -38,4 +38,3 @@ if (targetWorld === 'vercel') {
 }
 
 export { world };
-

@@ -24,14 +24,14 @@ describe('Internal Service Auth', () => {
 
   describe('InternalServices', () => {
     it('should have correct service identifiers', () => {
-      expect(InternalServices.AGENTS_RUN_API).toBe('agents-run-api');
+      expect(InternalServices.INKEEP_AGENTS_RUN_API).toBe('inkeep-agents-run-api');
     });
   });
 
   describe('generateInternalServiceToken', () => {
     it('should generate a valid token for agents-run-api', async () => {
       const token = await generateInternalServiceToken({
-        serviceId: InternalServices.AGENTS_RUN_API,
+        serviceId: InternalServices.INKEEP_AGENTS_RUN_API,
       });
 
       expect(token).toBeDefined();
@@ -41,7 +41,7 @@ describe('Internal Service Auth', () => {
 
     it('should generate a token with tenant scope', async () => {
       const token = await generateInternalServiceToken({
-        serviceId: InternalServices.AGENTS_RUN_API,
+        serviceId: InternalServices.INKEEP_AGENTS_RUN_API,
         tenantId: 'tenant-123',
       });
 
@@ -53,7 +53,7 @@ describe('Internal Service Auth', () => {
 
     it('should generate a token with project scope', async () => {
       const token = await generateInternalServiceToken({
-        serviceId: InternalServices.AGENTS_RUN_API,
+        serviceId: InternalServices.INKEEP_AGENTS_RUN_API,
         projectId: 'project-456',
       });
 
@@ -65,7 +65,7 @@ describe('Internal Service Auth', () => {
 
     it('should generate a token with both tenant and project scope', async () => {
       const token = await generateInternalServiceToken({
-        serviceId: InternalServices.AGENTS_RUN_API,
+        serviceId: InternalServices.INKEEP_AGENTS_RUN_API,
         tenantId: 'tenant-123',
         projectId: 'project-456',
       });
@@ -75,33 +75,33 @@ describe('Internal Service Auth', () => {
       expect(result.valid).toBe(true);
       expect(result.payload?.tenantId).toBe('tenant-123');
       expect(result.payload?.projectId).toBe('project-456');
-      expect(result.payload?.sub).toBe(InternalServices.AGENTS_RUN_API);
+      expect(result.payload?.sub).toBe(InternalServices.INKEEP_AGENTS_RUN_API);
     });
 
     it('should generate a token with custom expiry', async () => {
       const token = await generateInternalServiceToken({
-        serviceId: InternalServices.AGENTS_RUN_API,
+        serviceId: InternalServices.INKEEP_AGENTS_RUN_API,
         expiresIn: '1h',
       });
 
       const result = await verifyInternalServiceToken(token);
 
       expect(result.valid).toBe(true);
-      expect(result.payload?.sub).toBe(InternalServices.AGENTS_RUN_API);
+      expect(result.payload?.sub).toBe(InternalServices.INKEEP_AGENTS_RUN_API);
     });
   });
 
   describe('verifyInternalServiceToken', () => {
     it('should verify a valid internal service token', async () => {
       const token = await generateInternalServiceToken({
-        serviceId: InternalServices.AGENTS_RUN_API,
+        serviceId: InternalServices.INKEEP_AGENTS_RUN_API,
       });
 
       const result = await verifyInternalServiceToken(token);
 
       expect(result.valid).toBe(true);
       expect(result.payload).toBeDefined();
-      expect(result.payload?.sub).toBe(InternalServices.AGENTS_RUN_API);
+      expect(result.payload?.sub).toBe(InternalServices.INKEEP_AGENTS_RUN_API);
       expect(result.payload?.iss).toBe('inkeep-agents-internal');
     });
 
@@ -116,7 +116,7 @@ describe('Internal Service Auth', () => {
       const { signJwt } = await import('../../utils/jwt-helpers');
       const token = await signJwt({
         issuer: 'wrong-issuer',
-        subject: InternalServices.AGENTS_RUN_API,
+        subject: InternalServices.INKEEP_AGENTS_RUN_API,
       });
 
       const result = await verifyInternalServiceToken(token);
@@ -139,7 +139,7 @@ describe('Internal Service Auth', () => {
 
     it('should include tenant and project in payload', async () => {
       const token = await generateInternalServiceToken({
-        serviceId: InternalServices.AGENTS_RUN_API,
+        serviceId: InternalServices.INKEEP_AGENTS_RUN_API,
         tenantId: 'tenant-abc',
         projectId: 'project-xyz',
       });
@@ -153,7 +153,7 @@ describe('Internal Service Auth', () => {
 
     it('should include timestamps in payload', async () => {
       const token = await generateInternalServiceToken({
-        serviceId: InternalServices.AGENTS_RUN_API,
+        serviceId: InternalServices.INKEEP_AGENTS_RUN_API,
       });
 
       const result = await verifyInternalServiceToken(token);
@@ -169,13 +169,13 @@ describe('Internal Service Auth', () => {
   describe('verifyInternalServiceAuthHeader', () => {
     it('should verify a valid Authorization header', async () => {
       const token = await generateInternalServiceToken({
-        serviceId: InternalServices.AGENTS_RUN_API,
+        serviceId: InternalServices.INKEEP_AGENTS_RUN_API,
       });
 
       const result = await verifyInternalServiceAuthHeader(`Bearer ${token}`);
 
       expect(result.valid).toBe(true);
-      expect(result.payload?.sub).toBe(InternalServices.AGENTS_RUN_API);
+      expect(result.payload?.sub).toBe(InternalServices.INKEEP_AGENTS_RUN_API);
     });
 
     it('should reject missing header', async () => {
@@ -203,7 +203,7 @@ describe('Internal Service Auth', () => {
   describe('isInternalServiceToken', () => {
     it('should return true for internal service token', async () => {
       const token = await generateInternalServiceToken({
-        serviceId: InternalServices.AGENTS_RUN_API,
+        serviceId: InternalServices.INKEEP_AGENTS_RUN_API,
       });
 
       expect(isInternalServiceToken(token)).toBe(true);
@@ -228,7 +228,7 @@ describe('Internal Service Auth', () => {
     it('should allow access when token has no tenant scope', () => {
       const payload: InternalServiceTokenPayload = {
         iss: 'inkeep-agents-internal',
-        sub: InternalServices.AGENTS_RUN_API,
+        sub: InternalServices.INKEEP_AGENTS_RUN_API,
         iat: Date.now() / 1000,
         exp: Date.now() / 1000 + 300,
       };
@@ -239,7 +239,7 @@ describe('Internal Service Auth', () => {
     it('should allow access when tenant matches', () => {
       const payload: InternalServiceTokenPayload = {
         iss: 'inkeep-agents-internal',
-        sub: InternalServices.AGENTS_RUN_API,
+        sub: InternalServices.INKEEP_AGENTS_RUN_API,
         tenantId: 'tenant-123',
         iat: Date.now() / 1000,
         exp: Date.now() / 1000 + 300,
@@ -251,7 +251,7 @@ describe('Internal Service Auth', () => {
     it('should deny access when tenant does not match', () => {
       const payload: InternalServiceTokenPayload = {
         iss: 'inkeep-agents-internal',
-        sub: InternalServices.AGENTS_RUN_API,
+        sub: InternalServices.INKEEP_AGENTS_RUN_API,
         tenantId: 'tenant-123',
         iat: Date.now() / 1000,
         exp: Date.now() / 1000 + 300,
@@ -265,7 +265,7 @@ describe('Internal Service Auth', () => {
     it('should allow access when token has no project scope', () => {
       const payload: InternalServiceTokenPayload = {
         iss: 'inkeep-agents-internal',
-        sub: InternalServices.AGENTS_RUN_API,
+        sub: InternalServices.INKEEP_AGENTS_RUN_API,
         iat: Date.now() / 1000,
         exp: Date.now() / 1000 + 300,
       };
@@ -276,7 +276,7 @@ describe('Internal Service Auth', () => {
     it('should allow access when project matches', () => {
       const payload: InternalServiceTokenPayload = {
         iss: 'inkeep-agents-internal',
-        sub: InternalServices.AGENTS_RUN_API,
+        sub: InternalServices.INKEEP_AGENTS_RUN_API,
         projectId: 'project-123',
         iat: Date.now() / 1000,
         exp: Date.now() / 1000 + 300,
@@ -288,7 +288,7 @@ describe('Internal Service Auth', () => {
     it('should deny access when project does not match', () => {
       const payload: InternalServiceTokenPayload = {
         iss: 'inkeep-agents-internal',
-        sub: InternalServices.AGENTS_RUN_API,
+        sub: InternalServices.INKEEP_AGENTS_RUN_API,
         projectId: 'project-123',
         iat: Date.now() / 1000,
         exp: Date.now() / 1000 + 300,
@@ -302,7 +302,7 @@ describe('Internal Service Auth', () => {
     it('should generate, verify, and validate a full token flow', async () => {
       // Generate token with scopes
       const token = await generateInternalServiceToken({
-        serviceId: InternalServices.AGENTS_RUN_API,
+        serviceId: InternalServices.INKEEP_AGENTS_RUN_API,
         tenantId: 'tenant-abc',
         projectId: 'project-xyz',
       });

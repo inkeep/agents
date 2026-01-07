@@ -11,23 +11,21 @@ import {
   listDatasetRuns,
   SingleResponseSchema,
   TenantProjectParamsSchema,
-  subAgents,
   DatasetRunApiSelectSchema,
 } from '@inkeep/agents-core';
 import { z, createRoute, OpenAPIHono } from '@hono/zod-openapi';
-import { and, eq } from 'drizzle-orm';
 import runDbClient from '../../data/db/runDbClient';
 import { getLogger } from '../../logger';
-import manageDbClient from '../../data/db/manageDbClient';
+import type { BaseAppVariables } from '../../types/app';
 
-const app = new OpenAPIHono();
+const app = new OpenAPIHono<{ Variables: BaseAppVariables }>();
 const logger = getLogger('datasetRuns');
 
 app.openapi(
   createRoute({
     method: 'get',
-    path: '/datasets/{datasetId}/runs',
-    summary: 'List Dataset Runs',
+    path: '/{datasetId}',
+    summary: 'List Dataset Runs by Dataset ID',
     operationId: 'list-dataset-runs',
     tags: ['Evaluations'],
     request: {
@@ -46,6 +44,7 @@ app.openapi(
     },
   }),
   async (c) => {
+    const db = c.get('db');
     const { tenantId, projectId, datasetId } = c.req.valid('param');
 
     try {
@@ -56,7 +55,7 @@ app.openapi(
       const runsWithNames = await Promise.all(
         filteredRuns.map(async (run) => {
           if (run.datasetRunConfigId) {
-            const runConfig = await getDatasetRunConfigById(manageDbClient)({
+            const runConfig = await getDatasetRunConfigById(db)({
               scopes: { tenantId, projectId, datasetRunConfigId: run.datasetRunConfigId },
             });
             return {
@@ -97,8 +96,8 @@ app.openapi(
 app.openapi(
   createRoute({
     method: 'get',
-    path: '/dataset-runs/{runId}',
-    summary: 'Get Dataset Run',
+    path: '/{runId}',
+    summary: 'Get Dataset Run by ID',
     operationId: 'get-dataset-run',
     tags: ['Evaluations'],
     request: {
@@ -155,6 +154,7 @@ app.openapi(
     },
   }),
   async (c) => {
+    const db = c.get('db');
     const { tenantId, projectId, runId } = c.req.valid('param');
 
     try {
@@ -172,7 +172,7 @@ app.openapi(
       let runConfigName: string | null = null;
       if (run.datasetRunConfigId) {
         // Get the run config to get the name
-        const runConfig = await getDatasetRunConfigById(manageDbClient)({
+        const runConfig = await getDatasetRunConfigById(db)({
           scopes: { tenantId, projectId, datasetRunConfigId: run.datasetRunConfigId },
         });
         runConfigName = runConfig?.name || null;
@@ -184,7 +184,7 @@ app.openapi(
       });
 
       // Get all dataset items for this dataset
-      const datasetItems = await listDatasetItems(manageDbClient)({
+      const datasetItems = await listDatasetItems(db)({
         scopes: { tenantId, projectId, datasetId: run.datasetId },
       });
 

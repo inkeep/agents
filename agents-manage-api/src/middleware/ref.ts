@@ -7,7 +7,7 @@ import {
   resolveRef,
 } from '@inkeep/agents-core';
 import type { Context, Next } from 'hono';
-import dbClient from '../data/db/dbClient';
+import manageDbClient from '../data/db/dbClient';
 
 const logger = getLogger('ref');
 
@@ -19,7 +19,7 @@ const logger = getLogger('ref');
  */
 const ensureBranchExists = async (branchName: string): Promise<void> => {
   // First, check if branch already exists to avoid unnecessary errors
-  const existingBranch = await resolveRef(dbClient)(branchName);
+  const existingBranch = await resolveRef(manageDbClient)(branchName);
   if (existingBranch) {
     logger.debug({ branchName }, 'Branch already exists, skipping creation');
     return;
@@ -27,13 +27,13 @@ const ensureBranchExists = async (branchName: string): Promise<void> => {
 
   // Try to create the branch
   try {
-    await doltBranch(dbClient)({ name: branchName });
+    await doltBranch(manageDbClient)({ name: branchName });
     logger.debug({ branchName }, 'Branch created successfully');
   } catch (error) {
     // Branch creation failed - this could be due to a race condition where
     // another concurrent request created it between our check and create.
     // Verify if the branch now exists.
-    const branchNowExists = await resolveRef(dbClient)(branchName);
+    const branchNowExists = await resolveRef(manageDbClient)(branchName);
     if (branchNowExists) {
       logger.debug(
         { branchName },
@@ -128,12 +128,12 @@ export const refMiddleware = async (c: Context, next: Next) => {
 
     if (ref && ref !== 'main') {
       // User provided a specific ref - try project-scoped first
-      let refResult = await resolveRef(dbClient)(projectScopedRef);
+      let refResult = await resolveRef(manageDbClient)(projectScopedRef);
 
       // If project-scoped ref not found, try resolving the ref directly
       // This handles tags and commit hashes which aren't namespaced
       if (!refResult) {
-        refResult = await resolveRef(dbClient)(ref);
+        refResult = await resolveRef(manageDbClient)(ref);
       }
 
       if (!refResult) {
@@ -147,7 +147,7 @@ export const refMiddleware = async (c: Context, next: Next) => {
       // No ref provided, use project main
       let refResult: Awaited<ReturnType<ReturnType<typeof resolveRef>>> = null;
       try {
-        refResult = await resolveRef(dbClient)(projectMain);
+        refResult = await resolveRef(manageDbClient)(projectMain);
       } catch (error) {
         // If resolveRef fails (e.g., database connection issue), treat as project not found
         logger.warn({ error, projectMain }, 'Failed to resolve project main branch');
@@ -162,11 +162,11 @@ export const refMiddleware = async (c: Context, next: Next) => {
         if (method === 'PUT') {
           // Fall back to tenant_main for upsert - let the route handler create the project
           const tenantMain = `${tenantId}_main`;
-          let tenantRefResult = await resolveRef(dbClient)(tenantMain);
+          let tenantRefResult = await resolveRef(manageDbClient)(tenantMain);
           if (!tenantRefResult) {
             // Create tenant main if it doesn't exist (handles concurrent creation gracefully)
             await ensureBranchExists(tenantMain);
-            tenantRefResult = await resolveRef(dbClient)(tenantMain);
+            tenantRefResult = await resolveRef(manageDbClient)(tenantMain);
           }
           if (tenantRefResult) {
             resolvedRef = tenantRefResult;
@@ -194,10 +194,10 @@ export const refMiddleware = async (c: Context, next: Next) => {
     if (ref && ref !== 'main') {
       // For tenant-level routes, only allow tenant-scoped refs or direct refs
       const tenantScopedRef = `${tenantId}_${ref}`;
-      let refResult = await resolveRef(dbClient)(tenantScopedRef);
+      let refResult = await resolveRef(manageDbClient)(tenantScopedRef);
 
       if (!refResult) {
-        refResult = await resolveRef(dbClient)(ref);
+        refResult = await resolveRef(manageDbClient)(ref);
       }
 
       if (!refResult) {
@@ -209,13 +209,13 @@ export const refMiddleware = async (c: Context, next: Next) => {
       resolvedRef = refResult;
     } else {
       // No ref provided, use tenant main
-      let refResult = await resolveRef(dbClient)(tenantMain);
+      let refResult = await resolveRef(manageDbClient)(tenantMain);
 
       if (!refResult) {
         // Tenant main doesn't exist, create it (handles concurrent creation gracefully)
         await ensureBranchExists(tenantMain);
 
-        refResult = await resolveRef(dbClient)(tenantMain);
+        refResult = await resolveRef(manageDbClient)(tenantMain);
 
         if (!refResult) {
           throw createApiError({

@@ -52,15 +52,15 @@ import {
   apiKeys,
   contextCache,
   conversations,
+  datasetRun,
+  datasetRunConversationRelations,
+  evaluationResult,
+  evaluationRun,
   ledgerArtifacts,
   messages,
   projectMetadata,
   taskRelations,
   tasks,
-  datasetRun,
-  datasetRunConversationRelations,
-  evaluationResult,
-  evaluationRun,
 } from '../db/runtime/runtime-schema';
 import {
   CredentialStoreType,
@@ -131,6 +131,16 @@ export const ModelSettingsSchema = z
   .openapi('ModelSettings');
 
 export type ModelSettings = z.infer<typeof ModelSettingsSchema>;
+
+export const SimulationAgentSchema = z
+  .object({
+    stopWhen: StopWhenSchema.optional(),
+    prompt: z.string(),
+    model: ModelSettingsSchema,
+  })
+  .openapi('SimulationAgent');
+
+export type SimulationAgent = z.infer<typeof SimulationAgentSchema>;
 
 export const ModelSchema = z
   .object({
@@ -442,19 +452,33 @@ export const DatasetRunInsertSchema = createInsertSchema(datasetRun).extend({
 });
 export const DatasetRunUpdateSchema = DatasetRunInsertSchema.partial();
 
-export const DatasetRunApiSelectSchema = createApiSchema(DatasetRunSelectSchema).openapi('DatasetRun');
-export const DatasetRunApiInsertSchema = createApiInsertSchema(DatasetRunInsertSchema).openapi('DatasetRunCreate');
-export const DatasetRunApiUpdateSchema = createApiUpdateSchema(DatasetRunUpdateSchema).openapi('DatasetRunUpdate');
+export const DatasetRunApiSelectSchema =
+  createApiSchema(DatasetRunSelectSchema).openapi('DatasetRun');
+export const DatasetRunApiInsertSchema =
+  createApiInsertSchema(DatasetRunInsertSchema).openapi('DatasetRunCreate');
+export const DatasetRunApiUpdateSchema =
+  createApiUpdateSchema(DatasetRunUpdateSchema).openapi('DatasetRunUpdate');
 
-export const DatasetRunConversationRelationSelectSchema = createSelectSchema(datasetRunConversationRelations);
-export const DatasetRunConversationRelationInsertSchema = createInsertSchema(datasetRunConversationRelations).extend({
+export const DatasetRunConversationRelationSelectSchema = createSelectSchema(
+  datasetRunConversationRelations
+);
+export const DatasetRunConversationRelationInsertSchema = createInsertSchema(
+  datasetRunConversationRelations
+).extend({
   id: resourceIdSchema,
 });
-export const DatasetRunConversationRelationUpdateSchema = DatasetRunConversationRelationInsertSchema.partial();
+export const DatasetRunConversationRelationUpdateSchema =
+  DatasetRunConversationRelationInsertSchema.partial();
 
-export const DatasetRunConversationRelationApiSelectSchema = createApiSchema(DatasetRunConversationRelationSelectSchema).openapi('DatasetRunConversationRelation');
-export const DatasetRunConversationRelationApiInsertSchema = createApiInsertSchema(DatasetRunConversationRelationInsertSchema).openapi('DatasetRunConversationRelationCreate');
-export const DatasetRunConversationRelationApiUpdateSchema = createApiUpdateSchema(DatasetRunConversationRelationUpdateSchema).openapi('DatasetRunConversationRelationUpdate');
+export const DatasetRunConversationRelationApiSelectSchema = createApiSchema(
+  DatasetRunConversationRelationSelectSchema
+).openapi('DatasetRunConversationRelation');
+export const DatasetRunConversationRelationApiInsertSchema = createApiInsertSchema(
+  DatasetRunConversationRelationInsertSchema
+).openapi('DatasetRunConversationRelationCreate');
+export const DatasetRunConversationRelationApiUpdateSchema = createApiUpdateSchema(
+  DatasetRunConversationRelationUpdateSchema
+).openapi('DatasetRunConversationRelationUpdate');
 
 export const EvaluationResultSelectSchema = createSelectSchema(evaluationResult);
 export const EvaluationResultInsertSchema = createInsertSchema(evaluationResult).extend({
@@ -462,9 +486,15 @@ export const EvaluationResultInsertSchema = createInsertSchema(evaluationResult)
 });
 export const EvaluationResultUpdateSchema = EvaluationResultInsertSchema.partial();
 
-export const EvaluationResultApiSelectSchema = createApiSchema(EvaluationResultSelectSchema).openapi('EvaluationResult');
-export const EvaluationResultApiInsertSchema = createApiInsertSchema(EvaluationResultInsertSchema).openapi('EvaluationResultCreate');
-export const EvaluationResultApiUpdateSchema = createApiUpdateSchema(EvaluationResultUpdateSchema).openapi('EvaluationResultUpdate');
+export const EvaluationResultApiSelectSchema = createApiSchema(
+  EvaluationResultSelectSchema
+).openapi('EvaluationResult');
+export const EvaluationResultApiInsertSchema = createApiInsertSchema(
+  EvaluationResultInsertSchema
+).openapi('EvaluationResultCreate');
+export const EvaluationResultApiUpdateSchema = createApiUpdateSchema(
+  EvaluationResultUpdateSchema
+).openapi('EvaluationResultUpdate');
 
 export const EvaluationRunSelectSchema = createSelectSchema(evaluationRun);
 export const EvaluationRunInsertSchema = createInsertSchema(evaluationRun).extend({
@@ -472,9 +502,12 @@ export const EvaluationRunInsertSchema = createInsertSchema(evaluationRun).exten
 });
 export const EvaluationRunUpdateSchema = EvaluationRunInsertSchema.partial();
 
-export const EvaluationRunApiSelectSchema = createApiSchema(EvaluationRunSelectSchema).openapi('EvaluationRun');
-export const EvaluationRunApiInsertSchema = createApiInsertSchema(EvaluationRunInsertSchema).openapi('EvaluationRunCreate');
-export const EvaluationRunApiUpdateSchema = createApiUpdateSchema(EvaluationRunUpdateSchema).openapi('EvaluationRunUpdate');
+export const EvaluationRunApiSelectSchema =
+  createApiSchema(EvaluationRunSelectSchema).openapi('EvaluationRun');
+export const EvaluationRunApiInsertSchema =
+  createApiInsertSchema(EvaluationRunInsertSchema).openapi('EvaluationRunCreate');
+export const EvaluationRunApiUpdateSchema =
+  createApiUpdateSchema(EvaluationRunUpdateSchema).openapi('EvaluationRunUpdate');
 
 export const EvaluationRunConfigSelectSchema = createSelectSchema(evaluationRunConfig);
 export const EvaluationRunConfigInsertSchema = createInsertSchema(evaluationRunConfig).extend({
@@ -482,9 +515,19 @@ export const EvaluationRunConfigInsertSchema = createInsertSchema(evaluationRunC
 });
 export const EvaluationRunConfigUpdateSchema = EvaluationRunConfigInsertSchema.partial();
 
-export const EvaluationRunConfigApiSelectSchema = createApiSchema(EvaluationRunConfigSelectSchema).openapi('EvaluationRunConfig');
-export const EvaluationRunConfigApiInsertSchema = createApiInsertSchema(EvaluationRunConfigInsertSchema).openapi('EvaluationRunConfigCreate');
-export const EvaluationRunConfigApiUpdateSchema = createApiUpdateSchema(EvaluationRunConfigUpdateSchema).openapi('EvaluationRunConfigUpdate');
+export const EvaluationRunConfigApiSelectSchema = createApiSchema(
+  EvaluationRunConfigSelectSchema
+).openapi('EvaluationRunConfig');
+export const EvaluationRunConfigApiInsertSchema = createApiInsertSchema(
+  EvaluationRunConfigInsertSchema
+).openapi('EvaluationRunConfigCreate');
+export const EvaluationRunConfigApiUpdateSchema = createApiUpdateSchema(
+  EvaluationRunConfigUpdateSchema
+).openapi('EvaluationRunConfigUpdate');
+export const EvaluationRunConfigWithSuiteConfigsApiSelectSchema =
+  EvaluationRunConfigApiSelectSchema.extend({
+    suiteConfigIds: z.array(z.string()),
+  }).openapi('EvaluationRunConfigWithSuiteConfigs');
 
 export const EvaluationJobConfigSelectSchema = createSelectSchema(evaluationJobConfig);
 export const EvaluationJobConfigInsertSchema = createInsertSchema(evaluationJobConfig).extend({
@@ -492,9 +535,15 @@ export const EvaluationJobConfigInsertSchema = createInsertSchema(evaluationJobC
 });
 export const EvaluationJobConfigUpdateSchema = EvaluationJobConfigInsertSchema.partial();
 
-export const EvaluationJobConfigApiSelectSchema = createApiSchema(EvaluationJobConfigSelectSchema).openapi('EvaluationJobConfig');
-export const EvaluationJobConfigApiInsertSchema = createApiInsertSchema(EvaluationJobConfigInsertSchema).openapi('EvaluationJobConfigCreate');
-export const EvaluationJobConfigApiUpdateSchema = createApiUpdateSchema(EvaluationJobConfigUpdateSchema).openapi('EvaluationJobConfigUpdate');
+export const EvaluationJobConfigApiSelectSchema = createApiSchema(
+  EvaluationJobConfigSelectSchema
+).openapi('EvaluationJobConfig');
+export const EvaluationJobConfigApiInsertSchema = createApiInsertSchema(
+  EvaluationJobConfigInsertSchema
+).openapi('EvaluationJobConfigCreate');
+export const EvaluationJobConfigApiUpdateSchema = createApiUpdateSchema(
+  EvaluationJobConfigUpdateSchema
+).openapi('EvaluationJobConfigUpdate');
 
 export const EvaluationSuiteConfigSelectSchema = createSelectSchema(evaluationSuiteConfig);
 export const EvaluationSuiteConfigInsertSchema = createInsertSchema(evaluationSuiteConfig).extend({
@@ -502,39 +551,80 @@ export const EvaluationSuiteConfigInsertSchema = createInsertSchema(evaluationSu
 });
 export const EvaluationSuiteConfigUpdateSchema = EvaluationSuiteConfigInsertSchema.partial();
 
-export const EvaluationSuiteConfigApiSelectSchema = createApiSchema(EvaluationSuiteConfigSelectSchema).openapi('EvaluationSuiteConfig');
-export const EvaluationSuiteConfigApiInsertSchema = createApiInsertSchema(EvaluationSuiteConfigInsertSchema).openapi('EvaluationSuiteConfigCreate');
-export const EvaluationSuiteConfigApiUpdateSchema = createApiUpdateSchema(EvaluationSuiteConfigUpdateSchema).openapi('EvaluationSuiteConfigUpdate');
+export const EvaluationSuiteConfigApiSelectSchema = createApiSchema(
+  EvaluationSuiteConfigSelectSchema
+).openapi('EvaluationSuiteConfig');
+export const EvaluationSuiteConfigApiInsertSchema = createApiInsertSchema(
+  EvaluationSuiteConfigInsertSchema
+).openapi('EvaluationSuiteConfigCreate');
+export const EvaluationSuiteConfigApiUpdateSchema = createApiUpdateSchema(
+  EvaluationSuiteConfigUpdateSchema
+).openapi('EvaluationSuiteConfigUpdate');
 
-export const EvaluationRunConfigEvaluationSuiteConfigRelationSelectSchema = createSelectSchema(evaluationRunConfigEvaluationSuiteConfigRelations);
-export const EvaluationRunConfigEvaluationSuiteConfigRelationInsertSchema = createInsertSchema(evaluationRunConfigEvaluationSuiteConfigRelations).extend({
+export const EvaluationRunConfigEvaluationSuiteConfigRelationSelectSchema = createSelectSchema(
+  evaluationRunConfigEvaluationSuiteConfigRelations
+);
+export const EvaluationRunConfigEvaluationSuiteConfigRelationInsertSchema = createInsertSchema(
+  evaluationRunConfigEvaluationSuiteConfigRelations
+).extend({
   id: resourceIdSchema,
 });
-export const EvaluationRunConfigEvaluationSuiteConfigRelationUpdateSchema = EvaluationRunConfigEvaluationSuiteConfigRelationInsertSchema.partial(); 
+export const EvaluationRunConfigEvaluationSuiteConfigRelationUpdateSchema =
+  EvaluationRunConfigEvaluationSuiteConfigRelationInsertSchema.partial();
 
-export const EvaluationRunConfigEvaluationSuiteConfigRelationApiSelectSchema = createApiSchema(EvaluationRunConfigEvaluationSuiteConfigRelationSelectSchema).openapi('EvaluationRunConfigEvaluationSuiteConfigRelation');
-export const EvaluationRunConfigEvaluationSuiteConfigRelationApiInsertSchema = createApiInsertSchema(EvaluationRunConfigEvaluationSuiteConfigRelationInsertSchema).openapi('EvaluationRunConfigEvaluationSuiteConfigRelationCreate');
-export const EvaluationRunConfigEvaluationSuiteConfigRelationApiUpdateSchema = createApiUpdateSchema(EvaluationRunConfigEvaluationSuiteConfigRelationUpdateSchema).openapi('EvaluationRunConfigEvaluationSuiteConfigRelationUpdate');
+export const EvaluationRunConfigEvaluationSuiteConfigRelationApiSelectSchema = createApiSchema(
+  EvaluationRunConfigEvaluationSuiteConfigRelationSelectSchema
+).openapi('EvaluationRunConfigEvaluationSuiteConfigRelation');
+export const EvaluationRunConfigEvaluationSuiteConfigRelationApiInsertSchema =
+  createApiInsertSchema(EvaluationRunConfigEvaluationSuiteConfigRelationInsertSchema).openapi(
+    'EvaluationRunConfigEvaluationSuiteConfigRelationCreate'
+  );
+export const EvaluationRunConfigEvaluationSuiteConfigRelationApiUpdateSchema =
+  createApiUpdateSchema(EvaluationRunConfigEvaluationSuiteConfigRelationUpdateSchema).openapi(
+    'EvaluationRunConfigEvaluationSuiteConfigRelationUpdate'
+  );
 
-export const EvaluationJobConfigEvaluatorRelationSelectSchema = createSelectSchema(evaluationJobConfigEvaluatorRelations);
-export const EvaluationJobConfigEvaluatorRelationInsertSchema = createInsertSchema(evaluationJobConfigEvaluatorRelations).extend({
+export const EvaluationJobConfigEvaluatorRelationSelectSchema = createSelectSchema(
+  evaluationJobConfigEvaluatorRelations
+);
+export const EvaluationJobConfigEvaluatorRelationInsertSchema = createInsertSchema(
+  evaluationJobConfigEvaluatorRelations
+).extend({
   id: resourceIdSchema,
 });
-export const EvaluationJobConfigEvaluatorRelationUpdateSchema = EvaluationJobConfigEvaluatorRelationInsertSchema.partial();
+export const EvaluationJobConfigEvaluatorRelationUpdateSchema =
+  EvaluationJobConfigEvaluatorRelationInsertSchema.partial();
 
-export const EvaluationJobConfigEvaluatorRelationApiSelectSchema = createApiSchema(EvaluationJobConfigEvaluatorRelationSelectSchema).openapi('EvaluationJobConfigEvaluatorRelation');
-export const EvaluationJobConfigEvaluatorRelationApiInsertSchema = createApiInsertSchema(EvaluationJobConfigEvaluatorRelationInsertSchema).openapi('EvaluationJobConfigEvaluatorRelationCreate');
-export const EvaluationJobConfigEvaluatorRelationApiUpdateSchema = createApiUpdateSchema(EvaluationJobConfigEvaluatorRelationUpdateSchema).openapi('EvaluationJobConfigEvaluatorRelationUpdate');
+export const EvaluationJobConfigEvaluatorRelationApiSelectSchema = createApiSchema(
+  EvaluationJobConfigEvaluatorRelationSelectSchema
+).openapi('EvaluationJobConfigEvaluatorRelation');
+export const EvaluationJobConfigEvaluatorRelationApiInsertSchema = createApiInsertSchema(
+  EvaluationJobConfigEvaluatorRelationInsertSchema
+).openapi('EvaluationJobConfigEvaluatorRelationCreate');
+export const EvaluationJobConfigEvaluatorRelationApiUpdateSchema = createApiUpdateSchema(
+  EvaluationJobConfigEvaluatorRelationUpdateSchema
+).openapi('EvaluationJobConfigEvaluatorRelationUpdate');
 
-export const EvaluationSuiteConfigEvaluatorRelationSelectSchema = createSelectSchema(evaluationSuiteConfigEvaluatorRelations);
-export const EvaluationSuiteConfigEvaluatorRelationInsertSchema = createInsertSchema(evaluationSuiteConfigEvaluatorRelations).extend({
+export const EvaluationSuiteConfigEvaluatorRelationSelectSchema = createSelectSchema(
+  evaluationSuiteConfigEvaluatorRelations
+);
+export const EvaluationSuiteConfigEvaluatorRelationInsertSchema = createInsertSchema(
+  evaluationSuiteConfigEvaluatorRelations
+).extend({
   id: resourceIdSchema,
 });
-export const EvaluationSuiteConfigEvaluatorRelationUpdateSchema = EvaluationSuiteConfigEvaluatorRelationInsertSchema.partial();
+export const EvaluationSuiteConfigEvaluatorRelationUpdateSchema =
+  EvaluationSuiteConfigEvaluatorRelationInsertSchema.partial();
 
-export const EvaluationSuiteConfigEvaluatorRelationApiSelectSchema = createApiSchema(EvaluationSuiteConfigEvaluatorRelationSelectSchema).openapi('EvaluationSuiteConfigEvaluatorRelation');
-export const EvaluationSuiteConfigEvaluatorRelationApiInsertSchema = createApiInsertSchema(EvaluationSuiteConfigEvaluatorRelationInsertSchema).openapi('EvaluationSuiteConfigEvaluatorRelationCreate');
-export const EvaluationSuiteConfigEvaluatorRelationApiUpdateSchema = createApiUpdateSchema(EvaluationSuiteConfigEvaluatorRelationUpdateSchema).openapi('EvaluationSuiteConfigEvaluatorRelationUpdate');
+export const EvaluationSuiteConfigEvaluatorRelationApiSelectSchema = createApiSchema(
+  EvaluationSuiteConfigEvaluatorRelationSelectSchema
+).openapi('EvaluationSuiteConfigEvaluatorRelation');
+export const EvaluationSuiteConfigEvaluatorRelationApiInsertSchema = createApiInsertSchema(
+  EvaluationSuiteConfigEvaluatorRelationInsertSchema
+).openapi('EvaluationSuiteConfigEvaluatorRelationCreate');
+export const EvaluationSuiteConfigEvaluatorRelationApiUpdateSchema = createApiUpdateSchema(
+  EvaluationSuiteConfigEvaluatorRelationUpdateSchema
+).openapi('EvaluationSuiteConfigEvaluatorRelationUpdate');
 
 export const EvaluatorSelectSchema = createSelectSchema(evaluator);
 export const EvaluatorInsertSchema = createInsertSchema(evaluator).extend({
@@ -543,8 +633,10 @@ export const EvaluatorInsertSchema = createInsertSchema(evaluator).extend({
 export const EvaluatorUpdateSchema = EvaluatorInsertSchema.partial();
 
 export const EvaluatorApiSelectSchema = createApiSchema(EvaluatorSelectSchema).openapi('Evaluator');
-export const EvaluatorApiInsertSchema = createApiInsertSchema(EvaluatorInsertSchema).openapi('EvaluatorCreate');
-export const EvaluatorApiUpdateSchema = createApiUpdateSchema(EvaluatorUpdateSchema).openapi('EvaluatorUpdate');
+export const EvaluatorApiInsertSchema =
+  createApiInsertSchema(EvaluatorInsertSchema).openapi('EvaluatorCreate');
+export const EvaluatorApiUpdateSchema =
+  createApiUpdateSchema(EvaluatorUpdateSchema).openapi('EvaluatorUpdate');
 
 export const DatasetSelectSchema = createSelectSchema(dataset);
 export const DatasetInsertSchema = createInsertSchema(dataset).extend({
@@ -553,8 +645,10 @@ export const DatasetInsertSchema = createInsertSchema(dataset).extend({
 export const DatasetUpdateSchema = DatasetInsertSchema.partial();
 
 export const DatasetApiSelectSchema = createApiSchema(DatasetSelectSchema).openapi('Dataset');
-export const DatasetApiInsertSchema = createApiInsertSchema(DatasetInsertSchema).openapi('DatasetCreate');
-export const DatasetApiUpdateSchema = createApiUpdateSchema(DatasetUpdateSchema).openapi('DatasetUpdate');
+export const DatasetApiInsertSchema =
+  createApiInsertSchema(DatasetInsertSchema).openapi('DatasetCreate');
+export const DatasetApiUpdateSchema =
+  createApiUpdateSchema(DatasetUpdateSchema).openapi('DatasetUpdate');
 
 export const DatasetItemSelectSchema = createSelectSchema(datasetItem);
 export const DatasetItemInsertSchema = createInsertSchema(datasetItem).extend({
@@ -562,9 +656,70 @@ export const DatasetItemInsertSchema = createInsertSchema(datasetItem).extend({
 });
 export const DatasetItemUpdateSchema = DatasetItemInsertSchema.partial();
 
-export const DatasetItemApiSelectSchema = createApiSchema(DatasetItemSelectSchema).openapi('DatasetItem');
-export const DatasetItemApiInsertSchema = createApiInsertSchema(DatasetItemInsertSchema).openapi('DatasetItemCreate');
-export const DatasetItemApiUpdateSchema = createApiUpdateSchema(DatasetItemUpdateSchema).openapi('DatasetItemUpdate');
+export const DatasetItemApiSelectSchema =
+  createApiSchema(DatasetItemSelectSchema).openapi('DatasetItem');
+export const DatasetItemApiInsertSchema =
+  createApiInsertSchema(DatasetItemInsertSchema).openapi('DatasetItemCreate');
+export const DatasetItemApiUpdateSchema =
+  createApiUpdateSchema(DatasetItemUpdateSchema).openapi('DatasetItemUpdate');
+
+export const DatasetRunItemSchema = DatasetItemApiSelectSchema.pick({
+  id: true,
+  input: true,
+  simulationAgent: true,
+})
+  .partial()
+  .extend({ agentId: z.string() })
+  .openapi('DatasetRunItem');
+
+export const TriggerDatasetRunSchema = z
+  .object({
+    datasetRunId: z.string(),
+    items: z.array(DatasetRunItemSchema),
+    evaluatorIds: z.array(z.string()).optional(),
+    evaluationRunId: z.string().optional(),
+  })
+  .openapi('TriggerDatasetRun');
+
+export const TriggerConversationEvaluationSchema = z
+  .object({
+    conversationId: z.string(),
+  })
+  .openapi('TriggerConversationEvaluation');
+
+export const TriggerBatchConversationEvaluationSchema = z
+  .object({
+    conversations: z.array(
+      z.object({
+        conversationId: z.string(),
+        evaluatorIds: z.array(z.string()),
+        evaluationRunId: z.string(),
+      })
+    ),
+  })
+  .openapi('TriggerBatchConversationEvaluation');
+
+export const EvaluationJobFilterCriteriaSchema = z
+  .object({
+    datasetRunIds: z.array(z.string()).optional(),
+    conversationIds: z.array(z.string()).optional(),
+    dateRange: z
+      .object({
+        startDate: z.string(),
+        endDate: z.string(),
+      })
+      .optional(),
+  })
+  .loose()
+  .openapi('EvaluationJobFilterCriteria');
+
+export const TriggerEvaluationJobSchema = z
+  .object({
+    evaluationJobConfigId: z.string(),
+    evaluatorIds: z.array(z.string()),
+    jobFilters: EvaluationJobFilterCriteriaSchema.nullable().optional(),
+  })
+  .openapi('TriggerEvaluationJob');
 
 export const DatasetRunConfigSelectSchema = createSelectSchema(datasetRunConfig);
 export const DatasetRunConfigInsertSchema = createInsertSchema(datasetRunConfig).extend({
@@ -572,19 +727,36 @@ export const DatasetRunConfigInsertSchema = createInsertSchema(datasetRunConfig)
 });
 export const DatasetRunConfigUpdateSchema = DatasetRunConfigInsertSchema.partial();
 
-export const DatasetRunConfigApiSelectSchema = createApiSchema(DatasetRunConfigSelectSchema).openapi('DatasetRunConfig');
-export const DatasetRunConfigApiInsertSchema = createApiInsertSchema(DatasetRunConfigInsertSchema).openapi('DatasetRunConfigCreate');
-export const DatasetRunConfigApiUpdateSchema = createApiUpdateSchema(DatasetRunConfigUpdateSchema).openapi('DatasetRunConfigUpdate');
+export const DatasetRunConfigApiSelectSchema = createApiSchema(
+  DatasetRunConfigSelectSchema
+).openapi('DatasetRunConfig');
+export const DatasetRunConfigApiInsertSchema = createApiInsertSchema(
+  DatasetRunConfigInsertSchema
+).openapi('DatasetRunConfigCreate');
+export const DatasetRunConfigApiUpdateSchema = createApiUpdateSchema(
+  DatasetRunConfigUpdateSchema
+).openapi('DatasetRunConfigUpdate');
 
-export const DatasetRunConfigAgentRelationSelectSchema = createSelectSchema(datasetRunConfigAgentRelations);
-export const DatasetRunConfigAgentRelationInsertSchema = createInsertSchema(datasetRunConfigAgentRelations).extend({
+export const DatasetRunConfigAgentRelationSelectSchema = createSelectSchema(
+  datasetRunConfigAgentRelations
+);
+export const DatasetRunConfigAgentRelationInsertSchema = createInsertSchema(
+  datasetRunConfigAgentRelations
+).extend({
   id: resourceIdSchema,
 });
-export const DatasetRunConfigAgentRelationUpdateSchema = DatasetRunConfigAgentRelationInsertSchema.partial();
+export const DatasetRunConfigAgentRelationUpdateSchema =
+  DatasetRunConfigAgentRelationInsertSchema.partial();
 
-export const DatasetRunConfigAgentRelationApiSelectSchema = createApiSchema(DatasetRunConfigAgentRelationSelectSchema).openapi('DatasetRunConfigAgentRelation');
-export const DatasetRunConfigAgentRelationApiInsertSchema = createApiInsertSchema(DatasetRunConfigAgentRelationInsertSchema).openapi('DatasetRunConfigAgentRelationCreate');
-export const DatasetRunConfigAgentRelationApiUpdateSchema = createApiUpdateSchema(DatasetRunConfigAgentRelationUpdateSchema).openapi('DatasetRunConfigAgentRelationUpdate');
+export const DatasetRunConfigAgentRelationApiSelectSchema = createApiSchema(
+  DatasetRunConfigAgentRelationSelectSchema
+).openapi('DatasetRunConfigAgentRelation');
+export const DatasetRunConfigAgentRelationApiInsertSchema = createApiInsertSchema(
+  DatasetRunConfigAgentRelationInsertSchema
+).openapi('DatasetRunConfigAgentRelationCreate');
+export const DatasetRunConfigAgentRelationApiUpdateSchema = createApiUpdateSchema(
+  DatasetRunConfigAgentRelationUpdateSchema
+).openapi('DatasetRunConfigAgentRelationUpdate');
 
 export const DataComponentSelectSchema = createSelectSchema(dataComponents);
 export const DataComponentInsertSchema = createInsertSchema(dataComponents).extend({

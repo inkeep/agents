@@ -1,15 +1,26 @@
-import { and, desc, eq } from 'drizzle-orm';
+import { and, desc, eq, gte, inArray, lte } from 'drizzle-orm';
 import type { AgentsRunDatabaseClient } from '../../db/runtime/runtime-client';
 import {
+  conversations,
   datasetRun,
   datasetRunConversationRelations,
   evaluationResult,
   evaluationRun,
 } from '../../db/runtime/runtime-schema';
-import type { ProjectScopeConfig } from '../../types/utility';
-import { DatasetRunSelect, DatasetRunInsert, DatasetRunConversationRelationSelect, DatasetRunConversationRelationInsert, EvaluationResultSelect, EvaluationResultInsert, EvaluationResultUpdate, EvaluationRunSelect, EvaluationRunInsert, EvaluationRunUpdate } from '../../types/entities';
-
-
+import type {
+  ConversationSelect,
+  DatasetRunConversationRelationInsert,
+  DatasetRunConversationRelationSelect,
+  DatasetRunInsert,
+  DatasetRunSelect,
+  EvaluationResultInsert,
+  EvaluationResultSelect,
+  EvaluationResultUpdate,
+  EvaluationRunInsert,
+  EvaluationRunSelect,
+  EvaluationRunUpdate,
+} from '../../types/entities';
+import type { EvaluationJobFilterCriteria, ProjectScopeConfig } from '../../types/utility';
 
 // ============================================================================
 // DATASET RUN
@@ -520,3 +531,76 @@ export const deleteEvaluationResultsByRun =
     return result.length;
   };
 
+// ============================================================================
+// CONVERSATION FILTERING FOR EVALUATION JOBS
+// ============================================================================
+
+/**
+ * Filter conversations based on evaluation job filter criteria
+ */
+export const filterConversationsForJob =
+  (db: AgentsRunDatabaseClient) =>
+  async (params: {
+    scopes: ProjectScopeConfig;
+    jobFilters: EvaluationJobFilterCriteria | null | undefined;
+  }): Promise<ConversationSelect[]> => {
+    const { scopes, jobFilters } = params;
+    const { tenantId, projectId } = scopes;
+
+    const whereConditions = [
+      eq(conversations.tenantId, tenantId),
+      eq(conversations.projectId, projectId),
+    ];
+
+    // Filter by conversation IDs if specified
+    if (
+      jobFilters?.conversationIds &&
+      Array.isArray(jobFilters.conversationIds) &&
+      jobFilters.conversationIds.length > 0
+    ) {
+      whereConditions.push(inArray(conversations.id, jobFilters.conversationIds));
+    }
+
+    // Filter by date range if specified
+    if (jobFilters?.dateRange) {
+      const { startDate, endDate } = jobFilters.dateRange;
+      if (startDate) {
+        whereConditions.push(gte(conversations.createdAt, startDate));
+      }
+      if (endDate) {
+        whereConditions.push(lte(conversations.createdAt, endDate));
+      }
+    }
+
+    // Filter by dataset run IDs if specified
+    if (
+      jobFilters?.datasetRunIds &&
+      Array.isArray(jobFilters.datasetRunIds) &&
+      jobFilters.datasetRunIds.length > 0
+    ) {
+      // Get conversation IDs from dataset run relations
+      const allConversationIds = new Set<string>();
+      for (const datasetRunId of jobFilters.datasetRunIds) {
+        const relations = await getDatasetRunConversationRelations(db)({
+          scopes: { tenantId, projectId, datasetRunId },
+        });
+        for (const relation of relations) {
+          allConversationIds.add(relation.conversationId);
+        }
+      }
+
+      if (allConversationIds.size > 0) {
+        whereConditions.push(inArray(conversations.id, Array.from(allConversationIds)));
+      } else {
+        // No conversations found in dataset runs, return empty array
+        return [];
+      }
+    }
+
+    const filteredConversations = await db
+      .select()
+      .from(conversations)
+      .where(and(...whereConditions));
+
+    return filteredConversations;
+  };

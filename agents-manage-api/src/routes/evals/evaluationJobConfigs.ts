@@ -3,7 +3,6 @@ import {
   createApiError,
   createEvaluationJobConfig,
   createEvaluationJobConfigEvaluatorRelation,
-  createEvaluationRun,
   deleteEvaluationJobConfig,
   generateId,
   getConversation,
@@ -15,28 +14,25 @@ import {
   listEvaluationRuns,
   SingleResponseSchema,
   TenantProjectParamsSchema,
-  subAgents,
   EvaluationJobConfigApiSelectSchema,
   EvaluationJobConfigApiInsertSchema,
   EvaluationResultApiSelectSchema,
+  EvalApiClient,
+  InternalServices,
 } from '@inkeep/agents-core';
 import { z, createRoute, OpenAPIHono } from '@hono/zod-openapi';
-import { and, eq } from 'drizzle-orm';
-import { start } from 'workflow/api';
-import manageDbClient from '../../data/db/manageDbClient';
 import { getLogger } from '../../logger';
-import { evaluateConversationWorkflow } from '../../workflow';
-import { EvaluationService } from '../../services/EvaluationService';
-import runDbClient from 'src/data/db/runDbClient';
+import runDbClient from '../../data/db/runDbClient';
+import { env } from '../../env';
+import type { BaseAppVariables } from '../../types/app';
 
-const app = new OpenAPIHono();
+const app = new OpenAPIHono<{ Variables: BaseAppVariables }>();
 const logger = getLogger('evaluationJobConfigs');
-const evaluationService = new EvaluationService();
 
 app.openapi(
   createRoute({
     method: 'get',
-    path: '/evaluation-job-configs',
+    path: '/',
     summary: 'List Evaluation Job Configs',
     operationId: 'list-evaluation-job-configs',
     tags: ['Evaluations'],
@@ -57,9 +53,10 @@ app.openapi(
   }),
   async (c) => {
     const { tenantId, projectId } = c.req.valid('param');
+    const db = c.get('db');
 
     try {
-      const configs = await listEvaluationJobConfigs(manageDbClient)({
+      const configs = await listEvaluationJobConfigs(db)({
         scopes: { tenantId, projectId },
       });
       return c.json({
@@ -87,7 +84,7 @@ app.openapi(
 app.openapi(
   createRoute({
     method: 'get',
-    path: '/evaluation-job-configs/{configId}',
+    path: '/{configId}',
     summary: 'Get Evaluation Job Config by ID',
     operationId: 'get-evaluation-job-config',
     tags: ['Evaluations'],
@@ -108,9 +105,10 @@ app.openapi(
   }),
   async (c) => {
     const { tenantId, projectId, configId } = c.req.valid('param');
+    const db = c.get('db');
 
     try {
-      const config = await getEvaluationJobConfigById(manageDbClient)({
+      const config = await getEvaluationJobConfigById(db)({
         scopes: { tenantId, projectId, evaluationJobConfigId: configId },
       });
 
@@ -138,7 +136,7 @@ app.openapi(
 app.openapi(
   createRoute({
     method: 'post',
-    path: '/evaluation-job-configs',
+    path: '/',
     summary: 'Create Evaluation Job Config',
     operationId: 'create-evaluation-job-config',
     tags: ['Evaluations'],
@@ -166,12 +164,13 @@ app.openapi(
   }),
   async (c) => {
     const { tenantId, projectId } = c.req.valid('param');
+    const db = c.get('db');
     const configData = c.req.valid('json') as any;
     const { evaluatorIds, ...jobConfigData } = configData;
 
     try {
       const id = jobConfigData.id || generateId();
-      const created = await createEvaluationJobConfig(manageDbClient)({
+      const created = await createEvaluationJobConfig(db)({
         ...jobConfigData,
         id,
         tenantId,
@@ -182,7 +181,7 @@ app.openapi(
       if (evaluatorIds && Array.isArray(evaluatorIds) && evaluatorIds.length > 0) {
         await Promise.all(
           evaluatorIds.map((evaluatorId: string) =>
-            createEvaluationJobConfigEvaluatorRelation(manageDbClient)({
+            createEvaluationJobConfigEvaluatorRelation(db)({
               tenantId,
               projectId,
               id: generateId(),
@@ -195,64 +194,45 @@ app.openapi(
 
       logger.info({ tenantId, projectId, configId: id }, 'Evaluation job config created');
 
-      // Fan out manual bulk evaluation job to vercel workflow if evaluators are configured
+      // Fan out manual bulk evaluation job to eval API if evaluators are configured
       if (evaluatorIds && Array.isArray(evaluatorIds) && evaluatorIds.length > 0) {
-        (async () => {
-          try {
-            // Filter conversations based on job filters
-            let conversations = await evaluationService.filterConversationsForJob({
-              tenantId,
-              projectId,
-              jobFilters: created.jobFilters,
-            });
+        // Fire and forget: trigger evaluation job via eval API
+        const evalClient = new EvalApiClient({
+          apiUrl: env.INKEEP_AGENTS_EVAL_API_URL,
+          tenantId,
+          projectId,
+          auth: {
+            mode: 'internalService',
+            internalServiceName: InternalServices.EVALUATION_API,
+          },
+        });
 
-            if (conversations.length === 0) {
-              logger.warn(
-                { tenantId, projectId, configId: id },
-                'No conversations found matching job filters'
-              );
-              return;
-            }
-
-
-            // Create evaluation run
-            const evaluationRun = await createEvaluationRun(runDbClient)({
-              id: generateId(),
-              tenantId,
-              projectId,
-              evaluationJobConfigId: id,
-            });
-
-            // Fan out: start workflow for each conversation
-            await Promise.all(
-              conversations.map((conv) =>
-                start(evaluateConversationWorkflow, [{
-                  tenantId,
-                  projectId,
-                  conversationId: conv.id,
-                  evaluatorIds,
-                  evaluationRunId: evaluationRun.id,
-                }])
-              )
-            );
-
+        evalClient
+          .triggerEvaluationJob({
+            evaluationJobConfigId: id,
+            evaluatorIds,
+            jobFilters: created.jobFilters,
+          })
+          .then((result) => {
             logger.info(
               {
                 tenantId,
                 projectId,
                 configId: id,
-                conversationCount: conversations.length,
-                evaluationRunId: evaluationRun.id,
+                conversationCount: result.conversationCount,
+                queued: result.queued,
+                failed: result.failed,
+                evaluationRunId: result.evaluationRunId,
               },
-              'Manual bulk evaluation job '
+              'Manual bulk evaluation job triggered'
             );
-          } catch (error) {
+          })
+          .catch((error) => {
             logger.error(
               { error, tenantId, projectId, configId: id },
-              'Failed to queue manual bulk evaluation job'
+              'Failed to trigger manual bulk evaluation job'
             );
-          }
-        })();
+          });
       } else {
         logger.warn(
           { tenantId, projectId, configId: id },
@@ -280,7 +260,7 @@ app.openapi(
 app.openapi(
   createRoute({
     method: 'delete',
-    path: '/evaluation-job-configs/{configId}',
+    path: '/{configId}',
     summary: 'Delete Evaluation Job Config',
     operationId: 'delete-evaluation-job-config',
     tags: ['Evaluations'],
@@ -296,9 +276,10 @@ app.openapi(
   }),
   async (c) => {
     const { tenantId, projectId, configId } = c.req.valid('param');
+    const db = c.get('db');
 
     try {
-      const deleted = await deleteEvaluationJobConfig(manageDbClient)({
+      const deleted = await deleteEvaluationJobConfig(db)({
         scopes: { tenantId, projectId, evaluationJobConfigId: configId },
       });
 
@@ -330,7 +311,7 @@ app.openapi(
 app.openapi(
   createRoute({
     method: 'get',
-    path: '/evaluation-job-configs/{configId}/results',
+    path: '/{configId}/results',
     summary: 'Get Evaluation Results by Job Config ID',
     operationId: 'get-evaluation-job-config-results',
     tags: ['Evaluations'],
@@ -457,166 +438,6 @@ app.openapi(
       logger.error(
         { error, tenantId, projectId, configId },
         'Failed to get evaluation results for job config'
-      );
-      return c.json(
-        createApiError({
-          code: 'internal_server_error',
-          message: 'Failed to get evaluation results',
-        }),
-        500
-      );
-    }
-  }
-);
-
-app.openapi(
-  createRoute({
-    method: 'get',
-    path: '/evaluation-run-configs/{configId}/results',
-    summary: 'Get Evaluation Results by Run Config ID',
-    operationId: 'get-evaluation-run-config-results',
-    tags: ['Evaluations'],
-    request: {
-      params: TenantProjectParamsSchema.extend({ configId: z.string() }),
-    },
-    responses: {
-      200: {
-        description: 'Evaluation results retrieved',
-        content: {
-          'application/json': {
-            schema: ListResponseSchema(EvaluationResultApiSelectSchema),
-          },
-        },
-      },
-      ...commonGetErrorResponses,
-    },
-  }),
-  async (c) => {
-    const { tenantId, projectId, configId } = c.req.valid('param');
-
-    console.log('=== GET EVALUATION RESULTS FOR RUN CONFIG ===');
-    console.log('Request params:', { tenantId, projectId, configId });
-
-    try {
-      // Find evaluation run(s) for this run config
-      const evaluationRuns = await listEvaluationRuns(runDbClient)({
-        scopes: { tenantId, projectId },
-      });
-
-      const runConfigRuns = evaluationRuns.filter((run) => run.evaluationRunConfigId === configId);
-
-      console.log('Found evaluation runs for run config:', {
-        tenantId,
-        projectId,
-        configId,
-        totalEvaluationRuns: evaluationRuns.length,
-        matchingRunConfigRuns: runConfigRuns.length,
-        runConfigRunIds: runConfigRuns.map((r) => r.id),
-        allEvaluationRunConfigIds: evaluationRuns.map((r) => ({
-          id: r.id,
-          evaluationRunConfigId: r.evaluationRunConfigId,
-        })),
-      });
-
-      if (runConfigRuns.length === 0) {
-        console.warn('No evaluation runs found for run config:', {
-          tenantId,
-          projectId,
-          configId,
-          totalEvaluationRuns: evaluationRuns.length,
-        });
-        return c.json({ data: [], pagination: { page: 1, limit: 100, total: 0, pages: 0 } }) as any;
-      }
-
-      // Get all results for all runs
-      const allResults = await Promise.all(
-        runConfigRuns.map(async (run) => {
-          const runResults = await listEvaluationResultsByRun(runDbClient)({
-            scopes: { tenantId, projectId, evaluationRunId: run.id },
-          });
-          console.log('Results for evaluation run:', {
-            evaluationRunId: run.id,
-            resultCount: runResults.length,
-            conversationIds: runResults.map((r) => r.conversationId),
-            evaluatorIds: runResults.map((r) => r.evaluatorId),
-          });
-          return runResults;
-        })
-      );
-
-      const results = allResults.flat();
-
-      console.log('Retrieved evaluation results for run config:', {
-        tenantId,
-        projectId,
-        configId,
-        resultCount: results.length,
-        evaluationRunCount: runConfigRuns.length,
-        uniqueConversationIds: [...new Set(results.map((r) => r.conversationId))],
-        allResults: results.map((r) => ({
-          id: r.id,
-          conversationId: r.conversationId,
-          evaluatorId: r.evaluatorId,
-          evaluationRunId: r.evaluationRunId,
-        })),
-      });
-
-      const uniqueConversationIds = [...new Set(results.map((r) => r.conversationId))] as string[];
-      const conversationInputs = new Map<string, string>();
-      const conversationAgents = new Map<string, string>();
-
-      await Promise.all(
-        uniqueConversationIds.map(async (conversationId: string) => {
-          try {
-            // Fetch conversation to get sub-agent ID, then look up parent agent ID
-            const conversation = await getConversation(runDbClient)({
-              scopes: { tenantId, projectId },
-              conversationId,
-            });
-            if (conversation?.agentId) {
-              conversationAgents.set(conversationId, conversation.agentId);
-            }
-
-            const messages = await getMessagesByConversation(runDbClient)({
-              scopes: { tenantId, projectId },
-              conversationId,
-              pagination: { page: 1, limit: 10 },
-            });
-
-            const messagesChronological = [...messages].reverse();
-            const firstUserMessage = messagesChronological.find((msg) => msg.role === 'user');
-            if (firstUserMessage?.content) {
-              const text =
-                typeof firstUserMessage.content === 'string'
-                  ? firstUserMessage.content
-                  : firstUserMessage.content.text || '';
-              conversationInputs.set(conversationId, text);
-            }
-          } catch (error) {
-            logger.warn({ error, conversationId }, 'Failed to fetch conversation input');
-          }
-        })
-      );
-
-      const enrichedResults = results.map((result) => ({
-        ...result,
-        input: conversationInputs.get(result.conversationId) || null,
-        agentId: conversationAgents.get(result.conversationId) || null,
-      }));
-
-      return c.json({
-        data: enrichedResults as any[],
-        pagination: {
-          page: 1,
-          limit: enrichedResults.length,
-          total: enrichedResults.length,
-          pages: 1,
-        },
-      }) as any;
-    } catch (error) {
-      logger.error(
-        { error, tenantId, projectId, configId },
-        'Failed to get evaluation results for run config'
       );
       return c.json(
         createApiError({

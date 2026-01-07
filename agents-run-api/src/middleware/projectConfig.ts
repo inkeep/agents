@@ -35,7 +35,7 @@ export const projectConfigMiddleware = createMiddleware<{
       apiUrl: env.INKEEP_AGENTS_MANAGE_API_URL,
       tenantId,
       projectId,
-      auth: { mode: 'internalService', internalServiceName: InternalServices.AGENTS_RUN_API },
+      auth: { mode: 'internalService', internalServiceName: InternalServices.INKEEP_AGENTS_RUN_API },
       ref,
     });
 

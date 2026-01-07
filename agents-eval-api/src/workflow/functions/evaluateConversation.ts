@@ -6,10 +6,10 @@ import {
   ManagementApiClient,
   updateEvaluationResult,
 } from '@inkeep/agents-core';
+import { env } from 'src/env';
 import runDbClient from '../../data/db/runDbClient';
 import { getLogger } from '../../logger';
 import { EvaluationService } from '../../services/EvaluationService';
-import { env } from 'src/env';
 
 const logger = getLogger('workflow-evaluate-conversation');
 
@@ -23,9 +23,9 @@ type EvaluationPayload = {
 
 async function getConversationStep(payload: EvaluationPayload) {
   'use step';
-  
+
   const { tenantId, projectId, conversationId } = payload;
-  
+
   const conv = await getConversation(runDbClient)({
     scopes: { tenantId, projectId },
     conversationId,
@@ -42,15 +42,14 @@ async function getEvaluatorsStep(payload: EvaluationPayload) {
   'use step';
   const { tenantId, projectId, evaluatorIds } = payload;
 
-    
   const client = new ManagementApiClient({
     apiUrl: env.INKEEP_AGENTS_MANAGE_API_URL,
     tenantId,
     projectId,
-    auth: { mode: 'internalService', internalServiceName: InternalServices.EVALUATION_API },
+    auth: { mode: 'internalService', internalServiceName: InternalServices.INKEEP_AGENTS_EVAL_API },
   });
-  
-  const evals = await client.getEvaluatorsByIds(evaluatorIds);  
+
+  const evals = await client.getEvaluatorsByIds(evaluatorIds);
 
   return evals;
 }
@@ -61,14 +60,14 @@ async function executeEvaluatorStep(
   conversation: any
 ) {
   'use step';
-  
+
   const { tenantId, projectId, conversationId, evaluationRunId } = payload;
-  
+
   const client = new ManagementApiClient({
     apiUrl: env.INKEEP_AGENTS_MANAGE_API_URL,
     tenantId,
     projectId,
-    auth: { mode: 'internalService', internalServiceName: InternalServices.EVALUATION_API },
+    auth: { mode: 'internalService', internalServiceName: InternalServices.INKEEP_AGENTS_EVAL_API },
   });
   const evaluator = await client.getEvaluatorById(evaluatorId);
 
@@ -132,7 +131,7 @@ async function logStep(message: string, data: Record<string, any>) {
 
 /**
  * Main workflow function - orchestrates the evaluation steps.
- * 
+ *
  * IMPORTANT: This runs in a deterministic sandbox.
  * - Do NOT call Node.js APIs directly here (no DB, no fs, etc.)
  * - All side effects must happen in step functions
@@ -164,4 +163,3 @@ export async function evaluateConversationWorkflow(payload: EvaluationPayload) {
     resultCount: results.length,
   };
 }
-

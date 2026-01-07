@@ -16,4 +16,3 @@ export * from './service-token-auth';
 export * from './temp-jwt';
 export * from './third-party-mcp-servers';
 export * from './tracer-factory';
-export * from './manage-api-client';

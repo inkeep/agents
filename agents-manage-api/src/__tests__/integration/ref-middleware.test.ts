@@ -1,7 +1,7 @@
 import { doltBranch, doltHashOf, generateId } from '@inkeep/agents-core';
 import { sql } from 'drizzle-orm';
 import { afterEach, describe, expect, it } from 'vitest';
-import dbClient from '../../data/db/dbClient';
+import manageDbClient from '../../data/db/dbClient';
 import { cleanupTenants } from '../utils/cleanup';
 import { makeRequest } from '../utils/testRequest';
 import { createTestTenantId } from '../utils/testTenant';
@@ -47,12 +47,12 @@ describe('Ref Middleware - Integration Tests', () => {
   const createDoltTag = async (tagName: string, branchName: string) => {
     createdTags.add(tagName);
     // Tags need to reference the branch explicitly
-    await dbClient.execute(sql.raw(`SELECT DOLT_TAG('${tagName}', '${branchName}')`));
+    await manageDbClient.execute(sql.raw(`SELECT DOLT_TAG('${tagName}', '${branchName}')`));
   };
 
   // Helper to get commit hash from a specific branch
   const getCommitHash = async (branchName: string) => {
-    const result = await doltHashOf(dbClient)({ revision: branchName });
+    const result = await doltHashOf(manageDbClient)({ revision: branchName });
     return result;
   };
 
@@ -68,7 +68,7 @@ describe('Ref Middleware - Integration Tests', () => {
 
       // Verify project main branch was created
       const projectMain = getProjectMainBranch(tenantId, projectId);
-      const branches = await dbClient.execute(
+      const branches = await manageDbClient.execute(
         sql.raw(`SELECT * FROM dolt_branches WHERE name = '${projectMain}'`)
       );
 
@@ -112,7 +112,7 @@ describe('Ref Middleware - Integration Tests', () => {
 
       // Create a custom branch from the project main branch
       const customBranch = `${tenantId}_${projectId}_custom`;
-      await doltBranch(dbClient)({ name: customBranch, startPoint: projectMain });
+      await doltBranch(manageDbClient)({ name: customBranch, startPoint: projectMain });
 
       // Make request with custom ref
       const res = await makeRequest(`/tenants/${tenantId}/projects/${projectId}?ref=custom`);
@@ -175,7 +175,7 @@ describe('Ref Middleware - Integration Tests', () => {
 
       // Create a custom branch from project main
       const customBranch = `${tenantId}_${projectId}_writeable`;
-      await doltBranch(dbClient)({ name: customBranch, startPoint: projectMain });
+      await doltBranch(manageDbClient)({ name: customBranch, startPoint: projectMain });
 
       // POST should be allowed on a branch
       const res = await makeRequest(`/tenants/${tenantId}/projects/${projectId}?ref=writeable`, {
@@ -196,7 +196,7 @@ describe('Ref Middleware - Integration Tests', () => {
 
       // Create a custom branch from project main
       const customBranch = `${tenantId}_${projectId}_writeable`;
-      await doltBranch(dbClient)({ name: customBranch, startPoint: projectMain });
+      await doltBranch(manageDbClient)({ name: customBranch, startPoint: projectMain });
 
       // Create a branch to delete
       const res1 = await makeRequest(
@@ -227,7 +227,7 @@ describe('Ref Middleware - Integration Tests', () => {
 
       // Create a custom branch from project main
       const customBranch = `${tenantId}_${projectId}_writeable`;
-      await doltBranch(dbClient)({ name: customBranch, startPoint: projectMain });
+      await doltBranch(manageDbClient)({ name: customBranch, startPoint: projectMain });
 
       // PATCH should be allowed on a branch (even if route doesn't exist)
       const res = await makeRequest(`/tenants/${tenantId}/projects/${projectId}?ref=writeable`, {

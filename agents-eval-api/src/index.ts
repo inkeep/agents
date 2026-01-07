@@ -1,8 +1,8 @@
 import './workflow-bootstrap';
 
-import { world } from './workflow';
 import { createEvaluationHono } from './app';
 import { getLogger } from './logger';
+import { world } from './workflow';
 
 const logger = getLogger('agents-eval-api');
 
@@ -35,4 +35,7 @@ export { createEvaluationHono };
 
 // Export evaluation service for use in other packages (like agents-run-api)
 // This encapsulates workflow logic so consumers don't need workflow dependencies
-export { startConversationEvaluation, type StartEvaluationParams } from './services/startEvaluation';
+export {
+  type StartEvaluationParams,
+  startConversationEvaluation,
+} from './services/startEvaluation';

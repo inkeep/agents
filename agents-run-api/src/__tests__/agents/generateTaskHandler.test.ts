@@ -10,42 +10,36 @@ import {
 } from '../../agents/generateTaskHandler';
 
 const { getMcpToolMock } = vi.hoisted(() => {
-  const getMcpToolMock = vi.fn(() =>
-    vi.fn().mockResolvedValue({
-      tenantId: 'test-tenant',
-      projectId: 'test-project',
-      id: 'tool-1',
-      name: 'Test Tool',
-      status: 'healthy',
-      config: {
-        type: 'mcp',
-        mcp: {
-          server: { url: 'http://localhost:3000/mcp' },
-          transport: { type: 'http' },
+  const getMcpToolMock = vi.fn().mockResolvedValue({
+    tenantId: 'test-tenant',
+    projectId: 'test-project',
+    id: 'tool-1',
+    name: 'Test Tool',
+    status: 'healthy',
+    config: {
+      type: 'mcp',
+      mcp: {
+        server: { url: 'http://localhost:3000/mcp' },
+        transport: { type: 'http' },
+      },
+    },
+    availableTools: [
+      {
+        name: 'search_database',
+        description: 'Search the database for information',
+        inputSchema: {
+          type: 'object',
+          properties: { query: { type: 'string' } },
+          required: ['query'],
         },
       },
-      availableTools: [
-        {
-          name: 'search_database',
-          description: 'Search the database for information',
-          inputSchema: {
-            type: 'object',
-            properties: { query: { type: 'string' } },
-            required: ['query'],
-          },
-        },
-      ],
-      createdAt: '2024-01-01T00:00:00Z',
-      updatedAt: '2024-01-01T00:00:00Z',
-    })
-  );
+    ],
+    createdAt: '2024-01-01T00:00:00Z',
+    updatedAt: '2024-01-01T00:00:00Z',
+  });
 
   return { getMcpToolMock };
 });
-
-vi.mock('../../api/manage-api.js', () => ({
-  getMcpTool: getMcpToolMock,
-}));
 
 // Mock @inkeep/agents-core functions using hoisted pattern
 // Note: Most database access functions are no longer used - data comes from execution context
@@ -53,6 +47,10 @@ vi.mock('@inkeep/agents-core', async (importOriginal) => {
   const actual = await importOriginal();
   return {
     ...(actual as any),
+    // Mock ManagementApiClient for getMcpTool calls
+    ManagementApiClient: vi.fn().mockImplementation(() => ({
+      getMcpTool: getMcpToolMock,
+    })),
     getTracer: vi.fn().mockReturnValue({
       startSpan: vi.fn().mockReturnValue({
         setAttributes: vi.fn(),
@@ -776,16 +774,8 @@ describe('generateTaskHandler', () => {
 
       await taskHandler(task);
 
-      // Relations/tools are derived from project context; MCP tool hydration happens via manage-api.
-      expect(getMcpToolMock).toHaveBeenCalledWith(expect.anything());
-      const getMcpToolInnerMock = getMcpToolMock.mock.results[0]?.value;
-      expect(getMcpToolInnerMock).toHaveBeenCalledWith(
-        expect.objectContaining({
-          scopes: { tenantId: 'test-tenant', projectId: 'test-project' },
-          toolId: 'tool-1',
-          ref: 'main',
-        })
-      );
+      // Relations/tools are derived from project context; MCP tool hydration happens via ManagementApiClient.getMcpTool
+      expect(getMcpToolMock).toHaveBeenCalledWith('tool-1');
 
       expect(lastAgentConstructorArgs).toBeDefined();
       expect(lastAgentConstructorArgs.tools).toHaveLength(1);

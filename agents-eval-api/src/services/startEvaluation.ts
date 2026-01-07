@@ -22,4 +22,3 @@ export async function startConversationEvaluation(params: StartEvaluationParams)
   // Pass params directly - types match EvaluationPayload exactly
   await start(evaluateConversationWorkflow, [params]);
 }
-

@@ -1,5 +1,5 @@
 {
-  "id": "cab74910-17dc-428d-98f4-5fd1d3e30666",
+  "id": "dbfd3461-ad1a-485f-a224-0cf71176f9d4",
   "prevId": "00000000-0000-0000-0000-000000000000",
   "version": "7",
   "dialect": "postgresql",
@@ -1028,8 +1028,8 @@
       },
       "indexes": {},
       "foreignKeys": {
-        "evaluation_job_config_evaluator_relations_evaluation_job_config_fk": {
-          "name": "evaluation_job_config_evaluator_relations_evaluation_job_config_fk",
+        "eval_job_cfg_evaluator_rel_job_cfg_fk": {
+          "name": "eval_job_cfg_evaluator_rel_job_cfg_fk",
           "tableFrom": "evaluation_job_config_evaluator_relations",
           "tableTo": "evaluation_job_config",
           "columnsFrom": [
@@ -1045,8 +1045,8 @@
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
-        "evaluation_job_config_evaluator_relations_evaluator_fk": {
-          "name": "evaluation_job_config_evaluator_relations_evaluator_fk",
+        "eval_job_cfg_evaluator_rel_evaluator_fk": {
+          "name": "eval_job_cfg_evaluator_rel_evaluator_fk",
           "tableFrom": "evaluation_job_config_evaluator_relations",
           "tableTo": "evaluator",
           "columnsFrom": [
@@ -1064,8 +1064,8 @@
         }
       },
       "compositePrimaryKeys": {
-        "evaluation_job_config_evaluator_relations_tenant_id_project_id_id_pk": {
-          "name": "evaluation_job_config_evaluator_relations_tenant_id_project_id_id_pk",
+        "eval_job_cfg_evaluator_rel_pk": {
+          "name": "eval_job_cfg_evaluator_rel_pk",
           "columns": [
             "tenant_id",
             "project_id",
@@ -1218,8 +1218,8 @@
       },
       "indexes": {},
       "foreignKeys": {
-        "eval_run_config_eval_suite_rel_run_config_fk": {
-          "name": "eval_run_config_eval_suite_rel_run_config_fk",
+        "eval_run_cfg_eval_suite_rel_run_cfg_fk": {
+          "name": "eval_run_cfg_eval_suite_rel_run_cfg_fk",
           "tableFrom": "evaluation_run_config_evaluation_suite_config_relations",
           "tableTo": "evaluation_run_config",
           "columnsFrom": [
@@ -1235,8 +1235,8 @@
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
-        "eval_run_config_eval_suite_rel_suite_config_fk": {
-          "name": "eval_run_config_eval_suite_rel_suite_config_fk",
+        "eval_run_cfg_eval_suite_rel_suite_cfg_fk": {
+          "name": "eval_run_cfg_eval_suite_rel_suite_cfg_fk",
           "tableFrom": "evaluation_run_config_evaluation_suite_config_relations",
           "tableTo": "evaluation_suite_config",
           "columnsFrom": [
@@ -1254,8 +1254,8 @@
         }
       },
       "compositePrimaryKeys": {
-        "evaluation_run_config_evaluation_suite_config_relations_tenant_id_project_id_id_pk": {
-          "name": "evaluation_run_config_evaluation_suite_config_relations_tenant_id_project_id_id_pk",
+        "eval_run_cfg_eval_suite_cfg_rel_pk": {
+          "name": "eval_run_cfg_eval_suite_cfg_rel_pk",
           "columns": [
             "tenant_id",
             "project_id",
@@ -1401,8 +1401,8 @@
       },
       "indexes": {},
       "foreignKeys": {
-        "evaluation_suite_config_evaluator_relations_evaluation_suite_config_fk": {
-          "name": "evaluation_suite_config_evaluator_relations_evaluation_suite_config_fk",
+        "eval_suite_cfg_evaluator_rel_suite_cfg_fk": {
+          "name": "eval_suite_cfg_evaluator_rel_suite_cfg_fk",
           "tableFrom": "evaluation_suite_config_evaluator_relations",
           "tableTo": "evaluation_suite_config",
           "columnsFrom": [
@@ -1418,8 +1418,8 @@
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
-        "evaluation_suite_config_evaluator_relations_evaluator_fk": {
-          "name": "evaluation_suite_config_evaluator_relations_evaluator_fk",
+        "eval_suite_cfg_evaluator_rel_evaluator_fk": {
+          "name": "eval_suite_cfg_evaluator_rel_evaluator_fk",
           "tableFrom": "evaluation_suite_config_evaluator_relations",
           "tableTo": "evaluator",
           "columnsFrom": [
@@ -1437,8 +1437,8 @@
         }
       },
       "compositePrimaryKeys": {
-        "evaluation_suite_config_evaluator_relations_tenant_id_project_id_id_pk": {
-          "name": "evaluation_suite_config_evaluator_relations_tenant_id_project_id_id_pk",
+        "eval_suite_cfg_evaluator_rel_pk": {
+          "name": "eval_suite_cfg_evaluator_rel_pk",
           "columns": [
             "tenant_id",
             "project_id",

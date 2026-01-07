@@ -8,10 +8,10 @@ import {
   TenantProjectParamsSchema,
 } from '@inkeep/agents-core';
 import { z, createRoute, OpenAPIHono } from '@hono/zod-openapi';
-import manageDbClient from '../../data/db/manageDbClient';
 import { getLogger } from '../../logger';
+import type { BaseAppVariables } from '../../types/app';
 
-const app = new OpenAPIHono();
+const app = new OpenAPIHono<{ Variables: BaseAppVariables }>();
 const logger = getLogger('evaluationSuiteConfigEvaluatorRelations');
 
 app.openapi(
@@ -37,10 +37,11 @@ app.openapi(
     },
   }),
   async (c) => {
+    const db = c.get('db');
     const { tenantId, projectId, configId } = c.req.valid('param');
 
     try {
-      const relations = await getEvaluationSuiteConfigEvaluatorRelations(manageDbClient)({
+      const relations = await getEvaluationSuiteConfigEvaluatorRelations(db)({
         scopes: { tenantId, projectId, evaluationSuiteConfigId: configId },
       });
       return c.json({ data: relations as any }) as any;
@@ -83,11 +84,12 @@ app.openapi(
     },
   }),
   async (c) => {
+    const db = c.get('db');
     const { tenantId, projectId, configId, evaluatorId } = c.req.valid('param');
 
     try {
       const id = generateId();
-      const created = await createEvaluationSuiteConfigEvaluatorRelation(manageDbClient)({
+      const created = await createEvaluationSuiteConfigEvaluatorRelation(db)({
         id,
         tenantId,
         projectId,
@@ -134,10 +136,11 @@ app.openapi(
     },
   }),
   async (c) => {
+    const db = c.get('db');
     const { tenantId, projectId, configId, evaluatorId } = c.req.valid('param');
 
     try {
-      const deleted = await deleteEvaluationSuiteConfigEvaluatorRelation(manageDbClient)({
+      const deleted = await deleteEvaluationSuiteConfigEvaluatorRelation(db)({
         scopes: { tenantId, projectId, evaluationSuiteConfigId: configId, evaluatorId },
       });
 

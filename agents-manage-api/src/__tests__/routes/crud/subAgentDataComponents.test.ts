@@ -1,6 +1,6 @@
 import { createTestProject } from '@inkeep/agents-core/db/test-manage-client';
 import { describe, expect, it } from 'vitest';
-import dbClient from '../../../data/db/dbClient';
+import manageDbClient from '../../../data/db/dbClient';
 import { createTestAgentDataComponentData } from '../../utils/testHelpers';
 import { makeRequest } from '../../utils/testRequest';
 import { createTestSubAgentData } from '../../utils/testSubAgent';
@@ -149,7 +149,7 @@ describe('Agent Data Component CRUD Routes - Integration Tests', () => {
   describe('POST /', () => {
     it('should create a new agent data component association', async () => {
       const tenantId = await createTestTenantWithOrg('agent-data-components-create-success');
-      await createTestProject(dbClient, tenantId, projectId);
+      await createTestProject(manageDbClient, tenantId, projectId);
       const { subAgentId, dataComponentId, agentId } = await setupTestEnvironment(tenantId);
 
       const relationData = createTestAgentDataComponentData({
@@ -176,7 +176,7 @@ describe('Agent Data Component CRUD Routes - Integration Tests', () => {
 
     it('should validate required fields', async () => {
       const tenantId = await createTestTenantWithOrg('agent-data-components-create-validation');
-      await createTestProject(dbClient, tenantId, projectId);
+      await createTestProject(manageDbClient, tenantId, projectId);
       const agentId = 'default';
       const res = await makeRequest(
         `/tenants/${tenantId}/projects/${projectId}/agents/${agentId}/sub-agent-data-components`,
@@ -191,7 +191,7 @@ describe('Agent Data Component CRUD Routes - Integration Tests', () => {
 
     it('should reject duplicate associations', async () => {
       const tenantId = await createTestTenantWithOrg('agent-data-components-create-duplicate');
-      await createTestProject(dbClient, tenantId, projectId);
+      await createTestProject(manageDbClient, tenantId, projectId);
       const { subAgentId, dataComponentId, agentId } = await setupTestEnvironment(tenantId);
 
       const relationData = createTestAgentDataComponentData({
@@ -224,7 +224,7 @@ describe('Agent Data Component CRUD Routes - Integration Tests', () => {
   describe('GET /agent/:subAgentId', () => {
     it('should get data components for an agent', async () => {
       const tenantId = await createTestTenantWithOrg('agent-data-components-get-for-agent');
-      await createTestProject(dbClient, tenantId, projectId);
+      await createTestProject(manageDbClient, tenantId, projectId);
       const { subAgentId, dataComponentId, agentId } = await setupTestEnvironment(tenantId);
 
       // Create association
@@ -247,7 +247,7 @@ describe('Agent Data Component CRUD Routes - Integration Tests', () => {
 
     it('should return empty array when no data components associated', async () => {
       const tenantId = await createTestTenantWithOrg('agent-data-components-get-empty');
-      await createTestProject(dbClient, tenantId, projectId);
+      await createTestProject(manageDbClient, tenantId, projectId);
       const { subAgentId, agentId } = await setupTestEnvironment(tenantId);
 
       const res = await makeRequest(
@@ -263,7 +263,7 @@ describe('Agent Data Component CRUD Routes - Integration Tests', () => {
   describe('GET /component/:dataComponentId/agents', () => {
     it('should get agents using a data component', async () => {
       const tenantId = await createTestTenantWithOrg('agent-data-components-get-agents');
-      await createTestProject(dbClient, tenantId, projectId);
+      await createTestProject(manageDbClient, tenantId, projectId);
       const { subAgentId, dataComponentId, agentId } = await setupTestEnvironment(tenantId);
 
       // Create association
@@ -288,7 +288,7 @@ describe('Agent Data Component CRUD Routes - Integration Tests', () => {
 
     it('should return empty array when no agents use the data component', async () => {
       const tenantId = await createTestTenantWithOrg('agent-data-components-get-agents-empty');
-      await createTestProject(dbClient, tenantId, projectId);
+      await createTestProject(manageDbClient, tenantId, projectId);
       const { dataComponentId, agentId } = await setupTestEnvironment(tenantId);
 
       const res = await makeRequest(
@@ -304,7 +304,7 @@ describe('Agent Data Component CRUD Routes - Integration Tests', () => {
   describe('GET /agent/:subAgentId/component/:dataComponentId/exists', () => {
     it('should return true when association exists', async () => {
       const tenantId = await createTestTenantWithOrg('agent-data-components-check-exists-true');
-      await createTestProject(dbClient, tenantId, projectId);
+      await createTestProject(manageDbClient, tenantId, projectId);
       const { subAgentId, dataComponentId, agentId } = await setupTestEnvironment(tenantId);
 
       // Create association
@@ -326,7 +326,7 @@ describe('Agent Data Component CRUD Routes - Integration Tests', () => {
 
     it('should return false when association does not exist', async () => {
       const tenantId = await createTestTenantWithOrg('agent-data-components-check-exists-false');
-      await createTestProject(dbClient, tenantId, projectId);
+      await createTestProject(manageDbClient, tenantId, projectId);
       const { subAgentId, dataComponentId, agentId } = await setupTestEnvironment(tenantId);
 
       const res = await makeRequest(
@@ -342,7 +342,7 @@ describe('Agent Data Component CRUD Routes - Integration Tests', () => {
   describe('DELETE /agent/:subAgentId/component/:dataComponentId', () => {
     it('should remove an existing association', async () => {
       const tenantId = await createTestTenantWithOrg('agent-data-components-delete-success');
-      await createTestProject(dbClient, tenantId, projectId);
+      await createTestProject(manageDbClient, tenantId, projectId);
       const { subAgentId, dataComponentId, agentId } = await setupTestEnvironment(tenantId);
 
       // Create association
@@ -375,7 +375,7 @@ describe('Agent Data Component CRUD Routes - Integration Tests', () => {
 
     it('should return 404 when removing non-existent association', async () => {
       const tenantId = await createTestTenantWithOrg('agent-data-components-delete-not-found');
-      await createTestProject(dbClient, tenantId, projectId);
+      await createTestProject(manageDbClient, tenantId, projectId);
       const { subAgentId, dataComponentId, agentId } = await setupTestEnvironment(tenantId);
 
       const res = await makeRequest(
@@ -392,7 +392,7 @@ describe('Agent Data Component CRUD Routes - Integration Tests', () => {
   describe('Integration with multiple agents and data components', () => {
     it('should handle multiple associations correctly', async () => {
       const tenantId = await createTestTenantWithOrg('agent-data-components-multiple');
-      await createTestProject(dbClient, tenantId, projectId);
+      await createTestProject(manageDbClient, tenantId, projectId);
 
       // Create multiple agents in the same agent
       const { subAgentId: subAgent1Id, agentId } = await createTestAgent({ tenantId, suffix: '1' });

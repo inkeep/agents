@@ -33,6 +33,7 @@ import {
   isOriginAllowed,
   playgroundCorsConfig,
 } from './utils/cors';
+import evalsRoutes from './routes/evals';
 
 const logger = getLogger('agents-manage-api');
 
@@ -248,6 +249,9 @@ function createManagementHono(
 
   // Mount full project routes directly under tenant
   app.route('/tenants/:tenantId', projectFullRoutes);
+
+  // Mount evaluation routes under tenant and project
+  app.route('/tenants/:tenantId/projects/:projectId/evals', evalsRoutes);
 
   // Mount OAuth routes - global OAuth callback endpoint
   app.route('/oauth', oauthRoutes);

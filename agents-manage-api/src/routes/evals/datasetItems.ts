@@ -16,17 +16,17 @@ import {
   DatasetItemApiUpdateSchema,
 } from '@inkeep/agents-core';
 import { z, createRoute, OpenAPIHono } from '@hono/zod-openapi';
-import manageDbClient from '../../data/db/manageDbClient';
 import { getLogger } from '../../logger';
+import type { BaseAppVariables } from '../../types/app';
 
-const app = new OpenAPIHono();
+const app = new OpenAPIHono<{ Variables: BaseAppVariables }>();
 const logger = getLogger('datasetItems');
 
 app.openapi(
   createRoute({
     method: 'get',
-    path: '/datasets/{datasetId}/items',
-    summary: 'List Dataset Items',
+    path: '/{datasetId}',
+    summary: 'List Dataset Items by Dataset ID',
     operationId: 'list-dataset-items',
     tags: ['Evaluations'],
     request: {
@@ -45,10 +45,11 @@ app.openapi(
     },
   }),
   async (c) => {
+    const db = c.get('db');
     const { tenantId, projectId, datasetId } = c.req.valid('param');
 
     try {
-      const items = await listDatasetItems(manageDbClient)({
+      const items = await listDatasetItems(db)({
         scopes: { tenantId, projectId, datasetId },
       });
       return c.json({
@@ -76,7 +77,7 @@ app.openapi(
 app.openapi(
   createRoute({
     method: 'get',
-    path: '/datasets/{datasetId}/items/{itemId}',
+    path: '/{datasetId}/items/{itemId}',
     summary: 'Get Dataset Item by ID',
     operationId: 'get-dataset-item',
     tags: ['Evaluations'],
@@ -99,10 +100,11 @@ app.openapi(
     },
   }),
   async (c) => {
+    const db = c.get('db');
     const { tenantId, projectId, itemId } = c.req.valid('param');
 
     try {
-      const item = await getDatasetItemById(manageDbClient)({
+      const item = await getDatasetItemById(db)({
         scopes: { tenantId, projectId, datasetItemId: itemId },
       });
 
@@ -127,7 +129,7 @@ app.openapi(
 app.openapi(
   createRoute({
     method: 'post',
-    path: '/datasets/{datasetId}/items',
+    path: '/{datasetId}/items',
     summary: 'Create Dataset Item',
     operationId: 'create-dataset-item',
     tags: ['Evaluations'],
@@ -154,12 +156,13 @@ app.openapi(
     },
   }),
   async (c) => {
+    const db = c.get('db');
     const { tenantId, projectId, datasetId } = c.req.valid('param');
     const itemData = c.req.valid('json');
 
     try {
       const id = (itemData as any).id || generateId();
-      const created = await createDatasetItem(manageDbClient)({
+      const created = await createDatasetItem(db)({
         ...itemData,
         id,
         tenantId,
@@ -188,7 +191,7 @@ app.openapi(
 app.openapi(
   createRoute({
     method: 'post',
-    path: '/datasets/{datasetId}/items/bulk',
+    path: '/{datasetId}/items/bulk',
     summary: 'Create Multiple Dataset Items',
     operationId: 'create-dataset-items-bulk',
     tags: ['Evaluations'],
@@ -215,6 +218,7 @@ app.openapi(
     },
   }),
   async (c) => {
+    const db = c.get('db');
     const { tenantId, projectId, datasetId } = c.req.valid('param');
     const itemsData = c.req.valid('json') as any[];
 
@@ -227,7 +231,7 @@ app.openapi(
         datasetId,
       }));
 
-      const created = await createDatasetItems(manageDbClient)(items as any);
+      const created = await createDatasetItems(db)(items as any);
 
       logger.info(
         { tenantId, projectId, datasetId, count: created.length },
@@ -258,7 +262,7 @@ app.openapi(
 app.openapi(
   createRoute({
     method: 'patch',
-    path: '/datasets/{datasetId}/items/{itemId}',
+    path: '/{datasetId}/items/{itemId}',
     summary: 'Update Dataset Item',
     operationId: 'update-dataset-item',
     tags: ['Evaluations'],
@@ -288,11 +292,12 @@ app.openapi(
     },
   }),
   async (c) => {
+    const db = c.get('db');
     const { tenantId, projectId, itemId } = c.req.valid('param');
     const updateData = c.req.valid('json');
 
     try {
-      const updated = await updateDatasetItem(manageDbClient)({
+      const updated = await updateDatasetItem(db)({
         scopes: { tenantId, projectId, datasetItemId: itemId },
         data: updateData as any,
       });
@@ -319,8 +324,8 @@ app.openapi(
 app.openapi(
   createRoute({
     method: 'delete',
-    path: '/datasets/{datasetId}/items/{itemId}',
-    summary: 'Delete Dataset Item',
+    path: '/{datasetId}/items/{itemId}',
+    summary: 'Delete Dataset Item by ID',
     operationId: 'delete-dataset-item',
     tags: ['Evaluations'],
     request: {
@@ -337,10 +342,11 @@ app.openapi(
     },
   }),
   async (c) => {
+    const db = c.get('db');
     const { tenantId, projectId, itemId } = c.req.valid('param');
 
     try {
-      const deleted = await deleteDatasetItem(manageDbClient)({
+      const deleted = await deleteDatasetItem(db)({
         scopes: { tenantId, projectId, datasetItemId: itemId },
       });
 

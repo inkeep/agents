@@ -1,0 +1,124 @@
+import type {
+  TriggerConversationEvaluationRequest,
+  TriggerDatasetRunRequest,
+  TriggerEvaluationJobRequest,
+} from '../types/entities';
+import { getLogger } from '../utils/logger';
+import { BaseApiClient, BaseApiError } from './base-client';
+
+const logger = getLogger('eval-api-client');
+
+export class EvalApiError extends BaseApiError {
+  constructor(message: string, statusCode: number, responseBody: string) {
+    super(message, statusCode, responseBody);
+    this.name = 'EvalApiError';
+  }
+}
+
+// Request/Response types based on the trigger schemas
+export interface TriggerDatasetRunResponse {
+  queued: number;
+  failed: number;
+  datasetRunId: string;
+}
+
+export interface TriggerConversationEvaluationResponse {
+  success: boolean;
+  message: string;
+  evaluationsTriggered: number;
+}
+
+export interface TriggerBatchConversationEvaluationResponse {
+  queued: number;
+  failed: number;
+}
+
+export interface TriggerEvaluationJobResponse {
+  queued: number;
+  failed: number;
+  evaluationRunId: string;
+  conversationCount: number;
+}
+
+export class EvalApiClient extends BaseApiClient {
+  /**
+   * Override to return EvalApiError
+   */
+  protected override createError(
+    message: string,
+    statusCode: number,
+    responseBody: string
+  ): EvalApiError {
+    return new EvalApiError(message, statusCode, responseBody);
+  }
+
+  /**
+   * Trigger a dataset run workflow
+   * Enqueues dataset items for processing through the chat API
+   */
+  async triggerDatasetRun(request: TriggerDatasetRunRequest): Promise<TriggerDatasetRunResponse> {
+    const tenantId = this.checkTenantId();
+    const path = `/tenants/${tenantId}/projects/${this.projectId}/workflows/dataset-run`;
+
+    logger.info(
+      {
+        tenantId,
+        projectId: this.projectId,
+        datasetRunId: request.datasetRunId,
+        itemCount: request.items.length,
+      },
+      'Triggering dataset run workflow'
+    );
+
+    return this.makePostRequest<TriggerDatasetRunResponse>(
+      path,
+      request,
+      'Failed to trigger dataset run workflow'
+    );
+  }
+
+  /**
+   * Trigger an evaluation job
+   * Filters conversations based on job filters, creates an evaluation run, and enqueues workflows
+   */
+  async triggerEvaluationJob(
+    request: TriggerEvaluationJobRequest
+  ): Promise<TriggerEvaluationJobResponse> {
+    const tenantId = this.checkTenantId();
+    const path = `/tenants/${tenantId}/projects/${this.projectId}/workflows/evaluation-job`;
+
+    logger.info(
+      {
+        tenantId,
+        projectId: this.projectId,
+        evaluationJobConfigId: request.evaluationJobConfigId,
+        evaluatorCount: request.evaluatorIds.length,
+      },
+      'Triggering evaluation job workflow'
+    );
+
+    return this.makePostRequest<TriggerEvaluationJobResponse>(
+      path,
+      request,
+      'Failed to trigger evaluation job workflow'
+    );
+  }
+
+  async triggerConversationEvaluation(
+    request: TriggerConversationEvaluationRequest
+  ): Promise<TriggerConversationEvaluationResponse> {
+    const tenantId = this.checkTenantId();
+    const path = `/tenants/${tenantId}/projects/${this.projectId}/workflows/evaluate-conversation`;
+
+    logger.info(
+      { tenantId, projectId: this.projectId, conversationId: request.conversationId },
+      'Triggering conversation evaluation workflow'
+    );
+
+    return this.makePostRequest<TriggerConversationEvaluationResponse>(
+      path,
+      request,
+      'Failed to trigger conversation evaluation workflow'
+    );
+  }
+}

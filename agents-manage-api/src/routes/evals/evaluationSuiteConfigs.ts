@@ -16,16 +16,16 @@ import {
   EvaluationSuiteConfigApiUpdateSchema,
 } from '@inkeep/agents-core';
 import { z, createRoute, OpenAPIHono } from '@hono/zod-openapi';
-import manageDbClient from '../../data/db/manageDbClient';
 import { getLogger } from '../../logger';
+import type { BaseAppVariables } from '../../types/app';
 
-const app = new OpenAPIHono();
+const app = new OpenAPIHono<{ Variables: BaseAppVariables }>();
 const logger = getLogger('evaluationSuiteConfigs');
 
 app.openapi(
   createRoute({
     method: 'get',
-    path: '/evaluation-suite-configs',
+    path: '/',
     summary: 'List Evaluation Suite Configs',
     operationId: 'list-evaluation-suite-configs',
     tags: ['Evaluations'],
@@ -45,10 +45,11 @@ app.openapi(
     },
   }),
   async (c) => {
+    const db = c.get('db');
     const { tenantId, projectId } = c.req.valid('param');
 
     try {
-      const configs = await listEvaluationSuiteConfigs(manageDbClient)({
+      const configs = await listEvaluationSuiteConfigs(db)({
         scopes: { tenantId, projectId },
       });
       return c.json({
@@ -76,7 +77,7 @@ app.openapi(
 app.openapi(
   createRoute({
     method: 'get',
-    path: '/evaluation-suite-configs/{configId}',
+    path: '/{configId}',
     summary: 'Get Evaluation Suite Config by ID',
     operationId: 'get-evaluation-suite-config',
     tags: ['Evaluations'],
@@ -96,10 +97,11 @@ app.openapi(
     },
   }),
   async (c) => {
+    const db = c.get('db');
     const { tenantId, projectId, configId } = c.req.valid('param');
 
     try {
-      const config = await getEvaluationSuiteConfigById(manageDbClient)({
+      const config = await getEvaluationSuiteConfigById(db)({
         scopes: { tenantId, projectId, evaluationSuiteConfigId: configId },
       });
 
@@ -130,7 +132,7 @@ app.openapi(
 app.openapi(
   createRoute({
     method: 'post',
-    path: '/evaluation-suite-configs',
+    path: '/',
     summary: 'Create Evaluation Suite Config',
     operationId: 'create-evaluation-suite-config',
     tags: ['Evaluations'],
@@ -157,13 +159,14 @@ app.openapi(
     },
   }),
   async (c) => {
+    const db = c.get('db');
     const { tenantId, projectId } = c.req.valid('param');
     const configData = c.req.valid('json') as any;
     const { evaluatorIds, ...suiteConfigData } = configData;
 
     try {
       const id = suiteConfigData.id || generateId();
-      const created = await createEvaluationSuiteConfig(manageDbClient)({
+      const created = await createEvaluationSuiteConfig(db)({
         ...suiteConfigData,
         id,
         tenantId,
@@ -174,7 +177,7 @@ app.openapi(
       if (evaluatorIds && Array.isArray(evaluatorIds) && evaluatorIds.length > 0) {
         await Promise.all(
           evaluatorIds.map((evaluatorId: string) =>
-            createEvaluationSuiteConfigEvaluatorRelation(manageDbClient)({
+            createEvaluationSuiteConfigEvaluatorRelation(db)({
               tenantId,
               projectId,
               id: generateId(),
@@ -206,7 +209,7 @@ app.openapi(
 app.openapi(
   createRoute({
     method: 'patch',
-    path: '/evaluation-suite-configs/{configId}',
+    path: '/{configId}',
     summary: 'Update Evaluation Suite Config',
     operationId: 'update-evaluation-suite-config',
     tags: ['Evaluations'],
@@ -233,11 +236,12 @@ app.openapi(
     },
   }),
   async (c) => {
+    const db = c.get('db');
     const { tenantId, projectId, configId } = c.req.valid('param');
     const updateData = c.req.valid('json');
 
     try {
-      const updated = await updateEvaluationSuiteConfig(manageDbClient)({
+      const updated = await updateEvaluationSuiteConfig(db)({
         scopes: { tenantId, projectId, evaluationSuiteConfigId: configId },
         data: updateData as any,
       });
@@ -270,7 +274,7 @@ app.openapi(
 app.openapi(
   createRoute({
     method: 'delete',
-    path: '/evaluation-suite-configs/{configId}',
+    path: '/{configId}',
     summary: 'Delete Evaluation Suite Config',
     operationId: 'delete-evaluation-suite-config',
     tags: ['Evaluations'],
@@ -285,10 +289,11 @@ app.openapi(
     },
   }),
   async (c) => {
+    const db = c.get('db');
     const { tenantId, projectId, configId } = c.req.valid('param');
 
     try {
-      const deleted = await deleteEvaluationSuiteConfig(manageDbClient)({
+      const deleted = await deleteEvaluationSuiteConfig(db)({
         scopes: { tenantId, projectId, evaluationSuiteConfigId: configId },
       });
 

@@ -35,76 +35,71 @@ vi.mock('../../../context', () => ({
   }),
 }));
 
-// Mock Management API calls used by projectConfigMiddleware so we don't hit network
-vi.mock('../../../api/manage-api', async (importOriginal) => {
-  const actual = await importOriginal<typeof import('../../../../../packages/agents-core/src/utils/manage-api-client')>();
-  return {
-    ...actual,
-    getResolvedRef: vi.fn().mockImplementation(() =>
-      vi.fn().mockResolvedValue({
-        type: 'branch',
-        name: 'main',
-        hash: 'test-hash',
-      })
-    ),
-    getFullProject: vi.fn().mockImplementation(() =>
-      vi.fn().mockResolvedValue({
-        id: 'default',
-        tenantId: 'test-tenant',
-        name: 'Test Project',
-        agents: {
-          'test-agent': {
-            id: 'test-agent',
-            tenantId: 'test-tenant',
-            projectId: 'default',
-            name: 'Test Agent',
-            description: 'Test agent',
-            defaultSubAgentId: 'test-agent',
-            subAgents: {
-              'test-agent': {
-                id: 'test-agent',
-                tenantId: 'test-tenant',
-                projectId: 'default',
-                name: 'Test Agent',
-                description: 'A helpful assistant',
-                prompt: 'You are a helpful assistant.',
-                canUse: [],
-                canTransferTo: [],
-                canDelegateTo: [],
-                dataComponents: [],
-                artifactComponents: [],
-                createdAt: new Date().toISOString(),
-                updatedAt: new Date().toISOString(),
-              },
-            },
-            tools: {},
-            externalAgents: {},
-            teamAgents: {},
-            transferRelations: {},
-            delegateRelations: {},
-            createdAt: new Date().toISOString(),
-            updatedAt: new Date().toISOString(),
-            contextConfigId: null,
-            contextConfig: null,
-          },
+// Mock project config returned by ManagementApiClient
+const mockProjectConfig = {
+  id: 'default',
+  tenantId: 'test-tenant',
+  name: 'Test Project',
+  agents: {
+    'test-agent': {
+      id: 'test-agent',
+      tenantId: 'test-tenant',
+      projectId: 'default',
+      name: 'Test Agent',
+      description: 'Test agent',
+      defaultSubAgentId: 'test-agent',
+      subAgents: {
+        'test-agent': {
+          id: 'test-agent',
+          tenantId: 'test-tenant',
+          projectId: 'default',
+          name: 'Test Agent',
+          description: 'A helpful assistant',
+          prompt: 'You are a helpful assistant.',
+          canUse: [],
+          canTransferTo: [],
+          canDelegateTo: [],
+          dataComponents: [],
+          artifactComponents: [],
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString(),
         },
-        tools: {},
-        functions: {},
-        dataComponents: {},
-        artifactComponents: {},
-        externalAgents: {},
-        credentialReferences: {},
-        statusUpdates: null,
-      })
-    ),
-  };
-});
+      },
+      tools: {},
+      externalAgents: {},
+      teamAgents: {},
+      transferRelations: {},
+      delegateRelations: {},
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+      contextConfigId: null,
+      contextConfig: null,
+      statusUpdates: { enabled: false },
+    },
+  },
+  tools: {},
+  functions: {},
+  dataComponents: {},
+  artifactComponents: {},
+  externalAgents: {},
+  credentialReferences: {},
+  statusUpdates: null,
+};
 
 // Mock @inkeep/agents-core functions that are used by the chat data stream routes
 vi.mock('@inkeep/agents-core', async (importOriginal) => {
   const actual = await importOriginal<typeof import('@inkeep/agents-core')>();
   return {
     ...actual,
+    // Mock ManagementApiClient for projectConfigMiddleware
+    ManagementApiClient: vi.fn().mockImplementation(() => ({
+      getResolvedRef: vi.fn().mockResolvedValue({
+        type: 'branch',
+        name: 'main',
+        hash: 'test-hash',
+      }),
+      getFullProject: vi.fn().mockResolvedValue(mockProjectConfig),
+    })),
     // Ensure auth middleware doesn't try to hit real DB/JWT paths in tests
     validateAndGetApiKey: vi.fn().mockResolvedValue(null),
     verifyServiceToken: vi.fn().mockResolvedValue({ valid: false, error: 'Invalid token' }),
@@ -135,34 +130,7 @@ describe('Chat Data Stream Advanced', () => {
     const agentId = generateId();
     const subAgentId = 'test-agent'; // Use consistent ID that matches mocks
 
-    // Import here to avoid circular dependencies
-    // const { createSubAgent, createAgent } = await import('@inkeep/agents-core');
-    // const { createTestProject } = await import('@inkeep/agents-core/db/test-client');
-    // const dbClient = (await import('../../../data/db/dbClient.js')).default;
 
-    // // Ensure project exists first
-    // await createTestProject(dbClient, tenantId, projectId);
-
-    // // Create agent first
-    // await createAgent(dbClient)({
-    //   id: agentId,
-    //   tenantId,
-    //   projectId,
-    //   name: 'Test Agent',
-    //   description: 'Test agent for advanced data chat',
-    //   defaultSubAgentId: subAgentId,
-    // });
-
-    // // Then create agent with agentId
-    // await createSubAgent(dbClient)({
-    //   id: subAgentId,
-    //   tenantId,
-    //   projectId,
-    //   agentId: agentId,
-    //   name: 'Test Agent',
-    //   description: 'Test agent',
-    //   prompt: 'Test instructions',
-    // });
 
     return { tenantId, projectId, agentId, subAgentId };
   }

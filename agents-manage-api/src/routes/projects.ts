@@ -22,7 +22,7 @@ import {
   TenantParamsSchema,
   updateProject,
 } from '@inkeep/agents-core';
-import dbClient from '../data/db/dbClient';
+import manageDbClient from '../data/db/dbClient';
 import runDbClient from '../data/db/runDbClient';
 import { requirePermission } from '../middleware/require-permission';
 import type { BaseAppVariables } from '../types/app';
@@ -194,7 +194,7 @@ app.openapi(
       // 1. Create project in runtime DB and create project main branch
       const runtimeProject = await createProjectMetadataAndBranch(
         runDbClient,
-        dbClient
+        manageDbClient
       )({
         tenantId,
         projectId: body.id,
@@ -350,7 +350,7 @@ app.openapi(
       // 3. Delete project from runtime DB and delete project branch
       const deleted = await deleteProjectWithBranch(
         runDbClient,
-        dbClient
+        manageDbClient
       )({
         tenantId,
         projectId: id,

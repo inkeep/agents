@@ -10,7 +10,7 @@ import {
 } from '@inkeep/agents-core';
 import { createTestProject } from '@inkeep/agents-core/db/test-manage-client';
 import { afterAll, afterEach, describe, expect, it } from 'vitest';
-import dbClient from '../../data/db/dbClient';
+import manageDbClient from '../../data/db/dbClient';
 import runDbClient from '../../data/db/runDbClient';
 
 /**
@@ -34,11 +34,11 @@ describe('Ledger Artifacts – Data Layer', () => {
     const conversationId = contextId;
 
     // Ensure project exists for this tenant
-    await createTestProject(dbClient, tenantId, projectId);
+    await createTestProject(manageDbClient, tenantId, projectId);
 
     // Create agent first
     const agentId = 'test-agent';
-    await dbClient.insert(agents).values({
+    await manageDbClient.insert(agents).values({
       id: agentId,
       tenantId,
       projectId,
@@ -47,7 +47,7 @@ describe('Ledger Artifacts – Data Layer', () => {
     });
 
     // Create agent with agentId
-    await dbClient.insert(subAgents).values({
+    await manageDbClient.insert(subAgents).values({
       id: subAgentId,
       tenantId,
       projectId,
@@ -91,7 +91,7 @@ describe('Ledger Artifacts – Data Layer', () => {
     await runDbClient.delete(ledgerArtifactsTable);
     await runDbClient.delete(tasks);
     await runDbClient.delete(conversations);
-    await dbClient.delete(subAgents);
+    await manageDbClient.delete(subAgents);
   });
 
   // Extra safety – clear again when the suite finishes.
@@ -99,7 +99,7 @@ describe('Ledger Artifacts – Data Layer', () => {
     await runDbClient.delete(ledgerArtifactsTable);
     await runDbClient.delete(tasks);
     await runDbClient.delete(conversations);
-    await dbClient.delete(subAgents);
+    await manageDbClient.delete(subAgents);
   });
 
   it('should persist and retrieve artifacts by taskId', async () => {

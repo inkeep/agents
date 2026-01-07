@@ -1,7 +1,7 @@
 import { getLogger } from '@inkeep/agents-core';
 import { migrate } from 'drizzle-orm/pglite/migrator';
 import { afterAll, afterEach, beforeAll } from 'vitest';
-import dbClient from '../data/db/dbClient';
+import manageDbClient from '../data/db/dbClient';
 import runDbClient from '../data/db/runDbClient';
 
 // Initialize database schema for in-memory test databases using Drizzle migrations
@@ -22,7 +22,7 @@ beforeAll(async () => {
       ? '../packages/agents-core/drizzle/runtime'
       : './packages/agents-core/drizzle/runtime';
 
-    await migrate(dbClient, { migrationsFolder: manageMigrationsPath });
+    await migrate(manageDbClient, { migrationsFolder: manageMigrationsPath });
     await migrate(runDbClient, { migrationsFolder: runMigrationsPath });
     logger.debug({}, 'Database migrations applied successfully');
   } catch (error) {

@@ -3,10 +3,11 @@
  *
  * Environment variables must be set BEFORE imports since vite config runs before TS compilation.
  */
-import { config } from 'dotenv';
+
 import { cpSync, existsSync, mkdirSync } from 'node:fs';
 import { createRequire } from 'node:module';
 import { dirname, resolve } from 'node:path';
+import { config } from 'dotenv';
 
 // Load .env files
 const currentEnv = resolve(process.cwd(), '.env');

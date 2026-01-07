@@ -1,4 +1,9 @@
-import { type BaseExecutionContext, getLogger } from '@inkeep/agents-core';
+import {
+  type BaseExecutionContext,
+  getLogger,
+  isInternalServiceToken,
+  verifyInternalServiceAuthHeader,
+} from '@inkeep/agents-core';
 import { createMiddleware } from 'hono/factory';
 import { HTTPException } from 'hono/http-exception';
 import { env } from '../env';
@@ -6,8 +11,7 @@ import { env } from '../env';
 const logger = getLogger('eval-api-key-auth');
 /**
  * Middleware to authenticate API requests using Bearer token authentication
- * First checks if token matches INKEEP_AGENTS_EVAL_API_BYPASS_SECRET, then falls back to API key validation
- * Extracts and validates API keys, then adds execution context to the request
+ * First checks if token matches INKEEP_AGENTS_EVAL_API_BYPASS_SECRET,
  */
 export const apiKeyAuth = () =>
   createMiddleware<{
@@ -16,7 +20,17 @@ export const apiKeyAuth = () =>
     };
   }>(async (c, next) => {
     const authHeader = c.req.header('Authorization');
-    // If bypass secret is configured, only allow bypass authentication
+
+    // Check for Bearer token
+    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+      throw new HTTPException(401, {
+        message: 'Missing or invalid authorization header. Expected: Bearer <api_key>',
+      });
+    }
+
+    const apiKey = authHeader.substring(7); // Remove 'Bearer ' prefix
+
+    // If bypass secret is configured, allow bypass authentication
     if (env.INKEEP_AGENTS_EVAL_API_BYPASS_SECRET) {
       // Check for Bearer token
       if (!authHeader || !authHeader.startsWith('Bearer ')) {
@@ -32,16 +46,44 @@ export const apiKeyAuth = () =>
         logger.info({}, 'Bypass secret authenticated successfully');
         await next();
         return;
-      } else {
-        // Bypass secret is set but token doesn't match - reject
-        console.log('[AUTH DEBUG] Rejecting: Token does not match bypass secret');
-        throw new HTTPException(401, {
-          message: 'Invalid Token',
-        });
       }
+      // Bypass secret is set but token doesn't match - reject
+      console.log('[AUTH DEBUG] Rejecting: Token does not match bypass secret');
+      throw new HTTPException(401, {
+        message: 'Invalid Token',
+      });
     }
 
-    console.log('[AUTH DEBUG] No bypass secret configured, allowing request');
-    await next();
-    return;
+    // 4. Validate as an internal service token if not already authenticated
+    if (isInternalServiceToken(apiKey)) {
+      const result = await verifyInternalServiceAuthHeader(authHeader);
+      if (!result.valid || !result.payload) {
+        throw new HTTPException(401, {
+          message: result.error || 'Invalid internal service token',
+        });
+      }
+
+      logger.info(
+        {
+          serviceId: result.payload.sub,
+          tenantId: result.payload.tenantId,
+          projectId: result.payload.projectId,
+        },
+        'Internal service authenticated'
+      );
+
+      await next();
+      return;
+    }
+
+    // If development environment, allow request
+    if (env.ENVIRONMENT === 'development') {
+      await next();
+      return;
+    }
+
+    // None of the authentication methods succeeded
+    throw new HTTPException(401, {
+      message: 'Invalid Token',
+    });
   });

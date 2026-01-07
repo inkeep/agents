@@ -16,16 +16,16 @@ import {
   EvaluatorApiUpdateSchema,
 } from '@inkeep/agents-core';
 import { z, createRoute, OpenAPIHono } from '@hono/zod-openapi';
-import manageDbClient from '../../data/db/manageDbClient';
 import { getLogger } from '../../logger';
+import type { BaseAppVariables } from '../../types/app';
 
-const app = new OpenAPIHono();
+const app = new OpenAPIHono<{ Variables: BaseAppVariables }>();
 const logger = getLogger('evaluators');
 
 app.openapi(
   createRoute({
     method: 'get',
-    path: '/evaluators',
+    path: '/',
     summary: 'List Evaluators',
     operationId: 'list-evaluators',
     tags: ['Evaluations'],
@@ -45,10 +45,11 @@ app.openapi(
     },
   }),
   async (c) => {
+    const db = c.get('db');
     const { tenantId, projectId } = c.req.valid('param');
 
     try {
-      const evaluators = await listEvaluators(manageDbClient)({ scopes: { tenantId, projectId } });
+      const evaluators = await listEvaluators(db)({ scopes: { tenantId, projectId } });
       return c.json({
         data: evaluators as any,
         pagination: {
@@ -71,7 +72,7 @@ app.openapi(
 app.openapi(
   createRoute({
     method: 'get',
-    path: '/evaluators/{evaluatorId}',
+    path: '/{evaluatorId}',
     summary: 'Get Evaluator by ID',
     operationId: 'get-evaluator',
     tags: ['Evaluations'],
@@ -91,10 +92,11 @@ app.openapi(
     },
   }),
   async (c) => {
+    const db = c.get('db');
     const { tenantId, projectId, evaluatorId } = c.req.valid('param');
 
     try {
-      const evaluator = await getEvaluatorById(manageDbClient)({
+      const evaluator = await getEvaluatorById(db)({
         scopes: { tenantId, projectId, evaluatorId },
       });
 
@@ -119,7 +121,7 @@ app.openapi(
 app.openapi(
   createRoute({
     method: 'post',
-    path: '/evaluators/batch',
+    path: '/batch',
     summary: 'Get Evaluators by IDs',
     operationId: 'get-evaluators-batch',
     tags: ['Evaluations'],
@@ -150,11 +152,12 @@ app.openapi(
     },
   }),
   async (c) => {
+    const db = c.get('db');
     const { tenantId, projectId } = c.req.valid('param');
     const { evaluatorIds } = c.req.valid('json');
 
     try {
-      const evaluators = await getEvaluatorsByIds(manageDbClient)({
+      const evaluators = await getEvaluatorsByIds(db)({
         scopes: { tenantId, projectId },
         evaluatorIds,
       });
@@ -173,7 +176,7 @@ app.openapi(
 app.openapi(
   createRoute({
     method: 'post',
-    path: '/evaluators',
+    path: '/',
     summary: 'Create Evaluator',
     operationId: 'create-evaluator',
     tags: ['Evaluations'],
@@ -200,12 +203,13 @@ app.openapi(
     },
   }),
   async (c) => {
+    const db = c.get('db');
     const { tenantId, projectId } = c.req.valid('param');
     const evaluatorData = c.req.valid('json');
 
     try {
       const id = (evaluatorData as any).id || generateId();
-      const created = await createEvaluator(manageDbClient)({
+      const created = await createEvaluator(db)({
         ...evaluatorData,
         id,
         tenantId,
@@ -227,7 +231,7 @@ app.openapi(
 app.openapi(
   createRoute({
     method: 'patch',
-    path: '/evaluators/{evaluatorId}',
+    path: '/{evaluatorId}',
     summary: 'Update Evaluator',
     operationId: 'update-evaluator',
     tags: ['Evaluations'],
@@ -254,11 +258,12 @@ app.openapi(
     },
   }),
   async (c) => {
+    const db = c.get('db');
     const { tenantId, projectId, evaluatorId } = c.req.valid('param');
     const updateData = c.req.valid('json');
 
     try {
-      const updated = await updateEvaluator(manageDbClient)({
+      const updated = await updateEvaluator(db)({
         scopes: { tenantId, projectId, evaluatorId },
         data: updateData as any,
       });
@@ -285,7 +290,7 @@ app.openapi(
 app.openapi(
   createRoute({
     method: 'delete',
-    path: '/evaluators/{evaluatorId}',
+    path: '/{evaluatorId}',
     summary: 'Delete Evaluator',
     operationId: 'delete-evaluator',
     tags: ['Evaluations'],
@@ -300,10 +305,11 @@ app.openapi(
     },
   }),
   async (c) => {
+    const db = c.get('db');
     const { tenantId, projectId, evaluatorId } = c.req.valid('param');
 
     try {
-      const deleted = await deleteEvaluator(manageDbClient)({
+      const deleted = await deleteEvaluator(db)({
         scopes: { tenantId, projectId, evaluatorId },
       });
 

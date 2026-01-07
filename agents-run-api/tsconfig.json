@@ -14,6 +14,6 @@
     "declaration": true,
     "noEmit": false
   },
-  "include": ["src/**/*", "src/types/**/*", "examples/**/*.ts", "../packages/agents-core/src/utils/manage-api-client.ts"],
+  "include": ["src/**/*", "src/types/**/*", "examples/**/*.ts", "../packages/agents-core/src/api-client/manage-api-client.ts"],
   "exclude": ["node_modules", "dist", "../sdk/src"]
 }
