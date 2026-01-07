@@ -1,5 +1,72 @@
 # @inkeep/agents-manage-ui
 
+## 0.41.0
+
+### Minor Changes
+
+- de60268: remove `[tenantId]/projects/[projectId]/page.tsx` file in favour of redirect in `next.config` file
+- 1c46e8f: add syntax highlighting for markdown/html elements in prompt editors
+
+### Patch Changes
+
+- 49ec561: fix auth dependencies
+- 5d095da: Properly contain overflow of trace card content
+- f1a6cd4: compression ui improvements
+- 7a00f08: use `bg-sidebar` for `<body>` for pages with sidebar
+- 1257b10: `useEffect` is always called on the client, and the `window` object is defined
+- 561605f: Export DEFAULT_NANGO_STORE_ID from @inkeep/agents-core main exports
+- c890035: When using `@inkeep/agents-manage-ui` as dependency we are getting following error:
+  Failed to load external module pino-51ec28aa490c8dec: Error: Cannot find module 'pino-51ec28aa490c8dec'
+
+  because Turbopack appends hash for server-only packages listed in `serverExternalPackages`
+
+- 4b016d4: target ids for chat-to-edit
+- d933953: Disable colorized logs in non-TTY environments like Vercel. Logs now respect the NO_COLOR env var and automatically disable colors when stdout is not a TTY.
+- 9b17c81: streamObject removed from traces
+- f58f9e4: Fix cookie header forwarding for MCP server authentication
+- Updated dependencies [49ec561]
+- Updated dependencies [5d095da]
+- Updated dependencies [f1a6cd4]
+- Updated dependencies [561605f]
+- Updated dependencies [4b016d4]
+- Updated dependencies [d933953]
+- Updated dependencies [9b17c81]
+- Updated dependencies [f58f9e4]
+  - @inkeep/agents-core@0.41.0
+
+## 0.40.0
+
+### Minor Changes
+
+- e5172e2: remove unused dependencies, lint unused dependencies with Knip
+- 811b6e2: Deduplicate Data Fetching with `@tanstack/react-query`
+- 90c4cfb: remove unused variables/functions
+- 44d5516: setup sentry for pilot.inkeep.com
+- 50ed255: remove unused types
+
+### Patch Changes
+
+- 7317cb1: fix user not found error
+- be0131e: user info for spans
+- 07f77ab: Remove unused exports using Knip automation tool
+- 8b95949: context tracking in traces
+- b2c2fd9: fix trace viewer panes to scroll independently
+- b231869: set `compilerOptions.verbatimModuleSyntax: true` in all `tsconfig.json` files
+- ff51b72: fix diagnostics highlighting in JSON editor
+- 1ef2557: dashboard: do not overflow main content container
+- 5b32e12: Fix container size
+- d27e015: fix double breadcrumbs on `/projects` error page
+- 153d4e5: Added Conversation COmpression
+- 970a7bd: update Next.js to 16.1.0, use Turbopack for build
+- Updated dependencies [be0131e]
+- Updated dependencies [e5172e2]
+- Updated dependencies [8b95949]
+- Updated dependencies [b2c2fd9]
+- Updated dependencies [b231869]
+- Updated dependencies [178d5b1]
+- Updated dependencies [153d4e5]
+  - @inkeep/agents-core@0.40.0
+
 ## 0.39.5
 
 ### Patch Changes

@@ -1,4 +1,5 @@
 import {
+  Archive,
   ArrowRight,
   Check,
   ChevronDown,
@@ -59,7 +60,6 @@ function statusIcon(
     agent_generation: { Icon: Cpu, cls: 'text-purple-500' },
     ai_assistant_message: { Icon: Sparkles, cls: 'text-primary' },
     ai_model_streamed_text: { Icon: Sparkles, cls: 'text-primary' },
-    ai_model_streamed_object: { Icon: Sparkles, cls: 'text-primary' },
     context_fetch: { Icon: Settings, cls: 'text-indigo-400' },
     context_resolution: { Icon: Database, cls: 'text-indigo-400' },
     tool_call: { Icon: Hammer, cls: 'text-muted-foreground' },
@@ -71,6 +71,7 @@ function statusIcon(
     tool_approval_requested: { Icon: Clock, cls: 'text-muted-foreground' },
     tool_approval_approved: { Icon: Check, cls: 'text-blue-500' },
     tool_approval_denied: { Icon: X, cls: 'text-red-500' },
+    compression: { Icon: Archive, cls: 'text-orange-500' },
   };
 
   const map = base[type] || base.tool_call;
@@ -246,60 +247,28 @@ export function TimelineItem({
                   ) : (
                     <ChevronDown className="h-3 w-3" />
                   )}
-                  AI Streaming Text
+                  {activity.aiTelemetryPhase === 'structured_generation'
+                    ? 'Structured Output'
+                    : 'AI Streaming Text'}
                 </button>
               )}
-              {!isAiMessageCollapsed && (
-                <Bubble>{truncateWords(activity.aiStreamTextContent, 100)}</Bubble>
-              )}
+              {!isAiMessageCollapsed &&
+                (activity.aiTelemetryPhase === 'structured_generation' ? (
+                  <div className="mt-2">
+                    <JsonEditorWithCopy
+                      value={formatJsonSafely(activity.aiStreamTextContent)}
+                      title=""
+                      uri={`structured-output-${activity.id}.json`}
+                    />
+                  </div>
+                ) : (
+                  <Bubble>{truncateWords(activity.aiStreamTextContent, 100)}</Bubble>
+                ))}
             </div>
           )}
 
           {/* ai.telemetry.functionId badge for streamed text */}
           {activity.type === 'ai_model_streamed_text' && activity.subAgentId && (
-            <div className="mb-1">
-              <Badge variant="code" className="text-xs">
-                {activity.subAgentId}
-              </Badge>
-            </div>
-          )}
-
-          {/* streamed object bubble */}
-          {activity.type === 'ai_model_streamed_object' && activity.aiStreamObjectContent && (
-            <div className="space-y-2">
-              {onToggleAiMessageCollapse && (
-                <button
-                  type="button"
-                  onClick={() => onToggleAiMessageCollapse(activity.id)}
-                  className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground transition-colors"
-                  title={
-                    isAiMessageCollapsed
-                      ? 'Expand AI streaming object'
-                      : 'Collapse AI streaming object'
-                  }
-                >
-                  {isAiMessageCollapsed ? (
-                    <ChevronRight className="h-3 w-3" />
-                  ) : (
-                    <ChevronDown className="h-3 w-3" />
-                  )}
-                  AI Streaming Object
-                </button>
-              )}
-              {!isAiMessageCollapsed && (
-                <div className="mt-2">
-                  <JsonEditorWithCopy
-                    value={formatJsonSafely(activity.aiStreamObjectContent)}
-                    title="Structured object response"
-                    uri={`stream-object-${activity.id}.json`}
-                  />
-                </div>
-              )}
-            </div>
-          )}
-
-          {/* ai.telemetry.functionId badge for streamed object */}
-          {activity.type === 'ai_model_streamed_object' && activity.subAgentId && (
             <div className="mb-1">
               <Badge variant="code" className="text-xs">
                 {activity.subAgentId}

@@ -1,5 +1,10 @@
 import type { ModelSettings } from '@inkeep/agents-core';
 import { ModelInfoMap } from 'llm-info';
+import {
+  COMPRESSION_ENABLED,
+  COMPRESSION_HARD_LIMIT,
+  COMPRESSION_SAFETY_BUFFER,
+} from '../constants/execution-limits';
 import { getLogger } from '../logger';
 
 const logger = getLogger('ModelContextUtils');
@@ -15,24 +20,50 @@ export interface ModelContextInfo {
 }
 
 /**
- * Extract model ID from model settings for llm-info lookup
+ * Extract model ID from model string for llm-info lookup
+ * Includes smart mapping to find dated versions for models that don't have exact matches
  */
-function extractModelIdForLlmInfo(modelSettings?: ModelSettings): string | null {
-  if (!modelSettings?.model) return null;
+export function extractModelIdForLlmInfo(modelInput: string): string;
+export function extractModelIdForLlmInfo(modelSettings?: ModelSettings): string | null;
+export function extractModelIdForLlmInfo(modelInput?: string | ModelSettings): string | null {
+  let modelString: string;
 
-  const modelString = modelSettings.model.trim();
-
-  // Get the last part after the final slash
-  // Examples: "google/gemini-3-flash-preview" -> "gemini-3-flash-preview"
-  //           "provider/sub/model-name" -> "model-name"
-  //           "openai/gpt-4.1" -> "gpt-4.1"
-
-  if (modelString.includes('/')) {
-    const parts = modelString.split('/');
-    return parts[parts.length - 1];
+  if (typeof modelInput === 'string') {
+    modelString = modelInput.trim();
+    if (!modelString) return null; // Return null for empty strings
+  } else if (modelInput?.model) {
+    modelString = modelInput.model.trim();
+    if (!modelString) return null; // Return null for empty strings
+  } else {
+    return null;
   }
 
-  return modelString;
+  // Get the last part after the final slash
+  let modelId: string;
+  if (modelString.includes('/')) {
+    const parts = modelString.split('/');
+    modelId = parts[parts.length - 1];
+  } else {
+    modelId = modelString;
+  }
+
+  // If the exact model ID exists in ModelInfoMap, use it
+  if (modelId in ModelInfoMap) {
+    return modelId;
+  }
+
+  // If not found, try to find the latest dated version
+  const allKeys = Object.keys(ModelInfoMap);
+  const matchingModels = allKeys.filter((key) => key.startsWith(modelId));
+
+  if (matchingModels.length > 0) {
+    // Sort by date (assuming YYYYMMDD format) and take the latest
+    const sortedModels = matchingModels.sort().reverse();
+    return sortedModels[0];
+  }
+
+  // Return original if no matches found
+  return modelId;
 }
 
 /**
@@ -139,8 +170,13 @@ function getCompressionParams(contextWindow: number): { threshold: number; buffe
 /**
  * Get compression configuration based on model context window
  * Uses actual model context window when available, otherwise falls back to environment variables
+ * @param modelSettings - Model settings to get context window for
+ * @param targetPercentage - Target percentage of context window to use (e.g., 0.5 for conversation, undefined for model-aware defaults)
  */
-export function getCompressionConfigForModel(modelSettings?: ModelSettings): {
+export function getCompressionConfigForModel(
+  modelSettings?: ModelSettings,
+  targetPercentage?: number
+): {
   hardLimit: number;
   safetyBuffer: number;
   enabled: boolean;
@@ -150,20 +186,47 @@ export function getCompressionConfigForModel(modelSettings?: ModelSettings): {
   const modelContextInfo = getModelContextWindow(modelSettings);
 
   // Default values from environment or fallback
-  const envHardLimit = parseInt(process.env.AGENTS_COMPRESSION_HARD_LIMIT || '120000');
-  const envSafetyBuffer = parseInt(process.env.AGENTS_COMPRESSION_SAFETY_BUFFER || '20000');
-  const enabled = process.env.AGENTS_COMPRESSION_ENABLED !== 'false';
+  const envHardLimit = parseInt(
+    process.env.AGENTS_COMPRESSION_HARD_LIMIT || COMPRESSION_HARD_LIMIT.toString()
+  );
+  const envSafetyBuffer = parseInt(
+    process.env.AGENTS_COMPRESSION_SAFETY_BUFFER || COMPRESSION_SAFETY_BUFFER.toString()
+  );
+  const enabled = process.env.AGENTS_COMPRESSION_ENABLED !== 'false' && COMPRESSION_ENABLED;
 
   if (modelContextInfo.hasValidContextWindow && modelContextInfo.contextWindow) {
-    // Use model-size aware compression parameters
-    const params = getCompressionParams(modelContextInfo.contextWindow);
-    const hardLimit = Math.floor(modelContextInfo.contextWindow * params.threshold);
-    const safetyBuffer = Math.floor(modelContextInfo.contextWindow * params.bufferPct);
-    const triggerPoint = hardLimit - safetyBuffer;
-    const triggerPercentage = ((triggerPoint / modelContextInfo.contextWindow) * 100).toFixed(1);
+    let hardLimit: number;
+    let safetyBuffer: number;
+    let logContext: any;
 
-    logger.info(
-      {
+    if (targetPercentage !== undefined) {
+      // Use specified percentage (e.g., 0.5 for conversation compression)
+      hardLimit = Math.floor(modelContextInfo.contextWindow * targetPercentage);
+      safetyBuffer = Math.floor(modelContextInfo.contextWindow * 0.05); // Fixed 5% safety buffer
+      const triggerPoint = hardLimit - safetyBuffer;
+      const triggerPercentage = ((triggerPoint / modelContextInfo.contextWindow) * 100).toFixed(1);
+
+      logContext = {
+        modelId: modelContextInfo.modelId,
+        contextWindow: modelContextInfo.contextWindow,
+        hardLimit,
+        safetyBuffer,
+        triggerPoint,
+        triggerPercentage: `${triggerPercentage}%`,
+        targetPercentage: `${(targetPercentage * 100).toFixed(1)}%`,
+        compressionType: targetPercentage <= 0.6 ? 'conversation' : 'mid-generation',
+      };
+
+      logger.info(logContext, 'Using percentage-based compression configuration');
+    } else {
+      // Use model-size aware compression parameters (original aggressive logic)
+      const params = getCompressionParams(modelContextInfo.contextWindow);
+      hardLimit = Math.floor(modelContextInfo.contextWindow * params.threshold);
+      safetyBuffer = Math.floor(modelContextInfo.contextWindow * params.bufferPct);
+      const triggerPoint = hardLimit - safetyBuffer;
+      const triggerPercentage = ((triggerPoint / modelContextInfo.contextWindow) * 100).toFixed(1);
+
+      logContext = {
         modelId: modelContextInfo.modelId,
         contextWindow: modelContextInfo.contextWindow,
         hardLimit,
@@ -172,9 +235,10 @@ export function getCompressionConfigForModel(modelSettings?: ModelSettings): {
         triggerPercentage: `${triggerPercentage}%`,
         threshold: params.threshold,
         bufferPct: params.bufferPct,
-      },
-      'Using model-size aware compression configuration'
-    );
+      };
+
+      logger.info(logContext, 'Using model-size aware compression configuration');
+    }
 
     return {
       hardLimit,

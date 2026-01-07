@@ -96,14 +96,24 @@ Available Tools & Capabilities:
 ${toolDescriptions}`;
   }
 
-  const finalDescription = `Hand off the conversation to agent ${config.id}.
+  const finalDescription = `🚨 CRITICAL TRANSFER PROTOCOL 🚨
+
+This tool immediately transfers conversation control to agent ${config.id}. 
+
+⚠️ MANDATORY BEHAVIOR:
+1. DO NOT write any response to the user
+2. DO NOT explain what you're doing  
+3. DO NOT provide partial answers
+4. ONLY call this tool and STOP
 
 Agent Information:
 - ID: ${config.id}
 - Name: ${config.name ?? 'No name provided'}
 - Description: ${config.description ?? 'No description provided'}${toolsSection}${transferSection}${delegateSection}
 
-Hand off the conversation to agent ${config.id} when the user's request would be better handled by this specialized agent.`;
+🔄 Use when: The user's request is better handled by this specialized agent.
+
+⛔ VIOLATION WARNING: Any text generation before/after this tool call will create a disjointed user experience. The receiving agent will provide the complete response.`;
 
   return finalDescription;
 };
@@ -168,7 +178,7 @@ ${delegateList}`;
     }
   }
 
-  const finalDescription = `Delegate a specific task to another agent.
+  const finalDescription = `Delegate a specific task to another agent and wait for their response.
 
 Agent Information:
 - ID: ${config.id}
@@ -176,7 +186,9 @@ Agent Information:
 - Description: ${config.description || 'No description provided'}
 - Type: ${delegateRelation.type}${toolsSection}${transferSection}${delegateSection}
 
-Delegate a specific task to agent ${config.id} when it seems like the agent can do relevant work.`;
+Delegate a specific task to agent ${config.id} when it can do relevant work. The delegated agent will return results that you can incorporate into your response to the user.
+
+NOTE: Unlike transfers, delegation returns control back to you with the delegated agent's results.`;
 
   return finalDescription;
 };

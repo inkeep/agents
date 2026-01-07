@@ -120,7 +120,9 @@ export class Phase1Config implements VersionConfig<SystemPromptV1> {
       inputSchema: this.normalizeSchema(tool.inputSchema),
     }));
 
-    const hasArtifactComponents = config.artifactComponents && config.artifactComponents.length > 0;
+    const hasArtifactComponents = Boolean(
+      config.artifactComponents && config.artifactComponents.length > 0
+    );
 
     const artifactsSection = this.generateArtifactsSection(
       templates,
@@ -129,8 +131,24 @@ export class Phase1Config implements VersionConfig<SystemPromptV1> {
       config.artifactComponents,
       config.hasAgentArtifactComponents
     );
-    breakdown.artifactsSection = estimateTokens(artifactsSection);
-    // Track artifact components separately (creation instructions)
+
+    const artifactInstructionsTokens = this.getArtifactInstructionsTokens(
+      templates,
+      hasArtifactComponents,
+      config.artifactComponents,
+      config.hasAgentArtifactComponents,
+      (config.artifacts?.length ?? 0) > 0
+    );
+    breakdown.systemPromptTemplate += artifactInstructionsTokens;
+
+    const actualArtifactsXml =
+      config.artifacts?.length > 0
+        ? config.artifacts
+            .map((artifact) => this.generateArtifactXml(templates, artifact))
+            .join('\n  ')
+        : '';
+    breakdown.artifactsSection = estimateTokens(actualArtifactsXml);
+
     if (hasArtifactComponents) {
       const creationInstructions = this.getArtifactCreationInstructions(
         hasArtifactComponents,
@@ -206,9 +224,20 @@ export class Phase1Config implements VersionConfig<SystemPromptV1> {
 
     return `You are part of a single unified assistant composed of specialized agents. To the user, you must always appear as one continuous, confident voice.
 
-You have transfer_to_* tools that seamlessly continue the conversation. When you determine another agent should handle a request: ONLY call the appropriate transfer_to_* tool. Do not provide any substantive answer, limitation, or explanation before transferring. NEVER announce, describe, or apologize for a transfer.
+🚨 CRITICAL TRANSFER PROTOCOL 🚨
+When you determine another agent should handle a request:
+1. IMMEDIATELY call the appropriate transfer_to_* tool  
+2. Generate ZERO text in your response - no words, no explanations, no acknowledgments
+3. Do NOT stream any content - the tool call must be your ONLY output
 
-Do NOT stream any text when transferring - call the transfer tool IMMEDIATELY. Do NOT acknowledge the request, do NOT say "Looking into that...", "Let me search...", "I'll help you find...", or provide ANY explanatory text. Place all reasoning or handoff details inside the transfer tool call, not in the user message. The tool call is sufficient - no additional text should be generated.
+FORBIDDEN BEFORE TRANSFERS:
+❌ Do NOT acknowledge the request ("I understand you want...")
+❌ Do NOT provide partial answers ("The basics are..." then transfer) 
+❌ Do NOT explain what you're doing ("Let me search...", "I'll help you find...")
+❌ Do NOT apologize or announce transfers ("I'll need to transfer you...")
+❌ Do NOT generate ANY text content whatsoever - just call the transfer tool
+
+REMEMBER: Tool call = complete response. No additional text generation allowed.
 
 CRITICAL: When you receive a user message that ends with "Please continue from where this conversation was left off" - this indicates you are continuing a conversation that another agent started. You should:
 - Review the conversation history to see what was already communicated to the user
@@ -233,6 +262,34 @@ Your goal: preserve the illusion of a single, seamless, intelligent assistant. A
 - Treat these exactly like other tools - call them to get results
 - Present results as YOUR work: "I found", "I've analyzed"
 - NEVER say you're delegating or that another agent helped`;
+  }
+
+  private getArtifactInstructionsTokens(
+    templates: Map<string, string>,
+    hasArtifactComponents: boolean,
+    artifactComponents?: any[],
+    hasAgentArtifactComponents?: boolean,
+    hasArtifacts?: boolean
+  ): number {
+    const shouldShowReferencingRules = hasAgentArtifactComponents || hasArtifacts;
+
+    const rules = this.getArtifactReferencingRules(
+      hasArtifactComponents,
+      templates,
+      shouldShowReferencingRules
+    );
+
+    const wrapperDescription = hasArtifacts
+      ? 'These are the artifacts available for you to use in generating responses.'
+      : 'No artifacts are currently available, but you may create them during execution.';
+
+    const wrapperXml = `<available_artifacts description="${wrapperDescription}
+
+${rules}
+
+"></available_artifacts>`;
+
+    return estimateTokens(wrapperXml);
   }
 
   private getArtifactCreationGuidance(): string {

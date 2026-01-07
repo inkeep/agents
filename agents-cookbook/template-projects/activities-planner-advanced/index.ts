@@ -9,4 +9,7 @@ export const myProject = project({
   description: 'Activities planner project template',
   agents: () => [activitiesPlannerAdvancedAgent],
   tools: () => [weatherMcpTool, exaMcpTool],
+  models: {
+    base: { model: 'openai/gpt-4o-mini' },
+  },
 });

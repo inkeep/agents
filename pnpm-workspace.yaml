@@ -9,3 +9,19 @@ packages:
   - agents-cookbook
   - test-agents
   - "packages/*"
+
+catalog:
+  better-auth: ~1.4.10
+  "@better-auth/sso": ~1.4.10
+
+ignorePatchFailures: false
+
+patchedDependencies:
+  "@changesets/assemble-release-plan@6.0.9": patches/@changesets__assemble-release-plan.patch
+  fumadocs-core: patches/fumadocs-core.patch
+
+overrides:
+  esbuild: 0.25.9 # we pin it for Cypress
+  zod: ^4.1.11
+  "@modelcontextprotocol/sdk>zod": ^3.25.7
+  "@anthropic-ai/mcpb>zod": ^3.25.7

@@ -10,7 +10,7 @@ import { z } from 'zod';
 // You can customise Zod schemas for frontmatter here
 // see https://fumadocs.vercel.app/docs/mdx/collections#define-docs
 export const docs = defineDocs({
-  dir: 'content/docs',
+  dir: 'content',
   docs: {
     schema: frontmatterSchema.extend({
       sidebarTitle: z.string().optional(),

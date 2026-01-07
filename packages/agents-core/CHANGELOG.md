@@ -1,5 +1,33 @@
 # @inkeep/agents-core
 
+## 0.41.0
+
+### Patch Changes
+
+- 49ec561: fix auth dependencies
+- 5d095da: Properly contain overflow of trace card content
+- f1a6cd4: compression ui improvements
+- 561605f: Export DEFAULT_NANGO_STORE_ID from @inkeep/agents-core main exports
+- 4b016d4: target ids for chat-to-edit
+- d933953: Disable colorized logs in non-TTY environments like Vercel. Logs now respect the NO_COLOR env var and automatically disable colors when stdout is not a TTY.
+- 9b17c81: streamObject removed from traces
+- f58f9e4: Fix cookie header forwarding for MCP server authentication
+
+## 0.40.0
+
+### Minor Changes
+
+- e5172e2: remove unused dependencies, lint unused dependencies with Knip
+- 178d5b1: keep file structure for build `dist` directory
+
+### Patch Changes
+
+- be0131e: user info for spans
+- 8b95949: context tracking in traces
+- b2c2fd9: fix trace viewer panes to scroll independently
+- b231869: set `compilerOptions.verbatimModuleSyntax: true` in all `tsconfig.json` files
+- 153d4e5: Added Conversation COmpression
+
 ## 0.39.5
 
 ### Patch Changes

@@ -122,7 +122,6 @@ export const Playground = ({
               customHeaders={customHeaders}
               chatActivities={chatActivities}
               dataComponentLookup={dataComponentLookup}
-              key={JSON.stringify(customHeaders)}
               setShowTraces={setShowTraces}
             />
           </ResizablePanel>

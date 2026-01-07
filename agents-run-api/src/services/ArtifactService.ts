@@ -843,6 +843,7 @@ export class ArtifactService {
         },
       ],
       metadata: artifact.metadata || {},
+      createdAt: new Date().toISOString(),
     };
 
     const result = await upsertLedgerArtifact(dbClient)({

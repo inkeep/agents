@@ -858,6 +858,37 @@
               }
             ]
           },
+          "render": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "number"
+              },
+              {
+                "type": "boolean"
+              },
+              {
+                "nullable": true
+              },
+              {
+                "additionalProperties": {
+                  "nullable": true
+                },
+                "type": "object"
+              },
+              {
+                "items": {
+                  "nullable": true
+                },
+                "type": "array"
+              },
+              {
+                "nullable": true
+              }
+            ]
+          },
           "updatedAt": {
             "type": "string"
           }
@@ -867,6 +898,7 @@
           "name",
           "description",
           "props",
+          "render",
           "createdAt",
           "updatedAt"
         ],
@@ -905,6 +937,37 @@
             "type": "string"
           },
           "props": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "number"
+              },
+              {
+                "type": "boolean"
+              },
+              {
+                "nullable": true
+              },
+              {
+                "additionalProperties": {
+                  "nullable": true
+                },
+                "type": "object"
+              },
+              {
+                "items": {
+                  "nullable": true
+                },
+                "type": "array"
+              },
+              {
+                "nullable": true
+              }
+            ]
+          },
+          "render": {
             "anyOf": [
               {
                 "type": "string"
@@ -993,6 +1056,37 @@
             "type": "string"
           },
           "props": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "number"
+              },
+              {
+                "type": "boolean"
+              },
+              {
+                "nullable": true
+              },
+              {
+                "additionalProperties": {
+                  "nullable": true
+                },
+                "type": "object"
+              },
+              {
+                "items": {
+                  "nullable": true
+                },
+                "type": "array"
+              },
+              {
+                "nullable": true
+              }
+            ]
+          },
+          "render": {
             "anyOf": [
               {
                 "type": "string"
@@ -8033,8 +8127,8 @@
     },
     "/oauth/callback": {
       "get": {
-        "description": "Handles OAuth authorization codes and completes the authentication flow",
-        "operationId": "oauth-callback",
+        "description": "Handles OAuth authorization codes for MCP tools and completes the authentication flow",
+        "operationId": "mcp-oauth-callback",
         "parameters": [
           {
             "in": "query",
@@ -8096,7 +8190,7 @@
             "description": "Internal server error"
           }
         },
-        "summary": "OAuth authorization callback",
+        "summary": "MCP OAuth authorization callback",
         "tags": [
           "OAuth"
         ]

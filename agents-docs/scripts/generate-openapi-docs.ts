@@ -2,7 +2,7 @@ import { generateFiles } from 'fumadocs-openapi';
 // @ts-expect-error -- must specify ts extension
 import { openapi } from '../src/lib/openapi.ts';
 
-const OUTPUT_DIR = './content/docs/api-reference';
+const OUTPUT_DIR = './content/api-reference';
 
 async function main(): Promise<void> {
   console.log('Generating OpenAPI documentation...');

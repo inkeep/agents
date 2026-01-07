@@ -165,6 +165,10 @@ vi.mock('../../agents/Agent.js', () => ({
         },
       };
     }
+
+    cleanupCompression() {
+      // Mock implementation for compression cleanup
+    }
   },
 }));
 

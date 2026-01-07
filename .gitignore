@@ -75,3 +75,6 @@ agents-eval-api/.well-known/
 
 # Workflow runtime data
 agents-eval-api/.workflow-data/
+
+# Node compile cache
+node-compile-cache/

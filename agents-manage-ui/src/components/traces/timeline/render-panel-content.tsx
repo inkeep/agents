@@ -258,7 +258,12 @@ export function renderPanelContent({
         </>
       );
 
-    case 'user_message':
+    case 'user_message': {
+      // Extract target context from span attributes (for copilot/chat-to-edit scenarios)
+      const targetTenantId = span?.data?.['target.tenant.id'] as string | undefined;
+      const targetProjectId = span?.data?.['target.project.id'] as string | undefined;
+      const targetAgentId = span?.data?.['target.agent.id'] as string | undefined;
+
       return (
         <>
           <Section>
@@ -266,6 +271,18 @@ export function renderPanelContent({
               label="Message content"
               value={a.messageContent || 'Message content not available'}
             />
+            {targetTenantId && (
+              <Info label="Target tenant" value={<Badge variant="code">{targetTenantId}</Badge>} />
+            )}
+            {targetProjectId && (
+              <Info
+                label="Target project"
+                value={<Badge variant="code">{targetProjectId}</Badge>}
+              />
+            )}
+            {targetAgentId && (
+              <Info label="Target agent" value={<Badge variant="code">{targetAgentId}</Badge>} />
+            )}
             <StatusBadge status={a.status} />
             <Info label="Timestamp" value={formatDateTime(a.timestamp)} />
           </Section>
@@ -274,6 +291,7 @@ export function renderPanelContent({
           {AdvancedBlock}
         </>
       );
+    }
 
     case 'ai_assistant_message':
       return (
@@ -526,7 +544,13 @@ export function renderPanelContent({
         </>
       );
 
-    case 'ai_model_streamed_text':
+    case 'ai_model_streamed_text': {
+      const isStructuredGeneration = a.aiTelemetryPhase === 'structured_generation';
+      const structuredContent =
+        isStructuredGeneration && a.aiStreamTextContent
+          ? formatJsonSafely(a.aiStreamTextContent)
+          : null;
+
       return (
         <>
           <Section>
@@ -540,44 +564,13 @@ export function renderPanelContent({
             )}
             <Info label="Input tokens" value={a.inputTokens?.toLocaleString() || '0'} />
             <Info label="Output tokens" value={a.outputTokens?.toLocaleString() || '0'} />
-            <StatusBadge status={a.status} />
-            {a.status === 'error' && a.otelStatusDescription && (
-              <LabeledBlock label="Status message">
-                <Bubble className="bg-red-50 border-red-200 text-red-800 dark:bg-red-900/20 dark:border-red-800 dark:text-red-300">
-                  {a.otelStatusDescription}
-                </Bubble>
-              </LabeledBlock>
-            )}
-            <Info label="Timestamp" value={formatDateTime(a.timestamp)} />
-          </Section>
-          <Divider />
-          {SignozButton}
-          {AdvancedBlock}
-        </>
-      );
-
-    case 'ai_model_streamed_object':
-      return (
-        <>
-          <Section>
-            <Info label="Model" value={<ModelBadge model={a.aiStreamObjectModel || 'Unknown'} />} />
-            {a.aiTelemetryFunctionId && (
-              <Info
-                label="Sub agent"
-                value={<Badge variant="code">{a.aiTelemetryFunctionId}</Badge>}
+            {structuredContent && (
+              <JsonEditorWithCopy
+                value={structuredContent}
+                title="Structured output"
+                uri="structured-output.json"
               />
             )}
-            <Info label="Input tokens" value={a.inputTokens?.toLocaleString() || '0'} />
-            <Info label="Output tokens" value={a.outputTokens?.toLocaleString() || '0'} />
-            {a.aiStreamObjectContent && (
-              <LabeledBlock label="Structured object response">
-                <JsonEditorWithCopy
-                  value={formatJsonSafely(a.aiStreamObjectContent)}
-                  title="Object content"
-                  uri="stream-object-response.json"
-                />
-              </LabeledBlock>
-            )}
             <StatusBadge status={a.status} />
             {a.status === 'error' && a.otelStatusDescription && (
               <LabeledBlock label="Status message">
@@ -593,6 +586,7 @@ export function renderPanelContent({
           {AdvancedBlock}
         </>
       );
+    }
 
     case 'artifact_processing':
       return (
@@ -691,6 +685,46 @@ export function renderPanelContent({
                 Denied by user
               </Badge>
             </LabeledBlock>
+            <Info label="Timestamp" value={formatDateTime(a.timestamp)} />
+          </Section>
+          <Divider />
+          {SignozButton}
+          {AdvancedBlock}
+        </>
+      );
+
+    case 'compression':
+      return (
+        <>
+          <Section>
+            <Info label="Input tokens" value={a.compressionInputTokens?.toLocaleString() || '0'} />
+            <Info
+              label="Output tokens"
+              value={a.compressionOutputTokens?.toLocaleString() || '0'}
+            />
+            {a.compressionRatio !== undefined && (
+              <Info
+                label="Compression ratio"
+                value={
+                  <Badge variant="code" className="font-mono">
+                    {(a.compressionRatio * 100).toFixed(1)}%
+                  </Badge>
+                }
+              />
+            )}
+            {a.compressionSummary && (
+              <LabeledBlock label="Summary">
+                <Bubble className="text-sm text-foreground">{a.compressionSummary}</Bubble>
+              </LabeledBlock>
+            )}
+            {a.compressionError && (
+              <LabeledBlock label="Error">
+                <Bubble className="bg-red-50 border-red-200 text-red-800 dark:bg-red-900/20 dark:border-red-800 dark:text-red-300">
+                  {a.compressionError}
+                </Bubble>
+              </LabeledBlock>
+            )}
+            <StatusBadge status={a.status} />
             <Info label="Timestamp" value={formatDateTime(a.timestamp)} />
           </Section>
           <Divider />

@@ -10,19 +10,27 @@ import { AgentSession, agentSessionManager } from '../AgentSession';
 
 // Mock the AI SDK
 vi.mock('ai', () => ({
-  generateText: vi.fn().mockResolvedValue({
-    text: 'Processing your request with tools and generating results...',
-  }),
-  generateObject: vi.fn().mockResolvedValue({
-    object: {
-      statusComponents: [
-        {
-          id: 'status-1',
-          type: 'text',
-          props: { text: 'Status update generated' },
+  generateText: vi.fn().mockImplementation(async (options) => {
+    // Simulate returning both text and a structured "output" inside generateText.
+    // When Output.object is present in options, return "output" with the correct shape.
+    if (options?.output && typeof options.output.parse === 'function') {
+      return {
+        text: 'Processing your request with tools and generating results...',
+        output: {
+          statusComponents: [
+            {
+              id: 'status-1',
+              type: 'text',
+              props: { text: 'Status update generated' },
+            },
+          ],
         },
-      ],
-    },
+      };
+    }
+    // Otherwise, return just text as fallback.
+    return {
+      text: 'Processing your request with tools and generating results...',
+    };
   }),
 }));
 

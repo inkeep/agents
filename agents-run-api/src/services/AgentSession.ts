@@ -16,7 +16,7 @@ import {
   ModelFactory,
 } from '@inkeep/agents-core';
 import { SpanStatusCode } from '@opentelemetry/api';
-import { generateObject } from 'ai';
+import { generateText, Output } from 'ai';
 import { toolSessionManager } from '../agents/ToolSessionManager';
 import {
   ARTIFACT_GENERATION_BACKOFF_INITIAL_MS,
@@ -180,7 +180,7 @@ export interface CompressionEventData {
   artifactCount: number;
   contextSizeBefore: number;
   contextSizeAfter: number;
-  compressionType: 'mid_generation' | 'full_conversation';
+  compressionType: 'mid_generation' | 'conversation_level';
 }
 
 export interface ErrorEventData {
@@ -970,37 +970,40 @@ export class AgentSession {
               ? `\nPrevious updates sent to user:\n${previousSummaries.map((s, i) => `${i + 1}. ${s}`).join('\n')}\n`
               : '';
 
-          const selectionSchema = z.object(
-            Object.fromEntries([
-              [
-                'no_relevant_updates',
-                z
-                  .object({
-                    no_updates: z.boolean().default(true),
+          const selectionSchema = z.object({
+            updates: z.array(
+              z.union([
+                z.object({
+                  type: z.literal('no_relevant_updates'),
+                  data: z
+                    .object({
+                      no_updates: z.boolean().default(true),
+                    })
+                    .describe(
+                      'Use when nothing substantially new to report. Should only use on its own.'
+                    ),
+                }),
+                ...statusComponents.map((component) =>
+                  z.object({
+                    type: z.literal(component.type),
+                    data: this.getComponentSchema(component).describe(
+                      component.description || component.type
+                    ),
                   })
-                  .optional()
-                  .describe(
-                    'Use when nothing substantially new to report. Should only use on its own.'
-                  ),
-              ],
-              ...statusComponents.map((component) => [
-                component.type,
-                this.getComponentSchema(component)
-                  .optional()
-                  .describe(component.description || component.type),
-              ]),
-            ])
-          );
+                ),
+              ])
+            ),
+          });
 
           const basePrompt = `Generate status updates for relevant components based on what the user has asked for.${conversationContext}${previousSummaries.length > 0 ? `\n${previousSummaryContext}` : ''}
 
 Activities:\n${userVisibleActivities.join('\n') || 'No New Activities'}
 
-Available components: no_relevant_updates, ${statusComponents.map((c) => c.type).join(', ')}
+Available component types: no_relevant_updates, ${statusComponents.map((c) => c.type).join(', ')}
 
 Rules:
-- Fill in data for relevant components only
-- Use 'no_relevant_updates' if nothing substantially new to report. DO NOT WRITE LABELS OR USE OTHER COMPONENTS IF YOU USE THIS COMPONENT.
+- Return an array of updates for relevant components
+- Use 'no_relevant_updates' type if nothing substantially new to report. DO NOT INCLUDE OTHER COMPONENT TYPES IF YOU USE THIS ONE.
 - Never repeat previous values, make every update EXTREMELY unique. If you cannot do that the update is not worth mentioning.
 - Labels MUST be short 3-7 word phrases with ACTUAL information discovered. NEVER MAKE UP SOMETHING WITHOUT BACKING IT UP WITH ACTUAL INFORMATION.
 - Use sentence case: only capitalize the first word and proper nouns (e.g., "Admin permissions required", not "Admin Permissions Required"). ALWAYS capitalize the first word of the label.
@@ -1063,10 +1066,12 @@ ${this.statusUpdateState?.config.prompt?.trim() || ''}`;
           }
           const model = ModelFactory.createModel(modelToUse);
 
-          const { object } = await generateObject({
+          const { output: object } = await generateText({
             model,
             prompt,
-            schema: selectionSchema,
+            output: Output.object({
+              schema: selectionSchema,
+            }),
             experimental_telemetry: {
               isEnabled: true,
               functionId: `structured_update_${this.sessionId}`,
@@ -1083,17 +1088,23 @@ ${this.statusUpdateState?.config.prompt?.trim() || ''}`;
           logger.info({ result: JSON.stringify(result) }, 'DEBUG: Result');
 
           const summaries = [];
-          for (const [componentId, data] of Object.entries(result)) {
-            logger.info({ componentId, data: JSON.stringify(data) }, 'DEBUG: Component data');
+          const updates = result.updates || [];
+
+          for (const update of updates) {
+            logger.info({ update: JSON.stringify(update) }, 'DEBUG: Update data');
             // await new Promise((resolve) => setTimeout(resolve, 100000));
-            if (componentId === 'no_relevant_updates') {
+            if (update.type === 'no_relevant_updates') {
               continue;
             }
 
-            if (data && typeof data === 'object' && Object.keys(data).length > 0) {
+            if (
+              update.data &&
+              typeof update.data === 'object' &&
+              Object.keys(update.data).length > 0
+            ) {
               summaries.push({
-                type: componentId,
-                data: data,
+                type: update.type,
+                data: update.data,
               });
             }
           }
@@ -1101,7 +1112,7 @@ ${this.statusUpdateState?.config.prompt?.trim() || ''}`;
           span.setAttributes({
             'summaries.count': summaries.length,
             'user_activities.count': userVisibleActivities.length,
-            'result_keys.count': Object.keys(result).length,
+            'updates.count': updates.length,
           });
           span.setStatus({ code: SpanStatusCode.OK });
 
@@ -1530,7 +1541,7 @@ Make the name extremely specific to what this tool call actually returned, not g
                 .describe("Brief description of the artifact's relevance to the user's question"),
             });
 
-            const { object } = await tracer.startActiveSpan(
+            const { output: object } = await tracer.startActiveSpan(
               'agent_session.generate_artifact_metadata',
               {
                 attributes: {
@@ -1553,10 +1564,12 @@ Make the name extremely specific to what this tool call actually returned, not g
 
                 for (let attempt = 1; attempt <= maxRetries; attempt++) {
                   try {
-                    const result = await generateObject({
+                    const result = await generateText({
                       model,
                       prompt,
-                      schema,
+                      output: Output.object({
+                        schema,
+                      }),
                       experimental_telemetry: {
                         isEnabled: true,
                         functionId: `artifact_processing_${artifactData.artifactId}`,
@@ -1573,16 +1586,16 @@ Make the name extremely specific to what this tool call actually returned, not g
                     generationSpan.setAttributes({
                       'artifact.id': artifactData.artifactId,
                       'artifact.type': artifactData.artifactType,
-                      'artifact.name': result.object.name,
-                      'artifact.description': result.object.description,
+                      'artifact.name': result.output.name,
+                      'artifact.description': result.output.description,
                       'artifact.summary': JSON.stringify(artifactData.summaryData, null, 2),
                       'artifact.full': JSON.stringify(
                         artifactData.data || artifactData.summaryData,
                         null,
                         2
                       ),
-                      'generation.name_length': result.object.name.length,
-                      'generation.description_length': result.object.description.length,
+                      'generation.name_length': result.output.name.length,
+                      'generation.description_length': result.output.description.length,
                       'generation.attempts': attempt,
                     });
 

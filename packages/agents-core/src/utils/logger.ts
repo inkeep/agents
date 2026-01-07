@@ -8,6 +8,23 @@ import pino from 'pino';
 import pinoPretty from 'pino-pretty';
 
 /**
+ * Determines whether log output should be colorized.
+ *
+ * Checks in order:
+ * 1. NO_COLOR env var (standard: https://no-color.org/) - if set to any non-empty value, disables colors
+ * 2. Falls back to process.stdout.isTTY (colors enabled for interactive terminals)
+ */
+function shouldColorize(): boolean {
+  // NO_COLOR standard: any non-empty value disables colors
+  if (process.env.NO_COLOR && process.env.NO_COLOR !== '') {
+    return false;
+  }
+
+  // Default: colorize only if stdout is a TTY (interactive terminal)
+  return process.stdout.isTTY ?? false;
+}
+
+/**
  * Configuration options for PinoLogger
  */
 export interface PinoLoggerConfig {
@@ -36,7 +53,12 @@ export class PinoLogger {
       serializers: {
         obj: (value: any) => ({ ...value }),
       },
-      redact: ['req.headers.authorization', 'req.headers["x-inkeep-admin-authentication"]'],
+      redact: [
+        'req.headers.authorization',
+        'req.headers["x-inkeep-admin-authentication"]',
+        'req.headers.cookie',
+        'req.headers["x-forwarded-cookie"]',
+      ],
       ...config.options,
     };
 
@@ -51,7 +73,7 @@ export class PinoLogger {
       // Use pino-pretty stream directly instead of transport
       try {
         const prettyStream = pinoPretty({
-          colorize: true,
+          colorize: shouldColorize(),
           translateTime: 'HH:MM:ss',
           ignore: 'pid,hostname',
         });
@@ -77,7 +99,7 @@ export class PinoLogger {
       // Use pino-pretty stream directly instead of transport (same as constructor)
       try {
         const prettyStream = pinoPretty({
-          colorize: true,
+          colorize: shouldColorize(),
           translateTime: 'HH:MM:ss',
           ignore: 'pid,hostname',
         });

@@ -15,12 +15,12 @@ export const SPAN_NAMES = {
   TOOL_APPROVAL_REQUESTED: 'tool.approval_requested',
   TOOL_APPROVAL_APPROVED: 'tool.approval_approved',
   TOOL_APPROVAL_DENIED: 'tool.approval_denied',
+  COMPRESSOR_SAFE_COMPRESS: 'compressor.safe_compress',
 } as const;
 
 export const AI_OPERATIONS = {
   GENERATE_TEXT: 'ai.generateText.doGenerate',
   STREAM_TEXT: 'ai.streamText.doStream',
-  STREAM_OBJECT: 'ai.streamObject.doStream',
 } as const;
 
 /** OpenTelemetry span attribute keys used for tracing */
@@ -56,6 +56,7 @@ export const SPAN_KEYS = {
   AI_TELEMETRY_FUNCTION_ID: 'ai.telemetry.functionId',
   AI_TELEMETRY_SUB_AGENT_ID: 'ai.telemetry.metadata.subAgentId',
   AI_TELEMETRY_SUB_AGENT_NAME: 'ai.telemetry.metadata.subAgentName',
+  AI_TELEMETRY_METADATA_PHASE: 'ai.telemetry.metadata.phase',
   AI_MODEL_ID: 'ai.model.id',
 
   // Tool attributes
@@ -137,10 +138,10 @@ export const ACTIVITY_TYPES = {
   USER_MESSAGE: 'user_message',
   AI_ASSISTANT_MESSAGE: 'ai_assistant_message',
   AI_MODEL_STREAMED_TEXT: 'ai_model_streamed_text',
-  AI_MODEL_STREAMED_OBJECT: 'ai_model_streamed_object',
   TOOL_APPROVAL_REQUESTED: 'tool_approval_requested',
   TOOL_APPROVAL_APPROVED: 'tool_approval_approved',
   TOOL_APPROVAL_DENIED: 'tool_approval_denied',
+  COMPRESSION: 'compression',
 } as const;
 
 /** Activity Status Values */
@@ -164,7 +165,6 @@ export const ACTIVITY_NAMES = {
   AI_ASSISTANT_MESSAGE: 'AI Assistant Message',
   AI_TEXT_GENERATION: 'AI Text Generation',
   AI_STREAMING_TEXT: 'AI Streaming Text',
-  AI_STREAMING_OBJECT: 'AI Streaming Object',
   UNKNOWN_AGENT: 'Unknown Agent',
   USER: 'User',
 } as const;

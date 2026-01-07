@@ -18,7 +18,15 @@ const nextConfig: NextConfig = {
     NEXT_PUBLIC_CI: process.env.CI,
   },
   output: 'standalone',
-  serverExternalPackages: ['pino', 'pino-pretty', 'thread-stream'],
+  redirects() {
+    return [
+      {
+        source: '/:tenantId/projects/:projectId',
+        destination: '/:tenantId/projects/:projectId/agents',
+        permanent: false,
+      },
+    ];
+  },
   turbopack: {
     rules: {
       './**/icons/*.svg': {

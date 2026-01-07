@@ -37,6 +37,8 @@ interface ExecutionHandlerParams {
   sseHelper: StreamHelper;
   emitOperations?: boolean;
   datasetRunId?: string; // Optional: ID of the dataset run this conversation belongs to
+  /** Headers to forward to MCP servers (e.g., x-forwarded-cookie for auth) */
+  forwardedHeaders?: Record<string, string>;
 }
 
 interface ExecutionResult {
@@ -72,6 +74,7 @@ export class ExecutionHandler {
       requestId,
       sseHelper,
       emitOperations,
+      forwardedHeaders,
     } = params;
 
     const { tenantId, projectId, project, agentId, apiKey, baseUrl, resolvedRef } =
@@ -260,6 +263,8 @@ export class ExecutionHandler {
             'x-inkeep-project-id': projectId,
             'x-inkeep-agent-id': agentId,
             'x-inkeep-sub-agent-id': currentAgentId,
+            // Forward user session headers for MCP tool authentication
+            ...(forwardedHeaders || {}),
           },
         });
 

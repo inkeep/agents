@@ -176,6 +176,7 @@ app.openapi(
       name: String(body.name),
       description: String(body.description),
       props: body.props ?? null,
+      render: body.render ?? null,
     };
 
     try {
@@ -257,6 +258,9 @@ app.openapi(
     }
     if (body.props !== undefined) {
       updateData.props = body.props ?? null;
+    }
+    if (body.render !== undefined) {
+      updateData.render = body.render ?? null;
     }
 
     const updatedArtifactComponent = await updateArtifactComponent(db)({

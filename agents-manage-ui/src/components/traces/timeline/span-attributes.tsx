@@ -14,6 +14,9 @@ const PINNED_ATTRIBUTE_KEYS = [
   'project.id',
   'agent.id',
   'conversation.id',
+  'target.tenant.id',
+  'target.project.id',
+  'target.agent.id',
 ] as const;
 
 // Type definitions
