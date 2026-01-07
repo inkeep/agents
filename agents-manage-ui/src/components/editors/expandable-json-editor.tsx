@@ -6,6 +6,8 @@ import { Button } from '@/components/ui/button';
 import { cn, formatJson } from '@/lib/utils';
 import { ExpandableField } from '../form/expandable-field';
 
+const noop = () => {};
+
 type JsonEditorProps = ComponentPropsWithoutRef<typeof JsonEditor>;
 
 interface ExpandableJsonEditorCommonProps {
@@ -77,7 +79,7 @@ export function ExpandableJsonEditor({
   editorOptions,
 }: ExpandableJsonEditorProps) {
   const { error: internalError } = useJsonValidation(value);
-  const handleChange = onChange ?? (() => {});
+  const handleChange = onChange ?? noop;
   const { handleFormat, canFormat } = useJsonFormat(
     value,
     !!(externalError || internalError),
