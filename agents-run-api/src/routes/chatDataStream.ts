@@ -111,6 +111,20 @@ app.openapi(chatDataStreamRoute, async (c) => {
     const targetProjectId = c.req.header('x-target-project-id');
     const targetAgentId = c.req.header('x-target-agent-id');
 
+    // Extract headers to forward to MCP servers (for user session auth)
+    // Transform cookie -> x-forwarded-cookie since downstream services expect it
+    const forwardedHeaders: Record<string, string> = {};
+    const xForwardedCookie = c.req.header('x-forwarded-cookie');
+    const authorization = c.req.header('authorization');
+    const cookie = c.req.header('cookie');
+    // Priority: x-forwarded-cookie (explicit) > cookie (browser-sent)
+    if (xForwardedCookie) {
+      forwardedHeaders['x-forwarded-cookie'] = xForwardedCookie;
+    } else if (cookie) {
+      forwardedHeaders['x-forwarded-cookie'] = cookie;
+    }
+    if (authorization) forwardedHeaders.authorization = authorization;
+
     // Add conversation ID to parent span
     const activeSpan = trace.getActiveSpan();
     if (activeSpan) {
@@ -251,6 +265,7 @@ app.openapi(chatDataStreamRoute, async (c) => {
           requestId: `chat-${Date.now()}`,
           sseHelper: bufferingHelper,
           emitOperations,
+          forwardedHeaders,
         });
 
         const captured = bufferingHelper.getCapturedResponse();
@@ -297,6 +312,7 @@ app.openapi(chatDataStreamRoute, async (c) => {
               requestId: `chatds-${Date.now()}`,
               sseHelper: streamHelper,
               emitOperations,
+              forwardedHeaders,
             });
 
             if (!result.success) {

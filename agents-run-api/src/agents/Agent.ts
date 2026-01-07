@@ -145,6 +145,8 @@ export type AgentConfig = {
   sandboxConfig?: SandboxConfig;
   /** User ID for user-scoped credential lookup (from temp JWT) */
   userId?: string;
+  /** Headers to forward to MCP servers (e.g., x-forwarded-cookie for user session auth) */
+  forwardedHeaders?: Record<string, string>;
 };
 
 export type ExternalAgentRelationConfig = {
@@ -954,7 +956,12 @@ export class Agent {
   }
 
   async getMcpTool(tool: McpTool) {
-    const cacheKey = `${this.config.tenantId}-${this.config.projectId}-${tool.id}-${tool.credentialReferenceId || 'no-cred'}`;
+    // Include forwarded headers hash in cache key to ensure user session-specific connections
+    // This prevents reusing a connection created without cookies for requests that have them
+    const forwardedHeadersHash = this.config.forwardedHeaders
+      ? Object.keys(this.config.forwardedHeaders).sort().join(',')
+      : 'no-fwd';
+    const cacheKey = `${this.config.tenantId}-${this.config.projectId}-${tool.id}-${tool.credentialReferenceId || 'no-cred'}-${forwardedHeadersHash}`;
 
     const credentialReferenceId = tool.credentialReferenceId;
 
@@ -1098,12 +1105,21 @@ export class Agent {
       serverConfig.url = urlObj.toString();
     }
 
+    // Merge forwarded headers (user session auth) into server config
+    if (this.config.forwardedHeaders && Object.keys(this.config.forwardedHeaders).length > 0) {
+      serverConfig.headers = {
+        ...serverConfig.headers,
+        ...this.config.forwardedHeaders,
+      };
+    }
+
     logger.info(
       {
         toolName: tool.name,
         credentialReferenceId,
         transportType: serverConfig.type,
         headers: tool.headers,
+        hasForwardedHeaders: !!this.config.forwardedHeaders,
       },
       'Built MCP server config with credentials'
     );

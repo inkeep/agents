@@ -10,7 +10,12 @@ const logger = pino({
   serializers: {
     obj: (value) => ({ ...value }),
   },
-  redact: ['req.headers.authorization', 'req.headers["x-inkeep-admin-authentication"]'],
+  redact: [
+    'req.headers.authorization',
+    'req.headers["x-inkeep-admin-authentication"]',
+    'req.headers.cookie',
+    'req.headers["x-forwarded-cookie"]',
+  ],
   // Only use pretty transport in development
   ...(NODE_ENV === 'development' && {
     transport: {
