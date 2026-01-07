@@ -1,7 +1,7 @@
 import { sql } from 'drizzle-orm';
 import type { AgentsManageDatabaseClient } from '../../db/manage/manage-client';
 import type { AgentsRunDatabaseClient } from '../../db/runtime/runtime-client';
-import { doltBranch, doltBranchExists, doltDeleteBranch } from '../../dolt/branch';
+import { doltBranchExists, doltCheckout, doltDeleteBranch } from '../../dolt/branch';
 import type { ProjectMetadataSelect } from '../../types/entities';
 import type { PaginationConfig, PaginationResult, ProjectModels } from '../../types/utility';
 import { getLogger } from '../../utils/logger';
@@ -46,7 +46,7 @@ export function getProjectMainBranchName(tenantId: string, projectId: string): s
  *
  * This utility:
  * 1. Creates the project record in the runtime DB (source of truth for existence)
- * 2. Creates the project main branch in the config DB (Doltgres)
+ * 2. Creates the project main branch in the config DB and checks it out (Doltgres)
  *
  * @param runDb - Runtime database client (Postgres)
  * @param configDb - Config database client (Doltgres)
@@ -74,7 +74,8 @@ export const createProjectMetadataAndBranch =
       // Branch may exist already if project is created in the updated endpoint
       const branchExists = await doltBranchExists(configDb)({ name: mainBranchName });
       if (!branchExists) {
-        await doltBranch(configDb)({ name: mainBranchName });
+        // Create and checkout the branch
+        await doltCheckout(configDb)({ branch: mainBranchName, create: true });
         logger.debug({ mainBranchName }, 'Created project main branch');
       }
     } catch (error) {

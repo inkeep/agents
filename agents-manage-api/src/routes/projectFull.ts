@@ -101,7 +101,7 @@ app.openapi(
       // 1. Create project in runtime DB and create project main branch
       await createProjectMetadataAndBranch(
         runDbClient,
-        manageDbClient
+        configDb
       )({
         tenantId,
         projectId: validatedProjectData.id,
@@ -113,10 +113,7 @@ app.openapi(
         'Created project with branch, now populating config'
       );
 
-      // 2. Checkout the newly created project branch on the middleware's connection
-      // This ensures writes go to the project branch, not tenant main
       const projectMainBranch = getProjectMainBranchName(tenantId, validatedProjectData.id);
-      await doltCheckout(configDb)({ branch: projectMainBranch });
 
       // Update resolvedRef so the middleware commits to the correct branch
       const newResolvedRef: ResolvedRef = {
@@ -329,7 +326,7 @@ app.openapi(
         // Project doesn't exist - create it with branch first
         await createProjectMetadataAndBranch(
           runDbClient,
-          manageDbClient
+          configDb
         )({
           tenantId,
           projectId,
