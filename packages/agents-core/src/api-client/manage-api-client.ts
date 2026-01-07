@@ -118,8 +118,8 @@ export class ManagementApiClient extends BaseApiClient {
     evaluationJobConfigId: string
   ): Promise<EvaluationJobConfigEvaluatorRelationSelect[]> {
     const tenantId = this.checkTenantId();
-    const path = `/tenants/${tenantId}/projects/${this.projectId}/evals/evaluation-job-configs/${evaluationJobConfigId}/evaluator-relations`;
-    return this.makePaginatedGetRequest<EvaluationJobConfigEvaluatorRelationSelect>(
+    const path = `/tenants/${tenantId}/projects/${this.projectId}/evals/evaluation-job-configs/${evaluationJobConfigId}/evaluators`;
+    return this.makeGetRequest<EvaluationJobConfigEvaluatorRelationSelect[]>(
       path,
       'Failed to fetch evaluation job config evaluator relations'
     );
@@ -188,7 +188,7 @@ export class ManagementApiClient extends BaseApiClient {
   ): Promise<EvaluationSuiteConfigEvaluatorRelationSelect[]> {
     const tenantId = this.checkTenantId();
     const path = `/tenants/${tenantId}/projects/${this.projectId}/evals/evaluation-suite-configs/${evaluationSuiteConfigId}/evaluators`;
-    return this.makePaginatedGetRequest<EvaluationSuiteConfigEvaluatorRelationSelect>(
+    return this.makeGetRequest<EvaluationSuiteConfigEvaluatorRelationSelect[]>(
       path,
       'Failed to fetch evaluation suite config evaluator relations'
     );
