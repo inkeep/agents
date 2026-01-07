@@ -2,6 +2,12 @@ import type * as Monaco from 'monaco-editor';
 import { monacoStore } from '@/features/agent/state/use-monaco-store';
 import { addDecorations, getOrCreateModel } from '@/lib/monaco-editor/monaco-utils';
 
+// Use fake timers to prevent Monaco's WorkerManager intervals from causing
+// "window is not defined" errors after the test environment is torn down.
+// The WorkerManager uses window.setInterval for idle checks, which can fire
+// after JSDOM cleanup if we don't control the timers.
+vi.useFakeTimers();
+
 const obj = {
   null: null,
   number: 1,
@@ -45,14 +51,19 @@ describe('Monaco-Editor Functionality', async () => {
     });
   });
 
-  afterEach(async () => {
+  afterEach(() => {
     editor?.dispose();
     model?.dispose();
     container?.remove();
 
-    // Wait for any pending operations to complete, including web worker cleanup.
-    // Increased timeout to handle slower CI environments.
-    await new Promise((resolve) => setTimeout(resolve, 100));
+    // Clear all pending timers to prevent Monaco's WorkerManager intervals
+    // from firing after the test environment is torn down.
+    vi.clearAllTimers();
+  });
+
+  afterAll(() => {
+    // Restore real timers after all tests in this suite complete
+    vi.useRealTimers();
   });
 
   it('should test monaco.editor.tokenize with proper worker initialization', async () => {
