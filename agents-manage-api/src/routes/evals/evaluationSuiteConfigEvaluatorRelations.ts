@@ -17,7 +17,7 @@ const logger = getLogger('evaluationSuiteConfigEvaluatorRelations');
 app.openapi(
   createRoute({
     method: 'get',
-    path: '/evaluation-suite-configs/{configId}/evaluators',
+    path: '/{configId}/evaluators',
     summary: 'List Evaluators for Evaluation Suite Config',
     operationId: 'list-evaluation-suite-config-evaluators',
     tags: ['Evaluations'],
@@ -61,7 +61,7 @@ app.openapi(
 app.openapi(
   createRoute({
     method: 'post',
-    path: '/evaluation-suite-configs/{configId}/evaluators/{evaluatorId}',
+    path: '/{configId}/evaluators/{evaluatorId}',
     summary: 'Add Evaluator to Evaluation Suite Config',
     operationId: 'add-evaluator-to-suite-config',
     tags: ['Evaluations'],
@@ -118,7 +118,7 @@ app.openapi(
 app.openapi(
   createRoute({
     method: 'delete',
-    path: '/evaluation-suite-configs/{configId}/evaluators/{evaluatorId}',
+    path: '/{configId}/evaluators/{evaluatorId}',
     summary: 'Remove Evaluator from Evaluation Suite Config',
     operationId: 'remove-evaluator-from-suite-config',
     tags: ['Evaluations'],
