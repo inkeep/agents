@@ -469,7 +469,7 @@ app.openapi(
         projectId,
         auth: {
           mode: 'internalService',
-          internalServiceName: InternalServices.EVALUATION_API,
+          internalServiceName: InternalServices.INKEEP_AGENTS_EVAL_API,
         },
       });
 
