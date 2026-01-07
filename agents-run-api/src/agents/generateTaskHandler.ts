@@ -8,7 +8,7 @@ import {
   getArtifactComponentsForAgent,
   getDataComponentsForAgent,
   getExternalAgentsForSubAgent,
-  getPoliciesForSubAgents,
+  getSkillsForSubAgents,
   getRelatedAgentsForAgent,
   getSubAgentById,
   getTeamAgentsForSubAgent,
@@ -85,7 +85,7 @@ export const createTaskHandler = (
         toolsForAgent,
         dataComponents,
         artifactComponents,
-        policiesForSubAgents,
+        skillsForSubAgents,
       ] = await Promise.all([
         getRelatedAgentsForAgent(dbClient)({
           scopes: {
@@ -135,7 +135,7 @@ export const createTaskHandler = (
             subAgentId: config.subAgentId,
           },
         }),
-        getPoliciesForSubAgents(dbClient)({
+        getSkillsForSubAgents(dbClient)({
           scopes: {
             tenantId: config.tenantId,
             projectId: config.projectId,
@@ -299,9 +299,9 @@ export const createTaskHandler = (
           })
         )) ?? [];
 
-      const policies =
-        policiesForSubAgents
-          ?.filter((policy) => policy.subAgentId === config.subAgentId)
+      const skills =
+        skillsForSubAgents
+          ?.filter((skill) => skill.subAgentId === config.subAgentId)
           .sort((a, b) => (a.index ?? 0) - (b.index ?? 0)) || [];
 
       agent = new Agent(
@@ -318,7 +318,7 @@ export const createTaskHandler = (
           prompt,
           models: models || undefined,
           stopWhen: stopWhen || undefined,
-          policies,
+          skills,
           subAgentRelations: enhancedInternalRelations.map((relation) => ({
             id: relation.id,
             tenantId: config.tenantId,

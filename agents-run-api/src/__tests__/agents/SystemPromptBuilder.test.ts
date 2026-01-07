@@ -177,13 +177,13 @@ describe('SystemPromptBuilder', () => {
         ],
       };
 
-      const result = builder.buildSystemPrompt(config);
-      expect(result).toContain('<skills>');
-      expect(result).toContain('First Skill');
-      expect(result).toContain('Second Skill');
-      expect(result).toContain('First content');
-      expect(result).toContain('Second content');
-      expect(result.indexOf('First Skill')).toBeLessThan(result.indexOf('Second Skill'));
+      const { prompt } = builder.buildSystemPrompt(config);
+      expect(prompt).toContain('<skills>');
+      expect(prompt).toContain('First Skill');
+      expect(prompt).toContain('Second Skill');
+      expect(prompt).toContain('First content');
+      expect(prompt).toContain('Second content');
+      expect(prompt.indexOf('First Skill')).toBeLessThan(prompt.indexOf('Second Skill'));
     });
 
     test('should handle tools with complex parameter schemas', () => {
