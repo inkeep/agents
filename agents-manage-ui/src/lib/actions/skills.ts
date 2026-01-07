@@ -1,24 +1,24 @@
 'use server';
 
-import type { PolicyApiInsert, PolicyApiUpdate } from '@inkeep/agents-core';
+import type { SkillApiInsert, SkillApiUpdate } from '@inkeep/agents-core';
 import { revalidatePath } from 'next/cache';
 import {
-  createPolicy,
-  deletePolicy,
-  fetchPolicies,
-  fetchPolicy,
-  type Policy,
-  updatePolicy,
-} from '@/lib/api/policies';
+  createSkill,
+  deleteSkill,
+  fetchSkills,
+  fetchSkill,
+  type Skill,
+  updateSkill,
+} from '@/lib/api/skills';
 import { ApiError } from '../types/errors';
 import type { ActionResult } from './types';
 
-export async function fetchPoliciesAction(
+export async function fetchSkillsAction(
   tenantId: string,
   projectId: string
-): Promise<ActionResult<Policy[]>> {
+): Promise<ActionResult<Skill[]>> {
   try {
-    const data = await fetchPolicies(tenantId, projectId);
+    const data = await fetchSkills(tenantId, projectId);
     return {
       success: true,
       data: data.data,
@@ -29,18 +29,18 @@ export async function fetchPoliciesAction(
     }
     return {
       success: false,
-      error: error instanceof Error ? error.message : 'Failed to fetch policies',
+      error: error instanceof Error ? error.message : 'Failed to fetch agent skills',
     };
   }
 }
 
-export async function fetchPolicyAction(
+export async function fetchSkillAction(
   tenantId: string,
   projectId: string,
-  policyId: string
-): Promise<ActionResult<Policy>> {
+  skillId: string
+): Promise<ActionResult<Skill>> {
   try {
-    const data = await fetchPolicy(tenantId, projectId, policyId);
+    const data = await fetchSkill(tenantId, projectId, skillId);
     return {
       success: true,
       data,
@@ -51,19 +51,19 @@ export async function fetchPolicyAction(
     }
     return {
       success: false,
-      error: error instanceof Error ? error.message : 'Failed to fetch policy',
+      error: error instanceof Error ? error.message : 'Failed to fetch agent skill',
     };
   }
 }
 
-export async function createPolicyAction(
+export async function createSkillAction(
   tenantId: string,
   projectId: string,
-  policy: PolicyApiInsert
-): Promise<ActionResult<Policy>> {
+  skill: SkillApiInsert
+): Promise<ActionResult<Skill>> {
   try {
-    const data = await createPolicy(tenantId, projectId, policy);
-    revalidatePath(`/${tenantId}/projects/${projectId}/policies`);
+    const data = await createSkill(tenantId, projectId, skill);
+    revalidatePath(`/${tenantId}/projects/${projectId}/skills`);
     return { success: true, data };
   } catch (error) {
     if (error instanceof ApiError) {
@@ -71,19 +71,19 @@ export async function createPolicyAction(
     }
     return {
       success: false,
-      error: error instanceof Error ? error.message : 'Failed to create policy',
+      error: error instanceof Error ? error.message : 'Failed to create agent skill',
     };
   }
 }
 
-export async function updatePolicyAction(
+export async function updateSkillAction(
   tenantId: string,
   projectId: string,
-  policy: PolicyApiUpdate & { id: string }
-): Promise<ActionResult<Policy>> {
+  skill: SkillApiUpdate & { id: string }
+): Promise<ActionResult<Skill>> {
   try {
-    const data = await updatePolicy(tenantId, projectId, policy.id, policy);
-    revalidatePath(`/${tenantId}/projects/${projectId}/policies`);
+    const data = await updateSkill(tenantId, projectId, skill.id, skill);
+    revalidatePath(`/${tenantId}/projects/${projectId}/skills`);
     return { success: true, data };
   } catch (error) {
     if (error instanceof ApiError) {
@@ -91,19 +91,19 @@ export async function updatePolicyAction(
     }
     return {
       success: false,
-      error: error instanceof Error ? error.message : 'Failed to update policy',
+      error: error instanceof Error ? error.message : 'Failed to update skill',
     };
   }
 }
 
-export async function deletePolicyAction(
+export async function deleteSkillAction(
   tenantId: string,
   projectId: string,
-  policyId: string
+  skillId: string
 ): Promise<ActionResult<null>> {
   try {
-    await deletePolicy(tenantId, projectId, policyId);
-    revalidatePath(`/${tenantId}/projects/${projectId}/policies`);
+    await deleteSkill(tenantId, projectId, skillId);
+    revalidatePath(`/${tenantId}/projects/${projectId}/skills`);
     return { success: true, data: null };
   } catch (error) {
     if (error instanceof ApiError) {
@@ -111,7 +111,7 @@ export async function deletePolicyAction(
     }
     return {
       success: false,
-      error: error instanceof Error ? error.message : 'Failed to delete policy',
+      error: error instanceof Error ? error.message : 'Failed to delete skill',
     };
   }
 }

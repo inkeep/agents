@@ -2,20 +2,20 @@ import { createRoute, OpenAPIHono } from '@hono/zod-openapi';
 import {
   commonGetErrorResponses,
   createApiError,
-  createPolicy,
-  deletePolicy,
+  createSkill,
+  deleteSkill,
   ErrorResponseSchema,
-  getPolicyById,
-  listPolicies,
+  getSkillById,
+  listSkills,
   PaginationQueryParamsSchema,
-  PolicyApiInsertSchema,
-  PolicyApiUpdateSchema,
-  PolicyListResponse,
-  PolicyResponse,
+  SkillApiInsertSchema,
+  SkillApiUpdateSchema,
+  SkillListResponse,
+  SkillResponse,
   RemovedResponseSchema,
   TenantProjectIdParamsSchema,
   TenantProjectParamsSchema,
-  updatePolicy,
+  updateSkill,
 } from '@inkeep/agents-core';
 import dbClient from '../data/db/dbClient';
 import { requirePermission } from '../middleware/require-permission';
@@ -45,19 +45,19 @@ app.openapi(
   createRoute({
     method: 'get',
     path: '/',
-    summary: 'List Policies',
-    operationId: 'list-policies',
-    tags: ['Policies'],
+    summary: 'List Skills',
+    operationId: 'list-skills',
+    tags: ['Skills'],
     request: {
       params: TenantProjectParamsSchema,
       query: PaginationQueryParamsSchema,
     },
     responses: {
       200: {
-        description: 'Policies retrieved successfully',
+        description: 'Skills retrieved successfully',
         content: {
           'application/json': {
-            schema: PolicyListResponse,
+            schema: SkillListResponse,
           },
         },
       },
@@ -69,7 +69,7 @@ app.openapi(
     const { tenantId, projectId } = c.req.valid('param');
     const { page, limit } = c.req.valid('query');
 
-    const result = await listPolicies(dbClient)({
+    const result = await listSkills(dbClient)({
       scopes: { tenantId, projectId },
       pagination: { page, limit },
     });
@@ -82,18 +82,18 @@ app.openapi(
   createRoute({
     method: 'get',
     path: '/{id}',
-    summary: 'Get Policy',
-    operationId: 'get-policy',
-    tags: ['Policies'],
+    summary: 'Get Skill',
+    operationId: 'get-skill',
+    tags: ['Skills'],
     request: {
       params: TenantProjectIdParamsSchema,
     },
     responses: {
       200: {
-        description: 'Policy found',
+        description: 'Skill found',
         content: {
           'application/json': {
-            schema: PolicyResponse,
+            schema: SkillResponse,
           },
         },
       },
@@ -102,19 +102,19 @@ app.openapi(
   }),
   async (c) => {
     const { tenantId, projectId, id } = c.req.valid('param');
-    const policy = await getPolicyById(dbClient)({
+    const skill = await getSkillById(dbClient)({
       scopes: { tenantId, projectId },
-      policyId: id,
+      skillId: id,
     });
 
-    if (!policy) {
+    if (!skill) {
       throw createApiError({
         code: 'not_found',
-        message: 'Policy not found',
+        message: 'Skill not found',
       });
     }
 
-    return c.json({ data: policy });
+    return c.json({ data: skill });
   }
 );
 
@@ -122,25 +122,25 @@ app.openapi(
   createRoute({
     method: 'post',
     path: '/',
-    summary: 'Create Policy',
-    operationId: 'create-policy',
-    tags: ['Policies'],
+    summary: 'Create Skill',
+    operationId: 'create-skill',
+    tags: ['Skills'],
     request: {
       params: TenantProjectParamsSchema,
       body: {
         content: {
           'application/json': {
-            schema: PolicyApiInsertSchema,
+            schema: SkillApiInsertSchema,
           },
         },
       },
     },
     responses: {
       201: {
-        description: 'Policy created successfully',
+        description: 'Skill created successfully',
         content: {
           'application/json': {
-            schema: PolicyResponse,
+            schema: SkillResponse,
           },
         },
       },
@@ -151,13 +151,13 @@ app.openapi(
     const { tenantId, projectId } = c.req.valid('param');
     const body = c.req.valid('json');
 
-    const policy = await createPolicy(dbClient)({
+    const skill = await createSkill(dbClient)({
       ...body,
       tenantId,
       projectId,
     });
 
-    return c.json({ data: policy }, 201);
+    return c.json({ data: skill }, 201);
   }
 );
 
@@ -165,25 +165,25 @@ app.openapi(
   createRoute({
     method: 'put',
     path: '/{id}',
-    summary: 'Update Policy',
-    operationId: 'update-policy',
-    tags: ['Policies'],
+    summary: 'Update Skill',
+    operationId: 'update-skill',
+    tags: ['Skills'],
     request: {
       params: TenantProjectIdParamsSchema,
       body: {
         content: {
           'application/json': {
-            schema: PolicyApiUpdateSchema,
+            schema: SkillApiUpdateSchema,
           },
         },
       },
     },
     responses: {
       200: {
-        description: 'Policy updated successfully',
+        description: 'Skill updated successfully',
         content: {
           'application/json': {
-            schema: PolicyResponse,
+            schema: SkillResponse,
           },
         },
       },
@@ -194,20 +194,20 @@ app.openapi(
     const { tenantId, projectId, id } = c.req.valid('param');
     const body = c.req.valid('json');
 
-    const policy = await updatePolicy(dbClient)({
+    const skill = await updateSkill(dbClient)({
       scopes: { tenantId, projectId },
-      policyId: id,
+      skillId: id,
       data: body,
     });
 
-    if (!policy) {
+    if (!skill) {
       throw createApiError({
         code: 'not_found',
-        message: 'Policy not found',
+        message: 'Skill not found',
       });
     }
 
-    return c.json({ data: policy });
+    return c.json({ data: skill });
   }
 );
 
@@ -215,15 +215,15 @@ app.openapi(
   createRoute({
     method: 'delete',
     path: '/{id}',
-    summary: 'Delete Policy',
-    operationId: 'delete-policy',
-    tags: ['Policies'],
+    summary: 'Delete Skill',
+    operationId: 'delete-skill',
+    tags: ['Skills'],
     request: {
       params: TenantProjectIdParamsSchema,
     },
     responses: {
       200: {
-        description: 'Policy deleted successfully',
+        description: 'Skill deleted successfully',
         content: {
           'application/json': {
             schema: RemovedResponseSchema,
@@ -232,7 +232,7 @@ app.openapi(
       },
       ...commonGetErrorResponses,
       404: {
-        description: 'Policy not found',
+        description: 'Skill not found',
         content: {
           'application/json': {
             schema: ErrorResponseSchema,
@@ -244,19 +244,19 @@ app.openapi(
   async (c) => {
     const { tenantId, projectId, id } = c.req.valid('param');
 
-    const removed = await deletePolicy(dbClient)({
+    const removed = await deleteSkill(dbClient)({
       scopes: { tenantId, projectId },
-      policyId: id,
+      skillId: id,
     });
 
     if (!removed) {
       throw createApiError({
         code: 'not_found',
-        message: 'Policy not found',
+        message: 'Skill not found',
       });
     }
 
-    return c.json({ message: 'Policy deleted', removed: true });
+    return c.json({ message: 'Skill deleted', removed: true });
   }
 );
 

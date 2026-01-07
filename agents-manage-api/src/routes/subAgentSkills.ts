@@ -2,18 +2,18 @@ import { createRoute, OpenAPIHono, z } from '@hono/zod-openapi';
 import {
   commonGetErrorResponses,
   createApiError,
-  deleteSubAgentPolicy,
+  deleteSubAgentSkill,
   ErrorResponseSchema,
-  getPoliciesForSubAgents,
-  getPolicyById,
+  getSkillsForSubAgents,
+  getSkillById,
   getSubAgentById,
   RemovedResponseSchema,
-  SubAgentPolicyApiInsertSchema,
-  SubAgentPolicyResponse,
-  SubAgentPolicyWithIndexArrayResponse,
+  SubAgentSkillApiInsertSchema,
+  SubAgentSkillResponse,
+  SubAgentSkillWithIndexArrayResponse,
   TenantProjectAgentParamsSchema,
   TenantProjectAgentSubAgentParamsSchema,
-  upsertSubAgentPolicy,
+  upsertSubAgentSkill,
 } from '@inkeep/agents-core';
 import dbClient from '../data/db/dbClient';
 import { requirePermission } from '../middleware/require-permission';
@@ -28,7 +28,7 @@ app.use('/', async (c, next) => {
   return next();
 });
 
-app.use('/agent/:subAgentId/policy/:policyId', async (c, next) => {
+app.use('/agent/:subAgentId/skill/:skillId', async (c, next) => {
   if (c.req.method === 'DELETE') {
     return requirePermission({ sub_agent: ['delete'] })(c, next);
   }
@@ -39,18 +39,18 @@ app.openapi(
   createRoute({
     method: 'get',
     path: '/agent/{subAgentId}',
-    summary: 'List Policies for Sub-Agent',
-    operationId: 'get-policies-for-subagent',
-    tags: ['SubAgent Policies'],
+    summary: 'List Skills for Sub-Agent',
+    operationId: 'get-skills-for-subagent',
+    tags: ['SubAgent Skills'],
     request: {
       params: TenantProjectAgentSubAgentParamsSchema,
     },
     responses: {
       200: {
-        description: 'Policies retrieved successfully for sub-agent',
+        description: 'Skills retrieved successfully for sub-agent',
         content: {
           'application/json': {
-            schema: SubAgentPolicyWithIndexArrayResponse,
+            schema: SubAgentSkillWithIndexArrayResponse,
           },
         },
       },
@@ -60,12 +60,12 @@ app.openapi(
   async (c) => {
     const { tenantId, projectId, agentId, subAgentId } = c.req.valid('param');
 
-    const policies = await getPoliciesForSubAgents(dbClient)({
+    const skills = await getSkillsForSubAgents(dbClient)({
       scopes: { tenantId, projectId, agentId },
       subAgentIds: [subAgentId],
     });
 
-    return c.json({ data: policies });
+    return c.json({ data: skills });
   }
 );
 
@@ -73,30 +73,30 @@ app.openapi(
   createRoute({
     method: 'post',
     path: '/',
-    summary: 'Attach Policy to Sub-Agent',
-    operationId: 'create-subagent-policy',
-    tags: ['SubAgent Policies'],
+    summary: 'Attach Skill to Sub-Agent',
+    operationId: 'create-subagent-skill',
+    tags: ['SubAgent Skills'],
     request: {
       params: TenantProjectAgentParamsSchema,
       body: {
         content: {
           'application/json': {
-            schema: SubAgentPolicyApiInsertSchema,
+            schema: SubAgentSkillApiInsertSchema,
           },
         },
       },
     },
     responses: {
       201: {
-        description: 'Policy attached to sub-agent successfully',
+        description: 'Skill attached to sub-agent successfully',
         content: {
           'application/json': {
-            schema: SubAgentPolicyResponse,
+            schema: SubAgentSkillResponse,
           },
         },
       },
       404: {
-        description: 'Sub-agent or policy not found',
+        description: 'Sub-agent or skill not found',
         content: {
           'application/json': {
             schema: ErrorResponseSchema,
@@ -108,11 +108,11 @@ app.openapi(
   }),
   async (c) => {
     const { tenantId, projectId, agentId } = c.req.valid('param');
-    const { subAgentId, policyId, index } = c.req.valid('json');
+    const { subAgentId, skillId, index } = c.req.valid('json');
 
-    const [subAgent, policy] = await Promise.all([
+    const [subAgent, skill] = await Promise.all([
       getSubAgentById(dbClient)({ scopes: { tenantId, projectId, agentId }, subAgentId }),
-      getPolicyById(dbClient)({ scopes: { tenantId, projectId }, policyId }),
+      getSkillById(dbClient)({ scopes: { tenantId, projectId }, skillId }),
     ]);
 
     if (!subAgent) {
@@ -122,16 +122,16 @@ app.openapi(
       });
     }
 
-    if (!policy) {
+    if (!skill) {
       throw createApiError({
         code: 'not_found',
-        message: `Policy with id '${policyId}' not found`,
+        message: `Skill with id '${skillId}' not found`,
       });
     }
 
-    const relation = await upsertSubAgentPolicy(dbClient)({
+    const relation = await upsertSubAgentSkill(dbClient)({
       scopes: { tenantId, projectId, agentId, subAgentId },
-      policyId,
+      skillId,
       index,
     });
 
@@ -142,19 +142,19 @@ app.openapi(
 app.openapi(
   createRoute({
     method: 'delete',
-    path: '/agent/{subAgentId}/policy/{policyId}',
-    summary: 'Detach Policy from Sub-Agent',
-    operationId: 'delete-subagent-policy',
-    tags: ['SubAgent Policies'],
+    path: '/agent/{subAgentId}/skill/{skillId}',
+    summary: 'Detach Skill from Sub-Agent',
+    operationId: 'delete-subagent-skill',
+    tags: ['SubAgent Skills'],
     request: {
       params: TenantProjectAgentParamsSchema.extend({
         subAgentId: z.string(),
-        policyId: z.string(),
+        skillId: z.string(),
       }),
     },
     responses: {
       200: {
-        description: 'Policy detached successfully',
+        description: 'Skill detached successfully',
         content: {
           'application/json': {
             schema: RemovedResponseSchema,
@@ -162,7 +162,7 @@ app.openapi(
         },
       },
       404: {
-        description: 'Policy relation not found',
+        description: 'Skill relation not found',
         content: {
           'application/json': {
             schema: ErrorResponseSchema,
@@ -173,35 +173,35 @@ app.openapi(
     },
   }),
   async (c) => {
-    const { tenantId, projectId, agentId, subAgentId, policyId } = c.req.valid('param');
+    const { tenantId, projectId, agentId, subAgentId, skillId } = c.req.valid('param');
 
-    const existingPolicies = await getPoliciesForSubAgents(dbClient)({
+    const existingSkills = await getSkillsForSubAgents(dbClient)({
       scopes: { tenantId, projectId, agentId },
       subAgentIds: [subAgentId],
     });
 
-    const relation = existingPolicies.find((p) => p.id === policyId);
+    const relation = existingSkills.find((s) => s.id === skillId);
 
-    if (!relation || !relation.subAgentPolicyId) {
+    if (!relation || !relation.subAgentSkillId) {
       throw createApiError({
         code: 'not_found',
-        message: 'Sub-agent policy relation not found',
+        message: 'Sub-agent skill relation not found',
       });
     }
 
-    const removed = await deleteSubAgentPolicy(dbClient)({
+    const removed = await deleteSubAgentSkill(dbClient)({
       scopes: { tenantId, projectId, agentId },
-      subAgentPolicyId: relation.subAgentPolicyId,
+      subAgentSkillId: relation.subAgentSkillId,
     });
 
     if (!removed) {
       throw createApiError({
         code: 'not_found',
-        message: 'Sub-agent policy relation not found',
+        message: 'Sub-agent skill relation not found',
       });
     }
 
-    return c.json({ message: 'Policy detached', removed: true });
+    return c.json({ message: 'Skill detached', removed: true });
   }
 );
 
