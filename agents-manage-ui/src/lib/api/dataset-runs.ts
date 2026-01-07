@@ -61,7 +61,7 @@ export async function fetchDatasetRuns(
   validateProjectId(projectId);
 
   return makeManagementApiRequest<ListResponse<DatasetRun>>(
-    `tenants/${tenantId}/projects/${projectId}/evals/dataset-runs/${datasetId}`
+    `tenants/${tenantId}/projects/${projectId}/evals/dataset-runs/by-dataset/${datasetId}`
   );
 }
 

@@ -24,7 +24,7 @@ const logger = getLogger('datasetRuns');
 app.openapi(
   createRoute({
     method: 'get',
-    path: '/{datasetId}',
+    path: '/by-dataset/{datasetId}',
     summary: 'List Dataset Runs by Dataset ID',
     operationId: 'list-dataset-runs',
     tags: ['Evaluations'],
