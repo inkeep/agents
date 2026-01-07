@@ -195,6 +195,7 @@ app.openapi(
       logger.error(
         {
           error,
+          errorStack: error?.stack,
           tenantId,
           projectId,
           conversationId,

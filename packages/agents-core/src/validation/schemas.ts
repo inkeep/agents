@@ -520,10 +520,20 @@ export const EvaluationRunConfigApiSelectSchema = createApiSchema(
 ).openapi('EvaluationRunConfig');
 export const EvaluationRunConfigApiInsertSchema = createApiInsertSchema(
   EvaluationRunConfigInsertSchema
-).omit({ id: true }).openapi('EvaluationRunConfigCreate');
+)
+  .omit({ id: true })
+  .extend({
+    suiteConfigIds: z.array(z.string()).min(1, 'At least one suite config is required'),
+  })
+  .openapi('EvaluationRunConfigCreate');
 export const EvaluationRunConfigApiUpdateSchema = createApiUpdateSchema(
   EvaluationRunConfigUpdateSchema
-).omit({ id: true }).openapi('EvaluationRunConfigUpdate');
+)
+  .omit({ id: true })
+  .extend({
+    suiteConfigIds: z.array(z.string()).optional(),
+  })
+  .openapi('EvaluationRunConfigUpdate');
 export const EvaluationRunConfigWithSuiteConfigsApiSelectSchema =
   EvaluationRunConfigApiSelectSchema.extend({
     suiteConfigIds: z.array(z.string()),
@@ -561,10 +571,20 @@ export const EvaluationSuiteConfigApiSelectSchema = createApiSchema(
 ).openapi('EvaluationSuiteConfig');
 export const EvaluationSuiteConfigApiInsertSchema = createApiInsertSchema(
   EvaluationSuiteConfigInsertSchema
-).omit({ id: true }).openapi('EvaluationSuiteConfigCreate');
+)
+  .omit({ id: true })
+  .extend({
+    evaluatorIds: z.array(z.string()).min(1, 'At least one evaluator is required'),
+  })
+  .openapi('EvaluationSuiteConfigCreate');
 export const EvaluationSuiteConfigApiUpdateSchema = createApiUpdateSchema(
   EvaluationSuiteConfigUpdateSchema
-).omit({ id: true }).openapi('EvaluationSuiteConfigUpdate');
+)
+  .omit({ id: true })
+  .extend({
+    evaluatorIds: z.array(z.string()).optional(),
+  })
+  .openapi('EvaluationSuiteConfigUpdate');
 
 export const EvaluationRunConfigEvaluationSuiteConfigRelationSelectSchema = createSelectSchema(
   evaluationRunConfigEvaluationSuiteConfigRelations
