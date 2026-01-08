@@ -1,5 +1,5 @@
 import { GripVertical, Plus, X } from 'lucide-react';
-import { useMemo, useState } from 'react';
+import { useMemo, useState, type FC } from 'react';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import {
@@ -14,7 +14,7 @@ import { cn } from '@/lib/utils';
 
 type SkillSelection = {
   id: string;
-  index?: number;
+  index: number;
 };
 
 interface SkillSelectorProps {
@@ -41,15 +41,15 @@ export function reorderSkills(
   return current.map((skill, idx) => ({ ...skill, index: idx }));
 }
 
-export function SkillSelector({
+export const SkillSelector: FC<SkillSelectorProps> = ({
   skillLookup,
   selectedSkills,
   onChange,
   error,
-}: SkillSelectorProps) {
-  const [pendingAdd, setPendingAdd] = useState<string>('');
-  const [draggingId, setDraggingId] = useState<string | null>(null);
-  const [dragOverId, setDragOverId] = useState<string | null>(null);
+}) => {
+  const [pendingAdd, setPendingAdd] = useState('');
+  const [draggingId, setDraggingId] = useState('');
+  const [dragOverId, setDragOverId] = useState('');
 
   const orderedSkills = useMemo(
     () => [...selectedSkills].sort((a, b) => (a.index ?? 0) - (b.index ?? 0)),
@@ -80,8 +80,8 @@ export function SkillSelector({
     if (!draggingId) return;
     const next = reorderSkills(orderedSkills, draggingId, targetId);
     onChange(next);
-    setDraggingId(null);
-    setDragOverId(null);
+    setDraggingId('');
+    setDragOverId('');
   };
 
   return (
@@ -90,7 +90,7 @@ export function SkillSelector({
         <Label className="text-sm font-medium">Skills</Label>
         <div className="flex items-center gap-2">
           <Select value={pendingAdd} onValueChange={setPendingAdd}>
-            <SelectTrigger className="w-[220px]">
+            <SelectTrigger className="w-55">
               <SelectValue placeholder="Select skill" />
             </SelectTrigger>
             <SelectContent>
@@ -123,53 +123,41 @@ export function SkillSelector({
         <p className="text-sm text-muted-foreground">No skills attached.</p>
       ) : (
         <ul className="space-y-2">
-          {orderedSkills.map((skill) => {
-            const details = skillLookup[skill.id];
-            return (
-              <li
-                key={skill.id}
-                className={cn(
-                  'border rounded-md px-3 py-2 flex items-center justify-between gap-3 bg-background',
-                  dragOverId === skill.id && 'border-primary'
-                )}
-                draggable
-                onDragStart={() => setDraggingId(skill.id)}
-                onDragOver={(e) => {
-                  e.preventDefault();
-                  setDragOverId(skill.id);
-                }}
-                onDragLeave={() => setDragOverId(null)}
-                onDrop={() => handleDrop(skill.id)}
-                onDragEnd={() => {
-                  setDraggingId(null);
-                  setDragOverId(null);
-                }}
-              >
-                <div className="flex items-center gap-3">
-                  <GripVertical className="size-4 text-muted-foreground" />
-                  <div>
-                    <div className="text-sm font-medium">
-                      {details?.name || skill.id}{' '}
-                      <span className="text-xs text-muted-foreground">
-                        (#{(skill.index ?? 0) + 1})
-                      </span>
-                    </div>
-                    {details?.description && (
-                      <p className="text-xs text-muted-foreground line-clamp-2">
-                        {details.description}
-                      </p>
-                    )}
-                  </div>
+          {orderedSkills.map((skill) => (
+            <li
+              key={skill.id}
+              className={cn(
+                'border rounded-md px-3 py-2 flex items-center justify-between gap-3 bg-background',
+                dragOverId === skill.id && 'border-primary'
+              )}
+              draggable
+              onDragStart={() => setDraggingId(skill.id)}
+              onDragOver={(e) => {
+                e.preventDefault();
+                setDragOverId(skill.id);
+              }}
+              onDragLeave={() => setDragOverId('')}
+              onDrop={() => handleDrop(skill.id)}
+              onDragEnd={() => {
+                setDraggingId('');
+                setDragOverId('');
+              }}
+            >
+              <div className="flex items-center gap-2">
+                <GripVertical className="size-4 text-muted-foreground" />
+                <div className="text-sm font-medium">
+                  {skill.id}{' '}
+                  <span className="text-xs text-muted-foreground">(#{skill.index + 1})</span>{' '}
                 </div>
-                <Button variant="ghost" size="icon" onClick={() => handleRemove(skill.id)}>
-                  <X className="size-4" />
-                </Button>
-              </li>
-            );
-          })}
+              </div>
+              <Button variant="ghost" size="icon-sm" onClick={() => handleRemove(skill.id)}>
+                <X />
+              </Button>
+            </li>
+          ))}
         </ul>
       )}
       {error && <p className="text-sm text-red-600">{error}</p>}
     </div>
   );
-}
+};
