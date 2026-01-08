@@ -17,6 +17,7 @@ interface JsonSchemaInputProps<T extends FieldValues> {
   readOnly?: boolean;
   isRequired?: boolean;
   hasInPreview?: boolean;
+  allRequired?: boolean;
   /**
    * URIs that start with `json-schema-...` are validated against the JSON schema.
    * In artifacts, we use custom JSON schemas with `inPreview` fields. To skip
@@ -36,6 +37,7 @@ export function JsonSchemaInput<T extends FieldValues>({
   readOnly,
   isRequired = false,
   hasInPreview,
+  allRequired = false,
   uri,
   customTemplate,
 }: JsonSchemaInputProps<T>) {
@@ -75,6 +77,7 @@ export function JsonSchemaInput<T extends FieldValues>({
                 onChange={field.onChange}
                 hasInPreview={hasInPreview}
                 hasError={!!fieldState.error}
+                allRequired={allRequired}
               />
             )}
             <span className="absolute flex items-center end-0 -top-[2.5px] gap-2 text-sm font-medium">

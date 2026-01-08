@@ -7,8 +7,8 @@ import { toast } from 'sonner';
 import { ComponentSelector } from '@/components/agent/sidepane/nodes/component-selector/component-selector';
 import { GenericInput } from '@/components/form/generic-input';
 import { GenericTextarea } from '@/components/form/generic-textarea';
-import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
 import {
   Form,
   FormDescription,

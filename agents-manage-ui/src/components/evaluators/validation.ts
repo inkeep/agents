@@ -40,6 +40,26 @@ export const evaluatorSchema = z.object({
       {
         message: 'Schema must be valid JSON',
       }
+    )
+    .refine(
+      (value) => {
+        try {
+          const parsed = JSON.parse(value);
+          if (parsed.type === 'object') {
+            return (
+              parsed.properties !== undefined &&
+              typeof parsed.properties === 'object' &&
+              Object.keys(parsed.properties).length > 0
+            );
+          }
+          return parsed.type !== undefined;
+        } catch {
+          return false;
+        }
+      },
+      {
+        message: 'Schema must define at least one property',
+      }
     ),
   model: modelSettingsSchema,
   passCriteria: passCriteriaSchema.nullish(),

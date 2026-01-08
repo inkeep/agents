@@ -133,7 +133,7 @@ export function EvaluatorFormDialog({
   const onInvalid = (errors: Record<string, unknown>) => {
     const errorMessages: string[] = [];
     const formErrors = errors as typeof form.formState.errors;
-    
+
     if (formErrors.name) errorMessages.push(`Name: ${formErrors.name.message}`);
     if (formErrors.prompt) errorMessages.push(`Prompt: ${formErrors.prompt.message}`);
     if (formErrors.schema) errorMessages.push(`Schema: ${formErrors.schema.message}`);
@@ -146,7 +146,7 @@ export function EvaluatorFormDialog({
         errorMessages.push(`Pass Criteria: ${pcError.message}`);
       }
     }
-    
+
     if (errorMessages.length > 0) {
       toast.error(errorMessages[0]);
     } else {
@@ -256,8 +256,9 @@ export function EvaluatorFormDialog({
               control={form.control}
               name="schema"
               label="Output Schema"
-              description="JSON Schema defining the structure of the evaluation output. Use standard JSON Schema format."
+              description="JSON Schema defining the structure of the evaluation output. All properties are required for structured outputs."
               isRequired
+              allRequired
               customTemplate={EVALUATOR_SCHEMA_TEMPLATE}
             />
 

@@ -15,6 +15,7 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
+import { fetchDatasetRun } from '@/lib/api/dataset-runs';
 import type {
   EvaluationJobConfig,
   EvaluationJobFilterCriteria,
@@ -24,7 +25,6 @@ import type { EvaluationResult } from '@/lib/api/evaluation-results';
 import { fetchEvaluationResultsByJobConfig } from '@/lib/api/evaluation-results';
 import type { Evaluator } from '@/lib/api/evaluators';
 import { filterEvaluationResults } from '@/lib/evaluation/filter-evaluation-results';
-import { fetchDatasetRun } from '@/lib/api/dataset-runs';
 import { evaluatePassCriteria } from '@/lib/evaluation/pass-criteria-evaluator';
 import {
   type EvaluationResultFilters,

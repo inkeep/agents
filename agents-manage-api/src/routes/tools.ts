@@ -111,7 +111,9 @@ app.openapi(
       result = {
         data: (
           await Promise.all(
-            dbResult.data.map(async (tool) => await dbResultToMcpTool(tool, db, credentialStores, undefined, userId))
+            dbResult.data.map(
+              async (tool) => await dbResultToMcpTool(tool, db, credentialStores, undefined, userId)
+            )
           )
         ).filter((tool: McpTool) => tool.status === status),
         pagination: dbResult.pagination,
@@ -124,7 +126,9 @@ app.openapi(
       });
       result = {
         data: await Promise.all(
-          dbResult.data.map(async (tool) => await dbResultToMcpTool(tool, db, credentialStores, undefined, userId))
+          dbResult.data.map(
+            async (tool) => await dbResultToMcpTool(tool, db, credentialStores, undefined, userId)
+          )
         ),
         pagination: dbResult.pagination,
       };
