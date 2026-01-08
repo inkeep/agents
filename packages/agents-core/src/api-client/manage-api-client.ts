@@ -24,6 +24,7 @@ export class ManageApiError extends BaseApiError {
 }
 
 export class ManagementApiClient extends BaseApiClient {
+  // biome-ignore lint/complexity/noUselessConstructor: Required to expose protected parent constructor as public
   constructor(config: BaseApiClientConfig) {
     super(config);
   }

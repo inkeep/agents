@@ -41,6 +41,7 @@ export interface TriggerEvaluationJobResponse {
 }
 
 export class EvalApiClient extends BaseApiClient {
+    // biome-ignore lint/complexity/noUselessConstructor: Required to expose protected parent constructor as public
   constructor(config: BaseApiClientConfig) {
     super(config);
   }

@@ -1,4 +1,4 @@
-import { and, count, desc, eq, sql } from 'drizzle-orm';
+import { and, count, desc, eq } from 'drizzle-orm';
 import type { CredentialStoreRegistry } from '../../credential-stores';
 import type { NangoCredentialData } from '../../credential-stores/nango-store';
 import { CredentialStuffer } from '../../credential-stuffer';
@@ -196,7 +196,7 @@ const discoverToolsFromServer = async (
       name: tool.name,
       server: serverConfig,
     });
-    
+
     await client.connect();
 
     const serverTools = await client.tools();
