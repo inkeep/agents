@@ -1,3 +1,4 @@
+import type { AxiosResponse } from 'axios';
 import axios from 'axios';
 import axiosRetry from 'axios-retry';
 import { type NextRequest, NextResponse } from 'next/server';
@@ -81,7 +82,7 @@ async function signozQuery(
   const logger = getLogger('signoz-query');
 
   try {
-    let response;
+    let response: AxiosResponse;
 
     // For server-to-server calls (no cookies), call SigNoz directly
     if (shouldCallSigNozDirectly(cookieHeader)) {
@@ -91,7 +92,7 @@ async function signozQuery(
       response = await axios.post(endpoint, payload, {
         headers: {
           'Content-Type': 'application/json',
-          'SIGNOZ-API-KEY': process.env.SIGNOZ_API_KEY!,
+          'SIGNOZ-API-KEY': process.env.SIGNOZ_API_KEY || '',
         },
         timeout: 30000,
       });

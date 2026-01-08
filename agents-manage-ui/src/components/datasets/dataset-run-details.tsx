@@ -49,53 +49,66 @@ export function DatasetRunDetails({
     isRunning: boolean;
   } | null>(null);
 
-  const loadRun = useCallback(async (showLoading = true) => {
-    try {
-      if (showLoading) {
-        setLoading(true);
+  const loadRun = useCallback(
+    async (showLoading = true) => {
+      try {
+        if (showLoading) {
+          setLoading(true);
+        }
+        setError(null);
+        const response = await fetchDatasetRun(tenantId, projectId, runId);
+        setRun(response.data);
+
+        // If there's an evaluation job, fetch evaluation progress
+        if (response.data?.evaluationJobConfigId) {
+          const [evaluatorRelations, evalResults] = await Promise.all([
+            fetchEvaluationJobConfigEvaluators(
+              tenantId,
+              projectId,
+              response.data.evaluationJobConfigId
+            ),
+            fetchEvaluationResultsByJobConfig(
+              tenantId,
+              projectId,
+              response.data.evaluationJobConfigId
+            ),
+          ]);
+
+          // Count conversations that have been created
+          const conversationCount =
+            response.data.items?.reduce(
+              (acc, item) => acc + (item.conversations?.length || 0),
+              0
+            ) || 0;
+
+          // Expected evaluations = conversations × evaluators
+          const evaluatorCount = evaluatorRelations.data?.length || 0;
+          const expectedEvaluations = conversationCount * evaluatorCount;
+          // Only count evaluations that have output (completed evaluations)
+          const completedEvaluations =
+            evalResults.data?.filter(
+              (result) => result.output !== null && result.output !== undefined
+            ).length || 0;
+
+          setEvaluationProgress({
+            total: expectedEvaluations,
+            completed: completedEvaluations,
+            isRunning: completedEvaluations < expectedEvaluations && expectedEvaluations > 0,
+          });
+        } else {
+          setEvaluationProgress(null);
+        }
+      } catch (err) {
+        console.error('Error loading dataset run:', err);
+        setError(err instanceof Error ? err.message : 'Failed to load run');
+      } finally {
+        if (showLoading) {
+          setLoading(false);
+        }
       }
-      setError(null);
-      const response = await fetchDatasetRun(tenantId, projectId, runId);
-      setRun(response.data);
-
-      // If there's an evaluation job, fetch evaluation progress
-      if (response.data?.evaluationJobConfigId) {
-        const [evaluatorRelations, evalResults] = await Promise.all([
-          fetchEvaluationJobConfigEvaluators(tenantId, projectId, response.data.evaluationJobConfigId),
-          fetchEvaluationResultsByJobConfig(tenantId, projectId, response.data.evaluationJobConfigId),
-        ]);
-
-        // Count conversations that have been created
-        const conversationCount = response.data.items?.reduce(
-          (acc, item) => acc + (item.conversations?.length || 0),
-          0
-        ) || 0;
-
-        // Expected evaluations = conversations × evaluators
-        const evaluatorCount = evaluatorRelations.data?.length || 0;
-        const expectedEvaluations = conversationCount * evaluatorCount;
-        // Only count evaluations that have output (completed evaluations)
-        const completedEvaluations = evalResults.data?.filter(
-          (result) => result.output !== null && result.output !== undefined
-        ).length || 0;
-
-        setEvaluationProgress({
-          total: expectedEvaluations,
-          completed: completedEvaluations,
-          isRunning: completedEvaluations < expectedEvaluations && expectedEvaluations > 0,
-        });
-      } else {
-        setEvaluationProgress(null);
-      }
-    } catch (err) {
-      console.error('Error loading dataset run:', err);
-      setError(err instanceof Error ? err.message : 'Failed to load run');
-    } finally {
-      if (showLoading) {
-        setLoading(false);
-      }
-    }
-  }, [tenantId, projectId, runId]);
+    },
+    [tenantId, projectId, runId]
+  );
 
   // Calculate conversation progress
   const conversationProgress = useMemo(() => {
@@ -108,7 +121,8 @@ export function DatasetRunDetails({
   }, [run]);
 
   // Overall progress - run is complete only when both conversations AND evaluations are done
-  const isRunInProgress = conversationProgress.isRunning || (evaluationProgress?.isRunning ?? false);
+  const isRunInProgress =
+    conversationProgress.isRunning || (evaluationProgress?.isRunning ?? false);
 
   // Initial load
   useEffect(() => {
@@ -251,11 +265,12 @@ export function DatasetRunDetails({
                 <Loader2 className="h-4 w-4 animate-spin text-primary" />
                 <span className="text-sm font-medium">Run in progress</span>
               </div>
-              
+
               {/* Conversation progress */}
               <div className="flex flex-col gap-1">
                 <span className="text-xs text-muted-foreground">
-                  Test cases: {conversationProgress.completed} of {conversationProgress.total} completed
+                  Test cases: {conversationProgress.completed} of {conversationProgress.total}{' '}
+                  completed
                   {!conversationProgress.isRunning && conversationProgress.total > 0 && (
                     <span className="ml-2 text-green-600 dark:text-green-400">✓</span>
                   )}
@@ -274,7 +289,8 @@ export function DatasetRunDetails({
               {evaluationProgress && (
                 <div className="flex flex-col gap-1">
                   <span className="text-xs text-muted-foreground">
-                    Evaluations: {evaluationProgress.completed} of {evaluationProgress.total} completed
+                    Evaluations: {evaluationProgress.completed} of {evaluationProgress.total}{' '}
+                    completed
                     {!evaluationProgress.isRunning && evaluationProgress.total > 0 && (
                       <span className="ml-2 text-green-600 dark:text-green-400">✓</span>
                     )}
@@ -480,13 +496,19 @@ export function DatasetRunDetails({
         </CardContent>
       </Card>
 
-      {selectedItemId && run.items && (
-        <DatasetItemViewDialog
-          item={run.items.find((item) => item.id === selectedItemId)!}
-          isOpen={selectedItemId !== null}
-          onOpenChange={(open) => !open && setSelectedItemId(null)}
-        />
-      )}
+      {selectedItemId &&
+        run.items &&
+        (() => {
+          const selectedItem = run.items.find((item) => item.id === selectedItemId);
+          if (!selectedItem) return null;
+          return (
+            <DatasetItemViewDialog
+              item={selectedItem}
+              isOpen={selectedItemId !== null}
+              onOpenChange={(open) => !open && setSelectedItemId(null)}
+            />
+          );
+        })()}
     </div>
   );
 }

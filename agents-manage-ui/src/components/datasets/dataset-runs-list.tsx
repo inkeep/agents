@@ -2,7 +2,7 @@
 
 import { ChevronRight } from 'lucide-react';
 import { useRouter } from 'next/navigation';
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { formatDateAgo } from '@/app/utils/format-date';
 import { Skeleton } from '@/components/ui/skeleton';
 import {
@@ -34,23 +34,25 @@ export function DatasetRunsList({
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  useEffect(() => {
-    async function loadRuns() {
-      try {
-        setLoading(true);
-        setError(null);
-        const response = await fetchDatasetRuns(tenantId, projectId, datasetId);
-        setRuns(response.data || []);
-      } catch (err) {
-        console.error('Error loading dataset runs:', err);
-        setError(err instanceof Error ? err.message : 'Failed to load runs');
-      } finally {
-        setLoading(false);
-      }
+  const loadRuns = useCallback(async () => {
+    try {
+      setLoading(true);
+      setError(null);
+      const response = await fetchDatasetRuns(tenantId, projectId, datasetId);
+      setRuns(response.data || []);
+    } catch (err) {
+      console.error('Error loading dataset runs:', err);
+      setError(err instanceof Error ? err.message : 'Failed to load runs');
+    } finally {
+      setLoading(false);
     }
+  }, [tenantId, projectId, datasetId]);
 
+  useEffect(() => {
+    // refreshKey triggers reload when incremented
+    void refreshKey;
     loadRuns();
-  }, [tenantId, projectId, datasetId, refreshKey]);
+  }, [loadRuns, refreshKey]);
 
   if (loading) {
     return (

@@ -2,7 +2,7 @@
 
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useRouter } from 'next/navigation';
-import { useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { toast } from 'sonner';
 import { z } from 'zod';
@@ -115,19 +115,7 @@ export function EvaluationRunConfigFormDialog({
     },
   });
 
-  useEffect(() => {
-    if (isOpen) {
-      form.reset(formatFormData(initialData));
-      suiteConfigForm.reset({
-        evaluatorIds: [],
-        agentIds: [],
-        sampleRate: undefined,
-      });
-      loadData();
-    }
-  }, [isOpen, initialData]);
-
-  const loadData = async () => {
+  const loadData = useCallback(async () => {
     try {
       const [evaluatorsRes, agentsRes] = await Promise.all([
         fetchEvaluators(tenantId, projectId),
@@ -149,7 +137,7 @@ export function EvaluationRunConfigFormDialog({
 
           const suiteConfig = suiteConfigRes.data;
           const evaluatorIds = suiteConfigEvaluatorsRes.data?.map((e) => e.evaluatorId) || [];
-          
+
           // Extract agentIds from filters
           const filters = suiteConfig?.filters as { agentIds?: string[] } | null;
           const agentIds = filters?.agentIds || [];
@@ -167,8 +155,19 @@ export function EvaluationRunConfigFormDialog({
       console.error('Error loading data:', error);
       toast.error('Failed to load data');
     }
-  };
+  }, [tenantId, projectId, initialData, suiteConfigForm]);
 
+  useEffect(() => {
+    if (isOpen) {
+      form.reset(formatFormData(initialData));
+      suiteConfigForm.reset({
+        evaluatorIds: [],
+        agentIds: [],
+        sampleRate: undefined,
+      });
+      loadData();
+    }
+  }, [isOpen, initialData, form, suiteConfigForm, loadData]);
 
   const evaluatorLookup = useMemo(() => {
     return evaluators.reduce(
@@ -353,7 +352,9 @@ export function EvaluationRunConfigFormDialog({
                   <FormItem>
                     <div className="flex items-center gap-2">
                       <FormLabel isRequired>Evaluators</FormLabel>
-                      <Badge variant="count">{(suiteConfigForm.watch('evaluatorIds') || []).length}</Badge>
+                      <Badge variant="count">
+                        {(suiteConfigForm.watch('evaluatorIds') || []).length}
+                      </Badge>
                     </div>
                     <ComponentSelector
                       label=""

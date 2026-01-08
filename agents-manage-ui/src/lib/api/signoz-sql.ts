@@ -1,3 +1,4 @@
+import type { AxiosResponse } from 'axios';
 import axios from 'axios';
 import axiosRetry from 'axios-retry';
 import { getManageApiUrl } from './api-config';
@@ -110,7 +111,7 @@ export async function fetchAllSpanAttributes_SQL(
     payload.variables.offset = offset;
 
     try {
-      let response;
+      let response: AxiosResponse;
 
       // For server-to-server calls (no cookies), call SigNoz directly
       if (shouldCallSigNozDirectly(cookieHeader)) {
@@ -118,7 +119,7 @@ export async function fetchAllSpanAttributes_SQL(
         response = await axios.post(endpoint, payload, {
           headers: {
             'Content-Type': 'application/json',
-            'SIGNOZ-API-KEY': process.env.SIGNOZ_API_KEY!,
+            'SIGNOZ-API-KEY': process.env.SIGNOZ_API_KEY || '',
           },
           timeout: 30000,
         });

@@ -21,7 +21,7 @@ export interface EvaluationJobFilterCriteria {
   [key: string]: unknown;
 }
 
-export interface Filter<T> {
+export interface Filter<_T> {
   [key: string]: unknown;
 }
 

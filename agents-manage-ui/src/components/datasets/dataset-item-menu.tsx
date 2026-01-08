@@ -18,7 +18,12 @@ interface DatasetItemMenuProps {
   datasetName?: string;
 }
 
-export function DatasetItemMenu({ tenantId, projectId, datasetId, datasetName }: DatasetItemMenuProps) {
+export function DatasetItemMenu({
+  tenantId,
+  projectId,
+  datasetId,
+  datasetName,
+}: DatasetItemMenuProps) {
   const [isDeleteOpen, setIsDeleteOpen] = useState(false);
   const [isRenameOpen, setIsRenameOpen] = useState(false);
 

@@ -48,7 +48,7 @@ export function DatePickerWithPresets({
   placeholder = 'Select date range',
 }: DatePickerWithPresetsProps) {
   const [showCalendar, setShowCalendar] = useState(showCalendarDirectly);
-  const { isOpen, onClose, onToggle, onOpen } = useDisclosure();
+  const { isOpen, onClose, onOpen } = useDisclosure();
 
   const commandRef = useRef<HTMLDivElement>(null);
 

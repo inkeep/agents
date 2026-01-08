@@ -3,7 +3,6 @@
 import { ChevronDown, ChevronRight, ExternalLink, Loader2 } from 'lucide-react';
 import Link from 'next/link';
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { formatDateTimeTable } from '@/app/utils/format-date';
 import { ExpandableJsonEditor } from '@/components/editors/expandable-json-editor';
 import { EvaluationStatusBadge } from '@/components/evaluators/evaluation-status-badge';
 import { EvaluatorViewDialog } from '@/components/evaluators/evaluator-view-dialog';
@@ -16,7 +15,10 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
-import type { EvaluationJobConfig, EvaluationJobFilterCriteria } from '@/lib/api/evaluation-job-configs';
+import type {
+  EvaluationJobConfig,
+  EvaluationJobFilterCriteria,
+} from '@/lib/api/evaluation-job-configs';
 import { fetchEvaluationJobConfigEvaluators } from '@/lib/api/evaluation-job-configs';
 import type { EvaluationResult } from '@/lib/api/evaluation-results';
 import { fetchEvaluationResultsByJobConfig } from '@/lib/api/evaluation-results';
@@ -56,11 +58,19 @@ export function EvaluationJobResults({
   const loadProgress = useCallback(async () => {
     try {
       // Fetch latest results
-      const latestResults = await fetchEvaluationResultsByJobConfig(tenantId, projectId, jobConfig.id);
+      const latestResults = await fetchEvaluationResultsByJobConfig(
+        tenantId,
+        projectId,
+        jobConfig.id
+      );
       setResults(latestResults.data || []);
 
       // Get evaluator relations for this job
-      const evaluatorRelations = await fetchEvaluationJobConfigEvaluators(tenantId, projectId, jobConfig.id);
+      const evaluatorRelations = await fetchEvaluationJobConfigEvaluators(
+        tenantId,
+        projectId,
+        jobConfig.id
+      );
       const evaluatorCount = evaluatorRelations.data?.length || 0;
 
       // Get conversation count from dataset run if available
@@ -69,27 +79,29 @@ export function EvaluationJobResults({
       if (criteria?.datasetRunIds && criteria.datasetRunIds.length > 0) {
         try {
           const datasetRun = await fetchDatasetRun(tenantId, projectId, criteria.datasetRunIds[0]);
-          conversationCount = datasetRun.data?.items?.reduce(
-            (acc, item) => acc + (item.conversations?.length || 0),
-            0
-          ) || 0;
+          conversationCount =
+            datasetRun.data?.items?.reduce(
+              (acc, item) => acc + (item.conversations?.length || 0),
+              0
+            ) || 0;
         } catch {
           // If we can't get dataset run, estimate from unique conversations in results
-          const uniqueConversations = new Set(latestResults.data?.map(r => r.conversationId) || []);
+          const uniqueConversations = new Set(
+            latestResults.data?.map((r) => r.conversationId) || []
+          );
           conversationCount = uniqueConversations.size;
         }
       } else {
         // For non-dataset-run jobs, estimate from unique conversations
-        const uniqueConversations = new Set(latestResults.data?.map(r => r.conversationId) || []);
+        const uniqueConversations = new Set(latestResults.data?.map((r) => r.conversationId) || []);
         conversationCount = uniqueConversations.size;
       }
 
       // Expected = conversations × evaluators
       const expectedTotal = conversationCount * evaluatorCount;
       // Only count results with output as completed
-      const completedCount = latestResults.data?.filter(
-        (r) => r.output !== null && r.output !== undefined
-      ).length || 0;
+      const completedCount =
+        latestResults.data?.filter((r) => r.output !== null && r.output !== undefined).length || 0;
 
       setProgress({
         total: expectedTotal,

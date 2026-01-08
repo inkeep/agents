@@ -3,7 +3,6 @@
 import { ChevronDown, ChevronRight, ExternalLink } from 'lucide-react';
 import Link from 'next/link';
 import { useMemo, useState } from 'react';
-import { formatDateTimeTable } from '@/app/utils/format-date';
 import { ExpandableJsonEditor } from '@/components/editors/expandable-json-editor';
 import { SuiteConfigViewDialog } from '@/components/evaluation-run-configs/suite-config-view-dialog';
 import { EvaluationStatusBadge } from '@/components/evaluators/evaluation-status-badge';
@@ -85,6 +84,16 @@ export function EvaluationRunConfigResults({
 
   const evaluatorOptions = evaluators.map((e) => ({ id: e.id, name: e.name }));
 
+  const agentOptions = useMemo(() => {
+    const uniqueAgents = new Map<string, string>();
+    results.forEach((result) => {
+      if (result.agentId && !uniqueAgents.has(result.agentId)) {
+        uniqueAgents.set(result.agentId, result.agentId);
+      }
+    });
+    return Array.from(uniqueAgents.entries()).map(([id, name]) => ({ id, name }));
+  }, [results]);
+
   return (
     <div className="space-y-6">
       {/* Evaluation Plans Section */}
@@ -128,6 +137,7 @@ export function EvaluationRunConfigResults({
         filters={filters}
         onFiltersChange={setFilters}
         evaluators={evaluatorOptions}
+        agents={agentOptions}
       />
 
       <div className="rounded-lg border">

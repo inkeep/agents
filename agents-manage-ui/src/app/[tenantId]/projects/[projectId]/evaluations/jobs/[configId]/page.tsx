@@ -64,9 +64,7 @@ async function EvaluationJobPage({
               </Button>
             </Link>
           </div>
-          <PageHeader
-            title={displayName}
-          />
+          <PageHeader title={displayName} />
           <EvaluationJobResults
             tenantId={tenantId}
             projectId={projectId}
