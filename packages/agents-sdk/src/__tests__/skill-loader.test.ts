@@ -70,16 +70,16 @@ description: Extracts PDFs.
     expect(() => loadSkills(root)).toThrow('');
   });
 
-  it.skip('rejects names with consecutive hyphens', async () => {
+  it('rejects names with consecutive hyphens', async () => {
     const root = await createSkill({
       dirName: 'pdf--processing',
       content: `---
 name: pdf--processing
-description: Extracts PDFs.
+description: x
 ---`,
     });
 
-    expect(() => loadSkills(root)).toThrow('');
+    expect(() => loadSkills(root)).toThrow('Must not contain consecutive hyphens (--)');
   });
 
   it('rejects names longer than 64 characters', async () => {

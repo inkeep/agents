@@ -4,10 +4,19 @@ import { simplematter } from 'simplematter';
 import { z } from 'zod';
 import type { SkillDefinition } from './types';
 
-const frontmatterSchema = z.object({
-  name: z.string().trim().nonempty(),
-  description: z.string().trim().nonempty(),
-  metadata: z.record(z.string(), z.unknown()).nullable().default(null),
+export const frontmatterSchema = z.object({
+  name: z
+    .string()
+    .trim()
+    .nonempty()
+    .max(64)
+    .regex(/^[a-z0-9-]+$/, 'May only contain lowercase alphanumeric characters and hyphens (a-z, 0-9, -)')
+    // must not start or end with hyphen
+    .regex(/^[a-z0-9](?:[a-z0-9-]*[a-z0-9])?$/, 'Must not start or end with a hyphen (-)')
+    // no consecutive hyphens
+    .refine((v) => !v.includes('--'), 'Must not contain consecutive hyphens (--)'),
+  description: z.string().trim().nonempty().max(1024),
+  metadata: z.record(z.string(), z.string()).nullable().optional().default(null),
 });
 
 function toSkillId(filePath: string): string {
