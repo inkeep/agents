@@ -137,18 +137,17 @@ description: ${'a'.repeat(1025)}
     expect(() => loadSkills(root)).toThrow();
   });
 
-  it.skip('rejects metadata with non-string values', async () => {
+  it('rejects metadata with non-string values', async () => {
     const root = await createSkill({
       dirName: 'data-analysis',
-      content: `
----
-name: data-analysis
-description: Analyzes datasets.
+      content: `---
+name: X
+description: X
 metadata:
   author: 123
 ---`,
     });
 
-    expect(() => loadSkills(root)).toThrow();
+    expect(() => loadSkills(root)).toThrow('Invalid input: expected string, received number');
   });
 });
