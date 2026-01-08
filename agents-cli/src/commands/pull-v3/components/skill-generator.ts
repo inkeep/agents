@@ -9,12 +9,6 @@ type SkillMap = Record<
     description?: string | null;
     content: string;
     metadata?: Record<string, unknown> | null;
-    license?: string | null;
-    compatibility?: string | null;
-    allowedTools?: string[] | null;
-    scripts?: string[] | null;
-    references?: string[] | null;
-    assets?: string[] | null;
   }
 >;
 
@@ -34,30 +28,6 @@ export async function generateSkills(skills: SkillMap, skillsDir: string): Promi
   for (const [skillId, skill] of Object.entries(skills)) {
     const parts: string[] = ['---', `name: ${JSON.stringify(skill.name)}`];
     parts.push(`description: ${JSON.stringify(skill.description ?? '')}`);
-
-    if (skill.license) {
-      parts.push(`license: ${JSON.stringify(skill.license)}`);
-    }
-
-    if (skill.compatibility) {
-      parts.push(`compatibility: ${JSON.stringify(skill.compatibility)}`);
-    }
-
-    if (skill.allowedTools && skill.allowedTools.length > 0) {
-      parts.push(`allowedTools: ${JSON.stringify(skill.allowedTools)}`);
-    }
-
-    if (skill.scripts && skill.scripts.length > 0) {
-      parts.push(`scripts: ${JSON.stringify(skill.scripts)}`);
-    }
-
-    if (skill.references && skill.references.length > 0) {
-      parts.push(`references: ${JSON.stringify(skill.references)}`);
-    }
-
-    if (skill.assets && skill.assets.length > 0) {
-      parts.push(`assets: ${JSON.stringify(skill.assets)}`);
-    }
 
     if (skill.metadata && Object.keys(skill.metadata).length > 0) {
       parts.push(formatMetadata(skill.metadata));

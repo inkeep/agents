@@ -8,12 +8,6 @@ const frontmatterSchema = z.object({
   name: z.string().trim().nonempty(),
   description: z.string().trim().nonempty(),
   metadata: z.record(z.string(), z.unknown()).nullable().default(null),
-  license: z.string().trim().optional(),
-  compatibility: z.string().trim().optional(),
-  allowedTools: z.union([z.string(), z.array(z.string())]).optional(),
-  scripts: z.array(z.string()).optional(),
-  references: z.array(z.string()).optional(),
-  assets: z.array(z.string()).optional(),
 });
 
 function toSkillId(filePath: string): string {
@@ -21,11 +15,6 @@ function toSkillId(filePath: string): string {
   const withoutExt = path.join(dir, name);
 
   return withoutExt.replaceAll(path.sep, '-');
-}
-
-function normalizeStringList(value?: string | string[]): string[] | undefined {
-  if (!value) return undefined;
-  return Array.isArray(value) ? value : value.split(/\s+/).filter(Boolean);
 }
 
 export function loadSkills(directoryPath: string): SkillDefinition[] {
@@ -36,17 +25,7 @@ export function loadSkills(directoryPath: string): SkillDefinition[] {
     const resolvedPath = path.join(directoryPath, filePath);
     const fileContent = fs.readFileSync(resolvedPath, 'utf8');
     const { data, content } = matter(fileContent);
-    const {
-      name,
-      description,
-      metadata,
-      license,
-      compatibility,
-      allowedTools,
-      scripts,
-      references,
-      assets,
-    } = frontmatterSchema.parse(data);
+    const { name, description, metadata } = frontmatterSchema.parse(data);
     const id = toSkillId(filePath);
 
     return {
@@ -54,12 +33,6 @@ export function loadSkills(directoryPath: string): SkillDefinition[] {
       name,
       description,
       metadata,
-      license,
-      compatibility,
-      allowedTools: normalizeStringList(allowedTools),
-      scripts,
-      references,
-      assets,
       content: content.trim(),
     };
   });

@@ -8,7 +8,6 @@ import { toast } from 'sonner';
 import { ExpandablePromptEditor } from '@/components/editors/expandable-prompt-editor';
 import { GenericInput } from '@/components/form/generic-input';
 import { GenericTextarea } from '@/components/form/generic-textarea';
-import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogTrigger } from '@/components/ui/dialog';
 import { Form } from '@/components/ui/form';
@@ -20,7 +19,6 @@ import { DeleteSkillConfirmation } from '../delete-skill-confirmation';
 import {
   defaultValues,
   type SkillFormData,
-  parseAllowedToolsField,
   parseMetadataField,
   skillSchema,
 } from './validation';
@@ -39,9 +37,6 @@ const formatFormData = (data?: Skill): SkillFormData => {
     name: data.name,
     description: data.description || '',
     content: data.content || '',
-    license: data.license || '',
-    compatibility: data.compatibility || '',
-    allowedTools: data.allowedTools?.join(' ') || '',
     metadata: formatJsonField(data.metadata),
   };
 };
@@ -55,9 +50,6 @@ export function SkillForm({ initialData, onSaved }: SkillFormProps) {
   });
   const { isSubmitting } = form.formState;
   const router = useRouter();
-  const scripts = initialData?.scripts ?? [];
-  const references = initialData?.references ?? [];
-  const assets = initialData?.assets ?? [];
 
   useAutoPrefillId({
     form,
@@ -69,15 +61,11 @@ export function SkillForm({ initialData, onSaved }: SkillFormProps) {
   const onSubmit = async (data: SkillFormData) => {
     try {
       const parsedMetadata = parseMetadataField(data.metadata);
-      const parsedAllowedTools = parseAllowedToolsField(data.allowedTools);
       const payload = {
         id: data.id.trim(),
         name: data.name.trim(),
         description: data.description.trim(),
         content: data.content,
-        license: data.license?.trim() || null,
-        compatibility: data.compatibility?.trim() || null,
-        allowedTools: parsedAllowedTools,
         metadata: parsedMetadata,
       };
 
@@ -146,26 +134,6 @@ export function SkillForm({ initialData, onSaved }: SkillFormProps) {
             className="min-h-[80px]"
             isRequired
           />
-          <GenericInput
-            control={form.control}
-            name="license"
-            label="License"
-            placeholder="MIT"
-          />
-          <GenericTextarea
-            control={form.control}
-            name="compatibility"
-            label="Compatibility"
-            placeholder="Works with agents-run-api >= 1.0.0"
-            className="min-h-[80px]"
-          />
-          <GenericInput
-            control={form.control}
-            name="allowedTools"
-            label="Allowed Tools"
-            placeholder="tool-a tool-b tool-c"
-            description="Space-delimited list of tools approved for this skill."
-          />
           <ExpandablePromptEditor
             label="Content"
             name="content"
@@ -185,46 +153,6 @@ export function SkillForm({ initialData, onSaved }: SkillFormProps) {
   "tags": ["safety"]
 }`}
           />
-          {(scripts.length > 0 || references.length > 0 || assets.length > 0) && (
-            <div className="space-y-4">
-              {scripts.length > 0 && (
-                <div className="space-y-2">
-                  <span className="text-sm font-medium">Scripts</span>
-                  <div className="flex flex-wrap gap-2">
-                    {scripts.map((item) => (
-                      <Badge key={item} variant="secondary">
-                        {item}
-                      </Badge>
-                    ))}
-                  </div>
-                </div>
-              )}
-              {references.length > 0 && (
-                <div className="space-y-2">
-                  <span className="text-sm font-medium">References</span>
-                  <div className="flex flex-wrap gap-2">
-                    {references.map((item) => (
-                      <Badge key={item} variant="secondary">
-                        {item}
-                      </Badge>
-                    ))}
-                  </div>
-                </div>
-              )}
-              {assets.length > 0 && (
-                <div className="space-y-2">
-                  <span className="text-sm font-medium">Assets</span>
-                  <div className="flex flex-wrap gap-2">
-                    {assets.map((item) => (
-                      <Badge key={item} variant="secondary">
-                        {item}
-                      </Badge>
-                    ))}
-                  </div>
-                </div>
-              )}
-            </div>
-          )}
 
           <div className="flex w-full justify-between">
             <Button type="submit" disabled={isSubmitting}>

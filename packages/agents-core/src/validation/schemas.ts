@@ -449,18 +449,10 @@ export const ContextCacheApiUpdateSchema = createApiUpdateSchema(ContextCacheUpd
 
 export const SkillSelectSchema = createSelectSchema(skills).extend({
   metadata: z.record(z.string(), z.unknown()).nullable(),
-  allowedTools: z.array(z.string()).nullable().optional(),
-  scripts: z.array(z.string()).nullable().optional(),
-  references: z.array(z.string()).nullable().optional(),
-  assets: z.array(z.string()).nullable().optional(),
 });
 export const SkillInsertSchema = createInsertSchema(skills).extend({
   id: resourceIdSchema,
   metadata: z.record(z.string(), z.unknown()).nullable().optional(),
-  allowedTools: z.array(z.string()).nullable().optional(),
-  scripts: z.array(z.string()).nullable().optional(),
-  references: z.array(z.string()).nullable().optional(),
-  assets: z.array(z.string()).nullable().optional(),
 });
 export const SkillUpdateSchema = SkillInsertSchema.partial();
 

@@ -29,12 +29,6 @@ type SubAgentSkillWithDetails = {
   | 'description'
   | 'content'
   | 'metadata'
-  | 'license'
-  | 'compatibility'
-  | 'allowedTools'
-  | 'scripts'
-  | 'references'
-  | 'assets'
   | 'createdAt'
   | 'updatedAt'
 >;
@@ -95,12 +89,6 @@ export const createSkill = (db: DatabaseClient) => async (data: SkillInsert) => 
     updatedAt: now,
     metadata: data.metadata ?? null,
     description: data.description ?? null,
-    license: data.license ?? null,
-    compatibility: data.compatibility ?? null,
-    allowedTools: data.allowedTools ?? null,
-    scripts: data.scripts ?? null,
-    references: data.references ?? null,
-    assets: data.assets ?? null,
   };
 
   const result = await db.insert(skills).values(insertData).returning();
@@ -115,12 +103,6 @@ export const upsertSkill = (db: DatabaseClient) => async (data: SkillInsert) => 
     id: skillId,
     metadata: data.metadata ?? null,
     description: data.description ?? null,
-    license: data.license ?? null,
-    compatibility: data.compatibility ?? null,
-    allowedTools: data.allowedTools ?? null,
-    scripts: data.scripts ?? null,
-    references: data.references ?? null,
-    assets: data.assets ?? null,
   };
 
   const existing = await db.query.skills.findFirst({
@@ -139,12 +121,6 @@ export const upsertSkill = (db: DatabaseClient) => async (data: SkillInsert) => 
         description: baseData.description,
         content: baseData.content,
         metadata: baseData.metadata,
-        license: baseData.license,
-        compatibility: baseData.compatibility,
-        allowedTools: baseData.allowedTools,
-        scripts: baseData.scripts,
-        references: baseData.references,
-        assets: baseData.assets,
         updatedAt: baseData.updatedAt ?? now,
       })
       .where(
@@ -186,30 +162,6 @@ export const updateSkill =
 
     if (data.description === undefined) {
       delete updateData.description;
-    }
-
-    if (data.license === undefined) {
-      delete updateData.license;
-    }
-
-    if (data.compatibility === undefined) {
-      delete updateData.compatibility;
-    }
-
-    if (data.allowedTools === undefined) {
-      delete updateData.allowedTools;
-    }
-
-    if (data.scripts === undefined) {
-      delete updateData.scripts;
-    }
-
-    if (data.references === undefined) {
-      delete updateData.references;
-    }
-
-    if (data.assets === undefined) {
-      delete updateData.assets;
     }
 
     const result = await db
@@ -259,12 +211,6 @@ export const getSkillsForSubAgents =
         description: skills.description,
         content: skills.content,
         metadata: skills.metadata,
-        license: skills.license,
-        compatibility: skills.compatibility,
-        allowedTools: skills.allowedTools,
-        scripts: skills.scripts,
-        references: skills.references,
-        assets: skills.assets,
         createdAt: skills.createdAt,
         updatedAt: skills.updatedAt,
       })

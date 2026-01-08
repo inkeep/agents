@@ -208,12 +208,6 @@ export const skills = pgTable(
     ...uiProperties,
     content: text('content').notNull(),
     metadata: jsonb('metadata').$type<Record<string, unknown> | null>(),
-    license: text('license'),
-    compatibility: text('compatibility'),
-    allowedTools: text('allowed_tools').array(),
-    scripts: text('scripts').array(),
-    references: text('references').array(),
-    assets: text('assets').array(),
     ...timestamps,
   },
   (table) => [

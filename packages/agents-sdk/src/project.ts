@@ -874,12 +874,6 @@ export class Project implements ProjectInterface {
         description: skill.description,
         content: skill.content,
         metadata: skill.metadata ?? null,
-        license: skill.license ?? null,
-        compatibility: skill.compatibility ?? null,
-        allowedTools: skill.allowedTools ?? null,
-        scripts: skill.scripts ?? null,
-        references: skill.references ?? null,
-        assets: skill.assets ?? null,
         createdAt: skill.createdAt ?? skillTimestamp,
         updatedAt: skill.updatedAt ?? skillTimestamp,
       };

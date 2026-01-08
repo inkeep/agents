@@ -1366,12 +1366,6 @@ export const getFullProject =
             description: skill.description,
             content: skill.content,
             metadata: skill.metadata,
-            license: skill.license,
-            compatibility: skill.compatibility,
-            allowedTools: skill.allowedTools,
-            scripts: skill.scripts,
-            references: skill.references,
-            assets: skill.assets,
             createdAt: skill.createdAt,
             updatedAt: skill.updatedAt,
           };

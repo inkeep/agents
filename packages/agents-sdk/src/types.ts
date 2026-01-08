@@ -98,12 +98,6 @@ export interface SkillDefinition {
   description: string;
   content: string;
   metadata: Record<string, unknown> | null;
-  license?: string | null;
-  compatibility?: string | null;
-  allowedTools?: string[] | null;
-  scripts?: string[] | null;
-  references?: string[] | null;
-  assets?: string[] | null;
   createdAt?: string;
   updatedAt?: string;
 }

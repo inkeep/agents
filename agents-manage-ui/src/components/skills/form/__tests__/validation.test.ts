@@ -1,10 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import {
-  defaultValues,
-  parseAllowedToolsField,
-  parseMetadataField,
-  skillSchema,
-} from '../validation';
+import { defaultValues, parseMetadataField, skillSchema } from '../validation';
 
 describe('skillSchema', () => {
   it('validates required fields', () => {
@@ -46,21 +41,6 @@ describe('parseMetadataField', () => {
   });
 });
 
-describe('parseAllowedToolsField', () => {
-  it('returns null for empty input', () => {
-    expect(parseAllowedToolsField('')).toBeNull();
-    expect(parseAllowedToolsField(undefined)).toBeNull();
-  });
-
-  it('splits on whitespace', () => {
-    expect(parseAllowedToolsField('tool-a tool-b  tool-c')).toEqual([
-      'tool-a',
-      'tool-b',
-      'tool-c',
-    ]);
-  });
-});
-
 describe('defaultValues', () => {
   it('provides empty defaults', () => {
     expect(defaultValues).toMatchObject({
@@ -68,9 +48,6 @@ describe('defaultValues', () => {
       name: '',
       description: '',
       content: '',
-      license: '',
-      compatibility: '',
-      allowedTools: '',
     });
   });
 });

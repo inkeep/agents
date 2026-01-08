@@ -22,17 +22,9 @@ tone, and formatting consistent across the agent graph while still allowing each
 - **Id**: Unique identifier used by agents and attachments.
 - **Description**: Short summary used for search and discovery.
 - **Content**: Markdown instructions injected into the system prompt.
-- **License**: Optional license identifier.
-- **Compatibility**: Optional environment or version notes (max 500 chars).
-- **Allowed Tools**: Space-delimited list of tools approved for this skill.
 - **Metadata (JSON)**: Optional structured data for custom workflows.
 
 ## Attach skills to sub-agents
 
 Open an agent in the Visual Builder, select a sub-agent node, and use the **Skills** picker to attach one or more
 skills. You can drag to reorder them and control their priority.
-
-## Supporting files
-
-Skills can include scripts, references, and assets. These appear as read-only lists in the UI. Use the CLI workflow to
-manage the underlying files.
