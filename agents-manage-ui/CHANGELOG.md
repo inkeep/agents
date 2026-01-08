@@ -1,5 +1,14 @@
 # @inkeep/agents-manage-ui
 
+## 0.41.1
+
+### Patch Changes
+
+- d1f60f3: added azure provider
+- 53acc10: - Bump agents-ui package, remove the need to force refresh the widget when headers change
+- Updated dependencies [d1f60f3]
+  - @inkeep/agents-core@0.41.1
+
 ## 0.41.0
 
 ### Minor Changes

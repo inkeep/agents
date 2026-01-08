@@ -91,9 +91,11 @@ async function handleMessageSend(
 
     // Extract forwarded headers from the request (passed from ExecutionHandler via A2AClient)
     // Transform cookie -> x-forwarded-cookie for downstream forwarding
+    // Note: Do NOT forward the authorization header - it causes issues with MCP servers
+    // because the internal Inkeep JWT token should not be sent to external services.
+    // MCP server auth should be configured via agent tool relation headers instead.
     const forwardedHeaders: Record<string, string> = {};
     const xForwardedCookie = c.req.header('x-forwarded-cookie');
-    const authorization = c.req.header('authorization');
     const cookie = c.req.header('cookie');
 
     // Priority: x-forwarded-cookie (explicit) > cookie (browser-sent)
@@ -102,7 +104,6 @@ async function handleMessageSend(
     } else if (cookie) {
       forwardedHeaders['x-forwarded-cookie'] = cookie;
     }
-    if (authorization) forwardedHeaders.authorization = authorization;
 
     const task: A2ATask = {
       id: generateId(),
@@ -447,9 +448,11 @@ async function handleMessageStream(
 
     // Extract forwarded headers from the request (passed from ExecutionHandler via A2AClient)
     // Transform cookie -> x-forwarded-cookie for downstream forwarding
+    // Note: Do NOT forward the authorization header - it causes issues with MCP servers
+    // because the internal Inkeep JWT token should not be sent to external services.
+    // MCP server auth should be configured via agent tool relation headers instead.
     const forwardedHeaders: Record<string, string> = {};
     const xForwardedCookie = c.req.header('x-forwarded-cookie');
-    const authorization = c.req.header('authorization');
     const cookie = c.req.header('cookie');
 
     // Priority: x-forwarded-cookie (explicit) > cookie (browser-sent)
@@ -458,7 +461,6 @@ async function handleMessageStream(
     } else if (cookie) {
       forwardedHeaders['x-forwarded-cookie'] = cookie;
     }
-    if (authorization) forwardedHeaders.authorization = authorization;
 
     const task: A2ATask = {
       id: generateId(),

@@ -1,5 +1,11 @@
 # @inkeep/agents-core
 
+## 0.41.1
+
+### Patch Changes
+
+- d1f60f3: added azure provider
+
 ## 0.41.0
 
 ### Patch Changes
