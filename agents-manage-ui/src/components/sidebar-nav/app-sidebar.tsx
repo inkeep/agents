@@ -10,9 +10,9 @@ import {
   Library,
   LifeBuoy,
   Lock,
+  LucideHexagon,
   Settings,
   Workflow,
-  LucideHexagon,
 } from 'lucide-react';
 import Link from 'next/link';
 import { useParams } from 'next/navigation';

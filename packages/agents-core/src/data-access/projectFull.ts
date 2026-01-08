@@ -80,7 +80,10 @@ export const createFullProjectServerSide =
       logger.info({ projectId: typed.id }, 'Project metadata created successfully');
 
       if (typed.skills && Object.keys(typed.skills).length > 0) {
-        logger.info({ projectId: typed.id, count: Object.keys(typed.skills).length }, 'Creating project skills');
+        logger.info(
+          { projectId: typed.id, count: Object.keys(typed.skills).length },
+          'Creating project skills'
+        );
 
         const skillPromises = Object.entries(typed.skills).map(async ([_skillId, skill]) => {
           try {
@@ -91,7 +94,10 @@ export const createFullProjectServerSide =
             });
             logger.info({ projectId: typed.id, skillId: skill.id }, 'Skill processed');
           } catch (error) {
-            logger.error({ projectId: typed.id, skillId: skill.id, error }, 'Failed to create skill');
+            logger.error(
+              { projectId: typed.id, skillId: skill.id, error },
+              'Failed to create skill'
+            );
             throw error;
           }
         });
@@ -551,7 +557,10 @@ export const updateFullProjectServerSide =
       logger.info({ projectId: typed.id }, 'Project metadata updated successfully');
 
       if (typed.skills && Object.keys(typed.skills).length > 0) {
-        logger.info({ projectId: typed.id, count: Object.keys(typed.skills).length }, 'Updating project skills');
+        logger.info(
+          { projectId: typed.id, count: Object.keys(typed.skills).length },
+          'Updating project skills'
+        );
 
         const skillPromises = Object.entries(typed.skills).map(async ([_skillId, skill]) => {
           try {
@@ -562,7 +571,10 @@ export const updateFullProjectServerSide =
             });
             logger.info({ projectId: typed.id, skillId: skill.id }, 'Skill processed');
           } catch (error) {
-            logger.error({ projectId: typed.id, skillId: skill.id, error }, 'Failed to update skill');
+            logger.error(
+              { projectId: typed.id, skillId: skill.id, error },
+              'Failed to update skill'
+            );
             throw error;
           }
         });

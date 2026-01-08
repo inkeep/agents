@@ -1,9 +1,9 @@
 'use client';
 
-import { createContext, useContext, useEffect, useState } from 'react';
-import { useRuntimeConfig } from '@/contexts/runtime-config-context';
 import type * as PostHogReact from '@posthog/react';
 import type { PostHog } from 'posthog-js';
+import { createContext, useContext, useEffect, useState } from 'react';
+import { useRuntimeConfig } from '@/contexts/runtime-config-context';
 
 type PosthogModules = {
   posthog: PostHog;

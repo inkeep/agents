@@ -1,10 +1,10 @@
-import { project, loadSkills } from '@inkeep/agents-sdk';
+import path from 'node:path';
+import { loadSkills, project } from '@inkeep/agents-sdk';
 import { activitiesPlannerAdvancedAgent } from './agents/activities-planner-advanced';
+import { citation } from './artifact-components/citation';
+import { activities } from './data-components/activities';
 import { exaMcpTool } from './tools/exa-mcp';
 import { weatherMcpTool } from './tools/weather-mcp';
-import { activities } from './data-components/activities';
-import { citation } from './artifact-components/citation';
-import path from 'node:path';
 
 export const activitiesPlannerAdvanced = project({
   id: 'activities-planner-advanced',

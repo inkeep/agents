@@ -1,5 +1,5 @@
-import { z } from 'zod';
 import { SkillFrontmatterSchema } from '@inkeep/agents-core/client-exports';
+import { z } from 'zod';
 
 export const SkillSchema = z.object({
   id: SkillFrontmatterSchema.shape.name,

@@ -12,13 +12,13 @@ import externalAgentsRoutes from './externalAgents';
 import functionsRoutes from './functions';
 import functionToolsRoutes from './functionTools';
 import mcpCatalogRoutes from './mcpCatalog';
-import skillsRoutes from './skills';
 import projectsRoutes from './projects';
+import skillsRoutes from './skills';
 import subAgentArtifactComponentsRoutes from './subAgentArtifactComponents';
 import subAgentDataComponentsRoutes from './subAgentDataComponents';
 import subAgentExternalAgentRelationsRoutes from './subAgentExternalAgentRelations';
-import subAgentSkillsRoutes from './subAgentSkills';
 import subAgentRelationsRoutes from './subAgentRelations';
+import subAgentSkillsRoutes from './subAgentSkills';
 // Import existing route modules (others can be added as they're created)
 import subAgentsRoutes from './subAgents';
 import subAgentTeamAgentRelationsRoutes from './subAgentTeamAgentRelations';

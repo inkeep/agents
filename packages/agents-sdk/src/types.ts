@@ -353,12 +353,7 @@ export type subAgentTeamAgentInterface = {
 
 export interface AgentInterface {
   init(): Promise<void>;
-  setConfig(
-    tenantId: string,
-    projectId: string,
-    apiUrl: string,
-    skills?: SkillDefinition[]
-  ): void;
+  setConfig(tenantId: string, projectId: string, apiUrl: string, skills?: SkillDefinition[]): void;
   getId(): string;
   getName(): string;
   getDescription(): string | undefined;

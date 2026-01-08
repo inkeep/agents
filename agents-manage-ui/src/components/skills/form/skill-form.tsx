@@ -5,6 +5,7 @@ import { useParams, useRouter } from 'next/navigation';
 import { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { toast } from 'sonner';
+import { ExpandableJsonEditor } from '@/components/editors/expandable-json-editor';
 import { ExpandablePromptEditor } from '@/components/editors/expandable-prompt-editor';
 import { GenericInput } from '@/components/form/generic-input';
 import { GenericTextarea } from '@/components/form/generic-textarea';
@@ -16,8 +17,7 @@ import { createSkillAction, updateSkillAction } from '@/lib/actions/skills';
 import type { Skill } from '@/lib/types/skills';
 import { formatJsonField } from '@/lib/utils';
 import { DeleteSkillConfirmation } from '../delete-skill-confirmation';
-import { defaultValues, type SkillFormData, parseMetadataField, SkillSchema } from './validation';
-import { ExpandableJsonEditor } from '@/components/editors/expandable-json-editor';
+import { defaultValues, parseMetadataField, type SkillFormData, SkillSchema } from './validation';
 
 interface SkillFormProps {
   initialData?: Skill;

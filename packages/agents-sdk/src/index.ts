@@ -43,7 +43,6 @@ export {
   externalAgents,
 } from './external-agent';
 export { FunctionTool } from './function-tool';
-export { loadSkills } from './skill-loader';
 export { Project } from './project';
 export {
   createFullProjectViaAPI,
@@ -52,6 +51,7 @@ export {
   updateFullProjectViaAPI,
 } from './projectFullClient';
 export { Runner, raceAgents, run, stream } from './runner';
+export { loadSkills } from './skill-loader';
 export { StatusComponent, type StatusComponentInterface } from './status-component';
 export { SubAgent } from './subAgent';
 export {

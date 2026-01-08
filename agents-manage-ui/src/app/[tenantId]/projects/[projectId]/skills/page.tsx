@@ -1,10 +1,12 @@
+import NextLink from 'next/link';
+import { formatDate, formatDateAgo } from '@/app/utils/format-date';
 import FullPageError from '@/components/errors/full-page-error';
 import { BodyTemplate } from '@/components/layout/body-template';
 import EmptyState from '@/components/layout/empty-state';
 import { PageHeader } from '@/components/layout/page-header';
-import { fetchSkills } from '@/lib/api/skills';
-import { getErrorCode } from '@/lib/utils/error-serialization';
-import NextLink from 'next/link';
+import { CreateSkillModal } from '@/components/skills/create-skill-modal';
+import { Badge } from '@/components/ui/badge';
+import { ExternalLink } from '@/components/ui/external-link';
 import {
   Table,
   TableBody,
@@ -13,12 +15,10 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
-import { formatDate, formatDateAgo } from '@/app/utils/format-date';
-import { Badge } from '@/components/ui/badge';
-import { cn } from '@/lib/utils';
-import { ExternalLink } from '@/components/ui/external-link';
 import { DOCS_BASE_URL } from '@/constants/page-descriptions';
-import { CreateSkillModal } from '@/components/skills/create-skill-modal';
+import { fetchSkills } from '@/lib/api/skills';
+import { cn } from '@/lib/utils';
+import { getErrorCode } from '@/lib/utils/error-serialization';
 
 export const dynamic = 'force-dynamic';
 

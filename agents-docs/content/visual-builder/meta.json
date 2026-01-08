@@ -1,3 +1,11 @@
 {
-  "pages": ["sub-agents", "skills", "tools", "headers", "structured-outputs", "context-fetchers", "..."]
+  "pages": [
+    "sub-agents",
+    "skills",
+    "tools",
+    "headers",
+    "structured-outputs",
+    "context-fetchers",
+    "..."
+  ]
 }

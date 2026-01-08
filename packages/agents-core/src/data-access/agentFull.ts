@@ -1,6 +1,6 @@
 import { and, eq, inArray, not } from 'drizzle-orm';
 import type { DatabaseClient } from '../db/client';
-import { projects, subAgents, subAgentSkills, subAgentToolRelations } from '../db/schema';
+import { projects, subAgentSkills, subAgents, subAgentToolRelations } from '../db/schema';
 import type { FullAgentDefinition } from '../types/entities';
 import type { AgentScopeConfig, ProjectScopeConfig } from '../types/utility';
 import { generateId } from '../utils/conversations';
@@ -25,6 +25,7 @@ import {
 } from './dataComponents';
 import { upsertFunction } from './functions';
 import { upsertFunctionTool, upsertSubAgentFunctionToolRelation } from './functionTools';
+import { upsertSubAgentSkill } from './skills';
 import {
   deleteSubAgentExternalAgentRelation,
   getSubAgentExternalAgentRelationsByAgent,
@@ -42,7 +43,6 @@ import {
   getSubAgentTeamAgentRelationsByAgent,
   upsertSubAgentTeamAgentRelation,
 } from './subAgentTeamAgentRelations';
-import { upsertSubAgentSkill } from './skills';
 import { upsertSubAgentToolRelation } from './tools';
 
 export interface AgentLogger {
@@ -79,7 +79,12 @@ async function syncSubAgentSkills(
       if (!skill.id) return;
       skillPromises.push(
         upsertSubAgentSkill(db)({
-          scopes: { tenantId: scopes.tenantId, projectId: scopes.projectId, agentId: scopes.agentId, subAgentId },
+          scopes: {
+            tenantId: scopes.tenantId,
+            projectId: scopes.projectId,
+            agentId: scopes.agentId,
+            subAgentId,
+          },
           skillId: skill.id,
           index: skill.index ?? idx,
         })

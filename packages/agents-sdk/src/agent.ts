@@ -17,8 +17,8 @@ import type {
   GenerateOptions,
   MessageInput,
   ModelSettings,
-  SkillDefinition,
   RunResult,
+  SkillDefinition,
   StreamResponse,
   SubAgentInterface,
   subAgentTeamAgentInterface,
@@ -112,12 +112,7 @@ export class Agent implements AgentInterface {
    * Set or update the configuration (tenantId, projectId and apiUrl)
    * This is used by the CLI to inject configuration from inkeep.config.ts
    */
-  setConfig(
-    tenantId: string,
-    projectId: string,
-    apiUrl: string,
-    skills?: SkillDefinition[]
-  ): void {
+  setConfig(tenantId: string, projectId: string, apiUrl: string, skills?: SkillDefinition[]): void {
     if (this.initialized) {
       throw new Error('Cannot set config after agent has been initialized');
     }

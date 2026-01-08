@@ -5,8 +5,8 @@ import { revalidatePath } from 'next/cache';
 import {
   createSkill,
   deleteSkill,
-  fetchSkills,
   fetchSkill,
+  fetchSkills,
   type Skill,
   updateSkill,
 } from '@/lib/api/skills';
