@@ -103,7 +103,6 @@ export const MonacoEditor: FC<MonacoEditorProps> = ({
       lineNumbers: 'off',
       wordWrap: 'on', // Toggle word wrap on resizing editors
       contextmenu: false, // Disable the right-click context menu
-      fixedOverflowWidgets: true, // since container has overflow-hidden
       padding: {
         top: 12,
         bottom: 12,

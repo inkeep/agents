@@ -1,5 +1,5 @@
 ---
-name: Structured itinerary responses
+name: structured-itinerary-responses
 description: Present time-aware itineraries with clear actions and citations
 metadata:
   tags:
