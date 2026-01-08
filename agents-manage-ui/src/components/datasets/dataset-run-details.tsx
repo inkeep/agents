@@ -200,12 +200,15 @@ export function DatasetRunDetails({
       <Card>
         <CardHeader>
           <CardTitle>
-            Test Cases ({filteredItems.reduce((acc, item) => acc + (item.conversations?.length || 0), 0)}{' '}
+            Test Cases (
+            {filteredItems.reduce((acc, item) => acc + (item.conversations?.length || 0), 0)}{' '}
             {filteredItems.length !== (run.items?.length || 0) && (
               <span className="text-muted-foreground">
-                of {run.items?.reduce((acc, item) => acc + (item.conversations?.length || 0), 0) || 0}
+                of{' '}
+                {run.items?.reduce((acc, item) => acc + (item.conversations?.length || 0), 0) || 0}
               </span>
-            )})
+            )}
+            )
           </CardTitle>
           <CardDescription>Test cases executed in this test suite run</CardDescription>
         </CardHeader>

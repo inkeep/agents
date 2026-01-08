@@ -1,4 +1,9 @@
-import { generateId, createEvaluationResult, createEvaluationRun, createConversation } from '@inkeep/agents-core';
+import {
+  createConversation,
+  createEvaluationResult,
+  createEvaluationRun,
+  generateId,
+} from '@inkeep/agents-core';
 import { createTestProject } from '@inkeep/agents-core/db/test-manage-client';
 import { describe, expect, it } from 'vitest';
 import manageDbClient from '../../../../data/db/dbClient';
@@ -36,7 +41,7 @@ describe('Evaluation Results CRUD Routes - Integration Tests', () => {
       projectId,
       agentId: 'test-agent',
       activeSubAgentId: 'test-agent',
-      ref: `ref-${conversationId}`,
+      ref: { type: 'branch', name: 'main', hash: 'test-hash' },
     });
     return { conversationId };
   };
@@ -72,7 +77,7 @@ describe('Evaluation Results CRUD Routes - Integration Tests', () => {
       evaluatorId,
       conversationId,
       evaluationRunId,
-      output: { score: 8, reasoning: 'Good quality response' },
+      output: { text: 'Good quality response' },
     });
     return { resultId };
   };
@@ -341,4 +346,3 @@ describe('Evaluation Results CRUD Routes - Integration Tests', () => {
     });
   });
 });
-

@@ -1,3 +1,4 @@
+import { createRoute, OpenAPIHono, z } from '@hono/zod-openapi';
 import {
   commonGetErrorResponses,
   createApiError,
@@ -5,27 +6,26 @@ import {
   createEvaluationRunConfigEvaluationSuiteConfigRelation,
   deleteEvaluationRunConfig,
   deleteEvaluationRunConfigEvaluationSuiteConfigRelation,
-  generateId,
-  getEvaluationRunConfigById,
-  getEvaluationRunConfigEvaluationSuiteConfigRelations,
-  ListResponseSchema,
-  listEvaluationRunConfigs,
-  SingleResponseSchema,
-  TenantProjectParamsSchema,
-  updateEvaluationRunConfig,
+  EvaluationResultApiSelectSchema,
   EvaluationRunConfigApiInsertSchema,
   EvaluationRunConfigApiUpdateSchema,
   EvaluationRunConfigWithSuiteConfigsApiSelectSchema,
-  EvaluationResultApiSelectSchema,
-  listEvaluationRuns,
-  listEvaluationResultsByRun,
+  generateId,
   getConversation,
+  getEvaluationRunConfigById,
+  getEvaluationRunConfigEvaluationSuiteConfigRelations,
   getMessagesByConversation,
+  ListResponseSchema,
+  listEvaluationResultsByRun,
+  listEvaluationRunConfigs,
+  listEvaluationRuns,
+  SingleResponseSchema,
+  TenantProjectParamsSchema,
+  updateEvaluationRunConfig,
 } from '@inkeep/agents-core';
-import { z, createRoute, OpenAPIHono } from '@hono/zod-openapi';
+import runDbClient from '../../data/db/runDbClient';
 import { getLogger } from '../../logger';
 import type { BaseAppVariables } from '../../types/app';
-import runDbClient from '../../data/db/runDbClient';
 
 const app = new OpenAPIHono<{ Variables: BaseAppVariables }>();
 const logger = getLogger('evaluationRunConfigs');
@@ -137,9 +137,7 @@ app.openapi(
       }
 
       // Get linked suite configs
-      const suiteConfigRelations = await getEvaluationRunConfigEvaluationSuiteConfigRelations(
-        db
-      )({
+      const suiteConfigRelations = await getEvaluationRunConfigEvaluationSuiteConfigRelations(db)({
         scopes: { tenantId, projectId, evaluationRunConfigId: configId },
       });
 
@@ -161,7 +159,6 @@ app.openapi(
     }
   }
 );
-
 
 app.openapi(
   createRoute({
@@ -384,9 +381,7 @@ app.openapi(
       }
 
       // Fetch suite config relations to include in response
-      const suiteConfigRelations = await getEvaluationRunConfigEvaluationSuiteConfigRelations(
-        db
-      )({
+      const suiteConfigRelations = await getEvaluationRunConfigEvaluationSuiteConfigRelations(db)({
         scopes: { tenantId, projectId, evaluationRunConfigId: id },
       });
 
@@ -467,9 +462,7 @@ app.openapi(
       // Update suite config relations if provided
       if (suiteConfigIds !== undefined) {
         // Get existing relations
-        const existingRelations = await getEvaluationRunConfigEvaluationSuiteConfigRelations(
-          db
-        )({
+        const existingRelations = await getEvaluationRunConfigEvaluationSuiteConfigRelations(db)({
           scopes: { tenantId, projectId, evaluationRunConfigId: configId },
         });
 
@@ -507,9 +500,7 @@ app.openapi(
       }
 
       // Fetch suite config relations to include in response
-      const suiteConfigRelations = await getEvaluationRunConfigEvaluationSuiteConfigRelations(
-        db
-      )({
+      const suiteConfigRelations = await getEvaluationRunConfigEvaluationSuiteConfigRelations(db)({
         scopes: { tenantId, projectId, evaluationRunConfigId: configId },
       });
 

@@ -1,3 +1,4 @@
+import { createRoute, OpenAPIHono, z } from '@hono/zod-openapi';
 import {
   commonGetErrorResponses,
   createApiError,
@@ -7,29 +8,28 @@ import {
   createEvaluationJobConfig,
   createEvaluationJobConfigEvaluatorRelation,
   createEvaluationRun,
+  DatasetRunConfigApiInsertSchema,
+  DatasetRunConfigApiSelectSchema,
+  DatasetRunConfigApiUpdateSchema,
+  datasetRun,
   deleteDatasetRunConfig,
   deleteDatasetRunConfigAgentRelation,
+  EvalApiClient,
   generateId,
   getDatasetRunConfigAgentRelations,
   getDatasetRunConfigById,
+  InternalServices,
   ListResponseSchema,
   listDatasetItems,
   listDatasetRunConfigs,
   SingleResponseSchema,
   TenantProjectParamsSchema,
   updateDatasetRunConfig,
-  datasetRun,
-  DatasetRunConfigApiSelectSchema,
-  DatasetRunConfigApiInsertSchema,
-  DatasetRunConfigApiUpdateSchema,
-  EvalApiClient,
-  InternalServices,
 } from '@inkeep/agents-core';
-import { z, createRoute, OpenAPIHono } from '@hono/zod-openapi';
 import { and, eq } from 'drizzle-orm';
-import { getLogger } from '../../logger';
 import runDbClient from '../../data/db/runDbClient';
 import { env } from '../../env';
+import { getLogger } from '../../logger';
 import type { BaseAppVariables } from '../../types/app';
 
 const app = new OpenAPIHono<{ Variables: BaseAppVariables }>();
@@ -226,7 +226,7 @@ app.openapi(
       // Create dataset run immediately and process items asynchronously
       try {
         const datasetRunId = generateId();
-        
+
         // Create dataset run first (without eval job config)
         await createDatasetRun(runDbClient)({
           id: datasetRunId,
@@ -243,7 +243,11 @@ app.openapi(
             projectId,
             runConfigId: id,
             datasetRunId,
-            hasEvaluators: !!(evaluatorIds && Array.isArray(evaluatorIds) && evaluatorIds.length > 0),
+            hasEvaluators: !!(
+              evaluatorIds &&
+              Array.isArray(evaluatorIds) &&
+              evaluatorIds.length > 0
+            ),
           },
           'Dataset run created, processing items'
         );
@@ -302,7 +306,7 @@ app.openapi(
             )
           );
 
-          // Update dataset run to link the eval job config 
+          // Update dataset run to link the eval job config
           await runDbClient
             .update(datasetRun)
             .set({ evaluationJobConfigId: evalJobConfigId })
@@ -362,7 +366,11 @@ app.openapi(
             itemsFailed: result.failed,
             agentsUsed: agentRelations.length,
             datasetItemCount: datasetItems.length,
-            hasEvaluators: !!(evaluatorIds && Array.isArray(evaluatorIds) && evaluatorIds.length > 0),
+            hasEvaluators: !!(
+              evaluatorIds &&
+              Array.isArray(evaluatorIds) &&
+              evaluatorIds.length > 0
+            ),
           },
           'Dataset run items queued via eval API'
         );

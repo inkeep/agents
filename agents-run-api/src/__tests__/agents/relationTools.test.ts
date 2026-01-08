@@ -332,7 +332,9 @@ describe('Relationship Tools', () => {
         },
       });
 
-      expect(tool.description).toContain('Hand off the conversation to agent target-agent');
+      expect(tool.description).toContain(
+        'This tool immediately transfers conversation control to agent'
+      );
     });
 
     it('should have proper tool structure', () => {
@@ -366,7 +368,9 @@ describe('Relationship Tools', () => {
         },
       });
 
-      expect(tool.description).toContain('Hand off the conversation to agent refund-agent');
+      expect(tool.description).toContain(
+        'This tool immediately transfers conversation control to agent refund-agent'
+      );
     });
 
     it('should handle agent IDs with special characters', () => {
@@ -384,7 +388,7 @@ describe('Relationship Tools', () => {
       });
 
       expect(tool.description).toContain(
-        'Hand off the conversation to agent customer-support-agent-v2'
+        'This tool immediately transfers conversation control to agent customer-support-agent-v2'
       );
     });
 
@@ -402,7 +406,9 @@ describe('Relationship Tools', () => {
         },
       });
 
-      expect(tool.description).toContain('Hand off the conversation to agent ');
+      expect(tool.description).toContain(
+        'This tool immediately transfers conversation control to agent '
+      );
     });
 
     it('should handle undefined agent config properties', () => {
@@ -418,7 +424,9 @@ describe('Relationship Tools', () => {
         },
       });
 
-      expect(tool.description).toContain('Hand off the conversation to agent test-agent');
+      expect(tool.description).toContain(
+        'This tool immediately transfers conversation control to agent test-agent'
+      );
     });
   });
 
@@ -732,7 +740,9 @@ describe('Relationship Tools', () => {
       const externalDelegateTool = createDelegateToAgentTool(getExternalDelegateParams());
 
       // All tools should be created successfully
-      expect(transferTool.description).toContain('Hand off the conversation to');
+      expect(transferTool.description).toContain(
+        'This tool immediately transfers conversation control to agent'
+      );
       expect(delegateTool.description).toContain('Delegate a specific task to');
       expect(externalDelegateTool.description).toContain('Delegate a specific task to');
 

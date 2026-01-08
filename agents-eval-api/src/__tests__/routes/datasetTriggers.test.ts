@@ -139,9 +139,9 @@ describe('Dataset Triggers - Unit Tests', () => {
     it('should handle workflow start failure', async () => {
       startWorkflowMock.mockRejectedValue(new Error('Queue full'));
 
-      await expect(
-        startWorkflowMock(vi.fn(), [{ datasetItemId: 'item-1' }])
-      ).rejects.toThrow('Queue full');
+      await expect(startWorkflowMock(vi.fn(), [{ datasetItemId: 'item-1' }])).rejects.toThrow(
+        'Queue full'
+      );
     });
 
     it('should process multiple items sequentially', async () => {
@@ -270,7 +270,7 @@ describe('Dataset Triggers - Unit Tests', () => {
     it('should handle empty items array', () => {
       const items: any[] = [];
       let queued = 0;
-      let failed = 0;
+      const failed = 0;
 
       for (const _item of items) {
         queued++; // Would never execute

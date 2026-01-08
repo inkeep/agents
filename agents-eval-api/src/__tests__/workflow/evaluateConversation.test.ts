@@ -91,9 +91,7 @@ describe('evaluateConversation Workflow Steps', () => {
         ref: { type: 'branch', name: 'main' },
       };
 
-      getConversationMock.mockImplementation(() =>
-        vi.fn().mockResolvedValue(mockConversation)
-      );
+      getConversationMock.mockImplementation(() => vi.fn().mockResolvedValue(mockConversation));
 
       const getConversation = getConversationMock();
       const result = await getConversation({
@@ -214,7 +212,11 @@ describe('evaluateConversation Workflow Steps', () => {
 
       const updateResult = updateEvaluationResultMock();
       const updated = await updateResult({
-        scopes: { tenantId: 'test-tenant', projectId: 'test-project', evaluationResultId: 'result-1' },
+        scopes: {
+          tenantId: 'test-tenant',
+          projectId: 'test-project',
+          evaluationResultId: 'result-1',
+        },
         data: { output: evalOutput.output },
       });
       expect(updated.output.score).toBe(0.9);
@@ -255,7 +257,11 @@ describe('evaluateConversation Workflow Steps', () => {
 
         const updateResult = updateEvaluationResultMock();
         const failedResult = await updateResult({
-          scopes: { tenantId: 'test-tenant', projectId: 'test-project', evaluationResultId: 'result-1' },
+          scopes: {
+            tenantId: 'test-tenant',
+            projectId: 'test-project',
+            evaluationResultId: 'result-1',
+          },
           data: { output: { text: `Evaluation failed: ${errorMessage}` } },
         });
 
@@ -271,4 +277,3 @@ describe('evaluateConversation Workflow Steps', () => {
     });
   });
 });
-

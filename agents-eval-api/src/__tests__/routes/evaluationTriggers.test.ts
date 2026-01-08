@@ -105,9 +105,7 @@ describe('Evaluation Triggers - Unit Tests', () => {
         projectId: 'test-project',
       };
 
-      getConversationMock.mockImplementation(() =>
-        vi.fn().mockResolvedValue(mockConversation)
-      );
+      getConversationMock.mockImplementation(() => vi.fn().mockResolvedValue(mockConversation));
 
       const getConv = getConversationMock();
       const result = await getConv({
@@ -152,10 +150,7 @@ describe('Evaluation Triggers - Unit Tests', () => {
         id: 'suite-1',
         sampleRate: 0.5,
       };
-      const mockRelations = [
-        { evaluatorId: 'eval-1' },
-        { evaluatorId: 'eval-2' },
-      ];
+      const mockRelations = [{ evaluatorId: 'eval-1' }, { evaluatorId: 'eval-2' }];
 
       mockClient.getEvaluationSuiteConfigById.mockResolvedValue(mockSuiteConfig);
       mockClient.getEvaluationSuiteConfigEvaluatorRelations.mockResolvedValue(mockRelations);
@@ -220,9 +215,7 @@ describe('Evaluation Triggers - Unit Tests', () => {
     });
 
     it('should return empty array when no matches', async () => {
-      filterConversationsForJobMock.mockImplementation(() =>
-        vi.fn().mockResolvedValue([])
-      );
+      filterConversationsForJobMock.mockImplementation(() => vi.fn().mockResolvedValue([]));
 
       const filterFn = filterConversationsForJobMock();
       const result = await filterFn({
@@ -261,13 +254,15 @@ describe('Evaluation Triggers - Unit Tests', () => {
 
       await startWorkflowMock(
         vi.fn(), // workflow function
-        [{
-          tenantId: 'test-tenant',
-          projectId: 'test-project',
-          conversationId: 'conv-1',
-          evaluatorIds: ['eval-1'],
-          evaluationRunId: 'run-1',
-        }]
+        [
+          {
+            tenantId: 'test-tenant',
+            projectId: 'test-project',
+            conversationId: 'conv-1',
+            evaluatorIds: ['eval-1'],
+            evaluationRunId: 'run-1',
+          },
+        ]
       );
 
       expect(startWorkflowMock).toHaveBeenCalledWith(
@@ -284,9 +279,9 @@ describe('Evaluation Triggers - Unit Tests', () => {
     it('should handle workflow start failure', async () => {
       startWorkflowMock.mockRejectedValue(new Error('Workflow failed'));
 
-      await expect(
-        startWorkflowMock(vi.fn(), [{ conversationId: 'conv-1' }])
-      ).rejects.toThrow('Workflow failed');
+      await expect(startWorkflowMock(vi.fn(), [{ conversationId: 'conv-1' }])).rejects.toThrow(
+        'Workflow failed'
+      );
     });
   });
 

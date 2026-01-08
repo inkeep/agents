@@ -5,7 +5,10 @@ import { MainContent } from '@/components/layout/main-content';
 import { PageHeader } from '@/components/layout/page-header';
 import { fetchEvaluationResultsByRunConfig } from '@/lib/api/evaluation-results';
 import { fetchEvaluationRunConfig } from '@/lib/api/evaluation-run-configs';
-import { fetchEvaluationSuiteConfigs, fetchEvaluationSuiteConfigEvaluators } from '@/lib/api/evaluation-suite-configs';
+import {
+  fetchEvaluationSuiteConfigEvaluators,
+  fetchEvaluationSuiteConfigs,
+} from '@/lib/api/evaluation-suite-configs';
 import { fetchEvaluators } from '@/lib/api/evaluators';
 
 export const dynamic = 'force-dynamic';
@@ -29,7 +32,11 @@ async function EvaluationRunConfigPage({
       await Promise.all(
         runConfig.suiteConfigIds.map(async (suiteConfigId) => {
           try {
-            const evaluatorsRes = await fetchEvaluationSuiteConfigEvaluators(tenantId, projectId, suiteConfigId);
+            const evaluatorsRes = await fetchEvaluationSuiteConfigEvaluators(
+              tenantId,
+              projectId,
+              suiteConfigId
+            );
             suiteConfigEvaluators.set(
               suiteConfigId,
               evaluatorsRes.data.map((e) => e.evaluatorId)

@@ -66,9 +66,15 @@ export function DatasetRunsList({
           <TableBody>
             {[1, 2, 3].map((i) => (
               <TableRow key={i} noHover>
-                <TableCell><Skeleton className="h-4 w-32" /></TableCell>
-                <TableCell><Skeleton className="h-4 w-20" /></TableCell>
-                <TableCell><Skeleton className="h-4 w-12" /></TableCell>
+                <TableCell>
+                  <Skeleton className="h-4 w-32" />
+                </TableCell>
+                <TableCell>
+                  <Skeleton className="h-4 w-20" />
+                </TableCell>
+                <TableCell>
+                  <Skeleton className="h-4 w-12" />
+                </TableCell>
               </TableRow>
             ))}
           </TableBody>
@@ -113,7 +119,9 @@ export function DatasetRunsList({
               key={run.id}
               className="cursor-pointer"
               onClick={() =>
-                router.push(`/${tenantId}/projects/${projectId}/datasets/${datasetId}/runs/${run.id}`)
+                router.push(
+                  `/${tenantId}/projects/${projectId}/datasets/${datasetId}/runs/${run.id}`
+                )
               }
             >
               <TableCell className="font-medium">

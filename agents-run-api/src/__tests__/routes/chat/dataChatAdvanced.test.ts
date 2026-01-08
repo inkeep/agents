@@ -130,8 +130,6 @@ describe('Chat Data Stream Advanced', () => {
     const agentId = generateId();
     const subAgentId = 'test-agent'; // Use consistent ID that matches mocks
 
-
-
     return { tenantId, projectId, agentId, subAgentId };
   }
 

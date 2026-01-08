@@ -64,6 +64,3 @@ vi.mock('../env.js', () => ({
     LOG_LEVEL: 'debug',
   },
 }));
-
-export {};
-

@@ -8,11 +8,7 @@ import { ExpandableJsonEditor } from '@/components/editors/expandable-json-edito
 import { SuiteConfigViewDialog } from '@/components/evaluation-run-configs/suite-config-view-dialog';
 import { EvaluationStatusBadge } from '@/components/evaluators/evaluation-status-badge';
 import { EvaluatorViewDialog } from '@/components/evaluators/evaluator-view-dialog';
-import {
-  Collapsible,
-  CollapsibleContent,
-  CollapsibleTrigger,
-} from '@/components/ui/collapsible';
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import {
   Table,
   TableBody,
@@ -25,12 +21,12 @@ import type { EvaluationResult } from '@/lib/api/evaluation-results';
 import type { EvaluationRunConfig } from '@/lib/api/evaluation-run-configs';
 import type { EvaluationSuiteConfig } from '@/lib/api/evaluation-suite-configs';
 import type { Evaluator } from '@/lib/api/evaluators';
+import { filterEvaluationResults } from '@/lib/evaluation/filter-evaluation-results';
 import { evaluatePassCriteria } from '@/lib/evaluation/pass-criteria-evaluator';
 import {
   type EvaluationResultFilters,
   EvaluationResultsFilters,
 } from '../evaluation-jobs/evaluation-results-filters';
-import { filterEvaluationResults } from '@/lib/evaluation/filter-evaluation-results';
 
 interface EvaluationRunConfigResultsProps {
   tenantId: string;
@@ -98,10 +94,9 @@ export function EvaluationRunConfigResults({
             <div className="space-y-3">
               {runConfigSuiteConfigs.map((suiteConfig) => {
                 const evaluatorIds = suiteConfigEvaluators.get(suiteConfig.id) || [];
-                const evaluatorNames = evaluatorIds
-                  .map((id) => getEvaluatorName(id))
-                  .join(', ') || 'No evaluators';
-                
+                const evaluatorNames =
+                  evaluatorIds.map((id) => getEvaluatorName(id)).join(', ') || 'No evaluators';
+
                 // Extract agent filter from filters
                 const agentFilter = suiteConfig.filters?.agentId as string | undefined;
 
@@ -110,7 +105,10 @@ export function EvaluationRunConfigResults({
                     <div className="font-medium text-sm">{evaluatorNames}</div>
                     <div className="text-xs text-muted-foreground mt-1 space-y-0.5">
                       <div>
-                        Sample Rate: {suiteConfig.sampleRate !== null ? `${(suiteConfig.sampleRate * 100).toFixed(0)}%` : 'N/A'}
+                        Sample Rate:{' '}
+                        {suiteConfig.sampleRate !== null
+                          ? `${(suiteConfig.sampleRate * 100).toFixed(0)}%`
+                          : 'N/A'}
                       </div>
                       {agentFilter && (
                         <div>
@@ -173,9 +171,7 @@ export function EvaluationRunConfigResults({
                         rel="noopener noreferrer"
                         className="flex items-center gap-2 text-sm text-blue-600 dark:text-blue-400 hover:underline max-w-md"
                       >
-                        <span className="truncate">
-                          {result.input || result.conversationId}
-                        </span>
+                        <span className="truncate">{result.input || result.conversationId}</span>
                         <ExternalLink className="h-4 w-4 flex-shrink-0" />
                       </Link>
                     </TableCell>
@@ -196,12 +192,14 @@ export function EvaluationRunConfigResults({
                     <TableCell>
                       {(() => {
                         const evaluator = getEvaluatorById(result.evaluatorId);
-                        const resultData = result.output && typeof result.output === 'object' 
-                          ? result.output as Record<string, unknown>
-                          : {};
-                        const outputData = resultData.output && typeof resultData.output === 'object'
-                          ? resultData.output as Record<string, unknown>
-                          : resultData;
+                        const resultData =
+                          result.output && typeof result.output === 'object'
+                            ? (result.output as Record<string, unknown>)
+                            : {};
+                        const outputData =
+                          resultData.output && typeof resultData.output === 'object'
+                            ? (resultData.output as Record<string, unknown>)
+                            : resultData;
                         const evaluation = evaluatePassCriteria(
                           evaluator?.passCriteria,
                           outputData
@@ -213,11 +211,12 @@ export function EvaluationRunConfigResults({
                       {result.output ? (
                         <div className="space-y-1">
                           {(() => {
-                            const resultData = result.output && typeof result.output === 'object' 
-                              ? result.output as Record<string, unknown>
-                              : {};
+                            const resultData =
+                              result.output && typeof result.output === 'object'
+                                ? (result.output as Record<string, unknown>)
+                                : {};
                             const { metadata, ...outputWithoutMetadata } = resultData;
-                            
+
                             return (
                               <>
                                 <OutputCollapsible
@@ -225,10 +224,7 @@ export function EvaluationRunConfigResults({
                                   output={outputWithoutMetadata}
                                 />
                                 {metadata && (
-                                  <MetadataCollapsible
-                                    resultId={result.id}
-                                    metadata={metadata}
-                                  />
+                                  <MetadataCollapsible resultId={result.id} metadata={metadata} />
                                 )}
                               </>
                             );
@@ -272,11 +268,7 @@ function OutputCollapsible({ resultId, output }: { resultId: string; output: unk
   return (
     <Collapsible open={isOpen} onOpenChange={setIsOpen}>
       <CollapsibleTrigger className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground transition-colors py-1">
-        {isOpen ? (
-          <ChevronDown className="h-3 w-3" />
-        ) : (
-          <ChevronRight className="h-3 w-3" />
-        )}
+        {isOpen ? <ChevronDown className="h-3 w-3" /> : <ChevronRight className="h-3 w-3" />}
         <span>Output</span>
       </CollapsibleTrigger>
       <CollapsibleContent className="pt-2">
@@ -297,11 +289,7 @@ function MetadataCollapsible({ resultId, metadata }: { resultId: string; metadat
   return (
     <Collapsible open={isOpen} onOpenChange={setIsOpen}>
       <CollapsibleTrigger className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground transition-colors py-1">
-        {isOpen ? (
-          <ChevronDown className="h-3 w-3" />
-        ) : (
-          <ChevronRight className="h-3 w-3" />
-        )}
+        {isOpen ? <ChevronDown className="h-3 w-3" /> : <ChevronRight className="h-3 w-3" />}
         <span>Metadata</span>
       </CollapsibleTrigger>
       <CollapsibleContent className="pt-2">

@@ -94,13 +94,10 @@ describe('Datasets CRUD Routes - Integration Tests', () => {
       await createTestProject(manageDbClient, tenantId, projectId);
       const datasetData = createDatasetData();
 
-      const res = await makeRequest(
-        `/tenants/${tenantId}/projects/${projectId}/evals/datasets`,
-        {
-          method: 'POST',
-          body: JSON.stringify(datasetData),
-        }
-      );
+      const res = await makeRequest(`/tenants/${tenantId}/projects/${projectId}/evals/datasets`, {
+        method: 'POST',
+        body: JSON.stringify(datasetData),
+      });
 
       expect(res.status).toBe(201);
       const body = await res.json();
@@ -115,13 +112,10 @@ describe('Datasets CRUD Routes - Integration Tests', () => {
         name: 'Minimal Dataset',
       };
 
-      const res = await makeRequest(
-        `/tenants/${tenantId}/projects/${projectId}/evals/datasets`,
-        {
-          method: 'POST',
-          body: JSON.stringify(minimalData),
-        }
-      );
+      const res = await makeRequest(`/tenants/${tenantId}/projects/${projectId}/evals/datasets`, {
+        method: 'POST',
+        body: JSON.stringify(minimalData),
+      });
 
       expect(res.status).toBe(201);
       const body = await res.json();
@@ -248,4 +242,3 @@ describe('Datasets CRUD Routes - Integration Tests', () => {
     });
   });
 });
-

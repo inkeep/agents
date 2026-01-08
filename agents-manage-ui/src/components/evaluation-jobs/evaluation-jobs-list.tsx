@@ -96,18 +96,18 @@ export function EvaluationJobsList({ tenantId, projectId, jobConfigs }: Evaluati
       // Parse ISO timestamps and display as date-only in local timezone
       const startDate = new Date(filterCriteria.dateRange.startDate);
       const endDate = new Date(filterCriteria.dateRange.endDate);
-      
-      const startFormatted = startDate.toLocaleDateString('en-US', { 
-        month: 'short', 
-        day: 'numeric', 
-        year: 'numeric' 
+
+      const startFormatted = startDate.toLocaleDateString('en-US', {
+        month: 'short',
+        day: 'numeric',
+        year: 'numeric',
       });
-      const endFormatted = endDate.toLocaleDateString('en-US', { 
-        month: 'short', 
-        day: 'numeric', 
-        year: 'numeric' 
+      const endFormatted = endDate.toLocaleDateString('en-US', {
+        month: 'short',
+        day: 'numeric',
+        year: 'numeric',
       });
-      
+
       parts.push(`${startFormatted} - ${endFormatted}`);
     }
 
@@ -136,52 +136,62 @@ export function EvaluationJobsList({ tenantId, projectId, jobConfigs }: Evaluati
             ) : isLoadingNames ? (
               [...jobConfigs].map((jobConfig) => (
                 <TableRow key={jobConfig.id} noHover>
-                  <TableCell><Skeleton className="h-4 w-48" /></TableCell>
-                  <TableCell><Skeleton className="h-4 w-24" /></TableCell>
-                  <TableCell><Skeleton className="h-4 w-8" /></TableCell>
-                  <TableCell><Skeleton className="h-4 w-4" /></TableCell>
+                  <TableCell>
+                    <Skeleton className="h-4 w-48" />
+                  </TableCell>
+                  <TableCell>
+                    <Skeleton className="h-4 w-24" />
+                  </TableCell>
+                  <TableCell>
+                    <Skeleton className="h-4 w-8" />
+                  </TableCell>
+                  <TableCell>
+                    <Skeleton className="h-4 w-4" />
+                  </TableCell>
                 </TableRow>
               ))
             ) : (
               [...jobConfigs]
                 .sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime())
                 .map((jobConfig) => (
-                <TableRow
-                  key={jobConfig.id}
-                  className="cursor-pointer"
-                  onClick={() =>
-                    router.push(`/${tenantId}/projects/${projectId}/evaluations/jobs/${jobConfig.id}`)
-                  }
-                >
-                  <TableCell className="font-medium">
-                    {formatFilters(jobConfig.jobFilters)}
-                  </TableCell>
-                  <TableCell className="text-sm text-muted-foreground">
-                    {formatDate(jobConfig.updatedAt)}
-                  </TableCell>
-                  <TableCell onClick={(e) => e.stopPropagation()}>
-                    <DropdownMenu>
-                      <DropdownMenuTrigger asChild>
-                        <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
-                          <MoreVertical className="h-4 w-4" />
-                        </Button>
-                      </DropdownMenuTrigger>
-                      <DropdownMenuContent align="end">
-                        <DropdownMenuItem
-                          onClick={() => handleDelete(jobConfig)}
-                          className="text-destructive"
-                        >
-                          <Trash2 className="mr-2 h-4 w-4" />
-                          Delete
-                        </DropdownMenuItem>
-                      </DropdownMenuContent>
-                    </DropdownMenu>
-                  </TableCell>
-                  <TableCell>
-                    <ChevronRight className="h-4 w-4 text-muted-foreground" />
-                  </TableCell>
-                </TableRow>
-              ))
+                  <TableRow
+                    key={jobConfig.id}
+                    className="cursor-pointer"
+                    onClick={() =>
+                      router.push(
+                        `/${tenantId}/projects/${projectId}/evaluations/jobs/${jobConfig.id}`
+                      )
+                    }
+                  >
+                    <TableCell className="font-medium">
+                      {formatFilters(jobConfig.jobFilters)}
+                    </TableCell>
+                    <TableCell className="text-sm text-muted-foreground">
+                      {formatDate(jobConfig.updatedAt)}
+                    </TableCell>
+                    <TableCell onClick={(e) => e.stopPropagation()}>
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
+                            <MoreVertical className="h-4 w-4" />
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end">
+                          <DropdownMenuItem
+                            onClick={() => handleDelete(jobConfig)}
+                            className="text-destructive"
+                          >
+                            <Trash2 className="mr-2 h-4 w-4" />
+                            Delete
+                          </DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
+                    </TableCell>
+                    <TableCell>
+                      <ChevronRight className="h-4 w-4 text-muted-foreground" />
+                    </TableCell>
+                  </TableRow>
+                ))
             )}
           </TableBody>
         </Table>

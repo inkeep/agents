@@ -11,17 +11,19 @@ import { testRunDbClient } from '../setup';
 // Mock the dolt branch operations
 vi.mock('../../dolt/branch', () => ({
   doltBranch: vi.fn(),
+  doltCheckout: vi.fn(),
   doltBranchExists: vi.fn(),
   doltDeleteBranch: vi.fn(),
 }));
 
 // Import mocked modules
-import { doltBranch, doltBranchExists, doltDeleteBranch } from '../../dolt/branch';
+import { doltBranch, doltBranchExists, doltCheckout, doltDeleteBranch } from '../../dolt/branch';
 
 // Type the mocked functions
 const mockedDoltBranch = doltBranch as ReturnType<typeof vi.fn>;
 const mockedDoltBranchExists = doltBranchExists as ReturnType<typeof vi.fn>;
 const mockedDoltDeleteBranch = doltDeleteBranch as ReturnType<typeof vi.fn>;
+const mockedDoltCheckout = doltCheckout as ReturnType<typeof vi.fn>;
 
 describe('Project Lifecycle Utilities', () => {
   const testTenantId = 'test-tenant-lifecycle';
@@ -53,12 +55,12 @@ describe('Project Lifecycle Utilities', () => {
   });
 
   describe('createProjectMetadataAndBranch', () => {
-    it('should create project metadata and call doltBranch', async () => {
+    it('should create project metadata and call doltCheckout', async () => {
       const mockConfigDb = {} as any;
       const mockDoltBranchExistsFn = vi.fn().mockResolvedValue(false);
       mockedDoltBranchExists.mockReturnValue(mockDoltBranchExistsFn);
-      const mockDoltBranchFn = vi.fn().mockResolvedValue(undefined);
-      mockedDoltBranch.mockReturnValue(mockDoltBranchFn);
+      const mockDoltCheckoutFn = vi.fn().mockResolvedValue(undefined);
+      mockedDoltCheckout.mockReturnValue(mockDoltCheckoutFn);
 
       const result = await createProjectMetadataAndBranch(
         testRunDbClient,
@@ -77,9 +79,10 @@ describe('Project Lifecycle Utilities', () => {
       expect(result.createdAt).toBeDefined();
 
       // Verify doltBranch was called with correct branch name
-      expect(mockedDoltBranch).toHaveBeenCalledWith(mockConfigDb);
-      expect(mockDoltBranchFn).toHaveBeenCalledWith({
-        name: `${testTenantId}_lifecycle-test-project_main`,
+      expect(mockedDoltCheckout).toHaveBeenCalledWith(mockConfigDb);
+      expect(mockDoltCheckoutFn).toHaveBeenCalledWith({
+        branch: `${testTenantId}_lifecycle-test-project_main`,
+        create: true,
       });
 
       // Verify project exists in runtime DB
@@ -94,8 +97,8 @@ describe('Project Lifecycle Utilities', () => {
       const mockConfigDb = {} as any;
       const mockDoltBranchExistsFn = vi.fn().mockResolvedValue(false);
       mockedDoltBranchExists.mockReturnValue(mockDoltBranchExistsFn);
-      const mockDoltBranchFn = vi.fn().mockRejectedValue(new Error('Branch creation failed'));
-      mockedDoltBranch.mockReturnValue(mockDoltBranchFn);
+      const mockDoltCheckoutFn = vi.fn().mockRejectedValue(new Error('Branch creation failed'));
+      mockedDoltCheckout.mockReturnValue(mockDoltCheckoutFn);
 
       await expect(
         createProjectMetadataAndBranch(
@@ -119,8 +122,8 @@ describe('Project Lifecycle Utilities', () => {
       const mockConfigDb = {} as any;
       const mockDoltBranchExistsFn = vi.fn().mockResolvedValue(false);
       mockedDoltBranchExists.mockReturnValue(mockDoltBranchExistsFn);
-      const mockDoltBranchFn = vi.fn().mockResolvedValue(undefined);
-      mockedDoltBranch.mockReturnValue(mockDoltBranchFn);
+      const mockDoltCheckoutFn = vi.fn().mockResolvedValue(undefined);
+      mockedDoltCheckout.mockReturnValue(mockDoltCheckoutFn);
 
       const result = await createProjectMetadataAndBranch(
         testRunDbClient,

@@ -1,6 +1,8 @@
+import { createRoute, OpenAPIHono, z } from '@hono/zod-openapi';
 import {
   commonGetErrorResponses,
   createApiError,
+  DatasetRunApiSelectSchema,
   getConversation,
   getDatasetRunById,
   getDatasetRunConfigById,
@@ -11,9 +13,7 @@ import {
   listDatasetRuns,
   SingleResponseSchema,
   TenantProjectParamsSchema,
-  DatasetRunApiSelectSchema,
 } from '@inkeep/agents-core';
-import { z, createRoute, OpenAPIHono } from '@hono/zod-openapi';
 import runDbClient from '../../data/db/runDbClient';
 import { getLogger } from '../../logger';
 import type { BaseAppVariables } from '../../types/app';
@@ -62,12 +62,11 @@ app.openapi(
               ...run,
               runConfigName: runConfig?.name || null,
             };
-          } else {
-            return {
-              ...run,
-              runConfigName: null,
-            };
           }
+          return {
+            ...run,
+            runConfigName: null,
+          };
         })
       );
 
@@ -207,7 +206,7 @@ app.openapi(
                   conversationId: conv.conversationId,
                 });
 
-                let agentId: string | null = conversation?.agentId || null;
+                const agentId: string | null = conversation?.agentId || null;
 
                 const messages = await getMessagesByConversation(runDbClient)({
                   scopes: { tenantId, projectId },
@@ -274,7 +273,7 @@ app.openapi(
               conversationId: conv.conversationId,
             });
 
-            let agentId: string | null = conversation?.agentId || null;
+            const agentId: string | null = conversation?.agentId || null;
 
             const messages = await getMessagesByConversation(runDbClient)({
               scopes: { tenantId, projectId },

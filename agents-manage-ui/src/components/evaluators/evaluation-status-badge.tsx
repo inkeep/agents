@@ -20,10 +20,7 @@ export function EvaluationStatusBadge({ status, className }: EvaluationStatusBad
   }
 
   return (
-    <Badge
-      variant={status === 'passed' ? 'default' : 'destructive'}
-      className={className}
-    >
+    <Badge variant={status === 'passed' ? 'default' : 'destructive'} className={className}>
       {status === 'passed' ? (
         <>
           <CheckCircle2 className="h-3 w-3 mr-1" />
@@ -38,4 +35,3 @@ export function EvaluationStatusBadge({ status, className }: EvaluationStatusBad
     </Badge>
   );
 }
-

@@ -17,11 +17,6 @@ export function DatasetPageClient({
   items,
 }: DatasetPageClientProps) {
   return (
-    <DatasetTabs
-      tenantId={tenantId}
-      projectId={projectId}
-      datasetId={datasetId}
-      items={items}
-    />
+    <DatasetTabs tenantId={tenantId} projectId={projectId} datasetId={datasetId} items={items} />
   );
 }

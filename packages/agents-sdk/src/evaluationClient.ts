@@ -7,7 +7,7 @@ import { apiFetch, getLogger } from '@inkeep/agents-core';
 
 const logger = getLogger('evaluationClient');
 
-function parseError(errorText: string): string | void {
+function parseError(errorText: string): string | undefined {
   try {
     const errorJson = JSON.parse(errorText);
     if (errorJson.error) {
@@ -20,6 +20,7 @@ function parseError(errorText: string): string | void {
       return errorText;
     }
   }
+  return undefined;
 }
 
 function buildUrl(
@@ -1282,7 +1283,12 @@ export async function triggerConversationEvaluation(
   evaluatorIds: string[];
 }> {
   logger.info(
-    { tenantId, projectId, conversationIds: evaluationData.conversationIds, evaluatorIds: evaluationData.evaluatorIds },
+    {
+      tenantId,
+      projectId,
+      conversationIds: evaluationData.conversationIds,
+      evaluatorIds: evaluationData.evaluatorIds,
+    },
     'Triggering conversation evaluations via API'
   );
 
@@ -1315,7 +1321,12 @@ export async function triggerConversationEvaluation(
       evaluatorIds: string[];
     };
     logger.info(
-      { tenantId, projectId, conversationIds: evaluationData.conversationIds, evaluationRunId: result.evaluationRunId },
+      {
+        tenantId,
+        projectId,
+        conversationIds: evaluationData.conversationIds,
+        evaluationRunId: result.evaluationRunId,
+      },
       'Successfully triggered conversation evaluations via API'
     );
     return result;
@@ -1429,7 +1440,13 @@ export async function triggerDatasetRun(
   datasetId: string;
 }> {
   logger.info(
-    { tenantId, projectId, datasetId, agentIds: runData.agentIds, evaluatorIds: runData.evaluatorIds },
+    {
+      tenantId,
+      projectId,
+      datasetId,
+      agentIds: runData.agentIds,
+      evaluatorIds: runData.evaluatorIds,
+    },
     'Triggering dataset run via API'
   );
 

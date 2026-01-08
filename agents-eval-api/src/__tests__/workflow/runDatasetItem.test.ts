@@ -228,9 +228,7 @@ describe('runDatasetItem Workflow Steps', () => {
       };
 
       mockClient.getEvaluatorById.mockResolvedValue(mockEvaluator);
-      getConversationMock.mockImplementation(() =>
-        vi.fn().mockResolvedValue(mockConversation)
-      );
+      getConversationMock.mockImplementation(() => vi.fn().mockResolvedValue(mockConversation));
 
       createEvaluationResultMock.mockImplementation(() =>
         vi.fn().mockResolvedValue({
@@ -286,9 +284,7 @@ describe('runDatasetItem Workflow Steps', () => {
       };
 
       mockClient.getEvaluatorById.mockResolvedValue(mockEvaluator);
-      getConversationMock.mockImplementation(() =>
-        vi.fn().mockResolvedValue({ id: 'conv-1' })
-      );
+      getConversationMock.mockImplementation(() => vi.fn().mockResolvedValue({ id: 'conv-1' }));
 
       createEvaluationResultMock.mockImplementation(() =>
         vi.fn().mockResolvedValue({ id: 'result-1' })
@@ -311,7 +307,11 @@ describe('runDatasetItem Workflow Steps', () => {
 
         const updateResult = updateEvaluationResultMock();
         const failedResult = await updateResult({
-          scopes: { tenantId: 'test-tenant', projectId: 'test-project', evaluationResultId: 'result-1' },
+          scopes: {
+            tenantId: 'test-tenant',
+            projectId: 'test-project',
+            evaluationResultId: 'result-1',
+          },
           data: { output: { text: `Evaluation failed: ${errorMessage}` } },
         });
 
@@ -360,9 +360,7 @@ describe('runDatasetItem Workflow Steps', () => {
 
       // Step 3: Run evaluations
       mockClient.getEvaluatorById.mockResolvedValue({ id: 'eval-1', name: 'Evaluator' });
-      getConversationMock.mockImplementation(() =>
-        vi.fn().mockResolvedValue({ id: 'conv-123' })
-      );
+      getConversationMock.mockImplementation(() => vi.fn().mockResolvedValue({ id: 'conv-123' }));
       createEvaluationResultMock.mockImplementation(() =>
         vi.fn().mockResolvedValue({ id: 'result-1' })
       );
@@ -414,4 +412,3 @@ describe('runDatasetItem Workflow Steps', () => {
     });
   });
 });
-

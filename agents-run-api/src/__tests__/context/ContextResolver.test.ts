@@ -6,7 +6,9 @@ import { ContextResolver } from '../../context';
 const mockFetch = vi.fn();
 global.fetch = mockFetch;
 
-function createMockExecutionContext(overrides: { tenantId?: string; projectId?: string } = {}): FullExecutionContext {
+function createMockExecutionContext(
+  overrides: { tenantId?: string; projectId?: string } = {}
+): FullExecutionContext {
   const tenantId = overrides.tenantId ?? 'test-tenant';
   const projectId = overrides.projectId ?? 'test-project';
 

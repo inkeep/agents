@@ -306,4 +306,3 @@ describe('API Key Authentication Middleware', () => {
     });
   });
 });
-

@@ -531,12 +531,12 @@ export const EvaluationResultUpdateSchema = EvaluationResultInsertSchema.partial
 export const EvaluationResultApiSelectSchema = createApiSchema(
   EvaluationResultSelectSchema
 ).openapi('EvaluationResult');
-export const EvaluationResultApiInsertSchema = createApiInsertSchema(
-  EvaluationResultInsertSchema
-).omit({ id: true }).openapi('EvaluationResultCreate');
-export const EvaluationResultApiUpdateSchema = createApiUpdateSchema(
-  EvaluationResultUpdateSchema
-).omit({ id: true }).openapi('EvaluationResultUpdate');
+export const EvaluationResultApiInsertSchema = createApiInsertSchema(EvaluationResultInsertSchema)
+  .omit({ id: true })
+  .openapi('EvaluationResultCreate');
+export const EvaluationResultApiUpdateSchema = createApiUpdateSchema(EvaluationResultUpdateSchema)
+  .omit({ id: true })
+  .openapi('EvaluationResultUpdate');
 
 export const EvaluationRunSelectSchema = createSelectSchema(evaluationRun);
 export const EvaluationRunInsertSchema = createInsertSchema(evaluationRun).extend({

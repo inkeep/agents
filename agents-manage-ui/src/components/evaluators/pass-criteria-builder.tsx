@@ -201,7 +201,8 @@ export function PassCriteriaBuilder({
 
       {numericFields.length === 0 && !hasConditions ? (
         <div className="text-sm text-muted-foreground bg-muted/50 p-3 rounded">
-          <strong>Note:</strong> Define your output schema with numeric fields (type: "number") first. Then you can add pass/fail conditions based on those fields.
+          <strong>Note:</strong> Define your output schema with numeric fields (type: "number")
+          first. Then you can add pass/fail conditions based on those fields.
         </div>
       ) : (
         <>
@@ -236,4 +237,3 @@ export function PassCriteriaBuilder({
     </div>
   );
 }
-

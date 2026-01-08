@@ -82,12 +82,12 @@ async function signozQuery(
 
   try {
     let response;
-    
+
     // For server-to-server calls (no cookies), call SigNoz directly
     if (shouldCallSigNozDirectly(cookieHeader)) {
       const endpoint = getSigNozEndpoint();
       logger.debug({ endpoint }, 'Calling SigNoz directly for conversation traces');
-      
+
       response = await axios.post(endpoint, payload, {
         headers: {
           'Content-Type': 'application/json',

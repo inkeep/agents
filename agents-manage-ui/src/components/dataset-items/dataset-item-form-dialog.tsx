@@ -308,7 +308,7 @@ export function DatasetItemFormDialog({
             />
 
             <div className="flex justify-end gap-2">
-            <Button type="button" variant="outline" onClick={() => setIsOpen(false)}>
+              <Button type="button" variant="outline" onClick={() => setIsOpen(false)}>
                 Cancel
               </Button>
               <Button type="submit" disabled={isSubmitting}>

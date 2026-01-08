@@ -139,13 +139,10 @@ describe('Evaluators CRUD Routes - Integration Tests', () => {
       await createTestProject(manageDbClient, tenantId, projectId);
       const evaluatorData = createEvaluatorData();
 
-      const res = await makeRequest(
-        `/tenants/${tenantId}/projects/${projectId}/evals/evaluators`,
-        {
-          method: 'POST',
-          body: JSON.stringify(evaluatorData),
-        }
-      );
+      const res = await makeRequest(`/tenants/${tenantId}/projects/${projectId}/evals/evaluators`, {
+        method: 'POST',
+        body: JSON.stringify(evaluatorData),
+      });
 
       expect(res.status).toBe(201);
       const body = await res.json();
@@ -164,13 +161,10 @@ describe('Evaluators CRUD Routes - Integration Tests', () => {
         model: { model: 'gpt-4o-mini' },
       };
 
-      const res = await makeRequest(
-        `/tenants/${tenantId}/projects/${projectId}/evals/evaluators`,
-        {
-          method: 'POST',
-          body: JSON.stringify(minimalData),
-        }
-      );
+      const res = await makeRequest(`/tenants/${tenantId}/projects/${projectId}/evals/evaluators`, {
+        method: 'POST',
+        body: JSON.stringify(minimalData),
+      });
 
       expect(res.status).toBe(201);
       const body = await res.json();
@@ -298,4 +292,3 @@ describe('Evaluators CRUD Routes - Integration Tests', () => {
     });
   });
 });
-

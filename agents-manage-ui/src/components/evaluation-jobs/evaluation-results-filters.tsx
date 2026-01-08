@@ -107,7 +107,9 @@ export function EvaluationResultsFilters({
               </Label>
               <Select
                 value={filters.evaluatorId || 'all'}
-                onValueChange={(value) => updateFilter('evaluatorId', value === 'all' ? undefined : value)}
+                onValueChange={(value) =>
+                  updateFilter('evaluatorId', value === 'all' ? undefined : value)
+                }
               >
                 <SelectTrigger id="evaluator-filter" className="h-9">
                   <SelectValue placeholder="All evaluators" />
@@ -128,4 +130,3 @@ export function EvaluationResultsFilters({
     </div>
   );
 }
-

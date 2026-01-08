@@ -25,11 +25,7 @@ interface TestCaseFiltersProps {
   agents: Array<{ id: string; name: string }>;
 }
 
-export function TestCaseFilters({
-  filters,
-  onFiltersChange,
-  agents,
-}: TestCaseFiltersProps) {
+export function TestCaseFilters({ filters, onFiltersChange, agents }: TestCaseFiltersProps) {
   const [isExpanded, setIsExpanded] = useState(false);
 
   const updateFilter = (key: keyof TestCaseFilters, value: string) => {
@@ -126,4 +122,3 @@ export function TestCaseFilters({
     </div>
   );
 }
-

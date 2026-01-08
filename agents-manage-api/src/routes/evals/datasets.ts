@@ -1,35 +1,35 @@
+import { createRoute, OpenAPIHono, z } from '@hono/zod-openapi';
 import {
   commonGetErrorResponses,
   createApiError,
   createDataset,
-  deleteDataset,
-  generateId,
-  getAgentById,
-  getDatasetById,
-  getEvaluatorById,
-  ListResponseSchema,
-  listDatasets,
-  SingleResponseSchema,
-  TenantProjectParamsSchema,
-  updateDataset,
-  DatasetApiSelectSchema,
-  DatasetApiInsertSchema,
-  DatasetApiUpdateSchema,
-  listDatasetItems,
   createDatasetRun,
   createEvaluationJobConfig,
   createEvaluationJobConfigEvaluatorRelation,
   createEvaluationRun,
-  InternalServices,
-  EvalApiClient,
+  DatasetApiInsertSchema,
+  DatasetApiSelectSchema,
+  DatasetApiUpdateSchema,
   datasetRun,
+  deleteDataset,
+  EvalApiClient,
+  generateId,
+  getAgentById,
+  getDatasetById,
+  getEvaluatorById,
+  InternalServices,
+  ListResponseSchema,
+  listDatasetItems,
+  listDatasets,
+  SingleResponseSchema,
+  TenantProjectParamsSchema,
+  updateDataset,
 } from '@inkeep/agents-core';
-import { z, createRoute, OpenAPIHono } from '@hono/zod-openapi';
 import { and, eq } from 'drizzle-orm';
-import { getLogger } from '../../logger';
-import type { BaseAppVariables } from '../../types/app';
 import runDbClient from '../../data/db/runDbClient';
 import { env } from '../../env';
+import { getLogger } from '../../logger';
+import type { BaseAppVariables } from '../../types/app';
 
 const app = new OpenAPIHono<{ Variables: BaseAppVariables }>();
 const logger = getLogger('datasets');
@@ -289,7 +289,6 @@ app.openapi(
   }
 );
 
-
 app.openapi(
   createRoute({
     method: 'post',
@@ -374,7 +373,9 @@ app.openapi(
           )
         );
 
-        const missingEvaluators = evaluatorIds.filter((id: string, index: number) => !evaluators[index]);
+        const missingEvaluators = evaluatorIds.filter(
+          (id: string, index: number) => !evaluators[index]
+        );
         if (missingEvaluators.length > 0) {
           return c.json(
             createApiError({
@@ -393,7 +394,7 @@ app.openapi(
         tenantId,
         projectId,
         datasetId,
-        datasetRunConfigId: undefined as any,  // TODO: Fix schema to make this optional
+        datasetRunConfigId: undefined as any, // TODO: Fix schema to make this optional
         evaluationJobConfigId: undefined,
       });
 
@@ -504,10 +505,7 @@ app.openapi(
         202
       ) as any;
     } catch (error) {
-      logger.error(
-        { error, tenantId, projectId, datasetId },
-        'Failed to trigger dataset run'
-      );
+      logger.error({ error, tenantId, projectId, datasetId }, 'Failed to trigger dataset run');
       return c.json(
         createApiError({
           code: 'internal_server_error',
@@ -520,4 +518,3 @@ app.openapi(
 );
 
 export default app;
-

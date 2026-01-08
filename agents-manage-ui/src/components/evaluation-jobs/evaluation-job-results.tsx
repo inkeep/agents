@@ -7,11 +7,7 @@ import { formatDateTimeTable } from '@/app/utils/format-date';
 import { ExpandableJsonEditor } from '@/components/editors/expandable-json-editor';
 import { EvaluationStatusBadge } from '@/components/evaluators/evaluation-status-badge';
 import { EvaluatorViewDialog } from '@/components/evaluators/evaluator-view-dialog';
-import {
-  Collapsible,
-  CollapsibleContent,
-  CollapsibleTrigger,
-} from '@/components/ui/collapsible';
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import {
   Table,
   TableBody,
@@ -23,12 +19,12 @@ import {
 import type { EvaluationJobConfig } from '@/lib/api/evaluation-job-configs';
 import type { EvaluationResult } from '@/lib/api/evaluation-results';
 import type { Evaluator } from '@/lib/api/evaluators';
+import { filterEvaluationResults } from '@/lib/evaluation/filter-evaluation-results';
 import { evaluatePassCriteria } from '@/lib/evaluation/pass-criteria-evaluator';
 import {
   type EvaluationResultFilters,
   EvaluationResultsFilters,
 } from './evaluation-results-filters';
-import { filterEvaluationResults } from '@/lib/evaluation/filter-evaluation-results';
 
 interface EvaluationJobResultsProps {
   tenantId: string;
@@ -115,9 +111,7 @@ export function EvaluationJobResults({
                         rel="noopener noreferrer"
                         className="flex items-center gap-2 text-sm text-blue-600 dark:text-blue-400 hover:underline max-w-md"
                       >
-                        <span className="truncate">
-                          {result.input || result.conversationId}
-                        </span>
+                        <span className="truncate">{result.input || result.conversationId}</span>
                         <ExternalLink className="h-4 w-4 flex-shrink-0" />
                       </Link>
                     </TableCell>
@@ -138,12 +132,14 @@ export function EvaluationJobResults({
                     <TableCell>
                       {(() => {
                         const evaluator = getEvaluatorById(result.evaluatorId);
-                        const resultData = result.output && typeof result.output === 'object' 
-                          ? result.output as Record<string, unknown>
-                          : {};
-                        const outputData = resultData.output && typeof resultData.output === 'object'
-                          ? resultData.output as Record<string, unknown>
-                          : resultData;
+                        const resultData =
+                          result.output && typeof result.output === 'object'
+                            ? (result.output as Record<string, unknown>)
+                            : {};
+                        const outputData =
+                          resultData.output && typeof resultData.output === 'object'
+                            ? (resultData.output as Record<string, unknown>)
+                            : resultData;
                         const evaluation = evaluatePassCriteria(
                           evaluator?.passCriteria,
                           outputData
@@ -155,11 +151,12 @@ export function EvaluationJobResults({
                       {result.output ? (
                         <div className="space-y-1">
                           {(() => {
-                            const resultData = result.output && typeof result.output === 'object' 
-                              ? result.output as Record<string, unknown>
-                              : {};
+                            const resultData =
+                              result.output && typeof result.output === 'object'
+                                ? (result.output as Record<string, unknown>)
+                                : {};
                             const { metadata, ...outputWithoutMetadata } = resultData;
-                            
+
                             return (
                               <>
                                 <OutputCollapsible
@@ -167,10 +164,7 @@ export function EvaluationJobResults({
                                   output={outputWithoutMetadata}
                                 />
                                 {metadata && (
-                                  <MetadataCollapsible
-                                    resultId={result.id}
-                                    metadata={metadata}
-                                  />
+                                  <MetadataCollapsible resultId={result.id} metadata={metadata} />
                                 )}
                               </>
                             );
@@ -204,11 +198,7 @@ function OutputCollapsible({ resultId, output }: { resultId: string; output: unk
   return (
     <Collapsible open={isOpen} onOpenChange={setIsOpen}>
       <CollapsibleTrigger className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground transition-colors py-1">
-        {isOpen ? (
-          <ChevronDown className="h-3 w-3" />
-        ) : (
-          <ChevronRight className="h-3 w-3" />
-        )}
+        {isOpen ? <ChevronDown className="h-3 w-3" /> : <ChevronRight className="h-3 w-3" />}
         <span>Output</span>
       </CollapsibleTrigger>
       <CollapsibleContent className="pt-2">
@@ -229,11 +219,7 @@ function MetadataCollapsible({ resultId, metadata }: { resultId: string; metadat
   return (
     <Collapsible open={isOpen} onOpenChange={setIsOpen}>
       <CollapsibleTrigger className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground transition-colors py-1">
-        {isOpen ? (
-          <ChevronDown className="h-3 w-3" />
-        ) : (
-          <ChevronRight className="h-3 w-3" />
-        )}
+        {isOpen ? <ChevronDown className="h-3 w-3" /> : <ChevronRight className="h-3 w-3" />}
         <span>Metadata</span>
       </CollapsibleTrigger>
       <CollapsibleContent className="pt-2">

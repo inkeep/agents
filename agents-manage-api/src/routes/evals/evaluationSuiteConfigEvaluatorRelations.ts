@@ -1,3 +1,4 @@
+import { createRoute, OpenAPIHono, z } from '@hono/zod-openapi';
 import {
   commonGetErrorResponses,
   createApiError,
@@ -7,7 +8,6 @@ import {
   getEvaluationSuiteConfigEvaluatorRelations,
   TenantProjectParamsSchema,
 } from '@inkeep/agents-core';
-import { z, createRoute, OpenAPIHono } from '@hono/zod-openapi';
 import { getLogger } from '../../logger';
 import type { BaseAppVariables } from '../../types/app';
 
@@ -170,4 +170,3 @@ app.openapi(
 );
 
 export default app;
-

@@ -133,7 +133,6 @@ export function EvaluationRunConfigFormDialog({
     }
   };
 
-
   const toggleEvaluator = (evaluatorId: string) => {
     const current = suiteConfigForm.watch('evaluatorIds') || [];
     const newIds = current.includes(evaluatorId)
@@ -155,7 +154,7 @@ export function EvaluationRunConfigFormDialog({
   const onSubmit = async (data: EvaluationRunConfigFormData) => {
     const formValid = await form.trigger();
     const suiteConfigFormValid = await suiteConfigForm.trigger();
-    
+
     if (!formValid || !suiteConfigFormValid) {
       return;
     }
@@ -164,8 +163,8 @@ export function EvaluationRunConfigFormDialog({
       // First, create the evaluation suite config
       const suiteConfigData = suiteConfigForm.getValues();
       const filters: Record<string, unknown> | null =
-        suiteConfigData.agentIds && suiteConfigData.agentIds.length > 0 
-          ? { agentIds: suiteConfigData.agentIds } 
+        suiteConfigData.agentIds && suiteConfigData.agentIds.length > 0
+          ? { agentIds: suiteConfigData.agentIds }
           : null;
 
       const suiteConfigResult = await createEvaluationSuiteConfigAction(tenantId, projectId, {
@@ -341,7 +340,9 @@ export function EvaluationRunConfigFormDialog({
                         evaluators.map((evaluator) => (
                           <div key={evaluator.id} className="flex items-start space-x-2">
                             <Checkbox
-                              checked={(suiteConfigForm.watch('evaluatorIds') || []).includes(evaluator.id)}
+                              checked={(suiteConfigForm.watch('evaluatorIds') || []).includes(
+                                evaluator.id
+                              )}
                               onCheckedChange={() => toggleEvaluator(evaluator.id)}
                               id={`eval-${evaluator.id}`}
                             />

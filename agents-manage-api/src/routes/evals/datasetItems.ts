@@ -1,8 +1,12 @@
+import { createRoute, OpenAPIHono, z } from '@hono/zod-openapi';
 import {
   commonGetErrorResponses,
   createApiError,
   createDatasetItem,
   createDatasetItems,
+  DatasetItemApiInsertSchema,
+  DatasetItemApiSelectSchema,
+  DatasetItemApiUpdateSchema,
   deleteDatasetItem,
   generateId,
   getDatasetItemById,
@@ -11,11 +15,7 @@ import {
   SingleResponseSchema,
   TenantProjectParamsSchema,
   updateDatasetItem,
-  DatasetItemApiSelectSchema,
-  DatasetItemApiInsertSchema,
-  DatasetItemApiUpdateSchema,
 } from '@inkeep/agents-core';
-import { z, createRoute, OpenAPIHono } from '@hono/zod-openapi';
 import { getLogger } from '../../logger';
 import type { BaseAppVariables } from '../../types/app';
 
@@ -237,15 +237,18 @@ app.openapi(
         { tenantId, projectId, datasetId, count: created.length },
         'Dataset items created'
       );
-      return c.json({
-        data: created as any,
-        pagination: {
-          page: 1,
-          limit: created.length,
-          total: created.length,
-          pages: 1,
+      return c.json(
+        {
+          data: created as any,
+          pagination: {
+            page: 1,
+            limit: created.length,
+            total: created.length,
+            pages: 1,
+          },
         },
-      }, 201) as any;
+        201
+      ) as any;
     } catch (error) {
       logger.error({ error, tenantId, projectId, datasetId }, 'Failed to create dataset items');
       return c.json(
@@ -370,4 +373,3 @@ app.openapi(
 );
 
 export default app;
-

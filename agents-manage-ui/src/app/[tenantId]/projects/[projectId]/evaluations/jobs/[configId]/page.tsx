@@ -3,11 +3,11 @@ import { EvaluationJobResults } from '@/components/evaluation-jobs/evaluation-jo
 import { BodyTemplate } from '@/components/layout/body-template';
 import { MainContent } from '@/components/layout/main-content';
 import { PageHeader } from '@/components/layout/page-header';
+import { fetchDatasetRun } from '@/lib/api/dataset-runs';
 import type { EvaluationJobFilterCriteria } from '@/lib/api/evaluation-job-configs';
 import { fetchEvaluationJobConfig } from '@/lib/api/evaluation-job-configs';
 import { fetchEvaluationResultsByJobConfig } from '@/lib/api/evaluation-results';
 import { fetchEvaluators } from '@/lib/api/evaluators';
-import { fetchDatasetRun } from '@/lib/api/dataset-runs';
 
 export const dynamic = 'force-dynamic';
 
@@ -47,9 +47,7 @@ async function EvaluationJobPage({
         ]}
       >
         <MainContent className="min-h-full">
-          <PageHeader
-            title={displayName}
-          />
+          <PageHeader title={displayName} />
           <EvaluationJobResults
             tenantId={tenantId}
             projectId={projectId}

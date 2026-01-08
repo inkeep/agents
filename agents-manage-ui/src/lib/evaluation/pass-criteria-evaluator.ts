@@ -124,4 +124,3 @@ export function formatPassCriteriaExpression(criteria: PassCriteria): string {
 
   return conditionStrings.join(` ${criteria.operator.toUpperCase()} `);
 }
-

@@ -199,11 +199,13 @@ describe('EvaluationService', () => {
     it('should run single-turn conversation successfully', async () => {
       const mockResponse = {
         ok: true,
-        text: vi.fn().mockResolvedValue(
-          `data: {"object":"chat.completion.chunk","choices":[{"delta":{"content":"Hello"}}]}\n` +
-            `data: {"object":"chat.completion.chunk","choices":[{"delta":{"content":" world"}}]}\n` +
-            `data: [DONE]`
-        ),
+        text: vi
+          .fn()
+          .mockResolvedValue(
+            `data: {"object":"chat.completion.chunk","choices":[{"delta":{"content":"Hello"}}]}\n` +
+              `data: {"object":"chat.completion.chunk","choices":[{"delta":{"content":" world"}}]}\n` +
+              `data: [DONE]`
+          ),
       };
 
       vi.mocked(global.fetch).mockResolvedValue(mockResponse as any);
@@ -274,9 +276,11 @@ describe('EvaluationService', () => {
     it('should map agent role to assistant role', async () => {
       const mockResponse = {
         ok: true,
-        text: vi.fn().mockResolvedValue(
-          `data: {"object":"chat.completion.chunk","choices":[{"delta":{"content":"Response"}}]}\n`
-        ),
+        text: vi
+          .fn()
+          .mockResolvedValue(
+            `data: {"object":"chat.completion.chunk","choices":[{"delta":{"content":"Response"}}]}\n`
+          ),
       };
 
       vi.mocked(global.fetch).mockResolvedValue(mockResponse as any);
@@ -307,9 +311,11 @@ describe('EvaluationService', () => {
     it('should handle string input as user message', async () => {
       const mockResponse = {
         ok: true,
-        text: vi.fn().mockResolvedValue(
-          `data: {"object":"chat.completion.chunk","choices":[{"delta":{"content":"Hi"}}]}\n`
-        ),
+        text: vi
+          .fn()
+          .mockResolvedValue(
+            `data: {"object":"chat.completion.chunk","choices":[{"delta":{"content":"Hi"}}]}\n`
+          ),
       };
 
       vi.mocked(global.fetch).mockResolvedValue(mockResponse as any);
@@ -334,9 +340,11 @@ describe('EvaluationService', () => {
     it('should handle error operations in SSE response', async () => {
       const mockResponse = {
         ok: true,
-        text: vi.fn().mockResolvedValue(
-          `data: {"type":"data-operation","data":{"type":"error","message":"Something went wrong"}}\n`
-        ),
+        text: vi
+          .fn()
+          .mockResolvedValue(
+            `data: {"type":"data-operation","data":{"type":"error","message":"Something went wrong"}}\n`
+          ),
       };
 
       vi.mocked(global.fetch).mockResolvedValue(mockResponse as any);
@@ -361,9 +369,11 @@ describe('EvaluationService', () => {
     it('should use bypass secret when apiKey is not provided', async () => {
       const mockResponse = {
         ok: true,
-        text: vi.fn().mockResolvedValue(
-          `data: {"object":"chat.completion.chunk","choices":[{"delta":{"content":"OK"}}]}\n`
-        ),
+        text: vi
+          .fn()
+          .mockResolvedValue(
+            `data: {"object":"chat.completion.chunk","choices":[{"delta":{"content":"OK"}}]}\n`
+          ),
       };
 
       vi.mocked(global.fetch).mockResolvedValue(mockResponse as any);
@@ -482,4 +492,3 @@ describe('EvaluationService', () => {
     });
   });
 });
-

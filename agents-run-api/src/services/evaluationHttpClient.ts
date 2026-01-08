@@ -4,13 +4,13 @@
  * bundle the workflow code and cause issues on Vercel.
  */
 
-import { getLogger } from '../logger.js';
-import { env } from '../env.js';
 import { EvalApiClient, InternalServices } from '@inkeep/agents-core';
+import { env } from '../env.js';
+import { getLogger } from '../logger.js';
 
 const logger = getLogger('evaluationHttpClient');
 
-type TriggerConversationEvaluationParams  = {
+type TriggerConversationEvaluationParams = {
   tenantId: string;
   projectId: string;
   conversationId: string;
@@ -22,7 +22,9 @@ type TriggerConversationEvaluationParams  = {
  * creating evaluation runs, and executing evaluators.
  * This is a fire-and-forget operation - we don't wait for the evaluation to complete.
  */
-export async function triggerConversationEvaluationHttp(params: TriggerConversationEvaluationParams): Promise<void> {
+export async function triggerConversationEvaluationHttp(
+  params: TriggerConversationEvaluationParams
+): Promise<void> {
   const evalApiClient = new EvalApiClient({
     apiUrl: env.INKEEP_AGENTS_EVAL_API_URL,
     tenantId: params.tenantId,
@@ -32,7 +34,7 @@ export async function triggerConversationEvaluationHttp(params: TriggerConversat
       internalServiceName: InternalServices.INKEEP_AGENTS_RUN_API,
     },
   });
-  
+
   try {
     const response = await evalApiClient.triggerConversationEvaluation({
       conversationId: params.conversationId,
@@ -47,14 +49,13 @@ export async function triggerConversationEvaluationHttp(params: TriggerConversat
         'Failed to trigger conversation evaluation via HTTP'
       );
       throw new Error(response.message);
-    } else {
-      logger.info(
-        {
-          conversationId: params.conversationId,
-        },
-        'Conversation evaluation triggered via HTTP'
-      );
     }
+    logger.info(
+      {
+        conversationId: params.conversationId,
+      },
+      'Conversation evaluation triggered via HTTP'
+    );
   } catch (error) {
     logger.error(
       {
@@ -65,4 +66,3 @@ export async function triggerConversationEvaluationHttp(params: TriggerConversat
     );
   }
 }
-

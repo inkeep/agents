@@ -95,17 +95,17 @@ export function EvaluationJobFormDialog({
 
     try {
       let jobFilters = data.jobFilters;
-      
+
       // Transform date strings to ISO timestamps with proper timezone handling
       if (jobFilters?.dateRange?.startDate && jobFilters?.dateRange?.endDate) {
         const [sy, sm, sd] = jobFilters.dateRange.startDate.split('-').map(Number);
         const [ey, em, ed] = jobFilters.dateRange.endDate.split('-').map(Number);
-        
+
         // Start of day in local timezone (00:00:00.000)
         const startDate = new Date(sy, sm - 1, sd, 0, 0, 0, 0);
         // End of day in local timezone (23:59:59.999)
         const endDate = new Date(ey, em - 1, ed, 23, 59, 59, 999);
-        
+
         jobFilters = {
           ...jobFilters,
           dateRange: {

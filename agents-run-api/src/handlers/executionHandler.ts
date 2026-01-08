@@ -10,6 +10,7 @@ import {
   setSpanWithError,
   updateTask,
 } from '@inkeep/agents-core';
+import { resolveModelConfig } from 'src/utils/model-resolver.js';
 import { tracer } from 'src/utils/tracer.js';
 import { A2AClient } from '../a2a/client.js';
 import { executeTransfer } from '../a2a/transfer.js';
@@ -19,12 +20,11 @@ import dbClient from '../data/db/dbClient.js';
 import { flushBatchProcessor } from '../instrumentation.js';
 import { getLogger } from '../logger.js';
 import { agentSessionManager } from '../services/AgentSession.js';
-import { triggerConversationEvaluationHttp } from '../services/evaluationHttpClient.js';  
+import { triggerConversationEvaluationHttp } from '../services/evaluationHttpClient.js';
 import { agentInitializingOp, completionOp, errorOp } from '../utils/agent-operations.js';
 import type { StreamHelper } from '../utils/stream-helpers.js';
 import { BufferingStreamHelper } from '../utils/stream-helpers.js';
 import { registerStreamHelper, unregisterStreamHelper } from '../utils/stream-registry.js';
-import { resolveModelConfig } from 'src/utils/model-resolver.js';
 
 const logger = getLogger('ExecutionHandler');
 
@@ -525,7 +525,7 @@ export class ExecutionHandler {
               }
 
               logger.info({}, 'ExecutionHandler returning success');
-              // Trigger evaluation 
+              // Trigger evaluation
               if (!params.datasetRunId) {
                 triggerConversationEvaluationHttp({
                   tenantId,

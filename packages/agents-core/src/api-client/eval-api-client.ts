@@ -4,7 +4,7 @@ import type {
   TriggerEvaluationJobRequest,
 } from '../types/entities';
 import { getLogger } from '../utils/logger';
-import { BaseApiClient, BaseApiError, type BaseApiClientConfig } from './base-client';
+import { BaseApiClient, type BaseApiClientConfig, BaseApiError } from './base-client';
 
 const logger = getLogger('eval-api-client');
 

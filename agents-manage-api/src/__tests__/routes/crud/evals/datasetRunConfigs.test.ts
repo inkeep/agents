@@ -45,13 +45,10 @@ describe('Dataset Run Configs CRUD Routes - Integration Tests', () => {
       name: 'Test Agent',
       systemPrompt: 'You are a test agent',
     };
-    const createRes = await makeRequest(
-      `/tenants/${tenantId}/projects/${projectId}/agents`,
-      {
-        method: 'POST',
-        body: JSON.stringify(agentData),
-      }
-    );
+    const createRes = await makeRequest(`/tenants/${tenantId}/projects/${projectId}/agents`, {
+      method: 'POST',
+      body: JSON.stringify(agentData),
+    });
     expect(createRes.status).toBe(201);
     const createBody = await createRes.json();
     return { agentId: createBody.data.id };
@@ -359,4 +356,3 @@ describe('Dataset Run Configs CRUD Routes - Integration Tests', () => {
     });
   });
 });
-

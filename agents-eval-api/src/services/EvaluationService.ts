@@ -125,8 +125,7 @@ export class EvaluationService {
    * Supports multi-turn conversations with simulation agents
    */
   async runDatasetItem(options: RunDatasetItemOptions): Promise<ChatApiResponse> {
-    const { tenantId, projectId, agentId, datasetItem, datasetRunId, apiKey } =
-      options;
+    const { tenantId, projectId, agentId, datasetItem, datasetRunId, apiKey } = options;
 
     try {
       // Extract messages from dataset item input

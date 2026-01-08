@@ -125,7 +125,10 @@ describe('Agent Full Service Layer - Unit Tests', () => {
         updatedAt: new Date().toISOString(),
       };
 
-      const result = await createFullAgentServerSide(manageDbClient)({ tenantId, projectId }, agentData);
+      const result = await createFullAgentServerSide(manageDbClient)(
+        { tenantId, projectId },
+        agentData
+      );
 
       expect(result).toBeDefined();
       expect(result.id).toBe(agentData.id);
@@ -141,7 +144,10 @@ describe('Agent Full Service Layer - Unit Tests', () => {
 
       const agentData = createFullAgentData();
 
-      const result = await createFullAgentServerSide(manageDbClient)({ tenantId, projectId }, agentData);
+      const result = await createFullAgentServerSide(manageDbClient)(
+        { tenantId, projectId },
+        agentData
+      );
 
       expect(result).toBeDefined();
       expect(result.id).toBe(agentData.id);
@@ -192,7 +198,10 @@ describe('Agent Full Service Layer - Unit Tests', () => {
         updatedAt: new Date().toISOString(),
       };
 
-      const result = await createFullAgentServerSide(manageDbClient)({ tenantId, projectId }, agentData);
+      const result = await createFullAgentServerSide(manageDbClient)(
+        { tenantId, projectId },
+        agentData
+      );
 
       expect(result).toBeDefined();
       expect(result.id).toBe(agentId);
@@ -245,7 +254,10 @@ describe('Agent Full Service Layer - Unit Tests', () => {
 
       const agentData = createFullAgentData(undefined, { includeDataComponents: true });
 
-      const result = await createFullAgentServerSide(manageDbClient)({ tenantId, projectId }, agentData);
+      const result = await createFullAgentServerSide(manageDbClient)(
+        { tenantId, projectId },
+        agentData
+      );
 
       expect(result).toBeDefined();
       expect(result.id).toBe(agentData.id);
@@ -269,7 +281,10 @@ describe('Agent Full Service Layer - Unit Tests', () => {
 
       const agentData = createFullAgentData(undefined, { includeExternalAgents: true });
 
-      const result = await createFullAgentServerSide(manageDbClient)({ tenantId, projectId }, agentData);
+      const result = await createFullAgentServerSide(manageDbClient)(
+        { tenantId, projectId },
+        agentData
+      );
 
       expect(result).toBeDefined();
       expect(result.id).toBe(agentData.id);
@@ -295,7 +310,10 @@ describe('Agent Full Service Layer - Unit Tests', () => {
 
       const agentData = createFullAgentData(undefined, { includeContextConfig: true });
 
-      const result = await createFullAgentServerSide(manageDbClient)({ tenantId, projectId }, agentData);
+      const result = await createFullAgentServerSide(manageDbClient)(
+        { tenantId, projectId },
+        agentData
+      );
 
       expect(result).toBeDefined();
       expect(result.id).toBe(agentData.id);
@@ -313,7 +331,10 @@ describe('Agent Full Service Layer - Unit Tests', () => {
         includeContextConfig: true,
       });
 
-      const result = await createFullAgentServerSide(manageDbClient)({ tenantId, projectId }, agentData);
+      const result = await createFullAgentServerSide(manageDbClient)(
+        { tenantId, projectId },
+        agentData
+      );
 
       expect(result).toBeDefined();
       expect(result.id).toBe(agentData.id);
@@ -419,7 +440,10 @@ describe('Agent Full Service Layer - Unit Tests', () => {
       const agentData = createFullAgentData();
 
       // Update non-existent agent (should create)
-      const result = await updateFullAgentServerSide(manageDbClient)({ tenantId, projectId }, agentData);
+      const result = await updateFullAgentServerSide(manageDbClient)(
+        { tenantId, projectId },
+        agentData
+      );
 
       expect(result).toBeDefined();
       expect(result.id).toBe(agentData.id);

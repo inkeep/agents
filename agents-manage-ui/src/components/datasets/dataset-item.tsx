@@ -17,13 +17,7 @@ export interface DatasetItemProps extends Dataset {
   projectId: string;
 }
 
-export function DatasetItem({
-  id,
-  name,
-  createdAt,
-  tenantId,
-  projectId,
-}: DatasetItemProps) {
+export function DatasetItem({ id, name, createdAt, tenantId, projectId }: DatasetItemProps) {
   const linkPath = `/${tenantId}/projects/${projectId}/datasets/${id}`;
 
   return (

@@ -111,7 +111,7 @@ export async function fetchAllSpanAttributes_SQL(
 
     try {
       let response;
-      
+
       // For server-to-server calls (no cookies), call SigNoz directly
       if (shouldCallSigNozDirectly(cookieHeader)) {
         const endpoint = getSigNozEndpoint();

@@ -199,9 +199,7 @@ describe('Evaluation API App', () => {
       });
 
       expect(res.status).toBe(200);
-      expect(global.fetch).toHaveBeenCalledWith(
-        expect.any(Request)
-      );
+      expect(global.fetch).toHaveBeenCalledWith(expect.any(Request));
 
       // Restore fetch
       global.fetch = originalFetch;
@@ -281,4 +279,3 @@ describe('API Error Response Format', () => {
     expect(res.status).toBe(404);
   });
 });
-

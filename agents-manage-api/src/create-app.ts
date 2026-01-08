@@ -19,6 +19,7 @@ import { sessionAuth } from './middleware/session-auth';
 import { requireTenantAccess } from './middleware/tenant-access';
 import { setupOpenAPIRoutes } from './openapi';
 import cliAuthRoutes from './routes/cliAuth';
+import evalsRoutes from './routes/evals';
 import crudRoutes from './routes/index';
 import invitationsRoutes from './routes/invitations';
 import mcpRoutes from './routes/mcp';
@@ -33,7 +34,6 @@ import {
   isOriginAllowed,
   playgroundCorsConfig,
 } from './utils/cors';
-import evalsRoutes from './routes/evals';
 
 const logger = getLogger('agents-manage-api');
 

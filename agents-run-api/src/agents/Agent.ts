@@ -1233,12 +1233,15 @@ export class Agent {
         apiUrl: env.INKEEP_AGENTS_MANAGE_API_URL,
         tenantId: this.config.tenantId,
         projectId: this.config.projectId,
-        auth: { mode: 'internalService', internalServiceName: InternalServices.INKEEP_AGENTS_RUN_API },
+        auth: {
+          mode: 'internalService',
+          internalServiceName: InternalServices.INKEEP_AGENTS_RUN_API,
+        },
         ref: this.executionContext.resolvedRef.name,
       });
       const functionToolsForAgent = await client.getFunctionToolsForSubAgent(
         this.config.agentId,
-        this.config.id,
+        this.config.id
       );
 
       const functionToolsData = functionToolsForAgent ?? [];

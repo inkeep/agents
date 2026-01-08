@@ -1,4 +1,9 @@
-import { type FullExecutionContext, InternalServices, ManageApiError, ManagementApiClient } from '@inkeep/agents-core';
+import {
+  type FullExecutionContext,
+  InternalServices,
+  ManageApiError,
+  ManagementApiClient,
+} from '@inkeep/agents-core';
 import { createMiddleware } from 'hono/factory';
 
 import { env } from '../env';
@@ -35,7 +40,10 @@ export const projectConfigMiddleware = createMiddleware<{
       apiUrl: env.INKEEP_AGENTS_MANAGE_API_URL,
       tenantId,
       projectId,
-      auth: { mode: 'internalService', internalServiceName: InternalServices.INKEEP_AGENTS_RUN_API },
+      auth: {
+        mode: 'internalService',
+        internalServiceName: InternalServices.INKEEP_AGENTS_RUN_API,
+      },
       ref,
     });
 

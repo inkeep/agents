@@ -1,29 +1,29 @@
+import { createRoute, OpenAPIHono, z } from '@hono/zod-openapi';
 import {
   commonGetErrorResponses,
   createApiError,
   createEvaluationJobConfig,
   createEvaluationJobConfigEvaluatorRelation,
   deleteEvaluationJobConfig,
+  EvalApiClient,
+  EvaluationJobConfigApiInsertSchema,
+  EvaluationJobConfigApiSelectSchema,
+  EvaluationResultApiSelectSchema,
   generateId,
   getConversation,
   getEvaluationJobConfigById,
   getMessagesByConversation,
+  InternalServices,
   ListResponseSchema,
   listEvaluationJobConfigs,
   listEvaluationResultsByRun,
   listEvaluationRuns,
   SingleResponseSchema,
   TenantProjectParamsSchema,
-  EvaluationJobConfigApiSelectSchema,
-  EvaluationJobConfigApiInsertSchema,
-  EvaluationResultApiSelectSchema,
-  EvalApiClient,
-  InternalServices,
 } from '@inkeep/agents-core';
-import { z, createRoute, OpenAPIHono } from '@hono/zod-openapi';
-import { getLogger } from '../../logger';
 import runDbClient from '../../data/db/runDbClient';
 import { env } from '../../env';
+import { getLogger } from '../../logger';
 import type { BaseAppVariables } from '../../types/app';
 
 const app = new OpenAPIHono<{ Variables: BaseAppVariables }>();
@@ -360,7 +360,10 @@ app.openapi(
       const conversationInputs = new Map<string, string>();
       const conversationAgents = new Map<string, string>();
 
-      logger.info({ uniqueConversationIds }, '=== FETCHING INPUTS FOR JOB CONFIG CONVERSATIONS ===');
+      logger.info(
+        { uniqueConversationIds },
+        '=== FETCHING INPUTS FOR JOB CONFIG CONVERSATIONS ==='
+      );
 
       await Promise.all(
         uniqueConversationIds.map(async (conversationId: string) => {
@@ -370,9 +373,9 @@ app.openapi(
               scopes: { tenantId, projectId },
               conversationId,
             });
-            
+
             if (conversation?.agentId) {
-                conversationAgents.set(conversationId, conversation.agentId);
+              conversationAgents.set(conversationId, conversation.agentId);
             }
 
             logger.info({ conversationId }, 'Fetching messages for conversation');
@@ -383,14 +386,18 @@ app.openapi(
             });
 
             logger.info(
-              { conversationId, messageCount: messages.length, messages: messages.map(m => ({ role: m.role, content: m.content })) },
+              {
+                conversationId,
+                messageCount: messages.length,
+                messages: messages.map((m) => ({ role: m.role, content: m.content })),
+              },
               'Found messages for conversation'
             );
 
             const messagesChronological = [...messages].reverse();
             const firstUserMessage = messagesChronological.find((msg) => msg.role === 'user');
             logger.info({ conversationId, firstUserMessage }, 'First user message found');
-            
+
             if (firstUserMessage?.content) {
               const text =
                 typeof firstUserMessage.content === 'string'
@@ -407,7 +414,10 @@ app.openapi(
         })
       );
 
-      logger.info({ conversationInputs: Array.from(conversationInputs.entries()) }, '=== CONVERSATION INPUTS MAP ===');
+      logger.info(
+        { conversationInputs: Array.from(conversationInputs.entries()) },
+        '=== CONVERSATION INPUTS MAP ==='
+      );
 
       const enrichedResults = results.map((result) => ({
         ...result,
@@ -416,7 +426,13 @@ app.openapi(
       }));
 
       logger.info(
-        { enrichedResults: enrichedResults.map(r => ({ id: r.id, conversationId: r.conversationId, input: r.input })) },
+        {
+          enrichedResults: enrichedResults.map((r) => ({
+            id: r.id,
+            conversationId: r.conversationId,
+            input: r.input,
+          })),
+        },
         '=== ENRICHED RESULTS ==='
       );
 
@@ -451,4 +467,3 @@ app.openapi(
 );
 
 export default app;
-
