@@ -62,6 +62,26 @@ Navigate to the **Activities Planner** agent at http://localhost:3000 and ask ab
 
 ![Chat with your agent](https://docs.inkeep.com/gifs/activities-planner.gif) 
 
+### CLI Profile Setup
+
+The Inkeep CLI uses profiles to manage connections to different environments. By default, the CLI connects to Inkeep Cloud.
+
+For local/self-hosted development, initialize with the `--local` flag to set up a local profile:
+
+```bash
+# Initialize for local development (sets local profile as default)
+inkeep init --local
+```
+
+This creates a `local` profile pointing to `localhost:3002` (Management API) and `localhost:3003` (Run API), and sets it as the active profile.
+
+Without `--local`, the CLI defaults to cloud:
+
+```bash
+# Initialize for Inkeep Cloud (default)
+inkeep init
+```
+
 ### Next steps
 
 - Learn about [inkeep push / pull](https://docs.inkeep.com/get-started/push-pull) so you can go from `SDK -> Visual Builder` and `Visual Builder -> SDK`.
