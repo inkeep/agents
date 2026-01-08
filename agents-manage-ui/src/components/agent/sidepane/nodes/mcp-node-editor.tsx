@@ -1,12 +1,5 @@
 import { type Node, useReactFlow } from '@xyflow/react';
-import {
-  AlertTriangle,
-  Check,
-  CircleAlert,
-  Shield,
-  Trash2,
-  X,
-} from 'lucide-react';
+import { AlertTriangle, Check, CircleAlert, Shield, Trash2, X } from 'lucide-react';
 import Link from 'next/link';
 import { useParams } from 'next/navigation';
 import { useCallback, useEffect, useState } from 'react';
