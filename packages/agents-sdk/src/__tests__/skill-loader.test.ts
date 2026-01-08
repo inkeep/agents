@@ -67,7 +67,7 @@ description: Extracts PDFs.
 ---`,
     });
 
-    expect(() => loadSkills(root)).toThrow();
+    expect(() => loadSkills(root)).toThrow('');
   });
 
   it.skip('rejects names with consecutive hyphens', async () => {
@@ -79,7 +79,7 @@ description: Extracts PDFs.
 ---`,
     });
 
-    expect(() => loadSkills(root)).toThrow();
+    expect(() => loadSkills(root)).toThrow('');
   });
 
   it.skip('rejects names longer than 64 characters', async () => {
@@ -92,38 +92,38 @@ description: Extracts PDFs.
 ---`,
     });
 
-    expect(() => loadSkills(root)).toThrow();
+    expect(() => loadSkills(root)).toThrow('');
   });
 
-  it.skip('rejects names that do not match the directory', async () => {
+  it('rejects names that do not match the directory', async () => {
     const root = await createSkill({
-      dirName: 'pdf-processing',
+      dirName: 'y',
       content: `---
-name: data-analysis
-description: Extracts PDFs.
+name: x
+description: x
 ---`,
     });
 
-    expect(() => loadSkills(root)).toThrow();
+    expect(() => loadSkills(root)).toThrow('Skill name "x" does not match directory "y"');
   });
 
   it('rejects empty descriptions', async () => {
     const root = await createSkill({
       dirName: 'pdf-processing',
       content: `---
-name: pdf-processing
-description: "   "
+name: x
+description: " "
 ---`,
     });
 
-    expect(() => loadSkills(root)).toThrow();
+    expect(() => loadSkills(root)).toThrow('Too small: expected string to have >=1 characters');
   });
 
   it('rejects descriptions longer than 1024 characters', async () => {
     const root = await createSkill({
       dirName: 'pdf-processing',
       content: `---
-name: pdf-processing
+name: x
 description: ${'a'.repeat(1025)}
 ---`,
     });
@@ -138,7 +138,7 @@ description: ${'a'.repeat(1025)}
 name: x
 description: x
 metadata:
-  author: 123
+  author: 0
 ---`,
     });
 
