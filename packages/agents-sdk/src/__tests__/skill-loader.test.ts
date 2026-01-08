@@ -29,8 +29,7 @@ describe('skill-loader', () => {
   it.skip('loads a skill with required fields', async () => {
     const root = await createSkill({
       dirName: 'pdf-processing',
-      content: `
----
+      content: `---
 name: pdf-processing
 description: Extracts PDFs.
 ---`,
@@ -46,7 +45,7 @@ description: Extracts PDFs.
   it.skip('accepts metadata with string values', async () => {
     const root = await createSkill({
       dirName: 'data-analysis',
-      content: `
+      content: `---
 name: data-analysis
 description: Analyzes datasets.
 metadata:
@@ -62,8 +61,7 @@ metadata:
   it.skip('rejects uppercase names', async () => {
     const root = await createSkill({
       dirName: 'pdf-processing',
-      content: `
----
+      content: `---
 name: PDF-Processing
 description: Extracts PDFs.
 ---`,
@@ -75,8 +73,7 @@ description: Extracts PDFs.
   it.skip('rejects names with consecutive hyphens', async () => {
     const root = await createSkill({
       dirName: 'pdf--processing',
-      content: `
----
+      content: `---
 name: pdf--processing
 description: Extracts PDFs.
 ---`,
@@ -89,8 +86,7 @@ description: Extracts PDFs.
     const name = 'a'.repeat(65);
     const root = await createSkill({
       dirName: name,
-      content: `
----
+      content: `---
 name: ${name}
 description: Extracts PDFs.
 ---`,
@@ -102,7 +98,7 @@ description: Extracts PDFs.
   it.skip('rejects names that do not match the directory', async () => {
     const root = await createSkill({
       dirName: 'pdf-processing',
-      content: `
+      content: `---
 name: data-analysis
 description: Extracts PDFs.
 ---`,
@@ -111,11 +107,10 @@ description: Extracts PDFs.
     expect(() => loadSkills(root)).toThrow();
   });
 
-  it.skip('rejects empty descriptions', async () => {
+  it('rejects empty descriptions', async () => {
     const root = await createSkill({
       dirName: 'pdf-processing',
-      content: `
----
+      content: `---
 name: pdf-processing
 description: "   "
 ---`,
@@ -124,25 +119,24 @@ description: "   "
     expect(() => loadSkills(root)).toThrow();
   });
 
-  it.skip('rejects descriptions longer than 1024 characters', async () => {
+  it('rejects descriptions longer than 1024 characters', async () => {
     const root = await createSkill({
       dirName: 'pdf-processing',
-      content: `
----
+      content: `---
 name: pdf-processing
 description: ${'a'.repeat(1025)}
 ---`,
     });
 
-    expect(() => loadSkills(root)).toThrow();
+    expect(() => loadSkills(root)).toThrow('Too big: expected string to have <=1024 characters');
   });
 
   it('rejects metadata with non-string values', async () => {
     const root = await createSkill({
       dirName: 'data-analysis',
       content: `---
-name: X
-description: X
+name: x
+description: x
 metadata:
   author: 123
 ---`,
