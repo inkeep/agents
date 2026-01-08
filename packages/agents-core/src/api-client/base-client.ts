@@ -88,6 +88,8 @@ export interface BaseApiClientConfig {
   projectId: string;
   auth: BaseApiClientAuth;
   ref?: string;
+  userId?: string;
+  userEmail?: string;
 }
 
 export abstract class BaseApiClient {
@@ -98,7 +100,9 @@ export abstract class BaseApiClient {
   protected isCI: boolean;
   protected internalServiceName?: InternalServiceId;
   protected ref?: string;
-
+  protected userId?: string;
+  protected userEmail?: string;
+  
   protected constructor(config: BaseApiClientConfig) {
     this.apiUrl = config.apiUrl;
     this.tenantId = config.tenantId;
@@ -108,6 +112,8 @@ export abstract class BaseApiClient {
     this.internalServiceName =
       config.auth.mode === 'internalService' ? config.auth.internalServiceName : undefined;
     this.ref = config.ref;
+    this.userId = config.userId;
+    this.userEmail = config.userEmail;
   }
 
   protected checkTenantId(): string {
@@ -149,6 +155,7 @@ export abstract class BaseApiClient {
         serviceId: this.internalServiceName,
         tenantId,
         projectId: this.projectId,
+        userId: this.userId,
       });
       return { Authorization: `Bearer ${token}` };
     }

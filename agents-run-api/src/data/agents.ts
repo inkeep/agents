@@ -119,7 +119,6 @@ async function hydrateAgent({
   apiKey,
   credentialStoreRegistry,
   sandboxConfig,
-  userId,
 }: {
   dbAgent: FullAgentSubAgentSelectWithRelationIds;
   executionContext: FullExecutionContext;
@@ -127,7 +126,6 @@ async function hydrateAgent({
   apiKey?: string;
   credentialStoreRegistry?: CredentialStoreRegistry;
   sandboxConfig?: SandboxConfig;
-  userId?: string;
 }): Promise<RegisteredAgent> {
   try {
     // Create task handler for the agent
@@ -137,7 +135,6 @@ async function hydrateAgent({
       baseUrl,
       apiKey,
       sandboxConfig,
-      userId,
     });
     const { tenantId, projectId, agentId } = executionContext;
     const taskHandler = createTaskHandler(taskHandlerConfig, credentialStoreRegistry);
@@ -176,7 +173,6 @@ export async function getRegisteredAgent(params: {
 }): Promise<RegisteredAgent | null> {
   const { executionContext, credentialStoreRegistry, sandboxConfig } = params;
   const { agentId, subAgentId, baseUrl, apiKey, project } = executionContext;
-  const userId = getUserIdFromContext(executionContext);
 
   // Get sub-agent from the pre-fetched project definition
   const dbAgent = getSubAgentFromProject({ project, agentId, subAgentId });
@@ -197,6 +193,5 @@ export async function getRegisteredAgent(params: {
     credentialStoreRegistry,
     apiKey,
     sandboxConfig,
-    userId,
   });
 }

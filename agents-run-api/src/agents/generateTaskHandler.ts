@@ -14,7 +14,7 @@ import type { A2ATask, A2ATaskResult } from '../a2a/types';
 import { env } from '../env';
 import { getLogger } from '../logger';
 import { agentSessionManager } from '../services/AgentSession';
-import type { SandboxConfig } from '../types/execution-context';
+import { getUserIdFromContext, type SandboxConfig } from '../types/execution-context';
 import { resolveModelConfig } from '../utils/model-resolver';
 import {
   enhanceInternalRelation,
@@ -158,6 +158,7 @@ export const createTaskHandler = (
           internalServiceName: InternalServices.INKEEP_AGENTS_RUN_API,
         },
         ref: resolvedRef.name,
+        userId: config.userId,
       });
       const toolsForAgentResult: McpTool[] =
         (await Promise.all(
@@ -536,7 +537,6 @@ export const createTaskHandlerConfig = async (params: {
   baseUrl: string;
   apiKey?: string;
   sandboxConfig?: SandboxConfig;
-  userId?: string;
 }): Promise<TaskHandlerConfig> => {
   const { executionContext, subAgentId, baseUrl, apiKey, sandboxConfig } = params;
   const { project, agentId } = executionContext;
@@ -573,6 +573,6 @@ export const createTaskHandlerConfig = async (params: {
     conversationHistoryConfig: effectiveConversationHistoryConfig as AgentConversationHistoryConfig,
     contextConfigId: agent?.contextConfig?.id || undefined,
     sandboxConfig,
-    userId: params.userId,
+    userId: getUserIdFromContext(executionContext),
   };
 };

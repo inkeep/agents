@@ -35,6 +35,7 @@ import {
   getTransferRelationsForTargetSubAgent,
   type InternalRelation,
 } from '../utils/project';
+import { getUserIdFromContext } from '../types/execution-context';
 import type { AgentConfig, DelegateRelation } from './Agent';
 import { toolSessionManager } from './ToolSessionManager';
 
@@ -519,6 +520,7 @@ export async function buildTransferRelationConfig(
     projectId,
     auth: { mode: 'internalService', internalServiceName: InternalServices.INKEEP_AGENTS_RUN_API },
     ref: executionContext.resolvedRef.name,
+    userId: getUserIdFromContext(executionContext),
   });
   const targetAgentTools: McpTool[] = await Promise.all(
     targetToolsForSubAgent.map(async (item) => {

@@ -7,6 +7,7 @@
 import { EvalApiClient, InternalServices } from '@inkeep/agents-core';
 import { env } from '../env.js';
 import { getLogger } from '../logger.js';
+import { getUserIdFromContext } from 'src/types/execution-context.js';
 
 const logger = getLogger('evaluationHttpClient');
 
@@ -14,6 +15,7 @@ type TriggerConversationEvaluationParams = {
   tenantId: string;
   projectId: string;
   conversationId: string;
+  userId?: string;
 };
 
 /**
@@ -33,6 +35,7 @@ export async function triggerConversationEvaluationHttp(
       mode: 'internalService',
       internalServiceName: InternalServices.INKEEP_AGENTS_RUN_API,
     },
+    userId: params.userId,
   });
 
   try {

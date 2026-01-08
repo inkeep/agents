@@ -196,7 +196,7 @@ const discoverToolsFromServer = async (
       name: tool.name,
       server: serverConfig,
     });
-
+    
     await client.connect();
 
     const serverTools = await client.tools();

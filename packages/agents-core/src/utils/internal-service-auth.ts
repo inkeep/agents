@@ -34,6 +34,8 @@ export interface InternalServiceTokenPayload {
   tenantId?: string;
   /** Project ID scope (optional - for project-scoped operations) */
   projectId?: string;
+    /** User ID scope (optional - indicates the user that originally authenticated the service) */
+  userId?: string;
   /** Issued at timestamp */
   iat: number;
   /** Expiration timestamp */
@@ -49,6 +51,8 @@ export interface GenerateInternalServiceTokenParams {
   tenantId?: string;
   /** Optional project scope */
   projectId?: string;
+  /** Optional user ID scope - indicates the user that originally authenticated the service */
+  userId?: string;
   /** Token expiry (default: '5m') */
   expiresIn?: string;
 }
@@ -72,6 +76,9 @@ export async function generateInternalServiceToken(
     }
     if (params.projectId) {
       claims.projectId = params.projectId;
+    }
+    if (params.userId) {
+      claims.userId = params.userId;
     }
 
     const token = await signJwt({
@@ -139,6 +146,7 @@ export async function verifyInternalServiceToken(
     sub: payload.sub as InternalServiceId,
     tenantId: payload.tenantId as string | undefined,
     projectId: payload.projectId as string | undefined,
+    userId: payload.userId as string | undefined,
     iat: payload.iat as number,
     exp: payload.exp as number,
   };
@@ -148,6 +156,7 @@ export async function verifyInternalServiceToken(
       serviceId: validPayload.sub,
       tenantId: validPayload.tenantId,
       projectId: validPayload.projectId,
+      userId: validPayload.userId,
     },
     'Successfully verified internal service token'
   );

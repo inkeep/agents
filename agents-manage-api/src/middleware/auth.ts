@@ -129,11 +129,12 @@ export const apiKeyAuth = () =>
           serviceId: result.payload.sub,
           tenantId: result.payload.tenantId,
           projectId: result.payload.projectId,
+          userId: result.payload.userId,
         },
         'Internal service authenticated'
       );
 
-      c.set('userId', `system`);
+      c.set('userId', result.payload.userId || `system`);
       c.set('userEmail', `${result.payload.sub}@internal.inkeep`);
 
       // If token has tenant scope, set it

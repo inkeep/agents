@@ -25,6 +25,7 @@ import { agentInitializingOp, completionOp, errorOp } from '../utils/agent-opera
 import type { StreamHelper } from '../utils/stream-helpers.js';
 import { BufferingStreamHelper } from '../utils/stream-helpers.js';
 import { registerStreamHelper, unregisterStreamHelper } from '../utils/stream-registry.js';
+import { getUserIdFromContext } from 'src/types/execution-context.js';
 
 const logger = getLogger('ExecutionHandler');
 
@@ -588,6 +589,7 @@ export class ExecutionHandler {
               tenantId,
               projectId,
               conversationId,
+              userId: getUserIdFromContext(executionContext),
             }).catch((error) => {
               logger.error(
                 { error, conversationId, tenantId, projectId },
