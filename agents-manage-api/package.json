@@ -34,7 +34,7 @@
     "@hono/swagger-ui": "^0.5.1",
     "@inkeep/agents-core": "workspace:^",
     "@inkeep/agents-manage-mcp": "workspace:^",
-    "@modelcontextprotocol/sdk": "1.24.3",
+    "@modelcontextprotocol/sdk": "1.25.2",
     "axios": "^1.7.9",
     "drizzle-orm": "^0.44.4",
     "hono": "^4.10.4",
