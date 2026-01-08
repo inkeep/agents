@@ -58,27 +58,27 @@ metadata:
     expect(skill.metadata).toEqual({ author: 'example-org', version: '1.0' });
   });
 
-  it.skip('rejects uppercase names', async () => {
+  it('rejects uppercase names', async () => {
     const root = await createSkill({
-      dirName: 'pdf-processing',
+      dirName: 'x',
       content: `---
 name: PDF-Processing
-description: Extracts PDFs.
+description: x
 ---`,
     });
-
-    expect(() => loadSkills(root)).toThrow('');
+    expect(() => loadSkills(root)).toThrow(
+      'May only contain lowercase alphanumeric characters and hyphens (a-z, 0-9, -)'
+    );
   });
 
   it('rejects names with consecutive hyphens', async () => {
     const root = await createSkill({
-      dirName: 'pdf--processing',
+      dirName: 'x',
       content: `---
 name: pdf--processing
 description: x
 ---`,
     });
-
     expect(() => loadSkills(root)).toThrow('Must not contain consecutive hyphens (--)');
   });
 
