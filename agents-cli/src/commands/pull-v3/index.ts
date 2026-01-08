@@ -92,7 +92,7 @@ interface ProjectPaths {
   credentialsDir: string;
   contextConfigsDir: string;
   externalAgentsDir: string;
-  policiesDir: string;
+  skillsDir: string;
 }
 
 /**
@@ -112,7 +112,7 @@ function createProjectStructure(projectDir: string, projectId: string): ProjectP
     credentialsDir: join(projectRoot, 'credentials'),
     contextConfigsDir: join(projectRoot, 'context-configs'),
     externalAgentsDir: join(projectRoot, 'external-agents'),
-    policiesDir: join(projectRoot, 'policies'),
+    skillsDir: join(projectRoot, 'skills'),
   };
 
   // Ensure all directories exist
