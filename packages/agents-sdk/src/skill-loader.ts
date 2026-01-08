@@ -1,6 +1,6 @@
 import fs from 'node:fs';
 import path from 'node:path';
-import matter from 'gray-matter';
+import { simplematter } from 'simplematter';
 import { z } from 'zod';
 import type { SkillDefinition } from './types';
 
@@ -18,14 +18,15 @@ function toSkillId(filePath: string): string {
 }
 
 export function loadSkills(directoryPath: string): SkillDefinition[] {
-  const files = fs.globSync('**/*.{md,mdx}', {
+  const files = fs.globSync('*/SKILL.md', {
     cwd: directoryPath,
   });
+
   return files.map((filePath) => {
     const resolvedPath = path.join(directoryPath, filePath);
     const fileContent = fs.readFileSync(resolvedPath, 'utf8');
-    const { data, content } = matter(fileContent);
-    const { name, description, metadata } = frontmatterSchema.parse(data);
+    const [frontmatter, document] = simplematter(fileContent);
+    const { name, description, metadata } = frontmatterSchema.parse(frontmatter);
     const id = toSkillId(filePath);
 
     return {
@@ -33,7 +34,7 @@ export function loadSkills(directoryPath: string): SkillDefinition[] {
       name,
       description,
       metadata,
-      content: content.trim(),
+      content: document.trim(),
     };
   });
 }

@@ -1053,12 +1053,12 @@ importers:
       '@yarnpkg/lockfile':
         specifier: ^1.1.0
         version: 1.1.0
-      gray-matter:
-        specifier: ^4.0.3
-        version: 4.0.3
       js-yaml:
         specifier: ^4.1.0
         version: 4.1.1
+      simplematter:
+        specifier: ^1.0.0
+        version: 1.0.0
       typescript:
         specifier: ^5.3.3
         version: 5.9.3
@@ -10984,6 +10984,9 @@ packages:
 
   simple-get@4.0.1:
     resolution: {integrity: sha512-brv7p5WgH0jmQJr1ZDDfKDOSeWWg+OVypG99A/5vYGPqJ6pxiaHLy8nxtFjBA7oMa01ebA9gfh1uMCFqOuXxvA==}
+
+  simplematter@1.0.0:
+    resolution: {integrity: sha512-z0M4aZuAq973AzUhV5sydCaVlBP3pXAskPtWVpFjwy7ubeDyrGxh+qqyixZCudyhfHvQTqJlU0dDbd9MEUyldw==}
 
   sisteransi@1.0.5:
     resolution: {integrity: sha512-bLGGlR1QxBcynn2d5YmDX4MGjlZvy2MRBDRNHLJ8VI6l6+9FUiyTFNJ0IveOSP0bcXgVDPRcfGqA0pjaqUpfVg==}
@@ -24294,6 +24297,11 @@ snapshots:
       decompress-response: 6.0.0
       once: 1.4.0
       simple-concat: 1.0.1
+
+  simplematter@1.0.0:
+    dependencies:
+      smol-toml: 1.5.2
+      yaml: 2.8.2
 
   sisteransi@1.0.5: {}
 
