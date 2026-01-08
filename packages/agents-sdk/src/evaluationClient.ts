@@ -389,7 +389,7 @@ export async function createDatasetItems(
     const response = await apiFetch(url, {
       method: 'POST',
       headers: buildHeaders(apiKey),
-      body: JSON.stringify({ items: itemsData }),
+      body: JSON.stringify(itemsData),
     });
 
     if (!response.ok) {
