@@ -1,7 +1,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { simplematter } from 'simplematter';
-import { SkillFrontmatterSchema } from '@inkeep/agents-core';
+import { SkillFrontmatterSchema } from '@inkeep/agents-core/client-exports';
 import type { SkillDefinition } from './types';
 
 function getParentDirName(filePath: string): string {
