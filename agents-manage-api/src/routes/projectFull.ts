@@ -113,7 +113,9 @@ app.openapi(
         'Created project with branch, now populating config'
       );
 
+      // Checkout the project main branch
       const projectMainBranch = getProjectMainBranchName(tenantId, validatedProjectData.id);
+      await doltCheckout(configDb)({ branch: projectMainBranch });
 
       // Update resolvedRef so the middleware commits to the correct branch
       const newResolvedRef: ResolvedRef = {
@@ -334,6 +336,10 @@ app.openapi(
         });
 
         logger.info({ tenantId, projectId }, 'Created project with branch for PUT (upsert)');
+
+        // Checkout the project main branch
+        const projectMainBranch = getProjectMainBranchName(tenantId, projectId);
+        await doltCheckout(configDb)({ branch: projectMainBranch });
       }
 
       // Update/create the full project using server-side data layer operations
