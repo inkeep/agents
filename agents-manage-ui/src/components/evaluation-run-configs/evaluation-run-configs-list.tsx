@@ -1,6 +1,6 @@
 'use client';
 
-import { ChevronRight, MoreVertical, Pencil, Trash2 } from 'lucide-react';
+import { ChevronRight, MoreVertical, Pencil, Plus, Trash2 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useCallback, useEffect, useState } from 'react';
 import { formatDate } from '@/app/utils/format-date';
@@ -42,6 +42,7 @@ export function EvaluationRunConfigsList({
   const [runConfigs, setRunConfigs] = useState<EvaluationRunConfig[]>(initialRunConfigs);
   const [editingRunConfig, setEditingRunConfig] = useState<EvaluationRunConfig | undefined>();
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
+  const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
   const [deletingRunConfig, setDeletingRunConfig] = useState<EvaluationRunConfig | undefined>();
 
   // Update local state when initial props change (from router.refresh)
@@ -95,8 +96,23 @@ export function EvaluationRunConfigsList({
           <TableBody>
             {runConfigs.length === 0 ? (
               <TableRow noHover>
-                <TableCell colSpan={6} className="text-center text-muted-foreground py-8">
-                  No continuous tests yet. Click &quot;+ New continuous test&quot; to create one.
+                <TableCell colSpan={6} className="py-12">
+                  <div className="flex flex-col items-center gap-4">
+                    <span className="text-muted-foreground">No continuous tests yet</span>
+                    <EvaluationRunConfigFormDialog
+                      tenantId={tenantId}
+                      projectId={projectId}
+                      isOpen={isCreateDialogOpen}
+                      onOpenChange={setIsCreateDialogOpen}
+                      onSuccess={refreshRunConfigs}
+                      trigger={
+                        <Button variant="outline" size="sm">
+                          <Plus className="h-4 w-4" />
+                          Add first continuous test
+                        </Button>
+                      }
+                    />
+                  </div>
                 </TableCell>
               </TableRow>
             ) : (

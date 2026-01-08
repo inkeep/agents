@@ -1,9 +1,10 @@
 'use client';
 
-import { ChevronRight } from 'lucide-react';
+import { ChevronRight, Plus } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useCallback, useEffect, useState } from 'react';
 import { formatDateAgo } from '@/app/utils/format-date';
+import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import {
   Table,
@@ -15,6 +16,7 @@ import {
 } from '@/components/ui/table';
 import type { DatasetRun } from '@/lib/api/dataset-runs';
 import { fetchDatasetRuns } from '@/lib/api/dataset-runs';
+import { DatasetRunConfigFormDialog } from './dataset-run-config-form-dialog';
 
 interface DatasetRunsListProps {
   tenantId: string;
@@ -33,6 +35,7 @@ export function DatasetRunsList({
   const [runs, setRuns] = useState<DatasetRun[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
 
   const loadRuns = useCallback(async () => {
     try {
@@ -96,11 +99,27 @@ export function DatasetRunsList({
 
   if (runs.length === 0) {
     return (
-      <div className="rounded-lg border p-8 text-center">
-        <p className="text-sm font-medium">No runs yet</p>
-        <p className="text-sm text-muted-foreground mt-1">
-          Create a new run to start running and evaluating your test cases.
-        </p>
+      <div className="rounded-lg border py-12">
+        <div className="flex flex-col items-center gap-4">
+          <span className="text-muted-foreground">No runs yet</span>
+          <DatasetRunConfigFormDialog
+            tenantId={tenantId}
+            projectId={projectId}
+            datasetId={datasetId}
+            isOpen={isCreateDialogOpen}
+            onOpenChange={setIsCreateDialogOpen}
+            onSuccess={() => {
+              loadRuns();
+              router.refresh();
+            }}
+            trigger={
+              <Button variant="outline" size="sm">
+                <Plus className="h-4 w-4" />
+                Add first run
+              </Button>
+            }
+          />
+        </div>
       </div>
     );
   }

@@ -1,6 +1,6 @@
 'use client';
 
-import { MoreVertical, Pencil, Trash2 } from 'lucide-react';
+import { MoreVertical, Pencil, Plus, Trash2 } from 'lucide-react';
 import { type FC, useState } from 'react';
 import { formatDateTimeTable } from '@/app/utils/format-date';
 import { ExpandableJsonEditor } from '@/components/editors/expandable-json-editor';
@@ -57,6 +57,7 @@ export function DatasetItemsTable({
 }: DatasetItemsTableProps) {
   const [editingItemId, setEditingItemId] = useState<string | undefined>();
   const [deletingItemId, setDeletingItemId] = useState<string | undefined>();
+  const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
 
   const editingItem = editingItemId ? items.find((item) => item.id === editingItemId) : undefined;
   const deletingItem = deletingItemId
@@ -79,8 +80,23 @@ export function DatasetItemsTable({
           <TableBody>
             {items.length === 0 ? (
               <TableRow noHover>
-                <TableCell colSpan={5} className="text-center text-muted-foreground py-8">
-                  No items yet. Click &quot;+ New item&quot; to create one.
+                <TableCell colSpan={5} className="py-12">
+                  <div className="flex flex-col items-center gap-4">
+                    <span className="text-muted-foreground">No items yet</span>
+                    <DatasetItemFormDialog
+                      tenantId={tenantId}
+                      projectId={projectId}
+                      datasetId={datasetId}
+                      isOpen={isCreateDialogOpen}
+                      onOpenChange={setIsCreateDialogOpen}
+                      trigger={
+                        <Button variant="outline" size="sm">
+                          <Plus className="h-4 w-4" />
+                          Add first item
+                        </Button>
+                      }
+                    />
+                  </div>
                 </TableCell>
               </TableRow>
             ) : (

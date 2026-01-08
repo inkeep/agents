@@ -1,6 +1,6 @@
 'use client';
 
-import { ChevronRight, MoreVertical, Trash2 } from 'lucide-react';
+import { ChevronRight, MoreVertical, Plus, Trash2 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import { formatDate } from '@/app/utils/format-date';
@@ -26,6 +26,7 @@ import type {
   EvaluationJobFilterCriteria,
 } from '@/lib/api/evaluation-job-configs';
 import { DeleteEvaluationJobConfirmation } from './delete-evaluation-job-confirmation';
+import { EvaluationJobFormDialog } from './evaluation-job-form-dialog';
 
 interface EvaluationJobsListProps {
   tenantId: string;
@@ -38,6 +39,7 @@ export function EvaluationJobsList({ tenantId, projectId, jobConfigs }: Evaluati
   const [deletingJobConfig, setDeletingJobConfig] = useState<EvaluationJobConfig | undefined>();
   const [datasetRunNames, setDatasetRunNames] = useState<Record<string, string>>({});
   const [isLoadingNames, setIsLoadingNames] = useState(true);
+  const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
 
   useEffect(() => {
     const fetchRunNames = async () => {
@@ -129,8 +131,22 @@ export function EvaluationJobsList({ tenantId, projectId, jobConfigs }: Evaluati
           <TableBody>
             {jobConfigs.length === 0 ? (
               <TableRow noHover>
-                <TableCell colSpan={4} className="text-center text-muted-foreground py-8">
-                  No batch evaluations yet. Click &quot;+ New batch evaluation&quot; to create one.
+                <TableCell colSpan={4} className="py-12">
+                  <div className="flex flex-col items-center gap-4">
+                    <span className="text-muted-foreground">No batch evaluations yet</span>
+                    <EvaluationJobFormDialog
+                      tenantId={tenantId}
+                      projectId={projectId}
+                      isOpen={isCreateDialogOpen}
+                      onOpenChange={setIsCreateDialogOpen}
+                      trigger={
+                        <Button variant="outline" size="sm">
+                          <Plus className="h-4 w-4" />
+                          Add first batch evaluation
+                        </Button>
+                      }
+                    />
+                  </div>
                 </TableCell>
               </TableRow>
             ) : isLoadingNames ? (
