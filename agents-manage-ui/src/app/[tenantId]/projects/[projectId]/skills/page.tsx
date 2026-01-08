@@ -25,8 +25,8 @@ export const dynamic = 'force-dynamic';
 const colClass = 'align-top whitespace-pre-wrap';
 const description = (
   <>
-    Agent Skills are reusable instruction blocks that can be attached to multiple sub-agents and ordered
-    for priority.
+    Agent Skills are reusable instruction blocks that can be attached to multiple sub-agents and
+    ordered for priority.
     <ExternalLink href={`${DOCS_BASE_URL}/visual-builder/agent`}>Learn more</ExternalLink>
   </>
 );
@@ -40,7 +40,7 @@ async function SkillsPage({ params }: PageProps<'/[tenantId]/projects/[projectId
 
     const content = data.length ? (
       <>
-        <PageHeader title="Agent Skills" description={description} action={action} />
+        <PageHeader title="Skills" description={description} action={action} />
         <Table>
           <TableHeader>
             <TableRow noHover>
@@ -84,10 +84,10 @@ async function SkillsPage({ params }: PageProps<'/[tenantId]/projects/[projectId
         </Table>
       </>
     ) : (
-      <EmptyState title="No agent skills yet." description={description} action={action} />
+      <EmptyState title="No skills yet." description={description} action={action} />
     );
 
-    return <BodyTemplate breadcrumbs={['Agent Skills']}>{content}</BodyTemplate>;
+    return <BodyTemplate breadcrumbs={['Skills']}>{content}</BodyTemplate>;
   } catch (error) {
     return <FullPageError errorCode={getErrorCode(error)} context="skills" />;
   }
