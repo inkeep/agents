@@ -1,8 +1,8 @@
 import { GripVertical, X } from 'lucide-react';
-import { type FC, useMemo, useState, useCallback } from 'react';
+import { type FC, type MouseEvent, useCallback, useMemo, useState } from 'react';
 import { ComponentDropdown } from '@/components/agent/sidepane/nodes/component-selector/component-dropdown';
+import { ComponentHeader } from '@/components/agent/sidepane/nodes/component-selector/component-header';
 import { Button } from '@/components/ui/button';
-import { Label } from '@/components/ui/label';
 import type { Skill } from '@/lib/types/skills';
 import { cn } from '@/lib/utils';
 
@@ -45,14 +45,18 @@ export const SkillSelector: FC<SkillSelectorProps> = ({
   const [dragOverId, setDragOverId] = useState('');
 
   const orderedSkills = useMemo(
-    () => [...selectedSkills].sort((a, b) => (a.index ?? 0) - (b.index ?? 0)),
+    () => [...selectedSkills].sort((a, b) => a.index - b.index),
     [selectedSkills]
   );
 
-  const handleRemove = (id: string) => {
-    const next = orderedSkills.filter((skill) => skill.id !== id);
-    onChange(next.map((skill, idx) => ({ ...skill, index: idx })));
-  };
+  const handleRemove = useCallback(
+    (event: MouseEvent<HTMLButtonElement>) => {
+      const id = event.currentTarget.dataset.id as string;
+      const next = orderedSkills.filter((skill) => skill.id !== id);
+      onChange(next.map((skill, idx) => ({ ...skill, index: idx })));
+    },
+    [orderedSkills, onChange]
+  );
 
   const handleDrop = (targetId: string) => {
     if (!draggingId) return;
@@ -76,7 +80,7 @@ export const SkillSelector: FC<SkillSelectorProps> = ({
 
   return (
     <div className="space-y-2 mb-5">
-      <Label className="text-sm font-medium">Skills</Label>
+      <ComponentHeader label="Skills" count={skills.length} />
       <ComponentDropdown
         selectedComponents={skills}
         handleToggle={handleToggle}
@@ -117,7 +121,8 @@ export const SkillSelector: FC<SkillSelectorProps> = ({
               className="opacity-0 group-hover/skill:opacity-100"
               variant="ghost"
               size="icon-sm"
-              onClick={() => handleRemove(skill.id)}
+              data-id={skill.id}
+              onClick={handleRemove}
             >
               <X />
             </Button>
