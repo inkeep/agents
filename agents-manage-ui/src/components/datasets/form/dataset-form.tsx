@@ -46,7 +46,7 @@ export function DatasetForm({ tenantId, projectId, id, initialData }: DatasetFor
   const onSubmit = async (data: DatasetFormData) => {
     try {
       const payload: Partial<Dataset> = {
-        name: data.name || null,
+        name: data.name,
       };
 
       if (id) {
@@ -58,12 +58,12 @@ export function DatasetForm({ tenantId, projectId, id, initialData }: DatasetFor
         toast.success('Test suite updated');
       } else {
         const res = await createDatasetAction(tenantId, projectId, payload);
-        if (!res.success) {
+        if (!res.success || !res.data) {
           toast.error(res.error || 'Failed to create test suite');
           return;
         }
         toast.success('Test suite created');
-        router.push(`/${tenantId}/projects/${projectId}/datasets`);
+        router.push(`/${tenantId}/projects/${projectId}/datasets/${res.data.id}`);
       }
     } catch (error) {
       console.error('Error submitting dataset:', error);

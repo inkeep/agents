@@ -23,6 +23,7 @@ interface JsonSchemaInputProps<T extends FieldValues> {
    * JSON schema validation, use a URI that starts with `custom-json-schema-...`.
    */
   uri?: `${string}json-schema-${string}.json`;
+  customTemplate?: string;
 }
 
 export function JsonSchemaInput<T extends FieldValues>({
@@ -36,6 +37,7 @@ export function JsonSchemaInput<T extends FieldValues>({
   isRequired = false,
   hasInPreview,
   uri,
+  customTemplate,
 }: JsonSchemaInputProps<T>) {
   const isJsonSchemaModeChecked = useAgentStore((state) => state.jsonSchemaMode);
   const { setJsonSchemaMode } = useAgentActions();
@@ -65,6 +67,7 @@ export function JsonSchemaInput<T extends FieldValues>({
                 disabled={disabled}
                 aria-invalid={!!fieldState.error}
                 uri={uri}
+                customTemplate={customTemplate}
               />
             ) : (
               <JsonSchemaBuilder

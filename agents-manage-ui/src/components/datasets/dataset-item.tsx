@@ -26,7 +26,12 @@ export function DatasetItem({ id, name, createdAt, tenantId, projectId }: Datase
         <ItemCardLink href={linkPath}>
           <ItemCardTitle className="text-sm">{name || 'Unnamed Test Suite'}</ItemCardTitle>
         </ItemCardLink>
-        <DatasetItemMenu datasetId={id} datasetName={name || 'Unnamed Test Suite'} />
+        <DatasetItemMenu
+          tenantId={tenantId}
+          projectId={projectId}
+          datasetId={id}
+          datasetName={name || 'Unnamed Test Suite'}
+        />
       </ItemCardHeader>
       <ItemCardContent>
         <ItemCardFooter footerText={`Created ${formatDate(createdAt)}`} />

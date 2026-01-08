@@ -55,7 +55,7 @@ export function EvaluationsTabs({
   return (
     <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
       <div className="flex items-center justify-between border-b">
-        <TabsList className="border-b bg-transparent p-0 h-auto">
+        <TabsList className="h-10 w-full justify-start border-none bg-transparent p-0 rounded-none">
           <TabsTrigger value="evaluators" variant="underline" className="h-10">
             Evaluators
           </TabsTrigger>

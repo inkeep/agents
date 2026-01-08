@@ -8,6 +8,7 @@ import {
 export interface EvaluationResultFilters {
   status?: EvaluationStatus | 'all';
   evaluatorId?: string;
+  agentId?: string;
   searchInput?: string;
 }
 
@@ -18,6 +19,10 @@ export function filterEvaluationResults(
 ): EvaluationResult[] {
   return results.filter((result) => {
     if (filters.evaluatorId && filters.evaluatorId !== result.evaluatorId) {
+      return false;
+    }
+
+    if (filters.agentId && filters.agentId !== result.agentId) {
       return false;
     }
 

@@ -113,3 +113,29 @@ export async function deleteEvaluationJobConfig(
     }
   );
 }
+
+export interface EvaluationJobConfigEvaluatorRelation {
+  id: string;
+  tenantId: string;
+  projectId: string;
+  evaluationJobConfigId: string;
+  evaluatorId: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+/**
+ * Fetch evaluators linked to an evaluation job config
+ */
+export async function fetchEvaluationJobConfigEvaluators(
+  tenantId: string,
+  projectId: string,
+  configId: string
+): Promise<ListResponse<EvaluationJobConfigEvaluatorRelation>> {
+  validateTenantId(tenantId);
+  validateProjectId(projectId);
+
+  return makeManagementApiRequest<ListResponse<EvaluationJobConfigEvaluatorRelation>>(
+    `tenants/${tenantId}/projects/${projectId}/evals/evaluation-job-configs/${configId}/evaluators`
+  );
+}

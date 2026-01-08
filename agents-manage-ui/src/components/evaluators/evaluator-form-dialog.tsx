@@ -27,6 +27,29 @@ import type { Evaluator } from '@/lib/api/evaluators';
 import { PassCriteriaBuilder } from './pass-criteria-builder';
 import { type EvaluatorFormData, evaluatorSchema } from './validation';
 
+const EVALUATOR_SCHEMA_TEMPLATE = JSON.stringify(
+  {
+    type: 'object',
+    properties: {
+      score: {
+        type: 'number',
+        description: 'Numeric score from 1-5 indicating quality',
+      },
+      passed: {
+        type: 'boolean',
+        description: 'Whether the conversation met the evaluation criteria',
+      },
+      reasoning: {
+        type: 'string',
+        description: 'Explanation of the evaluation result',
+      },
+    },
+    required: ['score', 'passed', 'reasoning'],
+  },
+  null,
+  2
+);
+
 interface EvaluatorFormDialogProps {
   tenantId: string;
   projectId: string;
@@ -225,6 +248,7 @@ export function EvaluatorFormDialog({
               label="Output Schema"
               description="JSON Schema defining the structure of the evaluation output. Use standard JSON Schema format."
               isRequired
+              customTemplate={EVALUATOR_SCHEMA_TEMPLATE}
             />
 
             <div className="space-y-4">

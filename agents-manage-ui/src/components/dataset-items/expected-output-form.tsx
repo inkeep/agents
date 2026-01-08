@@ -146,9 +146,7 @@ export function ExpectedOutputForm<T extends FieldValues>({
                         <SelectValue placeholder="Select role" />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="user">User</SelectItem>
                         <SelectItem value="assistant">Assistant</SelectItem>
-                        <SelectItem value="system">System</SelectItem>
                       </SelectContent>
                     </Select>
                   </div>

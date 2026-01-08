@@ -1,13 +1,14 @@
 'use client';
 
 import { zodResolver } from '@hookform/resolvers/zod';
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useController, useForm } from 'react-hook-form';
 import { toast } from 'sonner';
+import { ComponentSelector } from '@/components/agent/sidepane/nodes/component-selector/component-selector';
 import { GenericInput } from '@/components/form/generic-input';
 import { GenericTextarea } from '@/components/form/generic-textarea';
 import { Button } from '@/components/ui/button';
-import { Checkbox } from '@/components/ui/checkbox';
+import { Badge } from '@/components/ui/badge';
 import {
   Form,
   FormDescription,
@@ -16,8 +17,6 @@ import {
   FormLabel,
   FormMessage,
 } from '@/components/ui/form';
-import { Label } from '@/components/ui/label';
-import { ScrollArea } from '@/components/ui/scroll-area';
 import { getAllAgentsAction } from '@/lib/actions/agent-full';
 import {
   createDatasetRunConfigAction,
@@ -118,6 +117,26 @@ export function DatasetRunConfigForm({
     }
   }, [initialData, form]);
 
+  const agentLookup = useMemo(() => {
+    return agents.reduce(
+      (acc, agent) => {
+        acc[agent.id] = agent;
+        return acc;
+      },
+      {} as Record<string, Agent>
+    );
+  }, [agents]);
+
+  const evaluatorLookup = useMemo(() => {
+    return evaluators.reduce(
+      (acc, evaluator) => {
+        acc[evaluator.id] = evaluator;
+        return acc;
+      },
+      {} as Record<string, Evaluator>
+    );
+  }, [evaluators]);
+
   const onSubmit = async (data: DatasetRunConfigFormData) => {
     console.log('Form submission data:', data);
     console.log('evaluatorIds in form data:', data.evaluatorIds);
@@ -160,15 +179,6 @@ export function DatasetRunConfigForm({
     }
   };
 
-  const handleAgentToggle = (agentId: string) => {
-    const currentIds = agentIds as string[];
-    if (!currentIds.includes(agentId)) {
-      setAgentIds([...currentIds, agentId]);
-    } else {
-      setAgentIds(currentIds.filter((id) => id !== agentId));
-    }
-  };
-
   return (
     <Form {...form}>
       <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
@@ -194,31 +204,25 @@ export function DatasetRunConfigForm({
           name="agentIds"
           render={() => (
             <FormItem>
-              <FormLabel isRequired>Agents</FormLabel>
+              <div className="flex items-center gap-2">
+                <FormLabel isRequired>Agents</FormLabel>
+                <Badge variant="count">{(agentIds as string[]).length}</Badge>
+              </div>
               {loadingAgents ? (
                 <p className="text-sm text-muted-foreground">Loading agents...</p>
-              ) : agents.length === 0 ? (
-                <p className="text-sm text-muted-foreground">No agents available</p>
               ) : (
-                <ScrollArea className="h-48 rounded-md border p-4">
-                  <div className="space-y-2">
-                    {agents.map((agent) => (
-                      <div key={agent.id} className="flex items-center space-x-2">
-                        <Checkbox
-                          id={`agent-${agent.id}`}
-                          checked={agentIds.includes(agent.id)}
-                          onCheckedChange={() => handleAgentToggle(agent.id)}
-                        />
-                        <label
-                          htmlFor={`agent-${agent.id}`}
-                          className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 cursor-pointer"
-                        >
-                          {agent.name}
-                        </label>
-                      </div>
-                    ))}
-                  </div>
-                </ScrollArea>
+                <ComponentSelector
+                  label=""
+                  componentLookup={agentLookup}
+                  selectedComponents={agentIds as string[]}
+                  onSelectionChange={(newSelection) => {
+                    setAgentIds(newSelection);
+                  }}
+                  emptyStateMessage="No agents available."
+                  emptyStateActionText="Create agent"
+                  emptyStateActionHref={`/${tenantId}/projects/${projectId}/agents`}
+                  placeholder="Select agents..."
+                />
               )}
               <FormDescription>Select which agents to run this test suite against</FormDescription>
               <FormMessage />
@@ -231,48 +235,21 @@ export function DatasetRunConfigForm({
           name="evaluatorIds"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>Evaluators (Optional)</FormLabel>
               {loadingEvaluators ? (
                 <p className="text-sm text-muted-foreground">Loading evaluators...</p>
-              ) : evaluators.length === 0 ? (
-                <p className="text-sm text-muted-foreground">
-                  No evaluators available. Create evaluators first to enable automatic evaluation
-                  after the dataset run.
-                </p>
               ) : (
-                <ScrollArea className="h-48 rounded-md border p-4">
-                  <div className="space-y-2">
-                    {evaluators.map((evaluator) => (
-                      <div key={evaluator.id} className="flex items-start space-x-2">
-                        <Checkbox
-                          id={`evaluator-${evaluator.id}`}
-                          checked={(field.value || []).includes(evaluator.id)}
-                          onCheckedChange={(checked) => {
-                            const currentIds = field.value || [];
-                            const newIds = checked
-                              ? [...currentIds, evaluator.id]
-                              : currentIds.filter((id) => id !== evaluator.id);
-                            field.onChange(newIds);
-                          }}
-                          className="mt-1"
-                        />
-                        <Label
-                          htmlFor={`evaluator-${evaluator.id}`}
-                          className="font-normal cursor-pointer flex-1"
-                        >
-                          <div>
-                            <div className="font-medium">{evaluator.name}</div>
-                            {evaluator.description && (
-                              <div className="text-sm text-muted-foreground">
-                                {evaluator.description}
-                              </div>
-                            )}
-                          </div>
-                        </Label>
-                      </div>
-                    ))}
-                  </div>
-                </ScrollArea>
+                <ComponentSelector
+                  label="Evaluators (Optional)"
+                  componentLookup={evaluatorLookup}
+                  selectedComponents={field.value || []}
+                  onSelectionChange={(newSelection) => {
+                    field.onChange(newSelection);
+                  }}
+                  emptyStateMessage="No evaluators available."
+                  emptyStateActionText="Create evaluator"
+                  emptyStateActionHref={`/${tenantId}/projects/${projectId}/evaluations?tab=evaluators`}
+                  placeholder="Select evaluators..."
+                />
               )}
               <FormDescription>
                 When evaluators are selected, an evaluation job will automatically run after the

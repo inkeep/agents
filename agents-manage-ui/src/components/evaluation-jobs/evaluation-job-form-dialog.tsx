@@ -1,11 +1,13 @@
 'use client';
 
 import { zodResolver } from '@hookform/resolvers/zod';
-import { useEffect, useState } from 'react';
+import { useRouter } from 'next/navigation';
+import { useEffect, useMemo, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { toast } from 'sonner';
+import { ComponentSelector } from '@/components/agent/sidepane/nodes/component-selector/component-selector';
+import { DatePickerWithPresets } from '@/components/traces/filters/date-picker';
 import { Button } from '@/components/ui/button';
-import { Checkbox } from '@/components/ui/checkbox';
 import {
   Dialog,
   DialogContent,
@@ -14,11 +16,9 @@ import {
   DialogTitle,
   DialogTrigger,
 } from '@/components/ui/dialog';
-import { Form, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
-import { Input } from '@/components/ui/input';
+import { Form, FormField, FormItem, FormMessage } from '@/components/ui/form';
 import { Label } from '@/components/ui/label';
 import { createEvaluationJobConfigAction } from '@/lib/actions/evaluation-job-configs';
-import type { EvaluationJobConfig } from '@/lib/api/evaluation-job-configs';
 import type { Evaluator } from '@/lib/api/evaluators';
 import { fetchEvaluators } from '@/lib/api/evaluators';
 import { type EvaluationJobConfigFormData, evaluationJobConfigSchema } from './validation';
@@ -38,6 +38,7 @@ export function EvaluationJobFormDialog({
   onOpenChange,
   trigger,
 }: EvaluationJobFormDialogProps) {
+  const router = useRouter();
   const [internalIsOpen, setInternalIsOpen] = useState(false);
   const [evaluators, setEvaluators] = useState<Evaluator[]>([]);
   const [loading, setLoading] = useState(false);
@@ -79,12 +80,51 @@ export function EvaluationJobFormDialog({
   const selectedEvaluatorIds = form.watch('evaluatorIds') || [];
   const jobFilters = form.watch('jobFilters');
 
-  const toggleEvaluator = (evaluatorId: string) => {
-    const current = selectedEvaluatorIds;
-    const newIds = current.includes(evaluatorId)
-      ? current.filter((id) => id !== evaluatorId)
-      : [...current, evaluatorId];
-    form.setValue('evaluatorIds', newIds);
+  const evaluatorLookup = useMemo(() => {
+    return evaluators.reduce(
+      (acc, evaluator) => {
+        acc[evaluator.id] = evaluator;
+        return acc;
+      },
+      {} as Record<string, Evaluator>
+    );
+  }, [evaluators]);
+
+  const [customStartDate, setCustomStartDate] = useState<string>('');
+  const [customEndDate, setCustomEndDate] = useState<string>('');
+
+  const datePickerValue =
+    customStartDate && customEndDate ? { from: customStartDate, to: customEndDate } : undefined;
+
+  const setCustomDateRange = (start: string, end: string) => {
+    setCustomStartDate(start);
+    setCustomEndDate(end);
+
+    if (start && end) {
+      const startDate = new Date(start);
+      const endDate = new Date(end);
+      form.setValue('jobFilters', {
+        ...jobFilters,
+        dateRange: {
+          startDate: startDate.toISOString().split('T')[0],
+          endDate: endDate.toISOString().split('T')[0],
+        },
+      });
+    } else {
+      form.setValue('jobFilters', {
+        ...jobFilters,
+        dateRange: undefined,
+      });
+    }
+  };
+
+  const handleRemoveDateRange = () => {
+    setCustomStartDate('');
+    setCustomEndDate('');
+    form.setValue('jobFilters', {
+      ...jobFilters,
+      dateRange: undefined,
+    });
   };
 
   const onSubmit = async (data: EvaluationJobConfigFormData) => {
@@ -121,15 +161,14 @@ export function EvaluationJobFormDialog({
       };
 
       const result = await createEvaluationJobConfigAction(tenantId, projectId, payload);
-      if (result.success) {
+      if (result.success && result.data) {
         toast.success('Batch evaluation created');
+        setIsOpen(false);
+        form.reset();
+        router.push(`/${tenantId}/projects/${projectId}/evaluations/jobs/${result.data.id}`);
       } else {
         toast.error(result.error || 'Failed to create batch evaluation');
-        return;
       }
-
-      onOpenChange(false);
-      form.reset();
     } catch (error) {
       console.error('Error submitting batch evaluation:', error);
       const errorMessage = error instanceof Error ? error.message : 'An unexpected error occurred';
@@ -158,33 +197,18 @@ export function EvaluationJobFormDialog({
                 name="evaluatorIds"
                 render={() => (
                   <FormItem>
-                    <FormLabel isRequired>Evaluators</FormLabel>
-                    <div className="space-y-2">
-                      {evaluators.length === 0 ? (
-                        <p className="text-sm text-muted-foreground">
-                          No evaluators available. Create an evaluator first.
-                        </p>
-                      ) : (
-                        <div className="border rounded-lg p-4 max-h-64 overflow-y-auto">
-                          {evaluators.map((evaluator) => (
-                            <div key={evaluator.id} className="flex items-center space-x-2 py-2">
-                              <Checkbox
-                                checked={selectedEvaluatorIds.includes(evaluator.id)}
-                                onCheckedChange={() => toggleEvaluator(evaluator.id)}
-                              />
-                              <Label className="font-normal cursor-pointer flex-1">
-                                <div>
-                                  <div className="font-medium">{evaluator.name}</div>
-                                  <div className="text-sm text-muted-foreground">
-                                    {evaluator.description}
-                                  </div>
-                                </div>
-                              </Label>
-                            </div>
-                          ))}
-                        </div>
-                      )}
-                    </div>
+                    <ComponentSelector
+                      label="Evaluators"
+                      componentLookup={evaluatorLookup}
+                      selectedComponents={selectedEvaluatorIds}
+                      onSelectionChange={(newSelection) => {
+                        form.setValue('evaluatorIds', newSelection);
+                      }}
+                      emptyStateMessage="No evaluators available."
+                      emptyStateActionText="Create evaluator"
+                      emptyStateActionHref={`/${tenantId}/projects/${projectId}/evaluations?tab=evaluators`}
+                      placeholder="Select evaluators..."
+                    />
                     <FormMessage />
                   </FormItem>
                 )}
@@ -195,40 +219,15 @@ export function EvaluationJobFormDialog({
                 <div className="space-y-4 border rounded-lg p-4">
                   <div className="space-y-2">
                     <Label className="text-sm">Date Range</Label>
-                    <div className="grid grid-cols-2 gap-2">
-                      <div>
-                        <Label className="text-xs text-muted-foreground">Start Date</Label>
-                        <Input
-                          type="date"
-                          value={jobFilters?.dateRange?.startDate || ''}
-                          onChange={(e) => {
-                            form.setValue('jobFilters', {
-                              ...jobFilters,
-                              dateRange: {
-                                startDate: e.target.value,
-                                endDate: jobFilters?.dateRange?.endDate || '',
-                              },
-                            });
-                          }}
-                        />
-                      </div>
-                      <div>
-                        <Label className="text-xs text-muted-foreground">End Date</Label>
-                        <Input
-                          type="date"
-                          value={jobFilters?.dateRange?.endDate || ''}
-                          onChange={(e) => {
-                            form.setValue('jobFilters', {
-                              ...jobFilters,
-                              dateRange: {
-                                startDate: jobFilters?.dateRange?.startDate || '',
-                                endDate: e.target.value,
-                              },
-                            });
-                          }}
-                        />
-                      </div>
-                    </div>
+                    <DatePickerWithPresets
+                      label="Date range"
+                      value={datePickerValue}
+                      onAdd={() => {}}
+                      onRemove={handleRemoveDateRange}
+                      setCustomDateRange={setCustomDateRange}
+                      showCalendarDirectly
+                      placeholder="Select date range"
+                    />
                   </div>
                 </div>
               </div>

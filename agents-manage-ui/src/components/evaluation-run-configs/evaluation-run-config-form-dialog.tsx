@@ -2,14 +2,14 @@
 
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useRouter } from 'next/navigation';
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { toast } from 'sonner';
 import { z } from 'zod';
+import { ComponentSelector } from '@/components/agent/sidepane/nodes/component-selector/component-selector';
 import { GenericInput } from '@/components/form/generic-input';
 import { GenericTextarea } from '@/components/form/generic-textarea';
 import { Button } from '@/components/ui/button';
-import { Checkbox } from '@/components/ui/checkbox';
 import {
   Dialog,
   DialogContent,
@@ -18,6 +18,7 @@ import {
   DialogTitle,
   DialogTrigger,
 } from '@/components/ui/dialog';
+import { Badge } from '@/components/ui/badge';
 import { Form, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { Switch } from '@/components/ui/switch';
 import { getAllAgentsAction } from '@/lib/actions/agent-full';
@@ -28,6 +29,10 @@ import {
 import { createEvaluationSuiteConfigAction } from '@/lib/actions/evaluation-suite-configs';
 import type { ActionResult } from '@/lib/actions/types';
 import type { EvaluationRunConfig } from '@/lib/api/evaluation-run-configs';
+import {
+  fetchEvaluationSuiteConfig,
+  fetchEvaluationSuiteConfigEvaluators,
+} from '@/lib/api/evaluation-suite-configs';
 import type { Evaluator } from '@/lib/api/evaluators';
 import { fetchEvaluators } from '@/lib/api/evaluators';
 import type { Agent } from '@/lib/types/agent-full';
@@ -71,7 +76,7 @@ const formatFormData = (data?: EvaluationRunConfig): EvaluationRunConfigFormData
 };
 
 const suiteConfigSchema = z.object({
-  evaluatorIds: z.array(z.string()),
+  evaluatorIds: z.array(z.string()).min(1, 'At least one evaluator is required'),
   agentIds: z.array(z.string()),
   sampleRate: z.number().min(0).max(1).optional(),
 });
@@ -113,6 +118,11 @@ export function EvaluationRunConfigFormDialog({
   useEffect(() => {
     if (isOpen) {
       form.reset(formatFormData(initialData));
+      suiteConfigForm.reset({
+        evaluatorIds: [],
+        agentIds: [],
+        sampleRate: undefined,
+      });
       loadData();
     }
   }, [isOpen, initialData]);
@@ -127,27 +137,58 @@ export function EvaluationRunConfigFormDialog({
       if (agentsRes.success && agentsRes.data) {
         setAgents(agentsRes.data);
       }
+
+      // If editing and has suite configs, load the first suite config's data
+      if (initialData?.suiteConfigIds && initialData.suiteConfigIds.length > 0) {
+        const suiteConfigId = initialData.suiteConfigIds[0];
+        try {
+          const [suiteConfigRes, suiteConfigEvaluatorsRes] = await Promise.all([
+            fetchEvaluationSuiteConfig(tenantId, projectId, suiteConfigId),
+            fetchEvaluationSuiteConfigEvaluators(tenantId, projectId, suiteConfigId),
+          ]);
+
+          const suiteConfig = suiteConfigRes.data;
+          const evaluatorIds = suiteConfigEvaluatorsRes.data?.map((e) => e.evaluatorId) || [];
+          
+          // Extract agentIds from filters
+          const filters = suiteConfig?.filters as { agentIds?: string[] } | null;
+          const agentIds = filters?.agentIds || [];
+
+          suiteConfigForm.reset({
+            evaluatorIds,
+            agentIds,
+            sampleRate: suiteConfig?.sampleRate ?? undefined,
+          });
+        } catch (err) {
+          console.error('Error loading suite config:', err);
+        }
+      }
     } catch (error) {
       console.error('Error loading data:', error);
       toast.error('Failed to load data');
     }
   };
 
-  const toggleEvaluator = (evaluatorId: string) => {
-    const current = suiteConfigForm.watch('evaluatorIds') || [];
-    const newIds = current.includes(evaluatorId)
-      ? current.filter((id) => id !== evaluatorId)
-      : [...current, evaluatorId];
-    suiteConfigForm.setValue('evaluatorIds', newIds);
-  };
 
-  const toggleAgent = (agentId: string) => {
-    const current = suiteConfigForm.watch('agentIds') || [];
-    const newIds = current.includes(agentId)
-      ? current.filter((id) => id !== agentId)
-      : [...current, agentId];
-    suiteConfigForm.setValue('agentIds', newIds);
-  };
+  const evaluatorLookup = useMemo(() => {
+    return evaluators.reduce(
+      (acc, evaluator) => {
+        acc[evaluator.id] = evaluator;
+        return acc;
+      },
+      {} as Record<string, Evaluator>
+    );
+  }, [evaluators]);
+
+  const agentLookup = useMemo(() => {
+    return agents.reduce(
+      (acc, agent) => {
+        acc[agent.id] = agent;
+        return acc;
+      },
+      {} as Record<string, Agent>
+    );
+  }, [agents]);
 
   const { isSubmitting } = form.formState;
 
@@ -285,35 +326,20 @@ export function EvaluationRunConfigFormDialog({
                 name="agentIds"
                 render={() => (
                   <FormItem>
-                    <div className="mb-2">
-                      <FormLabel className="text-sm">Agent Filter (Optional)</FormLabel>
-                      <div className="text-xs text-muted-foreground mt-1">
-                        Select which agents to evaluate. Leave empty to evaluate all agents.
-                      </div>
-                    </div>
-                    <div className="rounded-lg border p-3 space-y-2 max-h-48 overflow-y-auto">
-                      {agents.length === 0 ? (
-                        <div className="text-xs text-muted-foreground">No agents available.</div>
-                      ) : (
-                        agents.map((agent) => (
-                          <div key={agent.id} className="flex items-start space-x-2">
-                            <Checkbox
-                              checked={(suiteConfigForm.watch('agentIds') || []).includes(agent.id)}
-                              onCheckedChange={() => toggleAgent(agent.id)}
-                              id={`agent-${agent.id}`}
-                            />
-                            <label
-                              htmlFor={`agent-${agent.id}`}
-                              className="flex-1 cursor-pointer text-xs leading-none"
-                            >
-                              <div className="font-medium">{agent.name}</div>
-                              <div className="text-muted-foreground text-xs mt-0.5 line-clamp-1">
-                                {agent.description || 'No description'}
-                              </div>
-                            </label>
-                          </div>
-                        ))
-                      )}
+                    <ComponentSelector
+                      label="Agent Filter (Optional)"
+                      componentLookup={agentLookup}
+                      selectedComponents={suiteConfigForm.watch('agentIds') || []}
+                      onSelectionChange={(newSelection) => {
+                        suiteConfigForm.setValue('agentIds', newSelection);
+                      }}
+                      emptyStateMessage="No agents available."
+                      emptyStateActionText="Create agent"
+                      emptyStateActionHref={`/${tenantId}/projects/${projectId}/agents`}
+                      placeholder="Select agents to filter..."
+                    />
+                    <div className="text-xs text-muted-foreground">
+                      Select which agents to evaluate. Leave empty to evaluate all agents.
                     </div>
                     <FormMessage />
                   </FormItem>
@@ -325,40 +351,22 @@ export function EvaluationRunConfigFormDialog({
                 name="evaluatorIds"
                 render={() => (
                   <FormItem>
-                    <div className="mb-2">
-                      <FormLabel className="text-sm">Evaluators</FormLabel>
-                      <div className="text-xs text-muted-foreground mt-1">
-                        Select evaluators to use
-                      </div>
+                    <div className="flex items-center gap-2">
+                      <FormLabel isRequired>Evaluators</FormLabel>
+                      <Badge variant="count">{(suiteConfigForm.watch('evaluatorIds') || []).length}</Badge>
                     </div>
-                    <div className="rounded-lg border p-3 space-y-2 max-h-48 overflow-y-auto">
-                      {evaluators.length === 0 ? (
-                        <div className="text-xs text-muted-foreground">
-                          No evaluators available. Create evaluators first.
-                        </div>
-                      ) : (
-                        evaluators.map((evaluator) => (
-                          <div key={evaluator.id} className="flex items-start space-x-2">
-                            <Checkbox
-                              checked={(suiteConfigForm.watch('evaluatorIds') || []).includes(
-                                evaluator.id
-                              )}
-                              onCheckedChange={() => toggleEvaluator(evaluator.id)}
-                              id={`eval-${evaluator.id}`}
-                            />
-                            <label
-                              htmlFor={`eval-${evaluator.id}`}
-                              className="flex-1 cursor-pointer text-xs leading-none"
-                            >
-                              <div className="font-medium">{evaluator.name}</div>
-                              <div className="text-muted-foreground text-xs mt-0.5 line-clamp-1">
-                                {evaluator.description || 'No description'}
-                              </div>
-                            </label>
-                          </div>
-                        ))
-                      )}
-                    </div>
+                    <ComponentSelector
+                      label=""
+                      componentLookup={evaluatorLookup}
+                      selectedComponents={suiteConfigForm.watch('evaluatorIds') || []}
+                      onSelectionChange={(newSelection) => {
+                        suiteConfigForm.setValue('evaluatorIds', newSelection);
+                      }}
+                      emptyStateMessage="No evaluators available."
+                      emptyStateActionText="Create evaluator"
+                      emptyStateActionHref={`/${tenantId}/projects/${projectId}/evaluations?tab=evaluators`}
+                      placeholder="Select evaluators..."
+                    />
                     <FormMessage />
                   </FormItem>
                 )}

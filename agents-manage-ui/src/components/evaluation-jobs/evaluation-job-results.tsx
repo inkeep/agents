@@ -1,8 +1,8 @@
 'use client';
 
-import { ChevronDown, ChevronRight, ExternalLink } from 'lucide-react';
+import { ChevronDown, ChevronRight, ExternalLink, Loader2 } from 'lucide-react';
 import Link from 'next/link';
-import { useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { formatDateTimeTable } from '@/app/utils/format-date';
 import { ExpandableJsonEditor } from '@/components/editors/expandable-json-editor';
 import { EvaluationStatusBadge } from '@/components/evaluators/evaluation-status-badge';
@@ -16,10 +16,13 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
-import type { EvaluationJobConfig } from '@/lib/api/evaluation-job-configs';
+import type { EvaluationJobConfig, EvaluationJobFilterCriteria } from '@/lib/api/evaluation-job-configs';
+import { fetchEvaluationJobConfigEvaluators } from '@/lib/api/evaluation-job-configs';
 import type { EvaluationResult } from '@/lib/api/evaluation-results';
+import { fetchEvaluationResultsByJobConfig } from '@/lib/api/evaluation-results';
 import type { Evaluator } from '@/lib/api/evaluators';
 import { filterEvaluationResults } from '@/lib/evaluation/filter-evaluation-results';
+import { fetchDatasetRun } from '@/lib/api/dataset-runs';
 import { evaluatePassCriteria } from '@/lib/evaluation/pass-criteria-evaluator';
 import {
   type EvaluationResultFilters,
@@ -38,11 +41,81 @@ export function EvaluationJobResults({
   tenantId,
   projectId,
   jobConfig,
-  results,
+  results: initialResults,
   evaluators,
 }: EvaluationJobResultsProps) {
   const [selectedEvaluatorId, setSelectedEvaluatorId] = useState<string | null>(null);
   const [filters, setFilters] = useState<EvaluationResultFilters>({});
+  const [results, setResults] = useState<EvaluationResult[]>(initialResults);
+  const [progress, setProgress] = useState<{
+    total: number;
+    completed: number;
+    isRunning: boolean;
+  }>({ total: 0, completed: 0, isRunning: false });
+
+  const loadProgress = useCallback(async () => {
+    try {
+      // Fetch latest results
+      const latestResults = await fetchEvaluationResultsByJobConfig(tenantId, projectId, jobConfig.id);
+      setResults(latestResults.data || []);
+
+      // Get evaluator relations for this job
+      const evaluatorRelations = await fetchEvaluationJobConfigEvaluators(tenantId, projectId, jobConfig.id);
+      const evaluatorCount = evaluatorRelations.data?.length || 0;
+
+      // Get conversation count from dataset run if available
+      let conversationCount = 0;
+      const criteria = jobConfig.jobFilters as EvaluationJobFilterCriteria;
+      if (criteria?.datasetRunIds && criteria.datasetRunIds.length > 0) {
+        try {
+          const datasetRun = await fetchDatasetRun(tenantId, projectId, criteria.datasetRunIds[0]);
+          conversationCount = datasetRun.data?.items?.reduce(
+            (acc, item) => acc + (item.conversations?.length || 0),
+            0
+          ) || 0;
+        } catch {
+          // If we can't get dataset run, estimate from unique conversations in results
+          const uniqueConversations = new Set(latestResults.data?.map(r => r.conversationId) || []);
+          conversationCount = uniqueConversations.size;
+        }
+      } else {
+        // For non-dataset-run jobs, estimate from unique conversations
+        const uniqueConversations = new Set(latestResults.data?.map(r => r.conversationId) || []);
+        conversationCount = uniqueConversations.size;
+      }
+
+      // Expected = conversations × evaluators
+      const expectedTotal = conversationCount * evaluatorCount;
+      // Only count results with output as completed
+      const completedCount = latestResults.data?.filter(
+        (r) => r.output !== null && r.output !== undefined
+      ).length || 0;
+
+      setProgress({
+        total: expectedTotal,
+        completed: completedCount,
+        isRunning: completedCount < expectedTotal && expectedTotal > 0,
+      });
+    } catch (err) {
+      console.error('Error loading evaluation progress:', err);
+    }
+  }, [tenantId, projectId, jobConfig.id, jobConfig.jobFilters]);
+
+  // Initial progress load
+  useEffect(() => {
+    loadProgress();
+  }, [loadProgress]);
+
+  // Auto-refresh when evaluations are in progress
+  useEffect(() => {
+    if (!progress.isRunning) return;
+
+    const interval = setInterval(() => {
+      loadProgress();
+    }, 3000);
+
+    return () => clearInterval(interval);
+  }, [progress.isRunning, loadProgress]);
 
   const evaluatorMap = new Map<string, string>();
   evaluators.forEach((evaluator) => {
@@ -65,6 +138,15 @@ export function EvaluationJobResults({
   );
 
   const evaluatorOptions = evaluators.map((e) => ({ id: e.id, name: e.name }));
+  const agentOptions = useMemo(() => {
+    const uniqueAgents = new Map<string, string>();
+    results.forEach((result) => {
+      if (result.agentId && !uniqueAgents.has(result.agentId)) {
+        uniqueAgents.set(result.agentId, result.agentId);
+      }
+    });
+    return Array.from(uniqueAgents.entries()).map(([id, name]) => ({ id, name }));
+  }, [results]);
 
   return (
     <div className="space-y-6">
@@ -72,7 +154,37 @@ export function EvaluationJobResults({
         filters={filters}
         onFiltersChange={setFilters}
         evaluators={evaluatorOptions}
+        agents={agentOptions}
       />
+
+      {/* Progress indicator */}
+      {progress.isRunning && (
+        <div className="flex flex-col gap-3 p-4 rounded-lg bg-muted/50 border">
+          <div className="flex items-center gap-3">
+            <Loader2 className="h-4 w-4 animate-spin text-primary" />
+            <span className="text-sm font-medium">Evaluation in progress</span>
+          </div>
+          <div className="flex flex-col gap-1">
+            <span className="text-xs text-muted-foreground">
+              {progress.completed} of {progress.total} evaluations completed
+            </span>
+            <div className="w-full h-1.5 bg-muted rounded-full overflow-hidden">
+              <div
+                className="h-full bg-primary transition-all duration-300"
+                style={{
+                  width: `${progress.total > 0 ? (progress.completed / progress.total) * 100 : 0}%`,
+                }}
+              />
+            </div>
+          </div>
+        </div>
+      )}
+      {!progress.isRunning && progress.total > 0 && progress.completed > 0 && (
+        <div className="flex items-center gap-2 text-sm text-muted-foreground">
+          <span className="text-green-600 dark:text-green-400">✓</span>
+          Evaluation completed: {progress.completed} results
+        </div>
+      )}
 
       <div className="rounded-lg border">
         <div className="p-4 border-b">
@@ -82,7 +194,14 @@ export function EvaluationJobResults({
         </div>
         {results.length === 0 ? (
           <div className="p-8 text-center text-muted-foreground">
-            No evaluation results yet. The batch evaluation may still be running.
+            {progress.isRunning ? (
+              <span className="flex items-center justify-center gap-2">
+                <Loader2 className="h-4 w-4 animate-spin" />
+                Waiting for evaluation results...
+              </span>
+            ) : (
+              'No evaluation results yet.'
+            )}
           </div>
         ) : filteredResults.length === 0 ? (
           <div className="p-8 text-center text-muted-foreground">

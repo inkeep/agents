@@ -1,14 +1,14 @@
 'use client';
 
 import { format } from 'date-fns';
-import { Check } from 'lucide-react';
+import { CalendarIcon, Check } from 'lucide-react';
 import { useMemo, useRef, useState } from 'react';
 import type { DateRange } from 'react-day-picker';
 import type { SelectOption } from '@/components/form/generic-select';
 import { Button } from '@/components/ui/button';
 import { Calendar } from '@/components/ui/calendar';
 import { Command, CommandGroup, CommandItem, CommandList } from '@/components/ui/command';
-import { Popover, PopoverContent } from '@/components/ui/popover';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { useDisclosure } from '@/hooks/use-disclosure';
 import type { TimeRange } from '@/hooks/use-traces-query-state';
 import { cn } from '@/lib/utils';
@@ -22,6 +22,16 @@ interface DatePickerWithPresetsProps {
   disabled?: boolean;
   options?: SelectOption[];
   setCustomDateRange: (start: string, end: string) => void;
+  /**
+   * When true, shows the calendar directly without the presets menu.
+   * Uses a simpler button trigger instead of the filter chip style.
+   */
+  showCalendarDirectly?: boolean;
+  /**
+   * Placeholder text when no date is selected.
+   * Only used when showCalendarDirectly is true.
+   */
+  placeholder?: string;
 }
 
 export const CUSTOM = 'custom';
@@ -34,14 +44,28 @@ export function DatePickerWithPresets({
   disabled,
   label,
   setCustomDateRange,
+  showCalendarDirectly = false,
+  placeholder = 'Select date range',
 }: DatePickerWithPresetsProps) {
-  const [showCalendar, setShowCalendar] = useState(false);
-  const { isOpen, onClose, onToggle } = useDisclosure();
+  const [showCalendar, setShowCalendar] = useState(showCalendarDirectly);
+  const { isOpen, onClose, onToggle, onOpen } = useDisclosure();
 
   const commandRef = useRef<HTMLDivElement>(null);
 
-  const handleChangeOnOpen = () => {
-    onToggle();
+  const handleChangeOnOpen = (open: boolean) => {
+    if (open) {
+      onOpen();
+      if (showCalendarDirectly) {
+        setShowCalendar(true);
+      }
+    } else {
+      onClose();
+      if (showCalendarDirectly) {
+        setShowCalendar(true);
+      } else {
+        setShowCalendar(false);
+      }
+    }
   };
 
   const presetValue = options.find((option) => option.value === value);
@@ -72,19 +96,37 @@ export function DatePickerWithPresets({
 
   const [date, setDate] = useState<DateRange | undefined>(initialDate);
 
+  const directTriggerLabel = dateComputations.dateFormattedValue || placeholder;
+
   return (
     <Popover onOpenChange={handleChangeOnOpen} open={isOpen}>
-      <FilterTriggerComponent
-        disabled={disabled}
-        filterLabel={label}
-        multipleCheckboxValues={formattedValue ? [formattedValue] : []}
-        onDeleteFilter={() => {
-          onRemove();
-          setDate(undefined);
-        }}
-        options={options}
-        isRemovable={false}
-      />
+      {showCalendarDirectly ? (
+        <PopoverTrigger asChild>
+          <Button
+            variant="outline"
+            disabled={disabled}
+            className={cn(
+              'w-full justify-start text-left font-normal',
+              !dateComputations.dateFormattedValue && 'text-muted-foreground'
+            )}
+          >
+            <CalendarIcon className="mr-2 h-4 w-4" />
+            {directTriggerLabel}
+          </Button>
+        </PopoverTrigger>
+      ) : (
+        <FilterTriggerComponent
+          disabled={disabled}
+          filterLabel={label}
+          multipleCheckboxValues={formattedValue ? [formattedValue] : []}
+          onDeleteFilter={() => {
+            onRemove();
+            setDate(undefined);
+          }}
+          options={options}
+          isRemovable={false}
+        />
+      )}
 
       <PopoverContent align="start" className="flex min-w-[250px] p-0 w-auto flex-col space-y-2">
         {showCalendar ? (
@@ -103,15 +145,30 @@ export function DatePickerWithPresets({
               />
             </div>
             <div className="flex justify-end gap-2 py-2 px-3">
-              <Button
-                onClick={() => {
-                  setShowCalendar(false);
-                }}
-                size="sm"
-                variant="outline"
-              >
-                Back
-              </Button>
+              {showCalendarDirectly ? (
+                <Button
+                  onClick={() => {
+                    setDate(undefined);
+                    onRemove();
+                    setCustomDateRange('', '');
+                    onClose();
+                  }}
+                  size="sm"
+                  variant="ghost"
+                >
+                  Clear
+                </Button>
+              ) : (
+                <Button
+                  onClick={() => {
+                    setShowCalendar(false);
+                  }}
+                  size="sm"
+                  variant="outline"
+                >
+                  Back
+                </Button>
+              )}
               <Button
                 onClick={() => {
                   if (date?.from) {
