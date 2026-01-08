@@ -198,13 +198,13 @@ export function generateSubAgentDefinition(
     lines.push(`${indentation}},`);
   }
 
-  // policies - ordered policy attachments by id
-  if (agentData.policies && Array.isArray(agentData.policies) && agentData.policies.length > 0) {
-    lines.push(`${indentation}policies: () => [`);
-    for (const policy of agentData.policies) {
-      const parts = [`id: ${formatString(policy.id, q)}`];
-      if (policy.index !== undefined) {
-        parts.push(`index: ${policy.index}`);
+  // skills - ordered skill attachments by id
+  if (agentData.skills && Array.isArray(agentData.skills) && agentData.skills.length > 0) {
+    lines.push(`${indentation}skills: () => [`);
+    for (const skill of agentData.skills) {
+      const parts = [`id: ${formatString(skill.id, q)}`];
+      if (skill.index !== undefined) {
+        parts.push(`index: ${skill.index}`);
       }
       lines.push(`${indentation}${indentation}{ ${parts.join(', ')} },`);
     }

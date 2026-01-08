@@ -75,8 +75,8 @@ export function generateProjectDefinition(
     lines.push(`${indentation}models: ${formatObject(projectData.models, style, 2)},`);
   }
 
-  if (shouldInclude(projectData.policies)) {
-    lines.push(`${indentation}policies: () => policies,`);
+  if (shouldInclude(projectData.skills)) {
+    lines.push(`${indentation}skills: () => skills,`);
   }
 
   // stopWhen configuration - project-level limits
@@ -189,8 +189,8 @@ export function generateProjectImports(
 
   // Always import project from SDK
   const sdkImports = ['project'];
-  if (shouldInclude(projectData.policies)) {
-    sdkImports.push('loadPolicies');
+  if (shouldInclude(projectData.skills)) {
+    sdkImports.push('loadSkills');
   }
   imports.push(generateImport(sdkImports, '@inkeep/agents-sdk', style));
 
@@ -311,8 +311,8 @@ export function generateProjectFile(
 
   const definitions: string[] = [];
 
-  if (shouldInclude(projectData.policies)) {
-    definitions.push(`const policies = loadPolicies('./policies');`);
+  if (shouldInclude(projectData.skills)) {
+    definitions.push(`const skills = loadSkills('./skills');`);
   }
 
   definitions.push(definition);
