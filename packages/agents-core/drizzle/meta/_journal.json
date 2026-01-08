@@ -64,6 +64,13 @@
       "when": 1766419366114,
       "tag": "0007_icy_stranger",
       "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "7",
+      "when": 1767856188265,
+      "tag": "0009_acoustic_tarot",
+      "breakpoints": true
     }
   ]
 }
