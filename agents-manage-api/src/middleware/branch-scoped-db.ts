@@ -40,7 +40,6 @@ export function getPoolFromClient(client: AgentsManageDatabaseClient): Pool | nu
 export const branchScopedDbMiddleware = async (c: Context, next: Next) => {
   const resolvedRef = c.get('resolvedRef') as ResolvedRef;
   const method = c.req.method;
-  const isWriteOperation = ['POST', 'PUT', 'PATCH', 'DELETE'].includes(method);
 
   // Get connection pool from dbClient
   const pool = getPoolFromClient(manageDbClient);
@@ -86,8 +85,7 @@ export const branchScopedDbMiddleware = async (c: Context, next: Next) => {
 
     // Auto-commit for successful writes on branches
     const status = c.res.status;
-    const shouldCommit =
-      isWriteOperation && resolvedRef.type === 'branch' && status >= 200 && status < 300;
+    const shouldCommit = resolvedRef.type === 'branch' && status >= 200 && status < 300;
 
     if (shouldCommit) {
       try {
