@@ -16,7 +16,7 @@ import type {
   AgentTool,
   AllDelegateInputInterface,
   AllDelegateOutputInterface,
-  PolicyDefinition,
+  SkillDefinition,
   SubAgentCanUseType,
   SubAgentConfig,
   SubAgentInterface,
@@ -232,27 +232,30 @@ export class SubAgent implements SubAgentInterface {
     ];
   }
 
-  getPolicies(): { id: string; index?: number; policy?: PolicyDefinition }[] {
-    const policies = resolveGetter(this.config.policies);
-    if (!policies) {
+  getSkills(): { id: string; index?: number; skill?: SkillDefinition }[] {
+    const skills = resolveGetter(this.config.skills);
+    if (!skills) {
       return [];
     }
 
-    return policies
+    return skills
       .map((entry, idx) => {
         if (!entry) return null;
         if (typeof entry === 'string') {
           return { id: entry, index: idx };
         }
         if ('id' in entry) {
+          const skillEntry = entry as any;
+          const hasSkillDefinition =
+            typeof skillEntry.content === 'string' || typeof skillEntry.name === 'string';
           return {
-            id: (entry as any).id,
-            index: (entry as any).index ?? idx,
-            policy: entry as any,
+            id: skillEntry.id,
+            index: skillEntry.index ?? idx,
+            ...(hasSkillDefinition ? { skill: skillEntry } : {}),
           };
         }
-        if ('policyId' in entry) {
-          return { id: (entry as any).policyId, index: (entry as any).index ?? idx };
+        if ('skillId' in entry) {
+          return { id: (entry as any).skillId, index: (entry as any).index ?? idx };
         }
         return null;
       })

@@ -1,29 +1,47 @@
 import { z } from 'zod';
 
-export const policySchema = z.object({
+// todo reuse from core
+export const skillSchema = z.object({
   id: z
-    .string({ required_error: 'Id is required' })
+    .string()
     .trim()
-    .min(1, 'Id is required')
+    .min(1)
     .regex(/^[a-zA-Z0-9-_]+$/, 'Use letters, numbers, dashes, or underscores'),
-  name: z.string({ required_error: 'Name is required' }).trim().min(1, 'Name is required'),
-  description: z
-    .string({ required_error: 'Description is required' })
+  name: z.string().trim().min(1),
+  description: z.string().trim().min(1),
+  content: z.string().trim().min(1),
+  license: z.string().trim().optional(),
+  compatibility: z
+    .string()
     .trim()
-    .min(1, 'Description is required'),
-  content: z.string({ required_error: 'Content is required' }).trim().min(1, 'Content is required'),
+    .max(500, 'Compatibility must be 500 characters or less')
+    .optional(),
+  allowedTools: z.string().trim().optional(),
   metadata: z.string().optional(),
 });
 
-export type PolicyFormData = z.infer<typeof policySchema>;
+export type SkillFormData = z.infer<typeof skillSchema>;
 
-export const defaultValues: PolicyFormData = {
+export const defaultValues: SkillFormData = {
   id: '',
   name: '',
   description: '',
   content: '',
+  license: '',
+  compatibility: '',
+  allowedTools: '',
   metadata: '',
 };
+
+export function parseAllowedToolsField(value = ''): string[] | null {
+  if (!value.trim()) {
+    return null;
+  }
+  return value
+    .split(/\s+/)
+    .map((tool) => tool.trim())
+    .filter((tool) => tool.length > 0);
+}
 
 export function parseMetadataField(metadata?: string): Record<string, unknown> | null {
   if (!metadata || metadata.trim().length === 0) {

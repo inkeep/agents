@@ -10,9 +10,9 @@ import {
   Library,
   LifeBuoy,
   Lock,
-  ScrollText,
   Settings,
   Workflow,
+  LucideHexagon,
 } from 'lucide-react';
 import Link from 'next/link';
 import { useParams } from 'next/navigation';
@@ -83,9 +83,9 @@ export const AppSidebar: FC<AppSidebarProps> = ({ open, setOpen, ...props }) => 
           icon: Workflow,
         },
         {
-          title: 'Agent Skills',
+          title: 'Skills',
           url: `/${tenantId}/projects/${projectId}/skills`,
-          icon: ScrollText,
+          icon: LucideHexagon,
         },
         {
           title: 'API Keys',

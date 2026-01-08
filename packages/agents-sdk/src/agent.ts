@@ -17,7 +17,7 @@ import type {
   GenerateOptions,
   MessageInput,
   ModelSettings,
-  PolicyDefinition,
+  SkillDefinition,
   RunResult,
   StreamResponse,
   SubAgentInterface,
@@ -55,7 +55,7 @@ export class Agent implements AgentInterface {
   private statusUpdateSettings?: StatusUpdateSettings;
   private prompt?: string;
   private stopWhen?: AgentStopWhen;
-  private policies: PolicyDefinition[] = [];
+  private skills: SkillDefinition[] = [];
 
   constructor(config: AgentConfig) {
     this.defaultSubAgent = config.defaultSubAgent;
@@ -116,7 +116,7 @@ export class Agent implements AgentInterface {
     tenantId: string,
     projectId: string,
     apiUrl: string,
-    policies?: PolicyDefinition[]
+    skills?: SkillDefinition[]
   ): void {
     if (this.initialized) {
       throw new Error('Cannot set config after agent has been initialized');
@@ -125,8 +125,8 @@ export class Agent implements AgentInterface {
     this.tenantId = tenantId;
     this.projectId = projectId;
     this.baseURL = apiUrl;
-    if (policies) {
-      this.policies = policies;
+    if (skills) {
+      this.skills = skills;
     }
 
     // Propagate tenantId, projectId, and apiUrl to all agents and their tools
@@ -164,8 +164,8 @@ export class Agent implements AgentInterface {
     );
   }
 
-  setPolicies(policies: PolicyDefinition[]): void {
-    this.policies = policies;
+  setSkills(skills: SkillDefinition[]): void {
+    this.skills = skills;
   }
 
   /**
@@ -176,10 +176,10 @@ export class Agent implements AgentInterface {
     const externalAgentsObject: Record<string, any> = {};
     const functionToolsObject: Record<string, any> = {};
     const functionsObject: Record<string, any> = {};
-    const policiesById = new Map<string, PolicyDefinition>();
+    const skillsById = new Map<string, SkillDefinition>();
 
-    for (const policy of this.policies) {
-      policiesById.set(policy.id, policy);
+    for (const skill of this.skills) {
+      skillsById.set(skill.id, skill);
     }
 
     for (const subAgent of this.subAgents) {
@@ -280,16 +280,19 @@ export class Agent implements AgentInterface {
         toolPolicies: toolPoliciesMapping[toolId] || null,
       }));
 
-      const resolvedPolicies = subAgent
-        .getPolicies()
-        .map((policyRef, idx) => {
-          const policyDef = policyRef.policy || policiesById.get(policyRef.id);
-          if (!policyDef) {
+      const skillTimestamp = new Date().toISOString();
+      const resolvedSkills = subAgent
+        .getSkills()
+        .map((skillRef, idx) => {
+          const skillDef = skillRef.skill || skillsById.get(skillRef.id);
+          if (!skillDef) {
             return null;
           }
           return {
-            ...policyDef,
-            index: policyRef.index ?? idx,
+            ...skillDef,
+            index: skillRef.index ?? idx,
+            createdAt: skillDef.createdAt ?? skillTimestamp,
+            updatedAt: skillDef.updatedAt ?? skillTimestamp,
           };
         })
         .filter((p) => !!p);
@@ -320,7 +323,7 @@ export class Agent implements AgentInterface {
         canUse,
         dataComponents: dataComponents.length > 0 ? dataComponents : undefined,
         artifactComponents: artifactComponents.length > 0 ? artifactComponents : undefined,
-        policies: resolvedPolicies.length > 0 ? resolvedPolicies : undefined,
+        skills: resolvedSkills.length > 0 ? resolvedSkills : undefined,
         type: 'internal',
       };
     }

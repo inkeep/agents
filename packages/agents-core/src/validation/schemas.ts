@@ -28,12 +28,12 @@ import {
   functionTools,
   ledgerArtifacts,
   messages,
-  policies,
+  skills,
   projects,
   subAgentArtifactComponents,
   subAgentDataComponents,
   subAgentExternalAgentRelations,
-  subAgentPolicies,
+  subAgentSkills,
   subAgentRelations,
   subAgents,
   subAgentTeamAgentRelations,
@@ -447,20 +447,28 @@ export const ContextCacheApiSelectSchema = createApiSchema(ContextCacheSelectSch
 export const ContextCacheApiInsertSchema = createApiInsertSchema(ContextCacheInsertSchema);
 export const ContextCacheApiUpdateSchema = createApiUpdateSchema(ContextCacheUpdateSchema);
 
-export const PolicySelectSchema = createSelectSchema(policies).extend({
+export const SkillSelectSchema = createSelectSchema(skills).extend({
   metadata: z.record(z.string(), z.unknown()).nullable(),
+  allowedTools: z.array(z.string()).nullable().optional(),
+  scripts: z.array(z.string()).nullable().optional(),
+  references: z.array(z.string()).nullable().optional(),
+  assets: z.array(z.string()).nullable().optional(),
 });
-export const PolicyInsertSchema = createInsertSchema(policies).extend({
+export const SkillInsertSchema = createInsertSchema(skills).extend({
   id: resourceIdSchema,
   metadata: z.record(z.string(), z.unknown()).nullable().optional(),
+  allowedTools: z.array(z.string()).nullable().optional(),
+  scripts: z.array(z.string()).nullable().optional(),
+  references: z.array(z.string()).nullable().optional(),
+  assets: z.array(z.string()).nullable().optional(),
 });
-export const PolicyUpdateSchema = PolicyInsertSchema.partial();
+export const SkillUpdateSchema = SkillInsertSchema.partial();
 
-export const PolicyApiSelectSchema = createApiSchema(PolicySelectSchema).openapi('Policy');
-export const PolicyApiInsertSchema =
-  createApiInsertSchema(PolicyInsertSchema).openapi('PolicyCreate');
-export const PolicyApiUpdateSchema =
-  createApiUpdateSchema(PolicyUpdateSchema).openapi('PolicyUpdate');
+export const SkillApiSelectSchema = createApiSchema(SkillSelectSchema).openapi('Skill');
+export const SkillApiInsertSchema =
+  createApiInsertSchema(SkillInsertSchema).openapi('SkillCreate');
+export const SkillApiUpdateSchema =
+  createApiUpdateSchema(SkillUpdateSchema).openapi('SkillUpdate');
 
 export const DataComponentSelectSchema = createSelectSchema(dataComponents);
 export const DataComponentInsertSchema = createInsertSchema(dataComponents).extend({
@@ -540,36 +548,36 @@ export const SubAgentArtifactComponentApiUpdateSchema = createAgentScopedApiUpda
   SubAgentArtifactComponentUpdateSchema
 );
 
-export const SubAgentPolicySelectSchema = createSelectSchema(subAgentPolicies).extend({
+export const SubAgentSkillSelectSchema = createSelectSchema(subAgentSkills).extend({
   index: z.number().min(0),
 });
-export const SubAgentPolicyInsertSchema = createInsertSchema(subAgentPolicies).extend({
+export const SubAgentSkillInsertSchema = createInsertSchema(subAgentSkills).extend({
   id: resourceIdSchema,
   subAgentId: resourceIdSchema,
-  policyId: resourceIdSchema,
+  skillId: resourceIdSchema,
   index: z.number().min(0),
 });
-export const SubAgentPolicyUpdateSchema = SubAgentPolicyInsertSchema.partial();
+export const SubAgentSkillUpdateSchema = SubAgentSkillInsertSchema.partial();
 
-export const SubAgentPolicyApiSelectSchema = createAgentScopedApiSchema(
-  SubAgentPolicySelectSchema
-).openapi('SubAgentPolicy');
-export const SubAgentPolicyApiInsertSchema = SubAgentPolicyInsertSchema.omit({
+export const SubAgentSkillApiSelectSchema = createAgentScopedApiSchema(
+  SubAgentSkillSelectSchema
+).openapi('SubAgentSkill');
+export const SubAgentSkillApiInsertSchema = SubAgentSkillInsertSchema.omit({
   tenantId: true,
   projectId: true,
   id: true,
   createdAt: true,
   updatedAt: true,
-}).openapi('SubAgentPolicyCreate');
-export const SubAgentPolicyApiUpdateSchema = createAgentScopedApiUpdateSchema(
-  SubAgentPolicyUpdateSchema
-).openapi('SubAgentPolicyUpdate');
+}).openapi('SubAgentSkillCreate');
+export const SubAgentSkillApiUpdateSchema = createAgentScopedApiUpdateSchema(
+  SubAgentSkillUpdateSchema
+).openapi('SubAgentSkillUpdate');
 
-export const SubAgentPolicyWithIndexSchema = PolicyApiSelectSchema.extend({
+export const SubAgentSkillWithIndexSchema = SkillApiSelectSchema.extend({
   index: z.number().min(0),
-  subAgentPolicyId: resourceIdSchema.optional(),
+  subAgentSkillId: resourceIdSchema.optional(),
   subAgentId: resourceIdSchema.optional(),
-}).openapi('SubAgentPolicyWithIndex');
+}).openapi('SubAgentSkillWithIndex');
 
 export const ExternalAgentSelectSchema = createSelectSchema(externalAgents).extend({
   credentialReferenceId: z.string().nullable().optional(),
@@ -1032,7 +1040,7 @@ export const FullAgentAgentInsertSchema = SubAgentApiInsertSchema.extend({
   canUse: z.array(CanUseItemSchema), // All tools (both MCP and function tools)
   dataComponents: z.array(z.string()).optional(),
   artifactComponents: z.array(z.string()).optional(),
-  policies: z.array(SubAgentPolicyWithIndexSchema).optional(),
+  skills: z.array(SubAgentSkillWithIndexSchema).optional(),
   canTransferTo: z.array(z.string()).optional(),
   prompt: z.string().trim().optional(),
   canDelegateTo: z
@@ -1144,7 +1152,7 @@ export const FullProjectDefinitionSchema = ProjectApiInsertSchema.extend({
   tools: z.record(z.string(), ToolApiInsertSchema),
   functionTools: z.record(z.string(), FunctionToolApiInsertSchema).optional(),
   functions: z.record(z.string(), FunctionApiInsertSchema).optional(),
-  policies: z.record(z.string(), PolicyApiInsertSchema).optional(),
+  skills: z.record(z.string(), SkillApiInsertSchema).optional(),
   dataComponents: z.record(z.string(), DataComponentApiInsertSchema).optional(),
   artifactComponents: z.record(z.string(), ArtifactComponentApiInsertSchema).optional(),
   externalAgents: z.record(z.string(), ExternalAgentApiInsertSchema).optional(),
@@ -1258,13 +1266,13 @@ export const FunctionToolListResponse = z
     pagination: PaginationSchema,
   })
   .openapi('FunctionToolListResponse');
-export const PolicyResponse = z.object({ data: PolicyApiSelectSchema }).openapi('PolicyResponse');
-export const PolicyListResponse = z
+export const SkillResponse = z.object({ data: SkillApiSelectSchema }).openapi('SkillResponse');
+export const SkillListResponse = z
   .object({
-    data: z.array(PolicyApiSelectSchema),
+    data: z.array(SkillApiSelectSchema),
     pagination: PaginationSchema,
   })
-  .openapi('PolicyListResponse');
+  .openapi('SkillListResponse');
 export const DataComponentListResponse = z
   .object({
     data: z.array(DataComponentApiSelectSchema),
@@ -1319,18 +1327,18 @@ export const SubAgentArtifactComponentListResponse = z
     pagination: PaginationSchema,
   })
   .openapi('SubAgentArtifactComponentListResponse');
-export const SubAgentPolicyResponse = z
-  .object({ data: SubAgentPolicyApiSelectSchema })
-  .openapi('SubAgentPolicyResponse');
-export const SubAgentPolicyListResponse = z
+export const SubAgentSkillResponse = z
+  .object({ data: SubAgentSkillApiSelectSchema })
+  .openapi('SubAgentSkillResponse');
+export const SubAgentSkillListResponse = z
   .object({
-    data: z.array(SubAgentPolicyApiSelectSchema),
+    data: z.array(SubAgentSkillApiSelectSchema),
     pagination: PaginationSchema,
   })
-  .openapi('SubAgentPolicyListResponse');
-export const SubAgentPolicyWithIndexArrayResponse = z
-  .object({ data: z.array(SubAgentPolicyWithIndexSchema) })
-  .openapi('SubAgentPolicyWithIndexArrayResponse');
+  .openapi('SubAgentSkillListResponse');
+export const SubAgentSkillWithIndexArrayResponse = z
+  .object({ data: z.array(SubAgentSkillWithIndexSchema) })
+  .openapi('SubAgentSkillWithIndexArrayResponse');
 
 // Missing response schemas for factory function replacement
 export const FullProjectDefinitionResponse = z

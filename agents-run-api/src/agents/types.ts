@@ -11,9 +11,9 @@ export interface VersionConfig<TConfig> {
   assemble(templates: Map<string, string>, config: TConfig): AssembleResult;
 }
 
-export interface PolicyData {
+export interface SkillData {
   id?: string;
-  subAgentPolicyId?: string;
+  subAgentSkillId?: string;
   name: string;
   description?: string | null;
   content: string;
@@ -24,7 +24,7 @@ export interface PolicyData {
 export interface SystemPromptV1 {
   corePrompt: string; // Just the agent's prompt string
   prompt?: string; // Agent-level context and instructions
-  policies?: PolicyData[];
+  skills?: SkillData[];
   artifacts: Artifact[];
   tools: ToolData[]; // Support both formats
   dataComponents: DataComponentApiInsert[];

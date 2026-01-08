@@ -1,10 +1,15 @@
 import { describe, expect, it } from 'vitest';
-import { defaultValues, parseMetadataField, policySchema } from '../validation';
+import {
+  defaultValues,
+  parseAllowedToolsField,
+  parseMetadataField,
+  skillSchema,
+} from '../validation';
 
-describe('policySchema', () => {
+describe('skillSchema', () => {
   it('validates required fields', () => {
-    const result = policySchema.safeParse({
-      id: 'policy-1',
+    const result = skillSchema.safeParse({
+      id: 'skill-1',
       name: 'Name',
       description: 'Desc',
       content: 'Content',
@@ -14,7 +19,7 @@ describe('policySchema', () => {
   });
 
   it('rejects missing id', () => {
-    const result = policySchema.safeParse({
+    const result = skillSchema.safeParse({
       id: '',
       name: 'Name',
       description: 'Desc',
@@ -41,6 +46,21 @@ describe('parseMetadataField', () => {
   });
 });
 
+describe('parseAllowedToolsField', () => {
+  it('returns null for empty input', () => {
+    expect(parseAllowedToolsField('')).toBeNull();
+    expect(parseAllowedToolsField(undefined)).toBeNull();
+  });
+
+  it('splits on whitespace', () => {
+    expect(parseAllowedToolsField('tool-a tool-b  tool-c')).toEqual([
+      'tool-a',
+      'tool-b',
+      'tool-c',
+    ]);
+  });
+});
+
 describe('defaultValues', () => {
   it('provides empty defaults', () => {
     expect(defaultValues).toMatchObject({
@@ -48,6 +68,9 @@ describe('defaultValues', () => {
       name: '',
       description: '',
       content: '',
+      license: '',
+      compatibility: '',
+      allowedTools: '',
     });
   });
 });

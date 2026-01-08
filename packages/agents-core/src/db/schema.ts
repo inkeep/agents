@@ -201,13 +201,19 @@ export const subAgents = pgTable(
   ]
 );
 
-export const policies = pgTable(
-  'policies',
+export const skills = pgTable(
+  'skills',
   {
     ...projectScoped,
     ...uiProperties,
     content: text('content').notNull(),
     metadata: jsonb('metadata').$type<Record<string, unknown> | null>(),
+    license: text('license'),
+    compatibility: text('compatibility'),
+    allowedTools: text('allowed_tools').array(),
+    scripts: text('scripts').array(),
+    references: text('references').array(),
+    assets: text('assets').array(),
     ...timestamps,
   },
   (table) => [
@@ -215,16 +221,16 @@ export const policies = pgTable(
     foreignKey({
       columns: [table.tenantId, table.projectId],
       foreignColumns: [projects.tenantId, projects.id],
-      name: 'policies_project_fk',
+      name: 'skills_project_fk',
     }).onDelete('cascade'),
   ]
 );
 
-export const subAgentPolicies = pgTable(
-  'sub_agent_policies',
+export const subAgentSkills = pgTable(
+  'sub_agent_skills',
   {
     ...subAgentScoped,
-    policyId: varchar('policy_id', { length: 256 }).notNull(),
+    skillId: varchar('skill_id', { length: 256 }).notNull(),
     index: integer('index').notNull().default(0),
     ...timestamps,
   },
@@ -233,15 +239,15 @@ export const subAgentPolicies = pgTable(
     foreignKey({
       columns: [table.tenantId, table.projectId, table.agentId, table.subAgentId],
       foreignColumns: [subAgents.tenantId, subAgents.projectId, subAgents.agentId, subAgents.id],
-      name: 'sub_agent_policies_sub_agent_fk',
+      name: 'sub_agent_skills_sub_agent_fk',
     }).onDelete('cascade'),
     foreignKey({
-      columns: [table.tenantId, table.projectId, table.policyId],
-      foreignColumns: [policies.tenantId, policies.projectId, policies.id],
-      name: 'sub_agent_policies_policy_fk',
+      columns: [table.tenantId, table.projectId, table.skillId],
+      foreignColumns: [skills.tenantId, skills.projectId, skills.id],
+      name: 'sub_agent_skills_skill_fk',
     }).onDelete('cascade'),
-    unique('sub_agent_policies_sub_agent_policy_unique').on(table.subAgentId, table.policyId),
-    index('sub_agent_policies_policy_idx').on(table.policyId),
+    unique('sub_agent_skills_sub_agent_skill_unique').on(table.subAgentId, table.skillId),
+    index('sub_agent_skills_skill_idx').on(table.skillId),
   ]
 );
 
@@ -810,7 +816,7 @@ export const projectsRelations = relations(projects, ({ many }) => ({
   artifactComponents: many(artifactComponents),
   ledgerArtifacts: many(ledgerArtifacts),
   credentialReferences: many(credentialReferences),
-  policies: many(policies),
+  skills: many(skills),
 }));
 
 export const taskRelationsRelations = relations(taskRelations, ({ one }) => ({
@@ -865,7 +871,7 @@ export const subAgentsRelations = relations(subAgents, ({ many, one }) => ({
   functionToolRelations: many(subAgentFunctionToolRelations),
   dataComponentRelations: many(subAgentDataComponents),
   artifactComponentRelations: many(subAgentArtifactComponents),
-  policyRelations: many(subAgentPolicies),
+  skillRelations: many(subAgentSkills),
 }));
 
 export const agentRelations = relations(agents, ({ one, many }) => ({
@@ -1041,27 +1047,27 @@ export const subAgentDataComponentsRelations = relations(subAgentDataComponents,
   }),
 }));
 
-export const policiesRelations = relations(policies, ({ one, many }) => ({
+export const skillsRelations = relations(skills, ({ one, many }) => ({
   project: one(projects, {
-    fields: [policies.tenantId, policies.projectId],
+    fields: [skills.tenantId, skills.projectId],
     references: [projects.tenantId, projects.id],
   }),
-  subAgentRelations: many(subAgentPolicies),
+  subAgentRelations: many(subAgentSkills),
 }));
 
-export const subAgentPoliciesRelations = relations(subAgentPolicies, ({ one }) => ({
+export const subAgentSkillsRelations = relations(subAgentSkills, ({ one }) => ({
   subAgent: one(subAgents, {
     fields: [
-      subAgentPolicies.tenantId,
-      subAgentPolicies.projectId,
-      subAgentPolicies.agentId,
-      subAgentPolicies.subAgentId,
+      subAgentSkills.tenantId,
+      subAgentSkills.projectId,
+      subAgentSkills.agentId,
+      subAgentSkills.subAgentId,
     ],
     references: [subAgents.tenantId, subAgents.projectId, subAgents.agentId, subAgents.id],
   }),
-  policy: one(policies, {
-    fields: [subAgentPolicies.tenantId, subAgentPolicies.projectId, subAgentPolicies.policyId],
-    references: [policies.tenantId, policies.projectId, policies.id],
+  skill: one(skills, {
+    fields: [subAgentSkills.tenantId, subAgentSkills.projectId, subAgentSkills.skillId],
+    references: [skills.tenantId, skills.projectId, skills.id],
   }),
 }));
 

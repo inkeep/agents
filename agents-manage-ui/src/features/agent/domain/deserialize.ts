@@ -147,16 +147,16 @@ export function deserializeAgentData(data: FullAgentDefinition): TransformResult
                 : undefined,
             }
           : undefined,
-        policies: subAgent.policies
-          ? [...subAgent.policies]
+        skills: subAgent.skills
+          ? [...subAgent.skills]
               .sort((a, b) => (a.index ?? 0) - (b.index ?? 0))
-              .map((policy) => ({
-                id: policy.id,
-                index: policy.index,
-                name: policy.name,
-                description: policy.description || '',
-                content: (policy as any).content || '',
-                subAgentPolicyId: (policy as any).subAgentPolicyId,
+              .map((skill) => ({
+                id: skill.id,
+                index: skill.index,
+                name: skill.name,
+                description: skill.description || '',
+                content: (skill as any).content || '',
+                subAgentSkillId: (skill as any).subAgentSkillId,
               }))
           : undefined,
         stopWhen: subAgent.stopWhen ? { stepCountIs: subAgent.stopWhen.stepCountIs } : undefined,

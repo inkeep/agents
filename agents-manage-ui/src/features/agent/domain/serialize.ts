@@ -13,7 +13,7 @@ import type {
   SubAgentTeamAgentConfigLookup,
 } from '@/lib/types/agent-full';
 import type { ExternalAgent } from '@/lib/types/external-agents';
-import type { Policy } from '@/lib/types/policies';
+import type { Skill } from '@/lib/types/skills';
 import type { TeamAgent } from '@/lib/types/team-agents';
 import { generateId } from '@/lib/utils/id-utils';
 
@@ -107,7 +107,7 @@ export function serializeAgentData(
   agentToolConfigLookup?: AgentToolConfigLookup,
   subAgentExternalAgentConfigLookup?: SubAgentExternalAgentConfigLookup,
   subAgentTeamAgentConfigLookup?: SubAgentTeamAgentConfigLookup,
-  policyLookup?: Record<string, Policy>
+  skillLookup?: Record<string, Skill>
 ): FullAgentDefinition {
   const subAgents: Record<string, ExtendedAgent> = {};
   const externalAgents: Record<string, ExternalAgent> = {};
@@ -137,23 +137,23 @@ export function serializeAgentData(
 
       const stopWhen = (node.data as any).stopWhen;
 
-      const nodePolicies: {
+      const nodeSkills: {
         id: string;
         name?: string;
         description?: string | null;
         content?: string;
         metadata?: Record<string, unknown> | null;
         index: number;
-        subAgentPolicyId?: string;
-      }[] = (node.data as any).policies || [];
-      const resolvedPolicies = nodePolicies
-        .map((policyEntry, idx) => {
-          const resolved = policyLookup?.[policyEntry.id] || policyEntry;
+        subAgentSkillId?: string;
+      }[] = (node.data as any).skills || [];
+      const resolvedSkills = nodeSkills
+        .map((skillEntry, idx) => {
+          const resolved = skillLookup?.[skillEntry.id] || skillEntry;
           if (!resolved?.id) {
             return null;
           }
 
-          const index = policyEntry.index ?? idx;
+          const index = skillEntry.index ?? idx;
           return {
             id: resolved.id,
             name: resolved.name,
@@ -161,10 +161,10 @@ export function serializeAgentData(
             content: (resolved as any).content ?? '',
             metadata: (resolved as any).metadata ?? null,
             index,
-            subAgentPolicyId: (policyEntry as any).subAgentPolicyId,
+            subAgentSkillId: (skillEntry as any).subAgentSkillId,
           };
         })
-        .filter((policy) => !!policy)
+        .filter((skill) => !!skill)
         .sort((a, b) => a.index - b.index);
 
       const canUse: Array<{
@@ -325,7 +325,7 @@ export function serializeAgentData(
         artifactComponents: subAgentArtifactComponents,
         ...(processedModels && { models: processedModels }),
         type: 'internal',
-        ...(resolvedPolicies.length > 0 && { policies: resolvedPolicies }),
+        ...(resolvedSkills.length > 0 && { skills: resolvedSkills }),
         ...(stopWhen && { stopWhen }),
       };
 
@@ -748,7 +748,7 @@ interface StructuredValidationError {
 export function validateSerializedData(
   data: FullAgentDefinition,
   functionToolNodeMap?: Map<string, string>,
-  policyLookup?: Record<string, Policy>
+  skillLookup?: Record<string, Skill>
 ): StructuredValidationError[] {
   const errors: StructuredValidationError[] = [];
 
@@ -855,14 +855,14 @@ export function validateSerializedData(
       }
     }
 
-    if ((agent as any).policies && policyLookup && Object.keys(policyLookup).length > 0) {
-      for (const policy of (agent as any).policies as Array<{ id: string }>) {
-        if (policy.id && !policyLookup[policy.id]) {
+    if ((agent as any).skills && skillLookup && Object.keys(skillLookup).length > 0) {
+      for (const skill of (agent as any).skills as Array<{ id: string }>) {
+        if (skill.id && !skillLookup[skill.id]) {
           errors.push({
-            message: `Policy '${policy.id}' not found.`,
-            field: 'policies',
+            message: `Skill '${skill.id}' not found.`,
+            field: 'skills',
             code: 'invalid_reference',
-            path: ['agents', subAgentId, 'policies'],
+            path: ['agents', subAgentId, 'skills'],
           });
         }
       }

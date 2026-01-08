@@ -17,7 +17,7 @@ import type { ExternalAgent } from './external-agent';
 import { FunctionTool } from './function-tool';
 import { updateFullProjectViaAPI } from './projectFullClient';
 import type { Tool } from './tool';
-import type { AgentTool, ModelSettings, PolicyDefinition } from './types';
+import type { AgentTool, ModelSettings, SkillDefinition } from './types';
 
 /**
  * Project configuration interface for the SDK
@@ -38,7 +38,7 @@ export interface ProjectConfig {
   dataComponents?: () => DataComponent[];
   artifactComponents?: () => ArtifactComponent[];
   credentialReferences?: () => CredentialReferenceApiInsert[];
-  policies?: () => PolicyDefinition[];
+  skills?: () => SkillDefinition[];
 }
 
 /**
@@ -113,7 +113,7 @@ export class Project implements ProjectInterface {
   private projectArtifactComponents: ArtifactComponent[] = [];
   private projectExternalAgents: ExternalAgent[] = [];
   private externalAgentMap = new Map<string, ExternalAgent>();
-  private policies: PolicyDefinition[] = [];
+  private skills: SkillDefinition[] = [];
 
   constructor(config: ProjectConfig) {
     this.projectId = config.id;
@@ -124,7 +124,7 @@ export class Project implements ProjectInterface {
     this.baseURL = process.env.INKEEP_API_URL || 'http://localhost:3002';
     this.models = config.models;
     this.stopWhen = config.stopWhen;
-    this.policies = config.policies ? config.policies() : [];
+    this.skills = config.skills ? config.skills() : [];
 
     // Initialize agent if provided
     if (config.agents) {
@@ -133,8 +133,8 @@ export class Project implements ProjectInterface {
 
       // Set project context on agent
       for (const agent of this.agents) {
-        agent.setConfig(this.tenantId, this.projectId, this.baseURL, this.policies);
-        agent.setPolicies(this.policies);
+        agent.setConfig(this.tenantId, this.projectId, this.baseURL, this.skills);
+        agent.setSkills(this.skills);
       }
     }
 
@@ -201,7 +201,7 @@ export class Project implements ProjectInterface {
 
     // Update all agent with new config
     for (const agent of this.agents) {
-      agent.setConfig(tenantId, this.projectId, apiUrl, this.policies);
+      agent.setConfig(tenantId, this.projectId, apiUrl, this.skills);
     }
 
     logger.info(
@@ -442,8 +442,8 @@ export class Project implements ProjectInterface {
     this.agentMap.set(agent.getId(), agent);
 
     // Set project context on the agent
-    agent.setConfig(this.tenantId, this.projectId, this.baseURL, this.policies);
-    agent.setPolicies(this.policies);
+    agent.setConfig(this.tenantId, this.projectId, this.baseURL, this.skills);
+    agent.setSkills(this.skills);
 
     logger.info(
       {
@@ -544,7 +544,8 @@ export class Project implements ProjectInterface {
     const artifactComponentsObject: Record<string, any> = {};
     const credentialReferencesObject: Record<string, any> = {};
     const externalAgentsObject: Record<string, ExternalAgentApiInsert> = {};
-    const policiesObject: Record<string, any> = {};
+    const skillsObject: Record<string, any> = {};
+    const skillTimestamp = new Date().toISOString();
     // Track which resources use each credential
     const credentialUsageMap: Record<
       string,
@@ -865,14 +866,22 @@ export class Project implements ProjectInterface {
     }
     logger.info({ externalAgentsObject }, 'External agents object');
 
-    for (const policy of this.policies) {
-      if (!policy.id) continue;
-      policiesObject[policy.id] = {
-        id: policy.id,
-        name: policy.name,
-        description: policy.description,
-        content: policy.content,
-        metadata: policy.metadata ?? null,
+    for (const skill of this.skills) {
+      if (!skill.id) continue;
+      skillsObject[skill.id] = {
+        id: skill.id,
+        name: skill.name,
+        description: skill.description,
+        content: skill.content,
+        metadata: skill.metadata ?? null,
+        license: skill.license ?? null,
+        compatibility: skill.compatibility ?? null,
+        allowedTools: skill.allowedTools ?? null,
+        scripts: skill.scripts ?? null,
+        references: skill.references ?? null,
+        assets: skill.assets ?? null,
+        createdAt: skill.createdAt ?? skillTimestamp,
+        updatedAt: skill.updatedAt ?? skillTimestamp,
       };
     }
 
@@ -984,7 +993,7 @@ export class Project implements ProjectInterface {
         Object.keys(externalAgentsObject).length > 0 ? externalAgentsObject : undefined,
       credentialReferences:
         Object.keys(credentialReferencesObject).length > 0 ? credentialReferencesObject : undefined,
-      policies: Object.keys(policiesObject).length > 0 ? policiesObject : undefined,
+      skills: Object.keys(skillsObject).length > 0 ? skillsObject : undefined,
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
     };

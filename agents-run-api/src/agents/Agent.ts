@@ -30,7 +30,7 @@ import {
   type ModelSettings,
   type Models,
   parseEmbeddedJson,
-  type SubAgentPolicyWithIndex,
+  type SubAgentSkillWithIndex,
   type SubAgentStopWhen,
   TemplateEngine,
 } from '@inkeep/agents-core';
@@ -139,7 +139,7 @@ export type AgentConfig = {
   }>;
   contextConfigId?: string;
   dataComponents?: DataComponentApiInsert[];
-  policies?: SubAgentPolicyWithIndex[];
+  skills?: SubAgentSkillWithIndex[];
   artifactComponents?: ArtifactComponentApiInsert[];
   conversationHistoryConfig?: AgentConversationHistoryConfig;
   models?: Models;
@@ -1694,7 +1694,7 @@ export class Agent {
     const config: SystemPromptV1 = {
       corePrompt: processedPrompt,
       prompt,
-      policies: this.config.policies || [],
+      skills: this.config.skills || [],
       tools: toolDefinitions,
       dataComponents: componentDataComponents,
       artifacts: referenceArtifacts,

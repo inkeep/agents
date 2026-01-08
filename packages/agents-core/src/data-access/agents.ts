@@ -21,7 +21,7 @@ import { getContextConfigById } from './contextConfigs';
 import { getExternalAgent } from './externalAgents';
 import { getFunction } from './functions';
 import { listFunctionTools } from './functionTools';
-import { getPoliciesForSubAgents } from './policies';
+import { getSkillsForSubAgents } from './skills';
 import { getSubAgentExternalAgentRelationsByAgent } from './subAgentExternalAgentRelations';
 import { getAgentRelations, getAgentRelationsByAgent } from './subAgentRelations';
 import { getSubAgentById } from './subAgents';
@@ -321,41 +321,47 @@ export const getFullAgentDefinition =
       externalSubAgentIds.add(relation.externalAgentId);
     }
 
-    type PolicyWithIndex = {
+    type SkillWithIndex = {
       id: string;
       name: string;
       description: string | null;
       content: string;
       metadata: Record<string, unknown> | null;
       index: number;
-      subAgentPolicyId: string;
+      subAgentSkillId: string;
       subAgentId: string;
       createdAt: string | null;
       updatedAt: string | null;
     };
 
-    const subAgentPoliciesList = await getPoliciesForSubAgents(db)({
+    const subAgentSkillsList = await getSkillsForSubAgents(db)({
       scopes: { tenantId, projectId, agentId },
       subAgentIds,
     });
 
-    const policiesBySubAgent: Record<string, PolicyWithIndex[]> = {};
-    for (const policy of subAgentPoliciesList) {
-      if (!policiesBySubAgent[policy.subAgentId]) {
-        policiesBySubAgent[policy.subAgentId] = [];
+    const skillsBySubAgent: Record<string, SkillWithIndex[]> = {};
+    for (const skill of subAgentSkillsList) {
+      if (!skillsBySubAgent[skill.subAgentId]) {
+        skillsBySubAgent[skill.subAgentId] = [];
       }
 
-      policiesBySubAgent[policy.subAgentId].push({
-        id: policy.id,
-        name: policy.name,
-        description: policy.description,
-        content: policy.content,
-        metadata: policy.metadata,
-        index: policy.index,
-        subAgentPolicyId: policy.subAgentPolicyId,
-        subAgentId: policy.subAgentId,
-        createdAt: policy.createdAt,
-        updatedAt: policy.updatedAt,
+      skillsBySubAgent[skill.subAgentId].push({
+        id: skill.id,
+        name: skill.name,
+        description: skill.description,
+        content: skill.content,
+        metadata: skill.metadata,
+        license: skill.license,
+        compatibility: skill.compatibility,
+        allowedTools: skill.allowedTools,
+        scripts: skill.scripts,
+        references: skill.references,
+        assets: skill.assets,
+        index: skill.index,
+        subAgentSkillId: skill.subAgentSkillId,
+        subAgentId: skill.subAgentId,
+        createdAt: skill.createdAt,
+        updatedAt: skill.updatedAt,
       });
     }
 
@@ -520,7 +526,7 @@ export const getFullAgentDefinition =
           stopWhen: agent.stopWhen,
           canTransferTo,
           canDelegateTo,
-          policies: policiesBySubAgent[agent.id] || [],
+          skills: skillsBySubAgent[agent.id] || [],
           dataComponents: agentDataComponentIds,
           artifactComponents: agentArtifactComponentIds,
           canUse,
