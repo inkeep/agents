@@ -82,58 +82,53 @@ description: Extracts PDFs.
     expect(() => loadSkills(root)).toThrow('');
   });
 
-  it.skip('rejects names longer than 64 characters', async () => {
-    const name = 'a'.repeat(65);
+  it('rejects names longer than 64 characters', async () => {
     const root = await createSkill({
-      dirName: name,
+      dirName: 'x',
       content: `---
-name: ${name}
-description: Extracts PDFs.
+name: ${'a'.repeat(65)}
+description: x
 ---`,
     });
-
-    expect(() => loadSkills(root)).toThrow('');
+    expect(() => loadSkills(root)).toThrow('Too big: expected string to have <=64 characters');
   });
 
   it('rejects names that do not match the directory', async () => {
     const root = await createSkill({
-      dirName: 'y',
+      dirName: 'x',
       content: `---
-name: x
+name: y
 description: x
 ---`,
     });
-
-    expect(() => loadSkills(root)).toThrow('Skill name "x" does not match directory "y"');
+    expect(() => loadSkills(root)).toThrow('Skill name "y" does not match directory "x"');
   });
 
   it('rejects empty descriptions', async () => {
     const root = await createSkill({
-      dirName: 'pdf-processing',
+      dirName: 'x',
       content: `---
 name: x
 description: " "
 ---`,
     });
-
     expect(() => loadSkills(root)).toThrow('Too small: expected string to have >=1 characters');
   });
 
   it('rejects descriptions longer than 1024 characters', async () => {
     const root = await createSkill({
-      dirName: 'pdf-processing',
+      dirName: 'x',
       content: `---
 name: x
 description: ${'a'.repeat(1025)}
 ---`,
     });
-
     expect(() => loadSkills(root)).toThrow('Too big: expected string to have <=1024 characters');
   });
 
   it('rejects metadata with non-string values', async () => {
     const root = await createSkill({
-      dirName: 'data-analysis',
+      dirName: 'x',
       content: `---
 name: x
 description: x
@@ -141,7 +136,6 @@ metadata:
   author: 0
 ---`,
     });
-
     expect(() => loadSkills(root)).toThrow('Invalid input: expected string, received number');
   });
 });
