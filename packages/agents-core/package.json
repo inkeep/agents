@@ -115,9 +115,7 @@
     "db:run:migrate": "drizzle-kit migrate --config=drizzle.run.config.ts",
     "db:run:drop": "drizzle-kit drop --config=drizzle.run.config.ts",
     "db:run:studio": "drizzle-kit studio --config=drizzle.run.config.ts",
-    "db:run:check": "drizzle-kit check --config=drizzle.run.config.ts",
-    "prepack": "clean-package",
-    "postpack": "clean-package restore"
+    "db:run:check": "drizzle-kit check --config=drizzle.run.config.ts"
   },
   "dependencies": {
     "@ai-sdk/azure": "^3.0.4",
