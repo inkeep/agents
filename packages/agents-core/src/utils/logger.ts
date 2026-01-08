@@ -158,6 +158,18 @@ export class PinoLogger {
   debug(data: any, message: string): void {
     this.pinoInstance.debug(data, message);
   }
+
+  trace(data: any, message: string): void {
+    this.pinoInstance.trace(data, message);
+  }
+
+  isDebugEnabled(): boolean {
+    return this.pinoInstance.isLevelEnabled('debug');
+  }
+
+  isTraceEnabled(): boolean {
+    return this.pinoInstance.isLevelEnabled('trace');
+  }
 }
 
 /**

@@ -13,7 +13,7 @@ const envSchema = z.object({
   DATABASE_URL: z.string().optional(),
   INKEEP_AGENTS_RUN_API_URL: z.string().optional().default('http://localhost:3003'),
   AGENTS_MANAGE_UI_URL: z.string().optional().default('http://localhost:3000'),
-  LOG_LEVEL: z.enum(['trace', 'debug', 'info', 'warn', 'error']).optional().default('debug'),
+  LOG_LEVEL: z.enum(['trace', 'debug', 'info', 'warn', 'error']).optional().default('info'),
   NANGO_SERVER_URL: z.string().optional().default('https://api.nango.dev'),
   NANGO_SECRET_KEY: z.string().optional(),
   ANTHROPIC_API_KEY: z.string(),
