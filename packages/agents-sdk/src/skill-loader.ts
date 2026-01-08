@@ -41,6 +41,9 @@ export function loadSkills(directoryPath: string): SkillDefinition[] {
     const [frontmatter, document] = simplematter(fileContent);
     const { name, description, metadata } = frontmatterSchema.parse(frontmatter);
     const id = toSkillId(filePath);
+    if (name !== id) {
+      throw new Error(`Skill name "${name}" does not match directory "${id}"`);
+    }
 
     return {
       id,

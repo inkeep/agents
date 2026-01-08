@@ -26,7 +26,7 @@ afterEach(async () => {
 });
 
 describe('skill-loader', () => {
-  it.skip('loads a skill with required fields', async () => {
+  it('loads a skill with required fields', async () => {
     const root = await createSkill({
       dirName: 'pdf-processing',
       content: `---
@@ -34,28 +34,29 @@ name: pdf-processing
 description: Extracts PDFs.
 ---`,
     });
-
     const [skill] = loadSkills(root);
-    expect(skill.id).toBe('pdf-processing');
-    expect(skill.name).toBe('pdf-processing');
-    expect(skill.description).toBe('Extracts PDFs.');
-    expect(skill.metadata).toBeNull();
+    expect(skill).toEqual({
+      id: 'pdf-processing',
+      name: 'pdf-processing',
+      description: 'Extracts PDFs.',
+      metadata: null,
+      content: '',
+    });
   });
 
-  it.skip('accepts metadata with string values', async () => {
+  it('accepts metadata with string values', async () => {
     const root = await createSkill({
-      dirName: 'data-analysis',
+      dirName: 'x',
       content: `---
-name: data-analysis
-description: Analyzes datasets.
+name: x
+description: x
 metadata:
   author: example-org
-  version: 1.0
+  version: 1.0.0
 ---`,
     });
-
     const [skill] = loadSkills(root);
-    expect(skill.metadata).toEqual({ author: 'example-org', version: '1.0' });
+    expect(skill.metadata).toEqual({ author: 'example-org', version: '1.0.0' });
   });
 
   it('rejects uppercase names', async () => {
