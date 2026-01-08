@@ -457,10 +457,8 @@ export const SkillInsertSchema = createInsertSchema(skills).extend({
 export const SkillUpdateSchema = SkillInsertSchema.partial();
 
 export const SkillApiSelectSchema = createApiSchema(SkillSelectSchema).openapi('Skill');
-export const SkillApiInsertSchema =
-  createApiInsertSchema(SkillInsertSchema).openapi('SkillCreate');
-export const SkillApiUpdateSchema =
-  createApiUpdateSchema(SkillUpdateSchema).openapi('SkillUpdate');
+export const SkillApiInsertSchema = createApiInsertSchema(SkillInsertSchema).openapi('SkillCreate');
+export const SkillApiUpdateSchema = createApiUpdateSchema(SkillUpdateSchema).openapi('SkillUpdate');
 
 export const DataComponentSelectSchema = createSelectSchema(dataComponents);
 export const DataComponentInsertSchema = createInsertSchema(dataComponents).extend({
@@ -551,9 +549,8 @@ export const SubAgentSkillInsertSchema = createInsertSchema(subAgentSkills).exte
 });
 export const SubAgentSkillUpdateSchema = SubAgentSkillInsertSchema.partial();
 
-export const SubAgentSkillApiSelectSchema = createAgentScopedApiSchema(
-  SubAgentSkillSelectSchema
-).openapi('SubAgentSkill');
+export const SubAgentSkillApiSelectSchema =
+  createAgentScopedApiSchema(SubAgentSkillSelectSchema).openapi('SubAgentSkill');
 export const SubAgentSkillApiInsertSchema = SubAgentSkillInsertSchema.omit({
   tenantId: true,
   projectId: true,
@@ -561,9 +558,8 @@ export const SubAgentSkillApiInsertSchema = SubAgentSkillInsertSchema.omit({
   createdAt: true,
   updatedAt: true,
 }).openapi('SubAgentSkillCreate');
-export const SubAgentSkillApiUpdateSchema = createAgentScopedApiUpdateSchema(
-  SubAgentSkillUpdateSchema
-).openapi('SubAgentSkillUpdate');
+export const SubAgentSkillApiUpdateSchema =
+  createAgentScopedApiUpdateSchema(SubAgentSkillUpdateSchema).openapi('SubAgentSkillUpdate');
 
 export const SubAgentSkillWithIndexSchema = SkillApiSelectSchema.extend({
   index: z.number().min(0),

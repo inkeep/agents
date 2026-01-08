@@ -51,12 +51,16 @@ description: Extracts PDFs.
 name: x
 description: x
 metadata:
-  author: example-org
+  author: " example-org "
   version: 1.0.0
 ---`,
     });
     const [skill] = loadSkills(root);
-    expect(skill.metadata).toEqual({ author: 'example-org', version: '1.0.0' });
+    expect(skill.metadata).toEqual({
+      // We don't trim `metadata` values
+      author: ' example-org ',
+      version: '1.0.0',
+    });
   });
 
   it('rejects uppercase names', async () => {

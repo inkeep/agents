@@ -1,33 +1,11 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { simplematter } from 'simplematter';
-import { z } from 'zod';
+import { SkillFrontmatterSchema } from '@inkeep/agents-core';
 import type { SkillDefinition } from './types';
 
-export const frontmatterSchema = z.object({
-  name: z
-    .string()
-    .trim()
-    .nonempty()
-    .max(64)
-    .regex(
-      /^[a-z0-9-]+$/,
-      'May only contain lowercase alphanumeric characters and hyphens (a-z, 0-9, -)'
-    )
-    .refine(
-      (v) => !(v.startsWith('-') || v.endsWith('-')),
-      'Must not start or end with a hyphen (-)'
-    )
-    .refine((v) => !v.includes('--'), 'Must not contain consecutive hyphens (--)'),
-  description: z.string().trim().nonempty().max(1024),
-  metadata: z.record(z.string(), z.string()).nullable().optional().default(null),
-});
-
-function toSkillId(filePath: string): string {
-  const { dir, name } = path.parse(filePath);
-  const withoutExt = path.join(dir, name);
-
-  return withoutExt.replaceAll(path.sep, '-');
+function getParentDirName(filePath: string): string {
+  return path.basename(path.dirname(filePath));
 }
 
 export function loadSkills(directoryPath: string): SkillDefinition[] {
@@ -39,8 +17,9 @@ export function loadSkills(directoryPath: string): SkillDefinition[] {
     const resolvedPath = path.join(directoryPath, filePath);
     const fileContent = fs.readFileSync(resolvedPath, 'utf8');
     const [frontmatter, document] = simplematter(fileContent);
-    const { name, description, metadata } = frontmatterSchema.parse(frontmatter);
-    const id = toSkillId(filePath);
+    const { name, description, metadata } = SkillFrontmatterSchema.parse(frontmatter);
+
+    const id = getParentDirName(filePath);
     if (name !== id) {
       throw new Error(`Skill name "${name}" does not match directory "${id}"`);
     }
