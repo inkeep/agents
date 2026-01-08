@@ -135,7 +135,6 @@ export function CopilotChat({ agentId, tenantId, projectId, refreshAgentGraph }:
     <div className="h-full flex flex-row gap-4">
       <div className="flex-1 min-w-0 h-full">
         <InkeepSidebarChat
-          key={JSON.stringify(dynamicHeaders)}
           openSettings={{
             isOpen: isOpen,
             onOpenChange: setIsOpen,

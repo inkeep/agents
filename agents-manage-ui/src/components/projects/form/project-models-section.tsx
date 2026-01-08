@@ -6,6 +6,7 @@ import { type Control, useController, useFormState, useWatch } from 'react-hook-
 import { ModelSelector } from '@/components/agent/sidepane/nodes/model-selector';
 import { ExpandableJsonEditor } from '@/components/editors/expandable-json-editor';
 import { FormFieldWrapper } from '@/components/form/form-field-wrapper';
+import { ModelConfiguration } from '@/components/shared/model-configuration';
 import { Button } from '@/components/ui/button';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { InfoCard } from '@/components/ui/info-card';
@@ -33,38 +34,32 @@ function BaseModelSection({ control }: { control: Control<ProjectFormData> }) {
         isRequired
       >
         {(field) => (
-          <ModelSelector
+          <ModelConfiguration
+            value={field.value || ''}
+            providerOptions={
+              providerOptionsField.value ? JSON.stringify(providerOptionsField.value, null, 2) : ''
+            }
             label=""
             placeholder="Select base model"
-            value={field.value || ''}
-            onValueChange={field.onChange}
             canClear={false}
+            isRequired={true}
+            onModelChange={field.onChange}
+            onProviderOptionsChange={(value) => {
+              if (!value?.trim()) {
+                providerOptionsField.onChange(undefined);
+                return;
+              }
+              try {
+                const parsed = JSON.parse(value);
+                providerOptionsField.onChange(parsed);
+              } catch {
+                // Invalid JSON - don't update the field value
+              }
+            }}
+            editorNamePrefix="project-base"
           />
         )}
       </FormFieldWrapper>
-      <ExpandableJsonEditor
-        name="models.base.providerOptions"
-        label="Provider options"
-        value={
-          providerOptionsField.value ? JSON.stringify(providerOptionsField.value, null, 2) : ''
-        }
-        onChange={(value) => {
-          if (!value?.trim()) {
-            providerOptionsField.onChange(undefined);
-            return;
-          }
-          try {
-            const parsed = JSON.parse(value);
-            providerOptionsField.onChange(parsed);
-          } catch {
-            // Invalid JSON - don't update the field value
-          }
-        }}
-        placeholder={`{
-  "temperature": 0.7,
-  "maxOutputTokens": 2048
-}`}
-      />
     </div>
   );
 }
