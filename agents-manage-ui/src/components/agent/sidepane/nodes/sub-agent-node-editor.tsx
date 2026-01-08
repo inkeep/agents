@@ -262,6 +262,7 @@ export function SubAgentNodeEditor({
         emptyStateActionText="Create artifact"
         emptyStateActionHref={`/${tenantId}/projects/${projectId}/artifacts/new`}
         placeholder="Select artifacts..."
+        commandInputPlaceholder="Search artifacts..."
       />
       {!isDefaultSubAgent && (
         <>
