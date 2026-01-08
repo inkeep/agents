@@ -1,19 +1,15 @@
 import { z } from 'zod';
+import { SkillFrontmatterSchema } from '@inkeep/agents-core/client-exports';
 
-// todo reuse from core
-export const skillSchema = z.object({
-  id: z
-    .string()
-    .trim()
-    .min(1)
-    .regex(/^[a-zA-Z0-9-_]+$/, 'Use letters, numbers, dashes, or underscores'),
-  name: z.string().trim().min(1),
-  description: z.string().trim().min(1),
-  content: z.string().trim().min(1),
+export const SkillSchema = z.object({
+  id: SkillFrontmatterSchema.shape.name,
+  name: SkillFrontmatterSchema.shape.name,
+  description: SkillFrontmatterSchema.shape.description,
+  content: z.string().nonempty(),
   metadata: z.string().optional(),
 });
 
-export type SkillFormData = z.infer<typeof skillSchema>;
+export type SkillFormData = z.infer<typeof SkillSchema>;
 
 export const defaultValues: SkillFormData = {
   id: '',
@@ -23,8 +19,8 @@ export const defaultValues: SkillFormData = {
   metadata: '',
 };
 
-export function parseMetadataField(metadata?: string): Record<string, unknown> | null {
-  if (!metadata || metadata.trim().length === 0) {
+export function parseMetadataField(metadata = ''): Record<string, unknown> | null {
+  if (!metadata.trim()) {
     return null;
   }
 
@@ -33,7 +29,7 @@ export function parseMetadataField(metadata?: string): Record<string, unknown> |
     if (typeof parsed !== 'object' || Array.isArray(parsed) || parsed === null) {
       throw new Error('Metadata must be a JSON object');
     }
-    return parsed as Record<string, unknown>;
+    return parsed;
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Invalid metadata JSON';
     throw new Error(message);

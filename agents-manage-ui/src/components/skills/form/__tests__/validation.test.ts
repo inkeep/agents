@@ -1,9 +1,9 @@
 import { describe, expect, it } from 'vitest';
-import { defaultValues, parseMetadataField, skillSchema } from '../validation';
+import { defaultValues, parseMetadataField, SkillSchema } from '../validation';
 
 describe('skillSchema', () => {
   it('validates required fields', () => {
-    const result = skillSchema.safeParse({
+    const result = SkillSchema.safeParse({
       id: 'skill-1',
       name: 'Name',
       description: 'Desc',
@@ -14,7 +14,7 @@ describe('skillSchema', () => {
   });
 
   it('rejects missing id', () => {
-    const result = skillSchema.safeParse({
+    const result = SkillSchema.safeParse({
       id: '',
       name: 'Name',
       description: 'Desc',

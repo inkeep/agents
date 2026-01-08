@@ -16,12 +16,7 @@ import { createSkillAction, updateSkillAction } from '@/lib/actions/skills';
 import type { Skill } from '@/lib/types/skills';
 import { formatJsonField } from '@/lib/utils';
 import { DeleteSkillConfirmation } from '../delete-skill-confirmation';
-import {
-  defaultValues,
-  type SkillFormData,
-  parseMetadataField,
-  skillSchema,
-} from './validation';
+import { defaultValues, type SkillFormData, parseMetadataField, SkillSchema } from './validation';
 import { ExpandableJsonEditor } from '@/components/editors/expandable-json-editor';
 
 interface SkillFormProps {
@@ -45,7 +40,7 @@ export function SkillForm({ initialData, onSaved }: SkillFormProps) {
   const { tenantId, projectId } = useParams<{ tenantId: string; projectId: string }>();
   const [isDeleteOpen, setIsDeleteOpen] = useState(false);
   const form = useForm<SkillFormData>({
-    resolver: zodResolver(skillSchema),
+    resolver: zodResolver(SkillSchema),
     defaultValues: formatFormData(initialData),
   });
   const { isSubmitting } = form.formState;
