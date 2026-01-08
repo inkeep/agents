@@ -29,7 +29,7 @@ function buildUrl(
   projectId: string,
   ...pathSegments: string[]
 ): string {
-  return `${apiUrl}/tenants/${tenantId}/projects/${projectId}/evaluations/${pathSegments.join('/')}`;
+  return `${apiUrl}/tenants/${tenantId}/projects/${projectId}/evals/${pathSegments.join('/')}`;
 }
 
 function buildHeaders(apiKey?: string): Record<string, string> {
@@ -256,7 +256,7 @@ export async function listDatasetItems(
 ): Promise<unknown[]> {
   logger.info({ tenantId, projectId, datasetId }, 'Listing dataset items via API');
 
-  const url = buildUrl(apiUrl, tenantId, projectId, 'datasets', datasetId, 'items');
+  const url = buildUrl(apiUrl, tenantId, projectId, 'dataset-items', datasetId);
 
   try {
     const response = await apiFetch(url, {
@@ -295,7 +295,7 @@ export async function getDatasetItem(
 ): Promise<unknown | null> {
   logger.info({ tenantId, projectId, datasetId, itemId }, 'Getting dataset item via API');
 
-  const url = buildUrl(apiUrl, tenantId, projectId, 'datasets', datasetId, 'items', itemId);
+  const url = buildUrl(apiUrl, tenantId, projectId, 'dataset-items', datasetId, 'items', itemId);
 
   try {
     const response = await apiFetch(url, {
@@ -339,7 +339,7 @@ export async function createDatasetItem(
 ): Promise<unknown> {
   logger.info({ tenantId, projectId, datasetId }, 'Creating dataset item via API');
 
-  const url = buildUrl(apiUrl, tenantId, projectId, 'datasets', datasetId, 'items');
+  const url = buildUrl(apiUrl, tenantId, projectId, 'dataset-items', datasetId, 'items');
 
   try {
     const response = await apiFetch(url, {
@@ -383,7 +383,7 @@ export async function createDatasetItems(
     'Creating dataset items via API'
   );
 
-  const url = buildUrl(apiUrl, tenantId, projectId, 'datasets', datasetId, 'items', 'bulk');
+  const url = buildUrl(apiUrl, tenantId, projectId, 'dataset-items', datasetId, 'items', 'bulk');
 
   try {
     const response = await apiFetch(url, {
@@ -428,7 +428,7 @@ export async function updateDatasetItem(
 ): Promise<unknown> {
   logger.info({ tenantId, projectId, datasetId, itemId }, 'Updating dataset item via API');
 
-  const url = buildUrl(apiUrl, tenantId, projectId, 'datasets', datasetId, 'items', itemId);
+  const url = buildUrl(apiUrl, tenantId, projectId, 'dataset-items', datasetId, 'items', itemId);
 
   try {
     const response = await apiFetch(url, {
@@ -475,7 +475,7 @@ export async function deleteDatasetItem(
 ): Promise<void> {
   logger.info({ tenantId, projectId, datasetId, itemId }, 'Deleting dataset item via API');
 
-  const url = buildUrl(apiUrl, tenantId, projectId, 'datasets', datasetId, 'items', itemId);
+  const url = buildUrl(apiUrl, tenantId, projectId, 'dataset-items', datasetId, 'items', itemId);
 
   try {
     const response = await apiFetch(url, {
@@ -1267,6 +1267,10 @@ export async function deleteEvaluationResult(
 // TRIGGER CONVERSATION EVALUATION
 // ============================================================================
 
+/**
+ * Trigger evaluation of specific conversations with selected evaluators.
+ * Creates an evaluation job config that automatically triggers the evaluation.
+ */
 export async function triggerConversationEvaluation(
   tenantId: string,
   projectId: string,
@@ -1274,11 +1278,12 @@ export async function triggerConversationEvaluation(
   evaluationData: {
     conversationIds: string[];
     evaluatorIds: string[];
+    name?: string;
   },
   apiKey?: string
 ): Promise<{
   message: string;
-  evaluationRunId: string;
+  evaluationJobConfigId: string;
   conversationIds: string[];
   evaluatorIds: string[];
 }> {
@@ -1292,13 +1297,19 @@ export async function triggerConversationEvaluation(
     'Triggering conversation evaluations via API'
   );
 
-  const url = buildUrl(apiUrl, tenantId, projectId, 'conversations', 'evaluate');
+  const url = buildUrl(apiUrl, tenantId, projectId, 'evaluation-job-configs');
 
   try {
     const response = await apiFetch(url, {
       method: 'POST',
       headers: buildHeaders(apiKey),
-      body: JSON.stringify(evaluationData),
+      body: JSON.stringify({
+        name: evaluationData.name || `Conversation Evaluation ${new Date().toISOString()}`,
+        evaluatorIds: evaluationData.evaluatorIds,
+        jobFilters: {
+          conversationIds: evaluationData.conversationIds,
+        },
+      }),
     });
 
     if (!response.ok) {
@@ -1314,22 +1325,22 @@ export async function triggerConversationEvaluation(
       throw new Error(errorMessage);
     }
 
-    const result = (await response.json()) as {
-      message: string;
-      evaluationRunId: string;
-      conversationIds: string[];
-      evaluatorIds: string[];
-    };
+    const result = (await response.json()) as { data: { id: string } };
     logger.info(
       {
         tenantId,
         projectId,
         conversationIds: evaluationData.conversationIds,
-        evaluationRunId: result.evaluationRunId,
+        evaluationJobConfigId: result.data.id,
       },
       'Successfully triggered conversation evaluations via API'
     );
-    return result;
+    return {
+      message: 'Conversation evaluation triggered successfully',
+      evaluationJobConfigId: result.data.id,
+      conversationIds: evaluationData.conversationIds,
+      evaluatorIds: evaluationData.evaluatorIds,
+    };
   } catch (error) {
     logger.error(
       { error, tenantId, projectId, conversationIds: evaluationData.conversationIds },
@@ -1352,7 +1363,7 @@ export async function listDatasetRuns(
 ): Promise<unknown[]> {
   logger.info({ tenantId, projectId, datasetId }, 'Listing dataset runs via API');
 
-  const url = buildUrl(apiUrl, tenantId, projectId, 'datasets', datasetId, 'runs');
+  const url = buildUrl(apiUrl, tenantId, projectId, 'dataset-runs', 'by-dataset', datasetId);
 
   try {
     const response = await apiFetch(url, {
