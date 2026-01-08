@@ -145,6 +145,20 @@ export function SubAgentNodeEditor({
       />
 
       <div className="space-y-2">
+        <SkillSelector
+          skillLookup={skillLookup}
+          selectedSkills={selectedSkills}
+          onChange={(skills) => {
+            const enriched = skills.map((skill) => ({
+              ...skill,
+              name: skillLookup[skill.id].name,
+              description: skillLookup[skill.id].description,
+              content: skillLookup[skill.id].content,
+            }));
+            updatePath('skills', enriched);
+          }}
+          error={getFieldError('skills')}
+        />
         <ExpandablePromptEditor
           key={selectedNode.id}
           name="prompt"
@@ -223,21 +237,6 @@ export function SubAgentNodeEditor({
           </p>
         </div>
       </div>
-      <Separator />
-      <SkillSelector
-        skillLookup={skillLookup}
-        selectedSkills={selectedSkills}
-        onChange={(skills) => {
-          const enriched = skills.map((skill) => ({
-            ...skill,
-            name: skillLookup[skill.id]?.name,
-            description: skillLookup[skill.id]?.description,
-            content: skillLookup[skill.id]?.content,
-          }));
-          updatePath('skills', enriched);
-        }}
-        error={getFieldError('skills')}
-      />
       <Separator />
       <ComponentSelector
         label="Components"

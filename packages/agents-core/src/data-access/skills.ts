@@ -1,12 +1,7 @@
 import { and, asc, count, desc, eq, inArray } from 'drizzle-orm';
 import type { DatabaseClient } from '../db/client';
 import { skills, subAgentSkills } from '../db/schema';
-import type {
-  SkillInsert,
-  SkillSelect,
-  SkillUpdate,
-  SubAgentSkillInsert,
-} from '../types/entities';
+import type { SkillInsert, SkillSelect, SkillUpdate, SubAgentSkillInsert } from '../types/entities';
 import type {
   AgentScopeConfig,
   PaginationConfig,
@@ -24,13 +19,7 @@ type SubAgentSkillWithDetails = {
   index: number;
 } & Pick<
   SkillSelect,
-  | 'id'
-  | 'name'
-  | 'description'
-  | 'content'
-  | 'metadata'
-  | 'createdAt'
-  | 'updatedAt'
+  'id' | 'name' | 'description' | 'content' | 'metadata' | 'createdAt' | 'updatedAt'
 >;
 
 export const getSkillById =
@@ -277,8 +266,7 @@ export const upsertSubAgentSkill =
   };
 
 export const deleteSubAgentSkill =
-  (db: DatabaseClient) =>
-  async (params: { scopes: AgentScopeConfig; subAgentSkillId: string }) => {
+  (db: DatabaseClient) => async (params: { scopes: AgentScopeConfig; subAgentSkillId: string }) => {
     const result = await db
       .delete(subAgentSkills)
       .where(
