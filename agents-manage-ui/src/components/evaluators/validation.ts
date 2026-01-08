@@ -42,7 +42,7 @@ export const evaluatorSchema = z.object({
       }
     ),
   model: modelSettingsSchema,
-  passCriteria: passCriteriaSchema.optional(),
+  passCriteria: passCriteriaSchema.nullish(),
 });
 
 export type EvaluatorFormData = z.infer<typeof evaluatorSchema>;

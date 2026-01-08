@@ -130,21 +130,31 @@ export function EvaluatorFormDialog({
     name: 'schema',
   });
 
-  const onSubmit = async (data: EvaluatorFormData) => {
-    const isValid = await form.trigger();
-    if (!isValid) {
-      const firstError = Object.keys(form.formState.errors)[0];
-      if (firstError) {
-        const errorElement = document
-          .querySelector(`[name="${firstError}"]`)
-          ?.closest('.space-y-4, .space-y-6');
-        if (errorElement) {
-          errorElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
-        }
+  const onInvalid = (errors: Record<string, unknown>) => {
+    const errorMessages: string[] = [];
+    const formErrors = errors as typeof form.formState.errors;
+    
+    if (formErrors.name) errorMessages.push(`Name: ${formErrors.name.message}`);
+    if (formErrors.prompt) errorMessages.push(`Prompt: ${formErrors.prompt.message}`);
+    if (formErrors.schema) errorMessages.push(`Schema: ${formErrors.schema.message}`);
+    if (formErrors.model?.model) errorMessages.push(`Model: ${formErrors.model.model.message}`);
+    if (formErrors.passCriteria) {
+      const pcError = formErrors.passCriteria;
+      if ('conditions' in pcError && pcError.conditions) {
+        errorMessages.push('Pass Criteria: Please complete or remove all conditions');
+      } else if (pcError.message) {
+        errorMessages.push(`Pass Criteria: ${pcError.message}`);
       }
-      return;
     }
+    
+    if (errorMessages.length > 0) {
+      toast.error(errorMessages[0]);
+    } else {
+      toast.error('Please fix form validation errors');
+    }
+  };
 
+  const onSubmit = async (data: EvaluatorFormData) => {
     try {
       let parsedSchema: Record<string, unknown>;
       try {
@@ -209,7 +219,7 @@ export function EvaluatorFormDialog({
         </DialogHeader>
 
         <Form {...form}>
-          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+          <form onSubmit={form.handleSubmit(onSubmit, onInvalid)} className="space-y-6">
             <GenericInput
               control={form.control}
               name="name"
@@ -298,7 +308,7 @@ export function EvaluatorFormDialog({
             </div>
 
             <PassCriteriaBuilder
-              value={passCriteriaField.value}
+              value={passCriteriaField.value ?? undefined}
               onChange={passCriteriaField.onChange}
               schema={(() => {
                 try {
