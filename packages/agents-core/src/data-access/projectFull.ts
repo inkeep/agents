@@ -55,15 +55,6 @@ export const createFullProjectServerSide =
     const { tenantId } = scopes;
     const typed = validateAndTypeProjectData(projectData);
 
-    logger.info(
-      {
-        tenantId,
-        projectId: typed.id,
-        agentCount: Object.keys(typed.agents || {}).length,
-      },
-      'Creating full project in database'
-    );
-
     try {
       const projectPayload = {
         id: typed.id,
@@ -74,26 +65,12 @@ export const createFullProjectServerSide =
         tenantId,
       };
 
-      logger.info({ projectId: typed.id }, 'Creating project metadata');
       await createProject(db)(projectPayload);
-      logger.info({ projectId: typed.id }, 'Project metadata created successfully');
 
       if (typed.credentialReferences && Object.keys(typed.credentialReferences).length > 0) {
-        logger.info(
-          {
-            projectId: typed.id,
-            count: Object.keys(typed.credentialReferences).length,
-          },
-          'Creating project credentialReferences'
-        );
-
         const credentialPromises = Object.entries(typed.credentialReferences).map(
           async ([_credId, credData]) => {
             try {
-              logger.info(
-                { projectId: typed.id, credId: credData.id },
-                'Creating credentialReference in project'
-              );
               await upsertCredentialReference(db)({
                 data: {
                   ...credData,
@@ -101,10 +78,6 @@ export const createFullProjectServerSide =
                   projectId: typed.id,
                 },
               });
-              logger.info(
-                { projectId: typed.id, credId: credData.id },
-                'CredentialReference created successfully'
-              );
             } catch (error) {
               logger.error(
                 { projectId: typed.id, credId: credData.id, error },
@@ -114,32 +87,19 @@ export const createFullProjectServerSide =
             }
           }
         );
-
         await Promise.all(credentialPromises);
-        logger.info(
-          {
-            projectId: typed.id,
-            count: Object.keys(typed.credentialReferences).length,
-          },
-          'All project credentialReferences created successfully'
-        );
       }
 
       if (typed.functions && Object.keys(typed.functions).length > 0) {
         const functionPromises = Object.entries(typed.functions).map(
           async ([functionId, functionData]) => {
             try {
-              logger.info({ projectId: typed.id, functionId }, 'Creating project function');
               await upsertFunction(db)({
                 data: {
                   ...functionData,
                 },
                 scopes: { tenantId, projectId: typed.id },
               });
-              logger.info(
-                { projectId: typed.id, functionId },
-                'Project function created successfully'
-              );
             } catch (error) {
               logger.error(
                 { projectId: typed.id, functionId, error },
@@ -149,29 +109,12 @@ export const createFullProjectServerSide =
             }
           }
         );
-
         await Promise.all(functionPromises);
-        logger.info(
-          {
-            projectId: typed.id,
-            functionCount: Object.keys(typed.functions).length,
-          },
-          'All project functions created successfully'
-        );
       }
 
       if (typed.tools && Object.keys(typed.tools).length > 0) {
-        logger.info(
-          {
-            projectId: typed.id,
-            toolCount: Object.keys(typed.tools).length,
-          },
-          'Creating project tools'
-        );
-
         const toolPromises = Object.entries(typed.tools).map(async ([toolId, toolData]) => {
           try {
-            logger.info({ projectId: typed.id, toolId }, 'Creating tool in project');
             await upsertTool(db)({
               data: {
                 tenantId,
@@ -179,7 +122,6 @@ export const createFullProjectServerSide =
                 ...toolData,
               },
             });
-            logger.info({ projectId: typed.id, toolId }, 'Tool created successfully');
           } catch (error) {
             logger.error(
               { projectId: typed.id, toolId, error },
@@ -188,33 +130,13 @@ export const createFullProjectServerSide =
             throw error;
           }
         });
-
         await Promise.all(toolPromises);
-        logger.info(
-          {
-            projectId: typed.id,
-            toolCount: Object.keys(typed.tools).length,
-          },
-          'All project tools created successfully'
-        );
       }
 
       if (typed.externalAgents && Object.keys(typed.externalAgents).length > 0) {
-        logger.info(
-          {
-            projectId: typed.id,
-            count: Object.keys(typed.externalAgents).length,
-          },
-          'Creating project externalAgents'
-        );
-
         const externalAgentPromises = Object.entries(typed.externalAgents).map(
           async ([externalAgentId, externalAgentData]) => {
             try {
-              logger.info(
-                { projectId: typed.id, externalAgentId },
-                'Creating externalAgent in project'
-              );
               await upsertExternalAgent(db)({
                 data: {
                   ...externalAgentData,
@@ -222,10 +144,6 @@ export const createFullProjectServerSide =
                   projectId: typed.id,
                 },
               });
-              logger.info(
-                { projectId: typed.id, externalAgentId },
-                'ExternalAgent created successfully'
-              );
             } catch (error) {
               logger.error(
                 { projectId: typed.id, externalAgentId, error },
@@ -235,33 +153,13 @@ export const createFullProjectServerSide =
             }
           }
         );
-
         await Promise.all(externalAgentPromises);
-        logger.info(
-          {
-            projectId: typed.id,
-            count: Object.keys(typed.externalAgents).length,
-          },
-          'All project externalAgents created successfully'
-        );
       }
 
       if (typed.dataComponents && Object.keys(typed.dataComponents).length > 0) {
-        logger.info(
-          {
-            projectId: typed.id,
-            count: Object.keys(typed.dataComponents).length,
-          },
-          'Creating project dataComponents'
-        );
-
         const dataComponentPromises = Object.entries(typed.dataComponents).map(
           async ([componentId, componentData]) => {
             try {
-              logger.info(
-                { projectId: typed.id, componentId },
-                'Creating dataComponent in project'
-              );
               await upsertDataComponent(db)({
                 data: {
                   ...componentData,
@@ -269,10 +167,6 @@ export const createFullProjectServerSide =
                   projectId: typed.id,
                 },
               });
-              logger.info(
-                { projectId: typed.id, componentId },
-                'DataComponent created successfully'
-              );
             } catch (error) {
               logger.error(
                 { projectId: typed.id, componentId, error },
@@ -282,33 +176,13 @@ export const createFullProjectServerSide =
             }
           }
         );
-
         await Promise.all(dataComponentPromises);
-        logger.info(
-          {
-            projectId: typed.id,
-            count: Object.keys(typed.dataComponents).length,
-          },
-          'All project dataComponents created successfully'
-        );
       }
 
       if (typed.artifactComponents && Object.keys(typed.artifactComponents).length > 0) {
-        logger.info(
-          {
-            projectId: typed.id,
-            count: Object.keys(typed.artifactComponents).length,
-          },
-          'Creating project artifactComponents'
-        );
-
         const artifactComponentPromises = Object.entries(typed.artifactComponents).map(
           async ([componentId, componentData]) => {
             try {
-              logger.info(
-                { projectId: typed.id, componentId },
-                'Creating artifactComponent in project'
-              );
               await upsertArtifactComponent(db)({
                 data: {
                   ...componentData,
@@ -316,10 +190,6 @@ export const createFullProjectServerSide =
                   projectId: typed.id,
                 },
               });
-              logger.info(
-                { projectId: typed.id, componentId },
-                'ArtifactComponent created successfully'
-              );
             } catch (error) {
               logger.error(
                 { projectId: typed.id, componentId, error },
@@ -329,60 +199,28 @@ export const createFullProjectServerSide =
             }
           }
         );
-
         await Promise.all(artifactComponentPromises);
-        logger.info(
-          {
-            projectId: typed.id,
-            count: Object.keys(typed.artifactComponents).length,
-          },
-          'All project artifactComponents created successfully'
-        );
       }
 
       if (typed.agents && Object.keys(typed.agents).length > 0) {
-        logger.info(
-          {
-            projectId: typed.id,
-            agentCount: Object.keys(typed.agents).length,
-          },
-          'Creating project agent'
-        );
-
         // Phase 1: Create all agents without sub-agents to avoid circular dependency issues
-        logger.info(
-          {
-            projectId: typed.id,
-            agentCount: Object.keys(typed.agents).length,
-          },
-          'Phase 1: Creating agents without sub-agents'
-        );
-
         const agentPromises = Object.entries(typed.agents).map(async ([agentId, agentData]) => {
           try {
-            logger.info({ projectId: typed.id, agentId }, 'Creating agent in project (phase 1)');
-
-            // Create agent without sub-agents
             const agentDataWithoutSubAgents = {
               ...agentData,
-              subAgents: {}, // No sub-agents in phase 1
-              defaultSubAgentId: undefined, // Clear defaultSubAgentId since no sub-agents exist yet
-              tools: typed.tools || {}, // Pass project-level MCP tools for validation
-              functions: typed.functions || {}, // Pass project-level functions for validation
+              subAgents: {},
+              defaultSubAgentId: undefined,
+              tools: typed.tools || {},
+              functions: typed.functions || {},
               dataComponents: typed.dataComponents || {},
               artifactComponents: typed.artifactComponents || {},
-              externalAgents: typed.externalAgents || {}, // Pass project-level external agents
+              externalAgents: typed.externalAgents || {},
               credentialReferences: typed.credentialReferences || {},
               statusUpdates: agentData.statusUpdates === null ? undefined : agentData.statusUpdates,
             };
             await createFullAgentServerSide(db, logger)(
               { tenantId, projectId: typed.id },
               agentDataWithoutSubAgents
-            );
-
-            logger.info(
-              { projectId: typed.id, agentId },
-              'Agent created successfully in project (phase 1)'
             );
           } catch (error) {
             logger.error(
@@ -394,43 +232,19 @@ export const createFullProjectServerSide =
         });
 
         await Promise.all(agentPromises);
-        logger.info(
-          {
-            projectId: typed.id,
-            agentCount: Object.keys(typed.agents).length,
-          },
-          'Phase 1 complete: All agents created without sub-agents'
-        );
 
         // Phase 2: Add all sub-agents with their relationships
-        logger.info(
-          {
-            projectId: typed.id,
-            agentCount: Object.keys(typed.agents).length,
-          },
-          'Phase 2: Adding sub-agents with relationships'
-        );
-
         const updatePromises = Object.entries(typed.agents)
           .filter(([_, agentData]) => Object.keys(agentData.subAgents).length > 0)
           .map(async ([agentId, agentData]) => {
             try {
-              logger.info({ projectId: typed.id, agentId }, 'Adding sub-agents (phase 2)');
-
-              // Add all sub-agents with their relationships
               const updateData = {
                 ...agentData,
-                subAgents: agentData.subAgents, // Include all sub-agents with their relationships
+                subAgents: agentData.subAgents,
               };
-
               await updateFullAgentServerSide(db, logger)(
                 { tenantId, projectId: typed.id },
                 updateData as any
-              );
-
-              logger.info(
-                { projectId: typed.id, agentId },
-                'Sub-agents added successfully (phase 2)'
               );
             } catch (error) {
               logger.error(
@@ -442,16 +256,17 @@ export const createFullProjectServerSide =
           });
 
         await Promise.all(updatePromises);
-        logger.info(
-          {
-            projectId: typed.id,
-            agentCount: Object.keys(typed.agents).length,
-          },
-          'Phase 2 complete: All sub-agents added successfully'
-        );
       }
 
-      logger.info({ projectId: typed.id }, 'Full project created successfully');
+      logger.info(
+        {
+          projectId: typed.id,
+          agents: Object.keys(typed.agents || {}).length,
+          tools: Object.keys(typed.tools || {}).length,
+          functions: Object.keys(typed.functions || {}).length,
+        },
+        'Project created'
+      );
 
       return (await getFullProject(
         db,
@@ -489,22 +304,12 @@ export const updateFullProjectServerSide =
       throw new Error('Project ID is required');
     }
 
-    logger.info(
-      {
-        tenantId,
-        projectId: typed.id,
-        agentCount: Object.keys(typed.agents || {}).length,
-      },
-      'Updating full project in database'
-    );
-
     try {
       const existingProject = await getProject(db)({
         scopes: { tenantId, projectId: typed.id },
       });
 
       if (!existingProject) {
-        logger.info({ projectId: typed.id }, 'Project not found, creating new project');
         return await createFullProjectServerSide(db, logger)(
           { tenantId, projectId: typed.id },
           projectData
@@ -518,29 +323,15 @@ export const updateFullProjectServerSide =
         stopWhen: typed.stopWhen,
       };
 
-      logger.info({ projectId: typed.id }, 'Updating project metadata');
       await updateProject(db)({
         scopes: { tenantId, projectId: typed.id },
         data: projectUpdatePayload,
       });
-      logger.info({ projectId: typed.id }, 'Project metadata updated successfully');
 
       if (typed.credentialReferences && Object.keys(typed.credentialReferences).length > 0) {
-        logger.info(
-          {
-            projectId: typed.id,
-            count: Object.keys(typed.credentialReferences).length,
-          },
-          'Updating project credentialReferences'
-        );
-
         const credentialPromises = Object.entries(typed.credentialReferences).map(
           async ([_credId, credData]) => {
             try {
-              logger.info(
-                { projectId: typed.id, credId: credData.id },
-                'Updating credentialReference in project'
-              );
               await upsertCredentialReference(db)({
                 data: {
                   ...credData,
@@ -548,10 +339,6 @@ export const updateFullProjectServerSide =
                   projectId: typed.id,
                 },
               });
-              logger.info(
-                { projectId: typed.id, credId: credData.id },
-                'CredentialReference updated successfully'
-              );
             } catch (error) {
               logger.error(
                 { projectId: typed.id, credId: credData.id, error },
@@ -561,40 +348,19 @@ export const updateFullProjectServerSide =
             }
           }
         );
-
         await Promise.all(credentialPromises);
-        logger.info(
-          {
-            projectId: typed.id,
-            count: Object.keys(typed.credentialReferences).length,
-          },
-          'All project credentialReferences updated successfully'
-        );
       }
 
       if (typed.functions && Object.keys(typed.functions).length > 0) {
-        logger.info(
-          {
-            projectId: typed.id,
-            functionCount: Object.keys(typed.functions).length,
-          },
-          'Updating project functions'
-        );
-
         const functionPromises = Object.entries(typed.functions).map(
           async ([functionId, functionData]) => {
             try {
-              logger.info({ projectId: typed.id, functionId }, 'Updating project function');
               await upsertFunction(db)({
                 data: {
                   ...functionData,
                 },
                 scopes: { tenantId, projectId: typed.id },
               });
-              logger.info(
-                { projectId: typed.id, functionId },
-                'Project function updated successfully'
-              );
             } catch (error) {
               logger.error(
                 { projectId: typed.id, functionId, error },
@@ -604,29 +370,12 @@ export const updateFullProjectServerSide =
             }
           }
         );
-
         await Promise.all(functionPromises);
-        logger.info(
-          {
-            projectId: typed.id,
-            functionCount: Object.keys(typed.functions).length,
-          },
-          'All project functions updated successfully'
-        );
       }
 
       if (typed.tools && Object.keys(typed.tools).length > 0) {
-        logger.info(
-          {
-            projectId: typed.id,
-            toolCount: Object.keys(typed.tools).length,
-          },
-          'Updating project tools'
-        );
-
         const toolPromises = Object.entries(typed.tools).map(async ([toolId, toolData]) => {
           try {
-            logger.info({ projectId: typed.id, toolId }, 'Updating tool in project');
             await upsertTool(db)({
               data: {
                 tenantId,
@@ -634,7 +383,6 @@ export const updateFullProjectServerSide =
                 ...toolData,
               },
             });
-            logger.info({ projectId: typed.id, toolId }, 'Tool updated successfully');
           } catch (error) {
             logger.error(
               { projectId: typed.id, toolId, error },
@@ -643,33 +391,13 @@ export const updateFullProjectServerSide =
             throw error;
           }
         });
-
         await Promise.all(toolPromises);
-        logger.info(
-          {
-            projectId: typed.id,
-            toolCount: Object.keys(typed.tools).length,
-          },
-          'All project tools updated successfully'
-        );
       }
 
       if (typed.externalAgents && Object.keys(typed.externalAgents).length > 0) {
-        logger.info(
-          {
-            projectId: typed.id,
-            count: Object.keys(typed.externalAgents).length,
-          },
-          'Updating project externalAgents'
-        );
-
         const externalAgentPromises = Object.entries(typed.externalAgents).map(
           async ([externalAgentId, externalAgentData]) => {
             try {
-              logger.info(
-                { projectId: typed.id, externalAgentId },
-                'Updating externalAgent in project'
-              );
               await upsertExternalAgent(db)({
                 data: {
                   ...externalAgentData,
@@ -677,10 +405,6 @@ export const updateFullProjectServerSide =
                   projectId: typed.id,
                 },
               });
-              logger.info(
-                { projectId: typed.id, externalAgentId },
-                'ExternalAgent updated successfully'
-              );
             } catch (error) {
               logger.error(
                 { projectId: typed.id, externalAgentId, error },
@@ -690,33 +414,13 @@ export const updateFullProjectServerSide =
             }
           }
         );
-
         await Promise.all(externalAgentPromises);
-        logger.info(
-          {
-            projectId: typed.id,
-            count: Object.keys(typed.externalAgents).length,
-          },
-          'All project externalAgents updated successfully'
-        );
       }
 
       if (typed.dataComponents && Object.keys(typed.dataComponents).length > 0) {
-        logger.info(
-          {
-            projectId: typed.id,
-            count: Object.keys(typed.dataComponents).length,
-          },
-          'Updating project dataComponents'
-        );
-
         const dataComponentPromises = Object.entries(typed.dataComponents).map(
           async ([componentId, componentData]) => {
             try {
-              logger.info(
-                { projectId: typed.id, componentId },
-                'Updating dataComponent in project'
-              );
               await upsertDataComponent(db)({
                 data: {
                   ...componentData,
@@ -724,10 +428,6 @@ export const updateFullProjectServerSide =
                   projectId: typed.id,
                 },
               });
-              logger.info(
-                { projectId: typed.id, componentId },
-                'DataComponent updated successfully'
-              );
             } catch (error) {
               logger.error(
                 { projectId: typed.id, componentId, error },
@@ -737,33 +437,13 @@ export const updateFullProjectServerSide =
             }
           }
         );
-
         await Promise.all(dataComponentPromises);
-        logger.info(
-          {
-            projectId: typed.id,
-            count: Object.keys(typed.dataComponents).length,
-          },
-          'All project dataComponents updated successfully'
-        );
       }
 
       if (typed.artifactComponents && Object.keys(typed.artifactComponents).length > 0) {
-        logger.info(
-          {
-            projectId: typed.id,
-            count: Object.keys(typed.artifactComponents).length,
-          },
-          'Updating project artifactComponents'
-        );
-
         const artifactComponentPromises = Object.entries(typed.artifactComponents).map(
           async ([componentId, componentData]) => {
             try {
-              logger.info(
-                { projectId: typed.id, componentId },
-                'Updating artifactComponent in project'
-              );
               await upsertArtifactComponent(db)({
                 data: {
                   ...componentData,
@@ -771,10 +451,6 @@ export const updateFullProjectServerSide =
                   projectId: typed.id,
                 },
               });
-              logger.info(
-                { projectId: typed.id, componentId },
-                'ArtifactComponent updated successfully'
-              );
             } catch (error) {
               logger.error(
                 { projectId: typed.id, componentId, error },
@@ -784,17 +460,10 @@ export const updateFullProjectServerSide =
             }
           }
         );
-
         await Promise.all(artifactComponentPromises);
-        logger.info(
-          {
-            projectId: typed.id,
-            count: Object.keys(typed.artifactComponents).length,
-          },
-          'All project artifactComponents updated successfully'
-        );
       }
 
+      // Delete orphaned tools
       const incomingToolIds = new Set(Object.keys(typed.tools || {}));
       const existingToolsResult = await listTools(db)({
         scopes: { tenantId, projectId: typed.id },
@@ -802,7 +471,6 @@ export const updateFullProjectServerSide =
       });
       const existingTools = existingToolsResult.data;
 
-      let deletedToolCount = 0;
       for (const tool of existingTools) {
         if (!incomingToolIds.has(tool.id)) {
           try {
@@ -810,30 +478,18 @@ export const updateFullProjectServerSide =
               toolId: tool.id,
               scopes: { tenantId, projectId: typed.id },
             });
-            deletedToolCount++;
-            logger.info({ toolId: tool.id }, 'Deleted orphaned tool from project');
           } catch (error) {
             logger.error({ toolId: tool.id, error }, 'Failed to delete orphaned tool from project');
           }
         }
       }
 
-      if (deletedToolCount > 0) {
-        logger.info(
-          {
-            deletedToolCount,
-            projectId: typed.id,
-          },
-          'Deleted orphaned tools from project'
-        );
-      }
-
+      // Delete orphaned functions
       const incomingFunctionIds = new Set(Object.keys(typed.functions || {}));
       const existingFunctions = await listFunctions(db)({
         scopes: { tenantId, projectId: typed.id },
       });
 
-      let deletedFunctionCount = 0;
       for (const func of existingFunctions) {
         if (!incomingFunctionIds.has(func.id)) {
           try {
@@ -841,8 +497,6 @@ export const updateFullProjectServerSide =
               functionId: func.id,
               scopes: { tenantId, projectId: typed.id },
             });
-            deletedFunctionCount++;
-            logger.info({ functionId: func.id }, 'Deleted orphaned function from project');
           } catch (error) {
             logger.error(
               { functionId: func.id, error },
@@ -852,22 +506,12 @@ export const updateFullProjectServerSide =
         }
       }
 
-      if (deletedFunctionCount > 0) {
-        logger.info(
-          {
-            deletedFunctionCount,
-            projectId: typed.id,
-          },
-          'Deleted orphaned functions from project'
-        );
-      }
-
+      // Delete orphaned credential references
       const incomingCredentialReferenceIds = new Set(Object.keys(typed.credentialReferences || {}));
       const existingCredentialReferences = await listCredentialReferences(db)({
         scopes: { tenantId, projectId: typed.id },
       });
 
-      let deletedCredentialReferenceCount = 0;
       for (const credRef of existingCredentialReferences) {
         if (!incomingCredentialReferenceIds.has(credRef.id)) {
           try {
@@ -875,11 +519,6 @@ export const updateFullProjectServerSide =
               id: credRef.id,
               scopes: { tenantId, projectId: typed.id },
             });
-            deletedCredentialReferenceCount++;
-            logger.info(
-              { credentialReferenceId: credRef.id },
-              'Deleted orphaned credentialReference from project'
-            );
           } catch (error) {
             logger.error(
               { credentialReferenceId: credRef.id, error },
@@ -889,22 +528,12 @@ export const updateFullProjectServerSide =
         }
       }
 
-      if (deletedCredentialReferenceCount > 0) {
-        logger.info(
-          {
-            deletedCredentialReferenceCount,
-            projectId: typed.id,
-          },
-          'Deleted orphaned credentialReferences from project'
-        );
-      }
-
+      // Delete orphaned external agents
       const incomingExternalAgentIds = new Set(Object.keys(typed.externalAgents || {}));
       const existingExternalAgents = await listExternalAgents(db)({
         scopes: { tenantId, projectId: typed.id },
       });
 
-      let deletedExternalAgentCount = 0;
       for (const extAgent of existingExternalAgents) {
         if (!incomingExternalAgentIds.has(extAgent.id)) {
           try {
@@ -912,11 +541,6 @@ export const updateFullProjectServerSide =
               externalAgentId: extAgent.id,
               scopes: { tenantId, projectId: typed.id },
             });
-            deletedExternalAgentCount++;
-            logger.info(
-              { externalAgentId: extAgent.id },
-              'Deleted orphaned externalAgent from project'
-            );
           } catch (error) {
             logger.error(
               { externalAgentId: extAgent.id, error },
@@ -926,97 +550,56 @@ export const updateFullProjectServerSide =
         }
       }
 
-      if (deletedExternalAgentCount > 0) {
-        logger.info(
-          {
-            deletedExternalAgentCount,
-            projectId: typed.id,
-          },
-          'Deleted orphaned externalAgents from project'
-        );
-      }
-
+      // Delete orphaned data components
       const incomingDataComponentIds = new Set(Object.keys(typed.dataComponents || {}));
       const existingDataComponents = await listDataComponents(db)({
         scopes: { tenantId, projectId: typed.id },
       });
 
-      let deletedDataComponentCount = 0;
-      for (const dataComp of existingDataComponents) {
-        if (!incomingDataComponentIds.has(dataComp.id)) {
+      for (const dc of existingDataComponents) {
+        if (!incomingDataComponentIds.has(dc.id)) {
           try {
             await deleteDataComponent(db)({
-              dataComponentId: dataComp.id,
+              dataComponentId: dc.id,
               scopes: { tenantId, projectId: typed.id },
             });
-            deletedDataComponentCount++;
-            logger.info(
-              { dataComponentId: dataComp.id },
-              'Deleted orphaned dataComponent from project'
-            );
           } catch (error) {
             logger.error(
-              { dataComponentId: dataComp.id, error },
+              { dataComponentId: dc.id, error },
               'Failed to delete orphaned dataComponent from project'
             );
           }
         }
       }
 
-      if (deletedDataComponentCount > 0) {
-        logger.info(
-          {
-            deletedDataComponentCount,
-            projectId: typed.id,
-          },
-          'Deleted orphaned dataComponents from project'
-        );
-      }
-
+      // Delete orphaned artifact components
       const incomingArtifactComponentIds = new Set(Object.keys(typed.artifactComponents || {}));
       const existingArtifactComponents = await listArtifactComponents(db)({
         scopes: { tenantId, projectId: typed.id },
       });
 
-      let deletedArtifactComponentCount = 0;
-      for (const artifactComp of existingArtifactComponents) {
-        if (!incomingArtifactComponentIds.has(artifactComp.id)) {
+      for (const ac of existingArtifactComponents) {
+        if (!incomingArtifactComponentIds.has(ac.id)) {
           try {
             await deleteArtifactComponent(db)({
-              id: artifactComp.id,
+              artifactComponentId: ac.id,
               scopes: { tenantId, projectId: typed.id },
             });
-            deletedArtifactComponentCount++;
-            logger.info(
-              { artifactComponentId: artifactComp.id },
-              'Deleted orphaned artifactComponent from project'
-            );
           } catch (error) {
             logger.error(
-              { artifactComponentId: artifactComp.id, error },
+              { artifactComponentId: ac.id, error },
               'Failed to delete orphaned artifactComponent from project'
             );
           }
         }
       }
 
-      if (deletedArtifactComponentCount > 0) {
-        logger.info(
-          {
-            deletedArtifactComponentCount,
-            projectId: typed.id,
-          },
-          'Deleted orphaned artifactComponents from project'
-        );
-      }
-
+      // Delete orphaned agents
       const incomingAgentIds = new Set(Object.keys(typed.agents || {}));
-
       const existingAgents = await listAgents(db)({
         scopes: { tenantId, projectId: typed.id },
       });
 
-      let deletedAgentCount = 0;
       for (const agent of existingAgents) {
         if (!incomingAgentIds.has(agent.id)) {
           try {
@@ -1026,8 +609,6 @@ export const updateFullProjectServerSide =
             )({
               scopes: { tenantId, projectId: typed.id, agentId: agent.id },
             });
-            deletedAgentCount++;
-            logger.info({ agentId: agent.id }, 'Deleted orphaned agent from project');
           } catch (error) {
             logger.error(
               { agentId: agent.id, error },
@@ -1037,45 +618,23 @@ export const updateFullProjectServerSide =
         }
       }
 
-      if (deletedAgentCount > 0) {
-        logger.info(
-          {
-            deletedAgentCount,
-            projectId: typed.id,
-          },
-          'Deleted orphaned agent from project'
-        );
-      }
-
+      // Update agents
       if (typed.agents && Object.keys(typed.agents).length > 0) {
-        logger.info(
-          {
-            projectId: typed.id,
-            agentCount: Object.keys(typed.agents).length,
-          },
-          'Updating project agent'
-        );
-
         const agentPromises = Object.entries(typed.agents).map(async ([agentId, agentData]) => {
           try {
-            logger.info({ projectId: typed.id, agentId }, 'Updating agent in project');
-
-            const agentDataWithProjectResources = {
+            const updateData = {
               ...agentData,
-              tools: typed.tools || {}, // Pass project-level MCP tools for validation
-              functions: typed.functions || {}, // Pass project-level functions for validation
+              tools: typed.tools || {},
+              functions: typed.functions || {},
               dataComponents: typed.dataComponents || {},
               artifactComponents: typed.artifactComponents || {},
-              externalAgents: typed.externalAgents || {}, // Pass project-level external agents
+              externalAgents: typed.externalAgents || {},
               credentialReferences: typed.credentialReferences || {},
-              statusUpdates: agentData.statusUpdates === null ? undefined : agentData.statusUpdates,
             };
             await updateFullAgentServerSide(db, logger)(
               { tenantId, projectId: typed.id },
-              agentDataWithProjectResources
+              updateData as any
             );
-
-            logger.info({ projectId: typed.id, agentId }, 'Agent updated successfully in project');
           } catch (error) {
             logger.error(
               { projectId: typed.id, agentId, error },
@@ -1086,16 +645,17 @@ export const updateFullProjectServerSide =
         });
 
         await Promise.all(agentPromises);
-        logger.info(
-          {
-            projectId: typed.id,
-            agentCount: Object.keys(typed.agents).length,
-          },
-          'All project agent updated successfully'
-        );
       }
 
-      logger.info({ projectId: typed.id }, 'Full project updated successfully');
+      logger.info(
+        {
+          projectId: typed.id,
+          agents: Object.keys(typed.agents || {}).length,
+          tools: Object.keys(typed.tools || {}).length,
+          functions: Object.keys(typed.functions || {}).length,
+        },
+        'Project updated'
+      );
 
       return (await getFullProject(
         db,
@@ -1117,7 +677,7 @@ export const updateFullProjectServerSide =
   };
 
 /**
- * Get a complete project definition with all nested resources
+ * Server-side implementation of getFullProject
  */
 export const getFullProject =
   (db: DatabaseClient, logger: ProjectLogger = defaultLogger) =>
@@ -1125,258 +685,94 @@ export const getFullProject =
     const { scopes } = params;
     const { tenantId, projectId } = scopes;
 
-    logger.info({ tenantId, projectId }, 'Retrieving full project definition');
-
     try {
-      const project: ProjectSelect | null = await getProject(db)({
+      const project = await getProject(db)({
         scopes: { tenantId, projectId },
       });
 
       if (!project) {
-        logger.info({ tenantId, projectId }, 'Project not found');
         return null;
       }
 
-      logger.info({ tenantId, projectId }, 'Project metadata retrieved');
-
-      const agentList = await listAgents(db)({
-        scopes: { tenantId, projectId },
-      });
-
-      logger.info(
-        {
-          tenantId,
-          projectId,
-          agentCount: agentList.length,
-        },
-        'Found agent for project'
-      );
-
-      const projectTools: Record<string, ToolApiInsert> = {};
-      try {
-        const toolsList = await listTools(db)({
-          scopes: { tenantId, projectId },
-          pagination: { page: 1, limit: 1000 }, // Get all tools
-        });
-
-        for (const tool of toolsList.data) {
-          projectTools[tool.id] = {
-            id: tool.id,
-            name: tool.name,
-            config: tool.config,
-            credentialReferenceId: tool.credentialReferenceId || undefined,
-            imageUrl: tool.imageUrl || undefined,
-            capabilities: tool.capabilities || undefined,
-            lastError: tool.lastError || undefined,
-          };
-        }
-        logger.info(
-          { tenantId, projectId, toolCount: Object.keys(projectTools).length },
-          'Tools retrieved for project'
-        );
-      } catch (error) {
-        logger.warn({ tenantId, projectId, error }, 'Failed to retrieve tools for project');
-      }
-
-      const projectExternalAgents: Record<string, any> = {};
-      try {
-        const externalAgentsList = await listExternalAgents(db)({
-          scopes: { tenantId, projectId },
-        });
-
-        for (const externalAgent of externalAgentsList) {
-          projectExternalAgents[externalAgent.id] = {
-            id: externalAgent.id,
-            name: externalAgent.name,
-            description: externalAgent.description,
-            baseUrl: externalAgent.baseUrl,
-            credentialReferenceId: externalAgent.credentialReferenceId || undefined,
-          };
-        }
-        logger.info(
-          { tenantId, projectId, count: Object.keys(projectExternalAgents).length },
-          'ExternalAgents retrieved for project'
-        );
-      } catch (error) {
-        logger.warn(
-          { tenantId, projectId, error },
-          'Failed to retrieve externalAgents for project'
-        );
-      }
-
-      const projectDataComponents: Record<string, any> = {};
-      try {
-        const dataComponentsList = await listDataComponents(db)({
-          scopes: { tenantId, projectId },
-        });
-
-        for (const component of dataComponentsList) {
-          projectDataComponents[component.id] = {
-            id: component.id,
-            name: component.name,
-            description: component.description,
-            props: component.props,
-            render: component.render,
-          };
-        }
-        logger.info(
-          { tenantId, projectId, count: Object.keys(projectDataComponents).length },
-          'DataComponents retrieved for project'
-        );
-      } catch (error) {
-        logger.warn(
-          { tenantId, projectId, error },
-          'Failed to retrieve dataComponents for project'
-        );
-      }
-
-      const projectArtifactComponents: Record<string, any> = {};
-      try {
-        const artifactComponentsList = await listArtifactComponents(db)({
-          scopes: { tenantId, projectId },
-        });
-
-        for (const component of artifactComponentsList) {
-          projectArtifactComponents[component.id] = {
-            id: component.id,
-            name: component.name,
-            description: component.description,
-            props: component.props,
-          };
-        }
-        logger.info(
-          { tenantId, projectId, count: Object.keys(projectArtifactComponents).length },
-          'ArtifactComponents retrieved for project'
-        );
-      } catch (error) {
-        logger.warn(
-          { tenantId, projectId, error },
-          'Failed to retrieve artifactComponents for project'
-        );
-      }
-
-      const projectCredentialReferences: Record<string, any> = {};
-      try {
-        const credentialReferencesList = await listCredentialReferences(db)({
-          scopes: { tenantId, projectId },
-        });
-
-        for (const credential of credentialReferencesList) {
-          projectCredentialReferences[credential.id] = {
-            id: credential.id,
-            name: credential.name,
-            type: credential.type,
-            credentialStoreId: credential.credentialStoreId,
-            retrievalParams: credential.retrievalParams,
-          };
-        }
-        logger.info(
-          { tenantId, projectId, count: Object.keys(projectCredentialReferences).length },
-          'CredentialReferences retrieved for project'
-        );
-      } catch (error) {
-        logger.warn(
-          { tenantId, projectId, error },
-          'Failed to retrieve credentialReferences for project'
-        );
-      }
-
-      const projectFunctions: Record<string, any> = {};
-      try {
-        const functionsList = await listFunctions(db)({
-          scopes: { tenantId, projectId },
-        });
-
-        for (const func of functionsList) {
-          projectFunctions[func.id] = {
-            id: func.id,
-            inputSchema: func.inputSchema,
-            executeCode: func.executeCode,
-            dependencies: func.dependencies,
-          };
-        }
-        logger.info(
-          { tenantId, projectId, functionCount: Object.keys(projectFunctions).length },
-          'Functions retrieved for project'
-        );
-      } catch (error) {
-        logger.warn({ tenantId, projectId, error }, 'Failed to retrieve functions for project');
-      }
-
-      const agents: Record<string, any> = {};
-
-      if (agentList.length > 0) {
-        const agentPromises = agentList.map(async (agent) => {
-          try {
-            logger.info(
-              { tenantId, projectId, agentId: agent.id },
-              'Retrieving full agent definition'
-            );
-
-            const fullAgent = await getFullAgent(db)({
-              scopes: { tenantId, projectId, agentId: agent.id },
-            });
-
-            if (fullAgent) {
-              agents[agent.id] = fullAgent;
-              logger.info(
-                { tenantId, projectId, agentId: agent.id },
-                'Full agent definition retrieved'
-              );
-            } else {
-              logger.warn({ tenantId, projectId, agentId: agent.id }, 'Agent definition not found');
-            }
-          } catch (error) {
-            logger.error(
-              { tenantId, projectId, agentId: agent.id, error },
-              'Failed to retrieve full agent definition'
-            );
-          }
-        });
-
-        await Promise.all(agentPromises);
-      }
-
-      // Ensure project has required models configuration
-      if (!project.models) {
-        throw new Error(
-          `Project ${project.id} is missing required models configuration. Please update the project to include a base model.`
-        );
-      }
-
-      const fullProjectDefinition: FullProjectDefinition = {
-        id: project.id,
-        name: project.name,
-        description: project.description,
-        models: project.models,
-        stopWhen: project.stopWhen || undefined,
+      const [
         agents,
-        tools: projectTools,
-        functions: projectFunctions,
-        externalAgents: projectExternalAgents,
-        dataComponents: projectDataComponents,
-        artifactComponents: projectArtifactComponents,
-        credentialReferences: projectCredentialReferences,
-        createdAt: project.createdAt,
-        updatedAt: project.updatedAt,
+        tools,
+        functions,
+        credentialReferences,
+        externalAgents,
+        dataComponents,
+        artifactComponents,
+      ] = await Promise.all([
+        listAgents(db)({ scopes: { tenantId, projectId } }),
+        listTools(db)({ scopes: { tenantId, projectId }, pagination: { page: 1, limit: 1000 } }),
+        listFunctions(db)({ scopes: { tenantId, projectId } }),
+        listCredentialReferences(db)({ scopes: { tenantId, projectId } }),
+        listExternalAgents(db)({ scopes: { tenantId, projectId } }),
+        listDataComponents(db)({ scopes: { tenantId, projectId } }),
+        listArtifactComponents(db)({ scopes: { tenantId, projectId } }),
+      ]);
+
+      const agentsMap: Record<string, any> = {};
+      for (const agent of agents) {
+        const fullAgent = await getFullAgent(
+          db,
+          logger
+        )({
+          scopes: { tenantId, projectId, agentId: agent.id },
+        });
+        if (fullAgent) {
+          agentsMap[agent.id] = fullAgent;
+        }
+      }
+
+      const toolsMap: Record<string, ToolApiInsert> = {};
+      for (const tool of tools.data) {
+        toolsMap[tool.id] = tool as ToolApiInsert;
+      }
+
+      const functionsMap: Record<string, any> = {};
+      for (const func of functions) {
+        functionsMap[func.id] = func;
+      }
+
+      const credentialReferencesMap: Record<string, any> = {};
+      for (const credRef of credentialReferences) {
+        credentialReferencesMap[credRef.id] = credRef;
+      }
+
+      const externalAgentsMap: Record<string, any> = {};
+      for (const extAgent of externalAgents) {
+        externalAgentsMap[extAgent.id] = extAgent;
+      }
+
+      const dataComponentsMap: Record<string, any> = {};
+      for (const dc of dataComponents) {
+        dataComponentsMap[dc.id] = dc;
+      }
+
+      const artifactComponentsMap: Record<string, any> = {};
+      for (const ac of artifactComponents) {
+        artifactComponentsMap[ac.id] = ac;
+      }
+
+      const fullProject: FullProjectDefinition = {
+        ...project,
+        agents: agentsMap,
+        tools: toolsMap,
+        functions: functionsMap,
+        credentialReferences: credentialReferencesMap,
+        externalAgents: externalAgentsMap,
+        dataComponents: dataComponentsMap,
+        artifactComponents: artifactComponentsMap,
       };
 
-      logger.info(
-        {
-          tenantId,
-          projectId,
-          agentCount: Object.keys(fullProjectDefinition.agents).length,
-        },
-        'Full project definition retrieved'
-      );
-
-      return fullProjectDefinition;
+      return fullProject;
     } catch (error) {
       logger.error(
         {
           tenantId,
           projectId,
-          error,
+          error: error instanceof Error ? error.message : 'Unknown error',
         },
         'Failed to retrieve full project'
       );
@@ -1390,86 +786,158 @@ export const getFullProject =
 export const deleteFullProject =
   (db: DatabaseClient, logger: ProjectLogger = defaultLogger) =>
   async (params: { scopes: ProjectScopeConfig }): Promise<boolean> => {
-    const { scopes } = params;
-    const { tenantId, projectId } = scopes;
-
-    logger.info({ tenantId, projectId }, 'Deleting full project and related entities');
+    const { tenantId, projectId } = params.scopes;
 
     try {
-      const project = await getFullProject(
-        db,
-        logger
-      )({
+      const project = await getProject(db)({
         scopes: { tenantId, projectId },
       });
 
       if (!project) {
-        logger.info({ tenantId, projectId }, 'Project not found for deletion');
         return false;
       }
 
-      if (project.agents && Object.keys(project.agents).length > 0) {
-        logger.info(
-          {
-            tenantId,
-            projectId,
-            agentCount: Object.keys(project.agents).length,
-          },
-          'Deleting project agent'
-        );
-
-        const agentPromises = Object.keys(project.agents).map(async (agentId) => {
-          try {
-            logger.info({ tenantId, projectId, agentId }, 'Deleting agent from project');
-
-            await deleteFullAgent(
-              db,
-              logger
-            )({
-              scopes: { tenantId, projectId, agentId },
-            });
-
-            logger.info(
-              { tenantId, projectId, agentId },
-              'Agent deleted successfully from project'
-            );
-          } catch (error) {
-            logger.error(
-              { tenantId, projectId, agentId, error },
-              'Failed to delete agent from project'
-            );
-            throw error;
-          }
-        });
-
-        await Promise.all(agentPromises);
-        logger.info(
-          {
-            tenantId,
-            projectId,
-            agentCount: Object.keys(project.agents).length,
-          },
-          'All project agent deleted successfully'
-        );
-      }
-
-      const deleted = await deleteProject(db)({
+      // Delete all agents first (they have cascading deletes)
+      const agents = await listAgents(db)({
         scopes: { tenantId, projectId },
       });
 
-      if (!deleted) {
-        logger.warn({ tenantId, projectId }, 'Project deletion returned false');
-        return false;
+      for (const agent of agents) {
+        try {
+          await deleteFullAgent(
+            db,
+            logger
+          )({
+            scopes: { tenantId, projectId, agentId: agent.id },
+          });
+        } catch (error) {
+          logger.error({ agentId: agent.id, error }, 'Failed to delete agent from project');
+        }
       }
 
-      logger.info({ tenantId, projectId }, 'Full project deleted successfully');
+      // Delete tools
+      const toolsResult = await listTools(db)({
+        scopes: { tenantId, projectId },
+        pagination: { page: 1, limit: 1000 },
+      });
+
+      for (const tool of toolsResult.data) {
+        try {
+          await deleteTool(db)({
+            toolId: tool.id,
+            scopes: { tenantId, projectId },
+          });
+        } catch (error) {
+          logger.error({ toolId: tool.id, error }, 'Failed to delete tool from project');
+        }
+      }
+
+      // Delete functions
+      const functions = await listFunctions(db)({
+        scopes: { tenantId, projectId },
+      });
+
+      for (const func of functions) {
+        try {
+          await deleteFunction(db)({
+            functionId: func.id,
+            scopes: { tenantId, projectId },
+          });
+        } catch (error) {
+          logger.error({ functionId: func.id, error }, 'Failed to delete function from project');
+        }
+      }
+
+      // Delete credential references
+      const credentialReferences = await listCredentialReferences(db)({
+        scopes: { tenantId, projectId },
+      });
+
+      for (const credRef of credentialReferences) {
+        try {
+          await deleteCredentialReference(db)({
+            id: credRef.id,
+            scopes: { tenantId, projectId },
+          });
+        } catch (error) {
+          logger.error(
+            { credentialReferenceId: credRef.id, error },
+            'Failed to delete credentialReference from project'
+          );
+        }
+      }
+
+      // Delete external agents
+      const externalAgents = await listExternalAgents(db)({
+        scopes: { tenantId, projectId },
+      });
+
+      for (const extAgent of externalAgents) {
+        try {
+          await deleteExternalAgent(db)({
+            externalAgentId: extAgent.id,
+            scopes: { tenantId, projectId },
+          });
+        } catch (error) {
+          logger.error(
+            { externalAgentId: extAgent.id, error },
+            'Failed to delete externalAgent from project'
+          );
+        }
+      }
+
+      // Delete data components
+      const dataComponents = await listDataComponents(db)({
+        scopes: { tenantId, projectId },
+      });
+
+      for (const dc of dataComponents) {
+        try {
+          await deleteDataComponent(db)({
+            dataComponentId: dc.id,
+            scopes: { tenantId, projectId },
+          });
+        } catch (error) {
+          logger.error(
+            { dataComponentId: dc.id, error },
+            'Failed to delete dataComponent from project'
+          );
+        }
+      }
+
+      // Delete artifact components
+      const artifactComponents = await listArtifactComponents(db)({
+        scopes: { tenantId, projectId },
+      });
+
+      for (const ac of artifactComponents) {
+        try {
+          await deleteArtifactComponent(db)({
+            artifactComponentId: ac.id,
+            scopes: { tenantId, projectId },
+          });
+        } catch (error) {
+          logger.error(
+            { artifactComponentId: ac.id, error },
+            'Failed to delete artifactComponent from project'
+          );
+        }
+      }
+
+      // Finally delete the project itself
+      await deleteProject(db)({
+        scopes: { tenantId, projectId },
+      });
+
+      logger.info({ projectId }, 'Project deleted');
+
       return true;
     } catch (error) {
       logger.error(
         {
           tenantId,
           projectId,
-          error,
+          error: error instanceof Error ? error.message : 'Unknown error',
         },
         'Failed to delete full project'
       );
