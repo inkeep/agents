@@ -1,4 +1,4 @@
-import { and, count, desc, eq } from 'drizzle-orm';
+import { and, count, desc, eq, sql } from 'drizzle-orm';
 import type { CredentialStoreRegistry } from '../../credential-stores';
 import type { NangoCredentialData } from '../../credential-stores/nango-store';
 import { CredentialStuffer } from '../../credential-stuffer';
@@ -318,14 +318,38 @@ export const dbResultToMcpTool = async (
 
   const now = new Date().toISOString();
 
-  await updateTool(dbClient)({
-    scopes: { tenantId: dbResult.tenantId, projectId: dbResult.projectId },
-    toolId: dbResult.id,
-    data: {
-      updatedAt: now,
-      lastError: lastErrorComputed,
-    },
-  });
+  // Update tool metadata - wrap in try-catch to handle serialization conflicts gracefully.
+  // Concurrent Tool reads can cause serialization conflicts, so we need to handle them gracefully.
+  try {
+    await updateTool(dbClient)({
+      scopes: { tenantId: dbResult.tenantId, projectId: dbResult.projectId },
+      toolId: dbResult.id,
+      data: {
+        updatedAt: now,
+        lastError: lastErrorComputed,
+      },
+    });
+  } catch (updateError: unknown) {
+    // Check for serialization conflict (sqlstate 40001, errno 1213)
+    const isSerializationConflict =
+      updateError instanceof Error &&
+      (updateError.message.includes('serialization failure') ||
+        updateError.message.includes('40001') ||
+        (updateError as any).cause?.code === 'XX000');
+
+    if (isSerializationConflict) {
+      logger.debug(
+        { toolId: dbResult.id },
+        'Skipping tool metadata update due to serialization conflict (concurrent request)'
+      );
+    } else {
+      // For other errors, log warning but don't fail the request
+      logger.warn(
+        { toolId: dbResult.id, error: updateError },
+        'Failed to update tool metadata - continuing with stale data'
+      );
+    }
+  }
 
   return {
     ...rest,
