@@ -2,7 +2,7 @@ import type { Edge, Node } from '@xyflow/react';
 import type { AgentMetadata } from '@/components/agent/configuration/agent-types';
 import type { A2AEdgeData } from '@/components/agent/configuration/edge-types';
 import { EdgeType } from '@/components/agent/configuration/edge-types';
-import { NodeType } from '@/components/agent/configuration/node-types';
+import { type AgentNodeData, NodeType } from '@/components/agent/configuration/node-types';
 import type { ArtifactComponent } from '@/lib/api/artifact-components';
 import type { DataComponent } from '@/lib/api/data-components';
 import type {
@@ -137,35 +137,7 @@ export function serializeAgentData(
 
       const stopWhen = (node.data as any).stopWhen;
 
-      const nodeSkills: {
-        id: string;
-        name?: string;
-        description?: string | null;
-        content?: string;
-        metadata?: Record<string, unknown> | null;
-        index: number;
-        subAgentSkillId?: string;
-      }[] = (node.data as any).skills || [];
-      const resolvedSkills = nodeSkills
-        .map((skillEntry, idx) => {
-          const resolved = skillLookup?.[skillEntry.id] || skillEntry;
-          if (!resolved?.id) {
-            return null;
-          }
-
-          const index = skillEntry.index ?? idx;
-          return {
-            id: resolved.id,
-            name: resolved.name,
-            description: resolved.description ?? null,
-            content: (resolved as any).content ?? '',
-            metadata: (resolved as any).metadata ?? null,
-            index,
-            subAgentSkillId: (skillEntry as any).subAgentSkillId,
-          };
-        })
-        .filter((skill) => !!skill)
-        .sort((a, b) => a.index - b.index);
+      const nodeSkills: AgentNodeData['skills'] = (node.data as any).skills;
 
       const canUse: Array<{
         toolId: string;
@@ -325,7 +297,7 @@ export function serializeAgentData(
         artifactComponents: subAgentArtifactComponents,
         ...(processedModels && { models: processedModels }),
         type: 'internal',
-        ...(resolvedSkills.length > 0 && { skills: resolvedSkills }),
+        ...(nodeSkills?.length && { skills: nodeSkills }),
         ...(stopWhen && { stopWhen }),
       };
 
