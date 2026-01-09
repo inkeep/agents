@@ -6,7 +6,7 @@ import { SkillForm } from '@/components/skills/form/skill-form';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 
 const NewSkillModalPage: FC = () => {
-  'use memo'
+  'use memo';
   const router = useRouter();
 
   return (

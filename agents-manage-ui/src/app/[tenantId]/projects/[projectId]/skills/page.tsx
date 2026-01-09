@@ -1,4 +1,5 @@
 import NextLink from 'next/link';
+import type { FC } from 'react';
 import { formatDate, formatDateAgo } from '@/app/utils/format-date';
 import FullPageError from '@/components/errors/full-page-error';
 import { BodyTemplate } from '@/components/layout/body-template';
@@ -31,7 +32,7 @@ const description = (
   </>
 );
 
-async function SkillsPage({ params }: PageProps<'/[tenantId]/projects/[projectId]/skills'>) {
+const SkillsPage: FC<PageProps<'/[tenantId]/projects/[projectId]/skills'>> = async ({ params }) => {
   const { tenantId, projectId } = await params;
 
   try {
@@ -91,6 +92,6 @@ async function SkillsPage({ params }: PageProps<'/[tenantId]/projects/[projectId
   } catch (error) {
     return <FullPageError errorCode={getErrorCode(error)} context="skills" />;
   }
-}
+};
 
 export default SkillsPage;
