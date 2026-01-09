@@ -3,6 +3,10 @@ import { migrate } from 'drizzle-orm/pglite/migrator';
 import { afterAll, afterEach, beforeAll } from 'vitest';
 import dbClient from '../data/db/dbClient';
 
+// Disable SpiceDB authorization for tests (unless explicitly testing authz)
+// This ensures tests run without requiring a SpiceDB instance
+process.env.ENABLE_AUTHZ = 'false';
+
 // Initialize database schema for in-memory test databases using Drizzle migrations
 beforeAll(async () => {
   const logger = getLogger('Test Setup');

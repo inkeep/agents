@@ -66,6 +66,10 @@
       "types": "./dist/auth/permissions.d.ts",
       "import": "./dist/auth/permissions.js"
     },
+    "./auth/authz": {
+      "types": "./dist/auth/authz/index.d.ts",
+      "import": "./dist/auth/authz/index.js"
+    },
     "./drizzle": "./drizzle/",
     "./package.json": "./package.json"
   },
@@ -93,12 +97,13 @@
     "db:check": "drizzle-kit check"
   },
   "dependencies": {
-    "@ai-sdk/azure": "^3.0.4",
     "@ai-sdk/anthropic": "3.0.7",
+    "@ai-sdk/azure": "^3.0.4",
     "@ai-sdk/gateway": "3.0.9",
     "@ai-sdk/google": "3.0.4",
     "@ai-sdk/openai": "3.0.7",
     "@ai-sdk/openai-compatible": "2.0.4",
+    "@authzed/authzed-node": "^1.6.1",
     "@better-auth/sso": "catalog:",
     "@composio/core": "^0.2.4",
     "@electric-sql/pglite": "^0.3.13",

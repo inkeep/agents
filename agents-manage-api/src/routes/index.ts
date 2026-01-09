@@ -1,4 +1,5 @@
 import { OpenAPIHono } from '@hono/zod-openapi';
+import { requireProjectPermission } from '../middleware/project-access';
 import agentRoutes from './agent';
 import agentFullRoutes from './agentFull';
 import apiKeysRoutes from './apiKeys';
@@ -12,6 +13,7 @@ import externalAgentsRoutes from './externalAgents';
 import functionsRoutes from './functions';
 import functionToolsRoutes from './functionTools';
 import mcpCatalogRoutes from './mcpCatalog';
+import projectMembersRoutes from './projectMembers';
 import projectsRoutes from './projects';
 import subAgentArtifactComponentsRoutes from './subAgentArtifactComponents';
 import subAgentDataComponentsRoutes from './subAgentDataComponents';
@@ -27,9 +29,17 @@ import toolsRoutes from './tools';
 const app = new OpenAPIHono();
 
 // Mount projects route first (no projectId in path)
+// Note: projects.ts handles its own access checks internally
 app.route('/projects', projectsRoutes);
 
-// Mount existing routes under project scope
+// Apply project access check to all project-scoped routes
+// This middleware checks 'view' permission by default
+// Individual routes can require higher permissions (use, edit)
+app.use('/projects/:projectId/*', requireProjectPermission('view'));
+
+// Note: projectMembers.ts overrides with 'edit' permission for write operations
+app.route('/projects/:projectId/members', projectMembersRoutes);
+
 app.route('/projects/:projectId/agents/:agentId/sub-agents', subAgentsRoutes);
 app.route('/projects/:projectId/agents/:agentId/sub-agent-relations', subAgentRelationsRoutes);
 app.route(

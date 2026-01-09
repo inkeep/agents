@@ -11,6 +11,7 @@ import {
   LifeBuoy,
   Lock,
   Settings,
+  Users,
   Workflow,
 } from 'lucide-react';
 import Link from 'next/link';
@@ -90,6 +91,11 @@ export const AppSidebar: FC<AppSidebarProps> = ({ open, setOpen, ...props }) => 
           title: 'Settings',
           url: `/${tenantId}/projects/${projectId}/settings`,
           icon: Settings,
+        },
+        {
+          title: 'Members',
+          url: `/${tenantId}/projects/${projectId}/members`,
+          icon: Users,
         },
       ]
     : [];
