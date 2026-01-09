@@ -2,7 +2,7 @@
 
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useParams, useRouter } from 'next/navigation';
-import { useState } from 'react';
+import { type FC, useState } from 'react';
 import { useForm, useWatch } from 'react-hook-form';
 import { toast } from 'sonner';
 import { ExpandableJsonEditor } from '@/components/editors/expandable-json-editor';
@@ -34,7 +34,7 @@ const formatFormData = (data?: Skill): SkillFormData => {
   };
 };
 
-export function SkillForm({ initialData, onSaved }: SkillFormProps) {
+export const SkillForm: FC<SkillFormProps> = ({ initialData, onSaved }) => {
   'use memo';
 
   const { tenantId, projectId } = useParams<{ tenantId: string; projectId: string }>();
@@ -161,4 +161,4 @@ export function SkillForm({ initialData, onSaved }: SkillFormProps) {
       )}
     </Dialog>
   );
-}
+};
