@@ -1,5 +1,17 @@
 # @inkeep/agents-manage-ui
 
+## 0.41.2
+
+### Patch Changes
+
+- 112b5c7: Add --local flag to inkeep init to set local profile as default
+- d32fdb8: Fix import for streamdown css
+- 01ca1e6: - Fix bug with trying to use the useRuntimeConfig hook within the shadow dom"
+- c584a64: Remove `fixedOverflowWidgets` option from monaco-editor config
+- e5e12d9: Disable warnings for `–’` characters in Prompt editor
+- Updated dependencies [112b5c7]
+  - @inkeep/agents-core@0.41.2
+
 ## 0.41.1
 
 ### Patch Changes
