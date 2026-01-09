@@ -735,12 +735,6 @@ export const createFullAgentServerSide =
       await syncSubAgentSkills(
         db,
         { tenantId, projectId, agentId: finalAgentId },
-        typedAgentDefinition.subAgents,
-        logger
-      );
-      await syncSubAgentSkills(
-        db,
-        { tenantId, projectId, agentId: finalAgentId },
         typed.subAgents,
         logger
       );
@@ -1614,6 +1608,13 @@ export const updateFullAgentServerSide =
           subAgentTeamAgentRelationPromisesCount: subAgentTeamAgentRelationPromises.length,
         },
         'All sub-agent team agent relations updated'
+      );
+
+      await syncSubAgentSkills(
+        db,
+        { tenantId, projectId, agentId: typedAgentDefinition.id },
+        typedAgentDefinition.subAgents,
+        logger
       );
 
       // Retrieve and return the updated agent

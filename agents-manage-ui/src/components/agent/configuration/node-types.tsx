@@ -39,10 +39,6 @@ export interface AgentNodeData extends Record<string, unknown>, AnimatedNode {
   skills?: {
     id: string;
     index: number;
-    name?: string;
-    description?: string;
-    content?: string;
-    subAgentSkillId?: string;
   }[];
   models?: AgentModels; // Use same structure as agent
   stopWhen?: SubAgentStopWhen;

@@ -148,13 +148,7 @@ export function SubAgentNodeEditor({
         skillLookup={skillLookup}
         selectedSkills={selectedSkills}
         onChange={(skills) => {
-          const enriched = skills.map((skill) => ({
-            ...skill,
-            name: skillLookup[skill.id].name,
-            description: skillLookup[skill.id].description,
-            content: skillLookup[skill.id].content,
-          }));
-          updatePath('skills', enriched);
+          updatePath('skills', skills);
         }}
         error={getFieldError('skills')}
       />

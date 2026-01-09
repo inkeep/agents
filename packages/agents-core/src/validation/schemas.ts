@@ -538,14 +538,16 @@ export const SubAgentArtifactComponentApiUpdateSchema = createAgentScopedApiUpda
   SubAgentArtifactComponentUpdateSchema
 );
 
+const SkillIndexSchema = z.int().min(0);
+
 export const SubAgentSkillSelectSchema = createSelectSchema(subAgentSkills).extend({
-  index: z.number().min(0),
+  index: SkillIndexSchema,
 });
 export const SubAgentSkillInsertSchema = createInsertSchema(subAgentSkills).extend({
   id: resourceIdSchema,
   subAgentId: resourceIdSchema,
   skillId: resourceIdSchema,
-  index: z.number().min(0),
+  index: SkillIndexSchema,
 });
 export const SubAgentSkillUpdateSchema = SubAgentSkillInsertSchema.partial();
 
@@ -561,11 +563,12 @@ export const SubAgentSkillApiInsertSchema = SubAgentSkillInsertSchema.omit({
 export const SubAgentSkillApiUpdateSchema =
   createAgentScopedApiUpdateSchema(SubAgentSkillUpdateSchema).openapi('SubAgentSkillUpdate');
 
-export const SubAgentSkillWithIndexSchema = SkillApiSelectSchema.extend({
-  index: z.number().min(0),
-  subAgentSkillId: resourceIdSchema.optional(),
-  subAgentId: resourceIdSchema.optional(),
-}).openapi('SubAgentSkillWithIndex');
+export const SubAgentSkillWithIndexSchema = z
+  .object({
+    id: resourceIdSchema,
+    index: SkillIndexSchema,
+  })
+  .openapi('SubAgentSkillWithIndex');
 
 export const ExternalAgentSelectSchema = createSelectSchema(externalAgents).extend({
   credentialReferenceId: z.string().nullable().optional(),

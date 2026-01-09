@@ -148,30 +148,18 @@ export function deserializeAgentData(data: FullAgentDefinition): TransformResult
             }
           : undefined,
         skills: subAgent.skills
-          ? [...subAgent.skills]
-              .sort((a, b) => (a.index ?? 0) - (b.index ?? 0))
-              .map((skill) => ({
-                id: skill.id,
-                index: skill.index,
-                name: skill.name,
-                description: skill.description || '',
-                content: (skill as any).content || '',
-                subAgentSkillId: (skill as any).subAgentSkillId,
-              }))
+          ? [...subAgent.skills].sort((a, b) => a.index - b.index)
           : undefined,
         stopWhen: subAgent.stopWhen ? { stepCountIs: subAgent.stopWhen.stepCountIs } : undefined,
         type: subAgent.type,
         tools: subAgent.canUse ? subAgent.canUse.map((item) => item.toolId) : [],
         selectedTools: subAgent.canUse
-          ? subAgent.canUse.reduce(
-              (acc, item) => {
-                if (item.toolSelection) {
-                  acc[item.toolId] = item.toolSelection;
-                }
-                return acc;
-              },
-              {} as Record<string, string[]>
-            )
+          ? subAgent.canUse.reduce<Record<string, string[]>>((acc, item) => {
+              if (item.toolSelection) {
+                acc[item.toolId] = item.toolSelection;
+              }
+              return acc;
+            }, {})
           : undefined,
         headers: subAgent.canUse
           ? subAgent.canUse.reduce(
