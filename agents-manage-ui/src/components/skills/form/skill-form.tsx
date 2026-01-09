@@ -80,12 +80,6 @@ export const SkillForm: FC<SkillFormProps> = ({ initialData, onSaved }) => {
       }
       router.push(`/${tenantId}/projects/${projectId}/skills`);
     } catch (error) {
-      if (error instanceof Error && error.message.includes('Metadata')) {
-        form.setError('metadata', { message: error.message });
-        toast.error(error.message);
-        return;
-      }
-
       console.error('Error submitting skill:', error);
       toast.error(error instanceof Error ? error.message : 'Failed to save skill');
     }
