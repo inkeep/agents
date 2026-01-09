@@ -309,8 +309,17 @@ async function setupProjectInDatabase(skipDocker) {
       displayPortConflictError(portErrors);
     }
 
-    // Step 5: Run inkeep push
-    logStep(5, 'Running inkeep push command');
+    // Step 5: Set up local CLI profile
+    logStep(5, 'Setting up local CLI profile');
+    try {
+      await execAsync('pnpm inkeep init --local --no-interactive');
+      logSuccess('Local CLI profile configured');
+    } catch (error) {
+      logWarning('Could not set up local CLI profile - you may need to run: inkeep init --local');
+    }
+
+    // Step 6: Run inkeep push
+    logStep(6, 'Running inkeep push command');
     logInfo(`Pushing project: src/projects/${projectId}`);
 
     let pushSuccess = false;
@@ -330,8 +339,8 @@ async function setupProjectInDatabase(skipDocker) {
       logWarning('The project may not have been pushed to the remote');
       pushSuccess = false;
     } finally {
-      // Step 6: Cleanup - Stop development servers
-      logStep(6, 'Cleaning up - stopping development servers');
+      // Step 7: Cleanup - Stop development servers
+      logStep(7, 'Cleaning up - stopping development servers');
 
       if (devProcess.pid) {
         try {

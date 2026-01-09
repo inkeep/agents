@@ -3,7 +3,12 @@ import { basename, dirname, join, resolve } from 'node:path';
 import * as p from '@clack/prompts';
 import chalk from 'chalk';
 import { checkKeychainAvailability, loadCredentials } from '../utils/credentials';
-import { DEFAULT_PROFILES_CONFIG, type Profile, ProfileManager } from '../utils/profiles';
+import {
+  DEFAULT_PROFILES_CONFIG,
+  type Profile,
+  ProfileManager,
+  type ProfilesConfig,
+} from '../utils/profiles';
 import { loginCommand } from './login';
 
 export interface InitOptions {
@@ -439,6 +444,50 @@ export default defineConfig({
   try {
     writeFileSync(configPath, configContent);
     console.log(chalk.green('✓'), `Created ${chalk.cyan(configPath)}`);
+
+    // Set up local profile
+    try {
+      const profileManager = new ProfileManager();
+      const localProfile: Profile = {
+        remote: {
+          manageApi: manageApiUrl as string,
+          manageUi: 'http://localhost:3001',
+          runApi: runApiUrl as string,
+        },
+        credential: 'none',
+        environment: 'development',
+      };
+
+      if (profileManager.profilesFileExists()) {
+        const config = profileManager.loadProfiles();
+
+        if (config.profiles.local) {
+          profileManager.setActiveProfile('local');
+          console.log(chalk.green('✓'), 'Set local profile as active');
+        } else {
+          profileManager.addProfile('local', localProfile);
+          profileManager.setActiveProfile('local');
+          console.log(chalk.green('✓'), 'Created and activated local profile');
+        }
+      } else {
+        const profilesConfig: ProfilesConfig = {
+          activeProfile: 'local',
+          profiles: {
+            local: localProfile,
+          },
+        };
+
+        profileManager.saveProfiles(profilesConfig);
+        console.log(chalk.green('✓'), 'Created local profile');
+      }
+    } catch (profileError) {
+      console.log(
+        chalk.yellow('⚠'),
+        'Could not set up local profile:',
+        profileError instanceof Error ? profileError.message : String(profileError)
+      );
+    }
+
     console.log(chalk.gray('\nYou can now use the Inkeep CLI commands.'));
 
     const configDir = dirname(configPath);
