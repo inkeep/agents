@@ -12,7 +12,6 @@ import { GenericTextarea } from '@/components/form/generic-textarea';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogTrigger } from '@/components/ui/dialog';
 import { Form } from '@/components/ui/form';
-import { useAutoPrefillId } from '@/hooks/use-auto-prefill-id';
 import { createSkillAction, updateSkillAction } from '@/lib/actions/skills';
 import type { Skill } from '@/lib/types/skills';
 import { formatJsonField } from '@/lib/utils';
@@ -28,58 +27,44 @@ const formatFormData = (data?: Skill): SkillFormData => {
   if (!data) return defaultValues;
 
   return {
-    id: data.id,
     name: data.name,
-    description: data.description || '',
-    content: data.content || '',
+    description: data.description,
+    content: data.content,
     metadata: formatJsonField(data.metadata),
   };
 };
 
 export function SkillForm({ initialData, onSaved }: SkillFormProps) {
+  'use memo';
+
   const { tenantId, projectId } = useParams<{ tenantId: string; projectId: string }>();
   const [isDeleteOpen, setIsDeleteOpen] = useState(false);
   const form = useForm<SkillFormData>({
     resolver: zodResolver(SkillSchema),
     defaultValues: formatFormData(initialData),
+    mode: 'onChange',
   });
   const { isSubmitting } = form.formState;
   const router = useRouter();
 
-  useAutoPrefillId({
-    form,
-    nameField: 'name',
-    idField: 'id',
-    isEditing: !!initialData,
-  });
-
   const onSubmit = async (data: SkillFormData) => {
     try {
-      const parsedMetadata = parseMetadataField(data.metadata);
       const payload = {
-        id: data.id.trim(),
-        name: data.name.trim(),
-        description: data.description.trim(),
-        content: data.content,
-        metadata: parsedMetadata,
+        ...data,
+        id: data.name,
+        metadata: parseMetadataField(data.metadata),
       };
-
+      const callAction = initialData ? updateSkillAction : createSkillAction;
+      const res = await callAction(tenantId, projectId, payload);
+      if (!res.success) {
+        toast.error(res.error || `Failed to ${initialData ? 'update' : 'create'} skill`);
+        return;
+      }
+      toast.success(`Skill ${initialData ? 'updated' : 'created'}`);
       if (initialData) {
-        const res = await updateSkillAction(tenantId, projectId, payload);
-        if (!res.success) {
-          toast.error(res.error || 'Failed to update skill');
-          return;
-        }
-        toast.success('Skill updated');
         onSaved?.();
         return;
       }
-      const res = await createSkillAction(tenantId, projectId, payload);
-      if (!res.success) {
-        toast.error(res.error || 'Failed to create skill');
-        return;
-      }
-      toast.success('Skill created');
       if (onSaved) {
         onSaved();
         return;
@@ -106,19 +91,11 @@ export function SkillForm({ initialData, onSaved }: SkillFormProps) {
             name="name"
             label="Name"
             placeholder="My skill"
-            isRequired
-          />
-          <GenericInput
-            control={form.control}
-            name="id"
-            label="Id"
-            placeholder="my-skill"
             description={
               initialData
                 ? ''
-                : 'Choose a unique identifier for this skill. Using an existing id will replace that skill.'
+                : 'Max 64 characters. Lowercase letters, numbers, and hyphens only. Must not start or end with a hyphen.'
             }
-            disabled={!!initialData}
             isRequired
           />
           <GenericTextarea
@@ -126,7 +103,7 @@ export function SkillForm({ initialData, onSaved }: SkillFormProps) {
             name="description"
             label="Description"
             placeholder="High-level summary of what this skill enforces."
-            className="min-h-[80px]"
+            className="min-h-20"
             isRequired
           />
           <ExpandablePromptEditor
