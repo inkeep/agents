@@ -1,6 +1,7 @@
 // Main entry point for @inkeep/agents-core package
 
 export * from './api-client/base-client';
+export * from './auth/authz/index';
 export * from './constants/execution-limits-shared';
 export * from './constants/models';
 export * from './constants/otel-attributes';

@@ -80,7 +80,7 @@ export function InviteMemberDialog({ open, onOpenChange }: InviteMemberDialogPro
       try {
         const result = await authClient.organization.inviteMember({
           email,
-          role: 'owner',
+          role: 'member',
           organizationId,
         });
 

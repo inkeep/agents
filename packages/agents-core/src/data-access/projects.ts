@@ -1,4 +1,4 @@
-import { and, count, desc, eq } from 'drizzle-orm';
+import { and, count, desc, eq, inArray } from 'drizzle-orm';
 import type { DatabaseClient } from '../db/client';
 import {
   agents,
@@ -138,12 +138,14 @@ export const listProjects =
 
 /**
  * List all unique project IDs within a tenant with pagination
+ * Optionally filter by a list of project IDs (for access control)
  */
 export const listProjectsPaginated =
   (db: DatabaseClient) =>
   async (params: {
     tenantId: string;
     pagination?: PaginationConfig;
+    projectIds?: string[];
   }): Promise<{
     data: ProjectSelect[];
     pagination: PaginationResult;
@@ -152,15 +154,20 @@ export const listProjectsPaginated =
     const limit = params.pagination?.limit || 10;
     const offset = (page - 1) * limit;
 
+    // Build WHERE clause: always filter by tenantId, optionally by projectIds
+    const whereClause = params.projectIds
+      ? and(eq(projects.tenantId, params.tenantId), inArray(projects.id, params.projectIds))
+      : eq(projects.tenantId, params.tenantId);
+
     const [data, totalResult] = await Promise.all([
       db
         .select()
         .from(projects)
-        .where(eq(projects.tenantId, params.tenantId))
+        .where(whereClause)
         .limit(limit)
         .offset(offset)
         .orderBy(desc(projects.createdAt)),
-      db.select({ count: count() }).from(projects).where(eq(projects.tenantId, params.tenantId)),
+      db.select({ count: count() }).from(projects).where(whereClause),
     ]);
 
     const total = totalResult[0]?.count || 0;

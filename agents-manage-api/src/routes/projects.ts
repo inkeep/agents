@@ -6,17 +6,22 @@ import {
   deleteProject,
   ErrorResponseSchema,
   getProject,
+  isAuthzEnabled,
+  listAccessibleProjectIds,
   listProjectsPaginated,
   PaginationQueryParamsSchema,
   ProjectApiInsertSchema,
   ProjectApiUpdateSchema,
   ProjectListResponse,
   ProjectResponse,
+  removeProjectFromSpiceDb,
+  syncProjectToSpiceDb,
   TenantIdParamsSchema,
   TenantParamsSchema,
   updateProject,
 } from '@inkeep/agents-core';
 import dbClient from '../data/db/dbClient';
+import { requireProjectPermission } from '../middleware/project-access';
 import { requirePermission } from '../middleware/require-permission';
 import type { BaseAppVariables } from '../types/app';
 import { speakeasyOffsetLimitPagination } from './shared';
@@ -31,11 +36,17 @@ app.use('/', async (c, next) => {
 });
 
 app.use('/:id', async (c, next) => {
+  if (c.req.method === 'GET') {
+    // Use project access check for viewing individual projects
+    return requireProjectPermission('view')(c, next);
+  }
   if (c.req.method === 'PATCH') {
-    return requirePermission({ project: ['update'] })(c, next);
+    // Users with 'edit' permission can update project
+    return requireProjectPermission('edit')(c, next);
   }
   if (c.req.method === 'DELETE') {
-    return requirePermission({ project: ['delete'] })(c, next);
+    // Users with 'edit' permission can delete project
+    return requireProjectPermission('edit')(c, next);
   }
   return next();
 });
@@ -45,7 +56,8 @@ app.openapi(
     method: 'get',
     path: '/',
     summary: 'List Projects',
-    description: 'List all projects within a tenant with pagination',
+    description:
+      'List all projects within a tenant with pagination. When authorization is enabled, only returns projects the user has access to.',
     operationId: 'list-projects',
     tags: ['Projects'],
     request: {
@@ -67,12 +79,41 @@ app.openapi(
   }),
   async (c) => {
     const { tenantId } = c.req.valid('param');
+    const userId = c.get('userId');
+    const tenantRole = c.get('tenantRole') || 'member';
     const page = Number(c.req.query('page')) || 1;
     const limit = Math.min(Number(c.req.query('limit')) || 10, 100);
 
+    // Get accessible project IDs for this user
+    const orgRole = tenantRole as 'owner' | 'admin' | 'member';
+    const accessibleIds = await listAccessibleProjectIds({
+      tenantId,
+      userId,
+      orgRole,
+    });
+
+    // If 'all', no filtering needed (authz disabled or user is org admin)
+    if (accessibleIds === 'all') {
+      const result = await listProjectsPaginated(dbClient)({
+        tenantId,
+        pagination: { page, limit },
+      });
+      return c.json(result);
+    }
+
+    // If no accessible projects, return empty list
+    if (accessibleIds.length === 0) {
+      return c.json({
+        data: [],
+        pagination: { page, limit, total: 0, pages: 0 },
+      });
+    }
+
+    // Filter by accessible project IDs
     const result = await listProjectsPaginated(dbClient)({
       tenantId,
       pagination: { page, limit },
+      projectIds: accessibleIds,
     });
     return c.json(result);
   }
@@ -121,7 +162,8 @@ app.openapi(
     method: 'post',
     path: '/',
     summary: 'Create Project',
-    description: 'Create a new project',
+    description:
+      'Create a new project. When authorization is enabled, the creator is automatically granted admin role.',
     operationId: 'create-project',
     tags: ['Projects'],
     request: {
@@ -156,6 +198,7 @@ app.openapi(
   }),
   async (c) => {
     const { tenantId } = c.req.valid('param');
+    const userId = c.get('userId');
     const body = c.req.valid('json');
 
     try {
@@ -164,10 +207,32 @@ app.openapi(
         ...body,
       });
 
+      // Sync to SpiceDB: link project to org and grant creator admin role
+      if (isAuthzEnabled()) {
+        try {
+          await syncProjectToSpiceDb({
+            tenantId,
+            projectId: project.id,
+            creatorUserId: userId,
+          });
+        } catch (syncError) {
+          // Log but don't fail the request
+          console.warn('Failed to sync project to SpiceDB:', syncError);
+        }
+      }
+
       return c.json({ data: project }, 201);
-    } catch (error: any) {
+    } catch (error: unknown) {
       // Handle duplicate project (PostgreSQL unique constraint violation)
-      if (error?.cause?.code === '23505') {
+      if (
+        error &&
+        typeof error === 'object' &&
+        'cause' in error &&
+        error.cause &&
+        typeof error.cause === 'object' &&
+        'code' in error.cause &&
+        error.cause.code === '23505'
+      ) {
         throw createApiError({
           code: 'conflict',
           message: 'Project with this ID already exists',
@@ -269,9 +334,18 @@ app.openapi(
         });
       }
 
+      // Remove from SpiceDB
+      if (isAuthzEnabled()) {
+        try {
+          await removeProjectFromSpiceDb({ projectId: id });
+        } catch (syncError) {
+          console.warn('Failed to remove project from SpiceDB:', syncError);
+        }
+      }
+
       return c.body(null, 204);
-    } catch (error: any) {
-      if (error.message?.includes('Cannot delete project with existing resources')) {
+    } catch (error: unknown) {
+      if (error instanceof Error && error.message?.includes('Cannot delete project')) {
         throw createApiError({
           code: 'conflict',
           message: 'Cannot delete project with existing resources',

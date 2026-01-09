@@ -253,6 +253,25 @@ export function createAuth(config: BetterAuthConfig) {
           // - AWS SES: await ses.sendEmail({ ... })
           // - Postmark: await postmark.sendEmail({ ... })
         },
+        organizationHooks: {
+          afterAcceptInvitation: async ({ member, user, organization: org }) => {
+            try {
+              const { syncOrgMemberToSpiceDb } = await import('./authz/sync');
+              await syncOrgMemberToSpiceDb({
+                tenantId: org.id,
+                userId: user.id,
+                role: member.role as 'owner' | 'admin' | 'member',
+                action: 'add',
+              });
+              console.log(
+                `🔐 SpiceDB: Synced member ${user.email} as ${member.role} to org ${org.name}`
+              );
+            } catch (error) {
+              // Log error but don't fail the invitation acceptance
+              console.error('❌ SpiceDB sync failed for new member:', error);
+            }
+          },
+        },
       }),
       deviceAuthorization({
         verificationUri: '/device',

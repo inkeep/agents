@@ -1,31 +1,30 @@
+import { ShareProjectWrapper } from '@/components/access/share-project-wrapper';
 import FullPageError from '@/components/errors/full-page-error';
 import { BodyTemplate } from '@/components/layout/body-template';
-import { ProjectForm } from '@/components/projects/form/project-form';
-import type { ProjectFormData } from '@/components/projects/form/validation';
 import { fetchProject } from '@/lib/api/projects';
 import { getErrorCode } from '@/lib/utils/error-serialization';
 
 export const dynamic = 'force-dynamic';
 
-export default async function SettingsPage({
+export default async function MembersPage({
   params,
-}: PageProps<'/[tenantId]/projects/[projectId]/settings'>) {
+}: PageProps<'/[tenantId]/projects/[projectId]/members'>) {
   const { tenantId, projectId } = await params;
 
   try {
     const projectData = await fetchProject(tenantId, projectId);
 
+    // Permission to manage access is enforced by the API (requires 'edit' permission).
+    // If user lacks permission, API calls will fail gracefully.
+    const canManageAccess = true;
+
     return (
-      <BodyTemplate breadcrumbs={['Settings']} className="max-w-2xl mx-auto">
-        <ProjectForm
-          projectId={projectData.data.id}
-          initialData={
-            {
-              ...projectData.data,
-              id: projectData.data.id as string,
-            } as ProjectFormData
-          }
+      <BodyTemplate breadcrumbs={['Members']} className="max-w-xl mx-auto">
+        <ShareProjectWrapper
+          projectId={projectId}
+          projectName={projectData.data.name}
           tenantId={tenantId}
+          canManage={canManageAccess}
         />
       </BodyTemplate>
     );
