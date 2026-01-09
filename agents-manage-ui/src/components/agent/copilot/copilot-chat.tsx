@@ -9,6 +9,7 @@ import { Button } from '@/components/ui/button';
 import { useRuntimeConfig } from '@/contexts/runtime-config-context';
 import { useCopilotToken } from '@/hooks/use-copilot-token';
 import { useOAuthLogin } from '@/hooks/use-oauth-login';
+import { sentry } from '@/lib/sentry';
 import { generateId } from '@/lib/utils/id-utils';
 import { useCopilotContext } from './copilot-context';
 import { IkpMessage } from './message-parts/message';
@@ -61,6 +62,11 @@ export function CopilotChat({ agentId, tenantId, projectId, refreshAgentGraph }:
       // we need to check if the conversationId is the same as the one in the event because this event is also triggered by the 'try now' chat.
       if (event.detail.type === 'tool_result' && event.detail.conversationId === conversationId) {
         refreshAgentGraph();
+      }
+      if (event.detail.type === 'error' && event.detail.conversationId === conversationId) {
+        sentry.captureException(new Error('Copilot data operation error'), {
+          extra: event.detail,
+        });
       }
     };
 
@@ -155,6 +161,11 @@ export function CopilotChat({ agentId, tenantId, projectId, refreshAgentGraph }:
                 setDynamicHeaders({});
                 setConversationId(generateId());
                 setIsStreaming(false);
+              }
+              if (event.eventName === 'chat_error') {
+                sentry.captureException(new Error('Copilot chat error'), {
+                  extra: { ...event.properties },
+                });
               }
             },
             primaryBrandColor: '#3784ff',
