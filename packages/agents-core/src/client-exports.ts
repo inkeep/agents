@@ -302,7 +302,8 @@ export const SkillFrontmatterSchema = z.object({
       (v) => !(v.startsWith('-') || v.endsWith('-')),
       'Must not start or end with a hyphen (-)'
     )
-    .refine((v) => !v.includes('--'), 'Must not contain consecutive hyphens (--)'),
+    .refine((v) => !v.includes('--'), 'Must not contain consecutive hyphens (--)')
+    .refine((v) => v !== 'new', 'Must not use a reserved name "new"'),
   description: z.string().trim().nonempty().max(1024),
   metadata: z.record(z.string(), z.string()).nullable().optional().default(null),
 });
