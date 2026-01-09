@@ -62,7 +62,6 @@ import { agentSessionManager, type ToolCallData } from '../services/AgentSession
 import { getModelAwareCompressionConfig } from '../services/BaseCompressor';
 import { IncrementalStreamParser } from '../services/IncrementalStreamParser';
 import { MidGenerationCompressor } from '../services/MidGenerationCompressor';
-import { pendingToolApprovalManager } from '../services/PendingToolApprovalManager';
 import { ResponseFormatter } from '../services/ResponseFormatter';
 import type { SandboxConfig } from '../types/execution-context';
 import { generateToolId } from '../utils/agent-operations';
@@ -725,6 +724,7 @@ export class Agent {
         const sessionWrappedTool = tool({
           description: originalTool.description,
           inputSchema: originalTool.inputSchema,
+          needsApproval,
           execute: async (args, { toolCallId }) => {
             // Fix Claude's stringified JSON issue - convert any stringified JSON back to objects
             // This must happen first, before any logging or tracing, so spans show correct data
@@ -749,94 +749,6 @@ export class Agent {
 
             // Use processed args for all subsequent operations
             const finalArgs = processedArgs;
-
-            // Check for approval requirement before execution
-            if (needsApproval) {
-              logger.info(
-                { toolName, toolCallId, args: finalArgs },
-                'Tool requires approval - waiting for user response'
-              );
-
-              // Add an event to the current active span if one exists
-              const currentSpan = trace.getActiveSpan();
-              if (currentSpan) {
-                currentSpan.addEvent('tool.approval.requested', {
-                  'tool.name': toolName,
-                  'tool.callId': toolCallId,
-                  'subAgent.id': this.config.id,
-                });
-              }
-
-              // Emit an immediate span to mark that approval request was sent
-              tracer.startActiveSpan(
-                'tool.approval_requested',
-                {
-                  attributes: {
-                    'tool.name': toolName,
-                    'tool.callId': toolCallId,
-                    'subAgent.id': this.config.id,
-                    'subAgent.name': this.config.name,
-                  },
-                },
-                (requestSpan: Span) => {
-                  requestSpan.setStatus({ code: SpanStatusCode.OK });
-                  requestSpan.end();
-                }
-              );
-
-              // Wait for approval (this promise resolves when user responds via API)
-              const approvalResult = await pendingToolApprovalManager.waitForApproval(
-                toolCallId,
-                toolName,
-                args,
-                this.conversationId || 'unknown',
-                this.config.id
-              );
-
-              if (!approvalResult.approved) {
-                // User denied approval - return a message instead of executing the tool
-                return tracer.startActiveSpan(
-                  'tool.approval_denied',
-                  {
-                    attributes: {
-                      'tool.name': toolName,
-                      'tool.callId': toolCallId,
-                      'subAgent.id': this.config.id,
-                      'subAgent.name': this.config.name,
-                    },
-                  },
-                  (denialSpan: Span) => {
-                    logger.info(
-                      { toolName, toolCallId, reason: approvalResult.reason },
-                      'Tool execution denied by user'
-                    );
-
-                    denialSpan.setStatus({ code: SpanStatusCode.OK });
-                    denialSpan.end();
-
-                    return `User denied approval to run this tool: ${approvalResult.reason}`;
-                  }
-                );
-              }
-
-              // Tool was approved - create a span to show this
-              tracer.startActiveSpan(
-                'tool.approval_approved',
-                {
-                  attributes: {
-                    'tool.name': toolName,
-                    'tool.callId': toolCallId,
-                    'subAgent.id': this.config.id,
-                    'subAgent.name': this.config.name,
-                  },
-                },
-                (approvedSpan: Span) => {
-                  logger.info({ toolName, toolCallId }, 'Tool approved, continuing with execution');
-                  approvedSpan.setStatus({ code: SpanStatusCode.OK });
-                  approvedSpan.end();
-                }
-              );
-            }
 
             logger.debug({ toolName, toolCallId }, 'MCP Tool Called');
 
