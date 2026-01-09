@@ -61,8 +61,8 @@ importers:
   apps/agents-ui:
     dependencies:
       '@inkeep/agents-ui':
-        specifier: ^0.15.6
-        version: 0.15.6(@types/react-dom@19.2.3(@types/react@19.2.7))(@types/react@19.2.7)(react-dom@19.2.0(react@19.2.0))(react@19.2.0)
+        specifier: ^0.15.7
+        version: 0.15.7(@types/react-dom@19.2.3(@types/react@19.2.7))(@types/react@19.2.7)(react-dom@19.2.0(react@19.2.0))(react@19.2.0)
       react:
         specifier: 19.2.0
         version: 19.2.0
@@ -1452,8 +1452,8 @@ packages:
   '@inkeep/agents-ui@0.15.4':
     resolution: {integrity: sha512-gybfzh5dNI07grwhOyW5un6cZGYcwcn+i+LlKmafSGzUTS1K8aj42NrNPWUgWFhmlkQBwBRCIa37igYMFc/Vng==}
 
-  '@inkeep/agents-ui@0.15.6':
-    resolution: {integrity: sha512-xfQ7kgK3acoyCcdIHHhyrkrkhqVJNJaKUuB2SFyysi1YEpU93vz32iydxElhcpl15pai9RQAjizyTDF2EOEZOw==}
+  '@inkeep/agents-ui@0.15.7':
+    resolution: {integrity: sha512-Vj+xKWGx77QoDGxkryCtCRDEM0gpBZccGhRgt05SAAQ8NajWnqOcR7l+kPsy6KHqaLOlma2HX4q2YPv8bkjQKg==}
 
   '@isaacs/balanced-match@4.0.1':
     resolution: {integrity: sha512-yzMTt9lEb8Gv7zRioUilSglI0c0smZ9k5D65677DLWLtWJaXIS3CqcGyUFByYKlnUj6TkjLVs54fBl6+TiGQDQ==}
@@ -9796,7 +9796,7 @@ snapshots:
       - react-dom
       - supports-color
 
-  '@inkeep/agents-ui@0.15.6(@types/react-dom@19.2.3(@types/react@19.2.7))(@types/react@19.2.7)(react-dom@19.2.0(react@19.2.0))(react@19.2.0)':
+  '@inkeep/agents-ui@0.15.7(@types/react-dom@19.2.3(@types/react@19.2.7))(@types/react@19.2.7)(react-dom@19.2.0(react@19.2.0))(react@19.2.0)':
     dependencies:
       '@ai-sdk/openai': 2.0.4(zod@4.2.1)
       '@ai-sdk/react': 2.0.5(react@19.2.0)(zod@4.2.1)
