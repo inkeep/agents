@@ -3,6 +3,7 @@ import agentRoutes from './agent';
 import agentFullRoutes from './agentFull';
 import apiKeysRoutes from './apiKeys';
 import artifactComponentsRoutes from './artifactComponents';
+import branchesRoutes from './branches';
 import contextConfigsRoutes from './contextConfigs';
 import conversationsRoutes from './conversations';
 import credentialStoresRoutes from './credentialStores';
@@ -13,9 +14,11 @@ import functionsRoutes from './functions';
 import functionToolsRoutes from './functionTools';
 import mcpCatalogRoutes from './mcpCatalog';
 import projectsRoutes from './projects';
+import refRoutes from './ref';
 import subAgentArtifactComponentsRoutes from './subAgentArtifactComponents';
 import subAgentDataComponentsRoutes from './subAgentDataComponents';
 import subAgentExternalAgentRelationsRoutes from './subAgentExternalAgentRelations';
+import subAgentFunctionToolsRoutes from './subAgentFunctionTools';
 import subAgentRelationsRoutes from './subAgentRelations';
 // Import existing route modules (others can be added as they're created)
 import subAgentsRoutes from './subAgents';
@@ -28,6 +31,12 @@ const app = new OpenAPIHono();
 
 // Mount projects route first (no projectId in path)
 app.route('/projects', projectsRoutes);
+
+// Mount branches route under project scope
+app.route('/projects/:projectId/branches', branchesRoutes);
+
+// Mount ref routes under project scope
+app.route('/projects/:projectId/refs', refRoutes);
 
 // Mount existing routes under project scope
 app.route('/projects/:projectId/agents/:agentId/sub-agents', subAgentsRoutes);
@@ -52,6 +61,10 @@ app.route(
 app.route(
   '/projects/:projectId/agents/:agentId/sub-agent-data-components',
   subAgentDataComponentsRoutes
+);
+app.route(
+  '/projects/:projectId/agents/:agentId/sub-agent-function-tools',
+  subAgentFunctionToolsRoutes
 );
 app.route('/projects/:projectId/artifact-components', artifactComponentsRoutes);
 app.route('/projects/:projectId/agents/:agentId/context-configs', contextConfigsRoutes);

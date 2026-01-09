@@ -1,6 +1,7 @@
 import type { z } from '@hono/zod-openapi';
-import type { ApiKeySelect } from '../index';
+import type { ApiKeySelect, FullProjectSelectWithRelationIds, ResolvedRef } from '../index';
 import type {
+  EvaluationJobFilterCriteriaSchema,
   McpTransportConfigSchema,
   ModelSchema,
   ProjectModelSchema,
@@ -261,7 +262,7 @@ export interface ApiKeyCreateResult {
  * Execution context that gets propagated through agent calls
  * Contains authentication and routing information for internal API calls
  */
-export interface ExecutionContext {
+export interface BaseExecutionContext {
   /** The original API key from the client request */
   apiKey: string;
   /** Tenant ID extracted from API key */
@@ -274,6 +275,8 @@ export interface ExecutionContext {
   baseUrl: string;
   /** API key ID for tracking */
   apiKeyId: string;
+  /** Ref extracted from query params */
+  ref?: string;
   /** Sub Agent ID extracted from request headers (only for internal A2A calls) */
   subAgentId?: string;
   /** Metadata for the execution context */
@@ -285,6 +288,11 @@ export interface ExecutionContext {
       id: string;
     };
   };
+}
+
+export interface FullExecutionContext extends BaseExecutionContext {
+  resolvedRef: ResolvedRef;
+  project: FullProjectSelectWithRelationIds;
 }
 
 /**
@@ -337,3 +345,30 @@ export type Filter<T extends Record<string, unknown>> =
   | T
   | { and: Array<Filter<T>> }
   | { or: Array<Filter<T>> };
+
+export type PassCriteriaOperator = '>' | '<' | '>=' | '<=' | '=' | '!=';
+
+export type PassCriteriaCondition = {
+  field: string;
+  operator: PassCriteriaOperator;
+  value: number;
+};
+
+export type PassCriteria = {
+  operator: 'and' | 'or';
+  conditions: PassCriteriaCondition[];
+};
+
+export type EvaluationJobFilterCriteria = z.infer<typeof EvaluationJobFilterCriteriaSchema>;
+
+export type EvaluationSuiteFilterCriteria = {
+  agentIds?: string[];
+  [key: string]: unknown;
+};
+
+export type DatasetItemInput = {
+  messages: Array<{ role: string; content: MessageContent }>;
+  headers?: Record<string, string>;
+};
+
+export type DatasetItemExpectedOutput = Array<{ role: string; content: MessageContent }>;

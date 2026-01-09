@@ -1,7 +1,7 @@
 import { createRoute, OpenAPIHono, z } from '@hono/zod-openapi';
 import { getPendingInvitationsByEmail } from '@inkeep/agents-core';
 import type { AppVariables } from '../create-app';
-import dbClient from '../data/db/dbClient';
+import runDbClient from '../data/db/runDbClient';
 
 const invitationsRoutes = new OpenAPIHono<{ Variables: AppVariables }>();
 
@@ -46,7 +46,7 @@ invitationsRoutes.openapi(
   async (c) => {
     const { email } = c.req.valid('query');
 
-    const invitations = await getPendingInvitationsByEmail(dbClient)(email);
+    const invitations = await getPendingInvitationsByEmail(runDbClient)(email);
 
     // Convert Date to timestamp number for API response
     const response = invitations.map((inv) => ({

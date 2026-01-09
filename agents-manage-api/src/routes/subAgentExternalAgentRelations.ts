@@ -19,7 +19,7 @@ import {
   updateSubAgentExternalAgentRelation,
 } from '@inkeep/agents-core';
 import { nanoid } from 'nanoid';
-import dbClient from '../data/db/dbClient';
+
 import { requirePermission } from '../middleware/require-permission';
 import type { BaseAppVariables } from '../types/app';
 import { speakeasyOffsetLimitPagination } from './shared';
@@ -68,6 +68,7 @@ app.openapi(
     ...speakeasyOffsetLimitPagination,
   }),
   async (c) => {
+    const db = c.get('db');
     const { tenantId, projectId, agentId, subAgentId } = c.req.valid('param');
     const { page = 1, limit = 10 } = c.req.valid('query');
     const pageNum = Number(page);
@@ -75,7 +76,7 @@ app.openapi(
 
     try {
       const result: { data: SubAgentExternalAgentRelationApiSelect[]; pagination: Pagination } =
-        await listSubAgentExternalAgentRelations(dbClient)({
+        await listSubAgentExternalAgentRelations(db)({
           scopes: { tenantId, projectId, agentId, subAgentId },
           pagination: { page: pageNum, limit: limitNum },
         });
@@ -113,8 +114,9 @@ app.openapi(
     },
   }),
   async (c) => {
+    const db = c.get('db');
     const { tenantId, projectId, agentId, subAgentId, id } = c.req.valid('param');
-    const relation = (await getSubAgentExternalAgentRelationById(dbClient)({
+    const relation = (await getSubAgentExternalAgentRelationById(db)({
       scopes: { tenantId, projectId, agentId, subAgentId },
       relationId: id,
     })) as SubAgentExternalAgentRelationApiSelect | null;
@@ -160,11 +162,12 @@ app.openapi(
     },
   }),
   async (c) => {
+    const db = c.get('db');
     const { tenantId, projectId, agentId, subAgentId } = c.req.valid('param');
     const body = await c.req.valid('json');
 
     // Check for duplicate relation
-    const existingRelations = await listSubAgentExternalAgentRelations(dbClient)({
+    const existingRelations = await listSubAgentExternalAgentRelations(db)({
       scopes: { tenantId, projectId, agentId, subAgentId },
       pagination: { page: 1, limit: 1000 },
     });
@@ -181,7 +184,7 @@ app.openapi(
       });
     }
 
-    const relation = await createSubAgentExternalAgentRelation(dbClient)({
+    const relation = await createSubAgentExternalAgentRelation(db)({
       scopes: { tenantId, projectId, agentId, subAgentId },
       relationId: nanoid(),
       data: {
@@ -224,10 +227,11 @@ app.openapi(
     },
   }),
   async (c) => {
+    const db = c.get('db');
     const { tenantId, projectId, agentId, subAgentId, id } = c.req.valid('param');
     const body = await c.req.valid('json');
 
-    const updatedRelation = await updateSubAgentExternalAgentRelation(dbClient)({
+    const updatedRelation = await updateSubAgentExternalAgentRelation(db)({
       scopes: { tenantId, projectId, agentId, subAgentId },
       relationId: id,
       data: body,
@@ -269,9 +273,10 @@ app.openapi(
     },
   }),
   async (c) => {
+    const db = c.get('db');
     const { tenantId, projectId, agentId, subAgentId, id } = c.req.valid('param');
 
-    const deleted = await deleteSubAgentExternalAgentRelation(dbClient)({
+    const deleted = await deleteSubAgentExternalAgentRelation(db)({
       scopes: { tenantId, projectId, agentId, subAgentId },
       relationId: id,
     });

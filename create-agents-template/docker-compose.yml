@@ -27,14 +27,17 @@ services:
     environment:
       - ENVIRONMENT
       - LOG_LEVEL
-      - DATABASE_URL=postgresql://appuser:password@inkeep-agents-db:5432/inkeep_agents
+      - INKEEP_AGENTS_MANAGE_DATABASE_URL=postgresql://appuser:password@inkeep-agents-doltgres-db:5432/inkeep_agents
+      - INKEEP_AGENTS_RUN_DATABASE_URL=postgresql://appuser:password@inkeep-agents-postgres-db:5432/inkeep_agents
       - INKEEP_AGENTS_MANAGE_API_BYPASS_SECRET
       - NANGO_SERVER_URL=${NANGO_SERVER_URL:-http://localhost:3050}
       - NANGO_SECRET_KEY
     ports:
       - "3002:3002"
     depends_on:
-      inkeep-agents-db:
+      inkeep-agents-doltgres-db:
+        condition: service_healthy
+      inkeep-agents-postgres-db:
         condition: service_healthy
       inkeep-agents-migrate:
         condition: service_completed_successfully
@@ -45,7 +48,7 @@ services:
     environment:
       - ENVIRONMENT
       - LOG_LEVEL
-      - DATABASE_URL=postgresql://appuser:password@inkeep-agents-db:5432/inkeep_agents
+      - INKEEP_AGENTS_RUN_DATABASE_URL=postgresql://appuser:password@inkeep-agents-postgres-db:5432/inkeep_agents
       - INKEEP_AGENTS_RUN_API_BYPASS_SECRET
       - ANTHROPIC_API_KEY
       - OPENAI_API_KEY
@@ -57,11 +60,26 @@ services:
     ports:
       - "3003:3003"
     depends_on:
-      inkeep-agents-db:
+      inkeep-agents-postgres-db:
         condition: service_healthy
       inkeep-agents-migrate:
         condition: service_completed_successfully
-  inkeep-agents-db:
+  inkeep-agents-doltgres-db:
+    image: dolthub/doltgresql:latest
+    restart: unless-stopped
+    environment:
+      DOLTGRES_USER: appuser
+      DOLTGRES_PASSWORD: password
+      DOLTGRES_DB: inkeep_agents
+    volumes:
+      - inkeep-agents-doltgres-data:/var/lib/doltgres
+    healthcheck:
+      test: ["CMD-SHELL", "PGPASSWORD=password psql -h localhost -U appuser -d inkeep_agents -c 'SELECT 1' || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 20s
+  inkeep-agents-postgres-db:
     image: postgres:18
     restart: unless-stopped
     environment:
@@ -69,9 +87,9 @@ services:
       POSTGRES_USER: appuser
       POSTGRES_PASSWORD: password
     volumes:
-      - inkeep-agents-db-data:/var/lib/postgresql
+      - inkeep-agents-postgres-data:/var/lib/postgresql
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U $$POSTGRES_USER -d $$POSTGRES_DB"]
+      test: ["CMD-SHELL", "pg_isready -U appuser -d inkeep_agents"]
       interval: 2s
       timeout: 3s
       retries: 30
@@ -82,10 +100,14 @@ services:
     environment:
       - ENVIRONMENT
       - LOG_LEVEL
-      - DATABASE_URL=postgresql://appuser:password@inkeep-agents-db:5432/inkeep_agents
+      - INKEEP_AGENTS_MANAGE_DATABASE_URL=postgresql://appuser:password@inkeep-agents-doltgres-db:5432/inkeep_agents
+      - INKEEP_AGENTS_RUN_DATABASE_URL=postgresql://appuser:password@inkeep-agents-postgres-db:5432/inkeep_agents
     depends_on:
-      inkeep-agents-db:
+      inkeep-agents-doltgres-db:
+        condition: service_healthy
+      inkeep-agents-postgres-db:
         condition: service_healthy
     restart: "no"
 volumes:
-  inkeep-agents-db-data:
+  inkeep-agents-doltgres-data:
+  inkeep-agents-postgres-data:

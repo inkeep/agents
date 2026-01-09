@@ -6,12 +6,12 @@ import {
   deleteLedgerArtifactsByTask,
   getLedgerArtifacts,
   getLedgerArtifactsByContext,
-} from '../../data-access/ledgerArtifacts';
-import type { DatabaseClient } from '../../db/client';
-import { testDbClient } from '../setup';
+} from '../../data-access/runtime/ledgerArtifacts';
+import type { AgentsRunDatabaseClient } from '../../db/runtime/runtime-client';
+import { testRunDbClient } from '../setup';
 
 describe('Ledger Artifacts Data Access', () => {
-  let db: DatabaseClient;
+  let db: AgentsRunDatabaseClient;
   const testTenantId = 'tenant-123';
   const testProjectId = 'project-456';
   const testContextId = 'context-789';
@@ -19,7 +19,7 @@ describe('Ledger Artifacts Data Access', () => {
   const testArtifactId = 'artifact-xyz';
 
   beforeEach(async () => {
-    db = testDbClient;
+    db = testRunDbClient;
     vi.clearAllMocks();
   });
 

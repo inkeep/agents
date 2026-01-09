@@ -1,8 +1,9 @@
 import { otel } from '@hono/otel';
 import { createRoute, OpenAPIHono } from '@hono/zod-openapi';
 import {
+  type BaseExecutionContext,
   type CredentialStoreRegistry,
-  type ExecutionContext,
+  type FullProjectDefinition,
   handleApiError,
   type ServerConfig,
 } from '@inkeep/agents-core';
@@ -15,6 +16,7 @@ import type { StatusCode } from 'hono/utils/http-status';
 import { flushBatchProcessor } from './instrumentation';
 import { getLogger } from './logger';
 import { apiKeyAuth } from './middleware/api-key-auth';
+import { projectConfigMiddleware } from './middleware/projectConfig';
 import { setupOpenAPIRoutes } from './openapi';
 import agentRoutes from './routes/agents';
 import chatRoutes from './routes/chat';
@@ -25,11 +27,12 @@ import type { SandboxConfig } from './types/execution-context';
 const logger = getLogger('agents-run-api');
 
 type AppVariables = {
-  executionContext: ExecutionContext;
+  executionContext: BaseExecutionContext;
   serverConfig: ServerConfig;
   credentialStores: CredentialStoreRegistry;
   sandboxConfig?: SandboxConfig;
   requestBody?: any;
+  projectConfig?: FullProjectDefinition;
 };
 
 function createExecutionHono(
@@ -189,6 +192,12 @@ function createExecutionHono(
   app.use('/agents/*', apiKeyAuth());
   app.use('/v1/*', apiKeyAuth());
   app.use('/api/*', apiKeyAuth());
+
+  // Fetch project config from Management API for authenticated routes
+  app.use('/tenants/*', projectConfigMiddleware);
+  app.use('/agents/*', projectConfigMiddleware);
+  app.use('/v1/*', projectConfigMiddleware);
+  app.use('/api/*', projectConfigMiddleware);
 
   // Baggage middleware for execution API - extracts context from API key authentication
   app.use('*', async (c, next) => {

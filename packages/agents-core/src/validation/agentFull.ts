@@ -127,10 +127,8 @@ export function validateAgentRelationships(agentData: FullAgentDefinition): void
 
     if (subAgent.canDelegateTo && Array.isArray(subAgent.canDelegateTo)) {
       for (const targetItem of subAgent.canDelegateTo) {
-        console.log('targetItem', targetItem);
         // canDelegateTo can be a string (internal subAgent ID) or object (external agent reference)
         if (typeof targetItem === 'string') {
-          console.log('targetItem is string', targetItem);
           // Validate internal subAgent delegation
           if (!availableAgentIds.has(targetItem) && !availableExternalAgentIds.has(targetItem)) {
             errors.push(

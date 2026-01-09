@@ -1,3 +1,4 @@
+import type { AxiosResponse } from 'axios';
 import axios from 'axios';
 import axiosRetry from 'axios-retry';
 import { getManageApiUrl } from './api-config';
@@ -12,6 +13,21 @@ axiosRetry(axios, {
 const ATTRIBUTE_KEYS = {
   CONVERSATION_ID: 'conversation.id',
 } as const;
+
+/**
+ * Check if we should call SigNoz directly (server-to-server call without cookies)
+ */
+function shouldCallSigNozDirectly(cookieHeader: string | null): boolean {
+  return !cookieHeader && !!process.env.SIGNOZ_URL && !!process.env.SIGNOZ_API_KEY;
+}
+
+/**
+ * Get the SigNoz endpoint URL
+ */
+function getSigNozEndpoint(): string {
+  const signozUrl = process.env.SIGNOZ_URL;
+  return `${signozUrl}/api/v4/query_range`;
+}
 
 /**
  * Using for all span attributes (not possible via Trace API)
@@ -94,25 +110,37 @@ export async function fetchAllSpanAttributes_SQL(
     const payload = JSON.parse(JSON.stringify(basePayload));
     payload.variables.offset = offset;
 
-    // Call secure manage-api instead of SigNoz directly
-    const manageApiUrl = getManageApiUrl();
-    const endpoint = `${manageApiUrl}/tenants/${tenantId}/signoz/query`;
-
     try {
-      const headers: Record<string, string> = {
-        'Content-Type': 'application/json',
-      };
+      let response: AxiosResponse;
 
-      // Forward cookies for authentication
-      if (cookieHeader) {
-        headers.Cookie = cookieHeader;
+      // For server-to-server calls (no cookies), call SigNoz directly
+      if (shouldCallSigNozDirectly(cookieHeader)) {
+        const endpoint = getSigNozEndpoint();
+        response = await axios.post(endpoint, payload, {
+          headers: {
+            'Content-Type': 'application/json',
+            'SIGNOZ-API-KEY': process.env.SIGNOZ_API_KEY || '',
+          },
+          timeout: 30000,
+        });
+      } else {
+        // For browser calls, go through manage-api for auth
+        const manageApiUrl = getManageApiUrl();
+        const endpoint = `${manageApiUrl}/tenants/${tenantId}/signoz/query`;
+        const headers: Record<string, string> = {
+          'Content-Type': 'application/json',
+        };
+
+        if (cookieHeader) {
+          headers.Cookie = cookieHeader;
+        }
+
+        response = await axios.post(endpoint, payload, {
+          headers,
+          timeout: 30000,
+          withCredentials: true,
+        });
       }
-
-      const response = await axios.post(endpoint, payload, {
-        headers,
-        timeout: 30000,
-        withCredentials: true,
-      });
 
       const json = response.data;
 

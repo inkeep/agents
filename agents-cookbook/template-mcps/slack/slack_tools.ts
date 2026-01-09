@@ -215,7 +215,7 @@ function buildSearchQuery(
  * Resolve a channel name to its ID, paginating through all results.
  */
 async function resolveChannelName(client: WebClient, channelName: string): Promise<string | null> {
-  let cursor: string | undefined = undefined;
+  let cursor: string | undefined;
 
   while (true) {
     const response = await client.conversations.list({

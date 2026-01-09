@@ -7,6 +7,8 @@ import {
   createMessage,
   generateId,
   getConversationHistory,
+  getLedgerArtifacts,
+  type ResolvedRef,
 } from '@inkeep/agents-core';
 import {
   CONVERSATION_ARTIFACTS_LIMIT,
@@ -41,12 +43,23 @@ export function createDefaultConversationHistoryConfig(
 
 /**
  * Extracts text content from A2A Message parts array
+ * Escapes control characters to ensure proper JSON serialization for Dolt
  */
 function extractA2AMessageText(parts: Array<{ kind: string; text?: string }>): string {
-  return parts
+  const text = parts
     .filter((part) => part.kind === 'text' && part.text)
     .map((part) => part.text)
     .join('');
+
+  // Escape control characters that Dolt's JSON parser rejects
+  // This ensures the text will serialize properly without changing its meaning
+  // We replace literal control characters with their escaped equivalents
+  return text
+    .replace(/\n/g, '\\n') // Escape newlines
+    .replace(/\r/g, '\\r') // Escape carriage returns
+    .replace(/\t/g, '\\t') // Escape tabs
+    .replace(/\f/g, '\\f') // Escape form feeds
+    .replace(/\b/g, '\\b'); // Escape backspaces
 }
 
 /**
@@ -271,11 +284,7 @@ export async function getUserFacingHistory(
   return await getConversationHistory(dbClient)({
     scopes: { tenantId, projectId },
     conversationId,
-    options: {
-      limit,
-      includeInternal: false,
-      messageTypes: ['chat'],
-    },
+    options: { limit, includeInternal: false, messageTypes: ['chat'] },
   });
 }
 
@@ -915,8 +924,9 @@ export async function getConversationScopedArtifacts(params: {
   projectId: string;
   conversationId: string;
   historyConfig: AgentConversationHistoryConfig;
+  ref: ResolvedRef;
 }): Promise<Artifact[]> {
-  const { tenantId, projectId, conversationId, historyConfig } = params;
+  const { tenantId, projectId, conversationId, historyConfig, ref } = params;
 
   if (!conversationId) {
     return [];
@@ -951,9 +961,6 @@ export async function getConversationScopedArtifacts(params: {
     if (visibleMessageIds.length === 0) {
       return [];
     }
-
-    const { getLedgerArtifacts } = await import('@inkeep/agents-core');
-    const dbClient = (await import('../data/db/dbClient')).default;
 
     const visibleTaskIds = visibleMessages
       .map((msg) => msg.taskId)

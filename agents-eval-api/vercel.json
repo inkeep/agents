@@ -1,0 +1,26 @@
+{
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "framework": "hono",
+  "build": {
+    "env": {
+      "VERCEL_CLI_VERSION": "https://vercel-9t9860svl.vercel.sh/tarballs/vercel.tgz"
+    }
+  },
+  "functions": {
+    "index.js": {
+      "maxDuration": 300,
+      "experimentalTriggers": [
+        {
+          "type": "queue/v1beta",
+          "topic": "__wkf_workflow_*",
+          "consumer": "default"
+        },
+        {
+          "type": "queue/v1beta",
+          "topic": "__wkf_step_*",
+          "consumer": "default"
+        }
+      ]
+    }
+  }
+}

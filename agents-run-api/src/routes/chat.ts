@@ -1,22 +1,18 @@
 import { createRoute, OpenAPIHono, z } from '@hono/zod-openapi';
 import {
   type CredentialStoreRegistry,
-  contextValidationMiddleware,
   createApiError,
   createMessage,
   createOrGetConversation,
+  type FullExecutionContext,
   generateId,
   getActiveAgentForConversation,
-  getAgentWithDefaultSubAgent,
   getConversationId,
-  getFullAgent,
-  getRequestExecutionContext,
-  getSubAgentById,
-  handleContextResolution,
   setActiveAgentForConversation,
 } from '@inkeep/agents-core';
 import { context as otelContext, propagation, trace } from '@opentelemetry/api';
 import { streamSSE } from 'hono/streaming';
+import { contextValidationMiddleware, handleContextResolution } from '../context';
 import dbClient from '../data/db/dbClient';
 import { ExecutionHandler } from '../handlers/executionHandler';
 import { getLogger } from '../logger';
@@ -26,6 +22,7 @@ import { createSSEStreamHelper } from '../utils/stream-helpers';
 
 type AppVariables = {
   credentialStores: CredentialStoreRegistry;
+  executionContext: FullExecutionContext;
   requestBody?: any;
 };
 
@@ -147,7 +144,7 @@ const chatCompletionsRoute = createRoute({
   },
 });
 
-app.use('/completions', contextValidationMiddleware(dbClient));
+app.use('/completions', contextValidationMiddleware);
 
 app.openapi(chatCompletionsRoute, async (c) => {
   getLogger('chat').info(
@@ -174,8 +171,8 @@ app.openapi(chatCompletionsRoute, async (c) => {
     'OpenTelemetry headers: chat'
   );
   try {
-    const executionContext = getRequestExecutionContext(c);
-    const { tenantId, projectId, agentId } = executionContext;
+    const executionContext = c.get('executionContext');
+    const { tenantId, projectId, agentId, ref } = executionContext;
 
     getLogger('chat').debug(
       {
@@ -213,36 +210,20 @@ app.openapi(chatCompletionsRoute, async (c) => {
     currentBag = currentBag.setEntry('conversation.id', { value: conversationId });
     const ctxWithBaggage = propagation.setBaggage(otelContext.active(), currentBag);
     return await otelContext.with(ctxWithBaggage, async () => {
-      const fullAgent = await getFullAgent(dbClient)({
-        scopes: { tenantId, projectId, agentId },
-      });
+      const fullAgent = executionContext.project.agents[agentId];
+      if (!fullAgent) {
+        throw createApiError({
+          code: 'not_found',
+          message: 'Agent not found',
+        });
+      }
 
-      let agent: any;
+      const agent = fullAgent;
       let defaultSubAgentId: string;
 
-      if (fullAgent) {
-        agent = {
-          id: fullAgent.id,
-          name: fullAgent.name,
-          tenantId,
-          projectId,
-          defaultSubAgentId: fullAgent.defaultSubAgentId,
-        };
-        const agentKeys = Object.keys((fullAgent.subAgents as Record<string, any>) || {});
-        const firstAgentId = agentKeys.length > 0 ? agentKeys[0] : '';
-        defaultSubAgentId = (fullAgent.defaultSubAgentId as string) || firstAgentId; // Use first agent if no defaultSubAgentId
-      } else {
-        agent = await getAgentWithDefaultSubAgent(dbClient)({
-          scopes: { tenantId, projectId, agentId },
-        });
-        if (!agent) {
-          throw createApiError({
-            code: 'not_found',
-            message: 'Agent not found',
-          });
-        }
-        defaultSubAgentId = agent.defaultSubAgentId || '';
-      }
+      const agentKeys = Object.keys((fullAgent.subAgents as Record<string, any>) || {});
+      const firstAgentId = agentKeys.length > 0 ? agentKeys[0] : '';
+      defaultSubAgentId = (fullAgent.defaultSubAgentId as string) || firstAgentId; // Use first agent if no defaultSubAgentId
 
       if (!defaultSubAgentId) {
         throw createApiError({
@@ -255,7 +236,9 @@ app.openapi(chatCompletionsRoute, async (c) => {
         tenantId,
         projectId,
         id: conversationId,
+        agentId: agentId,
         activeSubAgentId: defaultSubAgentId,
+        ref: executionContext.resolvedRef,
       });
 
       const activeAgent = await getActiveAgentForConversation(dbClient)({
@@ -263,18 +246,17 @@ app.openapi(chatCompletionsRoute, async (c) => {
         conversationId,
       });
       if (!activeAgent) {
-        setActiveAgentForConversation(dbClient)({
+        await setActiveAgentForConversation(dbClient)({
           scopes: { tenantId, projectId },
           conversationId,
+          agentId: agentId,
           subAgentId: defaultSubAgentId,
+          ref: executionContext.resolvedRef,
         });
       }
       const subAgentId = activeAgent?.activeSubAgentId || defaultSubAgentId;
 
-      const agentInfo = await getSubAgentById(dbClient)({
-        scopes: { tenantId, projectId, agentId },
-        subAgentId: subAgentId,
-      });
+      const agentInfo = executionContext.project.agents[agentId]?.subAgents[subAgentId];
 
       if (!agentInfo) {
         throw createApiError({
@@ -288,12 +270,9 @@ app.openapi(chatCompletionsRoute, async (c) => {
       const credentialStores = c.get('credentialStores');
 
       await handleContextResolution({
-        tenantId,
-        projectId,
-        agentId,
+        executionContext,
         conversationId,
         headers: validatedContext,
-        dbClient,
         credentialStores,
       });
 
@@ -333,7 +312,6 @@ app.openapi(chatCompletionsRoute, async (c) => {
           messageSpan.setAttribute('user.id', executionContext.metadata.initiatedBy.id);
         }
       }
-
       await createMessage(dbClient)({
         id: generateId(),
         tenantId,
@@ -346,6 +324,7 @@ app.openapi(chatCompletionsRoute, async (c) => {
         visibility: 'user-facing',
         messageType: 'chat',
       });
+
       if (messageSpan) {
         messageSpan.addEvent('user.message.stored', {
           'message.id': conversationId,

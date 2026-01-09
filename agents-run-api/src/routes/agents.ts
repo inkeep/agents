@@ -2,18 +2,17 @@ import { createRoute, OpenAPIHono, z } from '@hono/zod-openapi';
 import {
   type CredentialStoreRegistry,
   createApiError,
-  getAgentWithDefaultSubAgent,
-  getRequestExecutionContext,
   HeadersScopeSchema,
+  type ResolvedRef,
 } from '@inkeep/agents-core';
 import type { Context } from 'hono';
 import { a2aHandler } from '../a2a/handlers';
 import { getRegisteredAgent } from '../data/agents';
-import dbClient from '../data/db/dbClient';
 import { getLogger } from '../logger';
 
 type AppVariables = {
   credentialStores: CredentialStoreRegistry;
+  ref: ResolvedRef;
 };
 
 const app = new OpenAPIHono<{ Variables: AppVariables }>();
@@ -68,10 +67,9 @@ app.openapi(
     );
 
     // Get execution context from API key authentication
-    const executionContext = getRequestExecutionContext(c);
+    const executionContext = c.get('executionContext');
     const { tenantId, projectId, agentId, subAgentId } = executionContext;
 
-    logger.info({ executionContext }, 'executionContext');
     logger.info(
       {
         message: 'getRegisteredAgent (agent-level)',
@@ -120,8 +118,8 @@ app.post('/a2a', async (c: Context) => {
   );
 
   // Get execution context from API key authentication
-  const executionContext = getRequestExecutionContext(c);
-  const { tenantId, projectId, agentId, subAgentId } = executionContext;
+  const executionContext = c.get('executionContext');
+  const { tenantId, projectId, agentId, subAgentId, project } = executionContext;
 
   // If subAgentId is defined in execution context, run agent-level logic
   if (subAgentId) {
@@ -170,9 +168,7 @@ app.post('/a2a', async (c: Context) => {
   );
 
   // fetch the agent and the default agent
-  const agent = await getAgentWithDefaultSubAgent(dbClient)({
-    scopes: { tenantId, projectId, agentId },
-  });
+  const agent = project.agents[agentId];
 
   if (!agent) {
     return c.json(

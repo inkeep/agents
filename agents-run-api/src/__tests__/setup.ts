@@ -77,8 +77,8 @@ beforeAll(async () => {
 
     // Use path relative to project root to work with both direct and turbo execution
     const migrationsPath = process.cwd().includes('agents-run-api')
-      ? '../packages/agents-core/drizzle'
-      : './packages/agents-core/drizzle';
+      ? '../packages/agents-core/drizzle/runtime'
+      : './packages/agents-core/drizzle/runtime';
 
     await migrate(dbClient, { migrationsFolder: migrationsPath });
     logger.debug({}, 'Database migrations applied successfully');

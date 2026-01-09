@@ -9,21 +9,23 @@ import {
   listConversations,
   setActiveAgentForConversation,
   updateConversation,
-  updateConversationActiveAgent,
-} from '../../data-access/conversations';
-import type { DatabaseClient } from '../../db/client';
+  updateConversationActiveSubAgent,
+} from '../../data-access/runtime/conversations';
+import type { AgentsRunDatabaseClient } from '../../db/runtime/runtime-client';
 import type { ConversationUpdate } from '../../types/index';
-import { testDbClient } from '../setup';
+import type { ResolvedRef } from '../../validation/dolt-schemas';
+import { testRunDbClient } from '../setup';
 
 describe('Conversations Data Access', () => {
-  let db: DatabaseClient;
+  let db: AgentsRunDatabaseClient;
   const testTenantId = 'test-tenant';
   const testProjectId = 'test-project';
   const testUserId = 'test-user';
   const testConversationId = 'test-conversation';
+  const testRef: ResolvedRef = { type: 'branch', name: 'main', hash: 'abc123' };
 
   beforeEach(async () => {
-    db = testDbClient;
+    db = testRunDbClient;
     vi.clearAllMocks();
   });
 
@@ -36,6 +38,7 @@ describe('Conversations Data Access', () => {
         projectId: testProjectId,
         userId: testUserId,
         activeSubAgentId: 'agent-1',
+        ref: testRef,
         title: 'Test Conversation',
       };
 
@@ -89,6 +92,7 @@ describe('Conversations Data Access', () => {
         projectId: testProjectId,
         userId: testUserId,
         activeSubAgentId: 'agent-1',
+        ref: testRef,
       };
 
       const mockQuery = {
@@ -202,6 +206,7 @@ describe('Conversations Data Access', () => {
         projectId: testProjectId,
         userId: testUserId,
         activeSubAgentId: 'agent-1',
+        ref: testRef,
         title: 'New Conversation',
         metadata: { userContext: { test: 'data' } },
       };
@@ -240,6 +245,7 @@ describe('Conversations Data Access', () => {
         id: 'conv-1',
         tenantId: testTenantId,
         projectId: testProjectId,
+        ref: testRef,
       };
 
       const mockInsert = vi.fn().mockReturnValue({
@@ -250,6 +256,7 @@ describe('Conversations Data Access', () => {
               tenantId: testTenantId,
               projectId: testProjectId,
               activeSubAgentId: 'agent-1',
+              ref: testRef,
               createdAt: expect.any(String),
               updatedAt: expect.any(String),
             },
@@ -384,7 +391,7 @@ describe('Conversations Data Access', () => {
         update: mockUpdate,
       } as any;
 
-      const result = await updateConversationActiveAgent(mockDb)({
+      const result = await updateConversationActiveSubAgent(mockDb)({
         scopes: { tenantId: testTenantId, projectId: testProjectId },
         conversationId,
         activeSubAgentId: newActiveAgentId,
@@ -403,6 +410,7 @@ describe('Conversations Data Access', () => {
         id: 'test-conversation',
         userId: testUserId,
         activeSubAgentId: 'agent-1',
+        ref: testRef,
         title: 'New Conversation',
         metadata: { userContext: { test: 'data' } },
       };
@@ -435,6 +443,7 @@ describe('Conversations Data Access', () => {
         tenantId: testTenantId,
         projectId: testProjectId,
         activeSubAgentId: 'agent-1',
+        ref: testRef,
         title: 'Existing Conversation',
       };
 
@@ -443,6 +452,7 @@ describe('Conversations Data Access', () => {
         tenantId: testTenantId,
         projectId: testProjectId,
         activeSubAgentId: 'agent-1',
+        ref: testRef,
         conversationId: 'conv-1',
       };
 
@@ -468,6 +478,7 @@ describe('Conversations Data Access', () => {
         tenantId: testTenantId,
         projectId: testProjectId,
         activeSubAgentId: 'agent-1',
+        ref: testRef,
         title: 'Existing Conversation',
       };
 
@@ -476,6 +487,7 @@ describe('Conversations Data Access', () => {
         tenantId: testTenantId,
         projectId: testProjectId,
         activeSubAgentId: 'agent-2', // Different agent
+        ref: testRef,
         conversationId: 'conv-1',
       };
 
@@ -512,6 +524,7 @@ describe('Conversations Data Access', () => {
         tenantId: testTenantId,
         projectId: testProjectId,
         activeSubAgentId: 'agent-123',
+        ref: testRef,
         userId: 'user-123',
         title: 'Test Conversation',
         createdAt: '2024-01-01T00:00:00Z',
@@ -576,6 +589,8 @@ describe('Conversations Data Access', () => {
         scopes: { tenantId: testTenantId, projectId: testProjectId },
         conversationId: testConversationId,
         subAgentId: 'agent-456',
+        agentId: 'agent-123',
+        ref: testRef,
       });
 
       expect(mockInsert).toHaveBeenCalled();
@@ -585,6 +600,8 @@ describe('Conversations Data Access', () => {
         tenantId: testTenantId,
         projectId: testProjectId,
         activeSubAgentId: 'agent-456',
+        agentId: 'agent-123',
+        ref: expect.any(Object),
         createdAt: expect.any(String),
         updatedAt: expect.any(String),
       });
@@ -850,6 +867,7 @@ describe('Conversations Data Access', () => {
           projectId: testProjectId,
           id: 'conv-123',
           activeSubAgentId: 'agent-1',
+          ref: testRef,
         })
       ).rejects.toThrow('DB Error');
     });

@@ -1,7 +1,7 @@
 import { generateId } from '@inkeep/agents-core';
-import { createTestProject } from '@inkeep/agents-core/db/test-client';
+import { createTestProject } from '@inkeep/agents-core/db/test-manage-client';
 import { describe, expect, it } from 'vitest';
-import dbClient from '../../../data/db/dbClient';
+import manageDbClient from '../../../data/db/dbClient';
 import { makeRequest } from '../../utils/testRequest';
 import { createTestTenantWithOrg } from '../../utils/testTenant';
 
@@ -41,7 +41,7 @@ describe('Artifact Component CRUD Routes - Integration Tests', () => {
     suffix?: string;
   }) => {
     // Ensure the project exists for this tenant before creating the artifact component
-    await createTestProject(dbClient, tenantId, projectId);
+    await createTestProject(manageDbClient, tenantId, projectId);
 
     const artifactComponentData = createArtifactComponentData({ suffix });
     const createRes = await makeRequest(
@@ -76,7 +76,7 @@ describe('Artifact Component CRUD Routes - Integration Tests', () => {
   describe('GET /', () => {
     it('should list artifact components with pagination (empty initially)', async () => {
       const tenantId = await createTestTenantWithOrg('artifact-components-list-empty');
-      await createTestProject(dbClient, tenantId, projectId);
+      await createTestProject(manageDbClient, tenantId, projectId);
       const res = await makeRequest(
         `/tenants/${tenantId}/projects/${projectId}/artifact-components?page=1&limit=10`
       );
@@ -96,7 +96,7 @@ describe('Artifact Component CRUD Routes - Integration Tests', () => {
 
     it('should list artifact components with pagination (single item)', async () => {
       const tenantId = await createTestTenantWithOrg('artifact-components-list-single');
-      await createTestProject(dbClient, tenantId, projectId);
+      await createTestProject(manageDbClient, tenantId, projectId);
       const { artifactComponentData } = await createTestArtifactComponent({ tenantId });
 
       const res = await makeRequest(
@@ -122,7 +122,7 @@ describe('Artifact Component CRUD Routes - Integration Tests', () => {
 
     it('should handle pagination with multiple pages (small page size)', async () => {
       const tenantId = await createTestTenantWithOrg('artifact-components-list-multipages');
-      await createTestProject(dbClient, tenantId, projectId);
+      await createTestProject(manageDbClient, tenantId, projectId);
       const TOTAL_ITEMS = 5;
       const PAGE_SIZE = 2;
 
@@ -159,7 +159,7 @@ describe('Artifact Component CRUD Routes - Integration Tests', () => {
 
     it('should use default pagination values when not provided', async () => {
       const tenantId = await createTestTenantWithOrg('artifact-components-list-defaults');
-      await createTestProject(dbClient, tenantId, projectId);
+      await createTestProject(manageDbClient, tenantId, projectId);
       const res = await makeRequest(
         `/tenants/${tenantId}/projects/${projectId}/artifact-components`
       );
@@ -174,7 +174,7 @@ describe('Artifact Component CRUD Routes - Integration Tests', () => {
 
     it('should validate maximum page size to 100', async () => {
       const tenantId = await createTestTenantWithOrg('artifact-components-list-max-limit');
-      await createTestProject(dbClient, tenantId, projectId);
+      await createTestProject(manageDbClient, tenantId, projectId);
       const res = await makeRequest(
         `/tenants/${tenantId}/projects/${projectId}/artifact-components?limit=1000`
       );
@@ -185,7 +185,7 @@ describe('Artifact Component CRUD Routes - Integration Tests', () => {
   describe('GET /{id}', () => {
     it('should retrieve a specific artifact component', async () => {
       const tenantId = await createTestTenantWithOrg('artifact-components-get-success');
-      await createTestProject(dbClient, tenantId, projectId);
+      await createTestProject(manageDbClient, tenantId, projectId);
       const { artifactComponentData, artifactComponentId } = await createTestArtifactComponent({
         tenantId,
       });
@@ -207,7 +207,7 @@ describe('Artifact Component CRUD Routes - Integration Tests', () => {
 
     it('should return 404 for non-existent artifact component', async () => {
       const tenantId = await createTestTenantWithOrg('artifact-components-get-not-found');
-      await createTestProject(dbClient, tenantId, projectId);
+      await createTestProject(manageDbClient, tenantId, projectId);
       const nonExistentId = generateId();
 
       const res = await makeRequest(
@@ -233,7 +233,7 @@ describe('Artifact Component CRUD Routes - Integration Tests', () => {
   describe('POST /', () => {
     it('should create a new artifact component with all fields', async () => {
       const tenantId = await createTestTenantWithOrg('artifact-components-create-success');
-      await createTestProject(dbClient, tenantId, projectId);
+      await createTestProject(manageDbClient, tenantId, projectId);
       const artifactComponentData = createArtifactComponentData();
 
       const res = await makeRequest(
@@ -258,7 +258,7 @@ describe('Artifact Component CRUD Routes - Integration Tests', () => {
 
     it('should create artifact component with custom ID when provided', async () => {
       const tenantId = await createTestTenantWithOrg('artifact-components-create-custom-id');
-      await createTestProject(dbClient, tenantId, projectId);
+      await createTestProject(manageDbClient, tenantId, projectId);
       const customId = 'custom-artifact-component-id';
       const artifactComponentData = {
         ...createArtifactComponentData(),
@@ -281,7 +281,7 @@ describe('Artifact Component CRUD Routes - Integration Tests', () => {
 
     it('should create artifact component with only required fields', async () => {
       const tenantId = await createTestTenantWithOrg('artifact-components-create-minimal');
-      await createTestProject(dbClient, tenantId, projectId);
+      await createTestProject(manageDbClient, tenantId, projectId);
       const minimalData = {
         id: `minimal-artifact-component-${generateId(6)}`,
         name: 'MinimalArtifactComponent',
@@ -309,7 +309,7 @@ describe('Artifact Component CRUD Routes - Integration Tests', () => {
 
     it('should validate required fields', async () => {
       const tenantId = await createTestTenantWithOrg('artifact-components-create-validation');
-      await createTestProject(dbClient, tenantId, projectId);
+      await createTestProject(manageDbClient, tenantId, projectId);
 
       // Missing name
       const missingNameRes = await makeRequest(
@@ -344,7 +344,7 @@ describe('Artifact Component CRUD Routes - Integration Tests', () => {
 
     it('should handle duplicate IDs gracefully', async () => {
       const tenantId = await createTestTenantWithOrg('artifact-components-create-duplicate');
-      await createTestProject(dbClient, tenantId, projectId);
+      await createTestProject(manageDbClient, tenantId, projectId);
       const duplicateId = 'duplicate-artifact-component-id';
       const artifactComponentData = {
         ...createArtifactComponentData(),
@@ -377,7 +377,7 @@ describe('Artifact Component CRUD Routes - Integration Tests', () => {
   describe('PUT /{id}', () => {
     it('should update an existing artifact component', async () => {
       const tenantId = await createTestTenantWithOrg('artifact-components-update-success');
-      await createTestProject(dbClient, tenantId, projectId);
+      await createTestProject(manageDbClient, tenantId, projectId);
       const { artifactComponentId } = await createTestArtifactComponent({ tenantId });
 
       const updateData = {
@@ -414,7 +414,7 @@ describe('Artifact Component CRUD Routes - Integration Tests', () => {
 
     it('should allow partial updates', async () => {
       const tenantId = await createTestTenantWithOrg('artifact-components-update-partial');
-      await createTestProject(dbClient, tenantId, projectId);
+      await createTestProject(manageDbClient, tenantId, projectId);
       const { artifactComponentData, artifactComponentId } = await createTestArtifactComponent({
         tenantId,
       });
@@ -445,7 +445,7 @@ describe('Artifact Component CRUD Routes - Integration Tests', () => {
 
     it('should return 404 for non-existent artifact component', async () => {
       const tenantId = await createTestTenantWithOrg('artifact-components-update-not-found');
-      await createTestProject(dbClient, tenantId, projectId);
+      await createTestProject(manageDbClient, tenantId, projectId);
       const nonExistentId = generateId();
 
       const res = await makeRequest(
@@ -479,7 +479,7 @@ describe('Artifact Component CRUD Routes - Integration Tests', () => {
 
     it('should handle empty update data', async () => {
       const tenantId = await createTestTenantWithOrg('artifact-components-update-empty');
-      await createTestProject(dbClient, tenantId, projectId);
+      await createTestProject(manageDbClient, tenantId, projectId);
       const { artifactComponentData, artifactComponentId } = await createTestArtifactComponent({
         tenantId,
       });
@@ -508,7 +508,7 @@ describe('Artifact Component CRUD Routes - Integration Tests', () => {
   describe('DELETE /{id}', () => {
     it('should delete an existing artifact component', async () => {
       const tenantId = await createTestTenantWithOrg('artifact-components-delete-success');
-      await createTestProject(dbClient, tenantId, projectId);
+      await createTestProject(manageDbClient, tenantId, projectId);
       const { artifactComponentId } = await createTestArtifactComponent({ tenantId });
 
       const deleteRes = await makeRequest(
@@ -528,7 +528,7 @@ describe('Artifact Component CRUD Routes - Integration Tests', () => {
 
     it('should return 404 for non-existent artifact component', async () => {
       const tenantId = await createTestTenantWithOrg('artifact-components-delete-not-found');
-      await createTestProject(dbClient, tenantId, projectId);
+      await createTestProject(manageDbClient, tenantId, projectId);
       const nonExistentId = generateId();
 
       const res = await makeRequest(
@@ -566,7 +566,7 @@ describe('Artifact Component CRUD Routes - Integration Tests', () => {
   describe('End-to-End Workflow', () => {
     it('should complete full artifact component lifecycle', async () => {
       const tenantId = await createTestTenantWithOrg('artifact-components-e2e');
-      await createTestProject(dbClient, tenantId, projectId);
+      await createTestProject(manageDbClient, tenantId, projectId);
 
       // 1. Create artifact component
       const { artifactComponentId } = await createTestArtifactComponent({ tenantId });
@@ -616,7 +616,7 @@ describe('Artifact Component CRUD Routes - Integration Tests', () => {
   describe('Schema Validation', () => {
     it('should accept valid JSON schema in props', async () => {
       const tenantId = await createTestTenantWithOrg('artifact-components-schema-valid');
-      await createTestProject(dbClient, tenantId, projectId);
+      await createTestProject(manageDbClient, tenantId, projectId);
       const validSchemaData = {
         id: `schema-test-component-${generateId(6)}`,
         name: 'SchemaTestComponent',
@@ -647,7 +647,7 @@ describe('Artifact Component CRUD Routes - Integration Tests', () => {
 
     it('should accept complex nested schemas in props', async () => {
       const tenantId = await createTestTenantWithOrg('artifact-components-schema-complex');
-      await createTestProject(dbClient, tenantId, projectId);
+      await createTestProject(manageDbClient, tenantId, projectId);
       const complexSchemaData = {
         id: `complex-schema-component-${generateId(6)}`,
         name: 'ComplexSchemaComponent',

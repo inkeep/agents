@@ -41,7 +41,8 @@ pnpm db:migrate
 ```env
 ENVIRONMENT=development|production|test
 PORT=3002
-DATABASE_URL=pg_db_url
+INKEEP_AGENTS_RUN_DATABASE_URL=pg_db_url
+INKEEP_AGENTS_MANAGE_DATABASE_URL=dolt_db_url
 LOG_LEVEL=debug|info|warn|error
 ```
 

@@ -10,20 +10,20 @@ import {
   listCredentialReferences,
   listCredentialReferencesPaginated,
   updateCredentialReference,
-} from '../../data-access/credentialReferences';
-import type { DatabaseClient } from '../../db/client';
+} from '../../data-access/manage/credentialReferences';
+import type { AgentsManageDatabaseClient } from '../../db/manage/manage-client';
 import { CredentialStoreType } from '../../types';
 import type { CredentialReferenceInsert, CredentialReferenceUpdate } from '../../types/entities';
-import { testDbClient } from '../setup';
+import { testManageDbClient } from '../setup';
 
 describe('Credential References Data Access', () => {
-  let db: DatabaseClient;
+  let db: AgentsManageDatabaseClient;
   const testTenantId = 'test-tenant';
   const testProjectId = 'test-project';
   const testCredentialId = 'test-credential';
 
   beforeEach(async () => {
-    db = testDbClient;
+    db = testManageDbClient;
     vi.clearAllMocks();
   });
 

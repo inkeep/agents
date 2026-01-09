@@ -2,6 +2,7 @@ import { z } from '@hono/zod-openapi';
 import type {
   DelegationReturnedData,
   DelegationSentData,
+  FullExecutionContext,
   ModelSettings,
   StatusComponent,
   StatusUpdateSettings,
@@ -12,7 +13,6 @@ import {
   CONVERSATION_HISTORY_DEFAULT_LIMIT,
   CONVERSATION_HISTORY_MAX_OUTPUT_TOKENS_DEFAULT,
   getLedgerArtifacts,
-  getSubAgentById,
   ModelFactory,
 } from '@inkeep/agents-core';
 import { SpanStatusCode } from '@opentelemetry/api';
@@ -225,33 +225,32 @@ export class AgentSession {
   constructor(
     public readonly sessionId: string,
     public readonly messageId: string,
-    public readonly agentId?: string,
-    public readonly tenantId?: string,
-    public readonly projectId?: string,
+    public readonly executionContext: FullExecutionContext,
     public readonly contextId?: string
   ) {
-    logger.debug({ sessionId, messageId, agentId }, 'AgentSession created');
+    logger.debug(
+      { sessionId, messageId, agentId: executionContext.agentId },
+      'AgentSession created'
+    );
 
-    if (tenantId && projectId) {
+    if (executionContext.tenantId && executionContext.projectId) {
       toolSessionManager.createSessionWithId(
         sessionId,
-        tenantId,
-        projectId,
+        executionContext.tenantId,
+        executionContext.projectId,
         contextId || 'default',
         `task_${contextId}-${messageId}` // Create a taskId based on context and message
       );
 
       this.artifactService = new ArtifactService({
-        tenantId,
-        projectId,
+        executionContext,
         sessionId,
         contextId,
         taskId: `task_${contextId}-${messageId}`,
         streamRequestId: sessionId,
       });
 
-      this.artifactParser = new ArtifactParser(tenantId, {
-        projectId,
+      this.artifactParser = new ArtifactParser(executionContext, {
         sessionId: sessionId,
         contextId,
         taskId: `task_${contextId}-${messageId}`,
@@ -259,6 +258,7 @@ export class AgentSession {
         artifactService: this.artifactService, // Pass the shared ArtifactService
       });
     }
+    this.executionContext = executionContext;
   }
 
   /**
@@ -593,7 +593,7 @@ export class AgentSession {
     return {
       sessionId: this.sessionId,
       messageId: this.messageId,
-      agentId: this.agentId,
+      agentId: this.executionContext.agentId,
       totalEvents: this.events.length,
       eventCounts,
       agentCounts,
@@ -715,7 +715,7 @@ export class AgentSession {
       return;
     }
 
-    if (!this.agentId) {
+    if (!this.executionContext.agentId) {
       logger.warn({ sessionId: this.sessionId }, 'No agent ID - cannot generate update');
       return;
     }
@@ -922,6 +922,7 @@ export class AgentSession {
     summarizerModel?: ModelSettings,
     previousSummaries: string[] = []
   ): Promise<{ summaries: Array<{ type: string; data: Record<string, any> }> }> {
+    const { tenantId, projectId } = this.executionContext;
     return tracer.startActiveSpan(
       'agent_session.generate_structured_update',
       {
@@ -939,11 +940,11 @@ export class AgentSession {
           const userVisibleActivities = this.extractUserVisibleActivities(newEvents);
 
           let conversationContext = '';
-          if (this.tenantId && this.projectId) {
+          if (tenantId && projectId) {
             try {
               const conversationHistory = await getFormattedConversationHistory({
-                tenantId: this.tenantId,
-                projectId: this.projectId,
+                tenantId,
+                projectId,
                 conversationId: this.contextId || 'default',
                 options: {
                   limit: CONVERSATION_HISTORY_DEFAULT_LIMIT,
@@ -1476,14 +1477,10 @@ Make the name extremely specific to what this tool call actually returned, not g
             if (!this.statusUpdateState?.baseModel?.model?.trim()) {
               if (artifactData.subAgentId && artifactData.tenantId && artifactData.projectId) {
                 try {
-                  const agentData = await getSubAgentById(dbClient)({
-                    scopes: {
-                      tenantId: artifactData.tenantId,
-                      projectId: artifactData.projectId,
-                      agentId: this.agentId || '',
-                    },
-                    subAgentId: artifactData.subAgentId,
-                  });
+                  const subAgentId = artifactData.subAgentId;
+                  const project = this.executionContext.project;
+                  const agentData =
+                    project.agents[this.executionContext.agentId].subAgents?.[subAgentId];
 
                   if (agentData && 'models' in agentData && agentData.models?.base?.model) {
                     modelToUse = agentData.models.base;
@@ -1706,8 +1703,7 @@ Make the name extremely specific to what this tool call actually returned, not g
             try {
               if (artifactData.tenantId && artifactData.projectId) {
                 const artifactService = new ArtifactService({
-                  tenantId: artifactData.tenantId,
-                  projectId: artifactData.projectId,
+                  executionContext: this.executionContext,
                   contextId: artifactData.contextId || 'unknown',
                   taskId: artifactData.taskId,
                   sessionId: this.sessionId,
@@ -1827,17 +1823,22 @@ export class AgentSessionManager {
    */
   createSession(
     messageId: string,
-    agentId?: string,
-    tenantId?: string,
-    projectId?: string,
+    executionContext: FullExecutionContext,
     contextId?: string
   ): string {
     const sessionId = messageId; // Use messageId directly as sessionId
-    const session = new AgentSession(sessionId, messageId, agentId, tenantId, projectId, contextId);
+    const session = new AgentSession(sessionId, messageId, executionContext, contextId);
     this.sessions.set(sessionId, session);
 
     logger.info(
-      { sessionId, messageId, agentId, tenantId, projectId, contextId },
+      {
+        sessionId,
+        messageId,
+        agentId: executionContext.agentId,
+        tenantId: executionContext.tenantId,
+        projectId: executionContext.projectId,
+        contextId,
+      },
       'AgentSession created'
     );
     return sessionId;

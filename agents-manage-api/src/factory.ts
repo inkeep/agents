@@ -3,7 +3,7 @@ import { CredentialStoreRegistry, createDefaultCredentialStores } from '@inkeep/
 import type { SSOProviderConfig, UserAuthConfig } from '@inkeep/agents-core/auth';
 import { createAuth } from '@inkeep/agents-core/auth';
 import { createManagementHono } from './create-app';
-import dbClient from './data/db/dbClient';
+import runDbClient from './data/db/runDbClient';
 import { env } from './env';
 import { initializeDefaultUser } from './initialization';
 
@@ -28,7 +28,7 @@ function createManagementAuth(userAuthConfig?: UserAuthConfig) {
   return createAuth({
     baseURL: env.INKEEP_AGENTS_MANAGE_API_URL || 'http://localhost:3002',
     secret: env.BETTER_AUTH_SECRET || 'development-secret-change-in-production',
-    dbClient,
+    dbClient: runDbClient,
     ...(userAuthConfig?.ssoProviders && { ssoProviders: userAuthConfig.ssoProviders }),
     ...(userAuthConfig?.socialProviders && { socialProviders: userAuthConfig.socialProviders }),
   });

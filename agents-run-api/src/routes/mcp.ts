@@ -3,24 +3,21 @@ import { McpServer } from '@alcyone-labs/modelcontextprotocol-sdk/server/mcp.js'
 import { StreamableHTTPServerTransport } from '@alcyone-labs/modelcontextprotocol-sdk/server/streamableHttp.js';
 import type { CallToolResult } from '@alcyone-labs/modelcontextprotocol-sdk/types.js';
 import { createRoute, OpenAPIHono, z } from '@hono/zod-openapi';
-import type { ExecutionContext } from '@inkeep/agents-core';
+import type { FullExecutionContext } from '@inkeep/agents-core';
 import {
   type CredentialStoreRegistry,
-  contextValidationMiddleware,
   createMessage,
   createOrGetConversation,
   generateId,
-  getAgentWithDefaultSubAgent,
   getConversation,
   getConversationId,
-  getRequestExecutionContext,
-  getSubAgentById,
   HeadersScopeSchema,
-  handleContextResolution,
+  type ResolvedRef,
   updateConversation,
 } from '@inkeep/agents-core';
 import { context as otelContext, propagation, trace } from '@opentelemetry/api';
 import { toFetchResponse, toReqRes } from 'fetch-to-node';
+import { contextValidationMiddleware, handleContextResolution } from '../context';
 import dbClient from '../data/db/dbClient';
 import { ExecutionHandler } from '../handlers/executionHandler';
 import { getLogger } from '../logger';
@@ -118,7 +115,8 @@ const validateSession = async (
   body: any,
   tenantId: string,
   projectId: string,
-  agentId: string
+  agentId: string,
+  ref: ResolvedRef
 ): Promise<any | null> => {
   const sessionId = req.headers['mcp-session-id'];
   logger.info({ sessionId }, 'Received MCP session ID');
@@ -208,7 +206,8 @@ const processUserMessage = async (
   tenantId: string,
   projectId: string,
   conversationId: string,
-  query: string
+  query: string,
+  ref: ResolvedRef
 ): Promise<void> => {
   const messageSpan = trace.getActiveSpan();
   if (messageSpan) {
@@ -217,7 +216,6 @@ const processUserMessage = async (
       'message.timestamp': Date.now(),
     });
   }
-
   await createMessage(dbClient)({
     id: generateId(),
     tenantId,
@@ -236,7 +234,7 @@ const processUserMessage = async (
  * Executes the agent query and returns the result
  */
 const executeAgentQuery = async (
-  executionContext: ExecutionContext,
+  executionContext: FullExecutionContext,
   conversationId: string,
   query: string,
   defaultSubAgentId: string
@@ -288,16 +286,14 @@ const executeAgentQuery = async (
  */
 const getServer = async (
   headers: Record<string, unknown>,
-  executionContext: ExecutionContext,
+  executionContext: FullExecutionContext,
   conversationId: string,
   credentialStores?: CredentialStoreRegistry
 ) => {
-  const { tenantId, projectId, agentId } = executionContext;
+  const { tenantId, projectId, agentId, resolvedRef } = executionContext;
   setupTracing(conversationId, tenantId, agentId);
 
-  const agent = await getAgentWithDefaultSubAgent(dbClient)({
-    scopes: { tenantId, projectId, agentId },
-  });
+  const agent = executionContext.project.agents[agentId];
 
   if (!agent) {
     throw new Error('Agent not found');
@@ -332,10 +328,8 @@ const getServer = async (
         }
         const defaultSubAgentId = agent.defaultSubAgentId;
 
-        const agentInfo = await getSubAgentById(dbClient)({
-          scopes: { tenantId, projectId, agentId },
-          subAgentId: defaultSubAgentId,
-        });
+        const agentInfo = executionContext.project.agents[agentId]?.subAgents[defaultSubAgentId];
+
         if (!agentInfo) {
           return {
             content: [
@@ -349,12 +343,9 @@ const getServer = async (
         }
 
         const resolvedContext = await handleContextResolution({
-          tenantId,
-          projectId,
-          agentId,
+          executionContext,
           conversationId,
           headers,
-          dbClient,
           credentialStores,
         });
 
@@ -371,7 +362,7 @@ const getServer = async (
           'parameters'
         );
 
-        await processUserMessage(tenantId, projectId, conversationId, query);
+        await processUserMessage(tenantId, projectId, conversationId, query, resolvedRef);
 
         return executeAgentQuery(executionContext, conversationId, query, defaultSubAgentId);
       } catch (error) {
@@ -394,13 +385,14 @@ const getServer = async (
 type AppVariables = {
   credentialStores: CredentialStoreRegistry;
   requestBody?: any;
+  executionContext: FullExecutionContext;
 };
 
 const app = new OpenAPIHono<{ Variables: AppVariables }>();
 
 app.use('/', async (c, next) => {
   if (c.req.method === 'POST') {
-    return contextValidationMiddleware(dbClient)(c, next);
+    return contextValidationMiddleware(c, next);
   }
   return next();
 });
@@ -410,9 +402,11 @@ app.use('/', async (c, next) => {
  */
 const validateRequestParameters = (
   c: any
-): { valid: true; executionContext: ExecutionContext } | { valid: false; response: Response } => {
+):
+  | { valid: true; executionContext: FullExecutionContext }
+  | { valid: false; response: Response } => {
   try {
-    const executionContext = getRequestExecutionContext(c);
+    const executionContext = c.get('executionContext');
     const { tenantId, projectId, agentId } = executionContext;
 
     getLogger('mcp').debug({ tenantId, projectId, agentId }, 'Extracted MCP entity parameters');
@@ -442,14 +436,14 @@ const validateRequestParameters = (
  */
 const handleInitializationRequest = async (
   body: any,
-  executionContext: ExecutionContext,
+  executionContext: FullExecutionContext,
   validatedContext: Record<string, unknown>,
   req: any,
   res: any,
   c: any,
   credentialStores?: CredentialStoreRegistry
 ) => {
-  const { tenantId, projectId, agentId } = executionContext;
+  const { tenantId, projectId, agentId, resolvedRef, project } = executionContext;
   logger.info({ body }, 'Received initialization request');
   const sessionId = getConversationId();
 
@@ -470,9 +464,7 @@ const handleInitializationRequest = async (
   currentBag = currentBag.setEntry('conversation.id', { value: sessionId });
   const ctxWithBaggage = propagation.setBaggage(otelContext.active(), currentBag);
   return await otelContext.with(ctxWithBaggage, async () => {
-    const agent = await getAgentWithDefaultSubAgent(dbClient)({
-      scopes: { tenantId, projectId, agentId },
-    });
+    const agent = project.agents[agentId];
     if (!agent) {
       return c.json(
         {
@@ -495,11 +487,14 @@ const handleInitializationRequest = async (
       );
     }
 
+    const activeSubAgentId = agent.defaultSubAgentId;
     const conversation = await createOrGetConversation(dbClient)({
       id: sessionId,
       tenantId,
       projectId,
-      activeSubAgentId: agent.defaultSubAgentId,
+      activeSubAgentId,
+      agentId,
+      ref: resolvedRef,
       metadata: {
         sessionData: {
           agentId,
@@ -546,14 +541,22 @@ const handleInitializationRequest = async (
  */
 const handleExistingSessionRequest = async (
   body: any,
-  executionContext: ExecutionContext,
+  executionContext: FullExecutionContext,
   validatedContext: Record<string, unknown>,
   req: any,
   res: any,
   credentialStores?: CredentialStoreRegistry
 ) => {
-  const { tenantId, projectId, agentId } = executionContext;
-  const conversation = await validateSession(req, res, body, tenantId, projectId, agentId);
+  const { tenantId, projectId, agentId, resolvedRef } = executionContext;
+  const conversation = await validateSession(
+    req,
+    res,
+    body,
+    tenantId,
+    projectId,
+    agentId,
+    resolvedRef
+  );
   if (!conversation) {
     return toFetchResponse(res);
   }

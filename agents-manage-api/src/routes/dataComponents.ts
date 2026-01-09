@@ -17,7 +17,6 @@ import {
   updateDataComponent,
   validatePropsAsJsonSchema,
 } from '@inkeep/agents-core';
-import dbClient from '../data/db/dbClient';
 import { requirePermission } from '../middleware/require-permission';
 import type { BaseAppVariables } from '../types/app';
 import { speakeasyOffsetLimitPagination } from './shared';
@@ -67,11 +66,12 @@ app.openapi(
     ...speakeasyOffsetLimitPagination,
   }),
   async (c) => {
+    const db = c.get('db');
     const { tenantId, projectId } = c.req.valid('param');
     const page = Number(c.req.query('page')) || 1;
     const limit = Math.min(Number(c.req.query('limit')) || 10, 100);
 
-    const result = await listDataComponentsPaginated(dbClient)({
+    const result = await listDataComponentsPaginated(db)({
       scopes: { tenantId, projectId },
       pagination: { page, limit },
     });
@@ -102,8 +102,9 @@ app.openapi(
     },
   }),
   async (c) => {
+    const db = c.get('db');
     const { tenantId, projectId, id } = c.req.valid('param');
-    const dataComponent = await getDataComponent(dbClient)({
+    const dataComponent = await getDataComponent(db)({
       scopes: { tenantId, projectId },
       dataComponentId: id,
     });
@@ -149,6 +150,7 @@ app.openapi(
     },
   }),
   async (c) => {
+    const db = c.get('db');
     const { tenantId, projectId } = c.req.valid('param');
     const body = c.req.valid('json');
 
@@ -171,7 +173,7 @@ app.openapi(
       projectId,
     };
 
-    const dataComponent = await createDataComponent(dbClient)(dataComponentData);
+    const dataComponent = await createDataComponent(db)(dataComponentData);
 
     return c.json({ data: dataComponent }, 201);
   }
@@ -207,6 +209,7 @@ app.openapi(
     },
   }),
   async (c) => {
+    const db = c.get('db');
     const { tenantId, projectId, id } = c.req.valid('param');
     const body = c.req.valid('json');
 
@@ -223,7 +226,7 @@ app.openapi(
       }
     }
 
-    const updatedDataComponent = await updateDataComponent(dbClient)({
+    const updatedDataComponent = await updateDataComponent(db)({
       scopes: { tenantId, projectId },
       dataComponentId: id,
       data: body,
@@ -265,9 +268,10 @@ app.openapi(
     },
   }),
   async (c) => {
+    const db = c.get('db');
     const { tenantId, projectId, id } = c.req.valid('param');
 
-    const deleted = await deleteDataComponent(dbClient)({
+    const deleted = await deleteDataComponent(db)({
       scopes: { tenantId, projectId },
       dataComponentId: id,
     });

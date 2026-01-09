@@ -62,10 +62,11 @@ const Property: FC<PropertyProps> = ({ fieldId, depth = 0, prefix }) => {
     () => (state: JsonSchemaStateData) => ({
       field: findFieldById(state.fields, fieldId),
       hasInPreview: state.hasInPreview,
+      allRequired: state.allRequired,
     }),
     [fieldId]
   );
-  const { field, hasInPreview } = useJsonSchemaStore(selector);
+  const { field, hasInPreview, allRequired } = useJsonSchemaStore(selector);
 
   const { updateField, changeType, addChild, removeField, updateEnumValues } =
     useJsonSchemaActions();
@@ -124,20 +125,22 @@ const Property: FC<PropertyProps> = ({ fieldId, depth = 0, prefix }) => {
       />
       {!prefix && (
         <>
-          <Tooltip>
-            <TooltipTrigger asChild>
-              {/* without the wrapping div the checkbox doesn't get the data-state="checked" attribute and the styles are not applied */}
-              <div>
-                <Checkbox
-                  checked={field.isRequired}
-                  onCheckedChange={(checked) =>
-                    updateField(field.id, { isRequired: checked === true })
-                  }
-                />
-              </div>
-            </TooltipTrigger>
-            <TooltipContent>Mark this field as required</TooltipContent>
-          </Tooltip>
+          {!allRequired && (
+            <Tooltip>
+              <TooltipTrigger asChild>
+                {/* without the wrapping div the checkbox doesn't get the data-state="checked" attribute and the styles are not applied */}
+                <div>
+                  <Checkbox
+                    checked={field.isRequired}
+                    onCheckedChange={(checked) =>
+                      updateField(field.id, { isRequired: checked === true })
+                    }
+                  />
+                </div>
+              </TooltipTrigger>
+              <TooltipContent>Mark this field as required</TooltipContent>
+            </Tooltip>
+          )}
           <Tooltip>
             <TooltipTrigger asChild>
               <Button
@@ -249,15 +252,17 @@ export const JsonSchemaBuilder: FC<{
   onChange: (newValue: string) => void;
   hasInPreview?: boolean;
   hasError?: boolean;
-}> = ({ value, onChange, hasInPreview, hasError }) => {
+  allRequired?: boolean;
+}> = ({ value, onChange, hasInPreview, hasError, allRequired = false }) => {
   const fields = useJsonSchemaStore((state) => state.fields);
+  const allRequiredState = useJsonSchemaStore((state) => state.allRequired);
   const { addChild, setFields } = useJsonSchemaActions();
   // Fix race condition in cypress
   const [isHydrated, setIsHydrated] = useState(false);
 
   // biome-ignore lint/correctness/useExhaustiveDependencies: run only on mount
   useEffect(() => {
-    setFields(value, hasInPreview);
+    setFields(value, hasInPreview, allRequired);
     setIsHydrated(true);
   }, []);
 
@@ -305,7 +310,7 @@ export const JsonSchemaBuilder: FC<{
             <TableHead className={hasInPreview ? 'w-1/10' : 'w-[15%] text-center'}>Type</TableHead>
             <TableHead className="w-[42%] text-center">Name</TableHead>
             <TableHead className="text-center">Description</TableHead>
-            <TableHead className="w-px text-right">Required</TableHead>
+            {!allRequiredState && <TableHead className="w-px text-right">Required</TableHead>}
           </TableRow>
         </TableHeader>
       </Table>

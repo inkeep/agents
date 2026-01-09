@@ -11,11 +11,11 @@ import {
   projectExistsInTable,
   projectHasResources,
   updateProject,
-} from '../../data-access/projects';
-import type { DatabaseClient } from '../../db/client';
+} from '../../data-access/manage/projects';
+import type { AgentsManageDatabaseClient } from '../../db/manage/manage-client';
 
 describe('Projects Data Access', () => {
-  let db: DatabaseClient;
+  let db: AgentsManageDatabaseClient;
   const testTenantId = 'tenant-123';
   const testProjectId1 = 'project-456';
   const testProjectId2 = 'project-789';

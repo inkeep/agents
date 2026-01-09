@@ -1,4 +1,4 @@
-import { defineConfig } from '@inkeep/agents-cli';
+import { defineConfig } from '@inkeep/agents-cli/config';
 
 export default defineConfig({
   tenantId: 'inkeep',

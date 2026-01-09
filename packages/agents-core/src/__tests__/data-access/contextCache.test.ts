@@ -9,21 +9,23 @@ import {
   invalidateHeadersCache,
   invalidateInvocationDefinitionsCache,
   setCacheEntry,
-} from '../../data-access/contextCache';
-import type { DatabaseClient } from '../../db/client';
+} from '../../data-access/runtime/contextCache';
+import type { AgentsRunDatabaseClient } from '../../db/runtime/runtime-client';
 import type { ContextCacheInsert } from '../../types/entities';
-import { testDbClient } from '../setup';
+import type { ResolvedRef } from '../../validation/dolt-schemas';
+import { testRunDbClient } from '../setup';
 
 describe('Context Cache Data Access', () => {
-  let db: DatabaseClient;
+  let db: AgentsRunDatabaseClient;
   const testTenantId = 'test-tenant';
   const testProjectId = 'test-project';
   const testConversationId = 'test-conversation';
   const testContextConfigId = 'test-context-config';
   const testContextVariableKey = 'testVariable';
+  const testRef: ResolvedRef = { type: 'branch', name: 'main', hash: 'abc123' };
 
   beforeEach(async () => {
-    db = testDbClient;
+    db = testRunDbClient;
     vi.clearAllMocks();
   });
 
@@ -36,6 +38,7 @@ describe('Context Cache Data Access', () => {
         conversationId: testConversationId,
         contextConfigId: testContextConfigId,
         contextVariableKey: testContextVariableKey,
+        ref: testRef,
         value: { data: 'test-data' },
         requestHash: 'hash123',
         fetchedAt: '2024-01-01T00:00:00Z',
@@ -95,6 +98,7 @@ describe('Context Cache Data Access', () => {
         conversationId: testConversationId,
         contextConfigId: testContextConfigId,
         contextVariableKey: testContextVariableKey,
+        ref: testRef,
         value: { data: 'test-data' },
         requestHash: 'oldHash',
         fetchedAt: '2024-01-01T00:00:00Z',
@@ -133,6 +137,7 @@ describe('Context Cache Data Access', () => {
         conversationId: testConversationId,
         contextConfigId: testContextConfigId,
         contextVariableKey: testContextVariableKey,
+        ref: testRef,
         value: { data: 'test-data' },
         requestHash: 'matchingHash',
         fetchedAt: '2024-01-01T00:00:00Z',
@@ -193,6 +198,7 @@ describe('Context Cache Data Access', () => {
         conversationId: testConversationId,
         contextConfigId: testContextConfigId,
         contextVariableKey: testContextVariableKey,
+        ref: testRef,
         value: { data: 'test-data' },
         requestHash: null,
         fetchedAt: '2024-01-01T00:00:00Z',
@@ -234,6 +240,7 @@ describe('Context Cache Data Access', () => {
         conversationId: testConversationId,
         contextConfigId: testContextConfigId,
         contextVariableKey: testContextVariableKey,
+        ref: testRef,
         value: { data: 'test-data' },
         fetchedAt: '2024-01-01T00:00:00Z',
         requestHash: 'hash123',
@@ -274,6 +281,7 @@ describe('Context Cache Data Access', () => {
         conversationId: testConversationId,
         contextConfigId: testContextConfigId,
         contextVariableKey: testContextVariableKey,
+        ref: testRef,
         value: { data: 'test-data' },
         fetchedAt: '2024-01-01T00:00:00Z',
       };
@@ -313,6 +321,7 @@ describe('Context Cache Data Access', () => {
         conversationId: testConversationId,
         contextConfigId: testContextConfigId,
         contextVariableKey: testContextVariableKey,
+        ref: testRef,
         value: { data: 'test-data' },
         fetchedAt: '2024-01-01T00:00:00Z',
       };

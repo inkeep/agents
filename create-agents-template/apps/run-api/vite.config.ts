@@ -11,6 +11,7 @@ export default defineConfig({
   ],
   server: {
     port: 3003,
+    host: '127.0.0.1', // Explicitly bind to IPv4 to avoid IPv6/IPv4 resolution issues
     allowedHosts: true,
     host: '127.0.0.1', // Explicitly bind to IPv4 to avoid IPv6/IPv4 resolution issues
     strictPort: true,

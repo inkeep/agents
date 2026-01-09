@@ -364,9 +364,61 @@ import {
   getFormattedConversationHistory,
 } from '../../data/conversations';
 
+function createMockExecutionContext(
+  overrides: {
+    tenantId?: string;
+    projectId?: string;
+    agentId?: string;
+    additionalAgents?: Record<string, any>;
+    credentialReferences?: Record<string, any>;
+  } = {}
+) {
+  const tenantId = overrides.tenantId ?? 'test-tenant';
+  const projectId = overrides.projectId ?? 'test-project';
+  const agentId = overrides.agentId ?? 'test-agent';
+
+  const defaultAgents: Record<string, any> = {
+    [agentId]: {
+      id: agentId,
+      name: 'Test Agent',
+      description: 'A test agent',
+      subAgents: {
+        [agentId]: {
+          id: agentId,
+          name: 'Test Agent',
+          canUse: [],
+        },
+      },
+    },
+  };
+
+  return {
+    apiKey: 'test-api-key',
+    tenantId,
+    projectId,
+    agentId,
+    baseUrl: 'http://localhost:3000',
+    apiKeyId: 'test-api-key-id',
+    resolvedRef: { name: 'main', type: 'branch' },
+    project: {
+      id: projectId,
+      tenantId,
+      name: 'Test Project',
+      agents: { ...defaultAgents, ...overrides.additionalAgents },
+      tools: {},
+      functions: {},
+      dataComponents: {},
+      artifactComponents: {},
+      externalAgents: {},
+      credentialReferences: overrides.credentialReferences ?? {},
+    },
+  };
+}
+
 describe('Agent Integration with SystemPromptBuilder', () => {
   let mockAgentConfig: AgentConfig;
   let mockTool: McpTool;
+  let mockExecutionContext: any;
 
   beforeEach(() => {
     vi.clearAllMocks();
@@ -463,10 +515,12 @@ describe('Agent Integration with SystemPromptBuilder', () => {
         },
       },
     };
+
+    mockExecutionContext = createMockExecutionContext();
   });
 
   test('should create Agent and use SystemPromptBuilder to generate XML system prompt', async () => {
-    const agent = new Agent(mockAgentConfig);
+    const agent = new Agent(mockAgentConfig, mockExecutionContext);
     const systemPromptBuilder = (agent as any).systemPromptBuilder;
 
     expect(systemPromptBuilder).toBeDefined();
@@ -513,7 +567,7 @@ describe('Agent Integration with SystemPromptBuilder', () => {
 
   test('should handle Agent with no tools', async () => {
     const configWithNoTools = { ...mockAgentConfig, tools: [] };
-    const agent = new Agent(configWithNoTools);
+    const agent = new Agent(configWithNoTools, mockExecutionContext);
     const buildSystemPrompt = (agent as any).buildSystemPrompt.bind(agent);
 
     const result = await buildSystemPrompt();
@@ -536,7 +590,7 @@ describe('Agent Integration with SystemPromptBuilder', () => {
 
   test('should handle Agent with undefined tools', async () => {
     const configWithUndefinedTools = { ...mockAgentConfig, tools: undefined };
-    const agent = new Agent(configWithUndefinedTools);
+    const agent = new Agent(configWithUndefinedTools, mockExecutionContext);
     const buildSystemPrompt = (agent as any).buildSystemPrompt.bind(agent);
 
     const result = await buildSystemPrompt();
@@ -570,7 +624,7 @@ describe('Agent Integration with SystemPromptBuilder', () => {
         } as McpTool,
       ],
     };
-    const agent = new Agent(configWithEmptyAvailableTools);
+    const agent = new Agent(configWithEmptyAvailableTools, mockExecutionContext);
     const buildSystemPrompt = (agent as any).buildSystemPrompt.bind(agent);
 
     const result = await buildSystemPrompt();
@@ -592,7 +646,7 @@ describe('Agent Integration with SystemPromptBuilder', () => {
   });
 
   test('should use v1 version of SystemPromptBuilder by default', () => {
-    const agent = new Agent(mockAgentConfig);
+    const agent = new Agent(mockAgentConfig, mockExecutionContext);
     const systemPromptBuilder = (agent as any).systemPromptBuilder;
 
     // Verify the SystemPromptBuilder was instantiated with 'v1' and Phase1Config
@@ -718,6 +772,7 @@ describe('Phase1Config Tool Conversion', () => {
 describe('Agent conversationHistoryConfig Functionality', () => {
   let mockAgentConfig: AgentConfig;
   let mockRuntimeContext: any;
+  let mockExecutionContext: any;
 
   beforeEach(() => {
     vi.clearAllMocks();
@@ -746,6 +801,8 @@ describe('Agent conversationHistoryConfig Functionality', () => {
       },
     };
 
+    mockExecutionContext = createMockExecutionContext();
+
     mockRuntimeContext = {
       contextId: 'test-conversation-id',
       metadata: {
@@ -757,7 +814,7 @@ describe('Agent conversationHistoryConfig Functionality', () => {
   });
 
   test('should apply default conversationHistoryConfig when none provided', () => {
-    const agent = new Agent(mockAgentConfig);
+    const agent = new Agent(mockAgentConfig, mockExecutionContext);
     const config = (agent as any).config;
 
     expect(config.conversationHistoryConfig).toBeDefined();
@@ -782,7 +839,7 @@ describe('Agent conversationHistoryConfig Functionality', () => {
       conversationHistoryConfig: customConfig,
     };
 
-    const agent = new Agent(configWithHistory);
+    const agent = new Agent(configWithHistory, mockExecutionContext);
     const config = (agent as any).config;
 
     expect(config.conversationHistoryConfig).toEqual(customConfig);
@@ -800,7 +857,7 @@ describe('Agent conversationHistoryConfig Functionality', () => {
       },
     };
 
-    const agent = new Agent(configWithNoneMode);
+    const agent = new Agent(configWithNoneMode, mockExecutionContext);
     await agent.generate('Test prompt', mockRuntimeContext);
 
     expect(getFormattedConversationHistory).not.toHaveBeenCalled();
@@ -818,7 +875,7 @@ describe('Agent conversationHistoryConfig Functionality', () => {
       },
     };
 
-    const agent = new Agent(configWithFullMode);
+    const agent = new Agent(configWithFullMode, mockExecutionContext);
     await agent.generate('Test prompt', mockRuntimeContext);
     expect(getConversationHistoryWithCompression).toHaveBeenCalled();
 
@@ -853,7 +910,7 @@ describe('Agent conversationHistoryConfig Functionality', () => {
       },
     };
 
-    const agent = new Agent(configWithScopedMode);
+    const agent = new Agent(configWithScopedMode, mockExecutionContext);
     await agent.generate('Test prompt', mockRuntimeContext);
 
     expect(getConversationHistoryWithCompression).toHaveBeenCalledWith({
@@ -882,6 +939,7 @@ describe('Agent Credential Integration', () => {
   let mockAgentConfig: AgentConfig;
   let mockAgentFramework: any;
   let mockCredentialStuffer: any;
+  let mockExecutionContext: any;
 
   beforeEach(() => {
     vi.clearAllMocks();
@@ -962,6 +1020,27 @@ describe('Agent Credential Integration', () => {
       tools: [],
       dataComponents: [],
     };
+
+    mockExecutionContext = createMockExecutionContext({
+      credentialReferences: {
+        'test-credential-id': {
+          id: 'test-credential-id',
+          credentialStoreId: 'nango-default',
+          retrievalParams: {
+            connectionId: 'test-connection',
+            providerConfigKey: 'test-provider',
+          },
+        },
+        'context-credential': {
+          id: 'context-credential',
+          credentialStoreId: 'nango-default',
+          retrievalParams: {
+            connectionId: 'context-connection',
+            providerConfigKey: 'context-provider',
+          },
+        },
+      },
+    });
   });
 
   test('should convert McpTool to MCPToolConfig format', () => {
@@ -989,7 +1068,7 @@ describe('Agent Credential Integration', () => {
       updatedAt: new Date().toISOString(),
     };
 
-    const agent = new Agent(mockAgentConfig, mockAgentFramework);
+    const agent = new Agent(mockAgentConfig, mockExecutionContext, mockAgentFramework);
     const converted = (agent as any).convertToMCPToolConfig(mockMcpTool);
 
     expect(converted).toEqual({
@@ -1029,7 +1108,7 @@ describe('Agent Credential Integration', () => {
       updatedAt: new Date().toISOString(),
     };
 
-    const agent = new Agent(mockAgentConfig, mockAgentFramework);
+    const agent = new Agent(mockAgentConfig, mockExecutionContext, mockAgentFramework);
     const converted = (agent as any).convertToMCPToolConfig(mockMcpTool);
 
     expect(converted.mcpType).toBe(MCPServerType.generic);
@@ -1067,7 +1146,7 @@ describe('Agent Credential Integration', () => {
       tools: [mockToolConfig],
     };
 
-    const agent = new Agent(configWithCredentials, mockAgentFramework);
+    const agent = new Agent(configWithCredentials, mockExecutionContext, mockAgentFramework);
 
     // Mock the credential stuffer to simulate credential loading
     (agent as any).credentialStuffer = mockCredentialStuffer;
@@ -1134,7 +1213,7 @@ describe('Agent Credential Integration', () => {
       tools: [mockToolConfig],
     };
 
-    const agent = new Agent(configWithoutCredentials, mockAgentFramework);
+    const agent = new Agent(configWithoutCredentials, mockExecutionContext, mockAgentFramework);
 
     // Mock the credential stuffer
     (agent as any).credentialStuffer = {
@@ -1204,7 +1283,7 @@ describe('Agent Credential Integration', () => {
       dataComponents: [],
     };
 
-    const agent = new Agent(contextConfig, mockAgentFramework);
+    const agent = new Agent(contextConfig, mockExecutionContext, mockAgentFramework);
     (agent as any).credentialStuffer = mockCredentialStuffer;
 
     await (agent as any).getMcpTool(mockToolConfig);
@@ -1236,6 +1315,7 @@ describe('Agent Credential Integration', () => {
 describe('Two-Pass Generation System', () => {
   let mockAgentConfig: AgentConfig;
   let mockDataComponent: DataComponentSelect;
+  let mockExecutionContext: any;
 
   beforeEach(() => {
     vi.clearAllMocks();
@@ -1254,6 +1334,8 @@ describe('Two-Pass Generation System', () => {
         mockData: { message: 'Hello, World!' },
       },
     };
+
+    mockExecutionContext = createMockExecutionContext();
 
     mockAgentConfig = {
       id: 'test-agent',
@@ -1278,7 +1360,7 @@ describe('Two-Pass Generation System', () => {
   });
 
   test('should return text response when no data components', async () => {
-    const agent = new Agent({ ...mockAgentConfig, dataComponents: [] });
+    const agent = new Agent({ ...mockAgentConfig, dataComponents: [] }, mockExecutionContext);
     const result = await agent.generate('Test prompt');
 
     expect(result.text).toBe('Mocked response');
@@ -1286,7 +1368,7 @@ describe('Two-Pass Generation System', () => {
   });
 
   test('should return object response when data components configured', async () => {
-    const agent = new Agent(mockAgentConfig);
+    const agent = new Agent(mockAgentConfig, mockExecutionContext);
     const result = await agent.generate('Test prompt');
 
     expect(result.object).toBeDefined();
@@ -1296,9 +1378,12 @@ describe('Two-Pass Generation System', () => {
 
 describe('Agent Model Settings', () => {
   let mockAgentConfig: AgentConfig;
+  let mockExecutionContext: any;
 
   beforeEach(() => {
     vi.clearAllMocks();
+
+    mockExecutionContext = createMockExecutionContext();
 
     mockAgentConfig = {
       id: 'test-agent',
@@ -1321,7 +1406,7 @@ describe('Agent Model Settings', () => {
   });
 
   test('should use ModelFactory.prepareGenerationConfig with base model configuration', async () => {
-    const agent = new Agent(mockAgentConfig);
+    const agent = new Agent(mockAgentConfig, mockExecutionContext);
     await agent.generate('Test prompt');
 
     // Get the mocked ModelFactory
@@ -1348,7 +1433,7 @@ describe('Agent Model Settings', () => {
       },
     };
 
-    const agent = new Agent(configWithModel);
+    const agent = new Agent(configWithModel, mockExecutionContext);
     await agent.generate('Test prompt');
 
     const { ModelFactory } = await import('@inkeep/agents-core');
@@ -1379,7 +1464,7 @@ describe('Agent Model Settings', () => {
       },
     };
 
-    const agent = new Agent(configWithModel);
+    const agent = new Agent(configWithModel, mockExecutionContext);
     await agent.generate('Test prompt');
 
     const { ModelFactory } = await import('@inkeep/agents-core');
@@ -1397,7 +1482,7 @@ describe('Agent Model Settings', () => {
   });
 
   test('should pass generation parameters to generateText', async () => {
-    const agent = new Agent(mockAgentConfig);
+    const agent = new Agent(mockAgentConfig, mockExecutionContext);
     await agent.generate('Test prompt');
 
     // Get the mocked generateText function
@@ -1437,7 +1522,7 @@ describe('Agent Model Settings', () => {
       ],
     };
 
-    const agent = new Agent(configWithDataComponents);
+    const agent = new Agent(configWithDataComponents, mockExecutionContext);
     await agent.generate('Test prompt');
 
     const { ModelFactory } = await import('@inkeep/agents-core');
@@ -1469,7 +1554,7 @@ describe('Agent Model Settings', () => {
       ],
     };
 
-    const agent = new Agent(configWithDataComponents);
+    const agent = new Agent(configWithDataComponents, mockExecutionContext);
     await agent.generate('Test prompt');
 
     const { ModelFactory } = await import('@inkeep/agents-core');
@@ -1495,7 +1580,7 @@ describe('Agent Model Settings', () => {
       },
     };
 
-    const agent = new Agent(configWithOpenAI);
+    const agent = new Agent(configWithOpenAI, mockExecutionContext);
     await agent.generate('Test prompt');
 
     const { ModelFactory } = await import('@inkeep/agents-core');
@@ -1515,7 +1600,7 @@ describe('Agent Model Settings', () => {
       },
     };
 
-    const agent = new Agent(configWithPlainModel);
+    const agent = new Agent(configWithPlainModel, mockExecutionContext);
     await agent.generate('Test prompt');
 
     const { ModelFactory } = await import('@inkeep/agents-core');
@@ -1527,6 +1612,49 @@ describe('Agent Model Settings', () => {
 });
 
 describe('Agent Conditional Tool Availability', () => {
+  let mockExecutionContext: any;
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+
+    mockExecutionContext = createMockExecutionContext({
+      additionalAgents: {
+        'test-agent-no-components': {
+          id: 'test-agent-no-components',
+          name: 'Test Agent No Components',
+          description: 'A test agent without components',
+          subAgents: {
+            'test-agent': {
+              id: 'test-agent',
+              name: 'Test Agent',
+              canUse: [],
+              artifactComponents: [],
+            },
+          },
+        },
+        'test-agent-with-components': {
+          id: 'test-agent-with-components',
+          name: 'Test Agent With Components',
+          description: 'A test agent with components',
+          subAgents: {
+            'test-agent': {
+              id: 'test-agent',
+              name: 'Test Agent',
+              canUse: [],
+              artifactComponents: [
+                {
+                  id: 'test-artifact-component',
+                  name: 'TestArtifactComponent',
+                  description: 'A test artifact component',
+                },
+              ],
+            },
+          },
+        },
+      },
+    });
+  });
+
   test('agent without artifact components in agent without components should have no artifact tools', async () => {
     // Mock agentHasArtifactComponents to return false
     agentHasArtifactComponentsMock.mockReturnValue(vi.fn().mockResolvedValue(false));
@@ -1548,7 +1676,7 @@ describe('Agent Conditional Tool Availability', () => {
       functionTools: [],
     };
 
-    const agent = new Agent(config); // No artifact components
+    const agent = new Agent(config, mockExecutionContext); // No artifact components
 
     // Access private method for testing
     const tools = await (agent as any).getDefaultTools();
@@ -1579,7 +1707,7 @@ describe('Agent Conditional Tool Availability', () => {
       artifactComponents: [],
     };
 
-    const agent = new Agent(config); // No artifact components
+    const agent = new Agent(config, mockExecutionContext); // No artifact components
 
     // Access private method for testing
     const tools = await (agent as any).getDefaultTools();
@@ -1629,7 +1757,7 @@ describe('Agent Conditional Tool Availability', () => {
       artifactComponents: mockArtifactComponents,
     };
 
-    const agent = new Agent(config);
+    const agent = new Agent(config, mockExecutionContext);
 
     // Access private method for testing
     const tools = await (agent as any).getDefaultTools();
