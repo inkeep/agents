@@ -1,5 +1,5 @@
 import { GripVertical, X } from 'lucide-react';
-import { type FC, type MouseEvent, useCallback, useMemo, useState } from 'react';
+import { type FC, type MouseEvent, useState } from 'react';
 import { ComponentDropdown } from '@/components/agent/sidepane/nodes/component-selector/component-dropdown';
 import { ComponentHeader } from '@/components/agent/sidepane/nodes/component-selector/component-header';
 import { Button } from '@/components/ui/button';
@@ -32,7 +32,7 @@ export function reorderSkills(
   }
   const [moved] = current.splice(fromIndex, 1);
   current.splice(toIndex, 0, moved);
-  return current.map((skill, idx) => ({ ...skill, index: idx }));
+  return current.map((skill, index) => ({ ...skill, index }));
 }
 
 export const SkillSelector: FC<SkillSelectorProps> = ({
@@ -41,22 +41,17 @@ export const SkillSelector: FC<SkillSelectorProps> = ({
   onChange,
   error,
 }) => {
+  'use memo';
   const [draggingId, setDraggingId] = useState('');
   const [dragOverId, setDragOverId] = useState('');
 
-  const orderedSkills = useMemo(
-    () => [...selectedSkills].sort((a, b) => a.index - b.index),
-    [selectedSkills]
-  );
+  const orderedSkills = [...selectedSkills].sort((a, b) => a.index - b.index);
 
-  const handleRemove = useCallback(
-    (event: MouseEvent<HTMLButtonElement>) => {
-      const id = event.currentTarget.dataset.id as string;
-      const next = orderedSkills.filter((skill) => skill.id !== id);
-      onChange(next.map((skill, idx) => ({ ...skill, index: idx })));
-    },
-    [orderedSkills, onChange]
-  );
+  const handleRemove = (event: MouseEvent<HTMLButtonElement>) => {
+    const id = event.currentTarget.dataset.id as string;
+    const next = orderedSkills.filter((skill) => skill.id !== id);
+    onChange(next.map((skill, idx) => ({ ...skill, index: idx })));
+  };
 
   const handleDrop = (targetId: string) => {
     if (!draggingId) return;
@@ -66,17 +61,14 @@ export const SkillSelector: FC<SkillSelectorProps> = ({
     setDragOverId('');
   };
 
-  const handleToggle = useCallback(
-    (id: string) => {
-      const newSelection = selectedSkills.some((skill) => skill.id === id)
-        ? selectedSkills.filter((skill) => skill.id !== id)
-        : [...selectedSkills, { id, index: selectedSkills.length }];
-      onChange(newSelection);
-    },
-    [selectedSkills, onChange]
-  );
+  const handleToggle = (id: string) => {
+    const newSelection = selectedSkills.some((skill) => skill.id === id)
+      ? selectedSkills.filter((skill) => skill.id !== id)
+      : [...selectedSkills, { id, index: selectedSkills.length }];
+    onChange(newSelection);
+  };
 
-  const skills = useMemo(() => selectedSkills.map((skill) => skill.id), [selectedSkills]);
+  const skills = selectedSkills.map((skill) => skill.id);
 
   return (
     <div className="space-y-2 mb-5">

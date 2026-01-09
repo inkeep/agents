@@ -18,6 +18,9 @@ const nextConfig: NextConfig = {
     NEXT_PUBLIC_CI: process.env.CI,
   },
   output: 'standalone',
+  reactCompiler: {
+    compilationMode: 'annotation',
+  },
   redirects() {
     return [
       {

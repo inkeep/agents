@@ -38,7 +38,7 @@ export interface AgentNodeData extends Record<string, unknown>, AnimatedNode {
   artifactComponents?: string[];
   skills?: {
     id: string;
-    index?: number;
+    index: number;
     name?: string;
     description?: string;
     content?: string;
