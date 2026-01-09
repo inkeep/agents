@@ -64,6 +64,7 @@ import { IncrementalStreamParser } from '../services/IncrementalStreamParser';
 import { MidGenerationCompressor } from '../services/MidGenerationCompressor';
 import { pendingToolApprovalManager } from '../services/PendingToolApprovalManager';
 import { ResponseFormatter } from '../services/ResponseFormatter';
+import { ToolTransformer } from '../services/ToolTransformer';
 import type { SandboxConfig } from '../types/execution-context';
 import { generateToolId } from '../utils/agent-operations';
 import { ArtifactCreateSchema, ArtifactReferenceSchema } from '../utils/artifact-component-schema';
@@ -203,6 +204,7 @@ export class Agent {
   private mcpClientCache: Map<string, McpClient> = new Map();
   private mcpConnectionLocks: Map<string, Promise<McpClient>> = new Map();
   private currentCompressor: MidGenerationCompressor | null = null;
+  private toolTransformer = new ToolTransformer();
 
   constructor(config: AgentConfig, credentialStoreRegistry?: CredentialStoreRegistry) {
     this.artifactComponents = config.artifactComponents || [];
@@ -952,6 +954,7 @@ export class Agent {
         ...tool.headers,
         ...agentToolRelationHeaders,
       },
+      toolOverrides: tool.config.mcp.toolOverrides,
     };
   }
 
@@ -1157,7 +1160,10 @@ export class Agent {
       }
     }
 
-    const tools = await client.tools();
+    const originalTools = await client.tools();
+
+    // Apply tool overrides if configured
+    const tools = this.applyToolOverrides(originalTools, tool);
 
     if (!tools || Object.keys(tools).length === 0) {
       const streamRequestId = this.getStreamRequestId();
@@ -1830,6 +1836,46 @@ export class Agent {
 
   private getStreamRequestId(): string {
     return this.streamRequestId || '';
+  }
+
+  private applyToolOverrides(originalTools: any, tool: McpTool): any {
+    // Check if this tool has overrides configured
+    const toolOverrides = tool.config.type === 'mcp' ? (tool.config as any).mcp?.toolOverrides : undefined;
+    
+    if (!toolOverrides) {
+      return originalTools;
+    }
+
+    const processedTools: any = {};
+    
+    for (const [toolName, toolDef] of Object.entries(originalTools)) {
+      // Check if this tool has an override
+      const override = toolOverrides[toolName];
+      
+      if (override) {
+        // Replace the original tool with the simplified version
+        try {
+          // Create simplified version using ToolTransformer
+          const simplifiedTool = this.toolTransformer.createSimplifiedTool(
+            { description: (toolDef as any).description },
+            toolName,
+            override
+          );
+          
+          // Replace original with simplified version
+          processedTools[toolName] = simplifiedTool;
+          
+          logger.info({ toolName }, 'Replaced tool with simplified version');
+        } catch (error) {
+          logger.error({ toolName, error }, 'Failed to create simplified tool, using original');
+        }
+      } else {
+        // No override, use original
+        processedTools[toolName] = toolDef;
+      }
+    }
+    
+    return processedTools;
   }
 
   /**

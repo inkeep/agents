@@ -148,6 +148,11 @@ export interface MCPToolConfig {
   mcpType?: 'nango' | 'generic';
   transport?: McpTransportConfig;
   imageUrl?: string; // Optional image URL for custom tool icon
+  toolOverrides?: Record<string, {
+    description?: string;
+    schema: any;
+    mapping: Record<string, string>;
+  }>;
 }
 
 export interface FetchDefinitionConfig {

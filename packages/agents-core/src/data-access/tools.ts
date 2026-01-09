@@ -29,6 +29,7 @@ import {
 import { generateId } from '../utils/conversations';
 import { getLogger } from '../utils/logger';
 import { McpClient, type McpServerConfig } from '../utils/mcp-client';
+import { convertZodToJsonSchema, isZodSchema } from '../utils/schema-conversion';
 import { getCredentialReference, getUserScopedCredentialReference } from './credentialReferences';
 import { updateAgentToolRelation } from './subAgentRelations';
 
@@ -78,7 +79,31 @@ async function getCredentialExpiresAt(
  * - parameters (direct) - alternative format
  * - schema - another possible location
  */
-function extractInputSchema(toolDef: any): any {
+function extractInputSchema(toolDef: any, toolName?: string, toolOverrides?: any): any {
+  // Check for simplified schema override first
+  if (toolName && toolOverrides?.[toolName]?.schema) {
+    const simplifiedSchema = toolOverrides[toolName].schema;
+    
+    // Convert Zod schema to JSON Schema format if needed
+    if (isZodSchema(simplifiedSchema)) {
+      try {
+        const converted = convertZodToJsonSchema(simplifiedSchema);
+        return converted;
+      } catch (error) {
+        console.warn('Failed to convert Zod schema to JSON Schema:', error);
+        return extractOriginalSchema(toolDef);
+      }
+    } else {
+      // Already in JSON Schema format
+      return simplifiedSchema;
+    }
+  }
+
+  // Fall back to original schema
+  return extractOriginalSchema(toolDef);
+}
+
+function extractOriginalSchema(toolDef: any): any {
   if (toolDef.inputSchema) {
     return toolDef.inputSchema;
   }
@@ -113,6 +138,7 @@ const convertToMCPToolConfig = (tool: ToolSelect): MCPToolConfig => {
       : MCPServerType.generic,
     transport: tool.config.mcp.transport,
     headers: tool.headers,
+    toolOverrides: tool.config.mcp.toolOverrides,
   };
 };
 
@@ -210,12 +236,17 @@ const discoverToolsFromServer = async (
 
     await client.disconnect();
 
+    const toolOverrides = tool.config.mcp.toolOverrides;
+    
     const toolDefinitions: McpToolDefinition[] = Object.entries(serverTools).map(
-      ([name, toolDef]) => ({
-        name,
-        description: (toolDef as any).description || '',
-        inputSchema: extractInputSchema(toolDef as any),
-      })
+      ([name, toolDef]) => {
+        const schema = extractInputSchema(toolDef as any, name, toolOverrides);
+        return {
+          name,
+          description: (toolDef as any).description || '',
+          inputSchema: schema,
+        };
+      }
     );
 
     return toolDefinitions;

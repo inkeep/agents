@@ -179,6 +179,12 @@ export type McpToolDefinition = {
   inputSchema?: Record<string, unknown>;
 };
 
+export type ToolSimplifyConfig = {
+  description?: string;
+  schema: any; // Zod schema or JSON schema
+  mapping: Record<string, string>; // argument path mappings
+};
+
 export type ToolMcpConfig = {
   // Server connection details
   server: {
@@ -190,6 +196,8 @@ export type ToolMcpConfig = {
   transport?: McpTransportConfig;
   // Active tools to enable from this MCP server
   activeTools?: string[];
+  // Tool overrides for schema simplification
+  toolOverrides?: Record<string, ToolSimplifyConfig>;
 };
 
 export type ToolServerCapabilities = {
