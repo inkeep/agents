@@ -75,7 +75,10 @@ export function CopilotChat({ agentId, tenantId, projectId, refreshAgentGraph }:
     PUBLIC_INKEEP_COPILOT_AGENT_ID,
     PUBLIC_INKEEP_COPILOT_PROJECT_ID,
     PUBLIC_INKEEP_COPILOT_TENANT_ID,
+    PUBLIC_DISABLE_AUTH,
   } = useRuntimeConfig();
+
+  const isAuthDisabled = PUBLIC_DISABLE_AUTH === 'true';
 
   const {
     apiKey: copilotToken,
@@ -211,6 +214,7 @@ export function CopilotChat({ agentId, tenantId, projectId, refreshAgentGraph }:
                         refreshAgentGraph: refreshAgentGraph,
                         cookieHeader: cookieHeader,
                         copilotToken: copilotToken,
+                        isAuthDisabled: isAuthDisabled,
                       }),
                   }
                 : {}),
