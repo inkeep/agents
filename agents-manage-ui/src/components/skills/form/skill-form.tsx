@@ -3,7 +3,7 @@
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useParams, useRouter } from 'next/navigation';
 import { useState } from 'react';
-import { useForm } from 'react-hook-form';
+import { useForm, useWatch } from 'react-hook-form';
 import { toast } from 'sonner';
 import { ExpandableJsonEditor } from '@/components/editors/expandable-json-editor';
 import { ExpandablePromptEditor } from '@/components/editors/expandable-prompt-editor';
@@ -44,25 +44,34 @@ export function SkillForm({ initialData, onSaved }: SkillFormProps) {
     defaultValues: formatFormData(initialData),
     mode: 'onChange',
   });
-  const { isSubmitting } = form.formState;
+  const content = useWatch({ control: form.control, name: 'content' });
+  const metadata = useWatch({ control: form.control, name: 'metadata' });
   const router = useRouter();
 
   const onSubmit = async (data: SkillFormData) => {
+    const callAction = initialData ? updateSkillAction : createSkillAction;
+    // Fix react compiler errors
+    // Support value blocks (conditional, logical, optional chaining, etc) within a try/catch statement
+    const getErrorMessage = (error?: string) =>
+      error ?? `Failed to ${initialData ? 'update' : 'create'} skill`;
+    const successMessage = `Skill ${initialData ? 'updated' : 'created'}`;
+
     try {
       const payload = {
         ...data,
         id: data.name,
         metadata: parseMetadataField(data.metadata),
       };
-      const callAction = initialData ? updateSkillAction : createSkillAction;
       const res = await callAction(tenantId, projectId, payload);
       if (!res.success) {
-        toast.error(res.error || `Failed to ${initialData ? 'update' : 'create'} skill`);
+        toast.error(getErrorMessage(res.error));
         return;
       }
-      toast.success(`Skill ${initialData ? 'updated' : 'created'}`);
+      toast.success(successMessage);
       if (initialData) {
-        onSaved?.();
+        if (onSaved) {
+          onSaved();
+        }
         return;
       }
       if (onSaved) {
@@ -109,14 +118,14 @@ export function SkillForm({ initialData, onSaved }: SkillFormProps) {
           <ExpandablePromptEditor
             label="Content"
             name="content"
-            value={form.watch('content')}
+            value={content}
             onChange={(value) => form.setValue('content', value, { shouldValidate: true })}
             placeholder="Write Markdown instructions for this skill..."
             error={form.formState.errors.content?.message}
             isRequired
           />
           <ExpandableJsonEditor
-            value={form.watch('metadata') ?? ''}
+            value={metadata ?? ''}
             onChange={(value) => form.setValue('metadata', value)}
             name="metadata"
             label="Metadata (JSON)"
@@ -127,7 +136,7 @@ export function SkillForm({ initialData, onSaved }: SkillFormProps) {
           />
 
           <div className="flex w-full justify-between">
-            <Button type="submit" disabled={isSubmitting}>
+            <Button type="submit" disabled={form.formState.isSubmitting}>
               Save
             </Button>
             {initialData && (
