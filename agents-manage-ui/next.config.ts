@@ -20,6 +20,8 @@ const nextConfig: NextConfig = {
   output: 'standalone',
   reactCompiler: {
     compilationMode: 'annotation',
+    // Fail the build on any compiler diagnostic
+    panicThreshold: 'all_errors',
   },
   redirects() {
     return [

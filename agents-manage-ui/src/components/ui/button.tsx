@@ -55,6 +55,7 @@ function Button({
   VariantProps<typeof buttonVariants> & {
     asChild?: boolean;
   }) {
+  'use memo';
   const Comp = asChild ? Slot : 'button';
 
   return (
