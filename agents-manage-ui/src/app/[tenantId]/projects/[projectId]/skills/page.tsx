@@ -1,3 +1,4 @@
+import { Plus } from 'lucide-react';
 import NextLink from 'next/link';
 import type { FC } from 'react';
 import { formatDate, formatDateAgo } from '@/app/utils/format-date';
@@ -5,8 +6,8 @@ import FullPageError from '@/components/errors/full-page-error';
 import { BodyTemplate } from '@/components/layout/body-template';
 import EmptyState from '@/components/layout/empty-state';
 import { PageHeader } from '@/components/layout/page-header';
-import { CreateSkillModal } from '@/components/skills/create-skill-modal';
 import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
 import { ExternalLink } from '@/components/ui/external-link';
 import {
   Table,
@@ -37,7 +38,14 @@ const SkillsPage: FC<PageProps<'/[tenantId]/projects/[projectId]/skills'>> = asy
 
   try {
     const { data } = await fetchSkills(tenantId, projectId);
-    const action = <CreateSkillModal />;
+    const action = (
+      <Button asChild className="flex items-center gap-2">
+        <NextLink href={`/${tenantId}/projects/${projectId}/skills/new`}>
+          <Plus className="size-4" />
+          Create skill
+        </NextLink>
+      </Button>
+    );
 
     const content = data.length ? (
       <>
