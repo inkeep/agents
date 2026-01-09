@@ -64,7 +64,9 @@ export function CopilotChat({ agentId, tenantId, projectId, refreshAgentGraph }:
         refreshAgentGraph();
       }
       if (event.detail.type === 'error' && event.detail.conversationId === conversationId) {
-        sentry.captureException(event.detail);
+        sentry.captureException(new Error('Copilot data operation error'), {
+          extra: event.detail,
+        });
       }
     };
 
@@ -161,7 +163,9 @@ export function CopilotChat({ agentId, tenantId, projectId, refreshAgentGraph }:
                 setIsStreaming(false);
               }
               if (event.eventName === 'chat_error') {
-                sentry.captureException(event.properties);
+                sentry.captureException(new Error('Copilot chat error'), {
+                  extra: { ...event.properties },
+                });
               }
             },
             primaryBrandColor: '#3784ff',
