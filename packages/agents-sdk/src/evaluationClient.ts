@@ -140,10 +140,7 @@ export class EvaluationClient {
   }
 
   async createDataset(datasetData: Record<string, unknown>): Promise<unknown> {
-    logger.info(
-      { tenantId: this.tenantId, projectId: this.projectId },
-      'Creating dataset via API'
-    );
+    logger.info({ tenantId: this.tenantId, projectId: this.projectId }, 'Creating dataset via API');
 
     const url = this.buildUrl('datasets');
 
@@ -1260,31 +1257,47 @@ export class EvaluationClient {
   }
 
   // ============================================================================
-  // TRIGGER CONVERSATION EVALUATION
+  // TRIGGER BATCH EVALUATION
   // ============================================================================
 
   /**
-   * Trigger evaluation of specific conversations with selected evaluators.
-   * Creates an evaluation job config that automatically triggers the evaluation.
+   * Trigger batch evaluation of conversations with selected evaluators.
+   * Supports filtering by conversation IDs, date range, or dataset run IDs.
    */
-  async triggerConversationEvaluation(evaluationData: {
-    conversationIds: string[];
+  async triggerBatchEvaluation(evaluationData: {
     evaluatorIds: string[];
     name?: string;
+    conversationIds?: string[];
+    dateRange?: {
+      startDate: string;
+      endDate: string;
+    };
+    datasetRunIds?: string[];
   }): Promise<{
     message: string;
     evaluationJobConfigId: string;
-    conversationIds: string[];
     evaluatorIds: string[];
   }> {
+    const jobFilters: Record<string, unknown> = {};
+
+    if (evaluationData.conversationIds?.length) {
+      jobFilters.conversationIds = evaluationData.conversationIds;
+    }
+    if (evaluationData.dateRange) {
+      jobFilters.dateRange = evaluationData.dateRange;
+    }
+    if (evaluationData.datasetRunIds?.length) {
+      jobFilters.datasetRunIds = evaluationData.datasetRunIds;
+    }
+
     logger.info(
       {
         tenantId: this.tenantId,
         projectId: this.projectId,
-        conversationIds: evaluationData.conversationIds,
+        jobFilters,
         evaluatorIds: evaluationData.evaluatorIds,
       },
-      'Triggering conversation evaluations via API'
+      'Triggering batch evaluation via API'
     );
 
     const url = this.buildUrl('evaluation-job-configs');
@@ -1294,11 +1307,9 @@ export class EvaluationClient {
         method: 'POST',
         headers: this.buildHeaders(),
         body: JSON.stringify({
-          name: evaluationData.name || `Conversation Evaluation ${new Date().toISOString()}`,
+          name: evaluationData.name || `Batch Evaluation ${new Date().toISOString()}`,
           evaluatorIds: evaluationData.evaluatorIds,
-          jobFilters: {
-            conversationIds: evaluationData.conversationIds,
-          },
+          jobFilters,
         }),
       });
 
@@ -1306,11 +1317,11 @@ export class EvaluationClient {
         const errorText = await response.text();
         const errorMessage =
           parseError(errorText) ??
-          `Failed to trigger conversation evaluations: ${response.status} ${response.statusText}`;
+          `Failed to trigger batch evaluation: ${response.status} ${response.statusText}`;
 
         logger.error(
           { status: response.status, error: errorMessage },
-          'Failed to trigger conversation evaluations via API'
+          'Failed to trigger batch evaluation via API'
         );
         throw new Error(errorMessage);
       }
@@ -1320,15 +1331,13 @@ export class EvaluationClient {
         {
           tenantId: this.tenantId,
           projectId: this.projectId,
-          conversationIds: evaluationData.conversationIds,
           evaluationJobConfigId: result.data.id,
         },
-        'Successfully triggered conversation evaluations via API'
+        'Successfully triggered batch evaluation via API'
       );
       return {
-        message: 'Conversation evaluation triggered successfully',
+        message: 'Batch evaluation triggered successfully',
         evaluationJobConfigId: result.data.id,
-        conversationIds: evaluationData.conversationIds,
         evaluatorIds: evaluationData.evaluatorIds,
       };
     } catch (error) {
@@ -1337,9 +1346,8 @@ export class EvaluationClient {
           error,
           tenantId: this.tenantId,
           projectId: this.projectId,
-          conversationIds: evaluationData.conversationIds,
         },
-        'Failed to trigger conversation evaluations'
+        'Failed to trigger batch evaluation'
       );
       throw error;
     }
@@ -1480,7 +1488,12 @@ export class EvaluationClient {
         datasetId: string;
       };
       logger.info(
-        { tenantId: this.tenantId, projectId: this.projectId, datasetId, datasetRunId: result.datasetRunId },
+        {
+          tenantId: this.tenantId,
+          projectId: this.projectId,
+          datasetId,
+          datasetRunId: result.datasetRunId,
+        },
         'Successfully triggered dataset run via API'
       );
       return result;
