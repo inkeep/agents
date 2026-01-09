@@ -347,6 +347,9 @@ app.openapi(
         scopes: { tenantId, projectId: id },
       });
 
+      // Ensure the request connection isn't still checked out to the branch we're about to delete.
+      await doltCheckout(configDb)({ branch: 'main' });
+
       // 3. Delete project from runtime DB and delete project branch
       const deleted = await deleteProjectWithBranch(
         runDbClient,

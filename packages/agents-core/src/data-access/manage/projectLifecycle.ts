@@ -1,7 +1,7 @@
 import { sql } from 'drizzle-orm';
 import type { AgentsManageDatabaseClient } from '../../db/manage/manage-client';
 import type { AgentsRunDatabaseClient } from '../../db/runtime/runtime-client';
-import { doltBranch, doltBranchExists, doltDeleteBranch } from '../../dolt/branch';
+import { doltBranch, doltBranchExists, doltCheckout, doltDeleteBranch } from '../../dolt/branch';
 import type { ProjectMetadataSelect } from '../../types/entities';
 import type { PaginationConfig, PaginationResult, ProjectModels } from '../../types/utility';
 import { getLogger } from '../../utils/logger';
@@ -129,10 +129,14 @@ export const deleteProjectWithBranch =
 
     const { mainBranchName } = project;
 
-    // 2. Delete the project branch from config DB
+    // 2. Checkout main branch and then delete the project branch from config DB
     try {
+      // 2.1. Checkout main branch
+      await doltCheckout(configDb)({ branch: 'main' });
+
+      // 2.2. Delete the project branch
       await doltDeleteBranch(configDb)({ name: mainBranchName, force: true });
-      logger.debug({ mainBranchName }, 'Deleted project branch');
+      logger.info({ mainBranchName }, 'Deleted project branch');
     } catch (error) {
       // Log but continue - the branch might not exist or might have other issues
       // We still want to clean up the runtime record

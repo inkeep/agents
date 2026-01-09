@@ -1,5 +1,5 @@
 import type { AgentsManageDatabaseClient, ResolvedRef } from '@inkeep/agents-core';
-import { doltAddAndCommit, doltStatus } from '@inkeep/agents-core';
+import { doltAddAndCommit, doltReset, doltStatus } from '@inkeep/agents-core';
 import * as schema from '@inkeep/agents-core/db/manage-schema';
 import { drizzle } from 'drizzle-orm/node-postgres';
 import type { Context, Next } from 'hono';
@@ -8,6 +8,11 @@ import manageDbClient from '../data/db/dbClient';
 import { getLogger } from '../logger';
 
 const logger = getLogger('branch-scoped-db');
+
+export function isProjectDeleteOperation(path: string, method: string): boolean {
+  const projectDeletePattern = /^\/tenants\/[^/]+\/(?:projects|project-full)\/[^/]+\/?$/;
+  return method.toUpperCase() === 'DELETE' && projectDeletePattern.test(path);
+}
 
 /**
  * Get the underlying connection pool from a Drizzle database client
@@ -40,6 +45,8 @@ export function getPoolFromClient(client: AgentsManageDatabaseClient): Pool | nu
 export const branchScopedDbMiddleware = async (c: Context, next: Next) => {
   const resolvedRef = c.get('resolvedRef') as ResolvedRef;
   const method = c.req.method;
+  const userId = c.get('userId') as string;
+  const userEmail = c.get('userEmail') as string;
 
   // Get connection pool from dbClient
   const pool = getPoolFromClient(manageDbClient);
@@ -85,14 +92,17 @@ export const branchScopedDbMiddleware = async (c: Context, next: Next) => {
 
     // Auto-commit for successful writes on branches
     const status = c.res.status;
-    const shouldCommit = resolvedRef.type === 'branch' && status >= 200 && status < 300;
+    const projectDeleteOperation = isProjectDeleteOperation(c.req.path, method);
+    const operationSuccess = status >= 200 && status < 300;
+    const shouldCommit = resolvedRef.type === 'branch' && operationSuccess && !projectDeleteOperation;
 
     if (shouldCommit) {
       try {
         // Check if there are uncommitted changes
         const statusResult = await doltStatus(requestDb)();
 
-        if (statusResult.length > 0) {
+        // If there are uncommitted changes and the operation was successful, commit the changes
+        if (statusResult.length > 0 && operationSuccess) {
           const path = c.req.path;
           const commitMessage = generateCommitMessage(method, path);
 
@@ -104,12 +114,15 @@ export const branchScopedDbMiddleware = async (c: Context, next: Next) => {
           await doltAddAndCommit(requestDb)({
             message: commitMessage,
             author: {
-              name: 'agents-manage-api',
-              email: 'api@inkeep.com',
+              name: userId ?? 'agents-manage-api',
+              email: userEmail ?? 'api@inkeep.com',
             },
           });
 
           logger.info({ branch: resolvedRef.name }, 'Successfully committed changes');
+        } else if (statusResult.length > 0 && !operationSuccess) {
+          await doltReset(requestDb)();
+          logger.info({ branch: resolvedRef.name }, 'Successfully reset changes due to failed operation');
         }
       } catch (error) {
         // Log but don't fail - the write already succeeded
@@ -126,6 +139,9 @@ export const branchScopedDbMiddleware = async (c: Context, next: Next) => {
       }
     } catch (cleanupError) {
       logger.error({ error: cleanupError }, 'Error during connection cleanup');
+      logger.error({ error: cleanupError instanceof Error ? cleanupError.cause : 'Unknown cause' }, 'Error during connection cleanup');
+      logger.error({ error: cleanupError instanceof Error ? cleanupError.message : 'Unknown message' }, 'Error during connection cleanup');
+      logger.error({ error: cleanupError instanceof Error ? cleanupError.stack : 'Unknown stack' }, 'Error during connection cleanup');
     } finally {
       connection.release();
     }
