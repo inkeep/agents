@@ -1,6 +1,6 @@
 /**
- * Client-side functions for interacting with the Evaluations API
- * These functions make HTTP requests to the server instead of direct database calls
+ * Client-side class for interacting with the Evaluations API
+ * These methods make HTTP requests to the server instead of direct database calls
  */
 
 import { apiFetch, getLogger } from '@inkeep/agents-core';
@@ -23,1478 +23,1480 @@ function parseError(errorText: string): string | undefined {
   return undefined;
 }
 
-function buildUrl(
-  apiUrl: string,
-  tenantId: string,
-  projectId: string,
-  ...pathSegments: string[]
-): string {
-  return `${apiUrl}/tenants/${tenantId}/projects/${projectId}/evals/${pathSegments.join('/')}`;
+export interface EvaluationClientConfig {
+  tenantId: string;
+  projectId: string;
+  apiUrl: string;
+  apiKey?: string;
 }
 
-function buildHeaders(apiKey?: string): Record<string, string> {
-  const headers: Record<string, string> = {
-    'Content-Type': 'application/json',
-  };
-  if (apiKey) {
-    headers.Authorization = `Bearer ${apiKey}`;
+export class EvaluationClient {
+  private tenantId: string;
+  private projectId: string;
+  private apiUrl: string;
+  private apiKey?: string;
+
+  constructor(config: EvaluationClientConfig) {
+    this.tenantId = config.tenantId;
+    this.projectId = config.projectId;
+    this.apiUrl = config.apiUrl;
+    this.apiKey = config.apiKey;
   }
-  return headers;
-}
 
-// ============================================================================
-// DATASETS
-// ============================================================================
+  private buildUrl(...pathSegments: string[]): string {
+    return `${this.apiUrl}/tenants/${this.tenantId}/projects/${this.projectId}/evals/${pathSegments.join('/')}`;
+  }
 
-export async function listDatasets(
-  tenantId: string,
-  projectId: string,
-  apiUrl: string,
-  apiKey?: string
-): Promise<unknown[]> {
-  logger.info({ tenantId, projectId }, 'Listing datasets via API');
-
-  const url = buildUrl(apiUrl, tenantId, projectId, 'datasets');
-
-  try {
-    const response = await apiFetch(url, {
-      method: 'GET',
-      headers: buildHeaders(apiKey),
-    });
-
-    if (!response.ok) {
-      const errorText = await response.text();
-      const errorMessage =
-        parseError(errorText) ??
-        `Failed to list datasets: ${response.status} ${response.statusText}`;
-
-      logger.error(
-        { status: response.status, error: errorMessage },
-        'Failed to list datasets via API'
-      );
-      throw new Error(errorMessage);
+  private buildHeaders(): Record<string, string> {
+    const headers: Record<string, string> = {
+      'Content-Type': 'application/json',
+    };
+    if (this.apiKey) {
+      headers.Authorization = `Bearer ${this.apiKey}`;
     }
-
-    const result = (await response.json()) as { data: unknown[] };
-    return result.data;
-  } catch (error) {
-    logger.error({ error, tenantId, projectId }, 'Failed to list datasets');
-    throw error;
+    return headers;
   }
-}
 
-export async function getDataset(
-  tenantId: string,
-  projectId: string,
-  datasetId: string,
-  apiUrl: string,
-  apiKey?: string
-): Promise<unknown | null> {
-  logger.info({ tenantId, projectId, datasetId }, 'Getting dataset via API');
+  // ============================================================================
+  // DATASETS
+  // ============================================================================
 
-  const url = buildUrl(apiUrl, tenantId, projectId, 'datasets', datasetId);
+  async listDatasets(): Promise<unknown[]> {
+    logger.info({ tenantId: this.tenantId, projectId: this.projectId }, 'Listing datasets via API');
 
-  try {
-    const response = await apiFetch(url, {
-      method: 'GET',
-      headers: buildHeaders(apiKey),
-    });
+    const url = this.buildUrl('datasets');
 
-    if (!response.ok) {
-      if (response.status === 404) {
-        logger.info({ datasetId }, 'Dataset not found');
-        return null;
+    try {
+      const response = await apiFetch(url, {
+        method: 'GET',
+        headers: this.buildHeaders(),
+      });
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        const errorMessage =
+          parseError(errorText) ??
+          `Failed to list datasets: ${response.status} ${response.statusText}`;
+
+        logger.error(
+          { status: response.status, error: errorMessage },
+          'Failed to list datasets via API'
+        );
+        throw new Error(errorMessage);
       }
 
-      const errorText = await response.text();
-      const errorMessage =
-        parseError(errorText) ?? `Failed to get dataset: ${response.status} ${response.statusText}`;
-
+      const result = (await response.json()) as { data: unknown[] };
+      return result.data;
+    } catch (error) {
       logger.error(
-        { status: response.status, error: errorMessage },
-        'Failed to get dataset via API'
+        { error, tenantId: this.tenantId, projectId: this.projectId },
+        'Failed to list datasets'
       );
-      throw new Error(errorMessage);
+      throw error;
     }
-
-    const result = (await response.json()) as { data: unknown };
-    return result.data;
-  } catch (error) {
-    logger.error({ error, tenantId, projectId, datasetId }, 'Failed to get dataset');
-    throw error;
   }
-}
 
-export async function createDataset(
-  tenantId: string,
-  projectId: string,
-  apiUrl: string,
-  datasetData: Record<string, unknown>,
-  apiKey?: string
-): Promise<unknown> {
-  logger.info({ tenantId, projectId }, 'Creating dataset via API');
+  async getDataset(datasetId: string): Promise<unknown | null> {
+    logger.info(
+      { tenantId: this.tenantId, projectId: this.projectId, datasetId },
+      'Getting dataset via API'
+    );
 
-  const url = buildUrl(apiUrl, tenantId, projectId, 'datasets');
+    const url = this.buildUrl('datasets', datasetId);
 
-  try {
-    const response = await apiFetch(url, {
-      method: 'POST',
-      headers: buildHeaders(apiKey),
-      body: JSON.stringify(datasetData),
-    });
+    try {
+      const response = await apiFetch(url, {
+        method: 'GET',
+        headers: this.buildHeaders(),
+      });
 
-    if (!response.ok) {
-      const errorText = await response.text();
-      const errorMessage =
-        parseError(errorText) ??
-        `Failed to create dataset: ${response.status} ${response.statusText}`;
+      if (!response.ok) {
+        if (response.status === 404) {
+          logger.info({ datasetId }, 'Dataset not found');
+          return null;
+        }
 
-      logger.error(
-        { status: response.status, error: errorMessage },
-        'Failed to create dataset via API'
-      );
-      throw new Error(errorMessage);
-    }
+        const errorText = await response.text();
+        const errorMessage =
+          parseError(errorText) ??
+          `Failed to get dataset: ${response.status} ${response.statusText}`;
 
-    const result = (await response.json()) as { data: unknown };
-    logger.info({ tenantId, projectId }, 'Successfully created dataset via API');
-    return result.data;
-  } catch (error) {
-    logger.error({ error, tenantId, projectId }, 'Failed to create dataset');
-    throw error;
-  }
-}
-
-export async function updateDataset(
-  tenantId: string,
-  projectId: string,
-  datasetId: string,
-  apiUrl: string,
-  updateData: Record<string, unknown>,
-  apiKey?: string
-): Promise<unknown> {
-  logger.info({ tenantId, projectId, datasetId }, 'Updating dataset via API');
-
-  const url = buildUrl(apiUrl, tenantId, projectId, 'datasets', datasetId);
-
-  try {
-    const response = await apiFetch(url, {
-      method: 'PATCH',
-      headers: buildHeaders(apiKey),
-      body: JSON.stringify(updateData),
-    });
-
-    if (!response.ok) {
-      const errorText = await response.text();
-      const errorMessage =
-        parseError(errorText) ??
-        `Failed to update dataset: ${response.status} ${response.statusText}`;
-
-      logger.error(
-        { status: response.status, error: errorMessage },
-        'Failed to update dataset via API'
-      );
-      throw new Error(errorMessage);
-    }
-
-    const result = (await response.json()) as { data: unknown };
-    logger.info({ tenantId, projectId, datasetId }, 'Successfully updated dataset via API');
-    return result.data;
-  } catch (error) {
-    logger.error({ error, tenantId, projectId, datasetId }, 'Failed to update dataset');
-    throw error;
-  }
-}
-
-export async function deleteDataset(
-  tenantId: string,
-  projectId: string,
-  datasetId: string,
-  apiUrl: string,
-  apiKey?: string
-): Promise<void> {
-  logger.info({ tenantId, projectId, datasetId }, 'Deleting dataset via API');
-
-  const url = buildUrl(apiUrl, tenantId, projectId, 'datasets', datasetId);
-
-  try {
-    const response = await apiFetch(url, {
-      method: 'DELETE',
-      headers: buildHeaders(apiKey),
-    });
-
-    if (!response.ok) {
-      const errorText = await response.text();
-      const errorMessage =
-        parseError(errorText) ??
-        `Failed to delete dataset: ${response.status} ${response.statusText}`;
-
-      logger.error(
-        { status: response.status, error: errorMessage },
-        'Failed to delete dataset via API'
-      );
-      throw new Error(errorMessage);
-    }
-
-    logger.info({ tenantId, projectId, datasetId }, 'Successfully deleted dataset via API');
-  } catch (error) {
-    logger.error({ error, tenantId, projectId, datasetId }, 'Failed to delete dataset');
-    throw error;
-  }
-}
-
-// ============================================================================
-// DATASET ITEMS
-// ============================================================================
-
-export async function listDatasetItems(
-  tenantId: string,
-  projectId: string,
-  datasetId: string,
-  apiUrl: string,
-  apiKey?: string
-): Promise<unknown[]> {
-  logger.info({ tenantId, projectId, datasetId }, 'Listing dataset items via API');
-
-  const url = buildUrl(apiUrl, tenantId, projectId, 'dataset-items', datasetId);
-
-  try {
-    const response = await apiFetch(url, {
-      method: 'GET',
-      headers: buildHeaders(apiKey),
-    });
-
-    if (!response.ok) {
-      const errorText = await response.text();
-      const errorMessage =
-        parseError(errorText) ??
-        `Failed to list dataset items: ${response.status} ${response.statusText}`;
-
-      logger.error(
-        { status: response.status, error: errorMessage },
-        'Failed to list dataset items via API'
-      );
-      throw new Error(errorMessage);
-    }
-
-    const result = (await response.json()) as { data: unknown[] };
-    return result.data;
-  } catch (error) {
-    logger.error({ error, tenantId, projectId, datasetId }, 'Failed to list dataset items');
-    throw error;
-  }
-}
-
-export async function getDatasetItem(
-  tenantId: string,
-  projectId: string,
-  datasetId: string,
-  itemId: string,
-  apiUrl: string,
-  apiKey?: string
-): Promise<unknown | null> {
-  logger.info({ tenantId, projectId, datasetId, itemId }, 'Getting dataset item via API');
-
-  const url = buildUrl(apiUrl, tenantId, projectId, 'dataset-items', datasetId, 'items', itemId);
-
-  try {
-    const response = await apiFetch(url, {
-      method: 'GET',
-      headers: buildHeaders(apiKey),
-    });
-
-    if (!response.ok) {
-      if (response.status === 404) {
-        logger.info({ itemId }, 'Dataset item not found');
-        return null;
+        logger.error(
+          { status: response.status, error: errorMessage },
+          'Failed to get dataset via API'
+        );
+        throw new Error(errorMessage);
       }
 
-      const errorText = await response.text();
-      const errorMessage =
-        parseError(errorText) ??
-        `Failed to get dataset item: ${response.status} ${response.statusText}`;
-
+      const result = (await response.json()) as { data: unknown };
+      return result.data;
+    } catch (error) {
       logger.error(
-        { status: response.status, error: errorMessage },
-        'Failed to get dataset item via API'
+        { error, tenantId: this.tenantId, projectId: this.projectId, datasetId },
+        'Failed to get dataset'
       );
-      throw new Error(errorMessage);
+      throw error;
     }
-
-    const result = (await response.json()) as { data: unknown };
-    return result.data;
-  } catch (error) {
-    logger.error({ error, tenantId, projectId, datasetId, itemId }, 'Failed to get dataset item');
-    throw error;
   }
-}
 
-export async function createDatasetItem(
-  tenantId: string,
-  projectId: string,
-  datasetId: string,
-  apiUrl: string,
-  itemData: Record<string, unknown>,
-  apiKey?: string
-): Promise<unknown> {
-  logger.info({ tenantId, projectId, datasetId }, 'Creating dataset item via API');
-
-  const url = buildUrl(apiUrl, tenantId, projectId, 'dataset-items', datasetId, 'items');
-
-  try {
-    const response = await apiFetch(url, {
-      method: 'POST',
-      headers: buildHeaders(apiKey),
-      body: JSON.stringify(itemData),
-    });
-
-    if (!response.ok) {
-      const errorText = await response.text();
-      const errorMessage =
-        parseError(errorText) ??
-        `Failed to create dataset item: ${response.status} ${response.statusText}`;
-
-      logger.error(
-        { status: response.status, error: errorMessage },
-        'Failed to create dataset item via API'
-      );
-      throw new Error(errorMessage);
-    }
-
-    const result = (await response.json()) as { data: unknown };
-    logger.info({ tenantId, projectId, datasetId }, 'Successfully created dataset item via API');
-    return result.data;
-  } catch (error) {
-    logger.error({ error, tenantId, projectId, datasetId }, 'Failed to create dataset item');
-    throw error;
-  }
-}
-
-export async function createDatasetItems(
-  tenantId: string,
-  projectId: string,
-  datasetId: string,
-  apiUrl: string,
-  itemsData: Record<string, unknown>[],
-  apiKey?: string
-): Promise<unknown[]> {
-  logger.info(
-    { tenantId, projectId, datasetId, count: itemsData.length },
-    'Creating dataset items via API'
-  );
-
-  const url = buildUrl(apiUrl, tenantId, projectId, 'dataset-items', datasetId, 'items', 'bulk');
-
-  try {
-    const response = await apiFetch(url, {
-      method: 'POST',
-      headers: buildHeaders(apiKey),
-      body: JSON.stringify(itemsData),
-    });
-
-    if (!response.ok) {
-      const errorText = await response.text();
-      const errorMessage =
-        parseError(errorText) ??
-        `Failed to create dataset items: ${response.status} ${response.statusText}`;
-
-      logger.error(
-        { status: response.status, error: errorMessage },
-        'Failed to create dataset items via API'
-      );
-      throw new Error(errorMessage);
-    }
-
-    const result = (await response.json()) as { data: unknown[] };
+  async createDataset(datasetData: Record<string, unknown>): Promise<unknown> {
     logger.info(
-      { tenantId, projectId, datasetId, count: result.data.length },
-      'Successfully created dataset items via API'
+      { tenantId: this.tenantId, projectId: this.projectId },
+      'Creating dataset via API'
     );
-    return result.data;
-  } catch (error) {
-    logger.error({ error, tenantId, projectId, datasetId }, 'Failed to create dataset items');
-    throw error;
-  }
-}
 
-export async function updateDatasetItem(
-  tenantId: string,
-  projectId: string,
-  datasetId: string,
-  itemId: string,
-  apiUrl: string,
-  updateData: Record<string, unknown>,
-  apiKey?: string
-): Promise<unknown> {
-  logger.info({ tenantId, projectId, datasetId, itemId }, 'Updating dataset item via API');
+    const url = this.buildUrl('datasets');
 
-  const url = buildUrl(apiUrl, tenantId, projectId, 'dataset-items', datasetId, 'items', itemId);
+    try {
+      const response = await apiFetch(url, {
+        method: 'POST',
+        headers: this.buildHeaders(),
+        body: JSON.stringify(datasetData),
+      });
 
-  try {
-    const response = await apiFetch(url, {
-      method: 'PATCH',
-      headers: buildHeaders(apiKey),
-      body: JSON.stringify(updateData),
-    });
+      if (!response.ok) {
+        const errorText = await response.text();
+        const errorMessage =
+          parseError(errorText) ??
+          `Failed to create dataset: ${response.status} ${response.statusText}`;
 
-    if (!response.ok) {
-      const errorText = await response.text();
-      const errorMessage =
-        parseError(errorText) ??
-        `Failed to update dataset item: ${response.status} ${response.statusText}`;
-
-      logger.error(
-        { status: response.status, error: errorMessage },
-        'Failed to update dataset item via API'
-      );
-      throw new Error(errorMessage);
-    }
-
-    const result = (await response.json()) as { data: unknown };
-    logger.info(
-      { tenantId, projectId, datasetId, itemId },
-      'Successfully updated dataset item via API'
-    );
-    return result.data;
-  } catch (error) {
-    logger.error(
-      { error, tenantId, projectId, datasetId, itemId },
-      'Failed to update dataset item'
-    );
-    throw error;
-  }
-}
-
-export async function deleteDatasetItem(
-  tenantId: string,
-  projectId: string,
-  datasetId: string,
-  itemId: string,
-  apiUrl: string,
-  apiKey?: string
-): Promise<void> {
-  logger.info({ tenantId, projectId, datasetId, itemId }, 'Deleting dataset item via API');
-
-  const url = buildUrl(apiUrl, tenantId, projectId, 'dataset-items', datasetId, 'items', itemId);
-
-  try {
-    const response = await apiFetch(url, {
-      method: 'DELETE',
-      headers: buildHeaders(apiKey),
-    });
-
-    if (!response.ok) {
-      const errorText = await response.text();
-      const errorMessage =
-        parseError(errorText) ??
-        `Failed to delete dataset item: ${response.status} ${response.statusText}`;
-
-      logger.error(
-        { status: response.status, error: errorMessage },
-        'Failed to delete dataset item via API'
-      );
-      throw new Error(errorMessage);
-    }
-
-    logger.info(
-      { tenantId, projectId, datasetId, itemId },
-      'Successfully deleted dataset item via API'
-    );
-  } catch (error) {
-    logger.error(
-      { error, tenantId, projectId, datasetId, itemId },
-      'Failed to delete dataset item'
-    );
-    throw error;
-  }
-}
-
-// ============================================================================
-// EVALUATORS
-// ============================================================================
-
-export async function listEvaluators(
-  tenantId: string,
-  projectId: string,
-  apiUrl: string,
-  apiKey?: string
-): Promise<unknown[]> {
-  logger.info({ tenantId, projectId }, 'Listing evaluators via API');
-
-  const url = buildUrl(apiUrl, tenantId, projectId, 'evaluators');
-
-  try {
-    const response = await apiFetch(url, {
-      method: 'GET',
-      headers: buildHeaders(apiKey),
-    });
-
-    if (!response.ok) {
-      const errorText = await response.text();
-      const errorMessage =
-        parseError(errorText) ??
-        `Failed to list evaluators: ${response.status} ${response.statusText}`;
-
-      logger.error(
-        { status: response.status, error: errorMessage },
-        'Failed to list evaluators via API'
-      );
-      throw new Error(errorMessage);
-    }
-
-    const result = (await response.json()) as { data: unknown[] };
-    return result.data;
-  } catch (error) {
-    logger.error({ error, tenantId, projectId }, 'Failed to list evaluators');
-    throw error;
-  }
-}
-
-export async function getEvaluator(
-  tenantId: string,
-  projectId: string,
-  evaluatorId: string,
-  apiUrl: string,
-  apiKey?: string
-): Promise<unknown | null> {
-  logger.info({ tenantId, projectId, evaluatorId }, 'Getting evaluator via API');
-
-  const url = buildUrl(apiUrl, tenantId, projectId, 'evaluators', evaluatorId);
-
-  try {
-    const response = await apiFetch(url, {
-      method: 'GET',
-      headers: buildHeaders(apiKey),
-    });
-
-    if (!response.ok) {
-      if (response.status === 404) {
-        logger.info({ evaluatorId }, 'Evaluator not found');
-        return null;
+        logger.error(
+          { status: response.status, error: errorMessage },
+          'Failed to create dataset via API'
+        );
+        throw new Error(errorMessage);
       }
 
-      const errorText = await response.text();
-      const errorMessage =
-        parseError(errorText) ??
-        `Failed to get evaluator: ${response.status} ${response.statusText}`;
-
-      logger.error(
-        { status: response.status, error: errorMessage },
-        'Failed to get evaluator via API'
+      const result = (await response.json()) as { data: unknown };
+      logger.info(
+        { tenantId: this.tenantId, projectId: this.projectId },
+        'Successfully created dataset via API'
       );
-      throw new Error(errorMessage);
-    }
-
-    const result = (await response.json()) as { data: unknown };
-    return result.data;
-  } catch (error) {
-    logger.error({ error, tenantId, projectId, evaluatorId }, 'Failed to get evaluator');
-    throw error;
-  }
-}
-
-export async function createEvaluator(
-  tenantId: string,
-  projectId: string,
-  apiUrl: string,
-  evaluatorData: Record<string, unknown>,
-  apiKey?: string
-): Promise<unknown> {
-  logger.info({ tenantId, projectId }, 'Creating evaluator via API');
-
-  const url = buildUrl(apiUrl, tenantId, projectId, 'evaluators');
-
-  try {
-    const response = await apiFetch(url, {
-      method: 'POST',
-      headers: buildHeaders(apiKey),
-      body: JSON.stringify(evaluatorData),
-    });
-
-    if (!response.ok) {
-      const errorText = await response.text();
-      const errorMessage =
-        parseError(errorText) ??
-        `Failed to create evaluator: ${response.status} ${response.statusText}`;
-
+      return result.data;
+    } catch (error) {
       logger.error(
-        { status: response.status, error: errorMessage },
-        'Failed to create evaluator via API'
+        { error, tenantId: this.tenantId, projectId: this.projectId },
+        'Failed to create dataset'
       );
-      throw new Error(errorMessage);
+      throw error;
     }
-
-    const result = (await response.json()) as { data: unknown };
-    logger.info({ tenantId, projectId }, 'Successfully created evaluator via API');
-    return result.data;
-  } catch (error) {
-    logger.error({ error, tenantId, projectId }, 'Failed to create evaluator');
-    throw error;
   }
-}
 
-export async function updateEvaluator(
-  tenantId: string,
-  projectId: string,
-  evaluatorId: string,
-  apiUrl: string,
-  updateData: Record<string, unknown>,
-  apiKey?: string
-): Promise<unknown> {
-  logger.info({ tenantId, projectId, evaluatorId }, 'Updating evaluator via API');
+  async updateDataset(datasetId: string, updateData: Record<string, unknown>): Promise<unknown> {
+    logger.info(
+      { tenantId: this.tenantId, projectId: this.projectId, datasetId },
+      'Updating dataset via API'
+    );
 
-  const url = buildUrl(apiUrl, tenantId, projectId, 'evaluators', evaluatorId);
+    const url = this.buildUrl('datasets', datasetId);
 
-  try {
-    const response = await apiFetch(url, {
-      method: 'PATCH',
-      headers: buildHeaders(apiKey),
-      body: JSON.stringify(updateData),
-    });
+    try {
+      const response = await apiFetch(url, {
+        method: 'PATCH',
+        headers: this.buildHeaders(),
+        body: JSON.stringify(updateData),
+      });
 
-    if (!response.ok) {
-      const errorText = await response.text();
-      const errorMessage =
-        parseError(errorText) ??
-        `Failed to update evaluator: ${response.status} ${response.statusText}`;
+      if (!response.ok) {
+        const errorText = await response.text();
+        const errorMessage =
+          parseError(errorText) ??
+          `Failed to update dataset: ${response.status} ${response.statusText}`;
 
-      logger.error(
-        { status: response.status, error: errorMessage },
-        'Failed to update evaluator via API'
-      );
-      throw new Error(errorMessage);
-    }
-
-    const result = (await response.json()) as { data: unknown };
-    logger.info({ tenantId, projectId, evaluatorId }, 'Successfully updated evaluator via API');
-    return result.data;
-  } catch (error) {
-    logger.error({ error, tenantId, projectId, evaluatorId }, 'Failed to update evaluator');
-    throw error;
-  }
-}
-
-export async function deleteEvaluator(
-  tenantId: string,
-  projectId: string,
-  evaluatorId: string,
-  apiUrl: string,
-  apiKey?: string
-): Promise<void> {
-  logger.info({ tenantId, projectId, evaluatorId }, 'Deleting evaluator via API');
-
-  const url = buildUrl(apiUrl, tenantId, projectId, 'evaluators', evaluatorId);
-
-  try {
-    const response = await apiFetch(url, {
-      method: 'DELETE',
-      headers: buildHeaders(apiKey),
-    });
-
-    if (!response.ok) {
-      const errorText = await response.text();
-      const errorMessage =
-        parseError(errorText) ??
-        `Failed to delete evaluator: ${response.status} ${response.statusText}`;
-
-      logger.error(
-        { status: response.status, error: errorMessage },
-        'Failed to delete evaluator via API'
-      );
-      throw new Error(errorMessage);
-    }
-
-    logger.info({ tenantId, projectId, evaluatorId }, 'Successfully deleted evaluator via API');
-  } catch (error) {
-    logger.error({ error, tenantId, projectId, evaluatorId }, 'Failed to delete evaluator');
-    throw error;
-  }
-}
-
-// ============================================================================
-// EVALUATION SUITE CONFIGS
-// ============================================================================
-
-export async function listEvaluationSuiteConfigs(
-  tenantId: string,
-  projectId: string,
-  apiUrl: string,
-  apiKey?: string
-): Promise<unknown[]> {
-  logger.info({ tenantId, projectId }, 'Listing evaluation suite configs via API');
-
-  const url = buildUrl(apiUrl, tenantId, projectId, 'evaluation-suite-configs');
-
-  try {
-    const response = await apiFetch(url, {
-      method: 'GET',
-      headers: buildHeaders(apiKey),
-    });
-
-    if (!response.ok) {
-      const errorText = await response.text();
-      const errorMessage =
-        parseError(errorText) ??
-        `Failed to list evaluation suite configs: ${response.status} ${response.statusText}`;
-
-      logger.error(
-        { status: response.status, error: errorMessage },
-        'Failed to list evaluation suite configs via API'
-      );
-      throw new Error(errorMessage);
-    }
-
-    const result = (await response.json()) as { data: unknown[] };
-    return result.data;
-  } catch (error) {
-    logger.error({ error, tenantId, projectId }, 'Failed to list evaluation suite configs');
-    throw error;
-  }
-}
-
-export async function getEvaluationSuiteConfig(
-  tenantId: string,
-  projectId: string,
-  configId: string,
-  apiUrl: string,
-  apiKey?: string
-): Promise<unknown | null> {
-  logger.info({ tenantId, projectId, configId }, 'Getting evaluation suite config via API');
-
-  const url = buildUrl(apiUrl, tenantId, projectId, 'evaluation-suite-configs', configId);
-
-  try {
-    const response = await apiFetch(url, {
-      method: 'GET',
-      headers: buildHeaders(apiKey),
-    });
-
-    if (!response.ok) {
-      if (response.status === 404) {
-        logger.info({ configId }, 'Evaluation suite config not found');
-        return null;
+        logger.error(
+          { status: response.status, error: errorMessage },
+          'Failed to update dataset via API'
+        );
+        throw new Error(errorMessage);
       }
 
-      const errorText = await response.text();
-      const errorMessage =
-        parseError(errorText) ??
-        `Failed to get evaluation suite config: ${response.status} ${response.statusText}`;
-
-      logger.error(
-        { status: response.status, error: errorMessage },
-        'Failed to get evaluation suite config via API'
+      const result = (await response.json()) as { data: unknown };
+      logger.info(
+        { tenantId: this.tenantId, projectId: this.projectId, datasetId },
+        'Successfully updated dataset via API'
       );
-      throw new Error(errorMessage);
+      return result.data;
+    } catch (error) {
+      logger.error(
+        { error, tenantId: this.tenantId, projectId: this.projectId, datasetId },
+        'Failed to update dataset'
+      );
+      throw error;
     }
-
-    const result = (await response.json()) as { data: unknown };
-    return result.data;
-  } catch (error) {
-    logger.error({ error, tenantId, projectId, configId }, 'Failed to get evaluation suite config');
-    throw error;
   }
-}
 
-export async function createEvaluationSuiteConfig(
-  tenantId: string,
-  projectId: string,
-  apiUrl: string,
-  configData: Record<string, unknown>,
-  apiKey?: string
-): Promise<unknown> {
-  logger.info({ tenantId, projectId }, 'Creating evaluation suite config via API');
-
-  const url = buildUrl(apiUrl, tenantId, projectId, 'evaluation-suite-configs');
-
-  try {
-    const response = await apiFetch(url, {
-      method: 'POST',
-      headers: buildHeaders(apiKey),
-      body: JSON.stringify(configData),
-    });
-
-    if (!response.ok) {
-      const errorText = await response.text();
-      const errorMessage =
-        parseError(errorText) ??
-        `Failed to create evaluation suite config: ${response.status} ${response.statusText}`;
-
-      logger.error(
-        { status: response.status, error: errorMessage },
-        'Failed to create evaluation suite config via API'
-      );
-      throw new Error(errorMessage);
-    }
-
-    const result = (await response.json()) as { data: unknown };
-    logger.info({ tenantId, projectId }, 'Successfully created evaluation suite config via API');
-    return result.data;
-  } catch (error) {
-    logger.error({ error, tenantId, projectId }, 'Failed to create evaluation suite config');
-    throw error;
-  }
-}
-
-export async function updateEvaluationSuiteConfig(
-  tenantId: string,
-  projectId: string,
-  configId: string,
-  apiUrl: string,
-  updateData: Record<string, unknown>,
-  apiKey?: string
-): Promise<unknown> {
-  logger.info({ tenantId, projectId, configId }, 'Updating evaluation suite config via API');
-
-  const url = buildUrl(apiUrl, tenantId, projectId, 'evaluation-suite-configs', configId);
-
-  try {
-    const response = await apiFetch(url, {
-      method: 'PATCH',
-      headers: buildHeaders(apiKey),
-      body: JSON.stringify(updateData),
-    });
-
-    if (!response.ok) {
-      const errorText = await response.text();
-      const errorMessage =
-        parseError(errorText) ??
-        `Failed to update evaluation suite config: ${response.status} ${response.statusText}`;
-
-      logger.error(
-        { status: response.status, error: errorMessage },
-        'Failed to update evaluation suite config via API'
-      );
-      throw new Error(errorMessage);
-    }
-
-    const result = (await response.json()) as { data: unknown };
+  async deleteDataset(datasetId: string): Promise<void> {
     logger.info(
-      { tenantId, projectId, configId },
-      'Successfully updated evaluation suite config via API'
+      { tenantId: this.tenantId, projectId: this.projectId, datasetId },
+      'Deleting dataset via API'
     );
-    return result.data;
-  } catch (error) {
-    logger.error(
-      { error, tenantId, projectId, configId },
-      'Failed to update evaluation suite config'
-    );
-    throw error;
-  }
-}
 
-export async function deleteEvaluationSuiteConfig(
-  tenantId: string,
-  projectId: string,
-  configId: string,
-  apiUrl: string,
-  apiKey?: string
-): Promise<void> {
-  logger.info({ tenantId, projectId, configId }, 'Deleting evaluation suite config via API');
+    const url = this.buildUrl('datasets', datasetId);
 
-  const url = buildUrl(apiUrl, tenantId, projectId, 'evaluation-suite-configs', configId);
+    try {
+      const response = await apiFetch(url, {
+        method: 'DELETE',
+        headers: this.buildHeaders(),
+      });
 
-  try {
-    const response = await apiFetch(url, {
-      method: 'DELETE',
-      headers: buildHeaders(apiKey),
-    });
+      if (!response.ok) {
+        const errorText = await response.text();
+        const errorMessage =
+          parseError(errorText) ??
+          `Failed to delete dataset: ${response.status} ${response.statusText}`;
 
-    if (!response.ok) {
-      const errorText = await response.text();
-      const errorMessage =
-        parseError(errorText) ??
-        `Failed to delete evaluation suite config: ${response.status} ${response.statusText}`;
-
-      logger.error(
-        { status: response.status, error: errorMessage },
-        'Failed to delete evaluation suite config via API'
-      );
-      throw new Error(errorMessage);
-    }
-
-    logger.info(
-      { tenantId, projectId, configId },
-      'Successfully deleted evaluation suite config via API'
-    );
-  } catch (error) {
-    logger.error(
-      { error, tenantId, projectId, configId },
-      'Failed to delete evaluation suite config'
-    );
-    throw error;
-  }
-}
-
-// ============================================================================
-// EVALUATION SUITE CONFIG EVALUATOR RELATIONS
-// ============================================================================
-
-export async function listEvaluationSuiteConfigEvaluators(
-  tenantId: string,
-  projectId: string,
-  configId: string,
-  apiUrl: string,
-  apiKey?: string
-): Promise<unknown[]> {
-  logger.info(
-    { tenantId, projectId, configId },
-    'Listing evaluators for evaluation suite config via API'
-  );
-
-  const url = buildUrl(
-    apiUrl,
-    tenantId,
-    projectId,
-    'evaluation-suite-configs',
-    configId,
-    'evaluators'
-  );
-
-  try {
-    const response = await apiFetch(url, {
-      method: 'GET',
-      headers: buildHeaders(apiKey),
-    });
-
-    if (!response.ok) {
-      const errorText = await response.text();
-      const errorMessage =
-        parseError(errorText) ??
-        `Failed to list evaluators for evaluation suite config: ${response.status} ${response.statusText}`;
-
-      logger.error(
-        { status: response.status, error: errorMessage },
-        'Failed to list evaluators for evaluation suite config via API'
-      );
-      throw new Error(errorMessage);
-    }
-
-    const result = (await response.json()) as { data: unknown[] };
-    return result.data;
-  } catch (error) {
-    logger.error(
-      { error, tenantId, projectId, configId },
-      'Failed to list evaluators for evaluation suite config'
-    );
-    throw error;
-  }
-}
-
-export async function addEvaluatorToSuiteConfig(
-  tenantId: string,
-  projectId: string,
-  configId: string,
-  evaluatorId: string,
-  apiUrl: string,
-  apiKey?: string
-): Promise<unknown> {
-  logger.info(
-    { tenantId, projectId, configId, evaluatorId },
-    'Adding evaluator to evaluation suite config via API'
-  );
-
-  const url = buildUrl(
-    apiUrl,
-    tenantId,
-    projectId,
-    'evaluation-suite-configs',
-    configId,
-    'evaluators',
-    evaluatorId
-  );
-
-  try {
-    const response = await apiFetch(url, {
-      method: 'POST',
-      headers: buildHeaders(apiKey),
-    });
-
-    if (!response.ok) {
-      const errorText = await response.text();
-      const errorMessage =
-        parseError(errorText) ??
-        `Failed to add evaluator to evaluation suite config: ${response.status} ${response.statusText}`;
-
-      logger.error(
-        { status: response.status, error: errorMessage },
-        'Failed to add evaluator to evaluation suite config via API'
-      );
-      throw new Error(errorMessage);
-    }
-
-    const result = (await response.json()) as { data: unknown };
-    logger.info(
-      { tenantId, projectId, configId, evaluatorId },
-      'Successfully added evaluator to evaluation suite config via API'
-    );
-    return result.data;
-  } catch (error) {
-    logger.error(
-      { error, tenantId, projectId, configId, evaluatorId },
-      'Failed to add evaluator to evaluation suite config'
-    );
-    throw error;
-  }
-}
-
-export async function removeEvaluatorFromSuiteConfig(
-  tenantId: string,
-  projectId: string,
-  configId: string,
-  evaluatorId: string,
-  apiUrl: string,
-  apiKey?: string
-): Promise<void> {
-  logger.info(
-    { tenantId, projectId, configId, evaluatorId },
-    'Removing evaluator from evaluation suite config via API'
-  );
-
-  const url = buildUrl(
-    apiUrl,
-    tenantId,
-    projectId,
-    'evaluation-suite-configs',
-    configId,
-    'evaluators',
-    evaluatorId
-  );
-
-  try {
-    const response = await apiFetch(url, {
-      method: 'DELETE',
-      headers: buildHeaders(apiKey),
-    });
-
-    if (!response.ok) {
-      const errorText = await response.text();
-      const errorMessage =
-        parseError(errorText) ??
-        `Failed to remove evaluator from evaluation suite config: ${response.status} ${response.statusText}`;
-
-      logger.error(
-        { status: response.status, error: errorMessage },
-        'Failed to remove evaluator from evaluation suite config via API'
-      );
-      throw new Error(errorMessage);
-    }
-
-    logger.info(
-      { tenantId, projectId, configId, evaluatorId },
-      'Successfully removed evaluator from evaluation suite config via API'
-    );
-  } catch (error) {
-    logger.error(
-      { error, tenantId, projectId, configId, evaluatorId },
-      'Failed to remove evaluator from evaluation suite config'
-    );
-    throw error;
-  }
-}
-
-// ============================================================================
-// EVALUATION RESULTS
-// ============================================================================
-
-export async function getEvaluationResult(
-  tenantId: string,
-  projectId: string,
-  resultId: string,
-  apiUrl: string,
-  apiKey?: string
-): Promise<unknown | null> {
-  logger.info({ tenantId, projectId, resultId }, 'Getting evaluation result via API');
-
-  const url = buildUrl(apiUrl, tenantId, projectId, 'evaluation-results', resultId);
-
-  try {
-    const response = await apiFetch(url, {
-      method: 'GET',
-      headers: buildHeaders(apiKey),
-    });
-
-    if (!response.ok) {
-      if (response.status === 404) {
-        logger.info({ resultId }, 'Evaluation result not found');
-        return null;
+        logger.error(
+          { status: response.status, error: errorMessage },
+          'Failed to delete dataset via API'
+        );
+        throw new Error(errorMessage);
       }
 
-      const errorText = await response.text();
-      const errorMessage =
-        parseError(errorText) ??
-        `Failed to get evaluation result: ${response.status} ${response.statusText}`;
-
-      logger.error(
-        { status: response.status, error: errorMessage },
-        'Failed to get evaluation result via API'
+      logger.info(
+        { tenantId: this.tenantId, projectId: this.projectId, datasetId },
+        'Successfully deleted dataset via API'
       );
-      throw new Error(errorMessage);
+    } catch (error) {
+      logger.error(
+        { error, tenantId: this.tenantId, projectId: this.projectId, datasetId },
+        'Failed to delete dataset'
+      );
+      throw error;
     }
-
-    const result = (await response.json()) as { data: unknown };
-    return result.data;
-  } catch (error) {
-    logger.error({ error, tenantId, projectId, resultId }, 'Failed to get evaluation result');
-    throw error;
   }
-}
 
-export async function createEvaluationResult(
-  tenantId: string,
-  projectId: string,
-  apiUrl: string,
-  resultData: Record<string, unknown>,
-  apiKey?: string
-): Promise<unknown> {
-  logger.info({ tenantId, projectId }, 'Creating evaluation result via API');
+  // ============================================================================
+  // DATASET ITEMS
+  // ============================================================================
 
-  const url = buildUrl(apiUrl, tenantId, projectId, 'evaluation-results');
-
-  try {
-    const response = await apiFetch(url, {
-      method: 'POST',
-      headers: buildHeaders(apiKey),
-      body: JSON.stringify(resultData),
-    });
-
-    if (!response.ok) {
-      const errorText = await response.text();
-      const errorMessage =
-        parseError(errorText) ??
-        `Failed to create evaluation result: ${response.status} ${response.statusText}`;
-
-      logger.error(
-        { status: response.status, error: errorMessage },
-        'Failed to create evaluation result via API'
-      );
-      throw new Error(errorMessage);
-    }
-
-    const result = (await response.json()) as { data: unknown };
-    logger.info({ tenantId, projectId }, 'Successfully created evaluation result via API');
-    return result.data;
-  } catch (error) {
-    logger.error({ error, tenantId, projectId }, 'Failed to create evaluation result');
-    throw error;
-  }
-}
-
-export async function updateEvaluationResult(
-  tenantId: string,
-  projectId: string,
-  resultId: string,
-  apiUrl: string,
-  updateData: Record<string, unknown>,
-  apiKey?: string
-): Promise<unknown> {
-  logger.info({ tenantId, projectId, resultId }, 'Updating evaluation result via API');
-
-  const url = buildUrl(apiUrl, tenantId, projectId, 'evaluation-results', resultId);
-
-  try {
-    const response = await apiFetch(url, {
-      method: 'PATCH',
-      headers: buildHeaders(apiKey),
-      body: JSON.stringify(updateData),
-    });
-
-    if (!response.ok) {
-      const errorText = await response.text();
-      const errorMessage =
-        parseError(errorText) ??
-        `Failed to update evaluation result: ${response.status} ${response.statusText}`;
-
-      logger.error(
-        { status: response.status, error: errorMessage },
-        'Failed to update evaluation result via API'
-      );
-      throw new Error(errorMessage);
-    }
-
-    const result = (await response.json()) as { data: unknown };
+  async listDatasetItems(datasetId: string): Promise<unknown[]> {
     logger.info(
-      { tenantId, projectId, resultId },
-      'Successfully updated evaluation result via API'
+      { tenantId: this.tenantId, projectId: this.projectId, datasetId },
+      'Listing dataset items via API'
     );
-    return result.data;
-  } catch (error) {
-    logger.error({ error, tenantId, projectId, resultId }, 'Failed to update evaluation result');
-    throw error;
-  }
-}
 
-export async function deleteEvaluationResult(
-  tenantId: string,
-  projectId: string,
-  resultId: string,
-  apiUrl: string,
-  apiKey?: string
-): Promise<void> {
-  logger.info({ tenantId, projectId, resultId }, 'Deleting evaluation result via API');
+    const url = this.buildUrl('dataset-items', datasetId);
 
-  const url = buildUrl(apiUrl, tenantId, projectId, 'evaluation-results', resultId);
+    try {
+      const response = await apiFetch(url, {
+        method: 'GET',
+        headers: this.buildHeaders(),
+      });
 
-  try {
-    const response = await apiFetch(url, {
-      method: 'DELETE',
-      headers: buildHeaders(apiKey),
-    });
+      if (!response.ok) {
+        const errorText = await response.text();
+        const errorMessage =
+          parseError(errorText) ??
+          `Failed to list dataset items: ${response.status} ${response.statusText}`;
 
-    if (!response.ok) {
-      const errorText = await response.text();
-      const errorMessage =
-        parseError(errorText) ??
-        `Failed to delete evaluation result: ${response.status} ${response.statusText}`;
+        logger.error(
+          { status: response.status, error: errorMessage },
+          'Failed to list dataset items via API'
+        );
+        throw new Error(errorMessage);
+      }
 
+      const result = (await response.json()) as { data: unknown[] };
+      return result.data;
+    } catch (error) {
       logger.error(
-        { status: response.status, error: errorMessage },
-        'Failed to delete evaluation result via API'
+        { error, tenantId: this.tenantId, projectId: this.projectId, datasetId },
+        'Failed to list dataset items'
       );
-      throw new Error(errorMessage);
+      throw error;
     }
-
-    logger.info(
-      { tenantId, projectId, resultId },
-      'Successfully deleted evaluation result via API'
-    );
-  } catch (error) {
-    logger.error({ error, tenantId, projectId, resultId }, 'Failed to delete evaluation result');
-    throw error;
   }
-}
 
-// ============================================================================
-// TRIGGER CONVERSATION EVALUATION
-// ============================================================================
+  async getDatasetItem(datasetId: string, itemId: string): Promise<unknown | null> {
+    logger.info(
+      { tenantId: this.tenantId, projectId: this.projectId, datasetId, itemId },
+      'Getting dataset item via API'
+    );
 
-/**
- * Trigger evaluation of specific conversations with selected evaluators.
- * Creates an evaluation job config that automatically triggers the evaluation.
- */
-export async function triggerConversationEvaluation(
-  tenantId: string,
-  projectId: string,
-  apiUrl: string,
-  evaluationData: {
+    const url = this.buildUrl('dataset-items', datasetId, 'items', itemId);
+
+    try {
+      const response = await apiFetch(url, {
+        method: 'GET',
+        headers: this.buildHeaders(),
+      });
+
+      if (!response.ok) {
+        if (response.status === 404) {
+          logger.info({ itemId }, 'Dataset item not found');
+          return null;
+        }
+
+        const errorText = await response.text();
+        const errorMessage =
+          parseError(errorText) ??
+          `Failed to get dataset item: ${response.status} ${response.statusText}`;
+
+        logger.error(
+          { status: response.status, error: errorMessage },
+          'Failed to get dataset item via API'
+        );
+        throw new Error(errorMessage);
+      }
+
+      const result = (await response.json()) as { data: unknown };
+      return result.data;
+    } catch (error) {
+      logger.error(
+        { error, tenantId: this.tenantId, projectId: this.projectId, datasetId, itemId },
+        'Failed to get dataset item'
+      );
+      throw error;
+    }
+  }
+
+  async createDatasetItem(datasetId: string, itemData: Record<string, unknown>): Promise<unknown> {
+    logger.info(
+      { tenantId: this.tenantId, projectId: this.projectId, datasetId },
+      'Creating dataset item via API'
+    );
+
+    const url = this.buildUrl('dataset-items', datasetId, 'items');
+
+    try {
+      const response = await apiFetch(url, {
+        method: 'POST',
+        headers: this.buildHeaders(),
+        body: JSON.stringify(itemData),
+      });
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        const errorMessage =
+          parseError(errorText) ??
+          `Failed to create dataset item: ${response.status} ${response.statusText}`;
+
+        logger.error(
+          { status: response.status, error: errorMessage },
+          'Failed to create dataset item via API'
+        );
+        throw new Error(errorMessage);
+      }
+
+      const result = (await response.json()) as { data: unknown };
+      logger.info(
+        { tenantId: this.tenantId, projectId: this.projectId, datasetId },
+        'Successfully created dataset item via API'
+      );
+      return result.data;
+    } catch (error) {
+      logger.error(
+        { error, tenantId: this.tenantId, projectId: this.projectId, datasetId },
+        'Failed to create dataset item'
+      );
+      throw error;
+    }
+  }
+
+  async createDatasetItems(
+    datasetId: string,
+    itemsData: Record<string, unknown>[]
+  ): Promise<unknown[]> {
+    logger.info(
+      { tenantId: this.tenantId, projectId: this.projectId, datasetId, count: itemsData.length },
+      'Creating dataset items via API'
+    );
+
+    const url = this.buildUrl('dataset-items', datasetId, 'items', 'bulk');
+
+    try {
+      const response = await apiFetch(url, {
+        method: 'POST',
+        headers: this.buildHeaders(),
+        body: JSON.stringify(itemsData),
+      });
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        const errorMessage =
+          parseError(errorText) ??
+          `Failed to create dataset items: ${response.status} ${response.statusText}`;
+
+        logger.error(
+          { status: response.status, error: errorMessage },
+          'Failed to create dataset items via API'
+        );
+        throw new Error(errorMessage);
+      }
+
+      const result = (await response.json()) as { data: unknown[] };
+      logger.info(
+        {
+          tenantId: this.tenantId,
+          projectId: this.projectId,
+          datasetId,
+          count: result.data.length,
+        },
+        'Successfully created dataset items via API'
+      );
+      return result.data;
+    } catch (error) {
+      logger.error(
+        { error, tenantId: this.tenantId, projectId: this.projectId, datasetId },
+        'Failed to create dataset items'
+      );
+      throw error;
+    }
+  }
+
+  async updateDatasetItem(
+    datasetId: string,
+    itemId: string,
+    updateData: Record<string, unknown>
+  ): Promise<unknown> {
+    logger.info(
+      { tenantId: this.tenantId, projectId: this.projectId, datasetId, itemId },
+      'Updating dataset item via API'
+    );
+
+    const url = this.buildUrl('dataset-items', datasetId, 'items', itemId);
+
+    try {
+      const response = await apiFetch(url, {
+        method: 'PATCH',
+        headers: this.buildHeaders(),
+        body: JSON.stringify(updateData),
+      });
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        const errorMessage =
+          parseError(errorText) ??
+          `Failed to update dataset item: ${response.status} ${response.statusText}`;
+
+        logger.error(
+          { status: response.status, error: errorMessage },
+          'Failed to update dataset item via API'
+        );
+        throw new Error(errorMessage);
+      }
+
+      const result = (await response.json()) as { data: unknown };
+      logger.info(
+        { tenantId: this.tenantId, projectId: this.projectId, datasetId, itemId },
+        'Successfully updated dataset item via API'
+      );
+      return result.data;
+    } catch (error) {
+      logger.error(
+        { error, tenantId: this.tenantId, projectId: this.projectId, datasetId, itemId },
+        'Failed to update dataset item'
+      );
+      throw error;
+    }
+  }
+
+  async deleteDatasetItem(datasetId: string, itemId: string): Promise<void> {
+    logger.info(
+      { tenantId: this.tenantId, projectId: this.projectId, datasetId, itemId },
+      'Deleting dataset item via API'
+    );
+
+    const url = this.buildUrl('dataset-items', datasetId, 'items', itemId);
+
+    try {
+      const response = await apiFetch(url, {
+        method: 'DELETE',
+        headers: this.buildHeaders(),
+      });
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        const errorMessage =
+          parseError(errorText) ??
+          `Failed to delete dataset item: ${response.status} ${response.statusText}`;
+
+        logger.error(
+          { status: response.status, error: errorMessage },
+          'Failed to delete dataset item via API'
+        );
+        throw new Error(errorMessage);
+      }
+
+      logger.info(
+        { tenantId: this.tenantId, projectId: this.projectId, datasetId, itemId },
+        'Successfully deleted dataset item via API'
+      );
+    } catch (error) {
+      logger.error(
+        { error, tenantId: this.tenantId, projectId: this.projectId, datasetId, itemId },
+        'Failed to delete dataset item'
+      );
+      throw error;
+    }
+  }
+
+  // ============================================================================
+  // EVALUATORS
+  // ============================================================================
+
+  async listEvaluators(): Promise<unknown[]> {
+    logger.info(
+      { tenantId: this.tenantId, projectId: this.projectId },
+      'Listing evaluators via API'
+    );
+
+    const url = this.buildUrl('evaluators');
+
+    try {
+      const response = await apiFetch(url, {
+        method: 'GET',
+        headers: this.buildHeaders(),
+      });
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        const errorMessage =
+          parseError(errorText) ??
+          `Failed to list evaluators: ${response.status} ${response.statusText}`;
+
+        logger.error(
+          { status: response.status, error: errorMessage },
+          'Failed to list evaluators via API'
+        );
+        throw new Error(errorMessage);
+      }
+
+      const result = (await response.json()) as { data: unknown[] };
+      return result.data;
+    } catch (error) {
+      logger.error(
+        { error, tenantId: this.tenantId, projectId: this.projectId },
+        'Failed to list evaluators'
+      );
+      throw error;
+    }
+  }
+
+  async getEvaluator(evaluatorId: string): Promise<unknown | null> {
+    logger.info(
+      { tenantId: this.tenantId, projectId: this.projectId, evaluatorId },
+      'Getting evaluator via API'
+    );
+
+    const url = this.buildUrl('evaluators', evaluatorId);
+
+    try {
+      const response = await apiFetch(url, {
+        method: 'GET',
+        headers: this.buildHeaders(),
+      });
+
+      if (!response.ok) {
+        if (response.status === 404) {
+          logger.info({ evaluatorId }, 'Evaluator not found');
+          return null;
+        }
+
+        const errorText = await response.text();
+        const errorMessage =
+          parseError(errorText) ??
+          `Failed to get evaluator: ${response.status} ${response.statusText}`;
+
+        logger.error(
+          { status: response.status, error: errorMessage },
+          'Failed to get evaluator via API'
+        );
+        throw new Error(errorMessage);
+      }
+
+      const result = (await response.json()) as { data: unknown };
+      return result.data;
+    } catch (error) {
+      logger.error(
+        { error, tenantId: this.tenantId, projectId: this.projectId, evaluatorId },
+        'Failed to get evaluator'
+      );
+      throw error;
+    }
+  }
+
+  async createEvaluator(evaluatorData: Record<string, unknown>): Promise<unknown> {
+    logger.info(
+      { tenantId: this.tenantId, projectId: this.projectId },
+      'Creating evaluator via API'
+    );
+
+    const url = this.buildUrl('evaluators');
+
+    try {
+      const response = await apiFetch(url, {
+        method: 'POST',
+        headers: this.buildHeaders(),
+        body: JSON.stringify(evaluatorData),
+      });
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        const errorMessage =
+          parseError(errorText) ??
+          `Failed to create evaluator: ${response.status} ${response.statusText}`;
+
+        logger.error(
+          { status: response.status, error: errorMessage },
+          'Failed to create evaluator via API'
+        );
+        throw new Error(errorMessage);
+      }
+
+      const result = (await response.json()) as { data: unknown };
+      logger.info(
+        { tenantId: this.tenantId, projectId: this.projectId },
+        'Successfully created evaluator via API'
+      );
+      return result.data;
+    } catch (error) {
+      logger.error(
+        { error, tenantId: this.tenantId, projectId: this.projectId },
+        'Failed to create evaluator'
+      );
+      throw error;
+    }
+  }
+
+  async updateEvaluator(
+    evaluatorId: string,
+    updateData: Record<string, unknown>
+  ): Promise<unknown> {
+    logger.info(
+      { tenantId: this.tenantId, projectId: this.projectId, evaluatorId },
+      'Updating evaluator via API'
+    );
+
+    const url = this.buildUrl('evaluators', evaluatorId);
+
+    try {
+      const response = await apiFetch(url, {
+        method: 'PATCH',
+        headers: this.buildHeaders(),
+        body: JSON.stringify(updateData),
+      });
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        const errorMessage =
+          parseError(errorText) ??
+          `Failed to update evaluator: ${response.status} ${response.statusText}`;
+
+        logger.error(
+          { status: response.status, error: errorMessage },
+          'Failed to update evaluator via API'
+        );
+        throw new Error(errorMessage);
+      }
+
+      const result = (await response.json()) as { data: unknown };
+      logger.info(
+        { tenantId: this.tenantId, projectId: this.projectId, evaluatorId },
+        'Successfully updated evaluator via API'
+      );
+      return result.data;
+    } catch (error) {
+      logger.error(
+        { error, tenantId: this.tenantId, projectId: this.projectId, evaluatorId },
+        'Failed to update evaluator'
+      );
+      throw error;
+    }
+  }
+
+  async deleteEvaluator(evaluatorId: string): Promise<void> {
+    logger.info(
+      { tenantId: this.tenantId, projectId: this.projectId, evaluatorId },
+      'Deleting evaluator via API'
+    );
+
+    const url = this.buildUrl('evaluators', evaluatorId);
+
+    try {
+      const response = await apiFetch(url, {
+        method: 'DELETE',
+        headers: this.buildHeaders(),
+      });
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        const errorMessage =
+          parseError(errorText) ??
+          `Failed to delete evaluator: ${response.status} ${response.statusText}`;
+
+        logger.error(
+          { status: response.status, error: errorMessage },
+          'Failed to delete evaluator via API'
+        );
+        throw new Error(errorMessage);
+      }
+
+      logger.info(
+        { tenantId: this.tenantId, projectId: this.projectId, evaluatorId },
+        'Successfully deleted evaluator via API'
+      );
+    } catch (error) {
+      logger.error(
+        { error, tenantId: this.tenantId, projectId: this.projectId, evaluatorId },
+        'Failed to delete evaluator'
+      );
+      throw error;
+    }
+  }
+
+  // ============================================================================
+  // EVALUATION SUITE CONFIGS
+  // ============================================================================
+
+  async listEvaluationSuiteConfigs(): Promise<unknown[]> {
+    logger.info(
+      { tenantId: this.tenantId, projectId: this.projectId },
+      'Listing evaluation suite configs via API'
+    );
+
+    const url = this.buildUrl('evaluation-suite-configs');
+
+    try {
+      const response = await apiFetch(url, {
+        method: 'GET',
+        headers: this.buildHeaders(),
+      });
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        const errorMessage =
+          parseError(errorText) ??
+          `Failed to list evaluation suite configs: ${response.status} ${response.statusText}`;
+
+        logger.error(
+          { status: response.status, error: errorMessage },
+          'Failed to list evaluation suite configs via API'
+        );
+        throw new Error(errorMessage);
+      }
+
+      const result = (await response.json()) as { data: unknown[] };
+      return result.data;
+    } catch (error) {
+      logger.error(
+        { error, tenantId: this.tenantId, projectId: this.projectId },
+        'Failed to list evaluation suite configs'
+      );
+      throw error;
+    }
+  }
+
+  async getEvaluationSuiteConfig(configId: string): Promise<unknown | null> {
+    logger.info(
+      { tenantId: this.tenantId, projectId: this.projectId, configId },
+      'Getting evaluation suite config via API'
+    );
+
+    const url = this.buildUrl('evaluation-suite-configs', configId);
+
+    try {
+      const response = await apiFetch(url, {
+        method: 'GET',
+        headers: this.buildHeaders(),
+      });
+
+      if (!response.ok) {
+        if (response.status === 404) {
+          logger.info({ configId }, 'Evaluation suite config not found');
+          return null;
+        }
+
+        const errorText = await response.text();
+        const errorMessage =
+          parseError(errorText) ??
+          `Failed to get evaluation suite config: ${response.status} ${response.statusText}`;
+
+        logger.error(
+          { status: response.status, error: errorMessage },
+          'Failed to get evaluation suite config via API'
+        );
+        throw new Error(errorMessage);
+      }
+
+      const result = (await response.json()) as { data: unknown };
+      return result.data;
+    } catch (error) {
+      logger.error(
+        { error, tenantId: this.tenantId, projectId: this.projectId, configId },
+        'Failed to get evaluation suite config'
+      );
+      throw error;
+    }
+  }
+
+  async createEvaluationSuiteConfig(configData: Record<string, unknown>): Promise<unknown> {
+    logger.info(
+      { tenantId: this.tenantId, projectId: this.projectId },
+      'Creating evaluation suite config via API'
+    );
+
+    const url = this.buildUrl('evaluation-suite-configs');
+
+    try {
+      const response = await apiFetch(url, {
+        method: 'POST',
+        headers: this.buildHeaders(),
+        body: JSON.stringify(configData),
+      });
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        const errorMessage =
+          parseError(errorText) ??
+          `Failed to create evaluation suite config: ${response.status} ${response.statusText}`;
+
+        logger.error(
+          { status: response.status, error: errorMessage },
+          'Failed to create evaluation suite config via API'
+        );
+        throw new Error(errorMessage);
+      }
+
+      const result = (await response.json()) as { data: unknown };
+      logger.info(
+        { tenantId: this.tenantId, projectId: this.projectId },
+        'Successfully created evaluation suite config via API'
+      );
+      return result.data;
+    } catch (error) {
+      logger.error(
+        { error, tenantId: this.tenantId, projectId: this.projectId },
+        'Failed to create evaluation suite config'
+      );
+      throw error;
+    }
+  }
+
+  async updateEvaluationSuiteConfig(
+    configId: string,
+    updateData: Record<string, unknown>
+  ): Promise<unknown> {
+    logger.info(
+      { tenantId: this.tenantId, projectId: this.projectId, configId },
+      'Updating evaluation suite config via API'
+    );
+
+    const url = this.buildUrl('evaluation-suite-configs', configId);
+
+    try {
+      const response = await apiFetch(url, {
+        method: 'PATCH',
+        headers: this.buildHeaders(),
+        body: JSON.stringify(updateData),
+      });
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        const errorMessage =
+          parseError(errorText) ??
+          `Failed to update evaluation suite config: ${response.status} ${response.statusText}`;
+
+        logger.error(
+          { status: response.status, error: errorMessage },
+          'Failed to update evaluation suite config via API'
+        );
+        throw new Error(errorMessage);
+      }
+
+      const result = (await response.json()) as { data: unknown };
+      logger.info(
+        { tenantId: this.tenantId, projectId: this.projectId, configId },
+        'Successfully updated evaluation suite config via API'
+      );
+      return result.data;
+    } catch (error) {
+      logger.error(
+        { error, tenantId: this.tenantId, projectId: this.projectId, configId },
+        'Failed to update evaluation suite config'
+      );
+      throw error;
+    }
+  }
+
+  async deleteEvaluationSuiteConfig(configId: string): Promise<void> {
+    logger.info(
+      { tenantId: this.tenantId, projectId: this.projectId, configId },
+      'Deleting evaluation suite config via API'
+    );
+
+    const url = this.buildUrl('evaluation-suite-configs', configId);
+
+    try {
+      const response = await apiFetch(url, {
+        method: 'DELETE',
+        headers: this.buildHeaders(),
+      });
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        const errorMessage =
+          parseError(errorText) ??
+          `Failed to delete evaluation suite config: ${response.status} ${response.statusText}`;
+
+        logger.error(
+          { status: response.status, error: errorMessage },
+          'Failed to delete evaluation suite config via API'
+        );
+        throw new Error(errorMessage);
+      }
+
+      logger.info(
+        { tenantId: this.tenantId, projectId: this.projectId, configId },
+        'Successfully deleted evaluation suite config via API'
+      );
+    } catch (error) {
+      logger.error(
+        { error, tenantId: this.tenantId, projectId: this.projectId, configId },
+        'Failed to delete evaluation suite config'
+      );
+      throw error;
+    }
+  }
+
+  // ============================================================================
+  // EVALUATION SUITE CONFIG EVALUATOR RELATIONS
+  // ============================================================================
+
+  async listEvaluationSuiteConfigEvaluators(configId: string): Promise<unknown[]> {
+    logger.info(
+      { tenantId: this.tenantId, projectId: this.projectId, configId },
+      'Listing evaluators for evaluation suite config via API'
+    );
+
+    const url = this.buildUrl('evaluation-suite-configs', configId, 'evaluators');
+
+    try {
+      const response = await apiFetch(url, {
+        method: 'GET',
+        headers: this.buildHeaders(),
+      });
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        const errorMessage =
+          parseError(errorText) ??
+          `Failed to list evaluators for evaluation suite config: ${response.status} ${response.statusText}`;
+
+        logger.error(
+          { status: response.status, error: errorMessage },
+          'Failed to list evaluators for evaluation suite config via API'
+        );
+        throw new Error(errorMessage);
+      }
+
+      const result = (await response.json()) as { data: unknown[] };
+      return result.data;
+    } catch (error) {
+      logger.error(
+        { error, tenantId: this.tenantId, projectId: this.projectId, configId },
+        'Failed to list evaluators for evaluation suite config'
+      );
+      throw error;
+    }
+  }
+
+  async addEvaluatorToSuiteConfig(configId: string, evaluatorId: string): Promise<unknown> {
+    logger.info(
+      { tenantId: this.tenantId, projectId: this.projectId, configId, evaluatorId },
+      'Adding evaluator to evaluation suite config via API'
+    );
+
+    const url = this.buildUrl('evaluation-suite-configs', configId, 'evaluators', evaluatorId);
+
+    try {
+      const response = await apiFetch(url, {
+        method: 'POST',
+        headers: this.buildHeaders(),
+      });
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        const errorMessage =
+          parseError(errorText) ??
+          `Failed to add evaluator to evaluation suite config: ${response.status} ${response.statusText}`;
+
+        logger.error(
+          { status: response.status, error: errorMessage },
+          'Failed to add evaluator to evaluation suite config via API'
+        );
+        throw new Error(errorMessage);
+      }
+
+      const result = (await response.json()) as { data: unknown };
+      logger.info(
+        { tenantId: this.tenantId, projectId: this.projectId, configId, evaluatorId },
+        'Successfully added evaluator to evaluation suite config via API'
+      );
+      return result.data;
+    } catch (error) {
+      logger.error(
+        { error, tenantId: this.tenantId, projectId: this.projectId, configId, evaluatorId },
+        'Failed to add evaluator to evaluation suite config'
+      );
+      throw error;
+    }
+  }
+
+  async removeEvaluatorFromSuiteConfig(configId: string, evaluatorId: string): Promise<void> {
+    logger.info(
+      { tenantId: this.tenantId, projectId: this.projectId, configId, evaluatorId },
+      'Removing evaluator from evaluation suite config via API'
+    );
+
+    const url = this.buildUrl('evaluation-suite-configs', configId, 'evaluators', evaluatorId);
+
+    try {
+      const response = await apiFetch(url, {
+        method: 'DELETE',
+        headers: this.buildHeaders(),
+      });
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        const errorMessage =
+          parseError(errorText) ??
+          `Failed to remove evaluator from evaluation suite config: ${response.status} ${response.statusText}`;
+
+        logger.error(
+          { status: response.status, error: errorMessage },
+          'Failed to remove evaluator from evaluation suite config via API'
+        );
+        throw new Error(errorMessage);
+      }
+
+      logger.info(
+        { tenantId: this.tenantId, projectId: this.projectId, configId, evaluatorId },
+        'Successfully removed evaluator from evaluation suite config via API'
+      );
+    } catch (error) {
+      logger.error(
+        { error, tenantId: this.tenantId, projectId: this.projectId, configId, evaluatorId },
+        'Failed to remove evaluator from evaluation suite config'
+      );
+      throw error;
+    }
+  }
+
+  // ============================================================================
+  // EVALUATION RESULTS
+  // ============================================================================
+
+  async getEvaluationResult(resultId: string): Promise<unknown | null> {
+    logger.info(
+      { tenantId: this.tenantId, projectId: this.projectId, resultId },
+      'Getting evaluation result via API'
+    );
+
+    const url = this.buildUrl('evaluation-results', resultId);
+
+    try {
+      const response = await apiFetch(url, {
+        method: 'GET',
+        headers: this.buildHeaders(),
+      });
+
+      if (!response.ok) {
+        if (response.status === 404) {
+          logger.info({ resultId }, 'Evaluation result not found');
+          return null;
+        }
+
+        const errorText = await response.text();
+        const errorMessage =
+          parseError(errorText) ??
+          `Failed to get evaluation result: ${response.status} ${response.statusText}`;
+
+        logger.error(
+          { status: response.status, error: errorMessage },
+          'Failed to get evaluation result via API'
+        );
+        throw new Error(errorMessage);
+      }
+
+      const result = (await response.json()) as { data: unknown };
+      return result.data;
+    } catch (error) {
+      logger.error(
+        { error, tenantId: this.tenantId, projectId: this.projectId, resultId },
+        'Failed to get evaluation result'
+      );
+      throw error;
+    }
+  }
+
+  async createEvaluationResult(resultData: Record<string, unknown>): Promise<unknown> {
+    logger.info(
+      { tenantId: this.tenantId, projectId: this.projectId },
+      'Creating evaluation result via API'
+    );
+
+    const url = this.buildUrl('evaluation-results');
+
+    try {
+      const response = await apiFetch(url, {
+        method: 'POST',
+        headers: this.buildHeaders(),
+        body: JSON.stringify(resultData),
+      });
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        const errorMessage =
+          parseError(errorText) ??
+          `Failed to create evaluation result: ${response.status} ${response.statusText}`;
+
+        logger.error(
+          { status: response.status, error: errorMessage },
+          'Failed to create evaluation result via API'
+        );
+        throw new Error(errorMessage);
+      }
+
+      const result = (await response.json()) as { data: unknown };
+      logger.info(
+        { tenantId: this.tenantId, projectId: this.projectId },
+        'Successfully created evaluation result via API'
+      );
+      return result.data;
+    } catch (error) {
+      logger.error(
+        { error, tenantId: this.tenantId, projectId: this.projectId },
+        'Failed to create evaluation result'
+      );
+      throw error;
+    }
+  }
+
+  async updateEvaluationResult(
+    resultId: string,
+    updateData: Record<string, unknown>
+  ): Promise<unknown> {
+    logger.info(
+      { tenantId: this.tenantId, projectId: this.projectId, resultId },
+      'Updating evaluation result via API'
+    );
+
+    const url = this.buildUrl('evaluation-results', resultId);
+
+    try {
+      const response = await apiFetch(url, {
+        method: 'PATCH',
+        headers: this.buildHeaders(),
+        body: JSON.stringify(updateData),
+      });
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        const errorMessage =
+          parseError(errorText) ??
+          `Failed to update evaluation result: ${response.status} ${response.statusText}`;
+
+        logger.error(
+          { status: response.status, error: errorMessage },
+          'Failed to update evaluation result via API'
+        );
+        throw new Error(errorMessage);
+      }
+
+      const result = (await response.json()) as { data: unknown };
+      logger.info(
+        { tenantId: this.tenantId, projectId: this.projectId, resultId },
+        'Successfully updated evaluation result via API'
+      );
+      return result.data;
+    } catch (error) {
+      logger.error(
+        { error, tenantId: this.tenantId, projectId: this.projectId, resultId },
+        'Failed to update evaluation result'
+      );
+      throw error;
+    }
+  }
+
+  async deleteEvaluationResult(resultId: string): Promise<void> {
+    logger.info(
+      { tenantId: this.tenantId, projectId: this.projectId, resultId },
+      'Deleting evaluation result via API'
+    );
+
+    const url = this.buildUrl('evaluation-results', resultId);
+
+    try {
+      const response = await apiFetch(url, {
+        method: 'DELETE',
+        headers: this.buildHeaders(),
+      });
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        const errorMessage =
+          parseError(errorText) ??
+          `Failed to delete evaluation result: ${response.status} ${response.statusText}`;
+
+        logger.error(
+          { status: response.status, error: errorMessage },
+          'Failed to delete evaluation result via API'
+        );
+        throw new Error(errorMessage);
+      }
+
+      logger.info(
+        { tenantId: this.tenantId, projectId: this.projectId, resultId },
+        'Successfully deleted evaluation result via API'
+      );
+    } catch (error) {
+      logger.error(
+        { error, tenantId: this.tenantId, projectId: this.projectId, resultId },
+        'Failed to delete evaluation result'
+      );
+      throw error;
+    }
+  }
+
+  // ============================================================================
+  // TRIGGER CONVERSATION EVALUATION
+  // ============================================================================
+
+  /**
+   * Trigger evaluation of specific conversations with selected evaluators.
+   * Creates an evaluation job config that automatically triggers the evaluation.
+   */
+  async triggerConversationEvaluation(evaluationData: {
     conversationIds: string[];
     evaluatorIds: string[];
     name?: string;
-  },
-  apiKey?: string
-): Promise<{
-  message: string;
-  evaluationJobConfigId: string;
-  conversationIds: string[];
-  evaluatorIds: string[];
-}> {
-  logger.info(
-    {
-      tenantId,
-      projectId,
-      conversationIds: evaluationData.conversationIds,
-      evaluatorIds: evaluationData.evaluatorIds,
-    },
-    'Triggering conversation evaluations via API'
-  );
-
-  const url = buildUrl(apiUrl, tenantId, projectId, 'evaluation-job-configs');
-
-  try {
-    const response = await apiFetch(url, {
-      method: 'POST',
-      headers: buildHeaders(apiKey),
-      body: JSON.stringify({
-        name: evaluationData.name || `Conversation Evaluation ${new Date().toISOString()}`,
-        evaluatorIds: evaluationData.evaluatorIds,
-        jobFilters: {
-          conversationIds: evaluationData.conversationIds,
-        },
-      }),
-    });
-
-    if (!response.ok) {
-      const errorText = await response.text();
-      const errorMessage =
-        parseError(errorText) ??
-        `Failed to trigger conversation evaluations: ${response.status} ${response.statusText}`;
-
-      logger.error(
-        { status: response.status, error: errorMessage },
-        'Failed to trigger conversation evaluations via API'
-      );
-      throw new Error(errorMessage);
-    }
-
-    const result = (await response.json()) as { data: { id: string } };
+  }): Promise<{
+    message: string;
+    evaluationJobConfigId: string;
+    conversationIds: string[];
+    evaluatorIds: string[];
+  }> {
     logger.info(
       {
-        tenantId,
-        projectId,
+        tenantId: this.tenantId,
+        projectId: this.projectId,
         conversationIds: evaluationData.conversationIds,
-        evaluationJobConfigId: result.data.id,
+        evaluatorIds: evaluationData.evaluatorIds,
       },
-      'Successfully triggered conversation evaluations via API'
+      'Triggering conversation evaluations via API'
     );
-    return {
-      message: 'Conversation evaluation triggered successfully',
-      evaluationJobConfigId: result.data.id,
-      conversationIds: evaluationData.conversationIds,
-      evaluatorIds: evaluationData.evaluatorIds,
-    };
-  } catch (error) {
-    logger.error(
-      { error, tenantId, projectId, conversationIds: evaluationData.conversationIds },
-      'Failed to trigger conversation evaluations'
-    );
-    throw error;
-  }
-}
 
-// ============================================================================
-// DATASET RUNS
-// ============================================================================
+    const url = this.buildUrl('evaluation-job-configs');
 
-export async function listDatasetRuns(
-  tenantId: string,
-  projectId: string,
-  datasetId: string,
-  apiUrl: string,
-  apiKey?: string
-): Promise<unknown[]> {
-  logger.info({ tenantId, projectId, datasetId }, 'Listing dataset runs via API');
+    try {
+      const response = await apiFetch(url, {
+        method: 'POST',
+        headers: this.buildHeaders(),
+        body: JSON.stringify({
+          name: evaluationData.name || `Conversation Evaluation ${new Date().toISOString()}`,
+          evaluatorIds: evaluationData.evaluatorIds,
+          jobFilters: {
+            conversationIds: evaluationData.conversationIds,
+          },
+        }),
+      });
 
-  const url = buildUrl(apiUrl, tenantId, projectId, 'dataset-runs', 'by-dataset', datasetId);
+      if (!response.ok) {
+        const errorText = await response.text();
+        const errorMessage =
+          parseError(errorText) ??
+          `Failed to trigger conversation evaluations: ${response.status} ${response.statusText}`;
 
-  try {
-    const response = await apiFetch(url, {
-      method: 'GET',
-      headers: buildHeaders(apiKey),
-    });
-
-    if (!response.ok) {
-      const errorText = await response.text();
-      const errorMessage =
-        parseError(errorText) ??
-        `Failed to list dataset runs: ${response.status} ${response.statusText}`;
-
-      logger.error(
-        { status: response.status, error: errorMessage },
-        'Failed to list dataset runs via API'
-      );
-      throw new Error(errorMessage);
-    }
-
-    const result = (await response.json()) as { data: unknown[] };
-    return result.data;
-  } catch (error) {
-    logger.error({ error, tenantId, projectId, datasetId }, 'Failed to list dataset runs');
-    throw error;
-  }
-}
-
-export async function getDatasetRun(
-  tenantId: string,
-  projectId: string,
-  runId: string,
-  apiUrl: string,
-  apiKey?: string
-): Promise<unknown | null> {
-  logger.info({ tenantId, projectId, runId }, 'Getting dataset run via API');
-
-  const url = buildUrl(apiUrl, tenantId, projectId, 'dataset-runs', runId);
-
-  try {
-    const response = await apiFetch(url, {
-      method: 'GET',
-      headers: buildHeaders(apiKey),
-    });
-
-    if (!response.ok) {
-      if (response.status === 404) {
-        logger.info({ runId }, 'Dataset run not found');
-        return null;
+        logger.error(
+          { status: response.status, error: errorMessage },
+          'Failed to trigger conversation evaluations via API'
+        );
+        throw new Error(errorMessage);
       }
 
-      const errorText = await response.text();
-      const errorMessage =
-        parseError(errorText) ??
-        `Failed to get dataset run: ${response.status} ${response.statusText}`;
-
-      logger.error(
-        { status: response.status, error: errorMessage },
-        'Failed to get dataset run via API'
+      const result = (await response.json()) as { data: { id: string } };
+      logger.info(
+        {
+          tenantId: this.tenantId,
+          projectId: this.projectId,
+          conversationIds: evaluationData.conversationIds,
+          evaluationJobConfigId: result.data.id,
+        },
+        'Successfully triggered conversation evaluations via API'
       );
-      throw new Error(errorMessage);
+      return {
+        message: 'Conversation evaluation triggered successfully',
+        evaluationJobConfigId: result.data.id,
+        conversationIds: evaluationData.conversationIds,
+        evaluatorIds: evaluationData.evaluatorIds,
+      };
+    } catch (error) {
+      logger.error(
+        {
+          error,
+          tenantId: this.tenantId,
+          projectId: this.projectId,
+          conversationIds: evaluationData.conversationIds,
+        },
+        'Failed to trigger conversation evaluations'
+      );
+      throw error;
     }
+  }
 
-    const result = (await response.json()) as { data: unknown };
-    return result.data;
-  } catch (error) {
-    logger.error({ error, tenantId, projectId, runId }, 'Failed to get dataset run');
-    throw error;
+  // ============================================================================
+  // DATASET RUNS
+  // ============================================================================
+
+  async listDatasetRuns(datasetId: string): Promise<unknown[]> {
+    logger.info(
+      { tenantId: this.tenantId, projectId: this.projectId, datasetId },
+      'Listing dataset runs via API'
+    );
+
+    const url = this.buildUrl('dataset-runs', 'by-dataset', datasetId);
+
+    try {
+      const response = await apiFetch(url, {
+        method: 'GET',
+        headers: this.buildHeaders(),
+      });
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        const errorMessage =
+          parseError(errorText) ??
+          `Failed to list dataset runs: ${response.status} ${response.statusText}`;
+
+        logger.error(
+          { status: response.status, error: errorMessage },
+          'Failed to list dataset runs via API'
+        );
+        throw new Error(errorMessage);
+      }
+
+      const result = (await response.json()) as { data: unknown[] };
+      return result.data;
+    } catch (error) {
+      logger.error(
+        { error, tenantId: this.tenantId, projectId: this.projectId, datasetId },
+        'Failed to list dataset runs'
+      );
+      throw error;
+    }
+  }
+
+  async getDatasetRun(runId: string): Promise<unknown | null> {
+    logger.info(
+      { tenantId: this.tenantId, projectId: this.projectId, runId },
+      'Getting dataset run via API'
+    );
+
+    const url = this.buildUrl('dataset-runs', runId);
+
+    try {
+      const response = await apiFetch(url, {
+        method: 'GET',
+        headers: this.buildHeaders(),
+      });
+
+      if (!response.ok) {
+        if (response.status === 404) {
+          logger.info({ runId }, 'Dataset run not found');
+          return null;
+        }
+
+        const errorText = await response.text();
+        const errorMessage =
+          parseError(errorText) ??
+          `Failed to get dataset run: ${response.status} ${response.statusText}`;
+
+        logger.error(
+          { status: response.status, error: errorMessage },
+          'Failed to get dataset run via API'
+        );
+        throw new Error(errorMessage);
+      }
+
+      const result = (await response.json()) as { data: unknown };
+      return result.data;
+    } catch (error) {
+      logger.error(
+        { error, tenantId: this.tenantId, projectId: this.projectId, runId },
+        'Failed to get dataset run'
+      );
+      throw error;
+    }
+  }
+
+  async triggerDatasetRun(
+    datasetId: string,
+    runData: {
+      agentIds: string[];
+      evaluatorIds?: string[];
+    }
+  ): Promise<{
+    message: string;
+    datasetRunId: string;
+    datasetId: string;
+  }> {
+    logger.info(
+      {
+        tenantId: this.tenantId,
+        projectId: this.projectId,
+        datasetId,
+        agentIds: runData.agentIds,
+        evaluatorIds: runData.evaluatorIds,
+      },
+      'Triggering dataset run via API'
+    );
+
+    const url = this.buildUrl('datasets', datasetId, 'trigger');
+
+    try {
+      const response = await apiFetch(url, {
+        method: 'POST',
+        headers: this.buildHeaders(),
+        body: JSON.stringify(runData),
+      });
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        const errorMessage =
+          parseError(errorText) ??
+          `Failed to trigger dataset run: ${response.status} ${response.statusText}`;
+
+        logger.error(
+          { status: response.status, error: errorMessage },
+          'Failed to trigger dataset run via API'
+        );
+        throw new Error(errorMessage);
+      }
+
+      const result = (await response.json()) as {
+        message: string;
+        datasetRunId: string;
+        datasetId: string;
+      };
+      logger.info(
+        { tenantId: this.tenantId, projectId: this.projectId, datasetId, datasetRunId: result.datasetRunId },
+        'Successfully triggered dataset run via API'
+      );
+      return result;
+    } catch (error) {
+      logger.error(
+        { error, tenantId: this.tenantId, projectId: this.projectId, datasetId },
+        'Failed to trigger dataset run'
+      );
+      throw error;
+    }
   }
 }
 
-export async function triggerDatasetRun(
-  tenantId: string,
-  projectId: string,
-  datasetId: string,
-  apiUrl: string,
-  runData: {
-    agentIds: string[];
-    evaluatorIds?: string[];
-  },
-  apiKey?: string
-): Promise<{
-  message: string;
-  datasetRunId: string;
-  datasetId: string;
-}> {
-  logger.info(
-    {
-      tenantId,
-      projectId,
-      datasetId,
-      agentIds: runData.agentIds,
-      evaluatorIds: runData.evaluatorIds,
-    },
-    'Triggering dataset run via API'
-  );
-
-  const url = buildUrl(apiUrl, tenantId, projectId, 'datasets', datasetId, 'trigger');
-
-  try {
-    const response = await apiFetch(url, {
-      method: 'POST',
-      headers: buildHeaders(apiKey),
-      body: JSON.stringify(runData),
-    });
-
-    if (!response.ok) {
-      const errorText = await response.text();
-      const errorMessage =
-        parseError(errorText) ??
-        `Failed to trigger dataset run: ${response.status} ${response.statusText}`;
-
-      logger.error(
-        { status: response.status, error: errorMessage },
-        'Failed to trigger dataset run via API'
-      );
-      throw new Error(errorMessage);
-    }
-
-    const result = (await response.json()) as {
-      message: string;
-      datasetRunId: string;
-      datasetId: string;
-    };
-    logger.info(
-      { tenantId, projectId, datasetId, datasetRunId: result.datasetRunId },
-      'Successfully triggered dataset run via API'
-    );
-    return result;
-  } catch (error) {
-    logger.error({ error, tenantId, projectId, datasetId }, 'Failed to trigger dataset run');
-    throw error;
-  }
+/**
+ * Helper function to create an EvaluationClient instance
+ */
+export function evaluationClient(config: EvaluationClientConfig): EvaluationClient {
+  return new EvaluationClient(config);
 }
