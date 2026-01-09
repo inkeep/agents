@@ -49,7 +49,7 @@ function getCompetitorDisplayName(competitor: string): string {
 
 async function getComparison(competitor: string): Promise<ComparisonData | null> {
   try {
-    const res = await fetch(`http://localhost:2345/api/comparisons/${competitor}`, {
+    const res = await fetch(`https://inkeep.com/api/comparisons/${competitor}`, {
       next: { revalidate: 3600 },
     });
 
