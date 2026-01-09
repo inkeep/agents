@@ -361,6 +361,11 @@ async function localInitCommand(options?: InitOptions): Promise<void> {
   }
 
   if (existsSync(configPath)) {
+    if (options?.interactive === false) {
+      console.log(chalk.yellow(`Config file already exists at ${configPath}, skipping creation.`));
+      return;
+    }
+
     const overwrite = await p.confirm({
       message: `${basename(configPath)} already exists. Overwrite?`,
       initialValue: false,
@@ -377,55 +382,71 @@ async function localInitCommand(options?: InitOptions): Promise<void> {
     }
   }
 
-  const tenantId = await p.text({
-    message: 'Enter your tenant ID:',
-    validate: (input) => {
-      if (!input || input.trim() === '') {
-        return 'Tenant ID is required';
-      }
-      return undefined;
-    },
-  });
+  let tenantId: string;
+  let manageApiUrl: string;
+  let runApiUrl: string;
 
-  if (p.isCancel(tenantId)) {
-    p.cancel('Operation cancelled');
-    process.exit(0);
-  }
-
-  const validateUrl = (input: string) => {
-    try {
-      if (input && input.trim() !== '') {
-        new URL(input);
+  if (options?.interactive === false) {
+    tenantId = 'default';
+    manageApiUrl = 'http://localhost:3002';
+    runApiUrl = 'http://localhost:3003';
+  } else {
+    const tenantIdInput = await p.text({
+      message: 'Enter your tenant ID:',
+      validate: (input) => {
+        if (!input || input.trim() === '') {
+          return 'Tenant ID is required';
+        }
         return undefined;
-      }
-      return undefined;
-    } catch {
-      return 'Please enter a valid URL';
+      },
+    });
+
+    if (p.isCancel(tenantIdInput)) {
+      p.cancel('Operation cancelled');
+      process.exit(0);
     }
-  };
 
-  const manageApiUrl = await p.text({
-    message: 'Enter the Management API URL:',
-    placeholder: 'http://localhost:3002',
-    initialValue: 'http://localhost:3002',
-    validate: validateUrl,
-  });
+    tenantId = tenantIdInput;
 
-  if (p.isCancel(manageApiUrl)) {
-    p.cancel('Operation cancelled');
-    process.exit(0);
-  }
+    const validateUrl = (input: string) => {
+      try {
+        if (input && input.trim() !== '') {
+          new URL(input);
+          return undefined;
+        }
+        return undefined;
+      } catch {
+        return 'Please enter a valid URL';
+      }
+    };
 
-  const runApiUrl = await p.text({
-    message: 'Enter the Run API URL:',
-    placeholder: 'http://localhost:3003',
-    initialValue: 'http://localhost:3003',
-    validate: validateUrl,
-  });
+    const manageApiUrlInput = await p.text({
+      message: 'Enter the Management API URL:',
+      placeholder: 'http://localhost:3002',
+      initialValue: 'http://localhost:3002',
+      validate: validateUrl,
+    });
 
-  if (p.isCancel(runApiUrl)) {
-    p.cancel('Operation cancelled');
-    process.exit(0);
+    if (p.isCancel(manageApiUrlInput)) {
+      p.cancel('Operation cancelled');
+      process.exit(0);
+    }
+
+    manageApiUrl = manageApiUrlInput;
+
+    const runApiUrlInput = await p.text({
+      message: 'Enter the Run API URL:',
+      placeholder: 'http://localhost:3003',
+      initialValue: 'http://localhost:3003',
+      validate: validateUrl,
+    });
+
+    if (p.isCancel(runApiUrlInput)) {
+      p.cancel('Operation cancelled');
+      process.exit(0);
+    }
+
+    runApiUrl = runApiUrlInput;
   }
 
   const configContent = `import { defineConfig } from '@inkeep/agents-cli/config';
