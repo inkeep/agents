@@ -144,31 +144,29 @@ export function SubAgentNodeEditor({
         error={getFieldError('description')}
       />
 
-      <div className="space-y-2">
-        <SkillSelector
-          skillLookup={skillLookup}
-          selectedSkills={selectedSkills}
-          onChange={(skills) => {
-            const enriched = skills.map((skill) => ({
-              ...skill,
-              name: skillLookup[skill.id].name,
-              description: skillLookup[skill.id].description,
-              content: skillLookup[skill.id].content,
-            }));
-            updatePath('skills', enriched);
-          }}
-          error={getFieldError('skills')}
-        />
-        <ExpandablePromptEditor
-          key={selectedNode.id}
-          name="prompt"
-          value={selectedNode.data.prompt}
-          onChange={(value) => updatePath('prompt', value)}
-          placeholder="You are a helpful assistant..."
-          error={getFieldError('prompt')}
-          label="Prompt"
-        />
-      </div>
+      <SkillSelector
+        skillLookup={skillLookup}
+        selectedSkills={selectedSkills}
+        onChange={(skills) => {
+          const enriched = skills.map((skill) => ({
+            ...skill,
+            name: skillLookup[skill.id].name,
+            description: skillLookup[skill.id].description,
+            content: skillLookup[skill.id].content,
+          }));
+          updatePath('skills', enriched);
+        }}
+        error={getFieldError('skills')}
+      />
+      <ExpandablePromptEditor
+        key={selectedNode.id}
+        name="prompt"
+        value={selectedNode.data.prompt}
+        onChange={(value) => updatePath('prompt', value)}
+        placeholder="You are a helpful assistant..."
+        error={getFieldError('prompt')}
+        label="Prompt"
+      />
       <div className="space-y-2">
         <div className="flex items-center space-x-2">
           <Checkbox

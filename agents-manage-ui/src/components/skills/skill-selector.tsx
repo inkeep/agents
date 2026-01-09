@@ -71,7 +71,7 @@ export const SkillSelector: FC<SkillSelectorProps> = ({
   const skills = selectedSkills.map((skill) => skill.id);
 
   return (
-    <div className="space-y-2 mb-5">
+    <div className="space-y-2">
       <ComponentHeader label="Skills" count={skills.length} />
       <ComponentDropdown
         selectedComponents={skills}
