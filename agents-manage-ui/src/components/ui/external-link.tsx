@@ -1,15 +1,17 @@
 import { ArrowUpRight } from 'lucide-react';
 import Link from 'next/link';
-import type { ComponentProps } from 'react';
+import type { ComponentProps, FC } from 'react';
 import { cn } from '@/lib/utils';
 
-export function ExternalLink({
+export const ExternalLink: FC<ComponentProps<typeof Link> & { iconClassName?: string }> = ({
   href,
   children,
   className,
   iconClassName,
   ...props
-}: ComponentProps<typeof Link> & { iconClassName?: string }) {
+}) => {
+  'use memo';
+
   return (
     <Link
       href={href}
@@ -30,4 +32,4 @@ export function ExternalLink({
       />
     </Link>
   );
-}
+};
