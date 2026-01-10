@@ -18,11 +18,10 @@ tone, and formatting consistent across the agent graph while still allowing each
 
 ## Fields
 
-- **Name**: Human-friendly label shown in the UI.
-- **Id**: Unique identifier used by agents and attachments.
-- **Description**: Short summary used for search and discovery.
-- **Content**: Markdown instructions injected into the system prompt.
-- **Metadata (JSON)**: Optional structured data for custom workflows.
+- [**Name**](https://agentskills.io/specification#name-field): A short identifier.
+- [**Description**](https://agentskills.io/specification#description-field): When to use this skill.
+- [**Content**](https://agentskills.io/specification#body-content): The Markdown body, write whatever helps agents perform the task effectively.
+- [**Metadata (JSON)**](https://agentskills.io/specification#metadata-field): Additional properties not defined by [the Agent Skills spec](https://agentskills.io/home).
 
 ## Attach skills to sub-agents
 

@@ -1,15 +1,18 @@
-import { GripVertical, X } from 'lucide-react';
-import { type FC, type MouseEvent, useState } from 'react';
+import { GripVertical } from 'lucide-react';
+import { type FC, useState } from 'react';
 import { ComponentDropdown } from '@/components/agent/sidepane/nodes/component-selector/component-dropdown';
 import { ComponentHeader } from '@/components/agent/sidepane/nodes/component-selector/component-header';
-import { Button } from '@/components/ui/button';
 import type { Skill } from '@/lib/types/skills';
 import { cn } from '@/lib/utils';
+import { Checkbox } from '@/components/ui/checkbox';
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
+import { ExternalLink } from '@/components/ui/external-link';
+import { DOCS_BASE_URL } from '@/constants/page-descriptions';
 
-type SkillSelection = {
+interface SkillSelection {
   id: string;
   index: number;
-};
+}
 
 interface SkillSelectorProps {
   skillLookup: Record<string, Skill>;
@@ -47,12 +50,6 @@ export const SkillSelector: FC<SkillSelectorProps> = ({
 
   const orderedSkills = [...selectedSkills].sort((a, b) => a.index - b.index);
 
-  const handleRemove = (event: MouseEvent<HTMLButtonElement>) => {
-    const id = event.currentTarget.dataset.id as string;
-    const next = orderedSkills.filter((skill) => skill.id !== id);
-    onChange(next.map((skill, idx) => ({ ...skill, index: idx })));
-  };
-
   const handleDrop = (targetId: string) => {
     if (!draggingId) return;
     const next = reorderSkills(orderedSkills, draggingId, targetId);
@@ -72,7 +69,7 @@ export const SkillSelector: FC<SkillSelectorProps> = ({
 
   return (
     <div className="space-y-2">
-      <ComponentHeader label="Skills" count={skills.length} />
+      <ComponentHeader label="Skill Configuration" count={skills.length} />
       <ComponentDropdown
         selectedComponents={skills}
         handleToggle={handleToggle}
@@ -81,46 +78,58 @@ export const SkillSelector: FC<SkillSelectorProps> = ({
         emptyStateMessage="No skills found."
         commandInputPlaceholder="Search skills..."
       />
-      <ul className="space-y-2">
-        {orderedSkills.map((skill, index) => (
-          <li
-            key={skill.id}
-            className={cn(
-              'group/skill cursor-pointer border rounded-md px-3 py-2 flex items-center justify-between gap-3 bg-background',
-              dragOverId === skill.id && 'border-primary'
-            )}
-            draggable
-            onDragStart={() => setDraggingId(skill.id)}
-            onDragOver={(e) => {
-              e.preventDefault();
-              setDragOverId(skill.id);
-            }}
-            onDragLeave={() => setDragOverId('')}
-            onDrop={() => handleDrop(skill.id)}
-            onDragEnd={() => {
-              setDraggingId('');
-              setDragOverId('');
-            }}
-          >
-            <div className="flex items-center gap-2">
-              <GripVertical className="size-4 text-muted-foreground" />
-              <div className="text-sm font-medium">
-                {skillLookup[skill.id].name}{' '}
-                <span className="text-xs text-muted-foreground">(#{index + 1})</span>{' '}
-              </div>
-            </div>
-            <Button
-              className="opacity-0 group-hover/skill:opacity-100"
-              variant="ghost"
-              size="icon-sm"
-              data-id={skill.id}
-              onClick={handleRemove}
+      {orderedSkills.length > 0 && (
+        <div className="border rounded-md">
+          <div className="grid grid-cols-[1fr_auto] gap-4 px-3 py-2.5 text-xs font-medium text-muted-foreground rounded-t-md">
+            <div>Skill</div>
+            <Tooltip>
+              <TooltipTrigger>Always loaded</TooltipTrigger>
+              <TooltipContent>
+                This skill is activated automatically when required and is not included in every
+                prompt.
+                <ExternalLink
+                  href={`${DOCS_BASE_URL}/visual-builder/skills#TODO`}
+                  className="text-xs normal-case"
+                >
+                  Learn more
+                </ExternalLink>
+              </TooltipContent>
+            </Tooltip>
+          </div>
+          {orderedSkills.map((skill, index, array) => (
+            <li
+              key={skill.id}
+              className={cn(
+                'cursor-pointer grid grid-cols-[1fr_auto] gap-4 px-3 py-2 hover:bg-muted/30 transition-colors border-t',
+                dragOverId === skill.id &&
+                  // for last highlight border bottom
+                  (skill === array.at(-1) ? 'border-b border-b-primary' : 'border-primary')
+              )}
+              draggable
+              onDragStart={() => setDraggingId(skill.id)}
+              onDragOver={(e) => {
+                e.preventDefault();
+                setDragOverId(skill.id);
+              }}
+              onDragLeave={() => setDragOverId('')}
+              onDrop={() => handleDrop(skill.id)}
+              onDragEnd={() => {
+                setDraggingId('');
+                setDragOverId('');
+              }}
             >
-              <X />
-            </Button>
-          </li>
-        ))}
-      </ul>
+              <div className="flex items-center gap-2">
+                <GripVertical className="size-4 text-muted-foreground" />
+                <div className="text-sm font-medium">
+                  {skillLookup[skill.id].name}{' '}
+                  <span className="text-xs text-muted-foreground">(#{index + 1})</span>{' '}
+                </div>
+              </div>
+              <Checkbox />
+            </li>
+          ))}
+        </div>
+      )}
       {error && <p className="text-sm text-red-600">{error}</p>}
     </div>
   );
