@@ -11,7 +11,6 @@ export const SkillSchema = z.object({
 export type SkillFormData = z.infer<typeof SkillSchema>;
 
 export const defaultValues: SkillFormData = {
-  id: '',
   name: '',
   description: '',
   content: '',

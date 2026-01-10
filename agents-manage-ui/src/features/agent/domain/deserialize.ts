@@ -162,15 +162,12 @@ export function deserializeAgentData(data: FullAgentDefinition): TransformResult
             }, {})
           : undefined,
         headers: subAgent.canUse
-          ? subAgent.canUse.reduce(
-              (acc, item) => {
-                if (item.headers) {
-                  acc[item.toolId] = item.headers;
-                }
-                return acc;
-              },
-              {} as Record<string, Record<string, string>>
-            )
+          ? subAgent.canUse.reduce<Record<string, Record<string, string>>>((acc, item) => {
+              if (item.headers) {
+                acc[item.toolId] = item.headers;
+              }
+              return acc;
+            }, {})
           : undefined,
       };
     })();

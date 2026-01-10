@@ -48,7 +48,7 @@ export const SkillForm: FC<SkillFormProps> = ({ initialData, onSaved }) => {
   const metadata = useWatch({ control: form.control, name: 'metadata' });
   const router = useRouter();
 
-  const onSubmit = async (data: SkillFormData) => {
+  const onSubmit = form.handleSubmit(async (data) => {
     const callAction = initialData ? updateSkillAction : createSkillAction;
     // Fix react compiler errors
     // Support value blocks (conditional, logical, optional chaining, etc) within a try/catch statement
@@ -83,76 +83,74 @@ export const SkillForm: FC<SkillFormProps> = ({ initialData, onSaved }) => {
       console.error('Error submitting skill:', error);
       toast.error(error instanceof Error ? error.message : 'Failed to save skill');
     }
-  };
+  });
 
   return (
-    <Dialog open={isDeleteOpen} onOpenChange={setIsDeleteOpen}>
-      <Form {...form}>
-        <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
-          <GenericInput
-            control={form.control}
-            name="name"
-            label="Name"
-            placeholder="My skill"
-            description={
-              initialData
-                ? ''
-                : 'Max 64 characters. Lowercase letters, numbers, and hyphens only. Must not start or end with a hyphen.'
-            }
-            isRequired
-          />
-          <GenericTextarea
-            control={form.control}
-            name="description"
-            label="Description"
-            placeholder="High-level summary of what this skill enforces."
-            className="min-h-20"
-            isRequired
-          />
-          <ExpandablePromptEditor
-            label="Content"
-            name="content"
-            value={content}
-            onChange={(value) => form.setValue('content', value, { shouldValidate: true })}
-            placeholder="Write Markdown instructions for this skill..."
-            error={form.formState.errors.content?.message}
-            isRequired
-          />
-          <ExpandableJsonEditor
-            value={metadata ?? ''}
-            onChange={(value) => form.setValue('metadata', value)}
-            name="metadata"
-            label="Metadata (JSON)"
-            placeholder={`{
+    <Form {...form}>
+      <form onSubmit={onSubmit} className="space-y-8">
+        <GenericInput
+          control={form.control}
+          name="name"
+          label="Name"
+          placeholder="My skill"
+          description={
+            initialData
+              ? ''
+              : 'Max 64 characters. Lowercase letters, numbers, and hyphens only. Must not start or end with a hyphen.'
+          }
+          isRequired
+        />
+        <GenericTextarea
+          control={form.control}
+          name="description"
+          label="Description"
+          placeholder="High-level summary of what this skill enforces."
+          isRequired
+        />
+        <ExpandablePromptEditor
+          label="Content"
+          name="content"
+          value={content}
+          onChange={(value) => form.setValue('content', value)}
+          placeholder="Write Markdown instructions for this skill..."
+          error={form.formState.errors.content?.message}
+          isRequired
+        />
+        <ExpandableJsonEditor
+          value={metadata ?? ''}
+          onChange={(value) => form.setValue('metadata', value)}
+          name="metadata"
+          label="Metadata (JSON)"
+          placeholder={`{
   "version": "1.0.0",
   "tags": ["safety"]
 }`}
-          />
+        />
 
-          <div className="flex w-full justify-between">
-            <Button type="submit" disabled={form.formState.isSubmitting}>
-              Save
-            </Button>
-            {initialData && (
+        <div className="flex w-full justify-between">
+          <Button type="submit" disabled={form.formState.isSubmitting}>
+            Save
+          </Button>
+          {initialData && (
+            <Dialog open={isDeleteOpen} onOpenChange={setIsDeleteOpen}>
               <DialogTrigger asChild>
                 <Button type="button" variant="destructive-outline">
                   Delete Skill
                 </Button>
               </DialogTrigger>
-            )}
-          </div>
-        </form>
-      </Form>
-
-      {isDeleteOpen && initialData && (
-        <DeleteSkillConfirmation
-          tenantId={tenantId}
-          projectId={projectId}
-          skillId={initialData.id}
-          skillName={initialData.name}
-          setIsOpen={setIsDeleteOpen}
-        />
-      )}
-    </Dialog>
+              {isDeleteOpen && (
+                <DeleteSkillConfirmation
+                  tenantId={tenantId}
+                  projectId={projectId}
+                  skillId={initialData.id}
+                  skillName={initialData.name}
+                  setIsOpen={setIsDeleteOpen}
+                />
+              )}
+            </Dialog>
+          )}
+        </div>
+      </form>
+    </Form>
   );
 };

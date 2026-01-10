@@ -1,6 +1,7 @@
 'use client';
 
 import { useRouter } from 'next/navigation';
+import type { FC } from 'react';
 import { toast } from 'sonner';
 import {
   AlertDialog,
@@ -23,20 +24,21 @@ interface DeleteSkillConfirmationProps {
   redirectOnDelete?: boolean;
 }
 
-export function DeleteSkillConfirmation({
+export const DeleteSkillConfirmation: FC<DeleteSkillConfirmationProps> = ({
   tenantId,
   projectId,
   skillId,
   skillName,
   setIsOpen,
   redirectOnDelete = true,
-}: DeleteSkillConfirmationProps) {
+}) => {
+  'use memo';
   const router = useRouter();
 
   const handleDelete = async () => {
     const result = await deleteSkillAction(tenantId, projectId, skillId);
     if (!result.success) {
-      toast.error(result.error || 'Failed to delete skill');
+      toast.error(result.error ?? 'Failed to delete skill');
       return;
     }
 
@@ -69,4 +71,4 @@ export function DeleteSkillConfirmation({
       </AlertDialogContent>
     </AlertDialog>
   );
-}
+};
