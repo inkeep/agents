@@ -58,11 +58,10 @@ import {
 } from '../data/conversations';
 import dbClient from '../data/db/dbClient';
 import { getLogger } from '../logger';
-import { agentSessionManager, type ToolCallData } from '../services/AgentSession';
+import { agentSessionManager } from '../services/AgentSession';
 import { getModelAwareCompressionConfig } from '../services/BaseCompressor';
 import { IncrementalStreamParser } from '../services/IncrementalStreamParser';
 import { MidGenerationCompressor } from '../services/MidGenerationCompressor';
-import { pendingToolApprovalManager } from '../services/PendingToolApprovalManager';
 import { ResponseFormatter } from '../services/ResponseFormatter';
 import type { SandboxConfig } from '../types/execution-context';
 import { generateToolId } from '../utils/agent-operations';
@@ -465,13 +464,10 @@ export class Agent {
     if (!toolDefinition || typeof toolDefinition !== 'object' || !('execute' in toolDefinition)) {
       return toolDefinition;
     }
-    const relationshipId = this.#getRelationshipIdForTool(toolName, toolType);
-
     const originalExecute = toolDefinition.execute;
     return {
       ...toolDefinition,
       execute: async (args: any, context?: any) => {
-        const startTime = Date.now();
         const toolCallId = context?.toolCallId || generateToolId();
 
         const activeSpan = trace.getActiveSpan();
@@ -501,103 +497,47 @@ export class Agent {
           toolName.startsWith('transfer_to_');
         // Note: delegate_to_ tools are NOT internal - we want their results in conversation history
 
-        // Check if this tool needs approval first
-        const needsApproval = options?.needsApproval || false;
+        const result = await originalExecute(args, context);
 
-        if (streamRequestId && !isInternalTool) {
-          const toolCallData: ToolCallData = {
-            toolName,
-            input: args,
-            toolCallId,
-            relationshipId,
-          };
+        // Store tool result in conversation history
+        const toolResultConversationId = this.getToolResultConversationId();
 
-          // Add approval-specific data when needed
-          if (needsApproval) {
-            toolCallData.needsApproval = true;
-            toolCallData.conversationId = this.conversationId;
+        if (streamRequestId && !isInternalTool && toolResultConversationId) {
+          try {
+            const messageId = generateId();
+            const messagePayload = {
+              id: messageId,
+              tenantId: this.config.tenantId,
+              projectId: this.config.projectId,
+              conversationId: toolResultConversationId,
+              role: 'assistant',
+              content: {
+                text: this.formatToolResult(toolName, args, result, toolCallId),
+              },
+              visibility: 'internal',
+              messageType: 'tool-result',
+              fromSubAgentId: this.config.id,
+              metadata: {
+                a2a_metadata: {
+                  toolName,
+                  toolCallId,
+                  timestamp: Date.now(),
+                  delegationId: this.delegationId,
+                  isDelegated: this.isDelegatedAgent,
+                },
+              },
+            };
+
+            await createMessage(dbClient)(messagePayload);
+          } catch (error) {
+            logger.warn(
+              { error, toolName, toolCallId, conversationId: toolResultConversationId },
+              'Failed to store tool result in conversation history'
+            );
           }
-
-          await agentSessionManager.recordEvent(
-            streamRequestId,
-            'tool_call',
-            this.config.id,
-            toolCallData
-          );
         }
 
-        try {
-          const result = await originalExecute(args, context);
-          const duration = Date.now() - startTime;
-
-          // Store tool result in conversation history
-          const toolResultConversationId = this.getToolResultConversationId();
-
-          if (streamRequestId && !isInternalTool && toolResultConversationId) {
-            try {
-              const messageId = generateId();
-              const messagePayload = {
-                id: messageId,
-                tenantId: this.config.tenantId,
-                projectId: this.config.projectId,
-                conversationId: toolResultConversationId,
-                role: 'assistant',
-                content: {
-                  text: this.formatToolResult(toolName, args, result, toolCallId),
-                },
-                visibility: 'internal',
-                messageType: 'tool-result',
-                fromSubAgentId: this.config.id,
-                metadata: {
-                  a2a_metadata: {
-                    toolName,
-                    toolCallId,
-                    timestamp: Date.now(),
-                    delegationId: this.delegationId,
-                    isDelegated: this.isDelegatedAgent,
-                  },
-                },
-              };
-
-              await createMessage(dbClient)(messagePayload);
-            } catch (error) {
-              logger.warn(
-                { error, toolName, toolCallId, conversationId: toolResultConversationId },
-                'Failed to store tool result in conversation history'
-              );
-            }
-          }
-
-          if (streamRequestId && !isInternalTool) {
-            agentSessionManager.recordEvent(streamRequestId, 'tool_result', this.config.id, {
-              toolName,
-              output: result,
-              toolCallId,
-              duration,
-              relationshipId,
-              needsApproval,
-            });
-          }
-
-          return result;
-        } catch (error) {
-          const duration = Date.now() - startTime;
-          const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-
-          if (streamRequestId && !isInternalTool) {
-            agentSessionManager.recordEvent(streamRequestId, 'tool_result', this.config.id, {
-              toolName,
-              output: null,
-              toolCallId,
-              duration,
-              error: errorMessage,
-              relationshipId,
-              needsApproval,
-            });
-          }
-
-          throw error;
-        }
+        return result;
       },
     };
   }
@@ -725,6 +665,7 @@ export class Agent {
         const sessionWrappedTool = tool({
           description: originalTool.description,
           inputSchema: originalTool.inputSchema,
+          needsApproval,
           execute: async (args, { toolCallId }) => {
             // Fix Claude's stringified JSON issue - convert any stringified JSON back to objects
             // This must happen first, before any logging or tracing, so spans show correct data
@@ -749,94 +690,6 @@ export class Agent {
 
             // Use processed args for all subsequent operations
             const finalArgs = processedArgs;
-
-            // Check for approval requirement before execution
-            if (needsApproval) {
-              logger.info(
-                { toolName, toolCallId, args: finalArgs },
-                'Tool requires approval - waiting for user response'
-              );
-
-              // Add an event to the current active span if one exists
-              const currentSpan = trace.getActiveSpan();
-              if (currentSpan) {
-                currentSpan.addEvent('tool.approval.requested', {
-                  'tool.name': toolName,
-                  'tool.callId': toolCallId,
-                  'subAgent.id': this.config.id,
-                });
-              }
-
-              // Emit an immediate span to mark that approval request was sent
-              tracer.startActiveSpan(
-                'tool.approval_requested',
-                {
-                  attributes: {
-                    'tool.name': toolName,
-                    'tool.callId': toolCallId,
-                    'subAgent.id': this.config.id,
-                    'subAgent.name': this.config.name,
-                  },
-                },
-                (requestSpan: Span) => {
-                  requestSpan.setStatus({ code: SpanStatusCode.OK });
-                  requestSpan.end();
-                }
-              );
-
-              // Wait for approval (this promise resolves when user responds via API)
-              const approvalResult = await pendingToolApprovalManager.waitForApproval(
-                toolCallId,
-                toolName,
-                args,
-                this.conversationId || 'unknown',
-                this.config.id
-              );
-
-              if (!approvalResult.approved) {
-                // User denied approval - return a message instead of executing the tool
-                return tracer.startActiveSpan(
-                  'tool.approval_denied',
-                  {
-                    attributes: {
-                      'tool.name': toolName,
-                      'tool.callId': toolCallId,
-                      'subAgent.id': this.config.id,
-                      'subAgent.name': this.config.name,
-                    },
-                  },
-                  (denialSpan: Span) => {
-                    logger.info(
-                      { toolName, toolCallId, reason: approvalResult.reason },
-                      'Tool execution denied by user'
-                    );
-
-                    denialSpan.setStatus({ code: SpanStatusCode.OK });
-                    denialSpan.end();
-
-                    return `User denied approval to run this tool: ${approvalResult.reason}`;
-                  }
-                );
-              }
-
-              // Tool was approved - create a span to show this
-              tracer.startActiveSpan(
-                'tool.approval_approved',
-                {
-                  attributes: {
-                    'tool.name': toolName,
-                    'tool.callId': toolCallId,
-                    'subAgent.id': this.config.id,
-                    'subAgent.name': this.config.name,
-                  },
-                },
-                (approvedSpan: Span) => {
-                  logger.info({ toolName, toolCallId }, 'Tool approved, continuing with execution');
-                  approvedSpan.setStatus({ code: SpanStatusCode.OK });
-                  approvedSpan.end();
-                }
-              );
-            }
 
             logger.debug({ toolName, toolCallId }, 'MCP Tool Called');
 
@@ -2329,6 +2182,15 @@ ${output}`;
           if (response.steps) {
             const resolvedSteps = await response.steps;
             response = { ...response, steps: resolvedSteps };
+            logger.info(
+              response.steps.map((s: any) => s.content),
+              'Response generateText'
+            );
+
+            // Process tool lifecycle events from response.steps
+            const streamHelper = this.getStreamingHelper();
+            // TODO: test for streamText
+            streamHelper?.processToolEventsFromSteps(response.steps);
           }
 
           if (hasStructuredOutput && !hasToolCallWithPrefix('transfer_to_')(response)) {
