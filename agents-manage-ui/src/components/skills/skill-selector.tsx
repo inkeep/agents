@@ -2,12 +2,12 @@ import { GripVertical } from 'lucide-react';
 import { type FC, useState } from 'react';
 import { ComponentDropdown } from '@/components/agent/sidepane/nodes/component-selector/component-dropdown';
 import { ComponentHeader } from '@/components/agent/sidepane/nodes/component-selector/component-header';
+import { Checkbox } from '@/components/ui/checkbox';
+import { ExternalLink } from '@/components/ui/external-link';
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
+import { DOCS_BASE_URL } from '@/constants/page-descriptions';
 import type { Skill } from '@/lib/types/skills';
 import { cn } from '@/lib/utils';
-import { Checkbox } from '@/components/ui/checkbox';
-import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
-import { ExternalLink } from '@/components/ui/external-link';
-import { DOCS_BASE_URL } from '@/constants/page-descriptions';
 
 interface SkillSelection {
   id: string;
