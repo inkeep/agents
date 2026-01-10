@@ -2189,6 +2189,7 @@ ${output}`;
 
             // Process tool lifecycle events from response.steps
             const streamHelper = this.getStreamingHelper();
+            // TODO: test for streamText
             streamHelper?.processToolEventsFromSteps(response.steps);
           }
 
