@@ -72,9 +72,6 @@ export const SubAgentNodeEditor: FC<SubAgentNodeEditorProps> = ({
   const selectedDataComponents = selectedNode.data?.dataComponents || [];
   const selectedArtifactComponents = selectedNode.data?.artifactComponents || [];
   const isDefaultSubAgent = selectedNode.data?.isDefault || false;
-  const skillLookup = useAgentStore((state) => state.skillLookup);
-  const selectedSkills = selectedNode.data?.skills as AgentNodeData['skills'];
-
   const { project } = useProjectData();
   const metadata = useAgentStore((state) => state.metadata);
 
@@ -139,13 +136,9 @@ export const SubAgentNodeEditor: FC<SubAgentNodeEditorProps> = ({
         placeholder="This sub agent is responsible for..."
         error={getFieldError('description')}
       />
-
       <SkillSelector
-        skillLookup={skillLookup}
-        selectedSkills={selectedSkills}
-        onChange={(skills) => {
-          updatePath('skills', skills);
-        }}
+        selectedSkills={selectedNode.data.skills}
+        onChange={updatePath.bind(null, 'skills')}
         error={getFieldError('skills')}
       />
       <ExpandablePromptEditor

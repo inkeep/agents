@@ -1,4 +1,5 @@
-import type { SubAgentSkillWithIndex, SubAgentStopWhen } from '@inkeep/agents-core';
+import type { SkillApiSelect } from '@inkeep/agents-core';
+import type { InternalAgentDefinition, SubAgentStopWhen } from '@inkeep/agents-core/client-exports';
 import { Bot, Code, Globe, Hammer, Users } from 'lucide-react';
 import { ExternalAgentNode } from '../nodes/external-agent-node';
 import { FunctionToolNode } from '../nodes/function-tool-node';
@@ -36,7 +37,7 @@ export interface AgentNodeData extends Record<string, unknown>, AnimatedNode {
   prompt?: string;
   dataComponents?: string[];
   artifactComponents?: string[];
-  skills: SubAgentSkillWithIndex[];
+  skills: (SkillApiSelect & { index: number })[];
   models?: AgentModels; // Use same structure as agent
   stopWhen?: SubAgentStopWhen;
   isDefault?: boolean;

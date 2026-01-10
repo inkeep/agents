@@ -9,20 +9,25 @@ import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip
 import { DOCS_BASE_URL } from '@/constants/page-descriptions';
 import { cn } from '@/lib/utils';
 
-type SkillSelection = AgentNodeData['skills'];
+interface SkillSelection {
+  id: string;
+  index: number;
+}
 
 interface SkillSelectorProps {
-  selectedSkills: SkillSelection;
-  onChange: (skills: SkillSelection) => void;
+  selectedSkills: AgentNodeData['skills'];
+  onChange: (skills: SkillSelection[]) => void;
   error?: string;
 }
 
 export function reorderSkills(
-  skills: SkillSelection,
-  fromId: string,
-  toId: string
-): SkillSelection {
-  if (fromId === toId) return skills;
+  skills: SkillSelection[],
+  fromId: SkillSelection['id'],
+  toId: SkillSelection['id']
+): SkillSelection[] {
+  if (fromId === toId) {
+    return skills;
+  }
   const current = [...skills];
   const fromIndex = current.findIndex((p) => p.id === fromId);
   const toIndex = current.findIndex((p) => p.id === toId);

@@ -13,7 +13,6 @@ import type {
   SubAgentTeamAgentConfigLookup,
 } from '@/lib/types/agent-full';
 import type { ExternalAgent } from '@/lib/types/external-agents';
-import type { Skill } from '@/lib/types/skills';
 import type { TeamAgent } from '@/lib/types/team-agents';
 import { generateId } from '@/lib/utils/id-utils';
 
@@ -106,8 +105,7 @@ export function serializeAgentData(
   artifactComponentLookup?: Record<string, ArtifactComponent>,
   agentToolConfigLookup?: AgentToolConfigLookup,
   subAgentExternalAgentConfigLookup?: SubAgentExternalAgentConfigLookup,
-  subAgentTeamAgentConfigLookup?: SubAgentTeamAgentConfigLookup,
-  skillLookup?: Record<string, Skill>
+  subAgentTeamAgentConfigLookup?: SubAgentTeamAgentConfigLookup
 ): FullAgentDefinition {
   const subAgents: Record<string, ExtendedAgent> = {};
   const externalAgents: Record<string, ExternalAgent> = {};
@@ -719,8 +717,7 @@ interface StructuredValidationError {
 
 export function validateSerializedData(
   data: FullAgentDefinition,
-  functionToolNodeMap?: Map<string, string>,
-  skillLookup?: Record<string, Skill>
+  functionToolNodeMap?: Map<string, string>
 ): StructuredValidationError[] {
   const errors: StructuredValidationError[] = [];
 
@@ -823,19 +820,6 @@ export function validateSerializedData(
               functionToolId: nodeId,
             });
           }
-        }
-      }
-    }
-
-    if ((agent as any).skills && skillLookup && Object.keys(skillLookup).length > 0) {
-      for (const skill of (agent as any).skills as Array<{ id: string }>) {
-        if (skill.id && !skillLookup[skill.id]) {
-          errors.push({
-            message: `Skill '${skill.id}' not found.`,
-            field: 'skills',
-            code: 'invalid_reference',
-            path: ['agents', subAgentId, 'skills'],
-          });
         }
       }
     }
