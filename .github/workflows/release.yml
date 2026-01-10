@@ -114,6 +114,7 @@ jobs:
       # If this works, we can remove the previous step
       - name: Create Draft Release from PR with AI-generated Highlights
         if: steps.changesets.outputs.published == 'true'
+        shell: bash
         run: |
           VERSION=$(echo '${{ steps.changesets.outputs.publishedPackages }}' | jq -r '.[0].version')
           RELEASE_DATE=$(date +%Y-%m-%d)
@@ -125,9 +126,9 @@ jobs:
           CHANGELOG=$(echo "$PR_BODY" | sed -n '/^# Releases/,$p' | sed '1s/^# Releases/# Changelog/')
           
           # Generate highlights using Claude
-          HIGHLIGHTS=$(curl -s https://api.anthropic.com/v1/messages \
+          HIGHLIGHTS=$(curl -s -K <(echo "header = \"x-api-key: $ANTHROPIC_API_KEY\"") \
+            https://api.anthropic.com/v1/messages \
             -H "Content-Type: application/json" \
-            -H "x-api-key: $ANTHROPIC_API_KEY" \
             -H "anthropic-version: 2023-06-01" \
             -d "$(jq -n \
               --arg changelog "$CHANGELOG" \
