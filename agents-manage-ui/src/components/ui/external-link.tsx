@@ -26,7 +26,7 @@ export const ExternalLink: FC<ComponentProps<typeof Link> & { iconClassName?: st
       {children}
       <ArrowUpRight
         className={cn(
-          'size-3.5 text-muted-foreground opacity-60 group-hover/link:text-primary',
+          'size-3.5 text-muted-foreground opacity-60 group-hover/link:text-primary inline',
           iconClassName
         )}
       />
