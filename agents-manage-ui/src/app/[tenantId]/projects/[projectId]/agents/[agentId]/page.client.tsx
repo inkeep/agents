@@ -106,7 +106,6 @@ interface AgentProps {
   artifactComponentLookup?: Record<string, ArtifactComponent>;
   toolLookup?: Record<string, MCPTool>;
   credentialLookup?: Record<string, Credential>;
-  skillLookup?: Record<string, Skill>;
 }
 
 type ReactFlowProps = Required<ComponentProps<typeof ReactFlow>>;
@@ -128,7 +127,6 @@ export const Agent: FC<AgentProps> = ({
   artifactComponentLookup = {},
   toolLookup = {},
   credentialLookup = {},
-  skillLookup: initialSkillLookup = {},
 }) => {
   const [showPlayground, setShowPlayground] = useState(false);
   const {
@@ -305,16 +303,10 @@ export const Agent: FC<AgentProps> = ({
 
   const { screenToFlowPosition, updateNodeData, fitView, getEdges, getIntersectingNodes } =
     useReactFlow();
-  const {
-    storeNodes,
-    edges,
-    metadata,
-    skillLookup: skillLookupState,
-  } = useAgentStore((state) => ({
+  const { storeNodes, edges, metadata } = useAgentStore((state) => ({
     storeNodes: state.nodes,
     edges: state.edges,
     metadata: state.metadata,
-    skillLookup: state.skillLookup,
   }));
   const {
     setNodes,
@@ -381,8 +373,7 @@ export const Agent: FC<AgentProps> = ({
       toolLookup,
       agentToolConfigLookup,
       undefined,
-      undefined,
-      initialSkillLookup
+      undefined
     );
 
     // After initialization, if there are no nodes and copilot is not configured, auto-add initial node
@@ -493,7 +484,6 @@ export const Agent: FC<AgentProps> = ({
         const updatedDataComponentLookup = fullProject.dataComponents || {};
         const updatedArtifactComponentLookup = fullProject.artifactComponents || {};
         const updatedExternalAgentLookup = fullProject.externalAgents || {};
-        const updatedSkillLookup = fullProject.skills || {};
 
         // Recompute agent-specific lookups from the updated agent data
         const updatedAgentToolConfigLookup = computeAgentToolConfigLookup(updatedAgent);
@@ -510,8 +500,7 @@ export const Agent: FC<AgentProps> = ({
           updatedToolLookup as unknown as Record<string, MCPTool>,
           updatedAgentToolConfigLookup,
           updatedExternalAgentLookup as unknown as Record<string, ExternalAgent>,
-          updatedSubAgentExternalAgentConfigLookup,
-          updatedSkillLookup as Record<string, Skill>
+          updatedSubAgentExternalAgentConfigLookup
         );
 
         // Update project data in store so components using useProjectData get fresh data
@@ -825,8 +814,7 @@ export const Agent: FC<AgentProps> = ({
         artifactComponentLookup,
         agentToolConfigLookup,
         subAgentExternalAgentConfigLookup,
-        subAgentTeamAgentConfigLookup,
-        skillLookupState
+        subAgentTeamAgentConfigLookup
       );
     } catch (error) {
       if (isContextConfigParseError(error)) {
@@ -856,11 +844,7 @@ export const Agent: FC<AgentProps> = ({
       }
     });
 
-    const validationErrors = validateSerializedData(
-      serializedData,
-      functionToolNodeMap,
-      skillLookupState
-    );
+    const validationErrors = validateSerializedData(serializedData, functionToolNodeMap);
     if (validationErrors.length > 0) {
       const errorObjects = validationErrors.map((error) => ({
         message: error.message,
