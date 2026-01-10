@@ -1,4 +1,4 @@
-import type { SubAgentStopWhen } from '@inkeep/agents-core';
+import type { SubAgentSkillWithIndex, SubAgentStopWhen } from '@inkeep/agents-core';
 import { Bot, Code, Globe, Hammer, Users } from 'lucide-react';
 import { ExternalAgentNode } from '../nodes/external-agent-node';
 import { FunctionToolNode } from '../nodes/function-tool-node';
@@ -36,10 +36,7 @@ export interface AgentNodeData extends Record<string, unknown>, AnimatedNode {
   prompt?: string;
   dataComponents?: string[];
   artifactComponents?: string[];
-  skills?: {
-    id: string;
-    index: number;
-  }[];
+  skills: SubAgentSkillWithIndex[];
   models?: AgentModels; // Use same structure as agent
   stopWhen?: SubAgentStopWhen;
   isDefault?: boolean;

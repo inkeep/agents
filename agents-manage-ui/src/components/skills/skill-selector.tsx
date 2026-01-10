@@ -1,31 +1,27 @@
 import { GripVertical } from 'lucide-react';
 import { type FC, useState } from 'react';
+import type { AgentNodeData } from '@/components/agent/configuration/node-types';
 import { ComponentDropdown } from '@/components/agent/sidepane/nodes/component-selector/component-dropdown';
 import { ComponentHeader } from '@/components/agent/sidepane/nodes/component-selector/component-header';
 import { Checkbox } from '@/components/ui/checkbox';
 import { ExternalLink } from '@/components/ui/external-link';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { DOCS_BASE_URL } from '@/constants/page-descriptions';
-import type { Skill } from '@/lib/types/skills';
 import { cn } from '@/lib/utils';
 
-interface SkillSelection {
-  id: string;
-  index: number;
-}
+type SkillSelection = AgentNodeData['skills'];
 
 interface SkillSelectorProps {
-  skillLookup: Record<string, Skill>;
-  selectedSkills?: SkillSelection[];
-  onChange: (skills: SkillSelection[]) => void;
+  selectedSkills: SkillSelection;
+  onChange: (skills: SkillSelection) => void;
   error?: string;
 }
 
 export function reorderSkills(
-  skills: SkillSelection[],
+  skills: SkillSelection,
   fromId: string,
   toId: string
-): SkillSelection[] {
+): SkillSelection {
   if (fromId === toId) return skills;
   const current = [...skills];
   const fromIndex = current.findIndex((p) => p.id === fromId);
@@ -38,12 +34,7 @@ export function reorderSkills(
   return current.map((skill, index) => ({ ...skill, index }));
 }
 
-export const SkillSelector: FC<SkillSelectorProps> = ({
-  skillLookup,
-  selectedSkills = [],
-  onChange,
-  error,
-}) => {
+export const SkillSelector: FC<SkillSelectorProps> = ({ selectedSkills = [], onChange, error }) => {
   'use memo';
 
   const [draggingId, setDraggingId] = useState('');
@@ -72,7 +63,7 @@ export const SkillSelector: FC<SkillSelectorProps> = ({
       <ComponentDropdown
         selectedComponents={selectedSkills.map((skill) => skill.id)}
         handleToggle={handleToggle}
-        availableComponents={Object.values(skillLookup)}
+        availableComponents={selectedSkills}
         placeholder="Select skills..."
         emptyStateMessage="No skills found."
         commandInputPlaceholder="Search skills..."
