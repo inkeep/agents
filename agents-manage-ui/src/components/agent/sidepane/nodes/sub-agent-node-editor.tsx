@@ -138,14 +138,14 @@ export const SubAgentNodeEditor: FC<SubAgentNodeEditorProps> = ({
       />
       <SkillSelector
         selectedSkills={selectedNode.data.skills}
-        onChange={updatePath.bind(null, 'skills')}
+        onChange={(value) => updatePath('skills', value)}
         error={getFieldError('skills')}
       />
       <ExpandablePromptEditor
         key={selectedNode.id}
         name="prompt"
         value={selectedNode.data.prompt}
-        onChange={updatePath.bind(null, 'prompt')}
+        onChange={(value) => updatePath('prompt', value)}
         placeholder="You are a helpful assistant..."
         error={getFieldError('prompt')}
         label="Prompt"
