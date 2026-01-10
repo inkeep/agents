@@ -58,7 +58,7 @@ import {
 } from '../data/conversations';
 import dbClient from '../data/db/dbClient';
 import { getLogger } from '../logger';
-import { agentSessionManager, type ToolCallData } from '../services/AgentSession';
+import { agentSessionManager } from '../services/AgentSession';
 import { getModelAwareCompressionConfig } from '../services/BaseCompressor';
 import { IncrementalStreamParser } from '../services/IncrementalStreamParser';
 import { MidGenerationCompressor } from '../services/MidGenerationCompressor';
@@ -464,13 +464,10 @@ export class Agent {
     if (!toolDefinition || typeof toolDefinition !== 'object' || !('execute' in toolDefinition)) {
       return toolDefinition;
     }
-    const relationshipId = this.#getRelationshipIdForTool(toolName, toolType);
-
     const originalExecute = toolDefinition.execute;
     return {
       ...toolDefinition,
       execute: async (args: any, context?: any) => {
-        const startTime = Date.now();
         const toolCallId = context?.toolCallId || generateToolId();
 
         const activeSpan = trace.getActiveSpan();
@@ -500,103 +497,47 @@ export class Agent {
           toolName.startsWith('transfer_to_');
         // Note: delegate_to_ tools are NOT internal - we want their results in conversation history
 
-        // Check if this tool needs approval first
-        const needsApproval = options?.needsApproval || false;
+        const result = await originalExecute(args, context);
 
-        if (streamRequestId && !isInternalTool) {
-          const toolCallData: ToolCallData = {
-            toolName,
-            input: args,
-            toolCallId,
-            relationshipId,
-          };
+        // Store tool result in conversation history
+        const toolResultConversationId = this.getToolResultConversationId();
 
-          // Add approval-specific data when needed
-          if (needsApproval) {
-            toolCallData.needsApproval = true;
-            toolCallData.conversationId = this.conversationId;
+        if (streamRequestId && !isInternalTool && toolResultConversationId) {
+          try {
+            const messageId = generateId();
+            const messagePayload = {
+              id: messageId,
+              tenantId: this.config.tenantId,
+              projectId: this.config.projectId,
+              conversationId: toolResultConversationId,
+              role: 'assistant',
+              content: {
+                text: this.formatToolResult(toolName, args, result, toolCallId),
+              },
+              visibility: 'internal',
+              messageType: 'tool-result',
+              fromSubAgentId: this.config.id,
+              metadata: {
+                a2a_metadata: {
+                  toolName,
+                  toolCallId,
+                  timestamp: Date.now(),
+                  delegationId: this.delegationId,
+                  isDelegated: this.isDelegatedAgent,
+                },
+              },
+            };
+
+            await createMessage(dbClient)(messagePayload);
+          } catch (error) {
+            logger.warn(
+              { error, toolName, toolCallId, conversationId: toolResultConversationId },
+              'Failed to store tool result in conversation history'
+            );
           }
-
-          await agentSessionManager.recordEvent(
-            streamRequestId,
-            'tool_call',
-            this.config.id,
-            toolCallData
-          );
         }
 
-        try {
-          const result = await originalExecute(args, context);
-          const duration = Date.now() - startTime;
-
-          // Store tool result in conversation history
-          const toolResultConversationId = this.getToolResultConversationId();
-
-          if (streamRequestId && !isInternalTool && toolResultConversationId) {
-            try {
-              const messageId = generateId();
-              const messagePayload = {
-                id: messageId,
-                tenantId: this.config.tenantId,
-                projectId: this.config.projectId,
-                conversationId: toolResultConversationId,
-                role: 'assistant',
-                content: {
-                  text: this.formatToolResult(toolName, args, result, toolCallId),
-                },
-                visibility: 'internal',
-                messageType: 'tool-result',
-                fromSubAgentId: this.config.id,
-                metadata: {
-                  a2a_metadata: {
-                    toolName,
-                    toolCallId,
-                    timestamp: Date.now(),
-                    delegationId: this.delegationId,
-                    isDelegated: this.isDelegatedAgent,
-                  },
-                },
-              };
-
-              await createMessage(dbClient)(messagePayload);
-            } catch (error) {
-              logger.warn(
-                { error, toolName, toolCallId, conversationId: toolResultConversationId },
-                'Failed to store tool result in conversation history'
-              );
-            }
-          }
-
-          if (streamRequestId && !isInternalTool) {
-            agentSessionManager.recordEvent(streamRequestId, 'tool_result', this.config.id, {
-              toolName,
-              output: result,
-              toolCallId,
-              duration,
-              relationshipId,
-              needsApproval,
-            });
-          }
-
-          return result;
-        } catch (error) {
-          const duration = Date.now() - startTime;
-          const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-
-          if (streamRequestId && !isInternalTool) {
-            agentSessionManager.recordEvent(streamRequestId, 'tool_result', this.config.id, {
-              toolName,
-              output: null,
-              toolCallId,
-              duration,
-              error: errorMessage,
-              relationshipId,
-              needsApproval,
-            });
-          }
-
-          throw error;
-        }
+        return result;
       },
     };
   }
@@ -2241,6 +2182,14 @@ ${output}`;
           if (response.steps) {
             const resolvedSteps = await response.steps;
             response = { ...response, steps: resolvedSteps };
+            logger.info(
+              response.steps.map((s: any) => s.content),
+              'Response generateText'
+            );
+
+            // Process tool lifecycle events from response.steps
+            const streamHelper = this.getStreamingHelper();
+            streamHelper?.processToolEventsFromSteps(response.steps);
           }
 
           if (hasStructuredOutput && !hasToolCallWithPrefix('transfer_to_')(response)) {

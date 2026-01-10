@@ -274,14 +274,8 @@ export class AgentSession {
 
   /**
    * Send data operation to stream when emit operations is enabled
-   * Note: tool_call and tool_result are excluded - they are sent via dedicated tool event methods
    */
   private async sendDataOperation(event: AgentSessionEvent): Promise<void> {
-    // Skip tool_call and tool_result - they are handled separately via dedicated tool event methods
-    if (event.eventType === 'tool_call' || event.eventType === 'tool_result') {
-      return;
-    }
-
     try {
       const streamHelper = getStreamHelper(this.sessionId);
       if (streamHelper) {
@@ -393,97 +387,6 @@ export class AgentSession {
    * Check if a tool should use the new streaming format
    * Internal tools and delegate_to operations should use data operations instead
    */
-  private shouldUseToolStreamingFormat(toolName: string): boolean {
-    // Internal tools that should use data operations
-    const isInternalTool =
-      toolName.includes('save_tool_result') ||
-      toolName.includes('thinking_complete') ||
-      toolName.startsWith('transfer_to_');
-
-    // Delegate operations should use data operations (they have delegation_sent type)
-    const isDelegateOperation = toolName.startsWith('delegate_to_');
-
-    return !isInternalTool && !isDelegateOperation;
-  }
-
-  /**
-   * Stream tool call events to the stream helper
-   */
-  private async streamToolCall(toolCallData: ToolCallData): Promise<void> {
-    // Skip streaming for internal tools and delegate operations - they use data operations
-    if (!this.shouldUseToolStreamingFormat(toolCallData.toolName)) {
-      return;
-    }
-
-    const streamHelper = getStreamHelper(this.sessionId);
-    if (!streamHelper) {
-      return;
-    }
-
-    try {
-      // Send tool input start event
-      await streamHelper.writeToolInputStart(toolCallData.toolCallId, toolCallData.toolName);
-
-      // Since input is available immediately, send it as a single delta
-      const inputText = JSON.stringify(toolCallData.input);
-      await streamHelper.writeToolInputDelta(toolCallData.toolCallId, inputText);
-
-      // Send tool input available with the full input
-      await streamHelper.writeToolInputAvailable(
-        toolCallData.toolCallId,
-        toolCallData.toolName,
-        toolCallData.input,
-        undefined // providerMetadata not available in current structure
-      );
-
-      // If tool needs approval, send approval request immediately after tool-input-available
-      if (toolCallData.needsApproval) {
-        // Use toolCallId as approvalId since that's how approvals are tracked
-        await streamHelper.writeToolApprovalRequest(
-          toolCallData.toolCallId,
-          toolCallData.toolCallId
-        );
-      }
-    } catch (error) {
-      logger.error(
-        {
-          sessionId: this.sessionId,
-          toolCallId: toolCallData.toolCallId,
-          error: error instanceof Error ? error.message : error,
-        },
-        'Failed to stream tool call events'
-      );
-    }
-  }
-
-  /**
-   * Stream tool result events to the stream helper
-   * Unwraps nested result structures (e.g., {result: {...}, toolCallId: "..."}) to send just the result
-   */
-  private async streamToolResult(toolResultData: ToolResultData): Promise<void> {
-    // Skip streaming for internal tools and delegate operations - they use data operations
-    if (!this.shouldUseToolStreamingFormat(toolResultData.toolName)) {
-      return;
-    }
-
-    const streamHelper = getStreamHelper(this.sessionId);
-    if (!streamHelper) {
-      return;
-    }
-
-    try {
-      await streamHelper.writeToolOutputAvailable(toolResultData.toolCallId, toolResultData.output);
-    } catch (error) {
-      logger.error(
-        {
-          sessionId: this.sessionId,
-          toolCallId: toolResultData.toolCallId,
-          error: error instanceof Error ? error.message : error,
-        },
-        'Failed to stream tool result events'
-      );
-    }
-  }
 
   /**
    * Record an event in the session and trigger status updates if configured
@@ -494,55 +397,7 @@ export class AgentSession {
     subAgentId: string,
     data: EventDataMap[T]
   ): void {
-    if (eventType === 'tool_call') {
-      const toolCallData = data as ToolCallData;
-      // Only use new streaming format for non-internal, non-delegate tools
-      if (this.shouldUseToolStreamingFormat(toolCallData.toolName)) {
-        this.streamToolCall(toolCallData).catch((error) => {
-          logger.error(
-            {
-              sessionId: this.sessionId,
-              toolCallId: toolCallData.toolCallId,
-              error: error instanceof Error ? error.message : error,
-            },
-            'Failed to stream tool call'
-          );
-        });
-      } else if (this.isEmitOperations) {
-        // Internal tools and delegate operations use data operations
-        const dataOpEvent: MakeAgentSessionEvent<T> = {
-          timestamp: Date.now(),
-          eventType,
-          subAgentId,
-          data,
-        };
-        this.sendDataOperation(dataOpEvent as AgentSessionEvent);
-      }
-    } else if (eventType === 'tool_result') {
-      const toolResultData = data as ToolResultData;
-      // Only use new streaming format for non-internal, non-delegate tools
-      if (this.shouldUseToolStreamingFormat(toolResultData.toolName)) {
-        this.streamToolResult(toolResultData).catch((error) => {
-          logger.error(
-            {
-              sessionId: this.sessionId,
-              toolCallId: toolResultData.toolCallId,
-              error: error instanceof Error ? error.message : error,
-            },
-            'Failed to stream tool result'
-          );
-        });
-      } else if (this.isEmitOperations) {
-        // Internal tools and delegate operations use data operations
-        const dataOpEvent: MakeAgentSessionEvent<T> = {
-          timestamp: Date.now(),
-          eventType,
-          subAgentId,
-          data,
-        };
-        this.sendDataOperation(dataOpEvent as AgentSessionEvent);
-      }
-    } else if (this.isEmitOperations) {
+    if (this.isEmitOperations) {
       // For other event types, send as data operations if emit operations is enabled
       const dataOpEvent: MakeAgentSessionEvent<T> = {
         timestamp: Date.now(),
