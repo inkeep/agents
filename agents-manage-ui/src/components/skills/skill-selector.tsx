@@ -16,7 +16,7 @@ interface SkillSelection {
 
 interface SkillSelectorProps {
   skillLookup: Record<string, Skill>;
-  selectedSkills: SkillSelection[];
+  selectedSkills?: SkillSelection[];
   onChange: (skills: SkillSelection[]) => void;
   error?: string;
 }
@@ -40,19 +40,18 @@ export function reorderSkills(
 
 export const SkillSelector: FC<SkillSelectorProps> = ({
   skillLookup,
-  selectedSkills,
+  selectedSkills = [],
   onChange,
   error,
 }) => {
   'use memo';
+
   const [draggingId, setDraggingId] = useState('');
   const [dragOverId, setDragOverId] = useState('');
 
-  const orderedSkills = [...selectedSkills].sort((a, b) => a.index - b.index);
-
   const handleDrop = (targetId: string) => {
     if (!draggingId) return;
-    const next = reorderSkills(orderedSkills, draggingId, targetId);
+    const next = reorderSkills(selectedSkills, draggingId, targetId);
     onChange(next);
     setDraggingId('');
     setDragOverId('');
@@ -65,20 +64,18 @@ export const SkillSelector: FC<SkillSelectorProps> = ({
     onChange(newSelection);
   };
 
-  const skills = selectedSkills.map((skill) => skill.id);
-
   return (
     <div className="space-y-2">
-      <ComponentHeader label="Skill Configuration" count={skills.length} />
+      <ComponentHeader label="Skill Configuration" count={selectedSkills.length} />
       <ComponentDropdown
-        selectedComponents={skills}
+        selectedComponents={selectedSkills.map((skill) => skill.id)}
         handleToggle={handleToggle}
         availableComponents={Object.values(skillLookup)}
         placeholder="Select skills..."
         emptyStateMessage="No skills found."
         commandInputPlaceholder="Search skills..."
       />
-      {orderedSkills.length > 0 && (
+      {selectedSkills.length > 0 && (
         <div className="border rounded-md">
           <div className="grid grid-cols-[1fr_auto] gap-4 px-3 py-2.5 text-xs font-medium text-muted-foreground rounded-t-md">
             <div>Skill</div>
@@ -96,7 +93,7 @@ export const SkillSelector: FC<SkillSelectorProps> = ({
               </TooltipContent>
             </Tooltip>
           </div>
-          {orderedSkills.map((skill, index, array) => (
+          {selectedSkills.map((skill, index, array) => (
             <li
               key={skill.id}
               className={cn(

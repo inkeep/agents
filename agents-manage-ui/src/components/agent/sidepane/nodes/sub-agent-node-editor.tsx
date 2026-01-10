@@ -73,7 +73,7 @@ export const SubAgentNodeEditor: FC<SubAgentNodeEditorProps> = ({
   const selectedArtifactComponents = selectedNode.data?.artifactComponents || [];
   const isDefaultSubAgent = selectedNode.data?.isDefault || false;
   const skillLookup = useAgentStore((state) => state.skillLookup);
-  const selectedSkills = (selectedNode.data?.skills as AgentNodeData['skills']) || [];
+  const selectedSkills = selectedNode.data?.skills as AgentNodeData['skills'];
 
   const { project } = useProjectData();
   const metadata = useAgentStore((state) => state.metadata);

@@ -147,9 +147,7 @@ export function deserializeAgentData(data: FullAgentDefinition): TransformResult
                 : undefined,
             }
           : undefined,
-        skills: subAgent.skills
-          ? [...subAgent.skills].sort((a, b) => a.index - b.index)
-          : undefined,
+        skills: subAgent.skills,
         stopWhen: subAgent.stopWhen ? { stepCountIs: subAgent.stopWhen.stepCountIs } : undefined,
         type: subAgent.type,
         tools: subAgent.canUse ? subAgent.canUse.map((item) => item.toolId) : [],
