@@ -99,7 +99,7 @@ export const SkillSelector: FC<SkillSelectorProps> = ({
             <li
               key={skill.id}
               className={cn(
-                'cursor-pointer grid grid-cols-[1fr_auto] gap-4 px-3 py-2 hover:bg-muted/30 transition-colors border-t',
+                'cursor-pointer flex items-center gap-2 text-sm text-muted-foreground px-3 py-2 hover:bg-muted/30 transition-colors border-t',
                 dragOverId === skill.id &&
                   // for last highlight border bottom
                   (skill === array.at(-1) ? 'border-b border-b-primary' : 'border-primary')
@@ -117,15 +117,15 @@ export const SkillSelector: FC<SkillSelectorProps> = ({
                 setDragOverId('');
               }}
             >
-              <div className="flex items-center gap-2">
-                <span className="text-xs text-muted-foreground">#{index + 1}</span>
-                <GripVertical className="size-4 text-muted-foreground" />
-                <div>
-                  <div className="text-sm font-medium line-clamp-1">{skill.id}</div>
-                  <div className="text-xs text-muted-foreground line-clamp-1">
-                    {/* DESCRIPTION EXIST */}
-                    {skill.description}
-                  </div>
+              <div className="flex items-center">
+                {index + 1}
+                <GripVertical className="size-4" />
+              </div>
+              <div className="grow">
+                <div className="text-foreground font-medium line-clamp-1">{skill.id}</div>
+                <div className="text-xs line-clamp-1">
+                  {/* DESCRIPTION EXIST */}
+                  {skill.description}
                 </div>
               </div>
               <Checkbox />
