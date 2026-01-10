@@ -22,14 +22,12 @@ import { fetchSkills } from '@/lib/api/skills';
 import { cn } from '@/lib/utils';
 import { getErrorCode } from '@/lib/utils/error-serialization';
 
-export const dynamic = 'force-dynamic';
-
 const colClass = 'align-top whitespace-pre-wrap';
 const description = (
   <>
     Agent Skills are reusable instruction blocks that can be attached to multiple sub-agents and
     ordered for priority.
-    <ExternalLink href={`${DOCS_BASE_URL}/visual-builder/agent`}>Learn more</ExternalLink>
+    <ExternalLink href={`${DOCS_BASE_URL}/visual-builder/skills`}>Learn more</ExternalLink>
   </>
 );
 
@@ -41,7 +39,7 @@ const SkillsPage: FC<PageProps<'/[tenantId]/projects/[projectId]/skills'>> = asy
     const action = (
       <Button asChild className="flex items-center gap-2">
         <NextLink href={`/${tenantId}/projects/${projectId}/skills/new`}>
-          <Plus className="size-4" />
+          <Plus />
           Create skill
         </NextLink>
       </Button>
@@ -53,7 +51,6 @@ const SkillsPage: FC<PageProps<'/[tenantId]/projects/[projectId]/skills'>> = asy
         <Table>
           <TableHeader>
             <TableRow noHover>
-              <TableHead>ID</TableHead>
               <TableHead>Name</TableHead>
               <TableHead>Description</TableHead>
               <TableHead>Content</TableHead>
@@ -71,9 +68,8 @@ const SkillsPage: FC<PageProps<'/[tenantId]/projects/[projectId]/skills'>> = asy
                     href={`/${tenantId}/projects/${projectId}/skills/${skill.id}`}
                     className="absolute inset-0"
                   />
-                  <Badge variant="code">{skill.id}</Badge>
+                  <Badge variant="code">{skill.name}</Badge>
                 </TableCell>
-                <TableCell className={colClass}>{skill.name}</TableCell>
                 <TableCell className={colClass}>{skill.description}</TableCell>
                 <TableCell className={colClass}>
                   <Badge variant="code" className={cn('line-clamp-3 whitespace-normal')}>

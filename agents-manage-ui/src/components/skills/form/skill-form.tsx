@@ -111,14 +111,14 @@ export const SkillForm: FC<SkillFormProps> = ({ initialData, onSaved }) => {
           label="Content"
           name="content"
           value={content}
-          onChange={(value) => form.setValue('content', value)}
+          onChange={form.setValue.bind(null, 'content')}
           placeholder="Write Markdown instructions for this skill..."
           error={form.formState.errors.content?.message}
           isRequired
         />
         <ExpandableJsonEditor
           value={metadata ?? ''}
-          onChange={(value) => form.setValue('metadata', value)}
+          onChange={form.setValue.bind(null, 'metadata')}
           name="metadata"
           label="Metadata (JSON)"
           placeholder={`{

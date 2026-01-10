@@ -4,8 +4,6 @@ import { SkillForm } from '@/components/skills/form/skill-form';
 import { fetchSkillAction } from '@/lib/actions/skills';
 import { getErrorCode } from '@/lib/utils/error-serialization';
 
-export const dynamic = 'force-dynamic';
-
 async function SkillDetailPage({
   params,
 }: PageProps<'/[tenantId]/projects/[projectId]/skills/[skillId]'>) {
