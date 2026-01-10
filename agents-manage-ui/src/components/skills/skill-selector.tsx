@@ -64,6 +64,8 @@ export const SkillSelector: FC<SkillSelectorProps> = ({
     onChange(newSelection);
   };
 
+  console.log(selectedSkills);
+
   return (
     <div className="space-y-2">
       <ComponentHeader label="Skill Configuration" count={selectedSkills.length} />
@@ -116,10 +118,14 @@ export const SkillSelector: FC<SkillSelectorProps> = ({
               }}
             >
               <div className="flex items-center gap-2">
+                <span className="text-xs text-muted-foreground">#{index + 1}</span>
                 <GripVertical className="size-4 text-muted-foreground" />
-                <div className="text-sm font-medium">
-                  {skillLookup[skill.id].name}{' '}
-                  <span className="text-xs text-muted-foreground">(#{index + 1})</span>{' '}
+                <div>
+                  <div className="text-sm font-medium line-clamp-1">{skill.id}</div>
+                  <div className="text-xs text-muted-foreground line-clamp-1">
+                    {/* DESCRIPTION EXIST */}
+                    {skill.description}
+                  </div>
                 </div>
               </div>
               <Checkbox />
