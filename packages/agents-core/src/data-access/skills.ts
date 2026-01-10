@@ -185,12 +185,16 @@ export const deleteSkill =
   };
 
 export const getSkillsForSubAgents =
-  (db: DatabaseClient) => async (params: { scopes: AgentScopeConfig; subAgentIds: string[] }) => {
-    if (params.subAgentIds.length === 0) {
-      return [] as SubAgentSkillWithDetails[];
+  (db: DatabaseClient) =>
+  async (params: {
+    scopes: AgentScopeConfig;
+    subAgentIds: string[];
+  }): Promise<SubAgentSkillWithDetails[]> => {
+    if (!params.subAgentIds.length) {
+      return [];
     }
 
-    const result = await db
+    return await db
       .select({
         subAgentSkillId: subAgentSkills.id,
         subAgentId: subAgentSkills.subAgentId,
@@ -221,8 +225,6 @@ export const getSkillsForSubAgents =
         )
       )
       .orderBy(asc(subAgentSkills.index), asc(subAgentSkills.createdAt));
-
-    return result as SubAgentSkillWithDetails[];
   };
 
 export const upsertSubAgentSkill =

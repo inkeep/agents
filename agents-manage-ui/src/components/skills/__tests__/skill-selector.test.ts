@@ -1,4 +1,3 @@
-import { describe, expect, it } from 'vitest';
 import { reorderSkills } from '../skill-selector';
 
 describe('reorderSkills', () => {

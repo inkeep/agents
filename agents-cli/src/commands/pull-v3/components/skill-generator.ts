@@ -35,7 +35,10 @@ export async function generateSkills(skills: SkillMap, skillsDir: string): Promi
 
     parts.push('---', '', skill.content || '');
 
-    const filePath = join(skillsDir, `${skillId}.md`);
+    const skillDir = join(skillsDir, skillId);
+    await mkdir(skillDir, { recursive: true });
+
+    const filePath = join(skillDir, 'SKILL.md');
     await writeFile(filePath, parts.join('\n'), 'utf8');
   }
 }

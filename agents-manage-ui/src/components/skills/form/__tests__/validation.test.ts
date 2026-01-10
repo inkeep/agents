@@ -1,4 +1,3 @@
-import { describe, expect, it } from 'vitest';
 import { defaultValues, parseMetadataField, SkillSchema } from '../validation';
 
 describe('skillSchema', () => {

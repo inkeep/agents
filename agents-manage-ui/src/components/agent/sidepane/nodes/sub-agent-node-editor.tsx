@@ -145,7 +145,7 @@ export const SubAgentNodeEditor: FC<SubAgentNodeEditorProps> = ({
         key={selectedNode.id}
         name="prompt"
         value={selectedNode.data.prompt}
-        onChange={(value) => updatePath('prompt', value)}
+        onChange={updatePath.bind(null, 'prompt')}
         placeholder="You are a helpful assistant..."
         error={getFieldError('prompt')}
         label="Prompt"
