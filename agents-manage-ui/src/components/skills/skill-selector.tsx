@@ -74,31 +74,31 @@ export const SkillSelector: FC<SkillSelectorProps> = ({ selectedSkills = [], onC
         commandInputPlaceholder="Search skills..."
       />
       {selectedSkills.length > 0 && (
-        <div className="border rounded-md">
-          <div className="grid grid-cols-[1fr_auto] gap-4 px-3 py-2.5 text-xs font-medium text-muted-foreground rounded-t-md">
-            <div>Skill</div>
+        <div className="border rounded-md text-xs">
+          <div className="flex gap-2 px-3 py-2.5 font-medium text-muted-foreground rounded-t-md">
+            Skill
             <Tooltip>
-              <TooltipTrigger className="cursor-help">On demand</TooltipTrigger>
+              <TooltipTrigger asChild>
+                <span className="cursor-help ml-auto">On demand</span>
+              </TooltipTrigger>
               <TooltipContent>
                 This skill is activated automatically when required and is not included in every
                 prompt.
                 <ExternalLink
                   href={`${DOCS_BASE_URL}/visual-builder/skills#TODO`}
-                  className="text-xs normal-case"
+                  className="text-xs normal-case inline"
                 >
                   Learn more
                 </ExternalLink>
               </TooltipContent>
             </Tooltip>
           </div>
-          {selectedSkills.map((skill, index, array) => (
+          {selectedSkills.map((skill, index) => (
             <li
               key={skill.id}
               className={cn(
-                'cursor-pointer flex items-center gap-2 text-sm text-muted-foreground px-3 py-2 hover:bg-muted/30 transition-colors border-t',
-                dragOverId === skill.id &&
-                  // for last highlight border bottom
-                  (skill === array.at(-1) ? 'border-b border-b-primary' : 'border-primary')
+                'cursor-pointer flex items-center gap-2 text-muted-foreground px-3 py-2 transition-colors border-t',
+                dragOverId ? dragOverId === skill.id && 'bg-muted/30' : 'hover:bg-muted/30'
               )}
               draggable
               onDragStart={() => setDraggingId(skill.id)}
@@ -114,15 +114,12 @@ export const SkillSelector: FC<SkillSelectorProps> = ({ selectedSkills = [], onC
               }}
             >
               <div className="flex items-center">
-                {index + 1}
+                {index + 1 + '.'}
                 <GripVertical className="size-4" />
               </div>
               <div className="grow">
-                <div className="text-foreground font-medium line-clamp-1">{skill.id}</div>
-                <div className="text-xs line-clamp-1">
-                  {/* DESCRIPTION EXIST */}
-                  {skill.description}
-                </div>
+                <div className="text-sm text-foreground font-medium line-clamp-1">{skill.id}</div>
+                <div className="line-clamp-1">{skill.description}</div>
               </div>
               <Checkbox />
             </li>
