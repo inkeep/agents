@@ -83,7 +83,7 @@ export const SkillSelector: FC<SkillSelectorProps> = ({
           <div className="grid grid-cols-[1fr_auto] gap-4 px-3 py-2.5 text-xs font-medium text-muted-foreground rounded-t-md">
             <div>Skill</div>
             <Tooltip>
-              <TooltipTrigger>Always loaded</TooltipTrigger>
+              <TooltipTrigger className="cursor-help">On demand</TooltipTrigger>
               <TooltipContent>
                 This skill is activated automatically when required and is not included in every
                 prompt.
