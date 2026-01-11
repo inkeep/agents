@@ -24,15 +24,14 @@ type SubAgentSkillWithDetails = {
 
 export const getSkillById =
   (db: DatabaseClient) => async (params: { scopes: ProjectScopeConfig; skillId: string }) => {
-    return (
-      (await db.query.skills.findFirst({
-        where: and(
-          eq(skills.tenantId, params.scopes.tenantId),
-          eq(skills.projectId, params.scopes.projectId),
-          eq(skills.id, params.skillId)
-        ),
-      })) ?? null
-    );
+    const result = await db.query.skills.findFirst({
+      where: and(
+        eq(skills.tenantId, params.scopes.tenantId),
+        eq(skills.projectId, params.scopes.projectId),
+        eq(skills.id, params.skillId)
+      ),
+    });
+    return result ?? null;
   };
 
 export const listSkills =
@@ -69,29 +68,22 @@ export const listSkills =
 
 export const createSkill = (db: DatabaseClient) => async (data: SkillInsert) => {
   const now = new Date().toISOString();
-  const skillId = data.id || generateId();
-
   const insertData: SkillInsert = {
     ...data,
-    id: skillId,
+    id: data.name,
     createdAt: now,
     updatedAt: now,
-    metadata: data.metadata ?? null,
-    description: data.description ?? null,
   };
 
-  const result = await db.insert(skills).values(insertData).returning();
-  return result[0];
+  const [result] = await db.insert(skills).values(insertData).returning();
+  return result;
 };
 
 export const upsertSkill = (db: DatabaseClient) => async (data: SkillInsert) => {
   const now = new Date().toISOString();
-  const skillId = data.id || generateId();
   const baseData: SkillInsert = {
     ...data,
-    id: skillId,
-    metadata: data.metadata ?? null,
-    description: data.description ?? null,
+    id: data.name,
   };
 
   const existing = await db.query.skills.findFirst({
@@ -103,7 +95,7 @@ export const upsertSkill = (db: DatabaseClient) => async (data: SkillInsert) => 
   });
 
   if (existing) {
-    const result = await db
+    const [result] = await db
       .update(skills)
       .set({
         name: baseData.name,
@@ -122,7 +114,7 @@ export const upsertSkill = (db: DatabaseClient) => async (data: SkillInsert) => 
       .returning();
 
     logger.info({ skillId: baseData.id }, 'Updated skill');
-    return result[0];
+    return result;
   }
 
   const insertData: SkillInsert = {
@@ -131,9 +123,9 @@ export const upsertSkill = (db: DatabaseClient) => async (data: SkillInsert) => 
     updatedAt: baseData.updatedAt ?? now,
   };
 
-  const result = await db.insert(skills).values(insertData).returning();
+  const [result] = await db.insert(skills).values(insertData).returning();
   logger.info({ skillId: baseData.id }, 'Created skill');
-  return result[0];
+  return result;
 };
 
 export const updateSkill =
@@ -145,7 +137,7 @@ export const updateSkill =
       updatedAt: new Date().toISOString(),
     };
 
-    const result = await db
+    const [result] = await db
       .update(skills)
       .set(updateData)
       .where(
@@ -157,7 +149,7 @@ export const updateSkill =
       )
       .returning();
 
-    return result[0] ?? null;
+    return result ?? null;
   };
 
 export const deleteSkill =
@@ -234,7 +226,7 @@ export const upsertSubAgentSkill =
     });
 
     if (existing) {
-      const result = await db
+      const [result] = await db
         .update(subAgentSkills)
         .set({
           index: params.index,
@@ -243,7 +235,7 @@ export const upsertSubAgentSkill =
         .where(eq(subAgentSkills.id, existing.id))
         .returning();
 
-      return result[0];
+      return result;
     }
 
     const insertData: SubAgentSkillInsert = {
@@ -255,8 +247,8 @@ export const upsertSubAgentSkill =
       updatedAt: now,
     };
 
-    const result = await db.insert(subAgentSkills).values(insertData).returning();
-    return result[0];
+    const [result] = await db.insert(subAgentSkills).values(insertData).returning();
+    return result;
   };
 
 export const deleteSubAgentSkill =

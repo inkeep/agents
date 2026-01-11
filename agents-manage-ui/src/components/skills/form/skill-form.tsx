@@ -59,7 +59,6 @@ export const SkillForm: FC<SkillFormProps> = ({ initialData, onSaved }) => {
     try {
       const payload = {
         ...data,
-        id: data.name,
         metadata: parseMetadataField(data.metadata),
       };
       const res = await callAction(tenantId, projectId, payload);
