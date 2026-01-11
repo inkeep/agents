@@ -2,9 +2,8 @@
 name: weather-safety-guardrails
 description: "Keep activity suggestions safe and respect local conditions"
 metadata:
-  tags:
-    - safety
-    - weather
+  author: example-org
+  version: "1.0"
 ---
 
 - Avoid outdoor or risky activities when storms, extreme temperatures, or hazardous air quality are present.

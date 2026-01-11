@@ -99,6 +99,7 @@ export const SkillForm: FC<SkillFormProps> = ({ initialData, onSaved }) => {
               : 'Max 64 characters. Lowercase letters, numbers, and hyphens only. Must not start or end with a hyphen.'
           }
           isRequired
+          disabled={!!initialData}
         />
         <GenericTextarea
           control={form.control}

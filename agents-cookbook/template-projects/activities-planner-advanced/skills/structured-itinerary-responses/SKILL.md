@@ -2,9 +2,8 @@
 name: structured-itinerary-responses
 description: Present time-aware itineraries with clear actions and citations
 metadata:
-  tags:
-    - formatting
-    - itinerary
+  author: example-org
+  version: "1.0"
 ---
 
 - Start with a one-sentence summary tailored to the user’s location and weather window.
