@@ -14,6 +14,7 @@
   "scripts": {
     "knip": "knip --directory ../.. --workspace packages/agents-sdk --config packages/agents-sdk/knip.config.ts --dependencies",
     "build": "tsdown",
+    "dev": "pnpm build --watch",
     "test": "ENVIRONMENT=test vitest --run",
     "test:watch": "ENVIRONMENT=test vitest",
     "test:coverage": "ENVIRONMENT=test vitest --run --coverage",
