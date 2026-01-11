@@ -79,7 +79,7 @@ export async function createSkillAction(
 export async function updateSkillAction(
   tenantId: string,
   projectId: string,
-  skill: SkillApiUpdate & { id: string }
+  skill: SkillApiUpdate
 ): Promise<ActionResult<Skill>> {
   try {
     const data = await updateSkill(tenantId, projectId, skill.id, skill);

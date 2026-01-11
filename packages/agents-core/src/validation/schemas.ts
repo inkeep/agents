@@ -450,9 +450,11 @@ export const ContextCacheApiUpdateSchema = createApiUpdateSchema(ContextCacheUpd
 export const SkillSelectSchema = createSelectSchema(skills).extend({
   metadata: z.record(z.string(), z.unknown()).nullable(),
 });
-export const SkillInsertSchema = createInsertSchema(skills).extend({
-  id: resourceIdSchema,
-  metadata: z.record(z.string(), z.unknown()).nullable().optional(),
+export const SkillInsertSchema = createInsertSchema(skills).omit({
+  // We set id under the hood as skill.name
+  id: true,
+  createdAt: true,
+  updatedAt: true,
 });
 export const SkillUpdateSchema = SkillInsertSchema.partial();
 
