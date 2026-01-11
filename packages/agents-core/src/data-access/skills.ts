@@ -145,14 +145,6 @@ export const updateSkill =
       updatedAt: new Date().toISOString(),
     };
 
-    if (data.metadata === undefined) {
-      delete updateData.metadata;
-    }
-
-    if (data.description === undefined) {
-      delete updateData.description;
-    }
-
     const result = await db
       .update(skills)
       .set(updateData)

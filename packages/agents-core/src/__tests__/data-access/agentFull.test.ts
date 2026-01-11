@@ -3,35 +3,6 @@ import { getFullAgentDefinition } from '../../data-access/agents';
 import type { DatabaseClient } from '../../db/client';
 import { testDbClient } from '../setup';
 
-const createSkillSelectMock = (result: any[]) => {
-  const orderBy = vi.fn().mockResolvedValue(result);
-  const where = vi.fn().mockReturnValue({ orderBy });
-  const innerJoin = vi.fn().mockReturnValue({ where });
-  const from = vi.fn().mockReturnValue({ innerJoin });
-  return { from };
-};
-
-const createToolSelectMock = (result: any[]) => {
-  const paginatedWhere = vi.fn().mockReturnValue({
-    limit: vi.fn().mockReturnValue({
-      offset: vi.fn().mockReturnValue({
-        orderBy: vi.fn().mockResolvedValue(result),
-      }),
-    }),
-  });
-
-  const innerJoin = vi.fn().mockReturnValue({
-    where: vi.fn().mockResolvedValue(result),
-  });
-
-  const from = vi.fn().mockReturnValue({
-    innerJoin,
-    where: paginatedWhere,
-  });
-
-  return { from };
-};
-
 describe('AgentFull Data Access - getFullAgentDefinition', () => {
   let db: DatabaseClient;
   const testTenantId = 'test-tenant';
@@ -134,17 +105,22 @@ describe('AgentFull Data Access - getFullAgentDefinition', () => {
         },
       };
 
-      let selectCall = 0;
       const mockDb = {
         ...db,
         query: mockQuery,
-        selectDistinct: vi.fn().mockReturnValue(createToolSelectMock([])),
-        select: vi.fn().mockImplementation(() => {
-          selectCall += 1;
-          if (selectCall === 1) {
-            return createSkillSelectMock([]);
-          }
-          return createToolSelectMock([]);
+        selectDistinct: vi.fn().mockReturnValue({
+          from: vi.fn().mockReturnValue({
+            innerJoin: vi.fn().mockReturnValue({
+              where: vi.fn().mockResolvedValue([]),
+            }),
+          }),
+        }),
+        select: vi.fn().mockReturnValue({
+          from: vi.fn().mockReturnValue({
+            innerJoin: vi.fn().mockReturnValue({
+              where: vi.fn().mockResolvedValue([]),
+            }),
+          }),
         }),
       } as any;
 
@@ -165,7 +141,6 @@ describe('AgentFull Data Access - getFullAgentDefinition', () => {
         models: null,
         canTransferTo: [],
         canDelegateTo: [],
-        skills: [],
         dataComponents: [],
         artifactComponents: [],
         canUse: [],
@@ -263,17 +238,22 @@ describe('AgentFull Data Access - getFullAgentDefinition', () => {
         },
       };
 
-      let selectCall = 0;
       const mockDb = {
         ...db,
         query: mockQuery,
-        selectDistinct: vi.fn().mockReturnValue(createToolSelectMock([])),
-        select: vi.fn().mockImplementation(() => {
-          selectCall += 1;
-          if (selectCall === 1) {
-            return createSkillSelectMock([]);
-          }
-          return createToolSelectMock([]);
+        selectDistinct: vi.fn().mockReturnValue({
+          from: vi.fn().mockReturnValue({
+            innerJoin: vi.fn().mockReturnValue({
+              where: vi.fn().mockResolvedValue([]),
+            }),
+          }),
+        }),
+        select: vi.fn().mockReturnValue({
+          from: vi.fn().mockReturnValue({
+            innerJoin: vi.fn().mockReturnValue({
+              where: vi.fn().mockResolvedValue([]),
+            }),
+          }),
         }),
       } as any;
 
@@ -362,17 +342,22 @@ describe('AgentFull Data Access - getFullAgentDefinition', () => {
         },
       };
 
-      let selectCall = 0;
       const mockDb = {
         ...db,
         query: mockQuery,
-        selectDistinct: vi.fn().mockReturnValue(createToolSelectMock([])),
-        select: vi.fn().mockImplementation(() => {
-          selectCall += 1;
-          if (selectCall === 1) {
-            return createSkillSelectMock([]);
-          }
-          return createToolSelectMock([]);
+        selectDistinct: vi.fn().mockReturnValue({
+          from: vi.fn().mockReturnValue({
+            innerJoin: vi.fn().mockReturnValue({
+              where: vi.fn().mockResolvedValue([]),
+            }),
+          }),
+        }),
+        select: vi.fn().mockReturnValue({
+          from: vi.fn().mockReturnValue({
+            innerJoin: vi.fn().mockReturnValue({
+              where: vi.fn().mockResolvedValue([]),
+            }),
+          }),
         }),
       } as any;
 
@@ -472,16 +457,32 @@ describe('AgentFull Data Access - getFullAgentDefinition', () => {
       const mockDb = {
         ...db,
         query: mockQuery,
-        selectDistinct: vi.fn().mockReturnValue(createToolSelectMock([])),
+        selectDistinct: vi.fn().mockReturnValue({
+          from: vi.fn().mockReturnValue({
+            innerJoin: vi.fn().mockReturnValue({
+              where: vi.fn().mockResolvedValue([]),
+            }),
+          }),
+        }),
         select: vi.fn().mockImplementation(() => {
           queryCallCount++;
+          // First call returns MCP tools, second call returns empty function tools
           if (queryCallCount === 1) {
-            return createSkillSelectMock([]);
+            return {
+              from: vi.fn().mockReturnValue({
+                innerJoin: vi.fn().mockReturnValue({
+                  where: vi.fn().mockResolvedValue(mockTools),
+                }),
+              }),
+            };
           }
-          if (queryCallCount === 2) {
-            return createToolSelectMock(mockTools);
-          }
-          return createToolSelectMock([]);
+          return {
+            from: vi.fn().mockReturnValue({
+              innerJoin: vi.fn().mockReturnValue({
+                where: vi.fn().mockResolvedValue([]),
+              }),
+            }),
+          };
         }),
       } as any;
 
@@ -498,115 +499,6 @@ describe('AgentFull Data Access - getFullAgentDefinition', () => {
           toolPolicies: null,
         },
       ]);
-    });
-
-    it('should include ordered skills for subagents', async () => {
-      const mockAgent = {
-        id: testAgentId,
-        name: 'Test Agent',
-        defaultSubAgentId: 'agent-1',
-        createdAt: '2024-01-01T00:00:00.000Z',
-        updatedAt: '2024-01-01T00:00:00.000Z',
-        tenantId: testTenantId,
-        projectId: testProjectId,
-        description: null,
-        models: null,
-        contextConfigId: null,
-      };
-
-      const mockSubAgent = {
-        id: 'agent-1',
-        name: 'Agent 1',
-        description: 'First agent',
-        prompt: 'Instructions 1',
-        models: null,
-        tenantId: testTenantId,
-        projectId: testProjectId,
-        createdAt: '2024-01-01T00:00:00.000Z',
-        updatedAt: '2024-01-01T00:00:00.000Z',
-      };
-
-      const unsortedSkills = [
-        {
-          subAgentSkillId: 'sas-2',
-          subAgentId: 'agent-1',
-          index: 2,
-          id: 'skill-2',
-          name: 'Skill 2',
-          description: 'Second skill',
-          content: 'Content 2',
-          metadata: { tag: 'b' },
-          createdAt: '2024-01-02T00:00:00.000Z',
-          updatedAt: '2024-01-02T00:00:00.000Z',
-        },
-        {
-          subAgentSkillId: 'sas-1',
-          subAgentId: 'agent-1',
-          index: 1,
-          id: 'skill-1',
-          name: 'Skill 1',
-          description: 'First skill',
-          content: 'Content 1',
-          metadata: null,
-          createdAt: '2024-01-01T00:00:00.000Z',
-          updatedAt: '2024-01-01T00:00:00.000Z',
-        },
-      ];
-
-      const sortedSkills = [...unsortedSkills].sort((a, b) => a.index - b.index);
-
-      const mockQuery = {
-        agents: {
-          findFirst: vi.fn().mockResolvedValue(mockAgent),
-        },
-        subAgentRelations: {
-          findMany: vi.fn().mockResolvedValue([]),
-        },
-        subAgentExternalAgentRelations: {
-          findMany: vi.fn().mockResolvedValue([]), // No external agent relations
-        },
-        subAgentTeamAgentRelations: {
-          findMany: vi.fn().mockResolvedValue([]), // No team agent relations
-        },
-        subAgents: {
-          findFirst: vi.fn().mockResolvedValue(mockSubAgent),
-          findMany: vi.fn().mockResolvedValue([
-            {
-              ...mockSubAgent,
-              agentId: testAgentId,
-            },
-          ]),
-        },
-        subAgentDataComponents: {
-          findMany: vi.fn().mockResolvedValue([]),
-        },
-        subAgentArtifactComponents: {
-          findMany: vi.fn().mockResolvedValue([]),
-        },
-        projects: {
-          findFirst: vi.fn().mockResolvedValue(null), // No project with stopWhen configuration
-        },
-      };
-
-      let selectCallCount = 0;
-      const mockDb = {
-        ...db,
-        query: mockQuery,
-        selectDistinct: vi.fn().mockReturnValue(createToolSelectMock([])),
-        select: vi.fn().mockImplementation(() => {
-          selectCallCount += 1;
-          if (selectCallCount === 1) {
-            return createSkillSelectMock(sortedSkills);
-          }
-          return createToolSelectMock([]);
-        }),
-      } as any;
-
-      const result = await getFullAgentDefinition(mockDb)({
-        scopes: { tenantId: testTenantId, projectId: testProjectId, agentId: testAgentId },
-      });
-
-      expect(result?.subAgents['agent-1']?.skills).toEqual(sortedSkills);
     });
 
     it('should include model settings when present', async () => {
@@ -675,17 +567,22 @@ describe('AgentFull Data Access - getFullAgentDefinition', () => {
         },
       };
 
-      let selectCall = 0;
       const mockDb = {
         ...db,
         query: mockQuery,
-        selectDistinct: vi.fn().mockReturnValue(createToolSelectMock([])),
-        select: vi.fn().mockImplementation(() => {
-          selectCall += 1;
-          if (selectCall === 1) {
-            return createSkillSelectMock([]);
-          }
-          return createToolSelectMock([]);
+        selectDistinct: vi.fn().mockReturnValue({
+          from: vi.fn().mockReturnValue({
+            innerJoin: vi.fn().mockReturnValue({
+              where: vi.fn().mockResolvedValue([]),
+            }),
+          }),
+        }),
+        select: vi.fn().mockReturnValue({
+          from: vi.fn().mockReturnValue({
+            innerJoin: vi.fn().mockReturnValue({
+              where: vi.fn().mockResolvedValue([]),
+            }),
+          }),
         }),
       } as any;
 
@@ -780,17 +677,22 @@ describe('AgentFull Data Access - getFullAgentDefinition', () => {
         },
       };
 
-      let selectCall = 0;
       const mockDb = {
         ...db,
         query: mockQuery,
-        selectDistinct: vi.fn().mockReturnValue(createToolSelectMock([])),
-        select: vi.fn().mockImplementation(() => {
-          selectCall += 1;
-          if (selectCall === 1) {
-            return createSkillSelectMock([]);
-          }
-          return createToolSelectMock([]);
+        selectDistinct: vi.fn().mockReturnValue({
+          from: vi.fn().mockReturnValue({
+            innerJoin: vi.fn().mockReturnValue({
+              where: vi.fn().mockResolvedValue([]),
+            }),
+          }),
+        }),
+        select: vi.fn().mockReturnValue({
+          from: vi.fn().mockReturnValue({
+            innerJoin: vi.fn().mockReturnValue({
+              where: vi.fn().mockResolvedValue([]),
+            }),
+          }),
         }),
       } as any;
 

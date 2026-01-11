@@ -275,6 +275,19 @@ export const getAgentSubAgentInfos =
     return agentInfos.filter((agent): agent is NonNullable<typeof agent> => agent !== null);
   };
 
+type SkillWithIndex = {
+  id: string;
+  name: string;
+  description: string | null;
+  content: string;
+  metadata: Record<string, unknown> | null;
+  index: number;
+  subAgentSkillId: string;
+  subAgentId: string;
+  createdAt: string | null;
+  updatedAt: string | null;
+};
+
 export const getFullAgentDefinition =
   (db: DatabaseClient) =>
   async ({
@@ -321,19 +334,6 @@ export const getFullAgentDefinition =
       externalSubAgentIds.add(relation.externalAgentId);
     }
 
-    type SkillWithIndex = {
-      id: string;
-      name: string;
-      description: string | null;
-      content: string;
-      metadata: Record<string, unknown> | null;
-      index: number;
-      subAgentSkillId: string;
-      subAgentId: string;
-      createdAt: string | null;
-      updatedAt: string | null;
-    };
-
     const subAgentSkillsList = await getSkillsForSubAgents(db)({
       scopes: { tenantId, projectId, agentId },
       subAgentIds,
@@ -341,10 +341,7 @@ export const getFullAgentDefinition =
 
     const skillsBySubAgent: Record<string, SkillWithIndex[]> = {};
     for (const skill of subAgentSkillsList) {
-      if (!skillsBySubAgent[skill.subAgentId]) {
-        skillsBySubAgent[skill.subAgentId] = [];
-      }
-
+      skillsBySubAgent[skill.subAgentId] ??= [];
       skillsBySubAgent[skill.subAgentId].push({
         id: skill.id,
         name: skill.name,
