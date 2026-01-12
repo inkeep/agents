@@ -58,8 +58,12 @@ export const SkillSelector: FC<SkillSelectorProps> = ({ selectedSkills = [], onC
   const handleToggle = (id: string) => {
     const newSelection = selectedSkills.some((skill) => skill.id === id)
       ? selectedSkills.filter((skill) => skill.id !== id)
-      : [...selectedSkills, { id, index: selectedSkills.length }];
-    onChange(newSelection);
+      : [
+          ...selectedSkills,
+          // biome-ignore lint/style/noNonNullAssertion: always exist
+          availableSkills.find((skill) => skill.id === id)!,
+        ];
+    onChange(newSelection.map((skill, index) => ({ ...skill, index })));
   };
 
   console.log(selectedSkills);
@@ -95,7 +99,7 @@ export const SkillSelector: FC<SkillSelectorProps> = ({ selectedSkills = [], onC
               </TooltipContent>
             </Tooltip>
           </div>
-          {selectedSkills.map((skill, index) => (
+          {selectedSkills.map((skill) => (
             <li
               key={skill.id}
               className={cn(
@@ -116,7 +120,7 @@ export const SkillSelector: FC<SkillSelectorProps> = ({ selectedSkills = [], onC
               }}
             >
               <div className="flex items-center">
-                {index + 1 + '.'}
+                {`${skill.index + 1}.`}
                 <GripVertical className="size-4" />
               </div>
               <div className="grow">
