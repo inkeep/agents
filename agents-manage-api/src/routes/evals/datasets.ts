@@ -459,6 +459,7 @@ app.openapi(
           agentId,
           id: datasetItem.id,
           input: datasetItem.input,
+          expectedOutput: datasetItem.expectedOutput,
           simulationAgent: datasetItem.simulationAgent,
         }))
       );

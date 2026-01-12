@@ -26,6 +26,7 @@ type RunDatasetItemPayload = {
   agentId: string;
   datasetItemId: string;
   datasetItemInput: unknown;
+  datasetItemExpectedOutput?: unknown;
   datasetItemSimulationAgent?: {
     prompt: string;
     model: { model: string; providerOptions?: Record<string, unknown> };
@@ -131,7 +132,8 @@ async function executeEvaluatorStep(
   projectId: string,
   conversationId: string,
   evaluatorId: string,
-  evaluationRunId: string
+  evaluationRunId: string,
+  expectedOutput?: unknown
 ) {
   'use step';
 
@@ -175,6 +177,7 @@ async function executeEvaluatorStep(
       evaluator,
       tenantId,
       projectId,
+      expectedOutput,
     });
 
     await updateEvaluationResult(runDbClient)({
@@ -241,7 +244,8 @@ export async function runDatasetItemWorkflow(payload: RunDatasetItemPayload) {
           payload.projectId,
           result.conversationId,
           evaluatorId,
-          evaluationRunId
+          evaluationRunId,
+          payload.datasetItemExpectedOutput
         );
       }
     }

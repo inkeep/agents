@@ -751,6 +751,7 @@ export const DatasetItemApiUpdateSchema = createApiUpdateSchema(DatasetItemUpdat
 export const DatasetRunItemSchema = DatasetItemApiSelectSchema.pick({
   id: true,
   input: true,
+  expectedOutput: true,
   simulationAgent: true,
 })
   .partial()

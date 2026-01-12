@@ -929,8 +929,9 @@ Generate the next user message:`;
     evaluator: EvaluatorSelect;
     tenantId: string;
     projectId: string;
+    expectedOutput?: unknown;
   }): Promise<{ output: any; metadata: Record<string, unknown> }> {
-    const { conversation, evaluator, tenantId, projectId } = params;
+    const { conversation, evaluator, tenantId, projectId, expectedOutput } = params;
 
     const client = new ManagementApiClient({
       apiUrl: env.INKEEP_AGENTS_MANAGE_API_URL,
@@ -1022,12 +1023,17 @@ Generate the next user message:`;
       'Using evaluator schema'
     );
 
+    const expectedOutputText = expectedOutput
+      ? JSON.stringify(expectedOutput, null, 2)
+      : undefined;
+
     const evaluationPrompt = this.buildEvalInputEvaluationPrompt(
       evaluator.prompt,
       agentDefinitionText,
       conversationText,
       traceText,
-      schemaObj
+      schemaObj,
+      expectedOutputText
     );
 
     const llmResponse = await this.callLLM({
@@ -1050,16 +1056,26 @@ Generate the next user message:`;
   }
 
   /**
-   * Build evaluation prompt with agent definition, conversation history, and trace
+   * Build evaluation prompt with agent definition, conversation history, trace, and expected output
    */
   private buildEvalInputEvaluationPrompt(
     evaluatorPrompt: string,
     agentDefinitionText: string,
     conversationText: string,
     traceText: string,
-    schema: Record<string, unknown>
+    schema: Record<string, unknown>,
+    expectedOutputText?: string
   ): string {
     const schemaDescription = JSON.stringify(schema, null, 2);
+
+    const expectedOutputSection = expectedOutputText
+      ? `
+
+Expected Output:
+
+${expectedOutputText}
+`
+      : '';
 
     return `${evaluatorPrompt}
 
@@ -1074,7 +1090,7 @@ ${conversationText}
 Execution Trace:
 
 ${traceText}
-
+${expectedOutputSection}
 Please evaluate this conversation according to the following schema and return your evaluation as JSON:
 
 ${schemaDescription}

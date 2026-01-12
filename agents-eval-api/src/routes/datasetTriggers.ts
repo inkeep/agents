@@ -66,6 +66,7 @@ app.openapi(
         agentId: item.agentId,
         datasetItemId: item.id ?? '',
         datasetItemInput: item.input,
+        datasetItemExpectedOutput: item.expectedOutput,
         datasetItemSimulationAgent: item.simulationAgent as any,
         datasetRunId,
         evaluatorIds,
