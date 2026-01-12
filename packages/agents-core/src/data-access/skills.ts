@@ -68,7 +68,7 @@ export const listSkills =
 
 export const createSkill = (db: DatabaseClient) => async (data: SkillInsert) => {
   const now = new Date().toISOString();
-  const insertData: SkillInsert = {
+  const insertData: SkillSelect = {
     ...data,
     id: data.name,
     createdAt: now,
@@ -81,7 +81,7 @@ export const createSkill = (db: DatabaseClient) => async (data: SkillInsert) => 
 
 export const upsertSkill = (db: DatabaseClient) => async (data: SkillInsert) => {
   const now = new Date().toISOString();
-  const baseData: SkillInsert = {
+  const baseData: Omit<SkillSelect, 'createdAt' | 'updatedAt'> = {
     ...data,
     id: data.name,
   };
@@ -102,7 +102,7 @@ export const upsertSkill = (db: DatabaseClient) => async (data: SkillInsert) => 
         description: baseData.description,
         content: baseData.content,
         metadata: baseData.metadata,
-        updatedAt: baseData.updatedAt ?? now,
+        updatedAt: now,
       })
       .where(
         and(
@@ -117,10 +117,10 @@ export const upsertSkill = (db: DatabaseClient) => async (data: SkillInsert) => 
     return result;
   }
 
-  const insertData: SkillInsert = {
+  const insertData: SkillSelect = {
     ...baseData,
-    createdAt: baseData.createdAt ?? now,
-    updatedAt: baseData.updatedAt ?? now,
+    createdAt: now,
+    updatedAt: now,
   };
 
   const [result] = await db.insert(skills).values(insertData).returning();
