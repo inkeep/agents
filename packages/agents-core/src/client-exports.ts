@@ -288,26 +288,6 @@ export const resourceIdSchema = z
     message: 'ID must contain only letters, numbers, hyphens, underscores, and dots',
   });
 
-export const SkillFrontmatterSchema = z.object({
-  name: z
-    .string()
-    .trim()
-    .nonempty()
-    .max(64)
-    .regex(
-      /^[a-z0-9-]+$/,
-      'May only contain lowercase alphanumeric characters and hyphens (a-z, 0-9, -)'
-    )
-    .refine(
-      (v) => !(v.startsWith('-') || v.endsWith('-')),
-      'Must not start or end with a hyphen (-)'
-    )
-    .refine((v) => !v.includes('--'), 'Must not contain consecutive hyphens (--)')
-    .refine((v) => v !== 'new', 'Must not use a reserved name "new"'),
-  description: z.string().trim().nonempty().max(1024),
-  metadata: z.record(z.string(), z.string()).nullable().optional().default(null),
-});
-
 export function generateIdFromName(name: string): string {
   return name
     .toLowerCase()

@@ -447,16 +447,42 @@ export const ContextCacheApiSelectSchema = createApiSchema(ContextCacheSelectSch
 export const ContextCacheApiInsertSchema = createApiInsertSchema(ContextCacheInsertSchema);
 export const ContextCacheApiUpdateSchema = createApiUpdateSchema(ContextCacheUpdateSchema);
 
+export const SkillFrontmatterSchema = z.object({
+  name: z
+    .string()
+    .trim()
+    .nonempty()
+    .max(64)
+    .regex(
+      /^[a-z0-9-]+$/,
+      'May only contain lowercase alphanumeric characters and hyphens (a-z, 0-9, -)'
+    )
+    .refine(
+      (v) => !(v.startsWith('-') || v.endsWith('-')),
+      'Must not start or end with a hyphen (-)'
+    )
+    .refine((v) => !v.includes('--'), 'Must not contain consecutive hyphens (--)')
+    .refine((v) => v !== 'new', 'Must not use a reserved name "new"'),
+  description: z.string().trim().nonempty().max(1024),
+  metadata: z.record(z.string(), z.string()).nullable().optional().default(null),
+});
 export const SkillSelectSchema = createSelectSchema(skills).extend({
-  metadata: z.record(z.string(), z.unknown()).nullable(),
+  metadata: z.record(z.string(), z.string()).nullable(),
 });
-export const SkillInsertSchema = createInsertSchema(skills).omit({
-  // We set id under the hood as skill.name
-  id: true,
-  createdAt: true,
-  updatedAt: true,
+export const SkillInsertSchema = createInsertSchema(skills)
+  .extend({
+    metadata: SkillFrontmatterSchema.shape.metadata,
+  })
+  .omit({
+    // We set id under the hood as skill.name
+    id: true,
+    createdAt: true,
+    updatedAt: true,
+  });
+export const SkillUpdateSchema = SkillInsertSchema.partial().omit({
+  // Name is persistent
+  name: true,
 });
-export const SkillUpdateSchema = SkillInsertSchema.partial();
 
 export const SkillApiSelectSchema = createApiSchema(SkillSelectSchema).openapi('Skill');
 export const SkillApiInsertSchema = createApiInsertSchema(SkillInsertSchema).openapi('SkillCreate');
@@ -465,10 +491,6 @@ export const SkillApiUpdateSchema = createApiUpdateSchema(SkillUpdateSchema).ope
 export const DataComponentSelectSchema = createSelectSchema(dataComponents);
 export const DataComponentInsertSchema = createInsertSchema(dataComponents).extend({
   id: resourceIdSchema,
-});
-export const DataComponentBaseSchema = DataComponentInsertSchema.omit({
-  createdAt: true,
-  updatedAt: true,
 });
 
 export const DataComponentUpdateSchema = DataComponentInsertSchema.partial();
