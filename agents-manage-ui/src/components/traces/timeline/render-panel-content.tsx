@@ -275,6 +275,13 @@ export function renderPanelContent({
                 </Bubble>
               </LabeledBlock>
             )}
+            {a.status === ACTIVITY_STATUS.WARNING && a.toolStatusMessage && (
+              <LabeledBlock label="Status message">
+                <Bubble className="bg-yellow-50 border-yellow-200 text-yellow-800 dark:bg-yellow-900/20 dark:border-yellow-800 dark:text-yellow-300">
+                  {a.toolStatusMessage}
+                </Bubble>
+              </LabeledBlock>
+            )}
             {a.toolCallArgs && (
               <JsonEditorWithCopy
                 value={formatJsonSafely(a.toolCallArgs)}
@@ -315,6 +322,13 @@ export function renderPanelContent({
             {a.status === ACTIVITY_STATUS.ERROR && a.toolStatusMessage && (
               <LabeledBlock label="Status message">
                 <Bubble className="bg-red-50 border-red-200 text-red-800 dark:bg-red-900/20 dark:border-red-800 dark:text-red-300">
+                  {a.toolStatusMessage}
+                </Bubble>
+              </LabeledBlock>
+            )}
+            {a.status === ACTIVITY_STATUS.WARNING && a.toolStatusMessage && (
+              <LabeledBlock label="Status message">
+                <Bubble className="bg-yellow-50 border-yellow-200 text-yellow-800 dark:bg-yellow-900/20 dark:border-yellow-800 dark:text-yellow-300">
                   {a.toolStatusMessage}
                 </Bubble>
               </LabeledBlock>
@@ -365,6 +379,13 @@ export function renderPanelContent({
             {a.status === ACTIVITY_STATUS.ERROR && a.toolStatusMessage && (
               <LabeledBlock label="Status message">
                 <Bubble className="bg-red-50 border-red-200 text-red-800 dark:bg-red-900/20 dark:border-red-800 dark:text-red-300">
+                  {a.toolStatusMessage}
+                </Bubble>
+              </LabeledBlock>
+            )}
+            {a.status === ACTIVITY_STATUS.WARNING && a.toolStatusMessage && (
+              <LabeledBlock label="Status message">
+                <Bubble className="bg-yellow-50 border-yellow-200 text-yellow-800 dark:bg-yellow-900/20 dark:border-yellow-800 dark:text-yellow-300">
                   {a.toolStatusMessage}
                 </Bubble>
               </LabeledBlock>
