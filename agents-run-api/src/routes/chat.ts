@@ -23,6 +23,7 @@ import { getLogger } from '../logger';
 import type { ContentItem, Message } from '../types/chat';
 import { errorOp } from '../utils/agent-operations';
 import { createSSEStreamHelper } from '../utils/stream-helpers';
+import { extractToolApprovalResponseFromChatMessages } from '../utils/tool-approval';
 
 type AppVariables = {
   credentialStores: CredentialStoreRegistry;
@@ -320,6 +321,11 @@ app.openapi(chatCompletionsRoute, async (c) => {
         .filter((msg: Message) => msg.role === 'user')
         .slice(-1)[0];
       const userMessage = lastUserMessage ? getMessageText(lastUserMessage.content) : '';
+      const toolApprovalResponse = extractToolApprovalResponseFromChatMessages(body.messages || []);
+      logger.info(
+        { conversationId, hasToolApprovalResponse: !!toolApprovalResponse, toolApprovalResponse },
+        'chat completions tool approval response detection'
+      );
 
       const messageSpan = trace.getActiveSpan();
       if (messageSpan) {
@@ -390,6 +396,7 @@ app.openapi(chatCompletionsRoute, async (c) => {
             sseHelper,
             emitOperations,
             forwardedHeaders,
+            toolApprovalResponse,
           });
 
           logger.info(

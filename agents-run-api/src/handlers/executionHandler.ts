@@ -6,12 +6,15 @@ import {
   generateId,
   getActiveAgentForConversation,
   getAgentWithDefaultSubAgent,
+  getConversationHistory,
   getFullAgent,
   getTask,
   type SendMessageResponse,
   setSpanWithError,
   updateTask,
 } from '@inkeep/agents-core';
+import { messages } from '@inkeep/agents-core/db/schema';
+import { and, desc, eq, sql } from 'drizzle-orm';
 import { tracer } from 'src/utils/tracer.js';
 import { A2AClient } from '../a2a/client.js';
 import { executeTransfer } from '../a2a/transfer.js';
@@ -21,6 +24,11 @@ import dbClient from '../data/db/dbClient.js';
 import { flushBatchProcessor } from '../instrumentation.js';
 import { getLogger } from '../logger.js';
 import { agentSessionManager } from '../services/AgentSession.js';
+import type {
+  ToolApprovalResponse,
+  ToolApprovalRoutingRecord,
+} from '../types/delegated-tool-approval';
+import { isDelegatedToolApprovalRequest } from '../types/delegated-tool-approval';
 import { agentInitializingOp, completionOp, errorOp } from '../utils/agent-operations.js';
 import { resolveModelConfig } from '../utils/model-resolver.js';
 import type { StreamHelper } from '../utils/stream-helpers.js';
@@ -39,6 +47,7 @@ interface ExecutionHandlerParams {
   emitOperations?: boolean;
   /** Headers to forward to MCP servers (e.g., x-forwarded-cookie for auth) */
   forwardedHeaders?: Record<string, string>;
+  toolApprovalResponse?: ToolApprovalResponse;
 }
 
 interface ExecutionResult {
@@ -75,6 +84,7 @@ export class ExecutionHandler {
       sseHelper,
       emitOperations,
       forwardedHeaders,
+      toolApprovalResponse,
     } = params;
 
     const { tenantId, projectId, agentId, apiKey, baseUrl } = executionContext;
@@ -238,6 +248,165 @@ export class ExecutionHandler {
 
       const maxTransfers =
         agentConfig?.stopWhen?.transferCountIs ?? AGENT_EXECUTION_TRANSFER_COUNT_DEFAULT;
+
+      if (toolApprovalResponse) {
+        logger.info(
+          { toolApprovalResponse, conversationId, requestId },
+          'Received tool approval response from client'
+        );
+
+        const routingHistory = await getConversationHistory(dbClient)({
+          scopes: { tenantId, projectId },
+          conversationId,
+          options: { includeInternal: true, messageTypes: ['tool-call'], limit: 50 },
+        });
+
+        const routingMessage = routingHistory.find((m: any) => {
+          const md = m?.metadata as any;
+          const record = md?.toolApprovalRouting as ToolApprovalRoutingRecord | undefined;
+          return (
+            record?.type === 'tool_approval_routing' &&
+            record.approvalId === toolApprovalResponse.approvalId
+          );
+        });
+
+        logger.info(
+          {
+            foundRouting: !!routingMessage,
+            routingCandidates: routingHistory
+              .map((m: any) => (m?.metadata as any)?.toolApprovalRouting?.approvalId)
+              .filter(Boolean),
+          },
+          'Resolved tool approval routing record'
+        );
+
+        let resolvedRoutingMessage: any | undefined = routingMessage;
+
+        // If the client didn't preserve conversationId, fall back to a tenant/project-wide lookup by approvalId.
+        if (!resolvedRoutingMessage) {
+          const rows = await dbClient
+            .select({
+              conversationId: messages.conversationId,
+              metadata: messages.metadata,
+              taskId: messages.taskId,
+              createdAt: messages.createdAt,
+            })
+            .from(messages)
+            .where(
+              and(
+                eq(messages.tenantId, tenantId),
+                eq(messages.projectId, projectId),
+                eq(messages.messageType, 'tool-call'),
+                sql`(${messages.metadata} -> 'toolApprovalRouting' ->> 'approvalId') = ${toolApprovalResponse.approvalId}`
+              )
+            )
+            .orderBy(desc(messages.createdAt))
+            .limit(1);
+
+          resolvedRoutingMessage = rows[0];
+
+          logger.info(
+            {
+              foundRoutingGlobal: !!resolvedRoutingMessage,
+              approvalId: toolApprovalResponse.approvalId,
+              resolvedConversationId: resolvedRoutingMessage?.conversationId,
+            },
+            'Resolved tool approval routing record (global lookup)'
+          );
+        }
+
+        if (!resolvedRoutingMessage) {
+          await sseHelper.writeError(
+            `No pending tool approval found for approvalId=${toolApprovalResponse.approvalId}`
+          );
+          await sseHelper.complete();
+          await agentSessionManager.endSession(requestId);
+          unregisterStreamHelper(requestId);
+          return { success: false, iterations: 0, error: 'Tool approval routing record not found' };
+        }
+
+        if (resolvedRoutingMessage) {
+          const record = (resolvedRoutingMessage as any).metadata
+            ?.toolApprovalRouting as ToolApprovalRoutingRecord;
+          const resumeConversationId =
+            typeof (resolvedRoutingMessage as any).conversationId === 'string'
+              ? (resolvedRoutingMessage as any).conversationId
+              : conversationId;
+
+          await sseHelper.writeToolOutputAvailable(record.toolCallId, {
+            status: toolApprovalResponse.approved ? 'approved' : 'rejected',
+          });
+
+          const a2aClient = new A2AClient(record.delegatedAgentBaseUrl, {
+            headers: {
+              Authorization: `Bearer ${apiKey}`,
+              'x-inkeep-tenant-id': tenantId,
+              'x-inkeep-project-id': projectId,
+              'x-inkeep-agent-id': agentId,
+              'x-inkeep-sub-agent-id': record.delegatedSubAgentId,
+              ...(forwardedHeaders || {}),
+            },
+          });
+
+          const messageResponse = await a2aClient.sendMessage({
+            message: {
+              role: 'user',
+              parts: [
+                { kind: 'text', text: 'tool approval response' },
+                {
+                  kind: 'data',
+                  data: {
+                    type: 'tool_approval_response',
+                    approvalId: toolApprovalResponse.approvalId,
+                    approved: toolApprovalResponse.approved,
+                  },
+                },
+              ],
+              messageId: `${requestId}-approval`,
+              kind: 'message',
+              contextId: resumeConversationId,
+              metadata: {
+                stream_request_id: requestId,
+                isDelegation: true,
+                delegationId: record.delegationId,
+                approvalId: toolApprovalResponse.approvalId,
+              },
+            },
+            configuration: {
+              acceptedOutputModes: ['text', 'text/plain'],
+              blocking: false,
+            },
+          });
+
+          logger.info(
+            {
+              delegatedSubAgentId: record.delegatedSubAgentId,
+              approvalId: toolApprovalResponse.approvalId,
+              hasResult: !!messageResponse?.result,
+            },
+            'Delegated agent responded after approval routing'
+          );
+
+          const responseParts =
+            (messageResponse.result as any)?.streamedContent?.parts ||
+            (messageResponse.result as any)?.parts ||
+            (messageResponse.result as any)?.artifacts?.flatMap(
+              (artifact: any) => artifact.parts || []
+            ) ||
+            [];
+
+          for (const part of responseParts) {
+            if ((part.kind === 'text' || part.type === 'text') && part.text) {
+              await sseHelper.streamText(part.text, 0);
+            }
+          }
+
+          await sseHelper.complete();
+          await agentSessionManager.endSession(requestId);
+          unregisterStreamHelper(requestId);
+          return { success: true, iterations: 1 };
+        }
+      }
 
       while (iterations < maxTransfers) {
         iterations++;
@@ -414,6 +583,13 @@ export class ExecutionHandler {
             { partsCount: responseParts.length },
             'Using streamed content for conversation history'
           );
+        } else if (Array.isArray((messageResponse.result as any)?.parts)) {
+          // A2A "message" responses return parts directly (no artifacts wrapper)
+          responseParts = (messageResponse.result as any).parts;
+          logger.info(
+            { partsCount: responseParts.length },
+            'Using message.parts for conversation history'
+          );
         } else {
           responseParts =
             (messageResponse.result as any).artifacts?.flatMap(
@@ -426,6 +602,104 @@ export class ExecutionHandler {
         }
 
         if (responseParts && responseParts.length > 0) {
+          logger.info(
+            {
+              partsCount: responseParts.length,
+              sampleParts: responseParts.slice(0, 5).map((p: any) => ({
+                kind: p?.kind,
+                type: p?.type,
+                hasData: !!p?.data,
+                hasText: !!p?.text,
+              })),
+            },
+            'Inspecting responseParts for delegated tool approval'
+          );
+
+          const delegatedApprovalPart = responseParts.find((part: any) => {
+            const isDataPart = part?.kind === 'data' || part?.type === 'data';
+            if (!isDataPart || !part.data) return false;
+            return isDelegatedToolApprovalRequest(part.data);
+          });
+
+          if (delegatedApprovalPart && isDelegatedToolApprovalRequest(delegatedApprovalPart.data)) {
+            const req = delegatedApprovalPart.data;
+
+            logger.info(
+              {
+                approvalId: req.approvalId,
+                toolCallId: req.toolCallId,
+                toolName: req.toolName,
+                delegationId: req.delegationId,
+                delegatedSubAgentId: req.delegatedSubAgentId,
+              },
+              'Streaming delegated tool approval request to client'
+            );
+
+            await sseHelper.writeToolInputStart(req.toolCallId, req.toolName);
+
+            const inputJson = JSON.stringify(req.input ?? {});
+            const chunkSize = 10;
+            for (let i = 0; i < inputJson.length; i += chunkSize) {
+              await sseHelper.writeToolInputDelta(
+                req.toolCallId,
+                inputJson.slice(i, i + chunkSize)
+              );
+            }
+
+            await sseHelper.writeToolInputAvailable({
+              toolCallId: req.toolCallId,
+              toolName: req.toolName,
+              input: req.input,
+              providerMetadata: req.providerMetadata,
+            });
+
+            await sseHelper.writeToolApprovalRequest(req.approvalId, req.toolCallId);
+
+            await createMessage(dbClient)({
+              id: generateId(),
+              tenantId,
+              projectId,
+              conversationId,
+              role: 'agent',
+              content: { text: 'Tool approval required' },
+              visibility: 'internal',
+              messageType: 'tool-call',
+              fromSubAgentId: currentAgentId,
+              taskId: task?.id,
+              metadata: {
+                toolApprovalRouting: {
+                  type: 'tool_approval_routing',
+                  approvalId: req.approvalId,
+                  toolCallId: req.toolCallId,
+                  toolName: req.toolName,
+                  delegationId: req.delegationId,
+                  delegatedAgentBaseUrl: req.delegatedAgentBaseUrl,
+                  delegatedSubAgentId: req.delegatedSubAgentId,
+                  providerMetadata: req.providerMetadata,
+                } satisfies ToolApprovalRoutingRecord,
+              } as any,
+            });
+
+            if (task) {
+              await updateTask(dbClient)({
+                taskId: task.id,
+                data: {
+                  status: 'input-required',
+                  metadata: {
+                    ...task.metadata,
+                    tool_approval_required: true,
+                    approval_id: req.approvalId,
+                  },
+                },
+              });
+            }
+
+            await sseHelper.complete();
+            await agentSessionManager.endSession(requestId);
+            unregisterStreamHelper(requestId);
+            return { success: true, iterations };
+          }
+
           const agentSessionData = agentSessionManager.getSession(requestId);
           if (agentSessionData) {
             const sessionSummary = agentSessionData.getSummary();

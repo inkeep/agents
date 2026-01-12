@@ -691,7 +691,7 @@ export class Agent {
             streamRequestId,
             'mcp',
             {
-              needsApproval, 
+              needsApproval,
               mcpServerId: toolSet.mcpServerId,
               mcpServerName: toolSet.mcpServerName,
             }
@@ -1755,7 +1755,7 @@ export class Agent {
     if (typeof result === 'string') {
       try {
         parsedResult = JSON.parse(result);
-      } catch (e) {
+      } catch (_e) {
         // Keep as string if not valid JSON
       }
     }
@@ -2241,7 +2241,6 @@ ${output}`;
           if (response.steps) {
             const resolvedSteps = await response.steps;
             response = { ...response, steps: resolvedSteps };
-            logger.info({ response: response.steps }, 'Response with steps');
           }
 
           if (hasStructuredOutput && !hasToolCallWithPrefix('transfer_to_')(response)) {
@@ -2757,6 +2756,52 @@ ${output}`;
       }
     }
 
+    // Stop immediately if a delegated agent surfaced a tool approval request envelope.
+    // Depending on provider, this can show up either in step.toolResults or in step.content entries.
+    if (last && Array.isArray((last as any)?.content)) {
+      for (const c of (last as any).content) {
+        if (c?.type !== 'tool-result') continue;
+        const output = c?.output ?? c?.result;
+        const maybeMessage = output?.result?.result ?? output?.result ?? output;
+        const parts: any[] = Array.isArray(maybeMessage?.parts) ? maybeMessage.parts : [];
+        for (const part of parts) {
+          if (part?.kind !== 'data' && part?.type !== 'data') continue;
+          const data = part?.data;
+          if (
+            data &&
+            typeof data === 'object' &&
+            (data as any).type === 'delegated_tool_approval_request'
+          ) {
+            return true;
+          }
+        }
+      }
+    }
+
+    // Stop immediately if a delegated agent surfaced a tool approval request envelope via a delegate tool result.
+    // This prevents the model from repeatedly re-delegating when the delegated agent is waiting on approval.
+    if (steps.length >= 1) {
+      const currentStep = steps[steps.length - 1];
+      const toolResults: any[] = Array.isArray(currentStep?.toolResults)
+        ? currentStep.toolResults
+        : [];
+      for (const tr of toolResults) {
+        const maybeMessage = tr?.result?.result ?? tr?.result;
+        const parts: any[] = Array.isArray(maybeMessage?.parts) ? maybeMessage.parts : [];
+        for (const part of parts) {
+          if (part?.kind !== 'data') continue;
+          const data = part?.data;
+          if (
+            data &&
+            typeof data === 'object' &&
+            (data as any).type === 'delegated_tool_approval_request'
+          ) {
+            return true;
+          }
+        }
+      }
+    }
+
     // Only check for tool errors in streaming mode (when includeThinkingComplete is false)
     if (!includeThinkingComplete && last && last['content'] && last['content'].length > 0) {
       const lastContent = last['content'][last['content'].length - 1];
@@ -2776,10 +2821,6 @@ ${output}`;
     if (steps.length >= 1) {
       const currentStep = steps[steps.length - 1];
       if (currentStep && 'toolCalls' in currentStep && currentStep.toolCalls) {
-        const stopToolNames = includeThinkingComplete
-          ? ['transfer_to_', 'thinking_complete']
-          : ['transfer_to_'];
-
         const hasTransferTool = currentStep.toolCalls.some((tc: any) =>
           tc.toolName.startsWith('transfer_to_')
         );

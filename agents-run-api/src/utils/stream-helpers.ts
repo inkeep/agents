@@ -17,6 +17,16 @@ export interface StreamHelper {
   writeData(type: string, data: any): Promise<void>;
   writeOperation(operation: OperationEvent): Promise<void>;
   writeSummary(summary: SummaryEvent): Promise<void>;
+  writeToolInputStart(toolCallId: string, toolName: string): Promise<void>;
+  writeToolInputDelta(toolCallId: string, inputTextDelta: string): Promise<void>;
+  writeToolInputAvailable(params: {
+    toolCallId: string;
+    toolName: string;
+    input: unknown;
+    providerMetadata?: unknown;
+  }): Promise<void>;
+  writeToolApprovalRequest(approvalId: string, toolCallId: string): Promise<void>;
+  writeToolOutputAvailable(toolCallId: string, output: unknown): Promise<void>;
 }
 
 export interface HonoSSEStream {
@@ -227,6 +237,41 @@ export class SSEStreamHelper implements StreamHelper {
     await this.writeCompletion(finishReason);
     await this.writeDone();
   }
+
+  async writeToolInputStart(toolCallId: string, toolName: string): Promise<void> {
+    await this.stream.writeSSE({
+      data: JSON.stringify({ type: 'tool-input-start', toolCallId, toolName }),
+    });
+  }
+
+  async writeToolInputDelta(toolCallId: string, inputTextDelta: string): Promise<void> {
+    await this.stream.writeSSE({
+      data: JSON.stringify({ type: 'tool-input-delta', toolCallId, inputTextDelta }),
+    });
+  }
+
+  async writeToolInputAvailable(params: {
+    toolCallId: string;
+    toolName: string;
+    input: unknown;
+    providerMetadata?: unknown;
+  }): Promise<void> {
+    await this.stream.writeSSE({
+      data: JSON.stringify({ type: 'tool-input-available', ...params }),
+    });
+  }
+
+  async writeToolApprovalRequest(approvalId: string, toolCallId: string): Promise<void> {
+    await this.stream.writeSSE({
+      data: JSON.stringify({ type: 'tool-approval-request', approvalId, toolCallId }),
+    });
+  }
+
+  async writeToolOutputAvailable(toolCallId: string, output: unknown): Promise<void> {
+    await this.stream.writeSSE({
+      data: JSON.stringify({ type: 'tool-output-available', toolCallId, output }),
+    });
+  }
 }
 
 /**
@@ -251,7 +296,6 @@ export class VercelDataStreamHelper implements StreamHelper {
   private jsonBuffer = '';
   private sentItems = new Map<number, string>(); // Track what we've sent for each index
   private completedItems = new Set<number>(); // Track completed items
-  private sessionId?: string;
 
   private static readonly MAX_BUFFER_SIZE = STREAM_BUFFER_MAX_SIZE_BYTES;
   private isCompleted = false;
@@ -270,7 +314,7 @@ export class VercelDataStreamHelper implements StreamHelper {
   }
 
   setSessionId(sessionId: string): void {
-    this.sessionId = sessionId;
+    void sessionId;
   }
 
   async writeRole(_ = 'assistant'): Promise<void> {}
@@ -672,6 +716,56 @@ export class VercelDataStreamHelper implements StreamHelper {
     // Clean up all buffers and references
     this.cleanup();
   }
+
+  async writeToolInputStart(toolCallId: string, toolName: string): Promise<void> {
+    if (this.isCompleted) {
+      console.warn('Attempted to write tool input start to completed stream');
+      return;
+    }
+
+    this.writer.write({ type: 'tool-input-start', toolCallId, toolName });
+  }
+
+  async writeToolInputDelta(toolCallId: string, inputTextDelta: string): Promise<void> {
+    if (this.isCompleted) {
+      console.warn('Attempted to write tool input delta to completed stream');
+      return;
+    }
+
+    this.writer.write({ type: 'tool-input-delta', toolCallId, inputTextDelta });
+  }
+
+  async writeToolInputAvailable(params: {
+    toolCallId: string;
+    toolName: string;
+    input: unknown;
+    providerMetadata?: unknown;
+  }): Promise<void> {
+    if (this.isCompleted) {
+      console.warn('Attempted to write tool input available to completed stream');
+      return;
+    }
+
+    this.writer.write({ type: 'tool-input-available', ...params });
+  }
+
+  async writeToolApprovalRequest(approvalId: string, toolCallId: string): Promise<void> {
+    if (this.isCompleted) {
+      console.warn('Attempted to write tool approval request to completed stream');
+      return;
+    }
+
+    this.writer.write({ type: 'tool-approval-request', approvalId, toolCallId });
+  }
+
+  async writeToolOutputAvailable(toolCallId: string, output: unknown): Promise<void> {
+    if (this.isCompleted) {
+      console.warn('Attempted to write tool output available to completed stream');
+      return;
+    }
+
+    this.writer.write({ type: 'tool-output-available', toolCallId, output });
+  }
 }
 
 export function createVercelStreamHelper(writer: VercelUIWriter) {
@@ -689,10 +783,9 @@ export class BufferingStreamHelper implements StreamHelper {
   private capturedSummaries: SummaryEvent[] = [];
   private hasError = false;
   private errorMessage = '';
-  private sessionId?: string;
 
   setSessionId(sessionId: string): void {
-    this.sessionId = sessionId;
+    void sessionId;
   }
 
   async writeRole(_role?: string): Promise<void> {
@@ -740,6 +833,21 @@ export class BufferingStreamHelper implements StreamHelper {
   async complete(): Promise<void> {
     // No-op for MCP
   }
+
+  async writeToolInputStart(_toolCallId: string, _toolName: string): Promise<void> {}
+
+  async writeToolInputDelta(_toolCallId: string, _inputTextDelta: string): Promise<void> {}
+
+  async writeToolInputAvailable(_params: {
+    toolCallId: string;
+    toolName: string;
+    input: unknown;
+    providerMetadata?: unknown;
+  }): Promise<void> {}
+
+  async writeToolApprovalRequest(_approvalId: string, _toolCallId: string): Promise<void> {}
+
+  async writeToolOutputAvailable(_toolCallId: string, _output: unknown): Promise<void> {}
 
   /**
    * Get the captured response for non-streaming output

@@ -23,6 +23,7 @@ import { ExecutionHandler } from '../handlers/executionHandler';
 import { getLogger } from '../logger';
 import { errorOp } from '../utils/agent-operations';
 import { createBufferingStreamHelper, createVercelStreamHelper } from '../utils/stream-helpers';
+import { extractToolApprovalResponseFromChatMessages } from '../utils/tool-approval';
 
 type AppVariables = {
   credentialStores: CredentialStoreRegistry;
@@ -54,7 +55,9 @@ const chatDataStreamRoute = createRoute({
                     z.object({
                       type: z.union([
                         z.enum(['text', 'image', 'audio', 'video', 'file']),
-                        z.string().regex(/^data-/, 'Type must start with "data-"'),
+                        z
+                          .string()
+                          .regex(/^(data-|tool-)/, 'Type must start with "data-" or "tool-"'),
                       ]),
                       text: z.string().optional(),
                     })
@@ -246,6 +249,11 @@ app.openapi(chatDataStreamRoute, async (c) => {
       }
 
       const shouldStream = body.stream !== false;
+      const toolApprovalResponse = extractToolApprovalResponseFromChatMessages(body.messages || []);
+      logger.info(
+        { conversationId, hasToolApprovalResponse: !!toolApprovalResponse, toolApprovalResponse },
+        'chatDataStream tool approval response detection'
+      );
 
       if (!shouldStream) {
         // Non-streaming response - collect full response and return as JSON
@@ -264,6 +272,7 @@ app.openapi(chatDataStreamRoute, async (c) => {
           sseHelper: bufferingHelper,
           emitOperations,
           forwardedHeaders,
+          toolApprovalResponse,
         });
 
         const captured = bufferingHelper.getCapturedResponse();
@@ -311,6 +320,7 @@ app.openapi(chatDataStreamRoute, async (c) => {
               sseHelper: streamHelper,
               emitOperations,
               forwardedHeaders,
+              toolApprovalResponse,
             });
 
             if (!result.success) {
