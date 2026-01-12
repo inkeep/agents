@@ -447,6 +447,9 @@ export const ContextCacheApiSelectSchema = createApiSchema(ContextCacheSelectSch
 export const ContextCacheApiInsertSchema = createApiInsertSchema(ContextCacheInsertSchema);
 export const ContextCacheApiUpdateSchema = createApiUpdateSchema(ContextCacheUpdateSchema);
 
+const SkillIndexSchema = z.int().min(0);
+const SkillMetadataSchema = z.record(z.string(), z.string()).nullable();
+
 export const SkillFrontmatterSchema = z.object({
   name: z
     .string()
@@ -464,10 +467,10 @@ export const SkillFrontmatterSchema = z.object({
     .refine((v) => !v.includes('--'), 'Must not contain consecutive hyphens (--)')
     .refine((v) => v !== 'new', 'Must not use a reserved name "new"'),
   description: z.string().trim().nonempty().max(1024),
-  metadata: z.record(z.string(), z.string()).nullable().optional().default(null),
+  metadata: SkillMetadataSchema.optional().default(null),
 });
 export const SkillSelectSchema = createSelectSchema(skills).extend({
-  metadata: z.record(z.string(), z.string()).nullable(),
+  metadata: SkillMetadataSchema,
 });
 export const SkillInsertSchema = createInsertSchema(skills)
   .extend({
@@ -561,8 +564,6 @@ export const SubAgentArtifactComponentApiInsertSchema = SubAgentArtifactComponen
 export const SubAgentArtifactComponentApiUpdateSchema = createAgentScopedApiUpdateSchema(
   SubAgentArtifactComponentUpdateSchema
 );
-
-const SkillIndexSchema = z.int().min(0);
 
 export const SubAgentSkillSelectSchema = createSelectSchema(subAgentSkills).extend({
   index: SkillIndexSchema,
