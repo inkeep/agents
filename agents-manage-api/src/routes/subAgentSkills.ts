@@ -3,11 +3,9 @@ import {
   commonGetErrorResponses,
   createApiError,
   deleteSubAgentSkill,
-  ErrorResponseSchema,
   getSkillById,
   getSkillsForSubAgents,
   getSubAgentById,
-  RemovedResponseSchema,
   SubAgentSkillApiInsertSchema,
   SubAgentSkillResponse,
   SubAgentSkillWithIndexArrayResponse,
@@ -95,14 +93,6 @@ app.openapi(
           },
         },
       },
-      404: {
-        description: 'Sub-agent or skill not found',
-        content: {
-          'application/json': {
-            schema: ErrorResponseSchema,
-          },
-        },
-      },
       ...commonGetErrorResponses,
     },
   }),
@@ -153,21 +143,8 @@ app.openapi(
       }),
     },
     responses: {
-      200: {
+      204: {
         description: 'Skill detached successfully',
-        content: {
-          'application/json': {
-            schema: RemovedResponseSchema,
-          },
-        },
-      },
-      404: {
-        description: 'Skill relation not found',
-        content: {
-          'application/json': {
-            schema: ErrorResponseSchema,
-          },
-        },
       },
       ...commonGetErrorResponses,
     },
@@ -182,7 +159,7 @@ app.openapi(
 
     const relation = existingSkills.find((s) => s.id === skillId);
 
-    if (!relation || !relation.subAgentSkillId) {
+    if (!relation?.subAgentSkillId) {
       throw createApiError({
         code: 'not_found',
         message: 'Sub-agent skill relation not found',
@@ -201,7 +178,7 @@ app.openapi(
       });
     }
 
-    return c.json({ message: 'Skill detached', removed: true });
+    return c.body(null, 204);
   }
 );
 

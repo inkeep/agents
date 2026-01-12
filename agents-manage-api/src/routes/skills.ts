@@ -4,11 +4,9 @@ import {
   createApiError,
   createSkill,
   deleteSkill,
-  ErrorResponseSchema,
   getSkillById,
   listSkills,
   PaginationQueryParamsSchema,
-  RemovedResponseSchema,
   SkillApiInsertSchema,
   SkillApiUpdateSchema,
   SkillListResponse,
@@ -222,23 +220,10 @@ app.openapi(
       params: TenantProjectIdParamsSchema,
     },
     responses: {
-      200: {
+      204: {
         description: 'Skill deleted successfully',
-        content: {
-          'application/json': {
-            schema: RemovedResponseSchema,
-          },
-        },
       },
       ...commonGetErrorResponses,
-      404: {
-        description: 'Skill not found',
-        content: {
-          'application/json': {
-            schema: ErrorResponseSchema,
-          },
-        },
-      },
     },
   }),
   async (c) => {
@@ -256,7 +241,7 @@ app.openapi(
       });
     }
 
-    return c.json({ message: 'Skill deleted', removed: true });
+    return c.body(null, 204);
   }
 );
 
