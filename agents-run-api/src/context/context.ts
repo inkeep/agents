@@ -88,9 +88,7 @@ async function handleContextResolution({
         const contextConfig = agent.contextConfig;
 
         if (!contextConfig) {
-          logger.warn({}, 'Context config not found, proceeding without context resolution');
-          parentSpan.setStatus({ code: SpanStatusCode.ERROR });
-          parentSpan.addEvent('context.config_not_found');
+          logger.debug({ agentId: agentId }, 'No context config found for agent');
           return null;
         }
 
