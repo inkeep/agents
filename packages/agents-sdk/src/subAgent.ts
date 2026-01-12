@@ -37,7 +37,7 @@ function resolveGetter<T>(value: T | (() => T) | undefined): T | undefined {
 
 export class SubAgent implements SubAgentInterface {
   public config: SubAgentConfig;
-  public readonly type = 'internal' as const;
+  public readonly type = 'internal';
   private baseURL: string;
   private tenantId: string;
   private projectId: string;
