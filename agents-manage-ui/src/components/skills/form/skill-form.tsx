@@ -34,6 +34,35 @@ const formatFormData = (data?: Skill): SkillFormData => {
   };
 };
 
+// Extract to function to fix react compiler errors
+// Support value blocks (conditional, logical, optional chaining, etc) within a try/catch statement
+async function doRequest(
+  data: SkillFormData,
+  {
+    tenantId,
+    projectId,
+    isUpdate,
+  }: {
+    tenantId: string;
+    projectId: string;
+    isUpdate: boolean;
+  }
+): Promise<{ success: boolean }> {
+  const payload = {
+    ...data,
+    metadata: parseMetadataField(data.metadata),
+  };
+  const response = isUpdate
+    ? await updateSkillAction(tenantId, projectId, data.name, payload)
+    : await createSkillAction(tenantId, projectId, payload);
+  if (!response.success) {
+    toast.error(response.error ?? `Failed to ${isUpdate ? 'update' : 'create'} skill`);
+    return { success: false };
+  }
+  toast.success(`Skill ${isUpdate ? 'updated' : 'created'}`);
+  return { success: true };
+}
+
 export const SkillForm: FC<SkillFormProps> = ({ initialData, onSaved }) => {
   'use memo';
 
@@ -49,24 +78,15 @@ export const SkillForm: FC<SkillFormProps> = ({ initialData, onSaved }) => {
   const router = useRouter();
 
   const onSubmit = form.handleSubmit(async (data) => {
-    const callAction = initialData ? updateSkillAction : createSkillAction;
-    // Fix react compiler errors
-    // Support value blocks (conditional, logical, optional chaining, etc) within a try/catch statement
-    const getErrorMessage = (error?: string) =>
-      error ?? `Failed to ${initialData ? 'update' : 'create'} skill`;
-    const successMessage = `Skill ${initialData ? 'updated' : 'created'}`;
-
     try {
-      const payload = {
-        ...data,
-        metadata: parseMetadataField(data.metadata),
-      };
-      const res = await callAction(tenantId, projectId, payload);
-      if (!res.success) {
-        toast.error(getErrorMessage(res.error));
+      const result = await doRequest(data, {
+        tenantId,
+        projectId,
+        isUpdate: !!initialData,
+      });
+      if (!result.success) {
         return;
       }
-      toast.success(successMessage);
       if (initialData) {
         if (onSaved) {
           onSaved();
@@ -123,7 +143,7 @@ export const SkillForm: FC<SkillFormProps> = ({ initialData, onSaved }) => {
           label="Metadata (JSON)"
           placeholder={`{
   "version": "1.0.0",
-  "tags": ["safety"]
+  "author": "example"
 }`}
         />
 

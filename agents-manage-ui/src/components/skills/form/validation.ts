@@ -17,7 +17,7 @@ export const defaultValues: SkillFormData = {
   metadata: '',
 };
 
-export function parseMetadataField(metadata = ''): Record<string, unknown> | null {
+export function parseMetadataField(metadata = ''): Record<string, string> | null {
   if (!metadata.trim()) {
     return null;
   }
