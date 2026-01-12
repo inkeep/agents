@@ -62,8 +62,8 @@ const subAgentScoped = {
 };
 
 const uiProperties = {
-  name: varchar('name', { length: 64 }).notNull(),
-  description: text('description').notNull(),
+  name: varchar('name', { length: 256 }).notNull(),
+  description: text('description'),
 };
 
 const timestamps = {
@@ -205,9 +205,12 @@ export const skills = pgTable(
   'skills',
   {
     ...projectScoped,
-    ...uiProperties,
+    // Should be same as skill name
+    id: varchar('id', { length: 64 }).notNull(),
+    name: varchar('name', { length: 64 }).notNull(),
+    description: text('description').notNull(),
     content: text('content').notNull(),
-    metadata: jsonb('metadata').$type<Record<string, unknown> | null>(),
+    metadata: jsonb('metadata').$type<Record<string, string> | null>(),
     ...timestamps,
   },
   (table) => [
@@ -224,7 +227,7 @@ export const subAgentSkills = pgTable(
   'sub_agent_skills',
   {
     ...subAgentScoped,
-    skillId: varchar('skill_id', { length: 256 }).notNull(),
+    skillId: varchar('skill_id', { length: 64 }).notNull(),
     index: integer('index').notNull().default(0),
     ...timestamps,
   },
