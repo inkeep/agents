@@ -2186,11 +2186,6 @@ ${output}`;
               response.steps.map((s: any) => s.content),
               'Response generateText'
             );
-
-            // Process tool lifecycle events from response.steps
-            const streamHelper = this.getStreamingHelper();
-            // TODO: test for streamText
-            streamHelper?.processToolEventsFromSteps(response.steps);
           }
 
           if (hasStructuredOutput && !hasToolCallWithPrefix('transfer_to_')(response)) {
