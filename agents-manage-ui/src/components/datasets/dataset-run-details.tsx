@@ -11,6 +11,7 @@ import {
 } from '@/components/datasets/test-case-filters';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Progress } from '@/components/ui/progress';
 import { Skeleton } from '@/components/ui/skeleton';
 import {
   Table,
@@ -275,14 +276,11 @@ export function DatasetRunDetails({
                     <span className="ml-2 text-green-600 dark:text-green-400">✓</span>
                   )}
                 </span>
-                <div className="w-full h-1.5 bg-muted rounded-full overflow-hidden">
-                  <div
-                    className="h-full bg-primary transition-all duration-300"
-                    style={{
-                      width: `${conversationProgress.total > 0 ? (conversationProgress.completed / conversationProgress.total) * 100 : 0}%`,
-                    }}
-                  />
-                </div>
+                <Progress
+                  value={conversationProgress.completed}
+                  max={conversationProgress.total}
+                  className="h-1.5"
+                />
               </div>
 
               {/* Evaluation progress (if evaluators are attached) */}
@@ -295,14 +293,11 @@ export function DatasetRunDetails({
                       <span className="ml-2 text-green-600 dark:text-green-400">✓</span>
                     )}
                   </span>
-                  <div className="w-full h-1.5 bg-muted rounded-full overflow-hidden">
-                    <div
-                      className="h-full bg-primary transition-all duration-300"
-                      style={{
-                        width: `${evaluationProgress.total > 0 ? (evaluationProgress.completed / evaluationProgress.total) * 100 : 0}%`,
-                      }}
-                    />
-                  </div>
+                  <Progress
+                    value={evaluationProgress.completed}
+                    max={evaluationProgress.total}
+                    className="h-1.5"
+                  />
                 </div>
               )}
             </div>

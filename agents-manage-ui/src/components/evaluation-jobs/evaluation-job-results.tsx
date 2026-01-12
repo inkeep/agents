@@ -7,6 +7,7 @@ import { ExpandableJsonEditor } from '@/components/editors/expandable-json-edito
 import { EvaluationStatusBadge } from '@/components/evaluators/evaluation-status-badge';
 import { EvaluatorViewDialog } from '@/components/evaluators/evaluator-view-dialog';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
+import { Progress } from '@/components/ui/progress';
 import {
   Table,
   TableBody,
@@ -180,14 +181,7 @@ export function EvaluationJobResults({
             <span className="text-xs text-muted-foreground">
               {progress.completed} of {progress.total} evaluations completed
             </span>
-            <div className="w-full h-1.5 bg-muted rounded-full overflow-hidden">
-              <div
-                className="h-full bg-primary transition-all duration-300"
-                style={{
-                  width: `${progress.total > 0 ? (progress.completed / progress.total) * 100 : 0}%`,
-                }}
-              />
-            </div>
+            <Progress value={progress.completed} max={progress.total} className="h-1.5" />
           </div>
         </div>
       )}

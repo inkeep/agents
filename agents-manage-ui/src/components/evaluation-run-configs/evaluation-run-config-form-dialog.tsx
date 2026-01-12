@@ -1,6 +1,8 @@
 'use client';
 
 import { zodResolver } from '@hookform/resolvers/zod';
+import { ArrowUpRight } from 'lucide-react';
+import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useForm } from 'react-hook-form';
@@ -10,7 +12,7 @@ import { ComponentSelector } from '@/components/agent/sidepane/nodes/component-s
 import { GenericInput } from '@/components/form/generic-input';
 import { GenericTextarea } from '@/components/form/generic-textarea';
 import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
+import { Button, buttonVariants } from '@/components/ui/button';
 import {
   Dialog,
   DialogContent,
@@ -326,7 +328,7 @@ export function EvaluationRunConfigFormDialog({
                 render={() => (
                   <FormItem>
                     <ComponentSelector
-                      label="Agent Filter (Optional)"
+                      label="Agent Filter"
                       componentLookup={agentLookup}
                       selectedComponents={suiteConfigForm.watch('agentIds') || []}
                       onSelectionChange={(newSelection) => {
@@ -350,11 +352,22 @@ export function EvaluationRunConfigFormDialog({
                 name="evaluatorIds"
                 render={() => (
                   <FormItem>
-                    <div className="flex items-center gap-2">
-                      <FormLabel isRequired>Evaluators</FormLabel>
-                      <Badge variant="count">
-                        {(suiteConfigForm.watch('evaluatorIds') || []).length}
-                      </Badge>
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <FormLabel isRequired>Evaluators</FormLabel>
+                        <Badge variant="count">
+                          {(suiteConfigForm.watch('evaluatorIds') || []).length}
+                        </Badge>
+                      </div>
+                      <Link
+                        href={`/${tenantId}/projects/${projectId}/evaluations?tab=evaluators`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className={buttonVariants({ variant: 'link', size: 'sm' })}
+                      >
+                        Create evaluator
+                        <ArrowUpRight className="ml-1 size-3" />
+                      </Link>
                     </div>
                     <ComponentSelector
                       label=""
@@ -379,7 +392,7 @@ export function EvaluationRunConfigFormDialog({
                 label="Sample Rate"
                 type="number"
                 placeholder="0.1"
-                description="Sample rate for evaluation (0.0 to 1.0). For example, 0.1 means 10% of conversations will be evaluated."
+                description="Sample rate for evaluation (0.0 to 1.0). For example, 0.1 means 10% of conversations will be evaluated. If not set, all conversations will be evaluated."
               />
             </div>
 

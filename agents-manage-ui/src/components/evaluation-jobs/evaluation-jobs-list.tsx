@@ -195,9 +195,9 @@ export function EvaluationJobsList({ tenantId, projectId, jobConfigs }: Evaluati
                         <DropdownMenuContent align="end">
                           <DropdownMenuItem
                             onClick={() => handleDelete(jobConfig)}
-                            className="text-destructive hover:!bg-destructive/10 dark:hover:!bg-destructive/20 hover:!text-destructive cursor-pointer"
+                            className="!text-destructive"
                           >
-                            <Trash2 className="size-4 text-destructive" />
+                            <Trash2 className="text-inherit" />
                             Delete
                           </DropdownMenuItem>
                         </DropdownMenuContent>

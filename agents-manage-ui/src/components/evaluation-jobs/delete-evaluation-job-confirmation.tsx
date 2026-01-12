@@ -64,7 +64,7 @@ export function DeleteEvaluationJobConfirmation({
           <AlertDialogAction
             onClick={handleDelete}
             disabled={isDeleting}
-            className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            className="bg-white text-gray-900 border border-gray-300 hover:bg-gray-100"
           >
             {isDeleting ? 'Deleting...' : 'Delete'}
           </AlertDialogAction>

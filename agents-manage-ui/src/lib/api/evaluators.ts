@@ -48,7 +48,7 @@ export interface EvaluatorInsert {
   prompt: string;
   schema: Record<string, unknown>;
   model: ModelSettings;
-  passCriteria?: PassCriteria;
+  passCriteria?: PassCriteria | null;
 }
 
 export interface EvaluatorUpdate {
@@ -57,7 +57,7 @@ export interface EvaluatorUpdate {
   prompt?: string;
   schema?: Record<string, unknown>;
   model?: ModelSettings;
-  passCriteria?: PassCriteria;
+  passCriteria?: PassCriteria | null;
 }
 
 /**

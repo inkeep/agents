@@ -71,7 +71,7 @@ const formatFormData = (data?: Evaluator): EvaluatorFormData => {
         model: '',
         providerOptions: undefined,
       },
-      passCriteria: undefined,
+      passCriteria: null,
     };
   }
 
@@ -84,7 +84,7 @@ const formatFormData = (data?: Evaluator): EvaluatorFormData => {
       model: data.model?.model || '',
       providerOptions: data.model?.providerOptions,
     },
-    passCriteria: data.passCriteria,
+    passCriteria: data.passCriteria ?? null,
   };
 };
 
@@ -119,11 +119,7 @@ export function EvaluatorFormDialog({
     defaultValue: undefined,
   });
 
-  const { field: passCriteriaField } = useController({
-    control: form.control,
-    name: 'passCriteria',
-    defaultValue: undefined,
-  });
+  const passCriteriaValue = form.watch('passCriteria');
 
   const { field: schemaField } = useController({
     control: form.control,
@@ -175,7 +171,7 @@ export function EvaluatorFormDialog({
             providerOptions: data.model.providerOptions,
           }),
         },
-        ...(data.passCriteria && { passCriteria: data.passCriteria }),
+        passCriteria: data.passCriteria ?? null,
       };
 
       let result: ActionResult<Evaluator>;
@@ -309,8 +305,10 @@ export function EvaluatorFormDialog({
             </div>
 
             <PassCriteriaBuilder
-              value={passCriteriaField.value ?? undefined}
-              onChange={passCriteriaField.onChange}
+              value={passCriteriaValue ?? undefined}
+              onChange={(value) => {
+                form.setValue('passCriteria', value ?? null, { shouldDirty: true });
+              }}
               schema={(() => {
                 try {
                   return JSON.parse(schemaField.value || '{}');

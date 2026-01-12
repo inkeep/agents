@@ -1023,9 +1023,7 @@ Generate the next user message:`;
       'Using evaluator schema'
     );
 
-    const expectedOutputText = expectedOutput
-      ? JSON.stringify(expectedOutput, null, 2)
-      : undefined;
+    const expectedOutputText = expectedOutput ? JSON.stringify(expectedOutput, null, 2) : undefined;
 
     const evaluationPrompt = this.buildEvalInputEvaluationPrompt(
       evaluator.prompt,

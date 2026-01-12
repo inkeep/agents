@@ -1,13 +1,14 @@
 'use client';
 
-import { ChevronDown, ChevronRight, ExternalLink } from 'lucide-react';
+import { CheckCircle2, ChevronDown, ChevronRight, ExternalLink, Loader2 } from 'lucide-react';
 import Link from 'next/link';
-import { useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { ExpandableJsonEditor } from '@/components/editors/expandable-json-editor';
 import { SuiteConfigViewDialog } from '@/components/evaluation-run-configs/suite-config-view-dialog';
 import { EvaluationStatusBadge } from '@/components/evaluators/evaluation-status-badge';
 import { EvaluatorViewDialog } from '@/components/evaluators/evaluator-view-dialog';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
+import { Progress } from '@/components/ui/progress';
 import {
   Table,
   TableBody,
@@ -17,6 +18,7 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import type { EvaluationResult } from '@/lib/api/evaluation-results';
+import { fetchEvaluationResultsByRunConfig } from '@/lib/api/evaluation-results';
 import type { EvaluationRunConfig } from '@/lib/api/evaluation-run-configs';
 import type { EvaluationSuiteConfig } from '@/lib/api/evaluation-suite-configs';
 import type { Evaluator } from '@/lib/api/evaluators';
@@ -41,7 +43,7 @@ export function EvaluationRunConfigResults({
   tenantId,
   projectId,
   runConfig,
-  results,
+  results: initialResults,
   evaluators,
   suiteConfigs,
   suiteConfigEvaluators,
@@ -49,6 +51,26 @@ export function EvaluationRunConfigResults({
   const [selectedEvaluatorId, setSelectedEvaluatorId] = useState<string | null>(null);
   const [selectedSuiteConfigId, setSelectedSuiteConfigId] = useState<string | null>(null);
   const [filters, setFilters] = useState<EvaluationResultFilters>({});
+  const [results, setResults] = useState<EvaluationResult[]>(initialResults);
+
+  // Fetch results for polling
+  const refreshResults = useCallback(async () => {
+    try {
+      const response = await fetchEvaluationResultsByRunConfig(tenantId, projectId, runConfig.id);
+      setResults(response.data);
+    } catch (error) {
+      console.error('Error refreshing results:', error);
+    }
+  }, [tenantId, projectId, runConfig.id]);
+
+  // Always poll for new results since continuous tests can receive new evaluations at any time
+  useEffect(() => {
+    const interval = setInterval(() => {
+      refreshResults();
+    }, 5000); // Refresh every 5 seconds
+
+    return () => clearInterval(interval);
+  }, [refreshResults]);
 
   const evaluatorMap = new Map<string, string>();
   evaluators.forEach((evaluator) => {
@@ -117,7 +139,7 @@ export function EvaluationRunConfigResults({
                         Sample Rate:{' '}
                         {suiteConfig.sampleRate !== null
                           ? `${(suiteConfig.sampleRate * 100).toFixed(0)}%`
-                          : 'N/A'}
+                          : '100%'}
                       </div>
                       {agentFilter && (
                         <div>
@@ -132,6 +154,30 @@ export function EvaluationRunConfigResults({
           </div>
         </div>
       )}
+
+      {/* Evaluation Progress */}
+      {results.length > 0 &&
+        (() => {
+          const completed = results.filter((r) => r.output !== null).length;
+          const total = results.length;
+          const isRunning = completed < total;
+
+          return (
+            <div className="flex flex-col gap-2 p-3 rounded-lg bg-muted/50 border">
+              <div className="flex items-center gap-2">
+                {isRunning ? (
+                  <Loader2 className="h-4 w-4 animate-spin text-primary" />
+                ) : (
+                  <CheckCircle2 className="h-4 w-4 text-green-600 dark:text-green-400" />
+                )}
+                <span className="text-sm text-muted-foreground">
+                  {completed} of {total} evaluations completed
+                </span>
+              </div>
+              <Progress value={completed} max={total} className="h-1.5" />
+            </div>
+          );
+        })()}
 
       <EvaluationResultsFilters
         filters={filters}
