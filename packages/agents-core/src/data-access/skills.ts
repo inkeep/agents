@@ -131,8 +131,8 @@ export const upsertSkill = (db: DatabaseClient) => async (data: SkillInsert) => 
 export const updateSkill =
   (db: DatabaseClient) =>
   async (params: { scopes: ProjectScopeConfig; skillId: string; data: SkillUpdate }) => {
-    const { id: _id, ...data } = params.data;
-    const updateData: Record<string, unknown> = {
+    const { tenantId: _, projectId: _2, ...data } = params.data;
+    const updateData: Partial<SkillSelect> = {
       ...data,
       updatedAt: new Date().toISOString(),
     };
