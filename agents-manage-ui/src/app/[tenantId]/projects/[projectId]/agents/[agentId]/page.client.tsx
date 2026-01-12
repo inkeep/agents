@@ -102,10 +102,11 @@ function getEdgeId(a: string, b: string) {
 
 interface AgentProps {
   agent: ExtendedFullAgentDefinition;
-  dataComponentLookup?: Record<string, DataComponent>;
-  artifactComponentLookup?: Record<string, ArtifactComponent>;
-  toolLookup?: Record<string, MCPTool>;
-  credentialLookup?: Record<string, Credential>;
+  dataComponentLookup: Record<string, DataComponent>;
+  artifactComponentLookup: Record<string, ArtifactComponent>;
+  toolLookup: Record<string, MCPTool>;
+  credentialLookup: Record<string, Credential>;
+  skills: Skill[];
 }
 
 type ReactFlowProps = Required<ComponentProps<typeof ReactFlow>>;
@@ -123,10 +124,11 @@ const nonValidationErrors = new Set([
 
 export const Agent: FC<AgentProps> = ({
   agent,
-  dataComponentLookup = {},
-  artifactComponentLookup = {},
-  toolLookup = {},
-  credentialLookup = {},
+  dataComponentLookup,
+  artifactComponentLookup,
+  toolLookup,
+  credentialLookup,
+  skills,
 }) => {
   const [showPlayground, setShowPlayground] = useState(false);
   const {
@@ -368,6 +370,7 @@ export const Agent: FC<AgentProps> = ({
       agentNodes,
       agentEdges,
       extractAgentMetadata(agent),
+      skills,
       dataComponentLookup,
       artifactComponentLookup,
       toolLookup,
@@ -495,6 +498,7 @@ export const Agent: FC<AgentProps> = ({
           enrichNodes(nodesWithSelection),
           edgesWithSelection,
           metadata,
+          skills,
           updatedDataComponentLookup as Record<string, DataComponent>,
           updatedArtifactComponentLookup as Record<string, ArtifactComponent>,
           updatedToolLookup as unknown as Record<string, MCPTool>,
@@ -521,6 +525,7 @@ export const Agent: FC<AgentProps> = ({
       computeSubAgentExternalAgentConfigLookup,
       enrichNodes,
       setProjectStore,
+      skills,
     ]
   );
 

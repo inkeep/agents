@@ -20,7 +20,7 @@ const AgentData: FC<{
   tenantId: string;
   projectId: string;
 }> = async ({ agent, tenantId, projectId }) => {
-  const [dataComponents, artifactComponents, credentials, tools, externalAgents] =
+  const [dataComponents, artifactComponents, credentials, tools, externalAgents, skills] =
     await Promise.all([
       fetchDataComponentsAction(tenantId, projectId),
       fetchArtifactComponentsAction(tenantId, projectId),
@@ -35,7 +35,8 @@ const AgentData: FC<{
     !artifactComponents.success ||
     !credentials.success ||
     !tools.success ||
-    !externalAgents.success
+    !externalAgents.success ||
+    !skills.success
   ) {
     console.error(
       'Failed to fetch components:',
@@ -43,7 +44,8 @@ const AgentData: FC<{
       artifactComponents.error,
       credentials.error,
       tools.error,
-      externalAgents.error
+      externalAgents.error,
+      skills.error
     );
   }
 
@@ -57,7 +59,7 @@ const AgentData: FC<{
 
   const toolLookup = createLookup(tools.success ? tools.data : undefined);
   const credentialLookup = createLookup(credentials.success ? credentials.data : undefined);
-
+  const skillsList = (skills.success && skills.data) || [];
   return (
     <Agent
       agent={agent}
@@ -65,6 +67,7 @@ const AgentData: FC<{
       artifactComponentLookup={artifactComponentLookup}
       toolLookup={toolLookup}
       credentialLookup={credentialLookup}
+      skills={skillsList}
     />
   );
 };

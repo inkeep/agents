@@ -7,6 +7,7 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { ExternalLink } from '@/components/ui/external-link';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { DOCS_BASE_URL } from '@/constants/page-descriptions';
+import { useAgentStore } from '@/features/agent/state/use-agent-store';
 import { cn } from '@/lib/utils';
 
 interface SkillSelection {
@@ -44,6 +45,7 @@ export const SkillSelector: FC<SkillSelectorProps> = ({ selectedSkills = [], onC
 
   const [draggingId, setDraggingId] = useState('');
   const [dragOverId, setDragOverId] = useState('');
+  const availableSkills = useAgentStore((state) => state.availableSkills);
 
   const handleDrop = (targetId: string) => {
     if (!draggingId) return;
@@ -68,7 +70,7 @@ export const SkillSelector: FC<SkillSelectorProps> = ({ selectedSkills = [], onC
       <ComponentDropdown
         selectedComponents={selectedSkills.map((skill) => skill.id)}
         handleToggle={handleToggle}
-        availableComponents={selectedSkills}
+        availableComponents={availableSkills}
         placeholder="Select skills..."
         emptyStateMessage="No skills found."
         commandInputPlaceholder="Search skills..."
