@@ -79,10 +79,11 @@ export async function createSkillAction(
 export async function updateSkillAction(
   tenantId: string,
   projectId: string,
+  skillId: string,
   skill: SkillApiUpdate
 ): Promise<ActionResult<Skill>> {
   try {
-    const data = await updateSkill(tenantId, projectId, skill.id, skill);
+    const data = await updateSkill(tenantId, projectId, skillId, skill);
     revalidatePath(`/${tenantId}/projects/${projectId}/skills`);
     return { success: true, data };
   } catch (error) {
@@ -103,7 +104,6 @@ export async function deleteSkillAction(
 ): Promise<ActionResult<null>> {
   try {
     await deleteSkill(tenantId, projectId, skillId);
-    revalidatePath(`/${tenantId}/projects/${projectId}/skills`);
     return { success: true, data: null };
   } catch (error) {
     if (error instanceof ApiError) {
