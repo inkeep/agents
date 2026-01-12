@@ -19,37 +19,31 @@ const {
   VALIDATION_SUB_AGENT_PROMPT_MAX_CHARS,
 } = schemaValidationDefaults;
 
-import { CredentialStoreType, MCPTransportType } from './types';
+import { CredentialStoreType } from './types';
 
 import {
-  type AgentStopWhen,
-  AgentStopWhenSchema,
   type ApiKeyApiUpdateSchema,
   ArtifactComponentApiInsertSchema as ArtifactComponentApiInsertSchemaFromValidation,
   FullAgentAgentInsertSchema,
   type FunctionApiInsertSchema,
-  type ModelSettings,
   ModelSettingsSchema,
-  type StopWhen,
-  StopWhenSchema,
-  type SubAgentStopWhen,
-  SubAgentStopWhenSchema,
 } from './validation/schemas';
 
 export { DEFAULT_NANGO_STORE_ID } from './credential-stores/default-constants';
 
 export { validatePropsAsJsonSchema } from './validation/props-validation';
 
+export { MCPTransportType } from './types';
+
 export {
+  SkillFrontmatterSchema,
+  type ModelSettings,
   StopWhenSchema,
   AgentStopWhenSchema,
   SubAgentStopWhenSchema,
   type StopWhen,
   type AgentStopWhen,
   type SubAgentStopWhen,
-};
-
-export {
   FunctionApiInsertSchema,
   FunctionApiSelectSchema,
   FunctionApiUpdateSchema,
@@ -94,8 +88,6 @@ export const ErrorResponseSchema = z.object({
   message: z.string().optional(),
   details: z.unknown().optional(),
 });
-
-export { ModelSettingsSchema, type ModelSettings };
 
 export const AgentApiInsertSchema = z.object({
   id: z.string().optional(),
@@ -300,7 +292,7 @@ export function generateIdFromName(name: string): string {
 export type ToolInsert = ToolApiInsert;
 export type AgentAgentInsert = AgentAgentApiInsert;
 
-export { CredentialStoreType, MCPTransportType };
+export { CredentialStoreType, ModelSettingsSchema };
 
 export * from './constants/otel-attributes';
 export * from './constants/signoz-queries';
