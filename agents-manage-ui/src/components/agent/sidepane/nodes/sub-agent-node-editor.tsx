@@ -69,9 +69,9 @@ export const SubAgentNodeEditor: FC<SubAgentNodeEditorProps> = ({
     tenantId: string;
     projectId: string;
   }>();
-  const selectedDataComponents = selectedNode.data?.dataComponents || [];
-  const selectedArtifactComponents = selectedNode.data?.artifactComponents || [];
-  const isDefaultSubAgent = selectedNode.data?.isDefault || false;
+  const selectedDataComponents = selectedNode.data.dataComponents ?? [];
+  const selectedArtifactComponents = selectedNode.data.artifactComponents ?? [];
+  const isDefaultSubAgent = selectedNode.data.isDefault ?? false;
   const { project } = useProjectData();
   const metadata = useAgentStore((state) => state.metadata);
 
@@ -170,7 +170,7 @@ export const SubAgentNodeEditor: FC<SubAgentNodeEditorProps> = ({
         models={selectedNode.data.models}
         updatePath={updateModelPath}
         projectModels={project?.models}
-        agentModels={metadata?.models}
+        agentModels={metadata.models}
       />
       <Separator />
       {/* Agent Execution Limits */}

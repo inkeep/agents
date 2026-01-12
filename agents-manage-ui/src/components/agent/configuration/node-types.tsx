@@ -37,7 +37,7 @@ export interface AgentNodeData extends Record<string, unknown>, AnimatedNode {
   prompt?: string;
   dataComponents?: string[];
   artifactComponents?: string[];
-  skills: (SkillApiSelect & { index: number })[];
+  skills: (SkillApiSelect & { index: number; alwaysLoaded: boolean })[];
   models?: AgentModels; // Use same structure as agent
   stopWhen?: SubAgentStopWhen;
   isDefault?: boolean;

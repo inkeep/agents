@@ -1,5 +1,6 @@
 import { relations } from 'drizzle-orm';
 import {
+  boolean,
   foreignKey,
   index,
   integer,
@@ -229,6 +230,7 @@ export const subAgentSkills = pgTable(
     ...subAgentScoped,
     skillId: varchar('skill_id', { length: 64 }).notNull(),
     index: integer('index').notNull().default(0),
+    alwaysLoaded: boolean('always_loaded').notNull().default(false),
     ...timestamps,
   },
   (table) => [
