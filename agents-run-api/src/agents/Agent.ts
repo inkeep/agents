@@ -469,6 +469,7 @@ export class Agent {
     const originalExecute = toolDefinition.execute;
     return {
       ...toolDefinition,
+      needsApproval: options?.needsApproval || false,
       execute: async (args: any, context?: any) => {
         const startTime = Date.now();
         const toolCallId = context?.toolCallId || generateToolId();
@@ -690,7 +691,7 @@ export class Agent {
             streamRequestId,
             'mcp',
             {
-              needsApproval,
+              needsApproval, 
               mcpServerId: toolSet.mcpServerId,
               mcpServerName: toolSet.mcpServerName,
             }
@@ -2240,6 +2241,7 @@ ${output}`;
           if (response.steps) {
             const resolvedSteps = await response.steps;
             response = { ...response, steps: resolvedSteps };
+            logger.info({ response: response.steps }, 'Response with steps');
           }
 
           if (hasStructuredOutput && !hasToolCallWithPrefix('transfer_to_')(response)) {
