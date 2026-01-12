@@ -1768,11 +1768,13 @@ export async function GET(
       // Group tool calls by MCP server name
       const toolCallsByMcpServer = new Map<string, Activity[]>();
       for (const toolCall of toolCallsInGeneration) {
-        const mcpServerName = toolCall.mcpServerName || UNKNOWN_VALUE;
-        if (!toolCallsByMcpServer.has(mcpServerName)) {
-          toolCallsByMcpServer.set(mcpServerName, []);
+        // Skip tool calls without an MCP server name
+        if (!toolCall.mcpServerName) continue;
+        
+        if (!toolCallsByMcpServer.has(toolCall.mcpServerName)) {
+          toolCallsByMcpServer.set(toolCall.mcpServerName, []);
         }
-        toolCallsByMcpServer.get(mcpServerName)?.push(toolCall);
+        toolCallsByMcpServer.get(toolCall.mcpServerName)?.push(toolCall);
       }
 
       // For each MCP server, check if ALL or SOME tool calls failed
