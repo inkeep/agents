@@ -278,14 +278,15 @@ export const getAgentSubAgentInfos =
 type SkillWithIndex = {
   id: string;
   name: string;
-  description: string | null;
+  description: string;
   content: string;
   metadata: Record<string, unknown> | null;
   index: number;
+  alwaysLoaded: boolean;
   subAgentSkillId: string;
   subAgentId: string;
-  createdAt: string | null;
-  updatedAt: string | null;
+  createdAt: string;
+  updatedAt: string;
 };
 
 export const getFullAgentDefinition =
