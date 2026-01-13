@@ -212,8 +212,7 @@ describe('SystemPromptBuilder', () => {
 
       const { prompt } = builder.buildSystemPrompt(config);
       expect(prompt).toContain('<on_demand_skills>');
-      expect(prompt).toContain('<id>on-demand</id>');
-      expect(prompt).toContain('On Demand Skill');
+      expect(prompt).toContain('on-demand-skill');
       expect(prompt).toContain('Use when requested');
       expect(prompt).toContain('load_skill');
       expect(prompt).not.toContain('On demand content');
