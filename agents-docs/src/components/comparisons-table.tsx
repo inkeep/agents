@@ -173,20 +173,22 @@ export async function ComparisonTable({
           <tr className="border-b border-fd-border bg-fd-muted/50">
             <th className="p-4 text-left font-semibold">Feature</th>
             <th className="p-4 text-center font-semibold w-32">Inkeep</th>
-            <th className="p-4 text-center font-semibold w-32">{getCompetitorDisplayName(comparison.competitor)}</th>
+            <th className="p-4 text-center font-semibold w-32">
+              {getCompetitorDisplayName(comparison.competitor)}
+            </th>
           </tr>
         </thead>
         <tbody>
-        {section.processedRows.map((row, idx) => (
-          <ExpandableRow
-            key={idx}
-            feature={row.feature}
-            featureNote={row.featureNote}
-            inkeepCell={row.inkeepCell}
-            competitorCell={row.competitorCell}
-            isEven={idx % 2 === 0}
-          />
-        ))}
+          {section.processedRows.map((row, idx) => (
+            <ExpandableRow
+              key={idx}
+              feature={row.feature}
+              featureNote={row.featureNote}
+              inkeepCell={row.inkeepCell}
+              competitorCell={row.competitorCell}
+              isEven={idx % 2 === 0}
+            />
+          ))}
         </tbody>
       </table>
     );
@@ -204,7 +206,9 @@ export async function ComparisonTable({
                 <tr className="border-b border-fd-border bg-fd-muted/50">
                   <th className="p-4 text-left font-semibold">Feature</th>
                   <th className="p-4 text-center font-semibold w-32">Inkeep</th>
-                  <th className="p-4 text-center font-semibold w-32">{getCompetitorDisplayName(comparison.competitor)}</th>
+                  <th className="p-4 text-center font-semibold w-32">
+                    {getCompetitorDisplayName(comparison.competitor)}
+                  </th>
                 </tr>
               </thead>
               <tbody>

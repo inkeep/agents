@@ -1,5 +1,26 @@
 # @inkeep/agents-cli
 
+## 0.41.2
+
+### Patch Changes
+
+- 112b5c7: Add --local flag to inkeep init to set local profile as default
+- de84714: Add tsdown `clean` option based on watch status
+- af347c8: Add `dev` watch scripts and skip `d.ts` generation in watch mode across packages
+- 2e86062: warning status messages
+- Updated dependencies [112b5c7]
+- Updated dependencies [de84714]
+- Updated dependencies [d32fdb8]
+- Updated dependencies [01ca1e6]
+- Updated dependencies [af347c8]
+- Updated dependencies [c584a64]
+- Updated dependencies [86273ec]
+- Updated dependencies [e5e12d9]
+- Updated dependencies [2e86062]
+  - @inkeep/agents-core@0.41.2
+  - @inkeep/agents-manage-ui@0.41.2
+  - @inkeep/agents-sdk@0.41.2
+
 ## 0.41.1
 
 ### Patch Changes

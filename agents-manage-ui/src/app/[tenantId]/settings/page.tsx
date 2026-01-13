@@ -1,7 +1,7 @@
 'use client';
 
 import { useParams } from 'next/navigation';
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { ErrorContent } from '@/components/errors/full-page-error';
 import { MembersTable } from '@/components/settings/members-table';
 import { CopyableSingleLineCode } from '@/components/ui/copyable-single-line-code';
@@ -14,42 +14,52 @@ type FullOrganization = NonNullable<
   >['data']
 >;
 
+type Member = FullOrganization['members'][number];
+
 export default function SettingsPage() {
   const authClient = useAuthClient();
   const { tenantId } = useParams<{ tenantId: string }>();
   const [organization, setOrganization] = useState<FullOrganization | null>();
+  const [currentMember, setCurrentMember] = useState<Member | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  useEffect(() => {
-    async function fetchOrganization() {
-      if (!tenantId) return;
+  const fetchOrganization = useCallback(async () => {
+    if (!tenantId) return;
 
-      try {
-        const { data, error } = await authClient.organization.getFullOrganization({
+    try {
+      const [orgResult, memberResult] = await Promise.all([
+        authClient.organization.getFullOrganization({
           query: {
             organizationId: tenantId,
             membersLimit: 100,
           },
-        });
+        }),
+        authClient.organization.getActiveMember(),
+      ]);
 
-        if (error) {
-          setError(error.message || 'Failed to fetch organization');
-          return;
-        }
-
-        if (data) {
-          setOrganization(data);
-        }
-      } catch (err) {
-        setError(err instanceof Error ? err.message : 'Failed to fetch organization');
-      } finally {
-        setLoading(false);
+      if (orgResult.error) {
+        setError(orgResult.error.message || 'Failed to fetch organization');
+        return;
       }
-    }
 
-    fetchOrganization();
+      if (orgResult.data) {
+        setOrganization(orgResult.data);
+      }
+
+      if (memberResult.data) {
+        setCurrentMember(memberResult.data as Member);
+      }
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to fetch organization');
+    } finally {
+      setLoading(false);
+    }
   }, [tenantId, authClient]);
+
+  useEffect(() => {
+    fetchOrganization();
+  }, [fetchOrganization]);
 
   if (loading) {
     return <SettingsLoadingSkeleton />;
@@ -76,7 +86,12 @@ export default function SettingsPage() {
           <CopyableSingleLineCode code={organization.id} />
         </div>
       </div>
-      <MembersTable members={organization?.members || []} />
+      <MembersTable
+        members={organization?.members || []}
+        currentMember={currentMember}
+        organizationId={tenantId}
+        onMemberUpdated={fetchOrganization}
+      />
     </div>
   );
 }
