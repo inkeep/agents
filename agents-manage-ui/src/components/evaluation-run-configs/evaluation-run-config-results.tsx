@@ -1,6 +1,7 @@
 'use client';
 
 import { CheckCircle2, ChevronDown, ChevronRight, ExternalLink, Loader2 } from 'lucide-react';
+import { formatDateTimeTable } from '@/app/utils/format-date';
 import Link from 'next/link';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { ExpandableJsonEditor } from '@/components/editors/expandable-json-editor';
@@ -209,6 +210,7 @@ export function EvaluationRunConfigResults({
             <TableHeader>
               <TableRow noHover>
                 <TableHead>Input</TableHead>
+                <TableHead>Time</TableHead>
                 <TableHead>Agent</TableHead>
                 <TableHead>Evaluator</TableHead>
                 <TableHead>Status</TableHead>
@@ -217,7 +219,11 @@ export function EvaluationRunConfigResults({
             </TableHeader>
             <TableBody>
               {[...filteredResults]
-                .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
+                .sort((a, b) => {
+                  const aTime = a.conversationCreatedAt || a.createdAt;
+                  const bTime = b.conversationCreatedAt || b.createdAt;
+                  return new Date(bTime).getTime() - new Date(aTime).getTime();
+                })
                 .map((result) => (
                   <TableRow key={result.id} noHover>
                     <TableCell>
@@ -230,6 +236,11 @@ export function EvaluationRunConfigResults({
                         <span className="truncate">{result.input || result.conversationId}</span>
                         <ExternalLink className="h-4 w-4 flex-shrink-0" />
                       </Link>
+                    </TableCell>
+                    <TableCell className="text-xs text-muted-foreground whitespace-nowrap">
+                      {result.conversationCreatedAt
+                        ? formatDateTimeTable(result.conversationCreatedAt)
+                        : '-'}
                     </TableCell>
                     <TableCell>
                       <code className="text-xs font-mono text-muted-foreground">

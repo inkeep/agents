@@ -1,5 +1,6 @@
 import { ArrowLeft } from 'lucide-react';
 import Link from 'next/link';
+import { formatDateTimeTable } from '@/app/utils/format-date';
 import FullPageError from '@/components/errors/full-page-error';
 import { EvaluationJobResults } from '@/components/evaluation-jobs/evaluation-job-results';
 import { BodyTemplate } from '@/components/layout/body-template';
@@ -64,7 +65,7 @@ async function EvaluationJobPage({
               </Button>
             </Link>
           </div>
-          <PageHeader title={displayName} />
+          <PageHeader title={displayName} description={`Created ${formatDateTimeTable(jobConfig.createdAt)}`} />
           <EvaluationJobResults
             tenantId={tenantId}
             projectId={projectId}

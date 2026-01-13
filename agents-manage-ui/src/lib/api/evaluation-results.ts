@@ -18,6 +18,7 @@ export interface EvaluationResult {
   evaluationRunId?: string | null;
   agentId?: string | null;
   input?: string | null;
+  conversationCreatedAt?: string | null;
   output?: {
     text?: string;
     [key: string]: unknown;

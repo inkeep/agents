@@ -255,6 +255,7 @@ app.openapi(
       const uniqueConversationIds = [...new Set(results.map((r) => r.conversationId))] as string[];
       const conversationInputs = new Map<string, string>();
       const conversationAgents = new Map<string, string>();
+      const conversationCreatedAts = new Map<string, string>();
 
       await Promise.all(
         uniqueConversationIds.map(async (conversationId: string) => {
@@ -266,6 +267,9 @@ app.openapi(
             });
             if (conversation?.agentId) {
               conversationAgents.set(conversationId, conversation.agentId);
+            }
+            if (conversation?.createdAt) {
+              conversationCreatedAts.set(conversationId, conversation.createdAt);
             }
 
             const messages = await getMessagesByConversation(runDbClient)({
@@ -293,6 +297,7 @@ app.openapi(
         ...result,
         input: conversationInputs.get(result.conversationId) || null,
         agentId: conversationAgents.get(result.conversationId) || null,
+        conversationCreatedAt: conversationCreatedAts.get(result.conversationId) || null,
       }));
 
       return c.json({
