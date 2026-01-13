@@ -76,6 +76,7 @@
   "scripts": {
     "knip": "knip --directory ../.. --workspace packages/agents-core --dependencies",
     "build": "tsdown",
+    "dev": "pnpm build --watch",
     "test": "vitest --run",
     "test:unit": "vitest --run src/__tests__ --exclude src/__tests__/integration/**",
     "test:integration": "vitest --run src/__tests__/integration/",

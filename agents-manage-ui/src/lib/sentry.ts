@@ -30,10 +30,3 @@ export const sentry = new Proxy({} as SentryModule, {
     return sentryModule[prop];
   },
 });
-
-/**
- * Check if Sentry is configured.
- */
-export function isSentryConfigured(): boolean {
-  return !!process.env.NEXT_PUBLIC_SENTRY_DSN;
-}
