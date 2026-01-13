@@ -1,5 +1,10 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import type { AgentsManageDatabaseClient } from '../../db/manage/manage-client';
+
+vi.mock('../../dolt/branches-api', () => ({
+  checkoutBranch: vi.fn(),
+}));
+
 import {
   checkoutRef,
   getCurrentBranchOrCommit,
@@ -7,11 +12,13 @@ import {
   isValidCommitHash,
   resolveRef,
 } from '../../dolt/ref';
+import { checkoutBranch } from '../../dolt/branches-api';
 import { testManageDbClient } from '../setup';
 import { getSqlString } from './test-utils';
 
 describe('Ref Module', () => {
   let db: AgentsManageDatabaseClient;
+  const mockedCheckoutBranch = checkoutBranch as ReturnType<typeof vi.fn>;
 
   beforeEach(() => {
     db = testManageDbClient;
@@ -194,19 +201,24 @@ describe('Ref Module', () => {
         hash: 'a1b2c3d4e5f6789012345678901234ab',
       };
 
-      const mockExecute = vi.fn().mockResolvedValue({ rows: [] });
-
       const mockDb = {
         ...db,
-        execute: mockExecute,
       } as any;
+
+      const checkoutBranchFn = vi.fn().mockResolvedValue({
+        branchName: branchRef.name,
+        hash: branchRef.hash,
+        schemaSync: {
+          performed: false,
+          hadDifferences: false,
+        },
+      });
+      mockedCheckoutBranch.mockReturnValue(checkoutBranchFn);
 
       await checkoutRef(mockDb)(branchRef);
 
-      expect(mockExecute).toHaveBeenCalled();
-      const sqlString = getSqlString(mockExecute);
-      expect(sqlString).toContain('DOLT_CHECKOUT');
-      expect(sqlString).toContain('feature-branch');
+      expect(mockedCheckoutBranch).toHaveBeenCalledWith(mockDb);
+      expect(checkoutBranchFn).toHaveBeenCalledWith({ branchName: branchRef.name });
     });
 
     it('should checkout tag by hash', async () => {
@@ -229,6 +241,7 @@ describe('Ref Module', () => {
       const sqlString = getSqlString(mockExecute);
       expect(sqlString).toContain('DOLT_CHECKOUT');
       expect(sqlString).toContain('a1b2c3d4e5f6789012345678901234ab');
+      expect(mockedCheckoutBranch).not.toHaveBeenCalled();
     });
 
     it('should checkout commit by hash', async () => {
@@ -251,6 +264,7 @@ describe('Ref Module', () => {
       const sqlString = getSqlString(mockExecute);
       expect(sqlString).toContain('DOLT_CHECKOUT');
       expect(sqlString).toContain('a1b2c3d4e5f6789012345678901234ab');
+      expect(mockedCheckoutBranch).not.toHaveBeenCalled();
     });
   });
 

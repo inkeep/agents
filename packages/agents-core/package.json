@@ -118,8 +118,8 @@
     "db:run:check": "drizzle-kit check --config=drizzle.run.config.ts"
   },
   "dependencies": {
-    "@ai-sdk/azure": "^3.0.4",
     "@ai-sdk/anthropic": "3.0.7",
+    "@ai-sdk/azure": "^3.0.4",
     "@ai-sdk/gateway": "3.0.9",
     "@ai-sdk/google": "3.0.4",
     "@ai-sdk/openai": "3.0.7",
@@ -132,6 +132,7 @@
     "@nangohq/types": "^0.69.5",
     "@openrouter/ai-sdk-provider": "^1.2.0",
     "@opentelemetry/api": "^1.9.0",
+    "@workflow/world-postgres": "4.1.0-beta.18",
     "ai": "6.0.14",
     "ajv": "^8.17.1",
     "better-auth": "catalog:",
@@ -149,9 +150,9 @@
     "pg": "^8.16.3",
     "pino": "^9.11.0",
     "pino-pretty": "^13.1.1",
+    "postgres": "^3.4.8",
     "traverse": "^0.6.10",
     "ts-pattern": "^5.7.1",
-    "@workflow/world-postgres": "4.1.0-beta.18",
     "workflow": "4.0.1-beta.29"
   },
   "peerDependencies": {

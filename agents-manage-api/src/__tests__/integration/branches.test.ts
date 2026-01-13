@@ -2,7 +2,7 @@ import { generateId } from '@inkeep/agents-core';
 import { afterEach, describe, expect, it } from 'vitest';
 import { cleanupTenants } from '../utils/cleanup';
 import { makeRequest } from '../utils/testRequest';
-import { createTestTenantId } from '../utils/testTenant';
+import { createTestTenantWithOrg } from '../utils/testTenant';
 
 describe('Branch CRUD Routes - Integration Tests', () => {
   // Track tenants created during tests for cleanup
@@ -74,7 +74,7 @@ describe('Branch CRUD Routes - Integration Tests', () => {
 
   describe('GET /', () => {
     it('should list branches (project main after creating project)', async () => {
-      const tenantId = createTestTenantId('branches-list-empty');
+      const tenantId = await createTestTenantWithOrg('branches-list-empty');
       const projectId = await createTestProject(tenantId);
 
       const res = await makeRequest(`/tenants/${tenantId}/projects/${projectId}/branches`);
@@ -87,7 +87,7 @@ describe('Branch CRUD Routes - Integration Tests', () => {
     });
 
     it('should list branches after creating some', async () => {
-      const tenantId = createTestTenantId('branches-list-multiple');
+      const tenantId = await createTestTenantWithOrg('branches-list-multiple');
       const projectId = await createTestProject(tenantId);
 
       // Create multiple branches
@@ -117,7 +117,7 @@ describe('Branch CRUD Routes - Integration Tests', () => {
     });
 
     it('should not show branches from other projects', async () => {
-      const tenantId = createTestTenantId('branches-list-isolation');
+      const tenantId = await createTestTenantWithOrg('branches-list-isolation');
       const projectId1 = await createTestProject(tenantId);
       const projectId2 = await createTestProject(tenantId);
 
@@ -149,7 +149,7 @@ describe('Branch CRUD Routes - Integration Tests', () => {
 
   describe('GET /:branchName', () => {
     it('should get a single branch by name', async () => {
-      const tenantId = createTestTenantId('branches-get-single');
+      const tenantId = await createTestTenantWithOrg('branches-get-single');
       const projectId = await createTestProject(tenantId);
       const branchName = 'feature-x';
 
@@ -171,7 +171,7 @@ describe('Branch CRUD Routes - Integration Tests', () => {
     });
 
     it('should return 404 for non-existent branch', async () => {
-      const tenantId = createTestTenantId('branches-get-notfound');
+      const tenantId = await createTestTenantWithOrg('branches-get-notfound');
       const projectId = await createTestProject(tenantId);
 
       const res = await makeRequest(
@@ -185,7 +185,7 @@ describe('Branch CRUD Routes - Integration Tests', () => {
     });
 
     it('should not return branches from other projects', async () => {
-      const tenantId = createTestTenantId('branches-get-project-isolation');
+      const tenantId = await createTestTenantWithOrg('branches-get-project-isolation');
       const projectId1 = await createTestProject(tenantId);
       const projectId2 = await createTestProject(tenantId);
       const branchName = 'feature-x';
@@ -203,7 +203,7 @@ describe('Branch CRUD Routes - Integration Tests', () => {
 
   describe('POST /', () => {
     it('should create a new branch from tenant main (default)', async () => {
-      const tenantId = createTestTenantId('branches-create-default');
+      const tenantId = await createTestTenantWithOrg('branches-create-default');
       const projectId = await createTestProject(tenantId);
       const branchName = 'feature-new';
 
@@ -229,7 +229,7 @@ describe('Branch CRUD Routes - Integration Tests', () => {
     });
 
     it('should create a branch from a specific branch', async () => {
-      const tenantId = createTestTenantId('branches-create-from');
+      const tenantId = await createTestTenantWithOrg('branches-create-from');
       const projectId = await createTestProject(tenantId);
 
       // Create base branch
@@ -256,7 +256,7 @@ describe('Branch CRUD Routes - Integration Tests', () => {
     });
 
     it('should return 409 when creating a branch that already exists', async () => {
-      const tenantId = createTestTenantId('branches-create-duplicate');
+      const tenantId = await createTestTenantWithOrg('branches-create-duplicate');
       const projectId = await createTestProject(tenantId);
       const branchName = 'duplicate-branch';
 
@@ -280,7 +280,7 @@ describe('Branch CRUD Routes - Integration Tests', () => {
     });
 
     it('should validate branch name format', async () => {
-      const tenantId = createTestTenantId('branches-create-invalid');
+      const tenantId = await createTestTenantWithOrg('branches-create-invalid');
       const projectId = await createTestProject(tenantId);
 
       // Empty name
@@ -306,7 +306,7 @@ describe('Branch CRUD Routes - Integration Tests', () => {
     });
 
     it('should accept valid branch name formats', async () => {
-      const tenantId = createTestTenantId('branches-create-valid-names');
+      const tenantId = await createTestTenantWithOrg('branches-create-valid-names');
       const projectId = await createTestProject(tenantId);
 
       // With hyphens
@@ -339,7 +339,7 @@ describe('Branch CRUD Routes - Integration Tests', () => {
     });
 
     it('should handle missing name field', async () => {
-      const tenantId = createTestTenantId('branches-create-no-name');
+      const tenantId = await createTestTenantWithOrg('branches-create-no-name');
       const projectId = await createTestProject(tenantId);
 
       const res = await makeRequest(`/tenants/${tenantId}/projects/${projectId}/branches`, {
@@ -353,7 +353,7 @@ describe('Branch CRUD Routes - Integration Tests', () => {
 
   describe('DELETE /:branchName', () => {
     it('should delete a branch', async () => {
-      const tenantId = createTestTenantId('branches-delete');
+      const tenantId = await createTestTenantWithOrg('branches-delete');
       const projectId = await createTestProject(tenantId);
       const branchName = 'temp-branch';
 
@@ -383,7 +383,7 @@ describe('Branch CRUD Routes - Integration Tests', () => {
     });
 
     it('should return 404 when deleting non-existent branch', async () => {
-      const tenantId = createTestTenantId('branches-delete-notfound');
+      const tenantId = await createTestTenantWithOrg('branches-delete-notfound');
       const projectId = await createTestProject(tenantId);
 
       const res = await makeRequest(
@@ -399,7 +399,7 @@ describe('Branch CRUD Routes - Integration Tests', () => {
     });
 
     it('should return 403 when trying to delete protected branch (main)', async () => {
-      const tenantId = createTestTenantId('branches-delete-protected');
+      const tenantId = await createTestTenantWithOrg('branches-delete-protected');
       const projectId = await createTestProject(tenantId);
 
       const res = await makeRequest(`/tenants/${tenantId}/projects/${projectId}/branches/main`, {
@@ -413,7 +413,7 @@ describe('Branch CRUD Routes - Integration Tests', () => {
     });
 
     it('should not delete branches from other projects', async () => {
-      const tenantId = createTestTenantId('branches-delete-project-isolation');
+      const tenantId = await createTestTenantWithOrg('branches-delete-project-isolation');
       const projectId1 = await createTestProject(tenantId);
       const projectId2 = await createTestProject(tenantId);
       const branchName = 'feature-x';
@@ -441,8 +441,8 @@ describe('Branch CRUD Routes - Integration Tests', () => {
 
   describe('Tenant Isolation', () => {
     it('should isolate branches across different tenants', async () => {
-      const tenantId1 = createTestTenantId('branches-tenant1');
-      const tenantId2 = createTestTenantId('branches-tenant2');
+      const tenantId1 = await createTestTenantWithOrg('branches-tenant1');
+      const tenantId2 = await createTestTenantWithOrg('branches-tenant2');
 
       const projectId1 = await createTestProject(tenantId1);
       const projectId2 = await createTestProject(tenantId2);

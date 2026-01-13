@@ -12,15 +12,17 @@ import { testRunDbClient } from '../setup';
 vi.mock('../../dolt/branch', () => ({
   doltBranch: vi.fn(),
   doltBranchExists: vi.fn(),
+  doltCheckout: vi.fn(),
   doltDeleteBranch: vi.fn(),
 }));
 
 // Import mocked modules
-import { doltBranch, doltBranchExists, doltDeleteBranch } from '../../dolt/branch';
+import { doltBranch, doltBranchExists, doltCheckout, doltDeleteBranch } from '../../dolt/branch';
 
 // Type the mocked functions
 const mockedDoltBranch = doltBranch as ReturnType<typeof vi.fn>;
 const mockedDoltBranchExists = doltBranchExists as ReturnType<typeof vi.fn>;
+const mockedDoltCheckout = doltCheckout as ReturnType<typeof vi.fn>;
 const mockedDoltDeleteBranch = doltDeleteBranch as ReturnType<typeof vi.fn>;
 
 describe('Project Lifecycle Utilities', () => {
@@ -148,6 +150,9 @@ describe('Project Lifecycle Utilities', () => {
       const mockDoltDeleteBranchFn = vi.fn().mockResolvedValue(undefined);
       mockedDoltDeleteBranch.mockReturnValue(mockDoltDeleteBranchFn);
 
+      const mockDoltCheckoutFn = vi.fn().mockResolvedValue(undefined);
+      mockedDoltCheckout.mockReturnValue(mockDoltCheckoutFn);
+
       const result = await deleteProjectWithBranch(
         testRunDbClient,
         mockConfigDb
@@ -157,6 +162,10 @@ describe('Project Lifecycle Utilities', () => {
       });
 
       expect(result).toBe(true);
+
+      // Verify doltCheckout was called
+      expect(mockedDoltCheckout).toHaveBeenCalledWith(mockConfigDb);
+      expect(mockDoltCheckoutFn).toHaveBeenCalledWith({ branch: 'main' });
 
       // Verify doltDeleteBranch was called
       expect(mockedDoltDeleteBranch).toHaveBeenCalledWith(mockConfigDb);
@@ -202,6 +211,9 @@ describe('Project Lifecycle Utilities', () => {
 
       const mockDoltDeleteBranchFn = vi.fn().mockRejectedValue(new Error('Branch deletion failed'));
       mockedDoltDeleteBranch.mockReturnValue(mockDoltDeleteBranchFn);
+
+      const mockDoltCheckoutFn = vi.fn().mockResolvedValue(undefined);
+      mockedDoltCheckout.mockReturnValue(mockDoltCheckoutFn);
 
       // Should not throw, but continue with cleanup
       const result = await deleteProjectWithBranch(

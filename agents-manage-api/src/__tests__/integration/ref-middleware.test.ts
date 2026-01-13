@@ -4,7 +4,7 @@ import { afterEach, describe, expect, it } from 'vitest';
 import manageDbClient from '../../data/db/dbClient';
 import { cleanupTenants } from '../utils/cleanup';
 import { makeRequest } from '../utils/testRequest';
-import { createTestTenantId } from '../utils/testTenant';
+import { createTestTenantWithOrg } from '../utils/testTenant';
 
 describe('Ref Middleware - Integration Tests', () => {
   // Track tenants and tags created during tests for cleanup
@@ -63,7 +63,7 @@ describe('Ref Middleware - Integration Tests', () => {
 
   describe('refMiddleware - Project Main Branch', () => {
     it('should auto-create project main branch when creating a project', async () => {
-      const tenantId = createTestTenantId('ref-auto-create-main');
+      const tenantId = await createTestTenantWithOrg('ref-auto-create-main');
       const projectId = await createTestProject(tenantId);
 
       // Verify project main branch was created
@@ -77,7 +77,7 @@ describe('Ref Middleware - Integration Tests', () => {
     });
 
     it('should use project main branch when querying a project', async () => {
-      const tenantId = createTestTenantId('ref-existing-main');
+      const tenantId = await createTestTenantWithOrg('ref-existing-main');
       const projectId = await createTestProject(tenantId);
 
       const projectMain = getProjectMainBranch(tenantId, projectId);
@@ -92,7 +92,7 @@ describe('Ref Middleware - Integration Tests', () => {
     });
 
     it('should default to project main when no ref query param provided', async () => {
-      const tenantId = createTestTenantId('ref-default-main');
+      const tenantId = await createTestTenantWithOrg('ref-default-main');
       const projectId = await createTestProject(tenantId);
 
       // Make request without ref param
@@ -105,7 +105,7 @@ describe('Ref Middleware - Integration Tests', () => {
 
   describe('refMiddleware - Custom Ref Resolution', () => {
     it('should resolve custom branch ref when provided', async () => {
-      const tenantId = createTestTenantId('ref-custom-branch');
+      const tenantId = await createTestTenantWithOrg('ref-custom-branch');
       const projectId = await createTestProject(tenantId);
 
       const projectMain = getProjectMainBranch(tenantId, projectId);
@@ -121,7 +121,7 @@ describe('Ref Middleware - Integration Tests', () => {
     });
 
     it('should resolve tag ref when provided', async () => {
-      const tenantId = createTestTenantId('ref-tag');
+      const tenantId = await createTestTenantWithOrg('ref-tag');
       const projectId = await createTestProject(tenantId);
 
       const projectMain = getProjectMainBranch(tenantId, projectId);
@@ -136,7 +136,7 @@ describe('Ref Middleware - Integration Tests', () => {
     });
 
     it('should resolve commit hash ref when provided', async () => {
-      const tenantId = createTestTenantId('ref-commit-hash');
+      const tenantId = await createTestTenantWithOrg('ref-commit-hash');
       const projectId = await createTestProject(tenantId);
 
       const projectMain = getProjectMainBranch(tenantId, projectId);
@@ -150,7 +150,7 @@ describe('Ref Middleware - Integration Tests', () => {
     });
 
     it('should return 404 for unknown ref', async () => {
-      const tenantId = createTestTenantId('ref-unknown');
+      const tenantId = await createTestTenantWithOrg('ref-unknown');
       const projectId = await createTestProject(tenantId);
 
       // Make request with non-existent ref
@@ -168,7 +168,7 @@ describe('Ref Middleware - Integration Tests', () => {
 
   describe('writeProtectionMiddleware - Branch Writes', () => {
     it('should allow POST requests to branches', async () => {
-      const tenantId = createTestTenantId('write-branch-post');
+      const tenantId = await createTestTenantWithOrg('write-branch-post');
       const projectId = await createTestProject(tenantId);
 
       const projectMain = getProjectMainBranch(tenantId, projectId);
@@ -189,7 +189,7 @@ describe('Ref Middleware - Integration Tests', () => {
     });
 
     it('should allow DELETE requests to branches', async () => {
-      const tenantId = createTestTenantId('write-branch-delete');
+      const tenantId = await createTestTenantWithOrg('write-branch-delete');
       const projectId = await createTestProject(tenantId);
 
       const projectMain = getProjectMainBranch(tenantId, projectId);
@@ -220,7 +220,7 @@ describe('Ref Middleware - Integration Tests', () => {
     });
 
     it('should allow PATCH requests to branches', async () => {
-      const tenantId = createTestTenantId('write-branch-patch');
+      const tenantId = await createTestTenantWithOrg('write-branch-patch');
       const projectId = await createTestProject(tenantId);
 
       const projectMain = getProjectMainBranch(tenantId, projectId);
@@ -247,7 +247,7 @@ describe('Ref Middleware - Integration Tests', () => {
 
   describe('writeProtectionMiddleware - Tag Write Protection', () => {
     it('should block POST requests to tags', async () => {
-      const tenantId = createTestTenantId('write-tag-post');
+      const tenantId = await createTestTenantWithOrg('write-tag-post');
       const projectId = await createTestProject(tenantId);
 
       const projectMain = getProjectMainBranch(tenantId, projectId);
@@ -271,7 +271,7 @@ describe('Ref Middleware - Integration Tests', () => {
     });
 
     it('should block DELETE requests to tags', async () => {
-      const tenantId = createTestTenantId('write-tag-delete');
+      const tenantId = await createTestTenantWithOrg('write-tag-delete');
       const projectId = await createTestProject(tenantId);
 
       const projectMain = getProjectMainBranch(tenantId, projectId);
@@ -291,7 +291,7 @@ describe('Ref Middleware - Integration Tests', () => {
     });
 
     it('should allow GET requests to tags', async () => {
-      const tenantId = createTestTenantId('read-tag-get');
+      const tenantId = await createTestTenantWithOrg('read-tag-get');
       const projectId = await createTestProject(tenantId);
 
       const projectMain = getProjectMainBranch(tenantId, projectId);
@@ -309,7 +309,7 @@ describe('Ref Middleware - Integration Tests', () => {
 
   describe('writeProtectionMiddleware - Commit Write Protection', () => {
     it('should block POST requests to commits', async () => {
-      const tenantId = createTestTenantId('write-commit-post');
+      const tenantId = await createTestTenantWithOrg('write-commit-post');
       const projectId = await createTestProject(tenantId);
 
       const projectMain = getProjectMainBranch(tenantId, projectId);
@@ -335,7 +335,7 @@ describe('Ref Middleware - Integration Tests', () => {
     });
 
     it('should block PUT requests to commits', async () => {
-      const tenantId = createTestTenantId('write-commit-put');
+      const tenantId = await createTestTenantWithOrg('write-commit-put');
       const projectId = await createTestProject(tenantId);
 
       const projectMain = getProjectMainBranch(tenantId, projectId);
@@ -358,7 +358,7 @@ describe('Ref Middleware - Integration Tests', () => {
     });
 
     it('should allow GET requests to commits', async () => {
-      const tenantId = createTestTenantId('read-commit-get');
+      const tenantId = await createTestTenantWithOrg('read-commit-get');
       const projectId = await createTestProject(tenantId);
 
       const projectMain = getProjectMainBranch(tenantId, projectId);
@@ -375,7 +375,7 @@ describe('Ref Middleware - Integration Tests', () => {
 
   describe('writeProtectionMiddleware - Edge Cases', () => {
     it('should allow writes when no ref is resolved', async () => {
-      const tenantId = createTestTenantId('write-no-ref');
+      const tenantId = await createTestTenantWithOrg('write-no-ref');
       const projectId = await createTestProject(tenantId);
 
       // Without explicit ref, should default to project main (which is a branch)
@@ -393,7 +393,7 @@ describe('Ref Middleware - Integration Tests', () => {
     });
 
     it('should handle OPTIONS requests to any ref type', async () => {
-      const tenantId = createTestTenantId('write-options');
+      const tenantId = await createTestTenantWithOrg('write-options');
       const projectId = await createTestProject(tenantId);
 
       const projectMain = getProjectMainBranch(tenantId, projectId);

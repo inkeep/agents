@@ -12,6 +12,7 @@ export const doltMerge =
     toBranch: string;
     message?: string;
     noFastForward?: boolean;
+    author?: { name: string; email: string };
   }): Promise<{
     status: 'success' | 'conflicts';
     from: string;
@@ -28,8 +29,6 @@ export const doltMerge =
     const headResult = await db.execute(sql`SELECT HASHOF('HEAD') as hash`);
     const toHead = headResult.rows[0]?.hash as string;
 
-    // Allow committing with conflicts (PostgreSQL syntax for session variable)
-    await db.execute(sql`SET dolt_allow_commit_conflicts = 1`);
 
     // Perform merge
     const args: string[] = [`'${params.fromBranch}'`];
@@ -42,11 +41,23 @@ export const doltMerge =
       args.push("'-m'", `'${params.message.replace(/'/g, "''")}'`);
     }
 
-    await db.execute(sql.raw(`SELECT DOLT_MERGE(${args.join(', ')})`));
+    if (params.author) {
+      args.push("'--author'", `'${params.author.name} <${params.author.email}>'`);
+    }
+
+    const result = await db.execute(sql.raw(`SELECT DOLT_MERGE(${args.join(', ')})`));
 
     // Check for conflicts
-    const conflictsResult = await db.execute(sql`SELECT COUNT(*) as count FROM dolt_conflicts`);
-    const hasConflicts = (conflictsResult.rows[0]?.count as number) > 0;
+    const firstRow = (result.rows[0] ?? {}) as Record<string, unknown>;
+    const mergeResult =
+      typeof firstRow.conflicts === 'number' ||
+      typeof firstRow.conflicts === 'string' ||
+      firstRow.conflicts == null
+        ? firstRow
+        : (Object.values(firstRow)[0] as Record<string, unknown> | undefined) ?? {};
+    const conflicts = Number(mergeResult.conflicts ?? 0);
+    const hasConflicts = Number.isFinite(conflicts) && conflicts > 0;
+
 
     if (hasConflicts) {
       return {
@@ -65,6 +76,15 @@ export const doltMerge =
       toHead,
       hasConflicts: false,
     };
+  };
+
+/**
+ * Abort a merge
+ */
+export const doltAbortMerge =
+  (db: AgentsManageDatabaseClient) =>
+  async (): Promise<void> => {
+    await db.execute(sql.raw(`SELECT DOLT_MERGE('--abort')`));
   };
 
 /**

@@ -1,5 +1,5 @@
 import type { AgentsManageDatabaseClient, ResolvedRef } from '@inkeep/agents-core';
-import { doltAddAndCommit, doltReset, doltStatus } from '@inkeep/agents-core';
+import { doltAddAndCommit, doltReset, doltStatus, checkoutBranch } from '@inkeep/agents-core';
 import * as schema from '@inkeep/agents-core/db/manage-schema';
 import { drizzle } from 'drizzle-orm/node-postgres';
 import type { Context, Next } from 'hono';
@@ -68,10 +68,13 @@ export const branchScopedDbMiddleware = async (c: Context, next: Next) => {
   let tempBranch: string | null = null;
 
   try {
-    // Checkout the appropriate ref on this connection
+
+    // Create a Drizzle client wrapping this specific connection
+    const requestDb = drizzle(connection, { schema }) as unknown as AgentsManageDatabaseClient;
+
     if (resolvedRef.type === 'branch') {
       logger.debug({ branch: resolvedRef.name }, 'Checking out branch');
-      await connection.query(`SELECT DOLT_CHECKOUT($1)`, [resolvedRef.name]);
+      await checkoutBranch(requestDb)({ branchName: resolvedRef.name, autoCommitPending: true });
     } else {
       // For tags/commits, create temporary branch (needed for reads)
       const timestamp = new Date()
@@ -84,7 +87,6 @@ export const branchScopedDbMiddleware = async (c: Context, next: Next) => {
     }
 
     // Create request-scoped Drizzle client wrapping this specific connection
-    const requestDb = drizzle(connection, { schema });
     c.set('db', requestDb);
 
     // Execute the route handler

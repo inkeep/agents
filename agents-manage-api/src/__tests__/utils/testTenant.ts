@@ -1,4 +1,6 @@
 import { randomUUID } from 'node:crypto';
+import { createTestOrganization } from '@inkeep/agents-core/db/test-runtime-client';
+import runDbClient from '../../data/db/runDbClient';
 
 /**
  * Creates a unique tenant ID for test isolation.
@@ -48,7 +50,9 @@ export function createTestTenantId(prefix?: string): string {
  * ```
  */
 export async function createTestTenantWithOrg(prefix?: string): Promise<string> {
-  return createTestTenantId(prefix);
+  const tenantId = createTestTenantId(prefix);
+  await createTestOrganization(runDbClient, tenantId);
+  return tenantId;
 }
 
 /**

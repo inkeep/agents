@@ -7,6 +7,7 @@ import {
   createProjectMetadataAndBranch,
   deleteFullProject,
   deleteProjectWithBranch,
+  checkoutBranch,
   doltCheckout,
   ErrorResponseSchema,
   FullProjectDefinitionSchema,
@@ -115,7 +116,7 @@ app.openapi(
 
       // Checkout the project main branch
       const projectMainBranch = getProjectMainBranchName(tenantId, validatedProjectData.id);
-      await doltCheckout(configDb)({ branch: projectMainBranch });
+      await checkoutBranch(configDb)({ branchName: projectMainBranch, autoCommitPending: true });
 
       // Update resolvedRef so the middleware commits to the correct branch
       const newResolvedRef: ResolvedRef = {
@@ -339,7 +340,7 @@ app.openapi(
 
         // Checkout the project main branch
         const projectMainBranch = getProjectMainBranchName(tenantId, projectId);
-        await doltCheckout(configDb)({ branch: projectMainBranch });
+        await checkoutBranch(configDb)({ branchName: projectMainBranch, autoCommitPending: true });
       }
 
       // Update/create the full project using server-side data layer operations

@@ -12,6 +12,7 @@ import {
 import { cleanupTestData, getIntegrationTestClient } from '../../../db/manage/dolt-cleanup';
 import { createAgentsRunDatabaseClient } from '../../../db/runtime/runtime-client';
 import { doltListBranches } from '../../../dolt/branch';
+import { createTestOrganization } from '../../../db/runtime/test-runtime-client';
 
 const configDb = getIntegrationTestClient();
 const runDb = createAgentsRunDatabaseClient();
@@ -60,6 +61,8 @@ describe('Project Lifecycle - Integration Tests', () => {
       createdBranches.add(expectedBranchName);
       createdProjects.push({ tenantId, projectId });
 
+      await createTestOrganization(runDb, tenantId);
+
       const result = await createProjectMetadataAndBranch(
         runDb,
         configDb
@@ -97,6 +100,8 @@ describe('Project Lifecycle - Integration Tests', () => {
       createdBranches.add(expectedBranchName);
       createdProjects.push({ tenantId, projectId });
 
+      await createTestOrganization(runDb, tenantId);
+
       const result = await createProjectMetadataAndBranch(
         runDb,
         configDb
@@ -122,6 +127,8 @@ describe('Project Lifecycle - Integration Tests', () => {
 
       createdBranches.add(expectedBranchName);
       createdProjects.push({ tenantId, projectId });
+
+      await createTestOrganization(runDb, tenantId);
 
       // Create the first project
       await createProjectMetadataAndBranch(
@@ -152,6 +159,8 @@ describe('Project Lifecycle - Integration Tests', () => {
       const branchName = getProjectMainBranchName(tenantId, projectId);
 
       createdProjects.push({ tenantId, projectId });
+
+      await createTestOrganization(runDb, tenantId);
 
       // Create the project first
       await createProjectMetadataAndBranch(
@@ -218,6 +227,8 @@ describe('Project Lifecycle - Integration Tests', () => {
 
       createdProjects.push({ tenantId, projectId });
 
+      await createTestOrganization(runDb, tenantId);
+
       // Manually create only the metadata (simulating orphaned metadata)
       await createProjectMetadata(runDb)({
         id: projectId,
@@ -261,6 +272,8 @@ describe('Project Lifecycle - Integration Tests', () => {
 
       createdProjects.push({ tenantId, projectId });
 
+      await createTestOrganization(runDb, tenantId);
+
       const result = await createProjectMetadataAndBranch(
         runDb,
         configDb
@@ -286,6 +299,8 @@ describe('Project Lifecycle - Integration Tests', () => {
       const projectId = getTestId('project-with-hyphens');
 
       createdProjects.push({ tenantId, projectId });
+
+      await createTestOrganization(runDb, tenantId);
 
       const result = await createProjectMetadataAndBranch(
         runDb,
@@ -313,6 +328,8 @@ describe('Project Lifecycle - Integration Tests', () => {
 
       createdProjects.push({ tenantId, projectId: projectId1 });
       createdProjects.push({ tenantId, projectId: projectId2 });
+
+      await createTestOrganization(runDb, tenantId);
 
       // Create first project
       const result1 = await createProjectMetadataAndBranch(

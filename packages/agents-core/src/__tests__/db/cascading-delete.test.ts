@@ -491,9 +491,18 @@ describe('Cascading Delete Tests (Runtime DB)', () => {
 
   describe('Task cascade deletes', () => {
     it('should cascade delete ledgerArtifacts when task is deleted', async () => {
+      const conversationId = generateId();
       const taskId = generateId();
       const artifactId1 = generateId();
       const artifactId2 = generateId();
+
+      await dbClient.insert(conversations).values({
+        tenantId,
+        projectId,
+        id: conversationId,
+        activeSubAgentId: subAgentId,
+        ref: testRef,
+      });
 
       // Create a task
       await dbClient.insert(tasks).values({
@@ -502,7 +511,7 @@ describe('Cascading Delete Tests (Runtime DB)', () => {
         id: taskId,
         agentId,
         subAgentId,
-        contextId: 'test-context',
+        contextId: conversationId,
         ref: testRef,
         status: 'pending',
       });
@@ -514,7 +523,7 @@ describe('Cascading Delete Tests (Runtime DB)', () => {
           projectId,
           id: artifactId1,
           taskId,
-          contextId: 'test-context',
+          contextId: conversationId,
           type: 'source',
           name: 'artifact1',
         },
@@ -523,7 +532,7 @@ describe('Cascading Delete Tests (Runtime DB)', () => {
           projectId,
           id: artifactId2,
           taskId,
-          contextId: 'test-context',
+          contextId: conversationId,
           type: 'result',
           name: 'artifact2',
         },
@@ -539,12 +548,20 @@ describe('Cascading Delete Tests (Runtime DB)', () => {
       // Delete the task
       await dbClient.delete(tasks).where(eq(tasks.id, taskId));
 
-      // Verify artifacts are cascade deleted
+      // Verify artifacts are not deleted by task deletion (they are conversation-scoped)
       const artifactsAfter = await dbClient
         .select()
         .from(ledgerArtifacts)
         .where(eq(ledgerArtifacts.taskId, taskId));
-      expect(artifactsAfter).toHaveLength(0);
+      expect(artifactsAfter).toHaveLength(2);
+
+      await dbClient.delete(conversations).where(eq(conversations.id, conversationId));
+
+      const artifactsAfterConversationDelete = await dbClient
+        .select()
+        .from(ledgerArtifacts)
+        .where(eq(ledgerArtifacts.taskId, taskId));
+      expect(artifactsAfterConversationDelete).toHaveLength(0);
     });
 
     it('should cascade delete taskRelations when parent task is deleted', async () => {
@@ -765,7 +782,7 @@ describe('Cascading Delete Tests (Runtime DB)', () => {
         id: taskId,
         agentId,
         subAgentId,
-        contextId: 'test-context',
+        contextId: conversationId,
         ref: testRef,
         status: 'pending',
       });
@@ -787,7 +804,7 @@ describe('Cascading Delete Tests (Runtime DB)', () => {
         projectId,
         id: artifactId,
         taskId,
-        contextId: 'test-context',
+        contextId: conversationId,
         type: 'source',
       });
 
@@ -825,7 +842,7 @@ describe('Cascading Delete Tests (Runtime DB)', () => {
         .where(eq(contextCache.conversationId, conversationId));
       expect(cacheAfter).toHaveLength(0);
 
-      // Task and artifacts should still exist (not cascaded from conversation)
+      // Task should still exist (not cascaded from conversation)
       const taskAfter = await dbClient.select().from(tasks).where(eq(tasks.id, taskId));
       expect(taskAfter).toHaveLength(1);
 
@@ -833,9 +850,9 @@ describe('Cascading Delete Tests (Runtime DB)', () => {
         .select()
         .from(ledgerArtifacts)
         .where(eq(ledgerArtifacts.taskId, taskId));
-      expect(artifactsAfter).toHaveLength(1);
+      expect(artifactsAfter).toHaveLength(0);
 
-      // Now delete task - should cascade to artifacts
+      // Now delete task
       await dbClient.delete(tasks).where(eq(tasks.id, taskId));
 
       const taskAfterDelete = await dbClient.select().from(tasks).where(eq(tasks.id, taskId));

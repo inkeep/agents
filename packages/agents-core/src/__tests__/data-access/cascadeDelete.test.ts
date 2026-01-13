@@ -13,6 +13,7 @@ import {
   contextCache,
   conversations,
   messages,
+  organization,
   tasks,
 } from '../../db/runtime/runtime-schema';
 import { generateId } from '../../utils/conversations';
@@ -47,6 +48,15 @@ describe('Cascade Delete Utilities', () => {
     await db.delete(conversations);
     await db.delete(tasks);
     await db.delete(apiKeys);
+
+    // Create test organization
+    await db.insert(organization).values({
+      id: tenantId,
+      name: 'Test Organization',
+      slug: 'test-organization',
+      createdAt: new Date(),
+      metadata: null,
+    });
   });
 
   describe('cascadeDeleteByBranch', () => {
@@ -268,6 +278,7 @@ describe('Cascade Delete Utilities', () => {
         activeSubAgentId: subAgent2,
         ref: branch1Ref,
       });
+
 
       // Create API key for agent
       await db.insert(apiKeys).values({

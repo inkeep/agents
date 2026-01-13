@@ -68,7 +68,7 @@ if [ ! -f ".env" ]; then
   echo -e "${GREEN}✓${NC} Created .env from template"
   echo -e "${YELLOW}  → Please edit .env with your API keys and configuration${NC}"
   echo -e "${YELLOW}  → Make sure to set:${NC}"
-  echo -e "${YELLOW}      INKEEP_AGENTS_MANAGE_DATABASE_URL=postgresql://postgres:password@localhost:5432/inkeep_agents${NC}"
+  echo -e "${YELLOW}      INKEEP_AGENTS_MANAGE_DATABASE_URL=postgresql://appuser:password@localhost:5432/inkeep_agents${NC}"
   echo -e "${YELLOW}      INKEEP_AGENTS_RUN_DATABASE_URL=postgresql://appuser:password@localhost:5433/inkeep_agents${NC}"
 else
   echo -e "${GREEN}✓${NC} .env already exists"

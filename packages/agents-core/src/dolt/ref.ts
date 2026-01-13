@@ -3,6 +3,7 @@ import type { AgentsManageDatabaseClient } from '../db/manage/manage-client';
 import type { ResolvedRef } from '../validation/dolt-schemas';
 import { doltListBranches } from './branch';
 import { doltHashOf, doltListTags } from './commit';
+import { checkoutBranch } from './branches-api';
 
 export type RefType = 'commit' | 'tag' | 'branch';
 
@@ -53,7 +54,7 @@ export const checkoutRef =
   (db: AgentsManageDatabaseClient) =>
   async (resolvedRef: ResolvedRef): Promise<void> => {
     if (resolvedRef.type === 'branch') {
-      await db.execute(sql.raw(`SELECT DOLT_CHECKOUT('${resolvedRef.name}')`));
+      await checkoutBranch(db)({ branchName: resolvedRef.name });
     } else {
       await db.execute(sql.raw(`SELECT DOLT_CHECKOUT('${resolvedRef.hash}')`));
     }

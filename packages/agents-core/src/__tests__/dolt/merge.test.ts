@@ -29,9 +29,7 @@ describe('Merge Module', () => {
         .fn()
         .mockResolvedValueOnce({ rows: [] }) // DOLT_CHECKOUT
         .mockResolvedValueOnce({ rows: [{ hash: headHash }] }) // HASHOF('HEAD')
-        .mockResolvedValueOnce({ rows: [] }) // SET dolt_allow_commit_conflicts
-        .mockResolvedValueOnce({ rows: [] }) // DOLT_MERGE
-        .mockResolvedValueOnce({ rows: [{ count: 0 }] }); // dolt_conflicts count
+        .mockResolvedValueOnce({ rows: [{ conflicts: 0, fast_forward: 0, hash: headHash, message: '' }] }); // DOLT_MERGE
 
       const mockDb = {
         ...db,
@@ -61,9 +59,7 @@ describe('Merge Module', () => {
         .fn()
         .mockResolvedValueOnce({ rows: [] }) // DOLT_CHECKOUT
         .mockResolvedValueOnce({ rows: [{ hash: headHash }] }) // HASHOF('HEAD')
-        .mockResolvedValueOnce({ rows: [] }) // SET dolt_allow_commit_conflicts
-        .mockResolvedValueOnce({ rows: [] }) // DOLT_MERGE
-        .mockResolvedValueOnce({ rows: [{ count: 5 }] }); // dolt_conflicts count
+        .mockResolvedValueOnce({ rows: [{ conflicts: 5, fast_forward: 0, hash: headHash, message: '' }] }); // DOLT_MERGE
 
       const mockDb = {
         ...db,
@@ -93,9 +89,7 @@ describe('Merge Module', () => {
         .fn()
         .mockResolvedValueOnce({ rows: [] })
         .mockResolvedValueOnce({ rows: [{ hash: headHash }] })
-        .mockResolvedValueOnce({ rows: [] })
-        .mockResolvedValueOnce({ rows: [] })
-        .mockResolvedValueOnce({ rows: [{ count: 0 }] });
+        .mockResolvedValueOnce({ rows: [{ conflicts: 0, fast_forward: 0, hash: headHash, message: '' }] });
 
       const mockDb = {
         ...db,
@@ -109,7 +103,7 @@ describe('Merge Module', () => {
       });
 
       expect(mockExecute).toHaveBeenCalled();
-      const mergeCallIndex = 3;
+      const mergeCallIndex = 2;
       const sqlString = getSqlString(mockExecute, mergeCallIndex);
       expect(sqlString).toContain('DOLT_MERGE');
       expect(sqlString).toContain('-m');
@@ -125,9 +119,7 @@ describe('Merge Module', () => {
         .fn()
         .mockResolvedValueOnce({ rows: [] })
         .mockResolvedValueOnce({ rows: [{ hash: headHash }] })
-        .mockResolvedValueOnce({ rows: [] })
-        .mockResolvedValueOnce({ rows: [] })
-        .mockResolvedValueOnce({ rows: [{ count: 0 }] });
+        .mockResolvedValueOnce({ rows: [{ conflicts: 0, fast_forward: 0, hash: headHash, message: '' }] });
 
       const mockDb = {
         ...db,
@@ -141,7 +133,7 @@ describe('Merge Module', () => {
       });
 
       expect(mockExecute).toHaveBeenCalled();
-      const mergeCallIndex = 3;
+      const mergeCallIndex = 2;
       const sqlString = getSqlString(mockExecute, mergeCallIndex);
       expect(sqlString).toContain('--no-ff');
     });
@@ -155,9 +147,7 @@ describe('Merge Module', () => {
         .fn()
         .mockResolvedValueOnce({ rows: [] })
         .mockResolvedValueOnce({ rows: [{ hash: headHash }] })
-        .mockResolvedValueOnce({ rows: [] })
-        .mockResolvedValueOnce({ rows: [] })
-        .mockResolvedValueOnce({ rows: [{ count: 0 }] });
+        .mockResolvedValueOnce({ rows: [{ conflicts: 0, fast_forward: 0, hash: headHash, message: '' }] });
 
       const mockDb = {
         ...db,
@@ -171,7 +161,7 @@ describe('Merge Module', () => {
       });
 
       expect(mockExecute).toHaveBeenCalled();
-      const mergeCallIndex = 3;
+      const mergeCallIndex = 2;
       const sqlString = getSqlString(mockExecute, mergeCallIndex);
       expect(sqlString).toContain("Merge John''s feature");
     });
@@ -185,9 +175,7 @@ describe('Merge Module', () => {
         .fn()
         .mockResolvedValueOnce({ rows: [] })
         .mockResolvedValueOnce({ rows: [{ hash: headHash }] })
-        .mockResolvedValueOnce({ rows: [] })
-        .mockResolvedValueOnce({ rows: [] })
-        .mockResolvedValueOnce({ rows: [{ count: 0 }] });
+        .mockResolvedValueOnce({ rows: [{ conflicts: 0, fast_forward: 0, hash: headHash, message: '' }] });
 
       const mockDb = {
         ...db,
@@ -206,7 +194,7 @@ describe('Merge Module', () => {
       expect(sqlString).toContain('develop');
     });
 
-    it('should enable commit with conflicts', async () => {
+    it('should not enable commit with conflicts', async () => {
       const fromBranch = 'feature';
       const toBranch = 'main';
       const headHash = 'a1b2c3d4e5f6789012345678901234ab';
@@ -215,9 +203,7 @@ describe('Merge Module', () => {
         .fn()
         .mockResolvedValueOnce({ rows: [] })
         .mockResolvedValueOnce({ rows: [{ hash: headHash }] })
-        .mockResolvedValueOnce({ rows: [] })
-        .mockResolvedValueOnce({ rows: [] })
-        .mockResolvedValueOnce({ rows: [{ count: 0 }] });
+        .mockResolvedValueOnce({ rows: [{ conflicts: 0, fast_forward: 0, hash: headHash, message: '' }] });
 
       const mockDb = {
         ...db,
@@ -230,10 +216,8 @@ describe('Merge Module', () => {
       });
 
       expect(mockExecute).toHaveBeenCalled();
-      const setCallIndex = 2;
-      const sqlString = getSqlString(mockExecute, setCallIndex);
-      expect(sqlString).toContain('dolt_allow_commit_conflicts');
-      expect(sqlString).toContain('1');
+      const sqlString = getSqlString(mockExecute, 0) + getSqlString(mockExecute, 1) + getSqlString(mockExecute, 2);
+      expect(sqlString).not.toContain('dolt_allow_commit_conflicts');
     });
   });
 

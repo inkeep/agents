@@ -1,6 +1,7 @@
 import type { NodePgDatabase } from 'drizzle-orm/node-postgres';
 import { drizzle } from 'drizzle-orm/node-postgres';
 import type { PgliteDatabase } from 'drizzle-orm/pglite';
+import type { PoolClient } from 'pg';
 import { Pool } from 'pg';
 import { env, loadEnvironmentFiles } from '../../env';
 import * as schema from './manage-schema';
@@ -53,5 +54,44 @@ export function createAgentsManageDatabaseClient(
   return drizzle(pool, {
     schema,
     logger: config.logger,
+  });
+}
+
+export function createAgentManageDatabaseConnection(
+  config: AgentsManageDatabaseConfig
+): Promise<{
+  db: AgentsManageDatabaseClient;
+  release: () => Promise<void>;
+}> {
+  const connectionString = config.connectionString || env.INKEEP_AGENTS_MANAGE_DATABASE_URL;
+
+  if (env.ENVIRONMENT === 'test') {
+    throw new Error('createAgentManageDatabaseConnection is not supported in test environment');
+  }
+
+  if (!connectionString) {
+    throw new Error(
+      'INKEEP_AGENTS_MANAGE_DATABASE_URL environment variable is required. Please set it to your PostgreSQL connection string.'
+    );
+  }
+
+  const pool = new Pool({
+    connectionString,
+    max: 1,
+  });
+
+  pool.on('error', (err) => {
+    console.error('Unexpected PostgreSQL pool error:', err);
+  });
+
+  return pool.connect().then((connection) => {
+    const db = drizzle(connection, { schema, logger: config.logger });
+
+    const release = async () => {
+      connection.release();
+      await pool.end();
+    };
+
+    return { db, release };
   });
 }

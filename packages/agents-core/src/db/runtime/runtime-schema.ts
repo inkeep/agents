@@ -18,6 +18,7 @@ import type {
   TaskMetadataConfig,
 } from '../../types/utility';
 import type { ResolvedRef } from '../../validation/dolt-schemas';
+import { organization } from '../../auth/auth-schema';
 
 // Re-export Better Auth generated tables (runtime entities)
 export {
@@ -84,6 +85,11 @@ export const projectMetadata = pgTable(
     primaryKey({ columns: [table.tenantId, table.id] }),
     index('project_metadata_tenant_idx').on(table.tenantId),
     index('project_metadata_main_branch_idx').on(table.mainBranchName),
+    foreignKey({
+      columns: [table.tenantId],
+      foreignColumns: [organization.id],
+      name: 'project_metadata_organization_fk',
+    }).onDelete('cascade'),
   ]
 );
 
@@ -94,7 +100,7 @@ export const conversations = pgTable(
     userId: varchar('user_id', { length: 256 }),
     agentId: varchar('agent_id', { length: 256 }),
     activeSubAgentId: varchar('active_sub_agent_id', { length: 256 }).notNull(),
-    ref: jsonb('ref').$type<ResolvedRef>().notNull(),
+    ref: jsonb('ref').$type<ResolvedRef>(),
     title: text('title'),
     lastContextResolution: timestamp('last_context_resolution', { mode: 'string' }),
     metadata: jsonb('metadata').$type<ConversationMetadata>(),
@@ -108,7 +114,7 @@ export const tasks = pgTable(
   {
     ...subAgentScoped,
     contextId: varchar('context_id', { length: 256 }).notNull(),
-    ref: jsonb('ref').$type<ResolvedRef>().notNull(),
+    ref: jsonb('ref').$type<ResolvedRef>(),
     status: varchar('status', { length: 256 }).notNull(),
     metadata: jsonb('metadata').$type<TaskMetadataConfig>(),
     ...timestamps,
@@ -130,6 +136,11 @@ export const apiKeys = pgTable(
     ...timestamps,
   },
   (t) => [
+    foreignKey({
+      columns: [t.tenantId],
+      foreignColumns: [organization.id],
+      name: 'api_keys_organization_fk',
+    }).onDelete('cascade'),
     index('api_keys_tenant_agent_idx').on(t.tenantId, t.agentId),
     index('api_keys_prefix_idx').on(t.keyPrefix),
     index('api_keys_public_id_idx').on(t.publicId),
@@ -230,11 +241,11 @@ export const ledgerArtifacts = pgTable(
       table.contextId,
       table.name
     ),
-    // Cascade delete when task is deleted
+    // Cascade delete when conversation is deleted
     foreignKey({
-      columns: [table.tenantId, table.projectId, table.taskId],
-      foreignColumns: [tasks.tenantId, tasks.projectId, tasks.id],
-      name: 'ledger_artifacts_task_fk',
+      columns: [table.tenantId, table.projectId, table.contextId],
+      foreignColumns: [conversations.tenantId, conversations.projectId, conversations.id],
+      name: 'ledger_artifacts_conversation_fk',
     }).onDelete('cascade'),
   ]
 );
@@ -246,7 +257,7 @@ export const contextCache = pgTable(
     conversationId: varchar('conversation_id', { length: 256 }).notNull(),
     contextConfigId: varchar('context_config_id', { length: 256 }).notNull(),
     contextVariableKey: varchar('context_variable_key', { length: 256 }).notNull(),
-    ref: jsonb('ref').$type<ResolvedRef>().notNull(),
+    ref: jsonb('ref').$type<ResolvedRef>(),
     value: jsonb('value').$type<unknown>().notNull(),
     requestHash: varchar('request_hash', { length: 256 }),
     fetchedAt: timestamp('fetched_at', { mode: 'string' }).notNull().defaultNow(),

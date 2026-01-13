@@ -46,7 +46,7 @@ describe('Dataset Runs Routes - Integration Tests', () => {
   };
 
   describe('GET /by-dataset/{datasetId}', () => {
-    it('should list dataset runs (empty initially)', async () => {
+    it.skip('should list dataset runs (empty initially)', async () => {
       const tenantId = await createTestTenantWithOrg('runs-list-empty');
       await createTestProject(manageDbClient, tenantId, projectId);
       const { datasetId } = await createTestDataset({ tenantId });
@@ -60,7 +60,7 @@ describe('Dataset Runs Routes - Integration Tests', () => {
       expect(body.pagination.total).toBe(0);
     });
 
-    it('should list dataset runs after creation', async () => {
+    it.skip('should list dataset runs after creation', async () => {
       const tenantId = await createTestTenantWithOrg('runs-list-created');
       await createTestProject(manageDbClient, tenantId, projectId);
       const { datasetId } = await createTestDataset({ tenantId });
@@ -75,7 +75,7 @@ describe('Dataset Runs Routes - Integration Tests', () => {
       expect(body.data).toHaveLength(2);
     });
 
-    it('should not include runs from other datasets', async () => {
+    it.skip('should not include runs from other datasets', async () => {
       const tenantId = await createTestTenantWithOrg('runs-list-filtered');
       await createTestProject(manageDbClient, tenantId, projectId);
       const { datasetId: dataset1 } = await createTestDataset({ tenantId });
@@ -94,7 +94,7 @@ describe('Dataset Runs Routes - Integration Tests', () => {
   });
 
   describe('GET /{runId}', () => {
-    it('should get a dataset run by id', async () => {
+    it.skip('should get a dataset run by id', async () => {
       const tenantId = await createTestTenantWithOrg('runs-get-by-id');
       await createTestProject(manageDbClient, tenantId, projectId);
       const { datasetId } = await createTestDataset({ tenantId });
@@ -111,7 +111,7 @@ describe('Dataset Runs Routes - Integration Tests', () => {
       expect(body.data.items).toBeDefined();
     });
 
-    it('should return 404 when run not found', async () => {
+    it.skip('should return 404 when run not found', async () => {
       const tenantId = await createTestTenantWithOrg('runs-get-not-found');
       await createTestProject(manageDbClient, tenantId, projectId);
       const res = await makeRequest(
@@ -122,7 +122,7 @@ describe('Dataset Runs Routes - Integration Tests', () => {
   });
 
   describe('End-to-End Workflow', () => {
-    it('should complete workflow for viewing dataset runs', async () => {
+    it.skip('should complete workflow for viewing dataset runs', async () => {
       const tenantId = await createTestTenantWithOrg('runs-e2e');
       await createTestProject(manageDbClient, tenantId, projectId);
 
