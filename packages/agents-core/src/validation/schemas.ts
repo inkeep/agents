@@ -589,13 +589,12 @@ export const SubAgentSkillApiInsertSchema = SubAgentSkillInsertSchema.omit({
 export const SubAgentSkillApiUpdateSchema =
   createAgentScopedApiUpdateSchema(SubAgentSkillUpdateSchema).openapi('SubAgentSkillUpdate');
 
-export const SubAgentSkillWithIndexSchema = z
-  .object({
-    id: resourceIdSchema,
-    index: SkillIndexSchema,
-    alwaysLoaded: z.boolean().optional(),
-  })
-  .openapi('SubAgentSkillWithIndex');
+export const SubAgentSkillWithIndexSchema = SkillApiSelectSchema.extend({
+  subAgentSkillId: resourceIdSchema,
+  subAgentId: resourceIdSchema,
+  index: SkillIndexSchema,
+  alwaysLoaded: z.boolean(),
+}).openapi('SubAgentSkillWithIndex');
 
 export const ExternalAgentSelectSchema = createSelectSchema(externalAgents).extend({
   credentialReferenceId: z.string().nullable().optional(),
@@ -1058,7 +1057,15 @@ export const FullAgentAgentInsertSchema = SubAgentApiInsertSchema.extend({
   canUse: z.array(CanUseItemSchema), // All tools (both MCP and function tools)
   dataComponents: z.array(z.string()).optional(),
   artifactComponents: z.array(z.string()).optional(),
-  skills: z.array(SubAgentSkillWithIndexSchema).optional(),
+  skills: z
+    .array(
+      z.strictObject({
+        id: resourceIdSchema,
+        index: SkillIndexSchema,
+        alwaysLoaded: z.boolean().optional(),
+      })
+    )
+    .optional(),
   canTransferTo: z.array(z.string()).optional(),
   prompt: z.string().trim().optional(),
   canDelegateTo: z
@@ -1105,11 +1112,6 @@ export const ListResponseSchema = <T extends z.ZodTypeAny>(itemSchema: T) =>
   z.object({
     data: z.array(itemSchema),
     pagination: PaginationSchema,
-  });
-
-export const SingleResponseSchema = <T extends z.ZodTypeAny>(itemSchema: T) =>
-  z.object({
-    data: itemSchema,
   });
 
 export const ErrorResponseSchema = z
@@ -1188,7 +1190,6 @@ export const SubAgentResponse = z
   .object({ data: SubAgentApiSelectSchema })
   .openapi('SubAgentResponse');
 export const AgentResponse = z.object({ data: AgentApiSelectSchema }).openapi('AgentResponse');
-export const ToolResponse = z.object({ data: ToolApiSelectSchema }).openapi('ToolResponse');
 export const ExternalAgentResponse = z
   .object({ data: ExternalAgentApiSelectSchema })
   .openapi('ExternalAgentResponse');
@@ -1217,12 +1218,6 @@ export const SubAgentRelationResponse = z
 export const SubAgentToolRelationResponse = z
   .object({ data: SubAgentToolRelationApiSelectSchema })
   .openapi('SubAgentToolRelationResponse');
-export const ConversationResponse = z
-  .object({ data: ConversationApiSelectSchema })
-  .openapi('ConversationResponse');
-export const MessageResponse = z
-  .object({ data: MessageApiSelectSchema })
-  .openapi('MessageResponse');
 
 export const ProjectListResponse = z
   .object({
@@ -1242,12 +1237,6 @@ export const AgentListResponse = z
     pagination: PaginationSchema,
   })
   .openapi('AgentListResponse');
-export const ToolListResponse = z
-  .object({
-    data: z.array(ToolApiSelectSchema),
-    pagination: PaginationSchema,
-  })
-  .openapi('ToolListResponse');
 export const ExternalAgentListResponse = z
   .object({
     data: z.array(ExternalAgentApiSelectSchema),
@@ -1315,45 +1304,15 @@ export const SubAgentToolRelationListResponse = z
     pagination: PaginationSchema,
   })
   .openapi('SubAgentToolRelationListResponse');
-export const ConversationListResponse = z
-  .object({
-    data: z.array(ConversationApiSelectSchema),
-    pagination: PaginationSchema,
-  })
-  .openapi('ConversationListResponse');
-export const MessageListResponse = z
-  .object({
-    data: z.array(MessageApiSelectSchema),
-    pagination: PaginationSchema,
-  })
-  .openapi('MessageListResponse');
 export const SubAgentDataComponentResponse = z
   .object({ data: SubAgentDataComponentApiSelectSchema })
   .openapi('SubAgentDataComponentResponse');
 export const SubAgentArtifactComponentResponse = z
   .object({ data: SubAgentArtifactComponentApiSelectSchema })
   .openapi('SubAgentArtifactComponentResponse');
-export const SubAgentDataComponentListResponse = z
-  .object({
-    data: z.array(SubAgentDataComponentApiSelectSchema),
-    pagination: PaginationSchema,
-  })
-  .openapi('SubAgentDataComponentListResponse');
-export const SubAgentArtifactComponentListResponse = z
-  .object({
-    data: z.array(SubAgentArtifactComponentApiSelectSchema),
-    pagination: PaginationSchema,
-  })
-  .openapi('SubAgentArtifactComponentListResponse');
 export const SubAgentSkillResponse = z
   .object({ data: SubAgentSkillApiSelectSchema })
   .openapi('SubAgentSkillResponse');
-export const SubAgentSkillListResponse = z
-  .object({
-    data: z.array(SubAgentSkillApiSelectSchema),
-    pagination: PaginationSchema,
-  })
-  .openapi('SubAgentSkillListResponse');
 export const SubAgentSkillWithIndexArrayResponse = z
   .object({ data: z.array(SubAgentSkillWithIndexSchema) })
   .openapi('SubAgentSkillWithIndexArrayResponse');

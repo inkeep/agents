@@ -1751,14 +1751,14 @@ export class Agent {
     return tool({
       description: 'Load a skill by id to access its full content for this conversation.',
       inputSchema: z.object({
-        skillId: z.string().describe('The skill id from the on-demand skills list.'),
+        name: z.string().describe('The skill name from the on-demand skills list.'),
       }),
-      execute: async ({ skillId }) => {
+      execute: async ({ name }) => {
         const skills = this.config.skills || [];
-        const skill = skills.find((item) => item.id === skillId);
+        const skill = skills.find((item) => item.name === name);
 
         if (!skill) {
-          throw new Error(`Skill ${skillId} not found`);
+          throw new Error(`Skill ${name} not found`);
         }
 
         return {

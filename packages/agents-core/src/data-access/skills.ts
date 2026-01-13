@@ -1,7 +1,13 @@
 import { and, asc, count, desc, eq, inArray } from 'drizzle-orm';
 import type { DatabaseClient } from '../db/client';
 import { skills, subAgentSkills } from '../db/schema';
-import type { SkillInsert, SkillSelect, SkillUpdate, SubAgentSkillInsert } from '../types/entities';
+import type {
+  SkillInsert,
+  SkillSelect,
+  SkillUpdate,
+  SubAgentSkillInsert,
+  SubAgentSkillWithIndex,
+} from '../types/entities';
 import type {
   AgentScopeConfig,
   PaginationConfig,
@@ -12,16 +18,6 @@ import { generateId } from '../utils/conversations';
 import { getLogger } from '../utils/logger';
 
 const logger = getLogger('skills-dal');
-
-type SubAgentSkillWithDetails = {
-  subAgentSkillId: string;
-  subAgentId: string;
-  index: number;
-  alwaysLoaded: boolean;
-} & Pick<
-  SkillSelect,
-  'id' | 'name' | 'description' | 'content' | 'metadata' | 'createdAt' | 'updatedAt'
->;
 
 export const getSkillById =
   (db: DatabaseClient) => async (params: { scopes: ProjectScopeConfig; skillId: string }) => {
@@ -174,7 +170,7 @@ export const getSkillsForSubAgents =
   async (params: {
     scopes: AgentScopeConfig;
     subAgentIds: string[];
-  }): Promise<SubAgentSkillWithDetails[]> => {
+  }): Promise<SubAgentSkillWithIndex[]> => {
     if (!params.subAgentIds.length) {
       return [];
     }

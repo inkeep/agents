@@ -264,7 +264,6 @@ export class Phase1Config implements VersionConfig<SystemPromptV1> {
           : '';
         return `
   <skill>
-    <id>${skill.id}</id>
     <name>${skill.name}</name>
     ${description}
   </skill>`;
@@ -274,7 +273,7 @@ export class Phase1Config implements VersionConfig<SystemPromptV1> {
     return `
   <on_demand_skills>
     <instructions>
-      The following skills are available on demand. Call load_skill with skillId to load the full content.
+      The following skills are available on demand. Call load_skill with the skill name to load the full content.
     </instructions>
     ${skillEntries}
   </on_demand_skills>`;
