@@ -194,10 +194,15 @@ describe('SystemPromptBuilder', () => {
         artifacts: [],
         isThinkingPreparation: false,
         skills: [
-          { id: 'always', name: 'Always Skill', content: 'Always content', alwaysLoaded: true },
           {
-            id: 'on-demand',
-            name: 'On Demand Skill',
+            id: 'always-loaded-skill',
+            name: 'always-loaded-skill',
+            content: 'Always content',
+            alwaysLoaded: true,
+          },
+          {
+            id: 'on-demand-skill',
+            name: 'on-demand-skill',
             content: 'On demand content',
             description: 'Use when requested',
             alwaysLoaded: false,
@@ -222,8 +227,20 @@ describe('SystemPromptBuilder', () => {
         artifacts: [],
         isThinkingPreparation: false,
         skills: [
-          { name: 'Always Skill', content: 'Always content', index: 1, alwaysLoaded: true },
-          { name: 'On Demand Skill', content: 'On demand content', index: 2, alwaysLoaded: false },
+          {
+            id: 'always-loaded-skill',
+            name: 'always-loaded-skill',
+            content: 'Always content',
+            index: 1,
+            alwaysLoaded: true,
+          },
+          {
+            id: 'on-demand-skill',
+            name: 'on-demand-skill',
+            content: 'On demand content',
+            index: 2,
+            alwaysLoaded: false,
+          },
         ],
       };
 
