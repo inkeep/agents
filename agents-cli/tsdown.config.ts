@@ -4,6 +4,7 @@ export default defineConfig((options) => ({
   entry: ['src/**/*.ts', '!**/__tests__', '!**/*.test.ts'],
   format: 'esm',
   target: 'node20',
+  clean: !options.watch,
   dts: !options.watch,
   external: ['@inkeep/agents-core'],
   outDir: 'dist',
