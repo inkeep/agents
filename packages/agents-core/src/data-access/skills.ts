@@ -17,6 +17,7 @@ type SubAgentSkillWithDetails = {
   subAgentSkillId: string;
   subAgentId: string;
   index: number;
+  alwaysLoaded: boolean;
 } & Pick<
   SkillSelect,
   'id' | 'name' | 'description' | 'content' | 'metadata' | 'createdAt' | 'updatedAt'
@@ -183,6 +184,7 @@ export const getSkillsForSubAgents =
         subAgentSkillId: subAgentSkills.id,
         subAgentId: subAgentSkills.subAgentId,
         index: subAgentSkills.index,
+        alwaysLoaded: subAgentSkills.alwaysLoaded,
         id: skills.id,
         name: skills.name,
         description: skills.description,
@@ -213,7 +215,12 @@ export const getSkillsForSubAgents =
 
 export const upsertSubAgentSkill =
   (db: DatabaseClient) =>
-  async (params: { scopes: SubAgentScopeConfig; skillId: string; index: number }) => {
+  async (params: {
+    scopes: SubAgentScopeConfig;
+    skillId: string;
+    index: number;
+    alwaysLoaded?: boolean;
+  }) => {
     const now = new Date().toISOString();
     const existing = await db.query.subAgentSkills.findFirst({
       where: and(
@@ -230,6 +237,7 @@ export const upsertSubAgentSkill =
         .update(subAgentSkills)
         .set({
           index: params.index,
+          alwaysLoaded: params.alwaysLoaded ?? existing.alwaysLoaded,
           updatedAt: now,
         })
         .where(eq(subAgentSkills.id, existing.id))
@@ -243,6 +251,7 @@ export const upsertSubAgentSkill =
       id: generateId(),
       skillId: params.skillId,
       index: params.index,
+      alwaysLoaded: params.alwaysLoaded ?? false,
       createdAt: now,
       updatedAt: now,
     };
