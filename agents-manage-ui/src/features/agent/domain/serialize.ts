@@ -303,7 +303,13 @@ export function serializeAgentData(
         artifactComponents: subAgentArtifactComponents,
         ...(processedModels && { models: processedModels }),
         type: 'internal',
-        ...(nodeSkills?.length && { skills: nodeSkills }),
+        ...(nodeSkills?.length && {
+          skills: nodeSkills.map((skill) => ({
+            id: skill.id,
+            index: skill.index,
+            alwaysLoaded: skill.alwaysLoaded,
+          })),
+        }),
         ...(stopWhen && { stopWhen }),
       };
 
