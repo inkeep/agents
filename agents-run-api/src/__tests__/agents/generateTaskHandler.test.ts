@@ -20,6 +20,7 @@ const {
   getArtifactComponentsForAgentMock,
   getExternalAgentsForSubAgentMock,
   getTeamAgentsForSubAgentMock,
+  getSkillsForSubAgentsMock,
   getAgentWithDefaultSubAgentMock,
   getProjectMock,
   dbResultToMcpToolMock,
@@ -181,6 +182,8 @@ const {
     })
   );
 
+  const getSkillsForSubAgentsMock = vi.fn(() => vi.fn().mockResolvedValue([]));
+
   const getAgentWithDefaultSubAgentMock = vi.fn(() =>
     vi.fn().mockResolvedValue({
       id: 'team-agent-1',
@@ -230,6 +233,7 @@ const {
     getArtifactComponentsForAgentMock,
     getExternalAgentsForSubAgentMock,
     getTeamAgentsForSubAgentMock,
+    getSkillsForSubAgentsMock,
     getAgentWithDefaultSubAgentMock,
     getProjectMock,
     dbResultToMcpToolMock,
@@ -247,6 +251,7 @@ vi.mock('@inkeep/agents-core', async (importOriginal) => {
     getAgentAgent: getAgentAgentMock,
     getAgentAgentById: getAgentAgentByIdMock,
     getTeamAgentsForSubAgent: getTeamAgentsForSubAgentMock,
+    getSkillsForSubAgents: getSkillsForSubAgentsMock,
     getAgentWithDefaultSubAgent: getAgentWithDefaultSubAgentMock,
     getTracer: vi.fn().mockReturnValue({
       startSpan: vi.fn().mockReturnValue({
