@@ -85,19 +85,16 @@ export const createFullProjectServerSide =
           'Creating project skills'
         );
 
-        const skillPromises = Object.entries(typed.skills).map(async ([_skillId, skill]) => {
+        const skillPromises = Object.entries(typed.skills).map(async ([skillId, skill]) => {
           try {
             await upsertSkill(db)({
               ...skill,
               tenantId,
               projectId: typed.id,
             });
-            logger.info({ projectId: typed.id, skillId: skill.id }, 'Skill processed');
+            logger.info({ projectId: typed.id, skillId }, 'Skill processed');
           } catch (error) {
-            logger.error(
-              { projectId: typed.id, skillId: skill.id, error },
-              'Failed to create skill'
-            );
+            logger.error({ projectId: typed.id, skillId, error }, 'Failed to create skill');
             throw error;
           }
         });
@@ -562,19 +559,16 @@ export const updateFullProjectServerSide =
           'Updating project skills'
         );
 
-        const skillPromises = Object.entries(typed.skills).map(async ([_skillId, skill]) => {
+        const skillPromises = Object.entries(typed.skills).map(async ([skillId, skill]) => {
           try {
             await upsertSkill(db)({
               ...skill,
               tenantId,
               projectId: typed.id,
             });
-            logger.info({ projectId: typed.id, skillId: skill.id }, 'Skill processed');
+            logger.info({ projectId: typed.id, skillId }, 'Skill processed');
           } catch (error) {
-            logger.error(
-              { projectId: typed.id, skillId: skill.id, error },
-              'Failed to update skill'
-            );
+            logger.error({ projectId: typed.id, skillId, error }, 'Failed to update skill');
             throw error;
           }
         });
