@@ -2498,7 +2498,29 @@
               },
               "skills": {
                 "items": {
-                  "$ref": "#/components/schemas/SubAgentSkillWithIndex"
+                  "additionalProperties": false,
+                  "properties": {
+                    "alwaysLoaded": {
+                      "type": "boolean"
+                    },
+                    "id": {
+                      "description": "Resource identifier",
+                      "example": "resource_789",
+                      "maxLength": 255,
+                      "minLength": 1,
+                      "pattern": "^[a-zA-Z0-9\\-_.]+$",
+                      "type": "string"
+                    },
+                    "index": {
+                      "minimum": 0,
+                      "type": "integer"
+                    }
+                  },
+                  "required": [
+                    "id",
+                    "index"
+                  ],
+                  "type": "object"
                 },
                 "type": "array"
               },
@@ -4765,28 +4787,45 @@
         "type": "object"
       },
       "SubAgentSkillWithIndex": {
-        "properties": {
-          "alwaysLoaded": {
-            "type": "boolean"
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/Skill"
           },
-          "id": {
-            "description": "Resource identifier",
-            "example": "resource_789",
-            "maxLength": 255,
-            "minLength": 1,
-            "pattern": "^[a-zA-Z0-9\\-_.]+$",
-            "type": "string"
-          },
-          "index": {
-            "minimum": 0,
-            "type": "integer"
+          {
+            "properties": {
+              "alwaysLoaded": {
+                "type": "boolean"
+              },
+              "index": {
+                "minimum": 0,
+                "type": "integer"
+              },
+              "subAgentId": {
+                "description": "Resource identifier",
+                "example": "resource_789",
+                "maxLength": 255,
+                "minLength": 1,
+                "pattern": "^[a-zA-Z0-9\\-_.]+$",
+                "type": "string"
+              },
+              "subAgentSkillId": {
+                "description": "Resource identifier",
+                "example": "resource_789",
+                "maxLength": 255,
+                "minLength": 1,
+                "pattern": "^[a-zA-Z0-9\\-_.]+$",
+                "type": "string"
+              }
+            },
+            "required": [
+              "subAgentSkillId",
+              "subAgentId",
+              "index",
+              "alwaysLoaded"
+            ],
+            "type": "object"
           }
-        },
-        "required": [
-          "id",
-          "index"
-        ],
-        "type": "object"
+        ]
       },
       "SubAgentSkillWithIndexArrayResponse": {
         "properties": {
