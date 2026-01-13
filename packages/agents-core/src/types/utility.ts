@@ -180,9 +180,10 @@ export type McpToolDefinition = {
 };
 
 export type ToolSimplifyConfig = {
+  displayName?: string;
   description?: string;
-  schema: any; // Zod schema or JSON schema
-  transformation: Record<string, string> | string; // object mapping or JMESPath expression
+  schema?: any; // Zod schema or JSON schema
+  transformation?: Record<string, string> | string; // object mapping or JMESPath expression
 };
 
 export type ToolMcpConfig = {

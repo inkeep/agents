@@ -682,7 +682,7 @@ export class Agent {
           const needsApproval = toolSet.toolPolicies?.[toolName]?.needsApproval || false;
 
           const enhancedTool = {
-            ...toolDef,
+            ...(toolDef || {}),
             needsApproval,
           };
 
@@ -1837,9 +1837,9 @@ export class Agent {
     return this.streamRequestId || '';
   }
 
-  private applyToolOverrides(originalTools: any, tool: McpTool): any {
+  private applyToolOverrides(originalTools: any, mcpTool: McpTool): any {
     // Check if this tool has overrides configured
-    const toolOverrides = tool.config.type === 'mcp' ? (tool.config as any).mcp?.toolOverrides : undefined;
+    const toolOverrides = mcpTool.config.type === 'mcp' ? (mcpTool.config as any).mcp?.toolOverrides : undefined;
     
     if (!toolOverrides) {
       return originalTools;
@@ -1864,10 +1864,9 @@ export class Agent {
           const toolDescription = override.description || (toolDef as any).description || `Tool ${toolId}`;
           
           const simplifiedTool = tool({
-            id: toolId,
             description: toolDescription,
             inputSchema,
-            execute: async (simpleArgs) => {
+            execute: async (simpleArgs: any) => {
               // Only transform if transformation is provided
               let complexArgs = simpleArgs;
               if (override.transformation) {
@@ -1883,8 +1882,9 @@ export class Agent {
             }
           });
           
-          // Replace original with overridden version
-          processedTools[toolName] = simplifiedTool;
+          // Replace original with overridden version using the display name if provided
+          const finalToolName = override.displayName || toolName;
+          processedTools[finalToolName] = simplifiedTool;
           
           logger.info({ 
             toolName, 

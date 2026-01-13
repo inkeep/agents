@@ -682,7 +682,7 @@ export class Project implements ProjectInterface {
                 const convertedToolOverrides = mcpTool.config.toolOverrides ? 
                   Object.fromEntries(
                     Object.entries(mcpTool.config.toolOverrides).map(([toolName, config]) => {
-                      const originalSchema = (config as any).schema;
+                      const originalSchema = (config as any)?.schema;
                       const convertedSchema = isZodSchema(originalSchema) 
                         ? convertZodToJsonSchema(originalSchema)
                         : originalSchema;
@@ -696,7 +696,7 @@ export class Project implements ProjectInterface {
                         convertedType: typeof convertedSchema
                       }, 'Project: Converting toolOverride schema');
                       
-                      return [toolName, { ...config, schema: convertedSchema }];
+                      return [toolName, { ...(config || {}), schema: convertedSchema }];
                     })
                   ) : mcpTool.config.toolOverrides;
 
