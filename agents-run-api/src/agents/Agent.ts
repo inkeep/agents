@@ -1747,7 +1747,7 @@ export class Agent {
     });
   }
 
-  private createLoadSkillTool(): any {
+  #createLoadSkillTool(): any {
     return tool({
       description: 'Load a skill by id to access its full content for this conversation.',
       inputSchema: z.object({
@@ -1802,7 +1802,7 @@ export class Agent {
 
     const onDemandSkills = (this.config.skills || []).filter((skill) => !skill.alwaysLoaded);
     if (onDemandSkills.length) {
-      const loadSkillTool = this.createLoadSkillTool();
+      const loadSkillTool = this.#createLoadSkillTool();
       if (loadSkillTool) {
         defaultTools.load_skill = this.wrapToolWithStreaming(
           'load_skill',

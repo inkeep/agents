@@ -1531,25 +1531,26 @@ describe('Agent Model Settings', () => {
 });
 
 describe('Agent Conditional Tool Availability', () => {
+  const baseConfig: Omit<AgentConfig, 'agentId'> = {
+    id: 'test-agent',
+    projectId: 'test-project',
+    name: 'Test Agent',
+    description: 'Test agent',
+    tenantId: 'test-tenant',
+    baseUrl: 'http://localhost:3000',
+    prompt: 'Test instructions',
+    subAgentRelations: [],
+    transferRelations: [],
+    delegateRelations: [],
+  };
+
   test('agent without artifact components in agent without components should have no artifact tools', async () => {
     // Mock agentHasArtifactComponents to return false
     agentHasArtifactComponentsMock.mockReturnValue(vi.fn().mockResolvedValue(false));
 
     const config: AgentConfig = {
-      id: 'test-agent',
-      projectId: 'test-project',
-      name: 'Test Agent',
-      description: 'Test agent',
-      tenantId: 'test-tenant',
+      ...baseConfig,
       agentId: 'test-agent-no-components',
-      baseUrl: 'http://localhost:3000',
-      prompt: 'Test instructions',
-      subAgentRelations: [],
-      transferRelations: [],
-      delegateRelations: [],
-      dataComponents: [],
-      tools: [],
-      functionTools: [],
     };
 
     const agent = new Agent(config); // No artifact components
@@ -1566,21 +1567,8 @@ describe('Agent Conditional Tool Availability', () => {
     agentHasArtifactComponentsMock.mockReturnValue(vi.fn().mockResolvedValue(true));
 
     const config: AgentConfig = {
-      id: 'test-agent',
-      projectId: 'test-project',
-      name: 'Test Agent',
-      description: 'Test agent',
-      tenantId: 'test-tenant',
+      ...baseConfig,
       agentId: 'test-agent-with-components',
-      baseUrl: 'http://localhost:3000',
-      prompt: 'Test instructions',
-      subAgentRelations: [],
-      transferRelations: [],
-      delegateRelations: [],
-      dataComponents: [],
-      tools: [],
-      functionTools: [],
-      artifactComponents: [],
     };
 
     const agent = new Agent(config); // No artifact components
@@ -1616,20 +1604,8 @@ describe('Agent Conditional Tool Availability', () => {
     ];
 
     const config: AgentConfig = {
-      id: 'test-agent',
-      projectId: 'test-project',
-      name: 'Test Agent',
-      description: 'Test agent',
-      tenantId: 'test-tenant',
+      ...baseConfig,
       agentId: 'test-agent-with-components',
-      baseUrl: 'http://localhost:3000',
-      prompt: 'Test instructions',
-      subAgentRelations: [],
-      transferRelations: [],
-      delegateRelations: [],
-      dataComponents: [],
-      tools: [],
-      functionTools: [],
       artifactComponents: mockArtifactComponents,
     };
 
@@ -1644,42 +1620,33 @@ describe('Agent Conditional Tool Availability', () => {
 
   test('agent with on-demand skills should have load_skill tool', async () => {
     agentHasArtifactComponentsMock.mockReturnValue(vi.fn().mockResolvedValue(false));
-
     const config: AgentConfig = {
-      id: 'test-agent',
-      projectId: 'test-project',
-      name: 'Test Agent',
-      description: 'Test agent',
-      tenantId: 'test-tenant',
+      ...baseConfig,
       agentId: 'test-agent-on-demand',
-      baseUrl: 'http://localhost:3000',
-      prompt: 'Test instructions',
-      subAgentRelations: [],
-      transferRelations: [],
-      delegateRelations: [],
-      dataComponents: [],
-      tools: [],
-      functionTools: [],
       skills: [
         {
-          id: 'skill-1',
-          name: 'Skill One',
-          content: 'Skill content',
+          id: 'always-loaded-skill',
+          name: 'always-loaded-skill',
+          content: '',
           alwaysLoaded: false,
         },
-      ],
+        {
+          id: 'on-demand-skill',
+          name: 'on-demand-skill',
+          content: '',
+          alwaysLoaded: false,
+        },
+      ] as SubAgentSkillWithIndex[],
     };
 
     const agent = new Agent(config);
     const tools = await (agent as any).getDefaultTools();
 
     expect(tools.load_skill).toBeDefined();
-
-    const result = await tools.load_skill.execute({ skillId: 'skill-1' });
+    const result = await tools.load_skill.execute({ name: 'on-demand-skill' });
     expect(result).toMatchObject({
-      id: 'skill-1',
-      name: 'Skill One',
-      content: 'Skill content',
+      id: 'on-demand-skill',
+      name: 'on-demand-skill',
     });
   });
 });
