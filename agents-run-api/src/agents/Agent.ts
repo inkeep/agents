@@ -64,7 +64,7 @@ import { IncrementalStreamParser } from '../services/IncrementalStreamParser';
 import { MidGenerationCompressor } from '../services/MidGenerationCompressor';
 import { pendingToolApprovalManager } from '../services/PendingToolApprovalManager';
 import { ResponseFormatter } from '../services/ResponseFormatter';
-import { ToolTransformer } from '../services/ToolTransformer';
+import { JsonTransformer } from '@inkeep/agents-core';
 import type { SandboxConfig } from '../types/execution-context';
 import { generateToolId } from '../utils/agent-operations';
 import { ArtifactCreateSchema, ArtifactReferenceSchema } from '../utils/artifact-component-schema';
@@ -204,7 +204,6 @@ export class Agent {
   private mcpClientCache: Map<string, McpClient> = new Map();
   private mcpConnectionLocks: Map<string, Promise<McpClient>> = new Map();
   private currentCompressor: MidGenerationCompressor | null = null;
-  private toolTransformer = new ToolTransformer();
 
   constructor(config: AgentConfig, credentialStoreRegistry?: CredentialStoreRegistry) {
     this.artifactComponents = config.artifactComponents || [];
@@ -1852,22 +1851,52 @@ export class Agent {
       // Check if this tool has an override
       const override = toolOverrides[toolName];
       
-      if (override) {
-        // Replace the original tool with the simplified version
+      if (override && (override.schema || override.description || override.displayName)) {
+        // Apply overrides (schema, description, displayName, transformation)
         try {
-          // Create simplified version using ToolTransformer
-          const simplifiedTool = this.toolTransformer.createSimplifiedTool(
-            { description: (toolDef as any).description },
-            toolName,
-            override
-          );
+          // Use override schema if provided, otherwise use original
+          const inputSchema = override.schema ? jsonSchemaToZod(override.schema) : (toolDef as any).inputSchema;
           
-          // Replace original with simplified version
+          // Use display name or fall back to original tool name
+          const toolId = override.displayName || toolName;
+          
+          // Use override description or fall back to original description
+          const toolDescription = override.description || (toolDef as any).description || `Tool ${toolId}`;
+          
+          const simplifiedTool = tool({
+            id: toolId,
+            description: toolDescription,
+            inputSchema,
+            execute: async (simpleArgs) => {
+              // Only transform if transformation is provided
+              let complexArgs = simpleArgs;
+              if (override.transformation) {
+                complexArgs = typeof override.transformation === 'string' 
+                  ? JsonTransformer.transform(simpleArgs, override.transformation)
+                  : JsonTransformer.transformWithConfig(simpleArgs, { objectTransformation: override.transformation });
+                
+                logger.debug({ simpleArgs, complexArgs, transformation: override.transformation }, 'Transformed arguments using JsonTransformer');
+              }
+              
+              // Call original tool
+              return await (toolDef as any).execute(complexArgs);
+            }
+          });
+          
+          // Replace original with overridden version
           processedTools[toolName] = simplifiedTool;
           
-          logger.info({ toolName }, 'Replaced tool with simplified version');
+          logger.info({ 
+            toolName, 
+            displayName: override.displayName,
+            hasSchemaOverride: !!override.schema,
+            hasDescriptionOverride: !!override.description,
+            hasTransformation: !!override.transformation
+          }, 'Applied tool overrides');
         } catch (error) {
-          logger.error({ toolName, error }, 'Failed to create simplified tool, using original');
+          logger.error({ toolName, error }, 'Failed to apply tool overrides, using original');
+          // Fall back to original tool
+          processedTools[toolName] = toolDef;
         }
       } else {
         // No override, use original

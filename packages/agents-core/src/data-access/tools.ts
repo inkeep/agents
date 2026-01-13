@@ -80,26 +80,9 @@ async function getCredentialExpiresAt(
  * - schema - another possible location
  */
 function extractInputSchema(toolDef: any, toolName?: string, toolOverrides?: any): any {
-  // Check for simplified schema override first
-  if (toolName && toolOverrides?.[toolName]?.schema) {
-    const simplifiedSchema = toolOverrides[toolName].schema;
-    
-    // Convert Zod schema to JSON Schema format if needed
-    if (isZodSchema(simplifiedSchema)) {
-      try {
-        const converted = convertZodToJsonSchema(simplifiedSchema);
-        return converted;
-      } catch (error) {
-        console.warn('Failed to convert Zod schema to JSON Schema:', error);
-        return extractOriginalSchema(toolDef);
-      }
-    } else {
-      // Already in JSON Schema format
-      return simplifiedSchema;
-    }
-  }
-
-  // Fall back to original schema
+  // Always return original schema during discovery
+  // Tool overrides are applied during execution in Agent.ts, not during discovery
+  // This allows the UI to show both original and override schemas for comparison
   return extractOriginalSchema(toolDef);
 }
 

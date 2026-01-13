@@ -1,4 +1,4 @@
-import jmespath from 'jmespath';
+import { JsonTransformer } from '../utils/JsonTransformer';
 import type { CredentialStoreRegistry } from '../credential-stores/CredentialStoreRegistry';
 import { CredentialStuffer } from '../credential-stuffer/CredentialStuffer';
 import { getCredentialReference } from '../data-access/index';
@@ -389,11 +389,11 @@ export class ContextFetcher {
   }
 
   /**
-   * Transform response data using JMESPath
+   * Transform response data using JsonTransformer (JMESPath)
    */
   private transformResponse(data: unknown, transform: string): unknown {
     try {
-      const result = jmespath.search(data as any, transform);
+      const result = JsonTransformer.transform(data, transform);
       return result;
     } catch (error) {
       logger.error(

@@ -38,11 +38,18 @@ export class Phase1Config implements VersionConfig<SystemPromptV1> {
     for (const mcpTool of mcpTools) {
       if (mcpTool.availableTools) {
         for (const toolDef of mcpTool.availableTools) {
+          // Build usage guidelines with custom prompt as additional context
+          let usageGuidelines = '';
+          if (mcpTool.config.mcp.prompt) {
+            usageGuidelines = `${mcpTool.config.mcp.prompt}\n\n`;
+          }
+          usageGuidelines += `Use this tool from ${mcpTool.name} server when appropriate.`;
+            
           toolData.push({
             name: toolDef.name,
             description: toolDef.description || 'No description available',
             inputSchema: toolDef.inputSchema || {},
-            usageGuidelines: `Use this tool from ${mcpTool.name} server when appropriate.`,
+            usageGuidelines,
           });
         }
       }

@@ -23,6 +23,12 @@ interface ToolCardProps {
     inputSchema?: any;
   };
   isActive: boolean;
+  override?: {
+    displayName?: string;
+    description?: string;
+    schema?: any;
+    transformation?: string | Record<string, string>;
+  };
 }
 
 interface PropertyDisplayProps {
@@ -116,20 +122,29 @@ function PropertyDisplay({ property, level }: PropertyDisplayProps) {
   );
 }
 
-function ToolCard({ tool, isActive }: ToolCardProps) {
+function ToolCard({ tool, isActive, override }: ToolCardProps) {
   const [isExpanded, setIsExpanded] = useState(false);
   const [showFullDescription, setShowFullDescription] = useState(false);
+  const [showComparison, setShowComparison] = useState(false);
 
-  const parsedSchema = tool.inputSchema ? parseMCPInputSchema(tool.inputSchema) : null;
+  // In simple mode, use override if available, otherwise original
+  const schemaToDisplay = override?.schema && !showComparison ? override.schema : tool.inputSchema;
+  const descriptionToDisplay = override?.description && !showComparison ? override.description : tool.description;
+  
+  const parsedSchema = schemaToDisplay ? parseMCPInputSchema(schemaToDisplay) : null;
+  
+  // For comparison mode - parse schemas separately  
+  const originalParsedSchema = tool.inputSchema ? parseMCPInputSchema(tool.inputSchema) : null;
+  const overrideParsedSchema = override?.schema ? parseMCPInputSchema(override.schema) : null;
 
   // Truncate description if it's too long
   const maxDescriptionLength = 200;
   const shouldTruncateDescription =
-    tool.description && tool.description.length > maxDescriptionLength;
+    descriptionToDisplay && descriptionToDisplay.length > maxDescriptionLength;
   const displayDescription =
     shouldTruncateDescription && !showFullDescription
-      ? `${tool.description?.substring(0, maxDescriptionLength)}...`
-      : tool.description;
+      ? `${descriptionToDisplay?.substring(0, maxDescriptionLength)}...`
+      : descriptionToDisplay;
 
   return (
     <div className="border rounded-lg p-4 space-y-3">
@@ -140,7 +155,7 @@ function ToolCard({ tool, isActive }: ToolCardProps) {
             variant={isActive ? 'primary' : 'code'}
             className={cn(!isActive && 'bg-transparent text-foreground')}
           >
-            {tool.name}
+            {override?.displayName || tool.name}
           </Badge>
           {parsedSchema?.hasProperties && (
             <Badge variant="code">
@@ -148,8 +163,17 @@ function ToolCard({ tool, isActive }: ToolCardProps) {
               {parsedSchema.properties.length !== 1 ? 's' : ''}
             </Badge>
           )}
+          {override && (
+            <Badge 
+              variant="destructive" 
+              className="text-xs cursor-pointer hover:bg-destructive/80 transition-colors"
+              onClick={() => setShowComparison(!showComparison)}
+            >
+              Override
+            </Badge>
+          )}
         </div>
-        {(tool.description || parsedSchema?.hasProperties) && (
+        {(descriptionToDisplay || parsedSchema?.hasProperties) && (
           <Button
             variant="ghost"
             size="sm"
@@ -179,14 +203,126 @@ function ToolCard({ tool, isActive }: ToolCardProps) {
       )}
 
       {/* Expanded content */}
-      {isExpanded && parsedSchema?.hasProperties && (
+      {isExpanded && (parsedSchema?.hasProperties || (override && showComparison)) && (
         <div className="space-y-3 pt-2 border-t">
-          <div className="text-sm font-medium">Parameters</div>
-          <div className="space-y-2">
-            {parsedSchema.properties.map((param) => (
-              <PropertyDisplay key={param.name} property={param} level={0} />
-            ))}
-          </div>
+          {!override || !showComparison ? (
+            // Simple view - show either override schema or original schema
+            <>
+              <div className="text-sm font-medium">Parameters</div>
+              <div className="space-y-2">
+                {parsedSchema?.properties.map((param) => (
+                  <PropertyDisplay key={param.name} property={param} level={0} />
+                ))}
+              </div>
+            </>
+          ) : (
+            // Comparison view - show both schemas and transformation
+            <div className="space-y-4">
+              {/* Name Changes */}
+              {override.displayName && override.displayName !== tool.name && (
+                <div className="space-y-2">
+                  <div className="text-sm font-medium">Name Changes</div>
+                  <div className="space-y-2">
+                    <div className="bg-muted/50 p-3 rounded">
+                      <div className="text-xs text-muted-foreground mb-1">Original:</div>
+                      <div className="text-sm font-mono">{tool.name}</div>
+                    </div>
+                    <div className="bg-green-50 dark:bg-green-900/20 p-3 rounded border border-green-200 dark:border-green-800">
+                      <div className="text-xs text-muted-foreground mb-1">Display Name:</div>
+                      <div className="text-sm">{override.displayName}</div>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* Description Changes */}
+              {override.description && override.description !== tool.description && (
+                <div className="space-y-2">
+                  <div className="text-sm font-medium">Description Changes</div>
+                  <div className="space-y-2">
+                    <div className="bg-muted/50 p-3 rounded">
+                      <div className="text-xs text-muted-foreground mb-1">Original:</div>
+                      <div className="text-sm">{tool.description || 'No description'}</div>
+                    </div>
+                    <div className="bg-green-50 dark:bg-green-900/20 p-3 rounded border border-green-200 dark:border-green-800">
+                      <div className="text-xs text-muted-foreground mb-1">Override:</div>
+                      <div className="text-sm">{override.description}</div>
+                    </div>
+                  </div>
+                </div>
+              )}
+              
+              <div className="space-y-4">
+                {/* Original Schema */}
+                <div className="space-y-2">
+                  <div className="text-sm font-medium">Original Parameters</div>
+                  <div className="space-y-2 bg-muted/50 p-3 rounded">
+                    {originalParsedSchema?.properties.map((param) => (
+                      <PropertyDisplay key={`original-${param.name}`} property={param} level={0} />
+                    ))}
+                  </div>
+                </div>
+                
+                {/* Override Schema */}
+                <div className="space-y-2">
+                  <div className="text-sm font-medium">Override Parameters</div>
+                  <div className="space-y-2 bg-green-50 dark:bg-green-900/20 p-3 rounded border border-green-200 dark:border-green-800">
+                    {overrideParsedSchema?.properties.map((param) => (
+                      <PropertyDisplay key={`override-${param.name}`} property={param} level={0} />
+                    ))}
+                  </div>
+                </div>
+              </div>
+              
+              {/* Transformation */}
+              {override.transformation && (
+                <div className="space-y-2">
+                  <div className="text-sm font-medium">Field Mapping</div>
+                  <div className="space-y-1 bg-muted p-3 rounded">
+                    {typeof override.transformation === 'string' ? (
+                    <div className="space-y-1">
+                      <div className="text-xs text-muted-foreground">JMESPath Expression:</div>
+                      <div className="text-xs font-mono bg-background p-2 rounded border">
+                        {override.transformation.split(',').map((part, index) => {
+                          const trimmed = part.trim();
+                          const colonIndex = trimmed.indexOf(':');
+                          if (colonIndex > 0) {
+                            const field = trimmed.substring(0, colonIndex).trim();
+                            const path = trimmed.substring(colonIndex + 1).trim();
+                            return (
+                              <div key={index} className="flex items-center gap-2">
+                                <span className="text-green-600 dark:text-green-400 font-medium">
+                                  {field}
+                                </span>
+                                <span className="text-muted-foreground">←</span>
+                                <span className="text-blue-600 dark:text-blue-400 font-medium">
+                                  {path}
+                                </span>
+                              </div>
+                            );
+                          }
+                          return <div key={index} className="text-xs">{trimmed}</div>;
+                        })}
+                      </div>
+                    </div>
+                  ) : (
+                    Object.entries(override.transformation).map(([overrideField, originalField]) => (
+                      <div key={overrideField} className="flex items-center gap-2 text-xs">
+                        <span className="font-medium text-green-600 dark:text-green-400">
+                          {overrideField}
+                        </span>
+                        <span className="text-muted-foreground">←</span>
+                        <span className="font-medium text-blue-600 dark:text-blue-400">
+                          {originalField}
+                        </span>
+                      </div>
+                    ))
+                  )}
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
         </div>
       )}
     </div>
@@ -196,9 +332,16 @@ function ToolCard({ tool, isActive }: ToolCardProps) {
 export function AvailableToolsCard({
   tools,
   activeTools,
+  toolOverrides,
 }: {
   tools: MCPTool['availableTools'];
   activeTools: string[] | undefined;
+  toolOverrides?: Record<string, {
+    displayName?: string;
+    description?: string;
+    schema?: any;
+    transformation?: string | Record<string, string>;
+  }>;
 }) {
   if (!tools) return null; // parent component already makes sure to handle this
 
@@ -212,7 +355,15 @@ export function AvailableToolsCard({
         {tools.map((availableTool) => {
           const isActive =
             activeTools === undefined ? true : activeTools?.includes(availableTool.name);
-          return <ToolCard key={availableTool.name} tool={availableTool} isActive={!!isActive} />;
+          const override = toolOverrides?.[availableTool.name];
+          return (
+            <ToolCard
+              key={availableTool.name}
+              tool={availableTool}
+              isActive={!!isActive}
+              override={override}
+            />
+          );
         })}
       </div>
     </div>

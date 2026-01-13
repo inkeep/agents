@@ -31,6 +31,21 @@ export const mcpToolSchema = z.object({
         type: z.nativeEnum(MCPTransportType),
       }),
       toolsConfig: toolsConfigSchema.default({ type: 'all' }),
+      toolOverrides: z
+        .record(
+          z.string(),
+          z.object({
+            displayName: z.string().optional(),
+            description: z.string().optional(),
+            schema: z.any().optional(),
+            transformation: z.union([
+              z.string(), // JMESPath expression
+              z.record(z.string(), z.string()) // object mapping
+            ]).optional(),
+          })
+        )
+        .optional(),
+      prompt: z.string().optional(),
     }),
   }),
   credentialReferenceId: z.string().nullish(),

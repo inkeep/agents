@@ -7,6 +7,7 @@ export * from './error';
 export * from './execution';
 export * from './format-messages';
 export * from './json-parser';
+export * from './JsonTransformer';
 export * from './logger';
 export * from './mcp-client';
 export * from './model-factory';

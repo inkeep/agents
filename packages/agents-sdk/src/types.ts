@@ -149,10 +149,12 @@ export interface MCPToolConfig {
   transport?: McpTransportConfig;
   imageUrl?: string; // Optional image URL for custom tool icon
   toolOverrides?: Record<string, {
+    displayName?: string;
     description?: string;
-    schema: any;
-    mapping: Record<string, string>;
+    schema?: any;
+    transformation?: string | Record<string, string>;
   }>;
+  prompt?: string; // Optional custom prompt/instructions for using this MCP server
 }
 
 export interface FetchDefinitionConfig {
