@@ -1,5 +1,17 @@
 # @inkeep/agents-run-api
 
+## 0.41.2
+
+### Patch Changes
+
+- 112b5c7: Add --local flag to inkeep init to set local profile as default
+- 2e86062: warning status messages
+- Updated dependencies [112b5c7]
+- Updated dependencies [de84714]
+- Updated dependencies [af347c8]
+- Updated dependencies [2e86062]
+  - @inkeep/agents-core@0.41.2
+
 ## 0.41.1
 
 ### Patch Changes
