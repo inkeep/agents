@@ -39,11 +39,12 @@ export function ExpandableRow({
                     : 'bg-fd-muted/40 text-fd-muted-foreground group-hover:bg-fd-primary/10 group-hover:text-fd-primary'
                 }`}
               >
-                <svg 
-                  width="12" 
-                  height="12" 
-                  viewBox="0 0 12 12" 
-                  fill="none" 
+                <svg
+                  width="12"
+                  height="12"
+                  viewBox="0 0 12 12"
+                  fill="none"
+                  aria-hidden="true"
                   className="transition-transform duration-300"
                 >
                   <path 
