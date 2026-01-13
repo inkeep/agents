@@ -1770,7 +1770,7 @@ export async function GET(
       for (const toolCall of toolCallsInGeneration) {
         // Skip tool calls without an MCP server name
         if (!toolCall.mcpServerName) continue;
-        
+
         if (!toolCallsByMcpServer.has(toolCall.mcpServerName)) {
           toolCallsByMcpServer.set(toolCall.mcpServerName, []);
         }

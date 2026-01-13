@@ -49,7 +49,8 @@ export function StatusBadge({ status }: { status: ActivityItem['status'] }) {
         </Badge>
         {status === ACTIVITY_STATUS.WARNING && (
           <p className="text-xs text-muted-foreground mt-1.5">
-            This tool call failed but the agent later succeeded with another tool call to the same MCP server.
+            This tool call failed but the agent later succeeded with another tool call to the same
+            MCP server.
           </p>
         )}
       </div>

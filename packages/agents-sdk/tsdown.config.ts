@@ -1,9 +1,10 @@
 import { defineConfig } from 'tsdown';
 import rootConfig from '../../tsdown.config.ts';
 
-export default defineConfig({
+export default defineConfig((options) => ({
   ...rootConfig,
-  format: ['esm'],
+  dts: !options.watch,
+  format: 'esm',
   entry: ['src/**/*.ts', '!**/__tests__', '!**/*.test.ts'],
   unbundle: true,
-});
+}));

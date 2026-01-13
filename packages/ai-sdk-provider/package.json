@@ -16,6 +16,7 @@
   "scripts": {
     "knip": "knip --directory ../.. --workspace packages/ai-sdk-provider --dependencies",
     "build": "tsdown",
+    "dev": "pnpm build --watch",
     "test": "vitest --run",
     "test:watch": "vitest --watch",
     "lint": "biome lint --error-on-warnings",
