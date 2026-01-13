@@ -41,7 +41,7 @@
     "turbo:login": "turbo login && turbo link",
     "turbo:setup-cache": "sh scripts/setup-turbo-cache.sh",
     "prepare": "husky",
-    "cs": "node scripts/quick-changeset.mjs",
+    "bump": "node scripts/quick-changeset.mjs",
     "version": "changeset version",
     "release": "changeset publish",
     "release-dev": "changeset version --snapshot dev && changeset publish --tag dev",

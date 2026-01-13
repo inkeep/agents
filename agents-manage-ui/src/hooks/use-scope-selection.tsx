@@ -10,6 +10,11 @@ interface UseScopeSelectionOptions<T = void> {
    * Receives the selected scope and any context data passed to requestScopeSelection.
    */
   onConfirm: (scope: CredentialScope, context: T) => void | Promise<void>;
+  /**
+   * Whether auth is disabled. Pass this for Shadow DOM compatibility
+   * where useRuntimeConfig is not available.
+   */
+  isAuthDisabled?: boolean;
 }
 
 interface UseScopeSelectionReturn<T = void> {
@@ -94,6 +99,7 @@ export function useScopeSelection<T = void>(
       }}
       serverName={pendingName}
       onConfirm={handleConfirm}
+      isAuthDisabled={options.isAuthDisabled}
     />
   );
 

@@ -9,4 +9,4 @@
 "@inkeep/ai-sdk-provider": patch
 ---
 
-Fix cookie header forwarding for MCP server authentication
+Add --local flag to inkeep init to set local profile as default

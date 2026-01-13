@@ -1,6 +1,7 @@
 import {
   createKeyChainStore,
   createNangoCredentialStore,
+  DEFAULT_NANGO_STORE_ID,
   InMemoryCredentialStore,
 } from '@inkeep/agents-core';
 
@@ -9,8 +10,7 @@ export const credentialStores = [
   new InMemoryCredentialStore('memory-default'),
   ...(process.env.NANGO_SECRET_KEY
     ? [
-        createNangoCredentialStore('nango-default', {
-          // TODO: use DEFAULT_NANGO_STORE_ID from core
+        createNangoCredentialStore(DEFAULT_NANGO_STORE_ID, {
           apiUrl: process.env.NANGO_SERVER_URL || 'https://api.nango.dev',
           secretKey: process.env.NANGO_SECRET_KEY,
         }),

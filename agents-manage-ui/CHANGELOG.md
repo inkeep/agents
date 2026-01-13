@@ -1,5 +1,48 @@
 # @inkeep/agents-manage-ui
 
+## 0.41.1
+
+### Patch Changes
+
+- d1f60f3: added azure provider
+- 53acc10: - Bump agents-ui package, remove the need to force refresh the widget when headers change
+- Updated dependencies [d1f60f3]
+  - @inkeep/agents-core@0.41.1
+
+## 0.41.0
+
+### Minor Changes
+
+- de60268: remove `[tenantId]/projects/[projectId]/page.tsx` file in favour of redirect in `next.config` file
+- 1c46e8f: add syntax highlighting for markdown/html elements in prompt editors
+
+### Patch Changes
+
+- 49ec561: fix auth dependencies
+- 5d095da: Properly contain overflow of trace card content
+- f1a6cd4: compression ui improvements
+- 7a00f08: use `bg-sidebar` for `<body>` for pages with sidebar
+- 1257b10: `useEffect` is always called on the client, and the `window` object is defined
+- 561605f: Export DEFAULT_NANGO_STORE_ID from @inkeep/agents-core main exports
+- c890035: When using `@inkeep/agents-manage-ui` as dependency we are getting following error:
+  Failed to load external module pino-51ec28aa490c8dec: Error: Cannot find module 'pino-51ec28aa490c8dec'
+
+  because Turbopack appends hash for server-only packages listed in `serverExternalPackages`
+
+- 4b016d4: target ids for chat-to-edit
+- d933953: Disable colorized logs in non-TTY environments like Vercel. Logs now respect the NO_COLOR env var and automatically disable colors when stdout is not a TTY.
+- 9b17c81: streamObject removed from traces
+- f58f9e4: Fix cookie header forwarding for MCP server authentication
+- Updated dependencies [49ec561]
+- Updated dependencies [5d095da]
+- Updated dependencies [f1a6cd4]
+- Updated dependencies [561605f]
+- Updated dependencies [4b016d4]
+- Updated dependencies [d933953]
+- Updated dependencies [9b17c81]
+- Updated dependencies [f58f9e4]
+  - @inkeep/agents-core@0.41.0
+
 ## 0.40.0
 
 ### Minor Changes

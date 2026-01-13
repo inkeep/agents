@@ -5,10 +5,10 @@
  *
  * Usage:
  *   pnpm setup-dev              - Run setup with local Docker database
- *   pnpm setup-dev --skip-docker - Run setup with cloud database (skips Docker step)
+ *   pnpm setup-dev:cloud        - Run setup for cloud deployment (skips Docker, uses cloud CLI profile)
  *
- * The --skip-docker flag is useful when you have a cloud-deployed database instance
- * and want to skip starting the local Docker database container.
+ * The --cloud flag is used when you have a cloud-deployed database instance
+ * and want to configure the CLI for cloud APIs instead of local development.
  */
 
 import { loadEnvironmentFiles } from '@inkeep/agents-core';
@@ -53,7 +53,7 @@ console.log(`\n${colors.bright}=== Project Setup Script ===${colors.reset}\n`);
 
 // Parse command-line arguments
 const args = process.argv.slice(2);
-const skipDocker = args.includes('--skip-docker');
+const isCloud = args.includes('--cloud');
 
 loadEnvironmentFiles();
 
@@ -73,7 +73,7 @@ logInfo(`Project ID: ${projectId}`);
 logInfo(`Manage API Port: ${manageApiPort}`);
 logInfo(`Run API Port: ${runApiPort}\n`);
 
-async function setupProjectInDatabase(skipDocker) {
+async function setupProjectInDatabase(isCloud) {
   const { promisify } = await import('node:util');
   const { exec } = await import('node:child_process');
   const execAsync = promisify(exec);
@@ -142,11 +142,11 @@ async function setupProjectInDatabase(skipDocker) {
   } else {
     logInfo('JWT keys already configured, skipping generation');
   }
-  // Step 1: Start database (skip if --skip-docker flag is set)
-  if (skipDocker) {
+  // Step 1: Start database (skip if --cloud flag is set)
+  if (isCloud) {
     logStep(
       1,
-      'Skipping docker database startup. Please ensure that your DATABASE_URL environment variable is configured for cloud database'
+      'Cloud setup: Skipping Docker database startup. Please ensure that your DATABASE_URL environment variable is configured for cloud database'
     );
   } else {
     logStep(1, 'Starting PostgreSQL database with Docker');
@@ -309,8 +309,25 @@ async function setupProjectInDatabase(skipDocker) {
       displayPortConflictError(portErrors);
     }
 
-    // Step 5: Run inkeep push
-    logStep(5, 'Running inkeep push command');
+    // Step 5: Set up CLI profile
+    logStep(5, 'Setting up CLI profile');
+    try {
+      if (isCloud) {
+        // Cloud setup - don't use --local flag
+        await execAsync('pnpm inkeep init --no-interactive');
+        logSuccess('Cloud CLI profile configured');
+      } else {
+        // Local setup - use --local flag to point to local APIs
+        await execAsync('pnpm inkeep init --local --no-interactive');
+        logSuccess('Local CLI profile configured');
+      }
+    } catch (error) {
+      const initCommand = isCloud ? 'inkeep init' : 'inkeep init --local';
+      logWarning(`Could not set up CLI profile - you may need to run: ${initCommand}`);
+    }
+
+    // Step 6: Run inkeep push
+    logStep(6, 'Running inkeep push command');
     logInfo(`Pushing project: src/projects/${projectId}`);
 
     let pushSuccess = false;
@@ -330,8 +347,8 @@ async function setupProjectInDatabase(skipDocker) {
       logWarning('The project may not have been pushed to the remote');
       pushSuccess = false;
     } finally {
-      // Step 6: Cleanup - Stop development servers
-      logStep(6, 'Cleaning up - stopping development servers');
+      // Step 7: Cleanup - Stop development servers
+      logStep(7, 'Cleaning up - stopping development servers');
 
       if (devProcess.pid) {
         try {
@@ -379,7 +396,7 @@ async function setupProjectInDatabase(skipDocker) {
   }
 }
 
-setupProjectInDatabase(skipDocker).catch((error) => {
+setupProjectInDatabase(isCloud).catch((error) => {
   logError('Unhandled error in setup', error);
   process.exit(1);
 });

@@ -53,15 +53,23 @@ export function isContextConfigParseError(error: unknown): error is ContextConfi
 /**
  * Safely parse a JSON string, returning undefined if parsing fails or input is falsy
  */
-function safeJsonParse(jsonString: string | undefined | null): any {
-  if (!jsonString) return undefined;
+function safeJsonParse(value: string | object | undefined | null): any {
+  if (!value) return undefined;
 
-  try {
-    return JSON.parse(jsonString);
-  } catch (error) {
-    console.warn('Error parsing JSON:', error);
-    return undefined;
+  // If it's already an object, return it as-is
+  if (typeof value === 'object') return value;
+
+  // If it's a string, try to parse it
+  if (typeof value === 'string') {
+    try {
+      return JSON.parse(value);
+    } catch (error) {
+      console.warn('Error parsing JSON:', error);
+      return undefined;
+    }
   }
+
+  return undefined;
 }
 function processModels(modelsData: AgentMetadata['models']): AgentMetadata['models'] | undefined {
   if (modelsData && typeof modelsData === 'object') {

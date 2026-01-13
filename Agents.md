@@ -23,18 +23,60 @@ This file provides guidance for AI coding agents (Claude Code, Cursor, Codex, Am
 - **Database studio**: `pnpm db:studio` - Open Drizzle Studio for database inspection
 - **Check schema**: `pnpm db:check`
 
-### Making a changelog entry
-`pnpm cs <major|minor|patch> "<changelog message>"`
-Example:
-```bash
-pnpm cs minor "Add new feature"
-```
-This will create a changeset file in the `.changeset` directory that is used by a GH Action to update packages versions.
+### Creating Changelog Entries (Changesets)
 
-Guidance for which semver level to use:
-- Major: Do not use this level at all, it is reserved for a special future release.
-- Minor: Use for schema changes that require a database migration or significant changes to the codebase or behavior.
-- Patch: additive, new features & Bug fixes
+Create a changeset for any user-facing change to a published package:
+
+```bash
+pnpm bump <patch|minor|major> --pkg <package> "<message>"
+```
+
+**Examples:**
+```bash
+# Single package
+pnpm bump patch --pkg agents-core "Fix race condition in agent message queue"
+
+# Multiple packages (for tightly coupled changes)
+pnpm bump minor --pkg agents-sdk --pkg agents-core "Add streaming response support"
+```
+
+**Valid package names:** `agents-cli`, `agents-core`, `agents-manage-api`, `agents-manage-ui`, `agents-run-api`, `agents-sdk`, `create-agents`, `ai-sdk-provider`
+
+**Semver guidance:**
+- **Major**: Reserved - do not use without explicit approval
+- **Minor**: Schema changes requiring migration, significant behavior changes
+- **Patch**: Bug fixes, additive features, non-breaking changes
+
+#### Writing Good Changelog Messages
+
+**Target audience:** Developers consuming these packages
+
+**Style requirements:**
+- Sentence case: "Add new feature" not "add new feature"
+- Start with action verb: Add, Fix, Update, Remove, Improve, Deprecate
+- Be specific about what changed and why it matters to consumers
+- Keep to 1-2 sentences
+
+**Good examples:**
+- "Fix race condition when multiple agents connect simultaneously"
+- "Add `timeout` option to `createAgent()` for custom connection timeouts"
+- "Remove deprecated `legacyMode` option (use `mode: 'standard'` instead)"
+- "Improve error messages when agent registration fails"
+
+**Bad examples:**
+- "fix bug" (too vague - which bug? what was the impact?)
+- "update dependencies" (not user-facing, doesn't need changeset)
+- "Refactored the agent connection handler to use async/await" (implementation detail, not user impact)
+- "changes" (meaningless)
+
+**When NOT to create a changeset:**
+- Documentation-only changes
+- Test-only changes
+- Internal tooling/scripts changes
+- Changes to ignored packages (agents-ui, agents-docs, cookbook-templates, test-agents)
+
+**Multiple changes in one PR:**
+If a PR affects multiple packages independently, create separate changesets for each with specific messages. If changes are tightly coupled (e.g., updating types in core that SDK depends on), use a single changeset listing both packages.
 
 ### Running Examples
 ```bash

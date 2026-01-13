@@ -10,4 +10,4 @@
 "@inkeep/create-agents": patch
 ---
 
-Properly contain overflow of trace card content
+warning status messages

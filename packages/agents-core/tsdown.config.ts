@@ -5,7 +5,7 @@ export default defineConfig((options) => {
   return {
     ...rootConfig,
     dts: !options.watch,
-    format: ['esm'],
+    format: 'esm',
     entry: ['src/**/*.ts', '!**/__tests__', '!**/*.test.ts'],
     external: ['keytar', 'typescript'],
     unbundle: true,
