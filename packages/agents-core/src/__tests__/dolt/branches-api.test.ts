@@ -10,7 +10,6 @@ import {
   listBranches,
   MAIN_BRANCH_SUFFIX,
 } from '../../dolt/branches-api';
-import { SCHEMA_SOURCE_BRANCH } from '../../dolt/schema-sync';
 import { testManageDbClient } from '../setup';
 import { getSqlString } from './test-utils';
 
@@ -95,7 +94,9 @@ describe('Branches API Module', () => {
         })
         // active_branch() for syncSchemaFromMain
         .mockResolvedValueOnce({ rows: [{ branch: 'tenant1_project1_feature-x' }] })
-        // dolt_schema_diff for syncSchemaFromMain
+        // pg_try_advisory_lock
+        .mockResolvedValueOnce({ rows: [{ acquired: true }] })
+        // dolt_schema_diff for syncSchemaFromMain (re-check after lock)
         .mockResolvedValueOnce({
           rows: [
             {
@@ -116,6 +117,8 @@ describe('Branches API Module', () => {
         .mockResolvedValueOnce({ rows: [{ conflicts: 0 }] })
         // dolt_log for commit hash
         .mockResolvedValueOnce({ rows: [{ commit_hash: 'after-merge' }] })
+        // pg_advisory_unlock
+        .mockResolvedValueOnce({ rows: [] })
         // dolt_branches - get updated branch info
         .mockResolvedValueOnce({
           rows: [{ name: 'tenant1_project1_feature-x', hash: 'after-merge', latest_commit_date: new Date() }],
@@ -227,7 +230,9 @@ describe('Branches API Module', () => {
         .mockResolvedValueOnce({ rows: [] })
         // active_branch() for syncSchemaFromMain
         .mockResolvedValueOnce({ rows: [{ branch: 'tenant1_main' }] })
-        // dolt_schema_diff for syncSchemaFromMain
+        // pg_try_advisory_lock
+        .mockResolvedValueOnce({ rows: [{ acquired: true }] })
+        // dolt_schema_diff for syncSchemaFromMain (re-check after lock)
         .mockResolvedValueOnce({
           rows: [
             {
@@ -246,13 +251,15 @@ describe('Branches API Module', () => {
         .mockResolvedValueOnce({ rows: [{ hash: 'pre-merge' }] })
         // DOLT_MERGE
         .mockResolvedValueOnce({ rows: [{ conflicts: 0 }] })
-        // dolt_log
+        // dolt_log for getLatestCommitHash
         .mockResolvedValueOnce({ rows: [{ commit_hash: 'post-merge' }] })
-        // dolt_branches for doltHashOf
+        // pg_advisory_unlock
+        .mockResolvedValueOnce({ rows: [] })
+        // dolt_branches for doltHashOf (checking if tenant1_main is a branch)
         .mockResolvedValueOnce({
           rows: [{ name: 'tenant1_main', hash: 'post-merge', latest_commit_date: new Date() }],
         })
-        // dolt_log for doltHashOf
+        // dolt_log for doltHashOf (getting commit hash for branch)
         .mockResolvedValueOnce({ rows: [{ commit_hash: 'post-merge' }] })
         // DOLT_BRANCH
         .mockResolvedValueOnce({ rows: [] })

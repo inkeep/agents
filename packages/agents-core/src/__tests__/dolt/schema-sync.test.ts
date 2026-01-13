@@ -146,7 +146,11 @@ describe('Schema Sync Module', () => {
         .fn()
         // First call: active_branch()
         .mockResolvedValueOnce({ rows: [{ branch: 'feature-branch' }] })
-        // Second call: dolt_schema_diff
+        // Second call: pg_try_advisory_lock
+        .mockResolvedValueOnce({ rows: [{ acquired: true }] })
+        // Third call: dolt_schema_diff (re-check after lock)
+        .mockResolvedValueOnce({ rows: [] })
+        // Fourth call: pg_advisory_unlock
         .mockResolvedValueOnce({ rows: [] });
 
       const mockDb = { ...db, execute: mockExecute } as any;
@@ -162,7 +166,9 @@ describe('Schema Sync Module', () => {
         .fn()
         // active_branch()
         .mockResolvedValueOnce({ rows: [{ branch: 'feature-branch' }] })
-        // dolt_schema_diff - has differences
+        // pg_try_advisory_lock
+        .mockResolvedValueOnce({ rows: [{ acquired: true }] })
+        // dolt_schema_diff (re-check after lock) - has differences
         .mockResolvedValueOnce({
           rows: [
             {
@@ -174,7 +180,9 @@ describe('Schema Sync Module', () => {
           ],
         })
         // dolt_status - has uncommitted changes
-        .mockResolvedValueOnce({ rows: [{ table_name: 'agent', staged: false, status: 'modified' }] });
+        .mockResolvedValueOnce({ rows: [{ table_name: 'agent', staged: false, status: 'modified' }] })
+        // pg_advisory_unlock
+        .mockResolvedValueOnce({ rows: [] });
 
       const mockDb = { ...db, execute: mockExecute } as any;
 
@@ -190,7 +198,9 @@ describe('Schema Sync Module', () => {
         .fn()
         // active_branch()
         .mockResolvedValueOnce({ rows: [{ branch: 'feature-branch' }] })
-        // dolt_schema_diff - has differences
+        // pg_try_advisory_lock
+        .mockResolvedValueOnce({ rows: [{ acquired: true }] })
+        // dolt_schema_diff (re-check after lock) - has differences
         .mockResolvedValueOnce({
           rows: [
             {
@@ -210,7 +220,9 @@ describe('Schema Sync Module', () => {
         // DOLT_MERGE
         .mockResolvedValueOnce({ rows: [{ conflicts: 0 }] })
         // dolt_log for commit hash
-        .mockResolvedValueOnce({ rows: [{ commit_hash: 'def456' }] });
+        .mockResolvedValueOnce({ rows: [{ commit_hash: 'def456' }] })
+        // pg_advisory_unlock
+        .mockResolvedValueOnce({ rows: [] });
 
       const mockDb = { ...db, execute: mockExecute } as any;
 
@@ -226,7 +238,9 @@ describe('Schema Sync Module', () => {
         .fn()
         // active_branch()
         .mockResolvedValueOnce({ rows: [{ branch: 'feature-branch' }] })
-        // dolt_schema_diff - has differences
+        // pg_try_advisory_lock
+        .mockResolvedValueOnce({ rows: [{ acquired: true }] })
+        // dolt_schema_diff (re-check after lock) - has differences
         .mockResolvedValueOnce({
           rows: [
             {
@@ -246,6 +260,8 @@ describe('Schema Sync Module', () => {
         // DOLT_MERGE - has conflicts
         .mockResolvedValueOnce({ rows: [{ conflicts: 2 }] })
         // DOLT_MERGE --abort
+        .mockResolvedValueOnce({ rows: [] })
+        // pg_advisory_unlock
         .mockResolvedValueOnce({ rows: [] });
 
       const mockDb = { ...db, execute: mockExecute } as any;
@@ -255,6 +271,23 @@ describe('Schema Sync Module', () => {
       expect(result.synced).toBe(false);
       expect(result.hadDifferences).toBe(true);
       expect(result.error).toContain('conflicts');
+    });
+
+    it('should skip sync when lock is not acquired (another request is syncing)', async () => {
+      const mockExecute = vi
+        .fn()
+        // active_branch()
+        .mockResolvedValueOnce({ rows: [{ branch: 'feature-branch' }] })
+        // pg_try_advisory_lock - lock not acquired
+        .mockResolvedValueOnce({ rows: [{ acquired: false }] });
+
+      const mockDb = { ...db, execute: mockExecute } as any;
+
+      const result = await syncSchemaFromMain(mockDb)();
+
+      expect(result.synced).toBe(false);
+      expect(result.hadDifferences).toBe(true);
+      expect(result.skippedDueToLock).toBe(true);
     });
   });
 
@@ -314,7 +347,9 @@ describe('Schema Sync Module', () => {
         })
         // active_branch() for syncSchemaFromMain
         .mockResolvedValueOnce({ rows: [{ branch: 'feature-branch' }] })
-        // dolt_schema_diff for syncSchemaFromMain
+        // pg_try_advisory_lock
+        .mockResolvedValueOnce({ rows: [{ acquired: true }] })
+        // dolt_schema_diff for syncSchemaFromMain (re-check after lock)
         .mockResolvedValueOnce({
           rows: [
             {
@@ -334,7 +369,9 @@ describe('Schema Sync Module', () => {
         // DOLT_MERGE
         .mockResolvedValueOnce({ rows: [{ conflicts: 0 }] })
         // dolt_log
-        .mockResolvedValueOnce({ rows: [{ commit_hash: 'merged123' }] });
+        .mockResolvedValueOnce({ rows: [{ commit_hash: 'merged123' }] })
+        // pg_advisory_unlock
+        .mockResolvedValueOnce({ rows: [] });
 
       const mockDb = { ...db, execute: mockExecute } as any;
 

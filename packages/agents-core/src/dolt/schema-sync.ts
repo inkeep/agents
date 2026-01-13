@@ -1,3 +1,4 @@
+import { createHash } from 'node:crypto';
 import { sql } from 'drizzle-orm';
 import type { AgentsManageDatabaseClient } from '../db/manage/manage-client';
 import { doltAddAndCommit, doltStatus } from './commit';
@@ -39,6 +40,8 @@ export type SchemaSyncResult = {
   error?: string;
   /** The merge commit hash if sync was successful */
   mergeCommitHash?: string;
+  /** Whether sync was skipped because another request holds the lock */
+  skippedDueToLock?: boolean;
 };
 
 /**
@@ -132,6 +135,47 @@ const commitPendingChanges =
     await doltAddAndCommit(db)({ message, author: options.author });
   };
 
+/**
+ * Advisory lock key prefix for schema sync operations.
+ * We use a fixed prefix combined with the branch name hash to create unique lock keys.
+ */
+const SCHEMA_SYNC_LOCK_PREFIX = 'schema_sync_';
+
+const getSchemaSyncLockKey = (branchName: string): bigint => {
+  const lockKey = `${SCHEMA_SYNC_LOCK_PREFIX}${branchName}`;
+  const digest = createHash('sha256').update(lockKey).digest();
+  return digest.readBigInt64BE(0);
+};
+
+/**
+ * Try to acquire a non-blocking advisory lock for schema sync on a branch.
+ * Uses pg_try_advisory_lock which returns immediately without waiting.
+ *
+ * @param branchName - The branch name to lock
+ * @returns true if lock was acquired, false if another session holds it
+ */
+const tryAcquireSchemaSyncLock =
+  (db: AgentsManageDatabaseClient) =>
+  async (branchName: string): Promise<boolean> => {
+    const key = getSchemaSyncLockKey(branchName);
+    const result = await db.execute(
+      sql`SELECT pg_try_advisory_lock(CAST(${key} AS bigint)) as acquired`
+    );
+    return result.rows[0]?.acquired === true;
+  };
+
+/**
+ * Release the advisory lock for schema sync on a branch.
+ *
+ * @param branchName - The branch name to unlock
+ */
+const releaseSchemaSyncLock =
+  (db: AgentsManageDatabaseClient) =>
+  async (branchName: string): Promise<void> => {
+    const key = getSchemaSyncLockKey(branchName);
+    await db.execute(sql`SELECT pg_advisory_unlock(CAST(${key} AS bigint))`);
+  };
+
 
 /**
  * Get the latest commit hash for the current branch
@@ -147,6 +191,10 @@ const getLatestCommitHash =
 /**
  * Sync schema from the schema source branch (main) into the current branch.
  * This performs a merge of the schema source branch into the current branch.
+ *
+ * Uses a non-blocking advisory lock to prevent duplicate syncs when multiple
+ * concurrent requests attempt to sync the same branch. If another request is
+ * already syncing, this function returns immediately with skippedDueToLock: true.
  *
  * Prerequisites:
  * - Current branch must not have uncommitted changes (unless autoCommitPending is true)
@@ -169,43 +217,64 @@ export const syncSchemaFromMain =
       };
     }
 
-    // Check for schema differences
-    const differences = await getSchemaDiff(db)(currentBranch);
+    // Try to acquire the advisory lock for this branch
+    // This prevents duplicate schema syncs from concurrent requests
+    const lockAcquired = await tryAcquireSchemaSyncLock(db)(currentBranch);
 
-    if (differences.length === 0) {
+    if (!lockAcquired) {
+      // Another request is currently syncing this branch
+      // Return early - that request will handle the sync
       return {
         synced: false,
-        hadDifferences: false,
+        hadDifferences: true, // We assume differences exist since sync was requested
+        skippedDueToLock: true,
       };
     }
 
-    // Check for uncommitted changes
-    const hasUncommitted = await hasUncommittedChanges(db)();
+    try {
+      // Re-check for schema differences after acquiring lock
+      // Another request might have just completed the sync
+      const differences = await getSchemaDiff(db)(currentBranch);
 
-    if (hasUncommitted) {
-      if (options.autoCommitPending) {
-        await commitPendingChanges(db)({
-          message: 'Auto-commit pending changes before schema sync',
-          author: options.author,
-        });
-      } else {
+      if (differences.length === 0) {
+        // Schema is now in sync (another request likely just synced it)
         return {
           synced: false,
-          hadDifferences: true,
-          differences,
-          error:
-            'Cannot sync schema: uncommitted changes exist. ' +
-            'Commit changes first or set autoCommitPending: true',
+          hadDifferences: false,
         };
       }
-    }
 
-    // Perform the merge from schema source branch
-    try {
+      // Check for uncommitted changes
+      const hasUncommitted = await hasUncommittedChanges(db)();
+
+      if (hasUncommitted) {
+        if (options.autoCommitPending) {
+          await commitPendingChanges(db)({
+            message: 'Auto-commit pending changes before schema sync',
+            author: options.author,
+          });
+        } else {
+          return {
+            synced: false,
+            hadDifferences: true,
+            differences,
+            error:
+              'Cannot sync schema: uncommitted changes exist. ' +
+              'Commit changes first or set autoCommitPending: true',
+          };
+        }
+      }
+
+      // Perform the merge from schema source branch
       const mergeSchemaMessage = `Synced schema from ${SCHEMA_SOURCE_BRANCH}`;
       const schemaSyncAuthor = { name: 'Schema Sync System', email: 'system@inkeep.com' };
-      const mergeResult = await doltMerge(db)({ fromBranch: SCHEMA_SOURCE_BRANCH, toBranch: currentBranch, message: mergeSchemaMessage, noFastForward: true, author: schemaSyncAuthor});
-
+      const mergeResult = await doltMerge(db)({
+        fromBranch: SCHEMA_SOURCE_BRANCH,
+        toBranch: currentBranch,
+        message: mergeSchemaMessage,
+        noFastForward: true,
+        author: schemaSyncAuthor,
+      });
 
       if (mergeResult.status === 'conflicts') {
         // Abort the merge - conflicts require manual resolution
@@ -240,9 +309,15 @@ export const syncSchemaFromMain =
       return {
         synced: false,
         hadDifferences: true,
-        differences,
         error: `Schema sync failed: ${error instanceof Error ? error.message : 'Unknown error'}`,
       };
+    } finally {
+      // Always release the lock
+      try {
+        await releaseSchemaSyncLock(db)(currentBranch);
+      } catch {
+        // Ignore unlock errors - lock will be released when connection closes
+      }
     }
   };
 
@@ -357,3 +432,4 @@ export const areBranchesSchemaCompatible =
       branchBDifferences: diffB,
     };
   };
+
