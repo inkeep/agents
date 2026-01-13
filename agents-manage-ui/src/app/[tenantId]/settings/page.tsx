@@ -38,7 +38,6 @@ export default function SettingsPage() {
         authClient.organization.getActiveMember(),
       ]);
 
-
       if (orgResult.error) {
         setError(orgResult.error.message || 'Failed to fetch organization');
         return;

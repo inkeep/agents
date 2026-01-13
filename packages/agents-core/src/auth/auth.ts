@@ -201,7 +201,7 @@ export function createAuth(config: BetterAuthConfig) {
       requireEmailVerification: false,
       autoSignIn: true,
     },
-     // Automatically set user's first organization as active when session is created
+    // Automatically set user's first organization as active when session is created
     // See: https://www.better-auth.com/docs/plugins/organization#active-organization
     databaseHooks: {
       session: {
