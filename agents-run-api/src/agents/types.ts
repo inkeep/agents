@@ -12,13 +12,14 @@ export interface VersionConfig<TConfig> {
 }
 
 export interface SkillData {
-  id?: string;
-  subAgentSkillId?: string;
+  id: string;
+  subAgentSkillId: string;
   name: string;
-  description?: string | null;
+  description: string;
   content: string;
-  metadata?: Record<string, unknown> | null;
-  index?: number;
+  metadata: Record<string, unknown> | null;
+  index: number;
+  alwaysLoaded: boolean;
 }
 
 export interface SystemPromptV1 {

@@ -1,3 +1,4 @@
+import type { CheckedState } from '@radix-ui/react-checkbox';
 import { GripVertical } from 'lucide-react';
 import { type FC, useState } from 'react';
 import type { AgentNodeData } from '@/components/agent/configuration/node-types';
@@ -13,6 +14,7 @@ import { cn } from '@/lib/utils';
 interface SkillSelection {
   id: string;
   index: number;
+  alwaysLoaded: boolean;
 }
 
 interface SkillSelectorProps {
@@ -38,6 +40,14 @@ export function reorderSkills(
   const [moved] = current.splice(fromIndex, 1);
   current.splice(toIndex, 0, moved);
   return current.map((skill, index) => ({ ...skill, index }));
+}
+
+export function updateSkillAlwaysLoaded(
+  skills: SkillSelection[],
+  id: SkillSelection['id'],
+  alwaysLoaded: boolean
+): SkillSelection[] {
+  return skills.map((skill) => (skill.id === id ? { ...skill, alwaysLoaded } : skill));
 }
 
 export const SkillSelector: FC<SkillSelectorProps> = ({ selectedSkills = [], onChange, error }) => {
@@ -66,7 +76,10 @@ export const SkillSelector: FC<SkillSelectorProps> = ({ selectedSkills = [], onC
     onChange(newSelection.map((skill, index) => ({ ...skill, index })));
   };
 
-  console.log(selectedSkills);
+  const handleAlwaysLoadedChange = (id: string, checked: CheckedState) => {
+    const nextChecked = checked === 'indeterminate' ? true : checked;
+    onChange(updateSkillAlwaysLoaded(selectedSkills, id, nextChecked));
+  };
 
   return (
     <div className="space-y-2">
@@ -85,11 +98,11 @@ export const SkillSelector: FC<SkillSelectorProps> = ({ selectedSkills = [], onC
             Skill
             <Tooltip>
               <TooltipTrigger asChild>
-                <span className="cursor-help ml-auto">On demand</span>
+                {/* use span instead of button */}
+                <span className="cursor-help ml-auto">Always loaded</span>
               </TooltipTrigger>
               <TooltipContent>
-                This skill is activated automatically when required and is not included in every
-                prompt.
+                When enabled, this skill is included in every prompt. Disable to load it on demand.
                 <ExternalLink
                   href={`${DOCS_BASE_URL}/visual-builder/skills#TODO`}
                   className="text-xs normal-case inline"
@@ -127,7 +140,10 @@ export const SkillSelector: FC<SkillSelectorProps> = ({ selectedSkills = [], onC
                 <div className="text-sm text-foreground font-medium line-clamp-1">{skill.id}</div>
                 <div className="line-clamp-1">{skill.description}</div>
               </div>
-              <Checkbox />
+              <Checkbox
+                checked={skill.alwaysLoaded}
+                onCheckedChange={(checked) => handleAlwaysLoadedChange(skill.id, checked)}
+              />
             </li>
           ))}
         </div>
