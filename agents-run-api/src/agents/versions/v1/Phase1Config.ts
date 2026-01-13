@@ -229,24 +229,18 @@ export class Phase1Config implements VersionConfig<SystemPromptV1> {
       return '';
     }
     const skillEntries = loadedSkills
-      .map((skill) => {
-        const description = skill.description
-          ? `<description>${skill.description}</description>`
-          : '';
-        return `
-  <skill>
-    <name>${skill.name}</name>
-    ${description}
-    <content>
-      ${skill.content}
-    </content>
-  </skill>`;
-      })
+      .map(
+        (skill) => `
+    <skill>
+      <name>${skill.name}</name>
+      <description>${skill.description}</description>
+      <content>${skill.content}</content>
+    </skill>`
+      )
       .join('\n');
 
     return `
-  <skills>
-    ${skillEntries}
+  <skills>${skillEntries}
   </skills>`;
   }
 
@@ -258,24 +252,18 @@ export class Phase1Config implements VersionConfig<SystemPromptV1> {
       return '';
     }
     const skillEntries = onDemandSkills
-      .map((skill) => {
-        const description = skill.description
-          ? `<description>${skill.description}</description>`
-          : '';
-        return `
-  <skill>
-    <name>${skill.name}</name>
-    ${description}
-  </skill>`;
-      })
+      .map(
+        (skill) => `
+    <skill>
+      <name>${skill.name}</name>
+      <description>${skill.description}</description>
+    </skill>`
+      )
       .join('\n');
 
     return `
   <on_demand_skills>
-    <instructions>
-      The following skills are available on demand. Call load_skill with the skill name to load the full content.
-    </instructions>
-    ${skillEntries}
+    <instructions>The following skills are available on demand. Call load_skill with the skill name to load the full content.</instructions>${skillEntries}
   </on_demand_skills>`;
   }
 

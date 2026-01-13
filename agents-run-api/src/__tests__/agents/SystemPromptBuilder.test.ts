@@ -230,6 +230,9 @@ describe('SystemPromptBuilder', () => {
             id: 'always-loaded-skill',
             name: 'always-loaded-skill',
             content: 'Always content',
+            description: 'Always description',
+            metadata: null,
+            subAgentSkillId: 'foo',
             index: 1,
             alwaysLoaded: true,
           },
@@ -237,6 +240,9 @@ describe('SystemPromptBuilder', () => {
             id: 'on-demand-skill',
             name: 'on-demand-skill',
             content: 'On demand content',
+            description: 'On demand description',
+            metadata: null,
+            subAgentSkillId: 'bar',
             index: 2,
             alwaysLoaded: false,
           },
@@ -244,9 +250,12 @@ describe('SystemPromptBuilder', () => {
       };
 
       const { prompt } = builder.buildSystemPrompt(config);
-      expect(prompt).toContain('Always Skill');
+      expect(prompt).toContain('<skills>');
+      expect(prompt).toContain('always-loaded-skill');
       expect(prompt).toContain('Always content');
-      expect(prompt).not.toContain('On Demand Skill');
+
+      expect(prompt).toContain('<on_demand_skills>');
+      expect(prompt).toContain('on-demand-skill');
       expect(prompt).not.toContain('On demand content');
     });
 
