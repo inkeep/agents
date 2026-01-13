@@ -10,6 +10,25 @@ import { generateId } from '../utils';
 import * as authSchema from './auth-schema';
 import { ac, adminRole, memberRole, ownerRole } from './permissions';
 
+/**
+ * Get the user's initial organization for a new session.
+ * Returns the oldest organization the user is a member of.
+ * See: https://www.better-auth.com/docs/plugins/organization#active-organization
+ */
+async function getInitialOrganization(
+  dbClient: DatabaseClient,
+  userId: string
+): Promise<{ id: string } | null> {
+  const [membership] = await dbClient
+    .select({ organizationId: authSchema.member.organizationId })
+    .from(authSchema.member)
+    .where(eq(authSchema.member.userId, userId))
+    .orderBy(authSchema.member.createdAt)
+    .limit(1);
+
+  return membership ? { id: membership.organizationId } : null;
+}
+
 export interface OIDCProviderConfig {
   clientId: string;
   clientSecret: string;
@@ -181,6 +200,23 @@ export function createAuth(config: BetterAuthConfig) {
       maxPasswordLength: 128,
       requireEmailVerification: false,
       autoSignIn: true,
+    },
+     // Automatically set user's first organization as active when session is created
+    // See: https://www.better-auth.com/docs/plugins/organization#active-organization
+    databaseHooks: {
+      session: {
+        create: {
+          before: async (session) => {
+            const organization = await getInitialOrganization(config.dbClient, session.userId);
+            return {
+              data: {
+                ...session,
+                activeOrganizationId: organization?.id ?? null,
+              },
+            };
+          },
+        },
+      },
     },
     socialProviders: config.socialProviders?.google && {
       google: {
