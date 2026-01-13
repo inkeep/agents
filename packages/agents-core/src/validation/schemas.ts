@@ -573,6 +573,7 @@ export const SubAgentSkillInsertSchema = createInsertSchema(subAgentSkills).exte
   subAgentId: resourceIdSchema,
   skillId: resourceIdSchema,
   index: SkillIndexSchema,
+  alwaysLoaded: z.boolean().optional().default(false),
 });
 export const SubAgentSkillUpdateSchema = SubAgentSkillInsertSchema.partial();
 
@@ -592,6 +593,7 @@ export const SubAgentSkillWithIndexSchema = z
   .object({
     id: resourceIdSchema,
     index: SkillIndexSchema,
+    alwaysLoaded: z.boolean().optional(),
   })
   .openapi('SubAgentSkillWithIndex');
 
