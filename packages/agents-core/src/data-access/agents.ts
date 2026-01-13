@@ -350,6 +350,7 @@ export const getFullAgentDefinition =
         content: skill.content,
         metadata: skill.metadata,
         index: skill.index,
+        alwaysLoaded: skill.alwaysLoaded,
         subAgentSkillId: skill.subAgentSkillId,
         subAgentId: skill.subAgentId,
         createdAt: skill.createdAt,

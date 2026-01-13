@@ -497,7 +497,12 @@ export class Agent {
           activeSpan.setAttributes(attributes);
         }
 
-        const isInternalTool =
+        const shouldHideToolEvents =
+          toolName.includes('save_tool_result') ||
+          toolName.includes('thinking_complete') ||
+          toolName.startsWith('transfer_to_') ||
+          toolName === 'load_skill';
+        const shouldSkipHistory =
           toolName.includes('save_tool_result') ||
           toolName.includes('thinking_complete') ||
           toolName.startsWith('transfer_to_');
@@ -506,7 +511,7 @@ export class Agent {
         // Check if this tool needs approval first
         const needsApproval = options?.needsApproval || false;
 
-        if (streamRequestId && !isInternalTool) {
+        if (streamRequestId && !shouldHideToolEvents) {
           const toolCallData: ToolCallData = {
             toolName,
             input: args,
@@ -535,7 +540,7 @@ export class Agent {
           // Store tool result in conversation history
           const toolResultConversationId = this.getToolResultConversationId();
 
-          if (streamRequestId && !isInternalTool && toolResultConversationId) {
+          if (streamRequestId && !shouldSkipHistory && toolResultConversationId) {
             try {
               const messageId = generateId();
               const messagePayload = {
@@ -570,7 +575,7 @@ export class Agent {
             }
           }
 
-          if (streamRequestId && !isInternalTool) {
+          if (streamRequestId && !shouldHideToolEvents) {
             agentSessionManager.recordEvent(streamRequestId, 'tool_result', this.config.id, {
               toolName,
               output: result,
@@ -586,7 +591,7 @@ export class Agent {
           const duration = Date.now() - startTime;
           const errorMessage = error instanceof Error ? error.message : 'Unknown error';
 
-          if (streamRequestId && !isInternalTool) {
+          if (streamRequestId && !shouldHideToolEvents) {
             agentSessionManager.recordEvent(streamRequestId, 'tool_result', this.config.id, {
               toolName,
               output: null,
@@ -1742,6 +1747,31 @@ export class Agent {
     });
   }
 
+  private createLoadSkillTool(): any {
+    return tool({
+      description: 'Load a skill by id to access its full content for this conversation.',
+      inputSchema: z.object({
+        skillId: z.string().describe('The skill id from the on-demand skills list.'),
+      }),
+      execute: async ({ skillId }) => {
+        const skills = this.config.skills || [];
+        const skill = skills.find((item) => item.id === skillId);
+
+        if (!skill) {
+          throw new Error(`Skill ${skillId} not found`);
+        }
+
+        return {
+          id: skill.id,
+          name: skill.name,
+          description: skill.description,
+          content: skill.content,
+          metadata: skill.metadata,
+        };
+      },
+    });
+  }
+
   // Create the thinking_complete tool to mark end of planning phase
   private createThinkingCompleteTool(): any {
     return tool({
@@ -1768,6 +1798,19 @@ export class Agent {
     const compressionConfig = getModelAwareCompressionConfig();
     if ((await this.agentHasArtifactComponents()) || compressionConfig.enabled) {
       defaultTools.get_reference_artifact = this.getArtifactTools();
+    }
+
+    const onDemandSkills = (this.config.skills || []).filter((skill) => !skill.alwaysLoaded);
+    if (onDemandSkills.length) {
+      const loadSkillTool = this.createLoadSkillTool();
+      if (loadSkillTool) {
+        defaultTools.load_skill = this.wrapToolWithStreaming(
+          'load_skill',
+          loadSkillTool,
+          streamRequestId,
+          'tool'
+        );
+      }
     }
 
     // Note: save_tool_result tool is replaced by artifact:create response annotations
