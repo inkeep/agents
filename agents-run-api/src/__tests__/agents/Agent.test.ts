@@ -277,6 +277,7 @@ vi.mock('../../utils/response-formatter.js', () => ({
 // Mock OpenTelemetry
 vi.mock('@opentelemetry/api', () => ({
   trace: {
+    getActiveSpan: vi.fn().mockReturnValue(null),
     getTracerProvider: vi.fn().mockReturnValue({
       getTracer: vi.fn().mockReturnValue({
         startActiveSpan: vi.fn().mockImplementation((_name, fn) => {
@@ -1636,7 +1637,7 @@ describe('Agent Conditional Tool Availability', () => {
           content: '',
           alwaysLoaded: false,
         },
-      ] as SubAgentSkillWithIndex[],
+      ] as AgentConfig['skills'],
     };
 
     const agent = new Agent(config);
