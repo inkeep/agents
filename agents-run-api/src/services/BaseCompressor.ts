@@ -360,6 +360,7 @@ export abstract class BaseCompressor {
   private shouldSkipToolCall(toolName: string): boolean {
     return (
       toolName === 'get_reference_artifact' ||
+      toolName === 'load_skill' ||
       toolName === 'thinking_complete' ||
       toolName?.includes('save_tool_result') ||
       toolName?.startsWith('transfer_to_')

@@ -84,6 +84,7 @@ export class Phase1Config implements VersionConfig<SystemPromptV1> {
         .replace('{{AGENT_CONTEXT_SECTION}}', '')
         .replace('{{ARTIFACTS_SECTION}}', '')
         .replace('{{TOOLS_SECTION}}', '')
+        .replace('{{ON_DEMAND_SKILLS}}', '')
         .replace('{{THINKING_PREPARATION_INSTRUCTIONS}}', '')
         .replace('{{TRANSFER_INSTRUCTIONS}}', '')
         .replace('{{DELEGATION_INSTRUCTIONS}}', '')
@@ -109,6 +110,9 @@ export class Phase1Config implements VersionConfig<SystemPromptV1> {
 
     const skillsSection = this.generateSkillsSection(config.skills);
     systemPrompt = systemPrompt.replace('{{SKILLS_SECTION}}', skillsSection);
+
+    const onDemandSkillsSection = this.generateOnDemandSkillsSection(config.skills);
+    systemPrompt = systemPrompt.replace('{{ON_DEMAND_SKILLS}}', onDemandSkillsSection);
 
     const rawToolData = this.isToolDataArray(config.tools)
       ? config.tools
@@ -218,13 +222,13 @@ export class Phase1Config implements VersionConfig<SystemPromptV1> {
   }
 
   private generateSkillsSection(skills: SkillData[] = []): string {
-    if (!skills.length) {
+    const loadedSkills = skills
+      .filter((skill) => skill.alwaysLoaded)
+      .sort((a, b) => a.index - b.index);
+    if (!loadedSkills.length) {
       return '';
     }
-
-    const sortedSkills = [...skills].sort((a, b) => (a.index ?? 0) - (b.index ?? 0));
-
-    const skillEntries = sortedSkills
+    const skillEntries = loadedSkills
       .map((skill) => {
         const description = skill.description
           ? `<description>${skill.description}</description>`
@@ -244,6 +248,36 @@ export class Phase1Config implements VersionConfig<SystemPromptV1> {
   <skills>
     ${skillEntries}
   </skills>`;
+  }
+
+  private generateOnDemandSkillsSection(skills: SkillData[] = []): string {
+    const onDemandSkills = skills
+      .filter((skill) => !skill.alwaysLoaded)
+      .sort((a, b) => a.index - b.index);
+    if (!onDemandSkills.length) {
+      return '';
+    }
+    const skillEntries = onDemandSkills
+      .map((skill) => {
+        const description = skill.description
+          ? `<description>${skill.description}</description>`
+          : '';
+        return `
+  <skill>
+    <id>${skill.id}</id>
+    <name>${skill.name}</name>
+    ${description}
+  </skill>`;
+      })
+      .join('\n');
+
+    return `
+  <on_demand_skills>
+    <instructions>
+      The following skills are available on demand. Call load_skill with skillId to load the full content.
+    </instructions>
+    ${skillEntries}
+  </on_demand_skills>`;
   }
 
   private generateTransferInstructions(hasTransferRelations?: boolean): string {
