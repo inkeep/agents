@@ -14,7 +14,7 @@ import { cn } from '@/lib/utils';
 interface SkillSelection {
   id: string;
   index: number;
-  alwaysLoaded: boolean;
+  alwaysLoaded?: boolean;
 }
 
 interface SkillSelectorProps {
