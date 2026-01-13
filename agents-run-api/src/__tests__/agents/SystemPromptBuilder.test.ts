@@ -172,8 +172,8 @@ describe('SystemPromptBuilder', () => {
         artifacts: [],
         isThinkingPreparation: false,
         skills: [
-          { name: 'Second Skill', content: 'Second content', index: 2 },
-          { name: 'First Skill', content: 'First content', index: 1 },
+          { name: 'Second Skill', content: 'Second content', index: 2, alwaysLoaded: true },
+          { name: 'First Skill', content: 'First content', index: 1, alwaysLoaded: true },
         ],
       };
 
@@ -184,6 +184,54 @@ describe('SystemPromptBuilder', () => {
       expect(prompt).toContain('First content');
       expect(prompt).toContain('Second content');
       expect(prompt.indexOf('First Skill')).toBeLessThan(prompt.indexOf('Second Skill'));
+    });
+
+    test('should include on-demand skills outline and exclude their content', () => {
+      const config: SystemPromptV1 = {
+        corePrompt: 'You are a skill-aware assistant.',
+        tools: [],
+        dataComponents: [],
+        artifacts: [],
+        isThinkingPreparation: false,
+        skills: [
+          { id: 'always', name: 'Always Skill', content: 'Always content', alwaysLoaded: true },
+          {
+            id: 'on-demand',
+            name: 'On Demand Skill',
+            content: 'On demand content',
+            description: 'Use when requested',
+            alwaysLoaded: false,
+          },
+        ],
+      };
+
+      const { prompt } = builder.buildSystemPrompt(config);
+      expect(prompt).toContain('<on_demand_skills>');
+      expect(prompt).toContain('<id>on-demand</id>');
+      expect(prompt).toContain('On Demand Skill');
+      expect(prompt).toContain('Use when requested');
+      expect(prompt).toContain('load_skill');
+      expect(prompt).not.toContain('On demand content');
+    });
+
+    test('should exclude skills that are not always loaded', () => {
+      const config: SystemPromptV1 = {
+        corePrompt: 'You are a skill-aware assistant.',
+        tools: [],
+        dataComponents: [],
+        artifacts: [],
+        isThinkingPreparation: false,
+        skills: [
+          { name: 'Always Skill', content: 'Always content', index: 1, alwaysLoaded: true },
+          { name: 'On Demand Skill', content: 'On demand content', index: 2, alwaysLoaded: false },
+        ],
+      };
+
+      const { prompt } = builder.buildSystemPrompt(config);
+      expect(prompt).toContain('Always Skill');
+      expect(prompt).toContain('Always content');
+      expect(prompt).not.toContain('On Demand Skill');
+      expect(prompt).not.toContain('On demand content');
     });
 
     test('should handle tools with complex parameter schemas', () => {

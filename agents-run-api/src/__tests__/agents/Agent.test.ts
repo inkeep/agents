@@ -1641,4 +1641,45 @@ describe('Agent Conditional Tool Availability', () => {
     // Should have get_reference_artifact tool
     expect(tools.get_reference_artifact).toBeDefined();
   });
+
+  test('agent with on-demand skills should have load_skill tool', async () => {
+    agentHasArtifactComponentsMock.mockReturnValue(vi.fn().mockResolvedValue(false));
+
+    const config: AgentConfig = {
+      id: 'test-agent',
+      projectId: 'test-project',
+      name: 'Test Agent',
+      description: 'Test agent',
+      tenantId: 'test-tenant',
+      agentId: 'test-agent-on-demand',
+      baseUrl: 'http://localhost:3000',
+      prompt: 'Test instructions',
+      subAgentRelations: [],
+      transferRelations: [],
+      delegateRelations: [],
+      dataComponents: [],
+      tools: [],
+      functionTools: [],
+      skills: [
+        {
+          id: 'skill-1',
+          name: 'Skill One',
+          content: 'Skill content',
+          alwaysLoaded: false,
+        },
+      ],
+    };
+
+    const agent = new Agent(config);
+    const tools = await (agent as any).getDefaultTools();
+
+    expect(tools.load_skill).toBeDefined();
+
+    const result = await tools.load_skill.execute({ skillId: 'skill-1' });
+    expect(result).toMatchObject({
+      id: 'skill-1',
+      name: 'Skill One',
+      content: 'Skill content',
+    });
+  });
 });

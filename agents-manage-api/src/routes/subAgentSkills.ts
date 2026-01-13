@@ -98,7 +98,7 @@ app.openapi(
   }),
   async (c) => {
     const { tenantId, projectId, agentId } = c.req.valid('param');
-    const { subAgentId, skillId, index } = c.req.valid('json');
+    const { subAgentId, skillId, index, alwaysLoaded } = c.req.valid('json');
 
     const [subAgent, skill] = await Promise.all([
       getSubAgentById(dbClient)({ scopes: { tenantId, projectId, agentId }, subAgentId }),
@@ -123,6 +123,7 @@ app.openapi(
       scopes: { tenantId, projectId, agentId, subAgentId },
       skillId,
       index,
+      alwaysLoaded,
     });
 
     return c.json({ data: relation }, 201);
