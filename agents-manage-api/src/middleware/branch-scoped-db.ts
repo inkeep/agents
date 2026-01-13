@@ -1,5 +1,5 @@
 import type { AgentsManageDatabaseClient, ResolvedRef } from '@inkeep/agents-core';
-import { doltAddAndCommit, doltReset, doltStatus, checkoutBranch } from '@inkeep/agents-core';
+import { doltAddAndCommit, doltReset, doltStatus, checkoutBranch, generateId } from '@inkeep/agents-core';
 import * as schema from '@inkeep/agents-core/db/manage-schema';
 import { drizzle } from 'drizzle-orm/node-postgres';
 import type { Context, Next } from 'hono';
@@ -77,11 +77,7 @@ export const branchScopedDbMiddleware = async (c: Context, next: Next) => {
       await checkoutBranch(requestDb)({ branchName: resolvedRef.name, autoCommitPending: true });
     } else {
       // For tags/commits, create temporary branch (needed for reads)
-      const timestamp = new Date()
-        .toISOString()
-        .replace(/[-:T.]/g, '')
-        .slice(0, 14);
-      tempBranch = `temp_${resolvedRef.type}_${resolvedRef.hash}_${timestamp}`;
+      tempBranch = `temp_${resolvedRef.type}_${resolvedRef.hash}_${generateId()}`;
       logger.debug({ tempBranch, hash: resolvedRef.hash }, 'Creating temporary branch');
       await connection.query(`SELECT DOLT_CHECKOUT('-b', $1, $2)`, [tempBranch, resolvedRef.hash]);
     }
@@ -141,9 +137,6 @@ export const branchScopedDbMiddleware = async (c: Context, next: Next) => {
       }
     } catch (cleanupError) {
       logger.error({ error: cleanupError }, 'Error during connection cleanup');
-      logger.error({ error: cleanupError instanceof Error ? cleanupError.cause : 'Unknown cause' }, 'Error during connection cleanup');
-      logger.error({ error: cleanupError instanceof Error ? cleanupError.message : 'Unknown message' }, 'Error during connection cleanup');
-      logger.error({ error: cleanupError instanceof Error ? cleanupError.stack : 'Unknown stack' }, 'Error during connection cleanup');
     } finally {
       connection.release();
     }

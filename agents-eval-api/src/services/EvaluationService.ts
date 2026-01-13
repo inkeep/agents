@@ -941,7 +941,7 @@ Generate the next user message:`;
         mode: 'internalService',
         internalServiceName: InternalServices.INKEEP_AGENTS_EVAL_API,
       },
-      ref: conversation.ref?.name ?? `${tenantId}_${projectId}_main`,
+      ref: conversation.ref?.hash ?? `${tenantId}_${projectId}_main`,
     });
     // Get conversation history
     const conversationHistory = await getConversationHistory(runDbClient)({
