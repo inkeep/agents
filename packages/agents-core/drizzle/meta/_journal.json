@@ -57,6 +57,13 @@
       "when": 1767651466654,
       "tag": "0007_slim_karma",
       "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "7",
+      "when": 1768251935791,
+      "tag": "0008_mature_slapstick",
+      "breakpoints": true
     }
   ]
 }

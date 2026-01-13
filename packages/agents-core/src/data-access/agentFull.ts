@@ -75,7 +75,7 @@ async function syncSubAgentSkills(
   for (const [subAgentId, subAgentData] of Object.entries(subAgentsMap)) {
     if (!subAgentData.skills || subAgentData.skills.length === 0) continue;
 
-    subAgentData.skills.forEach((skill, idx) => {
+    subAgentData.skills.forEach((skill) => {
       if (!skill.id) return;
       skillPromises.push(
         upsertSubAgentSkill(db)({
@@ -86,7 +86,8 @@ async function syncSubAgentSkills(
             subAgentId,
           },
           skillId: skill.id,
-          index: skill.index ?? idx,
+          index: skill.index,
+          alwaysLoaded: skill.alwaysLoaded,
         })
       );
     });
