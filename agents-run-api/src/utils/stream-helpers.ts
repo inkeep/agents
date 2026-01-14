@@ -314,7 +314,7 @@ export class VercelDataStreamHelper implements StreamHelper {
   }
 
   setSessionId(sessionId: string): void {
-    void sessionId;
+    this.sessionId = sessionId;
   }
 
   async writeRole(_ = 'assistant'): Promise<void> {}
