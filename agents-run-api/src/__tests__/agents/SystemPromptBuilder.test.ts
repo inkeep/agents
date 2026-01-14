@@ -1,7 +1,7 @@
 import type { McpTool } from '@inkeep/agents-core';
 import { beforeEach, describe, expect, test, vi } from 'vitest';
 import { SystemPromptBuilder } from '../../agents/SystemPromptBuilder';
-import type { SystemPromptV1 } from '../../agents/types';
+import type { SkillData, SystemPromptV1 } from '../../agents/types';
 import { Phase1Config } from '../../agents/versions/v1/Phase1Config';
 
 // Helper to create mock McpTool
@@ -164,6 +164,13 @@ describe('SystemPromptBuilder', () => {
       expect(result.prompt).toContain('Second tool');
     });
 
+    const baseSkill = {
+      subAgentSkillId: '',
+      metadata: null,
+      description: '',
+      alwaysLoaded: true,
+    } satisfies Partial<SkillData>;
+
     test('should include skills section in order when provided', () => {
       const config: SystemPromptV1 = {
         corePrompt: 'You are a skill-aware assistant.',
@@ -172,18 +179,30 @@ describe('SystemPromptBuilder', () => {
         artifacts: [],
         isThinkingPreparation: false,
         skills: [
-          { name: 'Second Skill', content: 'Second content', index: 2, alwaysLoaded: true },
-          { name: 'First Skill', content: 'First content', index: 1, alwaysLoaded: true },
+          {
+            ...baseSkill,
+            id: 'second-skill',
+            name: 'second-skill',
+            content: 'Second content',
+            index: 1,
+          },
+          {
+            ...baseSkill,
+            id: 'first-skill',
+            name: 'first-skill',
+            content: 'First content',
+            index: 0,
+          },
         ],
       };
 
       const { prompt } = builder.buildSystemPrompt(config);
       expect(prompt).toContain('<skills>');
-      expect(prompt).toContain('First Skill');
-      expect(prompt).toContain('Second Skill');
+      expect(prompt).toContain('name="first-skill"');
+      expect(prompt).toContain('name="second-skill"');
       expect(prompt).toContain('First content');
       expect(prompt).toContain('Second content');
-      expect(prompt.indexOf('First Skill')).toBeLessThan(prompt.indexOf('Second Skill'));
+      expect(prompt.indexOf('first-skill')).toBeLessThan(prompt.indexOf('second-skill'));
     });
 
     test('should include on-demand skills outline and exclude their content', () => {
@@ -195,26 +214,29 @@ describe('SystemPromptBuilder', () => {
         isThinkingPreparation: false,
         skills: [
           {
+            ...baseSkill,
             id: 'always-loaded-skill',
             name: 'always-loaded-skill',
             content: 'Always content',
-            alwaysLoaded: true,
+            index: 0,
           },
           {
+            ...baseSkill,
             id: 'on-demand-skill',
             name: 'on-demand-skill',
             content: 'On demand content',
-            description: 'Use when requested',
+            description: 'On demand description',
             alwaysLoaded: false,
+            index: 1,
           },
         ],
       };
 
       const { prompt } = builder.buildSystemPrompt(config);
-      expect(prompt).toContain('<on_demand_skills>');
-      expect(prompt).toContain('on-demand-skill');
-      expect(prompt).toContain('Use when requested');
-      expect(prompt).toContain('load_skill');
+      // console.log(prompt, 2);
+      expect(prompt).toContain(
+        '<on_demand_skill name="on-demand-skill" description="On demand description" />'
+      );
       expect(prompt).not.toContain('On demand content');
     });
 
@@ -250,12 +272,13 @@ describe('SystemPromptBuilder', () => {
       };
 
       const { prompt } = builder.buildSystemPrompt(config);
-      expect(prompt).toContain('<skills>');
-      expect(prompt).toContain('always-loaded-skill');
+      expect(prompt).toContain(
+        '<skill name="always-loaded-skill" description="Always description">'
+      );
       expect(prompt).toContain('Always content');
-
-      expect(prompt).toContain('<on_demand_skills>');
-      expect(prompt).toContain('on-demand-skill');
+      expect(prompt).toContain(
+        '<on_demand_skill name="on-demand-skill" description="On demand description" />'
+      );
       expect(prompt).not.toContain('On demand content');
     });
 

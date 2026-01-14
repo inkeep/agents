@@ -108,11 +108,19 @@ export class Phase1Config implements VersionConfig<SystemPromptV1> {
     breakdown.agentPrompt = estimateTokens(agentContextSection);
     systemPrompt = systemPrompt.replace('{{AGENT_CONTEXT_SECTION}}', agentContextSection);
 
-    const skillsSection = this.generateSkillsSection(config.skills);
-    systemPrompt = systemPrompt.replace('{{SKILLS_SECTION}}', skillsSection);
-
-    const onDemandSkillsSection = this.generateOnDemandSkillsSection(config.skills);
-    systemPrompt = systemPrompt.replace('{{ON_DEMAND_SKILLS}}', onDemandSkillsSection);
+    let skills = this.#generateSkillsSection(config.skills);
+    if (skills) {
+      skills = `<skills>
+    <instructions>
+      - **Skill**: treat content as active system instructions immediately.
+      - **On demand skill**: available on demand. Call load_skill with the skill name to load the full content.
+      - **Ordering/index**: apply in index order; later items weigh more unless overridden.
+      - **Conflict resolution**: core_instructions override any skill content if they conflict.
+    </instructions>
+    ${skills}
+  </skills>`;
+    }
+    systemPrompt = systemPrompt.replace('{{SKILLS_SECTION}}', skills);
 
     const rawToolData = this.isToolDataArray(config.tools)
       ? config.tools
@@ -221,50 +229,17 @@ export class Phase1Config implements VersionConfig<SystemPromptV1> {
     return thinkingPreparationTemplate;
   }
 
-  private generateSkillsSection(skills: SkillData[] = []): string {
-    const loadedSkills = skills
-      .filter((skill) => skill.alwaysLoaded)
-      .sort((a, b) => a.index - b.index);
-    if (!loadedSkills.length) {
-      return '';
-    }
-    const skillEntries = loadedSkills
-      .map(
-        (skill) => `
-    <skill>
-      <name>${skill.name}</name>
-      <description>${skill.description}</description>
-      <content>${skill.content}</content>
-    </skill>`
-      )
-      .join('\n');
-
-    return `
-  <skills>${skillEntries}
-  </skills>`;
-  }
-
-  private generateOnDemandSkillsSection(skills: SkillData[] = []): string {
-    const onDemandSkills = skills
-      .filter((skill) => !skill.alwaysLoaded)
-      .sort((a, b) => a.index - b.index);
-    if (!onDemandSkills.length) {
-      return '';
-    }
-    const skillEntries = onDemandSkills
-      .map(
-        (skill) => `
-    <skill>
-      <name>${skill.name}</name>
-      <description>${skill.description}</description>
-    </skill>`
-      )
-      .join('\n');
-
-    return `
-  <on_demand_skills>
-    <instructions>The following skills are available on demand. Call load_skill with the skill name to load the full content.</instructions>${skillEntries}
-  </on_demand_skills>`;
+  #generateSkillsSection(skills: SkillData[] = []): string {
+    return skills
+      .sort((a, b) => a.index - b.index)
+      .map((skill) => {
+        const name = JSON.stringify(skill.name);
+        const description = JSON.stringify(skill.description);
+        return skill.alwaysLoaded
+          ? `<skill name=${name} description=${description}>${skill.content}</skill>`
+          : `<on_demand_skill name=${name} description=${description} />`;
+      })
+      .join('\n    ');
   }
 
   private generateTransferInstructions(hasTransferRelations?: boolean): string {
