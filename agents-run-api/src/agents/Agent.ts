@@ -504,8 +504,13 @@ export class Agent {
         // Check if this tool needs approval first
         const needsApproval = options?.needsApproval || false;
         const streamingHelper = this.getStreamingHelper();
+        const isDelegationTool = toolName.startsWith('delegate_to_');
         const shouldStreamToolLifecycle = Boolean(
-          streamingHelper && streamRequestId && !isInternalTool && !needsApproval
+          streamingHelper &&
+            streamRequestId &&
+            !isInternalTool &&
+            !isDelegationTool &&
+            !needsApproval
         );
 
         if (streamRequestId && !isInternalTool) {
@@ -546,7 +551,10 @@ export class Agent {
 
             const chunkSize = 10;
             for (let i = 0; i < inputJson.length; i += chunkSize) {
-              await streamingHelper?.writeToolInputDelta(toolCallId, inputJson.slice(i, i + chunkSize));
+              await streamingHelper?.writeToolInputDelta(
+                toolCallId,
+                inputJson.slice(i, i + chunkSize)
+              );
             }
 
             await streamingHelper?.writeToolInputAvailable({
@@ -609,7 +617,10 @@ export class Agent {
           }
 
           if (shouldStreamToolLifecycle) {
-            await streamingHelper?.writeToolOutputAvailable(toolCallId, { toolName, output: result });
+            await streamingHelper?.writeToolOutputAvailable(toolCallId, {
+              toolName,
+              output: result,
+            });
           }
 
           return result;
