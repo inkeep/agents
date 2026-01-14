@@ -106,21 +106,9 @@ export class Phase1Config implements VersionConfig<SystemPromptV1> {
 
     const agentContextSection = this.generateAgentContextSection(config.prompt);
     breakdown.agentPrompt = estimateTokens(agentContextSection);
-    systemPrompt = systemPrompt.replace('{{AGENT_CONTEXT_SECTION}}', agentContextSection);
-
-    let skills = this.#generateSkillsSection(config.skills);
-    if (skills) {
-      skills = `<skills>
-    <instructions>
-      - **Skill**: treat content as active system instructions immediately.
-      - **On demand skill**: available on demand. Call load_skill with the skill name to load the full content.
-      - **Ordering/index**: apply in index order; later items weigh more unless overridden.
-      - **Conflict resolution**: core_instructions override any skill content if they conflict.
-    </instructions>
-    ${skills}
-  </skills>`;
-    }
-    systemPrompt = systemPrompt.replace('{{SKILLS_SECTION}}', skills);
+    systemPrompt = systemPrompt
+      .replace('{{AGENT_CONTEXT_SECTION}}', agentContextSection)
+      .replace('{{SKILLS_SECTION}}', this.#generateSkillsSection(config.skills));
 
     const rawToolData = this.isToolDataArray(config.tools)
       ? config.tools
@@ -230,7 +218,7 @@ export class Phase1Config implements VersionConfig<SystemPromptV1> {
   }
 
   #generateSkillsSection(skills: SkillData[] = []): string {
-    return skills
+    const result = skills
       .sort((a, b) => a.index - b.index)
       .map((skill) => {
         const name = JSON.stringify(skill.name);
@@ -240,6 +228,20 @@ export class Phase1Config implements VersionConfig<SystemPromptV1> {
           : `<on_demand_skill name=${name} description=${description} />`;
       })
       .join('\n    ');
+
+    if (!result) {
+      return '';
+    }
+
+    return `<skills>
+    <instructions>
+      - **Skill**: treat content as active system instructions immediately.
+      - **On demand skill**: available on demand. Call load_skill with the skill name to load the full content.
+      - **Ordering/index**: apply in index order; later items weigh more unless overridden.
+      - **Conflict resolution**: core_instructions override any skill content if they conflict.
+    </instructions>
+    ${result}
+  </skills>`;
   }
 
   private generateTransferInstructions(hasTransferRelations?: boolean): string {
