@@ -1,11 +1,8 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
   "framework": "hono",
-  "build": {
-    "env": {
-      "VERCEL_CLI_VERSION": "latest"
-    }
-  },
+  "installCommand": "pnpm install",
+  "buildCommand": "turbo build --filter=@inkeep/agents-eval-api",
   "functions": {
     "index.js": {
       "maxDuration": 300,
