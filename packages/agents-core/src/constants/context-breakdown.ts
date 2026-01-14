@@ -5,8 +5,10 @@
  * It serves as the single source of truth for:
  * - Component keys and labels
  * - OpenTelemetry span attribute keys
- * - UI visualization colors
+ * - UI visualization colors (auto-generated)
  */
+
+import { generateDistinctColors } from '../utils/colors';
 
 /**
  * Defines a single breakdown component for a system prompt version.
@@ -19,82 +21,84 @@ export interface BreakdownComponentDef {
   label: string;
   /** OpenTelemetry span attribute key for this component */
   spanAttribute: string;
-  /** Tailwind color class for UI visualization (e.g., 'bg-blue-500') */
-  color?: string;
+  /** Hex color for UI visualization (auto-generated) */
+  color: string;
 }
 
 /**
- * V1 Breakdown Schema - defines all context components tracked for V1 system prompts.
- * This is the single source of truth for V1 breakdown components.
+ * Base schema without colors - colors are auto-generated based on index
  */
-export const V1_BREAKDOWN_SCHEMA: BreakdownComponentDef[] = [
+const V1_BREAKDOWN_SCHEMA_BASE = [
   {
     key: 'systemPromptTemplate',
     label: 'System Prompt Template',
     spanAttribute: 'context.breakdown.system_template_tokens',
-    color: 'bg-blue-500',
   },
   {
     key: 'coreInstructions',
     label: 'Core Instructions',
     spanAttribute: 'context.breakdown.core_instructions_tokens',
-    color: 'bg-indigo-500',
   },
   {
     key: 'agentPrompt',
     label: 'Agent Prompt',
     spanAttribute: 'context.breakdown.agent_prompt_tokens',
-    color: 'bg-violet-500',
   },
   {
     key: 'toolsSection',
     label: 'Tools (MCP/Function/Relation)',
     spanAttribute: 'context.breakdown.tools_tokens',
-    color: 'bg-emerald-500',
   },
   {
     key: 'artifactsSection',
     label: 'Artifacts',
     spanAttribute: 'context.breakdown.artifacts_tokens',
-    color: 'bg-amber-500',
   },
   {
     key: 'dataComponents',
     label: 'Data Components',
     spanAttribute: 'context.breakdown.data_components_tokens',
-    color: 'bg-orange-500',
   },
   {
     key: 'artifactComponents',
     label: 'Artifact Components',
     spanAttribute: 'context.breakdown.artifact_components_tokens',
-    color: 'bg-rose-500',
   },
   {
     key: 'transferInstructions',
     label: 'Transfer Instructions',
     spanAttribute: 'context.breakdown.transfer_instructions_tokens',
-    color: 'bg-cyan-500',
   },
   {
     key: 'delegationInstructions',
     label: 'Delegation Instructions',
     spanAttribute: 'context.breakdown.delegation_instructions_tokens',
-    color: 'bg-teal-500',
   },
   {
     key: 'thinkingPreparation',
     label: 'Thinking Preparation',
     spanAttribute: 'context.breakdown.thinking_preparation_tokens',
-    color: 'bg-purple-500',
   },
   {
     key: 'conversationHistory',
     label: 'Conversation History',
     spanAttribute: 'context.breakdown.conversation_history_tokens',
-    color: 'bg-sky-500',
   },
-];
+] as const;
+
+/** Pre-generated distinct colors for the schema */
+const SCHEMA_COLORS = generateDistinctColors(V1_BREAKDOWN_SCHEMA_BASE.length);
+
+/**
+ * V1 Breakdown Schema - defines all context components tracked for V1 system prompts.
+ * Colors are automatically generated for visual distinction.
+ */
+export const V1_BREAKDOWN_SCHEMA: BreakdownComponentDef[] = V1_BREAKDOWN_SCHEMA_BASE.map(
+  (def, index) => ({
+    ...def,
+    color: SCHEMA_COLORS[index],
+  })
+);
 
 /** Span attribute key for total tokens */
 export const CONTEXT_BREAKDOWN_TOTAL_SPAN_ATTRIBUTE = 'context.breakdown.total_tokens';

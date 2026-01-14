@@ -31,25 +31,6 @@ function formatJsonSafely(content: string): string {
   }
 }
 
-/**
- * Tailwind safelist - these classes are dynamically applied from V1_BREAKDOWN_SCHEMA
- * and must be listed here for Tailwind to include them in the CSS bundle.
- * @see packages/agents-core/src/constants/context-breakdown.ts
- */
-const _TAILWIND_SAFELIST = [
-  'bg-blue-500',
-  'bg-indigo-500',
-  'bg-violet-500',
-  'bg-emerald-500',
-  'bg-amber-500',
-  'bg-orange-500',
-  'bg-rose-500',
-  'bg-cyan-500',
-  'bg-teal-500',
-  'bg-purple-500',
-  'bg-sky-500',
-  'bg-gray-500',
-];
 
 /** Compact context breakdown for the side panel */
 function ContextBreakdownPanel({ breakdown }: { breakdown: ContextBreakdown }) {
@@ -57,7 +38,7 @@ function ContextBreakdownPanel({ breakdown }: { breakdown: ContextBreakdown }) {
     return V1_BREAKDOWN_SCHEMA.map((def) => ({
       key: def.key,
       label: def.label,
-      color: def.color || 'bg-gray-500',
+      color: def.color,
       value: breakdown.components[def.key] ?? 0,
     }))
       .filter((item) => item.value > 0)
@@ -85,8 +66,7 @@ function ContextBreakdownPanel({ breakdown }: { breakdown: ContextBreakdown }) {
             return (
               <div
                 key={item.key}
-                className={`${item.color}`}
-                style={{ width: `${percentage}%` }}
+                style={{ width: `${percentage}%`, backgroundColor: item.color }}
                 title={`${item.label}: ${item.value.toLocaleString()} tokens (${percentage.toFixed(1)}%)`}
               />
             );
@@ -100,7 +80,10 @@ function ContextBreakdownPanel({ breakdown }: { breakdown: ContextBreakdown }) {
             return (
               <div key={item.key} className="flex items-center justify-between text-xs">
                 <div className="flex items-center gap-1.5">
-                  <div className={`w-2.5 h-2.5 rounded-sm ${item.color}`} />
+                  <div
+                    className="w-2.5 h-2.5 rounded-sm"
+                    style={{ backgroundColor: item.color }}
+                  />
                   <span className="text-muted-foreground">{item.label}</span>
                 </div>
                 <span className="font-mono text-foreground">

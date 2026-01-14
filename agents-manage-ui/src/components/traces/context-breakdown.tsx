@@ -6,26 +6,6 @@ import { useMemo } from 'react';
 import type { ContextBreakdown as ContextBreakdownType } from '@/components/traces/timeline/types';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 
-/**
- * Tailwind safelist - these classes are dynamically applied from V1_BREAKDOWN_SCHEMA
- * and must be listed here for Tailwind to include them in the CSS bundle.
- * @see packages/agents-core/src/constants/context-breakdown.ts
- */
-const _TAILWIND_SAFELIST = [
-  'bg-blue-500',
-  'bg-indigo-500',
-  'bg-violet-500',
-  'bg-emerald-500',
-  'bg-amber-500',
-  'bg-orange-500',
-  'bg-rose-500',
-  'bg-cyan-500',
-  'bg-teal-500',
-  'bg-purple-500',
-  'bg-sky-500',
-  'bg-gray-500',
-];
-
 interface ContextBreakdownProps {
   breakdown: ContextBreakdownType;
 }
@@ -39,12 +19,11 @@ interface BreakdownItem {
 
 export function ContextBreakdown({ breakdown }: ContextBreakdownProps) {
   const items = useMemo<BreakdownItem[]>(() => {
-    // Use V1_BREAKDOWN_SCHEMA to dynamically build breakdown display
     return V1_BREAKDOWN_SCHEMA.map((def) => ({
       key: def.key,
       label: def.label,
       value: breakdown.components[def.key] ?? 0,
-      color: def.color || 'bg-gray-500',
+      color: def.color,
     }))
       .filter((item) => item.value > 0)
       .sort((a, b) => b.value - a.value);
@@ -79,12 +58,12 @@ export function ContextBreakdown({ breakdown }: ContextBreakdownProps) {
           <div className="h-4 rounded-full overflow-hidden flex bg-muted">
             {items.map((item) => {
               const percentage = (item.value / breakdown.total) * 100;
-              if (percentage < 0.5) return null; // Skip very small segments
+              if (percentage < 0.5) return null;
               return (
                 <div
                   key={item.key}
-                  className={`${item.color} transition-all duration-300`}
-                  style={{ width: `${percentage}%` }}
+                  className="transition-all duration-300"
+                  style={{ width: `${percentage}%`, backgroundColor: item.color }}
                   title={`${item.label}: ${item.value.toLocaleString()} tokens (${percentage.toFixed(1)}%)`}
                 />
               );
@@ -102,7 +81,10 @@ export function ContextBreakdown({ breakdown }: ContextBreakdownProps) {
               <div key={item.key} className="space-y-1">
                 <div className="flex items-center justify-between text-sm">
                   <div className="flex items-center gap-2">
-                    <div className={`w-3 h-3 rounded-sm ${item.color}`} />
+                    <div
+                      className="w-3 h-3 rounded-sm"
+                      style={{ backgroundColor: item.color }}
+                    />
                     <span className="text-foreground">{item.label}</span>
                   </div>
                   <div className="flex items-center gap-2 text-muted-foreground">
@@ -112,8 +94,8 @@ export function ContextBreakdown({ breakdown }: ContextBreakdownProps) {
                 </div>
                 <div className="h-1.5 rounded-full overflow-hidden bg-muted">
                   <div
-                    className={`h-full ${item.color} transition-all duration-300`}
-                    style={{ width: `${barWidth}%` }}
+                    className="h-full transition-all duration-300"
+                    style={{ width: `${barWidth}%`, backgroundColor: item.color }}
                   />
                 </div>
               </div>
