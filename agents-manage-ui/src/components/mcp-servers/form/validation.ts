@@ -35,7 +35,8 @@ const validateTransformation = (value: string | Record<string, string>): boolean
     // Validate JMESPath expression
     if (value.length > 500) return false;
     return !DANGEROUS_PATTERNS.some((pattern) => pattern.test(value));
-  } else if (typeof value === 'object' && value !== null) {
+  }
+  if (typeof value === 'object' && value !== null) {
     // Validate object mapping
     for (const [key, val] of Object.entries(value)) {
       if (typeof key !== 'string' || typeof val !== 'string') return false;

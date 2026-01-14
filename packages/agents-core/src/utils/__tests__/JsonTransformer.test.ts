@@ -1,7 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import type { RenderValidationResult } from '../../validation/render-validation';
 import { JsonTransformer } from '../JsonTransformer';
-import { getLogger } from '../logger';
 
 // Reuse existing validation test patterns
 const expectSecurityRejection = async (expression: string, expectedPattern: string) => {
@@ -24,7 +22,7 @@ const shouldRejectExpression = (expression: string, expectedMessage: string) => 
 // Common test data patterns for reuse
 const createTestUser = (name: string, active = true) => ({ name, active });
 const createTestItem = (name: string, price: number) => ({ name, price });
-const createComplexTestData = () => ({
+const _createComplexTestData = () => ({
   users: [
     createTestUser('Alice', true),
     createTestUser('Bob', false),
@@ -46,9 +44,9 @@ describe('JsonTransformer', () => {
     describe('dangerous pattern detection', () => {
       it('should reject template injection patterns', async () => {
         const dangerousExpressions = [
-          '${process.env.PASSWORD}',
-          'data.${injection}',
-          '${eval("malicious")}',
+          `\${process.env.PASSWORD}`,
+          `data.\${injection}`,
+          `\${eval("malicious")}`,
         ];
 
         for (const expression of dangerousExpressions) {
@@ -124,7 +122,7 @@ describe('JsonTransformer', () => {
       });
 
       it('should accept expressions within length limit', async () => {
-        const acceptableExpression = 'data.'.repeat(100) + 'field'; // Under 1000 characters
+        const acceptableExpression = `${'data.'.repeat(100)}field`; // Under 1000 characters
 
         // This should resolve successfully, not reject
         await expect(

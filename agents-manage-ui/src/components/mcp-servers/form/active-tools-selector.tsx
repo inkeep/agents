@@ -6,7 +6,6 @@ import { type Control, type FieldPath, useController } from 'react-hook-form';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { ToolOverrideDialog } from './tool-override-dialog';
@@ -388,7 +387,7 @@ export function ActiveToolsSelector<
                                   onClick={() => {
                                     const newOverrides = { ...toolOverrides };
                                     delete newOverrides[tool.name];
-                                    onToolOverrideChange && onToolOverrideChange(tool.name, {});
+                                    onToolOverrideChange?.(tool.name, {});
                                     setExpandedTools((prev) => {
                                       const newSet = new Set(prev);
                                       newSet.delete(tool.name);

@@ -29,7 +29,6 @@ import {
 import { generateId } from '../utils/conversations';
 import { getLogger } from '../utils/logger';
 import { McpClient, type McpServerConfig } from '../utils/mcp-client';
-import { convertZodToJsonSchema, isZodSchema } from '../utils/schema-conversion';
 import { getCredentialReference, getUserScopedCredentialReference } from './credentialReferences';
 import { updateAgentToolRelation } from './subAgentRelations';
 
@@ -79,7 +78,7 @@ async function getCredentialExpiresAt(
  * - parameters (direct) - alternative format
  * - schema - another possible location
  */
-function extractInputSchema(toolDef: any, toolName?: string, toolOverrides?: any): any {
+function extractInputSchema(toolDef: any, _toolName?: string, _toolOverrides?: any): any {
   // Always return original schema during discovery
   // Tool overrides are applied during execution in Agent.ts, not during discovery
   // This allows the UI to show both original and override schemas for comparison

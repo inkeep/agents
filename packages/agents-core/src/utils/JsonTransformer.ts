@@ -24,19 +24,19 @@ export class JsonTransformer {
   /**
    * Validate JMESPath expression for security and correctness
    */
-  private static validateJMESPath(expression: string, allowedFunctions?: string[]): void {
+  private static validateJMESPath(expression: string, _allowedFunctions?: string[]): void {
     if (!expression || typeof expression !== 'string') {
       throw new Error('JMESPath expression must be a non-empty string');
     }
 
-    if (expression.length > this.MAX_EXPRESSION_LENGTH) {
+    if (expression.length > JsonTransformer.MAX_EXPRESSION_LENGTH) {
       throw new Error(
-        `JMESPath expression too long (max ${this.MAX_EXPRESSION_LENGTH} characters)`
+        `JMESPath expression too long (max ${JsonTransformer.MAX_EXPRESSION_LENGTH} characters)`
       );
     }
 
     // Check for dangerous patterns
-    for (const pattern of this.DANGEROUS_PATTERNS) {
+    for (const pattern of JsonTransformer.DANGEROUS_PATTERNS) {
       if (pattern.test(expression)) {
         throw new Error(`JMESPath expression contains dangerous pattern: ${pattern.source}`);
       }
@@ -52,7 +52,7 @@ export class JsonTransformer {
       );
     }
 
-    logger.debug('JMESPath expression validated', expression.substring(0, 100) + '...');
+    logger.debug('JMESPath expression validated', `${expression.substring(0, 100)}...`);
   }
 
   /**
@@ -83,10 +83,10 @@ export class JsonTransformer {
     jmesPathExpression: string,
     options: TransformOptions = {}
   ): Promise<any> {
-    const { timeout = this.DEFAULT_TIMEOUT, allowedFunctions } = options;
+    const { timeout = JsonTransformer.DEFAULT_TIMEOUT, allowedFunctions } = options;
 
     // Validate expression before execution
-    this.validateJMESPath(jmesPathExpression, allowedFunctions);
+    JsonTransformer.validateJMESPath(jmesPathExpression, allowedFunctions);
 
     try {
       logger.debug(
@@ -94,7 +94,7 @@ export class JsonTransformer {
         `inputType: ${typeof input}, expression: ${jmesPathExpression.substring(0, 100)}..., timeout: ${timeout}`
       );
 
-      const result = await this.executeWithTimeout(input, jmesPathExpression, timeout);
+      const result = await JsonTransformer.executeWithTimeout(input, jmesPathExpression, timeout);
 
       logger.debug('JMESPath transformation completed successfully', '');
       return result;
@@ -155,13 +155,13 @@ export class JsonTransformer {
     options: TransformOptions = {}
   ): Promise<any> {
     if (config.jmespath) {
-      return this.transform(input, config.jmespath, options);
-    } else if (config.objectTransformation) {
-      const jmesPath = this.objectToJMESPath(config.objectTransformation);
-      return this.transform(input, jmesPath, options);
-    } else {
-      throw new Error('Either jmespath or objectTransformation must be provided');
+      return JsonTransformer.transform(input, config.jmespath, options);
     }
+    if (config.objectTransformation) {
+      const jmesPath = JsonTransformer.objectToJMESPath(config.objectTransformation);
+      return JsonTransformer.transform(input, jmesPath, options);
+    }
+    throw new Error('Either jmespath or objectTransformation must be provided');
   }
 
   /**

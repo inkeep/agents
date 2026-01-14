@@ -91,7 +91,7 @@ function PropertyDisplay({ property, level }: PropertyDisplayProps) {
           ))}
 
           {/* Array item properties */}
-          {property.items && property.items.properties && (
+          {property.items?.properties && (
             <div className="space-y-1">
               <div className="text-xs text-muted-foreground font-medium">Array items:</div>
               {property.items.properties.map((itemProp) => (
@@ -101,7 +101,7 @@ function PropertyDisplay({ property, level }: PropertyDisplayProps) {
           )}
 
           {/* Nested array items */}
-          {property.items && property.items.items && (
+          {property.items?.items && (
             <div className="space-y-1">
               <div className="text-xs text-muted-foreground font-medium">Array items:</div>
               <PropertyDisplay property={property.items} level={level + 1} />
