@@ -3,7 +3,12 @@ import { basename, dirname, join, resolve } from 'node:path';
 import * as p from '@clack/prompts';
 import chalk from 'chalk';
 import { checkKeychainAvailability, loadCredentials } from '../utils/credentials';
-import { DEFAULT_PROFILES_CONFIG, type Profile, ProfileManager } from '../utils/profiles';
+import {
+  DEFAULT_PROFILES_CONFIG,
+  type Profile,
+  ProfileManager,
+  type ProfilesConfig,
+} from '../utils/profiles';
 import { loginCommand } from './login';
 
 export interface InitOptions {
@@ -356,6 +361,11 @@ async function localInitCommand(options?: InitOptions): Promise<void> {
   }
 
   if (existsSync(configPath)) {
+    if (options?.interactive === false) {
+      console.log(chalk.yellow(`Config file already exists at ${configPath}, skipping creation.`));
+      return;
+    }
+
     const overwrite = await p.confirm({
       message: `${basename(configPath)} already exists. Overwrite?`,
       initialValue: false,
@@ -372,55 +382,71 @@ async function localInitCommand(options?: InitOptions): Promise<void> {
     }
   }
 
-  const tenantId = await p.text({
-    message: 'Enter your tenant ID:',
-    validate: (input) => {
-      if (!input || input.trim() === '') {
-        return 'Tenant ID is required';
-      }
-      return undefined;
-    },
-  });
+  let tenantId: string;
+  let manageApiUrl: string;
+  let runApiUrl: string;
 
-  if (p.isCancel(tenantId)) {
-    p.cancel('Operation cancelled');
-    process.exit(0);
-  }
-
-  const validateUrl = (input: string) => {
-    try {
-      if (input && input.trim() !== '') {
-        new URL(input);
+  if (options?.interactive === false) {
+    tenantId = 'default';
+    manageApiUrl = 'http://localhost:3002';
+    runApiUrl = 'http://localhost:3003';
+  } else {
+    const tenantIdInput = await p.text({
+      message: 'Enter your tenant ID:',
+      validate: (input) => {
+        if (!input || input.trim() === '') {
+          return 'Tenant ID is required';
+        }
         return undefined;
-      }
-      return undefined;
-    } catch {
-      return 'Please enter a valid URL';
+      },
+    });
+
+    if (p.isCancel(tenantIdInput)) {
+      p.cancel('Operation cancelled');
+      process.exit(0);
     }
-  };
 
-  const manageApiUrl = await p.text({
-    message: 'Enter the Management API URL:',
-    placeholder: 'http://localhost:3002',
-    initialValue: 'http://localhost:3002',
-    validate: validateUrl,
-  });
+    tenantId = tenantIdInput;
 
-  if (p.isCancel(manageApiUrl)) {
-    p.cancel('Operation cancelled');
-    process.exit(0);
-  }
+    const validateUrl = (input: string) => {
+      try {
+        if (input && input.trim() !== '') {
+          new URL(input);
+          return undefined;
+        }
+        return undefined;
+      } catch {
+        return 'Please enter a valid URL';
+      }
+    };
 
-  const runApiUrl = await p.text({
-    message: 'Enter the Run API URL:',
-    placeholder: 'http://localhost:3003',
-    initialValue: 'http://localhost:3003',
-    validate: validateUrl,
-  });
+    const manageApiUrlInput = await p.text({
+      message: 'Enter the Management API URL:',
+      placeholder: 'http://localhost:3002',
+      initialValue: 'http://localhost:3002',
+      validate: validateUrl,
+    });
 
-  if (p.isCancel(runApiUrl)) {
-    p.cancel('Operation cancelled');
-    process.exit(0);
+    if (p.isCancel(manageApiUrlInput)) {
+      p.cancel('Operation cancelled');
+      process.exit(0);
+    }
+
+    manageApiUrl = manageApiUrlInput;
+
+    const runApiUrlInput = await p.text({
+      message: 'Enter the Run API URL:',
+      placeholder: 'http://localhost:3003',
+      initialValue: 'http://localhost:3003',
+      validate: validateUrl,
+    });
+
+    if (p.isCancel(runApiUrlInput)) {
+      p.cancel('Operation cancelled');
+      process.exit(0);
+    }
+
+    runApiUrl = runApiUrlInput;
   }
 
   const configContent = `import { defineConfig } from '@inkeep/agents-cli/config';
@@ -439,6 +465,50 @@ export default defineConfig({
   try {
     writeFileSync(configPath, configContent);
     console.log(chalk.green('✓'), `Created ${chalk.cyan(configPath)}`);
+
+    // Set up local profile
+    try {
+      const profileManager = new ProfileManager();
+      const localProfile: Profile = {
+        remote: {
+          manageApi: manageApiUrl as string,
+          manageUi: 'http://localhost:3001',
+          runApi: runApiUrl as string,
+        },
+        credential: 'none',
+        environment: 'development',
+      };
+
+      if (profileManager.profilesFileExists()) {
+        const config = profileManager.loadProfiles();
+
+        if (config.profiles.local) {
+          profileManager.setActiveProfile('local');
+          console.log(chalk.green('✓'), 'Set local profile as active');
+        } else {
+          profileManager.addProfile('local', localProfile);
+          profileManager.setActiveProfile('local');
+          console.log(chalk.green('✓'), 'Created and activated local profile');
+        }
+      } else {
+        const profilesConfig: ProfilesConfig = {
+          activeProfile: 'local',
+          profiles: {
+            local: localProfile,
+          },
+        };
+
+        profileManager.saveProfiles(profilesConfig);
+        console.log(chalk.green('✓'), 'Created local profile');
+      }
+    } catch (profileError) {
+      console.log(
+        chalk.yellow('⚠'),
+        'Could not set up local profile:',
+        profileError instanceof Error ? profileError.message : String(profileError)
+      );
+    }
+
     console.log(chalk.gray('\nYou can now use the Inkeep CLI commands.'));
 
     const configDir = dirname(configPath);

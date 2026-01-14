@@ -95,7 +95,7 @@ describe('create-agents quickstart e2e', () => {
     console.log('inkeep.config.ts verified');
 
     console.log('Setting up project in database');
-    await runCommand('pnpm', ['setup-dev:cloud'], projectDir);
+    await runCommand('pnpm', ['setup-dev:cloud'], projectDir, 600000); // 10 minutes for CI (includes pnpm install, migrations, server startup, push)
     console.log('Project setup in database');
 
     console.log('Starting dev servers');
@@ -231,5 +231,5 @@ describe('create-agents quickstart e2e', () => {
 
       console.log('Dev process cleanup complete');
     }
-  }, 720000); // 12 minute timeout for full flow with network calls (CI can be slow)
+  }, 900000); // 15 minute timeout for full flow with network calls (CI can be slow)
 });

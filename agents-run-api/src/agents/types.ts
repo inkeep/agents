@@ -1,14 +1,20 @@
 import type {
   Artifact,
   ArtifactComponentApiInsert,
+  BreakdownComponentDef,
   DataComponentApiInsert,
 } from '@inkeep/agents-core';
 import type { AssembleResult } from '../utils/token-estimator';
+
+// Re-export for convenience
+export type { BreakdownComponentDef };
 
 // Base interfaces for version-agnostic system prompt building
 export interface VersionConfig<TConfig> {
   loadTemplates(): Map<string, string>;
   assemble(templates: Map<string, string>, config: TConfig): AssembleResult;
+  /** Returns the breakdown schema defining which components this version tracks */
+  getBreakdownSchema(): BreakdownComponentDef[];
 }
 
 export interface SystemPromptV1 {
