@@ -16,6 +16,8 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import { Textarea } from '@/components/ui/textarea';
+import { Alert, AlertDescription } from '@/components/ui/alert';
+import { AlertTriangleIcon, CheckCircleIcon } from 'lucide-react';
 
 interface ToolOverrideDialogProps {
   isOpen: boolean;
@@ -40,6 +42,85 @@ interface ToolOverrideDialogProps {
   };
 }
 
+// Validation functions
+const validateDisplayName = (name: string): string | null => {
+  if (!name.trim()) return null;
+  if (name.length > 100) return 'Display name must be less than 100 characters';
+  if (!/^[a-zA-Z0-9_-]+$/.test(name.trim())) {
+    return 'Display name can only contain letters, numbers, hyphens, and underscores';
+  }
+  return null;
+};
+
+const validateDescription = (desc: string): string | null => {
+  if (!desc.trim()) return null;
+  if (desc.length > 1000) return 'Description must be less than 1000 characters';
+  return null;
+};
+
+const validateJsonSchema = (schema: string): string | null => {
+  if (!schema.trim()) return null;
+  try {
+    const parsed = JSON.parse(schema);
+    if (typeof parsed !== 'object' || parsed === null) {
+      return 'Schema must be a valid JSON object';
+    }
+    // Basic JSON schema structure validation
+    if (parsed.type && !['string', 'number', 'boolean', 'object', 'array'].includes(parsed.type)) {
+      return 'Invalid schema type. Must be string, number, boolean, object, or array';
+    }
+    return null;
+  } catch (error) {
+    return `Invalid JSON syntax: ${error instanceof Error ? error.message : 'Unknown error'}`;
+  }
+};
+
+const validateTransformation = (transformation: string): string | null => {
+  if (!transformation.trim()) return null;
+  
+  // Check if it's a valid JMESPath expression or JSON object
+  try {
+    const parsed = JSON.parse(transformation);
+    if (typeof parsed === 'object' && parsed !== null) {
+      // Validate object transformation mapping
+      for (const [key, value] of Object.entries(parsed)) {
+        if (typeof key !== 'string' || typeof value !== 'string') {
+          return 'Object transformation must map string keys to string JMESPath expressions';
+        }
+        if (!key.trim() || !value.trim()) {
+          return 'Object transformation keys and values cannot be empty';
+        }
+      }
+      return null;
+    }
+  } catch {
+    // Not JSON, could be JMESPath expression
+  }
+  
+  // Validate as JMESPath expression
+  if (transformation.length > 500) {
+    return 'JMESPath expression must be less than 500 characters';
+  }
+  
+  // Check for dangerous patterns
+  const dangerousPatterns = [
+    /\$\{.*\}/, // Template injection
+    /eval\s*\(/i, // Eval calls
+    /function\s*\(/i, // Function definitions
+    /constructor/i, // Constructor access
+    /prototype/i, // Prototype manipulation
+    /__proto__/i, // Proto access
+  ];
+  
+  for (const pattern of dangerousPatterns) {
+    if (pattern.test(transformation)) {
+      return `Transformation contains potentially dangerous pattern: ${pattern.source}`;
+    }
+  }
+  
+  return null;
+};
+
 export function ToolOverrideDialog({
   isOpen,
   onOpenChange,
@@ -59,38 +140,106 @@ export function ToolOverrideDialog({
       : JSON.stringify(override.transformation || {}, null, 2)
   );
   const [useVisualBuilder, setUseVisualBuilder] = useState(true);
+  
+  // Validation errors
+  const [displayNameError, setDisplayNameError] = useState<string | null>(null);
+  const [descriptionError, setDescriptionError] = useState<string | null>(null);
+  const [schemaError, setSchemaError] = useState<string | null>(null);
+  const [transformationError, setTransformationError] = useState<string | null>(null);
+  const [saveError, setSaveError] = useState<string | null>(null);
+
+  // Validate fields on change
+  const handleDisplayNameChange = (value: string) => {
+    setDisplayName(value);
+    setDisplayNameError(validateDisplayName(value));
+    setSaveError(null);
+  };
+
+  const handleDescriptionChange = (value: string) => {
+    setDescription(value);
+    setDescriptionError(validateDescription(value));
+    setSaveError(null);
+  };
+
+  const handleSchemaChange = (value: string) => {
+    setSchema(value);
+    setSchemaError(validateJsonSchema(value));
+    setSaveError(null);
+  };
+
+  const handleTransformationChange = (value: string) => {
+    setTransformation(value);
+    setTransformationError(validateTransformation(value));
+    setSaveError(null);
+  };
 
   const handleSave = () => {
-    const newOverride = {
-      ...(displayName.trim() && { displayName: displayName.trim() }),
-      ...(description.trim() && { description: description.trim() }),
-      ...(schema.trim() && {
-        schema: (() => {
-          try {
-            return JSON.parse(schema);
-          } catch {
-            return schema;
-          }
-        })(),
-      }),
-      ...(transformation.trim() && {
-        transformation: (() => {
-          try {
-            const parsed = JSON.parse(transformation);
-            return typeof parsed === 'object' ? parsed : transformation;
-          } catch {
-            return transformation;
-          }
-        })(),
-      }),
-    };
+    // Validate all fields
+    const displayNameErr = validateDisplayName(displayName);
+    const descriptionErr = validateDescription(description);
+    const schemaErr = validateJsonSchema(schema);
+    const transformationErr = validateTransformation(transformation);
 
-    onSave(newOverride);
-    onOpenChange(false);
+    setDisplayNameError(displayNameErr);
+    setDescriptionError(descriptionErr);
+    setSchemaError(schemaErr);
+    setTransformationError(transformationErr);
+
+    // Check for any validation errors
+    if (displayNameErr || descriptionErr || schemaErr || transformationErr) {
+      setSaveError('Please fix the validation errors before saving.');
+      return;
+    }
+
+    try {
+      const newOverride = {
+        ...(displayName.trim() && { displayName: displayName.trim() }),
+        ...(description.trim() && { description: description.trim() }),
+        ...(schema.trim() && {
+          schema: (() => {
+            try {
+              return JSON.parse(schema);
+            } catch {
+              return schema;
+            }
+          })(),
+        }),
+        ...(transformation.trim() && {
+          transformation: (() => {
+            try {
+              const parsed = JSON.parse(transformation);
+              return typeof parsed === 'object' ? parsed : transformation;
+            } catch {
+              return transformation;
+            }
+          })(),
+        }),
+      };
+
+      onSave(newOverride);
+      onOpenChange(false);
+      
+      // Reset errors on successful save
+      setDisplayNameError(null);
+      setDescriptionError(null);
+      setSchemaError(null);
+      setTransformationError(null);
+      setSaveError(null);
+    } catch (error) {
+      setSaveError(
+        `Failed to save override: ${error instanceof Error ? error.message : 'Unknown error'}`
+      );
+    }
   };
 
   const hasChanges =
     displayName.trim() || description.trim() || schema.trim() || transformation.trim();
+  
+  const hasErrors = Boolean(
+    displayNameError || descriptionError || schemaError || transformationError
+  );
+    
+  const isValid = hasChanges && !hasErrors;
 
   return (
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
@@ -105,6 +254,14 @@ export function ToolOverrideDialog({
           </DialogDescription>
         </DialogHeader>
 
+        {/* Error Alert */}
+        {saveError && (
+          <Alert variant="destructive" className="mb-4">
+            <AlertTriangleIcon className="h-4 w-4" />
+            <AlertDescription>{saveError}</AlertDescription>
+          </Alert>
+        )}
+
         <div className="space-y-4">
           {/* Display Name Override */}
           <div>
@@ -112,12 +269,20 @@ export function ToolOverrideDialog({
             <Input
               id="displayName"
               value={displayName}
-              onChange={(e) => setDisplayName(e.target.value)}
+              onChange={(e) => handleDisplayNameChange(e.target.value)}
               placeholder={originalTool?.name || toolName}
+              className={displayNameError ? 'border-red-500 focus:border-red-500' : ''}
             />
-            <p className="text-xs text-muted-foreground mt-1">
-              Override the tool name shown to the agent
-            </p>
+            {displayNameError ? (
+              <p className="text-xs text-red-600 mt-1 flex items-center gap-1">
+                <AlertTriangleIcon className="h-3 w-3" />
+                {displayNameError}
+              </p>
+            ) : (
+              <p className="text-xs text-muted-foreground mt-1">
+                Override the tool name shown to the agent
+              </p>
+            )}
           </div>
 
           {/* Description Override */}
@@ -126,13 +291,21 @@ export function ToolOverrideDialog({
             <Textarea
               id="description"
               value={description}
-              onChange={(e) => setDescription(e.target.value)}
+              onChange={(e) => handleDescriptionChange(e.target.value)}
               placeholder={originalTool?.description || 'Enter a custom description...'}
               rows={3}
+              className={descriptionError ? 'border-red-500 focus:border-red-500' : ''}
             />
-            <p className="text-xs text-muted-foreground mt-1">
-              Override the tool description shown to the agent
-            </p>
+            {descriptionError ? (
+              <p className="text-xs text-red-600 mt-1 flex items-center gap-1">
+                <AlertTriangleIcon className="h-3 w-3" />
+                {descriptionError}
+              </p>
+            ) : (
+              <p className="text-xs text-muted-foreground mt-1">
+                Override the tool description shown to the agent
+              </p>
+            )}
           </div>
 
           {/* Schema Override */}
@@ -152,23 +325,53 @@ export function ToolOverrideDialog({
             </div>
 
             {useVisualBuilder ? (
-              <div className="border rounded-lg p-4">
-                <JsonSchemaBuilder value={schema} onChange={setSchema} />
+              <div className={`border rounded-lg p-4 ${schemaError ? 'border-red-500' : ''}`}>
+                <JsonSchemaBuilder value={schema} onChange={handleSchemaChange} />
               </div>
             ) : (
               <ExpandableJsonEditor
                 name="schema-override"
                 value={schema}
-                onChange={setSchema}
+                onChange={handleSchemaChange}
                 placeholder='{"param1": {"type": "string", "description": "Parameter 1"}}'
+                className={schemaError ? 'border-red-500' : ''}
               />
             )}
 
-            <p className="text-xs text-muted-foreground mt-1">
-              {useVisualBuilder
-                ? 'Build a simplified schema visually - toggle JSON mode for raw editing'
-                : 'Define simplified input parameters as JSON schema'}
-            </p>
+            {schemaError ? (
+              <p className="text-xs text-red-600 mt-1 flex items-center gap-1">
+                <AlertTriangleIcon className="h-3 w-3" />
+                {schemaError}
+              </p>
+            ) : (
+              <p className="text-xs text-muted-foreground mt-1">
+                {useVisualBuilder
+                  ? 'Build a simplified schema visually - toggle JSON mode for raw editing'
+                  : 'Define simplified input parameters as JSON schema'}
+              </p>
+            )}
+          </div>
+
+          {/* Transformation Override */}
+          <div>
+            <Label htmlFor="transformation">Transformation (optional)</Label>
+            <ExpandableJsonEditor
+              name="transformation-override"
+              value={transformation}
+              onChange={handleTransformationChange}
+              placeholder='Example JMESPath: "input.data" or Object mapping: {"param1": "data.field1", "param2": "data.field2"}'
+              className={transformationError ? 'border-red-500' : ''}
+            />
+            {transformationError ? (
+              <p className="text-xs text-red-600 mt-1 flex items-center gap-1">
+                <AlertTriangleIcon className="h-3 w-3" />
+                {transformationError}
+              </p>
+            ) : (
+              <p className="text-xs text-muted-foreground mt-1">
+                Transform tool arguments using JMESPath expressions or object mappings
+              </p>
+            )}
           </div>
         </div>
 
@@ -176,7 +379,15 @@ export function ToolOverrideDialog({
           <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
             Cancel
           </Button>
-          <Button type="button" onClick={handleSave} disabled={!hasChanges}>
+          <Button 
+            type="button" 
+            onClick={handleSave} 
+            disabled={!hasChanges || hasErrors}
+            className={isValid ? 'bg-green-600 hover:bg-green-700' : undefined}
+          >
+            {isValid && (
+              <CheckCircleIcon className="h-4 w-4 mr-1" />
+            )}
             Save Override
           </Button>
         </DialogFooter>
