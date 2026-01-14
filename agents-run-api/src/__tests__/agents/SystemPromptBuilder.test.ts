@@ -198,10 +198,12 @@ describe('SystemPromptBuilder', () => {
 
       const { prompt } = builder.buildSystemPrompt(config);
       expect(prompt).toContain('<skills>');
-      expect(prompt).toContain('name="first-skill"');
-      expect(prompt).toContain('name="second-skill"');
-      expect(prompt).toContain('First content');
-      expect(prompt).toContain('Second content');
+      expect(prompt).toContain(
+        '<skill mode="always" name="first-skill" description="">First content</skill>'
+      );
+      expect(prompt).toContain(
+        '<skill mode="always" name="second-skill" description="">Second content</skill>'
+      );
       expect(prompt.indexOf('first-skill')).toBeLessThan(prompt.indexOf('second-skill'));
     });
 
@@ -233,9 +235,8 @@ describe('SystemPromptBuilder', () => {
       };
 
       const { prompt } = builder.buildSystemPrompt(config);
-      // console.log(prompt, 2);
       expect(prompt).toContain(
-        '<on_demand_skill name="on-demand-skill" description="On demand description" />'
+        '<skill mode="on_demand" name="on-demand-skill" description="On demand description" />'
       );
       expect(prompt).not.toContain('On demand content');
     });
@@ -273,11 +274,10 @@ describe('SystemPromptBuilder', () => {
 
       const { prompt } = builder.buildSystemPrompt(config);
       expect(prompt).toContain(
-        '<skill name="always-loaded-skill" description="Always description">'
+        '<skill mode="always" name="always-loaded-skill" description="Always description">Always content</skill>'
       );
-      expect(prompt).toContain('Always content');
       expect(prompt).toContain(
-        '<on_demand_skill name="on-demand-skill" description="On demand description" />'
+        '<skill mode="on_demand" name="on-demand-skill" description="On demand description" />'
       );
       expect(prompt).not.toContain('On demand content');
     });

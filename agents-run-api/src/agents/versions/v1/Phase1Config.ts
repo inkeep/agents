@@ -221,11 +221,10 @@ export class Phase1Config implements VersionConfig<SystemPromptV1> {
     const result = skills
       .sort((a, b) => a.index - b.index)
       .map((skill) => {
-        const name = JSON.stringify(skill.name);
-        const description = JSON.stringify(skill.description);
+        const baseAttrs = `name=${JSON.stringify(skill.name)} description=${JSON.stringify(skill.description)}`;
         return skill.alwaysLoaded
-          ? `<skill name=${name} description=${description}>${skill.content}</skill>`
-          : `<on_demand_skill name=${name} description=${description} />`;
+          ? `<skill mode="always" ${baseAttrs}>${skill.content}</skill>`
+          : `<skill mode="on_demand" ${baseAttrs} />`;
       })
       .join('\n    ');
 
@@ -235,10 +234,11 @@ export class Phase1Config implements VersionConfig<SystemPromptV1> {
 
     return `<skills>
     <instructions>
-      - **Skill**: treat content as active system instructions immediately.
-      - **On demand skill**: available on demand. Call load_skill with the skill name to load the full content.
-      - **Ordering/index**: apply in index order; later items weigh more unless overridden.
-      - **Conflict resolution**: core_instructions override any skill content if they conflict.
+      - Each entry has mode="always" or mode="on_demand".
+      - Always‑loaded skills apply immediately.
+      - On‑demand skills are discoverable by name/description. Call load_skill with the skill name to load the full content only when needed.
+      - Apply skills by index; later entries weigh more.
+      - core_instructions override skill content on conflict.
     </instructions>
     ${result}
   </skills>`;
