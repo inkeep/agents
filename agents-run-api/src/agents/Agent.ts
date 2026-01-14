@@ -503,6 +503,10 @@ export class Agent {
 
         // Check if this tool needs approval first
         const needsApproval = options?.needsApproval || false;
+        const streamingHelper = this.getStreamingHelper();
+        const shouldStreamToolLifecycle = Boolean(
+          streamingHelper && streamRequestId && !isInternalTool && !needsApproval
+        );
 
         if (streamRequestId && !isInternalTool) {
           const toolCallData: ToolCallData = {
@@ -527,6 +531,31 @@ export class Agent {
         }
 
         try {
+          if (shouldStreamToolLifecycle) {
+            await streamingHelper?.writeToolInputStart(toolCallId, toolName);
+
+            let inputJson = '{}';
+            try {
+              inputJson = JSON.stringify(args ?? {});
+            } catch {}
+
+            const maxLen = 10_000;
+            if (inputJson.length > maxLen) {
+              inputJson = inputJson.slice(0, maxLen);
+            }
+
+            const chunkSize = 10;
+            for (let i = 0; i < inputJson.length; i += chunkSize) {
+              await streamingHelper?.writeToolInputDelta(toolCallId, inputJson.slice(i, i + chunkSize));
+            }
+
+            await streamingHelper?.writeToolInputAvailable({
+              toolCallId,
+              toolName,
+              input: args,
+            });
+          }
+
           const result = await originalExecute(args, context);
           const duration = Date.now() - startTime;
 
@@ -579,6 +608,10 @@ export class Agent {
             });
           }
 
+          if (shouldStreamToolLifecycle) {
+            await streamingHelper?.writeToolOutputAvailable(toolCallId, { toolName, output: result });
+          }
+
           return result;
         } catch (error) {
           const duration = Date.now() - startTime;
@@ -593,6 +626,14 @@ export class Agent {
               error: errorMessage,
               relationshipId,
               needsApproval,
+            });
+          }
+
+          if (shouldStreamToolLifecycle) {
+            await streamingHelper?.writeToolOutputAvailable(toolCallId, {
+              toolName,
+              failed: true,
+              error: errorMessage,
             });
           }
 
