@@ -3,7 +3,7 @@
   "framework": "hono",
   "build": {
     "env": {
-      "VERCEL_CLI_VERSION": "https://vercel-9t9860svl.vercel.sh/tarballs/vercel.tgz"
+      "VERCEL_CLI_VERSION": "latest"
     }
   },
   "functions": {
