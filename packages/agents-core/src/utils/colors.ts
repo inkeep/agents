@@ -44,10 +44,7 @@ export function generateDistinctColors(count: number, options?: ColorOptions): s
  * @param options - Optional generation settings
  * @returns Map of key to hex color
  */
-export function createColorMap(
-  keys: string[],
-  options?: ColorOptions
-): Record<string, string> {
+export function createColorMap(keys: string[], options?: ColorOptions): Record<string, string> {
   const colors = generateDistinctColors(keys.length, options);
   const colorMap: Record<string, string> = {};
   for (let i = 0; i < keys.length; i++) {

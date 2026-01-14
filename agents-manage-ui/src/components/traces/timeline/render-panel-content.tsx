@@ -31,7 +31,6 @@ function formatJsonSafely(content: string): string {
   }
 }
 
-
 /** Compact context breakdown for the side panel */
 function ContextBreakdownPanel({ breakdown }: { breakdown: ContextBreakdown }) {
   const items = useMemo(() => {
@@ -80,10 +79,7 @@ function ContextBreakdownPanel({ breakdown }: { breakdown: ContextBreakdown }) {
             return (
               <div key={item.key} className="flex items-center justify-between text-xs">
                 <div className="flex items-center gap-1.5">
-                  <div
-                    className="w-2.5 h-2.5 rounded-sm"
-                    style={{ backgroundColor: item.color }}
-                  />
+                  <div className="w-2.5 h-2.5 rounded-sm" style={{ backgroundColor: item.color }} />
                   <span className="text-muted-foreground">{item.label}</span>
                 </div>
                 <span className="font-mono text-foreground">
