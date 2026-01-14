@@ -66,6 +66,7 @@ describe('A2A Handlers', () => {
       req: {
         json: vi.fn(),
         param: vi.fn().mockReturnValue('test-agent'),
+        header: vi.fn().mockReturnValue(undefined),
       },
       json: vi.fn().mockImplementation((data) => new Response(JSON.stringify(data))),
       text: vi.fn().mockImplementation((text) => new Response(text)),

@@ -457,6 +457,13 @@ export function renderPanelContent({
                 </Bubble>
               </LabeledBlock>
             )}
+            {a.status === ACTIVITY_STATUS.WARNING && a.toolStatusMessage && (
+              <LabeledBlock label="Status message">
+                <Bubble className="bg-yellow-50 border-yellow-200 text-yellow-800 dark:bg-yellow-900/20 dark:border-yellow-800 dark:text-yellow-300">
+                  {a.toolStatusMessage}
+                </Bubble>
+              </LabeledBlock>
+            )}
             {a.toolCallArgs && (
               <JsonEditorWithCopy
                 value={formatJsonSafely(a.toolCallArgs)}
@@ -555,11 +562,11 @@ export function renderPanelContent({
             <Info label="Input tokens" value={a.inputTokens?.toLocaleString() || '0'} />
             <Info label="Output tokens" value={a.outputTokens?.toLocaleString() || '0'} />
             {structuredContent && (
-                <JsonEditorWithCopy
-                  value={structuredContent}
-                  title="Structured output"
-                  uri="structured-output.json"
-                />
+              <JsonEditorWithCopy
+                value={structuredContent}
+                title="Structured output"
+                uri="structured-output.json"
+              />
             )}
             <StatusBadge status={a.status} />
             {a.status === 'error' && a.otelStatusDescription && (

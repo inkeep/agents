@@ -69,3 +69,6 @@ vite.config.d.ts
 
 # Turborepo
 .turbo
+
+# Node compile cache
+node-compile-cache/

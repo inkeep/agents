@@ -1,6 +1,6 @@
 {
   "name": "@inkeep/ai-sdk-provider",
-  "version": "0.40.0",
+  "version": "0.41.2",
   "description": "AI SDK provider for Inkeep Agent Framework",
   "type": "module",
   "license": "SEE LICENSE IN LICENSE.md",
@@ -16,6 +16,7 @@
   "scripts": {
     "knip": "knip --directory ../.. --workspace packages/ai-sdk-provider --dependencies",
     "build": "tsdown",
+    "dev": "pnpm build --watch",
     "test": "vitest --run",
     "test:watch": "vitest --watch",
     "lint": "biome lint --error-on-warnings",

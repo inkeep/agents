@@ -90,6 +90,22 @@ async function handleMessageSend(
     const executionContext = getRequestExecutionContext(c);
     const { agentId } = executionContext;
 
+    // Extract forwarded headers from the request (passed from ExecutionHandler via A2AClient)
+    // Transform cookie -> x-forwarded-cookie for downstream forwarding
+    // Note: Do NOT forward the authorization header - it causes issues with MCP servers
+    // because the internal Inkeep JWT token should not be sent to external services.
+    // MCP server auth should be configured via agent tool relation headers instead.
+    const forwardedHeaders: Record<string, string> = {};
+    const xForwardedCookie = c.req.header('x-forwarded-cookie');
+    const cookie = c.req.header('cookie');
+
+    // Priority: x-forwarded-cookie (explicit) > cookie (browser-sent)
+    if (xForwardedCookie) {
+      forwardedHeaders['x-forwarded-cookie'] = xForwardedCookie;
+    } else if (cookie) {
+      forwardedHeaders['x-forwarded-cookie'] = cookie;
+    }
+
     const task: A2ATask = {
       id: generateId(),
       input: {
@@ -105,6 +121,8 @@ async function handleMessageSend(
           blocking: params.configuration?.blocking ?? false,
           custom: { agent_id: agentId || '' },
           ...params.message.metadata,
+          // Pass forwarded headers to taskHandler for MCP server authentication
+          forwardedHeaders: Object.keys(forwardedHeaders).length > 0 ? forwardedHeaders : undefined,
         },
       },
     };
@@ -421,6 +439,22 @@ async function handleMessageStream(
       } satisfies JsonRpcResponse);
     }
 
+    // Extract forwarded headers from the request (passed from ExecutionHandler via A2AClient)
+    // Transform cookie -> x-forwarded-cookie for downstream forwarding
+    // Note: Do NOT forward the authorization header - it causes issues with MCP servers
+    // because the internal Inkeep JWT token should not be sent to external services.
+    // MCP server auth should be configured via agent tool relation headers instead.
+    const forwardedHeaders: Record<string, string> = {};
+    const xForwardedCookie = c.req.header('x-forwarded-cookie');
+    const cookie = c.req.header('cookie');
+
+    // Priority: x-forwarded-cookie (explicit) > cookie (browser-sent)
+    if (xForwardedCookie) {
+      forwardedHeaders['x-forwarded-cookie'] = xForwardedCookie;
+    } else if (cookie) {
+      forwardedHeaders['x-forwarded-cookie'] = cookie;
+    }
+
     const task: A2ATask = {
       id: generateId(),
       input: {
@@ -435,6 +469,8 @@ async function handleMessageStream(
         metadata: {
           blocking: false, // Streaming is always non-blocking
           custom: { agent_id: agentId || '' },
+          // Pass forwarded headers to taskHandler for MCP server authentication
+          forwardedHeaders: Object.keys(forwardedHeaders).length > 0 ? forwardedHeaders : undefined,
         },
       },
     };

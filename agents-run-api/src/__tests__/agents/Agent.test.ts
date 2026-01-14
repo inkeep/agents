@@ -17,7 +17,7 @@ vi.mock('ai', () => ({
       // Try to determine the expected output structure from the schema
       const schema = options.output.schema;
       let outputData: any = {};
-      
+
       // Check if schema expects dataComponents
       if (schema?._def?.shape?.dataComponents) {
         outputData = {
@@ -40,7 +40,7 @@ vi.mock('ai', () => ({
           ],
         };
       }
-      
+
       return {
         text: 'Mocked response',
         toolCalls: [],

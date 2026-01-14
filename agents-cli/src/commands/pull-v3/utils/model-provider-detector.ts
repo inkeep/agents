@@ -28,6 +28,11 @@ const PROVIDER_CONFIGS: SimpleProviderConfig[] = [
     envVars: ['GOOGLE_GENERATIVE_AI_API_KEY'],
     model: 'gemini-2.5-flash',
   },
+  {
+    name: 'azure',
+    envVars: ['AZURE_API_KEY'],
+    model: '', // Azure uses deployment names, not fixed model names
+  },
 ];
 
 /**
@@ -49,6 +54,10 @@ export function getAvailableModel(): any {
           return openai(config.model);
         case 'google':
           return google(config.model);
+        case 'azure':
+          // Skip Azure in auto-detection since it requires user configuration
+          // Azure can be used via project model configuration, but not for pull LLM operations
+          continue;
         default:
           throw new Error(`Unknown provider: ${config.name}`);
       }
@@ -56,6 +65,6 @@ export function getAvailableModel(): any {
   }
 
   throw new Error(
-    'No API keys detected. Please set ANTHROPIC_API_KEY, OPENAI_API_KEY, or GOOGLE_GENERATIVE_AI_API_KEY'
+    'No API keys detected. Please set ANTHROPIC_API_KEY, OPENAI_API_KEY, GOOGLE_GENERATIVE_AI_API_KEY, or AZURE_API_KEY'
   );
 }

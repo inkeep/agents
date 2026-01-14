@@ -36,8 +36,9 @@ import {
 import { type Span, SpanStatusCode, trace } from '@opentelemetry/api';
 import {
   generateText,
-  streamText,
   Output,
+  type StreamTextResult,
+  streamText,
   type Tool,
   type ToolSet,
   tool,
@@ -144,6 +145,8 @@ export type AgentConfig = {
   sandboxConfig?: SandboxConfig;
   /** User ID for user-scoped credential lookup (from temp JWT) */
   userId?: string;
+  /** Headers to forward to MCP servers (e.g., x-forwarded-cookie for user session auth) */
+  forwardedHeaders?: Record<string, string>;
 };
 
 export type ExternalAgentRelationConfig = {
@@ -953,7 +956,12 @@ export class Agent {
   }
 
   async getMcpTool(tool: McpTool) {
-    const cacheKey = `${this.config.tenantId}-${this.config.projectId}-${tool.id}-${tool.credentialReferenceId || 'no-cred'}`;
+    // Include forwarded headers hash in cache key to ensure user session-specific connections
+    // This prevents reusing a connection created without cookies for requests that have them
+    const forwardedHeadersHash = this.config.forwardedHeaders
+      ? Object.keys(this.config.forwardedHeaders).sort().join(',')
+      : 'no-fwd';
+    const cacheKey = `${this.config.tenantId}-${this.config.projectId}-${tool.id}-${tool.credentialReferenceId || 'no-cred'}-${forwardedHeadersHash}`;
 
     const credentialReferenceId = tool.credentialReferenceId;
 
@@ -1097,12 +1105,21 @@ export class Agent {
       serverConfig.url = urlObj.toString();
     }
 
+    // Merge forwarded headers (user session auth) into server config
+    if (this.config.forwardedHeaders && Object.keys(this.config.forwardedHeaders).length > 0) {
+      serverConfig.headers = {
+        ...serverConfig.headers,
+        ...this.config.forwardedHeaders,
+      };
+    }
+
     logger.info(
       {
         toolName: tool.name,
         credentialReferenceId,
         transportType: serverConfig.type,
         headers: tool.headers,
+        hasForwardedHeaders: !!this.config.forwardedHeaders,
       },
       'Built MCP server config with credentials'
     );
@@ -1690,7 +1707,7 @@ export class Agent {
   private getArtifactTools() {
     return tool({
       description:
-        'Call this tool to get the complete artifact data with the given artifactId. This retrieves the full artifact content (not just the summary). Only use this when you need the complete artifact data and the summary shown in your context is insufficient.',
+        'Call this tool to retrieve EXISTING artifacts that were previously created and saved. This tool is for accessing artifacts that already exist, NOT for extracting tool results. Only use this when you need the complete artifact data and the summary shown in your context is insufficient.',
       inputSchema: z.object({
         artifactId: z.string().describe('The unique identifier of the artifact to get.'),
         toolCallId: z.string().describe('The tool call ID associated with this artifact.'),
@@ -2839,21 +2856,34 @@ ${output}`;
       }
     }
 
-    if (steps.length >= 2) {
-      const previousStep = steps[steps.length - 2];
-      if (previousStep && 'toolCalls' in previousStep && previousStep.toolCalls) {
+    if (steps.length >= 1) {
+      const currentStep = steps[steps.length - 1];
+      if (currentStep && 'toolCalls' in currentStep && currentStep.toolCalls) {
         const stopToolNames = includeThinkingComplete
           ? ['transfer_to_', 'thinking_complete']
           : ['transfer_to_'];
 
-        const hasStopTool = previousStep.toolCalls.some((tc: any) =>
-          stopToolNames.some((toolName) =>
-            toolName.endsWith('_') ? tc.toolName.startsWith(toolName) : tc.toolName === toolName
-          )
+        const hasTransferTool = currentStep.toolCalls.some((tc: any) =>
+          tc.toolName.startsWith('transfer_to_')
         );
 
-        if (hasStopTool && 'toolResults' in previousStep && previousStep.toolResults) {
-          return true; // Stop after transfer/thinking_complete tool has executed
+        const hasThinkingComplete = currentStep.toolCalls.some(
+          (tc: any) => tc.toolName === 'thinking_complete'
+        );
+
+        // Transfer tools stop immediately (no need to wait for result)
+        if (hasTransferTool) {
+          return true;
+        }
+
+        // Thinking complete tool waits for result
+        if (
+          includeThinkingComplete &&
+          hasThinkingComplete &&
+          'toolResults' in currentStep &&
+          currentStep.toolResults
+        ) {
+          return true;
         }
       }
     }
@@ -3054,10 +3084,12 @@ ${output}${structureHintsFormatted}`;
     let dataComponentsSchema: z.ZodType<any>;
     if (componentSchemas.length === 1) {
       dataComponentsSchema = componentSchemas[0];
+      logger.info({ agentId: this.config.id }, 'Using single schema (no union needed)');
     } else {
       dataComponentsSchema = z.union(
         componentSchemas as [z.ZodType<any>, z.ZodType<any>, ...z.ZodType<any>[]]
       );
+      logger.info({ agentId: this.config.id }, 'Created union schema');
     }
 
     return dataComponentsSchema;
@@ -3262,7 +3294,10 @@ ${output}${structureHintsFormatted}`;
     }
   }
 
-  private async processStreamEvents(streamResult: any, parser: any) {
+  private async processStreamEvents(
+    streamResult: StreamTextResult<ToolSet, any>,
+    parser: IncrementalStreamParser
+  ) {
     for await (const event of streamResult.fullStream) {
       switch (event.type) {
         case 'text-delta':

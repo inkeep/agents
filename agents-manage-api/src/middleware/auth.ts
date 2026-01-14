@@ -49,13 +49,27 @@ export const apiKeyAuth = () =>
       return;
     }
 
-    // 2. Try to validate as a better-auth session token (from device authorization flow)
+    // 2. Try to validate as a better-auth session token (from device authorization flow or cookie)
     const auth = c.get('auth');
     if (auth) {
       try {
         // Create headers with the Authorization header for bearer token validation
         const headers = new Headers();
         headers.set('Authorization', authHeader);
+
+        // Also include cookie for session validation - check x-forwarded-cookie first (from MCP/SDK calls)
+        const forwardedCookie = c.req.header('x-forwarded-cookie');
+        const cookie = c.req.header('cookie');
+        if (forwardedCookie) {
+          headers.set('cookie', forwardedCookie);
+          logger.debug(
+            { source: 'x-forwarded-cookie' },
+            'Using x-forwarded-cookie for session validation'
+          );
+        } else if (cookie) {
+          headers.set('cookie', cookie);
+          logger.debug({ source: 'cookie' }, 'Using cookie for session validation');
+        }
 
         const session = await auth.api.getSession({ headers });
 
