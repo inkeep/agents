@@ -75,52 +75,6 @@ const validateJsonSchema = (schema: string): string | null => {
   }
 };
 
-const validateTransformation = (transformation: string): string | null => {
-  if (!transformation.trim()) return null;
-
-  // Check if it's a valid JMESPath expression or JSON object
-  try {
-    const parsed = JSON.parse(transformation);
-    if (typeof parsed === 'object' && parsed !== null) {
-      // Validate object transformation mapping
-      for (const [key, value] of Object.entries(parsed)) {
-        if (typeof key !== 'string' || typeof value !== 'string') {
-          return 'Object transformation must map string keys to string JMESPath expressions';
-        }
-        if (!key.trim() || !value.trim()) {
-          return 'Object transformation keys and values cannot be empty';
-        }
-      }
-      return null;
-    }
-  } catch {
-    // Not JSON, could be JMESPath expression
-  }
-
-  // Validate as JMESPath expression
-  if (transformation.length > 500) {
-    return 'JMESPath expression must be less than 500 characters';
-  }
-
-  // Check for dangerous patterns
-  const dangerousPatterns = [
-    /\$\{.*\}/, // Template injection
-    /eval\s*\(/i, // Eval calls
-    /function\s*\(/i, // Function definitions
-    /constructor/i, // Constructor access
-    /prototype/i, // Prototype manipulation
-    /__proto__/i, // Proto access
-  ];
-
-  for (const pattern of dangerousPatterns) {
-    if (pattern.test(transformation)) {
-      return `Transformation contains potentially dangerous pattern: ${pattern.source}`;
-    }
-  }
-
-  return null;
-};
-
 export function ToolOverrideDialog({
   isOpen,
   onOpenChange,
@@ -134,18 +88,12 @@ export function ToolOverrideDialog({
   const [schema, setSchema] = useState(
     override.schema ? JSON.stringify(override.schema, null, 2) : ''
   );
-  const [transformation, setTransformation] = useState(
-    typeof override.transformation === 'string'
-      ? override.transformation
-      : JSON.stringify(override.transformation || {}, null, 2)
-  );
   const [useVisualBuilder, setUseVisualBuilder] = useState(true);
 
   // Validation errors
   const [displayNameError, setDisplayNameError] = useState<string | null>(null);
   const [descriptionError, setDescriptionError] = useState<string | null>(null);
   const [schemaError, setSchemaError] = useState<string | null>(null);
-  const [transformationError, setTransformationError] = useState<string | null>(null);
   const [saveError, setSaveError] = useState<string | null>(null);
 
   // Validate fields on change
@@ -167,26 +115,18 @@ export function ToolOverrideDialog({
     setSaveError(null);
   };
 
-  const handleTransformationChange = (value: string) => {
-    setTransformation(value);
-    setTransformationError(validateTransformation(value));
-    setSaveError(null);
-  };
-
   const handleSave = () => {
     // Validate all fields
     const displayNameErr = validateDisplayName(displayName);
     const descriptionErr = validateDescription(description);
     const schemaErr = validateJsonSchema(schema);
-    const transformationErr = validateTransformation(transformation);
 
     setDisplayNameError(displayNameErr);
     setDescriptionError(descriptionErr);
     setSchemaError(schemaErr);
-    setTransformationError(transformationErr);
 
     // Check for any validation errors
-    if (displayNameErr || descriptionErr || schemaErr || transformationErr) {
+    if (displayNameErr || descriptionErr || schemaErr) {
       setSaveError('Please fix the validation errors before saving.');
       return;
     }
@@ -204,15 +144,8 @@ export function ToolOverrideDialog({
             }
           })(),
         }),
-        ...(transformation.trim() && {
-          transformation: (() => {
-            try {
-              const parsed = JSON.parse(transformation);
-              return typeof parsed === 'object' ? parsed : transformation;
-            } catch {
-              return transformation;
-            }
-          })(),
+        ...(override.transformation && {
+          transformation: override.transformation,
         }),
       };
 
@@ -223,7 +156,6 @@ export function ToolOverrideDialog({
       setDisplayNameError(null);
       setDescriptionError(null);
       setSchemaError(null);
-      setTransformationError(null);
       setSaveError(null);
     } catch (error) {
       setSaveError(
@@ -232,12 +164,9 @@ export function ToolOverrideDialog({
     }
   };
 
-  const hasChanges =
-    displayName.trim() || description.trim() || schema.trim() || transformation.trim();
+  const hasChanges = displayName.trim() || description.trim() || schema.trim();
 
-  const hasErrors = Boolean(
-    displayNameError || descriptionError || schemaError || transformationError
-  );
+  const hasErrors = Boolean(displayNameError || descriptionError || schemaError);
 
   const isValid = hasChanges && !hasErrors;
 
@@ -348,28 +277,6 @@ export function ToolOverrideDialog({
                 {useVisualBuilder
                   ? 'Build a simplified schema visually - toggle JSON mode for raw editing'
                   : 'Define simplified input parameters as JSON schema'}
-              </p>
-            )}
-          </div>
-
-          {/* Transformation Override */}
-          <div>
-            <Label htmlFor="transformation">Transformation (optional)</Label>
-            <ExpandableJsonEditor
-              name="transformation-override"
-              value={transformation}
-              onChange={handleTransformationChange}
-              placeholder='Example JMESPath: "input.data" or Object mapping: {"param1": "data.field1", "param2": "data.field2"}'
-              className={transformationError ? 'border-red-500' : ''}
-            />
-            {transformationError ? (
-              <p className="text-xs text-red-600 mt-1 flex items-center gap-1">
-                <AlertTriangleIcon className="h-3 w-3" />
-                {transformationError}
-              </p>
-            ) : (
-              <p className="text-xs text-muted-foreground mt-1">
-                Transform tool arguments using JMESPath expressions or object mappings
               </p>
             )}
           </div>

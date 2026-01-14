@@ -265,60 +265,6 @@ function ToolCard({ tool, isActive, override }: ToolCardProps) {
                   </div>
                 </div>
               </div>
-
-              {/* Transformation */}
-              {override.transformation && (
-                <div className="space-y-2">
-                  <div className="text-sm font-medium">Field Mapping</div>
-                  <div className="space-y-1 bg-muted p-3 rounded">
-                    {typeof override.transformation === 'string' ? (
-                      <div className="space-y-1">
-                        <div className="text-xs text-muted-foreground">JMESPath Expression:</div>
-                        <div className="text-xs font-mono bg-background p-2 rounded border">
-                          {override.transformation.split(',').map((part, index) => {
-                            const trimmed = part.trim();
-                            const colonIndex = trimmed.indexOf(':');
-                            if (colonIndex > 0) {
-                              const field = trimmed.substring(0, colonIndex).trim();
-                              const path = trimmed.substring(colonIndex + 1).trim();
-                              return (
-                                <div key={index} className="flex items-center gap-2">
-                                  <span className="text-green-600 dark:text-green-400 font-medium">
-                                    {field}
-                                  </span>
-                                  <span className="text-muted-foreground">←</span>
-                                  <span className="text-blue-600 dark:text-blue-400 font-medium">
-                                    {path}
-                                  </span>
-                                </div>
-                              );
-                            }
-                            return (
-                              <div key={index} className="text-xs">
-                                {trimmed}
-                              </div>
-                            );
-                          })}
-                        </div>
-                      </div>
-                    ) : (
-                      Object.entries(override.transformation).map(
-                        ([overrideField, originalField]) => (
-                          <div key={overrideField} className="flex items-center gap-2 text-xs">
-                            <span className="font-medium text-green-600 dark:text-green-400">
-                              {overrideField}
-                            </span>
-                            <span className="text-muted-foreground">←</span>
-                            <span className="font-medium text-blue-600 dark:text-blue-400">
-                              {originalField}
-                            </span>
-                          </div>
-                        )
-                      )
-                    )}
-                  </div>
-                </div>
-              )}
             </div>
           )}
         </div>

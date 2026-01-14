@@ -336,39 +336,6 @@ export function ActiveToolsSelector<
                                 </div>
                               )}
 
-                              {/* Transformation */}
-                              {override.transformation && (
-                                <div>
-                                  <div className="text-sm font-medium mb-1">Field Mapping</div>
-                                  <div className="bg-background p-2 rounded border">
-                                    {typeof override.transformation === 'string' ? (
-                                      <div className="text-xs font-mono">
-                                        {override.transformation}
-                                      </div>
-                                    ) : (
-                                      <div className="space-y-1">
-                                        {Object.entries(override.transformation).map(
-                                          ([overrideField, originalField]) => (
-                                            <div
-                                              key={overrideField}
-                                              className="flex items-center gap-2 text-xs"
-                                            >
-                                              <span className="font-medium text-green-600 dark:text-green-400">
-                                                {overrideField}
-                                              </span>
-                                              <span className="text-muted-foreground">←</span>
-                                              <span className="font-medium text-blue-600 dark:text-blue-400">
-                                                {originalField}
-                                              </span>
-                                            </div>
-                                          )
-                                        )}
-                                      </div>
-                                    )}
-                                  </div>
-                                </div>
-                              )}
-
                               {/* Edit/Remove Actions */}
                               <div className="flex gap-2 pt-2">
                                 <Button

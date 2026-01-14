@@ -3216,6 +3216,9 @@
                     },
                     "type": "array"
                   },
+                  "prompt": {
+                    "type": "string"
+                  },
                   "server": {
                     "properties": {
                       "url": {
@@ -3226,6 +3229,36 @@
                     "required": [
                       "url"
                     ],
+                    "type": "object"
+                  },
+                  "toolOverrides": {
+                    "additionalProperties": {
+                      "properties": {
+                        "description": {
+                          "type": "string"
+                        },
+                        "displayName": {
+                          "type": "string"
+                        },
+                        "schema": {
+                          "nullable": true
+                        },
+                        "transformation": {
+                          "anyOf": [
+                            {
+                              "type": "string"
+                            },
+                            {
+                              "additionalProperties": {
+                                "type": "string"
+                              },
+                              "type": "object"
+                            }
+                          ]
+                        }
+                      },
+                      "type": "object"
+                    },
                     "type": "object"
                   },
                   "transport": {
@@ -5216,6 +5249,9 @@
                     },
                     "type": "array"
                   },
+                  "prompt": {
+                    "type": "string"
+                  },
                   "server": {
                     "properties": {
                       "url": {
@@ -5226,6 +5262,36 @@
                     "required": [
                       "url"
                     ],
+                    "type": "object"
+                  },
+                  "toolOverrides": {
+                    "additionalProperties": {
+                      "properties": {
+                        "description": {
+                          "type": "string"
+                        },
+                        "displayName": {
+                          "type": "string"
+                        },
+                        "schema": {
+                          "nullable": true
+                        },
+                        "transformation": {
+                          "anyOf": [
+                            {
+                              "type": "string"
+                            },
+                            {
+                              "additionalProperties": {
+                                "type": "string"
+                              },
+                              "type": "object"
+                            }
+                          ]
+                        }
+                      },
+                      "type": "object"
+                    },
                     "type": "object"
                   },
                   "transport": {
@@ -5401,6 +5467,9 @@
                     },
                     "type": "array"
                   },
+                  "prompt": {
+                    "type": "string"
+                  },
                   "server": {
                     "properties": {
                       "url": {
@@ -5411,6 +5480,36 @@
                     "required": [
                       "url"
                     ],
+                    "type": "object"
+                  },
+                  "toolOverrides": {
+                    "additionalProperties": {
+                      "properties": {
+                        "description": {
+                          "type": "string"
+                        },
+                        "displayName": {
+                          "type": "string"
+                        },
+                        "schema": {
+                          "nullable": true
+                        },
+                        "transformation": {
+                          "anyOf": [
+                            {
+                              "type": "string"
+                            },
+                            {
+                              "additionalProperties": {
+                                "type": "string"
+                              },
+                              "type": "object"
+                            }
+                          ]
+                        }
+                      },
+                      "type": "object"
+                    },
                     "type": "object"
                   },
                   "transport": {
