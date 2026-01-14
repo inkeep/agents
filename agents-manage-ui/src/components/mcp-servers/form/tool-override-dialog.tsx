@@ -1,8 +1,10 @@
 'use client';
 
+import { AlertTriangleIcon, CheckCircleIcon } from 'lucide-react';
 import { useState } from 'react';
 import { ExpandableJsonEditor } from '@/components/editors/expandable-json-editor';
 import { JsonSchemaBuilder } from '@/components/form/json-schema-builder';
+import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
 import {
   Dialog,
@@ -16,8 +18,6 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import { Textarea } from '@/components/ui/textarea';
-import { Alert, AlertDescription } from '@/components/ui/alert';
-import { AlertTriangleIcon, CheckCircleIcon } from 'lucide-react';
 
 interface ToolOverrideDialogProps {
   isOpen: boolean;
@@ -77,7 +77,7 @@ const validateJsonSchema = (schema: string): string | null => {
 
 const validateTransformation = (transformation: string): string | null => {
   if (!transformation.trim()) return null;
-  
+
   // Check if it's a valid JMESPath expression or JSON object
   try {
     const parsed = JSON.parse(transformation);
@@ -96,12 +96,12 @@ const validateTransformation = (transformation: string): string | null => {
   } catch {
     // Not JSON, could be JMESPath expression
   }
-  
+
   // Validate as JMESPath expression
   if (transformation.length > 500) {
     return 'JMESPath expression must be less than 500 characters';
   }
-  
+
   // Check for dangerous patterns
   const dangerousPatterns = [
     /\$\{.*\}/, // Template injection
@@ -111,13 +111,13 @@ const validateTransformation = (transformation: string): string | null => {
     /prototype/i, // Prototype manipulation
     /__proto__/i, // Proto access
   ];
-  
+
   for (const pattern of dangerousPatterns) {
     if (pattern.test(transformation)) {
       return `Transformation contains potentially dangerous pattern: ${pattern.source}`;
     }
   }
-  
+
   return null;
 };
 
@@ -140,7 +140,7 @@ export function ToolOverrideDialog({
       : JSON.stringify(override.transformation || {}, null, 2)
   );
   const [useVisualBuilder, setUseVisualBuilder] = useState(true);
-  
+
   // Validation errors
   const [displayNameError, setDisplayNameError] = useState<string | null>(null);
   const [descriptionError, setDescriptionError] = useState<string | null>(null);
@@ -218,7 +218,7 @@ export function ToolOverrideDialog({
 
       onSave(newOverride);
       onOpenChange(false);
-      
+
       // Reset errors on successful save
       setDisplayNameError(null);
       setDescriptionError(null);
@@ -234,11 +234,11 @@ export function ToolOverrideDialog({
 
   const hasChanges =
     displayName.trim() || description.trim() || schema.trim() || transformation.trim();
-  
+
   const hasErrors = Boolean(
     displayNameError || descriptionError || schemaError || transformationError
   );
-    
+
   const isValid = hasChanges && !hasErrors;
 
   return (
@@ -379,15 +379,13 @@ export function ToolOverrideDialog({
           <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
             Cancel
           </Button>
-          <Button 
-            type="button" 
-            onClick={handleSave} 
+          <Button
+            type="button"
+            onClick={handleSave}
             disabled={!hasChanges || hasErrors}
             className={isValid ? 'bg-green-600 hover:bg-green-700' : undefined}
           >
-            {isValid && (
-              <CheckCircleIcon className="h-4 w-4 mr-1" />
-            )}
+            {isValid && <CheckCircleIcon className="h-4 w-4 mr-1" />}
             Save Override
           </Button>
         </DialogFooter>

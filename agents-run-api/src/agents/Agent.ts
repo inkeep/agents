@@ -1843,7 +1843,10 @@ export class Agent {
       mcpTool.config.type === 'mcp' ? (mcpTool.config as any).mcp?.toolOverrides : undefined;
 
     if (!toolOverrides) {
-      logger.debug({ mcpToolName: mcpTool.name }, 'No tool overrides configured, using original tools');
+      logger.debug(
+        { mcpToolName: mcpTool.name },
+        'No tool overrides configured, using original tools'
+      );
       return originalTools;
     }
 
@@ -1858,9 +1861,9 @@ export class Agent {
     const processedTools: any = {};
     const availableToolNames = Object.keys(originalTools);
     const overrideNames = Object.keys(toolOverrides);
-    
+
     // Validate that override tool names exist in available tools
-    const invalidOverrides = overrideNames.filter(name => !availableToolNames.includes(name));
+    const invalidOverrides = overrideNames.filter((name) => !availableToolNames.includes(name));
     if (invalidOverrides.length > 0) {
       logger.warn(
         {
@@ -1925,7 +1928,8 @@ export class Agent {
               {
                 mcpToolName: mcpTool.name,
                 toolName,
-                schemaError: schemaError instanceof Error ? schemaError.message : String(schemaError),
+                schemaError:
+                  schemaError instanceof Error ? schemaError.message : String(schemaError),
                 overrideSchema: override.schema,
               },
               'Failed to convert override schema, using original'
@@ -1949,15 +1953,18 @@ export class Agent {
               if (override.transformation) {
                 try {
                   const startTime = Date.now();
-                  
+
                   if (typeof override.transformation === 'string') {
                     // Use secure async transform with timeout and validation
                     complexArgs = await JsonTransformer.transform(
-                      simpleArgs, 
+                      simpleArgs,
                       override.transformation,
                       { timeout: 10000 } // 10 second timeout for security
                     );
-                  } else if (typeof override.transformation === 'object' && override.transformation !== null) {
+                  } else if (
+                    typeof override.transformation === 'object' &&
+                    override.transformation !== null
+                  ) {
                     // Use transformWithConfig for object transformations
                     complexArgs = await JsonTransformer.transformWithConfig(
                       simpleArgs,
@@ -1985,14 +1992,18 @@ export class Agent {
                       transformationDuration: duration,
                       hasSimpleArgs: !!simpleArgs,
                       hasComplexArgs: !!complexArgs,
-                      transformation: typeof override.transformation === 'string' 
-                        ? override.transformation.substring(0, 100) + '...' 
-                        : 'object-transformation',
+                      transformation:
+                        typeof override.transformation === 'string'
+                          ? override.transformation.substring(0, 100) + '...'
+                          : 'object-transformation',
                     },
                     'Successfully transformed tool arguments'
                   );
                 } catch (transformError) {
-                  const errorMessage = transformError instanceof Error ? transformError.message : String(transformError);
+                  const errorMessage =
+                    transformError instanceof Error
+                      ? transformError.message
+                      : String(transformError);
                   logger.error(
                     {
                       mcpToolName: mcpTool.name,
@@ -2023,10 +2034,11 @@ export class Agent {
                   },
                   'Executing original tool with processed arguments'
                 );
-                
+
                 return await (toolDef as any).execute(complexArgs);
               } catch (executeError) {
-                const errorMessage = executeError instanceof Error ? executeError.message : String(executeError);
+                const errorMessage =
+                  executeError instanceof Error ? executeError.message : String(executeError);
                 logger.error(
                   {
                     mcpToolName: mcpTool.name,

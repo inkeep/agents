@@ -34,14 +34,14 @@ const validateTransformation = (value: string | Record<string, string>): boolean
   if (typeof value === 'string') {
     // Validate JMESPath expression
     if (value.length > 500) return false;
-    return !DANGEROUS_PATTERNS.some(pattern => pattern.test(value));
+    return !DANGEROUS_PATTERNS.some((pattern) => pattern.test(value));
   } else if (typeof value === 'object' && value !== null) {
     // Validate object mapping
     for (const [key, val] of Object.entries(value)) {
       if (typeof key !== 'string' || typeof val !== 'string') return false;
       if (!key.trim() || !val.trim()) return false;
       if (val.length > 200) return false;
-      if (DANGEROUS_PATTERNS.some(pattern => pattern.test(val))) return false;
+      if (DANGEROUS_PATTERNS.some((pattern) => pattern.test(val))) return false;
     }
     return true;
   }
@@ -116,10 +116,9 @@ export const mcpToolSchema = z.object({
                 z
                   .string()
                   .max(500, 'JMESPath expression must be less than 500 characters.')
-                  .refine(
-                    (value) => !DANGEROUS_PATTERNS.some(pattern => pattern.test(value)),
-                    { message: 'Transformation contains potentially dangerous patterns.' }
-                  ), // JMESPath expression
+                  .refine((value) => !DANGEROUS_PATTERNS.some((pattern) => pattern.test(value)), {
+                    message: 'Transformation contains potentially dangerous patterns.',
+                  }), // JMESPath expression
                 z
                   .record(z.string(), z.string())
                   .refine(validateTransformation, {
@@ -130,18 +129,12 @@ export const mcpToolSchema = z.object({
           })
         )
         .optional(),
-      prompt: z
-        .string()
-        .max(2000, 'Custom prompt must be less than 2000 characters.')
-        .optional(),
+      prompt: z.string().max(2000, 'Custom prompt must be less than 2000 characters.').optional(),
     }),
   }),
   credentialReferenceId: z.string().nullish(),
   credentialScope: z.enum(CredentialScopeEnum).default('project'),
-  imageUrl: z
-    .string()
-    .url('Image URL must be a valid URL.')
-    .optional(),
+  imageUrl: z.string().url('Image URL must be a valid URL.').optional(),
 });
 
 export type MCPToolFormData = z.infer<typeof mcpToolSchema>;

@@ -13,12 +13,12 @@ export class JsonTransformer {
   private static readonly DEFAULT_TIMEOUT = 5000; // 5 seconds
   private static readonly MAX_EXPRESSION_LENGTH = 1000;
   private static readonly DANGEROUS_PATTERNS = [
-    /\$\{.*\}/,           // Template injection
-    /eval\s*\(/,          // Eval calls
-    /function\s*\(/,      // Function definitions
-    /constructor/,        // Constructor access
-    /prototype/,          // Prototype manipulation
-    /__proto__/,          // Proto access
+    /\$\{.*\}/, // Template injection
+    /eval\s*\(/, // Eval calls
+    /function\s*\(/, // Function definitions
+    /constructor/, // Constructor access
+    /prototype/, // Prototype manipulation
+    /__proto__/, // Proto access
   ];
 
   /**
@@ -30,7 +30,9 @@ export class JsonTransformer {
     }
 
     if (expression.length > this.MAX_EXPRESSION_LENGTH) {
-      throw new Error(`JMESPath expression too long (max ${this.MAX_EXPRESSION_LENGTH} characters)`);
+      throw new Error(
+        `JMESPath expression too long (max ${this.MAX_EXPRESSION_LENGTH} characters)`
+      );
     }
 
     // Check for dangerous patterns
@@ -45,7 +47,9 @@ export class JsonTransformer {
       // JMESPath search validates syntax when called
       jmespath.search({}, expression);
     } catch (error) {
-      throw new Error(`Invalid JMESPath syntax: ${error instanceof Error ? error.message : String(error)}`);
+      throw new Error(
+        `Invalid JMESPath syntax: ${error instanceof Error ? error.message : String(error)}`
+      );
     }
 
     logger.debug('JMESPath expression validated', expression.substring(0, 100) + '...');
@@ -74,27 +78,35 @@ export class JsonTransformer {
   /**
    * Transform input data using JMESPath expression with security validation
    */
-  static async transform(input: any, jmesPathExpression: string, options: TransformOptions = {}): Promise<any> {
+  static async transform(
+    input: any,
+    jmesPathExpression: string,
+    options: TransformOptions = {}
+  ): Promise<any> {
     const { timeout = this.DEFAULT_TIMEOUT, allowedFunctions } = options;
 
     // Validate expression before execution
     this.validateJMESPath(jmesPathExpression, allowedFunctions);
 
     try {
-      logger.debug('Executing JMESPath transformation', 
+      logger.debug(
+        'Executing JMESPath transformation',
         `inputType: ${typeof input}, expression: ${jmesPathExpression.substring(0, 100)}..., timeout: ${timeout}`
       );
 
       const result = await this.executeWithTimeout(input, jmesPathExpression, timeout);
-      
+
       logger.debug('JMESPath transformation completed successfully', '');
       return result;
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error);
-      logger.error('JMESPath transformation failed', 
+      logger.error(
+        'JMESPath transformation failed',
         `expression: ${jmesPathExpression.substring(0, 100)}..., error: ${message}`
       );
-      throw new Error(`JMESPath transformation failed for expression "${jmesPathExpression}": ${message}`);
+      throw new Error(
+        `JMESPath transformation failed for expression "${jmesPathExpression}": ${message}`
+      );
     }
   }
 
@@ -119,9 +131,11 @@ export class JsonTransformer {
         // Test the path with empty object to validate syntax
         jmespath.search({}, path);
       } catch (error) {
-        throw new Error(`Invalid JMESPath in object transformation value "${path}": ${error instanceof Error ? error.message : String(error)}`);
+        throw new Error(
+          `Invalid JMESPath in object transformation value "${path}": ${error instanceof Error ? error.message : String(error)}`
+        );
       }
-      
+
       return `${key}: ${path}`;
     });
 
