@@ -8,7 +8,7 @@ describe('extractToolApprovalResponseFromChatMessages', () => {
     );
   });
 
-  it('extracts approval response from assistant tool part', () => {
+  it('extracts approval response from assistant tool part (ui messages)', () => {
     const result = extractToolApprovalResponseFromChatMessages([
       {
         role: 'assistant',
@@ -18,6 +18,7 @@ describe('extractToolApprovalResponseFromChatMessages', () => {
             type: 'tool-delete_file',
             toolCallId: 'call_123',
             state: 'approval-responded',
+            input: { filePath: '/tmp/test.txt' },
             approval: { id: 'aitxt-abc', approved: true },
           },
         ],
@@ -32,4 +33,3 @@ describe('extractToolApprovalResponseFromChatMessages', () => {
     });
   });
 });
-

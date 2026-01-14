@@ -1,6 +1,8 @@
 import type { ToolApprovalResponse } from '../types/delegated-tool-approval';
 
-export function extractToolApprovalResponseFromChatMessages(messages: any[]): ToolApprovalResponse | undefined {
+export function extractToolApprovalResponseFromChatMessages(
+  messages: any[]
+): ToolApprovalResponse | undefined {
   for (const msg of messages || []) {
     if (msg?.role !== 'assistant') continue;
     const parts = Array.isArray(msg.parts) ? msg.parts : [];
@@ -32,4 +34,3 @@ export function extractToolApprovalResponseFromChatMessages(messages: any[]): To
   }
   return undefined;
 }
-

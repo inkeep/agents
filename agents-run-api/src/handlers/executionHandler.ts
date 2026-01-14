@@ -25,10 +25,15 @@ import { flushBatchProcessor } from '../instrumentation.js';
 import { getLogger } from '../logger.js';
 import { agentSessionManager } from '../services/AgentSession.js';
 import type {
+  PendingToolApprovalRecord,
   ToolApprovalResponse,
   ToolApprovalRoutingRecord,
 } from '../types/delegated-tool-approval';
-import { isDelegatedToolApprovalRequest } from '../types/delegated-tool-approval';
+import {
+  isDelegatedToolApprovalRequest,
+  isLocalToolApprovalRequest,
+  isToolOutputRecord,
+} from '../types/delegated-tool-approval';
 import { agentInitializingOp, completionOp, errorOp } from '../utils/agent-operations.js';
 import { resolveModelConfig } from '../utils/model-resolver.js';
 import type { StreamHelper } from '../utils/stream-helpers.js';
@@ -255,6 +260,21 @@ export class ExecutionHandler {
           'Received tool approval response from client'
         );
 
+        const pendingHistory = await getConversationHistory(dbClient)({
+          scopes: { tenantId, projectId },
+          conversationId,
+          options: { includeInternal: true, messageTypes: ['tool-call'], limit: 50 },
+        });
+
+        const pendingMessage = pendingHistory.find((m: any) => {
+          const md = m?.metadata as any;
+          const record = md?.pendingToolApproval as PendingToolApprovalRecord | undefined;
+          return (
+            record?.type === 'tool_approval_pending' &&
+            record.approvalId === toolApprovalResponse.approvalId
+          );
+        });
+
         const routingHistory = await getConversationHistory(dbClient)({
           scopes: { tenantId, projectId },
           conversationId,
@@ -316,13 +336,88 @@ export class ExecutionHandler {
         }
 
         if (!resolvedRoutingMessage) {
-          await sseHelper.writeError(
-            `No pending tool approval found for approvalId=${toolApprovalResponse.approvalId}`
-          );
+          const resolvedSubAgentId =
+            typeof pendingMessage?.fromSubAgentId === 'string'
+              ? pendingMessage.fromSubAgentId
+              : initialAgentId;
+
+          const pending = (pendingMessage as any)?.metadata?.pendingToolApproval as
+            | PendingToolApprovalRecord
+            | undefined;
+          const toolCallId =
+            pending?.toolCallId ||
+            toolApprovalResponse.toolCallId ||
+            `unknown-${toolApprovalResponse.approvalId}`;
+
+          await sseHelper.writeToolOutputAvailable(toolCallId, {
+            status: toolApprovalResponse.approved ? 'approved' : 'rejected',
+          });
+
+          const agentBaseUrl = `${baseUrl}/agents`;
+          const a2aClient = new A2AClient(agentBaseUrl, {
+            headers: {
+              Authorization: `Bearer ${apiKey}`,
+              'x-inkeep-tenant-id': tenantId,
+              'x-inkeep-project-id': projectId,
+              'x-inkeep-agent-id': agentId,
+              'x-inkeep-sub-agent-id': resolvedSubAgentId,
+              ...(forwardedHeaders || {}),
+            },
+          });
+
+          const messageResponse = await a2aClient.sendMessage({
+            message: {
+              role: 'user',
+              parts: [
+                { kind: 'text', text: 'tool approval response' },
+                {
+                  kind: 'data',
+                  data: {
+                    type: 'tool_approval_response',
+                    approvalId: toolApprovalResponse.approvalId,
+                    approved: toolApprovalResponse.approved,
+                  },
+                },
+              ],
+              messageId: `${requestId}-approval-local`,
+              kind: 'message',
+              contextId: conversationId,
+              metadata: {
+                stream_request_id: requestId,
+                approvalId: toolApprovalResponse.approvalId,
+              },
+            },
+            configuration: {
+              acceptedOutputModes: ['text', 'text/plain'],
+              blocking: false,
+            },
+          });
+
+          const responseParts =
+            (messageResponse.result as any)?.streamedContent?.parts ||
+            (messageResponse.result as any)?.parts ||
+            (messageResponse.result as any)?.artifacts?.flatMap(
+              (artifact: any) => artifact.parts || []
+            ) ||
+            [];
+
+          for (const part of responseParts) {
+            const isDataPart = part?.kind === 'data' || part?.type === 'data';
+            if (isDataPart && isToolOutputRecord(part.data)) {
+              await sseHelper.writeToolOutputAvailable(part.data.toolCallId, {
+                toolName: part.data.toolName,
+                output: part.data.output,
+              });
+            }
+            if ((part.kind === 'text' || part.type === 'text') && part.text) {
+              await sseHelper.streamText(part.text, 0);
+            }
+          }
+
           await sseHelper.complete();
           await agentSessionManager.endSession(requestId);
           unregisterStreamHelper(requestId);
-          return { success: false, iterations: 0, error: 'Tool approval routing record not found' };
+          return { success: true, iterations: 1 };
         }
 
         if (resolvedRoutingMessage) {
@@ -679,6 +774,60 @@ export class ExecutionHandler {
                 } satisfies ToolApprovalRoutingRecord,
               } as any,
             });
+
+            if (task) {
+              await updateTask(dbClient)({
+                taskId: task.id,
+                data: {
+                  status: 'input-required',
+                  metadata: {
+                    ...task.metadata,
+                    tool_approval_required: true,
+                    approval_id: req.approvalId,
+                  },
+                },
+              });
+            }
+
+            await sseHelper.complete();
+            await agentSessionManager.endSession(requestId);
+            unregisterStreamHelper(requestId);
+            return { success: true, iterations };
+          }
+
+          const localApprovalPart = responseParts.find((part: any) => {
+            const isDataPart = part?.kind === 'data' || part?.type === 'data';
+            if (!isDataPart || !part.data) return false;
+            return isLocalToolApprovalRequest(part.data);
+          });
+
+          if (localApprovalPart && isLocalToolApprovalRequest(localApprovalPart.data)) {
+            const req = localApprovalPart.data;
+
+            logger.info(
+              { approvalId: req.approvalId, toolCallId: req.toolCallId, toolName: req.toolName },
+              'Streaming local tool approval request to client'
+            );
+
+            await sseHelper.writeToolInputStart(req.toolCallId, req.toolName);
+
+            const inputJson = JSON.stringify(req.input ?? {});
+            const chunkSize = 10;
+            for (let i = 0; i < inputJson.length; i += chunkSize) {
+              await sseHelper.writeToolInputDelta(
+                req.toolCallId,
+                inputJson.slice(i, i + chunkSize)
+              );
+            }
+
+            await sseHelper.writeToolInputAvailable({
+              toolCallId: req.toolCallId,
+              toolName: req.toolName,
+              input: req.input,
+              providerMetadata: req.providerMetadata,
+            });
+
+            await sseHelper.writeToolApprovalRequest(req.approvalId, req.toolCallId);
 
             if (task) {
               await updateTask(dbClient)({

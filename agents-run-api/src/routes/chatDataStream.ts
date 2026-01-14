@@ -210,7 +210,6 @@ app.openapi(chatDataStreamRoute, async (c) => {
         credentialStores,
       });
 
-      // Store last user message
       const lastUserMessage = body.messages.filter((m: any) => m.role === 'user').slice(-1)[0];
       const userText =
         typeof lastUserMessage?.content === 'string'
@@ -231,29 +230,33 @@ app.openapi(chatDataStreamRoute, async (c) => {
           messageSpan.setAttribute('user.id', executionContext.metadata.initiatedBy.id);
         }
       }
-      await createMessage(dbClient)({
-        id: generateId(),
-        tenantId,
-        projectId,
-        conversationId,
-        role: 'user',
-        content: { text: userText },
-        visibility: 'user-facing',
-        messageType: 'chat',
-      });
-      if (messageSpan) {
-        messageSpan.addEvent('user.message.stored', {
-          'message.id': conversationId,
-          'database.operation': 'insert',
-        });
-      }
-
       const shouldStream = body.stream !== false;
       const toolApprovalResponse = extractToolApprovalResponseFromChatMessages(body.messages || []);
       logger.info(
         { conversationId, hasToolApprovalResponse: !!toolApprovalResponse, toolApprovalResponse },
         'chatDataStream tool approval response detection'
       );
+
+      const effectiveUserText = toolApprovalResponse ? '' : userText;
+
+      if (!toolApprovalResponse) {
+        await createMessage(dbClient)({
+          id: generateId(),
+          tenantId,
+          projectId,
+          conversationId,
+          role: 'user',
+          content: { text: userText },
+          visibility: 'user-facing',
+          messageType: 'chat',
+        });
+        if (messageSpan) {
+          messageSpan.addEvent('user.message.stored', {
+            'message.id': conversationId,
+            'database.operation': 'insert',
+          });
+        }
+      }
 
       if (!shouldStream) {
         // Non-streaming response - collect full response and return as JSON
@@ -266,7 +269,7 @@ app.openapi(chatDataStreamRoute, async (c) => {
         const result = await executionHandler.execute({
           executionContext,
           conversationId,
-          userMessage: userText,
+          userMessage: effectiveUserText,
           initialAgentId: subAgentId,
           requestId: `chat-${Date.now()}`,
           sseHelper: bufferingHelper,
@@ -314,7 +317,7 @@ app.openapi(chatDataStreamRoute, async (c) => {
             const result = await executionHandler.execute({
               executionContext,
               conversationId,
-              userMessage: userText,
+              userMessage: effectiveUserText,
               initialAgentId: subAgentId,
               requestId: `chatds-${Date.now()}`,
               sseHelper: streamHelper,

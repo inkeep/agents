@@ -26,10 +26,13 @@ import { getLogger } from '../logger';
 import { agentSessionManager } from '../services/AgentSession';
 import type {
   DelegatedToolApprovalRequest,
+  LocalToolApprovalRequest,
   PendingToolApprovalRecord,
+  ToolOutputRecord,
 } from '../types/delegated-tool-approval';
 import {
   isDelegatedToolApprovalRequest,
+  isLocalToolApprovalRequest,
   isToolApprovalResponseData,
 } from '../types/delegated-tool-approval';
 import type { SandboxConfig } from '../types/execution-context';
@@ -619,6 +622,19 @@ export const createTaskHandler = (
           };
         }
 
+        // Idempotency: if we've already executed this toolCallId before, reuse the stored result.
+        const existingToolResultMessages = await getConversationHistory(dbClient)({
+          scopes: { tenantId: config.tenantId, projectId: config.projectId },
+          conversationId: contextId,
+          options: { includeInternal: true, messageTypes: ['tool-result'], limit: 50 },
+        });
+
+        const existingResultMessage = existingToolResultMessages.find((m: any) => {
+          const md = m?.metadata as any;
+          const toolCallId = md?.a2a_metadata?.toolCallId;
+          return typeof toolCallId === 'string' && toolCallId === pending.toolCallId;
+        });
+
         const mcpTools = await agent.getMcpTools(streamRequestId, streamRequestId);
         const toolToExecute: any = (mcpTools as any)[pending.toolName];
         if (!toolToExecute || typeof toolToExecute.execute !== 'function') {
@@ -628,9 +644,11 @@ export const createTaskHandler = (
           };
         }
 
-        const toolResult = await toolToExecute.execute(pending.input, {
-          toolCallId: pending.toolCallId,
-        });
+        const toolResult = existingResultMessage
+          ? ((existingResultMessage as any)?.content?.text ?? 'Tool already executed.')
+          : await toolToExecute.execute(pending.input, {
+              toolCallId: pending.toolCallId,
+            });
 
         const continuationPrompt =
           (pending.originalUserMessage || userMessage || 'Continue the task.') +
@@ -655,12 +673,19 @@ export const createTaskHandler = (
           ...(part.kind === 'data' && { data: part.data }),
         }));
 
+        const toolOutput: ToolOutputRecord = {
+          type: 'tool_output',
+          toolCallId: pending.toolCallId,
+          toolName: pending.toolName,
+          output: toolResult,
+        };
+
         return {
           status: { state: TaskState.Completed },
           artifacts: [
             {
               artifactId: generateId(),
-              parts,
+              parts: [{ kind: 'data', data: toolOutput }, ...parts],
               createdAt: new Date().toISOString(),
             },
           ],
@@ -724,72 +749,69 @@ export const createTaskHandler = (
         return undefined;
       })();
 
-      if (isDelegation) {
-        const approvalRequest = stepContents.find((c: any) => c.type === 'tool-approval-request');
-        const toolCallFromApproval = approvalRequest?.toolCall;
-        const toolCall =
-          toolCallFromApproval ||
-          stepContents.find(
-            (c: any) =>
-              c.type === 'tool-call' && c.toolCallId === approvalRequest?.toolCall?.toolCallId
-          );
+      const approvalRequest = stepContents.find((c: any) => c.type === 'tool-approval-request');
+      const toolCallFromApproval = approvalRequest?.toolCall;
+      const toolCall =
+        toolCallFromApproval ||
+        stepContents.find(
+          (c: any) =>
+            c.type === 'tool-call' && c.toolCallId === approvalRequest?.toolCall?.toolCallId
+        );
+
+      const toolName = toolCall?.toolName as string | undefined;
+      const isInternalTool =
+        !toolName ||
+        toolName.includes('save_tool_result') ||
+        toolName.includes('thinking_complete') ||
+        toolName.startsWith('transfer_to_') ||
+        toolName.startsWith('compress_') ||
+        toolName.startsWith('delegate_to_');
+
+      if (approvalRequest && toolCall && !isInternalTool) {
+        const approvalId = approvalRequest.approvalId as string | undefined;
+        const toolCallId = toolCall.toolCallId as string | undefined;
 
         logger.info(
           {
             taskId: task.id,
             delegationId,
+            isDelegation,
             hasApprovalRequest: !!approvalRequest,
             hasToolCall: !!toolCall,
-            toolName: toolCall?.toolName,
-            toolCallId: toolCall?.toolCallId,
+            toolName,
+            toolCallId,
+            approvalId,
           },
-          'Delegation approval detection'
+          'Tool approval detection'
         );
 
-        const toolName = toolCall?.toolName as string | undefined;
-        const isInternalTool =
-          !toolName ||
-          toolName.includes('save_tool_result') ||
-          toolName.includes('thinking_complete') ||
-          toolName.startsWith('transfer_to_') ||
-          toolName.startsWith('compress_') ||
-          toolName.startsWith('delegate_to_');
+        if (approvalId && toolCallId && toolName) {
+          await createMessage(dbClient)({
+            id: generateId(),
+            tenantId: config.tenantId,
+            projectId: config.projectId,
+            conversationId: contextId,
+            role: 'agent',
+            content: { text: 'Tool approval pending' },
+            visibility: 'internal',
+            messageType: 'tool-call',
+            fromSubAgentId: config.subAgentId,
+            taskId: task.id,
+            metadata: {
+              pendingToolApproval: {
+                type: 'tool_approval_pending',
+                approvalId,
+                toolCallId,
+                toolName,
+                input: toolCall.input,
+                providerMetadata: toolCall.providerMetadata,
+                delegationId: isDelegation ? delegationId : undefined,
+                originalUserMessage: userMessage,
+              } satisfies PendingToolApprovalRecord,
+            } as any,
+          });
 
-        if (approvalRequest && toolCall && !isInternalTool) {
-          const approvalId = approvalRequest.approvalId as string | undefined;
-          const toolCallId = toolCall.toolCallId as string | undefined;
-
-          if (approvalId && toolCallId && toolName) {
-            logger.info(
-              { taskId: task.id, approvalId, toolCallId, toolName, delegationId },
-              'Creating delegated tool approval envelope'
-            );
-
-            await createMessage(dbClient)({
-              id: generateId(),
-              tenantId: config.tenantId,
-              projectId: config.projectId,
-              conversationId: contextId,
-              role: 'agent',
-              content: { text: 'Tool approval pending' },
-              visibility: 'internal',
-              messageType: 'tool-call',
-              fromSubAgentId: config.subAgentId,
-              taskId: task.id,
-              metadata: {
-                pendingToolApproval: {
-                  type: 'tool_approval_pending',
-                  approvalId,
-                  toolCallId,
-                  toolName,
-                  input: toolCall.input,
-                  providerMetadata: toolCall.providerMetadata,
-                  delegationId,
-                  originalUserMessage: userMessage,
-                } satisfies PendingToolApprovalRecord,
-              } as any,
-            });
-
+          if (isDelegation) {
             const envelope: DelegatedToolApprovalRequest = {
               type: 'delegated_tool_approval_request',
               delegationId: delegationId || `del_${generateId()}`,
@@ -803,14 +825,7 @@ export const createTaskHandler = (
             };
 
             logger.info(
-              {
-                taskId: task.id,
-                approvalId,
-                toolCallId,
-                toolName,
-                delegatedAgentBaseUrl: envelope.delegatedAgentBaseUrl,
-                delegatedSubAgentId: envelope.delegatedSubAgentId,
-              },
+              { taskId: task.id, approvalId, toolCallId, toolName, delegationId },
               'Returning TaskState.InputRequired with delegated tool approval request'
             );
 
@@ -820,6 +835,28 @@ export const createTaskHandler = (
                 {
                   artifactId: generateId(),
                   parts: [{ kind: 'data', data: envelope }],
+                  createdAt: new Date().toISOString(),
+                },
+              ],
+            };
+          }
+
+          const localReq: LocalToolApprovalRequest = {
+            type: 'tool_approval_request',
+            approvalId,
+            toolCallId,
+            toolName,
+            input: toolCall.input,
+            providerMetadata: toolCall.providerMetadata,
+          };
+
+          if (isLocalToolApprovalRequest(localReq)) {
+            return {
+              status: { state: TaskState.InputRequired, message: 'Tool approval required' },
+              artifacts: [
+                {
+                  artifactId: generateId(),
+                  parts: [{ kind: 'data', data: localReq }],
                   createdAt: new Date().toISOString(),
                 },
               ],

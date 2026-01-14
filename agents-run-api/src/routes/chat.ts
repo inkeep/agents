@@ -340,23 +340,27 @@ app.openapi(chatCompletionsRoute, async (c) => {
         }
       }
 
-      await createMessage(dbClient)({
-        id: generateId(),
-        tenantId,
-        projectId,
-        conversationId,
-        role: 'user',
-        content: {
-          text: userMessage,
-        },
-        visibility: 'user-facing',
-        messageType: 'chat',
-      });
-      if (messageSpan) {
-        messageSpan.addEvent('user.message.stored', {
-          'message.id': conversationId,
-          'database.operation': 'insert',
+      const effectiveUserMessage = toolApprovalResponse ? '' : userMessage;
+
+      if (!toolApprovalResponse) {
+        await createMessage(dbClient)({
+          id: generateId(),
+          tenantId,
+          projectId,
+          conversationId,
+          role: 'user',
+          content: {
+            text: userMessage,
+          },
+          visibility: 'user-facing',
+          messageType: 'chat',
         });
+        if (messageSpan) {
+          messageSpan.addEvent('user.message.stored', {
+            'message.id': conversationId,
+            'database.operation': 'insert',
+          });
+        }
       }
 
       return streamSSE(c, async (stream) => {
@@ -390,7 +394,7 @@ app.openapi(chatCompletionsRoute, async (c) => {
           const result = await executionHandler.execute({
             executionContext,
             conversationId,
-            userMessage,
+            userMessage: effectiveUserMessage,
             initialAgentId: subAgentId,
             requestId,
             sseHelper,

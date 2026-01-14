@@ -10,6 +10,22 @@ export type DelegatedToolApprovalRequest = {
   providerMetadata?: unknown;
 };
 
+export type LocalToolApprovalRequest = {
+  type: 'tool_approval_request';
+  approvalId: string;
+  toolCallId: string;
+  toolName: string;
+  input: unknown;
+  providerMetadata?: unknown;
+};
+
+export type ToolOutputRecord = {
+  type: 'tool_output';
+  toolCallId: string;
+  toolName: string;
+  output: unknown;
+};
+
 export type ToolApprovalResponse = {
   approvalId: string;
   approved: boolean;
@@ -53,6 +69,29 @@ export function isDelegatedToolApprovalRequest(
     typeof (data as any).delegatedAgentBaseUrl === 'string' &&
     typeof (data as any).delegatedSubAgentId === 'string' &&
     typeof (data as any).delegationId === 'string'
+  );
+}
+
+export function isLocalToolApprovalRequest(data: unknown): data is LocalToolApprovalRequest {
+  return (
+    typeof data === 'object' &&
+    data !== null &&
+    'type' in data &&
+    (data as any).type === 'tool_approval_request' &&
+    typeof (data as any).approvalId === 'string' &&
+    typeof (data as any).toolCallId === 'string' &&
+    typeof (data as any).toolName === 'string'
+  );
+}
+
+export function isToolOutputRecord(data: unknown): data is ToolOutputRecord {
+  return (
+    typeof data === 'object' &&
+    data !== null &&
+    'type' in data &&
+    (data as any).type === 'tool_output' &&
+    typeof (data as any).toolCallId === 'string' &&
+    typeof (data as any).toolName === 'string'
   );
 }
 
