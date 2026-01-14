@@ -109,6 +109,7 @@
     "db:check": "pnpm db:manage:check && pnpm db:run:check",
     "db:manage:generate": "drizzle-kit generate --config=drizzle.manage.config.ts",
     "db:manage:migrate": "tsx src/dolt/migrate-dolt.ts",
+    "db:manage:sync-all-branches": "tsx src/dolt/migrate-all-branches.ts",
     "db:manage:drop": "drizzle-kit drop --config=drizzle.manage.config.ts",
     "db:manage:studio": "drizzle-kit studio --config=drizzle.manage.config.ts",
     "db:manage:check": "drizzle-kit check --config=drizzle.manage.config.ts",
