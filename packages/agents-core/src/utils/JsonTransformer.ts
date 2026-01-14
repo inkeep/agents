@@ -1,4 +1,13 @@
 import * as jmespath from 'jmespath';
+
+// TypeScript workaround for missing compile method in type definitions
+interface JMESPathExtended {
+  search: typeof jmespath.search;
+  compile: (expression: string) => any;
+}
+
+const jmespathExt = jmespath as unknown as JMESPathExtended;
+
 import { getLogger } from './logger';
 
 const logger = getLogger('JsonTransformer');
@@ -44,8 +53,8 @@ export class JsonTransformer {
 
     // Basic syntax validation - try to compile the expression
     try {
-      // JMESPath search validates syntax when called
-      jmespath.search({}, expression);
+      // Use compile to validate syntax without requiring specific data
+      jmespathExt.compile(expression);
     } catch (error) {
       throw new Error(
         `Invalid JMESPath syntax: ${error instanceof Error ? error.message : String(error)}`
@@ -128,8 +137,8 @@ export class JsonTransformer {
       }
       // Validate each path is a valid JMESPath expression
       try {
-        // Test the path with empty object to validate syntax
-        jmespath.search({}, path);
+        // Use compile to validate syntax without requiring specific data
+        jmespathExt.compile(path);
       } catch (error) {
         throw new Error(
           `Invalid JMESPath in object transformation value "${path}": ${error instanceof Error ? error.message : String(error)}`

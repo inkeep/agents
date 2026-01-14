@@ -109,7 +109,10 @@ export class ContextFetcher {
       let transformedData = response.data;
 
       if (definition.fetchConfig.transform) {
-        transformedData = this.transformResponse(response.data, definition.fetchConfig.transform);
+        transformedData = await this.transformResponse(
+          response.data,
+          definition.fetchConfig.transform
+        );
       }
 
       if (definition.responseSchema) {
@@ -391,9 +394,9 @@ export class ContextFetcher {
   /**
    * Transform response data using JsonTransformer (JMESPath)
    */
-  private transformResponse(data: unknown, transform: string): unknown {
+  private async transformResponse(data: unknown, transform: string): Promise<unknown> {
     try {
-      const result = JsonTransformer.transform(data, transform);
+      const result = await JsonTransformer.transform(data, transform);
       return result;
     } catch (error) {
       logger.error(

@@ -75,8 +75,8 @@ describe('JsonTransformer', () => {
         // Note: function(data) is caught by dangerous pattern detection
         await expectSecurityRejection('function(data)', 'dangerous pattern');
 
-        // FUNCTION(data) is caught by JMESPath syntax validation (case-sensitive pattern doesn't match)
-        await shouldRejectExpression('FUNCTION(data)', 'Invalid JMESPath syntax');
+        // FUNCTION(data) is caught by JMESPath execution (unknown function error)
+        await shouldRejectExpression('FUNCTION(data)', 'Unknown function: FUNCTION');
       });
 
       it('should reject prototype manipulation patterns', async () => {
@@ -143,7 +143,7 @@ describe('JsonTransformer', () => {
 
         for (const expression of invalidExpressions) {
           await expect(JsonTransformer.transform({}, expression)).rejects.toThrow(
-            /Invalid JMESPath syntax/
+            /JMESPath transformation failed|Invalid JMESPath syntax/
           );
         }
       });
@@ -248,7 +248,7 @@ describe('JsonTransformer', () => {
       const complexExpression = 'sort_by(items, &price)[*].name';
 
       await expect(JsonTransformer.transform({}, complexExpression)).rejects.toThrow(
-        /Invalid JMESPath syntax/
+        /JMESPath transformation failed|Invalid JMESPath syntax/
       );
 
       // However, if we had data and could bypass validation, it would work
