@@ -1,9 +1,9 @@
-import type { AxiosResponse } from 'axios';
 import {
   CONTEXT_BREAKDOWN_TOTAL_SPAN_ATTRIBUTE,
   parseContextBreakdownFromSpan,
   V1_BREAKDOWN_SCHEMA,
 } from '@inkeep/agents-core/client-exports';
+import type { AxiosResponse } from 'axios';
 import axios from 'axios';
 import axiosRetry from 'axios-retry';
 import { type NextRequest, NextResponse } from 'next/server';

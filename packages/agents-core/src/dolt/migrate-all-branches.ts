@@ -58,7 +58,9 @@ export const main = async () => {
       if (result.synced) {
         syncedCount += 1;
         console.log(format.ok('[SYNCED]'));
-        console.log(`${format.dim('Result ')}  ${format.ok('Schema updated')} ${format.dim(`(${ms(branchStartedAt, Date.now())})`)}`);
+        console.log(
+          `${format.dim('Result ')}  ${format.ok('Schema updated')} ${format.dim(`(${ms(branchStartedAt, Date.now())})`)}`
+        );
       } else if (result.error) {
         errorCount += 1;
         console.log(format.err('[FAILED]'));
@@ -69,13 +71,17 @@ export const main = async () => {
       } else {
         upToDateCount += 1;
         console.log(format.warn('[NOOP]'));
-        console.log(`${format.dim('Result ')}  ${format.warn('Already up to date')} ${format.dim(`(${ms(branchStartedAt, Date.now())})`)}`);
+        console.log(
+          `${format.dim('Result ')}  ${format.warn('Already up to date')} ${format.dim(`(${ms(branchStartedAt, Date.now())})`)}`
+        );
       }
     } catch (error) {
       errorCount += 1;
       console.log(format.err('[FAILED]'));
       const message = error instanceof Error ? error.message : String(error);
-      console.log(`${format.dim('Result ')}  ${format.err('Error')} ${format.dim(`(${ms(branchStartedAt, Date.now())})`)}`);
+      console.log(
+        `${format.dim('Result ')}  ${format.err('Error')} ${format.dim(`(${ms(branchStartedAt, Date.now())})`)}`
+      );
       console.log(`${format.dim('Details')}  ${message}`);
     }
     console.log('');
