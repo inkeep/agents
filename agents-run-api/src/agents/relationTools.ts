@@ -29,13 +29,13 @@ import dbClient from '../data/db/dbClient';
 import { env } from '../env';
 import { getLogger } from '../logger';
 import { agentSessionManager } from '../services/AgentSession';
+import { getUserIdFromContext } from '../types/execution-context';
 import {
   getExternalAgentRelationsForTargetSubAgent,
   getToolsForSubAgent,
   getTransferRelationsForTargetSubAgent,
   type InternalRelation,
 } from '../utils/project';
-import { getUserIdFromContext } from '../types/execution-context';
 import type { AgentConfig, DelegateRelation } from './Agent';
 import { toolSessionManager } from './ToolSessionManager';
 

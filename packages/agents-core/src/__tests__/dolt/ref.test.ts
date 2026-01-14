@@ -5,6 +5,7 @@ vi.mock('../../dolt/branches-api', () => ({
   checkoutBranch: vi.fn(),
 }));
 
+import { checkoutBranch } from '../../dolt/branches-api';
 import {
   checkoutRef,
   getCurrentBranchOrCommit,
@@ -12,7 +13,6 @@ import {
   isValidCommitHash,
   resolveRef,
 } from '../../dolt/ref';
-import { checkoutBranch } from '../../dolt/branches-api';
 import { testManageDbClient } from '../setup';
 import { getSqlString } from './test-utils';
 

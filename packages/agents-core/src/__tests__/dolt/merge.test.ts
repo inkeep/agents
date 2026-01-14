@@ -29,7 +29,9 @@ describe('Merge Module', () => {
         .fn()
         .mockResolvedValueOnce({ rows: [] }) // DOLT_CHECKOUT
         .mockResolvedValueOnce({ rows: [{ hash: headHash }] }) // HASHOF('HEAD')
-        .mockResolvedValueOnce({ rows: [{ conflicts: 0, fast_forward: 0, hash: headHash, message: '' }] }); // DOLT_MERGE
+        .mockResolvedValueOnce({
+          rows: [{ conflicts: 0, fast_forward: 0, hash: headHash, message: '' }],
+        }); // DOLT_MERGE
 
       const mockDb = {
         ...db,
@@ -59,7 +61,9 @@ describe('Merge Module', () => {
         .fn()
         .mockResolvedValueOnce({ rows: [] }) // DOLT_CHECKOUT
         .mockResolvedValueOnce({ rows: [{ hash: headHash }] }) // HASHOF('HEAD')
-        .mockResolvedValueOnce({ rows: [{ conflicts: 5, fast_forward: 0, hash: headHash, message: '' }] }); // DOLT_MERGE
+        .mockResolvedValueOnce({
+          rows: [{ conflicts: 5, fast_forward: 0, hash: headHash, message: '' }],
+        }); // DOLT_MERGE
 
       const mockDb = {
         ...db,
@@ -89,7 +93,9 @@ describe('Merge Module', () => {
         .fn()
         .mockResolvedValueOnce({ rows: [] })
         .mockResolvedValueOnce({ rows: [{ hash: headHash }] })
-        .mockResolvedValueOnce({ rows: [{ conflicts: 0, fast_forward: 0, hash: headHash, message: '' }] });
+        .mockResolvedValueOnce({
+          rows: [{ conflicts: 0, fast_forward: 0, hash: headHash, message: '' }],
+        });
 
       const mockDb = {
         ...db,
@@ -119,7 +125,9 @@ describe('Merge Module', () => {
         .fn()
         .mockResolvedValueOnce({ rows: [] })
         .mockResolvedValueOnce({ rows: [{ hash: headHash }] })
-        .mockResolvedValueOnce({ rows: [{ conflicts: 0, fast_forward: 0, hash: headHash, message: '' }] });
+        .mockResolvedValueOnce({
+          rows: [{ conflicts: 0, fast_forward: 0, hash: headHash, message: '' }],
+        });
 
       const mockDb = {
         ...db,
@@ -147,7 +155,9 @@ describe('Merge Module', () => {
         .fn()
         .mockResolvedValueOnce({ rows: [] })
         .mockResolvedValueOnce({ rows: [{ hash: headHash }] })
-        .mockResolvedValueOnce({ rows: [{ conflicts: 0, fast_forward: 0, hash: headHash, message: '' }] });
+        .mockResolvedValueOnce({
+          rows: [{ conflicts: 0, fast_forward: 0, hash: headHash, message: '' }],
+        });
 
       const mockDb = {
         ...db,
@@ -175,7 +185,9 @@ describe('Merge Module', () => {
         .fn()
         .mockResolvedValueOnce({ rows: [] })
         .mockResolvedValueOnce({ rows: [{ hash: headHash }] })
-        .mockResolvedValueOnce({ rows: [{ conflicts: 0, fast_forward: 0, hash: headHash, message: '' }] });
+        .mockResolvedValueOnce({
+          rows: [{ conflicts: 0, fast_forward: 0, hash: headHash, message: '' }],
+        });
 
       const mockDb = {
         ...db,
@@ -203,7 +215,9 @@ describe('Merge Module', () => {
         .fn()
         .mockResolvedValueOnce({ rows: [] })
         .mockResolvedValueOnce({ rows: [{ hash: headHash }] })
-        .mockResolvedValueOnce({ rows: [{ conflicts: 0, fast_forward: 0, hash: headHash, message: '' }] });
+        .mockResolvedValueOnce({
+          rows: [{ conflicts: 0, fast_forward: 0, hash: headHash, message: '' }],
+        });
 
       const mockDb = {
         ...db,
@@ -216,7 +230,8 @@ describe('Merge Module', () => {
       });
 
       expect(mockExecute).toHaveBeenCalled();
-      const sqlString = getSqlString(mockExecute, 0) + getSqlString(mockExecute, 1) + getSqlString(mockExecute, 2);
+      const sqlString =
+        getSqlString(mockExecute, 0) + getSqlString(mockExecute, 1) + getSqlString(mockExecute, 2);
       expect(sqlString).not.toContain('dolt_allow_commit_conflicts');
     });
   });

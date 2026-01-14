@@ -1,5 +1,11 @@
 import type { AgentsManageDatabaseClient, ResolvedRef } from '@inkeep/agents-core';
-import { doltAddAndCommit, doltReset, doltStatus, checkoutBranch, generateId } from '@inkeep/agents-core';
+import {
+  checkoutBranch,
+  doltAddAndCommit,
+  doltReset,
+  doltStatus,
+  generateId,
+} from '@inkeep/agents-core';
 import * as schema from '@inkeep/agents-core/db/manage-schema';
 import { drizzle } from 'drizzle-orm/node-postgres';
 import type { Context, Next } from 'hono';
@@ -68,7 +74,6 @@ export const branchScopedDbMiddleware = async (c: Context, next: Next) => {
   let tempBranch: string | null = null;
 
   try {
-
     // Create a Drizzle client wrapping this specific connection
     const requestDb = drizzle(connection, { schema }) as unknown as AgentsManageDatabaseClient;
 
@@ -92,7 +97,8 @@ export const branchScopedDbMiddleware = async (c: Context, next: Next) => {
     const status = c.res.status;
     const projectDeleteOperation = isProjectDeleteOperation(c.req.path, method);
     const operationSuccess = status >= 200 && status < 300;
-    const shouldCommit = resolvedRef.type === 'branch' && operationSuccess && !projectDeleteOperation;
+    const shouldCommit =
+      resolvedRef.type === 'branch' && operationSuccess && !projectDeleteOperation;
 
     if (shouldCommit) {
       try {
@@ -120,7 +126,10 @@ export const branchScopedDbMiddleware = async (c: Context, next: Next) => {
           logger.info({ branch: resolvedRef.name }, 'Successfully committed changes');
         } else if (statusResult.length > 0 && !operationSuccess) {
           await doltReset(requestDb)();
-          logger.info({ branch: resolvedRef.name }, 'Successfully reset changes due to failed operation');
+          logger.info(
+            { branch: resolvedRef.name },
+            'Successfully reset changes due to failed operation'
+          );
         }
       } catch (error) {
         // Log but don't fail - the write already succeeded

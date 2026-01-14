@@ -138,7 +138,7 @@ export const AppSidebar: FC<AppSidebarProps> = ({ open, setOpen, ...props }) => 
           url: `/${tenantId}/projects/${projectId}/traces`,
           icon: Activity,
         },
-        // Disabling test suites 
+        // Disabling test suites
         // {
         //   title: 'Test Suites',
         //   url: `/${tenantId}/projects/${projectId}/datasets`,

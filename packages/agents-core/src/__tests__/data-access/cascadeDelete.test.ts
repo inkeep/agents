@@ -279,7 +279,6 @@ describe('Cascade Delete Utilities', () => {
         ref: branch1Ref,
       });
 
-
       // Create API key for agent
       await db.insert(apiKeys).values({
         tenantId,

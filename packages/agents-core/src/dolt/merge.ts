@@ -29,7 +29,6 @@ export const doltMerge =
     const headResult = await db.execute(sql`SELECT HASHOF('HEAD') as hash`);
     const toHead = headResult.rows[0]?.hash as string;
 
-
     // Perform merge
     const args: string[] = [`'${params.fromBranch}'`];
 
@@ -54,10 +53,9 @@ export const doltMerge =
       typeof firstRow.conflicts === 'string' ||
       firstRow.conflicts == null
         ? firstRow
-        : (Object.values(firstRow)[0] as Record<string, unknown> | undefined) ?? {};
+        : ((Object.values(firstRow)[0] as Record<string, unknown> | undefined) ?? {});
     const conflicts = Number(mergeResult.conflicts ?? 0);
     const hasConflicts = Number.isFinite(conflicts) && conflicts > 0;
-
 
     if (hasConflicts) {
       return {
@@ -81,11 +79,9 @@ export const doltMerge =
 /**
  * Abort a merge
  */
-export const doltAbortMerge =
-  (db: AgentsManageDatabaseClient) =>
-  async (): Promise<void> => {
-    await db.execute(sql.raw(`SELECT DOLT_MERGE('--abort')`));
-  };
+export const doltAbortMerge = (db: AgentsManageDatabaseClient) => async (): Promise<void> => {
+  await db.execute(sql.raw(`SELECT DOLT_MERGE('--abort')`));
+};
 
 /**
  * Get merge status

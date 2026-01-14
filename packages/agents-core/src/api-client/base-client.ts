@@ -102,7 +102,7 @@ export abstract class BaseApiClient {
   protected ref?: string;
   protected userId?: string;
   protected userEmail?: string;
-  
+
   protected constructor(config: BaseApiClientConfig) {
     this.apiUrl = config.apiUrl;
     this.tenantId = config.tenantId;

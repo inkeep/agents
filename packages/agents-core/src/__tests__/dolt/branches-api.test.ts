@@ -45,7 +45,9 @@ describe('Branches API Module', () => {
         .fn()
         // dolt_branches - verify branch exists
         .mockResolvedValueOnce({
-          rows: [{ name: 'tenant1_project1_feature-x', hash: 'abc123', latest_commit_date: new Date() }],
+          rows: [
+            { name: 'tenant1_project1_feature-x', hash: 'abc123', latest_commit_date: new Date() },
+          ],
         })
         // DOLT_CHECKOUT
         .mockResolvedValueOnce({ rows: [] })
@@ -55,7 +57,9 @@ describe('Branches API Module', () => {
         .mockResolvedValueOnce({ rows: [] })
         // dolt_branches - get updated branch info
         .mockResolvedValueOnce({
-          rows: [{ name: 'tenant1_project1_feature-x', hash: 'abc123', latest_commit_date: new Date() }],
+          rows: [
+            { name: 'tenant1_project1_feature-x', hash: 'abc123', latest_commit_date: new Date() },
+          ],
         });
 
       const mockDb = { ...db, execute: mockExecute } as any;
@@ -75,7 +79,9 @@ describe('Branches API Module', () => {
         .fn()
         // dolt_branches - verify branch exists
         .mockResolvedValueOnce({
-          rows: [{ name: 'tenant1_project1_feature-x', hash: 'abc123', latest_commit_date: new Date() }],
+          rows: [
+            { name: 'tenant1_project1_feature-x', hash: 'abc123', latest_commit_date: new Date() },
+          ],
         })
         // DOLT_CHECKOUT
         .mockResolvedValueOnce({ rows: [] })
@@ -121,7 +127,13 @@ describe('Branches API Module', () => {
         .mockResolvedValueOnce({ rows: [] })
         // dolt_branches - get updated branch info
         .mockResolvedValueOnce({
-          rows: [{ name: 'tenant1_project1_feature-x', hash: 'after-merge', latest_commit_date: new Date() }],
+          rows: [
+            {
+              name: 'tenant1_project1_feature-x',
+              hash: 'after-merge',
+              latest_commit_date: new Date(),
+            },
+          ],
         });
 
       const mockDb = { ...db, execute: mockExecute } as any;
@@ -141,13 +153,17 @@ describe('Branches API Module', () => {
         .fn()
         // dolt_branches - verify branch exists
         .mockResolvedValueOnce({
-          rows: [{ name: 'tenant1_project1_feature-x', hash: 'abc123', latest_commit_date: new Date() }],
+          rows: [
+            { name: 'tenant1_project1_feature-x', hash: 'abc123', latest_commit_date: new Date() },
+          ],
         })
         // DOLT_CHECKOUT
         .mockResolvedValueOnce({ rows: [] })
         // dolt_branches - get updated branch info (no schema sync calls)
         .mockResolvedValueOnce({
-          rows: [{ name: 'tenant1_project1_feature-x', hash: 'abc123', latest_commit_date: new Date() }],
+          rows: [
+            { name: 'tenant1_project1_feature-x', hash: 'abc123', latest_commit_date: new Date() },
+          ],
         });
 
       const mockDb = { ...db, execute: mockExecute } as any;
@@ -186,7 +202,9 @@ describe('Branches API Module', () => {
         .mockResolvedValueOnce({ rows: [] })
         // dolt_branches - for doltHashOf (to resolve tenant1_main)
         .mockResolvedValueOnce({
-          rows: [{ name: 'tenant1_main', hash: 'tenant-main-hash', latest_commit_date: new Date() }],
+          rows: [
+            { name: 'tenant1_main', hash: 'tenant-main-hash', latest_commit_date: new Date() },
+          ],
         })
         // dolt_log - get commit hash for tenant1_main
         .mockResolvedValueOnce({ rows: [{ commit_hash: 'tenant-main-hash' }] })
@@ -194,7 +212,13 @@ describe('Branches API Module', () => {
         .mockResolvedValueOnce({ rows: [] })
         // dolt_branches - get new branch info
         .mockResolvedValueOnce({
-          rows: [{ name: 'tenant1_project1_feature-x', hash: 'new-branch-hash', latest_commit_date: new Date() }],
+          rows: [
+            {
+              name: 'tenant1_project1_feature-x',
+              hash: 'new-branch-hash',
+              latest_commit_date: new Date(),
+            },
+          ],
         });
 
       const mockDb = { ...db, execute: mockExecute } as any;
@@ -265,7 +289,13 @@ describe('Branches API Module', () => {
         .mockResolvedValueOnce({ rows: [] })
         // dolt_branches - get new branch
         .mockResolvedValueOnce({
-          rows: [{ name: 'tenant1_project1_feature-x', hash: 'new-hash', latest_commit_date: new Date() }],
+          rows: [
+            {
+              name: 'tenant1_project1_feature-x',
+              hash: 'new-hash',
+              latest_commit_date: new Date(),
+            },
+          ],
         });
 
       const mockDb = { ...db, execute: mockExecute } as any;
@@ -287,7 +317,9 @@ describe('Branches API Module', () => {
         .mockResolvedValueOnce({ rows: [] })
         // dolt_branches for doltHashOf
         .mockResolvedValueOnce({
-          rows: [{ name: 'tenant1_main', hash: 'tenant-main-hash', latest_commit_date: new Date() }],
+          rows: [
+            { name: 'tenant1_main', hash: 'tenant-main-hash', latest_commit_date: new Date() },
+          ],
         })
         // dolt_log for doltHashOf
         .mockResolvedValueOnce({ rows: [{ commit_hash: 'tenant-main-hash' }] })
@@ -295,7 +327,13 @@ describe('Branches API Module', () => {
         .mockResolvedValueOnce({ rows: [] })
         // dolt_branches - get new branch
         .mockResolvedValueOnce({
-          rows: [{ name: 'tenant1_project1_feature-x', hash: 'new-hash', latest_commit_date: new Date() }],
+          rows: [
+            {
+              name: 'tenant1_project1_feature-x',
+              hash: 'new-hash',
+              latest_commit_date: new Date(),
+            },
+          ],
         });
 
       const mockDb = { ...db, execute: mockExecute } as any;
@@ -309,13 +347,17 @@ describe('Branches API Module', () => {
 
       expect(result.baseName).toBe('feature-x');
       // Should not have called dolt_schema_diff at all
-      const calls = mockExecute.mock.calls.map((call: any) => getSqlString({ mock: { calls: [call] } }));
+      const calls = mockExecute.mock.calls.map((call: any) =>
+        getSqlString({ mock: { calls: [call] } })
+      );
       expect(calls.some((c: string) => c.includes('dolt_schema_diff'))).toBe(false);
     });
 
     it('should throw error when branch already exists', async () => {
       const mockExecute = vi.fn().mockResolvedValueOnce({
-        rows: [{ name: 'tenant1_project1_feature-x', hash: 'existing', latest_commit_date: new Date() }],
+        rows: [
+          { name: 'tenant1_project1_feature-x', hash: 'existing', latest_commit_date: new Date() },
+        ],
       });
 
       const mockDb = { ...db, execute: mockExecute } as any;
@@ -358,7 +400,13 @@ describe('Branches API Module', () => {
         .mockResolvedValueOnce({ rows: [] })
         // dolt_branches for doltHashOf
         .mockResolvedValueOnce({
-          rows: [{ name: 'tenant1_project1_develop', hash: 'develop-hash', latest_commit_date: new Date() }],
+          rows: [
+            {
+              name: 'tenant1_project1_develop',
+              hash: 'develop-hash',
+              latest_commit_date: new Date(),
+            },
+          ],
         })
         // dolt_log for doltHashOf
         .mockResolvedValueOnce({ rows: [{ commit_hash: 'develop-hash' }] })
@@ -366,7 +414,13 @@ describe('Branches API Module', () => {
         .mockResolvedValueOnce({ rows: [] })
         // dolt_branches - get new branch
         .mockResolvedValueOnce({
-          rows: [{ name: 'tenant1_project1_feature-x', hash: 'new-hash', latest_commit_date: new Date() }],
+          rows: [
+            {
+              name: 'tenant1_project1_feature-x',
+              hash: 'new-hash',
+              latest_commit_date: new Date(),
+            },
+          ],
         });
 
       const mockDb = { ...db, execute: mockExecute } as any;
@@ -389,7 +443,9 @@ describe('Branches API Module', () => {
         .fn()
         // dolt_branches - check branch exists
         .mockResolvedValueOnce({
-          rows: [{ name: 'tenant1_project1_feature-x', hash: 'abc123', latest_commit_date: new Date() }],
+          rows: [
+            { name: 'tenant1_project1_feature-x', hash: 'abc123', latest_commit_date: new Date() },
+          ],
         })
         // DOLT_BRANCH -d
         .mockResolvedValueOnce({ rows: [] });
@@ -438,7 +494,9 @@ describe('Branches API Module', () => {
   describe('getBranch', () => {
     it('should return branch info when branch exists', async () => {
       const mockExecute = vi.fn().mockResolvedValueOnce({
-        rows: [{ name: 'tenant1_project1_feature-x', hash: 'abc123', latest_commit_date: new Date() }],
+        rows: [
+          { name: 'tenant1_project1_feature-x', hash: 'abc123', latest_commit_date: new Date() },
+        ],
       });
 
       const mockDb = { ...db, execute: mockExecute } as any;

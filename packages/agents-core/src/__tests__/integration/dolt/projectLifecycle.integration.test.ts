@@ -11,8 +11,8 @@ import {
 } from '../../../data-access/runtime/projects';
 import { cleanupTestData, getIntegrationTestClient } from '../../../db/manage/dolt-cleanup';
 import { createAgentsRunDatabaseClient } from '../../../db/runtime/runtime-client';
-import { doltListBranches } from '../../../dolt/branch';
 import { createTestOrganization } from '../../../db/runtime/test-runtime-client';
+import { doltListBranches } from '../../../dolt/branch';
 
 const configDb = getIntegrationTestClient();
 const runDb = createAgentsRunDatabaseClient();

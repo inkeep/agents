@@ -9,8 +9,8 @@ import {
   hasSchemaDifferences,
   hasUncommittedChanges,
   SCHEMA_SOURCE_BRANCH,
-  syncSchemaFromMain,
   type SchemaDiff,
+  syncSchemaFromMain,
 } from '../../dolt/schema-sync';
 import { testManageDbClient } from '../setup';
 import { getSqlString } from './test-utils';
@@ -180,7 +180,9 @@ describe('Schema Sync Module', () => {
           ],
         })
         // dolt_status - has uncommitted changes
-        .mockResolvedValueOnce({ rows: [{ table_name: 'agent', staged: false, status: 'modified' }] })
+        .mockResolvedValueOnce({
+          rows: [{ table_name: 'agent', staged: false, status: 'modified' }],
+        })
         // pg_advisory_unlock
         .mockResolvedValueOnce({ rows: [] });
 

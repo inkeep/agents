@@ -65,7 +65,10 @@ async function EvaluationJobPage({
               </Button>
             </Link>
           </div>
-          <PageHeader title={displayName} description={`Created ${formatDateTimeTable(jobConfig.createdAt)}`} />
+          <PageHeader
+            title={displayName}
+            description={`Created ${formatDateTimeTable(jobConfig.createdAt)}`}
+          />
           <EvaluationJobResults
             tenantId={tenantId}
             projectId={projectId}

@@ -10,6 +10,7 @@ import {
   setSpanWithError,
   updateTask,
 } from '@inkeep/agents-core';
+import { getUserIdFromContext } from 'src/types/execution-context.js';
 import { resolveModelConfig } from 'src/utils/model-resolver.js';
 import { tracer } from 'src/utils/tracer.js';
 import { A2AClient } from '../a2a/client.js';
@@ -25,7 +26,6 @@ import { agentInitializingOp, completionOp, errorOp } from '../utils/agent-opera
 import type { StreamHelper } from '../utils/stream-helpers.js';
 import { BufferingStreamHelper } from '../utils/stream-helpers.js';
 import { registerStreamHelper, unregisterStreamHelper } from '../utils/stream-registry.js';
-import { getUserIdFromContext } from 'src/types/execution-context.js';
 
 const logger = getLogger('ExecutionHandler');
 

@@ -12,9 +12,9 @@ import {
 import {
   ensureSchemaSync,
   getSchemaDiff,
-  syncSchemaFromMain,
   SCHEMA_SOURCE_BRANCH,
   type SchemaSyncResult,
+  syncSchemaFromMain,
 } from './schema-sync';
 
 export const MAIN_BRANCH_SUFFIX = 'main';

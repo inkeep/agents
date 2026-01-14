@@ -39,8 +39,8 @@ export {
 } from './environment-settings';
 export {
   EvaluationClient,
-  evaluationClient,
   type EvaluationClientConfig,
+  evaluationClient,
 } from './evaluationClient';
 export {
   ExternalAgent,

@@ -10,6 +10,7 @@ import {
   unique,
   varchar,
 } from 'drizzle-orm/pg-core';
+import { organization } from '../../auth/auth-schema';
 import type { Part } from '../../types/a2a';
 import type {
   ConversationMetadata,
@@ -18,7 +19,6 @@ import type {
   TaskMetadataConfig,
 } from '../../types/utility';
 import type { ResolvedRef } from '../../validation/dolt-schemas';
-import { organization } from '../../auth/auth-schema';
 
 // Re-export Better Auth generated tables (runtime entities)
 export {

@@ -6,9 +6,9 @@ describe('isProjectDeleteOperation', () => {
     expect(isProjectDeleteOperation('/tenants/default/projects/activities-planner', 'DELETE')).toBe(
       true
     );
-    expect(isProjectDeleteOperation('/tenants/default/projects/activities-planner/', 'DELETE')).toBe(
-      true
-    );
+    expect(
+      isProjectDeleteOperation('/tenants/default/projects/activities-planner/', 'DELETE')
+    ).toBe(true);
   });
 
   it('matches DELETE /tenants/:tenantId/project-full/:projectId', () => {
@@ -22,10 +22,8 @@ describe('isProjectDeleteOperation', () => {
       false
     );
     expect(isProjectDeleteOperation('/tenants/default/projects', 'DELETE')).toBe(false);
-    expect(isProjectDeleteOperation('/tenants/default/projects/activities-planner/agents', 'DELETE')).toBe(
-      false
-    );
+    expect(
+      isProjectDeleteOperation('/tenants/default/projects/activities-planner/agents', 'DELETE')
+    ).toBe(false);
   });
 });
-
-

@@ -56,9 +56,7 @@ export function createAgentsManageDatabaseClient(
   });
 }
 
-export function createAgentManageDatabaseConnection(
-  config: AgentsManageDatabaseConfig
-): Promise<{
+export function createAgentManageDatabaseConnection(config: AgentsManageDatabaseConfig): Promise<{
   db: AgentsManageDatabaseClient;
   release: () => Promise<void>;
 }> {

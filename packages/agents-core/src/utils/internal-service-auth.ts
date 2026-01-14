@@ -34,7 +34,7 @@ export interface InternalServiceTokenPayload {
   tenantId?: string;
   /** Project ID scope (optional - for project-scoped operations) */
   projectId?: string;
-    /** User ID scope (optional - indicates the user that originally authenticated the service) */
+  /** User ID scope (optional - indicates the user that originally authenticated the service) */
   userId?: string;
   /** Issued at timestamp */
   iat: number;

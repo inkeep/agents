@@ -67,11 +67,10 @@ export type EnsureSchemaSyncOptions = SchemaSyncOptions & {
 /**
  * Get the currently active branch
  */
-export const getActiveBranch =
-  (db: AgentsManageDatabaseClient) => async (): Promise<string> => {
-    const result = await db.execute(sql`SELECT active_branch() as branch`);
-    return result.rows[0]?.branch as string;
-  };
+export const getActiveBranch = (db: AgentsManageDatabaseClient) => async (): Promise<string> => {
+  const result = await db.execute(sql`SELECT active_branch() as branch`);
+  return result.rows[0]?.branch as string;
+};
 
 /**
  * Get schema differences between the schema source branch and a target branch.
@@ -90,9 +89,7 @@ export const getSchemaDiff =
     // dolt_schema_diff(from, to) compares FROM -> TO
     // We use (targetBranch, main) to see what targetBranch needs to become main's schema
     const result = await db.execute(
-      sql.raw(
-        `SELECT * FROM dolt_schema_diff('${targetBranch}', '${SCHEMA_SOURCE_BRANCH}')`
-      )
+      sql.raw(`SELECT * FROM dolt_schema_diff('${targetBranch}', '${SCHEMA_SOURCE_BRANCH}')`)
     );
 
     return result.rows.map((row: any) => ({
@@ -176,17 +173,13 @@ const releaseSchemaSyncLock =
     await db.execute(sql`SELECT pg_advisory_unlock(CAST(${key} AS bigint))`);
   };
 
-
 /**
  * Get the latest commit hash for the current branch
  */
-const getLatestCommitHash =
-  (db: AgentsManageDatabaseClient) => async (): Promise<string> => {
-    const result = await db.execute(
-      sql`SELECT commit_hash FROM dolt_log LIMIT 1`
-    );
-    return result.rows[0]?.commit_hash as string;
-  };
+const getLatestCommitHash = (db: AgentsManageDatabaseClient) => async (): Promise<string> => {
+  const result = await db.execute(sql`SELECT commit_hash FROM dolt_log LIMIT 1`);
+  return result.rows[0]?.commit_hash as string;
+};
 
 /**
  * Sync schema from the schema source branch (main) into the current branch.
@@ -369,7 +362,8 @@ export const ensureSchemaSync =
       synced: false,
       hadDifferences: true,
       differences,
-      error: `Branch '${currentBranch}' has ${differences.length} schema difference(s) from '${SCHEMA_SOURCE_BRANCH}'. ` +
+      error:
+        `Branch '${currentBranch}' has ${differences.length} schema difference(s) from '${SCHEMA_SOURCE_BRANCH}'. ` +
         'Set autoSync: true to automatically sync schema.',
     };
   };
@@ -432,4 +426,3 @@ export const areBranchesSchemaCompatible =
       branchBDifferences: diffB,
     };
   };
-
