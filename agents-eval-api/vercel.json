@@ -1,6 +1,11 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
   "framework": "hono",
+  "build": {
+    "env": {
+      "VERCEL_CLI_VERSION": "latest"
+    }
+  },
   "functions": {
     "index.js": {
       "maxDuration": 300,
