@@ -16,7 +16,7 @@ import { ac, adminRole, memberRole, ownerRole } from './permissions';
  * See: https://www.better-auth.com/docs/plugins/organization#active-organization
  */
 async function getInitialOrganization(
-  dbClient: DatabaseClient,
+  dbClient: AgentsRunDatabaseClient,
   userId: string
 ): Promise<{ id: string } | null> {
   const [membership] = await dbClient

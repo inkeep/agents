@@ -1,7 +1,6 @@
 import type { NodePgDatabase } from 'drizzle-orm/node-postgres';
 import { drizzle } from 'drizzle-orm/node-postgres';
 import type { PgliteDatabase } from 'drizzle-orm/pglite';
-import type { PoolClient } from 'pg';
 import { Pool } from 'pg';
 import { env, loadEnvironmentFiles } from '../../env';
 import * as schema from './manage-schema';
