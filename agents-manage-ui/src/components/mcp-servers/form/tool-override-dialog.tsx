@@ -1,6 +1,8 @@
 'use client';
 
 import { useState } from 'react';
+import { ExpandableJsonEditor } from '@/components/editors/expandable-json-editor';
+import { JsonSchemaBuilder } from '@/components/form/json-schema-builder';
 import { Button } from '@/components/ui/button';
 import {
   Dialog,
@@ -12,10 +14,8 @@ import {
 } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Textarea } from '@/components/ui/textarea';
 import { Switch } from '@/components/ui/switch';
-import { JsonSchemaBuilder } from '@/components/form/json-schema-builder';
-import { ExpandableJsonEditor } from '@/components/editors/expandable-json-editor';
+import { Textarea } from '@/components/ui/textarea';
 
 interface ToolOverrideDialogProps {
   isOpen: boolean;
@@ -54,8 +54,8 @@ export function ToolOverrideDialog({
     override.schema ? JSON.stringify(override.schema, null, 2) : ''
   );
   const [transformation, setTransformation] = useState(
-    typeof override.transformation === 'string' 
-      ? override.transformation 
+    typeof override.transformation === 'string'
+      ? override.transformation
       : JSON.stringify(override.transformation || {}, null, 2)
   );
   const [useVisualBuilder, setUseVisualBuilder] = useState(true);
@@ -64,16 +64,16 @@ export function ToolOverrideDialog({
     const newOverride = {
       ...(displayName.trim() && { displayName: displayName.trim() }),
       ...(description.trim() && { description: description.trim() }),
-      ...(schema.trim() && { 
+      ...(schema.trim() && {
         schema: (() => {
           try {
             return JSON.parse(schema);
           } catch {
             return schema;
           }
-        })()
+        })(),
       }),
-      ...(transformation.trim() && { 
+      ...(transformation.trim() && {
         transformation: (() => {
           try {
             const parsed = JSON.parse(transformation);
@@ -81,7 +81,7 @@ export function ToolOverrideDialog({
           } catch {
             return transformation;
           }
-        })()
+        })(),
       }),
     };
 
@@ -89,12 +89,12 @@ export function ToolOverrideDialog({
     onOpenChange(false);
   };
 
-  const hasChanges = displayName.trim() || description.trim() || 
-                    schema.trim() || transformation.trim();
+  const hasChanges =
+    displayName.trim() || description.trim() || schema.trim() || transformation.trim();
 
   return (
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
-      <DialogContent 
+      <DialogContent
         size="fullscreen"
         className="!w-[90vw] !max-w-6xl max-h-[90vh] overflow-y-auto !h-auto"
       >
@@ -127,7 +127,7 @@ export function ToolOverrideDialog({
               id="description"
               value={description}
               onChange={(e) => setDescription(e.target.value)}
-              placeholder={originalTool?.description || "Enter a custom description..."}
+              placeholder={originalTool?.description || 'Enter a custom description...'}
               rows={3}
             />
             <p className="text-xs text-muted-foreground mt-1">
@@ -150,13 +150,10 @@ export function ToolOverrideDialog({
                 />
               </div>
             </div>
-            
+
             {useVisualBuilder ? (
               <div className="border rounded-lg p-4">
-                <JsonSchemaBuilder
-                  value={schema}
-                  onChange={setSchema}
-                />
+                <JsonSchemaBuilder value={schema} onChange={setSchema} />
               </div>
             ) : (
               <ExpandableJsonEditor
@@ -166,15 +163,13 @@ export function ToolOverrideDialog({
                 placeholder='{"param1": {"type": "string", "description": "Parameter 1"}}'
               />
             )}
-            
+
             <p className="text-xs text-muted-foreground mt-1">
-              {useVisualBuilder 
-                ? "Build a simplified schema visually - toggle JSON mode for raw editing"
-                : "Define simplified input parameters as JSON schema"
-              }
+              {useVisualBuilder
+                ? 'Build a simplified schema visually - toggle JSON mode for raw editing'
+                : 'Define simplified input parameters as JSON schema'}
             </p>
           </div>
-
         </div>
 
         <DialogFooter>

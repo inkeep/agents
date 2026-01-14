@@ -133,14 +133,14 @@ function parseZodProperty(name: string, propertyDef: any): SchemaProperty | null
         name: 'item',
         type: 'object',
         required: false,
-        properties: itemProperties
+        properties: itemProperties,
       };
     } else {
       // Array of primitives
       property.items = {
         name: 'item',
         type: parseTypeFromDef(elementDef),
-        required: false
+        required: false,
       };
     }
   }
@@ -203,7 +203,7 @@ function parseJsonSchemaProperty(
         name: 'item',
         type: 'object',
         required: false,
-        properties: itemProperties
+        properties: itemProperties,
       };
     } else if (propertyDef.items.type === 'array') {
       // Array of arrays - handle recursively
@@ -218,7 +218,7 @@ function parseJsonSchemaProperty(
         type: propertyDef.items.type || 'any',
         required: false,
         description: propertyDef.items.description,
-        enum: propertyDef.items.enum
+        enum: propertyDef.items.enum,
       };
     }
   }

@@ -8,7 +8,9 @@ export class JsonTransformer {
     try {
       return jmespath.search(input, jmesPathExpression);
     } catch (error) {
-      throw new Error(`JMESPath transformation failed: ${error instanceof Error ? error.message : String(error)}`);
+      throw new Error(
+        `JMESPath transformation failed: ${error instanceof Error ? error.message : String(error)}`
+      );
     }
   }
 
@@ -20,7 +22,7 @@ export class JsonTransformer {
     const expressions = Object.entries(objectTransformation).map(([key, path]) => {
       return `${key}: ${path}`;
     });
-    
+
     return `{ ${expressions.join(', ')} }`;
   }
 
@@ -28,10 +30,13 @@ export class JsonTransformer {
    * Transform using either direct JMESPath string or object transformation
    * Supports both SDK patterns
    */
-  static transformWithConfig(input: any, config: {
-    jmespath?: string;
-    objectTransformation?: Record<string, string>;
-  }): any {
+  static transformWithConfig(
+    input: any,
+    config: {
+      jmespath?: string;
+      objectTransformation?: Record<string, string>;
+    }
+  ): any {
     if (config.jmespath) {
       return this.transform(input, config.jmespath);
     } else if (config.objectTransformation) {

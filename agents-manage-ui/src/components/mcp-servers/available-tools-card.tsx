@@ -39,8 +39,9 @@ interface PropertyDisplayProps {
 function PropertyDisplay({ property, level }: PropertyDisplayProps) {
   const [isExpanded, setIsExpanded] = useState(level < 2); // Auto-expand first 2 levels
   const indentClass = level > 0 ? `ml-${Math.min(level * 4, 8)}` : '';
-  const hasNested = (property.properties && property.properties.length > 0) || 
-                   (property.items && (property.items.properties || property.items.items));
+  const hasNested =
+    (property.properties && property.properties.length > 0) ||
+    (property.items && (property.items.properties || property.items.items));
 
   return (
     <div className={cn('space-y-1', indentClass)}>
@@ -55,10 +56,11 @@ function PropertyDisplay({ property, level }: PropertyDisplayProps) {
                 onClick={() => setIsExpanded(!isExpanded)}
                 className="h-4 w-4 p-0 hover:bg-transparent"
               >
-                {isExpanded ? 
-                  <ChevronDown className="w-3 h-3" /> : 
+                {isExpanded ? (
+                  <ChevronDown className="w-3 h-3" />
+                ) : (
                   <ChevronUp className="w-3 h-3" />
-                }
+                )}
               </Button>
             )}
             <code className="text-xs font-mono">{property.name}</code>
@@ -85,35 +87,24 @@ function PropertyDisplay({ property, level }: PropertyDisplayProps) {
         <div className="ml-4 space-y-1 border-l border-border pl-3">
           {/* Object properties */}
           {property.properties?.map((nestedProp) => (
-            <PropertyDisplay 
-              key={nestedProp.name} 
-              property={nestedProp} 
-              level={level + 1} 
-            />
+            <PropertyDisplay key={nestedProp.name} property={nestedProp} level={level + 1} />
           ))}
-          
+
           {/* Array item properties */}
           {property.items && property.items.properties && (
             <div className="space-y-1">
               <div className="text-xs text-muted-foreground font-medium">Array items:</div>
               {property.items.properties.map((itemProp) => (
-                <PropertyDisplay 
-                  key={itemProp.name} 
-                  property={itemProp} 
-                  level={level + 1} 
-                />
+                <PropertyDisplay key={itemProp.name} property={itemProp} level={level + 1} />
               ))}
             </div>
           )}
-          
+
           {/* Nested array items */}
           {property.items && property.items.items && (
             <div className="space-y-1">
               <div className="text-xs text-muted-foreground font-medium">Array items:</div>
-              <PropertyDisplay 
-                property={property.items} 
-                level={level + 1} 
-              />
+              <PropertyDisplay property={property.items} level={level + 1} />
             </div>
           )}
         </div>
@@ -129,11 +120,12 @@ function ToolCard({ tool, isActive, override }: ToolCardProps) {
 
   // In simple mode, use override if available, otherwise original
   const schemaToDisplay = override?.schema && !showComparison ? override.schema : tool.inputSchema;
-  const descriptionToDisplay = override?.description && !showComparison ? override.description : tool.description;
-  
+  const descriptionToDisplay =
+    override?.description && !showComparison ? override.description : tool.description;
+
   const parsedSchema = schemaToDisplay ? parseMCPInputSchema(schemaToDisplay) : null;
-  
-  // For comparison mode - parse schemas separately  
+
+  // For comparison mode - parse schemas separately
   const originalParsedSchema = tool.inputSchema ? parseMCPInputSchema(tool.inputSchema) : null;
   const overrideParsedSchema = override?.schema ? parseMCPInputSchema(override.schema) : null;
 
@@ -164,8 +156,8 @@ function ToolCard({ tool, isActive, override }: ToolCardProps) {
             </Badge>
           )}
           {override && (
-            <Badge 
-              variant="destructive" 
+            <Badge
+              variant="destructive"
               className="text-xs cursor-pointer hover:bg-destructive/80 transition-colors"
               onClick={() => setShowComparison(!showComparison)}
             >
@@ -251,7 +243,7 @@ function ToolCard({ tool, isActive, override }: ToolCardProps) {
                   </div>
                 </div>
               )}
-              
+
               <div className="space-y-4">
                 {/* Original Schema */}
                 <div className="space-y-2">
@@ -262,7 +254,7 @@ function ToolCard({ tool, isActive, override }: ToolCardProps) {
                     ))}
                   </div>
                 </div>
-                
+
                 {/* Override Schema */}
                 <div className="space-y-2">
                   <div className="text-sm font-medium">Override Parameters</div>
@@ -273,51 +265,57 @@ function ToolCard({ tool, isActive, override }: ToolCardProps) {
                   </div>
                 </div>
               </div>
-              
+
               {/* Transformation */}
               {override.transformation && (
                 <div className="space-y-2">
                   <div className="text-sm font-medium">Field Mapping</div>
                   <div className="space-y-1 bg-muted p-3 rounded">
                     {typeof override.transformation === 'string' ? (
-                    <div className="space-y-1">
-                      <div className="text-xs text-muted-foreground">JMESPath Expression:</div>
-                      <div className="text-xs font-mono bg-background p-2 rounded border">
-                        {override.transformation.split(',').map((part, index) => {
-                          const trimmed = part.trim();
-                          const colonIndex = trimmed.indexOf(':');
-                          if (colonIndex > 0) {
-                            const field = trimmed.substring(0, colonIndex).trim();
-                            const path = trimmed.substring(colonIndex + 1).trim();
+                      <div className="space-y-1">
+                        <div className="text-xs text-muted-foreground">JMESPath Expression:</div>
+                        <div className="text-xs font-mono bg-background p-2 rounded border">
+                          {override.transformation.split(',').map((part, index) => {
+                            const trimmed = part.trim();
+                            const colonIndex = trimmed.indexOf(':');
+                            if (colonIndex > 0) {
+                              const field = trimmed.substring(0, colonIndex).trim();
+                              const path = trimmed.substring(colonIndex + 1).trim();
+                              return (
+                                <div key={index} className="flex items-center gap-2">
+                                  <span className="text-green-600 dark:text-green-400 font-medium">
+                                    {field}
+                                  </span>
+                                  <span className="text-muted-foreground">←</span>
+                                  <span className="text-blue-600 dark:text-blue-400 font-medium">
+                                    {path}
+                                  </span>
+                                </div>
+                              );
+                            }
                             return (
-                              <div key={index} className="flex items-center gap-2">
-                                <span className="text-green-600 dark:text-green-400 font-medium">
-                                  {field}
-                                </span>
-                                <span className="text-muted-foreground">←</span>
-                                <span className="text-blue-600 dark:text-blue-400 font-medium">
-                                  {path}
-                                </span>
+                              <div key={index} className="text-xs">
+                                {trimmed}
                               </div>
                             );
-                          }
-                          return <div key={index} className="text-xs">{trimmed}</div>;
-                        })}
+                          })}
+                        </div>
                       </div>
-                    </div>
-                  ) : (
-                    Object.entries(override.transformation).map(([overrideField, originalField]) => (
-                      <div key={overrideField} className="flex items-center gap-2 text-xs">
-                        <span className="font-medium text-green-600 dark:text-green-400">
-                          {overrideField}
-                        </span>
-                        <span className="text-muted-foreground">←</span>
-                        <span className="font-medium text-blue-600 dark:text-blue-400">
-                          {originalField}
-                        </span>
-                      </div>
-                    ))
-                  )}
+                    ) : (
+                      Object.entries(override.transformation).map(
+                        ([overrideField, originalField]) => (
+                          <div key={overrideField} className="flex items-center gap-2 text-xs">
+                            <span className="font-medium text-green-600 dark:text-green-400">
+                              {overrideField}
+                            </span>
+                            <span className="text-muted-foreground">←</span>
+                            <span className="font-medium text-blue-600 dark:text-blue-400">
+                              {originalField}
+                            </span>
+                          </div>
+                        )
+                      )
+                    )}
                   </div>
                 </div>
               )}
@@ -336,12 +334,15 @@ export function AvailableToolsCard({
 }: {
   tools: MCPTool['availableTools'];
   activeTools: string[] | undefined;
-  toolOverrides?: Record<string, {
-    displayName?: string;
-    description?: string;
-    schema?: any;
-    transformation?: string | Record<string, string>;
-  }>;
+  toolOverrides?: Record<
+    string,
+    {
+      displayName?: string;
+      description?: string;
+      schema?: any;
+      transformation?: string | Record<string, string>;
+    }
+  >;
 }) {
   if (!tools) return null; // parent component already makes sure to handle this
 

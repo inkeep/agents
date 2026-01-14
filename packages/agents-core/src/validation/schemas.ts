@@ -412,10 +412,12 @@ export const ToolInsertSchema = createInsertSchema(tools).extend({
             displayName: z.string().optional(),
             description: z.string().optional(),
             schema: z.any().optional(),
-            transformation: z.union([
-              z.string(), // JMESPath expression
-              z.record(z.string(), z.string()) // object mapping
-            ]).optional(),
+            transformation: z
+              .union([
+                z.string(), // JMESPath expression
+                z.record(z.string(), z.string()), // object mapping
+              ])
+              .optional(),
           })
         )
         .optional(),
@@ -736,10 +738,12 @@ export const MCPToolConfigSchema = McpToolSchema.omit({
         displayName: z.string().optional(),
         description: z.string().optional(),
         schema: z.any().optional(),
-        transformation: z.union([
-          z.string(), // JMESPath expression
-          z.record(z.string(), z.string()) // object mapping
-        ]).optional(),
+        transformation: z
+          .union([
+            z.string(), // JMESPath expression
+            z.record(z.string(), z.string()), // object mapping
+          ])
+          .optional(),
       })
     )
     .optional(),

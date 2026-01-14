@@ -38,10 +38,12 @@ export const mcpToolSchema = z.object({
             displayName: z.string().optional(),
             description: z.string().optional(),
             schema: z.any().optional(),
-            transformation: z.union([
-              z.string(), // JMESPath expression
-              z.record(z.string(), z.string()) // object mapping
-            ]).optional(),
+            transformation: z
+              .union([
+                z.string(), // JMESPath expression
+                z.record(z.string(), z.string()), // object mapping
+              ])
+              .optional(),
           })
         )
         .optional(),

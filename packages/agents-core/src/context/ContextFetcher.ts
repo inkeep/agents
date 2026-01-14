@@ -1,10 +1,10 @@
-import { JsonTransformer } from '../utils/JsonTransformer';
 import type { CredentialStoreRegistry } from '../credential-stores/CredentialStoreRegistry';
 import { CredentialStuffer } from '../credential-stuffer/CredentialStuffer';
 import { getCredentialReference } from '../data-access/index';
 import type { DatabaseClient } from '../db/client';
 import { validateAgainstJsonSchema } from '../middleware/index';
 import type { ContextFetchDefinition } from '../types/utility';
+import { JsonTransformer } from '../utils/JsonTransformer';
 import { getLogger } from '../utils/logger';
 import { type TemplateContext, TemplateEngine } from './TemplateEngine';
 

@@ -106,36 +106,41 @@ export class Tool implements ToolInterface {
   // Private method to upsert tool (create or update)
   private async upsertTool(): Promise<void> {
     // Convert any Zod schemas in toolOverrides to JSON Schema format before storing
-    const convertedToolOverrides = this.config.toolOverrides ? 
-      Object.fromEntries(
-        Object.entries(this.config.toolOverrides).map(([toolName, config]) => {
-          const originalSchema = (config as any).schema;
-          const isZod = isZodSchema(originalSchema);
-          
-          logger.info({
-            toolName,
-            isZod,
-            originalSchema: JSON.stringify(originalSchema, null, 2)
-          }, 'SDK: Converting schema before storage');
-          
-          const convertedSchema = isZod 
-            ? convertZodToJsonSchema(originalSchema)
-            : originalSchema;
-            
-          logger.info({
-            toolName,
-            convertedSchema: JSON.stringify(convertedSchema, null, 2)
-          }, 'SDK: Schema after conversion');
-          
-          return [
-            toolName,
-            {
-              ...config,
-              schema: convertedSchema
-            }
-          ];
-        })
-      ) : this.config.toolOverrides;
+    const convertedToolOverrides = this.config.toolOverrides
+      ? Object.fromEntries(
+          Object.entries(this.config.toolOverrides).map(([toolName, config]) => {
+            const originalSchema = (config as any).schema;
+            const isZod = isZodSchema(originalSchema);
+
+            logger.info(
+              {
+                toolName,
+                isZod,
+                originalSchema: JSON.stringify(originalSchema, null, 2),
+              },
+              'SDK: Converting schema before storage'
+            );
+
+            const convertedSchema = isZod ? convertZodToJsonSchema(originalSchema) : originalSchema;
+
+            logger.info(
+              {
+                toolName,
+                convertedSchema: JSON.stringify(convertedSchema, null, 2),
+              },
+              'SDK: Schema after conversion'
+            );
+
+            return [
+              toolName,
+              {
+                ...config,
+                schema: convertedSchema,
+              },
+            ];
+          })
+        )
+      : this.config.toolOverrides;
 
     const toolDataForUpdate: Omit<ToolApiInsert, 'id'> & { id?: string } = {
       id: this.getId(),

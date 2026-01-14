@@ -679,26 +679,30 @@ export class Project implements ProjectInterface {
               if ('config' in actualTool && 'serverUrl' in actualTool.config) {
                 const mcpTool = actualTool as any; // Cast to access MCP-specific properties
                 // Convert any Zod schemas in toolOverrides to JSON Schema format before storing
-                const convertedToolOverrides = mcpTool.config.toolOverrides ? 
-                  Object.fromEntries(
-                    Object.entries(mcpTool.config.toolOverrides).map(([toolName, config]) => {
-                      const originalSchema = (config as any)?.schema;
-                      const convertedSchema = isZodSchema(originalSchema) 
-                        ? convertZodToJsonSchema(originalSchema)
-                        : originalSchema;
-                        
-                      logger.info({
-                        projectId: this.projectId,
-                        toolId,
-                        toolName,
-                        isZod: isZodSchema(originalSchema),
-                        originalType: typeof originalSchema,
-                        convertedType: typeof convertedSchema
-                      }, 'Project: Converting toolOverride schema');
-                      
-                      return [toolName, { ...(config || {}), schema: convertedSchema }];
-                    })
-                  ) : mcpTool.config.toolOverrides;
+                const convertedToolOverrides = mcpTool.config.toolOverrides
+                  ? Object.fromEntries(
+                      Object.entries(mcpTool.config.toolOverrides).map(([toolName, config]) => {
+                        const originalSchema = (config as any)?.schema;
+                        const convertedSchema = isZodSchema(originalSchema)
+                          ? convertZodToJsonSchema(originalSchema)
+                          : originalSchema;
+
+                        logger.info(
+                          {
+                            projectId: this.projectId,
+                            toolId,
+                            toolName,
+                            isZod: isZodSchema(originalSchema),
+                            originalType: typeof originalSchema,
+                            convertedType: typeof convertedSchema,
+                          },
+                          'Project: Converting toolOverride schema'
+                        );
+
+                        return [toolName, { ...(config || {}), schema: convertedSchema }];
+                      })
+                    )
+                  : mcpTool.config.toolOverrides;
 
                 const toolConfig: ToolApiInsert['config'] = {
                   type: 'mcp',

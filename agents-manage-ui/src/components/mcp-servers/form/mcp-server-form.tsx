@@ -6,10 +6,10 @@ import { useRouter } from 'next/navigation';
 import { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { toast } from 'sonner';
-import { GenericInput } from '@/components/form/generic-input';
-import { GenericTextarea } from '@/components/form/generic-textarea';
 import { ExpandableJsonEditor } from '@/components/editors/expandable-json-editor';
+import { GenericInput } from '@/components/form/generic-input';
 import { GenericSelect } from '@/components/form/generic-select';
+import { GenericTextarea } from '@/components/form/generic-textarea';
 import { Button } from '@/components/ui/button';
 import { DeleteConfirmation } from '@/components/ui/delete-confirmation';
 import { Dialog, DialogTrigger } from '@/components/ui/dialog';
@@ -346,19 +346,18 @@ export function MCPServerForm({
                 onToolOverrideChange={(toolName, override) => {
                   const currentOverrides = form.watch('config.mcp.toolOverrides') || {};
                   const newOverrides = { ...currentOverrides };
-                  
+
                   if (Object.keys(override).length === 0) {
                     // Remove override if empty
                     delete newOverrides[toolName];
                   } else {
                     newOverrides[toolName] = override;
                   }
-                  
+
                   form.setValue('config.mcp.toolOverrides', newOverrides);
                   form.trigger('config.mcp.toolOverrides');
                 }}
               />
-              
             </>
           )}
 

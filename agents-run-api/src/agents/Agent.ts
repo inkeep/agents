@@ -18,6 +18,7 @@ import {
   getLedgerArtifacts,
   getToolsForAgent,
   getUserScopedCredentialReference,
+  JsonTransformer,
   listTaskIdsByContextId,
   MCPServerType,
   type MCPToolConfig,
@@ -64,7 +65,6 @@ import { IncrementalStreamParser } from '../services/IncrementalStreamParser';
 import { MidGenerationCompressor } from '../services/MidGenerationCompressor';
 import { pendingToolApprovalManager } from '../services/PendingToolApprovalManager';
 import { ResponseFormatter } from '../services/ResponseFormatter';
-import { JsonTransformer } from '@inkeep/agents-core';
 import type { SandboxConfig } from '../types/execution-context';
 import { generateToolId } from '../utils/agent-operations';
 import { ArtifactCreateSchema, ArtifactReferenceSchema } from '../utils/artifact-component-schema';
@@ -1839,30 +1839,34 @@ export class Agent {
 
   private applyToolOverrides(originalTools: any, mcpTool: McpTool): any {
     // Check if this tool has overrides configured
-    const toolOverrides = mcpTool.config.type === 'mcp' ? (mcpTool.config as any).mcp?.toolOverrides : undefined;
-    
+    const toolOverrides =
+      mcpTool.config.type === 'mcp' ? (mcpTool.config as any).mcp?.toolOverrides : undefined;
+
     if (!toolOverrides) {
       return originalTools;
     }
 
     const processedTools: any = {};
-    
+
     for (const [toolName, toolDef] of Object.entries(originalTools)) {
       // Check if this tool has an override
       const override = toolOverrides[toolName];
-      
+
       if (override && (override.schema || override.description || override.displayName)) {
         // Apply overrides (schema, description, displayName, transformation)
         try {
           // Use override schema if provided, otherwise use original
-          const inputSchema = override.schema ? jsonSchemaToZod(override.schema) : (toolDef as any).inputSchema;
-          
+          const inputSchema = override.schema
+            ? jsonSchemaToZod(override.schema)
+            : (toolDef as any).inputSchema;
+
           // Use display name or fall back to original tool name
           const toolId = override.displayName || toolName;
-          
+
           // Use override description or fall back to original description
-          const toolDescription = override.description || (toolDef as any).description || `Tool ${toolId}`;
-          
+          const toolDescription =
+            override.description || (toolDef as any).description || `Tool ${toolId}`;
+
           const simplifiedTool = tool({
             description: toolDescription,
             inputSchema,
@@ -1870,29 +1874,38 @@ export class Agent {
               // Only transform if transformation is provided
               let complexArgs = simpleArgs;
               if (override.transformation) {
-                complexArgs = typeof override.transformation === 'string' 
-                  ? JsonTransformer.transform(simpleArgs, override.transformation)
-                  : JsonTransformer.transformWithConfig(simpleArgs, { objectTransformation: override.transformation });
-                
-                logger.debug({ simpleArgs, complexArgs, transformation: override.transformation }, 'Transformed arguments using JsonTransformer');
+                complexArgs =
+                  typeof override.transformation === 'string'
+                    ? JsonTransformer.transform(simpleArgs, override.transformation)
+                    : JsonTransformer.transformWithConfig(simpleArgs, {
+                        objectTransformation: override.transformation,
+                      });
+
+                logger.debug(
+                  { simpleArgs, complexArgs, transformation: override.transformation },
+                  'Transformed arguments using JsonTransformer'
+                );
               }
-              
+
               // Call original tool
               return await (toolDef as any).execute(complexArgs);
-            }
+            },
           });
-          
+
           // Replace original with overridden version using the display name if provided
           const finalToolName = override.displayName || toolName;
           processedTools[finalToolName] = simplifiedTool;
-          
-          logger.info({ 
-            toolName, 
-            displayName: override.displayName,
-            hasSchemaOverride: !!override.schema,
-            hasDescriptionOverride: !!override.description,
-            hasTransformation: !!override.transformation
-          }, 'Applied tool overrides');
+
+          logger.info(
+            {
+              toolName,
+              displayName: override.displayName,
+              hasSchemaOverride: !!override.schema,
+              hasDescriptionOverride: !!override.description,
+              hasTransformation: !!override.transformation,
+            },
+            'Applied tool overrides'
+          );
         } catch (error) {
           logger.error({ toolName, error }, 'Failed to apply tool overrides, using original');
           // Fall back to original tool
@@ -1903,7 +1916,7 @@ export class Agent {
         processedTools[toolName] = toolDef;
       }
     }
-    
+
     return processedTools;
   }
 

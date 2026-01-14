@@ -220,7 +220,7 @@ const discoverToolsFromServer = async (
     await client.disconnect();
 
     const toolOverrides = tool.config.mcp.toolOverrides;
-    
+
     const toolDefinitions: McpToolDefinition[] = Object.entries(serverTools).map(
       ([name, toolDef]) => {
         const schema = extractInputSchema(toolDef as any, name, toolOverrides);

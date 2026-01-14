@@ -1,15 +1,14 @@
 'use client';
 
-import React from 'react';
-import { Check, X, ChevronDown, ChevronRight } from 'lucide-react';
-import { useMemo, useState } from 'react';
+import { Check, ChevronDown, ChevronRight, X } from 'lucide-react';
+import React, { useMemo, useState } from 'react';
 import { type Control, type FieldPath, useController } from 'react-hook-form';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { ToolOverrideDialog } from './tool-override-dialog';
 
 type ToolsConfig =
@@ -34,12 +33,15 @@ interface ActiveToolsSelectorProps<
   }>;
   description?: string;
   disabled?: boolean;
-  toolOverrides?: Record<string, {
-    displayName?: string;
-    description?: string;
-    schema?: any;
-    transformation?: string | Record<string, string>;
-  }>;
+  toolOverrides?: Record<
+    string,
+    {
+      displayName?: string;
+      description?: string;
+      schema?: any;
+      transformation?: string | Record<string, string>;
+    }
+  >;
   onToolOverrideChange?: (toolName: string, override: any) => void;
 }
 
@@ -148,7 +150,7 @@ export function ActiveToolsSelector<
   const allToolsSelected = getSelectedCount() === availableTools.length;
 
   const toggleToolExpanded = (toolName: string) => {
-    setExpandedTools(prev => {
+    setExpandedTools((prev) => {
       const newSet = new Set(prev);
       if (newSet.has(toolName)) {
         newSet.delete(toolName);
@@ -221,10 +223,7 @@ export function ActiveToolsSelector<
                       const override = toolOverrides[tool.name];
 
                       return (
-                        <div
-                          key={tool.name}
-                          className="border-b last:border-b-0"
-                        >
+                        <div key={tool.name} className="border-b last:border-b-0">
                           {/* Tool Header */}
                           <div className="flex items-start gap-4 py-4 px-6">
                             <div className="flex items-center h-[22px]">
@@ -235,30 +234,32 @@ export function ActiveToolsSelector<
                                 onClick={() => !disabled && handleToolToggle(tool.name, !isChecked)}
                               />
                             </div>
-                            
+
                             <div className="flex-1 flex flex-col gap-2">
                               <div className="flex items-center gap-2">
                                 <Badge
                                   variant={isChecked ? 'primary' : 'code'}
                                   className={`font-mono font-medium text-xs cursor-pointer transition-colors ${disabled ? 'opacity-50 cursor-not-allowed' : ''}`}
-                                  onClick={() => !disabled && handleToolToggle(tool.name, !isChecked)}
+                                  onClick={() =>
+                                    !disabled && handleToolToggle(tool.name, !isChecked)
+                                  }
                                 >
                                   {override?.displayName || tool.name}
                                 </Badge>
-                                
+
                                 {hasOverride && (
-                                  <Badge 
-                                    variant="destructive" 
+                                  <Badge
+                                    variant="destructive"
                                     className="text-xs cursor-pointer hover:bg-destructive/80 transition-colors"
                                     onClick={() => setEditingTool(tool.name)}
                                   >
                                     Override
                                   </Badge>
                                 )}
-                                
+
                                 {!hasOverride && onToolOverrideChange && (
-                                  <Badge 
-                                    variant="outline" 
+                                  <Badge
+                                    variant="outline"
                                     className="text-xs cursor-pointer hover:bg-muted transition-colors"
                                     onClick={() => setEditingTool(tool.name)}
                                   >
@@ -266,7 +267,7 @@ export function ActiveToolsSelector<
                                   </Badge>
                                 )}
                               </div>
-                              
+
                               <Tooltip delayDuration={800}>
                                 <TooltipTrigger asChild>
                                   <p className="text-sm text-muted-foreground line-clamp-1">
@@ -278,7 +279,7 @@ export function ActiveToolsSelector<
                                 </TooltipContent>
                               </Tooltip>
                             </div>
-                            
+
                             {hasOverride && (
                               <Button
                                 type="button"
@@ -304,22 +305,27 @@ export function ActiveToolsSelector<
                                 <div>
                                   <div className="text-sm font-medium mb-1">Name Override</div>
                                   <div className="text-sm bg-background p-2 rounded border">
-                                    <span className="text-muted-foreground">Original:</span> <code>{tool.name}</code>
+                                    <span className="text-muted-foreground">Original:</span>{' '}
+                                    <code>{tool.name}</code>
                                     <br />
-                                    <span className="text-muted-foreground">Display:</span> <code>{override.displayName}</code>
+                                    <span className="text-muted-foreground">Display:</span>{' '}
+                                    <code>{override.displayName}</code>
                                   </div>
                                 </div>
                               )}
 
                               {/* Description Changes */}
-                              {override.description && override.description !== tool.description && (
-                                <div>
-                                  <div className="text-sm font-medium mb-1">Description Override</div>
-                                  <div className="text-sm bg-background p-2 rounded border">
-                                    {override.description}
+                              {override.description &&
+                                override.description !== tool.description && (
+                                  <div>
+                                    <div className="text-sm font-medium mb-1">
+                                      Description Override
+                                    </div>
+                                    <div className="text-sm bg-background p-2 rounded border">
+                                      {override.description}
+                                    </div>
                                   </div>
-                                </div>
-                              )}
+                                )}
 
                               {/* Schema Override */}
                               {override.schema && (
@@ -337,20 +343,27 @@ export function ActiveToolsSelector<
                                   <div className="text-sm font-medium mb-1">Field Mapping</div>
                                   <div className="bg-background p-2 rounded border">
                                     {typeof override.transformation === 'string' ? (
-                                      <div className="text-xs font-mono">{override.transformation}</div>
+                                      <div className="text-xs font-mono">
+                                        {override.transformation}
+                                      </div>
                                     ) : (
                                       <div className="space-y-1">
-                                        {Object.entries(override.transformation).map(([overrideField, originalField]) => (
-                                          <div key={overrideField} className="flex items-center gap-2 text-xs">
-                                            <span className="font-medium text-green-600 dark:text-green-400">
-                                              {overrideField}
-                                            </span>
-                                            <span className="text-muted-foreground">←</span>
-                                            <span className="font-medium text-blue-600 dark:text-blue-400">
-                                              {originalField}
-                                            </span>
-                                          </div>
-                                        ))}
+                                        {Object.entries(override.transformation).map(
+                                          ([overrideField, originalField]) => (
+                                            <div
+                                              key={overrideField}
+                                              className="flex items-center gap-2 text-xs"
+                                            >
+                                              <span className="font-medium text-green-600 dark:text-green-400">
+                                                {overrideField}
+                                              </span>
+                                              <span className="text-muted-foreground">←</span>
+                                              <span className="font-medium text-blue-600 dark:text-blue-400">
+                                                {originalField}
+                                              </span>
+                                            </div>
+                                          )
+                                        )}
                                       </div>
                                     )}
                                   </div>
@@ -376,7 +389,7 @@ export function ActiveToolsSelector<
                                     const newOverrides = { ...toolOverrides };
                                     delete newOverrides[tool.name];
                                     onToolOverrideChange && onToolOverrideChange(tool.name, {});
-                                    setExpandedTools(prev => {
+                                    setExpandedTools((prev) => {
                                       const newSet = new Set(prev);
                                       newSet.delete(tool.name);
                                       return newSet;
@@ -404,18 +417,18 @@ export function ActiveToolsSelector<
       {/* Tool Override Dialog */}
       {editingTool && (
         <ToolOverrideDialog
-            isOpen={true}
-            onOpenChange={(open) => !open && setEditingTool(null)}
-            toolName={editingTool}
-            override={toolOverrides[editingTool]}
-            originalTool={availableTools.find(t => t.name === editingTool)}
-            onSave={(override) => {
-              if (onToolOverrideChange) {
-                onToolOverrideChange(editingTool, override);
-              }
-              setEditingTool(null);
-            }}
-          />
+          isOpen={true}
+          onOpenChange={(open) => !open && setEditingTool(null)}
+          toolName={editingTool}
+          override={toolOverrides[editingTool]}
+          originalTool={availableTools.find((t) => t.name === editingTool)}
+          onSave={(override) => {
+            if (onToolOverrideChange) {
+              onToolOverrideChange(editingTool, override);
+            }
+            setEditingTool(null);
+          }}
+        />
       )}
     </React.Fragment>
   );
