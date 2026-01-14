@@ -1,6 +1,5 @@
 import {
-  type ExecutionContext,
-  getAgentById,
+  type BaseExecutionContext,
   validateAndGetApiKey,
   validateTargetAgent,
   verifyServiceToken,
@@ -11,19 +10,106 @@ import { HTTPException } from 'hono/http-exception';
 import dbClient from '../data/db/dbClient';
 import { env } from '../env';
 import { getLogger } from '../logger';
-import { createExecutionContext } from '../types/execution-context';
+import { createBaseExecutionContext } from '../types/execution-context';
 
 const logger = getLogger('env-key-auth');
 
+// ============================================================================
+// Supported auth strategies
+// ============================================================================
+// 1. JWT temp token: generated with user session cookies
+// 2. Bypass secret: override used for development purposes
+// 3. Database API key: validated against database, created in the dashboard
+// 4. Team agent token: used for intra-tenant team-agent delegation
+// ============================================================================
+
+/**
+ * Common request data extracted once at the start of auth
+ */
+interface RequestData {
+  authHeader?: string;
+  apiKey?: string;
+  tenantId?: string;
+  projectId?: string;
+  agentId?: string;
+  subAgentId?: string;
+  ref?: string;
+  baseUrl: string;
+}
+
+/**
+ * Partial context data returned by auth strategies
+ * These fields will be merged with RequestData to create the final context
+ */
+type AuthResult = Pick<
+  BaseExecutionContext,
+  'apiKey' | 'tenantId' | 'projectId' | 'agentId' | 'apiKeyId' | 'metadata'
+>;
+
+type AuthAttempt = {
+  authResult: AuthResult | null;
+  failureMessage?: string;
+};
+
+/**
+ * Extract common request data from the Hono context
+ */
+function extractRequestData(c: { req: any }): RequestData {
+  const authHeader = c.req.header('Authorization');
+  const tenantId = c.req.header('x-inkeep-tenant-id');
+  const projectId = c.req.header('x-inkeep-project-id');
+  const agentId = c.req.header('x-inkeep-agent-id');
+  const subAgentId = c.req.header('x-inkeep-sub-agent-id');
+  const proto = c.req.header('x-forwarded-proto')?.split(',')[0].trim();
+  const fwdHost = c.req.header('x-forwarded-host')?.split(',')[0].trim();
+  const host = fwdHost ?? c.req.header('host');
+  const reqUrl = new URL(c.req.url);
+  const ref = c.req.query('ref');
+
+  const baseUrl =
+    proto && host
+      ? `${proto}://${host}`
+      : host
+        ? `${reqUrl.protocol}//${host}`
+        : `${reqUrl.origin}`;
+
+  return {
+    authHeader,
+    apiKey: authHeader?.startsWith('Bearer ') ? authHeader.substring(7) : undefined,
+    tenantId,
+    projectId,
+    agentId,
+    subAgentId,
+    ref,
+    baseUrl,
+  };
+}
+
+/**
+ * Build the final execution context from auth result and request data
+ */
+function buildExecutionContext(authResult: AuthResult, reqData: RequestData): BaseExecutionContext {
+  return createBaseExecutionContext({
+    apiKey: authResult.apiKey,
+    tenantId: authResult.tenantId,
+    projectId: authResult.projectId,
+    agentId: authResult.agentId,
+    apiKeyId: authResult.apiKeyId,
+    baseUrl: reqData.baseUrl,
+    subAgentId: reqData.subAgentId,
+    ref: reqData.ref,
+    metadata: authResult.metadata,
+  });
+}
+
+// ============================================================================
+// Auth Strategies
+// ============================================================================
+
 /**
  * Attempts to authenticate using a JWT temporary token
- * Returns execution context if successful, null if token is invalid or not a JWT
  */
-async function tryAuthenticateWithTempJwt(
-  apiKey: string,
-  baseUrl: string,
-  subAgentId?: string
-): Promise<ExecutionContext | null> {
+async function tryTempJwtAuth(apiKey: string): Promise<AuthResult | null> {
   if (!apiKey.startsWith('eyJ') || !env.INKEEP_AGENTS_TEMP_JWT_PUBLIC_KEY) {
     return null;
   }
@@ -32,258 +118,32 @@ async function tryAuthenticateWithTempJwt(
     const publicKeyPem = Buffer.from(env.INKEEP_AGENTS_TEMP_JWT_PUBLIC_KEY, 'base64').toString(
       'utf-8'
     );
-
     const payload = await verifyTempToken(publicKeyPem, apiKey);
 
     logger.info({}, 'JWT temp token authenticated successfully');
 
-    return createExecutionContext({
-      apiKey: apiKey,
+    return {
+      apiKey,
       tenantId: payload.tenantId,
       projectId: payload.projectId,
       agentId: payload.agentId,
       apiKeyId: 'temp-jwt',
-      baseUrl: baseUrl,
-      subAgentId: subAgentId,
       metadata: { initiatedBy: payload.initiatedBy },
-    });
+    };
   } catch (error) {
     logger.debug({ error }, 'JWT verification failed');
     return null;
   }
 }
 
-export const apiKeyAuth = () =>
-  createMiddleware<{
-    Variables: {
-      executionContext: ExecutionContext;
-    };
-  }>(async (c, next) => {
-    if (c.req.method === 'OPTIONS') {
-      await next();
-      return;
-    }
-
-    const authHeader = c.req.header('Authorization');
-    const tenantId = c.req.header('x-inkeep-tenant-id');
-    const projectId = c.req.header('x-inkeep-project-id');
-    const agentId = c.req.header('x-inkeep-agent-id');
-    const subAgentId = c.req.header('x-inkeep-sub-agent-id');
-    const proto = c.req.header('x-forwarded-proto')?.split(',')[0].trim();
-    const fwdHost = c.req.header('x-forwarded-host')?.split(',')[0].trim();
-    const host = fwdHost ?? c.req.header('host');
-    const reqUrl = new URL(c.req.url);
-
-    const baseUrl =
-      proto && host
-        ? `${proto}://${host}`
-        : host
-          ? `${reqUrl.protocol}//${host}`
-          : `${reqUrl.origin}`;
-
-    if (process.env.ENVIRONMENT === 'development' || process.env.ENVIRONMENT === 'test') {
-      logger.info({}, 'development environment');
-      let executionContext: ExecutionContext;
-
-      if (authHeader?.startsWith('Bearer ')) {
-        const apiKey = authHeader.substring(7);
-
-        // Try JWT temp token first
-        const jwtContext = await tryAuthenticateWithTempJwt(apiKey, baseUrl, subAgentId);
-        if (jwtContext) {
-          c.set('executionContext', jwtContext);
-          await next();
-          return;
-        }
-
-        // Try regular API key
-        try {
-          executionContext = await extractContextFromApiKey(apiKey, baseUrl);
-          if (subAgentId) {
-            executionContext.subAgentId = subAgentId;
-          }
-          c.set('executionContext', executionContext);
-        } catch {
-          // Try team agent token
-          try {
-            executionContext = await extractContextFromTeamAgentToken(apiKey, baseUrl, subAgentId);
-            c.set('executionContext', executionContext);
-          } catch {
-            // Fall through to default context
-            executionContext = createExecutionContext({
-              apiKey: 'development',
-              tenantId: tenantId || 'test-tenant',
-              projectId: projectId || 'test-project',
-              agentId: agentId || 'test-agent',
-              apiKeyId: 'test-key',
-              baseUrl: baseUrl,
-              subAgentId: subAgentId,
-            });
-            c.set('executionContext', executionContext);
-            logger.info(
-              {},
-              'Development/test environment - fallback to default context due to invalid API key'
-            );
-          }
-        }
-      } else {
-        executionContext = createExecutionContext({
-          apiKey: 'development',
-          tenantId: tenantId || 'test-tenant',
-          projectId: projectId || 'test-project',
-          agentId: agentId || 'test-agent',
-          apiKeyId: 'test-key',
-          baseUrl: baseUrl,
-          subAgentId: subAgentId,
-        });
-        c.set('executionContext', executionContext);
-        logger.info(
-          {},
-          'Development/test environment - no API key provided, using default context'
-        );
-      }
-      await next();
-      return;
-    }
-
-    if (!authHeader || !authHeader.startsWith('Bearer ')) {
-      throw new HTTPException(401, {
-        message: 'Missing or invalid authorization header. Expected: Bearer <api_key>',
-      });
-    }
-
-    const apiKey = authHeader.substring(7);
-
-    // Try JWT temp token first
-    const jwtContext = await tryAuthenticateWithTempJwt(apiKey, baseUrl, subAgentId);
-    if (jwtContext) {
-      c.set('executionContext', jwtContext);
-      await next();
-      return;
-    }
-
-    // If bypass secret is configured, check it first (production mode bypass)
-    if (env.INKEEP_AGENTS_RUN_API_BYPASS_SECRET) {
-      if (apiKey === env.INKEEP_AGENTS_RUN_API_BYPASS_SECRET) {
-        if (!tenantId || !projectId || !agentId) {
-          throw new HTTPException(401, {
-            message: 'Missing or invalid tenant, project, or agent ID',
-          });
-        }
-
-        const executionContext = createExecutionContext({
-          apiKey: apiKey,
-          tenantId: tenantId,
-          projectId: projectId,
-          agentId: agentId,
-          apiKeyId: 'bypass',
-          baseUrl: baseUrl,
-          subAgentId: subAgentId,
-        });
-
-        c.set('executionContext', executionContext);
-
-        logger.info({}, 'Bypass secret authenticated successfully');
-
-        await next();
-        return;
-      }
-      if (apiKey) {
-        try {
-          const executionContext = await extractContextFromApiKey(apiKey, baseUrl);
-          if (subAgentId) {
-            executionContext.subAgentId = subAgentId;
-          }
-
-          c.set('executionContext', executionContext);
-
-          logger.info({}, 'API key authenticated successfully');
-        } catch {
-          const executionContext = await extractContextFromTeamAgentToken(
-            apiKey,
-            baseUrl,
-            subAgentId
-          );
-          c.set('executionContext', executionContext);
-        }
-
-        await next();
-        return;
-      }
-      throw new HTTPException(401, {
-        message: 'Invalid Token',
-      });
-    }
-
-    if (!apiKey || apiKey.length < 16) {
-      throw new HTTPException(401, {
-        message: 'Invalid API key format',
-      });
-    }
-
-    try {
-      const executionContext = await extractContextFromApiKey(apiKey, baseUrl);
-      if (subAgentId) {
-        executionContext.subAgentId = subAgentId;
-      }
-
-      c.set('executionContext', executionContext);
-
-      logger.debug(
-        {
-          tenantId: executionContext.tenantId,
-          projectId: executionContext.projectId,
-          agentId: executionContext.agentId,
-          subAgentId: executionContext.subAgentId,
-        },
-        'API key authenticated successfully'
-      );
-
-      await next();
-    } catch {
-      try {
-        const executionContext = await extractContextFromTeamAgentToken(
-          apiKey,
-          baseUrl,
-          subAgentId
-        );
-        c.set('executionContext', executionContext);
-
-        await next();
-      } catch (error) {
-        if (error instanceof HTTPException) {
-          throw error;
-        }
-
-        logger.error({ error }, 'API key authentication error');
-        throw new HTTPException(500, {
-          message: 'Authentication failed',
-        });
-      }
-    }
-  });
-
-export const extractContextFromApiKey = async (apiKey: string, baseUrl?: string) => {
+/**
+ * Authenticate using a regular API key
+ */
+async function tryApiKeyAuth(apiKey: string): Promise<AuthResult | null> {
   const apiKeyRecord = await validateAndGetApiKey(apiKey, dbClient);
 
   if (!apiKeyRecord) {
-    throw new HTTPException(401, {
-      message: 'Invalid or expired API key',
-    });
-  }
-
-  const agent = await getAgentById(dbClient)({
-    scopes: {
-      tenantId: apiKeyRecord.tenantId,
-      projectId: apiKeyRecord.projectId,
-      agentId: apiKeyRecord.agentId,
-    },
-  });
-
-  if (!agent) {
-    throw new HTTPException(401, {
-      message: 'Invalid or expired API key',
-    });
+    return null;
   }
 
   logger.debug(
@@ -291,42 +151,35 @@ export const extractContextFromApiKey = async (apiKey: string, baseUrl?: string)
       tenantId: apiKeyRecord.tenantId,
       projectId: apiKeyRecord.projectId,
       agentId: apiKeyRecord.agentId,
-      subAgentId: agent.defaultSubAgentId || undefined,
     },
     'API key authenticated successfully'
   );
-  return createExecutionContext({
-    apiKey: apiKey,
+
+  return {
+    apiKey,
     tenantId: apiKeyRecord.tenantId,
     projectId: apiKeyRecord.projectId,
     agentId: apiKeyRecord.agentId,
     apiKeyId: apiKeyRecord.id,
-    baseUrl: baseUrl,
-    subAgentId: agent.defaultSubAgentId || undefined,
-  });
-};
+  };
+}
 
 /**
- * Extract execution context from a team agent JWT token
- * Team agent tokens are used for intra-tenant agent delegation
+ * Authenticate using a team agent JWT token (for intra-tenant delegation)
  */
-export const extractContextFromTeamAgentToken = async (
-  token: string,
-  baseUrl?: string,
-  expectedSubAgentId?: string
-) => {
+async function tryTeamAgentAuth(token: string, expectedSubAgentId?: string): Promise<AuthAttempt> {
   const result = await verifyServiceToken(token);
 
   if (!result.valid || !result.payload) {
     logger.warn({ error: result.error }, 'Invalid team agent JWT token');
-    throw new HTTPException(401, {
-      message: `Invalid team agent token: ${result.error || 'Unknown error'}`,
-    });
+    return {
+      authResult: null,
+      failureMessage: `Invalid team agent token: ${result.error || 'Invalid token'}`,
+    };
   }
 
   const payload = result.payload;
 
-  // Validate target agent if provided in headers
   if (expectedSubAgentId && !validateTargetAgent(payload, expectedSubAgentId)) {
     logger.error(
       {
@@ -351,21 +204,193 @@ export const extractContextFromTeamAgentToken = async (
     'Team agent JWT token authenticated successfully'
   );
 
-  // Create execution context from the token's target agent perspective
-  return createExecutionContext({
-    apiKey: 'team-agent-jwt', // Not an actual API key
-    tenantId: payload.tenantId,
-    projectId: payload.projectId,
-    agentId: payload.aud, // Target agent ID
-    apiKeyId: 'team-agent-token',
-    baseUrl: baseUrl,
-    subAgentId: undefined,
-    metadata: {
-      teamDelegation: true,
-      originAgentId: payload.sub,
+  return {
+    authResult: {
+      apiKey: 'team-agent-jwt',
+      tenantId: payload.tenantId,
+      projectId: payload.projectId,
+      agentId: payload.aud,
+      apiKeyId: 'team-agent-token',
+      metadata: {
+        teamDelegation: true,
+        originAgentId: payload.sub,
+      },
     },
+  };
+}
+
+/**
+ * Authenticate using bypass secret (production mode bypass)
+ */
+function tryBypassAuth(apiKey: string, reqData: RequestData): AuthResult | null {
+  if (!env.INKEEP_AGENTS_RUN_API_BYPASS_SECRET) {
+    return null;
+  }
+
+  if (apiKey !== env.INKEEP_AGENTS_RUN_API_BYPASS_SECRET) {
+    return null;
+  }
+
+  if (!reqData.tenantId || !reqData.projectId || !reqData.agentId) {
+    throw new HTTPException(401, {
+      message: 'Missing or invalid tenant, project, or agent ID',
+    });
+  }
+
+  logger.info({}, 'Bypass secret authenticated successfully');
+
+  return {
+    apiKey,
+    tenantId: reqData.tenantId,
+    projectId: reqData.projectId,
+    agentId: reqData.agentId,
+    apiKeyId: 'bypass',
+  };
+}
+
+/**
+ * Create default development context
+ */
+function createDevContext(reqData: RequestData): AuthResult {
+  const result = {
+    apiKey: 'development',
+    tenantId: reqData.tenantId || 'test-tenant',
+    projectId: reqData.projectId || 'test-project',
+    agentId: reqData.agentId || 'test-agent',
+    apiKeyId: 'test-key',
+  };
+
+  // Log when falling back to test values to help debug auth issues
+  if (!reqData.tenantId || !reqData.projectId) {
+    logger.warn(
+      {
+        hasTenantId: !!reqData.tenantId,
+        hasProjectId: !!reqData.projectId,
+        hasApiKey: !!reqData.apiKey,
+        apiKeyPrefix: reqData.apiKey?.substring(0, 10),
+        resultTenantId: result.tenantId,
+        resultProjectId: result.projectId,
+      },
+      'createDevContext: Using fallback test values due to missing tenant/project in request'
+    );
+  }
+
+  return result;
+}
+
+// ============================================================================
+// Main Middleware
+// ============================================================================
+
+/**
+ * Try all auth strategies in order, returning the first successful result
+ */
+async function authenticateRequest(reqData: RequestData): Promise<AuthAttempt> {
+  const { apiKey, subAgentId } = reqData;
+
+  if (!apiKey) {
+    return { authResult: null };
+  }
+
+  // 1. Try JWT temp token
+  const jwtResult = await tryTempJwtAuth(apiKey);
+  if (jwtResult) return { authResult: jwtResult };
+
+  // 2. Try bypass secret
+  const bypassResult = tryBypassAuth(apiKey, reqData);
+  if (bypassResult) return { authResult: bypassResult };
+
+  // 3. Try regular API key
+  const apiKeyResult = await tryApiKeyAuth(apiKey);
+  if (apiKeyResult) return { authResult: apiKeyResult };
+
+  // 4. Try team agent token
+  const teamAttempt = await tryTeamAgentAuth(apiKey, subAgentId);
+  if (teamAttempt.authResult) return { authResult: teamAttempt.authResult };
+
+  return { authResult: null, failureMessage: teamAttempt.failureMessage };
+}
+
+export const apiKeyAuth = () =>
+  createMiddleware<{
+    Variables: {
+      executionContext: BaseExecutionContext;
+    };
+  }>(async (c, next) => {
+    if (c.req.method === 'OPTIONS') {
+      await next();
+      return;
+    }
+
+    const reqData = extractRequestData(c);
+    const isDev = process.env.ENVIRONMENT === 'development' || process.env.ENVIRONMENT === 'test';
+
+    // Development/test environment handling
+    if (isDev) {
+      logger.info({}, 'development environment');
+
+      const attempt = await authenticateRequest(reqData);
+
+      if (attempt.authResult) {
+        c.set('executionContext', buildExecutionContext(attempt.authResult, reqData));
+      } else {
+        logger.info(
+          {},
+          reqData.apiKey
+            ? 'Development/test environment - fallback to default context due to invalid API key'
+            : 'Development/test environment - no API key provided, using default context'
+        );
+        c.set('executionContext', buildExecutionContext(createDevContext(reqData), reqData));
+      }
+
+      await next();
+      return;
+    }
+
+    // Production environment - require valid auth
+    if (!reqData.authHeader || !reqData.authHeader.startsWith('Bearer ')) {
+      throw new HTTPException(401, {
+        message: 'Missing or invalid authorization header. Expected: Bearer <api_key>',
+      });
+    }
+
+    if (!reqData.apiKey || reqData.apiKey.length < 16) {
+      throw new HTTPException(401, {
+        message: 'Invalid API key format',
+      });
+    }
+
+    let attempt: AuthAttempt = { authResult: null };
+    try {
+      attempt = await authenticateRequest(reqData);
+    } catch (error) {
+      if (error instanceof HTTPException) {
+        throw error;
+      }
+      logger.error({ error }, 'Authentication failed');
+      throw new HTTPException(500, { message: 'Authentication failed' });
+    }
+
+    if (!attempt.authResult) {
+      logger.error({}, 'API key authentication error - no valid auth method found');
+      throw new HTTPException(401, {
+        message: attempt.failureMessage || 'Invalid Token',
+      });
+    }
+
+    logger.debug(
+      {
+        tenantId: attempt.authResult.tenantId,
+        projectId: attempt.authResult.projectId,
+        agentId: attempt.authResult.agentId,
+        subAgentId: reqData.subAgentId,
+      },
+      'API key authenticated successfully'
+    );
+
+    c.set('executionContext', buildExecutionContext(attempt.authResult, reqData));
+    await next();
   });
-};
 
 /**
  * Helper middleware for endpoints that optionally support API key authentication
@@ -374,7 +399,7 @@ export const extractContextFromTeamAgentToken = async (
 export const optionalAuth = () =>
   createMiddleware<{
     Variables: {
-      executionContext?: ExecutionContext;
+      executionContext?: BaseExecutionContext;
     };
   }>(async (c, next) => {
     const authHeader = c.req.header('Authorization');

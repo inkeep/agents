@@ -73,7 +73,8 @@ describe('create-agents quickstart e2e', () => {
       'apps/manage-ui',
       '.env',
       'package.json',
-      'drizzle.config.ts',
+      'drizzle.manage.config.ts',
+      'drizzle.run.config.ts',
     ]);
     console.log('Directory structure verified');
 
@@ -82,7 +83,8 @@ describe('create-agents quickstart e2e', () => {
     await verifyFile(path.join(projectDir, '.env'), [
       /ENVIRONMENT=development/,
       /OPENAI_API_KEY=test-openai-key/,
-      /DATABASE_URL=postgresql:\/\/appuser:password@localhost:5432\/inkeep_agents/,
+      /INKEEP_AGENTS_MANAGE_DATABASE_URL=postgresql:\/\/appuser:password@localhost:5432\/inkeep_agents/,
+      /INKEEP_AGENTS_RUN_DATABASE_URL=postgresql:\/\/appuser:password@localhost:5433\/inkeep_agents/,
       /INKEEP_AGENTS_MANAGE_API_URL="http:\/\/127\.0\.0\.1:3002"/,
       /INKEEP_AGENTS_RUN_API_URL="http:\/\/127\.0\.0\.1:3003"/,
       /INKEEP_AGENTS_JWT_SIGNING_SECRET=\w+/, // Random secret should be generated
@@ -93,6 +95,15 @@ describe('create-agents quickstart e2e', () => {
     console.log('Verifying inkeep.config.ts...');
     await verifyFile(path.join(projectDir, 'src/inkeep.config.ts'));
     console.log('inkeep.config.ts verified');
+
+    // Link to local monorepo packages
+    console.log('Linking local monorepo packages...');
+    await linkLocalPackages(projectDir, monorepoRoot);
+    console.log('Local monorepo packages linked');
+
+    console.log('Installing dependencies...');
+    await runCommand('pnpm', ['install'], projectDir);
+    console.log('Dependencies installed');
 
     console.log('Setting up project in database');
     await runCommand('pnpm', ['setup-dev:cloud'], projectDir, 600000); // 10 minutes for CI (includes pnpm install, migrations, server startup, push)
@@ -166,32 +177,6 @@ describe('create-agents quickstart e2e', () => {
       const data = await response.json();
       expect(data.data.tenantId).toBe('default');
       expect(data.data.id).toBe(projectId);
-
-      // Link to local monorepo packages
-      await linkLocalPackages(projectDir, monorepoRoot);
-
-      const pushResultLocal = await runCommand(
-        'pnpm',
-        [
-          'inkeep',
-          'push',
-          '--project',
-          `src/projects/${projectId}`,
-          '--config',
-          'src/inkeep.config.ts',
-        ],
-        projectDir,
-        30000
-      );
-
-      expect(
-        pushResultLocal.exitCode,
-        `Push with local packages failed with exit code ${pushResultLocal.exitCode}\nstdout: ${pushResultLocal.stdout}\nstderr: ${pushResultLocal.stderr}`
-      ).toBe(0);
-
-      // Test that the project works with local packages
-      const responseLocal = await fetch(`${manageApiUrl}/tenants/default/projects/${projectId}`);
-      expect(responseLocal.status).toBe(200);
     } catch (error) {
       console.error('Test failed with error:', error);
       // Print server output for debugging

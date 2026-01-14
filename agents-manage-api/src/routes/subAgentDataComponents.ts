@@ -19,7 +19,7 @@ import {
   TenantProjectAgentParamsSchema,
   TenantProjectAgentSubAgentParamsSchema,
 } from '@inkeep/agents-core';
-import dbClient from '../data/db/dbClient';
+
 import { requirePermission } from '../middleware/require-permission';
 import type { BaseAppVariables } from '../types/app';
 
@@ -62,9 +62,10 @@ app.openapi(
     },
   }),
   async (c) => {
+    const db = c.get('db');
     const { tenantId, projectId, agentId, subAgentId } = c.req.valid('param');
 
-    const dataComponents = await getDataComponentsForAgent(dbClient)({
+    const dataComponents = await getDataComponentsForAgent(db)({
       scopes: { tenantId, projectId, agentId, subAgentId },
     });
 
@@ -97,9 +98,10 @@ app.openapi(
     },
   }),
   async (c) => {
+    const db = c.get('db');
     const { tenantId, projectId, dataComponentId } = c.req.valid('param');
 
-    const agents = await getAgentsUsingDataComponent(dbClient)({
+    const agents = await getAgentsUsingDataComponent(db)({
       scopes: { tenantId, projectId },
       dataComponentId,
     });
@@ -146,12 +148,13 @@ app.openapi(
     },
   }),
   async (c) => {
+    const db = c.get('db');
     const { tenantId, projectId, agentId } = c.req.valid('param');
     const { subAgentId, dataComponentId } = c.req.valid('json');
 
     const [agent, dataComponent] = await Promise.all([
-      getSubAgentById(dbClient)({ scopes: { tenantId, projectId, agentId }, subAgentId }),
-      getDataComponent(dbClient)({ scopes: { tenantId, projectId }, dataComponentId }),
+      getSubAgentById(db)({ scopes: { tenantId, projectId, agentId }, subAgentId }),
+      getDataComponent(db)({ scopes: { tenantId, projectId }, dataComponentId }),
     ]);
 
     if (!agent) {
@@ -168,7 +171,7 @@ app.openapi(
       });
     }
 
-    const exists = await isDataComponentAssociatedWithAgent(dbClient)({
+    const exists = await isDataComponentAssociatedWithAgent(db)({
       scopes: { tenantId, projectId, agentId, subAgentId },
       dataComponentId,
     });
@@ -180,7 +183,7 @@ app.openapi(
       });
     }
 
-    const association = await associateDataComponentWithAgent(dbClient)({
+    const association = await associateDataComponentWithAgent(db)({
       scopes: { tenantId, projectId, agentId, subAgentId },
       dataComponentId,
     });
@@ -215,9 +218,10 @@ app.openapi(
     },
   }),
   async (c) => {
+    const db = c.get('db');
     const { tenantId, projectId, agentId, subAgentId, dataComponentId } = c.req.valid('param');
 
-    const removed = await removeDataComponentFromAgent(dbClient)({
+    const removed = await removeDataComponentFromAgent(db)({
       scopes: { tenantId, projectId, agentId, subAgentId },
       dataComponentId,
     });
@@ -261,9 +265,10 @@ app.openapi(
     },
   }),
   async (c) => {
+    const db = c.get('db');
     const { tenantId, projectId, agentId, subAgentId, dataComponentId } = c.req.valid('param');
 
-    const exists = await isDataComponentAssociatedWithAgent(dbClient)({
+    const exists = await isDataComponentAssociatedWithAgent(db)({
       scopes: { tenantId, projectId, agentId, subAgentId },
       dataComponentId,
     });

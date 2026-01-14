@@ -1,7 +1,10 @@
 import { createRoute, OpenAPIHono } from '@hono/zod-openapi';
-import type { ServerConfig } from '@inkeep/agents-core';
+import {
+  type CredentialStoreRegistry,
+  handleApiError,
+  type ServerConfig,
+} from '@inkeep/agents-core';
 import type { auth as authForTypes, createAuth } from '@inkeep/agents-core/auth';
-import type { CredentialStoreRegistry } from '@inkeep/agents-core/credential-stores';
 import { Hono } from 'hono';
 import { cors } from 'hono/cors';
 import { requestId } from 'hono/request-id';
@@ -9,11 +12,14 @@ import { pinoLogger } from 'hono-pino';
 import { env } from './env';
 import { getLogger } from './logger';
 import { apiKeyAuth } from './middleware/auth';
+import { branchScopedDbMiddleware } from './middleware/branch-scoped-db';
 import { errorHandler } from './middleware/error-handler';
+import { refMiddleware, writeProtectionMiddleware } from './middleware/ref';
 import { sessionAuth } from './middleware/session-auth';
 import { requireTenantAccess } from './middleware/tenant-access';
 import { setupOpenAPIRoutes } from './openapi';
 import cliAuthRoutes from './routes/cliAuth';
+import evalsRoutes from './routes/evals';
 import crudRoutes from './routes/index';
 import invitationsRoutes from './routes/invitations';
 import mcpRoutes from './routes/mcp';
@@ -45,6 +51,8 @@ export type AppVariables = {
   userEmail?: string;
   tenantId?: string;
   tenantRole?: string;
+  isInternalService?: boolean;
+  internalServicePayload?: import('@inkeep/agents-core').InternalServiceTokenPayload;
 };
 
 function createManagementHono(
@@ -216,6 +224,11 @@ function createManagementHono(
     app.use('/tenants/:tenantId/*', requireTenantAccess());
   }
 
+  // Ref versioning middleware for all tenant routes - MUST be before route mounting
+  app.use('/tenants/*', async (c, next) => refMiddleware(c, next));
+  app.use('/tenants/*', (c, next) => writeProtectionMiddleware(c, next));
+  app.use('/tenants/*', async (c, next) => branchScopedDbMiddleware(c, next));
+
   // Mount user-organizations routes - global user endpoint
   app.route('/api/users/:userId/organizations', userOrganizationsRoutes);
 
@@ -237,10 +250,14 @@ function createManagementHono(
   // Mount full project routes directly under tenant
   app.route('/tenants/:tenantId', projectFullRoutes);
 
+  // Mount evaluation routes under tenant and project
+  app.route('/tenants/:tenantId/projects/:projectId/evals', evalsRoutes);
+
   // Mount OAuth routes - global OAuth callback endpoint
   app.route('/oauth', oauthRoutes);
 
   app.route('/mcp', mcpRoutes);
+
   // Setup OpenAPI documentation endpoints (/openapi.json and /docs)
   setupOpenAPIRoutes(app);
 

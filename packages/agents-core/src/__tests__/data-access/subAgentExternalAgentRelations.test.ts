@@ -12,12 +12,12 @@ import {
   listSubAgentExternalAgentRelations,
   updateSubAgentExternalAgentRelation,
   upsertSubAgentExternalAgentRelation,
-} from '../../data-access/subAgentExternalAgentRelations';
-import type { DatabaseClient } from '../../db/client';
-import { testDbClient } from '../setup';
+} from '../../data-access/manage/subAgentExternalAgentRelations';
+import type { AgentsManageDatabaseClient } from '../../db/manage/manage-client';
+import { testManageDbClient } from '../setup';
 
 describe('SubAgentExternalAgentRelations Data Access', () => {
-  let db: DatabaseClient;
+  let db: AgentsManageDatabaseClient;
   const testTenantId = 'tenant-123';
   const testProjectId = 'project-456';
   const testAgentId = 'agent-789';
@@ -45,7 +45,7 @@ describe('SubAgentExternalAgentRelations Data Access', () => {
   };
 
   beforeEach(async () => {
-    db = testDbClient;
+    db = testManageDbClient;
     vi.clearAllMocks();
   });
 

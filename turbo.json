@@ -11,7 +11,8 @@
     "ANTHROPIC_API_KEY",
     "OPENAI_API_KEY",
     "ENVIRONMENT",
-    "DATABASE_URL",
+    "INKEEP_AGENTS_MANAGE_DATABASE_URL",
+    "INKEEP_AGENTS_RUN_DATABASE_URL",
     "PORT",
     "LOG_LEVEL"
   ],
@@ -67,6 +68,11 @@
       "outputs": []
     },
     "@inkeep/agents-manage-api#test": {
+      "dependsOn": ["build"],
+      "inputs": ["$TURBO_DEFAULT$", "**/*.{test,spec}.{js,jsx,ts,tsx}"],
+      "outputs": []
+    },
+    "@inkeep/agents-eval-api#test": {
       "dependsOn": ["build"],
       "inputs": ["$TURBO_DEFAULT$", "**/*.{test,spec}.{js,jsx,ts,tsx}"],
       "outputs": []
@@ -137,13 +143,12 @@
       "persistent": true
     },
     "db:generate": {
-      "cache": false,
-      "inputs": ["drizzle.config.ts", "src/db/schema.ts"],
-      "outputs": ["drizzle/**"]
+      "dependsOn": ["db:manage:generate", "db:run:generate"],
+      "cache": false
     },
     "db:migrate": {
-      "cache": false,
-      "inputs": ["drizzle/**", "src/db/schema.ts"]
+      "dependsOn": ["db:manage:migrate", "db:run:migrate"],
+      "cache": false
     },
     "db:studio": {
       "cache": false,
@@ -153,8 +158,48 @@
       "cache": false
     },
     "db:check": {
+      "dependsOn": ["db:manage:check", "db:run:check"],
+      "cache": false
+    },
+    "db:manage:generate": {
       "cache": false,
-      "inputs": ["drizzle.config.ts", "src/db/schema.ts"]
+      "inputs": ["drizzle.manage.config.ts", "src/db/manage/manage-schema.ts"],
+      "outputs": ["drizzle/manage/**"]
+    },
+    "db:manage:migrate": {
+      "cache": false,
+      "inputs": ["drizzle/manage/**", "src/db/manage/manage-schema.ts"]
+    },
+    "db:manage:drop": {
+      "cache": false
+    },
+    "db:manage:studio": {
+      "cache": false,
+      "persistent": true
+    },
+    "db:manage:check": {
+      "cache": false,
+      "inputs": ["drizzle.manage.config.ts", "src/db/manage/manage-schema.ts"]
+    },
+    "db:run:generate": {
+      "cache": false,
+      "inputs": ["drizzle.run.config.ts", "src/db/runtime/runtime-schema.ts"],
+      "outputs": ["drizzle/runtime/**"]
+    },
+    "db:run:migrate": {
+      "cache": false,
+      "inputs": ["drizzle/runtime/**", "src/db/runtime/runtime-schema.ts"]
+    },
+    "db:run:drop": {
+      "cache": false
+    },
+    "db:run:studio": {
+      "cache": false,
+      "persistent": true
+    },
+    "db:run:check": {
+      "cache": false,
+      "inputs": ["drizzle.run.config.ts", "src/db/runtime/runtime-schema.ts"]
     },
     "docs#dev": {
       "cache": false,
