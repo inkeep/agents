@@ -12,7 +12,6 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
-import { useRuntimeConfig } from '@/contexts/runtime-config-context';
 import { type CredentialScope, CredentialScopeEnum } from '../form/validation';
 
 interface ScopeSelectionDialogProps {
@@ -20,6 +19,8 @@ interface ScopeSelectionDialogProps {
   onOpenChange: (open: boolean) => void;
   serverName: string;
   onConfirm: (scope: CredentialScope) => void;
+  /** Whether auth is disabled - pass this prop for Shadow DOM compatibility instead of using useRuntimeConfig */
+  isAuthDisabled?: boolean;
 }
 
 export function ScopeSelectionDialog({
@@ -27,11 +28,9 @@ export function ScopeSelectionDialog({
   onOpenChange,
   serverName,
   onConfirm,
+  isAuthDisabled = false,
 }: ScopeSelectionDialogProps) {
   const [selectedScope, setSelectedScope] = useState<CredentialScope>(CredentialScopeEnum.project);
-  const { PUBLIC_DISABLE_AUTH } = useRuntimeConfig();
-
-  const isAuthDisabled = PUBLIC_DISABLE_AUTH === 'true';
   const isUserScopeDisabled = isAuthDisabled;
 
   const handleConfirm = () => {

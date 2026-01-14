@@ -1,0 +1,263 @@
+name: CI Maintenance
+
+on:
+  schedule:
+    # Every Sunday at 2 AM UTC
+    - cron: '0 2 * * 0'
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: 'Analyze only, no PRs'
+        required: false
+        default: 'false'
+        type: boolean
+      lookback_days:
+        description: 'Days to look back for failures'
+        required: false
+        default: '7'
+        type: string
+
+concurrency:
+  group: ci-maintenance
+  cancel-in-progress: false
+
+permissions:
+  contents: write
+  pull-requests: write
+  actions: read
+  issues: write
+  id-token: write
+
+jobs:
+  analyze-and-fix:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22.x
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 10.10.0
+
+      - name: Prepare directories
+        run: |
+          mkdir -p agents-docs/.source
+          touch agents-docs/.source/index.ts
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+        env:
+          HUSKY: 0
+
+      - name: Collect CI failure data with resolution tracking
+        id: collect
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          LOOKBACK_DAYS="${{ inputs.lookback_days || '7' }}"
+
+          echo "## CI Failure Analysis Report" > failure_report.md
+          echo "" >> failure_report.md
+          echo "**Period**: Past $LOOKBACK_DAYS days" >> failure_report.md
+          echo "**Generated**: $(date -Iseconds)" >> failure_report.md
+          echo "" >> failure_report.md
+
+          # Get ALL CI runs on main (both success and failure) for resolution tracking
+          ALL_RUNS=$(gh api \
+            "/repos/${{ github.repository }}/actions/workflows/ci.yml/runs?branch=main&per_page=50" \
+            --jq '.workflow_runs | sort_by(.created_at) | .[] | {id, conclusion, created_at, display_title, html_url, head_sha}')
+
+          # Get failed runs specifically
+          FAILED_RUNS=$(echo "$ALL_RUNS" | jq -c 'select(.conclusion == "failure")')
+
+          if [ -z "$FAILED_RUNS" ]; then
+            echo "No CI failures found in the past $LOOKBACK_DAYS days"
+            echo "has_failures=false" >> $GITHUB_OUTPUT
+            exit 0
+          fi
+
+          echo "has_failures=true" >> $GITHUB_OUTPUT
+
+          # Track resolution status of each failure
+          echo "### Failure Resolution Status" >> failure_report.md
+          echo "" >> failure_report.md
+          echo "| Failure | Status | Notes |" >> failure_report.md
+          echo "|---------|--------|-------|" >> failure_report.md
+
+          echo "$FAILED_RUNS" | while read -r failed_run; do
+            FAIL_ID=$(echo "$failed_run" | jq -r '.id')
+            FAIL_SHA=$(echo "$failed_run" | jq -r '.head_sha')
+            FAIL_TITLE=$(echo "$failed_run" | jq -r '.display_title')
+            FAIL_TIME=$(echo "$failed_run" | jq -r '.created_at')
+
+            # Check if there's a subsequent successful run
+            LATER_SUCCESS=$(echo "$ALL_RUNS" | jq -c "select(.conclusion == \"success\" and .created_at > \"$FAIL_TIME\")" | head -1)
+
+            if [ -n "$LATER_SUCCESS" ]; then
+              SUCCESS_SHA=$(echo "$LATER_SUCCESS" | jq -r '.head_sha')
+              if [ "$SUCCESS_SHA" = "$FAIL_SHA" ]; then
+                # Same commit passed later = flaky/duct-tape fix
+                echo "| $FAIL_TITLE | FLAKY | Same commit passed on retry |" >> failure_report.md
+              else
+                # Different commit passed = likely fixed
+                # Check if fix commit message mentions the failure
+                FIX_MSG=$(gh api "/repos/${{ github.repository }}/commits/$SUCCESS_SHA" --jq '.commit.message' 2>/dev/null | head -1 || echo "")
+                if echo "$FIX_MSG" | grep -qiE "fix|resolve|repair"; then
+                  echo "| $FAIL_TITLE | FIXED | Likely permanent fix in $SUCCESS_SHA |" >> failure_report.md
+                else
+                  echo "| $FAIL_TITLE | UNCLEAR | Passed after $SUCCESS_SHA - verify if intentional |" >> failure_report.md
+                fi
+              fi
+            else
+              # No subsequent success = still broken or recent
+              echo "| $FAIL_TITLE | UNFIXED | No successful run since failure |" >> failure_report.md
+            fi
+          done
+
+          echo "" >> failure_report.md
+          echo "### Failure Details" >> failure_report.md
+          echo "" >> failure_report.md
+
+          # Collect detailed logs from unfixed/flaky failures (most actionable)
+          echo "$FAILED_RUNS" | head -10 | while read -r run; do
+            RUN_ID=$(echo "$run" | jq -r '.id')
+            TITLE=$(echo "$run" | jq -r '.display_title')
+            URL=$(echo "$run" | jq -r '.html_url')
+
+            echo "#### $TITLE" >> failure_report.md
+            echo "URL: $URL" >> failure_report.md
+            echo '```' >> failure_report.md
+            gh run view "$RUN_ID" --log-failed 2>/dev/null | head -150 >> failure_report.md || echo "Could not fetch logs" >> failure_report.md
+            echo '```' >> failure_report.md
+            echo "" >> failure_report.md
+          done
+
+          # Also check Cypress failures with same resolution tracking
+          CYPRESS_FAILED=$(gh api \
+            "/repos/${{ github.repository }}/actions/workflows/cypress.yml/runs?branch=main&status=failure&per_page=5" \
+            --jq '.workflow_runs[] | {id, display_title, created_at}' 2>/dev/null || echo "")
+
+          if [ -n "$CYPRESS_FAILED" ]; then
+            echo "### Cypress E2E Failures" >> failure_report.md
+            echo "$CYPRESS_FAILED" | jq -c '.' | while read -r run; do
+              RUN_ID=$(echo "$run" | jq -r '.id')
+              TITLE=$(echo "$run" | jq -r '.display_title')
+              echo "#### $TITLE" >> failure_report.md
+              echo '```' >> failure_report.md
+              gh run view "$RUN_ID" --log-failed 2>/dev/null | head -100 >> failure_report.md || true
+              echo '```' >> failure_report.md
+            done
+          fi
+
+          # Check for existing ci-maintenance PRs to avoid duplicates
+          echo "" >> failure_report.md
+          echo "### Existing Maintenance PRs (avoid duplicates)" >> failure_report.md
+          gh pr list --state open --label "ci-maintenance" --json number,title,headRefName >> failure_report.md || echo "None" >> failure_report.md
+
+      - name: Run Claude to analyze and fix
+        if: steps.collect.outputs.has_failures == 'true' && inputs.dry_run != 'true'
+        uses: anthropics/claude-code-action@v1
+        with:
+          anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
+          prompt: |
+            You are a CI maintenance engineer for this repository. Your job is to analyze CI failures, understand their resolution status, and propose fixes for issues that need attention.
+
+            ## Failure Report (includes resolution status)
+            $(cat failure_report.md)
+
+            ## Understanding Resolution Status
+            The report classifies each failure as:
+            - **UNFIXED**: Still broken, needs immediate attention
+            - **FLAKY**: Same commit passed on retry - indicates flaky test or race condition
+            - **FIXED**: A subsequent commit resolved it - may not need action
+            - **UNCLEAR**: Passed but unclear if intentionally fixed - investigate
+
+            Focus your efforts on UNFIXED and FLAKY issues. For FIXED issues, verify the fix is permanent and not a duct-tape solution.
+
+            ## Repository Context
+            - This is a pnpm/Turborepo monorepo (Inkeep Agent Framework)
+            - Uses Biome for formatting and linting
+            - Uses Vitest for testing
+            - Uses TypeScript with strict mode
+            - CI runs: build, lint, typecheck, test, format:check, knip
+
+            ## Your Mission
+            Analyze the failures and their resolution status. Then create **separate PRs** for each distinct category of fix you identify. Be creative - you might find:
+
+            - Formatting issues -> run `pnpm format` and propose prevention (pre-commit hooks, editor config docs)
+            - Flaky tests -> add retries, fix race conditions, improve mocking, use fake timers
+            - Type errors -> fix types properly (no `any` escape hatches)
+            - Lint violations -> fix code or update rules if rules are too strict
+            - Unused exports/dependencies -> clean up dead code (knip failures)
+            - Build failures -> fix compilation issues
+            - Dependency issues -> update lockfiles, fix version conflicts
+            - CI workflow issues -> fix the workflow YAML itself
+            - Missing test coverage -> add tests for uncovered paths
+            - Documentation gaps -> update AGENTS.md with setup instructions
+            - Performance issues -> optimize slow tests or builds
+            - Environment issues -> fix CI environment setup
+            - Duct-tape fixes that need permanent solutions
+            - Or anything else you discover!
+
+            ## For Each Category of Fix:
+            1. Create a new branch: `ci-maintenance/{category}-$(date +%Y%m%d)`
+            2. Make the fixes
+            3. Verify with relevant commands (pnpm check, pnpm test, etc.)
+            4. Commit with message: `fix(ci): {description}`
+            5. Push and create a PR with:
+               - Clear title describing the fix
+               - Summary of what was wrong
+               - What you changed
+               - Prevention measures added (if applicable)
+               - Labels: ci-maintenance, automated, {category}
+
+            ## Prevention Focus
+            Beyond just fixing issues, add prevention measures where possible:
+            - Pre-commit hooks (Husky + lint-staged)
+            - Editor configuration (.vscode/settings.json)
+            - Documentation updates (AGENTS.md)
+            - CI improvements (caching, parallelization)
+            - Better error messages
+            - Stricter validation earlier in the pipeline
+
+            ## Important Rules
+            - Skip creating a PR if one already exists for the same issue type (check existing PRs above)
+            - Each PR should be focused on one category - don't mix formatting with test fixes
+            - Verify ALL changes work before creating PRs
+            - If you can't fix something, create an issue instead explaining the problem
+            - Be thorough but don't over-engineer - fix what's broken
+
+            ## Available Commands
+            - `pnpm check` - Run all CI checks
+            - `pnpm format` / `pnpm format:check` - Formatting
+            - `pnpm lint` / `pnpm lint:fix` - Linting
+            - `pnpm typecheck` - Type checking
+            - `pnpm test` - Run tests
+            - `pnpm build` - Build all packages
+            - `pnpm knip` - Check for unused code
+            - `gh pr create` - Create pull request
+            - `gh issue create` - Create issue for unfixable problems
+
+      - name: Dry run analysis
+        if: steps.collect.outputs.has_failures == 'true' && inputs.dry_run == 'true'
+        run: |
+          echo "## Dry Run - Failure Analysis" >> $GITHUB_STEP_SUMMARY
+          cat failure_report.md >> $GITHUB_STEP_SUMMARY
+
+      - name: No failures summary
+        if: steps.collect.outputs.has_failures != 'true'
+        run: |
+          echo "## CI Maintenance Report" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "No CI failures detected on main branch in the past ${{ inputs.lookback_days || '7' }} days." >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "All systems operational." >> $GITHUB_STEP_SUMMARY

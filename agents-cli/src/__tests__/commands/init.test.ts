@@ -16,6 +16,23 @@ vi.mock('node:fs', async () => {
   };
 });
 
+// Mock ProfileManager
+const mockProfileManager = {
+  profilesFileExists: vi.fn(),
+  loadProfiles: vi.fn(),
+  saveProfiles: vi.fn(),
+  addProfile: vi.fn(),
+  setActiveProfile: vi.fn(),
+};
+
+vi.mock('../../utils/profiles', async () => {
+  const actual = await vi.importActual('../../utils/profiles');
+  return {
+    ...actual,
+    ProfileManager: vi.fn(() => mockProfileManager),
+  };
+});
+
 describe('Init Command', () => {
   let consoleLogSpy: any;
   let consoleErrorSpy: any;
@@ -238,6 +255,119 @@ describe('Init Command', () => {
         expect.any(Error)
       );
       expect(processExitSpy).toHaveBeenCalledWith(1);
+    });
+
+    it('should create local profile when profiles.yaml does not exist', async () => {
+      const { existsSync, writeFileSync, readdirSync } = await import('node:fs');
+
+      vi.mocked(existsSync).mockReturnValue(false);
+      vi.mocked(readdirSync).mockReturnValue(['package.json'] as any);
+      vi.mocked(writeFileSync).mockImplementation(() => {});
+
+      // Mock ProfileManager - no profiles file exists
+      mockProfileManager.profilesFileExists.mockReturnValue(false);
+
+      // Mock clack prompts
+      vi.mocked(p.text)
+        .mockResolvedValueOnce('./inkeep.config.ts') // confirmedPath
+        .mockResolvedValueOnce('test-tenant-123') // tenantId
+        .mockResolvedValueOnce('http://localhost:3002') // manageApiUrl
+        .mockResolvedValueOnce('http://localhost:3003'); // runApiUrl
+      vi.mocked(p.isCancel).mockReturnValue(false);
+
+      await initCommand({ local: true });
+
+      expect(mockProfileManager.saveProfiles).toHaveBeenCalledWith({
+        activeProfile: 'local',
+        profiles: {
+          local: {
+            remote: {
+              manageApi: 'http://localhost:3002',
+              manageUi: 'http://localhost:3001',
+              runApi: 'http://localhost:3003',
+            },
+            credential: 'none',
+            environment: 'development',
+          },
+        },
+      });
+    });
+
+    it('should add local profile to existing profiles.yaml', async () => {
+      const { existsSync, writeFileSync, readdirSync } = await import('node:fs');
+
+      vi.mocked(existsSync).mockReturnValue(false);
+      vi.mocked(readdirSync).mockReturnValue(['package.json'] as any);
+      vi.mocked(writeFileSync).mockImplementation(() => {});
+
+      // Mock ProfileManager - profiles file exists with cloud profile
+      mockProfileManager.profilesFileExists.mockReturnValue(true);
+      mockProfileManager.loadProfiles.mockReturnValue({
+        activeProfile: 'cloud',
+        profiles: {
+          cloud: { remote: 'cloud', credential: 'inkeep-cloud', environment: 'production' },
+        },
+      });
+
+      // Mock clack prompts
+      vi.mocked(p.text)
+        .mockResolvedValueOnce('./inkeep.config.ts') // confirmedPath
+        .mockResolvedValueOnce('test-tenant') // tenantId
+        .mockResolvedValueOnce('http://localhost:3002') // manageApiUrl
+        .mockResolvedValueOnce('http://localhost:3003'); // runApiUrl
+      vi.mocked(p.isCancel).mockReturnValue(false);
+
+      await initCommand({ local: true });
+
+      expect(mockProfileManager.addProfile).toHaveBeenCalledWith('local', {
+        remote: {
+          manageApi: 'http://localhost:3002',
+          manageUi: 'http://localhost:3001',
+          runApi: 'http://localhost:3003',
+        },
+        credential: 'none',
+        environment: 'development',
+      });
+      expect(mockProfileManager.setActiveProfile).toHaveBeenCalledWith('local');
+    });
+
+    it('should set existing local profile as active if it already exists', async () => {
+      const { existsSync, writeFileSync, readdirSync } = await import('node:fs');
+
+      vi.mocked(existsSync).mockReturnValue(false);
+      vi.mocked(readdirSync).mockReturnValue(['package.json'] as any);
+      vi.mocked(writeFileSync).mockImplementation(() => {});
+
+      // Mock ProfileManager - profiles file exists with local profile already
+      mockProfileManager.profilesFileExists.mockReturnValue(true);
+      mockProfileManager.loadProfiles.mockReturnValue({
+        activeProfile: 'cloud',
+        profiles: {
+          cloud: { remote: 'cloud', credential: 'inkeep-cloud', environment: 'production' },
+          local: {
+            remote: {
+              manageApi: 'http://localhost:3002',
+              manageUi: 'http://localhost:3001',
+              runApi: 'http://localhost:3003',
+            },
+            credential: 'none',
+            environment: 'development',
+          },
+        },
+      });
+
+      // Mock clack prompts
+      vi.mocked(p.text)
+        .mockResolvedValueOnce('./inkeep.config.ts') // confirmedPath
+        .mockResolvedValueOnce('test-tenant') // tenantId
+        .mockResolvedValueOnce('http://localhost:3002') // manageApiUrl
+        .mockResolvedValueOnce('http://localhost:3003'); // runApiUrl
+      vi.mocked(p.isCancel).mockReturnValue(false);
+
+      await initCommand({ local: true });
+
+      expect(mockProfileManager.addProfile).not.toHaveBeenCalled();
+      expect(mockProfileManager.setActiveProfile).toHaveBeenCalledWith('local');
     });
   });
 });

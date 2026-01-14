@@ -1,6 +1,6 @@
 {
   "name": "@inkeep/agents-cli",
-  "version": "0.41.1",
+  "version": "0.41.2",
   "description": "Inkeep CLI tool",
   "type": "module",
   "main": "./dist/index.js",
@@ -18,7 +18,7 @@
     "cli": "node ./dist/index.js",
     "postinstall": "node scripts/ensure-keytar.mjs || true",
     "prepare": "pnpm build --no-dts",
-    "dev": "MODE=watch tsdown",
+    "dev": "pnpm build --watch",
     "test": "node -e \"process.exit(process.env.CI ? 0 : 1)\" && vitest --run --config vitest.config.ci.ts || vitest --run",
     "test:debug": "vitest --run --reporter=verbose --no-coverage",
     "test:watch": "vitest",
