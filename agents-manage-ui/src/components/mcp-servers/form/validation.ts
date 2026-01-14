@@ -135,7 +135,10 @@ export const mcpToolSchema = z.object({
   }),
   credentialReferenceId: z.string().nullish(),
   credentialScope: z.enum(CredentialScopeEnum).default('project'),
-  imageUrl: z.string().url('Image URL must be a valid URL.').optional(),
+  imageUrl: z.string().optional().refine(
+    (value) => !value || value.trim() === '' || z.string().url().safeParse(value).success,
+    { message: 'Image URL must be a valid URL.' }
+  ),
 });
 
 export type MCPToolFormData = z.infer<typeof mcpToolSchema>;
