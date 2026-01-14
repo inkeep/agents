@@ -1747,15 +1747,23 @@ export class Agent {
     });
   }
 
-  #createLoadSkillTool(): any {
+  #createLoadSkillTool(): Tool<
+    { name: string },
+    {
+      id: string;
+      name: string;
+      description: string;
+      content: string;
+      metadata: Record<string, string> | null;
+    }
+  > {
     return tool({
-      description: 'Load a skill by id to access its full content for this conversation.',
+      description: 'Load a skill by name to access its full content for this conversation.',
       inputSchema: z.object({
         name: z.string().describe('The skill name from the on-demand skills list.'),
       }),
       execute: async ({ name }) => {
-        const skills = this.config.skills || [];
-        const skill = skills.find((item) => item.name === name);
+        const skill = this.config.skills?.find((item) => item.name === name);
 
         if (!skill) {
           throw new Error(`Skill ${name} not found`);
@@ -1800,8 +1808,8 @@ export class Agent {
       defaultTools.get_reference_artifact = this.getArtifactTools();
     }
 
-    const onDemandSkills = (this.config.skills || []).filter((skill) => !skill.alwaysLoaded);
-    if (onDemandSkills.length) {
+    const hasOnDemandSkills = this.config.skills?.some((skill) => !skill.alwaysLoaded);
+    if (hasOnDemandSkills) {
       const loadSkillTool = this.#createLoadSkillTool();
       if (loadSkillTool) {
         defaultTools.load_skill = this.wrapToolWithStreaming(
