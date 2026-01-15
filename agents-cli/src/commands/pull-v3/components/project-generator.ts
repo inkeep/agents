@@ -76,7 +76,9 @@ export function generateProjectDefinition(
   }
 
   if (shouldInclude(projectData.skills)) {
-    lines.push(`${indentation}skills: () => skills,`);
+    lines.push(
+      `${indentation}skills: () => loadSkills(path.join(${formatString(projectId, q)}, 'skills')),`
+    );
   }
 
   // stopWhen configuration - project-level limits
@@ -193,6 +195,11 @@ export function generateProjectImports(
     sdkImports.push('loadSkills');
   }
   imports.push(generateImport(sdkImports, '@inkeep/agents-sdk', style));
+  if (shouldInclude(projectData.skills)) {
+    const q = style.quotes === 'single' ? "'" : '"';
+    const semi = style.semicolons ? ';' : '';
+    imports.push(`import path from ${q}node:path${q}${semi}`);
+  }
 
   // Generate imports for referenced components if registry is available
   if (registry) {
@@ -225,9 +232,9 @@ export function generateProjectImports(
       for (const toolId of toolIds) {
         // Determine the actual component type by checking what's in the registry
         let componentType: ComponentType = 'tools';
-        if (registry && registry.get(toolId, 'functionTools')) {
+        if (registry.get(toolId, 'functionTools')) {
           componentType = 'functionTools';
-        } else if (registry && registry.get(toolId, 'tools')) {
+        } else if (registry.get(toolId, 'tools')) {
           componentType = 'tools';
         }
 
@@ -310,10 +317,6 @@ export function generateProjectFile(
   const definition = generateProjectDefinition(projectId, projectData, style, registry);
 
   const definitions: string[] = [];
-
-  if (shouldInclude(projectData.skills)) {
-    definitions.push(`const skills = loadSkills('./skills');`);
-  }
 
   definitions.push(definition);
 
