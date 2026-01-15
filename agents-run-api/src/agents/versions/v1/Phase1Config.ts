@@ -114,8 +114,8 @@ export class Phase1Config implements VersionConfig<SystemPromptV1> {
     const agentContextSection = this.generateAgentContextSection(config.prompt);
     breakdown.components['agentPrompt'] = estimateTokens(agentContextSection);
     systemPrompt = systemPrompt
-        .replace('{{AGENT_CONTEXT_SECTION}}', agentContextSection)
-        .replace('{{SKILLS_SECTION}}', this.#generateSkillsSection(config.skills));
+      .replace('{{AGENT_CONTEXT_SECTION}}', agentContextSection)
+      .replace('{{SKILLS_SECTION}}', this.#generateSkillsSection(config.skills));
 
     const rawToolData = this.isToolDataArray(config.tools)
       ? config.tools

@@ -1,26 +1,27 @@
 import { and, asc, count, desc, eq, inArray } from 'drizzle-orm';
-import type { DatabaseClient } from '../db/client';
-import { skills, subAgentSkills } from '../db/schema';
+import type { AgentsManageDatabaseClient } from '../../db/manage/manage-client';
+import { skills, subAgentSkills } from '../../db/manage/manage-schema';
 import type {
   SkillInsert,
   SkillSelect,
   SkillUpdate,
   SubAgentSkillInsert,
   SubAgentSkillWithIndex,
-} from '../types/entities';
+} from '../../types/entities';
 import type {
   AgentScopeConfig,
   PaginationConfig,
   ProjectScopeConfig,
   SubAgentScopeConfig,
-} from '../types/utility';
-import { generateId } from '../utils/conversations';
-import { getLogger } from '../utils/logger';
+} from '../../types/utility';
+import { generateId } from '../../utils/conversations';
+import { getLogger } from '../../utils/logger';
 
 const logger = getLogger('skills-dal');
 
 export const getSkillById =
-  (db: DatabaseClient) => async (params: { scopes: ProjectScopeConfig; skillId: string }) => {
+  (db: AgentsManageDatabaseClient) =>
+  async (params: { scopes: ProjectScopeConfig; skillId: string }) => {
     const result = await db.query.skills.findFirst({
       where: and(
         eq(skills.tenantId, params.scopes.tenantId),
@@ -32,7 +33,7 @@ export const getSkillById =
   };
 
 export const listSkills =
-  (db: DatabaseClient) =>
+  (db: AgentsManageDatabaseClient) =>
   async (params: { scopes: ProjectScopeConfig; pagination?: PaginationConfig }) => {
     const page = params.pagination?.page || 1;
     const limit = Math.min(params.pagination?.limit || 10, 100);
@@ -63,7 +64,7 @@ export const listSkills =
     };
   };
 
-export const createSkill = (db: DatabaseClient) => async (data: SkillInsert) => {
+export const createSkill = (db: AgentsManageDatabaseClient) => async (data: SkillInsert) => {
   const now = new Date().toISOString();
   const insertData: SkillSelect = {
     ...data,
@@ -76,7 +77,7 @@ export const createSkill = (db: DatabaseClient) => async (data: SkillInsert) => 
   return result;
 };
 
-export const upsertSkill = (db: DatabaseClient) => async (data: SkillInsert) => {
+export const upsertSkill = (db: AgentsManageDatabaseClient) => async (data: SkillInsert) => {
   const now = new Date().toISOString();
   const baseData: Omit<SkillSelect, 'createdAt' | 'updatedAt'> = {
     ...data,
@@ -126,7 +127,7 @@ export const upsertSkill = (db: DatabaseClient) => async (data: SkillInsert) => 
 };
 
 export const updateSkill =
-  (db: DatabaseClient) =>
+  (db: AgentsManageDatabaseClient) =>
   async (params: { scopes: ProjectScopeConfig; skillId: string; data: SkillUpdate }) => {
     const { tenantId: _, projectId: _2, ...data } = params.data;
     const updateData: Partial<SkillSelect> = {
@@ -150,7 +151,8 @@ export const updateSkill =
   };
 
 export const deleteSkill =
-  (db: DatabaseClient) => async (params: { scopes: ProjectScopeConfig; skillId: string }) => {
+  (db: AgentsManageDatabaseClient) =>
+  async (params: { scopes: ProjectScopeConfig; skillId: string }) => {
     const result = await db
       .delete(skills)
       .where(
@@ -166,7 +168,7 @@ export const deleteSkill =
   };
 
 export const getSkillsForSubAgents =
-  (db: DatabaseClient) =>
+  (db: AgentsManageDatabaseClient) =>
   async (params: {
     scopes: AgentScopeConfig;
     subAgentIds: string[];
@@ -210,7 +212,7 @@ export const getSkillsForSubAgents =
   };
 
 export const upsertSubAgentSkill =
-  (db: DatabaseClient) =>
+  (db: AgentsManageDatabaseClient) =>
   async (params: {
     scopes: SubAgentScopeConfig;
     skillId: string;
@@ -257,7 +259,8 @@ export const upsertSubAgentSkill =
   };
 
 export const deleteSubAgentSkill =
-  (db: DatabaseClient) => async (params: { scopes: AgentScopeConfig; subAgentSkillId: string }) => {
+  (db: AgentsManageDatabaseClient) =>
+  async (params: { scopes: AgentScopeConfig; subAgentSkillId: string }) => {
     const result = await db
       .delete(subAgentSkills)
       .where(

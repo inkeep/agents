@@ -1,6 +1,11 @@
 import { and, eq, inArray, not } from 'drizzle-orm';
 import type { AgentsManageDatabaseClient } from '../../db/manage/manage-client';
-import { projects, subAgentSkills, subAgents, subAgentToolRelations } from '../../db/manage/manage-schema';
+import {
+  projects,
+  subAgentSkills,
+  subAgents,
+  subAgentToolRelations,
+} from '../../db/manage/manage-schema';
 import type { FullAgentDefinition, FullAgentSelectWithRelationIds } from '../../types/entities';
 import type { AgentScopeConfig, ProjectScopeConfig } from '../../types/utility';
 import { generateId } from '../../utils/conversations';
@@ -57,7 +62,7 @@ const defaultLogger: AgentLogger = {
 };
 
 async function syncSubAgentSkills(
-  db: DatabaseClient,
+  db: AgentsManageDatabaseClient,
   scopes: ProjectScopeConfig & { agentId: string },
   subAgentsMap: FullAgentDefinition['subAgents'],
   logger: AgentLogger

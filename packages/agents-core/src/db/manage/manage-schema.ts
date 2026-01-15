@@ -3,6 +3,8 @@ import {
   boolean,
   doublePrecision,
   foreignKey,
+  index,
+  integer,
   jsonb,
   pgTable,
   primaryKey,

@@ -299,7 +299,7 @@ type SkillWithIndex = {
 };
 
 const getFullAgentDefinitionInternal =
-    (db: AgentsManageDatabaseClient) =>
+  (db: AgentsManageDatabaseClient) =>
   async ({
     scopes: { tenantId, projectId, agentId },
     includeRelationIds = false,
