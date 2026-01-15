@@ -47,7 +47,6 @@ app.post('/', async (c) => {
     {
       attributes: {
         'feedback.type': feedback,
-        'feedback.isPositive': feedback === 'positive',
         'conversation.id': conversationId,
         'tenant.id': tenantId,
         'project.id': projectId,
