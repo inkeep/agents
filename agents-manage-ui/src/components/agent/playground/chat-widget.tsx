@@ -85,11 +85,10 @@ export function ChatWidget({
   const POLLING_TIMEOUT_MS = 5 * 60 * 1000; // 5 minutes
 
   const submitFeedback = useCallback(
-    async (feedbackType: 'positive' | 'negative', msgId?: string) => {
+    async (feedbackType: 'positive' | 'negative') => {
       if (!tempApiKey || !agentId) return;
 
-      const feedbackKey = `${conversationId}-${msgId || 'general'}`;
-      const existingFeedback = submittedFeedback.get(feedbackKey);
+      const existingFeedback = submittedFeedback.get(conversationId);
 
       try {
         const response = await fetch(`${PUBLIC_INKEEP_AGENTS_RUN_API_URL}/v1/feedback`, {
@@ -104,7 +103,6 @@ export function ChatWidget({
           body: JSON.stringify({
             conversationId,
             feedback: feedbackType,
-            ...(msgId && { messageId: msgId }),
           }),
         });
 
@@ -112,7 +110,7 @@ export function ChatWidget({
           throw new Error('Failed to submit feedback');
         }
 
-        setSubmittedFeedback((prev) => new Map(prev).set(feedbackKey, feedbackType));
+        setSubmittedFeedback((prev) => new Map(prev).set(conversationId, feedbackType));
 
         if (existingFeedback) {
           toast.success('Feedback updated!');
@@ -274,8 +272,8 @@ export function ChatWidget({
                 icon: { builtIn: 'LuThumbsUp' as const },
                 action: {
                   type: 'invoke_message_callback' as const,
-                  callback: ({ messageId: msgId }: InvokeMessageCallbackActionArgs) => {
-                    submitFeedback('positive', msgId);
+                  callback: () => {
+                    submitFeedback('positive');
                   },
                 },
               },
@@ -284,8 +282,8 @@ export function ChatWidget({
                 icon: { builtIn: 'LuThumbsDown' as const },
                 action: {
                   type: 'invoke_message_callback' as const,
-                  callback: ({ messageId: msgId }: InvokeMessageCallbackActionArgs) => {
-                    submitFeedback('negative', msgId);
+                  callback: () => {
+                    submitFeedback('negative');
                   },
                 },
               },

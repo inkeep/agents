@@ -106,7 +106,6 @@ export const SPAN_KEYS = {
 
   // Feedback attributes
   FEEDBACK_TYPE: 'feedback.type',
-  FEEDBACK_MESSAGE_ID: 'feedback.messageId',
 
   // Artifact processing attributes
   ARTIFACT_ID: 'artifact.id',

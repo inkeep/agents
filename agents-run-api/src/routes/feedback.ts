@@ -19,7 +19,6 @@ const tracer = trace.getTracer('feedback');
 const feedbackSchema = z.object({
   conversationId: z.string().min(1),
   feedback: z.enum(['positive', 'negative']),
-  messageId: z.string().optional(),
 });
 
 app.post('/', async (c) => {
@@ -30,7 +29,7 @@ app.post('/', async (c) => {
     return c.json({ error: 'Invalid request body', details: parseResult.error.issues }, 400);
   }
 
-  const { conversationId, feedback, messageId } = parseResult.data;
+  const { conversationId, feedback } = parseResult.data;
   const executionContext = c.get('executionContext');
 
   const tenantId = executionContext?.tenantId || 'unknown';
@@ -38,7 +37,7 @@ app.post('/', async (c) => {
   const agentId = executionContext?.agentId || 'unknown';
 
   logger.info(
-    { conversationId, feedback, messageId, tenantId, projectId, agentId },
+    { conversationId, feedback, tenantId, projectId, agentId },
     'Submitting conversation feedback'
   );
 
@@ -51,7 +50,6 @@ app.post('/', async (c) => {
         'tenant.id': tenantId,
         'project.id': projectId,
         'agent.id': agentId,
-        ...(messageId && { 'feedback.messageId': messageId }),
       },
     },
     async (span) => {
