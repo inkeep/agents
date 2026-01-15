@@ -34,6 +34,55 @@ This mode is for development only. Never use in production as it bypasses all se
 
 </Tab>
 
+<Tab title="Anonymous Sessions">
+
+For public-facing widgets where users don't need to sign in. Provides stable identity for conversation history, analytics, and rate limiting.
+
+**1. Setup the Auth Client:**
+
+```typescript
+import { createAuthClient } from 'better-auth/client';
+import { anonymousClient } from 'better-auth/client/plugins';
+
+export const authClient = createAuthClient({
+  baseURL: 'https://your-api.example.com',
+  plugins: [anonymousClient()],
+});
+```
+
+**2. Initialize Session:**
+
+```typescript
+async function initAnonymousSession() {
+  let session = await authClient.getSession();
+
+  if (!session.data) {
+    // Create new anonymous session
+    const result = await authClient.signIn.anonymous();
+    session = { data: result.data };
+  }
+
+  // distinctId is stable across sessions - use for analytics
+  const distinctId = session.data.user.id;
+  const sessionToken = session.data.session.token;
+
+  return { distinctId, sessionToken };
+}
+```
+
+**3. Request Headers:**
+
+```http
+X-API-Key: <your_api_key>
+Authorization: Bearer <session_token>
+```
+
+<Tip>
+The `distinctId` (user ID) is public and safe to use for analytics. The session token proves ownership and enables conversation history persistence.
+</Tip>
+
+</Tab>
+
 </Tabs>
 
 See [Authentication → Run API](/api-reference/authentication/run-api) for more details.
