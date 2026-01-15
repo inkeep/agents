@@ -17,14 +17,10 @@ export function SubAgentSelector({ selectedNode }: { selectedNode: Node }) {
 
   const handleSelect = (nodeType: (typeof subAgentNodeTypes)[number]) => {
     const defaults = newNodeDefaults[nodeType];
-    const meta = nodeTypeMap[nodeType];
     updateNode(selectedNode.id, {
       type: nodeType,
       data: {
-        id: nodeType,
-        type: defaults.type ?? nodeType,
-        name: defaults.name || meta.name,
-        description: meta.description,
+        ...defaults,
       },
     });
   };
