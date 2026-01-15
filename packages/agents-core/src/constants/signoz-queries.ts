@@ -124,6 +124,7 @@ export const QUERY_EXPRESSIONS = {
   TOOL_APPROVAL_APPROVED: 'toolApprovalApproved',
   TOOL_APPROVAL_DENIED: 'toolApprovalDenied',
   COMPRESSION: 'compression',
+  USER_FEEDBACK: 'userFeedback',
 } as const;
 
 /** Query Reduce Operations */

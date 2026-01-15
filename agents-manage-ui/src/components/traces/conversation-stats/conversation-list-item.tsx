@@ -1,3 +1,4 @@
+import { ThumbsDown, ThumbsUp } from 'lucide-react';
 import Link from 'next/link';
 import { formatDateAgo, formatDateTime } from '@/app/utils/format-date';
 import { Badge } from '@/components/ui/badge';
@@ -20,6 +21,7 @@ export function ConversationListItem({ conversation, projectId }: ConversationLi
     totalErrors,
     toolsUsed,
     startTime,
+    feedback,
   } = conversation;
 
   return (
@@ -71,6 +73,30 @@ export function ConversationListItem({ conversation, projectId }: ConversationLi
             </div>
           </div>
           <div className="flex items-center gap-2">
+            {feedback && (
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <span
+                    className={`flex items-center gap-1 ${
+                      feedback === 'positive'
+                        ? 'text-green-600 dark:text-green-400'
+                        : 'text-red-500 dark:text-red-400'
+                    }`}
+                  >
+                    {feedback === 'positive' ? (
+                      <ThumbsUp className="size-4" />
+                    ) : (
+                      <ThumbsDown className="size-4" />
+                    )}
+                  </span>
+                </TooltipTrigger>
+                <TooltipContent>
+                  <p className="text-xs">
+                    User feedback: {feedback === 'positive' ? 'Positive' : 'Negative'}
+                  </p>
+                </TooltipContent>
+              </Tooltip>
+            )}
             {toolsUsed.length > 0 && (
               <Tooltip>
                 <TooltipTrigger asChild>

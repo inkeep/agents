@@ -16,6 +16,7 @@ export const SPAN_NAMES = {
   TOOL_APPROVAL_APPROVED: 'tool.approval_approved',
   TOOL_APPROVAL_DENIED: 'tool.approval_denied',
   COMPRESSOR_SAFE_COMPRESS: 'compressor.safe_compress',
+  USER_FEEDBACK: 'user.feedback',
 } as const;
 
 export const AI_OPERATIONS = {
@@ -102,6 +103,10 @@ export const SPAN_KEYS = {
   NAME: 'name',
   PARENT_SPAN_ID: 'parentSpanID',
   CONVERSATION_ID: 'conversation.id',
+
+  // Feedback attributes
+  FEEDBACK_TYPE: 'feedback.type',
+  FEEDBACK_MESSAGE_ID: 'feedback.messageId',
 
   // Artifact processing attributes
   ARTIFACT_ID: 'artifact.id',

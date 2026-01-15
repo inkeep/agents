@@ -2,6 +2,7 @@
 import { InkeepEmbeddedChat } from '@inkeep/agents-ui';
 import type { InkeepCallbackEvent, InvokeMessageCallbackActionArgs } from '@inkeep/agents-ui/types';
 import { type Dispatch, useCallback, useEffect, useRef, useState } from 'react';
+import { toast } from 'sonner';
 import { DynamicComponentRenderer } from '@/components/dynamic-component-renderer';
 import type { ConversationDetail } from '@/components/traces/timeline/types';
 import { useRuntimeConfig } from '@/contexts/runtime-config-context';
@@ -46,6 +47,11 @@ const styleOverrides = `
   background-color: var(--ikp-color-white-alpha-100);
   color: var(--ikp-color-white-alpha-950);
 }
+
+.ikp-ai-chat-messages .ikp-ai-chat-message-wrapper:not(:last-child) .ikp-ai-chat-message-custom-action:nth-child(1),
+.ikp-ai-chat-messages .ikp-ai-chat-message-wrapper:not(:last-child) .ikp-ai-chat-message-custom-action:nth-child(2) {
+  display: none !important;
+}
 `;
 
 export function ChatWidget({
@@ -65,6 +71,9 @@ export function ChatWidget({
   const { isCopilotConfigured } = useCopilotContext();
   const [isFeedbackDialogOpen, setIsFeedbackDialogOpen] = useState(false);
   const [messageId, setMessageId] = useState<string | undefined>(undefined);
+  const [submittedFeedback, setSubmittedFeedback] = useState<Map<string, 'positive' | 'negative'>>(
+    new Map()
+  );
   const { apiKey: tempApiKey, isLoading: isLoadingKey } = useTempApiKey({
     tenantId,
     projectId,
@@ -74,6 +83,57 @@ export function ChatWidget({
   const stopPollingTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const hasReceivedAssistantMessageRef = useRef(false);
   const POLLING_TIMEOUT_MS = 5 * 60 * 1000; // 5 minutes
+
+  const submitFeedback = useCallback(
+    async (feedbackType: 'positive' | 'negative', msgId?: string) => {
+      if (!tempApiKey || !agentId) return;
+
+      const feedbackKey = `${conversationId}-${msgId || 'general'}`;
+      const existingFeedback = submittedFeedback.get(feedbackKey);
+
+      try {
+        const response = await fetch(`${PUBLIC_INKEEP_AGENTS_RUN_API_URL}/v1/feedback`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${tempApiKey}`,
+            'x-inkeep-tenant-id': tenantId,
+            'x-inkeep-project-id': projectId,
+            'x-inkeep-agent-id': agentId,
+          },
+          body: JSON.stringify({
+            conversationId,
+            feedback: feedbackType,
+            ...(msgId && { messageId: msgId }),
+          }),
+        });
+
+        if (!response.ok) {
+          throw new Error('Failed to submit feedback');
+        }
+
+        setSubmittedFeedback((prev) => new Map(prev).set(feedbackKey, feedbackType));
+
+        if (existingFeedback) {
+          toast.success('Feedback updated!');
+        } else {
+          toast.success('Thanks for your feedback!');
+        }
+      } catch (error) {
+        console.error('Error submitting feedback:', error);
+        toast.error('Failed to submit feedback');
+      }
+    },
+    [
+      tempApiKey,
+      agentId,
+      conversationId,
+      tenantId,
+      projectId,
+      PUBLIC_INKEEP_AGENTS_RUN_API_URL,
+      submittedFeedback,
+    ]
+  );
 
   // Helper function to reset the stop polling timeout
   const resetStopPollingTimeout = useCallback(() => {
@@ -144,6 +204,8 @@ export function ChatWidget({
               if (event.eventName === 'chat_clear_button_clicked') {
                 // Reset the flag
                 hasReceivedAssistantMessageRef.current = false;
+                // Reset feedback tracking for new conversation
+                setSubmittedFeedback(new Map());
                 // Cancel any pending stop polling timeout
                 if (stopPollingTimeoutRef.current) {
                   clearTimeout(stopPollingTimeoutRef.current);
@@ -206,21 +268,43 @@ export function ChatWidget({
               Authorization: `Bearer ${tempApiKey}`,
               ...customHeaders,
             },
-            messageActions: isCopilotConfigured
-              ? [
-                  {
-                    label: 'Improve with AI',
-                    icon: { builtIn: 'LuSparkles' },
-                    action: {
-                      type: 'invoke_message_callback',
-                      callback: ({ messageId }: InvokeMessageCallbackActionArgs) => {
-                        setMessageId(messageId);
-                        setIsFeedbackDialogOpen(true);
+            messageActions: [
+              {
+                label: 'Good response',
+                icon: { builtIn: 'LuThumbsUp' as const },
+                action: {
+                  type: 'invoke_message_callback' as const,
+                  callback: ({ messageId: msgId }: InvokeMessageCallbackActionArgs) => {
+                    submitFeedback('positive', msgId);
+                  },
+                },
+              },
+              {
+                label: 'Bad response',
+                icon: { builtIn: 'LuThumbsDown' as const },
+                action: {
+                  type: 'invoke_message_callback' as const,
+                  callback: ({ messageId: msgId }: InvokeMessageCallbackActionArgs) => {
+                    submitFeedback('negative', msgId);
+                  },
+                },
+              },
+              ...(isCopilotConfigured
+                ? [
+                    {
+                      label: 'Improve with AI',
+                      icon: { builtIn: 'LuSparkles' as const },
+                      action: {
+                        type: 'invoke_message_callback' as const,
+                        callback: ({ messageId: msgId }: InvokeMessageCallbackActionArgs) => {
+                          setMessageId(msgId);
+                          setIsFeedbackDialogOpen(true);
+                        },
                       },
                     },
-                  },
-                ]
-              : undefined,
+                  ]
+                : []),
+            ],
             components: new Proxy(
               {},
               {

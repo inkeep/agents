@@ -22,6 +22,8 @@ import {
 
 // ---------- String Constants for Type Safety
 
+export type FeedbackType = 'positive' | 'negative' | null;
+
 export interface ConversationStats {
   conversationId: string;
   tenantId: string;
@@ -38,6 +40,7 @@ export interface ConversationStats {
   hasErrors: boolean;
   firstUserMessage?: string;
   startTime?: number;
+  feedback?: FeedbackType;
 }
 
 export interface PaginatedConversationStats {
@@ -268,6 +271,7 @@ class SigNozStatsAPI {
     const metadataSeries = this.extractSeries(resp, QUERY_EXPRESSIONS.CONVERSATION_METADATA);
     const spansWithErrorsSeries = this.extractSeries(resp, QUERY_EXPRESSIONS.SPANS_WITH_ERRORS);
     const userMessagesSeries = this.extractSeries(resp, QUERY_EXPRESSIONS.USER_MESSAGES);
+    const feedbackSeries = this.extractSeries(resp, QUERY_EXPRESSIONS.USER_FEEDBACK);
 
     // metadata map
     const metaByConv = new Map<string, { tenantId: string; agentId: string; agentName: string }>();
@@ -311,6 +315,20 @@ class SigNozStatsAPI {
       }
     }
 
+    // feedback map - get the latest feedback per conversation by comparing timestamps
+    const feedbackByConv = feedbackSeries.reduce((acc, s) => {
+      const id = s.labels?.[SPAN_KEYS.CONVERSATION_ID];
+      const type = s.labels?.[SPAN_KEYS.FEEDBACK_TYPE] as FeedbackType | undefined;
+      const ts = numberFromSeries(s);
+
+      if (!id || !type) return acc;
+
+      const prev = acc.get(id);
+      if (!prev || ts > prev.ts) acc.set(id, { ts, type });
+
+      return acc;
+    }, new Map<string, { ts: number; type: FeedbackType }>());
+
     // build stats
     const stats = this.toConversationStats(
       toolsSeries,
@@ -319,7 +337,8 @@ class SigNozStatsAPI {
       aiCallsSeries,
       metaByConv,
       spansWithErrorsSeries,
-      firstMsgByConv
+      firstMsgByConv,
+      feedbackByConv
     );
 
     // Filter to only include the paginated conversation IDs (in the correct order)
@@ -910,7 +929,8 @@ class SigNozStatsAPI {
     aiCallsSeries: Series[],
     metaByConv: Map<string, { tenantId: string; agentId: string; agentName: string }>,
     spansWithErrorsSeries: Series[],
-    firstMsgByConv: Map<string, { content: string; timestamp: number }>
+    firstMsgByConv: Map<string, { content: string; timestamp: number }>,
+    feedbackByConv: Map<string, { ts: number; type: FeedbackType }> = new Map()
   ): ConversationStats[] {
     type Acc = {
       totalToolCalls: number;
@@ -1057,6 +1077,7 @@ class SigNozStatsAPI {
         hasErrors: acc.totalErrors > 0,
         firstUserMessage: firstMsgByConv.get(id)?.content,
         startTime: firstMsgByConv.get(id)?.timestamp,
+        feedback: feedbackByConv.get(id)?.type ?? null,
       });
     }
     return out;
@@ -2534,6 +2555,48 @@ class SigNozStatsAPI {
             reduceTo: REDUCE_OPERATIONS.MIN,
             stepInterval: QUERY_DEFAULTS.STEP_INTERVAL,
             orderBy: [{ columnName: SPAN_KEYS.TIMESTAMP, order: ORDER_DIRECTIONS.ASC }],
+            offset: QUERY_DEFAULTS.OFFSET,
+            disabled: QUERY_DEFAULTS.DISABLED,
+            having: QUERY_DEFAULTS.HAVING,
+            legend: QUERY_DEFAULTS.LEGEND,
+            limit: QUERY_DEFAULTS.LIMIT_UNLIMITED,
+          },
+
+          userFeedback: {
+            dataSource: DATA_SOURCES.TRACES,
+            queryName: QUERY_EXPRESSIONS.USER_FEEDBACK,
+            aggregateOperator: AGGREGATE_OPERATORS.MAX,
+            aggregateAttribute: {
+              key: SPAN_KEYS.TIMESTAMP,
+              ...QUERY_FIELD_CONFIGS.INT64_TAG_COLUMN,
+            },
+            filters: {
+              op: OPERATORS.AND,
+              items: withProjectAndAgent([
+                {
+                  key: {
+                    key: SPAN_KEYS.NAME,
+                    ...QUERY_FIELD_CONFIGS.STRING_TAG_COLUMN,
+                  },
+                  op: OPERATORS.EQUALS,
+                  value: SPAN_NAMES.USER_FEEDBACK,
+                },
+              ]),
+            },
+            groupBy: [
+              {
+                key: SPAN_KEYS.CONVERSATION_ID,
+                ...QUERY_FIELD_CONFIGS.STRING_TAG,
+              },
+              {
+                key: SPAN_KEYS.FEEDBACK_TYPE,
+                ...QUERY_FIELD_CONFIGS.STRING_TAG,
+              },
+            ],
+            expression: QUERY_EXPRESSIONS.USER_FEEDBACK,
+            reduceTo: REDUCE_OPERATIONS.MAX,
+            stepInterval: QUERY_DEFAULTS.STEP_INTERVAL,
+            orderBy: [{ columnName: SPAN_KEYS.TIMESTAMP, order: ORDER_DIRECTIONS.DESC }],
             offset: QUERY_DEFAULTS.OFFSET,
             disabled: QUERY_DEFAULTS.DISABLED,
             having: QUERY_DEFAULTS.HAVING,
