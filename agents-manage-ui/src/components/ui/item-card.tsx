@@ -75,7 +75,7 @@ export function ItemCardDescription({
     <CardDescription
       className={cn(
         hasContent ? 'text-muted-foreground' : 'text-muted-foreground/60',
-        'text-sm',
+        'text-sm line-clamp-2',
         className
       )}
       {...props}

@@ -66,7 +66,7 @@ export function ItemCardGrid<T>({
           </ItemCardContent>
         ) : (
           <ItemCardContent key={`content-${getKey(item)}`}>
-            <ItemCardDescription hasContent={!!getDescription} className="line-clamp-2">
+            <ItemCardDescription hasContent={!!getDescription}>
               {getDescription ? getDescription(item) : ''}
             </ItemCardDescription>
             <ItemCardFooter footerText={getFooterText ? getFooterText(item) : ''} />
