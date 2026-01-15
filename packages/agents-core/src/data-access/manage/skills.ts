@@ -15,6 +15,7 @@ import type {
   SubAgentScopeConfig,
 } from '../../types/utility';
 import { getLogger } from '../../utils/logger';
+import { generateId } from '@inkeep/agents-core';
 
 const logger = getLogger('skills-dal');
 
