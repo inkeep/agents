@@ -6,6 +6,7 @@ export * from './date';
 export * from './error';
 export * from './format-messages';
 export * from './internal-service-auth';
+export * from './JsonTransformer';
 export * from './json-parser';
 export * from './jwt-helpers';
 export * from './logger';

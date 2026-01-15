@@ -11,6 +11,7 @@ import {
   generateId,
   getLedgerArtifacts,
   InternalServices,
+  JsonTransformer,
   listTaskIdsByContextId,
   ManagementApiClient,
   MCPServerType,
@@ -678,7 +679,7 @@ export class Agent {
           const needsApproval = toolSet.toolPolicies?.[toolName]?.needsApproval || false;
 
           const enhancedTool = {
-            ...toolDef,
+            ...(toolDef || {}),
             needsApproval,
           };
 
@@ -949,6 +950,7 @@ export class Agent {
         ...tool.headers,
         ...agentToolRelationHeaders,
       },
+      toolOverrides: tool.config.mcp.toolOverrides,
     };
   }
 
@@ -1141,7 +1143,10 @@ export class Agent {
       }
     }
 
-    const tools = await client.tools();
+    const originalTools = await client.tools();
+
+    // Apply tool overrides if configured
+    const tools = await this.applyToolOverrides(originalTools, tool);
 
     if (!tools || Object.keys(tools).length === 0) {
       const streamRequestId = this.getStreamRequestId();
@@ -1813,6 +1818,276 @@ export class Agent {
 
   private getStreamRequestId(): string {
     return this.streamRequestId || '';
+  }
+
+  private async applyToolOverrides(originalTools: any, mcpTool: McpTool): Promise<any> {
+    // Check if this tool has overrides configured
+    const toolOverrides =
+      mcpTool.config.type === 'mcp' ? (mcpTool.config as any).mcp?.toolOverrides : undefined;
+
+    if (!toolOverrides) {
+      logger.debug(
+        { mcpToolName: mcpTool.name },
+        'No tool overrides configured, using original tools'
+      );
+      return originalTools;
+    }
+
+    if (!originalTools || typeof originalTools !== 'object') {
+      logger.warn(
+        { mcpToolName: mcpTool.name, originalToolsType: typeof originalTools },
+        'Invalid original tools structure, skipping overrides'
+      );
+      return originalTools || {};
+    }
+
+    const processedTools: any = {};
+    const availableToolNames = Object.keys(originalTools);
+    const overrideNames = Object.keys(toolOverrides);
+
+    // Validate that override tool names exist in available tools
+    const invalidOverrides = overrideNames.filter((name) => !availableToolNames.includes(name));
+    if (invalidOverrides.length > 0) {
+      logger.warn(
+        {
+          mcpToolName: mcpTool.name,
+          invalidOverrides,
+          availableTools: availableToolNames,
+        },
+        'Tool override configured for non-existent tools'
+      );
+    }
+
+    logger.info(
+      {
+        mcpToolName: mcpTool.name,
+        totalTools: availableToolNames.length,
+        toolsWithOverrides: overrideNames.length,
+        availableTools: availableToolNames,
+        overrideTools: overrideNames,
+      },
+      'Starting tool override application'
+    );
+
+    for (const [toolName, toolDef] of Object.entries(originalTools)) {
+      // Validate tool definition structure
+      if (!toolDef || typeof toolDef !== 'object') {
+        logger.warn(
+          { mcpToolName: mcpTool.name, toolName, toolDefType: typeof toolDef },
+          'Invalid tool definition structure, skipping tool'
+        );
+        continue;
+      }
+
+      // Check if this tool has an override
+      const override = toolOverrides[toolName];
+
+      if (override && (override.schema || override.description || override.displayName)) {
+        // Apply overrides (schema, description, displayName, transformation)
+        try {
+          logger.debug(
+            {
+              mcpToolName: mcpTool.name,
+              toolName,
+              override: {
+                hasSchema: !!override.schema,
+                hasDescription: !!override.description,
+                hasDisplayName: !!override.displayName,
+                hasTransformation: !!override.transformation,
+                transformationType: typeof override.transformation,
+              },
+            },
+            'Processing tool override'
+          );
+
+          // Use override schema if provided, otherwise use original
+          let inputSchema;
+          try {
+            inputSchema = override.schema
+              ? jsonSchemaToZod(override.schema)
+              : (toolDef as any).inputSchema;
+          } catch (schemaError) {
+            logger.error(
+              {
+                mcpToolName: mcpTool.name,
+                toolName,
+                schemaError:
+                  schemaError instanceof Error ? schemaError.message : String(schemaError),
+                overrideSchema: override.schema,
+              },
+              'Failed to convert override schema, using original'
+            );
+            inputSchema = (toolDef as any).inputSchema;
+          }
+
+          // Use display name or fall back to original tool name
+          const toolId = override.displayName || toolName;
+
+          // Use override description or fall back to original description
+          const toolDescription =
+            override.description || (toolDef as any).description || `Tool ${toolId}`;
+
+          const simplifiedTool = tool({
+            description: toolDescription,
+            inputSchema,
+            execute: async (simpleArgs: any) => {
+              // Only transform if transformation is provided
+              let complexArgs = simpleArgs;
+              if (override.transformation) {
+                try {
+                  const startTime = Date.now();
+
+                  if (typeof override.transformation === 'string') {
+                    // Use secure async transform with timeout and validation
+                    complexArgs = await JsonTransformer.transform(
+                      simpleArgs,
+                      override.transformation,
+                      { timeout: 10000 } // 10 second timeout for security
+                    );
+                  } else if (
+                    typeof override.transformation === 'object' &&
+                    override.transformation !== null
+                  ) {
+                    // Use transformWithConfig for object transformations
+                    complexArgs = await JsonTransformer.transformWithConfig(
+                      simpleArgs,
+                      {
+                        objectTransformation: override.transformation,
+                      },
+                      { timeout: 10000 }
+                    );
+                  } else {
+                    logger.warn(
+                      {
+                        mcpToolName: mcpTool.name,
+                        toolName,
+                        transformationType: typeof override.transformation,
+                      },
+                      'Invalid transformation type, skipping transformation'
+                    );
+                  }
+
+                  const duration = Date.now() - startTime;
+                  logger.debug(
+                    {
+                      mcpToolName: mcpTool.name,
+                      toolName,
+                      transformationDuration: duration,
+                      hasSimpleArgs: !!simpleArgs,
+                      hasComplexArgs: !!complexArgs,
+                      transformation:
+                        typeof override.transformation === 'string'
+                          ? override.transformation.substring(0, 100) + '...'
+                          : 'object-transformation',
+                    },
+                    'Successfully transformed tool arguments'
+                  );
+                } catch (transformError) {
+                  const errorMessage =
+                    transformError instanceof Error
+                      ? transformError.message
+                      : String(transformError);
+                  logger.error(
+                    {
+                      mcpToolName: mcpTool.name,
+                      toolName,
+                      transformError: errorMessage,
+                      transformation: override.transformation,
+                      simpleArgs,
+                    },
+                    'Failed to transform tool arguments, using original arguments'
+                  );
+                  // Continue with original args if transformation fails
+                  complexArgs = simpleArgs;
+                }
+              }
+
+              // Validate that original tool has execute function
+              if (typeof (toolDef as any).execute !== 'function') {
+                throw new Error(`Original tool ${toolName} does not have a valid execute function`);
+              }
+
+              // Call original tool with error handling
+              try {
+                logger.debug(
+                  {
+                    mcpToolName: mcpTool.name,
+                    toolName,
+                    hasComplexArgs: !!complexArgs,
+                  },
+                  'Executing original tool with processed arguments'
+                );
+
+                return await (toolDef as any).execute(complexArgs);
+              } catch (executeError) {
+                const errorMessage =
+                  executeError instanceof Error ? executeError.message : String(executeError);
+                logger.error(
+                  {
+                    mcpToolName: mcpTool.name,
+                    toolName,
+                    executeError: errorMessage,
+                    complexArgs,
+                  },
+                  'Failed to execute original tool'
+                );
+                throw new Error(`Tool execution failed for ${toolName}: ${errorMessage}`);
+              }
+            },
+          });
+
+          // Replace original with overridden version using the display name if provided
+          const finalToolName = override.displayName || toolName;
+          processedTools[finalToolName] = simplifiedTool;
+
+          logger.info(
+            {
+              mcpToolName: mcpTool.name,
+              originalToolName: toolName,
+              finalToolName,
+              displayName: override.displayName,
+              hasSchemaOverride: !!override.schema,
+              hasDescriptionOverride: !!override.description,
+              hasTransformation: !!override.transformation,
+            },
+            'Successfully applied tool overrides'
+          );
+        } catch (error) {
+          const errorMessage = error instanceof Error ? error.message : String(error);
+          logger.error(
+            {
+              mcpToolName: mcpTool.name,
+              toolName,
+              error: errorMessage,
+              override,
+            },
+            'Failed to apply tool overrides, using original tool'
+          );
+          // Fall back to original tool
+          processedTools[toolName] = toolDef;
+        }
+      } else {
+        // No override, use original
+        processedTools[toolName] = toolDef;
+        logger.debug(
+          { mcpToolName: mcpTool.name, toolName },
+          'No overrides configured for tool, using original'
+        );
+      }
+    }
+
+    const processedToolNames = Object.keys(processedTools);
+    logger.info(
+      {
+        mcpToolName: mcpTool.name,
+        originalToolCount: availableToolNames.length,
+        processedToolCount: processedToolNames.length,
+        processedTools: processedToolNames,
+      },
+      'Completed tool override application'
+    );
+
+    return processedTools;
   }
 
   /**
