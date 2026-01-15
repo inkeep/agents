@@ -8,12 +8,30 @@ import { SubAgentNode } from '../nodes/sub-agent-node';
 import { TeamAgentNode } from '../nodes/team-agent-node';
 import type { AgentModels } from './agent-types';
 
-interface NodeData {
+export enum NodeType {
+  SubAgentPlaceholder = 'sub-agent-placeholder',
+  SubAgent = 'agent',
+  ExternalAgent = 'external-agent',
+  TeamAgent = 'team-agent',
+  TeamAgentPlaceholder = 'team-agent-placeholder',
+  ExternalAgentPlaceholder = 'external-agent-placeholder',
+  MCP = 'mcp',
+  MCPPlaceholder = 'mcp-placeholder',
+  FunctionTool = 'function-tool',
+}
+
+export type PlaceholderType =
+  | NodeType.MCPPlaceholder
+  | NodeType.ExternalAgentPlaceholder
+  | NodeType.TeamAgentPlaceholder
+  | NodeType.SubAgentPlaceholder;
+
+interface NodeData extends Record<string, unknown> {
   name: string;
   isDefault?: boolean;
   subAgentId?: string | null; // Optional for MCP nodes
   relationshipId?: string | null; // Optional for MCP nodes
-  type?: 'mcp-placeholder' | 'external-agent-placeholder' | 'team-agent-placeholder'; // Optional for placeholder nodes
+  type?: PlaceholderType; // Optional for placeholder nodes
 }
 
 export interface AnimatedNode {
@@ -69,18 +87,8 @@ export interface TeamAgentNodeData extends Record<string, unknown> {
   relationshipId?: string | null;
 }
 
-export enum NodeType {
-  SubAgent = 'agent',
-  ExternalAgent = 'external-agent',
-  TeamAgent = 'team-agent',
-  TeamAgentPlaceholder = 'team-agent-placeholder',
-  ExternalAgentPlaceholder = 'external-agent-placeholder',
-  MCP = 'mcp',
-  MCPPlaceholder = 'mcp-placeholder',
-  FunctionTool = 'function-tool',
-}
-
 export const nodeTypes = {
+  [NodeType.SubAgentPlaceholder]: PlaceholderNode,
   [NodeType.SubAgent]: SubAgentNode,
   [NodeType.ExternalAgent]: ExternalAgentNode,
   [NodeType.ExternalAgentPlaceholder]: PlaceholderNode,
@@ -99,6 +107,10 @@ export const functionToolNodeHandleId = 'target-function-tool';
 export const teamAgentNodeTargetHandleId = 'target-team-agent';
 
 export const newNodeDefaults: Record<keyof typeof nodeTypes, NodeData> = {
+  [NodeType.SubAgentPlaceholder]: {
+    name: 'Select sub agent type',
+    type: NodeType.SubAgentPlaceholder,
+  },
   [NodeType.SubAgent]: {
     name: '',
   },
@@ -107,7 +119,7 @@ export const newNodeDefaults: Record<keyof typeof nodeTypes, NodeData> = {
   },
   [NodeType.ExternalAgentPlaceholder]: {
     name: 'Select external agent',
-    type: 'external-agent-placeholder',
+    type: NodeType.ExternalAgentPlaceholder,
   },
   [NodeType.MCP]: {
     name: 'MCP',
@@ -116,7 +128,7 @@ export const newNodeDefaults: Record<keyof typeof nodeTypes, NodeData> = {
   },
   [NodeType.MCPPlaceholder]: {
     name: 'Select MCP server',
-    type: 'mcp-placeholder',
+    type: NodeType.MCPPlaceholder,
   },
   [NodeType.FunctionTool]: {
     name: 'Function Tool',
@@ -129,15 +141,21 @@ export const newNodeDefaults: Record<keyof typeof nodeTypes, NodeData> = {
   },
   [NodeType.TeamAgentPlaceholder]: {
     name: 'Select team agent',
-    type: 'team-agent-placeholder',
+    type: NodeType.TeamAgentPlaceholder,
   },
 };
 
 export const nodeTypeMap = {
+  [NodeType.SubAgentPlaceholder]: {
+    type: NodeType.SubAgentPlaceholder,
+    name: 'Sub Agent',
+    Icon: Bot,
+  },
   [NodeType.SubAgent]: {
     type: NodeType.SubAgent,
     name: 'Sub Agent',
     Icon: Bot,
+    description: 'A sub agent can be used to perform a specific task.',
   },
   [NodeType.ExternalAgent]: {
     type: NodeType.ExternalAgent,
@@ -148,6 +166,8 @@ export const nodeTypeMap = {
     type: NodeType.ExternalAgentPlaceholder,
     name: 'External Agent',
     Icon: Globe,
+    description: 'Connect this agent to an agent built outside of Inkeep.',
+    parentPlaceholder: NodeType.SubAgentPlaceholder,
   },
   [NodeType.MCPPlaceholder]: {
     type: NodeType.MCPPlaceholder,
@@ -173,5 +193,7 @@ export const nodeTypeMap = {
     type: NodeType.TeamAgentPlaceholder,
     name: 'Team Agent',
     Icon: Users,
+    description: 'Connect this agent to another agent within your project.',
+    parentPlaceholder: NodeType.SubAgentPlaceholder,
   },
-};
+} as const;
