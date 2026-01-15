@@ -40,7 +40,7 @@ export function ComponentSelector<T extends ComponentItem>({
   return (
     <div className="flex flex-col gap-2">
       <div className="flex flex-col gap-2">
-        <ComponentHeader label={label} count={selectedComponents.length} />
+        {label && <ComponentHeader label={label} count={selectedComponents.length} />}
         {selectedComponents.length > 0 && (
           <SelectedComponents
             selectedComponents={selectedComponents}

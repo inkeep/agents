@@ -43,7 +43,8 @@ loadEnvironmentFiles();
 
 const envSchema = z.object({
   ENVIRONMENT: z.enum(['development', 'production', 'pentest', 'test']).optional(),
-  DATABASE_URL: z.string().optional(),
+  INKEEP_AGENTS_MANAGE_DATABASE_URL: z.string().optional(),
+  INKEEP_AGENTS_RUN_DATABASE_URL: z.string().optional(),
   POSTGRES_POOL_SIZE: z.string().optional(),
   INKEEP_AGENTS_JWT_SIGNING_SECRET: z
     .string()

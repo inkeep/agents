@@ -1,10 +1,10 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { getFullAgentDefinition } from '../../data-access/agents';
-import type { DatabaseClient } from '../../db/client';
-import { testDbClient } from '../setup';
+import { getFullAgentDefinition } from '../../data-access/manage/agents';
+import type { AgentsManageDatabaseClient } from '../../db/manage/manage-client';
+import { testManageDbClient } from '../setup';
 
 describe('AgentFull Data Access - getFullAgentDefinition', () => {
-  let db: DatabaseClient;
+  let db: AgentsManageDatabaseClient;
   const testTenantId = 'test-tenant';
   const testProjectId = 'test-project';
   const testAgentId = 'test-agent-1';
@@ -34,7 +34,7 @@ describe('AgentFull Data Access - getFullAgentDefinition', () => {
   });
 
   beforeEach(async () => {
-    db = testDbClient;
+    db = testManageDbClient;
     vi.clearAllMocks();
   });
 

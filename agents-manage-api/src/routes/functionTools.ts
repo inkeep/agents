@@ -16,7 +16,6 @@ import {
   TenantProjectAgentParamsSchema,
   updateFunctionTool,
 } from '@inkeep/agents-core';
-import dbClient from '../data/db/dbClient';
 import { getLogger } from '../logger';
 import { requirePermission } from '../middleware/require-permission';
 import type { BaseAppVariables } from '../types/app';
@@ -68,11 +67,12 @@ app.openapi(
     ...speakeasyOffsetLimitPagination,
   }),
   async (c) => {
+    const db = c.get('db');
     const { tenantId, projectId, agentId } = c.req.valid('param');
     const { page, limit } = c.req.valid('query');
 
     try {
-      const result = await listFunctionTools(dbClient)({
+      const result = await listFunctionTools(db)({
         scopes: { tenantId, projectId, agentId },
         pagination: { page, limit },
       });
@@ -111,10 +111,11 @@ app.openapi(
     },
   }),
   async (c) => {
+    const db = c.get('db');
     const { tenantId, projectId, agentId, id } = c.req.valid('param');
 
     try {
-      const functionTool = await getFunctionToolById(dbClient)({
+      const functionTool = await getFunctionToolById(db)({
         scopes: { tenantId, projectId, agentId },
         functionToolId: id,
       });
@@ -167,13 +168,14 @@ app.openapi(
     },
   }),
   async (c) => {
+    const db = c.get('db');
     const { tenantId, projectId, agentId } = c.req.valid('param');
     const body = c.req.valid('json');
 
     try {
       const id = body.id || generateId();
 
-      const functionTool = await createFunctionTool(dbClient)({
+      const functionTool = await createFunctionTool(db)({
         scopes: { tenantId, projectId, agentId },
         data: {
           ...body,
@@ -225,11 +227,12 @@ app.openapi(
     },
   }),
   async (c) => {
+    const db = c.get('db');
     const { tenantId, projectId, agentId, id } = c.req.valid('param');
     const body = c.req.valid('json');
 
     try {
-      const functionTool = await updateFunctionTool(dbClient)({
+      const functionTool = await updateFunctionTool(db)({
         scopes: { tenantId, projectId, agentId },
         functionToolId: id,
         data: body,
@@ -277,10 +280,11 @@ app.openapi(
     },
   }),
   async (c) => {
+    const db = c.get('db');
     const { tenantId, projectId, agentId, id } = c.req.valid('param');
 
     try {
-      const deleted = await deleteFunctionTool(dbClient)({
+      const deleted = await deleteFunctionTool(db)({
         scopes: { tenantId, projectId, agentId },
         functionToolId: id,
       });

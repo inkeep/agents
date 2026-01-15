@@ -38,6 +38,11 @@ export {
   registerEnvironmentSettings,
 } from './environment-settings';
 export {
+  EvaluationClient,
+  type EvaluationClientConfig,
+  evaluationClient,
+} from './evaluationClient';
+export {
   ExternalAgent,
   externalAgent,
   externalAgents,

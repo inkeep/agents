@@ -1,4 +1,9 @@
-import type { CredentialStoreRegistry, ServerConfig } from '@inkeep/agents-core';
+import type {
+  AgentsManageDatabaseClient,
+  CredentialStoreRegistry,
+  ResolvedRef,
+  ServerConfig,
+} from '@inkeep/agents-core';
 import type { createAuth } from '@inkeep/agents-core/auth';
 
 /**
@@ -11,6 +16,8 @@ export type BaseAppVariables = {
   userEmail: string;
   tenantId: string;
   tenantRole: string;
+  resolvedRef: ResolvedRef;
+  db: AgentsManageDatabaseClient;
 };
 
 /**
@@ -42,6 +49,7 @@ export type PublicAppVariables = {
  * Minimal app variables for OAuth routes with server config
  */
 export type PublicAppVariablesWithServerConfig = {
+  db: AgentsManageDatabaseClient;
   serverConfig: ServerConfig;
   credentialStores: CredentialStoreRegistry;
 };

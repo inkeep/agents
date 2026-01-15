@@ -1,6 +1,6 @@
 {
   "name": "@inkeep/agents-core",
-  "version": "0.41.1",
+  "version": "0.41.2",
   "description": "Agents Core contains the database schema, types, and validation schemas for Inkeep Agent Framework, along with core components.",
   "type": "module",
   "license": "SEE LICENSE IN LICENSE.md",
@@ -10,13 +10,29 @@
       "types": "./dist/index.d.ts",
       "default": "./dist/index.js"
     },
-    "./schema": {
-      "types": "./dist/db/schema.d.ts",
-      "import": "./dist/db/schema.js"
+    "./db/manage-schema": {
+      "types": "./dist/db/manage/manage-schema.d.ts",
+      "import": "./dist/db/manage/manage-schema.js"
     },
-    "./db/schema": {
-      "types": "./dist/db/schema.d.ts",
-      "import": "./dist/db/schema.js"
+    "./db/run-schema": {
+      "types": "./dist/db/runtime/runtime-schema.d.ts",
+      "import": "./dist/db/runtime/runtime-schema.js"
+    },
+    "./db/manage-client": {
+      "types": "./dist/db/manage/manage-client.d.ts",
+      "import": "./dist/db/manage/manage-client.js"
+    },
+    "./db/test-manage-client": {
+      "types": "./dist/db/manage/test-manage-client.d.ts",
+      "import": "./dist/db/manage/test-manage-client.js"
+    },
+    "./db/test-runtime-client": {
+      "types": "./dist/db/runtime/test-runtime-client.d.ts",
+      "import": "./dist/db/runtime/test-runtime-client.js"
+    },
+    "./db/run-client": {
+      "types": "./dist/db/runtime/runtime-client.d.ts",
+      "import": "./dist/db/runtime/runtime-client.js"
     },
     "./types": {
       "types": "./dist/types/index.d.ts",
@@ -74,8 +90,7 @@
     "build": "tsdown",
     "dev": "pnpm build --watch",
     "test": "vitest --run",
-    "test:unit": "vitest --run src/__tests__ --exclude src/__tests__/integration/**",
-    "test:integration": "vitest --run src/__tests__/integration/",
+    "test:integration": "vitest --run --config vitest.integration.config.ts src/__tests__/integration/",
     "test:coverage": "vitest --run --coverage",
     "test:watch": "vitest --watch",
     "lint": "biome lint --error-on-warnings",
@@ -84,18 +99,29 @@
     "format:check": "biome format src",
     "typecheck": "tsc --noEmit",
     "typecheck:watch": "tsc --noEmit --watch",
-    "db:generate": "drizzle-kit generate",
-    "db:migrate": "drizzle-kit migrate",
-    "db:drop": "drizzle-kit drop",
+    "db:generate": "pnpm db:manage:generate && pnpm db:run:generate",
+    "db:migrate": "pnpm db:manage:migrate && pnpm db:run:migrate",
+    "db:drop": "pnpm db:manage:drop && pnpm db:run:drop",
     "db:clean": "tsx src/db/clean.ts",
     "db:delete": "tsx src/db/delete.ts",
     "db:reset": "pnpm db:delete && pnpm db:migrate",
-    "db:studio": "drizzle-kit studio",
-    "db:check": "drizzle-kit check"
+    "db:studio": "echo 'Use db:manage:studio or db:run:studio'",
+    "db:check": "pnpm db:manage:check && pnpm db:run:check",
+    "db:manage:generate": "drizzle-kit generate --config=drizzle.manage.config.ts",
+    "db:manage:migrate": "tsx src/dolt/migrate-dolt.ts",
+    "db:manage:sync-all-branches": "tsx src/dolt/migrate-all-branches.ts",
+    "db:manage:drop": "drizzle-kit drop --config=drizzle.manage.config.ts",
+    "db:manage:studio": "drizzle-kit studio --config=drizzle.manage.config.ts",
+    "db:manage:check": "drizzle-kit check --config=drizzle.manage.config.ts",
+    "db:run:generate": "drizzle-kit generate --config=drizzle.run.config.ts",
+    "db:run:migrate": "drizzle-kit migrate --config=drizzle.run.config.ts",
+    "db:run:drop": "drizzle-kit drop --config=drizzle.run.config.ts",
+    "db:run:studio": "drizzle-kit studio --config=drizzle.run.config.ts",
+    "db:run:check": "drizzle-kit check --config=drizzle.run.config.ts"
   },
   "dependencies": {
-    "@ai-sdk/azure": "^3.0.4",
     "@ai-sdk/anthropic": "3.0.7",
+    "@ai-sdk/azure": "^3.0.4",
     "@ai-sdk/gateway": "3.0.9",
     "@ai-sdk/google": "3.0.4",
     "@ai-sdk/openai": "3.0.7",
@@ -108,6 +134,7 @@
     "@nangohq/types": "^0.69.5",
     "@openrouter/ai-sdk-provider": "^1.2.0",
     "@opentelemetry/api": "^1.9.0",
+    "@workflow/world-postgres": "4.1.0-beta.18",
     "ai": "6.0.14",
     "ajv": "^8.17.1",
     "better-auth": "catalog:",
@@ -119,14 +146,17 @@
     "exit-hook": "^4.0.0",
     "find-up": "^7.0.0",
     "hono": "^4.10.4",
+    "iwanthue": "^2.0.0",
     "jmespath": "^0.16.0",
     "jose": "^6.1.0",
     "nanoid": "^5.0.9",
     "pg": "^8.16.3",
     "pino": "^9.11.0",
     "pino-pretty": "^13.1.1",
+    "postgres": "^3.4.8",
     "traverse": "^0.6.10",
-    "ts-pattern": "^5.7.1"
+    "ts-pattern": "^5.7.1",
+    "workflow": "4.0.1-beta.29"
   },
   "peerDependencies": {
     "@hono/zod-openapi": "^1.1.5",

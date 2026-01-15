@@ -10,18 +10,18 @@ import {
   listExternalAgents,
   listExternalAgentsPaginated,
   updateExternalAgent,
-} from '../../data-access/externalAgents';
-import type { DatabaseClient } from '../../db/client';
-import { testDbClient } from '../setup';
+} from '../../data-access/manage/externalAgents';
+import type { AgentsManageDatabaseClient } from '../../db/manage/manage-client';
+import { testManageDbClient } from '../setup';
 
 describe('External Agents Data Access', () => {
-  let db: DatabaseClient;
+  let db: AgentsManageDatabaseClient;
   const testTenantId = 'tenant-123';
   const testProjectId = 'project-456';
   const testExternalAgentId = 'external-agent-789';
 
   beforeEach(async () => {
-    db = testDbClient;
+    db = testManageDbClient;
     vi.clearAllMocks();
   });
 
