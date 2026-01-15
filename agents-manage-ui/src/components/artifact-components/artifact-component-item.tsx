@@ -32,7 +32,7 @@ export function ArtifactComponentItem({
         <ArtifactComponentItemMenu artifactComponentId={id} artifactComponentName={name} />
       </ItemCardHeader>
       <ItemCardContent>
-        <ItemCardDescription hasContent={!!description} className="line-clamp-2">
+        <ItemCardDescription hasContent={!!description}>
           {description || 'No description'}
         </ItemCardDescription>
         <ItemCardFooter footerText={`Created ${formatDate(createdAt)}`} />
