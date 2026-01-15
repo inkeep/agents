@@ -1566,6 +1566,11 @@ export const ListResponseSchema = <T extends z.ZodTypeAny>(itemSchema: T) =>
     pagination: PaginationSchema,
   });
 
+export const SingleResponseSchema = <T extends z.ZodTypeAny>(itemSchema: T) =>
+  z.object({
+    data: itemSchema,
+  });
+
 export const ErrorResponseSchema = z
   .object({
     error: z.string(),
