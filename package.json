@@ -46,7 +46,7 @@
     "release": "changeset publish",
     "release-dev": "changeset version --snapshot dev && changeset publish --tag dev",
     "db:generate": "pnpm --filter @inkeep/agents-core db:generate",
-    "db:migrate": "tsx scripts/migrate-dolt.ts",
+    "db:migrate": "pnpm --filter @inkeep/agents-core db:migrate",
     "db:drop": "pnpm --filter @inkeep/agents-core db:drop",
     "db:clean": "pnpm --filter @inkeep/agents-core db:clean",
     "db:delete": "pnpm --filter @inkeep/agents-core db:delete",
