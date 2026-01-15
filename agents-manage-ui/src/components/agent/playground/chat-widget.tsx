@@ -74,6 +74,12 @@ export function ChatWidget({
   const [submittedFeedback, setSubmittedFeedback] = useState<Map<string, 'positive' | 'negative'>>(
     new Map()
   );
+
+  // Clear feedback state when conversation changes to prevent memory leaks
+  useEffect(() => {
+    setSubmittedFeedback(new Map());
+  }, [conversationId]);
+
   const { apiKey: tempApiKey, isLoading: isLoadingKey } = useTempApiKey({
     tenantId,
     projectId,
