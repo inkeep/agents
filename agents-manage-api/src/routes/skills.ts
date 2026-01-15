@@ -15,7 +15,6 @@ import {
   TenantProjectParamsSchema,
   updateSkill,
 } from '@inkeep/agents-core';
-import dbClient from '../data/db/dbClient';
 import { requirePermission } from '../middleware/require-permission';
 import type { BaseAppVariables } from '../types/app';
 import { speakeasyOffsetLimitPagination } from './shared';
@@ -64,10 +63,11 @@ app.openapi(
     ...speakeasyOffsetLimitPagination,
   }),
   async (c) => {
+    const db = c.get('db');
     const { tenantId, projectId } = c.req.valid('param');
     const { page, limit } = c.req.valid('query');
 
-    const result = await listSkills(dbClient)({
+    const result = await listSkills(db)({
       scopes: { tenantId, projectId },
       pagination: { page, limit },
     });
@@ -99,8 +99,9 @@ app.openapi(
     },
   }),
   async (c) => {
+    const db = c.get('db');
     const { tenantId, projectId, id } = c.req.valid('param');
-    const skill = await getSkillById(dbClient)({
+    const skill = await getSkillById(db)({
       scopes: { tenantId, projectId },
       skillId: id,
     });
@@ -146,10 +147,11 @@ app.openapi(
     },
   }),
   async (c) => {
+    const db = c.get('db');
     const { tenantId, projectId } = c.req.valid('param');
     const body = c.req.valid('json');
 
-    const skill = await createSkill(dbClient)({
+    const skill = await createSkill(db)({
       ...body,
       tenantId,
       projectId,
@@ -189,10 +191,11 @@ app.openapi(
     },
   }),
   async (c) => {
+    const db = c.get('db');
     const { tenantId, projectId, id } = c.req.valid('param');
     const body = c.req.valid('json');
 
-    const skill = await updateSkill(dbClient)({
+    const skill = await updateSkill(db)({
       scopes: { tenantId, projectId },
       skillId: id,
       data: body,
@@ -227,9 +230,10 @@ app.openapi(
     },
   }),
   async (c) => {
+    const db = c.get('db');
     const { tenantId, projectId, id } = c.req.valid('param');
 
-    const removed = await deleteSkill(dbClient)({
+    const removed = await deleteSkill(db)({
       scopes: { tenantId, projectId },
       skillId: id,
     });

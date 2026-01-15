@@ -14,7 +14,6 @@ import type {
   ProjectScopeConfig,
   SubAgentScopeConfig,
 } from '../../types/utility';
-import { generateId } from '../../utils/conversations';
 import { getLogger } from '../../utils/logger';
 
 const logger = getLogger('skills-dal');
