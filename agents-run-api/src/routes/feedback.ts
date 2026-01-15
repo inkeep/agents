@@ -1,6 +1,6 @@
 import { OpenAPIHono } from '@hono/zod-openapi';
 import type { CredentialStoreRegistry, FullExecutionContext } from '@inkeep/agents-core';
-import { trace } from '@opentelemetry/api';
+import { getTracer } from '@inkeep/agents-core';
 import { z } from 'zod';
 import { flushBatchProcessor } from '../instrumentation';
 import { getLogger } from '../logger';
@@ -14,7 +14,7 @@ type AppVariables = {
 const app = new OpenAPIHono<{ Variables: AppVariables }>();
 const logger = getLogger('feedbackHandler');
 
-const tracer = trace.getTracer('feedback');
+const tracer = getTracer('feedback');
 
 const feedbackSchema = z.object({
   conversationId: z.string().min(1),
