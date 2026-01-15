@@ -1767,7 +1767,7 @@ describe('Agent Conditional Tool Availability', () => {
       ] as AgentConfig['skills'],
     };
 
-    const agent = new Agent(config);
+    const agent = new Agent(config, mockExecutionContext);
     const tools = await (agent as any).getDefaultTools();
 
     expect(tools.load_skill).toBeDefined();

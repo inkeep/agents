@@ -471,6 +471,7 @@ async function main() {
     credentialsDir: join(testDir, 'credentials'),
     contextConfigsDir: join(testDir, 'context-configs'),
     externalAgentsDir: join(testDir, 'external-agents'),
+    skillsDir: join(testDir, 'skills'),
   };
 
   try {

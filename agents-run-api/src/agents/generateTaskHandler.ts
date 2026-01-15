@@ -21,6 +21,7 @@ import {
   enhanceTeamRelation,
   getArtifactComponentsForSubAgent,
   getDataComponentsForSubAgent,
+  getSkillsForSubAgent,
   getSubAgentRelations,
   getToolsForSubAgent,
 } from '../utils/project';
@@ -163,7 +164,7 @@ export const createTaskHandler = (
       const toolsForAgentResult: McpTool[] =
         (await Promise.all(
           toolsForAgent.map(async (item) => {
-            // Doing a api call here rather than using the full project because the mcp's available tools are not available in the project context
+            // Doing an api call here rather than using the full project because the mcp's available tools are not available in the project context
             const mcpTool = await manageApiClient.getMcpTool(item.tool.id);
             if (item.relationshipId) {
               mcpTool.relationshipId = item.relationshipId;
@@ -178,11 +179,10 @@ export const createTaskHandler = (
             return mcpTool;
           })
         )) ?? [];
-
-      const skills =
-        skillsForSubAgents
-          ?.filter((skill) => skill.subAgentId === config.subAgentId)
-          .sort((a, b) => (a.index ?? 0) - (b.index ?? 0)) || [];
+      const skills = getSkillsForSubAgent({
+        project,
+        subAgent: currentSubAgent,
+      });
 
       agent = new Agent(
         {
