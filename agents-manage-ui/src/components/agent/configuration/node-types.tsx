@@ -108,7 +108,7 @@ export const teamAgentNodeTargetHandleId = 'target-team-agent';
 
 export const newNodeDefaults: Record<keyof typeof nodeTypes, NodeData> = {
   [NodeType.SubAgentPlaceholder]: {
-    name: 'Select sub agent type',
+    name: 'Select agent type',
     type: NodeType.SubAgentPlaceholder,
   },
   [NodeType.SubAgent]: {
