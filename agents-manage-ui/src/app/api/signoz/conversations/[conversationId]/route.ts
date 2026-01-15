@@ -3,6 +3,7 @@ import {
   parseContextBreakdownFromSpan,
   V1_BREAKDOWN_SCHEMA,
 } from '@inkeep/agents-core/client-exports';
+import type { AxiosResponse } from 'axios';
 import axios from 'axios';
 import axiosRetry from 'axios-retry';
 import { type NextRequest, NextResponse } from 'next/server';
@@ -62,7 +63,22 @@ function getNumber(span: SigNozListItem, key: string, fallback = 0): number {
   return Number.isFinite(n) ? n : fallback;
 }
 
-// Call secure manage-api instead of SigNoz directly
+/**
+ * Check if we should call SigNoz directly (server-to-server call without cookies)
+ */
+function shouldCallSigNozDirectly(cookieHeader: string | null): boolean {
+  return !cookieHeader && !!process.env.SIGNOZ_URL && !!process.env.SIGNOZ_API_KEY;
+}
+
+/**
+ * Get the SigNoz endpoint URL
+ */
+function getSigNozEndpoint(): string {
+  const signozUrl = process.env.SIGNOZ_URL || process.env.PUBLIC_SIGNOZ_URL;
+  return `${signozUrl}/api/v4/query_range`;
+}
+
+// Call SigNoz directly for server-to-server calls, otherwise go through manage-api
 async function signozQuery(
   payload: any,
   tenantId: string,
@@ -71,25 +87,41 @@ async function signozQuery(
   const logger = getLogger('signoz-query');
 
   try {
-    const manageApiUrl = getManageApiUrl();
-    const endpoint = `${manageApiUrl}/tenants/${tenantId}/signoz/query`;
+    let response: AxiosResponse;
 
-    const headers: Record<string, string> = {
-      'Content-Type': 'application/json',
-    };
+    // For server-to-server calls (no cookies), call SigNoz directly
+    if (shouldCallSigNozDirectly(cookieHeader)) {
+      const endpoint = getSigNozEndpoint();
+      logger.debug({ endpoint }, 'Calling SigNoz directly for conversation traces');
 
-    // Forward cookies for authentication
-    if (cookieHeader) {
-      headers.Cookie = cookieHeader;
+      response = await axios.post(endpoint, payload, {
+        headers: {
+          'Content-Type': 'application/json',
+          'SIGNOZ-API-KEY': process.env.SIGNOZ_API_KEY || '',
+        },
+        timeout: 30000,
+      });
+    } else {
+      // For browser calls, go through manage-api for auth
+      const manageApiUrl = getManageApiUrl();
+      const endpoint = `${manageApiUrl}/tenants/${tenantId}/signoz/query`;
+
+      const headers: Record<string, string> = {
+        'Content-Type': 'application/json',
+      };
+
+      if (cookieHeader) {
+        headers.Cookie = cookieHeader;
+      }
+
+      logger.debug({ endpoint }, 'Calling manage-api for conversation traces');
+
+      response = await axios.post(endpoint, payload, {
+        headers,
+        timeout: 30000,
+        withCredentials: true,
+      });
     }
-
-    logger.debug({ endpoint }, 'Calling secure manage-api for conversation traces');
-
-    const response = await axios.post(endpoint, payload, {
-      headers,
-      timeout: 30000,
-      withCredentials: true,
-    });
 
     const json = response.data as SigNozResp;
     const responseData = json?.data?.result

@@ -3,23 +3,17 @@ import {
   type AgentConversationHistoryConfig,
   type Artifact,
   type ArtifactComponentApiInsert,
-  agentHasArtifactComponents,
-  ContextResolver,
   type CredentialStoreRegistry,
   CredentialStuffer,
   createMessage,
   type DataComponentApiInsert,
+  type FullExecutionContext,
   generateId,
-  getContextConfigById,
-  getCredentialReference,
-  getFullAgentDefinition,
-  getFunction,
-  getFunctionToolsForSubAgent,
   getLedgerArtifacts,
-  getToolsForAgent,
-  getUserScopedCredentialReference,
+  InternalServices,
   JsonTransformer,
   listTaskIdsByContextId,
+  ManagementApiClient,
   MCPServerType,
   type MCPToolConfig,
   MCPTransportType,
@@ -31,6 +25,7 @@ import {
   type ModelSettings,
   type Models,
   parseEmbeddedJson,
+  type ResolvedRef,
   type SubAgentStopWhen,
   TemplateEngine,
 } from '@inkeep/agents-core';
@@ -53,11 +48,13 @@ import {
   LLM_GENERATION_MAX_ALLOWED_TIMEOUT_MS,
   LLM_GENERATION_SUBSEQUENT_CALL_TIMEOUT_MS,
 } from '../constants/execution-limits';
+import { ContextResolver } from '../context';
 import {
   createDefaultConversationHistoryConfig,
   getConversationHistoryWithCompression,
 } from '../data/conversations';
 import dbClient from '../data/db/dbClient';
+import { env } from '../env';
 import { getLogger } from '../logger';
 import { agentSessionManager, type ToolCallData } from '../services/AgentSession';
 import { getModelAwareCompressionConfig } from '../services/BaseCompressor';
@@ -86,7 +83,6 @@ import { toolSessionManager } from './ToolSessionManager';
 import type { SystemPromptV1 } from './types';
 import { Phase1Config, V1_BREAKDOWN_SCHEMA } from './versions/v1/Phase1Config';
 import { Phase2Config } from './versions/v1/Phase2Config';
-
 /**
  * Creates a stopWhen condition that stops when any tool call name starts with the given prefix
  * @param prefix - The prefix to check for in tool call names
@@ -155,6 +151,7 @@ export type ExternalAgentRelationConfig = {
   id: string;
   name: string;
   description: string;
+  ref: ResolvedRef;
   baseUrl: string;
   credentialReferenceId?: string | null;
   headers?: Record<string, string> | null;
@@ -164,6 +161,7 @@ export type ExternalAgentRelationConfig = {
 export type TeamAgentRelationConfig = {
   relationId: string;
   id: string;
+  ref: ResolvedRef;
   name: string;
   description: string;
   baseUrl: string;
@@ -204,9 +202,15 @@ export class Agent {
   private mcpClientCache: Map<string, McpClient> = new Map();
   private mcpConnectionLocks: Map<string, Promise<McpClient>> = new Map();
   private currentCompressor: MidGenerationCompressor | null = null;
+  private executionContext: FullExecutionContext;
 
-  constructor(config: AgentConfig, credentialStoreRegistry?: CredentialStoreRegistry) {
+  constructor(
+    config: AgentConfig,
+    executionContext: FullExecutionContext,
+    credentialStoreRegistry?: CredentialStoreRegistry
+  ) {
     this.artifactComponents = config.artifactComponents || [];
+    this.executionContext = executionContext;
 
     let processedDataComponents = config.dataComponents || [];
 
@@ -251,12 +255,7 @@ export class Agent {
     this.credentialStoreRegistry = credentialStoreRegistry;
 
     if (credentialStoreRegistry) {
-      this.contextResolver = new ContextResolver(
-        config.tenantId,
-        config.projectId,
-        dbClient,
-        credentialStoreRegistry
-      );
+      this.contextResolver = new ContextResolver(executionContext, credentialStoreRegistry);
       this.credentialStuffer = new CredentialStuffer(credentialStoreRegistry, this.contextResolver);
     }
   }
@@ -646,9 +645,7 @@ export class Agent {
             createDelegateToAgentTool({
               delegateConfig: relation,
               callingAgentId: this.config.id,
-              tenantId: this.config.tenantId,
-              projectId: this.config.projectId,
-              agentId: this.config.agentId,
+              executionContext: this.executionContext,
               contextId: runtimeContext?.contextId || 'default', // fallback for compatibility
               metadata: runtimeContext?.metadata || {
                 conversationId: runtimeContext?.contextId || 'default',
@@ -965,20 +962,15 @@ export class Agent {
       : 'no-fwd';
     const cacheKey = `${this.config.tenantId}-${this.config.projectId}-${tool.id}-${tool.credentialReferenceId || 'no-cred'}-${forwardedHeadersHash}`;
 
+    const project = this.executionContext.project;
+
     const credentialReferenceId = tool.credentialReferenceId;
 
-    const toolsForAgent = await getToolsForAgent(dbClient)({
-      scopes: {
-        tenantId: this.config.tenantId,
-        projectId: this.config.projectId,
-        agentId: this.config.agentId,
-        subAgentId: this.config.id,
-      },
-    });
-
-    const toolRelation = toolsForAgent.data.find((t) => t.toolId === tool.id);
+    // Get tool relation from project context instead of database
+    const subAgent = project.agents[this.config.agentId]?.subAgents?.[this.config.id];
+    const toolRelation = subAgent?.canUse?.find((t) => t.toolId === tool.id);
     const agentToolRelationHeaders = toolRelation?.headers || undefined;
-    const selectedTools = toolRelation?.selectedTools || undefined;
+    const selectedTools = toolRelation?.toolSelection || undefined;
     const toolPolicies = toolRelation?.toolPolicies || {};
 
     let serverConfig: McpServerConfig;
@@ -989,14 +981,11 @@ export class Agent {
 
     if (isUserScoped && userId && this.credentialStuffer) {
       // User-scoped: look up credential by (toolId, userId)
-      const userCredentialReference = await getUserScopedCredentialReference(dbClient)({
-        scopes: {
-          tenantId: this.config.tenantId,
-          projectId: this.config.projectId,
-        },
-        toolId: tool.id,
-        userId,
-      });
+      const userCredentialReference = project.credentialReferences
+        ? Object.values(project.credentialReferences).find(
+            (c) => c.toolId === tool.id && c.userId === userId
+          )
+        : undefined;
 
       if (userCredentialReference) {
         const storeReference = {
@@ -1035,16 +1024,11 @@ export class Agent {
       }
     } else if (credentialReferenceId && this.credentialStuffer) {
       // Project-scoped: look up credential by credentialReferenceId
-      const credentialReference = await getCredentialReference(dbClient)({
-        scopes: {
-          tenantId: this.config.tenantId,
-          projectId: this.config.projectId,
-        },
-        id: credentialReferenceId,
-      });
+
+      const credentialReference = project.credentialReferences?.[credentialReferenceId];
 
       if (!credentialReference) {
-        throw new Error(`Credential store not found: ${credentialReferenceId}`);
+        throw new Error(`Credential reference not found: ${credentialReferenceId}`);
       }
 
       const storeReference = {
@@ -1248,18 +1232,25 @@ export class Agent {
 
   async getFunctionTools(sessionId?: string, streamRequestId?: string) {
     const functionTools: ToolSet = {};
-
+    const project = this.executionContext.project;
     try {
-      const functionToolsForAgent = await getFunctionToolsForSubAgent(dbClient)({
-        scopes: {
-          tenantId: this.config.tenantId,
-          projectId: this.config.projectId,
-          agentId: this.config.agentId,
+      const client = new ManagementApiClient({
+        apiUrl: env.INKEEP_AGENTS_MANAGE_API_URL,
+        tenantId: this.config.tenantId,
+        projectId: this.config.projectId,
+        auth: {
+          mode: 'internalService',
+          internalServiceName: InternalServices.INKEEP_AGENTS_RUN_API,
         },
-        subAgentId: this.config.id,
+        ref: this.executionContext.resolvedRef.name,
+        userId: this.config.userId,
       });
+      const functionToolsForAgent = await client.getFunctionToolsForSubAgent(
+        this.config.agentId,
+        this.config.id
+      );
 
-      const functionToolsData = functionToolsForAgent.data || [];
+      const functionToolsData = functionToolsForAgent ?? [];
 
       if (functionToolsData.length === 0) {
         return functionTools;
@@ -1278,13 +1269,7 @@ export class Agent {
           continue;
         }
 
-        const functionData = await getFunction(dbClient)({
-          functionId,
-          scopes: {
-            tenantId: this.config.tenantId || 'default',
-            projectId: this.config.projectId || 'default',
-          },
-        });
+        const functionData = project.functions?.[functionId];
         if (!functionData) {
           logger.warn(
             { functionId, functionToolId: functionToolDef.id },
@@ -1392,19 +1377,28 @@ export class Agent {
     headers?: Record<string, unknown>
   ): Promise<Record<string, unknown> | null> {
     try {
+      const project = this.executionContext.project;
+
       if (!this.config.contextConfigId) {
         logger.debug({ agentId: this.config.agentId }, 'No context config found for agent');
         return null;
       }
 
-      const contextConfig = await getContextConfigById(dbClient)({
-        scopes: {
-          tenantId: this.config.tenantId,
-          projectId: this.config.projectId,
-          agentId: this.config.agentId,
-        },
-        id: this.config.contextConfigId,
-      });
+      const contextConfig = project.agents[this.config.agentId]?.contextConfig;
+
+      if (!contextConfig) {
+        logger.warn({ contextConfigId: this.config.contextConfigId }, 'Context config not found');
+        return null;
+      }
+
+      const contextConfigWithScopes = {
+        ...contextConfig,
+        tenantId: this.config.tenantId,
+        projectId: this.config.projectId,
+        agentId: this.config.agentId,
+        createdAt: contextConfig.createdAt || '',
+        updatedAt: contextConfig.updatedAt || '',
+      };
       if (!contextConfig) {
         logger.warn({ contextConfigId: this.config.contextConfigId }, 'Context config not found');
         return null;
@@ -1414,7 +1408,7 @@ export class Agent {
         throw new Error('Context resolver not found');
       }
 
-      const result = await this.contextResolver.resolve(contextConfig, {
+      const result = await this.contextResolver.resolve(contextConfigWithScopes, {
         triggerEvent: 'invocation',
         conversationId,
         headers: headers || {},
@@ -1456,15 +1450,9 @@ export class Agent {
    * Get the agent prompt for this agent's agent
    */
   private async getPrompt(): Promise<string | undefined> {
+    const project = this.executionContext.project;
+    const agentDefinition = project.agents[this.config.agentId];
     try {
-      const agentDefinition = await getFullAgentDefinition(dbClient)({
-        scopes: {
-          tenantId: this.config.tenantId,
-          projectId: this.config.projectId,
-          agentId: this.config.agentId,
-        },
-      });
-
       return agentDefinition?.prompt || undefined;
     } catch (error) {
       logger.warn(
@@ -1482,15 +1470,9 @@ export class Agent {
    * Check if any agent in the agent has artifact components configured
    */
   private async hasAgentArtifactComponents(): Promise<boolean> {
+    const project = this.executionContext.project;
     try {
-      const agentDefinition = await getFullAgentDefinition(dbClient)({
-        scopes: {
-          tenantId: this.config.tenantId,
-          projectId: this.config.projectId,
-          agentId: this.config.agentId,
-        },
-      });
-
+      const agentDefinition = project.agents[this.config.agentId];
       if (!agentDefinition) {
         return false;
       }
@@ -1662,6 +1644,7 @@ export class Agent {
       projectId: this.config.projectId,
       conversationId: runtimeContext?.contextId || '',
       historyConfig,
+      ref: this.executionContext.resolvedRef,
     });
 
     const componentDataComponents = excludeDataComponents ? [] : this.config.dataComponents || [];
@@ -2430,16 +2413,18 @@ ${output}`;
     }
   }
 
-  // Check if any agents in the agent have artifact components
+  // Check if any sub-agents in the agent have artifact components
   private async agentHasArtifactComponents(): Promise<boolean> {
     try {
-      return await agentHasArtifactComponents(dbClient)({
-        scopes: {
-          tenantId: this.config.tenantId,
-          projectId: this.config.projectId,
-          agentId: this.config.agentId,
-        },
-      });
+      const project = this.executionContext.project;
+      const agent = project.agents[this.config.agentId];
+      const subAgents = agent?.subAgents;
+      if (!subAgents) {
+        return false;
+      }
+      return Object.values(subAgents).some(
+        (subAgent) => subAgent.artifactComponents?.length ?? 0 > 0
+      );
     } catch (error) {
       logger.error(
         { error, agentId: this.config.agentId },
@@ -3182,7 +3167,7 @@ ${output}`;
     };
     const parser = new IncrementalStreamParser(
       streamHelper,
-      this.config.tenantId,
+      this.executionContext,
       contextId,
       artifactParserOptions
     );
@@ -3521,7 +3506,7 @@ ${output}${structureHintsFormatted}`;
 
     if (!formattedContent) {
       const session = toolSessionManager.getSession(sessionId);
-      const responseFormatter = new ResponseFormatter(this.config.tenantId, {
+      const responseFormatter = new ResponseFormatter(this.executionContext, {
         sessionId,
         taskId: session?.taskId,
         projectId: session?.projectId,

@@ -10,8 +10,10 @@ const envSchema = z.object({
     .enum(['development', 'production', 'pentest', 'test'])
     .optional()
     .default('development'),
-  DATABASE_URL: z.string().optional(),
   INKEEP_AGENTS_RUN_API_URL: z.string().optional().default('http://localhost:3003'),
+  INKEEP_AGENTS_MANAGE_API_URL: z.string().optional().default('http://localhost:3002'),
+  INKEEP_AGENTS_EVAL_API_URL: z.string().optional().default('http://localhost:3005'),
+  INKEEP_AGENTS_RUN_DATABASE_URL: z.string().optional(),
   AGENTS_MANAGE_UI_URL: z.string().optional().default('http://localhost:3000'),
   LOG_LEVEL: z.enum(['trace', 'debug', 'info', 'warn', 'error']).optional().default('debug'),
   NANGO_SERVER_URL: z.string().optional().default('https://api.nango.dev'),

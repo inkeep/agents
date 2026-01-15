@@ -61,6 +61,20 @@ export function formatDateTime(dateString: string): string {
   }).format(date); // e.g. "Aug 28, 2024, 5:42:30 PM"
 }
 
+export function formatDateTimeTable(dateString: string): string {
+  const normalized = normalizeDateString(dateString);
+  const date = new Date(normalized);
+  if (Number.isNaN(date.getTime())) return 'Invalid date';
+  return new Intl.DateTimeFormat('en-US', {
+    month: 'short',
+    day: 'numeric',
+    year: 'numeric',
+    hour: 'numeric',
+    minute: '2-digit',
+    hour12: true,
+  }).format(date); // e.g. "Aug 28, 2024, 5:42 PM"
+}
+
 export function formatDateAgo(dateString: string) {
   try {
     const normalized = normalizeDateString(dateString);

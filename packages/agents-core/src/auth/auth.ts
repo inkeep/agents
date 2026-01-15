@@ -4,7 +4,7 @@ import { drizzleAdapter } from 'better-auth/adapters/drizzle';
 import { bearer, deviceAuthorization, oAuthProxy, organization } from 'better-auth/plugins';
 import type { GoogleOptions } from 'better-auth/social-providers';
 import { eq } from 'drizzle-orm';
-import type { DatabaseClient } from '../db/client';
+import type { AgentsRunDatabaseClient } from '../db/runtime/runtime-client';
 import { env } from '../env';
 import { generateId } from '../utils';
 import * as authSchema from './auth-schema';
@@ -16,7 +16,7 @@ import { ac, adminRole, memberRole, ownerRole } from './permissions';
  * See: https://www.better-auth.com/docs/plugins/organization#active-organization
  */
 async function getInitialOrganization(
-  dbClient: DatabaseClient,
+  dbClient: AgentsRunDatabaseClient,
   userId: string
 ): Promise<{ id: string } | null> {
   const [membership] = await dbClient
@@ -81,7 +81,7 @@ export interface SSOProviderConfig {
 export interface BetterAuthConfig {
   baseURL: string;
   secret: string;
-  dbClient: DatabaseClient;
+  dbClient: AgentsRunDatabaseClient;
   ssoProviders?: SSOProviderConfig[];
   socialProviders?: {
     google?: GoogleOptions;
@@ -151,7 +151,7 @@ function extractCookieDomain(baseURL: string): string | undefined {
 }
 
 async function registerSSOProvider(
-  dbClient: DatabaseClient,
+  dbClient: AgentsRunDatabaseClient,
   provider: SSOProviderConfig
 ): Promise<void> {
   try {

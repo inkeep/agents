@@ -524,8 +524,11 @@ async function createEnvironmentFiles(config: FileConfig) {
   const envContent = `# Environment
 ENVIRONMENT=development
 
-# Database
-DATABASE_URL=postgresql://appuser:password@localhost:5432/inkeep_agents
+# Database Configuration (Split Database Setup)
+# Manage API uses DoltgreSQL on port 5432 for version control features
+INKEEP_AGENTS_MANAGE_DATABASE_URL=postgresql://appuser:password@localhost:5432/inkeep_agents
+# Run API uses PostgreSQL on port 5433 for runtime operations
+INKEEP_AGENTS_RUN_DATABASE_URL=postgresql://appuser:password@localhost:5433/inkeep_agents
 
 # AI Provider Keys  
 ANTHROPIC_API_KEY=${config.anthropicKey || 'your-anthropic-key-here'}

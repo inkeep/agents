@@ -1,6 +1,5 @@
 import { describe, expect, it } from 'vitest';
 import {
-  createTestOrganization,
   createTestTenantId,
   createTestTenantIds,
   createTestTenantWithOrg,
@@ -73,17 +72,6 @@ describe('Test Tenant Utilities', () => {
       for (const tenantId of tenantIds) {
         expect(tenantId).toMatch(/^test-tenant-agents-/);
       }
-    });
-  });
-
-  describe('createTestOrganization', () => {
-    it('should create an organization in the database', async () => {
-      const tenantId = createTestTenantId('org-test');
-      const org = await createTestOrganization(tenantId);
-
-      expect(org).toBeDefined();
-      expect(org?.id).toBe(tenantId);
-      expect(org?.name).toContain('Test Organization');
     });
   });
 

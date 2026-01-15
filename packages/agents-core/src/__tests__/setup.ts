@@ -1,16 +1,30 @@
+import path from 'node:path';
 import { afterEach, beforeAll } from 'vitest';
-import type { DatabaseClient } from '../db/client';
-import { cleanupTestDatabase, createTestDatabaseClient } from '../db/test-client';
+import type { AgentsManageDatabaseClient } from '../db/manage/manage-client';
+import {
+  cleanupTestManageDatabase,
+  createTestManageDatabaseClient,
+} from '../db/manage/test-manage-client';
+import type { AgentsRunDatabaseClient } from '../db/runtime/runtime-client';
+import {
+  cleanupTestRuntimeDatabase,
+  createTestRuntimeDatabaseClient,
+} from '../db/runtime/test-runtime-client';
 import { getLogger } from '../utils/logger';
 
-let testDbClient: DatabaseClient;
+const DRIZZLE_MANAGE_DIR = path.resolve(import.meta.dirname, '../../drizzle/manage');
+const DRIZZLE_RUNTIME_DIR = path.resolve(import.meta.dirname, '../../drizzle/runtime');
+
+let testManageDbClient: AgentsManageDatabaseClient;
+let testRunDbClient: AgentsRunDatabaseClient;
 
 beforeAll(async () => {
   const logger = getLogger('Test Setup');
   try {
     logger.debug({}, 'Applying database migrations to in-memory test database');
 
-    testDbClient = await createTestDatabaseClient();
+    testManageDbClient = await createTestManageDatabaseClient(DRIZZLE_MANAGE_DIR);
+    testRunDbClient = await createTestRuntimeDatabaseClient(DRIZZLE_RUNTIME_DIR);
 
     logger.debug({}, 'Database migrations applied successfully');
   } catch (error) {
@@ -20,9 +34,12 @@ beforeAll(async () => {
 }, 60000);
 
 afterEach(async () => {
-  if (testDbClient) {
-    await cleanupTestDatabase(testDbClient);
+  if (testManageDbClient) {
+    await cleanupTestManageDatabase(testManageDbClient);
+  }
+  if (testRunDbClient) {
+    await cleanupTestRuntimeDatabase(testRunDbClient);
   }
 });
 
-export { testDbClient };
+export { testManageDbClient, testRunDbClient };
