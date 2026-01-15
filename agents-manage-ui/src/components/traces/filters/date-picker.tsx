@@ -173,7 +173,10 @@ export function DatePickerWithPresets({
                 onClick={() => {
                   if (date?.from) {
                     onAdd(CUSTOM);
-                    setCustomDateRange(date.from.toISOString(), date.to?.toISOString() || '');
+                    setCustomDateRange(
+                      date.from.toISOString().split('T')[0],
+                      date.to?.toISOString().split('T')[0] || ''
+                    );
                   } else {
                     onRemove();
                   }
