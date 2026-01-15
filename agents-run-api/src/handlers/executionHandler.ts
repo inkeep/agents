@@ -454,7 +454,7 @@ export class ExecutionHandler {
               span.setAttributes({
                 'ai.response.content': textContent || 'No response content',
                 'ai.response.timestamp': new Date().toISOString(),
-                'subAgent.name': agentConfig?.subAgents[currentAgentId]?.name,
+                'subAgent.name': project.agents[agentId]?.subAgents[currentAgentId]?.name,
                 'subAgent.id': currentAgentId,
               });
 
