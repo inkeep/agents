@@ -60,7 +60,7 @@ function MetadataEditor() {
   const { id, name, description, contextConfig, models, stopWhen, prompt, statusUpdates } =
     metadata;
   const { PUBLIC_INKEEP_AGENTS_RUN_API_URL } = useRuntimeConfig();
-  const agentUrl = `${PUBLIC_INKEEP_AGENTS_RUN_API_URL}/api/chat`;
+  const agentUrl = `${PUBLIC_INKEEP_AGENTS_RUN_API_URL}/run/api/chat`;
 
   // Fetch project data for inheritance indicators
   const { project } = useProjectData();

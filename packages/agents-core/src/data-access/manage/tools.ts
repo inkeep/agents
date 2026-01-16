@@ -381,6 +381,22 @@ export const getToolById =
     return result ?? null;
   };
 
+export const getMcpToolById =
+  (db: AgentsManageDatabaseClient) =>
+  async (params: {
+    scopes: ProjectScopeConfig;
+    toolId: string;
+    relationshipId?: string;
+    credentialStoreRegistry?: CredentialStoreRegistry;
+    userId?: string;
+  }): Promise<McpTool | null> => {
+    const tool = await getToolById(db)({ scopes: params.scopes, toolId: params.toolId });
+    if (!tool) {
+      return null;
+    }
+    return await dbResultToMcpTool(tool, db, params.credentialStoreRegistry, params.relationshipId, params.userId);
+  };
+
 export const listTools =
   (db: AgentsManageDatabaseClient) =>
   async (params: { scopes: ProjectScopeConfig; pagination?: PaginationConfig }) => {

@@ -18,7 +18,7 @@ interface ChatUIProps {
 
 export function ChatUIGuide() {
   const { PUBLIC_INKEEP_AGENTS_RUN_API_URL } = useRuntimeConfig();
-  const agentUrl = `${PUBLIC_INKEEP_AGENTS_RUN_API_URL}/api/chat`;
+  const agentUrl = `${PUBLIC_INKEEP_AGENTS_RUN_API_URL}/run/api/chat`;
   const form = useForm<Partial<ChatUIProps>>({
     defaultValues: {
       component: ChatUIComponent.EMBEDDED_CHAT,

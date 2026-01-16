@@ -48,7 +48,7 @@ export async function getCopilotTokenAction(): Promise<ActionResult<CopilotToken
   }
 
   try {
-    const response = await fetch(`${manageApiUrl}/tenants/${copilotTenantId}/playground/token`, {
+    const response = await fetch(`${manageApiUrl}/manage/tenants/${copilotTenantId}/playground/token`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',

@@ -55,7 +55,7 @@ export async function GET(request: NextRequest) {
   // Call the better-auth sign-out endpoint on the manage API
   try {
     const manageApiUrl = getManageApiUrl();
-    await fetch(`${manageApiUrl}/api/auth/sign-out`, {
+    await fetch(`${manageApiUrl}/manage/api/auth/sign-out`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
