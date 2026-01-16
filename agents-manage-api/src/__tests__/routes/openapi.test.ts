@@ -183,7 +183,7 @@ describe('OpenAPI Specification - Integration Tests', () => {
         if (!fs.existsSync(snapshotDir)) {
           fs.mkdirSync(snapshotDir, { recursive: true });
         }
-        fs.writeFileSync(snapshotPath, JSON.stringify(normalizedSpec, null, 2) + '\n', 'utf-8');
+        fs.writeFileSync(snapshotPath, `${JSON.stringify(normalizedSpec, null, 2)}\n`, 'utf-8');
         console.log(`\n✓ Updated OpenAPI snapshot at ${snapshotPath}\n`);
         return; // Skip comparison when updating
       }
