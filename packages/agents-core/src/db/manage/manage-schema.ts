@@ -4,8 +4,8 @@ import {
   doublePrecision,
   foreignKey,
   index,
-  integer,
   jsonb,
+  numeric,
   pgTable,
   primaryKey,
   text,
@@ -180,7 +180,8 @@ export const subAgentSkills = pgTable(
   {
     ...subAgentScoped,
     skillId: varchar('skill_id', { length: 64 }).notNull(),
-    index: integer('index').notNull().default(0),
+    // TODO: integer() always returns NaN
+    index: numeric({ mode: 'number' }).notNull().default(0),
     alwaysLoaded: boolean('always_loaded').notNull().default(false),
     ...timestamps,
   },

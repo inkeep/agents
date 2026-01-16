@@ -8,6 +8,7 @@ import type {
   ExternalAgentApiSelect,
   FullAgentSubAgentSelectWithRelationIds,
   FullProjectSelectWithRelationIds,
+  SubAgentSkillWithIndex,
   ToolApiSelect,
 } from '@inkeep/agents-core';
 import { generateDescriptionWithRelationData } from '../data/agents';
@@ -315,6 +316,16 @@ export function getArtifactComponentsForSubAgent(params: {
   return artifactComponentIds
     .map((id: string) => artifactComponentsMap[id])
     .filter((c): c is ArtifactComponentForAgent => c !== null && c !== undefined);
+}
+
+interface SubAgentWithSkills extends FullAgentSubAgentSelectWithRelationIds {
+  skills?: Array<SubAgentSkillWithIndex>;
+}
+
+export function getSkillsForSubAgent(params: {
+  subAgent: SubAgentWithSkills;
+}): SubAgentSkillWithIndex[] {
+  return params.subAgent.skills ?? [];
 }
 
 // Types for target sub-agent relation lookups

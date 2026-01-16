@@ -1,3 +1,4 @@
+import { generateId } from '@inkeep/agents-core';
 import { and, asc, count, desc, eq, inArray } from 'drizzle-orm';
 import type { AgentsManageDatabaseClient } from '../../db/manage/manage-client';
 import { skills, subAgentSkills } from '../../db/manage/manage-schema';
@@ -15,7 +16,6 @@ import type {
   SubAgentScopeConfig,
 } from '../../types/utility';
 import { getLogger } from '../../utils/logger';
-import { generateId } from '@inkeep/agents-core';
 
 const logger = getLogger('skills-dal');
 

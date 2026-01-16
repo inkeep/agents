@@ -179,10 +179,9 @@ export const createTaskHandler = (
             return mcpTool;
           })
         )) ?? [];
-      const skills = getSkillsForSubAgent({
-        project,
-        subAgent: currentSubAgent,
-      });
+      const skills = getSkillsForSubAgent({ subAgent: currentSubAgent });
+
+      console.log('\n\n\n\n\n\n\n\n\n\n\n', 'getSkillsForSubAgent', { skills });
 
       agent = new Agent(
         {
