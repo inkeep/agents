@@ -13,6 +13,7 @@ import type {
   FullAgentDefinition,
   GetAgentResponse,
   UpdateAgentResponse,
+  UpdateFullAgentResponse,
 } from '../types/agent-full';
 import { ApiError } from '../types/errors';
 import type { ListResponse } from '../types/response';
@@ -43,6 +44,26 @@ export async function createAgent(
     `tenants/${tenantId}/projects/${projectId}/agents`,
     {
       method: 'POST',
+      body: JSON.stringify(agentData),
+    }
+  );
+}
+
+/**
+ * Partial update: For renaming / editing the description of an agent
+ */
+export async function updateAgent(
+  tenantId: string,
+  projectId: string,
+  agentId: string,
+  agentData: AgentApiInsert
+): Promise<UpdateAgentResponse> {
+  validateTenantId(tenantId);
+  validateProjectId(projectId);
+  return makeManagementApiRequest<UpdateAgentResponse>(
+    `tenants/${tenantId}/projects/${projectId}/agents/${agentId}`,
+    {
+      method: 'PUT',
       body: JSON.stringify(agentData),
     }
   );
@@ -95,11 +116,11 @@ export async function updateFullAgent(
   projectId: string,
   agentId: string,
   agentData: FullAgentDefinition
-): Promise<UpdateAgentResponse> {
+): Promise<UpdateFullAgentResponse> {
   validateTenantId(tenantId);
   validateProjectId(projectId);
 
-  return makeManagementApiRequest<UpdateAgentResponse>(
+  return makeManagementApiRequest<UpdateFullAgentResponse>(
     `tenants/${tenantId}/projects/${projectId}/agent/${agentId}`,
     {
       method: 'PUT',
