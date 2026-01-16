@@ -1,5 +1,6 @@
 import {
   type ArtifactComponentApiInsert,
+  type FullExecutionContext,
   getLedgerArtifacts,
   getTask,
   listTaskIdsByContextId,
@@ -45,10 +46,9 @@ export interface ArtifactCreateRequest {
 }
 
 export interface ArtifactServiceContext {
-  tenantId: string;
+  executionContext: FullExecutionContext;
   sessionId?: string;
   taskId?: string;
-  projectId?: string;
   contextId?: string;
   artifactComponents?: ArtifactComponentApiInsert[];
   streamRequestId?: string;
@@ -85,6 +85,7 @@ export class ArtifactService {
    */
   async getContextArtifacts(contextId: string): Promise<Map<string, any>> {
     const artifacts = new Map<string, any>();
+    const { tenantId, projectId } = this.context.executionContext;
 
     try {
       const taskIds = await listTaskIdsByContextId(dbClient)({
@@ -101,7 +102,7 @@ export class ArtifactService {
         }
 
         const taskArtifacts = await getLedgerArtifacts(dbClient)({
-          scopes: { tenantId: this.context.tenantId, projectId: task.projectId },
+          scopes: { tenantId, projectId },
           taskId,
         });
 
@@ -269,6 +270,8 @@ export class ArtifactService {
   ): Promise<ArtifactSummaryData | null> {
     const key = `${artifactId}:${toolCallId}`;
 
+    const { tenantId, projectId } = this.context.executionContext;
+
     if (this.context.streamRequestId) {
       const cachedArtifact = await agentSessionManager.getArtifactCache(
         this.context.streamRequestId,
@@ -290,7 +293,7 @@ export class ArtifactService {
     }
 
     try {
-      if (!this.context.projectId || !this.context.taskId) {
+      if (!projectId || !this.context.taskId) {
         logger.warn(
           { artifactId, toolCallId },
           'No projectId or taskId available for artifact lookup'
@@ -300,7 +303,7 @@ export class ArtifactService {
 
       let artifacts: any[] = [];
       artifacts = await getLedgerArtifacts(dbClient)({
-        scopes: { tenantId: this.context.tenantId, projectId: this.context.projectId },
+        scopes: { tenantId, projectId },
         artifactId,
         toolCallId: toolCallId,
       });
@@ -310,7 +313,7 @@ export class ArtifactService {
       }
 
       artifacts = await getLedgerArtifacts(dbClient)({
-        scopes: { tenantId: this.context.tenantId, projectId: this.context.projectId },
+        scopes: { tenantId, projectId },
         artifactId,
         taskId: this.context.taskId,
       });
@@ -338,6 +341,8 @@ export class ArtifactService {
   ): Promise<ArtifactFullData | null> {
     const key = `${artifactId}:${toolCallId}`;
 
+    const { tenantId, projectId } = this.context.executionContext;
+
     if (this.context.streamRequestId) {
       const cachedArtifact = await agentSessionManager.getArtifactCache(
         this.context.streamRequestId,
@@ -359,7 +364,7 @@ export class ArtifactService {
     }
 
     try {
-      if (!this.context.projectId || !this.context.taskId) {
+      if (!projectId || !this.context.taskId) {
         logger.warn(
           { artifactId, toolCallId },
           'No projectId or taskId available for artifact lookup'
@@ -370,7 +375,7 @@ export class ArtifactService {
       let artifacts: any[] = [];
 
       artifacts = await getLedgerArtifacts(dbClient)({
-        scopes: { tenantId: this.context.tenantId, projectId: this.context.projectId },
+        scopes: { tenantId, projectId },
         artifactId,
         toolCallId: toolCallId,
       });
@@ -380,7 +385,7 @@ export class ArtifactService {
       }
 
       artifacts = await getLedgerArtifacts(dbClient)({
-        scopes: { tenantId: this.context.tenantId, projectId: this.context.projectId },
+        scopes: { tenantId, projectId },
         artifactId,
         taskId: this.context.taskId,
       });
@@ -700,8 +705,8 @@ export class ArtifactService {
             },
             schemaFound: false,
           },
-          tenantId: this.context.tenantId,
-          projectId: this.context.projectId,
+          tenantId: this.context.executionContext.tenantId,
+          projectId: this.context.executionContext.projectId,
           contextId: this.context.contextId,
           pendingGeneration: true,
         }
@@ -796,6 +801,7 @@ export class ArtifactService {
     // Use provided summaryData if available, otherwise default to artifact.data
     let summaryData = artifact.summaryData || artifact.data;
     let fullData = artifact.data;
+    const { tenantId, projectId } = this.context.executionContext;
 
     if (this.context.artifactComponents) {
       const artifactComponent = this.context.artifactComponents.find(
@@ -842,8 +848,8 @@ export class ArtifactService {
 
     const result = await upsertLedgerArtifact(dbClient)({
       scopes: {
-        tenantId: this.context.tenantId,
-        projectId: this.context.projectId!,
+        tenantId,
+        projectId,
       },
       contextId: this.context.contextId!,
       taskId: this.context.taskId!,

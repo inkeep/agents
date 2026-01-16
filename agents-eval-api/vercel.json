@@ -1,0 +1,23 @@
+{
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "framework": "hono",
+  "installCommand": "pnpm install",
+  "buildCommand": "turbo build --filter=@inkeep/agents-eval-api",
+  "functions": {
+    "index.js": {
+      "maxDuration": 300,
+      "experimentalTriggers": [
+        {
+          "type": "queue/v1beta",
+          "topic": "__wkf_workflow_*",
+          "consumer": "default"
+        },
+        {
+          "type": "queue/v1beta",
+          "topic": "__wkf_step_*",
+          "consumer": "default"
+        }
+      ]
+    }
+  }
+}

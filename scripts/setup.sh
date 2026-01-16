@@ -13,7 +13,32 @@ echo ""
 # Colors for output
 GREEN='\033[0;32m'
 YELLOW='\033[1;33m'
+RED='\033[0;31m'
 NC='\033[0m' # No Color
+
+# Doltgres (Manage DB) configuration
+MANAGE_DB_HOST="localhost"
+MANAGE_DB_PORT="5432"
+MANAGE_DB_USER="appuser"
+MANAGE_DB_PASSWORD="password"
+MANAGE_DB_NAME="inkeep_agents"
+
+# Postgres (Runtime DB) configuration
+RUN_DB_HOST="localhost"
+RUN_DB_PORT="5433"
+RUN_DB_USER="appuser"
+RUN_DB_PASSWORD="password"
+RUN_DB_NAME="inkeep_agents"
+
+# Function to run psql commands on Manage DB (Doltgres)
+run_manage_sql() {
+  PGPASSWORD=$MANAGE_DB_PASSWORD psql -h $MANAGE_DB_HOST -p $MANAGE_DB_PORT -U $MANAGE_DB_USER -d $MANAGE_DB_NAME -t -c "$1"
+}
+
+# Function to run psql commands on Runtime DB (Postgres)
+run_runtime_sql() {
+  PGPASSWORD=$RUN_DB_PASSWORD psql -h $RUN_DB_HOST -p $RUN_DB_PORT -U $RUN_DB_USER -d $RUN_DB_NAME -t -c "$1"
+}
 
 # Check if we're in the right directory
 if [ ! -f "pnpm-workspace.yaml" ]; then
@@ -40,12 +65,11 @@ echo -e "${GREEN}✓${NC} Corepack enabled"
 if [ ! -f ".env" ]; then
   cp .env.example .env
   
-  # Get the current directory path for the database file
-  CURRENT_DIR=$(pwd)
-  DATABASE_URL="postgresql://appuser:password@localhost:5432/inkeep_agents"
-  
   echo -e "${GREEN}✓${NC} Created .env from template"
   echo -e "${YELLOW}  → Please edit .env with your API keys and configuration${NC}"
+  echo -e "${YELLOW}  → Make sure to set:${NC}"
+  echo -e "${YELLOW}      INKEEP_AGENTS_MANAGE_DATABASE_URL=postgresql://appuser:password@localhost:5432/inkeep_agents${NC}"
+  echo -e "${YELLOW}      INKEEP_AGENTS_RUN_DATABASE_URL=postgresql://appuser:password@localhost:5433/inkeep_agents${NC}"
 else
   echo -e "${GREEN}✓${NC} .env already exists"
 fi
@@ -84,30 +108,74 @@ if ! grep -q "^\.env$" .gitignore 2>/dev/null; then
   echo -e "${GREEN}✓${NC} Added .env to .gitignore"
 fi
 
-# 6. Install dependencies
+# 5. Install dependencies
 echo ""
 echo "Installing dependencies..."
 pnpm install
 echo -e "${GREEN}✓${NC} Dependencies installed"
 
-# 7. Setup database
+# 6. Setup databases (Doltgres for manage, Postgres for runtime)
 echo ""
-echo "Setting up database..."
-if ! docker compose -f docker-compose.db.yml up -d; then
-  echo -e "${YELLOW}⚠️  Warning: Could not start local database with Docker${NC}"
-  echo "   This is OK if the db is already running or you're using a cloud-hosted database (Neon, Vercel Postgres, etc.)"
-  echo "   Make sure DATABASE_URL is set in your .env file"
-  echo "\n"
-  echo "\n"
+echo "Setting up databases..."
+echo "  - Doltgres (manage/config) on port $MANAGE_DB_PORT"
+echo "  - Postgres (runtime) on port $RUN_DB_PORT"
+
+if ! docker compose -f docker-compose.dbs.yml up -d; then
+  echo -e "${YELLOW}⚠️  Warning: Could not start local databases with Docker${NC}"
+  echo "   This is OK if the databases are already running or you're using cloud-hosted databases"
+  echo "   Make sure INKEEP_AGENTS_MANAGE_DATABASE_URL and INKEEP_AGENTS_RUN_DATABASE_URL are set in your .env file"
+  echo ""
 fi
 
-pnpm --filter @inkeep/agents-core db:migrate
-echo -e "${GREEN}✓${NC} Database ready"
+# Wait for databases to be ready
+echo "Waiting for databases to be ready..."
+sleep 5
+
+# 7. Run migrations for both databases
+echo ""
+echo "Running database migrations..."
+
+# Create the database in Doltgres if it doesn't exist
+echo "  Setting up Doltgres manage database..."
+PGPASSWORD=$MANAGE_DB_PASSWORD psql -h $MANAGE_DB_HOST -p $MANAGE_DB_PORT -U $MANAGE_DB_USER -d postgres -c "CREATE DATABASE $MANAGE_DB_NAME;" 2>/dev/null || true
+
+# Create the database in Postgres if it doesn't exist (usually auto-created by docker-compose)
+echo "  Setting up Postgres runtime database..."
+
+# Run migrations
+echo "  Running manage database migrations..."
+pnpm --filter @inkeep/agents-core db:manage:migrate
+echo -e "${GREEN}✓${NC} Manage database migrations applied"
+
+echo "  Running runtime database migrations..."
+pnpm --filter @inkeep/agents-core db:run:migrate
+echo -e "${GREEN}✓${NC} Runtime database migrations applied"
+
+# 8. Commit Doltgres changes (Dolt versioning)
+echo ""
+echo "Checking for Doltgres changes..."
+STATUS=$(run_manage_sql "SELECT COUNT(*) FROM dolt_status;" 2>/dev/null || echo "0")
+STATUS=$(echo "$STATUS" | tr -d '[:space:]')
+
+if [ "$STATUS" != "" ] && [ "$STATUS" -gt 0 ] 2>/dev/null; then
+  echo "  Changes detected in Doltgres, staging..."
+  run_manage_sql "SELECT dolt_add('.');"
+  
+  echo "  Committing..."
+  COMMIT_HASH=$(run_manage_sql "SELECT dolt_commit('-m', 'Applied database migrations');")
+  echo -e "${GREEN}✓${NC} Doltgres changes committed: $COMMIT_HASH"
+else
+  echo -e "${GREEN}✓${NC} No Doltgres changes to commit"
+fi
 
 echo ""
 echo "================================================"
 echo -e "${GREEN}  Setup Complete!${NC}"
 echo "================================================"
+echo ""
+echo "Database Architecture:"
+echo "  - Doltgres (port $MANAGE_DB_PORT): Configuration/management entities (versioned)"
+echo "  - Postgres (port $RUN_DB_PORT): Runtime entities (conversations, messages, etc.)"
 echo ""
 echo "Next steps:"
 echo "1. Edit .env with your configuration (API keys, etc.)"

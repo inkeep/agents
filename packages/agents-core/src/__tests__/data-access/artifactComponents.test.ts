@@ -14,19 +14,19 @@ import {
   listArtifactComponentsPaginated,
   removeArtifactComponentFromAgent,
   updateArtifactComponent,
-} from '../../data-access/artifactComponents';
-import type { DatabaseClient } from '../../db/client';
-import { testDbClient } from '../setup';
+} from '../../data-access/manage/artifactComponents';
+import type { AgentsManageDatabaseClient } from '../../db/manage/manage-client';
+import { testManageDbClient } from '../setup';
 
 describe('Artifact Components Data Access', () => {
-  let db: DatabaseClient;
+  let db: AgentsManageDatabaseClient;
   const testTenantId = 'test-tenant';
   const testProjectId = 'test-project';
   const testAgentId = 'test-agent';
   const testSubAgentId = 'test-sub-agent';
 
   beforeEach(async () => {
-    db = testDbClient;
+    db = testManageDbClient;
     vi.clearAllMocks();
   });
 

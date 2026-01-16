@@ -1,8 +1,8 @@
 import { getActiveTools } from '@/app/utils/active-tools';
 import { MCPToolImage } from '@/components/mcp-servers/mcp-tool-image';
 import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
 import type { MCPTool } from '@/lib/types/tools';
+import { SelectorItem } from '../selector-item';
 
 interface MCPServerItemProps {
   mcp: MCPTool;
@@ -21,34 +21,24 @@ export function MCPServerItem({ mcp, onClick }: MCPServerItemProps) {
   const toolCount = activeTools?.length ?? 0;
 
   return (
-    <Button
-      variant="unstyled"
-      size="unstyled"
-      type="button"
-      key={id}
-      className="w-full p-3 rounded-lg border cursor-pointer transition-colors border-border hover:bg-muted/50 text-left inline-block"
+    <SelectorItem
       id={id}
-      onClick={() => onClick(mcp)}
-    >
-      <div className="flex items-start gap-3">
-        <MCPToolImage imageUrl={imageUrl} name={name} size={32} className="flex-shrink-0 mt-0.5" />
-        <div className="flex-1 min-w-0">
-          <div className="flex items-center justify-between mb-1 gap-2 min-w-0 truncate">
-            <span className="font-medium text-sm truncate">{name}</span>
-            <div className="flex items-center gap-1.5 shrink-0">
-              <Badge variant="outline" className="text-2xs">
-                {mcp.credentialScope === 'user' ? 'User' : 'Project'}
-              </Badge>
-              {availableTools && (
-                <Badge variant="code" className="text-2xs">
-                  {toolCount === 1 ? '1 tool' : `${toolCount} tools`}
-                </Badge>
-              )}
-            </div>
-          </div>
-          <p className="text-xs text-muted-foreground truncate">{server?.url}</p>
+      name={name}
+      subtitle={server?.url}
+      icon={<MCPToolImage imageUrl={imageUrl} name={name} size={32} className="shrink-0 mt-0.5" />}
+      badges={
+        <div className="flex items-center gap-1.5 shrink-0">
+          <Badge variant="code" className="text-2xs uppercase bg-transparent">
+            {mcp.credentialScope === 'user' ? 'User' : 'Project'}
+          </Badge>
+          {availableTools && (
+            <Badge variant="code" className="text-2xs">
+              {toolCount === 1 ? '1 tool' : `${toolCount} tools`}
+            </Badge>
+          )}
         </div>
-      </div>
-    </Button>
+      }
+      onClick={() => onClick(mcp)}
+    />
   );
 }

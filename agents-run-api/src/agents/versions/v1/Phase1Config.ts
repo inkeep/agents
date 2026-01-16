@@ -1,4 +1,5 @@
 import type { Artifact, McpTool } from '@inkeep/agents-core';
+import { V1_BREAKDOWN_SCHEMA } from '@inkeep/agents-core';
 import { convertZodToJsonSchema, isZodSchema } from '@inkeep/agents-core/utils/schema-conversion';
 import systemPromptTemplate from '../../../../templates/v1/phase1/system-prompt.xml?raw';
 import thinkingPreparationTemplate from '../../../../templates/v1/phase1/thinking-preparation.xml?raw';
@@ -9,6 +10,7 @@ import artifactRetrievalGuidance from '../../../../templates/v1/shared/artifact-
 import { getLogger } from '../../../logger';
 import {
   type AssembleResult,
+  type BreakdownComponentDef,
   calculateBreakdownTotal,
   createEmptyBreakdown,
   estimateTokens,
@@ -17,6 +19,8 @@ import type { SystemPromptV1, ToolData, VersionConfig } from '../../types';
 
 const _logger = getLogger('Phase1Config');
 
+// Re-export for Agent.ts
+export { V1_BREAKDOWN_SCHEMA };
 export class Phase1Config implements VersionConfig<SystemPromptV1> {
   loadTemplates(): Map<string, string> {
     const templates = new Map<string, string>();
@@ -30,6 +34,10 @@ export class Phase1Config implements VersionConfig<SystemPromptV1> {
     return templates;
   }
 
+  getBreakdownSchema(): BreakdownComponentDef[] {
+    return V1_BREAKDOWN_SCHEMA;
+  }
+
   static convertMcpToolsToToolData(mcpTools: McpTool[] | undefined): ToolData[] {
     if (!mcpTools || mcpTools.length === 0) {
       return [];
@@ -38,11 +46,18 @@ export class Phase1Config implements VersionConfig<SystemPromptV1> {
     for (const mcpTool of mcpTools) {
       if (mcpTool.availableTools) {
         for (const toolDef of mcpTool.availableTools) {
+          // Build usage guidelines with custom prompt as additional context
+          let usageGuidelines = '';
+          if (mcpTool.config.mcp.prompt) {
+            usageGuidelines = `${mcpTool.config.mcp.prompt}\n\n`;
+          }
+          usageGuidelines += `Use this tool from ${mcpTool.name} server when appropriate.`;
+
           toolData.push({
             name: toolDef.name,
             description: toolDef.description || 'No description available',
             inputSchema: toolDef.inputSchema || {},
-            usageGuidelines: `Use this tool from ${mcpTool.name} server when appropriate.`,
+            usageGuidelines,
           });
         }
       }
@@ -73,7 +88,7 @@ export class Phase1Config implements VersionConfig<SystemPromptV1> {
   }
 
   assemble(templates: Map<string, string>, config: SystemPromptV1): AssembleResult {
-    const breakdown = createEmptyBreakdown();
+    const breakdown = createEmptyBreakdown(this.getBreakdownSchema());
 
     const systemPromptTemplateContent = templates.get('system-prompt');
     if (!systemPromptTemplateContent) {
@@ -81,7 +96,7 @@ export class Phase1Config implements VersionConfig<SystemPromptV1> {
     }
 
     // Track base template tokens (without placeholders - estimate overhead)
-    breakdown.systemPromptTemplate = estimateTokens(
+    breakdown.components['systemPromptTemplate'] = estimateTokens(
       systemPromptTemplateContent
         .replace('{{CORE_INSTRUCTIONS}}', '')
         .replace('{{AGENT_CONTEXT_SECTION}}', '')
@@ -96,7 +111,7 @@ export class Phase1Config implements VersionConfig<SystemPromptV1> {
 
     // Handle core instructions - omit entire section if empty
     if (config.corePrompt && config.corePrompt.trim()) {
-      breakdown.coreInstructions = estimateTokens(config.corePrompt);
+      breakdown.components['coreInstructions'] = estimateTokens(config.corePrompt);
       systemPrompt = systemPrompt.replace('{{CORE_INSTRUCTIONS}}', config.corePrompt);
     } else {
       // Remove the entire core_instructions section if empty
@@ -107,7 +122,7 @@ export class Phase1Config implements VersionConfig<SystemPromptV1> {
     }
 
     const agentContextSection = this.generateAgentContextSection(config.prompt);
-    breakdown.agentPrompt = estimateTokens(agentContextSection);
+    breakdown.components['agentPrompt'] = estimateTokens(agentContextSection);
     systemPrompt = systemPrompt.replace('{{AGENT_CONTEXT_SECTION}}', agentContextSection);
 
     const rawToolData = this.isToolDataArray(config.tools)
@@ -139,7 +154,7 @@ export class Phase1Config implements VersionConfig<SystemPromptV1> {
       config.hasAgentArtifactComponents,
       (config.artifacts?.length ?? 0) > 0
     );
-    breakdown.systemPromptTemplate += artifactInstructionsTokens;
+    breakdown.components['systemPromptTemplate'] += artifactInstructionsTokens;
 
     const actualArtifactsXml =
       config.artifacts?.length > 0
@@ -147,38 +162,38 @@ export class Phase1Config implements VersionConfig<SystemPromptV1> {
             .map((artifact) => this.generateArtifactXml(templates, artifact))
             .join('\n  ')
         : '';
-    breakdown.artifactsSection = estimateTokens(actualArtifactsXml);
+    breakdown.components['artifactsSection'] = estimateTokens(actualArtifactsXml);
 
     if (hasArtifactComponents) {
       const creationInstructions = this.getArtifactCreationInstructions(
         hasArtifactComponents,
         config.artifactComponents
       );
-      breakdown.artifactComponents = estimateTokens(creationInstructions);
+      breakdown.components['artifactComponents'] = estimateTokens(creationInstructions);
     }
 
     systemPrompt = systemPrompt.replace('{{ARTIFACTS_SECTION}}', artifactsSection);
 
     const toolsSection = this.generateToolsSection(templates, toolData);
-    breakdown.toolsSection = estimateTokens(toolsSection);
+    breakdown.components['toolsSection'] = estimateTokens(toolsSection);
     systemPrompt = systemPrompt.replace('{{TOOLS_SECTION}}', toolsSection);
 
     const thinkingPreparationSection = this.generateThinkingPreparationSection(
       templates,
       config.isThinkingPreparation
     );
-    breakdown.thinkingPreparation = estimateTokens(thinkingPreparationSection);
+    breakdown.components['thinkingPreparation'] = estimateTokens(thinkingPreparationSection);
     systemPrompt = systemPrompt.replace(
       '{{THINKING_PREPARATION_INSTRUCTIONS}}',
       thinkingPreparationSection
     );
 
     const transferSection = this.generateTransferInstructions(config.hasTransferRelations);
-    breakdown.transferInstructions = estimateTokens(transferSection);
+    breakdown.components['transferInstructions'] = estimateTokens(transferSection);
     systemPrompt = systemPrompt.replace('{{TRANSFER_INSTRUCTIONS}}', transferSection);
 
     const delegationSection = this.generateDelegationInstructions(config.hasDelegateRelations);
-    breakdown.delegationInstructions = estimateTokens(delegationSection);
+    breakdown.components['delegationInstructions'] = estimateTokens(delegationSection);
     systemPrompt = systemPrompt.replace('{{DELEGATION_INSTRUCTIONS}}', delegationSection);
 
     // Calculate total

@@ -169,7 +169,8 @@ describe('MyFeature', () => {
 Required environment variables in `.env` files:
 ```
 ENVIRONMENT=development|production|test
-DATABASE_URL=postgresql://appuser:password@localhost:5432/inkeep_agents
+INKEEP_AGENTS_MANAGE_DATABASE_URL=postgresql://appuser:password@localhost:5432/inkeep_agents
+INKEEP_AGENTS_RUN_DATABASE_URL=postgresql://appuser:password@localhost:5433/inkeep_agents
 PORT=3002
 ANTHROPIC_API_KEY=required
 OPENAI_API_KEY=optional

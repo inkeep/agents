@@ -26,6 +26,7 @@ permissions:
   pull-requests: write
   actions: read
   issues: write
+  id-token: write
 
 jobs:
   analyze-and-fix:
@@ -167,7 +168,7 @@ jobs:
         uses: anthropics/claude-code-action@v1
         with:
           anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
-          direct_prompt: |
+          prompt: |
             You are a CI maintenance engineer for this repository. Your job is to analyze CI failures, understand their resolution status, and propose fixes for issues that need attention.
 
             ## Failure Report (includes resolution status)

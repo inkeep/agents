@@ -4,6 +4,7 @@ import agentRoutes from './agent';
 import agentFullRoutes from './agentFull';
 import apiKeysRoutes from './apiKeys';
 import artifactComponentsRoutes from './artifactComponents';
+import branchesRoutes from './branches';
 import contextConfigsRoutes from './contextConfigs';
 import conversationsRoutes from './conversations';
 import credentialStoresRoutes from './credentialStores';
@@ -15,9 +16,11 @@ import functionToolsRoutes from './functionTools';
 import mcpCatalogRoutes from './mcpCatalog';
 import projectMembersRoutes from './projectMembers';
 import projectsRoutes from './projects';
+import refRoutes from './ref';
 import subAgentArtifactComponentsRoutes from './subAgentArtifactComponents';
 import subAgentDataComponentsRoutes from './subAgentDataComponents';
 import subAgentExternalAgentRelationsRoutes from './subAgentExternalAgentRelations';
+import subAgentFunctionToolsRoutes from './subAgentFunctionTools';
 import subAgentRelationsRoutes from './subAgentRelations';
 // Import existing route modules (others can be added as they're created)
 import subAgentsRoutes from './subAgents';
@@ -31,6 +34,12 @@ const app = new OpenAPIHono();
 // Mount projects route first (no projectId in path)
 // Note: projects.ts handles its own access checks internally
 app.route('/projects', projectsRoutes);
+
+// Mount branches route under project scope
+app.route('/projects/:projectId/branches', branchesRoutes);
+
+// Mount ref routes under project scope
+app.route('/projects/:projectId/refs', refRoutes);
 
 // Apply project access check to all project-scoped routes
 // This middleware checks 'view' permission by default
@@ -62,6 +71,10 @@ app.route(
 app.route(
   '/projects/:projectId/agents/:agentId/sub-agent-data-components',
   subAgentDataComponentsRoutes
+);
+app.route(
+  '/projects/:projectId/agents/:agentId/sub-agent-function-tools',
+  subAgentFunctionToolsRoutes
 );
 app.route('/projects/:projectId/artifact-components', artifactComponentsRoutes);
 app.route('/projects/:projectId/agents/:agentId/context-configs', contextConfigsRoutes);

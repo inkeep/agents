@@ -1,4 +1,4 @@
-import type { MessageContent } from '@inkeep/agents-core';
+import type { FullExecutionContext, MessageContent, ResolvedRef } from '@inkeep/agents-core';
 import { getLogger } from '../logger';
 import { agentSessionManager } from '../services/AgentSession';
 import { ArtifactParser, type StreamPart } from '../services/ArtifactParser';
@@ -15,7 +15,7 @@ export class ResponseFormatter {
   private subAgentId?: string;
 
   constructor(
-    tenantId: string,
+    executionContext: FullExecutionContext,
     artifactParserOptions?: {
       sessionId?: string;
       taskId?: string;
@@ -51,7 +51,7 @@ export class ResponseFormatter {
       } catch (_error) {}
     }
 
-    this.artifactParser = new ArtifactParser(tenantId, {
+    this.artifactParser = new ArtifactParser(executionContext, {
       ...artifactParserOptions,
       artifactService: sharedArtifactService, // Use shared ArtifactService if available
     });

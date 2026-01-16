@@ -5,6 +5,7 @@ import {
   AgentListResponse,
   AgentResponse,
   AgentWithinContextOfProjectResponse,
+  cascadeDeleteByAgent,
   commonGetErrorResponses,
   createAgent,
   createApiError,
@@ -15,6 +16,7 @@ import {
   getAgentSubAgentInfos,
   getFullAgentDefinition,
   listAgentsPaginated,
+  listSubAgents,
   PaginationQueryParamsSchema,
   RelatedAgentInfoListResponse,
   TenantProjectAgentParamsSchema,
@@ -23,7 +25,7 @@ import {
   TenantProjectParamsSchema,
   updateAgent,
 } from '@inkeep/agents-core';
-import dbClient from '../data/db/dbClient';
+import runDbClient from '../data/db/runDbClient';
 import { requirePermission } from '../middleware/require-permission';
 import type { BaseAppVariables } from '../types/app';
 import { speakeasyOffsetLimitPagination } from './shared';
@@ -32,17 +34,17 @@ const app = new OpenAPIHono<{ Variables: BaseAppVariables }>();
 
 app.use('/', async (c, next) => {
   if (c.req.method === 'POST') {
-    return requirePermission({ agent: ['create'] })(c, next);
+    return requirePermission<{ Variables: BaseAppVariables }>({ agent: ['create'] })(c, next);
   }
   return next();
 });
 
 app.use('/:id', async (c, next) => {
   if (c.req.method === 'PUT') {
-    return requirePermission({ agent: ['update'] })(c, next);
+    return requirePermission<{ Variables: BaseAppVariables }>({ agent: ['update'] })(c, next);
   }
   if (c.req.method === 'DELETE') {
-    return requirePermission({ agent: ['delete'] })(c, next);
+    return requirePermission<{ Variables: BaseAppVariables }>({ agent: ['delete'] })(c, next);
   }
   return next();
 });
@@ -72,11 +74,12 @@ app.openapi(
     ...speakeasyOffsetLimitPagination,
   }),
   async (c) => {
+    const db = c.get('db');
     const { tenantId, projectId } = c.req.valid('param');
     const page = Number(c.req.query('page')) || 1;
     const limit = Math.min(Number(c.req.query('limit')) || 10, 100);
 
-    const result = await listAgentsPaginated(dbClient)({
+    const result = await listAgentsPaginated(db)({
       scopes: { tenantId, projectId },
       pagination: { page, limit },
     });
@@ -108,7 +111,9 @@ app.openapi(
   }),
   async (c) => {
     const { tenantId, projectId, id } = c.req.valid('param');
-    const agent = await getAgentById(dbClient)({
+    const db = c.get('db');
+
+    const agent = await getAgentById(db)({
       scopes: { tenantId, projectId, agentId: id },
     });
 
@@ -147,8 +152,9 @@ app.openapi(
   }),
   async (c) => {
     const { tenantId, projectId, agentId, subAgentId } = c.req.valid('param');
+    const db = c.get('db');
 
-    const relatedAgents = await getAgentSubAgentInfos(dbClient)({
+    const relatedAgents = await getAgentSubAgentInfos(db)({
       scopes: { tenantId, projectId },
       agentId: agentId,
       subAgentId: subAgentId,
@@ -190,8 +196,9 @@ app.openapi(
   }),
   async (c) => {
     const { tenantId, projectId, agentId } = c.req.valid('param');
+    const db = c.get('db');
 
-    const fullAgent = await getFullAgentDefinition(dbClient)({
+    const fullAgent = await getFullAgentDefinition(db)({
       scopes: { tenantId, projectId, agentId },
     });
 
@@ -236,11 +243,12 @@ app.openapi(
     },
   }),
   async (c) => {
+    const db = c.get('db');
     const { tenantId, projectId } = c.req.valid('param');
     const validatedBody = c.req.valid('json');
 
     try {
-      const agent = await createAgent(dbClient)({
+      const agent = await createAgent(db)({
         tenantId,
         projectId,
         id: validatedBody.id || generateId(),
@@ -296,10 +304,11 @@ app.openapi(
     },
   }),
   async (c) => {
+    const db = c.get('db');
     const { tenantId, projectId, id } = c.req.valid('param');
     const validatedBody = c.req.valid('json');
 
-    const updatedAgent = await updateAgent(dbClient)({
+    const updatedAgent = await updateAgent(db)({
       scopes: { tenantId, projectId, agentId: id },
       data: {
         defaultSubAgentId: validatedBody.defaultSubAgentId,
@@ -343,8 +352,25 @@ app.openapi(
     },
   }),
   async (c) => {
+    const db = c.get('db');
+    const resolvedRef = c.get('resolvedRef');
     const { tenantId, projectId, id } = c.req.valid('param');
-    const deleted = await deleteAgent(dbClient)({
+
+    // Get all subAgentIds for this agent before deleting
+    const subAgents = await listSubAgents(db)({
+      scopes: { tenantId, projectId, agentId: id },
+    });
+    const subAgentIds = subAgents.map((sa) => sa.id);
+
+    // Delete runtime entities for this agent on this branch
+    await cascadeDeleteByAgent(runDbClient)({
+      scopes: { tenantId, projectId, agentId: id },
+      fullBranchName: resolvedRef.name,
+      subAgentIds,
+    });
+
+    // Delete the agent from the config DB
+    const deleted = await deleteAgent(db)({
       scopes: { tenantId, projectId, agentId: id },
     });
 
