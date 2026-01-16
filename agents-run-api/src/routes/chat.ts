@@ -364,9 +364,12 @@ app.openapi(chatCompletionsRoute, async (c) => {
           // Forward client timezone and timestamp together (both required, with validation)
           if (clientTimezone && clientTimestamp) {
             // Validate timezone format
-            const isValidTimezone = clientTimezone.length < 100 && /^[A-Za-z0-9_\/\-\+]+$/.test(clientTimezone);
+            const isValidTimezone =
+              clientTimezone.length < 100 && /^[A-Za-z0-9_\/\-\+]+$/.test(clientTimezone);
             // Validate ISO 8601 timestamp format: "2026-01-16T19:45:30.123Z"
-            const isValidTimestamp = clientTimestamp.length < 50 && /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(\.\d{3})?Z$/.test(clientTimestamp);
+            const isValidTimestamp =
+              clientTimestamp.length < 50 &&
+              /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(\.\d{3})?Z$/.test(clientTimestamp);
 
             if (isValidTimezone && isValidTimestamp) {
               forwardedHeaders['x-inkeep-client-timezone'] = clientTimezone;
@@ -374,10 +377,14 @@ app.openapi(chatCompletionsRoute, async (c) => {
             } else {
               logger.warn(
                 {
-                  clientTimezone: isValidTimezone ? clientTimezone : clientTimezone.substring(0, 100),
-                  clientTimestamp: isValidTimestamp ? clientTimestamp : clientTimestamp.substring(0, 50),
+                  clientTimezone: isValidTimezone
+                    ? clientTimezone
+                    : clientTimezone.substring(0, 100),
+                  clientTimestamp: isValidTimestamp
+                    ? clientTimestamp
+                    : clientTimestamp.substring(0, 50),
                   isValidTimezone,
-                  isValidTimestamp
+                  isValidTimestamp,
                 },
                 'Invalid client timezone or timestamp format, ignoring both'
               );

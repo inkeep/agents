@@ -1525,7 +1525,10 @@ export class Agent {
         timeZoneName: 'short',
       });
     } catch (error) {
-      logger.warn({ clientTimezone, clientTimestamp, error }, 'Failed to format time for client timezone');
+      logger.warn(
+        { clientTimezone, clientTimestamp, error },
+        'Failed to format time for client timezone'
+      );
       return undefined;
     }
   }
