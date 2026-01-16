@@ -37,3 +37,46 @@ export const makeRequest = async (url: string, options: TestRequestOptions = {})
 
   return response;
 };
+
+// Helper function to make requests with JSON headers and test authentication
+export const makeRunRequest = async (url: string, options: RequestInit = {}) => {
+  return app.request(url, {
+    ...options,
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: 'Bearer test-api-key',
+      'x-inkeep-tenant-id': 'test-tenant',
+      'x-inkeep-project-id': 'default',
+      'x-inkeep-agent-id': 'test-agent',
+      'x-test-bypass-auth': 'true',
+      ...options.headers,
+    },
+  });
+};
+
+// Helper function to make requests with custom execution context
+export const makeRunRequestWithContext = async (
+  url: string,
+  context: {
+    tenantId?: string;
+    projectId?: string;
+    agentId?: string;
+    subAgentId?: string;
+  },
+  options: RequestInit = {}
+) => {
+  return app.request(url, {
+    ...options,
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: 'Bearer test-api-key',
+      'x-inkeep-tenant-id': context.tenantId || 'test-tenant',
+      'x-inkeep-project-id': context.projectId || 'test-project',
+      'x-inkeep-agent-id': context.agentId || 'test-agent',
+      'x-test-bypass-auth': 'true',
+      ...(context.subAgentId && { 'x-inkeep-sub-agent-id': context.subAgentId }),
+      ...options.headers,
+    },
+  });
+};
+

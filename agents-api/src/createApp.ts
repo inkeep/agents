@@ -22,7 +22,10 @@ import { env } from './env';
 import { flushBatchProcessor } from './instrumentation';
 import { manageRoutes } from './domains/manage';
 import { branchScopedDbMiddleware } from './middleware/branchScopedDb';
-import { manageRefMiddleware, writeProtectionMiddleware } from './middleware/ref';
+import { manageRefMiddleware, runRefMiddleware, writeProtectionMiddleware } from './middleware/ref';
+import { projectConfigMiddleware } from './middleware/projectConfig';
+import { runRoutes } from './domains/run';
+import { executionBaggageMiddleware } from './middleware/tracing';
 
 const logger = getLogger('agents-api');
 
@@ -37,20 +40,27 @@ function createAgentsHono(config: AppConfig) {
   app.use('*', requestId());
 
   // Route-specific CORS (must be registered before global CORS)
-  // Auth routes - restrictive CORS with credentials
+  // Better Auth routes - only mount if auth is enabled
   if (auth) {
-    app.use('/auth/*', cors(authCorsConfig));
+    app.use('/api/auth/*', cors(authCorsConfig));
+
+    // Mount the Better Auth handler (OPTIONS handled by cors middleware above)
+    app.on(['POST', 'GET'], '/api/auth/*', (c) => {
+      return auth.handler(c.req.raw);
+    });
   }
   // Run routes - permissive CORS (origin: '*')
   app.use('/run/*', cors(runCorsConfig));
+
   // Manage routes - playground and signoz have specific CORS needs
   app.use('/manage/tenants/*/playground/token', cors(playgroundCorsConfig));
+
   app.use('/manage/tenants/*/signoz/*', cors(signozCorsConfig));
 
   // Global CORS middleware - handles all other routes
   app.use('*', async (c, next) => {
     // Skip CORS for routes with their own CORS config
-    if (auth && c.req.path.startsWith('/auth/')) {
+    if (auth && c.req.path.startsWith('/api/auth/')) {
       return next();
     }
     if (c.req.path.startsWith('/run/')) {
@@ -104,6 +114,10 @@ function createAgentsHono(config: AppConfig) {
         onResLevel(c) {
           if (c.res.status >= 500) {
             return 'error';
+          }
+          // SigNoz routes are noisy, so we log at debug level
+          if (c.req.path.includes('/signoz/')) {
+            return 'debug';
           }
           return 'info';
         },
@@ -184,10 +198,21 @@ function createAgentsHono(config: AppConfig) {
   app.use('/manage/tenants/*', (c, next) => writeProtectionMiddleware(c, next));
   app.use('/manage/tenants/*', async (c, next) => branchScopedDbMiddleware(c, next));
 
+  // Apply ref middleware to all execution routes
+  app.use('/run/*', async (c, next) => runRefMiddleware(c, next));
 
-  // TODO: Mount domain routes
+  // Fetch project config upfront for authenticated execution routes
+  app.use('/run/*', projectConfigMiddleware);
+
+  // Baggage middleware for execution API - extracts context from API key authentication
+  app.use('/run/*', async (c, next) => {
+    return executionBaggageMiddleware()(c, next);
+  });
+
+  // management routes
   app.route('/manage', manageRoutes);
-  // app.route('/run', runRoutes);
+  // Mount execution routes - API key provides tenant, project, and agent context
+  app.route('/run', runRoutes);
   // app.route('/evals', evalRoutes);
 
   // OpenAPI documentation
@@ -204,23 +229,11 @@ function createAgentsHono(config: AppConfig) {
   // Setup OpenAPI documentation endpoints (/openapi.json and /docs)
   setupOpenAPIRoutes(app);
 
-  app.use('/run/tenants/*', async (_c, next) => {
+  app.use('/run/*', async (_c, next) => {
     await next();
     await flushBatchProcessor();
   });
-  app.use('/run/agents/*', async (_c, next) => {
-    await next();
-    await flushBatchProcessor();
-  });
-  app.use('/run/v1/*', async (_c, next) => {
-    await next();
-    await flushBatchProcessor();
-  });
-  app.use('/run/api/*', async (_c, next) => {
-    await next();
-    await flushBatchProcessor();
-  });
-
+  
   // Wrap in base Hono for framework detection
   const base = new Hono();
   base.route('/', app);

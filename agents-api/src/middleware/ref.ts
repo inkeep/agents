@@ -169,7 +169,12 @@ export const createRefMiddleware = (
       resolvedRef = await resolveTenantRef(db, tenantId, ref);
     }
 
-    logger.info({ resolvedRef, projectId, tenantId }, 'Resolved ref');
+    // SigNoz routes are noisy, so we log at debug level
+    if (c.req.path.includes('/signoz/')) {
+      logger.debug({ resolvedRef, projectId, tenantId }, 'Resolved ref');
+    } else {
+      logger.info({ resolvedRef, projectId, tenantId }, 'Resolved ref');
+    }
 
     c.set('resolvedRef', resolvedRef);
 

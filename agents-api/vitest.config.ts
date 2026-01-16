@@ -23,6 +23,7 @@ export default defineProject({
       ANTHROPIC_API_KEY: 'test-api-key',
       OPENAI_API_KEY: 'test-openai-key',
       LOG_LEVEL: 'error',
+      AGENTS_COMPRESSION_ENABLED: 'false',
     },
   },
 });

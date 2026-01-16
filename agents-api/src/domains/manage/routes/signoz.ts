@@ -24,7 +24,7 @@ app.post('/query', async (c) => {
     });
   }
 
-  logger.info(
+  logger.debug(
     { tenantId, projectId: requestedProjectId, hasProjectId: !!requestedProjectId },
     'Processing SigNoz query request'
   );
@@ -81,7 +81,7 @@ app.post('/query', async (c) => {
       timeout: 30000,
     });
 
-    logger.info({ status: response.status }, 'SigNoz query successful');
+    logger.debug({ status: response.status }, 'SigNoz query successful');
 
     return c.json(response.data);
   } catch (error) {
@@ -134,7 +134,7 @@ app.get('/health', async (c) => {
   const signozUrl = env.SIGNOZ_URL || env.PUBLIC_SIGNOZ_URL;
   const signozApiKey = env.SIGNOZ_API_KEY;
 
-  logger.info(
+  logger.debug(
     {
       hasUrl: !!signozUrl,
       hasApiKey: !!signozApiKey,
@@ -167,7 +167,7 @@ app.get('/health', async (c) => {
     };
 
     const signozEndpoint = `${signozUrl}/api/v4/query_range`;
-    logger.info({ endpoint: signozEndpoint }, 'Testing SigNoz connection');
+    logger.debug({ endpoint: signozEndpoint }, 'Testing SigNoz connection');
 
     await axios.post(signozEndpoint, testPayload, {
       headers: {
@@ -178,7 +178,7 @@ app.get('/health', async (c) => {
       validateStatus: (status) => status === 200 || status === 400, // Both OK (valid API key)
     });
 
-    logger.info({}, 'SigNoz health check successful');
+    logger.debug({}, 'SigNoz health check successful');
 
     return c.json({
       status: 'ok',

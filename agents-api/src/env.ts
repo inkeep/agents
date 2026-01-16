@@ -13,10 +13,22 @@ const envSchema = z.object({
   INKEEP_AGENTS_RUN_DATABASE_URL: z.string(),
   INKEEP_AGENTS_MANAGE_UI_URL: z.string().optional(),
   INKEEP_AGENTS_API_URL: z.string().optional(),
+  
+  BETTER_AUTH_SECRET: z.string().optional(),
+  INKEEP_AGENTS_MANAGE_UI_USERNAME: z
+    .string()
+    .optional()
+    .refine((val) => !val || /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(val), {
+      message: 'Invalid email address',
+    }),
+  INKEEP_AGENTS_MANAGE_UI_PASSWORD: z
+    .string()
+    .optional()
+    .refine((val) => !val || val.length >= 8, {
+      message: 'Password must be at least 8 characters',
+    }),
 
   INKEEP_AGENTS_API_BYPASS_SECRET: z.string().optional(),
-  BETTER_AUTH_SECRET: z.string().optional(),
-
   INKEEP_AGENTS_MANAGE_API_BYPASS_SECRET: z.string().optional(),
   INKEEP_AGENTS_RUN_API_BYPASS_SECRET: z.string().optional(),
 
@@ -40,6 +52,10 @@ const envSchema = z.object({
   SIGNOZ_URL: z.string().optional(),
   SIGNOZ_API_KEY: z.string().optional(),
   PUBLIC_SIGNOZ_URL: z.string().optional(),
+
+  ANTHROPIC_API_KEY: z.string(),
+  OPENAI_API_KEY: z.string().optional(),
+  GOOGLE_GENERATIVE_AI_API_KEY: z.string().optional(),
 });
 
 
