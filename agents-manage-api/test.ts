@@ -1,7 +1,7 @@
 import { listBranchesForAgent } from '@inkeep/agents-core';
 import * as schema from '@inkeep/agents-core/schema';
 import { drizzle } from 'drizzle-orm/node-postgres';
-import type { Pool, PoolClient } from 'pg';
+import type { PoolClient } from 'pg';
 import dbClient from './src/data/db/dbClient';
 import { getPoolFromClient } from './src/middleware/branch-scoped-db';
 

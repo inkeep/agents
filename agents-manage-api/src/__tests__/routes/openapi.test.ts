@@ -239,15 +239,23 @@ describe('OpenAPI Specification - Integration Tests', () => {
 
         if (addedPaths.length > 0 || removedPaths.length > 0) {
           lines.push('  📍 PATH CHANGES:');
-          addedPaths.forEach((p) => lines.push(`     + ${p}`));
-          removedPaths.forEach((p) => lines.push(`     - ${p}`));
+          addedPaths.forEach((p) => {
+            lines.push(`     + ${p}`);
+          });
+          removedPaths.forEach((p) => {
+            lines.push(`     - ${p}`);
+          });
           lines.push('');
         }
 
         if (addedSchemas.length > 0 || removedSchemas.length > 0) {
           lines.push('  📦 SCHEMA CHANGES:');
-          addedSchemas.forEach((s) => lines.push(`     + ${s}`));
-          removedSchemas.forEach((s) => lines.push(`     - ${s}`));
+          addedSchemas.forEach((s) => {
+            lines.push(`     + ${s}`);
+          });
+          removedSchemas.forEach((s) => {
+            lines.push(`     - ${s}`);
+          });
           lines.push('');
         }
 
