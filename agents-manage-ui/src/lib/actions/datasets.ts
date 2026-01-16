@@ -6,13 +6,7 @@
 
 import { revalidatePath } from 'next/cache';
 import type { Dataset, DatasetInsert, DatasetUpdate } from '../api/datasets';
-import {
-  createDataset,
-  deleteDataset,
-  fetchDataset,
-  fetchDatasets,
-  updateDataset,
-} from '../api/datasets';
+import { createDataset, deleteDataset, updateDataset } from '../api/datasets';
 import { ApiError } from '../types/errors';
 import type { ActionResult } from './types';
 

@@ -7,7 +7,6 @@ import {
   type Evaluator,
   type EvaluatorInsert,
   type EvaluatorUpdate,
-  fetchEvaluators,
   updateEvaluator,
 } from '../api/evaluators';
 import { ApiError } from '../types/errors';

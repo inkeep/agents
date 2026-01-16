@@ -6,7 +6,6 @@ import {
   deleteEvaluationJobConfig,
   type EvaluationJobConfig,
   type EvaluationJobConfigInsert,
-  fetchEvaluationJobConfigs,
 } from '../api/evaluation-job-configs';
 import { ApiError } from '../types/errors';
 import type { ActionResult } from './types';

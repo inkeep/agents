@@ -8,9 +8,6 @@ import type {
 } from '../api/dataset-run-configs';
 import {
   createDatasetRunConfig as apiCreateDatasetRunConfig,
-  deleteDatasetRunConfig as apiDeleteDatasetRunConfig,
-  fetchDatasetRunConfig as apiFetchDatasetRunConfig,
-  fetchDatasetRunConfigs as apiFetchDatasetRunConfigs,
   updateDatasetRunConfig as apiUpdateDatasetRunConfig,
 } from '../api/dataset-run-configs';
 import { ApiError } from '../types/errors';
@@ -94,35 +91,6 @@ export async function updateDatasetRunConfigAction(
     return {
       success: false,
       error: error instanceof Error ? error.message : 'Failed to update dataset run config',
-      code: 'unknown_error',
-    };
-  }
-}
-
-async function deleteDatasetRunConfigAction(
-  tenantId: string,
-  projectId: string,
-  runConfigId: string
-): Promise<ActionResult<void>> {
-  try {
-    await apiDeleteDatasetRunConfig(tenantId, projectId, runConfigId);
-    revalidatePath(`/${tenantId}/projects/${projectId}/datasets`);
-    return {
-      success: true,
-      data: undefined,
-    };
-  } catch (error) {
-    if (error instanceof ApiError) {
-      return {
-        success: false,
-        error: error.message,
-        code: error.error.code,
-      };
-    }
-
-    return {
-      success: false,
-      error: error instanceof Error ? error.message : 'Failed to delete dataset run config',
       code: 'unknown_error',
     };
   }
