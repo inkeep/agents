@@ -11,7 +11,7 @@
  * Future Extensibility:
  * - Groups: Add `| group#member` to relation types
  * - Service Accounts: Add `| service_account` to relation types  
- * - Custom Roles: Add `role` definition with `can_*` relation bindings
+ * - Custom Roles: Define a `role` definition and bind it via `relation custom_role: role`
  */
 
 /**

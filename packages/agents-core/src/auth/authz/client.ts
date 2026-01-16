@@ -5,7 +5,7 @@
  */
 
 import { v1 } from '@authzed/authzed-node';
-import { getSpiceDbConfig, isAuthzEnabled } from './config';
+import { getSpiceDbConfig } from './config';
 
 type ZedClientInterface = ReturnType<typeof v1.NewClient>;
 
@@ -38,8 +38,12 @@ export function resetSpiceClient(): void {
 const PERMISSIONSHIP_HAS_PERMISSION = 2;
 const RELATIONSHIP_OPERATION_CREATE = 1;
 
+// Re-export v1 for access to types
+export { v1 };
+
 /**
  * Check if a subject has a permission on a resource.
+ * Note: Caller must verify isAuthzEnabled(tenantId) before calling.
  */
 export async function checkPermission(params: {
   resourceType: string;
@@ -48,10 +52,6 @@ export async function checkPermission(params: {
   subjectType: string;
   subjectId: string;
 }): Promise<boolean> {
-  if (!isAuthzEnabled()) {
-    return true;
-  }
-
   const spice = getSpiceClient();
 
   const response = await spice.promises.checkPermission({
@@ -75,6 +75,68 @@ export async function checkPermission(params: {
 }
 
 /**
+ * Check multiple permissions on a resource in a single request.
+ * More efficient than multiple checkPermission calls.
+ *
+ * @returns Record mapping permission names to boolean results
+ */
+export async function checkBulkPermissions(params: {
+  resourceType: string;
+  resourceId: string;
+  permissions: string[];
+  subjectType: string;
+  subjectId: string;
+}): Promise<Record<string, boolean>> {
+  const spice = getSpiceClient();
+
+  // Build the bulk check request items
+  const items = params.permissions.map((permission) =>
+    v1.CheckBulkPermissionsRequestItem.create({
+      resource: v1.ObjectReference.create({
+        objectType: params.resourceType,
+        objectId: params.resourceId,
+      }),
+      permission,
+      subject: v1.SubjectReference.create({
+        object: v1.ObjectReference.create({
+          objectType: params.subjectType,
+          objectId: params.subjectId,
+        }),
+      }),
+    })
+  );
+
+  const response = await spice.promises.checkBulkPermissions(
+    v1.CheckBulkPermissionsRequest.create({
+      items,
+      consistency: {
+        requirement: {
+          oneofKind: 'minimizeLatency',
+          minimizeLatency: true,
+        },
+      },
+    })
+  );
+
+  // Map results back to permission names
+  const result: Record<string, boolean> = {};
+  for (let i = 0; i < params.permissions.length; i++) {
+    const permission = params.permissions[i];
+    const pair = response.pairs[i];
+
+    // Check if the response indicates permission
+    if (pair.response.oneofKind === 'item') {
+      result[permission] = pair.response.item.permissionship === PERMISSIONSHIP_HAS_PERMISSION;
+    } else {
+      // Error case - treat as no permission
+      result[permission] = false;
+    }
+  }
+
+  return result;
+}
+
+/**
  * Find all resources of a type that a subject has a permission on.
  */
 export async function lookupResources(params: {
@@ -83,10 +145,6 @@ export async function lookupResources(params: {
   subjectType: string;
   subjectId: string;
 }): Promise<string[]> {
-  if (!isAuthzEnabled()) {
-    return [];
-  }
-
   const spice = getSpiceClient();
 
   const responses = await spice.promises.lookupResources({
@@ -120,10 +178,6 @@ export async function writeRelationship(params: {
   subjectType: string;
   subjectId: string;
 }): Promise<void> {
-  if (!isAuthzEnabled()) {
-    return;
-  }
-
   const spice = getSpiceClient();
 
   await spice.promises.writeRelationships({
@@ -156,10 +210,6 @@ export async function deleteRelationship(params: {
   subjectType: string;
   subjectId: string;
 }): Promise<void> {
-  if (!isAuthzEnabled()) {
-    return;
-  }
-
   const spice = getSpiceClient();
 
   await spice.promises.deleteRelationships({
@@ -189,10 +239,6 @@ export async function readRelationships(params: {
   resourceId: string;
   relation?: string;
 }): Promise<Array<{ subjectType: string; subjectId: string; relation: string }>> {
-  if (!isAuthzEnabled()) {
-    return [];
-  }
-
   const spice = getSpiceClient();
 
   const responses = await spice.promises.readRelationships({

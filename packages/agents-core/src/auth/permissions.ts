@@ -43,17 +43,17 @@ export const memberRole = ac.newRole({
 });
 
 export const adminRole = ac.newRole({
-  project: ['create', 'read', 'update'],
-  agent: ['create', 'read', 'update'],
-  sub_agent: ['create', 'read', 'update'],
-  tool: ['create', 'read', 'update'],
-  api_key: ['create', 'read', 'update'],
-  credential: ['create', 'read', 'update'],
-  data_component: ['create', 'read', 'update'],
-  artifact_component: ['create', 'read', 'update'],
-  external_agent: ['create', 'read', 'update'],
-  function: ['create', 'read', 'update'],
-  context_config: ['create', 'read', 'update'],
+  project: ['create', 'read', 'update', 'delete'],
+  agent: ['create', 'read', 'update', 'delete'],
+  sub_agent: ['create', 'read', 'update', 'delete'],
+  tool: ['create', 'read', 'update', 'delete'],
+  api_key: ['create', 'read', 'update', 'delete'],
+  credential: ['create', 'read', 'update', 'delete'],
+  data_component: ['create', 'read', 'update', 'delete'],
+  artifact_component: ['create', 'read', 'update', 'delete'],
+  external_agent: ['create', 'read', 'update', 'delete'],
+  function: ['create', 'read', 'update', 'delete'],
+  context_config: ['create', 'read', 'update', 'delete'],
   ...adminAc.statements,
 });
 

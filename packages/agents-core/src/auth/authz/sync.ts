@@ -28,7 +28,7 @@ export async function syncOrgMemberToSpiceDb(params: {
   role: OrgRole;
   action: 'add' | 'remove';
 }): Promise<void> {
-  if (!isAuthzEnabled()) return;
+  if (!isAuthzEnabled(params.tenantId)) return;
 
   if (params.action === 'add') {
     await writeRelationship({
@@ -60,7 +60,7 @@ export async function changeOrgRole(params: {
   oldRole: OrgRole;
   newRole: OrgRole;
 }): Promise<void> {
-  if (!isAuthzEnabled()) return;
+  if (!isAuthzEnabled(params.tenantId)) return;
 
   // Skip if roles are the same
   if (params.oldRole === params.newRole) {
@@ -126,7 +126,7 @@ export async function syncProjectToSpiceDb(params: {
   projectId: string;
   creatorUserId: string;
 }): Promise<void> {
-  if (!isAuthzEnabled()) return;
+  if (!isAuthzEnabled(params.tenantId)) return;
 
   const spice = getSpiceClient();
 
@@ -180,11 +180,12 @@ export async function syncProjectToSpiceDb(params: {
  * Grant project access to a user.
  */
 export async function grantProjectAccess(params: {
+  tenantId: string;
   projectId: string;
   userId: string;
   role: ProjectRole;
 }): Promise<void> {
-  if (!isAuthzEnabled()) {
+  if (!isAuthzEnabled(params.tenantId)) {
     throw new Error('Authorization is not enabled');
   }
 
@@ -201,11 +202,12 @@ export async function grantProjectAccess(params: {
  * Revoke project access from a user.
  */
 export async function revokeProjectAccess(params: {
+  tenantId: string;
   projectId: string;
   userId: string;
   role: ProjectRole;
 }): Promise<void> {
-  if (!isAuthzEnabled()) {
+  if (!isAuthzEnabled(params.tenantId)) {
     throw new Error('Authorization is not enabled');
   }
 
@@ -223,12 +225,13 @@ export async function revokeProjectAccess(params: {
  * Removes the old role and adds the new one atomically in a single transaction.
  */
 export async function changeProjectRole(params: {
+  tenantId: string;
   projectId: string;
   userId: string;
   oldRole: ProjectRole;
   newRole: ProjectRole;
 }): Promise<void> {
-  if (!isAuthzEnabled()) {
+  if (!isAuthzEnabled(params.tenantId)) {
     throw new Error('Authorization is not enabled');
   }
 
@@ -290,8 +293,11 @@ export async function changeProjectRole(params: {
  * Remove a project from SpiceDB.
  * Call when: project is deleted.
  */
-export async function removeProjectFromSpiceDb(params: { projectId: string }): Promise<void> {
-  if (!isAuthzEnabled()) return;
+export async function removeProjectFromSpiceDb(params: {
+  tenantId: string;
+  projectId: string;
+}): Promise<void> {
+  if (!isAuthzEnabled(params.tenantId)) return;
 
   const spice = getSpiceClient();
 
@@ -315,9 +321,10 @@ export async function removeProjectFromSpiceDb(params: { projectId: string }): P
  * Returns users with project_admin, project_member, or project_viewer roles.
  */
 export async function listProjectMembers(params: {
+  tenantId: string;
   projectId: string;
 }): Promise<Array<{ userId: string; role: ProjectRole }>> {
-  if (!isAuthzEnabled()) {
+  if (!isAuthzEnabled(params.tenantId)) {
     return [];
   }
 

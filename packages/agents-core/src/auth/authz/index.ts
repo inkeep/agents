@@ -6,6 +6,7 @@
 
 // Client
 export {
+  checkBulkPermissions,
   checkPermission,
   deleteRelationship,
   getSpiceClient,

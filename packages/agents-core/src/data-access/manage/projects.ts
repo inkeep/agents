@@ -26,19 +26,30 @@ import type {
 
 /**
  * List all unique project IDs within a tenant by scanning all resource tables
+ * @param projectIds - Optional array of project IDs to filter by. If undefined, returns all projects.
  */
 export const listProjects =
   (db: AgentsManageDatabaseClient) =>
-  async (params: { tenantId: string }): Promise<ProjectInfo[]> => {
+  async (params: { tenantId: string; projectIds?: string[] }): Promise<ProjectInfo[]> => {
+    // If projectIds filter is provided and empty, return empty result
+    if (params.projectIds !== undefined && params.projectIds.length === 0) {
+      return [];
+    }
+
+    const whereClause = params.projectIds
+      ? and(eq(projects.tenantId, params.tenantId), inArray(projects.id, params.projectIds))
+      : eq(projects.tenantId, params.tenantId);
+
     const projectsFromTable = await db
       .select({ projectId: projects.id }) // id IS the project ID
       .from(projects)
-      .where(eq(projects.tenantId, params.tenantId));
+      .where(whereClause);
 
     if (projectsFromTable.length > 0) {
       return projectsFromTable.map((p) => ({ projectId: p.projectId }));
     }
 
+    // Fallback: scan resource tables (only if no projectIds filter or projects table is empty)
     const projectIdSets = await Promise.all([
       db
         .selectDistinct({ projectId: subAgents.projectId })
@@ -94,7 +105,10 @@ export const listProjects =
     projectIdSets.forEach((results) => {
       results.forEach((row) => {
         if (row.projectId) {
-          allProjectIds.add(row.projectId);
+          // Apply projectIds filter if provided
+          if (!params.projectIds || params.projectIds.includes(row.projectId)) {
+            allProjectIds.add(row.projectId);
+          }
         }
       });
     });

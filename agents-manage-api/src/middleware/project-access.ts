@@ -13,7 +13,7 @@ import type { BaseAppVariables } from '../types/app';
 
 /**
  * Permission levels for project access
- * 
+ *
  * - view: Can see project and resources (read-only)
  * - use: Can invoke agents, create API keys, view traces
  * - edit: Can modify configurations and manage members
@@ -31,8 +31,12 @@ export type ProjectPermission = 'view' | 'use' | 'edit';
  * - Uses SpiceDB to check permissions
  * - Org owner/admin bypass (handled in canViewProject etc.)
  */
-export const requireProjectPermission = (permission: ProjectPermission = 'view') =>
-  createMiddleware<{ Variables: BaseAppVariables }>(async (c, next) => {
+export const requireProjectPermission = <
+  Env extends { Variables: BaseAppVariables } = { Variables: BaseAppVariables },
+>(
+  permission: ProjectPermission = 'view'
+) =>
+  createMiddleware<Env>(async (c, next) => {
     const isTestEnvironment = process.env.ENVIRONMENT === 'test';
 
     // Skip checks in test environment or when auth is disabled
@@ -100,9 +104,32 @@ export const requireProjectPermission = (permission: ProjectPermission = 'view')
       }
 
       if (!hasAccess) {
-        // When authz is enabled and user doesn't have access,
-        // return 404 to not reveal project existence
-        if (isAuthzEnabled()) {
+        // When authz is enabled, check if user can at least view the project
+        // If they can view but not perform the requested action, return 403
+        // If they can't even view, return 404 to not reveal project existence
+        if (isAuthzEnabled(tenantId) && permission !== 'view') {
+          const canView = await canViewProject({
+            tenantId,
+            userId,
+            projectId,
+            orgRole: tenantRole,
+          });
+
+          if (canView) {
+            // User can see the project but lacks the specific permission
+            throw createApiError({
+              code: 'forbidden',
+              message: `Permission denied. Required: project:${permission}`,
+              instance: c.req.path,
+              extensions: {
+                requiredPermissions: [`project:${permission}`],
+              },
+            });
+          }
+        }
+
+        // User can't view the project, or authz is disabled
+        if (isAuthzEnabled(tenantId)) {
           throw createApiError({
             code: 'not_found',
             message: 'Project not found',
@@ -110,7 +137,7 @@ export const requireProjectPermission = (permission: ProjectPermission = 'view')
           });
         }
 
-        // When authz is disabled, return 403 for edit
+        // When authz is disabled, return 403
         throw createApiError({
           code: 'forbidden',
           message: `Permission denied. Required: project:${permission}`,
@@ -145,4 +172,3 @@ export const requireProjectPermission = (permission: ProjectPermission = 'view')
       });
     }
   });
-

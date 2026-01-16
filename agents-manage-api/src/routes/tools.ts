@@ -24,7 +24,7 @@ import {
   updateTool,
 } from '@inkeep/agents-core';
 import { getLogger } from '../logger';
-import { requirePermission } from '../middleware/require-permission';
+import { requireProjectPermission } from '../middleware/project-access';
 import type { AppVariablesWithServerConfig } from '../types/app';
 import { speakeasyOffsetLimitPagination } from './shared';
 
@@ -32,29 +32,20 @@ const logger = getLogger('tools');
 
 const app = new OpenAPIHono<{ Variables: AppVariablesWithServerConfig }>();
 
-// Apply permission middleware by HTTP method
+// Write operations require 'edit' permission on the project
 app.use('/', async (c, next) => {
   if (c.req.method === 'POST') {
-    return requirePermission<{ Variables: AppVariablesWithServerConfig }>({ tool: ['create'] })(
-      c,
-      next
-    );
+    return requireProjectPermission<{ Variables: AppVariablesWithServerConfig }>('edit')(c, next);
   }
   return next();
 });
 
 app.use('/:id', async (c, next) => {
   if (c.req.method === 'PUT') {
-    return requirePermission<{ Variables: AppVariablesWithServerConfig }>({ tool: ['update'] })(
-      c,
-      next
-    );
+    return requireProjectPermission<{ Variables: AppVariablesWithServerConfig }>('edit')(c, next);
   }
   if (c.req.method === 'DELETE') {
-    return requirePermission<{ Variables: AppVariablesWithServerConfig }>({ tool: ['delete'] })(
-      c,
-      next
-    );
+    return requireProjectPermission<{ Variables: AppVariablesWithServerConfig }>('edit')(c, next);
   }
   return next();
 });

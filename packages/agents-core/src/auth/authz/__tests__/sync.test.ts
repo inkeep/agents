@@ -153,6 +153,7 @@ describe('authz/sync', () => {
 
       await expect(
         grantProjectAccess({
+          tenantId: 'test-tenant',
           projectId: 'project-1',
           userId: 'user-1',
           role: 'project_member',
@@ -164,6 +165,7 @@ describe('authz/sync', () => {
       mockIsAuthzEnabled.mockReturnValue(true);
 
       await grantProjectAccess({
+        tenantId: 'test-tenant',
         projectId: 'project-1',
         userId: 'user-1',
         role: 'project_member',
@@ -185,6 +187,7 @@ describe('authz/sync', () => {
 
       await expect(
         revokeProjectAccess({
+          tenantId: 'test-tenant',
           projectId: 'project-1',
           userId: 'user-1',
           role: 'project_admin',
@@ -196,6 +199,7 @@ describe('authz/sync', () => {
       mockIsAuthzEnabled.mockReturnValue(true);
 
       await revokeProjectAccess({
+        tenantId: 'test-tenant',
         projectId: 'project-1',
         userId: 'user-1',
         role: 'project_admin',
@@ -217,6 +221,7 @@ describe('authz/sync', () => {
 
       await expect(
         changeProjectRole({
+          tenantId: 'test-tenant',
           projectId: 'project-1',
           userId: 'user-1',
           oldRole: 'project_member',
@@ -229,6 +234,7 @@ describe('authz/sync', () => {
       mockIsAuthzEnabled.mockReturnValue(true);
 
       await changeProjectRole({
+        tenantId: 'test-tenant',
         projectId: 'project-1',
         userId: 'user-1',
         oldRole: 'project_member',
@@ -261,7 +267,7 @@ describe('authz/sync', () => {
     it('should do nothing when authz is disabled', async () => {
       mockIsAuthzEnabled.mockReturnValue(false);
 
-      await removeProjectFromSpiceDb({ projectId: 'project-1' });
+      await removeProjectFromSpiceDb({ tenantId: 'test-tenant', projectId: 'project-1' });
 
       expect(mockSpiceClient.promises.deleteRelationships).not.toHaveBeenCalled();
     });
@@ -269,7 +275,7 @@ describe('authz/sync', () => {
     it('should delete all relationships for the project', async () => {
       mockIsAuthzEnabled.mockReturnValue(true);
 
-      await removeProjectFromSpiceDb({ projectId: 'project-1' });
+      await removeProjectFromSpiceDb({ tenantId: 'test-tenant', projectId: 'project-1' });
 
       expect(mockSpiceClient.promises.deleteRelationships).toHaveBeenCalledWith({
         relationshipFilter: {

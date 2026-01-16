@@ -76,14 +76,13 @@ app.openapi(
     },
   }),
   async (c) => {
-    if (!isAuthzEnabled()) {
-      // Return empty list when authz is disabled
+    const { projectId, tenantId } = c.req.valid('param');
+
+    if (!isAuthzEnabled(tenantId)) {
       return c.json({ data: [] });
     }
 
-    const { projectId } = c.req.valid('param');
-
-    const members = await listProjectMembers({ projectId });
+    const members = await listProjectMembers({ tenantId, projectId });
 
     return c.json({ data: members });
   }
@@ -130,17 +129,18 @@ app.openapi(
     },
   }),
   async (c) => {
-    if (!isAuthzEnabled()) {
+    const { projectId, tenantId } = c.req.valid('param');
+    const { userId, role } = c.req.valid('json');
+
+    if (!isAuthzEnabled(tenantId)) {
       throw createApiError({
         code: 'bad_request',
         message: 'Project member management requires authorization to be enabled (ENABLE_AUTHZ=true)',
       });
     }
 
-    const { projectId } = c.req.valid('param');
-    const { userId, role } = c.req.valid('json');
-
     await grantProjectAccess({
+      tenantId,
       projectId,
       userId,
       role,
@@ -192,15 +192,15 @@ app.openapi(
     },
   }),
   async (c) => {
-    if (!isAuthzEnabled()) {
+    const { projectId, userId, tenantId } = c.req.valid('param');
+    const { role: newRole, previousRole } = c.req.valid('json');
+
+    if (!isAuthzEnabled(tenantId)) {
       throw createApiError({
         code: 'bad_request',
         message: 'Project member management requires authorization to be enabled (ENABLE_AUTHZ=true)',
       });
     }
-
-    const { projectId, userId } = c.req.valid('param');
-    const { role: newRole, previousRole } = c.req.valid('json');
 
     if (!previousRole) {
       throw createApiError({
@@ -221,6 +221,7 @@ app.openapi(
     }
 
     await changeProjectRole({
+      tenantId,
       projectId,
       userId,
       oldRole: previousRole,
@@ -261,17 +262,18 @@ app.openapi(
     },
   }),
   async (c) => {
-    if (!isAuthzEnabled()) {
+    const { projectId, userId, tenantId } = c.req.valid('param');
+    const { role } = c.req.valid('query');
+
+    if (!isAuthzEnabled(tenantId)) {
       throw createApiError({
         code: 'bad_request',
         message: 'Project member management requires authorization to be enabled (ENABLE_AUTHZ=true)',
       });
     }
 
-    const { projectId, userId } = c.req.valid('param');
-    const { role } = c.req.valid('query');
-
     await revokeProjectAccess({
+      tenantId,
       projectId,
       userId,
       role,

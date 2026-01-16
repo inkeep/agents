@@ -1,6 +1,10 @@
 import { createRoute, OpenAPIHono, z } from '@hono/zod-openapi';
-import { getUserOrganizations } from '@inkeep/agents-core';
-import { UserOrganizationsResponseSchema } from '@inkeep/agents-core/auth/validation';
+import { addUserToOrganization, getUserOrganizations } from '@inkeep/agents-core';
+import {
+  AddUserToOrganizationRequestSchema,
+  AddUserToOrganizationResponseSchema,
+  UserOrganizationsResponseSchema,
+} from '@inkeep/agents-core/auth/validation';
 import type { AppVariables } from '../create-app';
 import runDbClient from '../data/db/runDbClient';
 
@@ -77,7 +81,7 @@ userOrganizationsRoutes.openapi(
     const { userId } = c.req.valid('param');
     const { organizationId, role } = c.req.valid('json');
 
-    await addUserToOrganization(dbClient)({ userId, organizationId, role });
+    await addUserToOrganization(runDbClient)({ userId, organizationId, role });
     return c.json({ organizationId, role, createdAt: new Date().toISOString() }, 201);
   }
 );

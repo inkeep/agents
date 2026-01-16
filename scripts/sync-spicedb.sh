@@ -10,10 +10,28 @@
 #   - psql installed (for database queries)
 #   - SpiceDB running with schema applied
 #
-# Usage:
-#   ./scripts/sync-spicedb.sh                    # Dry run (default)
-#   ./scripts/sync-spicedb.sh --apply            # Actually write to SpiceDB
-#   ./scripts/sync-spicedb.sh --apply --verbose  # Verbose output
+# Environment:
+#   - INKEEP_AGENTS_RUN_DATABASE_URL (or DATABASE_URL) - Runtime database connection
+#   - SPICEDB_ENDPOINT - SpiceDB gRPC endpoint (default: localhost:50051)
+#   - SPICEDB_PRESHARED_KEY - SpiceDB auth token
+#   - TENANT_ID - (optional) Sync only this organization ID. If not set, syncs all orgs.
+#
+# Tables queried (from runtime DB):
+#   - organization: org IDs and names
+#   - member: user-org memberships with roles
+#   - project_metadata: project IDs and tenant IDs
+#
+# Usage (Local Dev - uses .env automatically):
+#   ./scripts/sync-spicedb.sh                    # Dry run (all orgs)
+#   ./scripts/sync-spicedb.sh --apply            # Apply to local SpiceDB
+#   TENANT_ID=default ./scripts/sync-spicedb.sh --apply  # Sync only one org
+#
+# Usage (Production - Authzed Cloud):
+#   SPICEDB_ENDPOINT=<your-endpoint>:443 \
+#   SPICEDB_PRESHARED_KEY=<your-api-key> \
+#   INKEEP_AGENTS_RUN_DATABASE_URL=<prod-db-url> \
+#   TENANT_ID=<org-id> \
+#   ./scripts/sync-spicedb.sh --apply
 #
 # What it does:
 #   1. Syncs all organization members with their roles (owner/admin/member)
@@ -24,6 +42,7 @@
 set -e
 
 # Auto-load .env from project root if it exists (safely parse only valid lines)
+# IMPORTANT: Only set variables that aren't already defined (don't overwrite CLI args)
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_ROOT="$(dirname "$SCRIPT_DIR")"
 if [ -f "$PROJECT_ROOT/.env" ]; then
@@ -32,8 +51,12 @@ if [ -f "$PROJECT_ROOT/.env" ]; then
     # Skip empty lines and comments
     [[ -z "$line" || "$line" =~ ^[[:space:]]*# ]] && continue
     # Only process lines that match VAR=value pattern
-    if [[ "$line" =~ ^[A-Za-z_][A-Za-z0-9_]*= ]]; then
-      export "$line" 2>/dev/null || true
+    if [[ "$line" =~ ^([A-Za-z_][A-Za-z0-9_]*)= ]]; then
+      var_name="${BASH_REMATCH[1]}"
+      # Only set if not already defined (preserve CLI/env overrides)
+      if [ -z "${!var_name+x}" ]; then
+        export "$line" 2>/dev/null || true
+      fi
     fi
   done < "$PROJECT_ROOT/.env"
 fi
@@ -61,16 +84,18 @@ for arg in "$@"; do
 done
 
 # Environment variables with defaults
-DATABASE_URL="${DATABASE_URL:-}"
+# Use INKEEP_AGENTS_RUN_DATABASE_URL (runtime DB has organization, member, project_metadata tables)
+DATABASE_URL="${INKEEP_AGENTS_RUN_DATABASE_URL:-${DATABASE_URL:-}}"
 SPICEDB_ENDPOINT="${SPICEDB_ENDPOINT:-localhost:50051}"
 SPICEDB_TOKEN="${SPICEDB_PRESHARED_KEY:-dev-secret-key}"
+TENANT_ID="${TENANT_ID:-}"  # Optional: sync only this org
 
 # Validate required env vars
 if [ -z "$DATABASE_URL" ]; then
-  echo -e "${RED}❌ DATABASE_URL environment variable is required${NC}"
+  echo -e "${RED}❌ DATABASE_URL or INKEEP_AGENTS_RUN_DATABASE_URL environment variable is required${NC}"
   echo ""
   echo "Example:"
-  echo "  DATABASE_URL=postgres://user:pass@localhost:5432/dbname ./scripts/sync-spicedb.sh"
+  echo "  INKEEP_AGENTS_RUN_DATABASE_URL=postgres://user:pass@localhost:5432/dbname ./scripts/sync-spicedb.sh"
   exit 1
 fi
 
@@ -90,10 +115,11 @@ fi
 # Build zed connection args
 ZED_ARGS="--endpoint $SPICEDB_ENDPOINT --token $SPICEDB_TOKEN"
 
-# Use insecure for localhost
+# Use insecure for localhost, otherwise TLS is required (Authzed Cloud)
 if [[ "$SPICEDB_ENDPOINT" == *"localhost"* ]] || [[ "$SPICEDB_ENDPOINT" == *"127.0.0.1"* ]]; then
   ZED_ARGS="$ZED_ARGS --insecure"
 fi
+# Note: For Authzed Cloud endpoints (*.authzed.cloud), TLS is used by default - no flag needed
 
 # Stats
 ORGS_PROCESSED=0
@@ -112,6 +138,11 @@ else
 fi
 echo "SpiceDB:  $SPICEDB_ENDPOINT"
 echo "Database: ${DATABASE_URL//:*@/:****@}"
+if [ -n "$TENANT_ID" ]; then
+  echo -e "Tenant:   ${GREEN}$TENANT_ID${NC} (filtering to this org only)"
+else
+  echo "Tenant:   (all organizations)"
+fi
 echo "═══════════════════════════════════════════════════════════════"
 echo ""
 
@@ -149,8 +180,12 @@ sync_organizations() {
   echo -e "${BLUE}📁 Syncing Organizations...${NC}"
   echo ""
   
-  # Query organizations
-  local orgs=$(psql "$DATABASE_URL" -t -A -F '|' -c "SELECT id, name FROM organization")
+  # Query organizations (filter by TENANT_ID if set)
+  local org_query="SELECT id, name FROM organization"
+  if [ -n "$TENANT_ID" ]; then
+    org_query="$org_query WHERE id = '$TENANT_ID'"
+  fi
+  local orgs=$(psql "$DATABASE_URL" -t -A -F '|' -c "$org_query")
   
   while IFS='|' read -r org_id org_name; do
     [ -z "$org_id" ] && continue
@@ -180,15 +215,19 @@ sync_projects() {
   echo -e "${BLUE}📂 Syncing Projects...${NC}"
   echo ""
   
-  # Query projects
-  local projects=$(psql "$DATABASE_URL" -t -A -F '|' -c "SELECT id, tenant_id, name FROM projects")
+  # Query project_metadata (runtime DB) - filter by TENANT_ID if set
+  local project_query="SELECT id, tenant_id FROM project_metadata"
+  if [ -n "$TENANT_ID" ]; then
+    project_query="$project_query WHERE tenant_id = '$TENANT_ID'"
+  fi
+  local projects=$(psql "$DATABASE_URL" -t -A -F '|' -c "$project_query")
   local project_count=0
   
-  while IFS='|' read -r project_id tenant_id project_name; do
+  while IFS='|' read -r project_id tenant_id; do
     [ -z "$project_id" ] && continue
     
     if [ "$VERBOSE" = true ]; then
-      echo "  Project: $project_name ($project_id) → org:$tenant_id"
+      echo "  Project: $project_id → org:$tenant_id"
     fi
     
     write_relationship "project" "$project_id" "organization" "organization" "$tenant_id"

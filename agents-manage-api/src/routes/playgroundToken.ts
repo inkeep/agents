@@ -1,8 +1,10 @@
 import { createRoute, OpenAPIHono, z } from '@hono/zod-openapi';
 import {
+  canUseProject,
   createApiError,
   ErrorResponseSchema,
   getAgentById,
+  type OrgRole,
   projectExists,
   signTempToken,
   TenantParamsSchema,
@@ -72,12 +74,30 @@ app.openapi(
     const db = c.get('db');
     const userId = c.get('userId');
     const tenantId = c.get('tenantId'); // Set by requireTenantAccess middleware from URL param
+    const tenantRole = (c.get('tenantRole') || 'member') as OrgRole;
     const { projectId, agentId } = c.req.valid('json');
 
     logger.info(
       { userId, tenantId, projectId, agentId },
       'Generating temporary JWT token for playground'
     );
+
+    // Check SpiceDB 'use' permission for this project
+    // This allows project_admin and project_member roles, but not project_viewer
+    const canUse = await canUseProject({
+      tenantId,
+      userId,
+      projectId,
+      orgRole: tenantRole,
+    });
+
+    if (!canUse) {
+      logger.warn({ userId, tenantId, projectId }, 'User does not have use permission on project');
+      throw createApiError({
+        code: 'not_found',
+        message: 'Project not found',
+      });
+    }
 
     // Verify project exists and belongs to the tenant
     const projectExistsCheck = await projectExists(db)({ tenantId, projectId });

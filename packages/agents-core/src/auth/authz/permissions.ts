@@ -20,8 +20,8 @@ export async function canViewProject(params: {
   projectId: string;
   orgRole: OrgRole;
 }): Promise<boolean> {
-  // Authz disabled = current behavior (all org members see all)
-  if (!isAuthzEnabled()) {
+  // Authz disabled (globally or for this tenant) = current behavior (all org members see all)
+  if (!isAuthzEnabled(params.tenantId)) {
     return true;
   }
 
@@ -53,8 +53,8 @@ export async function canUseProject(params: {
   projectId: string;
   orgRole: OrgRole;
 }): Promise<boolean> {
-  // Authz disabled = current behavior (all org members can use)
-  if (!isAuthzEnabled()) {
+  // Authz disabled (globally or for this tenant) = current behavior (all org members can use)
+  if (!isAuthzEnabled(params.tenantId)) {
     return true;
   }
 
@@ -86,8 +86,8 @@ export async function canEditProject(params: {
   projectId: string;
   orgRole: OrgRole;
 }): Promise<boolean> {
-  // Authz disabled = only org owner/admin can edit
-  if (!isAuthzEnabled()) {
+  // Authz disabled (globally or for this tenant) = only org owner/admin can edit
+  if (!isAuthzEnabled(params.tenantId)) {
     return params.orgRole === 'owner' || params.orgRole === 'admin';
   }
 
@@ -118,8 +118,8 @@ export async function listAccessibleProjectIds(params: {
   userId: string;
   orgRole: OrgRole;
 }): Promise<string[] | 'all'> {
-  // Authz disabled = current behavior (all)
-  if (!isAuthzEnabled()) {
+  // Authz disabled (globally or for this tenant) = current behavior (all)
+  if (!isAuthzEnabled(params.tenantId)) {
     return 'all';
   }
 

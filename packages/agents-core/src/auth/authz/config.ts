@@ -6,11 +6,29 @@
 
 /**
  * Check if authorization is enabled.
- * When false, all permission checks return true (current behavior).
- * When true, SpiceDB is used for authorization.
+ * 
+ * When called without tenantId:
+ * - Returns true if ENABLE_AUTHZ=true
+ * 
+ * When called with tenantId:
+ * - If ENABLE_AUTHZ=false → returns false
+ * - If ENABLE_AUTHZ=true and TENANT_ID is not set → returns true (all tenants)
+ * - If ENABLE_AUTHZ=true and TENANT_ID is set → returns true only if tenantId matches
  */
-export function isAuthzEnabled(): boolean {
-  return process.env.ENABLE_AUTHZ === 'true';
+export function isAuthzEnabled(tenantId: string): boolean {
+  if (process.env.ENABLE_AUTHZ !== 'true') {
+    return false;
+  }
+  
+  const configuredTenantId = process.env.TENANT_ID?.trim();
+  
+  // If no specific tenant configured, authz applies to all
+  if (!configuredTenantId) {
+    return true;
+  }
+  
+  // Only enable for the configured tenant
+  return tenantId === configuredTenantId;
 }
 
 /**

@@ -269,13 +269,15 @@ export const listProjectsWithMetadataPaginated =
   async (params: {
     tenantId: string;
     pagination?: PaginationConfig;
+    projectIds?: string[];
   }): Promise<ListProjectsWithMetadataResult> => {
-    const { tenantId, pagination } = params;
+    const { tenantId, pagination, projectIds } = params;
 
-    // 1. Get projects from runtime DB (paginated)
+    // 1. Get projects from runtime DB (paginated, optionally filtered by projectIds)
     const projectMetadataResult = await listProjectsMetadataPaginated(runDb)({
       tenantId,
       pagination,
+      projectIds,
     });
 
     // 2. For each project, get metadata from config DB at project's main branch

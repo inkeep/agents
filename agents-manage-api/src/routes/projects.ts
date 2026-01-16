@@ -10,23 +10,33 @@ import {
   doltCheckout,
   ErrorResponseSchema,
   getProject,
-  listProjectsPaginated,
+  getProjectMainBranchName,
+  isAuthzEnabled,
+  listAccessibleProjectIds,
+  listProjectsWithMetadataPaginated,
+  type OrgRole,
   PaginationQueryParamsSchema,
   ProjectApiInsertSchema,
   ProjectApiUpdateSchema,
   ProjectListResponse,
   ProjectResponse,
+  type ResolvedRef,
+  removeProjectFromSpiceDb,
+  syncProjectToSpiceDb,
   TenantIdParamsSchema,
   TenantParamsSchema,
   updateProject,
 } from '@inkeep/agents-core';
-import dbClient from '../data/db/dbClient';
+import manageDbClient from '../data/db/dbClient';
+import runDbClient from '../data/db/runDbClient';
+import { requireProjectPermission } from '../middleware/project-access';
 import { requirePermission } from '../middleware/require-permission';
 import type { BaseAppVariables } from '../types/app';
 import { speakeasyOffsetLimitPagination } from './shared';
 
 const app = new OpenAPIHono<{ Variables: BaseAppVariables }>();
 
+// POST /projects - Create project (org-level action, requires org permission)
 app.use('/', async (c, next) => {
   if (c.req.method === 'POST') {
     return requirePermission({ project: ['create'] })(c, next);
@@ -34,17 +44,18 @@ app.use('/', async (c, next) => {
   return next();
 });
 
+// GET/PATCH/DELETE /projects/:id - Project-level actions (require SpiceDB permission)
 app.use('/:id', async (c, next) => {
   if (c.req.method === 'GET') {
-    // Use project access check for viewing individual projects
+    // View project requires 'view' permission
     return requireProjectPermission('view')(c, next);
   }
   if (c.req.method === 'PATCH') {
-    // Users with 'edit' permission can update project
+    // Update project requires 'edit' permission
     return requireProjectPermission('edit')(c, next);
   }
   if (c.req.method === 'DELETE') {
-    // Users with 'edit' permission can delete project
+    // Delete project requires 'edit' permission
     return requireProjectPermission('edit')(c, next);
   }
   return next();
@@ -84,11 +95,25 @@ app.openapi(
     const page = Number(c.req.query('page')) || 1;
     const limit = Math.min(Number(c.req.query('limit')) || 10, 100);
 
-    const result = await listProjectsPaginated(dbClient)({
-      tenantId,
-      pagination: { page, limit },
-      projectIds: accessibleIds,
-    });
+    // Get accessible project IDs based on authorization
+    let accessibleIds: string[] | undefined;
+    if (isAuthzEnabled(tenantId) && userId) {
+      const result = await listAccessibleProjectIds({
+        tenantId,
+        userId,
+        orgRole: tenantRole as OrgRole,
+      });
+      if (result !== 'all') {
+        accessibleIds = result;
+      }
+    }
+
+    // Use the new function that gets projects from runtime DB
+    // and fetches metadata from each project's branch in config DB
+    const result = await listProjectsWithMetadataPaginated(
+      runDbClient,
+      configDb
+    )({ tenantId, pagination: { page, limit }, projectIds: accessibleIds });
 
     // Transform the result to match the existing ProjectListResponse schema
     const transformedData = result.data.map((project) => ({
@@ -191,7 +216,6 @@ app.openapi(
     const configDb = c.get('db');
     const userId = c.get('userId');
     const { tenantId } = c.req.valid('param');
-    const userId = c.get('userId');
     const body = c.req.valid('json');
 
     try {
@@ -225,11 +249,11 @@ app.openapi(
       });
 
       // Sync to SpiceDB: link project to org and grant creator admin role
-      if (isAuthzEnabled()) {
+      if (isAuthzEnabled(tenantId)) {
         try {
           await syncProjectToSpiceDb({
             tenantId,
-            projectId: project.id,
+            projectId: body.id,
             creatorUserId: userId,
           });
         } catch (syncError) {
@@ -238,10 +262,18 @@ app.openapi(
         }
       }
 
-      return c.json({ data: project }, 201);
+      return c.json(
+        {
+          data: {
+            ...projectConfig,
+            mainBranchName: runtimeProject.mainBranchName,
+          },
+        },
+        201
+      );
     } catch (error: any) {
       // Handle duplicate project (PostgreSQL unique constraint violation)
-      if (error?.cause?.code === '23505') {
+      if (error?.cause?.code === '23505' || error?.message?.includes('already exists')) {
         throw createApiError({
           code: 'conflict',
           message: 'Project with this ID already exists',
@@ -377,17 +409,17 @@ app.openapi(
       }
 
       // Remove from SpiceDB
-      if (isAuthzEnabled()) {
+      if (isAuthzEnabled(tenantId)) {
         try {
-          await removeProjectFromSpiceDb({ projectId: id });
+          await removeProjectFromSpiceDb({ tenantId, projectId: id });
         } catch (syncError) {
           console.warn('Failed to remove project from SpiceDB:', syncError);
         }
       }
 
       return c.body(null, 204);
-    } catch (error: unknown) {
-      if (error instanceof Error && error.message?.includes('Cannot delete project')) {
+    } catch (error: any) {
+      if (error.message?.includes('Cannot delete project with existing resources')) {
         throw createApiError({
           code: 'conflict',
           message: 'Cannot delete project with existing resources',
