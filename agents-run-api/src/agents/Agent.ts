@@ -472,6 +472,13 @@ export class Agent {
       execute: async (args: any, context?: any) => {
         const startTime = Date.now();
         const toolCallId = context?.toolCallId || generateToolId();
+        const streamHelper = this.getStreamingHelper();
+
+        const chunkString = (s: string, size = 16) => {
+          const out: string[] = [];
+          for (let i = 0; i < s.length; i += size) out.push(s.slice(i, i + size));
+          return out;
+        };
 
         const activeSpan = trace.getActiveSpan();
         if (activeSpan) {
@@ -498,12 +505,33 @@ export class Agent {
           toolName.includes('save_tool_result') ||
           toolName.includes('thinking_complete') ||
           toolName.startsWith('transfer_to_');
-        // Note: delegate_to_ tools are NOT internal - we want their results in conversation history
+        // Note: delegate_to_ tools are internal for streaming/UI purposes.
+        // We only stream tools that should surface in the user-facing UI.
+        const isInternalToolForUi = isInternalTool || toolName.startsWith('delegate_to_');
 
         // Check if this tool needs approval first
         const needsApproval = options?.needsApproval || false;
 
-        if (streamRequestId && !isInternalTool) {
+        // Stream tool parts to the user-facing stream (delegated agents are intentionally suppressed)
+        // This is separate from "data operations" / AgentSession events.
+        if (streamRequestId && streamHelper && !isInternalToolForUi) {
+          const inputText = JSON.stringify(args ?? {});
+
+          await streamHelper.writeToolInputStart({ toolCallId, toolName });
+
+          for (const part of chunkString(inputText, 16)) {
+            await streamHelper.writeToolInputDelta({ toolCallId, inputTextDelta: part });
+          }
+
+          await streamHelper.writeToolInputAvailable({
+            toolCallId,
+            toolName,
+            input: args ?? {},
+            providerMetadata: context?.providerMetadata,
+          });
+        }
+
+        if (streamRequestId && !isInternalToolForUi) {
           const toolCallData: ToolCallData = {
             toolName,
             input: args,
@@ -532,7 +560,7 @@ export class Agent {
           // Store tool result in conversation history
           const toolResultConversationId = this.getToolResultConversationId();
 
-          if (streamRequestId && !isInternalTool && toolResultConversationId) {
+          if (streamRequestId && !isInternalToolForUi && toolResultConversationId) {
             try {
               const messageId = generateId();
               const messagePayload = {
@@ -567,7 +595,7 @@ export class Agent {
             }
           }
 
-          if (streamRequestId && !isInternalTool) {
+          if (streamRequestId && !isInternalToolForUi) {
             agentSessionManager.recordEvent(streamRequestId, 'tool_result', this.config.id, {
               toolName,
               output: result,
@@ -578,12 +606,16 @@ export class Agent {
             });
           }
 
+          if (streamRequestId && streamHelper && !isInternalToolForUi) {
+            await streamHelper.writeToolOutputAvailable({ toolCallId, output: result });
+          }
+
           return result;
         } catch (error) {
           const duration = Date.now() - startTime;
           const errorMessage = error instanceof Error ? error.message : 'Unknown error';
 
-          if (streamRequestId && !isInternalTool) {
+          if (streamRequestId && !isInternalToolForUi) {
             agentSessionManager.recordEvent(streamRequestId, 'tool_result', this.config.id, {
               toolName,
               output: null,
@@ -593,6 +625,10 @@ export class Agent {
               relationshipId,
               needsApproval,
             });
+          }
+
+          if (streamRequestId && streamHelper && !isInternalToolForUi) {
+            await streamHelper.writeToolOutputError({ toolCallId, error: errorMessage });
           }
 
           throw error;
@@ -899,7 +935,7 @@ export class Agent {
                 timestamp: Date.now(),
               });
 
-              return { result: enhancedResult, toolCallId };
+              return enhancedResult;
             } catch (error) {
               logger.error({ toolName, toolCallId, error }, 'MCP tool execution failed');
               throw error;
@@ -1335,7 +1371,7 @@ export class Agent {
                 timestamp: Date.now(),
               });
 
-              return { result, toolCallId };
+              return result;
             } catch (error) {
               logger.error(
                 {
@@ -1826,7 +1862,7 @@ export class Agent {
     if (typeof result === 'string') {
       try {
         parsedResult = JSON.parse(result);
-      } catch (e) {
+      } catch (_e) {
         // Keep as string if not valid JSON
       }
     }
@@ -2148,7 +2184,7 @@ ${output}`;
         return false;
       }
       return Object.values(subAgents).some(
-        (subAgent) => subAgent.artifactComponents?.length ?? 0 > 0
+        (subAgent) => (subAgent.artifactComponents?.length ?? 0) > 0
       );
     } catch (error) {
       logger.error(
@@ -2844,10 +2880,6 @@ ${output}`;
     if (steps.length >= 1) {
       const currentStep = steps[steps.length - 1];
       if (currentStep && 'toolCalls' in currentStep && currentStep.toolCalls) {
-        const stopToolNames = includeThinkingComplete
-          ? ['transfer_to_', 'thinking_complete']
-          : ['transfer_to_'];
-
         const hasTransferTool = currentStep.toolCalls.some((tc: any) =>
           tc.toolName.startsWith('transfer_to_')
         );
