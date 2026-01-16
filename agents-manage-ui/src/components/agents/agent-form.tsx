@@ -45,7 +45,7 @@ export const AgentForm = ({
   const router = useRouter();
   const form = useForm<AgentFormData>({
     resolver: zodResolver(agentSchema),
-    defaultValues: initialData ? initialData : defaultValues,
+    defaultValues: initialData ?? defaultValues,
   });
 
   const { isSubmitting } = form.formState;

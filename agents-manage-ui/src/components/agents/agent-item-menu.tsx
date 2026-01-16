@@ -39,7 +39,7 @@ export function AgentItemMenu({ id, name, description, projectId, tenantId }: Ag
         >
           <DropdownMenuItem className=" cursor-pointer" onClick={() => setIsEditOpen(true)}>
             <Pencil className="size-4" />
-            Rename
+            Edit
           </DropdownMenuItem>
           <DropdownMenuItem
             className="text-destructive hover:!bg-destructive/10 dark:hover:!bg-destructive/20 hover:!text-destructive cursor-pointer"

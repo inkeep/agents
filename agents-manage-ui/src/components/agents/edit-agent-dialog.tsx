@@ -24,11 +24,9 @@ export function EditAgentDialog({
   isOpen,
   setIsOpen,
 }: EditAgentDialogProps) {
-  console.log('agentData', agentData);
   const handleSuccess = () => {
     setIsOpen(false);
   };
-  console.log('agentData', agentData);
 
   return (
     <Dialog open={isOpen} onOpenChange={setIsOpen}>
