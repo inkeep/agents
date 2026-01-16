@@ -17,7 +17,7 @@ import {
 } from '../api/dataset-run-configs';
 import { ApiError } from '../types/errors';
 
-export type ActionResult<T = void> =
+type ActionResult<T = void> =
   | {
       success: true;
       data: T;

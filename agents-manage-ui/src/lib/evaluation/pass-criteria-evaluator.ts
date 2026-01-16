@@ -4,14 +4,14 @@ interface PassCriteriaCondition {
   value: number;
 }
 
-export interface PassCriteria {
+interface PassCriteria {
   operator: 'and' | 'or';
   conditions: PassCriteriaCondition[];
 }
 
 export type EvaluationStatus = 'passed' | 'failed' | 'no_criteria';
 
-export interface PassCriteriaEvaluationResult {
+interface PassCriteriaEvaluationResult {
   status: EvaluationStatus;
   failedConditions?: PassCriteriaCondition[];
 }
