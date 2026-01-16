@@ -1,4 +1,3 @@
-import { UserPlus } from 'lucide-react';
 import { useState } from 'react';
 import { toast } from 'sonner';
 import { InviteMemberDialog } from '@/components/auth/invite-member-dialog';
@@ -20,7 +19,6 @@ import {
 } from '@/components/ui/table';
 import { useRuntimeConfig } from '@/contexts/runtime-config-context';
 import { type useAuthClient as UseAuthClientType, useAuthClient } from '@/lib/auth-client';
-import { Button } from '../ui/button';
 
 type FullOrganization = NonNullable<
   Awaited<
@@ -92,7 +90,7 @@ export function MembersTable({
   };
 
   const canEditMember = (member: Member): boolean => {
-    // if (PUBLIC_IS_INKEEP_CLOUD_DEPLOYMENT) return false;
+    if (PUBLIC_IS_INKEEP_CLOUD_DEPLOYMENT) return false;
     if (!canEditRoles || !currentMember) return false;
     if (member.id === currentMember.id) return false;
     if (currentMember.role === 'admin' && member.role === 'owner') return false;
@@ -107,10 +105,10 @@ export function MembersTable({
             <h2 className="text-md font-medium text-gray-700 dark:text-white/70">Members</h2>
             <Badge variant="count">{members.length}</Badge>
           </div>
-          <Button onClick={() => setInviteDialogOpen(true)} size="sm" variant="outline">
+          {/* <Button onClick={() => setInviteDialogOpen(true)} size="sm" variant="outline">
             <UserPlus className="h-4 w-4 mr-2" />
             Invite
-          </Button>
+          </Button> */}
         </div>
         <Table>
           <TableHeader>
