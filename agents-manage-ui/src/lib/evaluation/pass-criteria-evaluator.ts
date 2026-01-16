@@ -1,4 +1,4 @@
-export interface PassCriteriaCondition {
+interface PassCriteriaCondition {
   field: string;
   operator: '>' | '<' | '>=' | '<=' | '=' | '!=';
   value: number;
@@ -109,7 +109,7 @@ export function evaluatePassCriteria(
   };
 }
 
-export function formatPassCriteriaExpression(criteria: PassCriteria): string {
+function formatPassCriteriaExpression(criteria: PassCriteria): string {
   const conditionStrings = criteria.conditions.map(
     (cond) => `${cond.field} ${cond.operator} ${cond.value}`
   );

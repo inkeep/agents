@@ -19,7 +19,7 @@ import type { ActionResult } from './types';
 /**
  * Fetch all datasets
  */
-export async function fetchDatasetsAction(
+async function fetchDatasetsAction(
   tenantId: string,
   projectId: string
 ): Promise<ActionResult<Dataset[]>> {
@@ -49,7 +49,7 @@ export async function fetchDatasetsAction(
 /**
  * Fetch a single dataset
  */
-export async function fetchDatasetAction(
+async function fetchDatasetAction(
   tenantId: string,
   projectId: string,
   datasetId: string

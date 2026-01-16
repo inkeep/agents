@@ -76,7 +76,7 @@ export async function fetchDatasetItems(
 /**
  * Fetch a single dataset item by ID
  */
-export async function fetchDatasetItem(
+async function fetchDatasetItem(
   tenantId: string,
   projectId: string,
   datasetId: string,

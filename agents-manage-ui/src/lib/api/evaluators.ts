@@ -16,7 +16,7 @@ export interface ModelSettings {
   providerOptions?: Record<string, unknown>;
 }
 
-export interface PassCriteriaCondition {
+interface PassCriteriaCondition {
   field: string;
   operator: '>' | '<' | '>=' | '<=' | '=' | '!=';
   value: number;
@@ -78,7 +78,7 @@ export async function fetchEvaluators(
 /**
  * Fetch a single evaluator by ID
  */
-export async function fetchEvaluator(
+async function fetchEvaluator(
   tenantId: string,
   projectId: string,
   evaluatorId: string

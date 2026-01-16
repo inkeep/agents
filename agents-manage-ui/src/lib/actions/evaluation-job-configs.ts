@@ -14,7 +14,7 @@ import type { ActionResult } from './types';
 /**
  * Fetch all evaluation job configs
  */
-export async function fetchEvaluationJobConfigsAction(
+async function fetchEvaluationJobConfigsAction(
   tenantId: string,
   projectId: string
 ): Promise<ActionResult<EvaluationJobConfig[]>> {

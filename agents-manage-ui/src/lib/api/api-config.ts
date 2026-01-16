@@ -31,7 +31,7 @@ export function getManageApiUrl(): string {
   return INKEEP_AGENTS_MANAGE_API_URL;
 }
 
-export function getEvalApiUrl(): string {
+function getEvalApiUrl(): string {
   if (INKEEP_AGENTS_EVAL_API_URL === null) {
     INKEEP_AGENTS_EVAL_API_URL =
       process.env.INKEEP_AGENTS_EVAL_API_URL || DEFAULT_INKEEP_AGENTS_EVAL_API_URL;
@@ -194,7 +194,7 @@ export async function makeManagementApiRequest<T>(
 }
 
 // Eval API requests (evaluations, datasets, etc.) - uses the eval API on port 3005
-export async function makeEvalApiRequest<T>(
+async function makeEvalApiRequest<T>(
   endpoint: string,
   options: RequestInit = {}
 ): Promise<T> {

@@ -16,7 +16,7 @@ import type { ActionResult } from './types';
 /**
  * Fetch all evaluators
  */
-export async function fetchEvaluatorsAction(
+async function fetchEvaluatorsAction(
   tenantId: string,
   projectId: string
 ): Promise<ActionResult<Evaluator[]>> {

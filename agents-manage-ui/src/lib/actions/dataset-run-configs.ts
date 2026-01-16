@@ -26,7 +26,7 @@ export type ActionResult<T = void> =
       code?: string;
     };
 
-export async function fetchDatasetRunConfigsAction(
+async function fetchDatasetRunConfigsAction(
   tenantId: string,
   projectId: string,
   datasetId: string
@@ -46,7 +46,7 @@ export async function fetchDatasetRunConfigsAction(
   }
 }
 
-export async function fetchDatasetRunConfigAction(
+async function fetchDatasetRunConfigAction(
   tenantId: string,
   projectId: string,
   runConfigId: string
@@ -147,7 +147,7 @@ export async function updateDatasetRunConfigAction(
   }
 }
 
-export async function deleteDatasetRunConfigAction(
+async function deleteDatasetRunConfigAction(
   tenantId: string,
   projectId: string,
   runConfigId: string
