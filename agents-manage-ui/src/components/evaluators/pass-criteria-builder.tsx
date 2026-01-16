@@ -19,7 +19,7 @@ export interface PassCriteriaCondition {
   value: number;
 }
 
-export interface PassCriteria {
+interface PassCriteria {
   operator: 'and' | 'or';
   conditions: PassCriteriaCondition[];
 }
