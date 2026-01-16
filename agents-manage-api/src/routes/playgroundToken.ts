@@ -11,15 +11,12 @@ import {
 } from '@inkeep/agents-core';
 import { env } from '../env';
 import { getLogger } from '../logger';
-import { requirePermission } from '../middleware/require-permission';
 import type { BaseAppVariables } from '../types/app';
 
 const logger = getLogger('playgroundToken');
 
 const app = new OpenAPIHono<{ Variables: BaseAppVariables }>();
 
-// Require agent:create permission
-app.use('/', requirePermission({ agent: ['create'] }));
 
 const PlaygroundTokenRequestSchema = z.object({
   projectId: z.string(),

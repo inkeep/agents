@@ -17,7 +17,7 @@ export default async function MembersPage({
 
     // Permission to manage access is enforced by the API (requires 'edit' permission).
     // If user lacks permission, API calls will fail gracefully.
-    const canManageAccess = true;
+    const canManageAccess = false;
 
     return (
       <BodyTemplate breadcrumbs={['Members']} className="max-w-xl mx-auto">
