@@ -1,6 +1,6 @@
 'use server';
 
-import type { ListResponse, SingleResponse } from '../types/response';
+import type { SingleResponse } from '../types/response';
 import { makeManagementApiRequest } from './api-config';
 import { validateProjectId, validateTenantId } from './resource-validation';
 
@@ -28,32 +28,6 @@ export interface DatasetRunConfigUpdate {
   description?: string;
   agentIds?: string[];
   evaluatorIds?: string[];
-}
-
-async function fetchDatasetRunConfigs(
-  tenantId: string,
-  projectId: string,
-  datasetId: string
-): Promise<ListResponse<DatasetRunConfig>> {
-  validateTenantId(tenantId);
-  validateProjectId(projectId);
-
-  return makeManagementApiRequest<ListResponse<DatasetRunConfig>>(
-    `tenants/${tenantId}/projects/${projectId}/evals/dataset-run-configs/by-dataset/${datasetId}`
-  );
-}
-
-async function fetchDatasetRunConfig(
-  tenantId: string,
-  projectId: string,
-  runConfigId: string
-): Promise<SingleResponse<DatasetRunConfig>> {
-  validateTenantId(tenantId);
-  validateProjectId(projectId);
-
-  return makeManagementApiRequest<SingleResponse<DatasetRunConfig>>(
-    `tenants/${tenantId}/projects/${projectId}/evals/dataset-run-configs/${runConfigId}`
-  );
 }
 
 export async function createDatasetRunConfig(
@@ -87,22 +61,6 @@ export async function updateDatasetRunConfig(
     {
       method: 'PATCH',
       body: JSON.stringify(data),
-    }
-  );
-}
-
-async function deleteDatasetRunConfig(
-  tenantId: string,
-  projectId: string,
-  runConfigId: string
-): Promise<void> {
-  validateTenantId(tenantId);
-  validateProjectId(projectId);
-
-  await makeManagementApiRequest(
-    `tenants/${tenantId}/projects/${projectId}/evals/dataset-run-configs/${runConfigId}`,
-    {
-      method: 'DELETE',
     }
   );
 }
