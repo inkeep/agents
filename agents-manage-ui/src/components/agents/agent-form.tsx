@@ -82,8 +82,8 @@ export const AgentForm = ({
           return;
         }
         if (res.data) {
-          onSuccess?.();
           toast.success('Agent created!');
+          onSuccess?.();
           router.push(`/${tenantId}/projects/${projectId}/agents/${res.data.id}`);
         }
       }
