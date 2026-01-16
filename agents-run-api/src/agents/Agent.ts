@@ -606,8 +606,18 @@ export class Agent {
             });
           }
 
+          const isDeniedResult =
+            !!result &&
+            typeof result === 'object' &&
+            '__inkeepToolDenied' in (result as any) &&
+            (result as any).__inkeepToolDenied === true;
+
           if (streamRequestId && streamHelper && !isInternalToolForUi) {
-            await streamHelper.writeToolOutputAvailable({ toolCallId, output: result });
+            if (isDeniedResult) {
+              await streamHelper.writeToolOutputDenied({ toolCallId });
+            } else {
+              await streamHelper.writeToolOutputAvailable({ toolCallId, output: result });
+            }
           }
 
           return result;
@@ -817,6 +827,15 @@ export class Agent {
                 }
               );
 
+              // Emit a user-facing approval request stream part (tools in delegated agents are hidden)
+              const streamHelper = this.getStreamingHelper();
+              if (streamHelper) {
+                await streamHelper.writeToolApprovalRequest({
+                  approvalId: `aitxt-${toolCallId}`,
+                  toolCallId,
+                });
+              }
+
               // Wait for approval (this promise resolves when user responds via API)
               const approvalResult = await pendingToolApprovalManager.waitForApproval(
                 toolCallId,
@@ -847,7 +866,11 @@ export class Agent {
                     denialSpan.setStatus({ code: SpanStatusCode.OK });
                     denialSpan.end();
 
-                    return `User denied approval to run this tool: ${approvalResult.reason}`;
+                    return {
+                      __inkeepToolDenied: true,
+                      toolCallId,
+                      reason: approvalResult.reason,
+                    };
                   }
                 );
               }

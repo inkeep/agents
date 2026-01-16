@@ -56,6 +56,21 @@ describe('tool streaming', () => {
         error: 'boom',
         output: null,
       });
+
+      await helper.writeToolApprovalRequest({ approvalId: 'aitxt-call_1234xyz', toolCallId: 'call_1234xyz' });
+      const fifth = JSON.parse(sent[4]);
+      expect(JSON.parse(fifth.choices[0].delta.content)).toEqual({
+        type: 'tool-approval-request',
+        approvalId: 'aitxt-call_1234xyz',
+        toolCallId: 'call_1234xyz',
+      });
+
+      await helper.writeToolOutputDenied({ toolCallId: 'call_1234xyz' });
+      const sixth = JSON.parse(sent[5]);
+      expect(JSON.parse(sixth.choices[0].delta.content)).toEqual({
+        type: 'tool-output-denied',
+        toolCallId: 'call_1234xyz',
+      });
     });
   });
 
@@ -78,6 +93,8 @@ describe('tool streaming', () => {
       });
       await helper.writeToolOutputAvailable({ toolCallId: 'call_1', output: { success: true } });
       await helper.writeToolOutputError({ toolCallId: 'call_1', error: 'nope' });
+      await helper.writeToolApprovalRequest({ approvalId: 'aitxt-call_1', toolCallId: 'call_1' });
+      await helper.writeToolOutputDenied({ toolCallId: 'call_1' });
 
       expect(writer.write).toHaveBeenCalledWith({
         type: 'tool-input-start',
@@ -105,6 +122,15 @@ describe('tool streaming', () => {
         toolCallId: 'call_1',
         error: 'nope',
         output: null,
+      });
+      expect(writer.write).toHaveBeenCalledWith({
+        type: 'tool-approval-request',
+        approvalId: 'aitxt-call_1',
+        toolCallId: 'call_1',
+      });
+      expect(writer.write).toHaveBeenCalledWith({
+        type: 'tool-output-denied',
+        toolCallId: 'call_1',
       });
     });
   });

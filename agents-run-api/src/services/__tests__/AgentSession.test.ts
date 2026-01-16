@@ -67,6 +67,8 @@ vi.mock('../../utils/stream-registry.js', () => ({
     writeToolInputAvailable: vi.fn().mockResolvedValue(undefined),
     writeToolOutputAvailable: vi.fn().mockResolvedValue(undefined),
     writeToolOutputError: vi.fn().mockResolvedValue(undefined),
+    writeToolApprovalRequest: vi.fn().mockResolvedValue(undefined),
+    writeToolOutputDenied: vi.fn().mockResolvedValue(undefined),
   }),
 }));
 
@@ -93,6 +95,8 @@ describe('AgentSession', () => {
       writeToolInputAvailable: vi.fn().mockResolvedValue(undefined),
       writeToolOutputAvailable: vi.fn().mockResolvedValue(undefined),
       writeToolOutputError: vi.fn().mockResolvedValue(undefined),
+      writeToolApprovalRequest: vi.fn().mockResolvedValue(undefined),
+      writeToolOutputDenied: vi.fn().mockResolvedValue(undefined),
     };
 
     mockExecutionContext = {

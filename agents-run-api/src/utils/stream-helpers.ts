@@ -31,6 +31,8 @@ export interface StreamHelper {
   }): Promise<void>;
   writeToolOutputAvailable(params: { toolCallId: string; output: any }): Promise<void>;
   writeToolOutputError(params: { toolCallId: string; error: string; output?: any }): Promise<void>;
+  writeToolApprovalRequest(params: { approvalId: string; toolCallId: string }): Promise<void>;
+  writeToolOutputDenied(params: { toolCallId: string }): Promise<void>;
 }
 
 export interface HonoSSEStream {
@@ -288,6 +290,28 @@ export class SSEStreamHelper implements StreamHelper {
         toolCallId: params.toolCallId,
         error: params.error,
         output: params.output ?? null,
+      })
+    );
+  }
+
+  async writeToolApprovalRequest(params: {
+    approvalId: string;
+    toolCallId: string;
+  }): Promise<void> {
+    await this.writeContent(
+      JSON.stringify({
+        type: 'tool-approval-request',
+        approvalId: params.approvalId,
+        toolCallId: params.toolCallId,
+      })
+    );
+  }
+
+  async writeToolOutputDenied(params: { toolCallId: string }): Promise<void> {
+    await this.writeContent(
+      JSON.stringify({
+        type: 'tool-output-denied',
+        toolCallId: params.toolCallId,
       })
     );
   }
@@ -601,6 +625,26 @@ export class VercelDataStreamHelper implements StreamHelper {
       toolCallId: params.toolCallId,
       error: params.error,
       output: params.output ?? null,
+    });
+  }
+
+  async writeToolApprovalRequest(params: {
+    approvalId: string;
+    toolCallId: string;
+  }): Promise<void> {
+    if (this.isCompleted) return;
+    this.writer.write({
+      type: 'tool-approval-request',
+      approvalId: params.approvalId,
+      toolCallId: params.toolCallId,
+    });
+  }
+
+  async writeToolOutputDenied(params: { toolCallId: string }): Promise<void> {
+    if (this.isCompleted) return;
+    this.writer.write({
+      type: 'tool-output-denied',
+      toolCallId: params.toolCallId,
     });
   }
 
@@ -951,6 +995,17 @@ export class BufferingStreamHelper implements StreamHelper {
     output?: any;
   }): Promise<void> {
     this.capturedData.push({ type: 'tool-output-error', ...params, output: params.output ?? null });
+  }
+
+  async writeToolApprovalRequest(params: {
+    approvalId: string;
+    toolCallId: string;
+  }): Promise<void> {
+    this.capturedData.push({ type: 'tool-approval-request', ...params });
+  }
+
+  async writeToolOutputDenied(params: { toolCallId: string }): Promise<void> {
+    this.capturedData.push({ type: 'tool-output-denied', ...params });
   }
 
   async complete(): Promise<void> {
