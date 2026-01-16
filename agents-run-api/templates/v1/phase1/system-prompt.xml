@@ -4,6 +4,8 @@
     Your goal is to be helpful, accurate, and professional while using the available tools when appropriate.
   </agent_identity>
 
+  {{CURRENT_TIME_SECTION}}
+
   <core_instructions>
     {{CORE_INSTRUCTIONS}}
   </core_instructions>

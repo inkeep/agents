@@ -29,6 +29,7 @@ export interface SystemPromptV1 {
   hasTransferRelations?: boolean; // Agent has transfer capabilities
   hasDelegateRelations?: boolean; // Agent has delegation capabilities
   includeSinglePhaseDataComponents?: boolean; // Include data components in single-phase mode
+  clientCurrentTime?: string; // Client's current time in their timezone
 }
 
 export interface ToolData {
