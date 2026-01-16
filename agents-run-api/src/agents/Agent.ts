@@ -1501,6 +1501,35 @@ export class Agent {
    * Build adaptive system prompt for Phase 2 structured output generation
    * based on configured data components and artifact components across the agent
    */
+  private getClientCurrentTime(): string | undefined {
+    const clientTimezone = this.config.forwardedHeaders?.['x-inkeep-client-timezone'];
+    const clientTimestamp = this.config.forwardedHeaders?.['x-inkeep-client-timestamp'];
+
+    // Both must be present
+    if (!clientTimezone || !clientTimestamp) {
+      return undefined;
+    }
+
+    try {
+      // Parse the client's UTC timestamp and format it in their timezone
+      // Format: "Thursday, January 16, 2026 at 3:45 PM EST"
+      const clientDate = new Date(clientTimestamp);
+      return clientDate.toLocaleString('en-US', {
+        timeZone: clientTimezone,
+        weekday: 'long',
+        year: 'numeric',
+        month: 'long',
+        day: 'numeric',
+        hour: 'numeric',
+        minute: '2-digit',
+        timeZoneName: 'short',
+      });
+    } catch (error) {
+      logger.warn({ clientTimezone, clientTimestamp, error }, 'Failed to format time for client timezone');
+      return undefined;
+    }
+  }
+
   private async buildPhase2SystemPrompt(runtimeContext?: {
     contextId: string;
     metadata: {
@@ -1553,8 +1582,7 @@ export class Agent {
       referenceArtifacts.push(...artifacts);
     }
 
-    // Extract browser timestamp from forwarded headers if available
-    const browserTimestamp = this.config.forwardedHeaders?.['x-browser-timestamp'];
+    const clientCurrentTime = this.getClientCurrentTime();
 
     return phase2Config.assemblePhase2Prompt({
       corePrompt: processedPrompt,
@@ -1563,7 +1591,7 @@ export class Agent {
       hasArtifactComponents: this.artifactComponents && this.artifactComponents.length > 0,
       hasAgentArtifactComponents,
       artifacts: referenceArtifacts,
-      browserTimestamp,
+      clientCurrentTime,
     });
   }
 
@@ -1681,8 +1709,7 @@ export class Agent {
     const hasAgentArtifactComponents =
       (await this.hasAgentArtifactComponents()) || compressionConfig.enabled;
 
-    // Extract browser timestamp from forwarded headers if available
-    const browserTimestamp = this.config.forwardedHeaders?.['x-browser-timestamp'];
+    const clientCurrentTime = this.getClientCurrentTime();
 
     const config: SystemPromptV1 = {
       corePrompt: processedPrompt,
@@ -1695,7 +1722,7 @@ export class Agent {
       isThinkingPreparation,
       hasTransferRelations: (this.config.transferRelations?.length ?? 0) > 0,
       hasDelegateRelations: (this.config.delegateRelations?.length ?? 0) > 0,
-      browserTimestamp,
+      clientCurrentTime,
     };
     return await this.systemPromptBuilder.buildSystemPrompt(config);
   }

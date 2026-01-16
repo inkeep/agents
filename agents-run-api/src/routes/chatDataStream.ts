@@ -116,7 +116,8 @@ app.openapi(chatDataStreamRoute, async (c) => {
     const forwardedHeaders: Record<string, string> = {};
     const xForwardedCookie = c.req.header('x-forwarded-cookie');
     const cookie = c.req.header('cookie');
-    const browserTimestamp = c.req.header('x-browser-timestamp');
+    const clientTimezone = c.req.header('x-inkeep-client-timezone');
+    const clientTimestamp = c.req.header('x-inkeep-client-timestamp');
 
     // Priority: x-forwarded-cookie (explicit) > cookie (browser-sent)
     if (xForwardedCookie) {
@@ -125,19 +126,32 @@ app.openapi(chatDataStreamRoute, async (c) => {
       forwardedHeaders['x-forwarded-cookie'] = cookie;
     }
 
-    // Forward browser timestamp from client (with validation)
-    if (browserTimestamp) {
-      // Validate timestamp format to prevent injection attacks
-      // Expected format: "Fri Jan 16 2026 11:37:19 GMT-0500 (Eastern Standard Time)"
-      // Allow alphanumeric, spaces, colons, hyphens, parentheses, and common timezone chars
-      if (browserTimestamp.length < 500 && /^[A-Za-z0-9\s:\-\+\(\)]+$/.test(browserTimestamp)) {
-        forwardedHeaders['x-browser-timestamp'] = browserTimestamp;
+    // Forward client timezone and timestamp together (both required, with validation)
+    if (clientTimezone && clientTimestamp) {
+      // Validate timezone format
+      const isValidTimezone = clientTimezone.length < 100 && /^[A-Za-z0-9_\/\-\+]+$/.test(clientTimezone);
+      // Validate ISO 8601 timestamp format: "2026-01-16T19:45:30.123Z"
+      const isValidTimestamp = clientTimestamp.length < 50 && /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(\.\d{3})?Z$/.test(clientTimestamp);
+
+      if (isValidTimezone && isValidTimestamp) {
+        forwardedHeaders['x-inkeep-client-timezone'] = clientTimezone;
+        forwardedHeaders['x-inkeep-client-timestamp'] = clientTimestamp;
       } else {
         logger.warn(
-          { browserTimestamp: browserTimestamp.substring(0, 100) },
-          'Invalid browser timestamp format, ignoring'
+          {
+            clientTimezone: isValidTimezone ? clientTimezone : clientTimezone.substring(0, 100),
+            clientTimestamp: isValidTimestamp ? clientTimestamp : clientTimestamp.substring(0, 50),
+            isValidTimezone,
+            isValidTimestamp
+          },
+          'Invalid client timezone or timestamp format, ignoring both'
         );
       }
+    } else if (clientTimezone || clientTimestamp) {
+      logger.warn(
+        { hasTimezone: !!clientTimezone, hasTimestamp: !!clientTimestamp },
+        'Client timezone and timestamp must both be present, ignoring'
+      );
     }
 
     // Add conversation ID to parent span

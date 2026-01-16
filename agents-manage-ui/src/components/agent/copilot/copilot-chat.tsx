@@ -3,7 +3,7 @@
 import { InkeepSidebarChat } from '@inkeep/agents-ui';
 import type { InkeepCallbackEvent } from '@inkeep/agents-ui/types';
 import { Loader2, RefreshCw } from 'lucide-react';
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { useRuntimeConfig } from '@/contexts/runtime-config-context';
@@ -44,7 +44,6 @@ export function CopilotChat({ agentId, tenantId, projectId, refreshAgentGraph }:
     isCopilotConfigured,
   } = useCopilotContext();
   const [conversationId, setConversationId] = useState(generateId);
-  const browserTimestampRef = useRef<string>('');
 
   const { handleOAuthLogin } = useOAuthLogin({
     tenantId,
@@ -76,13 +75,6 @@ export function CopilotChat({ agentId, tenantId, projectId, refreshAgentGraph }:
       document.removeEventListener('ikp-data-operation', updateAgentGraph);
     };
   }, [conversationId, refreshAgentGraph]);
-
-  // Cleanup: reset browser timestamp ref on unmount
-  useEffect(() => {
-    return () => {
-      browserTimestampRef.current = '';
-    };
-  }, []);
 
   const {
     PUBLIC_INKEEP_AGENTS_RUN_API_URL,
@@ -129,50 +121,6 @@ export function CopilotChat({ agentId, tenantId, projectId, refreshAgentGraph }:
     }
   }, [tokenError, isLoadingToken, isOpen, setIsOpen, refreshToken]);
 
-  // Create dynamic headers with timestamp getter
-  // Note: Must be defined before early returns to satisfy React hooks rules
-  const chatHeaders = useMemo(() => {
-    const headers: Record<string, string> = {
-      'x-emit-operations': 'true',
-      Authorization: `Bearer ${copilotToken || ''}`,
-      'x-inkeep-tenant-id': PUBLIC_INKEEP_COPILOT_TENANT_ID || '',
-      'x-inkeep-project-id': PUBLIC_INKEEP_COPILOT_PROJECT_ID || '',
-      'x-inkeep-agent-id': PUBLIC_INKEEP_COPILOT_AGENT_ID || '',
-      'x-target-tenant-id': tenantId,
-      'x-target-project-id': projectId,
-      ...(agentId ? { 'x-target-agent-id': agentId } : {}),
-      ...(dynamicHeaders?.conversationId
-        ? { 'x-inkeep-from-conversation-id': dynamicHeaders.conversationId }
-        : {}),
-      ...(dynamicHeaders?.messageId
-        ? { 'x-inkeep-from-message-id': dynamicHeaders.messageId }
-        : {}),
-      ...(cookieHeader ? { 'x-forwarded-cookie': cookieHeader } : {}),
-    };
-
-    // Add dynamic timestamp property that's evaluated at access time
-    Object.defineProperty(headers, 'x-browser-timestamp', {
-      get() {
-        return browserTimestampRef.current || new Date().toString();
-      },
-      enumerable: true,
-      configurable: true,
-    });
-
-    return headers;
-  }, [
-    copilotToken,
-    PUBLIC_INKEEP_COPILOT_TENANT_ID,
-    PUBLIC_INKEEP_COPILOT_PROJECT_ID,
-    PUBLIC_INKEEP_COPILOT_AGENT_ID,
-    tenantId,
-    projectId,
-    agentId,
-    dynamicHeaders?.conversationId,
-    dynamicHeaders?.messageId,
-    cookieHeader,
-  ]);
-
   if (!isCopilotConfigured) {
     return null;
   }
@@ -204,9 +152,6 @@ export function CopilotChat({ agentId, tenantId, projectId, refreshAgentGraph }:
           baseSettings={{
             onEvent: async (event: InkeepCallbackEvent) => {
               if (event.eventName === 'user_message_submitted') {
-                // Capture browser's local timestamp with timezone info
-                const timestamp = new Date().toString(); // e.g., "Wed Jan 15 2026 10:30:00 GMT-0800 (Pacific Standard Time)"
-                browserTimestampRef.current = timestamp;
                 setIsStreaming(true);
               }
               if (event.eventName === 'assistant_message_received') {
@@ -292,7 +237,26 @@ export function CopilotChat({ agentId, tenantId, projectId, refreshAgentGraph }:
               dark: '/assets/inkeep-icons/icon-sky.svg',
             },
             agentUrl: `${PUBLIC_INKEEP_AGENTS_RUN_API_URL}/api/chat`,
-            headers: chatHeaders,
+            headers: {
+              'x-emit-operations': 'true',
+              Authorization: `Bearer ${copilotToken}`,
+              'x-inkeep-tenant-id': PUBLIC_INKEEP_COPILOT_TENANT_ID || '',
+              'x-inkeep-project-id': PUBLIC_INKEEP_COPILOT_PROJECT_ID || '',
+              'x-inkeep-agent-id': PUBLIC_INKEEP_COPILOT_AGENT_ID || '',
+              // Target is the agent that the copilot is building or editing.
+              'x-target-tenant-id': tenantId,
+              'x-target-project-id': projectId,
+              ...(agentId ? { 'x-target-agent-id': agentId } : {}),
+              // conversationId and messageId from the 'try now' improve with AI button.
+              ...(dynamicHeaders?.conversationId
+                ? { 'x-inkeep-from-conversation-id': dynamicHeaders.conversationId }
+                : {}),
+              ...(dynamicHeaders?.messageId
+                ? { 'x-inkeep-from-message-id': dynamicHeaders.messageId }
+                : {}),
+              // Forward cookies from the server action using custom header (Cookie is a forbidden header in browsers)
+              ...(cookieHeader ? { 'x-forwarded-cookie': cookieHeader } : {}),
+            },
             exampleQuestionsLabel: agentId ? undefined : 'Try one of these examples:',
             exampleQuestions: agentId
               ? undefined

@@ -122,8 +122,8 @@ export class Phase1Config implements VersionConfig<SystemPromptV1> {
       );
     }
 
-    // Handle current time section - include user's browser timestamp if available
-    const currentTimeSection = this.generateCurrentTimeSection(config.browserTimestamp);
+    // Handle current time section - include user's current time in their timezone if available
+    const currentTimeSection = this.generateCurrentTimeSection(config.clientCurrentTime);
     breakdown.components['currentTime'] = estimateTokens(currentTimeSection);
     systemPrompt = systemPrompt.replace('{{CURRENT_TIME_SECTION}}', currentTimeSection);
 
@@ -222,16 +222,16 @@ export class Phase1Config implements VersionConfig<SystemPromptV1> {
   </agent_context>`;
   }
 
-  private generateCurrentTimeSection(browserTimestamp?: string): string {
-    if (!browserTimestamp || browserTimestamp.trim() === '') {
+  private generateCurrentTimeSection(clientCurrentTime?: string): string {
+    if (!clientCurrentTime || clientCurrentTime.trim() === '') {
       return '';
     }
 
     return `
   <current_time>
-    The user sent this message at: ${browserTimestamp}
-    Use this timestamp to provide context-aware responses (e.g., greetings appropriate for their time of day, understanding business hours in their timezone, etc.)
-    IMPORTANT: Never mention or reference "the timestamp" in your responses - you simply know what time it is for the user.
+    The current time for the user is: ${clientCurrentTime}
+    Use this to provide context-aware responses (e.g., greetings appropriate for their time of day, understanding business hours in their timezone, etc.)
+    IMPORTANT: You simply know what time it is for the user - don't mention "the current time" or reference this section in your responses.
   </current_time>`;
   }
 

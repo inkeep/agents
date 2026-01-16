@@ -1,7 +1,7 @@
 'use client';
 import { InkeepEmbeddedChat } from '@inkeep/agents-ui';
 import type { InkeepCallbackEvent, InvokeMessageCallbackActionArgs } from '@inkeep/agents-ui/types';
-import { type Dispatch, useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { type Dispatch, useCallback, useEffect, useRef, useState } from 'react';
 import { DynamicComponentRenderer } from '@/components/dynamic-component-renderer';
 import type { ConversationDetail } from '@/components/traces/timeline/types';
 import { useRuntimeConfig } from '@/contexts/runtime-config-context';
@@ -65,7 +65,6 @@ export function ChatWidget({
   const { isCopilotConfigured } = useCopilotContext();
   const [isFeedbackDialogOpen, setIsFeedbackDialogOpen] = useState(false);
   const [messageId, setMessageId] = useState<string | undefined>(undefined);
-  const browserTimestampRef = useRef<string>('');
   const { apiKey: tempApiKey, isLoading: isLoadingKey } = useTempApiKey({
     tenantId,
     projectId,
@@ -75,29 +74,6 @@ export function ChatWidget({
   const stopPollingTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const hasReceivedAssistantMessageRef = useRef(false);
   const POLLING_TIMEOUT_MS = 5 * 60 * 1000; // 5 minutes
-
-  // Create dynamic headers with timestamp getter
-  const chatHeaders = useMemo(() => {
-    const headers: Record<string, string> = {
-      'x-inkeep-tenant-id': tenantId,
-      'x-inkeep-project-id': projectId,
-      'x-inkeep-agent-id': agentId || '',
-      'x-emit-operations': 'true',
-      Authorization: `Bearer ${tempApiKey}`,
-      ...customHeaders,
-    };
-
-    // Add dynamic timestamp property that's evaluated at access time
-    Object.defineProperty(headers, 'x-browser-timestamp', {
-      get() {
-        return browserTimestampRef.current || new Date().toString();
-      },
-      enumerable: true,
-      configurable: true,
-    });
-
-    return headers;
-  }, [tenantId, projectId, agentId, tempApiKey, customHeaders]);
 
   // Helper function to reset the stop polling timeout
   const resetStopPollingTimeout = useCallback(() => {
@@ -132,13 +108,6 @@ export function ChatWidget({
     };
   }, []);
 
-  // Cleanup: reset browser timestamp ref on unmount
-  useEffect(() => {
-    return () => {
-      browserTimestampRef.current = '';
-    };
-  }, []);
-
   // Don't render chat until we have the API key
   if (isLoadingKey || !tempApiKey) {
     return (
@@ -163,9 +132,6 @@ export function ChatWidget({
                 resetStopPollingTimeout();
               }
               if (event.eventName === 'user_message_submitted') {
-                // Capture browser's local timestamp with timezone info
-                const timestamp = new Date().toString(); // e.g., "Wed Jan 15 2026 10:30:00 GMT-0800 (Pacific Standard Time)"
-                browserTimestampRef.current = timestamp;
                 // Reset the flag
                 hasReceivedAssistantMessageRef.current = false;
                 // Cancel any pending stop polling timeout since we need to keep polling
@@ -232,7 +198,14 @@ export function ChatWidget({
             },
             conversationId,
             agentUrl: agentId ? `${PUBLIC_INKEEP_AGENTS_RUN_API_URL}/api/chat` : undefined,
-            headers: chatHeaders,
+            headers: {
+              'x-inkeep-tenant-id': tenantId,
+              'x-inkeep-project-id': projectId,
+              'x-inkeep-agent-id': agentId || '',
+              'x-emit-operations': 'true',
+              Authorization: `Bearer ${tempApiKey}`,
+              ...customHeaders,
+            },
             messageActions: isCopilotConfigured
               ? [
                   {
