@@ -1,0 +1,12 @@
+<tool>
+  <name>{{TOOL_NAME}}</name>
+  <description>{{TOOL_DESCRIPTION}}</description>
+  <parameters>
+    <schema>
+      {{TOOL_PARAMETERS_SCHEMA}}
+    </schema>
+  </parameters>
+  <usage_guidelines>
+    {{TOOL_USAGE_GUIDELINES}}
+  </usage_guidelines>
+</tool> 

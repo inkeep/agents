@@ -28,7 +28,7 @@ export function getManageApiUrl(): string {
       hasWarnedManageApi = true;
     }
   }
-  return INKEEP_AGENTS_MANAGE_API_URL;
+  return `${INKEEP_AGENTS_MANAGE_API_URL}/manage`;
 }
 
 export function getEvalApiUrl(): string {

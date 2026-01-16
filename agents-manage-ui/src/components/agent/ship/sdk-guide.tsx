@@ -5,7 +5,7 @@ import { DocsLink, Header } from './guide-header';
 
 export function SdkGuide() {
   const { PUBLIC_INKEEP_AGENTS_RUN_API_URL } = useRuntimeConfig();
-  const apiUrl = `${PUBLIC_INKEEP_AGENTS_RUN_API_URL}/api/chat`;
+  const apiUrl = `${PUBLIC_INKEEP_AGENTS_RUN_API_URL}/run/api/chat`;
 
   return (
     <div>

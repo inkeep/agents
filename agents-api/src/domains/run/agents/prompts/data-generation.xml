@@ -1,0 +1,5 @@
+<data_generation_instructions>
+  <final_response_instruction>
+    Generate your final response using the required data component JSON format based on all the research and reasoning above. Please follow the schema exactly and please follow the prompt exactly to actually ANSWER THE QUESTION.
+  </final_response_instruction>
+</data_generation_instructions>

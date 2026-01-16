@@ -9,7 +9,7 @@ import {
   isRefWritable,
   isValidCommitHash,
   resolveRef,
-} from '../../../dolt/ref';
+} from '../../../dolt/ref-helpers';
 import type { ResolvedRef } from '../../../validation/dolt-schemas';
 
 const dbClient = getIntegrationTestClient();

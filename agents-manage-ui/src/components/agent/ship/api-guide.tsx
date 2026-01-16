@@ -7,7 +7,7 @@ import { DocsLink, Header } from './guide-header';
 export function ApiGuide() {
   const { PUBLIC_INKEEP_AGENTS_RUN_API_URL } = useRuntimeConfig();
   const { agentId } = useParams();
-  const apiUrl = `${PUBLIC_INKEEP_AGENTS_RUN_API_URL}/api/chat`;
+  const apiUrl = `${PUBLIC_INKEEP_AGENTS_RUN_API_URL}/run/api/chat`;
   return (
     <div>
       <Header.Container>

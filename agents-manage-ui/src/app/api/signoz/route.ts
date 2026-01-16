@@ -152,7 +152,7 @@ export async function GET(request: NextRequest) {
 
     // Forward to manage-api health endpoint
     const manageApiUrl = getManageApiUrl();
-    const endpoint = `${manageApiUrl}/tenants/${tenantId}/signoz/health`;
+    const endpoint = `${manageApiUrl}/manage/tenants/${tenantId}/signoz/health`;
 
     logger.info({ endpoint }, 'Checking SigNoz configuration via manage-api');
 

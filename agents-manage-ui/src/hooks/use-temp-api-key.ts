@@ -31,7 +31,7 @@ export function useTempApiKey({
   const fetchToken = useCallback(async () => {
     try {
       const response = await fetch(
-        `${PUBLIC_INKEEP_AGENTS_MANAGE_API_URL}/tenants/${tenantId}/playground/token`,
+        `${PUBLIC_INKEEP_AGENTS_MANAGE_API_URL}/manage/tenants/${tenantId}/playground/token`,
         {
           method: 'POST',
           credentials: 'include',
