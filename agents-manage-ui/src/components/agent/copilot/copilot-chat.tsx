@@ -155,7 +155,9 @@ export function CopilotChat({ agentId, tenantId, projectId, refreshAgentGraph }:
       ...(dynamicHeaders?.conversationId
         ? { 'x-inkeep-from-conversation-id': dynamicHeaders.conversationId }
         : {}),
-      ...(dynamicHeaders?.messageId ? { 'x-inkeep-from-message-id': dynamicHeaders.messageId } : {}),
+      ...(dynamicHeaders?.messageId
+        ? { 'x-inkeep-from-message-id': dynamicHeaders.messageId }
+        : {}),
       ...(cookieHeader ? { 'x-forwarded-cookie': cookieHeader } : {}),
     };
 

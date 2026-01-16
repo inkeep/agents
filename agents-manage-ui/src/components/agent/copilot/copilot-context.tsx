@@ -19,7 +19,9 @@ interface CopilotContextValue {
   chatFunctionsRef?: RefObject<AIChatFunctions | null>;
   openCopilot: () => void;
   dynamicHeaders: CopilotContextHeaders;
-  setDynamicHeaders: (headers: CopilotContextHeaders | ((prev: CopilotContextHeaders) => CopilotContextHeaders)) => void;
+  setDynamicHeaders: (
+    headers: CopilotContextHeaders | ((prev: CopilotContextHeaders) => CopilotContextHeaders)
+  ) => void;
   isCopilotConfigured: boolean;
 }
 
