@@ -396,6 +396,19 @@ ${artifactRetrievalGuidance}
     return artifactXml;
   }
 
+  private generateCurrentTimeSection(browserTimestamp?: string): string {
+    if (!browserTimestamp || browserTimestamp.trim() === '') {
+      return '';
+    }
+
+    return `
+  <current_time>
+    The user sent this message at: ${browserTimestamp}
+    Use this timestamp to provide context-aware responses (e.g., greetings appropriate for their time of day, understanding business hours in their timezone, etc.)
+    IMPORTANT: Never mention or reference "the timestamp" in your responses - you simply know what time it is for the user.
+  </current_time>`;
+  }
+
   /**
    * Assemble the complete Phase 2 system prompt for structured output generation
    */
@@ -406,6 +419,7 @@ ${artifactRetrievalGuidance}
     hasArtifactComponents: boolean;
     hasAgentArtifactComponents?: boolean;
     artifacts?: Artifact[];
+    browserTimestamp?: string;
   }): string {
     const {
       corePrompt,
@@ -414,6 +428,7 @@ ${artifactRetrievalGuidance}
       hasArtifactComponents,
       hasAgentArtifactComponents,
       artifacts = [],
+      browserTimestamp,
     } = config;
 
     // Include ArtifactCreate components in data components when artifacts are available
@@ -452,6 +467,10 @@ ${artifactRetrievalGuidance}
         ''
       );
     }
+    // Handle current time section - include user's browser timestamp if available
+    const currentTimeSection = this.generateCurrentTimeSection(browserTimestamp);
+    phase2Prompt = phase2Prompt.replace('{{CURRENT_TIME_SECTION}}', currentTimeSection);
+
     phase2Prompt = phase2Prompt.replace('{{DATA_COMPONENTS_SECTION}}', dataComponentsSection);
     phase2Prompt = phase2Prompt.replace('{{ARTIFACTS_SECTION}}', artifactsSection);
     phase2Prompt = phase2Prompt.replace('{{ARTIFACT_GUIDANCE_SECTION}}', artifactGuidance);

@@ -116,11 +116,18 @@ app.openapi(chatDataStreamRoute, async (c) => {
     const forwardedHeaders: Record<string, string> = {};
     const xForwardedCookie = c.req.header('x-forwarded-cookie');
     const cookie = c.req.header('cookie');
+    const browserTimestamp = c.req.header('x-browser-timestamp');
+
     // Priority: x-forwarded-cookie (explicit) > cookie (browser-sent)
     if (xForwardedCookie) {
       forwardedHeaders['x-forwarded-cookie'] = xForwardedCookie;
     } else if (cookie) {
       forwardedHeaders['x-forwarded-cookie'] = cookie;
+    }
+
+    // Forward browser timestamp from client
+    if (browserTimestamp) {
+      forwardedHeaders['x-browser-timestamp'] = browserTimestamp;
     }
 
     // Add conversation ID to parent span

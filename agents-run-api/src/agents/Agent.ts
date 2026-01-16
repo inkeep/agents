@@ -1553,6 +1553,9 @@ export class Agent {
       referenceArtifacts.push(...artifacts);
     }
 
+    // Extract browser timestamp from forwarded headers if available
+    const browserTimestamp = this.config.forwardedHeaders?.['x-browser-timestamp'];
+
     return phase2Config.assemblePhase2Prompt({
       corePrompt: processedPrompt,
       dataComponents: this.config.dataComponents || [],
@@ -1560,6 +1563,7 @@ export class Agent {
       hasArtifactComponents: this.artifactComponents && this.artifactComponents.length > 0,
       hasAgentArtifactComponents,
       artifacts: referenceArtifacts,
+      browserTimestamp,
     });
   }
 
@@ -1677,6 +1681,9 @@ export class Agent {
     const hasAgentArtifactComponents =
       (await this.hasAgentArtifactComponents()) || compressionConfig.enabled;
 
+    // Extract browser timestamp from forwarded headers if available
+    const browserTimestamp = this.config.forwardedHeaders?.['x-browser-timestamp'];
+
     const config: SystemPromptV1 = {
       corePrompt: processedPrompt,
       prompt,
@@ -1688,6 +1695,7 @@ export class Agent {
       isThinkingPreparation,
       hasTransferRelations: (this.config.transferRelations?.length ?? 0) > 0,
       hasDelegateRelations: (this.config.delegateRelations?.length ?? 0) > 0,
+      browserTimestamp,
     };
     return await this.systemPromptBuilder.buildSystemPrompt(config);
   }

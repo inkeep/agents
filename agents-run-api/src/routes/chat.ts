@@ -350,6 +350,7 @@ app.openapi(chatCompletionsRoute, async (c) => {
           const forwardedHeaders: Record<string, string> = {};
           const xForwardedCookie = c.req.header('x-forwarded-cookie');
           const cookie = c.req.header('cookie');
+          const browserTimestamp = c.req.header('x-browser-timestamp');
 
           // Priority: x-forwarded-cookie (explicit) > cookie (browser-sent)
           // Transform cookie to x-forwarded-cookie for downstream forwarding
@@ -357,6 +358,11 @@ app.openapi(chatCompletionsRoute, async (c) => {
             forwardedHeaders['x-forwarded-cookie'] = xForwardedCookie;
           } else if (cookie) {
             forwardedHeaders['x-forwarded-cookie'] = cookie;
+          }
+
+          // Forward browser timestamp from client
+          if (browserTimestamp) {
+            forwardedHeaders['x-browser-timestamp'] = browserTimestamp;
           }
 
           const executionHandler = new ExecutionHandler();

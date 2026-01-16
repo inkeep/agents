@@ -8,6 +8,7 @@ import { useRuntimeConfig } from '@/contexts/runtime-config-context';
 interface CopilotContextHeaders {
   messageId?: string;
   conversationId?: string;
+  browserTimestamp?: string;
 }
 
 interface CopilotContextValue {
@@ -18,7 +19,7 @@ interface CopilotContextValue {
   chatFunctionsRef?: RefObject<AIChatFunctions | null>;
   openCopilot: () => void;
   dynamicHeaders: CopilotContextHeaders;
-  setDynamicHeaders: (headers: CopilotContextHeaders) => void;
+  setDynamicHeaders: (headers: CopilotContextHeaders | ((prev: CopilotContextHeaders) => CopilotContextHeaders)) => void;
   isCopilotConfigured: boolean;
 }
 

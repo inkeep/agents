@@ -99,6 +99,7 @@ export class Phase1Config implements VersionConfig<SystemPromptV1> {
     breakdown.components['systemPromptTemplate'] = estimateTokens(
       systemPromptTemplateContent
         .replace('{{CORE_INSTRUCTIONS}}', '')
+        .replace('{{CURRENT_TIME_SECTION}}', '')
         .replace('{{AGENT_CONTEXT_SECTION}}', '')
         .replace('{{ARTIFACTS_SECTION}}', '')
         .replace('{{TOOLS_SECTION}}', '')
@@ -120,6 +121,11 @@ export class Phase1Config implements VersionConfig<SystemPromptV1> {
         ''
       );
     }
+
+    // Handle current time section - include user's browser timestamp if available
+    const currentTimeSection = this.generateCurrentTimeSection(config.browserTimestamp);
+    breakdown.components['currentTime'] = estimateTokens(currentTimeSection);
+    systemPrompt = systemPrompt.replace('{{CURRENT_TIME_SECTION}}', currentTimeSection);
 
     const agentContextSection = this.generateAgentContextSection(config.prompt);
     breakdown.components['agentPrompt'] = estimateTokens(agentContextSection);
@@ -214,6 +220,19 @@ export class Phase1Config implements VersionConfig<SystemPromptV1> {
   <agent_context>
     ${prompt}
   </agent_context>`;
+  }
+
+  private generateCurrentTimeSection(browserTimestamp?: string): string {
+    if (!browserTimestamp || browserTimestamp.trim() === '') {
+      return '';
+    }
+
+    return `
+  <current_time>
+    The user sent this message at: ${browserTimestamp}
+    Use this timestamp to provide context-aware responses (e.g., greetings appropriate for their time of day, understanding business hours in their timezone, etc.)
+    IMPORTANT: Never mention or reference "the timestamp" in your responses - you simply know what time it is for the user.
+  </current_time>`;
   }
 
   private generateThinkingPreparationSection(
