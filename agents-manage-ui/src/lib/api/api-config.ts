@@ -192,11 +192,3 @@ export async function makeManagementApiRequest<T>(
 ): Promise<T> {
   return makeApiRequestInternal<T>(getManageApiUrl(), endpoint, options);
 }
-
-// Eval API requests (evaluations, datasets, etc.) - uses the eval API on port 3005
-async function makeEvalApiRequest<T>(
-  endpoint: string,
-  options: RequestInit = {}
-): Promise<T> {
-  return makeApiRequestInternal<T>(getEvalApiUrl(), endpoint, options);
-}

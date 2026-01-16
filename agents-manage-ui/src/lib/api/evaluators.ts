@@ -76,24 +76,6 @@ export async function fetchEvaluators(
 }
 
 /**
- * Fetch a single evaluator by ID
- */
-async function fetchEvaluator(
-  tenantId: string,
-  projectId: string,
-  evaluatorId: string
-): Promise<Evaluator> {
-  validateTenantId(tenantId);
-  validateProjectId(projectId);
-
-  const response = await makeManagementApiRequest<SingleResponse<Evaluator>>(
-    `tenants/${tenantId}/projects/${projectId}/evals/evaluators/${evaluatorId}`
-  );
-
-  return response.data;
-}
-
-/**
  * Create a new evaluator
  */
 export async function createEvaluator(

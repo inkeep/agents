@@ -108,19 +108,3 @@ export function evaluatePassCriteria(
     failedConditions: allFailed ? failedConditions : undefined,
   };
 }
-
-function formatPassCriteriaExpression(criteria: PassCriteria): string {
-  const conditionStrings = criteria.conditions.map(
-    (cond) => `${cond.field} ${cond.operator} ${cond.value}`
-  );
-
-  if (conditionStrings.length === 0) {
-    return 'No criteria defined';
-  }
-
-  if (conditionStrings.length === 1) {
-    return conditionStrings[0];
-  }
-
-  return conditionStrings.join(` ${criteria.operator.toUpperCase()} `);
-}

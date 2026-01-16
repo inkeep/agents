@@ -17,67 +17,6 @@ import { ApiError } from '../types/errors';
 import type { ActionResult } from './types';
 
 /**
- * Fetch all datasets
- */
-async function fetchDatasetsAction(
-  tenantId: string,
-  projectId: string
-): Promise<ActionResult<Dataset[]>> {
-  try {
-    const result = await fetchDatasets(tenantId, projectId);
-    return {
-      success: true,
-      data: result.data,
-    };
-  } catch (error) {
-    if (error instanceof ApiError) {
-      return {
-        success: false,
-        error: error.message,
-        code: error.error.code,
-      };
-    }
-
-    return {
-      success: false,
-      error: error instanceof Error ? error.message : 'Unknown error occurred',
-      code: 'unknown_error',
-    };
-  }
-}
-
-/**
- * Fetch a single dataset
- */
-async function fetchDatasetAction(
-  tenantId: string,
-  projectId: string,
-  datasetId: string
-): Promise<ActionResult<Dataset>> {
-  try {
-    const result = await fetchDataset(tenantId, projectId, datasetId);
-    return {
-      success: true,
-      data: result,
-    };
-  } catch (error) {
-    if (error instanceof ApiError) {
-      return {
-        success: false,
-        error: error.message,
-        code: error.error.code,
-      };
-    }
-
-    return {
-      success: false,
-      error: error instanceof Error ? error.message : 'Unknown error occurred',
-      code: 'unknown_error',
-    };
-  }
-}
-
-/**
  * Create a new dataset
  */
 export async function createDatasetAction(

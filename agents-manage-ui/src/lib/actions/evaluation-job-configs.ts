@@ -12,36 +12,6 @@ import { ApiError } from '../types/errors';
 import type { ActionResult } from './types';
 
 /**
- * Fetch all evaluation job configs
- */
-async function fetchEvaluationJobConfigsAction(
-  tenantId: string,
-  projectId: string
-): Promise<ActionResult<EvaluationJobConfig[]>> {
-  try {
-    const result = await fetchEvaluationJobConfigs(tenantId, projectId);
-    return {
-      success: true,
-      data: result.data,
-    };
-  } catch (error) {
-    if (error instanceof ApiError) {
-      return {
-        success: false,
-        error: error.message,
-        code: error.error.code,
-      };
-    }
-
-    return {
-      success: false,
-      error: error instanceof Error ? error.message : 'Unknown error occurred',
-      code: 'unknown_error',
-    };
-  }
-}
-
-/**
  * Create a new evaluation job config
  */
 export async function createEvaluationJobConfigAction(

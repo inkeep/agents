@@ -26,54 +26,6 @@ export type ActionResult<T = void> =
       code?: string;
     };
 
-async function fetchDatasetRunConfigsAction(
-  tenantId: string,
-  projectId: string,
-  datasetId: string
-): Promise<ActionResult<DatasetRunConfig[]>> {
-  try {
-    const response = await apiFetchDatasetRunConfigs(tenantId, projectId, datasetId);
-    return {
-      success: true,
-      data: response.data,
-    };
-  } catch (error) {
-    return {
-      success: false,
-      error: error instanceof Error ? error.message : 'Failed to fetch dataset run configs',
-      code: 'unknown_error',
-    };
-  }
-}
-
-async function fetchDatasetRunConfigAction(
-  tenantId: string,
-  projectId: string,
-  runConfigId: string
-): Promise<ActionResult<DatasetRunConfig>> {
-  try {
-    const response = await apiFetchDatasetRunConfig(tenantId, projectId, runConfigId);
-    return {
-      success: true,
-      data: response.data,
-    };
-  } catch (error) {
-    if (error instanceof ApiError) {
-      return {
-        success: false,
-        error: error.message,
-        code: error.error.code,
-      };
-    }
-
-    return {
-      success: false,
-      error: error instanceof Error ? error.message : 'Failed to fetch dataset run config',
-      code: 'unknown_error',
-    };
-  }
-}
-
 export async function createDatasetRunConfigAction(
   tenantId: string,
   projectId: string,
