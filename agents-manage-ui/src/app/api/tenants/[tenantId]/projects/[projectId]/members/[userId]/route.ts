@@ -1,5 +1,5 @@
 import { cookies, headers } from 'next/headers';
-import { NextResponse, type NextRequest } from 'next/server';
+import { type NextRequest, NextResponse } from 'next/server';
 import { getManageApiUrl } from '@/lib/api/api-config';
 
 async function getAuthHeaders() {
@@ -83,4 +83,3 @@ export async function DELETE(
   const data = await response.json();
   return NextResponse.json(data, { status: response.status });
 }
-

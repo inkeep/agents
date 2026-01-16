@@ -50,12 +50,6 @@ definition organization {
      * "Can user MANAGE organization?"
      */
     permission manage = owner + admin
-    
-    /**
-     * Can delete the organization
-     * "Can user DELETE organization?"
-     */
-    permission delete = owner
 }
 
 /**

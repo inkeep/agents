@@ -1,5 +1,5 @@
 import { cookies, headers } from 'next/headers';
-import { NextResponse, type NextRequest } from 'next/server';
+import { type NextRequest, NextResponse } from 'next/server';
 import { getManageApiUrl } from '@/lib/api/api-config';
 
 async function getAuthHeaders() {
@@ -43,10 +43,9 @@ export async function GET(
   const apiUrl = getManageApiUrl();
   const headers = await getAuthHeaders();
 
-  const response = await fetch(
-    `${apiUrl}/tenants/${tenantId}/projects/${projectId}/members`,
-    { headers }
-  );
+  const response = await fetch(`${apiUrl}/tenants/${tenantId}/projects/${projectId}/members`, {
+    headers,
+  });
 
   const data = await response.json();
   return NextResponse.json(data, { status: response.status });
@@ -62,16 +61,12 @@ export async function POST(
   const authHeaders = await getAuthHeaders();
   const body = await request.json();
 
-  const response = await fetch(
-    `${apiUrl}/tenants/${tenantId}/projects/${projectId}/members`,
-    {
-      method: 'POST',
-      headers: authHeaders,
-      body: JSON.stringify(body),
-    }
-  );
+  const response = await fetch(`${apiUrl}/tenants/${tenantId}/projects/${projectId}/members`, {
+    method: 'POST',
+    headers: authHeaders,
+    body: JSON.stringify(body),
+  });
 
   const data = await response.json();
   return NextResponse.json(data, { status: response.status });
 }
-

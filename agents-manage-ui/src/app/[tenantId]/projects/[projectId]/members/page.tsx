@@ -1,4 +1,4 @@
-import { ShareProjectWrapper } from '@/components/access/share-project-wrapper';
+import { ProjectMembersWrapper } from '@/components/access/project-members-wrapper';
 import FullPageError from '@/components/errors/full-page-error';
 import { BodyTemplate } from '@/components/layout/body-template';
 import { fetchProject } from '@/lib/api/projects';
@@ -12,7 +12,8 @@ export default async function MembersPage({
   const { tenantId, projectId } = await params;
 
   try {
-    const projectData = await fetchProject(tenantId, projectId);
+    // Verify project exists and user has access
+    await fetchProject(tenantId, projectId);
 
     // Permission to manage access is enforced by the API (requires 'edit' permission).
     // If user lacks permission, API calls will fail gracefully.
@@ -20,9 +21,8 @@ export default async function MembersPage({
 
     return (
       <BodyTemplate breadcrumbs={['Members']} className="max-w-xl mx-auto">
-        <ShareProjectWrapper
+        <ProjectMembersWrapper
           projectId={projectId}
-          projectName={projectData.data.name}
           tenantId={tenantId}
           canManage={canManageAccess}
         />

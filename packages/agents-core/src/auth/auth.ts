@@ -307,6 +307,41 @@ export function createAuth(config: BetterAuthConfig) {
               console.error('❌ SpiceDB sync failed for new member:', error);
             }
           },
+          afterUpdateMemberRole: async ({ member, organization: org, previousRole }) => {
+            try {
+              const { changeOrgRole } = await import('./authz/sync');
+              // previousRole is the old role, member.role is the new role
+              const oldRole = previousRole as 'owner' | 'admin' | 'member';
+              const newRole = member.role as 'owner' | 'admin' | 'member';
+              await changeOrgRole({
+                tenantId: org.id,
+                userId: member.userId,
+                oldRole,
+                newRole,
+              });
+              console.log(
+                `🔐 SpiceDB: Updated member ${member.userId} role from ${oldRole} to ${newRole} in org ${org.name}`
+              );
+            } catch (error) {
+              console.error('❌ SpiceDB sync failed for role update:', error);
+            }
+          },
+          afterRemoveMember: async ({ member, organization: org }) => {
+            try {
+              const { syncOrgMemberToSpiceDb } = await import('./authz/sync');
+              await syncOrgMemberToSpiceDb({
+                tenantId: org.id,
+                userId: member.userId,
+                role: member.role as 'owner' | 'admin' | 'member',
+                action: 'remove',
+              });
+              console.log(
+                `🔐 SpiceDB: Removed member ${member.userId} from org ${org.name}`
+              );
+            } catch (error) {
+              console.error('❌ SpiceDB sync failed for member removal:', error);
+            }
+          },
         },
       }),
       deviceAuthorization({

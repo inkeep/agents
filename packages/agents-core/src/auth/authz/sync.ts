@@ -50,6 +50,73 @@ export async function syncOrgMemberToSpiceDb(params: {
 }
 
 /**
+ * Change a user's organization role.
+ * Removes the old role and adds the new one atomically in a single transaction.
+ * Call when: user's org role is updated (e.g., member -> admin).
+ */
+export async function changeOrgRole(params: {
+  tenantId: string;
+  userId: string;
+  oldRole: OrgRole;
+  newRole: OrgRole;
+}): Promise<void> {
+  if (!isAuthzEnabled()) return;
+
+  // Skip if roles are the same
+  if (params.oldRole === params.newRole) {
+    return;
+  }
+
+  const spice = getSpiceClient();
+
+  // Atomic batch: DELETE old role + TOUCH new role
+  await spice.promises.writeRelationships({
+    updates: [
+      // Delete old role
+      {
+        operation: RELATIONSHIP_OPERATION_DELETE,
+        relationship: {
+          resource: {
+            objectType: SpiceDbResourceTypes.ORGANIZATION,
+            objectId: params.tenantId,
+          },
+          relation: params.oldRole,
+          subject: {
+            object: {
+              objectType: SpiceDbResourceTypes.USER,
+              objectId: params.userId,
+            },
+            optionalRelation: '',
+          },
+          optionalCaveat: undefined,
+        },
+      },
+      // Add new role (TOUCH = upsert, safe if already exists)
+      {
+        operation: RELATIONSHIP_OPERATION_TOUCH,
+        relationship: {
+          resource: {
+            objectType: SpiceDbResourceTypes.ORGANIZATION,
+            objectId: params.tenantId,
+          },
+          relation: params.newRole,
+          subject: {
+            object: {
+              objectType: SpiceDbResourceTypes.USER,
+              objectId: params.userId,
+            },
+            optionalRelation: '',
+          },
+          optionalCaveat: undefined,
+        },
+      },
+    ],
+    optionalPreconditions: [],
+    optionalTransactionMetadata: undefined,
+  });
+}
+
+/**
  * Sync a new project to SpiceDB.
  * Links project to org and grants creator project_admin role.
  * Call when: project is created.

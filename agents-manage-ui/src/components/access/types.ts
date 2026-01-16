@@ -1,6 +1,6 @@
 /**
  * Types for the reusable Access components
- * 
+ *
  * Designed to support multiple principal types (users, groups, service accounts, agents, workflows)
  * and multiple resource types (projects, agents, MCP servers, etc.)
  */
@@ -47,7 +47,6 @@ export type PrincipalMetadata =
 
 /**
  * A principal that can be granted access to a resource.
- * Replaces the old "AccessMember" type.
  */
 export interface AccessPrincipal {
   /** Unique identifier for this principal */
@@ -96,120 +95,12 @@ export interface InheritedAccessConfig {
 }
 
 // ============================================================================
-// Explicit Access Configuration
-// ============================================================================
-
-export interface ExplicitAccessConfig {
-  title: string;
-  description: string;
-  emptyMessage: string;
-}
-
-// ============================================================================
-// Component Props
-// ============================================================================
-
-/**
- * Props for the generic AccessSection component.
- * Pure presentation component - all data fetching and mutations handled by parent.
- */
-export interface AccessSectionProps {
-  /** Overall description shown at the top */
-  description?: string;
-
-  /** Loading state */
-  isLoading?: boolean;
-
-  /** Error message */
-  error?: string | null;
-
-  /** Available roles for this resource type */
-  roles: AccessRole[];
-
-  /** Inherited access (org admins for projects, project admins for sub-resources) */
-  inheritedAccess?: InheritedAccessConfig;
-
-  /** Configuration for the explicit access section */
-  explicitAccessConfig: ExplicitAccessConfig;
-
-  /** Current explicit principals with access */
-  principals: AccessPrincipal[];
-
-  /** Available principals to add (filtered by what makes sense for this resource) */
-  availablePrincipals: AccessPrincipal[];
-
-  /** Can the current user manage access? */
-  canManage: boolean;
-
-  /** Callbacks for mutations */
-  onAddPrincipal: (principalId: string, principalType: PrincipalType, role: string) => Promise<void>;
-  onRemovePrincipal: (principalId: string, principalType: PrincipalType, role: string) => Promise<void>;
-  onChangeRole: (principalId: string, principalType: PrincipalType, oldRole: string, newRole: string) => Promise<void>;
-
-  /** Mutation states */
-  isMutating?: boolean;
-}
-
-/**
- * Props for the ExplicitAccessList component
- */
-export interface ExplicitAccessListProps {
-  /** Section title */
-  title: string;
-  /** Section description */
-  description: string;
-  /** Empty state message */
-  emptyMessage: string;
-  /** Current principals with explicit access */
-  principals: AccessPrincipal[];
-  /** Available roles */
-  roles: AccessRole[];
-  /** Available principals to add */
-  availablePrincipals: AccessPrincipal[];
-  /** Can the current user manage access? */
-  canManage: boolean;
-  /** Callbacks */
-  onAdd: (principalId: string, principalType: PrincipalType, role: string) => Promise<void>;
-  onRoleChange: (principalId: string, principalType: PrincipalType, oldRole: string, newRole: string) => Promise<void>;
-  onRemove: (principalId: string, principalType: PrincipalType, role: string) => Promise<void>;
-  /** Loading states */
-  isAdding?: boolean;
-  isUpdating?: boolean;
-  isRemoving?: boolean;
-}
-
-/**
- * Props for InheritedAccessCard
- */
-export interface InheritedAccessCardProps {
-  config: InheritedAccessConfig;
-}
-
-/**
- * Props for AddAccessDialog
- */
-export interface AddAccessDialogProps {
-  /** Available principals to add */
-  availablePrincipals: AccessPrincipal[];
-  /** Available roles to assign */
-  roles: AccessRole[];
-  /** Called when a principal is added */
-  onAdd: (principalId: string, principalType: PrincipalType, role: string) => Promise<void>;
-  /** Whether adding is in progress */
-  isLoading?: boolean;
-  /** IDs of principals who already have access (to filter out) */
-  existingPrincipalIds?: string[];
-  /** Disabled state */
-  disabled?: boolean;
-}
-
-// ============================================================================
 // API Types (for transforming API responses)
 // ============================================================================
 
 /**
  * Project member from SpiceDB API
- * 
+ *
  * Role hierarchy:
  * - project_admin: Full access (view + use + edit)
  * - project_member: Operator access (view + use: invoke agents, create API keys)

@@ -92,7 +92,7 @@ export function MembersTable({
   };
 
   const canEditMember = (member: Member): boolean => {
-    if (PUBLIC_IS_INKEEP_CLOUD_DEPLOYMENT) return false;
+    // if (PUBLIC_IS_INKEEP_CLOUD_DEPLOYMENT) return false;
     if (!canEditRoles || !currentMember) return false;
     if (member.id === currentMember.id) return false;
     if (currentMember.role === 'admin' && member.role === 'owner') return false;

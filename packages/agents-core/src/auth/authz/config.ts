@@ -59,7 +59,7 @@ export const SpiceDbRelations = {
 /**
  * SpiceDB permissions used in permission checks.
  * 
- * Note: Organization-level permissions (manage, delete) are handled via
+ * Note: Organization-level permissions (manage) are handled via
  * orgRole bypass in permission functions, not direct SpiceDB checks.
  */
 export const SpiceDbPermissions = {
