@@ -1,4 +1,3 @@
-import { generateId } from '@inkeep/agents-core';
 import { createTestProject } from '@inkeep/agents-core/db/test-manage-client';
 import { describe, expect, it, vi } from 'vitest';
 import manageDbClient from '../../../../data/db/dbClient';
@@ -24,7 +23,7 @@ vi.mock('@inkeep/agents-core', async (importOriginal) => {
 describe('Evaluation Job Configs CRUD Routes - Integration Tests', () => {
   const projectId = 'default';
 
-  const createJobConfigData = ({ suffix = '' }: { suffix?: string } = {}): any => ({
+  const createJobConfigData = (): any => ({
     jobFilters: {
       agentIds: ['agent-1', 'agent-2'],
       startDate: '2024-01-01T00:00:00Z',
@@ -53,7 +52,6 @@ describe('Evaluation Job Configs CRUD Routes - Integration Tests', () => {
 
   const createTestJobConfig = async ({
     tenantId,
-    suffix = '',
     evaluatorIds,
   }: {
     tenantId: string;
@@ -66,7 +64,7 @@ describe('Evaluation Job Configs CRUD Routes - Integration Tests', () => {
       const { evaluatorId } = await createTestEvaluator({ tenantId });
       finalEvaluatorIds = [evaluatorId];
     }
-    const configData = { ...createJobConfigData({ suffix }), evaluatorIds: finalEvaluatorIds };
+    const configData = { ...createJobConfigData(), evaluatorIds: finalEvaluatorIds };
     const createRes = await makeRequest(
       `/tenants/${tenantId}/projects/${projectId}/evals/evaluation-job-configs`,
       {
