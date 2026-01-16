@@ -838,6 +838,18 @@ export class Agent {
 
             logger.debug({ toolName, toolCallId }, 'MCP Tool Called');
 
+            // HTTP status codes that indicate an error response from Speakeasy MCP tools
+            const SPEAKEASY_ERROR_STATUS_CODES = [
+              400, // Bad Request
+              401, // Unauthorized
+              403, // Forbidden
+              404, // Not Found
+              422, // Unprocessable Entity
+              429, // Rate Limited
+              500, // Internal Server Error
+              503, // Service Unavailable
+            ] as const;
+
             try {
               const rawResult = await originalTool.execute(finalArgs, { toolCallId });
               const hasExplicitError = rawResult && typeof rawResult === 'object' && rawResult.isError;
@@ -846,7 +858,7 @@ export class Agent {
               try { contentText = JSON.parse(rawResult?.content?.[0]?.text); } catch {}
               const hasErrorInContent =
                 contentText?.StatusCode &&
-                [400, 401, 403, 404, 422, 500].includes(contentText.StatusCode);
+                SPEAKEASY_ERROR_STATUS_CODES.includes(contentText.StatusCode);
 
               if (hasExplicitError || hasErrorInContent) {
                 const rawText = rawResult?.content?.[0]?.text;
