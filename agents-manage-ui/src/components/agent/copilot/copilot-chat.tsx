@@ -77,6 +77,13 @@ export function CopilotChat({ agentId, tenantId, projectId, refreshAgentGraph }:
     };
   }, [conversationId, refreshAgentGraph]);
 
+  // Cleanup: reset browser timestamp ref on unmount
+  useEffect(() => {
+    return () => {
+      browserTimestampRef.current = '';
+    };
+  }, []);
+
   const {
     PUBLIC_INKEEP_AGENTS_RUN_API_URL,
     PUBLIC_INKEEP_COPILOT_AGENT_ID,
@@ -122,30 +129,12 @@ export function CopilotChat({ agentId, tenantId, projectId, refreshAgentGraph }:
     }
   }, [tokenError, isLoadingToken, isOpen, setIsOpen, refreshToken]);
 
-  if (!isCopilotConfigured) {
-    return null;
-  }
-
-  // Show loading state (including retries)
-  if (isLoadingToken && isOpen) {
-    return (
-      <div className="flex items-center justify-center p-4 text-muted-foreground text-sm">
-        <Loader2 className="h-4 w-4 animate-spin mr-2" />
-        <span>{retryCount > 0 ? `Reconnecting (attempt ${retryCount}/3)...` : 'Loading...'}</span>
-      </div>
-    );
-  }
-
-  // Token not available (shouldn't happen if no error, but safety check)
-  if (!copilotToken) {
-    return null;
-  }
-
   // Create dynamic headers with timestamp getter
+  // Note: Must be defined before early returns to satisfy React hooks rules
   const chatHeaders = useMemo(() => {
     const headers: Record<string, string> = {
       'x-emit-operations': 'true',
-      Authorization: `Bearer ${copilotToken}`,
+      Authorization: `Bearer ${copilotToken || ''}`,
       'x-inkeep-tenant-id': PUBLIC_INKEEP_COPILOT_TENANT_ID || '',
       'x-inkeep-project-id': PUBLIC_INKEEP_COPILOT_PROJECT_ID || '',
       'x-inkeep-agent-id': PUBLIC_INKEEP_COPILOT_AGENT_ID || '',
@@ -183,6 +172,25 @@ export function CopilotChat({ agentId, tenantId, projectId, refreshAgentGraph }:
     dynamicHeaders?.messageId,
     cookieHeader,
   ]);
+
+  if (!isCopilotConfigured) {
+    return null;
+  }
+
+  // Show loading state (including retries)
+  if (isLoadingToken && isOpen) {
+    return (
+      <div className="flex items-center justify-center p-4 text-muted-foreground text-sm">
+        <Loader2 className="h-4 w-4 animate-spin mr-2" />
+        <span>{retryCount > 0 ? `Reconnecting (attempt ${retryCount}/3)...` : 'Loading...'}</span>
+      </div>
+    );
+  }
+
+  // Token not available (shouldn't happen if no error, but safety check)
+  if (!copilotToken) {
+    return null;
+  }
 
   return (
     <div className="h-full flex flex-row gap-4">

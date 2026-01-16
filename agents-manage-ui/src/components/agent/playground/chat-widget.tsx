@@ -132,6 +132,13 @@ export function ChatWidget({
     };
   }, []);
 
+  // Cleanup: reset browser timestamp ref on unmount
+  useEffect(() => {
+    return () => {
+      browserTimestampRef.current = '';
+    };
+  }, []);
+
   // Don't render chat until we have the API key
   if (isLoadingKey || !tempApiKey) {
     return (

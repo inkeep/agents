@@ -360,9 +360,22 @@ app.openapi(chatCompletionsRoute, async (c) => {
             forwardedHeaders['x-forwarded-cookie'] = cookie;
           }
 
-          // Forward browser timestamp from client
+          // Forward browser timestamp from client (with validation)
           if (browserTimestamp) {
-            forwardedHeaders['x-browser-timestamp'] = browserTimestamp;
+            // Validate timestamp format to prevent injection attacks
+            // Expected format: "Fri Jan 16 2026 11:37:19 GMT-0500 (Eastern Standard Time)"
+            // Allow alphanumeric, spaces, colons, hyphens, parentheses, and common timezone chars
+            if (
+              browserTimestamp.length < 500 &&
+              /^[A-Za-z0-9\s:\-\+\(\)]+$/.test(browserTimestamp)
+            ) {
+              forwardedHeaders['x-browser-timestamp'] = browserTimestamp;
+            } else {
+              logger.warn(
+                { browserTimestamp: browserTimestamp.substring(0, 100) },
+                'Invalid browser timestamp format, ignoring'
+              );
+            }
           }
 
           const executionHandler = new ExecutionHandler();
