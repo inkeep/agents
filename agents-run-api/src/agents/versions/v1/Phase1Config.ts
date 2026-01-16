@@ -4,10 +4,13 @@ import { convertZodToJsonSchema, isZodSchema } from '@inkeep/agents-core/utils/s
 import systemPromptTemplate from '../../../../templates/v1/phase1/system-prompt.xml?raw';
 import thinkingPreparationTemplate from '../../../../templates/v1/phase1/thinking-preparation.xml?raw';
 import toolTemplate from '../../../../templates/v1/phase1/tool.xml?raw';
+import dataComponentTemplate from '../../../../templates/v1/phase2/data-component.xml?raw';
+import dataComponentsTemplate from '../../../../templates/v1/phase2/data-components.xml?raw';
 import artifactTemplate from '../../../../templates/v1/shared/artifact.xml?raw';
 import artifactRetrievalGuidance from '../../../../templates/v1/shared/artifact-retrieval-guidance.xml?raw';
 
 import { getLogger } from '../../../logger';
+import { ArtifactCreateSchema } from '../../../utils/artifact-component-schema';
 import {
   type AssembleResult,
   type BreakdownComponentDef,
@@ -177,6 +180,15 @@ export class Phase1Config implements VersionConfig<SystemPromptV1> {
     const toolsSection = this.generateToolsSection(templates, toolData);
     breakdown.components['toolsSection'] = estimateTokens(toolsSection);
     systemPrompt = systemPrompt.replace('{{TOOLS_SECTION}}', toolsSection);
+
+    const dataComponentsSection = this.generateDataComponentsSection(
+      config.dataComponents,
+      config.includeSinglePhaseDataComponents,
+      hasArtifactComponents,
+      config.artifactComponents
+    );
+    breakdown.components['dataComponentsSection'] = estimateTokens(dataComponentsSection);
+    systemPrompt = systemPrompt.replace('{{DATA_COMPONENTS_SECTION}}', dataComponentsSection);
 
     const thinkingPreparationSection = this.generateThinkingPreparationSection(
       templates,
@@ -681,5 +693,63 @@ ${creationInstructions}
       .join('\n');
 
     return `<type>${schemaType}</type>\n      <properties>\n${propertiesXml}\n      </properties>\n      <required>${JSON.stringify(required)}</required>`;
+  }
+
+  private generateDataComponentsSection(
+    dataComponents: any[],
+    includeSinglePhaseDataComponents?: boolean,
+    hasArtifactComponents?: boolean,
+    artifactComponents?: any[]
+  ): string {
+    if (!includeSinglePhaseDataComponents || dataComponents.length === 0) {
+      return '';
+    }
+
+    // Include ArtifactCreate components in data components when artifacts are available
+    let allDataComponents = [...dataComponents];
+    if (hasArtifactComponents && artifactComponents) {
+      const artifactCreateComponents = ArtifactCreateSchema.getDataComponents(
+        'tenant', // placeholder - not used in Phase1
+        '', // placeholder - not used in Phase1
+        artifactComponents
+      );
+      allDataComponents = [...dataComponents, ...artifactCreateComponents];
+    }
+
+    const dataComponentsDescription = allDataComponents
+      .map((dc) => `${dc.name}: ${dc.description}`)
+      .join(', ');
+
+    const dataComponentsXml = allDataComponents
+      .map((dataComponent) => this.generateDataComponentXml(dataComponent))
+      .join('\n  ');
+
+    let dataComponentsSection = dataComponentsTemplate;
+    dataComponentsSection = dataComponentsSection.replace(
+      '{{DATA_COMPONENTS_LIST}}',
+      dataComponentsDescription
+    );
+    dataComponentsSection = dataComponentsSection.replace(
+      '{{DATA_COMPONENTS_XML}}',
+      dataComponentsXml
+    );
+
+    return dataComponentsSection;
+  }
+
+  private generateDataComponentXml(dataComponent: any): string {
+    let dataComponentXml = dataComponentTemplate;
+
+    dataComponentXml = dataComponentXml.replace('{{COMPONENT_NAME}}', dataComponent.name);
+    dataComponentXml = dataComponentXml.replace(
+      '{{COMPONENT_DESCRIPTION}}',
+      dataComponent.description || ''
+    );
+    dataComponentXml = dataComponentXml.replace(
+      '{{COMPONENT_PROPS_SCHEMA}}',
+      this.generateParametersXml(dataComponent.props)
+    );
+
+    return dataComponentXml;
   }
 }

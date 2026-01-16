@@ -100,6 +100,8 @@ export function hasToolCallWithPrefix(prefix: string) {
 
 const logger = getLogger('Agent');
 
+const USE_SINGLE_PHASE_GENERATION = process.env.USE_SINGLE_PHASE_GENERATION === 'true';
+
 function validateModel(modelString: string | undefined, modelType: string): string {
   if (!modelString?.trim()) {
     throw new Error(
@@ -1677,6 +1679,24 @@ export class Agent {
     const hasAgentArtifactComponents =
       (await this.hasAgentArtifactComponents()) || compressionConfig.enabled;
 
+    const hasStructuredOutput = Boolean(
+      this.config.dataComponents && this.config.dataComponents.length > 0
+    );
+    const includeSinglePhaseDataComponents =
+      USE_SINGLE_PHASE_GENERATION && hasStructuredOutput && !excludeDataComponents;
+
+    logger.info(
+      {
+        agentId: this.config.id,
+        hasStructuredOutput,
+        USE_SINGLE_PHASE_GENERATION,
+        excludeDataComponents,
+        includeSinglePhaseDataComponents,
+        dataComponentsCount: this.config.dataComponents?.length || 0,
+      },
+      'Single-phase generation configuration'
+    );
+
     const config: SystemPromptV1 = {
       corePrompt: processedPrompt,
       prompt,
@@ -1688,6 +1708,7 @@ export class Agent {
       isThinkingPreparation,
       hasTransferRelations: (this.config.transferRelations?.length ?? 0) > 0,
       hasDelegateRelations: (this.config.delegateRelations?.length ?? 0) > 0,
+      includeSinglePhaseDataComponents,
     };
     return await this.systemPromptBuilder.buildSystemPrompt(config);
   }
@@ -1758,10 +1779,10 @@ export class Agent {
     // Note: save_tool_result tool is replaced by artifact:create response annotations
     // Agents with artifact components will receive creation instructions in their system prompt
 
-    // Add thinking_complete tool if we have structured output components
+    // Add thinking_complete tool if we have structured output components (but not in single-phase mode)
     const hasStructuredOutput = this.config.dataComponents && this.config.dataComponents.length > 0;
 
-    if (hasStructuredOutput) {
+    if (hasStructuredOutput && !USE_SINGLE_PHASE_GENERATION) {
       const thinkingCompleteTool = this.createThinkingCompleteTool();
       if (thinkingCompleteTool) {
         defaultTools.thinking_complete = this.wrapToolWithStreaming(
@@ -2530,15 +2551,84 @@ ${output}`;
           );
 
           // ----- PHASE 1: Planning with tools -----
+          // Always use streaming (streamText)
 
-          if (shouldStreamPhase1) {
-            // Streaming Phase 1: Natural text + tools (no structured output needed)
-            const streamConfig = {
-              ...modelSettings,
-              toolChoice: 'auto' as const, // Allow natural text + tools
-            };
+          const streamConfig = {
+            ...modelSettings,
+            toolChoice: 'auto' as const, // Allow natural text + tools
+          };
 
-            // Use streamText for Phase 1 (text-only responses)
+          if (USE_SINGLE_PHASE_GENERATION && hasStructuredOutput) {
+            // Single-phase streaming: Use streamText with structured output
+            logger.info(
+              {
+                agentId: this.config.id,
+                hasStructuredOutput,
+                mode: 'single-phase-streaming',
+              },
+              '🚀 Using SINGLE-PHASE STREAMING generation with structured output'
+            );
+
+            const dataComponentsSchema = this.buildDataComponentsSchema();
+
+            const streamResult = streamText({
+              ...this.buildBaseGenerationConfig(
+                streamConfig,
+                messages,
+                sanitizedTools,
+                compressor,
+                originalMessageCount,
+                timeoutMs,
+                'auto',
+                'structured_generation',
+                true,
+                contextBreakdown.total
+              ),
+              output: Output.object({
+                schema: z.object({
+                  dataComponents: z.array(dataComponentsSchema),
+                }),
+              }),
+            });
+
+            const parser = this.setupStreamParser(sessionId, contextId);
+
+            // Process object deltas for streaming structured output
+            for await (const delta of streamResult.partialOutputStream) {
+              if (delta) {
+                await parser.processObjectDelta(delta);
+              }
+            }
+
+            await parser.finalize();
+
+            response = await streamResult;
+
+            // Format response with collected parts
+            const collectedParts = parser.getCollectedParts();
+            if (collectedParts.length > 0) {
+              response.formattedContent = {
+                parts: collectedParts.map((part: any) => ({
+                  kind: part.kind,
+                  ...(part.kind === 'text' && { text: part.text }),
+                  ...(part.kind === 'data' && { data: part.data }),
+                })),
+              };
+            }
+
+            logger.info(
+              {
+                agentId: this.config.id,
+                hasOutput: !!response.output,
+                outputKeys: response.output ? Object.keys(response.output) : [],
+                dataComponentsCount: response.output?.dataComponents?.length || 0,
+                partsCount: collectedParts.length,
+                finishReason: response.finishReason,
+              },
+              '✅ Single-phase streaming generation completed'
+            );
+          } else {
+            // Two-phase streaming: Natural text + tools (no structured output yet)
             const streamResult = streamText(
               this.buildBaseGenerationConfig(
                 streamConfig,
@@ -2560,23 +2650,6 @@ ${output}`;
 
             response = await streamResult;
             response = this.formatStreamingResponse(response, parser);
-          } else {
-            const toolChoice = hasStructuredOutput ? 'required' : 'auto';
-
-            response = await generateText(
-              this.buildBaseGenerationConfig(
-                modelSettings,
-                messages,
-                sanitizedTools,
-                compressor,
-                originalMessageCount,
-                timeoutMs,
-                toolChoice,
-                'planning',
-                true,
-                contextBreakdown.total
-              )
-            );
           }
 
           if (response.steps) {
@@ -2584,7 +2657,29 @@ ${output}`;
             response = { ...response, steps: resolvedSteps };
           }
 
-          if (hasStructuredOutput && !hasToolCallWithPrefix('transfer_to_')(response)) {
+          if (USE_SINGLE_PHASE_GENERATION && hasStructuredOutput && response.output) {
+            // Single-phase mode: structured output is in response.output (AI SDK format)
+            // Assign to response.object to match expected structure
+            response.object = response.output;
+
+            logger.info(
+              {
+                agentId: this.config.id,
+                dataComponentsCount: response.output?.dataComponents?.length || 0,
+                dataComponentNames:
+                  response.output?.dataComponents?.map((dc: any) => dc.name) || [],
+              },
+              '📦 Processing single-phase response with data components'
+            );
+            textResponse = JSON.stringify(response.output, null, 2);
+            logger.info(
+              {
+                agentId: this.config.id,
+                textResponseLength: textResponse.length,
+              },
+              '✅ Single-phase response formatted as JSON'
+            );
+          } else if (hasStructuredOutput && !hasToolCallWithPrefix('transfer_to_')(response)) {
             const thinkingCompleteCall = response.steps
               ?.flatMap((s: any) => s.toolCalls || [])
               ?.find((tc: any) => tc.toolName === 'thinking_complete');
@@ -2925,8 +3020,10 @@ ${output}`;
     conversationHistory: string,
     userMessage: string
   ): any[] {
-    // Build messages for Phase 1 - use thinking prompt if structured output needed
-    const phase1SystemPrompt = hasStructuredOutput ? thinkingSystemPrompt : systemPrompt;
+    // Build messages for Phase 1
+    // Use full systemPrompt if in single-phase mode, otherwise use thinking prompt for structured output
+    const phase1SystemPrompt =
+      hasStructuredOutput && !USE_SINGLE_PHASE_GENERATION ? thinkingSystemPrompt : systemPrompt;
     const messages: any[] = [];
     messages.push({ role: 'system', content: phase1SystemPrompt });
 
@@ -3538,6 +3635,15 @@ ${output}${structureHintsFormatted}`;
 
     // Don't clean up ToolSession on error - let ToolSessionManager handle cleanup
     const errorToThrow = error instanceof Error ? error : new Error(String(error));
+    logger.error(
+      {
+        agentId: this.config.id,
+        errorMessage: errorToThrow.message,
+        errorStack: errorToThrow.stack,
+        errorName: errorToThrow.name,
+      },
+      '❌ Generation error in Agent'
+    );
     setSpanWithError(span, errorToThrow);
     span.end();
     throw errorToThrow;
