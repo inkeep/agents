@@ -840,9 +840,18 @@ export class Agent {
 
             try {
               const rawResult = await originalTool.execute(finalArgs, { toolCallId });
+              const hasExplicitError = rawResult && typeof rawResult === 'object' && rawResult.isError;
+              // Parse content text (MCP returns JSON string)
+              let contentText: any;
+              try { contentText = JSON.parse(rawResult?.content?.[0]?.text); } catch {}
+              const hasErrorInContent =
+                contentText?.StatusCode &&
+                [400, 401, 403, 404, 422, 500].includes(contentText.StatusCode);
 
-              if (rawResult && typeof rawResult === 'object' && rawResult.isError) {
-                const errorMessage = rawResult.content?.[0]?.text || 'MCP tool returned an error';
+              if (hasExplicitError || hasErrorInContent) {
+                const rawText = rawResult?.content?.[0]?.text;
+                const errorMessage =
+                  typeof rawText === 'string' ? rawText : JSON.stringify(rawText) || 'MCP tool returned an error';
                 logger.error(
                   { toolName, toolCallId, errorMessage, rawResult },
                   'MCP tool returned error status'
