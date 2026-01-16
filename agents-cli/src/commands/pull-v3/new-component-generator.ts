@@ -34,6 +34,7 @@ interface ProjectPaths {
   credentialsDir: string;
   contextConfigsDir: string;
   externalAgentsDir: string;
+  skillsDir: string;
 }
 
 interface NewComponentResult {
@@ -202,6 +203,7 @@ export async function createNewComponents(
         credentialsDir: join(paths.projectRoot, tempDirName, 'credentials'),
         contextConfigsDir: join(paths.projectRoot, tempDirName, 'context-configs'),
         externalAgentsDir: join(paths.projectRoot, tempDirName, 'external-agents'),
+        skillsDir: join(paths.projectRoot, tempDirName, 'skills'),
       }
     : paths;
 

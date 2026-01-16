@@ -7,7 +7,6 @@ import toolTemplate from '../../../../templates/v1/phase1/tool.xml?raw';
 import artifactTemplate from '../../../../templates/v1/shared/artifact.xml?raw';
 import artifactRetrievalGuidance from '../../../../templates/v1/shared/artifact-retrieval-guidance.xml?raw';
 
-import { getLogger } from '../../../logger';
 import {
   type AssembleResult,
   type BreakdownComponentDef,
@@ -15,9 +14,7 @@ import {
   createEmptyBreakdown,
   estimateTokens,
 } from '../../../utils/token-estimator';
-import type { SystemPromptV1, ToolData, VersionConfig } from '../../types';
-
-const _logger = getLogger('Phase1Config');
+import type { SkillData, SystemPromptV1, ToolData, VersionConfig } from '../../types';
 
 // Re-export for Agent.ts
 export { V1_BREAKDOWN_SCHEMA };
@@ -123,7 +120,9 @@ export class Phase1Config implements VersionConfig<SystemPromptV1> {
 
     const agentContextSection = this.generateAgentContextSection(config.prompt);
     breakdown.components['agentPrompt'] = estimateTokens(agentContextSection);
-    systemPrompt = systemPrompt.replace('{{AGENT_CONTEXT_SECTION}}', agentContextSection);
+    systemPrompt = systemPrompt
+      .replace('{{AGENT_CONTEXT_SECTION}}', agentContextSection)
+      .replace('{{SKILLS_SECTION}}', this.#generateSkillsSection(config.skills));
 
     const rawToolData = this.isToolDataArray(config.tools)
       ? config.tools
@@ -230,6 +229,33 @@ export class Phase1Config implements VersionConfig<SystemPromptV1> {
     }
 
     return thinkingPreparationTemplate;
+  }
+
+  #generateSkillsSection(skills: SkillData[] = []): string {
+    const result = skills
+      .sort((a, b) => a.index - b.index)
+      .map((skill) => {
+        const baseAttrs = `name=${JSON.stringify(skill.name)} description=${JSON.stringify(skill.description)}`;
+        return skill.alwaysLoaded
+          ? `<skill mode="always" ${baseAttrs}>${skill.content}</skill>`
+          : `<skill mode="on_demand" ${baseAttrs} />`;
+      })
+      .join('\n    ');
+
+    if (!result) {
+      return '';
+    }
+
+    return `<skills>
+    <instructions>
+      - Each entry has mode="always" or mode="on_demand".
+      - Always‑loaded skills apply immediately.
+      - On‑demand skills are discoverable by name/description. Call load_skill with the skill name to load the full content only when needed.
+      - Apply skills by index; later entries weigh more.
+      - core_instructions override skill content on conflict.
+    </instructions>
+    ${result}
+  </skills>`;
   }
 
   private generateTransferInstructions(hasTransferRelations?: boolean): string {

@@ -19,40 +19,32 @@ const {
   VALIDATION_SUB_AGENT_PROMPT_MAX_CHARS,
 } = schemaValidationDefaults;
 
-import { CredentialStoreType, MCPTransportType } from './types';
+import { CredentialStoreType } from './types';
 
 import {
-  type AgentStopWhen,
-  AgentStopWhenSchema,
   type ApiKeyApiUpdateSchema,
   ArtifactComponentApiInsertSchema as ArtifactComponentApiInsertSchemaFromValidation,
   FullAgentAgentInsertSchema,
   type FunctionApiInsertSchema,
-  type ModelSettings,
   ModelSettingsSchema,
-  type StopWhen,
-  StopWhenSchema,
-  type SubAgentStopWhen,
-  SubAgentStopWhenSchema,
 } from './validation/schemas';
 
 export { DEFAULT_NANGO_STORE_ID } from './credential-stores/default-constants';
-
+export { MCPTransportType } from './types';
 export { validatePropsAsJsonSchema } from './validation/props-validation';
 
 export {
-  StopWhenSchema,
-  AgentStopWhenSchema,
-  SubAgentStopWhenSchema,
-  type StopWhen,
   type AgentStopWhen,
-  type SubAgentStopWhen,
-};
-
-export {
+  AgentStopWhenSchema,
   FunctionApiInsertSchema,
   FunctionApiSelectSchema,
   FunctionApiUpdateSchema,
+  type ModelSettings,
+  SkillFrontmatterSchema,
+  type StopWhen,
+  StopWhenSchema,
+  type SubAgentStopWhen,
+  SubAgentStopWhenSchema,
 } from './validation/schemas';
 
 export const TenantParamsSchema = z.object({
@@ -94,8 +86,6 @@ export const ErrorResponseSchema = z.object({
   message: z.string().optional(),
   details: z.unknown().optional(),
 });
-
-export { ModelSettingsSchema, type ModelSettings };
 
 export const AgentApiInsertSchema = z.object({
   id: z.string().optional(),
@@ -300,7 +290,7 @@ export function generateIdFromName(name: string): string {
 export type ToolInsert = ToolApiInsert;
 export type AgentAgentInsert = AgentAgentApiInsert;
 
-export { CredentialStoreType, MCPTransportType };
+export { CredentialStoreType, ModelSettingsSchema };
 
 export * from './constants/context-breakdown';
 export * from './constants/otel-attributes';

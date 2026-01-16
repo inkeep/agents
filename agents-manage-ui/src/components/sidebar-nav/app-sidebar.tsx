@@ -12,6 +12,7 @@ import {
   Library,
   LifeBuoy,
   Lock,
+  LucideHexagon,
   Settings,
   Workflow,
 } from 'lucide-react';
@@ -82,6 +83,11 @@ export const AppSidebar: FC<AppSidebarProps> = ({ open, setOpen, ...props }) => 
           title: 'Agents',
           url: `/${tenantId}/projects/${projectId}/agents`,
           icon: Workflow,
+        },
+        {
+          title: 'Skills',
+          url: `/${tenantId}/projects/${projectId}/skills`,
+          icon: LucideHexagon,
         },
         {
           title: 'API Keys',

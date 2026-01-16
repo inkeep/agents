@@ -10,7 +10,7 @@
 
 import { EventEmitter } from 'node:events';
 import { existsSync, mkdirSync } from 'node:fs';
-import { basename, dirname, join, resolve } from 'node:path';
+import { join, resolve } from 'node:path';
 import * as p from '@clack/prompts';
 import type { FullProjectDefinition } from '@inkeep/agents-core';
 import chalk from 'chalk';
@@ -37,8 +37,6 @@ function resetStdinState(): void {
 import { ManagementApiClient } from '../../api';
 import { performBackgroundVersionCheck } from '../../utils/background-version-check';
 import { initializeCommand } from '../../utils/cli-pipeline';
-import { findConfigFile } from '../../utils/config';
-import { compareProjectDefinitions } from '../../utils/json-comparison';
 import { loadProject } from '../../utils/project-loader';
 import {
   checkAndPromptForStaleComponentCleanup,
@@ -46,7 +44,7 @@ import {
   copyProjectToTemp,
 } from './component-updater';
 import { introspectGenerate } from './introspect-generator';
-import { compareProjects, type ProjectComparison } from './project-comparator';
+import { compareProjects } from './project-comparator';
 import { extractSubAgents } from './utils/component-registry';
 
 export interface PullV3Options {
@@ -92,6 +90,7 @@ interface ProjectPaths {
   credentialsDir: string;
   contextConfigsDir: string;
   externalAgentsDir: string;
+  skillsDir: string;
 }
 
 /**
@@ -111,6 +110,7 @@ function createProjectStructure(projectDir: string, projectId: string): ProjectP
     credentialsDir: join(projectRoot, 'credentials'),
     contextConfigsDir: join(projectRoot, 'context-configs'),
     externalAgentsDir: join(projectRoot, 'external-agents'),
+    skillsDir: join(projectRoot, 'skills'),
   };
 
   // Ensure all directories exist
@@ -460,6 +460,11 @@ export async function pullV3Command(options: PullV3Options): Promise<PullResult 
 
     // Step 5: Set up project structure
     const paths = createProjectStructure(projectDir, projectId);
+
+    if (remoteProject.skills && Object.keys(remoteProject.skills).length) {
+      const { generateSkills } = await import('./components/skill-generator');
+      await generateSkills(remoteProject.skills, paths.skillsDir);
+    }
 
     // Step 6: Introspect mode - skip comparison, regenerate everything
     if (options.introspect) {

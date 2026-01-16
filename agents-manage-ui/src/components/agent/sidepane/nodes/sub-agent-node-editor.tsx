@@ -1,7 +1,8 @@
 import type { Node } from '@xyflow/react';
 import { Trash2 } from 'lucide-react';
 import { useParams } from 'next/navigation';
-import { useCallback } from 'react';
+import type { FC } from 'react';
+import { SkillSelector } from '@/components/skills/skill-selector';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import {
@@ -56,20 +57,21 @@ interface SubAgentNodeEditorProps {
   errorHelpers?: ErrorHelpers;
 }
 
-export function SubAgentNodeEditor({
+export const SubAgentNodeEditor: FC<SubAgentNodeEditorProps> = ({
   selectedNode,
   dataComponentLookup,
   artifactComponentLookup,
   errorHelpers,
-}: SubAgentNodeEditorProps) {
+}) => {
+  'use memo';
+
   const { tenantId, projectId } = useParams<{
     tenantId: string;
     projectId: string;
   }>();
-  const selectedDataComponents = selectedNode.data?.dataComponents || [];
-  const selectedArtifactComponents = selectedNode.data?.artifactComponents || [];
-  const isDefaultSubAgent = selectedNode.data?.isDefault || false;
-
+  const selectedDataComponents = selectedNode.data.dataComponents ?? [];
+  const selectedArtifactComponents = selectedNode.data.artifactComponents ?? [];
+  const isDefaultSubAgent = selectedNode.data.isDefault ?? false;
   const { project } = useProjectData();
   const metadata = useAgentStore((state) => state.metadata);
 
@@ -85,19 +87,13 @@ export function SubAgentNodeEditor({
     errorHelpers,
   });
 
-  const updateModelPath = useCallback(
-    (path: string, value: any) => {
-      updateNestedPath(path, value, selectedNode.data);
-    },
-    [updateNestedPath, selectedNode.data]
-  );
+  const updateModelPath = (path: string, value: any) => {
+    updateNestedPath(path, value, selectedNode.data);
+  };
 
-  const handleIdChange = useCallback(
-    (generatedId: string) => {
-      updatePath('id', generatedId);
-    },
-    [updatePath]
-  );
+  const handleIdChange = (generatedId: string) => {
+    updatePath('id', generatedId);
+  };
 
   // Auto-prefill ID based on name field (always enabled for agent nodes)
   useAutoPrefillIdZustand({
@@ -140,18 +136,20 @@ export function SubAgentNodeEditor({
         placeholder="This sub agent is responsible for..."
         error={getFieldError('description')}
       />
-
-      <div className="space-y-2">
-        <ExpandablePromptEditor
-          key={selectedNode.id}
-          name="prompt"
-          value={selectedNode.data.prompt}
-          onChange={(value) => updatePath('prompt', value)}
-          placeholder="You are a helpful assistant..."
-          error={getFieldError('prompt')}
-          label="Prompt"
-        />
-      </div>
+      <SkillSelector
+        selectedSkills={selectedNode.data.skills}
+        onChange={(value) => updatePath('skills', value)}
+        error={getFieldError('skills')}
+      />
+      <ExpandablePromptEditor
+        key={selectedNode.id}
+        name="prompt"
+        value={selectedNode.data.prompt}
+        onChange={(value) => updatePath('prompt', value)}
+        placeholder="You are a helpful assistant..."
+        error={getFieldError('prompt')}
+        label="Prompt"
+      />
       <div className="space-y-2">
         <div className="flex items-center space-x-2">
           <Checkbox
@@ -172,7 +170,7 @@ export function SubAgentNodeEditor({
         models={selectedNode.data.models}
         updatePath={updateModelPath}
         projectModels={project?.models}
-        agentModels={metadata?.models}
+        agentModels={metadata.models}
       />
       <Separator />
       {/* Agent Execution Limits */}
@@ -245,6 +243,7 @@ export function SubAgentNodeEditor({
         emptyStateActionText="Create artifact"
         emptyStateActionHref={`/${tenantId}/projects/${projectId}/artifacts/new`}
         placeholder="Select artifacts..."
+        commandInputPlaceholder="Search artifacts..."
       />
       {!isDefaultSubAgent && (
         <>
@@ -259,4 +258,4 @@ export function SubAgentNodeEditor({
       )}
     </div>
   );
-}
+};

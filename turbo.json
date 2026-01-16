@@ -3,6 +3,7 @@
   "ui": "tui",
   "concurrency": "15",
   "globalDependencies": ["**/.env", "**/.env.local", "**/.env.*"],
+  "concurrency": "11",
   "globalEnv": [
     "NODE_ENV",
     "CI",

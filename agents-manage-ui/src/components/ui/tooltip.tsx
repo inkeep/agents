@@ -36,6 +36,8 @@ function TooltipContent({
   children,
   ...props
 }: React.ComponentProps<typeof TooltipPrimitive.Content>) {
+  'use memo';
+
   return (
     <TooltipPrimitive.Portal>
       <TooltipPrimitive.Content

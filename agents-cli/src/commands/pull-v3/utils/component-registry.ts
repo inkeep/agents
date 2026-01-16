@@ -28,7 +28,8 @@ export type ComponentType =
   | 'fetchDefinitions'
   | 'headers'
   | 'models'
-  | 'project';
+  | 'project'
+  | 'skills';
 
 export interface ComponentInfo {
   id: string; // Original component ID
@@ -577,6 +578,13 @@ export function registerAllComponents(
   if (project.externalAgents) {
     for (const extAgentId of Object.keys(project.externalAgents)) {
       registry.register(extAgentId, 'externalAgents', `external-agents/${extAgentId}.ts`);
+    }
+  }
+
+  // Register skills
+  if (project.skills) {
+    for (const skillId of Object.keys(project.skills)) {
+      registry.register(skillId, 'skills', `skills/${skillId}.md`);
     }
   }
 

@@ -16,6 +16,7 @@ import type {
   AgentTool,
   AllDelegateInputInterface,
   AllDelegateOutputInterface,
+  SkillDefinition,
   SubAgentCanUseType,
   SubAgentConfig,
   SubAgentInterface,
@@ -36,7 +37,7 @@ function resolveGetter<T>(value: T | (() => T) | undefined): T | undefined {
 
 export class SubAgent implements SubAgentInterface {
   public config: SubAgentConfig;
-  public readonly type = 'internal' as const;
+  public readonly type = 'internal';
   private baseURL: string;
   private tenantId: string;
   private projectId: string;
@@ -229,6 +230,36 @@ export class SubAgent implements SubAgentInterface {
       ...this.getTeamAgentDelegates(),
       ...this.getExternalAgentDelegates(),
     ];
+  }
+
+  getSkills(): { id: string; index?: number; skill?: SkillDefinition }[] {
+    const skills = resolveGetter(this.config.skills);
+    if (!skills) {
+      return [];
+    }
+
+    return skills
+      .map((entry, idx) => {
+        if (!entry) return null;
+        if (typeof entry === 'string') {
+          return { id: entry, index: idx };
+        }
+        if ('id' in entry) {
+          const skillEntry = entry as any;
+          const hasSkillDefinition =
+            typeof skillEntry.content === 'string' || typeof skillEntry.name === 'string';
+          return {
+            id: skillEntry.id,
+            index: skillEntry.index ?? idx,
+            ...(hasSkillDefinition ? { skill: skillEntry } : {}),
+          };
+        }
+        if ('skillId' in entry) {
+          return { id: (entry as any).skillId, index: (entry as any).index ?? idx };
+        }
+        return null;
+      })
+      .filter((p) => !!p);
   }
 
   getDataComponents(): DataComponentApiInsert[] {

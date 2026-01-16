@@ -91,6 +91,22 @@ export interface ToolResult {
   result: any;
   error?: string;
 }
+
+export interface SkillDefinition {
+  id: string;
+  name: string;
+  description: string;
+  content: string;
+  metadata: Record<string, unknown> | null;
+  createdAt?: string;
+  updatedAt?: string;
+}
+
+export type SkillReference =
+  | string
+  | { id: string; index?: number }
+  | { skillId: string; index?: number }
+  | (SkillDefinition & { index?: number });
 export type AllDelegateInputInterface =
   | SubAgentInterface
   | subAgentExternalAgentInterface
@@ -110,6 +126,7 @@ export interface SubAgentConfig extends Omit<SubAgentApiInsert, 'projectId'> {
   canUse?: () => SubAgentCanUseType[];
   canTransferTo?: () => SubAgentInterface[];
   canDelegateTo?: () => AllDelegateInputInterface[];
+  skills?: () => SkillReference[];
   dataComponents?: () => (
     | DataComponentApiInsert
     | DataComponentInterface
@@ -313,6 +330,7 @@ export interface SubAgentInterface {
   getExternalAgentDelegates(): subAgentExternalAgentInterface[];
   getDataComponents(): DataComponentApiInsert[];
   getArtifactComponents(): ArtifactComponentApiInsert[];
+  getSkills(): Array<{ id: string; index?: number; skill?: SkillDefinition }>;
   setContext(tenantId: string, projectId: string, baseURL?: string): void;
   addTool(name: string, tool: any): void;
   addTransfer(...agents: SubAgentInterface[]): void;
@@ -345,7 +363,7 @@ export type subAgentTeamAgentInterface = {
 
 export interface AgentInterface {
   init(): Promise<void>;
-  setConfig(tenantId: string, projectId: string, apiUrl: string): void;
+  setConfig(tenantId: string, projectId: string, apiUrl: string, skills?: SkillDefinition[]): void;
   getId(): string;
   getName(): string;
   getDescription(): string | undefined;

@@ -15,6 +15,10 @@ export const JsonEditor: FC<JsonEditorProps> = ({ uri, editorOptions, ...props }
       uri={uri}
       editorOptions={{
         ariaLabel: 'JSON editor',
+        unicodeHighlight: {
+          // Disable warnings for – ’ characters
+          ambiguousCharacters: false,
+        },
         ...editorOptions,
       }}
       {...props}

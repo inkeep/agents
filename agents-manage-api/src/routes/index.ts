@@ -15,11 +15,13 @@ import functionToolsRoutes from './functionTools';
 import mcpCatalogRoutes from './mcpCatalog';
 import projectsRoutes from './projects';
 import refRoutes from './ref';
+import skillsRoutes from './skills';
 import subAgentArtifactComponentsRoutes from './subAgentArtifactComponents';
 import subAgentDataComponentsRoutes from './subAgentDataComponents';
 import subAgentExternalAgentRelationsRoutes from './subAgentExternalAgentRelations';
 import subAgentFunctionToolsRoutes from './subAgentFunctionTools';
 import subAgentRelationsRoutes from './subAgentRelations';
+import subAgentSkillsRoutes from './subAgentSkills';
 // Import existing route modules (others can be added as they're created)
 import subAgentsRoutes from './subAgents';
 import subAgentTeamAgentRelationsRoutes from './subAgentTeamAgentRelations';
@@ -66,6 +68,8 @@ app.route(
   '/projects/:projectId/agents/:agentId/sub-agent-function-tools',
   subAgentFunctionToolsRoutes
 );
+app.route('/projects/:projectId/skills', skillsRoutes);
+app.route('/projects/:projectId/agents/:agentId/sub-agent-skills', subAgentSkillsRoutes);
 app.route('/projects/:projectId/artifact-components', artifactComponentsRoutes);
 app.route('/projects/:projectId/agents/:agentId/context-configs', contextConfigsRoutes);
 app.route('/projects/:projectId/conversations', conversationsRoutes);
