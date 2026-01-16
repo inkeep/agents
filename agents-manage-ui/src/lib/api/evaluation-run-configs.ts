@@ -23,7 +23,7 @@ export interface EvaluationRunConfig {
   projectId: string;
 }
 
-export interface EvaluationRunConfigInsert {
+interface EvaluationRunConfigInsert {
   id?: string;
   name: string;
   description?: string;
@@ -31,7 +31,7 @@ export interface EvaluationRunConfigInsert {
   suiteConfigIds?: string[];
 }
 
-export interface EvaluationRunConfigUpdate {
+interface EvaluationRunConfigUpdate {
   name?: string;
   description?: string;
   isActive?: boolean;
