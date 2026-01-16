@@ -78,3 +78,6 @@ agents-eval-api/.workflow-data/
 
 # Node compile cache
 node-compile-cache/
+
+# inkeep pull temp folder
+.temp-validation-*/
