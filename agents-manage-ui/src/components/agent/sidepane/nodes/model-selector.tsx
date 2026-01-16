@@ -196,6 +196,32 @@ export function ModelSelector({
                       );
                     })()}
                   </CommandEmpty>
+                  {/* Predefined models */}
+                  {Object.entries(modelOptions).map(([provider, models]) => (
+                    <CommandGroup key={provider} heading={provider}>
+                      {models.map((model) => (
+                        <CommandItem
+                          key={model.value}
+                          className="flex items-center justify-between cursor-pointer text-foreground"
+                          value={model.value}
+                          onSelect={(currentValue) => {
+                            onValueChange?.(currentValue === value ? '' : currentValue);
+                            setOpen(false);
+                            setCustomModelInput('');
+                            setShowCustomInput(null);
+                          }}
+                        >
+                          {model.label}
+                          <Check
+                            className={cn(
+                              'ml-2 h-4 w-4',
+                              value === model.value ? 'opacity-100' : 'opacity-0'
+                            )}
+                          />
+                        </CommandItem>
+                      ))}
+                    </CommandGroup>
+                  ))}
                   {/* Custom OpenAI-compatible */}
                   <CommandGroup heading="Custom OpenAI-compatible">
                     <CommandItem
@@ -260,32 +286,6 @@ export function ModelSelector({
                       Azure ...
                     </CommandItem>
                   </CommandGroup>
-                  {/* Predefined models */}
-                  {Object.entries(modelOptions).map(([provider, models]) => (
-                    <CommandGroup key={provider} heading={provider}>
-                      {models.map((model) => (
-                        <CommandItem
-                          key={model.value}
-                          className="flex items-center justify-between cursor-pointer text-foreground"
-                          value={model.value}
-                          onSelect={(currentValue) => {
-                            onValueChange?.(currentValue === value ? '' : currentValue);
-                            setOpen(false);
-                            setCustomModelInput('');
-                            setShowCustomInput(null);
-                          }}
-                        >
-                          {model.label}
-                          <Check
-                            className={cn(
-                              'ml-2 h-4 w-4',
-                              value === model.value ? 'opacity-100' : 'opacity-0'
-                            )}
-                          />
-                        </CommandItem>
-                      ))}
-                    </CommandGroup>
-                  ))}
                 </CommandList>
               </Command>
             </PopoverContent>

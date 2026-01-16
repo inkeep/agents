@@ -7,7 +7,6 @@ import {
   signTempToken,
   TenantParamsSchema,
 } from '@inkeep/agents-core';
-import dbClient from '../data/db/dbClient';
 import { env } from '../env';
 import { getLogger } from '../logger';
 import { requirePermission } from '../middleware/require-permission';
@@ -70,6 +69,7 @@ app.openapi(
     },
   }),
   async (c) => {
+    const db = c.get('db');
     const userId = c.get('userId');
     const tenantId = c.get('tenantId'); // Set by requireTenantAccess middleware from URL param
     const { projectId, agentId } = c.req.valid('json');
@@ -80,7 +80,7 @@ app.openapi(
     );
 
     // Verify project exists and belongs to the tenant
-    const projectExistsCheck = await projectExists(dbClient)({ tenantId, projectId });
+    const projectExistsCheck = await projectExists(db)({ tenantId, projectId });
     if (!projectExistsCheck) {
       logger.warn({ userId, tenantId, projectId }, 'Project not found or access denied');
       throw createApiError({
@@ -90,7 +90,7 @@ app.openapi(
     }
 
     // Verify agent exists and belongs to the project
-    const agent = await getAgentById(dbClient)({ scopes: { tenantId, projectId, agentId } });
+    const agent = await getAgentById(db)({ scopes: { tenantId, projectId, agentId } });
     if (!agent) {
       logger.warn({ userId, tenantId, projectId, agentId }, 'Agent not found or access denied');
       throw createApiError({

@@ -183,7 +183,7 @@ describe('OpenAPI Specification - Integration Tests', () => {
         if (!fs.existsSync(snapshotDir)) {
           fs.mkdirSync(snapshotDir, { recursive: true });
         }
-        fs.writeFileSync(snapshotPath, JSON.stringify(normalizedSpec, null, 2) + '\n', 'utf-8');
+        fs.writeFileSync(snapshotPath, `${JSON.stringify(normalizedSpec, null, 2)}\n`, 'utf-8');
         console.log(`\n✓ Updated OpenAPI snapshot at ${snapshotPath}\n`);
         return; // Skip comparison when updating
       }
@@ -239,15 +239,23 @@ describe('OpenAPI Specification - Integration Tests', () => {
 
         if (addedPaths.length > 0 || removedPaths.length > 0) {
           lines.push('  📍 PATH CHANGES:');
-          addedPaths.forEach((p) => lines.push(`     + ${p}`));
-          removedPaths.forEach((p) => lines.push(`     - ${p}`));
+          addedPaths.forEach((p) => {
+            lines.push(`     + ${p}`);
+          });
+          removedPaths.forEach((p) => {
+            lines.push(`     - ${p}`);
+          });
           lines.push('');
         }
 
         if (addedSchemas.length > 0 || removedSchemas.length > 0) {
           lines.push('  📦 SCHEMA CHANGES:');
-          addedSchemas.forEach((s) => lines.push(`     + ${s}`));
-          removedSchemas.forEach((s) => lines.push(`     - ${s}`));
+          addedSchemas.forEach((s) => {
+            lines.push(`     + ${s}`);
+          });
+          removedSchemas.forEach((s) => {
+            lines.push(`     - ${s}`);
+          });
           lines.push('');
         }
 

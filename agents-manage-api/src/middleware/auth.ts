@@ -1,8 +1,14 @@
-import { type ExecutionContext, getLogger, validateAndGetApiKey } from '@inkeep/agents-core';
+import {
+  type BaseExecutionContext,
+  getLogger,
+  isInternalServiceToken,
+  validateAndGetApiKey,
+  verifyInternalServiceAuthHeader,
+} from '@inkeep/agents-core';
 import type { createAuth } from '@inkeep/agents-core/auth';
 import { createMiddleware } from 'hono/factory';
 import { HTTPException } from 'hono/http-exception';
-import dbClient from '../data/db/dbClient';
+import runDbClient from '../data/db/runDbClient';
 import { env } from '../env';
 
 const logger = getLogger('env-key-auth');
@@ -12,11 +18,12 @@ const logger = getLogger('env-key-auth');
  * 1. Bypass secret (INKEEP_AGENTS_MANAGE_API_BYPASS_SECRET)
  * 2. Better-auth session token (from device authorization flow)
  * 3. Database API key
+ * 4. Internal service token
  */
 export const apiKeyAuth = () =>
   createMiddleware<{
     Variables: {
-      executionContext: ExecutionContext;
+      executionContext: BaseExecutionContext;
       userId?: string;
       userEmail?: string;
       tenantId?: string;
@@ -93,7 +100,7 @@ export const apiKeyAuth = () =>
     }
 
     // 3. Validate against database API keys
-    const validatedKey = await validateAndGetApiKey(token, dbClient);
+    const validatedKey = await validateAndGetApiKey(token, runDbClient);
 
     if (validatedKey) {
       logger.info({ keyId: validatedKey.id }, 'API key authenticated successfully');
@@ -103,6 +110,37 @@ export const apiKeyAuth = () =>
       c.set('userEmail', `apikey-${validatedKey.id}@internal`);
       // The tenantId from the API key can be used for access control
       c.set('tenantId', validatedKey.tenantId);
+
+      await next();
+      return;
+    }
+
+    // 4. Validate as an internal service token if not already authenticated
+    if (isInternalServiceToken(token)) {
+      const result = await verifyInternalServiceAuthHeader(authHeader);
+      if (!result.valid || !result.payload) {
+        throw new HTTPException(401, {
+          message: result.error || 'Invalid internal service token',
+        });
+      }
+
+      logger.info(
+        {
+          serviceId: result.payload.sub,
+          tenantId: result.payload.tenantId,
+          projectId: result.payload.projectId,
+          userId: result.payload.userId,
+        },
+        'Internal service authenticated'
+      );
+
+      c.set('userId', result.payload.userId || `system`);
+      c.set('userEmail', `${result.payload.sub}@internal.inkeep`);
+
+      // If token has tenant scope, set it
+      if (result.payload.tenantId) {
+        c.set('tenantId', result.payload.tenantId);
+      }
 
       await next();
       return;

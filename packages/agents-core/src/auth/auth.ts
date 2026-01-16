@@ -4,11 +4,30 @@ import { drizzleAdapter } from 'better-auth/adapters/drizzle';
 import { bearer, deviceAuthorization, oAuthProxy, organization } from 'better-auth/plugins';
 import type { GoogleOptions } from 'better-auth/social-providers';
 import { eq } from 'drizzle-orm';
-import type { DatabaseClient } from '../db/client';
+import type { AgentsRunDatabaseClient } from '../db/runtime/runtime-client';
 import { env } from '../env';
 import { generateId } from '../utils';
 import * as authSchema from './auth-schema';
 import { ac, adminRole, memberRole, ownerRole } from './permissions';
+
+/**
+ * Get the user's initial organization for a new session.
+ * Returns the oldest organization the user is a member of.
+ * See: https://www.better-auth.com/docs/plugins/organization#active-organization
+ */
+async function getInitialOrganization(
+  dbClient: AgentsRunDatabaseClient,
+  userId: string
+): Promise<{ id: string } | null> {
+  const [membership] = await dbClient
+    .select({ organizationId: authSchema.member.organizationId })
+    .from(authSchema.member)
+    .where(eq(authSchema.member.userId, userId))
+    .orderBy(authSchema.member.createdAt)
+    .limit(1);
+
+  return membership ? { id: membership.organizationId } : null;
+}
 
 export interface OIDCProviderConfig {
   clientId: string;
@@ -62,7 +81,7 @@ export interface SSOProviderConfig {
 export interface BetterAuthConfig {
   baseURL: string;
   secret: string;
-  dbClient: DatabaseClient;
+  dbClient: AgentsRunDatabaseClient;
   ssoProviders?: SSOProviderConfig[];
   socialProviders?: {
     google?: GoogleOptions;
@@ -132,7 +151,7 @@ function extractCookieDomain(baseURL: string): string | undefined {
 }
 
 async function registerSSOProvider(
-  dbClient: DatabaseClient,
+  dbClient: AgentsRunDatabaseClient,
   provider: SSOProviderConfig
 ): Promise<void> {
   try {
@@ -181,6 +200,23 @@ export function createAuth(config: BetterAuthConfig) {
       maxPasswordLength: 128,
       requireEmailVerification: false,
       autoSignIn: true,
+    },
+    // Automatically set user's first organization as active when session is created
+    // See: https://www.better-auth.com/docs/plugins/organization#active-organization
+    databaseHooks: {
+      session: {
+        create: {
+          before: async (session) => {
+            const organization = await getInitialOrganization(config.dbClient, session.userId);
+            return {
+              data: {
+                ...session,
+                activeOrganizationId: organization?.id ?? null,
+              },
+            };
+          },
+        },
+      },
     },
     socialProviders: config.socialProviders?.google && {
       google: {

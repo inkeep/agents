@@ -1,12 +1,5 @@
 import { type Node, useReactFlow } from '@xyflow/react';
-import {
-  AlertTriangle,
-  Check,
-  CircleAlert,
-  Shield,
-  Trash2,
-  X,
-} from 'lucide-react';
+import { AlertTriangle, Check, CircleAlert, Shield, Trash2, X } from 'lucide-react';
 import Link from 'next/link';
 import { useParams } from 'next/navigation';
 import { useCallback, useEffect, useState } from 'react';
@@ -257,20 +250,6 @@ export function MCPServerNodeEditor({
           className="w-full"
         />
       </div>
-      {toolData?.imageUrl && (
-        <div className="space-y-2">
-          <Label htmlFor="imageUrl">Image URL</Label>
-          <Input
-            id="imageUrl"
-            name="imageUrl"
-            value={toolData.imageUrl || ''}
-            onChange={handleInputChange}
-            placeholder="https://example.com/icon.png"
-            disabled
-            className="w-full"
-          />
-        </div>
-      )}
       <div className="flex flex-col gap-2">
         <div className="flex items-center justify-between gap-2">
           <div className="flex items-center gap-2">

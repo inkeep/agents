@@ -9,6 +9,7 @@ import { Button } from '@/components/ui/button';
 import { useRuntimeConfig } from '@/contexts/runtime-config-context';
 import { useCopilotToken } from '@/hooks/use-copilot-token';
 import { useOAuthLogin } from '@/hooks/use-oauth-login';
+import { sentry } from '@/lib/sentry';
 import { generateId } from '@/lib/utils/id-utils';
 import { useCopilotContext } from './copilot-context';
 import { IkpMessage } from './message-parts/message';
@@ -62,6 +63,11 @@ export function CopilotChat({ agentId, tenantId, projectId, refreshAgentGraph }:
       if (event.detail.type === 'tool_result' && event.detail.conversationId === conversationId) {
         refreshAgentGraph();
       }
+      if (event.detail.type === 'error' && event.detail.conversationId === conversationId) {
+        sentry.captureException(new Error('Copilot data operation error'), {
+          extra: event.detail,
+        });
+      }
     };
 
     document.addEventListener('ikp-data-operation', updateAgentGraph);
@@ -75,7 +81,10 @@ export function CopilotChat({ agentId, tenantId, projectId, refreshAgentGraph }:
     PUBLIC_INKEEP_COPILOT_AGENT_ID,
     PUBLIC_INKEEP_COPILOT_PROJECT_ID,
     PUBLIC_INKEEP_COPILOT_TENANT_ID,
+    PUBLIC_DISABLE_AUTH,
   } = useRuntimeConfig();
+
+  const isAuthDisabled = PUBLIC_DISABLE_AUTH === 'true';
 
   const {
     apiKey: copilotToken,
@@ -153,6 +162,11 @@ export function CopilotChat({ agentId, tenantId, projectId, refreshAgentGraph }:
                 setConversationId(generateId());
                 setIsStreaming(false);
               }
+              if (event.eventName === 'chat_error') {
+                sentry.captureException(new Error('Copilot chat error'), {
+                  extra: { ...event.properties },
+                });
+              }
             },
             primaryBrandColor: '#3784ff',
             colorMode: {
@@ -211,6 +225,7 @@ export function CopilotChat({ agentId, tenantId, projectId, refreshAgentGraph }:
                         refreshAgentGraph: refreshAgentGraph,
                         cookieHeader: cookieHeader,
                         copilotToken: copilotToken,
+                        isAuthDisabled: isAuthDisabled,
                       }),
                   }
                 : {}),

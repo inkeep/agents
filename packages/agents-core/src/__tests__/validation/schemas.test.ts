@@ -151,6 +151,12 @@ describe('Validation Schemas', () => {
   });
 
   describe('TaskInsertSchema', () => {
+    const testRef = {
+      type: 'branch' as const,
+      name: 'main',
+      hash: 'a1b2c3d4e5f67890123456789012345v',
+    };
+
     it('should validate a complete task insert object', () => {
       const validTask = {
         id: 'task-1',
@@ -160,6 +166,7 @@ describe('Validation Schemas', () => {
         subAgentId: 'sub-agent-1',
         contextId: 'context-1',
         status: 'pending',
+        ref: testRef,
         metadata: {
           priority: 'high',
           tags: ['urgent', 'customer'],
@@ -178,6 +185,7 @@ describe('Validation Schemas', () => {
         subAgentId: 'sub-agent-1',
         contextId: 'context-1',
         status: 'pending',
+        ref: testRef,
       };
 
       expect(() => TaskInsertSchema.parse(minimalTask)).not.toThrow();
@@ -185,6 +193,12 @@ describe('Validation Schemas', () => {
   });
 
   describe('ConversationInsertSchema', () => {
+    const testRef = {
+      type: 'branch' as const,
+      name: 'main',
+      hash: 'a1b2c3d4e5f67890123456789012345v',
+    };
+
     it('should validate a conversation insert object', () => {
       const validConversation = {
         id: 'conv-1',
@@ -193,6 +207,7 @@ describe('Validation Schemas', () => {
         userId: 'user-1',
         activeSubAgentId: 'sub-agent-1',
         title: 'Test Conversation',
+        ref: testRef,
         metadata: {
           source: 'web',
           userAgent: 'Mozilla/5.0...',

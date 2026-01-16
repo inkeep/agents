@@ -33,6 +33,8 @@ interface ToolResultProps {
   targetAgentId?: string;
   onOAuthLogin?: OAuthLoginHandler;
   refreshAgentGraph?: (options?: { fetchTools?: boolean }) => Promise<void>;
+  /** Whether auth is disabled - pass this for Shadow DOM compatibility */
+  isAuthDisabled?: boolean;
 }
 
 // ============================================================================
@@ -103,6 +105,7 @@ export const ToolResult = ({
   targetProjectId,
   onOAuthLogin,
   refreshAgentGraph,
+  isAuthDisabled,
 }: ToolResultProps) => {
   const content = data.details.data.output?.result?.content || [];
 
@@ -132,6 +135,7 @@ export const ToolResult = ({
         targetProjectId={targetProjectId}
         onConnect={handleConnect}
         refreshAgentGraph={refreshAgentGraph}
+        isAuthDisabled={isAuthDisabled}
       />
 
       {/* Add more result renderers here as new types are supported:

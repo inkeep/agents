@@ -1,3 +1,9 @@
+import {
+  CONTEXT_BREAKDOWN_TOTAL_SPAN_ATTRIBUTE,
+  parseContextBreakdownFromSpan,
+  V1_BREAKDOWN_SCHEMA,
+} from '@inkeep/agents-core/client-exports';
+import type { AxiosResponse } from 'axios';
 import axios from 'axios';
 import axiosRetry from 'axios-retry';
 import { type NextRequest, NextResponse } from 'next/server';
@@ -57,7 +63,22 @@ function getNumber(span: SigNozListItem, key: string, fallback = 0): number {
   return Number.isFinite(n) ? n : fallback;
 }
 
-// Call secure manage-api instead of SigNoz directly
+/**
+ * Check if we should call SigNoz directly (server-to-server call without cookies)
+ */
+function shouldCallSigNozDirectly(cookieHeader: string | null): boolean {
+  return !cookieHeader && !!process.env.SIGNOZ_URL && !!process.env.SIGNOZ_API_KEY;
+}
+
+/**
+ * Get the SigNoz endpoint URL
+ */
+function getSigNozEndpoint(): string {
+  const signozUrl = process.env.SIGNOZ_URL || process.env.PUBLIC_SIGNOZ_URL;
+  return `${signozUrl}/api/v4/query_range`;
+}
+
+// Call SigNoz directly for server-to-server calls, otherwise go through manage-api
 async function signozQuery(
   payload: any,
   tenantId: string,
@@ -66,25 +87,41 @@ async function signozQuery(
   const logger = getLogger('signoz-query');
 
   try {
-    const manageApiUrl = getManageApiUrl();
-    const endpoint = `${manageApiUrl}/tenants/${tenantId}/signoz/query`;
+    let response: AxiosResponse;
 
-    const headers: Record<string, string> = {
-      'Content-Type': 'application/json',
-    };
+    // For server-to-server calls (no cookies), call SigNoz directly
+    if (shouldCallSigNozDirectly(cookieHeader)) {
+      const endpoint = getSigNozEndpoint();
+      logger.debug({ endpoint }, 'Calling SigNoz directly for conversation traces');
 
-    // Forward cookies for authentication
-    if (cookieHeader) {
-      headers.Cookie = cookieHeader;
+      response = await axios.post(endpoint, payload, {
+        headers: {
+          'Content-Type': 'application/json',
+          'SIGNOZ-API-KEY': process.env.SIGNOZ_API_KEY || '',
+        },
+        timeout: 30000,
+      });
+    } else {
+      // For browser calls, go through manage-api for auth
+      const manageApiUrl = getManageApiUrl();
+      const endpoint = `${manageApiUrl}/tenants/${tenantId}/signoz/query`;
+
+      const headers: Record<string, string> = {
+        'Content-Type': 'application/json',
+      };
+
+      if (cookieHeader) {
+        headers.Cookie = cookieHeader;
+      }
+
+      logger.debug({ endpoint }, 'Calling manage-api for conversation traces');
+
+      response = await axios.post(endpoint, payload, {
+        headers,
+        timeout: 30000,
+        withCredentials: true,
+      });
     }
-
-    logger.debug({ endpoint }, 'Calling secure manage-api for conversation traces');
-
-    const response = await axios.post(endpoint, payload, {
-      headers,
-      timeout: 30000,
-      withCredentials: true,
-    });
 
     const json = response.data as SigNozResp;
     const responseData = json?.data?.result
@@ -1137,39 +1174,19 @@ export async function GET(
     }
 
     // Build map from spanId to context breakdown (from agent.generate spans)
+    // Uses V1_BREAKDOWN_SCHEMA to dynamically parse breakdown from span attributes
     type ContextBreakdownData = {
-      systemPromptTemplate: number;
-      coreInstructions: number;
-      agentPrompt: number;
-      toolsSection: number;
-      artifactsSection: number;
-      dataComponents: number;
-      artifactComponents: number;
-      transferInstructions: number;
-      delegationInstructions: number;
-      thinkingPreparation: number;
-      conversationHistory: number;
+      components: Record<string, number>;
       total: number;
     };
     const spanIdToContextBreakdown = new Map<string, ContextBreakdownData>();
     for (const spanAttr of allSpanAttributes) {
       const data = spanAttr.data;
-      if (data['context.breakdown.total_tokens'] !== undefined) {
-        spanIdToContextBreakdown.set(spanAttr.spanId, {
-          systemPromptTemplate: Number(data['context.breakdown.system_template_tokens']) || 0,
-          coreInstructions: Number(data['context.breakdown.core_instructions_tokens']) || 0,
-          agentPrompt: Number(data['context.breakdown.agent_prompt_tokens']) || 0,
-          toolsSection: Number(data['context.breakdown.tools_tokens']) || 0,
-          artifactsSection: Number(data['context.breakdown.artifacts_tokens']) || 0,
-          dataComponents: Number(data['context.breakdown.data_components_tokens']) || 0,
-          artifactComponents: Number(data['context.breakdown.artifact_components_tokens']) || 0,
-          transferInstructions: Number(data['context.breakdown.transfer_instructions_tokens']) || 0,
-          delegationInstructions:
-            Number(data['context.breakdown.delegation_instructions_tokens']) || 0,
-          thinkingPreparation: Number(data['context.breakdown.thinking_preparation_tokens']) || 0,
-          conversationHistory: Number(data['context.breakdown.conversation_history_tokens']) || 0,
-          total: Number(data['context.breakdown.total_tokens']) || 0,
-        });
+      if (data[CONTEXT_BREAKDOWN_TOTAL_SPAN_ATTRIBUTE] !== undefined) {
+        spanIdToContextBreakdown.set(
+          spanAttr.spanId,
+          parseContextBreakdownFromSpan(data, V1_BREAKDOWN_SCHEMA)
+        );
       }
     }
 
@@ -1239,17 +1256,7 @@ export async function GET(
       aiTelemetryPhase?: string;
       // context breakdown (for AI streaming spans)
       contextBreakdown?: {
-        systemPromptTemplate: number;
-        coreInstructions: number;
-        agentPrompt: number;
-        toolsSection: number;
-        artifactsSection: number;
-        dataComponents: number;
-        artifactComponents: number;
-        transferInstructions: number;
-        delegationInstructions: number;
-        thinkingPreparation: number;
-        conversationHistory: number;
+        components: Record<string, number>;
         total: number;
       };
       // ai generation specifics
@@ -1768,11 +1775,13 @@ export async function GET(
       // Group tool calls by MCP server name
       const toolCallsByMcpServer = new Map<string, Activity[]>();
       for (const toolCall of toolCallsInGeneration) {
-        const mcpServerName = toolCall.mcpServerName || UNKNOWN_VALUE;
-        if (!toolCallsByMcpServer.has(mcpServerName)) {
-          toolCallsByMcpServer.set(mcpServerName, []);
+        // Skip tool calls without an MCP server name
+        if (!toolCall.mcpServerName) continue;
+
+        if (!toolCallsByMcpServer.has(toolCall.mcpServerName)) {
+          toolCallsByMcpServer.set(toolCall.mcpServerName, []);
         }
-        toolCallsByMcpServer.get(mcpServerName)?.push(toolCall);
+        toolCallsByMcpServer.get(toolCall.mcpServerName)?.push(toolCall);
       }
 
       // For each MCP server, check if ALL or SOME tool calls failed

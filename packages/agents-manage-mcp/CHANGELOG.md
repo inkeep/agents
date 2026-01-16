@@ -1,5 +1,11 @@
 # @inkeep/agents-manage-mcp
 
+## 0.41.2
+
+### Patch Changes
+
+- 2e86062: warning status messages
+
 ## 0.41.1
 
 ### Patch Changes

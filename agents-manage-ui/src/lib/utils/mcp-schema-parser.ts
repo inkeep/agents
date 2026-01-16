@@ -8,6 +8,8 @@ interface SchemaProperty {
   required: boolean;
   description?: string;
   enum?: string[];
+  properties?: SchemaProperty[]; // For nested objects
+  items?: SchemaProperty; // For array element schema
 }
 
 interface ParsedSchema {
@@ -74,7 +76,7 @@ export function parseMCPInputSchema(inputSchema: any): ParsedSchema {
   };
 }
 
-// Parse Zod-based property definition (e.g., Notion MCP)
+// Parse Zod-based property definition with full nested support
 function parseZodProperty(name: string, propertyDef: any): SchemaProperty | null {
   if (!propertyDef?.def) {
     return null;
@@ -83,27 +85,70 @@ function parseZodProperty(name: string, propertyDef: any): SchemaProperty | null
   const def = propertyDef.def;
   let type: string;
   let required = true;
+  let actualDef = def;
 
   // Handle optional properties
   if (def.type === 'optional') {
     required = false;
     if (def.innerType?.def) {
-      type = parseTypeFromDef(def.innerType.def);
+      actualDef = def.innerType.def;
+      type = parseTypeFromDef(actualDef);
     } else {
       type = 'any';
     }
   } else {
-    type = parseTypeFromDef(def);
+    type = parseTypeFromDef(actualDef);
   }
 
-  return {
+  const property: SchemaProperty = {
     name,
     type,
     required,
   };
+
+  // Handle nested objects in Zod schemas
+  if (actualDef.type === 'object' && actualDef.shape) {
+    property.properties = [];
+    for (const [nestedName, nestedDef] of Object.entries(actualDef.shape)) {
+      const nestedProperty = parseZodProperty(nestedName, nestedDef);
+      if (nestedProperty) {
+        property.properties.push(nestedProperty);
+      }
+    }
+  }
+
+  // Handle arrays in Zod schemas
+  if (actualDef.type === 'array' && actualDef.element?.def) {
+    const elementDef = actualDef.element.def;
+    if (elementDef.type === 'object' && elementDef.shape) {
+      // Array of objects
+      const itemProperties: SchemaProperty[] = [];
+      for (const [itemPropName, itemPropDef] of Object.entries(elementDef.shape)) {
+        const itemProperty = parseZodProperty(itemPropName, itemPropDef);
+        if (itemProperty) {
+          itemProperties.push(itemProperty);
+        }
+      }
+      property.items = {
+        name: 'item',
+        type: 'object',
+        required: false,
+        properties: itemProperties,
+      };
+    } else {
+      // Array of primitives
+      property.items = {
+        name: 'item',
+        type: parseTypeFromDef(elementDef),
+        required: false,
+      };
+    }
+  }
+
+  return property;
 }
 
-// Parse standard JSON Schema property definition
+// Parse standard JSON Schema property definition with full nested support
 function parseJsonSchemaProperty(
   name: string,
   propertyDef: any,
@@ -116,13 +161,69 @@ function parseJsonSchemaProperty(
   const type = propertyDef.type || 'any';
   const required = requiredFields ? requiredFields.includes(name) : false;
 
-  return {
+  const property: SchemaProperty = {
     name,
     type: formatJsonSchemaType(type, propertyDef),
     required,
     description: propertyDef.description,
     enum: propertyDef.enum,
   };
+
+  // Handle nested object properties recursively
+  if (type === 'object' && propertyDef.properties) {
+    property.properties = [];
+    for (const [nestedName, nestedDef] of Object.entries(propertyDef.properties)) {
+      const nestedProperty = parseJsonSchemaProperty(
+        nestedName,
+        nestedDef as any,
+        propertyDef.required
+      );
+      if (nestedProperty) {
+        property.properties.push(nestedProperty);
+      }
+    }
+  }
+
+  // Handle array item schemas recursively
+  if (type === 'array' && propertyDef.items) {
+    if (propertyDef.items.type === 'object' && propertyDef.items.properties) {
+      // Array of objects - parse the object schema recursively
+      const itemProperties: SchemaProperty[] = [];
+      for (const [itemPropName, itemPropDef] of Object.entries(propertyDef.items.properties)) {
+        const itemProperty = parseJsonSchemaProperty(
+          itemPropName,
+          itemPropDef as any,
+          propertyDef.items.required
+        );
+        if (itemProperty) {
+          itemProperties.push(itemProperty);
+        }
+      }
+      property.items = {
+        name: 'item',
+        type: 'object',
+        required: false,
+        properties: itemProperties,
+      };
+    } else if (propertyDef.items.type === 'array') {
+      // Array of arrays - handle recursively
+      const nestedArrayItem = parseJsonSchemaProperty('item', propertyDef.items, []);
+      if (nestedArrayItem) {
+        property.items = nestedArrayItem;
+      }
+    } else {
+      // Array of primitives
+      property.items = {
+        name: 'item',
+        type: propertyDef.items.type || 'any',
+        required: false,
+        description: propertyDef.items.description,
+        enum: propertyDef.items.enum,
+      };
+    }
+  }
+
+  return property;
 }
 
 // Parse generic property definition (fallback)

@@ -3,22 +3,17 @@ import {
   type AgentConversationHistoryConfig,
   type Artifact,
   type ArtifactComponentApiInsert,
-  agentHasArtifactComponents,
-  ContextResolver,
   type CredentialStoreRegistry,
   CredentialStuffer,
   createMessage,
   type DataComponentApiInsert,
+  type FullExecutionContext,
   generateId,
-  getContextConfigById,
-  getCredentialReference,
-  getFullAgentDefinition,
-  getFunction,
-  getFunctionToolsForSubAgent,
   getLedgerArtifacts,
-  getToolsForAgent,
-  getUserScopedCredentialReference,
+  InternalServices,
+  JsonTransformer,
   listTaskIdsByContextId,
+  ManagementApiClient,
   MCPServerType,
   type MCPToolConfig,
   MCPTransportType,
@@ -30,6 +25,7 @@ import {
   type ModelSettings,
   type Models,
   parseEmbeddedJson,
+  type ResolvedRef,
   type SubAgentStopWhen,
   TemplateEngine,
 } from '@inkeep/agents-core';
@@ -52,11 +48,13 @@ import {
   LLM_GENERATION_MAX_ALLOWED_TIMEOUT_MS,
   LLM_GENERATION_SUBSEQUENT_CALL_TIMEOUT_MS,
 } from '../constants/execution-limits';
+import { ContextResolver } from '../context';
 import {
   createDefaultConversationHistoryConfig,
   getConversationHistoryWithCompression,
 } from '../data/conversations';
 import dbClient from '../data/db/dbClient';
+import { env } from '../env';
 import { getLogger } from '../logger';
 import { agentSessionManager, type ToolCallData } from '../services/AgentSession';
 import { getModelAwareCompressionConfig } from '../services/BaseCompressor';
@@ -83,9 +81,8 @@ import { createDelegateToAgentTool, createTransferToAgentTool } from './relation
 import { SystemPromptBuilder } from './SystemPromptBuilder';
 import { toolSessionManager } from './ToolSessionManager';
 import type { SystemPromptV1 } from './types';
-import { Phase1Config } from './versions/v1/Phase1Config';
+import { Phase1Config, V1_BREAKDOWN_SCHEMA } from './versions/v1/Phase1Config';
 import { Phase2Config } from './versions/v1/Phase2Config';
-
 /**
  * Creates a stopWhen condition that stops when any tool call name starts with the given prefix
  * @param prefix - The prefix to check for in tool call names
@@ -154,6 +151,7 @@ export type ExternalAgentRelationConfig = {
   id: string;
   name: string;
   description: string;
+  ref: ResolvedRef;
   baseUrl: string;
   credentialReferenceId?: string | null;
   headers?: Record<string, string> | null;
@@ -163,6 +161,7 @@ export type ExternalAgentRelationConfig = {
 export type TeamAgentRelationConfig = {
   relationId: string;
   id: string;
+  ref: ResolvedRef;
   name: string;
   description: string;
   baseUrl: string;
@@ -203,9 +202,15 @@ export class Agent {
   private mcpClientCache: Map<string, McpClient> = new Map();
   private mcpConnectionLocks: Map<string, Promise<McpClient>> = new Map();
   private currentCompressor: MidGenerationCompressor | null = null;
+  private executionContext: FullExecutionContext;
 
-  constructor(config: AgentConfig, credentialStoreRegistry?: CredentialStoreRegistry) {
+  constructor(
+    config: AgentConfig,
+    executionContext: FullExecutionContext,
+    credentialStoreRegistry?: CredentialStoreRegistry
+  ) {
     this.artifactComponents = config.artifactComponents || [];
+    this.executionContext = executionContext;
 
     let processedDataComponents = config.dataComponents || [];
 
@@ -250,12 +255,7 @@ export class Agent {
     this.credentialStoreRegistry = credentialStoreRegistry;
 
     if (credentialStoreRegistry) {
-      this.contextResolver = new ContextResolver(
-        config.tenantId,
-        config.projectId,
-        dbClient,
-        credentialStoreRegistry
-      );
+      this.contextResolver = new ContextResolver(executionContext, credentialStoreRegistry);
       this.credentialStuffer = new CredentialStuffer(credentialStoreRegistry, this.contextResolver);
     }
   }
@@ -645,9 +645,7 @@ export class Agent {
             createDelegateToAgentTool({
               delegateConfig: relation,
               callingAgentId: this.config.id,
-              tenantId: this.config.tenantId,
-              projectId: this.config.projectId,
-              agentId: this.config.agentId,
+              executionContext: this.executionContext,
               contextId: runtimeContext?.contextId || 'default', // fallback for compatibility
               metadata: runtimeContext?.metadata || {
                 conversationId: runtimeContext?.contextId || 'default',
@@ -681,7 +679,7 @@ export class Agent {
           const needsApproval = toolSet.toolPolicies?.[toolName]?.needsApproval || false;
 
           const enhancedTool = {
-            ...toolDef,
+            ...(toolDef || {}),
             needsApproval,
           };
 
@@ -952,6 +950,7 @@ export class Agent {
         ...tool.headers,
         ...agentToolRelationHeaders,
       },
+      toolOverrides: tool.config.mcp.toolOverrides,
     };
   }
 
@@ -963,20 +962,15 @@ export class Agent {
       : 'no-fwd';
     const cacheKey = `${this.config.tenantId}-${this.config.projectId}-${tool.id}-${tool.credentialReferenceId || 'no-cred'}-${forwardedHeadersHash}`;
 
+    const project = this.executionContext.project;
+
     const credentialReferenceId = tool.credentialReferenceId;
 
-    const toolsForAgent = await getToolsForAgent(dbClient)({
-      scopes: {
-        tenantId: this.config.tenantId,
-        projectId: this.config.projectId,
-        agentId: this.config.agentId,
-        subAgentId: this.config.id,
-      },
-    });
-
-    const toolRelation = toolsForAgent.data.find((t) => t.toolId === tool.id);
+    // Get tool relation from project context instead of database
+    const subAgent = project.agents[this.config.agentId]?.subAgents?.[this.config.id];
+    const toolRelation = subAgent?.canUse?.find((t) => t.toolId === tool.id);
     const agentToolRelationHeaders = toolRelation?.headers || undefined;
-    const selectedTools = toolRelation?.selectedTools || undefined;
+    const selectedTools = toolRelation?.toolSelection || undefined;
     const toolPolicies = toolRelation?.toolPolicies || {};
 
     let serverConfig: McpServerConfig;
@@ -987,14 +981,11 @@ export class Agent {
 
     if (isUserScoped && userId && this.credentialStuffer) {
       // User-scoped: look up credential by (toolId, userId)
-      const userCredentialReference = await getUserScopedCredentialReference(dbClient)({
-        scopes: {
-          tenantId: this.config.tenantId,
-          projectId: this.config.projectId,
-        },
-        toolId: tool.id,
-        userId,
-      });
+      const userCredentialReference = project.credentialReferences
+        ? Object.values(project.credentialReferences).find(
+            (c) => c.toolId === tool.id && c.userId === userId
+          )
+        : undefined;
 
       if (userCredentialReference) {
         const storeReference = {
@@ -1033,16 +1024,11 @@ export class Agent {
       }
     } else if (credentialReferenceId && this.credentialStuffer) {
       // Project-scoped: look up credential by credentialReferenceId
-      const credentialReference = await getCredentialReference(dbClient)({
-        scopes: {
-          tenantId: this.config.tenantId,
-          projectId: this.config.projectId,
-        },
-        id: credentialReferenceId,
-      });
+
+      const credentialReference = project.credentialReferences?.[credentialReferenceId];
 
       if (!credentialReference) {
-        throw new Error(`Credential store not found: ${credentialReferenceId}`);
+        throw new Error(`Credential reference not found: ${credentialReferenceId}`);
       }
 
       const storeReference = {
@@ -1157,7 +1143,10 @@ export class Agent {
       }
     }
 
-    const tools = await client.tools();
+    const originalTools = await client.tools();
+
+    // Apply tool overrides if configured
+    const tools = await this.applyToolOverrides(originalTools, tool);
 
     if (!tools || Object.keys(tools).length === 0) {
       const streamRequestId = this.getStreamRequestId();
@@ -1243,18 +1232,25 @@ export class Agent {
 
   async getFunctionTools(sessionId?: string, streamRequestId?: string) {
     const functionTools: ToolSet = {};
-
+    const project = this.executionContext.project;
     try {
-      const functionToolsForAgent = await getFunctionToolsForSubAgent(dbClient)({
-        scopes: {
-          tenantId: this.config.tenantId,
-          projectId: this.config.projectId,
-          agentId: this.config.agentId,
+      const client = new ManagementApiClient({
+        apiUrl: env.INKEEP_AGENTS_MANAGE_API_URL,
+        tenantId: this.config.tenantId,
+        projectId: this.config.projectId,
+        auth: {
+          mode: 'internalService',
+          internalServiceName: InternalServices.INKEEP_AGENTS_RUN_API,
         },
-        subAgentId: this.config.id,
+        ref: this.executionContext.resolvedRef.name,
+        userId: this.config.userId,
       });
+      const functionToolsForAgent = await client.getFunctionToolsForSubAgent(
+        this.config.agentId,
+        this.config.id
+      );
 
-      const functionToolsData = functionToolsForAgent.data || [];
+      const functionToolsData = functionToolsForAgent ?? [];
 
       if (functionToolsData.length === 0) {
         return functionTools;
@@ -1273,13 +1269,7 @@ export class Agent {
           continue;
         }
 
-        const functionData = await getFunction(dbClient)({
-          functionId,
-          scopes: {
-            tenantId: this.config.tenantId || 'default',
-            projectId: this.config.projectId || 'default',
-          },
-        });
+        const functionData = project.functions?.[functionId];
         if (!functionData) {
           logger.warn(
             { functionId, functionToolId: functionToolDef.id },
@@ -1387,19 +1377,28 @@ export class Agent {
     headers?: Record<string, unknown>
   ): Promise<Record<string, unknown> | null> {
     try {
+      const project = this.executionContext.project;
+
       if (!this.config.contextConfigId) {
         logger.debug({ agentId: this.config.agentId }, 'No context config found for agent');
         return null;
       }
 
-      const contextConfig = await getContextConfigById(dbClient)({
-        scopes: {
-          tenantId: this.config.tenantId,
-          projectId: this.config.projectId,
-          agentId: this.config.agentId,
-        },
-        id: this.config.contextConfigId,
-      });
+      const contextConfig = project.agents[this.config.agentId]?.contextConfig;
+
+      if (!contextConfig) {
+        logger.warn({ contextConfigId: this.config.contextConfigId }, 'Context config not found');
+        return null;
+      }
+
+      const contextConfigWithScopes = {
+        ...contextConfig,
+        tenantId: this.config.tenantId,
+        projectId: this.config.projectId,
+        agentId: this.config.agentId,
+        createdAt: contextConfig.createdAt || '',
+        updatedAt: contextConfig.updatedAt || '',
+      };
       if (!contextConfig) {
         logger.warn({ contextConfigId: this.config.contextConfigId }, 'Context config not found');
         return null;
@@ -1409,7 +1408,7 @@ export class Agent {
         throw new Error('Context resolver not found');
       }
 
-      const result = await this.contextResolver.resolve(contextConfig, {
+      const result = await this.contextResolver.resolve(contextConfigWithScopes, {
         triggerEvent: 'invocation',
         conversationId,
         headers: headers || {},
@@ -1451,15 +1450,9 @@ export class Agent {
    * Get the agent prompt for this agent's agent
    */
   private async getPrompt(): Promise<string | undefined> {
+    const project = this.executionContext.project;
+    const agentDefinition = project.agents[this.config.agentId];
     try {
-      const agentDefinition = await getFullAgentDefinition(dbClient)({
-        scopes: {
-          tenantId: this.config.tenantId,
-          projectId: this.config.projectId,
-          agentId: this.config.agentId,
-        },
-      });
-
       return agentDefinition?.prompt || undefined;
     } catch (error) {
       logger.warn(
@@ -1477,15 +1470,9 @@ export class Agent {
    * Check if any agent in the agent has artifact components configured
    */
   private async hasAgentArtifactComponents(): Promise<boolean> {
+    const project = this.executionContext.project;
     try {
-      const agentDefinition = await getFullAgentDefinition(dbClient)({
-        scopes: {
-          tenantId: this.config.tenantId,
-          projectId: this.config.projectId,
-          agentId: this.config.agentId,
-        },
-      });
-
+      const agentDefinition = project.agents[this.config.agentId];
       if (!agentDefinition) {
         return false;
       }
@@ -1514,6 +1501,38 @@ export class Agent {
    * Build adaptive system prompt for Phase 2 structured output generation
    * based on configured data components and artifact components across the agent
    */
+  private getClientCurrentTime(): string | undefined {
+    const clientTimezone = this.config.forwardedHeaders?.['x-inkeep-client-timezone'];
+    const clientTimestamp = this.config.forwardedHeaders?.['x-inkeep-client-timestamp'];
+
+    // Both must be present
+    if (!clientTimezone || !clientTimestamp) {
+      return undefined;
+    }
+
+    try {
+      // Parse the client's UTC timestamp and format it in their timezone
+      // Format: "Thursday, January 16, 2026 at 3:45 PM EST"
+      const clientDate = new Date(clientTimestamp);
+      return clientDate.toLocaleString('en-US', {
+        timeZone: clientTimezone,
+        weekday: 'long',
+        year: 'numeric',
+        month: 'long',
+        day: 'numeric',
+        hour: 'numeric',
+        minute: '2-digit',
+        timeZoneName: 'short',
+      });
+    } catch (error) {
+      logger.warn(
+        { clientTimezone, clientTimestamp, error },
+        'Failed to format time for client timezone'
+      );
+      return undefined;
+    }
+  }
+
   private async buildPhase2SystemPrompt(runtimeContext?: {
     contextId: string;
     metadata: {
@@ -1566,6 +1585,8 @@ export class Agent {
       referenceArtifacts.push(...artifacts);
     }
 
+    const clientCurrentTime = this.getClientCurrentTime();
+
     return phase2Config.assemblePhase2Prompt({
       corePrompt: processedPrompt,
       dataComponents: this.config.dataComponents || [],
@@ -1573,6 +1594,7 @@ export class Agent {
       hasArtifactComponents: this.artifactComponents && this.artifactComponents.length > 0,
       hasAgentArtifactComponents,
       artifacts: referenceArtifacts,
+      clientCurrentTime,
     });
   }
 
@@ -1657,6 +1679,7 @@ export class Agent {
       projectId: this.config.projectId,
       conversationId: runtimeContext?.contextId || '',
       historyConfig,
+      ref: this.executionContext.resolvedRef,
     });
 
     const componentDataComponents = excludeDataComponents ? [] : this.config.dataComponents || [];
@@ -1689,6 +1712,8 @@ export class Agent {
     const hasAgentArtifactComponents =
       (await this.hasAgentArtifactComponents()) || compressionConfig.enabled;
 
+    const clientCurrentTime = this.getClientCurrentTime();
+
     const config: SystemPromptV1 = {
       corePrompt: processedPrompt,
       prompt,
@@ -1700,6 +1725,7 @@ export class Agent {
       isThinkingPreparation,
       hasTransferRelations: (this.config.transferRelations?.length ?? 0) > 0,
       hasDelegateRelations: (this.config.delegateRelations?.length ?? 0) > 0,
+      clientCurrentTime,
     };
     return await this.systemPromptBuilder.buildSystemPrompt(config);
   }
@@ -1830,6 +1856,276 @@ export class Agent {
 
   private getStreamRequestId(): string {
     return this.streamRequestId || '';
+  }
+
+  private async applyToolOverrides(originalTools: any, mcpTool: McpTool): Promise<any> {
+    // Check if this tool has overrides configured
+    const toolOverrides =
+      mcpTool.config.type === 'mcp' ? (mcpTool.config as any).mcp?.toolOverrides : undefined;
+
+    if (!toolOverrides) {
+      logger.debug(
+        { mcpToolName: mcpTool.name },
+        'No tool overrides configured, using original tools'
+      );
+      return originalTools;
+    }
+
+    if (!originalTools || typeof originalTools !== 'object') {
+      logger.warn(
+        { mcpToolName: mcpTool.name, originalToolsType: typeof originalTools },
+        'Invalid original tools structure, skipping overrides'
+      );
+      return originalTools || {};
+    }
+
+    const processedTools: any = {};
+    const availableToolNames = Object.keys(originalTools);
+    const overrideNames = Object.keys(toolOverrides);
+
+    // Validate that override tool names exist in available tools
+    const invalidOverrides = overrideNames.filter((name) => !availableToolNames.includes(name));
+    if (invalidOverrides.length > 0) {
+      logger.warn(
+        {
+          mcpToolName: mcpTool.name,
+          invalidOverrides,
+          availableTools: availableToolNames,
+        },
+        'Tool override configured for non-existent tools'
+      );
+    }
+
+    logger.info(
+      {
+        mcpToolName: mcpTool.name,
+        totalTools: availableToolNames.length,
+        toolsWithOverrides: overrideNames.length,
+        availableTools: availableToolNames,
+        overrideTools: overrideNames,
+      },
+      'Starting tool override application'
+    );
+
+    for (const [toolName, toolDef] of Object.entries(originalTools)) {
+      // Validate tool definition structure
+      if (!toolDef || typeof toolDef !== 'object') {
+        logger.warn(
+          { mcpToolName: mcpTool.name, toolName, toolDefType: typeof toolDef },
+          'Invalid tool definition structure, skipping tool'
+        );
+        continue;
+      }
+
+      // Check if this tool has an override
+      const override = toolOverrides[toolName];
+
+      if (override && (override.schema || override.description || override.displayName)) {
+        // Apply overrides (schema, description, displayName, transformation)
+        try {
+          logger.debug(
+            {
+              mcpToolName: mcpTool.name,
+              toolName,
+              override: {
+                hasSchema: !!override.schema,
+                hasDescription: !!override.description,
+                hasDisplayName: !!override.displayName,
+                hasTransformation: !!override.transformation,
+                transformationType: typeof override.transformation,
+              },
+            },
+            'Processing tool override'
+          );
+
+          // Use override schema if provided, otherwise use original
+          let inputSchema;
+          try {
+            inputSchema = override.schema
+              ? jsonSchemaToZod(override.schema)
+              : (toolDef as any).inputSchema;
+          } catch (schemaError) {
+            logger.error(
+              {
+                mcpToolName: mcpTool.name,
+                toolName,
+                schemaError:
+                  schemaError instanceof Error ? schemaError.message : String(schemaError),
+                overrideSchema: override.schema,
+              },
+              'Failed to convert override schema, using original'
+            );
+            inputSchema = (toolDef as any).inputSchema;
+          }
+
+          // Use display name or fall back to original tool name
+          const toolId = override.displayName || toolName;
+
+          // Use override description or fall back to original description
+          const toolDescription =
+            override.description || (toolDef as any).description || `Tool ${toolId}`;
+
+          const simplifiedTool = tool({
+            description: toolDescription,
+            inputSchema,
+            execute: async (simpleArgs: any) => {
+              // Only transform if transformation is provided
+              let complexArgs = simpleArgs;
+              if (override.transformation) {
+                try {
+                  const startTime = Date.now();
+
+                  if (typeof override.transformation === 'string') {
+                    // Use secure async transform with timeout and validation
+                    complexArgs = await JsonTransformer.transform(
+                      simpleArgs,
+                      override.transformation,
+                      { timeout: 10000 } // 10 second timeout for security
+                    );
+                  } else if (
+                    typeof override.transformation === 'object' &&
+                    override.transformation !== null
+                  ) {
+                    // Use transformWithConfig for object transformations
+                    complexArgs = await JsonTransformer.transformWithConfig(
+                      simpleArgs,
+                      {
+                        objectTransformation: override.transformation,
+                      },
+                      { timeout: 10000 }
+                    );
+                  } else {
+                    logger.warn(
+                      {
+                        mcpToolName: mcpTool.name,
+                        toolName,
+                        transformationType: typeof override.transformation,
+                      },
+                      'Invalid transformation type, skipping transformation'
+                    );
+                  }
+
+                  const duration = Date.now() - startTime;
+                  logger.debug(
+                    {
+                      mcpToolName: mcpTool.name,
+                      toolName,
+                      transformationDuration: duration,
+                      hasSimpleArgs: !!simpleArgs,
+                      hasComplexArgs: !!complexArgs,
+                      transformation:
+                        typeof override.transformation === 'string'
+                          ? override.transformation.substring(0, 100) + '...'
+                          : 'object-transformation',
+                    },
+                    'Successfully transformed tool arguments'
+                  );
+                } catch (transformError) {
+                  const errorMessage =
+                    transformError instanceof Error
+                      ? transformError.message
+                      : String(transformError);
+                  logger.error(
+                    {
+                      mcpToolName: mcpTool.name,
+                      toolName,
+                      transformError: errorMessage,
+                      transformation: override.transformation,
+                      simpleArgs,
+                    },
+                    'Failed to transform tool arguments, using original arguments'
+                  );
+                  // Continue with original args if transformation fails
+                  complexArgs = simpleArgs;
+                }
+              }
+
+              // Validate that original tool has execute function
+              if (typeof (toolDef as any).execute !== 'function') {
+                throw new Error(`Original tool ${toolName} does not have a valid execute function`);
+              }
+
+              // Call original tool with error handling
+              try {
+                logger.debug(
+                  {
+                    mcpToolName: mcpTool.name,
+                    toolName,
+                    hasComplexArgs: !!complexArgs,
+                  },
+                  'Executing original tool with processed arguments'
+                );
+
+                return await (toolDef as any).execute(complexArgs);
+              } catch (executeError) {
+                const errorMessage =
+                  executeError instanceof Error ? executeError.message : String(executeError);
+                logger.error(
+                  {
+                    mcpToolName: mcpTool.name,
+                    toolName,
+                    executeError: errorMessage,
+                    complexArgs,
+                  },
+                  'Failed to execute original tool'
+                );
+                throw new Error(`Tool execution failed for ${toolName}: ${errorMessage}`);
+              }
+            },
+          });
+
+          // Replace original with overridden version using the display name if provided
+          const finalToolName = override.displayName || toolName;
+          processedTools[finalToolName] = simplifiedTool;
+
+          logger.info(
+            {
+              mcpToolName: mcpTool.name,
+              originalToolName: toolName,
+              finalToolName,
+              displayName: override.displayName,
+              hasSchemaOverride: !!override.schema,
+              hasDescriptionOverride: !!override.description,
+              hasTransformation: !!override.transformation,
+            },
+            'Successfully applied tool overrides'
+          );
+        } catch (error) {
+          const errorMessage = error instanceof Error ? error.message : String(error);
+          logger.error(
+            {
+              mcpToolName: mcpTool.name,
+              toolName,
+              error: errorMessage,
+              override,
+            },
+            'Failed to apply tool overrides, using original tool'
+          );
+          // Fall back to original tool
+          processedTools[toolName] = toolDef;
+        }
+      } else {
+        // No override, use original
+        processedTools[toolName] = toolDef;
+        logger.debug(
+          { mcpToolName: mcpTool.name, toolName },
+          'No overrides configured for tool, using original'
+        );
+      }
+    }
+
+    const processedToolNames = Object.keys(processedTools);
+    logger.info(
+      {
+        mcpToolName: mcpTool.name,
+        originalToolCount: availableToolNames.length,
+        processedToolCount: processedToolNames.length,
+        processedTools: processedToolNames,
+      },
+      'Completed tool override application'
+    );
+
+    return processedTools;
   }
 
   /**
@@ -2155,16 +2451,18 @@ ${output}`;
     }
   }
 
-  // Check if any agents in the agent have artifact components
+  // Check if any sub-agents in the agent have artifact components
   private async agentHasArtifactComponents(): Promise<boolean> {
     try {
-      return await agentHasArtifactComponents(dbClient)({
-        scopes: {
-          tenantId: this.config.tenantId,
-          projectId: this.config.projectId,
-          agentId: this.config.agentId,
-        },
-      });
+      const project = this.executionContext.project;
+      const agent = project.agents[this.config.agentId];
+      const subAgents = agent?.subAgents;
+      if (!subAgents) {
+        return false;
+      }
+      return Object.values(subAgents).some(
+        (subAgent) => subAgent.artifactComponents?.length ?? 0 > 0
+      );
     } catch (error) {
       logger.error(
         { error, agentId: this.config.agentId },
@@ -2232,21 +2530,14 @@ ${output}`;
           );
 
           // Record context breakdown as span attributes for trace viewer
-          span.setAttributes({
-            'context.breakdown.system_template_tokens': contextBreakdown.systemPromptTemplate,
-            'context.breakdown.core_instructions_tokens': contextBreakdown.coreInstructions,
-            'context.breakdown.agent_prompt_tokens': contextBreakdown.agentPrompt,
-            'context.breakdown.tools_tokens': contextBreakdown.toolsSection,
-            'context.breakdown.artifacts_tokens': contextBreakdown.artifactsSection,
-            'context.breakdown.data_components_tokens': contextBreakdown.dataComponents,
-            'context.breakdown.artifact_components_tokens': contextBreakdown.artifactComponents,
-            'context.breakdown.transfer_instructions_tokens': contextBreakdown.transferInstructions,
-            'context.breakdown.delegation_instructions_tokens':
-              contextBreakdown.delegationInstructions,
-            'context.breakdown.thinking_preparation_tokens': contextBreakdown.thinkingPreparation,
-            'context.breakdown.conversation_history_tokens': contextBreakdown.conversationHistory,
-            'context.breakdown.total_tokens': contextBreakdown.total,
-          });
+          // Uses the schema to dynamically set span attributes
+          const breakdownAttributes: Record<string, number> = {};
+          for (const componentDef of V1_BREAKDOWN_SCHEMA) {
+            breakdownAttributes[componentDef.spanAttribute] =
+              contextBreakdown.components[componentDef.key] ?? 0;
+          }
+          breakdownAttributes['context.breakdown.total_tokens'] = contextBreakdown.total;
+          span.setAttributes(breakdownAttributes);
 
           // Configure model settings and behavior
           const {
@@ -2598,9 +2889,12 @@ ${output}`;
 
     // Track conversation history tokens and add to context breakdown
     const conversationHistoryTokens = estimateTokens(conversationHistory);
-    const updatedContextBreakdown = {
-      ...initialContextBreakdown,
-      conversationHistory: conversationHistoryTokens,
+    const updatedContextBreakdown: ContextBreakdown = {
+      components: {
+        ...initialContextBreakdown.components,
+        conversationHistory: conversationHistoryTokens,
+      },
+      total: initialContextBreakdown.total,
     };
 
     // Recalculate total with conversation history
@@ -2911,7 +3205,7 @@ ${output}`;
     };
     const parser = new IncrementalStreamParser(
       streamHelper,
-      this.config.tenantId,
+      this.executionContext,
       contextId,
       artifactParserOptions
     );
@@ -3250,7 +3544,7 @@ ${output}${structureHintsFormatted}`;
 
     if (!formattedContent) {
       const session = toolSessionManager.getSession(sessionId);
-      const responseFormatter = new ResponseFormatter(this.config.tenantId, {
+      const responseFormatter = new ResponseFormatter(this.executionContext, {
         sessionId,
         taskId: session?.taskId,
         projectId: session?.projectId,

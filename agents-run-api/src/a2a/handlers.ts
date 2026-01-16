@@ -2,7 +2,6 @@ import {
   createMessage,
   createTask,
   generateId,
-  getRequestExecutionContext,
   type Message,
   type MessageSendParams,
   type Task,
@@ -87,14 +86,16 @@ async function handleMessageSend(
 ): Promise<Response> {
   try {
     const params = request.params as MessageSendParams;
-    const executionContext = getRequestExecutionContext(c);
-    const { agentId } = executionContext;
+    const executionContext = c.get('executionContext');
+    const { agentId, resolvedRef } = executionContext;
 
     // Extract forwarded headers from the request (passed from ExecutionHandler via A2AClient)
     // Transform cookie -> x-forwarded-cookie for downstream forwarding
+    // Note: Do NOT forward the authorization header - it causes issues with MCP servers
+    // because the internal Inkeep JWT token should not be sent to external services.
+    // MCP server auth should be configured via agent tool relation headers instead.
     const forwardedHeaders: Record<string, string> = {};
     const xForwardedCookie = c.req.header('x-forwarded-cookie');
-    const authorization = c.req.header('authorization');
     const cookie = c.req.header('cookie');
 
     // Priority: x-forwarded-cookie (explicit) > cookie (browser-sent)
@@ -103,7 +104,13 @@ async function handleMessageSend(
     } else if (cookie) {
       forwardedHeaders['x-forwarded-cookie'] = cookie;
     }
-    if (authorization) forwardedHeaders.authorization = authorization;
+
+    // Merge forwardedHeaders from message metadata (contains browser timestamp from ExecutionHandler)
+    // with local forwardedHeaders (contains cookies from HTTP headers)
+    const mergedForwardedHeaders = {
+      ...(params.message.metadata?.forwardedHeaders || {}),
+      ...forwardedHeaders,
+    };
 
     const task: A2ATask = {
       id: generateId(),
@@ -120,8 +127,9 @@ async function handleMessageSend(
           blocking: params.configuration?.blocking ?? false,
           custom: { agent_id: agentId || '' },
           ...params.message.metadata,
-          // Pass forwarded headers to taskHandler for MCP server authentication
-          forwardedHeaders: Object.keys(forwardedHeaders).length > 0 ? forwardedHeaders : undefined,
+          // Pass merged forwarded headers to taskHandler (includes both browser timestamp and cookies)
+          forwardedHeaders:
+            Object.keys(mergedForwardedHeaders).length > 0 ? mergedForwardedHeaders : undefined,
         },
       },
     };
@@ -186,7 +194,6 @@ async function handleMessageSend(
       },
       'A2A contextId resolution for delegation'
     );
-
     await createTask(dbClient)({
       id: task.id,
       tenantId: agent.tenantId,
@@ -203,6 +210,7 @@ async function handleMessageSend(
         agent_id: agentId || '',
         stream_request_id: params.message.metadata?.stream_request_id,
       },
+      ref: resolvedRef,
       subAgentId: agent.subAgentId,
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
@@ -405,6 +413,14 @@ async function handleMessageSend(
       id: request.id,
     });
   } catch (error) {
+    logger.error(
+      {
+        error: error instanceof Error ? error.message : 'Unknown error',
+        stack: error instanceof Error ? error.stack : undefined,
+        subAgentId: agent.subAgentId,
+      },
+      'Error in handleMessageSend'
+    );
     return c.json({
       jsonrpc: '2.0',
       error: {
@@ -424,7 +440,7 @@ async function handleMessageStream(
 ): Promise<Response> {
   try {
     const params = request.params as MessageSendParams;
-    const executionContext = getRequestExecutionContext(c);
+    const executionContext = c.get('executionContext');
     const { agentId } = executionContext;
 
     if (!agent.agentCard.capabilities.streaming) {
@@ -440,9 +456,11 @@ async function handleMessageStream(
 
     // Extract forwarded headers from the request (passed from ExecutionHandler via A2AClient)
     // Transform cookie -> x-forwarded-cookie for downstream forwarding
+    // Note: Do NOT forward the authorization header - it causes issues with MCP servers
+    // because the internal Inkeep JWT token should not be sent to external services.
+    // MCP server auth should be configured via agent tool relation headers instead.
     const forwardedHeaders: Record<string, string> = {};
     const xForwardedCookie = c.req.header('x-forwarded-cookie');
-    const authorization = c.req.header('authorization');
     const cookie = c.req.header('cookie');
 
     // Priority: x-forwarded-cookie (explicit) > cookie (browser-sent)
@@ -451,7 +469,6 @@ async function handleMessageStream(
     } else if (cookie) {
       forwardedHeaders['x-forwarded-cookie'] = cookie;
     }
-    if (authorization) forwardedHeaders.authorization = authorization;
 
     const task: A2ATask = {
       id: generateId(),

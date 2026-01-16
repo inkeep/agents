@@ -9,7 +9,7 @@ export default defineProject({
     setupFiles: ['./src/__tests__/setup.ts'],
     testTimeout: 60000, // 60 seconds for A2A client tests
     hookTimeout: 60000, // 60 seconds for setup/teardown hooks
-    exclude: ['node_modules', 'dist'],
+    exclude: ['node_modules', 'dist', '**/integration/**'],
     // Enable parallelism with in-memory databases - each worker gets isolated database
     fileParallelism: true,
     poolOptions: {
