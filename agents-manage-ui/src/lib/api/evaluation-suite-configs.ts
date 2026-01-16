@@ -18,7 +18,7 @@ export interface EvaluationSuiteConfig {
   projectId: string;
 }
 
-export interface EvaluationSuiteConfigInsert {
+interface EvaluationSuiteConfigInsert {
   id?: string;
   filters?: Record<string, unknown> | null;
   sampleRate?: number | null;
