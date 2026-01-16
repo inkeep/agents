@@ -1,29 +1,28 @@
-import { MoreVertical, Trash2 } from 'lucide-react';
+import { MoreVertical, Pencil, Trash2 } from 'lucide-react';
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
-import { Dialog, DialogTrigger } from '@/components/ui/dialog';
+import { Dialog } from '@/components/ui/dialog';
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
+import type { Agent } from '@/lib/types/agent-full';
 import { DeleteAgentConfirmation } from './delete-agent-confirmation';
+import { EditAgentDialog } from './edit-agent-dialog';
 
-interface AgentItemMenuProps {
-  agentId: string;
-  agentName?: string;
+interface AgentItemMenuProps extends Pick<Agent, 'id' | 'name' | 'description'> {
+  projectId: string;
+  tenantId: string;
 }
 
-export function AgentItemMenu({ agentId, agentName }: AgentItemMenuProps) {
-  const [isOpen, setIsOpen] = useState(false);
-
-  const handleOpenChange = (open: boolean) => {
-    setIsOpen(open);
-  };
+export function AgentItemMenu({ id, name, description, projectId, tenantId }: AgentItemMenuProps) {
+  const [isDeleteOpen, setIsDeleteOpen] = useState(false);
+  const [isEditOpen, setIsEditOpen] = useState(false);
 
   return (
-    <Dialog open={isOpen} onOpenChange={handleOpenChange}>
+    <>
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
           <Button
@@ -38,17 +37,33 @@ export function AgentItemMenu({ agentId, agentName }: AgentItemMenuProps) {
           align="end"
           className="w-48 shadow-lg border border-border bg-popover/95 backdrop-blur-sm"
         >
-          <DialogTrigger asChild>
-            <DropdownMenuItem className="text-destructive hover:!bg-destructive/10 dark:hover:!bg-destructive/20 hover:!text-destructive cursor-pointer">
-              <Trash2 className="size-4 text-destructive" />
-              Delete
-            </DropdownMenuItem>
-          </DialogTrigger>
+          <DropdownMenuItem className=" cursor-pointer" onClick={() => setIsEditOpen(true)}>
+            <Pencil className="size-4" />
+            Rename
+          </DropdownMenuItem>
+          <DropdownMenuItem
+            className="text-destructive hover:!bg-destructive/10 dark:hover:!bg-destructive/20 hover:!text-destructive cursor-pointer"
+            onClick={() => setIsDeleteOpen(true)}
+          >
+            <Trash2 className="size-4 text-destructive" />
+            Delete
+          </DropdownMenuItem>
         </DropdownMenuContent>
       </DropdownMenu>
-      {isOpen && (
-        <DeleteAgentConfirmation agentId={agentId} agentName={agentName} setIsOpen={setIsOpen} />
+      {isDeleteOpen && (
+        <Dialog open={isDeleteOpen} onOpenChange={setIsDeleteOpen}>
+          <DeleteAgentConfirmation agentId={id} agentName={name} setIsOpen={setIsDeleteOpen} />
+        </Dialog>
       )}
-    </Dialog>
+      {isEditOpen && (
+        <EditAgentDialog
+          tenantId={tenantId}
+          projectId={projectId}
+          agentData={{ id, name, description: description || '' }}
+          isOpen={isEditOpen}
+          setIsOpen={setIsEditOpen}
+        />
+      )}
+    </>
   );
 }

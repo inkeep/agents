@@ -6,55 +6,86 @@ import { useForm } from 'react-hook-form';
 import { toast } from 'sonner';
 import { z } from 'zod';
 import { useAutoPrefillId } from '@/hooks/use-auto-prefill-id';
-import { createAgentAction } from '@/lib/actions/agent-full';
+import { createAgentAction, updateAgentAction } from '@/lib/actions/agent-full';
 import { idSchema } from '@/lib/validation';
 import { GenericInput } from '../form/generic-input';
+import { GenericTextarea } from '../form/generic-textarea';
 import { Button } from '../ui/button';
 import { Form } from '../ui/form';
 
 const agentSchema = z.object({
   name: z.string().min(1, 'Name is required'),
   id: idSchema,
+  description: z.string().optional(),
 });
 
-type AgentFormData = z.infer<typeof agentSchema>;
+export type AgentFormData = z.infer<typeof agentSchema>;
 
 const defaultValues: AgentFormData = {
   name: '',
   id: '',
+  description: '',
 };
 
-interface NewAgentFormProps {
+interface AgentFormProps {
   tenantId: string;
   projectId: string;
+  onSuccess?: () => void;
+  initialData?: AgentFormData;
+  agentId?: string;
 }
 
-export const NewAgentForm = ({ tenantId, projectId }: NewAgentFormProps) => {
+export const AgentForm = ({
+  tenantId,
+  projectId,
+  agentId,
+  onSuccess,
+  initialData,
+}: AgentFormProps) => {
   const router = useRouter();
   const form = useForm<AgentFormData>({
     resolver: zodResolver(agentSchema),
-    defaultValues,
+    defaultValues: initialData ? initialData : defaultValues,
   });
 
   const { isSubmitting } = form.formState;
+
+  const buttonText = isSubmitting
+    ? agentId
+      ? 'Updating...'
+      : 'Creating...'
+    : agentId
+      ? 'Update agent'
+      : 'Create agent';
 
   useAutoPrefillId({
     form,
     nameField: 'name',
     idField: 'id',
+    isEditing: !!agentId,
   });
 
   const onSubmit = async (data: AgentFormData) => {
     try {
-      const res = await createAgentAction(tenantId, projectId, data);
-      if (!res.success) {
-        toast.error(res.error || 'Failed to create agent.');
-        return;
-      }
-      if (res.data) {
-        const newAgent = res.data;
-        toast.success('Agent created!');
-        router.push(`/${tenantId}/projects/${projectId}/agents/${newAgent.id}`);
+      if (agentId) {
+        const res = await updateAgentAction(tenantId, projectId, agentId, data);
+        if (!res.success) {
+          toast.error(res.error || 'Failed to update agent.');
+          return;
+        }
+        toast.success('Agent updated!');
+        onSuccess?.();
+      } else {
+        const res = await createAgentAction(tenantId, projectId, data);
+        if (!res.success) {
+          toast.error(res.error || 'Failed to create agent.');
+          return;
+        }
+        if (res.data) {
+          onSuccess?.();
+          toast.success('Agent created!');
+          router.push(`/${tenantId}/projects/${projectId}/agents/${res.data.id}`);
+        }
       }
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'An unexpected error occurred.';
@@ -77,11 +108,19 @@ export const NewAgentForm = ({ tenantId, projectId }: NewAgentFormProps) => {
           name="id"
           label="Id"
           placeholder="my-agent"
+          disabled={!!agentId}
           isRequired
+        />
+        <GenericTextarea
+          control={form.control}
+          name="description"
+          label="Description"
+          placeholder="This agent is used to..."
+          className="min-h-[100px]"
         />
         <div className="flex justify-end">
           <Button disabled={isSubmitting} type="submit">
-            Create agent
+            {buttonText}
           </Button>
         </div>
       </form>
