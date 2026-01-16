@@ -739,26 +739,32 @@ function buildCompressionSummaryMessage(summary: any, artifactIds: string[]): st
     parts.push(`🎯 Primary Goal: ${summary.user_goals.primary}`);
     if (summary.user_goals.secondary && summary.user_goals.secondary.length > 0) {
       parts.push(`🎯 Secondary Goals:`);
-      summary.user_goals.secondary.forEach((goal: string) => parts.push(`  • ${goal}`));
+      summary.user_goals.secondary.forEach((goal: string) => {
+        parts.push(`  • ${goal}`);
+      });
     }
   }
 
   if (summary.key_outcomes) {
     if (summary.key_outcomes.completed && summary.key_outcomes.completed.length > 0) {
       parts.push(`✅ Completed:`);
-      summary.key_outcomes.completed.forEach((item: string) => parts.push(`  • ${item}`));
+      summary.key_outcomes.completed.forEach((item: string) => {
+        parts.push(`  • ${item}`);
+      });
     }
 
     if (summary.key_outcomes.discoveries && summary.key_outcomes.discoveries.length > 0) {
       parts.push(`💡 Key Discoveries:`);
-      summary.key_outcomes.discoveries.forEach((discovery: string) =>
-        parts.push(`  • ${discovery}`)
-      );
+      summary.key_outcomes.discoveries.forEach((discovery: string) => {
+        parts.push(`  • ${discovery}`);
+      });
     }
 
     if (summary.key_outcomes.partial && summary.key_outcomes.partial.length > 0) {
       parts.push(`⏳ In Progress:`);
-      summary.key_outcomes.partial.forEach((item: string) => parts.push(`  • ${item}`));
+      summary.key_outcomes.partial.forEach((item: string) => {
+        parts.push(`  • ${item}`);
+      });
     }
   }
 
@@ -772,9 +778,9 @@ function buildCompressionSummaryMessage(summary: any, artifactIds: string[]): st
       summary.context_for_continuation.next_logical_steps.length > 0
     ) {
       parts.push(`📝 Next Steps:`);
-      summary.context_for_continuation.next_logical_steps.forEach((step: string) =>
-        parts.push(`  • ${step}`)
-      );
+      summary.context_for_continuation.next_logical_steps.forEach((step: string) => {
+        parts.push(`  • ${step}`);
+      });
     }
 
     if (
@@ -782,9 +788,9 @@ function buildCompressionSummaryMessage(summary: any, artifactIds: string[]): st
       summary.context_for_continuation.important_context.length > 0
     ) {
       parts.push(`🔑 Key Context:`);
-      summary.context_for_continuation.important_context.forEach((context: string) =>
-        parts.push(`  • ${context}`)
-      );
+      summary.context_for_continuation.important_context.forEach((context: string) => {
+        parts.push(`  • ${context}`);
+      });
     }
   }
 
@@ -802,9 +808,9 @@ function buildCompressionSummaryMessage(summary: any, artifactIds: string[]): st
       summary.technical_context.issues_encountered.length > 0
     ) {
       parts.push(`⚠️ Issues Encountered:`);
-      summary.technical_context.issues_encountered.forEach((issue: string) =>
-        parts.push(`  • ${issue}`)
-      );
+      summary.technical_context.issues_encountered.forEach((issue: string) => {
+        parts.push(`  • ${issue}`);
+      });
     }
 
     if (
@@ -812,9 +818,9 @@ function buildCompressionSummaryMessage(summary: any, artifactIds: string[]): st
       summary.technical_context.solutions_applied.length > 0
     ) {
       parts.push(`✨ Solutions Applied:`);
-      summary.technical_context.solutions_applied.forEach((solution: string) =>
-        parts.push(`  • ${solution}`)
-      );
+      summary.technical_context.solutions_applied.forEach((solution: string) => {
+        parts.push(`  • ${solution}`);
+      });
     }
   }
 
@@ -829,17 +835,23 @@ function buildCompressionSummaryMessage(summary: any, artifactIds: string[]): st
 
   if (summary.decisions && summary.decisions.length > 0) {
     parts.push(`✅ Key Decisions Made:`);
-    summary.decisions.forEach((decision: string) => parts.push(`  • ${decision}`));
+    summary.decisions.forEach((decision: string) => {
+      parts.push(`  • ${decision}`);
+    });
   }
 
   if (summary.next_steps && summary.next_steps.length > 0) {
     parts.push(`📝 Planned Next Steps:`);
-    summary.next_steps.forEach((step: string) => parts.push(`  • ${step}`));
+    summary.next_steps.forEach((step: string) => {
+      parts.push(`  • ${step}`);
+    });
   }
 
   if (summary.open_questions && summary.open_questions.length > 0) {
     parts.push(`❓ Outstanding Questions:`);
-    summary.open_questions.forEach((question: string) => parts.push(`  • ${question}`));
+    summary.open_questions.forEach((question: string) => {
+      parts.push(`  • ${question}`);
+    });
   }
 
   // Handle conversation artifacts with detailed information and proper reference format

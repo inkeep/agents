@@ -251,7 +251,6 @@ export class VercelDataStreamHelper implements StreamHelper {
   private jsonBuffer = '';
   private sentItems = new Map<number, string>(); // Track what we've sent for each index
   private completedItems = new Set<number>(); // Track completed items
-  private sessionId?: string;
 
   private static readonly MAX_BUFFER_SIZE = STREAM_BUFFER_MAX_SIZE_BYTES;
   private isCompleted = false;
@@ -689,7 +688,6 @@ export class BufferingStreamHelper implements StreamHelper {
   private capturedSummaries: SummaryEvent[] = [];
   private hasError = false;
   private errorMessage = '';
-  private sessionId?: string;
 
   setSessionId(sessionId: string): void {
     this.sessionId = sessionId;

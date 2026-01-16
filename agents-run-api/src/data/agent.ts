@@ -17,7 +17,7 @@ async function hydrateAgent({
   executionContext: FullExecutionContext;
   baseUrl: string;
 }): Promise<RegisteredAgent> {
-  const { tenantId, projectId, agentId, project, resolvedRef, apiKey } = executionContext;
+  const { tenantId, projectId, agentId, project, apiKey } = executionContext;
   try {
     // Check if defaultSubAgentId exists
     if (!dbAgent.defaultSubAgentId) {

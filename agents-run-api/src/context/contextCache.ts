@@ -240,7 +240,7 @@ export class ContextCache {
     contextConfigId: string,
     definitionIds: string[]
   ): Promise<void> {
-    const result = await invalidateInvocationDefinitionsCache(dbClient)({
+    await invalidateInvocationDefinitionsCache(dbClient)({
       scopes: { tenantId, projectId },
       conversationId,
       contextConfigId,
@@ -254,7 +254,7 @@ export class ContextCache {
     conversationId: string,
     contextConfigId: string
   ): Promise<void> {
-    const result = await invalidateHeadersCache(dbClient)({
+    await invalidateHeadersCache(dbClient)({
       scopes: { tenantId, projectId },
       conversationId,
       contextConfigId,
