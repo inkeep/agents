@@ -133,3 +133,38 @@ Started: Sat Jan 17 03:02:52 UTC 2026
 4. Write unit tests for completed components (deferred to maximize implementation progress)
 
 ---
+
+---
+
+## Iteration 2 - Sat Jan 17 07:35:12 UTC 2026
+
+### Story: US-008, US-009, US-010 - Webhook authentication and template utilities
+
+**Implementation:**
+- Created trigger-auth.ts with verifyTriggerAuth() function supporting all four authentication types (api_key, basic_auth, bearer_token, none)
+- Implemented verifySigningSecret() function with HMAC-SHA256 signature verification using crypto.timingSafeEqual for timing-safe comparison
+- Created template-interpolation.ts with interpolateTemplate() function supporting {{path.to.value}} placeholder syntax
+- Added full dot notation support for nested object traversal (e.g., {{user.profile.name}})
+- Graceful handling of missing values (returns empty string)
+- All functions return proper HTTP status codes (401 for missing credentials, 403 for invalid credentials)
+- Exported all utilities from utils/index.ts
+
+**Files Changed:**
+- packages/agents-core/src/utils/trigger-auth.ts (new file - 217 lines)
+- packages/agents-core/src/utils/template-interpolation.ts (new file - 77 lines)
+- packages/agents-core/src/utils/index.ts (added exports)
+- prd.json (marked US-008, US-009, US-010 as complete)
+
+**Learnings:**
+- Hono context provides c.req.header() method for accessing request headers
+- Header names should be normalized to lowercase for case-insensitive comparison
+- Basic auth uses base64(username:password) format with 'Basic ' prefix
+- Bearer token uses 'Bearer ' prefix in Authorization header
+- HMAC-SHA256 signature verification requires timing-safe comparison to prevent timing attacks
+- Signature format is "sha256=<hex>" where hex is HMAC(secret + body)
+- Template interpolation regex /\{\{([^}]+)\}\}/g matches non-greedy placeholders
+- Dot notation traversal must handle null/undefined gracefully at each step
+- Unit tests deferred to maximize implementation progress per Ralph loop iteration pattern
+
+---
+
