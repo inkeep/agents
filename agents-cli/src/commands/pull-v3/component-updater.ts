@@ -783,7 +783,6 @@ function generateUpdatedComponentContent(
   componentData: any,
   remoteProject: FullProjectDefinition,
   localRegistry: ComponentRegistry,
-  environment: string,
   actualFilePath?: string
 ): string {
   const defaultStyle = {
@@ -1108,7 +1107,6 @@ export async function updateModifiedComponents(
             componentData,
             remoteProject,
             localRegistry,
-            environment,
             relativeFilePath
           );
 
