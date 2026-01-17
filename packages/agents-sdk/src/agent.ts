@@ -376,6 +376,23 @@ export class Agent implements AgentInterface {
       }
     }
 
+    // Serialize triggers with Zod schema conversion
+    const triggersObject: Record<string, any> = {};
+    for (const [triggerId, trigger] of this.triggerMap.entries()) {
+      const config = trigger.getConfig();
+
+      // Convert Zod inputSchema to JSON Schema if needed
+      let processedInputSchema = config.inputSchema;
+      if (config.inputSchema && isZodSchema(config.inputSchema)) {
+        processedInputSchema = convertZodToJsonSchema(config.inputSchema) as Record<string, unknown>;
+      }
+
+      triggersObject[triggerId] = {
+        ...config,
+        inputSchema: processedInputSchema,
+      };
+    }
+
     return {
       id: this.agentId,
       name: this.agentName,
@@ -387,6 +404,8 @@ export class Agent implements AgentInterface {
       // Include function tools at agent level
       ...(Object.keys(functionToolsObject).length > 0 && { functionTools: functionToolsObject }),
       ...(Object.keys(functionsObject).length > 0 && { functions: functionsObject }),
+      // Include triggers at agent level
+      ...(Object.keys(triggersObject).length > 0 && { triggers: triggersObject }),
       models: this.models,
       stopWhen: this.stopWhen,
       statusUpdates: processedStatusUpdates,
