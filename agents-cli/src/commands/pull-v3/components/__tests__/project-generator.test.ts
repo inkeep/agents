@@ -57,14 +57,14 @@ describe('Project Generator', () => {
 
   describe('generateProjectImports', () => {
     it('should generate basic imports', () => {
-      const imports = generateProjectImports('customer-support-project', basicProjectData);
+      const imports = generateProjectImports(basicProjectData);
 
       expect(imports).toHaveLength(1);
       expect(imports[0]).toBe("import { project } from '@inkeep/agents-sdk';");
     });
 
     it('should handle different code styles', () => {
-      const imports = generateProjectImports('test-project', basicProjectData, {
+      const imports = generateProjectImports(basicProjectData, {
         quotes: 'double',
         semicolons: false,
         indentation: '    ',
