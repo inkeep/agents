@@ -354,4 +354,4 @@ export class ProfileManager {
 }
 
 // Export singleton instance for convenience
-export const profileManager = new ProfileManager();
+export const profileManager: ProfileManager = new ProfileManager();

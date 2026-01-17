@@ -4,6 +4,7 @@ export default defineConfig({
   entry: ['src/**/*.ts', '!**/__tests__', '!**/*.test.ts'],
   format: 'esm',
   target: 'node20',
+  dts: true,
   external: ['@inkeep/agents-core'],
   outDir: 'dist',
   shims: true,
