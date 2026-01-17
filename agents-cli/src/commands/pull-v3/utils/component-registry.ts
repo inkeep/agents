@@ -454,7 +454,7 @@ export class ComponentRegistry {
     if (relativePath.startsWith('../')) {
       return relativePath;
     }
-    return './' + relativePath;
+    return `./${relativePath}`;
   }
 
   /**
@@ -696,7 +696,7 @@ export function findSubAgentWithParent(
 ): { subAgentData: any; parentAgentId: string; contextConfigData?: any } | undefined {
   if (project.agents) {
     for (const [agentId, agentData] of Object.entries(project.agents)) {
-      if (agentData.subAgents && agentData.subAgents[subAgentId]) {
+      if (agentData.subAgents?.[subAgentId]) {
         // Get contextConfig data if parent agent has one with an ID
         const contextConfigData = agentData.contextConfig?.id ? agentData.contextConfig : undefined;
 
