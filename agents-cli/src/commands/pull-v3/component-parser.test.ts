@@ -17,7 +17,7 @@ describe('Component Parser', () => {
 
   beforeEach(() => {
     // Create temporary test directory
-    testDir = join(tmpdir(), 'component-parser-test-' + Date.now());
+    testDir = join(tmpdir(), `component-parser-test-${Date.now()}`);
     mkdirSync(testDir, { recursive: true });
   });
 

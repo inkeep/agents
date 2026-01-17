@@ -261,7 +261,7 @@ export class ComponentTracker {
     if (relativePath.startsWith('../')) {
       return relativePath;
     }
-    return './' + relativePath;
+    return `./${relativePath}`;
   }
 
   /**

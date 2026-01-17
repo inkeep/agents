@@ -14,7 +14,7 @@ import {
   unlinkSync,
   writeFileSync,
 } from 'node:fs';
-import { basename, dirname, extname, join, relative, resolve } from 'node:path';
+import { dirname, extname, join, relative, resolve } from 'node:path';
 import type { FullProjectDefinition } from '@inkeep/agents-core';
 import { generateText } from 'ai';
 import chalk from 'chalk';
@@ -30,9 +30,8 @@ import { generateMcpToolFile } from './components/mcp-tool-generator';
 import { generateProjectFile } from './components/project-generator';
 import { generateStatusComponentFile } from './components/status-component-generator';
 import { generateSubAgentFile } from './components/sub-agent-generator';
-import { mergeComponentsWithLLM, previewMergeResult } from './llm-content-merger';
+import { mergeComponentsWithLLM } from './llm-content-merger';
 import type { ProjectComparison } from './project-comparator';
-import { validateTempDirectory } from './project-validator';
 import type { ComponentInfo, ComponentRegistry } from './utils/component-registry';
 import { findSubAgentWithParent } from './utils/component-registry';
 import { getAvailableModel } from './utils/model-provider-detector';
@@ -161,7 +160,7 @@ function findParentImports(dir: string): string[] {
               // Add both .ts and the bare path
               parentImports.add(resolvedImport);
               if (!resolvedImport.endsWith('.ts') && !resolvedImport.endsWith('.js')) {
-                parentImports.add(resolvedImport + '.ts');
+                parentImports.add(`${resolvedImport}.ts`);
               }
             }
           }
