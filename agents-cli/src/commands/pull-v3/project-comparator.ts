@@ -69,7 +69,7 @@ export async function compareProjects(
 
   // If no local project, everything is new
   if (!localProject) {
-    return createNewProjectComparison(remoteProject, debug);
+    return createNewProjectComparison(remoteProject);
   }
 
   // Direct component-by-component comparison
@@ -90,10 +90,7 @@ export async function compareProjects(
 /**
  * Handle new project case (everything is added)
  */
-function createNewProjectComparison(
-  project: FullProjectDefinition,
-  debug: boolean
-): ProjectComparison {
+function createNewProjectComparison(project: FullProjectDefinition): ProjectComparison {
   const changes: ComponentChange[] = [];
 
   // Add all agents
