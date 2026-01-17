@@ -4,6 +4,7 @@ import {
 	createAgentsManageDatabaseClient,
 	createApiError,
 	getTriggerById,
+	JsonTransformer,
 	verifySigningSecret,
 	verifyTriggerAuth,
 } from '@inkeep/agents-core';
@@ -100,6 +101,14 @@ const triggerWebhookRoute = createRoute({
 				},
 			},
 		},
+		422: {
+			description: 'Payload transformation failed',
+			content: {
+				'application/json': {
+					schema: z.object({ error: z.string() }),
+				},
+			},
+		},
 	},
 });
 
@@ -182,15 +191,39 @@ app.openapi(triggerWebhookRoute, async (c) => {
 			}
 		}
 
-		// TODO: US-012 - Apply output transformation
+		// Transform payload using outputTransform configuration
+		let transformedPayload = payload;
+		if (trigger.outputTransform) {
+			try {
+				transformedPayload = await JsonTransformer.transformWithConfig(
+					payload,
+					trigger.outputTransform
+				);
+				logger.debug(
+					{ triggerId, tenantId, projectId },
+					'Payload transformation successful'
+				);
+			} catch (error) {
+				const errorMessage =
+					error instanceof Error ? error.message : String(error);
+				logger.error(
+					{ triggerId, tenantId, projectId, error: errorMessage },
+					'Payload transformation failed'
+				);
+				return c.json(
+					{ error: `Payload transformation failed: ${errorMessage}` },
+					422
+				);
+			}
+		}
+
 		// TODO: US-013 - Invoke agent via /api/chat endpoint
 
 		// For now, return 202 Accepted
-		// In next iterations, we'll:
-		// 1. Transform payload using JsonTransformer (US-012)
-		// 2. Interpolate message template (already implemented in agents-core)
-		// 3. Create invocation record in database
-		// 4. Fire-and-forget agent invocation (US-013)
+		// In next iteration, we'll:
+		// 1. Interpolate message template (already implemented in agents-core)
+		// 2. Create invocation record in database
+		// 3. Fire-and-forget agent invocation (US-013)
 
 		const invocationId = `inv_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
 
