@@ -7,10 +7,14 @@ import {
   MessageSquare,
   TriangleAlert,
 } from 'lucide-react';
-import { useParams } from 'next/navigation';
-import { useEffect, useState } from 'react';
+import NextLink from 'next/link';
+import { use, useEffect, useState } from 'react';
 import { toast } from 'sonner';
 import { formatDateTime, formatDuration } from '@/app/utils/format-date';
+import { MCPBreakdownCard } from '@/components/traces/mcp-breakdown-card';
+import { SignozLink } from '@/components/traces/signoz-link';
+import { InfoRow } from '@/components/traces/timeline/blocks';
+import { TimelineWrapper } from '@/components/traces/timeline/timeline-wrapper';
 import type {
   ActivityItem,
   ConversationDetail as ConversationDetailType,
@@ -23,22 +27,17 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { useRuntimeConfig } from '@/contexts/runtime-config-context';
 import { getSignozTracesExplorerUrl } from '@/lib/utils/signoz-links';
 import { copyTraceToClipboard } from '@/lib/utils/trace-formatter';
-import { MCPBreakdownCard } from './mcp-breakdown-card';
-import { SignozLink } from './signoz-link';
-import { InfoRow } from './timeline/blocks';
-import { TimelineWrapper } from './timeline/timeline-wrapper';
 
-interface ConversationDetailProps {
-  conversationId: string;
-  onBack?: () => void;
-}
+export default function ConversationDetail({
+  params,
+}: PageProps<'/[tenantId]/projects/[projectId]/traces/conversations/[conversationId]'>) {
+  const { conversationId, tenantId, projectId } = use(params);
+  const backLink = `/${tenantId}/projects/${projectId}/traces` as const;
 
-export function ConversationDetail({ conversationId, onBack }: ConversationDetailProps) {
   const [conversation, setConversation] = useState<ConversationDetailType | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [isCopying, setIsCopying] = useState(false);
-  const { tenantId, projectId } = useParams();
   const { PUBLIC_SIGNOZ_URL, PUBLIC_IS_INKEEP_CLOUD_DEPLOYMENT } = useRuntimeConfig();
   const isCloudDeployment = PUBLIC_IS_INKEEP_CLOUD_DEPLOYMENT === 'true';
 
@@ -115,30 +114,30 @@ export function ConversationDetail({ conversationId, onBack }: ConversationDetai
         </CardHeader>
         <CardContent>
           <p className="text-sm text-muted-foreground">{error || 'Conversation not found.'}</p>
-          {onBack && (
-            <Button onClick={onBack} variant="outline" className="mt-4">
+          <Button asChild variant="outline" className="mt-4">
+            <NextLink href={backLink}>
               <ArrowLeft className="h-4 w-4 mr-2" />
               Back to Overview
-            </Button>
-          )}
+            </NextLink>
+          </Button>
         </CardContent>
       </Card>
     );
   }
 
   return (
-    <div className="h-full flex flex-col">
+    <div className="h-full flex flex-col no-container p-6">
       {/* Header */}
       <div className="flex items-center justify-between mb-8 flex-shrink-0">
         <div className="flex items-center gap-2">
-          {onBack && (
-            <Button onClick={onBack} variant="ghost" size="icon-sm">
+          <Button asChild variant="ghost" size="icon-sm">
+            <NextLink href={backLink}>
               <ArrowLeft className="h-4 w-4" />
               <span className="sr-only">Back</span>
-            </Button>
-          )}
+            </NextLink>
+          </Button>
           <div className="flex items-center gap-2">
-            <h3 className="text-xl font-light">Conversation details</h3>
+            <h3 className="text-xl font-light">Conversation Details</h3>
           </div>
         </div>
         <div className="flex items-center gap-2">
@@ -312,7 +311,7 @@ export function ConversationDetail({ conversationId, onBack }: ConversationDetai
                       className="mt-3 w-full flex items-center justify-center gap-1"
                       onClick={() => {
                         window.open(
-                          getSignozTracesExplorerUrl(conversationId as string, PUBLIC_SIGNOZ_URL),
+                          getSignozTracesExplorerUrl(conversationId, PUBLIC_SIGNOZ_URL),
                           '_blank'
                         );
                       }}
