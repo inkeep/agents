@@ -557,7 +557,12 @@ async function removeComponentsWithLLM(fileContent: string, prompt: string): Pro
     const model = await getAvailableModel();
     const result = await generateText({
       model,
-      prompt: prompt + '\n\nFile content:\n```typescript\n' + fileContent + '\n```',
+      prompt: `${prompt}
+
+File content:
+\`\`\`typescript
+${fileContent}
+\`\`\``,
     });
 
     // Strip code fences from response if present
@@ -599,7 +604,7 @@ Return only the cleaned TypeScript code with the specified components removed.`;
   try {
     // Use the dedicated LLM removal function
     return await removeComponentsWithLLM(fileContent, prompt);
-  } catch (error) {
+  } catch {
     return fileContent;
   }
 }
@@ -614,7 +619,7 @@ function writeToTempDirectory(
   tempDirName: string
 ): void {
   const tempDir = join(projectRoot, tempDirName);
-  const relativePath = filePath.replace(projectRoot + '/', '');
+  const relativePath = filePath.replace(`${projectRoot}/`, '');
   const tempFilePath = join(tempDir, relativePath);
 
   // Ensure parent directory exists
@@ -668,9 +673,7 @@ async function runBiomeOnFile(filePath: string): Promise<boolean> {
     });
 
     return true;
-  } catch (error) {
-    // Don't fail the entire process if Biome is not available or fails
-    const errorMsg = error instanceof Error ? error.message : String(error);
+  } catch {
     // Biome not available - continue without formatting
     return false;
   }
@@ -716,7 +719,7 @@ async function runBiomeOnDirectory(dirPath: string): Promise<boolean> {
     });
 
     return true;
-  } catch (error) {
+  } catch {
     // Don't fail the entire process if Biome is not available or fails
     return false;
   }
@@ -902,7 +905,7 @@ export async function updateModifiedComponents(
     fileIndex++;
     try {
       // Convert absolute path back to relative path for generators
-      const relativeFilePath = filePath.replace(projectRoot + '/', '');
+      const relativeFilePath = filePath.replace(`${projectRoot}/`, '');
 
       // Log which file/components are being processed BEFORE the LLM call
       const componentNames = fileComponents.map((c) => `${c.type}:${c.id}`).join(', ');
@@ -966,7 +969,7 @@ export async function updateModifiedComponents(
               agentData.statusUpdates.statusComponents
             ) {
               for (const statusComp of agentData.statusUpdates.statusComponents) {
-                if (statusComp['type'] === componentId) {
+                if (statusComp.type === componentId) {
                   componentData = statusComp;
                   break;
                 }
@@ -1117,7 +1120,7 @@ export async function updateModifiedComponents(
           relativeFilePath,
           localRegistry
         );
-      } catch (error) {
+      } catch {
         // Continue without componentsToExport rather than failing completely
       }
 
@@ -1143,7 +1146,7 @@ export async function updateModifiedComponents(
 
       // Write final content to temp directory
       writeToTempDirectory(projectRoot, filePath, finalContent, tempDirName);
-      const relativePath = filePath.replace(projectRoot + '/', '');
+      const relativePath = filePath.replace(`${projectRoot}/`, '');
       const tempFilePath = join(projectRoot, tempDirName, relativePath);
 
       // Run Biome formatter and linter on the modified file
