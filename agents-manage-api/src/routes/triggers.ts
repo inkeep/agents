@@ -390,17 +390,10 @@ app.openapi(
 			'Deleting trigger'
 		);
 
-		const deleted = await deleteTrigger(db)({
+		await deleteTrigger(db)({
 			scopes: { tenantId, projectId, agentId },
 			triggerId: id,
 		});
-
-		if (!deleted) {
-			throw createApiError({
-				code: 'not_found',
-				message: 'Trigger not found',
-			});
-		}
 
 		return c.body(null, 204);
 	}
@@ -471,16 +464,14 @@ app.openapi(
 			'Listing trigger invocations'
 		);
 
-		// Build date range filter if provided
-		const dateRange = from || to ? { from, to } : undefined;
-
 		const result = await listTriggerInvocationsPaginated(db)({
 			scopes: { tenantId, projectId, agentId },
 			triggerId,
 			pagination: { page, limit },
 			filters: {
 				status,
-				dateRange,
+				from,
+				to,
 			},
 		});
 
