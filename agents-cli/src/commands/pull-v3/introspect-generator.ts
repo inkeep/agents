@@ -61,7 +61,7 @@ function ensureDir(filePath: string): void {
  * Check if an agent is complete enough for code generation
  * An agent needs a name, defaultSubAgentId, and at least one sub-agent
  */
-function isAgentComplete(agentId: string, agentData: any): { complete: boolean; reason?: string } {
+function isAgentComplete(agentData: any): { complete: boolean; reason?: string } {
   if (!agentData.name) {
     return { complete: false, reason: 'missing name' };
   }
@@ -334,7 +334,7 @@ export async function introspectGenerate(
     const completeAgentIds = new Set<string>();
     if (project.agents) {
       for (const [agentId, agentData] of Object.entries(project.agents)) {
-        const completeness = isAgentComplete(agentId, agentData);
+        const completeness = isAgentComplete(agentData);
         if (completeness.complete) {
           completeAgentIds.add(agentId);
         } else {
