@@ -267,3 +267,35 @@ Started: Sat Jan 17 03:02:52 UTC 2026
 
 ## Iteration 1 - Sat Jan 17 08:59:06 UTC 2026
 
+## Iteration 6 - $(date -u)
+
+### Story: US-013 - Implement agent invocation via /api/chat
+
+**Implementation:**
+- Added fire-and-forget agent invocation in webhook endpoint
+- Created `invokeAgentAsync()` function that:
+  - Loads full project from manage database using getFullProjectWithRelationIds()
+  - Builds FullExecutionContext manually (no API key auth for triggers)
+  - Creates conversation and user message in runtime database
+  - Executes agent using ExecutionHandler with no-op stream helper
+  - Updates trigger invocation status to success/failed in manage database
+- Fixed authentication verification to use proper TriggerAuthResult interface (success, status, message)
+- Added imports: getFullProjectWithRelationIds, createMessage, createOrGetConversation, setActiveAgentForConversation
+- Webhook returns 202 Accepted immediately without waiting for agent execution
+
+**Files Changed:**
+- agents-run-api/src/routes/webhooks.ts (added invokeAgentAsync function, updated webhook handler)
+- prd.json (marked US-013 as complete)
+
+**Learnings:**
+- Triggers don't use API key authentication - need to build execution context manually
+- FullExecutionContext requires: apiKey, apiKeyId, resolvedRef (type/name/hash), project
+- Fire-and-forget pattern: call async function without await, catch errors in promise chain
+- ExecutionHandler requires a StreamHelper - use no-op helper for non-streaming invocations
+- Trigger invocations are tracked in manage database with status (pending -> success/failed)
+- Conversation lives in runtime database, trigger config in manage database
+- TriggerAuthResult uses success/status/message fields (not valid/statusCode/error)
+- ResolvedRef schema requires type: 'branch'|'commit'|'tag', name, and hash fields
+
+---
+
