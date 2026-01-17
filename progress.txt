@@ -568,3 +568,40 @@ Started: Sat Jan 17 03:02:52 UTC 2026
 
 ---
 
+
+## Iteration 6 - $(date -u)
+
+### Story: US-019, US-020 - Create Trigger class and builder function in SDK
+
+**Implementation:**
+- Created Trigger class in packages/agents-sdk/src/trigger.ts (110 lines)
+- Implemented TriggerInterface with methods following SDK patterns:
+  - getId(): Returns trigger ID
+  - getName(): Returns trigger name
+  - getConfig(): Returns full trigger configuration
+  - with(config): Creates new Trigger with overridden configuration
+- Added Zod schema support for inputSchema with automatic conversion to JSON Schema
+- Handled null inputSchema values by converting to undefined
+- Created trigger() builder function in builderFunctions.ts with comprehensive JSDoc
+- Added GitHub webhook example in documentation
+- Exported Trigger class and trigger() function from SDK index
+- Auto-generates ID from name using generateIdFromName() if not provided
+- No init() or upsert() methods needed (triggers managed via manage-API, not SDK)
+
+**Files Changed:**
+- packages/agents-sdk/src/trigger.ts (new file - 110 lines)
+- packages/agents-sdk/src/builderFunctions.ts (added trigger() builder and imports)
+- packages/agents-sdk/src/index.ts (added exports)
+- prd.json (marked US-019, US-020 as complete)
+
+**Learnings:**
+- SDK classes don't need init() if they're managed via API (like Trigger)
+- Zod schema conversion is critical for SDK ergonomics - users can pass Zod schemas, SDK converts to JSON Schema
+- Null handling is important - TriggerApiInsert allows null for inputSchema, but SDK should handle gracefully
+- with() pattern enables functional composition - create base trigger, then customize variants
+- Auto-ID generation from name makes SDK more ergonomic (following Tool pattern)
+- JSDoc examples are crucial for SDK discoverability - show real-world use cases like GitHub webhooks
+- SDK patterns: class + interface + builder function + export from index
+
+---
+

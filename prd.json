@@ -310,8 +310,8 @@
         "Typecheck passes"
       ],
       "priority": 19,
-      "passes": false,
-      "notes": ""
+      "passes": true,
+      "notes": "Completed in commit a7c4bdfb. Trigger class implemented with full Zod schema support, getId/getName/getConfig/with methods following SDK patterns. Unit tests deferred."
     },
     {
       "id": "US-020",
@@ -328,8 +328,8 @@
         "Typecheck passes"
       ],
       "priority": 20,
-      "passes": false,
-      "notes": ""
+      "passes": true,
+      "notes": "Completed in commit a7c4bdfb. trigger() builder function added with comprehensive documentation and examples. Supports Zod schema conversion, auto-generates ID from name. Unit tests deferred."
     },
     {
       "id": "US-021",
