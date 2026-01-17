@@ -77,6 +77,7 @@ import { getErrorSummaryMessage, parseAgentValidationErrors } from '@/lib/utils/
 import { generateId } from '@/lib/utils/id-utils';
 import { detectOrphanedToolsAndGetWarning } from '@/lib/utils/orphaned-tools-detector';
 import { convertFullProjectToProject } from '@/lib/utils/project-converter';
+import type { FullProjectDefinition } from '@inkeep/agents-core';
 
 // The Widget component is heavy, so we load it on the client only after the user clicks the "Try it" button.
 const Playground = dynamic(
@@ -430,7 +431,16 @@ export const Agent: FC<AgentProps> = ({
       return;
     }
 
-    try {
+    // Workaround for a React Compiler limitation.
+    // Todo: Support value blocks (conditional, logical, optional chaining, etc) within a try/catch statement
+    async function doRequest(): Promise<
+      | {
+          fullProject: FullProjectDefinition;
+          toolsResult: Awaited<ReturnType<typeof fetchToolsAction>> | null;
+          updatedAgent: ExtendedFullAgentDefinition;
+        }
+      | undefined
+    > {
       const [fullProjectResult, toolsResult] = await Promise.all([
         getFullProjectAction(tenantId, projectId),
         options?.fetchTools ? fetchToolsAction(tenantId, projectId) : Promise.resolve(null),
@@ -444,6 +454,14 @@ export const Agent: FC<AgentProps> = ({
       const updatedAgent = fullProject?.agents?.[
         agent.id as keyof typeof fullProject.agents
       ] as ExtendedFullAgentDefinition;
+
+      return { fullProject, toolsResult, updatedAgent };
+    }
+
+    try {
+      const result = await doRequest();
+      if (!result) return;
+      const { fullProject, updatedAgent, toolsResult } = result;
 
       // Update tool lookup if tools were fetched
       const updatedToolLookup = toolsResult?.success
