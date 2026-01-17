@@ -210,7 +210,6 @@ export function generateEnvironmentIndexDefinition(
  * Generate imports for individual environment settings file
  */
 export function generateEnvironmentSettingsImports(
-  environmentName: string,
   environmentData: any,
   style: CodeStyle = DEFAULT_STYLE
 ): string[] {
@@ -268,7 +267,7 @@ export function generateEnvironmentSettingsFile(
   environmentData: any,
   style: CodeStyle = DEFAULT_STYLE
 ): string {
-  const imports = generateEnvironmentSettingsImports(environmentName, environmentData, style);
+  const imports = generateEnvironmentSettingsImports(environmentData, style);
   const definition = generateEnvironmentSettingsDefinition(environmentName, environmentData, style);
 
   return `${imports.join('\n')}\n\n${definition}\n`;

@@ -55,7 +55,7 @@ describe('Environment Settings Generator', () => {
 
   describe('generateEnvironmentSettingsImports', () => {
     it('should generate basic imports', () => {
-      const imports = generateEnvironmentSettingsImports('development', developmentData);
+      const imports = generateEnvironmentSettingsImports(developmentData);
 
       expect(imports).toHaveLength(2);
       expect(imports[0]).toBe("import { registerEnvironmentSettings } from '@inkeep/agents-sdk';");
@@ -64,14 +64,14 @@ describe('Environment Settings Generator', () => {
 
     it('should not include CredentialStoreType when not needed', () => {
       const emptyData = { credentials: {} };
-      const imports = generateEnvironmentSettingsImports('development', emptyData);
+      const imports = generateEnvironmentSettingsImports(emptyData);
 
       expect(imports).toHaveLength(1);
       expect(imports[0]).toBe("import { registerEnvironmentSettings } from '@inkeep/agents-sdk';");
     });
 
     it('should handle different code styles', () => {
-      const imports = generateEnvironmentSettingsImports('development', developmentData, {
+      const imports = generateEnvironmentSettingsImports(developmentData, {
         quotes: 'double',
         semicolons: false,
         indentation: '    ',
