@@ -387,7 +387,7 @@ describe('ProfileManager', () => {
       profileManager.removeProfile('local');
 
       const loaded = profileManager.loadProfiles();
-      expect(loaded.profiles['local']).toBeUndefined();
+      expect(loaded.profiles.local).toBeUndefined();
       expect(Object.keys(loaded.profiles)).toEqual(['cloud']);
     });
 

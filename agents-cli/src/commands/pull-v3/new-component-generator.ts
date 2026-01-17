@@ -19,7 +19,7 @@ import { generateMcpToolFile } from './components/mcp-tool-generator';
 import { generateStatusComponentFile } from './components/status-component-generator';
 import { generateSubAgentFile } from './components/sub-agent-generator';
 import type { ProjectComparison } from './project-comparator';
-import type { ComponentRegistry, ComponentType } from './utils/component-registry';
+import type { ComponentRegistry } from './utils/component-registry';
 import { findSubAgentWithParent } from './utils/component-registry';
 import { toCamelCase } from './utils/generator-utils';
 

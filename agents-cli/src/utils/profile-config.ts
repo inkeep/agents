@@ -2,7 +2,7 @@ import { existsSync } from 'node:fs';
 import { join } from 'node:path';
 import chalk from 'chalk';
 import dotenv from 'dotenv';
-import { type CLICredentials, getCredentialExpiryInfo, loadCredentials } from './credentials';
+import { getCredentialExpiryInfo, loadCredentials } from './credentials';
 import { ProfileManager, type ResolvedProfile } from './profiles';
 
 export interface ProfileConfig {
@@ -114,7 +114,7 @@ export function getAuthHeaders(config: ProfileConfig): Record<string, string> {
   const headers: Record<string, string> = {};
 
   if (config.accessToken) {
-    headers['Authorization'] = `Bearer ${config.accessToken}`;
+    headers.Authorization = `Bearer ${config.accessToken}`;
   }
 
   return headers;

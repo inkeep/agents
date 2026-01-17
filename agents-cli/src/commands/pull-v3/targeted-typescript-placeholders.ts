@@ -234,7 +234,7 @@ export function createTargetedTypeScriptPlaceholders(content: string): TargetedP
         replacedFields,
       },
     };
-  } catch (error) {
+  } catch {
     // Fallback to original content if AST parsing fails
     return {
       processedContent: content,

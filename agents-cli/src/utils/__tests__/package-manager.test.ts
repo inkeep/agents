@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { getUpdateCommand, type PackageManager } from '../package-manager';
+import { getUpdateCommand } from '../package-manager';
 
 describe('package-manager', () => {
   describe('getUpdateCommand', () => {

@@ -111,7 +111,7 @@ export function getAuthHeaders(
   if (isCI && config.apiKey) {
     headers['X-API-Key'] = config.apiKey;
   } else if (config.accessToken) {
-    headers['Authorization'] = `Bearer ${config.accessToken}`;
+    headers.Authorization = `Bearer ${config.accessToken}`;
   }
 
   return headers;
