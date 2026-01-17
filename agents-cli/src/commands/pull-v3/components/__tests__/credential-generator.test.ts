@@ -242,7 +242,7 @@ describe('Credential Generator', () => {
 
   describe('compilation tests', () => {
     it('should generate code that compiles and creates a working credential', async () => {
-      const file = generateCredentialFile('inkeep-api-key', testCredentialData);
+      generateCredentialFile('inkeep-api-key', testCredentialData);
 
       // Extract just the credential definition (remove imports and export)
       const definition = generateCredentialDefinition('inkeep-api-key', testCredentialData);
