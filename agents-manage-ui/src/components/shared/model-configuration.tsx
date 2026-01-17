@@ -2,7 +2,9 @@
 
 import { useEffect, useState } from 'react';
 import { ModelSelector } from '@/components/agent/sidepane/nodes/model-selector';
-import { ExpandableJsonEditor } from '@/components/editors/expandable-json-editor';
+import { StandaloneJsonEditor } from '@/components/editors/standalone-json-editor';
+import { azureModelProviderOptionsTemplate, providerOptionsTemplate } from '@/lib/templates';
+import { FieldLabel } from '../agent/sidepane/form-components/label';
 import { AzureConfigurationSection } from './azure-configuration-section';
 
 interface ModelConfigurationProps {
@@ -100,16 +102,9 @@ export function ModelConfiguration({
 
   const getDefaultJsonPlaceholder = (model?: string) => {
     if (model?.startsWith('azure/')) {
-      return `{
-  "resourceName": "your-azure-resource",
-  "temperature": 0.7,
-  "maxOutputTokens": 2048
-}`;
+      return azureModelProviderOptionsTemplate;
     }
-    return `{
-  "temperature": 0.7,
-  "maxOutputTokens": 2048
-}`;
+    return providerOptionsTemplate;
   };
 
   const jsonPlaceholder = getJsonPlaceholder
@@ -134,20 +129,23 @@ export function ModelConfiguration({
 
       {/* Provider Options JSON Editor */}
       {value && (
-        <ExpandableJsonEditor
-          name={`${editorNamePrefix}-provider-options`}
-          label="Provider options"
-          onChange={handleProviderOptionsStringChange}
-          value={
-            typeof internalProviderOptions === 'string'
-              ? internalProviderOptions
-              : internalProviderOptions
-                ? JSON.stringify(internalProviderOptions, null, 2)
-                : ''
-          }
-          placeholder={jsonPlaceholder}
-          readOnly={false}
-        />
+        <div className="space-y-2">
+          <FieldLabel id={`${editorNamePrefix}-provider-options`} label="Provider options" />
+          <StandaloneJsonEditor
+            name={`${editorNamePrefix}-provider-options`}
+            onChange={handleProviderOptionsStringChange}
+            value={
+              typeof internalProviderOptions === 'string'
+                ? internalProviderOptions
+                : internalProviderOptions
+                  ? JSON.stringify(internalProviderOptions, null, 2)
+                  : ''
+            }
+            placeholder={jsonPlaceholder}
+            customTemplate={jsonPlaceholder}
+            readOnly={false}
+          />
+        </div>
       )}
 
       {/* Azure Configuration Fields */}
