@@ -268,10 +268,6 @@ export class VercelDataStreamHelper implements StreamHelper {
     }, STREAM_MAX_LIFETIME_MS);
   }
 
-  setSessionId(sessionId: string): void {
-    this.sessionId = sessionId;
-  }
-
   async writeRole(_ = 'assistant'): Promise<void> {}
 
   async writeContent(content: string): Promise<void> {
@@ -688,10 +684,6 @@ export class BufferingStreamHelper implements StreamHelper {
   private capturedSummaries: SummaryEvent[] = [];
   private hasError = false;
   private errorMessage = '';
-
-  setSessionId(sessionId: string): void {
-    this.sessionId = sessionId;
-  }
 
   async writeRole(_role?: string): Promise<void> {
     // No-op for MCP

@@ -287,7 +287,7 @@ const getServer = async (
   conversationId: string,
   credentialStores?: CredentialStoreRegistry
 ) => {
-  const { tenantId, projectId, agentId, resolvedRef } = executionContext;
+  const { tenantId, projectId, agentId } = executionContext;
   setupTracing(conversationId, tenantId, agentId);
 
   const agent = executionContext.project.agents[agentId];
@@ -359,7 +359,7 @@ const getServer = async (
           'parameters'
         );
 
-        await processUserMessage(tenantId, projectId, conversationId, query, resolvedRef);
+        await processUserMessage(tenantId, projectId, conversationId, query);
 
         return executeAgentQuery(executionContext, conversationId, query, defaultSubAgentId);
       } catch (error) {
