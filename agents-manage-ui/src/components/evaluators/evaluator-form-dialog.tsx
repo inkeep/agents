@@ -24,31 +24,9 @@ import { Textarea } from '@/components/ui/textarea';
 import { createEvaluatorAction, updateEvaluatorAction } from '@/lib/actions/evaluators';
 import type { ActionResult } from '@/lib/actions/types';
 import type { Evaluator } from '@/lib/api/evaluators';
+import { evaluatorSchemaTemplate, providerOptionsTemplate } from '@/lib/templates';
 import { PassCriteriaBuilder } from './pass-criteria-builder';
 import { type EvaluatorFormData, evaluatorSchema } from './validation';
-
-const EVALUATOR_SCHEMA_TEMPLATE = JSON.stringify(
-  {
-    type: 'object',
-    properties: {
-      score: {
-        type: 'number',
-        description: 'Numeric score from 1-5 indicating quality',
-      },
-      passed: {
-        type: 'boolean',
-        description: 'Whether the conversation met the evaluation criteria',
-      },
-      reasoning: {
-        type: 'string',
-        description: 'Explanation of the evaluation result',
-      },
-    },
-    required: ['score', 'passed', 'reasoning'],
-  },
-  null,
-  2
-);
 
 interface EvaluatorFormDialogProps {
   tenantId: string;
@@ -255,7 +233,7 @@ export function EvaluatorFormDialog({
               description="JSON Schema defining the structure of the evaluation output. All properties are required for structured outputs."
               isRequired
               allRequired
-              customTemplate={EVALUATOR_SCHEMA_TEMPLATE}
+              customTemplate={evaluatorSchemaTemplate}
             />
 
             <div className="space-y-4">
@@ -297,10 +275,7 @@ export function EvaluatorFormDialog({
                     // Invalid JSON - don't update the field value
                   }
                 }}
-                placeholder={`{
-  "temperature": 0.7,
-  "maxOutputTokens": 2048
-}`}
+                placeholder={providerOptionsTemplate}
               />
             </div>
 

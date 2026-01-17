@@ -186,6 +186,10 @@ export function FunctionToolNodeEditor({ selectedNode }: FunctionToolNodeEditorP
         <StandaloneJsonEditor
           value={dependencies}
           onChange={handleDependenciesChange}
+          customTemplate={`{
+  "axios": "^1.6.0",
+  "lodash": "^4.17.21"
+}`}
           placeholder={`{
   "axios": "^1.6.0",
   "lodash": "^4.17.21"
