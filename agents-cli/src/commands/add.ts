@@ -10,6 +10,7 @@ import {
   cloneTemplateLocal,
   getAvailableTemplates,
 } from '../utils/templates';
+import type { ModelSettings } from '../utils/model-config';
 
 export interface AddOptions {
   project?: string;
@@ -20,7 +21,7 @@ export interface AddOptions {
   localPrefix?: string;
 }
 
-export const defaultGoogleModelConfigurations = {
+export const defaultGoogleModelConfigurations: ModelSettings = {
   base: {
     model: GOOGLE_MODELS.GEMINI_2_5_FLASH,
   },
@@ -32,7 +33,7 @@ export const defaultGoogleModelConfigurations = {
   },
 };
 
-export const defaultOpenaiModelConfigurations = {
+export const defaultOpenaiModelConfigurations: ModelSettings = {
   base: {
     model: OPENAI_MODELS.GPT_5_2,
   },
@@ -44,7 +45,7 @@ export const defaultOpenaiModelConfigurations = {
   },
 };
 
-export const defaultAnthropicModelConfigurations = {
+export const defaultAnthropicModelConfigurations: ModelSettings = {
   base: {
     model: ANTHROPIC_MODELS.CLAUDE_SONNET_4_5,
   },
@@ -56,7 +57,7 @@ export const defaultAnthropicModelConfigurations = {
   },
 };
 
-export async function addCommand(options: AddOptions) {
+export async function addCommand(options: AddOptions): Promise<void> {
   const projectTemplates = await getAvailableTemplates('template-projects', options.localPrefix);
   const mcpTemplates = await getAvailableTemplates('template-mcps', options.localPrefix);
   if (!options.project && !options.mcp) {
@@ -100,7 +101,10 @@ export async function addCommand(options: AddOptions) {
   }
 }
 
-export async function checkTemplateDir(templateDir: string, commandType: 'project' | 'mcp') {
+export async function checkTemplateDir(
+  templateDir: string,
+  commandType: 'project' | 'mcp'
+): Promise<void> {
   const s = p.spinner();
   // Check if the template directory already exists
   if (await fs.pathExists(templateDir)) {
@@ -131,7 +135,7 @@ export async function addProjectTemplate(
   template: string,
   targetPath: string | undefined,
   localPrefix: string | undefined
-) {
+): Promise<void> {
   if (!template) {
     console.log(chalk.yellow('Available templates:'));
     for (const template of availableTemplates) {
@@ -215,7 +219,7 @@ export async function addMcpTemplate(
   template: string,
   targetPath: string | undefined,
   localPrefix: string | undefined
-) {
+): Promise<void> {
   if (!template) {
     console.log(chalk.yellow('Available templates:'));
     for (const template of availableTemplates) {
@@ -243,7 +247,7 @@ export async function addMcpTemplate(
   s.stop(`MCP template "${template}" added to ${targetPath}`);
 }
 
-export async function findAppDirectory(type: 'project' | 'mcp') {
+export async function findAppDirectory(type: 'project' | 'mcp'): Promise<string> {
   const searchPath = type === 'project' ? 'src/projects' : 'apps/mcp/app';
   const directory = await findUp(searchPath, { type: 'directory' });
 
