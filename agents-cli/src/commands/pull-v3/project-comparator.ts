@@ -247,7 +247,7 @@ function compareComponentsDirectly(
 
   // Compare each component type
   changes.push(...compareAgents(localProject.agents || {}, remoteProject.agents || {}));
-  changes.push(...compareSubAgents(localProject.agents || {}, remoteProject.agents || {}, debug));
+  changes.push(...compareSubAgents(localProject.agents || {}, remoteProject.agents || {}));
   changes.push(...compareTools(localProject.tools || {}, remoteProject.tools || {}, debug));
   changes.push(
     ...compareFunctionTools(
@@ -368,8 +368,7 @@ function compareAgents(
  */
 function compareSubAgents(
   localAgents: Record<string, any>,
-  remoteAgents: Record<string, any>,
-  debug: boolean
+  remoteAgents: Record<string, any>
 ): ComponentChange[] {
   const changes: ComponentChange[] = [];
 
