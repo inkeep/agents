@@ -249,11 +249,7 @@ function compareComponentsDirectly(
   changes.push(...compareSubAgents(localProject.agents || {}, remoteProject.agents || {}));
   changes.push(...compareTools(localProject.tools || {}, remoteProject.tools || {}));
   changes.push(
-    ...compareFunctionTools(
-      localProject.functionTools || {},
-      remoteProject.functionTools || {},
-      debug
-    )
+    ...compareFunctionTools(localProject.functionTools || {}, remoteProject.functionTools || {})
   );
   changes.push(
     ...compareFunctions(localProject.functions || {}, remoteProject.functions || {}, debug)
@@ -478,8 +474,7 @@ function compareTools(
  */
 function compareFunctionTools(
   localFunctionTools: Record<string, any>,
-  remoteFunctionTools: Record<string, any>,
-  debug: boolean
+  remoteFunctionTools: Record<string, any>
 ): ComponentChange[] {
   return compareComponentMaps('functionTools', localFunctionTools, remoteFunctionTools);
 }
