@@ -54,6 +54,53 @@ The EmbeddedChat widget provides a fully embedded chat interface that you can in
   </Step>
 </Steps>
 
+## Anonymous Sessions
+
+For public widgets where users don't sign in, but you want stable identity for conversation history and analytics:
+
+```html
+<script type="module">
+  import { createAuthClient } from "https://cdn.jsdelivr.net/npm/better-auth@1.0/dist/client/index.mjs";
+  import { anonymousClient } from "https://cdn.jsdelivr.net/npm/better-auth@1.0/dist/client/plugins/anonymous.mjs";
+
+  const authClient = createAuthClient({
+    baseURL: "https://your-api.example.com",
+    plugins: [anonymousClient()],
+  });
+
+  async function initWidget() {
+    // Get or create anonymous session
+    let session = await authClient.getSession();
+    if (!session.data) {
+      const result = await authClient.signIn.anonymous();
+      session = { data: result.data };
+    }
+
+    // Store distinctId for analytics (public, stable identifier)
+    localStorage.setItem("distinctId", session.data.user.id);
+
+    const config = {
+      aiChatSettings: {
+        agentUrl: "https://your-api.example.com/api/chat",
+        apiKey: "YOUR_API_KEY",
+        headers: {
+          Authorization: `Bearer ${session.data.session.token}`,
+        },
+      },
+    };
+
+    Inkeep.EmbeddedChat("#ikp-embedded-chat-target", config);
+  }
+
+  initWidget();
+</script>
+```
+
+**Key benefits:**
+- Conversation history persists across page reloads
+- `distinctId` is stable for analytics tracking
+- Sessions auto-refresh (7-day expiry)
+
 ## Config
 
 <AutoTypeTable

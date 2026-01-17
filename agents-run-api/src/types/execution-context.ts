@@ -1,6 +1,21 @@
 import type { BaseExecutionContext, FullExecutionContext } from '@inkeep/agents-core';
 
 /**
+ * Principal represents the authenticated user identity.
+ * Used for user-scoped operations in the Run API.
+ */
+export interface Principal {
+  /** 'anonymous' for anonymous sessions, 'authenticated' for logged-in users */
+  type: 'anonymous' | 'authenticated';
+  /** The user's distinctId (Better Auth user.id) */
+  id: string;
+  /** User email (only for authenticated users) */
+  email?: string;
+  /** Whether the user is anonymous */
+  isAnonymous: boolean;
+}
+
+/**
  * Extract userId from execution context metadata (when available)
  * Only available when request originates from an authenticated user session (e.g., playground)
  */

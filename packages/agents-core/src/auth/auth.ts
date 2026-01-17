@@ -1,7 +1,7 @@
 import { sso } from '@better-auth/sso';
 import { type BetterAuthAdvancedOptions, betterAuth } from 'better-auth';
 import { drizzleAdapter } from 'better-auth/adapters/drizzle';
-import { bearer, deviceAuthorization, oAuthProxy, organization } from 'better-auth/plugins';
+import { anonymous, bearer, deviceAuthorization, oAuthProxy, organization } from 'better-auth/plugins';
 import type { GoogleOptions } from 'better-auth/social-providers';
 import { eq } from 'drizzle-orm';
 import type { AgentsRunDatabaseClient } from '../db/runtime/runtime-client';
@@ -258,6 +258,7 @@ export function createAuth(config: BetterAuthConfig) {
       env.TRUSTED_ORIGIN,
     ].filter((origin): origin is string => typeof origin === 'string' && origin.length > 0),
     plugins: [
+      anonymous(),
       bearer(),
       sso(),
       oAuthProxy({

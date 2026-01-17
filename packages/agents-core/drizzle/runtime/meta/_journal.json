@@ -64,6 +64,13 @@
       "when": 1768240742352,
       "tag": "0008_silly_preak",
       "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "7",
+      "when": 1768447290735,
+      "tag": "0009_slimy_gideon",
+      "breakpoints": true
     }
   ]
 }
