@@ -466,8 +466,8 @@ function findStatusComponentData(
   statusId: string
 ): any | undefined {
   if (project.agents) {
-    for (const [agentId, agentData] of Object.entries(project.agents)) {
-      if (agentData.statusUpdates && agentData.statusUpdates.statusComponents) {
+    for (const agentData of Object.values(project.agents)) {
+      if (agentData.statusUpdates?.statusComponents) {
         for (const statusComp of agentData.statusUpdates.statusComponents) {
           let compId: string | undefined;
 
