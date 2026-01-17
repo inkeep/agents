@@ -33,8 +33,10 @@ export function DeleteProjectConfirmation({
       } else {
         toast.error(result.error);
       }
-    } finally {
       setIsSubmitting(false);
+    } catch (error) {
+      setIsSubmitting(false);
+      throw error;
     }
   };
 
