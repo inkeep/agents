@@ -253,7 +253,7 @@ describe('Function Tool Generator', () => {
 
   describe('compilation tests', () => {
     it('should generate code that compiles and creates a working function tool', async () => {
-      const file = generateFunctionToolFile('calculate-bmi', testToolData);
+      generateFunctionToolFile('calculate-bmi', testToolData);
 
       // Extract just the tool definition (remove imports and export)
       const definition = generateFunctionToolDefinition('calculate-bmi', testToolData);

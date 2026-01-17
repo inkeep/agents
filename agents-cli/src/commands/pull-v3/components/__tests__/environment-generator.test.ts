@@ -276,7 +276,7 @@ describe('Environment Settings Generator', () => {
 
   describe('compilation tests', () => {
     it('should generate environment settings code that compiles', async () => {
-      const file = generateEnvironmentSettingsFile('development', developmentData);
+      generateEnvironmentSettingsFile('development', developmentData);
 
       // Extract just the definition (remove imports and export)
       const definition = generateEnvironmentSettingsDefinition('development', developmentData);
@@ -306,15 +306,15 @@ describe('Environment Settings Generator', () => {
       // Verify the resulting object has the correct structure
       expect(result).toBeDefined();
       expect(result.credentials).toBeDefined();
-      expect(result.credentials['stripe_api_key']).toBeDefined();
-      expect(result.credentials['stripe_api_key'].id).toBe('stripe-api-key');
-      expect(result.credentials['stripe_api_key'].type).toBe('memory');
-      expect(result.credentials['database_url']).toBeDefined();
-      expect(result.credentials['database_url'].type).toBe('env');
+      expect(result.credentials.stripe_api_key).toBeDefined();
+      expect(result.credentials.stripe_api_key.id).toBe('stripe-api-key');
+      expect(result.credentials.stripe_api_key.type).toBe('memory');
+      expect(result.credentials.database_url).toBeDefined();
+      expect(result.credentials.database_url.type).toBe('env');
     });
 
     it('should generate environment index code that compiles', () => {
-      const file = generateEnvironmentIndexFile(['development', 'production']);
+      generateEnvironmentIndexFile(['development', 'production']);
 
       // Extract just the definition
       const definition = generateEnvironmentIndexDefinition(['development', 'production']);

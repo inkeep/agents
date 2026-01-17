@@ -227,7 +227,7 @@ describe('Status Component Generator', () => {
 
   describe('compilation tests', () => {
     it('should generate code that compiles and creates a working status component', async () => {
-      const file = generateStatusComponentFile('tool-summary', testComponentData);
+      generateStatusComponentFile('tool-summary', testComponentData);
 
       // Extract just the component definition (remove imports and export)
       const definition = generateStatusComponentDefinition('tool-summary', testComponentData);

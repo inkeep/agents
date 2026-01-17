@@ -221,7 +221,7 @@ describe('MCP Tool Generator', () => {
 
   describe('compilation tests', () => {
     it('should generate code that compiles and creates a working MCP tool', async () => {
-      const file = generateMcpToolFile('weather-mcp', testToolData);
+      generateMcpToolFile('weather-mcp', testToolData);
 
       // Extract just the tool definition (remove imports and export)
       const definition = generateMcpToolDefinition('weather-mcp', testToolData);
