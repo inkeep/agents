@@ -655,7 +655,6 @@ export async function pullV3Command(options: PullV3Options): Promise<PullResult 
         remoteProject,
         localRegistry,
         paths.projectRoot,
-        options.env || 'development',
         options.debug,
         tempDirName, // Use the temp directory we created
         newComponentsForContext

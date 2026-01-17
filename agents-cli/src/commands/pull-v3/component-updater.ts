@@ -872,8 +872,7 @@ export async function updateModifiedComponents(
   remoteProject: FullProjectDefinition,
   localRegistry: ComponentRegistry,
   projectRoot: string,
-  environment: string,
-  debug: boolean = false,
+  debug = false,
   providedTempDirName?: string,
   newComponents?: Array<{
     componentId: string;
