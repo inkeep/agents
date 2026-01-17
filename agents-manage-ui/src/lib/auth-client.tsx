@@ -42,7 +42,13 @@ const AuthClientContext = createContext<AuthClientType | null>(null);
 export function AuthClientProvider({ children }: { children: ReactNode }) {
   const { PUBLIC_INKEEP_AGENTS_MANAGE_API_URL } = useRuntimeConfig();
 
-  return <AuthClientContext.Provider value={createConfiguredAuthClient(PUBLIC_INKEEP_AGENTS_MANAGE_API_URL)}>{children}</AuthClientContext.Provider>;
+  return (
+    <AuthClientContext.Provider
+      value={createConfiguredAuthClient(PUBLIC_INKEEP_AGENTS_MANAGE_API_URL)}
+    >
+      {children}
+    </AuthClientContext.Provider>
+  );
 }
 
 export function useAuthClient() {
