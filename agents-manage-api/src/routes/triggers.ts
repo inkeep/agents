@@ -1,0 +1,405 @@
+import { createRoute, OpenAPIHono, z } from '@hono/zod-openapi';
+import {
+	commonGetErrorResponses,
+	createApiError,
+	createTrigger,
+	deleteTrigger,
+	generateId,
+	getTriggerById,
+	listTriggersPaginated,
+	PaginationQueryParamsSchema,
+	TenantProjectAgentIdParamsSchema,
+	TenantProjectAgentParamsSchema,
+	TriggerApiInsertSchema,
+	TriggerApiSelectSchema,
+	TriggerApiUpdateSchema,
+	updateTrigger,
+} from '@inkeep/agents-core';
+import { env } from '../env';
+import { getLogger } from '../logger';
+import { requirePermission } from '../middleware/require-permission';
+import type { BaseAppVariables } from '../types/app';
+import { speakeasyOffsetLimitPagination } from './shared';
+
+const logger = getLogger('triggers');
+
+const app = new OpenAPIHono<{ Variables: BaseAppVariables }>();
+
+// Response schemas
+const TriggerResponse = z.object({
+	data: TriggerApiSelectSchema.extend({
+		webhookUrl: z.string().describe('Fully qualified webhook URL for this trigger'),
+	}),
+});
+
+const TriggerListResponse = z.object({
+	data: z.array(
+		TriggerApiSelectSchema.extend({
+			webhookUrl: z.string().describe('Fully qualified webhook URL for this trigger'),
+		})
+	),
+	pagination: z.object({
+		page: z.number(),
+		limit: z.number(),
+		total: z.number(),
+		pages: z.number(),
+	}),
+});
+
+// Apply permission middleware by HTTP method
+app.use('/', async (c, next) => {
+	if (c.req.method === 'POST') {
+		return requirePermission({ trigger: ['create'] })(c, next);
+	}
+	return next();
+});
+
+app.use('/:id', async (c, next) => {
+	if (c.req.method === 'PATCH') {
+		return requirePermission({ trigger: ['update'] })(c, next);
+	}
+	if (c.req.method === 'DELETE') {
+		return requirePermission({ trigger: ['delete'] })(c, next);
+	}
+	return next();
+});
+
+/**
+ * Generate webhook URL for a trigger
+ */
+function generateWebhookUrl(params: {
+	baseUrl: string;
+	tenantId: string;
+	projectId: string;
+	agentId: string;
+	triggerId: string;
+}): string {
+	const { baseUrl, tenantId, projectId, agentId, triggerId } = params;
+	return `${baseUrl}/tenants/${tenantId}/projects/${projectId}/agents/${agentId}/triggers/${triggerId}`;
+}
+
+/**
+ * List Triggers for an Agent
+ */
+app.openapi(
+	createRoute({
+		method: 'get',
+		path: '/',
+		summary: 'List Triggers',
+		operationId: 'list-triggers',
+		tags: ['Triggers'],
+		request: {
+			params: TenantProjectAgentParamsSchema,
+			query: PaginationQueryParamsSchema,
+		},
+		responses: {
+			200: {
+				description: 'List of triggers retrieved successfully',
+				content: {
+					'application/json': {
+						schema: TriggerListResponse,
+					},
+				},
+			},
+			...commonGetErrorResponses,
+		},
+		...speakeasyOffsetLimitPagination,
+	}),
+	async (c) => {
+		const db = c.get('db');
+		const { tenantId, projectId, agentId } = c.req.valid('param');
+		const { page, limit } = c.req.valid('query');
+		const runApiBaseUrl = env.INKEEP_AGENTS_RUN_API_URL;
+
+		const result = await listTriggersPaginated(db)({
+			scopes: { tenantId, projectId, agentId },
+			pagination: { page, limit },
+		});
+
+		// Add webhookUrl to each trigger
+		const dataWithWebhookUrl = result.data.map((trigger) => ({
+			...trigger,
+			webhookUrl: generateWebhookUrl({
+				baseUrl: runApiBaseUrl,
+				tenantId,
+				projectId,
+				agentId,
+				triggerId: trigger.id,
+			}),
+		}));
+
+		return c.json({
+			data: dataWithWebhookUrl,
+			pagination: result.pagination,
+		});
+	}
+);
+
+/**
+ * Get Trigger by ID
+ */
+app.openapi(
+	createRoute({
+		method: 'get',
+		path: '/{id}',
+		summary: 'Get Trigger',
+		operationId: 'get-trigger-by-id',
+		tags: ['Triggers'],
+		request: {
+			params: TenantProjectAgentIdParamsSchema,
+		},
+		responses: {
+			200: {
+				description: 'Trigger found',
+				content: {
+					'application/json': {
+						schema: TriggerResponse,
+					},
+				},
+			},
+			...commonGetErrorResponses,
+		},
+	}),
+	async (c) => {
+		const db = c.get('db');
+		const { tenantId, projectId, agentId, id } = c.req.valid('param');
+		const runApiBaseUrl = env.INKEEP_AGENTS_RUN_API_URL;
+
+		const trigger = await getTriggerById(db)({
+			scopes: { tenantId, projectId, agentId },
+			triggerId: id,
+		});
+
+		if (!trigger) {
+			throw createApiError({
+				code: 'not_found',
+				message: 'Trigger not found',
+			});
+		}
+
+		return c.json({
+			data: {
+				...trigger,
+				webhookUrl: generateWebhookUrl({
+					baseUrl: runApiBaseUrl,
+					tenantId,
+					projectId,
+					agentId,
+					triggerId: trigger.id,
+				}),
+			},
+		});
+	}
+);
+
+/**
+ * Create Trigger
+ */
+app.openapi(
+	createRoute({
+		method: 'post',
+		path: '/',
+		summary: 'Create Trigger',
+		operationId: 'create-trigger',
+		tags: ['Triggers'],
+		request: {
+			params: TenantProjectAgentParamsSchema,
+			body: {
+				content: {
+					'application/json': {
+						schema: TriggerApiInsertSchema,
+					},
+				},
+			},
+		},
+		responses: {
+			201: {
+				description: 'Trigger created successfully',
+				content: {
+					'application/json': {
+						schema: TriggerResponse,
+					},
+				},
+			},
+			...commonGetErrorResponses,
+		},
+	}),
+	async (c) => {
+		const db = c.get('db');
+		const { tenantId, projectId, agentId } = c.req.valid('param');
+		const body = c.req.valid('json');
+		const runApiBaseUrl = env.INKEEP_AGENTS_RUN_API_URL;
+
+		const id = body.id || generateId();
+
+		logger.info(
+			{ tenantId, projectId, agentId, triggerId: id },
+			'Creating trigger'
+		);
+
+		const trigger = await createTrigger(db)({
+			id,
+			tenantId,
+			projectId,
+			agentId,
+			name: body.name,
+			description: body.description,
+			enabled: body.enabled !== undefined ? body.enabled : true,
+			inputSchema: body.inputSchema,
+			outputTransform: body.outputTransform,
+			messageTemplate: body.messageTemplate,
+			authentication: body.authentication,
+			signingSecret: body.signingSecret,
+		});
+
+		return c.json(
+			{
+				data: {
+					...trigger,
+					webhookUrl: generateWebhookUrl({
+						baseUrl: runApiBaseUrl,
+						tenantId,
+						projectId,
+						agentId,
+						triggerId: trigger.id,
+					}),
+				},
+			},
+			201
+		);
+	}
+);
+
+/**
+ * Update Trigger
+ */
+app.openapi(
+	createRoute({
+		method: 'patch',
+		path: '/{id}',
+		summary: 'Update Trigger',
+		operationId: 'update-trigger',
+		tags: ['Triggers'],
+		request: {
+			params: TenantProjectAgentIdParamsSchema,
+			body: {
+				content: {
+					'application/json': {
+						schema: TriggerApiUpdateSchema,
+					},
+				},
+			},
+		},
+		responses: {
+			200: {
+				description: 'Trigger updated successfully',
+				content: {
+					'application/json': {
+						schema: TriggerResponse,
+					},
+				},
+			},
+			...commonGetErrorResponses,
+		},
+	}),
+	async (c) => {
+		const db = c.get('db');
+		const { tenantId, projectId, agentId, id } = c.req.valid('param');
+		const body = c.req.valid('json');
+		const runApiBaseUrl = env.INKEEP_AGENTS_RUN_API_URL;
+
+		if (Object.keys(body).length === 0) {
+			throw createApiError({
+				code: 'bad_request',
+				message: 'No fields to update',
+			});
+		}
+
+		logger.info(
+			{ tenantId, projectId, agentId, triggerId: id },
+			'Updating trigger'
+		);
+
+		const updatedTrigger = await updateTrigger(db)({
+			scopes: { tenantId, projectId, agentId },
+			triggerId: id,
+			data: {
+				name: body.name,
+				description: body.description,
+				enabled: body.enabled,
+				inputSchema: body.inputSchema,
+				outputTransform: body.outputTransform,
+				messageTemplate: body.messageTemplate,
+				authentication: body.authentication,
+				signingSecret: body.signingSecret,
+			},
+		});
+
+		if (!updatedTrigger) {
+			throw createApiError({
+				code: 'not_found',
+				message: 'Trigger not found',
+			});
+		}
+
+		return c.json({
+			data: {
+				...updatedTrigger,
+				webhookUrl: generateWebhookUrl({
+					baseUrl: runApiBaseUrl,
+					tenantId,
+					projectId,
+					agentId,
+					triggerId: updatedTrigger.id,
+				}),
+			},
+		});
+	}
+);
+
+/**
+ * Delete Trigger
+ */
+app.openapi(
+	createRoute({
+		method: 'delete',
+		path: '/{id}',
+		summary: 'Delete Trigger',
+		operationId: 'delete-trigger',
+		tags: ['Triggers'],
+		request: {
+			params: TenantProjectAgentIdParamsSchema,
+		},
+		responses: {
+			204: {
+				description: 'Trigger deleted successfully',
+			},
+			...commonGetErrorResponses,
+		},
+	}),
+	async (c) => {
+		const db = c.get('db');
+		const { tenantId, projectId, agentId, id } = c.req.valid('param');
+
+		logger.info(
+			{ tenantId, projectId, agentId, triggerId: id },
+			'Deleting trigger'
+		);
+
+		const deleted = await deleteTrigger(db)({
+			scopes: { tenantId, projectId, agentId },
+			triggerId: id,
+		});
+
+		if (!deleted) {
+			throw createApiError({
+				code: 'not_found',
+				message: 'Trigger not found',
+			});
+		}
+
+		return c.body(null, 204);
+	}
+);
+
+export default app;
