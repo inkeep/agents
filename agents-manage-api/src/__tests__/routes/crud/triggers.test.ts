@@ -1,5 +1,6 @@
 import {
 	createFullAgentServerSide,
+	createTriggerInvocation,
 	generateId,
 } from '@inkeep/agents-core';
 import { createTestProject } from '@inkeep/agents-core/db/test-manage-client';
@@ -689,6 +690,417 @@ describe('Trigger CRUD Routes - Integration Tests', () => {
 
 			// Should succeed with bypass secret
 			expect([204, 403]).toContain(res.status);
+		});
+	});
+
+	describe('Trigger Invocations', () => {
+		// Helper function to create test invocations
+		const createTestInvocation = async ({
+			tenantId,
+			projectId,
+			agentId,
+			triggerId,
+			status = 'success' as const,
+			requestPayload = { message: 'test' },
+			transformedPayload = { message: 'test' },
+			errorMessage = null,
+			createdAt,
+		}: {
+			tenantId: string;
+			projectId: string;
+			agentId: string;
+			triggerId: string;
+			status?: 'pending' | 'success' | 'failed';
+			requestPayload?: any;
+			transformedPayload?: any;
+			errorMessage?: string | null;
+			createdAt?: string;
+		}) => {
+			const invocation = await createTriggerInvocation(manageDbClient)({
+				id: generateId(),
+				tenantId,
+				projectId,
+				agentId,
+				triggerId,
+				conversationId: null,
+				status,
+				requestPayload,
+				transformedPayload,
+				errorMessage,
+				createdAt: createdAt || new Date().toISOString(),
+			});
+			return invocation;
+		};
+
+		describe('GET /{id}/invocations', () => {
+			it('should list invocations with pagination (empty initially)', async () => {
+				const tenantId = await createTestTenantWithOrg('invocations-list-empty');
+				const { agentId, projectId } = await createTestAgent(tenantId);
+				const { trigger } = await createTestTrigger({ tenantId, projectId, agentId });
+
+				const res = await makeRequest(
+					`/tenants/${tenantId}/projects/${projectId}/agents/${agentId}/triggers/${trigger.id}/invocations?page=1&limit=10`
+				);
+				expect(res.status).toBe(200);
+
+				const body = await res.json();
+				expect(body).toEqual({
+					data: [],
+					pagination: {
+						page: 1,
+						limit: 10,
+						total: 0,
+						pages: 0,
+					},
+				});
+			});
+
+			it('should list invocations with pagination', async () => {
+				const tenantId = await createTestTenantWithOrg('invocations-list');
+				const { agentId, projectId } = await createTestAgent(tenantId);
+				const { trigger } = await createTestTrigger({ tenantId, projectId, agentId });
+
+				// Create multiple invocations
+				await createTestInvocation({
+					tenantId,
+					projectId,
+					agentId,
+					triggerId: trigger.id,
+					status: 'success',
+				});
+				await createTestInvocation({
+					tenantId,
+					projectId,
+					agentId,
+					triggerId: trigger.id,
+					status: 'failed',
+				});
+
+				const res = await makeRequest(
+					`/tenants/${tenantId}/projects/${projectId}/agents/${agentId}/triggers/${trigger.id}/invocations?page=1&limit=10`
+				);
+				expect(res.status).toBe(200);
+
+				const body = await res.json();
+				expect(body.data).toHaveLength(2);
+				expect(body.pagination).toEqual({
+					page: 1,
+					limit: 10,
+					total: 2,
+					pages: 1,
+				});
+
+				// Verify invocation structure
+				const firstInvocation = body.data[0];
+				expect(firstInvocation).toHaveProperty('id');
+				expect(firstInvocation).toHaveProperty('status');
+				expect(firstInvocation).toHaveProperty('requestPayload');
+				expect(firstInvocation).toHaveProperty('transformedPayload');
+				expect(firstInvocation).toHaveProperty('errorMessage');
+				expect(firstInvocation).toHaveProperty('conversationId');
+				expect(firstInvocation).toHaveProperty('createdAt');
+				expect(firstInvocation).not.toHaveProperty('tenantId');
+				expect(firstInvocation).not.toHaveProperty('projectId');
+				expect(firstInvocation).not.toHaveProperty('agentId');
+			});
+
+			it('should order invocations by createdAt DESC (newest first)', async () => {
+				const tenantId = await createTestTenantWithOrg('invocations-ordering');
+				const { agentId, projectId } = await createTestAgent(tenantId);
+				const { trigger } = await createTestTrigger({ tenantId, projectId, agentId });
+
+				// Create invocations with different timestamps
+				const oldInvocation = await createTestInvocation({
+					tenantId,
+					projectId,
+					agentId,
+					triggerId: trigger.id,
+					status: 'success',
+					createdAt: '2025-01-01T00:00:00Z',
+				});
+
+				await new Promise((resolve) => setTimeout(resolve, 10));
+
+				const newInvocation = await createTestInvocation({
+					tenantId,
+					projectId,
+					agentId,
+					triggerId: trigger.id,
+					status: 'success',
+					createdAt: '2025-12-31T00:00:00Z',
+				});
+
+				const res = await makeRequest(
+					`/tenants/${tenantId}/projects/${projectId}/agents/${agentId}/triggers/${trigger.id}/invocations`
+				);
+				expect(res.status).toBe(200);
+
+				const body = await res.json();
+				expect(body.data).toHaveLength(2);
+				// Newest should be first
+				expect(body.data[0].id).toBe(newInvocation.id);
+				expect(body.data[1].id).toBe(oldInvocation.id);
+			});
+
+			it('should filter invocations by status', async () => {
+				const tenantId = await createTestTenantWithOrg('invocations-filter-status');
+				const { agentId, projectId } = await createTestAgent(tenantId);
+				const { trigger } = await createTestTrigger({ tenantId, projectId, agentId });
+
+				// Create invocations with different statuses
+				await createTestInvocation({
+					tenantId,
+					projectId,
+					agentId,
+					triggerId: trigger.id,
+					status: 'success',
+				});
+				await createTestInvocation({
+					tenantId,
+					projectId,
+					agentId,
+					triggerId: trigger.id,
+					status: 'failed',
+				});
+				await createTestInvocation({
+					tenantId,
+					projectId,
+					agentId,
+					triggerId: trigger.id,
+					status: 'pending',
+				});
+
+				// Filter for only success
+				const res = await makeRequest(
+					`/tenants/${tenantId}/projects/${projectId}/agents/${agentId}/triggers/${trigger.id}/invocations?status=success`
+				);
+				expect(res.status).toBe(200);
+
+				const body = await res.json();
+				expect(body.data).toHaveLength(1);
+				expect(body.data[0].status).toBe('success');
+			});
+
+			it('should filter invocations by date range', async () => {
+				const tenantId = await createTestTenantWithOrg('invocations-filter-date');
+				const { agentId, projectId } = await createTestAgent(tenantId);
+				const { trigger } = await createTestTrigger({ tenantId, projectId, agentId });
+
+				// Create invocations with different dates
+				const oldInvocation = await createTestInvocation({
+					tenantId,
+					projectId,
+					agentId,
+					triggerId: trigger.id,
+					status: 'success',
+					createdAt: '2025-01-01T00:00:00Z',
+				});
+
+				const midInvocation = await createTestInvocation({
+					tenantId,
+					projectId,
+					agentId,
+					triggerId: trigger.id,
+					status: 'success',
+					createdAt: '2025-06-01T00:00:00Z',
+				});
+
+				const newInvocation = await createTestInvocation({
+					tenantId,
+					projectId,
+					agentId,
+					triggerId: trigger.id,
+					status: 'success',
+					createdAt: '2025-12-01T00:00:00Z',
+				});
+
+				// Filter from June onwards
+				const res = await makeRequest(
+					`/tenants/${tenantId}/projects/${projectId}/agents/${agentId}/triggers/${trigger.id}/invocations?from=2025-06-01T00:00:00Z`
+				);
+				expect(res.status).toBe(200);
+
+				const body = await res.json();
+				expect(body.data).toHaveLength(2);
+				expect(body.data.map((i: any) => i.id)).toContain(midInvocation.id);
+				expect(body.data.map((i: any) => i.id)).toContain(newInvocation.id);
+				expect(body.data.map((i: any) => i.id)).not.toContain(oldInvocation.id);
+			});
+
+			it('should filter invocations by date range with both from and to', async () => {
+				const tenantId = await createTestTenantWithOrg('invocations-filter-date-both');
+				const { agentId, projectId } = await createTestAgent(tenantId);
+				const { trigger } = await createTestTrigger({ tenantId, projectId, agentId });
+
+				// Create invocations with different dates
+				await createTestInvocation({
+					tenantId,
+					projectId,
+					agentId,
+					triggerId: trigger.id,
+					status: 'success',
+					createdAt: '2025-01-01T00:00:00Z',
+				});
+
+				const midInvocation = await createTestInvocation({
+					tenantId,
+					projectId,
+					agentId,
+					triggerId: trigger.id,
+					status: 'success',
+					createdAt: '2025-06-01T00:00:00Z',
+				});
+
+				await createTestInvocation({
+					tenantId,
+					projectId,
+					agentId,
+					triggerId: trigger.id,
+					status: 'success',
+					createdAt: '2025-12-01T00:00:00Z',
+				});
+
+				// Filter for June only
+				const res = await makeRequest(
+					`/tenants/${tenantId}/projects/${projectId}/agents/${agentId}/triggers/${trigger.id}/invocations?from=2025-05-01T00:00:00Z&to=2025-07-01T00:00:00Z`
+				);
+				expect(res.status).toBe(200);
+
+				const body = await res.json();
+				expect(body.data).toHaveLength(1);
+				expect(body.data[0].id).toBe(midInvocation.id);
+			});
+
+			it('should handle pagination correctly', async () => {
+				const tenantId = await createTestTenantWithOrg('invocations-pagination');
+				const { agentId, projectId } = await createTestAgent(tenantId);
+				const { trigger } = await createTestTrigger({ tenantId, projectId, agentId });
+
+				// Create 5 invocations
+				for (let i = 0; i < 5; i++) {
+					await createTestInvocation({
+						tenantId,
+						projectId,
+						agentId,
+						triggerId: trigger.id,
+						status: 'success',
+					});
+				}
+
+				const res = await makeRequest(
+					`/tenants/${tenantId}/projects/${projectId}/agents/${agentId}/triggers/${trigger.id}/invocations?page=1&limit=3`
+				);
+				expect(res.status).toBe(200);
+
+				const body = await res.json();
+				expect(body.data).toHaveLength(3);
+				expect(body.pagination).toEqual({
+					page: 1,
+					limit: 3,
+					total: 5,
+					pages: 2,
+				});
+			});
+		});
+
+		describe('GET /{id}/invocations/{invocationId}', () => {
+			it('should get invocation by ID', async () => {
+				const tenantId = await createTestTenantWithOrg('invocations-get-by-id');
+				const { agentId, projectId } = await createTestAgent(tenantId);
+				const { trigger } = await createTestTrigger({ tenantId, projectId, agentId });
+				const invocation = await createTestInvocation({
+					tenantId,
+					projectId,
+					agentId,
+					triggerId: trigger.id,
+					status: 'success',
+					requestPayload: { test: 'data' },
+					transformedPayload: { transformed: 'data' },
+				});
+
+				const res = await makeRequest(
+					`/tenants/${tenantId}/projects/${projectId}/agents/${agentId}/triggers/${trigger.id}/invocations/${invocation.id}`
+				);
+				expect(res.status).toBe(200);
+
+				const body = await res.json();
+				expect(body.data.id).toBe(invocation.id);
+				expect(body.data.status).toBe('success');
+				expect(body.data.requestPayload).toEqual({ test: 'data' });
+				expect(body.data.transformedPayload).toEqual({ transformed: 'data' });
+			});
+
+			it('should return 404 for non-existent invocation', async () => {
+				const tenantId = await createTestTenantWithOrg('invocations-get-not-found');
+				const { agentId, projectId } = await createTestAgent(tenantId);
+				const { trigger } = await createTestTrigger({ tenantId, projectId, agentId });
+				const nonExistentId = `non-existent-${generateId()}`;
+
+				const res = await makeRequest(
+					`/tenants/${tenantId}/projects/${projectId}/agents/${agentId}/triggers/${trigger.id}/invocations/${nonExistentId}`
+				);
+				expect(res.status).toBe(404);
+
+				const body = await res.json();
+				expect(body.error.message).toBe('Trigger invocation not found');
+			});
+
+			it('should respect tenant isolation', async () => {
+				const tenantId1 = await createTestTenantWithOrg('invocations-tenant-1');
+				const tenantId2 = await createTestTenantWithOrg('invocations-tenant-2');
+				const projectId = 'default-project';
+
+				const { agentId } = await createTestAgent(tenantId1, projectId);
+				const { trigger } = await createTestTrigger({
+					tenantId: tenantId1,
+					projectId,
+					agentId,
+				});
+				const invocation = await createTestInvocation({
+					tenantId: tenantId1,
+					projectId,
+					agentId,
+					triggerId: trigger.id,
+					status: 'success',
+				});
+
+				// Try to access from different tenant
+				await createTestProject(manageDbClient, tenantId2, projectId);
+				const { agentId: agentId2 } = await createTestAgent(tenantId2, projectId);
+				const { trigger: trigger2 } = await createTestTrigger({
+					tenantId: tenantId2,
+					projectId,
+					agentId: agentId2,
+				});
+
+				const res = await makeRequest(
+					`/tenants/${tenantId2}/projects/${projectId}/agents/${agentId2}/triggers/${trigger2.id}/invocations/${invocation.id}`
+				);
+				expect(res.status).toBe(404);
+			});
+
+			it('should include error message for failed invocations', async () => {
+				const tenantId = await createTestTenantWithOrg('invocations-error');
+				const { agentId, projectId } = await createTestAgent(tenantId);
+				const { trigger } = await createTestTrigger({ tenantId, projectId, agentId });
+				const invocation = await createTestInvocation({
+					tenantId,
+					projectId,
+					agentId,
+					triggerId: trigger.id,
+					status: 'failed',
+					errorMessage: 'Test error message',
+				});
+
+				const res = await makeRequest(
+					`/tenants/${tenantId}/projects/${projectId}/agents/${agentId}/triggers/${trigger.id}/invocations/${invocation.id}`
+				);
+				expect(res.status).toBe(200);
+
+				const body = await res.json();
+				expect(body.data.status).toBe('failed');
+				expect(body.data.errorMessage).toBe('Test error message');
+			});
 		});
 	});
 });
