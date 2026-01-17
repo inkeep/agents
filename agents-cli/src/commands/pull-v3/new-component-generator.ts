@@ -154,8 +154,6 @@ function generateComponentContent(
     case 'credentials':
       return generateCredentialFile(componentId, componentData, defaultStyle);
     case 'contextConfigs': {
-      // Extract agent ID if stored in componentData
-      const agentId = componentData._agentId;
       // Remove the temporary _agentId field before passing to generator
       const cleanComponentData = { ...componentData };
       delete cleanComponentData._agentId;
@@ -163,8 +161,7 @@ function generateComponentContent(
         componentId,
         cleanComponentData,
         defaultStyle,
-        componentRegistry,
-        agentId
+        componentRegistry
       );
     }
     default:

@@ -356,8 +356,7 @@ export function generateContextConfigFile(
   contextId: string,
   contextData: any,
   style: CodeStyle = DEFAULT_STYLE,
-  registry?: ComponentRegistry,
-  agentId?: string
+  registry?: ComponentRegistry
 ): string {
   const imports = generateContextConfigImports(contextId, contextData, style, registry);
   const definitions: string[] = [];
