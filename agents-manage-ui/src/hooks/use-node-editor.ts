@@ -12,37 +12,34 @@ export function useNodeEditor({ selectedNodeId, errorHelpers }: UseNodeEditorOpt
   const { updateNodeData, setNodes, deleteElements, getNode } = useReactFlow();
   const { markUnsaved } = useAgentActions();
 
-  const deleteNode = useCallback(() => {
+  const deleteNode = () => {
     deleteElements({ nodes: [{ id: selectedNodeId }] });
-  }, [selectedNodeId, deleteElements]);
+  };
 
-  const updateDefaultSubAgent = useCallback(
-    (isDefault: boolean) => {
-      setNodes((nodes) =>
-        nodes.map((node) => {
-          if (node.id === selectedNodeId) {
-            return { ...node, data: { ...node.data, isDefault }, deletable: !isDefault };
-          }
-          if (isDefault && node.data.isDefault) {
-            return { ...node, data: { ...node.data, isDefault: false }, deletable: true };
-          }
-          return node;
-        })
-      );
-    },
-    [selectedNodeId, setNodes]
-  );
+  const updateDefaultSubAgent = (isDefault: boolean) => {
+    setNodes((nodes) =>
+      nodes.map((node) => {
+        if (node.id === selectedNodeId) {
+          return { ...node, data: { ...node.data, isDefault }, deletable: !isDefault };
+        }
+        if (isDefault && node.data.isDefault) {
+          return { ...node, data: { ...node.data, isDefault: false }, deletable: true };
+        }
+        return node;
+      })
+    );
+  };
 
   // Focus management for error fields
   const fieldRefs = useRef<Record<string, HTMLElement>>({});
 
-  const setFieldRef = useCallback((fieldName: string, element: HTMLElement | null) => {
+  const setFieldRef = (fieldName: string, element: HTMLElement | null) => {
     if (element) {
       fieldRefs.current[fieldName] = element;
     } else {
       delete fieldRefs.current[fieldName];
     }
-  }, []);
+  };
 
   // Focus on first error field when component mounts or errors change -- this was causing issues if another input was already focused
   // useEffect(() => {
@@ -58,12 +55,9 @@ export function useNodeEditor({ selectedNodeId, errorHelpers }: UseNodeEditorOpt
   // }, [errorHelpers]);
 
   // Helper function to get field error message
-  const getFieldError = useCallback(
-    (fieldName: string) => {
-      return errorHelpers?.getFieldErrorMessage(fieldName);
-    },
-    [errorHelpers]
-  );
+  const getFieldError = (fieldName: string) => {
+    return errorHelpers?.getFieldErrorMessage(fieldName);
+  };
 
   // Simple field update
   const updateField = (name: string, value: any) => {

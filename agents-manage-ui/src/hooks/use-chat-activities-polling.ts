@@ -33,7 +33,7 @@ export const useChatActivitiesPolling = ({
   const isComponentMountedRef = useRef(true);
   const abortControllerRef = useRef<AbortController | null>(null);
 
-  const fetchChatActivities = useCallback(async (): Promise<ConversationDetail | null> => {
+  const fetchChatActivities = async (): Promise<ConversationDetail | null> => {
     try {
       setError(null);
 
@@ -101,10 +101,10 @@ export const useChatActivitiesPolling = ({
       }
       throw err;
     }
-  }, [conversationId, tenantId, projectId]);
+  };
 
   // Start polling
-  const startPolling = useCallback(() => {
+  const startPolling = () => {
     if (pollingIntervalRef.current) return; // Already polling
 
     setIsPolling(true);
@@ -120,10 +120,10 @@ export const useChatActivitiesPolling = ({
         // Error handling is already done in fetchChatActivities
       });
     }, pollingInterval);
-  }, [fetchChatActivities, pollingInterval]);
+  };
 
   // Stop polling
-  const stopPolling = useCallback(() => {
+  const stopPolling = () => {
     setIsPolling(false);
     if (pollingIntervalRef.current) {
       clearInterval(pollingIntervalRef.current);
@@ -134,24 +134,24 @@ export const useChatActivitiesPolling = ({
       abortControllerRef.current.abort();
       abortControllerRef.current = null;
     }
-  }, []);
+  };
 
   // Retry connection - clears error and restarts polling
-  const retryConnection = useCallback(() => {
+  const retryConnection = () => {
     setError(null);
     stopPolling();
     startPolling();
-  }, [startPolling, stopPolling]);
+  };
 
   // Refresh once - makes a single request without starting polling
-  const refreshOnce = useCallback(async (): Promise<{
+  const refreshOnce = async (): Promise<{
     hasNewActivity: boolean;
   }> => {
     const currentCount = chatActivities?.activities?.length || 0;
     const data = await fetchChatActivities();
     const newCount = data?.activities?.length || 0;
     return { hasNewActivity: newCount > currentCount };
-  }, [fetchChatActivities, chatActivities?.activities?.length]);
+  };
 
   // Cleanup on unmount
   useEffect(() => {

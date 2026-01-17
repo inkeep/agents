@@ -57,7 +57,7 @@ export function useCopilotToken(): UseCopilotTokenResult {
   const [retryCount, setRetryCount] = useState(0);
   const isMountedRef = useRef(true);
 
-  const fetchToken = useCallback(async () => {
+  const fetchToken = async () => {
     try {
       setIsLoading(true);
       setError(null);
@@ -88,7 +88,7 @@ export function useCopilotToken(): UseCopilotTokenResult {
         setIsLoading(false);
       }
     }
-  }, []);
+  };
 
   // Track mounted state
   useEffect(() => {
