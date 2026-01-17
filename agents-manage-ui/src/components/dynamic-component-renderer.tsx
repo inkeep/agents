@@ -54,17 +54,14 @@ function fallbackRender({ error }: { error: Error }) {
 }
 
 export function DynamicComponentRenderer({ code, props }: DynamicComponentRendererProps) {
-  const transformedCode = useMemo(() => transformCode(code, props), [code, props]);
-  const scope = useMemo(
-    () => ({
-      fallbackRender,
-      import: {
-        'lucide-react': LucideIcons,
-        'react-error-boundary': ErrorBoundary,
-      },
-    }),
-    []
-  );
+  const transformedCode = transformCode(code, props);
+  const scope = {
+    fallbackRender,
+    import: {
+      'lucide-react': LucideIcons,
+      'react-error-boundary': ErrorBoundary,
+    },
+  };
 
   const { element } = useRunner({
     code: transformedCode,

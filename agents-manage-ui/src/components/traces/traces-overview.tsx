@@ -56,7 +56,7 @@ export function TracesOverview({ refreshKey }: TracesOverviewProps) {
   const [activityLoading, setActivityLoading] = useState(true);
 
   // Calculate time range based on selection
-  const { startTime, endTime } = useMemo(() => {
+  const { startTime, endTime } = (() => {
     const currentEndTime = Date.now() - 1; // Clamp to now-1ms to satisfy backend validation
 
     if (selectedTimeRange === CUSTOM) {
@@ -91,7 +91,7 @@ export function TracesOverview({ refreshKey }: TracesOverviewProps) {
       startTime: calculatedStart,
       endTime: currentEndTime,
     };
-  }, [selectedTimeRange, customStartDate, customEndDate]);
+  })();
   // URL state management is now handled by useUrlFilterState hook
 
   // Debounce search query to avoid too many API calls
@@ -103,16 +103,13 @@ export function TracesOverview({ refreshKey }: TracesOverviewProps) {
     return () => clearTimeout(timer);
   }, [searchQuery]);
 
-  const spanFilters = useMemo<SpanFilterOptions | undefined>(() => {
-    if (!spanName && attributes.length === 0) {
-      return undefined;
-    }
-    const filters = {
-      spanName: spanName || undefined,
-      attributes: attributes.length > 0 ? attributes : undefined,
-    };
-    return filters;
-  }, [spanName, attributes]);
+  const spanFilters: SpanFilterOptions | undefined =
+    !spanName && attributes.length === 0
+      ? undefined
+      : {
+          spanName: spanName || undefined,
+          attributes: attributes.length > 0 ? attributes : undefined,
+        };
 
   const {
     aggregateStats,

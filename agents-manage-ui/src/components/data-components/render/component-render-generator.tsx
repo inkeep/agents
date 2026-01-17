@@ -160,13 +160,10 @@ export function ComponentRenderGenerator({
   const hasRender = render !== null && (render.component?.trim().length ?? 0) > 0;
 
   // Memoize to prevent infinite re-renders
-  const stringifiedData = useMemo(
-    () => (render?.mockData ? JSON.stringify(render.mockData, null, 2) : '{}'),
-    [render?.mockData]
-  );
+  const stringifiedData = render?.mockData ? JSON.stringify(render.mockData, null, 2) : '{}';
 
-  const renderCode = useMemo(() => render?.component || '', [render?.component]);
-  const renderData = useMemo(() => render?.mockData || {}, [render?.mockData]);
+  const renderCode = render?.component || '';
+  const renderData = render?.mockData || {};
 
   const handleDataChange = useCallback(
     (newData: string) => {

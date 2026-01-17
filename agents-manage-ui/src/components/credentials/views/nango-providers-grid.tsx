@@ -63,26 +63,20 @@ export function NangoProvidersGrid({ providers }: NangoProvidersGridProps) {
   );
 
   // Pre-process searchable text for performance
-  const providersWithSearchText = useMemo(() => {
-    return providers.map((provider) => ({
-      ...provider,
-      searchText: [
-        provider.name.toLowerCase(),
-        provider.display_name?.toLowerCase() || '',
-        ...(provider.categories?.map((cat) => cat.toLowerCase()) || []),
-      ].join(' '),
-    }));
-  }, [providers]);
+  const providersWithSearchText = providers.map((provider) => ({
+    ...provider,
+    searchText: [
+      provider.name.toLowerCase(),
+      provider.display_name?.toLowerCase() || '',
+      ...(provider.categories?.map((cat) => cat.toLowerCase()) || []),
+    ].join(' '),
+  }));
 
   // Filter providers based on search query (now efficient)
-  const filteredProviders = useMemo(() => {
-    if (!searchQuery.trim()) {
-      return providersWithSearchText;
-    }
-
-    const query = searchQuery.toLowerCase();
-    return providersWithSearchText.filter((provider) => provider.searchText.includes(query));
-  }, [providersWithSearchText, searchQuery]);
+  const query = searchQuery.toLowerCase();
+  const filteredProviders = !searchQuery.trim()
+    ? providersWithSearchText
+    : providersWithSearchText.filter((provider) => provider.searchText.includes(query));
 
   return (
     <div className="space-y-6">

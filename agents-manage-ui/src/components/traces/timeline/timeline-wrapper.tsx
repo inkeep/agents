@@ -205,42 +205,31 @@ export function TimelineWrapper({
     );
   }, [conversation?.activities, conversation?.toolCalls]);
 
-  // Memoize sorted activities to prevent re-sorting on every render
-  const sortedActivities = useMemo(() => {
-    const list = [...activities];
-    list.sort((a, b) => {
-      const ta = new Date(a.timestamp).getTime();
-      const tb = new Date(b.timestamp).getTime();
-      return ta !== tb ? ta - tb : String(a.id).localeCompare(String(b.id));
-    });
-    return list;
-  }, [activities]);
+  const sortedActivities = [...activities].sort((a, b) => {
+    const ta = new Date(a.timestamp).getTime();
+    const tb = new Date(b.timestamp).getTime();
+    return ta !== tb ? ta - tb : String(a.id).localeCompare(String(b.id));
+  });
 
   // Ref to track if we've already scrolled to the first error
   const hasScrolledToErrorRef = useRef<string | undefined>(undefined);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
 
-  // Memoize AI message IDs to avoid recalculating on every render
-  const aiMessageIds = useMemo(() => {
-    return sortedActivities
-      .filter(
-        (activity) =>
-          activity.type === ACTIVITY_TYPES.AI_ASSISTANT_MESSAGE ||
-          activity.type === ACTIVITY_TYPES.AI_MODEL_STREAMED_TEXT ||
-          (activity.hasError && activity.otelStatusDescription)
-      )
-      .map((activity) => activity.id);
-  }, [sortedActivities]);
+  const aiMessageIds = sortedActivities
+    .filter(
+      (activity) =>
+        activity.type === ACTIVITY_TYPES.AI_ASSISTANT_MESSAGE ||
+        activity.type === ACTIVITY_TYPES.AI_MODEL_STREAMED_TEXT ||
+        (activity.hasError && activity.otelStatusDescription)
+    )
+    .map((activity) => activity.id);
 
-  // Memoize stream text IDs for cleaner collapse logic
-  const streamTextIds = useMemo(() => {
-    return sortedActivities
-      .filter((activity) => activity.type === ACTIVITY_TYPES.AI_MODEL_STREAMED_TEXT)
-      .map((activity) => activity.id);
-  }, [sortedActivities]);
+  const streamTextIds = sortedActivities
+    .filter((activity) => activity.type === ACTIVITY_TYPES.AI_MODEL_STREAMED_TEXT)
+    .map((activity) => activity.id);
 
   // Track which messages we've already processed
-  const processedIdsRef = useRef<Set<string>>(new Set());
+  const processedIdsRef = useRef(new Set<string>());
   const lastConversationRef = useRef<string | undefined>(undefined);
 
   useEffect(() => {

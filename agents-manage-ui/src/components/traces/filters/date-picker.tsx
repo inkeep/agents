@@ -71,7 +71,7 @@ export function DatePickerWithPresets({
   const presetValue = options.find((option) => option.value === value);
 
   // Memoize only the expensive date formatting operations
-  const dateComputations = useMemo(() => {
+  const dateComputations = (() => {
     if (!value || typeof value !== 'object') {
       return { initialDate: undefined, dateFormattedValue: undefined };
     }
@@ -88,7 +88,7 @@ export function DatePickerWithPresets({
       : undefined;
 
     return { initialDate, dateFormattedValue };
-  }, [value]);
+  })();
 
   // Combine preset and date values (preset lookup is cheap, no need to memoize)
   const initialDate = dateComputations.initialDate;

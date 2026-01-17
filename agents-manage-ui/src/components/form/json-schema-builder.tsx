@@ -18,7 +18,6 @@ import {
   type FieldObject,
   fieldsToJsonSchema,
   findFieldById,
-  type JsonSchemaStateData,
   Types,
   type TypeValues,
   useJsonSchemaActions,
@@ -58,15 +57,11 @@ interface PropertyProps {
 }
 
 const Property: FC<PropertyProps> = ({ fieldId, depth = 0, prefix }) => {
-  const selector = useMemo(
-    () => (state: JsonSchemaStateData) => ({
-      field: findFieldById(state.fields, fieldId),
-      hasInPreview: state.hasInPreview,
-      allRequired: state.allRequired,
-    }),
-    [fieldId]
-  );
-  const { field, hasInPreview, allRequired } = useJsonSchemaStore(selector);
+  const { field, hasInPreview, allRequired } = useJsonSchemaStore((state) => ({
+    field: findFieldById(state.fields, fieldId),
+    hasInPreview: state.hasInPreview,
+    allRequired: state.allRequired,
+  }));
 
   const { updateField, changeType, addChild, removeField, updateEnumValues } =
     useJsonSchemaActions();

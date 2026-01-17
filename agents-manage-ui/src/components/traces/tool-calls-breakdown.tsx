@@ -67,7 +67,7 @@ export function ToolCallsBreakdown({ onBack }: ToolCallsBreakdownProps) {
     }
   };
 
-  const { startTime, endTime } = useMemo(() => {
+  const { startTime, endTime } = (() => {
     const currentEndTime = Date.now();
 
     if (timeRange === 'custom') {
@@ -95,7 +95,7 @@ export function ToolCallsBreakdown({ onBack }: ToolCallsBreakdownProps) {
       startTime: currentEndTime - hoursBack * 60 * 60 * 1000,
       endTime: currentEndTime,
     };
-  }, [timeRange, customStartDate, customEndDate]);
+  })();
 
   useEffect(() => {
     const fetchData = async () => {
@@ -126,9 +126,9 @@ export function ToolCallsBreakdown({ onBack }: ToolCallsBreakdownProps) {
     fetchData();
   }, [selectedServer, startTime, endTime, params.projectId]);
 
-  const filteredToolCalls = useMemo(() => {
-    return toolCalls.filter((tool) => selectedTool === 'all' || tool.toolName === selectedTool);
-  }, [toolCalls, selectedTool]);
+  const filteredToolCalls = toolCalls.filter(
+    (tool) => selectedTool === 'all' || tool.toolName === selectedTool
+  );
 
   const totalToolCalls = filteredToolCalls.reduce((sum, item) => sum + item.totalCalls, 0);
   const totalErrors = filteredToolCalls.reduce((sum, item) => sum + item.errorCount, 0);

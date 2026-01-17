@@ -33,16 +33,14 @@ function formatJsonSafely(content: string): string {
 
 /** Compact context breakdown for the side panel */
 function ContextBreakdownPanel({ breakdown }: { breakdown: ContextBreakdown }) {
-  const items = useMemo(() => {
-    return V1_BREAKDOWN_SCHEMA.map((def) => ({
-      key: def.key,
-      label: def.label,
-      color: def.color,
-      value: breakdown.components[def.key] ?? 0,
-    }))
-      .filter((item) => item.value > 0)
-      .sort((a, b) => b.value - a.value);
-  }, [breakdown]);
+  const items = V1_BREAKDOWN_SCHEMA.map((def) => ({
+    key: def.key,
+    label: def.label,
+    color: def.color,
+    value: breakdown.components[def.key] ?? 0,
+  }))
+    .filter((item) => item.value > 0)
+    .sort((a, b) => b.value - a.value);
 
   if (breakdown.total === 0) return null;
 
