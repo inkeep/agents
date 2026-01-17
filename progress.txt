@@ -745,3 +745,33 @@ Started: Sat Jan 17 03:02:52 UTC 2026
 
 ---
 
+## Iteration 6 - Sat Jan 17 09:31:23 UTC 2026
+
+### Story: US-023 - Add SDK trigger types compatibility with agents-core
+
+**Implementation:**
+- Renamed internal TriggerConfigWithZod type to TriggerConfig and exported it from trigger.ts
+- Created internal alias TriggerConfigWithZod = TriggerConfig for backward compatibility
+- Added TriggerConfig to SDK index.ts exports (alongside TriggerInterface and Trigger class)
+- Verified SDK trigger serialization matches TriggerApiInsert schema in agents-core:
+  - TriggerConfig extends TriggerApiInsert with optional id and Zod inputSchema support
+  - Trigger.getConfig() returns format matching TriggerApiInsert (with required id field)
+  - Agent.toFullAgentDefinition() converts Zod inputSchema to JSON Schema during serialization
+- No additional conversion utilities needed - existing convertZodToJsonSchema handles all cases
+- Verified typecheck passes
+
+**Files Changed:**
+- packages/agents-sdk/src/trigger.ts (exported TriggerConfig type, added alias)
+- packages/agents-sdk/src/index.ts (added TriggerConfig to exports)
+- prd.json (marked US-023 as complete)
+
+**Learnings:**
+- TriggerConfig type allows Zod schemas for inputSchema field (ergonomic SDK API)
+- TriggerApiInsert requires JSON Schema format (API compatibility)
+- Conversion happens during serialization in toFullAgentDefinition() - single point of conversion
+- SDK pattern: accept flexible types (Zod), convert to strict API types (JSON Schema) at serialization boundary
+- Type compatibility verified by ensuring getConfig() return type matches TriggerApiInsert structure
+- No runtime conversion utilities needed beyond existing schema conversion helpers
+
+---
+
