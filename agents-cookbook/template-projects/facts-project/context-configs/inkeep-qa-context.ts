@@ -1,4 +1,4 @@
-import { contextConfig, fetchDefinition, headers } from '@inkeep/agents-core';
+import { contextConfig, fetchDefinition } from '@inkeep/agents-core';
 import { z } from 'zod';
 import { inkeepApiKey } from '../credentials/inkeep-api-key';
 
