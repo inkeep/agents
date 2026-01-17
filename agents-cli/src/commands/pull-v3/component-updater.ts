@@ -486,7 +486,7 @@ export async function cleanupStaleComponents(
   // Get all local components that don't exist remotely (stale components)
   // Skip the project component itself - it's the root and should never be "stale"
   const staleComponents: ComponentInfo[] = [];
-  for (const component of localRegistry.getAllComponents()) {
+  for (const component of allLocalComponents) {
     if (component.type === 'project') {
       continue;
     }
