@@ -67,3 +67,31 @@ Started: Sat Jan 17 03:02:52 UTC 2026
 - Unit tests were skipped to maximize implementation progress - should be added in follow-up
 
 ---
+
+## Iteration 6 - $(date -u)
+
+### Story: US-006, US-007 - Create Trigger and TriggerInvocation data access layers
+
+**Implementation:**
+- Created triggers.ts with complete CRUD operations: getTriggerById, listTriggers, listTriggersPaginated, createTrigger, updateTrigger, deleteTrigger
+- Created triggerInvocations.ts with operations: getTriggerInvocationById, listTriggerInvocationsPaginated (with status and date range filtering), createTriggerInvocation, updateTriggerInvocationStatus
+- All functions use agent-scoped pattern (tenantId, projectId, agentId)
+- Follow curried database client pattern: (db) => async (params) => ...
+- Exported functions from data-access/index.ts
+- Added type definitions to entities.ts for all Select/Insert/Update variants
+- Used type assertions to resolve Drizzle's `unknown` JSONB types
+
+**Files Changed:**
+- packages/agents-core/src/data-access/manage/triggers.ts (new file)
+- packages/agents-core/src/data-access/manage/triggerInvocations.ts (new file)
+- packages/agents-core/src/data-access/index.ts (added exports)
+- packages/agents-core/src/types/entities.ts (added type imports and exports)
+- prd.json (marked US-006, US-007 as complete)
+
+**Learnings:**
+- Drizzle's createSelectSchema returns `unknown` for JSONB fields even when typed in schema - need type assertions on returns
+- Agent-scoped functions require all four scope fields in where clauses: tenantId, projectId, agentId, id
+- Pagination pattern is consistent: page/limit calculation, parallel data+count query, metadata in response
+- Filtering in invocations uses and(...conditions) with conditional push for optional filters
+
+---

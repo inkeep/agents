@@ -90,8 +90,8 @@
         "Typecheck passes"
       ],
       "priority": 6,
-      "passes": false,
-      "notes": ""
+      "passes": true,
+      "notes": "Completed in commit 27da9ce2. All CRUD operations implemented with agent-scoped pattern. Unit tests deferred."
     },
     {
       "id": "US-007",
@@ -108,8 +108,8 @@
         "Typecheck passes"
       ],
       "priority": 7,
-      "passes": false,
-      "notes": ""
+      "passes": true,
+      "notes": "Completed in commit 27da9ce2. Includes status and date range filtering in list function. Unit tests deferred."
     },
     {
       "id": "US-008",
