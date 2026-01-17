@@ -178,7 +178,6 @@ export function generateContextConfigDefinition(
   contextData: any,
   style: CodeStyle = DEFAULT_STYLE,
   registry: ComponentRegistry,
-  agentId?: string,
   headersVarName?: string
 ): string {
   // Validate required parameters
@@ -414,7 +413,6 @@ export function generateContextConfigFile(
     contextData,
     style,
     registry!,
-    agentId,
     headersVarName
   );
   definitions.push(contextDefinition);
