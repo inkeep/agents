@@ -472,7 +472,7 @@ function compareTools(
   remoteTools: Record<string, any>,
   debug: boolean
 ): ComponentChange[] {
-  return compareComponentMaps('tools', localTools, remoteTools, debug);
+  return compareComponentMaps('tools', localTools, remoteTools);
 }
 
 /**
@@ -483,7 +483,7 @@ function compareFunctionTools(
   remoteFunctionTools: Record<string, any>,
   debug: boolean
 ): ComponentChange[] {
-  return compareComponentMaps('functionTools', localFunctionTools, remoteFunctionTools, debug);
+  return compareComponentMaps('functionTools', localFunctionTools, remoteFunctionTools);
 }
 
 /**
@@ -518,7 +518,7 @@ function compareFunctions(
     };
   }
 
-  return compareComponentMaps('functions', cleanLocalFunctions, cleanRemoteFunctions, debug);
+  return compareComponentMaps('functions', cleanLocalFunctions, cleanRemoteFunctions);
 }
 
 /**
@@ -529,7 +529,7 @@ function compareDataComponents(
   remoteDataComponents: Record<string, any>,
   debug: boolean
 ): ComponentChange[] {
-  return compareComponentMaps('dataComponents', localDataComponents, remoteDataComponents, debug);
+  return compareComponentMaps('dataComponents', localDataComponents, remoteDataComponents);
 }
 
 /**
@@ -543,8 +543,7 @@ function compareArtifactComponents(
   return compareComponentMaps(
     'artifactComponents',
     localArtifactComponents,
-    remoteArtifactComponents,
-    debug
+    remoteArtifactComponents
   );
 }
 
@@ -556,7 +555,7 @@ function compareCredentials(
   remoteCredentials: Record<string, any>,
   debug: boolean
 ): ComponentChange[] {
-  return compareComponentMaps('credentials', localCredentials, remoteCredentials, debug);
+  return compareComponentMaps('credentials', localCredentials, remoteCredentials);
 }
 
 /**
@@ -567,7 +566,7 @@ function compareExternalAgents(
   remoteExternalAgents: Record<string, any>,
   debug: boolean
 ): ComponentChange[] {
-  return compareComponentMaps('externalAgents', localExternalAgents, remoteExternalAgents, debug);
+  return compareComponentMaps('externalAgents', localExternalAgents, remoteExternalAgents);
 }
 
 /**
@@ -578,12 +577,7 @@ function compareStatusComponents(
   remoteStatusComponents: Record<string, any>,
   debug: boolean
 ): ComponentChange[] {
-  return compareComponentMaps(
-    'statusComponents',
-    localStatusComponents,
-    remoteStatusComponents,
-    debug
-  );
+  return compareComponentMaps('statusComponents', localStatusComponents, remoteStatusComponents);
 }
 
 /**
@@ -672,8 +666,7 @@ function compareProjectFields(
 function compareComponentMaps(
   componentType: ComponentType,
   localMap: Record<string, any>,
-  remoteMap: Record<string, any>,
-  debug: boolean
+  remoteMap: Record<string, any>
 ): ComponentChange[] {
   const changes: ComponentChange[] = [];
   const localIds = Object.keys(localMap);
