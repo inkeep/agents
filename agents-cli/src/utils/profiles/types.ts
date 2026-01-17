@@ -12,7 +12,7 @@ export const CLOUD_REMOTE = {
 /**
  * Schema for explicit remote URLs (custom/local deployments)
  */
-export const explicitRemoteSchema = z.object({
+export const explicitRemoteSchema: z.ZodType<ExplicitRemote> = z.object({
   manageApi: z.string().url('manageApi must be a valid URL'),
   manageUi: z.string().url('manageUi must be a valid URL'),
   runApi: z.string().url('runApi must be a valid URL'),
@@ -54,7 +54,11 @@ export const profilesConfigSchema = z.object({
 /**
  * Explicit remote URLs type
  */
-export type ExplicitRemote = z.infer<typeof explicitRemoteSchema>;
+export interface ExplicitRemote {
+  manageApi: string;
+  manageUi: string;
+  runApi: string;
+}
 
 /**
  * Remote configuration type - either 'cloud' or explicit URLs
