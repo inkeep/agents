@@ -11,7 +11,7 @@ import {
 import type { ComponentRegistry } from '../../utils/component-registry';
 
 // Mock registry for tests
-const mockRegistry: Partial<ComponentRegistry> = {
+const mockRegistry = {
   formatReferencesForCode(refs, _type, _style, indent) {
     if (!refs || refs.length === 0) return '[]';
 
@@ -64,7 +64,7 @@ const mockRegistry: Partial<ComponentRegistry> = {
       },
     ];
   },
-};
+} satisfies Partial<ComponentRegistry>;
 
 describe('Agent Generator', () => {
   const basicAgentData = {
