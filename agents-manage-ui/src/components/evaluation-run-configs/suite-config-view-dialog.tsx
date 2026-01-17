@@ -44,7 +44,7 @@ export function SuiteConfigViewDialog({
   const [evaluators, setEvaluators] = useState<Evaluator[]>([]);
   const [agents, setAgents] = useState<Agent[]>([]);
 
-  const loadSuiteConfigDetails = useCallback(async () => {
+  const loadSuiteConfigDetails = async () => {
     if (!suiteConfigId || !tenantId || !projectId) {
       return;
     }
@@ -99,7 +99,7 @@ export function SuiteConfigViewDialog({
     } finally {
       setLoading(false);
     }
-  }, [suiteConfigId, tenantId, projectId]);
+  };
 
   useEffect(() => {
     if (isOpen && suiteConfigId && tenantId && projectId) {

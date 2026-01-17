@@ -48,9 +48,9 @@ export const ProjectSwitcher: FC = () => {
   const { data: projects = [], isPending } = useProjectsQuery(tenantId);
   const invalidateProjects = useProjectsInvalidation(tenantId);
 
-  const handleCreateProject = useCallback(() => {
+  const handleCreateProject = () => {
     setIsProjectDialogOpen(true);
-  }, []);
+  };
 
   if (isPending) {
     return <Skeleton className="h-12" />;

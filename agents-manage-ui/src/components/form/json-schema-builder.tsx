@@ -333,35 +333,26 @@ const TagsInput: FC<{ value: string[]; onChange: (next: string[]) => void }> = (
 }) => {
   const [input, setInput] = useState('');
 
-  const addTag = useCallback(
-    (tag: string) => {
-      const trimmed = tag.trim();
-      if (trimmed && !value.includes(trimmed)) {
-        onChange([...value, trimmed]);
-      }
-    },
-    [onChange, value]
-  );
+  const addTag = (tag: string) => {
+    const trimmed = tag.trim();
+    if (trimmed && !value.includes(trimmed)) {
+      onChange([...value, trimmed]);
+    }
+  };
 
-  const removeTag = useCallback(
-    (tag: string) => {
-      onChange(value.filter((t) => t !== tag));
-    },
-    [onChange, value]
-  );
+  const removeTag = (tag: string) => {
+    onChange(value.filter((t) => t !== tag));
+  };
 
-  const handleKeyDown = useCallback(
-    (event: React.KeyboardEvent<HTMLInputElement>) => {
-      if (event.key === 'Enter') {
-        event.preventDefault();
-        addTag(input);
-        setInput('');
-      } else if (event.key === 'Backspace' && !input && value.length > 0) {
-        removeTag(value[value.length - 1]);
-      }
-    },
-    [addTag, input, removeTag, value]
-  );
+  const handleKeyDown = (event: React.KeyboardEvent<HTMLInputElement>) => {
+    if (event.key === 'Enter') {
+      event.preventDefault();
+      addTag(input);
+      setInput('');
+    } else if (event.key === 'Backspace' && !input && value.length > 0) {
+      removeTag(value[value.length - 1]);
+    }
+  };
 
   return (
     <>

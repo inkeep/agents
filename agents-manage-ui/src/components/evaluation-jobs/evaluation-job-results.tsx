@@ -57,7 +57,7 @@ export function EvaluationJobResults({
     isRunning: boolean;
   }>({ total: 0, completed: 0, isRunning: false });
 
-  const loadProgress = useCallback(async () => {
+  const loadProgress = async () => {
     try {
       // Fetch latest results
       const latestResults = await fetchEvaluationResultsByJobConfig(
@@ -113,7 +113,7 @@ export function EvaluationJobResults({
     } catch (err) {
       console.error('Error loading evaluation progress:', err);
     }
-  }, [tenantId, projectId, jobConfig.id, jobConfig.jobFilters]);
+  };
 
   // Initial progress load
   useEffect(() => {

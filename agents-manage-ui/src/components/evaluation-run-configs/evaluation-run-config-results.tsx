@@ -55,14 +55,14 @@ export function EvaluationRunConfigResults({
   const [results, setResults] = useState<EvaluationResult[]>(initialResults);
 
   // Fetch results for polling
-  const refreshResults = useCallback(async () => {
+  const refreshResults = async () => {
     try {
       const response = await fetchEvaluationResultsByRunConfig(tenantId, projectId, runConfig.id);
       setResults(response.data);
     } catch (error) {
       console.error('Error refreshing results:', error);
     }
-  }, [tenantId, projectId, runConfig.id]);
+  };
 
   // Always poll for new results since continuous tests can receive new evaluations at any time
   useEffect(() => {

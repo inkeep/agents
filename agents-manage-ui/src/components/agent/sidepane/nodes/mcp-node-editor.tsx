@@ -53,10 +53,8 @@ export function MCPServerNodeEditor({
     edges: state.edges,
   }));
 
-  const getCurrentHeaders = useCallback((): Record<string, string> => {
-    return getCurrentHeadersForNode(selectedNode, agentToolConfigLookup, edges);
-  }, [selectedNode, agentToolConfigLookup, edges]);
-
+  const getCurrentHeaders = (): Record<string, string> =>
+    getCurrentHeadersForNode(selectedNode, agentToolConfigLookup, edges);
   // Local state for headers input (allows invalid JSON while typing)
   const [headersInputValue, setHeadersInputValue] = useState('{}');
 

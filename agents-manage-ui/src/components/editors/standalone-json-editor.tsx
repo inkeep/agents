@@ -37,17 +37,17 @@ export const StandaloneJsonEditor: FC<StandaloneJsonEditorProps> = ({
 }) => {
   // Construct uri from name if not provided (matches ExpandableJsonEditor behavior)
   const uri = props.uri ?? (name ? (`${name}.json` as const) : undefined);
-  const handleFormat = useCallback(() => {
+  const handleFormat = () => {
     if (value.trim()) {
       const formatted = formatJson(value);
       onChange(formatted);
     }
-  }, [onChange, value]);
+  };
 
-  const handleInsertTemplate = useCallback(() => {
+  const handleInsertTemplate = () => {
     const template = customTemplate ?? createSchemaTemplate();
     onChange(template);
-  }, [onChange, customTemplate]);
+  };
 
   const actions = (
     <>

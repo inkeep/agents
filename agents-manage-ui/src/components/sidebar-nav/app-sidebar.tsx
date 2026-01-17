@@ -152,25 +152,22 @@ export const AppSidebar: FC<AppSidebarProps> = ({ open, setOpen, ...props }) => 
       ]
     : [];
 
-  const handleHover: NonNullable<ComponentProps<'div'>['onMouseEnter']> = useCallback(
-    throttle(200, (event) => {
-      const isBlur = event.type === 'mouseleave';
+  const handleHover: NonNullable<ComponentProps<'div'>['onMouseEnter']> = throttle(200, (event) => {
+    const isBlur = event.type === 'mouseleave';
 
-      if (isBlur) {
-        const blurToElement = event.relatedTarget;
-        const insideMainContent =
-          blurToElement &&
-          blurToElement instanceof HTMLElement &&
-          !!blurToElement.closest('#main-content');
+    if (isBlur) {
+      const blurToElement = event.relatedTarget;
+      const insideMainContent =
+        blurToElement &&
+        blurToElement instanceof HTMLElement &&
+        !!blurToElement.closest('#main-content');
 
-        if (!insideMainContent) {
-          return;
-        }
+      if (!insideMainContent) {
+        return;
       }
-      setOpen(!isBlur);
-    }),
-    []
-  );
+    }
+    setOpen(!isBlur);
+  });
 
   return (
     <Sidebar

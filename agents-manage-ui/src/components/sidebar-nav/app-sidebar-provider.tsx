@@ -13,16 +13,13 @@ export const AppSidebarProvider: FC<{ children: ReactNode }> = ({ children }) =>
   const { setSidebarOpen } = useAgentActions();
   const isOpen = isPinnedExpanded || isSidebarHoverExpanded;
 
-  const handleOpen = useCallback(
-    (open: boolean) => {
-      setSidebarOpen({
-        isSidebarSessionOpen: open,
-        isSidebarPinnedOpen: open,
-      });
-      setIsSidebarHoverExpanded(open);
-    },
-    [setSidebarOpen]
-  );
+  const handleOpen = (open: boolean) => {
+    setSidebarOpen({
+      isSidebarSessionOpen: open,
+      isSidebarPinnedOpen: open,
+    });
+    setIsSidebarHoverExpanded(open);
+  };
 
   return (
     <SidebarProvider

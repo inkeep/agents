@@ -30,7 +30,7 @@ export const UnsavedChangesDialog: FC<UnsavedChangesDialogProps> = ({ onSubmit }
     setShowUnsavedDialog(false);
   };
 
-  const proceedWithNavigation = useCallback(() => {
+  const proceedWithNavigation = () => {
     const navigate = pendingNavigationRef.current;
     handleGoBack();
 
@@ -39,7 +39,7 @@ export const UnsavedChangesDialog: FC<UnsavedChangesDialogProps> = ({ onSubmit }
     }
     isNavigatingRef.current = true;
     navigate();
-  }, [handleGoBack]);
+  };
 
   const handleSaveAndLeave = () => {
     if (isSavingPendingNavigation) {

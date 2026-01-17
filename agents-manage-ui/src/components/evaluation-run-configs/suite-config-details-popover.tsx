@@ -33,7 +33,7 @@ export function SuiteConfigDetailsPopover({
   const [evaluators, setEvaluators] = useState<Evaluator[]>([]);
   const [agents, setAgents] = useState<Agent[]>([]);
 
-  const loadSuiteConfigDetails = useCallback(async () => {
+  const loadSuiteConfigDetails = async () => {
     if (!suiteConfigId) {
       console.error('Suite config ID is missing');
       return;
@@ -99,7 +99,7 @@ export function SuiteConfigDetailsPopover({
     } finally {
       setLoading(false);
     }
-  }, [suiteConfigId, tenantId, projectId]);
+  };
 
   useEffect(() => {
     if (!suiteConfigId || !tenantId || !projectId) {

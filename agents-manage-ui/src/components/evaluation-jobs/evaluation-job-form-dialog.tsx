@@ -56,7 +56,7 @@ export function EvaluationJobFormDialog({
     defaultValues: defaultFormData,
   });
 
-  const loadData = useCallback(async () => {
+  const loadData = async () => {
     setLoading(true);
     try {
       const evaluatorsRes = await fetchEvaluators(tenantId, projectId);
@@ -67,7 +67,7 @@ export function EvaluationJobFormDialog({
     } finally {
       setLoading(false);
     }
-  }, [tenantId, projectId]);
+  };
 
   useEffect(() => {
     if (isOpen) {

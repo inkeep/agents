@@ -117,7 +117,7 @@ export function EvaluationRunConfigFormDialog({
     },
   });
 
-  const loadData = useCallback(async () => {
+  const loadData = async () => {
     try {
       const [evaluatorsRes, agentsRes] = await Promise.all([
         fetchEvaluators(tenantId, projectId),
@@ -157,7 +157,7 @@ export function EvaluationRunConfigFormDialog({
       console.error('Error loading data:', error);
       toast.error('Failed to load data');
     }
-  }, [tenantId, projectId, initialData, suiteConfigForm]);
+  };
 
   useEffect(() => {
     if (isOpen) {

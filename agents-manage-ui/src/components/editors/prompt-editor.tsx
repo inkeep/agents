@@ -71,13 +71,12 @@ export const PromptEditor: FC<PromptEditorProps> = ({ uri, editorOptions, onMoun
     return cleanupDisposables(disposables);
   }, [editor, monaco]);
 
-  const handleOnMount: NonNullable<ComponentProps<typeof MonacoEditor>['onMount']> = useCallback(
-    (editorInstance) => {
-      setEditor(editorInstance);
-      onMount?.(editorInstance);
-    },
-    [onMount]
-  );
+  const handleOnMount: NonNullable<ComponentProps<typeof MonacoEditor>['onMount']> = (
+    editorInstance
+  ) => {
+    setEditor(editorInstance);
+    onMount?.(editorInstance);
+  };
 
   return (
     <MonacoEditor

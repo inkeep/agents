@@ -298,16 +298,16 @@ export function TimelineWrapper({
   }, [conversationId]);
 
   // Functions to handle expand/collapse all (memoized to prevent unnecessary re-renders)
-  const expandAllAiMessages = useCallback(() => {
+  const expandAllAiMessages = () => {
     setCollapsedAiMessages(new Set());
     setAiMessagesGloballyCollapsed(false);
-  }, []);
+  };
 
-  const collapseAllAiMessages = useCallback(() => {
+  const collapseAllAiMessages = () => {
     // Use the memoized aiMessageIds instead of recalculating
     setCollapsedAiMessages(new Set(aiMessageIds));
     setAiMessagesGloballyCollapsed(true);
-  }, [aiMessageIds]);
+  };
 
   const toggleAiMessageCollapse = (activityId: string) => {
     const newCollapsed = new Set(collapsedAiMessages);
