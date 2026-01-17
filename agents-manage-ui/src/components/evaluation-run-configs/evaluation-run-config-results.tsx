@@ -100,14 +100,10 @@ export function EvaluationRunConfigResults({
     .map((id) => getSuiteConfigById(id))
     .filter((config): config is EvaluationSuiteConfig => config !== undefined);
 
-  const filteredResults = useMemo(
-    () => filterEvaluationResults(results, filters, evaluators),
-    [results, filters, evaluators]
-  );
-
+  const filteredResults = filterEvaluationResults(results, filters, evaluators);
   const evaluatorOptions = evaluators.map((e) => ({ id: e.id, name: e.name }));
 
-  const agentOptions = useMemo(() => {
+  const agentOptions = (() => {
     const uniqueAgents = new Map<string, string>();
     results.forEach((result) => {
       if (result.agentId && !uniqueAgents.has(result.agentId)) {
@@ -115,7 +111,7 @@ export function EvaluationRunConfigResults({
       }
     });
     return Array.from(uniqueAgents.entries()).map(([id, name]) => ({ id, name }));
-  }, [results]);
+  })();
 
   return (
     <div className="space-y-6">

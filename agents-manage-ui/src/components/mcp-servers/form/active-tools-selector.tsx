@@ -71,7 +71,7 @@ export function ActiveToolsSelector<
   });
 
   // Safe accessor for toolsConfig with fallback
-  const safeToolsConfig: ToolsConfig = useMemo(() => {
+  const safeToolsConfig: ToolsConfig = (() => {
     if (typeof toolsConfig !== 'object' || toolsConfig === null || !('type' in toolsConfig)) {
       return { type: 'selective', tools: [] };
     }
@@ -87,7 +87,7 @@ export function ActiveToolsSelector<
     }
 
     return { type: 'selective', tools: [] };
-  }, [toolsConfig]);
+  })();
 
   const handleSelectAll = () => {
     setToolsConfig({ type: 'all' });

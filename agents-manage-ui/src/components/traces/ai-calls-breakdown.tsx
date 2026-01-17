@@ -71,7 +71,7 @@ export function AICallsBreakdown({ onBack }: AICallsBreakdownProps) {
   };
 
   // Calculate time range based on selection
-  const { startTime, endTime } = useMemo(() => {
+  const { startTime, endTime } = (() => {
     const currentEndTime = Date.now();
 
     if (timeRange === 'custom') {
@@ -104,7 +104,7 @@ export function AICallsBreakdown({ onBack }: AICallsBreakdownProps) {
       startTime: currentEndTime - hoursBack * 60 * 60 * 1000,
       endTime: currentEndTime,
     };
-  }, [timeRange, customStartDate, customEndDate]);
+  })();
 
   // Fetch AI calls by agent and model
   useEffect(() => {

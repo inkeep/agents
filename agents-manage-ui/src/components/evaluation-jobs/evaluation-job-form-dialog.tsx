@@ -80,18 +80,13 @@ export function EvaluationJobFormDialog({
   const selectedEvaluatorIds = form.watch('evaluatorIds') || [];
   const jobFilters = form.watch('jobFilters');
 
-  const evaluatorLookup = useMemo(() => {
-    return evaluators.reduce(
-      (acc, evaluator) => {
-        acc[evaluator.id] = evaluator;
-        return acc;
-      },
-      {} as Record<string, Evaluator>
-    );
-  }, [evaluators]);
+  const evaluatorLookup = evaluators.reduce<Record<string, Evaluator>>((acc, evaluator) => {
+    acc[evaluator.id] = evaluator;
+    return acc;
+  }, {});
 
-  const [customStartDate, setCustomStartDate] = useState<string>('');
-  const [customEndDate, setCustomEndDate] = useState<string>('');
+  const [customStartDate, setCustomStartDate] = useState('');
+  const [customEndDate, setCustomEndDate] = useState('');
 
   const datePickerValue =
     customStartDate && customEndDate ? { from: customStartDate, to: customEndDate } : undefined;

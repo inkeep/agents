@@ -146,13 +146,9 @@ export function EvaluationJobResults({
 
   const selectedEvaluator = selectedEvaluatorId ? getEvaluatorById(selectedEvaluatorId) : undefined;
 
-  const filteredResults = useMemo(
-    () => filterEvaluationResults(results, filters, evaluators),
-    [results, filters, evaluators]
-  );
-
+  const filteredResults = filterEvaluationResults(results, filters, evaluators);
   const evaluatorOptions = evaluators.map((e) => ({ id: e.id, name: e.name }));
-  const agentOptions = useMemo(() => {
+  const agentOptions = (() => {
     const uniqueAgents = new Map<string, string>();
     results.forEach((result) => {
       if (result.agentId && !uniqueAgents.has(result.agentId)) {
@@ -160,7 +156,7 @@ export function EvaluationJobResults({
       }
     });
     return Array.from(uniqueAgents.entries()).map(([id, name]) => ({ id, name }));
-  }, [results]);
+  })();
 
   return (
     <div className="space-y-6">
