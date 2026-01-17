@@ -38,6 +38,7 @@ import {
   type Tool,
   type ToolSet,
   tool,
+  type FlexibleSchema,
 } from 'ai';
 import {
   AGENT_EXECUTION_MAX_GENERATION_STEPS,
@@ -1939,7 +1940,7 @@ export class Agent {
           );
 
           // Use override schema if provided, otherwise use original
-          let inputSchema;
+          let inputSchema: FlexibleSchema;
           try {
             inputSchema = override.schema
               ? jsonSchemaToZod(override.schema)

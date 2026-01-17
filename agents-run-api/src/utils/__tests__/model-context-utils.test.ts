@@ -379,6 +379,7 @@ describe('Model Context Utils', () => {
       models.forEach(({ model, expected }) => {
         const result = getCompressionConfigForModel({ model });
         const triggerPoint = result.hardLimit - result.safetyBuffer;
+        // biome-ignore lint/style/noNonNullAssertion: ignore
         const contextWindow = getModelContextWindow({ model }).contextWindow!;
         const triggerPercentage = triggerPoint / contextWindow;
 
