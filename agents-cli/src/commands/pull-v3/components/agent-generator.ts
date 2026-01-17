@@ -437,8 +437,7 @@ export function generateAgentImports(
 
     // Status component references
     if (
-      agentData.statusUpdates &&
-      agentData.statusUpdates.statusComponents &&
+      agentData.statusUpdates?.statusComponents &&
       Array.isArray(agentData.statusUpdates.statusComponents)
     ) {
       for (const comp of agentData.statusUpdates.statusComponents) {

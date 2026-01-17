@@ -36,7 +36,7 @@ function formatString(str: string, quote: string = "'", multiline: boolean = fal
     return `\`${str.replace(/`/g, '\\`')}\``;
   }
 
-  return `${quote}${str.replace(new RegExp(quote, 'g'), '\\' + quote)}${quote}`;
+  return `${quote}${str.replace(new RegExp(quote, 'g'), `\\${quote}`)}${quote}`;
 }
 
 /**
@@ -178,5 +178,5 @@ export function generateCredentialFile(
   const imports = generateCredentialImports(credentialId, credentialData, style);
   const definition = generateCredentialDefinition(credentialId, credentialData, style);
 
-  return imports.join('\n') + '\n\n' + definition + '\n';
+  return `${imports.join('\n')}\n\n${definition}\n`;
 }

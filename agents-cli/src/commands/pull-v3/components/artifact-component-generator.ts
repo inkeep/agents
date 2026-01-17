@@ -38,7 +38,7 @@ function formatString(str: string, quote: string = "'", multiline: boolean = fal
     return `\`${str.replace(/`/g, '\\`')}\``;
   }
 
-  return `${quote}${str.replace(new RegExp(quote, 'g'), '\\' + quote)}${quote}`;
+  return `${quote}${str.replace(new RegExp(quote, 'g'), `\\${quote}`)}${quote}`;
 }
 
 /**
@@ -89,7 +89,7 @@ function formatArtifactSchema(schema: any, style: CodeStyle): string {
 
     // Add description if available
     if (schema.description) {
-      return lines.join('\n') + `.describe(\`${schema.description}\`)`;
+      return `${lines.join('\n')}.describe(\`${schema.description}\`)`;
     }
 
     return lines.join('\n');
@@ -174,9 +174,9 @@ export function generateArtifactComponentDefinition(
       const schemaLines = zodSchema.split('\n');
       lines.push(`${indentation}props: ${schemaLines[0]}`);
       schemaLines.slice(1, -1).forEach((line) => {
-        lines[lines.length - 1] += '\n' + indentation + line;
+        lines[lines.length - 1] += `\n${indentation}${line}`;
       });
-      lines[lines.length - 1] += '\n' + indentation + schemaLines[schemaLines.length - 1] + ',';
+      lines[lines.length - 1] += `\n${indentation}${schemaLines[schemaLines.length - 1]},`;
     } else {
       lines.push(`${indentation}props: ${zodSchema},`);
     }
@@ -272,5 +272,5 @@ export function generateArtifactComponentFile(
   const imports = generateArtifactComponentImports(componentId, componentData, style);
   const definition = generateArtifactComponentDefinition(componentId, componentData, style);
 
-  return imports.join('\n') + '\n\n' + definition + '\n';
+  return `${imports.join('\n')}\n\n${definition}\n`;
 }

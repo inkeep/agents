@@ -217,9 +217,9 @@ export function generateProjectImports(
       for (const toolId of toolIds) {
         // Determine the actual component type by checking what's in the registry
         let componentType: ComponentType = 'tools';
-        if (registry && registry.get(toolId, 'functionTools')) {
+        if (registry?.get(toolId, 'functionTools')) {
           componentType = 'functionTools';
-        } else if (registry && registry.get(toolId, 'tools')) {
+        } else if (registry?.get(toolId, 'tools')) {
           componentType = 'tools';
         }
 

@@ -53,7 +53,7 @@ function processFetchConfigTemplates(fetchConfig: any, headersVarName: string): 
 
     // Only include properties that have defined values
     const entries = Object.entries(obj)
-      .filter(([key, val]) => val !== undefined && val !== null)
+      .filter(([_key, val]) => val !== undefined && val !== null)
       .map(([key, val]) => {
         const processedKey = /^[a-zA-Z_$][a-zA-Z0-9_$]*$/.test(key) ? key : `'${key}'`;
         return `${processedKey}: ${processValue(val)}`;
@@ -73,8 +73,7 @@ export function generateHeadersDefinition(
   headersData: any,
   style: CodeStyle = DEFAULT_STYLE
 ): string {
-  const { quotes, semicolons, indentation } = style;
-  const q = quotes === 'single' ? "'" : '"';
+  const { semicolons, indentation } = style;
   const semi = semicolons ? ';' : '';
 
   const headersVarName = toCamelCase(headersId);

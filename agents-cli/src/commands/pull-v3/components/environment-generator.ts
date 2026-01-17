@@ -271,7 +271,7 @@ export function generateEnvironmentSettingsFile(
   const imports = generateEnvironmentSettingsImports(environmentName, environmentData, style);
   const definition = generateEnvironmentSettingsDefinition(environmentName, environmentData, style);
 
-  return imports.join('\n') + '\n\n' + definition + '\n';
+  return `${imports.join('\n')}\n\n${definition}\n`;
 }
 
 /**
@@ -284,7 +284,7 @@ export function generateEnvironmentIndexFile(
   const imports = generateEnvironmentIndexImports(environments, style);
   const definition = generateEnvironmentIndexDefinition(environments, style);
 
-  return imports.join('\n') + '\n\n' + definition + '\n';
+  return `${imports.join('\n')}\n\n${definition}\n`;
 }
 
 /**

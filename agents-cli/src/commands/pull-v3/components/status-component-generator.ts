@@ -167,5 +167,5 @@ export function generateStatusComponentFile(
   const imports = generateStatusComponentImports(componentId, componentData, style);
   const definition = generateStatusComponentDefinition(componentId, componentData, style);
 
-  return imports.join('\n') + '\n\n' + definition + '\n';
+  return `${imports.join('\n')}\n\n${definition}\n`;
 }
