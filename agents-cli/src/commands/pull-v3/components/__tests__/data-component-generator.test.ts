@@ -54,7 +54,7 @@ describe('Data Component Generator', () => {
 
   describe('generateDataComponentImports', () => {
     it('should generate correct imports with schema', () => {
-      const imports = generateDataComponentImports('task-list', testComponentData);
+      const imports = generateDataComponentImports(testComponentData);
 
       expect(imports).toHaveLength(2);
       expect(imports[0]).toBe("import { dataComponent } from '@inkeep/agents-sdk';");
@@ -63,14 +63,14 @@ describe('Data Component Generator', () => {
 
     it('should generate only dataComponent import without schema', () => {
       const dataWithoutSchema = { name: 'Simple', description: 'Simple component' };
-      const imports = generateDataComponentImports('simple', dataWithoutSchema);
+      const imports = generateDataComponentImports(dataWithoutSchema);
 
       expect(imports).toHaveLength(1);
       expect(imports[0]).toBe("import { dataComponent } from '@inkeep/agents-sdk';");
     });
 
     it('should handle double quotes style', () => {
-      const imports = generateDataComponentImports('task-list', testComponentData, {
+      const imports = generateDataComponentImports(testComponentData, {
         quotes: 'double',
         semicolons: true,
         indentation: '  ',
@@ -81,7 +81,7 @@ describe('Data Component Generator', () => {
     });
 
     it('should handle no semicolons style', () => {
-      const imports = generateDataComponentImports('task-list', testComponentData, {
+      const imports = generateDataComponentImports(testComponentData, {
         quotes: 'single',
         semicolons: false,
         indentation: '  ',
