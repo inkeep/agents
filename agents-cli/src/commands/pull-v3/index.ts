@@ -133,7 +133,7 @@ export function enrichCanDelegateToWithTypes(project: FullProjectDefinition): vo
   );
 
   // Function to enrich a canDelegateTo array
-  const enrichCanDelegateToArray = (canDelegateTo: any[], context: string) => {
+  const enrichCanDelegateToArray = (canDelegateTo: any[]) => {
     if (!Array.isArray(canDelegateTo)) return;
 
     for (let i = 0; i < canDelegateTo.length; i++) {
@@ -163,12 +163,12 @@ export function enrichCanDelegateToWithTypes(project: FullProjectDefinition): vo
 
   // Process all agents
   if (project.agents) {
-    for (const [_, agentData] of Object.entries(project.agents)) {
+    for (const agentData of Object.values(project.agents)) {
       // Process subAgents within agents
       if (agentData.subAgents) {
-        for (const [subAgentId, subAgentData] of Object.entries(agentData.subAgents)) {
+        for (const subAgentData of Object.values(agentData.subAgents)) {
           if (subAgentData.canDelegateTo) {
-            enrichCanDelegateToArray(subAgentData.canDelegateTo, `subAgent:${subAgentId}`);
+            enrichCanDelegateToArray(subAgentData.canDelegateTo);
           }
         }
       }
