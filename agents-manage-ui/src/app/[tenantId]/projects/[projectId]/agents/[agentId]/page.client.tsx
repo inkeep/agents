@@ -77,7 +77,6 @@ import { getErrorSummaryMessage, parseAgentValidationErrors } from '@/lib/utils/
 import { generateId } from '@/lib/utils/id-utils';
 import { detectOrphanedToolsAndGetWarning } from '@/lib/utils/orphaned-tools-detector';
 import { convertFullProjectToProject } from '@/lib/utils/project-converter';
-import type { FullProjectDefinition } from '@inkeep/agents-core';
 
 // The Widget component is heavy, so we load it on the client only after the user clicks the "Try it" button.
 const Playground = dynamic(
