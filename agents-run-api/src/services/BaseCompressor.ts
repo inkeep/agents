@@ -1,7 +1,7 @@
+import { randomUUID } from 'node:crypto';
 import type { ModelSettings } from '@inkeep/agents-core';
 import { getLedgerArtifacts } from '@inkeep/agents-core';
 import { type Span, SpanStatusCode } from '@opentelemetry/api';
-import { randomUUID } from 'node:crypto';
 import dbClient from '../data/db/dbClient';
 import { getLogger } from '../logger';
 import { type ConversationSummary, distillConversation } from '../tools/distill-conversation-tool';

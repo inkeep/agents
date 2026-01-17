@@ -31,6 +31,7 @@ import {
 } from '@inkeep/agents-core';
 import { type Span, SpanStatusCode, trace } from '@opentelemetry/api';
 import {
+  type FlexibleSchema,
   generateText,
   Output,
   type StreamTextResult,
@@ -38,7 +39,6 @@ import {
   type Tool,
   type ToolSet,
   tool,
-  type FlexibleSchema,
 } from 'ai';
 import {
   AGENT_EXECUTION_MAX_GENERATION_STEPS,
