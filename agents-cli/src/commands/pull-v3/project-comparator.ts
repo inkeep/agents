@@ -295,7 +295,7 @@ function compareComponentsDirectly(
 
   // Compare contextConfig and fetchDefinition components separately
   changes.push(...compareContextConfigs(localProject, remoteProject, localRegistry, debug));
-  changes.push(...compareFetchDefinitions(localProject, remoteProject, debug));
+  changes.push(...compareFetchDefinitions(localProject, remoteProject));
 
   // Compare project-level models
   changes.push(...compareProjectModels(localProject.models, remoteProject.models));
@@ -1366,8 +1366,7 @@ function compareContextConfigs(
  */
 function compareFetchDefinitions(
   localProject: FullProjectDefinition,
-  remoteProject: FullProjectDefinition,
-  debug: boolean
+  remoteProject: FullProjectDefinition
 ): ComponentChange[] {
   const changes: ComponentChange[] = [];
   const fetchDefinitions = new Map<string, { local?: any; remote?: any }>();
