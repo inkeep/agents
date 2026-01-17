@@ -19,7 +19,10 @@
 export function agentRelation(
   targetAgent: string,
   relationType: 'transfer' | 'delegate' = 'transfer'
-) {
+): {
+  targetAgent: string;
+  relationType: 'transfer' | 'delegate';
+} {
   return {
     targetAgent,
     relationType,

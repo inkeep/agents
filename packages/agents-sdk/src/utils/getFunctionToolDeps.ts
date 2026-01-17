@@ -158,7 +158,7 @@ export function resolveInstalledVersion(pkg: string, projectRoot: string): Versi
 
 export function buildToolManifestFromCodeTS(
   code: string,
-  projectRoot = process.cwd()
+  projectRoot: string = process.cwd()
 ): ToolManifest {
   const deps = collectDepsFromCodeTS(code);
   const warnings: string[] = [];

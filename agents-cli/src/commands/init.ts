@@ -53,7 +53,7 @@ function findProjectRoot(startPath: string): string {
   return startPath;
 }
 
-export async function initCommand(options?: InitOptions) {
+export async function initCommand(options?: InitOptions): Promise<void> {
   // Check if user wants local init (self-hosted) or cloud init
   if (options?.local) {
     await localInitCommand(options);

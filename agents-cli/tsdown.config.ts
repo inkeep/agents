@@ -1,11 +1,10 @@
 import { defineConfig } from 'tsdown';
 
-export default defineConfig((options) => ({
+export default defineConfig({
   entry: ['src/**/*.ts', '!**/__tests__', '!**/*.test.ts'],
   format: 'esm',
   target: 'node20',
-  clean: !options.watch,
-  dts: !options.watch,
+  dts: true,
   external: ['@inkeep/agents-core'],
   outDir: 'dist',
   shims: true,
@@ -14,4 +13,4 @@ export default defineConfig((options) => ({
   outExtensions() {
     return { js: '.js', dts: '.d.ts' };
   },
-}));
+});

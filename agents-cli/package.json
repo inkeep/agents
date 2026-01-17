@@ -65,7 +65,6 @@
     "@types/fs-extra": "^11.0.4",
     "@types/node": "^20.10.0",
     "@vitest/coverage-v8": "^3.2.4",
-    "tsdown": "^0.18.0",
     "typescript": "^5.9.2",
     "vitest": "^3.2.4"
   },
