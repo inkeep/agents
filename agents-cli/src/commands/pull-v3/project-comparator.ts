@@ -269,11 +269,7 @@ function compareComponentsDirectly(
   );
 
   changes.push(
-    ...compareExternalAgents(
-      localProject.externalAgents || {},
-      remoteProject.externalAgents || {},
-      debug
-    )
+    ...compareExternalAgents(localProject.externalAgents || {}, remoteProject.externalAgents || {})
   );
   // Extract status components from agents for comparison
   const localStatusComponents = extractStatusComponentsFromProject(localProject);
@@ -544,8 +540,7 @@ function compareCredentials(
  */
 function compareExternalAgents(
   localExternalAgents: Record<string, any>,
-  remoteExternalAgents: Record<string, any>,
-  debug: boolean
+  remoteExternalAgents: Record<string, any>
 ): ComponentChange[] {
   return compareComponentMaps('externalAgents', localExternalAgents, remoteExternalAgents);
 }
