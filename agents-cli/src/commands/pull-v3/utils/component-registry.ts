@@ -610,8 +610,8 @@ function extractStatusComponents(project: FullProjectDefinition): Record<string,
   const statusComponents: Record<string, any> = {};
 
   if (project.agents) {
-    for (const [agentId, agentData] of Object.entries(project.agents)) {
-      if (agentData.statusUpdates && agentData.statusUpdates.statusComponents) {
+    for (const agentData of Object.values(project.agents)) {
+      if (agentData.statusUpdates?.statusComponents) {
         // statusComponents is an array that can contain strings or objects
         for (const statusComp of agentData.statusUpdates.statusComponents) {
           let statusId: string;
@@ -652,7 +652,7 @@ export function extractSubAgents(project: FullProjectDefinition): Record<string,
   const subAgents: Record<string, any> = {};
 
   if (project.agents) {
-    for (const [agentId, agentData] of Object.entries(project.agents)) {
+    for (const agentData of Object.values(project.agents)) {
       if (agentData.subAgents) {
         for (const [subAgentId, subAgentData] of Object.entries(agentData.subAgents)) {
           subAgents[subAgentId] = subAgentData;
