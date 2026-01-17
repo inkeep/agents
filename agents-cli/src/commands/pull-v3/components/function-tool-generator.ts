@@ -170,11 +170,7 @@ export function generateFunctionToolDefinition(
 /**
  * Generate imports needed for a function tool file
  */
-export function generateFunctionToolImports(
-  toolId: string,
-  toolData: any,
-  style: CodeStyle = DEFAULT_STYLE
-): string[] {
+export function generateFunctionToolImports(style: CodeStyle = DEFAULT_STYLE): string[] {
   const { quotes, semicolons } = style;
   const q = quotes === 'single' ? "'" : '"';
   const semi = semicolons ? ';' : '';
@@ -194,7 +190,7 @@ export function generateFunctionToolFile(
   toolData: any,
   style: CodeStyle = DEFAULT_STYLE
 ): string {
-  const imports = generateFunctionToolImports(toolId, toolData, style);
+  const imports = generateFunctionToolImports(style);
   const definition = generateFunctionToolDefinition(toolId, toolData, style);
 
   return `${imports.join('\n')}\n\n${definition}\n`;

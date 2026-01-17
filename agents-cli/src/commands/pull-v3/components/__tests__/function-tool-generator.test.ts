@@ -33,14 +33,14 @@ describe('Function Tool Generator', () => {
 
   describe('generateFunctionToolImports', () => {
     it('should generate correct imports', () => {
-      const imports = generateFunctionToolImports('calculate-bmi', testToolData);
+      const imports = generateFunctionToolImports();
 
       expect(imports).toHaveLength(1);
       expect(imports[0]).toBe("import { functionTool } from '@inkeep/agents-sdk';");
     });
 
     it('should handle different code styles', () => {
-      const imports = generateFunctionToolImports('calculate-bmi', testToolData, {
+      const imports = generateFunctionToolImports({
         quotes: 'double',
         semicolons: false,
         indentation: '    ',
