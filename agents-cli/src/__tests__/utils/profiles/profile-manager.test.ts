@@ -237,8 +237,8 @@ describe('ProfileManager', () => {
     it('should return profile by name', () => {
       const profile = profileManager.getProfile('local');
       expect(profile).not.toBeNull();
-      expect(profile!.name).toBe('local');
-      expect(profile!.environment).toBe('development');
+      expect(profile?.name).toBe('local');
+      expect(profile?.environment).toBe('development');
     });
 
     it('should return null for nonexistent profile', () => {

@@ -3,9 +3,9 @@
  * Ensures keytar native module is built for local development.
  * This is needed because pnpm doesn't always trigger native module builds.
  */
-import { execSync } from 'child_process';
-import { createRequire } from 'module';
-import { dirname } from 'path';
+import { execSync } from 'node:child_process';
+import { createRequire } from 'node:module';
+import { dirname } from 'node:path';
 
 const require = createRequire(import.meta.url);
 

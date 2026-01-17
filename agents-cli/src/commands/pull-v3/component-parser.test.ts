@@ -25,7 +25,7 @@ describe('Component Parser', () => {
     // Clean up test directory
     try {
       rmSync(testDir, { recursive: true, force: true });
-    } catch (error) {
+    } catch {
       // Ignore cleanup errors
     }
   });
