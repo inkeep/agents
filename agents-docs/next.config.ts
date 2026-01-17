@@ -9,6 +9,10 @@ const isProd = process.env.NODE_ENV === 'production';
 
 const config: NextConfig = {
   reactStrictMode: true,
+  reactCompiler: {
+    // Fail the build on any compiler diagnostic
+    panicThreshold: 'all_errors',
+  },
   // Increase timeout for static page generation in CI environments
   staticPageGenerationTimeout: 120, // 2 minutes instead of default 60 seconds
   images: {
