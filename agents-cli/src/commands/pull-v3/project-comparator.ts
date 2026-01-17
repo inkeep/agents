@@ -788,7 +788,7 @@ function compareArraysAsSet(
   // Find modified items (same key, different content)
   for (const [key, { item: newItem }] of newMap) {
     if (oldMap.has(key)) {
-      const { item: oldItem } = oldMap.get(key)!;
+      const { item: oldItem } = oldMap.get(key);
       const itemChanges = getDetailedFieldChanges(
         `${basePath}[${key}]`,
         oldItem,
@@ -1361,6 +1361,7 @@ function compareFetchDefinitions(
         if (!fetchDefinitions.has(fetchDef.id)) {
           fetchDefinitions.set(fetchDef.id, {});
         }
+        // biome-ignore lint/style/noNonNullAssertion: ignore
         fetchDefinitions.get(fetchDef.id)!.local = fetchDef;
       });
     }
@@ -1373,6 +1374,7 @@ function compareFetchDefinitions(
         if (!fetchDefinitions.has(fetchDef.id)) {
           fetchDefinitions.set(fetchDef.id, {});
         }
+        // biome-ignore lint/style/noNonNullAssertion: ignore
         fetchDefinitions.get(fetchDef.id)!.remote = fetchDef;
       });
     }

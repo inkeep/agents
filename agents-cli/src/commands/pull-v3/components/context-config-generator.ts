@@ -408,6 +408,7 @@ export function generateContextConfigFile(
     contextId,
     contextData,
     style,
+    // biome-ignore lint/style/noNonNullAssertion: ignore
     registry!,
     headersVarName
   );

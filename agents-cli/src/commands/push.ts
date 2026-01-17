@@ -39,7 +39,7 @@ export async function pushCommand(options: PushOptions) {
   }
 
   // Use standardized CLI pipeline for initialization
-  const { config, profile } = await initializeCommand({
+  const { config } = await initializeCommand({
     configPath: options.config,
     profileName: options.profile,
     tag: options.tag,
