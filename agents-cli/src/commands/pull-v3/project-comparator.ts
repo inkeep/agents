@@ -72,10 +72,8 @@ export async function compareProjects(
   }
 
   // Direct component-by-component comparison
-  const changes = compareComponentsDirectly(localProject, remoteProject, debug);
+  const changes = compareComponentsDirectly(localProject, remoteProject);
   const componentChanges = groupChangesByType(changes);
-
-  // Debug logging removed
 
   return {
     hasChanges: changes.length > 0,
@@ -238,8 +236,7 @@ function createNewProjectComparison(project: FullProjectDefinition): ProjectComp
  */
 function compareComponentsDirectly(
   localProject: FullProjectDefinition,
-  remoteProject: FullProjectDefinition,
-  debug: boolean
+  remoteProject: FullProjectDefinition
 ): ComponentChange[] {
   const changes: ComponentChange[] = [];
 
