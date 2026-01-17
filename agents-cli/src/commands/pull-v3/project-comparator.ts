@@ -298,7 +298,7 @@ function compareComponentsDirectly(
   changes.push(...compareFetchDefinitions(localProject, remoteProject, debug));
 
   // Compare project-level models
-  changes.push(...compareProjectModels(localProject.models, remoteProject.models, debug));
+  changes.push(...compareProjectModels(localProject.models, remoteProject.models));
 
   // Compare project-level fields
   changes.push(...compareProjectFields(localProject, remoteProject, debug));
@@ -589,11 +589,7 @@ function compareStatusComponents(
 /**
  * Compare project-level models
  */
-function compareProjectModels(
-  localModels: any,
-  remoteModels: any,
-  debug: boolean
-): ComponentChange[] {
+function compareProjectModels(localModels: any, remoteModels: any): ComponentChange[] {
   const changes: ComponentChange[] = [];
 
   // Get detailed field changes for models
