@@ -56,7 +56,7 @@ describe('Artifact Component Generator', () => {
 
   describe('generateArtifactComponentImports', () => {
     it('should generate correct imports with preview fields', () => {
-      const imports = generateArtifactComponentImports('citation', testComponentData);
+      const imports = generateArtifactComponentImports(testComponentData);
 
       expect(imports).toHaveLength(3);
       expect(imports[0]).toBe("import { preview } from '@inkeep/agents-core';");
@@ -79,7 +79,7 @@ describe('Artifact Component Generator', () => {
         },
       };
 
-      const imports = generateArtifactComponentImports('simple', dataWithoutPreview);
+      const imports = generateArtifactComponentImports(dataWithoutPreview);
 
       expect(imports).toHaveLength(2);
       expect(imports[0]).toBe("import { artifactComponent } from '@inkeep/agents-sdk';");
@@ -89,14 +89,14 @@ describe('Artifact Component Generator', () => {
 
     it('should generate only artifactComponent import without schema', () => {
       const dataWithoutSchema = { name: 'Simple', description: 'Simple component' };
-      const imports = generateArtifactComponentImports('simple', dataWithoutSchema);
+      const imports = generateArtifactComponentImports(dataWithoutSchema);
 
       expect(imports).toHaveLength(1);
       expect(imports[0]).toBe("import { artifactComponent } from '@inkeep/agents-sdk';");
     });
 
     it('should handle double quotes style', () => {
-      const imports = generateArtifactComponentImports('citation', testComponentData, {
+      const imports = generateArtifactComponentImports(testComponentData, {
         quotes: 'double',
         semicolons: true,
         indentation: '  ',
@@ -108,7 +108,7 @@ describe('Artifact Component Generator', () => {
     });
 
     it('should handle no semicolons style', () => {
-      const imports = generateArtifactComponentImports('citation', testComponentData, {
+      const imports = generateArtifactComponentImports(testComponentData, {
         quotes: 'single',
         semicolons: false,
         indentation: '  ',

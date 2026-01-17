@@ -233,7 +233,6 @@ export function generateArtifactComponentDefinition(
  * Generate imports needed for an artifact component file
  */
 export function generateArtifactComponentImports(
-  componentId: string,
   componentData: any,
   style: CodeStyle = DEFAULT_STYLE
 ): string[] {
@@ -269,7 +268,7 @@ export function generateArtifactComponentFile(
   componentData: any,
   style: CodeStyle = DEFAULT_STYLE
 ): string {
-  const imports = generateArtifactComponentImports(componentId, componentData, style);
+  const imports = generateArtifactComponentImports(componentData, style);
   const definition = generateArtifactComponentDefinition(componentId, componentData, style);
 
   return `${imports.join('\n')}\n\n${definition}\n`;
