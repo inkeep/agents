@@ -3,6 +3,7 @@ import {
   CredentialReferenceApiInsertSchema,
   type MCPToolConfig,
   MCPToolConfigSchema,
+  type TriggerApiInsert,
 } from '@inkeep/agents-core';
 import { Agent } from './agent';
 import { ArtifactComponent } from './artifact-component';
@@ -20,6 +21,7 @@ import { Project } from './project';
 import { StatusComponent } from './status-component';
 import { SubAgent } from './subAgent';
 import { Tool } from './tool';
+import { Trigger } from './trigger';
 import type { AgentConfig, FunctionToolConfig, SubAgentConfig } from './types';
 import { generateIdFromName } from './utils/generateIdFromName';
 
@@ -370,4 +372,59 @@ export function agentMcp(config: AgentMcpConfig): AgentMcpConfig {
  */
 export function functionTool(config: FunctionToolConfig): FunctionTool {
   return new FunctionTool(config);
+}
+
+// ============================================================================
+// Trigger Builders
+// ============================================================================
+/**
+ * Creates a webhook trigger for external service integration.
+ *
+ * Triggers allow external services to invoke agents via webhooks.
+ * They support authentication, payload transformation, and input validation.
+ *
+ * @param config - Trigger configuration
+ * @returns A Trigger instance
+ *
+ * @example
+ * ```typescript
+ * import { z } from 'zod';
+ *
+ * // GitHub webhook trigger
+ * const githubTrigger = trigger({
+ *   name: 'GitHub Events',
+ *   description: 'Handle GitHub webhook events',
+ *   enabled: true,
+ *   inputSchema: z.object({
+ *     action: z.string(),
+ *     repository: z.object({
+ *       name: z.string(),
+ *       url: z.string()
+ *     })
+ *   }),
+ *   outputTransform: {
+ *     jmespath: '{action: action, repo: repository.name, url: repository.url}'
+ *   },
+ *   messageTemplate: 'GitHub {{action}} on repository {{repo}}: {{url}}',
+ *   authentication: {
+ *     type: 'api_key',
+ *     data: { name: 'X-GitHub-Token', value: process.env.GITHUB_TOKEN },
+ *     add_position: 'header'
+ *   },
+ *   signingSecret: process.env.GITHUB_WEBHOOK_SECRET
+ * });
+ *
+ * // Simple webhook trigger with no auth
+ * const simpleTrigger = trigger({
+ *   name: 'Slack Message',
+ *   description: 'Handle Slack messages',
+ *   messageTemplate: 'New message: {{text}}',
+ *   authentication: { type: 'none' }
+ * });
+ * ```
+ */
+export function trigger(
+  config: Omit<TriggerApiInsert, 'id'> & { id?: string }
+): Trigger {
+  return new Trigger(config);
 }
