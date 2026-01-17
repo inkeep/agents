@@ -18,3 +18,26 @@ Started: Sat Jan 17 03:02:52 UTC 2026
 
 ## Iteration 1 - Sat Jan 17 07:26:06 UTC 2026
 
+
+## Iteration 4 - $(date -u)
+
+### Story: US-001, US-002 - Create triggers and trigger_invocations table schemas
+
+**Implementation:**
+- Added `triggers` table to manage-schema.ts with all required fields (id, tenantId, projectId, agentId, name, description, enabled, inputSchema, outputTransform, messageTemplate, authentication, signingSecret, timestamps)
+- Added `trigger_invocations` table to manage-schema.ts with all required fields (id, tenantId, projectId, agentId, triggerId, conversationId, status, requestPayload, transformedPayload, errorMessage, createdAt)
+- Both tables use agentScoped pattern for consistent multi-tenancy
+- Added foreign key constraints with cascade delete
+- Verified typecheck passes
+
+**Files Changed:**
+- packages/agents-core/src/db/manage/manage-schema.ts (added triggers and triggerInvocations tables)
+- prd.json (updated with real user stories and marked US-001, US-002 as complete)
+
+**Learnings:**
+- The schema follows existing patterns: agentScoped (tenantId, projectId, agentId, id), uiProperties (name, description), timestamps (createdAt, updatedAt)
+- Foreign keys use compound keys matching the primary key structure
+- JSONB columns are typed with TypeScript types for type safety
+- Migration generation requires pnpm which is not available in sandboxed environment - will need to be run outside sandbox
+
+---
