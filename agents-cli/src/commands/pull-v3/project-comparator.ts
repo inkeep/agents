@@ -60,7 +60,6 @@ export interface ProjectComparison {
 export async function compareProjects(
   localProject: FullProjectDefinition | null,
   remoteProject: FullProjectDefinition,
-  localRegistry: ComponentRegistry | null,
   debug: boolean = false
 ): Promise<ProjectComparison> {
   if (debug) {

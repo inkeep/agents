@@ -519,12 +519,7 @@ export async function pullV3Command(options: PullV3Options): Promise<PullResult 
 
     // Step 10: Comprehensive project comparison (now with access to registry)
     s.start('Comparing projects for changes...');
-    const comparison = await compareProjects(
-      localProject,
-      remoteProject,
-      localRegistry,
-      options.debug
-    );
+    const comparison = await compareProjects(localProject, remoteProject, options.debug);
 
     if (!comparison.hasChanges && !options.force) {
       s.stop();
