@@ -171,9 +171,9 @@ export async function introspectGenerate(
 
     // Also check agent-level functionTools (each agent can have its own)
     if (project.agents) {
-      for (const [agentId, agentData] of Object.entries(project.agents)) {
-        const agentFunctionTools = (agentData as any).functionTools;
-        const agentFunctions = (agentData as any).functions;
+      for (const agentData of Object.values(project.agents)) {
+        const agentFunctionTools = agentData.functionTools;
+        const agentFunctions = agentData.functions;
 
         if (agentFunctionTools) {
           for (const [toolId, toolData] of Object.entries(agentFunctionTools)) {
@@ -488,7 +488,7 @@ export async function introspectGenerate(
  */
 function findContextConfigData(project: FullProjectDefinition, contextId: string): any | undefined {
   if (project.agents) {
-    for (const [agentId, agentData] of Object.entries(project.agents)) {
+    for (const agentData of Object.values(project.agents)) {
       if (agentData.contextConfig) {
         // Check if this contextConfig matches by its actual ID
         if (agentData.contextConfig.id === contextId) {
@@ -508,8 +508,8 @@ function findStatusComponentData(
   statusId: string
 ): any | undefined {
   if (project.agents) {
-    for (const [agentId, agentData] of Object.entries(project.agents)) {
-      if (agentData.statusUpdates && agentData.statusUpdates.statusComponents) {
+    for (const agentData of Object.values(project.agents)) {
+      if (agentData.statusUpdates?.statusComponents) {
         for (const statusComp of agentData.statusUpdates.statusComponents) {
           let compId: string | undefined;
 
