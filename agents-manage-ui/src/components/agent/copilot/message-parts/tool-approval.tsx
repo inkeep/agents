@@ -129,7 +129,9 @@ export const ToolApproval = ({
 
   const handleApproval = async (approved: boolean) => {
     setSubmitted(true);
-    try {
+    // Workaround for a React Compiler limitation.
+    // Todo: (BuildHIR::lowerStatement) Support ThrowStatement inside of try/catch
+    async function doRequest() {
       const response = await fetch(`${runApiUrl}/api/tool-approvals`, {
         method: 'POST',
         headers: {
@@ -150,6 +152,10 @@ export const ToolApproval = ({
       if (!response.ok) {
         throw new Error(`Failed to ${approved ? 'approve' : 'reject'} tool call`);
       }
+    }
+
+    try {
+      await doRequest();
     } catch (error) {
       setSubmitted(false);
       const errorMessage = error instanceof Error ? error.message : 'An unexpected error occurred';
@@ -208,7 +214,7 @@ export const ToolApproval = ({
     approveLabel = 'Approve',
     approveVariant = 'default' as 'default' | 'destructive',
     rejectLabel = 'Reject',
-    approveIcon = <CheckIcon className="size-3" />,
+    approveIcon,
   }: {
     approveLabel?: string;
     approveVariant?: 'default' | 'destructive' | 'destructive-outline';
@@ -223,7 +229,7 @@ export const ToolApproval = ({
           type="button"
           onClick={() => handleApproval(true)}
         >
-          {approveIcon}
+          {approveIcon ?? <CheckIcon className="size-3" />}
           {approveLabel}
         </Button>
         <Button variant="outline" size="xs" type="button" onClick={() => handleApproval(false)}>
