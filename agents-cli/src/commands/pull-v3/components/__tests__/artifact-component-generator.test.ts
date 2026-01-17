@@ -323,7 +323,7 @@ describe('Artifact Component Generator', () => {
 
   describe('compilation tests', () => {
     it('should generate code that compiles and creates a working artifact component', async () => {
-      const file = generateArtifactComponentFile('citation', testComponentData);
+      generateArtifactComponentFile('citation', testComponentData);
 
       // Extract just the component definition (remove imports and export)
       const definition = generateArtifactComponentDefinition('citation', testComponentData);
