@@ -1119,7 +1119,7 @@ function formatValue(value: any): string {
       const pairs = keys.map((key) => {
         const val = value[key];
         if (typeof val === 'string') {
-          return `${key}: "${val.length > 15 ? val.substring(0, 12) + '...' : val}"`;
+          return `${key}: "${val.length > 15 ? `${val.substring(0, 12)}...` : val}"`;
         }
         if (typeof val === 'object' && val !== null) {
           return `${key}: {...}`;
@@ -1310,114 +1310,6 @@ function createEmptyComponentChanges(): ProjectComparison['componentChanges'] {
     externalAgents: { added: [], modified: [], deleted: [] },
     models: { added: [], modified: [], deleted: [] },
   };
-}
-
-/**
- * Truncate long descriptions for better readability
- */
-function truncateDescription(description: string): string {
-  if (description.length <= 80) return description;
-  return description.substring(0, 77) + '...';
-}
-
-/**
- * Group agent field changes by category for better visualization
- */
-function groupAgentChangesByCategory(fieldChanges: FieldChange[]): Record<string, FieldChange[]> {
-  const categories: Record<string, FieldChange[]> = {
-    Configuration: [],
-    'Tools & Relationships': [],
-    Models: [],
-    'Context & Data': [],
-    Other: [],
-  };
-
-  fieldChanges.forEach((change) => {
-    const field = change.field.toLowerCase();
-
-    if (field.includes('model') || field.includes('provider')) {
-      categories['Models'].push(change);
-    } else if (
-      field.includes('tool') ||
-      field.includes('canuse') ||
-      field.includes('candelegateto') ||
-      field.includes('subagent') ||
-      field.includes('teamagent')
-    ) {
-      categories['Tools & Relationships'].push(change);
-    } else if (
-      field.includes('context') ||
-      field.includes('data') ||
-      field.includes('fetch') ||
-      field.includes('header')
-    ) {
-      categories['Context & Data'].push(change);
-    } else if (
-      field.includes('name') ||
-      field.includes('prompt') ||
-      field.includes('description') ||
-      field.includes('stopwhen')
-    ) {
-      categories['Configuration'].push(change);
-    } else {
-      categories['Other'].push(change);
-    }
-  });
-
-  // Remove empty categories
-  Object.keys(categories).forEach((key) => {
-    if (categories[key].length === 0) {
-      delete categories[key];
-    }
-  });
-
-  return categories;
-}
-
-/**
- * Get icon for change category
- */
-function getCategoryIcon(category: string): string {
-  switch (category) {
-    case 'Configuration':
-      return '⚙️ ';
-    case 'Models':
-      return '🧠';
-    case 'Tools & Relationships':
-      return '🔗';
-    case 'Context & Data':
-      return '📊';
-    default:
-      return '📝';
-  }
-}
-
-/**
- * Get icon for component type
- */
-function getComponentIcon(componentType: string): string {
-  switch (componentType) {
-    case 'agents':
-      return '🤖';
-    case 'tools':
-      return '🛠️ ';
-    case 'functionTools':
-      return '⚡';
-    case 'dataComponents':
-      return '📊';
-    case 'artifactComponents':
-      return '📄';
-    case 'credentials':
-      return '🔑';
-    case 'contextConfigs':
-      return '⚙️ ';
-    case 'fetchDefinitions':
-      return '🔄';
-    case 'models':
-      return '🧠';
-    default:
-      return '📦';
-  }
 }
 
 /**
