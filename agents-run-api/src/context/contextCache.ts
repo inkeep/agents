@@ -1,5 +1,4 @@
 import {
-  type ContextCacheSelect,
   cleanupTenantCache,
   clearContextConfigCache,
   clearConversationCache,

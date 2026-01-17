@@ -12,7 +12,6 @@ import {
   getConversation,
   getConversationId,
   HeadersScopeSchema,
-  type ResolvedRef,
   updateConversation,
 } from '@inkeep/agents-core';
 import { context as otelContext, propagation, trace } from '@opentelemetry/api';
