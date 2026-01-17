@@ -913,3 +913,52 @@ The backend and SDK implementation for Triggers V0 is **COMPLETE**. All core fun
 
 ## Iteration 7 - Sat Jan 17 09:42:04 UTC 2026
 
+## Iteration 8 - $(date -u)
+
+### Story: US-025 - Add Create/Edit Trigger form UI
+
+**Implementation:**
+- Created comprehensive TriggerForm component with all required fields (450+ lines)
+- Implemented form for creating and editing triggers with the following sections:
+  - Basic Information: name, description, enabled toggle
+  - Message Template: template with {{placeholder}} syntax support
+  - Input Schema: JSON Schema editor for payload validation
+  - Output Transform: JMESPath expression and object transformation editors
+  - Authentication: Support for all 4 auth types (none, api_key, basic_auth, bearer_token)
+  - Signing Secret: HMAC-SHA256 signature verification
+- Added server actions: createTriggerAction and updateTriggerAction in lib/actions/triggers.ts
+- Added API client function: createTrigger in lib/api/triggers.ts
+- Created new trigger page at /agents/[agentId]/triggers/new
+- Created edit trigger page at /agents/[agentId]/triggers/[triggerId]/edit
+- Updated TriggersTable component:
+  - Added "Create trigger" button at the top
+  - Added "Edit" option in dropdown menu for each trigger
+  - Edit option navigates to edit page
+- All forms use react-hook-form with Zod validation
+- JSON editors for input schema and object transformation
+- Conditional authentication fields based on selected auth type
+- Form includes validation and error display
+- Success/error toasts for user feedback
+- Navigation back to triggers list after successful save
+
+**Files Changed:**
+- agents-manage-ui/src/components/triggers/trigger-form.tsx (new file - 450 lines)
+- agents-manage-ui/src/app/[tenantId]/projects/[projectId]/agents/[agentId]/triggers/new/page.tsx (new file)
+- agents-manage-ui/src/app/[tenantId]/projects/[projectId]/agents/[agentId]/triggers/[triggerId]/edit/page.tsx (new file)
+- agents-manage-ui/src/lib/actions/triggers.ts (added createTriggerAction and updateTriggerAction)
+- agents-manage-ui/src/lib/api/triggers.ts (added createTrigger function)
+- agents-manage-ui/src/components/triggers/triggers-table.tsx (added Create button and Edit menu item)
+- prd.json (marked US-025 as complete)
+
+**Learnings:**
+- React Hook Form with discriminated unions requires careful type handling - used type assertion for zodResolver
+- Authentication field extraction from API types requires runtime type guards when dealing with `any` types
+- JSON editor pattern: store as string in form, parse on submit with error handling
+- Conditional form fields based on selected type: use form.watch() to track authType and conditionally render fields
+- Form structure pattern: Card components for logical sections makes complex forms more manageable
+- Edit mode form pattern: single component with mode prop, different actions based on create vs edit
+- Password-type inputs for sensitive fields (API keys, tokens, signing secrets)
+- Cancel button should navigate back without form submission using router.push()
+
+---
+
