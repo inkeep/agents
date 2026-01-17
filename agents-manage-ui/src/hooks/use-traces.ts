@@ -100,41 +100,33 @@ export function useConversationStats(
     ]
   );
 
-  const refresh = useCallback(() => {
+  const refresh = () => {
     fetchData(currentPage);
-  }, [fetchData, currentPage]);
+  };
 
   // Pagination controls
-  const nextPage = useCallback(() => {
+  const nextPage = () => {
     if (paginationInfo?.hasNextPage) {
       const nextPageNum = currentPage + 1;
       setCurrentPage(nextPageNum);
       fetchData(nextPageNum);
     }
-  }, [currentPage, paginationInfo?.hasNextPage, fetchData]);
+  };
 
-  const previousPage = useCallback(() => {
+  const previousPage = () => {
     if (paginationInfo?.hasPreviousPage) {
       const prevPageNum = currentPage - 1;
       setCurrentPage(prevPageNum);
       fetchData(prevPageNum);
     }
-  }, [currentPage, paginationInfo?.hasPreviousPage, fetchData]);
+  };
 
-  const goToPage = useCallback(
-    (page: number) => {
-      if (
-        paginationInfo &&
-        page >= 1 &&
-        page <= paginationInfo.totalPages &&
-        page !== currentPage
-      ) {
-        setCurrentPage(page);
-        fetchData(page);
-      }
-    },
-    [currentPage, paginationInfo, fetchData]
-  );
+  const goToPage = (page: number) => {
+    if (paginationInfo && page >= 1 && page <= paginationInfo.totalPages && page !== currentPage) {
+      setCurrentPage(page);
+      fetchData(page);
+    }
+  };
 
   // Reset to page 1 and fetch when filters or time range change
   // biome-ignore lint/correctness/useExhaustiveDependencies: Intentionally tracking filter values instead of fetchData to prevent page reset on pagination clicks

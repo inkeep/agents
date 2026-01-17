@@ -42,73 +42,60 @@ export function FunctionToolNodeEditor({ selectedNode }: FunctionToolNodeEditorP
   }, [nodeData]);
 
   // Handle input schema changes with JSON validation
-  const handleInputSchemaChange = useCallback(
-    (value: string) => {
-      setInputSchema(value);
+  const handleInputSchemaChange = (value: string) => {
+    setInputSchema(value);
 
-      if (!value?.trim()) {
-        updatePath('inputSchema', undefined);
-        return;
-      }
+    if (!value?.trim()) {
+      updatePath('inputSchema', undefined);
+      return;
+    }
 
-      try {
-        const parsed = JSON.parse(value);
-        updatePath('inputSchema', parsed);
-      } catch {
-        // Invalid JSON - don't update
-      }
-    },
-    [updatePath]
-  );
+    try {
+      const parsed = JSON.parse(value);
+      updatePath('inputSchema', parsed);
+    } catch {
+      // Invalid JSON - don't update
+    }
+  };
 
   // Handle dependencies changes with JSON validation
-  const handleDependenciesChange = useCallback(
-    (value: string) => {
-      setDependencies(value);
+  const handleDependenciesChange = (value: string) => {
+    setDependencies(value);
 
-      if (!value?.trim()) {
-        updatePath('dependencies', undefined);
-        return;
-      }
+    if (!value?.trim()) {
+      updatePath('dependencies', undefined);
+      return;
+    }
 
-      try {
-        const parsed = JSON.parse(value);
-        updatePath('dependencies', parsed);
-      } catch {
-        // Invalid JSON - don't update
-      }
-    },
-    [updatePath]
-  );
+    try {
+      const parsed = JSON.parse(value);
+      updatePath('dependencies', parsed);
+    } catch {
+      // Invalid JSON - don't update
+    }
+  };
 
   // Handle name changes
-  const handleNameChange = useCallback(
-    (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
-      const newName = e.target.value;
-      setName(newName);
-      updatePath('name', newName);
-    },
-    [updatePath]
-  );
+  const handleNameChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+    const newName = e.target.value;
+    setName(newName);
+    updatePath('name', newName);
+  };
 
   // Handle code changes
-  const handleCodeChange = useCallback(
-    (value: string) => {
-      setCode(value);
-      updatePath('code', value);
-    },
-    [updatePath]
-  );
+  const handleCodeChange = (value: string) => {
+    setCode(value);
+    updatePath('code', value);
+  };
 
   // Handle description changes
-  const handleDescriptionChange = useCallback(
-    (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
-      const newDescription = e.target.value;
-      setDescription(newDescription);
-      updatePath('description', newDescription);
-    },
-    [updatePath]
-  );
+  const handleDescriptionChange = (
+    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
+  ) => {
+    const newDescription = e.target.value;
+    setDescription(newDescription);
+    updatePath('description', newDescription);
+  };
 
   return (
     <div className="space-y-8">

@@ -76,7 +76,7 @@ export function ChatWidget({
   const POLLING_TIMEOUT_MS = 5 * 60 * 1000; // 5 minutes
 
   // Helper function to reset the stop polling timeout
-  const resetStopPollingTimeout = useCallback(() => {
+  const resetStopPollingTimeout = () => {
     // Clear any existing timeout
     if (stopPollingTimeoutRef.current) {
       clearTimeout(stopPollingTimeoutRef.current);
@@ -88,7 +88,7 @@ export function ChatWidget({
       stopPolling();
       stopPollingTimeoutRef.current = null;
     }, POLLING_TIMEOUT_MS);
-  }, [stopPolling]);
+  };
 
   // Reset timeout when new activities come in AFTER assistant message received
   // biome-ignore lint/correctness/useExhaustiveDependencies: activities length is intentionally tracked to reset timeout on new activities

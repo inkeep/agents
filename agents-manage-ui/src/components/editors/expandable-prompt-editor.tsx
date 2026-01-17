@@ -27,7 +27,7 @@ export function ExpandablePromptEditor({
   const monaco = useMonacoStore((state) => state.monaco);
   const uri = `${open ? 'expanded-' : ''}${name}.template` as const;
 
-  const handleAddVariable = useCallback(() => {
+  const handleAddVariable = () => {
     if (!monaco) {
       return;
     }
@@ -46,7 +46,7 @@ export function ExpandablePromptEditor({
     editor.setPosition({ lineNumber: pos.lineNumber, column: pos.column + 1 });
     editor.focus();
     editor.trigger('insert-template-variable', 'editor.action.triggerSuggest', {});
-  }, [monaco, uri]);
+  };
 
   const id = `${name}-label`;
 

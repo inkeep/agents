@@ -25,10 +25,10 @@ export const UnsavedChangesDialog: FC<UnsavedChangesDialogProps> = ({ onSubmit }
   const isNavigatingRef = useRef(false);
   const router = useRouter();
 
-  const handleGoBack = useCallback(() => {
+  const handleGoBack = () => {
     pendingNavigationRef.current = null;
     setShowUnsavedDialog(false);
-  }, []);
+  };
 
   const proceedWithNavigation = useCallback(() => {
     const navigate = pendingNavigationRef.current;
@@ -41,7 +41,7 @@ export const UnsavedChangesDialog: FC<UnsavedChangesDialogProps> = ({ onSubmit }
     navigate();
   }, [handleGoBack]);
 
-  const handleSaveAndLeave = useCallback(() => {
+  const handleSaveAndLeave = () => {
     if (isSavingPendingNavigation) {
       return;
     }
@@ -52,7 +52,7 @@ export const UnsavedChangesDialog: FC<UnsavedChangesDialogProps> = ({ onSubmit }
       }
       setShowUnsavedDialog(false);
     });
-  }, [isSavingPendingNavigation, onSubmit, proceedWithNavigation]);
+  };
 
   useEffect(() => {
     if (!dirty) {

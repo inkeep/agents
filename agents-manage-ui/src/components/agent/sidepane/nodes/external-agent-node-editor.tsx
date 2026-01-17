@@ -70,12 +70,9 @@ export function ExternalAgentNodeEditor({
     edges: state.edges,
   }));
 
-  const handleIdChange = useCallback(
-    (generatedId: string) => {
-      updateField('id', generatedId);
-    },
-    [updateField]
-  );
+  const handleIdChange = (generatedId: string) => {
+    updateField('id', generatedId);
+  };
 
   // Auto-prefill ID based on name field (always enabled for agent nodes)
   useAutoPrefillIdZustand({
@@ -85,13 +82,8 @@ export function ExternalAgentNodeEditor({
     isEditing: false,
   });
 
-  const getCurrentHeaders = useCallback((): Record<string, string> => {
-    return getCurrentHeadersForExternalAgentNode(
-      selectedNode,
-      subAgentExternalAgentConfigLookup,
-      edges
-    );
-  }, [selectedNode, subAgentExternalAgentConfigLookup, edges]);
+  const getCurrentHeaders = (): Record<string, string> =>
+    getCurrentHeadersForExternalAgentNode(selectedNode, subAgentExternalAgentConfigLookup, edges);
 
   // Local state for headers input (allows invalid JSON while typing)
   const [headersInputValue, setHeadersInputValue] = useState('{}');

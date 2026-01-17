@@ -123,9 +123,9 @@ interface EdgeEditorProps {
 function EdgeEditor({ selectedEdge }: EdgeEditorProps) {
   const { updateEdgeData, setEdges, deleteElements, getEdges } = useReactFlow();
 
-  const deleteEdge = useCallback(() => {
+  const deleteEdge = () => {
     deleteElements({ edges: [{ id: selectedEdge.id }] });
-  }, [selectedEdge.id, deleteElements]);
+  };
 
   const sourceNode = useNodesData(selectedEdge.source);
   const targetNode = useNodesData(selectedEdge.target);

@@ -150,20 +150,17 @@ export function ComponentRenderGenerator({
   const renderCode = render?.component || '';
   const renderData = render?.mockData || {};
 
-  const handleDataChange = useCallback(
-    (newData: string) => {
-      if (!render) return;
-      try {
-        const parsedData = JSON.parse(newData);
-        const updatedRender = { ...render, mockData: parsedData };
-        setRender(updatedRender);
-        onRenderChanged?.(updatedRender);
-      } catch {
-        // Invalid JSON, ignore
-      }
-    },
-    [render, onRenderChanged]
-  );
+  const handleDataChange = (newData: string) => {
+    if (!render) return;
+    try {
+      const parsedData = JSON.parse(newData);
+      const updatedRender = { ...render, mockData: parsedData };
+      setRender(updatedRender);
+      onRenderChanged?.(updatedRender);
+    } catch {
+      // Invalid JSON, ignore
+    }
+  };
 
   return (
     <div className="space-y-4">

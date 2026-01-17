@@ -69,27 +69,24 @@ export function useScopeSelection<T = void>(
   const [pendingName, setPendingName] = useState('');
   const [pendingContext, setPendingContext] = useState<T | null>(null);
 
-  const requestScopeSelection = useCallback((name: string, context: T) => {
+  const requestScopeSelection = (name: string, context: T) => {
     setPendingName(name);
     setPendingContext(context);
     setIsOpen(true);
-  }, []);
+  };
 
-  const close = useCallback(() => {
+  const close = () => {
     setIsOpen(false);
     setPendingName('');
     setPendingContext(null);
-  }, []);
+  };
 
-  const handleConfirm = useCallback(
-    async (scope: CredentialScope) => {
-      if (pendingContext !== null) {
-        await options.onConfirm(scope, pendingContext);
-      }
-      close();
-    },
-    [options, pendingContext, close]
-  );
+  const handleConfirm = async (scope: CredentialScope) => {
+    if (pendingContext !== null) {
+      await options.onConfirm(scope, pendingContext);
+    }
+    close();
+  };
 
   const ScopeDialog = (
     <ScopeSelectionDialog

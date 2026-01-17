@@ -24,7 +24,7 @@ export default function SettingsPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  const fetchOrganization = useCallback(async () => {
+  const fetchOrganization = async () => {
     if (!tenantId) return;
 
     try {
@@ -55,7 +55,7 @@ export default function SettingsPage() {
     } finally {
       setLoading(false);
     }
-  }, [tenantId, authClient]);
+  };
 
   useEffect(() => {
     fetchOrganization();

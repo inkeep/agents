@@ -48,11 +48,11 @@ export function Toolbar({ onSubmit, toggleSidePane, setShowPlayground }: Toolbar
   }, []);
 
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const saveAgent = useCallback(async () => {
+  const saveAgent = async () => {
     setIsSubmitting(true);
     await onSubmit();
     setIsSubmitting(false);
-  }, [onSubmit]);
+  };
 
   return (
     <div className="flex gap-2 flex-wrap justify-end content-start">
