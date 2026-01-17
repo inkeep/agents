@@ -13,11 +13,7 @@
     "forceConsistentCasingInFileNames": true,
     "declaration": true,
     "outDir": "./dist",
-    "baseUrl": ".",
-    "paths": {
-      "@inkeep/agents-core": ["../packages/agents-core/src/index.ts"],
-      "@inkeep/agents-core/*": ["../packages/agents-core/src/*"]
-    }
+    "baseUrl": "."
   },
   "include": ["src/**/*"],
   "exclude": ["node_modules", "dist"]
