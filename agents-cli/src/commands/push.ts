@@ -28,7 +28,7 @@ interface BatchPushResult {
   error?: string;
 }
 
-export async function pushCommand(options: PushOptions) {
+export async function pushCommand(options: PushOptions): Promise<void> {
   // Perform background version check (non-blocking)
   performBackgroundVersionCheck();
 

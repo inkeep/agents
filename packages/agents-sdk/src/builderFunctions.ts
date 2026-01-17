@@ -121,7 +121,7 @@ export function subAgent(config: SubAgentConfig): SubAgent {
  * ```
  */
 
-export function credential(config: CredentialReferenceApiInsert) {
+export function credential(config: CredentialReferenceApiInsert): CredentialReferenceApiInsert {
   try {
     return CredentialReferenceApiInsertSchema.parse(config);
   } catch (error) {

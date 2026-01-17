@@ -176,7 +176,7 @@ export function generateFetchDefinitionDefinition(
 export function generateContextConfigDefinition(
   contextId: string,
   contextData: any,
-  style: CodeStyle = DEFAULT_STYLE,
+  style: CodeStyle | undefined = DEFAULT_STYLE,
   registry: ComponentRegistry,
   headersVarName?: string
 ): string {
