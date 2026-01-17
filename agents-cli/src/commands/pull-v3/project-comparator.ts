@@ -264,8 +264,7 @@ function compareComponentsDirectly(
   changes.push(
     ...compareCredentials(
       localProject.credentialReferences || {},
-      remoteProject.credentialReferences || {},
-      debug
+      remoteProject.credentialReferences || {}
     )
   );
 
@@ -535,8 +534,7 @@ function compareArtifactComponents(
  */
 function compareCredentials(
   localCredentials: Record<string, any>,
-  remoteCredentials: Record<string, any>,
-  debug: boolean
+  remoteCredentials: Record<string, any>
 ): ComponentChange[] {
   return compareComponentMaps('credentials', localCredentials, remoteCredentials);
 }
