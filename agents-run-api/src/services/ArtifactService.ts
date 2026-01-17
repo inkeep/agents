@@ -283,7 +283,7 @@ export class ArtifactService {
     }
 
     if (this.createdArtifacts.has(key)) {
-      const cached = this.createdArtifacts.get(key)!;
+      const cached = this.createdArtifacts.get(key);
       return this.formatArtifactSummaryData(cached, artifactId, toolCallId);
     }
 
@@ -354,7 +354,7 @@ export class ArtifactService {
     }
 
     if (this.createdArtifacts.has(key)) {
-      const cached = this.createdArtifacts.get(key)!;
+      const cached = this.createdArtifacts.get(key);
       return this.formatArtifactFullData(cached, artifactId, toolCallId);
     }
 

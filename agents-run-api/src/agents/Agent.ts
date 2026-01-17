@@ -2016,7 +2016,7 @@ export class Agent {
                       hasComplexArgs: !!complexArgs,
                       transformation:
                         typeof override.transformation === 'string'
-                          ? override.transformation.substring(0, 100) + '...'
+                          ? `${override.transformation.substring(0, 100)}...`
                           : 'object-transformation',
                     },
                     'Successfully transformed tool arguments'
@@ -2140,7 +2140,7 @@ export class Agent {
     if (typeof result === 'string') {
       try {
         parsedResult = JSON.parse(result);
-      } catch (e) {
+      } catch {
         // Keep as string if not valid JSON
       }
     }
@@ -3140,10 +3140,10 @@ ${output}`;
     }
 
     // Only check for tool errors in streaming mode (when includeThinkingComplete is false)
-    if (!includeThinkingComplete && last && last['content'] && last['content'].length > 0) {
-      const lastContent = last['content'][last['content'].length - 1];
-      if (lastContent['type'] === 'tool-error') {
-        const error = lastContent['error'];
+    if (!includeThinkingComplete && last && last.content && last.content.length > 0) {
+      const lastContent = last.content[last.content.length - 1];
+      if (lastContent.type === 'tool-error') {
+        const error = lastContent.error;
         if (
           error &&
           typeof error === 'object' &&
@@ -3158,10 +3158,6 @@ ${output}`;
     if (steps.length >= 1) {
       const currentStep = steps[steps.length - 1];
       if (currentStep && 'toolCalls' in currentStep && currentStep.toolCalls) {
-        const stopToolNames = includeThinkingComplete
-          ? ['transfer_to_', 'thinking_complete']
-          : ['transfer_to_'];
-
         const hasTransferTool = currentStep.toolCalls.some((tc: any) =>
           tc.toolName.startsWith('transfer_to_')
         );
