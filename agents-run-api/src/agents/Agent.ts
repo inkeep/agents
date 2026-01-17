@@ -61,6 +61,7 @@ import { IncrementalStreamParser } from '../services/IncrementalStreamParser';
 import { MidGenerationCompressor } from '../services/MidGenerationCompressor';
 import { pendingToolApprovalManager } from '../services/PendingToolApprovalManager';
 import { ResponseFormatter } from '../services/ResponseFormatter';
+import { toolApprovalUiBus } from '../services/ToolApprovalUiBus';
 import type { SandboxConfig } from '../types/execution-context';
 import { generateToolId } from '../utils/agent-operations';
 import { ArtifactCreateSchema, ArtifactReferenceSchema } from '../utils/artifact-component-schema';
@@ -768,7 +769,7 @@ export class Agent {
         const sessionWrappedTool = tool({
           description: originalTool.description,
           inputSchema: originalTool.inputSchema,
-          execute: async (args, { toolCallId }) => {
+          execute: async (args, { toolCallId, providerMetadata }: any) => {
             // Fix Claude's stringified JSON issue - convert any stringified JSON back to objects
             // This must happen first, before any logging or tracing, so spans show correct data
             let processedArgs: typeof args;
@@ -834,6 +835,18 @@ export class Agent {
                   approvalId: `aitxt-${toolCallId}`,
                   toolCallId,
                 });
+              } else if (this.isDelegatedAgent) {
+                const streamRequestId = this.getStreamRequestId();
+                if (streamRequestId) {
+                  await toolApprovalUiBus.publish(streamRequestId, {
+                    type: 'approval-needed',
+                    toolCallId,
+                    toolName,
+                    input: finalArgs,
+                    providerMetadata,
+                    approvalId: `aitxt-${toolCallId}`,
+                  });
+                }
               }
 
               // Wait for approval (this promise resolves when user responds via API)
@@ -846,6 +859,16 @@ export class Agent {
               );
 
               if (!approvalResult.approved) {
+                if (!streamHelper && this.isDelegatedAgent) {
+                  const streamRequestId = this.getStreamRequestId();
+                  if (streamRequestId) {
+                    await toolApprovalUiBus.publish(streamRequestId, {
+                      type: 'approval-resolved',
+                      toolCallId,
+                      approved: false,
+                    });
+                  }
+                }
                 // User denied approval - return a message instead of executing the tool
                 return tracer.startActiveSpan(
                   'tool.approval_denied',
@@ -892,6 +915,17 @@ export class Agent {
                   approvedSpan.end();
                 }
               );
+
+              if (!streamHelper && this.isDelegatedAgent) {
+                const streamRequestId = this.getStreamRequestId();
+                if (streamRequestId) {
+                  await toolApprovalUiBus.publish(streamRequestId, {
+                    type: 'approval-resolved',
+                    toolCallId,
+                    approved: true,
+                  });
+                }
+              }
             }
 
             logger.debug({ toolName, toolCallId }, 'MCP Tool Called');

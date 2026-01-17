@@ -20,6 +20,7 @@ import dbClient from '../data/db/dbClient';
 import { ExecutionHandler } from '../handlers/executionHandler';
 import { getLogger } from '../logger';
 import { pendingToolApprovalManager } from '../services/PendingToolApprovalManager';
+import { toolApprovalUiBus } from '../services/ToolApprovalUiBus';
 import { errorOp } from '../utils/agent-operations';
 import { createBufferingStreamHelper, createVercelStreamHelper } from '../utils/stream-helpers';
 
@@ -369,6 +370,7 @@ app.openapi(chatDataStreamRoute, async (c) => {
       const dataStream = createUIMessageStream({
         execute: async ({ writer }) => {
           const streamHelper = createVercelStreamHelper(writer);
+          let unsubscribe: (() => void) | undefined;
           try {
             // Check for emit operations header
             const emitOperationsHeader = c.req.header('x-emit-operations');
@@ -379,12 +381,67 @@ app.openapi(chatDataStreamRoute, async (c) => {
             // Check if this is a dataset run conversation via header
             const datasetRunId = c.req.header('x-inkeep-dataset-run-id');
 
+            const requestId = `chatds-${Date.now()}`;
+
+            const chunkString = (s: string, size = 16) => {
+              const out: string[] = [];
+              for (let i = 0; i < s.length; i += size) out.push(s.slice(i, i + size));
+              return out;
+            };
+
+            const seenToolCalls = new Set<string>();
+            const seenOutputs = new Set<string>();
+
+            unsubscribe = toolApprovalUiBus.subscribe(requestId, async (event) => {
+              if (event.type === 'approval-needed') {
+                if (seenToolCalls.has(event.toolCallId)) return;
+                seenToolCalls.add(event.toolCallId);
+
+                await streamHelper.writeToolInputStart({
+                  toolCallId: event.toolCallId,
+                  toolName: event.toolName,
+                });
+
+                const inputText = JSON.stringify(event.input ?? {});
+                for (const part of chunkString(inputText, 16)) {
+                  await streamHelper.writeToolInputDelta({
+                    toolCallId: event.toolCallId,
+                    inputTextDelta: part,
+                  });
+                }
+
+                await streamHelper.writeToolInputAvailable({
+                  toolCallId: event.toolCallId,
+                  toolName: event.toolName,
+                  input: event.input ?? {},
+                  providerMetadata: event.providerMetadata,
+                });
+
+                await streamHelper.writeToolApprovalRequest({
+                  approvalId: event.approvalId,
+                  toolCallId: event.toolCallId,
+                });
+              } else if (event.type === 'approval-resolved') {
+                if (seenOutputs.has(event.toolCallId)) return;
+                seenOutputs.add(event.toolCallId);
+
+                if (event.approved) {
+                  await streamHelper.writeToolOutputAvailable({
+                    toolCallId: event.toolCallId,
+                    output: { status: 'approved' },
+                  });
+                } else {
+                  await streamHelper.writeToolOutputDenied({ toolCallId: event.toolCallId });
+                }
+              }
+            });
+
             const result = await executionHandler.execute({
               executionContext,
               conversationId,
               userMessage: userText,
               initialAgentId: subAgentId,
-              requestId: `chatds-${Date.now()}`,
+              requestId,
               sseHelper: streamHelper,
               emitOperations,
               datasetRunId: datasetRunId || undefined,
@@ -398,6 +455,9 @@ app.openapi(chatDataStreamRoute, async (c) => {
             logger.error({ err }, 'Streaming error');
             await streamHelper.writeOperation(errorOp('Internal server error', 'system'));
           } finally {
+            try {
+              unsubscribe?.();
+            } catch (_e) {}
             // Clean up stream helper resources if it has cleanup method
             if ('cleanup' in streamHelper && typeof streamHelper.cleanup === 'function') {
               streamHelper.cleanup();

@@ -1,6 +1,7 @@
 import { generateId } from '@inkeep/agents-core';
 import { describe, expect, it, vi } from 'vitest';
 import { pendingToolApprovalManager } from '../../../services/PendingToolApprovalManager';
+import { toolApprovalUiBus } from '../../../services/ToolApprovalUiBus';
 
 // Logger mock is now in setup.ts globally
 
@@ -13,6 +14,23 @@ vi.mock('../../../handlers/executionHandler', () => {
         if (args.sseHelper && typeof args.sseHelper.writeRole === 'function') {
           await args.sseHelper.writeRole();
           await args.sseHelper.writeContent('[{"type":"text", "text":"Test response from agent"}]');
+        }
+
+        // Allow tests to simulate delegated approval UI propagation by publishing to the bus.
+        if (args.userMessage === '__trigger_approval_ui_bus__') {
+          await toolApprovalUiBus.publish(args.requestId, {
+            type: 'approval-needed',
+            toolCallId: 'call_bus_1',
+            toolName: 'delete_file',
+            input: { filePath: 'user/readme.md' },
+            providerMetadata: { openai: { itemId: 'fc_test' } },
+            approvalId: 'aitxt-call_bus_1',
+          });
+          await toolApprovalUiBus.publish(args.requestId, {
+            type: 'approval-resolved',
+            toolCallId: 'call_bus_1',
+            approved: true,
+          });
         }
         return { success: true, iterations: 1 };
       }),
@@ -188,6 +206,36 @@ describe('Chat Data Stream Route', () => {
     // Check that the mock text is included in the stream
     expect(text).toMatch(/Test/);
     expect(text).toMatch(/response/);
+  });
+
+  it('should stream approval UI events published to ToolApprovalUiBus (simulating delegated agent approval)', async () => {
+    // Ensure deterministic requestId inside route subscription (chatds-${Date.now()})
+    const nowSpy = vi.spyOn(Date, 'now').mockReturnValue(12345);
+
+    const body = {
+      conversationId: 'conv-123',
+      messages: [
+        {
+          role: 'user',
+          content: '__trigger_approval_ui_bus__',
+        },
+      ],
+    };
+
+    const res = await makeRequest('/api/chat', {
+      method: 'POST',
+      body: JSON.stringify(body),
+    });
+
+    expect(res.status).toBe(200);
+    expect(res.headers.get('x-vercel-ai-data-stream')).toBe('v2');
+
+    const text = await res.text();
+    expect(text).toMatch(/"type":"tool-input-start"/);
+    expect(text).toMatch(/"type":"tool-approval-request"/);
+    expect(text).toMatch(/"type":"tool-output-available"/);
+
+    nowSpy.mockRestore();
   });
 
   it('should accept approval responded tool part via the same /api/chat endpoint and return JSON ack', async () => {
