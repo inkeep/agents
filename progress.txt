@@ -713,3 +713,35 @@ Started: Sat Jan 17 03:02:52 UTC 2026
 
 ---
 
+
+---
+
+## Iteration 5 - Sat Jan 17 09:27:29 UTC 2026
+
+### Story: US-022 - Serialize triggers in SDK toFullAgentDefinition
+
+**Implementation:**
+- Added triggers field to AgentWithinContextOfProjectSchema in agents-core/src/validation/schemas.ts
+- Defined triggers as optional record of string to TriggerApiInsertSchema (following pattern of functionTools and other agent-scoped resources)
+- Implemented triggers serialization in Agent.toFullAgentDefinition() method in agents-sdk/src/agent.ts
+- Created triggersObject by iterating through triggerMap and calling getConfig() on each trigger
+- Added Zod schema conversion: checks if inputSchema is a Zod schema using isZodSchema(), then converts to JSON Schema using convertZodToJsonSchema()
+- Included triggers in returned FullAgentDefinition object using spread operator (only if triggers exist)
+- Verified typecheck passes for both agents-core and agents-sdk packages
+
+**Files Changed:**
+- packages/agents-core/src/validation/schemas.ts (added triggers field to AgentWithinContextOfProjectSchema)
+- packages/agents-sdk/src/agent.ts (added triggers serialization logic in toFullAgentDefinition())
+- prd.json (marked US-022 as complete)
+
+**Learnings:**
+- FullAgentDefinition schema follows consistent pattern: agent-scoped resources (functionTools, triggers) use optional Record<string, Schema> type
+- Project-scoped resources (tools, externalAgents, teamAgents) also use Record format but are managed at project level
+- Trigger serialization must convert Zod inputSchema to JSON Schema for API compatibility (same pattern as other SDK entities)
+- SDK's convertZodToJsonSchema and isZodSchema utilities are already available and work consistently across entity types
+- The trigger config from getConfig() already contains all necessary fields matching TriggerApiInsert format
+- Spread operator with conditional inclusion (...(Object.keys(obj).length > 0 && { field: obj })) is the standard pattern for optional fields
+- Typecheck validation is critical after schema changes to ensure compatibility across packages
+
+---
+

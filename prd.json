@@ -362,8 +362,8 @@
         "Typecheck passes"
       ],
       "priority": 22,
-      "passes": false,
-      "notes": ""
+      "passes": true,
+      "notes": "Completed in commit ab96fb2d. Added triggers field to FullAgentDefinition schema and implemented serialization in toFullAgentDefinition()."
     },
     {
       "id": "US-023",
