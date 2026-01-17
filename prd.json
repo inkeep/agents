@@ -292,8 +292,8 @@
         "Typecheck passes"
       ],
       "priority": 18,
-      "passes": false,
-      "notes": ""
+      "passes": true,
+      "notes": "Completed in commit d4e31a21. Comprehensive test suite for both invocation endpoints with coverage for pagination, ordering, filtering (status and date range), and tenant isolation."
     },
     {
       "id": "US-019",

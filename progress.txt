@@ -482,3 +482,43 @@ Started: Sat Jan 17 03:02:52 UTC 2026
 
 ---
 
+
+## Iteration 5 - $(date -u)
+
+### Story: US-018 - Write integration tests for Invocation API
+
+**Implementation:**
+- Extended triggers.test.ts with comprehensive invocation history endpoint tests (300+ additional lines)
+- Created helper function createTestInvocation() for direct database insertion of test invocations
+- Implemented test coverage for list invocations endpoint (GET /:triggerId/invocations):
+  - Empty state with correct pagination metadata
+  - Multiple invocations with response structure validation
+  - Ordering verification: newest first (createdAt DESC)
+  - Status filtering: tested with success, failed, pending statuses
+  - Date range filtering: from parameter only
+  - Date range filtering: both from and to parameters
+  - Pagination: verified pages calculation and data slicing
+- Implemented test coverage for get single invocation endpoint (GET /:triggerId/invocations/:invocationId):
+  - Success case with full invocation data
+  - 404 for non-existent invocation
+  - Tenant isolation (cross-tenant access denied)
+  - Error message field for failed invocations
+- All tests verify proper field exclusion (tenantId, projectId, agentId not in response)
+- Used direct database access with createTriggerInvocation() for test data setup
+
+**Files Changed:**
+- agents-manage-api/src/__tests__/routes/crud/triggers.test.ts (added 412 lines for invocation tests)
+- prd.json (marked US-018 as complete)
+
+**Learnings:**
+- Invocation tests require database-level data creation since there's no public API to create invocations
+- Date filtering tests must use distinct timestamps to verify ordering and filtering logic
+- Status filtering is simple enum match - single query param
+- Date range filtering supports from-only, to-only, or both for flexible queries
+- Ordering by createdAt DESC is default behavior - newest invocations appear first
+- Response structure excludes scope fields (tenantId, projectId, agentId) for cleaner API
+- Error messages are nullable - only present for failed status invocations
+- Test data timestamps can be manually set for deterministic filtering tests
+
+---
+
