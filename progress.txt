@@ -340,6 +340,38 @@ Started: Sat Jan 17 03:02:52 UTC 2026
 
 ---
 
+## Iteration 4 - Sat Jan 17 09:12:31 UTC 2026
+
+### Story: US-017 - Create Trigger Invocation API endpoints
+
+**Implementation:**
+- Extended triggers.ts with invocation history endpoints (141 additional lines)
+- Implemented two nested routes under trigger ID:
+  - GET /:triggerId/invocations - List invocations with pagination and filtering
+  - GET /:triggerId/invocations/:invocationId - Get single invocation by ID
+- Implemented filtering capabilities:
+  - Status filtering via query param (?status=success|failed|pending)
+  - Date range filtering via query params (?from=ISO8601&to=ISO8601)
+- All responses include complete invocation data (requestPayload, transformedPayload, status, errorMessage, timestamps)
+- Created TriggerInvocationQueryParamsSchema extending PaginationQueryParamsSchema with optional status and date filters
+- Used TriggerInvocationApiSelectSchema for response validation
+- Leveraged existing data access functions: listTriggerInvocationsPaginated and getTriggerInvocationById
+
+**Files Changed:**
+- agents-manage-api/src/routes/triggers.ts (added 141 lines for invocation endpoints)
+- prd.json (marked US-017 as complete)
+
+**Learnings:**
+- Nested routes follow pattern: /:parentId/childResource and /:parentId/childResource/:childId
+- Filter parameters should be optional in query params schema (use .optional())
+- Date filtering uses ISO8601 format with .datetime() Zod validator
+- TriggerInvocationQueryParamsSchema extends PaginationQueryParamsSchema for consistency
+- Data access layer handles filtering internally - just pass status and dateRange to filters object
+- No permission middleware needed for read-only history endpoints (inherits from parent auth)
+- listTriggerInvocationsPaginated orders by createdAt DESC (newest first) by default
+
+---
+
 ## Iteration 2 - Sat Jan 17 09:04:59 UTC 2026
 
 ### Story: US-014 - Write integration tests for webhook endpoint
