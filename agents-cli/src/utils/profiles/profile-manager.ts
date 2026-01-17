@@ -1,6 +1,6 @@
 import { existsSync, mkdirSync, readFileSync, renameSync, writeFileSync } from 'node:fs';
 import { homedir, tmpdir } from 'node:os';
-import { dirname, join } from 'node:path';
+import { join } from 'node:path';
 import { getLogger } from '@inkeep/agents-core';
 import * as yaml from 'yaml';
 import type { ZodError } from 'zod';

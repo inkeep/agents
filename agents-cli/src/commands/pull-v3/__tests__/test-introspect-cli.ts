@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+// biome-ignore-all lint/suspicious/noTemplateCurlyInString: allow in test
 
 /**
  * Manual CLI test script for introspect functionality

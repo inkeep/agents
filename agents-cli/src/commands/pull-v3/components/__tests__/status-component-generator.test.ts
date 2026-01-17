@@ -1,3 +1,4 @@
+// biome-ignore-all lint/security/noGlobalEval: allow in test
 /**
  * Unit tests for status component generator
  */
@@ -39,7 +40,7 @@ describe('Status Component Generator', () => {
 
   describe('generateStatusComponentImports', () => {
     it('should generate correct imports with schema', () => {
-      const imports = generateStatusComponentImports('tool-summary', testComponentData);
+      const imports = generateStatusComponentImports(testComponentData);
 
       expect(imports).toHaveLength(2);
       expect(imports[0]).toBe("import { statusComponent } from '@inkeep/agents-sdk';");
@@ -51,14 +52,14 @@ describe('Status Component Generator', () => {
         type: 'simple_status',
         description: 'Simple status component',
       };
-      const imports = generateStatusComponentImports('simple', dataWithoutSchema);
+      const imports = generateStatusComponentImports(dataWithoutSchema);
 
       expect(imports).toHaveLength(1);
       expect(imports[0]).toBe("import { statusComponent } from '@inkeep/agents-sdk';");
     });
 
     it('should handle double quotes style', () => {
-      const imports = generateStatusComponentImports('tool-summary', testComponentData, {
+      const imports = generateStatusComponentImports(testComponentData, {
         quotes: 'double',
         semicolons: true,
         indentation: '  ',
@@ -69,7 +70,7 @@ describe('Status Component Generator', () => {
     });
 
     it('should handle no semicolons style', () => {
-      const imports = generateStatusComponentImports('tool-summary', testComponentData, {
+      const imports = generateStatusComponentImports(testComponentData, {
         quotes: 'single',
         semicolons: false,
         indentation: '  ',
@@ -227,7 +228,7 @@ describe('Status Component Generator', () => {
 
   describe('compilation tests', () => {
     it('should generate code that compiles and creates a working status component', async () => {
-      const file = generateStatusComponentFile('tool-summary', testComponentData);
+      generateStatusComponentFile('tool-summary', testComponentData);
 
       // Extract just the component definition (remove imports and export)
       const definition = generateStatusComponentDefinition('tool-summary', testComponentData);
@@ -267,7 +268,7 @@ describe('Status Component Generator', () => {
       `;
 
       // Use eval to test the code compiles and runs
-      let result;
+      let result: any;
       expect(() => {
         result = eval(`(() => { ${moduleCode} })()`);
       }).not.toThrow();
@@ -314,7 +315,7 @@ describe('Status Component Generator', () => {
         return simpleProgress;
       `;
 
-      let result;
+      let result: any;
       expect(() => {
         result = eval(`(() => { ${moduleCode} })()`);
       }).not.toThrow();

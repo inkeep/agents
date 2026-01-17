@@ -176,7 +176,6 @@ export function generateProjectDefinition(
  * Generate imports needed for a project file
  */
 export function generateProjectImports(
-  projectId: string,
   projectData: any,
   style: CodeStyle = DEFAULT_STYLE,
   registry?: ComponentRegistry
@@ -217,9 +216,9 @@ export function generateProjectImports(
       for (const toolId of toolIds) {
         // Determine the actual component type by checking what's in the registry
         let componentType: ComponentType = 'tools';
-        if (registry && registry.get(toolId, 'functionTools')) {
+        if (registry?.get(toolId, 'functionTools')) {
           componentType = 'functionTools';
-        } else if (registry && registry.get(toolId, 'tools')) {
+        } else if (registry?.get(toolId, 'tools')) {
           componentType = 'tools';
         }
 
@@ -298,7 +297,7 @@ export function generateProjectFile(
   style: CodeStyle = DEFAULT_STYLE,
   registry?: ComponentRegistry
 ): string {
-  const imports = generateProjectImports(projectId, projectData, style, registry);
+  const imports = generateProjectImports(projectData, style, registry);
   const definition = generateProjectDefinition(projectId, projectData, style, registry);
 
   return generateFileContent(imports, [definition]);

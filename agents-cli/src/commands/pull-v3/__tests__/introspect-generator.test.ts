@@ -1,3 +1,4 @@
+// biome-ignore-all lint/suspicious/noTemplateCurlyInString: allow in test
 /**
  * End-to-end integration tests for introspect generator
  */

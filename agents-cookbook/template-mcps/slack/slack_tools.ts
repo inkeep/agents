@@ -109,7 +109,7 @@ interface AuthTestResponse {
   scopes?: string[];
 }
 
-type SlackApiResponse =
+type _SlackApiResponse =
   | MessagesResponse
   | SearchMessagesResponse
   | UserResponse

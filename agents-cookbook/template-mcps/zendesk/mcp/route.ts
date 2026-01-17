@@ -77,9 +77,9 @@ const handler = createMcpHandler(
             },
           };
 
-          let ZENDESK_SUBDOMAIN;
-          let ZENDESK_EMAIL;
-          let ZENDESK_TOKEN;
+          let ZENDESK_SUBDOMAIN: string | null = null;
+          let ZENDESK_EMAIL: string | null = null;
+          let ZENDESK_TOKEN: string | null = null;
 
           // Access headers in the tool
           if (currentRequestHeaders) {
@@ -146,9 +146,9 @@ const handler = createMcpHandler(
       },
       async ({ ticket_id }) => {
         try {
-          let ZENDESK_SUBDOMAIN;
-          let ZENDESK_EMAIL;
-          let ZENDESK_TOKEN;
+          let ZENDESK_SUBDOMAIN: string | null = null;
+          let ZENDESK_EMAIL: string | null = null;
+          let ZENDESK_TOKEN: string | null = null;
 
           // Access headers in the tool
           if (currentRequestHeaders) {
@@ -246,9 +246,9 @@ const handler = createMcpHandler(
             };
           }
 
-          let ZENDESK_SUBDOMAIN;
-          let ZENDESK_EMAIL;
-          let ZENDESK_TOKEN;
+          let ZENDESK_SUBDOMAIN: string | null = null;
+          let ZENDESK_EMAIL: string | null = null;
+          let ZENDESK_TOKEN: string | null = null;
 
           // Access headers in the tool
           if (currentRequestHeaders) {
@@ -339,9 +339,9 @@ const handler = createMcpHandler(
           if (status) params.append('status', status);
           if (assignee_id) params.append('assignee_id', assignee_id.toString());
 
-          let ZENDESK_SUBDOMAIN;
-          let ZENDESK_EMAIL;
-          let ZENDESK_TOKEN;
+          let ZENDESK_SUBDOMAIN: string | null = null;
+          let ZENDESK_EMAIL: string | null = null;
+          let ZENDESK_TOKEN: string | null = null;
 
           // Access headers in the tool
           if (currentRequestHeaders) {
