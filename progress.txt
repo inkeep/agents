@@ -684,3 +684,32 @@ Started: Sat Jan 17 03:02:52 UTC 2026
 
 ## Iteration 4 - Sat Jan 17 09:25:30 UTC 2026
 
+## Iteration 7 - $(date -u)
+
+### Story: US-021 - Attach triggers to agents in SDK
+
+**Implementation:**
+- Added triggers?: () => TriggerInterface[] to AgentConfig type in types.ts
+- Added private triggers array and triggerMap to Agent class for storing trigger instances
+- Implemented getTriggers(): Record<string, Trigger> method that returns all triggers as an object
+- Implemented addTrigger(...triggers: TriggerInterface[]) method for runtime trigger additions
+- Used existing resolveGetter() helper to lazily resolve triggers from config
+- Added trigger count to agent creation logging for debugging visibility
+- Exported TriggerInterface from types.ts to make it available to SDK consumers
+
+**Files Changed:**
+- packages/agents-sdk/src/types.ts (added triggers field to AgentConfig, exported TriggerInterface)
+- packages/agents-sdk/src/agent.ts (added triggers/triggerMap fields, getTriggers/addTrigger methods, logging)
+- prd.json (marked US-021 as complete)
+
+**Learnings:**
+- SDK patterns follow consistent structure: private array + map for storage, Record return type for getter methods
+- resolveGetter() is used throughout SDK for lazy evaluation of config functions
+- Agent class constructor already establishes pattern: resolve getter → populate array → build map
+- getTriggers() returns Record<string, Trigger> to match existing patterns (getTools returns Record<string, AgentTool>)
+- addTrigger() accepts variadic args (...triggers) for ergonomic API allowing single or multiple additions
+- Type exports must be explicitly re-exported from types.ts even when imported as types
+- Trigger instances are cast to Trigger concrete class in map since TriggerInterface is accepted but Trigger is stored
+
+---
+

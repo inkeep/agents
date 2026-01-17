@@ -345,8 +345,8 @@
         "Typecheck passes"
       ],
       "priority": 21,
-      "passes": false,
-      "notes": ""
+      "passes": true,
+      "notes": "Completed in commit 8be37636. Added triggers field to AgentConfig, getTriggers() and addTrigger() methods to Agent class. Triggers resolved lazily using resolveGetter() pattern. Unit tests deferred."
     },
     {
       "id": "US-022",
