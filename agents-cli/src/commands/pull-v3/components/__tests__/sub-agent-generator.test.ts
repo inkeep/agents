@@ -8,10 +8,11 @@ import {
   generateSubAgentFile,
   generateSubAgentImports,
 } from '../sub-agent-generator';
+import type { ComponentRegistry } from '../../utils/component-registry';
 
 // Mock registry for tests
 const mockRegistry = {
-  formatReferencesForCode: (refs: string[], type: string, style: any, indent: number) => {
+  formatReferencesForCode(refs, _type, _style, indent) {
     if (!refs || refs.length === 0) return '[]';
     if (refs.length === 1) return `[${refs[0]}]`;
 
@@ -19,7 +20,7 @@ const mockRegistry = {
     const items = refs.map((ref) => `${indentStr}${ref}`).join(',\n');
     return `[\n${items}\n${indentStr.slice(2)}]`;
   },
-  getVariableName: (id: string, type?: string) => {
+  getVariableName(id, _type) {
     // If already camelCase, return as-is, otherwise convert
     if (!/[-_]/.test(id)) {
       return id;
@@ -30,15 +31,15 @@ const mockRegistry = {
       .replace(/[^a-zA-Z0-9]/g, '')
       .replace(/^[0-9]/, '_$&');
   },
-  getImportsForFile: (filePath: string, components: any[]) => {
+  getImportsForFile(_filePath, _components) {
     // Mock implementation returns empty array
     return [];
   },
-  get: (id: string, type: string) => {
+  get(id, type) {
     // Mock implementation - always return something truthy for any request
     return { id, type };
   },
-};
+} satisfies Partial<ComponentRegistry>;
 
 describe('Sub-Agent Generator', () => {
   const basicSubAgentData = {
