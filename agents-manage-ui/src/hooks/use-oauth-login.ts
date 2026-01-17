@@ -4,7 +4,7 @@ import {
   generateIdFromName,
 } from '@inkeep/agents-core/client-exports';
 import { useRouter } from 'next/navigation';
-import { useCallback, useRef } from 'react';
+import { useRef } from 'react';
 import { toast } from 'sonner';
 import type {
   OAuthLoginHandler,

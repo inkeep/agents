@@ -1,7 +1,6 @@
 'use client';
 
 import Nango, { type AuthOptions, type AuthSuccess, type OnConnectEvent } from '@nangohq/frontend';
-import { useCallback } from 'react';
 import { useRuntimeConfig } from '@/contexts/runtime-config-context';
 import { useAuthClient } from '@/lib/auth-client';
 import { createProviderConnectSession } from '@/lib/mcp-tools/nango';

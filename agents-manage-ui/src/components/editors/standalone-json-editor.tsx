@@ -1,6 +1,6 @@
 'use client';
 
-import { type ComponentProps, type FC, type ReactNode, useCallback } from 'react';
+import { type ComponentProps, type FC, type ReactNode } from 'react';
 import { JsonEditor } from '@/components/editors/json-editor';
 import { Button } from '@/components/ui/button';
 import { createSchemaTemplate } from '@/lib/json-schema-validation';

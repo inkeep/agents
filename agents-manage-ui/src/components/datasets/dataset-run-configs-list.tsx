@@ -1,7 +1,7 @@
 'use client';
 
 import { Calendar, MoreVertical } from 'lucide-react';
-import { useCallback, useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { toast } from 'sonner';
 import { formatDate } from '@/app/utils/format-date';
 import {

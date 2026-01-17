@@ -1,6 +1,6 @@
 import { Copy, Download, TextWrap } from 'lucide-react';
 import type * as Monaco from 'monaco-editor';
-import { type ComponentProps, type FC, useCallback, useEffect, useState } from 'react';
+import { type ComponentProps, type FC, useEffect, useState } from 'react';
 import { toast } from 'sonner';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';

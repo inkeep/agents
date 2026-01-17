@@ -1,4 +1,4 @@
-import { useCallback, useEffect } from 'react';
+import { useEffect } from 'react';
 import { useAgentActions } from '@/features/agent/state/use-agent-store';
 
 export function useAgentShortcuts() {

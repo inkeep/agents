@@ -1,7 +1,7 @@
 'use client';
 
 import type * as Monaco from 'monaco-editor';
-import { type ComponentProps, type FC, useCallback, useEffect, useId, useState } from 'react';
+import { type ComponentProps, type FC, useEffect, useId, useState } from 'react';
 import { agentStore } from '@/features/agent/state/use-agent-store';
 import { useMonacoStore } from '@/features/agent/state/use-monaco-store';
 import { cleanupDisposables } from '@/lib/monaco-editor/monaco-utils';

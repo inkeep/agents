@@ -1,5 +1,5 @@
 import { useReactFlow } from '@xyflow/react';
-import { useCallback, useRef } from 'react';
+import { useRef } from 'react';
 import { useAgentActions } from '@/features/agent/state/use-agent-store';
 import type { ErrorHelpers } from './use-agent-errors';
 

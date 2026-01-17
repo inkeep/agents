@@ -1,7 +1,7 @@
 'use client';
 
 import { Maximize } from 'lucide-react';
-import { type ComponentProps, type ReactNode, useCallback } from 'react';
+import type { ComponentProps, ReactNode } from 'react';
 import { Button } from '@/components/ui/button';
 import {
   Dialog,

@@ -1,7 +1,7 @@
 'use client';
 import { InkeepEmbeddedChat } from '@inkeep/agents-ui';
 import type { InkeepCallbackEvent, InvokeMessageCallbackActionArgs } from '@inkeep/agents-ui/types';
-import { type Dispatch, useCallback, useEffect, useRef, useState } from 'react';
+import { type Dispatch, useEffect, useRef, useState } from 'react';
 import { DynamicComponentRenderer } from '@/components/dynamic-component-renderer';
 import type { ConversationDetail } from '@/components/traces/timeline/types';
 import { useRuntimeConfig } from '@/contexts/runtime-config-context';

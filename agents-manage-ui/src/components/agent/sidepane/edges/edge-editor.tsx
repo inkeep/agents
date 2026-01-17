@@ -1,6 +1,5 @@
 import { type Edge, useNodesData, useReactFlow } from '@xyflow/react';
 import { Spline, Trash2 } from 'lucide-react';
-import { useCallback } from 'react';
 import { toast } from 'sonner';
 import { DashedSplineIcon } from '@/components/icons/dashed-spline';
 import { Badge } from '@/components/ui/badge';

@@ -3,7 +3,6 @@
 import { Monitor, Moon, Sun } from 'lucide-react';
 import { useTheme } from 'next-themes';
 import type { ComponentProps, FC, MouseEventHandler } from 'react';
-import { useCallback } from 'react';
 import type { ToasterProps } from 'sonner';
 import { Button } from '@/components/ui/button';
 import {

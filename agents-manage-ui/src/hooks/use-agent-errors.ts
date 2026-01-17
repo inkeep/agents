@@ -1,8 +1,6 @@
 /**
  * Hook for accessing agent error state and utilities
  */
-
-import { useCallback } from 'react';
 import { useAgentActions, useAgentStore } from '@/features/agent/state/use-agent-store';
 
 export interface ErrorHelpers {

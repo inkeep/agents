@@ -1,6 +1,6 @@
 import { Braces } from 'lucide-react';
 import type { ComponentProps } from 'react';
-import { useCallback, useState } from 'react';
+import { useState } from 'react';
 import { PromptEditor } from '@/components/editors/prompt-editor';
 import { ExpandableField } from '@/components/form/expandable-field';
 import { Button } from '@/components/ui/button';

@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import type { ConversationDetail } from '@/components/traces/timeline/types';
 
 interface UseChatActivitiesPollingOptions {

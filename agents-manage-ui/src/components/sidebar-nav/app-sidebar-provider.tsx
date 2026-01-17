@@ -1,6 +1,6 @@
 'use client';
 
-import { type FC, type ReactNode, useCallback, useState } from 'react';
+import { type FC, type ReactNode, useState } from 'react';
 import { AppSidebar } from '@/components/sidebar-nav/app-sidebar';
 import { SidebarProvider } from '@/components/ui/sidebar';
 import { useAgentActions, useAgentStore } from '@/features/agent/state/use-agent-store';

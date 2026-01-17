@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useState } from 'react';
+import { useState } from 'react';
 import type { CredentialScope } from '@/components/mcp-servers/form/validation';
 import { ScopeSelectionDialog } from '@/components/mcp-servers/selection/scope-selection-dialog';
 
