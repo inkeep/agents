@@ -62,6 +62,13 @@ vi.mock('../../utils/stream-registry.js', () => ({
     writeData: vi.fn().mockResolvedValue(undefined),
     writeOperation: vi.fn().mockResolvedValue(undefined),
     writeSummary: vi.fn().mockResolvedValue(undefined),
+    writeToolInputStart: vi.fn().mockResolvedValue(undefined),
+    writeToolInputDelta: vi.fn().mockResolvedValue(undefined),
+    writeToolInputAvailable: vi.fn().mockResolvedValue(undefined),
+    writeToolOutputAvailable: vi.fn().mockResolvedValue(undefined),
+    writeToolOutputError: vi.fn().mockResolvedValue(undefined),
+    writeToolApprovalRequest: vi.fn().mockResolvedValue(undefined),
+    writeToolOutputDenied: vi.fn().mockResolvedValue(undefined),
   }),
 }));
 
@@ -83,6 +90,13 @@ describe('AgentSession', () => {
       writeData: vi.fn().mockResolvedValue(undefined),
       writeOperation: vi.fn().mockResolvedValue(undefined),
       writeSummary: vi.fn().mockResolvedValue(undefined),
+      writeToolInputStart: vi.fn().mockResolvedValue(undefined),
+      writeToolInputDelta: vi.fn().mockResolvedValue(undefined),
+      writeToolInputAvailable: vi.fn().mockResolvedValue(undefined),
+      writeToolOutputAvailable: vi.fn().mockResolvedValue(undefined),
+      writeToolOutputError: vi.fn().mockResolvedValue(undefined),
+      writeToolApprovalRequest: vi.fn().mockResolvedValue(undefined),
+      writeToolOutputDenied: vi.fn().mockResolvedValue(undefined),
     };
 
     mockExecutionContext = {
