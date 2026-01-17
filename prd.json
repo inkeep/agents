@@ -1,28 +1,433 @@
 {
-  "name": "Feature Name",
-  "description": "Brief description of the feature",
-  "branch": "feature/my-feature",
-  "stories": [
+  "project": "Inkeep Agents",
+  "branchName": "ralph/triggers-v0",
+  "description": "Triggers V0 (MVP) - Webhook-based agent invocation for third-party services",
+  "userStories": [
     {
-      "id": "STORY-1",
-      "title": "First user story",
-      "description": "As a user, I want to...",
+      "id": "US-001",
+      "title": "Create triggers table schema",
+      "description": "As a developer, I need the triggers database table to store trigger configurations.",
+      "acceptanceCriteria": [
+        "Create `triggers` table in manage-schema.ts with columns: id, tenantId, projectId, agentId, name, description, enabled, inputSchema (jsonb), outputTransform (jsonb), messageTemplate (text), authentication (jsonb), signingSecret (text, nullable), createdAt, updatedAt",
+        "Add foreign key constraint: triggers → agents (cascade delete)",
+        "Add index on triggers(agent_id) and triggers(tenant_id, project_id)",
+        "Typecheck passes"
+      ],
       "priority": 1,
       "passes": false,
-      "acceptance_criteria": [
-        "Criteria 1",
-        "Criteria 2"
-      ]
+      "notes": ""
     },
     {
-      "id": "STORY-2",
-      "title": "Second user story",
-      "description": "As a user, I want to...",
+      "id": "US-002",
+      "title": "Create trigger_invocations table schema",
+      "description": "As a developer, I need the trigger_invocations table to store invocation history.",
+      "acceptanceCriteria": [
+        "Create `trigger_invocations` table in manage-schema.ts with columns: id, triggerId, tenantId, projectId, agentId, conversationId (nullable), status ('pending' | 'success' | 'failed'), requestPayload (jsonb), transformedPayload (jsonb, nullable), errorMessage (text, nullable), createdAt",
+        "Add foreign key constraint: trigger_invocations → triggers (cascade delete)",
+        "Add index on trigger_invocations(trigger_id, created_at DESC) and trigger_invocations(trigger_id, status)",
+        "Typecheck passes"
+      ],
       "priority": 2,
       "passes": false,
-      "acceptance_criteria": [
-        "Criteria 1"
-      ]
+      "notes": ""
+    },
+    {
+      "id": "US-003",
+      "title": "Generate and run database migration",
+      "description": "As a developer, I need the migration to create the triggers and trigger_invocations tables.",
+      "acceptanceCriteria": [
+        "Generate migration for triggers and trigger_invocations tables",
+        "Migration runs successfully",
+        "Typecheck passes"
+      ],
+      "priority": 3,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-004",
+      "title": "Create Trigger Zod schemas",
+      "description": "As a developer, I need Zod schemas for Trigger validation in API routes.",
+      "acceptanceCriteria": [
+        "Create TriggerSchema with all fields from database schema",
+        "Create TriggerInsertSchema for creation (omit id, timestamps)",
+        "Create TriggerUpdateSchema for updates (all fields optional except id)",
+        "Create TriggerAuthenticationSchema supporting: api_key, basic_auth, bearer_token, none",
+        "Create TriggerOutputTransformSchema with jmespath and/or objectTransformation fields",
+        "Typecheck passes"
+      ],
+      "priority": 4,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-005",
+      "title": "Create TriggerInvocation Zod schemas",
+      "description": "As a developer, I need Zod schemas for Trigger Invocation validation.",
+      "acceptanceCriteria": [
+        "Create TriggerInvocationSchema with all fields from invocations table",
+        "Create TriggerInvocationStatusEnum with values: pending, success, failed",
+        "Write unit tests for schema validation (valid and invalid inputs)",
+        "Tests pass",
+        "Typecheck passes"
+      ],
+      "priority": 5,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-006",
+      "title": "Create Trigger data access layer",
+      "description": "As a developer, I need CRUD operations for Triggers following existing data-access patterns.",
+      "acceptanceCriteria": [
+        "Create triggers.ts in packages/agents-core/src/data-access/manage/",
+        "Implement createTrigger, getTriggerById, updateTrigger, deleteTrigger, listTriggersPaginated",
+        "Follow existing curried function pattern: (db) => async (params) => ...",
+        "Scope all queries by tenantId and projectId",
+        "Export from data-access index",
+        "Write unit tests for all CRUD operations",
+        "Tests pass",
+        "Typecheck passes"
+      ],
+      "priority": 6,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-007",
+      "title": "Create TriggerInvocation data access layer",
+      "description": "As a developer, I need CRUD operations for Trigger Invocations.",
+      "acceptanceCriteria": [
+        "Create triggerInvocations.ts in packages/agents-core/src/data-access/manage/",
+        "Implement createTriggerInvocation, getTriggerInvocationById, listTriggerInvocationsPaginated, updateTriggerInvocationStatus",
+        "Follow existing curried function pattern",
+        "Scope all queries by tenantId and projectId",
+        "Export from data-access index",
+        "Write unit tests for invocation CRUD and status transitions",
+        "Tests pass",
+        "Typecheck passes"
+      ],
+      "priority": 7,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-008",
+      "title": "Implement webhook authentication verification",
+      "description": "As a platform, I need to verify incoming webhook requests using the configured authentication method.",
+      "acceptanceCriteria": [
+        "Create verifyTriggerAuth utility function",
+        "Support api_key auth: verify header name contains expected value",
+        "Support basic_auth: verify Authorization header with base64(username:password)",
+        "Support bearer_token: verify Authorization: Bearer <token>",
+        "Support none: skip authentication (allow all requests)",
+        "Return 401 for missing credentials, 403 for invalid credentials",
+        "Write unit tests for each authentication type (valid and invalid credentials)",
+        "Tests pass",
+        "Typecheck passes"
+      ],
+      "priority": 8,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-009",
+      "title": "Implement signing secret verification",
+      "description": "As a platform, I need to verify webhook request integrity using HMAC-SHA256 signing secrets.",
+      "acceptanceCriteria": [
+        "Implement HMAC-SHA256 signing secret verification",
+        "Read signature from X-Signature-256 header",
+        "Use crypto.timingSafeEqual for comparison",
+        "Write unit tests for signing secret verification (valid, invalid, missing signature)",
+        "Tests pass",
+        "Typecheck passes"
+      ],
+      "priority": 9,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-010",
+      "title": "Implement message template interpolation",
+      "description": "As a trigger creator, I want to define a message template with placeholders.",
+      "acceptanceCriteria": [
+        "Create interpolateTemplate utility function",
+        "Support {{path.to.value}} placeholder syntax",
+        "Resolve placeholders from transformed payload using dot notation",
+        "Support nested paths: {{user.profile.name}}",
+        "Handle missing values gracefully (empty string)",
+        "Write unit tests for placeholder resolution (simple, nested, missing)",
+        "Tests pass",
+        "Typecheck passes"
+      ],
+      "priority": 10,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-011",
+      "title": "Implement webhook endpoint for Trigger invocation",
+      "description": "As an external service, I want to POST to a webhook URL so that an agent is invoked.",
+      "acceptanceCriteria": [
+        "Create POST /tenants/:tenantId/projects/:projectId/agents/:agentId/triggers/:triggerId endpoint in agents-run-api",
+        "Validate incoming request against Trigger's inputSchema (JSON Schema validation)",
+        "Return 400 with validation errors if input schema fails",
+        "Return 404 if trigger not found or disabled",
+        "Return 401/403 if authentication fails",
+        "Return 202 Accepted on successful invocation",
+        "Typecheck passes"
+      ],
+      "priority": 11,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-012",
+      "title": "Implement input transformation in webhook endpoint",
+      "description": "As a platform, I need to transform the incoming webhook payload using JsonTransformer.",
+      "acceptanceCriteria": [
+        "Use existing JsonTransformer.transformWithConfig() for transformation",
+        "Support both jmespath and objectTransformation config patterns",
+        "Handle transformation errors gracefully (return 422 with error details)",
+        "Write unit tests for JMESPath and objectTransformation patterns",
+        "Tests pass",
+        "Typecheck passes"
+      ],
+      "priority": 12,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-013",
+      "title": "Implement agent invocation via /api/chat",
+      "description": "As a platform, I need to invoke the agent's chat endpoint with the transformed payload.",
+      "acceptanceCriteria": [
+        "Create new conversation for each trigger invocation",
+        "Construct request payload matching /api/chat format: { messages: [{ role: 'user', content: interpolatedMessage }] }",
+        "Call /api/chat endpoint internally",
+        "Pass agent context (tenantId, projectId, agentId) in request",
+        "Fire-and-forget: do not wait for streaming response to complete",
+        "Log invocation for debugging/audit (triggerId, conversationId, timestamp)",
+        "Typecheck passes"
+      ],
+      "priority": 13,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-014",
+      "title": "Write integration tests for webhook endpoint",
+      "description": "As a developer, I need integration tests for the trigger webhook endpoint.",
+      "acceptanceCriteria": [
+        "Write integration tests for webhook endpoint success path (202 response)",
+        "Write integration tests for 400 (invalid payload), 401, 403, 404 responses",
+        "Write integration test for disabled trigger returning 404",
+        "Write integration tests for invocation logging (success and failure)",
+        "Tests pass",
+        "Typecheck passes"
+      ],
+      "priority": 14,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-015",
+      "title": "Create Trigger management API endpoints",
+      "description": "As an admin, I want CRUD endpoints for managing Triggers in the manage-api.",
+      "acceptanceCriteria": [
+        "POST /projects/:projectId/agents/:agentId/triggers - Create trigger",
+        "GET /projects/:projectId/agents/:agentId/triggers - List triggers (paginated)",
+        "GET /projects/:projectId/agents/:agentId/triggers/:triggerId - Get trigger by ID",
+        "PATCH /projects/:projectId/agents/:agentId/triggers/:triggerId - Update trigger",
+        "DELETE /projects/:projectId/agents/:agentId/triggers/:triggerId - Delete trigger",
+        "All endpoints require appropriate permissions",
+        "Return webhookUrl field in response (fully qualified path)",
+        "Typecheck passes"
+      ],
+      "priority": 15,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-016",
+      "title": "Write integration tests for Trigger management API",
+      "description": "As a developer, I need integration tests for trigger management endpoints.",
+      "acceptanceCriteria": [
+        "Write integration tests for all CRUD endpoints (create, list, get, update, delete)",
+        "Write integration tests for permission checks (unauthorized returns 403)",
+        "Write integration tests for webhookUrl generation",
+        "Tests pass",
+        "Typecheck passes"
+      ],
+      "priority": 16,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-017",
+      "title": "Create Trigger Invocation API endpoints",
+      "description": "As an admin, I want API endpoints to view trigger invocation history.",
+      "acceptanceCriteria": [
+        "GET /projects/:projectId/agents/:agentId/triggers/:triggerId/invocations - List invocations (paginated, newest first)",
+        "GET /projects/:projectId/agents/:agentId/triggers/:triggerId/invocations/:invocationId - Get single invocation",
+        "Support filtering by status query param (?status=success|failed|pending)",
+        "Support date range filtering (?from=ISO8601&to=ISO8601)",
+        "Include request payload and transformed payload in response",
+        "All endpoints require appropriate permissions",
+        "Typecheck passes"
+      ],
+      "priority": 17,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-018",
+      "title": "Write integration tests for Invocation API",
+      "description": "As a developer, I need integration tests for invocation history endpoints.",
+      "acceptanceCriteria": [
+        "Write integration tests for list endpoint (pagination, ordering)",
+        "Write integration tests for status filtering",
+        "Write integration tests for date range filtering",
+        "Tests pass",
+        "Typecheck passes"
+      ],
+      "priority": 18,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-019",
+      "title": "Create Trigger class in SDK",
+      "description": "As an SDK user, I want a Trigger class to define webhook triggers programmatically.",
+      "acceptanceCriteria": [
+        "Create trigger.ts in packages/agents-sdk/src/",
+        "Implement Trigger class with config: id, name, description, enabled, inputSchema, outputTransform, messageTemplate, authentication, signingSecret",
+        "Implement getId(), getName(), getConfig() methods following existing patterns",
+        "Implement with() method for configuration overrides",
+        "Export TriggerInterface type for use in agent configuration",
+        "Write unit tests for Trigger class instantiation and methods",
+        "Tests pass",
+        "Typecheck passes"
+      ],
+      "priority": 19,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-020",
+      "title": "Create trigger() builder function in SDK",
+      "description": "As an SDK user, I want a trigger() builder function to create triggers.",
+      "acceptanceCriteria": [
+        "Add trigger() function to builderFunctions.ts",
+        "Accept TriggerConfig with: id, name, description, inputSchema (Zod or JSON Schema), outputTransform, messageTemplate, authentication, signingSecret",
+        "Auto-generate id from name using generateIdFromName() if id not provided",
+        "Support Zod schemas for inputSchema (convert to JSON Schema via zod-to-json-schema)",
+        "Export from package index",
+        "Write unit tests for trigger() builder and Zod conversion",
+        "Tests pass",
+        "Typecheck passes"
+      ],
+      "priority": 20,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-021",
+      "title": "Attach triggers to agents in SDK",
+      "description": "As an SDK user, I want to attach triggers to agents using the getter pattern.",
+      "acceptanceCriteria": [
+        "Add triggers?: () => TriggerInterface[] to AgentConfig type in types.ts",
+        "Add getTriggers(): Record<string, Trigger> method to Agent class",
+        "Add addTrigger(...triggers: TriggerInterface[]) method for runtime additions",
+        "Resolve triggers lazily using existing resolveGetter() helper",
+        "Write unit tests for triggers config, getTriggers(), addTrigger()",
+        "Tests pass",
+        "Typecheck passes"
+      ],
+      "priority": 21,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-022",
+      "title": "Serialize triggers in SDK toFullAgentDefinition",
+      "description": "As an SDK user, I want triggers included when the agent is serialized.",
+      "acceptanceCriteria": [
+        "Add triggers field to FullAgentDefinition type",
+        "Include triggers in Agent.toFullAgentDefinition() output",
+        "Convert Zod inputSchema to JSON Schema during serialization",
+        "Generate webhookUrlTemplate field in serialized output",
+        "Write unit tests for serialization with triggers",
+        "Tests pass",
+        "Typecheck passes"
+      ],
+      "priority": 22,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-023",
+      "title": "Add SDK trigger types compatibility with agents-core",
+      "description": "As a developer, I need SDK trigger types compatible with backend API types.",
+      "acceptanceCriteria": [
+        "Export TriggerConfig, TriggerInterface types from SDK",
+        "Ensure SDK trigger serialization matches TriggerInsertSchema in agents-core",
+        "Add conversion utilities if needed for schema format differences",
+        "Typecheck passes"
+      ],
+      "priority": 23,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-024",
+      "title": "Add Triggers section to Agent detail page UI",
+      "description": "As an admin, I want to see and manage Triggers on the Agent detail page.",
+      "acceptanceCriteria": [
+        "Add 'Triggers' section/tab under Agent detail page",
+        "List view showing all triggers for an agent (name, enabled status, webhook URL)",
+        "Copy webhook URL button",
+        "Toggle enabled/disabled status inline",
+        "Typecheck passes",
+        "Verify in browser using dev-browser skill"
+      ],
+      "priority": 24,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-025",
+      "title": "Add Create/Edit Trigger form UI",
+      "description": "As an admin, I want to create and edit Triggers via a form.",
+      "acceptanceCriteria": [
+        "Create trigger form with: name, description, input schema editor, output transform editor, message template editor, authentication config",
+        "Edit trigger form (same fields, pre-populated)",
+        "Delete trigger with confirmation dialog",
+        "Form validation and error display",
+        "Typecheck passes",
+        "Verify in browser using dev-browser skill"
+      ],
+      "priority": 25,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-026",
+      "title": "Add Trigger Invocation history UI",
+      "description": "As an admin, I want to view trigger invocation history for debugging.",
+      "acceptanceCriteria": [
+        "Add 'Invocations' tab/section within Trigger detail view",
+        "List view showing recent invocations: timestamp, status (color-coded badge), conversationId",
+        "Click invocation to expand details: request payload (JSON viewer), transformed payload, error message",
+        "Filter by status (All | Success | Failed | Pending)",
+        "Pagination for history",
+        "Link to conversation if conversationId exists",
+        "Typecheck passes",
+        "Verify in browser using dev-browser skill"
+      ],
+      "priority": 26,
+      "passes": false,
+      "notes": ""
     }
   ]
 }
