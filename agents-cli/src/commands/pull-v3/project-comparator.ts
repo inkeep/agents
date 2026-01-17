@@ -253,11 +253,7 @@ function compareComponentsDirectly(
   );
   changes.push(...compareFunctions(localProject.functions || {}, remoteProject.functions || {}));
   changes.push(
-    ...compareDataComponents(
-      localProject.dataComponents || {},
-      remoteProject.dataComponents || {},
-      debug
-    )
+    ...compareDataComponents(localProject.dataComponents || {}, remoteProject.dataComponents || {})
   );
   changes.push(
     ...compareArtifactComponents(
@@ -516,8 +512,7 @@ function compareFunctions(
  */
 function compareDataComponents(
   localDataComponents: Record<string, any>,
-  remoteDataComponents: Record<string, any>,
-  debug: boolean
+  remoteDataComponents: Record<string, any>
 ): ComponentChange[] {
   return compareComponentMaps('dataComponents', localDataComponents, remoteDataComponents);
 }
