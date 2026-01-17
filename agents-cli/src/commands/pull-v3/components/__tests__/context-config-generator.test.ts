@@ -10,10 +10,11 @@ import {
   generateFetchDefinitionDefinition,
   generateHeadersDefinition,
 } from '../context-config-generator';
+import type { ComponentRegistry } from '../../utils/component-registry';
 
 // Mock registry for tests
 const mockRegistry = {
-  getVariableName: (id: string, type?: string) => {
+  getVariableName(id, _type) {
     // If already camelCase, return as-is, otherwise convert
     if (!/[-_]/.test(id)) {
       return id;
@@ -24,7 +25,7 @@ const mockRegistry = {
       .replace(/[^a-zA-Z0-9]/g, '')
       .replace(/^[0-9]/, '_$&');
   },
-};
+} satisfies Partial<ComponentRegistry>;
 
 describe('Context Config Generator', () => {
   const headersData = {
