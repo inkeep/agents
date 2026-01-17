@@ -375,7 +375,7 @@ function compareSubAgents(
 
   // Extract all subAgents from local agents
   const localSubAgents: Record<string, any> = {};
-  for (const [agentId, agentData] of Object.entries(localAgents)) {
+  for (const agentData of Object.values(localAgents)) {
     if (agentData.subAgents) {
       for (const [subAgentId, subAgentData] of Object.entries(agentData.subAgents)) {
         localSubAgents[subAgentId] = subAgentData;
@@ -385,7 +385,7 @@ function compareSubAgents(
 
   // Extract all subAgents from remote agents
   const remoteSubAgents: Record<string, any> = {};
-  for (const [agentId, agentData] of Object.entries(remoteAgents)) {
+  for (const agentData of Object.values(remoteAgents)) {
     if (agentData.subAgents) {
       for (const [subAgentId, subAgentData] of Object.entries(agentData.subAgents)) {
         remoteSubAgents[subAgentId] = subAgentData;
@@ -1399,7 +1399,7 @@ function compareFetchDefinitions(
   };
 
   // Collect fetchDefinitions from both projects
-  Object.entries(localProject.agents || {}).forEach(([agentId, agentData]) => {
+  Object.values(localProject.agents || {}).forEach((agentData) => {
     if (agentData.contextConfig) {
       const fetchDefs = extractFetchDefinitions(agentData.contextConfig);
       fetchDefs.forEach((fetchDef: any) => {
@@ -1411,7 +1411,7 @@ function compareFetchDefinitions(
     }
   });
 
-  Object.entries(remoteProject.agents || {}).forEach(([agentId, agentData]) => {
+  Object.values(remoteProject.agents || {}).forEach((agentData) => {
     if (agentData.contextConfig) {
       const fetchDefs = extractFetchDefinitions(agentData.contextConfig);
       fetchDefs.forEach((fetchDef: any) => {
