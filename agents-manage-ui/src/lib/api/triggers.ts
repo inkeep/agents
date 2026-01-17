@@ -7,7 +7,7 @@
 
 'use server';
 
-import type { TriggerApiSelect } from '@inkeep/agents-core/client-exports';
+import type { TriggerApiSelect, TriggerInvocationApiSelect } from '@inkeep/agents-core/client-exports';
 import type { ListResponse, SingleResponse } from '../types/response';
 import { makeManagementApiRequest } from './api-config';
 import { validateProjectId, validateTenantId } from './resource-validation';
@@ -16,6 +16,8 @@ import { validateProjectId, validateTenantId } from './resource-validation';
 export type Trigger = TriggerApiSelect & {
   webhookUrl: string; // Added by management API
 };
+
+export type TriggerInvocation = TriggerInvocationApiSelect;
 
 export async function fetchTriggers(
   tenantId: string,
@@ -116,4 +118,55 @@ export async function deleteTrigger(
       method: 'DELETE',
     }
   );
+}
+
+/**
+ * Fetch invocations for a trigger
+ */
+export async function fetchTriggerInvocations(
+  tenantId: string,
+  projectId: string,
+  agentId: string,
+  triggerId: string,
+  options?: {
+    status?: 'pending' | 'success' | 'failed';
+    limit?: number;
+    page?: number;
+  }
+): Promise<ListResponse<TriggerInvocation>> {
+  validateTenantId(tenantId);
+  validateProjectId(projectId);
+
+  const params = new URLSearchParams();
+  if (options?.status) params.append('status', options.status);
+  if (options?.limit) params.append('limit', options.limit.toString());
+  if (options?.page) params.append('page', options.page.toString());
+
+  const queryString = params.toString() ? `?${params.toString()}` : '';
+
+  const response = await makeManagementApiRequest<ListResponse<TriggerInvocation>>(
+    `tenants/${tenantId}/projects/${projectId}/agents/${agentId}/triggers/${triggerId}/invocations${queryString}`
+  );
+
+  return response;
+}
+
+/**
+ * Get a single invocation by ID
+ */
+export async function getTriggerInvocation(
+  tenantId: string,
+  projectId: string,
+  agentId: string,
+  triggerId: string,
+  invocationId: string
+): Promise<TriggerInvocation> {
+  validateTenantId(tenantId);
+  validateProjectId(projectId);
+
+  const response = await makeManagementApiRequest<SingleResponse<TriggerInvocation>>(
+    `tenants/${tenantId}/projects/${projectId}/agents/${agentId}/triggers/${triggerId}/invocations/${invocationId}`
+  );
+
+  return response.data;
 }

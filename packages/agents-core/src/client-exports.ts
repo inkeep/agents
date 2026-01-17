@@ -59,6 +59,7 @@ export {
   TriggerApiInsertSchema,
   TriggerApiSelectSchema,
   TriggerApiUpdateSchema,
+  TriggerInvocationApiSelectSchema,
 } from './validation/schemas';
 
 export const TenantParamsSchema = z.object({
@@ -270,6 +271,7 @@ export type FunctionApiInsert = z.infer<typeof FunctionApiInsertSchema>;
 export type TriggerApiInsert = z.infer<typeof TriggerApiInsertSchema>;
 export type TriggerApiSelect = z.infer<typeof TriggerApiSelectSchema>;
 export type TriggerApiUpdate = z.infer<typeof TriggerApiUpdateSchema>;
+export type TriggerInvocationApiSelect = z.infer<typeof TriggerInvocationApiSelectSchema>;
 export type ApiKeyApiSelect = z.infer<typeof ApiKeyApiSelectSchema>;
 export type ApiKeyApiCreationResponse = z.infer<typeof ApiKeyApiCreationResponseSchema>;
 export type ApiKeyApiUpdateResponse = z.infer<typeof ApiKeyApiUpdateSchema>;

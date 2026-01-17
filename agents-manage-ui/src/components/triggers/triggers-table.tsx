@@ -1,6 +1,6 @@
 'use client';
 
-import { Copy, MoreHorizontal, Pencil, Plus, Trash2 } from 'lucide-react';
+import { Copy, History, MoreHorizontal, Pencil, Plus, Trash2 } from 'lucide-react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
@@ -183,6 +183,14 @@ export function TriggersTable({ triggers, tenantId, projectId, agentId }: Trigge
                         </Button>
                       </DropdownMenuTrigger>
                       <DropdownMenuContent align="end">
+                        <DropdownMenuItem asChild>
+                          <Link
+                            href={`/${tenantId}/projects/${projectId}/agents/${agentId}/triggers/${trigger.id}/invocations`}
+                          >
+                            <History className="w-4 h-4 mr-2" />
+                            View Invocations
+                          </Link>
+                        </DropdownMenuItem>
                         <DropdownMenuItem asChild>
                           <Link
                             href={`/${tenantId}/projects/${projectId}/agents/${agentId}/triggers/${trigger.id}/edit`}
