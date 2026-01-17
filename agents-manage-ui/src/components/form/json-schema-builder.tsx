@@ -1,6 +1,6 @@
 import { Info, PlusIcon, TrashIcon, X } from 'lucide-react';
 import type { ComponentProps, Dispatch, FC, ReactNode } from 'react';
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';

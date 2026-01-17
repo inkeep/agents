@@ -1,7 +1,7 @@
 'use client';
 
 import { Check, ChevronDown, ChevronRight, X } from 'lucide-react';
-import React, { useMemo, useState } from 'react';
+import React, { useState } from 'react';
 import { type Control, type FieldPath, useController } from 'react-hook-form';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';

@@ -2,7 +2,6 @@
 
 import Link from 'next/link';
 import { useParams, usePathname } from 'next/navigation';
-import { useMemo } from 'react';
 import { useProject } from '@/contexts/project-context';
 import { cn } from '@/lib/utils';
 

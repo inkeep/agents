@@ -1,7 +1,6 @@
 import type { Edge, Node } from '@xyflow/react';
 import { useEdges, useNodesData, useReactFlow } from '@xyflow/react';
 import { type LucideIcon, Workflow } from 'lucide-react';
-import { useMemo } from 'react';
 import { useAgentStore } from '@/features/agent/state/use-agent-store';
 import { useAgentErrors } from '@/hooks/use-agent-errors';
 import type { ArtifactComponent } from '@/lib/api/artifact-components';

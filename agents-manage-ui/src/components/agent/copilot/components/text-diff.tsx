@@ -1,6 +1,5 @@
 import { diffWords } from 'diff';
 import type React from 'react';
-import { useMemo } from 'react';
 
 type TextDiffProps = {
   originalValue: string;

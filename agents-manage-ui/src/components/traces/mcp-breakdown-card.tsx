@@ -1,7 +1,6 @@
 'use client';
 
 import { Wrench } from 'lucide-react';
-import { useMemo } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { UNKNOWN_VALUE } from '@/constants/signoz';
 import type { ConversationDetail } from './timeline/types';

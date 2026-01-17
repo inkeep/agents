@@ -10,7 +10,7 @@ import {
 } from '@inkeep/agents-core/auth/permissions';
 import { deviceAuthorizationClient } from 'better-auth/client/plugins';
 import { createAuthClient } from 'better-auth/react';
-import { createContext, type ReactNode, useContext, useMemo } from 'react';
+import { createContext, type ReactNode, useContext } from 'react';
 import { useRuntimeConfig } from '@/contexts/runtime-config-context';
 
 // Create a factory function to get the proper inferred type

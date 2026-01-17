@@ -2,7 +2,7 @@
 
 import { format } from 'date-fns';
 import { CalendarIcon, Check } from 'lucide-react';
-import { useMemo, useRef, useState } from 'react';
+import { useRef, useState } from 'react';
 import type { DateRange } from 'react-day-picker';
 import type { SelectOption } from '@/components/form/generic-select';
 import { Button } from '@/components/ui/button';

@@ -1,6 +1,5 @@
 import { type NodeProps, Position } from '@xyflow/react';
 import { Bot, Component, Library, type LucideIcon } from 'lucide-react';
-import { useMemo } from 'react';
 import { TruncateBadge } from '@/components/agent/nodes/mcp-node';
 import { AnthropicIcon } from '@/components/icons/anthropic';
 import { GoogleIcon } from '@/components/icons/google';

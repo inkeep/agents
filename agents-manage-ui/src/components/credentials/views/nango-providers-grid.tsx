@@ -3,7 +3,7 @@
 import type { ApiProvider } from '@nangohq/types';
 import { Search } from 'lucide-react';
 import { useParams } from 'next/navigation';
-import { useMemo, useState } from 'react';
+import { useState } from 'react';
 import { ProviderIcon } from '@/components/icons/provider-icon';
 import EmptyState from '@/components/layout/empty-state';
 import { Badge } from '@/components/ui/badge';

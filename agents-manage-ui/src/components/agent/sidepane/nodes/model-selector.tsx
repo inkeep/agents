@@ -1,7 +1,7 @@
 'use client';
 
 import { Check, ChevronsUpDown, Info, X } from 'lucide-react';
-import { useMemo, useState } from 'react';
+import { useState } from 'react';
 import { modelOptions } from '@/components/agent/configuration/model-options';
 import { Button } from '@/components/ui/button';
 import {

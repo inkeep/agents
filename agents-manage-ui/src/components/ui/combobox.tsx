@@ -1,7 +1,7 @@
 'use client';
 
 import { Check, ChevronsUpDown } from 'lucide-react';
-import { type ReactNode, useEffect, useMemo, useRef, useState } from 'react';
+import { type ReactNode, useEffect, useRef, useState } from 'react';
 import { useDisclosure } from '@/hooks/use-disclosure';
 import { cn } from '@/lib/utils';
 import { Button } from './button';

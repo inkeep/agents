@@ -1,7 +1,6 @@
 'use client';
 
 import * as LucideIcons from 'lucide-react';
-import { useMemo } from 'react';
 import * as ErrorBoundary from 'react-error-boundary';
 import { useRunner } from 'react-runner';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';

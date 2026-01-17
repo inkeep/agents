@@ -2,7 +2,7 @@
 
 import { ArrowLeft, Brain, Calendar, Cpu, MessageSquare } from 'lucide-react';
 import { useParams } from 'next/navigation';
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
