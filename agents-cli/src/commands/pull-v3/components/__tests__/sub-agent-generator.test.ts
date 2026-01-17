@@ -1,3 +1,4 @@
+// biome-ignore-all lint/security/noGlobalEval: allow in test
 /**
  * Unit tests for sub-agent generator
  */
@@ -393,7 +394,7 @@ describe('Sub-Agent Generator', () => {
         return testSubAgent;
       `;
 
-      let result;
+      let result: any;
       expect(() => {
         result = eval(`(() => { ${moduleCode} })()`);
       }).not.toThrow();
@@ -433,7 +434,7 @@ describe('Sub-Agent Generator', () => {
         return complexTestSubAgent;
       `;
 
-      let result;
+      let result: any;
       expect(() => {
         result = eval(`(() => { ${moduleCode} })()`);
       }).not.toThrow();

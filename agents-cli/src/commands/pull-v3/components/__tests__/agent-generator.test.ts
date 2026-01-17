@@ -394,7 +394,7 @@ describe('Agent Generator', () => {
         return result;
       `;
 
-      let result;
+      let result: any;
       expect(() => {
         result = eval(`(() => { ${moduleCode} })()`);
       }).not.toThrow();
@@ -431,7 +431,7 @@ describe('Agent Generator', () => {
         return result;
       `;
 
-      let result;
+      let result: any;
       expect(() => {
         result = eval(`(() => { ${moduleCode} })()`);
       }).not.toThrow();

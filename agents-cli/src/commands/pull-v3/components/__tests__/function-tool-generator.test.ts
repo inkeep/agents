@@ -1,3 +1,5 @@
+// biome-ignore-all lint/security/noGlobalEval: allow in test
+// biome-ignore-all lint/suspicious/noTemplateCurlyInString: allow in test
 /**
  * Unit tests for function tool generator
  */
@@ -270,7 +272,7 @@ describe('Function Tool Generator', () => {
       `;
 
       // Use eval to test the code compiles and runs
-      let result;
+      let result: any;
       expect(() => {
         result = eval(`(() => { ${moduleCode} })()`);
       }).not.toThrow();

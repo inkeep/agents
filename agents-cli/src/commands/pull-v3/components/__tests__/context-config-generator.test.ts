@@ -1,4 +1,5 @@
 // biome-ignore-all lint/security/noGlobalEval: allow in test
+// biome-ignore-all lint/suspicious/noTemplateCurlyInString: allow in test
 /**
  * Unit tests for context config generator
  */
@@ -358,7 +359,7 @@ describe('Context Config Generator', () => {
         return testHeaders;
       `;
 
-      let result;
+      let result: any;
       expect(() => {
         result = eval(`(() => { ${moduleCode} })()`);
       }).not.toThrow();
@@ -388,7 +389,7 @@ describe('Context Config Generator', () => {
         return testFetch;
       `;
 
-      let result;
+      let result: any;
       expect(() => {
         result = eval(`(() => { ${moduleCode} })()`);
       }).not.toThrow();
@@ -419,7 +420,7 @@ describe('Context Config Generator', () => {
         return testContext;
       `;
 
-      let result;
+      let result: any;
       expect(() => {
         result = eval(`(() => { ${moduleCode} })()`);
       }).not.toThrow();

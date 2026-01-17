@@ -258,7 +258,7 @@ describe('External Agent Generator', () => {
         return testExternalAgent;
       `;
 
-      let result;
+      let result: any;
       expect(() => {
         result = eval(`(() => { ${moduleCode} })()`);
       }).not.toThrow();
@@ -285,7 +285,7 @@ describe('External Agent Generator', () => {
         return complexTestExternalAgent;
       `;
 
-      let result;
+      let result: any;
       expect(() => {
         result = eval(`(() => { ${moduleCode} })()`);
       }).not.toThrow();

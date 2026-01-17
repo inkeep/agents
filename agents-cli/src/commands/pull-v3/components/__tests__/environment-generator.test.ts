@@ -1,3 +1,5 @@
+// biome-ignore-all lint/security/noGlobalEval: allow in test
+
 /**
  * Unit tests for environment settings generator
  */
@@ -298,7 +300,7 @@ describe('Environment Settings Generator', () => {
       `;
 
       // Use eval to test the code compiles and runs
-      let result;
+      let result: any;
       expect(() => {
         result = eval(`(() => { ${moduleCode} })()`);
       }).not.toThrow();
@@ -330,7 +332,7 @@ describe('Environment Settings Generator', () => {
         return envSettings;
       `;
 
-      let result;
+      let result: any;
       expect(() => {
         result = eval(`(() => { ${moduleCode} })()`);
       }).not.toThrow();
@@ -353,7 +355,7 @@ describe('Environment Settings Generator', () => {
         return minimal;
       `;
 
-      let result;
+      let result: any;
       expect(() => {
         result = eval(`(() => { ${moduleCode} })()`);
       }).not.toThrow();

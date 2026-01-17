@@ -136,7 +136,9 @@ export function compareProjectDefinitions(
       const filterIgnoredFields = (item: any) => {
         if (typeof item === 'object' && item !== null) {
           const filtered = { ...item };
-          allIgnoredFields.forEach((field) => delete filtered[field]);
+          allIgnoredFields.forEach((field) => {
+            delete filtered[field];
+          });
           return JSON.stringify(filtered);
         }
         return item;

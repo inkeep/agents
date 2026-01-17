@@ -369,8 +369,7 @@ export async function createNewComponents(
         mkdirSync(dirname(filePath), { recursive: true });
 
         // Generate component content
-        let content: string;
-        content = generateComponentContent(
+        const content = generateComponentContent(
           componentType,
           componentId,
           componentData,

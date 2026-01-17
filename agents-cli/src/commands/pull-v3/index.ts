@@ -255,7 +255,7 @@ export async function pullV3Command(options: PullV3Options): Promise<PullResult 
 
   try {
     // Step 1: Load configuration (same as push command)
-    const { config, profile, isCI } = await initializeCommand({
+    const { config, isCI } = await initializeCommand({
       configPath: options.config,
       profileName: options.profile,
       tag: options.tag,
@@ -730,7 +730,7 @@ async function pullAllProjects(options: PullV3Options): Promise<void> {
   performBackgroundVersionCheck();
 
   // Load configuration first
-  const { config, profile, isCI } = await initializeCommand({
+  const { config, isCI } = await initializeCommand({
     configPath: options.config,
     profileName: options.profile,
     tag: options.tag,
