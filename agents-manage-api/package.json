@@ -41,7 +41,7 @@
     "@modelcontextprotocol/sdk": "1.24.3",
     "axios": "^1.7.9",
     "drizzle-orm": "^0.44.4",
-    "hono": "^4.10.4",
+    "hono": "^4.11.4",
     "hono-pino": "^0.10.1",
     "nanoid": "^5.1.5",
     "openid-client": "^6.6.4",
