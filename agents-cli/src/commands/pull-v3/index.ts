@@ -418,7 +418,7 @@ export async function pullV3Command(options: PullV3Options): Promise<PullResult 
     if (remoteProject.agents && remoteProject.tools) {
       const projectToolIds = Object.keys(remoteProject.tools);
 
-      for (const [agentId, agentData] of Object.entries(remoteProject.agents) as any[]) {
+      for (const agentData of Object.values(remoteProject.agents) as any[]) {
         if (agentData.tools) {
           // Filter out any tools that are defined at project level
           const agentSpecificTools = Object.fromEntries(
