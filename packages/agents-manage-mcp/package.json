@@ -31,7 +31,6 @@
     "@modelcontextprotocol/sdk": "1.24.3",
     "eslint": "^9.26.0",
     "globals": "^16.0.0",
-    "tsdown": "^0.18.0",
     "typescript": "~5.8.3",
     "typescript-eslint": "^8.31.1",
     "dotenv": "^16.4.7",
