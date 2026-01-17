@@ -3,15 +3,27 @@ import type { CredentialStoreRegistry } from '@inkeep/agents-core';
 import {
 	createAgentsManageDatabaseClient,
 	createApiError,
+	createMessage,
+	createOrGetConversation,
+	createTriggerInvocation,
+	generateId,
+	getConversationId,
+	getFullProjectWithRelationIds,
 	getTriggerById,
+	interpolateTemplate,
 	JsonTransformer,
+	setActiveAgentForConversation,
+	updateTriggerInvocationStatus,
 	verifySigningSecret,
 	verifyTriggerAuth,
 } from '@inkeep/agents-core';
 import type { FullExecutionContext } from '@inkeep/agents-core';
 import Ajv from 'ajv';
+import dbClient from '../data/db/dbClient';
 import { env } from '../env';
+import { ExecutionHandler } from '../handlers/executionHandler';
 import { getLogger } from '../logger';
+import { createSSEStreamHelper } from '../utils/stream-helpers';
 
 type AppVariables = {
 	credentialStores: CredentialStoreRegistry;
@@ -148,12 +160,12 @@ app.openapi(triggerWebhookRoute, async (c) => {
 
 		// Verify authentication
 		if (trigger.authentication) {
-			const authResult = verifyTriggerAuth(c, trigger.authentication);
-			if (!authResult.valid) {
-				if (authResult.statusCode === 401) {
-					return c.json({ error: authResult.error || 'Unauthorized' }, 401);
+			const authResult = verifyTriggerAuth(c, trigger.authentication as any);
+			if (!authResult.success) {
+				if (authResult.status === 401) {
+					return c.json({ error: authResult.message || 'Unauthorized' }, 401);
 				}
-				return c.json({ error: authResult.error || 'Forbidden' }, 403);
+				return c.json({ error: authResult.message || 'Forbidden' }, 403);
 			}
 		}
 
@@ -164,9 +176,9 @@ app.openapi(triggerWebhookRoute, async (c) => {
 				trigger.signingSecret,
 				bodyText
 			);
-			if (!signatureResult.valid) {
+			if (!signatureResult.success) {
 				return c.json(
-					{ error: signatureResult.error || 'Invalid signature' },
+					{ error: signatureResult.message || 'Invalid signature' },
 					403
 				);
 			}
@@ -217,19 +229,54 @@ app.openapi(triggerWebhookRoute, async (c) => {
 			}
 		}
 
-		// TODO: US-013 - Invoke agent via /api/chat endpoint
+		// Interpolate message template with transformed payload
+		const interpolatedMessage = trigger.messageTemplate
+			? interpolateTemplate(trigger.messageTemplate, transformedPayload)
+			: JSON.stringify(transformedPayload);
 
-		// For now, return 202 Accepted
-		// In next iteration, we'll:
-		// 1. Interpolate message template (already implemented in agents-core)
-		// 2. Create invocation record in database
-		// 3. Fire-and-forget agent invocation (US-013)
+		// Generate IDs
+		const conversationId = getConversationId();
+		const invocationId = generateId();
 
-		const invocationId = `inv_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+		// Create trigger invocation record (status: pending)
+		await createTriggerInvocation(manageDbClient)({
+			id: invocationId,
+			triggerId,
+			tenantId,
+			projectId,
+			agentId,
+			conversationId,
+			status: 'pending',
+			requestPayload: payload,
+			transformedPayload,
+		});
 
 		logger.info(
-			{ tenantId, projectId, agentId, triggerId, invocationId },
-			'Trigger webhook accepted'
+			{ tenantId, projectId, agentId, triggerId, invocationId, conversationId },
+			'Trigger invocation created'
+		);
+
+		// Fire-and-forget: Invoke agent asynchronously
+		// We don't await this, so the webhook returns immediately with 202
+		invokeAgentAsync({
+			tenantId,
+			projectId,
+			agentId,
+			triggerId,
+			invocationId,
+			conversationId,
+			userMessage: interpolatedMessage,
+		}).catch((error) => {
+			// Log error but don't throw (fire-and-forget)
+			logger.error(
+				{ error, tenantId, projectId, agentId, triggerId, invocationId },
+				'Async agent invocation failed'
+			);
+		});
+
+		logger.info(
+			{ tenantId, projectId, agentId, triggerId, invocationId, conversationId },
+			'Trigger webhook accepted, agent invocation initiated'
 		);
 
 		return c.json(
@@ -244,5 +291,201 @@ app.openapi(triggerWebhookRoute, async (c) => {
 		throw error;
 	}
 });
+
+/**
+ * Invokes an agent asynchronously for a trigger invocation.
+ * This function creates a conversation, stores the user message,
+ * and executes the agent using ExecutionHandler.
+ * It updates the trigger invocation status based on success/failure.
+ */
+async function invokeAgentAsync(params: {
+	tenantId: string;
+	projectId: string;
+	agentId: string;
+	triggerId: string;
+	invocationId: string;
+	conversationId: string;
+	userMessage: string;
+}) {
+	const {
+		tenantId,
+		projectId,
+		agentId,
+		triggerId,
+		invocationId,
+		conversationId,
+		userMessage,
+	} = params;
+
+	try {
+		logger.info(
+			{ tenantId, projectId, agentId, triggerId, invocationId, conversationId },
+			'Starting async agent invocation'
+		);
+
+		// Load full project with agents to build execution context
+		const project = await getFullProjectWithRelationIds(manageDbClient)({
+			scopes: { tenantId, projectId },
+		});
+
+		if (!project) {
+			throw createApiError({
+				code: 'not_found',
+				message: `Project ${projectId} not found`,
+			});
+		}
+
+		// Get the agent from project
+		const fullAgent = project.agents[agentId];
+		if (!fullAgent) {
+			throw createApiError({
+				code: 'not_found',
+				message: `Agent ${agentId} not found`,
+			});
+		}
+
+		// Determine default sub-agent
+		const agentKeys = Object.keys((fullAgent.subAgents as Record<string, any>) || {});
+		const firstAgentId = agentKeys.length > 0 ? agentKeys[0] : '';
+		const defaultSubAgentId = (fullAgent.defaultSubAgentId as string) || firstAgentId;
+
+		if (!defaultSubAgentId) {
+			throw createApiError({
+				code: 'not_found',
+				message: 'No default sub-agent found',
+			});
+		}
+
+		// Build execution context for trigger invocation
+		const executionContext: FullExecutionContext = {
+			tenantId,
+			projectId,
+			agentId,
+			baseUrl: env.INKEEP_AGENTS_RUN_API_URL || 'http://localhost:8080',
+			apiKey: '', // Triggers don't use API keys
+			apiKeyId: 'trigger-invocation', // Placeholder since triggers don't use API keys
+			resolvedRef: {
+				type: 'branch' as const,
+				name: 'main',
+				hash: 'HEAD'
+			},
+			project,
+			metadata: {
+				initiatedBy: {
+					type: 'api_key',
+					id: triggerId,
+				},
+			},
+		};
+
+		// Create conversation in runtime database
+		await createOrGetConversation(dbClient)({
+			tenantId,
+			projectId,
+			id: conversationId,
+			agentId,
+			activeSubAgentId: defaultSubAgentId,
+			ref: executionContext.resolvedRef,
+		});
+
+		// Set active agent for conversation
+		await setActiveAgentForConversation(dbClient)({
+			scopes: { tenantId, projectId },
+			conversationId,
+			agentId,
+			subAgentId: defaultSubAgentId,
+			ref: executionContext.resolvedRef,
+		});
+
+		logger.info(
+			{ conversationId, agentId, defaultSubAgentId },
+			'Conversation created and agent set'
+		);
+
+		// Create user message in conversation
+		await createMessage(dbClient)({
+			id: generateId(),
+			tenantId,
+			projectId,
+			conversationId,
+			role: 'user',
+			content: {
+				text: userMessage,
+			},
+			visibility: 'user-facing',
+			messageType: 'chat',
+		});
+
+		logger.info({ conversationId, invocationId }, 'User message created');
+
+		// Execute the agent using ExecutionHandler
+		// Note: We use a null stream helper since this is fire-and-forget
+		const requestId = `trigger-${invocationId}`;
+		const timestamp = Math.floor(Date.now() / 1000);
+
+		// Create a no-op stream helper since we're not streaming responses back
+		const noOpStreamHelper = createSSEStreamHelper(
+			{
+				write: async () => {},
+				writeln: async () => {},
+			} as any,
+			requestId,
+			timestamp
+		);
+
+		const executionHandler = new ExecutionHandler();
+		await executionHandler.execute({
+			executionContext,
+			conversationId,
+			userMessage,
+			initialAgentId: agentId,
+			requestId,
+			sseHelper: noOpStreamHelper,
+			emitOperations: false,
+		});
+
+		// Update trigger invocation status to success
+		await updateTriggerInvocationStatus(manageDbClient)({
+			scopes: { tenantId, projectId, agentId },
+			triggerId,
+			invocationId,
+			data: {
+				status: 'success',
+			},
+		});
+
+		logger.info(
+			{ tenantId, projectId, agentId, triggerId, invocationId, conversationId },
+			'Agent invocation completed successfully'
+		);
+	} catch (error) {
+		const errorMessage = error instanceof Error ? error.message : String(error);
+
+		logger.error(
+			{ error, tenantId, projectId, agentId, triggerId, invocationId },
+			'Agent invocation failed'
+		);
+
+		// Update trigger invocation status to failed
+		try {
+			await updateTriggerInvocationStatus(manageDbClient)({
+				scopes: { tenantId, projectId, agentId },
+				triggerId,
+				invocationId,
+				data: {
+					status: 'failed',
+					errorMessage,
+				},
+			});
+		} catch (updateError) {
+			logger.error(
+				{ updateError, invocationId },
+				'Failed to update trigger invocation status to failed'
+			);
+		}
+
+		throw error;
+	}
+}
 
 export default app;
