@@ -56,19 +56,12 @@ export function SubAgentNode(props: NodeProps & { data: AgentNodeData }) {
   const nodeErrors = getNodeErrors(subAgentId);
   const hasErrors = hasNodeErrors(subAgentId);
 
-  const dataComponentNames = useMemo(
-    () =>
-      data?.dataComponents?.map((id: string) => dataComponentLookup[id]?.name).filter(Boolean) ||
-      [],
-    [data?.dataComponents, dataComponentLookup]
-  );
-  const artifactComponentNames = useMemo(
-    () =>
-      data?.artifactComponents
-        ?.map((id: string) => artifactComponentLookup[id]?.name)
-        .filter(Boolean) || [],
-    [data?.artifactComponents, artifactComponentLookup]
-  );
+  const dataComponentNames =
+    data?.dataComponents?.map((id: string) => dataComponentLookup[id]?.name).filter(Boolean) || [];
+  const artifactComponentNames =
+    data?.artifactComponents
+      ?.map((id: string) => artifactComponentLookup[id]?.name)
+      .filter(Boolean) || [];
   const isDelegating = status === 'delegating';
   const isInvertedDelegating = status === 'inverted-delegating';
   const isExecuting = status === 'executing';

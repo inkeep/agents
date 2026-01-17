@@ -188,45 +188,39 @@ export function CredentialForm({ onCreateCredential, tenantId, projectId }: Cred
     }
   };
 
-  const serverOptions = useMemo(
-    () => [
-      ...(toolsLoading
-        ? [
-            {
-              value: 'loading',
-              label: 'Loading MCP servers...',
-              disabled: true,
-            },
-          ]
-        : []),
-      ...availableMCPServers.map((tool) => ({
-        value: tool.id,
-        label: `${tool.name} - ${tool.config.type === 'mcp' ? tool.config.mcp.server.url : ''}`,
-      })),
-    ],
-    [availableMCPServers, toolsLoading]
-  );
+  const serverOptions = [
+    ...(toolsLoading
+      ? [
+          {
+            value: 'loading',
+            label: 'Loading MCP servers...',
+            disabled: true,
+          },
+        ]
+      : []),
+    ...availableMCPServers.map((tool) => ({
+      value: tool.id,
+      label: `${tool.name} - ${tool.config.type === 'mcp' ? tool.config.mcp.server.url : ''}`,
+    })),
+  ];
 
-  const externalAgentOptions = useMemo(
-    () => [
-      ...(externalAgentsLoading
-        ? [
-            {
-              value: 'loading',
-              label: 'Loading external agents...',
-              disabled: true,
-            },
-          ]
-        : []),
-      ...availableExternalAgents.map((agent) => ({
-        value: agent.id,
-        label: `${agent.name} - ${agent.baseUrl}`,
-      })),
-    ],
-    [availableExternalAgents, externalAgentsLoading]
-  );
+  const externalAgentOptions = [
+    ...(externalAgentsLoading
+      ? [
+          {
+            value: 'loading',
+            label: 'Loading external agents...',
+            disabled: true,
+          },
+        ]
+      : []),
+    ...availableExternalAgents.map((agent) => ({
+      value: agent.id,
+      label: `${agent.name} - ${agent.baseUrl}`,
+    })),
+  ];
 
-  const credentialStoreOptions = useMemo(() => {
+  const credentialStoreOptions = (() => {
     if (storesLoading) {
       return [
         {
@@ -257,7 +251,7 @@ export function CredentialForm({ onCreateCredential, tenantId, projectId }: Cred
     }));
 
     return options;
-  }, [credentialStores, storesLoading]);
+  })();
 
   return (
     <Form {...form}>

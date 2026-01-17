@@ -8,10 +8,7 @@ type TextDiffProps = {
 };
 
 export const TextDiff: React.FC<TextDiffProps> = ({ originalValue, newValue, className = '' }) => {
-  const parts = useMemo(
-    () => diffWords(originalValue ?? '', newValue ?? ''),
-    [originalValue, newValue]
-  );
+  const parts = diffWords(originalValue ?? '', newValue ?? '');
 
   return (
     <div className={`text-sm leading-relaxed whitespace-pre-wrap space-x-0.5 ${className}`}>

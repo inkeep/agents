@@ -49,8 +49,8 @@ export function ModelSelector({
   const [azureBaseURL, setAzureBaseURL] = useState('');
   const [customModelInput, setCustomModelInput] = useState('');
 
-  const selectedModel = useMemo(() => {
-    for (const [_provider, models] of Object.entries(modelOptions)) {
+  const selectedModel = (() => {
+    for (const models of Object.values(modelOptions)) {
       const model = models.find((m) => m.value === value);
       if (model) return model;
     }
@@ -79,16 +79,16 @@ export function ModelSelector({
       return { value, label: `${value} (custom)` };
     }
     return null;
-  }, [value]);
+  })();
 
-  const inheritedModel = useMemo(() => {
+  const inheritedModel = (() => {
     if (!inheritedValue) return null;
-    for (const [_provider, models] of Object.entries(modelOptions)) {
+    for (const models of Object.values(modelOptions)) {
       const model = models.find((m) => m.value === inheritedValue);
       if (model) return model;
     }
     return inheritedValue ? { value: inheritedValue, label: inheritedValue } : null;
-  }, [inheritedValue]);
+  })();
 
   return (
     <div className="space-y-2">

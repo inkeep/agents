@@ -9,26 +9,17 @@ interface ContextBreakdownProps {
   breakdown: ContextBreakdownType;
 }
 
-interface BreakdownItem {
-  key: string;
-  label: string;
-  value: number;
-  color: string;
-}
-
 export function ContextBreakdown({ breakdown }: ContextBreakdownProps) {
-  const items = useMemo<BreakdownItem[]>(() => {
-    return V1_BREAKDOWN_SCHEMA.map((def) => ({
-      key: def.key,
-      label: def.label,
-      value: breakdown.components[def.key] ?? 0,
-      color: def.color,
-    }))
-      .filter((item) => item.value > 0)
-      .sort((a, b) => b.value - a.value);
-  }, [breakdown]);
+  const items = V1_BREAKDOWN_SCHEMA.map((def) => ({
+    key: def.key,
+    label: def.label,
+    value: breakdown.components[def.key] ?? 0,
+    color: def.color,
+  }))
+    .filter((item) => item.value > 0)
+    .sort((a, b) => b.value - a.value);
 
-  const maxValue = useMemo(() => Math.max(...items.map((i) => i.value), 1), [items]);
+  const maxValue = Math.max(...items.map((i) => i.value), 1);
 
   if (breakdown.total === 0) {
     return null;
