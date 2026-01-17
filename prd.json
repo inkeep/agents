@@ -14,8 +14,8 @@
         "Typecheck passes"
       ],
       "priority": 1,
-      "passes": false,
-      "notes": ""
+      "passes": true,
+      "notes": "Completed in commit aa8b5218. Tables added with foreign key constraints."
     },
     {
       "id": "US-002",
@@ -28,8 +28,8 @@
         "Typecheck passes"
       ],
       "priority": 2,
-      "passes": false,
-      "notes": ""
+      "passes": true,
+      "notes": "Completed in commit aa8b5218. Tables added with foreign key constraints."
     },
     {
       "id": "US-003",
