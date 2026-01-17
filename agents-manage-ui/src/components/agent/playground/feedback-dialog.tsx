@@ -39,7 +39,11 @@ export const FeedbackDialog = ({
   messageId,
   setShowTraces,
 }: FeedbackDialogProps) => {
-  const { chatFunctionsRef, openCopilot, setDynamicHeaders } = useCopilotContext();
+  const {
+    chatFunctionsRef: chatFunctionsREF,
+    openCopilot,
+    setDynamicHeaders,
+  } = useCopilotContext();
   const form = useForm<FeedbackFormData>({
     defaultValues: {
       feedback: '',
@@ -48,18 +52,18 @@ export const FeedbackDialog = ({
   });
   const { isSubmitting } = form.formState;
 
-  const onSubmit = async ({ feedback }: FeedbackFormData) => {
-    if (chatFunctionsRef?.current) {
+  const onSubmit = form.handleSubmit(async ({ feedback }) => {
+    if (chatFunctionsREF?.current) {
       openCopilot();
       setShowTraces(false);
       setDynamicHeaders({ conversationId, messageId });
       // todo this is a hack to ensure the message is submitted after the conversation id is set
       setTimeout(() => {
-        chatFunctionsRef?.current?.submitMessage(feedback);
+        chatFunctionsREF?.current?.submitMessage(feedback);
       }, 100);
     }
     onOpenChange(false);
-  };
+  });
 
   return (
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
@@ -71,7 +75,7 @@ export const FeedbackDialog = ({
           </DialogDescription>
         </DialogHeader>
         <Form {...form}>
-          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
+          <form onSubmit={onSubmit} className="space-y-8">
             <GenericTextarea
               control={form.control}
               name="feedback"

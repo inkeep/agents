@@ -1,5 +1,5 @@
 import { Play, Settings } from 'lucide-react';
-import { type ComponentProps, useCallback, useEffect, useRef, useState } from 'react';
+import { type ComponentProps, useEffect, useRef, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Spinner } from '@/components/ui/spinner';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
@@ -48,11 +48,11 @@ export function Toolbar({ onSubmit, toggleSidePane, setShowPlayground }: Toolbar
   }, []);
 
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const saveAgent = useCallback(async () => {
+  const saveAgent = async () => {
     setIsSubmitting(true);
     await onSubmit();
     setIsSubmitting(false);
-  }, [onSubmit]);
+  };
 
   return (
     <div className="flex gap-2 flex-wrap justify-end content-start">

@@ -2,7 +2,7 @@
 
 import { format } from 'date-fns';
 import { CalendarIcon, Check } from 'lucide-react';
-import { useMemo, useRef, useState } from 'react';
+import { useRef, useState } from 'react';
 import type { DateRange } from 'react-day-picker';
 import type { SelectOption } from '@/components/form/generic-select';
 import { Button } from '@/components/ui/button';
@@ -71,7 +71,7 @@ export function DatePickerWithPresets({
   const presetValue = options.find((option) => option.value === value);
 
   // Memoize only the expensive date formatting operations
-  const dateComputations = useMemo(() => {
+  const dateComputations = (() => {
     if (!value || typeof value !== 'object') {
       return { initialDate: undefined, dateFormattedValue: undefined };
     }
@@ -88,7 +88,7 @@ export function DatePickerWithPresets({
       : undefined;
 
     return { initialDate, dateFormattedValue };
-  }, [value]);
+  })();
 
   // Combine preset and date values (preset lookup is cheap, no need to memoize)
   const initialDate = dateComputations.initialDate;

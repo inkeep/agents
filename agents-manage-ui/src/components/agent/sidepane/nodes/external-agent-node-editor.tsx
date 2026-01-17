@@ -1,7 +1,7 @@
 import { type Node, useReactFlow } from '@xyflow/react';
 import { Trash2 } from 'lucide-react';
 import { useParams } from 'next/navigation';
-import { useCallback, useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { StandaloneJsonEditor } from '@/components/editors/standalone-json-editor';
 import { Button } from '@/components/ui/button';
 import { ExternalLink } from '@/components/ui/external-link';
@@ -45,8 +45,9 @@ export function ExternalAgentNodeEditor({
     // Always update the input state (allows user to type invalid JSON)
     setHeadersInputValue(value);
 
-    // Only save to node data if the JSON is valid
-    try {
+    // Workaround for a React Compiler limitation.
+    // Todo: Support value blocks (conditional, logical, optional chaining, etc) within a try/catch statement
+    function parse() {
       const parsedHeaders = value.trim() === '' ? {} : JSON.parse(value);
       if (
         typeof parsedHeaders === 'object' &&
@@ -60,6 +61,10 @@ export function ExternalAgentNodeEditor({
         });
         markUnsaved();
       }
+    }
+    try {
+      // Only save to node data if the JSON is valid
+      parse();
     } catch {
       // Invalid JSON - don't save, but allow user to continue typing
       // The ExpandableJsonEditor will show the validation error
@@ -70,12 +75,9 @@ export function ExternalAgentNodeEditor({
     edges: state.edges,
   }));
 
-  const handleIdChange = useCallback(
-    (generatedId: string) => {
-      updateField('id', generatedId);
-    },
-    [updateField]
-  );
+  const handleIdChange = (generatedId: string) => {
+    updateField('id', generatedId);
+  };
 
   // Auto-prefill ID based on name field (always enabled for agent nodes)
   useAutoPrefillIdZustand({
@@ -85,13 +87,8 @@ export function ExternalAgentNodeEditor({
     isEditing: false,
   });
 
-  const getCurrentHeaders = useCallback((): Record<string, string> => {
-    return getCurrentHeadersForExternalAgentNode(
-      selectedNode,
-      subAgentExternalAgentConfigLookup,
-      edges
-    );
-  }, [selectedNode, subAgentExternalAgentConfigLookup, edges]);
+  const getCurrentHeaders = (): Record<string, string> =>
+    getCurrentHeadersForExternalAgentNode(selectedNode, subAgentExternalAgentConfigLookup, edges);
 
   // Local state for headers input (allows invalid JSON while typing)
   const [headersInputValue, setHeadersInputValue] = useState('{}');

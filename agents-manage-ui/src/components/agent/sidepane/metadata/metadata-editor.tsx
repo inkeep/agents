@@ -2,7 +2,6 @@
 
 import { Info } from 'lucide-react';
 import { useParams } from 'next/navigation';
-import { useCallback } from 'react';
 import { StandaloneJsonEditor } from '@/components/editors/standalone-json-editor';
 import { ModelInheritanceInfo } from '@/components/projects/form/model-inheritance-info';
 import { ModelConfiguration } from '@/components/shared/model-configuration';
@@ -73,25 +72,17 @@ function MetadataEditor() {
 
   const { markUnsaved, setMetadata } = useAgentActions();
 
-  const updateMetadata: typeof setMetadata = useCallback(
-    (...attrs) => {
-      setMetadata(...attrs);
-      markUnsaved();
-    },
-    [setMetadata, markUnsaved]
-  );
+  const updateMetadata: typeof setMetadata = (...attrs) => {
+    setMetadata(...attrs);
+    markUnsaved();
+  };
 
   // Helper to get the latest models from the store to avoid stale closure race conditions
-  const getCurrentModels = useCallback(() => {
-    return agentStore.getState().metadata.models;
-  }, []);
+  const getCurrentModels = () => agentStore.getState().metadata.models;
 
-  const handleIdChange = useCallback(
-    (generatedId: string) => {
-      updateMetadata('id', generatedId);
-    },
-    [updateMetadata]
-  );
+  const handleIdChange = (generatedId: string) => {
+    updateMetadata('id', generatedId);
+  };
 
   // Auto-prefill ID based on name field (only for new agent)
   useAutoPrefillIdZustand({

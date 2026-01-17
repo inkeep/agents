@@ -10,7 +10,7 @@ import {
 } from '@inkeep/agents-core/auth/permissions';
 import { deviceAuthorizationClient } from 'better-auth/client/plugins';
 import { createAuthClient } from 'better-auth/react';
-import { createContext, type ReactNode, useContext, useMemo } from 'react';
+import { createContext, type ReactNode, useContext } from 'react';
 import { useRuntimeConfig } from '@/contexts/runtime-config-context';
 
 // Create a factory function to get the proper inferred type
@@ -42,12 +42,13 @@ const AuthClientContext = createContext<AuthClientType | null>(null);
 export function AuthClientProvider({ children }: { children: ReactNode }) {
   const { PUBLIC_INKEEP_AGENTS_MANAGE_API_URL } = useRuntimeConfig();
 
-  const authClient = useMemo(
-    () => createConfiguredAuthClient(PUBLIC_INKEEP_AGENTS_MANAGE_API_URL),
-    [PUBLIC_INKEEP_AGENTS_MANAGE_API_URL]
+  return (
+    <AuthClientContext.Provider
+      value={createConfiguredAuthClient(PUBLIC_INKEEP_AGENTS_MANAGE_API_URL)}
+    >
+      {children}
+    </AuthClientContext.Provider>
   );
-
-  return <AuthClientContext.Provider value={authClient}>{children}</AuthClientContext.Provider>;
 }
 
 export function useAuthClient() {

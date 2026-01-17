@@ -3,7 +3,7 @@
 import { Check, ChevronsUpDown, Plus } from 'lucide-react';
 import NextLink from 'next/link';
 import { useParams } from 'next/navigation';
-import { type ComponentProps, type FC, useCallback, useState } from 'react';
+import { type ComponentProps, type FC, useState } from 'react';
 import { NewProjectDialog } from '@/components/projects/new-project-dialog';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import {
@@ -48,9 +48,9 @@ export const ProjectSwitcher: FC = () => {
   const { data: projects = [], isPending } = useProjectsQuery(tenantId);
   const invalidateProjects = useProjectsInvalidation(tenantId);
 
-  const handleCreateProject = useCallback(() => {
+  const handleCreateProject = () => {
     setIsProjectDialogOpen(true);
-  }, []);
+  };
 
   if (isPending) {
     return <Skeleton className="h-12" />;

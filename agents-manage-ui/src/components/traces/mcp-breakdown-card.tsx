@@ -1,7 +1,6 @@
 'use client';
 
 import { Wrench } from 'lucide-react';
-import { useMemo } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { UNKNOWN_VALUE } from '@/constants/signoz';
 import type { ConversationDetail } from './timeline/types';
@@ -19,7 +18,7 @@ interface ToolCallInfo {
 }
 
 export function MCPBreakdownCard({ conversation }: MCPBreakdownCardProps) {
-  const mcpStats = useMemo(() => {
+  const mcpStats = (() => {
     const activities = conversation.activities || [];
 
     // Filter for MCP tool calls only
@@ -92,7 +91,7 @@ export function MCPBreakdownCard({ conversation }: MCPBreakdownCardProps) {
       servers,
       totalCalls,
     };
-  }, [conversation]);
+  })();
 
   return (
     <Card className="shadow-none bg-background flex flex-col">

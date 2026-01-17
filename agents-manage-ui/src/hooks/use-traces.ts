@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import {
   type ConversationStats,
   getSigNozStatsClient,
@@ -55,86 +55,66 @@ export function useConversationStats(
   // Extract stable values to avoid object recreation issues
   const pageSize = options?.pagination?.pageSize || 50;
 
-  const fetchData = useCallback(
-    async (page: number) => {
-      try {
-        setLoading(true);
-        setError(null);
+  const fetchData = async (page: number) => {
+    try {
+      setLoading(true);
+      setError(null);
 
-        const client = getSigNozStatsClient(options?.tenantId);
-        // Use provided time range or default to all time (2020)
-        // Clamp endTime to now-1ms to satisfy backend validation (end cannot be in the future)
-        const currentEndTime = Math.min(options?.endTime || Date.now() - 1);
-        const currentStartTime = options?.startTime || new Date('2020-01-01T00:00:00Z').getTime();
+      const client = getSigNozStatsClient(options?.tenantId);
+      // Use provided time range or default to all time (2020)
+      // Clamp endTime to now-1ms to satisfy backend validation (end cannot be in the future)
+      const currentEndTime = Math.min(options?.endTime || Date.now() - 1);
+      const currentStartTime = options?.startTime || new Date('2020-01-01T00:00:00Z').getTime();
 
-        const result = await client.getConversationStats(
-          currentStartTime,
-          currentEndTime,
-          options?.filters,
-          options?.projectId,
-          { page, limit: pageSize },
-          options?.searchQuery,
-          options?.agentId
-        );
+      const result = await client.getConversationStats(
+        currentStartTime,
+        currentEndTime,
+        options?.filters,
+        options?.projectId,
+        { page, limit: pageSize },
+        options?.searchQuery,
+        options?.agentId
+      );
 
-        setStats(result.data);
-        setPaginationInfo(result.pagination);
-      } catch (err) {
-        console.error('Error fetching conversation stats:', err);
-        const errorMessage =
-          err instanceof Error ? err.message : 'Failed to fetch conversation stats';
-        setError(errorMessage);
-      } finally {
-        setLoading(false);
-      }
-    },
-    [
-      options?.startTime,
-      options?.endTime,
-      options?.filters,
-      options?.projectId,
-      options?.tenantId,
-      options?.searchQuery,
-      options?.agentId,
-      pageSize,
-    ]
-  );
+      setStats(result.data);
+      setPaginationInfo(result.pagination);
+    } catch (err) {
+      console.error('Error fetching conversation stats:', err);
+      const errorMessage =
+        err instanceof Error ? err.message : 'Failed to fetch conversation stats';
+      setError(errorMessage);
+    } finally {
+      setLoading(false);
+    }
+  };
 
-  const refresh = useCallback(() => {
+  const refresh = () => {
     fetchData(currentPage);
-  }, [fetchData, currentPage]);
+  };
 
   // Pagination controls
-  const nextPage = useCallback(() => {
+  const nextPage = () => {
     if (paginationInfo?.hasNextPage) {
       const nextPageNum = currentPage + 1;
       setCurrentPage(nextPageNum);
       fetchData(nextPageNum);
     }
-  }, [currentPage, paginationInfo?.hasNextPage, fetchData]);
+  };
 
-  const previousPage = useCallback(() => {
+  const previousPage = () => {
     if (paginationInfo?.hasPreviousPage) {
       const prevPageNum = currentPage - 1;
       setCurrentPage(prevPageNum);
       fetchData(prevPageNum);
     }
-  }, [currentPage, paginationInfo?.hasPreviousPage, fetchData]);
+  };
 
-  const goToPage = useCallback(
-    (page: number) => {
-      if (
-        paginationInfo &&
-        page >= 1 &&
-        page <= paginationInfo.totalPages &&
-        page !== currentPage
-      ) {
-        setCurrentPage(page);
-        fetchData(page);
-      }
-    },
-    [currentPage, paginationInfo, fetchData]
-  );
+  const goToPage = (page: number) => {
+    if (paginationInfo && page >= 1 && page <= paginationInfo.totalPages && page !== currentPage) {
+      setCurrentPage(page);
+      fetchData(page);
+    }
+  };
 
   // Reset to page 1 and fetch when filters or time range change
   // biome-ignore lint/correctness/useExhaustiveDependencies: Intentionally tracking filter values instead of fetchData to prevent page reset on pagination clicks
@@ -202,7 +182,7 @@ export function useAggregateStats(options?: {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  const fetchAggregateStats = useCallback(async () => {
+  const fetchAggregateStats = async () => {
     try {
       setLoading(true);
       setError(null);
@@ -227,14 +207,7 @@ export function useAggregateStats(options?: {
     } finally {
       setLoading(false);
     }
-  }, [
-    options?.startTime,
-    options?.endTime,
-    options?.filters,
-    options?.projectId,
-    options?.tenantId,
-    options?.agentId,
-  ]);
+  };
 
   useEffect(() => {
     fetchAggregateStats();

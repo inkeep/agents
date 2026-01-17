@@ -24,6 +24,10 @@ export function usePostHog() {
   return useContext(PostHogContext);
 }
 
+function importPostHog() {
+  return Promise.all([import('posthog-js'), import('@posthog/react')]);
+}
+
 export function PostHogProvider({ children }: { children: React.ReactNode }) {
   const { PUBLIC_POSTHOG_KEY, PUBLIC_POSTHOG_HOST, PUBLIC_POSTHOG_SITE_TAG } = useRuntimeConfig();
   const ENABLE_POSTHOG = Boolean(PUBLIC_POSTHOG_KEY);
@@ -36,10 +40,7 @@ export function PostHogProvider({ children }: { children: React.ReactNode }) {
 
     (async () => {
       try {
-        const [{ default: posthog }, { PostHogProvider }] = await Promise.all([
-          import('posthog-js'),
-          import('@posthog/react'),
-        ]);
+        const [{ default: posthog }, { PostHogProvider }] = await importPostHog();
 
         if (cancelled) return;
 

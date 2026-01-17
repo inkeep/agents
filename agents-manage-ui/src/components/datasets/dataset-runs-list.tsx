@@ -2,7 +2,7 @@
 
 import { ChevronRight, Plus } from 'lucide-react';
 import { useRouter } from 'next/navigation';
-import { useCallback, useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { formatDateAgo } from '@/app/utils/format-date';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -37,7 +37,7 @@ export function DatasetRunsList({
   const [error, setError] = useState<string | null>(null);
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
 
-  const loadRuns = useCallback(async () => {
+  const loadRuns = async () => {
     try {
       setLoading(true);
       setError(null);
@@ -49,7 +49,7 @@ export function DatasetRunsList({
     } finally {
       setLoading(false);
     }
-  }, [tenantId, projectId, datasetId]);
+  };
 
   useEffect(() => {
     // refreshKey triggers reload when incremented

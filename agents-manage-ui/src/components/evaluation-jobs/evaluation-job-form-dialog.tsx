@@ -2,7 +2,7 @@
 
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useRouter } from 'next/navigation';
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { toast } from 'sonner';
 import { ComponentSelector } from '@/components/agent/sidepane/nodes/component-selector/component-selector';
@@ -56,7 +56,7 @@ export function EvaluationJobFormDialog({
     defaultValues: defaultFormData,
   });
 
-  const loadData = useCallback(async () => {
+  const loadData = async () => {
     setLoading(true);
     try {
       const evaluatorsRes = await fetchEvaluators(tenantId, projectId);
@@ -67,7 +67,7 @@ export function EvaluationJobFormDialog({
     } finally {
       setLoading(false);
     }
-  }, [tenantId, projectId]);
+  };
 
   useEffect(() => {
     if (isOpen) {
@@ -80,18 +80,13 @@ export function EvaluationJobFormDialog({
   const selectedEvaluatorIds = form.watch('evaluatorIds') || [];
   const jobFilters = form.watch('jobFilters');
 
-  const evaluatorLookup = useMemo(() => {
-    return evaluators.reduce(
-      (acc, evaluator) => {
-        acc[evaluator.id] = evaluator;
-        return acc;
-      },
-      {} as Record<string, Evaluator>
-    );
-  }, [evaluators]);
+  const evaluatorLookup = evaluators.reduce<Record<string, Evaluator>>((acc, evaluator) => {
+    acc[evaluator.id] = evaluator;
+    return acc;
+  }, {});
 
-  const [customStartDate, setCustomStartDate] = useState<string>('');
-  const [customEndDate, setCustomEndDate] = useState<string>('');
+  const [customStartDate, setCustomStartDate] = useState('');
+  const [customEndDate, setCustomEndDate] = useState('');
 
   const datePickerValue =
     customStartDate && customEndDate ? { from: customStartDate, to: customEndDate } : undefined;

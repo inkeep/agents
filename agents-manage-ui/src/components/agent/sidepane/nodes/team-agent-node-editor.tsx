@@ -1,7 +1,7 @@
 import { type Node, useReactFlow } from '@xyflow/react';
 import { Trash2 } from 'lucide-react';
 import { useParams } from 'next/navigation';
-import { useCallback, useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { StandaloneJsonEditor } from '@/components/editors/standalone-json-editor';
 import { Button } from '@/components/ui/button';
 import { ExternalLink } from '@/components/ui/external-link';
@@ -64,12 +64,9 @@ export function TeamAgentNodeEditor({
     }
   };
 
-  const handleIdChange = useCallback(
-    (generatedId: string) => {
-      updateField('id', generatedId);
-    },
-    [updateField]
-  );
+  const handleIdChange = (generatedId: string) => {
+    updateField('id', generatedId);
+  };
 
   // Auto-prefill ID based on name field (always enabled for agent nodes)
   useAutoPrefillIdZustand({
@@ -79,9 +76,8 @@ export function TeamAgentNodeEditor({
     isEditing: false,
   });
 
-  const getCurrentHeaders = useCallback((): Record<string, string> => {
-    return getCurrentHeadersForTeamAgentNode(selectedNode, subAgentTeamAgentConfigLookup, []);
-  }, [selectedNode, subAgentTeamAgentConfigLookup]);
+  const getCurrentHeaders = (): Record<string, string> =>
+    getCurrentHeadersForTeamAgentNode(selectedNode, subAgentTeamAgentConfigLookup, []);
 
   // Local state for headers input (allows invalid JSON while typing)
   const [headersInputValue, setHeadersInputValue] = useState('{}');

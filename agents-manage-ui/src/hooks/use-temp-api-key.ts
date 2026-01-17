@@ -1,5 +1,4 @@
-import { useCallback, useEffect, useState } from 'react';
-
+import { useEffect, useState } from 'react';
 import { useRuntimeConfig } from '@/contexts/runtime-config-context';
 
 interface UseTempApiKeyParams {
@@ -28,7 +27,7 @@ export function useTempApiKey({
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<Error | null>(null);
 
-  const fetchToken = useCallback(async () => {
+  const fetchToken = async () => {
     try {
       const response = await fetch(
         `${PUBLIC_INKEEP_AGENTS_MANAGE_API_URL}/tenants/${tenantId}/playground/token`,
@@ -58,7 +57,7 @@ export function useTempApiKey({
     } finally {
       setIsLoading(false);
     }
-  }, [tenantId, projectId, agentId, PUBLIC_INKEEP_AGENTS_MANAGE_API_URL]);
+  };
 
   // Initial fetch
   useEffect(() => {

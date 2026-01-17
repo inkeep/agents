@@ -1,7 +1,7 @@
 'use client';
 
 import { Calendar, MoreVertical } from 'lucide-react';
-import { useCallback, useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { toast } from 'sonner';
 import { formatDate } from '@/app/utils/format-date';
 import {
@@ -51,7 +51,7 @@ export function DatasetRunConfigsList({
   const [editingConfigId, setEditingConfigId] = useState<string | null>(null);
   const [editingConfig, setEditingConfig] = useState<DatasetRunConfig | null>(null);
 
-  const loadRunConfigs = useCallback(async () => {
+  const loadRunConfigs = async () => {
     try {
       setLoading(true);
       setError(null);
@@ -66,7 +66,7 @@ export function DatasetRunConfigsList({
     } finally {
       setLoading(false);
     }
-  }, [tenantId, projectId, datasetId]);
+  };
 
   useEffect(() => {
     // refreshKey triggers reload when incremented

@@ -129,7 +129,9 @@ export const ToolApproval = ({
 
   const handleApproval = async (approved: boolean) => {
     setSubmitted(true);
-    try {
+    // Workaround for a React Compiler limitation.
+    // Todo: (BuildHIR::lowerStatement) Support ThrowStatement inside of try/catch
+    async function doRequest() {
       const response = await fetch(`${runApiUrl}/api/tool-approvals`, {
         method: 'POST',
         headers: {
@@ -150,6 +152,10 @@ export const ToolApproval = ({
       if (!response.ok) {
         throw new Error(`Failed to ${approved ? 'approve' : 'reject'} tool call`);
       }
+    }
+
+    try {
+      await doRequest();
     } catch (error) {
       setSubmitted(false);
       const errorMessage = error instanceof Error ? error.message : 'An unexpected error occurred';
@@ -160,7 +166,9 @@ export const ToolApproval = ({
   // biome-ignore lint/correctness/useExhaustiveDependencies: Only run once per unique toolCallId to prevent re-fetching on stream updates
   useEffect(() => {
     const fetchAndComputeDiff = async () => {
-      try {
+      // Workaround for a React Compiler limitation.
+      // Todo: Support value blocks (conditional, logical, optional chaining, etc) within a try/catch statement
+      async function doRequest() {
         setLoading(true);
         setError(null);
 
@@ -181,12 +189,14 @@ export const ToolApproval = ({
         } else {
           setDiffs(result.data || []);
         }
+      }
+      try {
+        await doRequest();
       } catch (err) {
         console.error('Failed to compute diff:', err);
         setError(err instanceof Error ? err.message : 'Failed to load entity state');
-      } finally {
-        setLoading(false);
       }
+      setLoading(false);
     };
 
     fetchAndComputeDiff();
@@ -208,7 +218,7 @@ export const ToolApproval = ({
     approveLabel = 'Approve',
     approveVariant = 'default' as 'default' | 'destructive',
     rejectLabel = 'Reject',
-    approveIcon = <CheckIcon className="size-3" />,
+    approveIcon,
   }: {
     approveLabel?: string;
     approveVariant?: 'default' | 'destructive' | 'destructive-outline';
@@ -223,7 +233,7 @@ export const ToolApproval = ({
           type="button"
           onClick={() => handleApproval(true)}
         >
-          {approveIcon}
+          {approveIcon ?? <CheckIcon className="size-3" />}
           {approveLabel}
         </Button>
         <Button variant="outline" size="xs" type="button" onClick={() => handleApproval(false)}>

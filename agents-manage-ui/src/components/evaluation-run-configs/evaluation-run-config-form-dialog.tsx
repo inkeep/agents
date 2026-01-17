@@ -4,7 +4,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { ArrowUpRight } from 'lucide-react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { toast } from 'sonner';
 import { z } from 'zod';
@@ -117,7 +117,7 @@ export function EvaluationRunConfigFormDialog({
     },
   });
 
-  const loadData = useCallback(async () => {
+  const loadData = async () => {
     try {
       const [evaluatorsRes, agentsRes] = await Promise.all([
         fetchEvaluators(tenantId, projectId),
@@ -157,7 +157,7 @@ export function EvaluationRunConfigFormDialog({
       console.error('Error loading data:', error);
       toast.error('Failed to load data');
     }
-  }, [tenantId, projectId, initialData, suiteConfigForm]);
+  };
 
   useEffect(() => {
     if (isOpen) {
@@ -171,25 +171,15 @@ export function EvaluationRunConfigFormDialog({
     }
   }, [isOpen, initialData, form, suiteConfigForm, loadData]);
 
-  const evaluatorLookup = useMemo(() => {
-    return evaluators.reduce(
-      (acc, evaluator) => {
-        acc[evaluator.id] = evaluator;
-        return acc;
-      },
-      {} as Record<string, Evaluator>
-    );
-  }, [evaluators]);
+  const evaluatorLookup = evaluators.reduce<Record<string, Evaluator>>((acc, evaluator) => {
+    acc[evaluator.id] = evaluator;
+    return acc;
+  }, {});
 
-  const agentLookup = useMemo(() => {
-    return agents.reduce(
-      (acc, agent) => {
-        acc[agent.id] = agent;
-        return acc;
-      },
-      {} as Record<string, Agent>
-    );
-  }, [agents]);
+  const agentLookup = agents.reduce<Record<string, Agent>>((acc, agent) => {
+    acc[agent.id] = agent;
+    return acc;
+  }, {});
 
   const { isSubmitting } = form.formState;
 

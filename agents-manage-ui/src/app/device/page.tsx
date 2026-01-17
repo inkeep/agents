@@ -2,7 +2,7 @@
 
 import { AlertCircleIcon, CheckCircle2, Loader2, Terminal, XCircle } from 'lucide-react';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { Suspense, useCallback, useEffect, useState } from 'react';
+import { Suspense, useEffect, useState } from 'react';
 import { InkeepIcon } from '@/components/icons/inkeep';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
@@ -48,31 +48,28 @@ function DeviceVerificationForm() {
     }
   }, [authLoading, isAuthenticated, router]);
 
-  const validateCode = useCallback(
-    async (code: string) => {
-      setState('validating');
-      setError(null);
+  const validateCode = async (code: string) => {
+    setState('validating');
+    setError(null);
 
-      try {
-        const formattedCode = code.replace(/-/g, '').toUpperCase();
-        const response = await authClient.device({
-          query: { user_code: formattedCode },
-        });
+    try {
+      const formattedCode = code.replace(/-/g, '').toUpperCase();
+      const response = await authClient.device({
+        query: { user_code: formattedCode },
+      });
 
-        if (response.error) {
-          setError(response.error.error_description || 'Invalid or expired code');
-          setState('error');
-          return;
-        }
-
-        setState('confirm');
-      } catch (err) {
-        setError(err instanceof Error ? err.message : 'Failed to validate code');
+      if (response.error) {
+        setError(response.error.error_description || 'Invalid or expired code');
         setState('error');
+        return;
       }
-    },
-    [authClient]
-  );
+
+      setState('confirm');
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to validate code');
+      setState('error');
+    }
+  };
 
   // Auto-validate if code provided in URL
   useEffect(() => {

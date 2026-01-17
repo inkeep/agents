@@ -1,7 +1,7 @@
 'use client';
 
 import type * as Monaco from 'monaco-editor';
-import { type ComponentProps, type FC, useCallback, useEffect, useId, useState } from 'react';
+import { type ComponentProps, type FC, useEffect, useId, useState } from 'react';
 import { agentStore } from '@/features/agent/state/use-agent-store';
 import { useMonacoStore } from '@/features/agent/state/use-monaco-store';
 import { cleanupDisposables } from '@/lib/monaco-editor/monaco-utils';
@@ -71,13 +71,12 @@ export const PromptEditor: FC<PromptEditorProps> = ({ uri, editorOptions, onMoun
     return cleanupDisposables(disposables);
   }, [editor, monaco]);
 
-  const handleOnMount: NonNullable<ComponentProps<typeof MonacoEditor>['onMount']> = useCallback(
-    (editorInstance) => {
-      setEditor(editorInstance);
-      onMount?.(editorInstance);
-    },
-    [onMount]
-  );
+  const handleOnMount: NonNullable<ComponentProps<typeof MonacoEditor>['onMount']> = (
+    editorInstance
+  ) => {
+    setEditor(editorInstance);
+    onMount?.(editorInstance);
+  };
 
   return (
     <MonacoEditor

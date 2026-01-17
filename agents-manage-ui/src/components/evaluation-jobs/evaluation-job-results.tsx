@@ -2,7 +2,7 @@
 
 import { ChevronDown, ChevronRight, ExternalLink, Loader2 } from 'lucide-react';
 import Link from 'next/link';
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { formatDateTimeTable } from '@/app/utils/format-date';
 import { ExpandableJsonEditor } from '@/components/editors/expandable-json-editor';
 import { EvaluationStatusBadge } from '@/components/evaluators/evaluation-status-badge';
@@ -57,7 +57,7 @@ export function EvaluationJobResults({
     isRunning: boolean;
   }>({ total: 0, completed: 0, isRunning: false });
 
-  const loadProgress = useCallback(async () => {
+  const loadProgress = async () => {
     try {
       // Fetch latest results
       const latestResults = await fetchEvaluationResultsByJobConfig(
@@ -113,7 +113,7 @@ export function EvaluationJobResults({
     } catch (err) {
       console.error('Error loading evaluation progress:', err);
     }
-  }, [tenantId, projectId, jobConfig.id, jobConfig.jobFilters]);
+  };
 
   // Initial progress load
   useEffect(() => {
@@ -146,13 +146,9 @@ export function EvaluationJobResults({
 
   const selectedEvaluator = selectedEvaluatorId ? getEvaluatorById(selectedEvaluatorId) : undefined;
 
-  const filteredResults = useMemo(
-    () => filterEvaluationResults(results, filters, evaluators),
-    [results, filters, evaluators]
-  );
-
+  const filteredResults = filterEvaluationResults(results, filters, evaluators);
   const evaluatorOptions = evaluators.map((e) => ({ id: e.id, name: e.name }));
-  const agentOptions = useMemo(() => {
+  const agentOptions = (() => {
     const uniqueAgents = new Map<string, string>();
     results.forEach((result) => {
       if (result.agentId && !uniqueAgents.has(result.agentId)) {
@@ -160,7 +156,7 @@ export function EvaluationJobResults({
       }
     });
     return Array.from(uniqueAgents.entries()).map(([id, name]) => ({ id, name }));
-  }, [results]);
+  })();
 
   return (
     <div className="space-y-6">

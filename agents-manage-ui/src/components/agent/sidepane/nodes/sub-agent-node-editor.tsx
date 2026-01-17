@@ -1,7 +1,6 @@
 import type { Node } from '@xyflow/react';
 import { Trash2 } from 'lucide-react';
 import { useParams } from 'next/navigation';
-import { useCallback } from 'react';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import {
@@ -85,19 +84,13 @@ export function SubAgentNodeEditor({
     errorHelpers,
   });
 
-  const updateModelPath = useCallback(
-    (path: string, value: any) => {
-      updateNestedPath(path, value, selectedNode.data);
-    },
-    [updateNestedPath, selectedNode.data]
-  );
+  const updateModelPath = (path: string, value: any) => {
+    updateNestedPath(path, value, selectedNode.data);
+  };
 
-  const handleIdChange = useCallback(
-    (generatedId: string) => {
-      updatePath('id', generatedId);
-    },
-    [updatePath]
-  );
+  const handleIdChange = (generatedId: string) => {
+    updatePath('id', generatedId);
+  };
 
   // Auto-prefill ID based on name field (always enabled for agent nodes)
   useAutoPrefillIdZustand({
