@@ -190,7 +190,7 @@ describe('Data Component Generator', () => {
 
   describe('compilation tests', () => {
     it('should generate code that compiles and creates a working data component', async () => {
-      const file = generateDataComponentFile('task-list', testComponentData);
+      generateDataComponentFile('task-list', testComponentData);
 
       // Extract just the component definition (remove imports and export)
       const definition = generateDataComponentDefinition('task-list', testComponentData);
