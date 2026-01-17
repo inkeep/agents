@@ -274,7 +274,7 @@ function compareComponentsDirectly(
   // Extract status components from agents for comparison
   const localStatusComponents = extractStatusComponentsFromProject(localProject);
   const remoteStatusComponents = extractStatusComponentsFromProject(remoteProject);
-  changes.push(...compareStatusComponents(localStatusComponents, remoteStatusComponents, debug));
+  changes.push(...compareStatusComponents(localStatusComponents, remoteStatusComponents));
 
   // Compare contextConfig and fetchDefinition components separately
   changes.push(...compareContextConfigs(localProject, remoteProject));
@@ -550,8 +550,7 @@ function compareExternalAgents(
  */
 function compareStatusComponents(
   localStatusComponents: Record<string, any>,
-  remoteStatusComponents: Record<string, any>,
-  debug: boolean
+  remoteStatusComponents: Record<string, any>
 ): ComponentChange[] {
   return compareComponentMaps('statusComponents', localStatusComponents, remoteStatusComponents);
 }
