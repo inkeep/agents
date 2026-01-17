@@ -11,18 +11,18 @@ import type { ListResponse, SingleResponse } from '../types/response';
 import { makeManagementApiRequest } from './api-config';
 import { validateProjectId, validateTenantId } from './resource-validation';
 
-export interface ModelSettings {
+interface ModelSettings {
   model?: string;
   providerOptions?: Record<string, unknown>;
 }
 
-export interface PassCriteriaCondition {
+interface PassCriteriaCondition {
   field: string;
   operator: '>' | '<' | '>=' | '<=' | '=' | '!=';
   value: number;
 }
 
-export interface PassCriteria {
+interface PassCriteria {
   operator: 'and' | 'or';
   conditions: PassCriteriaCondition[];
 }
@@ -73,24 +73,6 @@ export async function fetchEvaluators(
   return makeManagementApiRequest<ListResponse<Evaluator>>(
     `tenants/${tenantId}/projects/${projectId}/evals/evaluators`
   );
-}
-
-/**
- * Fetch a single evaluator by ID
- */
-export async function fetchEvaluator(
-  tenantId: string,
-  projectId: string,
-  evaluatorId: string
-): Promise<Evaluator> {
-  validateTenantId(tenantId);
-  validateProjectId(projectId);
-
-  const response = await makeManagementApiRequest<SingleResponse<Evaluator>>(
-    `tenants/${tenantId}/projects/${projectId}/evals/evaluators/${evaluatorId}`
-  );
-
-  return response.data;
 }
 
 /**

@@ -300,6 +300,7 @@ app.openapi(
                 tenantId,
                 projectId,
                 id: generateId(),
+                // biome-ignore lint/style/noNonNullAssertion: ignore
                 evaluationJobConfigId: evalJobConfigId!,
                 evaluatorId,
               })

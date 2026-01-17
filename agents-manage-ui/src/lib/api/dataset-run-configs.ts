@@ -23,13 +23,6 @@ export interface DatasetRunConfigInsert {
   evaluatorIds?: string[];
 }
 
-export interface DatasetRunConfigUpdate {
-  name?: string;
-  description?: string;
-  agentIds?: string[];
-  evaluatorIds?: string[];
-}
-
 export async function fetchDatasetRunConfigs(
   tenantId: string,
   projectId: string,
@@ -54,6 +47,13 @@ export async function fetchDatasetRunConfig(
   return makeManagementApiRequest<SingleResponse<DatasetRunConfig>>(
     `tenants/${tenantId}/projects/${projectId}/evals/dataset-run-configs/${runConfigId}`
   );
+}
+
+export interface DatasetRunConfigUpdate {
+  name?: string;
+  description?: string;
+  agentIds?: string[];
+  evaluatorIds?: string[];
 }
 
 export async function createDatasetRunConfig(

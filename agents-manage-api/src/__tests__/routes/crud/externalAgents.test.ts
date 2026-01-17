@@ -9,25 +9,6 @@ import { createTestTenantWithOrg } from '../../utils/testTenant';
 describe('External Agent CRUD Routes - Integration Tests', () => {
   const projectId = 'default';
 
-  // Helper function to create a test agent and return its ID
-  const createtestAgent = async (tenantId: string) => {
-    const agentData = {
-      id: generateId(),
-      name: `Test Agent ${generateId()}`,
-      defaultSubAgentId: null,
-    };
-
-    const res = await makeRequest(`/tenants/${tenantId}/projects/${projectId}/agents`, {
-      method: 'POST',
-      body: JSON.stringify(agentData),
-    });
-    if (res.status !== 201) {
-      throw new Error(`Failed to create agent: ${res.status}`);
-    }
-    const body = await res.json();
-    return body.data.id;
-  };
-
   // Helper function to create an external agent and return its ID
   const createTestExternalAgent = async ({
     tenantId,

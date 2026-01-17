@@ -12,7 +12,7 @@ import {
 import type { Dataset } from '@/lib/api/datasets';
 import { DatasetItemMenu } from './dataset-item-menu';
 
-export interface DatasetItemProps extends Dataset {
+interface DatasetItemProps extends Dataset {
   tenantId: string;
   projectId: string;
 }

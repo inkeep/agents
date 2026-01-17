@@ -16,7 +16,7 @@ export interface DatasetRun {
   updatedAt: string;
 }
 
-export interface DatasetRunConversation {
+interface DatasetRunConversation {
   id: string;
   conversationId: string;
   datasetRunId: string;
@@ -26,7 +26,7 @@ export interface DatasetRunConversation {
   updatedAt: string;
 }
 
-export interface DatasetRunItemWithConversations {
+interface DatasetRunItemWithConversations {
   id: string;
   tenantId: string;
   projectId: string;
