@@ -251,9 +251,7 @@ function compareComponentsDirectly(
   changes.push(
     ...compareFunctionTools(localProject.functionTools || {}, remoteProject.functionTools || {})
   );
-  changes.push(
-    ...compareFunctions(localProject.functions || {}, remoteProject.functions || {}, debug)
-  );
+  changes.push(...compareFunctions(localProject.functions || {}, remoteProject.functions || {}));
   changes.push(
     ...compareDataComponents(
       localProject.dataComponents || {},
@@ -484,8 +482,7 @@ function compareFunctionTools(
  */
 function compareFunctions(
   localFunctions: Record<string, any>,
-  remoteFunctions: Record<string, any>,
-  debug: boolean
+  remoteFunctions: Record<string, any>
 ): ComponentChange[] {
   // Clean functions data by removing metadata fields that belong to functionTools
   const cleanLocalFunctions: Record<string, any> = {};
