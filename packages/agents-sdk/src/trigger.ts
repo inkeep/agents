@@ -7,13 +7,16 @@ import { generateIdFromName } from './utils/generateIdFromName';
 const logger = getLogger('trigger');
 
 // Type for the config that can accept Zod schemas
-type TriggerConfigWithZod = Omit<
+export type TriggerConfig = Omit<
 	TriggerApiInsert,
 	'id' | 'inputSchema'
 > & {
 	id?: string;
 	inputSchema?: Record<string, unknown> | z.ZodObject<any> | null;
 };
+
+// Internal alias for backward compatibility
+type TriggerConfigWithZod = TriggerConfig;
 
 export interface TriggerInterface {
 	getId(): string;

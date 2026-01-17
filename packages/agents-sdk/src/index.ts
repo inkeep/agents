@@ -80,5 +80,5 @@ export {
   type TelemetryTracer,
 } from './telemetry-provider';
 export { Tool } from './tool';
-export { Trigger, type TriggerInterface } from './trigger';
+export { Trigger, type TriggerConfig, type TriggerInterface } from './trigger';
 export type * from './types';
