@@ -52,10 +52,11 @@ export const Playground = ({
   });
 
   const handleCopyTrace = async () => {
-    if (!chatActivities) return;
-
-    setIsCopying(true);
-    try {
+    // Workaround for a React Compiler limitation.
+    // Todo: Support value blocks (conditional, logical, optional chaining, etc) within a try/catch statement
+    async function copy() {
+      if (!chatActivities) return;
+      setIsCopying(true);
       const result = await copyTraceToClipboard(chatActivities);
       if (result.success) {
         toast.success('Trace copied to clipboard', {
@@ -66,14 +67,16 @@ export const Playground = ({
           description: result.error || 'An unknown error occurred',
         });
       }
+    }
+    try {
+      await copy();
     } catch (err) {
       toast.error('Failed to copy trace', {
         description: err instanceof Error ? err.message : 'An unknown error occurred',
       });
-    } finally {
-      await new Promise((resolve) => setTimeout(resolve, 200));
-      setIsCopying(false);
     }
+    await new Promise((resolve) => setTimeout(resolve, 200));
+    setIsCopying(false);
   };
 
   return (

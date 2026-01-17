@@ -166,7 +166,9 @@ export const ToolApproval = ({
   // biome-ignore lint/correctness/useExhaustiveDependencies: Only run once per unique toolCallId to prevent re-fetching on stream updates
   useEffect(() => {
     const fetchAndComputeDiff = async () => {
-      try {
+      // Workaround for a React Compiler limitation.
+      // Todo: Support value blocks (conditional, logical, optional chaining, etc) within a try/catch statement
+      async function doRequest() {
         setLoading(true);
         setError(null);
 
@@ -187,12 +189,14 @@ export const ToolApproval = ({
         } else {
           setDiffs(result.data || []);
         }
+      }
+      try {
+        await doRequest();
       } catch (err) {
         console.error('Failed to compute diff:', err);
         setError(err instanceof Error ? err.message : 'Failed to load entity state');
-      } finally {
-        setLoading(false);
       }
+      setLoading(false);
     };
 
     fetchAndComputeDiff();
