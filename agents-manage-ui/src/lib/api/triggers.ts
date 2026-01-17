@@ -52,6 +52,29 @@ export async function getTrigger(
 }
 
 /**
+ * Create a new trigger (POST)
+ */
+export async function createTrigger(
+  tenantId: string,
+  projectId: string,
+  agentId: string,
+  triggerData: Partial<Trigger>
+): Promise<Trigger> {
+  validateTenantId(tenantId);
+  validateProjectId(projectId);
+
+  const response = await makeManagementApiRequest<SingleResponse<Trigger>>(
+    `tenants/${tenantId}/projects/${projectId}/agents/${agentId}/triggers`,
+    {
+      method: 'POST',
+      body: JSON.stringify(triggerData),
+    }
+  );
+
+  return response.data;
+}
+
+/**
  * Update a trigger (PATCH)
  */
 export async function updateTrigger(

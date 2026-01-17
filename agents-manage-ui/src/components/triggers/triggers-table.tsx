@@ -1,6 +1,7 @@
 'use client';
 
-import { Copy, MoreHorizontal, Trash2 } from 'lucide-react';
+import { Copy, MoreHorizontal, Pencil, Plus, Trash2 } from 'lucide-react';
+import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
 import { toast } from 'sonner';
@@ -107,26 +108,34 @@ export function TriggersTable({ triggers, tenantId, projectId, agentId }: Trigge
   };
 
   return (
-    <div className="rounded-lg border">
-      <Table>
-        <TableHeader>
-          <TableRow noHover>
-            <TableHead>Name</TableHead>
-            <TableHead>Description</TableHead>
-            <TableHead>Status</TableHead>
-            <TableHead>Webhook URL</TableHead>
-            <TableHead className="w-12"></TableHead>
-          </TableRow>
-        </TableHeader>
-        <TableBody>
-          {triggers.length === 0 ? (
+    <div className="space-y-4">
+      <div className="flex justify-end">
+        <Button asChild>
+          <Link href={`/${tenantId}/projects/${projectId}/agents/${agentId}/triggers/new`}>
+            <Plus className="w-4 h-4 mr-2" />
+            Create trigger
+          </Link>
+        </Button>
+      </div>
+      <div className="rounded-lg border">
+        <Table>
+          <TableHeader>
             <TableRow noHover>
-              <TableCell colSpan={5} className="text-center text-muted-foreground py-8">
-                No triggers configured yet. Create a trigger to enable webhook-based agent
-                invocation.
-              </TableCell>
+              <TableHead>Name</TableHead>
+              <TableHead>Description</TableHead>
+              <TableHead>Status</TableHead>
+              <TableHead>Webhook URL</TableHead>
+              <TableHead className="w-12"></TableHead>
             </TableRow>
-          ) : (
+          </TableHeader>
+          <TableBody>
+            {triggers.length === 0 ? (
+              <TableRow noHover>
+                <TableCell colSpan={5} className="text-center text-muted-foreground py-8">
+                  No triggers configured yet. Create a trigger to enable webhook-based agent invocation.
+                </TableCell>
+              </TableRow>
+            ) : (
             triggers.map((trigger) => {
               const isLoading = loadingTriggers.has(trigger.id);
               return (
@@ -174,6 +183,14 @@ export function TriggersTable({ triggers, tenantId, projectId, agentId }: Trigge
                         </Button>
                       </DropdownMenuTrigger>
                       <DropdownMenuContent align="end">
+                        <DropdownMenuItem asChild>
+                          <Link
+                            href={`/${tenantId}/projects/${projectId}/agents/${agentId}/triggers/${trigger.id}/edit`}
+                          >
+                            <Pencil className="w-4 h-4 mr-2" />
+                            Edit
+                          </Link>
+                        </DropdownMenuItem>
                         <DropdownMenuItem
                           className="text-destructive focus:text-destructive"
                           onClick={() => deleteTrigger(trigger.id, trigger.name)}
@@ -190,6 +207,7 @@ export function TriggersTable({ triggers, tenantId, projectId, agentId }: Trigge
           )}
         </TableBody>
       </Table>
+      </div>
     </div>
   );
 }
