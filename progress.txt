@@ -855,3 +855,56 @@ The backend and SDK implementation for Triggers V0 is **COMPLETE**. All core fun
 
 ## Iteration 6 - Sat Jan 17 09:33:23 UTC 2026
 
+## Iteration 7 - $(date -u)
+
+### Story: US-024 - Add Triggers section to Agent detail page UI
+
+**Implementation:**
+- Created dedicated triggers management page at /agents/[agentId]/triggers route
+- Implemented TriggersTable component with comprehensive functionality:
+  - List view displaying trigger name, description, enabled status, and webhook URL
+  - Inline enable/disable toggle using Switch component
+  - Copy webhook URL button with toast notification
+  - Delete trigger action with confirmation dialog
+  - Dropdown menu for trigger actions
+  - Loading states for async operations
+- Created triggers API client (agents-manage-ui/src/lib/api/triggers.ts):
+  - fetchTriggers: List all triggers for an agent
+  - getTrigger: Get single trigger by ID
+  - updateTrigger: PATCH update trigger fields
+  - deleteTrigger: Delete trigger
+- Created server actions (agents-manage-ui/src/lib/actions/triggers.ts):
+  - getTriggersAction: Fetch triggers for page rendering
+  - updateTriggerEnabledAction: Toggle enabled status with proper error handling
+  - deleteTriggerAction: Delete trigger with revalidation
+- Added Triggers button to agent toolbar (Toolbar component):
+  - Webhook icon for visual identification
+  - Navigation link to triggers page
+  - Consistent with existing toolbar button patterns
+- Exported trigger schemas from agents-core/client-exports.ts:
+  - TriggerApiInsertSchema, TriggerApiSelectSchema, TriggerApiUpdateSchema
+  - TriggerApiInsert, TriggerApiSelect, TriggerApiUpdate types
+- All components follow existing UI patterns (shadcn/ui components, toast notifications, etc.)
+
+**Files Changed:**
+- agents-manage-ui/src/app/[tenantId]/projects/[projectId]/agents/[agentId]/triggers/page.tsx (new - 38 lines)
+- agents-manage-ui/src/components/triggers/triggers-table.tsx (new - 182 lines)
+- agents-manage-ui/src/lib/api/triggers.ts (new - 99 lines)
+- agents-manage-ui/src/lib/actions/triggers.ts (new - 81 lines)
+- agents-manage-ui/src/components/agent/toolbar/toolbar.tsx (added Triggers button - 7 lines modified)
+- packages/agents-core/src/client-exports.ts (exported trigger schemas - 10 lines modified)
+- prd.json (marked US-024 as complete)
+
+**Learnings:**
+- Next.js App Router pattern: Server component fetches data, client component handles interactions
+- Actions pattern: API client (lib/api) → Server actions (lib/actions) → Components
+- Trigger types follow same pattern as API keys: TriggerApiSelect + webhookUrl field added by API
+- ActionResult pattern used for error handling in server actions (success: true | false, error, code)
+- Toast notifications (sonner) for user feedback on async actions
+- Router.refresh() to revalidate server-side data after mutations
+- Type safety maintained across API client → Actions → Components boundary
+- Toolbar navigation pattern: Button with asChild + Link for client-side navigation
+- Existing UI components: Badge (status), Switch (toggle), DropdownMenu (actions), Table (layout)
+
+---
+

@@ -392,8 +392,8 @@
         "Verify in browser using dev-browser skill"
       ],
       "priority": 24,
-      "passes": false,
-      "notes": ""
+      "passes": true,
+      "notes": "Completed in commit 24fbd363. Created dedicated triggers page with navigation from agent toolbar, full CRUD UI with inline toggle and delete actions."
     },
     {
       "id": "US-025",
