@@ -86,7 +86,7 @@ export function formatPromptWithContext(
   // Check if the string contains template variables like {{user.name}}
   if (hasTemplateVariables(str)) {
     // Convert template variables to appropriate .toTemplate() calls based on actual schema
-    const convertedStr = str.replace(/\{\{([^}]+)\}\}/g, (match, variablePath) => {
+    const convertedStr = str.replace(/\{\{([^}]+)\}\}/g, (_match, variablePath) => {
       if (isContextVariable(variablePath, contextConfigData)) {
         return `\${${contextVarName}.toTemplate("${variablePath}")}`;
       }

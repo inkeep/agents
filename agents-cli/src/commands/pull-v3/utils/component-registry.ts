@@ -7,9 +7,6 @@
  * 2. File path tracking for imports
  * 3. Reference resolution for code generation
  */
-
-import { existsSync, readFileSync } from 'node:fs';
-import { join } from 'node:path';
 import type { FullProjectDefinition } from '@inkeep/agents-core';
 
 export type ComponentType =

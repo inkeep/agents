@@ -1,5 +1,4 @@
 import type { FullProjectDefinition } from '@inkeep/agents-core';
-import chalk from 'chalk';
 
 export interface ComparisonResult {
   matches: boolean;
