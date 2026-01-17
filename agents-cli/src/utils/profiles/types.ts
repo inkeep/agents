@@ -21,7 +21,10 @@ export const explicitRemoteSchema: z.ZodType<ExplicitRemote> = z.object({
 /**
  * Schema for remote configuration - either 'cloud' shorthand or explicit URLs
  */
-export const remoteSchema = z.union([z.literal('cloud'), explicitRemoteSchema]);
+export const remoteSchema: z.ZodType<RemoteConfig> = z.union([
+  z.literal('cloud'),
+  explicitRemoteSchema,
+]);
 
 /**
  * Profile name validation - alphanumeric + hyphens only
@@ -63,7 +66,7 @@ export interface ExplicitRemote {
 /**
  * Remote configuration type - either 'cloud' or explicit URLs
  */
-export type RemoteConfig = z.infer<typeof remoteSchema>;
+export type RemoteConfig = 'cloud' | ExplicitRemote;
 
 /**
  * Single profile configuration type
