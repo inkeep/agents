@@ -1,3 +1,4 @@
+// biome-ignore-all lint/security/noGlobalEval: allow in test
 /**
  * Unit tests for data component generator
  */
