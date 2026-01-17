@@ -3,6 +3,7 @@
  */
 
 import { describe, expect, it } from 'vitest';
+import type { ComponentRegistry } from '../../utils/component-registry';
 import {
   generateContextConfigDefinition,
   generateContextConfigFile,
@@ -10,7 +11,6 @@ import {
   generateFetchDefinitionDefinition,
   generateHeadersDefinition,
 } from '../context-config-generator';
-import type { ComponentRegistry } from '../../utils/component-registry';
 
 // Mock registry for tests
 const mockRegistry = {

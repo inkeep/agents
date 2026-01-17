@@ -3,12 +3,12 @@
  */
 
 import { describe, expect, it } from 'vitest';
+import type { ComponentRegistry } from '../../utils/component-registry';
 import {
   generateAgentDefinition,
   generateAgentFile,
   generateAgentImports,
 } from '../agent-generator';
-import type { ComponentRegistry } from '../../utils/component-registry';
 
 // Mock registry for tests
 const mockRegistry = {

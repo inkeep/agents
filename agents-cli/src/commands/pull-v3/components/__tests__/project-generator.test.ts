@@ -3,12 +3,12 @@
  */
 
 import { describe, expect, it } from 'vitest';
+import type { ComponentRegistry } from '../../utils/component-registry';
 import {
   generateProjectDefinition,
   generateProjectFile,
   generateProjectImports,
 } from '../project-generator';
-import type { ComponentRegistry } from '../../utils/component-registry';
 
 // Mock registry for tests
 const mockRegistry = {
