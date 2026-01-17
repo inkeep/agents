@@ -95,7 +95,7 @@ interface ProjectPaths {
 /**
  * Create project directory structure
  */
-function createProjectStructure(projectDir: string, projectId: string): ProjectPaths {
+function createProjectStructure(projectDir: string): ProjectPaths {
   const projectRoot = projectDir;
 
   const paths = {
@@ -214,12 +214,8 @@ async function readExistingProject(
     ]);
 
     return projectDefinition;
-  } catch (error) {
+  } catch {
     // If there's any error parsing the existing project, treat as if it doesn't exist
-    const errorMessage = error instanceof Error ? error.message : String(error);
-    const isCredentialError =
-      errorMessage.includes('Credential') && errorMessage.includes('not found');
-
     return null;
   }
 }
@@ -228,7 +224,7 @@ async function readExistingProject(
  * Main pull-v3 command
  * @returns PullResult when in batch mode, otherwise void (exits process)
  */
-export async function pullV3Command(options: PullV3Options): Promise<PullResult | void> {
+export async function pullV3Command(options: PullV3Options): Promise<PullResult | undefined> {
   // Handle --all flag for batch operations
   if (options.all) {
     await pullAllProjects(options);
@@ -427,8 +423,6 @@ export async function pullV3Command(options: PullV3Options): Promise<PullResult 
 
       for (const [agentId, agentData] of Object.entries(remoteProject.agents) as any[]) {
         if (agentData.tools) {
-          const originalToolCount = Object.keys(agentData.tools).length;
-
           // Filter out any tools that are defined at project level
           const agentSpecificTools = Object.fromEntries(
             Object.entries(agentData.tools).filter(([toolId]) => !projectToolIds.includes(toolId))
@@ -457,7 +451,7 @@ export async function pullV3Command(options: PullV3Options): Promise<PullResult 
     }
 
     // Step 5: Set up project structure
-    const paths = createProjectStructure(projectDir, projectId);
+    const paths = createProjectStructure(projectDir);
 
     // Step 6: Introspect mode - skip comparison, regenerate everything
     if (options.introspect) {
@@ -513,7 +507,7 @@ export async function pullV3Command(options: PullV3Options): Promise<PullResult 
         if (!nameGroups.has(comp.name)) {
           nameGroups.set(comp.name, []);
         }
-        nameGroups.get(comp.name)!.push(comp);
+        nameGroups.get(comp.name)?.push(comp);
       }
 
       // Show any conflicts
@@ -619,7 +613,7 @@ export async function pullV3Command(options: PullV3Options): Promise<PullResult 
           if (!nameGroups.has(comp.name)) {
             nameGroups.set(comp.name, []);
           }
-          nameGroups.get(comp.name)!.push(comp);
+          nameGroups.get(comp.name)?.push(comp);
         }
 
         // Show any conflicts
@@ -659,11 +653,11 @@ export async function pullV3Command(options: PullV3Options): Promise<PullResult 
               .map((result) => ({
                 componentId: result.componentId,
                 componentType: result.componentType,
-                filePath: result.filePath.replace(paths.projectRoot + '/', ''), // Convert to relative path
+                filePath: result.filePath.replace(`${paths.projectRoot}/`, ''), // Convert to relative path
               }))
           : undefined;
 
-      const updateResults = await updateModifiedComponents(
+      await updateModifiedComponents(
         comparison,
         remoteProject,
         localRegistry,
@@ -938,7 +932,7 @@ async function pullSingleProject(
     const remoteProject = await apiClient.getFullProject(projectId);
 
     // Create project structure
-    const paths = createProjectStructure(targetDir, projectId);
+    const paths = createProjectStructure(targetDir);
 
     // Generate all files using introspect mode for new projects
     await introspectGenerate(

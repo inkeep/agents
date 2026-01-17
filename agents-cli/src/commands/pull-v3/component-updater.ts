@@ -248,7 +248,7 @@ export async function checkAndPromptForStaleComponentCleanup(
           }
         });
       }
-      if (agent.contextConfig && agent.contextConfig.id) {
+      if (agent.contextConfig?.id) {
         remoteComponentIds.add(agent.contextConfig.id);
         if (agent.contextConfig.contextVariables) {
           Object.values(agent.contextConfig.contextVariables).forEach((variable: any) => {
@@ -444,7 +444,7 @@ export async function cleanupStaleComponents(
       }
 
       // Context configs
-      if (agent.contextConfig && agent.contextConfig.id) {
+      if (agent.contextConfig?.id) {
         remoteComponentIds.add(agent.contextConfig.id);
 
         // Fetch definitions within context configs
@@ -506,12 +506,12 @@ export async function cleanupStaleComponents(
     if (!staleComponentsByFile.has(filePath)) {
       staleComponentsByFile.set(filePath, []);
     }
-    staleComponentsByFile.get(filePath)!.push(component);
+    staleComponentsByFile.get(filePath)?.push(component);
   }
 
   // Process each file that contains stale components
   for (const [originalFilePath, staleComponentsInFile] of staleComponentsByFile) {
-    const tempFilePath = join(tempDir, originalFilePath.replace(projectRoot + '/', ''));
+    const tempFilePath = join(tempDir, originalFilePath.replace(`${projectRoot}/`, ''));
 
     if (!existsSync(tempFilePath)) {
       continue; // File doesn't exist in temp, skip
@@ -886,7 +886,7 @@ export async function updateModifiedComponents(
       if (!componentsByFile.has(filePath)) {
         componentsByFile.set(filePath, []);
       }
-      componentsByFile.get(filePath)!.push({
+      componentsByFile.get(filePath)?.push({
         type: componentType,
         id: componentId,
         registryInfo: actualComponent,
