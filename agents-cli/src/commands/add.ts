@@ -4,13 +4,13 @@ import { ANTHROPIC_MODELS, GOOGLE_MODELS, OPENAI_MODELS } from '@inkeep/agents-c
 import chalk from 'chalk';
 import { findUp } from 'find-up';
 import fs from 'fs-extra';
+import type { ModelSettings } from '../utils/model-config';
 import {
   type ContentReplacement,
   cloneTemplate,
   cloneTemplateLocal,
   getAvailableTemplates,
 } from '../utils/templates';
-import type { ModelSettings } from '../utils/model-config';
 
 export interface AddOptions {
   project?: string;

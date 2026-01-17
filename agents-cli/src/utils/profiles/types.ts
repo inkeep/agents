@@ -49,7 +49,7 @@ export const profileSchema: z.ZodType<Profile> = z.object({
  * Note: We use z.record(z.string(), profileSchema) for Zod v4 compatibility
  * Profile name validation is done separately in addProfile
  */
-export const profilesConfigSchema = z.object({
+export const profilesConfigSchema: z.ZodType<ProfilesConfig> = z.object({
   activeProfile: z.string().min(1, 'activeProfile cannot be empty'),
   profiles: z.record(z.string(), profileSchema),
 });
@@ -80,7 +80,10 @@ export interface Profile {
 /**
  * Full profiles configuration type
  */
-export type ProfilesConfig = z.infer<typeof profilesConfigSchema>;
+export interface ProfilesConfig {
+  activeProfile: string;
+  profiles: Record<string, Profile>;
+}
 
 /**
  * Resolved remote URLs - always explicit, never 'cloud'
