@@ -1,7 +1,7 @@
 @import "@xyflow/react/dist/style.css";
 @import "tailwindcss";
 @import "tw-animate-css";
-@plugin 'tailwind-scrollbar';
+@plugin "tailwind-scrollbar";
 @source "../../node_modules/streamdown/dist/*.js";
 
 @custom-variant dark (&:is(.dark *));

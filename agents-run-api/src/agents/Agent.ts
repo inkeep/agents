@@ -31,6 +31,7 @@ import {
 } from '@inkeep/agents-core';
 import { type Span, SpanStatusCode, trace } from '@opentelemetry/api';
 import {
+  type FlexibleSchema,
   generateText,
   Output,
   type StreamTextResult,
@@ -627,7 +628,6 @@ export class Agent {
             createTransferToAgentTool({
               transferConfig: agentConfig,
               callingAgentId: this.config.id,
-              subAgent: this,
               streamRequestId: runtimeContext?.metadata?.streamRequestId,
             }),
             runtimeContext?.metadata?.streamRequestId,
@@ -654,7 +654,6 @@ export class Agent {
                 apiKey: runtimeContext?.metadata?.apiKey,
               },
               sessionId,
-              subAgent: this,
               credentialStoreRegistry: this.credentialStoreRegistry,
             }),
             runtimeContext?.metadata?.streamRequestId,
@@ -1939,7 +1938,7 @@ export class Agent {
           );
 
           // Use override schema if provided, otherwise use original
-          let inputSchema;
+          let inputSchema: FlexibleSchema;
           try {
             inputSchema = override.schema
               ? jsonSchemaToZod(override.schema)
@@ -2015,7 +2014,7 @@ export class Agent {
                       hasComplexArgs: !!complexArgs,
                       transformation:
                         typeof override.transformation === 'string'
-                          ? override.transformation.substring(0, 100) + '...'
+                          ? `${override.transformation.substring(0, 100)}...`
                           : 'object-transformation',
                     },
                     'Successfully transformed tool arguments'
@@ -2139,7 +2138,7 @@ export class Agent {
     if (typeof result === 'string') {
       try {
         parsedResult = JSON.parse(result);
-      } catch (e) {
+      } catch {
         // Keep as string if not valid JSON
       }
     }
@@ -2460,9 +2459,7 @@ ${output}`;
       if (!subAgents) {
         return false;
       }
-      return Object.values(subAgents).some(
-        (subAgent) => subAgent.artifactComponents?.length ?? 0 > 0
-      );
+      return Object.values(subAgents).some((subAgent) => subAgent.artifactComponents?.length);
     } catch (error) {
       logger.error(
         { error, agentId: this.config.agentId },
@@ -3139,10 +3136,10 @@ ${output}`;
     }
 
     // Only check for tool errors in streaming mode (when includeThinkingComplete is false)
-    if (!includeThinkingComplete && last && last['content'] && last['content'].length > 0) {
-      const lastContent = last['content'][last['content'].length - 1];
-      if (lastContent['type'] === 'tool-error') {
-        const error = lastContent['error'];
+    if (!includeThinkingComplete && last && last.content && last.content.length > 0) {
+      const lastContent = last.content[last.content.length - 1];
+      if (lastContent.type === 'tool-error') {
+        const error = lastContent.error;
         if (
           error &&
           typeof error === 'object' &&
@@ -3157,10 +3154,6 @@ ${output}`;
     if (steps.length >= 1) {
       const currentStep = steps[steps.length - 1];
       if (currentStep && 'toolCalls' in currentStep && currentStep.toolCalls) {
-        const stopToolNames = includeThinkingComplete
-          ? ['transfer_to_', 'thinking_complete']
-          : ['transfer_to_'];
-
         const hasTransferTool = currentStep.toolCalls.some((tc: any) =>
           tc.toolName.startsWith('transfer_to_')
         );

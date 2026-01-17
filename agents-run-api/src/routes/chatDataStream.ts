@@ -94,7 +94,7 @@ app.openapi(chatDataStreamRoute, async (c) => {
   try {
     // Get execution context from API key authentication
     const executionContext = c.get('executionContext');
-    const { tenantId, projectId, agentId, resolvedRef } = executionContext;
+    const { tenantId, projectId, agentId } = executionContext;
 
     loggerFactory
       .getLogger('chatDataStream')
@@ -130,7 +130,7 @@ app.openapi(chatDataStreamRoute, async (c) => {
     if (clientTimezone && clientTimestamp) {
       // Validate timezone format
       const isValidTimezone =
-        clientTimezone.length < 100 && /^[A-Za-z0-9_\/\-\+]+$/.test(clientTimezone);
+        clientTimezone.length < 100 && /^[A-Za-z0-9_/\-+]+$/.test(clientTimezone);
       // Validate ISO 8601 timestamp format: "2026-01-16T19:45:30.123Z"
       const isValidTimestamp =
         clientTimestamp.length < 50 &&
