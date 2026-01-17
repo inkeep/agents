@@ -8,10 +8,11 @@ import {
   generateAgentFile,
   generateAgentImports,
 } from '../agent-generator';
+import type { ComponentRegistry } from '../../utils/component-registry';
 
 // Mock registry for tests
-const mockRegistry = {
-  formatReferencesForCode: (refs: string[], type: string, style: any, indent: number) => {
+const mockRegistry: Partial<ComponentRegistry> = {
+  formatReferencesForCode(refs, _type, _style, indent) {
     if (!refs || refs.length === 0) return '[]';
 
     // Convert refs to proper variable names
@@ -35,7 +36,7 @@ const mockRegistry = {
     const items = variableRefs.map((ref) => `${indentStr}${ref}`).join(',\n');
     return `[\n${items}\n${indentStr.slice(2)}]`;
   },
-  getVariableName: (id: string, type?: string) => {
+  getVariableName(id, _type) {
     // If already camelCase, return as-is, otherwise convert
     if (!/[-_]/.test(id)) {
       return id;
@@ -46,11 +47,11 @@ const mockRegistry = {
       .replace(/[^a-zA-Z0-9]/g, '')
       .replace(/^[0-9]/, '_$&');
   },
-  getImportsForFile: (filePath: string, components: any[]) => {
+  getImportsForFile(_filePath: string, _components: any[]) {
     // Mock implementation returns empty array
     return [];
   },
-  getAllComponents: () => {
+  getAllComponents() {
     // Mock implementation returns contextConfig component
     return [
       {
