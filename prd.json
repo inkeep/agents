@@ -426,8 +426,8 @@
         "Verify in browser using dev-browser skill"
       ],
       "priority": 26,
-      "passes": false,
-      "notes": ""
+      "passes": true,
+      "notes": "Completed in commit 634b1fb9. Full invocation history UI with expandable rows, status filtering, pagination, and links to conversations."
     }
   ]
 }

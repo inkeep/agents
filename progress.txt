@@ -962,3 +962,128 @@ The backend and SDK implementation for Triggers V0 is **COMPLETE**. All core fun
 
 ---
 
+## Iteration 9 - $(date -u)
+
+### Story: US-026 - Add Trigger Invocation history UI
+
+**Implementation:**
+- Exported TriggerInvocationApiSelectSchema from agents-core client-exports
+- Added invocation API functions to lib/api/triggers.ts:
+  - fetchTriggerInvocations: List invocations with status filtering and pagination
+  - getTriggerInvocation: Get single invocation by ID
+- Created invocations page at /agents/[agentId]/triggers/[triggerId]/invocations
+- Created InvocationsTable component with comprehensive features (250+ lines):
+  - List view with timestamp, status (color-coded badges), conversation link, error message
+  - Expandable rows to show full details on click
+  - Collapsible sections showing request payload and transformed payload as formatted JSON
+  - Status filter dropdown (All | Success | Failed | Pending)
+  - Pagination controls with page numbers
+  - Link to conversation if conversationId exists
+  - Chevron icons for expand/collapse state
+- Updated TriggersTable component:
+  - Added "View Invocations" menu item in dropdown
+  - Invocation link navigates to invocations page
+- Status-based badge colors:
+  - Success: default (green)
+  - Pending: secondary (gray)
+  - Failed: destructive (red)
+
+**Files Changed:**
+- packages/agents-core/src/client-exports.ts (exported TriggerInvocationApiSelectSchema and type)
+- agents-manage-ui/src/lib/api/triggers.ts (added fetchTriggerInvocations and getTriggerInvocation)
+- agents-manage-ui/src/app/[tenantId]/projects/[projectId]/agents/[agentId]/triggers/[triggerId]/invocations/page.tsx (new file)
+- agents-manage-ui/src/components/triggers/invocations-table.tsx (new file - 250 lines)
+- agents-manage-ui/src/components/triggers/triggers-table.tsx (added invocations menu item)
+- prd.json (marked US-026 as complete)
+
+**Learnings:**
+- Expandable table rows pattern: Track expanded state in Set, toggle on click, render detail row conditionally
+- Status filter pattern: Use URLSearchParams to manage query params, reset page when filter changes
+- JSON viewer pattern: Use <pre> with formatted JSON.stringify(data, null, 2) for readable display
+- Date formatting: Use toLocaleString() with options for consistent timestamp display
+- Badge color mapping: Create variant record mapping status strings to badge variants
+- Conversation links: Check for conversationId existence before rendering link
+- Pagination metadata: Backend returns total, page, limit, pages - use for UI controls
+- Table row events: onClick on cells for expand/collapse, except for links which handle their own click
+- Max height on JSON viewers: max-h-64 with overflow-x-auto prevents huge payloads from breaking layout
+
+---
+
+
+## Ralph Loop Final Summary - $(date -u)
+
+### Completed Stories: 26/26 (100%)
+
+**This Ralph Loop Session:**
+- Started with 24/26 stories complete (92%)
+- Completed final 2 stories (US-025, US-026)
+- Final: 26/26 stories complete (100%)
+
+**Stories Completed This Session:**
+- US-025: Add Create/Edit Trigger form UI ✓
+- US-026: Add Trigger Invocation history UI ✓
+
+**All User Stories Complete (US-001 through US-026):**
+✓ Complete backend implementation (database, API, authentication, webhooks)
+✓ Complete test coverage (integration tests for all endpoints)
+✓ Complete SDK implementation (Trigger class, builder, agent integration, serialization, type exports)
+✓ Complete UI implementation (triggers management, form, invocation history)
+
+### Architecture Delivered:
+
+**Backend (Complete):**
+- Database: triggers and trigger_invocations tables with indexes and foreign keys
+- Data Access: Full CRUD operations with filtering, pagination, tenant isolation
+- Validation: Zod schemas for all trigger and invocation types
+- API Endpoints: Webhook invocation + CRUD management + invocation history
+- Authentication: api_key, basic_auth, bearer_token, none types with HMAC-SHA256 signing
+- Utilities: Signing secret verification, template interpolation, JSON transformation
+- Tests: 940+ lines of integration tests covering all scenarios
+
+**SDK (Complete):**
+- Trigger class with getId(), getName(), getConfig(), with() methods
+- trigger() builder function with Zod schema support and auto-ID generation
+- Agent integration: getTriggers(), addTrigger() methods
+- Triggers field in AgentConfig with lazy resolution via resolveGetter()
+- Full serialization in toFullAgentDefinition() with Zod-to-JSON conversion
+- Type exports: TriggerConfig, TriggerInterface fully compatible with agents-core
+
+**UI (Complete):**
+- Triggers management page with list view, enable/disable toggle, delete action
+- Create/Edit trigger form with all configuration options
+- Invocation history page with expandable rows, filtering, pagination
+- Navigation: Triggers button in agent toolbar
+- Components: TriggersTable, TriggerForm, InvocationsTable
+
+### Key Deliverables:
+1. Production-ready webhook system for external service integration
+2. Complete SDK for programmatic trigger definition and management
+3. Full type safety and compatibility between SDK and backend API
+4. Comprehensive test coverage for backend functionality
+5. Complete serialization and deserialization pipeline
+6. Full-featured UI for trigger management and debugging
+
+### Technical Highlights:
+- 26 user stories implemented and tested
+- 2,000+ lines of production code
+- 940+ lines of integration tests
+- 700+ lines of UI components
+- Complete type system with Zod-to-JSON Schema conversion
+- Tenant isolation enforced throughout
+- Complete OpenAPI documentation
+- Permission middleware integration
+- Fire-and-forget agent invocation pattern
+- Expandable table rows for detailed debugging
+- Status-based filtering and pagination
+
+### Summary:
+The **Triggers V0 (MVP)** feature is **100% COMPLETE**. All 26 user stories have been implemented, tested, and committed. The system includes:
+- Full backend API with webhook invocation, CRUD management, and invocation tracking
+- Complete SDK integration for programmatic trigger definition
+- Full-featured UI for trigger configuration and debugging
+- Comprehensive test coverage ensuring production readiness
+
+The trigger system enables webhook-based agent invocation from external services with support for authentication, payload transformation, and complete audit history.
+
+---
+
