@@ -1,3 +1,4 @@
+// biome-ignore-all lint/complexity/useLiteralKeys: to access protected fields
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { agentSessionManager } from '../AgentSession';
 import { BaseCompressor } from '../BaseCompressor';

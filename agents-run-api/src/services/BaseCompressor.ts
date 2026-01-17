@@ -1,12 +1,12 @@
 import type { ModelSettings } from '@inkeep/agents-core';
-import { getLedgerArtifacts, upsertLedgerArtifact } from '@inkeep/agents-core';
+import { getLedgerArtifacts } from '@inkeep/agents-core';
 import { type Span, SpanStatusCode } from '@opentelemetry/api';
-import { randomUUID } from 'crypto';
+import { randomUUID } from 'node:crypto';
 import dbClient from '../data/db/dbClient';
 import { getLogger } from '../logger';
 import { type ConversationSummary, distillConversation } from '../tools/distill-conversation-tool';
 import { getCompressionConfigForModel } from '../utils/model-context-utils';
-import { setSpanWithError, tracer } from '../utils/tracer';
+import { tracer } from '../utils/tracer';
 import { agentSessionManager } from './AgentSession';
 
 const logger = getLogger('BaseCompressor');
@@ -528,7 +528,7 @@ export abstract class BaseCompressor {
       return (
         preview.slice(0, 150).replace(/\s+/g, ' ').trim() + (preview.length > 150 ? '...' : '')
       );
-    } catch (error) {
+    } catch {
       return 'Preview unavailable';
     }
   }
