@@ -55,10 +55,7 @@ export function Combobox({
   const { isOpen, onClose, onToggle } = useDisclosure();
   const [value, setValue] = useState(defaultValue);
   const commandRef = useRef<HTMLDivElement>(null);
-  const currentLabel = useMemo(
-    () => options.find((option) => option.value === value)?.label,
-    [value, options]
-  );
+  const currentLabel = options.find((option) => option.value === value)?.label;
 
   const handleChangeOnOpen = () => {
     onOpenChange?.();
