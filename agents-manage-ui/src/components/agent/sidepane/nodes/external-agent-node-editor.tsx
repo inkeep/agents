@@ -45,8 +45,9 @@ export function ExternalAgentNodeEditor({
     // Always update the input state (allows user to type invalid JSON)
     setHeadersInputValue(value);
 
-    // Only save to node data if the JSON is valid
-    try {
+    // Workaround for a React Compiler limitation.
+    // Todo: Support value blocks (conditional, logical, optional chaining, etc) within a try/catch statement
+    function parse() {
       const parsedHeaders = value.trim() === '' ? {} : JSON.parse(value);
       if (
         typeof parsedHeaders === 'object' &&
@@ -60,6 +61,10 @@ export function ExternalAgentNodeEditor({
         });
         markUnsaved();
       }
+    }
+    try {
+      // Only save to node data if the JSON is valid
+      parse();
     } catch {
       // Invalid JSON - don't save, but allow user to continue typing
       // The ExpandableJsonEditor will show the validation error
