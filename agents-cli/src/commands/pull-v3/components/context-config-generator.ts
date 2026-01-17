@@ -302,13 +302,10 @@ export function generateContextConfigImports(
     const credentialRefs: Array<{ id: string; type: ComponentType }> = [];
 
     // Collect all credential references from fetchDefinitions
-    for (const [varName, varData] of Object.entries(contextData.contextVariables) as [
-      string,
-      any,
-    ][]) {
-      if (varData && typeof varData === 'object' && varData.credentialReferenceId) {
+    for (const varData of Object.values(contextData.contextVariables)) {
+      if (varData && typeof varData === 'object' && 'credentialReferenceId' in varData) {
         credentialRefs.push({
-          id: varData.credentialReferenceId,
+          id: varData.credentialReferenceId as string,
           type: 'credentials',
         });
       }
