@@ -4,7 +4,7 @@ import { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { toast } from 'sonner';
 import { z } from 'zod';
-import { JsonEditor } from '@/components/editors/json-editor';
+import { StandaloneJsonEditor } from '@/components/editors/standalone-json-editor';
 import { FormFieldWrapper } from '@/components/form/form-field-wrapper';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -100,11 +100,16 @@ function CustomHeadersDialog({ customHeaders, setCustomHeaders }: CustomHeadersD
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
             <FormFieldWrapper control={form.control} name="headers" label="Custom headers">
               {(field) => (
-                <JsonEditor
+                <StandaloneJsonEditor
                   value={field.value}
                   onChange={field.onChange}
-                  placeholder="Enter headers..."
+                  placeholder={`{
+  "tz": "US/Pacific"
+}`}
                   {...field}
+                  customTemplate={`{
+  "tz": "US/Pacific"
+}`}
                 />
               )}
             </FormFieldWrapper>
