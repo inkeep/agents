@@ -135,7 +135,6 @@ export function generateStatusComponentDefinition(
  * Generate imports needed for a status component file
  */
 export function generateStatusComponentImports(
-  componentId: string,
   componentData: any,
   style: CodeStyle = DEFAULT_STYLE
 ): string[] {
@@ -164,7 +163,7 @@ export function generateStatusComponentFile(
   componentData: any,
   style: CodeStyle = DEFAULT_STYLE
 ): string {
-  const imports = generateStatusComponentImports(componentId, componentData, style);
+  const imports = generateStatusComponentImports(componentData, style);
   const definition = generateStatusComponentDefinition(componentId, componentData, style);
 
   return `${imports.join('\n')}\n\n${definition}\n`;
