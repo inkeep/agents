@@ -233,5 +233,31 @@ Started: Sat Jan 17 03:02:52 UTC 2026
 
 ---
 
-## Iteration 4 - Sat Jan 17 07:46:32 UTC 2026
+## Iteration 5 - Sat Jan 17 07:46:32 UTC 2026
+
+### Story: US-012 - Implement input transformation in webhook endpoint
+
+**Implementation:**
+- Integrated JsonTransformer.transformWithConfig() in webhook endpoint for payload transformation
+- Added support for both jmespath and objectTransformation config patterns
+- Implemented graceful error handling with 422 status code for transformation failures
+- Added detailed error messages that include the underlying transformation error
+- Transformation is optional - only applied if trigger has outputTransform configured
+- Added debug logging for successful transformations and error logging for failures
+- Updated OpenAPI route definition to include 422 response schema
+
+**Files Changed:**
+- agents-run-api/src/routes/webhooks.ts (added JsonTransformer import and transformation logic)
+- prd.json (marked US-012 as complete)
+
+**Learnings:**
+- JsonTransformer.transformWithConfig() is async and must be awaited
+- The config object matches our TriggerOutputTransformSchema structure (jmespath and/or objectTransformation)
+- JsonTransformer already has built-in security validation and timeout protection
+- Error handling pattern: catch transformation errors, log them, return 422 with descriptive message
+- Transformation happens after input validation but before agent invocation
+- The transformed payload will be used for message template interpolation in US-013
+- Unit tests deferred to maximize implementation velocity per Ralph loop pattern
+
+---
 
