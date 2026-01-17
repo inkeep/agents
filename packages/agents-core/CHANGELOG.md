@@ -1,5 +1,22 @@
 # @inkeep/agents-core
 
+## 0.42.0
+
+### Minor Changes
+
+- a210291: Doltgres migration and evaluation system.
+
+### Patch Changes
+
+- 3940062: added extra prompting optionally to mcp tools
+- 91dad33: Removed `FIELD_MODIFIERS` and related logic from `drizzle-schema-helpers.ts`, simplifying schema creation functions.
+- 14041da: pagination fix
+- 568c1b2: added timestamp
+- c422f89: bug fix for user message evals
+- 4c65924: process attributes removed
+- 3e656cd: simple refactor to reorder models
+- dc827b0: improve context breakdown
+
 ## 0.41.2
 
 ### Patch Changes

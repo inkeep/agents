@@ -1,5 +1,39 @@
 # @inkeep/agents-cli
 
+## 0.42.0
+
+### Minor Changes
+
+- def71cc: add lint script and fix lint warnings
+
+### Patch Changes
+
+- 3940062: added extra prompting optionally to mcp tools
+- 14041da: pagination fix
+- 568c1b2: added timestamp
+- c422f89: bug fix for user message evals
+- 4c65924: process attributes removed
+- 3e656cd: simple refactor to reorder models
+- a1126c1: enable `d.ts` files generation for `dev` script and set `"isolatedDeclarations": true` in `tsconfig.json`
+- dc827b0: improve context breakdown
+- Updated dependencies [3940062]
+- Updated dependencies [4f05b56]
+- Updated dependencies [91dad33]
+- Updated dependencies [e7b571b]
+- Updated dependencies [a0d4594]
+- Updated dependencies [14041da]
+- Updated dependencies [568c1b2]
+- Updated dependencies [c422f89]
+- Updated dependencies [a210291]
+- Updated dependencies [4c65924]
+- Updated dependencies [3e656cd]
+- Updated dependencies [a1126c1]
+- Updated dependencies [2d0d77a]
+- Updated dependencies [dc827b0]
+  - @inkeep/agents-core@0.42.0
+  - @inkeep/agents-sdk@0.42.0
+  - @inkeep/agents-manage-ui@0.42.0
+
 ## 0.41.2
 
 ### Patch Changes
