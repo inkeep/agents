@@ -122,6 +122,54 @@ export const contextConfigs = pgTable(
   ]
 );
 
+export const triggers = pgTable(
+  'triggers',
+  {
+    ...agentScoped,
+    ...uiProperties,
+    enabled: boolean('enabled').notNull().default(true),
+    inputSchema: jsonb('input_schema').$type<Record<string, unknown>>(),
+    outputTransform: jsonb('output_transform').$type<{
+      jmespath?: string;
+      objectTransformation?: Record<string, string>;
+    }>(),
+    messageTemplate: text('message_template').notNull(),
+    authentication: jsonb('authentication').$type<unknown>(),
+    signingSecret: text('signing_secret'),
+    ...timestamps,
+  },
+  (table) => [
+    primaryKey({ columns: [table.tenantId, table.projectId, table.agentId, table.id] }),
+    foreignKey({
+      columns: [table.tenantId, table.projectId, table.agentId],
+      foreignColumns: [agents.tenantId, agents.projectId, agents.id],
+      name: 'triggers_agent_fk',
+    }).onDelete('cascade'),
+  ]
+);
+
+export const triggerInvocations = pgTable(
+  'trigger_invocations',
+  {
+    ...agentScoped,
+    triggerId: varchar('trigger_id', { length: 256 }).notNull(),
+    conversationId: varchar('conversation_id', { length: 256 }),
+    status: varchar('status', { length: 20 }).notNull().default('pending'),
+    requestPayload: jsonb('request_payload').notNull(),
+    transformedPayload: jsonb('transformed_payload'),
+    errorMessage: text('error_message'),
+    createdAt: timestamp('created_at', { mode: 'string' }).notNull().defaultNow(),
+  },
+  (table) => [
+    primaryKey({ columns: [table.tenantId, table.projectId, table.agentId, table.id] }),
+    foreignKey({
+      columns: [table.tenantId, table.projectId, table.agentId, table.triggerId],
+      foreignColumns: [triggers.tenantId, triggers.projectId, triggers.agentId, triggers.id],
+      name: 'trigger_invocations_trigger_fk',
+    }).onDelete('cascade'),
+  ]
+);
+
 export const subAgents = pgTable(
   'sub_agents',
   {
