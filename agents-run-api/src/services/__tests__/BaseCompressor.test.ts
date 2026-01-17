@@ -1,6 +1,4 @@
-import { randomUUID } from 'crypto';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import dbClient from '../../data/db/dbClient';
 import { agentSessionManager } from '../AgentSession';
 import { BaseCompressor } from '../BaseCompressor';
 

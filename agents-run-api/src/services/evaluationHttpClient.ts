@@ -5,7 +5,6 @@
  */
 
 import { EvalApiClient, InternalServices } from '@inkeep/agents-core';
-import { getUserIdFromContext } from 'src/types/execution-context.js';
 import { env } from '../env.js';
 import { getLogger } from '../logger.js';
 

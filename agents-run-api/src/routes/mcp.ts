@@ -115,8 +115,7 @@ const validateSession = async (
   body: any,
   tenantId: string,
   projectId: string,
-  agentId: string,
-  ref: ResolvedRef
+  agentId: string
 ): Promise<any | null> => {
   const sessionId = req.headers['mcp-session-id'];
   logger.info({ sessionId }, 'Received MCP session ID');
@@ -206,8 +205,7 @@ const processUserMessage = async (
   tenantId: string,
   projectId: string,
   conversationId: string,
-  query: string,
-  ref: ResolvedRef
+  query: string
 ): Promise<void> => {
   const messageSpan = trace.getActiveSpan();
   if (messageSpan) {

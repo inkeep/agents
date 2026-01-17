@@ -542,7 +542,6 @@ export async function getConversationHistoryWithCompression({
       }
     } else {
       // No existing compression, check if we need to compress for the first time
-      const originalMessageCount = messagesToFormat.length;
       messagesToFormat = await compressConversationIfNeeded(messagesToFormat, {
         conversationId,
         tenantId,
@@ -597,7 +596,7 @@ export async function compressConversationIfNeeded(
     fullContextSize?: number;
   }
 ): Promise<any[]> {
-  const { conversationId, tenantId, projectId, summarizerModel, streamRequestId } = params;
+  const { conversationId, tenantId, projectId } = params;
 
   // Prevent race conditions by using conversation-level locking
   const lockKey = `${conversationId}_${tenantId}_${projectId}`;
@@ -938,7 +937,7 @@ export async function getConversationScopedArtifacts(params: {
   historyConfig: AgentConversationHistoryConfig;
   ref: ResolvedRef;
 }): Promise<Artifact[]> {
-  const { tenantId, projectId, conversationId, historyConfig, ref } = params;
+  const { tenantId, projectId, conversationId, historyConfig } = params;
 
   if (!conversationId) {
     return [];
