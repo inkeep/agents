@@ -12,6 +12,7 @@ export {
   project,
   statusComponent,
   subAgent,
+  trigger,
 } from './builderFunctions';
 export { transfer } from './builders';
 export {
@@ -79,4 +80,5 @@ export {
   type TelemetryTracer,
 } from './telemetry-provider';
 export { Tool } from './tool';
+export { Trigger, type TriggerInterface } from './trigger';
 export type * from './types';
