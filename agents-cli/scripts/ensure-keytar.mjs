@@ -5,7 +5,7 @@
  */
 import { execSync } from 'child_process';
 import { createRequire } from 'module';
-import { dirname, join } from 'path';
+import { dirname } from 'path';
 
 const require = createRequire(import.meta.url);
 
