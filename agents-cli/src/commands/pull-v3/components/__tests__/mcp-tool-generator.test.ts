@@ -50,21 +50,21 @@ describe('MCP Tool Generator', () => {
 
   describe('generateMcpToolImports', () => {
     it('should generate basic imports', () => {
-      const imports = generateMcpToolImports('weather-mcp', testToolData);
+      const imports = generateMcpToolImports(testToolData);
 
       expect(imports).toHaveLength(1);
       expect(imports[0]).toBe("import { mcpTool } from '@inkeep/agents-sdk';");
     });
 
     it('should not add environment settings import for direct credential references', () => {
-      const imports = generateMcpToolImports('stripe-mcp', testToolWithCredential);
+      const imports = generateMcpToolImports(testToolWithCredential);
 
       expect(imports).toHaveLength(1);
       expect(imports[0]).toBe("import { mcpTool } from '@inkeep/agents-sdk';");
     });
 
     it('should handle different code styles', () => {
-      const imports = generateMcpToolImports('weather-mcp', testToolData, {
+      const imports = generateMcpToolImports(testToolData, {
         quotes: 'double',
         semicolons: false,
         indentation: '    ',
