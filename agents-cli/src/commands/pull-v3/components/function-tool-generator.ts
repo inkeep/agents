@@ -4,9 +4,6 @@
  * Generates function tools using the functionTool() builder function from @inkeep/agents-sdk
  * Function tools contain inline JavaScript execution functions
  */
-
-import { jsonSchemaToZod } from 'json-schema-to-zod';
-
 interface CodeStyle {
   quotes: 'single' | 'double';
   semicolons: boolean;
@@ -39,22 +36,6 @@ function formatString(str: string, quote: string = "'", multiline: boolean = fal
   }
 
   return `${quote}${str.replace(new RegExp(quote, 'g'), `\\${quote}`)}${quote}`;
-}
-
-/**
- * Convert JSON Schema to Zod schema using existing utility
- */
-function convertJsonSchemaToZod(schema: any): string {
-  if (!schema || typeof schema !== 'object') {
-    return 'z.any()';
-  }
-
-  try {
-    return jsonSchemaToZod(schema);
-  } catch (error) {
-    console.warn('Failed to convert JSON schema to Zod:', error);
-    return 'z.any()';
-  }
 }
 
 /**
@@ -159,7 +140,7 @@ export function generateFunctionToolDefinition(
         return `${indentation}${line}`;
       })
       .join('\n');
-    lines.push(formattedSchema + ',');
+    lines.push(`${formattedSchema},`);
   }
 
   // Execute function - this is the actual JavaScript code
