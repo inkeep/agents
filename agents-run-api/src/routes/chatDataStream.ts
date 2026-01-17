@@ -51,13 +51,32 @@ const chatDataStreamRoute = createRoute({
                 content: z.any(),
                 parts: z
                   .array(
-                    z.object({
-                      type: z.union([
-                        z.enum(['text', 'image', 'audio', 'video', 'file']),
-                        z.string().regex(/^data-/, 'Type must start with "data-"'),
-                      ]),
-                      text: z.string().optional(),
-                    })
+                    z.union([
+                      z.object({
+                        type: z.union([
+                          z.enum(['text', 'image', 'audio', 'video', 'file']),
+                          z.string().regex(/^data-/, 'Type must start with "data-"'),
+                        ]),
+                        text: z.string().optional(),
+                      }),
+                      // Special-case: tool approval response part (sent by client)
+                      z.object({
+                        type: z.string().regex(/^tool-/, 'Type must start with "tool-"'),
+                        toolCallId: z.string(),
+                        state: z.literal('approval-responded'),
+                        approval: z.object({
+                          id: z.string(),
+                          approved: z.boolean(),
+                          reason: z.string().optional(),
+                        }),
+                        input: z.any().optional(),
+                        callProviderMetadata: z.any().optional(),
+                      }),
+                      // Allow step markers used by client payloads
+                      z.object({
+                        type: z.literal('step-start'),
+                      }),
+                    ])
                   )
                   .optional(),
               })
@@ -94,7 +113,7 @@ app.openapi(chatDataStreamRoute, async (c) => {
   try {
     // Get execution context from API key authentication
     const executionContext = c.get('executionContext');
-    const { tenantId, projectId, agentId, resolvedRef } = executionContext;
+    const { tenantId, projectId, agentId } = executionContext;
 
     loggerFactory
       .getLogger('chatDataStream')
@@ -102,7 +121,65 @@ app.openapi(chatDataStreamRoute, async (c) => {
 
     // Get parsed body from middleware (shared across all handlers)
     const body = c.get('requestBody') || {};
-    const conversationId = body.conversationId || getConversationId();
+
+    const approvalPart = (body.messages || [])
+      .flatMap((m: any) => m?.parts || [])
+      .find((p: any) => p?.state === 'approval-responded' && typeof p?.toolCallId === 'string');
+
+    const isApprovalResponse = !!approvalPart;
+
+    // For approval responses, require an explicit conversationId (do not auto-generate).
+    const conversationId = isApprovalResponse
+      ? body.conversationId
+      : body.conversationId || getConversationId();
+
+    // Fast-path: allow client to respond to tool approvals via the same /chat endpoint.
+    // This should NOT start a new agent execution. The original stream continues separately.
+    if (isApprovalResponse) {
+      if (!conversationId) {
+        return c.json(
+          {
+            success: false,
+            error: 'conversationId is required for approval response',
+          },
+          400
+        );
+      }
+
+      const toolCallId = approvalPart.toolCallId as string;
+      const approved = !!approvalPart.approval?.approved;
+      const reason = approvalPart.approval?.reason as string | undefined;
+
+      // Validate that the conversation exists and belongs to this tenant/project
+      const conversation = await getConversation(dbClient)({
+        scopes: { tenantId, projectId },
+        conversationId,
+      });
+
+      if (!conversation) {
+        return c.json({ success: false, error: 'Conversation not found' }, 404);
+      }
+
+      // Resolve the pending approval (in-memory). Idempotent: if already processed, return 200.
+      const ok = approved
+        ? pendingToolApprovalManager.approveToolCall(toolCallId)
+        : pendingToolApprovalManager.denyToolCall(toolCallId, reason);
+
+      if (!ok) {
+        return c.json({
+          success: true,
+          toolCallId,
+          approved,
+          alreadyProcessed: true,
+        });
+      }
+
+      return c.json({
+        success: true,
+        toolCallId,
+        approved,
+      });
+    }
 
     // Extract target context headers (for copilot/chat-to-edit scenarios)
     const targetTenantId = c.req.header('x-target-tenant-id');

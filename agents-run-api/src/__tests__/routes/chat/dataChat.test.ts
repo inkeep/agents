@@ -1,5 +1,6 @@
 import { generateId } from '@inkeep/agents-core';
 import { describe, expect, it, vi } from 'vitest';
+import { pendingToolApprovalManager } from '../../../services/PendingToolApprovalManager';
 
 // Logger mock is now in setup.ts globally
 
@@ -118,6 +119,7 @@ vi.mock('@inkeep/agents-core', async (importOriginal) => {
       })
     ),
     setActiveAgentForConversation: vi.fn().mockReturnValue(vi.fn().mockResolvedValue(undefined)),
+    getConversation: vi.fn().mockReturnValue(vi.fn().mockResolvedValue({ id: 'conv-123' })),
   };
 });
 
@@ -186,5 +188,89 @@ describe('Chat Data Stream Route', () => {
     // Check that the mock text is included in the stream
     expect(text).toMatch(/Test/);
     expect(text).toMatch(/response/);
+  });
+
+  it('should accept approval responded tool part via the same /api/chat endpoint and return JSON ack', async () => {
+    const toolCallId = 'call_test_approval_1';
+    const conversationId = 'conv-123';
+
+    // Create a pending approval first
+    const approvalPromise = pendingToolApprovalManager.waitForApproval(
+      toolCallId,
+      'delete_file',
+      { filePath: 'user/readme.md' },
+      conversationId,
+      'test-agent'
+    );
+
+    const body = {
+      conversationId,
+      messages: [
+        {
+          role: 'assistant',
+          content: null,
+          parts: [
+            { type: 'step-start' },
+            {
+              type: 'tool-delete_file',
+              toolCallId,
+              state: 'approval-responded',
+              input: { filePath: '/tmp/test.txt' },
+              callProviderMetadata: { openai: { itemId: 'fc_test' } },
+              approval: { id: `aitxt-${toolCallId}`, approved: true },
+            },
+          ],
+        },
+      ],
+    };
+
+    const res = await makeRequest('/api/chat', {
+      method: 'POST',
+      body: JSON.stringify(body),
+    });
+
+    expect(res.status).toBe(200);
+    expect(res.headers.get('content-type') || '').toMatch(/application\/json/);
+    const json = await res.json();
+    expect(json).toMatchObject({ success: true, toolCallId, approved: true });
+
+    await expect(approvalPromise).resolves.toMatchObject({ approved: true });
+  });
+
+  it('should treat approval responded tool part for unknown toolCallId as alreadyProcessed (idempotent 200)', async () => {
+    const toolCallId = 'call_test_approval_missing';
+    const conversationId = 'conv-123';
+
+    const body = {
+      conversationId,
+      messages: [
+        {
+          role: 'assistant',
+          content: null,
+          parts: [
+            {
+              type: 'tool-delete_file',
+              toolCallId,
+              state: 'approval-responded',
+              approval: { id: `aitxt-${toolCallId}`, approved: true },
+            },
+          ],
+        },
+      ],
+    };
+
+    const res = await makeRequest('/api/chat', {
+      method: 'POST',
+      body: JSON.stringify(body),
+    });
+
+    expect(res.status).toBe(200);
+    const json = await res.json();
+    expect(json).toMatchObject({
+      success: true,
+      toolCallId,
+      approved: true,
+      alreadyProcessed: true,
+    });
   });
 });
