@@ -3,7 +3,7 @@
 import { Info } from 'lucide-react';
 import { useParams } from 'next/navigation';
 import { useCallback } from 'react';
-import { ExpandableJsonEditor } from '@/components/editors/expandable-json-editor';
+import { StandaloneJsonEditor } from '@/components/editors/standalone-json-editor';
 import { ModelInheritanceInfo } from '@/components/projects/form/model-inheritance-info';
 import { ModelConfiguration } from '@/components/shared/model-configuration';
 import { Checkbox } from '@/components/ui/checkbox';
@@ -23,9 +23,15 @@ import { useRuntimeConfig } from '@/contexts/runtime-config-context';
 import { agentStore, useAgentActions, useAgentStore } from '@/features/agent/state/use-agent-store';
 import { useAutoPrefillIdZustand } from '@/hooks/use-auto-prefill-id-zustand';
 import { useProjectData } from '@/hooks/use-project-data';
+import {
+  statusUpdatesComponentsTemplate,
+  structuredOutputModelProviderOptionsTemplate,
+  summarizerModelProviderOptionsTemplate,
+} from '@/lib/templates';
 import { ExpandablePromptEditor } from '../../../editors/expandable-prompt-editor';
 import { CollapsibleSettings } from '../collapsible-settings';
 import { InputField } from '../form-components/input';
+import { FieldLabel } from '../form-components/label';
 import { TextareaField } from '../form-components/text-area';
 import { ModelSelector } from '../nodes/model-selector';
 import { SectionHeader } from '../section';
@@ -275,25 +281,28 @@ function MetadataEditor() {
           </div>
           {/* Structured Output Model Provider Options */}
           {models?.structuredOutput?.model && (
-            <ExpandableJsonEditor
-              name="structured-provider-options"
-              label="Structured output model provider options"
-              onChange={(value) => {
-                const currentModels = getCurrentModels();
-                updateMetadata('models', {
-                  ...(currentModels || {}),
-                  structuredOutput: {
-                    model: currentModels?.structuredOutput?.model || '',
-                    providerOptions: value,
-                  },
-                });
-              }}
-              value={models.structuredOutput.providerOptions || ''}
-              placeholder={`{
-  "temperature": 0.1,
-  "maxOutputTokens": 1024
-}`}
-            />
+            <div className="space-y-2">
+              <FieldLabel
+                id="structured-provider-options"
+                label="Structured output model provider options"
+              />
+              <StandaloneJsonEditor
+                name="structured-provider-options"
+                onChange={(value) => {
+                  const currentModels = getCurrentModels();
+                  updateMetadata('models', {
+                    ...(currentModels || {}),
+                    structuredOutput: {
+                      model: currentModels?.structuredOutput?.model || '',
+                      providerOptions: value,
+                    },
+                  });
+                }}
+                value={models.structuredOutput.providerOptions || ''}
+                placeholder={structuredOutputModelProviderOptionsTemplate}
+                customTemplate={structuredOutputModelProviderOptionsTemplate}
+              />
+            </div>
           )}
           <div className="relative space-y-2">
             <ModelSelector
@@ -336,25 +345,28 @@ function MetadataEditor() {
           </div>
           {/* Summarizer Model Provider Options */}
           {models?.summarizer?.model && (
-            <ExpandableJsonEditor
-              name="summarizer-provider-options"
-              label="Summarizer model provider options"
-              onChange={(value) => {
-                const currentModels = getCurrentModels();
-                updateMetadata('models', {
-                  ...(currentModels || {}),
-                  summarizer: {
-                    model: currentModels?.summarizer?.model || '',
-                    providerOptions: value,
-                  },
-                });
-              }}
-              value={models.summarizer.providerOptions || ''}
-              placeholder={`{
-  "temperature": 0.3,
-  "maxOutputTokens": 1024
-}`}
-            />
+            <div className="space-y-2">
+              <FieldLabel
+                id="summarizer-provider-options"
+                label="Summarizer model provider options"
+              />
+              <StandaloneJsonEditor
+                name="summarizer-provider-options"
+                onChange={(value) => {
+                  const currentModels = getCurrentModels();
+                  updateMetadata('models', {
+                    ...(currentModels || {}),
+                    summarizer: {
+                      model: currentModels?.summarizer?.model || '',
+                      providerOptions: value,
+                    },
+                  });
+                }}
+                value={models.summarizer.providerOptions || ''}
+                placeholder={summarizerModelProviderOptionsTemplate}
+                customTemplate={summarizerModelProviderOptionsTemplate}
+              />
+            </div>
           )}
         </CollapsibleSettings>
       </div>
@@ -557,9 +569,9 @@ function MetadataEditor() {
               </div>
 
               <div className="space-y-2">
-                <ExpandableJsonEditor
+                <FieldLabel id="status-components" label="Status components configuration" />
+                <StandaloneJsonEditor
                   name="status-components"
-                  label="Status components configuration"
                   onChange={(value) => {
                     updateMetadata('statusUpdates', {
                       ...(statusUpdates || {}),
@@ -567,36 +579,13 @@ function MetadataEditor() {
                     });
                   }}
                   value={statusUpdates?.statusComponents || ''}
-                  placeholder={`[
-  {
-    "id": "tool_call_summary",
-    "name": "Tool Call",
-    "description": "A summary of a single tool call and why it was relevant to the current task. Be specific about what was found or accomplished.",
-    "schema": {
-      "type": "object",
-      "properties": {
-        "tool_name": {
-          "type": "string",
-          "description": "The name of the tool that was called"
-        },
-        "summary": {
-          "type": "string",
-          "description": "Brief summary of what was accomplished. Keep it to 3-5 words."
-        },
-        "status": {
-          "type": "string",
-          "enum": ["success", "error", "in_progress"],
-          "description": "Status of the tool call"
-        }
-      },
-      "required": ["tool_name", "summary"]
-    }
-  }
-]`}
+                  placeholder={statusUpdatesComponentsTemplate}
+                  customTemplate={statusUpdatesComponentsTemplate}
+                  className="bg-background"
                 />
                 <p className="text-xs text-muted-foreground">
-                  Define structured components for status updates. Each component has an id, name,
-                  description, and JSON schema.
+                  Define structured components for status updates. Each component has a type
+                  (required), description, and detailsSchema.
                 </p>
               </div>
             </CollapsibleSettings>

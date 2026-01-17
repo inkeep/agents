@@ -13,13 +13,13 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 
-export interface PassCriteriaCondition {
+interface PassCriteriaCondition {
   field: string;
   operator: '>' | '<' | '>=' | '<=' | '=' | '!=';
   value: number;
 }
 
-export interface PassCriteria {
+interface PassCriteria {
   operator: 'and' | 'or';
   conditions: PassCriteriaCondition[];
 }

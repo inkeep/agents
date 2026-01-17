@@ -1,4 +1,4 @@
-import type { FullExecutionContext, ResolvedRef } from '@inkeep/agents-core';
+import type { FullExecutionContext } from '@inkeep/agents-core';
 import {
   STREAM_PARSER_MAX_COLLECTED_PARTS,
   STREAM_PARSER_MAX_SNAPSHOT_SIZE,

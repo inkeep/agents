@@ -1,5 +1,7 @@
-import { ExpandableJsonEditor } from '@/components/editors/expandable-json-editor';
+import { StandaloneJsonEditor } from '@/components/editors/standalone-json-editor';
+import { contextVariablesTemplate, headersSchemaTemplate } from '@/lib/templates';
 import type { AgentMetadata, ContextConfig } from '../../configuration/agent-types';
+import { FieldLabel } from '../form-components/label';
 import { SectionHeader } from '../section';
 
 export function ContextConfigForm({
@@ -26,20 +28,26 @@ export function ContextConfigForm({
         description="Configure dynamic context for this agent."
       />
       <div className="flex flex-col space-y-8">
-        <ExpandableJsonEditor
-          name="contextVariables"
-          label="Context variables (JSON)"
-          value={contextVariables}
-          onChange={(value) => updateContextConfig('contextVariables', value)}
-          placeholder="{}"
-        />
-        <ExpandableJsonEditor
-          name="headersSchema"
-          label="Headers schema (JSON)"
-          value={headersSchema}
-          onChange={(value) => updateContextConfig('headersSchema', value)}
-          placeholder="{}"
-        />
+        <div className="space-y-2">
+          <FieldLabel id="contextVariables" label="Context variables (JSON)" />
+          <StandaloneJsonEditor
+            name="contextVariables"
+            value={contextVariables}
+            onChange={(value) => updateContextConfig('contextVariables', value)}
+            placeholder="{}"
+            customTemplate={contextVariablesTemplate}
+          />
+        </div>
+        <div className="space-y-2">
+          <FieldLabel id="headersSchema" label="Headers schema (JSON)" />
+          <StandaloneJsonEditor
+            name="headersSchema"
+            value={headersSchema}
+            onChange={(value) => updateContextConfig('headersSchema', value)}
+            placeholder="{}"
+            customTemplate={headersSchemaTemplate}
+          />
+        </div>
       </div>
     </div>
   );

@@ -1,3 +1,4 @@
+// biome-ignore-all lint/security/noGlobalEval: allow in test
 /**
  * Unit tests for artifact component generator
  */
@@ -56,7 +57,7 @@ describe('Artifact Component Generator', () => {
 
   describe('generateArtifactComponentImports', () => {
     it('should generate correct imports with preview fields', () => {
-      const imports = generateArtifactComponentImports('citation', testComponentData);
+      const imports = generateArtifactComponentImports(testComponentData);
 
       expect(imports).toHaveLength(3);
       expect(imports[0]).toBe("import { preview } from '@inkeep/agents-core';");
@@ -79,7 +80,7 @@ describe('Artifact Component Generator', () => {
         },
       };
 
-      const imports = generateArtifactComponentImports('simple', dataWithoutPreview);
+      const imports = generateArtifactComponentImports(dataWithoutPreview);
 
       expect(imports).toHaveLength(2);
       expect(imports[0]).toBe("import { artifactComponent } from '@inkeep/agents-sdk';");
@@ -89,14 +90,14 @@ describe('Artifact Component Generator', () => {
 
     it('should generate only artifactComponent import without schema', () => {
       const dataWithoutSchema = { name: 'Simple', description: 'Simple component' };
-      const imports = generateArtifactComponentImports('simple', dataWithoutSchema);
+      const imports = generateArtifactComponentImports(dataWithoutSchema);
 
       expect(imports).toHaveLength(1);
       expect(imports[0]).toBe("import { artifactComponent } from '@inkeep/agents-sdk';");
     });
 
     it('should handle double quotes style', () => {
-      const imports = generateArtifactComponentImports('citation', testComponentData, {
+      const imports = generateArtifactComponentImports(testComponentData, {
         quotes: 'double',
         semicolons: true,
         indentation: '  ',
@@ -108,7 +109,7 @@ describe('Artifact Component Generator', () => {
     });
 
     it('should handle no semicolons style', () => {
-      const imports = generateArtifactComponentImports('citation', testComponentData, {
+      const imports = generateArtifactComponentImports(testComponentData, {
         quotes: 'single',
         semicolons: false,
         indentation: '  ',
@@ -323,7 +324,7 @@ describe('Artifact Component Generator', () => {
 
   describe('compilation tests', () => {
     it('should generate code that compiles and creates a working artifact component', async () => {
-      const file = generateArtifactComponentFile('citation', testComponentData);
+      generateArtifactComponentFile('citation', testComponentData);
 
       // Extract just the component definition (remove imports and export)
       const definition = generateArtifactComponentDefinition('citation', testComponentData);
@@ -347,7 +348,7 @@ describe('Artifact Component Generator', () => {
       `;
 
       // Use eval to test the code compiles and runs
-      let result;
+      let result: any;
       expect(() => {
         result = eval(`(() => { ${moduleCode} })()`);
       }).not.toThrow();
@@ -409,7 +410,7 @@ describe('Artifact Component Generator', () => {
         return simpleArtifact;
       `;
 
-      let result;
+      let result: any;
       expect(() => {
         result = eval(`(() => { ${moduleCode} })()`);
       }).not.toThrow();

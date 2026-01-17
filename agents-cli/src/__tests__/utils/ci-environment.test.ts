@@ -60,12 +60,12 @@ describe('CI Environment', () => {
     it('should return X-API-Key header in CI mode', () => {
       const headers = getAuthHeaders({ apiKey: 'test-api-key' }, true);
       expect(headers['X-API-Key']).toBe('test-api-key');
-      expect(headers['Authorization']).toBeUndefined();
+      expect(headers.Authorization).toBeUndefined();
     });
 
     it('should return Authorization Bearer header in interactive mode', () => {
       const headers = getAuthHeaders({ accessToken: 'test-token' }, false);
-      expect(headers['Authorization']).toBe('Bearer test-token');
+      expect(headers.Authorization).toBe('Bearer test-token');
       expect(headers['X-API-Key']).toBeUndefined();
     });
 

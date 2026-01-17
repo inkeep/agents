@@ -32,8 +32,11 @@ export const StandaloneJsonEditor: FC<StandaloneJsonEditorProps> = ({
   onChange,
   actions: $actions,
   customTemplate,
+  name,
   ...props
 }) => {
+  // Construct uri from name if not provided (matches ExpandableJsonEditor behavior)
+  const uri = props.uri ?? (name ? (`${name}.json` as const) : undefined);
   const handleFormat = useCallback(() => {
     if (value.trim()) {
       const formatted = formatJson(value);
@@ -72,7 +75,7 @@ export const StandaloneJsonEditor: FC<StandaloneJsonEditorProps> = ({
   );
 
   return (
-    <JsonEditor value={value} onChange={onChange} {...props}>
+    <JsonEditor value={value} onChange={onChange} {...props} uri={uri}>
       <div className="absolute end-2 top-2 flex gap-2 z-1">{actions}</div>
     </JsonEditor>
   );

@@ -1,17 +1,17 @@
-export interface PassCriteriaCondition {
+interface PassCriteriaCondition {
   field: string;
   operator: '>' | '<' | '>=' | '<=' | '=' | '!=';
   value: number;
 }
 
-export interface PassCriteria {
+interface PassCriteria {
   operator: 'and' | 'or';
   conditions: PassCriteriaCondition[];
 }
 
 export type EvaluationStatus = 'passed' | 'failed' | 'no_criteria';
 
-export interface PassCriteriaEvaluationResult {
+interface PassCriteriaEvaluationResult {
   status: EvaluationStatus;
   failedConditions?: PassCriteriaCondition[];
 }
@@ -107,20 +107,4 @@ export function evaluatePassCriteria(
     status: allFailed ? 'failed' : 'passed',
     failedConditions: allFailed ? failedConditions : undefined,
   };
-}
-
-export function formatPassCriteriaExpression(criteria: PassCriteria): string {
-  const conditionStrings = criteria.conditions.map(
-    (cond) => `${cond.field} ${cond.operator} ${cond.value}`
-  );
-
-  if (conditionStrings.length === 0) {
-    return 'No criteria defined';
-  }
-
-  if (conditionStrings.length === 1) {
-    return conditionStrings[0];
-  }
-
-  return conditionStrings.join(` ${criteria.operator.toUpperCase()} `);
 }

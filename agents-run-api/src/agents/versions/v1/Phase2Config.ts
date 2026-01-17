@@ -458,7 +458,7 @@ ${artifactRetrievalGuidance}
     let phase2Prompt = systemPromptTemplate;
 
     // Handle core instructions - omit entire section if empty
-    if (corePrompt && corePrompt.trim()) {
+    if (corePrompt?.trim()) {
       phase2Prompt = phase2Prompt.replace('{{CORE_INSTRUCTIONS}}', corePrompt);
     } else {
       // Remove the entire core_instructions section if empty
