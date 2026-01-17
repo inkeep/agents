@@ -302,6 +302,44 @@ Started: Sat Jan 17 03:02:52 UTC 2026
 
 ---
 
+## Iteration 3 - Sat Jan 17 09:11:01 UTC 2026
+
+### Story: US-015 - Create Trigger management API endpoints
+
+**Implementation:**
+- Created comprehensive CRUD API endpoints in agents-manage-api/src/routes/triggers.ts (408 lines)
+- Implemented all required endpoints with OpenAPI documentation:
+  - POST / - Create trigger (returns 201)
+  - GET / - List triggers with pagination
+  - GET /:id - Get single trigger by ID
+  - PATCH /:id - Update trigger (validates non-empty body)
+  - DELETE /:id - Delete trigger (returns 204)
+- Added permission middleware following existing patterns (trigger: ['create'], ['update'], ['delete'])
+- Implemented generateWebhookUrl() helper function to construct fully qualified webhook URLs
+- All responses include webhookUrl field pointing to agents-run-api webhook endpoint
+- Registered triggers route at /projects/:projectId/agents/:agentId/triggers in routes/index.ts
+- Added INKEEP_AGENTS_RUN_API_URL to env.ts with default value http://localhost:8080
+- Used BaseAppVariables type (db, userId, tenantId) instead of AppVariablesWithServerConfig
+
+**Files Changed:**
+- agents-manage-api/src/routes/triggers.ts (new file - 408 lines)
+- agents-manage-api/src/routes/index.ts (added triggers route)
+- agents-manage-api/src/env.ts (added INKEEP_AGENTS_RUN_API_URL)
+- prd.json (marked US-015 as complete)
+
+**Learnings:**
+- Manage-API route pattern: OpenAPIHono with Variables type, requirePermission middleware, agent-scoped params
+- Permission middleware uses resource:action array format: { trigger: ['create'] }
+- Response schemas use .extend() to add computed fields like webhookUrl
+- PATCH updates should validate that body is not empty before calling data access layer
+- DELETE endpoints return 204 No Content (use c.body(null, 204))
+- Environment variables are the right choice for cross-service URLs (not ServerConfig which is minimal)
+- BaseAppVariables includes db, userId, tenantId - sufficient for most CRUD routes
+- Agent-scoped routes use TenantProjectAgentParamsSchema and TenantProjectAgentIdParamsSchema from agents-core
+- Data access functions already exported from agents-core, no additional exports needed
+
+---
+
 ## Iteration 2 - Sat Jan 17 09:04:59 UTC 2026
 
 ### Story: US-014 - Write integration tests for webhook endpoint
