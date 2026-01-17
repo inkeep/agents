@@ -584,8 +584,7 @@ export async function cleanupStaleComponents(
       // Use LLM to remove stale components
       const cleanedContent = await removeComponentsFromFile(
         currentContent,
-        staleComponentsInFile.map((c) => ({ id: c.id, type: c.type })),
-        tempFilePath
+        staleComponentsInFile.map((c) => ({ id: c.id, type: c.type }))
       );
 
       if (cleanedContent !== currentContent) {
@@ -632,8 +631,7 @@ ${fileContent}
  */
 async function removeComponentsFromFile(
   fileContent: string,
-  componentsToRemove: Array<{ id: string; type: string }>,
-  filePath: string
+  componentsToRemove: Array<{ id: string; type: string }>
 ): Promise<string> {
   const componentList = componentsToRemove.map((c) => `${c.type}:${c.id}`).join(', ');
 
