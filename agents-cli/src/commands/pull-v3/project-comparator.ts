@@ -258,8 +258,7 @@ function compareComponentsDirectly(
   changes.push(
     ...compareArtifactComponents(
       localProject.artifactComponents || {},
-      remoteProject.artifactComponents || {},
-      debug
+      remoteProject.artifactComponents || {}
     )
   );
   changes.push(
@@ -522,8 +521,7 @@ function compareDataComponents(
  */
 function compareArtifactComponents(
   localArtifactComponents: Record<string, any>,
-  remoteArtifactComponents: Record<string, any>,
-  debug: boolean
+  remoteArtifactComponents: Record<string, any>
 ): ComponentChange[] {
   return compareComponentMaps(
     'artifactComponents',
