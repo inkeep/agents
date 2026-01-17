@@ -38,7 +38,7 @@ function formatString(str: string, quote: string = "'", multiline: boolean = fal
     return `\`${str.replace(/`/g, '\\`')}\``;
   }
 
-  return `${quote}${str.replace(new RegExp(quote, 'g'), '\\' + quote)}${quote}`;
+  return `${quote}${str.replace(new RegExp(quote, 'g'), `\\${quote}`)}${quote}`;
 }
 
 /**
@@ -113,9 +113,9 @@ export function generateStatusComponentDefinition(
       const schemaLines = zodSchema.split('\n');
       lines.push(`${indentation}detailsSchema: ${schemaLines[0]}`);
       schemaLines.slice(1, -1).forEach((line) => {
-        lines[lines.length - 1] += '\n' + indentation + line;
+        lines[lines.length - 1] += `\n${indentation}${line}`;
       });
-      lines[lines.length - 1] += '\n' + indentation + schemaLines[schemaLines.length - 1] + ',';
+      lines[lines.length - 1] += `\n${indentation}${schemaLines[schemaLines.length - 1]},`;
     } else {
       lines.push(`${indentation}detailsSchema: ${zodSchema},`);
     }

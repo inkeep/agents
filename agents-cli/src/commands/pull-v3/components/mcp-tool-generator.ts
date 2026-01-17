@@ -36,7 +36,7 @@ function formatString(str: string, quote: string = "'", multiline: boolean = fal
     return `\`${str.replace(/`/g, '\\`')}\``;
   }
 
-  return `${quote}${str.replace(new RegExp(quote, 'g'), '\\' + quote)}${quote}`;
+  return `${quote}${str.replace(new RegExp(quote, 'g'), `\\${quote}`)}${quote}`;
 }
 
 /**
@@ -119,7 +119,7 @@ export function generateMcpToolDefinition(
         return `${indentation}${line}`;
       })
       .join('\n');
-    lines.push(formattedHeaders + ',');
+    lines.push(`${formattedHeaders},`);
   }
 
   // Handle credentials - support direct references and credential IDs
@@ -186,5 +186,5 @@ export function generateMcpToolFile(
   const imports = generateMcpToolImports(toolId, toolData, style);
   const definition = generateMcpToolDefinition(toolId, toolData, style, registry);
 
-  return imports.join('\n') + '\n\n' + definition + '\n';
+  return `${imports.join('\n')}\n\n${definition}\n`;
 }

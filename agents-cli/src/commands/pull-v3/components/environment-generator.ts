@@ -20,14 +20,6 @@ const DEFAULT_STYLE: CodeStyle = {
 /**
  * Utility functions
  */
-function toCamelCase(str: string): string {
-  return str
-    .toLowerCase()
-    .replace(/[-_](.)/g, (_, char) => char.toUpperCase())
-    .replace(/[^a-zA-Z0-9]/g, '')
-    .replace(/^[0-9]/, '_$&');
-}
-
 function formatString(str: string, quote: string = "'", multiline: boolean = false): string {
   if (!str) return `${quote}${quote}`;
 
@@ -36,7 +28,7 @@ function formatString(str: string, quote: string = "'", multiline: boolean = fal
     return `\`${str.replace(/`/g, '\\`')}\``;
   }
 
-  return `${quote}${str.replace(new RegExp(quote, 'g'), '\\' + quote)}${quote}`;
+  return `${quote}${str.replace(new RegExp(quote, 'g'), `\\${quote}`)}${quote}`;
 }
 
 /**
@@ -157,8 +149,7 @@ export function generateEnvironmentSettingsDefinition(
     throw new Error(`environmentData is required for environment '${environmentName}'`);
   }
 
-  const { quotes, semicolons, indentation } = style;
-  const q = quotes === 'single' ? "'" : '"';
+  const { semicolons, indentation } = style;
   const semi = semicolons ? ';' : '';
 
   const lines: string[] = [];
@@ -193,8 +184,7 @@ export function generateEnvironmentIndexDefinition(
   environments: string[],
   style: CodeStyle = DEFAULT_STYLE
 ): string {
-  const { quotes, semicolons, indentation } = style;
-  const q = quotes === 'single' ? "'" : '"';
+  const { semicolons, indentation } = style;
   const semi = semicolons ? ';' : '';
 
   const lines: string[] = [];

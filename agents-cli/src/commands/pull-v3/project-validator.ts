@@ -615,7 +615,7 @@ function overwriteProjectFiles(
           mkdirSync(dirname(targetPath), { recursive: true });
           copyFileSync(sourcePath, targetPath);
           filesReplaced++;
-          const relativePath = targetPath.replace(originalProjectRoot + '/', '');
+          const relativePath = targetPath.replace(`${originalProjectRoot}/`, '');
           console.log(chalk.green(`   ✅ Replaced: ${relativePath}`));
         }
       }
