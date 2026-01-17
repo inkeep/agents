@@ -49,7 +49,7 @@ const triggerWebhookRoute = createRoute({
 		body: {
 			content: {
 				'application/json': {
-					schema: z.record(z.unknown()).describe('Webhook payload'),
+					schema: z.record(z.string(), z.unknown()).describe('Webhook payload'),
 				},
 			},
 		},

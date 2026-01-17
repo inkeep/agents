@@ -909,7 +909,6 @@ export const EvaluationJobFilterCriteriaSchema = z
       })
       .optional(),
   })
-  .loose()
   .openapi('EvaluationJobFilterCriteria');
 
 export const TriggerEvaluationJobSchema = z

@@ -20,7 +20,11 @@ import type {
   EvaluationRunSelect,
   EvaluationRunUpdate,
 } from '../../types/entities';
-import type { EvaluationJobFilterCriteria, ProjectScopeConfig } from '../../types/utility';
+import type {
+  EvaluationJobFilterCriteria,
+  Filter,
+  ProjectScopeConfig,
+} from '../../types/utility';
 
 // ============================================================================
 // DATASET RUN
@@ -536,15 +540,32 @@ export const deleteEvaluationResultsByRun =
 // ============================================================================
 
 /**
+ * Helper to extract plain filter criteria from a Filter wrapper.
+ * Currently only handles plain objects - and/or combinators are not yet supported.
+ */
+function extractPlainFilterCriteria(
+  filter: Filter<EvaluationJobFilterCriteria> | null | undefined
+): EvaluationJobFilterCriteria | null {
+  if (!filter) return null;
+  // Check if it's an and/or combinator (not yet supported)
+  if ('and' in filter || 'or' in filter) {
+    // TODO: Implement and/or filter logic if needed
+    return null;
+  }
+  return filter;
+}
+
+/**
  * Filter conversations based on evaluation job filter criteria
  */
 export const filterConversationsForJob =
   (db: AgentsRunDatabaseClient) =>
   async (params: {
     scopes: ProjectScopeConfig;
-    jobFilters: EvaluationJobFilterCriteria | null | undefined;
+    jobFilters: Filter<EvaluationJobFilterCriteria> | null | undefined;
   }): Promise<ConversationSelect[]> => {
-    const { scopes, jobFilters } = params;
+    const { scopes, jobFilters: rawJobFilters } = params;
+    const jobFilters = extractPlainFilterCriteria(rawJobFilters);
     const { tenantId, projectId } = scopes;
 
     const whereConditions = [
