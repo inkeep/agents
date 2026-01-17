@@ -179,10 +179,7 @@ export function enrichCanDelegateToWithTypes(project: FullProjectDefinition): vo
 /**
  * Read existing project from filesystem if it exists
  */
-async function readExistingProject(
-  projectRoot: string,
-  debug: boolean = false
-): Promise<FullProjectDefinition | null> {
+async function readExistingProject(projectRoot: string): Promise<FullProjectDefinition | null> {
   const indexPath = join(projectRoot, 'index.ts');
 
   if (!existsSync(indexPath)) {
@@ -477,7 +474,7 @@ export async function pullV3Command(options: PullV3Options): Promise<PullResult 
 
     // Step 7: Read existing project and compare
     // s.start('Reading existing project...');
-    const localProject = await readExistingProject(paths.projectRoot, options.debug);
+    const localProject = await readExistingProject(paths.projectRoot);
 
     if (!localProject) {
       s.message('No existing project found - treating as new project');
