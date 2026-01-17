@@ -211,7 +211,7 @@ export async function introspectGenerate(
     // Fallback: If there are functions without corresponding functionTools entries,
     // they may be orphaned or the data structure is different - skip them with a warning
     if (project.functions) {
-      for (const [funcId, funcData] of Object.entries(project.functions)) {
+      for (const funcId of Object.keys(project.functions)) {
         if (!functionToolsGenerated.has(funcId)) {
           // Check if this function is referenced by any functionTool
           const isReferenced =
@@ -356,7 +356,7 @@ export async function introspectGenerate(
         if (!completeAgentIds.has(agentId)) continue;
 
         if (agentData.subAgents) {
-          for (const [subAgentId, subAgentData] of Object.entries(agentData.subAgents)) {
+          for (const _subAgentId of Object.keys(agentData.subAgents)) {
             totalSubAgents++;
           }
         }
