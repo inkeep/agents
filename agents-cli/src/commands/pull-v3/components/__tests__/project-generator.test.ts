@@ -1,8 +1,10 @@
+// biome-ignore-all lint/security/noGlobalEval: allow in test
 /**
  * Unit tests for project generator
  */
 
 import { describe, expect, it } from 'vitest';
+import type { ComponentRegistry } from '../../utils/component-registry';
 import {
   generateProjectDefinition,
   generateProjectFile,
@@ -11,7 +13,7 @@ import {
 
 // Mock registry for tests
 const mockRegistry = {
-  formatReferencesForCode: (refs: string[], type: string, style: any, indent: number) => {
+  formatReferencesForCode(refs, _type, _style, indent) {
     if (!refs || refs.length === 0) return '[]';
     if (refs.length === 1) return `[${refs[0]}]`;
 
@@ -19,7 +21,7 @@ const mockRegistry = {
     const items = refs.map((ref) => `${indentStr}${ref}`).join(',\n');
     return `[\n${items}\n${indentStr.slice(2)}]`;
   },
-};
+} satisfies Partial<ComponentRegistry>;
 
 describe('Project Generator', () => {
   const basicProjectData = {
@@ -56,14 +58,14 @@ describe('Project Generator', () => {
 
   describe('generateProjectImports', () => {
     it('should generate basic imports', () => {
-      const imports = generateProjectImports('customer-support-project', basicProjectData);
+      const imports = generateProjectImports(basicProjectData);
 
       expect(imports).toHaveLength(1);
       expect(imports[0]).toBe("import { project } from '@inkeep/agents-sdk';");
     });
 
     it('should handle different code styles', () => {
-      const imports = generateProjectImports('test-project', basicProjectData, {
+      const imports = generateProjectImports(basicProjectData, {
         quotes: 'double',
         semicolons: false,
         indentation: '    ',
@@ -350,7 +352,7 @@ describe('Project Generator', () => {
         return testProject;
       `;
 
-      let result;
+      let result: any;
       expect(() => {
         result = eval(`(() => { ${moduleCode} })()`);
       }).not.toThrow();
@@ -398,7 +400,7 @@ describe('Project Generator', () => {
         return complexTestProject;
       `;
 
-      let result;
+      let result: any;
       expect(() => {
         result = eval(`(() => { ${moduleCode} })()`);
       }).not.toThrow();

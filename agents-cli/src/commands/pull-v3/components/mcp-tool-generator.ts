@@ -36,7 +36,7 @@ function formatString(str: string, quote: string = "'", multiline: boolean = fal
     return `\`${str.replace(/`/g, '\\`')}\``;
   }
 
-  return `${quote}${str.replace(new RegExp(quote, 'g'), '\\' + quote)}${quote}`;
+  return `${quote}${str.replace(new RegExp(quote, 'g'), `\\${quote}`)}${quote}`;
 }
 
 /**
@@ -119,7 +119,7 @@ export function generateMcpToolDefinition(
         return `${indentation}${line}`;
       })
       .join('\n');
-    lines.push(formattedHeaders + ',');
+    lines.push(`${formattedHeaders},`);
   }
 
   // Handle credentials - support direct references and credential IDs
@@ -153,11 +153,7 @@ export function generateMcpToolDefinition(
 /**
  * Generate imports needed for an MCP tool file
  */
-export function generateMcpToolImports(
-  toolId: string,
-  toolData: any,
-  style: CodeStyle = DEFAULT_STYLE
-): string[] {
+export function generateMcpToolImports(toolData: any, style: CodeStyle = DEFAULT_STYLE): string[] {
   const { quotes, semicolons } = style;
   const q = quotes === 'single' ? "'" : '"';
   const semi = semicolons ? ';' : '';
@@ -183,8 +179,8 @@ export function generateMcpToolFile(
   style: CodeStyle = DEFAULT_STYLE,
   registry?: any
 ): string {
-  const imports = generateMcpToolImports(toolId, toolData, style);
+  const imports = generateMcpToolImports(toolData, style);
   const definition = generateMcpToolDefinition(toolId, toolData, style, registry);
 
-  return imports.join('\n') + '\n\n' + definition + '\n';
+  return `${imports.join('\n')}\n\n${definition}\n`;
 }

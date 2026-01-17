@@ -1,6 +1,6 @@
 import { existsSync, readdirSync, statSync } from 'node:fs';
-import { join, resolve } from 'node:path';
-import { afterEach, beforeEach, describe, expect, it, type Mock, vi } from 'vitest';
+import { join } from 'node:path';
+import { beforeEach, describe, expect, it, type Mock, vi } from 'vitest';
 import { findAllConfigFiles, findConfigFile, getConfigFileNames } from '../../utils/config';
 
 // Mock fs module

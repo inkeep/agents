@@ -39,7 +39,7 @@ export async function pushCommand(options: PushOptions) {
   }
 
   // Use standardized CLI pipeline for initialization
-  const { config, profile } = await initializeCommand({
+  const { config } = await initializeCommand({
     configPath: options.config,
     profileName: options.profile,
     tag: options.tag,
@@ -419,7 +419,7 @@ async function pushAllProjects(options: PushOptions): Promise<void> {
     console.error(chalk.red('No valid projects found.'));
     console.log(
       chalk.yellow(
-        '\nHint: Projects must have an index.ts file and access to an ' + configPattern + ' file'
+        `\nHint: Projects must have an index.ts file and access to an ${configPattern} file`
       )
     );
     console.log(chalk.yellow('      (either in the same directory or in a parent directory).'));
@@ -428,7 +428,7 @@ async function pushAllProjects(options: PushOptions): Promise<void> {
 
   console.log(chalk.gray(`Found ${projectDirs.length} project(s) to push:\n`));
   for (const dir of projectDirs) {
-    const relativePath = dir === process.cwd() ? '.' : dir.replace(process.cwd() + '/', '');
+    const relativePath = dir === process.cwd() ? '.' : dir.replace(`${process.cwd()}/`, '');
     console.log(chalk.gray(`  • ${relativePath}`));
   }
   console.log();
@@ -439,7 +439,7 @@ async function pushAllProjects(options: PushOptions): Promise<void> {
   for (let i = 0; i < projectDirs.length; i++) {
     const projectDir = projectDirs[i];
     const relativePath =
-      projectDir === process.cwd() ? '.' : projectDir.replace(process.cwd() + '/', '');
+      projectDir === process.cwd() ? '.' : projectDir.replace(`${process.cwd()}/`, '');
     const progress = `[${i + 1}/${total}]`;
 
     console.log(chalk.cyan(`${progress} Pushing ${relativePath}...`));
@@ -471,7 +471,7 @@ async function pushAllProjects(options: PushOptions): Promise<void> {
         const relativePath =
           result.projectDir === process.cwd()
             ? '.'
-            : result.projectDir.replace(process.cwd() + '/', '');
+            : result.projectDir.replace(`${process.cwd()}/`, '');
         console.log(chalk.red(`  • ${relativePath}: ${result.error}`));
       }
     }

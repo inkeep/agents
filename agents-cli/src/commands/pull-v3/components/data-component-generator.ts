@@ -37,7 +37,7 @@ function formatString(str: string, quote: string = "'", multiline: boolean = fal
     return `\`${str.replace(/`/g, '\\`')}\``;
   }
 
-  return `${quote}${str.replace(new RegExp(quote, 'g'), '\\' + quote)}${quote}`;
+  return `${quote}${str.replace(new RegExp(quote, 'g'), `\\${quote}`)}${quote}`;
 }
 
 /**
@@ -154,7 +154,6 @@ export function generateDataComponentDefinition(
  * Generate imports needed for a data component file
  */
 export function generateDataComponentImports(
-  componentId: string,
   componentData: any,
   style: CodeStyle = DEFAULT_STYLE
 ): string[] {
@@ -183,8 +182,8 @@ export function generateDataComponentFile(
   componentData: any,
   style: CodeStyle = DEFAULT_STYLE
 ): string {
-  const imports = generateDataComponentImports(componentId, componentData, style);
+  const imports = generateDataComponentImports(componentData, style);
   const definition = generateDataComponentDefinition(componentId, componentData, style);
 
-  return imports.join('\n') + '\n\n' + definition + '\n';
+  return `${imports.join('\n')}\n\n${definition}\n`;
 }
