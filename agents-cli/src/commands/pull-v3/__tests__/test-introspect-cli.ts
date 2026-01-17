@@ -454,7 +454,7 @@ Prioritize customer satisfaction and swift resolution.`,
   updatedAt: new Date().toISOString(),
 };
 
-async function main() {
+async function main(): Promise<void> {
   console.log(chalk.blue('\n🧪 Testing Introspect Generator CLI\n'));
 
   // Create temporary test directory
