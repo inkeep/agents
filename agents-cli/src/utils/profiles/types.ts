@@ -29,7 +29,7 @@ export const remoteSchema: z.ZodType<RemoteConfig> = z.union([
 /**
  * Profile name validation - alphanumeric + hyphens only
  */
-export const profileNameSchema = z
+export const profileNameSchema: z.ZodType<string> = z
   .string()
   .min(1, 'Profile name cannot be empty')
   .max(64, 'Profile name too long (max 64 characters)')
@@ -38,7 +38,7 @@ export const profileNameSchema = z
 /**
  * Schema for a single profile configuration
  */
-export const profileSchema = z.object({
+export const profileSchema: z.ZodType<Profile> = z.object({
   remote: remoteSchema,
   credential: z.string().min(1, 'Credential reference cannot be empty'),
   environment: z.string().min(1, 'Environment cannot be empty'),
@@ -71,7 +71,11 @@ export type RemoteConfig = 'cloud' | ExplicitRemote;
 /**
  * Single profile configuration type
  */
-export type Profile = z.infer<typeof profileSchema>;
+export interface Profile {
+  remote: RemoteConfig;
+  credential: string;
+  environment: string;
+}
 
 /**
  * Full profiles configuration type
