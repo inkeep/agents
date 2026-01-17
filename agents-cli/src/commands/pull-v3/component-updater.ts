@@ -991,8 +991,8 @@ export async function updateModifiedComponents(
           // Find fetchDefinition nested in agent contextConfig.contextVariables
           for (const agentData of Object.values(remoteProject.agents || {})) {
             const contextConfig = (agentData as any).contextConfig;
-            if (contextConfig && contextConfig.contextVariables) {
-              for (const [varName, variable] of Object.entries(contextConfig.contextVariables)) {
+            if (contextConfig?.contextVariables) {
+              for (const variable of Object.values(contextConfig.contextVariables)) {
                 if ((variable as any)?.id === componentId) {
                   componentData = variable;
                   break;
