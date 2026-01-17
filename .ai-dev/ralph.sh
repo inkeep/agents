@@ -161,15 +161,16 @@ for ((i=1; i<=MAX_ITERATIONS; i++)); do
     echo "## Iteration $i - $(date)" >> "$PROGRESS_FILE"
     echo "" >> "$PROGRESS_FILE"
 
-    # Run Claude with the prompt
-    # --dangerously-skip-permissions skips confirmation prompts
-    # --print sends output to stdout as well
-    OUTPUT=$(claude --dangerously-skip-permissions --print -p "$(cat "$PROMPT_FILE")" 2>&1) || true
+    # Run Claude with the prompt (streaming output in real-time)
+    # Use tee to both display and capture output
+    OUTPUT_FILE=$(mktemp)
 
-    echo "$OUTPUT"
+    # Run claude and stream output while also saving to file
+    claude --dangerously-skip-permissions --print -p "$(cat "$PROMPT_FILE")" 2>&1 | tee "$OUTPUT_FILE" || true
 
     # Check for completion signal
-    if echo "$OUTPUT" | grep -q "<promise>COMPLETE</promise>"; then
+    if grep -q "<promise>COMPLETE</promise>" "$OUTPUT_FILE"; then
+        rm -f "$OUTPUT_FILE"
         echo ""
         echo -e "${GREEN}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
         echo -e "${GREEN}  ✅ PRD COMPLETE! All stories passing.${NC}"
@@ -183,6 +184,9 @@ for ((i=1; i<=MAX_ITERATIONS; i++)); do
         echo "  3. Create PR"
         exit 0
     fi
+
+    # Clean up temp file
+    rm -f "$OUTPUT_FILE"
 
     echo "" >> "$PROGRESS_FILE"
     echo "---" >> "$PROGRESS_FILE"
