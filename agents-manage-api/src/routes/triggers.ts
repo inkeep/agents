@@ -6,6 +6,8 @@ import {
 	deleteTrigger,
 	generateId,
 	getTriggerById,
+	getTriggerInvocationById,
+	listTriggerInvocationsPaginated,
 	listTriggersPaginated,
 	PaginationQueryParamsSchema,
 	TenantProjectAgentIdParamsSchema,
@@ -13,6 +15,8 @@ import {
 	TriggerApiInsertSchema,
 	TriggerApiSelectSchema,
 	TriggerApiUpdateSchema,
+	TriggerInvocationApiSelectSchema,
+	TriggerInvocationStatusEnum,
 	updateTrigger,
 } from '@inkeep/agents-core';
 import { env } from '../env';
@@ -399,6 +403,143 @@ app.openapi(
 		}
 
 		return c.body(null, 204);
+	}
+);
+
+/**
+ * ========================================
+ * Trigger Invocation Endpoints
+ * ========================================
+ */
+
+// Response schemas for invocations
+const TriggerInvocationResponse = z.object({
+	data: TriggerInvocationApiSelectSchema,
+});
+
+const TriggerInvocationListResponse = z.object({
+	data: z.array(TriggerInvocationApiSelectSchema),
+	pagination: z.object({
+		page: z.number(),
+		limit: z.number(),
+		total: z.number(),
+		pages: z.number(),
+	}),
+});
+
+// Query params for invocation filtering
+const TriggerInvocationQueryParamsSchema = PaginationQueryParamsSchema.extend({
+	status: TriggerInvocationStatusEnum.optional(),
+	from: z.string().datetime().optional().describe('Start date for filtering (ISO8601)'),
+	to: z.string().datetime().optional().describe('End date for filtering (ISO8601)'),
+});
+
+/**
+ * List Trigger Invocations
+ */
+app.openapi(
+	createRoute({
+		method: 'get',
+		path: '/{id}/invocations',
+		summary: 'List Trigger Invocations',
+		operationId: 'list-trigger-invocations',
+		tags: ['Triggers'],
+		request: {
+			params: TenantProjectAgentIdParamsSchema,
+			query: TriggerInvocationQueryParamsSchema,
+		},
+		responses: {
+			200: {
+				description: 'List of trigger invocations retrieved successfully',
+				content: {
+					'application/json': {
+						schema: TriggerInvocationListResponse,
+					},
+				},
+			},
+			...commonGetErrorResponses,
+		},
+		...speakeasyOffsetLimitPagination,
+	}),
+	async (c) => {
+		const db = c.get('db');
+		const { tenantId, projectId, agentId, id: triggerId } = c.req.valid('param');
+		const { page, limit, status, from, to } = c.req.valid('query');
+
+		logger.info(
+			{ tenantId, projectId, agentId, triggerId, status, from, to },
+			'Listing trigger invocations'
+		);
+
+		// Build date range filter if provided
+		const dateRange = from || to ? { from, to } : undefined;
+
+		const result = await listTriggerInvocationsPaginated(db)({
+			scopes: { tenantId, projectId, agentId },
+			triggerId,
+			pagination: { page, limit },
+			filters: {
+				status,
+				dateRange,
+			},
+		});
+
+		return c.json(result);
+	}
+);
+
+/**
+ * Get Trigger Invocation by ID
+ */
+app.openapi(
+	createRoute({
+		method: 'get',
+		path: '/{id}/invocations/{invocationId}',
+		summary: 'Get Trigger Invocation',
+		operationId: 'get-trigger-invocation-by-id',
+		tags: ['Triggers'],
+		request: {
+			params: TenantProjectAgentIdParamsSchema.extend({
+				invocationId: z.string().describe('Trigger Invocation ID'),
+			}),
+		},
+		responses: {
+			200: {
+				description: 'Trigger invocation found',
+				content: {
+					'application/json': {
+						schema: TriggerInvocationResponse,
+					},
+				},
+			},
+			...commonGetErrorResponses,
+		},
+	}),
+	async (c) => {
+		const db = c.get('db');
+		const { tenantId, projectId, agentId, id: triggerId, invocationId } = c.req.valid('param');
+
+		logger.info(
+			{ tenantId, projectId, agentId, triggerId, invocationId },
+			'Getting trigger invocation'
+		);
+
+		const invocation = await getTriggerInvocationById(db)({
+			scopes: { tenantId, projectId, agentId },
+			triggerId,
+			invocationId,
+		});
+
+		if (!invocation) {
+			throw createApiError({
+				code: 'not_found',
+				message: 'Trigger invocation not found',
+			});
+		}
+
+		return c.json({
+			data: invocation,
+		});
 	}
 );
 
