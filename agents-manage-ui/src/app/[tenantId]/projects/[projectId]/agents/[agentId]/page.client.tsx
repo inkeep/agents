@@ -433,14 +433,7 @@ export const Agent: FC<AgentProps> = ({
 
     // Workaround for a React Compiler limitation.
     // Todo: Support value blocks (conditional, logical, optional chaining, etc) within a try/catch statement
-    async function doRequest(): Promise<
-      | {
-          fullProject: FullProjectDefinition;
-          toolsResult: Awaited<ReturnType<typeof fetchToolsAction>> | null;
-          updatedAgent: ExtendedFullAgentDefinition;
-        }
-      | undefined
-    > {
+    async function doRequest(): Promise<void> {
       const [fullProjectResult, toolsResult] = await Promise.all([
         getFullProjectAction(tenantId, projectId),
         options?.fetchTools ? fetchToolsAction(tenantId, projectId) : Promise.resolve(null),
@@ -454,14 +447,6 @@ export const Agent: FC<AgentProps> = ({
       const updatedAgent = fullProject?.agents?.[
         agent.id as keyof typeof fullProject.agents
       ] as ExtendedFullAgentDefinition;
-
-      return { fullProject, toolsResult, updatedAgent };
-    }
-
-    try {
-      const result = await doRequest();
-      if (!result) return;
-      const { fullProject, updatedAgent, toolsResult } = result;
 
       // Update tool lookup if tools were fetched
       const updatedToolLookup = toolsResult?.success
@@ -514,7 +499,12 @@ export const Agent: FC<AgentProps> = ({
 
       // Update project data in store so components using useProjectData get fresh data
       const convertedProject = convertFullProjectToProject(fullProject, tenantId);
+
       setProjectStore(convertedProject);
+    }
+
+    try {
+      await doRequest();
     } catch (error) {
       console.error('Failed to refresh agent graph:', error);
     }
@@ -901,14 +891,19 @@ export const Agent: FC<AgentProps> = ({
       });
       return false;
     }
-
-    // Handle validation errors (422 status - unprocessable_entity)
-    try {
-      const errorSummary = parseAgentValidationErrors(res.error);
+    // Workaround for a React Compiler limitation.
+    // Todo: Support value blocks (conditional, logical, optional chaining, etc) within a try/catch statement
+    function parseErrors(error: string) {
+      const errorSummary = parseAgentValidationErrors(error);
       setErrors(errorSummary);
 
       const summaryMessage = getErrorSummaryMessage(errorSummary);
       toast.error(summaryMessage || 'Failed to save agent - validation errors found.');
+    }
+
+    // Handle validation errors (422 status - unprocessable_entity)
+    try {
+      parseErrors(res.error);
     } catch (parseError) {
       // Fallback for unparseable errors
       console.error('Failed to parse validation errors:', parseError);
