@@ -2461,9 +2461,7 @@ ${output}`;
       if (!subAgents) {
         return false;
       }
-      return Object.values(subAgents).some(
-        (subAgent) => subAgent.artifactComponents?.length ?? 0 > 0
-      );
+      return Object.values(subAgents).some((subAgent) => subAgent.artifactComponents?.length);
     } catch (error) {
       logger.error(
         { error, agentId: this.config.agentId },
