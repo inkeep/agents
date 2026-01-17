@@ -114,8 +114,9 @@ function SidebarProvider({
         <div
           data-slot="sidebar-wrapper"
           style={{
-            ['--sidebar-width' as string]: SIDEBAR_WIDTH,
-            ['--sidebar-width-icon' as string]: SIDEBAR_WIDTH_ICON,
+            // @ts-expect-error
+            '--sidebar-width': SIDEBAR_WIDTH,
+            '--sidebar-width-icon': SIDEBAR_WIDTH_ICON,
             ...style,
           }}
           className={cn(
@@ -171,7 +172,8 @@ function Sidebar({
           data-mobile="true"
           className="bg-sidebar text-sidebar-foreground w-(--sidebar-width) p-0 [&>button]:hidden"
           style={{
-            ['--sidebar-width' as string]: SIDEBAR_WIDTH_MOBILE,
+            // @ts-expect-error
+            '--sidebar-width': SIDEBAR_WIDTH_MOBILE,
           }}
           side={side}
         >
@@ -590,7 +592,8 @@ function SidebarMenuSkeleton({
         className="h-4 max-w-(--skeleton-width) flex-1"
         data-sidebar="menu-skeleton-text"
         style={{
-          ['--skeleton-width' as string]: width,
+          // @ts-expect-error
+          '--skeleton-width': width,
         }}
       />
     </div>

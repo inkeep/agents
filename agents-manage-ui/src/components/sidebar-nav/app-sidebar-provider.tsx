@@ -24,8 +24,9 @@ export const AppSidebarProvider: FC<{ children: ReactNode }> = ({ children }) =>
   return (
     <SidebarProvider
       style={{
-        ['--sidebar-width' as string]: 'calc(var(--spacing) * 62)',
-        ['--header-height' as string]: 'calc(var(--spacing) * 12)',
+        // @ts-expect-error
+        '--sidebar-width': 'calc(var(--spacing) * 62)',
+        '--header-height': 'calc(var(--spacing) * 12)',
       }}
       open={isOpen}
       onOpenChange={handleOpen}
