@@ -146,7 +146,7 @@ function findParentImports(dir: string): string[] {
           scanDir(fullPath);
         } else if (stat.isFile() && /\.[tj]sx?$/.test(entry)) {
           const content = readFileSync(fullPath, 'utf8');
-          let match;
+          let match: RegExpMatchArray | null;
 
           while ((match = importRegex.exec(content)) !== null) {
             const importPath = match[1];
@@ -179,7 +179,6 @@ function findParentImports(dir: string): string[] {
  * Check for stale components and prompt user for cleanup permission
  */
 export async function checkAndPromptForStaleComponentCleanup(
-  projectRoot: string,
   remoteProject: FullProjectDefinition,
   localRegistry: ComponentRegistry
 ): Promise<boolean> {
@@ -188,38 +187,58 @@ export async function checkAndPromptForStaleComponentCleanup(
 
   // Add all remote component IDs (same logic as cleanupStaleComponents)
   if (remoteProject.agents) {
-    Object.keys(remoteProject.agents).forEach((id) => remoteComponentIds.add(id));
+    Object.keys(remoteProject.agents).forEach((id) => {
+      remoteComponentIds.add(id);
+    });
   }
   if (remoteProject.tools) {
-    Object.keys(remoteProject.tools).forEach((id) => remoteComponentIds.add(id));
+    Object.keys(remoteProject.tools).forEach((id) => {
+      remoteComponentIds.add(id);
+    });
   }
   if (remoteProject.functionTools) {
-    Object.keys(remoteProject.functionTools).forEach((id) => remoteComponentIds.add(id));
+    Object.keys(remoteProject.functionTools).forEach((id) => {
+      remoteComponentIds.add(id);
+    });
   }
   if (remoteProject.functions) {
-    Object.keys(remoteProject.functions).forEach((id) => remoteComponentIds.add(id));
+    Object.keys(remoteProject.functions).forEach((id) => {
+      remoteComponentIds.add(id);
+    });
   }
   if (remoteProject.dataComponents) {
-    Object.keys(remoteProject.dataComponents).forEach((id) => remoteComponentIds.add(id));
+    Object.keys(remoteProject.dataComponents).forEach((id) => {
+      remoteComponentIds.add(id);
+    });
   }
   if (remoteProject.artifactComponents) {
-    Object.keys(remoteProject.artifactComponents).forEach((id) => remoteComponentIds.add(id));
+    Object.keys(remoteProject.artifactComponents).forEach((id) => {
+      remoteComponentIds.add(id);
+    });
   }
   if (remoteProject.credentialReferences) {
-    Object.keys(remoteProject.credentialReferences).forEach((id) => remoteComponentIds.add(id));
+    Object.keys(remoteProject.credentialReferences).forEach((id) => {
+      remoteComponentIds.add(id);
+    });
   }
   if (remoteProject.externalAgents) {
-    Object.keys(remoteProject.externalAgents).forEach((id) => remoteComponentIds.add(id));
+    Object.keys(remoteProject.externalAgents).forEach((id) => {
+      remoteComponentIds.add(id);
+    });
   }
 
   // Environments (if they exist as separate entities)
   if ((remoteProject as any).environments) {
-    Object.keys((remoteProject as any).environments).forEach((id) => remoteComponentIds.add(id));
+    Object.keys((remoteProject as any).environments).forEach((id) => {
+      remoteComponentIds.add(id);
+    });
   }
 
   // Headers (if they exist as separate entities)
   if ((remoteProject as any).headers) {
-    Object.keys((remoteProject as any).headers).forEach((id) => remoteComponentIds.add(id));
+    Object.keys((remoteProject as any).headers).forEach((id) => {
+      remoteComponentIds.add(id);
+    });
   }
 
   // Models - project level
@@ -236,15 +255,21 @@ export async function checkAndPromptForStaleComponentCleanup(
   if (remoteProject.agents) {
     Object.values(remoteProject.agents).forEach((agent) => {
       if (agent.subAgents) {
-        Object.keys(agent.subAgents).forEach((id) => remoteComponentIds.add(id));
+        Object.keys(agent.subAgents).forEach((id) => {
+          remoteComponentIds.add(id);
+        });
 
         // Check for function tools within each sub-agent
         Object.values(agent.subAgents).forEach((subAgent: any) => {
           if (subAgent.functionTools) {
-            Object.keys(subAgent.functionTools).forEach((id) => remoteComponentIds.add(id));
+            Object.keys(subAgent.functionTools).forEach((id) => {
+              remoteComponentIds.add(id);
+            });
           }
           if (subAgent.tools) {
-            Object.keys(subAgent.tools).forEach((id) => remoteComponentIds.add(id));
+            Object.keys(subAgent.tools).forEach((id) => {
+              remoteComponentIds.add(id);
+            });
           }
         });
       }
@@ -260,9 +285,9 @@ export async function checkAndPromptForStaleComponentCleanup(
 
         // Headers within context configs (if any)
         if ((agent.contextConfig as any).headers) {
-          Object.keys((agent.contextConfig as any).headers).forEach((id) =>
-            remoteComponentIds.add(id)
-          );
+          Object.keys((agent.contextConfig as any).headers).forEach((id) => {
+            remoteComponentIds.add(id);
+          });
         }
       }
 
@@ -381,38 +406,58 @@ export async function cleanupStaleComponents(
 
   // Top-level components
   if (remoteProject.agents) {
-    Object.keys(remoteProject.agents).forEach((id) => remoteComponentIds.add(id));
+    Object.keys(remoteProject.agents).forEach((id) => {
+      remoteComponentIds.add(id);
+    });
   }
   if (remoteProject.tools) {
-    Object.keys(remoteProject.tools).forEach((id) => remoteComponentIds.add(id));
+    Object.keys(remoteProject.tools).forEach((id) => {
+      remoteComponentIds.add(id);
+    });
   }
   if (remoteProject.functionTools) {
-    Object.keys(remoteProject.functionTools).forEach((id) => remoteComponentIds.add(id));
+    Object.keys(remoteProject.functionTools).forEach((id) => {
+      remoteComponentIds.add(id);
+    });
   }
   if (remoteProject.functions) {
-    Object.keys(remoteProject.functions).forEach((id) => remoteComponentIds.add(id));
+    Object.keys(remoteProject.functions).forEach((id) => {
+      remoteComponentIds.add(id);
+    });
   }
   if (remoteProject.dataComponents) {
-    Object.keys(remoteProject.dataComponents).forEach((id) => remoteComponentIds.add(id));
+    Object.keys(remoteProject.dataComponents).forEach((id) => {
+      remoteComponentIds.add(id);
+    });
   }
   if (remoteProject.artifactComponents) {
-    Object.keys(remoteProject.artifactComponents).forEach((id) => remoteComponentIds.add(id));
+    Object.keys(remoteProject.artifactComponents).forEach((id) => {
+      remoteComponentIds.add(id);
+    });
   }
   if (remoteProject.credentialReferences) {
-    Object.keys(remoteProject.credentialReferences).forEach((id) => remoteComponentIds.add(id));
+    Object.keys(remoteProject.credentialReferences).forEach((id) => {
+      remoteComponentIds.add(id);
+    });
   }
   if (remoteProject.externalAgents) {
-    Object.keys(remoteProject.externalAgents).forEach((id) => remoteComponentIds.add(id));
+    Object.keys(remoteProject.externalAgents).forEach((id) => {
+      remoteComponentIds.add(id);
+    });
   }
 
   // Environments (if they exist as separate entities)
   if ((remoteProject as any).environments) {
-    Object.keys((remoteProject as any).environments).forEach((id) => remoteComponentIds.add(id));
+    Object.keys((remoteProject as any).environments).forEach((id) => {
+      remoteComponentIds.add(id);
+    });
   }
 
   // Headers (if they exist as separate entities)
   if ((remoteProject as any).headers) {
-    Object.keys((remoteProject as any).headers).forEach((id) => remoteComponentIds.add(id));
+    Object.keys((remoteProject as any).headers).forEach((id) => {
+      remoteComponentIds.add(id);
+    });
   }
 
   // Models - project level
@@ -430,15 +475,21 @@ export async function cleanupStaleComponents(
     Object.values(remoteProject.agents).forEach((agent) => {
       // Sub-agents
       if (agent.subAgents) {
-        Object.keys(agent.subAgents).forEach((id) => remoteComponentIds.add(id));
+        Object.keys(agent.subAgents).forEach((id) => {
+          remoteComponentIds.add(id);
+        });
 
         // Check for function tools within each sub-agent
         Object.values(agent.subAgents).forEach((subAgent: any) => {
           if (subAgent.functionTools) {
-            Object.keys(subAgent.functionTools).forEach((id) => remoteComponentIds.add(id));
+            Object.keys(subAgent.functionTools).forEach((id) => {
+              remoteComponentIds.add(id);
+            });
           }
           if (subAgent.tools) {
-            Object.keys(subAgent.tools).forEach((id) => remoteComponentIds.add(id));
+            Object.keys(subAgent.tools).forEach((id) => {
+              remoteComponentIds.add(id);
+            });
           }
         });
       }
@@ -458,9 +509,9 @@ export async function cleanupStaleComponents(
 
         // Headers within context configs (if any)
         if ((agent.contextConfig as any).headers) {
-          Object.keys((agent.contextConfig as any).headers).forEach((id) =>
-            remoteComponentIds.add(id)
-          );
+          Object.keys((agent.contextConfig as any).headers).forEach((id) => {
+            remoteComponentIds.add(id);
+          });
         }
       }
 
@@ -941,7 +992,7 @@ export async function updateModifiedComponents(
           }
         } else if (componentType === 'fetchDefinitions') {
           // Find fetchDefinition nested in agent contextConfig.contextVariables
-          for (const [agentId, agentData] of Object.entries(remoteProject.agents || {})) {
+          for (const agentData of Object.values(remoteProject.agents || {})) {
             const contextConfig = (agentData as any).contextConfig;
             if (contextConfig && contextConfig.contextVariables) {
               for (const [varName, variable] of Object.entries(contextConfig.contextVariables)) {
@@ -955,15 +1006,15 @@ export async function updateModifiedComponents(
           }
         } else if (componentType === 'subAgents') {
           // SubAgents are nested within agents - find the subAgent by ID
-          for (const [agentId, agentData] of Object.entries(remoteProject.agents || {})) {
-            if (agentData.subAgents && agentData.subAgents[componentId]) {
+          for (const agentData of Object.values(remoteProject.agents || {})) {
+            if (agentData.subAgents?.[componentId]) {
               componentData = agentData.subAgents[componentId];
               break;
             }
           }
         } else if (componentType === 'statusComponents') {
           // StatusComponents are nested within agents - find the statusComponent by ID
-          for (const [agentId, agentData] of Object.entries(remoteProject.agents || {})) {
+          for (const agentData of Object.values(remoteProject.agents || {})) {
             if (
               agentData.statusUpdates?.statusComponents &&
               agentData.statusUpdates.statusComponents
@@ -1003,9 +1054,7 @@ export async function updateModifiedComponents(
 
             // Scan contextConfig.contextVariables for fetchDefinitions that reference credentials
             if (componentData.contextConfig?.contextVariables) {
-              for (const [varName, varData] of Object.entries(
-                componentData.contextConfig.contextVariables
-              )) {
+              for (const varData of Object.values(componentData.contextConfig.contextVariables)) {
                 if (
                   varData &&
                   typeof varData === 'object' &&
@@ -1339,7 +1388,7 @@ function analyzeComponentsToExport(
         // This component is in the current file
         // Check if any new component might reference it (simplified heuristic)
         // For now, we'll be conservative and export commonly referenced components
-        if (shouldComponentBeExported(localComp, newComponents)) {
+        if (shouldComponentBeExported(localComp)) {
           const existingExport = componentsToExport.find((c) => c.componentId === localComp.id);
           if (!existingExport) {
             componentsToExport.push({
@@ -1359,10 +1408,7 @@ function analyzeComponentsToExport(
 /**
  * Determine if a component should be exported based on heuristics
  */
-function shouldComponentBeExported(
-  localComponent: ComponentInfo,
-  newComponents: Array<{ componentId: string; componentType: string; filePath: string }>
-): boolean {
+function shouldComponentBeExported(localComponent: ComponentInfo): boolean {
   // Export components that are likely to be referenced by new components
   // This is a heuristic - in reality, we'd need to parse the new component files to see exact references
 
