@@ -8,10 +8,11 @@ import {
   generateProjectFile,
   generateProjectImports,
 } from '../project-generator';
+import type { ComponentRegistry } from '../../utils/component-registry';
 
 // Mock registry for tests
 const mockRegistry = {
-  formatReferencesForCode: (refs: string[], type: string, style: any, indent: number) => {
+  formatReferencesForCode(refs, _type, _style, indent) {
     if (!refs || refs.length === 0) return '[]';
     if (refs.length === 1) return `[${refs[0]}]`;
 
@@ -19,7 +20,7 @@ const mockRegistry = {
     const items = refs.map((ref) => `${indentStr}${ref}`).join(',\n');
     return `[\n${items}\n${indentStr.slice(2)}]`;
   },
-};
+} satisfies Partial<ComponentRegistry>;
 
 describe('Project Generator', () => {
   const basicProjectData = {
