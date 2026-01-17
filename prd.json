@@ -277,8 +277,8 @@
         "Typecheck passes"
       ],
       "priority": 17,
-      "passes": false,
-      "notes": ""
+      "passes": true,
+      "notes": "Completed in commit 48f502c3. Both invocation endpoints implemented with filtering support for status and date ranges."
     },
     {
       "id": "US-018",
