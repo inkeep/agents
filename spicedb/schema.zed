@@ -1,0 +1,122 @@
+/**
+ * SpiceDB Schema for Project-Level Access Control
+ * 
+ * This schema defines the authorization model for the Inkeep Agent Framework.
+ * All projects are private by default and require explicit grants.
+ * 
+ * Naming Conventions (per SpiceDB best practices):
+ * - Relations: nouns (roles) - e.g., owner, admin, member
+ * - Permissions: verbs (actions) - e.g., view, edit, delete, manage
+ * 
+ * Future Extensibility:
+ * - Groups: Add `| group#member` to relation types
+ * - Service Accounts: Add `| service_account` to relation types  
+ * - Custom Roles: Define a `role` definition and bind it via `relation custom_role: role`
+ */
+
+/**
+ * user represents a human user in the system
+ */
+definition user {}
+
+/**
+ * organization represents a tenant/org boundary
+ * All authorization is scoped within an organization
+ */
+definition organization {
+    /**
+     * owner has full control over the organization
+     */
+    relation owner: user
+    
+    /**
+     * admin can manage org settings and all projects
+     */
+    relation admin: user
+    
+    /**
+     * member is a basic org member with no implicit project access
+     */
+    relation member: user
+    
+    /**
+     * Can view organization details
+     * "Can user VIEW organization?"
+     */
+    permission view = owner + admin + member
+    
+    /**
+     * Can manage organization settings and all projects
+     * "Can user MANAGE organization?"
+     */
+    permission manage = owner + admin
+}
+
+/**
+ * project is a container for agents, workflows, and other resources
+ * All projects are private by default - require explicit grants
+ * 
+ * Role Hierarchy:
+ * - project_admin: Full access (view + use + edit + manage members)
+ * - project_member: Operator access (view + use: invoke agents, create API keys)
+ * - project_viewer: Read-only access (view only)
+ */
+definition project {
+    /**
+     * The organization this project belongs to
+     */
+    relation organization: organization
+    
+    /**
+     * project_admin can manage project membership, settings, and configurations
+     * Includes all permissions: view, use, edit, delete
+     */
+    relation project_admin: user
+    
+    /**
+     * project_member can use the project (invoke agents, create API keys)
+     * but cannot edit configurations or manage members
+     * Includes: view, use
+     */
+    relation project_member: user
+    
+    /**
+     * project_viewer can only view the project and its resources (read-only)
+     * Cannot invoke agents, create API keys, or edit anything
+     * Includes: view only
+     */
+    relation project_viewer: user
+    
+    /**
+     * Can view the project and its resources (read-only)
+     * "Can user VIEW project?"
+     * - Org managers can always view
+     * - All project roles can view
+     */
+    permission view = organization->manage + project_admin + project_member + project_viewer
+    
+    /**
+     * Can use the project (invoke agents, create API keys, view traces)
+     * "Can user USE project?"
+     * - Org managers can always use
+     * - project_admin and project_member can use
+     * - project_viewer CANNOT use (read-only)
+     */
+    permission use = organization->manage + project_admin + project_member
+    
+    /**
+     * Can edit project configurations and manage members
+     * "Can user EDIT project?"
+     * - Org managers can always edit
+     * - Only project_admin can edit
+     */
+    permission edit = organization->manage + project_admin
+    
+    /**
+     * Can delete the project
+     * "Can user DELETE project?"
+     * - Org managers can always delete
+     * - Only project_admin can delete
+     */
+    permission delete = organization->manage + project_admin
+}

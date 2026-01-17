@@ -573,6 +573,8 @@ DEFAULT_PROJECT_ID=${config.projectId}
 BETTER_AUTH_SECRET=${betterAuthSecret}
 DISABLE_AUTH=true
 
+ENABLE_AUTHZ=false
+
 `;
 
   await fs.writeFile('.env', envContent);

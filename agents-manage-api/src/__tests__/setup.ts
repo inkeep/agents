@@ -4,6 +4,10 @@ import { afterAll, afterEach, beforeAll } from 'vitest';
 import manageDbClient from '../data/db/dbClient';
 import runDbClient from '../data/db/runDbClient';
 
+// Disable SpiceDB authorization for tests (unless explicitly testing authz)
+// This ensures tests run without requiring a SpiceDB instance
+process.env.ENABLE_AUTHZ = 'false';
+
 // Initialize database schema for in-memory test databases using Drizzle migrations
 beforeAll(async () => {
   const logger = getLogger('Test Setup');

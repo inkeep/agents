@@ -20,32 +20,26 @@ import {
   TenantProjectParamsSchema,
   updateCredentialReference,
 } from '@inkeep/agents-core';
-import { requirePermission } from '../middleware/require-permission';
+import { requireProjectPermission } from '../middleware/project-access';
 import type { AppVariablesWithCredentials } from '../types/app';
 import { speakeasyOffsetLimitPagination } from './shared';
 
 const app = new OpenAPIHono<{ Variables: AppVariablesWithCredentials }>();
 
-// Apply permission middleware by HTTP method
+// Write operations require 'edit' permission on the project
 app.use('/', async (c, next) => {
   if (c.req.method === 'POST') {
-    return requirePermission<{ Variables: AppVariablesWithCredentials }>({
-      credential: ['create'],
-    })(c, next);
+    return requireProjectPermission<{ Variables: AppVariablesWithCredentials }>('edit')(c, next);
   }
   return next();
 });
 
 app.use('/:id', async (c, next) => {
   if (c.req.method === 'PATCH') {
-    return requirePermission<{ Variables: AppVariablesWithCredentials }>({
-      credential: ['update'],
-    })(c, next);
+    return requireProjectPermission<{ Variables: AppVariablesWithCredentials }>('edit')(c, next);
   }
   if (c.req.method === 'DELETE') {
-    return requirePermission<{ Variables: AppVariablesWithCredentials }>({
-      credential: ['delete'],
-    })(c, next);
+    return requireProjectPermission<{ Variables: AppVariablesWithCredentials }>('edit')(c, next);
   }
   return next();
 });

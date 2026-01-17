@@ -11,25 +11,32 @@ import {
   ErrorResponseSchema,
   getProject,
   getProjectMainBranchName,
+  isAuthzEnabled,
+  listAccessibleProjectIds,
   listProjectsWithMetadataPaginated,
+  type OrgRole,
   PaginationQueryParamsSchema,
   ProjectApiInsertSchema,
   ProjectApiUpdateSchema,
   ProjectListResponse,
   ProjectResponse,
   type ResolvedRef,
+  removeProjectFromSpiceDb,
+  syncProjectToSpiceDb,
   TenantIdParamsSchema,
   TenantParamsSchema,
   updateProject,
 } from '@inkeep/agents-core';
 import manageDbClient from '../data/db/dbClient';
 import runDbClient from '../data/db/runDbClient';
+import { requireProjectPermission } from '../middleware/project-access';
 import { requirePermission } from '../middleware/require-permission';
 import type { BaseAppVariables } from '../types/app';
 import { speakeasyOffsetLimitPagination } from './shared';
 
 const app = new OpenAPIHono<{ Variables: BaseAppVariables }>();
 
+// POST /projects - Create project (org-level action, requires org permission)
 app.use('/', async (c, next) => {
   if (c.req.method === 'POST') {
     return requirePermission({ project: ['create'] })(c, next);
@@ -37,12 +44,19 @@ app.use('/', async (c, next) => {
   return next();
 });
 
+// GET/PATCH/DELETE /projects/:id - Project-level actions (require SpiceDB permission)
 app.use('/:id', async (c, next) => {
+  if (c.req.method === 'GET') {
+    // View project requires 'view' permission
+    return requireProjectPermission('view')(c, next);
+  }
   if (c.req.method === 'PATCH') {
-    return requirePermission({ project: ['update'] })(c, next);
+    // Update project requires 'edit' permission
+    return requireProjectPermission('edit')(c, next);
   }
   if (c.req.method === 'DELETE') {
-    return requirePermission({ project: ['delete'] })(c, next);
+    // Delete project requires 'edit' permission
+    return requireProjectPermission('edit')(c, next);
   }
   return next();
 });
@@ -52,7 +66,8 @@ app.openapi(
     method: 'get',
     path: '/',
     summary: 'List Projects',
-    description: 'List all projects within a tenant with pagination',
+    description:
+      'List all projects within a tenant with pagination. When authorization is enabled, only returns projects the user has access to.',
     operationId: 'list-projects',
     tags: ['Projects'],
     request: {
@@ -75,18 +90,30 @@ app.openapi(
   async (c) => {
     const configDb = c.get('db');
     const { tenantId } = c.req.valid('param');
+    const userId = c.get('userId');
+    const tenantRole = c.get('tenantRole') || 'member';
     const page = Number(c.req.query('page')) || 1;
     const limit = Math.min(Number(c.req.query('limit')) || 10, 100);
+
+    // Get accessible project IDs based on authorization
+    let accessibleIds: string[] | undefined;
+    if (isAuthzEnabled(tenantId) && userId) {
+      const result = await listAccessibleProjectIds({
+        tenantId,
+        userId,
+        orgRole: tenantRole as OrgRole,
+      });
+      if (result !== 'all') {
+        accessibleIds = result;
+      }
+    }
 
     // Use the new function that gets projects from runtime DB
     // and fetches metadata from each project's branch in config DB
     const result = await listProjectsWithMetadataPaginated(
       runDbClient,
       configDb
-    )({
-      tenantId,
-      pagination: { page, limit },
-    });
+    )({ tenantId, pagination: { page, limit }, projectIds: accessibleIds });
 
     // Transform the result to match the existing ProjectListResponse schema
     const transformedData = result.data.map((project) => ({
@@ -151,7 +178,8 @@ app.openapi(
     method: 'post',
     path: '/',
     summary: 'Create Project',
-    description: 'Create a new project',
+    description:
+      'Create a new project. When authorization is enabled, the creator is automatically granted admin role.',
     operationId: 'create-project',
     tags: ['Projects'],
     request: {
@@ -219,6 +247,20 @@ app.openapi(
         tenantId,
         ...body,
       });
+
+      // Sync to SpiceDB: link project to org and grant creator admin role
+      if (isAuthzEnabled(tenantId)) {
+        try {
+          await syncProjectToSpiceDb({
+            tenantId,
+            projectId: body.id,
+            creatorUserId: userId,
+          });
+        } catch (syncError) {
+          // Log but don't fail the request
+          console.warn('Failed to sync project to SpiceDB:', syncError);
+        }
+      }
 
       return c.json(
         {
@@ -364,6 +406,15 @@ app.openapi(
           code: 'not_found',
           message: 'Project not found',
         });
+      }
+
+      // Remove from SpiceDB
+      if (isAuthzEnabled(tenantId)) {
+        try {
+          await removeProjectFromSpiceDb({ tenantId, projectId: id });
+        } catch (syncError) {
+          console.warn('Failed to remove project from SpiceDB:', syncError);
+        }
       }
 
       return c.body(null, 204);
