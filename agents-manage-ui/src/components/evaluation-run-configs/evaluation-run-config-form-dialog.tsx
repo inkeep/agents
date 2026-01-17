@@ -171,25 +171,15 @@ export function EvaluationRunConfigFormDialog({
     }
   }, [isOpen, initialData, form, suiteConfigForm, loadData]);
 
-  const evaluatorLookup = useMemo(() => {
-    return evaluators.reduce(
-      (acc, evaluator) => {
-        acc[evaluator.id] = evaluator;
-        return acc;
-      },
-      {} as Record<string, Evaluator>
-    );
-  }, [evaluators]);
+  const evaluatorLookup = evaluators.reduce<Record<string, Evaluator>>((acc, evaluator) => {
+    acc[evaluator.id] = evaluator;
+    return acc;
+  }, {});
 
-  const agentLookup = useMemo(() => {
-    return agents.reduce(
-      (acc, agent) => {
-        acc[agent.id] = agent;
-        return acc;
-      },
-      {} as Record<string, Agent>
-    );
-  }, [agents]);
+  const agentLookup = agents.reduce<Record<string, Agent>>((acc, agent) => {
+    acc[agent.id] = agent;
+    return acc;
+  }, {});
 
   const { isSubmitting } = form.formState;
 

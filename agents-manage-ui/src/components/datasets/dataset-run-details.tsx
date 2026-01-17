@@ -112,14 +112,14 @@ export function DatasetRunDetails({
   );
 
   // Calculate conversation progress
-  const conversationProgress = useMemo(() => {
+  const conversationProgress = (() => {
     if (!run?.items) return { total: 0, completed: 0, isRunning: false };
     const total = run.items.length;
     const completed = run.items.filter(
       (item) => item.conversations && item.conversations.length > 0
     ).length;
     return { total, completed, isRunning: completed < total && total > 0 };
-  }, [run]);
+  })();
 
   // Overall progress - run is complete only when both conversations AND evaluations are done
   const isRunInProgress =
@@ -141,7 +141,7 @@ export function DatasetRunDetails({
     return () => clearInterval(interval);
   }, [isRunInProgress, loadRun]);
 
-  const uniqueAgents = useMemo(() => {
+  const uniqueAgents = (() => {
     if (!run?.items) return [];
     const agentIds = new Set<string>();
     run.items.forEach((item) => {
@@ -152,70 +152,67 @@ export function DatasetRunDetails({
       });
     });
     return Array.from(agentIds).map((id) => ({ id, name: id }));
-  }, [run]);
+  })();
 
-  const filteredItems = useMemo(() => {
-    if (!run?.items) return [];
+  const items = run?.items ?? [];
+  const filteredItems = items
+    .map((item) => {
+      const getInputText = (): string => {
+        const input = item.input;
+        if (!input) return '';
 
-    return run.items
-      .map((item) => {
-        const getInputText = (): string => {
-          const input = item.input;
-          if (!input) return '';
-
-          if (typeof input === 'object' && 'messages' in input) {
-            const messages = input.messages;
-            if (Array.isArray(messages) && messages.length > 0) {
-              const firstMessage = messages[0];
-              if (firstMessage?.content) {
-                const content = firstMessage.content;
-                if (typeof content === 'string') {
-                  return content;
-                }
-                if (typeof content === 'object' && content !== null && 'text' in content) {
-                  const text = (content as { text?: unknown }).text;
-                  if (typeof text === 'string') {
-                    return text;
-                  }
+        if (typeof input === 'object' && 'messages' in input) {
+          const messages = input.messages;
+          if (Array.isArray(messages) && messages.length > 0) {
+            const firstMessage = messages[0];
+            if (firstMessage?.content) {
+              const content = firstMessage.content;
+              if (typeof content === 'string') {
+                return content;
+              }
+              if (typeof content === 'object' && content !== null && 'text' in content) {
+                const text = (content as { text?: unknown }).text;
+                if (typeof text === 'string') {
+                  return text;
                 }
               }
             }
           }
-
-          return '';
-        };
-
-        const inputText = getInputText().toLowerCase();
-
-        if (filters.searchInput && !inputText.includes(filters.searchInput.toLowerCase())) {
-          return null;
         }
 
-        let conversations = item.conversations || [];
+        return '';
+      };
 
-        if (filters.agentId) {
-          conversations = conversations.filter((conv) => conv.agentId === filters.agentId);
+      const inputText = getInputText().toLowerCase();
+
+      if (filters.searchInput && !inputText.includes(filters.searchInput.toLowerCase())) {
+        return null;
+      }
+
+      let conversations = item.conversations || [];
+
+      if (filters.agentId) {
+        conversations = conversations.filter((conv) => conv.agentId === filters.agentId);
+      }
+
+      if (filters.outputStatus && filters.outputStatus !== 'all') {
+        if (filters.outputStatus === 'has_output') {
+          conversations = conversations.filter((conv) => conv.output);
+        } else if (filters.outputStatus === 'no_output') {
+          conversations = conversations.filter((conv) => !conv.output);
         }
+      }
 
-        if (filters.outputStatus && filters.outputStatus !== 'all') {
-          if (filters.outputStatus === 'has_output') {
-            conversations = conversations.filter((conv) => conv.output);
-          } else if (filters.outputStatus === 'no_output') {
-            conversations = conversations.filter((conv) => !conv.output);
-          }
-        }
+      if (conversations.length === 0 && (filters.agentId || filters.outputStatus)) {
+        return null;
+      }
 
-        if (conversations.length === 0 && (filters.agentId || filters.outputStatus)) {
-          return null;
-        }
-
-        return {
-          ...item,
-          conversations,
-        };
-      })
-      .filter((item): item is NonNullable<typeof item> => item !== null);
-  }, [run, filters]);
+      return {
+        ...item,
+        conversations,
+      };
+    })
+    .filter((item): item is NonNullable<typeof item> => item !== null);
 
   if (loading) {
     return (
