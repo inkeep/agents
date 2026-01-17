@@ -1,5 +1,17 @@
 # @inkeep/agents-manage-mcp
 
+## 0.42.0
+
+### Patch Changes
+
+- 3940062: added extra prompting optionally to mcp tools
+- 14041da: pagination fix
+- 568c1b2: added timestamp
+- c422f89: bug fix for user message evals
+- 4c65924: process attributes removed
+- 3e656cd: simple refactor to reorder models
+- dc827b0: improve context breakdown
+
 ## 0.41.2
 
 ### Patch Changes
