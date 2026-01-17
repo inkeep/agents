@@ -8,7 +8,7 @@
 import type { FullProjectDefinition } from '@inkeep/agents-core';
 import chalk from 'chalk';
 import { compareJsonObjects } from '../../utils/json-comparator';
-import type { ComponentRegistry, ComponentType } from './utils/component-registry';
+import type { ComponentType } from './utils/component-registry';
 
 export interface ComponentChange {
   componentType: ComponentType;
