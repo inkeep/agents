@@ -192,7 +192,7 @@ export const Agent: FC<AgentProps> = ({
 
   // Helper functions to compute lookups from agent data
   const computeAgentToolConfigLookup = (
-    agentData: ExtendedFullAgentDefinition | null | undefined
+    agentData?: ExtendedFullAgentDefinition | null
   ): AgentToolConfigLookup => {
     if (!agentData?.subAgents) return {} as AgentToolConfigLookup;
 

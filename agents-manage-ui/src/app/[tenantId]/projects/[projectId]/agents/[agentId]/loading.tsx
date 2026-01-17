@@ -6,7 +6,7 @@ export const AgentSkeleton: FC = () => {
   return (
     <div className="flex p-4">
       <div className="flex flex-col gap-2" style={{ width: 160 }}>
-        {Array.from({ length: 5 }).map((_, i) => (
+        {Array.from({ length: 4 }).map((_, i) => (
           <Skeleton key={i} style={{ height: 38 }} />
         ))}
       </div>
