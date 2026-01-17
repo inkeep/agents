@@ -45,6 +45,8 @@ import {
   subAgentTeamAgentRelations,
   subAgentToolRelations,
   tools,
+  triggerInvocations,
+  triggers,
 } from '../db/manage/manage-schema';
 
 // Runtime DB imports (Postgres - not versioned)
@@ -346,6 +348,100 @@ export const AgentApiInsertSchema = createApiInsertSchema(AgentInsertSchema)
   })
   .openapi('AgentCreate');
 export const AgentApiUpdateSchema = createApiUpdateSchema(AgentUpdateSchema).openapi('AgentUpdate');
+
+// Trigger schemas
+export const TriggerAuthenticationSchema = z
+  .discriminatedUnion('type', [
+    z.object({
+      type: z.literal('api_key'),
+      data: z.object({
+        name: z.string().describe('Header name for the API key'),
+        value: z.string().describe('Expected API key value'),
+      }),
+      add_position: z.literal('header'),
+    }),
+    z.object({
+      type: z.literal('basic_auth'),
+      data: z.object({
+        username: z.string().describe('Expected username'),
+        password: z.string().describe('Expected password'),
+      }),
+      add_position: z.literal('header'),
+    }),
+    z.object({
+      type: z.literal('bearer_token'),
+      data: z.object({
+        token: z.string().describe('Expected bearer token'),
+      }),
+      add_position: z.literal('header'),
+    }),
+    z.object({
+      type: z.literal('none'),
+    }),
+  ])
+  .openapi('TriggerAuthentication');
+
+export const TriggerOutputTransformSchema = z
+  .object({
+    jmespath: z.string().optional().describe('JMESPath expression for payload transformation'),
+    objectTransformation: z
+      .record(z.string(), z.string())
+      .optional()
+      .describe('Object transformation mapping'),
+  })
+  .openapi('TriggerOutputTransform');
+
+export const TriggerInvocationStatusEnum = z.enum(['pending', 'success', 'failed']);
+
+export const TriggerSelectSchema = createSelectSchema(triggers);
+
+export const TriggerInsertSchema = createInsertSchema(triggers, {
+  id: () => resourceIdSchema,
+  name: () => z.string().trim().nonempty().describe('Trigger name'),
+  description: () => z.string().optional().describe('Trigger description'),
+  enabled: () => z.boolean().default(true).describe('Whether the trigger is enabled'),
+  inputSchema: () =>
+    z.record(z.string(), z.unknown()).optional().describe('JSON Schema for input validation'),
+  outputTransform: () => TriggerOutputTransformSchema.optional(),
+  messageTemplate: () =>
+    z.string().trim().nonempty().describe('Message template with {{placeholder}} syntax'),
+  authentication: () => TriggerAuthenticationSchema.optional(),
+  signingSecret: () => z.string().optional().describe('HMAC-SHA256 signing secret'),
+});
+
+export const TriggerUpdateSchema = TriggerInsertSchema.partial();
+
+export const TriggerApiSelectSchema = createAgentScopedApiSchema(TriggerSelectSchema).openapi('Trigger');
+export const TriggerApiInsertSchema = createAgentScopedApiInsertSchema(TriggerInsertSchema)
+  .extend({
+    id: resourceIdSchema,
+  })
+  .openapi('TriggerCreate');
+export const TriggerApiUpdateSchema = createAgentScopedApiUpdateSchema(TriggerUpdateSchema).openapi('TriggerUpdate');
+
+// Trigger Invocation schemas
+export const TriggerInvocationSelectSchema = createSelectSchema(triggerInvocations);
+
+export const TriggerInvocationInsertSchema = createInsertSchema(triggerInvocations, {
+  id: () => resourceIdSchema,
+  triggerId: () => resourceIdSchema,
+  conversationId: () => resourceIdSchema.optional(),
+  status: () => TriggerInvocationStatusEnum.default('pending'),
+  requestPayload: () => z.record(z.string(), z.unknown()).describe('Original webhook payload'),
+  transformedPayload: () =>
+    z.record(z.string(), z.unknown()).optional().describe('Transformed payload'),
+  errorMessage: () => z.string().optional().describe('Error message if status is failed'),
+});
+
+export const TriggerInvocationUpdateSchema = TriggerInvocationInsertSchema.partial();
+
+export const TriggerInvocationApiSelectSchema = createAgentScopedApiSchema(TriggerInvocationSelectSchema).openapi('TriggerInvocation');
+export const TriggerInvocationApiInsertSchema = createAgentScopedApiInsertSchema(TriggerInvocationInsertSchema)
+  .extend({
+    id: resourceIdSchema,
+  })
+  .openapi('TriggerInvocationCreate');
+export const TriggerInvocationApiUpdateSchema = createAgentScopedApiUpdateSchema(TriggerInvocationUpdateSchema).openapi('TriggerInvocationUpdate');
 
 export const TaskSelectSchema = createSelectSchema(tasks);
 export const TaskInsertSchema = createInsertSchema(tasks).extend({
