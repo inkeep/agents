@@ -124,10 +124,7 @@ function createProjectStructure(projectDir: string): ProjectPaths {
 /**
  * Enrich canDelegateTo references with component type information
  */
-export function enrichCanDelegateToWithTypes(
-  project: FullProjectDefinition,
-  debug: boolean = false
-): void {
+export function enrichCanDelegateToWithTypes(project: FullProjectDefinition): void {
   // Get all available component IDs by type
   const agentIds = new Set(project.agents ? Object.keys(project.agents) : []);
   const subAgentIds = new Set(Object.keys(extractSubAgents(project)));
@@ -440,7 +437,7 @@ export async function pullV3Command(options: PullV3Options): Promise<PullResult 
     }
 
     // Enrich canDelegateTo references with component type information
-    enrichCanDelegateToWithTypes(remoteProject, options.debug);
+    enrichCanDelegateToWithTypes(remoteProject);
 
     s.message('Project data fetched');
 
@@ -559,7 +556,6 @@ export async function pullV3Command(options: PullV3Options): Promise<PullResult 
       // Check for stale components and ask user permission to clean them up (in temp directory first)
       s.start('Checking for stale components...');
       const shouldCleanupStale = await checkAndPromptForStaleComponentCleanup(
-        paths.projectRoot,
         remoteProject,
         localRegistry
       );
