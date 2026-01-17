@@ -1,6 +1,7 @@
 import type { DataOperationEvent } from '@inkeep/agents-core';
 import { CheckIcon, type LucideIcon, SettingsIcon, Trash2Icon } from 'lucide-react';
 import { useEffect, useState } from 'react';
+import { toast } from 'sonner';
 import { Heading } from '@/components/agent/sidepane/heading';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -126,24 +127,34 @@ export const ToolApproval = ({
   const { projectId, tenantId } = input.request || input;
   const isDeleteOperation = toolName.includes('delete');
 
-  const handleApproval = (approved: boolean) => {
+  const handleApproval = async (approved: boolean) => {
     setSubmitted(true);
-    fetch(`${runApiUrl}/api/tool-approvals`, {
-      method: 'POST',
-      headers: {
-        ...(copilotTenantId && { 'x-inkeep-tenant-id': copilotTenantId }),
-        ...(copilotProjectId && { 'x-inkeep-project-id': copilotProjectId }),
-        ...(copilotAgentId && { 'x-inkeep-agent-id': copilotAgentId }),
-        ...(cookieHeader ? { 'x-forwarded-cookie': cookieHeader } : {}),
-        Authorization: `Bearer ${copilotToken}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        conversationId,
-        toolCallId,
-        approved,
-      }),
-    });
+    try {
+      const response = await fetch(`${runApiUrl}/api/tool-approvals`, {
+        method: 'POST',
+        headers: {
+          ...(copilotTenantId && { 'x-inkeep-tenant-id': copilotTenantId }),
+          ...(copilotProjectId && { 'x-inkeep-project-id': copilotProjectId }),
+          ...(copilotAgentId && { 'x-inkeep-agent-id': copilotAgentId }),
+          ...(cookieHeader ? { 'x-forwarded-cookie': cookieHeader } : {}),
+          Authorization: `Bearer ${copilotToken}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          conversationId,
+          toolCallId,
+          approved,
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error(`Failed to ${approved ? 'approve' : 'reject'} tool call`);
+      }
+    } catch (error) {
+      setSubmitted(false);
+      const errorMessage = error instanceof Error ? error.message : 'An unexpected error occurred';
+      toast.error(errorMessage);
+    }
   };
 
   // biome-ignore lint/correctness/useExhaustiveDependencies: Only run once per unique toolCallId to prevent re-fetching on stream updates
