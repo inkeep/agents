@@ -66,7 +66,9 @@ export const AgentForm = ({
   });
 
   const onSubmit = async (data: AgentFormData) => {
-    try {
+    // Workaround for a React Compiler limitation.
+    // Todo: Support value blocks (conditional, logical, optional chaining, etc) within a try/catch statement
+    async function doAction() {
       if (agentId) {
         const res = await updateAgentAction(tenantId, projectId, agentId, data);
         if (!res.success) {
@@ -87,6 +89,9 @@ export const AgentForm = ({
           router.push(`/${tenantId}/projects/${projectId}/agents/${res.data.id}`);
         }
       }
+    }
+    try {
+      await doAction();
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'An unexpected error occurred.';
       toast.error(errorMessage);
