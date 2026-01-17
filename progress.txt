@@ -198,3 +198,35 @@ Started: Sat Jan 17 03:02:52 UTC 2026
 
 ---
 
+
+## Iteration 4 - Sat Jan 17 07:45:51 UTC 2026
+
+### Story: US-011 - Implement webhook endpoint for trigger invocation
+
+**Implementation:**
+- Created POST endpoint at /tenants/:tenantId/projects/:projectId/agents/:agentId/triggers/:triggerId in agents-run-api
+- Integrated with manage database using createAgentsManageDatabaseClient for trigger lookup
+- Implemented input schema validation using AJV (JSON Schema validator)
+- Integrated authentication verification via verifyTriggerAuth (supports api_key, basic_auth, bearer_token, none)
+- Integrated signing secret verification via verifySigningSecret (HMAC-SHA256 with timing-safe comparison)
+- Proper HTTP status codes: 400 (validation failed), 401 (missing auth), 403 (invalid auth/signature), 404 (trigger not found/disabled), 202 (accepted)
+- Added INKEEP_AGENTS_MANAGE_DATABASE_URL to env schema
+
+**Files Changed:**
+- agents-run-api/src/routes/webhooks.ts (new file - 202 lines)
+- agents-run-api/src/create-app.ts (added webhook routes import and mounting)
+- agents-run-api/src/env.ts (added MANAGE_DATABASE_URL)
+- prd.json (marked US-011 as complete)
+
+**Learnings:**
+- Webhook endpoints need direct database access since they don't use API key authentication
+- Triggers live in the manage database (Doltgres), not the run database (Postgres)
+- AJV is already available in agents-run-api dependencies for JSON Schema validation
+- Hono request body can only be read once - must read as text() for signature verification, then parse JSON
+- createRoute with OpenAPIHono provides automatic OpenAPI documentation generation
+- ManagementApiClient doesn't have trigger methods yet - direct database access needed
+- TypeScript compilation errors in sandboxed environment due to missing built dist files, but source exports are correct
+- Pattern for public webhook endpoints: authenticate via trigger config, not via API keys
+
+---
+

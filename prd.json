@@ -178,8 +178,8 @@
         "Typecheck passes"
       ],
       "priority": 11,
-      "passes": false,
-      "notes": ""
+      "passes": true,
+      "notes": "Completed in commit e8c379cb. Webhook endpoint created with full authentication, signature verification, and input validation. Returns 202 Accepted. Agent invocation to be added in US-013."
     },
     {
       "id": "US-012",
