@@ -161,7 +161,7 @@ function createNewProjectComparison(project: FullProjectDefinition): ProjectComp
 
   // Add sub-agents (extracted from agents)
   if (project.agents) {
-    Object.entries(project.agents).forEach(([agentId, agentData]) => {
+    Object.values(project.agents).forEach((agentData) => {
       if (agentData.subAgents) {
         Object.keys(agentData.subAgents).forEach((subAgentId) => {
           changes.push({
@@ -186,7 +186,7 @@ function createNewProjectComparison(project: FullProjectDefinition): ProjectComp
 
   // Add context configs (extracted from agents)
   if (project.agents) {
-    Object.entries(project.agents).forEach(([agentId, agentData]) => {
+    Object.values(project.agents).forEach((agentData) => {
       if (agentData.contextConfig) {
         const contextConfigId = agentData.contextConfig.id; // Use actual contextConfig.id
         if (!contextConfigId) {
@@ -246,7 +246,7 @@ function compareComponentsDirectly(
   const changes: ComponentChange[] = [];
 
   // Compare each component type
-  changes.push(...compareAgents(localProject.agents || {}, remoteProject.agents || {}, debug));
+  changes.push(...compareAgents(localProject.agents || {}, remoteProject.agents || {}));
   changes.push(...compareSubAgents(localProject.agents || {}, remoteProject.agents || {}, debug));
   changes.push(...compareTools(localProject.tools || {}, remoteProject.tools || {}, debug));
   changes.push(
@@ -311,8 +311,7 @@ function compareComponentsDirectly(
  */
 function compareAgents(
   localAgents: Record<string, any>,
-  remoteAgents: Record<string, any>,
-  debug: boolean
+  remoteAgents: Record<string, any>
 ): ComponentChange[] {
   const changes: ComponentChange[] = [];
   const localIds = Object.keys(localAgents);
