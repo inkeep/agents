@@ -544,16 +544,8 @@ const handleExistingSessionRequest = async (
   res: any,
   credentialStores?: CredentialStoreRegistry
 ) => {
-  const { tenantId, projectId, agentId, resolvedRef } = executionContext;
-  const conversation = await validateSession(
-    req,
-    res,
-    body,
-    tenantId,
-    projectId,
-    agentId,
-    resolvedRef
-  );
+  const { tenantId, projectId, agentId } = executionContext;
+  const conversation = await validateSession(req, res, body, tenantId, projectId, agentId);
   if (!conversation) {
     return toFetchResponse(res);
   }
