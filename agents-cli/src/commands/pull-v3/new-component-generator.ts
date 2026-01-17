@@ -250,7 +250,7 @@ export async function createNewComponents(
       // Register the component with its expected file path and variable name
       const filePath = determineNewFilePath(componentType, componentId, targetPaths);
       const relativePath = filePath.replace(
-        (tempDirName ? targetPaths.projectRoot : paths.projectRoot) + '/',
+        `${tempDirName ? targetPaths.projectRoot : paths.projectRoot}/`,
         ''
       );
 
@@ -369,28 +369,16 @@ export async function createNewComponents(
           });
           continue;
         }
-
-        // File path was already determined above for existence check
-
-        // Ensure directory exists
-        try {
-          mkdirSync(dirname(filePath), { recursive: true });
-        } catch (dirError) {
-          throw dirError;
-        }
+        mkdirSync(dirname(filePath), { recursive: true });
 
         // Generate component content
         let content: string;
-        try {
-          content = generateComponentContent(
-            componentType,
-            componentId,
-            componentData,
-            localRegistry
-          );
-        } catch (genError) {
-          throw genError;
-        }
+        content = generateComponentContent(
+          componentType,
+          componentId,
+          componentData,
+          localRegistry
+        );
 
         // Write file
         writeFileSync(filePath, content, 'utf8');
@@ -515,20 +503,6 @@ function findContextConfigData(
         if (agentData.contextConfig.id === contextId) {
           return { contextConfig: agentData.contextConfig, agentId };
         }
-      }
-    }
-  }
-  return undefined;
-}
-
-/**
- * Find sub-agent data by ID from project agents
- */
-function findSubAgentData(project: FullProjectDefinition, subAgentId: string): any | undefined {
-  if (project.agents) {
-    for (const [agentId, agentData] of Object.entries(project.agents)) {
-      if (agentData.subAgents && agentData.subAgents[subAgentId]) {
-        return agentData.subAgents[subAgentId];
       }
     }
   }
