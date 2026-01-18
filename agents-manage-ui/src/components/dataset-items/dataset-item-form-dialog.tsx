@@ -142,14 +142,16 @@ export function DatasetItemFormDialog({
       return;
     }
 
+    const value = data.input?.trim();
+
     try {
       // Validate that input is provided and has at least one message
-      if (!data.input?.trim()) {
+      if (!value) {
         toast.error('Input is required. Please add at least one message.');
         return;
       }
 
-      const parsedInput = parseJsonField(data.input) as DatasetItem['input'];
+      const parsedInput = parseJsonField(value) as DatasetItem['input'];
       if (!parsedInput || !parsedInput.messages || parsedInput.messages.length === 0) {
         toast.error('Input must contain at least one message.');
         return;

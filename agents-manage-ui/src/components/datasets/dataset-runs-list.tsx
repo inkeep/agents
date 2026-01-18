@@ -17,6 +17,7 @@ import {
 import type { DatasetRun } from '@/lib/api/dataset-runs';
 import { fetchDatasetRuns } from '@/lib/api/dataset-runs';
 import { DatasetRunConfigFormDialog } from './dataset-run-config-form-dialog';
+import { getValueOrFallback } from '@/lib/utils';
 
 interface DatasetRunsListProps {
   tenantId: string;
@@ -42,7 +43,7 @@ export function DatasetRunsList({
     setError(null);
     try {
       const response = await fetchDatasetRuns(tenantId, projectId, datasetId);
-      setRuns(response.data || []);
+      setRuns(getValueOrFallback(response.data, []));
     } catch (err) {
       console.error('Error loading dataset runs:', err);
       setError(err instanceof Error ? err.message : 'Failed to load runs');

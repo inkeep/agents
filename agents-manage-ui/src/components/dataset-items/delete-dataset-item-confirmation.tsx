@@ -13,6 +13,7 @@ import {
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
 import { deleteDatasetItemAction } from '@/lib/actions/dataset-items';
+import { getValueOrFallback } from '@/lib/utils';
 
 interface DeleteDatasetItemConfirmationProps {
   tenantId: string;
@@ -41,7 +42,7 @@ export function DeleteDatasetItemConfirmation({
         toast.success('Dataset item deleted');
         onOpenChange(false);
       } else {
-        toast.error(result.error || 'Failed to delete dataset item');
+        toast.error(getValueOrFallback(result.error, 'Failed to delete dataset item'));
       }
     } catch (error) {
       console.error('Error deleting dataset item:', error);

@@ -11,6 +11,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useAuthClient } from '@/contexts/auth-client';
 import { useAuthSession } from '@/hooks/use-auth';
+import { getValueOrFallback } from '@/lib/utils';
 
 type DeviceState =
   | 'input'
@@ -43,11 +44,6 @@ const StateToMessage: Record<DeviceState, string> = {
   denied: 'Device authorization denied.',
   error: 'An error occurred.',
 };
-// Workaround for a React Compiler limitation.
-// Todo: Support value blocks (conditional, logical, optional chaining, etc) within a try/catch statement
-function getMessage(message: string | undefined | null, fallback: string): string {
-  return message || fallback;
-}
 
 function DeviceVerificationForm() {
   const router = useRouter();
@@ -78,7 +74,7 @@ function DeviceVerificationForm() {
       });
 
       if (response.error) {
-        setError(getMessage(response.error.error_description, 'Invalid or expired code'));
+        setError(getValueOrFallback(response.error.error_description, 'Invalid or expired code'));
         setState('error');
         return;
       }
@@ -114,7 +110,7 @@ function DeviceVerificationForm() {
       });
 
       if (response.error) {
-        setError(getMessage(response.error.error_description, 'Failed to approve device'));
+        setError(getValueOrFallback(response.error.error_description, 'Failed to approve device'));
         setState('error');
         return;
       }
@@ -137,7 +133,7 @@ function DeviceVerificationForm() {
       });
 
       if (response.error) {
-        setError(getMessage(response.error.error_description, 'Failed to deny device'));
+        setError(getValueOrFallback(response.error.error_description, 'Failed to deny device'));
         setState('error');
         return;
       }

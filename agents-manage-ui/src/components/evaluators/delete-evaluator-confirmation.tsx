@@ -14,6 +14,7 @@ import {
 } from '@/components/ui/alert-dialog';
 import { deleteEvaluatorAction } from '@/lib/actions/evaluators';
 import type { Evaluator } from '@/lib/api/evaluators';
+import { getValueOrFallback } from '@/lib/utils';
 
 interface DeleteEvaluatorConfirmationProps {
   tenantId: string;
@@ -21,12 +22,6 @@ interface DeleteEvaluatorConfirmationProps {
   evaluator: Evaluator;
   isOpen: boolean;
   onOpenChange: (open: boolean) => void;
-}
-
-// Workaround for a React Compiler limitation.
-// Todo: Support value blocks (conditional, logical, optional chaining, etc) within a try/catch statement
-function getErrorMessage(error?: string) {
-  return error || 'Failed to delete evaluator';
 }
 
 export function DeleteEvaluatorConfirmation({
@@ -46,7 +41,7 @@ export function DeleteEvaluatorConfirmation({
         toast.success('Evaluator deleted');
         onOpenChange(false);
       } else {
-        toast.error(getErrorMessage(result.error));
+        toast.error(getValueOrFallback(result.error, 'Failed to delete evaluator'));
       }
     } catch (error) {
       console.error('Error deleting evaluator:', error);

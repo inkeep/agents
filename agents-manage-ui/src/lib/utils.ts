@@ -72,3 +72,11 @@ export function createLookup<T extends { id: string }>(
     {} as Record<string, T>
   );
 }
+
+/*
+ * Workaround for a React Compiler limitation.
+ * Todo: Support value blocks (conditional, logical, optional chaining, etc) within a try/catch statement
+ */
+export function getValueOrFallback<T>(message: T | undefined | null, fallback: T): T {
+  return message || fallback;
+}
