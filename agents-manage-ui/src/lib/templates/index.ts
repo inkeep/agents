@@ -11,7 +11,7 @@ export {
 // Headers templates
 export {
   externalAgentHeadersTemplate,
-  headersTemplate,
+  
   teamAgentHeadersTemplate,
 } from './headers-templates';
 // Model provider options
