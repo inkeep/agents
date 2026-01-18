@@ -40,9 +40,10 @@ function ProviderSetupPage({
       toast.error('Invalid connection data received');
       return;
     }
-
-    try {
-      await findOrCreateCredential(tenantId, projectId, {
+    // Workaround for a React Compiler limitation.
+    // Todo: Support value blocks (conditional, logical, optional chaining, etc) within a try/catch statement
+    function doRequest(provider: ApiProvider) {
+      return findOrCreateCredential(tenantId, projectId, {
         id: generateId(),
         name: provider.name,
         type: CredentialStoreType.nango,
@@ -55,7 +56,10 @@ function ProviderSetupPage({
           authMode: provider.auth_mode,
         },
       });
+    }
 
+    try {
+      await doRequest(provider);
       toast.success('Credential created successfully');
       router.push(`/${tenantId}/projects/${projectId}/credentials`);
     } catch (credentialError) {
