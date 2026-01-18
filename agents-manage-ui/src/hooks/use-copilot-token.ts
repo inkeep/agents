@@ -16,7 +16,7 @@ interface UseCopilotTokenResult {
 async function fetchWithRetry(
   maxRetries: number,
   onRetry?: (attempt: number, delay: number) => void
-): Promise<{ apiKey: string; expiresAt: string; cookieHeader?: string }> {
+) {
   let lastError: Error | null = null;
 
   for (let attempt = 0; attempt <= maxRetries; attempt++) {
@@ -58,11 +58,10 @@ export function useCopilotToken(): UseCopilotTokenResult {
   const isMountedRef = useRef(true);
 
   const fetchToken = async () => {
+    setIsLoading(true);
+    setError(null);
+    setRetryCount(0);
     try {
-      setIsLoading(true);
-      setError(null);
-      setRetryCount(0);
-
       const data = await fetchWithRetry(MAX_RETRIES, (attempt, delay) => {
         if (isMountedRef.current) {
           setRetryCount(attempt);
@@ -72,7 +71,7 @@ export function useCopilotToken(): UseCopilotTokenResult {
 
       if (isMountedRef.current) {
         setApiKey(data.apiKey);
-        setCookieHeader(data.cookieHeader ?? null);
+        setCookieHeader(data.cookieHeader);
         setExpiresAt(data.expiresAt);
         setError(null);
         setRetryCount(0);
@@ -83,10 +82,9 @@ export function useCopilotToken(): UseCopilotTokenResult {
         setError(new Error(errorMessage));
         console.error('Copilot token fetch failed after all retries:', errorMessage);
       }
-    } finally {
-      if (isMountedRef.current) {
-        setIsLoading(false);
-      }
+    }
+    if (isMountedRef.current) {
+      setIsLoading(false);
     }
   };
 

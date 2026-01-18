@@ -18,7 +18,7 @@ type ActionResult<T = void> =
 interface CopilotTokenResponse {
   apiKey: string;
   expiresAt: string;
-  cookieHeader?: string;
+  cookieHeader: string | null;
 }
 
 export async function getCopilotTokenAction(): Promise<ActionResult<CopilotTokenResponse>> {
@@ -88,7 +88,7 @@ export async function getCopilotTokenAction(): Promise<ActionResult<CopilotToken
       data: {
         apiKey: data.apiKey,
         expiresAt: data.expiresAt,
-        cookieHeader: cookieHeader || undefined,
+        cookieHeader: cookieHeader || null,
       },
     };
   } catch (error) {
