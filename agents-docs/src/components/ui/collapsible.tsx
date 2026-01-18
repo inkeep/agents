@@ -8,7 +8,6 @@ const CollapsibleTrigger = CollapsiblePrimitive.CollapsibleTrigger;
 
 const CollapsibleContent: FC<ComponentProps<typeof CollapsiblePrimitive.CollapsibleContent>> = ({
   children,
-  ref,
   ...props
 }) => {
   return (
