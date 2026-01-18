@@ -10,10 +10,10 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { useRuntimeConfig } from '@/contexts/runtime-config-context';
-import { useAuthClient } from '@/lib/auth-client';
+import { useAuthClient } from '@/contexts/auth-client';
+import { usePostHog } from '@/contexts/posthog';
+import { useRuntimeConfig } from '@/contexts/runtime-config';
 import { getSafeReturnUrl, isValidReturnUrl } from '@/lib/utils/auth-redirect';
-import { usePostHog } from '../providers';
 
 function LoginForm() {
   const router = useRouter();

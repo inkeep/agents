@@ -1,6 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
-
-import { useRuntimeConfig } from '@/contexts/runtime-config-context';
+import { useRuntimeConfig } from '@/contexts/runtime-config';
 
 interface UseTempApiKeyParams {
   tenantId: string;

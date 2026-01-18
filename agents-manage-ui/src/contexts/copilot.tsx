@@ -2,8 +2,7 @@
 
 import type { AIChatFunctions } from '@inkeep/agents-ui/types';
 import { createContext, type ReactNode, type RefObject, useContext, useRef, useState } from 'react';
-
-import { useRuntimeConfig } from '@/contexts/runtime-config-context';
+import { useRuntimeConfig } from '@/contexts/runtime-config';
 
 interface CopilotContextHeaders {
   messageId?: string;
@@ -48,7 +47,7 @@ export function CopilotProvider({ children }: { children: ReactNode }) {
   const openCopilot = () => setIsOpen(true);
 
   return (
-    <CopilotContext.Provider
+    <CopilotContext
       value={{
         isOpen,
         setIsOpen,
@@ -62,7 +61,7 @@ export function CopilotProvider({ children }: { children: ReactNode }) {
       }}
     >
       {children}
-    </CopilotContext.Provider>
+    </CopilotContext>
   );
 }
 

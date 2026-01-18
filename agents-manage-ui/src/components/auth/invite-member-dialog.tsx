@@ -15,7 +15,7 @@ import {
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
-import { useAuthClient } from '@/lib/auth-client';
+import { useAuthClient } from '@/contexts/auth-client';
 
 interface InviteMemberDialogProps {
   open: boolean;
