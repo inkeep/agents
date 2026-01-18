@@ -16,6 +16,12 @@ type FullOrganization = NonNullable<
 
 type Member = FullOrganization['members'][number];
 
+// Workaround for a React Compiler limitation.
+// Todo: Support value blocks (conditional, logical, optional chaining, etc) within a try/catch statement
+function getErrorMessage(error: unknown) {
+  return error instanceof Error ? error.message : 'Failed to fetch organization';
+}
+
 export default function SettingsPage() {
   const authClient = useAuthClient();
   const { tenantId } = useParams<{ tenantId: string }>();
@@ -26,7 +32,6 @@ export default function SettingsPage() {
 
   const fetchOrganization = async () => {
     if (!tenantId) return;
-
     try {
       const [orgResult, memberResult] = await Promise.all([
         authClient.organization.getFullOrganization({
@@ -51,7 +56,7 @@ export default function SettingsPage() {
         setCurrentMember(memberResult.data as Member);
       }
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to fetch organization');
+      setError(getErrorMessage(err));
     }
     setLoading(false);
   };
