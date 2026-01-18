@@ -56,15 +56,15 @@ export function useConversationStats(
   const pageSize = options.pagination?.pageSize || 50;
 
   const fetchData = async (page: number) => {
+    // Use provided time range or default to all time (2020)
+    // Clamp endTime to now-1ms to satisfy backend validation (end cannot be in the future)
+    const currentEndTime = Math.min(options.endTime || Date.now() - 1);
+    const currentStartTime = options.startTime || new Date('2020-01-01T00:00:00Z').getTime();
     try {
       setLoading(true);
       setError(null);
 
       const client = getSigNozStatsClient(options.tenantId);
-      // Use provided time range or default to all time (2020)
-      // Clamp endTime to now-1ms to satisfy backend validation (end cannot be in the future)
-      const currentEndTime = Math.min(options.endTime || Date.now() - 1);
-      const currentStartTime = options.startTime || new Date('2020-01-01T00:00:00Z').getTime();
 
       const result = await client.getConversationStats(
         currentStartTime,
@@ -182,13 +182,13 @@ export function useAggregateStats(options: {
   const [error, setError] = useState<string | null>(null);
 
   const fetchAggregateStats = async () => {
+    const currentEndTime = Math.min(options.endTime || Date.now() - 1);
+    const currentStartTime = options.startTime || new Date('2020-01-01T00:00:00Z').getTime();
     try {
       setLoading(true);
       setError(null);
 
       const client = getSigNozStatsClient(options.tenantId);
-      const currentEndTime = Math.min(options.endTime || Date.now() - 1);
-      const currentStartTime = options.startTime || new Date('2020-01-01T00:00:00Z').getTime();
 
       const stats = await client.getAggregateStats(
         currentStartTime,

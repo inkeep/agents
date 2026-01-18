@@ -39,9 +39,8 @@ export const AgentFilter = ({ onSelect, selectedValue }: AgentFilterProps) => {
           console.error('Failed to fetch agent:', error);
           setAgentOptions([]);
         }
-      } finally {
-        if (!cancelled) setLoading(false);
       }
+      if (!cancelled) setLoading(false);
     };
 
     fetchAgents();

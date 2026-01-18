@@ -195,8 +195,9 @@ function ChartTooltipContent({
                           }[indicator]
                         )}
                         style={{
-                          ['--color-bg' as string]: indicatorColor,
-                          ['--color-border' as string]: indicatorColor,
+                          // @ts-expect-error
+                          ['--color-bg']: indicatorColor,
+                          ['--color-border']: indicatorColor,
                         }}
                       />
                     )
