@@ -28,7 +28,9 @@ export function useTempApiKey({
   const [error, setError] = useState<Error | null>(null);
 
   const fetchToken = async () => {
-    try {
+    // Workaround for a React Compiler limitation.
+    // Todo: (BuildHIR::lowerStatement) Support ThrowStatement inside of try/catch
+    async function doRequest() {
       const response = await fetch(
         `${PUBLIC_INKEEP_AGENTS_MANAGE_API_URL}/tenants/${tenantId}/playground/token`,
         {
@@ -37,10 +39,7 @@ export function useTempApiKey({
           headers: {
             'Content-Type': 'application/json',
           },
-          body: JSON.stringify({
-            projectId,
-            agentId,
-          }),
+          body: JSON.stringify({ projectId, agentId }),
         }
       );
 
@@ -48,15 +47,18 @@ export function useTempApiKey({
         throw new Error('Failed to fetch temporary API key');
       }
 
-      const data = await response.json();
+      return await response.json();
+    }
+
+    try {
+      const data = await doRequest();
       setApiKey(data.apiKey);
       setExpiresAt(data.expiresAt);
       setError(null);
     } catch (err) {
       setError(err instanceof Error ? err : new Error('Unknown error'));
-    } finally {
-      setIsLoading(false);
     }
+    setIsLoading(false);
   };
 
   // Initial fetch
