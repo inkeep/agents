@@ -73,7 +73,7 @@ export function createLookup<T extends { id: string }>(
   );
 }
 
-/*
+/**
  * Workaround for a React Compiler limitation.
  * Todo: Support value blocks (conditional, logical, optional chaining, etc) within a try/catch statement
  */
