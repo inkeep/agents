@@ -13,8 +13,6 @@ interface PromptEditorProps extends Omit<ComponentProps<typeof MonacoEditor>, 'u
 
 export const PromptEditor: FC<PromptEditorProps> = ({ uri, editorOptions, onMount, ...props }) => {
   const id = useId();
-  uri ??= `${id}.template`;
-
   const [editor, setEditor] = useState<Monaco.editor.IStandaloneCodeEditor>();
   const monaco = useMonacoStore((state) => state.monaco);
   useEffect(() => {
@@ -80,7 +78,7 @@ export const PromptEditor: FC<PromptEditorProps> = ({ uri, editorOptions, onMoun
 
   return (
     <MonacoEditor
-      uri={uri}
+      uri={uri ?? `${id}.template`}
       onMount={handleOnMount}
       editorOptions={{
         autoClosingBrackets: 'never',

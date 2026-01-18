@@ -26,18 +26,17 @@ const useFetchAvailableExternalAgents = (): ExternalAgentSelectorState => {
 
   useEffect(() => {
     const loadExternalAgents = async () => {
+      setIsLoading(true);
+      setError(null);
       try {
-        setIsLoading(true);
-        setError(null);
         const agents = await fetchExternalAgents(tenantId, projectId);
         setExternalAgents(agents);
       } catch (err) {
         const errorMessage = err instanceof Error ? err.message : 'Failed to load external agents';
         setError(errorMessage);
         toast.error(errorMessage);
-      } finally {
-        setIsLoading(false);
       }
+      setIsLoading(false);
     };
 
     loadExternalAgents();

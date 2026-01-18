@@ -26,18 +26,17 @@ const useFetchAvailableMCPs = (): MCPSelectorState => {
 
   useEffect(() => {
     const loadTools = async () => {
+      setIsLoading(true);
+      setError(null);
       try {
-        setIsLoading(true);
-        setError(null);
         const mcpTools = await fetchMCPTools(tenantId, projectId);
         setTools(mcpTools);
       } catch (err) {
         const errorMessage = err instanceof Error ? err.message : 'Failed to load MCP tools';
         setError(errorMessage);
         toast.error(errorMessage);
-      } finally {
-        setIsLoading(false);
       }
+      setIsLoading(false);
     };
 
     loadTools();
