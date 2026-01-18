@@ -97,7 +97,7 @@ function SidebarProvider({
   }, [toggleSidebar]);
 
   return (
-    <SidebarContext.Provider
+    <SidebarContext
       value={{
         // We add a state so that we can do data-state="expanded" or "collapsed".
         // This makes it easier to style the sidebar with Tailwind classes.
@@ -128,7 +128,7 @@ function SidebarProvider({
           {children}
         </div>
       </TooltipProvider>
-    </SidebarContext.Provider>
+    </SidebarContext>
   );
 }
 

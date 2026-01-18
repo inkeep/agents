@@ -3,7 +3,7 @@ import { CodeIcon, EyeIcon } from 'lucide-react';
 import { useForm } from 'react-hook-form';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { DOCS_BASE_URL } from '@/constants/page-descriptions';
-import { useRuntimeConfig } from '@/contexts/runtime-config-context';
+import { useRuntimeConfig } from '@/contexts/runtime-config';
 import { DocsLink, Header } from '../guide-header';
 import { ChatUICode } from './chat-ui-code';
 import { ChatUIPreview } from './chat-ui-preview';

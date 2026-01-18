@@ -4,11 +4,11 @@ import { toast } from 'sonner';
 import { TimelineWrapper } from '@/components/traces/timeline/timeline-wrapper';
 import { Button } from '@/components/ui/button';
 import { ResizableHandle, ResizablePanel, ResizablePanelGroup } from '@/components/ui/resizable';
+import { useCopilotContext } from '@/contexts/copilot';
 import { useChatActivitiesPolling } from '@/hooks/use-chat-activities-polling';
 import type { DataComponent } from '@/lib/api/data-components';
 import { generateId } from '@/lib/utils/id-utils';
 import { copyTraceToClipboard } from '@/lib/utils/trace-formatter';
-import { useCopilotContext } from '../copilot/copilot-context';
 import { ChatWidget } from './chat-widget';
 import CustomHeadersDialog from './custom-headers-dialog';
 

@@ -7,7 +7,7 @@ import { z } from 'zod';
 import { Button } from '@/components/ui/button';
 import { Form, FormControl, FormField } from '@/components/ui/form';
 import { Textarea } from '@/components/ui/textarea';
-import { useCopilotContext } from './copilot-context';
+import { useCopilotContext } from '@/contexts/copilot';
 
 const samplePrompts = [
   {

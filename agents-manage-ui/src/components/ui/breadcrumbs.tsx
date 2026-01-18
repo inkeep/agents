@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { useParams, usePathname } from 'next/navigation';
-import { useProject } from '@/contexts/project-context';
+import { useProject } from '@/contexts/project';
 import { cn } from '@/lib/utils';
 
 export type BreadcrumbItem =

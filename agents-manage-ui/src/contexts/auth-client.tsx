@@ -11,7 +11,7 @@ import {
 import { deviceAuthorizationClient } from 'better-auth/client/plugins';
 import { createAuthClient } from 'better-auth/react';
 import { createContext, type ReactNode, useContext } from 'react';
-import { useRuntimeConfig } from '@/contexts/runtime-config-context';
+import { useRuntimeConfig } from '@/contexts/runtime-config';
 
 // Create a factory function to get the proper inferred type
 const createConfiguredAuthClient = (baseURL: string) =>
@@ -43,11 +43,11 @@ export function AuthClientProvider({ children }: { children: ReactNode }) {
   const { PUBLIC_INKEEP_AGENTS_MANAGE_API_URL } = useRuntimeConfig();
 
   return (
-    <AuthClientContext.Provider
+    <AuthClientContext
       value={createConfiguredAuthClient(PUBLIC_INKEEP_AGENTS_MANAGE_API_URL)}
     >
       {children}
-    </AuthClientContext.Provider>
+    </AuthClientContext>
   );
 }
 

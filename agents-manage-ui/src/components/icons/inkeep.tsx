@@ -1,8 +1,8 @@
-import { forwardRef } from 'react';
+import type { FC } from 'react';
 import { type IconComponentProps, SvgIcon } from '@/components/ui/svg-icon';
 
-export const InkeepIcon = forwardRef<SVGSVGElement, IconComponentProps>((props, ref) => (
-  <SvgIcon ref={ref} {...props} strokeWidth={0} viewBox="0 0 48 48">
+export const InkeepIcon: FC<IconComponentProps> = (props) => (
+  <SvgIcon {...props} strokeWidth={0} viewBox="0 0 48 48">
     <g clipPath="url(#clip0_136_232)">
       <path
         d="M9.17875 9.68555C8.53567 9.68555 7.94144 10.0286 7.61991 10.5855L0.440373 23.0209C0.118834 23.5778 0.118834 24.2639 0.440373 24.8209L7.61991 37.2562C7.94145 37.8131 8.53567 38.1562 9.17875 38.1562H23.5378C24.1809 38.1562 24.7751 37.8131 25.0967 37.2562L32.2762 24.8209C32.5977 24.2639 32.5977 23.5778 32.2762 23.0209L25.0967 10.5855C24.7751 10.0286 24.1809 9.68555 23.5378 9.68555L9.17875 9.68555Z"
@@ -14,4 +14,4 @@ export const InkeepIcon = forwardRef<SVGSVGElement, IconComponentProps>((props, 
       />
     </g>
   </SvgIcon>
-));
+);

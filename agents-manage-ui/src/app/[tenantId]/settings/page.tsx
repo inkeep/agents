@@ -5,7 +5,7 @@ import { useEffect, useState } from 'react';
 import { ErrorContent } from '@/components/errors/full-page-error';
 import { MembersTable } from '@/components/settings/members-table';
 import { CopyableSingleLineCode } from '@/components/ui/copyable-single-line-code';
-import { useAuthClient } from '@/lib/auth-client';
+import { useAuthClient } from '@/contexts/auth-client';
 import SettingsLoadingSkeleton from './loading';
 
 type FullOrganization = NonNullable<

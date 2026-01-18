@@ -1,4 +1,4 @@
-import { useAuthClient } from '@/lib/auth-client';
+import { useAuthClient } from '@/contexts/auth-client';
 
 export function useAuthSession() {
   'use no memo';
