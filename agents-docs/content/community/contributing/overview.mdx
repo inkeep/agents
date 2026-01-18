@@ -1,0 +1,360 @@
+---
+title: Contribute to Inkeep Open Source project
+sidebarTitle: How to Start
+description: How to contribute to the Inkeep Agent Framework
+icon: LuZap
+---
+
+# Making a Contribution
+
+Thank you for your interest in contributing to the Agent Framework! This document provides guidelines and information for contributors.
+
+# Launch the Visual Builder
+
+### Prerequisites
+
+Before getting started, ensure you have the following installed on your system:
+
+- [Node.js](https://nodejs.org/en/download/) version 22 or higher
+- [Docker](https://docs.docker.com/get-docker/)
+- [pnpm](https://pnpm.io/installation) version 10 or higher
+
+### Step 1: Clone the repository
+
+```
+git clone https://github.com/inkeep/agents.git
+cd agents
+```
+
+### Step 2: Run the setup script
+
+For first-time setup, run:
+
+```bash
+pnpm setup-dev
+```
+
+This will:
+
+1. Create `.env` from the template
+2. Set up user-global config at `~/.inkeep/config`
+4. Install dependencies
+5. Initialize the database, starting the postgres docker container and applying migrations
+
+Add API keys for the AI providers you want to use to the root `.env`. You must have at least one AI provider configured.
+
+```dotenv
+ANTHROPIC_API_KEY=sk-ant-xyz789
+OPENAI_API_KEY=sk-xxx
+GOOGLE_GENERATIVE_AI_API_KEY=sk-xxx
+```
+
+Add your SigNoz API key to enable the traces feature (optional).
+
+```dotenv
+SIGNOZ_API_KEY=sk-xxx
+```
+
+Add your Nango secret key to enable the Nango credential store (optional).
+
+```dotenv
+NANGO_SECRET_KEY=sk-xxx
+```
+
+### Step 5: Run the agent framework
+
+```bash
+pnpm dev
+```
+
+### Step 6: Start building!
+
+Open `http://localhost:3000` in the browser and start building agents.
+
+# Push your project
+
+A key advantage of the Inkeep agent framework is its seamless code-to-visual workflow: define your agents programmatically, push them to the Visual Builder, and continue developing with the intuitive drag-and-drop interface.
+
+Follow the steps below to push your project using the [Inkeep CLI](/typescript-sdk/cli-reference).
+
+### Step 1: Download the Inkeep CLI
+
+```bash
+pnpm install -g @inkeep/agents-cli
+```
+
+### Step 2: Push the project
+
+```bash
+cd agents-cookbook/template-projects/weather-project
+inkeep push
+```
+
+<Note>
+  The project will be pushed according to the project specified in the
+  `/agents-cookbook/template-projects/inkeep.config.ts` file, which is set to the `default` project by
+  default. Feel free to change it to your own project.
+</Note>
+
+### Step 3: Observe the Agent in the Visual Builder
+
+<Image
+  src="/gifs/basic-agent.gif"
+  alt="Basic Agent"
+  style={{ border: "1px solid #e1e5e9" }}
+/>
+
+# Set up live traces
+
+### Step 1: Launch docker containers
+
+```bash
+cd deploy/docker
+docker compose up -d
+```
+
+### Step 2: Fetch SigNoz API Key
+
+Open `http://localhost:3080` in the browser. Go to **Settings** → **Workspace Settings** → **API Keys** and copy the API key.
+
+### Step 3: Configure environment variable
+
+Create a `.env` file at `/agents-manage-ui/` with the following variable:
+
+```dotenv
+SIGNOZ_API_KEY=your-signoz-api-key-here
+```
+
+### Step 4: View your live traces
+
+Refresh the live traces panel on the right to see your agents in action.
+
+<Image
+  src="/images/live-traces.png"
+  alt="Live traces showing"
+  style={{ border: "1px solid #e1e5e9" }}
+/>
+
+# Set up credentials
+
+### Step 1: Create .env file and generate encryption key
+
+```bash
+cp deploy/docker/.env.nango.example deploy/docker/.env && encryption_key=$(openssl rand -base64 32) && sed -i '' "s|REPLACE_WITH_BASE64_256BIT_ENCRYPTION_KEY|$encryption_key|" deploy/docker/.env && echo "Docker environment file created with auto-generated encryption key"
+```
+
+### Step 2: Restart the containers
+
+```bash
+cd deploy/docker
+docker compose up -d
+```
+
+### Step 3: Get your Nango API key
+
+Open the Nango Dashboard: `http://localhost:3050` and navigate to **Environment Settings** → **API Keys** and copy the API key.
+
+### Step 4: Configure environment variables
+
+Navigate back to the root directory and paste the below command. Enter your Nango API key when prompted:
+
+```bash
+cd ../../
+printf "Enter your Nango API key: " && read key && sed -i '' "s|^NANGO_SECRET_KEY=.*|NANGO_SECRET_KEY=$key|" agents-manage-api/.env agents-run-api/.env agents-manage-ui/.env && echo "Application files updated with Nango API key"
+```
+
+### Step 5: Start creating credentials!
+
+Navigate to the Credentials tab in the left sidebar and click "Create credential".
+
+# Development Workflow
+
+### Git Hooks
+
+This project uses Husky for Git hooks to maintain code quality. The hooks are automatically installed when you run `pnpm install`.
+
+#### Pre-commit Hook
+
+The pre-commit hook runs the following checks before allowing a commit:
+
+1. **Type checking** - Ensures type safety across all packages
+2. **Tests** - Runs the test suite
+
+##### Bypassing Checks
+
+While we recommend running all checks, there are legitimate cases where you might need to bypass them:
+
+**Skip typecheck only (tests still run):**
+
+```bash
+SKIP_TYPECHECK=1 git commit -m "WIP: debugging issue"
+```
+
+**Skip all hooks (use sparingly):**
+
+```bash
+git commit --no-verify -m "emergency: hotfix for production"
+```
+
+> **Note:** Use these bypass mechanisms sparingly. They're intended for:
+>
+> - Work-in-progress commits that you'll fix before pushing
+> - Emergency fixes where speed is critical
+> - Commits that only touch non-code files (though hooks are smart enough to handle this)
+
+### Code Quality
+
+#### Type Checking
+
+Run type checking across all packages:
+
+```bash
+pnpm typecheck
+```
+
+#### Linting
+
+Run the linter:
+
+```bash
+pnpm lint
+```
+
+Format code automatically:
+
+```bash
+pnpm format
+```
+
+#### Testing
+
+Run tests:
+
+```bash
+pnpm test              # Run all tests
+pnpm test:watch        # Run tests in watch mode
+pnpm test:coverage     # Run tests with coverage report
+```
+
+### Building
+
+Build all packages:
+
+```bash
+pnpm build
+```
+
+# CLI Development
+
+## Running the CLI Locally
+
+When developing the CLI, you can run the local version directly without global installation:
+
+```bash
+# Build the CLI first
+cd agents-cli
+pnpm build
+
+# Run the local CLI from the repository root
+node agents-cli/dist/index.js --version
+
+# Or use the convenience script (if available)
+./scripts/inkeep-local.sh --version
+```
+
+## Testing CLI Changes
+
+1. **Build the CLI after making changes:**
+
+```bash
+cd agents-cli
+pnpm build
+```
+
+2. **Test commands locally:**
+
+```bash
+# From repository root
+node agents-cli/dist/index.js push examples/agent-configurations
+node agents-cli/dist/index.js chat
+```
+
+3. **Run CLI tests:**
+
+```bash
+cd agents-cli
+pnpm test
+```
+
+## Switching Between Local and Published CLI
+
+During development, you may need to test both the local development version and the published npm package:
+
+```bash
+# Use local development version
+node /path/to/agents/agents-cli/dist/index.js --version
+
+# Use globally installed published version
+inkeep --version
+```
+
+For detailed information about switching between versions, see the `INKEEP_CLI_SWITCHING.md` file in the repository root.
+
+# Commit Messages
+
+We follow conventional commit format:
+
+```
+type(scope): description
+
+[optional body]
+
+[optional footer]
+```
+
+Types:
+
+- `feat`: New feature
+- `fix`: Bug fix
+- `docs`: Documentation changes
+- `style`: Code style changes (formatting, etc.)
+- `refactor`: Code refactoring
+- `test`: Test changes
+- `chore`: Build process or auxiliary tool changes
+
+# Pull Requests
+
+1. Fork the repository
+2. Create a feature branch (`git checkout -b feat/amazing-feature`)
+3. Make your changes
+4. Ensure all checks pass (`pnpm typecheck && pnpm test`)
+5. Commit your changes (following commit message guidelines)
+6. Push to your fork
+7. Open a pull request
+
+### PR Guidelines
+
+- Keep PRs focused on a single feature or fix
+- Update tests for any behavior changes
+- Update documentation as needed
+- Ensure CI passes before requesting review
+
+# Continuous Integration
+
+Our CI pipeline runs on all pull requests and includes:
+
+- Type checking (`pnpm typecheck`)
+- Tests (`pnpm test`)
+- Build verification (`pnpm build`)
+
+These checks must pass before a PR can be merged. The same checks run in pre-commit hooks to catch issues early.
+
+# Questions?
+
+If you have questions about contributing, please:
+
+1. Check existing issues and discussions
+2. Open a new issue if your question isn't addressed
+3. Reach out to the maintainers
+
+Thank you for contributing!

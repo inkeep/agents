@@ -1,0 +1,5 @@
+{
+  "title": "Vercel AI SDK",
+  "icon": "LuPackage",
+  "pages": ["inkeep-provider", "use-chat", "ai-elements", "..."]
+}

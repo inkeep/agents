@@ -4,7 +4,7 @@ import { ArrowDown, Check, Info } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 
-export interface InheritanceIndicatorProps {
+interface InheritanceIndicatorProps {
   /** Whether this value is explicitly set (not inherited) */
   isExplicit?: boolean;
   /** The source of inheritance (e.g., "Project", "Agent") */

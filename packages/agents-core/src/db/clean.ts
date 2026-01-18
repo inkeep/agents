@@ -1,114 +1,35 @@
-import {
-  agents,
-  artifactComponents,
-  contextCache,
-  contextConfigs,
-  conversations,
-  credentialReferences,
-  dataComponents,
-  externalAgents,
-  ledgerArtifacts,
-  messages,
-  subAgentArtifactComponents,
-  subAgentDataComponents,
-  subAgentRelations,
-  subAgents,
-  subAgentToolRelations,
-  taskRelations,
-  tasks,
-  tools,
-} from '@inkeep/agents-core';
 import { sql } from 'drizzle-orm';
-import { env } from '../env';
-import { createDatabaseClient } from './client';
-
-const dbClient = createDatabaseClient(
-  env.TURSO_DATABASE_URL && env.TURSO_AUTH_TOKEN
-    ? {
-        url: env.TURSO_DATABASE_URL,
-        authToken: env.TURSO_AUTH_TOKEN,
-      }
-    : {
-        url: env.DB_FILE_NAME ?? 'local.db',
-      }
-);
+import type { AgentsManageDatabaseClient } from './manage/manage-client';
+import type { AgentsRunDatabaseClient } from './runtime/runtime-client';
 
 /**
- * Truncates all tables in the database, respecting foreign key constraints
- * Tables are cleared in dependency order (child tables first, then parent tables)
+ * Cleans up test database by removing all data but keeping schema
+ * Dynamically gets all tables from the public schema and truncates them
  */
-export async function cleanDatabase() {
-  console.log(`🗑️  Cleaning database for environment: ${env.ENVIRONMENT}`);
-  console.log(`📁 Using database: ${env.DB_FILE_NAME}`);
-  console.log('---');
-
+export async function cleanupDatabase(
+  db: AgentsManageDatabaseClient | AgentsRunDatabaseClient
+): Promise<void> {
   try {
-    // Disable foreign key constraints temporarily to make cleanup easier
-    await dbClient.run(sql`PRAGMA foreign_keys = OFF`);
+    // Get all table names from the public schema
+    const result = await db.execute(
+      sql.raw(`
+      SELECT tablename 
+      FROM pg_tables 
+      WHERE schemaname = 'public'
+    `)
+    );
 
-    // Order matters: clear dependent tables first
-    const tablesToClear = [
-      { table: messages, name: 'messages' },
-      { table: conversations, name: 'conversations' },
-      { table: taskRelations, name: 'task_relations' },
-      { table: tasks, name: 'tasks' },
-      { table: subAgentArtifactComponents, name: 'agent_artifact_components' },
-      { table: subAgentDataComponents, name: 'agent_data_components' },
-      { table: subAgentToolRelations, name: 'agent_tool_relations' },
-      { table: subAgentRelations, name: 'agent_relations' },
-      { table: agents, name: 'agent' },
-      { table: artifactComponents, name: 'artifact_components' },
-      { table: dataComponents, name: 'data_components' },
-      { table: tools, name: 'tools' },
-      { table: subAgents, name: 'agents' },
-      { table: externalAgents, name: 'external_agents' },
-      { table: ledgerArtifacts, name: 'ledger_artifacts' },
-      { table: credentialReferences, name: 'credential_references' },
-      { table: contextConfigs, name: 'context_configs' },
-      { table: contextCache, name: 'context_cache' },
-    ];
+    const tables = result.rows.map((row: any) => row.tablename);
 
-    for (const { table, name } of tablesToClear) {
-      try {
-        await dbClient.delete(table).run();
-        console.log(`✅ Cleared table: ${name}`);
-      } catch (error: any) {
-        // Handle case where table doesn't exist
-        const errorMessage = error?.message || '';
-        const causeMessage = error?.cause?.message || '';
-
-        if (
-          errorMessage.includes('no such table') ||
-          causeMessage.includes('no such table') ||
-          (error?.cause?.code === 'SQLITE_ERROR' && causeMessage.includes('no such table'))
-        ) {
-          console.log(`⚠️  Table ${name} doesn't exist, skipping`);
-        } else {
-          throw error;
-        }
-      }
+    if (tables.length === 0) {
+      return;
     }
 
-    // Re-enable foreign key constraints
-    await dbClient.run(sql`PRAGMA foreign_keys = ON`);
-
-    console.log('---');
-    console.log('🎉 Database cleaned successfully');
+    // Use TRUNCATE with CASCADE to handle foreign key constraints automatically
+    // RESTART IDENTITY resets any sequences (auto-increment counters)
+    const tableList = tables.map((t: string) => `"${t}"`).join(', ');
+    await db.execute(sql.raw(`TRUNCATE TABLE ${tableList} RESTART IDENTITY CASCADE`));
   } catch (error) {
-    console.error('❌ Failed to clean database:', error);
-    throw error;
+    console.debug('Could not clean database:', error);
   }
-}
-
-// Run the clean function if executed directly
-if (import.meta.url === new URL(import.meta.url).href) {
-  cleanDatabase()
-    .then(() => {
-      console.log('Database cleanup completed');
-      process.exit(0);
-    })
-    .catch((error) => {
-      console.error('Database cleanup failed:', error);
-      process.exit(1);
-    });
 }

@@ -1,17 +1,30 @@
-import type { ExecutionContext } from '@inkeep/agents-core';
+import type { BaseExecutionContext, FullExecutionContext } from '@inkeep/agents-core';
+
+/**
+ * Extract userId from execution context metadata (when available)
+ * Only available when request originates from an authenticated user session (e.g., playground)
+ */
+export function getUserIdFromContext(ctx: FullExecutionContext): string | undefined {
+  const metadata = ctx.metadata as
+    | { initiatedBy?: { type: 'user' | 'api_key'; id: string } }
+    | undefined;
+  return metadata?.initiatedBy?.type === 'user' ? metadata.initiatedBy.id : undefined;
+}
 
 /**
  * Create execution context from middleware values
  */
-export function createExecutionContext(params: {
+export function createBaseExecutionContext(params: {
   apiKey: string;
   tenantId: string;
   projectId: string;
   agentId: string;
   apiKeyId: string;
-  subAgentId?: string;
   baseUrl?: string;
-}): ExecutionContext {
+  subAgentId?: string;
+  ref?: string;
+  metadata?: BaseExecutionContext['metadata'];
+}): BaseExecutionContext {
   return {
     apiKey: params.apiKey,
     tenantId: params.tenantId,
@@ -20,6 +33,8 @@ export function createExecutionContext(params: {
     baseUrl: params.baseUrl || process.env.API_URL || 'http://localhost:3003',
     apiKeyId: params.apiKeyId,
     subAgentId: params.subAgentId,
+    ref: params.ref,
+    metadata: params.metadata || {},
   };
 }
 

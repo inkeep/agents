@@ -1,7 +1,6 @@
-import type { Connection, Edge, Node } from '@xyflow/react';
+import type { Edge, Node } from '@xyflow/react';
 import { addEdge } from '@xyflow/react';
 import { EdgeType } from '@/components/agent/configuration/edge-types';
-import type { AgentMetadata } from '@/components/agent/configuration/agent-types';
 import { agentStore } from '@/features/agent/state/use-agent-store';
 import { eventBus } from '@/lib/events';
 import type { Command } from './command-manager';
@@ -19,74 +18,6 @@ export class AddNodeCommand implements Command {
   undo() {
     const { actions } = agentStore.getState();
     actions.setNodes((prev) => prev.filter((n) => n.id !== this.node.id));
-  }
-}
-
-export class DeleteSelectionCommand implements Command {
-  readonly name = 'DeleteSelection';
-  execute() {
-    const { actions } = agentStore.getState();
-    actions.deleteSelected();
-  }
-  undo() {
-    // relies on store history; in a richer system we'd capture diffs
-    const { actions } = agentStore.getState();
-    actions.undo();
-  }
-}
-
-export class ConnectEdgeCommand implements Command {
-  readonly name = 'ConnectEdge';
-  private connection: Connection;
-  private createdEdgeId: string | null = null;
-  constructor(connection: Connection) {
-    this.connection = connection;
-  }
-  execute() {
-    const { actions } = agentStore.getState();
-    actions.setEdges((eds) => {
-      const newEdges = addEdge(this.connection as any, eds);
-      const last = newEdges[newEdges.length - 1];
-      this.createdEdgeId = last?.id ?? null;
-      return newEdges;
-    });
-  }
-  undo() {
-    if (!this.createdEdgeId) return;
-    const { actions } = agentStore.getState();
-    const id = this.createdEdgeId;
-    actions.setEdges((eds) => eds.filter((e) => e.id !== id));
-  }
-}
-
-export class UpdateMetadataCommand implements Command {
-  readonly name = 'UpdateMetadata';
-  private field: keyof AgentMetadata;
-  private value: AgentMetadata[keyof AgentMetadata];
-  private prev: AgentMetadata[keyof AgentMetadata] | undefined;
-  constructor(field: keyof AgentMetadata, value: AgentMetadata[keyof AgentMetadata]) {
-    this.field = field;
-    this.value = value;
-  }
-  execute() {
-    const { metadata, actions } = agentStore.getState();
-    this.prev = metadata[this.field];
-    actions.setMetadata(this.field, this.value);
-  }
-  undo() {
-    const { actions } = agentStore.getState();
-    actions.setMetadata(this.field, this.prev as any);
-  }
-}
-
-export class ClearSelectionCommand implements Command {
-  readonly name = 'ClearSelection';
-  execute() {
-    const { actions } = agentStore.getState();
-    actions.clearSelection();
-  }
-  undo() {
-    // no-op for now
   }
 }
 

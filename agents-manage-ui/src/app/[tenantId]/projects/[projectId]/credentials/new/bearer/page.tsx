@@ -1,12 +1,9 @@
 import { NewCredentialForm } from '@/components/credentials/views/new-credential-form';
 import { BodyTemplate } from '@/components/layout/body-template';
-import { MainContent } from '@/components/layout/main-content';
 
 async function NewBearerCredentialsPage({
   params,
-}: {
-  params: Promise<{ tenantId: string; projectId: string }>;
-}) {
+}: PageProps<'/[tenantId]/projects/[projectId]/credentials/new/bearer'>) {
   const { tenantId, projectId } = await params;
   return (
     <BodyTemplate
@@ -19,14 +16,11 @@ async function NewBearerCredentialsPage({
           label: 'New credential',
           href: `/${tenantId}/projects/${projectId}/credentials/new`,
         },
-        { label: 'Bearer' },
+        'Bearer',
       ]}
+      className="max-w-2xl mx-auto"
     >
-      <MainContent>
-        <div className="max-w-2xl mx-auto py-4">
-          <NewCredentialForm />
-        </div>
-      </MainContent>
+      <NewCredentialForm />
     </BodyTemplate>
   );
 }

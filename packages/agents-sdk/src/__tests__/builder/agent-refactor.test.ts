@@ -1,5 +1,5 @@
 import * as agentFullModule from '@inkeep/agents-core';
-import { nanoid } from 'nanoid';
+import { generateId } from '@inkeep/agents-core';
 import { describe, expect, it, vi } from 'vitest';
 import { agent, mcpTool, subAgent } from '../../index';
 import { createTestTenantId } from '../utils/testTenant';
@@ -109,7 +109,7 @@ describe('Agent Builder Refactor - Integration Tests', () => {
     agent1.addTransfer(agent2);
 
     // Create the agent
-    const agentId = `test-agent-${nanoid()}`;
+    const agentId = `test-agent-${generateId()}`;
     const agentObject = agent({
       id: agentId,
       name: 'Test Agent',
@@ -174,7 +174,7 @@ describe('Agent Builder Refactor - Integration Tests', () => {
       prompt: 'You are a component-enabled agent.',
     });
 
-    const agentId = `component-agent-${nanoid()}`;
+    const agentId = `component-agent-${generateId()}`;
     const agentObject = agent({
       id: agentId,
       name: 'Component Agent',
@@ -217,7 +217,7 @@ describe('Agent Builder Refactor - Integration Tests', () => {
       prompt: 'You work alone.',
     });
 
-    const agentId = `standalone-agent-${nanoid()}`;
+    const agentId = `standalone-agent-${generateId()}`;
     const agentObject = agent({
       id: agentId,
       name: 'Standalone Agent',
@@ -246,31 +246,6 @@ describe('Agent Builder Refactor - Integration Tests', () => {
     updateSpy.mockClear();
   });
 
-  it('should preserve the legacy initialization method', async () => {
-    const _tenantId = createTestTenantId('agent-legacy');
-
-    const subAgent1 = subAgent({
-      id: 'legacy-agent',
-      name: 'Legacy Agent',
-      description: 'Agent for legacy test',
-      prompt: 'You are a legacy agent.',
-    });
-
-    const agentId = `legacy-agent-${nanoid()}`;
-    const agentObject = agent({
-      id: agentId,
-      name: 'Legacy Agent',
-      defaultSubAgent: subAgent1,
-      subAgents: () => [subAgent1],
-    });
-
-    // Verify that the initLegacy method exists and can be called
-    expect(typeof (agentObject as any).initLegacy).toBe('function');
-
-    // We won't actually call it to avoid side effects, but verify it exists
-    // This ensures backward compatibility is maintained
-  });
-
   it.skip('should handle errors in agent initialization gracefully', async () => {
     const _tenantId = createTestTenantId('agent-error');
 
@@ -287,7 +262,7 @@ describe('Agent Builder Refactor - Integration Tests', () => {
       prompt: 'You will cause an error.',
     });
 
-    const agentId = `error-agent-${nanoid()}`;
+    const agentId = `error-agent-${generateId()}`;
     const agentObject = agent({
       id: agentId,
       name: 'Error Agent',

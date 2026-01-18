@@ -1,0 +1,129 @@
+---
+title: Connect Your Data with Context7
+sidebarTitle: Context7
+description: Learn how to connect your code repositories and documentation to your agents using Context7
+icon: "brand/Upstash"
+keywords: Context7, GitHub, GitLab, BitBucket, code documentation, OpenAPI, MCP server, library documentation, code repositories, technical documentation
+---
+
+Context7 specializes in connecting code repositories and technical documentation to your agents. It's particularly well-suited for developers who want their agents to have access to library documentation, API specs, and code repositories.
+
+## Supported data sources
+
+With Context7 you can connect:
+
+- **Code Repositories**: GitHub Repositories, GitLab, BitBucket
+- **API Documentation**: OpenAPI Spec
+- **Documentation Formats**: LLMs.txt
+- **Websites**: Website crawling and indexing
+
+## Getting started
+
+### Step 1: Check if your library is already available
+
+Context7 maintains a library of pre-indexed documentation for popular libraries and frameworks. Before creating an account, check if your library is already available:
+
+Visit [context7.com](https://context7.com/) and browse the list of available libraries. If your library is listed, you can use it immediately without additional setup.
+
+<Tip>
+If your library is already available in Context7's library, you can skip directly to Step 4 to get the library ID and register the MCP server.
+</Tip>
+
+### Step 2: Create an account
+
+If your library isn't listed or you want to connect custom sources:
+
+1. [Sign up for Context7](https://context7.com/sign-in)
+2. Complete the account setup process
+3. Verify your email address if required
+
+### Step 3: Connect your data sources
+
+1. Log in to your Context7 dashboard
+2. Add your repositories, websites, or OpenAPI specs
+3. Wait for Context7 to index your content
+4. Verify that your content is accessible
+
+### Step 4: Get the Context7 Library ID
+
+To use a specific library with your agents, you'll need the Context7 Library ID. You can find this ID in the library's URL on context7.com.
+
+**How to find the Library ID:**
+
+1. Navigate to the library page on context7.com (e.g., `https://context7.com/supabase/supabase`)
+2. Copy the path after the domain name
+3. The Library ID is the path portion of the URL
+
+**Example:**
+- URL: `https://context7.com/supabase/supabase`
+- Library ID: `supabase/supabase`
+
+<Note>
+If you don't know the library ID, the Context7 MCP server can automatically match libraries based on your query using the `resolve-library-id` tool. See the "Automatic library matching" section below for details.
+</Note>
+
+### Step 5: Register the MCP server
+
+Register the Context7 MCP server as a tool in your agent configuration:
+
+**Using TypeScript SDK:**
+
+```typescript
+import { mcpTool, subAgent } from "@inkeep/agents-sdk";
+
+const context7Tool = mcpTool({
+  id: "context7-docs",
+  name: "context7_search",
+  description: "Search code documentation and library references",
+  serverUrl: "https://mcp.context7.com/mcp",
+});
+
+const devAgent = subAgent({
+  id: "dev-agent",
+  name: "Developer Assistant",
+  description: "Helps with code questions using library documentation",
+  prompt: `You are a developer assistant with access to code documentation.`,
+  canUse: () => [context7Tool],
+});
+```
+**Using Visual Builder:**
+
+1. Go to the **MCP Servers** tab in the Visual Builder
+2. Click "New MCP server"
+3. Enter:
+   - **Name**: `Context7 Documentation`
+   - **URL**: `https://mcp.context7.com/mcp`
+   - **Transport Type**: `Streamable HTTP` or `SSE`
+4. Save the server
+5. Add it to your agent by dragging it onto your agent canvas
+
+### Step 6: Use the Context7 MCP server in your agent
+
+Once your Context7 MCP server is registered, you can use it with a specific library ID (from Step 4) or let it automatically match libraries based on your query.
+
+#### Specifying a library ID
+
+If you know which library you want to use, specify its Context7 Library ID in your agent's prompt. This allows the Context7 MCP server to skip the library-matching step and directly retrieve documentation.
+
+**Example:**
+
+```typescript
+const devAgent = subAgent({
+  id: "react-agent",
+  name: "React Assistant",
+  description: "Helps with React development",
+  prompt: `You are a React development assistant. Use library ID "websites/inkeep" 
+    when searching for documentation. Use the get_library_docs tool to find React 
+    documentation and examples.`,
+  canUse: () => [context7Tool],
+});
+```
+
+#### Automatic library matching
+
+If you don't specify a library ID, the Context7 MCP server will automatically match libraries based on your query. The server uses the `resolve-library-id` tool to identify the appropriate library, then uses the `get_library_docs` tool to retrieve the relevant documentation.
+
+This approach works well when:
+- You're working with multiple libraries
+- The library name is mentioned in the user's query
+- You want the agent to dynamically select the most relevant library

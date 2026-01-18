@@ -1,7 +1,7 @@
 'use client';
 
 import { useParams } from 'next/navigation';
-import type { MCPTool } from "@/lib/types/tools";;
+import type { MCPTool } from '@/lib/types/tools';
 import { MCPToolItem } from './mcp-tool-item';
 
 interface MCPToolsListProps {

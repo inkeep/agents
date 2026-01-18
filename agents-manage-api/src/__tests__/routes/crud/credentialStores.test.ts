@@ -1,11 +1,16 @@
 import { CredentialStoreType } from '@inkeep/agents-core';
+import { createTestProject } from '@inkeep/agents-core/db/test-manage-client';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { ensureTestProject } from '../../utils/testProject';
+import manageDbClient from '../../../data/db/dbClient';
 import { makeRequest } from '../../utils/testRequest';
-import { createTestTenantId } from '../../utils/testTenant';
+import { createTestTenantWithOrg } from '../../utils/testTenant';
 
 // Factory functions for creating mock stores with different behaviors
-const createMockStore = (id: string, type: typeof CredentialStoreType[keyof typeof CredentialStoreType], overrides = {}) => ({
+const createMockStore = (
+  id: string,
+  type: (typeof CredentialStoreType)[keyof typeof CredentialStoreType],
+  overrides = {}
+) => ({
   id,
   type,
   get: vi.fn().mockResolvedValue(null),
@@ -16,41 +21,32 @@ const createMockStore = (id: string, type: typeof CredentialStoreType[keyof type
   ...overrides,
 });
 
-const createNonFunctionalKeychainStore = () => createMockStore(
-  'keychain-default',
-  CredentialStoreType.keychain,
-  {
+const createNonFunctionalKeychainStore = () =>
+  createMockStore('keychain-default', CredentialStoreType.keychain, {
     has: vi.fn().mockRejectedValue(new Error('keytar not available')),
     checkAvailability: vi.fn().mockResolvedValue({
       available: false,
-      reason: 'Keytar not available - cannot store credentials in system keychain'
+      reason: 'Keytar not available - cannot store credentials in system keychain',
     }),
-  }
-);
+  });
 
-const createUnavailableStore = (id: string) => createMockStore(
-  id,
-  CredentialStoreType.keychain,
-  {
+const createUnavailableStore = (id: string) =>
+  createMockStore(id, CredentialStoreType.keychain, {
     checkAvailability: vi.fn().mockResolvedValue({
       available: false,
-      reason: 'Store is offline'
+      reason: 'Store is offline',
     }),
-  }
-);
+  });
 
-const createErrorStore = (id: string, errorMessage: string) => createMockStore(
-  id,
-  CredentialStoreType.memory,
-  {
+const createErrorStore = (id: string, errorMessage: string) =>
+  createMockStore(id, CredentialStoreType.memory, {
     set: vi.fn().mockRejectedValue(new Error(errorMessage)),
-  }
-);
+  });
 
 // Registry factory function that takes specific store configurations
 const createMockRegistry = (stores: any[] = []) => {
-  const storeMap = new Map(stores.map(store => [store.id, store]));
-  
+  const storeMap = new Map(stores.map((store) => [store.id, store]));
+
   return {
     get: vi.fn((storeId: string) => storeMap.get(storeId) || null),
     getAll: vi.fn(() => stores),
@@ -62,19 +58,19 @@ let currentRegistry: any = null;
 
 vi.mock('../../../index', async (importOriginal) => {
   const { createManagementHono } = (await importOriginal()) as any;
-  
+
   return {
     default: {
       request: vi.fn(async (url: string, options: any) => {
         if (!currentRegistry) {
           throw new Error('No registry configured for test');
         }
-        
+
         const mockConfig = { port: 3002, serverOptions: {} };
-        const app = createManagementHono(mockConfig, currentRegistry);
+        const app = createManagementHono(mockConfig, currentRegistry, null);
         return app.request(url, options);
-      })
-    }
+      }),
+    },
   };
 });
 
@@ -90,9 +86,9 @@ describe('Credential Stores - CRUD Operations', () => {
   beforeEach(async () => {
     vi.clearAllMocks();
     currentRegistry = null; // Clear registry between tests
-    tenantId = createTestTenantId();
+    tenantId = await createTestTenantWithOrg();
     projectId = 'default';
-    await ensureTestProject(tenantId, projectId);
+    await createTestProject(manageDbClient, tenantId, projectId);
   });
 
   describe('GET /stores', () => {
@@ -175,9 +171,7 @@ describe('Credential Stores - CRUD Operations', () => {
 
     it('should handle minimal store configuration', async () => {
       // Arrange: Only memory store
-      const stores = [
-        createMockStore('memory-default', CredentialStoreType.memory),
-      ];
+      const stores = [createMockStore('memory-default', CredentialStoreType.memory)];
       setupTestWithStores(stores);
 
       // Act
@@ -207,9 +201,7 @@ describe('Credential Stores - CRUD Operations', () => {
 
     it('should successfully create a credential in the store', async () => {
       // Arrange: Create a working store
-      const stores = [
-        createMockStore('test-store', CredentialStoreType.memory),
-      ];
+      const stores = [createMockStore('test-store', CredentialStoreType.memory)];
       setupTestWithStores(stores);
 
       const requestBody = {
@@ -238,7 +230,7 @@ describe('Credential Stores - CRUD Operations', () => {
       expect(new Date(data.data.createdAt)).toBeInstanceOf(Date);
 
       // Verify the store's set method was called with correct parameters
-      expect(stores[0].set).toHaveBeenCalledWith('test-key', 'test-value');
+      expect(stores[0].set).toHaveBeenCalledWith('test-key', 'test-value', {});
     });
 
     it('should return 404 when credential store is not found', async () => {
@@ -267,9 +259,7 @@ describe('Credential Stores - CRUD Operations', () => {
 
     it('should return 500 when credential store is not available', async () => {
       // Arrange: Create an unavailable store
-      const stores = [
-        createUnavailableStore('unavailable-store'),
-      ];
+      const stores = [createUnavailableStore('unavailable-store')];
       setupTestWithStores(stores);
 
       const requestBody = {
@@ -296,9 +286,7 @@ describe('Credential Stores - CRUD Operations', () => {
 
     it('should handle store.set() errors gracefully', async () => {
       // Arrange: Create a store that throws errors on set
-      const stores = [
-        createErrorStore('error-store', 'Storage failed'),
-      ];
+      const stores = [createErrorStore('error-store', 'Storage failed')];
       setupTestWithStores(stores);
 
       const requestBody = {
@@ -323,9 +311,7 @@ describe('Credential Stores - CRUD Operations', () => {
 
     it('should validate request body schema', async () => {
       // Arrange: Create a working store
-      const stores = [
-        createMockStore('test-store', CredentialStoreType.memory),
-      ];
+      const stores = [createMockStore('test-store', CredentialStoreType.memory)];
       setupTestWithStores(stores);
 
       const invalidBody = {
@@ -348,9 +334,7 @@ describe('Credential Stores - CRUD Operations', () => {
 
     it('should handle keychain store type', async () => {
       // Arrange: Create a keychain store
-      const stores = [
-        createMockStore('keychain-store', CredentialStoreType.keychain),
-      ];
+      const stores = [createMockStore('keychain-store', CredentialStoreType.keychain)];
       setupTestWithStores(stores);
 
       const requestBody = {
@@ -379,9 +363,7 @@ describe('Credential Stores - CRUD Operations', () => {
 
     it('should handle nango store type', async () => {
       // Arrange: Create a nango store
-      const stores = [
-        createMockStore('nango-store', CredentialStoreType.nango),
-      ];
+      const stores = [createMockStore('nango-store', CredentialStoreType.nango)];
       setupTestWithStores(stores);
 
       const requestBody = {

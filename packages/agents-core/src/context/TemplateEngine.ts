@@ -53,6 +53,35 @@ export class TemplateEngine {
   }
 
   /**
+   * Normalize JMES path by wrapping property names with dashes in quotes
+   * Example: headers.x-tenant-id -> headers."x-tenant-id"
+   * Example: api-responses[0].response-code -> "api-responses"[0]."response-code"
+   */
+  private static normalizeJMESPath(path: string): string {
+    const segments = path.split('.');
+    return segments
+      .map((segment) => {
+        if (!segment.includes('-')) {
+          return segment;
+        }
+
+        if (segment.startsWith('"') && segment.includes('"')) {
+          return segment;
+        }
+
+        const bracketIndex = segment.indexOf('[');
+        if (bracketIndex !== -1) {
+          const propertyName = segment.substring(0, bracketIndex);
+          const arrayAccess = segment.substring(bracketIndex);
+          return `"${propertyName}"${arrayAccess}`;
+        }
+
+        return `"${segment}"`;
+      })
+      .join('.');
+  }
+
+  /**
    * Process variable substitutions {{variable.path}} using JMESPath
    */
   private static processVariables(
@@ -69,8 +98,11 @@ export class TemplateEngine {
           return TemplateEngine.processBuiltinVariable(trimmedPath);
         }
 
+        // Normalize path to handle dashes in property names
+        const normalizedPath = TemplateEngine.normalizeJMESPath(trimmedPath);
+
         // Use JMESPath to extract value from context
-        const result = jmespath.search(context, trimmedPath);
+        const result = jmespath.search(context, normalizedPath);
 
         if (result === undefined || result === null) {
           if (options.strict) {
@@ -86,8 +118,8 @@ export class TemplateEngine {
             logger.warn(
               {
                 variable: trimmedPath,
+                normalizedPath,
                 availableKeys: Object.keys(context),
-                contextStructure: JSON.stringify(context, null, 2),
                 headersContent: context.headers
                   ? JSON.stringify(context.headers, null, 2)
                   : 'undefined',
@@ -98,6 +130,7 @@ export class TemplateEngine {
             logger.warn(
               {
                 variable: trimmedPath,
+                normalizedPath,
                 availableKeys: Object.keys(context),
               },
               'Template variable not found in context'
@@ -114,14 +147,18 @@ export class TemplateEngine {
         return String(result);
       } catch (error) {
         const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+        const normalizedPath = TemplateEngine.normalizeJMESPath(trimmedPath);
 
         if (options.strict) {
-          throw new Error(`Failed to resolve template variable '${trimmedPath}': ${errorMessage}`);
+          throw new Error(
+            `Failed to resolve template variable '${trimmedPath}' (normalized: '${normalizedPath}'): ${errorMessage}`
+          );
         }
 
         logger.error(
           {
             variable: trimmedPath,
+            normalizedPath,
             error: errorMessage,
           },
           'Failed to resolve template variable'
@@ -133,33 +170,22 @@ export class TemplateEngine {
   }
 
   /**
-   * Process built-in variables like $now, $env, etc.
+   * Process built-in variables like $env, etc.
    */
   private static processBuiltinVariable(variable: string): string {
-    switch (variable) {
-      case '$now':
-        return new Date().toISOString();
-      case '$timestamp':
-        return Date.now().toString();
-      case '$date':
-        return new Date().toDateString();
-      case '$time':
-        return new Date().toTimeString();
-      default:
-        // Check for environment variables like $env.NODE_ENV
-        if (variable.startsWith('$env.')) {
-          const envVar = variable.substring(5);
-          return process.env[envVar] || '';
-        }
-
-        logger.warn(
-          {
-            variable,
-          },
-          'Unknown built-in variable'
-        );
-        return '';
+    // Check for environment variables like $env.NODE_ENV
+    if (variable.startsWith('$env.')) {
+      const envVar = variable.substring(5);
+      return process.env[envVar] || '';
     }
+
+    logger.warn(
+      {
+        variable,
+      },
+      'Unknown built-in variable'
+    );
+    return '';
   }
 
   /**

@@ -2,31 +2,31 @@ import { createRoute, OpenAPIHono, z } from '@hono/zod-openapi';
 import {
   type CredentialStoreRegistry,
   commonGetErrorResponses,
-  contextValidationMiddleware,
   createApiError,
   createMessage,
+  type FullExecutionContext,
+  generateId,
   getActiveAgentForConversation,
-  getAgentWithDefaultSubAgent,
+  getConversation,
   getConversationId,
-  getRequestExecutionContext,
-  getSubAgentById,
-  handleContextResolution,
   loggerFactory,
   setActiveAgentForConversation,
 } from '@inkeep/agents-core';
 import { context as otelContext, propagation, trace } from '@opentelemetry/api';
 import { createUIMessageStream, JsonToSseTransformStream } from 'ai';
 import { stream } from 'hono/streaming';
-import { nanoid } from 'nanoid';
+import { contextValidationMiddleware, handleContextResolution } from '../context';
 import dbClient from '../data/db/dbClient';
 import { ExecutionHandler } from '../handlers/executionHandler';
 import { getLogger } from '../logger';
+import { pendingToolApprovalManager } from '../services/PendingToolApprovalManager';
 import { errorOp } from '../utils/agent-operations';
-import { createVercelStreamHelper } from '../utils/stream-helpers';
+import { createBufferingStreamHelper, createVercelStreamHelper } from '../utils/stream-helpers';
 
 type AppVariables = {
   credentialStores: CredentialStoreRegistry;
   requestBody?: any;
+  executionContext: FullExecutionContext;
 };
 
 const app = new OpenAPIHono<{ Variables: AppVariables }>();
@@ -64,10 +64,13 @@ const chatDataStreamRoute = createRoute({
             ),
             id: z.string().optional(),
             conversationId: z.string().optional(),
+            stream: z.boolean().optional().describe('Whether to stream the response').default(true),
+            max_tokens: z.number().optional().describe('Maximum tokens to generate'),
             headers: z
               .record(z.string(), z.unknown())
               .optional()
               .describe('Headers data for template processing'),
+            runConfig: z.record(z.string(), z.unknown()).optional().describe('Run configuration'),
           }),
         },
       },
@@ -85,12 +88,12 @@ const chatDataStreamRoute = createRoute({
   },
 });
 // Apply context validation middleware
-app.use('/chat', contextValidationMiddleware(dbClient));
+app.use('/chat', contextValidationMiddleware);
 
 app.openapi(chatDataStreamRoute, async (c) => {
   try {
     // Get execution context from API key authentication
-    const executionContext = getRequestExecutionContext(c);
+    const executionContext = c.get('executionContext');
     const { tenantId, projectId, agentId } = executionContext;
 
     loggerFactory
@@ -100,6 +103,60 @@ app.openapi(chatDataStreamRoute, async (c) => {
     // Get parsed body from middleware (shared across all handlers)
     const body = c.get('requestBody') || {};
     const conversationId = body.conversationId || getConversationId();
+
+    // Extract target context headers (for copilot/chat-to-edit scenarios)
+    const targetTenantId = c.req.header('x-target-tenant-id');
+    const targetProjectId = c.req.header('x-target-project-id');
+    const targetAgentId = c.req.header('x-target-agent-id');
+
+    // Extract headers to forward to MCP servers (for user session auth)
+    // Transform cookie -> x-forwarded-cookie since downstream services expect it
+    // Note: Do NOT forward the authorization header - it causes issues with internal A2A requests
+    // because the user's JWT token is not valid for those internal service-to-service calls
+    const forwardedHeaders: Record<string, string> = {};
+    const xForwardedCookie = c.req.header('x-forwarded-cookie');
+    const cookie = c.req.header('cookie');
+    const clientTimezone = c.req.header('x-inkeep-client-timezone');
+    const clientTimestamp = c.req.header('x-inkeep-client-timestamp');
+
+    // Priority: x-forwarded-cookie (explicit) > cookie (browser-sent)
+    if (xForwardedCookie) {
+      forwardedHeaders['x-forwarded-cookie'] = xForwardedCookie;
+    } else if (cookie) {
+      forwardedHeaders['x-forwarded-cookie'] = cookie;
+    }
+
+    // Forward client timezone and timestamp together (both required, with validation)
+    if (clientTimezone && clientTimestamp) {
+      // Validate timezone format
+      const isValidTimezone =
+        clientTimezone.length < 100 && /^[A-Za-z0-9_/\-+]+$/.test(clientTimezone);
+      // Validate ISO 8601 timestamp format: "2026-01-16T19:45:30.123Z"
+      const isValidTimestamp =
+        clientTimestamp.length < 50 &&
+        /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(\.\d{3})?Z$/.test(clientTimestamp);
+
+      if (isValidTimezone && isValidTimestamp) {
+        forwardedHeaders['x-inkeep-client-timezone'] = clientTimezone;
+        forwardedHeaders['x-inkeep-client-timestamp'] = clientTimestamp;
+      } else {
+        logger.warn(
+          {
+            clientTimezone: isValidTimezone ? clientTimezone : clientTimezone.substring(0, 100),
+            clientTimestamp: isValidTimestamp ? clientTimestamp : clientTimestamp.substring(0, 50),
+            isValidTimezone,
+            isValidTimestamp,
+          },
+          'Invalid client timezone or timestamp format, ignoring both'
+        );
+      }
+    } else if (clientTimezone || clientTimestamp) {
+      logger.warn(
+        { hasTimezone: !!clientTimezone, hasTimestamp: !!clientTimestamp },
+        'Client timezone and timestamp must both be present, ignoring'
+      );
+    }
+
     // Add conversation ID to parent span
     const activeSpan = trace.getActiveSpan();
     if (activeSpan) {
@@ -108,6 +165,9 @@ app.openapi(chatDataStreamRoute, async (c) => {
         'tenant.id': tenantId,
         'agent.id': agentId,
         'project.id': projectId,
+        ...(targetTenantId && { 'target.tenant.id': targetTenantId }),
+        ...(targetProjectId && { 'target.project.id': targetProjectId }),
+        ...(targetAgentId && { 'target.agent.id': targetAgentId }),
       });
     }
 
@@ -121,9 +181,8 @@ app.openapi(chatDataStreamRoute, async (c) => {
     const ctxWithBaggage = propagation.setBaggage(otelContext.active(), currentBag);
     // Execute remaining handler within the baggage context so child spans inherit attributes
     return await otelContext.with(ctxWithBaggage, async () => {
-      const agent = await getAgentWithDefaultSubAgent(dbClient)({
-        scopes: { tenantId, projectId, agentId },
-      });
+      const agent = executionContext.project.agents[agentId];
+
       if (!agent) {
         throw createApiError({
           code: 'not_found',
@@ -146,19 +205,20 @@ app.openapi(chatDataStreamRoute, async (c) => {
         conversationId,
       });
       if (!activeAgent) {
-        setActiveAgentForConversation(dbClient)({
+        await setActiveAgentForConversation(dbClient)({
           scopes: { tenantId, projectId },
           conversationId,
           subAgentId: defaultSubAgentId,
+          ref: executionContext.resolvedRef,
+          agentId: agentId,
         });
       }
       const subAgentId = activeAgent?.activeSubAgentId || defaultSubAgentId;
 
-      const agentInfo = await getSubAgentById(dbClient)({
-        scopes: { tenantId, projectId, agentId },
-        subAgentId: subAgentId as string,
-      });
+      logger.info({ subAgentId }, 'subAgentId');
+      const agentInfo = executionContext.project.agents[agentId]?.subAgents[subAgentId];
       if (!agentInfo) {
+        logger.error({ subAgentId }, 'subAgentId not found');
         throw createApiError({
           code: 'not_found',
           message: 'Agent not found',
@@ -172,12 +232,9 @@ app.openapi(chatDataStreamRoute, async (c) => {
 
       // Context resolution with intelligent conversation state detection
       await handleContextResolution({
-        tenantId,
-        projectId,
-        agentId,
+        executionContext,
         conversationId,
         headers: validatedContext,
-        dbClient,
         credentialStores,
       });
 
@@ -195,9 +252,15 @@ app.openapi(chatDataStreamRoute, async (c) => {
           'message.content': userText,
           'agent.name': agentName,
         });
+
+        // Add user information from execution context metadata if available
+        if (executionContext.metadata?.initiatedBy) {
+          messageSpan.setAttribute('user.type', executionContext.metadata.initiatedBy.type);
+          messageSpan.setAttribute('user.id', executionContext.metadata.initiatedBy.id);
+        }
       }
       await createMessage(dbClient)({
-        id: nanoid(),
+        id: generateId(),
         tenantId,
         projectId,
         conversationId,
@@ -213,6 +276,52 @@ app.openapi(chatDataStreamRoute, async (c) => {
         });
       }
 
+      const shouldStream = body.stream !== false;
+
+      if (!shouldStream) {
+        // Non-streaming response - collect full response and return as JSON
+        const emitOperationsHeader = c.req.header('x-emit-operations');
+        const emitOperations = emitOperationsHeader === 'true';
+
+        const bufferingHelper = createBufferingStreamHelper();
+
+        const executionHandler = new ExecutionHandler();
+        const result = await executionHandler.execute({
+          executionContext,
+          conversationId,
+          userMessage: userText,
+          initialAgentId: subAgentId,
+          requestId: `chat-${Date.now()}`,
+          sseHelper: bufferingHelper,
+          emitOperations,
+          forwardedHeaders,
+        });
+
+        const captured = bufferingHelper.getCapturedResponse();
+
+        return c.json({
+          id: `chat-${Date.now()}`,
+          object: 'chat.completion',
+          created: Math.floor(Date.now() / 1000),
+          model: agentName,
+          choices: [
+            {
+              index: 0,
+              message: {
+                role: 'assistant',
+                content: captured.hasError ? captured.errorMessage : captured.text,
+              },
+              finish_reason: result.success && !captured.hasError ? 'stop' : 'error',
+            },
+          ],
+          usage: {
+            prompt_tokens: 0,
+            completion_tokens: 0,
+            total_tokens: 0,
+          },
+        });
+      }
+
       // Create UI Message Stream using AI SDK V5
       const dataStream = createUIMessageStream({
         execute: async ({ writer }) => {
@@ -224,6 +333,9 @@ app.openapi(chatDataStreamRoute, async (c) => {
 
             const executionHandler = new ExecutionHandler();
 
+            // Check if this is a dataset run conversation via header
+            const datasetRunId = c.req.header('x-inkeep-dataset-run-id');
+
             const result = await executionHandler.execute({
               executionContext,
               conversationId,
@@ -232,6 +344,8 @@ app.openapi(chatDataStreamRoute, async (c) => {
               requestId: `chatds-${Date.now()}`,
               sseHelper: streamHelper,
               emitOperations,
+              datasetRunId: datasetRunId || undefined,
+              forwardedHeaders,
             });
 
             if (!result.success) {
@@ -264,12 +378,169 @@ app.openapi(chatDataStreamRoute, async (c) => {
       );
     });
   } catch (error) {
-    logger.error({ error }, 'chatDataStream error');
+    logger.error(
+      {
+        error,
+        errorMessage: error instanceof Error ? error.message : String(error),
+        errorStack: error instanceof Error ? error.stack : undefined,
+        errorType: error?.constructor?.name,
+      },
+      'chatDataStream error - DETAILED'
+    );
     throw createApiError({
       code: 'internal_server_error',
       message: 'Failed to process chat completion',
     });
   }
+});
+
+// Tool approval endpoint
+const toolApprovalRoute = createRoute({
+  method: 'post',
+  path: '/tool-approvals',
+  tags: ['chat'],
+  summary: 'Approve or deny tool execution',
+  description: 'Handle user approval/denial of tool execution requests during conversations',
+  security: [{ bearerAuth: [] }],
+  request: {
+    body: {
+      content: {
+        'application/json': {
+          schema: z.object({
+            conversationId: z.string().describe('The conversation ID'),
+            toolCallId: z.string().describe('The tool call ID to respond to'),
+            approved: z.boolean().describe('Whether the tool execution is approved'),
+            reason: z.string().optional().describe('Optional reason for the decision'),
+          }),
+        },
+      },
+    },
+  },
+  responses: {
+    200: {
+      description: 'Tool approval response processed successfully',
+      content: {
+        'application/json': {
+          schema: z.object({
+            success: z.boolean(),
+            message: z.string().optional(),
+          }),
+        },
+      },
+    },
+    400: {
+      description: 'Bad request - invalid tool call ID or conversation ID',
+      content: {
+        'application/json': {
+          schema: z.object({
+            error: z.string(),
+          }),
+        },
+      },
+    },
+    404: {
+      description: 'Tool call not found or already processed',
+      content: {
+        'application/json': {
+          schema: z.object({
+            error: z.string(),
+          }),
+        },
+      },
+    },
+    500: {
+      description: 'Internal server error',
+      content: {
+        'application/json': {
+          schema: z.object({
+            error: z.string(),
+            message: z.string(),
+          }),
+        },
+      },
+    },
+  },
+});
+
+app.openapi(toolApprovalRoute, async (c) => {
+  const tracer = trace.getTracer('tool-approval-handler');
+
+  return tracer.startActiveSpan('tool_approval_request', async (span) => {
+    try {
+      const executionContext = c.get('executionContext');
+      const { tenantId, projectId } = executionContext;
+
+      const requestBody = await c.req.json();
+      const { conversationId, toolCallId, approved, reason } = requestBody;
+
+      logger.info(
+        {
+          conversationId,
+          toolCallId,
+          approved,
+          reason,
+          tenantId,
+          projectId,
+        },
+        'Processing tool approval request'
+      );
+
+      // Validate that the conversation exists and belongs to this tenant/project
+      const conversation = await getConversation(dbClient)({
+        scopes: { tenantId, projectId },
+        conversationId,
+      });
+
+      if (!conversation) {
+        span.setStatus({ code: 1, message: 'Conversation not found' });
+        return c.json({ error: 'Conversation not found' }, 404);
+      }
+
+      // Process the approval request using PendingToolApprovalManager
+      let success = false;
+      if (approved) {
+        success = pendingToolApprovalManager.approveToolCall(toolCallId);
+      } else {
+        success = pendingToolApprovalManager.denyToolCall(toolCallId, reason);
+      }
+
+      if (!success) {
+        span.setStatus({ code: 1, message: 'Tool call not found' });
+        return c.json({ error: 'Tool call not found or already processed' }, 404);
+      }
+
+      logger.info({ conversationId, toolCallId, approved }, 'Tool approval processed successfully');
+
+      span.setStatus({ code: 1, message: 'Success' });
+
+      return c.json({
+        success: true,
+        message: approved ? 'Tool execution approved' : 'Tool execution denied',
+      });
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+
+      logger.error(
+        {
+          error: errorMessage,
+          stack: error instanceof Error ? error.stack : undefined,
+        },
+        'Failed to process tool approval'
+      );
+
+      span.setStatus({ code: 2, message: errorMessage });
+
+      return c.json(
+        {
+          error: 'Internal server error',
+          message: errorMessage,
+        },
+        500
+      );
+    } finally {
+      span.end();
+    }
+  }) as any;
 });
 
 export default app;

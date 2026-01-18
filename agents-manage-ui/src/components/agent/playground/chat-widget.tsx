@@ -1,13 +1,15 @@
 'use client';
 import { InkeepEmbeddedChat } from '@inkeep/agents-ui';
-import type { ComponentsConfig, InkeepCallbackEvent } from '@inkeep/agents-ui/types';
-import { nanoid } from 'nanoid';
-import { useCallback, useEffect, useRef } from 'react';
-import { DynamicComponentRenderer } from '@/components/data-components/preview/dynamic-component-renderer';
+import type { InkeepCallbackEvent, InvokeMessageCallbackActionArgs } from '@inkeep/agents-ui/types';
+import { type Dispatch, useCallback, useEffect, useRef, useState } from 'react';
+import { DynamicComponentRenderer } from '@/components/dynamic-component-renderer';
 import type { ConversationDetail } from '@/components/traces/timeline/types';
-import { useRuntimeConfig } from '@/contexts/runtime-config-context';
+import { useCopilotContext } from '@/contexts/copilot';
+import { useRuntimeConfig } from '@/contexts/runtime-config';
+import { useTempApiKey } from '@/hooks/use-temp-api-key';
 import type { DataComponent } from '@/lib/api/data-components';
-import { IkpMessage as IkpMessageComponent } from './ikp-message';
+import { generateId } from '@/lib/utils/id-utils';
+import { FeedbackDialog } from './feedback-dialog';
 
 interface ChatWidgetProps {
   agentId?: string;
@@ -20,6 +22,7 @@ interface ChatWidgetProps {
   customHeaders?: Record<string, string>;
   chatActivities: ConversationDetail | null;
   dataComponentLookup?: Record<string, DataComponent>;
+  setShowTraces: Dispatch<boolean>;
 }
 
 const styleOverrides = `
@@ -28,80 +31,10 @@ const styleOverrides = `
   max-height: unset;
   box-shadow: none;
 }
+
 .ikp-ai-chat-message-wrapper {
   padding-top: 1rem;
   padding-bottom: 1rem;
-
-}
-[data-role="user"] .ikp-ai-chat-message-header {
-  display: none;
-}
-
-.ikp-ai-chat-message-header {
-  margin-bottom: 16px;
-}
-
-.ikp-ai-chat-message-wrapper:not(:last-child):after {
-  border-bottom-width: 0px;
-}
- [data-role="user"] .ikp-ai-chat-message-name {
-  display: none;
-  margin-bottom: 0px;
-}
-.ikp-ai-chat-message-content, .ikp-ai-chat-input {
-  font-size: 14px;
-}
-.ikp-ai-chat-message-avatar-content {
-  width: 24px;
-  height: 24px;
-}
-[data-widget-md] .ikp-ai-chat-message-avatar {
-  height: 24px;
-}
-.ikp-ai-chat-message-name {
-  background: none;
-  padding-left: 0px;
-  padding-right: 0px;
-  margin-left: 12px;
-  font-size: 13px;
-  font-weight: 500;
-  color: var(--ikp-color-gray-600);
-}
-.ikp-ai-chat-tagline__text {
-  font-size: 13px;
-}
-.ikp-ai-chat-input__fieldset {
-  padding: 4px;
-}
-.ikp-ai-chat-input__send-button {
-  height: 36px;
-  width: 36px;
-}
-
-.ikp-ai-chat-message-loading {
-  height: auto;
-}
-
-/* User message styles */
-[data-role="user"] .ikp-ai-chat-message-content-wrapper {
-  align-items: flex-end;
-}
-[data-role="user"] .ikp-ai-chat-message-content {
-  background-color: var(--ikp-color-gray-100);
-  color: var(--ikp-color-gray-900);
-  border-radius: 24px;
-  border-bottom-right-radius: 2px;
-  padding: 8px 16px;
-}
-[data-role="user"] .ikp-ai-chat-message-part > p {
-  margin: 0px;
-}
-[data-role="user"] .ikp-ai-chat-message-part {
-  margin-bottom: 0px;
-}
-[data-theme=dark] [data-role="user"] .ikp-ai-chat-message-content {
-  background-color: var(--ikp-color-white-alpha-100);
-  color: var(--ikp-color-white-alpha-950);
 }
 
 .ikp-markdown-code {
@@ -112,14 +45,6 @@ const styleOverrides = `
 [data-theme=dark] .ikp-markdown-code {
   background-color: var(--ikp-color-white-alpha-100);
   color: var(--ikp-color-white-alpha-950);
-}
-
-/* Dark mode styles for chat containers */
-[data-theme=dark] .ikp-sidebar-chat__close-button {
-  color: var(--ikp-color-gray-50);
-}
-[data-theme=dark] .ikp-ai-chat-message-name {
-  background: none;
 }
 `;
 
@@ -134,9 +59,18 @@ export function ChatWidget({
   customHeaders = {},
   chatActivities,
   dataComponentLookup = {},
+  setShowTraces,
 }: ChatWidgetProps) {
-  const { PUBLIC_INKEEP_AGENTS_RUN_API_URL, PUBLIC_INKEEP_AGENTS_RUN_API_BYPASS_SECRET } =
-    useRuntimeConfig();
+  const { PUBLIC_INKEEP_AGENTS_RUN_API_URL } = useRuntimeConfig();
+  const { isCopilotConfigured } = useCopilotContext();
+  const [isFeedbackDialogOpen, setIsFeedbackDialogOpen] = useState(false);
+  const [messageId, setMessageId] = useState<string | undefined>(undefined);
+  const { apiKey: tempApiKey, isLoading: isLoadingKey } = useTempApiKey({
+    tenantId,
+    projectId,
+    agentId: agentId || '',
+    enabled: !!agentId,
+  });
   const stopPollingTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const hasReceivedAssistantMessageRef = useRef(false);
   const POLLING_TIMEOUT_MS = 5 * 60 * 1000; // 5 minutes
@@ -174,12 +108,23 @@ export function ChatWidget({
     };
   }, []);
 
+  // Don't render chat until we have the API key
+  if (isLoadingKey || !tempApiKey) {
+    return (
+      <div className="h-full flex items-center justify-center">
+        <p className="text-muted-foreground text-sm">
+          {isLoadingKey ? 'Initializing playground...' : 'Failed to initialize playground'}
+        </p>
+      </div>
+    );
+  }
+
   return (
     <div className="h-full flex flex-row gap-4">
       <div className="flex-1 min-w-0 h-full">
         <InkeepEmbeddedChat
           baseSettings={{
-            onEvent: (event: InkeepCallbackEvent) => {
+            onEvent: async (event: InkeepCallbackEvent) => {
               if (event.eventName === 'assistant_message_received') {
                 // Mark that we've received the assistant message
                 hasReceivedAssistantMessageRef.current = true;
@@ -205,7 +150,7 @@ export function ChatWidget({
                   stopPollingTimeoutRef.current = null;
                 }
                 stopPolling();
-                setConversationId(nanoid());
+                setConversationId(generateId());
               }
             },
             primaryBrandColor: '#3784ff',
@@ -256,18 +201,32 @@ export function ChatWidget({
             headers: {
               'x-inkeep-tenant-id': tenantId,
               'x-inkeep-project-id': projectId,
-              'x-inkeep-agent-id': agentId,
+              'x-inkeep-agent-id': agentId || '',
               'x-emit-operations': 'true',
-              Authorization: `Bearer ${PUBLIC_INKEEP_AGENTS_RUN_API_BYPASS_SECRET}`,
+              Authorization: `Bearer ${tempApiKey}`,
               ...customHeaders,
             },
-
+            messageActions: isCopilotConfigured
+              ? [
+                  {
+                    label: 'Improve with AI',
+                    icon: { builtIn: 'LuSparkles' },
+                    action: {
+                      type: 'invoke_message_callback',
+                      callback: ({ messageId }: InvokeMessageCallbackActionArgs) => {
+                        setMessageId(messageId);
+                        setIsFeedbackDialogOpen(true);
+                      },
+                    },
+                  },
+                ]
+              : undefined,
             components: new Proxy(
               {},
               {
                 get: (_, componentName) => {
                   const matchingComponent = Object.values(dataComponentLookup).find(
-                    (component) => component.name === componentName && !!component.preview?.code
+                    (component) => component.name === componentName && !!component.render?.component
                   );
 
                   if (!matchingComponent) {
@@ -277,7 +236,7 @@ export function ChatWidget({
                   const Component = function Component(props: any) {
                     return (
                       <DynamicComponentRenderer
-                        code={matchingComponent.preview?.code || ''}
+                        code={matchingComponent.render?.component || ''}
                         props={props || {}}
                       />
                     );
@@ -290,28 +249,15 @@ export function ChatWidget({
           }}
         />
       </div>
+      {isFeedbackDialogOpen && (
+        <FeedbackDialog
+          isOpen={isFeedbackDialogOpen}
+          onOpenChange={setIsFeedbackDialogOpen}
+          conversationId={conversationId}
+          messageId={messageId}
+          setShowTraces={setShowTraces}
+        />
+      )}
     </div>
   );
 }
-
-// using the built in IkpMessage component from agents-ui but leaving this here for reference / testing
-const _IkpMessage: ComponentsConfig<Record<string, unknown>>['IkpMessage'] = (props) => {
-  const { message, renderMarkdown, renderComponent } = props;
-
-  const lastPart = message.parts[message.parts.length - 1];
-  const isStreaming = !(
-    lastPart?.type === 'data-operation' && lastPart?.data?.type === 'completion'
-  );
-
-  // Use our new IkpMessage component
-  return (
-    <div>
-      <IkpMessageComponent
-        message={message as any}
-        isStreaming={isStreaming}
-        renderMarkdown={renderMarkdown}
-        renderComponent={renderComponent}
-      />
-    </div>
-  );
-};

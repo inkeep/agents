@@ -10,7 +10,7 @@ import {
   ItemCardTitle,
 } from './item-card';
 
-export interface ItemCardGridProps<T> {
+interface ItemCardGridProps<T> {
   /** Array of items to render as cards */
   items: T[];
   /** Function to extract a unique key from each item */
@@ -66,7 +66,7 @@ export function ItemCardGrid<T>({
           </ItemCardContent>
         ) : (
           <ItemCardContent key={`content-${getKey(item)}`}>
-            <ItemCardDescription hasContent={!!getDescription} className="line-clamp-2">
+            <ItemCardDescription hasContent={!!getDescription}>
               {getDescription ? getDescription(item) : ''}
             </ItemCardDescription>
             <ItemCardFooter footerText={getFooterText ? getFooterText(item) : ''} />
@@ -106,11 +106,3 @@ export function ItemCardGrid<T>({
     </div>
   );
 }
-
-// Convenience type for simple card data with id
-export interface CardItem {
-  id: string | number;
-  [key: string]: any;
-}
-
-export const getItemId = <T extends CardItem>(item: T): string | number => item.id;

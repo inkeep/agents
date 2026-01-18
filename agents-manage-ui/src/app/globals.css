@@ -1,8 +1,8 @@
 @import "@xyflow/react/dist/style.css";
 @import "tailwindcss";
 @import "tw-animate-css";
-@plugin 'tailwind-scrollbar';
-@source "../../node_modules/streamdown/dist/index.js";
+@plugin "tailwind-scrollbar";
+@source "../../node_modules/streamdown/dist/*.js";
 
 @custom-variant dark (&:is(.dark *));
 
@@ -86,6 +86,7 @@
   --radius-xl: calc(var(--radius) + 4px);
 
   --animate-bounce-dot: bounce-dot 1.5s infinite ease-in-out;
+  --animate-shimmer: shimmer 3.5s cubic-bezier(0.4, 0, 0.6, 1) infinite;
 
   @keyframes bounce-dot {
     0%,
@@ -93,7 +94,7 @@
       opacity: 0.3;
       transform: translateY(0);
     }
-    100% {
+    50% {
       opacity: 1;
       transform: translateY(-5px);
     }
@@ -109,11 +110,26 @@
   }
 }
 
+@keyframes shimmer {
+  0% {
+    background-size: 200% 200%;
+    background-position: 100% 0;
+  }
+  100% {
+    background-size: 200% 200%;
+    background-position: -100% 0;
+  }
+}
+
 .animate-shine {
   animation: shine 2s linear infinite;
   animation-delay: 0s;
 }
 
+.animate-shimmer {
+  animation: shimmer 3.5s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+  animation-delay: 0s;
+}
 :root {
   --radius: 0.625rem;
   --background: oklch(1 0 0);
@@ -190,18 +206,12 @@
   * {
     @apply border-border outline-ring/50;
   }
-  body {
-    @apply bg-background text-foreground;
-  }
   button:not(:disabled),
   [role="button"]:not(:disabled) {
     cursor: pointer;
   }
   pre {
     @apply overflow-auto;
-  }
-  .cm-scroller {
-    @apply scrollbar-thin scrollbar-thumb-muted-foreground/30 dark:scrollbar-thumb-muted-foreground/50 scrollbar-track-transparent !font-mono;
   }
   code,
   kbd,
@@ -255,12 +265,6 @@
       height: 100%;
     }
   }
-
-  /* UIW CodeMirror */
-
-  .cm-activeLine:has(.cm-placeholder) {
-    @apply !bg-transparent;
-  }
 }
 
 .react-flow__attribution {
@@ -269,7 +273,7 @@
 
 /* Align toast error colors with `<GraphErrorSummaryComponent>` styling */
 li[data-sonner-toast][data-type="error"] {
-  @apply text-red-700 dark:text-red-400 border-red-200 dark:border-red-800 bg-red-50/50 dark:bg-red-950/30 backdrop-blur-sm shadow-xl;
+  @apply text-red-700 dark:text-red-400 border-red-200 dark:border-red-800 bg-red-50 dark:bg-red-950/30 backdrop-blur-sm shadow-xl;
 }
 
 /* Node execution pulse animation */
@@ -291,4 +295,39 @@ li[data-sonner-toast][data-type="error"] {
 .node-executing {
   animation: node-pulse 1.5s ease-in-out infinite;
   @apply border-primary border-2;
+}
+
+@keyframes node-animation {
+  to {
+    box-shadow: none;
+  }
+}
+
+.node-delegating-inverted {
+  @apply ring-2 ring-primary;
+  animation: node-animation var(--edge-delegating-duration) steps(1, end) forwards;
+}
+
+:root {
+  --xy-edge-stroke: var(--border);
+  --xy-edge-stroke-selected: var(--primary);
+  --edge-delegating-duration: 2s;
+}
+
+.dark {
+  --xy-edge-stroke: var(--muted-foreground);
+}
+
+.edge-delegating {
+  --xy-edge-stroke: var(--primary);
+}
+
+.edge-delegating-inverted {
+  animation: edge-animation var(--edge-delegating-duration) steps(1, end) forwards;
+}
+
+@keyframes edge-animation {
+  to {
+    --xy-edge-stroke: unset;
+  }
 }

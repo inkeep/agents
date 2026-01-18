@@ -1,31 +1,22 @@
 import type { IncomingMessage, ServerResponse } from 'node:http';
-import { createRoute, OpenAPIHono } from '@hono/zod-openapi';
-import { contextValidationMiddleware, HeadersScopeSchema } from '@inkeep/agents-core';
-import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
-import { StreamableHTTPServerTransport } from '@modelcontextprotocol/sdk/server/streamableHttp.js';
-import type { CallToolResult } from '@modelcontextprotocol/sdk/types.js';
-import { z } from 'zod/v3';
-
-function createMCPSchema<T>(schema: z.ZodType<T>): any {
-  return schema;
-}
-
-import type { ExecutionContext } from '@inkeep/agents-core';
+import { McpServer } from '@alcyone-labs/modelcontextprotocol-sdk/server/mcp.js';
+import { StreamableHTTPServerTransport } from '@alcyone-labs/modelcontextprotocol-sdk/server/streamableHttp.js';
+import type { CallToolResult } from '@alcyone-labs/modelcontextprotocol-sdk/types.js';
+import { createRoute, OpenAPIHono, z } from '@hono/zod-openapi';
+import type { FullExecutionContext } from '@inkeep/agents-core';
 import {
   type CredentialStoreRegistry,
   createMessage,
   createOrGetConversation,
-  getAgentWithDefaultSubAgent,
+  generateId,
   getConversation,
   getConversationId,
-  getRequestExecutionContext,
-  getSubAgentById,
-  handleContextResolution,
+  HeadersScopeSchema,
   updateConversation,
 } from '@inkeep/agents-core';
 import { context as otelContext, propagation, trace } from '@opentelemetry/api';
 import { toFetchResponse, toReqRes } from 'fetch-to-node';
-import { nanoid } from 'nanoid';
+import { contextValidationMiddleware, handleContextResolution } from '../context';
 import dbClient from '../data/db/dbClient';
 import { ExecutionHandler } from '../handlers/executionHandler';
 import { getLogger } from '../logger';
@@ -138,7 +129,8 @@ const validateSession = async (
       })
     );
     return false;
-  } else if (Array.isArray(sessionId)) {
+  }
+  if (Array.isArray(sessionId)) {
     res.writeHead(400).end(
       JSON.stringify({
         jsonrpc: '2.0',
@@ -221,9 +213,8 @@ const processUserMessage = async (
       'message.timestamp': Date.now(),
     });
   }
-
   await createMessage(dbClient)({
-    id: nanoid(),
+    id: generateId(),
     tenantId,
     projectId,
     conversationId,
@@ -240,7 +231,7 @@ const processUserMessage = async (
  * Executes the agent query and returns the result
  */
 const executeAgentQuery = async (
-  executionContext: ExecutionContext,
+  executionContext: FullExecutionContext,
   conversationId: string,
   query: string,
   defaultSubAgentId: string
@@ -292,16 +283,14 @@ const executeAgentQuery = async (
  */
 const getServer = async (
   headers: Record<string, unknown>,
-  executionContext: ExecutionContext,
+  executionContext: FullExecutionContext,
   conversationId: string,
   credentialStores?: CredentialStoreRegistry
 ) => {
   const { tenantId, projectId, agentId } = executionContext;
   setupTracing(conversationId, tenantId, agentId);
 
-  const agent = await getAgentWithDefaultSubAgent(dbClient)({
-    scopes: { tenantId, projectId, agentId },
-  });
+  const agent = executionContext.project.agents[agentId];
 
   if (!agent) {
     throw new Error('Agent not found');
@@ -319,7 +308,7 @@ const getServer = async (
     'send-query-to-agent',
     `Send a query to the ${agent.name} agent. The agent has the following description: ${agent.description}`,
     {
-      query: createMCPSchema(z.string().describe('The query to send to the agent')),
+      query: z.string().describe('The query to send to the agent'),
     },
     async ({ query }): Promise<CallToolResult> => {
       try {
@@ -336,10 +325,8 @@ const getServer = async (
         }
         const defaultSubAgentId = agent.defaultSubAgentId;
 
-        const agentInfo = await getSubAgentById(dbClient)({
-          scopes: { tenantId, projectId, agentId },
-          subAgentId: defaultSubAgentId,
-        });
+        const agentInfo = executionContext.project.agents[agentId]?.subAgents[defaultSubAgentId];
+
         if (!agentInfo) {
           return {
             content: [
@@ -353,12 +340,9 @@ const getServer = async (
         }
 
         const resolvedContext = await handleContextResolution({
-          tenantId,
-          projectId,
-          agentId,
+          executionContext,
           conversationId,
           headers,
-          dbClient,
           credentialStores,
         });
 
@@ -398,13 +382,14 @@ const getServer = async (
 type AppVariables = {
   credentialStores: CredentialStoreRegistry;
   requestBody?: any;
+  executionContext: FullExecutionContext;
 };
 
 const app = new OpenAPIHono<{ Variables: AppVariables }>();
 
 app.use('/', async (c, next) => {
   if (c.req.method === 'POST') {
-    return contextValidationMiddleware(dbClient)(c, next);
+    return contextValidationMiddleware(c, next);
   }
   return next();
 });
@@ -414,9 +399,11 @@ app.use('/', async (c, next) => {
  */
 const validateRequestParameters = (
   c: any
-): { valid: true; executionContext: ExecutionContext } | { valid: false; response: Response } => {
+):
+  | { valid: true; executionContext: FullExecutionContext }
+  | { valid: false; response: Response } => {
   try {
-    const executionContext = getRequestExecutionContext(c);
+    const executionContext = c.get('executionContext');
     const { tenantId, projectId, agentId } = executionContext;
 
     getLogger('mcp').debug({ tenantId, projectId, agentId }, 'Extracted MCP entity parameters');
@@ -446,14 +433,14 @@ const validateRequestParameters = (
  */
 const handleInitializationRequest = async (
   body: any,
-  executionContext: ExecutionContext,
+  executionContext: FullExecutionContext,
   validatedContext: Record<string, unknown>,
   req: any,
   res: any,
   c: any,
   credentialStores?: CredentialStoreRegistry
 ) => {
-  const { tenantId, projectId, agentId } = executionContext;
+  const { tenantId, projectId, agentId, resolvedRef, project } = executionContext;
   logger.info({ body }, 'Received initialization request');
   const sessionId = getConversationId();
 
@@ -474,9 +461,7 @@ const handleInitializationRequest = async (
   currentBag = currentBag.setEntry('conversation.id', { value: sessionId });
   const ctxWithBaggage = propagation.setBaggage(otelContext.active(), currentBag);
   return await otelContext.with(ctxWithBaggage, async () => {
-    const agent = await getAgentWithDefaultSubAgent(dbClient)({
-      scopes: { tenantId, projectId, agentId },
-    });
+    const agent = project.agents[agentId];
     if (!agent) {
       return c.json(
         {
@@ -499,11 +484,14 @@ const handleInitializationRequest = async (
       );
     }
 
+    const activeSubAgentId = agent.defaultSubAgentId;
     const conversation = await createOrGetConversation(dbClient)({
       id: sessionId,
       tenantId,
       projectId,
-      activeSubAgentId: agent.defaultSubAgentId,
+      activeSubAgentId,
+      agentId,
+      ref: resolvedRef,
       metadata: {
         sessionData: {
           agentId,
@@ -550,7 +538,7 @@ const handleInitializationRequest = async (
  */
 const handleExistingSessionRequest = async (
   body: any,
-  executionContext: ExecutionContext,
+  executionContext: FullExecutionContext,
   validatedContext: Record<string, unknown>,
   req: any,
   res: any,
@@ -668,6 +656,7 @@ app.openapi(
       const { req, res } = toReqRes(c.req.raw);
       const validatedContext = (c as any).get('validatedContext') || {};
       const credentialStores = c.get('credentialStores');
+
       logger.info({ validatedContext }, 'Validated context');
       logger.info({ req }, 'request');
       if (isInitRequest) {
@@ -680,16 +669,15 @@ app.openapi(
           c,
           credentialStores
         );
-      } else {
-        return await handleExistingSessionRequest(
-          body,
-          executionContext,
-          validatedContext,
-          req,
-          res,
-          credentialStores
-        );
       }
+      return await handleExistingSessionRequest(
+        body,
+        executionContext,
+        validatedContext,
+        req,
+        res,
+        credentialStores
+      );
     } catch (e) {
       logger.error(
         {

@@ -13,15 +13,13 @@ const rootDir = join(__dirname, '..');
 function getColorForCoverage(percentage, _metric = 'overall') {
   // More granular color coding for better visual feedback
   if (percentage >= 90) return 'brightgreen';
-  else if (percentage >= 80) return 'green';
-  else if (percentage >= 70) return 'yellowgreen';
-  else if (percentage >= 60) return 'yellow';
-  else if (percentage >= 50) return 'orange';
-  else if (percentage >= 40)
-    return 'ff9800'; // deep orange
-  else if (percentage >= 30)
-    return 'ff5722'; // red-orange
-  else return 'red';
+  if (percentage >= 80) return 'green';
+  if (percentage >= 70) return 'yellowgreen';
+  if (percentage >= 60) return 'yellow';
+  if (percentage >= 50) return 'orange';
+  if (percentage >= 40) return 'ff9800';
+  if (percentage >= 30) return 'ff5722';
+  return 'red';
 }
 
 /**

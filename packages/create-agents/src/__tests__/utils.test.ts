@@ -1,15 +1,30 @@
 import * as p from '@clack/prompts';
 import fs from 'fs-extra';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { cloneTemplate, getAvailableTemplates } from '../templates';
+import { cloneTemplate, cloneTemplateLocal, getAvailableTemplates } from '../templates';
 import { createAgents } from '../utils';
+
+// Create the mock execAsync function that will be used by promisify - hoisted so it's available in mocks
+const { mockExecAsync } = vi.hoisted(() => ({
+  mockExecAsync: vi.fn().mockResolvedValue({ stdout: '', stderr: '' }),
+}));
 
 // Mock all dependencies
 vi.mock('fs-extra');
 vi.mock('../templates');
 vi.mock('@clack/prompts');
-vi.mock('child_process');
-vi.mock('util');
+vi.mock('node:child_process', () => ({
+  exec: vi.fn(),
+  spawn: vi.fn(() => ({
+    pid: 12345,
+    stdio: ['pipe', 'pipe', 'pipe'],
+    on: vi.fn(),
+    kill: vi.fn(),
+  })),
+}));
+vi.mock('node:util', () => ({
+  promisify: vi.fn(() => mockExecAsync),
+}));
 
 // Setup default mocks
 const mockSpinner = {
@@ -24,6 +39,9 @@ describe('createAgents - Template and Project ID Logic', () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
+
+    // Reset the mockExecAsync to default behavior
+    mockExecAsync.mockResolvedValue({ stdout: '', stderr: '' });
 
     // Mock process methods
     processExitSpy = vi.spyOn(process, 'exit').mockImplementation((code) => {
@@ -53,6 +71,8 @@ describe('createAgents - Template and Project ID Logic', () => {
     vi.mocked(fs.pathExists).mockResolvedValue(false as any);
     vi.mocked(fs.ensureDir).mockResolvedValue(undefined);
     vi.mocked(fs.writeFile).mockResolvedValue(undefined);
+    vi.mocked(fs.writeJson).mockResolvedValue(undefined);
+    vi.mocked(fs.readJson).mockResolvedValue({});
     vi.mocked(fs.mkdir).mockResolvedValue(undefined);
     vi.mocked(fs.remove).mockResolvedValue(undefined);
 
@@ -63,20 +83,7 @@ describe('createAgents - Template and Project ID Logic', () => {
       'data-analysis',
     ]);
     vi.mocked(cloneTemplate).mockResolvedValue(undefined);
-
-    // Mock util.promisify to return a mock exec function
-    const mockExecAsync = vi.fn().mockResolvedValue({ stdout: '', stderr: '' });
-    const util = require('node:util');
-    util.promisify = vi.fn(() => mockExecAsync);
-
-    // Mock child_process.spawn
-    const childProcess = require('node:child_process');
-    childProcess.spawn = vi.fn(() => ({
-      pid: 12345,
-      stdio: ['pipe', 'pipe', 'pipe'],
-      on: vi.fn(),
-      kill: vi.fn(),
-    }));
+    vi.mocked(cloneTemplateLocal).mockResolvedValue(undefined);
   });
 
   afterEach(() => {
@@ -85,22 +92,23 @@ describe('createAgents - Template and Project ID Logic', () => {
   });
 
   describe('Default behavior (no template or customProjectId)', () => {
-    it('should use event-planner as default template and project ID', async () => {
+    it('should use activies-planner as default template and project ID', async () => {
       await createAgents({
         dirName: 'test-dir',
         openAiKey: 'test-openai-key',
         anthropicKey: 'test-anthropic-key',
       });
 
-      // Should clone base template and weather-project template
+      // Should clone base template and activities-planner template
       expect(cloneTemplate).toHaveBeenCalledTimes(2);
       expect(cloneTemplate).toHaveBeenCalledWith(
-        'https://github.com/inkeep/create-agents-template',
-        expect.any(String)
+        'https://github.com/inkeep/agents/create-agents-template',
+        expect.any(String),
+        undefined
       );
       expect(cloneTemplate).toHaveBeenCalledWith(
-        'https://github.com/inkeep/agents-cookbook/template-projects/event-planner',
-        'src/projects/event-planner',
+        'https://github.com/inkeep/agents/agents-cookbook/template-projects/activities-planner',
+        'src/projects/activities-planner',
         expect.arrayContaining([
           expect.objectContaining({
             filePath: 'index.ts',
@@ -151,11 +159,12 @@ describe('createAgents - Template and Project ID Logic', () => {
       // Should clone base template and the specified template
       expect(cloneTemplate).toHaveBeenCalledTimes(2);
       expect(cloneTemplate).toHaveBeenCalledWith(
-        'https://github.com/inkeep/create-agents-template',
-        expect.any(String)
+        'https://github.com/inkeep/agents/create-agents-template',
+        expect.any(String),
+        undefined
       );
       expect(cloneTemplate).toHaveBeenCalledWith(
-        'https://github.com/inkeep/agents-cookbook/template-projects/chatbot',
+        'https://github.com/inkeep/agents/agents-cookbook/template-projects/chatbot',
         'src/projects/chatbot',
         expect.arrayContaining([
           expect.objectContaining({
@@ -231,8 +240,9 @@ describe('createAgents - Template and Project ID Logic', () => {
       // Should clone base template but NOT project template
       expect(cloneTemplate).toHaveBeenCalledTimes(1);
       expect(cloneTemplate).toHaveBeenCalledWith(
-        'https://github.com/inkeep/create-agents-template',
-        expect.any(String)
+        'https://github.com/inkeep/agents/create-agents-template',
+        expect.any(String),
+        undefined
       );
 
       // Should NOT validate templates
@@ -272,8 +282,9 @@ describe('createAgents - Template and Project ID Logic', () => {
       // Should only clone base template, not project template
       expect(cloneTemplate).toHaveBeenCalledTimes(1);
       expect(cloneTemplate).toHaveBeenCalledWith(
-        'https://github.com/inkeep/create-agents-template',
-        expect.any(String)
+        'https://github.com/inkeep/agents/create-agents-template',
+        expect.any(String),
+        undefined
       );
       expect(getAvailableTemplates).not.toHaveBeenCalled();
       expect(fs.ensureDir).toHaveBeenCalledWith('src/projects/my-custom-project');
@@ -314,7 +325,7 @@ describe('createAgents - Template and Project ID Logic', () => {
 
       expect(cloneTemplate).toHaveBeenCalledTimes(2);
       expect(cloneTemplate).toHaveBeenCalledWith(
-        'https://github.com/inkeep/agents-cookbook/template-projects/my-complex-template',
+        'https://github.com/inkeep/agents/agents-cookbook/template-projects/my-complex-template',
         'src/projects/my-complex-template',
         expect.arrayContaining([
           expect.objectContaining({
@@ -419,7 +430,10 @@ describe('createAgents - Template and Project ID Logic', () => {
           call[0] &&
           typeof call[0] === 'object' &&
           'message' in call[0] &&
-          (call[0].message.includes('API key') || call[0].message.includes('Anthropic') || call[0].message.includes('OpenAI') || call[0].message.includes('Google'))
+          (call[0].message.includes('API key') ||
+            call[0].message.includes('Anthropic') ||
+            call[0].message.includes('OpenAI') ||
+            call[0].message.includes('Google'))
       );
       expect(apiKeyCalls).toHaveLength(0);
     });
@@ -465,6 +479,11 @@ function setupDefaultMocks() {
   vi.mocked(fs.pathExists).mockResolvedValue(false as any);
   vi.mocked(fs.ensureDir).mockResolvedValue(undefined);
   vi.mocked(fs.writeFile).mockResolvedValue(undefined);
+  vi.mocked(fs.writeJson).mockResolvedValue(undefined);
+  vi.mocked(fs.readJson).mockResolvedValue({});
   vi.mocked(getAvailableTemplates).mockResolvedValue(['event-planner', 'chatbot', 'data-analysis']);
   vi.mocked(cloneTemplate).mockResolvedValue(undefined);
+  vi.mocked(cloneTemplateLocal).mockResolvedValue(undefined);
+  // Reset mockExecAsync for tests that clear mocks
+  mockExecAsync.mockResolvedValue({ stdout: '', stderr: '' });
 }

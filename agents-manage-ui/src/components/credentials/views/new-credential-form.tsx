@@ -5,71 +5,99 @@ import { CredentialStoreType } from '@inkeep/agents-core/types';
 import { useParams, useRouter } from 'next/navigation';
 import { toast } from 'sonner';
 import type { CredentialFormData } from '@/components/credentials/views/credential-form-validation';
+import { useRuntimeConfig } from '@/contexts/runtime-config';
+import { useAuthSession } from '@/hooks/use-auth';
 import { createCredentialInStore } from '@/lib/api/credentialStores';
+import { updateExternalAgent } from '@/lib/api/external-agents';
 import { updateMCPTool } from '@/lib/api/tools';
-import { createNangoApiKeyConnection } from '@/lib/mcp-tools/nango';
 import { findOrCreateCredential } from '@/lib/utils/credentials-utils';
+import { generateId } from '@/lib/utils/id-utils';
 import { CredentialForm } from './credential-form';
+import { CredentialFormInkeepCloud } from './credential-form-inkeep-cloud';
 
 export function NewCredentialForm() {
   const router = useRouter();
+  const { PUBLIC_IS_INKEEP_CLOUD_DEPLOYMENT } = useRuntimeConfig();
   const { tenantId, projectId } = useParams<{
     tenantId: string;
     projectId: string;
   }>();
-
+  const { user } = useAuthSession();
   const handleCreateCredential = async (data: CredentialFormData) => {
     try {
-      const idFromName = generateIdFromName(data.name.trim());
+      const newCredentialId = generateId();
 
       let newCredential: Credential | undefined;
+      let credentialKeyToSet: string;
+      let credentialValueToSet: string;
+      let retrievalParams: Record<string, string>;
 
-      if (data.credentialStoreType === CredentialStoreType.nango) {
-        const { integration } = await createNangoApiKeyConnection({
-          name: idFromName,
-          apiKeyToSet: data.apiKeyToSet,
-          metadata: data.metadata as Record<string, string>,
-        });
-
-        newCredential = await findOrCreateCredential(tenantId, projectId, {
-          id: idFromName,
-          type: data.credentialStoreType,
-          credentialStoreId: data.credentialStoreId,
-          retrievalParams: {
-            connectionId: idFromName,
-            providerConfigKey: integration.unique_key,
-            provider: integration.provider,
+      switch (data.credentialStoreType) {
+        case CredentialStoreType.nango: {
+          credentialKeyToSet = JSON.stringify({
+            connectionId: newCredentialId,
+            providerConfigKey: newCredentialId,
+            integrationDisplayName: data.name.trim(),
+          });
+          credentialValueToSet = data.apiKeyToSet;
+          retrievalParams = {
+            connectionId: newCredentialId,
+            providerConfigKey: newCredentialId,
+            provider: 'private-api-bearer',
             authMode: 'API_KEY',
-          },
-        });
-      } else if (data.credentialStoreType === CredentialStoreType.keychain) {
-        const keychainStoreValueToSet = JSON.stringify({
-          access_token: data.apiKeyToSet,
-        });
-        
-        await createCredentialInStore(
-          tenantId,
-          projectId,
-          data.credentialStoreId,
-          idFromName,
-          keychainStoreValueToSet
-        );
-
-        newCredential = await findOrCreateCredential(tenantId, projectId, {
-          id: idFromName,
-          type: data.credentialStoreType,
-          credentialStoreId: data.credentialStoreId,
-          retrievalParams: {
+          };
+          break;
+        }
+        case CredentialStoreType.keychain: {
+          const idFromName = generateIdFromName(data.name.trim());
+          credentialKeyToSet = idFromName;
+          credentialValueToSet = JSON.stringify({
+            access_token: data.apiKeyToSet,
+          });
+          retrievalParams = {
             key: idFromName,
-          },
-        });
+          };
+          break;
+        }
+        default:
+          throw new Error(`Unsupported credential store type: ${data.credentialStoreType}`);
       }
+
+      await createCredentialInStore({
+        tenantId,
+        projectId,
+        storeId: data.credentialStoreId,
+        key: credentialKeyToSet,
+        value: credentialValueToSet,
+        metadata: data.metadata as Record<string, string>,
+      });
+
+      newCredential = await findOrCreateCredential(tenantId, projectId, {
+        id: newCredentialId,
+        createdBy: user?.email ?? undefined,
+        name: data.name.trim(),
+        type: data.credentialStoreType,
+        credentialStoreId: data.credentialStoreId,
+        retrievalParams,
+      });
 
       if (data.selectedTool && newCredential) {
         const updatedTool = {
           credentialReferenceId: newCredential.id,
         };
         await updateMCPTool(tenantId, projectId, data.selectedTool, updatedTool);
+      }
+
+      if (data.selectedExternalAgent && newCredential) {
+        const updatedExternalAgent = {
+          credentialReferenceId: newCredential.id,
+        };
+        await updateExternalAgent(
+          tenantId,
+          projectId,
+          data.selectedExternalAgent,
+          updatedExternalAgent
+        );
       }
 
       toast.success('Credential created successfully');
@@ -79,6 +107,16 @@ export function NewCredentialForm() {
       toast.error('Failed to create credential. Please try again.');
     }
   };
+
+  if (PUBLIC_IS_INKEEP_CLOUD_DEPLOYMENT === 'true') {
+    return (
+      <CredentialFormInkeepCloud
+        onCreateCredential={handleCreateCredential}
+        tenantId={tenantId}
+        projectId={projectId}
+      />
+    );
+  }
 
   return (
     <CredentialForm

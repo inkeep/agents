@@ -6,59 +6,56 @@ on:
       - main
       - master
   pull_request:
-    branches: ['*']
+    branches: ["*"]
   merge_group:
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
-  cancel-in-progress: true
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 jobs:
   ci:
     runs-on: ubuntu-latest
-    
+
     steps:
       - name: Checkout code
         uses: actions/checkout@v5
-      
+
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
           node-version: 22.x
-      
+
       - name: Setup pnpm
         uses: pnpm/action-setup@v4
         with:
           version: 10.10.0
           run_install: false
-      
+
       - name: Get pnpm store directory
         shell: bash
-        run: |
-          echo "STORE_PATH=$(pnpm store path --silent)" >> $GITHUB_ENV
-      
+        run: echo "STORE_PATH=$(pnpm store path --silent)" >> $GITHUB_ENV
+
       # Create necessary directories for postinstall scripts
       - name: Prepare directories
         run: |
           mkdir -p agents-docs/.source
           touch agents-docs/.source/index.ts
-      
+
       - name: Setup pnpm cache
         uses: actions/cache@v4
         with:
           path: ${{ env.STORE_PATH }}
           key: ${{ runner.os }}-pnpm-store-${{ hashFiles('**/pnpm-lock.yaml') }}
-          restore-keys: |
-            ${{ runner.os }}-pnpm-store-
-      
+          restore-keys: ${{ runner.os }}-pnpm-store-
+
       - name: Setup Turborepo cache
         uses: actions/cache@v4
         with:
           path: .turbo
           key: ${{ runner.os }}-turbo-${{ github.sha }}
-          restore-keys: |
-            ${{ runner.os }}-turbo-
-      
+          restore-keys: ${{ runner.os }}-turbo-
+
       - name: Install dependencies
         run: |
           pnpm install --frozen-lockfile
@@ -66,13 +63,13 @@ jobs:
           cd agents-manage-ui && pnpm install --frozen-lockfile && cd ..
         env:
           HUSKY: 0
-      
+
       # Clean database files before running tests
       - name: Clean database files
         run: |
           echo "Cleaning up any existing database files..."
           find . -name "*.db" -o -name "*.sqlite" | grep -v node_modules | xargs -r rm -f
-      
+
       # Run all CI checks in parallel with Turborepo
       - name: Run CI checks
         id: ci-check
@@ -88,11 +85,16 @@ jobs:
           ENVIRONMENT: test
           OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY || 'sk-test-key-for-ci-testing' }}
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY || 'sk-ant-test-key-for-ci-testing' }}
-          DB_FILE_NAME: test.db
           NODE_OPTIONS: --max-old-space-size=4096
           CI: true
           HUSKY: 0
-      
+
+      - name: Biome Format
+        run: pnpm format:check
+
+      - name: Check for unused dependencies, exports, and types
+        run: pnpm knip
+
       # Create summary report
       - name: Create CI Summary
         if: always()
@@ -111,3 +113,114 @@ jobs:
             echo "" >> $GITHUB_STEP_SUMMARY
             echo "Run \`pnpm check\` locally to reproduce the CI checks." >> $GITHUB_STEP_SUMMARY
           fi
+
+  create-agents-e2e:
+    runs-on: ubuntu-latest
+    name: Create Agents E2E Tests
+
+    services:
+      doltgres:
+        image: dolthub/doltgresql:latest
+        env:
+          DOLTGRES_USER: appuser
+          DOLTGRES_PASSWORD: password
+          DOLTGRES_DB: inkeep_agents
+          DOLTGRES_DATA_DIR: /var/lib/doltgres
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "PGPASSWORD=password psql -h localhost -U appuser -d inkeep_agents -c 'SELECT 1' || exit 1"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 10
+          --health-start-period 30s
+      postgres:
+        image: postgres:18
+        env:
+          POSTGRES_DB: inkeep_agents
+          POSTGRES_USER: appuser
+          POSTGRES_PASSWORD: password
+        options: >-
+          --health-cmd "pg_isready -U appuser"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 5433:5432
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v5
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22.x
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 10.10.0
+          run_install: false
+
+      - name: Get pnpm store directory
+        shell: bash
+        run: |
+          echo "STORE_PATH=$(pnpm store path --silent)" >> $GITHUB_ENV
+
+      - name: Prepare directories
+        run: |
+          mkdir -p agents-docs/.source
+          touch agents-docs/.source/index.ts
+
+      - name: Setup pnpm cache
+        uses: actions/cache@v4
+        with:
+          path: ${{ env.STORE_PATH }}
+          key: ${{ runner.os }}-pnpm-store-${{ hashFiles('**/pnpm-lock.yaml') }}
+          restore-keys: |
+            ${{ runner.os }}-pnpm-store-
+
+      - name: Setup Turborepo cache
+        uses: actions/cache@v4
+        with:
+          path: .turbo
+          key: ${{ runner.os }}-turbo-create-agents-e2e-${{ github.sha }}
+          restore-keys: |
+            ${{ runner.os }}-turbo-create-agents-e2e-
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+        env:
+          HUSKY: 0
+
+      - name: Build create-agents and dependencies
+        run: |
+          # Build all packages that the e2e test links to local versions
+          # These need dist/ directories for subpath exports like ./factory
+          pnpm --filter @inkeep/agents-core build
+          pnpm --filter @inkeep/agents-manage-mcp build
+          pnpm --filter @inkeep/agents-sdk build
+          pnpm --filter @inkeep/agents-manage-api build
+          pnpm --filter @inkeep/agents-run-api build
+          pnpm --filter @inkeep/agents-cli build
+          pnpm --filter @inkeep/create-agents build
+        env:
+          TURBO_TELEMETRY_DISABLED: 1
+          TURBO_CACHE_DIR: .turbo
+          TURBO_TOKEN: ${{ secrets.TURBO_TOKEN }}
+          TURBO_TEAM: ${{ secrets.TURBO_TEAM }}
+
+      - name: Run create-agents E2E tests
+        run: pnpm test:e2e --filter @inkeep/create-agents
+        env:
+          INKEEP_AGENTS_MANAGE_DATABASE_URL: postgresql://appuser:password@localhost:5432/inkeep_agents
+          INKEEP_AGENTS_RUN_DATABASE_URL: postgresql://appuser:password@localhost:5433/inkeep_agents
+        
+      - name: Run agents-manage-api integration tests
+        run: pnpm --filter @inkeep/agents-manage-api test:integration 
+        env:
+          INKEEP_AGENTS_MANAGE_DATABASE_URL: postgresql://appuser:password@localhost:5432/inkeep_agents
+          INKEEP_AGENTS_RUN_DATABASE_URL: postgresql://appuser:password@localhost:5433/inkeep_agents
+      
+      

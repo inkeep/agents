@@ -1,9 +1,9 @@
-import { CredentialStoreType, MCPTransportType } from '@inkeep/agents-core';
-import { nanoid } from 'nanoid';
+import { CredentialStoreType, generateId, MCPTransportType } from '@inkeep/agents-core';
+import { createTestProject } from '@inkeep/agents-core/db/test-manage-client';
 import { describe, expect, it } from 'vitest';
-import { ensureTestProject } from '../../utils/testProject';
+import manageDbClient from '../../../data/db/dbClient';
 import { makeRequest } from '../../utils/testRequest';
-import { createTestTenantId } from '../../utils/testTenant';
+import { createTestTenantWithOrg } from '../../utils/testTenant';
 
 describe('Tool-Credential Integration Tests', () => {
   const projectId = 'default';
@@ -11,7 +11,8 @@ describe('Tool-Credential Integration Tests', () => {
   // Helper to create a test credential
   const createTestCredential = async (tenantId: string) => {
     const credentialData = {
-      id: nanoid(),
+      id: generateId(),
+      name: 'Test Credential',
       type: CredentialStoreType.nango,
       credentialStoreId: 'slack-oauth',
       retrievalParams: {
@@ -33,7 +34,7 @@ describe('Tool-Credential Integration Tests', () => {
   // Helper to create a test tool
   const createTestTool = async (tenantId: string, credentialReferenceId?: string | null) => {
     const toolData = {
-      id: nanoid(),
+      id: generateId(),
       name: 'Test MCP Tool',
       description: 'Test MCP tool for credential integration',
       config: {
@@ -67,8 +68,8 @@ describe('Tool-Credential Integration Tests', () => {
 
   describe('Creating Tools with Credentials', () => {
     it('should create a tool with a valid credential reference', async () => {
-      const tenantId = createTestTenantId('tool-cred-create-valid');
-      await ensureTestProject(tenantId, projectId);
+      const tenantId = await createTestTenantWithOrg('tool-cred-create-valid');
+      await createTestProject(manageDbClient, tenantId, projectId);
 
       // First create a credential
       const { credentialId } = await createTestCredential(tenantId);
@@ -81,8 +82,8 @@ describe('Tool-Credential Integration Tests', () => {
     });
 
     it('should create a tool without credentials (unauthenticated)', async () => {
-      const tenantId = createTestTenantId('tool-cred-create-none');
-      await ensureTestProject(tenantId, projectId);
+      const tenantId = await createTestTenantWithOrg('tool-cred-create-none');
+      await createTestProject(manageDbClient, tenantId, projectId);
 
       const { toolResponse } = await createTestTool(tenantId);
 
@@ -92,8 +93,8 @@ describe('Tool-Credential Integration Tests', () => {
 
   describe('Updating Tool Credentials', () => {
     it('should update a tool to add a credential reference', async () => {
-      const tenantId = createTestTenantId('tool-cred-update-add');
-      await ensureTestProject(tenantId, projectId);
+      const tenantId = await createTestTenantWithOrg('tool-cred-update-add');
+      await createTestProject(manageDbClient, tenantId, projectId);
 
       // Create tool without credentials
       const { toolId } = await createTestTool(tenantId);
@@ -118,8 +119,8 @@ describe('Tool-Credential Integration Tests', () => {
     });
 
     it('should update a tool to remove credential reference', async () => {
-      const tenantId = createTestTenantId('tool-cred-update-remove');
-      await ensureTestProject(tenantId, projectId);
+      const tenantId = await createTestTenantWithOrg('tool-cred-update-remove');
+      await createTestProject(manageDbClient, tenantId, projectId);
 
       // Create credential and tool with credential
       const { credentialId } = await createTestCredential(tenantId);
@@ -142,8 +143,8 @@ describe('Tool-Credential Integration Tests', () => {
     });
 
     it('should update a tool to change credential reference', async () => {
-      const tenantId = createTestTenantId('tool-cred-update-change');
-      await ensureTestProject(tenantId, projectId);
+      const tenantId = await createTestTenantWithOrg('tool-cred-update-change');
+      await createTestProject(manageDbClient, tenantId, projectId);
 
       // Create two credentials
       const { credentialId: cred1 } = await createTestCredential(tenantId);
@@ -171,8 +172,8 @@ describe('Tool-Credential Integration Tests', () => {
 
   describe('Credential Sharing Between Tools', () => {
     it('should allow multiple tools to share the same credential', async () => {
-      const tenantId = createTestTenantId('tool-cred-sharing');
-      await ensureTestProject(tenantId, projectId);
+      const tenantId = await createTestTenantWithOrg('tool-cred-sharing');
+      await createTestProject(manageDbClient, tenantId, projectId);
 
       // Create one credential
       const { credentialId } = await createTestCredential(tenantId);
@@ -200,8 +201,8 @@ describe('Tool-Credential Integration Tests', () => {
     });
 
     it('should allow deleting a tool without affecting shared credential or other tools', async () => {
-      const tenantId = createTestTenantId('tool-cred-delete-sharing');
-      await ensureTestProject(tenantId, projectId);
+      const tenantId = await createTestTenantWithOrg('tool-cred-delete-sharing');
+      await createTestProject(manageDbClient, tenantId, projectId);
 
       // Create one credential shared by two tools
       const { credentialId } = await createTestCredential(tenantId);
@@ -235,8 +236,8 @@ describe('Tool-Credential Integration Tests', () => {
 
   describe('Listing Tools with Credentials', () => {
     it('should include credential references in tool list', async () => {
-      const tenantId = createTestTenantId('tool-cred-list');
-      await ensureTestProject(tenantId, projectId);
+      const tenantId = await createTestTenantWithOrg('tool-cred-list');
+      await createTestProject(manageDbClient, tenantId, projectId);
 
       // Create credential and tool
       const { credentialId } = await createTestCredential(tenantId);
@@ -263,11 +264,11 @@ describe('Tool-Credential Integration Tests', () => {
 
   describe('Edge Cases', () => {
     it('should handle setting credentialReferenceId to empty string', async () => {
-      const tenantId = createTestTenantId('tool-cred-empty-string');
-      await ensureTestProject(tenantId, projectId);
+      const tenantId = await createTestTenantWithOrg('tool-cred-empty-string');
+      await createTestProject(manageDbClient, tenantId, projectId);
 
       const toolData = {
-        id: nanoid(),
+        id: generateId(),
         name: 'Test Tool',
         config: {
           type: 'mcp',
@@ -290,11 +291,11 @@ describe('Tool-Credential Integration Tests', () => {
     });
 
     it('should handle undefined credentialReferenceId', async () => {
-      const tenantId = createTestTenantId('tool-cred-undefined');
-      await ensureTestProject(tenantId, projectId);
+      const tenantId = await createTestTenantWithOrg('tool-cred-undefined');
+      await createTestProject(manageDbClient, tenantId, projectId);
 
       const toolData = {
-        id: nanoid(),
+        id: generateId(),
         name: 'Test Tool',
         config: {
           type: 'mcp',

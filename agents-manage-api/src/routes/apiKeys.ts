@@ -1,8 +1,7 @@
-import { createRoute, OpenAPIHono } from '@hono/zod-openapi';
+import { createRoute, OpenAPIHono, z } from '@hono/zod-openapi';
 import {
   ApiKeyApiCreationResponseSchema,
   ApiKeyApiInsertSchema,
-  ApiKeyApiSelectSchema,
   ApiKeyApiUpdateSchema,
   ApiKeyListResponse,
   ApiKeyResponse,
@@ -19,10 +18,30 @@ import {
   TenantProjectParamsSchema,
   updateApiKey,
 } from '@inkeep/agents-core';
-import { z } from 'zod';
-import dbClient from '../data/db/dbClient';
+import runDbClient from '../data/db/runDbClient';
+import { requirePermission } from '../middleware/require-permission';
+import type { BaseAppVariables } from '../types/app';
+import { speakeasyOffsetLimitPagination } from './shared';
 
-const app = new OpenAPIHono();
+const app = new OpenAPIHono<{ Variables: BaseAppVariables }>();
+
+// Apply permission middleware by HTTP method
+app.use('/', async (c, next) => {
+  if (c.req.method === 'POST') {
+    return requirePermission({ api_key: ['create'] })(c, next);
+  }
+  return next();
+});
+
+app.use('/:id', async (c, next) => {
+  if (c.req.method === 'PATCH') {
+    return requirePermission({ api_key: ['update'] })(c, next);
+  }
+  if (c.req.method === 'DELETE') {
+    return requirePermission({ api_key: ['delete'] })(c, next);
+  }
+  return next();
+});
 
 app.openapi(
   createRoute({
@@ -49,6 +68,7 @@ app.openapi(
       },
       ...commonGetErrorResponses,
     },
+    ...speakeasyOffsetLimitPagination,
   }),
   async (c) => {
     const { tenantId, projectId } = c.req.valid('param');
@@ -56,7 +76,7 @@ app.openapi(
     const limit = Math.min(Number(c.req.query('limit')) || 10, 100);
     const agentId = c.req.query('agentId');
 
-    const result = await listApiKeysPaginated(dbClient)({
+    const result = await listApiKeysPaginated(runDbClient)({
       scopes: { tenantId, projectId },
       pagination: { page, limit },
       agentId: agentId,
@@ -96,7 +116,7 @@ app.openapi(
   }),
   async (c) => {
     const { tenantId, projectId, id } = c.req.valid('param');
-    const apiKey = await getApiKeyById(dbClient)({
+    const apiKey = await getApiKeyById(runDbClient)({
       scopes: { tenantId, projectId },
       id,
     });
@@ -167,7 +187,7 @@ app.openapi(
     };
 
     try {
-      const result = await createApiKey(dbClient)(insertData);
+      const result = await createApiKey(runDbClient)(insertData);
       // Remove sensitive fields from the apiKey object (but keep the full key)
       const { keyHash: _, tenantId: __, projectId: ___, ...sanitizedApiKey } = result;
 
@@ -185,8 +205,8 @@ app.openapi(
         201
       );
     } catch (error: any) {
-      // Handle foreign key constraint violations (invalid agentId)
-      if (error?.cause?.code === 'SQLITE_CONSTRAINT_FOREIGNKEY' || error?.cause?.rawCode === 787) {
+      // Handle foreign key constraint violations (PostgreSQL foreign key violation)
+      if (error?.cause?.code === '23503') {
         throw createApiError({
           code: 'bad_request',
           message: 'Invalid agentId - agent does not exist',
@@ -233,7 +253,7 @@ app.openapi(
     const { tenantId, projectId, id } = c.req.valid('param');
     const body = c.req.valid('json');
 
-    const updatedApiKey = await updateApiKey(dbClient)({
+    const updatedApiKey = await updateApiKey(runDbClient)({
       scopes: { tenantId, projectId },
       id,
       data: {
@@ -290,7 +310,7 @@ app.openapi(
   async (c) => {
     const { tenantId, projectId, id } = c.req.valid('param');
 
-    const deleted = await deleteApiKey(dbClient)({
+    const deleted = await deleteApiKey(runDbClient)({
       scopes: { tenantId, projectId },
       id,
     });

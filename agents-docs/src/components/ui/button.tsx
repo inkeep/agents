@@ -1,7 +1,6 @@
 import { Slot } from '@radix-ui/react-slot';
 import { cva, type VariantProps } from 'class-variance-authority';
 import type { ComponentProps, FC } from 'react';
-
 import { cn } from '@/lib/utils';
 
 const buttonVariants = cva(
@@ -14,7 +13,7 @@ const buttonVariants = cva(
         outline:
           'border border-input bg-background hover:bg-accent hover:text-accent-foreground text-gray-700 dark:text-gray-300',
         secondary: 'bg-secondary text-secondary-foreground hover:bg-secondary/80',
-        ghost: 'text-gray-700 dark:text-gray-300  hover:bg-accent hover:text-accent-foreground',
+        ghost: 'text-gray-700 dark:text-gray-300 hover:bg-accent hover:text-accent-foreground',
         link: 'text-primary underline-offset-4 hover:underline',
       },
       size: {
@@ -32,13 +31,17 @@ const buttonVariants = cva(
   }
 );
 
-export interface ButtonProps extends ComponentProps<'button'>, VariantProps<typeof buttonVariants> {
+interface ButtonProps extends ComponentProps<'button'>, VariantProps<typeof buttonVariants> {
   asChild?: boolean;
 }
 
-const Button: FC<ButtonProps> = ({ className, variant, size, asChild = false, ...props }) => {
+export const Button: FC<ButtonProps> = ({
+  className,
+  variant,
+  size,
+  asChild = false,
+  ...props
+}) => {
   const Comp = asChild ? Slot : 'button';
   return <Comp className={cn(buttonVariants({ variant, size, className }))} {...props} />;
 };
-
-export { Button, buttonVariants };

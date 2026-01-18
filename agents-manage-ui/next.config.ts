@@ -1,3 +1,4 @@
+import { withSentryConfig } from '@sentry/nextjs';
 import type { NextConfig } from 'next';
 
 // Load environment files from project root during development
@@ -13,29 +14,63 @@ if (process.env.NODE_ENV !== 'production') {
 }
 
 const nextConfig: NextConfig = {
-  output: 'standalone',
-  // Enable Turbopack for faster builds
-  turbopack: {},
-  eslint: {
-    // Disable ESLint during builds on Vercel to avoid deployment failures
-    ignoreDuringBuilds: true,
+  env: {
+    NEXT_PUBLIC_CI: process.env.CI,
   },
-  typescript: {
-    ignoreBuildErrors: process.env.NEXTJS_IGNORE_TYPECHECK === 'true',
+  output: 'standalone',
+  reactCompiler: {
+    compilationMode: 'annotation',
+    // Fail the build on any compiler diagnostic
+    panicThreshold: 'all_errors',
+  },
+  redirects() {
+    return [
+      {
+        source: '/:tenantId/projects/:projectId',
+        destination: '/:tenantId/projects/:projectId/agents',
+        permanent: false,
+      },
+    ];
+  },
+  turbopack: {
+    rules: {
+      './**/icons/*.svg': {
+        loaders: ['@svgr/webpack'],
+        as: '*.js',
+      },
+    },
   },
   images: {
     // Allow all external image domains since users can provide any URL
     remotePatterns: [
-      {
-        protocol: 'https',
-        hostname: '**',
-      },
-      {
-        protocol: 'http',
-        hostname: '**',
-      },
+      { protocol: 'https', hostname: '**' },
+      { protocol: 'http', hostname: '**' },
     ],
   },
 };
 
-export default nextConfig;
+export default process.env.NEXT_PUBLIC_SENTRY_DSN
+  ? withSentryConfig(nextConfig, {
+      // For all available options, see:
+      // https://npmjs.com/package/@sentry/webpack-plugin#options
+
+      org: process.env.SENTRY_ORG,
+
+      project: process.env.SENTRY_PROJECT,
+
+      // Only print logs for uploading source maps in CI
+      silent: !process.env.CI,
+
+      // For all available options, see:
+      // https://docs.sentry.io/platforms/javascript/guides/nextjs/manual-setup/
+
+      // Upload a larger set of source maps for prettier stack traces (increases build time)
+      widenClientFileUpload: true,
+
+      // Route browser requests to Sentry through a Next.js rewrite to circumvent ad-blockers.
+      // This can increase your server load as well as your hosting bill.
+      // Note: Check that the configured route will not match with your Next.js middleware, otherwise reporting of client-
+      // side errors will fail.
+      tunnelRoute: '/monitoring',
+    })
+  : nextConfig;

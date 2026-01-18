@@ -1,0 +1,80 @@
+---
+title: Run API Authentication
+description: Authentication modes for Run API
+icon: LuShield
+---
+
+The Run API (`agents-run-api`) has three authentication modes depending on your environment configuration:
+
+### Development Mode
+
+When `ENVIRONMENT=development`:
+
+- No API key required
+- Must include scope headers:
+  - `x-inkeep-tenant-id`
+  - `x-inkeep-project-id`
+  - `x-inkeep-agent-id`
+
+```bash
+curl -H "x-inkeep-tenant-id: tenant-123" \
+     -H "x-inkeep-project-id: project-456" \
+     -H "x-inkeep-agent-id: agent-789" \
+     https://localhost:3003/v1/chat/completions
+```
+
+### Standard Mode
+
+When `ENVIRONMENT≠development` and `INKEEP_AGENTS_RUN_API_BYPASS_SECRET` is not set:
+
+- Use API keys created from the Manage UI
+- No additional headers required (scope encoded in key)
+
+```bash
+curl -H "Authorization: Bearer sk_live_abc123..." \
+  https://localhost:3003/v1/chat/completions
+```
+
+### Bypass Mode
+
+When `ENVIRONMENT≠development` and `INKEEP_AGENTS_RUN_API_BYPASS_SECRET` is set:
+
+**Option 1: Bypass Secret**
+
+- Use the bypass secret as token
+- Must include scope headers
+
+```bash
+curl -H "Authorization: Bearer YOUR_BYPASS_SECRET" \
+     -H "x-inkeep-tenant-id: tenant-123" \
+     -H "x-inkeep-project-id: project-456" \
+     -H "x-inkeep-agent-id: agent-789" \
+     https://run-api.example.com/chat/completions
+```
+
+**Option 2: Standard API Keys remain valid**
+
+- Use API keys from the Manage UI
+
+```bash
+curl -H "Authorization: Bearer sk_live_xyz789..." \
+  https://run-api.example.com/chat/completions
+```
+
+## Running Multiple Instances
+
+You can run multiple Run API instances with different auth configurations. If you're deploying Inkeep Agents to production, it is common to only expose the deployment of Run API in standard mode and all other services remain internal.
+
+```bash
+# Instance 1: Port 3003 with bypass secret (intended for internal purposes)
+PORT=3003 INKEEP_AGENTS_RUN_API_BYPASS_SECRET=secret123 pnpm dev
+
+# Instance 2: Port 3004 without bypass secret (intended for external purposes)
+PORT=3004 pnpm dev
+```
+
+## Security Best Practices
+
+1. **Production**: Always use Standard API keys
+2. **Bypass Secret**: Use for internal services only
+3. **API Keys**: Rotate regularly and set expiration dates

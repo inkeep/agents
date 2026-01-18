@@ -96,12 +96,16 @@ function CredentialDialogMenu({ credentialId, credentialName }: CredentialDialog
 
 export function CredentialItem({
   id,
+  name,
   createdAt,
+  createdBy,
   tenantId,
   projectId,
 }: {
   id: Credential['id'];
+  name: Credential['name'];
   createdAt: Credential['createdAt'];
+  createdBy: Credential['createdBy'];
   tenantId: string;
   projectId: string;
 }) {
@@ -110,20 +114,22 @@ export function CredentialItem({
   return (
     <ItemCardRoot>
       <ItemCardHeader>
-        <ItemCardLink href={linkPath}>
-          <ItemCardTitle className="text-md">
-            <div className="flex items-center gap-3 min-w-0">
-              <ProviderIcon provider={id} size={24} className="flex-shrink-0" />
-              <span className="truncate">{id}</span>
-            </div>
+        <ItemCardLink href={linkPath} className="min-w-0">
+          <ItemCardTitle className="text-md flex items-center gap-3 min-w-0">
+            <ProviderIcon provider={name} size={24} className="flex-shrink-0" />
+            <span className="flex-1 min-w-0 truncate">{name}</span>
           </ItemCardTitle>
         </ItemCardLink>
-        <CredentialDialogMenu credentialId={id} credentialName={id} />
+        <CredentialDialogMenu credentialId={id} credentialName={name} />
       </ItemCardHeader>
-      <ItemCardContent>
-        {/* <ItemCardDescription hasContent={!!description} className="line-clamp-2">
-            {description || 'No description'}
-          </ItemCardDescription> */}
+      <ItemCardContent className="gap-2">
+        {createdBy && (
+          <div className="relative flex items-center justify-between">
+            <div className="flex items-center text-xs text-muted-foreground">
+              Created by {createdBy}
+            </div>
+          </div>
+        )}
         <ItemCardFooter footerText={`Created ${formatDate(createdAt)}`} />
       </ItemCardContent>
     </ItemCardRoot>

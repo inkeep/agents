@@ -6,24 +6,27 @@ import {
   getCacheEntry,
   getContextConfigCacheEntries,
   getConversationCacheEntries,
-  invalidateInvocationDefinitionsCache,
   invalidateHeadersCache,
+  invalidateInvocationDefinitionsCache,
   setCacheEntry,
-} from '../../data-access/contextCache';
-import type { DatabaseClient } from '../../db/client';
-import { createInMemoryDatabaseClient } from '../../db/client';
+} from '../../data-access/runtime/contextCache';
+import type { AgentsRunDatabaseClient } from '../../db/runtime/runtime-client';
 import type { ContextCacheInsert } from '../../types/entities';
+import type { ResolvedRef } from '../../validation/dolt-schemas';
+import { testRunDbClient } from '../setup';
 
 describe('Context Cache Data Access', () => {
-  let db: DatabaseClient;
+  let db: AgentsRunDatabaseClient;
   const testTenantId = 'test-tenant';
   const testProjectId = 'test-project';
   const testConversationId = 'test-conversation';
   const testContextConfigId = 'test-context-config';
   const testContextVariableKey = 'testVariable';
+  const testRef: ResolvedRef = { type: 'branch', name: 'main', hash: 'abc123' };
 
-  beforeEach(() => {
-    db = createInMemoryDatabaseClient();
+  beforeEach(async () => {
+    db = testRunDbClient;
+    vi.clearAllMocks();
   });
 
   describe('getCacheEntry', () => {
@@ -35,6 +38,7 @@ describe('Context Cache Data Access', () => {
         conversationId: testConversationId,
         contextConfigId: testContextConfigId,
         contextVariableKey: testContextVariableKey,
+        ref: testRef,
         value: { data: 'test-data' },
         requestHash: 'hash123',
         fetchedAt: '2024-01-01T00:00:00Z',
@@ -94,6 +98,7 @@ describe('Context Cache Data Access', () => {
         conversationId: testConversationId,
         contextConfigId: testContextConfigId,
         contextVariableKey: testContextVariableKey,
+        ref: testRef,
         value: { data: 'test-data' },
         requestHash: 'oldHash',
         fetchedAt: '2024-01-01T00:00:00Z',
@@ -132,6 +137,7 @@ describe('Context Cache Data Access', () => {
         conversationId: testConversationId,
         contextConfigId: testContextConfigId,
         contextVariableKey: testContextVariableKey,
+        ref: testRef,
         value: { data: 'test-data' },
         requestHash: 'matchingHash',
         fetchedAt: '2024-01-01T00:00:00Z',
@@ -192,6 +198,7 @@ describe('Context Cache Data Access', () => {
         conversationId: testConversationId,
         contextConfigId: testContextConfigId,
         contextVariableKey: testContextVariableKey,
+        ref: testRef,
         value: { data: 'test-data' },
         requestHash: null,
         fetchedAt: '2024-01-01T00:00:00Z',
@@ -233,6 +240,7 @@ describe('Context Cache Data Access', () => {
         conversationId: testConversationId,
         contextConfigId: testContextConfigId,
         contextVariableKey: testContextVariableKey,
+        ref: testRef,
         value: { data: 'test-data' },
         fetchedAt: '2024-01-01T00:00:00Z',
         requestHash: 'hash123',
@@ -273,6 +281,7 @@ describe('Context Cache Data Access', () => {
         conversationId: testConversationId,
         contextConfigId: testContextConfigId,
         contextVariableKey: testContextVariableKey,
+        ref: testRef,
         value: { data: 'test-data' },
         fetchedAt: '2024-01-01T00:00:00Z',
       };
@@ -312,6 +321,7 @@ describe('Context Cache Data Access', () => {
         conversationId: testConversationId,
         contextConfigId: testContextConfigId,
         contextVariableKey: testContextVariableKey,
+        ref: testRef,
         value: { data: 'test-data' },
         fetchedAt: '2024-01-01T00:00:00Z',
       };
@@ -336,7 +346,11 @@ describe('Context Cache Data Access', () => {
   describe('clearConversationCache', () => {
     it('should clear conversation cache successfully', async () => {
       const mockDelete = vi.fn().mockReturnValue({
-        where: vi.fn().mockResolvedValue({ rowsAffected: 5 }),
+        where: vi.fn().mockReturnValue({
+          returning: vi
+            .fn()
+            .mockResolvedValue([{ id: '1' }, { id: '2' }, { id: '3' }, { id: '4' }, { id: '5' }]),
+        }),
       });
 
       const mockDb = {
@@ -358,7 +372,9 @@ describe('Context Cache Data Access', () => {
 
     it('should handle case when no rows affected', async () => {
       const mockDelete = vi.fn().mockReturnValue({
-        where: vi.fn().mockResolvedValue({ rowsAffected: 0 }),
+        where: vi.fn().mockReturnValue({
+          returning: vi.fn().mockResolvedValue([]),
+        }),
       });
 
       const mockDb = {
@@ -379,7 +395,9 @@ describe('Context Cache Data Access', () => {
 
     it('should handle case when rowsAffected is undefined', async () => {
       const mockDelete = vi.fn().mockReturnValue({
-        where: vi.fn().mockResolvedValue({}),
+        where: vi.fn().mockReturnValue({
+          returning: vi.fn().mockResolvedValue([]),
+        }),
       });
 
       const mockDb = {
@@ -400,7 +418,9 @@ describe('Context Cache Data Access', () => {
 
     it('should throw error on database failure', async () => {
       const mockDelete = vi.fn().mockReturnValue({
-        where: vi.fn().mockRejectedValue(new Error('Database error')),
+        where: vi.fn().mockReturnValue({
+          returning: vi.fn().mockRejectedValue(new Error('Database error')),
+        }),
       });
 
       const mockDb = {
@@ -423,7 +443,11 @@ describe('Context Cache Data Access', () => {
   describe('clearContextConfigCache', () => {
     it('should clear context config cache successfully', async () => {
       const mockDelete = vi.fn().mockReturnValue({
-        where: vi.fn().mockResolvedValue({ rowsAffected: 10 }),
+        where: vi.fn().mockReturnValue({
+          returning: vi
+            .fn()
+            .mockResolvedValue(Array.from({ length: 10 }, (_, i) => ({ id: `${i + 1}` }))),
+        }),
       });
 
       const mockDb = {
@@ -445,7 +469,9 @@ describe('Context Cache Data Access', () => {
 
     it('should throw error on database failure', async () => {
       const mockDelete = vi.fn().mockReturnValue({
-        where: vi.fn().mockRejectedValue(new Error('Database error')),
+        where: vi.fn().mockReturnValue({
+          returning: vi.fn().mockRejectedValue(new Error('Database error')),
+        }),
       });
 
       const mockDb = {
@@ -468,7 +494,11 @@ describe('Context Cache Data Access', () => {
   describe('cleanupTenantCache', () => {
     it('should cleanup tenant cache successfully', async () => {
       const mockDelete = vi.fn().mockReturnValue({
-        where: vi.fn().mockResolvedValue({ rowsAffected: 25 }),
+        where: vi.fn().mockReturnValue({
+          returning: vi
+            .fn()
+            .mockResolvedValue(Array.from({ length: 25 }, (_, i) => ({ id: `${i + 1}` }))),
+        }),
       });
 
       const mockDb = {
@@ -489,7 +519,9 @@ describe('Context Cache Data Access', () => {
 
     it('should throw error on database failure', async () => {
       const mockDelete = vi.fn().mockReturnValue({
-        where: vi.fn().mockRejectedValue(new Error('Database error')),
+        where: vi.fn().mockReturnValue({
+          returning: vi.fn().mockRejectedValue(new Error('Database error')),
+        }),
       });
 
       const mockDb = {
@@ -511,7 +543,9 @@ describe('Context Cache Data Access', () => {
   describe('invalidateHeadersCache', () => {
     it('should invalidate headers cache successfully', async () => {
       const mockDelete = vi.fn().mockReturnValue({
-        where: vi.fn().mockResolvedValue({ rowsAffected: 1 }),
+        where: vi.fn().mockReturnValue({
+          returning: vi.fn().mockResolvedValue([{ id: '1' }]),
+        }),
       });
 
       const mockDb = {
@@ -534,7 +568,9 @@ describe('Context Cache Data Access', () => {
 
     it('should throw error on database failure', async () => {
       const mockDelete = vi.fn().mockReturnValue({
-        where: vi.fn().mockRejectedValue(new Error('Database error')),
+        where: vi.fn().mockReturnValue({
+          returning: vi.fn().mockRejectedValue(new Error('Database error')),
+        }),
       });
 
       const mockDb = {
@@ -562,13 +598,19 @@ describe('Context Cache Data Access', () => {
       const mockDelete = vi
         .fn()
         .mockReturnValueOnce({
-          where: vi.fn().mockResolvedValue({ rowsAffected: 1 }),
+          where: vi.fn().mockReturnValue({
+            returning: vi.fn().mockResolvedValue([{ id: '1' }]),
+          }),
         })
         .mockReturnValueOnce({
-          where: vi.fn().mockResolvedValue({ rowsAffected: 2 }),
+          where: vi.fn().mockReturnValue({
+            returning: vi.fn().mockResolvedValue([{ id: '2' }, { id: '3' }]),
+          }),
         })
         .mockReturnValueOnce({
-          where: vi.fn().mockResolvedValue({ rowsAffected: 1 }),
+          where: vi.fn().mockReturnValue({
+            returning: vi.fn().mockResolvedValue([{ id: '4' }]),
+          }),
         });
 
       const mockDb = {
@@ -614,7 +656,9 @@ describe('Context Cache Data Access', () => {
       const definitionIds = ['def1'];
 
       const mockDelete = vi.fn().mockReturnValue({
-        where: vi.fn().mockResolvedValue({}),
+        where: vi.fn().mockReturnValue({
+          returning: vi.fn().mockResolvedValue([]),
+        }),
       });
 
       const mockDb = {
@@ -639,7 +683,9 @@ describe('Context Cache Data Access', () => {
       const definitionIds = ['def1'];
 
       const mockDelete = vi.fn().mockReturnValue({
-        where: vi.fn().mockRejectedValue(new Error('Database error')),
+        where: vi.fn().mockReturnValue({
+          returning: vi.fn().mockRejectedValue(new Error('Database error')),
+        }),
       });
 
       const mockDb = {

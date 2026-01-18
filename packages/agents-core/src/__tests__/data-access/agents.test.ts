@@ -7,17 +7,18 @@ import {
   listAgents,
   listAgentsPaginated,
   updateAgent,
-} from '../../data-access/agents';
-import type { DatabaseClient } from '../../db/client';
-import { createInMemoryDatabaseClient } from '../../db/client';
+} from '../../data-access/manage/agents';
+import type { AgentsManageDatabaseClient } from '../../db/manage/manage-client';
+import { testManageDbClient } from '../setup';
 
 describe('Agent Data Access', () => {
-  let db: DatabaseClient;
+  let db: AgentsManageDatabaseClient;
   const testTenantId = 'test-tenant';
   const testProjectId = 'test-project';
 
-  beforeEach(() => {
-    db = createInMemoryDatabaseClient();
+  beforeEach(async () => {
+    db = testManageDbClient;
+    vi.clearAllMocks();
   });
 
   describe('getAgentAgentById', () => {
@@ -328,7 +329,7 @@ describe('Agent Data Access', () => {
               {
                 id: agentId,
                 models: null,
-                updatedAt: new Date().toISOString(),
+                updatedAt: new Date(),
               },
             ]),
           }),

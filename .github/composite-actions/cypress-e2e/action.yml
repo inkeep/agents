@@ -1,0 +1,70 @@
+name: 'Cypress E2E Tests'
+description: 'Run Cypress end-to-end tests with API and Dashboard'
+
+inputs:
+  node-version:
+    description: 'Node.js version to use'
+    required: false
+    default: '22.x'
+  pnpm-version:
+    description: 'pnpm version to use'
+    required: false
+    default: '10.10.0'
+
+runs:
+  using: 'composite'
+  steps:
+    - name: Setup Cypress cache
+      uses: actions/cache@v4
+      with:
+        path: ~/.cache/Cypress
+        key: ${{ runner.os }}-cypress-${{ hashFiles('**/pnpm-lock.yaml') }}
+        restore-keys: ${{ runner.os }}-cypress-
+
+    - name: Install Cypress binary
+      shell: bash
+      run: cd agents-manage-ui && npx cypress install
+
+    - run: pnpm setup-dev
+      shell: bash
+
+    - name: Seed default organization for CI
+      shell: bash
+      run: |
+        PGPASSWORD=password psql -h localhost -p 5433 -U appuser -d inkeep_agents -c "
+          INSERT INTO organization (id, name, slug, created_at)
+          VALUES ('default', 'Default Organization', 'default', NOW())
+          ON CONFLICT (id) DO NOTHING;
+        "
+
+    - name: Start backend API server
+      shell: bash
+      run: pnpm dev --filter='@inkeep/agents-manage-api' & # & means run job in background
+
+    - name: Build dashboard and cookbook monorepo dependencies
+      shell: bash
+      run: npx turbo build --filter='@inkeep/agents-manage-ui' --filter='@inkeep/agents-cli' --filter='@inkeep/agents-core' --filter='@inkeep/agents-sdk'
+
+    - name: Push Weather Example Project
+      shell: bash
+      run: cd agents-cookbook/template-projects && npx inkeep push --project weather-project
+
+    - name: Run Cypress E2E Tests
+      shell: bash
+      run: pnpm --filter @inkeep/agents-manage-ui test:e2e:ci
+
+    - name: Upload Cypress Screenshots
+      if: failure()
+      uses: actions/upload-artifact@v4
+      with:
+        name: cypress-screenshots
+        path: agents-manage-ui/cypress/screenshots
+        retention-days: 7
+
+    - name: Upload Cypress Videos
+      if: failure()
+      uses: actions/upload-artifact@v4
+      with:
+        name: cypress-videos
+        path: agents-manage-ui/cypress/videos
+        retention-days: 7

@@ -1,8 +1,10 @@
 import {
+  Archive,
   ArrowRight,
-  ArrowUpRight,
+  Check,
   ChevronDown,
   ChevronRight,
+  Clock,
   Cpu,
   Database,
   Hammer,
@@ -10,28 +12,22 @@ import {
   Settings,
   Sparkles,
   User,
+  X,
 } from 'lucide-react';
-import dynamic from 'next/dynamic';
 import { Streamdown } from 'streamdown';
 import { formatDateTime } from '@/app/utils/format-date';
+import { JsonEditorWithCopy } from '@/components/editors/json-editor-with-copy';
 import { Bubble } from '@/components/traces/timeline/bubble';
 import { Flow } from '@/components/traces/timeline/flow';
 import { TagRow } from '@/components/traces/timeline/tag-row';
 import {
+  ACTIVITY_STATUS,
   ACTIVITY_TYPES,
   type ActivityItem,
   type ActivityKind,
   TOOL_TYPES,
 } from '@/components/traces/timeline/types';
 import { Badge } from '@/components/ui/badge';
-
-const JsonEditorWithCopy = dynamic(
-  () =>
-    import('@/components/traces/editors/json-editor-with-copy').then(
-      (mod) => mod.JsonEditorWithCopy
-    ),
-  { ssr: false } // ensures it only loads on the client side
-);
 
 function truncateWords(s: string, nWords: number) {
   const words = s.split(/\s+/);
@@ -47,7 +43,15 @@ function formatJsonSafely(content: string): string {
 }
 
 function statusIcon(
-  type: ActivityKind | 'delegation' | 'transfer' | 'generic_tool' | 'tool_purpose',
+  type:
+    | ActivityKind
+    | 'delegation'
+    | 'transfer'
+    | 'generic_tool'
+    | 'tool_purpose'
+    | 'tool_approval_requested'
+    | 'tool_approval_approved'
+    | 'tool_approval_denied',
   status: ActivityItem['status']
 ) {
   const base: Record<string, { Icon: any; cls: string }> = {
@@ -56,7 +60,6 @@ function statusIcon(
     agent_generation: { Icon: Cpu, cls: 'text-purple-500' },
     ai_assistant_message: { Icon: Sparkles, cls: 'text-primary' },
     ai_model_streamed_text: { Icon: Sparkles, cls: 'text-primary' },
-    ai_model_streamed_object: { Icon: Sparkles, cls: 'text-primary' },
     context_fetch: { Icon: Settings, cls: 'text-indigo-400' },
     context_resolution: { Icon: Database, cls: 'text-indigo-400' },
     tool_call: { Icon: Hammer, cls: 'text-muted-foreground' },
@@ -65,17 +68,23 @@ function statusIcon(
     generic_tool: { Icon: Hammer, cls: 'text-muted-foreground' },
     tool_purpose: { Icon: Hammer, cls: 'text-muted-foreground' },
     artifact_processing: { Icon: Library, cls: 'text-emerald-600' },
+    tool_approval_requested: { Icon: Clock, cls: 'text-muted-foreground' },
+    tool_approval_approved: { Icon: Check, cls: 'text-blue-500' },
+    tool_approval_denied: { Icon: X, cls: 'text-red-500' },
+    compression: { Icon: Archive, cls: 'text-orange-500' },
   };
 
   const map = base[type] || base.tool_call;
   const cls =
-    status === 'success'
+    status === ACTIVITY_STATUS.SUCCESS
       ? map.cls
-      : status === 'error'
+      : status === ACTIVITY_STATUS.ERROR
         ? 'text-red-500'
-        : status === 'pending'
+        : status === ACTIVITY_STATUS.WARNING
           ? 'text-yellow-500'
-          : map.cls;
+          : status === ACTIVITY_STATUS.PENDING
+            ? 'text-yellow-500'
+            : map.cls;
 
   return { Icon: map.Icon, className: cls };
 }
@@ -87,6 +96,9 @@ interface TimelineItemProps {
   isSelected?: boolean;
   isAiMessageCollapsed?: boolean;
   onToggleAiMessageCollapse?: (activityId: string) => void;
+  hasChildren?: boolean;
+  isCollapsed?: boolean;
+  onToggleCollapse?: () => void;
 }
 
 export function TimelineItem({
@@ -96,6 +108,9 @@ export function TimelineItem({
   isSelected = false,
   isAiMessageCollapsed = false,
   onToggleAiMessageCollapse,
+  hasChildren = false,
+  isCollapsed = false,
+  onToggleCollapse,
 }: TimelineItemProps) {
   const typeForIcon =
     activity.type === ACTIVITY_TYPES.TOOL_CALL && activity.toolType === TOOL_TYPES.TRANSFER
@@ -106,7 +121,13 @@ export function TimelineItem({
           ? 'tool_purpose'
           : activity.type === ACTIVITY_TYPES.TOOL_CALL
             ? 'generic_tool'
-            : activity.type;
+            : activity.type === ACTIVITY_TYPES.TOOL_APPROVAL_REQUESTED
+              ? 'tool_approval_requested'
+              : activity.type === ACTIVITY_TYPES.TOOL_APPROVAL_APPROVED
+                ? 'tool_approval_approved'
+                : activity.type === ACTIVITY_TYPES.TOOL_APPROVAL_DENIED
+                  ? 'tool_approval_denied'
+                  : activity.type;
 
   const { Icon, className } = statusIcon(typeForIcon as any, activity.status);
   const formattedDateTime = formatDateTime(activity.timestamp);
@@ -114,15 +135,22 @@ export function TimelineItem({
 
   // Determine text color based on status
   const textColorClass =
-    activity.status === 'error'
+    activity.status === ACTIVITY_STATUS.ERROR
       ? 'text-red-500 hover:text-red-700'
-      : 'text-foreground hover:text-primary';
+      : activity.status === ACTIVITY_STATUS.WARNING
+        ? 'text-yellow-500 hover:text-yellow-700'
+        : 'text-foreground hover:text-primary';
 
   return (
-    <div className={`flex flex-col text-muted-foreground relative text-xs`}>
+    <div
+      className={`flex flex-col text-muted-foreground relative text-xs`}
+      data-has-error={activity.status === ACTIVITY_STATUS.ERROR || undefined}
+    >
       <div className="flex items-start">
-        <div className="mr-2 py-2">
-          <Icon className={`w-4 h-4 ${className}`} />
+        <div className="mr-2 py-2" style={{ width: '16px' }}>
+          <div className="absolute left-[7px] top-[8px] -translate-x-1/2 flex items-center justify-center w-5 h-5 rounded bg-white dark:bg-background z-10">
+            <Icon className={`w-4 h-4 ${className}`} />
+          </div>
         </div>
 
         <div
@@ -130,7 +158,7 @@ export function TimelineItem({
             isSelected ? 'ring-1 ring-primary/50 bg-primary/5' : ''
           }`}
         >
-          <div className="flex items-center gap-2">
+          <div className="flex items-center justify-between gap-2">
             <button
               type="button"
               onClick={onSelect}
@@ -140,11 +168,24 @@ export function TimelineItem({
               <span className="font-medium">
                 <Streamdown>{activity.description}</Streamdown>
               </span>
-              <ArrowUpRight
-                className={`h-4 w-4 transition-colors ${activity.status === 'error' ? 'text-red-700 group-hover:text-red-800' : 'text-muted-foreground group-hover:text-primary'}`}
-                aria-hidden="true"
-              />
             </button>
+            {hasChildren && onToggleCollapse && (
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onToggleCollapse();
+                }}
+                className="flex-shrink-0 inline-flex items-center justify-center w-5 h-5 rounded hover:bg-muted transition-colors"
+                title={isCollapsed ? 'Expand children' : 'Collapse children'}
+              >
+                {isCollapsed ? (
+                  <ChevronRight className="w-4 h-4 text-muted-foreground" />
+                ) : (
+                  <ChevronDown className="w-4 h-4 text-muted-foreground" />
+                )}
+              </button>
+            )}
           </div>
 
           {/* user message bubble */}
@@ -183,9 +224,9 @@ export function TimelineItem({
           )}
 
           {/* subagent badge for AI assistant message */}
-          {activity.type === ACTIVITY_TYPES.AI_ASSISTANT_MESSAGE && activity.subAgentName && (
+          {activity.type === ACTIVITY_TYPES.AI_ASSISTANT_MESSAGE && activity.subAgentId && (
             <div className="mb-1">
-              <Badge variant="code">{activity.subAgentName}</Badge>
+              <Badge variant="code">{activity.subAgentId}</Badge>
             </div>
           )}
 
@@ -198,9 +239,7 @@ export function TimelineItem({
                   onClick={() => onToggleAiMessageCollapse(activity.id)}
                   className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground transition-colors"
                   title={
-                    isAiMessageCollapsed
-                      ? 'Expand AI streaming text'
-                      : 'Collapse AI streaming text'
+                    isAiMessageCollapsed ? 'Expand AI streaming text' : 'Collapse AI streaming text'
                   }
                 >
                   {isAiMessageCollapsed ? (
@@ -208,63 +247,31 @@ export function TimelineItem({
                   ) : (
                     <ChevronDown className="h-3 w-3" />
                   )}
-                  AI Streaming Text
+                  {activity.aiTelemetryPhase === 'structured_generation'
+                    ? 'Structured Output'
+                    : 'AI Streaming Text'}
                 </button>
               )}
-              {!isAiMessageCollapsed && (
-                <Bubble>{truncateWords(activity.aiStreamTextContent, 100)}</Bubble>
-              )}
+              {!isAiMessageCollapsed &&
+                (activity.aiTelemetryPhase === 'structured_generation' ? (
+                  <div className="mt-2">
+                    <JsonEditorWithCopy
+                      value={formatJsonSafely(activity.aiStreamTextContent)}
+                      title=""
+                      uri={`structured-output-${activity.id}.json`}
+                    />
+                  </div>
+                ) : (
+                  <Bubble>{truncateWords(activity.aiStreamTextContent, 100)}</Bubble>
+                ))}
             </div>
           )}
 
           {/* ai.telemetry.functionId badge for streamed text */}
-          {activity.type === 'ai_model_streamed_text' && activity.aiTelemetryFunctionId && (
+          {activity.type === 'ai_model_streamed_text' && activity.subAgentId && (
             <div className="mb-1">
               <Badge variant="code" className="text-xs">
-                {activity.aiTelemetryFunctionId}
-              </Badge>
-            </div>
-          )}
-
-          {/* streamed object bubble */}
-          {activity.type === 'ai_model_streamed_object' && activity.aiStreamObjectContent && (
-            <div className="space-y-2">
-              {onToggleAiMessageCollapse && (
-                <button
-                  type="button"
-                  onClick={() => onToggleAiMessageCollapse(activity.id)}
-                  className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground transition-colors"
-                  title={
-                    isAiMessageCollapsed
-                      ? 'Expand AI streaming object'
-                      : 'Collapse AI streaming object'
-                  }
-                >
-                  {isAiMessageCollapsed ? (
-                    <ChevronRight className="h-3 w-3" />
-                  ) : (
-                    <ChevronDown className="h-3 w-3" />
-                  )}
-                  AI Streaming Object
-                </button>
-              )}
-              {!isAiMessageCollapsed && (
-                <div className="mt-2">
-                  <JsonEditorWithCopy
-                    value={formatJsonSafely(activity.aiStreamObjectContent)}
-                    title="Structured object response"
-                    uri={`stream-object-${activity.id}.json`}
-                  />
-                </div>
-              )}
-            </div>
-          )}
-
-          {/* ai.telemetry.functionId badge for streamed object */}
-          {activity.type === 'ai_model_streamed_object' && activity.aiTelemetryFunctionId && (
-            <div className="mb-1">
-              <Badge variant="code" className="text-xs">
-                {activity.aiTelemetryFunctionId}
+                {activity.subAgentId}
               </Badge>
             </div>
           )}
@@ -272,14 +279,18 @@ export function TimelineItem({
           {/* context fetch url */}
           {activity.type === 'context_fetch' && activity.toolResult && (
             <div className="mb-1">
-              <Badge variant="code" className="break-all">{activity.toolResult}</Badge>
+              <Badge variant="code" className="break-all">
+                {activity.toolResult}
+              </Badge>
             </div>
           )}
 
           {/* context resolution URL */}
           {activity.type === 'context_resolution' && activity.contextUrl && (
             <div className="mb-1">
-              <Badge variant="code" className="break-all">{activity.contextUrl}</Badge>
+              <Badge variant="code" className="break-all">
+                {activity.contextUrl}
+              </Badge>
             </div>
           )}
 
@@ -288,10 +299,7 @@ export function TimelineItem({
             activity.toolName?.includes('delegate') && (
               <Flow
                 from={activity.delegationFromSubAgentId || 'Unknown sub agent'}
-                to={
-                  activity.delegationToSubAgentId ||
-                  'Unknown sub agent'
-                }
+                to={activity.delegationToSubAgentId || 'Unknown sub agent'}
               />
             )}
 
@@ -301,10 +309,7 @@ export function TimelineItem({
               activity.toolName?.includes('transfer')) && (
               <Flow
                 from={activity.transferFromSubAgentId || 'Unknown sub agent'}
-                to={
-                  activity.transferToSubAgentId ||
-                  'Unknown sub agent'
-                }
+                to={activity.transferToSubAgentId || 'Unknown sub agent'}
               />
             )}
 
@@ -315,11 +320,21 @@ export function TimelineItem({
               <Bubble className="line-clamp-2">{activity.toolPurpose}</Bubble>
             )}
 
+          {/* MCP server badge for MCP tool calls */}
+          {activity.type === ACTIVITY_TYPES.TOOL_CALL &&
+            activity.toolType === TOOL_TYPES.MCP &&
+            activity.mcpServerName && (
+              <div className="mb-1">
+                <Badge variant="code" className="text-xs">
+                  MCP: {activity.mcpServerName}
+                </Badge>
+              </div>
+            )}
+
           {/* artifact processing */}
           {activity.type === ACTIVITY_TYPES.ARTIFACT_PROCESSING && (
             <div className="mt-2 p-3 bg-emerald-50 border border-emerald-200 dark:bg-emerald-900/20 dark:border-emerald-800 rounded-lg max-w-4xl">
               <div className="flex flex-col gap-2 text-sm text-emerald-900 dark:text-emerald-300">
-
                 {/* Basic artifact info */}
                 <div className="space-y-1">
                   {activity.artifactType && TagRow('Type', activity.artifactType, 'emerald')}
@@ -354,9 +369,9 @@ export function TimelineItem({
           )}
 
           {/* agent name for AI generation */}
-          {activity.type === ACTIVITY_TYPES.AI_GENERATION && activity.subAgentName && (
+          {activity.type === ACTIVITY_TYPES.AI_GENERATION && activity.subAgentId && (
             <div className="mb-1">
-              <Badge variant="code">{activity.subAgentName}</Badge>
+              <Badge variant="code">{activity.subAgentId}</Badge>
             </div>
           )}
 
@@ -369,12 +384,24 @@ export function TimelineItem({
 
           {/* ai.telemetry.functionId badge for ai.toolCall spans that aren't delegate or transfers */}
           {activity.type === ACTIVITY_TYPES.TOOL_CALL &&
-            activity.aiTelemetryFunctionId &&
+            activity.subAgentId &&
             activity.toolType !== 'delegation' &&
             activity.toolType !== 'transfer' && (
               <div className="mb-1">
                 <Badge variant="code" className="text-xs">
-                  {activity.aiTelemetryFunctionId}
+                  {activity.subAgentId}
+                </Badge>
+              </div>
+            )}
+
+          {/* Sub-agent badge for tool approval activities */}
+          {(activity.type === ACTIVITY_TYPES.TOOL_APPROVAL_REQUESTED ||
+            activity.type === ACTIVITY_TYPES.TOOL_APPROVAL_APPROVED ||
+            activity.type === ACTIVITY_TYPES.TOOL_APPROVAL_DENIED) &&
+            activity.subAgentId && (
+              <div className="mb-1">
+                <Badge variant="code" className="text-xs">
+                  {activity.subAgentId}
                 </Badge>
               </div>
             )}
@@ -413,7 +440,12 @@ export function TimelineItem({
         </div>
       </div>
 
-      {!isLast && <div className="absolute top-8 left-[7px] border-l border-border h-full" />}
+      {!isLast && !isCollapsed && hasChildren && (
+        <div
+          className="absolute top-4 left-[7px] border-l border-border"
+          style={{ height: 'calc(100%)' }}
+        />
+      )}
     </div>
   );
 }

@@ -1,30 +1,38 @@
+import type { AgentsRunDatabaseClient } from '@inkeep/agents-core/db/runtime/runtime-client';
 import type { SubAgentInsert } from '@inkeep/agents-core/types';
+import { and, eq } from 'drizzle-orm';
 import { beforeEach, describe, expect, it } from 'vitest';
 import {
   createSubAgent,
   deleteSubAgent,
   getSubAgentById,
   listSubAgents,
+  SubAgentIsDefaultError,
   updateSubAgent,
-} from '../../../data-access/subAgents';
-import type { DatabaseClient } from '../../../db/client';
-import * as schema from '../../../db/schema';
-import { createTestDatabaseClient } from '../../../db/test-client';
+} from '../../../data-access/manage/subAgents';
+import type { AgentsManageDatabaseClient } from '../../../db/manage/manage-client';
+import * as schema from '../../../db/manage/manage-schema';
+import { createTestOrganization } from '../../../db/runtime/test-runtime-client';
 import { SubAgentInsertSchema } from '../../../validation/schemas';
+import { testManageDbClient, testRunDbClient } from '../../setup';
 
 describe('Agents Data Access - Integration Tests', () => {
-  let db: DatabaseClient;
+  let db: AgentsManageDatabaseClient;
+  let runDb: AgentsRunDatabaseClient;
   const testTenantId = 'test-tenant';
   const testProjectId = 'test-project';
   const testAgentId = 'test-agent';
 
   beforeEach(async () => {
-    // Create fresh in-memory database for each test
-    db = await createTestDatabaseClient();
-
-    // Create test projects and agent for all tenant IDs used in tests
+    db = testManageDbClient;
+    runDb = testRunDbClient;
+    // Create test organizations, projects and agent for all tenant IDs used in tests
     const tenantIds = [testTenantId, 'tenant-1', 'tenant-2'];
     for (const tenantId of tenantIds) {
+      // First ensure organization exists
+      await createTestOrganization(runDb, tenantId);
+
+      // Then create project
       await db
         .insert(schema.projects)
         .values({
@@ -280,8 +288,8 @@ describe('Agents Data Access - Integration Tests', () => {
 
       const createdAgent = await createSubAgent(db)(initialData);
 
-      // Wait a tiny bit to ensure timestamp difference
-      await new Promise((resolve) => setTimeout(resolve, 1));
+      // Wait a bit to ensure timestamp difference (10ms should be reliable)
+      await new Promise((resolve) => setTimeout(resolve, 10));
 
       // Update agent
       const updateData = {
@@ -402,6 +410,59 @@ describe('Agents Data Access - Integration Tests', () => {
         subAgentId: tenant1Agent.id,
       });
       expect(deleteResult).toBe(true);
+    });
+
+    it('should prevent deletion of sub-agent that is set as default', async () => {
+      await expect(
+        deleteSubAgent(db)({
+          scopes: { tenantId: testTenantId, projectId: testProjectId, agentId: testAgentId },
+          subAgentId: 'default-agent-setup',
+        })
+      ).rejects.toThrow(SubAgentIsDefaultError);
+
+      const stillExists = await getSubAgentById(db)({
+        scopes: { tenantId: testTenantId, projectId: testProjectId, agentId: testAgentId },
+        subAgentId: 'default-agent-setup',
+      });
+      expect(stillExists).toBeDefined();
+    });
+
+    it('should allow deletion after changing default sub-agent', async () => {
+      const newDefaultAgent = {
+        id: 'new-default-agent',
+        tenantId: testTenantId,
+        projectId: testProjectId,
+        agentId: testAgentId,
+        name: 'New Default Agent',
+        description: 'This will become the new default',
+        prompt: 'New default agent',
+      };
+
+      await createSubAgent(db)(newDefaultAgent);
+
+      await db
+        .update(schema.agents)
+        .set({ defaultSubAgentId: 'new-default-agent' })
+        .where(
+          and(
+            eq(schema.agents.tenantId, testTenantId),
+            eq(schema.agents.projectId, testProjectId),
+            eq(schema.agents.id, testAgentId)
+          )
+        );
+
+      const deleteResult = await deleteSubAgent(db)({
+        scopes: { tenantId: testTenantId, projectId: testProjectId, agentId: testAgentId },
+        subAgentId: 'default-agent-setup',
+      });
+
+      expect(deleteResult).toBe(true);
+
+      const afterDelete = await getSubAgentById(db)({
+        scopes: { tenantId: testTenantId, projectId: testProjectId, agentId: testAgentId },
+        subAgentId: 'default-agent-setup',
+      });
+      expect(afterDelete).toBeUndefined();
     });
   });
 

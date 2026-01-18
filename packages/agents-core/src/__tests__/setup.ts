@@ -1,41 +1,45 @@
 import path from 'node:path';
-import { sql } from 'drizzle-orm';
-import { migrate } from 'drizzle-orm/libsql/migrator';
-import { afterAll, afterEach, beforeAll } from 'vitest';
-import { createDatabaseClient } from '../db/client';
+import { afterEach, beforeAll } from 'vitest';
+import type { AgentsManageDatabaseClient } from '../db/manage/manage-client';
+import {
+  cleanupTestManageDatabase,
+  createTestManageDatabaseClient,
+} from '../db/manage/test-manage-client';
+import type { AgentsRunDatabaseClient } from '../db/runtime/runtime-client';
+import {
+  cleanupTestRuntimeDatabase,
+  createTestRuntimeDatabaseClient,
+} from '../db/runtime/test-runtime-client';
 import { getLogger } from '../utils/logger';
 
-// Create test database client using in-memory database
-const dbClient = createDatabaseClient({ url: ':memory:' });
+const DRIZZLE_MANAGE_DIR = path.resolve(import.meta.dirname, '../../drizzle/manage');
+const DRIZZLE_RUNTIME_DIR = path.resolve(import.meta.dirname, '../../drizzle/runtime');
 
-// Initialize database schema for in-memory test databases using Drizzle migrations
+let testManageDbClient: AgentsManageDatabaseClient;
+let testRunDbClient: AgentsRunDatabaseClient;
+
 beforeAll(async () => {
   const logger = getLogger('Test Setup');
   try {
-    // Enable foreign key constraints to test proper relationships
-    await dbClient.run(sql`PRAGMA foreign_keys = ON`);
+    logger.debug({}, 'Applying database migrations to in-memory test database');
 
-    // Use absolute path to ensure migrations are found correctly
-    const projectRoot = process.cwd().includes('packages/agents-core')
-      ? process.cwd()
-      : path.join(process.cwd(), 'packages/agents-core');
+    testManageDbClient = await createTestManageDatabaseClient(DRIZZLE_MANAGE_DIR);
+    testRunDbClient = await createTestRuntimeDatabaseClient(DRIZZLE_RUNTIME_DIR);
 
-    const migrationsPath = path.join(projectRoot, 'drizzle');
-
-    await migrate(dbClient, { migrationsFolder: migrationsPath });
+    logger.debug({}, 'Database migrations applied successfully');
   } catch (error) {
     logger.error({ error }, 'Failed to apply database migrations');
     throw error;
   }
+}, 60000);
+
+afterEach(async () => {
+  if (testManageDbClient) {
+    await cleanupTestManageDatabase(testManageDbClient);
+  }
+  if (testRunDbClient) {
+    await cleanupTestRuntimeDatabase(testRunDbClient);
+  }
 });
 
-afterEach(() => {
-  // Any cleanup if needed
-});
-
-afterAll(() => {
-  // Any final cleanup if needed
-});
-
-// Export the test database client for use in tests
-export { dbClient };
+export { testManageDbClient, testRunDbClient };

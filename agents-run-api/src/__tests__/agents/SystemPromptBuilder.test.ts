@@ -18,8 +18,8 @@ function createMockMcpTool(name: string, availableTools: any[]): McpTool {
     },
     availableTools,
     status: 'healthy',
-    createdAt: new Date(),
-    updatedAt: new Date(),
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString(),
   };
 }
 
@@ -87,8 +87,8 @@ describe('SystemPromptBuilder', () => {
 
       const result = builder.buildSystemPrompt(config);
 
-      expect(result).toContain('You are a helpful assistant.');
-      expect(result).toContain(
+      expect(result.prompt).toContain('You are a helpful assistant.');
+      expect(result.prompt).toContain(
         '<available_tools description="No tools are currently available"></available_tools>'
       );
     });
@@ -125,12 +125,12 @@ describe('SystemPromptBuilder', () => {
 
       const result = builder.buildSystemPrompt(config);
 
-      expect(result).toContain('You are a knowledge assistant.');
-      expect(result).toContain('<name>search_knowledge</name>');
-      expect(result).toContain('Search the knowledge base for relevant information');
-      expect(result).toContain('"type": "string"');
-      expect(result).toContain('"type": "number"');
-      expect(result).toContain('["query"]');
+      expect(result.prompt).toContain('You are a knowledge assistant.');
+      expect(result.prompt).toContain('<name>search_knowledge</name>');
+      expect(result.prompt).toContain('Search the knowledge base for relevant information');
+      expect(result.prompt).toContain('"type": "string"');
+      expect(result.prompt).toContain('"type": "number"');
+      expect(result.prompt).toContain('["query"]');
     });
 
     test('should generate system prompt with multiple tools', () => {
@@ -157,11 +157,11 @@ describe('SystemPromptBuilder', () => {
 
       const result = builder.buildSystemPrompt(config);
 
-      expect(result).toContain('You are a multi-tool assistant.');
-      expect(result).toContain('<name>tool_one</name>');
-      expect(result).toContain('<name>tool_two</name>');
-      expect(result).toContain('First tool');
-      expect(result).toContain('Second tool');
+      expect(result.prompt).toContain('You are a multi-tool assistant.');
+      expect(result.prompt).toContain('<name>tool_one</name>');
+      expect(result.prompt).toContain('<name>tool_two</name>');
+      expect(result.prompt).toContain('First tool');
+      expect(result.prompt).toContain('Second tool');
     });
 
     test('should handle tools with complex parameter schemas', () => {
@@ -200,11 +200,11 @@ describe('SystemPromptBuilder', () => {
 
       const result = builder.buildSystemPrompt(config);
 
-      expect(result).toContain('<name>complex_tool</name>');
-      expect(result).toContain('"type": "string"');
-      expect(result).toContain('"type": "number"');
-      expect(result).toContain('"type": "boolean"');
-      expect(result).toContain('["name","count"]');
+      expect(result.prompt).toContain('<name>complex_tool</name>');
+      expect(result.prompt).toContain('"type": "string"');
+      expect(result.prompt).toContain('"type": "number"');
+      expect(result.prompt).toContain('"type": "boolean"');
+      expect(result.prompt).toContain('["name","count"]');
     });
 
     test('should handle tools with no required parameters', () => {
@@ -235,8 +235,8 @@ describe('SystemPromptBuilder', () => {
 
       const result = builder.buildSystemPrompt(config);
 
-      expect(result).toContain('<name>optional_tool</name>');
-      expect(result).toContain('<required>[]</required>');
+      expect(result.prompt).toContain('<name>optional_tool</name>');
+      expect(result.prompt).toContain('<required>[]</required>');
     });
 
     test('should handle tools with empty parameter schema', () => {
@@ -258,9 +258,9 @@ describe('SystemPromptBuilder', () => {
 
       const result = builder.buildSystemPrompt(config);
 
-      expect(result).toContain('<name>empty_tool</name>');
-      expect(result).toContain('<type>object</type>');
-      expect(result).toContain('<required>[]</required>');
+      expect(result.prompt).toContain('<name>empty_tool</name>');
+      expect(result.prompt).toContain('<type>object</type>');
+      expect(result.prompt).toContain('<required>[]</required>');
     });
 
     test('should preserve XML structure and formatting', () => {
@@ -275,12 +275,12 @@ describe('SystemPromptBuilder', () => {
       const result = builder.buildSystemPrompt(config);
 
       // Check that the XML structure is maintained
-      expect(result).toMatch(/<system_message>/);
-      expect(result).toMatch(/<\/system_message>/);
-      expect(result).toMatch(/<agent_identity>/);
-      expect(result).toMatch(/<core_instructions>/);
-      expect(result).toMatch(/<behavioral_constraints>/);
-      expect(result).toMatch(/<response_format>/);
+      expect(result.prompt).toMatch(/<system_message>/);
+      expect(result.prompt).toMatch(/<\/system_message>/);
+      expect(result.prompt).toMatch(/<agent_identity>/);
+      expect(result.prompt).toMatch(/<core_instructions>/);
+      expect(result.prompt).toMatch(/<behavioral_constraints>/);
+      expect(result.prompt).toMatch(/<response_format>/);
     });
 
     test('should handle special characters in instructions and descriptions', () => {
@@ -306,9 +306,9 @@ describe('SystemPromptBuilder', () => {
 
       const result = builder.buildSystemPrompt(config);
 
-      expect(result).toContain('Instructions with <special> & "characters" and \'quotes\'.');
-      expect(result).toContain('Tool with <tags> & "quotes" and \'apostrophes\'.');
-      expect(result).toContain('Use this tool from special-server server when appropriate.');
+      expect(result.prompt).toContain('Instructions with <special> & "characters" and \'quotes\'.');
+      expect(result.prompt).toContain('Tool with <tags> & "quotes" and \'apostrophes\'.');
+      expect(result.prompt).toContain('Use this tool from special-server server when appropriate.');
     });
 
     test('should include artifacts in system prompt', () => {
@@ -334,6 +334,7 @@ describe('SystemPromptBuilder', () => {
                 type: 'documentation',
               },
             },
+            createdAt: '2024-01-15T18:30:00.000Z',
           },
           {
             artifactId: 'test-artifact-2',
@@ -352,6 +353,7 @@ describe('SystemPromptBuilder', () => {
                 type: 'api',
               },
             },
+            createdAt: '2024-01-15T19:30:00.000Z',
           },
         ],
         isThinkingPreparation: false,
@@ -359,10 +361,10 @@ describe('SystemPromptBuilder', () => {
 
       const result = builder.buildSystemPrompt(config);
 
-      expect(result).toContain('<name>Test Documentation</name>');
-      expect(result).toContain('<description>Test artifact for documentation</description>');
-      expect(result).toContain('<name>API Reference</name>');
-      expect(result).toContain('<description>API documentation</description>');
+      expect(result.prompt).toContain('<name>Test Documentation</name>');
+      expect(result.prompt).toContain('<description>Test artifact for documentation</description>');
+      expect(result.prompt).toContain('<name>API Reference</name>');
+      expect(result.prompt).toContain('<description>API documentation</description>');
     });
 
     test('should handle empty artifacts array', () => {
@@ -377,9 +379,9 @@ describe('SystemPromptBuilder', () => {
       const result = builder.buildSystemPrompt(config);
 
       expect(result).toBeDefined();
-      expect(result).toContain('Test instructions');
+      expect(result.prompt).toContain('Test instructions');
       // Should not contain artifact sections when empty
-      expect(result).not.toContain('<artifact>');
+      expect(result.prompt).not.toContain('<artifact>');
     });
 
     test('should handle artifacts with missing metadata gracefully', () => {
@@ -399,6 +401,7 @@ describe('SystemPromptBuilder', () => {
               },
             ],
             // No metadata field
+            createdAt: '2024-01-15T20:30:00.000Z',
           },
         ],
         isThinkingPreparation: false,
@@ -406,8 +409,8 @@ describe('SystemPromptBuilder', () => {
 
       const result = builder.buildSystemPrompt(config);
 
-      expect(result).toContain('<name>Incomplete Artifact</name>');
-      expect(result).toContain('<description>Artifact without metadata</description>');
+      expect(result.prompt).toContain('<name>Incomplete Artifact</name>');
+      expect(result.prompt).toContain('<description>Artifact without metadata</description>');
       expect(result).toBeDefined();
     });
   });

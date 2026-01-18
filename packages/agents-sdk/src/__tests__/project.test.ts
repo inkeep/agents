@@ -2,6 +2,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { Agent } from '../agent';
 import type { ProjectConfig } from '../project';
 import { Project } from '../project';
+import { SubAgent } from '../subAgent';
 import type { AgentConfig } from '../types';
 
 // Mock the logger
@@ -45,10 +46,18 @@ describe('Project', () => {
     process.env.ENVIRONMENT = 'test';
     process.env.INKEEP_API_URL = 'http://localhost:3002';
 
+    const subAgent = new SubAgent({
+      id: 'test-sub-agent',
+      name: 'Test Sub Agent',
+      description: 'A test sub agent',
+      prompt: 'A test sub agent prompt',
+    });
+
     agentConfig = {
       id: 'test-agent',
       name: 'Test Agent',
       description: 'A test agent',
+      defaultSubAgent: subAgent,
     };
 
     projectConfig = {

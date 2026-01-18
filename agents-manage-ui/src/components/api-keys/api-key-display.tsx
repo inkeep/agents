@@ -38,7 +38,7 @@ export function ApiKeyDisplay({ apiKey, open, onClose }: ApiKeyDisplayProps) {
         </AlertDialogHeader>
         {apiKey && (
           <div className="min-w-0">
-            <div className="space-y-6">
+            <div className="space-y-8">
               <div className="min-w-0">
                 <div className="flex items-center justify-between mb-2">
                   <div className="text-sm font-medium">API Key</div>

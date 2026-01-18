@@ -1,39 +1,53 @@
+'use client';
+
 import { BaseEdge, type EdgeProps, getBezierPath } from '@xyflow/react';
-import { type FC, useRef, useEffect } from 'react';
+import { type FC, useEffect, useRef } from 'react';
+import { cn } from '@/lib/utils';
+import type { AnimatedEdge } from '../configuration/edge-types';
 
-type DefaultEdgeProps = EdgeProps & {
-  data?: {
-    delegating: boolean | 'inverted';
-  };
-};
-
-export const AnimatedCircle: FC<{ edgePath: string; inverted: boolean }> = ({
-  edgePath,
-  inverted,
-}) => {
-  const ref = useRef<SVGAnimateElement>(null);
+export const AnimatedCircle: FC<{ edgePath: string } & AnimatedEdge> = ({ edgePath, status }) => {
+  const motionRef = useRef<SVGAnimateMotionElement>(null);
+  const opacityRef = useRef<SVGAnimateElement>(null);
 
   // Without this useEffect, the animation won't start when this component is rendered dynamically.
   // biome-ignore lint/correctness/useExhaustiveDependencies: We need restart animation when invert is changed
   useEffect(() => {
-    ref.current?.beginElement();
-  }, [inverted]);
+    motionRef.current?.beginElement();
+    opacityRef.current?.beginElement();
+  }, [status]);
+
+  if (!status) {
+    return;
+  }
+
+  const isInverted = status === 'inverted-delegating';
+  const dur = '2s';
 
   return (
-    <circle fill="var(--primary)" r="6">
+    <circle fill="var(--primary)" r="6" opacity={isInverted ? 0 : 100}>
       <animateMotion
-        ref={ref}
-        dur="2s"
+        ref={motionRef}
+        dur={dur}
         path={edgePath}
-        {...(inverted && {
-          pathLength: '1',
-          keyPoints: '1;0',
-          keyTimes: '0;1',
-        })}
+        fill={isInverted ? 'remove' : 'freeze'}
+        {...(isInverted && { keyPoints: '1;0', keyTimes: '0;1' })}
       />
+      {isInverted && (
+        <animate
+          ref={opacityRef}
+          dur={dur}
+          attributeName="opacity"
+          values="1;1;0"
+          keyTimes="0;0.95;1"
+        />
+      )}
     </circle>
   );
 };
+
+interface DefaultEdgeProps extends Omit<EdgeProps, 'data'> {
+  data?: AnimatedEdge;
+}
 
 export function DefaultEdge({
   id,
@@ -44,9 +58,8 @@ export function DefaultEdge({
   sourcePosition,
   targetPosition,
   label,
-  selected,
   markerEnd,
-  data,
+  data = {},
 }: DefaultEdgeProps) {
   const [edgePath] = getBezierPath({
     sourceX,
@@ -57,24 +70,20 @@ export function DefaultEdge({
     targetPosition,
   });
 
-  const className =
-    selected || data?.delegating
-      ? '!stroke-primary'
-      : '!stroke-border dark:!stroke-muted-foreground';
-
   return (
     <>
       {/* Animated circles based on delegating direction */}
-      {data?.delegating && (
-        <AnimatedCircle edgePath={edgePath} inverted={data.delegating === 'inverted'} />
-      )}
+      <AnimatedCircle edgePath={edgePath} status={data.status} />
       <BaseEdge
         id={id}
         path={edgePath}
         label={label}
         markerEnd={markerEnd}
         style={{ strokeWidth: 2 }}
-        className={className}
+        className={cn(
+          data.status && 'edge-delegating',
+          data.status === 'inverted-delegating' && 'edge-delegating-inverted'
+        )}
       />
     </>
   );

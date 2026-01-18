@@ -222,13 +222,6 @@ describe('API Key Utilities', () => {
       const isExpired = isApiKeyExpired(nowMinusOneSecond.toISOString());
       expect(isExpired).toBe(true);
     });
-
-    it('should handle invalid date strings', () => {
-      // Invalid date string should result in an invalid Date object
-      // which will make the comparison return false (NaN comparisons are false)
-      const isExpired = isApiKeyExpired('not-a-date');
-      expect(isExpired).toBe(false);
-    });
   });
 
   describe('extractPublicId', () => {
@@ -367,11 +360,10 @@ describe('API Key Utilities', () => {
     });
 
     it('should handle boundary conditions for expiration dates', () => {
-      const now = new Date();
-      const nowString = now.toISOString();
+      const now = new Date().toISOString();
 
       // Test with exact current time (may be true or false due to execution timing)
-      const isExpired = isApiKeyExpired(nowString);
+      const isExpired = isApiKeyExpired(now);
       expect(typeof isExpired).toBe('boolean');
     });
 

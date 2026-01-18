@@ -4,7 +4,7 @@ import { toast } from 'sonner';
 import { StickToBottom } from 'use-stick-to-bottom';
 import { ConversationTracesLink } from '@/components/traces/signoz-link';
 import { ActivityDetailsSidePane } from '@/components/traces/timeline/activity-details-sidepane';
-import { ActivityTimeline } from '@/components/traces/timeline/activity-timeline';
+import { HierarchicalTimeline } from '@/components/traces/timeline/hierarchical-timeline';
 import { renderPanelContent } from '@/components/traces/timeline/render-panel-content';
 import type {
   ActivityItem,
@@ -43,12 +43,16 @@ function panelTitle(selected: SelectedPanel) {
       return 'Tool call details';
     case 'ai_model_streamed_text':
       return 'AI Streaming text details';
-    case 'ai_model_streamed_object':
-      return 'AI Streaming object details';
     case 'mcp_tool_error':
       return 'MCP tool error details';
     case 'artifact_processing':
       return 'Artifact details';
+    case 'tool_approval_requested':
+      return 'Requested tool details';
+    case 'tool_approval_approved':
+      return 'Approved tool details';
+    case 'tool_approval_denied':
+      return 'Denied tool details';
     default:
       return 'Details';
   }
@@ -171,9 +175,8 @@ export function TimelineWrapper({
       setPanelVisible(false);
       const t = setTimeout(() => setPanelVisible(true), 10);
       return () => clearTimeout(t);
-    } else {
-      setPanelVisible(false);
     }
+    setPanelVisible(false);
   }, [selected]);
 
   // Clear selected panel when conversation changes
@@ -213,6 +216,10 @@ export function TimelineWrapper({
     return list;
   }, [activities]);
 
+  // Ref to track if we've already scrolled to the first error
+  const hasScrolledToErrorRef = useRef<string | undefined>(undefined);
+  const scrollContainerRef = useRef<HTMLDivElement>(null);
+
   // Memoize AI message IDs to avoid recalculating on every render
   const aiMessageIds = useMemo(() => {
     return sortedActivities
@@ -220,7 +227,6 @@ export function TimelineWrapper({
         (activity) =>
           activity.type === ACTIVITY_TYPES.AI_ASSISTANT_MESSAGE ||
           activity.type === ACTIVITY_TYPES.AI_MODEL_STREAMED_TEXT ||
-          activity.type === ACTIVITY_TYPES.AI_MODEL_STREAMED_OBJECT ||
           (activity.hasError && activity.otelStatusDescription)
       )
       .map((activity) => activity.id);
@@ -229,11 +235,7 @@ export function TimelineWrapper({
   // Memoize stream text IDs for cleaner collapse logic
   const streamTextIds = useMemo(() => {
     return sortedActivities
-      .filter(
-        (activity) =>
-          activity.type === ACTIVITY_TYPES.AI_MODEL_STREAMED_TEXT ||
-          activity.type === ACTIVITY_TYPES.AI_MODEL_STREAMED_OBJECT
-      )
+      .filter((activity) => activity.type === ACTIVITY_TYPES.AI_MODEL_STREAMED_TEXT)
       .map((activity) => activity.id);
   }, [sortedActivities]);
 
@@ -281,6 +283,37 @@ export function TimelineWrapper({
     }
   }, [conversationId, aiMessageIds, streamTextIds, enableAutoScroll]);
 
+  // Auto-scroll to first error when conversation loads (only for static view, not auto-scroll/polling mode)
+  useEffect(() => {
+    // Skip if auto-scroll is enabled (polling mode)
+    if (enableAutoScroll) {
+      return;
+    }
+
+    // Skip if we've already scrolled for this conversation
+    if (hasScrolledToErrorRef.current === conversationId) {
+      return;
+    }
+
+    // Small delay to ensure DOM is rendered
+    const timeoutId = setTimeout(() => {
+      const errorElement = scrollContainerRef.current?.querySelector('[data-has-error="true"]');
+      if (errorElement) {
+        errorElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        hasScrolledToErrorRef.current = conversationId;
+      }
+    }, 100);
+
+    return () => clearTimeout(timeoutId);
+  }, [conversationId, enableAutoScroll]);
+
+  // Reset scroll tracking when conversation changes
+  useEffect(() => {
+    if (conversationId !== lastConversationRef.current) {
+      hasScrolledToErrorRef.current = undefined;
+    }
+  }, [conversationId]);
+
   // Functions to handle expand/collapse all (memoized to prevent unnecessary re-renders)
   const expandAllAiMessages = useCallback(() => {
     setCollapsedAiMessages(new Set());
@@ -307,7 +340,6 @@ export function TimelineWrapper({
         (activity) =>
           activity.type === ACTIVITY_TYPES.AI_ASSISTANT_MESSAGE ||
           activity.type === ACTIVITY_TYPES.AI_MODEL_STREAMED_TEXT ||
-          activity.type === ACTIVITY_TYPES.AI_MODEL_STREAMED_OBJECT ||
           (activity.hasError && activity.otelStatusDescription)
       )
       .map((activity) => activity.id);
@@ -363,7 +395,9 @@ export function TimelineWrapper({
         <div className="bg-background h-full flex flex-col py-4">
           <div className="flex-shrink-0">
             <div className="flex items-center justify-between px-6 pb-4">
-              <div className="text-foreground text-md font-medium">Activity timeline</div>
+              <div className="flex items-center gap-2">
+                <div className="text-foreground text-md font-medium">Activity timeline</div>
+              </div>
               <div className="flex items-center gap-2">
                 {/* Copy JSON Button */}
                 {onCopyTrace && (
@@ -384,7 +418,6 @@ export function TimelineWrapper({
                   (activity) =>
                     activity.type === ACTIVITY_TYPES.AI_ASSISTANT_MESSAGE ||
                     activity.type === ACTIVITY_TYPES.AI_MODEL_STREAMED_TEXT ||
-                    activity.type === ACTIVITY_TYPES.AI_MODEL_STREAMED_OBJECT ||
                     (activity.hasError && activity.otelStatusDescription)
                 ) && (
                   <div className="flex items-center gap-1">
@@ -435,7 +468,7 @@ export function TimelineWrapper({
                 initial="smooth"
               >
                 <StickToBottom.Content>
-                  <ActivityTimeline
+                  <HierarchicalTimeline
                     activities={sortedActivities}
                     onSelect={(activity) => {
                       setSelected({
@@ -468,8 +501,11 @@ export function TimelineWrapper({
                 </StickToBottom.Content>
               </StickToBottom>
             ) : (
-              <div className="h-full overflow-y-auto scrollbar-thin scrollbar-thumb-muted-foreground/30 scrollbar-track-transparent dark:scrollbar-thumb-muted-foreground/50">
-                <ActivityTimeline
+              <div
+                ref={scrollContainerRef}
+                className="h-full overflow-y-auto scrollbar-thin scrollbar-thumb-muted-foreground/30 scrollbar-track-transparent dark:scrollbar-thumb-muted-foreground/50"
+              >
+                <HierarchicalTimeline
                   activities={sortedActivities}
                   onSelect={(activity) => {
                     setSelected({

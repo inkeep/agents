@@ -1,6 +1,7 @@
-import type { z } from 'zod';
-import type { ApiKeySelect } from '../index';
+import type { z } from '@hono/zod-openapi';
+import type { ApiKeySelect, FullProjectSelectWithRelationIds, ResolvedRef } from '../index';
 import type {
+  EvaluationJobFilterCriteriaSchema,
   McpTransportConfigSchema,
   ModelSchema,
   ProjectModelSchema,
@@ -10,7 +11,13 @@ import type {
 
 // Utility types
 export type MessageVisibility = 'user-facing' | 'internal' | 'system' | 'external';
-export type MessageType = 'chat' | 'a2a-request' | 'a2a-response' | 'task-update' | 'tool-call';
+export type MessageType =
+  | 'chat'
+  | 'a2a-request'
+  | 'a2a-response'
+  | 'task-update'
+  | 'tool-call'
+  | 'tool-result';
 export type MessageRole = 'user' | 'agent' | 'system';
 export type MessageMode = 'full' | 'scoped' | 'none';
 
@@ -47,6 +54,8 @@ export type SubAgentScopeConfig = AgentScopeConfig & {
 export interface ConversationScopeOptions {
   taskId?: string;
   subAgentId?: string;
+  delegationId?: string;
+  isDelegated?: boolean;
 }
 
 export type ConversationHistoryConfig = {
@@ -65,6 +74,11 @@ export type ConversationMetadata = {
   userContext?: Record<string, unknown>;
   preferences?: Record<string, unknown>;
   sessionData?: Record<string, unknown>;
+  apiKeyId?: string;
+  initiatedBy?: {
+    type: 'user' | 'api_key';
+    id: string;
+  };
 };
 
 export type MessageContent = {
@@ -116,6 +130,7 @@ export type ContextFetchDefinition = {
     body?: Record<string, unknown>;
     transform?: string;
     timeout?: number;
+    requiredToFetch?: Array<string>; // Context variables that are required to run the fetch request. If the given variables cannot be resolved, the fetch request will be skipped.
   };
   responseSchema?: Record<string, unknown>; // JSON Schema for validating HTTP response
   defaultValue?: unknown;
@@ -165,6 +180,13 @@ export type McpToolDefinition = {
   inputSchema?: Record<string, unknown>;
 };
 
+export type ToolSimplifyConfig = {
+  displayName?: string;
+  description?: string;
+  schema?: any; // Zod schema or JSON schema
+  transformation?: Record<string, string> | string; // object mapping or JMESPath expression
+};
+
 export type ToolMcpConfig = {
   // Server connection details
   server: {
@@ -176,6 +198,10 @@ export type ToolMcpConfig = {
   transport?: McpTransportConfig;
   // Active tools to enable from this MCP server
   activeTools?: string[];
+  // Tool overrides for schema simplification
+  toolOverrides?: Record<string, ToolSimplifyConfig>;
+  // Optional custom prompt/instructions for using this MCP server
+  prompt?: string;
 };
 
 export type ToolServerCapabilities = {
@@ -247,7 +273,7 @@ export interface ApiKeyCreateResult {
  * Execution context that gets propagated through agent calls
  * Contains authentication and routing information for internal API calls
  */
-export interface ExecutionContext {
+export interface BaseExecutionContext {
   /** The original API key from the client request */
   apiKey: string;
   /** Tenant ID extracted from API key */
@@ -260,6 +286,100 @@ export interface ExecutionContext {
   baseUrl: string;
   /** API key ID for tracking */
   apiKeyId: string;
+  /** Ref extracted from query params */
+  ref?: string;
   /** Sub Agent ID extracted from request headers (only for internal A2A calls) */
   subAgentId?: string;
+  /** Metadata for the execution context */
+  metadata?: {
+    teamDelegation?: boolean;
+    originAgentId?: string;
+    initiatedBy?: {
+      type: 'user' | 'api_key';
+      id: string;
+    };
+  };
 }
+
+export interface FullExecutionContext extends BaseExecutionContext {
+  resolvedRef: ResolvedRef;
+  project: FullProjectSelectWithRelationIds;
+}
+
+/**
+ * Reusable filter type that supports and/or operations
+ *
+ * Allows composition of filters using:
+ * - Direct filter criteria (e.g., { agentIds: ['id1', 'id2'] })
+ * - AND operation: { and: [filter1, filter2, ...] }
+ * - OR operation: { or: [filter1, filter2, ...] }
+ *
+ * @template T - The base filter criteria type (e.g., { agentIds?: string[] })
+ *
+ * @example
+ * // Simple filter
+ * const filter: Filter<{ agentIds?: string[] }> = { agentIds: ['id1'] };
+ *
+ * @example
+ * // AND operation
+ * const filter: Filter<{ agentIds?: string[] }> = {
+ *   and: [
+ *     { agentIds: ['id1'] },
+ *     { agentIds: ['id2'] }
+ *   ]
+ * };
+ *
+ * @example
+ * // OR operation
+ * const filter: Filter<{ agentIds?: string[] }> = {
+ *   or: [
+ *     { agentIds: ['id1'] },
+ *     { agentIds: ['id2'] }
+ *   ]
+ * };
+ *
+ * @example
+ * // Complex nested operations
+ * const filter: Filter<{ agentIds?: string[] }> = {
+ *   and: [
+ *     { agentIds: ['id1'] },
+ *     {
+ *       or: [
+ *         { agentIds: ['id2'] },
+ *         { agentIds: ['id3'] }
+ *       ]
+ *     }
+ *   ]
+ * };
+ */
+export type Filter<T extends Record<string, unknown>> =
+  | T
+  | { and: Array<Filter<T>> }
+  | { or: Array<Filter<T>> };
+
+export type PassCriteriaOperator = '>' | '<' | '>=' | '<=' | '=' | '!=';
+
+export type PassCriteriaCondition = {
+  field: string;
+  operator: PassCriteriaOperator;
+  value: number;
+};
+
+export type PassCriteria = {
+  operator: 'and' | 'or';
+  conditions: PassCriteriaCondition[];
+};
+
+export type EvaluationJobFilterCriteria = z.infer<typeof EvaluationJobFilterCriteriaSchema>;
+
+export type EvaluationSuiteFilterCriteria = {
+  agentIds?: string[];
+  [key: string]: unknown;
+};
+
+export type DatasetItemInput = {
+  messages: Array<{ role: string; content: MessageContent }>;
+  headers?: Record<string, string>;
+};
+
+export type DatasetItemExpectedOutput = Array<{ role: string; content: MessageContent }>;

@@ -1,6 +1,8 @@
-import { createRoute, OpenAPIHono } from '@hono/zod-openapi';
+import { createRoute, OpenAPIHono, z } from '@hono/zod-openapi';
 import {
+  AgentWithinContextOfProjectResponse,
   AgentWithinContextOfProjectSchema,
+  cascadeDeleteByAgent,
   commonGetErrorResponses,
   createApiError,
   createFullAgentServerSide,
@@ -8,35 +10,36 @@ import {
   ErrorResponseSchema,
   type FullAgentDefinition,
   getFullAgent,
-  SingleResponseSchema,
+  listSubAgents,
+  TenantProjectAgentParamsSchema,
   TenantProjectParamsSchema,
   updateFullAgentServerSide,
 } from '@inkeep/agents-core';
-import { z } from 'zod';
-import dbClient from '../data/db/dbClient';
+import runDbClient from '../data/db/runDbClient';
 import { getLogger } from '../logger';
+import { requirePermission } from '../middleware/require-permission';
+import type { BaseAppVariables } from '../types/app';
 
 const logger = getLogger('agentFull');
 
-const app = new OpenAPIHono();
+const app = new OpenAPIHono<{ Variables: BaseAppVariables }>();
 
-// Schema for path parameters with agentId
-const AgentIdParamsSchema = z
-  .object({
-    tenantId: z.string().openapi({
-      description: 'Tenant identifier',
-      example: 'tenant_123',
-    }),
-    projectId: z.string().openapi({
-      description: 'Project identifier',
-      example: 'project_456',
-    }),
-    agentId: z.string().openapi({
-      description: 'Agent identifier',
-      example: 'agent_789',
-    }),
-  })
-  .openapi('AgentIdParams');
+app.use('/', async (c, next) => {
+  if (c.req.method === 'POST') {
+    return requirePermission<{ Variables: BaseAppVariables }>({ agent: ['create'] })(c, next);
+  }
+  return next();
+});
+
+app.use('/:agentId', async (c, next) => {
+  if (c.req.method === 'PUT') {
+    return requirePermission<{ Variables: BaseAppVariables }>({ agent: ['update'] })(c, next);
+  }
+  if (c.req.method === 'DELETE') {
+    return requirePermission<{ Variables: BaseAppVariables }>({ agent: ['delete'] })(c, next);
+  }
+  return next();
+});
 
 app.openapi(
   createRoute({
@@ -62,7 +65,7 @@ app.openapi(
         description: 'Full agent created successfully',
         content: {
           'application/json': {
-            schema: SingleResponseSchema(AgentWithinContextOfProjectSchema),
+            schema: AgentWithinContextOfProjectResponse,
           },
         },
       },
@@ -78,12 +81,13 @@ app.openapi(
     },
   }),
   async (c) => {
+    const db = c.get('db');
     const { tenantId, projectId } = c.req.valid('param');
     const agentData = c.req.valid('json');
 
     const validatedAgentData = AgentWithinContextOfProjectSchema.parse(agentData);
 
-    const createdAgent = await createFullAgentServerSide(dbClient, logger)(
+    const createdAgent = await createFullAgentServerSide(db)(
       { tenantId, projectId },
       validatedAgentData
     );
@@ -101,14 +105,14 @@ app.openapi(
     tags: ['Full Agent'],
     description: 'Retrieve a complete agent definition with all agents, tools, and relationships',
     request: {
-      params: AgentIdParamsSchema,
+      params: TenantProjectAgentParamsSchema,
     },
     responses: {
       200: {
         description: 'Full agent found',
         content: {
           'application/json': {
-            schema: SingleResponseSchema(AgentWithinContextOfProjectSchema),
+            schema: AgentWithinContextOfProjectResponse,
           },
         },
       },
@@ -116,11 +120,12 @@ app.openapi(
     },
   }),
   async (c) => {
+    const db = c.get('db');
     const { tenantId, projectId, agentId } = c.req.valid('param');
 
     try {
       const agent: FullAgentDefinition | null = await getFullAgent(
-        dbClient,
+        db,
         logger
       )({
         scopes: { tenantId, projectId, agentId },
@@ -161,7 +166,7 @@ app.openapi(
     description:
       'Update or create a complete agent with all agents, tools, and relationships from JSON definition',
     request: {
-      params: AgentIdParamsSchema,
+      params: TenantProjectAgentParamsSchema,
       body: {
         content: {
           'application/json': {
@@ -175,7 +180,7 @@ app.openapi(
         description: 'Full agent updated successfully',
         content: {
           'application/json': {
-            schema: SingleResponseSchema(AgentWithinContextOfProjectSchema),
+            schema: AgentWithinContextOfProjectResponse,
           },
         },
       },
@@ -183,7 +188,7 @@ app.openapi(
         description: 'Full agent created successfully',
         content: {
           'application/json': {
-            schema: SingleResponseSchema(AgentWithinContextOfProjectSchema),
+            schema: AgentWithinContextOfProjectResponse,
           },
         },
       },
@@ -191,10 +196,12 @@ app.openapi(
     },
   }),
   async (c) => {
+    const db = c.get('db');
     const { tenantId, projectId, agentId } = c.req.valid('param');
     const agentData = c.req.valid('json');
 
     try {
+      logger.info({}, 'test agent data');
       const validatedAgentData = AgentWithinContextOfProjectSchema.parse(agentData);
 
       if (agentId !== validatedAgentData.id) {
@@ -205,7 +212,7 @@ app.openapi(
       }
 
       const existingAgent: FullAgentDefinition | null = await getFullAgent(
-        dbClient,
+        db,
         logger
       )({
         scopes: { tenantId, projectId, agentId },
@@ -214,14 +221,8 @@ app.openapi(
 
       // Update/create the full agent using server-side data layer operations
       const updatedAgent: FullAgentDefinition = isCreate
-        ? await createFullAgentServerSide(dbClient, logger)(
-            { tenantId, projectId },
-            validatedAgentData
-          )
-        : await updateFullAgentServerSide(dbClient, logger)(
-            { tenantId, projectId },
-            validatedAgentData
-          );
+        ? await createFullAgentServerSide(db)({ tenantId, projectId }, validatedAgentData)
+        : await updateFullAgentServerSide(db)({ tenantId, projectId }, validatedAgentData);
 
       return c.json({ data: updatedAgent }, isCreate ? 201 : 200);
     } catch (error) {
@@ -257,7 +258,7 @@ app.openapi(
     description:
       'Delete a complete agent and cascade to all related entities (relationships, not other agents/tools)',
     request: {
-      params: AgentIdParamsSchema,
+      params: TenantProjectAgentParamsSchema,
     },
     responses: {
       204: {
@@ -267,11 +268,27 @@ app.openapi(
     },
   }),
   async (c) => {
+    const db = c.get('db');
+    const resolvedRef = c.get('resolvedRef');
     const { tenantId, projectId, agentId } = c.req.valid('param');
 
     try {
+      // Get all subAgentIds for this agent before deleting
+      const subAgents = await listSubAgents(db)({
+        scopes: { tenantId, projectId, agentId },
+      });
+      const subAgentIds = subAgents.map((sa) => sa.id);
+
+      // Delete runtime entities for this agent on this branch
+      await cascadeDeleteByAgent(runDbClient)({
+        scopes: { tenantId, projectId, agentId },
+        fullBranchName: resolvedRef.name,
+        subAgentIds,
+      });
+
+      // Delete the full agent from the config DB
       const deleted = await deleteFullAgent(
-        dbClient,
+        db,
         logger
       )({
         scopes: { tenantId, projectId, agentId },

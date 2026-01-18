@@ -5,6 +5,7 @@
 
 import type { FullAgentDefinition } from '@inkeep/agents-core';
 import { getLogger } from '@inkeep/agents-core';
+import { parseError } from './projectFullClient';
 
 const logger = getLogger('agentFullClient');
 
@@ -38,19 +39,8 @@ export async function createFullAgentViaAPI(
 
   if (!response.ok) {
     const errorText = await response.text();
-    let errorMessage = `Failed to create agent: ${response.status} ${response.statusText}`;
-
-    try {
-      const errorJson = JSON.parse(errorText);
-      if (errorJson.error) {
-        errorMessage = errorJson.error;
-      }
-    } catch {
-      // Use the text as-is if not JSON
-      if (errorText) {
-        errorMessage = errorText;
-      }
-    }
+    const errorMessage =
+      parseError(errorText) ?? `Failed to create agent: ${response.status} ${response.statusText}`;
 
     logger.error(
       {
@@ -106,19 +96,8 @@ export async function updateFullAgentViaAPI(
 
   if (!response.ok) {
     const errorText = await response.text();
-    let errorMessage = `Failed to update agent: ${response.status} ${response.statusText}`;
-
-    try {
-      const errorJson = JSON.parse(errorText);
-      if (errorJson.error) {
-        errorMessage = errorJson.error;
-      }
-    } catch {
-      // Use the text as-is if not JSON
-      if (errorText) {
-        errorMessage = errorText;
-      }
-    }
+    const errorMessage =
+      parseError(errorText) ?? `Failed to update agent: ${response.status} ${response.statusText}`;
 
     logger.error(
       {
@@ -182,19 +161,8 @@ export async function getFullAgentViaAPI(
     }
 
     const errorText = await response.text();
-    let errorMessage = `Failed to get agent: ${response.status} ${response.statusText}`;
-
-    try {
-      const errorJson = JSON.parse(errorText);
-      if (errorJson.error) {
-        errorMessage = errorJson.error;
-      }
-    } catch {
-      // Use the text as-is if not JSON
-      if (errorText) {
-        errorMessage = errorText;
-      }
-    }
+    const errorMessage =
+      parseError(errorText) ?? `Failed to get agent: ${response.status} ${response.statusText}`;
 
     logger.error(
       {
@@ -248,19 +216,8 @@ export async function deleteFullAgentViaAPI(
 
   if (!response.ok) {
     const errorText = await response.text();
-    let errorMessage = `Failed to delete agent: ${response.status} ${response.statusText}`;
-
-    try {
-      const errorJson = JSON.parse(errorText);
-      if (errorJson.error) {
-        errorMessage = errorJson.error;
-      }
-    } catch {
-      // Use the text as-is if not JSON
-      if (errorText) {
-        errorMessage = errorText;
-      }
-    }
+    const errorMessage =
+      parseError(errorText) ?? `Failed to delete agent: ${response.status} ${response.statusText}`;
 
     logger.error(
       {

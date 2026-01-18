@@ -1,5 +1,1092 @@
 # @inkeep/agents-manage-ui
 
+## 0.41.2
+
+### Patch Changes
+
+- 112b5c7: Add --local flag to inkeep init to set local profile as default
+- d32fdb8: Fix import for streamdown css
+- 01ca1e6: - Fix bug with trying to use the useRuntimeConfig hook within the shadow dom"
+- c584a64: Remove `fixedOverflowWidgets` option from monaco-editor config
+- 86273ec: fix: add missing border for shadcn tooltip arrow
+- e5e12d9: Disable warnings for `–’` characters in Prompt editor
+- 2e86062: warning status messages
+- Updated dependencies [112b5c7]
+- Updated dependencies [de84714]
+- Updated dependencies [af347c8]
+- Updated dependencies [2e86062]
+  - @inkeep/agents-core@0.41.2
+
+## 0.41.1
+
+### Patch Changes
+
+- d1f60f3: added azure provider
+- 53acc10: - Bump agents-ui package, remove the need to force refresh the widget when headers change
+- Updated dependencies [d1f60f3]
+  - @inkeep/agents-core@0.41.1
+
+## 0.41.0
+
+### Minor Changes
+
+- de60268: remove `[tenantId]/projects/[projectId]/page.tsx` file in favour of redirect in `next.config` file
+- 1c46e8f: add syntax highlighting for markdown/html elements in prompt editors
+
+### Patch Changes
+
+- 49ec561: fix auth dependencies
+- 5d095da: Properly contain overflow of trace card content
+- f1a6cd4: compression ui improvements
+- 7a00f08: use `bg-sidebar` for `<body>` for pages with sidebar
+- 1257b10: `useEffect` is always called on the client, and the `window` object is defined
+- 561605f: Export DEFAULT_NANGO_STORE_ID from @inkeep/agents-core main exports
+- c890035: When using `@inkeep/agents-manage-ui` as dependency we are getting following error:
+  Failed to load external module pino-51ec28aa490c8dec: Error: Cannot find module 'pino-51ec28aa490c8dec'
+
+  because Turbopack appends hash for server-only packages listed in `serverExternalPackages`
+
+- 4b016d4: target ids for chat-to-edit
+- d933953: Disable colorized logs in non-TTY environments like Vercel. Logs now respect the NO_COLOR env var and automatically disable colors when stdout is not a TTY.
+- 9b17c81: streamObject removed from traces
+- f58f9e4: Fix cookie header forwarding for MCP server authentication
+- Updated dependencies [49ec561]
+- Updated dependencies [5d095da]
+- Updated dependencies [f1a6cd4]
+- Updated dependencies [561605f]
+- Updated dependencies [4b016d4]
+- Updated dependencies [d933953]
+- Updated dependencies [9b17c81]
+- Updated dependencies [f58f9e4]
+  - @inkeep/agents-core@0.41.0
+
+## 0.40.0
+
+### Minor Changes
+
+- e5172e2: remove unused dependencies, lint unused dependencies with Knip
+- 811b6e2: Deduplicate Data Fetching with `@tanstack/react-query`
+- 90c4cfb: remove unused variables/functions
+- 44d5516: setup sentry for pilot.inkeep.com
+- 50ed255: remove unused types
+
+### Patch Changes
+
+- 7317cb1: fix user not found error
+- be0131e: user info for spans
+- 07f77ab: Remove unused exports using Knip automation tool
+- 8b95949: context tracking in traces
+- b2c2fd9: fix trace viewer panes to scroll independently
+- b231869: set `compilerOptions.verbatimModuleSyntax: true` in all `tsconfig.json` files
+- ff51b72: fix diagnostics highlighting in JSON editor
+- 1ef2557: dashboard: do not overflow main content container
+- 5b32e12: Fix container size
+- d27e015: fix double breadcrumbs on `/projects` error page
+- 153d4e5: Added Conversation COmpression
+- 970a7bd: update Next.js to 16.1.0, use Turbopack for build
+- Updated dependencies [be0131e]
+- Updated dependencies [e5172e2]
+- Updated dependencies [8b95949]
+- Updated dependencies [b2c2fd9]
+- Updated dependencies [b231869]
+- Updated dependencies [178d5b1]
+- Updated dependencies [153d4e5]
+  - @inkeep/agents-core@0.40.0
+
+## 0.39.5
+
+### Patch Changes
+
+- 9f654ab: move `monaco.setTheme` call from `<ThemeToggle />` component to `<HeaderMenus />`
+- 9474027: fix missing scope for mcp server
+- 31e0d6e: dashboard: improve navigation by proper using Next.js `loading` files and `React.Suspense` in agent page
+- d13e4c2: Fix quickstart
+- 231abec: Hide chat to create
+- 9e4deda: Added dynamic model context limit checks
+- e420660: dashbord: dynamically load `<Agent />` page only on client
+- Updated dependencies [d13e4c2]
+- Updated dependencies [9e4deda]
+  - @inkeep/agents-manage-api@0.39.5
+  - @inkeep/agents-run-api@0.39.5
+  - @inkeep/agents-core@0.39.5
+
+## 0.39.4
+
+### Patch Changes
+
+- fcb3adc: added gemini 3 flash
+- 9403533: improve mcp connect for chat to edit
+- Updated dependencies [fcb3adc]
+- Updated dependencies [9403533]
+  - @inkeep/agents-core@0.39.4
+  - @inkeep/agents-manage-api@0.39.4
+  - @inkeep/agents-run-api@0.39.4
+
+## 0.39.3
+
+### Patch Changes
+
+- eba0e6b: Increase default page size to 100 (API max) for all list endpoints to show more resources without full pagination
+- a3b79b2: adjust auth settings
+- 2b156b6: migrate from tsup to tsdown
+- 9afba48: fix: resolve create-agents test mock issue with node:util and node:child_process module paths
+- e4b0e1b: - fix shiki theme being wrongly overwritten in monaco-editor
+  - lazy loading monaco only pages with editors
+- 68ef774: Add x-speakeasy-pagination extension to all paginated list endpoints for Speakeasy SDK native pagination support
+- Updated dependencies [eba0e6b]
+- Updated dependencies [a3b79b2]
+- Updated dependencies [2b156b6]
+- Updated dependencies [9afba48]
+- Updated dependencies [68ef774]
+  - @inkeep/agents-core@0.39.3
+  - @inkeep/agents-manage-api@0.39.3
+  - @inkeep/agents-run-api@0.39.3
+
+## 0.39.2
+
+### Patch Changes
+
+- bc3cd69: Bump agents ui and improve stat opts
+- 0f2b040: added backup parser
+- Updated dependencies [0f2b040]
+  - @inkeep/agents-core@0.39.2
+  - @inkeep/agents-run-api@0.39.2
+  - @inkeep/agents-manage-api@0.39.2
+
+## 0.39.1
+
+### Patch Changes
+
+- cbb7c09: batch flushing
+- 00be449: found bug in system prpomt
+- 6411569: remove `React.CSSProperties` type override
+- 71a83d0: improve redirect logic and better-auth session use
+- Updated dependencies [cbb7c09]
+- Updated dependencies [00be449]
+- Updated dependencies [71a83d0]
+  - @inkeep/agents-run-api@0.39.1
+  - @inkeep/agents-manage-api@0.39.1
+  - @inkeep/agents-core@0.39.1
+
+## 0.39.0
+
+### Minor Changes
+
+- f76e412: Add device_code table for CLI device authentication flow
+
+### Patch Changes
+
+- f76e412: Add InkeepTelemetryProvider for observability and tracing
+- f76e412: Add CI/CD support for headless operation with INKEEP_API_KEY and environment variable overrides
+- f76e412: Add --all flag to push/pull for batch project operations and --tag for tagged config files
+- f76e412: Enhance init command with cloud onboarding wizard (scaffolds projects from remote tenant)
+- f76e412: Add profile management system for multi-remote support (profile list/add/use/current/remove)
+- f76e412: Wire profiles into push/pull commands with --profile and --quiet flags
+- f76e412: Add CLI authentication commands (login, logout, status, whoami) with device code OAuth flow
+- f76e412: Add /api/cli/me endpoint for CLI user authentication
+- f76e412: Add InkeepCredentialProvider abstraction for credential management
+- f76e412: Add device authorization page for CLI OAuth flow
+- Updated dependencies [f76e412]
+- Updated dependencies [f76e412]
+- Updated dependencies [f76e412]
+- Updated dependencies [f76e412]
+- Updated dependencies [f76e412]
+- Updated dependencies [f76e412]
+- Updated dependencies [f76e412]
+- Updated dependencies [f76e412]
+- Updated dependencies [f76e412]
+- Updated dependencies [f76e412]
+- Updated dependencies [f76e412]
+  - @inkeep/agents-core@0.39.0
+  - @inkeep/agents-manage-api@0.39.0
+  - @inkeep/agents-run-api@0.39.0
+
+## 0.38.3
+
+### Patch Changes
+
+- @inkeep/agents-manage-api@0.38.3
+- @inkeep/agents-run-api@0.38.3
+- @inkeep/agents-core@0.38.3
+
+## 0.38.2
+
+### Patch Changes
+
+- 907fb8f: updated models to have gpt-5-2
+- 5f4fa55: Update tool parsing to match tool name changes in updated mcp
+- Updated dependencies [907fb8f]
+  - @inkeep/agents-core@0.38.2
+  - @inkeep/agents-manage-api@0.38.2
+  - @inkeep/agents-run-api@0.38.2
+
+## 0.38.1
+
+### Patch Changes
+
+- 32c4c34: improve ux for scoped credentials
+- 8c81242: ui for tool breakdown and warnings for tool calls
+- 4d28a93: Fix text contrast in approval dialogs and Monaco editor wrappers for dark mode
+- 251cecd: added mid generation compression
+- ce60f56: multi tenant auth for signoz queries
+- Updated dependencies [32c4c34]
+- Updated dependencies [8c81242]
+- Updated dependencies [251cecd]
+- Updated dependencies [ce60f56]
+  - @inkeep/agents-core@0.38.1
+  - @inkeep/agents-manage-api@0.38.1
+  - @inkeep/agents-run-api@0.38.1
+
+## 0.38.0
+
+### Minor Changes
+
+- c3ffb34: Add GET /logout endpoint for debugging login/logout issues. Supports direct URL-based logout without requiring JavaScript execution. Includes security hardening to prevent open redirect vulnerabilities.
+- 515d808: Upgrade to Vercel AI SDK v6 beta
+- 4b64b94: - add spinner in `Save changes` button in agent workflow
+  - remove `inPreviewDisabled` prop from `<Toolbar />` component
+
+### Patch Changes
+
+- b69b814: fix biome warnings
+- 8114afc: Update to open id connect for release action
+- bcee35f: add requiredToFetch on fetch definitions
+- f4628aa: fix multiple copy value icons when value contains multiple quotes
+- a2928eb: filter out disabled providers
+- 4f2b325: Add missing repo field to package json
+- bc2bb7e: fix: update tool-approval tests to use correct underscore-based tool name format
+- a46303b: fix blue dot appears on inverted delegation on top left corner, refactor retrieving relationshipId in agents-core
+- d29440f: Bump next
+- af7704c: fix empty agent prompt field not updating in database
+- 4801d35: status messages for traces shown
+- f791c6d: updated artifact handlin
+- f1f68cf: new models
+- 6dcb6b7: fix signoz for vercel
+- 5e2c81d: - set max height for monaco editor to avoid page freezes up / lags when clicking into it
+  - add toggle text wrap action button for `JsonEditorWithCopy`
+- b3e49d9: updated schemas
+- 5fbd137: fix `Module not found: Can't resolve '../build/Release/keytar.node'` in dashboard, ignore `keytar` from bundling with `webpackIgnore` comment
+- 576c9d9: fix `TypeError: Cannot destructure property 'relationshipId' of 'data.details' as it is undefined.`
+- 609e8fe: Fix bug with team agent fetch
+- 31be157: cloud deployment does not have signoz links
+- fcbf008: add creator to mcp server name
+- e53c50a: remove `(with-react-flow-provider)` folder group
+- 6001b74: Fix schema for render generations when using anthropic models
+- Updated dependencies [b69b814]
+- Updated dependencies [8114afc]
+- Updated dependencies [2cf1070]
+- Updated dependencies [515d808]
+- Updated dependencies [bcee35f]
+- Updated dependencies [6ee52a8]
+- Updated dependencies [a46303b]
+- Updated dependencies [4801d35]
+- Updated dependencies [f791c6d]
+- Updated dependencies [f1f68cf]
+- Updated dependencies [6dcb6b7]
+- Updated dependencies [b3e49d9]
+- Updated dependencies [5fbd137]
+- Updated dependencies [31be157]
+- Updated dependencies [fcbf008]
+  - @inkeep/agents-core@0.38.0
+  - @inkeep/agents-manage-api@0.38.0
+  - @inkeep/agents-run-api@0.38.0
+
+## 0.37.2
+
+### Patch Changes
+
+- 6cdde56: add org settings page
+- 78163b1: mcp hard fail
+- f47e391: Use hono zod in run and manage packages
+- 1f77578: Fix broken tests: mcpTool.with() returns undefined for empty selectedTools, update agentFull test canUse structure, fix projectFull dataComponents props schema
+- Updated dependencies [78163b1]
+- Updated dependencies [f47e391]
+- Updated dependencies [1f77578]
+  - @inkeep/agents-run-api@0.37.2
+  - @inkeep/agents-manage-api@0.37.2
+  - @inkeep/agents-core@0.37.2
+
+## 0.37.1
+
+### Patch Changes
+
+- 505749a: Fix orphaned resource deletion in full project updates - tools, functions, credentialReferences, externalAgents, dataComponents, and artifactComponents are now properly removed when not present in the update payload
+- 7f1b78a: fix linter errors
+- 777d8ef: UI improvements for Evaluations
+- e07c709: Add Cursor command for creating PRs with changeset validation
+- c3c0ac4: dependency updates
+- fbf0d97: Add validation error when attempting to delete a sub-agent that is set as default
+- Updated dependencies [505749a]
+- Updated dependencies [7f1b78a]
+- Updated dependencies [e07c709]
+- Updated dependencies [c3c0ac4]
+- Updated dependencies [fbf0d97]
+  - @inkeep/agents-core@0.37.1
+  - @inkeep/agents-manage-api@0.37.1
+  - @inkeep/agents-run-api@0.37.1
+
+## 0.37.0
+
+### Minor Changes
+
+- 45471ab: Implement temporary API key authentication for playground with session-based auth
+
+### Patch Changes
+
+- 56e1b4d: make zod and hono zod internal deps
+- 45471ab: Fix error messages to show proper 403 access denied instead of generic internal server error
+- Updated dependencies [45471ab]
+- Updated dependencies [56e1b4d]
+- Updated dependencies [45471ab]
+  - @inkeep/agents-core@0.37.0
+  - @inkeep/agents-manage-api@0.37.0
+  - @inkeep/agents-run-api@0.37.0
+
+## 0.36.1
+
+### Patch Changes
+
+- 1235b18: improve cors policy
+- Updated dependencies [1235b18]
+  - @inkeep/agents-core@0.36.1
+  - @inkeep/agents-manage-api@0.36.1
+  - @inkeep/agents-run-api@0.36.1
+
+## 0.36.0
+
+### Minor Changes
+
+- 7f0f13a: 1. Add persistence in localStorage for the sidebar open state.
+
+  2. Make the `project switcher`, `Next.js DevTools logo`, and `breadcrumbs` elements to not trigger sidebar expansion.
+
+### Patch Changes
+
+- c59e3db: add cypress test for should create project, navigate to agents page and update project switcher
+- Updated dependencies [604c74c]
+  - @inkeep/agents-manage-api@0.36.0
+  - @inkeep/agents-run-api@0.36.0
+  - @inkeep/agents-core@0.36.0
+
+## 0.35.12
+
+### Patch Changes
+
+- 840ca11: remove clean-package from API packages - was stripping runtime dependencies causing production errors
+- Updated dependencies [840ca11]
+  - @inkeep/agents-core@0.35.12
+  - @inkeep/agents-manage-api@0.35.12
+  - @inkeep/agents-run-api@0.35.12
+
+## 0.35.11
+
+### Patch Changes
+
+- Updated dependencies [287027e]
+  - @inkeep/agents-manage-api@0.35.11
+  - @inkeep/agents-run-api@0.35.11
+  - @inkeep/agents-core@0.35.11
+
+## 0.35.10
+
+### Patch Changes
+
+- 7a7e726: handle next*public* for vercel
+- Updated dependencies [7a7e726]
+  - @inkeep/agents-core@0.35.10
+  - @inkeep/agents-manage-api@0.35.10
+  - @inkeep/agents-run-api@0.35.10
+
+## 0.35.9
+
+### Patch Changes
+
+- Updated dependencies [18c036d]
+  - @inkeep/agents-core@0.35.9
+  - @inkeep/agents-manage-api@0.35.9
+  - @inkeep/agents-run-api@0.35.9
+
+## 0.35.8
+
+### Patch Changes
+
+- 986dad2: update better-auth
+- Updated dependencies [986dad2]
+  - @inkeep/agents-core@0.35.8
+  - @inkeep/agents-manage-api@0.35.8
+  - @inkeep/agents-run-api@0.35.8
+
+## 0.35.7
+
+### Patch Changes
+
+- 8684c97: Make delegation the default relationship
+  - @inkeep/agents-manage-api@0.35.7
+  - @inkeep/agents-run-api@0.35.7
+  - @inkeep/agents-core@0.35.7
+
+## 0.35.6
+
+### Patch Changes
+
+- 31dbacc: handle google sign in
+- Updated dependencies [31dbacc]
+  - @inkeep/agents-core@0.35.6
+  - @inkeep/agents-manage-api@0.35.6
+  - @inkeep/agents-run-api@0.35.6
+
+## 0.35.5
+
+### Patch Changes
+
+- 15b564d: make inkeep mcp and docker optional in the quickstart
+- Updated dependencies [15b564d]
+  - @inkeep/agents-core@0.35.5
+  - @inkeep/agents-manage-api@0.35.5
+  - @inkeep/agents-run-api@0.35.5
+
+## 0.35.4
+
+### Patch Changes
+
+- e297579: pull third party mcp servers
+- Updated dependencies [e297579]
+  - @inkeep/agents-core@0.35.4
+  - @inkeep/agents-manage-api@0.35.4
+  - @inkeep/agents-run-api@0.35.4
+
+## 0.35.3
+
+### Patch Changes
+
+- 89e8c26: cleaned stale components with inkeep pull
+- Updated dependencies [89e8c26]
+  - @inkeep/agents-manage-api@0.35.3
+  - @inkeep/agents-run-api@0.35.3
+  - @inkeep/agents-core@0.35.3
+
+## 0.35.2
+
+### Patch Changes
+
+- Updated dependencies [769d8a9]
+  - @inkeep/agents-core@0.35.2
+  - @inkeep/agents-manage-api@0.35.2
+  - @inkeep/agents-run-api@0.35.2
+
+## 0.35.1
+
+### Patch Changes
+
+- 23c5018: Disable quick suggestions in prompt editor
+- fc243b4: fix baseUrl for auth client
+- 6fdfb87: `inPreview` property is missing in JSON and form builder in artifacts page
+- 447bdf2: - allow saving JSON schema without `required` field
+  - highlight header of form builder if there are errors
+  - highlight border of JSON Schema editor if there are errors
+  - @inkeep/agents-manage-api@0.35.1
+  - @inkeep/agents-run-api@0.35.1
+  - @inkeep/agents-core@0.35.1
+
+## 0.35.0
+
+### Minor Changes
+
+- 0d46d32: Adding auth to the framework
+
+### Patch Changes
+
+- f9a208a: Check for CLI installation in quickstart
+- Updated dependencies [f9a208a]
+- Updated dependencies [0d46d32]
+  - @inkeep/agents-core@0.35.0
+  - @inkeep/agents-manage-api@0.35.0
+  - @inkeep/agents-run-api@0.35.0
+
+## 0.34.1
+
+### Patch Changes
+
+- 699043d: Install inkeep mcp in quickstarte
+- e4b5d5c: Inkeep add: usage instructions and target path detection
+- Updated dependencies [699043d]
+- Updated dependencies [e4b5d5c]
+  - @inkeep/agents-core@0.34.1
+  - @inkeep/agents-manage-api@0.34.1
+  - @inkeep/agents-run-api@0.34.1
+
+## 0.34.0
+
+### Minor Changes
+
+- 8af5738: - should collapses when opening an agent page and re-expands when returning to other page
+  - should keeps the sidebar collapsed after a manual toggle even when leaving the agent page
+
+### Patch Changes
+
+- 7426927: add cli installation to quickstart
+- 015f9f7: Status Update Model fixed
+- 817b43e: fix JSON mode in JSON schema from builder, when JSON mode is enabled it override JSON schema to empty
+- bdeee9b: quickstart skip cli install option
+- 2434d22: add error handling to github fetch
+- af95c9a: added provider config
+- 2672603: Fix scroll in widgets inside of the ship modal
+- Updated dependencies [7426927]
+- Updated dependencies [015f9f7]
+- Updated dependencies [bdeee9b]
+- Updated dependencies [2434d22]
+- Updated dependencies [af95c9a]
+  - @inkeep/agents-core@0.34.0
+  - @inkeep/agents-manage-api@0.34.0
+  - @inkeep/agents-run-api@0.34.0
+
+## 0.33.3
+
+### Patch Changes
+
+- d957766: updated docs and model pointing
+- b83ce52: truncate long badges in agent flow
+- 9ab5e8b: fix template rendering of '-'
+- 3294024: bad schema
+- cd916ee: fix of bug when two MCPs are incorrectly highlighted as `active` in animation
+- 8bfac58: ADded new models
+- 7eafb29: updated agent docs and directory aware inkeep pull
+- 1a3cc67: use `cursor-pointer` for `DropdownMenuItem`
+- f3f999c: revert `SidebarInset` styles changes
+- cd916ee: stop data-operation animation for `delegation_returned` and `tool_result`
+- 62beff0: Fix console warning: [Shiki] 10 instances have been created. Shiki is supposed to be used as a singleton, consider refactoring your code to cache your highlighter instance; Or call `highlighter.dispose()` to release unused instances.
+- 404477b: use agents loader in `[tenantId]/projects/[projectId]`
+- 24db564: fix: unable to save new component when add properties via form builder
+- cd916ee: still show the “parent” that’s waiting for the delegation to return as blue outline
+- 7b2db47: added new models
+- Updated dependencies [d957766]
+- Updated dependencies [9ab5e8b]
+- Updated dependencies [3294024]
+- Updated dependencies [cd916ee]
+- Updated dependencies [8bfac58]
+- Updated dependencies [7eafb29]
+- Updated dependencies [7b2db47]
+  - @inkeep/agents-core@0.33.3
+  - @inkeep/agents-manage-api@0.33.3
+  - @inkeep/agents-run-api@0.33.3
+
+## 0.33.2
+
+### Patch Changes
+
+- 4b2fd62: tool history perserved
+- b9b423a: increase ReactFlow's `minZoom` to `0.3` (default was 0.5)
+- Updated dependencies [4b2fd62]
+- Updated dependencies [bbbed5e]
+  - @inkeep/agents-core@0.33.2
+  - @inkeep/agents-run-api@0.33.2
+  - @inkeep/agents-manage-api@0.33.2
+
+## 0.33.1
+
+### Patch Changes
+
+- e1eb8b6: - Only show close button on playground if not in full screen view
+- 98f139a: Updated agent cil
+- Updated dependencies [98f139a]
+  - @inkeep/agents-manage-api@0.33.1
+  - @inkeep/agents-run-api@0.33.1
+  - @inkeep/agents-core@0.33.1
+
+## 0.33.0
+
+### Minor Changes
+
+- b89cbd1: bump next.js to 16, react to 19.2.0
+- e70d5ff: show dialog if user tries to leave the agent graph page and there are unsaved changes
+- e1cf7f4: auto collapse sidebar when on the agent graph page / make collapsed view icons only
+
+### Patch Changes
+
+- 1eea0c4: show cypress errors on CI
+- 6fe0005: fix `WARNING: Panel defaultSize prop recommended to avoid layout shift after server rendering`
+- 189aec5: fix Next.js warning `⚠ "next start" does not work with "output: standalone" configuration. Use "node .next/standalone/server.js" instead.`
+- cf9ff7d: fix flacky Cypress tests `No group found for id '...'`
+- 5d6b3aa: Add 'break-words' class to base node component
+- 0d71cac: `suppressHydrationWarning` on development on `<body>` element
+- d95a9de: enable Biome noUselessElse rule
+- 94e5940: dashboard: prefer `PageProps`, `LayoutProps`, `RouteContext` types
+- 6d6a033: add blur to `Ship` button
+- Updated dependencies [b89cbd1]
+- Updated dependencies [d2fa856]
+- Updated dependencies [d95a9de]
+  - @inkeep/agents-core@0.33.0
+  - @inkeep/agents-manage-api@0.33.0
+  - @inkeep/agents-run-api@0.33.0
+
+## 0.32.2
+
+### Patch Changes
+
+- c228770: update create-agents setup script
+- Updated dependencies [c228770]
+  - @inkeep/agents-core@0.32.2
+  - @inkeep/agents-manage-api@0.32.2
+  - @inkeep/agents-run-api@0.32.2
+
+## 0.32.1
+
+### Patch Changes
+
+- 5bd3d93: update dev deps agent-core
+- Updated dependencies [5bd3d93]
+  - @inkeep/agents-core@0.32.1
+  - @inkeep/agents-manage-api@0.32.1
+  - @inkeep/agents-run-api@0.32.1
+
+## 0.32.0
+
+### Minor Changes
+
+- a262e1e: postgres migration
+
+### Patch Changes
+
+- 185db71: fix validation errors of form fields for:
+
+  - `subAgent.id`
+  - `subAgent.prompt`
+  - `agent.name`
+  - `agent.contextVariables`
+  - `agent.headersSchema`
+
+- ed8abd5: should update the SubAgent prompt editor when switching nodes
+- cb75c9c: bug fix for pages in traces
+- Updated dependencies [185db71]
+- Updated dependencies [8d8b6dd]
+- Updated dependencies [a262e1e]
+- Updated dependencies [cb75c9c]
+  - @inkeep/agents-core@0.32.0
+  - @inkeep/agents-manage-api@0.32.0
+  - @inkeep/agents-run-api@0.32.0
+
+## 0.31.7
+
+### Patch Changes
+
+- 5e45a98: added coherent context
+- Updated dependencies [5e45a98]
+  - @inkeep/agents-run-api@0.31.7
+  - @inkeep/agents-manage-api@0.31.7
+  - @inkeep/agents-core@0.31.7
+
+## 0.31.6
+
+### Patch Changes
+
+- afffd8f: - Small ui design tweaks
+  - @inkeep/agents-manage-api@0.31.6
+  - @inkeep/agents-run-api@0.31.6
+  - @inkeep/agents-core@0.31.6
+
+## 0.31.5
+
+### Patch Changes
+
+- 6fd7b05: - Add ship modal with instructions for how to utilize the agents
+- 19e8375: - Bump agents-ui package to 0.15.2
+  - @inkeep/agents-manage-api@0.31.5
+  - @inkeep/agents-run-api@0.31.5
+  - @inkeep/agents-core@0.31.5
+
+## 0.31.4
+
+### Patch Changes
+
+- 02d6839: optimize queries
+- Updated dependencies [02d6839]
+  - @inkeep/agents-core@0.31.4
+  - @inkeep/agents-manage-api@0.31.4
+  - @inkeep/agents-run-api@0.31.4
+
+## 0.31.3
+
+### Patch Changes
+
+- ce3720a: animate MCP node which throws an error
+- ea4b251: remove `as React.CSSProperties` type casting
+- 43edec7: rename `Flow` component with `AgentReactFlowConsumer`
+- c1299f0: Prevent page jumps when Monaco editor is inside tab
+- f91281b: use forked mcp sdk
+- Updated dependencies [f91281b]
+  - @inkeep/agents-core@0.31.3
+  - @inkeep/agents-manage-api@0.31.3
+  - @inkeep/agents-run-api@0.31.3
+
+## 0.31.2
+
+### Patch Changes
+
+- 2b515de: added ability to pull without project flag
+- Updated dependencies [2b515de]
+  - @inkeep/agents-manage-api@0.31.2
+  - @inkeep/agents-run-api@0.31.2
+  - @inkeep/agents-core@0.31.2
+
+## 0.31.1
+
+### Patch Changes
+
+- e81022d: hierarchical timeline
+- Updated dependencies [e81022d]
+  - @inkeep/agents-manage-api@0.31.1
+  - @inkeep/agents-run-api@0.31.1
+  - @inkeep/agents-core@0.31.1
+
+## 0.31.0
+
+### Minor Changes
+
+- c92cb22: Implement a Simple Edit mode for the JSON Schema editor, enabling users to modify the schema via an HTML form.
+- 3bfcc67: Make the Side Pane and Playground Pane (Try It! button) resizable and persist their sizes in localStorage.
+
+### Patch Changes
+
+- eadc8f8: update agents-cli a bit
+- 48a3e3e: fields for copy trace
+- b98fd0a: test agents
+- 970a058: import `<Playground />` with `next/dynamic` to improve `/agents/*` first load page sizes
+- Updated dependencies [eadc8f8]
+- Updated dependencies [48a3e3e]
+- Updated dependencies [b98fd0a]
+  - @inkeep/agents-manage-api@0.31.0
+  - @inkeep/agents-run-api@0.31.0
+  - @inkeep/agents-core@0.31.0
+
+## 0.30.4
+
+### Patch Changes
+
+- aeacd5f: call `generateId` only once during initial rendering
+- 26b89c6: upgrade quickstart packages
+- 4a73629: remove ai sdk provider input
+- Updated dependencies [26b89c6]
+- Updated dependencies [4a73629]
+  - @inkeep/agents-core@0.30.4
+  - @inkeep/agents-manage-api@0.30.4
+  - @inkeep/agents-run-api@0.30.4
+
+## 0.30.3
+
+### Patch Changes
+
+- 73569ce: agent name and id fixes
+- Updated dependencies [73569ce]
+  - @inkeep/agents-core@0.30.3
+  - @inkeep/agents-run-api@0.30.3
+  - @inkeep/agents-manage-api@0.30.3
+
+## 0.30.2
+
+### Patch Changes
+
+- 09ac1b4: update sdk provider
+- Updated dependencies [09ac1b4]
+  - @inkeep/agents-core@0.30.2
+  - @inkeep/agents-manage-api@0.30.2
+  - @inkeep/agents-run-api@0.30.2
+
+## 0.30.1
+
+### Patch Changes
+
+- 8b889f4: updated UI and model docs
+- c6502dd: remove two way delegation
+- c2f5582: fixed inkeep pull bug
+- 99bf28a: stream collection
+- Updated dependencies [8b889f4]
+- Updated dependencies [c6502dd]
+- Updated dependencies [c2f5582]
+- Updated dependencies [99bf28a]
+  - @inkeep/agents-manage-api@0.30.1
+  - @inkeep/agents-run-api@0.30.1
+  - @inkeep/agents-core@0.30.1
+
+## 0.30.0
+
+### Minor Changes
+
+- 94fe795: Move templates into monorepo
+
+### Patch Changes
+
+- e95f0d3: Updated inkeep pull significantly
+- Updated dependencies [e95f0d3]
+- Updated dependencies [94fe795]
+  - @inkeep/agents-core@0.30.0
+  - @inkeep/agents-manage-api@0.30.0
+  - @inkeep/agents-run-api@0.30.0
+
+## 0.29.11
+
+### Patch Changes
+
+- 9ca1b6c: fix `ProjectSelector` make items active if their names and descriptions are identical
+- dba5a31: Update quickstart port check
+- b0817aa: Fix CLI bugs
+
+  - Quickstart inkeep.config.ts indents and types
+  - inkeep init run API and manage API urls
+
+- 69c303e: fix validation errors for Sub Agents and setup Cypress e2e tests
+- Updated dependencies [dba5a31]
+- Updated dependencies [b0817aa]
+  - @inkeep/agents-core@0.29.11
+  - @inkeep/agents-manage-api@0.29.11
+  - @inkeep/agents-run-api@0.29.11
+
+## 0.29.10
+
+### Patch Changes
+
+- Updated dependencies [0663c46]
+  - @inkeep/agents-core@0.29.10
+  - @inkeep/agents-manage-api@0.29.10
+  - @inkeep/agents-run-api@0.29.10
+
+## 0.29.9
+
+### Patch Changes
+
+- cd5b846: - Update agents-ui to latest, update docs to reflect renaming of modalSettings to openSettings"
+  - @inkeep/agents-manage-api@0.29.9
+  - @inkeep/agents-run-api@0.29.9
+  - @inkeep/agents-core@0.29.9
+
+## 0.29.8
+
+### Patch Changes
+
+- @inkeep/agents-manage-api@0.29.8
+- @inkeep/agents-run-api@0.29.8
+- @inkeep/agents-core@0.29.8
+
+## 0.29.7
+
+### Patch Changes
+
+- Updated dependencies [a4cf6d8]
+  - @inkeep/agents-manage-api@0.29.7
+  - @inkeep/agents-run-api@0.29.7
+  - @inkeep/agents-core@0.29.7
+
+## 0.29.6
+
+### Patch Changes
+
+- 6c52cc6: unknown tenant bug fix
+- Updated dependencies [6c52cc6]
+  - @inkeep/agents-core@0.29.6
+  - @inkeep/agents-run-api@0.29.6
+  - @inkeep/agents-manage-api@0.29.6
+
+## 0.29.5
+
+### Patch Changes
+
+- Updated dependencies [767d466]
+  - @inkeep/agents-core@0.29.5
+  - @inkeep/agents-manage-api@0.29.5
+  - @inkeep/agents-run-api@0.29.5
+
+## 0.29.4
+
+### Patch Changes
+
+- 533fa81: StopWhen agent config fix
+- 0bfcd17: fix external link icon and arrow right icon to prevent color overflow
+- Updated dependencies [533fa81]
+  - @inkeep/agents-core@0.29.4
+  - @inkeep/agents-manage-api@0.29.4
+  - @inkeep/agents-run-api@0.29.4
+
+## 0.29.3
+
+### Patch Changes
+
+- d26c5a4: team agent update bug fix
+- Updated dependencies [d26c5a4]
+  - @inkeep/agents-core@0.29.3
+  - @inkeep/agents-manage-api@0.29.3
+  - @inkeep/agents-run-api@0.29.3
+
+## 0.29.2
+
+### Patch Changes
+
+- b499ce6: - Make agents plural in breadcrumbs ans agents page
+  - @inkeep/agents-manage-api@0.29.2
+  - @inkeep/agents-run-api@0.29.2
+  - @inkeep/agents-core@0.29.2
+
+## 0.29.1
+
+### Patch Changes
+
+- f2ac869: upgrade docs
+- 37e50a6: fix mcp headers with context config
+- 65f4b1a: remove builtin time variables from context
+- Updated dependencies [f2ac869]
+- Updated dependencies [37e50a6]
+- Updated dependencies [65f4b1a]
+  - @inkeep/agents-core@0.29.1
+  - @inkeep/agents-manage-api@0.29.1
+  - @inkeep/agents-run-api@0.29.1
+
+## 0.29.0
+
+### Minor Changes
+
+- 38db07a: require name for credentials
+
+### Patch Changes
+
+- Updated dependencies [38db07a]
+  - @inkeep/agents-core@0.29.0
+  - @inkeep/agents-manage-api@0.29.0
+  - @inkeep/agents-run-api@0.29.0
+
+## 0.28.0
+
+### Minor Changes
+
+- 8e3dfb1: zoom into section of graph where agent is selected
+- e63ba9e: replace `JSON`/`Prompt`/`Code` Codemirror editors with Monaco-editors
+
+### Patch Changes
+
+- 74a4d0b: trace filter is all agents for default
+- dbeddf1: fix for data animation, bug highlights unrelated MCP tools on invocation
+- bb4ea0e: - Fix errors in agent builder
+- b4e878d: Allow pushing component render
+- 96c499d: reject invalid chars in quickstart
+- c10ac33: fix: polling on activities cause chat widget to re-render every second
+- 074e076: mcp evironment settings
+- Updated dependencies [74a4d0b]
+- Updated dependencies [b4e878d]
+- Updated dependencies [96c499d]
+- Updated dependencies [074e076]
+  - @inkeep/agents-manage-api@0.28.0
+  - @inkeep/agents-run-api@0.28.0
+  - @inkeep/agents-core@0.28.0
+
+## 0.27.0
+
+### Minor Changes
+
+- 0a6df6e: tool.with syntx
+- a423b57: Team Agents
+
+### Patch Changes
+
+- 4a2af4c: Added Artifact Schema validation
+- Updated dependencies [4a2af4c]
+- Updated dependencies [0a6df6e]
+- Updated dependencies [a423b57]
+  - @inkeep/agents-core@0.27.0
+  - @inkeep/agents-run-api@0.27.0
+  - @inkeep/agents-manage-api@0.27.0
+
+## 0.26.2
+
+### Patch Changes
+
+- 3c5c183: activity-planner default
+- 8a637b5: updated inkeep pull to have fiel validation
+- c1c55b5: Tighten up form styles, styles for component generation
+- Updated dependencies [3c5c183]
+- Updated dependencies [8a637b5]
+  - @inkeep/agents-core@0.26.2
+  - @inkeep/agents-manage-api@0.26.2
+  - @inkeep/agents-run-api@0.26.2
+
+## 0.26.1
+
+### Patch Changes
+
+- 4e3cb6a: move detect oauth to server
+- Updated dependencies [4e3cb6a]
+  - @inkeep/agents-core@0.26.1
+  - @inkeep/agents-manage-api@0.26.1
+  - @inkeep/agents-run-api@0.26.1
+
+## 0.26.0
+
+### Minor Changes
+
+- 0562d82: include `Projects` > `Project Name` > in breadcrumbs
+
+### Patch Changes
+
+- 5f537a8: remove unneeded agents-manage-ui/src/components/theme-provider.tsx file (next-themes already has `use client` directive)
+  - @inkeep/agents-manage-api@0.26.0
+  - @inkeep/agents-run-api@0.26.0
+  - @inkeep/agents-core@0.26.0
+
+## 0.25.0
+
+### Minor Changes
+
+- 51c157e: External agents project scoped
+
+### Patch Changes
+
+- d8e9af2: - Add delete node button to sidepane
+- Updated dependencies [51c157e]
+  - @inkeep/agents-core@0.25.0
+  - @inkeep/agents-manage-api@0.25.0
+  - @inkeep/agents-run-api@0.25.0
+
+## 0.24.2
+
+### Patch Changes
+
+- 3ad959e: initialize git in quickstart
+- ffe9033: add delete buttons
+- 7d8fcb6: cli add mcp support
+- 6699b4b: - Revert revert and fix id gen
+- f536bba: - Fix bug where clearing status update frequency fields caused them to disappear
+- 60d728b: prefer `PageProps`, `LayoutProps` and `RouteContext` Next.js' types
+- dd7b636: Allow users to configure the default sub agent
+- Updated dependencies [3ad959e]
+- Updated dependencies [7d8fcb6]
+- Updated dependencies [6699b4b]
+  - @inkeep/agents-core@0.24.2
+  - @inkeep/agents-manage-api@0.24.2
+  - @inkeep/agents-run-api@0.24.2
+
+## 0.24.1
+
+### Patch Changes
+
+- 212fa9e: revert back to nanoid
+- Updated dependencies [212fa9e]
+  - @inkeep/agents-core@0.24.1
+  - @inkeep/agents-manage-api@0.24.1
+  - @inkeep/agents-run-api@0.24.1
+
+## 0.24.0
+
+### Minor Changes
+
+- 3c87a88: Animate Agent graph based on `ikp-data-operation` event types
+
+### Patch Changes
+
+- a8023c6: Fix React Flow toolbar buttons overflow caused by nodes and edges
+- 317efb7: use generateId everywhere
+- be54574: fix component generate-preview
+- Updated dependencies [317efb7]
+- Updated dependencies [be54574]
+  - @inkeep/agents-core@0.24.0
+  - @inkeep/agents-manage-api@0.24.0
+  - @inkeep/agents-run-api@0.24.0
+
 ## 0.23.5
 
 ### Patch Changes

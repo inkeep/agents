@@ -15,10 +15,9 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/comp
 
 interface NangoProvidersGridProps {
   providers: ApiProvider[];
-  error: string | null;
 }
 
-export function NangoProvidersGrid({ providers, error }: NangoProvidersGridProps) {
+export function NangoProvidersGrid({ providers }: NangoProvidersGridProps) {
   const [searchQuery, setSearchQuery] = useState('');
   const { tenantId, projectId } = useParams<{
     tenantId: string;
@@ -84,17 +83,6 @@ export function NangoProvidersGrid({ providers, error }: NangoProvidersGridProps
     const query = searchQuery.toLowerCase();
     return providersWithSearchText.filter((provider) => provider.searchText.includes(query));
   }, [providersWithSearchText, searchQuery]);
-
-  if (error) {
-    return (
-      <div className="text-center p-8">
-        <p className="text-destructive">{error}</p>
-        <Button variant="outline" onClick={() => window.location.reload()} className="mt-4">
-          Try Again
-        </Button>
-      </div>
-    );
-  }
 
   return (
     <div className="space-y-6">

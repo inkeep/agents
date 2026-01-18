@@ -3,8 +3,9 @@
 import { Info } from 'lucide-react';
 import { useParams } from 'next/navigation';
 import { useCallback } from 'react';
-import { ExpandableJsonEditor } from '@/components/form/expandable-json-editor';
+import { StandaloneJsonEditor } from '@/components/editors/standalone-json-editor';
 import { ModelInheritanceInfo } from '@/components/projects/form/model-inheritance-info';
+import { ModelConfiguration } from '@/components/shared/model-configuration';
 import { Checkbox } from '@/components/ui/checkbox';
 import { CopyableSingleLineCode } from '@/components/ui/copyable-single-line-code';
 import { ExternalLink } from '@/components/ui/external-link';
@@ -18,13 +19,20 @@ import { Label } from '@/components/ui/label';
 import { Separator } from '@/components/ui/separator';
 import { Textarea } from '@/components/ui/textarea';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
-import { useRuntimeConfig } from '@/contexts/runtime-config-context';
-import { useAgentActions, useAgentStore } from '@/features/agent/state/use-agent-store';
+import { useRuntimeConfig } from '@/contexts/runtime-config';
+import { agentStore, useAgentActions, useAgentStore } from '@/features/agent/state/use-agent-store';
 import { useAutoPrefillIdZustand } from '@/hooks/use-auto-prefill-id-zustand';
 import { useProjectData } from '@/hooks/use-project-data';
+import {
+  statusUpdatesComponentsTemplate,
+  structuredOutputModelProviderOptionsTemplate,
+  summarizerModelProviderOptionsTemplate,
+} from '@/lib/templates';
+import { ExpandablePromptEditor } from '../../../editors/expandable-prompt-editor';
 import { CollapsibleSettings } from '../collapsible-settings';
-import { ExpandableTextArea } from '../nodes/expandable-text-area';
-import { InputField, TextareaField } from '../nodes/form-fields';
+import { InputField } from '../form-components/input';
+import { FieldLabel } from '../form-components/label';
+import { TextareaField } from '../form-components/text-area';
 import { ModelSelector } from '../nodes/model-selector';
 import { SectionHeader } from '../section';
 import { ContextConfigForm } from './context-config';
@@ -53,9 +61,8 @@ const ExecutionLimitInheritanceInfo = () => {
 };
 
 function MetadataEditor() {
-  const params = useParams();
+  const { agentId, tenantId, projectId } = useParams();
   const metadata = useAgentStore((state) => state.metadata);
-  const { agentId, tenantId, projectId } = params;
   const { id, name, description, contextConfig, models, stopWhen, prompt, statusUpdates } =
     metadata;
   const { PUBLIC_INKEEP_AGENTS_RUN_API_URL } = useRuntimeConfig();
@@ -73,6 +80,11 @@ function MetadataEditor() {
     },
     [setMetadata, markUnsaved]
   );
+
+  // Helper to get the latest models from the store to avoid stale closure race conditions
+  const getCurrentModels = useCallback(() => {
+    return agentStore.getState().metadata.models;
+  }, []);
 
   const handleIdChange = useCallback(
     (generatedId: string) => {
@@ -146,13 +158,12 @@ function MetadataEditor() {
         className="max-h-96"
       />
       <div className="space-y-2">
-        <ExpandableTextArea
-          id="agent-prompt"
+        <ExpandablePromptEditor
+          name="agent-prompt"
           label="Agent prompt"
-          value={prompt || ''}
+          value={prompt}
           onChange={(value) => updateMetadata('prompt', value)}
           placeholder="System-level instructions for this agent..."
-          className="max-h-96"
         />
         <p className="text-xs text-muted-foreground">
           System-level prompt that defines the intended audience and overall goal of this agent.
@@ -173,65 +184,62 @@ function MetadataEditor() {
             </div>
           }
         />
-        <div className="relative space-y-2">
-          <ModelSelector
-            value={models?.base?.model || ''}
-            inheritedValue={project?.models?.base?.model}
-            onValueChange={(value) => {
-              const newModels = {
-                ...(models || {}),
-                base: value
-                  ? {
-                      ...(models?.base || {}),
-                      model: value,
-                    }
-                  : undefined,
-              };
-              updateMetadata('models', newModels);
-            }}
-            label={
-              <div className="flex items-center gap-2">
-                Base model
-                <InheritanceIndicator
-                  {...getModelInheritanceStatus(
-                    'agent',
-                    models?.base?.model,
-                    project?.models?.base?.model
-                  )}
-                  size="sm"
-                />
-              </div>
+        <ModelConfiguration
+          value={models?.base?.model}
+          providerOptions={models?.base?.providerOptions}
+          inheritedValue={project?.models?.base?.model}
+          label={
+            <div className="flex items-center gap-2">
+              Base model
+              <InheritanceIndicator
+                {...getModelInheritanceStatus(
+                  'agent',
+                  models?.base?.model,
+                  project?.models?.base?.model
+                )}
+                size="sm"
+              />
+            </div>
+          }
+          description="Primary model for general agent responses"
+          onModelChange={(value) => {
+            const currentModels = getCurrentModels();
+            const newModels = {
+              ...(currentModels || {}),
+              base: value
+                ? {
+                    ...(currentModels?.base || {}),
+                    model: value,
+                  }
+                : undefined,
+            };
+            updateMetadata('models', newModels);
+          }}
+          onProviderOptionsChange={(value) => {
+            const currentModels = getCurrentModels();
+            // If there's no base model in the store yet, check the component's `models` prop
+            // which reflects the latest state from the selector (handles timing issues)
+            const baseModel = currentModels?.base?.model || models?.base?.model;
+            if (!baseModel) {
+              return;
             }
-          />
-          <p className="text-xs text-muted-foreground">Primary model for general agent responses</p>
-        </div>
+            const newModels = {
+              ...(currentModels || models || {}),
+              base: {
+                ...(currentModels?.base || models?.base || {}),
+                model: baseModel,
+                providerOptions: value,
+              },
+            };
+            updateMetadata('models', newModels);
+          }}
+          editorNamePrefix="agent-base"
+        />
 
         <CollapsibleSettings
           defaultOpen={!!models?.structuredOutput || !!models?.summarizer}
           title="Advanced model options"
         >
-          {/* Base Model Provider Options */}
-          {models?.base?.model && (
-            <ExpandableJsonEditor
-              name="base-provider-options"
-              label="Base model provider options"
-              onChange={(value) => {
-                updateMetadata('models', {
-                  ...(models || {}),
-                  base: {
-                    model: models.base?.model || '',
-                    providerOptions: value,
-                  },
-                });
-              }}
-              value={models.base.providerOptions || ''}
-              placeholder={`{
-    "temperature": 0.7,
-    "maxTokens": 2048
-}`}
-            />
-          )}
-
           <div className="relative space-y-2">
             <ModelSelector
               value={models?.structuredOutput?.model || ''}
@@ -241,11 +249,12 @@ function MetadataEditor() {
                 project?.models?.base?.model
               }
               onValueChange={(value) => {
+                const currentModels = getCurrentModels();
                 const newModels = {
-                  ...(models || {}),
+                  ...(currentModels || {}),
                   structuredOutput: value
                     ? {
-                        ...(models?.structuredOutput || {}),
+                        ...(currentModels?.structuredOutput || {}),
                         model: value,
                       }
                     : undefined,
@@ -272,24 +281,28 @@ function MetadataEditor() {
           </div>
           {/* Structured Output Model Provider Options */}
           {models?.structuredOutput?.model && (
-            <ExpandableJsonEditor
-              name="structured-provider-options"
-              label="Structured output model provider options"
-              onChange={(value) => {
-                updateMetadata('models', {
-                  ...(models || {}),
-                  structuredOutput: {
-                    model: models.structuredOutput?.model || '',
-                    providerOptions: value,
-                  },
-                });
-              }}
-              value={models.structuredOutput.providerOptions || ''}
-              placeholder={`{
-  "temperature": 0.1,
-  "maxTokens": 1024
-}`}
-            />
+            <div className="space-y-2">
+              <FieldLabel
+                id="structured-provider-options"
+                label="Structured output model provider options"
+              />
+              <StandaloneJsonEditor
+                name="structured-provider-options"
+                onChange={(value) => {
+                  const currentModels = getCurrentModels();
+                  updateMetadata('models', {
+                    ...(currentModels || {}),
+                    structuredOutput: {
+                      model: currentModels?.structuredOutput?.model || '',
+                      providerOptions: value,
+                    },
+                  });
+                }}
+                value={models.structuredOutput.providerOptions || ''}
+                placeholder={structuredOutputModelProviderOptionsTemplate}
+                customTemplate={structuredOutputModelProviderOptionsTemplate}
+              />
+            </div>
           )}
           <div className="relative space-y-2">
             <ModelSelector
@@ -300,11 +313,12 @@ function MetadataEditor() {
                 project?.models?.base?.model
               }
               onValueChange={(value) => {
+                const currentModels = getCurrentModels();
                 const newModels = {
-                  ...(models || {}),
+                  ...(currentModels || {}),
                   summarizer: value
                     ? {
-                        ...(models?.summarizer || {}),
+                        ...(currentModels?.summarizer || {}),
                         model: value,
                       }
                     : undefined,
@@ -331,24 +345,28 @@ function MetadataEditor() {
           </div>
           {/* Summarizer Model Provider Options */}
           {models?.summarizer?.model && (
-            <ExpandableJsonEditor
-              name="summarizer-provider-options"
-              label="Summarizer model provider options"
-              onChange={(value) => {
-                updateMetadata('models', {
-                  ...(models || {}),
-                  summarizer: {
-                    model: models.summarizer?.model || '',
-                    providerOptions: value,
-                  },
-                });
-              }}
-              value={models.summarizer.providerOptions || ''}
-              placeholder={`{
-  "temperature": 0.3,
-  "maxTokens": 1024
-}`}
-            />
+            <div className="space-y-2">
+              <FieldLabel
+                id="summarizer-provider-options"
+                label="Summarizer model provider options"
+              />
+              <StandaloneJsonEditor
+                name="summarizer-provider-options"
+                onChange={(value) => {
+                  const currentModels = getCurrentModels();
+                  updateMetadata('models', {
+                    ...(currentModels || {}),
+                    summarizer: {
+                      model: currentModels?.summarizer?.model || '',
+                      providerOptions: value,
+                    },
+                  });
+                }}
+                value={models.summarizer.providerOptions || ''}
+                placeholder={summarizerModelProviderOptionsTemplate}
+                customTemplate={summarizerModelProviderOptionsTemplate}
+              />
+            </div>
           )}
         </CollapsibleSettings>
       </div>
@@ -459,7 +477,7 @@ function MetadataEditor() {
                       <Checkbox
                         id="event-based-updates"
                         className="bg-background"
-                        checked={!!statusUpdates?.numEvents}
+                        checked={statusUpdates && 'numEvents' in statusUpdates}
                         onCheckedChange={(checked) => {
                           if (checked) {
                             updateMetadata('statusUpdates', {
@@ -480,7 +498,7 @@ function MetadataEditor() {
                       <Checkbox
                         id="time-based-updates"
                         className="bg-background"
-                        checked={!!statusUpdates?.timeInSeconds}
+                        checked={statusUpdates && 'timeInSeconds' in statusUpdates}
                         onCheckedChange={(checked) => {
                           if (checked) {
                             updateMetadata('statusUpdates', {
@@ -499,7 +517,7 @@ function MetadataEditor() {
                   </div>
                 </div>
 
-                {statusUpdates?.numEvents && (
+                {statusUpdates && 'numEvents' in statusUpdates && (
                   <div className="space-y-2">
                     <Label htmlFor="num-events">Number of events</Label>
                     <Input
@@ -524,7 +542,7 @@ function MetadataEditor() {
                   </div>
                 )}
 
-                {statusUpdates?.timeInSeconds && (
+                {statusUpdates && 'timeInSeconds' in statusUpdates && (
                   <div className="space-y-2">
                     <Label htmlFor="time-in-seconds">Time interval (seconds)</Label>
                     <Input
@@ -551,9 +569,9 @@ function MetadataEditor() {
               </div>
 
               <div className="space-y-2">
-                <ExpandableJsonEditor
+                <FieldLabel id="status-components" label="Status components configuration" />
+                <StandaloneJsonEditor
                   name="status-components"
-                  label="Status components configuration"
                   onChange={(value) => {
                     updateMetadata('statusUpdates', {
                       ...(statusUpdates || {}),
@@ -561,36 +579,13 @@ function MetadataEditor() {
                     });
                   }}
                   value={statusUpdates?.statusComponents || ''}
-                  placeholder={`[
-  {
-    "id": "tool_call_summary",
-    "name": "Tool Call",
-    "description": "A summary of a single tool call and why it was relevant to the current task. Be specific about what was found or accomplished.",
-    "schema": {
-      "type": "object",
-      "properties": {
-        "tool_name": {
-          "type": "string",
-          "description": "The name of the tool that was called"
-        },
-        "summary": {
-          "type": "string",
-          "description": "Brief summary of what was accomplished. Keep it to 3-5 words."
-        },
-        "status": {
-          "type": "string",
-          "enum": ["success", "error", "in_progress"],
-          "description": "Status of the tool call"
-        }
-      },
-      "required": ["tool_name", "summary"]
-    }
-  }
-]`}
+                  placeholder={statusUpdatesComponentsTemplate}
+                  customTemplate={statusUpdatesComponentsTemplate}
+                  className="bg-background"
                 />
                 <p className="text-xs text-muted-foreground">
-                  Define structured components for status updates. Each component has an id, name,
-                  description, and JSON schema.
+                  Define structured components for status updates. Each component has a type
+                  (required), description, and detailsSchema.
                 </p>
               </div>
             </CollapsibleSettings>

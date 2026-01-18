@@ -1,40 +1,51 @@
 import type { Edge, Node } from '@xyflow/react';
-import { nanoid } from 'nanoid';
-import type { AgentToolConfigLookup } from '@/components/agent/agent';
 import type { AgentMetadata } from '@/components/agent/configuration/agent-types';
 import type { A2AEdgeData } from '@/components/agent/configuration/edge-types';
 import { EdgeType } from '@/components/agent/configuration/edge-types';
 import { NodeType } from '@/components/agent/configuration/node-types';
 import type { ArtifactComponent } from '@/lib/api/artifact-components';
 import type { DataComponent } from '@/lib/api/data-components';
-import type { FullAgentDefinition, InternalAgentDefinition } from '@/lib/types/agent-full';
+import type {
+  AgentToolConfigLookup,
+  FullAgentDefinition,
+  InternalAgentDefinition,
+  SubAgentExternalAgentConfigLookup,
+  SubAgentTeamAgentConfigLookup,
+} from '@/lib/types/agent-full';
+import type { ExternalAgent } from '@/lib/types/external-agents';
+import type { TeamAgent } from '@/lib/types/team-agents';
+import { generateId } from '@/lib/utils/id-utils';
 
-// Use the exported InternalAgentDefinition from core
-type InternalAgent = InternalAgentDefinition;
-
-type ExternalAgent = {
-  id: string;
-  name: string;
-  description: string;
-  baseUrl: string;
-  headers?: Record<string, string> | null;
-  type: 'external';
-  credentialReferenceId?: string | null;
+type ExtendedAgent = InternalAgentDefinition & {
+  dataComponents: string[];
+  artifactComponents: string[];
+  models?: AgentMetadata['models'];
+  type: 'internal';
 };
 
-export type ExtendedAgent =
-  | (InternalAgent & {
-      dataComponents: string[];
-      artifactComponents: string[];
-      models?: AgentMetadata['models'];
-      type: 'internal';
-    })
-  | ExternalAgent;
+type ContextConfigParseError = Error & {
+  field: 'contextVariables' | 'headersSchema';
+};
 
-function isInternalAgent(
-  agent: ExtendedAgent | FullAgentDefinition['subAgents'][string]
-): agent is InternalAgent {
-  return agent.type === 'internal' && 'canUse' in agent;
+const createContextConfigParseError = (
+  field: ContextConfigParseError['field']
+): ContextConfigParseError => {
+  const message =
+    field === 'contextVariables'
+      ? 'Context variables must be valid JSON'
+      : 'Headers schema must be valid JSON';
+  const error = new Error(message) as ContextConfigParseError;
+  error.name = 'ContextConfigParseError';
+  error.field = field;
+  return error;
+};
+
+export function isContextConfigParseError(error: unknown): error is ContextConfigParseError {
+  if (!error || typeof error !== 'object') {
+    return false;
+  }
+  const candidate = error as Record<string, unknown>;
+  return candidate.name === 'ContextConfigParseError' && typeof candidate.field === 'string';
 }
 
 // Note: Tools are now project-scoped, not part of FullAgentDefinition
@@ -42,15 +53,23 @@ function isInternalAgent(
 /**
  * Safely parse a JSON string, returning undefined if parsing fails or input is falsy
  */
-function safeJsonParse(jsonString: string | undefined | null): any {
-  if (!jsonString) return undefined;
+function safeJsonParse(value: string | object | undefined | null): any {
+  if (!value) return undefined;
 
-  try {
-    return JSON.parse(jsonString);
-  } catch (error) {
-    console.error('Error parsing JSON:', error);
-    return undefined;
+  // If it's already an object, return it as-is
+  if (typeof value === 'object') return value;
+
+  // If it's a string, try to parse it
+  if (typeof value === 'string') {
+    try {
+      return JSON.parse(value);
+    } catch (error) {
+      console.warn('Error parsing JSON:', error);
+      return undefined;
+    }
   }
+
+  return undefined;
 }
 function processModels(modelsData: AgentMetadata['models']): AgentMetadata['models'] | undefined {
   if (modelsData && typeof modelsData === 'object') {
@@ -92,9 +111,13 @@ export function serializeAgentData(
   metadata?: AgentMetadata,
   dataComponentLookup?: Record<string, DataComponent>,
   artifactComponentLookup?: Record<string, ArtifactComponent>,
-  agentToolConfigLookup?: AgentToolConfigLookup
+  agentToolConfigLookup?: AgentToolConfigLookup,
+  subAgentExternalAgentConfigLookup?: SubAgentExternalAgentConfigLookup,
+  subAgentTeamAgentConfigLookup?: SubAgentTeamAgentConfigLookup
 ): FullAgentDefinition {
   const subAgents: Record<string, ExtendedAgent> = {};
+  const externalAgents: Record<string, ExternalAgent> = {};
+  const teamAgents: Record<string, TeamAgent> = {};
   const functionTools: Record<string, any> = {};
   const functions: Record<string, any> = {};
   // Note: Tools are now project-scoped and not included in agent serialization
@@ -104,7 +127,7 @@ export function serializeAgentData(
 
   for (const node of nodes) {
     if (node.type === NodeType.SubAgent) {
-      const subAgentId = (node.data.id as string) || node.id;
+      const subAgentId = (node.data.id as string) ?? node.id;
       const subAgentDataComponents = (node.data.dataComponents as string[]) || [];
       const subAgentArtifactComponents = (node.data.artifactComponents as string[]) || [];
 
@@ -187,10 +210,32 @@ export function serializeAgentData(
               }
             }
 
+            const tempToolPolicies = (mcpNode.data as any).tempToolPolicies;
+            let toolPolicies: Record<string, { needsApproval?: boolean }> | null = null;
+
+            if (tempToolPolicies !== undefined) {
+              if (
+                typeof tempToolPolicies === 'object' &&
+                tempToolPolicies !== null &&
+                !Array.isArray(tempToolPolicies)
+              ) {
+                toolPolicies = tempToolPolicies;
+              }
+            } else {
+              // No changes made to tool policies - preserve existing policies
+              const existingConfig = relationshipId
+                ? agentToolConfigLookup?.[subAgentId]?.[relationshipId]
+                : null;
+              if (existingConfig?.toolPolicies) {
+                toolPolicies = existingConfig.toolPolicies;
+              }
+            }
+
             canUse.push({
               toolId,
               toolSelection,
               headers: toolHeaders,
+              toolPolicies,
               ...(relationshipId && { agentToolRelationId: relationshipId }),
             });
           }
@@ -265,64 +310,253 @@ export function serializeAgentData(
 
       subAgents[subAgentId] = agent;
     } else if (node.type === NodeType.ExternalAgent) {
-      const subAgentId = (node.data.id as string) || node.id;
+      const externalAgentId = (node.data.id as string) || node.id;
 
-      // Parse headers from JSON string to object
-      const parsedHeaders = safeJsonParse(node.data.headers as string);
-
-      const agent: ExternalAgent = {
-        id: subAgentId,
+      const externalAgent: ExternalAgent & {
+        tempHeaders: Record<string, string> | null;
+        relationshipId: string | null;
+      } = {
+        id: externalAgentId,
         name: node.data.name as string,
         description: (node.data.description as string) || '',
         baseUrl: node.data.baseUrl as string,
-        headers: parsedHeaders || null,
-        type: 'external',
+        createdAt: node.data.createdAt as string,
+        updatedAt: node.data.updatedAt as string,
         credentialReferenceId: (node.data.credentialReferenceId as string) || null,
+        tempHeaders: (node.data as any).tempHeaders || null,
+        relationshipId: (node.data.relationshipId as string) || null,
       };
 
-      if (node.data.isDefault) {
-        defaultSubAgentId = subAgentId;
-      }
-
-      subAgents[subAgentId] = agent;
+      externalAgents[externalAgentId] = externalAgent;
+    } else if (node.type === NodeType.TeamAgent) {
+      const teamAgentId = (node.data.id as string) || node.id;
+      const teamAgent: TeamAgent & {
+        relationshipId: string | null;
+        tempHeaders: Record<string, string> | null;
+      } = {
+        id: teamAgentId,
+        name: node.data.name as string,
+        description: (node.data.description as string) || '',
+        tempHeaders: (node.data as any).tempHeaders || null,
+        relationshipId: (node.data.relationshipId as string) || null,
+      };
+      teamAgents[teamAgentId] = teamAgent;
     }
+    // External agent nodes are skipped - they are project-scoped resources
   }
+
+  const subAgentExternalDelegateMap: Record<string, Record<string, any>> = {}; // subAgentId -> relationshipId ->  relationship data
+  const newSubAgentExternalDelegateMap: Record<string, any> = {}; // subAgentId -> relationship data
+  const subAgentTeamDelegateMap: Record<string, Record<string, any>> = {}; // subAgentId -> relationshipId ->  relationship data
+  const newSubAgentTeamDelegateMap: Record<string, any> = {}; // subAgentId -> relationship data
+
+  // Populate delegate maps from existing agent data to avoid linear searches
+  Object.entries(subAgents).forEach(([subAgentId, agent]) => {
+    if (agent.canDelegateTo) {
+      agent.canDelegateTo.forEach((delegate) => {
+        if (typeof delegate === 'object') {
+          if ('externalAgentId' in delegate) {
+            // External agent delegation
+            if (!subAgentExternalDelegateMap[subAgentId]) {
+              subAgentExternalDelegateMap[subAgentId] = {};
+            }
+            if (delegate.subAgentExternalAgentRelationId) {
+              subAgentExternalDelegateMap[subAgentId][delegate.subAgentExternalAgentRelationId] =
+                delegate;
+            }
+          } else if ('agentId' in delegate) {
+            // Team agent delegation
+            if (!subAgentTeamDelegateMap[subAgentId]) {
+              subAgentTeamDelegateMap[subAgentId] = {};
+            }
+            if (delegate.subAgentTeamAgentRelationId) {
+              subAgentTeamDelegateMap[subAgentId][delegate.subAgentTeamAgentRelationId] = delegate;
+            }
+          }
+        }
+      });
+    }
+  });
 
   for (const edge of edges) {
     if (
       edge.type === EdgeType.A2A ||
       edge.type === EdgeType.A2AExternal ||
+      edge.type === EdgeType.A2ATeam ||
       edge.type === EdgeType.SelfLoop
     ) {
-      // edge.source and edge.target are the ids of the nodes (since we allow editing the agent ids we need to use node ids since those are stable)
-      // we need to find the agents based on the node ids and then update the agents canTransferTo and canDelegateTo with the agent ids not the node ids
-
       const sourceAgentNode = nodes.find((node) => node.id === edge.source);
       const targetAgentNode = nodes.find((node) => node.id === edge.target);
 
       const sourceSubAgentId = (sourceAgentNode?.data.id || sourceAgentNode?.id) as string;
       const targetSubAgentId = (targetAgentNode?.data.id || targetAgentNode?.id) as string;
       const sourceAgent: ExtendedAgent = subAgents[sourceSubAgentId];
-      const targetAgent: ExtendedAgent = subAgents[targetSubAgentId];
 
-      if (sourceAgent && targetAgent && (edge.data as any)?.relationships) {
-        const relationships = (edge.data as any).relationships as A2AEdgeData['relationships'];
+      const targetAgent: ExtendedAgent | undefined = subAgents[targetSubAgentId];
+      const targetExternalAgent: ExternalAgent | undefined = externalAgents[targetSubAgentId];
+      const targetTeamAgent: TeamAgent | undefined = teamAgents[targetSubAgentId];
+      const isTargetExternal = targetExternalAgent !== undefined;
+      const isTargetTeamAgent = targetTeamAgent !== undefined;
 
-        // Helper function to safely add relationship to internal agent
-        const addRelationship = (
-          agent: ExtendedAgent,
-          relationshipType: 'canTransferTo' | 'canDelegateTo',
-          targetId: string
-        ) => {
-          if (isInternalAgent(agent)) {
-            if (!agent[relationshipType]) agent[relationshipType] = [];
-            const subAgentRelationships = agent[relationshipType];
-            if (subAgentRelationships && !subAgentRelationships.includes(targetId)) {
-              subAgentRelationships.push(targetId);
+      if (!sourceAgent || !(edge.data as any)?.relationships) {
+        continue;
+      }
+
+      const relationships = (edge.data as any).relationships as A2AEdgeData['relationships'];
+
+      // Helper function to add relationship
+      const addRelationship = (
+        agent: ExtendedAgent,
+        relationshipType: 'canTransferTo' | 'canDelegateTo',
+        targetId: string,
+        isExternal = false,
+        isTeamAgent = false,
+        headers?: Record<string, string>,
+        relationshipId?: string
+      ) => {
+        if (relationshipType === 'canDelegateTo') {
+          if (!agent.canDelegateTo) {
+            agent.canDelegateTo = [];
+          }
+
+          // External agents always use object format
+          if (isExternal) {
+            const relationshipData: any = {
+              externalAgentId: targetId,
+              headers: headers ?? null,
+            };
+
+            // Only include relationshipId if it's not null (schema expects optional, not nullable)
+            if (relationshipId) {
+              relationshipData.subAgentExternalAgentRelationId = relationshipId;
+            }
+
+            // Store relationship in map - we'll rebuild canDelegateTo arrays at the end
+            if (relationshipId) {
+              if (!subAgentExternalDelegateMap[agent.id]) {
+                subAgentExternalDelegateMap[agent.id] = {};
+              }
+              subAgentExternalDelegateMap[agent.id][relationshipId] = relationshipData;
+            } else {
+              if (!newSubAgentExternalDelegateMap[agent.id]) {
+                newSubAgentExternalDelegateMap[agent.id] = {};
+              }
+              newSubAgentExternalDelegateMap[agent.id] = relationshipData;
+            }
+          } else if (isTeamAgent) {
+            // Team agents use object format with agentId
+            const relationshipData: any = {
+              agentId: targetId,
+              headers: headers ?? null,
+            };
+
+            // Only include relationshipId if it's not null (schema expects optional, not nullable)
+            if (relationshipId) {
+              relationshipData.subAgentTeamAgentRelationId = relationshipId;
+            }
+
+            // Store relationship in map - we'll rebuild canDelegateTo arrays at the end
+            if (relationshipId) {
+              if (!subAgentTeamDelegateMap[agent.id]) {
+                subAgentTeamDelegateMap[agent.id] = {};
+              }
+              subAgentTeamDelegateMap[agent.id][relationshipId] = relationshipData;
+            } else {
+              if (!newSubAgentTeamDelegateMap[agent.id]) {
+                newSubAgentTeamDelegateMap[agent.id] = {};
+              }
+              newSubAgentTeamDelegateMap[agent.id] = relationshipData;
+            }
+          } else {
+            // Internal agents use string format
+            if (!agent.canDelegateTo.includes(targetId)) {
+              agent.canDelegateTo.push(targetId);
             }
           }
-        };
+        } else {
+          if (!agent.canTransferTo) agent.canTransferTo = [];
+          if (!agent.canTransferTo.includes(targetId)) {
+            agent.canTransferTo.push(targetId);
+          }
+        }
+      };
 
+      // Handle edges to external agents (only delegation is allowed)
+      if (isTargetExternal) {
+        if (relationships.delegateSourceToTarget) {
+          const tempHeaders = (targetExternalAgent as any).tempHeaders;
+          let externalAgentHeaders: Record<string, string> | undefined;
+          const relationshipId = (targetExternalAgent as any).relationshipId;
+
+          if (tempHeaders !== undefined) {
+            if (
+              typeof tempHeaders === 'object' &&
+              tempHeaders !== null &&
+              !Array.isArray(tempHeaders)
+            ) {
+              externalAgentHeaders = tempHeaders;
+            }
+          } else {
+            const existingConfig = relationshipId
+              ? subAgentExternalAgentConfigLookup?.[sourceSubAgentId]?.[relationshipId]
+              : null;
+            if (existingConfig?.headers) {
+              externalAgentHeaders = existingConfig.headers;
+            }
+          }
+
+          addRelationship(
+            sourceAgent,
+            'canDelegateTo',
+            targetSubAgentId,
+            true, // isExternal
+            false, // isTeamAgent
+            externalAgentHeaders,
+            relationshipId
+          );
+        }
+        continue;
+      }
+
+      // Handle edges to team agents (only delegation is allowed)
+      if (isTargetTeamAgent) {
+        if (relationships.delegateSourceToTarget) {
+          const tempHeaders = (targetAgentNode as any).data?.tempHeaders;
+          let teamAgentHeaders: Record<string, string> | undefined;
+          const relationshipId = (targetAgentNode as any).data?.relationshipId;
+
+          if (tempHeaders !== undefined) {
+            if (
+              typeof tempHeaders === 'object' &&
+              tempHeaders !== null &&
+              !Array.isArray(tempHeaders)
+            ) {
+              teamAgentHeaders = tempHeaders;
+            }
+          } else {
+            const existingConfig = relationshipId
+              ? subAgentTeamAgentConfigLookup?.[sourceSubAgentId]?.[relationshipId]
+              : null;
+            if (existingConfig?.headers) {
+              teamAgentHeaders = existingConfig.headers;
+            }
+          }
+
+          addRelationship(
+            sourceAgent,
+            'canDelegateTo',
+            targetSubAgentId,
+            false, // isExternal
+            true, // isTeamAgent
+            teamAgentHeaders,
+            relationshipId
+          );
+        }
+        continue;
+      }
+
+      // Handle edges between internal agents
+      if (targetAgent) {
         // Process transfer relationships
         if (relationships.transferSourceToTarget) {
           addRelationship(sourceAgent, 'canTransferTo', targetSubAgentId);
@@ -341,21 +575,29 @@ export function serializeAgentData(
       }
     }
   }
+  const contextVariablesInput = metadata?.contextConfig?.contextVariables?.trim();
+  const parsedContextVariables = safeJsonParse(contextVariablesInput);
+  if (contextVariablesInput && !parsedContextVariables) {
+    throw createContextConfigParseError('contextVariables');
+  }
 
-  const parsedContextVariables = safeJsonParse(metadata?.contextConfig?.contextVariables);
-
-  const parsedHeadersSchema = safeJsonParse(metadata?.contextConfig?.headersSchema);
+  const headersSchemaInput = metadata?.contextConfig?.headersSchema?.trim();
+  const parsedHeadersSchema = safeJsonParse(headersSchemaInput);
+  if (headersSchemaInput && !parsedHeadersSchema) {
+    throw createContextConfigParseError('headersSchema');
+  }
 
   const hasContextConfig =
-    metadata?.contextConfig &&
-    ((parsedContextVariables &&
-      typeof parsedContextVariables === 'object' &&
-      parsedContextVariables !== null &&
-      Object.keys(parsedContextVariables).length > 0) ||
-      (parsedHeadersSchema &&
+    Boolean(
+      parsedContextVariables &&
+        typeof parsedContextVariables === 'object' &&
+        Object.keys(parsedContextVariables).length
+    ) ||
+    Boolean(
+      parsedHeadersSchema &&
         typeof parsedHeadersSchema === 'object' &&
-        parsedHeadersSchema !== null &&
-        Object.keys(parsedHeadersSchema).length > 0));
+        Object.keys(parsedHeadersSchema).length
+    );
 
   const dataComponents: Record<string, DataComponent> = {};
   if (dataComponentLookup) {
@@ -378,8 +620,8 @@ export function serializeAgentData(
   }
 
   const result: FullAgentDefinition = {
-    id: metadata?.id || nanoid(),
-    name: metadata?.name || 'Untitled Agent',
+    id: metadata?.id || generateId(),
+    name: metadata?.name ?? '',
     description: metadata?.description || undefined,
     defaultSubAgentId,
     subAgents: subAgents,
@@ -418,7 +660,7 @@ export function serializeAgentData(
     (result as any).stopWhen = metadata.stopWhen;
   }
 
-  if (metadata?.prompt) {
+  if (metadata) {
     (result as any).prompt = metadata.prompt;
   }
 
@@ -432,7 +674,7 @@ export function serializeAgentData(
 
   // Add contextConfig if there's meaningful data
   if (hasContextConfig && metadata?.contextConfig) {
-    const contextConfigId = metadata.contextConfig.id || nanoid();
+    const contextConfigId = metadata.contextConfig.id || generateId();
     (result as any).contextConfigId = contextConfigId;
     (result as any).contextConfig = {
       id: contextConfigId,
@@ -440,6 +682,32 @@ export function serializeAgentData(
       contextVariables: parsedContextVariables,
     };
   }
+
+  // Rebuild canDelegateTo arrays from delegate maps to ensure consistency
+  Object.entries(subAgents).forEach(([subAgentId, agent]) => {
+    if (agent.canDelegateTo) {
+      // Start with internal agent delegations (string format)
+      const internalDelegations = agent.canDelegateTo.filter(
+        (delegate) => typeof delegate === 'string'
+      );
+
+      // Add external agent delegations from map
+      const externalDelegations = Object.values(subAgentExternalDelegateMap[subAgentId] || {});
+
+      // Add team agent delegations from map
+      const teamDelegations = Object.values(subAgentTeamDelegateMap[subAgentId] || {});
+
+      // Rebuild the array with all delegations
+      agent.canDelegateTo = [...internalDelegations, ...externalDelegations, ...teamDelegations];
+
+      if (newSubAgentExternalDelegateMap[subAgentId]) {
+        agent.canDelegateTo.push(newSubAgentExternalDelegateMap[subAgentId]);
+      }
+      if (newSubAgentTeamDelegateMap[subAgentId]) {
+        agent.canDelegateTo.push(newSubAgentTeamDelegateMap[subAgentId]);
+      }
+    }
+  });
 
   return result;
 }
@@ -458,9 +726,18 @@ export function validateSerializedData(
 ): StructuredValidationError[] {
   const errors: StructuredValidationError[] = [];
 
+  if (!data.defaultSubAgentId) {
+    errors.push({
+      message: 'Default sub agent ID is required, please select a default sub agent.',
+      field: 'defaultSubAgentId',
+      code: 'required',
+      path: ['defaultSubAgentId'],
+    });
+  }
+
   if (data.defaultSubAgentId && !data.subAgents[data.defaultSubAgentId]) {
     errors.push({
-      message: `Default agent ID '${data.defaultSubAgentId}' not found in agents.`,
+      message: `Default sub agent ID '${data.defaultSubAgentId}' not found in sub agents.`,
       field: 'defaultSubAgentId',
       code: 'invalid_reference',
       path: ['defaultSubAgentId'],
@@ -468,8 +745,8 @@ export function validateSerializedData(
   }
 
   for (const [subAgentId, agent] of Object.entries(data.subAgents)) {
-    // Only validate tools for internal agents (external agents don't have tools)
-    if (isInternalAgent(agent) && agent.canUse) {
+    // All subAgents are internal agents (external agents are project-scoped)
+    if (agent.canUse) {
       // Skip tool validation if tools data is not available (project-scoped)
       const toolsData = (data as any).tools;
       if (toolsData) {
@@ -487,7 +764,7 @@ export function validateSerializedData(
       }
     }
 
-    if (isInternalAgent(agent) && agent.canUse) {
+    if (agent.canUse) {
       for (const canUseItem of agent.canUse) {
         const toolId = canUseItem.toolId;
         const toolType = (canUseItem as any).toolType;
@@ -552,19 +829,20 @@ export function validateSerializedData(
       }
     }
 
-    // Only validate relationships for internal agents (external agents don't have these properties)
-    if (isInternalAgent(agent)) {
-      for (const targetId of agent.canTransferTo ?? []) {
-        if (!data.subAgents[targetId]) {
-          errors.push({
-            message: `Transfer target '${targetId}' not found in agents.`,
-            field: 'canTransferTo',
-            code: 'invalid_reference',
-            path: ['agents', subAgentId, 'canTransferTo'],
-          });
-        }
+    // Validate relationships (all subAgents are internal agents)
+    for (const targetId of agent.canTransferTo ?? []) {
+      if (!data.subAgents[targetId]) {
+        errors.push({
+          message: `Transfer target '${targetId}' not found in agents.`,
+          field: 'canTransferTo',
+          code: 'invalid_reference',
+          path: ['agents', subAgentId, 'canTransferTo'],
+        });
       }
-      for (const targetId of agent.canDelegateTo ?? []) {
+    }
+    for (const targetId of agent.canDelegateTo ?? []) {
+      // String = internal subAgent
+      if (typeof targetId === 'string') {
         if (!data.subAgents[targetId]) {
           errors.push({
             message: `Delegate target '${targetId}' not found in agents.`,

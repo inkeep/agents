@@ -1,11 +1,11 @@
 import { type NodeProps, Position } from '@xyflow/react';
 import { Code } from 'lucide-react';
 import { useAgentErrors } from '@/hooks/use-agent-errors';
+import { cn } from '@/lib/utils';
 import { type FunctionToolNodeData, functionToolNodeHandleId } from '../configuration/node-types';
 import { ErrorIndicator } from '../error-display/error-indicator';
 import { BaseNode, BaseNodeHeader, BaseNodeHeaderTitle } from './base-node';
 import { Handle } from './handle';
-import { cn } from '@/lib/utils';
 
 export function FunctionToolNode(props: NodeProps & { data: FunctionToolNodeData }) {
   const { data, selected, id } = props;
@@ -18,15 +18,18 @@ export function FunctionToolNode(props: NodeProps & { data: FunctionToolNodeData
   const functionToolId = data.toolId || data.functionToolId || id;
   const nodeErrors = getNodeErrors(functionToolId);
   const hasErrors = hasNodeErrors(functionToolId);
-
+  const isDelegating = data.status === 'delegating';
+  const isInvertedDelegating = data.status === 'inverted-delegating';
+  const isExecuting = data.status === 'executing';
   return (
     <div className="relative">
       <BaseNode
-        isSelected={selected || data.isDelegating}
+        isSelected={selected || isDelegating}
         className={cn(
           'rounded-4xl min-w-40 max-w-xs',
           hasErrors && 'ring-2 ring-red-300 border-red-300',
-          data.isExecuting && 'node-executing'
+          isExecuting && 'node-executing',
+          isInvertedDelegating && 'node-delegating-inverted'
         )}
       >
         <BaseNodeHeader className="mb-0 py-3">
@@ -37,9 +40,9 @@ export function FunctionToolNode(props: NodeProps & { data: FunctionToolNodeData
               </div>
               <BaseNodeHeaderTitle className="flex-1 truncate">{name}</BaseNodeHeaderTitle>
             </div>
-            {description?.trim() ? (
+            {description && (
               <p className="text-xs text-muted-foreground line-clamp-2 pl-7">{description}</p>
-            ) : null}
+            )}
           </div>
           {hasErrors && (
             <ErrorIndicator errors={nodeErrors} className="absolute -top-2 -right-2 w-6 h-6" />

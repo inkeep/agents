@@ -1,40 +1,86 @@
 #!/usr/bin/env node
 
-// Usage: node scripts/quick-changeset.mjs <patch|minor|major> "changelog message"
+// Usage: node scripts/quick-changeset.mjs <patch|minor|major> --pkg <package> [--pkg <package>...] "<message>"
+// Example: node scripts/quick-changeset.mjs patch --pkg agents-core "Fix race condition"
+// Example: node scripts/quick-changeset.mjs minor --pkg agents-sdk --pkg agents-core "Add streaming support"
 
 import fs from 'fs';
 import path from 'path';
+import { adjectives, animals, colors, uniqueNamesGenerator } from 'unique-names-generator';
 import { fileURLToPath } from 'url';
-import { uniqueNamesGenerator, adjectives, colors, animals } from 'unique-names-generator';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-// Packages to include in changeset (excluding ignored packages)
-const packages = [
-  '@inkeep/agents-cli',
-  '@inkeep/agents-core',
-  '@inkeep/agents-manage-api',
-  '@inkeep/agents-manage-ui',
-  '@inkeep/agents-run-api',
-  '@inkeep/agents-sdk',
-  '@inkeep/create-agents'
-];
+// Valid package short names mapped to full package names
+const VALID_PACKAGES = {
+  'agents-cli': '@inkeep/agents-cli',
+  'agents-core': '@inkeep/agents-core',
+  'agents-manage-api': '@inkeep/agents-manage-api',
+  'agents-manage-ui': '@inkeep/agents-manage-ui',
+  'agents-run-api': '@inkeep/agents-run-api',
+  'agents-sdk': '@inkeep/agents-sdk',
+  'create-agents': '@inkeep/create-agents',
+  'ai-sdk-provider': '@inkeep/ai-sdk-provider',
+};
 
 function generateRandomFilename() {
   const name = uniqueNamesGenerator({
     dictionaries: [adjectives, colors, animals],
     separator: '-',
     length: 3,
-    style: 'lowerCase'
+    style: 'lowerCase',
   });
   return `${name}.md`;
 }
 
-function createChangesetFile(bumpType, message) {
+function parseArgs(args) {
+  const result = {
+    bumpType: null,
+    packages: [],
+    message: null,
+  };
+
+  let i = 0;
+  while (i < args.length) {
+    const arg = args[i];
+
+    if (arg === '--pkg' || arg === '-p') {
+      i++;
+      if (i < args.length) {
+        result.packages.push(args[i]);
+      }
+    } else if (['patch', 'minor', 'major'].includes(arg)) {
+      result.bumpType = arg;
+    } else if (!arg.startsWith('-')) {
+      // Assume it's the message if it's not a flag and not a bump type
+      if (result.bumpType && result.message === null) {
+        result.message = arg;
+      }
+    }
+    i++;
+  }
+
+  return result;
+}
+
+function validatePackages(packages) {
+  const validNames = Object.keys(VALID_PACKAGES);
+  const invalid = packages.filter((pkg) => !validNames.includes(pkg));
+
+  if (invalid.length > 0) {
+    console.error(`Error: Invalid package name(s): ${invalid.join(', ')}`);
+    console.error(`Valid packages: ${validNames.join(', ')}`);
+    process.exit(1);
+  }
+
+  return packages.map((pkg) => VALID_PACKAGES[pkg]);
+}
+
+function createChangesetFile(bumpType, fullPackageNames, message) {
   // Generate frontmatter
   const frontmatter = ['---'];
-  packages.forEach(pkg => {
+  fullPackageNames.forEach((pkg) => {
     frontmatter.push(`"${pkg}": ${bumpType}`);
   });
   frontmatter.push('---');
@@ -48,39 +94,69 @@ function createChangesetFile(bumpType, message) {
 
   // Check if file already exists (very unlikely but handle it)
   if (fs.existsSync(filepath)) {
-    // Try again with a new random name
-    return createChangesetFile(bumpType, message);
+    return createChangesetFile(bumpType, fullPackageNames, message);
   }
 
   fs.writeFileSync(filepath, content, 'utf8');
-  console.log(`✅ Created changeset: .changeset/${filename}`);
-  console.log(`📦 Packages: ${packages.length}`);
-  console.log(`📝 Bump type: ${bumpType}`);
-  console.log(`💬 Message: ${message}`);
+  return { filename, filepath };
 }
 
-// Parse arguments
+function printUsage() {
+  console.error(`
+Usage: pnpm bump <patch|minor|major> --pkg <package> [--pkg <package>...] "<message>"
+
+Arguments:
+  patch|minor|major    Version bump type
+  --pkg, -p            Package to include (can be repeated for multiple packages)
+  message              Changelog message (should be the last argument, in quotes)
+
+Valid packages:
+  ${Object.keys(VALID_PACKAGES).join(', ')}
+
+Examples:
+  pnpm bump patch --pkg agents-core "Fix race condition in message queue"
+  pnpm bump minor --pkg agents-sdk --pkg agents-core "Add streaming response support"
+`);
+}
+
+// Main execution
 const args = process.argv.slice(2);
 
-if (args.length < 2) {
-  console.error('Usage: node scripts/quick-changeset.mjs <patch|minor|major> "changelog message"');
+if (args.length < 3 || args.includes('--help') || args.includes('-h')) {
+  printUsage();
+  process.exit(args.includes('--help') || args.includes('-h') ? 0 : 1);
+}
+
+const parsed = parseArgs(args);
+
+// Validate bump type
+if (!parsed.bumpType) {
+  console.error('Error: Bump type must be "patch", "minor", or "major"');
+  printUsage();
   process.exit(1);
 }
 
-const bumpType = args[0];
-const message = args[1];
-
-// Validate bump type
-if (!['patch', 'minor', 'major'].includes(bumpType)) {
-  console.error('Error: Bump type must be "patch", "minor", or "major"');
+// Validate packages
+if (parsed.packages.length === 0) {
+  console.error('Error: At least one package must be specified with --pkg');
+  printUsage();
   process.exit(1);
 }
 
 // Validate message
-if (!message || message.trim() === '') {
+if (!parsed.message || parsed.message.trim() === '') {
   console.error('Error: Changelog message cannot be empty');
+  printUsage();
   process.exit(1);
 }
 
+// Validate and convert package names
+const fullPackageNames = validatePackages(parsed.packages);
+
 // Create the changeset file
-createChangesetFile(bumpType, message.trim());
+const { filename } = createChangesetFile(parsed.bumpType, fullPackageNames, parsed.message.trim());
+
+console.log(`Created changeset: .changeset/${filename}`);
+console.log(`  Packages: ${fullPackageNames.join(', ')}`);
+console.log(`  Bump type: ${parsed.bumpType}`);
+console.log(`  Message: ${parsed.message}`);

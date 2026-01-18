@@ -1,5 +1,8 @@
 import { vi } from 'vitest';
 
+// Disable compression in test environment
+process.env.AGENTS_COMPRESSION_ENABLED = 'false';
+
 // Mock the local logger module globally - this will be hoisted automatically by Vitest
 vi.mock('../logger.js', () => {
   const mockLogger = {
@@ -39,8 +42,7 @@ import { NodeSDK } from '@opentelemetry/sdk-node';
 
 const { SimpleSpanProcessor } = require('@opentelemetry/sdk-trace-base');
 
-import { sql } from 'drizzle-orm';
-import { migrate } from 'drizzle-orm/libsql/migrator';
+import { migrate } from 'drizzle-orm/pglite/migrator';
 import { afterAll, afterEach, beforeAll } from 'vitest';
 import dbClient from '../data/db/dbClient';
 import { getLogger } from '../logger';
@@ -73,21 +75,20 @@ beforeAll(async () => {
   try {
     logger.debug({}, 'Applying database migrations to in-memory test database');
 
-    // Temporarily disable foreign key constraints for tests due to composite key issues
-    await dbClient.run(sql`PRAGMA foreign_keys = OFF`);
-
     // Use path relative to project root to work with both direct and turbo execution
     const migrationsPath = process.cwd().includes('agents-run-api')
-      ? '../packages/agents-core/drizzle'
-      : './packages/agents-core/drizzle';
+      ? '../packages/agents-core/drizzle/runtime'
+      : './packages/agents-core/drizzle/runtime';
 
-    await migrate(dbClient, { migrationsFolder: migrationsPath });
+    await migrate(dbClient as unknown as Parameters<typeof migrate>[0], {
+      migrationsFolder: migrationsPath,
+    });
     logger.debug({}, 'Database migrations applied successfully');
   } catch (error) {
     logger.error({ error }, 'Failed to apply database migrations');
     throw error;
   }
-});
+}, 60000);
 
 afterEach(() => {
   // Any cleanup if needed

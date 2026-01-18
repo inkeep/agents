@@ -1,0 +1,34 @@
+name: Inkeep Source Sync
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - "agents-docs/**"
+
+jobs:
+  syncSourceJob:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: write
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+      - name: Check for changes
+        uses: dorny/paths-filter@v2
+        id: changes
+        with:
+          filters: |
+            docs:
+              - 'agents-docs/**'
+      - name: Sync Source
+        if: steps.changes.outputs.docs == 'true'
+        uses: inkeep/pr-commenter-action@v10
+        env:
+          GITHUB_TOKEN: ${{secrets.GITHUB_TOKEN}}
+        with:
+          apiKey: ${{secrets.INKEEP_API_KEY}}
+          sourceId: "cmexes6zq0046s6019sayhjst"

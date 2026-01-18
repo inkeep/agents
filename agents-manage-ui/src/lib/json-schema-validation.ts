@@ -1,6 +1,6 @@
-import { type Static, Type } from '@sinclair/typebox';
+import { Type } from '@sinclair/typebox';
 import { TypeCompiler } from '@sinclair/typebox/compiler';
-import { Value } from '@sinclair/typebox/value';
+import { basicSchemaTemplate } from './templates';
 
 // TypeBox schema for valid JSON Schema Draft 7
 const JsonSchemaPropertySchema = Type.Object({
@@ -37,19 +37,17 @@ const JsonSchemaObjectSchema = Type.Object({
   description: Type.Optional(Type.String()),
 });
 
-type JsonSchemaObject = Static<typeof JsonSchemaObjectSchema>;
-
 // Compile validators for better performance
 const propertyValidator = TypeCompiler.Compile(JsonSchemaPropertySchema);
 const objectValidator = TypeCompiler.Compile(JsonSchemaObjectSchema);
 
-export interface ValidationError {
+interface ValidationError {
   path: string;
   message: string;
   type: 'syntax' | 'schema' | 'llm_requirement';
 }
 
-export interface ValidationResult {
+interface ValidationResult {
   isValid: boolean;
   errors: ValidationError[];
   warnings: string[];
@@ -115,7 +113,7 @@ function validateJsonSchema(schema: any): ValidationError[] {
       });
     }
 
-    if (!schema.required || !Array.isArray(schema.required)) {
+    if (schema.required && !Array.isArray(schema.required)) {
       errors.push({
         path: 'required',
         message: 'Schema must have a "required" array (can be empty)',
@@ -237,103 +235,10 @@ export function validateJsonSchemaForLlm(jsonString: string): ValidationResult {
 }
 
 /**
- * Validates that a JSON object conforms to a given schema
- */
-export function validateDataAgainstSchema(data: any, schema: any): ValidationResult {
-  const errors: ValidationError[] = [];
-  const warnings: string[] = [];
-
-  try {
-    const isValid = Value.Check(schema, data);
-
-    if (!isValid) {
-      const validationErrors = [...Value.Errors(schema, data)];
-
-      validationErrors.forEach((error) => {
-        errors.push({
-          path: error.path,
-          message: error.message,
-          type: 'schema',
-        });
-      });
-    }
-
-    return {
-      isValid: errors.length === 0,
-      errors,
-      warnings,
-    };
-  } catch (error) {
-    errors.push({
-      path: 'root',
-      message: error instanceof Error ? error.message : 'Validation failed',
-      type: 'schema',
-    });
-
-    return {
-      isValid: false,
-      errors,
-      warnings,
-    };
-  }
-}
-
-/**
  * Helper function to create a basic schema template
  */
 export function createSchemaTemplate(): string {
-  const template = {
-    type: 'object',
-    properties: {
-      example_property: {
-        type: 'string',
-        description: 'Description of what this property represents',
-      },
-    },
-    required: ['example_property'],
-  };
-
-  return JSON.stringify(template, null, 2);
-}
-
-/**
- * Type guard to check if a value is a valid JSON Schema object
- */
-export function isValidJsonSchemaObject(value: any): value is JsonSchemaObject {
-  return objectValidator.Check(value);
-}
-
-/**
- * Get friendly error messages for common validation issues
- */
-export function getValidationSummary(result: ValidationResult): string {
-  if (result.isValid) {
-    return 'Valid JSON Schema for LLM usage';
-  }
-
-  const errorCounts = result.errors.reduce(
-    (acc, error) => {
-      acc[error.type] = (acc[error.type] || 0) + 1;
-      return acc;
-    },
-    {} as Record<string, number>
-  );
-
-  const messages: string[] = [];
-
-  if (errorCounts.syntax) {
-    messages.push(`${errorCounts.syntax} syntax error(s)`);
-  }
-
-  if (errorCounts.schema) {
-    messages.push(`${errorCounts.schema} schema error(s)`);
-  }
-
-  if (errorCounts.llm_requirement) {
-    messages.push(`${errorCounts.llm_requirement} LLM requirement error(s)`);
-  }
-
-  return `Invalid: ${messages.join(', ')}`;
+  return basicSchemaTemplate;
 }
 
 export function getJsonParseError(error: unknown): string {

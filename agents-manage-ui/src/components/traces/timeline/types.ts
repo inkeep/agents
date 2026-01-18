@@ -4,9 +4,12 @@ export type PanelType =
   | 'transfer'
   | 'tool_purpose'
   | 'generic_tool'
-  | 'mcp_tool_error';
+  | 'mcp_tool_error'
+  | 'tool_approval_requested'
+  | 'tool_approval_approved'
+  | 'tool_approval_denied';
 
-export type MCPError = NonNullable<ConversationDetail['mcpToolErrors']>[number];
+type MCPError = NonNullable<ConversationDetail['mcpToolErrors']>[number];
 
 export type SelectedPanel =
   | { type: Exclude<PanelType, 'mcp_tool_error'>; item: ActivityItem }
@@ -21,11 +24,23 @@ export const ACTIVITY_TYPES = {
   USER_MESSAGE: 'user_message',
   AI_ASSISTANT_MESSAGE: 'ai_assistant_message',
   AI_MODEL_STREAMED_TEXT: 'ai_model_streamed_text',
-  AI_MODEL_STREAMED_OBJECT: 'ai_model_streamed_object',
   ARTIFACT_PROCESSING: 'artifact_processing',
+  TOOL_APPROVAL_REQUESTED: 'tool_approval_requested',
+  TOOL_APPROVAL_APPROVED: 'tool_approval_approved',
+  TOOL_APPROVAL_DENIED: 'tool_approval_denied',
+  COMPRESSION: 'compression',
 } as const;
 
 export type ActivityKind = (typeof ACTIVITY_TYPES)[keyof typeof ACTIVITY_TYPES];
+
+export const ACTIVITY_STATUS = {
+  SUCCESS: 'success',
+  ERROR: 'error',
+  PENDING: 'pending',
+  WARNING: 'warning',
+} as const;
+
+type ActivityStatus = (typeof ACTIVITY_STATUS)[keyof typeof ACTIVITY_STATUS];
 
 export interface ActivityItem {
   id: string;
@@ -33,11 +48,12 @@ export interface ActivityItem {
   name?: string;
   description: string;
   timestamp: string;
+  parentSpanId?: string | null;
   subAgentId?: string;
   subAgentName?: string;
   toolName?: string;
   toolResult?: string;
-  status: 'success' | 'error' | 'pending';
+  status: ActivityStatus;
   toolDescription?: string;
   result?: string;
   saveResultSaved?: boolean;
@@ -65,6 +81,8 @@ export interface ActivityItem {
   transferToSubAgentId?: string;
   toolType?: string;
   toolPurpose?: string;
+  mcpServerId?: string;
+  mcpServerName?: string;
   contextConfigId?: string;
   contextAgentId?: string;
   contextRequestKeys?: string[];
@@ -77,10 +95,6 @@ export interface ActivityItem {
   aiStreamTextModel?: string;
   aiStreamTextProvider?: string;
   aiStreamTextOperationId?: string;
-  aiStreamObjectContent?: string;
-  aiStreamObjectModel?: string;
-  aiStreamObjectProvider?: string;
-  aiStreamObjectOperationId?: string;
   toolCallArgs?: string;
   toolCallResult?: string;
   toolStatusMessage?: string;
@@ -92,6 +106,7 @@ export interface ActivityItem {
   otelStatusCode?: string;
   otelStatusDescription?: string;
   aiTelemetryFunctionId?: string;
+  aiTelemetryPhase?: string;
   // Artifact processing fields
   artifactId?: string;
   artifactType?: string;
@@ -100,14 +115,30 @@ export interface ActivityItem {
   artifactData?: string;
   artifactSubAgentId?: string;
   artifactToolCallId?: string;
+  // Tool approval fields
+  approvalToolName?: string;
+  approvalToolCallId?: string;
+  // Context breakdown for AI generation spans
+  contextBreakdown?: ContextBreakdown;
+  // Compression fields
+  compressionType?: string;
+  compressionInputTokens?: number;
+  compressionOutputTokens?: number;
+  compressionRatio?: number;
+  compressionArtifactCount?: number;
+  compressionMessageCount?: number;
+  compressionHardLimit?: number;
+  compressionSafetyBuffer?: number;
+  compressionError?: string;
+  compressionSummary?: string;
 }
 
-export interface ToolCall {
+interface ToolCall {
   toolName: string;
   toolType: string;
   timestamp: string;
   duration?: number;
-  status: 'success' | 'error' | 'pending';
+  status: ActivityStatus;
   arguments?: any;
   result?: any;
   id?: string;
@@ -116,12 +147,20 @@ export interface ToolCall {
   toolDescription?: string;
 }
 
-export interface AgentInteraction {
+interface AgentInteraction {
   subAgentId: string;
   agentName: string;
   timestamp: string;
   messageCount: number;
   toolCalls: ToolCall[];
+}
+
+/** Context breakdown showing estimated token usage by component */
+export interface ContextBreakdown {
+  /** Token counts by component key (version-specific) */
+  components: Record<string, number>;
+  /** Total estimated tokens */
+  total: number;
 }
 
 export interface ConversationDetail {

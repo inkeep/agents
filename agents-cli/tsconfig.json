@@ -1,5 +1,8 @@
 {
   "compilerOptions": {
+    // tsdown uses oxc-transform for .d.ts generation (very fast, recommended)
+    "isolatedDeclarations": true,
+    "verbatimModuleSyntax": true,
     "target": "ES2022",
     "module": "ES2022",
     "moduleResolution": "bundler",
@@ -10,11 +13,7 @@
     "forceConsistentCasingInFileNames": true,
     "declaration": true,
     "outDir": "./dist",
-    "baseUrl": ".",
-    "paths": {
-      "@inkeep/agents-core": ["../packages/agents-core/src/index.ts"],
-      "@inkeep/agents-core/*": ["../packages/agents-core/src/*"]
-    }
+    "baseUrl": "."
   },
   "include": ["src/**/*"],
   "exclude": ["node_modules", "dist"]

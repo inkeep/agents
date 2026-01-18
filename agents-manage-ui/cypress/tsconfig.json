@@ -1,0 +1,13 @@
+{
+  "compilerOptions": {
+    "verbatimModuleSyntax": true,
+    "target": "es6",
+    "lib": ["es2021", "dom"],
+    "sourceMap": true,
+    "types": ["cypress", "node"],
+    "skipLibCheck": true,
+    "allowSyntheticDefaultImports": true,
+    "moduleResolution": "bundler"
+  },
+  "include": ["**/*.ts"]
+}

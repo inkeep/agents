@@ -1,5 +1,560 @@
 # @inkeep/agents-core
 
+## 0.41.2
+
+### Patch Changes
+
+- 112b5c7: Add --local flag to inkeep init to set local profile as default
+- de84714: Add tsdown `clean` option based on watch status
+- af347c8: Add `dev` watch scripts and skip `d.ts` generation in watch mode across packages
+- 2e86062: warning status messages
+
+## 0.41.1
+
+### Patch Changes
+
+- d1f60f3: added azure provider
+
+## 0.41.0
+
+### Patch Changes
+
+- 49ec561: fix auth dependencies
+- 5d095da: Properly contain overflow of trace card content
+- f1a6cd4: compression ui improvements
+- 561605f: Export DEFAULT_NANGO_STORE_ID from @inkeep/agents-core main exports
+- 4b016d4: target ids for chat-to-edit
+- d933953: Disable colorized logs in non-TTY environments like Vercel. Logs now respect the NO_COLOR env var and automatically disable colors when stdout is not a TTY.
+- 9b17c81: streamObject removed from traces
+- f58f9e4: Fix cookie header forwarding for MCP server authentication
+
+## 0.40.0
+
+### Minor Changes
+
+- e5172e2: remove unused dependencies, lint unused dependencies with Knip
+- 178d5b1: keep file structure for build `dist` directory
+
+### Patch Changes
+
+- be0131e: user info for spans
+- 8b95949: context tracking in traces
+- b2c2fd9: fix trace viewer panes to scroll independently
+- b231869: set `compilerOptions.verbatimModuleSyntax: true` in all `tsconfig.json` files
+- 153d4e5: Added Conversation COmpression
+
+## 0.39.5
+
+### Patch Changes
+
+- d13e4c2: Fix quickstart
+- 9e4deda: Added dynamic model context limit checks
+
+## 0.39.4
+
+### Patch Changes
+
+- fcb3adc: added gemini 3 flash
+- 9403533: improve mcp connect for chat to edit
+
+## 0.39.3
+
+### Patch Changes
+
+- eba0e6b: Increase default page size to 100 (API max) for all list endpoints to show more resources without full pagination
+- a3b79b2: adjust auth settings
+- 2b156b6: migrate from tsup to tsdown
+- 9afba48: fix: resolve create-agents test mock issue with node:util and node:child_process module paths
+- 68ef774: Add x-speakeasy-pagination extension to all paginated list endpoints for Speakeasy SDK native pagination support
+
+## 0.39.2
+
+### Patch Changes
+
+- 0f2b040: added backup parser
+
+## 0.39.1
+
+### Patch Changes
+
+- cbb7c09: batch flushing
+- 00be449: found bug in system prpomt
+- 71a83d0: improve redirect logic and better-auth session use
+
+## 0.39.0
+
+### Minor Changes
+
+- f76e412: Add device_code table for CLI device authentication flow
+
+### Patch Changes
+
+- f76e412: Add InkeepTelemetryProvider for observability and tracing
+- f76e412: Add CI/CD support for headless operation with INKEEP_API_KEY and environment variable overrides
+- f76e412: Add --all flag to push/pull for batch project operations and --tag for tagged config files
+- f76e412: Enhance init command with cloud onboarding wizard (scaffolds projects from remote tenant)
+- f76e412: Add profile management system for multi-remote support (profile list/add/use/current/remove)
+- f76e412: Wire profiles into push/pull commands with --profile and --quiet flags
+- f76e412: Add CLI authentication commands (login, logout, status, whoami) with device code OAuth flow
+- f76e412: Add /api/cli/me endpoint for CLI user authentication
+- f76e412: Add InkeepCredentialProvider abstraction for credential management
+- f76e412: Add device authorization page for CLI OAuth flow
+
+## 0.38.3
+
+## 0.38.2
+
+### Patch Changes
+
+- 907fb8f: updated models to have gpt-5-2
+
+## 0.38.1
+
+### Patch Changes
+
+- 32c4c34: improve ux for scoped credentials
+- 8c81242: ui for tool breakdown and warnings for tool calls
+- 251cecd: added mid generation compression
+- ce60f56: multi tenant auth for signoz queries
+
+## 0.38.0
+
+### Minor Changes
+
+- 515d808: Upgrade to Vercel AI SDK v6 beta
+
+### Patch Changes
+
+- b69b814: fix biome warnings
+- 8114afc: Update to open id connect for release action
+- bcee35f: add requiredToFetch on fetch definitions
+- a46303b: fix blue dot appears on inverted delegation on top left corner, refactor retrieving relationshipId in agents-core
+- 4801d35: status messages for traces shown
+- f791c6d: updated artifact handlin
+- f1f68cf: new models
+- 6dcb6b7: fix signoz for vercel
+- b3e49d9: updated schemas
+- 5fbd137: fix `Module not found: Can't resolve '../build/Release/keytar.node'` in dashboard, ignore `keytar` from bundling with `webpackIgnore` comment
+- 31be157: cloud deployment does not have signoz links
+- fcbf008: add creator to mcp server name
+
+## 0.37.2
+
+### Patch Changes
+
+- 78163b1: mcp hard fail
+- f47e391: Use hono zod in run and manage packages
+- 1f77578: Fix broken tests: mcpTool.with() returns undefined for empty selectedTools, update agentFull test canUse structure, fix projectFull dataComponents props schema
+
+## 0.37.1
+
+### Patch Changes
+
+- 505749a: Fix orphaned resource deletion in full project updates - tools, functions, credentialReferences, externalAgents, dataComponents, and artifactComponents are now properly removed when not present in the update payload
+- 7f1b78a: fix linter errors
+- e07c709: Add Cursor command for creating PRs with changeset validation
+- c3c0ac4: dependency updates
+- fbf0d97: Add validation error when attempting to delete a sub-agent that is set as default
+
+## 0.37.0
+
+### Minor Changes
+
+- 45471ab: Implement temporary API key authentication for playground with session-based auth
+
+### Patch Changes
+
+- 56e1b4d: make zod and hono zod internal deps
+- 45471ab: Fix error messages to show proper 403 access denied instead of generic internal server error
+
+## 0.36.1
+
+### Patch Changes
+
+- 1235b18: improve cors policy
+
+## 0.36.0
+
+## 0.35.12
+
+### Patch Changes
+
+- 840ca11: remove clean-package from API packages - was stripping runtime dependencies causing production errors
+
+## 0.35.11
+
+## 0.35.10
+
+### Patch Changes
+
+- 7a7e726: handle next*public* for vercel
+
+## 0.35.9
+
+### Patch Changes
+
+- 18c036d: fix better-auth type
+
+## 0.35.8
+
+### Patch Changes
+
+- 986dad2: update better-auth
+
+## 0.35.7
+
+## 0.35.6
+
+### Patch Changes
+
+- 31dbacc: handle google sign in
+
+## 0.35.5
+
+### Patch Changes
+
+- 15b564d: make inkeep mcp and docker optional in the quickstart
+
+## 0.35.4
+
+### Patch Changes
+
+- e297579: pull third party mcp servers
+
+## 0.35.3
+
+### Patch Changes
+
+- 89e8c26: cleaned stale components with inkeep pull
+
+## 0.35.2
+
+### Patch Changes
+
+- 769d8a9: fix agents-core exports
+
+## 0.35.1
+
+## 0.35.0
+
+### Minor Changes
+
+- 0d46d32: Adding auth to the framework
+
+### Patch Changes
+
+- f9a208a: Check for CLI installation in quickstart
+
+## 0.34.1
+
+### Patch Changes
+
+- 699043d: Install inkeep mcp in quickstarte
+- e4b5d5c: Inkeep add: usage instructions and target path detection
+
+## 0.34.0
+
+### Patch Changes
+
+- 7426927: add cli installation to quickstart
+- 015f9f7: Status Update Model fixed
+- bdeee9b: quickstart skip cli install option
+- 2434d22: add error handling to github fetch
+- af95c9a: added provider config
+
+## 0.33.3
+
+### Patch Changes
+
+- d957766: updated docs and model pointing
+- 9ab5e8b: fix template rendering of '-'
+- 3294024: bad schema
+- cd916ee: fix of bug when two MCPs are incorrectly highlighted as `active` in animation
+- 8bfac58: ADded new models
+- 7eafb29: updated agent docs and directory aware inkeep pull
+- 7b2db47: added new models
+
+## 0.33.2
+
+### Patch Changes
+
+- 4b2fd62: tool history perserved
+- bbbed5e: improve error message when saving a component with on click handler
+
+## 0.33.1
+
+### Patch Changes
+
+- 98f139a: Updated agent cil
+
+## 0.33.0
+
+### Minor Changes
+
+- b89cbd1: bump next.js to 16, react to 19.2.0
+
+### Patch Changes
+
+- d2fa856: fix mcp headers
+- d95a9de: enable Biome noUselessElse rule
+
+## 0.32.2
+
+### Patch Changes
+
+- c228770: update create-agents setup script
+
+## 0.32.1
+
+### Patch Changes
+
+- 5bd3d93: update dev deps agent-core
+
+## 0.32.0
+
+### Minor Changes
+
+- a262e1e: postgres migration
+
+### Patch Changes
+
+- 185db71: fix validation errors of form fields for:
+
+  - `subAgent.id`
+  - `subAgent.prompt`
+  - `agent.name`
+  - `agent.contextVariables`
+  - `agent.headersSchema`
+
+- 8d8b6dd: Fix runtime configuration implementation to properly apply environment variable overrides
+
+  This change fixes a critical bug where runtime configuration environment variables were parsed but never actually used by the runtime execution code. The fix includes:
+
+  1. **Core Changes (agents-core)**:
+
+     - Removed `getEnvNumber()` helper function
+     - Bundled all 56 runtime constants into a `runtimeConsts` export object for cleaner imports
+     - Constants now use plain default values instead of reading from `process.env` directly
+
+  2. **Environment Parsing (manage-api & run-api)**:
+
+     - Updated env.ts files to import `runtimeConsts` instead of individual constants
+     - Added missing `AGENTS_VALIDATION_PAGINATION_DEFAULT_LIMIT` to manage-api parsing
+     - Both APIs now properly parse environment variables and create `runtimeConfig` objects
+
+  3. **Runtime Implementation (run-api)**:
+     - Updated 10+ runtime files to import `runtimeConfig` from `../env` instead of from `@inkeep/agents-core`
+     - Fixed files include: Agent.ts, ToolSessionManager.ts, relationTools.ts, a2a/client.ts, AgentSession.ts, stream-helpers.ts, IncrementalStreamParser.ts, conversations.ts
+     - Environment variable overrides now properly affect runtime behavior
+
+  **Impact**: Environment variables documented in `.env.example` files now actually work. Users can configure runtime limits, timeouts, and other behavior via environment variables as intended.
+
+- cb75c9c: bug fix for pages in traces
+
+## 0.31.7
+
+### Patch Changes
+
+- 5e45a98: added coherent context
+
+## 0.31.6
+
+## 0.31.5
+
+## 0.31.4
+
+### Patch Changes
+
+- 02d6839: optimize queries
+
+## 0.31.3
+
+### Patch Changes
+
+- f91281b: use forked mcp sdk
+
+## 0.31.2
+
+### Patch Changes
+
+- 2b515de: added ability to pull without project flag
+
+## 0.31.1
+
+### Patch Changes
+
+- e81022d: hierarchical timeline
+
+## 0.31.0
+
+### Patch Changes
+
+- eadc8f8: update agents-cli a bit
+- 48a3e3e: fields for copy trace
+- b98fd0a: test agents
+
+## 0.30.4
+
+### Patch Changes
+
+- 26b89c6: upgrade quickstart packages
+- 4a73629: remove ai sdk provider input
+
+## 0.30.3
+
+### Patch Changes
+
+- 73569ce: agent name and id fixes
+
+## 0.30.2
+
+### Patch Changes
+
+- 09ac1b4: update sdk provider
+
+## 0.30.1
+
+### Patch Changes
+
+- 8b889f4: updated UI and model docs
+- c6502dd: remove two way delegation
+- c2f5582: fixed inkeep pull bug
+- 99bf28a: stream collection
+
+## 0.30.0
+
+### Minor Changes
+
+- 94fe795: Move templates into monorepo
+
+### Patch Changes
+
+- e95f0d3: Updated inkeep pull significantly
+
+## 0.29.11
+
+### Patch Changes
+
+- dba5a31: Update quickstart port check
+- b0817aa: Fix CLI bugs
+
+  - Quickstart inkeep.config.ts indents and types
+  - inkeep init run API and manage API urls
+
+## 0.29.10
+
+### Patch Changes
+
+- 0663c46: open browser flag
+
+## 0.29.9
+
+## 0.29.8
+
+## 0.29.7
+
+## 0.29.6
+
+### Patch Changes
+
+- 6c52cc6: unknown tenant bug fix
+
+## 0.29.5
+
+### Patch Changes
+
+- 767d466: Allow react imports in component render
+
+## 0.29.4
+
+### Patch Changes
+
+- 533fa81: StopWhen agent config fix
+
+## 0.29.3
+
+### Patch Changes
+
+- d26c5a4: team agent update bug fix
+
+## 0.29.2
+
+## 0.29.1
+
+### Patch Changes
+
+- f2ac869: upgrade docs
+- 37e50a6: fix mcp headers with context config
+- 65f4b1a: remove builtin time variables from context
+
+## 0.29.0
+
+### Minor Changes
+
+- 38db07a: require name for credentials
+
+## 0.28.0
+
+### Patch Changes
+
+- 74a4d0b: trace filter is all agents for default
+- b4e878d: Allow pushing component render
+- 96c499d: reject invalid chars in quickstart
+- 074e076: mcp evironment settings
+
+## 0.27.0
+
+### Minor Changes
+
+- 0a6df6e: tool.with syntx
+- a423b57: Team Agents
+
+### Patch Changes
+
+- 4a2af4c: Added Artifact Schema validation
+
+## 0.26.2
+
+### Patch Changes
+
+- 3c5c183: activity-planner default
+- 8a637b5: updated inkeep pull to have fiel validation
+
+## 0.26.1
+
+### Patch Changes
+
+- 4e3cb6a: move detect oauth to server
+
+## 0.26.0
+
+## 0.25.0
+
+### Minor Changes
+
+- 51c157e: External agents project scoped
+
+## 0.24.2
+
+### Patch Changes
+
+- 3ad959e: initialize git in quickstart
+- 7d8fcb6: cli add mcp support
+- 6699b4b: - Revert revert and fix id gen
+
+## 0.24.1
+
+### Patch Changes
+
+- 212fa9e: revert back to nanoid
+
+## 0.24.0
+
+### Patch Changes
+
+- 317efb7: use generateId everywhere
+- be54574: fix component generate-preview
+
 ## 0.23.5
 
 ### Patch Changes

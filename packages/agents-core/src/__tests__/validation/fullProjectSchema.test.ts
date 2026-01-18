@@ -38,6 +38,7 @@ describe('FullProjectDefinitionSchema', () => {
     credentialReferences: {
       'cred-1': {
         id: 'cred-1',
+        name: 'Test Credential',
         type: 'memory' as const,
         credentialStoreId: 'store-1',
         retrievalParams: {},
@@ -162,6 +163,7 @@ describe('FullProjectDefinitionSchema', () => {
       credentialReferences: {
         'cred-1': {
           id: 'cred-1',
+          name: 'Test Credential',
           type: 'invalid-type' as any, // Should be one of: memory, keychain, nango
           credentialStoreId: 'store-1',
           retrievalParams: {},

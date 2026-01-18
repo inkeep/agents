@@ -1,6 +1,6 @@
 'use client';
 
-import { CredentialStoreType, generateIdFromName } from '@inkeep/agents-core/client-exports';
+import { CredentialStoreType, DEFAULT_NANGO_STORE_ID } from '@inkeep/agents-core/client-exports';
 import type { ApiProvider } from '@nangohq/types';
 import { useRouter } from 'next/navigation';
 import { use, useCallback, useEffect, useState } from 'react';
@@ -8,29 +8,26 @@ import { toast } from 'sonner';
 import { requiresCredentialForm } from '@/components/credentials/views/auth-form-config';
 import { GenericAuthForm } from '@/components/credentials/views/generic-auth-form';
 import { BodyTemplate } from '@/components/layout/body-template';
-import { MainContent } from '@/components/layout/main-content';
 import { Button } from '@/components/ui/button';
+import { useAuthClient } from '@/contexts/auth-client';
+import { useAuthSession } from '@/hooks/use-auth';
 import { useNangoConnect } from '@/hooks/use-nango-connect';
 import { useNangoProviders } from '@/hooks/use-nango-providers';
 import { createProviderConnectSession } from '@/lib/mcp-tools/nango';
 import { NangoError } from '@/lib/mcp-tools/nango-types';
 import { findOrCreateCredential } from '@/lib/utils/credentials-utils';
+import { generateId } from '@/lib/utils/id-utils';
 
-interface ProviderSetupPageProps {
-  params: Promise<{
-    providerId: string;
-    tenantId: string;
-    projectId: string;
-  }>;
-}
-
-function ProviderSetupPage({ params }: ProviderSetupPageProps) {
+function ProviderSetupPage({
+  params,
+}: PageProps<'/[tenantId]/projects/[projectId]/credentials/new/providers/[providerId]'>) {
   const router = useRouter();
   const { providers, loading: providersLoading } = useNangoProviders();
   const [loading, setLoading] = useState(false);
   const [hasAttempted, setHasAttempted] = useState(false);
   const { openNangoConnect } = useNangoConnect();
-
+  const { user } = useAuthSession();
+  const authClient = useAuthClient();
   const { providerId, tenantId, projectId } = use(params);
 
   const provider = providers?.find((p: ApiProvider) => encodeURIComponent(p.name) === providerId);
@@ -45,13 +42,13 @@ function ProviderSetupPage({ params }: ProviderSetupPageProps) {
         return;
       }
 
-      const credentialId = generateIdFromName(`${provider.name}-${event.payload.connectionId}`);
-
       try {
         await findOrCreateCredential(tenantId, projectId, {
-          id: credentialId,
+          id: generateId(),
+          name: provider.name,
           type: CredentialStoreType.nango,
-          credentialStoreId: 'nango-default',
+          createdBy: user?.email ?? undefined,
+          credentialStoreId: DEFAULT_NANGO_STORE_ID,
           retrievalParams: {
             connectionId: event.payload.connectionId,
             providerConfigKey: event.payload.providerConfigKey,
@@ -71,12 +68,14 @@ function ProviderSetupPage({ params }: ProviderSetupPageProps) {
         }
       }
     },
-    [provider, tenantId, projectId, router]
+    [provider, tenantId, projectId, router, user?.email]
   );
 
   const handleCreateCredential = useCallback(
     async (credentials?: Record<string, any>) => {
       if (!provider) return;
+
+      const { data: organizationData } = await authClient.organization.getFullOrganization();
 
       setLoading(true);
       setHasAttempted(true);
@@ -92,6 +91,11 @@ function ProviderSetupPage({ params }: ProviderSetupPageProps) {
                   type: provider.auth_mode,
                 } as any)
               : undefined,
+          endUserId: user?.id,
+          endUserEmail: user?.email,
+          endUserDisplayName: user?.name,
+          organizationId: organizationData?.id,
+          organizationDisplayName: organizationData?.name,
         });
 
         openNangoConnect({
@@ -116,7 +120,7 @@ function ProviderSetupPage({ params }: ProviderSetupPageProps) {
         setLoading(false);
       }
     },
-    [provider, openNangoConnect, handleNangoConnect]
+    [provider, openNangoConnect, handleNangoConnect, user?.id, user?.email, user?.name, authClient]
   );
 
   // Auto-connect when no credential form is required
@@ -179,19 +183,16 @@ function ProviderSetupPage({ params }: ProviderSetupPageProps) {
           label: 'Providers',
           href: `/${tenantId}/projects/${projectId}/credentials/new/providers`,
         },
-        { label: provider.display_name },
+        provider.display_name,
       ]}
+      className="max-w-2xl mx-auto"
     >
-      <MainContent>
-        <div className="max-w-2xl mx-auto py-4">
-          <GenericAuthForm
-            provider={provider}
-            onBack={handleBack}
-            onSubmit={handleCreateCredential}
-            loading={loading}
-          />
-        </div>
-      </MainContent>
+      <GenericAuthForm
+        provider={provider}
+        onBack={handleBack}
+        onSubmit={handleCreateCredential}
+        loading={loading}
+      />
     </BodyTemplate>
   );
 }

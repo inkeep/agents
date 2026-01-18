@@ -1,31 +1,77 @@
-import Link from 'next/link';
+'use client';
 
-export type BreadcrumbItem = {
-  label: string;
-  href?: string;
-};
+import Link from 'next/link';
+import { useParams, usePathname } from 'next/navigation';
+import { useMemo } from 'react';
+import { useProject } from '@/contexts/project';
+import { cn } from '@/lib/utils';
+
+export type BreadcrumbItem =
+  | {
+      label: string;
+      href: string;
+    }
+  | string;
 
 interface BreadcrumbsProps {
   items: BreadcrumbItem[];
 }
 
 export function Breadcrumbs({ items }: BreadcrumbsProps) {
-  if (!items?.length) return null;
+  const project = useProject();
+  const { tenantId } = useParams<{ tenantId: string }>();
+  const pathname = usePathname();
+
+  const allItems = useMemo(() => {
+    const result: BreadcrumbItem[] = [];
+    const isSettingsRoute = pathname.startsWith(`/${tenantId}/settings`);
+
+    if (!isSettingsRoute) {
+      result.push({
+        label: 'Projects',
+        href: `/${tenantId}/projects`,
+      });
+
+      if (project) {
+        result.push({
+          label: project.name,
+          href: `/${tenantId}/projects/${project.id}`,
+        });
+      }
+    }
+
+    if (items) {
+      result.push(...items);
+    }
+    return result;
+  }, [items, tenantId, project, pathname]);
+
+  if (allItems.length === 0) {
+    return null;
+  }
+
   return (
     <nav className="text-sm text-muted-foreground" aria-label="Breadcrumb">
       <ol className="flex items-center gap-2">
-        {items.map((item, idx) => {
-          const isLast = idx === items.length - 1;
+        {allItems.map((label, idx, arr) => {
+          const isLast = idx === arr.length - 1;
+          const item = typeof label === 'string' ? { label } : label;
+
           return (
-            <li key={`${item.label}-${idx}`} className="flex items-center gap-2">
-              {item.href && !isLast ? (
+            <li
+              key={`${item.label}-${idx}`}
+              className={cn(
+                'flex items-center gap-2',
+                !isLast && 'after:content-["›"] after:text-muted-foreground/60'
+              )}
+            >
+              {'href' in item && !isLast ? (
                 <Link href={item.href} className="hover:text-foreground">
                   {item.label}
                 </Link>
               ) : (
-                <span className={isLast ? 'font-medium text-foreground' : ''}>{item.label}</span>
+                <span className={cn(isLast && 'font-medium text-foreground')}>{item.label}</span>
               )}
-              {!isLast && <span className="text-muted-foreground/60">›</span>}
             </li>
           );
         })}

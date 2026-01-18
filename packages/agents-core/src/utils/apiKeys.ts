@@ -1,6 +1,7 @@
 import { randomBytes, scrypt, timingSafeEqual } from 'node:crypto';
 import { promisify } from 'node:util';
-import { customAlphabet, nanoid } from 'nanoid';
+import { customAlphabet } from 'nanoid';
+import { generateId } from './conversations';
 import { getLogger } from './logger';
 
 const scryptAsync = promisify(scrypt);
@@ -37,7 +38,7 @@ export async function generateApiKey(): Promise<ApiKeyGenerationResult> {
 
   const keyHash = await hashApiKey(key);
 
-  const id = nanoid();
+  const id = generateId();
 
   return {
     id,
@@ -47,6 +48,26 @@ export async function generateApiKey(): Promise<ApiKeyGenerationResult> {
     keyPrefix,
   };
 }
+
+export const getMetadataFromApiKey = (
+  key: string
+): { tenantId: string; projectId: string } | null => {
+  const parts = key.split('.');
+  if (parts.length !== 2) {
+    return null;
+  }
+
+  const prefixPart = parts[0]; // e.g., "sk_test_abc123def456" or "sk_abc123def456"
+  const segments = prefixPart.split('_');
+  if (segments.length < 3) {
+    return null;
+  }
+
+  return {
+    tenantId: segments[1],
+    projectId: segments[2],
+  };
+};
 
 /**
  * Hash an API key using scrypt

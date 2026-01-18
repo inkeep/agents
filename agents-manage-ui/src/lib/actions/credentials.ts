@@ -20,7 +20,6 @@ export async function deleteCredentialAction(
   try {
     await deleteCredential(tenantId, projectId, credentialId);
     revalidatePath(`/${tenantId}/projects/${projectId}/credentials`);
-    revalidatePath(`/${tenantId}/projects/${projectId}/credentials/${credentialId}`);
     return {
       success: true,
     };

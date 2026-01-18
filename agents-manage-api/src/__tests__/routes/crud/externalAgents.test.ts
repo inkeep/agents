@@ -1,51 +1,29 @@
-import { nanoid } from 'nanoid';
+import { generateId } from '@inkeep/agents-core';
+import { createTestProject } from '@inkeep/agents-core/db/test-manage-client';
 import { describe, expect, it } from 'vitest';
-import app from '../../../index';
-import { ensureTestProject } from '../../utils/testProject';
+import manageDbClient from '../../../data/db/dbClient';
 import { makeRequest } from '../../utils/testRequest';
 import { createTestExternalAgentData } from '../../utils/testSubAgent';
-import { createTestTenantId } from '../../utils/testTenant';
+import { createTestTenantWithOrg } from '../../utils/testTenant';
 
 describe('External Agent CRUD Routes - Integration Tests', () => {
   const projectId = 'default';
 
-  // Helper function to create a test agent and return its ID
-  const createtestAgent = async (tenantId: string) => {
-    const agentData = {
-      id: nanoid(),
-      name: `Test Agent ${nanoid()}`,
-      defaultSubAgentId: null,
-    };
-
-    const res = await makeRequest(`/tenants/${tenantId}/projects/${projectId}/agents`, {
-      method: 'POST',
-      body: JSON.stringify(agentData),
-    });
-    if (res.status !== 201) {
-      throw new Error(`Failed to create agent: ${res.status}`);
-    }
-    const body = await res.json();
-    return body.data.id;
-  };
-
-  // Helper function to create an agent and return its ID
-  const createTestAgent = async ({
+  // Helper function to create an external agent and return its ID
+  const createTestExternalAgent = async ({
     tenantId,
-    agentId,
     suffix = '',
   }: {
     tenantId: string;
-    agentId: string;
     suffix?: string;
   }) => {
     const agentData = createTestExternalAgentData({
       suffix,
       tenantId,
       projectId,
-      agentId: agentId,
     });
     const createRes = await makeRequest(
-      `/tenants/${tenantId}/projects/${projectId}/agents/${agentId}/external-agents`,
+      `/tenants/${tenantId}/projects/${projectId}/external-agents`,
       {
         method: 'POST',
         body: JSON.stringify(agentData),
@@ -54,49 +32,31 @@ describe('External Agent CRUD Routes - Integration Tests', () => {
 
     expect(createRes.status).toBe(201);
     const createBody = await createRes.json();
-    return { agentData, subAgentId: createBody.data.id, agentId };
+    return { agentData, externalAgentId: createBody.data.id };
   };
 
-  // Helper function to create multiple agents
-  const createMultipleAgents = async ({
+  // Helper function to create multiple external agents
+  const createMultipleExternalAgents = async ({
     tenantId,
-    agentId,
     count,
   }: {
     tenantId: string;
-    agentId: string;
     count: number;
   }) => {
-    const agents: Awaited<ReturnType<typeof createTestAgent>>[] = [];
+    const agents: Awaited<ReturnType<typeof createTestExternalAgent>>[] = [];
     for (let i = 1; i <= count; i++) {
-      const agent = await createTestAgent({ tenantId, agentId, suffix: ` ${i}` });
+      const agent = await createTestExternalAgent({ tenantId, suffix: ` ${i}` });
       agents.push(agent);
     }
     return agents;
   };
 
-  // Helper to ensure default agent exists
-  const ensureDefaultAgent = async (tenantId: string) => {
-    const agentData = {
-      id: 'default',
-      name: 'Default Agent',
-      defaultSubAgentId: null,
-    };
-
-    // Try to create the agent, it may already exist
-    await makeRequest(`/tenants/${tenantId}/projects/${projectId}/agents`, {
-      method: 'POST',
-      body: JSON.stringify(agentData),
-    }).catch(() => {});
-  };
-
   describe('GET /', () => {
     it('should list agents with pagination (empty initially)', async () => {
-      const tenantId = createTestTenantId('agents-list-empty');
-      await ensureTestProject(tenantId, projectId);
-      const agentId = await createtestAgent(tenantId);
+      const tenantId = await createTestTenantWithOrg('agents-list-empty');
+      await createTestProject(manageDbClient, tenantId, projectId);
       const res = await makeRequest(
-        `/tenants/${tenantId}/projects/${projectId}/agents/${agentId}/external-agents?page=1&limit=10`
+        `/tenants/${tenantId}/projects/${projectId}/external-agents?page=1&limit=10`
       );
       expect(res.status).toBe(200);
 
@@ -113,13 +73,12 @@ describe('External Agent CRUD Routes - Integration Tests', () => {
     });
 
     it('should list agents with pagination (single item)', async () => {
-      const tenantId = createTestTenantId('agents-list-single');
-      await ensureTestProject(tenantId, projectId);
-      const agentId = await createtestAgent(tenantId);
-      const { agentData } = await createTestAgent({ tenantId, agentId });
+      const tenantId = await createTestTenantWithOrg('agents-list-single');
+      await createTestProject(manageDbClient, tenantId, projectId);
+      const { agentData } = await createTestExternalAgent({ tenantId });
 
       const res = await makeRequest(
-        `/tenants/${tenantId}/projects/${projectId}/agents/${agentId}/external-agents?page=1&limit=10`
+        `/tenants/${tenantId}/projects/${projectId}/external-agents?page=1&limit=10`
       );
       expect(res.status).toBe(200);
 
@@ -140,14 +99,13 @@ describe('External Agent CRUD Routes - Integration Tests', () => {
     });
 
     it('should handle pagination with multiple pages (small page size)', async () => {
-      const tenantId = createTestTenantId('agents-list-multipages');
-      await ensureTestProject(tenantId, projectId);
-      const agentId = await createtestAgent(tenantId);
-      await createMultipleAgents({ tenantId, agentId, count: 5 });
+      const tenantId = await createTestTenantWithOrg('agents-list-multipages');
+      await createTestProject(manageDbClient, tenantId, projectId);
+      await createMultipleExternalAgents({ tenantId, count: 5 });
 
       // Test first page with limit 2
       const page1Res = await makeRequest(
-        `/tenants/${tenantId}/projects/${projectId}/agents/${agentId}/external-agents?page=1&limit=2`
+        `/tenants/${tenantId}/projects/${projectId}/external-agents?page=1&limit=2`
       );
       expect(page1Res.status).toBe(200);
 
@@ -162,7 +120,7 @@ describe('External Agent CRUD Routes - Integration Tests', () => {
 
       // Test second page
       const page2Res = await makeRequest(
-        `/tenants/${tenantId}/projects/${projectId}/agents/${agentId}/external-agents?page=2&limit=2`
+        `/tenants/${tenantId}/projects/${projectId}/external-agents?page=2&limit=2`
       );
       expect(page2Res.status).toBe(200);
 
@@ -177,7 +135,7 @@ describe('External Agent CRUD Routes - Integration Tests', () => {
 
       // Test third page (partial)
       const page3Res = await makeRequest(
-        `/tenants/${tenantId}/projects/${projectId}/agents/${agentId}/external-agents?page=3&limit=2`
+        `/tenants/${tenantId}/projects/${projectId}/external-agents?page=3&limit=2`
       );
       expect(page3Res.status).toBe(200);
 
@@ -200,14 +158,13 @@ describe('External Agent CRUD Routes - Integration Tests', () => {
     });
 
     it('should return empty data for page beyond available data', async () => {
-      const tenantId = createTestTenantId('agents-list-beyond-pages');
-      await ensureTestProject(tenantId, projectId);
-      const agentId = await createtestAgent(tenantId);
-      await createMultipleAgents({ tenantId, agentId, count: 3 });
+      const tenantId = await createTestTenantWithOrg('agents-list-beyond-pages');
+      await createTestProject(manageDbClient, tenantId, projectId);
+      await createMultipleExternalAgents({ tenantId, count: 3 });
 
       // Request page 5 with limit 2 (should be empty)
       const res = await makeRequest(
-        `/tenants/${tenantId}/projects/${projectId}/agents/${agentId}/external-agents?page=5&limit=2`
+        `/tenants/${tenantId}/projects/${projectId}/external-agents?page=5&limit=2`
       );
       expect(res.status).toBe(200);
 
@@ -222,14 +179,13 @@ describe('External Agent CRUD Routes - Integration Tests', () => {
     });
 
     it('should handle edge case with limit 1', async () => {
-      const tenantId = createTestTenantId('agents-list-limit1');
-      await ensureTestProject(tenantId, projectId);
-      const agentId = await createtestAgent(tenantId);
-      await createMultipleAgents({ tenantId, agentId, count: 3 });
+      const tenantId = await createTestTenantWithOrg('agents-list-limit1');
+      await createTestProject(manageDbClient, tenantId, projectId);
+      await createMultipleExternalAgents({ tenantId, count: 3 });
 
       // Test with limit 1 (each page should have exactly 1 item)
       const page1Res = await makeRequest(
-        `/tenants/${tenantId}/projects/${projectId}/agents/${agentId}/external-agents?page=1&limit=1`
+        `/tenants/${tenantId}/projects/${projectId}/external-agents?page=1&limit=1`
       );
       expect(page1Res.status).toBe(200);
 
@@ -244,7 +200,7 @@ describe('External Agent CRUD Routes - Integration Tests', () => {
 
       // Test middle page
       const page2Res = await makeRequest(
-        `/tenants/${tenantId}/projects/${projectId}/agents/${agentId}/external-agents?page=2&limit=1`
+        `/tenants/${tenantId}/projects/${projectId}/external-agents?page=2&limit=1`
       );
       expect(page2Res.status).toBe(200);
 
@@ -259,7 +215,7 @@ describe('External Agent CRUD Routes - Integration Tests', () => {
 
       // Test last page
       const page3Res = await makeRequest(
-        `/tenants/${tenantId}/projects/${projectId}/agents/${agentId}/external-agents?page=3&limit=1`
+        `/tenants/${tenantId}/projects/${projectId}/external-agents?page=3&limit=1`
       );
       expect(page3Res.status).toBe(200);
 
@@ -274,14 +230,13 @@ describe('External Agent CRUD Routes - Integration Tests', () => {
     });
 
     it('should handle large page size (larger than total items)', async () => {
-      const tenantId = createTestTenantId('agents-list-large-limit');
-      await ensureTestProject(tenantId, projectId);
-      const agentId = await createtestAgent(tenantId);
-      await createMultipleAgents({ tenantId, agentId, count: 3 });
+      const tenantId = await createTestTenantWithOrg('agents-list-large-limit');
+      await createTestProject(manageDbClient, tenantId, projectId);
+      await createMultipleExternalAgents({ tenantId, count: 3 });
 
       // Request with limit 10 (larger than total)
       const res = await makeRequest(
-        `/tenants/${tenantId}/projects/${projectId}/agents/${agentId}/external-agents?page=1&limit=10`
+        `/tenants/${tenantId}/projects/${projectId}/external-agents?page=1&limit=10`
       );
       expect(res.status).toBe(200);
 
@@ -298,19 +253,18 @@ describe('External Agent CRUD Routes - Integration Tests', () => {
 
   describe('GET /{id}', () => {
     it('should get an agent by id', async () => {
-      const tenantId = createTestTenantId('agents-get-by-id');
-      await ensureTestProject(tenantId, projectId);
-      const agentId = await createtestAgent(tenantId);
-      const { agentData, subAgentId } = await createTestAgent({ tenantId, agentId });
+      const tenantId = await createTestTenantWithOrg('agents-get-by-id');
+      await createTestProject(manageDbClient, tenantId, projectId);
+      const { agentData, externalAgentId } = await createTestExternalAgent({ tenantId });
 
       const res = await makeRequest(
-        `/tenants/${tenantId}/projects/${projectId}/agents/${agentId}/external-agents/${subAgentId}`
+        `/tenants/${tenantId}/projects/${projectId}/external-agents/${externalAgentId}`
       );
       expect(res.status).toBe(200);
 
       const body = await res.json();
       expect(body.data).toMatchObject({
-        id: subAgentId,
+        id: externalAgentId,
         name: agentData.name,
         description: agentData.description,
         baseUrl: agentData.baseUrl,
@@ -321,11 +275,10 @@ describe('External Agent CRUD Routes - Integration Tests', () => {
     });
 
     it('should return 404 when agent not found', async () => {
-      const tenantId = createTestTenantId('agents-get-not-found');
-      await ensureTestProject(tenantId, projectId);
-      const agentId = await createtestAgent(tenantId);
+      const tenantId = await createTestTenantWithOrg('agents-get-not-found');
+      await createTestProject(manageDbClient, tenantId, projectId);
       const res = await makeRequest(
-        `/tenants/${tenantId}/projects/${projectId}/agents/${agentId}/external-agents/non-existent-id`
+        `/tenants/${tenantId}/projects/${projectId}/external-agents/non-existent-id`
       );
       expect(res.status).toBe(404);
 
@@ -343,11 +296,10 @@ describe('External Agent CRUD Routes - Integration Tests', () => {
     });
 
     it('should return RFC 7807-compliant problem details JSON and header for 404', async () => {
-      const tenantId = createTestTenantId('agents-problem-details-404');
-      await ensureTestProject(tenantId, projectId);
-      const agentId = await createtestAgent(tenantId);
+      const tenantId = await createTestTenantWithOrg('agents-problem-details-404');
+      await createTestProject(manageDbClient, tenantId, projectId);
       const res = await makeRequest(
-        `/tenants/${tenantId}/projects/${projectId}/agents/${agentId}/external-agents/non-existent-id`
+        `/tenants/${tenantId}/projects/${projectId}/external-agents/non-existent-id`
       );
       expect(res.status).toBe(404);
       expect(res.headers.get('content-type')).toMatch(/application\/problem\+json/);
@@ -368,19 +320,15 @@ describe('External Agent CRUD Routes - Integration Tests', () => {
 
   describe('POST /', () => {
     it('should create a new agent', async () => {
-      const tenantId = createTestTenantId('agents-create-success');
-      await ensureTestProject(tenantId, projectId);
-      const agentId = await createtestAgent(tenantId);
+      const tenantId = await createTestTenantWithOrg('agents-create-success');
+      await createTestProject(manageDbClient, tenantId, projectId);
 
-      const agentData = createTestExternalAgentData({ tenantId, projectId, agentId: agentId });
+      const agentData = createTestExternalAgentData({ tenantId, projectId });
 
-      const res = await makeRequest(
-        `/tenants/${tenantId}/projects/${projectId}/agents/${agentId}/external-agents`,
-        {
-          method: 'POST',
-          body: JSON.stringify(agentData),
-        }
-      );
+      const res = await makeRequest(`/tenants/${tenantId}/projects/${projectId}/external-agents`, {
+        method: 'POST',
+        body: JSON.stringify(agentData),
+      });
 
       expect(res.status).toBe(201);
 
@@ -396,20 +344,16 @@ describe('External Agent CRUD Routes - Integration Tests', () => {
     });
 
     it('should create a new agent with a provided id', async () => {
-      const tenantId = createTestTenantId('agents-create-with-id');
-      await ensureTestProject(tenantId, projectId);
-      const agentId = await createtestAgent(tenantId);
+      const tenantId = await createTestTenantWithOrg('agents-create-with-id');
+      await createTestProject(manageDbClient, tenantId, projectId);
 
-      const agentData = createTestExternalAgentData({ tenantId, projectId, agentId: agentId });
-      const providedId = nanoid();
+      const agentData = createTestExternalAgentData({ tenantId, projectId });
+      const providedId = generateId();
 
-      const res = await makeRequest(
-        `/tenants/${tenantId}/projects/${projectId}/agents/${agentId}/external-agents`,
-        {
-          method: 'POST',
-          body: JSON.stringify({ ...agentData, id: providedId }),
-        }
-      );
+      const res = await makeRequest(`/tenants/${tenantId}/projects/${projectId}/external-agents`, {
+        method: 'POST',
+        body: JSON.stringify({ ...agentData, id: providedId }),
+      });
 
       expect(res.status).toBe(201);
 
@@ -424,7 +368,7 @@ describe('External Agent CRUD Routes - Integration Tests', () => {
 
       // Verify the agent can be fetched with the provided ID
       const getRes = await makeRequest(
-        `/tenants/${tenantId}/projects/${projectId}/agents/${agentId}/external-agents/${providedId}`
+        `/tenants/${tenantId}/projects/${projectId}/external-agents/${providedId}`
       );
       expect(getRes.status).toBe(200);
       const getBody = await getRes.json();
@@ -432,16 +376,12 @@ describe('External Agent CRUD Routes - Integration Tests', () => {
     });
 
     it('should validate required fields', async () => {
-      const tenantId = createTestTenantId('agents-create-validation');
-      await ensureTestProject(tenantId, projectId);
-      const agentId = await createtestAgent(tenantId);
-      const res = await makeRequest(
-        `/tenants/${tenantId}/projects/${projectId}/agents/${agentId}/external-agents`,
-        {
-          method: 'POST',
-          body: JSON.stringify({}),
-        }
-      );
+      const tenantId = await createTestTenantWithOrg('agents-create-validation');
+      await createTestProject(manageDbClient, tenantId, projectId);
+      const res = await makeRequest(`/tenants/${tenantId}/projects/${projectId}/external-agents`, {
+        method: 'POST',
+        body: JSON.stringify({}),
+      });
 
       expect(res.status).toBe(400);
     });
@@ -449,10 +389,9 @@ describe('External Agent CRUD Routes - Integration Tests', () => {
 
   describe('PUT /{id}', () => {
     it('should update an existing agent', async () => {
-      const tenantId = createTestTenantId('agents-update-success');
-      await ensureTestProject(tenantId, projectId);
-      const agentId = await createtestAgent(tenantId);
-      const { subAgentId } = await createTestAgent({ tenantId, agentId });
+      const tenantId = await createTestTenantWithOrg('agents-update-success');
+      await createTestProject(manageDbClient, tenantId, projectId);
+      const { externalAgentId } = await createTestExternalAgent({ tenantId });
 
       const updateData = {
         name: 'Updated Agent',
@@ -461,7 +400,7 @@ describe('External Agent CRUD Routes - Integration Tests', () => {
       };
 
       const res = await makeRequest(
-        `/tenants/${tenantId}/projects/${projectId}/agents/${agentId}/external-agents/${subAgentId}`,
+        `/tenants/${tenantId}/projects/${projectId}/external-agents/${externalAgentId}`,
         {
           method: 'PUT',
           body: JSON.stringify(updateData),
@@ -472,7 +411,7 @@ describe('External Agent CRUD Routes - Integration Tests', () => {
 
       const body = await res.json();
       expect(body.data).toMatchObject({
-        id: subAgentId,
+        id: externalAgentId,
         name: updateData.name,
         description: updateData.description,
         baseUrl: updateData.baseUrl,
@@ -481,9 +420,8 @@ describe('External Agent CRUD Routes - Integration Tests', () => {
     });
 
     it('should return 404 when updating non-existent agent', async () => {
-      const tenantId = createTestTenantId('agents-update-not-found');
-      await ensureTestProject(tenantId, projectId);
-      const agentId = await createtestAgent(tenantId);
+      const tenantId = await createTestTenantWithOrg('agents-update-not-found');
+      await createTestProject(manageDbClient, tenantId, projectId);
       const updateData = {
         name: 'Updated Agent',
         description: 'Updated Description',
@@ -491,7 +429,7 @@ describe('External Agent CRUD Routes - Integration Tests', () => {
       };
 
       const res = await makeRequest(
-        `/tenants/${tenantId}/projects/${projectId}/agents/${agentId}/external-agents/non-existent-id`,
+        `/tenants/${tenantId}/projects/${projectId}/external-agents/non-existent-id`,
         {
           method: 'PUT',
           body: JSON.stringify(updateData),
@@ -504,13 +442,12 @@ describe('External Agent CRUD Routes - Integration Tests', () => {
 
   describe('DELETE /{id}', () => {
     it('should delete an existing agent', async () => {
-      const tenantId = createTestTenantId('agents-delete-success');
-      await ensureTestProject(tenantId, projectId);
-      const agentId = await createtestAgent(tenantId);
-      const { subAgentId } = await createTestAgent({ tenantId, agentId });
+      const tenantId = await createTestTenantWithOrg('agents-delete-success');
+      await createTestProject(manageDbClient, tenantId, projectId);
+      const { externalAgentId } = await createTestExternalAgent({ tenantId });
 
       const res = await makeRequest(
-        `/tenants/${tenantId}/projects/${projectId}/agents/${agentId}/external-agents/${subAgentId}`,
+        `/tenants/${tenantId}/projects/${projectId}/external-agents/${externalAgentId}`,
         {
           method: 'DELETE',
         }
@@ -520,17 +457,16 @@ describe('External Agent CRUD Routes - Integration Tests', () => {
 
       // Verify the agent is deleted
       const getRes = await makeRequest(
-        `/tenants/${tenantId}/projects/${projectId}/agents/${agentId}/external-agents/${subAgentId}`
+        `/tenants/${tenantId}/projects/${projectId}/external-agents/${externalAgentId}`
       );
       expect(getRes.status).toBe(404);
     });
 
     it('should return 404 when deleting non-existent agent', async () => {
-      const tenantId = createTestTenantId('agents-delete-not-found');
-      await ensureTestProject(tenantId, projectId);
-      const agentId = await createtestAgent(tenantId);
+      const tenantId = await createTestTenantWithOrg('agents-delete-not-found');
+      await createTestProject(manageDbClient, tenantId, projectId);
       const res = await makeRequest(
-        `/tenants/${tenantId}/projects/${projectId}/agents/${agentId}/external-agents/non-existent-id`,
+        `/tenants/${tenantId}/projects/${projectId}/external-agents/non-existent-id`,
         {
           method: 'DELETE',
         }

@@ -1,5 +1,7 @@
 import type { MCPToolConfig, ToolApiInsert } from '@inkeep/agents-core';
-import { getLogger } from '@inkeep/agents-core';
+import { getLogger, normalizeToolSelections } from '@inkeep/agents-core';
+import { convertZodToJsonSchema, isZodSchema } from '@inkeep/agents-core/utils/schema-conversion';
+import type { AgentMcpConfig, AgentMcpConfigInput } from './builders';
 
 const logger = getLogger('tool');
 
@@ -12,6 +14,7 @@ export interface ToolInterface {
   getServerUrl(): string;
   getActiveTools(): string[] | undefined;
   getCredentialReferenceId(): string | null | undefined;
+  with(config: AgentMcpConfigInput): AgentMcpConfig;
 }
 
 export class Tool implements ToolInterface {
@@ -102,6 +105,43 @@ export class Tool implements ToolInterface {
 
   // Private method to upsert tool (create or update)
   private async upsertTool(): Promise<void> {
+    // Convert any Zod schemas in toolOverrides to JSON Schema format before storing
+    const convertedToolOverrides = this.config.toolOverrides
+      ? Object.fromEntries(
+          Object.entries(this.config.toolOverrides).map(([toolName, config]) => {
+            const originalSchema = (config as any).schema;
+            const isZod = isZodSchema(originalSchema);
+
+            logger.info(
+              {
+                toolName,
+                isZod,
+                originalSchema: JSON.stringify(originalSchema, null, 2),
+              },
+              'SDK: Converting schema before storage'
+            );
+
+            const convertedSchema = isZod ? convertZodToJsonSchema(originalSchema) : originalSchema;
+
+            logger.info(
+              {
+                toolName,
+                convertedSchema: JSON.stringify(convertedSchema, null, 2),
+              },
+              'SDK: Schema after conversion'
+            );
+
+            return [
+              toolName,
+              {
+                ...config,
+                schema: convertedSchema,
+              },
+            ];
+          })
+        )
+      : this.config.toolOverrides;
+
     const toolDataForUpdate: Omit<ToolApiInsert, 'id'> & { id?: string } = {
       id: this.getId(),
       name: this.config.name,
@@ -116,6 +156,7 @@ export class Tool implements ToolInterface {
           },
           transport: this.config.transport,
           activeTools: this.config.activeTools,
+          toolOverrides: convertedToolOverrides,
         },
       },
     };
@@ -185,5 +226,44 @@ export class Tool implements ToolInterface {
 
     // If we get here, the update failed for some other reason
     throw new Error(`Failed to update tool: ${updateResponse.status}`);
+  }
+
+  /**
+   * Creates a new AgentMcpConfig with the given configuration.
+   *
+   * @param config - The configuration for the AgentMcpConfig
+   * @returns A new AgentMcpConfig
+   *
+   * example:
+   * ```typescript
+   * const tool = new Tool({
+   *   id: 'tool-id',
+   *   name: 'Tool Name',
+   *   serverUrl: 'https://example.com/mcp',
+   * });
+   * const agentMcpConfig = tool.with({ selectedTools: ['tool-1', 'tool-2'], headers: { 'Authorization': 'Bearer token' } });
+   * ```
+   */
+  with(config: AgentMcpConfigInput): AgentMcpConfig {
+    const { selectedTools, toolPolicies } = normalizeToolSelections(
+      config.selectedTools ?? undefined
+    );
+
+    // Preserve semantic distinction:
+    // - undefined/null input = all tools (return undefined)
+    // - [] input = zero tools (return [])
+    // - ['tool1', ...] input = specific tools (return normalized list)
+    const isUnspecified = config.selectedTools === undefined || config.selectedTools === null;
+    const resolvedSelectedTools = isUnspecified ? undefined : selectedTools;
+
+    const resolvedToolPolicies =
+      isUnspecified || Object.keys(toolPolicies).length === 0 ? undefined : toolPolicies;
+
+    return {
+      server: this,
+      selectedTools: resolvedSelectedTools,
+      headers: config.headers,
+      toolPolicies: resolvedToolPolicies,
+    };
   }
 }

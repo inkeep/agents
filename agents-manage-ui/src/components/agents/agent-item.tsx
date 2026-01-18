@@ -13,7 +13,7 @@ import {
 import type { Agent } from '@/lib/types/agent-full';
 import { AgentItemMenu } from './agent-item-menu';
 
-export interface AgentItemProps extends Agent {
+interface AgentItemProps extends Agent {
   tenantId: string;
   projectId: string;
 }
@@ -34,7 +34,13 @@ export function AgentItem({
         <ItemCardLink href={linkPath}>
           <ItemCardTitle className="text-sm">{name}</ItemCardTitle>
         </ItemCardLink>
-        <AgentItemMenu agentId={id} agentName={name} />
+        <AgentItemMenu
+          id={id}
+          name={name}
+          description={description}
+          projectId={projectId}
+          tenantId={tenantId}
+        />
       </ItemCardHeader>
       <ItemCardContent>
         <ItemCardDescription hasContent={!!description}>

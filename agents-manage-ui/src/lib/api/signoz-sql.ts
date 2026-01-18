@@ -1,5 +1,7 @@
+import type { AxiosResponse } from 'axios';
 import axios from 'axios';
 import axiosRetry from 'axios-retry';
+import { getManageApiUrl } from './api-config';
 
 // Configure axios retry
 axiosRetry(axios, {
@@ -13,10 +15,25 @@ const ATTRIBUTE_KEYS = {
 } as const;
 
 /**
+ * Check if we should call SigNoz directly (server-to-server call without cookies)
+ */
+function shouldCallSigNozDirectly(cookieHeader: string | null): boolean {
+  return !cookieHeader && !!process.env.SIGNOZ_URL && !!process.env.SIGNOZ_API_KEY;
+}
+
+/**
+ * Get the SigNoz endpoint URL
+ */
+function getSigNozEndpoint(): string {
+  const signozUrl = process.env.SIGNOZ_URL;
+  return `${signozUrl}/api/v4/query_range`;
+}
+
+/**
  * Using for all span attributes (not possible via Trace API)
  */
 
-export type SpanRow = {
+type SpanRow = {
   trace_id: string;
   span_id: string;
   timestamp: string;
@@ -29,12 +46,12 @@ export type SpanRow = {
 };
 
 /**
- * Fetch all span attributes for given trace IDs using optimized SQL query
+ * Fetch all span attributes via secure manage-api
  */
 export async function fetchAllSpanAttributes_SQL(
   conversationId: string,
-  sigNozUrl: string,
-  apiKey: string
+  tenantId: string,
+  cookieHeader: string | null
 ): Promise<
   Array<{
     spanId: string;
@@ -92,31 +109,58 @@ export async function fetchAllSpanAttributes_SQL(
   while (true) {
     const payload = JSON.parse(JSON.stringify(basePayload));
     payload.variables.offset = offset;
-    const signozEndpoint = `${sigNozUrl}/api/v4/query_range`;
+
     try {
-      const response = await axios.post(signozEndpoint, payload, {
-        headers: {
+      let response: AxiosResponse;
+
+      // For server-to-server calls (no cookies), call SigNoz directly
+      if (shouldCallSigNozDirectly(cookieHeader)) {
+        const endpoint = getSigNozEndpoint();
+        response = await axios.post(endpoint, payload, {
+          headers: {
+            'Content-Type': 'application/json',
+            'SIGNOZ-API-KEY': process.env.SIGNOZ_API_KEY || '',
+          },
+          timeout: 30000,
+        });
+      } else {
+        // For browser calls, go through manage-api for auth
+        const manageApiUrl = getManageApiUrl();
+        const endpoint = `${manageApiUrl}/tenants/${tenantId}/signoz/query`;
+        const headers: Record<string, string> = {
           'Content-Type': 'application/json',
-          'SIGNOZ-API-KEY': apiKey,
-        },
-        timeout: 30000,
-      });
+        };
+
+        if (cookieHeader) {
+          headers.Cookie = cookieHeader;
+        }
+
+        response = await axios.post(endpoint, payload, {
+          headers,
+          timeout: 30000,
+          withCredentials: true,
+        });
+      }
 
       const json = response.data;
 
       const result = json?.data?.result?.[0];
       let rows: SpanRow[] = [];
-      rows = result?.series ? result.series.map((s: any) => ({
-        trace_id: s.labels?.trace_id,
-        span_id: s.labels?.span_id,
-        parent_span_id: s.labels?.parent_span_id,
-        timestamp: s.labels?.timestamp,
-        name: s.labels?.name,
-        attributes_string_json: s.labels?.attributes_string_json,
-        attributes_number_json: s.labels?.attributes_number_json,
-        attributes_bool_json: s.labels?.attributes_bool_json,
-        resources_string_json: s.labels?.resources_string_json,
-      })).filter((r: any) => r.trace_id && r.span_id) : []; // Filter out incomplete rows
+      rows = result?.series
+        ? result.series
+            .map((s: any) => ({
+              trace_id: s.labels?.trace_id,
+              span_id: s.labels?.span_id,
+              parent_span_id: s.labels?.parent_span_id,
+              timestamp: s.labels?.timestamp,
+              name: s.labels?.name,
+              attributes_string_json: s.labels?.attributes_string_json,
+              attributes_number_json: s.labels?.attributes_number_json,
+              attributes_bool_json: s.labels?.attributes_bool_json,
+              resources_string_json: s.labels?.resources_string_json,
+            }))
+            .filter((r: any) => r.trace_id && r.span_id)
+        : []; // Filter out incomplete rows
 
       if (!rows.length) {
         break;

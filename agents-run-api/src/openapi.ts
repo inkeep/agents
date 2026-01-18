@@ -6,6 +6,17 @@ export function setupOpenAPIRoutes(app: any) {
   // OpenAPI specification endpoint - serves the complete API spec
   app.get('/openapi.json', (c: Context) => {
     try {
+      // Support Vercel domain names:
+      // - Production: Use VERCEL_PROJECT_PRODUCTION_URL (built-in Vercel env var)
+      // - Preview: Use VERCEL_URL (automatically provided by Vercel)
+      // - Otherwise: Fall back to configured URL
+      const serverUrl =
+        process.env.VERCEL_ENV === 'production' && process.env.VERCEL_PROJECT_PRODUCTION_URL
+          ? `https://${process.env.VERCEL_PROJECT_PRODUCTION_URL}`
+          : process.env.VERCEL_ENV === 'preview' && process.env.VERCEL_URL
+            ? `https://${process.env.VERCEL_URL}`
+            : env.INKEEP_AGENTS_RUN_API_URL;
+
       const document = app.getOpenAPIDocument({
         openapi: '3.0.0',
         info: {
@@ -16,11 +27,30 @@ export function setupOpenAPIRoutes(app: any) {
         },
         servers: [
           {
-            url: env.AGENTS_RUN_API_URL,
-            description: 'Development server',
+            url: serverUrl,
+            description: 'API Server',
           },
         ],
       });
+
+      // Add security schemes and global security requirements
+      document.components = {
+        ...document.components,
+        securitySchemes: {
+          ...(document.components?.securitySchemes || {}),
+          bearerAuth: {
+            type: 'http',
+            scheme: 'bearer',
+            bearerFormat: 'API Key',
+            description:
+              'API key authentication. All endpoints require a valid API key in the Authorization header as "Bearer <api-key>". API keys can be created in the management UI.',
+          },
+        },
+      };
+
+      // Set global security (all routes require API key)
+      document.security = [{ bearerAuth: [] }];
+
       return c.json(document);
     } catch (error) {
       console.error('OpenAPI document generation failed:', error);

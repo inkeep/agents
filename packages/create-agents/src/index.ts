@@ -11,9 +11,17 @@ program
   .option('--template <template>', 'Template to use')
   .option('--openai-key <openai-key>', 'OpenAI API key')
   .option('--anthropic-key <anthropic-key>', 'Anthropic API key')
-  .option('--custom-project-id <custom-project-id>', 'Custom project id for experienced users who want an empty project directory')
+  .option(
+    '--custom-project-id <custom-project-id>',
+    'Custom project id for experienced users who want an empty project directory'
+  )
+  .option('--disable-git', 'Disable git initialization')
+  .option('--local-agents-prefix <local-agents-prefix>', 'Local prefix for create-agents-template')
+  .option('--local-templates-prefix <local-templates-prefix>', 'Local prefix for project templates')
+  .option('--skip-inkeep-cli', 'Skip installing Inkeep CLI globally')
+  .option('--skip-inkeep-mcp', 'Skip installing Inkeep MCP server')
   .parse();
-  
+
 async function main() {
   const options = program.opts();
   const directoryName = program.args[0];
@@ -25,6 +33,11 @@ async function main() {
       anthropicKey: options.anthropicKey,
       customProjectId: options.customProjectId,
       template: options.template,
+      disableGit: options.disableGit,
+      localAgentsPrefix: options.localAgentsPrefix,
+      localTemplatesPrefix: options.localTemplatesPrefix,
+      skipInkeepCli: options.skipInkeepCli,
+      skipInkeepMcp: options.skipInkeepMcp,
     });
   } catch (error) {
     console.error('Failed to create directory:', error);

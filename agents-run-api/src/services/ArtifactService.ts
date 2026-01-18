@@ -1,5 +1,6 @@
 import {
   type ArtifactComponentApiInsert,
+  type FullExecutionContext,
   getLedgerArtifacts,
   getTask,
   listTaskIdsByContextId,
@@ -45,10 +46,9 @@ export interface ArtifactCreateRequest {
 }
 
 export interface ArtifactServiceContext {
-  tenantId: string;
+  executionContext: FullExecutionContext;
   sessionId?: string;
   taskId?: string;
-  projectId?: string;
   contextId?: string;
   artifactComponents?: ArtifactComponentApiInsert[];
   streamRequestId?: string;
@@ -85,6 +85,7 @@ export class ArtifactService {
    */
   async getContextArtifacts(contextId: string): Promise<Map<string, any>> {
     const artifacts = new Map<string, any>();
+    const { tenantId, projectId } = this.context.executionContext;
 
     try {
       const taskIds = await listTaskIdsByContextId(dbClient)({
@@ -101,7 +102,7 @@ export class ArtifactService {
         }
 
         const taskArtifacts = await getLedgerArtifacts(dbClient)({
-          scopes: { tenantId: this.context.tenantId, projectId: task.projectId },
+          scopes: { tenantId, projectId },
           taskId,
         });
 
@@ -174,9 +175,12 @@ export class ArtifactService {
       let summaryData: Record<string, any> = {};
       let fullData: Record<string, any> = {};
 
+      let previewSchema: any = null;
+      let fullSchema: any = null;
+
       if (component?.props) {
-        const previewSchema = extractPreviewFields(component.props as ExtendedJsonSchema);
-        const fullSchema = extractFullFields(component.props as ExtendedJsonSchema);
+        previewSchema = extractPreviewFields(component.props as ExtendedJsonSchema);
+        fullSchema = extractFullFields(component.props as ExtendedJsonSchema);
 
         summaryData = this.extractPropsFromSchema(
           selectedData,
@@ -212,6 +216,17 @@ export class ArtifactService {
       const cleanedSummaryData = this.cleanEscapedContent(summaryData);
       const cleanedFullData = this.cleanEscapedContent(fullData);
 
+      // Validate extracted data against the actual schemas used for extraction
+      const schemaValidation = this.validateExtractedData(
+        request.artifactId,
+        request.type,
+        cleanedSummaryData,
+        cleanedFullData,
+        previewSchema,
+        fullSchema,
+        component?.props
+      );
+
       const artifactData: ArtifactSummaryData = {
         artifactId: request.artifactId,
         toolCallId: request.toolCallId,
@@ -221,7 +236,13 @@ export class ArtifactService {
         data: cleanedSummaryData,
       };
 
-      await this.persistArtifact(request, cleanedSummaryData, cleanedFullData, subAgentId);
+      await this.persistArtifact(
+        request,
+        cleanedSummaryData,
+        cleanedFullData,
+        subAgentId,
+        schemaValidation
+      );
 
       await this.cacheArtifact(
         request.artifactId,
@@ -249,6 +270,8 @@ export class ArtifactService {
   ): Promise<ArtifactSummaryData | null> {
     const key = `${artifactId}:${toolCallId}`;
 
+    const { tenantId, projectId } = this.context.executionContext;
+
     if (this.context.streamRequestId) {
       const cachedArtifact = await agentSessionManager.getArtifactCache(
         this.context.streamRequestId,
@@ -260,7 +283,7 @@ export class ArtifactService {
     }
 
     if (this.createdArtifacts.has(key)) {
-      const cached = this.createdArtifacts.get(key)!;
+      const cached = this.createdArtifacts.get(key);
       return this.formatArtifactSummaryData(cached, artifactId, toolCallId);
     }
 
@@ -270,7 +293,7 @@ export class ArtifactService {
     }
 
     try {
-      if (!this.context.projectId || !this.context.taskId) {
+      if (!projectId || !this.context.taskId) {
         logger.warn(
           { artifactId, toolCallId },
           'No projectId or taskId available for artifact lookup'
@@ -278,8 +301,19 @@ export class ArtifactService {
         return null;
       }
 
-      const artifacts = await getLedgerArtifacts(dbClient)({
-        scopes: { tenantId: this.context.tenantId, projectId: this.context.projectId },
+      let artifacts: any[] = [];
+      artifacts = await getLedgerArtifacts(dbClient)({
+        scopes: { tenantId, projectId },
+        artifactId,
+        toolCallId: toolCallId,
+      });
+
+      if (artifacts.length > 0) {
+        return this.formatArtifactSummaryData(artifacts[0], artifactId, toolCallId);
+      }
+
+      artifacts = await getLedgerArtifacts(dbClient)({
+        scopes: { tenantId, projectId },
         artifactId,
         taskId: this.context.taskId,
       });
@@ -307,6 +341,8 @@ export class ArtifactService {
   ): Promise<ArtifactFullData | null> {
     const key = `${artifactId}:${toolCallId}`;
 
+    const { tenantId, projectId } = this.context.executionContext;
+
     if (this.context.streamRequestId) {
       const cachedArtifact = await agentSessionManager.getArtifactCache(
         this.context.streamRequestId,
@@ -318,7 +354,7 @@ export class ArtifactService {
     }
 
     if (this.createdArtifacts.has(key)) {
-      const cached = this.createdArtifacts.get(key)!;
+      const cached = this.createdArtifacts.get(key);
       return this.formatArtifactFullData(cached, artifactId, toolCallId);
     }
 
@@ -328,7 +364,7 @@ export class ArtifactService {
     }
 
     try {
-      if (!this.context.projectId || !this.context.taskId) {
+      if (!projectId || !this.context.taskId) {
         logger.warn(
           { artifactId, toolCallId },
           'No projectId or taskId available for artifact lookup'
@@ -336,8 +372,20 @@ export class ArtifactService {
         return null;
       }
 
-      const artifacts = await getLedgerArtifacts(dbClient)({
-        scopes: { tenantId: this.context.tenantId, projectId: this.context.projectId },
+      let artifacts: any[] = [];
+
+      artifacts = await getLedgerArtifacts(dbClient)({
+        scopes: { tenantId, projectId },
+        artifactId,
+        toolCallId: toolCallId,
+      });
+
+      if (artifacts.length > 0) {
+        return this.formatArtifactFullData(artifacts[0], artifactId, toolCallId);
+      }
+
+      artifacts = await getLedgerArtifacts(dbClient)({
+        scopes: { tenantId, projectId },
         artifactId,
         taskId: this.context.taskId,
       });
@@ -363,13 +411,58 @@ export class ArtifactService {
     artifactId: string,
     toolCallId: string
   ): ArtifactSummaryData {
+    // Try multiple data sources with logging for fallback usage
+    let data = artifact.parts?.[0]?.data?.summary;
+    let dataSource = 'parts[0].data.summary';
+
+    if (!data || (typeof data === 'object' && Object.keys(data).length === 0)) {
+      // Fallback 1: Try parts[0].data directly
+      data = artifact.parts?.[0]?.data;
+      if (data && !(typeof data === 'object' && Object.keys(data).length === 0)) {
+        dataSource = 'parts[0].data (fallback)';
+        logger.debug(
+          { artifactId, toolCallId, dataSource },
+          'Using fallback data source for artifact summary'
+        );
+      } else {
+        // Fallback 2: Try artifact.data directly
+        data = artifact.data;
+        if (data && !(typeof data === 'object' && Object.keys(data).length === 0)) {
+          dataSource = 'artifact.data (fallback)';
+          logger.debug(
+            { artifactId, toolCallId, dataSource },
+            'Using fallback data source for artifact summary'
+          );
+        } else {
+          // Final fallback: empty object with warning
+          data = {};
+          dataSource = 'empty (no data found)';
+          logger.warn(
+            {
+              artifactId,
+              toolCallId,
+              artifactStructure: {
+                hasParts: !!artifact.parts,
+                partsLength: artifact.parts?.length,
+                hasPartsData: !!artifact.parts?.[0]?.data,
+                hasPartsSummary: !!artifact.parts?.[0]?.data?.summary,
+                hasArtifactData: !!artifact.data,
+                artifactKeys: Object.keys(artifact || {}),
+              },
+            },
+            'No valid data found for artifact summary - using empty object'
+          );
+        }
+      }
+    }
+
     return {
       artifactId,
       toolCallId,
       name: artifact.name || 'Processing...',
       description: artifact.description || 'Name and description being generated...',
       type: artifact.metadata?.artifactType || artifact.artifactType,
-      data: artifact.parts?.[0]?.data?.summary || {},
+      data,
     };
   }
 
@@ -381,13 +474,173 @@ export class ArtifactService {
     artifactId: string,
     toolCallId: string
   ): ArtifactFullData {
+    // Try multiple data sources with logging for fallback usage
+    let data = artifact.parts?.[0]?.data?.full;
+    let dataSource = 'parts[0].data.full';
+
+    if (!data || (typeof data === 'object' && Object.keys(data).length === 0)) {
+      // Fallback 1: Try parts[0].data directly
+      data = artifact.parts?.[0]?.data;
+      if (data && !(typeof data === 'object' && Object.keys(data).length === 0)) {
+        dataSource = 'parts[0].data (fallback)';
+        logger.debug(
+          { artifactId, toolCallId, dataSource },
+          'Using fallback data source for artifact full data'
+        );
+      } else {
+        // Fallback 2: Try artifact.data directly
+        data = artifact.data;
+        if (data && !(typeof data === 'object' && Object.keys(data).length === 0)) {
+          dataSource = 'artifact.data (fallback)';
+          logger.debug(
+            { artifactId, toolCallId, dataSource },
+            'Using fallback data source for artifact full data'
+          );
+        } else {
+          // Final fallback: empty object with warning
+          data = {};
+          dataSource = 'empty (no data found)';
+          logger.warn(
+            {
+              artifactId,
+              toolCallId,
+              artifactStructure: {
+                hasParts: !!artifact.parts,
+                partsLength: artifact.parts?.length,
+                hasPartsData: !!artifact.parts?.[0]?.data,
+                hasPartsFull: !!artifact.parts?.[0]?.data?.full,
+                hasArtifactData: !!artifact.data,
+                artifactKeys: Object.keys(artifact || {}),
+              },
+            },
+            'No valid data found for artifact full data - using empty object'
+          );
+        }
+      }
+    }
+
     return {
       artifactId,
       toolCallId,
       name: artifact.name || 'Processing...',
       description: artifact.description || 'Name and description being generated...',
       type: artifact.metadata?.artifactType || artifact.artifactType,
-      data: artifact.parts?.[0]?.data?.full || {},
+      data,
+    };
+  }
+
+  /**
+   * Validate extracted data against the schemas used for extraction
+   */
+  private validateExtractedData(
+    artifactId: string,
+    artifactType: string,
+    summaryData: Record<string, any>,
+    fullData: Record<string, any>,
+    previewSchema: any,
+    fullSchema: any,
+    originalProps?: any
+  ): {
+    summary: {
+      hasExpectedFields: boolean;
+      missingFields: string[];
+      extraFields: string[];
+      expectedFields: string[];
+      actualFields: string[];
+      hasRequiredFields: boolean;
+      missingRequired: string[];
+    };
+    full: {
+      hasExpectedFields: boolean;
+      missingFields: string[];
+      extraFields: string[];
+      expectedFields: string[];
+      actualFields: string[];
+      hasRequiredFields: boolean;
+      missingRequired: string[];
+    };
+    schemaFound: boolean;
+  } {
+    const validateAgainstSchema = (data: Record<string, any>, schema: any) => {
+      const actualFields = Object.keys(data || {});
+      const expectedFields = schema?.properties ? Object.keys(schema.properties) : [];
+      const missingFields = expectedFields.filter((field: string) => !(field in (data || {})));
+      const extraFields = actualFields.filter((field: string) => !expectedFields.includes(field));
+
+      // Check required fields specifically
+      const requiredFields = schema?.required || [];
+      const missingRequired = requiredFields.filter((field: string) => !(field in (data || {})));
+
+      return {
+        hasExpectedFields: missingFields.length === 0,
+        missingFields,
+        extraFields,
+        expectedFields,
+        actualFields,
+        hasRequiredFields: missingRequired.length === 0,
+        missingRequired,
+      };
+    };
+
+    const summaryValidation = validateAgainstSchema(summaryData, previewSchema);
+    const fullValidation = validateAgainstSchema(fullData, fullSchema);
+
+    // Block artifact creation if required fields are missing from summary data
+    if (!summaryValidation.hasRequiredFields) {
+      logger.error(
+        {
+          artifactId,
+          artifactType,
+          requiredFields: summaryValidation.missingRequired,
+          actualFields: summaryValidation.actualFields,
+          schemaExpected: previewSchema?.properties ? Object.keys(previewSchema.properties) : [],
+        },
+        'Artifact creation failed due to missing required fields - continuing with generation'
+      );
+
+      // Return validation result indicating failure to prevent generation crash
+      return {
+        summary: summaryValidation,
+        full: fullValidation,
+        schemaFound: !!previewSchema,
+      };
+    }
+
+    // Log validation results
+    if (!summaryValidation.hasExpectedFields || summaryValidation.extraFields.length > 0) {
+      logger.warn(
+        {
+          artifactId,
+          artifactType,
+          dataType: 'summary',
+          expectedFields: summaryValidation.expectedFields,
+          actualFields: summaryValidation.actualFields,
+          missingFields: summaryValidation.missingFields,
+          extraFields: summaryValidation.extraFields,
+        },
+        'Summary data structure does not match preview schema'
+      );
+    }
+
+    if (!fullValidation.hasExpectedFields || fullValidation.extraFields.length > 0) {
+      logger.warn(
+        {
+          artifactId,
+          artifactType,
+          dataType: 'full',
+          expectedFields: fullValidation.expectedFields,
+          actualFields: fullValidation.actualFields,
+          missingFields: fullValidation.missingFields,
+          extraFields: fullValidation.extraFields,
+        },
+        'Full data structure does not match full schema'
+      );
+    }
+
+    return {
+      summary: summaryValidation,
+      full: fullValidation,
+      schemaFound: !!originalProps,
     };
   }
 
@@ -398,7 +651,8 @@ export class ArtifactService {
     request: ArtifactCreateRequest,
     summaryData: Record<string, any>,
     fullData: Record<string, any>,
-    subAgentId?: string
+    subAgentId?: string,
+    schemaValidation?: any
   ): Promise<void> {
     const effectiveAgentId = subAgentId || this.context.subAgentId;
 
@@ -422,8 +676,29 @@ export class ArtifactService {
             sessionId: this.context.sessionId,
             artifactType: request.type,
           },
-          tenantId: this.context.tenantId,
-          projectId: this.context.projectId,
+          schemaValidation: schemaValidation || {
+            summary: {
+              hasExpectedFields: true,
+              missingFields: [],
+              extraFields: [],
+              expectedFields: [],
+              actualFields: [],
+              hasRequiredFields: true,
+              missingRequired: [],
+            },
+            full: {
+              hasExpectedFields: true,
+              missingFields: [],
+              extraFields: [],
+              expectedFields: [],
+              actualFields: [],
+              hasRequiredFields: true,
+              missingRequired: [],
+            },
+            schemaFound: false,
+          },
+          tenantId: this.context.executionContext.tenantId,
+          projectId: this.context.executionContext.projectId,
           contextId: this.context.contextId,
           pendingGeneration: true,
         }
@@ -511,11 +786,14 @@ export class ArtifactService {
     description: string;
     type: string;
     data: Record<string, any>;
+    summaryData?: Record<string, any>;
     metadata?: Record<string, any>;
     toolCallId?: string;
   }): Promise<void> {
-    let summaryData = artifact.data;
+    // Use provided summaryData if available, otherwise default to artifact.data
+    let summaryData = artifact.summaryData || artifact.data;
     let fullData = artifact.data;
+    const { tenantId, projectId } = this.context.executionContext;
 
     if (this.context.artifactComponents) {
       const artifactComponent = this.context.artifactComponents.find(
@@ -557,14 +835,17 @@ export class ArtifactService {
         },
       ],
       metadata: artifact.metadata || {},
+      createdAt: new Date().toISOString(),
     };
 
     const result = await upsertLedgerArtifact(dbClient)({
       scopes: {
-        tenantId: this.context.tenantId,
-        projectId: this.context.projectId!,
+        tenantId,
+        projectId,
       },
+      // biome-ignore lint/style/noNonNullAssertion: ignore
       contextId: this.context.contextId!,
+      // biome-ignore lint/style/noNonNullAssertion: ignore
       taskId: this.context.taskId!,
       toolCallId: artifact.toolCallId,
       artifact: artifactToSave,
@@ -589,7 +870,9 @@ export class ArtifactService {
       let cleaned = value;
 
       cleaned = cleaned
+        // biome-ignore lint/suspicious/noControlCharactersInRegex: I am not sure if it's safe to remove
         .replace(/\u0000/g, '') // Remove null bytes
+        // biome-ignore lint/suspicious/noControlCharactersInRegex: I am not sure if it's safe to remove
         .replace(/[\u0001-\u0008\u000B\u000C\u000E-\u001F]/g, ''); // Remove control chars
 
       cleaned = cleaned
@@ -602,7 +885,7 @@ export class ArtifactService {
       // Handle the specific pattern we're seeing: \\\\\\n (4 backslashes + n)
       const maxIterations = 10;
       let iteration = 0;
-      let previousLength;
+      let previousLength: number;
 
       do {
         previousLength = cleaned.length;
@@ -655,7 +938,7 @@ export class ArtifactService {
         try {
           // Check if there's a custom selector for this field
           const customSelector = customSelectors[fieldName];
-          let rawValue;
+          let rawValue: any;
 
           if (customSelector) {
             // Use custom JMESPath selector

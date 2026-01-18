@@ -1,7 +1,7 @@
 import { CredentialStoreType } from '@inkeep/agents-core';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { Agent } from '../../agent';
-import { ExternalAgent } from '../../externalAgent';
+import { ExternalAgent } from '../../external-agent';
 import { SubAgent } from '../../subAgent';
 import { Tool } from '../../tool';
 import type { AgentConfig, GenerateOptions, MessageInput } from '../../types';
@@ -69,6 +69,27 @@ vi.mock('../../agentFullClient.js', () => ({
   }),
 }));
 
+// Mock the projectFullClient
+vi.mock('../../projectFullClient.js', () => ({
+  getFullProjectViaAPI: vi.fn().mockResolvedValue({
+    tenantId: 'test-tenant',
+    id: 'test-project',
+    name: 'Test Project',
+    description: 'Test project for agent testing',
+    models: {
+      base: { model: 'gpt-4o' },
+      structuredOutput: { model: 'gpt-4o-mini' },
+      summarizer: { model: 'gpt-3.5-turbo' },
+    },
+    stopWhen: {
+      transferCountIs: 15,
+      stepCountIs: 25,
+    },
+    createdAt: new Date(),
+    updatedAt: new Date(),
+  }),
+}));
+
 vi.mock('../../data/agentFull.js', () => ({
   createFullAgentServerSide: vi.fn().mockResolvedValue({
     id: 'test-agent',
@@ -125,28 +146,6 @@ vi.mock('../../logger.js', () => ({
     debug: vi.fn(),
   }),
 }));
-
-// Mock @inkeep/agents-core for project model and stopWhen inheritance
-vi.mock('@inkeep/agents-core', async () => {
-  const actual = await vi.importActual('@inkeep/agents-core');
-  return {
-    ...actual,
-    getProject: vi.fn().mockReturnValue(() =>
-      Promise.resolve({
-        tenantId: 'test-tenant',
-        models: {
-          base: { model: 'gpt-4o' },
-          structuredOutput: { model: 'gpt-4o-mini' },
-          summarizer: { model: 'gpt-3.5-turbo' },
-        },
-        stopWhen: {
-          transferCountIs: 15,
-          stepCountIs: 25,
-        },
-      })
-    ),
-  };
-});
 
 // Mock the agent's generate method
 const mockGenerate = vi.fn().mockResolvedValue({
@@ -211,7 +210,7 @@ describe('Agent', () => {
 
     // Add relationships
     defaultSubAgent.addTransfer(supportAgent);
-    defaultSubAgent.addDelegate(externalAgent);
+    defaultSubAgent.addDelegate(externalAgent.with({ headers: { 'X-API-Key': '123' } }));
   });
 
   describe('Constructor', () => {
@@ -238,16 +237,15 @@ describe('Agent', () => {
         id: 'test-agent',
         name: 'Test Agent',
         defaultSubAgent,
-        subAgents: () => [supportAgent, externalAgent],
+        subAgents: () => [supportAgent],
       };
 
       const agent = new Agent(config);
       const subAgents = agent.getSubAgents();
 
-      expect(subAgents).toHaveLength(3); // defaultSubAgent + 2 additional
+      expect(subAgents).toHaveLength(2); // defaultSubAgent + 1 additional
       expect(subAgents.some((a) => a.getName() === 'Default Agent')).toBe(true);
       expect(subAgents.some((a) => a.getName() === 'Support Agent')).toBe(true);
-      expect(subAgents.some((a) => a.getName() === 'External Agent')).toBe(true);
     });
 
     it('should initialize with agents object', () => {
@@ -255,13 +253,13 @@ describe('Agent', () => {
         id: 'test-agent',
         name: 'Test Agent',
         defaultSubAgent,
-        subAgents: () => [supportAgent, externalAgent],
+        subAgents: () => [supportAgent],
       };
 
       const agent = new Agent(config);
       const subAgents = agent.getSubAgents();
 
-      expect(subAgents).toHaveLength(3);
+      expect(subAgents).toHaveLength(2);
     });
 
     it('should handle missing optional parameters', () => {
@@ -447,20 +445,6 @@ describe('Agent', () => {
       await expect(agent.generate(messageInput)).rejects.toThrow('HTTP 404: Not Found');
     });
 
-    it('should throw error if no default agent and no agent specified', async () => {
-      const agentWithoutDefault = new Agent({
-        id: 'test-agent',
-        name: 'Test Agent',
-      });
-      await agentWithoutDefault.init();
-
-      const messageInput: MessageInput = 'Hello';
-
-      await expect(agentWithoutDefault.generate(messageInput)).rejects.toThrow(
-        'No default agent configured for this agent'
-      );
-    });
-
     it('should pass generate options correctly', async () => {
       const messageInput: MessageInput = 'Hello';
 
@@ -543,7 +527,10 @@ describe('Agent', () => {
         name: 'Test Agent',
         description: 'Test description',
         defaultSubAgent,
-        subAgents: () => [supportAgent, externalAgent],
+        stopWhen: {
+          transferCountIs: 10,
+        },
+        subAgents: () => [supportAgent],
       });
 
       await agent.init();
@@ -561,13 +548,20 @@ describe('Agent', () => {
             name: 'Default Agent',
             type: 'internal',
             canTransferTo: ['support-agent'],
-            canDelegateTo: ['external-1'],
+            canDelegateTo: [
+              {
+                externalAgentId: 'external-1',
+              },
+            ],
           },
           'support-agent': {
             id: 'support-agent',
             name: 'Support Agent',
             type: 'internal',
           },
+        },
+        stopWhen: {
+          transferCountIs: 10,
         },
       });
     });
@@ -602,27 +596,26 @@ describe('Agent', () => {
     beforeEach(async () => {
       vi.clearAllMocks();
 
-      // Reset the @inkeep/core mock to default behavior
-      const { getProject } = await import('@inkeep/agents-core');
-      vi.mocked(getProject).mockReturnValue(() =>
-        Promise.resolve({
-          tenantId: 'test-tenant',
-          id: 'test-project',
-          name: 'Test Project',
-          description: 'Test project for agent testing',
-          models: {
-            base: { model: 'gpt-4o' },
-            structuredOutput: { model: 'gpt-4o-mini' },
-            summarizer: { model: 'gpt-3.5-turbo' },
-          },
-          stopWhen: {
-            transferCountIs: 15,
-            stepCountIs: 25,
-          },
-          createdAt: new Date().toISOString(),
-          updatedAt: new Date().toISOString(),
-        })
-      );
+      // Reset the projectFullClient mock to default behavior
+      const { getFullProjectViaAPI } = await import('../../projectFullClient.js');
+      vi.mocked(getFullProjectViaAPI).mockResolvedValue({
+        id: 'test-project',
+        name: 'Test Project',
+        description: 'Test project for agent testing',
+        models: {
+          base: { model: 'gpt-4o' },
+          structuredOutput: { model: 'gpt-4o-mini' },
+          summarizer: { model: 'gpt-3.5-turbo' },
+        },
+        stopWhen: {
+          transferCountIs: 15,
+          stepCountIs: 25,
+        },
+        agents: {},
+        tools: {},
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+      });
 
       agent1 = new SubAgent({
         id: 'agent1',
@@ -669,9 +662,9 @@ describe('Agent', () => {
         summarizer: { model: 'gpt-3.5-turbo' },
       });
 
-      // Verify database client was called for project lookup
-      const { getProject } = await import('@inkeep/agents-core');
-      expect(getProject).toHaveBeenCalled();
+      // Verify API client was called for project lookup
+      const { getFullProjectViaAPI } = await import('../../projectFullClient.js');
+      expect(getFullProjectViaAPI).toHaveBeenCalled();
     });
 
     it('should not override existing agent models but inherit missing ones', async () => {
@@ -693,9 +686,9 @@ describe('Agent', () => {
       };
       expect(agent.getModels()).toEqual(expectedModels);
 
-      // Project database lookup is called for both model and stopWhen inheritance
-      const { getProject } = await import('@inkeep/agents-core');
-      expect(getProject).toHaveBeenCalled();
+      // Project API lookup is called for both model and stopWhen inheritance
+      const { getFullProjectViaAPI } = await import('../../projectFullClient.js');
+      expect(getFullProjectViaAPI).toHaveBeenCalled();
     });
 
     it('should propagate agent models to agents without models', async () => {
@@ -777,10 +770,10 @@ describe('Agent', () => {
       expect(agent2.getModels()).toEqual(agentModels);
     });
 
-    it('should handle project database errors gracefully', async () => {
-      // Mock project database to throw error
-      const { getProject } = await import('@inkeep/agents-core');
-      vi.mocked(getProject).mockReturnValueOnce(() => Promise.reject(new Error('Database error')));
+    it('should handle project API errors gracefully', async () => {
+      // Mock project API to throw error
+      const { getFullProjectViaAPI } = await import('../../projectFullClient.js');
+      vi.mocked(getFullProjectViaAPI).mockRejectedValueOnce(new Error('API error'));
 
       // Agent has no models - will try to inherit from project
       expect(agent.getModels()).toBeUndefined();
@@ -796,29 +789,33 @@ describe('Agent', () => {
     });
 
     it('should handle project with no models configured', async () => {
-      // Mock project database to return project without models
-      const { getProject } = await import('@inkeep/agents-core');
-      vi.mocked(getProject).mockReturnValueOnce(() =>
-        Promise.resolve({
-          tenantId: 'test-tenant',
-          id: 'test-project',
-          name: 'Test Project',
-          description: 'Test project',
-          models: null,
-          stopWhen: null,
-          createdAt: new Date().toISOString(),
-          updatedAt: new Date().toISOString(),
-        })
-      );
+      // Mock project API to return project without models
+      const { getFullProjectViaAPI } = await import('../../projectFullClient.js');
+      vi.mocked(getFullProjectViaAPI).mockResolvedValueOnce({
+        id: 'test-project',
+        name: 'Test Project',
+        description: 'Test project',
+        models: {
+          base: { model: undefined },
+          structuredOutput: undefined,
+          summarizer: undefined,
+        },
+        stopWhen: undefined,
+        agents: {},
+        tools: {},
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+      });
 
       expect(agent.getModels()).toBeUndefined();
 
       await agent.init();
 
       // Should remain undefined when project has no models
-      expect(agent.getModels()).toBeUndefined();
-      expect(agent1.getModels()).toBeUndefined();
-      expect(agent2.getModels()).toBeUndefined();
+      expect(agent.getModels()?.base?.model).toBeUndefined();
+      expect(agent1.getModels()?.base?.model).toBeUndefined();
+      expect(agent2.getModels()?.base?.model).toBeUndefined();
+      expect(agent2.getModels()?.base?.model).toBeUndefined();
     });
 
     it('should support partial model inheritance when agent has some but not all model types', async () => {
@@ -952,27 +949,26 @@ describe('Agent', () => {
     beforeEach(async () => {
       vi.clearAllMocks();
 
-      // Reset the @inkeep/core mock to default behavior with stopWhen
-      const { getProject } = await import('@inkeep/agents-core');
-      vi.mocked(getProject).mockReturnValue(() =>
-        Promise.resolve({
-          tenantId: 'test-tenant',
-          id: 'test-project',
-          name: 'Test Project',
-          description: 'Test project for agent testing',
-          models: {
-            base: { model: 'gpt-4o' },
-            structuredOutput: { model: 'gpt-4o-mini' },
-            summarizer: { model: 'gpt-3.5-turbo' },
-          },
-          stopWhen: {
-            transferCountIs: 15,
-            stepCountIs: 25,
-          },
-          createdAt: new Date().toISOString(),
-          updatedAt: new Date().toISOString(),
-        })
-      );
+      // Reset the projectFullClient mock to default behavior with stopWhen
+      const { getFullProjectViaAPI } = await import('../../projectFullClient.js');
+      vi.mocked(getFullProjectViaAPI).mockResolvedValue({
+        id: 'test-project',
+        name: 'Test Project',
+        description: 'Test project for agent testing',
+        models: {
+          base: { model: 'gpt-4o' },
+          structuredOutput: { model: 'gpt-4o-mini' },
+          summarizer: { model: 'gpt-3.5-turbo' },
+        },
+        stopWhen: {
+          transferCountIs: 15,
+          stepCountIs: 25,
+        },
+        agents: {},
+        tools: {},
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+      });
 
       agent1 = new SubAgent({
         id: 'agent1',
@@ -1016,9 +1012,9 @@ describe('Agent', () => {
       const inheritedStopWhen = agent.getStopWhen();
       expect(inheritedStopWhen.transferCountIs).toBe(15);
 
-      // Verify database client was called for project lookup
-      const { getProject } = await import('@inkeep/agents-core');
-      expect(getProject).toHaveBeenCalled();
+      // Verify API client was called for project lookup
+      const { getFullProjectViaAPI } = await import('../../projectFullClient.js');
+      expect(getFullProjectViaAPI).toHaveBeenCalled();
     });
 
     it('should inherit project-level stepCountIs for agents when not configured', async () => {
@@ -1106,23 +1102,21 @@ describe('Agent', () => {
 
       // Clear and set specific mock for this test (after beforeEach)
       // Need to handle both model and stopWhen calls
-      const { getProject } = await import('@inkeep/agents-core');
-      vi.mocked(getProject).mockClear();
-      vi.mocked(getProject).mockImplementation(
-        () => () =>
-          Promise.resolve({
-            tenantId: 'test-tenant',
-            id: 'test-project',
-            name: 'Test Project',
-            description: 'Test project',
-            models: {
-              base: { model: 'gpt-4o' },
-            },
-            stopWhen: null,
-            createdAt: new Date().toISOString(),
-            updatedAt: new Date().toISOString(),
-          })
-      );
+      const { getFullProjectViaAPI } = await import('../../projectFullClient.js');
+      vi.mocked(getFullProjectViaAPI).mockClear();
+      vi.mocked(getFullProjectViaAPI).mockResolvedValue({
+        id: 'test-project',
+        name: 'Test Project',
+        description: 'Test project',
+        models: {
+          base: { model: 'gpt-4o' },
+        },
+        stopWhen: undefined,
+        agents: {},
+        tools: {},
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+      });
 
       await testAgent.init();
 
@@ -1162,11 +1156,9 @@ describe('Agent', () => {
 
       // Clear and set specific mock for this test (after beforeEach)
       // Need to handle both model and stopWhen calls
-      const { getProject } = await import('@inkeep/agents-core');
-      vi.mocked(getProject).mockClear();
-      vi.mocked(getProject).mockImplementation(
-        () => () => Promise.reject(new Error('Database error'))
-      );
+      const { getFullProjectViaAPI } = await import('../../projectFullClient.js');
+      vi.mocked(getFullProjectViaAPI).mockClear();
+      vi.mocked(getFullProjectViaAPI).mockRejectedValue(new Error('API error'));
 
       await testAgent.init();
 
@@ -1203,26 +1195,24 @@ describe('Agent', () => {
 
       // Clear and set specific mock for this test (after beforeEach)
       // Need to handle both model and stopWhen calls
-      const { getProject } = await import('@inkeep/agents-core');
-      vi.mocked(getProject).mockClear();
-      vi.mocked(getProject).mockImplementation(
-        () => () =>
-          Promise.resolve({
-            tenantId: 'test-tenant',
-            id: 'test-project',
-            name: 'Test Project',
-            description: 'Test project',
-            models: {
-              base: { model: 'gpt-4o' },
-            },
-            stopWhen: {
-              transferCountIs: 12,
-              // no stepCountIs
-            },
-            createdAt: new Date().toISOString(),
-            updatedAt: new Date().toISOString(),
-          })
-      );
+      const { getFullProjectViaAPI } = await import('../../projectFullClient.js');
+      vi.mocked(getFullProjectViaAPI).mockClear();
+      vi.mocked(getFullProjectViaAPI).mockResolvedValue({
+        id: 'test-project',
+        name: 'Test Project',
+        description: 'Test project',
+        models: {
+          base: { model: 'gpt-4o' },
+        },
+        stopWhen: {
+          transferCountIs: 12,
+          // no stepCountIs
+        },
+        agents: {},
+        tools: {},
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+      });
 
       await testAgent.init();
 
@@ -1314,6 +1304,7 @@ describe('Agent', () => {
 
       const credentialRef = {
         id: 'test-cred',
+        name: 'test-cred',
         type: CredentialStoreType.memory,
         credentialStoreId: 'memory-default',
         retrievalParams: {

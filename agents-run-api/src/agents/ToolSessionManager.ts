@@ -1,4 +1,8 @@
-import { nanoid } from 'nanoid';
+import { generateId } from '@inkeep/agents-core';
+import {
+  SESSION_CLEANUP_INTERVAL_MS,
+  SESSION_TOOL_RESULT_CACHE_TIMEOUT_MS,
+} from '../constants/execution-limits';
 import { getLogger } from '../logger';
 
 const logger = getLogger('ToolSessionManager');
@@ -28,11 +32,10 @@ export interface ToolSession {
 export class ToolSessionManager {
   private static instance: ToolSessionManager;
   private sessions: Map<string, ToolSession> = new Map();
-  private readonly SESSION_TIMEOUT = 5 * 60 * 1000; // 5 minutes
 
   private constructor() {
     // Cleanup expired sessions every minute
-    setInterval(() => this.cleanupExpiredSessions(), 60_000);
+    setInterval(() => this.cleanupExpiredSessions(), SESSION_CLEANUP_INTERVAL_MS);
   }
 
   static getInstance(): ToolSessionManager {
@@ -46,7 +49,7 @@ export class ToolSessionManager {
    * Create a new tool session for an agent execution
    */
   createSession(tenantId: string, projectId: string, contextId: string, taskId: string): string {
-    const sessionId = nanoid();
+    const sessionId = generateId();
     return this.createSessionWithId(sessionId, tenantId, projectId, contextId, taskId);
   }
 
@@ -204,7 +207,7 @@ export class ToolSessionManager {
     const expiredSessions: string[] = [];
 
     for (const [sessionId, session] of this.sessions.entries()) {
-      if (now - session.createdAt > this.SESSION_TIMEOUT) {
+      if (now - session.createdAt > SESSION_TOOL_RESULT_CACHE_TIMEOUT_MS) {
         expiredSessions.push(sessionId);
       }
     }

@@ -1,16 +1,36 @@
-import { nanoid } from 'nanoid';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import * as execModule from '../../handlers/executionHandler';
 import { makeRequest } from '../utils/testRequest';
 
-// Mock nanoid to control session ID generation
-vi.mock('nanoid', async (importOriginal) => {
-  const actual = await importOriginal();
-  return {
-    ...(actual as any),
-    nanoid: vi.fn(),
-  };
-});
+// Mock context exports used by the MCP route (routes/mcp.ts imports from ../context)
+const {
+  contextValidationMiddlewareMock,
+  handleContextResolutionMock,
+  getFullProjectMock,
+  getResolvedRefMock,
+} = vi.hoisted(() => ({
+  contextValidationMiddlewareMock: vi.fn().mockImplementation(async (c: any, next: any) => {
+    c.set('validatedContext', {
+      agentId: 'test-agent',
+      tenantId: 'test-tenant',
+      projectId: 'test-project',
+    });
+    await next();
+  }),
+  handleContextResolutionMock: vi.fn().mockResolvedValue({}),
+  // Mock Management API calls used by projectConfigMiddleware so tests don't hit network
+  getFullProjectMock: vi.fn(),
+  getResolvedRefMock: vi.fn().mockResolvedValue({
+    type: 'branch',
+    name: 'main',
+    hash: 'test-hash',
+  }),
+}));
+
+vi.mock('../../context', () => ({
+  contextValidationMiddleware: contextValidationMiddlewareMock,
+  handleContextResolution: handleContextResolutionMock,
+}));
 
 // Mock toReqRes to convert fetch request to node request/response
 vi.mock('fetch-to-node', () => ({
@@ -48,7 +68,7 @@ vi.mock('fetch-to-node', () => ({
 }));
 
 // Mock MCP SDK
-vi.mock('@modelcontextprotocol/sdk/server/v1/mcp.js', () => ({
+vi.mock('@alcyone-labs/modelcontextprotocol-sdk/server/mcp.js', () => ({
   McpServer: vi.fn().mockImplementation(() => ({
     tool: vi.fn(),
     prompt: vi.fn(),
@@ -57,7 +77,7 @@ vi.mock('@modelcontextprotocol/sdk/server/v1/mcp.js', () => ({
 }));
 
 // Mock StreamableHTTPServerTransport
-vi.mock('@modelcontextprotocol/sdk/server/streamableHttp.js', () => ({
+vi.mock('@alcyone-labs/modelcontextprotocol-sdk/server/streamableHttp.js', () => ({
   StreamableHTTPServerTransport: vi.fn().mockImplementation((options) => ({
     sessionIdGenerator: options?.sessionIdGenerator || (() => 'default-session'),
     start: vi.fn().mockResolvedValue(undefined), // Add the missing start method
@@ -103,6 +123,11 @@ vi.mock('@inkeep/agents-core', async (importOriginal) => {
   const actual = await importOriginal<typeof import('@inkeep/agents-core')>();
   return {
     ...actual,
+    // Mock ManagementApiClient for projectConfigMiddleware
+    ManagementApiClient: vi.fn().mockImplementation(() => ({
+      getResolvedRef: getResolvedRefMock,
+      getFullProject: getFullProjectMock,
+    })),
     getAgentWithDefaultSubAgent: vi.fn().mockReturnValue(
       vi.fn().mockResolvedValue({
         id: 'test-agent',
@@ -122,8 +147,8 @@ vi.mock('@inkeep/agents-core', async (importOriginal) => {
         name: 'Default Agent',
         description: 'A helpful assistant',
         prompt: 'You are a helpful assistant.',
-        createdAt: new Date(),
-        updatedAt: new Date(),
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
       })
     ),
     createOrGetConversation: vi.fn().mockReturnValue(
@@ -132,7 +157,7 @@ vi.mock('@inkeep/agents-core', async (importOriginal) => {
         tenantId: 'test-tenant',
         activeSubAgentId: 'default-agent',
         metadata: {
-          session_data: {
+          sessionData: {
             agentId: 'test-agent',
             sessionType: 'mcp',
             mcpProtocolVersion: '2025-06-18',
@@ -145,20 +170,9 @@ vi.mock('@inkeep/agents-core', async (importOriginal) => {
     updateConversation: vi.fn().mockReturnValue(vi.fn().mockResolvedValue(undefined)),
     getConversation: vi.fn().mockReturnValue(vi.fn().mockResolvedValue(null)),
     setActiveAgentForThread: vi.fn().mockReturnValue(vi.fn().mockResolvedValue(undefined)),
-    contextValidationMiddleware: vi.fn().mockReturnValue(async (c: any, next: any) => {
-      c.set('validatedContext', {
-        agentId: 'test-agent',
-        tenantId: 'test-tenant',
-        projectId: 'test-project',
-      });
-      await next();
-    }),
+    generateId: vi.fn(),
   };
 });
-
-vi.mock('../../data/context.js', () => ({
-  handleContextResolution: vi.fn().mockResolvedValue({}),
-}));
 
 vi.mock('../../logger.js', () => ({
   getLogger: vi.fn().mockReturnValue({
@@ -214,6 +228,56 @@ describe('MCP Routes', () => {
   beforeEach(async () => {
     vi.clearAllMocks();
 
+    getFullProjectMock.mockResolvedValue({
+      id: 'test-project',
+      tenantId: 'test-tenant',
+      name: 'Test Project',
+      agents: {
+        'test-agent': {
+          id: 'test-agent',
+          tenantId: 'test-tenant',
+          projectId: 'test-project',
+          name: 'Test Agent',
+          description: 'Test agent description',
+          defaultSubAgentId: 'default-agent',
+          subAgents: {
+            'default-agent': {
+              id: 'default-agent',
+              tenantId: 'test-tenant',
+              projectId: 'test-project',
+              name: 'Default Agent',
+              description: 'A helpful assistant',
+              prompt: 'You are a helpful assistant.',
+              canUse: [],
+              canTransferTo: [],
+              canDelegateTo: [],
+              dataComponents: [],
+              artifactComponents: [],
+              createdAt: new Date().toISOString(),
+              updatedAt: new Date().toISOString(),
+            },
+          },
+          tools: {},
+          externalAgents: {},
+          teamAgents: {},
+          transferRelations: {},
+          delegateRelations: {},
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString(),
+          contextConfigId: null,
+          contextConfig: null,
+          statusUpdates: { enabled: false },
+        },
+      },
+      tools: {},
+      functions: {},
+      dataComponents: {},
+      artifactComponents: {},
+      externalAgents: {},
+      credentialReferences: {},
+      statusUpdates: null,
+    });
+
     // Reset default mocks using @inkeep/agents-core
     const coreModule = await import('@inkeep/agents-core');
     vi.mocked(coreModule.getAgentWithDefaultSubAgent).mockReturnValue(
@@ -235,7 +299,7 @@ describe('MCP Routes', () => {
         tenantId: 'test-tenant',
         activeSubAgentId: 'default-agent',
         metadata: {
-          session_data: {
+          sessionData: {
             agentId: 'test-agent',
             sessionType: 'mcp',
             mcpProtocolVersion: '2025-06-18',
@@ -263,8 +327,8 @@ describe('MCP Routes', () => {
       }
     );
 
-    // Setup nanoid mock
-    vi.mocked(nanoid).mockReturnValue('test-session-id');
+    // Setup generateId mock
+    vi.mocked(coreModule.generateId).mockReturnValue('test-session-id');
   });
 
   describe('POST /v1/mcp - Initialization', () => {
@@ -313,10 +377,19 @@ describe('MCP Routes', () => {
     });
 
     it('should handle agent not found during initialization', async () => {
-      const coreModule = await import('@inkeep/agents-core');
-      vi.mocked(coreModule.getAgentWithDefaultSubAgent).mockReturnValueOnce(
-        vi.fn().mockResolvedValue(null)
-      );
+      getFullProjectMock.mockResolvedValueOnce({
+        id: 'test-project',
+        tenantId: 'test-tenant',
+        name: 'Test Project',
+        agents: {},
+        tools: {},
+        functions: {},
+        dataComponents: {},
+        artifactComponents: {},
+        externalAgents: {},
+        credentialReferences: {},
+        statusUpdates: null,
+      });
 
       const response = await makeRequest(`/v1/mcp`, {
         method: 'POST',
@@ -336,7 +409,7 @@ describe('MCP Routes', () => {
 
     it('should handle server errors during initialization', async () => {
       const coreModule = await import('@inkeep/agents-core');
-      vi.mocked(coreModule.getAgentWithDefaultSubAgent).mockReturnValueOnce(
+      vi.mocked(coreModule.createOrGetConversation).mockReturnValueOnce(
         vi.fn().mockRejectedValue(new Error('Database error'))
       );
 
@@ -368,7 +441,7 @@ describe('MCP Routes', () => {
           tenantId: 'test-tenant',
           activeSubAgentId: 'default-agent',
           metadata: {
-            session_data: {
+            sessionData: {
               agentId: 'test-agent',
               sessionType: 'mcp',
               mcpProtocolVersion: '2025-06-18',
@@ -573,7 +646,7 @@ describe('MCP Routes', () => {
           tenantId: 'test-tenant',
           activeSubAgentId: 'default-agent',
           metadata: {
-            session_data: {
+            sessionData: {
               agentId: 'test-agent',
               sessionType: 'chat', // Wrong type, should be 'mcp'
               initialized: true,
@@ -636,7 +709,7 @@ describe('MCP Routes', () => {
           tenantId: 'test-tenant',
           activeSubAgentId: 'default-agent',
           metadata: {
-            session_data: {
+            sessionData: {
               agentId: 'different-agent', // Different from requested agent
               sessionType: 'mcp',
               initialized: true,
@@ -727,7 +800,7 @@ describe('MCP Routes', () => {
           tenantId: 'test-tenant',
           activeSubAgentId: 'default-agent',
           metadata: {
-            session_data: {
+            sessionData: {
               agentId: 'test-agent',
               sessionType: 'mcp',
               mcpProtocolVersion: '2025-06-18',
@@ -739,7 +812,7 @@ describe('MCP Routes', () => {
 
       // Mock the StreamableHTTPServerTransport to simulate tool execution
       const streamableHttpModule = await import(
-        '@modelcontextprotocol/sdk/server/streamableHttp.js'
+        '@alcyone-labs/modelcontextprotocol-sdk/server/streamableHttp.js'
       );
 
       vi.mocked(streamableHttpModule.StreamableHTTPServerTransport).mockImplementationOnce(
@@ -831,22 +904,18 @@ describe('MCP Routes', () => {
         }),
       });
 
-      // Verify context validation middleware was called
-      const coreModule = await import('@inkeep/agents-core');
-      expect(coreModule.contextValidationMiddleware).toHaveBeenCalled();
+      expect(contextValidationMiddlewareMock).toHaveBeenCalled();
     });
 
     it('should not apply context validation middleware to GET requests', async () => {
-      const coreModule = await import('@inkeep/agents-core');
-      // Clear previous calls
-      vi.mocked(coreModule.contextValidationMiddleware).mockClear();
+      contextValidationMiddlewareMock.mockClear();
 
       await makeRequest(`/v1/mcp`, {
         method: 'GET',
       });
 
       // Verify context validation middleware was not called for GET
-      expect(coreModule.contextValidationMiddleware).not.toHaveBeenCalled();
+      expect(contextValidationMiddlewareMock).not.toHaveBeenCalled();
     });
   });
 
@@ -861,7 +930,7 @@ describe('MCP Routes', () => {
           tenantId: 'test-tenant',
           activeSubAgentId: 'default-agent',
           metadata: {
-            session_data: {
+            sessionData: {
               agentId: 'test-agent',
               sessionType: 'mcp',
               mcpProtocolVersion: '2025-07-01', // Custom protocol version
@@ -885,7 +954,7 @@ describe('MCP Routes', () => {
       });
 
       const streamableHttpModule = await import(
-        '@modelcontextprotocol/sdk/server/streamableHttp.js'
+        '@alcyone-labs/modelcontextprotocol-sdk/server/streamableHttp.js'
       );
 
       vi.mocked(streamableHttpModule.StreamableHTTPServerTransport).mockImplementationOnce(
@@ -949,7 +1018,7 @@ describe('MCP Routes', () => {
           tenantId: 'test-tenant',
           activeSubAgentId: 'default-agent',
           metadata: {
-            session_data: {
+            sessionData: {
               agentId: 'test-agent',
               sessionType: 'mcp',
               // No mcpProtocolVersion
@@ -970,7 +1039,7 @@ describe('MCP Routes', () => {
       });
 
       const streamableHttpModule = await import(
-        '@modelcontextprotocol/sdk/server/streamableHttp.js'
+        '@alcyone-labs/modelcontextprotocol-sdk/server/streamableHttp.js'
       );
 
       vi.mocked(streamableHttpModule.StreamableHTTPServerTransport).mockImplementationOnce(

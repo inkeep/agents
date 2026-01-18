@@ -44,7 +44,8 @@ pnpm db:migrate
 ```env
 ENVIRONMENT=development|production|test
 PORT=3003
-DB_FILE_NAME=path/to/sqlite.db
+INKEEP_AGENTS_MANAGE_DATABASE_URL=postgresql://dbuser:secretpassword@database.server.com:3211/mydb
+INKEEP_AGENTS_RUN_DATABASE_URL=postgresql://dbuser:secretpassword@database.server.com:3212/mydb
 ANTHROPIC_API_KEY=required
 OPENAI_API_KEY=optional
 LOG_LEVEL=debug|info|warn|error
@@ -73,7 +74,7 @@ pnpm test src/__tests__/a2a/ # Run A2A-specific tests
 
 The API uses environment-based configuration with defaults for local development. Key configuration areas:
 
-- **Database**: SQLite connection via `DB_FILE_NAME`
+- **Database**: PostgreSQL connection via `DATABASE_URL`
 - **AI Models**: Anthropic and OpenAI API keys
 - **Observability**: OpenTelemetry tracing support
 - **CORS**: Configurable for web clients

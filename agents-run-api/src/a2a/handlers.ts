@@ -1,7 +1,7 @@
 import {
   createMessage,
   createTask,
-  getRequestExecutionContext,
+  generateId,
   type Message,
   type MessageSendParams,
   type Task,
@@ -10,7 +10,6 @@ import {
 } from '@inkeep/agents-core';
 import type { Context } from 'hono';
 import { streamSSE } from 'hono/streaming';
-import { nanoid } from 'nanoid';
 import dbClient from '../data/db/dbClient';
 import { getLogger } from '../logger';
 import type { A2ATask, JsonRpcRequest, JsonRpcResponse, RegisteredAgent } from './types';
@@ -87,11 +86,34 @@ async function handleMessageSend(
 ): Promise<Response> {
   try {
     const params = request.params as MessageSendParams;
-    const executionContext = getRequestExecutionContext(c);
-    const { agentId } = executionContext;
+    const executionContext = c.get('executionContext');
+    const { agentId, resolvedRef } = executionContext;
+
+    // Extract forwarded headers from the request (passed from ExecutionHandler via A2AClient)
+    // Transform cookie -> x-forwarded-cookie for downstream forwarding
+    // Note: Do NOT forward the authorization header - it causes issues with MCP servers
+    // because the internal Inkeep JWT token should not be sent to external services.
+    // MCP server auth should be configured via agent tool relation headers instead.
+    const forwardedHeaders: Record<string, string> = {};
+    const xForwardedCookie = c.req.header('x-forwarded-cookie');
+    const cookie = c.req.header('cookie');
+
+    // Priority: x-forwarded-cookie (explicit) > cookie (browser-sent)
+    if (xForwardedCookie) {
+      forwardedHeaders['x-forwarded-cookie'] = xForwardedCookie;
+    } else if (cookie) {
+      forwardedHeaders['x-forwarded-cookie'] = cookie;
+    }
+
+    // Merge forwardedHeaders from message metadata (contains browser timestamp from ExecutionHandler)
+    // with local forwardedHeaders (contains cookies from HTTP headers)
+    const mergedForwardedHeaders = {
+      ...(params.message.metadata?.forwardedHeaders || {}),
+      ...forwardedHeaders,
+    };
 
     const task: A2ATask = {
-      id: nanoid(),
+      id: generateId(),
       input: {
         parts: params.message.parts.map((part) => ({
           kind: part.kind,
@@ -105,6 +127,9 @@ async function handleMessageSend(
           blocking: params.configuration?.blocking ?? false,
           custom: { agent_id: agentId || '' },
           ...params.message.metadata,
+          // Pass merged forwarded headers to taskHandler (includes both browser timestamp and cookies)
+          forwardedHeaders:
+            Object.keys(mergedForwardedHeaders).length > 0 ? mergedForwardedHeaders : undefined,
         },
       },
     };
@@ -169,7 +194,6 @@ async function handleMessageSend(
       },
       'A2A contextId resolution for delegation'
     );
-
     await createTask(dbClient)({
       id: task.id,
       tenantId: agent.tenantId,
@@ -186,6 +210,7 @@ async function handleMessageSend(
         agent_id: agentId || '',
         stream_request_id: params.message.metadata?.stream_request_id,
       },
+      ref: resolvedRef,
       subAgentId: agent.subAgentId,
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
@@ -193,7 +218,11 @@ async function handleMessageSend(
 
     logger.info({ metadata: params.message.metadata }, 'message metadata');
 
-    if (params.message.metadata?.fromSubAgentId || params.message.metadata?.fromExternalAgentId) {
+    if (
+      params.message.metadata?.fromSubAgentId ||
+      params.message.metadata?.fromExternalAgentId ||
+      params.message.metadata?.fromTeamAgentId
+    ) {
       const messageText = params.message.parts
         .filter((part) => part.kind === 'text' && 'text' in part && part.text)
         .map((part) => (part as any).text)
@@ -201,7 +230,7 @@ async function handleMessageSend(
 
       try {
         const messageData: any = {
-          id: nanoid(),
+          id: generateId(),
           tenantId: agent.tenantId,
           projectId: agent.projectId,
           conversationId: effectiveContextId,
@@ -220,6 +249,9 @@ async function handleMessageSend(
         } else if (params.message.metadata?.fromExternalAgentId) {
           messageData.fromExternalAgentId = params.message.metadata.fromExternalAgentId;
           messageData.toSubAgentId = agent.subAgentId;
+        } else if (params.message.metadata?.fromTeamAgentId) {
+          messageData.fromTeamAgentId = params.message.metadata.fromTeamAgentId;
+          messageData.toTeamAgentId = agent.subAgentId;
         }
 
         await createMessage(dbClient)(messageData);
@@ -228,7 +260,9 @@ async function handleMessageSend(
           {
             fromSubAgentId: params.message.metadata.fromSubAgentId,
             fromExternalAgentId: params.message.metadata.fromExternalAgentId,
+            fromTeamAgentId: params.message.metadata.fromTeamAgentId,
             toSubAgentId: agent.subAgentId,
+            toTeamAgentId: params.message.metadata.fromTeamAgentId ? agent.subAgentId : undefined,
             conversationId: effectiveContextId,
             messageType: 'a2a-request',
             taskId: task.id,
@@ -241,6 +275,7 @@ async function handleMessageSend(
             error,
             fromSubAgentId: params.message.metadata.fromSubAgentId,
             fromExternalAgentId: params.message.metadata.fromExternalAgentId,
+            fromTeamAgentId: params.message.metadata.fromTeamAgentId,
             toSubAgentId: agent.subAgentId,
             conversationId: effectiveContextId,
           },
@@ -299,7 +334,7 @@ async function handleMessageSend(
             },
             artifacts: [
               {
-                artifactId: nanoid(),
+                artifactId: generateId(),
                 parts: [
                   {
                     kind: 'data',
@@ -321,6 +356,22 @@ async function handleMessageSend(
         });
       }
     }
+    if (result.status.state === TaskState.Failed) {
+      const isConnectionRefused = result.status.type === 'connection_refused';
+
+      if (isConnectionRefused) {
+        return c.json({
+          jsonrpc: '2.0',
+          error: {
+            code: -32603,
+            message: result.status.message || 'Agent execution failed',
+            data: {
+              type: 'connection_refused',
+            },
+          },
+        } satisfies JsonRpcResponse);
+      }
+    }
 
     const taskStatus = {
       state: result.status.state,
@@ -330,7 +381,7 @@ async function handleMessageSend(
     if (params.configuration?.blocking === false) {
       const taskResponse: Task = {
         id: task.id,
-        contextId: params.message.contextId || nanoid(),
+        contextId: params.message.contextId || generateId(),
         status: taskStatus,
         artifacts: result.artifacts,
         kind: 'task',
@@ -343,7 +394,7 @@ async function handleMessageSend(
       });
     }
     const messageResponse: Message = {
-      messageId: nanoid(),
+      messageId: generateId(),
       parts: result.artifacts?.[0]?.parts || [
         {
           kind: 'text',
@@ -362,6 +413,14 @@ async function handleMessageSend(
       id: request.id,
     });
   } catch (error) {
+    logger.error(
+      {
+        error: error instanceof Error ? error.message : 'Unknown error',
+        stack: error instanceof Error ? error.stack : undefined,
+        subAgentId: agent.subAgentId,
+      },
+      'Error in handleMessageSend'
+    );
     return c.json({
       jsonrpc: '2.0',
       error: {
@@ -381,7 +440,7 @@ async function handleMessageStream(
 ): Promise<Response> {
   try {
     const params = request.params as MessageSendParams;
-    const executionContext = getRequestExecutionContext(c);
+    const executionContext = c.get('executionContext');
     const { agentId } = executionContext;
 
     if (!agent.agentCard.capabilities.streaming) {
@@ -395,8 +454,24 @@ async function handleMessageStream(
       } satisfies JsonRpcResponse);
     }
 
+    // Extract forwarded headers from the request (passed from ExecutionHandler via A2AClient)
+    // Transform cookie -> x-forwarded-cookie for downstream forwarding
+    // Note: Do NOT forward the authorization header - it causes issues with MCP servers
+    // because the internal Inkeep JWT token should not be sent to external services.
+    // MCP server auth should be configured via agent tool relation headers instead.
+    const forwardedHeaders: Record<string, string> = {};
+    const xForwardedCookie = c.req.header('x-forwarded-cookie');
+    const cookie = c.req.header('cookie');
+
+    // Priority: x-forwarded-cookie (explicit) > cookie (browser-sent)
+    if (xForwardedCookie) {
+      forwardedHeaders['x-forwarded-cookie'] = xForwardedCookie;
+    } else if (cookie) {
+      forwardedHeaders['x-forwarded-cookie'] = cookie;
+    }
+
     const task: A2ATask = {
-      id: nanoid(),
+      id: generateId(),
       input: {
         parts: params.message.parts.map((part) => ({
           kind: part.kind,
@@ -409,6 +484,8 @@ async function handleMessageStream(
         metadata: {
           blocking: false, // Streaming is always non-blocking
           custom: { agent_id: agentId || '' },
+          // Pass forwarded headers to taskHandler for MCP server authentication
+          forwardedHeaders: Object.keys(forwardedHeaders).length > 0 ? forwardedHeaders : undefined,
         },
       },
     };
@@ -417,7 +494,7 @@ async function handleMessageStream(
       try {
         const initialTask: Task = {
           id: task.id,
-          contextId: params.message.contextId || nanoid(),
+          contextId: params.message.contextId || generateId(),
           status: {
             state: TaskState.Working,
             timestamp: new Date().toISOString(),
@@ -479,7 +556,7 @@ async function handleMessageStream(
         }
 
         const messageResponse: Message = {
-          messageId: nanoid(),
+          messageId: generateId(),
           parts: result.artifacts?.[0]?.parts || [
             {
               kind: 'text',
@@ -555,20 +632,21 @@ async function handleTasksGet(
 
     const task: Task = {
       id: params.id,
-      contextId: nanoid(),
+      contextId: generateId(),
       status: {
         state: TaskState.Completed,
         timestamp: new Date().toISOString(),
       },
       artifacts: [
         {
-          artifactId: nanoid(),
+          artifactId: generateId(),
           parts: [
             {
               kind: 'text',
               text: `Task ${params.id} completed successfully`,
             },
           ],
+          createdAt: new Date().toISOString(),
         },
       ],
       kind: 'task',
@@ -695,7 +773,7 @@ async function handleTasksResubscribe(
         // Mock task status for resubscription
         const task: Task = {
           id: params.taskId,
-          contextId: nanoid(),
+          contextId: generateId(),
           status: {
             state: TaskState.Completed,
             timestamp: new Date().toISOString(),

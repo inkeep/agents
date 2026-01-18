@@ -1,12 +1,13 @@
 import { Bug, X } from 'lucide-react';
-import { nanoid } from 'nanoid';
-import { useState } from 'react';
+import { type Dispatch, useState } from 'react';
 import { toast } from 'sonner';
 import { TimelineWrapper } from '@/components/traces/timeline/timeline-wrapper';
 import { Button } from '@/components/ui/button';
 import { ResizableHandle, ResizablePanel, ResizablePanelGroup } from '@/components/ui/resizable';
+import { useCopilotContext } from '@/contexts/copilot';
 import { useChatActivitiesPolling } from '@/hooks/use-chat-activities-polling';
 import type { DataComponent } from '@/lib/api/data-components';
+import { generateId } from '@/lib/utils/id-utils';
 import { copyTraceToClipboard } from '@/lib/utils/trace-formatter';
 import { ChatWidget } from './chat-widget';
 import CustomHeadersDialog from './custom-headers-dialog';
@@ -18,6 +19,8 @@ interface PlaygroundProps {
   setShowPlayground: (show: boolean) => void;
   closeSidePane: () => void;
   dataComponentLookup?: Record<string, DataComponent>;
+  showTraces: boolean;
+  setShowTraces: Dispatch<boolean>;
 }
 
 export const Playground = ({
@@ -27,10 +30,12 @@ export const Playground = ({
   closeSidePane,
   setShowPlayground,
   dataComponentLookup = {},
+  showTraces,
+  setShowTraces,
 }: PlaygroundProps) => {
-  const [conversationId, setConversationId] = useState<string>(nanoid());
+  const { setIsOpen: setIsCopilotOpen } = useCopilotContext();
+  const [conversationId, setConversationId] = useState(generateId);
   const [customHeaders, setCustomHeaders] = useState<Record<string, string>>({});
-  const [showTraces, setShowTraces] = useState<boolean>(false);
   const [isCopying, setIsCopying] = useState(false);
   const {
     chatActivities,
@@ -42,6 +47,8 @@ export const Playground = ({
     refreshOnce,
   } = useChatActivitiesPolling({
     conversationId,
+    tenantId,
+    projectId,
   });
 
   const handleCopyTrace = async () => {
@@ -70,10 +77,8 @@ export const Playground = ({
   };
 
   return (
-    <div
-      className={`bg-background z-10 flex flex-col border-l ${showTraces ? 'w-full' : 'w-1/3 min-w-96'}`}
-    >
-      <div className="flex min-h-0 items-center justify-between py-2 px-4 border-b flex-shrink-0">
+    <div className="bg-background flex flex-col h-full">
+      <div className="flex min-h-0 items-center justify-between py-2 px-4 border-b shrink-0">
         <CustomHeadersDialog customHeaders={customHeaders} setCustomHeaders={setCustomHeaders} />
         <div className="flex items-center gap-2">
           <Button
@@ -84,21 +89,23 @@ export const Playground = ({
               setShowTraces(!showTraces);
               if (!showTraces) {
                 closeSidePane();
+                setIsCopilotOpen(false);
               }
             }}
           >
             <Bug className="h-4 w-4" />
             {showTraces ? 'Hide debug' : 'Debug'}
           </Button>
-
-          <Button
-            variant="ghost"
-            size="sm"
-            className="h-6"
-            onClick={() => setShowPlayground(false)}
-          >
-            <X className="h-4 w-4" />
-          </Button>
+          {!showTraces && (
+            <Button
+              variant="ghost"
+              size="icon-sm"
+              className="h-6"
+              onClick={() => setShowPlayground(false)}
+            >
+              <X className="h-4 w-4" />
+            </Button>
+          )}
         </div>
       </div>
       <div className="flex-1 min-h-0 w-full">
@@ -115,7 +122,7 @@ export const Playground = ({
               customHeaders={customHeaders}
               chatActivities={chatActivities}
               dataComponentLookup={dataComponentLookup}
-              key={JSON.stringify(customHeaders)}
+              setShowTraces={setShowTraces}
             />
           </ResizablePanel>
 

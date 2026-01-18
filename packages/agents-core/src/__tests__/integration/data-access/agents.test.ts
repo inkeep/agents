@@ -7,29 +7,36 @@ import {
   listAgents,
   listAgentsPaginated,
   updateAgent,
-} from '../../../data-access/agents';
+} from '../../../data-access/manage/agents';
 import {
   createSubAgentRelation,
   deleteSubAgentRelation,
-} from '../../../data-access/subAgentRelations';
-import { createSubAgent, deleteSubAgent } from '../../../data-access/subAgents';
-import type { DatabaseClient } from '../../../db/client';
-import * as schema from '../../../db/schema';
-import { createTestDatabaseClient } from '../../../db/test-client';
-import { createTestSubAgentData, createTestAgentData, createTestRelationData } from '../helpers';
+} from '../../../data-access/manage/subAgentRelations';
+import { createSubAgent, deleteSubAgent } from '../../../data-access/manage/subAgents';
+import type { AgentsManageDatabaseClient } from '../../../db/manage/manage-client';
+import * as schema from '../../../db/manage/manage-schema';
+import type { AgentsRunDatabaseClient } from '../../../db/runtime/runtime-client';
+import { createTestOrganization } from '../../../db/runtime/test-runtime-client';
+import { testManageDbClient, testRunDbClient } from '../../setup';
+import { createTestAgentData, createTestRelationData, createTestSubAgentData } from '../helpers';
 
 describe('Agent Agent Data Access - Integration Tests', () => {
-  let db: DatabaseClient;
+  let db: AgentsManageDatabaseClient;
+  let runDb: AgentsRunDatabaseClient;
   const testTenantId = 'test-tenant';
   const testProjectId = 'test-project';
 
   beforeEach(async () => {
-    // Create fresh in-memory database for each test
-    db = await createTestDatabaseClient();
-
-    // Create test projects for all tenant IDs used in tests
+    // Use shared database client (migrations already applied once in setup.ts)
+    db = testManageDbClient;
+    runDb = testRunDbClient;
+    // Create test organizations and projects for all tenant IDs used in tests
     const tenantIds = [testTenantId, 'other-tenant', 'tenant-1', 'tenant-2'];
     for (const tenantId of tenantIds) {
+      // First ensure organization exists
+      await createTestOrganization(runDb, tenantId);
+
+      // Then create project
       await db
         .insert(schema.projects)
         .values({
@@ -72,6 +79,12 @@ describe('Agent Agent Data Access - Integration Tests', () => {
       expect(fetchedAgent).not.toBeNull();
       expect(fetchedAgent).toMatchObject(agentData);
 
+      // Clear defaultSubAgentId before deleting sub-agent
+      await updateAgent(db)({
+        scopes: { tenantId: testTenantId, projectId: testProjectId, agentId: agentData.id },
+        data: { defaultSubAgentId: null },
+      });
+
       // Delete the agent and agent
       await deleteSubAgent(db)({
         scopes: { tenantId: testTenantId, projectId: testProjectId, agentId: agentData.id },
@@ -110,6 +123,12 @@ describe('Agent Agent Data Access - Integration Tests', () => {
       // Fetch with relations
       const agentWithAgent = await getAgentWithDefaultSubAgent(db)({
         scopes: { tenantId: testTenantId, projectId: testProjectId, agentId: agentData.id },
+      });
+
+      // Clear defaultSubAgentId before deleting sub-agent
+      await updateAgent(db)({
+        scopes: { tenantId: testTenantId, projectId: testProjectId, agentId: agentData.id },
+        data: { defaultSubAgentId: null },
       });
 
       // Delete the agent and agent

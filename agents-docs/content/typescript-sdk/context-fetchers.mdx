@@ -1,0 +1,205 @@
+---
+title: Context Fetchers
+description: Learn how to use context fetchers to fetch data from external sources and make it available to your agents
+icon: LuCirclePlus
+---
+
+## Overview
+
+Context fetchers allow you to embed real-time data from external APIs into your agent prompts. Instead of hardcoding information in your agent prompt, context fetchers dynamically retrieve fresh data for each conversation.
+
+## Key Features
+
+- **Dynamic data retrieval**: Fetch real-time data from APIs.
+- **Dynamic Prompting**: Use dynamic data in your agent prompts
+- **Headers integration**: Use request-specific parameters to customize data fetching.
+- **Data transformation**: Transform API responses into the exact format your agent needs.
+
+## Context Fetchers vs Tools
+
+- **Context Fetchers**: Pre-populate agent prompts with dynamic data
+  - Run automatically before/during conversation startup
+  - Data becomes part of the agent's system prompt
+  - Perfect for: Personalized agent personas, dynamic agent guardrails
+  - Example Prompt: `You are an assistant for ${userContext.toTemplate('user.name')} and you work for ${userContext.toTemplate('user.organization')}`
+
+- **Tools**: Enable agents to take actions or fetch data during conversations
+  - Called by the agent when needed during the conversation
+  - Agent decides when and how to use them
+  - Example Tool Usage: Agent calls a "send_email" tool or "search_database" tool
+
+
+## Basic Usage
+
+Let's create a simple context fetcher that retrieves user information:
+
+```typescript
+import { agent, subAgent } from "@inkeep/agents-sdk";
+import { contextConfig, fetchDefinition, headers } from "@inkeep/agents-core";
+import { z } from "zod";
+
+// 1. Define a schema for headers validation. All header keys are converted to lowercase.
+// In this example all incoming headers will be validated to make sure they include user_id and api_key.
+const personalAgentHeaders = headers({
+  schema: z.object({
+    user_id: z.string(),
+    api_key: z.string(),
+  })
+});
+
+// 2. Create the fetcher with
+const userFetcher = fetchDefinition({
+  id: "user-info",
+  name: "User Information",
+  trigger: "initialization", // Fetch only once when a conversation is started with the Agent. When set to "invocation", the fetch will be executed every time a request is made to the Agent.
+  fetchConfig: {
+    url: `https://api.example.com/users/${personalAgentHeaders.toTemplate('user_id')}`,
+    method: "GET",
+    headers: {
+      Authorization: `Bearer ${personalAgentHeaders.toTemplate('api_key')}`,
+    },
+    transform: "user", // Extract user from response, for example if the response is { "user": { "name": "John Doe", "email": "john.doe@example.com" } }, the transform will return the user object
+  },
+  responseSchema: z.object({
+    user: z.object({
+      name: z.string(),
+      email: z.string(),
+    }),
+  }), // Used to validate the result of the transformed api response.
+  defaultValue: "Unable to fetch user information",
+});
+
+// 3. Configure context
+const personalAgentContext = contextConfig({
+  headers: personalAgentHeaders,
+  contextVariables: {
+    user: userFetcher,
+  },
+});
+
+// 4. Create and use the Sub Agent
+const personalAssistant = subAgent({
+  id: "personal-assistant",
+  name: "Personal Assistant",
+  description: "A personalized AI assistant",
+  prompt: `Hello ${personalAgentContext.toTemplate('user.name')}! I'm your personal assistant.`,
+});
+
+// Initialize the Agent
+export const myAgent = agent({
+  id: "personal-agent",
+  name: "Personal Assistant Agent",
+  defaultSubAgent: personalAssistant,
+  subAgents: () => [personalAssistant],
+  contextConfig: personalAgentContext,
+});
+```
+
+## Using Context Variables
+
+Context variables can be used in your agent prompts using JSONPath template syntax `{{contextVariableKey.field_name}}`.
+Use the context config's `toTemplate()` method for type-safe templating with autocomplete and validation.
+
+```typescript
+const personalGraphContext = contextConfig({
+  headers: personalGraphHeaders,
+  contextVariables: {
+    user: userFetcher,
+  },
+});
+
+const personalAgent = subAgent({
+  id: "personal-agent",
+  name: "Personal Assistant",
+  description: "A personalized AI assistant",
+  prompt: `Hello ${personalGraphContext.toTemplate('user.name')}! I'm your personal assistant.`,
+});
+```
+
+Context variables are resolved using [JSONPath notation](https://jsonpath.com).
+
+## Data transformation
+
+The `transform` property on fetch definitions lets you extract exactly what you need from API responses using JSONPath notation:
+
+```typescript
+// API returns: { "user": { "profile": { "displayName": "John Doe" } } }
+transform: "user.profile.displayName"; // Result: "John Doe"
+
+// API returns: { "items": [{ "name": "First Item" }, { "name": "Second Item" }] }
+transform: "items[0].name"; // Result: "First Item"
+```
+
+## Optional Context Fetches
+
+Sometimes you want to fetch context data only when certain conditions are met—for example, when a specific header is provided. The `requiredToFetch` property lets you specify template variables that must resolve to non-empty values for the fetch to execute.
+
+If any required variable is missing or resolves to an empty string, the fetch is **skipped** (not treated as an error), and the `defaultValue` is used if provided.
+
+```typescript
+import { agent, subAgent } from "@inkeep/agents-sdk";
+import { contextConfig, fetchDefinition, headers } from "@inkeep/agents-core";
+import { z } from "zod";
+
+// Define headers schema - x-conversation-id is optional
+const chatHeaders = headers({
+  schema: z.object({
+    "x-tenant-id": z.string(),
+    "x-project-id": z.string(),
+    "x-conversation-id": z.string().optional(), // Optional header
+  })
+});
+
+// This fetch only runs when x-conversation-id header is provided
+const conversationHistoryFetcher = fetchDefinition({
+  id: "conversation-history",
+  name: "Conversation History",
+  trigger: "initialization",
+  fetchConfig: {
+    url: `https://api.example.com/conversations/${chatHeaders.toTemplate('x-conversation-id')}`,
+    method: "GET",
+    // Only fetch if x-conversation-id header is present and non-empty
+    requiredToFetch: [chatHeaders.toTemplate('x-conversation-id')],
+  },
+  responseSchema: z.object({
+    messages: z.array(z.object({
+      role: z.string(),
+      content: z.string(),
+    })),
+  }),
+  defaultValue: { messages: [] }, // Used when header is not provided
+});
+
+const chatContext = contextConfig({
+  headers: chatHeaders,
+  contextVariables: {
+    history: conversationHistoryFetcher,
+  },
+});
+```
+
+**When to use `requiredToFetch`:**
+- Fetching user-specific data when an optional user ID header is provided
+- Loading conversation history only when continuing an existing conversation
+- Conditional data loading based on optional API keys or authentication headers
+
+## Best Practices
+
+1. **Use Appropriate Triggers**
+
+   - `initialization`: Use when data rarely changes
+   - `invocation`: Use for frequently changing data
+
+2. **Handle Errors Gracefully**
+
+   - Always provide a `defaultValue`
+   - Use appropriate response schemas
+
+3. **Use `requiredToFetch` for Optional Dependencies**
+
+   - Specify required template variables for conditional fetches
+   - Provide a `defaultValue` to handle skipped fetches gracefully
+
+## Related documentation
+
+- [Headers](/typescript-sdk/headers) - Learn how to pass dynamic context to your agents via HTTP headers

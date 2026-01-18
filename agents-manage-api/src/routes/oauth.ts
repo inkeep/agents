@@ -11,32 +11,34 @@
 
 import { createRoute, OpenAPIHono, z } from '@hono/zod-openapi';
 import {
+  type AgentsManageDatabaseClient,
   type CredentialReferenceApiInsert,
   CredentialReferenceApiSelectSchema,
-  type CredentialStoreRegistry,
   CredentialStoreType,
   createCredentialReference,
-  generateIdFromName,
-  getCredentialReferenceWithTools,
+  generateId,
+  getCredentialReferenceWithResources,
   getToolById,
-  type ServerConfig,
+  OAuthCallbackQuerySchema,
+  OAuthLoginQuerySchema,
   updateTool,
 } from '@inkeep/agents-core';
-import dbClient from '../data/db/dbClient';
 import { getLogger } from '../logger';
+import type { PublicAppVariablesWithServerConfig } from '../types/app';
 import { oauthService, retrievePKCEVerifier } from '../utils/oauth-service';
 
 /**
  * Find existing credential or create a new one (idempotent operation)
  */
 async function findOrCreateCredential(
+  db: AgentsManageDatabaseClient,
   tenantId: string,
   projectId: string,
   credentialData: CredentialReferenceApiInsert
 ) {
   try {
     // Try to find existing credential first
-    const existingCredential = await getCredentialReferenceWithTools(dbClient)({
+    const existingCredential = await getCredentialReferenceWithResources(db)({
       scopes: { tenantId, projectId },
       id: credentialData.id,
     });
@@ -50,7 +52,7 @@ async function findOrCreateCredential(
   }
 
   try {
-    const credential = await createCredentialReference(dbClient)({
+    const credential = await createCredentialReference(db)({
       ...credentialData,
       tenantId,
       projectId,
@@ -64,12 +66,7 @@ async function findOrCreateCredential(
   }
 }
 
-type AppVariables = {
-  serverConfig: ServerConfig;
-  credentialStores: CredentialStoreRegistry;
-};
-
-const app = new OpenAPIHono<{ Variables: AppVariables }>();
+const app = new OpenAPIHono<{ Variables: PublicAppVariablesWithServerConfig }>();
 const logger = getLogger('oauth-callback');
 
 /**
@@ -162,21 +159,6 @@ function generateOAuthCallbackPage(params: {
   `;
 }
 
-// OAuth login endpoint schema
-const OAuthLoginQuerySchema = z.object({
-  tenantId: z.string().min(1, 'Tenant ID is required'),
-  projectId: z.string().min(1, 'Project ID is required'),
-  toolId: z.string().min(1, 'Tool ID is required'),
-});
-
-// OAuth callback endpoint schema
-const OAuthCallbackQuerySchema = z.object({
-  code: z.string().min(1, 'Authorization code is required'),
-  state: z.string().min(1, 'State parameter is required'),
-  error: z.string().optional(),
-  error_description: z.string().optional(),
-});
-
 // OAuth login initiation endpoint (public - no API key required)
 app.openapi(
   createRoute({
@@ -222,9 +204,10 @@ app.openapi(
   }),
   async (c) => {
     const { tenantId, projectId, toolId } = c.req.valid('query');
+    const db = c.get('db');
 
     try {
-      const tool = await getToolById(dbClient)({ scopes: { tenantId, projectId }, toolId });
+      const tool = await getToolById(db)({ scopes: { tenantId, projectId }, toolId });
 
       if (!tool) {
         logger.error({ toolId, tenantId, projectId }, 'Tool not found for OAuth login');
@@ -251,14 +234,15 @@ app.openapi(
   }
 );
 
-// OAuth callback endpoint
+// MCP OAuth callback endpoint (for direct MCP tool OAuth flows)
 app.openapi(
   createRoute({
     method: 'get',
     path: '/callback',
-    summary: 'OAuth authorization callback',
-    description: 'Handles OAuth authorization codes and completes the authentication flow',
-    operationId: 'oauth-callback',
+    summary: 'MCP OAuth authorization callback',
+    description:
+      'Handles OAuth authorization codes for MCP tools and completes the authentication flow',
+    operationId: 'mcp-oauth-callback',
     tags: ['OAuth'],
     request: {
       query: OAuthCallbackQuerySchema,
@@ -286,6 +270,7 @@ app.openapi(
     },
   }),
   async (c) => {
+    const db = c.get('db');
     try {
       const { code, state, error, error_description } = c.req.valid('query');
 
@@ -333,7 +318,7 @@ app.openapi(
         resourceUrl,
       } = pkceData;
 
-      const tool = await getToolById(dbClient)({
+      const tool = await getToolById(db)({
         scopes: { tenantId, projectId },
         toolId,
       });
@@ -373,7 +358,8 @@ app.openapi(
         try {
           await keychainStore.set(credentialTokenKey, JSON.stringify(tokens));
           newCredentialData = {
-            id: generateIdFromName(tool.name),
+            id: generateId(),
+            name: tool.name,
             type: CredentialStoreType.keychain,
             credentialStoreId: 'keychain-default',
             retrievalParams: {
@@ -392,10 +378,15 @@ app.openapi(
         throw new Error('No credential store found');
       }
 
-      const newCredential = await findOrCreateCredential(tenantId, projectId, newCredentialData);
+      const newCredential = await findOrCreateCredential(
+        db,
+        tenantId,
+        projectId,
+        newCredentialData
+      );
 
       // Update MCP tool to link the credential
-      await updateTool(dbClient)({
+      await updateTool(db)({
         scopes: { tenantId, projectId },
         toolId,
         data: {

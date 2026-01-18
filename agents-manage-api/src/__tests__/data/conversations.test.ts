@@ -1,6 +1,7 @@
 import {
   createOrGetConversation as createConversation,
   createMessage,
+  generateId,
   getConversation,
   getConversationHistory,
   type MessageInsert,
@@ -9,15 +10,17 @@ import {
 } from '@inkeep/agents-core';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-// Mock nanoid to return predictable IDs
-vi.mock('nanoid', async () => {
+// Mock generateId to return predictable IDs
+vi.mock('@inkeep/agents-core', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('@inkeep/agents-core')>();
   return {
-    nanoid: vi.fn(),
+    ...actual,
+    generateId: vi.fn(),
   };
 });
 
-// Mock the database client - must be done without external references
-vi.mock('../../data/db/dbClient.js', () => ({
+// Mock the runtime database client - must be done without external references
+vi.mock('../../data/db/runDbClient.js', () => ({
   default: {
     insert: vi.fn(),
     select: vi.fn(),
@@ -39,14 +42,14 @@ vi.mock('../../logger.js', () => ({
   }),
 }));
 
-// Import dbClient after mocking
-import dbClient from '../../data/db/dbClient';
+// Import runDbClient after mocking
+import runDbClient from '../../data/db/runDbClient';
 
 // Get references to the mocked functions
-const mockInsert = vi.mocked(dbClient.insert) as any;
-const mockSelect = vi.mocked(dbClient.select) as any;
-const mockUpdate = vi.mocked(dbClient.update) as any;
-const mockQuery = vi.mocked(dbClient.query) as any;
+const mockInsert = vi.mocked(runDbClient.insert) as any;
+const mockSelect = vi.mocked(runDbClient.select) as any;
+const mockUpdate = vi.mocked(runDbClient.update) as any;
+const mockQuery = vi.mocked(runDbClient.query) as any;
 
 describe.skip('Conversations', () => {
   // TODO: Fix mock hoisting issue
@@ -74,11 +77,13 @@ describe.skip('Conversations', () => {
       }),
     });
 
-    const result = await createConversation(dbClient)({
+    const result = await createConversation(runDbClient)({
       id: 'conv-123',
       tenantId: 'test-tenant',
       projectId: 'test-project',
+      agentId: 'agent-1',
       activeSubAgentId: 'default-agent',
+      ref: { type: 'branch', name: 'main', hash: 'abc123' },
     });
 
     expect(result).toEqual(expectedConversation);
@@ -103,7 +108,7 @@ describe('getConversation', () => {
 
     mockQuery.conversations.findFirst.mockResolvedValue(mockConversation);
 
-    const result = await getConversation(dbClient)({
+    const result = await getConversation(runDbClient)({
       scopes: { tenantId: 'test-tenant', projectId: 'test-project' },
       conversationId: 'conv-123',
     });
@@ -115,7 +120,7 @@ describe('getConversation', () => {
   it('should return null if conversation not found', async () => {
     mockQuery.conversations.findFirst.mockResolvedValue(null);
 
-    const result = await getConversation(dbClient)({
+    const result = await getConversation(runDbClient)({
       scopes: { tenantId: 'test-tenant', projectId: 'test-project' },
       conversationId: 'non-existent',
     });
@@ -151,7 +156,7 @@ describe('updateConversation', () => {
     // Mock getConversation to return the updated conversation
     mockQuery.conversations.findFirst.mockResolvedValue(updatedConversation);
 
-    const result = await updateConversation(dbClient)({
+    const result = await updateConversation(runDbClient)({
       scopes: { tenantId: 'test-tenant', projectId: 'test-project' },
       conversationId: 'conv-123',
       data: {
@@ -191,7 +196,7 @@ describe('updateConversationActiveAgent', () => {
     // Mock getConversation to return the updated conversation
     mockQuery.conversations.findFirst.mockResolvedValue(updatedConversation);
 
-    const result = await updateConversation(dbClient)({
+    const result = await updateConversation(runDbClient)({
       scopes: { tenantId: 'test-tenant', projectId: 'test-project' },
       conversationId: 'conv-123',
       data: {
@@ -205,9 +210,8 @@ describe('updateConversationActiveAgent', () => {
 
 describe('addMessage', () => {
   it('should add a user message', async () => {
-    // Setup nanoid for this specific test
-    const { nanoid } = await import('nanoid');
-    vi.mocked(nanoid).mockReturnValueOnce('msg-123');
+    // Setup generateId for this specific test
+    vi.mocked(generateId).mockReturnValueOnce('msg-123');
     const expectedMessage = {
       id: 'msg-123',
       tenantId: 'test-tenant',
@@ -236,7 +240,7 @@ describe('addMessage', () => {
       }),
     });
 
-    const result = await createMessage(dbClient)({
+    const result = await createMessage(runDbClient)({
       id: 'msg-123',
       tenantId: 'test-tenant',
       projectId: 'test-project',
@@ -250,9 +254,8 @@ describe('addMessage', () => {
   });
 
   it('should add an agent message with metadata', async () => {
-    // Setup nanoid for this specific test
-    const { nanoid } = await import('nanoid');
-    vi.mocked(nanoid).mockReturnValueOnce('msg-124');
+    // Setup generateId for this specific test
+    vi.mocked(generateId).mockReturnValueOnce('msg-124');
     const expectedMessage = {
       id: 'msg-124',
       tenantId: 'test-tenant',
@@ -281,7 +284,7 @@ describe('addMessage', () => {
       }),
     });
 
-    const result = await createMessage(dbClient)({
+    const result = await createMessage(runDbClient)({
       id: 'msg-125',
       tenantId: 'test-tenant',
       projectId: 'test-project',
@@ -296,9 +299,8 @@ describe('addMessage', () => {
   });
 
   it('should add A2A message', async () => {
-    // Setup nanoid for this specific test
-    const { nanoid } = await import('nanoid');
-    vi.mocked(nanoid).mockReturnValueOnce('msg-125');
+    // Setup generateId for this specific test
+    vi.mocked(generateId).mockReturnValueOnce('msg-125');
     const expectedMessage = {
       id: 'msg-125',
       tenantId: 'test-tenant',
@@ -327,7 +329,7 @@ describe('addMessage', () => {
       }),
     });
 
-    const result = await createMessage(dbClient)({
+    const result = await createMessage(runDbClient)({
       id: 'msg-126',
       tenantId: 'test-tenant',
       projectId: 'test-project',
@@ -344,9 +346,8 @@ describe('addMessage', () => {
   });
 
   it('should add external agent message', async () => {
-    // Setup nanoid for this specific test
-    const { nanoid } = await import('nanoid');
-    vi.mocked(nanoid).mockReturnValueOnce('msg-126');
+    // Setup generateId for this specific test
+    vi.mocked(generateId).mockReturnValueOnce('msg-126');
     const expectedMessage = {
       id: 'msg-126',
       tenantId: 'test-tenant',
@@ -375,7 +376,7 @@ describe('addMessage', () => {
       }),
     });
 
-    const result = await createMessage(dbClient)({
+    const result = await createMessage(runDbClient)({
       id: 'msg-126',
       tenantId: 'test-tenant',
       projectId: 'test-project',
@@ -425,7 +426,7 @@ describe('getConversationHistory', () => {
       }),
     });
 
-    const result = await getConversationHistory(dbClient)({
+    const result = await getConversationHistory(runDbClient)({
       scopes: { tenantId: 'test-tenant', projectId: 'test-project' },
       conversationId: 'conv-123',
     });
@@ -457,7 +458,7 @@ describe('getConversationHistory', () => {
       }),
     });
 
-    await getConversationHistory(dbClient)({
+    await getConversationHistory(runDbClient)({
       scopes: { tenantId: 'test-tenant', projectId: 'test-project' },
       conversationId: 'conv-123',
       options: {
@@ -482,7 +483,7 @@ describe('getConversationHistory', () => {
       }),
     });
 
-    await getConversationHistory(dbClient)({
+    await getConversationHistory(runDbClient)({
       scopes: { tenantId: 'test-tenant', projectId: 'test-project' },
       conversationId: 'conv-123',
       options: {
@@ -505,7 +506,7 @@ describe('getConversationHistory', () => {
       }),
     });
 
-    await getConversationHistory(dbClient)({
+    await getConversationHistory(runDbClient)({
       scopes: { tenantId: 'test-tenant', projectId: 'test-project' },
       conversationId: 'conv-123',
       options: {
@@ -528,7 +529,7 @@ describe('getConversationHistory', () => {
       }),
     });
 
-    const result = await getConversationHistory(dbClient)({
+    const result = await getConversationHistory(runDbClient)({
       scopes: { tenantId: 'test-tenant', projectId: 'test-project' },
       conversationId: 'non-existent',
     });
@@ -558,7 +559,7 @@ describe('Message Content Validation', () => {
     });
 
     // Test text content
-    await createMessage(dbClient)({
+    await createMessage(runDbClient)({
       id: 'msg-1',
       tenantId: 'test-tenant',
       projectId: 'test-project',
@@ -568,7 +569,7 @@ describe('Message Content Validation', () => {
     });
 
     // Test rich content
-    await createMessage(dbClient)({
+    await createMessage(runDbClient)({
       id: 'msg-2',
       tenantId: 'test-tenant',
       projectId: 'test-project',
@@ -591,7 +592,7 @@ describe('Error Handling', () => {
     });
 
     await expect(
-      createMessage(dbClient)({
+      createMessage(runDbClient)({
         id: 'msg-1',
         tenantId: 'test-tenant',
         projectId: 'test-project',
@@ -614,7 +615,7 @@ describe('Error Handling', () => {
     });
 
     await expect(
-      getConversationHistory(dbClient)({
+      getConversationHistory(runDbClient)({
         scopes: { tenantId: 'test-tenant', projectId: 'test-project' },
         conversationId: 'conv-123',
       })

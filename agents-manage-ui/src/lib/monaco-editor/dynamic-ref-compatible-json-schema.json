@@ -1,0 +1,141 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://json-schema.org/draft/2020-12/schema",
+  "title": "JSON Schema Draft 2020-12 (Monaco Compatible)",
+  "type": "object",
+  "properties": {
+    "$schema": {
+      "type": "string",
+      "description": "The JSON Schema meta-schema identifier"
+    },
+    "$id": {
+      "type": "string",
+      "description": "A unique identifier for the schema"
+    },
+    "title": {
+      "type": "string",
+      "description": "A descriptive title for the schema"
+    },
+    "description": {
+      "type": "string",
+      "description": "A description of the schema"
+    },
+    "type": {
+      "type": "string",
+      "enum": ["string", "number", "integer", "boolean", "array", "object", "null"],
+      "description": "The type of the data"
+    },
+    "properties": {
+      "type": "object",
+      "additionalProperties": {
+        "$ref": "#"
+      },
+      "description": "Properties of the object"
+    },
+    "required": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "Required properties"
+    },
+    "items": {
+      "description": "Schema for array items"
+    },
+    "additionalProperties": {
+      "description": "Schema for additional properties"
+    },
+    "enum": {
+      "type": "array",
+      "description": "Enumeration of valid values"
+    },
+    "const": {
+      "description": "A constant value"
+    },
+    "default": {
+      "description": "Default value"
+    },
+    "examples": {
+      "type": "array",
+      "description": "Example values"
+    },
+    "format": {
+      "type": "string",
+      "description": "Format specification"
+    },
+    "pattern": {
+      "type": "string",
+      "description": "Regular expression pattern"
+    },
+    "minimum": {
+      "type": "number",
+      "description": "Minimum value"
+    },
+    "maximum": {
+      "type": "number",
+      "description": "Maximum value"
+    },
+    "minLength": {
+      "type": "integer",
+      "minimum": 0,
+      "description": "Minimum string length"
+    },
+    "maxLength": {
+      "type": "integer",
+      "minimum": 0,
+      "description": "Maximum string length"
+    },
+    "minItems": {
+      "type": "integer",
+      "minimum": 0,
+      "description": "Minimum array length"
+    },
+    "maxItems": {
+      "type": "integer",
+      "minimum": 0,
+      "description": "Maximum array length"
+    },
+    "uniqueItems": {
+      "type": "boolean",
+      "description": "Whether array items must be unique"
+    },
+    "oneOf": {
+      "type": "array",
+      "items": {
+        "$ref": "#"
+      },
+      "description": "Schema must match exactly one of the schemas"
+    },
+    "anyOf": {
+      "type": "array",
+      "items": {
+        "$ref": "#"
+      },
+      "description": "Schema must match at least one of the schemas"
+    },
+    "allOf": {
+      "type": "array",
+      "items": {
+        "$ref": "#"
+      },
+      "description": "Schema must match all of the schemas"
+    },
+    "not": {
+      "$ref": "#",
+      "description": "Schema must not match"
+    },
+    "if": {
+      "$ref": "#",
+      "description": "Conditional schema"
+    },
+    "then": {
+      "$ref": "#",
+      "description": "Schema to apply if condition is true"
+    },
+    "else": {
+      "$ref": "#",
+      "description": "Schema to apply if condition is false"
+    }
+  },
+  "additionalProperties": false
+}

@@ -1,23 +1,18 @@
-import { createRoute, OpenAPIHono } from '@hono/zod-openapi';
+import { createRoute, OpenAPIHono, z } from '@hono/zod-openapi';
 import {
   type CredentialStoreRegistry,
-  contextValidationMiddleware,
   createApiError,
   createMessage,
   createOrGetConversation,
+  type FullExecutionContext,
+  generateId,
   getActiveAgentForConversation,
-  getAgentWithDefaultSubAgent,
   getConversationId,
-  getFullAgent,
-  getRequestExecutionContext,
-  getSubAgentById,
-  handleContextResolution,
   setActiveAgentForConversation,
 } from '@inkeep/agents-core';
 import { context as otelContext, propagation, trace } from '@opentelemetry/api';
 import { streamSSE } from 'hono/streaming';
-import { nanoid } from 'nanoid';
-import { z } from 'zod';
+import { contextValidationMiddleware, handleContextResolution } from '../context';
 import dbClient from '../data/db/dbClient';
 import { ExecutionHandler } from '../handlers/executionHandler';
 import { getLogger } from '../logger';
@@ -27,6 +22,7 @@ import { createSSEStreamHelper } from '../utils/stream-helpers';
 
 type AppVariables = {
   credentialStores: CredentialStoreRegistry;
+  executionContext: FullExecutionContext;
   requestBody?: any;
 };
 
@@ -148,7 +144,7 @@ const chatCompletionsRoute = createRoute({
   },
 });
 
-app.use('/completions', contextValidationMiddleware(dbClient));
+app.use('/completions', contextValidationMiddleware);
 
 app.openapi(chatCompletionsRoute, async (c) => {
   getLogger('chat').info(
@@ -175,7 +171,7 @@ app.openapi(chatCompletionsRoute, async (c) => {
     'OpenTelemetry headers: chat'
   );
   try {
-    const executionContext = getRequestExecutionContext(c);
+    const executionContext = c.get('executionContext');
     const { tenantId, projectId, agentId } = executionContext;
 
     getLogger('chat').debug(
@@ -189,6 +185,11 @@ app.openapi(chatCompletionsRoute, async (c) => {
     const body = c.get('requestBody') || {};
     const conversationId = body.conversationId || getConversationId();
 
+    // Extract target context headers (for copilot/chat-to-edit scenarios)
+    const targetTenantId = c.req.header('x-target-tenant-id');
+    const targetProjectId = c.req.header('x-target-project-id');
+    const targetAgentId = c.req.header('x-target-agent-id');
+
     const activeSpan = trace.getActiveSpan();
     if (activeSpan) {
       activeSpan.setAttributes({
@@ -196,6 +197,9 @@ app.openapi(chatCompletionsRoute, async (c) => {
         'tenant.id': tenantId,
         'agent.id': agentId,
         'project.id': projectId,
+        ...(targetTenantId && { 'target.tenant.id': targetTenantId }),
+        ...(targetProjectId && { 'target.project.id': targetProjectId }),
+        ...(targetAgentId && { 'target.agent.id': targetAgentId }),
       });
     }
 
@@ -206,36 +210,20 @@ app.openapi(chatCompletionsRoute, async (c) => {
     currentBag = currentBag.setEntry('conversation.id', { value: conversationId });
     const ctxWithBaggage = propagation.setBaggage(otelContext.active(), currentBag);
     return await otelContext.with(ctxWithBaggage, async () => {
-      const fullAgent = await getFullAgent(dbClient)({
-        scopes: { tenantId, projectId, agentId },
-      });
+      const fullAgent = executionContext.project.agents[agentId];
+      if (!fullAgent) {
+        throw createApiError({
+          code: 'not_found',
+          message: 'Agent not found',
+        });
+      }
 
-      let agent: any;
+      const agent = fullAgent;
       let defaultSubAgentId: string;
 
-      if (fullAgent) {
-        agent = {
-          id: fullAgent.id,
-          name: fullAgent.name,
-          tenantId,
-          projectId,
-          defaultSubAgentId: fullAgent.defaultSubAgentId,
-        };
-        const agentKeys = Object.keys((fullAgent.subAgents as Record<string, any>) || {});
-        const firstAgentId = agentKeys.length > 0 ? agentKeys[0] : '';
-        defaultSubAgentId = (fullAgent.defaultSubAgentId as string) || firstAgentId; // Use first agent if no defaultSubAgentId
-      } else {
-        agent = await getAgentWithDefaultSubAgent(dbClient)({
-          scopes: { tenantId, projectId, agentId },
-        });
-        if (!agent) {
-          throw createApiError({
-            code: 'not_found',
-            message: 'Agent not found',
-          });
-        }
-        defaultSubAgentId = agent.defaultSubAgentId || '';
-      }
+      const agentKeys = Object.keys((fullAgent.subAgents as Record<string, any>) || {});
+      const firstAgentId = agentKeys.length > 0 ? agentKeys[0] : '';
+      defaultSubAgentId = (fullAgent.defaultSubAgentId as string) || firstAgentId; // Use first agent if no defaultSubAgentId
 
       if (!defaultSubAgentId) {
         throw createApiError({
@@ -248,7 +236,9 @@ app.openapi(chatCompletionsRoute, async (c) => {
         tenantId,
         projectId,
         id: conversationId,
+        agentId: agentId,
         activeSubAgentId: defaultSubAgentId,
+        ref: executionContext.resolvedRef,
       });
 
       const activeAgent = await getActiveAgentForConversation(dbClient)({
@@ -256,18 +246,17 @@ app.openapi(chatCompletionsRoute, async (c) => {
         conversationId,
       });
       if (!activeAgent) {
-        setActiveAgentForConversation(dbClient)({
+        await setActiveAgentForConversation(dbClient)({
           scopes: { tenantId, projectId },
           conversationId,
+          agentId: agentId,
           subAgentId: defaultSubAgentId,
+          ref: executionContext.resolvedRef,
         });
       }
       const subAgentId = activeAgent?.activeSubAgentId || defaultSubAgentId;
 
-      const agentInfo = await getSubAgentById(dbClient)({
-        scopes: { tenantId, projectId, agentId },
-        subAgentId: subAgentId,
-      });
+      const agentInfo = executionContext.project.agents[agentId]?.subAgents[subAgentId];
 
       if (!agentInfo) {
         throw createApiError({
@@ -281,12 +270,9 @@ app.openapi(chatCompletionsRoute, async (c) => {
       const credentialStores = c.get('credentialStores');
 
       await handleContextResolution({
-        tenantId,
-        projectId,
-        agentId,
+        executionContext,
         conversationId,
         headers: validatedContext,
-        dbClient,
         credentialStores,
       });
 
@@ -320,10 +306,14 @@ app.openapi(chatCompletionsRoute, async (c) => {
           'message.content': userMessage,
           'message.timestamp': Date.now(),
         });
+        // Add user information from execution context metadata if available
+        if (executionContext.metadata?.initiatedBy) {
+          messageSpan.setAttribute('user.type', executionContext.metadata.initiatedBy.type);
+          messageSpan.setAttribute('user.id', executionContext.metadata.initiatedBy.id);
+        }
       }
-
       await createMessage(dbClient)({
-        id: nanoid(),
+        id: generateId(),
         tenantId,
         projectId,
         conversationId,
@@ -334,6 +324,7 @@ app.openapi(chatCompletionsRoute, async (c) => {
         visibility: 'user-facing',
         messageType: 'chat',
       });
+
       if (messageSpan) {
         messageSpan.addEvent('user.message.stored', {
           'message.id': conversationId,
@@ -352,6 +343,59 @@ app.openapi(chatCompletionsRoute, async (c) => {
           const emitOperationsHeader = c.req.header('x-emit-operations');
           const emitOperations = emitOperationsHeader === 'true';
 
+          // Extract headers to forward to MCP servers (for user session auth)
+          // Transform cookie -> x-forwarded-cookie since downstream services expect it
+          // Note: Do NOT forward the authorization header - it causes issues with internal A2A requests
+          // because the user's JWT token is not valid for those internal service-to-service calls
+          const forwardedHeaders: Record<string, string> = {};
+          const xForwardedCookie = c.req.header('x-forwarded-cookie');
+          const cookie = c.req.header('cookie');
+          const clientTimezone = c.req.header('x-inkeep-client-timezone');
+          const clientTimestamp = c.req.header('x-inkeep-client-timestamp');
+
+          // Priority: x-forwarded-cookie (explicit) > cookie (browser-sent)
+          // Transform cookie to x-forwarded-cookie for downstream forwarding
+          if (xForwardedCookie) {
+            forwardedHeaders['x-forwarded-cookie'] = xForwardedCookie;
+          } else if (cookie) {
+            forwardedHeaders['x-forwarded-cookie'] = cookie;
+          }
+
+          // Forward client timezone and timestamp together (both required, with validation)
+          if (clientTimezone && clientTimestamp) {
+            // Validate timezone format
+            const isValidTimezone =
+              clientTimezone.length < 100 && /^[A-Za-z0-9_/\-+]+$/.test(clientTimezone);
+            // Validate ISO 8601 timestamp format: "2026-01-16T19:45:30.123Z"
+            const isValidTimestamp =
+              clientTimestamp.length < 50 &&
+              /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(\.\d{3})?Z$/.test(clientTimestamp);
+
+            if (isValidTimezone && isValidTimestamp) {
+              forwardedHeaders['x-inkeep-client-timezone'] = clientTimezone;
+              forwardedHeaders['x-inkeep-client-timestamp'] = clientTimestamp;
+            } else {
+              logger.warn(
+                {
+                  clientTimezone: isValidTimezone
+                    ? clientTimezone
+                    : clientTimezone.substring(0, 100),
+                  clientTimestamp: isValidTimestamp
+                    ? clientTimestamp
+                    : clientTimestamp.substring(0, 50),
+                  isValidTimezone,
+                  isValidTimestamp,
+                },
+                'Invalid client timezone or timestamp format, ignoring both'
+              );
+            }
+          } else if (clientTimezone || clientTimestamp) {
+            logger.warn(
+              { hasTimezone: !!clientTimezone, hasTimestamp: !!clientTimestamp },
+              'Client timezone and timestamp must both be present, ignoring'
+            );
+          }
+
           const executionHandler = new ExecutionHandler();
           const result = await executionHandler.execute({
             executionContext,
@@ -361,6 +405,7 @@ app.openapi(chatCompletionsRoute, async (c) => {
             requestId,
             sseHelper,
             emitOperations,
+            forwardedHeaders,
           });
 
           logger.info(

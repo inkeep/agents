@@ -10,12 +10,12 @@ import {
 
 const _MILLISECONDS_PER_DAY = 24 * 60 * 60 * 1000;
 
-export interface UseConversationStatsResult {
+interface UseConversationStatsResult {
   stats: ConversationStats[];
   loading: boolean;
   error: string | null;
   refresh: () => void;
-  pagination?: {
+  pagination: {
     page: number;
     limit: number;
     total: number;
@@ -28,13 +28,13 @@ export interface UseConversationStatsResult {
   };
 }
 
-export interface UseConversationStatsOptions {
+interface UseConversationStatsOptions {
   startTime?: number;
   endTime?: number;
   filters?: SpanFilterOptions;
   projectId?: string;
+  tenantId?: string;
   pagination?: {
-    enabled: boolean;
     pageSize?: number;
   };
   searchQuery?: string;
@@ -53,43 +53,32 @@ export function useConversationStats(
   >(null);
 
   // Extract stable values to avoid object recreation issues
-  const paginationEnabled = options?.pagination?.enabled;
   const pageSize = options?.pagination?.pageSize || 50;
 
   const fetchData = useCallback(
-    async (page: number = currentPage) => {
+    async (page: number) => {
       try {
         setLoading(true);
         setError(null);
 
-        const client = getSigNozStatsClient();
+        const client = getSigNozStatsClient(options?.tenantId);
         // Use provided time range or default to all time (2020)
         // Clamp endTime to now-1ms to satisfy backend validation (end cannot be in the future)
         const currentEndTime = Math.min(options?.endTime || Date.now() - 1);
         const currentStartTime = options?.startTime || new Date('2020-01-01T00:00:00Z').getTime();
-
-        const paginationParams = paginationEnabled ? { page, limit: pageSize } : undefined;
 
         const result = await client.getConversationStats(
           currentStartTime,
           currentEndTime,
           options?.filters,
           options?.projectId,
-          paginationParams,
+          { page, limit: pageSize },
           options?.searchQuery,
           options?.agentId
         );
 
-        if (paginationEnabled && typeof result === 'object' && 'data' in result) {
-          // Paginated result
-          setStats(result.data);
-          setPaginationInfo(result.pagination);
-          // Don't set currentPage here to avoid infinite loops - it should be managed by navigation functions
-        } else {
-          // Non-paginated result (backward compatibility)
-          setStats(result as ConversationStats[]);
-          setPaginationInfo(null);
-        }
+        setStats(result.data);
+        setPaginationInfo(result.pagination);
       } catch (err) {
         console.error('Error fetching conversation stats:', err);
         const errorMessage =
@@ -104,13 +93,12 @@ export function useConversationStats(
       options?.endTime,
       options?.filters,
       options?.projectId,
+      options?.tenantId,
       options?.searchQuery,
       options?.agentId,
-      paginationEnabled,
       pageSize,
-      currentPage,
     ]
-  ); // Use stable values instead of options object
+  );
 
   const refresh = useCallback(() => {
     fetchData(currentPage);
@@ -148,17 +136,21 @@ export function useConversationStats(
     [currentPage, paginationInfo, fetchData]
   );
 
-  // Fetch when component mounts or time range changes
+  // Reset to page 1 and fetch when filters or time range change
+  // biome-ignore lint/correctness/useExhaustiveDependencies: Intentionally tracking filter values instead of fetchData to prevent page reset on pagination clicks
   useEffect(() => {
-    fetchData();
-  }, [fetchData]);
-
-  // Reset to page 1 when filters or time range change
-  useEffect(() => {
-    if (paginationEnabled) {
-      setCurrentPage(1);
-    }
-  }, [paginationEnabled]);
+    setCurrentPage(1);
+    fetchData(1);
+  }, [
+    options?.startTime,
+    options?.endTime,
+    options?.filters,
+    options?.projectId,
+    options?.tenantId,
+    options?.searchQuery,
+    options?.agentId,
+    pageSize,
+  ]);
 
   return {
     stats,
@@ -177,7 +169,17 @@ export function useConversationStats(
           previousPage,
           goToPage,
         }
-      : undefined,
+      : {
+          page: 1,
+          limit: pageSize,
+          total: 0,
+          totalPages: 0,
+          hasNextPage: false,
+          hasPreviousPage: false,
+          nextPage,
+          previousPage,
+          goToPage,
+        },
   };
 }
 
@@ -187,6 +189,7 @@ export function useAggregateStats(options?: {
   endTime?: number;
   filters?: SpanFilterOptions;
   projectId?: string;
+  tenantId?: string;
   agentId?: string;
 }) {
   const [aggregateStats, setAggregateStats] = useState({
@@ -204,7 +207,7 @@ export function useAggregateStats(options?: {
       setLoading(true);
       setError(null);
 
-      const client = getSigNozStatsClient();
+      const client = getSigNozStatsClient(options?.tenantId);
       const currentEndTime = Math.min(options?.endTime || Date.now() - 1);
       const currentStartTime = options?.startTime || new Date('2020-01-01T00:00:00Z').getTime();
 
@@ -229,6 +232,7 @@ export function useAggregateStats(options?: {
     options?.endTime,
     options?.filters,
     options?.projectId,
+    options?.tenantId,
     options?.agentId,
   ]);
 

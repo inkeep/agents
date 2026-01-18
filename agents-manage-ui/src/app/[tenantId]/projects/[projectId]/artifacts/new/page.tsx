@@ -1,12 +1,9 @@
 import { ArtifactComponentForm } from '@/components/artifact-components/form/artifact-component-form';
 import { BodyTemplate } from '@/components/layout/body-template';
-import { MainContent } from '@/components/layout/main-content';
 
-interface NewArtifactComponentPageProps {
-  params: Promise<{ tenantId: string; projectId: string }>;
-}
-
-async function NewArtifactComponentPage({ params }: NewArtifactComponentPageProps) {
+async function NewArtifactComponentPage({
+  params,
+}: PageProps<'/[tenantId]/projects/[projectId]/artifacts/new'>) {
   const { tenantId, projectId } = await params;
   return (
     <BodyTemplate
@@ -15,14 +12,10 @@ async function NewArtifactComponentPage({ params }: NewArtifactComponentPageProp
           label: 'Artifacts',
           href: `/${tenantId}/projects/${projectId}/artifacts`,
         },
-        { label: 'New Artifact' },
+        'New Artifact',
       ]}
     >
-      <MainContent>
-        <div className="max-w-2xl mx-auto py-4">
-          <ArtifactComponentForm tenantId={tenantId} projectId={projectId} />
-        </div>
-      </MainContent>
+      <ArtifactComponentForm tenantId={tenantId} projectId={projectId} />
     </BodyTemplate>
   );
 }

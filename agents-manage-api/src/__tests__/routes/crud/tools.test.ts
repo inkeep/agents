@@ -1,16 +1,16 @@
-import { MCPTransportType } from '@inkeep/agents-core';
-import { nanoid } from 'nanoid';
+import { generateId, MCPTransportType } from '@inkeep/agents-core';
+import { createTestProject } from '@inkeep/agents-core/db/test-manage-client';
 import { describe, expect, it } from 'vitest';
-import { ensureTestProject } from '../../utils/testProject';
+import manageDbClient from '../../../data/db/dbClient'; // Use relative path to ensure same module instance
 import { makeRequest } from '../../utils/testRequest';
-import { createTestTenantId } from '../../utils/testTenant';
+import { createTestTenantWithOrg } from '../../utils/testTenant';
 
 describe('Tools CRUD Routes - Integration Tests', () => {
   const projectId = 'default';
 
   // Helper function to create test tool data
   const createToolData = ({ suffix = '' }: { suffix?: string } = {}): any => ({
-    id: nanoid(16),
+    id: generateId(16),
     name: `Test MCP Tool${suffix}`,
     description: `Test MCP tool description${suffix}`,
     config: {
@@ -56,8 +56,8 @@ describe('Tools CRUD Routes - Integration Tests', () => {
 
   describe('GET /', () => {
     it('should list tools with pagination (empty initially)', async () => {
-      const tenantId = createTestTenantId('tools-list-empty');
-      await ensureTestProject(tenantId, projectId);
+      const tenantId = await createTestTenantWithOrg('tools-list-empty');
+      await createTestProject(manageDbClient, tenantId, projectId);
       const res = await makeRequest(
         `/tenants/${tenantId}/projects/${projectId}/tools?page=1&limit=10`
       );
@@ -68,8 +68,8 @@ describe('Tools CRUD Routes - Integration Tests', () => {
     });
 
     it('should filter tools by status', async () => {
-      const tenantId = createTestTenantId('tools-filter-status');
-      await ensureTestProject(tenantId, projectId);
+      const tenantId = await createTestTenantWithOrg('tools-filter-status');
+      await createTestProject(manageDbClient, tenantId, projectId);
       await createTestTool({ tenantId });
 
       const res = await makeRequest(
@@ -84,8 +84,8 @@ describe('Tools CRUD Routes - Integration Tests', () => {
 
   describe('GET /{id}', () => {
     it('should get a tool by id', async () => {
-      const tenantId = createTestTenantId('tools-get-by-id');
-      await ensureTestProject(tenantId, projectId);
+      const tenantId = await createTestTenantWithOrg('tools-get-by-id');
+      await createTestProject(manageDbClient, tenantId, projectId);
       const { toolData, toolId } = await createTestTool({ tenantId });
 
       const res = await makeRequest(`/tenants/${tenantId}/projects/${projectId}/tools/${toolId}`);
@@ -97,8 +97,8 @@ describe('Tools CRUD Routes - Integration Tests', () => {
     });
 
     it('should return 404 when tool not found', async () => {
-      const tenantId = createTestTenantId('tools-get-not-found');
-      await ensureTestProject(tenantId, projectId);
+      const tenantId = await createTestTenantWithOrg('tools-get-not-found');
+      await createTestProject(manageDbClient, tenantId, projectId);
       const res = await makeRequest(
         `/tenants/${tenantId}/projects/${projectId}/tools/non-existent-id`
       );
@@ -108,8 +108,8 @@ describe('Tools CRUD Routes - Integration Tests', () => {
 
   describe('POST /', () => {
     it('should create a new tool', async () => {
-      const tenantId = createTestTenantId('tools-create-success');
-      await ensureTestProject(tenantId, projectId);
+      const tenantId = await createTestTenantWithOrg('tools-create-success');
+      await createTestProject(manageDbClient, tenantId, projectId);
       const toolData = createToolData();
 
       const res = await makeRequest(`/tenants/${tenantId}/projects/${projectId}/tools`, {
@@ -125,8 +125,8 @@ describe('Tools CRUD Routes - Integration Tests', () => {
     });
 
     it('should validate required fields', async () => {
-      const tenantId = createTestTenantId('tools-create-validation');
-      await ensureTestProject(tenantId, projectId);
+      const tenantId = await createTestTenantWithOrg('tools-create-validation');
+      await createTestProject(manageDbClient, tenantId, projectId);
       const invalidToolData = {
         description: 'Missing name',
       };
@@ -142,8 +142,8 @@ describe('Tools CRUD Routes - Integration Tests', () => {
 
   describe('PUT /{id}', () => {
     it('should update an existing tool', async () => {
-      const tenantId = createTestTenantId('tools-update-success');
-      await ensureTestProject(tenantId, projectId);
+      const tenantId = await createTestTenantWithOrg('tools-update-success');
+      await createTestProject(manageDbClient, tenantId, projectId);
       const { toolId } = await createTestTool({ tenantId });
       const updateData = {
         name: 'Updated Tool Name',
@@ -164,8 +164,8 @@ describe('Tools CRUD Routes - Integration Tests', () => {
     // Note: Tool credential updates are tested in tool-credential-integration.test.ts
 
     it('should return 404 when tool not found for update', async () => {
-      const tenantId = createTestTenantId('tools-update-not-found');
-      await ensureTestProject(tenantId, projectId);
+      const tenantId = await createTestTenantWithOrg('tools-update-not-found');
+      await createTestProject(manageDbClient, tenantId, projectId);
       const res = await makeRequest(
         `/tenants/${tenantId}/projects/${projectId}/tools/non-existent-id`,
         {
@@ -179,8 +179,8 @@ describe('Tools CRUD Routes - Integration Tests', () => {
 
   describe('DELETE /{id}', () => {
     it('should delete an existing tool', async () => {
-      const tenantId = createTestTenantId('tools-delete-success');
-      await ensureTestProject(tenantId, projectId);
+      const tenantId = await createTestTenantWithOrg('tools-delete-success');
+      await createTestProject(manageDbClient, tenantId, projectId);
       const { toolId } = await createTestTool({ tenantId });
       const res = await makeRequest(`/tenants/${tenantId}/projects/${projectId}/tools/${toolId}`, {
         method: 'DELETE',
@@ -194,8 +194,8 @@ describe('Tools CRUD Routes - Integration Tests', () => {
     });
 
     it('should return 404 when tool not found for deletion', async () => {
-      const tenantId = createTestTenantId('tools-delete-not-found');
-      await ensureTestProject(tenantId, projectId);
+      const tenantId = await createTestTenantWithOrg('tools-delete-not-found');
+      await createTestProject(manageDbClient, tenantId, projectId);
       const res = await makeRequest(
         `/tenants/${tenantId}/projects/${projectId}/tools/non-existent-id`,
         {
@@ -208,8 +208,8 @@ describe('Tools CRUD Routes - Integration Tests', () => {
 
   describe('End-to-End Workflow', () => {
     it('should complete full tool lifecycle', async () => {
-      const tenantId = createTestTenantId('tools-e2e');
-      await ensureTestProject(tenantId, projectId);
+      const tenantId = await createTestTenantWithOrg('tools-e2e');
+      await createTestProject(manageDbClient, tenantId, projectId);
       // 1. Create tool
       const { toolId } = await createTestTool({ tenantId });
 

@@ -9,8 +9,29 @@ interface UseNodeEditorOptions {
 }
 
 export function useNodeEditor({ selectedNodeId, errorHelpers }: UseNodeEditorOptions) {
-  const { updateNodeData } = useReactFlow();
+  const { updateNodeData, setNodes, deleteElements, getNode } = useReactFlow();
   const { markUnsaved } = useAgentActions();
+
+  const deleteNode = useCallback(() => {
+    deleteElements({ nodes: [{ id: selectedNodeId }] });
+  }, [selectedNodeId, deleteElements]);
+
+  const updateDefaultSubAgent = useCallback(
+    (isDefault: boolean) => {
+      setNodes((nodes) =>
+        nodes.map((node) => {
+          if (node.id === selectedNodeId) {
+            return { ...node, data: { ...node.data, isDefault }, deletable: !isDefault };
+          }
+          if (isDefault && node.data.isDefault) {
+            return { ...node, data: { ...node.data, isDefault: false }, deletable: true };
+          }
+          return node;
+        })
+      );
+    },
+    [selectedNodeId, setNodes]
+  );
 
   // Focus management for error fields
   const fieldRefs = useRef<Record<string, HTMLElement>>({});
@@ -47,10 +68,16 @@ export function useNodeEditor({ selectedNodeId, errorHelpers }: UseNodeEditorOpt
   // Simple field update
   const updateField = useCallback(
     (name: string, value: any) => {
-      updateNodeData(selectedNodeId, { [name]: value });
-      markUnsaved();
+      // Check if value actually changed before updating
+      const currentNode = getNode(selectedNodeId);
+      const currentValue = currentNode?.data?.[name];
+      // Only update and mark dirty if the value actually changed
+      if (currentValue !== value) {
+        updateNodeData(selectedNodeId, { [name]: value });
+        markUnsaved();
+      }
     },
-    [selectedNodeId, updateNodeData, markUnsaved]
+    [selectedNodeId, updateNodeData, markUnsaved, getNode]
   );
 
   // Handle input change events
@@ -62,26 +89,10 @@ export function useNodeEditor({ selectedNodeId, errorHelpers }: UseNodeEditorOpt
     [updateField]
   );
 
-  // Advanced path-based updates for nested objects
-  const updatePath = useCallback(
-    (path: string, value: any) => {
-      const pathParts = path.split('.');
-
-      if (pathParts.length === 1) {
-        updateField(path, value);
-      } else {
-        // For nested updates, we need to get the current node data
-        // This requires access to the current node data, which we'll need to pass in
-        // For now, let's use the simple updateField approach and handle complex cases separately
-        updateField(path, value);
-      }
-    },
-    [updateField]
-  );
-
   // Enhanced updatePath that can handle nested objects
   const updateNestedPath = useCallback(
     (path: string, value: any, currentNodeData: any) => {
+      console.log('updateNestedPath called:', { path, value, currentNodeData });
       const pathParts = path.split('.');
 
       if (pathParts.length === 1) {
@@ -105,6 +116,7 @@ export function useNodeEditor({ selectedNodeId, errorHelpers }: UseNodeEditorOpt
 
         // Set the final value
         const finalKey = nestedPath[nestedPath.length - 1];
+        console.log('updateNestedPath setting:', { finalKey, value, current });
         if (value === undefined || value === null || value === '') {
           delete current[finalKey];
           if (Object.keys(updatedParent).length === 0) {
@@ -121,12 +133,23 @@ export function useNodeEditor({ selectedNodeId, errorHelpers }: UseNodeEditorOpt
     [updateField]
   );
 
+  // Advanced path-based updates for nested objects
+  const updatePath = useCallback(
+    (path: string, value: any) => {
+      const currentNode = getNode(selectedNodeId);
+      updateNestedPath(path, value, currentNode?.data);
+    },
+    [getNode, selectedNodeId, updateNestedPath]
+  );
+
   return {
     // Field management
     updateField,
     updatePath,
     updateNestedPath,
     handleInputChange,
+    updateDefaultSubAgent,
+    deleteNode,
 
     // Error handling
     getFieldError,

@@ -1,12 +1,9 @@
 import { DataComponentForm } from '@/components/data-components/form/data-component-form';
 import { BodyTemplate } from '@/components/layout/body-template';
-import { MainContent } from '@/components/layout/main-content';
 
-interface NewDataComponentPageProps {
-  params: Promise<{ tenantId: string; projectId: string }>;
-}
-
-async function NewDataComponentPage({ params }: NewDataComponentPageProps) {
+async function NewDataComponentPage({
+  params,
+}: PageProps<'/[tenantId]/projects/[projectId]/components/new'>) {
   const { tenantId, projectId } = await params;
   return (
     <BodyTemplate
@@ -15,14 +12,11 @@ async function NewDataComponentPage({ params }: NewDataComponentPageProps) {
           label: 'Components',
           href: `/${tenantId}/projects/${projectId}/components`,
         },
-        { label: 'New Component' },
+        'New Component',
       ]}
+      className="max-w-2xl mx-auto"
     >
-      <MainContent>
-        <div className="max-w-2xl mx-auto py-4">
-          <DataComponentForm tenantId={tenantId} projectId={projectId} />
-        </div>
-      </MainContent>
+      <DataComponentForm tenantId={tenantId} projectId={projectId} />
     </BodyTemplate>
   );
 }

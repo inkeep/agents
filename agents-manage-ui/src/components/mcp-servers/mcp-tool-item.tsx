@@ -25,9 +25,7 @@ import {
 import { deleteToolAction } from '@/lib/actions/tools';
 import type { MCPTool } from '@/lib/types/tools';
 
-import { getToolTypeAndName } from '@/lib/utils/mcp-utils';
 import { Badge } from '../ui/badge';
-import { CardTitle } from '../ui/card';
 import { DeleteConfirmation } from '../ui/delete-confirmation';
 import { Tooltip, TooltipContent, TooltipTrigger } from '../ui/tooltip';
 import { MCPToolImage } from './mcp-tool-image';
@@ -135,22 +133,15 @@ export function MCPToolItem({
   return (
     <ItemCardRoot>
       <ItemCardHeader>
-        <ItemCardLink href={linkPath}>
-          <ItemCardTitle className="text-md">
-            <div className="flex items-center gap-3">
-              <MCPToolImage
-                imageUrl={tool.imageUrl}
-                name={tool.name}
-                provider={getToolTypeAndName(tool).type}
-                size={24}
-                className="mt-0.5 flex-shrink-0"
-              />
-              <div className="flex-1 min-w-0">
-                <CardTitle className="text-base truncate font-medium">
-                  {getToolTypeAndName(tool).name || tool.name}
-                </CardTitle>
-              </div>
-            </div>
+        <ItemCardLink href={linkPath} className="min-w-0">
+          <ItemCardTitle className="text-md flex items-center gap-3 min-w-0">
+            <MCPToolImage
+              imageUrl={tool.imageUrl}
+              name={tool.name}
+              size={24}
+              className="mt-0.5 flex-shrink-0"
+            />
+            <span className="flex-1 min-w-0 text-base font-medium truncate">{tool.name}</span>
           </ItemCardTitle>
         </ItemCardLink>
         <MCPToolDialogMenu toolId={tool.id} toolName={tool.name} />
@@ -161,6 +152,11 @@ export function MCPToolItem({
 
           {/* Key metrics in a structured layout */}
           <div className="flex items-center gap-2 flex-wrap">
+            {/* Credential scope badge */}
+            <Badge variant="code" className="uppercase bg-transparent">
+              {tool.credentialScope === 'user' ? 'User' : 'Project'}
+            </Badge>
+
             {(tool.status === 'unhealthy' || tool.status === 'unknown') && (
               <Badge variant="error">{tool.status}</Badge>
             )}
@@ -180,7 +176,7 @@ export function MCPToolItem({
           </div>
         </div>
         <ItemCardFooter
-          footerText={`Created ${formatDate(typeof tool.createdAt === 'string' ? tool.createdAt : tool.createdAt.toISOString())}`}
+          footerText={tool.createdAt ? `Created ${formatDate(tool.createdAt)}` : 'Created recently'}
         />
       </ItemCardContent>
     </ItemCardRoot>

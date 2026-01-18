@@ -3,6 +3,7 @@
 import type {
   CredentialReferenceApiInsert,
   CredentialReferenceApiSelect,
+  ExternalAgentApiSelect,
   McpTool,
 } from '@inkeep/agents-core';
 import type { ListResponse, SingleResponse } from '../types/response';
@@ -13,8 +14,8 @@ import { validateProjectId, validateTenantId } from './resource-validation';
 // Re-export types from core package for convenience
 export type Credential = CredentialReferenceApiSelect & {
   tools?: McpTool[];
+  externalAgents?: ExternalAgentApiSelect[];
 };
-export type CreateCredentialRequest = CredentialReferenceApiInsert;
 
 /**
  * List all credentials for the current tenant
@@ -23,7 +24,7 @@ export async function fetchCredentials(
   tenantId: string,
   projectId: string,
   page = 1,
-  pageSize = 50
+  pageSize = 100
 ): Promise<Credential[]> {
   validateTenantId(tenantId);
   validateProjectId(projectId);
@@ -124,4 +125,27 @@ export async function deleteCredential(
       method: 'DELETE',
     }
   );
+}
+
+/**
+ * Get user-scoped credential for a specific tool
+ * Returns null if the user hasn't connected yet
+ */
+export async function fetchUserScopedCredential(
+  tenantId: string,
+  projectId: string,
+  toolId: string
+): Promise<Credential | null> {
+  validateTenantId(tenantId);
+  validateProjectId(projectId);
+
+  try {
+    const response = await makeManagementApiRequest<SingleResponse<CredentialReferenceApiSelect>>(
+      `tenants/${tenantId}/projects/${projectId}/tools/${toolId}/user-credential`
+    );
+    return response.data as Credential;
+  } catch {
+    // User hasn't connected yet
+    return null;
+  }
 }

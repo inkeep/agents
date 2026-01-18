@@ -1,5 +1,10 @@
 import type { SummaryEvent } from '@inkeep/agents-core';
 import { parsePartialJson } from 'ai';
+import {
+  STREAM_BUFFER_MAX_SIZE_BYTES,
+  STREAM_MAX_LIFETIME_MS,
+  STREAM_TEXT_GAP_THRESHOLD_MS,
+} from '../constants/execution-limits';
 import type { ErrorEvent, OperationEvent } from './agent-operations';
 
 export interface StreamHelper {
@@ -246,28 +251,21 @@ export class VercelDataStreamHelper implements StreamHelper {
   private jsonBuffer = '';
   private sentItems = new Map<number, string>(); // Track what we've sent for each index
   private completedItems = new Set<number>(); // Track completed items
-  private sessionId?: string;
 
-  private static readonly MAX_BUFFER_SIZE = 5 * 1024 * 1024; // 5MB limit (more generous during request)
+  private static readonly MAX_BUFFER_SIZE = STREAM_BUFFER_MAX_SIZE_BYTES;
   private isCompleted = false;
 
   private isTextStreaming: boolean = false;
   private queuedEvents: { type: string; event: OperationEvent | SummaryEvent }[] = [];
 
   private lastTextEndTimestamp: number = 0;
-  private readonly TEXT_GAP_THRESHOLD = 2000; // milliseconds - if gap between text sequences is less than this, queue operations
 
   private connectionDropTimer?: ReturnType<typeof setTimeout>;
-  private readonly MAX_LIFETIME_MS = 600_000; // 10 minutes max lifetime
 
   constructor(private writer: VercelUIWriter) {
     this.connectionDropTimer = setTimeout(() => {
       this.forceCleanup('Connection lifetime exceeded');
-    }, this.MAX_LIFETIME_MS);
-  }
-
-  setSessionId(sessionId: string): void {
-    this.sessionId = sessionId;
+    }, STREAM_MAX_LIFETIME_MS);
   }
 
   async writeRole(_ = 'assistant'): Promise<void> {}
@@ -336,7 +334,7 @@ export class VercelDataStreamHelper implements StreamHelper {
         ? startTime - this.lastTextEndTimestamp
         : Number.MAX_SAFE_INTEGER;
 
-    if (gapFromLastSequence >= this.TEXT_GAP_THRESHOLD) {
+    if (gapFromLastSequence >= STREAM_TEXT_GAP_THRESHOLD_MS) {
       await this.flushQueuedOperations();
     }
 
@@ -380,7 +378,7 @@ export class VercelDataStreamHelper implements StreamHelper {
       const gapFromLastTextEnd =
         this.lastTextEndTimestamp > 0 ? now - this.lastTextEndTimestamp : Number.MAX_SAFE_INTEGER;
 
-      if (this.isTextStreaming || gapFromLastTextEnd < this.TEXT_GAP_THRESHOLD) {
+      if (this.isTextStreaming || gapFromLastTextEnd < STREAM_TEXT_GAP_THRESHOLD_MS) {
         this.writer.write({
           type: `${type}`,
           data,
@@ -579,7 +577,7 @@ export class VercelDataStreamHelper implements StreamHelper {
     // ALWAYS queue operation if:
     // 1. Text is currently streaming, OR
     // 2. We're within the gap threshold from last text-end (more text might be coming)
-    if (this.isTextStreaming || gapFromLastTextEnd < this.TEXT_GAP_THRESHOLD) {
+    if (this.isTextStreaming || gapFromLastTextEnd < STREAM_TEXT_GAP_THRESHOLD_MS) {
       this.queuedEvents.push({ type: 'data-summary', event: summary });
       return;
     }
@@ -607,7 +605,11 @@ export class VercelDataStreamHelper implements StreamHelper {
     // ALWAYS queue operation if:
     // 1. Text is currently streaming, OR
     // 2. We're within the gap threshold from last text-end (more text might be coming)
-    if (this.isTextStreaming || gapFromLastTextEnd < this.TEXT_GAP_THRESHOLD) {
+    if (
+      operation.type !== 'tool_call' &&
+      operation.type !== 'tool_result' &&
+      (this.isTextStreaming || gapFromLastTextEnd < STREAM_TEXT_GAP_THRESHOLD_MS)
+    ) {
       this.queuedEvents.push({ type: 'data-operation', event: operation });
       return;
     }
@@ -672,21 +674,16 @@ export function createVercelStreamHelper(writer: VercelUIWriter) {
 }
 
 /**
- * MCP Stream Helper that captures content instead of streaming
- * Used for MCP tool responses which require a single response message
+ * Buffering Stream Helper that captures content instead of streaming
+ * Used for MCP tool responses and non-streaming API responses that require a single complete message
  */
-export class MCPStreamHelper implements StreamHelper {
+export class BufferingStreamHelper implements StreamHelper {
   private capturedText = '';
   private capturedData: any[] = [];
   private capturedOperations: OperationEvent[] = [];
   private capturedSummaries: SummaryEvent[] = [];
   private hasError = false;
   private errorMessage = '';
-  private sessionId?: string;
-
-  setSessionId(sessionId: string): void {
-    this.sessionId = sessionId;
-  }
 
   async writeRole(_role?: string): Promise<void> {
     // No-op for MCP
@@ -735,7 +732,7 @@ export class MCPStreamHelper implements StreamHelper {
   }
 
   /**
-   * Get the captured response for MCP tool result
+   * Get the captured response for non-streaming output
    */
   getCapturedResponse(): {
     text: string;
@@ -754,6 +751,10 @@ export class MCPStreamHelper implements StreamHelper {
   }
 }
 
-export function createMCPStreamHelper(): MCPStreamHelper {
-  return new MCPStreamHelper();
+export function createBufferingStreamHelper(): BufferingStreamHelper {
+  return new BufferingStreamHelper();
 }
+
+// Alias for backwards compatibility with MCP usage
+export const createMCPStreamHelper = createBufferingStreamHelper;
+export type MCPStreamHelper = BufferingStreamHelper;

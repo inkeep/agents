@@ -1,13 +1,16 @@
-import {
-  type CredentialStoreRegistry,
-  type ExecutionContext,
-  getSubAgentById,
-  type SubAgentSelect,
+import type {
+  CredentialStoreRegistry,
+  FullAgentSubAgentSelectWithRelationIds,
+  FullExecutionContext,
+  SubAgentSelect,
 } from '@inkeep/agents-core';
 import type { AgentCard, RegisteredAgent } from '../a2a/types';
 import { createTaskHandler, createTaskHandlerConfig } from '../agents/generateTaskHandler';
+import { getLogger } from '../logger';
 import type { SandboxConfig } from '../types/execution-context';
-import dbClient from './db/dbClient';
+import { getSubAgentFromProject } from '../utils/project';
+
+const logger = getLogger('agents');
 
 /**
  * Create an AgentCard from database agent data
@@ -57,20 +60,19 @@ export function createAgentCard({
  * @param internalRelations - Pre-computed internal relations
  * @param externalRelations - Pre-computed external relations
  */
-export function generateDescriptionWithTransfers(
+export function generateDescriptionWithRelationData(
   baseDescription: string,
   internalRelations: any[],
-  externalRelations: any[]
+  externalRelations: any[],
+  teamRelations: any[]
 ): string {
   // Filter relations by type
-  const transfers = [
-    ...internalRelations.filter((rel) => rel.relationType === 'transfer'),
-    ...externalRelations.filter((rel) => rel.relationType === 'transfer'),
-  ];
+  const transfers = [...internalRelations.filter((rel) => rel.relationType === 'transfer')];
 
   const delegates = [
     ...internalRelations.filter((rel) => rel.relationType === 'delegate'),
-    ...externalRelations.filter((rel) => rel.relationType === 'delegate'),
+    ...externalRelations.map((data) => data.externalAgent),
+    ...teamRelations.map((data) => data.targetAgent),
   ];
 
   // If no relations, return base description
@@ -96,8 +98,8 @@ export function generateDescriptionWithTransfers(
   if (delegates.length > 0) {
     const delegateList = delegates
       .map((rel) => {
-        const name = rel.externalAgent?.name || rel.name;
-        const desc = rel.externalAgent?.description || rel.description || '';
+        const name = rel.name;
+        const desc = rel.description || '';
         return `- ${name}: ${desc}`;
       })
       .join('\n');
@@ -112,14 +114,14 @@ export function generateDescriptionWithTransfers(
  */
 async function hydrateAgent({
   dbAgent,
-  agentId,
+  executionContext,
   baseUrl,
   apiKey,
   credentialStoreRegistry,
   sandboxConfig,
 }: {
-  dbAgent: SubAgentSelect;
-  agentId: string;
+  dbAgent: FullAgentSubAgentSelectWithRelationIds;
+  executionContext: FullExecutionContext;
   baseUrl: string;
   apiKey?: string;
   credentialStoreRegistry?: CredentialStoreRegistry;
@@ -128,26 +130,30 @@ async function hydrateAgent({
   try {
     // Create task handler for the agent
     const taskHandlerConfig = await createTaskHandlerConfig({
-      tenantId: dbAgent.tenantId,
-      projectId: dbAgent.projectId,
-      agentId: agentId,
+      executionContext,
       subAgentId: dbAgent.id,
-      baseUrl: baseUrl,
-      apiKey: apiKey,
+      baseUrl,
+      apiKey,
       sandboxConfig,
     });
+    const { tenantId, projectId, agentId } = executionContext;
     const taskHandler = createTaskHandler(taskHandlerConfig, credentialStoreRegistry);
 
     // Use the reusable agent card creation function
     const agentCard = createAgentCard({
-      dbAgent,
+      dbAgent: {
+        ...dbAgent,
+        tenantId: tenantId,
+        projectId: projectId,
+        agentId: agentId,
+      },
       baseUrl,
     });
 
     return {
       subAgentId: dbAgent.id,
-      tenantId: dbAgent.tenantId,
-      projectId: dbAgent.projectId,
+      tenantId: tenantId,
+      projectId: projectId,
       agentId: agentId,
       agentCard,
       taskHandler,
@@ -161,30 +167,28 @@ async function hydrateAgent({
 // A2A functions that hydrate agents on-demand
 
 export async function getRegisteredAgent(params: {
-  executionContext: ExecutionContext;
+  executionContext: FullExecutionContext;
   credentialStoreRegistry?: CredentialStoreRegistry;
   sandboxConfig?: SandboxConfig;
 }): Promise<RegisteredAgent | null> {
   const { executionContext, credentialStoreRegistry, sandboxConfig } = params;
-  const { tenantId, projectId, agentId, subAgentId, baseUrl, apiKey } = executionContext;
+  const { agentId, subAgentId, baseUrl, apiKey, project } = executionContext;
 
-  if (!subAgentId) {
-    throw new Error('Agent ID is required');
-  }
+  // Get sub-agent from the pre-fetched project definition
+  const dbAgent = getSubAgentFromProject({ project, agentId, subAgentId });
 
-  const dbAgent = await getSubAgentById(dbClient)({
-    scopes: { tenantId, projectId, agentId },
-    subAgentId: subAgentId,
-  });
   if (!dbAgent) {
+    logger.warn({ agentId, subAgentId }, 'Could not find sub-agent in project');
     return null;
   }
+
+  logger.info({ agentId, subAgentId: dbAgent.id }, 'Found sub-agent from project definition');
 
   const agentFrameworkBaseUrl = `${baseUrl}/agents`;
 
   return hydrateAgent({
     dbAgent,
-    agentId,
+    executionContext,
     baseUrl: agentFrameworkBaseUrl,
     credentialStoreRegistry,
     apiKey,

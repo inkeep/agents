@@ -1,8 +1,10 @@
 'use client';
 
-import { type MouseEventHandler, useCallback, useEffect } from 'react';
 import { Monitor, Moon, Sun } from 'lucide-react';
 import { useTheme } from 'next-themes';
+import type { ComponentProps, FC, MouseEventHandler } from 'react';
+import { useCallback } from 'react';
+import type { ToasterProps } from 'sonner';
 import { Button } from '@/components/ui/button';
 import {
   DropdownMenu,
@@ -10,23 +12,21 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { MONACO_THEME_NAME } from '@/constants/theme';
 
-export function ThemeToggle() {
-  const { setTheme, resolvedTheme } = useTheme();
+type ThemeValue = NonNullable<ToasterProps['theme']>;
 
-  useEffect(() => {
-    // Dynamically import `monaco-editor` since it relies on `window`, which isn't available during SSR
-    import('monaco-editor').then(({ editor }) => {
-      const monacoTheme =
-        resolvedTheme === 'dark' ? MONACO_THEME_NAME.dark : MONACO_THEME_NAME.light;
-      editor.setTheme(monacoTheme);
-    });
-  }, [resolvedTheme]);
+export const ThemeMap: Record<ThemeValue, FC<ComponentProps<'svg'>>> = {
+  light: Sun,
+  dark: Moon,
+  system: Monitor,
+};
+
+export const ThemeToggle: FC = () => {
+  const { setTheme } = useTheme();
 
   const handleTheme = useCallback<MouseEventHandler<HTMLDivElement>>(
     (event) => {
-      const newTheme = event.currentTarget.dataset.theme as 'dark' | 'light' | 'system';
+      const newTheme = event.currentTarget.dataset.theme as ThemeValue;
       setTheme(newTheme);
     },
     [setTheme]
@@ -38,27 +38,26 @@ export function ThemeToggle() {
         <Button
           variant="ghost"
           size="icon"
-          className="hover:bg-sidebar-accent hover:text-sidebar-accent-foreground text-sidebar-foreground/80 dark:text-sidebar-foreground"
+          className="size-7 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground text-sidebar-foreground/80 dark:text-sidebar-foreground"
         >
-          <Sun className="h-[1.2rem] w-[1.2rem] rotate-0 scale-100 transition-all dark:-rotate-90 dark:scale-0" />
-          <Moon className="absolute h-[1.2rem] w-[1.2rem] rotate-90 scale-0 transition-all dark:rotate-0 dark:scale-100" />
+          <Sun className="dark:hidden" />
+          <Moon className="not-dark:hidden" />
           <span className="sr-only">Toggle theme</span>
         </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end">
-        <DropdownMenuItem data-theme="light" onClick={handleTheme}>
-          <Sun className="mr-2 h-4 w-4" />
-          Light
-        </DropdownMenuItem>
-        <DropdownMenuItem data-theme="dark" onClick={handleTheme}>
-          <Moon className="mr-2 h-4 w-4" />
-          Dark
-        </DropdownMenuItem>
-        <DropdownMenuItem data-theme="system" onClick={handleTheme}>
-          <Monitor className="mr-2 h-4 w-4" />
-          System
-        </DropdownMenuItem>
+        {Object.entries(ThemeMap).map(([theme, Comp]) => (
+          <DropdownMenuItem
+            key={theme}
+            data-theme={theme}
+            onClick={handleTheme}
+            className="capitalize gap-4"
+          >
+            <Comp />
+            {theme}
+          </DropdownMenuItem>
+        ))}
       </DropdownMenuContent>
     </DropdownMenu>
   );
-}
+};

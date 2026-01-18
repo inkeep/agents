@@ -7,25 +7,24 @@
  * type-safe functions that can be called from React components.
  */
 
+import type { AgentApiInsert } from '@inkeep/agents-core/client-exports';
 import { revalidatePath } from 'next/cache';
 import {
   ApiError,
+  createAgent as apiCreateAgent,
   createFullAgent as apiCreateFullAgent,
   deleteFullAgent as apiDeleteFullAgent,
   fetchAgents as apiFetchAgents,
   getFullAgent as apiGetFullAgent,
+  updateAgent as apiUpdateAgent,
   updateFullAgent as apiUpdateFullAgent,
 } from '../api/agent-full-client';
-import {
-  type FullAgentDefinition,
-  FullAgentDefinitionSchema,
-  type Agent,
-} from '../types/agent-full';
+import type { Agent, FullAgentDefinition } from '../types/agent-full';
 
 /**
  * Result type for server actions - follows a consistent pattern
  */
-export type ActionResult<T = void> =
+type ActionResult<T = void> =
   | {
       success: true;
       data: T;
@@ -51,6 +50,71 @@ export async function getAllAgentsAction(
       success: false,
       error: error instanceof Error ? error.message : 'Failed to fetch agent',
       code: 'unknown_error',
+    };
+  }
+}
+
+export async function createAgentAction(
+  tenantId: string,
+  projectId: string,
+  agentData: AgentApiInsert
+): Promise<ActionResult<AgentApiInsert>> {
+  try {
+    const response = await apiCreateAgent(tenantId, projectId, agentData);
+    // Revalidate relevant pages
+    revalidatePath(`/${tenantId}/projects/${projectId}/agents`);
+    revalidatePath(`/${tenantId}/projects/${projectId}/agents/${response.data.id}`);
+
+    return {
+      success: true,
+      data: response.data,
+    };
+  } catch (error) {
+    if (error instanceof ApiError) {
+      return {
+        success: false,
+        error: error.message,
+        code: error.error.code,
+      };
+    }
+
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : 'Failed to create agent',
+      code: 'validation_error',
+    };
+  }
+}
+
+export async function updateAgentAction(
+  tenantId: string,
+  projectId: string,
+  agentId: string,
+  agentData: AgentApiInsert
+): Promise<ActionResult<AgentApiInsert>> {
+  try {
+    const response = await apiUpdateAgent(tenantId, projectId, agentId, agentData);
+    // Revalidate relevant pages
+    revalidatePath(`/${tenantId}/projects/${projectId}/agents`);
+    revalidatePath(`/${tenantId}/projects/${projectId}/agents/${response.data.id}`);
+
+    return {
+      success: true,
+      data: response.data,
+    };
+  } catch (error) {
+    if (error instanceof ApiError) {
+      return {
+        success: false,
+        error: error.message,
+        code: error.error.code,
+      };
+    }
+
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : 'Failed to update agent',
+      code: 'validation_error',
     };
   }
 }
@@ -200,26 +264,6 @@ export async function deleteFullAgentAction(
       success: false,
       error: error instanceof Error ? error.message : 'Failed to delete agent',
       code: 'unknown_error',
-    };
-  }
-}
-
-/**
- * Validate agent data without making an API call
- * Useful for form validation on the client side
- */
-export async function validateAgentData(data: unknown): Promise<ActionResult<FullAgentDefinition>> {
-  try {
-    const validatedData = FullAgentDefinitionSchema.parse(data);
-    return {
-      success: true,
-      data: validatedData,
-    };
-  } catch (error) {
-    return {
-      success: false,
-      error: error instanceof Error ? error.message : 'Validation failed',
-      code: 'validation_error',
     };
   }
 }

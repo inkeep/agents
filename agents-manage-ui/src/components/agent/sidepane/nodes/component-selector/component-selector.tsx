@@ -5,7 +5,7 @@ import { SelectedComponents } from './selected-components';
 interface ComponentItem {
   id: string;
   name: string;
-  description?: string;
+  description?: string | null;
 }
 
 interface ComponentSelectorProps<T extends ComponentItem> {
@@ -39,7 +39,7 @@ export function ComponentSelector<T extends ComponentItem>({
   return (
     <div className="flex flex-col gap-2">
       <div className="flex flex-col gap-2">
-        <ComponentHeader label={label} count={selectedComponents.length} />
+        {label && <ComponentHeader label={label} count={selectedComponents.length} />}
         {selectedComponents.length > 0 && (
           <SelectedComponents
             selectedComponents={selectedComponents}

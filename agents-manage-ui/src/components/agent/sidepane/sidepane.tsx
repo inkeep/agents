@@ -1,13 +1,19 @@
 import type { Edge, Node } from '@xyflow/react';
-import { useEdges, useNodesData } from '@xyflow/react';
+import { useEdges, useNodesData, useReactFlow } from '@xyflow/react';
 import { type LucideIcon, Workflow } from 'lucide-react';
 import { useMemo } from 'react';
+import { useAgentStore } from '@/features/agent/state/use-agent-store';
 import { useAgentErrors } from '@/hooks/use-agent-errors';
 import type { ArtifactComponent } from '@/lib/api/artifact-components';
 import type { Credential } from '@/lib/api/credentials';
 import type { DataComponent } from '@/lib/api/data-components';
+import type {
+  AgentToolConfigLookup,
+  SubAgentExternalAgentConfigLookup,
+  SubAgentTeamAgentConfigLookup,
+} from '@/lib/types/agent-full';
+import { cn } from '@/lib/utils';
 import { SidePane as SidePaneLayout } from '../../layout/sidepane';
-import type { AgentToolConfigLookup } from '../agent';
 import { edgeTypeMap } from '../configuration/edge-types';
 import {
   type AgentNodeData,
@@ -15,28 +21,36 @@ import {
   type FunctionToolNodeData,
   type MCPNodeData,
   NodeType,
+  newNodeDefaults,
   nodeTypeMap,
+  type TeamAgentNodeData,
 } from '../configuration/node-types';
 import EdgeEditor from './edges/edge-editor';
 import { EditorLoadingSkeleton } from './editor-loading-skeleton';
 import { Heading } from './heading';
 import MetadataEditor from './metadata/metadata-editor';
 import { ExternalAgentNodeEditor } from './nodes/external-agent-node-editor';
+import { ExternalAgentSelector } from './nodes/external-agent-selector/external-agent-selector';
 import { FunctionToolNodeEditor } from './nodes/function-tool-node-editor';
 import { MCPServerNodeEditor } from './nodes/mcp-node-editor';
 import { MCPSelector } from './nodes/mcp-selector/mcp-selector';
 import { SubAgentNodeEditor } from './nodes/sub-agent-node-editor';
+import { SubAgentSelector } from './nodes/sub-agent-selector/sub-agent-selector';
+import { TeamAgentNodeEditor } from './nodes/team-agent-node-editor';
+import { TeamAgentSelector } from './nodes/team-agent-selector/team-agent-selector';
 
 interface SidePaneProps {
   selectedNodeId: string | null;
   selectedEdgeId: string | null;
   onClose: () => void;
   backToAgent: () => void;
-  isOpen: boolean;
   dataComponentLookup: Record<string, DataComponent>;
   artifactComponentLookup: Record<string, ArtifactComponent>;
   agentToolConfigLookup: AgentToolConfigLookup;
+  subAgentExternalAgentConfigLookup: SubAgentExternalAgentConfigLookup;
+  subAgentTeamAgentConfigLookup: SubAgentTeamAgentConfigLookup;
   credentialLookup: Record<string, Credential>;
+  disabled?: boolean;
 }
 
 export function SidePane({
@@ -44,15 +58,19 @@ export function SidePane({
   selectedEdgeId,
   onClose,
   backToAgent,
-  isOpen,
   dataComponentLookup,
   artifactComponentLookup,
   agentToolConfigLookup,
+  subAgentExternalAgentConfigLookup,
+  subAgentTeamAgentConfigLookup,
   credentialLookup,
+  disabled = false,
 }: SidePaneProps) {
   const selectedNode = useNodesData(selectedNodeId || '');
+  const { updateNode } = useReactFlow();
   const edges = useEdges();
   const { hasFieldError, getFieldErrorMessage, getFirstErrorField } = useAgentErrors();
+  const errors = useAgentStore((state) => state.errors);
 
   const selectedEdge = useMemo(
     () => (selectedEdgeId ? edges.find((edge) => edge.id === selectedEdgeId) : null),
@@ -81,6 +99,7 @@ export function SidePane({
     return { heading, HeadingIcon };
   }, [selectedNode, selectedEdge, selectedNodeId, selectedEdgeId]);
 
+  // biome-ignore lint/correctness/useExhaustiveDependencies: ignore `errors` dependency, it rerender sidepane when errors changes
   const editorContent = useMemo(() => {
     if (selectedNodeId && !selectedNode) {
       return <EditorLoadingSkeleton />;
@@ -100,6 +119,8 @@ export function SidePane({
       };
 
       switch (nodeType) {
+        case NodeType.SubAgentPlaceholder:
+          return <SubAgentSelector selectedNode={selectedNode as Node} />;
         case NodeType.SubAgent:
           return (
             <SubAgentNodeEditor
@@ -114,9 +135,25 @@ export function SidePane({
             <ExternalAgentNodeEditor
               selectedNode={selectedNode as Node<ExternalAgentNodeData>}
               credentialLookup={credentialLookup}
+              subAgentExternalAgentConfigLookup={subAgentExternalAgentConfigLookup}
               errorHelpers={errorHelpers}
             />
           );
+        }
+        case NodeType.ExternalAgentPlaceholder: {
+          return <ExternalAgentSelector selectedNode={selectedNode as Node} />;
+        }
+        case NodeType.TeamAgent: {
+          return (
+            <TeamAgentNodeEditor
+              selectedNode={selectedNode as Node<TeamAgentNodeData>}
+              subAgentTeamAgentConfigLookup={subAgentTeamAgentConfigLookup}
+              errorHelpers={errorHelpers}
+            />
+          );
+        }
+        case NodeType.TeamAgentPlaceholder: {
+          return <TeamAgentSelector selectedNode={selectedNode as Node} />;
         }
         case NodeType.MCPPlaceholder: {
           return <MCPSelector selectedNode={selectedNode as Node} />;
@@ -154,34 +191,48 @@ export function SidePane({
     getFirstErrorField,
     agentToolConfigLookup,
     credentialLookup,
+    subAgentExternalAgentConfigLookup,
+    subAgentTeamAgentConfigLookup,
+    errors,
   ]);
 
-  const showBackButton = useMemo(() => {
-    return selectedNode || selectedEdge;
-  }, [selectedNode, selectedEdge]);
+  const nodeType = selectedNode?.type as keyof typeof nodeTypeMap | undefined;
+  const nodeConfig = nodeType ? nodeTypeMap[nodeType] : undefined;
+  const parentPlaceholder =
+    nodeConfig && 'parentPlaceholder' in nodeConfig ? nodeConfig.parentPlaceholder : undefined;
+
+  const onBackButtonClick =
+    selectedNode && parentPlaceholder
+      ? () => {
+          updateNode(selectedNode.id, {
+            type: parentPlaceholder,
+            data: newNodeDefaults[parentPlaceholder],
+          });
+        }
+      : backToAgent;
+
+  const showBackButton = selectedNode || selectedEdge;
 
   return (
-    <SidePaneLayout.Root isOpen={isOpen}>
-      {isOpen && (
-        <>
-          <SidePaneLayout.Header>
-            <div className="flex items-center relative">
-              {showBackButton && <SidePaneLayout.BackButton onClick={backToAgent} />}
-              <Heading
-                heading={heading}
-                Icon={HeadingIcon}
-                className={
-                  showBackButton
-                    ? 'transition-all duration-300 ease-in-out group-hover:translate-x-8'
-                    : ''
-                }
-              />
-            </div>
-            <SidePaneLayout.CloseButton onClick={onClose} />
-          </SidePaneLayout.Header>
-          <SidePaneLayout.Content>{editorContent}</SidePaneLayout.Content>
-        </>
-      )}
+    <SidePaneLayout.Root>
+      <SidePaneLayout.Header>
+        <div className="flex items-center relative">
+          {showBackButton && <SidePaneLayout.BackButton onClick={onBackButtonClick} />}
+          <Heading
+            heading={heading}
+            Icon={HeadingIcon}
+            className={cn(
+              showBackButton && 'transition-all duration-300 ease-in-out group-hover:translate-x-8'
+            )}
+          />
+        </div>
+        <SidePaneLayout.CloseButton onClick={onClose} />
+      </SidePaneLayout.Header>
+      <SidePaneLayout.Content>
+        <fieldset disabled={disabled} className="contents">
+          {editorContent}
+        </fieldset>
+      </SidePaneLayout.Content>
     </SidePaneLayout.Root>
   );
 }

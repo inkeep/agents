@@ -1,10 +1,16 @@
 import { type Edge, useNodesData, useReactFlow } from '@xyflow/react';
-import { Spline } from 'lucide-react';
+import { Spline, Trash2 } from 'lucide-react';
+import { useCallback } from 'react';
+import { toast } from 'sonner';
 import { DashedSplineIcon } from '@/components/icons/dashed-spline';
 import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Label } from '@/components/ui/label';
+import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
+import { Separator } from '@/components/ui/separator';
 import { useAgentActions } from '@/features/agent/state/use-agent-store';
+import { getCycleErrorMessage, wouldCreateCycle } from '@/lib/utils/cycle-detection';
 import type { A2AEdgeData } from '../../configuration/edge-types';
 
 type RelationshipOptionProps = {
@@ -13,6 +19,8 @@ type RelationshipOptionProps = {
   onCheckedChange: (id: string, checked: boolean) => void;
   checked: boolean;
 };
+
+const REMOVE_DELEGATION_OPTION_ID = 'none';
 
 function RelationshipOption({ id, label, onCheckedChange, checked }: RelationshipOptionProps) {
   return (
@@ -39,6 +47,9 @@ type RelationshipSectionProps = {
   options: Array<{ id: string; label: string | React.ReactNode }>;
   onCheckedChange: (id: string, checked: boolean) => void;
   checkedValues: A2AEdgeData['relationships'];
+  useRadio?: boolean;
+  onRadioChange?: (value: string) => void;
+  defaultRadioValue?: string;
 };
 
 function RelationshipSection({
@@ -48,7 +59,27 @@ function RelationshipSection({
   options,
   onCheckedChange,
   checkedValues,
+  useRadio = false,
+  onRadioChange,
+  defaultRadioValue,
 }: RelationshipSectionProps) {
+  const getRadioValue = () => {
+    const checkedOption = options.find(
+      (opt) =>
+        (!defaultRadioValue || opt.id !== defaultRadioValue) &&
+        checkedValues?.[opt.id as keyof A2AEdgeData['relationships']]
+    );
+    if (checkedOption) {
+      return checkedOption.id;
+    }
+    // If no option is checked, return defaultRadioValue if it exists in options
+    if (defaultRadioValue) {
+      const defaultOption = options.find((opt) => opt.id === defaultRadioValue);
+      return defaultOption ? defaultRadioValue : '';
+    }
+    return '';
+  };
+
   return (
     <div className="space-y-4">
       <div className="space-y-2">
@@ -58,15 +89,30 @@ function RelationshipSection({
         </div>
         <p className="text-muted-foreground text-sm">{description}</p>
       </div>
-      {options.map((option) => (
-        <RelationshipOption
-          key={option.id}
-          id={option.id}
-          label={option.label}
-          onCheckedChange={onCheckedChange}
-          checked={checkedValues?.[option.id as keyof A2AEdgeData['relationships']] || false}
-        />
-      ))}
+      {useRadio && onRadioChange ? (
+        <RadioGroup value={getRadioValue()} onValueChange={onRadioChange}>
+          {options.map((option) => (
+            <div key={option.id} className="flex items-start gap-3">
+              <RadioGroupItem value={option.id} id={option.id} className="mt-[5px]" />
+              <div className="grid gap-2">
+                <Label htmlFor={option.id} className="font-normal">
+                  {option.label}
+                </Label>
+              </div>
+            </div>
+          ))}
+        </RadioGroup>
+      ) : (
+        options.map((option) => (
+          <RelationshipOption
+            key={option.id}
+            id={option.id}
+            label={option.label}
+            onCheckedChange={onCheckedChange}
+            checked={checkedValues?.[option.id as keyof A2AEdgeData['relationships']] || false}
+          />
+        ))
+      )}
     </div>
   );
 }
@@ -76,12 +122,58 @@ interface EdgeEditorProps {
 }
 
 function EdgeEditor({ selectedEdge }: EdgeEditorProps) {
-  const { updateEdgeData, setEdges } = useReactFlow();
+  const { updateEdgeData, setEdges, deleteElements, getEdges } = useReactFlow();
+
+  const deleteEdge = useCallback(() => {
+    deleteElements({ edges: [{ id: selectedEdge.id }] });
+  }, [selectedEdge.id, deleteElements]);
+
   const sourceNode = useNodesData(selectedEdge.source);
   const targetNode = useNodesData(selectedEdge.target);
   const { markUnsaved } = useAgentActions();
 
   const isSelfLoop = selectedEdge.source === selectedEdge.target;
+
+  const checkForCycle = (delegateId: string): boolean => {
+    const source =
+      delegateId === 'delegateSourceToTarget' ? selectedEdge.source : selectedEdge.target;
+    const target =
+      delegateId === 'delegateSourceToTarget' ? selectedEdge.target : selectedEdge.source;
+
+    const allEdges = getEdges();
+    const otherEdges = allEdges.filter((edge) => edge.id !== selectedEdge.id);
+
+    if (wouldCreateCycle(otherEdges, { source, target })) {
+      const sourceName =
+        (sourceNode?.data.name as string) || (sourceNode?.data.id as string) || 'Sub Agent';
+      const targetName =
+        (targetNode?.data.name as string) || (targetNode?.data.id as string) || 'Sub Agent';
+      const sourceLabel = delegateId === 'delegateSourceToTarget' ? sourceName : targetName;
+      const targetLabel = delegateId === 'delegateSourceToTarget' ? targetName : sourceName;
+
+      toast.error('Circular Delegation Detected', {
+        description: getCycleErrorMessage(sourceLabel, targetLabel),
+      });
+      return true;
+    }
+    return false;
+  };
+
+  const updateRelationships = (newRelationships: A2AEdgeData['relationships']) => {
+    const hasAnyRelationship =
+      newRelationships.transferSourceToTarget ||
+      newRelationships.transferTargetToSource ||
+      newRelationships.delegateSourceToTarget ||
+      newRelationships.delegateTargetToSource;
+
+    markUnsaved();
+
+    if (!hasAnyRelationship) {
+      setEdges((edges) => edges.filter((edge) => edge.id !== selectedEdge.id));
+    } else {
+      updateEdgeData(selectedEdge.id, { relationships: newRelationships });
+    }
+  };
 
   const handleCheckboxChange = (id: string, checked: boolean) => {
     // Calculate the new relationships state
@@ -103,29 +195,47 @@ function EdgeEditor({ selectedEdge }: EdgeEditorProps) {
         ...updates,
       };
     } else {
+      const updates: Partial<A2AEdgeData['relationships']> = { [id]: checked };
+
+      // Prevent two-way delegation: when enabling one delegation direction, disable the opposite
+      if (checked) {
+        if (id === 'delegateSourceToTarget') {
+          updates.delegateTargetToSource = false;
+        } else if (id === 'delegateTargetToSource') {
+          updates.delegateSourceToTarget = false;
+        }
+      }
+
       newRelationships = {
         ...(selectedEdge.data?.relationships as A2AEdgeData['relationships']),
-        [id]: checked,
+        ...updates,
       };
     }
 
-    const hasAnyRelationship =
-      newRelationships.transferSourceToTarget ||
-      newRelationships.transferTargetToSource ||
-      newRelationships.delegateSourceToTarget ||
-      newRelationships.delegateTargetToSource;
+    updateRelationships(newRelationships);
+  };
 
-    // Always mark as unsaved when relationships change
-    markUnsaved();
+  const handleDelegateRadioChange = (value: string) => {
+    if (value && checkForCycle(value)) return;
 
-    if (!hasAnyRelationship) {
-      // Remove the edge if no relationships remain
-      setEdges((edges) => edges.filter((edge) => edge.id !== selectedEdge.id));
-    } else {
-      updateEdgeData(selectedEdge.id, {
-        relationships: newRelationships,
-      });
+    const newRelationships: A2AEdgeData['relationships'] = {
+      ...(selectedEdge.data?.relationships as A2AEdgeData['relationships']),
+      delegateSourceToTarget: false,
+      delegateTargetToSource: false,
+    };
+
+    if (value === REMOVE_DELEGATION_OPTION_ID) {
+      newRelationships.delegateSourceToTarget = false;
+      newRelationships.delegateTargetToSource = false;
+    } else if (value) {
+      if (isSelfLoop && value === 'delegateSourceToTarget') {
+        newRelationships.delegateSourceToTarget = true;
+        newRelationships.delegateTargetToSource = true;
+      } else {
+        newRelationships[value as keyof A2AEdgeData['relationships']] = true;
+      }
     }
+    updateRelationships(newRelationships);
   };
 
   const sourceName =
@@ -191,6 +301,10 @@ function EdgeEditor({ selectedEdge }: EdgeEditorProps) {
             </div>
           ),
         },
+        {
+          id: REMOVE_DELEGATION_OPTION_ID,
+          label: <div className="my-0.5 leading-[22px]">None</div>,
+        },
       ]
     : [
         {
@@ -216,10 +330,14 @@ function EdgeEditor({ selectedEdge }: EdgeEditorProps) {
               </Badge>{' '}
               can delegate to{' '}
               <Badge variant="code" className="my-0.5">
-                {sourceNode?.data.name as string}
+                {sourceName}
               </Badge>
             </div>
           ),
+        },
+        {
+          id: REMOVE_DELEGATION_OPTION_ID,
+          label: <div className="my-0.5 leading-[22px]">None</div>,
         },
       ];
 
@@ -237,11 +355,21 @@ function EdgeEditor({ selectedEdge }: EdgeEditorProps) {
       <RelationshipSection
         icon={<DashedSplineIcon className="w-4 h-4 text-muted-foreground" />}
         title="Delegate relationships"
-        description="Delegate relationships are used to pass a task from one agent to another."
+        description="Delegate relationships are used to pass a task from one agent to another. Delegate relationships cannot be bi-directional."
         options={delegateOptions}
         onCheckedChange={handleCheckboxChange}
         checkedValues={selectedEdge.data?.relationships as A2AEdgeData['relationships']}
+        useRadio={true}
+        onRadioChange={handleDelegateRadioChange}
+        defaultRadioValue={REMOVE_DELEGATION_OPTION_ID}
       />
+      <Separator />
+      <div className="flex justify-end">
+        <Button variant="destructive-outline" size="sm" onClick={deleteEdge}>
+          <Trash2 className="size-4" />
+          Delete
+        </Button>
+      </div>
     </div>
   );
 }

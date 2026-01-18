@@ -62,7 +62,7 @@ async function discoverMcpMetadata(
   try {
     // RFC9728 - Protected Resource Metadata Discovery
     let resourceMetadata: OAuthProtectedResourceMetadata | null = null;
-    let authServerUrl = new URL(mcpServerUrl);
+    let authServerUrl = new URL('/', mcpServerUrl);
 
     try {
       resourceMetadata = await discoverOAuthProtectedResourceMetadata(mcpServerUrl);
@@ -279,28 +279,23 @@ export async function exchangeMcpAuthorizationCode({
  */
 export const detectAuthenticationRequired = async ({
   serverUrl,
-  toolId,
   error,
   logger,
 }: {
   serverUrl: string;
-  toolId: string;
   error?: Error;
   logger?: PinoLogger;
 }): Promise<boolean> => {
   try {
     const discoveryResult = await discoverMcpMetadata(serverUrl, logger);
     if (discoveryResult.success && discoveryResult.metadata) {
-      logger?.info({ toolId, serverUrl }, 'MCP OAuth support confirmed via metadata discovery');
+      logger?.info({ serverUrl }, 'MCP OAuth support confirmed via metadata discovery');
       return true;
     }
   } catch (discoveryError) {
-    logger?.debug({ toolId, discoveryError }, 'MCP OAuth metadata discovery failed');
+    logger?.debug({ discoveryError }, 'MCP OAuth metadata discovery failed');
   }
 
-  logger?.debug(
-    { toolId, error: error?.message },
-    'No MCP OAuth authentication requirement detected'
-  );
+  logger?.debug({ error: error?.message }, 'No MCP OAuth authentication requirement detected');
   return false;
 };

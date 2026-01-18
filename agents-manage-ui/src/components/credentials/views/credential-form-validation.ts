@@ -12,6 +12,7 @@ export const credentialFormSchema = z.object({
   credentialStoreId: z.string().min(1, 'Please select a credential store'),
   credentialStoreType: z.enum(CredentialStoreType),
   selectedTool: z.string().optional(),
+  selectedExternalAgent: z.string().optional(),
 });
 
 export type CredentialFormData = z.output<typeof credentialFormSchema>;

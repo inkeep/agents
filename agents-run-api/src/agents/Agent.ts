@@ -1,20 +1,19 @@
+import { z } from '@hono/zod-openapi';
 import {
   type AgentConversationHistoryConfig,
   type Artifact,
   type ArtifactComponentApiInsert,
-  agentHasArtifactComponents,
-  ContextResolver,
   type CredentialStoreRegistry,
   CredentialStuffer,
+  createMessage,
   type DataComponentApiInsert,
-  getContextConfigById,
-  getCredentialReference,
-  getFullAgentDefinition,
-  getFunction,
-  getFunctionToolsForSubAgent,
+  type FullExecutionContext,
+  generateId,
   getLedgerArtifacts,
-  getToolsForAgent,
+  InternalServices,
+  JsonTransformer,
   listTaskIdsByContextId,
+  ManagementApiClient,
   MCPServerType,
   type MCPToolConfig,
   MCPTransportType,
@@ -22,47 +21,69 @@ import {
   type McpServerConfig,
   type McpTool,
   type MessageContent,
+  ModelFactory,
   type ModelSettings,
   type Models,
+  parseEmbeddedJson,
+  type ResolvedRef,
   type SubAgentStopWhen,
   TemplateEngine,
 } from '@inkeep/agents-core';
 import { type Span, SpanStatusCode, trace } from '@opentelemetry/api';
 import {
-  generateObject,
+  type FlexibleSchema,
   generateText,
-  streamObject,
+  Output,
+  type StreamTextResult,
   streamText,
   type Tool,
   type ToolSet,
   tool,
 } from 'ai';
-import { z } from 'zod';
+import {
+  AGENT_EXECUTION_MAX_GENERATION_STEPS,
+  FUNCTION_TOOL_EXECUTION_TIMEOUT_MS_DEFAULT,
+  FUNCTION_TOOL_SANDBOX_VCPUS_DEFAULT,
+  LLM_GENERATION_FIRST_CALL_TIMEOUT_MS_NON_STREAMING,
+  LLM_GENERATION_FIRST_CALL_TIMEOUT_MS_STREAMING,
+  LLM_GENERATION_MAX_ALLOWED_TIMEOUT_MS,
+  LLM_GENERATION_SUBSEQUENT_CALL_TIMEOUT_MS,
+} from '../constants/execution-limits';
+import { ContextResolver } from '../context';
 import {
   createDefaultConversationHistoryConfig,
-  getFormattedConversationHistory,
+  getConversationHistoryWithCompression,
 } from '../data/conversations';
 import dbClient from '../data/db/dbClient';
+import { env } from '../env';
 import { getLogger } from '../logger';
-import { agentSessionManager } from '../services/AgentSession';
+import { agentSessionManager, type ToolCallData } from '../services/AgentSession';
+import { getModelAwareCompressionConfig } from '../services/BaseCompressor';
 import { IncrementalStreamParser } from '../services/IncrementalStreamParser';
+import { MidGenerationCompressor } from '../services/MidGenerationCompressor';
+import { pendingToolApprovalManager } from '../services/PendingToolApprovalManager';
 import { ResponseFormatter } from '../services/ResponseFormatter';
 import type { SandboxConfig } from '../types/execution-context';
 import { generateToolId } from '../utils/agent-operations';
 import { ArtifactCreateSchema, ArtifactReferenceSchema } from '../utils/artifact-component-schema';
 import { jsonSchemaToZod } from '../utils/data-component-schema';
-import { parseEmbeddedJson } from '../utils/json-parser';
+import { withJsonPostProcessing } from '../utils/json-postprocessor';
+import { getCompressionConfigForModel } from '../utils/model-context-utils';
 import type { StreamHelper } from '../utils/stream-helpers';
 import { getStreamHelper } from '../utils/stream-registry';
+import {
+  type AssembleResult,
+  type ContextBreakdown,
+  calculateBreakdownTotal,
+  estimateTokens,
+} from '../utils/token-estimator';
 import { setSpanWithError, tracer } from '../utils/tracer';
-import { ModelFactory } from './ModelFactory';
 import { createDelegateToAgentTool, createTransferToAgentTool } from './relationTools';
 import { SystemPromptBuilder } from './SystemPromptBuilder';
 import { toolSessionManager } from './ToolSessionManager';
 import type { SystemPromptV1 } from './types';
-import { Phase1Config } from './versions/v1/Phase1Config';
+import { Phase1Config, V1_BREAKDOWN_SCHEMA } from './versions/v1/Phase1Config';
 import { Phase2Config } from './versions/v1/Phase2Config';
-
 /**
  * Creates a stopWhen condition that stops when any tool call name starts with the given prefix
  * @param prefix - The prefix to check for in tool call names
@@ -80,13 +101,6 @@ export function hasToolCallWithPrefix(prefix: string) {
 
 const logger = getLogger('Agent');
 
-const CONSTANTS = {
-  MAX_GENERATION_STEPS: 12,
-  PHASE_1_TIMEOUT_MS: 270_000,
-  NON_STREAMING_PHASE_1_TIMEOUT_MS: 90_000,
-  PHASE_2_TIMEOUT_MS: 90_000,
-} as const;
-
 function validateModel(modelString: string | undefined, modelType: string): string {
   if (!modelString?.trim()) {
     throw new Error(
@@ -101,12 +115,13 @@ export type AgentConfig = {
   tenantId: string;
   projectId: string;
   agentId: string;
+  relationId?: string;
   baseUrl: string;
   apiKey?: string;
   apiKeyId?: string;
   name: string;
-  description: string;
-  prompt: string;
+  description?: string;
+  prompt?: string;
   subAgentRelations: AgentConfig[];
   transferRelations: AgentConfig[];
   delegateRelations: DelegateRelation[];
@@ -126,18 +141,38 @@ export type AgentConfig = {
   models?: Models;
   stopWhen?: SubAgentStopWhen;
   sandboxConfig?: SandboxConfig;
+  /** User ID for user-scoped credential lookup (from temp JWT) */
+  userId?: string;
+  /** Headers to forward to MCP servers (e.g., x-forwarded-cookie for user session auth) */
+  forwardedHeaders?: Record<string, string>;
 };
 
-export type ExternalAgentConfig = {
+export type ExternalAgentRelationConfig = {
+  relationId: string;
   id: string;
   name: string;
   description: string;
+  ref: ResolvedRef;
   baseUrl: string;
+  credentialReferenceId?: string | null;
+  headers?: Record<string, string> | null;
+  relationType: string;
+};
+
+export type TeamAgentRelationConfig = {
+  relationId: string;
+  id: string;
+  ref: ResolvedRef;
+  name: string;
+  description: string;
+  baseUrl: string;
+  headers?: Record<string, string> | null;
 };
 
 export type DelegateRelation =
   | { type: 'internal'; config: AgentConfig }
-  | { type: 'external'; config: ExternalAgentConfig };
+  | { type: 'external'; config: ExternalAgentRelationConfig }
+  | { type: 'team'; config: TeamAgentRelationConfig };
 
 export type ToolType = 'transfer' | 'delegation' | 'mcp' | 'tool';
 
@@ -160,15 +195,23 @@ export class Agent {
   private streamHelper?: StreamHelper;
   private streamRequestId?: string;
   private conversationId?: string;
+  private delegationId?: string;
   private artifactComponents: ArtifactComponentApiInsert[] = [];
   private isDelegatedAgent: boolean = false;
   private contextResolver?: ContextResolver;
   private credentialStoreRegistry?: CredentialStoreRegistry;
   private mcpClientCache: Map<string, McpClient> = new Map();
   private mcpConnectionLocks: Map<string, Promise<McpClient>> = new Map();
+  private currentCompressor: MidGenerationCompressor | null = null;
+  private executionContext: FullExecutionContext;
 
-  constructor(config: AgentConfig, credentialStoreRegistry?: CredentialStoreRegistry) {
+  constructor(
+    config: AgentConfig,
+    executionContext: FullExecutionContext,
+    credentialStoreRegistry?: CredentialStoreRegistry
+  ) {
     this.artifactComponents = config.artifactComponents || [];
+    this.executionContext = executionContext;
 
     let processedDataComponents = config.dataComponents || [];
 
@@ -213,22 +256,17 @@ export class Agent {
     this.credentialStoreRegistry = credentialStoreRegistry;
 
     if (credentialStoreRegistry) {
-      this.contextResolver = new ContextResolver(
-        config.tenantId,
-        config.projectId,
-        dbClient,
-        credentialStoreRegistry
-      );
+      this.contextResolver = new ContextResolver(executionContext, credentialStoreRegistry);
       this.credentialStuffer = new CredentialStuffer(credentialStoreRegistry, this.contextResolver);
     }
   }
 
   /**
    * Get the maximum number of generation steps for this agent
-   * Uses agent's stopWhen.stepCountIs config or defaults to CONSTANTS.MAX_GENERATION_STEPS
+   * Uses agent's stopWhen.stepCountIs config or defaults to AGENT_EXECUTION_MAX_GENERATION_STEPS
    */
   private getMaxGenerationSteps(): number {
-    return this.config.stopWhen?.stepCountIs ?? CONSTANTS.MAX_GENERATION_STEPS;
+    return this.config.stopWhen?.stepCountIs ?? AGENT_EXECUTION_MAX_GENERATION_STEPS;
   }
 
   /**
@@ -269,6 +307,40 @@ export class Agent {
     }
 
     return sanitizedTools;
+  }
+
+  #createRelationToolName(prefix: string, targetId: string): string {
+    return `${prefix}_to_${targetId.toLowerCase().replace(/\s+/g, '_')}`;
+  }
+
+  #getRelationshipIdForTool(toolName: string, toolType?: ToolType): string | undefined {
+    if (toolType === 'mcp') {
+      const matchingTool = this.config.tools?.find((tool) => {
+        if (tool.config?.type !== 'mcp') {
+          return false;
+        }
+
+        if (tool.availableTools?.some((available) => available.name === toolName)) {
+          return true;
+        }
+
+        if (tool.config.mcp.activeTools?.includes(toolName)) {
+          return true;
+        }
+
+        return tool.name === toolName;
+      });
+
+      return matchingTool?.relationshipId;
+    }
+
+    if (toolType === 'delegation') {
+      const relation = this.config.delegateRelations.find(
+        (relation) => this.#createRelationToolName('delegate', relation.config.id) === toolName
+      );
+
+      return relation?.config.relationId;
+    }
   }
 
   /**
@@ -319,15 +391,58 @@ export class Agent {
     };
   }
 
+  /**
+   * Get the model settings for summarization/distillation
+   * Falls back to base model if summarizer not configured
+   */
+  private getSummarizerModel(): ModelSettings {
+    if (!this.config.models) {
+      throw new Error(
+        'Model configuration is required. Please configure models at the project level.'
+      );
+    }
+
+    const summarizerConfig = this.config.models.summarizer;
+    const baseConfig = this.config.models.base;
+
+    if (summarizerConfig) {
+      return {
+        model: validateModel(summarizerConfig.model, 'Summarizer'),
+        providerOptions: summarizerConfig.providerOptions,
+      };
+    }
+
+    if (!baseConfig) {
+      throw new Error(
+        'Base model configuration is required for summarizer fallback. Please configure models at the project level.'
+      );
+    }
+    return {
+      model: validateModel(baseConfig.model, 'Base (fallback for summarizer)'),
+      providerOptions: baseConfig.providerOptions,
+    };
+  }
+
   setConversationId(conversationId: string) {
     this.conversationId = conversationId;
   }
+
+  /**
+   * Simple compression fallback: drop oldest messages to fit under token limit
+   */
 
   /**
    * Set delegation status for this agent instance
    */
   setDelegationStatus(isDelegated: boolean) {
     this.isDelegatedAgent = isDelegated;
+  }
+
+  /**
+   * Set delegation ID for this agent instance
+   */
+  setDelegationId(delegationId: string | undefined) {
+    this.delegationId = delegationId;
   }
 
   /**
@@ -345,11 +460,13 @@ export class Agent {
     toolName: string,
     toolDefinition: any,
     streamRequestId?: string,
-    toolType?: ToolType
+    toolType?: ToolType,
+    options?: { needsApproval?: boolean; mcpServerId?: string; mcpServerName?: string }
   ) {
     if (!toolDefinition || typeof toolDefinition !== 'object' || !('execute' in toolDefinition)) {
       return toolDefinition;
     }
+    const relationshipId = this.#getRelationshipIdForTool(toolName, toolType);
 
     const originalExecute = toolDefinition.execute;
     return {
@@ -360,32 +477,97 @@ export class Agent {
 
         const activeSpan = trace.getActiveSpan();
         if (activeSpan) {
-          activeSpan.setAttributes({
+          const attributes: Record<string, any> = {
             'conversation.id': this.conversationId,
             'tool.purpose': toolDefinition.description || 'No description provided',
             'ai.toolType': toolType || 'unknown',
-            'ai.subAgentName': this.config.name || 'unknown',
+            'subAgent.name': this.config.name || 'unknown',
+            'subAgent.id': this.config.id || 'unknown',
             'agent.id': this.config.agentId || 'unknown',
-          });
+          };
+
+          if (options?.mcpServerId) {
+            attributes['ai.toolCall.mcpServerId'] = options.mcpServerId;
+          }
+          if (options?.mcpServerName) {
+            attributes['ai.toolCall.mcpServerName'] = options.mcpServerName;
+          }
+
+          activeSpan.setAttributes(attributes);
         }
 
         const isInternalTool =
           toolName.includes('save_tool_result') ||
           toolName.includes('thinking_complete') ||
-          toolName.startsWith('transfer_to_') ||
-          toolName.startsWith('delegate_to_');
+          toolName.startsWith('transfer_to_');
+        // Note: delegate_to_ tools are NOT internal - we want their results in conversation history
+
+        // Check if this tool needs approval first
+        const needsApproval = options?.needsApproval || false;
 
         if (streamRequestId && !isInternalTool) {
-          agentSessionManager.recordEvent(streamRequestId, 'tool_call', this.config.id, {
+          const toolCallData: ToolCallData = {
             toolName,
             input: args,
             toolCallId,
-          });
+            relationshipId,
+          };
+
+          // Add approval-specific data when needed
+          if (needsApproval) {
+            toolCallData.needsApproval = true;
+            toolCallData.conversationId = this.conversationId;
+          }
+
+          await agentSessionManager.recordEvent(
+            streamRequestId,
+            'tool_call',
+            this.config.id,
+            toolCallData
+          );
         }
 
         try {
           const result = await originalExecute(args, context);
           const duration = Date.now() - startTime;
+
+          // Store tool result in conversation history
+          const toolResultConversationId = this.getToolResultConversationId();
+
+          if (streamRequestId && !isInternalTool && toolResultConversationId) {
+            try {
+              const messageId = generateId();
+              const messagePayload = {
+                id: messageId,
+                tenantId: this.config.tenantId,
+                projectId: this.config.projectId,
+                conversationId: toolResultConversationId,
+                role: 'assistant',
+                content: {
+                  text: this.formatToolResult(toolName, args, result, toolCallId),
+                },
+                visibility: 'internal',
+                messageType: 'tool-result',
+                fromSubAgentId: this.config.id,
+                metadata: {
+                  a2a_metadata: {
+                    toolName,
+                    toolCallId,
+                    timestamp: Date.now(),
+                    delegationId: this.delegationId,
+                    isDelegated: this.isDelegatedAgent,
+                  },
+                },
+              };
+
+              await createMessage(dbClient)(messagePayload);
+            } catch (error) {
+              logger.warn(
+                { error, toolName, toolCallId, conversationId: toolResultConversationId },
+                'Failed to store tool result in conversation history'
+              );
+            }
+          }
 
           if (streamRequestId && !isInternalTool) {
             agentSessionManager.recordEvent(streamRequestId, 'tool_result', this.config.id, {
@@ -393,6 +575,8 @@ export class Agent {
               output: result,
               toolCallId,
               duration,
+              relationshipId,
+              needsApproval,
             });
           }
 
@@ -408,6 +592,8 @@ export class Agent {
               toolCallId,
               duration,
               error: errorMessage,
+              relationshipId,
+              needsApproval,
             });
           }
 
@@ -432,11 +618,9 @@ export class Agent {
     sessionId?: string
   ) {
     const { transferRelations = [], delegateRelations = [] } = this.config;
-    const createToolName = (prefix: string, subAgentId: string) =>
-      `${prefix}_to_${subAgentId.toLowerCase().replace(/\s+/g, '_')}`;
     return Object.fromEntries([
       ...transferRelations.map((agentConfig) => {
-        const toolName = createToolName('transfer', agentConfig.id);
+        const toolName = this.#createRelationToolName('transfer', agentConfig.id);
         return [
           toolName,
           this.wrapToolWithStreaming(
@@ -444,7 +628,6 @@ export class Agent {
             createTransferToAgentTool({
               transferConfig: agentConfig,
               callingAgentId: this.config.id,
-              subAgent: this,
               streamRequestId: runtimeContext?.metadata?.streamRequestId,
             }),
             runtimeContext?.metadata?.streamRequestId,
@@ -453,7 +636,8 @@ export class Agent {
         ];
       }),
       ...delegateRelations.map((relation) => {
-        const toolName = createToolName('delegate', relation.config.id);
+        const toolName = this.#createRelationToolName('delegate', relation.config.id);
+
         return [
           toolName,
           this.wrapToolWithStreaming(
@@ -461,9 +645,7 @@ export class Agent {
             createDelegateToAgentTool({
               delegateConfig: relation,
               callingAgentId: this.config.id,
-              tenantId: this.config.tenantId,
-              projectId: this.config.projectId,
-              agentId: this.config.agentId,
+              executionContext: this.executionContext,
               contextId: runtimeContext?.contextId || 'default', // fallback for compatibility
               metadata: runtimeContext?.metadata || {
                 conversationId: runtimeContext?.contextId || 'default',
@@ -472,7 +654,6 @@ export class Agent {
                 apiKey: runtimeContext?.metadata?.apiKey,
               },
               sessionId,
-              subAgent: this,
               credentialStoreRegistry: this.credentialStoreRegistry,
             }),
             runtimeContext?.metadata?.streamRequestId,
@@ -488,44 +669,178 @@ export class Agent {
       this.config.tools?.filter((tool) => {
         return tool.config?.type === 'mcp';
       }) || [];
-
     const tools = (await Promise.all(mcpTools.map((tool) => this.getMcpTool(tool)) || [])) || [];
-
     if (!sessionId) {
-      const combinedTools = tools.reduce((acc, tool) => {
-        return Object.assign(acc, tool) as ToolSet;
-      }, {} as ToolSet);
-
       const wrappedTools: ToolSet = {};
-      for (const [toolName, toolDef] of Object.entries(combinedTools)) {
-        wrappedTools[toolName] = this.wrapToolWithStreaming(
-          toolName,
-          toolDef,
-          streamRequestId,
-          'mcp'
-        );
+      for (const toolSet of tools) {
+        for (const [toolName, toolDef] of Object.entries(toolSet.tools)) {
+          // Find toolPolicies for this tool
+          const needsApproval = toolSet.toolPolicies?.[toolName]?.needsApproval || false;
+
+          const enhancedTool = {
+            ...(toolDef || {}),
+            needsApproval,
+          };
+
+          wrappedTools[toolName] = this.wrapToolWithStreaming(
+            toolName,
+            enhancedTool,
+            streamRequestId,
+            'mcp',
+            {
+              needsApproval,
+              mcpServerId: toolSet.mcpServerId,
+              mcpServerName: toolSet.mcpServerName,
+            }
+          );
+        }
       }
       return wrappedTools;
     }
 
     const wrappedTools: ToolSet = {};
-    for (const toolSet of tools) {
-      for (const [toolName, originalTool] of Object.entries(toolSet)) {
+    for (const toolResult of tools) {
+      for (const [toolName, originalTool] of Object.entries(toolResult.tools)) {
         if (!isValidTool(originalTool)) {
           logger.error({ toolName }, 'Invalid MCP tool structure - missing required properties');
           continue;
         }
 
+        // Check if this tool needs approval from toolPolicies
+        const needsApproval = toolResult.toolPolicies?.[toolName]?.needsApproval || false;
+
+        logger.debug(
+          {
+            toolName,
+            toolPolicies: toolResult.toolPolicies,
+            needsApproval,
+            policyForThisTool: toolResult.toolPolicies?.[toolName],
+          },
+          'Tool approval check'
+        );
+
         const sessionWrappedTool = tool({
           description: originalTool.description,
           inputSchema: originalTool.inputSchema,
           execute: async (args, { toolCallId }) => {
+            // Fix Claude's stringified JSON issue - convert any stringified JSON back to objects
+            // This must happen first, before any logging or tracing, so spans show correct data
+            let processedArgs: typeof args;
+            try {
+              processedArgs = parseEmbeddedJson(args);
+
+              // Warn if we had to fix stringified JSON (indicates schema ambiguity issue)
+              if (JSON.stringify(args) !== JSON.stringify(processedArgs)) {
+                logger.warn(
+                  { toolName, toolCallId },
+                  'Fixed stringified JSON parameters (indicates schema ambiguity)'
+                );
+              }
+            } catch (error) {
+              logger.warn(
+                { toolName, toolCallId, error: (error as Error).message },
+                'Failed to parse embedded JSON, using original args'
+              );
+              processedArgs = args;
+            }
+
+            // Use processed args for all subsequent operations
+            const finalArgs = processedArgs;
+
+            // Check for approval requirement before execution
+            if (needsApproval) {
+              logger.info(
+                { toolName, toolCallId, args: finalArgs },
+                'Tool requires approval - waiting for user response'
+              );
+
+              // Add an event to the current active span if one exists
+              const currentSpan = trace.getActiveSpan();
+              if (currentSpan) {
+                currentSpan.addEvent('tool.approval.requested', {
+                  'tool.name': toolName,
+                  'tool.callId': toolCallId,
+                  'subAgent.id': this.config.id,
+                });
+              }
+
+              // Emit an immediate span to mark that approval request was sent
+              tracer.startActiveSpan(
+                'tool.approval_requested',
+                {
+                  attributes: {
+                    'tool.name': toolName,
+                    'tool.callId': toolCallId,
+                    'subAgent.id': this.config.id,
+                    'subAgent.name': this.config.name,
+                  },
+                },
+                (requestSpan: Span) => {
+                  requestSpan.setStatus({ code: SpanStatusCode.OK });
+                  requestSpan.end();
+                }
+              );
+
+              // Wait for approval (this promise resolves when user responds via API)
+              const approvalResult = await pendingToolApprovalManager.waitForApproval(
+                toolCallId,
+                toolName,
+                args,
+                this.conversationId || 'unknown',
+                this.config.id
+              );
+
+              if (!approvalResult.approved) {
+                // User denied approval - return a message instead of executing the tool
+                return tracer.startActiveSpan(
+                  'tool.approval_denied',
+                  {
+                    attributes: {
+                      'tool.name': toolName,
+                      'tool.callId': toolCallId,
+                      'subAgent.id': this.config.id,
+                      'subAgent.name': this.config.name,
+                    },
+                  },
+                  (denialSpan: Span) => {
+                    logger.info(
+                      { toolName, toolCallId, reason: approvalResult.reason },
+                      'Tool execution denied by user'
+                    );
+
+                    denialSpan.setStatus({ code: SpanStatusCode.OK });
+                    denialSpan.end();
+
+                    return `User denied approval to run this tool: ${approvalResult.reason}`;
+                  }
+                );
+              }
+
+              // Tool was approved - create a span to show this
+              tracer.startActiveSpan(
+                'tool.approval_approved',
+                {
+                  attributes: {
+                    'tool.name': toolName,
+                    'tool.callId': toolCallId,
+                    'subAgent.id': this.config.id,
+                    'subAgent.name': this.config.name,
+                  },
+                },
+                (approvedSpan: Span) => {
+                  logger.info({ toolName, toolCallId }, 'Tool approved, continuing with execution');
+                  approvedSpan.setStatus({ code: SpanStatusCode.OK });
+                  approvedSpan.end();
+                }
+              );
+            }
+
             logger.debug({ toolName, toolCallId }, 'MCP Tool Called');
 
             try {
-              const rawResult = await originalTool.execute(args, { toolCallId });
+              const rawResult = await originalTool.execute(finalArgs, { toolCallId });
 
-              if (rawResult && typeof rawResult === 'object' && 'isError' in rawResult && rawResult.isError) {
+              if (rawResult && typeof rawResult === 'object' && rawResult.isError) {
                 const errorMessage = rawResult.content?.[0]?.text || 'MCP tool returned an error';
                 logger.error(
                   { toolName, toolCallId, errorMessage, rawResult },
@@ -535,12 +850,13 @@ export class Agent {
                 toolSessionManager.recordToolResult(sessionId, {
                   toolCallId,
                   toolName,
-                  args,
+                  args: finalArgs,
                   result: { error: errorMessage, failed: true },
                   timestamp: Date.now(),
                 });
 
                 if (streamRequestId) {
+                  const relationshipId = this.#getRelationshipIdForTool(toolName, 'mcp');
                   agentSessionManager.recordEvent(streamRequestId, 'error', this.config.id, {
                     message: `MCP tool "${toolName}" failed: ${errorMessage}`,
                     code: 'mcp_tool_error',
@@ -549,6 +865,7 @@ export class Agent {
                       toolName,
                       toolCallId,
                       errorMessage,
+                      relationshipId,
                     },
                   });
                 }
@@ -577,7 +894,7 @@ export class Agent {
               toolSessionManager.recordToolResult(sessionId, {
                 toolCallId,
                 toolName,
-                args,
+                args: finalArgs,
                 result: enhancedResult,
                 timestamp: Date.now(),
               });
@@ -594,7 +911,12 @@ export class Agent {
           toolName,
           sessionWrappedTool,
           streamRequestId,
-          'mcp'
+          'mcp',
+          {
+            needsApproval,
+            mcpServerId: toolResult.mcpServerId,
+            mcpServerName: toolResult.mcpServerName,
+          }
         );
       }
     }
@@ -627,42 +949,85 @@ export class Agent {
         ...tool.headers,
         ...agentToolRelationHeaders,
       },
+      toolOverrides: tool.config.mcp.toolOverrides,
     };
   }
 
   async getMcpTool(tool: McpTool) {
-    const cacheKey = `${this.config.tenantId}-${this.config.projectId}-${tool.id}-${tool.credentialReferenceId || 'no-cred'}`;
+    // Include forwarded headers hash in cache key to ensure user session-specific connections
+    // This prevents reusing a connection created without cookies for requests that have them
+    const forwardedHeadersHash = this.config.forwardedHeaders
+      ? Object.keys(this.config.forwardedHeaders).sort().join(',')
+      : 'no-fwd';
+    const cacheKey = `${this.config.tenantId}-${this.config.projectId}-${tool.id}-${tool.credentialReferenceId || 'no-cred'}-${forwardedHeadersHash}`;
+
+    const project = this.executionContext.project;
 
     const credentialReferenceId = tool.credentialReferenceId;
 
-    const toolsForAgent = await getToolsForAgent(dbClient)({
-      scopes: {
-        tenantId: this.config.tenantId,
-        projectId: this.config.projectId,
-        agentId: this.config.agentId,
-        subAgentId: this.config.id,
-      },
-    });
-
-    const agentToolRelationHeaders =
-      toolsForAgent.data.find((t) => t.toolId === tool.id)?.headers || undefined;
-
-    const selectedTools =
-      toolsForAgent.data.find((t) => t.toolId === tool.id)?.selectedTools || undefined;
+    // Get tool relation from project context instead of database
+    const subAgent = project.agents[this.config.agentId]?.subAgents?.[this.config.id];
+    const toolRelation = subAgent?.canUse?.find((t) => t.toolId === tool.id);
+    const agentToolRelationHeaders = toolRelation?.headers || undefined;
+    const selectedTools = toolRelation?.toolSelection || undefined;
+    const toolPolicies = toolRelation?.toolPolicies || {};
 
     let serverConfig: McpServerConfig;
 
-    if (credentialReferenceId && this.credentialStuffer) {
-      const credentialReference = await getCredentialReference(dbClient)({
-        scopes: {
-          tenantId: this.config.tenantId,
-          projectId: this.config.projectId,
-        },
-        id: credentialReferenceId,
-      });
+    // Check for user-scoped credential first (uses toolId + userId lookup)
+    const isUserScoped = tool.credentialScope === 'user';
+    const userId = this.config.userId;
+
+    if (isUserScoped && userId && this.credentialStuffer) {
+      // User-scoped: look up credential by (toolId, userId)
+      const userCredentialReference = project.credentialReferences
+        ? Object.values(project.credentialReferences).find(
+            (c) => c.toolId === tool.id && c.userId === userId
+          )
+        : undefined;
+
+      if (userCredentialReference) {
+        const storeReference = {
+          credentialStoreId: userCredentialReference.credentialStoreId,
+          retrievalParams: userCredentialReference.retrievalParams || {},
+        };
+
+        serverConfig = await this.credentialStuffer.buildMcpServerConfig(
+          {
+            tenantId: this.config.tenantId,
+            projectId: this.config.projectId,
+            contextConfigId: this.config.contextConfigId || undefined,
+            conversationId: this.conversationId || undefined,
+          },
+          this.convertToMCPToolConfig(tool, agentToolRelationHeaders),
+          storeReference,
+          selectedTools
+        );
+      } else {
+        // User hasn't connected their credential yet - build config without auth
+        logger.warn(
+          { toolId: tool.id, userId },
+          'User-scoped tool has no credential connected for this user'
+        );
+        serverConfig = await this.credentialStuffer.buildMcpServerConfig(
+          {
+            tenantId: this.config.tenantId,
+            projectId: this.config.projectId,
+            contextConfigId: this.config.contextConfigId || undefined,
+            conversationId: this.conversationId || undefined,
+          },
+          this.convertToMCPToolConfig(tool, agentToolRelationHeaders),
+          undefined,
+          selectedTools
+        );
+      }
+    } else if (credentialReferenceId && this.credentialStuffer) {
+      // Project-scoped: look up credential by credentialReferenceId
+
+      const credentialReference = project.credentialReferences?.[credentialReferenceId];
 
       if (!credentialReference) {
-        throw new Error(`Credential store not found: ${credentialReferenceId}`);
+        throw new Error(`Credential reference not found: ${credentialReferenceId}`);
       }
 
       const storeReference = {
@@ -681,7 +1046,7 @@ export class Agent {
         storeReference,
         selectedTools
       );
-    } else if (tool.headers && this.credentialStuffer) {
+    } else if (this.credentialStuffer) {
       serverConfig = await this.credentialStuffer.buildMcpServerConfig(
         {
           tenantId: this.config.tenantId,
@@ -708,12 +1073,38 @@ export class Agent {
       };
     }
 
+    // Inject user_id for Composio servers at runtime
+    if (serverConfig.url?.toString().includes('composio.dev')) {
+      const urlObj = new URL(serverConfig.url.toString());
+      if (isUserScoped && userId) {
+        // User-scoped: use actual userId
+        urlObj.searchParams.set('user_id', userId);
+      } else {
+        // Project-scoped: use tenantId||projectId
+        const SEPARATOR = '||';
+        urlObj.searchParams.set(
+          'user_id',
+          `${this.config.tenantId}${SEPARATOR}${this.config.projectId}`
+        );
+      }
+      serverConfig.url = urlObj.toString();
+    }
+
+    // Merge forwarded headers (user session auth) into server config
+    if (this.config.forwardedHeaders && Object.keys(this.config.forwardedHeaders).length > 0) {
+      serverConfig.headers = {
+        ...serverConfig.headers,
+        ...this.config.forwardedHeaders,
+      };
+    }
+
     logger.info(
       {
         toolName: tool.name,
         credentialReferenceId,
         transportType: serverConfig.type,
         headers: tool.headers,
+        hasForwardedHeaders: !!this.config.forwardedHeaders,
       },
       'Built MCP server config with credentials'
     );
@@ -751,7 +1142,10 @@ export class Agent {
       }
     }
 
-    const tools = await client.tools();
+    const originalTools = await client.tools();
+
+    // Apply tool overrides if configured
+    const tools = await this.applyToolOverrides(originalTools, tool);
 
     if (!tools || Object.keys(tools).length === 0) {
       const streamRequestId = this.getStreamRequestId();
@@ -769,7 +1163,8 @@ export class Agent {
                 originalToolName: tool.name,
               }),
               'ai.toolType': 'mcp',
-              'ai.subAgentName': this.config.name || 'unknown',
+              'subAgent.name': this.config.name || 'unknown',
+              'subAgent.id': this.config.id || 'unknown',
               'conversation.id': this.conversationId || 'unknown',
               'agent.id': this.config.agentId || 'unknown',
               'tenant.id': this.config.tenantId || 'unknown',
@@ -794,7 +1189,7 @@ export class Agent {
       }
     }
 
-    return tools;
+    return { tools, toolPolicies, mcpServerId: tool.id, mcpServerName: tool.name };
   }
 
   private async createMcpConnection(
@@ -822,12 +1217,12 @@ export class Agent {
         if (error?.cause && JSON.stringify(error.cause).includes('ECONNREFUSED')) {
           const errorMessage = 'Connection refused. Please check if the MCP server is running.';
           throw new Error(errorMessage);
-        } else if (error.message.includes('404')) {
+        }
+        if (error.message.includes('404')) {
           const errorMessage = 'Error accessing endpoint (HTTP 404)';
           throw new Error(errorMessage);
-        } else {
-          throw new Error(`MCP server connection failed: ${error.message}`);
         }
+        throw new Error(`MCP server connection failed: ${error.message}`);
       }
 
       throw error;
@@ -836,18 +1231,25 @@ export class Agent {
 
   async getFunctionTools(sessionId?: string, streamRequestId?: string) {
     const functionTools: ToolSet = {};
-
+    const project = this.executionContext.project;
     try {
-      const functionToolsForAgent = await getFunctionToolsForSubAgent(dbClient)({
-        scopes: {
-          tenantId: this.config.tenantId,
-          projectId: this.config.projectId,
-          agentId: this.config.agentId,
+      const client = new ManagementApiClient({
+        apiUrl: env.INKEEP_AGENTS_MANAGE_API_URL,
+        tenantId: this.config.tenantId,
+        projectId: this.config.projectId,
+        auth: {
+          mode: 'internalService',
+          internalServiceName: InternalServices.INKEEP_AGENTS_RUN_API,
         },
-        subAgentId: this.config.id,
+        ref: this.executionContext.resolvedRef.name,
+        userId: this.config.userId,
       });
+      const functionToolsForAgent = await client.getFunctionToolsForSubAgent(
+        this.config.agentId,
+        this.config.id
+      );
 
-      const functionToolsData = functionToolsForAgent.data || [];
+      const functionToolsData = functionToolsForAgent ?? [];
 
       if (functionToolsData.length === 0) {
         return functionTools;
@@ -866,13 +1268,7 @@ export class Agent {
           continue;
         }
 
-        const functionData = await getFunction(dbClient)({
-          functionId,
-          scopes: {
-            tenantId: this.config.tenantId || 'default',
-            projectId: this.config.projectId || 'default',
-          },
-        });
+        const functionData = project.functions?.[functionId];
         if (!functionData) {
           logger.warn(
             { functionId, functionToolId: functionToolDef.id },
@@ -887,8 +1283,31 @@ export class Agent {
           description: functionToolDef.description || functionToolDef.name,
           inputSchema: zodSchema,
           execute: async (args, { toolCallId }) => {
+            // Fix Claude's stringified JSON issue - convert any stringified JSON back to objects
+            let processedArgs: typeof args;
+            try {
+              processedArgs = parseEmbeddedJson(args);
+
+              // Warn if we had to fix stringified JSON (indicates schema ambiguity issue)
+              if (JSON.stringify(args) !== JSON.stringify(processedArgs)) {
+                logger.warn(
+                  { toolName: functionToolDef.name, toolCallId },
+                  'Fixed stringified JSON parameters (indicates schema ambiguity)'
+                );
+              }
+            } catch (error) {
+              logger.warn(
+                { toolName: functionToolDef.name, toolCallId, error: (error as Error).message },
+                'Failed to parse embedded JSON, using original args'
+              );
+              processedArgs = args;
+            }
+
+            // Use processed args for all subsequent operations
+            const finalArgs = processedArgs;
+
             logger.debug(
-              { toolName: functionToolDef.name, toolCallId, args },
+              { toolName: functionToolDef.name, toolCallId, args: finalArgs },
               'Function Tool Called'
             );
 
@@ -896,22 +1315,26 @@ export class Agent {
               const defaultSandboxConfig: SandboxConfig = {
                 provider: 'native',
                 runtime: 'node22',
-                timeout: 30000,
-                vcpus: 4,
+                timeout: FUNCTION_TOOL_EXECUTION_TIMEOUT_MS_DEFAULT,
+                vcpus: FUNCTION_TOOL_SANDBOX_VCPUS_DEFAULT,
               };
 
-              const result = await sandboxExecutor.executeFunctionTool(functionToolDef.id, args, {
-                description: functionToolDef.description || functionToolDef.name,
-                inputSchema: functionData.inputSchema || {},
-                executeCode: functionData.executeCode,
-                dependencies: functionData.dependencies || {},
-                sandboxConfig: this.config.sandboxConfig || defaultSandboxConfig,
-              });
+              const result = await sandboxExecutor.executeFunctionTool(
+                functionToolDef.id,
+                finalArgs,
+                {
+                  description: functionToolDef.description || functionToolDef.name,
+                  inputSchema: functionData.inputSchema || {},
+                  executeCode: functionData.executeCode,
+                  dependencies: functionData.dependencies || {},
+                  sandboxConfig: this.config.sandboxConfig || defaultSandboxConfig,
+                }
+              );
 
               toolSessionManager.recordToolResult(sessionId || '', {
                 toolCallId,
                 toolName: functionToolDef.name,
-                args,
+                args: finalArgs,
                 result,
                 timestamp: Date.now(),
               });
@@ -953,19 +1376,28 @@ export class Agent {
     headers?: Record<string, unknown>
   ): Promise<Record<string, unknown> | null> {
     try {
+      const project = this.executionContext.project;
+
       if (!this.config.contextConfigId) {
         logger.debug({ agentId: this.config.agentId }, 'No context config found for agent');
         return null;
       }
 
-      const contextConfig = await getContextConfigById(dbClient)({
-        scopes: {
-          tenantId: this.config.tenantId,
-          projectId: this.config.projectId,
-          agentId: this.config.agentId,
-        },
-        id: this.config.contextConfigId,
-      });
+      const contextConfig = project.agents[this.config.agentId]?.contextConfig;
+
+      if (!contextConfig) {
+        logger.warn({ contextConfigId: this.config.contextConfigId }, 'Context config not found');
+        return null;
+      }
+
+      const contextConfigWithScopes = {
+        ...contextConfig,
+        tenantId: this.config.tenantId,
+        projectId: this.config.projectId,
+        agentId: this.config.agentId,
+        createdAt: contextConfig.createdAt || '',
+        updatedAt: contextConfig.updatedAt || '',
+      };
       if (!contextConfig) {
         logger.warn({ contextConfigId: this.config.contextConfigId }, 'Context config not found');
         return null;
@@ -975,7 +1407,7 @@ export class Agent {
         throw new Error('Context resolver not found');
       }
 
-      const result = await this.contextResolver.resolve(contextConfig, {
+      const result = await this.contextResolver.resolve(contextConfigWithScopes, {
         triggerEvent: 'invocation',
         conversationId,
         headers: headers || {},
@@ -984,7 +1416,6 @@ export class Agent {
 
       const contextWithBuiltins = {
         ...result.resolvedContext,
-        $now: new Date().toISOString(),
         $env: process.env,
       };
 
@@ -1018,15 +1449,9 @@ export class Agent {
    * Get the agent prompt for this agent's agent
    */
   private async getPrompt(): Promise<string | undefined> {
+    const project = this.executionContext.project;
+    const agentDefinition = project.agents[this.config.agentId];
     try {
-      const agentDefinition = await getFullAgentDefinition(dbClient)({
-        scopes: {
-          tenantId: this.config.tenantId,
-          projectId: this.config.projectId,
-          agentId: this.config.agentId,
-        },
-      });
-
       return agentDefinition?.prompt || undefined;
     } catch (error) {
       logger.warn(
@@ -1044,15 +1469,9 @@ export class Agent {
    * Check if any agent in the agent has artifact components configured
    */
   private async hasAgentArtifactComponents(): Promise<boolean> {
+    const project = this.executionContext.project;
     try {
-      const agentDefinition = await getFullAgentDefinition(dbClient)({
-        scopes: {
-          tenantId: this.config.tenantId,
-          projectId: this.config.projectId,
-          agentId: this.config.agentId,
-        },
-      });
-
+      const agentDefinition = project.agents[this.config.agentId];
       if (!agentDefinition) {
         return false;
       }
@@ -1081,6 +1500,38 @@ export class Agent {
    * Build adaptive system prompt for Phase 2 structured output generation
    * based on configured data components and artifact components across the agent
    */
+  private getClientCurrentTime(): string | undefined {
+    const clientTimezone = this.config.forwardedHeaders?.['x-inkeep-client-timezone'];
+    const clientTimestamp = this.config.forwardedHeaders?.['x-inkeep-client-timestamp'];
+
+    // Both must be present
+    if (!clientTimezone || !clientTimestamp) {
+      return undefined;
+    }
+
+    try {
+      // Parse the client's UTC timestamp and format it in their timezone
+      // Format: "Thursday, January 16, 2026 at 3:45 PM EST"
+      const clientDate = new Date(clientTimestamp);
+      return clientDate.toLocaleString('en-US', {
+        timeZone: clientTimezone,
+        weekday: 'long',
+        year: 'numeric',
+        month: 'long',
+        day: 'numeric',
+        hour: 'numeric',
+        minute: '2-digit',
+        timeZoneName: 'short',
+      });
+    } catch (error) {
+      logger.warn(
+        { clientTimezone, clientTimestamp, error },
+        'Failed to format time for client timezone'
+      );
+      return undefined;
+    }
+  }
+
   private async buildPhase2SystemPrompt(runtimeContext?: {
     contextId: string;
     metadata: {
@@ -1091,13 +1542,15 @@ export class Agent {
     };
   }): Promise<string> {
     const phase2Config = new Phase2Config();
-    const hasAgentArtifactComponents = await this.hasAgentArtifactComponents();
+    const compressionConfig = getModelAwareCompressionConfig();
+    const hasAgentArtifactComponents =
+      (await this.hasAgentArtifactComponents()) || compressionConfig.enabled;
 
     const conversationId = runtimeContext?.metadata?.conversationId || runtimeContext?.contextId;
     const resolvedContext = conversationId ? await this.getResolvedContext(conversationId) : null;
 
-    let processedPrompt = this.config.prompt;
-    if (resolvedContext) {
+    let processedPrompt = this.config.prompt || '';
+    if (resolvedContext && this.config.prompt) {
       try {
         processedPrompt = TemplateEngine.render(this.config.prompt, resolvedContext, {
           strict: false,
@@ -1131,6 +1584,8 @@ export class Agent {
       referenceArtifacts.push(...artifacts);
     }
 
+    const clientCurrentTime = this.getClientCurrentTime();
+
     return phase2Config.assemblePhase2Prompt({
       corePrompt: processedPrompt,
       dataComponents: this.config.dataComponents || [],
@@ -1138,6 +1593,7 @@ export class Agent {
       hasArtifactComponents: this.artifactComponents && this.artifactComponents.length > 0,
       hasAgentArtifactComponents,
       artifacts: referenceArtifacts,
+      clientCurrentTime,
     });
   }
 
@@ -1152,7 +1608,7 @@ export class Agent {
       };
     },
     excludeDataComponents: boolean = false
-  ): Promise<string> {
+  ): Promise<AssembleResult> {
     const conversationId = runtimeContext?.metadata?.conversationId || runtimeContext?.contextId;
 
     if (conversationId) {
@@ -1161,8 +1617,8 @@ export class Agent {
 
     const resolvedContext = conversationId ? await this.getResolvedContext(conversationId) : null;
 
-    let processedPrompt = this.config.prompt;
-    if (resolvedContext) {
+    let processedPrompt = this.config.prompt || '';
+    if (resolvedContext && this.config.prompt) {
       try {
         processedPrompt = TemplateEngine.render(this.config.prompt, resolvedContext, {
           strict: false,
@@ -1222,6 +1678,7 @@ export class Agent {
       projectId: this.config.projectId,
       conversationId: runtimeContext?.contextId || '',
       historyConfig,
+      ref: this.executionContext.resolvedRef,
     });
 
     const componentDataComponents = excludeDataComponents ? [] : this.config.dataComponents || [];
@@ -1250,7 +1707,11 @@ export class Agent {
 
     const shouldIncludeArtifactComponents = !excludeDataComponents;
 
-    const hasAgentArtifactComponents = await this.hasAgentArtifactComponents();
+    const compressionConfig = getModelAwareCompressionConfig();
+    const hasAgentArtifactComponents =
+      (await this.hasAgentArtifactComponents()) || compressionConfig.enabled;
+
+    const clientCurrentTime = this.getClientCurrentTime();
 
     const config: SystemPromptV1 = {
       corePrompt: processedPrompt,
@@ -1263,6 +1724,7 @@ export class Agent {
       isThinkingPreparation,
       hasTransferRelations: (this.config.transferRelations?.length ?? 0) > 0,
       hasDelegateRelations: (this.config.delegateRelations?.length ?? 0) > 0,
+      clientCurrentTime,
     };
     return await this.systemPromptBuilder.buildSystemPrompt(config);
   }
@@ -1270,7 +1732,7 @@ export class Agent {
   private getArtifactTools() {
     return tool({
       description:
-        'Call this tool to get the complete artifact data with the given artifactId. This retrieves the full artifact content (not just the summary). Only use this when you need the complete artifact data and the summary shown in your context is insufficient.',
+        'Call this tool to retrieve EXISTING artifacts that were previously created and saved. This tool is for accessing artifacts that already exist, NOT for extracting tool results. Only use this when you need the complete artifact data and the summary shown in your context is insufficient.',
       inputSchema: z.object({
         artifactId: z.string().describe('The unique identifier of the artifact to get.'),
         toolCallId: z.string().describe('The tool call ID associated with this artifact.'),
@@ -1323,9 +1785,10 @@ export class Agent {
   private async getDefaultTools(streamRequestId?: string): Promise<ToolSet> {
     const defaultTools: ToolSet = {};
 
-    // Add get_reference_artifact if any agent in the agent has artifact components
-    // This enables cross-agent artifact collaboration within the same agent
-    if (await this.agentHasArtifactComponents()) {
+    // Add get_reference_artifact if any agent has artifact components OR compression is enabled
+    // This enables cross-agent artifact collaboration and access to compressed artifacts
+    const compressionConfig = getModelAwareCompressionConfig();
+    if ((await this.agentHasArtifactComponents()) || compressionConfig.enabled) {
       defaultTools.get_reference_artifact = this.getArtifactTools();
     }
 
@@ -1347,11 +1810,376 @@ export class Agent {
       }
     }
 
+    // Add manual compression tool
+    logger.info(
+      { agentId: this.config.id, streamRequestId },
+      'Adding compress_context tool to defaultTools'
+    );
+    defaultTools.compress_context = tool({
+      description:
+        'Manually compress the current conversation context to save space. Use when shifting topics, completing major tasks, or when context feels cluttered.',
+      inputSchema: z.object({
+        reason: z
+          .string()
+          .describe(
+            'Why you are requesting compression (e.g., "shifting from research to coding", "completed analysis phase")'
+          ),
+      }),
+      execute: async ({ reason }) => {
+        logger.info(
+          {
+            agentId: this.config.id,
+            streamRequestId,
+            reason,
+          },
+          'Manual compression requested by LLM'
+        );
+
+        // Set compression flag on the current compressor instance
+        if (this.currentCompressor) {
+          this.currentCompressor.requestManualCompression(reason);
+        }
+
+        return {
+          status: 'compression_requested',
+          reason,
+          message:
+            'Context compression will be applied on the next generation step. Previous work has been summarized and saved as artifacts.',
+        };
+      },
+    });
+
+    logger.info('getDefaultTools returning tools:', Object.keys(defaultTools).join(', '));
     return defaultTools;
   }
 
   private getStreamRequestId(): string {
     return this.streamRequestId || '';
+  }
+
+  private async applyToolOverrides(originalTools: any, mcpTool: McpTool): Promise<any> {
+    // Check if this tool has overrides configured
+    const toolOverrides =
+      mcpTool.config.type === 'mcp' ? (mcpTool.config as any).mcp?.toolOverrides : undefined;
+
+    if (!toolOverrides) {
+      logger.debug(
+        { mcpToolName: mcpTool.name },
+        'No tool overrides configured, using original tools'
+      );
+      return originalTools;
+    }
+
+    if (!originalTools || typeof originalTools !== 'object') {
+      logger.warn(
+        { mcpToolName: mcpTool.name, originalToolsType: typeof originalTools },
+        'Invalid original tools structure, skipping overrides'
+      );
+      return originalTools || {};
+    }
+
+    const processedTools: any = {};
+    const availableToolNames = Object.keys(originalTools);
+    const overrideNames = Object.keys(toolOverrides);
+
+    // Validate that override tool names exist in available tools
+    const invalidOverrides = overrideNames.filter((name) => !availableToolNames.includes(name));
+    if (invalidOverrides.length > 0) {
+      logger.warn(
+        {
+          mcpToolName: mcpTool.name,
+          invalidOverrides,
+          availableTools: availableToolNames,
+        },
+        'Tool override configured for non-existent tools'
+      );
+    }
+
+    logger.info(
+      {
+        mcpToolName: mcpTool.name,
+        totalTools: availableToolNames.length,
+        toolsWithOverrides: overrideNames.length,
+        availableTools: availableToolNames,
+        overrideTools: overrideNames,
+      },
+      'Starting tool override application'
+    );
+
+    for (const [toolName, toolDef] of Object.entries(originalTools)) {
+      // Validate tool definition structure
+      if (!toolDef || typeof toolDef !== 'object') {
+        logger.warn(
+          { mcpToolName: mcpTool.name, toolName, toolDefType: typeof toolDef },
+          'Invalid tool definition structure, skipping tool'
+        );
+        continue;
+      }
+
+      // Check if this tool has an override
+      const override = toolOverrides[toolName];
+
+      if (override && (override.schema || override.description || override.displayName)) {
+        // Apply overrides (schema, description, displayName, transformation)
+        try {
+          logger.debug(
+            {
+              mcpToolName: mcpTool.name,
+              toolName,
+              override: {
+                hasSchema: !!override.schema,
+                hasDescription: !!override.description,
+                hasDisplayName: !!override.displayName,
+                hasTransformation: !!override.transformation,
+                transformationType: typeof override.transformation,
+              },
+            },
+            'Processing tool override'
+          );
+
+          // Use override schema if provided, otherwise use original
+          let inputSchema: FlexibleSchema;
+          try {
+            inputSchema = override.schema
+              ? jsonSchemaToZod(override.schema)
+              : (toolDef as any).inputSchema;
+          } catch (schemaError) {
+            logger.error(
+              {
+                mcpToolName: mcpTool.name,
+                toolName,
+                schemaError:
+                  schemaError instanceof Error ? schemaError.message : String(schemaError),
+                overrideSchema: override.schema,
+              },
+              'Failed to convert override schema, using original'
+            );
+            inputSchema = (toolDef as any).inputSchema;
+          }
+
+          // Use display name or fall back to original tool name
+          const toolId = override.displayName || toolName;
+
+          // Use override description or fall back to original description
+          const toolDescription =
+            override.description || (toolDef as any).description || `Tool ${toolId}`;
+
+          const simplifiedTool = tool({
+            description: toolDescription,
+            inputSchema,
+            execute: async (simpleArgs: any) => {
+              // Only transform if transformation is provided
+              let complexArgs = simpleArgs;
+              if (override.transformation) {
+                try {
+                  const startTime = Date.now();
+
+                  if (typeof override.transformation === 'string') {
+                    // Use secure async transform with timeout and validation
+                    complexArgs = await JsonTransformer.transform(
+                      simpleArgs,
+                      override.transformation,
+                      { timeout: 10000 } // 10 second timeout for security
+                    );
+                  } else if (
+                    typeof override.transformation === 'object' &&
+                    override.transformation !== null
+                  ) {
+                    // Use transformWithConfig for object transformations
+                    complexArgs = await JsonTransformer.transformWithConfig(
+                      simpleArgs,
+                      {
+                        objectTransformation: override.transformation,
+                      },
+                      { timeout: 10000 }
+                    );
+                  } else {
+                    logger.warn(
+                      {
+                        mcpToolName: mcpTool.name,
+                        toolName,
+                        transformationType: typeof override.transformation,
+                      },
+                      'Invalid transformation type, skipping transformation'
+                    );
+                  }
+
+                  const duration = Date.now() - startTime;
+                  logger.debug(
+                    {
+                      mcpToolName: mcpTool.name,
+                      toolName,
+                      transformationDuration: duration,
+                      hasSimpleArgs: !!simpleArgs,
+                      hasComplexArgs: !!complexArgs,
+                      transformation:
+                        typeof override.transformation === 'string'
+                          ? `${override.transformation.substring(0, 100)}...`
+                          : 'object-transformation',
+                    },
+                    'Successfully transformed tool arguments'
+                  );
+                } catch (transformError) {
+                  const errorMessage =
+                    transformError instanceof Error
+                      ? transformError.message
+                      : String(transformError);
+                  logger.error(
+                    {
+                      mcpToolName: mcpTool.name,
+                      toolName,
+                      transformError: errorMessage,
+                      transformation: override.transformation,
+                      simpleArgs,
+                    },
+                    'Failed to transform tool arguments, using original arguments'
+                  );
+                  // Continue with original args if transformation fails
+                  complexArgs = simpleArgs;
+                }
+              }
+
+              // Validate that original tool has execute function
+              if (typeof (toolDef as any).execute !== 'function') {
+                throw new Error(`Original tool ${toolName} does not have a valid execute function`);
+              }
+
+              // Call original tool with error handling
+              try {
+                logger.debug(
+                  {
+                    mcpToolName: mcpTool.name,
+                    toolName,
+                    hasComplexArgs: !!complexArgs,
+                  },
+                  'Executing original tool with processed arguments'
+                );
+
+                return await (toolDef as any).execute(complexArgs);
+              } catch (executeError) {
+                const errorMessage =
+                  executeError instanceof Error ? executeError.message : String(executeError);
+                logger.error(
+                  {
+                    mcpToolName: mcpTool.name,
+                    toolName,
+                    executeError: errorMessage,
+                    complexArgs,
+                  },
+                  'Failed to execute original tool'
+                );
+                throw new Error(`Tool execution failed for ${toolName}: ${errorMessage}`);
+              }
+            },
+          });
+
+          // Replace original with overridden version using the display name if provided
+          const finalToolName = override.displayName || toolName;
+          processedTools[finalToolName] = simplifiedTool;
+
+          logger.info(
+            {
+              mcpToolName: mcpTool.name,
+              originalToolName: toolName,
+              finalToolName,
+              displayName: override.displayName,
+              hasSchemaOverride: !!override.schema,
+              hasDescriptionOverride: !!override.description,
+              hasTransformation: !!override.transformation,
+            },
+            'Successfully applied tool overrides'
+          );
+        } catch (error) {
+          const errorMessage = error instanceof Error ? error.message : String(error);
+          logger.error(
+            {
+              mcpToolName: mcpTool.name,
+              toolName,
+              error: errorMessage,
+              override,
+            },
+            'Failed to apply tool overrides, using original tool'
+          );
+          // Fall back to original tool
+          processedTools[toolName] = toolDef;
+        }
+      } else {
+        // No override, use original
+        processedTools[toolName] = toolDef;
+        logger.debug(
+          { mcpToolName: mcpTool.name, toolName },
+          'No overrides configured for tool, using original'
+        );
+      }
+    }
+
+    const processedToolNames = Object.keys(processedTools);
+    logger.info(
+      {
+        mcpToolName: mcpTool.name,
+        originalToolCount: availableToolNames.length,
+        processedToolCount: processedToolNames.length,
+        processedTools: processedToolNames,
+      },
+      'Completed tool override application'
+    );
+
+    return processedTools;
+  }
+
+  /**
+   * Format tool result for storage in conversation history
+   */
+  private formatToolResult(toolName: string, args: any, result: any, toolCallId: string): string {
+    const input = args ? JSON.stringify(args, null, 2) : 'No input';
+
+    // Handle string results that might be JSON - try to parse them
+    let parsedResult = result;
+    if (typeof result === 'string') {
+      try {
+        parsedResult = JSON.parse(result);
+      } catch {
+        // Keep as string if not valid JSON
+      }
+    }
+
+    // Clean result by removing _structureHints before storing
+    // Check if _structureHints is nested inside the 'result' property
+    const cleanResult =
+      parsedResult && typeof parsedResult === 'object' && !Array.isArray(parsedResult)
+        ? {
+            ...parsedResult,
+            result:
+              parsedResult.result &&
+              typeof parsedResult.result === 'object' &&
+              !Array.isArray(parsedResult.result)
+                ? Object.fromEntries(
+                    Object.entries(parsedResult.result).filter(([key]) => key !== '_structureHints')
+                  )
+                : parsedResult.result,
+          }
+        : parsedResult;
+
+    const output =
+      typeof cleanResult === 'string' ? cleanResult : JSON.stringify(cleanResult, null, 2);
+
+    return `## Tool: ${toolName}
+
+### 🔧 TOOL_CALL_ID: ${toolCallId}
+
+### Input
+${input}
+
+### Output
+${output}`;
+  }
+
+  /**
+   * Get the conversation ID for storing tool results
+   * Always uses the real conversation ID - delegation filtering happens at query time
+   */
+  private getToolResultConversationId(): string | undefined {
+    return this.conversationId;
   }
 
   /**
@@ -1622,16 +2450,16 @@ export class Agent {
     }
   }
 
-  // Check if any agents in the agent have artifact components
+  // Check if any sub-agents in the agent have artifact components
   private async agentHasArtifactComponents(): Promise<boolean> {
     try {
-      return await agentHasArtifactComponents(dbClient)({
-        scopes: {
-          tenantId: this.config.tenantId,
-          projectId: this.config.projectId,
-          agentId: this.config.agentId,
-        },
-      });
+      const project = this.executionContext.project;
+      const agent = project.agents[this.config.agentId];
+      const subAgents = agent?.subAgents;
+      if (!subAgents) {
+        return false;
+      }
+      return Object.values(subAgents).some((subAgent) => subAgent.artifactComponents?.length);
     } catch (error) {
       logger.error(
         { error, agentId: this.config.agentId },
@@ -1658,412 +2486,822 @@ export class Agent {
       'agent.generate',
       {
         attributes: {
-          'subagent.id': this.config.id,
-          'subagent.name': this.config.name,
+          'subAgent.id': this.config.id,
+          'subAgent.name': this.config.name,
         },
       },
       async (span) => {
-        // Use the ToolSession created by AgentSession
-        // All agents in this execution share the same session
-        const contextId = runtimeContext?.contextId || 'default';
-        const taskId = runtimeContext?.metadata?.taskId || 'unknown';
-        const streamRequestId = runtimeContext?.metadata?.streamRequestId;
-        const sessionId = streamRequestId || 'fallback-session';
+        // Setup generation context and initialize streaming helper
+        const { contextId, taskId, streamRequestId, sessionId } =
+          this.setupGenerationContext(runtimeContext);
 
-      // Note: ToolSession is now created by AgentSession, not by agents
-      // This ensures proper lifecycle management and session coordination
+        // Note: ToolSession is now created by AgentSession, not by agents
+        // This ensures proper lifecycle management and session coordination
 
-      try {
-        // Set streaming helper from registry if available
-        this.streamRequestId = streamRequestId;
-        this.streamHelper = streamRequestId ? getStreamHelper(streamRequestId) : undefined;
-        const conversationId = runtimeContext?.metadata?.conversationId;
+        try {
+          // Load all tools and system prompts in parallel
+          const {
+            systemPrompt,
+            thinkingSystemPrompt,
+            sanitizedTools,
+            contextBreakdown: initialContextBreakdown,
+          } = await this.loadToolsAndPrompts(sessionId, streamRequestId, runtimeContext);
 
-        if (conversationId) {
-          this.setConversationId(conversationId);
-        }
-
-        // Load all tools and both system prompts in parallel
-        // Note: getDefaultTools needs to be called after streamHelper is set above
-        const [
-          mcpTools,
-          systemPrompt,
-          thinkingSystemPrompt,
-          functionTools,
-          relationTools,
-          defaultTools,
-        ] = await tracer.startActiveSpan(
-          'agent.load_tools',
-          {
-            attributes: {
-              'subAgent.name': this.config.name,
-              'session.id': sessionId || 'none',
-            },
-          },
-          async (childSpan: Span) => {
-            try {
-              const result = await Promise.all([
-                this.getMcpTools(sessionId, streamRequestId),
-                this.buildSystemPrompt(runtimeContext, false), // Normal prompt with data components
-                this.buildSystemPrompt(runtimeContext, true), // Thinking prompt without data components
-                this.getFunctionTools(sessionId, streamRequestId),
-                Promise.resolve(this.getRelationTools(runtimeContext, sessionId)),
-                this.getDefaultTools(streamRequestId),
-              ]);
-
-              childSpan.setStatus({ code: SpanStatusCode.OK });
-              return result;
-            } catch (err) {
-              // Use helper function for consistent error handling
-              const errorObj = err instanceof Error ? err : new Error(String(err));
-              setSpanWithError(childSpan, errorObj);
-              throw err;
-            } finally {
-              childSpan.end();
-            }
+          // Update ArtifactService with this agent's artifact components
+          if (streamRequestId && this.artifactComponents.length > 0) {
+            agentSessionManager.updateArtifactComponents(streamRequestId, this.artifactComponents);
           }
-        );
+          const conversationId = runtimeContext?.metadata?.conversationId;
 
-        // Combine all tools for AI SDK
-        const allTools = {
-          ...mcpTools,
-          ...functionTools,
-          ...relationTools,
-          ...defaultTools,
+          if (conversationId) {
+            this.setConversationId(conversationId);
+          }
+
+          // Build conversation history based on configuration
+          const { conversationHistory, contextBreakdown } = await this.buildConversationHistory(
+            contextId,
+            taskId,
+            userMessage,
+            streamRequestId,
+            initialContextBreakdown
+          );
+
+          // Record context breakdown as span attributes for trace viewer
+          // Uses the schema to dynamically set span attributes
+          const breakdownAttributes: Record<string, number> = {};
+          for (const componentDef of V1_BREAKDOWN_SCHEMA) {
+            breakdownAttributes[componentDef.spanAttribute] =
+              contextBreakdown.components[componentDef.key] ?? 0;
+          }
+          breakdownAttributes['context.breakdown.total_tokens'] = contextBreakdown.total;
+          span.setAttributes(breakdownAttributes);
+
+          // Configure model settings and behavior
+          const {
+            primaryModelSettings,
+            modelSettings,
+            hasStructuredOutput,
+            shouldStreamPhase1,
+            timeoutMs,
+          } = this.configureModelSettings();
+          let response: any;
+          let textResponse: string;
+
+          // Build initial messages for Phase 1
+          const messages = this.buildInitialMessages(
+            systemPrompt,
+            thinkingSystemPrompt,
+            hasStructuredOutput,
+            conversationHistory,
+            userMessage
+          );
+
+          // Setup compression for this generation
+          const { originalMessageCount, compressor } = this.setupCompression(
+            messages,
+            sessionId,
+            contextId,
+            primaryModelSettings
+          );
+
+          // ----- PHASE 1: Planning with tools -----
+
+          if (shouldStreamPhase1) {
+            // Streaming Phase 1: Natural text + tools (no structured output needed)
+            const streamConfig = {
+              ...modelSettings,
+              toolChoice: 'auto' as const, // Allow natural text + tools
+            };
+
+            // Use streamText for Phase 1 (text-only responses)
+            const streamResult = streamText(
+              this.buildBaseGenerationConfig(
+                streamConfig,
+                messages,
+                sanitizedTools,
+                compressor,
+                originalMessageCount,
+                timeoutMs,
+                'auto',
+                undefined,
+                false,
+                contextBreakdown.total
+              )
+            );
+
+            const parser = this.setupStreamParser(sessionId, contextId);
+
+            await this.processStreamEvents(streamResult, parser);
+
+            response = await streamResult;
+            response = this.formatStreamingResponse(response, parser);
+          } else {
+            const toolChoice = hasStructuredOutput ? 'required' : 'auto';
+
+            response = await generateText(
+              this.buildBaseGenerationConfig(
+                modelSettings,
+                messages,
+                sanitizedTools,
+                compressor,
+                originalMessageCount,
+                timeoutMs,
+                toolChoice,
+                'planning',
+                true,
+                contextBreakdown.total
+              )
+            );
+          }
+
+          if (response.steps) {
+            const resolvedSteps = await response.steps;
+            response = { ...response, steps: resolvedSteps };
+          }
+
+          if (hasStructuredOutput && !hasToolCallWithPrefix('transfer_to_')(response)) {
+            const thinkingCompleteCall = response.steps
+              ?.flatMap((s: any) => s.toolCalls || [])
+              ?.find((tc: any) => tc.toolName === 'thinking_complete');
+
+            if (thinkingCompleteCall) {
+              const reasoningFlow = this.buildReasoningFlow(response, sessionId);
+              const dataComponentsSchema = this.buildDataComponentsSchema();
+
+              const structuredModelSettings = ModelFactory.prepareGenerationConfig(
+                this.getStructuredOutputModel()
+              );
+
+              const phase2TimeoutMs = this.calculatePhase2Timeout(structuredModelSettings);
+              const shouldStreamPhase2 = this.getStreamingHelper();
+
+              if (shouldStreamPhase2) {
+                const phase2Messages = await this.buildPhase2Messages(
+                  runtimeContext,
+                  conversationHistory,
+                  userMessage,
+                  reasoningFlow
+                );
+
+                const result = await this.executeStreamingPhase2(
+                  structuredModelSettings,
+                  phase2Messages,
+                  dataComponentsSchema,
+                  phase2TimeoutMs,
+                  sessionId,
+                  contextId,
+                  response
+                );
+                response = result;
+                textResponse = result.textResponse;
+              } else {
+                const phase2Messages = await this.buildPhase2Messages(
+                  runtimeContext,
+                  conversationHistory,
+                  userMessage,
+                  reasoningFlow
+                );
+
+                const result = await this.executeNonStreamingPhase2(
+                  structuredModelSettings,
+                  phase2Messages,
+                  dataComponentsSchema,
+                  phase2TimeoutMs,
+                  response
+                );
+                response = result;
+                textResponse = result.textResponse;
+              }
+            } else {
+              textResponse = response.text || '';
+            }
+          } else {
+            textResponse = response.steps[response.steps.length - 1].text || '';
+          }
+
+          span.setStatus({ code: SpanStatusCode.OK });
+          span.end();
+
+          const formattedResponse = await this.formatFinalResponse(
+            response,
+            textResponse,
+            sessionId,
+            contextId
+          );
+
+          if (streamRequestId) {
+            const generationType = response.object ? 'object_generation' : 'text_generation';
+
+            agentSessionManager.recordEvent(streamRequestId, 'agent_generate', this.config.id, {
+              parts: (formattedResponse.formattedContent?.parts || []).map((part: any) => ({
+                type:
+                  part.kind === 'text'
+                    ? ('text' as const)
+                    : part.kind === 'data'
+                      ? ('tool_result' as const)
+                      : ('text' as const),
+                content: part.text || JSON.stringify(part.data),
+              })),
+              generationType,
+            });
+          }
+
+          // Clear compressor reference to prevent memory leaks
+          if (compressor) {
+            compressor.fullCleanup();
+          }
+          this.currentCompressor = null;
+
+          return formattedResponse;
+        } catch (error) {
+          this.handleGenerationError(error, span);
+        }
+      }
+    );
+  }
+
+  /**
+   * Setup generation context and initialize streaming helper
+   */
+  private setupGenerationContext(runtimeContext?: {
+    contextId: string;
+    metadata: {
+      conversationId: string;
+      threadId: string;
+      taskId: string;
+      streamRequestId: string;
+      apiKey?: string;
+    };
+  }) {
+    const contextId = runtimeContext?.contextId || 'default';
+    const taskId = runtimeContext?.metadata?.taskId || 'unknown';
+    const streamRequestId = runtimeContext?.metadata?.streamRequestId;
+    const sessionId = streamRequestId || 'fallback-session';
+
+    // Set streaming helper from registry if available
+    this.streamRequestId = streamRequestId;
+    this.streamHelper = streamRequestId ? getStreamHelper(streamRequestId) : undefined;
+
+    // Update ArtifactService with this agent's artifact components
+    if (streamRequestId && this.artifactComponents.length > 0) {
+      agentSessionManager.updateArtifactComponents(streamRequestId, this.artifactComponents);
+    }
+
+    const conversationId = runtimeContext?.metadata?.conversationId;
+    if (conversationId) {
+      this.setConversationId(conversationId);
+    }
+
+    return { contextId, taskId, streamRequestId, sessionId };
+  }
+
+  /**
+   * Load all tools and system prompts in parallel, then combine and sanitize them
+   */
+  private async loadToolsAndPrompts(
+    sessionId: string,
+    streamRequestId: string | undefined,
+    runtimeContext?: {
+      contextId: string;
+      metadata: {
+        conversationId: string;
+        threadId: string;
+        taskId: string;
+        streamRequestId: string;
+        apiKey?: string;
+      };
+    }
+  ) {
+    // Load all tools and both system prompts in parallel
+    // Note: getDefaultTools needs to be called after streamHelper is set above
+    const [
+      mcpTools,
+      systemPromptResult,
+      thinkingSystemPromptResult,
+      functionTools,
+      relationTools,
+      defaultTools,
+    ] = await tracer.startActiveSpan(
+      'agent.load_tools',
+      {
+        attributes: {
+          'subAgent.name': this.config.name,
+          'session.id': sessionId || 'none',
+        },
+      },
+      async (childSpan: Span) => {
+        try {
+          const result = await Promise.all([
+            this.getMcpTools(sessionId, streamRequestId),
+            this.buildSystemPrompt(runtimeContext, false), // Normal prompt with data components
+            this.buildSystemPrompt(runtimeContext, true), // Thinking prompt without data components
+            this.getFunctionTools(sessionId, streamRequestId),
+            Promise.resolve(this.getRelationTools(runtimeContext, sessionId)),
+            this.getDefaultTools(streamRequestId),
+          ]);
+
+          childSpan.setStatus({ code: SpanStatusCode.OK });
+          return result;
+        } catch (err) {
+          // Use helper function for consistent error handling
+          const errorObj = err instanceof Error ? err : new Error(String(err));
+          setSpanWithError(childSpan, errorObj);
+          throw err;
+        } finally {
+          childSpan.end();
+        }
+      }
+    );
+
+    // Extract prompts and breakdown from results
+    const systemPrompt = systemPromptResult.prompt;
+    const thinkingSystemPrompt = thinkingSystemPromptResult.prompt;
+    const contextBreakdown = systemPromptResult.breakdown;
+
+    // Combine all tools for AI SDK
+    const allTools = {
+      ...mcpTools,
+      ...functionTools,
+      ...relationTools,
+      ...defaultTools,
+    };
+
+    // Sanitize tool names at runtime for AI SDK compatibility
+    const sanitizedTools = this.sanitizeToolsForAISDK(allTools);
+
+    return { systemPrompt, thinkingSystemPrompt, sanitizedTools, contextBreakdown };
+  }
+
+  /**
+   * Build conversation history based on configuration mode and filters
+   */
+  private async buildConversationHistory(
+    contextId: string,
+    taskId: string,
+    userMessage: string,
+    streamRequestId: string | undefined,
+    initialContextBreakdown: ContextBreakdown
+  ): Promise<{ conversationHistory: string; contextBreakdown: ContextBreakdown }> {
+    let conversationHistory = '';
+    const historyConfig =
+      this.config.conversationHistoryConfig ?? createDefaultConversationHistoryConfig();
+
+    if (historyConfig && historyConfig.mode !== 'none') {
+      if (historyConfig.mode === 'full') {
+        const filters = {
+          delegationId: this.delegationId,
+          isDelegated: this.isDelegatedAgent,
         };
 
-        // Sanitize tool names at runtime for AI SDK compatibility
-        const sanitizedTools = this.sanitizeToolsForAISDK(allTools);
+        conversationHistory = await getConversationHistoryWithCompression({
+          tenantId: this.config.tenantId,
+          projectId: this.config.projectId,
+          conversationId: contextId,
+          currentMessage: userMessage,
+          options: historyConfig,
+          filters,
+          summarizerModel: this.getSummarizerModel(),
+          streamRequestId,
+          fullContextSize: initialContextBreakdown.total,
+        });
+      } else if (historyConfig.mode === 'scoped') {
+        conversationHistory = await getConversationHistoryWithCompression({
+          tenantId: this.config.tenantId,
+          projectId: this.config.projectId,
+          conversationId: contextId,
+          currentMessage: userMessage,
+          options: historyConfig,
+          filters: {
+            subAgentId: this.config.id,
+            taskId: taskId,
+            delegationId: this.delegationId,
+            isDelegated: this.isDelegatedAgent,
+          },
+          summarizerModel: this.getSummarizerModel(),
+          streamRequestId,
+          fullContextSize: initialContextBreakdown.total,
+        });
+      }
+    }
 
-        // Get conversation history
-        let conversationHistory = '';
-        const historyConfig =
-          this.config.conversationHistoryConfig ?? createDefaultConversationHistoryConfig();
+    // Track conversation history tokens and add to context breakdown
+    const conversationHistoryTokens = estimateTokens(conversationHistory);
+    const updatedContextBreakdown: ContextBreakdown = {
+      components: {
+        ...initialContextBreakdown.components,
+        conversationHistory: conversationHistoryTokens,
+      },
+      total: initialContextBreakdown.total,
+    };
 
-        if (historyConfig && historyConfig.mode !== 'none') {
-          if (historyConfig.mode === 'full') {
-            conversationHistory = await getFormattedConversationHistory({
-              tenantId: this.config.tenantId,
-              projectId: this.config.projectId,
-              conversationId: contextId,
-              currentMessage: userMessage,
-              options: historyConfig,
-              filters: {},
-            });
-          } else if (historyConfig.mode === 'scoped') {
-            conversationHistory = await getFormattedConversationHistory({
-              tenantId: this.config.tenantId,
-              projectId: this.config.projectId,
-              conversationId: contextId,
-              currentMessage: userMessage,
-              options: historyConfig,
-              filters: {
-                subAgentId: this.config.id,
-                taskId: taskId,
-              },
-            });
-          }
-        }
+    // Recalculate total with conversation history
+    calculateBreakdownTotal(updatedContextBreakdown);
 
-        // Use the primary model for text generation
-        const primaryModelSettings = this.getPrimaryModel();
-        const modelSettings = ModelFactory.prepareGenerationConfig(primaryModelSettings);
-        let response: any;
-        let textResponse: string;
+    return { conversationHistory, contextBreakdown: updatedContextBreakdown };
+  }
 
-        // Check if we have structured output components
-        const hasStructuredOutput =
-          this.config.dataComponents && this.config.dataComponents.length > 0;
+  /**
+   * Configure model settings, timeouts, and streaming behavior
+   */
+  private configureModelSettings() {
+    // Use the primary model for text generation
+    const primaryModelSettings = this.getPrimaryModel();
+    const modelSettings = ModelFactory.prepareGenerationConfig(primaryModelSettings);
 
-        // Phase 1: Stream only if no structured output needed
-        const shouldStreamPhase1 = this.getStreamingHelper() && !hasStructuredOutput;
+    // Check if we have structured output components
+    const hasStructuredOutput = Boolean(
+      this.config.dataComponents && this.config.dataComponents.length > 0
+    );
 
-        // Extract maxDuration from config and convert to milliseconds, or use defaults
-        // Add upper bound validation to prevent extremely long timeouts
-        const MAX_ALLOWED_TIMEOUT_MS = 600_000; // 10 minutes maximum
-        const configuredTimeout = modelSettings.maxDuration
-          ? Math.min(modelSettings.maxDuration * 1000, MAX_ALLOWED_TIMEOUT_MS)
-          : shouldStreamPhase1
-            ? CONSTANTS.PHASE_1_TIMEOUT_MS
-            : CONSTANTS.NON_STREAMING_PHASE_1_TIMEOUT_MS;
+    // Phase 1: Stream only if no structured output needed
+    const shouldStreamPhase1 = this.getStreamingHelper() && !hasStructuredOutput;
 
-        // Ensure timeout doesn't exceed maximum
-        const timeoutMs = Math.min(configuredTimeout, MAX_ALLOWED_TIMEOUT_MS);
+    // Extract maxDuration from config and convert to milliseconds, or use defaults
+    // Add upper bound validation to prevent extremely long timeouts
+    const configuredTimeout = modelSettings.maxDuration
+      ? Math.min(modelSettings.maxDuration * 1000, LLM_GENERATION_MAX_ALLOWED_TIMEOUT_MS)
+      : shouldStreamPhase1
+        ? LLM_GENERATION_FIRST_CALL_TIMEOUT_MS_STREAMING
+        : LLM_GENERATION_FIRST_CALL_TIMEOUT_MS_NON_STREAMING;
 
-        if (
-          modelSettings.maxDuration &&
-          modelSettings.maxDuration * 1000 > MAX_ALLOWED_TIMEOUT_MS
-        ) {
-          logger.warn(
+    // Ensure timeout doesn't exceed maximum
+    const timeoutMs = Math.min(configuredTimeout, LLM_GENERATION_MAX_ALLOWED_TIMEOUT_MS);
+
+    if (
+      modelSettings.maxDuration &&
+      modelSettings.maxDuration * 1000 > LLM_GENERATION_MAX_ALLOWED_TIMEOUT_MS
+    ) {
+      logger.warn(
+        {
+          requestedTimeout: modelSettings.maxDuration * 1000,
+          appliedTimeout: timeoutMs,
+          maxAllowed: LLM_GENERATION_MAX_ALLOWED_TIMEOUT_MS,
+        },
+        'Requested timeout exceeded maximum allowed, capping to 10 minutes'
+      );
+    }
+
+    return {
+      primaryModelSettings,
+      modelSettings: { ...modelSettings, maxDuration: timeoutMs / 1000 },
+      hasStructuredOutput,
+      shouldStreamPhase1,
+      timeoutMs,
+    };
+  }
+
+  /**
+   * Build initial messages array with system prompt and user content
+   */
+  private buildInitialMessages(
+    systemPrompt: string,
+    thinkingSystemPrompt: string,
+    hasStructuredOutput: boolean,
+    conversationHistory: string,
+    userMessage: string
+  ): any[] {
+    // Build messages for Phase 1 - use thinking prompt if structured output needed
+    const phase1SystemPrompt = hasStructuredOutput ? thinkingSystemPrompt : systemPrompt;
+    const messages: any[] = [];
+    messages.push({ role: 'system', content: phase1SystemPrompt });
+
+    if (conversationHistory.trim() !== '') {
+      messages.push({ role: 'user', content: conversationHistory });
+    }
+    messages.push({
+      role: 'user',
+      content: userMessage,
+    });
+
+    return messages;
+  }
+
+  /**
+   * Setup compression for the current generation
+   */
+  private setupCompression(
+    messages: any[],
+    sessionId: string,
+    contextId: string,
+    primaryModelSettings: any
+  ) {
+    // Capture original message count and initialize compressor for this generation
+    const originalMessageCount = messages.length;
+    const compressionConfigResult = getCompressionConfigForModel(primaryModelSettings);
+    const compressionConfig = {
+      hardLimit: compressionConfigResult.hardLimit,
+      safetyBuffer: compressionConfigResult.safetyBuffer,
+      enabled: compressionConfigResult.enabled,
+    };
+    const compressor = compressionConfig.enabled
+      ? new MidGenerationCompressor(
+          sessionId,
+          contextId,
+          this.config.tenantId,
+          this.config.projectId,
+          compressionConfig,
+          this.getSummarizerModel(),
+          primaryModelSettings
+        )
+      : null;
+
+    // Store compressor for tool access
+    this.currentCompressor = compressor;
+
+    return { originalMessageCount, compressor };
+  }
+
+  /**
+   * Prepare step function for streaming with compression logic
+   */
+  private async handlePrepareStepCompression(
+    stepMessages: any[],
+    compressor: any,
+    originalMessageCount: number,
+    fullContextSize?: number
+  ) {
+    // Check if compression is enabled
+    if (!compressor) {
+      return {};
+    }
+
+    // Check if compression is needed (manual or automatic)
+    const compressionNeeded = compressor.isCompressionNeeded(stepMessages);
+
+    if (compressionNeeded) {
+      logger.info(
+        {
+          compressorState: compressor.getState(),
+        },
+        'Triggering layered mid-generation compression'
+      );
+
+      // Split messages into original vs generated
+      const originalMessages = stepMessages.slice(0, originalMessageCount);
+      const generatedMessages = stepMessages.slice(originalMessageCount);
+
+      if (generatedMessages.length > 0) {
+        // Compress ONLY the generated content (tool results, intermediate steps)
+        // but track full context size for accurate compression metrics
+        const compressionResult = await compressor.safeCompress(generatedMessages, fullContextSize);
+
+        // Handle different types of compression results
+        if (Array.isArray(compressionResult.summary)) {
+          // Simple compression fallback - summary contains the compressed messages
+          const compressedMessages = compressionResult.summary;
+          logger.info(
             {
-              requestedTimeout: modelSettings.maxDuration * 1000,
-              appliedTimeout: timeoutMs,
-              maxAllowed: MAX_ALLOWED_TIMEOUT_MS,
+              originalTotal: stepMessages.length,
+              compressed: originalMessages.length + compressedMessages.length,
+              originalKept: originalMessages.length,
+              generatedCompressed: compressedMessages.length,
             },
-            'Requested timeout exceeded maximum allowed, capping to 10 minutes'
+            'Simple compression fallback applied'
           );
+          return { messages: [...originalMessages, ...compressedMessages] };
         }
 
-        // Build messages for Phase 1 - use thinking prompt if structured output needed
-        const phase1SystemPrompt = hasStructuredOutput ? thinkingSystemPrompt : systemPrompt;
-        const messages: any[] = [];
-        messages.push({ role: 'system', content: phase1SystemPrompt });
+        // AI compression succeeded - summary is a proper summary object
+        const finalMessages = [...originalMessages];
 
-        if (conversationHistory.trim() !== '') {
-          messages.push({ role: 'user', content: conversationHistory });
+        // Add preserved text messages first (so they appear in natural order)
+        if (
+          compressionResult.summary.text_messages &&
+          compressionResult.summary.text_messages.length > 0
+        ) {
+          finalMessages.push(...compressionResult.summary.text_messages);
         }
-        messages.push({
+
+        // Add compressed summary message last (provides context for artifacts)
+        const summaryData = {
+          high_level: compressionResult.summary?.high_level,
+          user_intent: compressionResult.summary?.user_intent,
+          decisions: compressionResult.summary?.decisions,
+          open_questions: compressionResult.summary?.open_questions,
+          next_steps: compressionResult.summary?.next_steps,
+          related_artifacts: compressionResult.summary?.related_artifacts,
+        };
+
+        // Add artifact reference examples to the related_artifacts
+        if (summaryData.related_artifacts && summaryData.related_artifacts.length > 0) {
+          summaryData.related_artifacts = summaryData.related_artifacts.map((artifact: any) => ({
+            ...artifact,
+            artifact_reference: `<artifact:ref id="${artifact.id}" tool="${artifact.tool_call_id}" />`,
+          }));
+        }
+
+        const summaryMessage = JSON.stringify(summaryData);
+        finalMessages.push({
           role: 'user',
-          content: userMessage,
+          content: `Based on your research, here's what you've discovered: ${summaryMessage}
+
+**IMPORTANT**: If you have enough information from this compressed research to answer my original question, please provide your answer now. Only continue with additional tool calls if you need critical missing information that wasn't captured in the research above. When referencing any artifacts from the compressed research, you MUST use <artifact:ref id="artifact_id" tool="tool_call_id" /> tags with the exact IDs from the related_artifacts above.`,
         });
 
-        // ----- PHASE 1: Planning with tools -----
+        logger.info(
+          {
+            originalTotal: stepMessages.length,
+            compressed: finalMessages.length,
+            originalKept: originalMessages.length,
+            generatedCompressed: generatedMessages.length,
+          },
+          'AI compression completed successfully'
+        );
 
-        if (shouldStreamPhase1) {
-          // Streaming Phase 1: Natural text + tools (no structured output needed)
-          const streamConfig = {
-            ...modelSettings,
-            toolChoice: 'auto' as const, // Allow natural text + tools
-          };
+        return { messages: finalMessages };
+      }
 
-          // Use streamText for Phase 1 (text-only responses)
-          const streamResult = streamText({
-            ...streamConfig,
-            messages,
-            tools: sanitizedTools,
-            stopWhen: async ({ steps }) => {
-              const last = steps.at(-1);
-              if (last && 'text' in last && last.text) {
-                try {
-                  await agentSessionManager.recordEvent(
-                    this.getStreamRequestId(),
-                    'agent_reasoning',
-                    this.config.id,
-                    {
-                      parts: [{ type: 'text', content: last.text }],
-                    }
-                  );
-                } catch (error) {
-                  logger.debug({ error }, 'Failed to track agent reasoning');
-                }
-              }
+      // No generated messages yet, nothing to compress
+      return {};
+    }
 
-              if (steps.length >= 2) {
-                const previousStep = steps[steps.length - 2];
-                if (previousStep && 'toolCalls' in previousStep && previousStep.toolCalls) {
-                  const hasTransferCall = previousStep.toolCalls.some((tc: any) =>
-                    tc.toolName.startsWith('transfer_to_')
-                  );
-                  if (
-                    hasTransferCall &&
-                    'toolResults' in previousStep &&
-                    previousStep.toolResults
-                  ) {
-                    return true; // Stop after transfer tool has executed
-                  }
-                }
-              }
+    return {};
+  }
 
-              return steps.length >= this.getMaxGenerationSteps();
-            },
-            experimental_telemetry: {
-              isEnabled: true,
-              functionId: this.config.id,
-              recordInputs: true,
-              recordOutputs: true,
-            },
-            abortSignal: AbortSignal.timeout(timeoutMs),
-          });
-
-          const streamHelper = this.getStreamingHelper();
-          if (!streamHelper) {
-            throw new Error('Stream helper is unexpectedly undefined in streaming context');
+  private async handleStopWhenConditions(steps: any[], includeThinkingComplete = false) {
+    const last = steps.at(-1);
+    if (last && 'text' in last && last.text) {
+      try {
+        await agentSessionManager.recordEvent(
+          this.getStreamRequestId(),
+          'agent_reasoning',
+          this.config.id,
+          {
+            parts: [{ type: 'text', content: last.text }],
           }
-          const session = toolSessionManager.getSession(sessionId);
-          const artifactParserOptions = {
-            sessionId,
-            taskId: session?.taskId,
-            projectId: session?.projectId,
-            artifactComponents: this.artifactComponents,
-            streamRequestId: this.getStreamRequestId(),
-            subAgentId: this.config.id,
-          };
-          const parser = new IncrementalStreamParser(
-            streamHelper,
-            this.config.tenantId,
-            contextId,
-            artifactParserOptions
-          );
+        );
+      } catch (error) {
+        logger.debug({ error }, 'Failed to track agent reasoning');
+      }
+    }
 
-          for await (const event of streamResult.fullStream) {
-            switch (event.type) {
-              case 'text-delta':
-                await parser.processTextChunk(event.text);
-                break;
-              case 'tool-call':
-                parser.markToolResult();
-                break;
-              case 'tool-result':
-                parser.markToolResult();
-                break;
-              case 'finish':
-                if (event.finishReason === 'tool-calls') {
-                  parser.markToolResult();
-                }
-                break;
-              case 'error':
-                if (event.error instanceof Error) {
-                  throw event.error;
-                } else {
-                  const errorMessage = (event.error as any)?.error?.message;
-                  throw new Error(errorMessage);
-                }
-            }
-          }
+    // Only check for tool errors in streaming mode (when includeThinkingComplete is false)
+    if (!includeThinkingComplete && last && last.content && last.content.length > 0) {
+      const lastContent = last.content[last.content.length - 1];
+      if (lastContent.type === 'tool-error') {
+        const error = lastContent.error;
+        if (
+          error &&
+          typeof error === 'object' &&
+          'name' in error &&
+          error.name === 'connection_refused'
+        ) {
+          return true;
+        }
+      }
+    }
 
-          await parser.finalize();
+    if (steps.length >= 1) {
+      const currentStep = steps[steps.length - 1];
+      if (currentStep && 'toolCalls' in currentStep && currentStep.toolCalls) {
+        const hasTransferTool = currentStep.toolCalls.some((tc: any) =>
+          tc.toolName.startsWith('transfer_to_')
+        );
 
-          response = await streamResult;
+        const hasThinkingComplete = currentStep.toolCalls.some(
+          (tc: any) => tc.toolName === 'thinking_complete'
+        );
 
-          const collectedParts = parser.getCollectedParts();
-          if (collectedParts.length > 0) {
-            response.formattedContent = {
-              parts: collectedParts.map((part) => ({
-                kind: part.kind,
-                ...(part.kind === 'text' && { text: part.text }),
-                ...(part.kind === 'data' && { data: part.data }),
-              })),
-            };
-          }
-
-          const streamedContent = parser.getAllStreamedContent();
-          if (streamedContent.length > 0) {
-            response.streamedContent = {
-              parts: streamedContent.map((part: any) => ({
-                kind: part.kind,
-                ...(part.kind === 'text' && { text: part.text }),
-                ...(part.kind === 'data' && { data: part.data }),
-              })),
-            };
-          }
-        } else {
-          let genConfig: any;
-          if (hasStructuredOutput) {
-            genConfig = {
-              ...modelSettings,
-              toolChoice: 'required' as const, // Force tool usage, prevent text generation
-            };
-          } else {
-            genConfig = {
-              ...modelSettings,
-              toolChoice: 'auto' as const, // Allow both tools and text generation
-            };
-          }
-
-          response = await generateText({
-            ...genConfig,
-            messages,
-            tools: sanitizedTools,
-            stopWhen: async ({ steps }) => {
-              const last = steps.at(-1);
-              if (last && 'text' in last && last.text) {
-                try {
-                  await agentSessionManager.recordEvent(
-                    this.getStreamRequestId(),
-                    'agent_reasoning',
-                    this.config.id,
-                    {
-                      parts: [{ type: 'text', content: last.text }],
-                    }
-                  );
-                } catch (error) {
-                  logger.debug({ error }, 'Failed to track agent reasoning');
-                }
-              }
-
-              if (steps.length >= 2) {
-                const previousStep = steps[steps.length - 2];
-                if (previousStep && 'toolCalls' in previousStep && previousStep.toolCalls) {
-                  const hasStopTool = previousStep.toolCalls.some(
-                    (tc: any) =>
-                      tc.toolName.startsWith('transfer_to_') || tc.toolName === 'thinking_complete'
-                  );
-                  if (hasStopTool && 'toolResults' in previousStep && previousStep.toolResults) {
-                    return true; // Stop after transfer/thinking_complete tool has executed
-                  }
-                }
-              }
-
-              return steps.length >= this.getMaxGenerationSteps();
-            },
-            experimental_telemetry: {
-              isEnabled: true,
-              functionId: this.config.id,
-              recordInputs: true,
-              recordOutputs: true,
-              metadata: {
-                phase: 'planning',
-              },
-            },
-            abortSignal: AbortSignal.timeout(timeoutMs),
-          });
+        // Transfer tools stop immediately (no need to wait for result)
+        if (hasTransferTool) {
+          return true;
         }
 
-        if (response.steps) {
-          const resolvedSteps = await response.steps;
-          response = { ...response, steps: resolvedSteps };
+        // Thinking complete tool waits for result
+        if (
+          includeThinkingComplete &&
+          hasThinkingComplete &&
+          'toolResults' in currentStep &&
+          currentStep.toolResults
+        ) {
+          return true;
         }
+      }
+    }
 
-        if (hasStructuredOutput && !hasToolCallWithPrefix('transfer_to_')(response)) {
-          const thinkingCompleteCall = response.steps
-            ?.flatMap((s: any) => s.toolCalls || [])
-            ?.find((tc: any) => tc.toolName === 'thinking_complete');
+    return steps.length >= this.getMaxGenerationSteps();
+  }
 
-          if (thinkingCompleteCall) {
-            const reasoningFlow: any[] = [];
-            if (response.steps) {
-              response.steps.forEach((step: any) => {
-                if (step.toolCalls && step.toolResults) {
-                  step.toolCalls.forEach((call: any, index: number) => {
-                    const result = step.toolResults[index];
-                    if (result) {
-                      const storedResult = toolSessionManager.getToolResult(
-                        sessionId,
-                        result.toolCallId
-                      );
-                      const toolName = storedResult?.toolName || call.toolName;
+  private setupStreamParser(sessionId: string, contextId: string) {
+    const streamHelper = this.getStreamingHelper();
+    if (!streamHelper) {
+      throw new Error('Stream helper is unexpectedly undefined in streaming context');
+    }
+    const session = toolSessionManager.getSession(sessionId);
+    const artifactParserOptions = {
+      sessionId,
+      taskId: session?.taskId,
+      projectId: session?.projectId,
+      artifactComponents: this.artifactComponents,
+      streamRequestId: this.getStreamRequestId(),
+      subAgentId: this.config.id,
+    };
+    const parser = new IncrementalStreamParser(
+      streamHelper,
+      this.executionContext,
+      contextId,
+      artifactParserOptions
+    );
+    return parser;
+  }
 
-                      if (toolName === 'thinking_complete') {
-                        return;
-                      }
-                      const actualResult = storedResult?.result || result.result || result;
-                      const actualArgs = storedResult?.args || call.args;
+  private buildTelemetryConfig(phase?: string) {
+    return {
+      isEnabled: true,
+      functionId: this.config.id,
+      recordInputs: true,
+      recordOutputs: true,
+      metadata: {
+        ...(phase && { phase }),
+        subAgentId: this.config.id,
+        subAgentName: this.config.name,
+      },
+    };
+  }
 
-                      const cleanResult =
-                        actualResult &&
-                        typeof actualResult === 'object' &&
-                        !Array.isArray(actualResult)
-                          ? Object.fromEntries(
-                              Object.entries(actualResult).filter(
-                                ([key]) => key !== '_structureHints'
-                              )
-                            )
-                          : actualResult;
+  private buildBaseGenerationConfig(
+    modelSettings: any,
+    messages: any[],
+    sanitizedTools: any,
+    compressor: any,
+    originalMessageCount: number,
+    timeoutMs: number,
+    toolChoice: 'auto' | 'required' = 'auto',
+    phase?: string,
+    includeThinkingComplete = false,
+    fullContextSize?: number
+  ) {
+    return {
+      ...modelSettings,
+      toolChoice,
+      messages,
+      tools: sanitizedTools,
+      prepareStep: async ({ messages: stepMessages }: { messages: any[] }) => {
+        return await this.handlePrepareStepCompression(
+          stepMessages,
+          compressor,
+          originalMessageCount,
+          fullContextSize
+        );
+      },
+      stopWhen: async ({ steps }: { steps: any[] }) => {
+        return await this.handleStopWhenConditions(steps, includeThinkingComplete);
+      },
+      experimental_telemetry: this.buildTelemetryConfig(phase),
+      abortSignal: AbortSignal.timeout(timeoutMs),
+    };
+  }
 
-                      const input = actualArgs ? JSON.stringify(actualArgs, null, 2) : 'No input';
-                      const output =
-                        typeof cleanResult === 'string'
-                          ? cleanResult
-                          : JSON.stringify(cleanResult, null, 2);
+  private buildReasoningFlow(response: any, sessionId: string): any[] {
+    const reasoningFlow: any[] = [];
 
-                      let structureHintsFormatted = '';
-                      if (
-                        actualResult?._structureHints &&
-                        this.artifactComponents &&
-                        this.artifactComponents.length > 0
-                      ) {
-                        const hints = actualResult._structureHints;
-                        structureHintsFormatted = `
+    // Check if compression has occurred and use compression summary instead of detailed tool results
+    const compressionSummary = this.currentCompressor?.getCompressionSummary();
+
+    if (compressionSummary) {
+      // Use the entire compression summary
+      const summaryContent = JSON.stringify(compressionSummary, null, 2);
+
+      reasoningFlow.push({
+        role: 'assistant',
+        content: `## Research Summary (Compressed)\n\nBased on tool executions, here's the comprehensive summary:\n\n\`\`\`json\n${summaryContent}\n\`\`\`\n\nThis summary represents all tool execution results in compressed form. Full details are preserved in artifacts.`,
+      });
+    } else if (response.steps) {
+      response.steps.forEach((step: any) => {
+        if (step.toolCalls && step.toolResults) {
+          step.toolCalls.forEach((call: any, index: number) => {
+            const result = step.toolResults[index];
+            if (result) {
+              const storedResult = toolSessionManager.getToolResult(sessionId, result.toolCallId);
+              const toolName = storedResult?.toolName || call.toolName;
+
+              if (toolName === 'thinking_complete') {
+                return;
+              }
+              const actualResult = storedResult?.result || result.result || result;
+              const actualArgs = storedResult?.args || call.args;
+
+              const cleanResult =
+                actualResult && typeof actualResult === 'object' && !Array.isArray(actualResult)
+                  ? Object.fromEntries(
+                      Object.entries(actualResult).filter(([key]) => key !== '_structureHints')
+                    )
+                  : actualResult;
+
+              const input = actualArgs ? JSON.stringify(actualArgs, null, 2) : 'No input';
+              const output =
+                typeof cleanResult === 'string'
+                  ? cleanResult
+                  : JSON.stringify(cleanResult, null, 2);
+
+              let structureHintsFormatted = '';
+              if (
+                actualResult?._structureHints &&
+                this.artifactComponents &&
+                this.artifactComponents.length > 0
+              ) {
+                const hints = actualResult._structureHints;
+                structureHintsFormatted = `
 ### 📊 Structure Hints for Artifact Creation
 
 **Terminal Field Paths (${hints.terminalPaths?.length || 0} found):**
@@ -2087,9 +3325,9 @@ ${hints.commonFields?.map((field: string) => `  • ${field}`).join('\n') || '  
 
 **Forbidden Syntax:** ${hints.forbiddenSyntax || 'Use these paths for artifact base selectors.'}
 `;
-                      }
+              }
 
-                      const formattedResult = `## Tool: ${call.toolName}
+              const formattedResult = `## Tool: ${call.toolName}
 
 ### 🔧 TOOL_CALL_ID: ${result.toolCallId}
 
@@ -2099,240 +3337,310 @@ ${input}
 ### Output
 ${output}${structureHintsFormatted}`;
 
-                      reasoningFlow.push({
-                        role: 'assistant',
-                        content: formattedResult,
-                      });
-                    }
-                  });
-                }
+              reasoningFlow.push({
+                role: 'assistant',
+                content: formattedResult,
               });
             }
-
-            const componentSchemas: z.ZodType<any>[] = [];
-
-            if (this.config.dataComponents && this.config.dataComponents.length > 0) {
-              this.config.dataComponents.forEach((dc) => {
-                const propsSchema = jsonSchemaToZod(dc.props);
-                componentSchemas.push(
-                  z.object({
-                    id: z.string(),
-                    name: z.literal(dc.name),
-                    props: propsSchema,
-                  })
-                );
-              });
-            }
-
-            if (this.artifactComponents.length > 0) {
-              const artifactCreateSchemas = ArtifactCreateSchema.getSchemas(
-                this.artifactComponents
-              );
-              componentSchemas.push(...artifactCreateSchemas);
-              componentSchemas.push(ArtifactReferenceSchema.getSchema());
-            }
-
-            let dataComponentsSchema: z.ZodType<any>;
-            if (componentSchemas.length === 1) {
-              dataComponentsSchema = componentSchemas[0];
-            } else {
-              dataComponentsSchema = z.union(
-                componentSchemas as [z.ZodType<any>, z.ZodType<any>, ...z.ZodType<any>[]]
-              );
-            }
-
-            const structuredModelSettings = ModelFactory.prepareGenerationConfig(
-              this.getStructuredOutputModel()
-            );
-            const phase2TimeoutMs = structuredModelSettings.maxDuration
-              ? structuredModelSettings.maxDuration * 1000
-              : CONSTANTS.PHASE_2_TIMEOUT_MS;
-
-            const shouldStreamPhase2 = this.getStreamingHelper();
-
-            if (shouldStreamPhase2) {
-              const phase2Messages: any[] = [
-                {
-                  role: 'system',
-                  content: await this.buildPhase2SystemPrompt(runtimeContext),
-                },
-              ];
-
-              if (conversationHistory.trim() !== '') {
-                phase2Messages.push({ role: 'user', content: conversationHistory });
-              }
-
-              phase2Messages.push({ role: 'user', content: userMessage });
-              phase2Messages.push(...reasoningFlow);
-
-              const streamResult = streamObject({
-                ...structuredModelSettings,
-                messages: phase2Messages,
-                schema: z.object({
-                  dataComponents: z.array(dataComponentsSchema),
-                }),
-                experimental_telemetry: {
-                  isEnabled: true,
-                  functionId: this.config.id,
-                  recordInputs: true,
-                  recordOutputs: true,
-                  metadata: {
-                    phase: 'structured_generation',
-                  },
-                },
-                abortSignal: AbortSignal.timeout(phase2TimeoutMs),
-              });
-
-              const streamHelper = this.getStreamingHelper();
-              if (!streamHelper) {
-                throw new Error('Stream helper is unexpectedly undefined in streaming context');
-              }
-              const session = toolSessionManager.getSession(sessionId);
-              const artifactParserOptions = {
-                sessionId,
-                taskId: session?.taskId,
-                projectId: session?.projectId,
-                artifactComponents: this.artifactComponents,
-                streamRequestId: this.getStreamRequestId(),
-                subAgentId: this.config.id,
-              };
-              const parser = new IncrementalStreamParser(
-                streamHelper,
-                this.config.tenantId,
-                contextId,
-                artifactParserOptions
-              );
-
-              for await (const delta of streamResult.partialObjectStream) {
-                if (delta) {
-                  await parser.processObjectDelta(delta);
-                }
-              }
-
-              await parser.finalize();
-
-              const structuredResponse = await streamResult;
-
-              const collectedParts = parser.getCollectedParts();
-              if (collectedParts.length > 0) {
-                response.formattedContent = {
-                  parts: collectedParts.map((part) => ({
-                    kind: part.kind,
-                    ...(part.kind === 'text' && { text: part.text }),
-                    ...(part.kind === 'data' && { data: part.data }),
-                  })),
-                };
-              }
-
-              response = {
-                ...response,
-                object: structuredResponse.object,
-              };
-              textResponse = JSON.stringify(structuredResponse.object, null, 2);
-            } else {
-              const { withJsonPostProcessing } = await import('../utils/json-postprocessor');
-
-              const phase2Messages: any[] = [
-                { role: 'system', content: await this.buildPhase2SystemPrompt(runtimeContext) },
-              ];
-
-              if (conversationHistory.trim() !== '') {
-                phase2Messages.push({ role: 'user', content: conversationHistory });
-              }
-
-              phase2Messages.push({ role: 'user', content: userMessage });
-              phase2Messages.push(...reasoningFlow);
-
-              const structuredResponse = await generateObject(
-                withJsonPostProcessing({
-                  ...structuredModelSettings,
-                  messages: phase2Messages,
-                  schema: z.object({
-                    dataComponents: z.array(dataComponentsSchema),
-                  }),
-                  experimental_telemetry: {
-                    isEnabled: true,
-                    functionId: this.config.id,
-                    recordInputs: true,
-                    recordOutputs: true,
-                    metadata: {
-                      phase: 'structured_generation',
-                    },
-                  },
-                  abortSignal: AbortSignal.timeout(phase2TimeoutMs),
-                })
-              );
-
-              response = {
-                ...response,
-                object: structuredResponse.object,
-              };
-              textResponse = JSON.stringify(structuredResponse.object, null, 2);
-            }
-          } else {
-            textResponse = response.text || '';
-          }
-        } else {
-          textResponse = response.steps[response.steps.length - 1].text || '';
-        }
-
-        span.setStatus({ code: SpanStatusCode.OK });
-        span.end();
-
-        let formattedContent: MessageContent | null = response.formattedContent || null;
-
-        if (!formattedContent) {
-          const session = toolSessionManager.getSession(sessionId);
-          const responseFormatter = new ResponseFormatter(this.config.tenantId, {
-            sessionId,
-            taskId: session?.taskId,
-            projectId: session?.projectId,
-            contextId,
-            artifactComponents: this.artifactComponents,
-            streamRequestId: this.getStreamRequestId(),
-            subAgentId: this.config.id,
-          });
-
-          if (response.object) {
-            formattedContent = await responseFormatter.formatObjectResponse(
-              response.object,
-              contextId
-            );
-          } else if (textResponse) {
-            formattedContent = await responseFormatter.formatResponse(textResponse, contextId);
-          }
-        }
-
-        const formattedResponse = {
-          ...response,
-          formattedContent: formattedContent,
-        };
-
-        if (streamRequestId) {
-          const generationType = response.object ? 'object_generation' : 'text_generation';
-
-          agentSessionManager.recordEvent(streamRequestId, 'agent_generate', this.config.id, {
-            parts: (formattedContent?.parts || []).map((part) => ({
-              type:
-                part.kind === 'text'
-                  ? ('text' as const)
-                  : part.kind === 'data'
-                    ? ('tool_result' as const)
-                    : ('text' as const),
-              content: part.text || JSON.stringify(part.data),
-            })),
-            generationType,
           });
         }
+      });
+    }
 
-        return formattedResponse;
-      } catch (error) {
-        // Don't clean up ToolSession on error - let ToolSessionManager handle cleanup
-        const errorToThrow = error instanceof Error ? error : new Error(String(error));
-        setSpanWithError(span, errorToThrow);
-        span.end();
-        throw errorToThrow;
-      }
+    return reasoningFlow;
+  }
+
+  private buildDataComponentsSchema() {
+    const componentSchemas: z.ZodType<any>[] = [];
+
+    if (this.config.dataComponents && this.config.dataComponents.length > 0) {
+      this.config.dataComponents.forEach((dc) => {
+        const propsSchema = jsonSchemaToZod(dc.props);
+        componentSchemas.push(
+          z.object({
+            id: z.string(),
+            name: z.literal(dc.name),
+            props: propsSchema,
+          })
+        );
+      });
+    }
+
+    if (this.artifactComponents.length > 0) {
+      const artifactCreateSchemas = ArtifactCreateSchema.getSchemas(this.artifactComponents);
+      componentSchemas.push(...artifactCreateSchemas);
+      componentSchemas.push(ArtifactReferenceSchema.getSchema());
+    }
+
+    let dataComponentsSchema: z.ZodType<any>;
+    if (componentSchemas.length === 1) {
+      dataComponentsSchema = componentSchemas[0];
+      logger.info({ agentId: this.config.id }, 'Using single schema (no union needed)');
+    } else {
+      dataComponentsSchema = z.union(
+        componentSchemas as [z.ZodType<any>, z.ZodType<any>, ...z.ZodType<any>[]]
+      );
+      logger.info({ agentId: this.config.id }, 'Created union schema');
+    }
+
+    return dataComponentsSchema;
+  }
+
+  private calculatePhase2Timeout(structuredModelSettings: any): number {
+    // Configure Phase 2 timeout with proper capping to MAX_ALLOWED
+    const configuredPhase2Timeout = structuredModelSettings.maxDuration
+      ? Math.min(structuredModelSettings.maxDuration * 1000, LLM_GENERATION_MAX_ALLOWED_TIMEOUT_MS)
+      : LLM_GENERATION_SUBSEQUENT_CALL_TIMEOUT_MS;
+
+    // Ensure timeout doesn't exceed maximum
+    const phase2TimeoutMs = Math.min(
+      configuredPhase2Timeout,
+      LLM_GENERATION_MAX_ALLOWED_TIMEOUT_MS
+    );
+
+    if (
+      structuredModelSettings.maxDuration &&
+      structuredModelSettings.maxDuration * 1000 > LLM_GENERATION_MAX_ALLOWED_TIMEOUT_MS
+    ) {
+      logger.warn(
+        {
+          requestedTimeout: structuredModelSettings.maxDuration * 1000,
+          appliedTimeout: phase2TimeoutMs,
+          maxAllowed: LLM_GENERATION_MAX_ALLOWED_TIMEOUT_MS,
+          phase: 'structured_generation',
+        },
+        'Phase 2 requested timeout exceeded maximum allowed, capping to 10 minutes'
+      );
+    }
+
+    return phase2TimeoutMs;
+  }
+
+  private async buildPhase2Messages(
+    runtimeContext: any,
+    conversationHistory: string,
+    userMessage: string,
+    reasoningFlow: any[]
+  ): Promise<any[]> {
+    const phase2Messages: any[] = [
+      {
+        role: 'system',
+        content: await this.buildPhase2SystemPrompt(runtimeContext),
+      },
+    ];
+
+    if (conversationHistory.trim() !== '') {
+      phase2Messages.push({ role: 'user', content: conversationHistory });
+    }
+
+    phase2Messages.push({ role: 'user', content: userMessage });
+    phase2Messages.push(...reasoningFlow);
+
+    // Ensure the last message is not an assistant message when using output_format
+    if (reasoningFlow.length > 0 && reasoningFlow[reasoningFlow.length - 1]?.role === 'assistant') {
+      phase2Messages.push({
+        role: 'user',
+        content: 'Continue with the structured response.',
+      });
+    }
+
+    return phase2Messages;
+  }
+
+  private async executeStreamingPhase2(
+    structuredModelSettings: any,
+    phase2Messages: any[],
+    dataComponentsSchema: any,
+    phase2TimeoutMs: number,
+    sessionId: string,
+    contextId: string,
+    response: any
+  ) {
+    const streamResult = streamText({
+      ...structuredModelSettings,
+      messages: phase2Messages,
+      output: Output.object({
+        schema: z.object({
+          dataComponents: z.array(dataComponentsSchema),
+        }),
+      }),
+      experimental_telemetry: this.buildTelemetryConfig('structured_generation'),
+      abortSignal: AbortSignal.timeout(phase2TimeoutMs),
     });
+
+    const parser = this.setupStreamParser(sessionId, contextId);
+
+    for await (const delta of streamResult.partialOutputStream) {
+      if (delta) {
+        await parser.processObjectDelta(delta);
+      }
+    }
+
+    await parser.finalize();
+
+    const structuredResponse = await streamResult;
+
+    // Format response with collected parts
+    const collectedParts = parser.getCollectedParts();
+    if (collectedParts.length > 0) {
+      response.formattedContent = {
+        parts: collectedParts.map((part: any) => ({
+          kind: part.kind,
+          ...(part.kind === 'text' && { text: part.text }),
+          ...(part.kind === 'data' && { data: part.data }),
+        })),
+      };
+    }
+
+    return {
+      ...response,
+      object: structuredResponse.output,
+      textResponse: JSON.stringify(structuredResponse.output, null, 2),
+    };
+  }
+
+  private async executeNonStreamingPhase2(
+    structuredModelSettings: any,
+    phase2Messages: any[],
+    dataComponentsSchema: any,
+    phase2TimeoutMs: number,
+    response: any
+  ) {
+    const structuredResponse = await generateText(
+      withJsonPostProcessing({
+        ...structuredModelSettings,
+        messages: phase2Messages,
+        output: Output.object({
+          schema: z.object({
+            dataComponents: z.array(dataComponentsSchema),
+          }),
+        }),
+        experimental_telemetry: this.buildTelemetryConfig('structured_generation'),
+        abortSignal: AbortSignal.timeout(phase2TimeoutMs),
+      })
+    );
+
+    return {
+      ...response,
+      object: structuredResponse.output,
+      textResponse: JSON.stringify(structuredResponse.output, null, 2),
+    };
+  }
+
+  private async formatFinalResponse(
+    response: any,
+    textResponse: string,
+    sessionId: string,
+    contextId: string
+  ): Promise<any> {
+    let formattedContent: MessageContent | null = response.formattedContent || null;
+
+    if (!formattedContent) {
+      const session = toolSessionManager.getSession(sessionId);
+      const responseFormatter = new ResponseFormatter(this.executionContext, {
+        sessionId,
+        taskId: session?.taskId,
+        projectId: session?.projectId,
+        contextId,
+        artifactComponents: this.artifactComponents,
+        streamRequestId: this.getStreamRequestId(),
+        subAgentId: this.config.id,
+      });
+
+      if (response.object) {
+        formattedContent = await responseFormatter.formatObjectResponse(response.object, contextId);
+      } else if (textResponse) {
+        formattedContent = await responseFormatter.formatResponse(textResponse, contextId);
+      }
+    }
+
+    return {
+      ...response,
+      formattedContent: formattedContent,
+    };
+  }
+
+  private handleGenerationError(error: unknown, span: Span) {
+    // Use full cleanup since compressor is being discarded on error
+    if (this.currentCompressor) {
+      this.currentCompressor.fullCleanup();
+    }
+    this.currentCompressor = null;
+
+    // Don't clean up ToolSession on error - let ToolSessionManager handle cleanup
+    const errorToThrow = error instanceof Error ? error : new Error(String(error));
+    setSpanWithError(span, errorToThrow);
+    span.end();
+    throw errorToThrow;
+  }
+
+  /**
+   * Public cleanup method for external lifecycle management (e.g., session cleanup)
+   * Performs full cleanup of compression state when agent/session is ending
+   */
+  public cleanupCompression(): void {
+    if (this.currentCompressor) {
+      this.currentCompressor.fullCleanup();
+      this.currentCompressor = null;
+    }
+  }
+
+  private async processStreamEvents(
+    streamResult: StreamTextResult<ToolSet, any>,
+    parser: IncrementalStreamParser
+  ) {
+    for await (const event of streamResult.fullStream) {
+      switch (event.type) {
+        case 'text-delta':
+          await parser.processTextChunk(event.text);
+          break;
+        case 'tool-call':
+          parser.markToolResult();
+          break;
+        case 'tool-result':
+          parser.markToolResult();
+          break;
+        case 'finish':
+          if (event.finishReason === 'tool-calls') {
+            parser.markToolResult();
+          }
+          break;
+        case 'error': {
+          if (event.error instanceof Error) {
+            throw event.error;
+          }
+          const errorMessage = (event.error as any)?.error?.message;
+          throw new Error(errorMessage);
+        }
+      }
+    }
+
+    await parser.finalize();
+  }
+
+  private formatStreamingResponse(response: any, parser: any) {
+    const collectedParts = parser.getCollectedParts();
+    if (collectedParts.length > 0) {
+      response.formattedContent = {
+        parts: collectedParts.map((part: any) => ({
+          kind: part.kind,
+          ...(part.kind === 'text' && { text: part.text }),
+          ...(part.kind === 'data' && { data: part.data }),
+        })),
+      };
+    }
+
+    const streamedContent = parser.getAllStreamedContent();
+    if (streamedContent.length > 0) {
+      response.streamedContent = {
+        parts: streamedContent.map((part: any) => ({
+          kind: part.kind,
+          ...(part.kind === 'text' && { text: part.text }),
+          ...(part.kind === 'data' && { data: part.data }),
+        })),
+      };
+    }
+
+    return response;
   }
 }

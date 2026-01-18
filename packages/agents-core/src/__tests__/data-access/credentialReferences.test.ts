@@ -5,25 +5,26 @@ import {
   deleteCredentialReference,
   getCredentialReference,
   getCredentialReferenceById,
-  getCredentialReferenceWithTools,
+  getCredentialReferenceWithResources,
   hasCredentialReference,
   listCredentialReferences,
   listCredentialReferencesPaginated,
   updateCredentialReference,
-} from '../../data-access/credentialReferences';
-import type { DatabaseClient } from '../../db/client';
-import { createInMemoryDatabaseClient } from '../../db/client';
+} from '../../data-access/manage/credentialReferences';
+import type { AgentsManageDatabaseClient } from '../../db/manage/manage-client';
 import { CredentialStoreType } from '../../types';
 import type { CredentialReferenceInsert, CredentialReferenceUpdate } from '../../types/entities';
+import { testManageDbClient } from '../setup';
 
 describe('Credential References Data Access', () => {
-  let db: DatabaseClient;
+  let db: AgentsManageDatabaseClient;
   const testTenantId = 'test-tenant';
   const testProjectId = 'test-project';
   const testCredentialId = 'test-credential';
 
-  beforeEach(() => {
-    db = createInMemoryDatabaseClient();
+  beforeEach(async () => {
+    db = testManageDbClient;
+    vi.clearAllMocks();
   });
 
   describe('getCredentialReferenceWithTools', () => {
@@ -77,7 +78,7 @@ describe('Credential References Data Access', () => {
       // Mock Promise.all
       vi.spyOn(Promise, 'all').mockResolvedValue([expectedCredential, expectedTools]);
 
-      const result = await getCredentialReferenceWithTools(mockDb)({
+      const result = await getCredentialReferenceWithResources(mockDb)({
         scopes: { tenantId: testTenantId, projectId: testProjectId },
         id: testCredentialId,
       });
@@ -114,7 +115,7 @@ describe('Credential References Data Access', () => {
       // Mock Promise.all
       vi.spyOn(Promise, 'all').mockResolvedValue([null, []]);
 
-      const result = await getCredentialReferenceWithTools(mockDb)({
+      const result = await getCredentialReferenceWithResources(mockDb)({
         scopes: { tenantId: testTenantId, projectId: testProjectId },
         id: 'non-existent',
       });
@@ -157,7 +158,7 @@ describe('Credential References Data Access', () => {
       // Mock Promise.all
       vi.spyOn(Promise, 'all').mockResolvedValue([expectedCredential, []]);
 
-      const result = await getCredentialReferenceWithTools(mockDb)({
+      const result = await getCredentialReferenceWithResources(mockDb)({
         scopes: { tenantId: testTenantId, projectId: testProjectId },
         id: testCredentialId,
       });
@@ -410,6 +411,7 @@ describe('Credential References Data Access', () => {
   describe('createCredentialReference', () => {
     it('should create a new credential reference', async () => {
       const credentialData: CredentialReferenceInsert = {
+        name: 'Test Credential',
         tenantId: testTenantId,
         projectId: testProjectId,
         id: testCredentialId,
@@ -448,6 +450,7 @@ describe('Credential References Data Access', () => {
 
     it('should handle credential reference with null retrievalParams', async () => {
       const credentialData: CredentialReferenceInsert = {
+        name: 'Test Credential',
         tenantId: testTenantId,
         projectId: testProjectId,
         id: testCredentialId,

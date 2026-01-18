@@ -1,18 +1,20 @@
 import { MCPTransportType } from '@inkeep/agents-core/client-exports';
 import FullPageError from '@/components/errors/full-page-error';
 import { BodyTemplate } from '@/components/layout/body-template';
-import { MainContent } from '@/components/layout/main-content';
 import { MCPServerForm } from '@/components/mcp-servers/form/mcp-server-form';
-import type { MCPToolFormData } from '@/components/mcp-servers/form/validation';
+import {
+  type CredentialScope,
+  CredentialScopeEnum,
+  type MCPToolFormData,
+} from '@/components/mcp-servers/form/validation';
 import { type Credential, fetchCredentials } from '@/lib/api/credentials';
 import { fetchMCPTool } from '@/lib/api/tools';
 import type { MCPTool } from '@/lib/types/tools';
+import { getErrorCode } from '@/lib/utils/error-serialization';
 
-interface EditMCPPageProps {
-  params: Promise<{ mcpServerId: string; tenantId: string; projectId: string }>;
-}
-
-async function EditMCPPage({ params }: EditMCPPageProps) {
+async function EditMCPPage({
+  params,
+}: PageProps<'/[tenantId]/projects/[projectId]/mcp-servers/[mcpServerId]/edit'>) {
   const { mcpServerId, tenantId, projectId } = await params;
 
   // Fetch both in parallel with individual error handling
@@ -29,7 +31,7 @@ async function EditMCPPage({ params }: EditMCPPageProps) {
     console.error('Failed to load MCP tool:', mcpToolResult.reason);
     return (
       <FullPageError
-        error={mcpToolResult.reason as Error}
+        errorCode={getErrorCode(mcpToolResult.reason)}
         link={`/${tenantId}/projects/${projectId}/mcp-servers`}
         linkText="Back to MCP servers"
         context="MCP server"
@@ -70,13 +72,14 @@ async function EditMCPPage({ params }: EditMCPPageProps) {
                 type: 'selective' as const,
                 tools: mcpTool.config.mcp.activeTools,
               },
+        toolOverrides: mcpTool.config.mcp.toolOverrides || {},
+        prompt: mcpTool.config.mcp.prompt || '',
       },
     },
     credentialReferenceId: mcpTool.credentialReferenceId || 'none',
+    credentialScope: (mcpTool.credentialScope as CredentialScope) ?? CredentialScopeEnum.project,
     imageUrl: mcpTool.imageUrl?.trim() || undefined,
   };
-
-  // MCPServerForm handles all the form logic
 
   return (
     <BodyTemplate
@@ -89,21 +92,18 @@ async function EditMCPPage({ params }: EditMCPPageProps) {
           label: mcpTool.name,
           href: `/${tenantId}/projects/${projectId}/mcp-servers/${mcpServerId}`,
         },
-        { label: 'Edit' },
+        'Edit',
       ]}
+      className="max-w-2xl mx-auto"
     >
-      <MainContent>
-        <div className="max-w-2xl mx-auto py-4">
-          <MCPServerForm
-            initialData={initialFormData}
-            mode="update"
-            tool={mcpTool}
-            credentials={credentials}
-            tenantId={tenantId}
-            projectId={projectId}
-          />
-        </div>
-      </MainContent>
+      <MCPServerForm
+        initialData={initialFormData}
+        mode="update"
+        tool={mcpTool}
+        credentials={credentials}
+        tenantId={tenantId}
+        projectId={projectId}
+      />
     </BodyTemplate>
   );
 }

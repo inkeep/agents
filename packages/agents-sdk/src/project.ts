@@ -1,17 +1,20 @@
 import type {
   CredentialReferenceApiInsert,
+  ExternalAgentApiInsert,
   FullProjectDefinition,
   ProjectModels,
   StopWhen,
   ToolApiInsert,
 } from '@inkeep/agents-core';
 import { getLogger } from '@inkeep/agents-core';
+import { convertZodToJsonSchema, isZodSchema } from '@inkeep/agents-core/utils/schema-conversion';
 
 const logger = getLogger('project');
 
 import type { Agent } from './agent';
 import type { ArtifactComponent } from './artifact-component';
 import type { DataComponent } from './data-component';
+import type { ExternalAgent } from './external-agent';
 import { FunctionTool } from './function-tool';
 import { updateFullProjectViaAPI } from './projectFullClient';
 import type { Tool } from './tool';
@@ -32,6 +35,7 @@ export interface ProjectConfig {
   stopWhen?: StopWhen;
   agents?: () => Agent[];
   tools?: () => Tool[];
+  externalAgents?: () => ExternalAgent[];
   dataComponents?: () => DataComponent[];
   artifactComponents?: () => ArtifactComponent[];
   credentialReferences?: () => CredentialReferenceApiInsert[];
@@ -107,6 +111,8 @@ export class Project implements ProjectInterface {
   private projectTools: Tool[] = [];
   private projectDataComponents: DataComponent[] = [];
   private projectArtifactComponents: ArtifactComponent[] = [];
+  private projectExternalAgents: ExternalAgent[] = [];
+  private externalAgentMap: Map<string, ExternalAgent> = new Map();
 
   constructor(config: ProjectConfig) {
     this.projectId = config.id;
@@ -147,6 +153,14 @@ export class Project implements ProjectInterface {
     // Initialize project-level credentialReferences if provided
     if (config.credentialReferences) {
       this.credentialReferences = config.credentialReferences();
+    }
+
+    // Initialize project-level externalAgents if provided
+    if (config.externalAgents) {
+      this.projectExternalAgents = config.externalAgents();
+      this.externalAgentMap = new Map(
+        this.projectExternalAgents.map((externalAgent) => [externalAgent.getId(), externalAgent])
+      );
     }
 
     logger.info(
@@ -367,6 +381,50 @@ export class Project implements ProjectInterface {
   }
 
   /**
+   * Get all external agents in the project
+   */
+  getExternalAgents(): ExternalAgent[] {
+    return this.projectExternalAgents;
+  }
+
+  /**
+   * Get an external agent by ID
+   */
+  getExternalAgent(id: string): ExternalAgent | undefined {
+    return this.externalAgentMap.get(id);
+  }
+
+  /**
+   * Add an external agent to the project
+   */
+  addExternalAgent(externalAgent: ExternalAgent): void {
+    this.projectExternalAgents.push(externalAgent);
+    this.externalAgentMap.set(externalAgent.getId(), externalAgent);
+  }
+
+  /**
+   * Remove an external agent from the project
+   */
+  removeExternalAgent(id: string): boolean {
+    const externalAgentToRemove = this.externalAgentMap.get(id);
+    if (externalAgentToRemove) {
+      this.externalAgentMap.delete(id);
+      this.projectExternalAgents = this.projectExternalAgents.filter(
+        (externalAgent) => externalAgent.getId() !== id
+      );
+      logger.info(
+        {
+          projectId: this.projectId,
+          externalAgentId: id,
+        },
+        'External agent removed from project'
+      );
+      return true;
+    }
+    return false;
+  }
+
+  /**
    * Get an agent by ID
    */
   getAgent(id: string): Agent | undefined {
@@ -481,6 +539,7 @@ export class Project implements ProjectInterface {
     const dataComponentsObject: Record<string, any> = {};
     const artifactComponentsObject: Record<string, any> = {};
     const credentialReferencesObject: Record<string, any> = {};
+    const externalAgentsObject: Record<string, ExternalAgentApiInsert> = {};
     // Track which resources use each credential
     const credentialUsageMap: Record<
       string,
@@ -490,6 +549,7 @@ export class Project implements ProjectInterface {
     // Convert all agent to FullAgentDefinition format and collect components
     for (const agent of this.agents) {
       // Get the agent's full definition
+      logger.info({ agentId: agent.getId() }, 'Agent id');
       const agentDefinition = await agent.toFullAgentDefinition();
       agentsObject[agent.getId()] = agentDefinition;
 
@@ -507,6 +567,7 @@ export class Project implements ProjectInterface {
             if (!credentialReferencesObject[credential.id]) {
               credentialReferencesObject[credential.id] = {
                 id: credential.id,
+                name: credential.name,
                 type: credential.type,
                 credentialStoreId: credential.credentialStoreId,
                 retrievalParams: credential.retrievalParams,
@@ -581,12 +642,8 @@ export class Project implements ProjectInterface {
         }
       }
 
-      // Collect tools from all agents in this agent
+      // Collect project-level resources from all sub-agents in this agent
       for (const subAgent of agent.getSubAgents()) {
-        if (subAgent.type === 'external') {
-          continue; // Skip external agents
-        }
-
         const agentTools = subAgent.getTools();
         for (const [, toolInstance] of Object.entries(agentTools)) {
           // toolInstance is now properly typed as AgentTool from getTools()
@@ -621,6 +678,32 @@ export class Project implements ProjectInterface {
               // Type guard to ensure this is a Tool (MCP tool)
               if ('config' in actualTool && 'serverUrl' in actualTool.config) {
                 const mcpTool = actualTool as any; // Cast to access MCP-specific properties
+                // Convert any Zod schemas in toolOverrides to JSON Schema format before storing
+                const convertedToolOverrides = mcpTool.config.toolOverrides
+                  ? Object.fromEntries(
+                      Object.entries(mcpTool.config.toolOverrides).map(([toolName, config]) => {
+                        const originalSchema = (config as any)?.schema;
+                        const convertedSchema = isZodSchema(originalSchema)
+                          ? convertZodToJsonSchema(originalSchema)
+                          : originalSchema;
+
+                        logger.info(
+                          {
+                            projectId: this.projectId,
+                            toolId,
+                            toolName,
+                            isZod: isZodSchema(originalSchema),
+                            originalType: typeof originalSchema,
+                            convertedType: typeof convertedSchema,
+                          },
+                          'Project: Converting toolOverride schema'
+                        );
+
+                        return [toolName, { ...(config || {}), schema: convertedSchema }];
+                      })
+                    )
+                  : mcpTool.config.toolOverrides;
+
                 const toolConfig: ToolApiInsert['config'] = {
                   type: 'mcp',
                   mcp: {
@@ -629,6 +712,7 @@ export class Project implements ProjectInterface {
                     },
                     transport: mcpTool.config.transport,
                     activeTools: mcpTool.config.activeTools,
+                    toolOverrides: convertedToolOverrides,
                   },
                 };
 
@@ -655,11 +739,12 @@ export class Project implements ProjectInterface {
                 // Extract inline credential from tool if present
                 if ('credential' in mcpTool.config && mcpTool.config.credential) {
                   const credential = mcpTool.config.credential;
-                  if (credential && credential.id && credential.__type !== 'credential-ref') {
+                  if (credential?.id && credential.__type !== 'credential-ref') {
                     // Add credential to project-level credentials if not already present
                     if (!credentialReferencesObject[credential.id]) {
                       credentialReferencesObject[credential.id] = {
                         id: credential.id,
+                        name: credential.name,
                         type: credential.type,
                         credentialStoreId: credential.credentialStoreId,
                         retrievalParams: credential.retrievalParams,
@@ -689,6 +774,7 @@ export class Project implements ProjectInterface {
             let dataComponentName: string;
             let dataComponentDescription: string;
             let dataComponentProps: any;
+            let dataComponentRender: any;
 
             if (dataComponent.getId) {
               // DataComponent instance
@@ -696,6 +782,7 @@ export class Project implements ProjectInterface {
               dataComponentName = dataComponent.getName();
               dataComponentDescription = dataComponent.getDescription() || '';
               dataComponentProps = dataComponent.getProps() || {};
+              dataComponentRender = dataComponent.getRender?.() || null;
             } else {
               // Plain object from agent config
               dataComponentId =
@@ -704,6 +791,7 @@ export class Project implements ProjectInterface {
               dataComponentName = dataComponent.name || '';
               dataComponentDescription = dataComponent.description || '';
               dataComponentProps = dataComponent.props || {};
+              dataComponentRender = dataComponent.render || null;
             }
 
             // Only add if not already added (avoid duplicates)
@@ -713,6 +801,7 @@ export class Project implements ProjectInterface {
                 name: dataComponentName,
                 description: dataComponentDescription,
                 props: dataComponentProps,
+                render: dataComponentRender,
               };
             }
           }
@@ -758,9 +847,45 @@ export class Project implements ProjectInterface {
             }
           }
         }
+
+        // Collect external agents from this agent
+        const subAgentExternalAgents = subAgent.getExternalAgentDelegates();
+        if (subAgentExternalAgents) {
+          for (const externalAgentDelegate of subAgentExternalAgents) {
+            const externalAgent = externalAgentDelegate.externalAgent;
+            const credential = externalAgent.getCredentialReference();
+            if (credential) {
+              // Add credential to project-level credentials
+              if (!credentialReferencesObject[credential.id]) {
+                credentialReferencesObject[credential.id] = {
+                  id: credential.id,
+                  name: credential.name,
+                  type: credential.type,
+                  credentialStoreId: credential.credentialStoreId,
+                  retrievalParams: credential.retrievalParams,
+                };
+                credentialUsageMap[credential.id] = [];
+              }
+              // Track that this external agent uses this credential
+              logger.info({ credentialId: credential.id }, 'Credential id in external agent');
+              credentialUsageMap[credential.id].push({
+                type: 'externalAgent',
+                id: externalAgent.getId(),
+              });
+            }
+            logger.info({ externalAgentId: externalAgent.getId() }, 'External agent id');
+            externalAgentsObject[externalAgent.getId()] = {
+              id: externalAgent.getId(),
+              name: externalAgent.getName(),
+              description: externalAgent.getDescription(),
+              baseUrl: externalAgent.getBaseUrl(),
+              credentialReferenceId: externalAgent.getCredentialReferenceId(),
+            };
+          }
+        }
       }
     }
-
+    logger.info({ externalAgentsObject }, 'External agents object');
     // Add project-level tools, dataComponents, and artifactComponents
     for (const tool of this.projectTools) {
       const toolId = tool.getId();
@@ -773,6 +898,7 @@ export class Project implements ProjectInterface {
             },
             transport: tool.config.transport,
             activeTools: tool.config.activeTools,
+            toolOverrides: tool.config.toolOverrides,
           },
         };
 
@@ -859,11 +985,14 @@ export class Project implements ProjectInterface {
       stopWhen: this.stopWhen,
       agents: agentsObject,
       tools: toolsObject,
+      functionTools: Object.keys(functionToolsObject).length > 0 ? functionToolsObject : undefined,
       functions: Object.keys(functionsObject).length > 0 ? functionsObject : undefined,
       dataComponents:
         Object.keys(dataComponentsObject).length > 0 ? dataComponentsObject : undefined,
       artifactComponents:
         Object.keys(artifactComponentsObject).length > 0 ? artifactComponentsObject : undefined,
+      externalAgents:
+        Object.keys(externalAgentsObject).length > 0 ? externalAgentsObject : undefined,
       credentialReferences:
         Object.keys(credentialReferencesObject).length > 0 ? credentialReferencesObject : undefined,
       createdAt: new Date().toISOString(),

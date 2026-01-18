@@ -1,13 +1,48 @@
 import { exec } from 'node:child_process';
+import crypto from 'node:crypto';
+import os from 'node:os';
 import path from 'node:path';
 import { promisify } from 'node:util';
 import * as p from '@clack/prompts';
 import { ANTHROPIC_MODELS, GOOGLE_MODELS, OPENAI_MODELS } from '@inkeep/agents-core';
 import fs from 'fs-extra';
 import color from 'picocolors';
-import { type ContentReplacement, cloneTemplate, getAvailableTemplates } from './templates.js';
+import {
+  type ContentReplacement,
+  cloneTemplate,
+  cloneTemplateLocal,
+  getAvailableTemplates,
+} from './templates.js';
 
+// Shared validation utility
+const DIRECTORY_VALIDATION = {
+  pattern: /^[a-zA-Z0-9][a-zA-Z0-9_-]*$/,
+  reservedNames: /^(CON|PRN|AUX|NUL|COM[1-9]|LPT[1-9])$/i,
+  minLength: 1,
+  maxLength: 255,
+
+  validate(value: string): string | undefined {
+    if (!value || value.trim() === '') return 'Directory name is required';
+    if (value.length < this.minLength || value.length > this.maxLength) {
+      return `Directory name must be between ${this.minLength} and ${this.maxLength} characters`;
+    }
+    if (this.reservedNames.test(value)) {
+      return 'Directory name cannot be a reserved system name';
+    }
+    if (!this.pattern.test(value)) {
+      return 'Directory name can only contain letters, numbers, and hyphens (-), and underscores (_) and must start with a letter or number';
+    }
+    return undefined;
+  },
+};
+
+const agentsTemplateRepo = 'https://github.com/inkeep/agents/create-agents-template';
+
+const projectTemplateRepo = 'https://github.com/inkeep/agents/agents-cookbook/template-projects';
 const execAsync = promisify(exec);
+
+const manageApiPort = '3002';
+const runApiPort = '3003';
 
 export const defaultGoogleModelConfigurations = {
   base: {
@@ -23,7 +58,7 @@ export const defaultGoogleModelConfigurations = {
 
 export const defaultOpenaiModelConfigurations = {
   base: {
-    model: OPENAI_MODELS.GPT_4_1,
+    model: OPENAI_MODELS.GPT_5_2,
   },
   structuredOutput: {
     model: OPENAI_MODELS.GPT_4_1_MINI,
@@ -52,10 +87,12 @@ type FileConfig = {
   openAiKey?: string;
   anthropicKey?: string;
   googleKey?: string;
-  manageApiPort?: string;
-  runApiPort?: string;
+  azureKey?: string;
   modelSettings: Record<string, any>;
   customProject?: boolean;
+  disableGit?: boolean;
+  localPrefix?: string;
+  installInkeepCLI?: boolean;
 };
 
 export const createAgents = async (
@@ -65,14 +102,32 @@ export const createAgents = async (
     openAiKey?: string;
     anthropicKey?: string;
     googleKey?: string;
+    azureKey?: string;
     template?: string;
     customProjectId?: string;
+    disableGit?: boolean;
+    localAgentsPrefix?: string;
+    localTemplatesPrefix?: string;
+    skipInkeepCli?: boolean;
+    skipInkeepMcp?: boolean;
   } = {}
 ) => {
-  let { dirName, openAiKey, anthropicKey, googleKey, template, customProjectId } = args;
+  let {
+    dirName,
+    openAiKey,
+    anthropicKey,
+    googleKey,
+    azureKey,
+    template,
+    customProjectId,
+    disableGit,
+    localAgentsPrefix,
+    localTemplatesPrefix,
+    skipInkeepCli,
+    skipInkeepMcp,
+  } = args;
+
   const tenantId = 'default';
-  const manageApiPort = '3002';
-  const runApiPort = '3003';
 
   let projectId: string;
   let templateName: string;
@@ -81,7 +136,7 @@ export const createAgents = async (
     projectId = customProjectId;
     templateName = '';
   } else if (template) {
-    const availableTemplates = await getAvailableTemplates();
+    const availableTemplates = await getAvailableTemplates(localTemplatesPrefix);
     if (!availableTemplates.includes(template)) {
       p.cancel(
         `${color.red('✗')} Template "${template}" not found\n\n` +
@@ -93,8 +148,8 @@ export const createAgents = async (
     projectId = template;
     templateName = template;
   } else {
-    projectId = 'event-planner';
-    templateName = 'event-planner';
+    projectId = 'activities-planner';
+    templateName = 'activities-planner';
   }
 
   p.intro(color.inverse(' Create Agents Directory '));
@@ -104,12 +159,7 @@ export const createAgents = async (
       message: 'What do you want to name your agents directory?',
       placeholder: 'agents',
       defaultValue: 'agents',
-      validate: (value) => {
-        if (!value || value.trim() === '') {
-          return 'Directory name is required';
-        }
-        return undefined;
-      },
+      validate: (value) => DIRECTORY_VALIDATION.validate(value),
     });
 
     if (p.isCancel(dirResponse)) {
@@ -117,15 +167,22 @@ export const createAgents = async (
       process.exit(0);
     }
     dirName = dirResponse as string;
+  } else {
+    // Validate the provided dirName
+    const validationError = DIRECTORY_VALIDATION.validate(dirName);
+    if (validationError) {
+      throw new Error(validationError);
+    }
   }
 
-  if (!anthropicKey && !openAiKey && !googleKey) {
+  if (!anthropicKey && !openAiKey && !googleKey && !azureKey) {
     const providerChoice = await p.select({
       message: 'Which AI provider would you like to use?',
       options: [
         { value: 'anthropic', label: 'Anthropic' },
         { value: 'openai', label: 'OpenAI' },
         { value: 'google', label: 'Google' },
+        { value: 'azure', label: 'Azure' },
       ],
     });
 
@@ -182,6 +239,22 @@ export const createAgents = async (
         process.exit(0);
       }
       googleKey = googleKeyResponse as string;
+    } else if (providerChoice === 'azure') {
+      const azureKeyResponse = await p.password({
+        message: 'Enter your Azure API key:',
+        validate: (value) => {
+          if (!value || value.trim() === '') {
+            return 'Azure API key is required';
+          }
+          return undefined;
+        },
+      });
+
+      if (p.isCancel(azureKeyResponse)) {
+        p.cancel('Operation cancelled');
+        process.exit(0);
+      }
+      azureKey = azureKeyResponse as string;
     }
   }
 
@@ -192,6 +265,86 @@ export const createAgents = async (
     defaultModelSettings = defaultOpenaiModelConfigurations;
   } else if (googleKey) {
     defaultModelSettings = defaultGoogleModelConfigurations;
+  } else if (azureKey) {
+    // Azure requires custom configuration - prompt for deployment details
+    p.note('Azure OpenAI requires custom deployment configuration.');
+
+    const deploymentName = await p.text({
+      message: 'Enter your Azure deployment name:',
+      placeholder: 'my-gpt-4o-deployment',
+      validate: (value) => {
+        if (!value?.trim()) return 'Deployment name is required';
+      },
+    });
+
+    if (p.isCancel(deploymentName)) {
+      p.cancel('Operation cancelled');
+      process.exit(0);
+    }
+
+    const connectionMethod = await p.select({
+      message: 'How would you like to connect to Azure?',
+      options: [
+        { value: 'resource', label: 'Azure Resource Name (recommended)' },
+        { value: 'url', label: 'Custom Base URL' },
+      ],
+    });
+
+    if (p.isCancel(connectionMethod)) {
+      p.cancel('Operation cancelled');
+      process.exit(0);
+    }
+
+    const azureProviderOptions: any = {};
+
+    if (connectionMethod === 'resource') {
+      const resourceName = await p.text({
+        message: 'Enter your Azure resource name:',
+        placeholder: 'your-azure-resource',
+        validate: (value) => {
+          if (!value?.trim()) return 'Resource name is required';
+        },
+      });
+
+      if (p.isCancel(resourceName)) {
+        p.cancel('Operation cancelled');
+        process.exit(0);
+      }
+
+      azureProviderOptions.resourceName = resourceName;
+    } else {
+      const baseURL = await p.text({
+        message: 'Enter your Azure base URL:',
+        placeholder: 'https://your-endpoint.openai.azure.com/openai',
+        validate: (value) => {
+          if (!value?.trim()) return 'Base URL is required';
+          if (!value.startsWith('https://')) return 'Base URL must start with https://';
+        },
+      });
+
+      if (p.isCancel(baseURL)) {
+        p.cancel('Operation cancelled');
+        process.exit(0);
+      }
+
+      azureProviderOptions.baseURL = baseURL;
+    }
+
+    // Create Azure model configuration with user's deployment
+    defaultModelSettings = {
+      base: {
+        model: `azure/${deploymentName}`,
+        providerOptions: azureProviderOptions,
+      },
+      structuredOutput: {
+        model: `azure/${deploymentName}`,
+        providerOptions: azureProviderOptions,
+      },
+      summarizer: {
+        model: `azure/${deploymentName}`,
+        providerOptions: azureProviderOptions,
+      },
+    };
   }
 
   if (Object.keys(defaultModelSettings).length === 0) {
@@ -205,12 +358,6 @@ export const createAgents = async (
   s.start('Creating directory structure...');
 
   try {
-    const agentsTemplateRepo = 'https://github.com/inkeep/create-agents-template';
-
-    const projectTemplateRepo = templateName
-      ? `https://github.com/inkeep/agents-cookbook/template-projects/${templateName}`
-      : null;
-
     const directoryPath = path.resolve(process.cwd(), dirName);
 
     if (await fs.pathExists(directoryPath)) {
@@ -227,8 +374,11 @@ export const createAgents = async (
       await fs.emptyDir(directoryPath);
     }
 
-    s.message('Building template...');
-    await cloneTemplate(agentsTemplateRepo, directoryPath);
+    s.message('Building template (this may take a while)...');
+    await cloneTemplateHelper({
+      targetPath: directoryPath,
+      localPrefix: localAgentsPrefix,
+    });
 
     process.chdir(directoryPath);
 
@@ -239,10 +389,10 @@ export const createAgents = async (
       openAiKey,
       anthropicKey,
       googleKey,
-      manageApiPort: manageApiPort || '3002',
-      runApiPort: runApiPort || '3003',
+      azureKey,
       modelSettings: defaultModelSettings,
       customProject: !!customProjectId,
+      disableGit: disableGit,
     };
 
     s.message('Setting up project structure...');
@@ -251,7 +401,7 @@ export const createAgents = async (
     s.message('Setting up environment files...');
     await createEnvironmentFiles(config);
 
-    if (projectTemplateRepo) {
+    if (templateName && templateName.length > 0) {
       s.message('Creating project template folder...');
       const templateTargetPath = `src/projects/${projectId}`;
 
@@ -263,8 +413,12 @@ export const createAgents = async (
           },
         },
       ];
-
-      await cloneTemplate(projectTemplateRepo, templateTargetPath, contentReplacements);
+      await cloneTemplateHelper({
+        templateName,
+        targetPath: templateTargetPath,
+        localPrefix: localTemplatesPrefix,
+        replacements: contentReplacements,
+      });
     } else {
       s.message('Creating empty project folder...');
       await fs.ensureDir(`src/projects/${projectId}`);
@@ -276,27 +430,53 @@ export const createAgents = async (
     s.message('Installing dependencies (this may take a while)...');
     await installDependencies();
 
-    s.message('Setting up database...');
-    await setupDatabase();
+    if (!config.disableGit) {
+      await initializeGit();
+    }
 
-    s.message('Pushing project...');
-    await setupProjectInDatabase(config);
-    s.message('Project setup complete!');
+    await checkPortsAvailability();
 
     s.stop();
 
+    if (!skipInkeepCli) {
+      let isGloballyInstalled = false;
+
+      try {
+        const { stdout } = await execAsync('pnpm list -g @inkeep/agents-cli --json');
+        const result = JSON.parse(stdout);
+        isGloballyInstalled = result?.[0]?.dependencies?.['@inkeep/agents-cli'] !== undefined;
+      } catch (_error) {
+        try {
+          await execAsync('npm list -g @inkeep/agents-cli');
+          isGloballyInstalled = true;
+        } catch (_npmError) {
+          isGloballyInstalled = false;
+        }
+      }
+
+      if (!isGloballyInstalled) {
+        const installInkeepCLIResponse = await p.confirm({
+          message: 'Would you like to install the Inkeep CLI globally?',
+        });
+        if (!p.isCancel(installInkeepCLIResponse) && installInkeepCLIResponse) {
+          await installInkeepCLIGlobally();
+        }
+      }
+    }
+
+    if (!skipInkeepMcp) {
+      await addInkeepMcp();
+    }
+
     p.note(
-      `${color.green('✓')} Project created at: ${color.cyan(directoryPath)}\n\n` +
-        `${color.yellow('Ready to go!')}\n\n` +
-        `${color.green('✓')} Project created in file system\n` +
-        `${color.green('✓')} Database configured\n` +
-        `${color.green('✓')} Project added to database\n\n` +
+      `${color.green('✓')} Workspace created at: ${color.cyan(directoryPath)}\n\n` +
         `${color.yellow('Next steps:')}\n` +
         `  cd ${dirName}\n` +
+        `  pnpm setup   # Setup project in database\n` +
         `  pnpm dev     # Start development servers\n\n` +
         `${color.yellow('Available services:')}\n` +
-        `  • Manage API: http://localhost:${manageApiPort || '3002'}\n` +
-        `  • Run API: http://localhost:${runApiPort || '3003'}\n` +
+        `  • Manage API: http://127.0.0.1:3002\n` +
+        `  • Run API: http://127.0.0.1:3003\n` +
         `  • Manage UI: Available with management API\n` +
         `\n${color.yellow('Configuration:')}\n` +
         `  • Edit .env for environment variables\n` +
@@ -319,22 +499,52 @@ async function createWorkspaceStructure() {
 
 async function createEnvironmentFiles(config: FileConfig) {
   // Convert to forward slashes for cross-platform SQLite URI compatibility
-  const dbPath = process.cwd().replace(/\\/g, '/');
+
+  const jwtSigningSecret = crypto.randomBytes(32).toString('hex');
+
+  const betterAuthSecret = crypto.randomBytes(32).toString('hex');
+
+  // Generate RSA key pair for temporary JWT tokens
+  let tempJwtPrivateKey = '';
+  let tempJwtPublicKey = '';
+  try {
+    const { generateKeyPairSync } = await import('node:crypto');
+    const { privateKey, publicKey } = generateKeyPairSync('rsa', {
+      modulusLength: 2048,
+      publicKeyEncoding: { type: 'spki', format: 'pem' },
+      privateKeyEncoding: { type: 'pkcs8', format: 'pem' },
+    });
+    tempJwtPrivateKey = Buffer.from(privateKey).toString('base64');
+    tempJwtPublicKey = Buffer.from(publicKey).toString('base64');
+  } catch {
+    console.warn('Warning: Failed to generate JWT keys. Playground may not work.');
+    console.warn('You can manually generate keys later with: pnpm run generate-jwt-keys');
+  }
 
   const envContent = `# Environment
 ENVIRONMENT=development
 
-# Database
-DB_FILE_NAME=file:${dbPath}/local.db
+# Database Configuration (Split Database Setup)
+# Manage API uses DoltgreSQL on port 5432 for version control features
+INKEEP_AGENTS_MANAGE_DATABASE_URL=postgresql://appuser:password@localhost:5432/inkeep_agents
+# Run API uses PostgreSQL on port 5433 for runtime operations
+INKEEP_AGENTS_RUN_DATABASE_URL=postgresql://appuser:password@localhost:5433/inkeep_agents
 
 # AI Provider Keys  
 ANTHROPIC_API_KEY=${config.anthropicKey || 'your-anthropic-key-here'}
 OPENAI_API_KEY=${config.openAiKey || 'your-openai-key-here'}
 GOOGLE_GENERATIVE_AI_API_KEY=${config.googleKey || 'your-google-key-here'}
+AZURE_API_KEY=${config.azureKey || 'your-azure-key-here'}
 
 # Inkeep API URLs
-INKEEP_AGENTS_MANAGE_API_URL="http://localhost:3002"
-INKEEP_AGENTS_RUN_API_URL="http://localhost:3003"
+# Internal URLs (server-side, Docker internal networking)
+# Using 127.0.0.1 instead of localhost to avoid IPv6/IPv4 resolution issues
+INKEEP_AGENTS_MANAGE_API_URL="http://127.0.0.1:3002"
+INKEEP_AGENTS_RUN_API_URL="http://127.0.0.1:3003"
+
+# Public URLs (client-side, browser accessible)
+PUBLIC_INKEEP_AGENTS_MANAGE_API_URL="http://127.0.0.1:3002"
+PUBLIC_INKEEP_AGENTS_RUN_API_URL="http://127.0.0.1:3003"
 
 # SigNoz Configuration
 SIGNOZ_URL=your-signoz-url-here
@@ -346,6 +556,23 @@ OTEL_EXPORTER_OTLP_TRACES_HEADERS="signoz-ingestion-key=<your-ingestion-key>"
 
 # Nango Configuration
 NANGO_SECRET_KEY=
+
+# JWT Signing Secret
+INKEEP_AGENTS_JWT_SIGNING_SECRET=${jwtSigningSecret}
+
+# Temporary JWT Keys for Playground
+INKEEP_AGENTS_TEMP_JWT_PRIVATE_KEY=${tempJwtPrivateKey}
+INKEEP_AGENTS_TEMP_JWT_PUBLIC_KEY=${tempJwtPublicKey}
+
+# initial project information
+DEFAULT_PROJECT_ID=${config.projectId}
+
+# Auth Configuration
+# INKEEP_AGENTS_MANAGE_UI_USERNAME=admin@example.com
+# INKEEP_AGENTS_MANAGE_UI_PASSWORD=adminADMIN!@12
+BETTER_AUTH_SECRET=${betterAuthSecret}
+DISABLE_AUTH=true
+
 `;
 
   await fs.writeFile('.env', envContent);
@@ -353,14 +580,19 @@ NANGO_SECRET_KEY=
 
 async function createInkeepConfig(config: FileConfig) {
   const inkeepConfig = `import { defineConfig } from '@inkeep/agents-cli/config';
-
-  const config = defineConfig({
-    tenantId: "${config.tenantId}",
-    agentsManageApiUrl: 'http://localhost:3002',
-    agentsRunApiUrl: 'http://localhost:3003',
-  });
-      
-  export default config;`;
+    
+const config = defineConfig({
+  tenantId: "${config.tenantId}",
+  agentsManageApi: {
+    // Using 127.0.0.1 instead of localhost to avoid IPv6/IPv4 resolution issues
+    url: 'http://127.0.0.1:3002',
+  },
+  agentsRunApi: {
+    url: 'http://127.0.0.1:3003',
+  },
+});
+    
+export default config;`;
   await fs.writeFile(`src/inkeep.config.ts`, inkeepConfig);
 
   if (config.customProject) {
@@ -377,58 +609,146 @@ export const myProject = project({
   }
 }
 
-async function installDependencies() {
-  await execAsync('pnpm install');
-}
-
-async function setupProjectInDatabase(config: FileConfig) {
-  const { spawn } = await import('node:child_process');
-  const devProcess = spawn('pnpm', ['dev:apis'], {
-    stdio: ['pipe', 'pipe', 'pipe'],
-    detached: true,
-    cwd: process.cwd(),
-    shell: true,
-    windowsHide: true,
-  });
-
-  await new Promise((resolve) => setTimeout(resolve, 5000));
+async function installInkeepCLIGlobally() {
+  const s = p.spinner();
+  s.start('Installing Inkeep CLI globally with pnpm...');
 
   try {
-    await execAsync(
-      `pnpm inkeep push --project src/projects/${config.projectId} --config src/inkeep.config.ts`
-    );
-  } catch (_error) {
-  } finally {
-    if (devProcess.pid) {
-      try {
-        if (process.platform === 'win32') {
-          // Windows: Use taskkill to kill process tree
-          await execAsync(`taskkill /pid ${devProcess.pid} /T /F`);
-        } else {
-          // Unix: Use negative PID to kill process group
-          process.kill(-devProcess.pid, 'SIGTERM');
+    await execAsync('pnpm add -g @inkeep/agents-cli');
+    s.stop('✓ Inkeep CLI installed successfully with pnpm');
+    return;
+  } catch (_pnpmError) {
+    s.message('pnpm failed, trying npm...');
 
-          await new Promise((resolve) => setTimeout(resolve, 1000));
-
-          try {
-            process.kill(-devProcess.pid, 'SIGKILL');
-          } catch {}
-        }
-      } catch (_error) {
-        console.log('Note: Dev servers may still be running in background');
-      }
+    try {
+      await execAsync('npm install -g @inkeep/agents-cli');
+      s.stop('✓ Inkeep CLI installed successfully with npm');
+      return;
+    } catch (_npmError) {
+      s.stop('⚠️  Could not automatically install Inkeep CLI globally');
+      console.warn('You can install it manually later by running:');
+      console.warn('  npm install -g @inkeep/agents-cli');
+      console.warn('  or');
+      console.warn('  pnpm add -g @inkeep/agents-cli\n');
     }
   }
 }
 
-async function setupDatabase() {
+async function installDependencies() {
   try {
-    await execAsync('pnpm db:migrate');
-    await new Promise((resolve) => setTimeout(resolve, 1000));
+    const { stderr } = await execAsync('pnpm install');
+    if (process.env.CI && stderr) {
+      console.log('pnpm install stderr:', stderr);
+    }
+  } catch (error: any) {
+    // Capture and log full error details for debugging
+    console.error('pnpm install failed!');
+    console.error('Exit code:', error.code);
+    if (error.stdout) {
+      console.error('stdout:', error.stdout);
+    }
+    if (error.stderr) {
+      console.error('stderr:', error.stderr);
+    }
+    if (error.message) {
+      console.error('Error message:', error.message);
+    }
+    throw error;
+  }
+}
+
+async function initializeGit() {
+  try {
+    await execAsync('git init');
+    await execAsync('git add .');
+    await execAsync('git commit -m "Initial commit from inkeep/create-agents"');
   } catch (error) {
-    throw new Error(
-      `Failed to setup database: ${error instanceof Error ? error.message : 'Unknown error'}`
+    console.error(
+      'Error initializing git:',
+      error instanceof Error ? error.message : 'Unknown error'
     );
+  }
+}
+/**
+ * Check if a port is available
+ */
+async function isPortAvailable(port: number): Promise<boolean> {
+  const net = await import('node:net');
+  return new Promise((resolve) => {
+    const server = net.createServer();
+    server.once('error', (err: NodeJS.ErrnoException) => {
+      // Only treat EADDRINUSE as "port in use", other errors might be transient
+      resolve(err.code !== 'EADDRINUSE');
+    });
+    server.once('listening', () => {
+      server.close(() => {
+        resolve(true);
+      });
+    });
+    server.listen(port, 'localhost');
+  });
+}
+/**
+ * Display port conflict error and exit
+ */
+function displayPortConflictError(unavailablePorts: {
+  runApi: boolean;
+  manageApi: boolean;
+}): never {
+  let errorMessage = '';
+  if (unavailablePorts.runApi) {
+    errorMessage += `${color.red(`Run API port ${runApiPort} is already in use`)}\n`;
+  }
+  if (unavailablePorts.manageApi) {
+    errorMessage += `${color.red(`Manage API port ${manageApiPort} is already in use`)}\n`;
+  }
+
+  p.cancel(
+    `\n${color.red('✗ Port conflicts detected')}\n\n` +
+      `${errorMessage}\n` +
+      `${color.yellow('Please free up the ports and try again.')}\n`
+  );
+  process.exit(1);
+}
+
+/**
+ * Check port availability and display errors if needed
+ */
+async function checkPortsAvailability(): Promise<void> {
+  const [runApiAvailable, manageApiAvailable] = await Promise.all([
+    isPortAvailable(Number(runApiPort)),
+    isPortAvailable(Number(manageApiPort)),
+  ]);
+
+  if (!runApiAvailable || !manageApiAvailable) {
+    displayPortConflictError({
+      runApi: !runApiAvailable,
+      manageApi: !manageApiAvailable,
+    });
+  }
+}
+
+async function cloneTemplateHelper(options: {
+  targetPath: string;
+  templateName?: string;
+  localPrefix?: string;
+  replacements?: ContentReplacement[];
+}) {
+  const { targetPath, templateName, localPrefix, replacements } = options;
+  // If local prefix is provided, use it to clone the template. This is useful for local development and testing.
+  if (localPrefix && localPrefix.length > 0) {
+    if (templateName) {
+      const fullTemplatePath = path.join(localPrefix, templateName);
+      await cloneTemplateLocal(fullTemplatePath, targetPath, replacements);
+    } else {
+      await cloneTemplateLocal(localPrefix, targetPath, replacements);
+    }
+  } else {
+    if (templateName) {
+      await cloneTemplate(`${projectTemplateRepo}/${templateName}`, targetPath, replacements);
+    } else {
+      await cloneTemplate(agentsTemplateRepo, targetPath, replacements);
+    }
   }
 }
 
@@ -437,4 +757,166 @@ export async function createCommand(dirName?: string, options?: any) {
     dirName,
     ...options,
   });
+}
+
+export async function addInkeepMcp() {
+  const editorChoice = await p.select({
+    message: 'Give your IDE access to Inkeep docs and types? (Adds Inkeep MCP)',
+    options: [
+      { value: 'cursor-project', label: 'Cursor (project only)' },
+      { value: 'cursor-global', label: 'Cursor (global, all projects)' },
+      { value: 'windsurf', label: 'Windsurf' },
+      { value: 'vscode', label: 'VSCode' },
+      { value: 'skip', label: 'Skip' },
+    ],
+    initialValue: 'cursor-project',
+  });
+
+  if (p.isCancel(editorChoice)) {
+    return;
+  }
+
+  if (!editorChoice) {
+    return;
+  }
+
+  const s = p.spinner();
+
+  try {
+    const mcpConfig = {
+      mcpServers: {
+        inkeep: {
+          type: 'mcp',
+          url: 'https://agents.inkeep.com/mcp',
+        },
+      },
+    };
+
+    const homeDir = os.homedir();
+
+    switch (editorChoice) {
+      case 'cursor-project': {
+        s.start('Adding Inkeep MCP to Cursor (project)...');
+        const cursorDir = path.join(process.cwd(), '.cursor');
+        const configPath = path.join(cursorDir, 'mcp.json');
+
+        await fs.ensureDir(cursorDir);
+
+        let existingConfig = {};
+        if (await fs.pathExists(configPath)) {
+          existingConfig = await fs.readJson(configPath);
+        }
+
+        const mergedConfig = {
+          ...existingConfig,
+          mcpServers: {
+            ...(existingConfig as any).mcpServers,
+            ...mcpConfig.mcpServers,
+          },
+        };
+
+        await fs.writeJson(configPath, mergedConfig, { spaces: 2 });
+        s.stop(`${color.green('✓')} Inkeep MCP added to .cursor/mcp.json`);
+        break;
+      }
+
+      case 'cursor-global': {
+        s.start('Adding Inkeep MCP to Cursor (global)...');
+        const configPath = path.join(homeDir, '.cursor', 'mcp.json');
+
+        await fs.ensureDir(path.dirname(configPath));
+
+        let existingConfig = {};
+        if (await fs.pathExists(configPath)) {
+          existingConfig = await fs.readJson(configPath);
+        }
+
+        const mergedConfig = {
+          ...existingConfig,
+          mcpServers: {
+            ...(existingConfig as any).mcpServers,
+            ...mcpConfig.mcpServers,
+          },
+        };
+
+        await fs.writeJson(configPath, mergedConfig, { spaces: 2 });
+        s.stop(`${color.green('✓')} Inkeep MCP added to global Cursor settings`);
+        break;
+      }
+
+      case 'windsurf': {
+        s.start('Adding Inkeep MCP to Windsurf...');
+        const configPath = path.join(homeDir, '.codeium', 'windsurf', 'mcp_config.json');
+
+        await fs.ensureDir(path.dirname(configPath));
+
+        let existingConfig = {};
+        if (await fs.pathExists(configPath)) {
+          existingConfig = await fs.readJson(configPath);
+        }
+
+        const mergedConfig = {
+          ...existingConfig,
+          mcpServers: {
+            ...(existingConfig as any).mcpServers,
+            ...mcpConfig.mcpServers,
+          },
+        };
+
+        await fs.writeJson(configPath, mergedConfig, { spaces: 2 });
+        s.stop(`${color.green('✓')} Inkeep MCP added to Windsurf settings`);
+        break;
+      }
+
+      case 'vscode': {
+        s.start('Adding Inkeep MCP to VSCode...');
+
+        let configPath: string;
+
+        if (process.platform === 'darwin') {
+          configPath = path.join(
+            homeDir,
+            'Library',
+            'Application Support',
+            'Code',
+            'User',
+            'mcp.json'
+          );
+        } else if (process.platform === 'win32') {
+          configPath = path.join(homeDir, 'AppData', 'Roaming', 'Code', 'User', 'mcp.json');
+        } else {
+          configPath = path.join(homeDir, '.config', 'Code', 'User', 'mcp.json');
+        }
+
+        await fs.ensureDir(path.dirname(configPath));
+
+        let existingConfig = {};
+        if (await fs.pathExists(configPath)) {
+          existingConfig = await fs.readJson(configPath);
+        }
+
+        const mergedConfig = {
+          ...existingConfig,
+          servers: {
+            ...(existingConfig as any).servers,
+            ...mcpConfig.mcpServers,
+          },
+        };
+
+        await fs.writeJson(configPath, mergedConfig, { spaces: 2 });
+        s.stop(
+          `${color.green('✓')} Inkeep MCP added to VSCode settings\n\n${color.yellow('Next steps:')}\n` +
+            `  start the MCP by going to ${configPath} and clicking start`
+        );
+        break;
+      }
+
+      case 'skip': {
+        break;
+      }
+    }
+  } catch (error) {
+    s.stop();
+    console.error(`${color.yellow('⚠')}  Could not automatically configure MCP server: ${error}`);
+  }
 }

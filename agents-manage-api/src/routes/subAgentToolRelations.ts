@@ -1,4 +1,4 @@
-import { createRoute, OpenAPIHono } from '@hono/zod-openapi';
+import { createRoute, OpenAPIHono, z } from '@hono/zod-openapi';
 import {
   commonGetErrorResponses,
   createAgentToolRelation,
@@ -9,22 +9,39 @@ import {
   getAgentToolRelationByAgent,
   getAgentToolRelationById,
   getAgentToolRelationByTool,
-  ListResponseSchema,
   listAgentToolRelations,
   PaginationQueryParamsSchema,
-  SingleResponseSchema,
   SubAgentToolRelationApiInsertSchema,
-  SubAgentToolRelationApiSelectSchema,
   SubAgentToolRelationApiUpdateSchema,
+  SubAgentToolRelationListResponse,
+  SubAgentToolRelationResponse,
   type SubAgentToolRelationSelect,
   TenantProjectAgentIdParamsSchema,
   TenantProjectAgentParamsSchema,
   updateAgentToolRelation,
 } from '@inkeep/agents-core';
-import { z } from 'zod';
-import dbClient from '../data/db/dbClient';
+import { requirePermission } from '../middleware/require-permission';
+import type { BaseAppVariables } from '../types/app';
+import { speakeasyOffsetLimitPagination } from './shared';
 
-const app = new OpenAPIHono();
+const app = new OpenAPIHono<{ Variables: BaseAppVariables }>();
+
+app.use('/', async (c, next) => {
+  if (c.req.method === 'POST') {
+    return requirePermission({ sub_agent: ['create'] })(c, next);
+  }
+  return next();
+});
+
+app.use('/:id', async (c, next) => {
+  if (c.req.method === 'PUT') {
+    return requirePermission({ sub_agent: ['update'] })(c, next);
+  }
+  if (c.req.method === 'DELETE') {
+    return requirePermission({ sub_agent: ['delete'] })(c, next);
+  }
+  return next();
+});
 
 app.openapi(
   createRoute({
@@ -45,14 +62,16 @@ app.openapi(
         description: 'List of subAgent tool relations retrieved successfully',
         content: {
           'application/json': {
-            schema: ListResponseSchema(SubAgentToolRelationApiSelectSchema),
+            schema: SubAgentToolRelationListResponse,
           },
         },
       },
       ...commonGetErrorResponses,
     },
+    ...speakeasyOffsetLimitPagination,
   }),
   async (c) => {
+    const db = c.get('db');
     const { tenantId, projectId, agentId } = c.req.valid('param');
     const { page, limit, subAgentId, toolId } = c.req.valid('query');
 
@@ -68,7 +87,7 @@ app.openapi(
 
     // Filter by subAgent if provided
     if (subAgentId) {
-      const dbResult = await getAgentToolRelationByAgent(dbClient)({
+      const dbResult = await getAgentToolRelationByAgent(db)({
         scopes: { tenantId, projectId, agentId, subAgentId },
         pagination: { page, limit },
       });
@@ -79,7 +98,7 @@ app.openapi(
     }
     // Filter by tool if provided
     else if (toolId) {
-      const dbResult = await getAgentToolRelationByTool(dbClient)({
+      const dbResult = await getAgentToolRelationByTool(db)({
         scopes: { tenantId, projectId, agentId },
         toolId,
         pagination: { page, limit },
@@ -91,7 +110,7 @@ app.openapi(
     }
     // Default: get all subAgent tool relations
     else {
-      const dbResult = await listAgentToolRelations(dbClient)({
+      const dbResult = await listAgentToolRelations(db)({
         scopes: { tenantId, projectId, agentId },
         pagination: { page, limit },
       });
@@ -120,7 +139,7 @@ app.openapi(
         description: 'SubAgent tool relation found',
         content: {
           'application/json': {
-            schema: SingleResponseSchema(SubAgentToolRelationApiSelectSchema),
+            schema: SubAgentToolRelationResponse,
           },
         },
       },
@@ -128,8 +147,9 @@ app.openapi(
     },
   }),
   async (c) => {
+    const db = c.get('db');
     const { tenantId, projectId, agentId, id } = c.req.valid('param');
-    const agentToolRelation = await getAgentToolRelationById(dbClient)({
+    const agentToolRelation = await getAgentToolRelationById(db)({
       scopes: { tenantId, projectId, agentId, subAgentId: id },
       relationId: id,
     });
@@ -163,7 +183,7 @@ app.openapi(
         description: 'SubAgents for tool retrieved successfully',
         content: {
           'application/json': {
-            schema: ListResponseSchema(SubAgentToolRelationApiSelectSchema),
+            schema: SubAgentToolRelationListResponse,
           },
         },
       },
@@ -171,10 +191,11 @@ app.openapi(
     },
   }),
   async (c) => {
+    const db = c.get('db');
     const { tenantId, projectId, agentId, toolId } = c.req.valid('param');
     const { page, limit } = c.req.valid('query');
 
-    const dbResult = await getAgentsForTool(dbClient)({
+    const dbResult = await getAgentsForTool(db)({
       scopes: { tenantId, projectId, agentId },
       toolId,
       pagination: { page, limit },
@@ -206,7 +227,7 @@ app.openapi(
         description: 'SubAgent tool relation created successfully',
         content: {
           'application/json': {
-            schema: SingleResponseSchema(SubAgentToolRelationApiSelectSchema),
+            schema: SubAgentToolRelationResponse,
           },
         },
       },
@@ -214,10 +235,11 @@ app.openapi(
     },
   }),
   async (c) => {
+    const db = c.get('db');
     const { tenantId, projectId, agentId } = c.req.valid('param');
     const body = c.req.valid('json');
 
-    const existingRelations = await listAgentToolRelations(dbClient)({
+    const existingRelations = await listAgentToolRelations(db)({
       scopes: { tenantId, projectId, agentId },
       pagination: { limit: 1000 },
     });
@@ -234,21 +256,14 @@ app.openapi(
     }
 
     try {
-      const agentToolRelation = await createAgentToolRelation(dbClient)({
+      const agentToolRelation = await createAgentToolRelation(db)({
         scopes: { tenantId, projectId, agentId },
         data: body,
       });
       return c.json({ data: agentToolRelation }, 201);
     } catch (error) {
-      // Handle foreign key constraint violations
-      if (
-        error instanceof Error &&
-        (error.message.includes('FOREIGN KEY constraint failed') ||
-          error.message.includes('foreign key constraint') ||
-          error.message.includes('SQLITE_CONSTRAINT_FOREIGNKEY') ||
-          (error as any).code === 'SQLITE_CONSTRAINT_FOREIGNKEY' ||
-          (error as any)?.cause?.code === 'SQLITE_CONSTRAINT_FOREIGNKEY')
-      ) {
+      // Handle foreign key constraint violations (PostgreSQL foreign key violation)
+      if ((error as any)?.cause?.code === '23503') {
         throw createApiError({
           code: 'bad_request',
           message: 'Invalid subAgent ID or tool ID - referenced entity does not exist',
@@ -281,7 +296,7 @@ app.openapi(
         description: 'SubAgent tool relation updated successfully',
         content: {
           'application/json': {
-            schema: SingleResponseSchema(SubAgentToolRelationApiSelectSchema),
+            schema: SubAgentToolRelationResponse,
           },
         },
       },
@@ -289,8 +304,8 @@ app.openapi(
     },
   }),
   async (c) => {
+    const db = c.get('db');
     const { tenantId, projectId, agentId, id } = c.req.valid('param');
-    console.log('id', id);
     const body = await c.req.valid('json');
 
     if (Object.keys(body).length === 0) {
@@ -300,7 +315,7 @@ app.openapi(
       });
     }
 
-    const updatedAgentToolRelation = await updateAgentToolRelation(dbClient)({
+    const updatedAgentToolRelation = await updateAgentToolRelation(db)({
       scopes: { tenantId, projectId, agentId },
       relationId: id,
       data: body,
@@ -342,8 +357,9 @@ app.openapi(
     },
   }),
   async (c) => {
+    const db = c.get('db');
     const { tenantId, projectId, agentId, id } = c.req.valid('param');
-    const deleted = await deleteAgentToolRelation(dbClient)({
+    const deleted = await deleteAgentToolRelation(db)({
       scopes: { tenantId, projectId, agentId },
       relationId: id,
     });

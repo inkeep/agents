@@ -1,6 +1,7 @@
 {
   "$schema": "https://turbo.build/schema.json",
   "ui": "tui",
+  "concurrency": "15",
   "globalDependencies": ["**/.env", "**/.env.local", "**/.env.*"],
   "globalEnv": [
     "NODE_ENV",
@@ -11,7 +12,8 @@
     "ANTHROPIC_API_KEY",
     "OPENAI_API_KEY",
     "ENVIRONMENT",
-    "DB_FILE_NAME",
+    "INKEEP_AGENTS_MANAGE_DATABASE_URL",
+    "INKEEP_AGENTS_RUN_DATABASE_URL",
     "PORT",
     "LOG_LEVEL"
   ],
@@ -32,6 +34,7 @@
       "outputs": ["dist/**", "build/**", ".next/**", "!.next/cache/**"]
     },
     "dev": {
+      "dependsOn": ["^build"],
       "cache": false,
       "persistent": true
     },
@@ -70,12 +73,22 @@
       "inputs": ["$TURBO_DEFAULT$", "**/*.{test,spec}.{js,jsx,ts,tsx}"],
       "outputs": []
     },
+    "@inkeep/agents-eval-api#test": {
+      "dependsOn": ["build"],
+      "inputs": ["$TURBO_DEFAULT$", "**/*.{test,spec}.{js,jsx,ts,tsx}"],
+      "outputs": []
+    },
     "@inkeep/agents-manage-ui#test": {
       "dependsOn": ["build"],
       "inputs": ["$TURBO_DEFAULT$", "**/*.{test,spec}.{js,jsx,ts,tsx}"],
       "outputs": []
     },
     "@inkeep/agents-sdk#test": {
+      "dependsOn": ["build"],
+      "inputs": ["$TURBO_DEFAULT$", "**/*.{test,spec}.{js,jsx,ts,tsx}"],
+      "outputs": []
+    },
+    "@inkeep/ai-sdk-provider#test": {
       "dependsOn": ["build"],
       "inputs": ["$TURBO_DEFAULT$", "**/*.{test,spec}.{js,jsx,ts,tsx}"],
       "outputs": []
@@ -90,11 +103,15 @@
       "inputs": ["$TURBO_DEFAULT$", "**/*.{test,spec}.{js,jsx,ts,tsx}"],
       "outputs": []
     },
-    "chat-widget#test": {
-      "dependsOn": ["build"],
-      "outputs": []
+    "@inkeep/create-agents#test:e2e": {
+      "dependsOn": ["^build", "agents-cookbook-templates#build"]
     },
-    "@inkeep/examples#test": {
+    "@inkeep/agents-manage-mcp#build": {
+      "dependsOn": ["^build", "sync:licenses"],
+      "inputs": ["$TURBO_DEFAULT$", ".env*"],
+      "outputs": ["dist/**", "bin/**", ".tsbuildinfo"]
+    },
+    "chat-widget#test": {
       "dependsOn": ["build"],
       "outputs": []
     },
@@ -116,6 +133,7 @@
       "outputs": [],
       "cache": false
     },
+    "knip": {},
     "typecheck": {
       "dependsOn": ["^build"],
       "inputs": ["$TURBO_DEFAULT$"],
@@ -126,13 +144,12 @@
       "persistent": true
     },
     "db:generate": {
-      "cache": false,
-      "inputs": ["drizzle.config.ts", "src/db/schema.ts"],
-      "outputs": ["drizzle/**"]
+      "dependsOn": ["db:manage:generate", "db:run:generate"],
+      "cache": false
     },
     "db:migrate": {
-      "cache": false,
-      "inputs": ["drizzle/**", "src/db/schema.ts"]
+      "dependsOn": ["db:manage:migrate", "db:run:migrate"],
+      "cache": false
     },
     "db:studio": {
       "cache": false,
@@ -142,8 +159,48 @@
       "cache": false
     },
     "db:check": {
+      "dependsOn": ["db:manage:check", "db:run:check"],
+      "cache": false
+    },
+    "db:manage:generate": {
       "cache": false,
-      "inputs": ["drizzle.config.ts", "src/db/schema.ts"]
+      "inputs": ["drizzle.manage.config.ts", "src/db/manage/manage-schema.ts"],
+      "outputs": ["drizzle/manage/**"]
+    },
+    "db:manage:migrate": {
+      "cache": false,
+      "inputs": ["drizzle/manage/**", "src/db/manage/manage-schema.ts"]
+    },
+    "db:manage:drop": {
+      "cache": false
+    },
+    "db:manage:studio": {
+      "cache": false,
+      "persistent": true
+    },
+    "db:manage:check": {
+      "cache": false,
+      "inputs": ["drizzle.manage.config.ts", "src/db/manage/manage-schema.ts"]
+    },
+    "db:run:generate": {
+      "cache": false,
+      "inputs": ["drizzle.run.config.ts", "src/db/runtime/runtime-schema.ts"],
+      "outputs": ["drizzle/runtime/**"]
+    },
+    "db:run:migrate": {
+      "cache": false,
+      "inputs": ["drizzle/runtime/**", "src/db/runtime/runtime-schema.ts"]
+    },
+    "db:run:drop": {
+      "cache": false
+    },
+    "db:run:studio": {
+      "cache": false,
+      "persistent": true
+    },
+    "db:run:check": {
+      "cache": false,
+      "inputs": ["drizzle.run.config.ts", "src/db/runtime/runtime-schema.ts"]
     },
     "docs#dev": {
       "cache": false,
@@ -155,7 +212,8 @@
     },
     "check:husky": {
       "dependsOn": ["build", "lint", "typecheck", "test"],
-      "cache": false
+      "cache": false,
+      "outputs": []
     }
   }
 }

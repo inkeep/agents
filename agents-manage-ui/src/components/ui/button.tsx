@@ -25,9 +25,12 @@ const buttonVariants = cva(
           'hover:bg-accent hover:text-accent-foreground dark:hover:bg-accent/50 text-muted-foreground dark:text-muted-foreground font-mono uppercase',
         link: 'text-primary underline-offset-4 hover:underline font-mono uppercase',
         unstyled: 'font-inherit text-inherit text-[length:inherit] rounded-none',
+        'destructive-outline':
+          'border border-destructive/10 text-destructive bg-background shadow-xs hover:bg-destructive/5 hover:text-destructive font-mono uppercase focus-visible:ring-destructive/20 dark:focus-visible:ring-destructive/40 dark:hover:bg-destructive/20 dark:border-destructive/40',
       },
       size: {
         default: 'h-9 px-4 py-2 has-[>svg]:px-3',
+        xs: 'h-7 px-3 gap-1.5 py-1.5 has-[>svg]:px-2.5 text-xs',
         sm: 'h-8 rounded-md gap-1.5 px-3 has-[>svg]:px-2.5',
         lg: 'h-10 rounded-md px-6 has-[>svg]:px-4',
         icon: 'size-9',

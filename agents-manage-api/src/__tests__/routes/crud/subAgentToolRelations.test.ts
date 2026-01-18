@@ -1,11 +1,11 @@
-import { MCPTransportType } from '@inkeep/agents-core';
-import { nanoid } from 'nanoid';
+import { generateId, MCPTransportType } from '@inkeep/agents-core';
+import { createTestProject } from '@inkeep/agents-core/db/test-manage-client';
 import { describe, expect, it, vi } from 'vitest';
+import manageDbClient from '../../../data/db/dbClient';
 import { createTestAgentToolRelationData } from '../../utils/testHelpers';
-import { ensureTestProject } from '../../utils/testProject';
 import { makeRequest } from '../../utils/testRequest';
 import { createTestSubAgentData } from '../../utils/testSubAgent';
-import { createTestTenantId } from '../../utils/testTenant';
+import { createTestTenantWithOrg } from '../../utils/testTenant';
 
 // Mock the MCP client to avoid external dependencies
 vi.mock('../../../tools/mcp-client.js', () => ({
@@ -55,7 +55,7 @@ describe('Agent Tool Relations CRUD Routes - Integration Tests', () => {
 
   // Helper function to create test tool data
   const createToolData = ({ suffix = '' } = {}) => ({
-    id: nanoid(),
+    id: generateId(),
     name: `Test MCP Tool${suffix}`,
     description: `Test MCP tool description${suffix}`,
     config: {
@@ -98,7 +98,7 @@ describe('Agent Tool Relations CRUD Routes - Integration Tests', () => {
     // Create an agent if not provided
     let effectiveAgentId = agentId;
     if (!effectiveAgentId) {
-      effectiveAgentId = nanoid();
+      effectiveAgentId = generateId();
       const agentData = {
         id: effectiveAgentId,
         name: `Test Agent${suffix}`,
@@ -181,8 +181,8 @@ describe('Agent Tool Relations CRUD Routes - Integration Tests', () => {
 
   describe('POST /', () => {
     it('should create a new agent tool relation', async () => {
-      const tenantId = createTestTenantId('agent-tool-relations-create-success');
-      await ensureTestProject(tenantId, 'default');
+      const tenantId = await createTestTenantWithOrg('agent-tool-relations-create-success');
+      await createTestProject(manageDbClient, tenantId, 'default');
       const { subAgentId, toolId, agentId } = await setupTestEnvironment(tenantId);
 
       const relationData = createTestAgentToolRelationData({
@@ -210,8 +210,8 @@ describe('Agent Tool Relations CRUD Routes - Integration Tests', () => {
     });
 
     it('should prevent duplicate agent tool relations', async () => {
-      const tenantId = createTestTenantId('agent-tool-relations-create-duplicate');
-      await ensureTestProject(tenantId, 'default');
+      const tenantId = await createTestTenantWithOrg('agent-tool-relations-create-duplicate');
+      await createTestProject(manageDbClient, tenantId, 'default');
       const { subAgentId, toolId, agentId } = await setupTestEnvironment(tenantId);
 
       // Create first relation
@@ -246,8 +246,8 @@ describe('Agent Tool Relations CRUD Routes - Integration Tests', () => {
     });
 
     it('should validate required fields', async () => {
-      const tenantId = createTestTenantId('agent-tool-relations-create-validation');
-      await ensureTestProject(tenantId, 'default');
+      const tenantId = await createTestTenantWithOrg('agent-tool-relations-create-validation');
+      await createTestProject(manageDbClient, tenantId, 'default');
       const agentId = 'default';
       const res = await makeRequest(
         `/tenants/${tenantId}/projects/${projectId}/agents/${agentId}/sub-agent-tool-relations`,
@@ -263,8 +263,8 @@ describe('Agent Tool Relations CRUD Routes - Integration Tests', () => {
 
   describe('GET /', () => {
     it('should list agent tool relations with pagination (empty initially)', async () => {
-      const tenantId = createTestTenantId('agent-tool-relations-list-empty');
-      await ensureTestProject(tenantId, 'default');
+      const tenantId = await createTestTenantWithOrg('agent-tool-relations-list-empty');
+      await createTestProject(manageDbClient, tenantId, 'default');
       const agentId = 'default';
       const res = await makeRequest(
         `/tenants/${tenantId}/projects/${projectId}/agents/${agentId}/sub-agent-tool-relations`
@@ -277,8 +277,8 @@ describe('Agent Tool Relations CRUD Routes - Integration Tests', () => {
     });
 
     it('should list agent tool relations with pagination (single item)', async () => {
-      const tenantId = createTestTenantId('agent-tool-relations-list-single');
-      await ensureTestProject(tenantId, 'default');
+      const tenantId = await createTestTenantWithOrg('agent-tool-relations-list-single');
+      await createTestProject(manageDbClient, tenantId, 'default');
       const { subAgentId, toolId, agentId } = await setupTestEnvironment(tenantId);
       await createTestAgentToolRelation({
         tenantId,
@@ -301,8 +301,8 @@ describe('Agent Tool Relations CRUD Routes - Integration Tests', () => {
     });
 
     it('should filter by subAgentId', async () => {
-      const tenantId = createTestTenantId('agent-tool-relations-filter-agent');
-      await ensureTestProject(tenantId, 'default');
+      const tenantId = await createTestTenantWithOrg('agent-tool-relations-filter-agent');
+      await createTestProject(manageDbClient, tenantId, 'default');
       const { subAgentId, toolId, agentId } = await setupTestEnvironment(tenantId);
       const { subAgentId: otherAgentId } = await createTestAgent({
         tenantId,
@@ -330,8 +330,8 @@ describe('Agent Tool Relations CRUD Routes - Integration Tests', () => {
     });
 
     it('should filter by toolId', async () => {
-      const tenantId = createTestTenantId('agent-tool-relations-filter-tool');
-      await ensureTestProject(tenantId, 'default');
+      const tenantId = await createTestTenantWithOrg('agent-tool-relations-filter-tool');
+      await createTestProject(manageDbClient, tenantId, 'default');
       const { subAgentId, toolId, agentId } = await setupTestEnvironment(tenantId);
       const { toolId: otherToolId } = await createTestTool({
         tenantId,
@@ -358,8 +358,8 @@ describe('Agent Tool Relations CRUD Routes - Integration Tests', () => {
     });
 
     it('should handle pagination with multiple pages', async () => {
-      const tenantId = createTestTenantId('agent-tool-relations-list-multipages');
-      await ensureTestProject(tenantId, 'default');
+      const tenantId = await createTestTenantWithOrg('agent-tool-relations-list-multipages');
+      await createTestProject(manageDbClient, tenantId, 'default');
       const { subAgentId, agentId } = await createTestAgent({ tenantId });
 
       // Create multiple tools and relations
@@ -404,8 +404,8 @@ describe('Agent Tool Relations CRUD Routes - Integration Tests', () => {
 
   describe('GET /{id}', () => {
     it('should get an agent tool relation by id', async () => {
-      const tenantId = createTestTenantId('agent-tool-relations-get-by-id');
-      await ensureTestProject(tenantId, 'default');
+      const tenantId = await createTestTenantWithOrg('agent-tool-relations-get-by-id');
+      await createTestProject(manageDbClient, tenantId, 'default');
       const { subAgentId, toolId, agentId } = await setupTestEnvironment(tenantId);
       const { relationId } = await createTestAgentToolRelation({
         tenantId,
@@ -426,8 +426,8 @@ describe('Agent Tool Relations CRUD Routes - Integration Tests', () => {
     });
 
     it('should return 404 when agent tool relation not found', async () => {
-      const tenantId = createTestTenantId('agent-tool-relations-get-not-found');
-      await ensureTestProject(tenantId, 'default');
+      const tenantId = await createTestTenantWithOrg('agent-tool-relations-get-not-found');
+      await createTestProject(manageDbClient, tenantId, 'default');
       const agentId = 'default';
       const res = await makeRequest(
         `/tenants/${tenantId}/projects/${projectId}/agents/${agentId}/sub-agent-tool-relations/non-existent-id`
@@ -438,8 +438,8 @@ describe('Agent Tool Relations CRUD Routes - Integration Tests', () => {
 
   describe('GET /tool/{toolId}/agents', () => {
     it('should get agents for a specific tool', async () => {
-      const tenantId = createTestTenantId('agent-tool-relations-get-agents-for-tool');
-      await ensureTestProject(tenantId, 'default');
+      const tenantId = await createTestTenantWithOrg('agent-tool-relations-get-agents-for-tool');
+      await createTestProject(manageDbClient, tenantId, 'default');
       const { toolId } = await createTestTool({ tenantId });
       const { subAgentId: subAgentId1, agentId } = await createTestAgent({
         tenantId,
@@ -476,8 +476,8 @@ describe('Agent Tool Relations CRUD Routes - Integration Tests', () => {
     });
 
     it('should return empty array when tool has no agents', async () => {
-      const tenantId = createTestTenantId('agent-tool-relations-get-agents-empty');
-      await ensureTestProject(tenantId, 'default');
+      const tenantId = await createTestTenantWithOrg('agent-tool-relations-get-agents-empty');
+      await createTestProject(manageDbClient, tenantId, 'default');
       const { toolId } = await createTestTool({ tenantId });
       const agentId = 'default';
 
@@ -493,8 +493,8 @@ describe('Agent Tool Relations CRUD Routes - Integration Tests', () => {
 
   describe('PUT /{id}', () => {
     it('should update an existing agent tool relation', async () => {
-      const tenantId = createTestTenantId('agent-tool-relations-update-success');
-      await ensureTestProject(tenantId, 'default');
+      const tenantId = await createTestTenantWithOrg('agent-tool-relations-update-success');
+      await createTestProject(manageDbClient, tenantId, 'default');
       const { subAgentId, toolId, agentId } = await setupTestEnvironment(tenantId);
       const { relationId } = await createTestAgentToolRelation({
         tenantId,
@@ -523,8 +523,8 @@ describe('Agent Tool Relations CRUD Routes - Integration Tests', () => {
     });
 
     it('should return 404 when agent tool relation not found for update', async () => {
-      const tenantId = createTestTenantId('agent-tool-relations-update-not-found');
-      await ensureTestProject(tenantId, 'default');
+      const tenantId = await createTestTenantWithOrg('agent-tool-relations-update-not-found');
+      await createTestProject(manageDbClient, tenantId, 'default');
       const agentId = 'default';
       const res = await makeRequest(
         `/tenants/${tenantId}/projects/${projectId}/agents/${agentId}/sub-agent-tool-relations/non-existent-id`,
@@ -537,8 +537,8 @@ describe('Agent Tool Relations CRUD Routes - Integration Tests', () => {
     });
 
     it('should return 400 when no fields to update', async () => {
-      const tenantId = createTestTenantId('agent-tool-relations-update-empty');
-      await ensureTestProject(tenantId, 'default');
+      const tenantId = await createTestTenantWithOrg('agent-tool-relations-update-empty');
+      await createTestProject(manageDbClient, tenantId, 'default');
       const { subAgentId, toolId, agentId } = await setupTestEnvironment(tenantId);
       const { relationId } = await createTestAgentToolRelation({
         tenantId,
@@ -560,8 +560,8 @@ describe('Agent Tool Relations CRUD Routes - Integration Tests', () => {
 
   describe('DELETE /{id}', () => {
     it('should delete an existing agent tool relation', async () => {
-      const tenantId = createTestTenantId('agent-tool-relations-delete-success');
-      await ensureTestProject(tenantId, 'default');
+      const tenantId = await createTestTenantWithOrg('agent-tool-relations-delete-success');
+      await createTestProject(manageDbClient, tenantId, 'default');
       const { subAgentId, toolId, agentId } = await setupTestEnvironment(tenantId);
       const { relationId } = await createTestAgentToolRelation({
         tenantId,
@@ -586,8 +586,8 @@ describe('Agent Tool Relations CRUD Routes - Integration Tests', () => {
     });
 
     it('should return 404 when agent tool relation not found for deletion', async () => {
-      const tenantId = createTestTenantId('agent-tool-relations-delete-not-found');
-      await ensureTestProject(tenantId, 'default');
+      const tenantId = await createTestTenantWithOrg('agent-tool-relations-delete-not-found');
+      await createTestProject(manageDbClient, tenantId, 'default');
       const agentId = 'default';
       const res = await makeRequest(
         `/tenants/${tenantId}/projects/${projectId}/agents/${agentId}/sub-agent-tool-relations/non-existent-id`,
@@ -601,8 +601,8 @@ describe('Agent Tool Relations CRUD Routes - Integration Tests', () => {
 
   describe('Edge Cases and Error Handling', () => {
     it('should handle invalid agent ID in relation creation', async () => {
-      const tenantId = createTestTenantId('agent-tool-relations-invalid-agent');
-      await ensureTestProject(tenantId, 'default');
+      const tenantId = await createTestTenantWithOrg('agent-tool-relations-invalid-agent');
+      await createTestProject(manageDbClient, tenantId, 'default');
       const { toolId } = await createTestTool({ tenantId });
       const agentId = 'default';
 
@@ -625,8 +625,8 @@ describe('Agent Tool Relations CRUD Routes - Integration Tests', () => {
     });
 
     it('should handle invalid tool ID in relation creation', async () => {
-      const tenantId = createTestTenantId('agent-tool-relations-invalid-tool');
-      await ensureTestProject(tenantId, 'default');
+      const tenantId = await createTestTenantWithOrg('agent-tool-relations-invalid-tool');
+      await createTestProject(manageDbClient, tenantId, 'default');
       const { subAgentId, agentId } = await createTestAgent({ tenantId });
 
       const relationData = createTestAgentToolRelationData({
@@ -648,8 +648,8 @@ describe('Agent Tool Relations CRUD Routes - Integration Tests', () => {
     });
 
     it('should handle large page sizes gracefully', async () => {
-      const tenantId = createTestTenantId('agent-tool-relations-large-page');
-      await ensureTestProject(tenantId, 'default');
+      const tenantId = await createTestTenantWithOrg('agent-tool-relations-large-page');
+      await createTestProject(manageDbClient, tenantId, 'default');
       const { subAgentId, toolId, agentId } = await setupTestEnvironment(tenantId);
       await createTestAgentToolRelation({ tenantId, agentId, subAgentId, toolId });
 
@@ -664,8 +664,8 @@ describe('Agent Tool Relations CRUD Routes - Integration Tests', () => {
     });
 
     it('should return empty data for page beyond available data', async () => {
-      const tenantId = createTestTenantId('agent-tool-relations-beyond-pages');
-      await ensureTestProject(tenantId, 'default');
+      const tenantId = await createTestTenantWithOrg('agent-tool-relations-beyond-pages');
+      await createTestProject(manageDbClient, tenantId, 'default');
       const { subAgentId, toolId, agentId } = await setupTestEnvironment(tenantId);
       await createTestAgentToolRelation({ tenantId, agentId, subAgentId, toolId });
 

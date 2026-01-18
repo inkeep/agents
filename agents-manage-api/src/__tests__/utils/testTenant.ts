@@ -1,4 +1,6 @@
 import { randomUUID } from 'node:crypto';
+import { createTestOrganization } from '@inkeep/agents-core/db/test-runtime-client';
+import runDbClient from '../../data/db/runDbClient';
 
 /**
  * Creates a unique tenant ID for test isolation.
@@ -26,6 +28,31 @@ import { randomUUID } from 'node:crypto';
 export function createTestTenantId(prefix?: string): string {
   const uuid = randomUUID();
   return prefix ? `test-tenant-${prefix}-${uuid}` : `test-tenant-${uuid}`;
+}
+
+/**
+ * Creates a unique tenant ID for test isolation.
+ * In the manage API, organizations are not needed (they're in the runtime schema).
+ *
+ * @param prefix - Optional prefix to include in the tenant ID (e.g., test file name)
+ * @returns A unique tenant ID
+ *
+ * @example
+ * ```typescript
+ * import { createTestTenantWithOrg } from './utils/testTenant';
+ *
+ * describe('My test suite', () => {
+ *   it('should work with tenant', async () => {
+ *     const tenantId = await createTestTenantWithOrg('agents');
+ *     // Can create projects immediately
+ *   });
+ * });
+ * ```
+ */
+export async function createTestTenantWithOrg(prefix?: string): Promise<string> {
+  const tenantId = createTestTenantId(prefix);
+  await createTestOrganization(runDbClient, tenantId);
+  return tenantId;
 }
 
 /**

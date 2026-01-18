@@ -102,4 +102,23 @@ describe('dataComponent builder function', () => {
     const component = dataComponent(config);
     expect(component.getProps()).toEqual({});
   });
+
+  it('should handle render attribute with component and mockData', () => {
+    const config: DataComponentConfig = {
+      name: 'Render Data Component',
+      description: 'Data component with render config',
+      props: { type: 'object', properties: { name: { type: 'string' } } },
+      render: {
+        component: 'function Component({ name }) { return <div>Hello {name}</div>; }',
+        mockData: { name: 'World' },
+      },
+    };
+
+    const component = dataComponent(config);
+    expect(component.getName()).toBe('Render Data Component');
+    expect(component.getRender()).toEqual({
+      component: 'function Component({ name }) { return <div>Hello {name}</div>; }',
+      mockData: { name: 'World' },
+    });
+  });
 });

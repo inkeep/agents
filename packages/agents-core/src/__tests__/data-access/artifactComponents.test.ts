@@ -1,5 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import {
+  agentHasArtifactComponents,
   associateArtifactComponentWithAgent,
   countArtifactComponents,
   countArtifactComponentsForAgent,
@@ -8,25 +9,25 @@ import {
   getAgentsUsingArtifactComponent,
   getArtifactComponentById,
   getArtifactComponentsForAgent,
-  agentHasArtifactComponents,
   isArtifactComponentAssociatedWithAgent,
   listArtifactComponents,
   listArtifactComponentsPaginated,
   removeArtifactComponentFromAgent,
   updateArtifactComponent,
-} from '../../data-access/artifactComponents';
-import type { DatabaseClient } from '../../db/client';
-import { createInMemoryDatabaseClient } from '../../db/client';
+} from '../../data-access/manage/artifactComponents';
+import type { AgentsManageDatabaseClient } from '../../db/manage/manage-client';
+import { testManageDbClient } from '../setup';
 
 describe('Artifact Components Data Access', () => {
-  let db: DatabaseClient;
+  let db: AgentsManageDatabaseClient;
   const testTenantId = 'test-tenant';
   const testProjectId = 'test-project';
   const testAgentId = 'test-agent';
   const testSubAgentId = 'test-sub-agent';
 
-  beforeEach(() => {
-    db = createInMemoryDatabaseClient();
+  beforeEach(async () => {
+    db = testManageDbClient;
+    vi.clearAllMocks();
   });
 
   describe('getArtifactComponentById', () => {
@@ -270,8 +271,8 @@ describe('Artifact Components Data Access', () => {
 
       const expectedComponent = {
         ...componentData,
-        createdAt: expect.any(String),
-        updatedAt: expect.any(String),
+        createdAt: expect.any(Date),
+        updatedAt: expect.any(Date),
       };
 
       const mockInsert = vi.fn().mockReturnValue({
@@ -309,8 +310,8 @@ describe('Artifact Components Data Access', () => {
 
       const expectedComponent = {
         ...componentData,
-        createdAt: expect.any(String),
-        updatedAt: expect.any(String),
+        createdAt: expect.any(Date),
+        updatedAt: expect.any(Date),
       };
 
       const mockInsert = vi.fn().mockReturnValue({
@@ -506,7 +507,7 @@ describe('Artifact Components Data Access', () => {
         projectId: testProjectId,
         subAgentId: testSubAgentId,
         artifactComponentId: componentId,
-        createdAt: expect.any(String),
+        createdAt: expect.any(Date),
       };
 
       const mockInsert = vi.fn().mockReturnValue({
@@ -602,8 +603,8 @@ describe('Artifact Components Data Access', () => {
     it('should get all agents using a specific artifact component', async () => {
       const componentId = 'artifact-1';
       const expectedAgents = [
-        { subAgentId: 'agent-1', createdAt: '2024-01-01T00:00:00Z' },
-        { subAgentId: 'agent-2', createdAt: '2024-01-02T00:00:00Z' },
+        { subAgentId: 'agent-1', createdAt: new Date() },
+        { subAgentId: 'agent-2', createdAt: new Date() },
       ];
 
       const mockSelect = vi.fn().mockReturnValue({

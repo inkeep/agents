@@ -1,37 +1,45 @@
 import {
+  AGENT_EXECUTION_TRANSFER_COUNT_DEFAULT,
   createMessage,
   createTask,
-  type ExecutionContext,
+  type FullExecutionContext,
+  generateId,
   getActiveAgentForConversation,
-  getFullAgent,
   getTask,
   type SendMessageResponse,
   setSpanWithError,
   updateTask,
 } from '@inkeep/agents-core';
-import { nanoid } from 'nanoid';
+import { getUserIdFromContext } from 'src/types/execution-context.js';
+import { resolveModelConfig } from 'src/utils/model-resolver.js';
 import { tracer } from 'src/utils/tracer.js';
 import { A2AClient } from '../a2a/client.js';
 import { executeTransfer } from '../a2a/transfer.js';
 import { extractTransferData, isTransferTask } from '../a2a/types.js';
+import { AGENT_EXECUTION_MAX_CONSECUTIVE_ERRORS } from '../constants/execution-limits';
 import dbClient from '../data/db/dbClient.js';
+import { flushBatchProcessor } from '../instrumentation.js';
 import { getLogger } from '../logger.js';
 import { agentSessionManager } from '../services/AgentSession.js';
+import { triggerConversationEvaluationHttp } from '../services/evaluationHttpClient.js';
 import { agentInitializingOp, completionOp, errorOp } from '../utils/agent-operations.js';
 import type { StreamHelper } from '../utils/stream-helpers.js';
-import { MCPStreamHelper } from '../utils/stream-helpers.js';
+import { BufferingStreamHelper } from '../utils/stream-helpers.js';
 import { registerStreamHelper, unregisterStreamHelper } from '../utils/stream-registry.js';
 
 const logger = getLogger('ExecutionHandler');
 
 interface ExecutionHandlerParams {
-  executionContext: ExecutionContext;
+  executionContext: FullExecutionContext;
   conversationId: string;
   userMessage: string;
   initialAgentId: string;
   requestId: string;
   sseHelper: StreamHelper;
   emitOperations?: boolean;
+  datasetRunId?: string; // Optional: ID of the dataset run this conversation belongs to
+  /** Headers to forward to MCP servers (e.g., x-forwarded-cookie for auth) */
+  forwardedHeaders?: Record<string, string>;
 }
 
 interface ExecutionResult {
@@ -42,7 +50,7 @@ interface ExecutionResult {
 }
 
 export class ExecutionHandler {
-  private readonly MAX_ERRORS = 3;
+  private readonly MAX_ERRORS = AGENT_EXECUTION_MAX_CONSECUTIVE_ERRORS;
 
   /**
    * performs exeuction loop
@@ -67,13 +75,15 @@ export class ExecutionHandler {
       requestId,
       sseHelper,
       emitOperations,
+      forwardedHeaders,
     } = params;
 
-    const { tenantId, projectId, agentId, apiKey, baseUrl } = executionContext;
+    const { tenantId, projectId, project, agentId, apiKey, baseUrl, resolvedRef } =
+      executionContext;
 
     registerStreamHelper(requestId, sseHelper);
 
-    agentSessionManager.createSession(requestId, agentId, tenantId, projectId, conversationId);
+    agentSessionManager.createSession(requestId, executionContext, conversationId);
 
     if (emitOperations) {
       agentSessionManager.enableEmitOperations(requestId);
@@ -84,18 +94,49 @@ export class ExecutionHandler {
       'Created AgentSession for message execution'
     );
 
-    let agentConfig: any = null;
+    const agentConfig: any = null;
     try {
-      agentConfig = await getFullAgent(dbClient)({
-        scopes: { tenantId, projectId, agentId },
-      });
+      const agent = project.agents[agentId];
 
-      if (agentConfig?.statusUpdates && agentConfig.statusUpdates.enabled !== false) {
-        agentSessionManager.initializeStatusUpdates(
-          requestId,
-          agentConfig.statusUpdates,
-          agentConfig.models?.summarizer
-        );
+      if (agent?.statusUpdates && agent.statusUpdates.enabled !== false) {
+        try {
+          // Get the default sub-agent to resolve models properly with inheritance
+
+          if (agent?.defaultSubAgentId) {
+            const resolvedModels = await resolveModelConfig(
+              executionContext,
+              agent.subAgents[agent.defaultSubAgentId]
+            );
+
+            agentSessionManager.initializeStatusUpdates(
+              requestId,
+              agentConfig.statusUpdates,
+              resolvedModels.summarizer,
+              resolvedModels.base
+            );
+          } else {
+            // Fallback to agent-level config if no default sub-agent
+            agentSessionManager.initializeStatusUpdates(
+              requestId,
+              agentConfig.statusUpdates,
+              agentConfig.models?.summarizer
+            );
+          }
+        } catch (modelError) {
+          logger.warn(
+            {
+              error: modelError instanceof Error ? modelError.message : 'Unknown error',
+              agentId,
+            },
+            'Failed to resolve models for status updates, using agent-level config'
+          );
+          // Fallback to agent-level config
+          agentSessionManager.initializeStatusUpdates(
+            requestId,
+            agentConfig.statusUpdates,
+            agentConfig.models?.summarizer
+          );
+        }
       }
     } catch (error) {
       logger.error(
@@ -132,6 +173,7 @@ export class ExecutionHandler {
           subAgentId: currentAgentId,
           contextId: conversationId,
           status: 'pending',
+          ref: resolvedRef,
           metadata: {
             conversation_id: conversationId,
             message_id: requestId,
@@ -151,11 +193,8 @@ export class ExecutionHandler {
           'Task created with metadata'
         );
       } catch (error: any) {
-        if (
-          error?.message?.includes('UNIQUE constraint failed') ||
-          error?.message?.includes('PRIMARY KEY constraint failed') ||
-          error?.code === 'SQLITE_CONSTRAINT_PRIMARYKEY'
-        ) {
+        // Handle duplicate task (PostgreSQL unique constraint violation)
+        if (error?.cause?.code === '23505') {
           logger.info(
             { taskId, error: error.message },
             'Task already exists, fetching existing task'
@@ -180,7 +219,7 @@ export class ExecutionHandler {
 
       logger.debug(
         {
-          timestamp: new Date().toISOString(),
+          timestamp: new Date(),
           executionType: 'create_initial_task',
           conversationId,
           agentId,
@@ -195,7 +234,8 @@ export class ExecutionHandler {
 
       let currentMessage = userMessage;
 
-      const maxTransfers = agentConfig?.stopWhen?.transferCountIs ?? 10;
+      const maxTransfers =
+        agentConfig?.stopWhen?.transferCountIs ?? AGENT_EXECUTION_TRANSFER_COUNT_DEFAULT;
 
       while (iterations < maxTransfers) {
         iterations++;
@@ -209,6 +249,7 @@ export class ExecutionHandler {
           scopes: { tenantId, projectId },
           conversationId,
         });
+
         logger.info({ activeAgent }, 'activeAgent');
         if (activeAgent && activeAgent.activeSubAgentId !== currentAgentId) {
           currentAgentId = activeAgent.activeSubAgentId;
@@ -223,6 +264,8 @@ export class ExecutionHandler {
             'x-inkeep-project-id': projectId,
             'x-inkeep-agent-id': agentId,
             'x-inkeep-sub-agent-id': currentAgentId,
+            // Forward user session headers for MCP tool authentication
+            ...(forwardedHeaders || {}),
           },
         });
 
@@ -230,11 +273,12 @@ export class ExecutionHandler {
 
         const messageMetadata: any = {
           stream_request_id: requestId, // This also serves as the AgentSession ID
+          // Pass forwardedHeaders so the task handler can extract them
+          forwardedHeaders: forwardedHeaders,
         };
         if (fromSubAgentId) {
           messageMetadata.fromSubAgentId = fromSubAgentId;
         }
-
         messageResponse = await a2aClient.sendMessage({
           message: {
             role: 'user',
@@ -258,7 +302,14 @@ export class ExecutionHandler {
         if (!messageResponse?.result) {
           errorCount++;
           logger.error(
-            { currentAgentId, iterations, errorCount },
+            {
+              currentAgentId,
+              iterations,
+              errorCount,
+              hasError: !!(messageResponse as any)?.error,
+              errorDetails: (messageResponse as any)?.error,
+              fullResponse: messageResponse,
+            },
             `No response from agent ${currentAgentId} on iteration ${iterations} (error ${errorCount}/${this.MAX_ERRORS})`
           );
 
@@ -282,7 +333,7 @@ export class ExecutionHandler {
               });
             }
 
-            agentSessionManager.endSession(requestId);
+            await agentSessionManager.endSession(requestId);
             unregisterStreamHelper(requestId);
             return { success: false, error: errorMessage, iterations };
           }
@@ -311,13 +362,39 @@ export class ExecutionHandler {
 
           logger.info({ targetSubAgentId, transferReason, transferFromAgent }, 'Transfer response');
 
-          currentMessage = `<transfer_context> ${transferReason} </transfer_context>`;
+          // Store the transfer response as an assistant message in conversation history
+          await createMessage(dbClient)({
+            id: generateId(),
+            tenantId,
+            projectId,
+            conversationId,
+            role: 'agent',
+            content: {
+              text: transferReason,
+              parts: [
+                {
+                  kind: 'text',
+                  text: transferReason,
+                },
+              ],
+            },
+            visibility: 'user-facing',
+            messageType: 'chat',
+            fromSubAgentId: currentAgentId,
+            taskId: task.id,
+          });
+          // Keep the original user message and add a continuation prompt
+          currentMessage =
+            currentMessage +
+            '\n\nPlease continue this conversation seamlessly. The previous response in conversation history was from another internal agent, but you must continue as if YOU made that response. All responses must appear as one unified agent - do not repeat what was already communicated.';
 
           const { success, targetSubAgentId: newAgentId } = await executeTransfer({
             projectId,
             tenantId,
             threadId: conversationId,
+            agentId: agentId,
             targetSubAgentId,
+            ref: resolvedRef,
           });
 
           if (success) {
@@ -379,12 +456,13 @@ export class ExecutionHandler {
               span.setAttributes({
                 'ai.response.content': textContent || 'No response content',
                 'ai.response.timestamp': new Date().toISOString(),
-                'ai.subAgent.name': currentAgentId,
+                'subAgent.name': project.agents[agentId]?.subAgents[currentAgentId]?.name,
+                'subAgent.id': currentAgentId,
               });
 
               // Store the agent response in the database with both text and parts
               await createMessage(dbClient)({
-                id: nanoid(),
+                id: generateId(),
                 tenantId,
                 projectId,
                 conversationId,
@@ -411,7 +489,7 @@ export class ExecutionHandler {
                   status: 'completed',
                   metadata: {
                     ...task.metadata,
-                    completed_at: new Date().toISOString(),
+                    completed_at: new Date(),
                     response: {
                       text: textContent,
                       parts: responseParts,
@@ -421,6 +499,7 @@ export class ExecutionHandler {
                   },
                 },
               });
+
               const updateTaskEnd = Date.now();
               logger.info(
                 { duration: updateTaskEnd - updateTaskStart },
@@ -435,26 +514,44 @@ export class ExecutionHandler {
 
               // End the AgentSession and clean up resources
               logger.info({}, 'Ending AgentSession and cleaning up');
-              agentSessionManager.endSession(requestId);
+              await agentSessionManager.endSession(requestId);
 
               // Clean up streamHelper
               logger.info({}, 'Cleaning up streamHelper');
               unregisterStreamHelper(requestId);
 
-              // Extract captured response if using MCPStreamHelper
+              // Extract captured response if using BufferingStreamHelper
               let response: string | undefined;
-              if (sseHelper instanceof MCPStreamHelper) {
+              if (sseHelper instanceof BufferingStreamHelper) {
                 const captured = sseHelper.getCapturedResponse();
                 response = captured.text || 'No response content';
               }
 
               logger.info({}, 'ExecutionHandler returning success');
+              // Trigger evaluation
+              if (!params.datasetRunId) {
+                triggerConversationEvaluationHttp({
+                  tenantId,
+                  projectId,
+                  conversationId,
+                }).catch((error) => {
+                  logger.error(
+                    { error, conversationId, tenantId, projectId },
+                    'Failed to trigger conversation evaluation (non-blocking)'
+                  );
+                });
+              }
+
               return { success: true, iterations, response };
             } catch (error) {
               setSpanWithError(span, error instanceof Error ? error : new Error(String(error)));
               throw error;
             } finally {
               span.end();
+              // Flush batch processor immediately after span ends to ensure it's sent to SignOz
+              // Use setImmediate to allow span to be processed before flushing
+              await new Promise((resolve) => setImmediate(resolve));
+              await flushBatchProcessor();
             }
           });
         }
@@ -479,15 +576,30 @@ export class ExecutionHandler {
                 status: 'failed',
                 metadata: {
                   ...task.metadata,
-                  failed_at: new Date().toISOString(),
+                  failed_at: new Date(),
                   error: errorMessage,
                 },
               },
             });
           }
 
-          agentSessionManager.endSession(requestId);
+          await agentSessionManager.endSession(requestId);
           unregisterStreamHelper(requestId);
+          // Trigger evaluation for regular conversations (not dataset runs)
+          if (!params.datasetRunId) {
+            triggerConversationEvaluationHttp({
+              tenantId,
+              projectId,
+              conversationId,
+              userId: getUserIdFromContext(executionContext),
+            }).catch((error) => {
+              logger.error(
+                { error, conversationId, tenantId, projectId },
+                'Failed to trigger conversation evaluation (non-blocking)'
+              );
+            });
+          }
+
           return { success: false, error: errorMessage, iterations };
         }
       }
@@ -507,14 +619,14 @@ export class ExecutionHandler {
             status: 'failed',
             metadata: {
               ...task.metadata,
-              failed_at: new Date().toISOString(),
+              failed_at: new Date(),
               error: errorMessage,
             },
           },
         });
       }
       // Clean up AgentSession and streamHelper on error
-      agentSessionManager.endSession(requestId);
+      await agentSessionManager.endSession(requestId);
       unregisterStreamHelper(requestId);
       return { success: false, error: errorMessage, iterations };
     } catch (error) {
@@ -535,14 +647,14 @@ export class ExecutionHandler {
             status: 'failed',
             metadata: {
               ...task.metadata,
-              failed_at: new Date().toISOString(),
+              failed_at: new Date(),
               error: errorMessage,
             },
           },
         });
       }
       // Clean up AgentSession and streamHelper on exception
-      agentSessionManager.endSession(requestId);
+      await agentSessionManager.endSession(requestId);
       unregisterStreamHelper(requestId);
       return { success: false, error: errorMessage, iterations };
     }

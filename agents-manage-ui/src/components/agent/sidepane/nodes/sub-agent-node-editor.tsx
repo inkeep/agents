@@ -1,6 +1,9 @@
 import type { Node } from '@xyflow/react';
+import { Trash2 } from 'lucide-react';
 import { useParams } from 'next/navigation';
 import { useCallback } from 'react';
+import { Button } from '@/components/ui/button';
+import { Checkbox } from '@/components/ui/checkbox';
 import {
   getExecutionLimitInheritanceStatus,
   InheritanceIndicator,
@@ -15,11 +18,12 @@ import { useNodeEditor } from '@/hooks/use-node-editor';
 import { useProjectData } from '@/hooks/use-project-data';
 import type { ArtifactComponent } from '@/lib/api/artifact-components';
 import type { DataComponent } from '@/lib/api/data-components';
+import { ExpandablePromptEditor } from '../../../editors/expandable-prompt-editor';
 import type { AgentNodeData } from '../../configuration/node-types';
+import { InputField } from '../form-components/input';
+import { TextareaField } from '../form-components/text-area';
 import { SectionHeader } from '../section';
 import { ComponentSelector } from './component-selector/component-selector';
-import { ExpandableTextArea } from './expandable-text-area';
-import { InputField, TextareaField } from './form-fields';
 import { ModelSection } from './model-section';
 
 const ExecutionLimitInheritanceInfo = () => {
@@ -64,11 +68,19 @@ export function SubAgentNodeEditor({
   }>();
   const selectedDataComponents = selectedNode.data?.dataComponents || [];
   const selectedArtifactComponents = selectedNode.data?.artifactComponents || [];
+  const isDefaultSubAgent = selectedNode.data?.isDefault || false;
 
   const { project } = useProjectData();
   const metadata = useAgentStore((state) => state.metadata);
 
-  const { updatePath, updateNestedPath, getFieldError, setFieldRef } = useNodeEditor({
+  const {
+    updatePath,
+    updateNestedPath,
+    getFieldError,
+    setFieldRef,
+    updateDefaultSubAgent,
+    deleteNode,
+  } = useNodeEditor({
     selectedNodeId: selectedNode.id,
     errorHelpers,
   });
@@ -106,7 +118,6 @@ export function SubAgentNodeEditor({
         onChange={(e) => updatePath('name', e.target.value)}
         placeholder="Support agent"
         error={getFieldError('name')}
-        isRequired
       />
       <InputField
         ref={(el) => setFieldRef('id', el)}
@@ -118,7 +129,6 @@ export function SubAgentNodeEditor({
         placeholder="my-agent"
         error={getFieldError('id')}
         description="Choose a unique identifier for this sub agent. Using an existing id will replace that sub agent."
-        isRequired
       />
       <TextareaField
         ref={(el) => setFieldRef('description', el)}
@@ -132,19 +142,30 @@ export function SubAgentNodeEditor({
       />
 
       <div className="space-y-2">
-        <ExpandableTextArea
-          id="prompt"
-          value={selectedNode.data.prompt || ''}
+        <ExpandablePromptEditor
+          key={selectedNode.id}
+          name="prompt"
+          value={selectedNode.data.prompt}
           onChange={(value) => updatePath('prompt', value)}
           placeholder="You are a helpful assistant..."
-          data-invalid={errorHelpers?.hasFieldError('prompt') ? '' : undefined}
-          className="w-full max-h-96 data-invalid:border-red-300 data-invalid:focus-visible:border-red-300 data-invalid:focus-visible:ring-red-300"
+          error={getFieldError('prompt')}
           label="Prompt"
-          isRequired
         />
-        {getFieldError('prompt') && (
-          <p className="text-sm text-red-600">{getFieldError('prompt')}</p>
-        )}
+      </div>
+      <div className="space-y-2">
+        <div className="flex items-center space-x-2">
+          <Checkbox
+            id="is-default-sub-agent"
+            checked={isDefaultSubAgent}
+            onCheckedChange={(checked) => {
+              updateDefaultSubAgent(checked === true);
+            }}
+          />
+          <Label htmlFor="is-default-sub-agent">Is default sub agent</Label>
+        </div>
+        <p className="text-xs text-muted-foreground">
+          The default sub agent is the initial entry point for conversations.
+        </p>
       </div>
       <Separator />
       <ModelSection
@@ -225,6 +246,17 @@ export function SubAgentNodeEditor({
         emptyStateActionHref={`/${tenantId}/projects/${projectId}/artifacts/new`}
         placeholder="Select artifacts..."
       />
+      {!isDefaultSubAgent && (
+        <>
+          <Separator />
+          <div className="flex justify-end">
+            <Button variant="destructive-outline" size="sm" onClick={deleteNode}>
+              <Trash2 className="size-4" />
+              Delete
+            </Button>
+          </div>
+        </>
+      )}
     </div>
   );
 }

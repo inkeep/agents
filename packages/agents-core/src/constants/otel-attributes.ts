@@ -12,12 +12,15 @@ export const SPAN_NAMES = {
   AGENT_GENERATION: 'agent.generate',
   CONTEXT_FETCHER: 'context-fetcher.http-request',
   ARTIFACT_PROCESSING: 'agent_session.process_artifact',
+  TOOL_APPROVAL_REQUESTED: 'tool.approval_requested',
+  TOOL_APPROVAL_APPROVED: 'tool.approval_approved',
+  TOOL_APPROVAL_DENIED: 'tool.approval_denied',
+  COMPRESSOR_SAFE_COMPRESS: 'compressor.safe_compress',
 } as const;
 
 export const AI_OPERATIONS = {
   GENERATE_TEXT: 'ai.generateText.doGenerate',
   STREAM_TEXT: 'ai.streamText.doStream',
-  STREAM_OBJECT: 'ai.streamObject.doStream',
 } as const;
 
 /** OpenTelemetry span attribute keys used for tracing */
@@ -37,10 +40,10 @@ export const SPAN_KEYS = {
   AGENT_NAME: 'agent.name',
   TENANT_ID: 'tenant.id',
   PROJECT_ID: 'project.id',
+  SUB_AGENT_NAME: 'subAgent.name',
+  SUB_AGENT_ID: 'subAgent.id',
 
   // AI/Agent attributes
-  AI_SUB_AGENT_NAME: 'ai.subAgentName',
-  AI_SUB_AGENT_NAME_ALT: 'ai.subAgent.name',
   AI_OPERATION_ID: 'ai.operationId',
   AI_RESPONSE_TIMESTAMP: 'ai.response.timestamp',
   AI_RESPONSE_CONTENT: 'ai.response.content',
@@ -51,6 +54,9 @@ export const SPAN_KEYS = {
   AI_PROMPT_MESSAGES: 'ai.prompt.messages',
   AI_MODEL_PROVIDER: 'ai.model.provider',
   AI_TELEMETRY_FUNCTION_ID: 'ai.telemetry.functionId',
+  AI_TELEMETRY_SUB_AGENT_ID: 'ai.telemetry.metadata.subAgentId',
+  AI_TELEMETRY_SUB_AGENT_NAME: 'ai.telemetry.metadata.subAgentName',
+  AI_TELEMETRY_METADATA_PHASE: 'ai.telemetry.metadata.phase',
   AI_MODEL_ID: 'ai.model.id',
 
   // Tool attributes
@@ -59,11 +65,11 @@ export const SPAN_KEYS = {
   AI_TOOL_CALL_ARGS: 'ai.toolCall.args',
   AI_TOOL_CALL_ID: 'ai.toolCall.id',
   AI_TOOL_TYPE: 'ai.toolType',
+  AI_TOOL_CALL_MCP_SERVER_ID: 'ai.toolCall.mcpServerId',
+  AI_TOOL_CALL_MCP_SERVER_NAME: 'ai.toolCall.mcpServerName',
   TOOL_PURPOSE: 'tool.purpose',
-
-  // SubAgent attributes
-  SUB_AGENT_ID: 'subagent.id',
-  SUB_AGENT_NAME: 'subagent.name',
+  TOOL_NAME: 'tool.name',
+  TOOL_CALL_ID: 'tool.callId',
 
   // Token usage
   GEN_AI_USAGE_INPUT_TOKENS: 'gen_ai.usage.input_tokens',
@@ -100,11 +106,24 @@ export const SPAN_KEYS = {
   // Artifact processing attributes
   ARTIFACT_ID: 'artifact.id',
   ARTIFACT_TYPE: 'artifact.type',
-  ARTIFACT_SUB_AGENT_ID: 'artifact.sub_agent_id',
   ARTIFACT_TOOL_CALL_ID: 'artifact.tool_call_id',
   ARTIFACT_DATA: 'artifact.data',
   ARTIFACT_NAME: 'artifact.name',
   ARTIFACT_DESCRIPTION: 'artifact.description',
+
+  // Context breakdown attributes (estimated token counts)
+  CONTEXT_BREAKDOWN_SYSTEM_TEMPLATE: 'context.breakdown.system_template_tokens',
+  CONTEXT_BREAKDOWN_CORE_INSTRUCTIONS: 'context.breakdown.core_instructions_tokens',
+  CONTEXT_BREAKDOWN_AGENT_PROMPT: 'context.breakdown.agent_prompt_tokens',
+  CONTEXT_BREAKDOWN_TOOLS: 'context.breakdown.tools_tokens',
+  CONTEXT_BREAKDOWN_ARTIFACTS: 'context.breakdown.artifacts_tokens',
+  CONTEXT_BREAKDOWN_DATA_COMPONENTS: 'context.breakdown.data_components_tokens',
+  CONTEXT_BREAKDOWN_ARTIFACT_COMPONENTS: 'context.breakdown.artifact_components_tokens',
+  CONTEXT_BREAKDOWN_TRANSFER_INSTRUCTIONS: 'context.breakdown.transfer_instructions_tokens',
+  CONTEXT_BREAKDOWN_DELEGATION_INSTRUCTIONS: 'context.breakdown.delegation_instructions_tokens',
+  CONTEXT_BREAKDOWN_THINKING_PREPARATION: 'context.breakdown.thinking_preparation_tokens',
+  CONTEXT_BREAKDOWN_CONVERSATION_HISTORY: 'context.breakdown.conversation_history_tokens',
+  CONTEXT_BREAKDOWN_TOTAL: 'context.breakdown.total_tokens',
 } as const;
 
 export const UNKNOWN_VALUE = 'unknown' as const;
@@ -119,7 +138,10 @@ export const ACTIVITY_TYPES = {
   USER_MESSAGE: 'user_message',
   AI_ASSISTANT_MESSAGE: 'ai_assistant_message',
   AI_MODEL_STREAMED_TEXT: 'ai_model_streamed_text',
-  AI_MODEL_STREAMED_OBJECT: 'ai_model_streamed_object',
+  TOOL_APPROVAL_REQUESTED: 'tool_approval_requested',
+  TOOL_APPROVAL_APPROVED: 'tool_approval_approved',
+  TOOL_APPROVAL_DENIED: 'tool_approval_denied',
+  COMPRESSION: 'compression',
 } as const;
 
 /** Activity Status Values */
@@ -127,6 +149,7 @@ export const ACTIVITY_STATUS = {
   SUCCESS: 'success',
   ERROR: 'error',
   PENDING: 'pending',
+  WARNING: 'warning',
 } as const;
 
 /** Agent IDs */
@@ -142,7 +165,6 @@ export const ACTIVITY_NAMES = {
   AI_ASSISTANT_MESSAGE: 'AI Assistant Message',
   AI_TEXT_GENERATION: 'AI Text Generation',
   AI_STREAMING_TEXT: 'AI Streaming Text',
-  AI_STREAMING_OBJECT: 'AI Streaming Object',
   UNKNOWN_AGENT: 'Unknown Agent',
   USER: 'User',
 } as const;

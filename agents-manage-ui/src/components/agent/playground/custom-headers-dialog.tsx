@@ -4,8 +4,8 @@ import { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { toast } from 'sonner';
 import { z } from 'zod';
+import { StandaloneJsonEditor } from '@/components/editors/standalone-json-editor';
 import { FormFieldWrapper } from '@/components/form/form-field-wrapper';
-import { JsonEditor } from '@/components/form/json-editor';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import {
@@ -39,7 +39,7 @@ const customHeadersSchema = z.object({
     }, 'All header values must be strings'),
 });
 
-export type CustomHeadersFormData = z.infer<typeof customHeadersSchema>;
+type CustomHeadersFormData = z.infer<typeof customHeadersSchema>;
 
 interface CustomHeadersDialogProps {
   customHeaders: Record<string, string>;
@@ -100,11 +100,16 @@ function CustomHeadersDialog({ customHeaders, setCustomHeaders }: CustomHeadersD
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
             <FormFieldWrapper control={form.control} name="headers" label="Custom headers">
               {(field) => (
-                <JsonEditor
-                  value={field.value || ''}
+                <StandaloneJsonEditor
+                  value={field.value}
                   onChange={field.onChange}
-                  placeholder="Enter headers..."
+                  placeholder={`{
+  "tz": "US/Pacific"
+}`}
                   {...field}
+                  customTemplate={`{
+  "tz": "US/Pacific"
+}`}
                 />
               )}
             </FormFieldWrapper>

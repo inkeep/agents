@@ -1,13 +1,15 @@
 import { defineProject } from 'vitest/config';
+import packageJson from './package.json' with { type: 'json' };
 
 export default defineProject({
   test: {
-    name: 'agents-core',
-    setupFiles: ['./src/__tests__/setup.ts'],
+    name: packageJson.name,
     globals: true,
     environment: 'node',
+    setupFiles: ['./src/__tests__/setup.ts'],
     testTimeout: 60000, // 60 seconds for A2A client tests
-    exclude: ['node_modules', 'dist'],
+    hookTimeout: 60000, // 60 seconds for setup/teardown hooks
+    exclude: ['node_modules', 'dist', '**/integration/**'],
     // Enable parallelism with in-memory databases - each worker gets isolated database
     fileParallelism: true,
     poolOptions: {
@@ -18,7 +20,6 @@ export default defineProject({
     },
     env: {
       ENVIRONMENT: 'test',
-      DB_FILE_NAME: ':memory:',
     },
   },
 });

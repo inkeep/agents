@@ -3,13 +3,19 @@
 import { ChevronRight, Info } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { type Control, useController, useFormState, useWatch } from 'react-hook-form';
+import { FieldLabel } from '@/components/agent/sidepane/form-components/label';
 import { ModelSelector } from '@/components/agent/sidepane/nodes/model-selector';
-import { ExpandableJsonEditor } from '@/components/form/expandable-json-editor';
+import { StandaloneJsonEditor } from '@/components/editors/standalone-json-editor';
 import { FormFieldWrapper } from '@/components/form/form-field-wrapper';
+import { ModelConfiguration } from '@/components/shared/model-configuration';
 import { Button } from '@/components/ui/button';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { InfoCard } from '@/components/ui/info-card';
 import { Label } from '@/components/ui/label';
+import {
+  structuredOutputModelProviderOptionsTemplate,
+  summarizerModelProviderOptionsTemplate,
+} from '@/lib/templates';
 import { ModelInheritanceInfo } from './model-inheritance-info';
 import type { ProjectFormData } from './validation';
 
@@ -33,38 +39,32 @@ function BaseModelSection({ control }: { control: Control<ProjectFormData> }) {
         isRequired
       >
         {(field) => (
-          <ModelSelector
+          <ModelConfiguration
+            value={field.value || ''}
+            providerOptions={
+              providerOptionsField.value ? JSON.stringify(providerOptionsField.value, null, 2) : ''
+            }
             label=""
             placeholder="Select base model"
-            value={field.value || ''}
-            onValueChange={field.onChange}
             canClear={false}
+            isRequired={true}
+            onModelChange={field.onChange}
+            onProviderOptionsChange={(value) => {
+              if (!value?.trim()) {
+                providerOptionsField.onChange(undefined);
+                return;
+              }
+              try {
+                const parsed = JSON.parse(value);
+                providerOptionsField.onChange(parsed);
+              } catch {
+                // Invalid JSON - don't update the field value
+              }
+            }}
+            editorNamePrefix="project-base"
           />
         )}
       </FormFieldWrapper>
-      <ExpandableJsonEditor
-        name="models.base.providerOptions"
-        label="Provider options"
-        value={
-          providerOptionsField.value ? JSON.stringify(providerOptionsField.value, null, 2) : ''
-        }
-        onChange={(value) => {
-          if (!value?.trim()) {
-            providerOptionsField.onChange(undefined);
-            return;
-          }
-          try {
-            const parsed = JSON.parse(value);
-            providerOptionsField.onChange(parsed);
-          } catch {
-            // Invalid JSON - don't update the field value
-          }
-        }}
-        placeholder={`{
-  "temperature": 0.7,
-  "maxTokens": 2048
-}`}
-      />
     </div>
   );
 }
@@ -96,29 +96,29 @@ function StructuredOutputModelSection({ control }: { control: Control<ProjectFor
           />
         )}
       </FormFieldWrapper>
-      <ExpandableJsonEditor
-        name="models.structuredOutput.providerOptions"
-        label="Provider options"
-        value={
-          providerOptionsField.value ? JSON.stringify(providerOptionsField.value, null, 2) : ''
-        }
-        onChange={(value) => {
-          if (!value?.trim()) {
-            providerOptionsField.onChange(undefined);
-            return;
+      <div className="space-y-2">
+        <FieldLabel id="models.structuredOutput.providerOptions" label="Provider options" />
+        <StandaloneJsonEditor
+          name="models.structuredOutput.providerOptions"
+          value={
+            providerOptionsField.value ? JSON.stringify(providerOptionsField.value, null, 2) : ''
           }
-          try {
-            const parsed = JSON.parse(value);
-            providerOptionsField.onChange(parsed);
-          } catch {
-            // Invalid JSON - don't update the field value
-          }
-        }}
-        placeholder={`{
-  "temperature": 0.1,
-  "maxTokens": 1024
-}`}
-      />
+          onChange={(value) => {
+            if (!value?.trim()) {
+              providerOptionsField.onChange(undefined);
+              return;
+            }
+            try {
+              const parsed = JSON.parse(value);
+              providerOptionsField.onChange(parsed);
+            } catch {
+              // Invalid JSON - don't update the field value
+            }
+          }}
+          placeholder={structuredOutputModelProviderOptionsTemplate}
+          customTemplate={structuredOutputModelProviderOptionsTemplate}
+        />
+      </div>
     </div>
   );
 }
@@ -150,29 +150,29 @@ function SummarizerModelSection({ control }: { control: Control<ProjectFormData>
           />
         )}
       </FormFieldWrapper>
-      <ExpandableJsonEditor
-        name="models.summarizer.providerOptions"
-        label="Provider options"
-        value={
-          providerOptionsField.value ? JSON.stringify(providerOptionsField.value, null, 2) : ''
-        }
-        onChange={(value) => {
-          if (!value?.trim()) {
-            providerOptionsField.onChange(undefined);
-            return;
+      <div className="space-y-2">
+        <FieldLabel id="models.summarizer.providerOptions" label="Provider options" />
+        <StandaloneJsonEditor
+          name="models.summarizer.providerOptions"
+          value={
+            providerOptionsField.value ? JSON.stringify(providerOptionsField.value, null, 2) : ''
           }
-          try {
-            const parsed = JSON.parse(value);
-            providerOptionsField.onChange(parsed);
-          } catch {
-            // Invalid JSON - don't update the field value
-          }
-        }}
-        placeholder={`{
-  "temperature": 0.3,
-  "maxTokens": 1024
-}`}
-      />
+          onChange={(value) => {
+            if (!value?.trim()) {
+              providerOptionsField.onChange(undefined);
+              return;
+            }
+            try {
+              const parsed = JSON.parse(value);
+              providerOptionsField.onChange(parsed);
+            } catch {
+              // Invalid JSON - don't update the field value
+            }
+          }}
+          placeholder={summarizerModelProviderOptionsTemplate}
+          customTemplate={summarizerModelProviderOptionsTemplate}
+        />
+      </div>
     </div>
   );
 }

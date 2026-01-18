@@ -63,7 +63,8 @@ For local development, create a `.env` file:
 ```bash
 # .env
 ENVIRONMENT=development
-DB_FILE_NAME=file:local.db
+INKEEP_AGENTS_RUN_DATABASE_URL=your_pg_database_url_here
+INKEEP_AGENTS_MANAGE_DATABASE_URL=your_doltgres_database_url_her
 ANTHROPIC_API_KEY=your_dev_key_here
 OPENAI_API_KEY=your_dev_key_here  # Optional
 USE_MOCKED_AI_SERVICES=false  # Set to true to use mocks

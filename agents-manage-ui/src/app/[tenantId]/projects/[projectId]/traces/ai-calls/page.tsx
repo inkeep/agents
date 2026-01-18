@@ -2,16 +2,12 @@
 
 import { useParams, useRouter, useSearchParams } from 'next/navigation';
 import { BodyTemplate } from '@/components/layout/body-template';
-import { MainContent } from '@/components/layout/main-content';
 import { AICallsBreakdown } from '@/components/traces/ai-calls-breakdown';
 
 export default function AICallsPage() {
   const router = useRouter();
-  const params = useParams();
+  const { tenantId, projectId } = useParams<{ tenantId: string; projectId: string }>();
   const searchParams = useSearchParams();
-
-  const tenantId = params.tenantId as string;
-  const projectId = params.projectId as string;
 
   const handleBackToTraces = () => {
     // Preserve the current search params when going back to traces
@@ -29,12 +25,10 @@ export default function AICallsPage() {
     <BodyTemplate
       breadcrumbs={[
         { label: 'Traces', href: `/${tenantId}/projects/${projectId}/traces` },
-        { label: 'AI Calls Breakdown' },
+        'AI Calls Breakdown',
       ]}
     >
-      <MainContent>
-        <AICallsBreakdown onBack={handleBackToTraces} />
-      </MainContent>
+      <AICallsBreakdown onBack={handleBackToTraces} />
     </BodyTemplate>
   );
 }

@@ -1,9 +1,10 @@
-import { nanoid } from 'nanoid';
+import { generateId } from '@inkeep/agents-core';
+import { createTestProject } from '@inkeep/agents-core/db/test-manage-client';
 import { describe, expect, it } from 'vitest';
-import { ensureTestProject } from '../../utils/testProject';
+import manageDbClient from '../../../data/db/dbClient';
 import { makeRequest } from '../../utils/testRequest';
 import { createTestSubAgentData } from '../../utils/testSubAgent';
-import { createTestTenantId } from '../../utils/testTenant';
+import { createTestTenantWithOrg } from '../../utils/testTenant';
 
 describe('Agent CRUD Routes - Integration Tests', () => {
   const projectId = 'default';
@@ -14,7 +15,7 @@ describe('Agent CRUD Routes - Integration Tests', () => {
   }: {
     defaultSubAgentId?: string | null;
   } = {}) => {
-    const id = nanoid();
+    const id = generateId();
     return {
       id,
       name: id, // Use the same ID as the name for test consistency
@@ -94,8 +95,8 @@ describe('Agent CRUD Routes - Integration Tests', () => {
 
   describe('GET /', () => {
     it('should list agents with pagination (empty initially)', async () => {
-      const tenantId = createTestTenantId('agent-agent-list-empty');
-      await ensureTestProject(tenantId, projectId);
+      const tenantId = await createTestTenantWithOrg('agent-agent-list-empty');
+      await createTestProject(manageDbClient, tenantId, projectId);
       const res = await makeRequest(
         `/tenants/${tenantId}/projects/${projectId}/agents?page=1&limit=10`
       );
@@ -114,11 +115,11 @@ describe('Agent CRUD Routes - Integration Tests', () => {
     });
 
     it('should list agents with pagination (single item)', async () => {
-      const tenantId = createTestTenantId('agent-agent-list-single');
-      await ensureTestProject(tenantId, projectId);
+      const tenantId = await createTestTenantWithOrg('agent-agent-list-single');
+      await createTestProject(manageDbClient, tenantId, projectId);
 
       // Create agent first
-      const { agentData, agentId } = await createTestAgent({
+      const { agentId } = await createTestAgent({
         tenantId,
       });
 
@@ -152,18 +153,18 @@ describe('Agent CRUD Routes - Integration Tests', () => {
     });
 
     it('should handle pagination with multiple pages (small page size)', async () => {
-      const tenantId = createTestTenantId('agent-agent-list-multipages');
-      await ensureTestProject(tenantId, projectId);
+      const tenantId = await createTestTenantWithOrg('agent-agent-list-multipages');
+      await createTestProject(manageDbClient, tenantId, projectId);
       await createMultipleAgents({ tenantId, count: 5 });
 
+      // Test first page
       const page1Res = await makeRequest(
         `/tenants/${tenantId}/projects/${projectId}/agents?page=1&limit=2`
       );
       expect(page1Res.status).toBe(200);
 
       const page1Body = await page1Res.json();
-      // Note: The current implementation doesn't actually paginate, it returns all items
-      expect(page1Body.data).toHaveLength(5);
+      expect(page1Body.data).toHaveLength(2);
       expect(page1Body.pagination).toEqual({
         page: 1,
         limit: 2,
@@ -171,18 +172,39 @@ describe('Agent CRUD Routes - Integration Tests', () => {
         pages: 3,
       });
 
-      // Verify all agents are present
+      // Verify all returned agents belong to the tenant
       expect(page1Body.data.every((g: any) => g.tenantId === tenantId)).toBe(true);
+
+      // Test second page
+      const page2Res = await makeRequest(
+        `/tenants/${tenantId}/projects/${projectId}/agents?page=2&limit=2`
+      );
+      expect(page2Res.status).toBe(200);
+
+      const page2Body = await page2Res.json();
+      expect(page2Body.data).toHaveLength(2);
+      expect(page2Body.pagination).toEqual({
+        page: 2,
+        limit: 2,
+        total: 5,
+        pages: 3,
+      });
+
+      // Ensure no overlap between pages
+      const page1Ids = page1Body.data.map((g: any) => g.id);
+      const page2Ids = page2Body.data.map((g: any) => g.id);
+      const intersection = page1Ids.filter((id: string) => page2Ids.includes(id));
+      expect(intersection).toHaveLength(0);
     });
   });
 
   describe('GET /{id}', () => {
     it('should get an agent by id', async () => {
-      const tenantId = createTestTenantId('agent-agent-get-by-id');
-      await ensureTestProject(tenantId, projectId);
+      const tenantId = await createTestTenantWithOrg('agent-agent-get-by-id');
+      await createTestProject(manageDbClient, tenantId, projectId);
 
       // Create agent first
-      const { agentData, agentId } = await createTestAgent({
+      const { agentId } = await createTestAgent({
         tenantId,
       });
 
@@ -209,8 +231,8 @@ describe('Agent CRUD Routes - Integration Tests', () => {
     });
 
     it('should return 404 when agent not found', async () => {
-      const tenantId = createTestTenantId('agent-agent-get-not-found');
-      await ensureTestProject(tenantId, projectId);
+      const tenantId = await createTestTenantWithOrg('agent-agent-get-not-found');
+      await createTestProject(manageDbClient, tenantId, projectId);
       const res = await makeRequest(
         `/tenants/${tenantId}/projects/${projectId}/agents/non-existent-id`
       );
@@ -230,8 +252,8 @@ describe('Agent CRUD Routes - Integration Tests', () => {
     });
 
     it('should return RFC 7807-compliant problem details JSON and header for 404', async () => {
-      const tenantId = createTestTenantId('agent-agent-problem-details-404');
-      await ensureTestProject(tenantId, projectId);
+      const tenantId = await createTestTenantWithOrg('agent-agent-problem-details-404');
+      await createTestProject(manageDbClient, tenantId, projectId);
       const res = await makeRequest(
         `/tenants/${tenantId}/projects/${projectId}/agents/non-existent-id`
       );
@@ -254,8 +276,8 @@ describe('Agent CRUD Routes - Integration Tests', () => {
 
   describe('POST /', () => {
     it('should create a new agent', async () => {
-      const tenantId = createTestTenantId('agent-agent-create-success');
-      await ensureTestProject(tenantId, projectId);
+      const tenantId = await createTestTenantWithOrg('agent-agent-create-success');
+      await createTestProject(manageDbClient, tenantId, projectId);
 
       // Create a temporary agent first for the agent
       const tempAgent = await createTestAgent({ tenantId });
@@ -280,8 +302,8 @@ describe('Agent CRUD Routes - Integration Tests', () => {
     });
 
     it('should validate required fields', async () => {
-      const tenantId = createTestTenantId('agent-agent-create-validation');
-      await ensureTestProject(tenantId, projectId);
+      const tenantId = await createTestTenantWithOrg('agent-agent-create-validation');
+      await createTestProject(manageDbClient, tenantId, projectId);
       const res = await makeRequest(`/tenants/${tenantId}/projects/${projectId}/agents`, {
         method: 'POST',
         body: JSON.stringify({}),
@@ -293,14 +315,14 @@ describe('Agent CRUD Routes - Integration Tests', () => {
 
   describe('PUT /{id}', () => {
     it('should update an existing agent', async () => {
-      const tenantId = createTestTenantId('agent-agent-update-success');
-      await ensureTestProject(tenantId, projectId);
+      const tenantId = await createTestTenantWithOrg('agent-agent-update-success');
+      await createTestProject(manageDbClient, tenantId, projectId);
 
       // Create the agent first
       const { agentId } = await createTestAgent({ tenantId });
 
       // Create agents with the agentId
-      const { subAgentId: originalAgentId } = await createTestSubAgent({
+      await createTestSubAgent({
         tenantId,
         agentId,
         suffix: ' Original',
@@ -334,8 +356,8 @@ describe('Agent CRUD Routes - Integration Tests', () => {
     });
 
     it('should return 404 when updating non-existent agent', async () => {
-      const tenantId = createTestTenantId('agent-agent-update-not-found');
-      await ensureTestProject(tenantId, projectId);
+      const tenantId = await createTestTenantWithOrg('agent-agent-update-not-found');
+      await createTestProject(manageDbClient, tenantId, projectId);
 
       // Create an agent for the agent
       const tempAgent = await createTestAgent({ tenantId });
@@ -358,8 +380,8 @@ describe('Agent CRUD Routes - Integration Tests', () => {
 
   describe('DELETE /{id}', () => {
     it('should delete an existing agent', async () => {
-      const tenantId = createTestTenantId('agent-agent-delete-success');
-      await ensureTestProject(tenantId, projectId);
+      const tenantId = await createTestTenantWithOrg('agent-agent-delete-success');
+      await createTestProject(manageDbClient, tenantId, projectId);
 
       // Create agent first
       const { agentId } = await createTestAgent({ tenantId });
@@ -390,8 +412,8 @@ describe('Agent CRUD Routes - Integration Tests', () => {
     });
 
     it('should return 404 when deleting non-existent agent', async () => {
-      const tenantId = createTestTenantId('agent-agent-delete-not-found');
-      await ensureTestProject(tenantId, projectId);
+      const tenantId = await createTestTenantWithOrg('agent-agent-delete-not-found');
+      await createTestProject(manageDbClient, tenantId, projectId);
       const res = await makeRequest(
         `/tenants/${tenantId}/projects/${projectId}/agents/non-existent-id`,
         {
@@ -406,8 +428,8 @@ describe('Agent CRUD Routes - Integration Tests', () => {
 
   describe('GET /{agentId}/sub-agents/{subAgentId}/related', () => {
     it('should get related agent infos (empty initially)', async () => {
-      const tenantId = createTestTenantId('agent-agent-related-empty');
-      await ensureTestProject(tenantId, projectId);
+      const tenantId = await createTestTenantWithOrg('agent-agent-related-empty');
+      await createTestProject(manageDbClient, tenantId, projectId);
 
       // Create agent first
       const { agentId } = await createTestAgent({ tenantId });
@@ -441,8 +463,8 @@ describe('Agent CRUD Routes - Integration Tests', () => {
 
   describe('GET /{agentId}/full', () => {
     it('should get full agent definition with basic structure', async () => {
-      const tenantId = createTestTenantId('agent-agent-full-basic');
-      await ensureTestProject(tenantId, projectId);
+      const tenantId = await createTestTenantWithOrg('agent-agent-full-basic');
+      await createTestProject(manageDbClient, tenantId, projectId);
 
       // Create agent first
       const { agentId } = await createTestAgent({ tenantId });
@@ -486,8 +508,8 @@ describe('Agent CRUD Routes - Integration Tests', () => {
     });
 
     it('should return 404 when agent not found', async () => {
-      const tenantId = createTestTenantId('agent-agent-full-not-found');
-      await ensureTestProject(tenantId, projectId);
+      const tenantId = await createTestTenantWithOrg('agent-agent-full-not-found');
+      await createTestProject(manageDbClient, tenantId, projectId);
       const res = await makeRequest(
         `/tenants/${tenantId}/projects/${projectId}/agents/non-existent-agent/full`
       );
@@ -507,8 +529,8 @@ describe('Agent CRUD Routes - Integration Tests', () => {
     });
 
     it('should include multiple agents when agent has relationships', async () => {
-      const tenantId = createTestTenantId('agent-agent-full-multiple-agents');
-      await ensureTestProject(tenantId, projectId);
+      const tenantId = await createTestTenantWithOrg('agent-agent-full-multiple-agents');
+      await createTestProject(manageDbClient, tenantId, projectId);
 
       // Create the agent first
       const { agentId } = await createTestAgent({ tenantId });
@@ -593,8 +615,8 @@ describe('Agent CRUD Routes - Integration Tests', () => {
     });
 
     it('should handle empty agent with just default agent', async () => {
-      const tenantId = createTestTenantId('agent-agent-full-empty');
-      await ensureTestProject(tenantId, projectId);
+      const tenantId = await createTestTenantWithOrg('agent-agent-full-empty');
+      await createTestProject(manageDbClient, tenantId, projectId);
 
       // Create the agent first
       const { agentId } = await createTestAgent({ tenantId });

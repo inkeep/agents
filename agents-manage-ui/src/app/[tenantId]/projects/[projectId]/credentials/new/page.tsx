@@ -1,7 +1,6 @@
 import { KeyRound, Search } from 'lucide-react';
 import type { ReactNode } from 'react';
 import { BodyTemplate } from '@/components/layout/body-template';
-import { MainContent } from '@/components/layout/main-content';
 import {
   PageHeader,
   PageHeaderContent,
@@ -26,9 +25,7 @@ interface CredentialOption {
 
 async function NewCredentialsPage({
   params,
-}: {
-  params: Promise<{ tenantId: string; projectId: string }>;
-}) {
+}: PageProps<'/[tenantId]/projects/[projectId]/credentials/new'>) {
   const { tenantId, projectId } = await params;
 
   const credentialStoresStatus = await listCredentialStores(tenantId, projectId);
@@ -86,8 +83,9 @@ async function NewCredentialsPage({
         <div className="text-muted-foreground text-sm font-normal space-y-2">
           <p className="mb-8">Create credentials for your MCP servers.</p>
           <p>
-            Nango Store is recommended to create credentials. Otherwise, make sure Keychain Store is available.
-            <ExternalLink href={`${DOCS_BASE_URL}/get-started/credentials`}>
+            Nango Store is recommended to create credentials. Otherwise, make sure Keychain Store is
+            available.
+            <ExternalLink href={`${DOCS_BASE_URL}/typescript-sdk/credentials/overview`}>
               Learn more
             </ExternalLink>
           </p>
@@ -103,20 +101,18 @@ async function NewCredentialsPage({
           label: 'Credentials',
           href: `/${tenantId}/projects/${projectId}/credentials`,
         },
-        { label: 'New credential' },
+        'New credential',
       ]}
     >
-      <MainContent>
-        {pageHeaderComponent}
-        <ItemCardGrid
-          items={credentialOptions}
-          getKey={(option) => option.id}
-          getHref={(option) => option.href}
-          renderHeader={renderCredentialHeader}
-          renderContent={renderCredentialContent}
-          isDisabled={(option) => option.isDisabled ?? false}
-        />
-      </MainContent>
+      {pageHeaderComponent}
+      <ItemCardGrid
+        items={credentialOptions}
+        getKey={(option) => option.id}
+        getHref={(option) => option.href}
+        renderHeader={renderCredentialHeader}
+        renderContent={renderCredentialContent}
+        isDisabled={(option) => option.isDisabled ?? false}
+      />
     </BodyTemplate>
   );
 }

@@ -1,58 +1,52 @@
-import { createTask, subAgents, tasks } from '@inkeep/agents-core';
-import { nanoid } from 'nanoid';
+import { createTask, generateId, tasks } from '@inkeep/agents-core';
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 import dbClient from '../../data/db/dbClient';
-import { ensureTestProject } from '../utils/testProject';
 
 describe('Delegation Task Creation Fixes', () => {
-  const tenantId = 'math-tenant';
   const projectId = 'default';
   let conversationId: string;
 
   beforeAll(async () => {
-    // Ensure project exists for this tenant
-    await ensureTestProject(tenantId, projectId);
-
-    // Import necessary modules
-    const { agents: agent } = await import('@inkeep/agents-core');
-
-    // Create a test agent first
-    const agentId = 'test-agent';
-    await dbClient.insert(agent).values({
-      id: agentId,
-      tenantId: tenantId,
-      projectId: projectId,
-      name: 'Test Agent',
-      defaultSubAgentId: 'math-supervisor',
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
-    });
-
-    // Create test agents with agentId
-    await dbClient.insert(subAgents).values([
-      {
-        id: 'math-supervisor',
-        tenantId: tenantId,
-        projectId: projectId,
-        agentId: agentId,
-        name: 'Math Supervisor',
-        description: 'Supervises math operations',
-        prompt: 'Handle math supervision tasks',
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString(),
-      },
-      {
-        id: 'number-producer-a',
-        tenantId: tenantId,
-        projectId: projectId,
-        agentId: agentId,
-        name: 'Number Producer A',
-        description: 'Produces numbers for math operations',
-        prompt: 'Generate numbers as needed',
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString(),
-      },
-    ]);
+    //TODO: add this back when we have cross db foreign key constraints
+    // await createTestProject(dbClient, tenantId, projectId);
+    // // Import necessary modules
+    // const { agents: agent } = await import('@inkeep/agents-core');
+    // // Create a test agent first
+    // const agentId = 'test-agent';
+    // await dbClient.insert(agent).values({
+    //   id: agentId,
+    //   tenantId: tenantId,
+    //   projectId: projectId,
+    //   name: 'Test Agent',
+    //   defaultSubAgentId: 'math-supervisor',
+    //   createdAt: new Date().toISOString(),
+    //   updatedAt: new Date().toISOString(),
+    // });
+    // // Create test agents with agentId
+    // await dbClient.insert(subAgents).values([
+    //   {
+    //     id: 'math-supervisor',
+    //     tenantId: tenantId,
+    //     projectId: projectId,
+    //     agentId: agentId,
+    //     name: 'Math Supervisor',
+    //     description: 'Supervises math operations',
+    //     prompt: 'Handle math supervision tasks',
+    //     createdAt: new Date().toISOString(),
+    //     updatedAt: new Date().toISOString(),
+    //   },
+    //   {
+    //     id: 'number-producer-a',
+    //     tenantId: tenantId,
+    //     projectId: projectId,
+    //     agentId: agentId,
+    //     name: 'Number Producer A',
+    //     description: 'Produces numbers for math operations',
+    //     prompt: 'Generate numbers as needed',
+    //     createdAt: new Date().toISOString(),
+    //     updatedAt: new Date().toISOString(),
+    //   },
+    // ]);
   });
 
   beforeEach(() => {
@@ -60,14 +54,13 @@ describe('Delegation Task Creation Fixes', () => {
   });
 
   afterAll(async () => {
-    // Clean up test data
+    // Clean up test data in reverse order of creation
     await dbClient.delete(tasks);
-    await dbClient.delete(subAgents);
   });
 
   it('should create tasks with correct contextId and message content', async () => {
     // Test the createTask function directly
-    const taskId = `test-task-${nanoid()}`;
+    const taskId = `test-task-${generateId()}`;
     const _userMessage = 'Please help me with delegation testing';
 
     const task = await createTask(dbClient)({
@@ -78,6 +71,7 @@ describe('Delegation Task Creation Fixes', () => {
       subAgentId: 'math-supervisor', // Use existing agent from database
       contextId: conversationId,
       status: 'pending',
+      ref: { type: 'branch', name: 'main', hash: 'test' },
       metadata: {
         conversation_id: conversationId,
         message_id: 'test-msg-123',
@@ -97,7 +91,7 @@ describe('Delegation Task Creation Fixes', () => {
     const messageToSend = {
       role: 'agent' as const,
       parts: [{ text: 'Generate a number between 0-50', kind: 'text' as const }],
-      messageId: nanoid(),
+      messageId: generateId(),
       kind: 'message' as const,
       contextId: conversationId,
       metadata: {
@@ -142,7 +136,7 @@ describe('Delegation Task Creation Fixes', () => {
   it('should create fallback message content when message is empty', async () => {
     // Test the fallback message logic from A2A handlers
     const emptyMessage = undefined;
-    const taskId = `task-${nanoid()}`;
+    const taskId = `task-${generateId()}`;
     const effectiveContextId = conversationId;
 
     let messageContent = '';
@@ -172,13 +166,14 @@ describe('Delegation Task Creation Fixes', () => {
     const _testMessage = 'Test delegation message';
 
     const task = await createTask(dbClient)({
-      id: `delegation-test-${nanoid()}`,
+      id: `delegation-test-${generateId()}`,
       tenantId: 'math-tenant', // Use correct tenant for existing agents
       projectId: projectId,
       agentId: 'test-agent',
       subAgentId: 'number-producer-a',
       contextId: testContextId,
       status: 'working',
+      ref: { type: 'branch', name: 'main', hash: 'test' },
       metadata: {
         conversation_id: testContextId,
         message_id: 'test-msg-456',

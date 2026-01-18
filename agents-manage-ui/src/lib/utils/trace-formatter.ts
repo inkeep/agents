@@ -5,7 +5,7 @@
 
 import type { ActivityItem, ConversationDetail } from '@/components/traces/timeline/types';
 
-export interface PrettifiedTrace {
+interface PrettifiedTrace {
   metadata: {
     conversationId: string;
     traceId?: string;
@@ -15,18 +15,57 @@ export interface PrettifiedTrace {
   };
   timing: {
     startTime: string;
-    endTime: string ;
+    endTime: string;
     durationMs: number;
   };
-  timeline: Omit<ActivityItem, 'id' | 'timestamp'>[];
+  timeline: Omit<ActivityItem, 'id'>[];
+}
+
+/**
+ * Priority fields that should appear first, in this order
+ */
+const PRIORITY_FIELDS = [
+  'subAgentId',
+  'subAgentName',
+  'type',
+  'description',
+  'status',
+  'timestamp',
+];
+
+/**
+ * Orders object keys with priority fields first, then alphabetically
+ */
+function orderObjectKeys<T extends Record<string, any>>(obj: T): T {
+  const priorityKeys: string[] = [];
+  const remainingKeys: string[] = [];
+
+  // Separate keys into priority and remaining
+  for (const key of Object.keys(obj)) {
+    if (PRIORITY_FIELDS.includes(key)) {
+      priorityKeys.push(key);
+    } else {
+      remainingKeys.push(key);
+    }
+  }
+
+  priorityKeys.sort((a, b) => {
+    return PRIORITY_FIELDS.indexOf(a) - PRIORITY_FIELDS.indexOf(b);
+  });
+
+  remainingKeys.sort();
+  const result = {} as T;
+  for (const key of [...priorityKeys, ...remainingKeys]) {
+    result[key as keyof T] = obj[key as keyof T];
+  }
+
+  return result;
 }
 
 /**
  * Formats conversation detail data into a prettified OTEL trace structure
  */
-export function formatConversationAsPrettifiedTrace(
-  conversation: ConversationDetail,
-): PrettifiedTrace {
+function formatConversationAsPrettifiedTrace(conversation: ConversationDetail): PrettifiedTrace {
   const trace: PrettifiedTrace = {
     metadata: {
       conversationId: conversation.conversationId,
@@ -36,17 +75,20 @@ export function formatConversationAsPrettifiedTrace(
       exportedAt: new Date().toISOString(),
     },
     timing: {
-      startTime: conversation.conversationStartTime || '',
-      endTime: conversation.conversationEndTime || '',
-      durationMs: conversation.duration
+      startTime: conversation.conversationStartTime
+        ? new Date(conversation.conversationStartTime).toISOString()
+        : '',
+      endTime: conversation.conversationEndTime
+        ? new Date(conversation.conversationEndTime).toISOString()
+        : '',
+      durationMs: conversation.duration,
     },
     timeline: (conversation.activities || []).map((activity) => {
-        // Destructure to exclude unwanted fields
-        const { id: _id, timestamp: _timestamp, ...rest } = activity;
-        return {
-          ...rest
-        };
-      }),
+      // Destructure to exclude unwanted fields
+      const { id: _id, ...rest } = activity;
+      // Order the fields according to hierarchy
+      return orderObjectKeys(rest);
+    }),
   };
 
   return trace;
@@ -55,7 +97,7 @@ export function formatConversationAsPrettifiedTrace(
 /**
  * Converts the trace to a prettified JSON string
  */
-export function traceToJSON(trace: PrettifiedTrace, indent = 2): string {
+function traceToJSON(trace: PrettifiedTrace, indent = 2): string {
   return JSON.stringify(trace, null, indent);
 }
 
@@ -63,7 +105,7 @@ export function traceToJSON(trace: PrettifiedTrace, indent = 2): string {
  * Copies the prettified trace to clipboard with compact defaults
  */
 export async function copyTraceToClipboard(
-  conversation: ConversationDetail,
+  conversation: ConversationDetail
 ): Promise<{ success: boolean; error?: string }> {
   try {
     const trace = formatConversationAsPrettifiedTrace(conversation);

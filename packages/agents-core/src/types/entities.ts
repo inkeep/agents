@@ -1,4 +1,4 @@
-import type { z } from 'zod';
+import type { z } from '@hono/zod-openapi';
 import type {
   AgentApiInsertSchema,
   AgentApiSelectSchema,
@@ -7,6 +7,8 @@ import type {
   AgentSelectSchema,
   AgentUpdateSchema,
   AgentWithinContextOfProjectSchema,
+  AgentWithinContextOfProjectSelectSchema,
+  AgentWithinContextOfProjectSelectSchemaWithRelationIds,
   AllAgentSchema,
   ApiKeyApiCreationResponseSchema,
   ApiKeyApiInsertSchema,
@@ -21,6 +23,7 @@ import type {
   ArtifactComponentInsertSchema,
   ArtifactComponentSelectSchema,
   ArtifactComponentUpdateSchema,
+  CanUseItemSchema,
   ContextCacheApiInsertSchema,
   ContextCacheApiSelectSchema,
   ContextCacheApiUpdateSchema,
@@ -45,12 +48,63 @@ import type {
   CredentialReferenceInsertSchema,
   CredentialReferenceSelectSchema,
   CredentialReferenceUpdateSchema,
+  canDelegateToExternalAgentInsertSchema,
+  canDelegateToExternalAgentSchema,
+  canDelegateToTeamAgentInsertSchema,
+  canDelegateToTeamAgentSchema,
+  canRelateToInternalSubAgentSchema,
   DataComponentApiInsertSchema,
   DataComponentApiSelectSchema,
   DataComponentApiUpdateSchema,
   DataComponentInsertSchema,
   DataComponentSelectSchema,
   DataComponentUpdateSchema,
+  DatasetInsertSchema,
+  DatasetItemInsertSchema,
+  DatasetItemSelectSchema,
+  DatasetItemUpdateSchema,
+  DatasetRunConfigAgentRelationInsertSchema,
+  DatasetRunConfigAgentRelationSelectSchema,
+  DatasetRunConfigAgentRelationUpdateSchema,
+  DatasetRunConfigInsertSchema,
+  DatasetRunConfigSelectSchema,
+  DatasetRunConfigUpdateSchema,
+  DatasetRunConversationRelationInsertSchema,
+  DatasetRunConversationRelationSelectSchema,
+  DatasetRunConversationRelationUpdateSchema,
+  DatasetRunInsertSchema,
+  DatasetRunSelectSchema,
+  DatasetRunUpdateSchema,
+  DatasetSelectSchema,
+  DatasetUpdateSchema,
+  EvaluationJobConfigEvaluatorRelationInsertSchema,
+  EvaluationJobConfigEvaluatorRelationSelectSchema,
+  EvaluationJobConfigEvaluatorRelationUpdateSchema,
+  EvaluationJobConfigInsertSchema,
+  EvaluationJobConfigSelectSchema,
+  EvaluationJobConfigUpdateSchema,
+  EvaluationResultInsertSchema,
+  EvaluationResultSelectSchema,
+  EvaluationResultUpdateSchema,
+  EvaluationRunConfigEvaluationSuiteConfigRelationInsertSchema,
+  EvaluationRunConfigEvaluationSuiteConfigRelationSelectSchema,
+  EvaluationRunConfigEvaluationSuiteConfigRelationUpdateSchema,
+  EvaluationRunConfigInsertSchema,
+  EvaluationRunConfigSelectSchema,
+  EvaluationRunConfigUpdateSchema,
+  EvaluationRunConfigWithSuiteConfigsApiSelectSchema,
+  EvaluationRunInsertSchema,
+  EvaluationRunSelectSchema,
+  EvaluationRunUpdateSchema,
+  EvaluationSuiteConfigEvaluatorRelationInsertSchema,
+  EvaluationSuiteConfigEvaluatorRelationSelectSchema,
+  EvaluationSuiteConfigEvaluatorRelationUpdateSchema,
+  EvaluationSuiteConfigInsertSchema,
+  EvaluationSuiteConfigSelectSchema,
+  EvaluationSuiteConfigUpdateSchema,
+  EvaluatorInsertSchema,
+  EvaluatorSelectSchema,
+  EvaluatorUpdateSchema,
   ExternalAgentApiInsertSchema,
   ExternalAgentApiSelectSchema,
   ExternalAgentApiUpdateSchema,
@@ -62,7 +116,11 @@ import type {
   FetchConfigSchema,
   FetchDefinitionSchema,
   FullAgentAgentInsertSchema,
+  FullAgentSubAgentSelectSchema,
+  FullAgentSubAgentSelectSchemaWithRelationIds,
   FullProjectDefinitionSchema,
+  FullProjectSelectSchema,
+  FullProjectSelectSchemaWithRelationIds,
   FunctionApiInsertSchema,
   FunctionApiSelectSchema,
   FunctionApiUpdateSchema,
@@ -91,6 +149,8 @@ import type {
   ProjectApiSelectSchema,
   ProjectApiUpdateSchema,
   ProjectInsertSchema,
+  ProjectMetadataInsertSchema,
+  ProjectMetadataSelectSchema,
   ProjectSelectSchema,
   ProjectUpdateSchema,
   SubAgentApiInsertSchema,
@@ -108,6 +168,12 @@ import type {
   SubAgentDataComponentInsertSchema,
   SubAgentDataComponentSelectSchema,
   SubAgentDataComponentUpdateSchema,
+  SubAgentExternalAgentRelationApiInsertSchema,
+  SubAgentExternalAgentRelationApiSelectSchema,
+  SubAgentExternalAgentRelationApiUpdateSchema,
+  SubAgentExternalAgentRelationInsertSchema,
+  SubAgentExternalAgentRelationSelectSchema,
+  SubAgentExternalAgentRelationUpdateSchema,
   SubAgentInsertSchema,
   SubAgentRelationApiInsertSchema,
   SubAgentRelationApiSelectSchema,
@@ -117,6 +183,12 @@ import type {
   SubAgentRelationSelectSchema,
   SubAgentRelationUpdateSchema,
   SubAgentSelectSchema,
+  SubAgentTeamAgentRelationApiInsertSchema,
+  SubAgentTeamAgentRelationApiSelectSchema,
+  SubAgentTeamAgentRelationApiUpdateSchema,
+  SubAgentTeamAgentRelationInsertSchema,
+  SubAgentTeamAgentRelationSelectSchema,
+  SubAgentTeamAgentRelationUpdateSchema,
   SubAgentToolRelationApiInsertSchema,
   SubAgentToolRelationApiSelectSchema,
   SubAgentToolRelationApiUpdateSchema,
@@ -142,7 +214,101 @@ import type {
   ToolInsertSchema,
   ToolSelectSchema,
   ToolUpdateSchema,
+  TriggerBatchConversationEvaluationSchema,
+  TriggerConversationEvaluationSchema,
+  TriggerDatasetRunSchema,
+  TriggerEvaluationJobSchema,
 } from '../validation/schemas';
+
+export type DatasetRunSelect = z.infer<typeof DatasetRunSelectSchema>;
+export type DatasetRunInsert = z.infer<typeof DatasetRunInsertSchema>;
+export type DatasetRunUpdate = z.infer<typeof DatasetRunUpdateSchema>;
+export type DatasetRunConversationRelationSelect = z.infer<
+  typeof DatasetRunConversationRelationSelectSchema
+>;
+export type DatasetRunConversationRelationInsert = z.infer<
+  typeof DatasetRunConversationRelationInsertSchema
+>;
+export type DatasetRunConversationRelationUpdate = z.infer<
+  typeof DatasetRunConversationRelationUpdateSchema
+>;
+
+export type EvaluationResultSelect = z.infer<typeof EvaluationResultSelectSchema>;
+export type EvaluationResultInsert = z.infer<typeof EvaluationResultInsertSchema>;
+export type EvaluationResultUpdate = z.infer<typeof EvaluationResultUpdateSchema>;
+export type EvaluationRunSelect = z.infer<typeof EvaluationRunSelectSchema>;
+export type EvaluationRunInsert = z.infer<typeof EvaluationRunInsertSchema>;
+export type EvaluationRunUpdate = z.infer<typeof EvaluationRunUpdateSchema>;
+
+export type EvaluationRunConfigSelect = z.infer<typeof EvaluationRunConfigSelectSchema>;
+export type EvaluationRunConfigInsert = z.infer<typeof EvaluationRunConfigInsertSchema>;
+export type EvaluationRunConfigUpdate = z.infer<typeof EvaluationRunConfigUpdateSchema>;
+export type EvaluationRunConfigWithSuiteConfigs = z.infer<
+  typeof EvaluationRunConfigWithSuiteConfigsApiSelectSchema
+>;
+export type EvaluationJobConfigSelect = z.infer<typeof EvaluationJobConfigSelectSchema>;
+export type EvaluationJobConfigInsert = z.infer<typeof EvaluationJobConfigInsertSchema>;
+export type EvaluationJobConfigUpdate = z.infer<typeof EvaluationJobConfigUpdateSchema>;
+export type EvaluationSuiteConfigSelect = z.infer<typeof EvaluationSuiteConfigSelectSchema>;
+export type EvaluationSuiteConfigInsert = z.infer<typeof EvaluationSuiteConfigInsertSchema>;
+export type EvaluationSuiteConfigUpdate = z.infer<typeof EvaluationSuiteConfigUpdateSchema>;
+
+export type EvaluationRunConfigEvaluationSuiteConfigRelationSelect = z.infer<
+  typeof EvaluationRunConfigEvaluationSuiteConfigRelationSelectSchema
+>;
+export type EvaluationRunConfigEvaluationSuiteConfigRelationInsert = z.infer<
+  typeof EvaluationRunConfigEvaluationSuiteConfigRelationInsertSchema
+>;
+export type EvaluationRunConfigEvaluationSuiteConfigRelationUpdate = z.infer<
+  typeof EvaluationRunConfigEvaluationSuiteConfigRelationUpdateSchema
+>;
+export type EvaluationJobConfigEvaluatorRelationSelect = z.infer<
+  typeof EvaluationJobConfigEvaluatorRelationSelectSchema
+>;
+export type EvaluationJobConfigEvaluatorRelationInsert = z.infer<
+  typeof EvaluationJobConfigEvaluatorRelationInsertSchema
+>;
+export type EvaluationJobConfigEvaluatorRelationUpdate = z.infer<
+  typeof EvaluationJobConfigEvaluatorRelationUpdateSchema
+>;
+export type EvaluationSuiteConfigEvaluatorRelationSelect = z.infer<
+  typeof EvaluationSuiteConfigEvaluatorRelationSelectSchema
+>;
+export type EvaluationSuiteConfigEvaluatorRelationInsert = z.infer<
+  typeof EvaluationSuiteConfigEvaluatorRelationInsertSchema
+>;
+export type EvaluationSuiteConfigEvaluatorRelationUpdate = z.infer<
+  typeof EvaluationSuiteConfigEvaluatorRelationUpdateSchema
+>;
+export type EvaluatorSelect = z.infer<typeof EvaluatorSelectSchema>;
+export type EvaluatorInsert = z.infer<typeof EvaluatorInsertSchema>;
+export type EvaluatorUpdate = z.infer<typeof EvaluatorUpdateSchema>;
+export type DatasetSelect = z.infer<typeof DatasetSelectSchema>;
+export type DatasetInsert = z.infer<typeof DatasetInsertSchema>;
+export type DatasetUpdate = z.infer<typeof DatasetUpdateSchema>;
+export type DatasetItemSelect = z.infer<typeof DatasetItemSelectSchema>;
+export type DatasetItemInsert = z.infer<typeof DatasetItemInsertSchema>;
+export type DatasetItemUpdate = z.infer<typeof DatasetItemUpdateSchema>;
+export type DatasetRunConfigSelect = z.infer<typeof DatasetRunConfigSelectSchema>;
+export type DatasetRunConfigInsert = z.infer<typeof DatasetRunConfigInsertSchema>;
+export type DatasetRunConfigUpdate = z.infer<typeof DatasetRunConfigUpdateSchema>;
+export type DatasetRunConfigAgentRelationSelect = z.infer<
+  typeof DatasetRunConfigAgentRelationSelectSchema
+>;
+export type DatasetRunConfigAgentRelationInsert = z.infer<
+  typeof DatasetRunConfigAgentRelationInsertSchema
+>;
+export type DatasetRunConfigAgentRelationUpdate = z.infer<
+  typeof DatasetRunConfigAgentRelationUpdateSchema
+>;
+export type TriggerDatasetRunRequest = z.infer<typeof TriggerDatasetRunSchema>;
+export type TriggerConversationEvaluationRequest = z.infer<
+  typeof TriggerConversationEvaluationSchema
+>;
+export type TriggerBatchConversationEvaluationRequest = z.infer<
+  typeof TriggerBatchConversationEvaluationSchema
+>;
+export type TriggerEvaluationJobRequest = z.infer<typeof TriggerEvaluationJobSchema>;
 
 export type SubAgentSelect = z.infer<typeof SubAgentSelectSchema>;
 export type SubAgentInsert = z.infer<typeof SubAgentInsertSchema>;
@@ -242,7 +408,6 @@ export type DataComponentApiSelect = z.infer<typeof DataComponentApiSelectSchema
 export type DataComponentApiInsert = z.infer<typeof DataComponentApiInsertSchema>;
 export type DataComponentApiUpdate = z.infer<typeof DataComponentApiUpdateSchema>;
 
-
 export type SubAgentDataComponentSelect = z.infer<typeof SubAgentDataComponentSelectSchema>;
 export type SubAgentDataComponentInsert = z.infer<typeof SubAgentDataComponentInsertSchema>;
 export type SubAgentDataComponentUpdate = z.infer<typeof SubAgentDataComponentUpdateSchema>;
@@ -274,8 +439,9 @@ export type ExternalAgentSelect = z.infer<typeof ExternalAgentSelectSchema>;
 export type ExternalAgentInsert = z.infer<typeof ExternalAgentInsertSchema>;
 export type ExternalAgentUpdate = z.infer<typeof ExternalAgentUpdateSchema>;
 export type ExternalAgentApiSelect = z.infer<typeof ExternalAgentApiSelectSchema>;
-export type ExternalSubAgentApiInsert = z.infer<typeof ExternalAgentApiInsertSchema>;
+export type ExternalAgentApiInsert = z.infer<typeof ExternalAgentApiInsertSchema>;
 export type ExternalAgentApiUpdate = z.infer<typeof ExternalAgentApiUpdateSchema>;
+
 export type AllAgentSelect = z.infer<typeof AllAgentSchema>;
 
 export type ApiKeySelect = z.infer<typeof ApiKeySelectSchema>;
@@ -300,6 +466,38 @@ export type SubAgentToolRelationApiSelect = z.infer<typeof SubAgentToolRelationA
 export type SubAgentToolRelationApiInsert = z.infer<typeof SubAgentToolRelationApiInsertSchema>;
 export type SubAgentToolRelationApiUpdate = z.infer<typeof SubAgentToolRelationApiUpdateSchema>;
 
+export type SubAgentExternalAgentRelationSelect = z.infer<
+  typeof SubAgentExternalAgentRelationSelectSchema
+>;
+export type SubAgentExternalAgentRelationInsert = z.infer<
+  typeof SubAgentExternalAgentRelationInsertSchema
+>;
+export type SubAgentExternalAgentRelationUpdate = z.infer<
+  typeof SubAgentExternalAgentRelationUpdateSchema
+>;
+export type SubAgentExternalAgentRelationApiSelect = z.infer<
+  typeof SubAgentExternalAgentRelationApiSelectSchema
+>;
+export type SubAgentExternalAgentRelationApiInsert = z.infer<
+  typeof SubAgentExternalAgentRelationApiInsertSchema
+>;
+export type SubAgentExternalAgentRelationApiUpdate = z.infer<
+  typeof SubAgentExternalAgentRelationApiUpdateSchema
+>;
+
+export type SubAgentTeamAgentRelationSelect = z.infer<typeof SubAgentTeamAgentRelationSelectSchema>;
+export type SubAgentTeamAgentRelationInsert = z.infer<typeof SubAgentTeamAgentRelationInsertSchema>;
+export type SubAgentTeamAgentRelationUpdate = z.infer<typeof SubAgentTeamAgentRelationUpdateSchema>;
+export type SubAgentTeamAgentRelationApiSelect = z.infer<
+  typeof SubAgentTeamAgentRelationApiSelectSchema
+>;
+export type SubAgentTeamAgentRelationApiInsert = z.infer<
+  typeof SubAgentTeamAgentRelationApiInsertSchema
+>;
+export type SubAgentTeamAgentRelationApiUpdate = z.infer<
+  typeof SubAgentTeamAgentRelationApiUpdateSchema
+>;
+
 export type LedgerArtifactSelect = z.infer<typeof LedgerArtifactSelectSchema>;
 export type LedgerArtifactInsert = z.infer<typeof LedgerArtifactInsertSchema>;
 export type LedgerArtifactUpdate = z.infer<typeof LedgerArtifactUpdateSchema>;
@@ -308,25 +506,51 @@ export type LedgerArtifactApiInsert = z.infer<typeof LedgerArtifactApiInsertSche
 export type LedgerArtifactApiUpdate = z.infer<typeof LedgerArtifactApiUpdateSchema>;
 
 export type FullAgentDefinition = z.infer<typeof AgentWithinContextOfProjectSchema>;
+export type FullAgentSelect = z.infer<typeof AgentWithinContextOfProjectSelectSchema>;
+export type FullAgentSelectWithRelationIds = z.infer<
+  typeof AgentWithinContextOfProjectSelectSchemaWithRelationIds
+>;
 export type FullAgentAgentInsert = z.infer<typeof FullAgentAgentInsertSchema>;
+export type FullAgentSubAgentSelect = z.infer<typeof FullAgentSubAgentSelectSchema>;
+export type FullAgentSubAgentSelectWithRelationIds = z.infer<
+  typeof FullAgentSubAgentSelectSchemaWithRelationIds
+>;
 
 export type FullProjectDefinition = z.infer<typeof FullProjectDefinitionSchema>;
-export type CanUseItem = {
-  toolId: string;
-  toolSelection?: string[] | null;
-  headers?: Record<string, string> | null;
-  agentToolRelationId?: string;
-};
+export type FullProjectSelect = z.infer<typeof FullProjectSelectSchema>;
+export type FullProjectSelectWithRelationIds = z.infer<
+  typeof FullProjectSelectSchemaWithRelationIds
+>;
+export type AgentWithinContextOfProjectSelect = z.infer<
+  typeof AgentWithinContextOfProjectSelectSchema
+>;
+export type AgentWithinContextOfProjectSelectWithRelationIds = z.infer<
+  typeof AgentWithinContextOfProjectSelectSchemaWithRelationIds
+>;
+export type CanUseItem = z.infer<typeof CanUseItemSchema>;
+export type CanDelegateToExternalAgent = z.infer<typeof canDelegateToExternalAgentSchema>;
+export type CanDelegateToExternalAgentInsert = z.infer<
+  typeof canDelegateToExternalAgentInsertSchema
+>;
+export type CanDelegateToTeamAgent = z.infer<typeof canDelegateToTeamAgentSchema>;
+export type CanDelegateToTeamAgentInsert = z.infer<typeof canDelegateToTeamAgentInsertSchema>;
+export type CanDelegateToItem =
+  | CanRelateToInternalSubAgent
+  | CanDelegateToExternalAgent
+  | CanDelegateToTeamAgent;
+export type CanDelegateToItemInsert =
+  | string
+  | CanDelegateToExternalAgentInsert
+  | CanDelegateToTeamAgentInsert;
+export type CanRelateToInternalSubAgent = z.infer<typeof canRelateToInternalSubAgentSchema>;
 
-export type InternalSubAgentDefinition = z.infer<typeof SubAgentApiInsertSchema> & {
+export type SubAgentDefinition = z.infer<typeof SubAgentApiInsertSchema> & {
   canUse: CanUseItem[];
   dataComponents?: string[];
   artifactComponents?: string[];
   canTransferTo?: string[];
-  canDelegateTo?: string[];
+  canDelegateTo?: (string | CanDelegateToExternalAgent)[]; // Internal subAgent ID or external agent with headers
 };
-
-export type SubAgentDefinition = InternalSubAgentDefinition | ExternalSubAgentApiInsert;
 export type ToolDefinition = ToolApiInsert & { credentialReferenceId?: string | null };
 
 export type ProjectSelect = z.infer<typeof ProjectSelectSchema>;
@@ -335,6 +559,9 @@ export type ProjectUpdate = z.infer<typeof ProjectUpdateSchema>;
 export type ProjectApiSelect = z.infer<typeof ProjectApiSelectSchema>;
 export type ProjectApiInsert = z.infer<typeof ProjectApiInsertSchema>;
 export type ProjectApiUpdate = z.infer<typeof ProjectApiUpdateSchema>;
+
+export type ProjectMetadataSelect = z.infer<typeof ProjectMetadataSelectSchema>;
+export type ProjectMetadataInsert = z.infer<typeof ProjectMetadataInsertSchema>;
 
 export type Pagination = z.infer<typeof PaginationSchema>;
 

@@ -5,7 +5,6 @@ import { useParams } from 'next/navigation';
 import { useEffect, useMemo, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import {
   Select,
@@ -18,6 +17,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { UNKNOWN_VALUE } from '@/constants/signoz';
 import { type TimeRange, useAICallsQueryState } from '@/hooks/use-ai-calls-query-state';
 import { getSigNozStatsClient } from '@/lib/api/signoz-stats';
+import { CUSTOM, DatePickerWithPresets } from './filters/date-picker';
 
 // Time range options
 const TIME_RANGES = {
@@ -33,6 +33,7 @@ interface AICallsBreakdownProps {
 
 export function AICallsBreakdown({ onBack }: AICallsBreakdownProps) {
   const params = useParams();
+  const tenantId = params.tenantId as string;
 
   // Use nuqs for type-safe query state management
   const {
@@ -69,14 +70,6 @@ export function AICallsBreakdown({ onBack }: AICallsBreakdownProps) {
     }
   };
 
-  const handleCustomDateChange = (type: 'start' | 'end', value: string) => {
-    if (type === 'start') {
-      setCustomDateRange(value, customEndDate);
-    } else {
-      setCustomDateRange(customStartDate, value);
-    }
-  };
-
   // Calculate time range based on selection
   const { startTime, endTime } = useMemo(() => {
     const currentEndTime = Date.now();
@@ -97,17 +90,16 @@ export function AICallsBreakdown({ onBack }: AICallsBreakdownProps) {
           startTime: startDate.getTime(),
           endTime: clampedEndMs,
         };
-      } else {
-        // Default to 15 days if custom dates not set
-        const hoursBack = TIME_RANGES['15d'].hours;
-        return {
-          startTime: currentEndTime - hoursBack * 60 * 60 * 1000,
-          endTime: currentEndTime,
-        };
       }
+      // Default to 15 days if custom dates not set
+      const hoursBack = TIME_RANGES['15d'].hours;
+      return {
+        startTime: currentEndTime - hoursBack * 60 * 60 * 1000,
+        endTime: currentEndTime,
+      };
     }
 
-    const hoursBack = TIME_RANGES[timeRange].hours;
+    const hoursBack = TIME_RANGES[timeRange as keyof typeof TIME_RANGES]?.hours || 24 * 15;
     return {
       startTime: currentEndTime - hoursBack * 60 * 60 * 1000,
       endTime: currentEndTime,
@@ -121,7 +113,7 @@ export function AICallsBreakdown({ onBack }: AICallsBreakdownProps) {
         setLoading(true);
         setError(null);
 
-        const client = getSigNozStatsClient();
+        const client = getSigNozStatsClient(tenantId);
 
         const agentId = selectedAgent === 'all' ? undefined : selectedAgent;
         const modelId = selectedModel === 'all' ? undefined : selectedModel;
@@ -153,7 +145,7 @@ export function AICallsBreakdown({ onBack }: AICallsBreakdownProps) {
     };
 
     fetchData();
-  }, [selectedAgent, selectedModel, startTime, endTime, params.projectId]);
+  }, [selectedAgent, selectedModel, startTime, endTime, params.projectId, tenantId]);
 
   const totalAICalls = agentCalls.reduce((sum, item) => sum + item.totalCalls, 0);
 
@@ -238,56 +230,27 @@ export function AICallsBreakdown({ onBack }: AICallsBreakdownProps) {
 
             {/* Time Range Filter */}
             <div className="space-y-1 flex-1">
-              <Label htmlFor="time-filter" className="text-sm flex items-center gap-1">
-                <Calendar className="h-3 w-3" />
+              <Label htmlFor="time-filter" className="text-sm">
                 Time Range
               </Label>
-              <Select value={timeRange} onValueChange={handleTimeRangeChange}>
-                <SelectTrigger id="time-filter">
-                  <SelectValue placeholder="Select time range" />
-                </SelectTrigger>
-                <SelectContent>
-                  {Object.entries(TIME_RANGES).map(([value, config]) => (
-                    <SelectItem key={value} value={value}>
-                      {config.label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <DatePickerWithPresets
+                label="Time range"
+                onRemove={() => setTimeRange('15d')}
+                value={
+                  timeRange === CUSTOM ? { from: customStartDate, to: customEndDate } : timeRange
+                }
+                onAdd={(value: TimeRange) => handleTimeRangeChange(value)}
+                setCustomDateRange={(start: string, end: string) => setCustomDateRange(start, end)}
+                options={Object.entries(TIME_RANGES)
+                  .filter(([key]) => key !== 'custom')
+                  .map(([value, config]) => ({
+                    value,
+                    label: config.label,
+                  }))}
+                showCalendarDirectly={false}
+              />
             </div>
           </div>
-
-          {/* Custom Date Inputs - Only show when Custom is selected */}
-          {timeRange === 'custom' && (
-            <div className="mt-4 p-4 border border-border rounded-lg bg-muted/50">
-              <div className="flex flex-col md:flex-row gap-4">
-                <div className="space-y-1 flex-1">
-                  <Label htmlFor="start-date" className="text-sm">
-                    Start Date
-                  </Label>
-                  <Input
-                    id="start-date"
-                    type="date"
-                    value={customStartDate}
-                    onChange={(e) => handleCustomDateChange('start', e.target.value)}
-                    className="bg-background"
-                  />
-                </div>
-                <div className="space-y-1 flex-1">
-                  <Label htmlFor="end-date" className="text-sm">
-                    End Date
-                  </Label>
-                  <Input
-                    id="end-date"
-                    type="date"
-                    value={customEndDate}
-                    onChange={(e) => handleCustomDateChange('end', e.target.value)}
-                    className="bg-background"
-                  />
-                </div>
-              </div>
-            </div>
-          )}
 
           {!loading && (
             <div className="mt-3 space-y-1 text-sm text-muted-foreground">
@@ -302,7 +265,10 @@ export function AICallsBreakdown({ onBack }: AICallsBreakdownProps) {
               </div>
               <div className="flex items-center gap-1 text-xs">
                 <Calendar className="h-3 w-3" />
-                Time range: {TIME_RANGES[timeRange].label}
+                Time range:{' '}
+                {timeRange === 'custom'
+                  ? 'Custom range'
+                  : TIME_RANGES[timeRange as keyof typeof TIME_RANGES]?.label || timeRange}
                 <span className="text-muted-foreground/70">
                   ({new Date(startTime).toLocaleDateString()} -{' '}
                   {new Date(endTime).toLocaleDateString()})

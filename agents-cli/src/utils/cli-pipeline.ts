@@ -1,7 +1,15 @@
-import chalk from 'chalk';
 import * as p from '@clack/prompts';
+import chalk from 'chalk';
+import {
+  type CIEnvironmentConfig,
+  detectCIEnvironment,
+  loadCIEnvironmentConfig,
+  logCIConfig,
+} from './ci-environment';
 import type { ValidatedConfiguration } from './config';
 import { validateConfiguration } from './config';
+import { getCredentialExpiryInfo, loadCredentials } from './credentials';
+import { ProfileManager, type ResolvedProfile } from './profiles';
 
 /**
  * Options for initializing a CLI command
@@ -9,12 +17,18 @@ import { validateConfiguration } from './config';
 export interface CommandInitOptions {
   /** Path to config file (from --config flag) */
   configPath?: string;
+  /** Tag for environment-specific config (e.g., 'prod', 'staging') */
+  tag?: string;
+  /** Profile name to use (--profile flag) */
+  profileName?: string;
   /** Whether to show a spinner during initialization */
   showSpinner?: boolean;
   /** Custom spinner text */
   spinnerText?: string;
   /** Whether to log configuration sources */
   logConfig?: boolean;
+  /** Suppress profile logging (--quiet) */
+  quiet?: boolean;
 }
 
 /**
@@ -23,28 +37,41 @@ export interface CommandInitOptions {
 export interface CommandInitResult {
   /** Validated configuration */
   config: ValidatedConfiguration;
+  /** Resolved profile (if profiles are configured) */
+  profile?: ResolvedProfile;
+  /** Whether the user is authenticated via profile or CI API key */
+  isAuthenticated?: boolean;
+  /** Auth token expiry info */
+  authExpiry?: string;
+  /** Whether running in CI mode */
+  isCI?: boolean;
+  /** CI configuration (if in CI mode) */
+  ciConfig?: CIEnvironmentConfig;
 }
 
 /**
  * Standard pipeline for initializing CLI commands
  *
  * This function provides a consistent way to:
- * 1. Load and validate configuration from inkeep.config.ts
- * 2. Handle errors with user-friendly messages
- * 3. Optionally display progress with spinners
- * 4. Log configuration sources for debugging
+ * 1. Load profile configuration (if available)
+ * 2. Load and validate configuration from inkeep.config.ts
+ * 3. Merge profile config with file config (profile takes precedence)
+ * 4. Handle errors with user-friendly messages
+ * 5. Optionally display progress with spinners
+ * 6. Log configuration sources for debugging
+ *
+ * Configuration precedence: CLI flag > profile > config.ts defaults
  *
  * @example
  * ```ts
  * export async function myCommand(options: MyOptions) {
- *   const { config, spinner } = await initializeCommand({
+ *   const { config, profile, isAuthenticated } = await initializeCommand({
  *     configPath: options.config,
+ *     profileName: options.profile,
  *     showSpinner: true,
  *     spinnerText: 'Loading configuration...',
  *     logConfig: true
  *   });
- *
- *   spinner?.succeed('Configuration loaded');
  *
  *   // Your command logic here...
  * }
@@ -55,9 +82,12 @@ export async function initializeCommand(
 ): Promise<CommandInitResult> {
   const {
     configPath,
+    tag,
+    profileName,
     showSpinner = false,
     spinnerText = 'Loading configuration...',
     logConfig = true,
+    quiet = false,
   } = options;
 
   // Start spinner if requested
@@ -67,25 +97,141 @@ export async function initializeCommand(
   }
 
   try {
-    // Load and validate configuration
-    const config = await validateConfiguration(configPath);
+    // Check for CI environment first
+    const ciDetection = await detectCIEnvironment();
+    const ciConfig = ciDetection.isCI ? loadCIEnvironmentConfig() : null;
+
+    // In CI mode, use config file + CI env vars, skip profile loading entirely
+    // This prevents ProfileManager from auto-creating a "cloud" profile that would
+    // override config file URLs
+    if (ciDetection.isCI) {
+      // Load file config as base
+      const config = await validateConfiguration(configPath, tag);
+
+      // CI env vars take precedence over file config (if ciConfig is available)
+      if (ciConfig) {
+        if (ciConfig.manageApiUrl) {
+          config.agentsManageApiUrl = ciConfig.manageApiUrl;
+        }
+        if (ciConfig.runApiUrl) {
+          config.agentsRunApiUrl = ciConfig.runApiUrl;
+        }
+        if (ciConfig.apiKey) {
+          config.agentsManageApiKey = ciConfig.apiKey;
+        }
+        if (ciConfig.tenantId) {
+          config.tenantId = ciConfig.tenantId;
+        }
+      }
+
+      if (s) {
+        s.stop('Configuration loaded');
+      }
+
+      if (logConfig && !quiet) {
+        if (ciConfig) {
+          logCIConfig(ciConfig, ciDetection.reason);
+        } else {
+          console.log(chalk.yellow(`CI mode detected (${ciDetection.reason})`));
+          console.log(chalk.gray(`  Using config file settings (no INKEEP_API_KEY set)`));
+          console.log(chalk.gray(`  Remote: ${config.agentsManageApiUrl}`));
+        }
+      }
+
+      return {
+        config,
+        isAuthenticated: !!ciConfig?.apiKey,
+        isCI: true,
+        ciConfig: ciConfig ?? undefined,
+      };
+    }
+
+    // Non-CI mode: Try to load profile configuration
+    let profile: ResolvedProfile | undefined;
+    let isAuthenticated = false;
+    let authExpiry: string | undefined;
+    let profileAccessToken: string | undefined;
+    let profileOrganizationId: string | undefined;
+
+    try {
+      const profileManager = new ProfileManager();
+      if (profileName) {
+        const foundProfile = profileManager.getProfile(profileName);
+        if (!foundProfile) {
+          throw new Error(`Profile '${profileName}' not found.`);
+        }
+        profile = foundProfile;
+      } else {
+        profile = profileManager.getActiveProfile();
+      }
+
+      // Load credentials for this profile
+      if (profile) {
+        const credentials = await loadCredentials(profile.credential);
+        if (credentials) {
+          const expiryInfo = getCredentialExpiryInfo(credentials);
+          if (!expiryInfo.isExpired) {
+            profileAccessToken = credentials.accessToken;
+            profileOrganizationId = credentials.organizationId;
+            isAuthenticated = true;
+            authExpiry = expiryInfo.expiresIn;
+          }
+        }
+      }
+    } catch {
+      // No profile configured - continue with file config only
+    }
+
+    // Load and validate configuration from file
+    const config = await validateConfiguration(configPath, tag);
+
+    // Override config with profile values (profile takes precedence over config file)
+    // Precedence: CLI flag > Profile credentials > Config file > Defaults
+    if (profile) {
+      config.agentsManageApiUrl = profile.remote.manageApi;
+      config.agentsRunApiUrl = profile.remote.runApi;
+      config.manageUiUrl = profile.remote.manageUi;
+
+      // Profile credentials ALWAYS override config file values when using a profile
+      // Config file values are intended for CI/CD scenarios without profiles
+      if (profileAccessToken) {
+        config.agentsManageApiKey = profileAccessToken;
+      }
+
+      // Use organization ID from authenticated session as tenantId
+      if (profileOrganizationId) {
+        config.tenantId = profileOrganizationId;
+      }
+    }
 
     if (s) {
       s.stop('Configuration loaded');
     }
 
     // Log configuration sources for debugging
-    if (logConfig) {
-      console.log(chalk.gray('Configuration:'));
-      console.log(chalk.gray(`  • Tenant ID: ${config.tenantId}`));
-      console.log(chalk.gray(`  • Manage API URL: ${config.agentsManageApiUrl}`));
-      console.log(chalk.gray(`  • Run API URL: ${config.agentsRunApiUrl}`));
-      if (config.sources.configFile) {
-        console.log(chalk.gray(`  • Config file: ${config.sources.configFile}`));
+    if (logConfig && !quiet) {
+      if (profile) {
+        const expiryText = authExpiry ? ` (expires in ${authExpiry})` : '';
+        const authStatus = isAuthenticated
+          ? chalk.green('authenticated') + expiryText
+          : chalk.yellow('not authenticated');
+
+        console.log(chalk.gray(`Using profile: ${chalk.cyan(profile.name)}`));
+        console.log(chalk.gray(`  Remote: ${config.agentsManageApiUrl}`));
+        console.log(chalk.gray(`  Environment: ${profile.environment}`));
+        console.log(chalk.gray(`  Auth: ${authStatus}`));
+      } else {
+        console.log(chalk.gray('Configuration:'));
+        console.log(chalk.gray(`  • Tenant ID: ${config.tenantId}`));
+        console.log(chalk.gray(`  • Manage API URL: ${config.agentsManageApiUrl}`));
+        console.log(chalk.gray(`  • Run API URL: ${config.agentsRunApiUrl}`));
+        if (config.sources.configFile) {
+          console.log(chalk.gray(`  • Config file: ${config.sources.configFile}`));
+        }
       }
     }
 
-    return { config };
+    return { config, profile, isAuthenticated, authExpiry, isCI: false };
   } catch (error: any) {
     if (s) {
       s.stop('Configuration failed');
@@ -93,7 +239,9 @@ export async function initializeCommand(
     console.error(chalk.red('Error:'), error.message);
 
     // Provide helpful hints for common errors
-    if (error.message.includes('No configuration found')) {
+    if (error.message.includes('Profile') && error.message.includes('not found')) {
+      console.log(chalk.yellow('\nHint: Run "inkeep profile list" to see available profiles.'));
+    } else if (error.message.includes('No configuration found')) {
       console.log(chalk.yellow('\nHint: Create a configuration file by running:'));
       console.log(chalk.gray('  inkeep init'));
     } else if (error.message.includes('Config file not found')) {
@@ -113,9 +261,17 @@ export async function initializeCommand(
  * Lightweight config loader without spinners or logging
  * Useful for commands that need config but handle their own UI
  */
-export async function loadCommandConfig(configPath?: string): Promise<ValidatedConfiguration> {
+export async function loadCommandConfig(
+  configPath?: string,
+  profileName?: string
+): Promise<CommandInitResult> {
   try {
-    return await validateConfiguration(configPath);
+    return await initializeCommand({
+      configPath,
+      profileName,
+      showSpinner: false,
+      logConfig: false,
+    });
   } catch (error: any) {
     console.error(chalk.red('Configuration error:'), error.message);
     process.exit(1);

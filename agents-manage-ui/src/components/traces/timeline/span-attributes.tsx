@@ -1,18 +1,9 @@
 'use client';
 
-import dynamic from 'next/dynamic';
+import { JsonEditorWithCopy } from '@/components/editors/json-editor-with-copy';
 import { cn } from '@/lib/utils';
 
-const JsonEditorWithCopy = dynamic(
-  () =>
-    import('@/components/traces/editors/json-editor-with-copy').then(
-      (mod) => mod.JsonEditorWithCopy
-    ),
-  { ssr: false } // ensures it only loads on the client side
-);
-
 // Constants for attribute categorization and sorting
-const PROCESS_ATTRIBUTE_PREFIXES = ['host.', 'process.', 'signoz.'] as const;
 const PINNED_ATTRIBUTE_KEYS = [
   'name',
   'spanID',
@@ -22,6 +13,9 @@ const PINNED_ATTRIBUTE_KEYS = [
   'project.id',
   'agent.id',
   'conversation.id',
+  'target.tenant.id',
+  'target.project.id',
+  'target.agent.id',
 ] as const;
 
 // Type definitions
@@ -31,36 +25,6 @@ type AttributeMap = Record<string, SpanAttribute>;
 interface SpanAttributesProps {
   span: AttributeMap;
   className?: string;
-}
-
-interface SeparatedAttributes {
-  processAttributes: AttributeMap;
-  otherAttributes: AttributeMap;
-  hasProcessAttributes: boolean;
-}
-
-/**
- * Separates span attributes into process-related and other attributes
- */
-function separateAttributes(span: AttributeMap): SeparatedAttributes {
-  const processAttributes: AttributeMap = {};
-  const otherAttributes: AttributeMap = {};
-
-  Object.entries(span).forEach(([key, value]) => {
-    const isProcessAttribute = PROCESS_ATTRIBUTE_PREFIXES.some((prefix) => key.startsWith(prefix));
-
-    if (isProcessAttribute) {
-      processAttributes[key] = value;
-    } else {
-      otherAttributes[key] = value;
-    }
-  });
-
-  return {
-    processAttributes,
-    otherAttributes,
-    hasProcessAttributes: Object.keys(processAttributes).length > 0,
-  };
 }
 
 /**
@@ -88,45 +52,41 @@ function sortAttributes(attributes: AttributeMap): AttributeMap {
   return { ...pinnedAttributes, ...remainingAttributes };
 }
 
+function filterProcessAttributes(span: AttributeMap): AttributeMap {
+  const PROCESS_ATTRIBUTE_PREFIXES = ['host.', 'process.', 'signoz.'] as const;
+  const filteredAttributes: AttributeMap = {};
+
+  Object.entries(span).forEach(([key, value]) => {
+    const isProcessAttribute = PROCESS_ATTRIBUTE_PREFIXES.some((prefix) => key.startsWith(prefix));
+    if (!isProcessAttribute) {
+      filteredAttributes[key] = value;
+    }
+  });
+
+  return filteredAttributes;
+}
+
 /**
  * Main component for displaying span attributes with proper categorization and sorting
  */
 export function SpanAttributes({ span, className }: SpanAttributesProps) {
-  const { processAttributes, otherAttributes, hasProcessAttributes } = separateAttributes(span);
-  const sortedOtherAttributes = sortAttributes(otherAttributes);
-
-  // Sort process attributes alphabetically
-  const sortedProcessAttributes = Object.keys(processAttributes)
-    .sort()
-    .reduce<AttributeMap>((acc, key) => {
-      acc[key] = processAttributes[key];
-      return acc;
-    }, {});
-  const hasOtherAttributes = Object.keys(otherAttributes).length > 0;
-  const hasAnyAttributes = hasOtherAttributes || hasProcessAttributes;
+  const filteredAttributes = filterProcessAttributes(span);
+  const sortedAttributes = sortAttributes(filteredAttributes);
+  const hasAttributes = Object.keys(sortedAttributes).length > 0;
 
   return (
     <div className={cn('space-y-3', className)}>
       {/* Main span attributes */}
-      {hasOtherAttributes && (
+      {hasAttributes && (
         <JsonEditorWithCopy
-          value={JSON.stringify(sortedOtherAttributes, null, 2)}
+          value={JSON.stringify(sortedAttributes, null, 2)}
           uri="advanced-span-attributes.json"
           title="Advanced Span Attributes"
         />
       )}
 
-      {/* Process attributes section */}
-      {hasProcessAttributes && (
-        <JsonEditorWithCopy
-          value={JSON.stringify(sortedProcessAttributes, null, 2)}
-          uri="process-attributes.json"
-          title="Process Attributes"
-        />
-      )}
-
       {/* Empty state */}
-      {!hasAnyAttributes && (
+      {!hasAttributes && (
         <div className="text-center py-4 text-xs text-muted-foreground">
           No span attributes available
         </div>

@@ -11,16 +11,11 @@ export interface CredentialStoreStatus {
   reason: string | null;
 }
 
-export interface CredentialStoresListResponse {
+interface CredentialStoresListResponse {
   data: CredentialStoreStatus[];
 }
 
-export interface CreateCredentialInStoreRequest {
-  key: string;
-  value: string;
-}
-
-export interface CreateCredentialInStoreResponse {
+interface CreateCredentialInStoreResponse {
   data: {
     key: string;
     storeId: string;
@@ -48,13 +43,21 @@ export async function listCredentialStores(
 /**
  * Create a credential in a specific credential store
  */
-export async function createCredentialInStore(
-  tenantId: string,
-  projectId: string,
-  storeId: string,
-  key: string,
-  value: string
-): Promise<CreateCredentialInStoreResponse['data']> {
+export async function createCredentialInStore({
+  tenantId,
+  projectId,
+  storeId,
+  key,
+  value,
+  metadata,
+}: {
+  tenantId: string;
+  projectId: string;
+  storeId: string;
+  key: string;
+  value: string;
+  metadata?: Record<string, string>;
+}): Promise<CreateCredentialInStoreResponse['data']> {
   validateTenantId(tenantId);
   validateProjectId(projectId);
 
@@ -62,7 +65,7 @@ export async function createCredentialInStore(
     `tenants/${tenantId}/projects/${projectId}/credential-stores/${storeId}/credentials`,
     {
       method: 'POST',
-      body: JSON.stringify({ key, value }),
+      body: JSON.stringify({ key, value, metadata }),
     }
   );
 

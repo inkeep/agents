@@ -193,9 +193,6 @@ export class Runner {
       if (!defaultSubAgent.getName()) {
         errors.push('Default agent name is required');
       }
-      if (!defaultSubAgent.getInstructions()) {
-        errors.push('Default agent instructions are required');
-      }
     }
 
     // Validate all agents in the agent
@@ -243,6 +240,6 @@ export class Runner {
 }
 
 // Export convenience functions that match OpenAI's pattern
-export const run = Runner.run.bind(Runner);
-export const stream = Runner.stream.bind(Runner);
-export const raceAgents = Runner.raceAgents.bind(Runner);
+export const run: (typeof Runner)['run'] = Runner.run.bind(Runner);
+export const stream: (typeof Runner)['stream'] = Runner.stream.bind(Runner);
+export const raceAgents: (typeof Runner)['raceAgents'] = Runner.raceAgents.bind(Runner);

@@ -22,6 +22,7 @@ interface ModelSelectorProps {
   label?: React.ReactNode;
   value?: string;
   onValueChange?: (value: string) => void;
+  onProviderOptionsChange?: (options: Record<string, any>) => void;
   placeholder?: string;
   inheritedValue?: string;
   isRequired?: boolean;
@@ -33,13 +34,19 @@ export function ModelSelector({
   tooltip,
   value,
   onValueChange,
+  onProviderOptionsChange,
   placeholder = 'Select a model...',
   inheritedValue,
   isRequired = false,
   canClear = true,
 }: ModelSelectorProps) {
   const [open, setOpen] = useState(false);
-  const [showCustomInput, setShowCustomInput] = useState<'openrouter' | 'gateway' | null>(null);
+  const [showCustomInput, setShowCustomInput] = useState<
+    'openrouter' | 'gateway' | 'nim' | 'custom' | 'azure' | null
+  >(null);
+  const [azureDeploymentName, setAzureDeploymentName] = useState('');
+  const [azureResourceName, setAzureResourceName] = useState('');
+  const [azureBaseURL, setAzureBaseURL] = useState('');
   const [customModelInput, setCustomModelInput] = useState('');
 
   const selectedModel = useMemo(() => {
@@ -56,6 +63,18 @@ export function ModelSelector({
       if (value.startsWith('gateway/')) {
         const modelName = value.replace('gateway/', '');
         return { value, label: modelName, prefix: 'gateway/' };
+      }
+      if (value.startsWith('nim/')) {
+        const modelName = value.replace('nim/', '');
+        return { value, label: modelName, prefix: 'nim/' };
+      }
+      if (value.startsWith('custom/')) {
+        const modelName = value.replace('custom/', '');
+        return { value, label: modelName, prefix: 'custom/' };
+      }
+      if (value.startsWith('azure/')) {
+        const modelName = value.replace('azure/', '');
+        return { value, label: modelName, prefix: 'azure/' };
       }
       return { value, label: `${value} (custom)` };
     }
@@ -153,7 +172,9 @@ export function ModelSelector({
                                 if (
                                   modelValue.includes('/') &&
                                   !modelValue.startsWith('openrouter/') &&
-                                  !modelValue.startsWith('gateway/')
+                                  !modelValue.startsWith('gateway/') &&
+                                  !modelValue.startsWith('nim/') &&
+                                  !modelValue.startsWith('custom/')
                                 ) {
                                   // Could be openrouter format, let user decide or add logic here
                                 }
@@ -175,31 +196,6 @@ export function ModelSelector({
                       );
                     })()}
                   </CommandEmpty>
-                  {/* LLM Gateway options */}
-                  <CommandGroup heading="LLM Gateway">
-                    <CommandItem
-                      className="flex items-center justify-between cursor-pointer text-foreground"
-                      value="__openrouter__"
-                      onSelect={() => {
-                        setShowCustomInput('openrouter');
-                        setOpen(false);
-                        setCustomModelInput('');
-                      }}
-                    >
-                      OpenRouter ...
-                    </CommandItem>
-                    <CommandItem
-                      className="flex items-center justify-between cursor-pointer text-foreground"
-                      value="__gateway__"
-                      onSelect={() => {
-                        setShowCustomInput('gateway');
-                        setOpen(false);
-                        setCustomModelInput('');
-                      }}
-                    >
-                      Vercel AI Gateway ...
-                    </CommandItem>
-                  </CommandGroup>
                   {/* Predefined models */}
                   {Object.entries(modelOptions).map(([provider, models]) => (
                     <CommandGroup key={provider} heading={provider}>
@@ -226,22 +222,94 @@ export function ModelSelector({
                       ))}
                     </CommandGroup>
                   ))}
+                  {/* Custom OpenAI-compatible */}
+                  <CommandGroup heading="Custom OpenAI-compatible">
+                    <CommandItem
+                      className="flex items-center justify-between cursor-pointer text-foreground"
+                      value="__custom__"
+                      onSelect={() => {
+                        setShowCustomInput('custom');
+                        setOpen(false);
+                        setCustomModelInput('');
+                      }}
+                    >
+                      Custom OpenAI-compatible ...
+                    </CommandItem>
+                  </CommandGroup>
+                  {/* LLM Gateway options */}
+                  <CommandGroup heading="LLM Gateway">
+                    <CommandItem
+                      className="flex items-center justify-between cursor-pointer text-foreground"
+                      value="__openrouter__"
+                      onSelect={() => {
+                        setShowCustomInput('openrouter');
+                        setOpen(false);
+                        setCustomModelInput('');
+                      }}
+                    >
+                      OpenRouter ...
+                    </CommandItem>
+                    <CommandItem
+                      className="flex items-center justify-between cursor-pointer text-foreground"
+                      value="__gateway__"
+                      onSelect={() => {
+                        setShowCustomInput('gateway');
+                        setOpen(false);
+                        setCustomModelInput('');
+                      }}
+                    >
+                      Vercel AI Gateway ...
+                    </CommandItem>
+                    <CommandItem
+                      className="flex items-center justify-between cursor-pointer text-foreground"
+                      value="__nim__"
+                      onSelect={() => {
+                        setShowCustomInput('nim');
+                        setOpen(false);
+                        setCustomModelInput('');
+                      }}
+                    >
+                      NVIDIA NIM ...
+                    </CommandItem>
+                    <CommandItem
+                      className="flex items-center justify-between cursor-pointer text-foreground"
+                      value="__azure__"
+                      onSelect={() => {
+                        setShowCustomInput('azure');
+                        setOpen(false);
+                        setCustomModelInput('');
+                        setAzureDeploymentName('');
+                        setAzureResourceName('');
+                        setAzureBaseURL('');
+                      }}
+                    >
+                      Azure ...
+                    </CommandItem>
+                  </CommandGroup>
                 </CommandList>
               </Command>
             </PopoverContent>
           </Popover>
-          {showCustomInput && (
+          {showCustomInput && showCustomInput !== 'azure' && (
             <div className="absolute top-full left-0 right-0 mt-1 p-3 bg-background border rounded-md shadow-lg z-20">
               <div className="space-y-2">
                 <div className="text-sm font-medium">
                   {showCustomInput === 'openrouter'
                     ? 'OpenRouter Model ID'
-                    : 'Vercel AI Gateway Model ID'}
+                    : showCustomInput === 'gateway'
+                      ? 'Vercel AI Gateway Model ID'
+                      : showCustomInput === 'nim'
+                        ? 'NVIDIA NIM Model ID'
+                        : 'Custom Model ID'}
                 </div>
                 <div className="text-xs text-muted-foreground">
                   {showCustomInput === 'openrouter'
                     ? 'Examples: anthropic/claude-3-5-sonnet, meta-llama/llama-3.1-405b-instruct'
-                    : 'Examples: openai/gpt-4o, anthropic/claude-3-5-sonnet'}
+                    : showCustomInput === 'gateway'
+                      ? 'Examples: openai/gpt-4o, anthropic/claude-3-5-sonnet'
+                      : showCustomInput === 'nim'
+                        ? 'Examples: nvidia/llama-3.3-nemotron-super-49b-v1.5, nvidia/nemotron-4-340b-instruct'
+                        : 'Examples: my-custom-model, llama-3-custom, custom-finetuned'}
                 </div>
                 <div className="flex gap-2 items-center">
                   <input
@@ -249,14 +317,24 @@ export function ModelSelector({
                     placeholder={
                       showCustomInput === 'openrouter'
                         ? 'anthropic/claude-3-5-sonnet'
-                        : 'openai/gpt-4o'
+                        : showCustomInput === 'gateway'
+                          ? 'openai/gpt-4o'
+                          : showCustomInput === 'nim'
+                            ? 'nvidia/llama-3.3-nemotron-super-49b-v1.5'
+                            : 'my-custom-model'
                     }
                     value={customModelInput}
                     onChange={(e) => setCustomModelInput(e.target.value)}
                     onKeyDown={(e) => {
                       if (e.key === 'Enter' && customModelInput.trim()) {
                         const prefix =
-                          showCustomInput === 'openrouter' ? 'openrouter/' : 'gateway/';
+                          showCustomInput === 'openrouter'
+                            ? 'openrouter/'
+                            : showCustomInput === 'gateway'
+                              ? 'gateway/'
+                              : showCustomInput === 'nim'
+                                ? 'nim/'
+                                : 'custom/';
                         onValueChange?.(`${prefix}${customModelInput.trim()}`);
                         setShowCustomInput(null);
                         setCustomModelInput('');
@@ -273,7 +351,13 @@ export function ModelSelector({
                     onClick={() => {
                       if (customModelInput.trim()) {
                         const prefix =
-                          showCustomInput === 'openrouter' ? 'openrouter/' : 'gateway/';
+                          showCustomInput === 'openrouter'
+                            ? 'openrouter/'
+                            : showCustomInput === 'gateway'
+                              ? 'gateway/'
+                              : showCustomInput === 'nim'
+                                ? 'nim/'
+                                : 'custom/';
                         onValueChange?.(`${prefix}${customModelInput.trim()}`);
                         setShowCustomInput(null);
                         setCustomModelInput('');
@@ -290,6 +374,117 @@ export function ModelSelector({
                     onClick={() => {
                       setShowCustomInput(null);
                       setCustomModelInput('');
+                    }}
+                  >
+                    Cancel
+                  </Button>
+                </div>
+              </div>
+            </div>
+          )}
+          {showCustomInput === 'azure' && (
+            <div className="absolute top-full left-0 right-0 mt-1 p-3 bg-background border rounded-md shadow-lg z-20">
+              <div className="space-y-3">
+                <div className="text-sm font-medium">Azure Configuration</div>
+                <div className="text-xs text-muted-foreground">
+                  Configure your Azure deployment and connection details
+                </div>
+
+                <div>
+                  <label htmlFor="azure-deployment-name" className="block text-xs font-medium mb-1">
+                    Deployment Name <span className="text-red-500">*</span>
+                  </label>
+                  <input
+                    id="azure-deployment-name"
+                    className="w-full px-3 py-2 text-sm border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    placeholder="my-gpt-4o-deployment"
+                    value={azureDeploymentName}
+                    onChange={(e) => setAzureDeploymentName(e.target.value)}
+                  />
+                  <p className="text-xs text-muted-foreground mt-1">
+                    Your Azure model deployment name (required)
+                  </p>
+                </div>
+
+                <div className="border-t pt-3">
+                  <p className="text-xs font-medium text-muted-foreground mb-2">
+                    Choose one connection method <span className="text-red-500">*</span>
+                  </p>
+
+                  <div>
+                    <label htmlFor="azure-resource-name" className="block text-xs font-medium mb-1">
+                      Azure Resource Name
+                    </label>
+                    <input
+                      id="azure-resource-name"
+                      className="w-full px-3 py-2 text-sm border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      placeholder="your-azure-resource"
+                      value={azureResourceName}
+                      onChange={(e) => setAzureResourceName(e.target.value)}
+                    />
+                  </div>
+
+                  <div className="text-center text-xs text-muted-foreground my-2">— OR —</div>
+
+                  <div>
+                    <label htmlFor="azure-base-url" className="block text-xs font-medium mb-1">
+                      Custom Base URL
+                    </label>
+                    <input
+                      id="azure-base-url"
+                      className="w-full px-3 py-2 text-sm border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      placeholder="https://your-endpoint.com"
+                      value={azureBaseURL}
+                      onChange={(e) => setAzureBaseURL(e.target.value)}
+                    />
+                  </div>
+                </div>
+
+                <div className="text-xs text-muted-foreground">
+                  Set <code>AZURE_API_KEY</code> environment variable
+                </div>
+
+                <div className="flex gap-2 items-center">
+                  <Button
+                    size="sm"
+                    onClick={() => {
+                      if (
+                        azureDeploymentName.trim() &&
+                        (azureResourceName.trim() || azureBaseURL.trim())
+                      ) {
+                        // Set the Azure model FIRST so the store has it
+                        onValueChange?.(`azure/${azureDeploymentName.trim()}`);
+
+                        // Then set the provider options
+                        const providerOptions: Record<string, any> = {};
+                        if (azureResourceName.trim()) {
+                          providerOptions.resourceName = azureResourceName.trim();
+                        } else if (azureBaseURL.trim()) {
+                          providerOptions.baseURL = azureBaseURL.trim();
+                        }
+                        onProviderOptionsChange?.(providerOptions);
+
+                        setShowCustomInput(null);
+                        setAzureDeploymentName('');
+                        setAzureResourceName('');
+                        setAzureBaseURL('');
+                      }
+                    }}
+                    disabled={
+                      !azureDeploymentName.trim() ||
+                      (!azureResourceName.trim() && !azureBaseURL.trim())
+                    }
+                  >
+                    Configure
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() => {
+                      setShowCustomInput(null);
+                      setAzureDeploymentName('');
+                      setAzureResourceName('');
+                      setAzureBaseURL('');
                     }}
                   >
                     Cancel

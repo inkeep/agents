@@ -1,3 +1,4 @@
+import { z } from '@hono/zod-openapi';
 import { Client } from '@modelcontextprotocol/sdk/client/index.js';
 import type { SSEClientTransportOptions } from '@modelcontextprotocol/sdk/client/sse.js';
 import { SSEClientTransport } from '@modelcontextprotocol/sdk/client/sse.js';
@@ -10,11 +11,16 @@ import {
   type ClientCapabilities,
   type Tool,
 } from '@modelcontextprotocol/sdk/types.js';
-
 import { tool } from 'ai';
 import { asyncExitHook, gracefulExit } from 'exit-hook';
 import { match } from 'ts-pattern';
-import { z } from 'zod';
+import {
+  MCP_TOOL_CONNECTION_TIMEOUT_MS,
+  MCP_TOOL_INITIAL_RECONNECTION_DELAY_MS,
+  MCP_TOOL_MAX_RECONNECTION_DELAY_MS,
+  MCP_TOOL_MAX_RETRIES,
+  MCP_TOOL_RECONNECTION_DELAY_GROWTH_FACTOR,
+} from '../constants/execution-limits-shared';
 import { MCPTransportType } from '../types/utility';
 
 interface SharedServerConfig {
@@ -99,6 +105,7 @@ export class McpClient {
 
   private async connectSSE(config: McpSSEConfig) {
     const url = typeof config.url === 'string' ? config.url : config.url.toString();
+    const headersToSend = config.headers || {};
 
     // TS 5.6+ typing mismatch: Node WHATWG `URL` vs DOM `URL` expected by MCP transports.
     // Safe at runtime in Node; remove once types converge upstream.
@@ -107,7 +114,7 @@ export class McpClient {
     this.transport = new SSEClientTransport(new URL(url), {
       eventSourceInit: config.eventSourceInit,
       requestInit: {
-        headers: config.headers || {},
+        headers: headersToSend,
       },
     });
 
@@ -119,30 +126,49 @@ export class McpClient {
   private async connectHttp(config: McpStreamableHttpConfig) {
     const { url, requestInit } = config;
 
+    // Normalize headers to a plain object for logging and merging
+    const normalizeHeaders = (headers: HeadersInit | undefined): Record<string, string> => {
+      if (!headers) return {};
+      if (headers instanceof Headers) {
+        const obj: Record<string, string> = {};
+        headers.forEach((value, key) => {
+          obj[key] = value;
+        });
+        return obj;
+      }
+      if (Array.isArray(headers)) {
+        return Object.fromEntries(headers);
+      }
+      return headers as Record<string, string>;
+    };
+
+    const mergedHeaders: Record<string, string> = {
+      ...normalizeHeaders(requestInit?.headers),
+      ...(config.headers || {}),
+    };
+
     const mergedRequestInit = {
       ...requestInit,
-      headers: {
-        ...(requestInit?.headers || {}),
-        ...(config.headers || {}),
-      },
+      headers: mergedHeaders,
     };
 
     const urlString = typeof url === 'string' ? url : url.toString();
+
     // See note above — Node WHATWG `URL` vs DOM `URL` typing mismatch.
     // biome-ignore lint: Intentional TS suppression at SDK boundary
     // @ts-ignore: Suppress DOM vs Node URL type mismatch at this boundary
     this.transport = new StreamableHTTPClientTransport(new URL(urlString), {
       requestInit: mergedRequestInit,
       reconnectionOptions: {
-        maxRetries: 3,
-        maxReconnectionDelay: 30000,
-        initialReconnectionDelay: 1000,
-        reconnectionDelayGrowFactor: 1.5,
+        maxRetries: MCP_TOOL_MAX_RETRIES,
+        maxReconnectionDelay: MCP_TOOL_MAX_RECONNECTION_DELAY_MS,
+        initialReconnectionDelay: MCP_TOOL_INITIAL_RECONNECTION_DELAY_MS,
+        reconnectionDelayGrowFactor: MCP_TOOL_RECONNECTION_DELAY_GROWTH_FACTOR,
         ...config.reconnectionOptions,
       },
       sessionId: config.sessionId,
     });
-    await this.client.connect(this.transport, { timeout: 3000 });
+    await this.client.connect(this.transport, { timeout: MCP_TOOL_CONNECTION_TIMEOUT_MS });
   }
 
   async disconnect() {
@@ -169,7 +195,7 @@ export class McpClient {
   }
 
   private async selectTools() {
-    const { tools } = await this.client.listTools({ timeout: this.timeout });
+    const { tools } = await this.client.listTools();
 
     const { selectedTools, activeTools } = this.serverConfig;
 
@@ -185,13 +211,13 @@ export class McpClient {
 
     if (selectedTools === undefined) {
       return availableTools;
-    } else if (selectedTools.length === 0) {
-      return [];
-    } else {
-      const toolNames = availableTools.map((tool: Tool) => tool.name);
-      this.validateSelectedTools(toolNames, selectedTools);
-      return availableTools.filter((tool: Tool) => selectedTools.includes(tool.name));
     }
+    if (selectedTools.length === 0) {
+      return [];
+    }
+    const toolNames = availableTools.map((tool: Tool) => tool.name);
+    this.validateSelectedTools(toolNames, selectedTools);
+    return availableTools.filter((tool: Tool) => selectedTools.includes(tool.name));
   }
 
   async tools() {
@@ -224,6 +250,9 @@ export class McpClient {
               case 'array':
                 zodType = z.array(z.any());
                 break;
+              case 'object':
+                zodType = createZodSchema(propDef);
+                break;
               default:
                 zodType = z.any();
             }
@@ -239,7 +268,6 @@ export class McpClient {
 
             zodProperties[key] = zodType;
           }
-
           return z.object(zodProperties);
         };
 

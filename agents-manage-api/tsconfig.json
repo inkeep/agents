@@ -1,5 +1,6 @@
 {
   "compilerOptions": {
+    "verbatimModuleSyntax": true,
     "target": "ES2022",
     "module": "ESNext",
     "moduleResolution": "bundler",
@@ -10,9 +11,11 @@
     "skipLibCheck": true,
     "forceConsistentCasingInFileNames": true,
     "baseUrl": ".",
+    "paths": {
+      "@inkeep/agents-manage-mcp": ["../packages/agents-manage-mcp/dist/index.d.ts"]
+    },
     "allowSyntheticDefaultImports": true,
     "declaration": true,
-    "declarationMap": true,
     "noEmit": false
   },
   "include": ["src/**/*", "examples/**/*.ts"],

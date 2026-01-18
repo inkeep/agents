@@ -124,28 +124,58 @@ describe('External Agent Credential Handling', () => {
       // Update the spy to return the expected headers for this test
       getCredentialHeadersSpy.mockResolvedValueOnce(mockHeaders);
 
+      const mockExecutionContext = {
+        apiKey: 'test-api-key',
+        apiKeyId: 'test-api-key-id',
+        tenantId: mockTenantId,
+        projectId: mockProjectId,
+        agentId: 'caller-agent',
+        baseUrl: 'http://localhost:3000',
+        resolvedRef: { name: 'main', type: 'branch' as const, hash: 'test-hash' },
+        project: {
+          id: mockProjectId,
+          tenantId: mockTenantId,
+          name: 'Test Project',
+          description: null,
+          models: null,
+          stopWhen: null,
+          createdAt: '2024-01-01T00:00:00Z',
+          updatedAt: '2024-01-01T00:00:00Z',
+          agents: {},
+          tools: {},
+          functionTools: {},
+          functions: {},
+          dataComponents: {},
+          artifactComponents: {},
+          externalAgents: {},
+          credentialReferences: {},
+          statusUpdates: null,
+        },
+      };
+
       const delegateTool = createDelegateToAgentTool({
         delegateConfig: {
           type: 'external',
           config: {
+            relationId: 'test-relation-id',
             id: mockAgentId,
             baseUrl: 'https://external-agent.example.com',
             name: 'Test External Agent',
             description: 'Test agent',
+            ref: { name: 'main', type: 'branch', hash: 'test-hash' },
+            credentialReferenceId: null,
+            headers: mockHeaders,
+            relationType: 'delegate',
           },
         },
         callingAgentId: 'caller-agent',
-        tenantId: mockTenantId,
-        agentId: mockAgentId,
-        projectId: mockProjectId,
+        executionContext: mockExecutionContext,
         contextId: mockContextId,
         metadata: {
           conversationId: 'conv-123',
           threadId: 'thread-123',
         },
-        subAgent: {
-          getStreamingHelper: () => null,
-        },
+        sessionId: 'session-123',
         credentialStoreRegistry: mockCredentialStoreRegistry,
       });
 
@@ -212,28 +242,58 @@ describe('External Agent Credential Handling', () => {
       // Update the spy to return the resolved headers for this test
       getCredentialHeadersSpy.mockResolvedValueOnce(resolvedHeaders);
 
+      const mockExecutionContext = {
+        apiKey: 'test-api-key',
+        apiKeyId: 'test-api-key-id',
+        tenantId: mockTenantId,
+        projectId: mockProjectId,
+        agentId: 'caller-agent',
+        baseUrl: 'http://localhost:3000',
+        resolvedRef: { name: 'main', type: 'branch' as const, hash: 'test-hash' },
+        project: {
+          id: mockProjectId,
+          tenantId: mockTenantId,
+          name: 'Test Project',
+          description: null,
+          models: null,
+          stopWhen: null,
+          createdAt: '2024-01-01T00:00:00Z',
+          updatedAt: '2024-01-01T00:00:00Z',
+          agents: {},
+          tools: {},
+          functionTools: {},
+          functions: {},
+          dataComponents: {},
+          artifactComponents: {},
+          externalAgents: {},
+          credentialReferences: {},
+          statusUpdates: null,
+        },
+      };
+
       const delegateTool = createDelegateToAgentTool({
         delegateConfig: {
           type: 'external',
           config: {
+            relationId: 'test-relation-id',
             id: mockAgentId,
             baseUrl: 'https://external-agent.example.com',
             name: 'Test External Agent',
             description: 'Test agent',
+            ref: { name: 'main', type: 'branch' as const, hash: 'test-hash' },
+            credentialReferenceId: mockCredentialReferenceId,
+            headers: null,
+            relationType: 'delegate',
           },
         },
         callingAgentId: 'caller-agent',
-        tenantId: mockTenantId,
-        projectId: mockProjectId,
-        agentId: mockAgentId,
+        executionContext: mockExecutionContext,
         contextId: mockContextId,
         metadata: {
           conversationId: 'conv-123',
           threadId: 'thread-123',
         },
-        subAgent: {
-          getStreamingHelper: () => null,
-        },
+        sessionId: 'session-123',
         credentialStoreRegistry: mockCredentialStoreRegistry,
       });
 
@@ -284,28 +344,58 @@ describe('External Agent Credential Handling', () => {
       // Update the spy to return the combined headers for this test
       getCredentialHeadersSpy.mockResolvedValueOnce(resolvedHeaders);
 
+      const mockExecutionContext = {
+        apiKey: 'test-api-key',
+        apiKeyId: 'test-api-key-id',
+        tenantId: mockTenantId,
+        projectId: mockProjectId,
+        agentId: 'caller-agent',
+        baseUrl: 'http://localhost:3000',
+        resolvedRef: { name: 'main', type: 'branch' as const, hash: 'test-hash' },
+        project: {
+          id: mockProjectId,
+          tenantId: mockTenantId,
+          name: 'Test Project',
+          description: null,
+          models: null,
+          stopWhen: null,
+          createdAt: '2024-01-01T00:00:00Z',
+          updatedAt: '2024-01-01T00:00:00Z',
+          agents: {},
+          tools: {},
+          functionTools: {},
+          functions: {},
+          dataComponents: {},
+          artifactComponents: {},
+          externalAgents: {},
+          credentialReferences: {},
+          statusUpdates: null,
+        },
+      };
+
       const delegateTool = createDelegateToAgentTool({
         delegateConfig: {
           type: 'external',
           config: {
+            relationId: 'test-relation-id',
             id: mockAgentId,
             baseUrl: 'https://external-agent.example.com',
             name: 'Test External Agent',
             description: 'Test agent',
+            ref: { name: 'main', type: 'branch' as const, hash: 'test-hash' },
+            credentialReferenceId: mockCredentialReferenceId,
+            headers: mockStaticHeaders,
+            relationType: 'delegate',
           },
         },
         callingAgentId: 'caller-agent',
-        tenantId: mockTenantId,
-        projectId: mockProjectId,
-        agentId: mockAgentId,
+        executionContext: mockExecutionContext,
         contextId: mockContextId,
         metadata: {
           conversationId: 'conv-123',
           threadId: 'thread-123',
         },
-        subAgent: {
-          getStreamingHelper: () => null,
-        },
+        sessionId: 'session-123',
         credentialStoreRegistry: mockCredentialStoreRegistry,
       });
 
@@ -343,28 +433,58 @@ describe('External Agent Credential Handling', () => {
       // Mock the curried function call
       getExternalAgentMock.mockReturnValue(vi.fn().mockResolvedValue(mockExternalAgent));
 
+      const mockExecutionContext = {
+        apiKey: 'test-api-key',
+        apiKeyId: 'test-api-key-id',
+        tenantId: mockTenantId,
+        projectId: mockProjectId,
+        agentId: 'caller-agent',
+        baseUrl: 'http://localhost:3000',
+        resolvedRef: { name: 'main', type: 'branch' as const, hash: 'test-hash' },
+        project: {
+          id: mockProjectId,
+          tenantId: mockTenantId,
+          name: 'Test Project',
+          description: null,
+          models: null,
+          stopWhen: null,
+          createdAt: '2024-01-01T00:00:00Z',
+          updatedAt: '2024-01-01T00:00:00Z',
+          agents: {},
+          tools: {},
+          functionTools: {},
+          functions: {},
+          dataComponents: {},
+          artifactComponents: {},
+          externalAgents: {},
+          credentialReferences: {},
+          statusUpdates: null,
+        },
+      };
+
       const delegateTool = createDelegateToAgentTool({
         delegateConfig: {
           type: 'external',
           config: {
+            relationId: 'test-relation-id',
             id: mockAgentId,
             baseUrl: 'https://external-agent.example.com',
             name: 'Test External Agent',
             description: 'Test agent',
+            ref: { name: 'main', type: 'branch' as const, hash: 'test-hash' },
+            credentialReferenceId: null,
+            headers: null,
+            relationType: 'delegate',
           },
         },
         callingAgentId: 'caller-agent',
-        tenantId: mockTenantId,
-        projectId: mockProjectId,
-        agentId: mockAgentId,
+        executionContext: mockExecutionContext,
         contextId: mockContextId,
         metadata: {
           conversationId: 'conv-123',
           threadId: 'thread-123',
         },
-        subAgent: {
-          getStreamingHelper: () => null,
-        },
+        sessionId: 'session-123',
         credentialStoreRegistry: mockCredentialStoreRegistry,
       });
 

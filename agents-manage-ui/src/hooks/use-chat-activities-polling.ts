@@ -3,6 +3,8 @@ import type { ConversationDetail } from '@/components/traces/timeline/types';
 
 interface UseChatActivitiesPollingOptions {
   conversationId: string;
+  tenantId: string;
+  projectId: string;
   pollingInterval?: number; // in milliseconds, defaults to 1000
 }
 
@@ -18,12 +20,14 @@ interface UseChatActivitiesPollingReturn {
 
 export const useChatActivitiesPolling = ({
   conversationId,
+  tenantId,
+  projectId,
   pollingInterval = 1000,
 }: UseChatActivitiesPollingOptions): UseChatActivitiesPollingReturn => {
   const [chatActivities, setChatActivities] = useState<ConversationDetail | null>(null);
   const [isPolling, setIsPolling] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [lastActivityCount, setLastActivityCount] = useState(0);
+  const lastActivityCount = useRef(0);
 
   const pollingIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const isComponentMountedRef = useRef(true);
@@ -36,9 +40,12 @@ export const useChatActivitiesPolling = ({
       abortControllerRef.current = new AbortController();
       const currentConversationId = conversationId; // Capture current ID
 
-      const response = await fetch(`/api/signoz/conversations/${currentConversationId}`, {
-        signal: abortControllerRef.current.signal,
-      });
+      const response = await fetch(
+        `/api/signoz/conversations/${currentConversationId}?tenantId=${tenantId}&projectId=${projectId}`,
+        {
+          signal: abortControllerRef.current.signal,
+        }
+      );
 
       if (!response.ok) {
         // If conversation doesn't exist yet, that's fine - just return
@@ -65,9 +72,9 @@ export const useChatActivitiesPolling = ({
       if (isComponentMountedRef.current && currentConversationId === conversationId) {
         // Only update state if data actually changed (by checking activity count)
         const newCount = data.activities?.length || 0;
-        if (newCount !== lastActivityCount) {
+        if (newCount !== lastActivityCount.current) {
           setChatActivities(data);
-          setLastActivityCount(newCount);
+          lastActivityCount.current = newCount;
         }
       }
 
@@ -94,7 +101,7 @@ export const useChatActivitiesPolling = ({
       }
       throw err;
     }
-  }, [conversationId, lastActivityCount]);
+  }, [conversationId, tenantId, projectId]);
 
   // Start polling
   const startPolling = useCallback(() => {
@@ -160,7 +167,7 @@ export const useChatActivitiesPolling = ({
   useEffect(() => {
     if (prevConversationIdRef.current !== conversationId) {
       setChatActivities(null);
-      setLastActivityCount(0);
+      lastActivityCount.current = 0;
       setError(null);
 
       // Stop polling for old conversation

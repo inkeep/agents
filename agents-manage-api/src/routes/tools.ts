@@ -1,19 +1,21 @@
 import { createRoute, OpenAPIHono } from '@hono/zod-openapi';
-import type { CredentialStoreRegistry, ServerConfig } from '@inkeep/agents-core';
 import {
+  type AgentsManageDatabaseClient,
+  CredentialReferenceApiSelectSchema,
+  CredentialReferenceResponse,
   commonGetErrorResponses,
   createApiError,
   createTool,
   dbResultToMcpTool,
   deleteTool,
-  ErrorResponseSchema,
+  generateId,
   getToolById,
-  ListResponseSchema,
+  getUserScopedCredentialReference,
   listTools,
   type McpTool,
-  McpToolSchema,
+  McpToolListResponse,
+  McpToolResponse,
   PaginationQueryParamsSchema,
-  SingleResponseSchema,
   TenantProjectIdParamsSchema,
   TenantProjectParamsSchema,
   ToolApiInsertSchema,
@@ -21,18 +23,41 @@ import {
   ToolStatusSchema,
   updateTool,
 } from '@inkeep/agents-core';
-import { nanoid } from 'nanoid';
-import dbClient from '../data/db/dbClient';
 import { getLogger } from '../logger';
+import { requirePermission } from '../middleware/require-permission';
+import type { AppVariablesWithServerConfig } from '../types/app';
+import { speakeasyOffsetLimitPagination } from './shared';
 
 const logger = getLogger('tools');
 
-type AppVariables = {
-  serverConfig: ServerConfig;
-  credentialStores: CredentialStoreRegistry;
-};
+const app = new OpenAPIHono<{ Variables: AppVariablesWithServerConfig }>();
 
-const app = new OpenAPIHono<{ Variables: AppVariables }>();
+// Apply permission middleware by HTTP method
+app.use('/', async (c, next) => {
+  if (c.req.method === 'POST') {
+    return requirePermission<{ Variables: AppVariablesWithServerConfig }>({ tool: ['create'] })(
+      c,
+      next
+    );
+  }
+  return next();
+});
+
+app.use('/:id', async (c, next) => {
+  if (c.req.method === 'PUT') {
+    return requirePermission<{ Variables: AppVariablesWithServerConfig }>({ tool: ['update'] })(
+      c,
+      next
+    );
+  }
+  if (c.req.method === 'DELETE') {
+    return requirePermission<{ Variables: AppVariablesWithServerConfig }>({ tool: ['delete'] })(
+      c,
+      next
+    );
+  }
+  return next();
+});
 
 app.openapi(
   createRoute({
@@ -52,14 +77,16 @@ app.openapi(
         description: 'List of tools retrieved successfully',
         content: {
           'application/json': {
-            schema: ListResponseSchema(McpToolSchema),
+            schema: McpToolListResponse,
           },
         },
       },
       ...commonGetErrorResponses,
     },
+    ...speakeasyOffsetLimitPagination,
   }),
   async (c) => {
+    const db: AgentsManageDatabaseClient = c.get('db');
     const { tenantId, projectId } = c.req.valid('param');
     const { page, limit, status } = c.req.valid('query');
 
@@ -73,10 +100,11 @@ app.openapi(
       };
     };
     const credentialStores = c.get('credentialStores');
+    const userId = c.get('userId');
 
     // Filter by status if provided
     if (status) {
-      const dbResult = await listTools(dbClient)({
+      const dbResult = await listTools(db)({
         scopes: { tenantId, projectId },
         pagination: { page, limit },
       });
@@ -84,22 +112,22 @@ app.openapi(
         data: (
           await Promise.all(
             dbResult.data.map(
-              async (tool) => await dbResultToMcpTool(tool, dbClient, credentialStores)
+              async (tool) => await dbResultToMcpTool(tool, db, credentialStores, undefined, userId)
             )
           )
-        ).filter((tool) => tool.status === status),
+        ).filter((tool: McpTool) => tool.status === status),
         pagination: dbResult.pagination,
       };
     } else {
       // Use paginated results from operations
-      const dbResult = await listTools(dbClient)({
+      const dbResult = await listTools(db)({
         scopes: { tenantId, projectId },
         pagination: { page, limit },
       });
       result = {
         data: await Promise.all(
           dbResult.data.map(
-            async (tool) => await dbResultToMcpTool(tool, dbClient, credentialStores)
+            async (tool) => await dbResultToMcpTool(tool, db, credentialStores, undefined, userId)
           )
         ),
         pagination: dbResult.pagination,
@@ -125,7 +153,7 @@ app.openapi(
         description: 'Tool found',
         content: {
           'application/json': {
-            schema: SingleResponseSchema(McpToolSchema),
+            schema: McpToolResponse,
           },
         },
       },
@@ -133,8 +161,9 @@ app.openapi(
     },
   }),
   async (c) => {
+    const db = c.get('db');
     const { tenantId, projectId, id } = c.req.valid('param');
-    const tool = await getToolById(dbClient)({ scopes: { tenantId, projectId }, toolId: id });
+    const tool = await getToolById(db)({ scopes: { tenantId, projectId }, toolId: id });
     if (!tool) {
       throw createApiError({
         code: 'not_found',
@@ -143,9 +172,10 @@ app.openapi(
     }
 
     const credentialStores = c.get('credentialStores');
+    const userId = c.get('userId');
 
     return c.json({
-      data: await dbResultToMcpTool(tool, dbClient, credentialStores),
+      data: await dbResultToMcpTool(tool, db, credentialStores, undefined, userId),
     });
   }
 );
@@ -172,7 +202,7 @@ app.openapi(
         description: 'Tool created successfully',
         content: {
           'application/json': {
-            schema: SingleResponseSchema(McpToolSchema),
+            schema: McpToolResponse,
           },
         },
       },
@@ -180,28 +210,31 @@ app.openapi(
     },
   }),
   async (c) => {
+    const db = c.get('db');
     const { tenantId, projectId } = c.req.valid('param');
     const body = c.req.valid('json');
     const credentialStores = c.get('credentialStores');
+    const userId = c.get('userId');
 
     logger.info({ body }, 'body');
 
-    const id = body.id || nanoid();
+    const id = body.id || generateId();
 
-    const tool = await createTool(dbClient)({
+    const tool = await createTool(db)({
       tenantId,
       projectId,
       id,
       name: body.name,
       config: body.config,
       credentialReferenceId: body.credentialReferenceId,
+      credentialScope: body.credentialScope,
       imageUrl: body.imageUrl,
       headers: body.headers,
     });
 
     return c.json(
       {
-        data: await dbResultToMcpTool(tool, dbClient, credentialStores),
+        data: await dbResultToMcpTool(tool, db, credentialStores, undefined, userId),
       },
       201
     );
@@ -230,7 +263,7 @@ app.openapi(
         description: 'Tool updated successfully',
         content: {
           'application/json': {
-            schema: SingleResponseSchema(McpToolSchema),
+            schema: McpToolResponse,
           },
         },
       },
@@ -238,9 +271,11 @@ app.openapi(
     },
   }),
   async (c) => {
+    const db = c.get('db');
     const { tenantId, projectId, id } = c.req.valid('param');
     const body = c.req.valid('json');
     const credentialStores = c.get('credentialStores');
+    const userId = c.get('userId');
 
     if (Object.keys(body).length === 0) {
       throw createApiError({
@@ -249,13 +284,14 @@ app.openapi(
       });
     }
 
-    const updatedTool = await updateTool(dbClient)({
+    const updatedTool = await updateTool(db)({
       scopes: { tenantId, projectId },
       toolId: id,
       data: {
         name: body.name,
         config: body.config,
         credentialReferenceId: body.credentialReferenceId,
+        credentialScope: body.credentialScope,
         imageUrl: body.imageUrl,
         headers: body.headers,
       },
@@ -269,8 +305,61 @@ app.openapi(
     }
 
     return c.json({
-      data: await dbResultToMcpTool(updatedTool, dbClient, credentialStores),
+      data: await dbResultToMcpTool(updatedTool, db, credentialStores, undefined, userId),
     });
+  }
+);
+
+// Get user-scoped credential for a tool
+app.openapi(
+  createRoute({
+    method: 'get',
+    path: '/{id}/user-credential',
+    summary: 'Get User Credential for Tool',
+    operationId: 'get-user-credential-for-tool',
+    tags: ['Tools'],
+    request: {
+      params: TenantProjectIdParamsSchema,
+    },
+    responses: {
+      200: {
+        description: 'User credential retrieved successfully',
+        content: {
+          'application/json': {
+            schema: CredentialReferenceResponse,
+          },
+        },
+      },
+      ...commonGetErrorResponses,
+    },
+  }),
+  async (c) => {
+    const { tenantId, projectId, id: toolId } = c.req.valid('param');
+    const db = c.get('db');
+    const userId = c.get('userId');
+
+    if (!userId) {
+      throw createApiError({
+        code: 'unauthorized',
+        message: 'User ID required for user-scoped credential lookup',
+      });
+    }
+
+    const credential = await getUserScopedCredentialReference(db)({
+      scopes: { tenantId, projectId },
+      toolId,
+      userId,
+    });
+
+    if (!credential) {
+      throw createApiError({
+        code: 'not_found',
+        message: 'User credential not found for this tool',
+      });
+    }
+
+    const validatedCredential = CredentialReferenceApiSelectSchema.parse(credential);
+    return c.json({ data: validatedCredential });
   }
 );
 
@@ -288,19 +377,13 @@ app.openapi(
       204: {
         description: 'Tool deleted successfully',
       },
-      404: {
-        description: 'Tool not found',
-        content: {
-          'application/json': {
-            schema: ErrorResponseSchema,
-          },
-        },
-      },
+      ...commonGetErrorResponses,
     },
   }),
   async (c) => {
+    const db = c.get('db');
     const { tenantId, projectId, id } = c.req.valid('param');
-    const deleted = await deleteTool(dbClient)({ scopes: { tenantId, projectId }, toolId: id });
+    const deleted = await deleteTool(db)({ scopes: { tenantId, projectId }, toolId: id });
 
     if (!deleted) {
       throw createApiError({

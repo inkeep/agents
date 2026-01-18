@@ -1,13 +1,28 @@
 import {
   type AgentConversationHistoryConfig,
   type Artifact,
+  CONVERSATION_HISTORY_MAX_OUTPUT_TOKENS_DEFAULT,
   type ConversationHistoryConfig,
   type ConversationScopeOptions,
   createMessage,
+  generateId,
   getConversationHistory,
+  getLedgerArtifacts,
+  type ResolvedRef,
 } from '@inkeep/agents-core';
-import { nanoid } from 'nanoid';
+import {
+  CONVERSATION_ARTIFACTS_LIMIT,
+  CONVERSATION_HISTORY_DEFAULT_LIMIT,
+} from '../constants/execution-limits';
+import { getLogger } from '../logger';
+import { ConversationCompressor } from '../services/ConversationCompressor';
+import { getCompressionConfigForModel } from '../utils/model-context-utils';
 import dbClient from './db/dbClient';
+
+const logger = getLogger('conversations');
+
+// In-memory lock to prevent concurrent compression for the same conversation
+export const compressionLocks = new Map<string, Promise<any>>();
 
 /**
  * Creates default conversation history configuration
@@ -19,21 +34,32 @@ export function createDefaultConversationHistoryConfig(
 ): AgentConversationHistoryConfig {
   return {
     mode,
-    limit: 50,
+    limit: CONVERSATION_HISTORY_DEFAULT_LIMIT,
     includeInternal: true,
-    messageTypes: ['chat'],
-    maxOutputTokens: 4000,
+    messageTypes: ['chat', 'tool-result'],
+    maxOutputTokens: CONVERSATION_HISTORY_MAX_OUTPUT_TOKENS_DEFAULT,
   };
 }
 
 /**
  * Extracts text content from A2A Message parts array
+ * Escapes control characters to ensure proper JSON serialization for Dolt
  */
 function extractA2AMessageText(parts: Array<{ kind: string; text?: string }>): string {
-  return parts
+  const text = parts
     .filter((part) => part.kind === 'text' && part.text)
     .map((part) => part.text)
     .join('');
+
+  // Escape control characters that Dolt's JSON parser rejects
+  // This ensures the text will serialize properly without changing its meaning
+  // We replace literal control characters with their escaped equivalents
+  return text
+    .replace(/\n/g, '\\n') // Escape newlines
+    .replace(/\r/g, '\\r') // Escape carriage returns
+    .replace(/\t/g, '\\t') // Escape tabs
+    .replace(/\f/g, '\\f') // Escape form feeds
+    .replace(/\b/g, '\\b'); // Escape backspaces
 }
 
 /**
@@ -83,7 +109,7 @@ export async function saveA2AMessageResponse(
   }
 
   return await createMessage(dbClient)({
-    id: nanoid(),
+    id: generateId(),
     tenantId: params.tenantId,
     projectId: params.projectId,
     conversationId: params.conversationId,
@@ -121,13 +147,70 @@ export async function getScopedHistory({
   options?: ConversationHistoryConfig;
 }): Promise<any[]> {
   try {
-    const messages = await getConversationHistory(dbClient)({
+    // First, get ALL messages to find the latest compression summary
+    // IMPORTANT: Always include internal messages and disable truncation to ensure tool results are available
+    const allMessages = await getConversationHistory(dbClient)({
       scopes: { tenantId, projectId },
       conversationId,
-      options,
+      options: { ...options, limit: 10000, includeInternal: true, maxOutputTokens: undefined }, // Disable truncation
     });
 
-    if (!filters || (!filters.subAgentId && !filters.taskId)) {
+    // Find the latest compression summary (highest order/createdAt)
+    const compressionSummaries = allMessages.filter(
+      (msg) =>
+        msg.messageType === 'compression_summary' &&
+        msg.metadata?.compressionType === 'conversation_history'
+    );
+
+    const latestCompressionSummary =
+      compressionSummaries.length > 0
+        ? compressionSummaries.reduce((latest, current) =>
+            new Date(current.createdAt) > new Date(latest.createdAt) ? current : latest
+          )
+        : null;
+
+    let messages: any[];
+    if (latestCompressionSummary) {
+      // Get the summary + all messages after it
+      const summaryDate = new Date(latestCompressionSummary.createdAt);
+      messages = [
+        latestCompressionSummary,
+        ...allMessages.filter(
+          (msg) =>
+            new Date(msg.createdAt) > summaryDate && msg.messageType !== 'compression_summary'
+        ),
+      ];
+
+      logger.debug(
+        {
+          conversationId,
+          latestCompressionSummaryId: latestCompressionSummary.id,
+          summaryDate: summaryDate.toISOString(),
+          messagesAfterCompression: messages.length - 1,
+          totalMessages: allMessages.length,
+        },
+        'Retrieved conversation with compression summary'
+      );
+    } else {
+      // No compression summary, use all messages
+      messages = allMessages;
+
+      logger.debug(
+        {
+          conversationId,
+          totalMessages: messages.length,
+        },
+        'Retrieved conversation without compression summary'
+      );
+    }
+
+    if (
+      !filters ||
+      (!filters.subAgentId &&
+        !filters.taskId &&
+        !filters.delegationId &&
+        filters.isDelegated === undefined)
+    ) {
       return messages;
     }
 
@@ -136,6 +219,7 @@ export async function getScopedHistory({
 
       let matchesAgent = true;
       let matchesTask = true;
+      let matchesDelegation = true;
 
       if (filters.subAgentId) {
         matchesAgent =
@@ -148,19 +232,37 @@ export async function getScopedHistory({
         matchesTask = msg.taskId === filters.taskId || msg.a2aTaskId === filters.taskId;
       }
 
-      if (filters.subAgentId && filters.taskId) {
-        return matchesAgent && matchesTask;
+      // Delegation filtering for tool results
+      if (filters.delegationId !== undefined || filters.isDelegated !== undefined) {
+        if (msg.messageType === 'tool-result') {
+          const messageDelegationId = msg.metadata?.a2a_metadata?.delegationId;
+          const messageIsDelegated = msg.metadata?.a2a_metadata?.isDelegated;
+
+          if (filters.delegationId) {
+            // If we have a specific delegation ID, show tool results from that delegation OR no delegation (top-level)
+            matchesDelegation =
+              messageDelegationId === filters.delegationId || !messageDelegationId;
+          } else if (filters.isDelegated === false) {
+            // If we're NOT delegated, only show tool results that aren't delegated
+            matchesDelegation = !messageIsDelegated;
+          } else if (filters.isDelegated === true) {
+            // If we ARE delegated but no specific ID, show any delegated tool results
+            matchesDelegation = messageIsDelegated === true;
+          }
+        }
+        // Non-tool-result messages are not affected by delegation filtering
       }
 
-      if (filters.subAgentId) {
-        return matchesAgent;
-      }
+      // Combine all filters
+      const conditions = [];
+      if (filters.subAgentId) conditions.push(matchesAgent);
+      if (filters.taskId) conditions.push(matchesTask);
+      if (filters.delegationId !== undefined || filters.isDelegated !== undefined)
+        conditions.push(matchesDelegation);
 
-      if (filters.taskId) {
-        return matchesTask;
-      }
+      const finalResult = conditions.length === 0 || conditions.every(Boolean);
 
-      return false;
+      return finalResult;
     });
 
     return relevantMessages;
@@ -177,16 +279,12 @@ export async function getUserFacingHistory(
   tenantId: string,
   projectId: string,
   conversationId: string,
-  limit = 50
+  limit = CONVERSATION_HISTORY_DEFAULT_LIMIT
 ): Promise<any[]> {
   return await getConversationHistory(dbClient)({
     scopes: { tenantId, projectId },
     conversationId,
-    options: {
-      limit,
-      includeInternal: false,
-      messageTypes: ['chat'],
-    },
+    options: { limit, includeInternal: false, messageTypes: ['chat'] },
   });
 }
 
@@ -199,10 +297,12 @@ export async function getFullConversationContext(
   conversationId: string,
   maxTokens?: number
 ): Promise<any[]> {
+  const defaultConfig = createDefaultConversationHistoryConfig();
   return await getConversationHistory(dbClient)({
     scopes: { tenantId, projectId },
     conversationId,
     options: {
+      ...defaultConfig,
       limit: 100,
       includeInternal: true,
       maxOutputTokens: maxTokens,
@@ -220,6 +320,8 @@ export async function getFormattedConversationHistory({
   currentMessage,
   options,
   filters,
+  sessionId,
+  summarizerModel,
 }: {
   tenantId: string;
   projectId: string;
@@ -227,8 +329,10 @@ export async function getFormattedConversationHistory({
   currentMessage?: string;
   options?: ConversationHistoryConfig;
   filters?: ConversationScopeOptions;
+  sessionId?: string;
+  summarizerModel?: any;
 }): Promise<string> {
-  const historyOptions = options ?? { includeInternal: true };
+  const historyOptions = options ?? createDefaultConversationHistoryConfig();
 
   const conversationHistory = await getScopedHistory({
     tenantId,
@@ -250,7 +354,19 @@ export async function getFormattedConversationHistory({
     return '';
   }
 
-  const formattedHistory = messagesToFormat
+  // Apply conversation compression if needed and enabled
+  let finalMessagesToFormat = messagesToFormat;
+  if (sessionId && summarizerModel) {
+    finalMessagesToFormat = await compressConversationIfNeeded(messagesToFormat, {
+      conversationId,
+      tenantId,
+      projectId,
+      summarizerModel,
+      streamRequestId: sessionId,
+    });
+  }
+
+  const formattedHistory = finalMessagesToFormat
     .map((msg: any) => {
       let roleLabel: string;
 
@@ -267,11 +383,542 @@ export async function getFormattedConversationHistory({
       } else if (msg.role === 'agent' && msg.messageType === 'chat') {
         const fromSubAgent = msg.fromSubAgentId || 'unknown';
         roleLabel = `${fromSubAgent} to User`;
+      } else if (msg.role === 'assistant' && msg.messageType === 'tool-result') {
+        const fromSubAgent = msg.fromSubAgentId || 'unknown';
+        const toolName = msg.metadata?.a2a_metadata?.toolName || 'unknown';
+        roleLabel = `${fromSubAgent} tool: ${toolName}`;
       } else {
         roleLabel = msg.role || 'system';
       }
 
       return `${roleLabel}: """${msg.content.text}"""`; // TODO: add timestamp?
+    })
+    .join('\n');
+
+  return `<conversation_history>\n${formattedHistory}\n</conversation_history>\n`;
+}
+
+/**
+ * Modern conversation history retrieval with compression support
+ * Replaces getFormattedConversationHistory with built-in compression when needed
+ */
+export async function getConversationHistoryWithCompression({
+  tenantId,
+  projectId,
+  conversationId,
+  currentMessage,
+  options,
+  filters,
+  summarizerModel,
+  streamRequestId,
+  fullContextSize,
+}: {
+  tenantId: string;
+  projectId: string;
+  conversationId: string;
+  currentMessage?: string;
+  options?: ConversationHistoryConfig;
+  filters?: ConversationScopeOptions;
+  summarizerModel?: any;
+  streamRequestId?: string;
+  fullContextSize?: number;
+}): Promise<string> {
+  const historyOptions = options ?? createDefaultConversationHistoryConfig();
+
+  // IMPORTANT: For conversation compression, we MUST include internal messages (tool results)
+  // Tool results are saved with visibility: 'internal' and are essential for compression summaries
+  // Also disable maxOutputTokens limit to let compression system handle context management
+  const compressionOptions = {
+    ...historyOptions,
+    includeInternal: true, // Override to ensure tool results are always included for compression
+    maxOutputTokens: undefined, // Disable token limit - let compression system manage context intelligently
+  };
+
+  // Get scoped history (same as legacy method)
+  const conversationHistory = await getScopedHistory({
+    tenantId,
+    projectId,
+    conversationId,
+    filters,
+    options: compressionOptions,
+  });
+
+  // Remove current message if it matches the last message (same as legacy)
+  let messagesToFormat = conversationHistory;
+  if (currentMessage && conversationHistory.length > 0) {
+    const lastMessage = conversationHistory[conversationHistory.length - 1];
+    if (lastMessage.content.text === currentMessage) {
+      messagesToFormat = conversationHistory.slice(0, -1);
+    }
+  }
+
+  if (!messagesToFormat.length) {
+    return '';
+  }
+
+  // Log model context info and apply compression if needed
+  if (summarizerModel) {
+    const compressionInfo = getCompressionConfigForModel(summarizerModel, 0.5); // 50% for conversation
+    const estimatedTokens = messagesToFormat.reduce((total, msg) => {
+      const text = typeof msg.content === 'string' ? msg.content : JSON.stringify(msg.content);
+      return total + Math.ceil(text.length / 4); // 4 chars = 1 token estimate
+    }, 0);
+
+    const remaining = compressionInfo.hardLimit - estimatedTokens;
+    const compressionNeeded = remaining <= compressionInfo.safetyBuffer;
+    const contextWindowUtilization = compressionInfo.modelContextInfo.contextWindow
+      ? ((estimatedTokens / compressionInfo.modelContextInfo.contextWindow) * 100).toFixed(1)
+      : 'unknown';
+
+    logger.info(
+      {
+        conversationId,
+        model: summarizerModel.model,
+        modelContextWindow: compressionInfo.modelContextInfo.contextWindow,
+        currentTokens: estimatedTokens,
+        hardLimit: compressionInfo.hardLimit,
+        safetyBuffer: compressionInfo.safetyBuffer,
+        remaining,
+        compressionNeeded,
+        contextWindowUtilization: `${contextWindowUtilization}%`,
+        messageCount: messagesToFormat.length,
+        source: compressionInfo.source,
+      },
+      'Conversation history fetch - model context analysis'
+    );
+
+    // Check if we need to re-compress based on messages since last compression
+    const compressionSummary = messagesToFormat.find(
+      (msg) =>
+        msg.messageType === 'compression_summary' &&
+        msg.metadata?.compressionType === 'conversation_history'
+    );
+
+    if (compressionSummary) {
+      const messagesAfterCompression = messagesToFormat.filter(
+        (msg) =>
+          new Date(msg.createdAt) > new Date(compressionSummary.createdAt) &&
+          msg.messageType !== 'compression_summary'
+      );
+
+      // Only re-compress if we have significant new messages AND they exceed context limits
+      if (messagesAfterCompression.length >= 10) {
+        // At least 10 new messages
+        logger.info(
+          {
+            conversationId,
+            messagesAfterLastCompression: messagesAfterCompression.length,
+            lastCompressionDate: compressionSummary.createdAt,
+          },
+          'Checking if re-compression needed for new messages'
+        );
+
+        const newMessagesCompressed = await compressConversationIfNeeded(messagesAfterCompression, {
+          conversationId,
+          tenantId,
+          projectId,
+          summarizerModel,
+          streamRequestId,
+          fullContextSize,
+        });
+
+        // If new messages were compressed, combine with existing summary
+        if (
+          newMessagesCompressed.length === 1 &&
+          newMessagesCompressed[0].messageType === 'compression_summary'
+        ) {
+          messagesToFormat = [compressionSummary, ...newMessagesCompressed];
+          logger.info(
+            {
+              conversationId,
+              totalCompressedMessages: messagesToFormat.length,
+            },
+            'Re-compression completed - combined with existing summary'
+          );
+        } else {
+          // No re-compression needed, keep messages as-is
+          messagesToFormat = [compressionSummary, ...messagesAfterCompression];
+        }
+      }
+    } else {
+      // No existing compression, check if we need to compress for the first time
+      messagesToFormat = await compressConversationIfNeeded(messagesToFormat, {
+        conversationId,
+        tenantId,
+        projectId,
+        summarizerModel,
+        streamRequestId,
+        fullContextSize,
+      });
+    }
+
+    // Log final message composition
+    const compressedTokens = messagesToFormat.reduce((total, msg) => {
+      const text = typeof msg.content === 'string' ? msg.content : JSON.stringify(msg.content);
+      return total + Math.ceil(text.length / 4);
+    }, 0);
+
+    const compressionSummaryMessages = messagesToFormat.filter(
+      (msg) => msg.messageType === 'compression_summary'
+    );
+
+    if (compressionSummaryMessages.length > 0) {
+      logger.info(
+        {
+          conversationId,
+          finalMessages: messagesToFormat.length,
+          compressionSummaries: compressionSummaryMessages.length,
+          finalTokens: compressedTokens,
+          contextWindowUtilization: compressionInfo.modelContextInfo.contextWindow
+            ? `${((compressedTokens / compressionInfo.modelContextInfo.contextWindow) * 100).toFixed(1)}%`
+            : 'unknown',
+        },
+        'Final conversation history with compression summaries'
+      );
+    }
+  }
+
+  // Format messages into conversation history string
+  return formatMessagesAsConversationHistory(messagesToFormat);
+}
+
+/**
+ * Apply conversation compression using the BaseCompressor infrastructure
+ */
+export async function compressConversationIfNeeded(
+  messages: any[],
+  params: {
+    conversationId: string;
+    tenantId: string;
+    projectId: string;
+    summarizerModel: any;
+    streamRequestId?: string;
+    fullContextSize?: number;
+  }
+): Promise<any[]> {
+  const { conversationId, tenantId, projectId } = params;
+
+  // Prevent race conditions by using conversation-level locking
+  const lockKey = `${conversationId}_${tenantId}_${projectId}`;
+
+  // If there's already a compression in progress, wait for it to complete
+  if (compressionLocks.has(lockKey)) {
+    logger.debug({ conversationId }, 'Waiting for existing compression to complete');
+    await compressionLocks.get(lockKey);
+    // Return original messages since compression was already handled
+    return messages;
+  }
+
+  // Create a new compression promise and store it in the lock
+  const compressionPromise = performActualCompression(messages, params);
+  compressionLocks.set(lockKey, compressionPromise);
+
+  try {
+    const result = await compressionPromise;
+    return result;
+  } finally {
+    // Always clean up the lock when done
+    compressionLocks.delete(lockKey);
+  }
+}
+
+async function performActualCompression(
+  messages: any[],
+  params: {
+    conversationId: string;
+    tenantId: string;
+    projectId: string;
+    summarizerModel: any;
+    streamRequestId?: string;
+    fullContextSize?: number;
+  }
+): Promise<any[]> {
+  const { conversationId, tenantId, projectId, summarizerModel, streamRequestId } = params;
+
+  // Use streamRequestId when available (for agent transfers), otherwise conversationId
+  const sessionIdForCompression = streamRequestId || conversationId;
+  const compressor = new ConversationCompressor(
+    sessionIdForCompression,
+    conversationId,
+    tenantId,
+    projectId,
+    undefined, // Use default conversation compression config
+    summarizerModel
+  );
+
+  // Check if compression is needed based on model context limits
+  if (!compressor.isCompressionNeeded(messages)) {
+    return messages;
+  }
+
+  logger.info(
+    {
+      conversationId,
+      messageCount: messages.length,
+    },
+    'Applying conversation-level compression'
+  );
+
+  try {
+    const compressionResult = await compressor.safeCompress(messages, params.fullContextSize);
+
+    // Save compression summary as a message in the database with proper ordering
+    if (compressionResult.summary) {
+      const compressionMessage = await createMessage(dbClient)({
+        id: generateId(),
+        tenantId,
+        projectId,
+        conversationId,
+        role: 'system',
+        content: {
+          text: buildCompressionSummaryMessage(
+            compressionResult.summary,
+            compressionResult.artifactIds
+          ),
+        },
+        visibility: 'internal',
+        messageType: 'compression_summary',
+        metadata: {
+          a2a_metadata: {
+            compressionType: 'conversation_history',
+            artifactIds: compressionResult.artifactIds,
+            originalMessageCount: messages.length,
+            compressedAt: new Date().toISOString(),
+            summaryData: compressionResult.summary,
+          },
+        },
+      });
+
+      logger.debug(
+        {
+          conversationId,
+          originalMessageCount: messages.length,
+          artifactCount: compressionResult.artifactIds?.length || 0,
+          compressionMessageId: compressionMessage.id,
+        },
+        'Conversation compression saved to messages table'
+      );
+
+      // Return just the compression summary message
+      compressor.fullCleanup();
+      return [compressionMessage];
+    }
+
+    compressor.fullCleanup();
+    return messages;
+  } catch (error) {
+    logger.error(
+      {
+        conversationId,
+        error: error instanceof Error ? error.message : String(error),
+      },
+      'Conversation compression failed, using original messages'
+    );
+    compressor.fullCleanup();
+    return messages;
+  }
+}
+
+/**
+ * Build a summary message for compressed conversation content
+ */
+function buildCompressionSummaryMessage(summary: any, artifactIds: string[]): string {
+  const parts: string[] = [];
+
+  parts.push('=== CONVERSATION SUMMARY ===');
+  parts.push('Previous conversation has been compressed to save context space.');
+  parts.push('');
+
+  // Handle conversation_history_summary_v1 schema
+  if (summary.conversation_overview) {
+    parts.push(`📋 Overview: ${summary.conversation_overview}`);
+  }
+
+  if (summary.user_goals?.primary) {
+    parts.push(`🎯 Primary Goal: ${summary.user_goals.primary}`);
+    if (summary.user_goals.secondary && summary.user_goals.secondary.length > 0) {
+      parts.push(`🎯 Secondary Goals:`);
+      summary.user_goals.secondary.forEach((goal: string) => {
+        parts.push(`  • ${goal}`);
+      });
+    }
+  }
+
+  if (summary.key_outcomes) {
+    if (summary.key_outcomes.completed && summary.key_outcomes.completed.length > 0) {
+      parts.push(`✅ Completed:`);
+      summary.key_outcomes.completed.forEach((item: string) => {
+        parts.push(`  • ${item}`);
+      });
+    }
+
+    if (summary.key_outcomes.discoveries && summary.key_outcomes.discoveries.length > 0) {
+      parts.push(`💡 Key Discoveries:`);
+      summary.key_outcomes.discoveries.forEach((discovery: string) => {
+        parts.push(`  • ${discovery}`);
+      });
+    }
+
+    if (summary.key_outcomes.partial && summary.key_outcomes.partial.length > 0) {
+      parts.push(`⏳ In Progress:`);
+      summary.key_outcomes.partial.forEach((item: string) => {
+        parts.push(`  • ${item}`);
+      });
+    }
+  }
+
+  if (summary.context_for_continuation) {
+    if (summary.context_for_continuation.current_state) {
+      parts.push(`📍 Current State: ${summary.context_for_continuation.current_state}`);
+    }
+
+    if (
+      summary.context_for_continuation.next_logical_steps &&
+      summary.context_for_continuation.next_logical_steps.length > 0
+    ) {
+      parts.push(`📝 Next Steps:`);
+      summary.context_for_continuation.next_logical_steps.forEach((step: string) => {
+        parts.push(`  • ${step}`);
+      });
+    }
+
+    if (
+      summary.context_for_continuation.important_context &&
+      summary.context_for_continuation.important_context.length > 0
+    ) {
+      parts.push(`🔑 Key Context:`);
+      summary.context_for_continuation.important_context.forEach((context: string) => {
+        parts.push(`  • ${context}`);
+      });
+    }
+  }
+
+  // Handle technical context if present
+  if (summary.technical_context) {
+    if (
+      summary.technical_context.technologies &&
+      summary.technical_context.technologies.length > 0
+    ) {
+      parts.push(`🔧 Technologies: ${summary.technical_context.technologies.join(', ')}`);
+    }
+
+    if (
+      summary.technical_context.issues_encountered &&
+      summary.technical_context.issues_encountered.length > 0
+    ) {
+      parts.push(`⚠️ Issues Encountered:`);
+      summary.technical_context.issues_encountered.forEach((issue: string) => {
+        parts.push(`  • ${issue}`);
+      });
+    }
+
+    if (
+      summary.technical_context.solutions_applied &&
+      summary.technical_context.solutions_applied.length > 0
+    ) {
+      parts.push(`✨ Solutions Applied:`);
+      summary.technical_context.solutions_applied.forEach((solution: string) => {
+        parts.push(`  • ${solution}`);
+      });
+    }
+  }
+
+  // Fallback: handle old conversation_summary_v1 schema for backward compatibility
+  if (summary.high_level) {
+    parts.push(`📋 Overview: ${summary.high_level}`);
+  }
+
+  if (summary.user_intent) {
+    parts.push(`🎯 User Goal: ${summary.user_intent}`);
+  }
+
+  if (summary.decisions && summary.decisions.length > 0) {
+    parts.push(`✅ Key Decisions Made:`);
+    summary.decisions.forEach((decision: string) => {
+      parts.push(`  • ${decision}`);
+    });
+  }
+
+  if (summary.next_steps && summary.next_steps.length > 0) {
+    parts.push(`📝 Planned Next Steps:`);
+    summary.next_steps.forEach((step: string) => {
+      parts.push(`  • ${step}`);
+    });
+  }
+
+  if (summary.open_questions && summary.open_questions.length > 0) {
+    parts.push(`❓ Outstanding Questions:`);
+    summary.open_questions.forEach((question: string) => {
+      parts.push(`  • ${question}`);
+    });
+  }
+
+  // Handle conversation artifacts with detailed information and proper reference format
+  if (summary.conversation_artifacts && summary.conversation_artifacts.length > 0) {
+    parts.push(
+      `💾 Research Artifacts: ${summary.conversation_artifacts.length} created from previous work`
+    );
+    summary.conversation_artifacts.forEach((artifact: any) => {
+      parts.push(`   [ARTIFACT: ${artifact.id}]`);
+      parts.push(`   📋 ${artifact.name || 'Research Data'}`);
+      if (artifact.content_summary) {
+        parts.push(`   📝 ${artifact.content_summary}`);
+      }
+      if (artifact.tool_name && artifact.tool_name !== 'unknown') {
+        parts.push(`   🔧 Source: ${artifact.tool_name}`);
+      }
+      parts.push(
+        `   🔗 Reference: <artifact:ref id="${artifact.id}" tool_call_id="${artifact.tool_call_id}" />`
+      );
+      parts.push('');
+    });
+  } else if (artifactIds && artifactIds.length > 0) {
+    // Fallback for legacy format
+    parts.push(`💾 Research Artifacts: ${artifactIds.length} created from previous work`);
+    artifactIds.forEach((artifactId: string) => {
+      parts.push(`   [ARTIFACT: ${artifactId}]`);
+      parts.push(`   🔗 Reference: <artifact:ref id="${artifactId}" />`);
+    });
+  }
+
+  parts.push('');
+  parts.push('=== END SUMMARY ===');
+  parts.push('Recent conversation continues below...');
+
+  return parts.join('\n');
+}
+
+/**
+ * Format messages into conversation history string (extracted from legacy method)
+ */
+function formatMessagesAsConversationHistory(messages: any[]): string {
+  const formattedHistory = messages
+    .map((msg: any) => {
+      let roleLabel: string;
+
+      if (msg.role === 'user') {
+        roleLabel = 'user';
+      } else if (
+        msg.role === 'agent' &&
+        (msg.messageType === 'a2a-request' || msg.messageType === 'a2a-response')
+      ) {
+        const fromSubAgent = msg.fromSubAgentId || msg.fromExternalAgentId || 'unknown';
+        const toSubAgent = msg.toSubAgentId || msg.toExternalAgentId || 'unknown';
+        roleLabel = `${fromSubAgent} to ${toSubAgent}`;
+      } else if (msg.role === 'agent' && msg.messageType === 'chat') {
+        const fromSubAgent = msg.fromSubAgentId || 'unknown';
+        roleLabel = `${fromSubAgent} to User`;
+      } else if (msg.role === 'assistant' && msg.messageType === 'tool-result') {
+        const fromSubAgent = msg.fromSubAgentId || 'unknown';
+        const toolName = msg.metadata?.a2a_metadata?.toolName || 'unknown';
+        roleLabel = `${fromSubAgent} tool: ${toolName}`;
+      } else if (msg.role === 'system') {
+        roleLabel = 'system';
+      } else {
+        roleLabel = msg.role || 'system';
+      }
+
+      return `${roleLabel}: """${msg.content.text}"""`;
     })
     .join('\n');
 
@@ -288,6 +935,7 @@ export async function getConversationScopedArtifacts(params: {
   projectId: string;
   conversationId: string;
   historyConfig: AgentConversationHistoryConfig;
+  ref: ResolvedRef;
 }): Promise<Artifact[]> {
   const { tenantId, projectId, conversationId, historyConfig } = params;
 
@@ -325,9 +973,6 @@ export async function getConversationScopedArtifacts(params: {
       return [];
     }
 
-    const { getLedgerArtifacts } = await import('@inkeep/agents-core');
-    const dbClient = (await import('../data/db/dbClient')).default;
-
     const visibleTaskIds = visibleMessages
       .map((msg) => msg.taskId)
       .filter((taskId): taskId is string => Boolean(taskId)); // Filter out null/undefined taskIds
@@ -342,18 +987,27 @@ export async function getConversationScopedArtifacts(params: {
     }
 
     const logger = (await import('../logger')).getLogger('conversations');
+
+    // Apply artifact count limit to prevent system prompt bloat
+    const ARTIFACT_COUNT_LIMIT = CONVERSATION_ARTIFACTS_LIMIT;
+    const limitedArtifacts = referenceArtifacts
+      .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()) // Most recent first
+      .slice(0, ARTIFACT_COUNT_LIMIT); // Take only the most recent N artifacts
+
     logger.debug(
       {
         conversationId,
         visibleMessages: visibleMessages.length,
         visibleTasks: visibleTaskIds.length,
-        artifacts: referenceArtifacts.length,
+        totalArtifacts: referenceArtifacts.length,
+        limitedArtifacts: limitedArtifacts.length,
+        artifactLimit: ARTIFACT_COUNT_LIMIT,
         historyMode: historyConfig.mode,
       },
-      'Loaded conversation-scoped artifacts'
+      'Loaded conversation-scoped artifacts with count limit'
     );
 
-    return referenceArtifacts;
+    return limitedArtifacts;
   } catch (error) {
     const logger = (await import('../logger')).getLogger('conversations');
     logger.error(

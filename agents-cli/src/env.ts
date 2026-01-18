@@ -12,20 +12,23 @@ import { z } from 'zod';
 // URL configuration should only come from inkeep.config.ts or CLI flags.
 loadEnvironmentFiles();
 
-const envSchema = z.object({
+const envSchema: z.ZodType<Env> = z.object({
   DEBUG: z.string().optional(),
   // Secrets loaded from .env files (relative to where CLI is executed)
   ANTHROPIC_API_KEY: z.string().optional(),
   OPENAI_API_KEY: z.string().optional(),
-  GOOGLE_API_KEY: z.string().optional(),
+  GOOGLE_GENERATIVE_AI_API_KEY: z.string().optional(),
   // Langfuse configuration for LLM observability
   LANGFUSE_SECRET_KEY: z.string().optional(),
   LANGFUSE_PUBLIC_KEY: z.string().optional(),
   LANGFUSE_BASEURL: z.string().optional().default('https://cloud.langfuse.com'),
-  LANGFUSE_ENABLED: z.string().optional().transform(val => val === 'true'),
+  LANGFUSE_ENABLED: z
+    .string()
+    .optional()
+    .transform((val) => val === 'true'),
 });
 
-const parseEnv = () => {
+const parseEnv = (): Env => {
   try {
     const parsedEnv = envSchema.parse(process.env);
     return parsedEnv;
@@ -40,5 +43,15 @@ const parseEnv = () => {
   }
 };
 
-export const env = parseEnv();
-export type Env = z.infer<typeof envSchema>;
+export const env: Env = parseEnv();
+
+export interface Env {
+  DEBUG?: string;
+  ANTHROPIC_API_KEY?: string;
+  OPENAI_API_KEY?: string;
+  GOOGLE_GENERATIVE_AI_API_KEY?: string;
+  LANGFUSE_SECRET_KEY?: string;
+  LANGFUSE_PUBLIC_KEY?: string;
+  LANGFUSE_BASEURL: string;
+  LANGFUSE_ENABLED: boolean;
+}

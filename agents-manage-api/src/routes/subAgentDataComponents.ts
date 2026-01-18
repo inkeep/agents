@@ -1,9 +1,10 @@
-import { createRoute, OpenAPIHono } from '@hono/zod-openapi';
+import { createRoute, OpenAPIHono, z } from '@hono/zod-openapi';
 import {
   associateDataComponentWithAgent,
+  ComponentAssociationListResponse,
   commonGetErrorResponses,
   createApiError,
-  DataComponentApiSelectSchema,
+  DataComponentArrayResponse,
   ErrorResponseSchema,
   ExistsResponseSchema,
   getAgentsUsingDataComponent,
@@ -13,36 +14,47 @@ import {
   isDataComponentAssociatedWithAgent,
   RemovedResponseSchema,
   removeDataComponentFromAgent,
-  SingleResponseSchema,
   SubAgentDataComponentApiInsertSchema,
-  SubAgentDataComponentApiSelectSchema,
+  SubAgentDataComponentResponse,
   TenantProjectAgentParamsSchema,
+  TenantProjectAgentSubAgentParamsSchema,
 } from '@inkeep/agents-core';
-import { z } from 'zod';
-import dbClient from '../data/db/dbClient';
 
-const app = new OpenAPIHono();
+import { requirePermission } from '../middleware/require-permission';
+import type { BaseAppVariables } from '../types/app';
+
+const app = new OpenAPIHono<{ Variables: BaseAppVariables }>();
+
+app.use('/', async (c, next) => {
+  if (c.req.method === 'POST') {
+    return requirePermission({ sub_agent: ['create'] })(c, next);
+  }
+  return next();
+});
+
+app.use('/agent/:subAgentId/component/:dataComponentId', async (c, next) => {
+  if (c.req.method === 'DELETE') {
+    return requirePermission({ sub_agent: ['delete'] })(c, next);
+  }
+  return next();
+});
 
 app.openapi(
   createRoute({
     method: 'get',
-    path: '/agent/:subAgentId',
+    path: '/agent/{subAgentId}',
     summary: 'Get Data Components for Agent',
     operationId: 'get-data-components-for-agent',
     tags: ['Agent Data Component Relations'],
     request: {
-      params: TenantProjectAgentParamsSchema.extend({
-        subAgentId: z.string(),
-      }),
+      params: TenantProjectAgentSubAgentParamsSchema,
     },
     responses: {
       200: {
         description: 'Data components retrieved successfully',
         content: {
           'application/json': {
-            schema: z.object({
-              data: z.array(DataComponentApiSelectSchema),
-            }),
+            schema: DataComponentArrayResponse,
           },
         },
       },
@@ -50,9 +62,10 @@ app.openapi(
     },
   }),
   async (c) => {
+    const db = c.get('db');
     const { tenantId, projectId, agentId, subAgentId } = c.req.valid('param');
 
-    const dataComponents = await getDataComponentsForAgent(dbClient)({
+    const dataComponents = await getDataComponentsForAgent(db)({
       scopes: { tenantId, projectId, agentId, subAgentId },
     });
 
@@ -63,7 +76,7 @@ app.openapi(
 app.openapi(
   createRoute({
     method: 'get',
-    path: '/component/:dataComponentId/agents',
+    path: '/component/{dataComponentId}/agents',
     summary: 'Get Agents Using Data Component',
     operationId: 'get-agents-using-data-component',
     tags: ['Agent Data Component Relations'],
@@ -77,14 +90,7 @@ app.openapi(
         description: 'Agents retrieved successfully',
         content: {
           'application/json': {
-            schema: z.object({
-              data: z.array(
-                z.object({
-                  subAgentId: z.string(),
-                  createdAt: z.string(),
-                })
-              ),
-            }),
+            schema: ComponentAssociationListResponse,
           },
         },
       },
@@ -92,9 +98,10 @@ app.openapi(
     },
   }),
   async (c) => {
+    const db = c.get('db');
     const { tenantId, projectId, dataComponentId } = c.req.valid('param');
 
-    const agents = await getAgentsUsingDataComponent(dbClient)({
+    const agents = await getAgentsUsingDataComponent(db)({
       scopes: { tenantId, projectId },
       dataComponentId,
     });
@@ -125,7 +132,7 @@ app.openapi(
         description: 'Agent data component association created successfully',
         content: {
           'application/json': {
-            schema: SingleResponseSchema(SubAgentDataComponentApiSelectSchema),
+            schema: SubAgentDataComponentResponse,
           },
         },
       },
@@ -141,12 +148,13 @@ app.openapi(
     },
   }),
   async (c) => {
+    const db = c.get('db');
     const { tenantId, projectId, agentId } = c.req.valid('param');
     const { subAgentId, dataComponentId } = c.req.valid('json');
 
     const [agent, dataComponent] = await Promise.all([
-      getSubAgentById(dbClient)({ scopes: { tenantId, projectId, agentId }, subAgentId }),
-      getDataComponent(dbClient)({ scopes: { tenantId, projectId }, dataComponentId }),
+      getSubAgentById(db)({ scopes: { tenantId, projectId, agentId }, subAgentId }),
+      getDataComponent(db)({ scopes: { tenantId, projectId }, dataComponentId }),
     ]);
 
     if (!agent) {
@@ -163,7 +171,7 @@ app.openapi(
       });
     }
 
-    const exists = await isDataComponentAssociatedWithAgent(dbClient)({
+    const exists = await isDataComponentAssociatedWithAgent(db)({
       scopes: { tenantId, projectId, agentId, subAgentId },
       dataComponentId,
     });
@@ -175,7 +183,7 @@ app.openapi(
       });
     }
 
-    const association = await associateDataComponentWithAgent(dbClient)({
+    const association = await associateDataComponentWithAgent(db)({
       scopes: { tenantId, projectId, agentId, subAgentId },
       dataComponentId,
     });
@@ -188,13 +196,12 @@ app.openapi(
 app.openapi(
   createRoute({
     method: 'delete',
-    path: '/agent/:subAgentId/component/:dataComponentId',
+    path: '/agent/{subAgentId}/component/{dataComponentId}',
     summary: 'Remove Data Component from Agent',
     operationId: 'remove-data-component-from-agent',
     tags: ['Agent Data Component Relations'],
     request: {
-      params: TenantProjectAgentParamsSchema.extend({
-        subAgentId: z.string(),
+      params: TenantProjectAgentSubAgentParamsSchema.extend({
         dataComponentId: z.string(),
       }),
     },
@@ -211,9 +218,10 @@ app.openapi(
     },
   }),
   async (c) => {
+    const db = c.get('db');
     const { tenantId, projectId, agentId, subAgentId, dataComponentId } = c.req.valid('param');
 
-    const removed = await removeDataComponentFromAgent(dbClient)({
+    const removed = await removeDataComponentFromAgent(db)({
       scopes: { tenantId, projectId, agentId, subAgentId },
       dataComponentId,
     });
@@ -235,13 +243,12 @@ app.openapi(
 app.openapi(
   createRoute({
     method: 'get',
-    path: '/agent/:subAgentId/component/:dataComponentId/exists',
+    path: '/agent/{subAgentId}/component/{dataComponentId}/exists',
     summary: 'Check if Data Component is Associated with Agent',
     operationId: 'check-data-component-agent-association',
     tags: ['Agent Data Component Relations'],
     request: {
-      params: TenantProjectAgentParamsSchema.extend({
-        subAgentId: z.string(),
+      params: TenantProjectAgentSubAgentParamsSchema.extend({
         dataComponentId: z.string(),
       }),
     },
@@ -258,9 +265,10 @@ app.openapi(
     },
   }),
   async (c) => {
+    const db = c.get('db');
     const { tenantId, projectId, agentId, subAgentId, dataComponentId } = c.req.valid('param');
 
-    const exists = await isDataComponentAssociatedWithAgent(dbClient)({
+    const exists = await isDataComponentAssociatedWithAgent(db)({
       scopes: { tenantId, projectId, agentId, subAgentId },
       dataComponentId,
     });

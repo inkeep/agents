@@ -1,5 +1,8 @@
 {
   "compilerOptions": {
+    // tsdown uses oxc-transform for .d.ts generation (very fast, recommended)
+    "isolatedDeclarations": true,
+    "verbatimModuleSyntax": true,
     "target": "ES2022",
     "module": "ESNext",
     "moduleResolution": "bundler",
@@ -11,7 +14,6 @@
     "skipLibCheck": true,
     "forceConsistentCasingInFileNames": true,
     "declaration": true,
-    "declarationMap": true,
     "sourceMap": true,
     "allowSyntheticDefaultImports": true,
     "isolatedModules": true,

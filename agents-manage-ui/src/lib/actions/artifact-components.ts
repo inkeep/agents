@@ -121,7 +121,6 @@ export async function deleteArtifactComponentAction(
   try {
     await deleteArtifactComponent(tenantId, projectId, artifactComponentId);
     revalidatePath(`/${tenantId}/projects/${projectId}/artifacts`);
-    revalidatePath(`/${tenantId}/projects/${projectId}/artifacts/${artifactComponentId}`);
     return {
       success: true,
     };

@@ -6,21 +6,40 @@ import {
   deleteExternalAgent,
   ErrorResponseSchema,
   ExternalAgentApiInsertSchema,
-  ExternalAgentApiSelectSchema,
   ExternalAgentApiUpdateSchema,
   ExternalAgentListResponse,
   ExternalAgentResponse,
+  generateId,
   getExternalAgent,
   listExternalAgentsPaginated,
   PaginationQueryParamsSchema,
-  TenantProjectAgentIdParamsSchema,
-  TenantProjectAgentParamsSchema,
+  TenantProjectIdParamsSchema,
+  TenantProjectParamsSchema,
   updateExternalAgent,
 } from '@inkeep/agents-core';
-import { nanoid } from 'nanoid';
-import dbClient from '../data/db/dbClient';
+import { requirePermission } from '../middleware/require-permission';
+import type { BaseAppVariables } from '../types/app';
+import { speakeasyOffsetLimitPagination } from './shared';
 
-const app = new OpenAPIHono();
+const app = new OpenAPIHono<{ Variables: BaseAppVariables }>();
+
+// Apply permission middleware by HTTP method
+app.use('/', async (c, next) => {
+  if (c.req.method === 'POST') {
+    return requirePermission({ external_agent: ['create'] })(c, next);
+  }
+  return next();
+});
+
+app.use('/:id', async (c, next) => {
+  if (c.req.method === 'PATCH') {
+    return requirePermission({ external_agent: ['update'] })(c, next);
+  }
+  if (c.req.method === 'DELETE') {
+    return requirePermission({ external_agent: ['delete'] })(c, next);
+  }
+  return next();
+});
 
 app.openapi(
   createRoute({
@@ -30,7 +49,7 @@ app.openapi(
     operationId: 'list-external-agents',
     tags: ['External Agents'],
     request: {
-      params: TenantProjectAgentParamsSchema,
+      params: TenantProjectParamsSchema,
       query: PaginationQueryParamsSchema,
     },
     responses: {
@@ -44,13 +63,15 @@ app.openapi(
       },
       ...commonGetErrorResponses,
     },
+    ...speakeasyOffsetLimitPagination,
   }),
   async (c) => {
-    const { tenantId, projectId, agentId } = c.req.valid('param');
+    const db = c.get('db');
+    const { tenantId, projectId } = c.req.valid('param');
     const { page, limit } = c.req.valid('query');
 
-    const result = await listExternalAgentsPaginated(dbClient)({
-      scopes: { tenantId, projectId, agentId },
+    const result = await listExternalAgentsPaginated(db)({
+      scopes: { tenantId, projectId },
       pagination: { page, limit },
     });
     // Add type field to all external agents in the response
@@ -74,7 +95,7 @@ app.openapi(
     operationId: 'get-external-agent-by-id',
     tags: ['External Agents'],
     request: {
-      params: TenantProjectAgentIdParamsSchema,
+      params: TenantProjectIdParamsSchema,
     },
     responses: {
       200: {
@@ -89,10 +110,11 @@ app.openapi(
     },
   }),
   async (c) => {
-    const { tenantId, projectId, agentId, id } = c.req.valid('param');
-    const externalAgent = await getExternalAgent(dbClient)({
-      scopes: { tenantId, projectId, agentId: agentId },
-      subAgentId: id,
+    const db = c.get('db');
+    const { tenantId, projectId, id } = c.req.valid('param');
+    const externalAgent = await getExternalAgent(db)({
+      scopes: { tenantId, projectId },
+      externalAgentId: id,
     });
 
     if (!externalAgent) {
@@ -120,7 +142,7 @@ app.openapi(
     operationId: 'create-external-agent',
     tags: ['External Agents'],
     request: {
-      params: TenantProjectAgentParamsSchema,
+      params: TenantProjectParamsSchema,
       body: {
         content: {
           'application/json': {
@@ -142,22 +164,21 @@ app.openapi(
     },
   }),
   async (c) => {
-    const { tenantId, projectId, agentId } = c.req.valid('param');
+    const db = c.get('db');
+    const { tenantId, projectId } = c.req.valid('param');
     const body = c.req.valid('json');
 
     const externalAgentData = {
       tenantId,
       projectId,
-      agentId,
-      id: body.id ? String(body.id) : nanoid(),
+      id: body.id ? String(body.id) : generateId(),
       name: body.name,
       description: body.description,
       baseUrl: body.baseUrl,
       credentialReferenceId: body.credentialReferenceId || undefined,
-      headers: body.headers || undefined,
     };
 
-    const externalAgent = await createExternalAgent(dbClient)(externalAgentData);
+    const externalAgent = await createExternalAgent(db)(externalAgentData);
 
     // Add type field to the external agent response
     const agentWithType = {
@@ -177,7 +198,7 @@ app.openapi(
     operationId: 'update-external-agent',
     tags: ['External Agents'],
     request: {
-      params: TenantProjectAgentIdParamsSchema,
+      params: TenantProjectIdParamsSchema,
       body: {
         content: {
           'application/json': {
@@ -199,12 +220,13 @@ app.openapi(
     },
   }),
   async (c) => {
-    const { tenantId, projectId, agentId, id } = c.req.valid('param');
+    const db = c.get('db');
+    const { tenantId, projectId, id } = c.req.valid('param');
     const body = c.req.valid('json');
 
-    const updatedExternalAgent = await updateExternalAgent(dbClient)({
-      scopes: { tenantId, projectId, agentId: agentId },
-      subAgentId: id,
+    const updatedExternalAgent = await updateExternalAgent(db)({
+      scopes: { tenantId, projectId },
+      externalAgentId: id,
       data: body,
     });
 
@@ -233,7 +255,7 @@ app.openapi(
     operationId: 'delete-external-agent',
     tags: ['External Agents'],
     request: {
-      params: TenantProjectAgentIdParamsSchema,
+      params: TenantProjectIdParamsSchema,
     },
     responses: {
       204: {
@@ -250,11 +272,12 @@ app.openapi(
     },
   }),
   async (c) => {
-    const { tenantId, projectId, agentId, id } = c.req.valid('param');
+    const db = c.get('db');
+    const { tenantId, projectId, id } = c.req.valid('param');
 
-    const deleted = await deleteExternalAgent(dbClient)({
-      scopes: { tenantId, projectId, agentId: agentId },
-      subAgentId: id,
+    const deleted = await deleteExternalAgent(db)({
+      scopes: { tenantId, projectId },
+      externalAgentId: id,
     });
 
     if (!deleted) {

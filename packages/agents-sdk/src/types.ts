@@ -10,8 +10,15 @@ import type {
   StatusUpdateSettings,
   SubAgentApiInsert,
   ToolInsert,
+  ToolPolicy,
 } from '@inkeep/agents-core';
 import type { z } from 'zod';
+import type { ArtifactComponentInterface } from './artifact-component';
+import type { AgentMcpConfig as SubAgentMcpConfig } from './builders';
+import type { DataComponentInterface } from './data-component';
+import type { ExternalAgentConfig } from './external-agent';
+import type { FunctionTool } from './function-tool';
+import type { Tool } from './tool';
 
 export interface ArtifactComponentWithZodProps {
   id: string;
@@ -26,14 +33,6 @@ export interface DataComponentWithZodProps {
   description: string;
   props?: z.ZodObject<any>;
 }
-
-import type { ArtifactComponentInterface } from './artifact-component';
-import type { AgentMcpConfig as SubAgentMcpConfig } from './builders';
-import type { DataComponentInterface } from './data-component';
-import type { ExternalAgentConfig } from './externalAgent';
-import type { FunctionTool } from './function-tool';
-import type { Tool } from './tool';
-
 export type { ModelSettings };
 
 /**
@@ -43,10 +42,12 @@ export type AgentTool =
   | (Tool & {
       selectedTools?: string[];
       headers?: Record<string, string>;
+      toolPolicies?: Record<string, ToolPolicy>;
     })
   | (FunctionTool & {
       selectedTools?: string[];
       headers?: Record<string, string>;
+      toolPolicies?: Record<string, ToolPolicy>;
     });
 
 // Core message types following OpenAI pattern
@@ -90,7 +91,17 @@ export interface ToolResult {
   result: any;
   error?: string;
 }
-export type AllSubAgentInterface = SubAgentInterface | ExternalAgentInterface;
+export type AllDelegateInputInterface =
+  | SubAgentInterface
+  | subAgentExternalAgentInterface
+  | ExternalAgentInterface
+  | AgentInterface
+  | subAgentTeamAgentInterface;
+
+export type AllDelegateOutputInterface =
+  | SubAgentInterface
+  | subAgentExternalAgentInterface
+  | subAgentTeamAgentInterface;
 
 export type SubAgentCanUseType = Tool | SubAgentMcpConfig | FunctionTool;
 
@@ -98,7 +109,7 @@ export interface SubAgentConfig extends Omit<SubAgentApiInsert, 'projectId'> {
   type?: 'internal'; // Discriminator for internal agents
   canUse?: () => SubAgentCanUseType[];
   canTransferTo?: () => SubAgentInterface[];
-  canDelegateTo?: () => AllSubAgentInterface[];
+  canDelegateTo?: () => AllDelegateInputInterface[];
   dataComponents?: () => (
     | DataComponentApiInsert
     | DataComponentInterface
@@ -137,6 +148,16 @@ export interface MCPToolConfig {
   mcpType?: 'nango' | 'generic';
   transport?: McpTransportConfig;
   imageUrl?: string; // Optional image URL for custom tool icon
+  toolOverrides?: Record<
+    string,
+    {
+      displayName?: string;
+      description?: string;
+      schema?: any;
+      transformation?: string | Record<string, string>;
+    }
+  >;
+  prompt?: string; // Optional custom prompt/instructions for using this MCP server
 }
 
 export interface FetchDefinitionConfig {
@@ -229,8 +250,8 @@ export interface AgentConfig {
   id: string;
   name?: string;
   description?: string;
-  defaultSubAgent?: SubAgentInterface;
-  subAgents?: () => AllSubAgentInterface[];
+  defaultSubAgent: SubAgentInterface;
+  subAgents?: () => SubAgentInterface[];
   contextConfig?: any;
   credentials?: () => CredentialReferenceApiInsert[];
   stopWhen?: AgentStopWhen;
@@ -287,13 +308,15 @@ export interface SubAgentInterface {
   getInstructions(): string;
   getTools(): Record<string, AgentTool>;
   getTransfers(): SubAgentInterface[];
-  getDelegates(): AllSubAgentInterface[];
+  getDelegates(): AllDelegateOutputInterface[];
+  getSubAgentDelegates(): SubAgentInterface[];
+  getExternalAgentDelegates(): subAgentExternalAgentInterface[];
   getDataComponents(): DataComponentApiInsert[];
   getArtifactComponents(): ArtifactComponentApiInsert[];
   setContext(tenantId: string, projectId: string, baseURL?: string): void;
   addTool(name: string, tool: any): void;
   addTransfer(...agents: SubAgentInterface[]): void;
-  addDelegate(...agents: SubAgentInterface[]): void;
+  addDelegate(...agents: AllDelegateInputInterface[]): void;
 }
 
 export interface ExternalAgentInterface {
@@ -304,10 +327,21 @@ export interface ExternalAgentInterface {
   getName(): string;
   getDescription(): string;
   getBaseUrl(): string;
-  setContext?(tenantId: string, baseURL?: string): void;
+  setContext?(tenantId: string, projectId: string): void;
+  with(options: { headers?: Record<string, string> }): subAgentExternalAgentInterface;
   getCredentialReferenceId(): string | undefined;
-  getHeaders(): Record<string, string> | undefined;
+  getCredentialReference(): CredentialReferenceApiInsert | undefined;
 }
+
+export type subAgentExternalAgentInterface = {
+  externalAgent: ExternalAgentInterface;
+  headers?: Record<string, string>;
+};
+
+export type subAgentTeamAgentInterface = {
+  agent: AgentInterface;
+  headers?: Record<string, string>;
+};
 
 export interface AgentInterface {
   init(): Promise<void>;
@@ -320,9 +354,10 @@ export interface AgentInterface {
   stream(input: MessageInput, options?: GenerateOptions): Promise<StreamResponse>;
   generateStream(input: MessageInput, options?: GenerateOptions): Promise<StreamResponse>;
   getDefaultSubAgent(): SubAgentInterface | undefined;
-  getSubAgent(name: string): AllSubAgentInterface | undefined;
-  getSubAgents(): AllSubAgentInterface[];
+  getSubAgent(name: string): SubAgentInterface | undefined;
+  getSubAgents(): SubAgentInterface[];
   toFullAgentDefinition(): Promise<FullAgentDefinition>;
+  with(options: { headers?: Record<string, string> }): subAgentTeamAgentInterface;
 }
 
 export interface BuilderToolConfig {

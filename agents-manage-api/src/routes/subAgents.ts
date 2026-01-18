@@ -1,26 +1,47 @@
 import { createRoute, OpenAPIHono } from '@hono/zod-openapi';
 import {
+  cascadeDeleteBySubAgent,
   commonGetErrorResponses,
   createApiError,
   createSubAgent,
   deleteSubAgent,
   ErrorResponseSchema,
+  generateId,
   getSubAgentById,
   listSubAgentsPaginated,
   PaginationQueryParamsSchema,
   SubAgentApiInsertSchema,
-  SubAgentApiSelectSchema,
   SubAgentApiUpdateSchema,
+  SubAgentIsDefaultError,
   SubAgentListResponse,
   SubAgentResponse,
   TenantProjectAgentIdParamsSchema,
   TenantProjectAgentParamsSchema,
   updateSubAgent,
 } from '@inkeep/agents-core';
-import { nanoid } from 'nanoid';
-import dbClient from '../data/db/dbClient';
+import runDbClient from '../data/db/runDbClient';
+import { requirePermission } from '../middleware/require-permission';
+import type { BaseAppVariables } from '../types/app';
+import { speakeasyOffsetLimitPagination } from './shared';
 
-const app = new OpenAPIHono();
+const app = new OpenAPIHono<{ Variables: BaseAppVariables }>();
+
+app.use('/', async (c, next) => {
+  if (c.req.method === 'POST') {
+    return requirePermission({ sub_agent: ['create'] })(c, next);
+  }
+  return next();
+});
+
+app.use('/:id', async (c, next) => {
+  if (c.req.method === 'PUT') {
+    return requirePermission({ sub_agent: ['update'] })(c, next);
+  }
+  if (c.req.method === 'DELETE') {
+    return requirePermission({ sub_agent: ['delete'] })(c, next);
+  }
+  return next();
+});
 
 app.openapi(
   createRoute({
@@ -44,13 +65,15 @@ app.openapi(
       },
       ...commonGetErrorResponses,
     },
+    ...speakeasyOffsetLimitPagination,
   }),
   async (c) => {
     const { tenantId, projectId, agentId } = c.req.valid('param');
     const page = Number(c.req.query('page')) || 1;
     const limit = Math.min(Number(c.req.query('limit')) || 10, 100);
 
-    const result = await listSubAgentsPaginated(dbClient)({
+    const db = c.get('db');
+    const result = await listSubAgentsPaginated(db)({
       scopes: { tenantId, projectId, agentId },
       pagination: { page, limit },
     });
@@ -91,7 +114,9 @@ app.openapi(
   }),
   async (c) => {
     const { tenantId, projectId, agentId, id } = c.req.valid('param');
-    const subAgent = await getSubAgentById(dbClient)({
+    const db = c.get('db');
+
+    const subAgent = await getSubAgentById(db)({
       scopes: { tenantId, projectId, agentId },
       subAgentId: id,
     });
@@ -145,8 +170,9 @@ app.openapi(
   async (c) => {
     const { tenantId, projectId, agentId } = c.req.valid('param');
     const body = c.req.valid('json');
-    const subAgentId = body.id ? String(body.id) : nanoid();
-    const subAgent = await createSubAgent(dbClient)({
+    const subAgentId = body.id ? String(body.id) : generateId();
+    const db = c.get('db');
+    const subAgent = await createSubAgent(db)({
       ...body,
       id: subAgentId,
       tenantId,
@@ -197,7 +223,8 @@ app.openapi(
     const { tenantId, projectId, agentId, id } = c.req.valid('param');
     const body = c.req.valid('json');
 
-    const updatedSubAgent = await updateSubAgent(dbClient)({
+    const db = c.get('db');
+    const updatedSubAgent = await updateSubAgent(db)({
       scopes: { tenantId, projectId, agentId },
       subAgentId: id,
       data: body,
@@ -242,24 +269,52 @@ app.openapi(
           },
         },
       },
+      409: {
+        description: 'SubAgent is set as default and cannot be deleted',
+        content: {
+          'application/json': {
+            schema: ErrorResponseSchema,
+          },
+        },
+      },
     },
   }),
   async (c) => {
     const { tenantId, projectId, agentId, id } = c.req.valid('param');
+    const db = c.get('db');
+    const resolvedRef = c.get('resolvedRef');
 
-    const deleted = await deleteSubAgent(dbClient)({
-      scopes: { tenantId, projectId, agentId },
-      subAgentId: id,
-    });
-
-    if (!deleted) {
-      throw createApiError({
-        code: 'not_found',
-        message: 'SubAgent not found',
+    try {
+      // Delete runtime entities for this subAgent on this branch
+      await cascadeDeleteBySubAgent(runDbClient)({
+        scopes: { tenantId, projectId },
+        subAgentId: id,
+        fullBranchName: resolvedRef.name,
       });
-    }
 
-    return c.body(null, 204);
+      // Delete the subAgent from the config DB
+      const deleted = await deleteSubAgent(db)({
+        scopes: { tenantId, projectId, agentId },
+        subAgentId: id,
+      });
+
+      if (!deleted) {
+        throw createApiError({
+          code: 'not_found',
+          message: 'SubAgent not found',
+        });
+      }
+
+      return c.body(null, 204);
+    } catch (error) {
+      if (error instanceof SubAgentIsDefaultError) {
+        throw createApiError({
+          code: 'conflict',
+          message: error.message,
+        });
+      }
+      throw error;
+    }
   }
 );
 

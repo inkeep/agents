@@ -16,6 +16,7 @@ describe('agent builder function', () => {
       id: 'test-agent',
       name: 'Test Agent',
       subAgents: () => [subAgent],
+      defaultSubAgent: subAgent,
     };
 
     const agentObject = agent(config);
@@ -43,6 +44,7 @@ describe('agent builder function', () => {
       id: 'multi-agent-agent',
       name: 'Multi Agent Agent',
       subAgents: () => [agent1, agent2],
+      defaultSubAgent: agent1,
     };
 
     const agentObject = agent(config);
@@ -65,6 +67,7 @@ describe('agent builder function', () => {
       id: 'configured-agent',
       name: 'Configured Agent',
       description: 'A agent with description',
+      defaultSubAgent: subAgent,
       subAgents: () => [subAgent],
     };
 

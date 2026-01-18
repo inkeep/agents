@@ -1,31 +1,8 @@
-import { createDatabaseClient } from '@inkeep/agents-core';
+import { createAgentsManageDatabaseClient } from '@inkeep/agents-core';
 import { env } from '../../env';
 
-const getDbConfig = () => {
-  // Use in-memory database for tests - each worker gets its own isolated database
-  if (env.ENVIRONMENT === 'test') {
-    return { url: ':memory:' };
-  }
-
-  // Prefer Turso if both URL + token are set
-  if (env.TURSO_DATABASE_URL && env.TURSO_AUTH_TOKEN) {
-    return {
-      url: env.TURSO_DATABASE_URL,
-      authToken: env.TURSO_AUTH_TOKEN,
-    };
-  }
-
-  if (!env.DB_FILE_NAME) {
-    throw new Error(
-      'Database configuration error: DB_FILE_NAME must be set if Turso is not configured.'
-    );
-  }
-
-  // Otherwise, fallback to file (must be explicitly set)
-  return {
-    url: env.DB_FILE_NAME,
-  };
-};
-
-const dbClient = createDatabaseClient(getDbConfig());
-export default dbClient;
+// Create the database client
+const manageDbClient = createAgentsManageDatabaseClient({
+  connectionString: env.INKEEP_AGENTS_MANAGE_DATABASE_URL,
+});
+export default manageDbClient;

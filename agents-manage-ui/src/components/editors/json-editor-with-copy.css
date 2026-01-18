@@ -1,0 +1,30 @@
+.copy-button-icon {
+  font-size: 14px;
+  margin-left: 10px;
+  opacity: 0;
+  cursor: pointer;
+  position: absolute;
+}
+.copy-button-icon::before {
+  content: "";
+  position: absolute;
+  width: 16px;
+  height: 16px;
+  background-image: url("data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%2224%22%20height%3D%2224%22%20viewBox%3D%220%200%2024%2024%22%20fill%3D%22none%22%20stroke%3D%22currentColor%22%20stroke-width%3D%222%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%20class%3D%22lucide%20lucide-clipboard-copy%22%20aria-hidden%3D%22true%22%3E%3Crect%20width%3D%228%22%20height%3D%224%22%20x%3D%228%22%20y%3D%222%22%20rx%3D%221%22%20ry%3D%221%22%3E%3C%2Frect%3E%3Cpath%20d%3D%22M8%204H6a2%202%200%200%200-2%202v14a2%202%200%200%200%202%202h12a2%202%200%200%200%202-2v-2%22%3E%3C%2Fpath%3E%3Cpath%20d%3D%22M16%204h2a2%202%200%200%201%202%202v4%22%3E%3C%2Fpath%3E%3Cpath%20d%3D%22M21%2014H11%22%3E%3C%2Fpath%3E%3Cpath%20d%3D%22m15%2010-4%204%204%204%22%3E%3C%2Fpath%3E%3C%2Fsvg%3E");
+  background-size: contain;
+  filter: invert(0);
+}
+/* Dark mode - invert the icon to make it white */
+.dark .copy-button-icon::before {
+  filter: invert(1);
+}
+.inkeep-readonly-monaco-editor {
+  /* Show copy button only when hovering over the specific line */
+  .view-line:hover .copy-button-icon {
+    opacity: 0.7;
+  }
+  /* Hide caret */
+  .monaco-editor .cursor {
+    display: none !important;
+  }
+}

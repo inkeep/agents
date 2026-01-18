@@ -1,9 +1,7 @@
 'use client';
 
-import { Plus } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
-import { Button } from '@/components/ui/button';
 import {
   Dialog,
   DialogContent,
@@ -15,18 +13,18 @@ import { ProjectForm } from './form/project-form';
 
 interface NewProjectDialogProps {
   tenantId: string;
-  triggerButton?: React.ReactNode;
   children?: React.ReactNode;
   open?: boolean;
   onOpenChange?: (open: boolean) => void;
+  onSuccess?: (projectId: string) => void;
 }
 
 export function NewProjectDialog({
   tenantId,
-  triggerButton,
   children,
   open: controlledOpen,
   onOpenChange,
+  onSuccess,
 }: NewProjectDialogProps) {
   const [uncontrolledOpen, setUncontrolledOpen] = useState(false);
   const router = useRouter();
@@ -36,22 +34,14 @@ export function NewProjectDialog({
   const setOpen = onOpenChange || setUncontrolledOpen;
 
   const handleSuccess = (projectId: string) => {
+    onSuccess?.(projectId);
     setOpen(false);
     router.push(`/${tenantId}/projects/${projectId}/agents`);
   };
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
-      {(children || triggerButton) && (
-        <DialogTrigger asChild>
-          {children || triggerButton || (
-            <Button>
-              <Plus className="mr-2 h-4 w-4" />
-              Create Project
-            </Button>
-          )}
-        </DialogTrigger>
-      )}
+      {children && <DialogTrigger asChild>{children}</DialogTrigger>}
       <DialogContent className="!max-w-2xl">
         <DialogTitle>Create new project</DialogTitle>
         <DialogDescription>

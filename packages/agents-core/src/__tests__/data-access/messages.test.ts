@@ -9,19 +9,20 @@ import {
   getVisibleMessages,
   listMessages,
   updateMessage,
-} from '../../data-access/messages';
-import type { DatabaseClient } from '../../db/client';
-import { createInMemoryDatabaseClient } from '../../db/client';
+} from '../../data-access/runtime/messages';
+import type { AgentsRunDatabaseClient } from '../../db/runtime/runtime-client';
+import { testRunDbClient } from '../setup';
 
 describe('Messages Data Access', () => {
-  let db: DatabaseClient;
+  let db: AgentsRunDatabaseClient;
   const testTenantId = 'test-tenant';
   const testProjectId = 'test-project';
   const testConversationId = 'test-conversation';
   const testTaskId = 'test-task';
 
-  beforeEach(() => {
-    db = createInMemoryDatabaseClient();
+  beforeEach(async () => {
+    db = testRunDbClient;
+    vi.clearAllMocks();
   });
 
   describe('getMessageById', () => {

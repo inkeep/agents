@@ -1,18 +1,32 @@
+import { z } from '@hono/zod-openapi';
 import type {
   DelegationReturnedData,
   DelegationSentData,
+  FullExecutionContext,
   ModelSettings,
   StatusComponent,
   StatusUpdateSettings,
   SummaryEvent,
   TransferData,
 } from '@inkeep/agents-core';
-import { getSubAgentById } from '@inkeep/agents-core';
+import {
+  CONVERSATION_HISTORY_DEFAULT_LIMIT,
+  CONVERSATION_HISTORY_MAX_OUTPUT_TOKENS_DEFAULT,
+  getLedgerArtifacts,
+  ModelFactory,
+} from '@inkeep/agents-core';
 import { SpanStatusCode } from '@opentelemetry/api';
-import { generateObject } from 'ai';
-import { z } from 'zod';
-import { ModelFactory } from '../agents/ModelFactory';
+import { generateText, Output } from 'ai';
 import { toolSessionManager } from '../agents/ToolSessionManager';
+import {
+  ARTIFACT_GENERATION_BACKOFF_INITIAL_MS,
+  ARTIFACT_GENERATION_BACKOFF_MAX_MS,
+  ARTIFACT_GENERATION_MAX_RETRIES,
+  ARTIFACT_SESSION_MAX_PENDING,
+  ARTIFACT_SESSION_MAX_PREVIOUS_SUMMARIES,
+  STATUS_UPDATE_DEFAULT_INTERVAL_SECONDS,
+  STATUS_UPDATE_DEFAULT_NUM_EVENTS,
+} from '../constants/execution-limits';
 import { getFormattedConversationHistory } from '../data/conversations';
 import dbClient from '../data/db/dbClient';
 import { getLogger } from '../logger';
@@ -33,6 +47,7 @@ export type AgentSessionEventType =
   | 'artifact_saved'
   | 'tool_call'
   | 'tool_result'
+  | 'compression'
   | 'error';
 
 interface BaseAgentSessionEvent {
@@ -49,6 +64,7 @@ export type AgentSessionEvent =
   | (BaseAgentSessionEvent & { eventType: 'artifact_saved'; data: ArtifactSavedData })
   | (BaseAgentSessionEvent & { eventType: 'tool_call'; data: ToolCallData })
   | (BaseAgentSessionEvent & { eventType: 'tool_result'; data: ToolResultData })
+  | (BaseAgentSessionEvent & { eventType: 'compression'; data: CompressionEventData })
   | (BaseAgentSessionEvent & { eventType: 'error'; data: ErrorEventData });
 
 export type EventData =
@@ -60,6 +76,7 @@ export type EventData =
   | ArtifactSavedData
   | ToolCallData
   | ToolResultData
+  | CompressionEventData
   | ErrorEventData;
 
 export type EventDataMap = {
@@ -71,6 +88,7 @@ export type EventDataMap = {
   artifact_saved: ArtifactSavedData;
   tool_call: ToolCallData;
   tool_result: ToolResultData;
+  compression: CompressionEventData;
   error: ErrorEventData;
 };
 
@@ -110,15 +128,40 @@ export interface ArtifactSavedData {
   projectId?: string;
   contextId?: string;
   subAgentId?: string;
+  subAgentName?: string;
   metadata?: Record<string, any>;
   summaryData?: Record<string, any>;
   data?: Record<string, any>;
+  schemaValidation?: {
+    summary: {
+      hasExpectedFields: boolean;
+      missingFields: string[];
+      extraFields: string[];
+      expectedFields: string[];
+      actualFields: string[];
+      hasRequiredFields: boolean;
+      missingRequired: string[];
+    };
+    full: {
+      hasExpectedFields: boolean;
+      missingFields: string[];
+      extraFields: string[];
+      expectedFields: string[];
+      actualFields: string[];
+      hasRequiredFields: boolean;
+      missingRequired: string[];
+    };
+    schemaFound: boolean;
+  };
 }
 
 export interface ToolCallData {
   toolName: string;
   input: any;
   toolCallId: string;
+  relationshipId?: string;
+  needsApproval?: boolean;
+  conversationId?: string;
 }
 
 export interface ToolResultData {
@@ -127,6 +170,17 @@ export interface ToolResultData {
   output: any;
   duration?: number;
   error?: string;
+  relationshipId?: string;
+  needsApproval?: boolean;
+}
+
+export interface CompressionEventData {
+  reason: 'manual' | 'automatic';
+  messageCount: number;
+  artifactCount: number;
+  contextSizeBefore: number;
+  contextSizeAfter: number;
+  compressionType: 'mid_generation' | 'conversation_level';
 }
 
 export interface ErrorEventData {
@@ -160,8 +214,8 @@ export class AgentSession {
   private isGeneratingUpdate: boolean = false;
   private pendingArtifacts = new Set<string>(); // Track pending artifact processing
   private artifactProcessingErrors = new Map<string, number>(); // Track errors per artifact
-  private readonly MAX_ARTIFACT_RETRIES = 3;
-  private readonly MAX_PENDING_ARTIFACTS = 100; // Prevent unbounded growth
+  private readonly MAX_ARTIFACT_RETRIES = ARTIFACT_GENERATION_MAX_RETRIES;
+  private readonly MAX_PENDING_ARTIFACTS = ARTIFACT_SESSION_MAX_PENDING; // Prevent unbounded growth
   private scheduledTimeouts?: Set<ReturnType<typeof setTimeout>>; // Track scheduled timeouts for cleanup
   private artifactCache = new Map<string, any>(); // Cache artifacts created in this session
   private artifactService?: any; // Session-scoped ArtifactService instance
@@ -171,33 +225,32 @@ export class AgentSession {
   constructor(
     public readonly sessionId: string,
     public readonly messageId: string,
-    public readonly agentId?: string,
-    public readonly tenantId?: string,
-    public readonly projectId?: string,
+    public readonly executionContext: FullExecutionContext,
     public readonly contextId?: string
   ) {
-    logger.debug({ sessionId, messageId, agentId }, 'AgentSession created');
+    logger.debug(
+      { sessionId, messageId, agentId: executionContext.agentId },
+      'AgentSession created'
+    );
 
-    if (tenantId && projectId) {
+    if (executionContext.tenantId && executionContext.projectId) {
       toolSessionManager.createSessionWithId(
         sessionId,
-        tenantId,
-        projectId,
+        executionContext.tenantId,
+        executionContext.projectId,
         contextId || 'default',
         `task_${contextId}-${messageId}` // Create a taskId based on context and message
       );
 
       this.artifactService = new ArtifactService({
-        tenantId,
-        projectId,
+        executionContext,
         sessionId,
         contextId,
         taskId: `task_${contextId}-${messageId}`,
         streamRequestId: sessionId,
       });
 
-      this.artifactParser = new ArtifactParser(tenantId, {
-        projectId,
+      this.artifactParser = new ArtifactParser(executionContext, {
         sessionId: sessionId,
         contextId,
         taskId: `task_${contextId}-${messageId}`,
@@ -205,6 +258,7 @@ export class AgentSession {
         artifactService: this.artifactService, // Pass the shared ArtifactService
       });
     }
+    this.executionContext = executionContext;
   }
 
   /**
@@ -274,6 +328,8 @@ export class AgentSession {
         return `Task completed: ${event.data.targetSubAgent} → ${event.data.fromSubAgent}`;
       case 'artifact_saved':
         return `Artifact saved: ${event.data.artifactType || 'unknown type'}`;
+      case 'compression':
+        return `Compressed ${event.data.messageCount} messages and ${event.data.artifactCount} artifacts (${event.data.reason})`;
       default:
         return `${(event as AgentSessionEvent).eventType} event`;
     }
@@ -295,8 +351,8 @@ export class AgentSession {
       summarizerModel,
       baseModel,
       config: {
-        numEvents: config.numEvents || 1,
-        timeInSeconds: config.timeInSeconds || 2,
+        numEvents: config.numEvents || STATUS_UPDATE_DEFAULT_NUM_EVENTS,
+        timeInSeconds: config.timeInSeconds || STATUS_UPDATE_DEFAULT_INTERVAL_SECONDS,
         ...config,
       },
     };
@@ -537,7 +593,7 @@ export class AgentSession {
     return {
       sessionId: this.sessionId,
       messageId: this.messageId,
-      agentId: this.agentId,
+      agentId: this.executionContext.agentId,
       totalEvents: this.events.length,
       eventCounts,
       agentCounts,
@@ -567,7 +623,7 @@ export class AgentSession {
   /**
    * Clean up status update resources when session ends
    */
-  cleanup(): void {
+  async cleanup(): Promise<void> {
     // Mark session as ended
     this.isEnded = true;
 
@@ -576,6 +632,27 @@ export class AgentSession {
       this.statusUpdateTimer = undefined;
     }
     this.statusUpdateState = undefined;
+
+    // Wait for pending artifacts to complete before cleaning up artifactService
+    if (this.pendingArtifacts.size > 0) {
+      const maxWaitTime = 10000; // 10 seconds max wait
+      const startTime = Date.now();
+
+      while (this.pendingArtifacts.size > 0 && Date.now() - startTime < maxWaitTime) {
+        await new Promise((resolve) => setTimeout(resolve, 100)); // Wait 100ms between checks
+      }
+
+      if (this.pendingArtifacts.size > 0) {
+        logger.warn(
+          {
+            sessionId: this.sessionId,
+            pendingCount: this.pendingArtifacts.size,
+            pendingIds: Array.from(this.pendingArtifacts),
+          },
+          'Cleanup proceeding with pending artifacts still processing'
+        );
+      }
+    }
 
     // Clean up artifact tracking maps to prevent memory leaks
     this.pendingArtifacts.clear();
@@ -638,7 +715,7 @@ export class AgentSession {
       return;
     }
 
-    if (!this.agentId) {
+    if (!this.executionContext.agentId) {
       logger.warn({ sessionId: this.sessionId }, 'No agent ID - cannot generate update');
       return;
     }
@@ -732,8 +809,8 @@ export class AgentSession {
         return;
       }
 
-      // Keep only last 3 summaries to avoid context getting too large
-      if (this.previousSummaries.length > 3) {
+      // Keep only last N summaries to avoid context getting too large
+      if (this.previousSummaries.length > ARTIFACT_SESSION_MAX_PREVIOUS_SUMMARIES) {
         this.previousSummaries.shift();
       }
 
@@ -845,6 +922,7 @@ export class AgentSession {
     summarizerModel?: ModelSettings,
     previousSummaries: string[] = []
   ): Promise<{ summaries: Array<{ type: string; data: Record<string, any> }> }> {
+    const { tenantId, projectId } = this.executionContext;
     return tracer.startActiveSpan(
       'agent_session.generate_structured_update',
       {
@@ -862,15 +940,17 @@ export class AgentSession {
           const userVisibleActivities = this.extractUserVisibleActivities(newEvents);
 
           let conversationContext = '';
-          if (this.tenantId && this.projectId) {
+          if (tenantId && projectId) {
             try {
               const conversationHistory = await getFormattedConversationHistory({
-                tenantId: this.tenantId,
-                projectId: this.projectId,
-                conversationId: this.sessionId,
+                tenantId,
+                projectId,
+                conversationId: this.contextId || 'default',
                 options: {
-                  limit: 10, // Get recent conversation context
-                  maxOutputTokens: 2000,
+                  limit: CONVERSATION_HISTORY_DEFAULT_LIMIT,
+                  maxOutputTokens: CONVERSATION_HISTORY_MAX_OUTPUT_TOKENS_DEFAULT,
+                  includeInternal: true,
+                  messageTypes: ['chat', 'tool-result'],
                 },
                 filters: {},
               });
@@ -890,37 +970,40 @@ export class AgentSession {
               ? `\nPrevious updates sent to user:\n${previousSummaries.map((s, i) => `${i + 1}. ${s}`).join('\n')}\n`
               : '';
 
-          const selectionSchema = z.object(
-            Object.fromEntries([
-              [
-                'no_relevant_updates',
-                z
-                  .object({
-                    no_updates: z.boolean().default(true),
+          const selectionSchema = z.object({
+            updates: z.array(
+              z.union([
+                z.object({
+                  type: z.literal('no_relevant_updates'),
+                  data: z
+                    .object({
+                      no_updates: z.boolean().default(true),
+                    })
+                    .describe(
+                      'Use when nothing substantially new to report. Should only use on its own.'
+                    ),
+                }),
+                ...statusComponents.map((component) =>
+                  z.object({
+                    type: z.literal(component.type),
+                    data: this.getComponentSchema(component).describe(
+                      component.description || component.type
+                    ),
                   })
-                  .optional()
-                  .describe(
-                    'Use when nothing substantially new to report. Should only use on its own.'
-                  ),
-              ],
-              ...statusComponents.map((component) => [
-                component.type,
-                this.getComponentSchema(component)
-                  .optional()
-                  .describe(component.description || component.type),
-              ]),
-            ])
-          );
+                ),
+              ])
+            ),
+          });
 
           const basePrompt = `Generate status updates for relevant components based on what the user has asked for.${conversationContext}${previousSummaries.length > 0 ? `\n${previousSummaryContext}` : ''}
 
 Activities:\n${userVisibleActivities.join('\n') || 'No New Activities'}
 
-Available components: no_relevant_updates, ${statusComponents.map((c) => c.type).join(', ')}
+Available component types: no_relevant_updates, ${statusComponents.map((c) => c.type).join(', ')}
 
 Rules:
-- Fill in data for relevant components only
-- Use 'no_relevant_updates' if nothing substantially new to report. DO NOT WRITE LABELS OR USE OTHER COMPONENTS IF YOU USE THIS COMPONENT.
+- Return an array of updates for relevant components
+- Use 'no_relevant_updates' type if nothing substantially new to report. DO NOT INCLUDE OTHER COMPONENT TYPES IF YOU USE THIS ONE.
 - Never repeat previous values, make every update EXTREMELY unique. If you cannot do that the update is not worth mentioning.
 - Labels MUST be short 3-7 word phrases with ACTUAL information discovered. NEVER MAKE UP SOMETHING WITHOUT BACKING IT UP WITH ACTUAL INFORMATION.
 - Use sentence case: only capitalize the first word and proper nouns (e.g., "Admin permissions required", not "Admin Permissions Required"). ALWAYS capitalize the first word of the label.
@@ -983,10 +1066,12 @@ ${this.statusUpdateState?.config.prompt?.trim() || ''}`;
           }
           const model = ModelFactory.createModel(modelToUse);
 
-          const { object } = await generateObject({
+          const { output: object } = await generateText({
             model,
             prompt,
-            schema: selectionSchema,
+            output: Output.object({
+              schema: selectionSchema,
+            }),
             experimental_telemetry: {
               isEnabled: true,
               functionId: `structured_update_${this.sessionId}`,
@@ -1000,17 +1085,26 @@ ${this.statusUpdateState?.config.prompt?.trim() || ''}`;
           });
 
           const result = object as any;
+          logger.info({ result: JSON.stringify(result) }, 'DEBUG: Result');
 
           const summaries = [];
-          for (const [componentId, data] of Object.entries(result)) {
-            if (componentId === 'no_relevant_updates') {
+          const updates = result.updates || [];
+
+          for (const update of updates) {
+            logger.info({ update: JSON.stringify(update) }, 'DEBUG: Update data');
+            // await new Promise((resolve) => setTimeout(resolve, 100000));
+            if (update.type === 'no_relevant_updates') {
               continue;
             }
 
-            if (data && typeof data === 'object' && Object.keys(data).length > 0) {
+            if (
+              update.data &&
+              typeof update.data === 'object' &&
+              Object.keys(update.data).length > 0
+            ) {
               summaries.push({
-                type: componentId,
-                data: data,
+                type: update.type,
+                data: update.data,
               });
             }
           }
@@ -1018,7 +1112,7 @@ ${this.statusUpdateState?.config.prompt?.trim() || ''}`;
           span.setAttributes({
             'summaries.count': summaries.length,
             'user_activities.count': userVisibleActivities.length,
-            'result_keys.count': Object.keys(result).length,
+            'updates.count': updates.length,
           });
           span.setStatus({ code: SpanStatusCode.OK });
 
@@ -1212,7 +1306,8 @@ ${this.statusUpdateState?.config.prompt?.trim() || ''}`;
           'agent_session.id': this.sessionId,
           'artifact.id': artifactData.artifactId,
           'artifact.type': artifactData.artifactType || 'unknown',
-          'artifact.sub_agent_id': artifactData.subAgentId || 'unknown',
+          'subAgent.id': artifactData.subAgentId || 'unknown',
+          'subAgent.name': artifactData.subAgentName || 'unknown',
           'artifact.tool_call_id': artifactData.metadata?.toolCallId || 'unknown',
           'artifact.data': JSON.stringify(artifactData.data, null, 2),
           'tenant.id': artifactData.tenantId || 'unknown',
@@ -1224,6 +1319,58 @@ ${this.statusUpdateState?.config.prompt?.trim() || ''}`;
           has_metadata: !!artifactData.metadata,
           tool_call_id: artifactData.metadata?.toolCallId || 'missing',
           pending_generation: !!artifactData.pendingGeneration,
+          // Schema validation attributes
+          'schema_validation.schema_found': artifactData.schemaValidation?.schemaFound || false,
+          'schema_validation.summary.has_expected_fields':
+            artifactData.schemaValidation?.summary?.hasExpectedFields || true,
+          'schema_validation.summary.missing_fields_count':
+            artifactData.schemaValidation?.summary?.missingFields?.length || 0,
+          'schema_validation.summary.extra_fields_count':
+            artifactData.schemaValidation?.summary?.extraFields?.length || 0,
+          'schema_validation.summary.expected_fields': JSON.stringify(
+            artifactData.schemaValidation?.summary?.expectedFields || []
+          ),
+          'schema_validation.summary.actual_fields': JSON.stringify(
+            artifactData.schemaValidation?.summary?.actualFields || []
+          ),
+          'schema_validation.summary.missing_fields': JSON.stringify(
+            artifactData.schemaValidation?.summary?.missingFields || []
+          ),
+          'schema_validation.summary.extra_fields': JSON.stringify(
+            artifactData.schemaValidation?.summary?.extraFields || []
+          ),
+          'schema_validation.summary.has_required_fields':
+            artifactData.schemaValidation?.summary?.hasRequiredFields || true,
+          'schema_validation.summary.missing_required_count':
+            artifactData.schemaValidation?.summary?.missingRequired?.length || 0,
+          'schema_validation.summary.missing_required': JSON.stringify(
+            artifactData.schemaValidation?.summary?.missingRequired || []
+          ),
+          'schema_validation.full.has_expected_fields':
+            artifactData.schemaValidation?.full?.hasExpectedFields || true,
+          'schema_validation.full.missing_fields_count':
+            artifactData.schemaValidation?.full?.missingFields?.length || 0,
+          'schema_validation.full.extra_fields_count':
+            artifactData.schemaValidation?.full?.extraFields?.length || 0,
+          'schema_validation.full.expected_fields': JSON.stringify(
+            artifactData.schemaValidation?.full?.expectedFields || []
+          ),
+          'schema_validation.full.actual_fields': JSON.stringify(
+            artifactData.schemaValidation?.full?.actualFields || []
+          ),
+          'schema_validation.full.missing_fields': JSON.stringify(
+            artifactData.schemaValidation?.full?.missingFields || []
+          ),
+          'schema_validation.full.extra_fields': JSON.stringify(
+            artifactData.schemaValidation?.full?.extraFields || []
+          ),
+          'schema_validation.full.has_required_fields':
+            artifactData.schemaValidation?.full?.hasRequiredFields || true,
+          'schema_validation.full.missing_required_count':
+            artifactData.schemaValidation?.full?.missingRequired?.length || 0,
+          'schema_validation.full.missing_required': JSON.stringify(
+            artifactData.schemaValidation?.full?.missingRequired || []
+          ),
         },
       },
       async (span) => {
@@ -1270,28 +1417,70 @@ ${this.statusUpdateState?.config.prompt?.trim() || ''}`;
               }
             : null;
 
-          const prompt = `Name this artifact (max 50 chars) and describe it (max 150 chars).
+          // Get existing artifact names for this task to provide context
+          let existingNames: string[] = [];
+          try {
+            if (artifactData.tenantId && artifactData.projectId && artifactData.taskId) {
+              const existingArtifacts = await getLedgerArtifacts(dbClient)({
+                scopes: { tenantId: artifactData.tenantId, projectId: artifactData.projectId },
+                taskId: artifactData.taskId,
+              });
+              existingNames = existingArtifacts.map((a) => a.name).filter(Boolean) as string[];
+            }
+          } catch (error) {
+            logger.warn(
+              {
+                sessionId: this.sessionId,
+                artifactId: artifactData.artifactId,
+                error: error instanceof Error ? error.message : 'Unknown error',
+              },
+              'Failed to fetch existing artifact names for context'
+            );
+          }
 
-Tool Context: ${toolContext ? JSON.stringify(toolContext, null, 2) : 'No tool context'}
-Context: ${conversationHistory?.slice(-200) || 'Processing'}
+          const toolName = artifactData.metadata?.toolName || 'unknown';
+          const toolCallId = artifactData.metadata?.toolCallId || 'unknown';
+
+          const prompt = `Create a unique name and description for this tool result artifact.
+
+CRITICAL: Your name must be different from these existing artifacts: ${existingNames.length > 0 ? existingNames.join(', ') : 'None yet'}
+
+Tool Context: ${toolContext ? JSON.stringify(toolContext.args, null, 2) : 'No args'}
+Context: ${conversationHistory?.slice(-200) || 'No context'}
 Type: ${artifactData.artifactType || 'data'}
-Data: ${JSON.stringify(artifactData.data || artifactData.summaryData, null, 2)}
+Data: ${JSON.stringify(artifactData.data || artifactData.summaryData || {}, null, 2)}
 
-Make it specific and relevant.`;
+Requirements:
+- Name: Max 50 chars, be extremely specific to THIS EXACT tool execution
+- Description: Max 150 chars, describe what THIS SPECIFIC tool call returned  
+- Focus on the unique aspects of this particular tool execution result
+- Be descriptive about the actual content returned, not just the tool type
+
+BAD Examples (too generic):
+- "Search Results"
+- "Tool Results" 
+- "${toolName} Results"
+- "Data from ${toolName}"
+- "Tool Output"
+- "Search Data"
+
+GOOD Examples:
+- "GitHub API Rate Limits & Auth Methods"
+- "React Component Props Documentation"
+- "Database Schema for User Tables"
+- "Pricing Tiers with Enterprise Features"
+
+Make the name extremely specific to what this tool call actually returned, not generic.`;
 
           let modelToUse = this.statusUpdateState?.summarizerModel;
           if (!modelToUse?.model?.trim()) {
             if (!this.statusUpdateState?.baseModel?.model?.trim()) {
               if (artifactData.subAgentId && artifactData.tenantId && artifactData.projectId) {
                 try {
-                  const agentData = await getSubAgentById(dbClient)({
-                    scopes: {
-                      tenantId: artifactData.tenantId,
-                      projectId: artifactData.projectId,
-                      agentId: this.agentId || '',
-                    },
-                    subAgentId: artifactData.subAgentId,
-                  });
+                  const subAgentId = artifactData.subAgentId;
+                  const project = this.executionContext.project;
+                  const agentData =
+                    project.agents[this.executionContext.agentId].subAgents?.[subAgentId];
 
                   if (agentData && 'models' in agentData && agentData.models?.base?.model) {
                     modelToUse = agentData.models.base;
@@ -1335,9 +1524,12 @@ Make it specific and relevant.`;
 
           let result: { name: string; description: string };
           if (!modelToUse) {
+            // Fallback: include toolCallId for guaranteed uniqueness
+            const toolCallSuffix =
+              artifactData.metadata?.toolCallId?.slice(-8) || Date.now().toString().slice(-8);
             result = {
-              name: `Artifact ${artifactData.artifactId.substring(0, 8)}`,
-              description: `${artifactData.artifactType || 'Data'} from ${artifactData.metadata?.toolCallId || 'tool results'}`,
+              name: `${artifactData.artifactType || 'Artifact'} ${toolCallSuffix}`,
+              description: `${artifactData.artifactType || 'Data'} from ${artifactData.metadata?.toolName || 'tool'} (${artifactData.metadata?.toolCallId || 'tool results'})`,
             };
           } else {
             const model = ModelFactory.createModel(modelToUse);
@@ -1349,7 +1541,7 @@ Make it specific and relevant.`;
                 .describe("Brief description of the artifact's relevance to the user's question"),
             });
 
-            const { object } = await tracer.startActiveSpan(
+            const { output: object } = await tracer.startActiveSpan(
               'agent_session.generate_artifact_metadata',
               {
                 attributes: {
@@ -1372,10 +1564,12 @@ Make it specific and relevant.`;
 
                 for (let attempt = 1; attempt <= maxRetries; attempt++) {
                   try {
-                    const result = await generateObject({
+                    const result = await generateText({
                       model,
                       prompt,
-                      schema,
+                      output: Output.object({
+                        schema,
+                      }),
                       experimental_telemetry: {
                         isEnabled: true,
                         functionId: `artifact_processing_${artifactData.artifactId}`,
@@ -1392,16 +1586,16 @@ Make it specific and relevant.`;
                     generationSpan.setAttributes({
                       'artifact.id': artifactData.artifactId,
                       'artifact.type': artifactData.artifactType,
-                      'artifact.name': result.object.name,
-                      'artifact.description': result.object.description,
+                      'artifact.name': result.output.name,
+                      'artifact.description': result.output.description,
                       'artifact.summary': JSON.stringify(artifactData.summaryData, null, 2),
                       'artifact.full': JSON.stringify(
                         artifactData.data || artifactData.summaryData,
                         null,
                         2
                       ),
-                      'generation.name_length': result.object.name.length,
-                      'generation.description_length': result.object.description.length,
+                      'generation.name_length': result.output.name.length,
+                      'generation.description_length': result.output.description.length,
                       'generation.attempts': attempt,
                     });
 
@@ -1422,7 +1616,10 @@ Make it specific and relevant.`;
                     );
 
                     if (attempt < maxRetries) {
-                      const backoffMs = Math.min(1000 * 2 ** (attempt - 1), 10000); // Exponential backoff, max 10s
+                      const backoffMs = Math.min(
+                        ARTIFACT_GENERATION_BACKOFF_INITIAL_MS * 2 ** (attempt - 1),
+                        ARTIFACT_GENERATION_BACKOFF_MAX_MS
+                      );
                       await new Promise((resolve) => setTimeout(resolve, backoffMs));
                     }
                   }
@@ -1440,21 +1637,39 @@ Make it specific and relevant.`;
             result = object;
           }
 
-          const artifactService = new ArtifactService({
-            tenantId: artifactData.tenantId,
-            projectId: artifactData.projectId,
-            contextId: artifactData.contextId,
-            taskId: artifactData.taskId,
-            sessionId: this.sessionId,
-          });
+          // Ensure name uniqueness - add toolCallId suffix if needed
+          if (existingNames.includes(result.name)) {
+            const toolCallSuffix = toolCallId.slice(-8);
+            const originalName = result.name;
+            result.name =
+              result.name.length + toolCallSuffix.length + 1 <= 50
+                ? `${result.name} ${toolCallSuffix}`
+                : `${result.name.substring(0, 50 - toolCallSuffix.length - 1)} ${toolCallSuffix}`;
+
+            logger.info(
+              {
+                sessionId: this.sessionId,
+                artifactId: artifactData.artifactId,
+                originalName,
+                uniqueName: result.name,
+                reason: 'Name conflict resolved with toolCallId suffix',
+              },
+              'Updated artifact name for uniqueness'
+            );
+          }
 
           try {
-            await artifactService.saveArtifact({
+            if (!this.artifactService) {
+              throw new Error('ArtifactService is not initialized');
+            }
+
+            await this.artifactService.saveArtifact({
               artifactId: artifactData.artifactId,
               name: result.name,
               description: result.description,
               type: artifactData.artifactType || 'source',
               data: artifactData.data || {},
+              summaryData: artifactData.summaryData,
               metadata: artifactData.metadata || {},
               toolCallId: artifactData.toolCallId,
             });
@@ -1473,6 +1688,12 @@ Make it specific and relevant.`;
                 sessionId: this.sessionId,
                 artifactId: artifactData.artifactId,
                 error: saveError instanceof Error ? saveError.message : 'Unknown error',
+                errorName: saveError instanceof Error ? saveError.name : undefined,
+                errorCause: saveError instanceof Error ? saveError.cause : undefined,
+                errorCode: (saveError as any)?.code || (saveError as any)?.errno || undefined,
+                artifactType: artifactData.artifactType,
+                dataKeys: artifactData.data ? Object.keys(artifactData.data) : [],
+                metadataKeys: artifactData.metadata ? Object.keys(artifactData.metadata) : [],
               },
               'Main artifact save failed, will attempt fallback'
             );
@@ -1482,8 +1703,7 @@ Make it specific and relevant.`;
             try {
               if (artifactData.tenantId && artifactData.projectId) {
                 const artifactService = new ArtifactService({
-                  tenantId: artifactData.tenantId,
-                  projectId: artifactData.projectId,
+                  executionContext: this.executionContext,
                   contextId: artifactData.contextId || 'unknown',
                   taskId: artifactData.taskId,
                   sessionId: this.sessionId,
@@ -1495,6 +1715,7 @@ Make it specific and relevant.`;
                   description: `${artifactData.artifactType || 'Data'} from ${artifactData.metadata?.toolName || 'tool results'}`,
                   type: artifactData.artifactType || 'source',
                   data: artifactData.data || {},
+                  summaryData: artifactData.summaryData,
                   metadata: artifactData.metadata || {},
                   toolCallId: artifactData.toolCallId,
                 });
@@ -1520,6 +1741,13 @@ Make it specific and relevant.`;
                     sessionId: this.sessionId,
                     artifactId: artifactData.artifactId,
                     error: fallbackError instanceof Error ? fallbackError.message : 'Unknown error',
+                    errorName: fallbackError instanceof Error ? fallbackError.name : undefined,
+                    errorCause: fallbackError instanceof Error ? fallbackError.cause : undefined,
+                    errorCode:
+                      (fallbackError as any)?.code || (fallbackError as any)?.errno || undefined,
+                    artifactType: artifactData.artifactType,
+                    dataKeys: artifactData.data ? Object.keys(artifactData.data) : [],
+                    metadataKeys: artifactData.metadata ? Object.keys(artifactData.metadata) : [],
                   },
                   'Failed to save artifact even with fallback'
                 );
@@ -1595,17 +1823,22 @@ export class AgentSessionManager {
    */
   createSession(
     messageId: string,
-    agentId?: string,
-    tenantId?: string,
-    projectId?: string,
+    executionContext: FullExecutionContext,
     contextId?: string
   ): string {
     const sessionId = messageId; // Use messageId directly as sessionId
-    const session = new AgentSession(sessionId, messageId, agentId, tenantId, projectId, contextId);
+    const session = new AgentSession(sessionId, messageId, executionContext, contextId);
     this.sessions.set(sessionId, session);
 
     logger.info(
-      { sessionId, messageId, agentId, tenantId, projectId, contextId },
+      {
+        sessionId,
+        messageId,
+        agentId: executionContext.agentId,
+        tenantId: executionContext.tenantId,
+        projectId: executionContext.projectId,
+        contextId,
+      },
       'AgentSession created'
     );
     return sessionId;
@@ -1617,11 +1850,12 @@ export class AgentSessionManager {
   initializeStatusUpdates(
     sessionId: string,
     config: StatusUpdateSettings,
-    summarizerModel?: ModelSettings
+    summarizerModel?: ModelSettings,
+    baseModel?: ModelSettings
   ): void {
     const session = this.sessions.get(sessionId);
     if (session) {
-      session.initializeStatusUpdates(config, summarizerModel);
+      session.initializeStatusUpdates(config, summarizerModel, baseModel);
     } else {
       logger.error(
         {
@@ -1680,7 +1914,7 @@ export class AgentSessionManager {
   /**
    * End a session and return the final event data
    */
-  endSession(sessionId: string): AgentSessionEvent[] {
+  async endSession(sessionId: string): Promise<AgentSessionEvent[]> {
     const session = this.sessions.get(sessionId);
     if (!session) {
       logger.warn({ sessionId }, 'Attempted to end non-existent session');
@@ -1692,7 +1926,7 @@ export class AgentSessionManager {
 
     logger.info({ sessionId, summary }, 'AgentSession ended');
 
-    session.cleanup();
+    await session.cleanup();
 
     this.sessions.delete(sessionId);
 

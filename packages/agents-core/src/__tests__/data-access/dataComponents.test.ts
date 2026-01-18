@@ -12,21 +12,22 @@ import {
   listDataComponentsPaginated,
   removeDataComponentFromAgent,
   updateDataComponent,
-} from '../../data-access/dataComponents';
-import type { DatabaseClient } from '../../db/client';
-import { createInMemoryDatabaseClient } from '../../db/client';
+} from '../../data-access/manage/dataComponents';
+import type { AgentsManageDatabaseClient } from '../../db/manage/manage-client';
 import type { DataComponentInsert } from '../../types/index';
+import { testManageDbClient } from '../setup';
 
 describe('Data Components Data Access', () => {
-  let db: DatabaseClient;
+  let db: AgentsManageDatabaseClient;
   const testTenantId = 'tenant-123';
   const testProjectId = 'project-456';
   const testAgentId = 'agent-123';
   const testDataComponentId = 'component-789';
   const testSubAgentId = 'sub-agent-123';
 
-  beforeEach(() => {
-    db = createInMemoryDatabaseClient();
+  beforeEach(async () => {
+    db = testManageDbClient;
+    vi.clearAllMocks();
   });
 
   describe('getDataComponent', () => {

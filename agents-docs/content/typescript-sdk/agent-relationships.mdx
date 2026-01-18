@@ -1,0 +1,214 @@
+---
+title: Sub Agent Relationships
+description: Learn how to add Sub Agent relationships to your agent
+icon: LuUsers
+---
+
+Sub Agent relationships are used to coordinate specialized Sub Agents for complex workflows. This framework implements Sub Agent relationships through using `canDelegateTo()` and `canTransferTo()`, allowing a parent Sub Agent to automatically coordinate specialized Sub Agents for complex workflows.
+
+## Understanding Sub Agent Relationships
+
+The framework supports two types of Sub Agent relationships:
+
+### Transfer Relationships
+
+Transfer relationships **completely relinquish control** from one Sub Agent to another. When a Sub Agent hands off to another:
+
+- The source Sub Agent stops processing
+- The target Sub Agent takes full control of the conversation
+- Control is permanently transferred until the target Sub Agent hands back
+
+```typescript
+import { subAgent, agent } from "agent-sdk";
+
+// Create specialized Sub Agents first
+const qaSubAgent = subAgent({
+  id: "qa-agent",
+  name: "QA Sub Agent",
+  description: "Answers product and service questions",
+  prompt: "Provide accurate information using available tools. Hand back to router if unable to help.",
+  canUse: () => [knowledgeBaseTool],
+  canTransferTo: () => [routerSubAgent],
+});
+
+const orderSubAgent = subAgent({
+  id: "order-agent",
+  name: "Order Sub Agent",
+  description: "Handles order-related inquiries and actions",
+  prompt: "Assist with order tracking, modifications, and management.",
+  canUse: () => [orderSystemTool],
+  canTransferTo: () => [routerSubAgent],
+});
+
+// Create router Sub Agent that coordinates other Sub Agents
+const routerSubAgent = subAgent({
+  id: "router-agent",
+  name: "Router Sub Agent",
+  description: "Routes customer inquiries to specialized Sub Agents",
+  prompt: `Analyze customer inquiries and route them appropriately:
+    - Product questions → Hand off to QA Sub Agent
+    - Order issues → Hand off to Order Sub Agent
+    - Complex issues → Handle directly or escalate`,
+  canTransferTo: () => [qaSubAgent, orderSubAgent],
+});
+
+// Create the agent with router as default entry point
+const supportAgent = agent({
+  id: "customer-support-agent",
+  defaultSubAgent: routerSubAgent,
+  subAgents: () => [routerSubAgent, qaSubAgent, orderSubAgent],
+  models: {
+    base: {
+      model: "anthropic/claude-sonnet-4-5",
+      providerOptions: {
+        temperature: 0.5,
+      },
+    },
+    structuredOutput: {
+      model: "openai/gpt-4.1-mini",
+    },
+  },
+});
+```
+
+### Delegation Relationships
+
+Delegation relationships are used to **pass a task** from one Sub Agent to another while maintaining oversight:
+
+- The source Sub Agent remains in control
+- The target Sub Agent executes a specific task
+- Results are returned to the source Sub Agent
+- The source Sub Agent continues processing
+
+```typescript
+// Sub Agents for specific tasks
+const numberProducerA = subAgent({
+  id: "number-producer-a",
+  name: "Number Producer A",
+  description: "Produces low-range numbers (0-50)",
+  prompt: "Generate numbers between 0 and 50. Respond with a single integer.",
+});
+
+const numberProducerB = subAgent({
+  id: "number-producer-b",
+  name: "Number Producer B",
+  description: "Produces high-range numbers (50-100)",
+  prompt: "Generate numbers between 50 and 100. Respond with a single integer.",
+});
+
+// Coordinating Sub Agent that delegates tasks
+const mathSupervisor = subAgent({
+  id: "math-supervisor",
+  name: "Math Supervisor",
+  description: "Coordinates mathematical operations",
+  prompt: `When given a math task:
+    1. Delegate to Number Producer A for a low number
+    2. Delegate to Number Producer B for a high number
+    3. Add the results together and provide the final answer`,
+  canDelegateTo: () => [numberProducerA, numberProducerB],
+});
+
+const mathAgent = agent({
+  id: "math-delegation-agent",
+  defaultSubAgent: mathSupervisor,
+  subAgents: () => [mathSupervisor, numberProducerA, numberProducerB],
+  models: {
+    base: {
+      model: "anthropic/claude-haiku-4-5",
+      providerOptions: {
+        temperature: 0.1,
+      }
+    }
+  },
+});
+```
+
+## When to Use Each Relationship
+
+### Use Transfers for Complex Tasks
+
+Use `canTransferTo` when the task is complex and the user will likely want to ask follow-up questions to the specialized Sub Agent:
+
+- **Customer support conversations** - User may have multiple related questions
+- **Technical troubleshooting** - Requires back-and-forth interaction
+- **Order management** - User might want to modify, track, or ask about multiple aspects
+- **Product consultations** - Users often have follow-up questions
+
+### Use Delegation for Simple Tasks
+
+Use `canDelegateTo` when the task is simple and self-contained:
+
+- **Data retrieval** - Get a specific piece of information and return it
+- **Calculations** - Perform a computation and return the result
+- **Single API calls** - Make one external request and return the data
+- **Simple transformations** - Convert data from one format to another
+
+```typescript
+// TRANSFER: User will likely have follow-up questions about their order
+const routerSubAgent = subAgent({
+  id: "router",
+  prompt: "For order inquiries, transfer to order specialist",
+  canTransferTo: () => [orderSubAgent],
+});
+
+// DELEGATION: Just need a quick calculation, then continue
+const mathSupervisor = subAgent({
+  id: "supervisor",
+  prompt: "Delegate to number producers, then add results together",
+  canDelegateTo: () => [numberProducerA, numberProducerB],
+});
+```
+
+## Types of Delegation Relationships
+
+### Sub Agent Delegation
+
+Sub agent delegation is used to delegate a task to a sub agent as seen above.
+
+### External Agent Delegation
+
+External agent delegation is used to delegate a task to an [external agent](/typescript-sdk/external-agents).
+
+```typescript
+import { myExternalAgent } from "./external-agents/external-agent-example";
+
+const mathSupervisor = subAgent({
+  id: "supervisor",
+  prompt: "Delegate to the external agent to calculate the answer to the question",
+  canDelegateTo: () => [myExternalAgent],
+});
+```
+
+You can also specify headers to include with every request to the external agent.
+
+```typescript
+const mathSupervisor = subAgent({
+  id: "supervisor",
+  prompt: "Delegate to the external agent to calculate the answer to the question",
+  canDelegateTo: () => [myExternalAgent.with({ headers: { "authorization": "my-api-key" } })],
+});
+```
+
+### Team Agent Delegation
+
+Team agent delegation is used to delegate a task to another agent in the same project.
+
+```typescript
+import { myAgent } from "./agents/my-team-agent";
+
+const mathSupervisor = subAgent({
+  id: "supervisor",
+  prompt: "Delegate to the team agent to calculate the answer to the question",
+  canDelegateTo: () => [myAgent],
+});
+```
+
+You can also specify headers to include with every request to the team agent.
+
+```typescript
+const mathSupervisor = subAgent({
+  id: "supervisor",
+  prompt: "Delegate to the team agent to calculate the answer to the question",
+  canDelegateTo: () => [myAgent.with({ headers: { "authorization": "my-api-key" } })],
+});
+```

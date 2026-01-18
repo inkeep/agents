@@ -1,44 +1,16 @@
 import { createRoute, OpenAPIHono } from '@hono/zod-openapi';
 import {
-  type CredentialStoreRegistry,
-  CredentialStoreType,
+  CreateCredentialInStoreRequestSchema,
+  CreateCredentialInStoreResponseSchema,
+  CredentialStoreListResponseSchema,
   commonGetErrorResponses,
   createApiError,
   TenantProjectIdParamsSchema,
   TenantProjectParamsSchema,
 } from '@inkeep/agents-core';
-import { z } from 'zod';
+import type { PublicAppVariables } from '../types/app';
 
-type AppVariables = {
-  credentialStores: CredentialStoreRegistry;
-};
-
-const app = new OpenAPIHono<{ Variables: AppVariables }>();
-
-const CredentialStoreSchema = z.object({
-  id: z.string().describe('Unique identifier of the credential store'),
-  type: z.enum(CredentialStoreType),
-  available: z.boolean().describe('Whether the store is functional and ready to use'),
-  reason: z.string().nullable().describe('Reason why store is not available, if applicable'),
-});
-
-const CredentialStoreListResponseSchema = z.object({
-  data: z.array(CredentialStoreSchema).describe('List of credential stores'),
-});
-
-const CreateCredentialInStoreRequestSchema = z.object({
-  key: z.string().describe('The credential key'),
-  value: z.string().describe('The credential value'),
-});
-
-const CreateCredentialInStoreResponseSchema = z.object({
-  data: z.object({
-    key: z.string().describe('The credential key'),
-    storeId: z.string().describe('The store ID where credential was created'),
-    createdAt: z.string().describe('ISO timestamp of creation'),
-  }),
-});
-
+const app = new OpenAPIHono<{ Variables: PublicAppVariables }>();
 
 app.openapi(
   createRoute({
@@ -93,9 +65,7 @@ app.openapi(
     operationId: 'create-credential-in-store',
     tags: ['Credential Store'],
     request: {
-      params: TenantProjectIdParamsSchema.extend({
-        id: z.string().describe('The credential store ID'),
-      }),
+      params: TenantProjectIdParamsSchema,
       body: {
         content: {
           'application/json': {
@@ -118,7 +88,7 @@ app.openapi(
   }),
   async (c) => {
     const { id: storeId } = c.req.param();
-    const { key, value } = await c.req.json();
+    const { key, value, metadata } = await c.req.json();
     const credentialStores = c.get('credentialStores');
 
     // Find the specific credential store
@@ -140,15 +110,18 @@ app.openapi(
       }
 
       // Set the credential in the store
-      await store.set(key, value);
+      await store.set(key, value, metadata ?? {});
 
-      return c.json({
-        data: {
-          key,
-          storeId,
-          createdAt: new Date().toISOString(),
+      return c.json(
+        {
+          data: {
+            key,
+            storeId,
+            createdAt: new Date().toISOString(),
+          },
         },
-      }, 201);
+        201
+      );
     } catch (error) {
       console.error(`Error setting credential in store ${storeId}:`, error);
       throw createApiError({

@@ -9,19 +9,20 @@ import {
   updateFunctionTool,
   upsertFunctionTool,
   upsertSubAgentFunctionToolRelation,
-} from '../../data-access/functionTools';
-import type { DatabaseClient } from '../../db/client';
-import { createTestDatabaseClient } from '../../db/test-client';
+} from '../../data-access/manage/functionTools';
+import type { AgentsManageDatabaseClient } from '../../db/manage/manage-client';
+import { testManageDbClient } from '../setup';
 
 describe('FunctionTools Data Access', () => {
-  let db: DatabaseClient;
+  let db: AgentsManageDatabaseClient;
   const testTenantId = 'test-tenant';
   const testProjectId = 'test-project';
   const testAgentId = 'test-agent';
   const testSubAgentId = 'test-sub-agent';
 
   beforeEach(async () => {
-    db = await createTestDatabaseClient();
+    db = testManageDbClient;
+    vi.clearAllMocks();
   });
 
   describe('getFunctionToolById', () => {
@@ -463,10 +464,9 @@ describe('FunctionTools Data Access', () => {
           // First select is for relations
           return {
             from: vi.fn().mockReturnValue({
-              where: vi.fn().mockResolvedValue([
-                { functionToolId: 'tool-1' },
-                { functionToolId: 'tool-2' },
-              ]),
+              where: vi
+                .fn()
+                .mockResolvedValue([{ functionToolId: 'tool-1' }, { functionToolId: 'tool-2' }]),
             }),
           };
         }
@@ -552,7 +552,18 @@ describe('FunctionTools Data Access', () => {
       const functionToolId = 'tool-1';
 
       const mockInsert = vi.fn().mockReturnValue({
-        values: vi.fn().mockResolvedValue(undefined),
+        values: vi.fn().mockReturnValue({
+          returning: vi.fn().mockResolvedValue([
+            {
+              id: 'relation-id',
+              tenantId: testTenantId,
+              projectId: testProjectId,
+              agentId: testAgentId,
+              createdAt: new Date().toISOString(),
+              updatedAt: new Date().toISOString(),
+            },
+          ]),
+        }),
       });
 
       const mockDb = {
@@ -573,7 +584,9 @@ describe('FunctionTools Data Access', () => {
 
     it('should handle database errors gracefully', async () => {
       const mockInsert = vi.fn().mockReturnValue({
-        values: vi.fn().mockRejectedValue(new Error('Database error')),
+        values: vi.fn().mockReturnValue({
+          returning: vi.fn().mockRejectedValue(new Error('Database error')),
+        }),
       });
 
       const mockDb = {
@@ -655,7 +668,9 @@ describe('FunctionTools Data Access', () => {
       });
 
       const mockInsert = vi.fn().mockReturnValue({
-        values: vi.fn().mockResolvedValue(undefined),
+        values: vi.fn().mockReturnValue({
+          returning: vi.fn().mockResolvedValue([{ id: 'relation-id' }]),
+        }),
       });
 
       const mockDb = {
@@ -708,7 +723,18 @@ describe('FunctionTools Data Access', () => {
       });
 
       const mockInsert = vi.fn().mockReturnValue({
-        values: vi.fn().mockResolvedValue(undefined),
+        values: vi.fn().mockReturnValue({
+          returning: vi.fn().mockResolvedValue([
+            {
+              id: 'relation-id',
+              tenantId: testTenantId,
+              projectId: testProjectId,
+              agentId: testAgentId,
+              createdAt: new Date().toISOString(),
+              updatedAt: new Date().toISOString(),
+            },
+          ]),
+        }),
       });
 
       const mockDb = {

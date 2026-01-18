@@ -1,3 +1,4 @@
+import { useParams } from 'next/navigation';
 import { useEffect, useState } from 'react';
 
 interface SignozConfigStatus {
@@ -7,6 +8,7 @@ interface SignozConfigStatus {
 }
 
 export function useSignozConfig() {
+  const { tenantId } = useParams();
   const [isLoading, setIsLoading] = useState(true);
   const [configError, setConfigError] = useState<string | null>(null);
 
@@ -14,7 +16,8 @@ export function useSignozConfig() {
     const checkConfig = async () => {
       try {
         setIsLoading(true);
-        const response = await fetch('/api/signoz');
+        // Call Next.js route which forwards to manage-api
+        const response = await fetch(`/api/signoz?tenantId=${tenantId}`);
         if (!response.ok) {
           throw new Error('Failed to check Signoz configuration');
         }
@@ -28,9 +31,10 @@ export function useSignozConfig() {
       }
     };
 
-    checkConfig();
-  }, []);
+    if (tenantId) {
+      checkConfig();
+    }
+  }, [tenantId]);
 
   return { isLoading, configError };
 }
-

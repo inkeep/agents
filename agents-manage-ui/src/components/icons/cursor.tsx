@@ -1,0 +1,15 @@
+import { forwardRef } from 'react';
+import { type IconComponentProps, SvgIcon } from '@/components/ui/svg-icon';
+
+export const CursorIcon = forwardRef<SVGSVGElement, IconComponentProps>((props, ref) => (
+  <SvgIcon ref={ref} {...props} strokeWidth={0}>
+    <title>Cursor icon</title>
+    <path
+      xmlns="http://www.w3.org/2000/svg"
+      d="M22.1323 5.6806L12.5245 0.133623C12.216 -0.0445409 11.8353 -0.0445409 11.5268 0.133623L1.91947 5.6806C1.66012 5.83035 1.5 6.10727 1.5 6.40723V17.5928C1.5 17.8923 1.66012 18.1697 1.91947 18.3194L11.5272 23.8664C11.8358 24.0445 12.2164 24.0445 12.525 23.8664L22.1327 18.3194C22.3921 18.1697 22.5522 17.8927 22.5522 17.5928V6.40723C22.5522 6.10774 22.3921 5.83035 22.1327 5.6806H22.1323ZM21.5288 6.85558L12.2539 22.9201C12.1912 23.0283 12.0257 22.9841 12.0257 22.8587V12.3399C12.0257 12.1297 11.9133 11.9353 11.7311 11.8297L2.62176 6.57052C2.51351 6.50784 2.55771 6.34227 2.6831 6.34227H21.2329C21.4963 6.34227 21.6609 6.6278 21.5292 6.85605H21.5288V6.85558Z"
+      fill="currentColor"
+    />
+  </SvgIcon>
+));
+
+CursorIcon.displayName = 'CursorIcon';

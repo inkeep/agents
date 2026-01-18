@@ -1,4 +1,4 @@
-import { nanoid } from 'nanoid';
+import { generateId } from '@inkeep/agents-core';
 
 /**
  * Creates a unique tenant ID for testing to avoid conflicts
@@ -6,5 +6,5 @@ import { nanoid } from 'nanoid';
  * @returns A unique tenant ID
  */
 export function createTestTenantId(prefix = 'test'): string {
-  return `${prefix}-${nanoid(8)}`;
+  return `${prefix}-${generateId(8)}`;
 }

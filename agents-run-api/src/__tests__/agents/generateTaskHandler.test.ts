@@ -1,4 +1,4 @@
-import { TaskState } from '@inkeep/agents-core';
+import { parseEmbeddedJson, TaskState } from '@inkeep/agents-core';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import type { A2ATask } from '../../a2a/types';
 import {
@@ -8,224 +8,71 @@ import {
   serializeTaskHandlerConfig,
   type TaskHandlerConfig,
 } from '../../agents/generateTaskHandler';
-import { parseEmbeddedJson } from '../../utils/json-parser';
 
-// Mock @inkeep/agents-core functions using hoisted pattern
-const {
-  getRelatedAgentsForAgentMock,
-  getToolsForAgentMock,
-  getSubAgentByIdMock: getAgentByIdMock,
-  getAgentAgentMock,
-  getAgentAgentByIdMock,
-  getDataComponentsForAgentMock,
-  getArtifactComponentsForAgentMock,
-  getProjectMock,
-  dbResultToMcpToolMock,
-} = vi.hoisted(() => {
-  const getRelatedAgentsForAgentMock = vi.fn(() =>
-    vi.fn().mockResolvedValue({
-      internalRelations: [
-        {
-          id: 'agent-2',
-          name: 'Test Agent 2',
-          description: 'Test description',
-          relationType: 'transfer',
-        },
-      ],
-      externalRelations: [
-        {
-          externalAgent: {
-            id: 'external-1',
-            name: 'External Agent',
-            description: 'External agent description',
-            baseUrl: 'https://external-agent.com',
-          },
-          relationType: 'delegate',
-        },
-      ],
-    })
-  );
-
-  const getToolsForAgentMock = vi.fn(() =>
-    vi.fn().mockResolvedValue({
-      data: [
-        {
-          tool: {
-            id: 'tool-1',
-            name: 'Test Tool',
-            type: 'mcp',
-            status: 'active',
-            createdAt: '2024-01-01T00:00:00Z',
-            updatedAt: '2024-01-01T00:00:00Z',
-          },
-        },
-      ],
-    })
-  );
-
-  const getSubAgentByIdMock = vi.fn(() =>
-    vi.fn().mockResolvedValue({
-      id: 'test-agent',
-      name: 'Test Agent',
-      description: 'Test agent description',
-      prompt: 'You are a helpful test agent',
-      conversationHistoryConfig: {
-        mode: 'full',
-        limit: 10,
+const { getMcpToolMock } = vi.hoisted(() => {
+  const getMcpToolMock = vi.fn().mockResolvedValue({
+    tenantId: 'test-tenant',
+    projectId: 'test-project',
+    id: 'tool-1',
+    name: 'Test Tool',
+    status: 'healthy',
+    config: {
+      type: 'mcp',
+      mcp: {
+        server: { url: 'http://localhost:3000/mcp' },
+        transport: { type: 'http' },
       },
-      models: null,
-      createdAt: '2024-01-01T00:00:00Z',
-      updatedAt: '2024-01-01T00:00:00Z',
-    })
-  );
-
-  const getAgentAgentMock = vi.fn(() =>
-    vi.fn().mockResolvedValue({
-      id: 'test-agent',
-      contextConfigId: 'context-123',
-      models: null,
-    })
-  );
-  const getAgentAgentByIdMock = vi.fn(() =>
-    vi.fn().mockResolvedValue({
-      id: 'test-agent',
-      contextConfigId: 'context-123',
-      models: {
-        base: { model: 'openai/gpt-4' },
-        structuredOutput: { model: 'openai/gpt-4' },
-        summarizer: { model: 'openai/gpt-3.5-turbo' },
-      },
-    })
-  );
-
-  const dbResultToMcpToolMock = vi.fn(() =>
-    vi.fn().mockResolvedValue({
-      // Core tool fields
-      tenantId: 'test-tenant',
-      projectId: 'test-project',
-      id: 'tool-1',
-      name: 'Test Tool',
-      config: {
-        type: 'mcp' as const,
-        mcp: {
-          server: {
-            url: 'http://localhost:3000/mcp',
-            timeout: 30000,
-          },
-          transport: {
-            type: 'http' as const,
-          },
-        },
-      },
-
-      // Optional fields that can be undefined
-      credentialReferenceId: undefined,
-      headers: undefined,
-      imageUrl: undefined,
-      capabilities: undefined,
-      lastError: undefined,
-
-      // Computed fields from dbResultToMcpTool
-      status: 'healthy' as const,
-      availableTools: [
-        {
-          name: 'test_tool_function',
-          description: 'A test tool function',
-          inputSchema: {
-            type: 'object',
-            properties: {
-              query: { type: 'string', description: 'Query parameter' },
-            },
-            required: ['query'],
-          },
-        },
-      ],
-      createdAt: new Date('2024-01-15T09:00:00Z'),
-      updatedAt: new Date('2024-01-15T10:00:00Z'),
-    })
-  );
-
-  const getDataComponentsForAgentMock = vi.fn(() =>
-    vi.fn().mockResolvedValue([
+    },
+    availableTools: [
       {
-        id: 'data-1',
-        name: 'Test Data Component',
-        type: 'test',
-      },
-    ])
-  );
-
-  const getArtifactComponentsForAgentMock = vi.fn(() =>
-    vi.fn().mockResolvedValue([
-      {
-        id: 'artifact-1',
-        name: 'Test Artifact Component',
-        type: 'test',
-      },
-    ])
-  );
-
-  const getProjectMock = vi.fn(() =>
-    vi.fn().mockResolvedValue({
-      id: 'test-project',
-      name: 'Test Project',
-      models: {
-        base: {
-          model: 'openai/gpt-4',
-        },
-        structuredOutput: {
-          model: 'openai/gpt-4',
-        },
-        summarizer: {
-          model: 'openai/gpt-3.5-turbo',
+        name: 'search_database',
+        description: 'Search the database for information',
+        inputSchema: {
+          type: 'object',
+          properties: { query: { type: 'string' } },
+          required: ['query'],
         },
       },
-    })
-  );
+    ],
+    createdAt: '2024-01-01T00:00:00Z',
+    updatedAt: '2024-01-01T00:00:00Z',
+  });
 
-  return {
-    getRelatedAgentsForAgentMock,
-    getToolsForAgentMock,
-    getSubAgentByIdMock,
-    getAgentAgentMock,
-    getAgentAgentByIdMock,
-    getDataComponentsForAgentMock,
-    getArtifactComponentsForAgentMock,
-    getProjectMock,
-    dbResultToMcpToolMock,
-  };
+  return { getMcpToolMock };
 });
 
-vi.mock('@inkeep/agents-core', () => ({
-  getRelatedAgentsForAgent: getRelatedAgentsForAgentMock,
-  getToolsForAgent: getToolsForAgentMock,
-  getSubAgentById: getAgentByIdMock,
-  getAgentById: getAgentAgentMock,
-  getAgentAgent: getAgentAgentMock,
-  getAgentAgentById: getAgentAgentByIdMock,
-  getTracer: vi.fn().mockReturnValue({
-    startSpan: vi.fn().mockReturnValue({
-      setAttributes: vi.fn(),
-      setStatus: vi.fn(),
-      end: vi.fn(),
+// Mock @inkeep/agents-core functions using hoisted pattern
+// Note: Most database access functions are no longer used - data comes from execution context
+vi.mock('@inkeep/agents-core', async (importOriginal) => {
+  const actual = await importOriginal();
+  return {
+    ...(actual as any),
+    // Mock ManagementApiClient for getMcpTool calls
+    ManagementApiClient: vi.fn().mockImplementation(() => ({
+      getMcpTool: getMcpToolMock,
+    })),
+    getTracer: vi.fn().mockReturnValue({
+      startSpan: vi.fn().mockReturnValue({
+        setAttributes: vi.fn(),
+        setStatus: vi.fn(),
+        end: vi.fn(),
+      }),
     }),
-  }),
-  getDataComponentsForAgent: getDataComponentsForAgentMock,
-  getArtifactComponentsForAgent: getArtifactComponentsForAgentMock,
-  getProject: getProjectMock,
-  dbResultToMcpTool: dbResultToMcpToolMock,
-  getLogger: vi.fn(() => ({
-    info: vi.fn(),
-    warn: vi.fn(),
-    error: vi.fn(),
-    debug: vi.fn(),
-  })),
-  TaskState: {
-    Completed: 'completed',
-    Failed: 'failed',
-    Working: 'working',
-  },
-}));
+    getLogger: vi.fn(() => ({
+      info: vi.fn(),
+      warn: vi.fn(),
+      error: vi.fn(),
+      debug: vi.fn(),
+    })),
+    generateId: vi.fn(() => 'test-id-123'),
+    loadEnvironmentFiles: vi.fn(),
+    TaskState: {
+      Completed: 'completed',
+      Failed: 'failed',
+      Working: 'working',
+    },
+  };
+});
 
 // Mock database client
 vi.mock('../../data/db/dbClient.js', () => ({
@@ -245,6 +92,14 @@ vi.mock('../../agents/Agent.js', () => ({
       this.config = config;
       // Capture constructor arguments for testing
       lastAgentConstructorArgs = config;
+    }
+
+    setDelegationStatus(_isDelegated: boolean) {
+      // Mock implementation
+    }
+
+    setDelegationId(_delegationId: string | undefined) {
+      // Mock implementation
     }
 
     async generate(message: string, _options: any) {
@@ -311,8 +166,8 @@ vi.mock('../../agents/Agent.js', () => ({
       };
     }
 
-    setDelegationStatus(_isDelegated: boolean) {
-      // Mock implementation
+    cleanupCompression() {
+      // Mock implementation for compression cleanup
     }
   },
 }));
@@ -329,11 +184,264 @@ vi.mock('../../logger.js', () => ({
   }),
 }));
 
+function createMockExecutionContext(
+  overrides: {
+    tenantId?: string;
+    projectId?: string;
+    agentId?: string;
+    resolvedRefName?: string;
+    projectModels?: any;
+    agentModels?: any;
+    subAgentModels?: any;
+  } = {}
+): any {
+  const tenantId = overrides.tenantId ?? 'test-tenant';
+  const projectId = overrides.projectId ?? 'test-project';
+  const agentId = overrides.agentId ?? 'test-agent';
+  const resolvedRefName = overrides.resolvedRefName ?? 'main';
+
+  const baseAgentModels =
+    overrides.agentModels ??
+    ({
+      base: { model: 'openai/gpt-4' },
+      structuredOutput: { model: 'openai/gpt-4' },
+      summarizer: { model: 'openai/gpt-3.5-turbo' },
+    } as any);
+
+  const teamAgentId = 'team-agent-1';
+
+  return {
+    apiKey: 'test-api-key',
+    apiKeyId: 'test-api-key-id',
+    tenantId,
+    projectId,
+    agentId,
+    baseUrl: 'http://localhost:3000',
+    resolvedRef: { name: resolvedRefName, type: 'branch', hash: 'test-hash' },
+    project: {
+      id: projectId,
+      tenantId,
+      name: 'Test Project',
+      models: overrides.projectModels ?? null,
+      tools: {
+        'tool-1': {
+          id: 'tool-1',
+          tenantId,
+          projectId,
+          name: 'Test Tool',
+          description: 'Test tool description',
+          config: { type: 'mcp', mcp: { server: { url: 'http://localhost:3000/mcp' } } },
+          credentialReferenceId: null,
+          credentialScope: 'project',
+          headers: null,
+          imageUrl: null,
+          capabilities: null,
+          lastError: null,
+          createdAt: '2024-01-01T00:00:00Z',
+          updatedAt: '2024-01-01T00:00:00Z',
+        },
+      },
+      dataComponents: {},
+      artifactComponents: {},
+      externalAgents: {
+        'ext-1': {
+          id: 'ext-1',
+          tenantId,
+          projectId,
+          name: 'External Agent 1',
+          description: 'External agent description',
+          baseUrl: 'https://external.example.com',
+          credentialReferenceId: null,
+          createdAt: '2024-01-01T00:00:00Z',
+          updatedAt: '2024-01-01T00:00:00Z',
+        },
+        'ext-2': {
+          id: 'ext-2',
+          tenantId,
+          projectId,
+          name: 'External Agent 2',
+          description: 'Another external agent',
+          baseUrl: 'https://external-2.example.com',
+          credentialReferenceId: null,
+          createdAt: '2024-01-01T00:00:00Z',
+          updatedAt: '2024-01-01T00:00:00Z',
+        },
+      },
+      credentialReferences: {},
+      functions: {},
+      statusUpdates: null,
+      agents: {
+        [agentId]: {
+          id: agentId,
+          tenantId,
+          projectId,
+          name: 'Test Agent',
+          description: 'Test agent description',
+          contextConfig: {
+            id: 'context-123',
+            headersSchema: null,
+            contextVariables: {},
+          },
+          models: baseAgentModels,
+          defaultSubAgentId: agentId,
+          tools: {},
+          externalAgents: {},
+          teamAgents: {
+            [teamAgentId]: {
+              id: teamAgentId,
+              tenantId,
+              projectId,
+              name: 'Team Agent 1',
+              description: 'A team agent for delegation',
+              createdAt: '2024-01-01T00:00:00Z',
+              updatedAt: '2024-01-01T00:00:00Z',
+            },
+          },
+          subAgents: {
+            [agentId]: {
+              id: agentId,
+              tenantId,
+              projectId,
+              name: 'Test Agent',
+              description: 'Test agent description',
+              prompt: 'You are a helpful test agent',
+              conversationHistoryConfig: {
+                mode: 'full',
+                limit: 10,
+              },
+              stopWhen: null,
+              models: overrides.subAgentModels ?? null,
+              canUse: [
+                {
+                  toolId: 'tool-1',
+                  toolSelection: null,
+                  headers: null,
+                  toolPolicies: null,
+                  agentToolRelationId: 'sub-agent-tool-rel-1',
+                },
+              ],
+              canTransferTo: [
+                {
+                  subAgentId: 'agent-2',
+                  subAgentSubAgentRelationId: 'transfer-rel-1',
+                },
+              ],
+              canDelegateTo: [
+                {
+                  subAgentId: 'agent-3',
+                  subAgentSubAgentRelationId: 'delegate-rel-1',
+                },
+                {
+                  externalAgentId: 'ext-1',
+                  subAgentExternalAgentRelationId: 'external-rel-1',
+                  headers: null,
+                },
+                {
+                  agentId: teamAgentId,
+                  subAgentTeamAgentRelationId: 'team-rel-1',
+                  headers: { 'X-Custom-Header': 'team-value' },
+                },
+              ],
+              dataComponents: [],
+              artifactComponents: [],
+              createdAt: '2024-01-01T00:00:00Z',
+              updatedAt: '2024-01-01T00:00:00Z',
+            },
+            'agent-2': {
+              id: 'agent-2',
+              tenantId,
+              projectId,
+              name: 'Test Agent 2',
+              description: 'Test description',
+              prompt: '',
+              conversationHistoryConfig: null,
+              stopWhen: null,
+              models: null,
+              canUse: [],
+              canTransferTo: [],
+              canDelegateTo: [],
+              dataComponents: [],
+              artifactComponents: [],
+              createdAt: '2024-01-01T00:00:00Z',
+              updatedAt: '2024-01-01T00:00:00Z',
+            },
+            'agent-3': {
+              id: 'agent-3',
+              tenantId,
+              projectId,
+              name: 'Test Agent 3',
+              description: 'Delegate target',
+              prompt: '',
+              conversationHistoryConfig: null,
+              stopWhen: null,
+              models: null,
+              canUse: [],
+              canTransferTo: [],
+              canDelegateTo: [],
+              dataComponents: [],
+              artifactComponents: [],
+              createdAt: '2024-01-01T00:00:00Z',
+              updatedAt: '2024-01-01T00:00:00Z',
+            },
+          },
+          transferRelations: {},
+          delegateRelations: {},
+          createdAt: '2024-01-01T00:00:00Z',
+          updatedAt: '2024-01-01T00:00:00Z',
+        },
+        [teamAgentId]: {
+          id: teamAgentId,
+          tenantId,
+          projectId,
+          name: 'Team Agent 1',
+          description: 'A team agent for delegation',
+          contextConfigId: null,
+          models: baseAgentModels,
+          defaultSubAgentId: 'team-sub-1',
+          tools: {},
+          externalAgents: {},
+          teamAgents: {},
+          subAgents: {
+            'team-sub-1': {
+              id: 'team-sub-1',
+              tenantId,
+              projectId,
+              name: 'Team Agent 1 (Default)',
+              description: 'Default sub-agent for team agent',
+              prompt: '',
+              conversationHistoryConfig: null,
+              stopWhen: null,
+              models: null,
+              canUse: [],
+              canTransferTo: [],
+              canDelegateTo: [
+                {
+                  externalAgentId: 'ext-2',
+                  subAgentExternalAgentRelationId: 'team-default-external-rel',
+                  headers: null,
+                },
+              ],
+              dataComponents: [],
+              artifactComponents: [],
+              createdAt: '2024-01-01T00:00:00Z',
+              updatedAt: '2024-01-01T00:00:00Z',
+            },
+          },
+          transferRelations: {},
+          delegateRelations: {},
+          createdAt: '2024-01-01T00:00:00Z',
+          updatedAt: '2024-01-01T00:00:00Z',
+        },
+      },
+    },
+  };
+}
+
 describe('generateTaskHandler', () => {
+  const mockExecutionContext = createMockExecutionContext();
+
   const mockConfig: TaskHandlerConfig = {
-    tenantId: 'test-tenant',
-    projectId: 'test-project',
-    agentId: 'test-agent',
+    executionContext: mockExecutionContext,
     subAgentId: 'test-agent',
     baseUrl: 'http://localhost:3000',
     agentSchema: {
@@ -342,17 +450,24 @@ describe('generateTaskHandler', () => {
       description: 'Test agent description',
       prompt: 'You are a helpful test agent',
       models: null,
-      conversationHistoryConfig: null,
+      conversationHistoryConfig: {
+        mode: 'full',
+        limit: 50,
+        maxOutputTokens: 4000,
+        includeInternal: false,
+        messageTypes: ['chat', 'tool-result'],
+      },
       stopWhen: null,
       createdAt: '2024-01-01T00:00:00Z',
       updatedAt: '2024-01-01T00:00:00Z',
-    },
+    } as any,
     name: 'Test Agent',
     description: 'Test agent description',
     conversationHistoryConfig: {
       mode: 'full',
       limit: 10,
-    },
+    } as any,
+    contextConfigId: 'context-123',
   };
 
   beforeEach(() => {
@@ -628,6 +743,7 @@ describe('generateTaskHandler', () => {
 
       // Mock Agent to throw error
       const { Agent } = await import('../../agents/Agent.js');
+      const originalGenerate = vi.mocked(Agent).prototype.generate;
       vi.mocked(Agent).prototype.generate = vi
         .fn()
         .mockRejectedValue(new Error('Generation failed'));
@@ -639,11 +755,15 @@ describe('generateTaskHandler', () => {
         },
       };
 
-      const result = await taskHandler(task);
+      try {
+        const result = await taskHandler(task);
 
-      expect(result.status.state).toBe(TaskState.Failed);
-      expect(result.status.message).toBe('Generation failed');
-      expect(result.artifacts).toEqual([]);
+        expect(result.status.state).toBe(TaskState.Failed);
+        expect(result.status.message).toBe('Generation failed');
+        expect(result.artifacts).toEqual([]);
+      } finally {
+        vi.mocked(Agent).prototype.generate = originalGenerate;
+      }
     });
 
     it('should load agent relations and tools', async () => {
@@ -658,142 +778,86 @@ describe('generateTaskHandler', () => {
 
       await taskHandler(task);
 
-      // Verify that relations and tools were fetched
-      expect(getRelatedAgentsForAgentMock).toHaveBeenCalledWith(expect.anything());
-      expect(getToolsForAgentMock).toHaveBeenCalledWith(expect.anything());
-      expect(getDataComponentsForAgentMock).toHaveBeenCalledWith(expect.anything());
+      // Relations/tools are derived from project context; MCP tool hydration happens via ManagementApiClient.getMcpTool
+      expect(getMcpToolMock).toHaveBeenCalledWith('tool-1');
 
-      // Verify the inner function was called with correct parameters
-      const relationsInnerMock = getRelatedAgentsForAgentMock.mock.results[0]?.value;
-      expect(relationsInnerMock).toHaveBeenCalledWith({
-        scopes: {
-          tenantId: 'test-tenant',
-          projectId: 'test-project',
-          agentId: 'test-agent',
-        },
-        subAgentId: 'test-agent',
-      });
+      expect(lastAgentConstructorArgs).toBeDefined();
+      expect(lastAgentConstructorArgs.tools).toHaveLength(1);
+    });
 
-      const toolsInnerMock = getToolsForAgentMock.mock.results[0]?.value;
-      expect(toolsInnerMock).toHaveBeenCalledWith({
-        scopes: {
-          tenantId: 'test-tenant',
-          projectId: 'test-project',
-          agentId: 'test-agent',
-          subAgentId: 'test-agent',
-        },
-      });
+    it('should enhance team relations with default sub agent data', async () => {
+      const taskHandler = createTaskHandler(mockConfig);
 
-      const dataInnerMock = getDataComponentsForAgentMock.mock.results[0]?.value;
-      expect(dataInnerMock).toHaveBeenCalledWith({
-        scopes: {
-          tenantId: 'test-tenant',
-          projectId: 'test-project',
-          agentId: 'test-agent',
-          subAgentId: 'test-agent',
+      const task: A2ATask = {
+        id: 'task-123',
+        input: {
+          parts: [{ kind: 'text', text: 'Test with enhanced team relations' }],
         },
-      });
+      };
+
+      await taskHandler(task);
+
+      // Verify that the Agent constructor received enhanced team relations
+      expect(lastAgentConstructorArgs).toBeDefined();
+      expect(lastAgentConstructorArgs.delegateRelations).toBeDefined();
+
+      const teamDelegateRelation = lastAgentConstructorArgs.delegateRelations.find(
+        (rel: any) => rel.type === 'team'
+      );
+      expect(teamDelegateRelation).toBeDefined();
+      expect(teamDelegateRelation.config.id).toBe('team-agent-1');
+      expect(teamDelegateRelation.config.name).toBe('Team Agent 1');
+      // The description should be enhanced with related agents information
+      expect(teamDelegateRelation.config.description).toContain('A team agent for delegation');
+      expect(teamDelegateRelation.config.description).toContain('Can delegate to:');
     });
   });
 
   describe('createTaskHandlerConfig', () => {
-    it('should create config from agent data', async () => {
+    it('should create config from project context', async () => {
+      const executionContext = createMockExecutionContext();
       const config = await createTaskHandlerConfig({
-        tenantId: 'test-tenant',
-        projectId: 'test-project',
-        agentId: 'test-agent',
+        executionContext,
         subAgentId: 'test-agent',
         baseUrl: 'https://test.com',
       });
 
-      expect(config).toEqual({
-        tenantId: 'test-tenant',
-        projectId: 'test-project',
-        agentId: 'test-agent',
-        subAgentId: 'test-agent',
-        agentSchema: {
-          id: 'test-agent',
-          name: 'Test Agent',
-          description: 'Test agent description',
-          prompt: 'You are a helpful test agent',
-          models: {
-            base: {
-              model: 'openai/gpt-4',
-            },
-            structuredOutput: {
-              model: 'openai/gpt-4',
-            },
-            summarizer: {
-              model: 'openai/gpt-3.5-turbo',
-            },
-          },
-          stopWhen: null,
-          conversationHistoryConfig: {
-            mode: 'full',
-            limit: 10,
-          },
-          createdAt: '2024-01-01T00:00:00Z',
-          updatedAt: '2024-01-01T00:00:00Z',
-        },
-        baseUrl: 'https://test.com',
-        apiKey: undefined,
-        name: 'Test Agent',
-        description: 'Test agent description',
-        conversationHistoryConfig: {
-          mode: 'full',
-          limit: 10,
-        },
-        contextConfigId: 'context-123',
+      expect(config.executionContext).toEqual(executionContext);
+      expect(config.subAgentId).toBe('test-agent');
+      expect(config.baseUrl).toBe('https://test.com');
+      expect(config.contextConfigId).toBe('context-123');
+      expect(config.name).toBe('Test Agent');
+      expect(config.description).toBe('Test agent description');
+      expect(config.agentSchema.id).toBe('test-agent');
+      expect(config.agentSchema.models).toEqual({
+        base: { model: 'openai/gpt-4' },
+        structuredOutput: { model: 'openai/gpt-4' },
+        summarizer: { model: 'openai/gpt-3.5-turbo' },
       });
     });
 
-    it('should throw error for non-existent agent', async () => {
-      // Mock the getAgentById to return null for this test
-      getAgentByIdMock.mockReturnValueOnce(vi.fn().mockResolvedValue(null));
-
+    it('should throw error for non-existent sub-agent', async () => {
+      const executionContext = createMockExecutionContext();
       await expect(
         createTaskHandlerConfig({
-          tenantId: 'test-tenant',
-          projectId: 'test-project',
-          agentId: 'test-agent',
+          executionContext,
           subAgentId: 'non-existent',
           baseUrl: 'https://test.com',
         })
-      ).rejects.toThrow('Agent not found: non-existent');
+      ).rejects.toThrow('Sub-agent not found: non-existent');
     });
 
-    it('should preserve modelSettings from agent data', async () => {
-      // Mock the getAgentById to return agent with modelSettings
-      getAgentByIdMock.mockReturnValueOnce(
-        vi.fn().mockResolvedValue({
-          id: 'test-agent',
-          name: 'Test Agent',
-          description: 'Test agent description',
-          prompt: 'You are a helpful test agent',
-          models: {
-            base: {
-              model: 'anthropic/claude-sonnet-4-20250514',
-              providerOptions: {
-                anthropic: {
-                  temperature: 0.8,
-                  maxTokens: 2048,
-                },
-              },
-            },
+    it('should prefer sub-agent models when present', async () => {
+      const executionContext = createMockExecutionContext({
+        subAgentModels: {
+          base: {
+            model: 'anthropic/claude-sonnet-4-20250514',
+            providerOptions: { anthropic: { temperature: 0.8, maxTokens: 2048 } },
           },
-          conversationHistoryConfig: {
-            mode: 'full',
-            limit: 10,
-          },
-          createdAt: '2024-01-01T00:00:00Z',
-          updatedAt: '2024-01-01T00:00:00Z',
-        })
-      );
-
+        },
+      });
       const config = await createTaskHandlerConfig({
-        tenantId: 'test-tenant',
-        projectId: 'test-project',
-        agentId: 'test-agent',
+        executionContext,
         subAgentId: 'test-agent',
         baseUrl: 'https://test.com',
       });
@@ -801,106 +865,47 @@ describe('generateTaskHandler', () => {
       expect(config.agentSchema.models).toEqual({
         base: {
           model: 'anthropic/claude-sonnet-4-20250514',
-          providerOptions: {
-            anthropic: {
-              temperature: 0.8,
-              maxTokens: 2048,
-            },
-          },
+          providerOptions: { anthropic: { temperature: 0.8, maxTokens: 2048 } },
         },
         structuredOutput: {
           model: 'anthropic/claude-sonnet-4-20250514',
-          providerOptions: {
-            anthropic: {
-              temperature: 0.8,
-              maxTokens: 2048,
-            },
-          },
+          providerOptions: { anthropic: { temperature: 0.8, maxTokens: 2048 } },
         },
         summarizer: {
           model: 'anthropic/claude-sonnet-4-20250514',
-          providerOptions: {
-            anthropic: {
-              temperature: 0.8,
-              maxTokens: 2048,
-            },
-          },
+          providerOptions: { anthropic: { temperature: 0.8, maxTokens: 2048 } },
         },
       });
     });
 
-    it('should handle undefined models from agent data', async () => {
-      // Mock the getAgentById to return agent with undefined models
-      getAgentByIdMock.mockReturnValueOnce(
-        vi.fn().mockResolvedValue({
-          id: 'test-agent',
-          name: 'Test Agent',
-          description: 'Test agent description',
-          prompt: 'You are a helpful test agent',
-          models: null,
-          conversationHistoryConfig: {
-            mode: 'full',
-            limit: 10,
-          },
-          createdAt: '2024-01-01T00:00:00Z',
-          updatedAt: '2024-01-01T00:00:00Z',
-        })
-      );
-
+    it('should fall back to agent models when sub-agent models are null', async () => {
+      const executionContext = createMockExecutionContext({ subAgentModels: null });
       const config = await createTaskHandlerConfig({
-        tenantId: 'test-tenant',
-        projectId: 'test-project',
-        agentId: 'test-agent',
+        executionContext,
         subAgentId: 'test-agent',
         baseUrl: 'https://test.com',
       });
 
       expect(config.agentSchema.models).toEqual({
-        base: {
-          model: 'openai/gpt-4',
-        },
-        structuredOutput: {
-          model: 'openai/gpt-4',
-        },
-        summarizer: {
-          model: 'openai/gpt-3.5-turbo',
-        },
+        base: { model: 'openai/gpt-4' },
+        structuredOutput: { model: 'openai/gpt-4' },
+        summarizer: { model: 'openai/gpt-3.5-turbo' },
       });
     });
 
-    it('should handle different model providers in models', async () => {
-      // Mock the getAgentById to return agent with OpenAI models
-      getAgentByIdMock.mockReturnValueOnce(
-        vi.fn().mockResolvedValue({
-          id: 'test-agent',
-          name: 'Test Agent',
-          description: 'Test agent description',
-          prompt: 'You are a helpful test agent',
-          models: {
-            base: {
-              model: 'openai/gpt-4o',
-              providerOptions: {
-                openai: {
-                  temperature: 0.3,
-                  frequencyPenalty: 0.1,
-                  presencePenalty: 0.2,
-                },
-              },
+    it('should support different model providers in models', async () => {
+      const executionContext = createMockExecutionContext({
+        subAgentModels: {
+          base: {
+            model: 'openai/gpt-4o',
+            providerOptions: {
+              openai: { temperature: 0.3, frequencyPenalty: 0.1, presencePenalty: 0.2 },
             },
           },
-          conversationHistoryConfig: {
-            mode: 'full',
-            limit: 10,
-          },
-          createdAt: '2024-01-01T00:00:00Z',
-          updatedAt: '2024-01-01T00:00:00Z',
-        })
-      );
-
+        },
+      });
       const config = await createTaskHandlerConfig({
-        tenantId: 'test-tenant',
-        projectId: 'test-project',
-        agentId: 'test-agent',
+        executionContext,
         subAgentId: 'test-agent',
         baseUrl: 'https://test.com',
       });
@@ -909,31 +914,19 @@ describe('generateTaskHandler', () => {
         base: {
           model: 'openai/gpt-4o',
           providerOptions: {
-            openai: {
-              temperature: 0.3,
-              frequencyPenalty: 0.1,
-              presencePenalty: 0.2,
-            },
+            openai: { temperature: 0.3, frequencyPenalty: 0.1, presencePenalty: 0.2 },
           },
         },
         structuredOutput: {
           model: 'openai/gpt-4o',
           providerOptions: {
-            openai: {
-              temperature: 0.3,
-              frequencyPenalty: 0.1,
-              presencePenalty: 0.2,
-            },
+            openai: { temperature: 0.3, frequencyPenalty: 0.1, presencePenalty: 0.2 },
           },
         },
         summarizer: {
           model: 'openai/gpt-4o',
           providerOptions: {
-            openai: {
-              temperature: 0.3,
-              frequencyPenalty: 0.1,
-              presencePenalty: 0.2,
-            },
+            openai: { temperature: 0.3, frequencyPenalty: 0.1, presencePenalty: 0.2 },
           },
         },
       });

@@ -37,7 +37,7 @@ export async function fetchApiKeys(
   validateProjectId(projectId);
 
   const response = await makeManagementApiRequest<ListResponse<ApiKeyApiSelect>>(
-    `tenants/${tenantId}/projects/${projectId}/api-keys`
+    `tenants/${tenantId}/projects/${projectId}/api-keys?limit=100`
   );
 
   // Transform the response to convert nulls to undefined

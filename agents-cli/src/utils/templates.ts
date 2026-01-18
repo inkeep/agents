@@ -14,7 +14,7 @@ export async function cloneTemplate(
   templatePath: string,
   targetPath: string,
   replacements?: ContentReplacement[]
-) {
+): Promise<void> {
   await fs.mkdir(targetPath, { recursive: true });
 
   const templatePathSuffix = templatePath.replace('https://github.com/', '');
@@ -26,7 +26,8 @@ export async function cloneTemplate(
     if (replacements && replacements.length > 0) {
       await replaceContentInFiles(targetPath, replacements);
     }
-  } catch (_error) {
+  } catch (error) {
+    console.log(`❌ Error cloning template: ${error}`);
     process.exit(1);
   }
 }
@@ -34,8 +35,8 @@ export async function cloneTemplate(
 export async function cloneTemplateLocal(
   templatePath: string,
   targetPath: string,
-  replacements: ContentReplacement[]
-) {
+  replacements?: ContentReplacement[]
+): Promise<void> {
   await fs.mkdir(targetPath, { recursive: true });
 
   try {
@@ -44,7 +45,7 @@ export async function cloneTemplateLocal(
       errorOnExist: false,
     });
 
-    if (replacements && replacements.length > 0) {
+    if (replacements?.length) {
       await replaceContentInFiles(targetPath, replacements);
     }
   } catch (error) {
@@ -59,7 +60,7 @@ export async function cloneTemplateLocal(
 export async function replaceContentInFiles(
   targetPath: string,
   replacements: ContentReplacement[]
-) {
+): Promise<void> {
   for (const replacement of replacements) {
     const filePath = path.join(targetPath, replacement.filePath);
 
@@ -312,12 +313,51 @@ function injectPropertyIntoObject(content: string, propertyPath: string, replace
   return content;
 }
 
-export async function getAvailableTemplates(): Promise<string[]> {
-  // Fetch the list of templates from your repo
-  const response = await fetch(
-    'https://api.github.com/repos/inkeep/agents-cookbook/contents/template-projects'
-  );
-  const contents = await response.json();
+export async function getAvailableTemplates(
+  templatePath: string = 'template-projects',
+  local: string | undefined
+): Promise<string[]> {
+  // Fetch the list of templates from the repo
 
-  return contents.filter((item: any) => item.type === 'dir').map((item: any) => item.name);
+  if (local && local.length > 0) {
+    const fullTemplatePath = path.join(local, templatePath);
+    const items = await fs.readdir(fullTemplatePath);
+    const directories = [];
+    for (const item of items) {
+      const stat = await fs.stat(path.join(fullTemplatePath, item));
+      if (stat.isDirectory() && item !== 'weather-project') {
+        directories.push(item);
+      }
+    }
+    return directories;
+  }
+
+  const response = await fetch(
+    `https://api.github.com/repos/inkeep/agents/contents/agents-cookbook/${templatePath}`
+  );
+
+  if (!response.ok) {
+    throw new Error(
+      `Failed to fetch templates. Please check your internet connection and try again.`
+    );
+  }
+
+  let contents: any;
+  try {
+    contents = await response.json();
+  } catch (error) {
+    throw new Error(
+      `Failed to parse templates response. Please check your internet connection and try again. ${error}`
+    );
+  }
+
+  if (!Array.isArray(contents)) {
+    throw new Error(
+      'Unexpected response format from templates. Please check your internet connection and try again'
+    );
+  }
+
+  return contents
+    .filter((item: any) => item.type === 'dir' && item.name !== 'weather-project')
+    .map((item: any) => item.name);
 }

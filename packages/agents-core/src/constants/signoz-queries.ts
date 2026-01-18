@@ -82,6 +82,10 @@ export const OPERATORS = {
   EXISTS: 'exists',
   NOT_EXISTS: 'nexists',
 
+  // Set operators
+  IN: 'in',
+  NOT_IN: 'nin',
+
   // Logical operators
   AND: 'AND',
   OR: 'OR',
@@ -111,12 +115,15 @@ export const QUERY_EXPRESSIONS = {
   AI_ASSISTANT_MESSAGES: 'aiAssistantMessages',
   AI_GENERATIONS: 'aiGenerations',
   AI_STREAMING_TEXT: 'aiStreamingText',
-  AI_STREAMING_OBJECT: 'aiStreamingObject',
   CONTEXT_FETCHERS: 'contextFetchers',
   DURATION_SPANS: 'durationSpans',
   AGENT_GENERATIONS: 'agentGenerations',
   SPANS_WITH_ERRORS: 'spansWithErrors',
   ARTIFACT_PROCESSING: 'artifactProcessing',
+  TOOL_APPROVAL_REQUESTED: 'toolApprovalRequested',
+  TOOL_APPROVAL_APPROVED: 'toolApprovalApproved',
+  TOOL_APPROVAL_DENIED: 'toolApprovalDenied',
+  COMPRESSION: 'compression',
 } as const;
 
 /** Query Reduce Operations */
@@ -159,6 +166,7 @@ export const DATA_SOURCES = {
 /** Aggregate Operators */
 export const AGGREGATE_OPERATORS = {
   COUNT: 'count',
+  COUNT_DISTINCT: 'count_distinct',
   SUM: 'sum',
   AVG: 'avg',
   MIN: 'min',
@@ -174,8 +182,6 @@ export const QUERY_DEFAULTS = {
   DISABLED: false,
   HAVING: [],
   LEGEND: '',
-  LIMIT_NULL: null,
-  LIMIT_ZERO: 0,
-  LIMIT_1000: 1000,
+  LIMIT_UNLIMITED: 10000,
   EMPTY_GROUP_BY: [],
 } as const;

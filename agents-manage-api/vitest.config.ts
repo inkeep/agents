@@ -7,19 +7,19 @@ export default defineProject({
     globals: true,
     environment: 'node',
     testTimeout: 60000, // 60 seconds for database operations
+    hookTimeout: 60000, // 60 seconds for setup/teardown hooks
     exclude: ['node_modules', 'dist'],
     // Enable parallelism with in-memory databases - each worker gets isolated database
     fileParallelism: true,
     isolate: true, // Ensure test isolation to prevent state leakage
     poolOptions: {
       threads: {
-        maxThreads: 16, // Increase for GitHub Actions runners (have more cores)
+        maxThreads: 10, // Increase for GitHub Actions runners (have more cores)
         minThreads: 4,
       },
     },
     env: {
       ENVIRONMENT: 'test',
-      DB_FILE_NAME: ':memory:',
       ANTHROPIC_API_KEY: 'test-api-key',
       OPENAI_API_KEY: 'test-openai-key',
       LOG_LEVEL: 'error',

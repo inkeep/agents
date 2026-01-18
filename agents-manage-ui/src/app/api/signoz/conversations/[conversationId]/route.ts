@@ -1,3 +1,9 @@
+import {
+  CONTEXT_BREAKDOWN_TOTAL_SPAN_ATTRIBUTE,
+  parseContextBreakdownFromSpan,
+  V1_BREAKDOWN_SCHEMA,
+} from '@inkeep/agents-core/client-exports';
+import type { AxiosResponse } from 'axios';
 import axios from 'axios';
 import axiosRetry from 'axios-retry';
 import { type NextRequest, NextResponse } from 'next/server';
@@ -20,9 +26,9 @@ import {
   SPAN_NAMES,
   UNKNOWN_VALUE,
 } from '@/constants/signoz';
+import { getManageApiUrl } from '@/lib/api/api-config';
 import { fetchAllSpanAttributes_SQL } from '@/lib/api/signoz-sql';
 import { getLogger } from '@/lib/logger';
-import { DEFAULT_SIGNOZ_URL } from '@/lib/runtime-config/defaults';
 
 // Configure axios retry
 axiosRetry(axios, {
@@ -31,9 +37,6 @@ axiosRetry(axios, {
 });
 
 export const dynamic = 'force-dynamic';
-
-const SIGNOZ_URL = process.env.SIGNOZ_URL || process.env.PUBLIC_SIGNOZ_URL || DEFAULT_SIGNOZ_URL;
-const SIGNOZ_API_KEY = process.env.SIGNOZ_API_KEY || '';
 
 // ---------- Types
 
@@ -60,25 +63,66 @@ function getNumber(span: SigNozListItem, key: string, fallback = 0): number {
   return Number.isFinite(n) ? n : fallback;
 }
 
-async function signozQuery(payload: any): Promise<SigNozResp> {
+/**
+ * Check if we should call SigNoz directly (server-to-server call without cookies)
+ */
+function shouldCallSigNozDirectly(cookieHeader: string | null): boolean {
+  return !cookieHeader && !!process.env.SIGNOZ_URL && !!process.env.SIGNOZ_API_KEY;
+}
+
+/**
+ * Get the SigNoz endpoint URL
+ */
+function getSigNozEndpoint(): string {
+  const signozUrl = process.env.SIGNOZ_URL || process.env.PUBLIC_SIGNOZ_URL;
+  return `${signozUrl}/api/v4/query_range`;
+}
+
+// Call SigNoz directly for server-to-server calls, otherwise go through manage-api
+async function signozQuery(
+  payload: any,
+  tenantId: string,
+  cookieHeader: string | null
+): Promise<SigNozResp> {
   const logger = getLogger('signoz-query');
 
-  // Check if API key is configured
-  if (!SIGNOZ_API_KEY || SIGNOZ_API_KEY.trim() === '') {
-    throw new Error(
-      'SIGNOZ_API_KEY is not configured. Please set the SIGNOZ_API_KEY environment variable.'
-    );
-  }
-
   try {
-    const signozEndpoint = `${SIGNOZ_URL}/api/v4/query_range`;
-    const response = await axios.post(signozEndpoint, payload, {
-      headers: {
+    let response: AxiosResponse;
+
+    // For server-to-server calls (no cookies), call SigNoz directly
+    if (shouldCallSigNozDirectly(cookieHeader)) {
+      const endpoint = getSigNozEndpoint();
+      logger.debug({ endpoint }, 'Calling SigNoz directly for conversation traces');
+
+      response = await axios.post(endpoint, payload, {
+        headers: {
+          'Content-Type': 'application/json',
+          'SIGNOZ-API-KEY': process.env.SIGNOZ_API_KEY || '',
+        },
+        timeout: 30000,
+      });
+    } else {
+      // For browser calls, go through manage-api for auth
+      const manageApiUrl = getManageApiUrl();
+      const endpoint = `${manageApiUrl}/tenants/${tenantId}/signoz/query`;
+
+      const headers: Record<string, string> = {
         'Content-Type': 'application/json',
-        'SIGNOZ-API-KEY': SIGNOZ_API_KEY,
-      },
-      timeout: 30000,
-    });
+      };
+
+      if (cookieHeader) {
+        headers.Cookie = cookieHeader;
+      }
+
+      logger.debug({ endpoint }, 'Calling manage-api for conversation traces');
+
+      response = await axios.post(endpoint, payload, {
+        headers,
+        timeout: 30000,
+        withCredentials: true,
+      });
+    }
+
     const json = response.data as SigNozResp;
     const responseData = json?.data?.result
       ? json.data.result.map((r) => ({
@@ -209,7 +253,8 @@ function buildConversationListPayload(
               ...QUERY_FIELD_CONFIGS.STRING_TAG,
             },
             { key: SPAN_KEYS.AI_TOOL_TYPE, ...QUERY_FIELD_CONFIGS.STRING_TAG },
-            { key: SPAN_KEYS.AI_SUB_AGENT_NAME, ...QUERY_FIELD_CONFIGS.STRING_TAG },
+            { key: SPAN_KEYS.AI_TOOL_CALL_MCP_SERVER_ID, ...QUERY_FIELD_CONFIGS.STRING_TAG },
+            { key: SPAN_KEYS.AI_TOOL_CALL_MCP_SERVER_NAME, ...QUERY_FIELD_CONFIGS.STRING_TAG },
             {
               key: SPAN_KEYS.AI_TELEMETRY_FUNCTION_ID,
               ...QUERY_FIELD_CONFIGS.STRING_TAG,
@@ -239,6 +284,8 @@ function buildConversationListPayload(
               key: SPAN_KEYS.OTEL_STATUS_DESCRIPTION,
               ...QUERY_FIELD_CONFIGS.STRING_TAG,
             },
+            { key: SPAN_KEYS.SUB_AGENT_NAME, ...QUERY_FIELD_CONFIGS.STRING_TAG },
+            { key: SPAN_KEYS.SUB_AGENT_ID, ...QUERY_FIELD_CONFIGS.STRING_TAG },
             { key: SPAN_KEYS.AGENT_ID, ...QUERY_FIELD_CONFIGS.STRING_TAG },
             { key: SPAN_KEYS.AGENT_NAME, ...QUERY_FIELD_CONFIGS.STRING_TAG },
           ]
@@ -397,6 +444,10 @@ function buildConversationListPayload(
               key: SPAN_KEYS.SUB_AGENT_ID,
               ...QUERY_FIELD_CONFIGS.STRING_TAG,
             },
+            {
+              key: SPAN_KEYS.SUB_AGENT_NAME,
+              ...QUERY_FIELD_CONFIGS.STRING_TAG,
+            },
           ]
         ),
 
@@ -515,7 +566,11 @@ function buildConversationListPayload(
               ...QUERY_FIELD_CONFIGS.STRING_TAG,
             },
             {
-              key: SPAN_KEYS.AI_SUB_AGENT_NAME_ALT,
+              key: SPAN_KEYS.SUB_AGENT_NAME,
+              ...QUERY_FIELD_CONFIGS.STRING_TAG,
+            },
+            {
+              key: SPAN_KEYS.SUB_AGENT_ID,
               ...QUERY_FIELD_CONFIGS.STRING_TAG,
             },
           ]
@@ -558,6 +613,14 @@ function buildConversationListPayload(
             { key: SPAN_KEYS.AGENT_ID, ...QUERY_FIELD_CONFIGS.STRING_TAG },
             {
               key: SPAN_KEYS.AI_TELEMETRY_FUNCTION_ID,
+              ...QUERY_FIELD_CONFIGS.STRING_TAG,
+            },
+            {
+              key: SPAN_KEYS.AI_TELEMETRY_SUB_AGENT_ID,
+              ...QUERY_FIELD_CONFIGS.STRING_TAG,
+            },
+            {
+              key: SPAN_KEYS.AI_TELEMETRY_SUB_AGENT_NAME,
               ...QUERY_FIELD_CONFIGS.STRING_TAG,
             },
             {
@@ -621,8 +684,8 @@ function buildConversationListPayload(
               key: SPAN_KEYS.DURATION_NANO,
               ...QUERY_FIELD_CONFIGS.FLOAT64_TAG_COLUMN,
             },
-            { key: SPAN_KEYS.SUB_AGENT_ID, ...QUERY_FIELD_CONFIGS.STRING_TAG },
-            { key: SPAN_KEYS.SUB_AGENT_NAME, ...QUERY_FIELD_CONFIGS.STRING_TAG },
+            { key: SPAN_KEYS.AI_TELEMETRY_SUB_AGENT_ID, ...QUERY_FIELD_CONFIGS.STRING_TAG },
+            { key: SPAN_KEYS.AI_TELEMETRY_SUB_AGENT_NAME, ...QUERY_FIELD_CONFIGS.STRING_TAG },
             {
               key: SPAN_KEYS.AI_RESPONSE_TEXT,
               ...QUERY_FIELD_CONFIGS.STRING_TAG,
@@ -651,71 +714,12 @@ function buildConversationListPayload(
               key: SPAN_KEYS.AI_TELEMETRY_FUNCTION_ID,
               ...QUERY_FIELD_CONFIGS.STRING_TAG,
             },
-          ]
-        ),
-
-        // AI streaming object
-        aiStreamingObject: listQuery(
-          QUERY_EXPRESSIONS.AI_STREAMING_OBJECT,
-          [
             {
-              key: {
-                key: SPAN_KEYS.AI_OPERATION_ID,
-                ...QUERY_FIELD_CONFIGS.STRING_TAG,
-              },
-              op: OPERATORS.EQUALS,
-              value: AI_OPERATIONS.STREAM_OBJECT,
-            },
-          ],
-          [
-            {
-              key: SPAN_KEYS.SPAN_ID,
-              ...QUERY_FIELD_CONFIGS.STRING_TAG_COLUMN,
-            },
-            {
-              key: SPAN_KEYS.TRACE_ID,
-              ...QUERY_FIELD_CONFIGS.STRING_TAG_COLUMN,
-            },
-            {
-              key: SPAN_KEYS.TIMESTAMP,
-              ...QUERY_FIELD_CONFIGS.INT64_TAG_COLUMN,
-            },
-            {
-              key: SPAN_KEYS.HAS_ERROR,
-              ...QUERY_FIELD_CONFIGS.BOOL_TAG_COLUMN,
-            },
-            {
-              key: SPAN_KEYS.DURATION_NANO,
-              ...QUERY_FIELD_CONFIGS.FLOAT64_TAG_COLUMN,
-            },
-            { key: SPAN_KEYS.SUB_AGENT_ID, ...QUERY_FIELD_CONFIGS.STRING_TAG },
-            { key: SPAN_KEYS.SUB_AGENT_NAME, ...QUERY_FIELD_CONFIGS.STRING_TAG },
-            {
-              key: SPAN_KEYS.AI_RESPONSE_OBJECT,
+              key: SPAN_KEYS.STATUS_MESSAGE,
               ...QUERY_FIELD_CONFIGS.STRING_TAG,
             },
             {
-              key: SPAN_KEYS.AI_MODEL_ID,
-              ...QUERY_FIELD_CONFIGS.STRING_TAG,
-            },
-            {
-              key: SPAN_KEYS.AI_MODEL_PROVIDER,
-              ...QUERY_FIELD_CONFIGS.STRING_TAG,
-            },
-            {
-              key: SPAN_KEYS.AI_OPERATION_ID,
-              ...QUERY_FIELD_CONFIGS.STRING_TAG,
-            },
-            {
-              key: SPAN_KEYS.GEN_AI_USAGE_INPUT_TOKENS,
-              ...QUERY_FIELD_CONFIGS.INT64_TAG,
-            },
-            {
-              key: SPAN_KEYS.GEN_AI_USAGE_OUTPUT_TOKENS,
-              ...QUERY_FIELD_CONFIGS.INT64_TAG,
-            },
-            {
-              key: SPAN_KEYS.AI_TELEMETRY_FUNCTION_ID,
+              key: SPAN_KEYS.AI_TELEMETRY_METADATA_PHASE,
               ...QUERY_FIELD_CONFIGS.STRING_TAG,
             },
           ]
@@ -762,6 +766,10 @@ function buildConversationListPayload(
             },
             {
               key: SPAN_KEYS.HTTP_RESPONSE_BODY_SIZE,
+              ...QUERY_FIELD_CONFIGS.STRING_TAG,
+            },
+            {
+              key: SPAN_KEYS.STATUS_MESSAGE,
               ...QUERY_FIELD_CONFIGS.STRING_TAG,
             },
           ]
@@ -820,7 +828,11 @@ function buildConversationListPayload(
               ...QUERY_FIELD_CONFIGS.STRING_TAG,
             },
             {
-              key: SPAN_KEYS.ARTIFACT_SUB_AGENT_ID,
+              key: SPAN_KEYS.SUB_AGENT_ID,
+              ...QUERY_FIELD_CONFIGS.STRING_TAG,
+            },
+            {
+              key: SPAN_KEYS.SUB_AGENT_NAME,
               ...QUERY_FIELD_CONFIGS.STRING_TAG,
             },
             {
@@ -839,6 +851,243 @@ function buildConversationListPayload(
               key: SPAN_KEYS.ARTIFACT_DATA,
               ...QUERY_FIELD_CONFIGS.STRING_TAG,
             },
+            {
+              key: SPAN_KEYS.STATUS_MESSAGE,
+              ...QUERY_FIELD_CONFIGS.STRING_TAG,
+            },
+          ]
+        ),
+
+        toolApprovalRequested: listQuery(
+          QUERY_EXPRESSIONS.TOOL_APPROVAL_REQUESTED,
+          [
+            {
+              key: {
+                key: SPAN_KEYS.NAME,
+                ...QUERY_FIELD_CONFIGS.STRING_TAG_COLUMN,
+              },
+              op: OPERATORS.EQUALS,
+              value: SPAN_NAMES.TOOL_APPROVAL_REQUESTED,
+            },
+          ],
+          [
+            {
+              key: SPAN_KEYS.SPAN_ID,
+              ...QUERY_FIELD_CONFIGS.STRING_TAG_COLUMN,
+            },
+            {
+              key: SPAN_KEYS.TRACE_ID,
+              ...QUERY_FIELD_CONFIGS.STRING_TAG_COLUMN,
+            },
+            {
+              key: SPAN_KEYS.TIMESTAMP,
+              ...QUERY_FIELD_CONFIGS.INT64_TAG_COLUMN,
+            },
+            {
+              key: SPAN_KEYS.HAS_ERROR,
+              ...QUERY_FIELD_CONFIGS.BOOL_TAG_COLUMN,
+            },
+            {
+              key: SPAN_KEYS.TOOL_NAME,
+              ...QUERY_FIELD_CONFIGS.STRING_TAG,
+            },
+            {
+              key: SPAN_KEYS.TOOL_CALL_ID,
+              ...QUERY_FIELD_CONFIGS.STRING_TAG,
+            },
+            {
+              key: SPAN_KEYS.SUB_AGENT_ID,
+              ...QUERY_FIELD_CONFIGS.STRING_TAG,
+            },
+            {
+              key: SPAN_KEYS.SUB_AGENT_NAME,
+              ...QUERY_FIELD_CONFIGS.STRING_TAG,
+            },
+          ]
+        ),
+
+        toolApprovalApproved: listQuery(
+          QUERY_EXPRESSIONS.TOOL_APPROVAL_APPROVED,
+          [
+            {
+              key: {
+                key: SPAN_KEYS.NAME,
+                ...QUERY_FIELD_CONFIGS.STRING_TAG_COLUMN,
+              },
+              op: OPERATORS.EQUALS,
+              value: SPAN_NAMES.TOOL_APPROVAL_APPROVED,
+            },
+          ],
+          [
+            {
+              key: SPAN_KEYS.SPAN_ID,
+              ...QUERY_FIELD_CONFIGS.STRING_TAG_COLUMN,
+            },
+            {
+              key: SPAN_KEYS.TRACE_ID,
+              ...QUERY_FIELD_CONFIGS.STRING_TAG_COLUMN,
+            },
+            {
+              key: SPAN_KEYS.TIMESTAMP,
+              ...QUERY_FIELD_CONFIGS.INT64_TAG_COLUMN,
+            },
+            {
+              key: SPAN_KEYS.HAS_ERROR,
+              ...QUERY_FIELD_CONFIGS.BOOL_TAG_COLUMN,
+            },
+            {
+              key: SPAN_KEYS.TOOL_NAME,
+              ...QUERY_FIELD_CONFIGS.STRING_TAG,
+            },
+            {
+              key: SPAN_KEYS.TOOL_CALL_ID,
+              ...QUERY_FIELD_CONFIGS.STRING_TAG,
+            },
+            {
+              key: SPAN_KEYS.SUB_AGENT_ID,
+              ...QUERY_FIELD_CONFIGS.STRING_TAG,
+            },
+            {
+              key: SPAN_KEYS.SUB_AGENT_NAME,
+              ...QUERY_FIELD_CONFIGS.STRING_TAG,
+            },
+          ]
+        ),
+
+        toolApprovalDenied: listQuery(
+          QUERY_EXPRESSIONS.TOOL_APPROVAL_DENIED,
+          [
+            {
+              key: {
+                key: SPAN_KEYS.NAME,
+                ...QUERY_FIELD_CONFIGS.STRING_TAG_COLUMN,
+              },
+              op: OPERATORS.EQUALS,
+              value: SPAN_NAMES.TOOL_APPROVAL_DENIED,
+            },
+          ],
+          [
+            {
+              key: SPAN_KEYS.SPAN_ID,
+              ...QUERY_FIELD_CONFIGS.STRING_TAG_COLUMN,
+            },
+            {
+              key: SPAN_KEYS.TRACE_ID,
+              ...QUERY_FIELD_CONFIGS.STRING_TAG_COLUMN,
+            },
+            {
+              key: SPAN_KEYS.TIMESTAMP,
+              ...QUERY_FIELD_CONFIGS.INT64_TAG_COLUMN,
+            },
+            {
+              key: SPAN_KEYS.HAS_ERROR,
+              ...QUERY_FIELD_CONFIGS.BOOL_TAG_COLUMN,
+            },
+            {
+              key: SPAN_KEYS.TOOL_NAME,
+              ...QUERY_FIELD_CONFIGS.STRING_TAG,
+            },
+            {
+              key: SPAN_KEYS.TOOL_CALL_ID,
+              ...QUERY_FIELD_CONFIGS.STRING_TAG,
+            },
+            {
+              key: SPAN_KEYS.SUB_AGENT_ID,
+              ...QUERY_FIELD_CONFIGS.STRING_TAG,
+            },
+            {
+              key: SPAN_KEYS.SUB_AGENT_NAME,
+              ...QUERY_FIELD_CONFIGS.STRING_TAG,
+            },
+          ]
+        ),
+
+        compression: listQuery(
+          QUERY_EXPRESSIONS.COMPRESSION,
+          [
+            {
+              key: {
+                key: SPAN_KEYS.NAME,
+                ...QUERY_FIELD_CONFIGS.STRING_TAG_COLUMN,
+              },
+              op: OPERATORS.EQUALS,
+              value: SPAN_NAMES.COMPRESSOR_SAFE_COMPRESS,
+            },
+          ],
+          [
+            {
+              key: SPAN_KEYS.SPAN_ID,
+              ...QUERY_FIELD_CONFIGS.STRING_TAG_COLUMN,
+            },
+            {
+              key: SPAN_KEYS.TRACE_ID,
+              ...QUERY_FIELD_CONFIGS.STRING_TAG_COLUMN,
+            },
+            {
+              key: SPAN_KEYS.TIMESTAMP,
+              ...QUERY_FIELD_CONFIGS.INT64_TAG_COLUMN,
+            },
+            {
+              key: SPAN_KEYS.HAS_ERROR,
+              ...QUERY_FIELD_CONFIGS.BOOL_TAG_COLUMN,
+            },
+            {
+              key: SPAN_KEYS.SUB_AGENT_ID,
+              ...QUERY_FIELD_CONFIGS.STRING_TAG,
+            },
+            {
+              key: SPAN_KEYS.SUB_AGENT_NAME,
+              ...QUERY_FIELD_CONFIGS.STRING_TAG,
+            },
+            // Compression-specific attributes
+            {
+              key: 'compression.type',
+              ...QUERY_FIELD_CONFIGS.STRING_TAG,
+            },
+            {
+              key: 'compression.session_id',
+              ...QUERY_FIELD_CONFIGS.STRING_TAG,
+            },
+            {
+              key: 'compression.input_tokens',
+              ...QUERY_FIELD_CONFIGS.INT64_TAG,
+            },
+            {
+              key: 'compression.result.output_tokens',
+              ...QUERY_FIELD_CONFIGS.INT64_TAG,
+            },
+            {
+              key: 'compression.result.compression_ratio',
+              ...QUERY_FIELD_CONFIGS.FLOAT64_TAG,
+            },
+            {
+              key: 'compression.result.artifact_count',
+              ...QUERY_FIELD_CONFIGS.INT64_TAG,
+            },
+            {
+              key: 'compression.message_count',
+              ...QUERY_FIELD_CONFIGS.INT64_TAG,
+            },
+            {
+              key: 'compression.hard_limit',
+              ...QUERY_FIELD_CONFIGS.INT64_TAG,
+            },
+            {
+              key: 'compression.safety_buffer',
+              ...QUERY_FIELD_CONFIGS.INT64_TAG,
+            },
+            {
+              key: 'compression.success',
+              ...QUERY_FIELD_CONFIGS.BOOL_TAG,
+            },
+            {
+              key: 'compression.error',
+              ...QUERY_FIELD_CONFIGS.STRING_TAG,
+            },
+            {
+              key: 'compression.result.summary',
+              ...QUERY_FIELD_CONFIGS.STRING_TAG,
+            },
           ]
         ),
       },
@@ -849,23 +1098,35 @@ function buildConversationListPayload(
 
 // ---------- Main handler
 
+type RouteContext<_T> = {
+  params: Promise<Record<string, string>>;
+};
+
 export async function GET(
-  _req: NextRequest,
-  context: { params: Promise<{ conversationId: string }> }
+  req: NextRequest,
+  context: RouteContext<'/api/signoz/conversations/[conversationId]'>
 ) {
-  const params = await context.params;
-  const { conversationId } = params;
+  const { conversationId } = await context.params;
   if (!conversationId) {
     return NextResponse.json({ error: 'Conversation ID is required' }, { status: 400 });
   }
+
+  // Get tenantId and projectId from URL search params
+  const url = new URL(req.url);
+  const tenantId = url.searchParams.get('tenantId') || 'default';
+
+  // Forward cookies for authentication
+  const cookieHeader = req.headers.get('cookie');
 
   try {
     const start = START_2020_MS;
     const end = Date.now();
 
-    // one combined LIST request for everything
+    // Build the query payload
     const payload = buildConversationListPayload(conversationId, start, end);
-    const resp = await signozQuery(payload);
+
+    // Call secure manage-api
+    const resp = await signozQuery(payload, tenantId, cookieHeader);
 
     const toolCallSpans = parseList(resp, QUERY_EXPRESSIONS.TOOL_CALLS);
     const contextResolutionSpans = parseList(resp, QUERY_EXPRESSIONS.CONTEXT_RESOLUTION);
@@ -876,38 +1137,13 @@ export async function GET(
     const aiAssistantSpans = parseList(resp, QUERY_EXPRESSIONS.AI_ASSISTANT_MESSAGES);
     const aiGenerationSpans = parseList(resp, QUERY_EXPRESSIONS.AI_GENERATIONS);
     const aiStreamingSpans = parseList(resp, QUERY_EXPRESSIONS.AI_STREAMING_TEXT);
-    const aiStreamingObjectSpans = parseList(resp, QUERY_EXPRESSIONS.AI_STREAMING_OBJECT);
     const contextFetcherSpans = parseList(resp, QUERY_EXPRESSIONS.CONTEXT_FETCHERS);
     const durationSpans = parseList(resp, QUERY_EXPRESSIONS.DURATION_SPANS);
     const artifactProcessingSpans = parseList(resp, QUERY_EXPRESSIONS.ARTIFACT_PROCESSING);
-
-    // Categorize spans with errors into critical errors vs warnings
-    const CRITICAL_ERROR_SPAN_NAMES = [
-      'execution_handler.execute',
-      'agent.load_tools',
-      'context.handle_context_resolution',
-      'context.resolve',
-      'agent.generate',
-      'context-resolver.resolve_single_fetch_definition',
-      'agent_session.generate_structured_update',
-      'agent_session.process_artifact',
-      'agent_session.generate_artifact_metadata',
-      'response.format_object_response',
-      'response.format_response',
-      'ai.toolCall',
-    ];
-
-    let errorCount = 0;
-    let warningCount = 0;
-
-    for (const span of spansWithErrorsList) {
-      const spanName = getString(span, SPAN_KEYS.NAME, '');
-      if (CRITICAL_ERROR_SPAN_NAMES.includes(spanName)) {
-        errorCount++;
-      } else {
-        warningCount++;
-      }
-    }
+    const toolApprovalRequestedSpans = parseList(resp, QUERY_EXPRESSIONS.TOOL_APPROVAL_REQUESTED);
+    const toolApprovalApprovedSpans = parseList(resp, QUERY_EXPRESSIONS.TOOL_APPROVAL_APPROVED);
+    const toolApprovalDeniedSpans = parseList(resp, QUERY_EXPRESSIONS.TOOL_APPROVAL_DENIED);
+    const compressionSpans = parseList(resp, QUERY_EXPRESSIONS.COMPRESSION);
 
     let agentId: string | null = null;
     let agentName: string | null = null;
@@ -916,6 +1152,44 @@ export async function GET(
       agentName = getString(s, SPAN_KEYS.AGENT_NAME, '') || null;
       if (agentId || agentName) break;
     }
+
+    let allSpanAttributes: Array<{
+      spanId: string;
+      traceId: string;
+      timestamp: string;
+      data: Record<string, any>;
+    }> = [];
+    try {
+      // Call secure manage-api via the SQL helper function
+      allSpanAttributes = await fetchAllSpanAttributes_SQL(conversationId, tenantId, cookieHeader);
+    } catch (e) {
+      const logger = getLogger('span-attributes');
+      logger.error({ error: e }, 'allSpanAttributes SQL fetch skipped/failed');
+    }
+
+    const spanIdToParentSpanId = new Map<string, string | null>();
+    for (const spanAttr of allSpanAttributes) {
+      const parentSpanId = spanAttr.data[SPAN_KEYS.PARENT_SPAN_ID] || null;
+      spanIdToParentSpanId.set(spanAttr.spanId, parentSpanId);
+    }
+
+    // Build map from spanId to context breakdown (from agent.generate spans)
+    // Uses V1_BREAKDOWN_SCHEMA to dynamically parse breakdown from span attributes
+    type ContextBreakdownData = {
+      components: Record<string, number>;
+      total: number;
+    };
+    const spanIdToContextBreakdown = new Map<string, ContextBreakdownData>();
+    for (const spanAttr of allSpanAttributes) {
+      const data = spanAttr.data;
+      if (data[CONTEXT_BREAKDOWN_TOTAL_SPAN_ATTRIBUTE] !== undefined) {
+        spanIdToContextBreakdown.set(
+          spanAttr.spanId,
+          parseContextBreakdownFromSpan(data, V1_BREAKDOWN_SCHEMA)
+        );
+      }
+    }
+
     // activities
     type Activity = {
       id: string;
@@ -928,15 +1202,21 @@ export async function GET(
         | 'user_message'
         | 'ai_assistant_message'
         | 'ai_model_streamed_text'
-        | 'ai_model_streamed_object'
-        | 'artifact_processing';
-      name: string;
+        | 'artifact_processing'
+        | 'tool_approval_requested'
+        | 'tool_approval_approved'
+        | 'tool_approval_denied'
+        | 'compression';
       description: string;
       timestamp: string;
-      status: 'success' | 'error' | 'pending';
+      parentSpanId?: string | null;
+      status: (typeof ACTIVITY_STATUS)[keyof typeof ACTIVITY_STATUS];
       subAgentId?: string;
       subAgentName?: string;
       result?: string;
+      // tool approval attributes
+      approvalToolName?: string;
+      approvalToolCallId?: string;
       // ai
       aiModel?: string;
       inputTokens?: number;
@@ -958,6 +1238,8 @@ export async function GET(
       toolName?: string;
       toolType?: string;
       toolPurpose?: string;
+      mcpServerId?: string;
+      mcpServerName?: string;
       toolCallArgs?: string;
       toolCallResult?: string;
       toolStatusMessage?: string;
@@ -971,10 +1253,12 @@ export async function GET(
       aiStreamTextContent?: string;
       aiStreamTextModel?: string;
       aiStreamTextOperationId?: string;
-      // streaming object
-      aiStreamObjectContent?: string;
-      aiStreamObjectModel?: string;
-      aiStreamObjectOperationId?: string;
+      aiTelemetryPhase?: string;
+      // context breakdown (for AI streaming spans)
+      contextBreakdown?: {
+        components: Record<string, number>;
+        total: number;
+      };
       // ai generation specifics
       aiResponseToolCalls?: string;
       aiPromptMessages?: string;
@@ -989,6 +1273,17 @@ export async function GET(
       hasError?: boolean;
       otelStatusCode?: string;
       otelStatusDescription?: string;
+      // compression specifics
+      compressionType?: string;
+      compressionInputTokens?: number;
+      compressionOutputTokens?: number;
+      compressionRatio?: number;
+      compressionArtifactCount?: number;
+      compressionMessageCount?: number;
+      compressionHardLimit?: number;
+      compressionSafetyBuffer?: number;
+      compressionError?: string;
+      compressionSummary?: string;
     };
 
     const activities: Activity[] = [];
@@ -1006,6 +1301,8 @@ export async function GET(
       const durMs = getNumber(span, SPAN_KEYS.DURATION_NANO) / 1e6;
       const toolType = getString(span, SPAN_KEYS.AI_TOOL_TYPE, '');
       const toolPurpose = getString(span, SPAN_KEYS.TOOL_PURPOSE, '');
+      const mcpServerId = getString(span, SPAN_KEYS.AI_TOOL_CALL_MCP_SERVER_ID, '');
+      const mcpServerName = getString(span, SPAN_KEYS.AI_TOOL_CALL_MCP_SERVER_NAME, '');
       const aiTelemetryFunctionId = getString(span, SPAN_KEYS.AI_TELEMETRY_FUNCTION_ID, '');
       const delegationFromSubAgentId = getString(span, SPAN_KEYS.DELEGATION_FROM_SUB_AGENT_ID, '');
       const delegationToSubAgentId = getString(span, SPAN_KEYS.DELEGATION_TO_SUB_AGENT_ID, '');
@@ -1021,18 +1318,22 @@ export async function GET(
           getString(span, SPAN_KEYS.OTEL_STATUS_DESCRIPTION, '')
         : '';
 
+      const toolCall = getString(span, SPAN_KEYS.SPAN_ID, '');
       activities.push({
-        id: getString(span, SPAN_KEYS.SPAN_ID, ''),
+        id: toolCall,
         type: ACTIVITY_TYPES.TOOL_CALL,
-        name,
         toolName: name,
         description: hasError && statusMessage ? `Tool ${name} failed` : `Called ${name}`,
         timestamp: span.timestamp,
+        parentSpanId: spanIdToParentSpanId.get(toolCall) || undefined,
         status: hasError ? ACTIVITY_STATUS.ERROR : ACTIVITY_STATUS.SUCCESS,
-        subAgentName: getString(span, SPAN_KEYS.AI_SUB_AGENT_NAME, ACTIVITY_NAMES.UNKNOWN_AGENT),
+        subAgentName: getString(span, SPAN_KEYS.SUB_AGENT_NAME, ACTIVITY_NAMES.UNKNOWN_AGENT),
+        subAgentId: getString(span, SPAN_KEYS.SUB_AGENT_ID, ACTIVITY_NAMES.UNKNOWN_AGENT),
         result: hasError ? `Tool call failed (${durMs.toFixed(2)}ms)` : `${durMs.toFixed(2)}ms`,
         toolType: toolType || undefined,
         toolPurpose: toolPurpose || undefined,
+        mcpServerId: mcpServerId || undefined,
+        mcpServerName: mcpServerName || undefined,
         aiTelemetryFunctionId: aiTelemetryFunctionId || undefined,
         delegationFromSubAgentId: delegationFromSubAgentId || undefined,
         delegationToSubAgentId: delegationToSubAgentId || undefined,
@@ -1059,12 +1360,13 @@ export async function GET(
         else if (Array.isArray(rawKeys)) keys = rawKeys as string[];
       } catch {}
 
+      const contextResolution = getString(span, SPAN_KEYS.SPAN_ID, '');
       activities.push({
-        id: getString(span, SPAN_KEYS.SPAN_ID, ''),
+        id: contextResolution,
         type: ACTIVITY_TYPES.CONTEXT_RESOLUTION,
-        name: ACTIVITY_NAMES.CONTEXT_FETCH,
         description: `Context fetch ${hasError ? 'failed' : 'completed'}`,
         timestamp: span.timestamp,
+        parentSpanId: spanIdToParentSpanId.get(contextResolution) || undefined,
         status: hasError ? ACTIVITY_STATUS.ERROR : ACTIVITY_STATUS.SUCCESS,
         contextStatusDescription: statusMessage || undefined,
         contextUrl: getString(span, SPAN_KEYS.CONTEXT_URL, '') || undefined,
@@ -1089,12 +1391,13 @@ export async function GET(
         else if (Array.isArray(rawKeys)) keys = rawKeys as string[];
       } catch {}
 
+      const contextHandle = getString(span, SPAN_KEYS.SPAN_ID, '');
       activities.push({
-        id: getString(span, SPAN_KEYS.SPAN_ID, ''),
+        id: contextHandle,
         type: ACTIVITY_TYPES.CONTEXT_RESOLUTION,
-        name: ACTIVITY_NAMES.CONTEXT_FETCH,
         description: `Context handle ${hasError ? 'failed' : 'completed'}`,
         timestamp: span.timestamp,
+        parentSpanId: spanIdToParentSpanId.get(contextHandle) || undefined,
         status: hasError ? ACTIVITY_STATUS.ERROR : ACTIVITY_STATUS.SUCCESS,
         contextStatusDescription: statusMessage || undefined,
         contextUrl: getString(span, SPAN_KEYS.CONTEXT_URL, '') || undefined,
@@ -1108,12 +1411,13 @@ export async function GET(
     for (const span of userMessageSpans) {
       const hasError = getField(span, SPAN_KEYS.HAS_ERROR) === true;
       const durMs = getNumber(span, SPAN_KEYS.DURATION_NANO) / 1e6;
+      const userMessageSpanId = getString(span, SPAN_KEYS.SPAN_ID, '');
       activities.push({
-        id: getString(span, SPAN_KEYS.SPAN_ID, ''),
+        id: userMessageSpanId,
         type: ACTIVITY_TYPES.USER_MESSAGE,
-        name: ACTIVITY_NAMES.USER_MESSAGE,
         description: 'User sent a message',
         timestamp: getString(span, SPAN_KEYS.MESSAGE_TIMESTAMP),
+        parentSpanId: spanIdToParentSpanId.get(userMessageSpanId) || undefined,
         status: hasError ? ACTIVITY_STATUS.ERROR : ACTIVITY_STATUS.SUCCESS,
         subAgentId: AGENT_IDS.USER,
         subAgentName: ACTIVITY_NAMES.USER,
@@ -1128,19 +1432,16 @@ export async function GET(
     for (const span of aiAssistantSpans) {
       const hasError = getField(span, SPAN_KEYS.HAS_ERROR) === true;
       const durMs = getNumber(span, SPAN_KEYS.DURATION_NANO) / 1e6;
+      const aiAssistantMessageSpanId = getString(span, SPAN_KEYS.SPAN_ID, '');
       activities.push({
-        id: getString(span, SPAN_KEYS.SPAN_ID, ''),
+        id: aiAssistantMessageSpanId,
         type: ACTIVITY_TYPES.AI_ASSISTANT_MESSAGE,
-        name: ACTIVITY_NAMES.AI_ASSISTANT_MESSAGE,
         description: 'AI Assistant responded',
         timestamp: getString(span, SPAN_KEYS.AI_RESPONSE_TIMESTAMP),
+        parentSpanId: spanIdToParentSpanId.get(aiAssistantMessageSpanId) || undefined,
         status: hasError ? ACTIVITY_STATUS.ERROR : ACTIVITY_STATUS.SUCCESS,
-        subAgentId: AGENT_IDS.AI_ASSISTANT,
-        subAgentName: getString(
-          span,
-          SPAN_KEYS.AI_SUB_AGENT_NAME_ALT,
-          ACTIVITY_NAMES.UNKNOWN_AGENT
-        ),
+        subAgentId: getString(span, SPAN_KEYS.SUB_AGENT_ID, ACTIVITY_NAMES.UNKNOWN_AGENT),
+        subAgentName: getString(span, SPAN_KEYS.SUB_AGENT_NAME, ACTIVITY_NAMES.UNKNOWN_AGENT),
         result: hasError
           ? 'AI response failed'
           : `AI response sent successfully (${durMs.toFixed(2)}ms)`,
@@ -1158,15 +1459,24 @@ export async function GET(
       const aiResponseToolCalls = getString(span, SPAN_KEYS.AI_RESPONSE_TOOL_CALLS, '');
       const aiPromptMessages = getString(span, SPAN_KEYS.AI_PROMPT_MESSAGES, '');
 
+      const aiGeneration = getString(span, SPAN_KEYS.SPAN_ID, '');
       activities.push({
-        id: getString(span, SPAN_KEYS.SPAN_ID, ''),
+        id: aiGeneration,
         type: ACTIVITY_TYPES.AI_GENERATION,
-        name: ACTIVITY_NAMES.AI_TEXT_GENERATION,
         description: 'AI model generating text response',
         timestamp: span.timestamp,
+        parentSpanId: spanIdToParentSpanId.get(aiGeneration) || undefined,
         status: hasError ? ACTIVITY_STATUS.ERROR : ACTIVITY_STATUS.SUCCESS,
-        subAgentId: getString(span, SPAN_KEYS.AGENT_ID, '') || undefined,
-        subAgentName: getString(span, SPAN_KEYS.AI_TELEMETRY_FUNCTION_ID, '') || undefined,
+        subAgentId: getString(
+          span,
+          SPAN_KEYS.AI_TELEMETRY_SUB_AGENT_ID,
+          ACTIVITY_NAMES.UNKNOWN_AGENT
+        ),
+        subAgentName: getString(
+          span,
+          SPAN_KEYS.AI_TELEMETRY_SUB_AGENT_NAME,
+          ACTIVITY_NAMES.UNKNOWN_AGENT
+        ),
         result: hasError
           ? 'AI generation failed'
           : `AI text generated successfully (${durMs.toFixed(2)}ms)`,
@@ -1187,12 +1497,13 @@ export async function GET(
       const otelStatusCode = getString(span, SPAN_KEYS.OTEL_STATUS_CODE, '');
       const otelStatusDescription = getString(span, SPAN_KEYS.OTEL_STATUS_DESCRIPTION, '');
 
+      const agentGeneration = getString(span, SPAN_KEYS.SPAN_ID, '');
       activities.push({
-        id: getString(span, SPAN_KEYS.SPAN_ID, ''),
+        id: agentGeneration,
         type: ACTIVITY_TYPES.AGENT_GENERATION,
-        name: 'agent.generate',
         description: hasError ? 'Agent generation failed' : 'Agent generation',
         timestamp: span.timestamp,
+        parentSpanId: spanIdToParentSpanId.get(agentGeneration) || undefined,
         status: hasError ? ACTIVITY_STATUS.ERROR : ACTIVITY_STATUS.SUCCESS,
         result: hasError
           ? statusMessage || 'Agent generation failed'
@@ -1200,7 +1511,9 @@ export async function GET(
         hasError,
         otelStatusCode: hasError ? otelStatusCode : undefined,
         otelStatusDescription: hasError ? otelStatusDescription || statusMessage : undefined,
-        subAgentId: getString(span, SPAN_KEYS.SUB_AGENT_ID, '') || undefined,
+        subAgentId: getString(span, SPAN_KEYS.SUB_AGENT_ID, ACTIVITY_NAMES.UNKNOWN_AGENT),
+        subAgentName: getString(span, SPAN_KEYS.SUB_AGENT_NAME, ACTIVITY_NAMES.UNKNOWN_AGENT),
+        contextBreakdown: spanIdToContextBreakdown.get(agentGeneration),
       });
     }
 
@@ -1208,15 +1521,25 @@ export async function GET(
     for (const span of aiStreamingSpans) {
       const hasError = getField(span, SPAN_KEYS.HAS_ERROR) === true;
       const durMs = getNumber(span, SPAN_KEYS.DURATION_NANO) / 1e6;
+      const aiStreamingText = getString(span, SPAN_KEYS.SPAN_ID, '');
+      const statusMessage = hasError ? getString(span, SPAN_KEYS.STATUS_MESSAGE, '') : '';
       activities.push({
-        id: getString(span, SPAN_KEYS.SPAN_ID, ''),
+        id: aiStreamingText,
         type: ACTIVITY_TYPES.AI_MODEL_STREAMED_TEXT,
-        name: ACTIVITY_NAMES.AI_STREAMING_TEXT,
         description: 'AI model streaming text response',
         timestamp: span.timestamp,
+        parentSpanId: spanIdToParentSpanId.get(aiStreamingText) || undefined,
         status: hasError ? ACTIVITY_STATUS.ERROR : ACTIVITY_STATUS.SUCCESS,
-        subAgentId: getString(span, SPAN_KEYS.SUB_AGENT_ID, '') || undefined,
-        subAgentName: getString(span, SPAN_KEYS.SUB_AGENT_NAME, ACTIVITY_NAMES.UNKNOWN_AGENT),
+        subAgentId: getString(
+          span,
+          SPAN_KEYS.AI_TELEMETRY_SUB_AGENT_ID,
+          ACTIVITY_NAMES.UNKNOWN_AGENT
+        ),
+        subAgentName: getString(
+          span,
+          SPAN_KEYS.AI_TELEMETRY_SUB_AGENT_NAME,
+          ACTIVITY_NAMES.UNKNOWN_AGENT
+        ),
         result: hasError
           ? 'AI streaming failed'
           : `AI text streamed successfully (${durMs.toFixed(2)}ms)`,
@@ -1226,49 +1549,29 @@ export async function GET(
         inputTokens: getNumber(span, SPAN_KEYS.GEN_AI_USAGE_INPUT_TOKENS, 0),
         outputTokens: getNumber(span, SPAN_KEYS.GEN_AI_USAGE_OUTPUT_TOKENS, 0),
         aiTelemetryFunctionId: getString(span, SPAN_KEYS.AI_TELEMETRY_FUNCTION_ID, '') || undefined,
-      });
-    }
-
-    // ai streaming object
-    for (const span of aiStreamingObjectSpans) {
-      const hasError = getField(span, SPAN_KEYS.HAS_ERROR) === true;
-      const durMs = getNumber(span, SPAN_KEYS.DURATION_NANO) / 1e6;
-      activities.push({
-        id: getString(span, SPAN_KEYS.SPAN_ID, ''),
-        type: ACTIVITY_TYPES.AI_MODEL_STREAMED_OBJECT,
-        name: ACTIVITY_NAMES.AI_STREAMING_OBJECT,
-        description: 'AI model streaming object response',
-        timestamp: span.timestamp,
-        status: hasError ? ACTIVITY_STATUS.ERROR : ACTIVITY_STATUS.SUCCESS,
-        subAgentId: getString(span, SPAN_KEYS.SUB_AGENT_ID, '') || undefined,
-        subAgentName: getString(span, SPAN_KEYS.SUB_AGENT_NAME, ACTIVITY_NAMES.UNKNOWN_AGENT),
-        result: hasError
-          ? 'AI streaming object failed'
-          : `AI object streamed successfully (${durMs.toFixed(2)}ms)`,
-        aiStreamObjectContent: getString(span, SPAN_KEYS.AI_RESPONSE_OBJECT, ''),
-        aiStreamObjectModel: getString(span, SPAN_KEYS.AI_MODEL_ID, 'Unknown Model'),
-        aiStreamObjectOperationId: getString(span, SPAN_KEYS.AI_OPERATION_ID, '') || undefined,
-        inputTokens: getNumber(span, SPAN_KEYS.GEN_AI_USAGE_INPUT_TOKENS, 0),
-        outputTokens: getNumber(span, SPAN_KEYS.GEN_AI_USAGE_OUTPUT_TOKENS, 0),
-        aiTelemetryFunctionId: getString(span, SPAN_KEYS.AI_TELEMETRY_FUNCTION_ID, '') || undefined,
+        aiTelemetryPhase: getString(span, SPAN_KEYS.AI_TELEMETRY_METADATA_PHASE, '') || undefined,
+        otelStatusDescription: statusMessage || undefined,
       });
     }
 
     // context fetchers
     for (const span of contextFetcherSpans) {
       const hasError = getField(span, SPAN_KEYS.HAS_ERROR) === true;
+      const contextFetcher = getString(span, SPAN_KEYS.SPAN_ID, '');
+      const statusMessage = hasError ? getString(span, SPAN_KEYS.STATUS_MESSAGE, '') : '';
       activities.push({
-        id: getString(span, SPAN_KEYS.SPAN_ID, ''),
+        id: contextFetcher,
         type: ACTIVITY_TYPES.CONTEXT_FETCH,
-        name: ACTIVITY_NAMES.CONTEXT_FETCH,
         description: '',
         timestamp: span.timestamp,
+        parentSpanId: spanIdToParentSpanId.get(contextFetcher) || undefined,
         status: hasError ? ACTIVITY_STATUS.ERROR : ACTIVITY_STATUS.SUCCESS,
         subAgentId: UNKNOWN_VALUE,
         subAgentName: 'Context Fetcher',
         result: hasError
           ? 'Context fetch failed'
           : getString(span, SPAN_KEYS.HTTP_URL, 'Unknown URL'),
+        otelStatusDescription: statusMessage || undefined,
       });
     }
 
@@ -1278,25 +1581,146 @@ export async function GET(
       const artifactName = getString(span, SPAN_KEYS.ARTIFACT_NAME, '');
       const artifactType = getString(span, SPAN_KEYS.ARTIFACT_TYPE, '');
       const artifactDescription = getString(span, SPAN_KEYS.ARTIFACT_DESCRIPTION, '');
+      const statusMessage = hasError ? getString(span, SPAN_KEYS.STATUS_MESSAGE, '') : '';
 
+      const artifactProcessing = getString(span, SPAN_KEYS.SPAN_ID, '');
       activities.push({
-        id: getString(span, SPAN_KEYS.SPAN_ID, ''),
+        id: artifactProcessing,
         type: 'artifact_processing',
-        name: 'Artifact Processing',
         description: 'Artifact processed',
         timestamp: span.timestamp,
+        parentSpanId: spanIdToParentSpanId.get(artifactProcessing) || undefined,
         status: hasError ? ACTIVITY_STATUS.ERROR : ACTIVITY_STATUS.SUCCESS,
-        subAgentName: getString(span, SPAN_KEYS.ARTIFACT_SUB_AGENT_ID, '') || 'Unknown Agent',
-        result: hasError
-          ? 'Artifact processing failed'
-          : 'Artifact processed successfully',
+        subAgentId: getString(span, SPAN_KEYS.SUB_AGENT_ID, ACTIVITY_NAMES.UNKNOWN_AGENT),
+        subAgentName: getString(span, SPAN_KEYS.SUB_AGENT_NAME, ACTIVITY_NAMES.UNKNOWN_AGENT),
+        result: hasError ? 'Artifact processing failed' : 'Artifact processed successfully',
         artifactId: getString(span, SPAN_KEYS.ARTIFACT_ID, '') || undefined,
         artifactType: artifactType || undefined,
         artifactName: artifactName || undefined,
         artifactDescription: artifactDescription || undefined,
         artifactData: getString(span, SPAN_KEYS.ARTIFACT_DATA, '') || undefined,
-        artifactSubAgentId: getString(span, SPAN_KEYS.ARTIFACT_SUB_AGENT_ID, '') || undefined,
         artifactToolCallId: getString(span, SPAN_KEYS.ARTIFACT_TOOL_CALL_ID, '') || undefined,
+        otelStatusDescription: statusMessage || undefined,
+      });
+    }
+
+    // tool approval requested
+    for (const span of toolApprovalRequestedSpans) {
+      const hasError = getField(span, SPAN_KEYS.HAS_ERROR) === true;
+      const toolName = getString(span, SPAN_KEYS.TOOL_NAME, '');
+      const toolCallId = getString(span, SPAN_KEYS.TOOL_CALL_ID, '');
+
+      const approvalRequested = getString(span, SPAN_KEYS.SPAN_ID, '');
+      activities.push({
+        id: approvalRequested,
+        type: ACTIVITY_TYPES.TOOL_APPROVAL_REQUESTED,
+        description: `Approval requested for ${toolName}`,
+        timestamp: span.timestamp,
+        parentSpanId: spanIdToParentSpanId.get(approvalRequested) || undefined,
+        status: hasError ? ACTIVITY_STATUS.ERROR : ACTIVITY_STATUS.PENDING,
+        subAgentId: getString(span, SPAN_KEYS.SUB_AGENT_ID, ACTIVITY_NAMES.UNKNOWN_AGENT),
+        subAgentName: getString(span, SPAN_KEYS.SUB_AGENT_NAME, ACTIVITY_NAMES.UNKNOWN_AGENT),
+        result: `Waiting for user approval`,
+        approvalToolName: toolName || undefined,
+        approvalToolCallId: toolCallId || undefined,
+      });
+    }
+
+    // tool approval approved
+    for (const span of toolApprovalApprovedSpans) {
+      const hasError = getField(span, SPAN_KEYS.HAS_ERROR) === true;
+      const toolName = getString(span, SPAN_KEYS.TOOL_NAME, '');
+      const toolCallId = getString(span, SPAN_KEYS.TOOL_CALL_ID, '');
+
+      const approvalApproved = getString(span, SPAN_KEYS.SPAN_ID, '');
+      activities.push({
+        id: approvalApproved,
+        type: ACTIVITY_TYPES.TOOL_APPROVAL_APPROVED,
+        description: `${toolName} approved by user`,
+        timestamp: span.timestamp,
+        parentSpanId: spanIdToParentSpanId.get(approvalApproved) || undefined,
+        status: hasError ? ACTIVITY_STATUS.ERROR : ACTIVITY_STATUS.SUCCESS,
+        subAgentId: getString(span, SPAN_KEYS.SUB_AGENT_ID, ACTIVITY_NAMES.UNKNOWN_AGENT),
+        subAgentName: getString(span, SPAN_KEYS.SUB_AGENT_NAME, ACTIVITY_NAMES.UNKNOWN_AGENT),
+        result: `Tool approved by user`,
+        approvalToolName: toolName || undefined,
+        approvalToolCallId: toolCallId || undefined,
+      });
+    }
+
+    // tool approval denied
+    for (const span of toolApprovalDeniedSpans) {
+      const hasError = getField(span, SPAN_KEYS.HAS_ERROR) === true;
+      const toolName = getString(span, SPAN_KEYS.TOOL_NAME, '');
+      const toolCallId = getString(span, SPAN_KEYS.TOOL_CALL_ID, '');
+
+      const approvalDenied = getString(span, SPAN_KEYS.SPAN_ID, '');
+      activities.push({
+        id: approvalDenied,
+        type: ACTIVITY_TYPES.TOOL_APPROVAL_DENIED,
+        description: `${toolName} denied by user`,
+        timestamp: span.timestamp,
+        parentSpanId: spanIdToParentSpanId.get(approvalDenied) || undefined,
+        status: hasError ? ACTIVITY_STATUS.ERROR : ACTIVITY_STATUS.SUCCESS,
+        subAgentId: getString(span, SPAN_KEYS.SUB_AGENT_ID, ACTIVITY_NAMES.UNKNOWN_AGENT),
+        subAgentName: getString(span, SPAN_KEYS.SUB_AGENT_NAME, ACTIVITY_NAMES.UNKNOWN_AGENT),
+        result: `Tool denied by user`,
+        approvalToolName: toolName || undefined,
+        approvalToolCallId: toolCallId || undefined,
+      });
+    }
+
+    // compression spans
+    for (const span of compressionSpans) {
+      const hasError = getField(span, SPAN_KEYS.HAS_ERROR) === true;
+      const compressionSpanId = getString(span, SPAN_KEYS.SPAN_ID, '');
+
+      // Extract compression-specific attributes
+      const compressionType = getString(span, 'compression.type', '');
+      const inputTokens = getNumber(span, 'compression.input_tokens', 0);
+      const outputTokens = getNumber(span, 'compression.result.output_tokens', 0);
+      const compressionRatio = getNumber(span, 'compression.result.compression_ratio', 0);
+      const artifactCount = getNumber(span, 'compression.result.artifact_count', 0);
+      const messageCount = getNumber(span, 'compression.message_count', 0);
+      const hardLimit = getNumber(span, 'compression.hard_limit', 0);
+      const safetyBuffer = getNumber(span, 'compression.safety_buffer', 0);
+      const compressionError = getString(span, 'compression.error', '');
+      const compressionSummary = getString(span, 'compression.result.summary', '');
+
+      const description =
+        compressionType === 'mid_generation'
+          ? 'Context compacting'
+          : compressionType === 'conversation_level'
+            ? 'Conversation history compacting'
+            : compressionType || 'Unknown';
+
+      activities.push({
+        id: compressionSpanId,
+        type: ACTIVITY_TYPES.COMPRESSION,
+        description,
+        timestamp: span.timestamp,
+        parentSpanId: spanIdToParentSpanId.get(compressionSpanId) || undefined,
+        status: hasError ? ACTIVITY_STATUS.ERROR : ACTIVITY_STATUS.SUCCESS,
+        subAgentId: getString(
+          span,
+          'compression.session_id',
+          getString(span, SPAN_KEYS.SUB_AGENT_ID, ACTIVITY_NAMES.UNKNOWN_AGENT)
+        ),
+        subAgentName: getString(span, SPAN_KEYS.SUB_AGENT_NAME, ACTIVITY_NAMES.UNKNOWN_AGENT),
+        result:
+          compressionError ||
+          `Compressed ${messageCount} messages, ${inputTokens} → ${outputTokens} tokens`,
+        // Compression-specific fields
+        compressionType,
+        compressionInputTokens: inputTokens,
+        compressionOutputTokens: outputTokens,
+        compressionRatio,
+        compressionArtifactCount: artifactCount,
+        compressionMessageCount: messageCount,
+        compressionHardLimit: hardLimit,
+        compressionSafetyBuffer: safetyBuffer,
+        compressionError: compressionError || undefined,
+        compressionSummary: compressionSummary || undefined,
       });
     }
 
@@ -1304,6 +1728,76 @@ export async function GET(
     const allSpanTimes = durationSpans.map((s) => new Date(s.timestamp).getTime());
     const operationStartTime = allSpanTimes.length > 0 ? Math.min(...allSpanTimes) : null;
     const operationEndTime = allSpanTimes.length > 0 ? Math.max(...allSpanTimes) : null;
+
+    // Resolve parentSpanId to nearest ancestor activity
+    const activityIds = new Set(activities.map((a) => a.id));
+    function findAncestorActivity(spanId: string): string | undefined {
+      if (!spanId) return undefined;
+      if (activityIds.has(spanId)) return spanId;
+      const parentSpanId = spanIdToParentSpanId.get(spanId);
+      if (!parentSpanId) return undefined;
+      return findAncestorActivity(parentSpanId);
+    }
+    for (const activity of activities) {
+      if (activity.parentSpanId) {
+        activity.parentSpanId = findAncestorActivity(activity.parentSpanId) || undefined;
+      }
+    }
+
+    // Adjust tool call status based on whether ALL or SOME failed within their agent generation
+    // Helper function to find the ancestor agent generation for an activity
+    function findAncestorAgentGeneration(activityId: string): string | null {
+      const activity = activities.find((a) => a.id === activityId);
+      if (!activity) return null;
+      if (activity.type === ACTIVITY_TYPES.AGENT_GENERATION) return activity.id;
+      if (!activity.parentSpanId) return null;
+      return findAncestorAgentGeneration(activity.parentSpanId);
+    }
+
+    // Group tool calls by their ancestor agent generation
+    const toolCallsByAgentGen = new Map<string, Activity[]>();
+    for (const activity of activities) {
+      if (activity.type === ACTIVITY_TYPES.TOOL_CALL) {
+        const ancestorAgentGen = findAncestorAgentGeneration(activity.id);
+        if (ancestorAgentGen) {
+          if (!toolCallsByAgentGen.has(ancestorAgentGen)) {
+            toolCallsByAgentGen.set(ancestorAgentGen, []);
+          }
+          toolCallsByAgentGen.get(ancestorAgentGen)?.push(activity);
+        }
+      }
+    }
+
+    // For each agent generation, check if ALL tool calls to the same MCP server failed
+    for (const [_agentGenId, toolCallsInGeneration] of toolCallsByAgentGen) {
+      if (toolCallsInGeneration.length === 0) continue;
+
+      // Group tool calls by MCP server name
+      const toolCallsByMcpServer = new Map<string, Activity[]>();
+      for (const toolCall of toolCallsInGeneration) {
+        // Skip tool calls without an MCP server name
+        if (!toolCall.mcpServerName) continue;
+
+        if (!toolCallsByMcpServer.has(toolCall.mcpServerName)) {
+          toolCallsByMcpServer.set(toolCall.mcpServerName, []);
+        }
+        toolCallsByMcpServer.get(toolCall.mcpServerName)?.push(toolCall);
+      }
+
+      // For each MCP server, check if ALL or SOME tool calls failed
+      for (const [_mcpServerName, toolCallsToServer] of toolCallsByMcpServer) {
+        const failedToolCalls = toolCallsToServer.filter((a) => a.status === ACTIVITY_STATUS.ERROR);
+        const successfulToolCalls = toolCallsToServer.filter(
+          (a) => a.status === ACTIVITY_STATUS.SUCCESS
+        );
+
+        if (failedToolCalls.length > 0 && successfulToolCalls.length > 0) {
+          for (const toolCall of failedToolCalls) {
+            toolCall.status = ACTIVITY_STATUS.WARNING;
+          }
+        }
+      }
+    }
 
     // Sort activities by pre-parsed timestamps
     activities.sort((a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime());
@@ -1316,8 +1810,7 @@ export async function GET(
         (a) =>
           a.type === ACTIVITY_TYPES.AI_ASSISTANT_MESSAGE ||
           a.type === ACTIVITY_TYPES.AI_GENERATION ||
-          a.type === ACTIVITY_TYPES.AI_MODEL_STREAMED_TEXT ||
-          a.type === ACTIVITY_TYPES.AI_MODEL_STREAMED_OBJECT
+          a.type === ACTIVITY_TYPES.AI_MODEL_STREAMED_TEXT
       );
     const conversationStartTime = firstUser
       ? new Date(firstUser.timestamp).getTime()
@@ -1330,63 +1823,36 @@ export async function GET(
         ? Math.max(0, conversationEndTime - conversationStartTime)
         : 0;
 
-    // Single pass token counting for better performance
-    let totalInputTokens = 0;
-    let totalOutputTokens = 0;
-    for (const activity of activities) {
-      if (
-        (activity.type === ACTIVITY_TYPES.AI_GENERATION ||
-          activity.type === ACTIVITY_TYPES.AI_MODEL_STREAMED_TEXT ||
-          activity.type === ACTIVITY_TYPES.AI_MODEL_STREAMED_OBJECT) &&
-        typeof activity.inputTokens === 'number'
-      ) {
-        totalInputTokens += activity.inputTokens;
-      }
-      if (
-        (activity.type === ACTIVITY_TYPES.AI_GENERATION ||
-          activity.type === ACTIVITY_TYPES.AI_MODEL_STREAMED_TEXT ||
-          activity.type === ACTIVITY_TYPES.AI_MODEL_STREAMED_OBJECT) &&
-        typeof activity.outputTokens === 'number'
-      ) {
-        totalOutputTokens += activity.outputTokens;
-      }
-    }
+    const TOKEN_ACTIVITY_TYPES: Set<string> = new Set([
+      ACTIVITY_TYPES.AI_GENERATION,
+      ACTIVITY_TYPES.AI_MODEL_STREAMED_TEXT,
+    ]);
+    const { totalInputTokens, totalOutputTokens } = activities.reduce(
+      (acc, a) => {
+        if (TOKEN_ACTIVITY_TYPES.has(a.type)) {
+          if (typeof a.inputTokens === 'number') acc.totalInputTokens += a.inputTokens;
+          if (typeof a.outputTokens === 'number') acc.totalOutputTokens += a.outputTokens;
+        }
+        return acc;
+      },
+      { totalInputTokens: 0, totalOutputTokens: 0 }
+    );
 
     const openAICallsCount = aiGenerationSpans.length;
 
-    let allSpanAttributes: Array<{
-      spanId: string;
-      traceId: string;
-      timestamp: string;
-      data: Record<string, any>;
-    }> = [];
-    try {
-      allSpanAttributes = await fetchAllSpanAttributes_SQL(
-        conversationId,
-        SIGNOZ_URL,
-        SIGNOZ_API_KEY
-      );
-    } catch (e) {
-      const logger = getLogger('span-attributes');
-      logger.error({ error: e }, 'allSpanAttributes SQL fetch skipped/failed');
-    }
+    // Recalculate error and warning counts based on actual activity statuses
+    const finalErrorCount = activities.filter((a) => a.status === ACTIVITY_STATUS.ERROR).length;
+    const finalWarningCount = activities.filter((a) => a.status === ACTIVITY_STATUS.WARNING).length;
 
     const conversation = {
       conversationId,
       startTime: conversationStartTime ? conversationStartTime : null,
       endTime: conversationEndTime ? conversationEndTime : null,
       duration: conversationDurationMs,
-      totalMessages: (() => {
-        let count = 0;
-        for (const a of activities) {
-          if (
-            a.type === ACTIVITY_TYPES.USER_MESSAGE ||
-            a.type === ACTIVITY_TYPES.AI_ASSISTANT_MESSAGE
-          )
-            count++;
-        }
-        return count;
-      })(),
+      totalMessages: activities.filter(
+        (a) =>
+          a.type === ACTIVITY_TYPES.USER_MESSAGE || a.type === ACTIVITY_TYPES.AI_ASSISTANT_MESSAGE
+      ).length,
       totalToolCalls: activities.filter((a) => a.type === ACTIVITY_TYPES.TOOL_CALL).length,
       totalErrors: 0,
       totalOpenAICalls: openAICallsCount,
@@ -1405,8 +1871,8 @@ export async function GET(
       agentName,
       allSpanAttributes,
       spansWithErrorsCount: spansWithErrorsList.length,
-      errorCount,
-      warningCount,
+      errorCount: finalErrorCount,
+      warningCount: finalWarningCount,
     });
   } catch (error) {
     const logger = getLogger('conversation-details');

@@ -10,7 +10,12 @@ const logger = pino({
   serializers: {
     obj: (value) => ({ ...value }),
   },
-  redact: ['req.headers.authorization', 'req.headers["x-inkeep-admin-authentication"]'],
+  redact: [
+    'req.headers.authorization',
+    'req.headers["x-inkeep-admin-authentication"]',
+    'req.headers.cookie',
+    'req.headers["x-forwarded-cookie"]',
+  ],
   // Only use pretty transport in development
   ...(NODE_ENV === 'development' && {
     transport: {
@@ -35,10 +40,3 @@ export function getLogger(name?: string) {
   }
   return logger.child({ reqId, name });
 }
-
-export function withRequestContext<T>(reqId: string, fn: () => T): T {
-  return asyncLocalStorage.run(new Map([['requestId', reqId]]), fn);
-}
-
-// Export the base logger for direct use if needed
-export { logger };

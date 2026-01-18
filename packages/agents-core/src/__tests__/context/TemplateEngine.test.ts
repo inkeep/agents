@@ -77,41 +77,6 @@ describe('TemplateEngine', () => {
       }
     });
 
-    test('should render $now as ISO string', () => {
-      const template = 'Generated at {{$now}}';
-      const result = TemplateEngine.render(template, sampleContext);
-
-      // Should be a valid ISO date string
-      const dateMatch = result.match(/Generated at (\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z)/);
-      expect(dateMatch).toBeTruthy();
-      expect(new Date(dateMatch?.[1] || '').toString()).not.toBe('Invalid Date');
-    });
-
-    test('should render $timestamp as number string', () => {
-      const template = 'Timestamp: {{$timestamp}}';
-      const result = TemplateEngine.render(template, sampleContext);
-
-      const timestampMatch = result.match(/Timestamp: (\d+)/);
-      expect(timestampMatch).toBeTruthy();
-      expect(Number(timestampMatch?.[1])).toBeGreaterThan(0);
-    });
-
-    test('should render $date as date string', () => {
-      const template = 'Date: {{$date}}';
-      const result = TemplateEngine.render(template, sampleContext);
-
-      // Should contain day of week and month
-      expect(result).toMatch(/Date: \w{3} \w{3} \d{2} \d{4}/);
-    });
-
-    test('should render $time as time string', () => {
-      const template = 'Time: {{$time}}';
-      const result = TemplateEngine.render(template, sampleContext);
-
-      // Should contain time format
-      expect(result).toMatch(/Time: \d{2}:\d{2}:\d{2}/);
-    });
-
     test('should render environment variables', () => {
       const template = 'Test var: {{$env.TEST_VAR}}';
       const result = TemplateEngine.render(template, sampleContext);
@@ -239,10 +204,10 @@ describe('TemplateEngine', () => {
 
   describe('Variable Extraction', () => {
     test('should extract all variables from template', () => {
-      const template = 'Hello {{user.name}} from {{organization.name}} at {{$now}}!';
+      const template = 'Hello {{user.name}} from {{organization.name}}!';
       const preview = TemplateEngine.preview(template, sampleContext);
 
-      expect(preview.variables).toEqual(['user.name', 'organization.name', '$now']);
+      expect(preview.variables).toEqual(['user.name', 'organization.name']);
     });
 
     test('should remove duplicate variables', () => {
@@ -285,6 +250,141 @@ describe('TemplateEngine', () => {
       expect(preview.rendered).toBe(template); // Returns original on error
       expect(preview.errors.length).toBeGreaterThan(0);
       expect(preview.errors[0]).toContain('not found in context');
+    });
+  });
+
+  describe('Property Names with Dashes', () => {
+    test('should auto-normalize single property with dashes', () => {
+      const context = {
+        headers: {
+          'x-tenant-id': 'tenant-123',
+        },
+      };
+
+      const template = 'Tenant: {{headers.x-tenant-id}}';
+      const result = TemplateEngine.render(template, context);
+      expect(result).toBe('Tenant: tenant-123');
+    });
+
+    test('should auto-normalize multiple properties with dashes', () => {
+      const context = {
+        headers: {
+          'x-tenant-id': 'tenant-123',
+          'x-api-key': 'key-456',
+          'content-type': 'application/json',
+        },
+      };
+
+      const template =
+        'Tenant: {{headers.x-tenant-id}}, API Key: {{headers.x-api-key}}, Content: {{headers.content-type}}';
+      const result = TemplateEngine.render(template, context);
+      expect(result).toBe('Tenant: tenant-123, API Key: key-456, Content: application/json');
+    });
+
+    test('should auto-normalize nested properties with dashes', () => {
+      const context = {
+        config: {
+          'api-settings': {
+            'rate-limit': 100,
+            'timeout-ms': 5000,
+          },
+        },
+      };
+
+      const template =
+        'Rate limit: {{config.api-settings.rate-limit}}, Timeout: {{config.api-settings.timeout-ms}}';
+      const result = TemplateEngine.render(template, context);
+      expect(result).toBe('Rate limit: 100, Timeout: 5000');
+    });
+
+    test('should handle mix of dashed and non-dashed properties', () => {
+      const context = {
+        user: {
+          name: 'John',
+          'user-id': 'user-123',
+          profile: {
+            'account-type': 'premium',
+            email: 'john@example.com',
+          },
+        },
+      };
+
+      const template =
+        '{{user.name}}, {{user.user-id}}, {{user.profile.account-type}}, {{user.profile.email}}';
+      const result = TemplateEngine.render(template, context);
+      expect(result).toBe('John, user-123, premium, john@example.com');
+    });
+
+    test('should not double-quote already quoted properties', () => {
+      const context = {
+        headers: {
+          'x-tenant-id': 'tenant-123',
+        },
+      };
+
+      const template = 'Tenant: {{headers."x-tenant-id"}}';
+      const result = TemplateEngine.render(template, context);
+      expect(result).toBe('Tenant: tenant-123');
+    });
+
+    test('should handle properties with multiple dashes', () => {
+      const context = {
+        headers: {
+          'x-custom-header-with-many-dashes': 'value',
+        },
+      };
+
+      const template = 'Custom: {{headers.x-custom-header-with-many-dashes}}';
+      const result = TemplateEngine.render(template, context);
+      expect(result).toBe('Custom: value');
+    });
+
+    test('should work with JMESPath array access on dashed properties', () => {
+      const context = {
+        'api-responses': [
+          { 'response-code': 200, 'response-body': 'OK' },
+          { 'response-code': 404, 'response-body': 'Not Found' },
+        ],
+      };
+
+      const template = 'First: {{api-responses[0].response-code}}';
+      const result = TemplateEngine.render(template, context);
+      expect(result).toBe('First: 200');
+    });
+
+    test('should work with strict mode on dashed properties', () => {
+      const context = {
+        headers: {
+          'x-tenant-id': 'tenant-123',
+        },
+      };
+
+      const template = 'Tenant: {{headers.x-tenant-id}}';
+      const result = TemplateEngine.render(template, context, { strict: true });
+      expect(result).toBe('Tenant: tenant-123');
+    });
+
+    test('should throw error in strict mode for missing dashed property', () => {
+      const context = {
+        headers: {},
+      };
+
+      const template = 'Tenant: {{headers.x-tenant-id}}';
+      expect(() => {
+        TemplateEngine.render(template, context, { strict: true });
+      }).toThrow("Template variable 'headers.x-tenant-id' not found in context");
+    });
+
+    test('should handle preserveUnresolved with dashed properties', () => {
+      const context = {
+        headers: {},
+      };
+
+      const template = 'Tenant: {{headers.x-tenant-id}}';
+      const result = TemplateEngine.render(template, context, {
+        preserveUnresolved: true,
+      });
+      expect(result).toBe('Tenant: {{headers.x-tenant-id}}');
     });
   });
 

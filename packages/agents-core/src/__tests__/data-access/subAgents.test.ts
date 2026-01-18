@@ -7,18 +7,19 @@ import {
   listSubAgents,
   listSubAgentsPaginated,
   updateSubAgent,
-} from '../../data-access/subAgents';
-import type { DatabaseClient } from '../../db/client';
-import { createTestDatabaseClient } from '../../db/test-client';
+} from '../../data-access/manage/subAgents';
+import type { AgentsManageDatabaseClient } from '../../db/manage/manage-client';
+import { testManageDbClient } from '../setup';
 
 describe('Agent Data Access', () => {
-  let db: DatabaseClient;
+  let db: AgentsManageDatabaseClient;
   const testTenantId = 'test-tenant';
   const testProjectId = 'test-project';
   const testAgentId = 'test-agent';
 
   beforeEach(async () => {
-    db = await createTestDatabaseClient();
+    db = testManageDbClient;
+    vi.clearAllMocks();
   });
 
   describe('createAgent', () => {
@@ -382,6 +383,15 @@ describe('Agent Data Access', () => {
         where: vi.fn().mockResolvedValue(undefined),
       });
 
+      // Mock select for checking if sub-agent is default (returns empty array = not default)
+      const mockSelect = vi.fn().mockReturnValue({
+        from: vi.fn().mockReturnValue({
+          where: vi.fn().mockReturnValue({
+            limit: vi.fn().mockResolvedValue([]),
+          }),
+        }),
+      });
+
       // Mock getAgentById to return null (agent not found after deletion)
       const mockQuery = {
         subAgents: {
@@ -392,6 +402,7 @@ describe('Agent Data Access', () => {
       const mockDb = {
         ...db,
         delete: mockDelete,
+        select: mockSelect,
         query: mockQuery,
       } as any;
 

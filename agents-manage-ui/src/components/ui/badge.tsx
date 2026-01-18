@@ -18,6 +18,8 @@ const badgeVariants = cva(
           'border-transparent bg-destructive text-white [a&]:hover:bg-destructive/90 focus-visible:ring-destructive/20 dark:focus-visible:ring-destructive/40 dark:bg-destructive/60',
         outline: 'text-foreground [a&]:hover:bg-accent [a&]:hover:text-accent-foreground',
         code: 'text-xs text-muted-foreground border bg-muted/80 dark:bg-muted/50 rounded-sm p-0.5 px-1.5 font-mono',
+        count:
+          'text-muted-foreground bg-muted/80 dark:bg-muted/50 rounded-sm p-0.5 font-mono px-2 text-[10px] border-none',
         success:
           'text-xs text-muted-foreground border rounded-sm p-0.5 px-1.5 font-mono bg-emerald-50 border-emerald-200 text-emerald-800 dark:text-emerald-300 dark:bg-emerald-950/40 uppercase',
         error:
@@ -50,4 +52,4 @@ function Badge({
   );
 }
 
-export { Badge, badgeVariants };
+export { Badge };

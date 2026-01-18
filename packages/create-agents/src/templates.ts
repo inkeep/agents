@@ -27,6 +27,7 @@ export async function cloneTemplate(
       await replaceContentInFiles(targetPath, replacements);
     }
   } catch (_error) {
+    console.error('Error cloning template:', _error);
     process.exit(1);
   }
 }
@@ -34,7 +35,7 @@ export async function cloneTemplate(
 export async function cloneTemplateLocal(
   templatePath: string,
   targetPath: string,
-  replacements: ContentReplacement[]
+  replacements?: ContentReplacement[]
 ) {
   await fs.mkdir(targetPath, { recursive: true });
 
@@ -312,12 +313,39 @@ function injectPropertyIntoObject(content: string, propertyPath: string, replace
   return content;
 }
 
-export async function getAvailableTemplates(): Promise<string[]> {
+export async function getAvailableTemplates(localPrefix?: string): Promise<string[]> {
+  if (localPrefix && localPrefix.length > 0) {
+    const fullTemplatePath = path.join(localPrefix, 'template-projects');
+    const response = await fs.readdir(fullTemplatePath);
+    return response.filter((item: any) =>
+      fs.stat(path.join(fullTemplatePath, item)).then((stat) => stat.isDirectory())
+    );
+  }
   // Fetch the list of templates from your repo
   const response = await fetch(
-    'https://api.github.com/repos/inkeep/agents-cookbook/contents/template-projects'
+    `https://api.github.com/repos/inkeep/agents/contents/agents-cookbook/template-projects`
   );
-  const contents = await response.json();
+
+  if (!response.ok) {
+    throw new Error(
+      `Failed to fetch templates. Please check your internet connection and try again.`
+    );
+  }
+
+  let contents: any;
+  try {
+    contents = await response.json();
+  } catch (error) {
+    throw new Error(
+      `Failed to parse templates response. Please check your internet connection and try again. ${error}`
+    );
+  }
+
+  if (!Array.isArray(contents)) {
+    throw new Error(
+      'Unexpected response format from templates. Please check your internet connection and try again'
+    );
+  }
 
   return contents.filter((item: any) => item.type === 'dir').map((item: any) => item.name);
 }

@@ -63,3 +63,21 @@ export type ExtractCredentialIds<T> = T extends {
 export type UnionCredentialIds<T extends Record<string, any>> = {
   [K in keyof T]: ExtractCredentialIds<T[K]>;
 }[keyof T];
+
+/**
+ * Type helper to extract tool IDs from environment configuration
+ */
+export type ExtractMcpServerIds<T> = T extends {
+  mcpServers?: infer T;
+}
+  ? T extends Record<string, any>
+    ? keyof T
+    : never
+  : never;
+
+/**
+ * Type helper to create a union of all available tool IDs from multiple environments
+ */
+export type UnionMcpServerIds<T extends Record<string, any>> = {
+  [K in keyof T]: ExtractMcpServerIds<T[K]>;
+}[keyof T];

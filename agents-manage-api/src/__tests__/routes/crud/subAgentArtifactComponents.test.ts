@@ -1,10 +1,11 @@
-import { nanoid } from 'nanoid';
+import { generateId } from '@inkeep/agents-core';
+import { createTestProject } from '@inkeep/agents-core/db/test-manage-client';
 import { describe, expect, it } from 'vitest';
+import manageDbClient from '../../../data/db/dbClient';
 import { createTestAgentArtifactComponentData } from '../../utils/testHelpers';
-import { ensureTestProject } from '../../utils/testProject';
 import { makeRequest } from '../../utils/testRequest';
 import { createTestSubAgentData } from '../../utils/testSubAgent';
-import { createTestTenantId } from '../../utils/testTenant';
+import { createTestTenantWithOrg } from '../../utils/testTenant';
 
 describe('Agent Artifact Component CRUD Routes - Integration Tests', () => {
   const projectId = 'default';
@@ -18,7 +19,7 @@ describe('Agent Artifact Component CRUD Routes - Integration Tests', () => {
     suffix?: string;
   }) => {
     // First create a default agent if it doesn't exist (without defaultSubAgentId)
-    const agentId = nanoid();
+    const agentId = generateId();
     const agentData = {
       id: agentId,
       name: 'Test Agent',
@@ -75,7 +76,7 @@ describe('Agent Artifact Component CRUD Routes - Integration Tests', () => {
     tenantId?: string;
     projectId?: string;
   } = {}) => ({
-    id: nanoid(),
+    id: generateId(),
     tenantId,
     projectId,
     name: `TestArtifactComponent${suffix}`,
@@ -158,8 +159,8 @@ describe('Agent Artifact Component CRUD Routes - Integration Tests', () => {
 
   describe('POST /', () => {
     it('should create a new agent artifact component association', async () => {
-      const tenantId = createTestTenantId('agent-artifact-components-create-success');
-      await ensureTestProject(tenantId, projectId);
+      const tenantId = await createTestTenantWithOrg('agent-artifact-components-create-success');
+      await createTestProject(manageDbClient, tenantId, projectId);
       const { subAgentId, artifactComponentId, agentId } = await setupTestEnvironment(tenantId);
 
       const relationData = createTestAgentArtifactComponentData({
@@ -186,8 +187,8 @@ describe('Agent Artifact Component CRUD Routes - Integration Tests', () => {
     });
 
     it('should validate required fields', async () => {
-      const tenantId = createTestTenantId('agent-artifact-components-create-validation');
-      await ensureTestProject(tenantId, projectId);
+      const tenantId = await createTestTenantWithOrg('agent-artifact-components-create-validation');
+      await createTestProject(manageDbClient, tenantId, projectId);
       const { agentId } = await createTestAgent({ tenantId });
       const res = await makeRequest(
         `/tenants/${tenantId}/projects/${projectId}/agents/${agentId}/sub-agent-artifact-components`,
@@ -201,8 +202,8 @@ describe('Agent Artifact Component CRUD Routes - Integration Tests', () => {
     });
 
     it('should reject duplicate associations', async () => {
-      const tenantId = createTestTenantId('agent-artifact-components-create-duplicate');
-      await ensureTestProject(tenantId, projectId);
+      const tenantId = await createTestTenantWithOrg('agent-artifact-components-create-duplicate');
+      await createTestProject(manageDbClient, tenantId, projectId);
       const { subAgentId, artifactComponentId, agentId } = await setupTestEnvironment(tenantId);
 
       const relationData = createTestAgentArtifactComponentData({
@@ -233,11 +234,13 @@ describe('Agent Artifact Component CRUD Routes - Integration Tests', () => {
     });
 
     it('should return 404 for non-existent agent', async () => {
-      const tenantId = createTestTenantId('agent-artifact-components-create-agent-not-found');
-      await ensureTestProject(tenantId, projectId);
+      const tenantId = await createTestTenantWithOrg(
+        'agent-artifact-components-create-agent-not-found'
+      );
+      await createTestProject(manageDbClient, tenantId, projectId);
       const { artifactComponentId } = await createTestArtifactComponent({ tenantId });
       const { agentId } = await createTestAgent({ tenantId });
-      const nonExistentSubAgentId = nanoid();
+      const nonExistentSubAgentId = generateId();
 
       const relationData = createTestAgentArtifactComponentData({
         subAgentId: nonExistentSubAgentId,
@@ -256,10 +259,12 @@ describe('Agent Artifact Component CRUD Routes - Integration Tests', () => {
     });
 
     it('should return 404 for non-existent artifact component', async () => {
-      const tenantId = createTestTenantId('agent-artifact-components-create-component-not-found');
-      await ensureTestProject(tenantId, projectId);
+      const tenantId = await createTestTenantWithOrg(
+        'agent-artifact-components-create-component-not-found'
+      );
+      await createTestProject(manageDbClient, tenantId, projectId);
       const { subAgentId, agentId } = await createTestAgent({ tenantId });
-      const nonExistentArtifactComponentId = nanoid();
+      const nonExistentArtifactComponentId = generateId();
 
       const relationData = createTestAgentArtifactComponentData({
         subAgentId,
@@ -280,8 +285,8 @@ describe('Agent Artifact Component CRUD Routes - Integration Tests', () => {
 
   describe('GET /agent/:subAgentId', () => {
     it('should return empty list for agent with no artifact components', async () => {
-      const tenantId = createTestTenantId('agent-artifact-components-get-empty');
-      await ensureTestProject(tenantId, projectId);
+      const tenantId = await createTestTenantWithOrg('agent-artifact-components-get-empty');
+      await createTestProject(manageDbClient, tenantId, projectId);
       const { subAgentId, agentId } = await createTestAgent({ tenantId });
 
       const res = await makeRequest(
@@ -294,8 +299,8 @@ describe('Agent Artifact Component CRUD Routes - Integration Tests', () => {
     });
 
     it('should return artifact components for agent', async () => {
-      const tenantId = createTestTenantId('agent-artifact-components-get-success');
-      await ensureTestProject(tenantId, projectId);
+      const tenantId = await createTestTenantWithOrg('agent-artifact-components-get-success');
+      await createTestProject(manageDbClient, tenantId, projectId);
       const { subAgentId, artifactComponentId, agentId } = await setupTestEnvironment(tenantId);
 
       // Create association
@@ -322,8 +327,8 @@ describe('Agent Artifact Component CRUD Routes - Integration Tests', () => {
     });
 
     it('should return multiple artifact components for agent', async () => {
-      const tenantId = createTestTenantId('agent-artifact-components-get-multiple');
-      await ensureTestProject(tenantId, projectId);
+      const tenantId = await createTestTenantWithOrg('agent-artifact-components-get-multiple');
+      await createTestProject(manageDbClient, tenantId, projectId);
       const { subAgentId, agentId } = await createTestAgent({ tenantId });
 
       // Create multiple artifact components
@@ -364,8 +369,8 @@ describe('Agent Artifact Component CRUD Routes - Integration Tests', () => {
 
   describe('GET /component/:artifactComponentId/agents', () => {
     it('should return empty list for artifact component with no agents', async () => {
-      const tenantId = createTestTenantId('agent-artifact-components-get-agents-empty');
-      await ensureTestProject(tenantId, projectId);
+      const tenantId = await createTestTenantWithOrg('agent-artifact-components-get-agents-empty');
+      await createTestProject(manageDbClient, tenantId, projectId);
       const { artifactComponentId } = await createTestArtifactComponent({ tenantId });
       const { agentId } = await createTestAgent({ tenantId });
 
@@ -379,8 +384,10 @@ describe('Agent Artifact Component CRUD Routes - Integration Tests', () => {
     });
 
     it('should return agents using artifact component', async () => {
-      const tenantId = createTestTenantId('agent-artifact-components-get-agents-success');
-      await ensureTestProject(tenantId, projectId);
+      const tenantId = await createTestTenantWithOrg(
+        'agent-artifact-components-get-agents-success'
+      );
+      await createTestProject(manageDbClient, tenantId, projectId);
       const { subAgentId, artifactComponentId, agentId } = await setupTestEnvironment(tenantId);
 
       // Create association
@@ -405,8 +412,10 @@ describe('Agent Artifact Component CRUD Routes - Integration Tests', () => {
     });
 
     it('should return multiple agents using artifact component', async () => {
-      const tenantId = createTestTenantId('agent-artifact-components-get-agents-multiple');
-      await ensureTestProject(tenantId, projectId);
+      const tenantId = await createTestTenantWithOrg(
+        'agent-artifact-components-get-agents-multiple'
+      );
+      await createTestProject(manageDbClient, tenantId, projectId);
       const { artifactComponentId } = await createTestArtifactComponent({ tenantId });
 
       // Create multiple agents
@@ -447,8 +456,8 @@ describe('Agent Artifact Component CRUD Routes - Integration Tests', () => {
 
   describe('GET /agent/:subAgentId/component/:artifactComponentId/exists', () => {
     it('should return false for non-existent association', async () => {
-      const tenantId = createTestTenantId('agent-artifact-components-exists-false');
-      await ensureTestProject(tenantId, projectId);
+      const tenantId = await createTestTenantWithOrg('agent-artifact-components-exists-false');
+      await createTestProject(manageDbClient, tenantId, projectId);
       const { subAgentId, artifactComponentId, agentId } = await setupTestEnvironment(tenantId);
 
       const res = await makeRequest(
@@ -461,8 +470,8 @@ describe('Agent Artifact Component CRUD Routes - Integration Tests', () => {
     });
 
     it('should return true for existing association', async () => {
-      const tenantId = createTestTenantId('agent-artifact-components-exists-true');
-      await ensureTestProject(tenantId, projectId);
+      const tenantId = await createTestTenantWithOrg('agent-artifact-components-exists-true');
+      await createTestProject(manageDbClient, tenantId, projectId);
       const { subAgentId, artifactComponentId, agentId } = await setupTestEnvironment(tenantId);
 
       // Create association
@@ -485,8 +494,8 @@ describe('Agent Artifact Component CRUD Routes - Integration Tests', () => {
 
   describe('DELETE /agent/:subAgentId/component/:artifactComponentId', () => {
     it('should remove existing association', async () => {
-      const tenantId = createTestTenantId('agent-artifact-components-delete-success');
-      await ensureTestProject(tenantId, projectId);
+      const tenantId = await createTestTenantWithOrg('agent-artifact-components-delete-success');
+      await createTestProject(manageDbClient, tenantId, projectId);
       const { subAgentId, artifactComponentId, agentId } = await setupTestEnvironment(tenantId);
 
       // Create association
@@ -530,8 +539,8 @@ describe('Agent Artifact Component CRUD Routes - Integration Tests', () => {
     });
 
     it('should return 404 for non-existent association', async () => {
-      const tenantId = createTestTenantId('agent-artifact-components-delete-not-found');
-      await ensureTestProject(tenantId, projectId);
+      const tenantId = await createTestTenantWithOrg('agent-artifact-components-delete-not-found');
+      await createTestProject(manageDbClient, tenantId, projectId);
       const { subAgentId, artifactComponentId, agentId } = await setupTestEnvironment(tenantId);
 
       const res = await makeRequest(
@@ -544,11 +553,13 @@ describe('Agent Artifact Component CRUD Routes - Integration Tests', () => {
     });
 
     it('should return 404 for non-existent agent', async () => {
-      const tenantId = createTestTenantId('agent-artifact-components-delete-agent-not-found');
-      await ensureTestProject(tenantId, projectId);
+      const tenantId = await createTestTenantWithOrg(
+        'agent-artifact-components-delete-agent-not-found'
+      );
+      await createTestProject(manageDbClient, tenantId, projectId);
       const { artifactComponentId } = await createTestArtifactComponent({ tenantId });
       const { agentId } = await createTestAgent({ tenantId });
-      const nonExistentSubAgentId = nanoid();
+      const nonExistentSubAgentId = generateId();
 
       const res = await makeRequest(
         `/tenants/${tenantId}/projects/${projectId}/agents/${agentId}/sub-agent-artifact-components/agent/${nonExistentSubAgentId}/component/${artifactComponentId}`,
@@ -560,10 +571,12 @@ describe('Agent Artifact Component CRUD Routes - Integration Tests', () => {
     });
 
     it('should return 404 for non-existent artifact component', async () => {
-      const tenantId = createTestTenantId('agent-artifact-components-delete-component-not-found');
-      await ensureTestProject(tenantId, projectId);
+      const tenantId = await createTestTenantWithOrg(
+        'agent-artifact-components-delete-component-not-found'
+      );
+      await createTestProject(manageDbClient, tenantId, projectId);
       const { subAgentId, agentId } = await createTestAgent({ tenantId });
-      const nonExistentArtifactComponentId = nanoid();
+      const nonExistentArtifactComponentId = generateId();
 
       const res = await makeRequest(
         `/tenants/${tenantId}/projects/${projectId}/agents/${agentId}/sub-agent-artifact-components/agent/${subAgentId}/component/${nonExistentArtifactComponentId}`,
@@ -577,8 +590,8 @@ describe('Agent Artifact Component CRUD Routes - Integration Tests', () => {
 
   describe('End-to-End Workflow', () => {
     it('should complete full agent artifact component association lifecycle', async () => {
-      const tenantId = createTestTenantId('agent-artifact-components-e2e');
-      await ensureTestProject(tenantId, projectId);
+      const tenantId = await createTestTenantWithOrg('agent-artifact-components-e2e');
+      await createTestProject(manageDbClient, tenantId, projectId);
       const { subAgentId, artifactComponentId, agentId } = await setupTestEnvironment(tenantId);
 
       // 1. Verify no association exists initially
@@ -657,8 +670,8 @@ describe('Agent Artifact Component CRUD Routes - Integration Tests', () => {
     });
 
     it('should handle multiple associations correctly', async () => {
-      const tenantId = createTestTenantId('agent-artifact-components-multiple-e2e');
-      await ensureTestProject(tenantId, projectId);
+      const tenantId = await createTestTenantWithOrg('agent-artifact-components-multiple-e2e');
+      await createTestProject(manageDbClient, tenantId, projectId);
 
       // Create multiple agents and artifact components
       const { subAgentId: subAgent1Id, agentId: agent1Id } = await createTestAgent({
@@ -737,11 +750,11 @@ describe('Agent Artifact Component CRUD Routes - Integration Tests', () => {
 
   describe('Tenant Isolation', () => {
     it('should not show associations from other tenants', async () => {
-      const tenantId1 = createTestTenantId('agent-artifact-components-tenant1');
-      const tenantId2 = createTestTenantId('agent-artifact-components-tenant2');
+      const tenantId1 = await createTestTenantWithOrg('agent-artifact-components-tenant1');
+      const tenantId2 = await createTestTenantWithOrg('agent-artifact-components-tenant2');
 
-      await ensureTestProject(tenantId1, projectId);
-      await ensureTestProject(tenantId2, projectId);
+      await createTestProject(manageDbClient, tenantId1, projectId);
+      await createTestProject(manageDbClient, tenantId2, projectId);
 
       // Create associations in tenant 1
       const {

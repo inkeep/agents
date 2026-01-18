@@ -6,7 +6,19 @@
  * server-side database dependencies.
  */
 
-import { z } from 'zod';
+import { z } from '@hono/zod-openapi';
+import { schemaValidationDefaults } from './constants/schema-validation/defaults';
+
+// Destructure defaults for use in schemas
+const {
+  AGENT_EXECUTION_TRANSFER_COUNT_MAX,
+  AGENT_EXECUTION_TRANSFER_COUNT_MIN,
+  STATUS_UPDATE_MAX_INTERVAL_SECONDS,
+  STATUS_UPDATE_MAX_NUM_EVENTS,
+  VALIDATION_AGENT_PROMPT_MAX_CHARS,
+  VALIDATION_SUB_AGENT_PROMPT_MAX_CHARS,
+} = schemaValidationDefaults;
+
 import { CredentialStoreType, MCPTransportType } from './types';
 
 import {
@@ -23,6 +35,8 @@ import {
   type SubAgentStopWhen,
   SubAgentStopWhenSchema,
 } from './validation/schemas';
+
+export { DEFAULT_NANGO_STORE_ID } from './credential-stores/default-constants';
 
 export { validatePropsAsJsonSchema } from './validation/props-validation';
 
@@ -132,9 +146,15 @@ export const CredentialReferenceApiInsertSchema = z.object({
   id: z.string(),
   tenantId: z.string().optional(),
   projectId: z.string().optional(),
+  name: z.string(),
   type: z.enum(CredentialStoreType),
   credentialStoreId: z.string(),
   retrievalParams: z.record(z.string(), z.unknown()).nullish(),
+  createdAt: z.string().optional(),
+  updatedAt: z.string().optional(),
+  userId: z.string().nullish(),
+  toolId: z.string().nullish(),
+  createdBy: z.string().nullish(),
 });
 
 export const DataComponentApiInsertSchema = z.object({
@@ -142,6 +162,13 @@ export const DataComponentApiInsertSchema = z.object({
   name: z.string(),
   description: z.string().optional(),
   props: z.record(z.string(), z.unknown()),
+  render: z
+    .object({
+      component: z.string(),
+      mockData: z.record(z.string(), z.unknown()),
+    })
+    .nullable()
+    .optional(),
 });
 
 export const ArtifactComponentApiInsertSchema = ArtifactComponentApiInsertSchemaFromValidation;
@@ -172,15 +199,7 @@ export const AgentAgentApiInsertSchema = z.object({
 });
 
 export const FullAgentDefinitionSchema = AgentAgentApiInsertSchema.extend({
-  subAgents: z.record(
-    z.string(),
-    z.union([
-      FullAgentAgentInsertSchema,
-      ExternalAgentApiInsertSchema.extend({
-        id: z.string(),
-      }),
-    ])
-  ),
+  subAgents: z.record(z.string(), z.union([FullAgentAgentInsertSchema])),
   contextConfig: z.optional(ContextConfigApiInsertSchema),
   models: z
     .object({
@@ -206,16 +225,20 @@ export const FullAgentDefinitionSchema = AgentAgentApiInsertSchema.extend({
     .optional(),
   stopWhen: z
     .object({
-      transferCountIs: z.number().min(1).max(100).optional(),
+      transferCountIs: z
+        .number()
+        .min(AGENT_EXECUTION_TRANSFER_COUNT_MIN)
+        .max(AGENT_EXECUTION_TRANSFER_COUNT_MAX)
+        .optional(),
     })
     .optional(),
-  prompt: z.string().max(5000).optional(),
+  prompt: z.string().max(VALIDATION_AGENT_PROMPT_MAX_CHARS).optional(),
   statusUpdates: z
     .object({
       enabled: z.boolean().optional(),
-      numEvents: z.number().min(1).max(100).optional(),
-      timeInSeconds: z.number().min(1).max(600).optional(),
-      prompt: z.string().max(2000).optional(),
+      numEvents: z.number().min(1).max(STATUS_UPDATE_MAX_NUM_EVENTS).optional(),
+      timeInSeconds: z.number().min(1).max(STATUS_UPDATE_MAX_INTERVAL_SECONDS).optional(),
+      prompt: z.string().max(VALIDATION_SUB_AGENT_PROMPT_MAX_CHARS).optional(),
       statusComponents: z
         .array(
           z.object({
@@ -279,6 +302,7 @@ export type AgentAgentInsert = AgentAgentApiInsert;
 
 export { CredentialStoreType, MCPTransportType };
 
+export * from './constants/context-breakdown';
 export * from './constants/otel-attributes';
 export * from './constants/signoz-queries';
 export { detectAuthenticationRequired } from './utils/auth-detection';

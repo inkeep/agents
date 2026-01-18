@@ -21,9 +21,9 @@ import { validateProjectId, validateTenantId } from './resource-validation';
 // Note: DataComponentApiSelect might have nullable props, but UI expects non-nullable
 export type DataComponent = Omit<DataComponentApiSelect, 'props'> & {
   props: Record<string, any>; // Ensure props is non-nullable for UI compatibility
-  preview?: {
-    code: string;
-    data: Record<string, unknown>;
+  render?: {
+    component: string;
+    mockData: Record<string, unknown>;
   } | null;
 };
 
@@ -38,7 +38,7 @@ export async function fetchDataComponents(
   validateProjectId(projectId);
 
   const response = await makeManagementApiRequest<ListResponse<DataComponentApiSelect>>(
-    `tenants/${tenantId}/projects/${projectId}/data-components`
+    `tenants/${tenantId}/projects/${projectId}/data-components?limit=100`
   );
 
   // Transform the response to ensure props is non-nullable

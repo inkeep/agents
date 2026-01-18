@@ -1,7 +1,6 @@
 import { createRoute, OpenAPIHono } from '@hono/zod-openapi';
 import {
   ArtifactComponentApiInsertSchema,
-  ArtifactComponentApiSelectSchema,
   ArtifactComponentApiUpdateSchema,
   ArtifactComponentListResponse,
   ArtifactComponentResponse,
@@ -10,6 +9,7 @@ import {
   createArtifactComponent,
   deleteArtifactComponent,
   ErrorResponseSchema,
+  generateId,
   getArtifactComponentById,
   listArtifactComponentsPaginated,
   PaginationQueryParamsSchema,
@@ -18,10 +18,29 @@ import {
   updateArtifactComponent,
   validatePropsAsJsonSchema,
 } from '@inkeep/agents-core';
-import { nanoid } from 'nanoid';
-import dbClient from '../data/db/dbClient';
+import { requirePermission } from '../middleware/require-permission';
+import type { BaseAppVariables } from '../types/app';
+import { speakeasyOffsetLimitPagination } from './shared';
 
-const app = new OpenAPIHono();
+const app = new OpenAPIHono<{ Variables: BaseAppVariables }>();
+
+// Apply permission middleware by HTTP method
+app.use('/', async (c, next) => {
+  if (c.req.method === 'POST') {
+    return requirePermission({ artifact_component: ['create'] })(c, next);
+  }
+  return next();
+});
+
+app.use('/:id', async (c, next) => {
+  if (c.req.method === 'PATCH') {
+    return requirePermission({ artifact_component: ['update'] })(c, next);
+  }
+  if (c.req.method === 'DELETE') {
+    return requirePermission({ artifact_component: ['delete'] })(c, next);
+  }
+  return next();
+});
 
 app.openapi(
   createRoute({
@@ -45,13 +64,15 @@ app.openapi(
       },
       ...commonGetErrorResponses,
     },
+    ...speakeasyOffsetLimitPagination,
   }),
   async (c) => {
+    const db = c.get('db');
     const { tenantId, projectId } = c.req.valid('param');
     const page = Number(c.req.query('page')) || 1;
     const limit = Math.min(Number(c.req.query('limit')) || 10, 100);
 
-    const result = await listArtifactComponentsPaginated(dbClient)({
+    const result = await listArtifactComponentsPaginated(db)({
       scopes: { tenantId, projectId },
       pagination: { page, limit },
     });
@@ -82,8 +103,9 @@ app.openapi(
     },
   }),
   async (c) => {
+    const db = c.get('db');
     const { tenantId, projectId, id } = c.req.valid('param');
-    const artifactComponent = await getArtifactComponentById(dbClient)({
+    const artifactComponent = await getArtifactComponentById(db)({
       scopes: { tenantId, projectId },
       id,
     });
@@ -129,6 +151,7 @@ app.openapi(
     },
   }),
   async (c) => {
+    const db = c.get('db');
     const { tenantId, projectId } = c.req.valid('param');
     const body = c.req.valid('json');
 
@@ -145,7 +168,7 @@ app.openapi(
       }
     }
 
-    const finalId = body.id ? String(body.id) : nanoid();
+    const finalId = body.id ? String(body.id) : generateId();
     const componentData = {
       tenantId,
       projectId,
@@ -153,17 +176,18 @@ app.openapi(
       name: String(body.name),
       description: String(body.description),
       props: body.props ?? null,
+      render: body.render ?? null,
     };
 
     try {
-      const artifactComponent = await createArtifactComponent(dbClient)({
+      const artifactComponent = await createArtifactComponent(db)({
         ...componentData,
       });
 
       return c.json({ data: artifactComponent }, 201);
     } catch (error: any) {
-      // Handle duplicate artifact component (primary key constraint)
-      if (error?.cause?.code === 'SQLITE_CONSTRAINT_PRIMARYKEY' || error?.cause?.rawCode === 1555) {
+      // Handle duplicate artifact component (PostgreSQL unique constraint violation)
+      if (error?.cause?.code === '23505') {
         throw createApiError({
           code: 'conflict',
           message: `Artifact component with ID '${finalId}' already exists`,
@@ -206,6 +230,7 @@ app.openapi(
     },
   }),
   async (c) => {
+    const db = c.get('db');
     const { tenantId, projectId, id } = c.req.valid('param');
     const body = c.req.valid('json');
 
@@ -234,8 +259,11 @@ app.openapi(
     if (body.props !== undefined) {
       updateData.props = body.props ?? null;
     }
+    if (body.render !== undefined) {
+      updateData.render = body.render ?? null;
+    }
 
-    const updatedArtifactComponent = await updateArtifactComponent(dbClient)({
+    const updatedArtifactComponent = await updateArtifactComponent(db)({
       scopes: { tenantId, projectId },
       id,
       data: updateData,
@@ -277,9 +305,10 @@ app.openapi(
     },
   }),
   async (c) => {
+    const db = c.get('db');
     const { tenantId, projectId, id } = c.req.valid('param');
 
-    const deleted = await deleteArtifactComponent(dbClient)({
+    const deleted = await deleteArtifactComponent(db)({
       scopes: { tenantId, projectId },
       id,
     });

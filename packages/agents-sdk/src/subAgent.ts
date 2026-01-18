@@ -2,6 +2,7 @@ import {
   type ArtifactComponentApiInsert,
   type DataComponentApiInsert,
   getLogger,
+  type ToolPolicy,
 } from '@inkeep/agents-core';
 import {
   convertZodToJsonSchemaWithPreview,
@@ -13,10 +14,13 @@ import { FunctionTool } from './function-tool';
 import { Tool } from './tool';
 import type {
   AgentTool,
-  AllSubAgentInterface,
+  AllDelegateInputInterface,
+  AllDelegateOutputInterface,
   SubAgentCanUseType,
   SubAgentConfig,
   SubAgentInterface,
+  subAgentExternalAgentInterface,
+  subAgentTeamAgentInterface,
 } from './types';
 import { isAgentMcpConfig, normalizeAgentCanUseType } from './utils/tool-normalization';
 
@@ -74,7 +78,7 @@ export class SubAgent implements SubAgentInterface {
   }
 
   getInstructions(): string {
-    return this.config.prompt;
+    return this.config.prompt || '';
   }
 
   /**
@@ -108,6 +112,8 @@ export class SubAgent implements SubAgentInterface {
           toolInstance.selectedTools = tool.selectedTools;
           // Add headers metadata to the tool instance if present
           toolInstance.headers = tool.headers;
+          // Add toolPolicies metadata to the tool instance if present
+          toolInstance.toolPolicies = tool.toolPolicies;
         } else {
           // Regular tool instance
           toolInstance = tool as AgentTool;
@@ -134,8 +140,95 @@ export class SubAgent implements SubAgentInterface {
     return typeof this.config.canTransferTo === 'function' ? this.config.canTransferTo() : [];
   }
 
-  getDelegates(): AllSubAgentInterface[] {
-    return typeof this.config.canDelegateTo === 'function' ? this.config.canDelegateTo() : [];
+  getSubAgentDelegates(): SubAgentInterface[] {
+    return typeof this.config.canDelegateTo === 'function'
+      ? (this.config.canDelegateTo().filter((delegate) => {
+          // Filter out subAgentExternalAgentInterface (has externalAgent property)
+          if (typeof delegate === 'object' && 'externalAgent' in delegate) {
+            return false;
+          }
+          // Filter out subAgentTeamAgentInterface (has agent property)
+          if (typeof delegate === 'object' && 'agent' in delegate) {
+            return false;
+          }
+          // Filter out AgentInterface (has agent property)
+          if (typeof delegate === 'object' && 'toFullAgentDefinition' in delegate) {
+            return false;
+          }
+          // Filter out raw ExternalAgent instances (have type: 'external')
+          if (typeof delegate === 'object' && 'type' in delegate && delegate.type === 'external') {
+            return false;
+          }
+          return true;
+        }) as SubAgentInterface[])
+      : [];
+  }
+
+  getExternalAgentDelegates(): subAgentExternalAgentInterface[] {
+    if (typeof this.config.canDelegateTo !== 'function') {
+      return [];
+    }
+
+    return this.config
+      .canDelegateTo()
+      .filter((delegate) => {
+        // Accept wrapped external agents (from .with())
+        if (typeof delegate === 'object' && 'externalAgent' in delegate) {
+          return true;
+        }
+        // Accept raw ExternalAgent instances
+        if (typeof delegate === 'object' && 'type' in delegate && delegate.type === 'external') {
+          return true;
+        }
+        return false;
+      })
+      .map((delegate) => {
+        // If it's already wrapped, return as-is
+        if ('externalAgent' in delegate) {
+          return delegate as subAgentExternalAgentInterface;
+        }
+        // If it's a raw ExternalAgent, wrap it
+        return {
+          externalAgent: delegate as any,
+          headers: undefined,
+        };
+      });
+  }
+  getTeamAgentDelegates(): subAgentTeamAgentInterface[] {
+    if (typeof this.config.canDelegateTo !== 'function') {
+      return [];
+    }
+
+    return this.config
+      .canDelegateTo()
+      .filter((delegate) => {
+        if (typeof delegate === 'object' && 'agent' in delegate) {
+          return true;
+        }
+        if (typeof delegate === 'object' && 'toFullAgentDefinition' in delegate) {
+          return true;
+        }
+        return false;
+      })
+      .map((delegate) => {
+        if ('agent' in delegate) {
+          return delegate as subAgentTeamAgentInterface;
+        }
+
+        // If it's a raw Agent, wrap it for simplicity
+        return {
+          agent: delegate as any,
+          headers: undefined,
+        };
+      });
+  }
+
+  getDelegates(): AllDelegateOutputInterface[] {
+    return [
+      ...this.getSubAgentDelegates(),
+      ...this.getTeamAgentDelegates(),
+      ...this.getExternalAgentDelegates(),
+    ];
   }
 
   getDataComponents(): DataComponentApiInsert[] {
@@ -149,6 +242,7 @@ export class SubAgent implements SubAgentInterface {
           name: comp.getName(),
           description: comp.getDescription(),
           props: comp.getProps(),
+          render: comp.getRender?.() || null,
         };
       }
       // If it's a plain object, check if props is a Zod schema
@@ -158,6 +252,7 @@ export class SubAgent implements SubAgentInterface {
           name: comp.name,
           description: comp.description,
           props: convertZodToJsonSchemaWithPreview(comp.props),
+          render: comp.render || null,
         };
       }
       // Otherwise assume it's already a plain object
@@ -210,7 +305,7 @@ export class SubAgent implements SubAgentInterface {
     }
   }
 
-  addDelegate(...agents: AllSubAgentInterface[]): void {
+  addDelegate(...agents: AllDelegateInputInterface[]): void {
     if (typeof this.config.canDelegateTo === 'function') {
       const existingDelegates = this.config.canDelegateTo;
       this.config.canDelegateTo = () => [...existingDelegates(), ...agents];
@@ -266,7 +361,7 @@ export class SubAgent implements SubAgentInterface {
       id: this.getId(),
       name: this.config.name,
       description: this.config.description || '',
-      prompt: this.config.prompt,
+      prompt: this.config.prompt || '',
       conversationHistoryConfig: this.config.conversationHistoryConfig,
       models: this.config.models,
       stopWhen: this.config.stopWhen,
@@ -416,10 +511,6 @@ export class SubAgent implements SubAgentInterface {
       // TODO: Load data components from database for this agent
       // This needs to be replaced with an HTTP API call
       const existingComponents: DataComponentApiInsert[] = [];
-      // const existingComponents = await getDataComponentsForAgent(dbClient)({
-      //   scopes: { tenantId: this.tenantId, projectId: this.projectId },
-      //   subAgentId: this.getId(),
-      // });
 
       // Convert database format to config format
       const dbDataComponents = existingComponents.map((component: any) => ({
@@ -494,10 +585,6 @@ export class SubAgent implements SubAgentInterface {
       // TODO: Load artifact components from database for this agent
       // This needs to be replaced with an HTTP API call
       const existingComponents: ArtifactComponentApiInsert[] = [];
-      // const existingComponents = await getArtifactComponentsForAgent(dbClient)({
-      //   scopes: { tenantId: this.tenantId, projectId: this.projectId },
-      //   subAgentId: this.getId(),
-      // });
 
       // Convert database format to config format
       const dbArtifactComponents = existingComponents.map((component: any) => ({
@@ -722,12 +809,14 @@ export class SubAgent implements SubAgentInterface {
       let tool: Tool;
       let selectedTools: string[] | undefined;
       let headers: Record<string, string> | undefined;
+      let toolPolicies: Record<string, ToolPolicy> | undefined;
 
       try {
         const normalizedTool = normalizeAgentCanUseType(toolConfig, toolId);
         tool = normalizedTool.tool;
         selectedTools = normalizedTool.selectedTools;
         headers = normalizedTool.headers;
+        toolPolicies = normalizedTool.toolPolicies;
 
         tool.setContext(this.tenantId, this.projectId);
         await tool.init();
@@ -748,8 +837,8 @@ export class SubAgent implements SubAgentInterface {
         await tool.init();
       }
 
-      // Create the agent-tool relation with selected tools, and headers
-      await this.createAgentToolRelation(tool.getId(), selectedTools, headers);
+      // Create the agent-tool relation with selected tools, headers, and toolPolicies
+      await this.createAgentToolRelation(tool.getId(), selectedTools, headers, toolPolicies);
 
       logger.info(
         {
@@ -779,6 +868,7 @@ export class SubAgent implements SubAgentInterface {
         name: dataComponent.name,
         description: dataComponent.description,
         props: dataComponent.props,
+        render: dataComponent.render,
       });
 
       // Set the context from the agent
@@ -920,7 +1010,8 @@ export class SubAgent implements SubAgentInterface {
   private async createAgentToolRelation(
     toolId: string,
     selectedTools?: string[],
-    headers?: Record<string, string>
+    headers?: Record<string, string>,
+    toolPolicies?: Record<string, ToolPolicy>
   ): Promise<void> {
     const relationData: {
       id: string;
@@ -930,6 +1021,7 @@ export class SubAgent implements SubAgentInterface {
       toolId: string;
       selectedTools?: string[];
       headers?: Record<string, string>;
+      toolPolicies?: Record<string, ToolPolicy>;
     } = {
       id: `${this.getId()}-tool-${toolId}`,
       tenantId: this.tenantId,
@@ -946,6 +1038,11 @@ export class SubAgent implements SubAgentInterface {
     // Add headers if provided
     if (headers !== undefined) {
       relationData.headers = headers;
+    }
+
+    // Add toolPolicies if provided
+    if (toolPolicies !== undefined && Object.keys(toolPolicies).length > 0) {
+      relationData.toolPolicies = toolPolicies;
     }
 
     const relationResponse = await fetch(

@@ -4,7 +4,7 @@ import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { ClickableCard } from '@/components/ui/clickable-card';
 import { cn } from '@/lib/utils';
 
-export interface CardGridProps<T> {
+interface CardGridProps<T> {
   /** Array of items to render as cards */
   items: T[];
   /** Function to extract a unique key from each item */
@@ -57,11 +57,3 @@ export function CardGrid<T>({
     </div>
   );
 }
-
-// Convenience type for simple card data with id
-export interface CardItem {
-  id: string | number;
-  [key: string]: any;
-}
-
-export const getItemId = <T extends CardItem>(item: T): string | number => item.id;

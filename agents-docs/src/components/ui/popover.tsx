@@ -29,6 +29,4 @@ const PopoverContent: FC<ComponentProps<typeof PopoverPrimitive.Content>> = ({
   </PopoverPrimitive.Portal>
 );
 
-const PopoverClose = PopoverPrimitive.PopoverClose;
-
-export { Popover, PopoverTrigger, PopoverContent, PopoverClose, PopoverAnchor };
+export { Popover, PopoverTrigger, PopoverContent, PopoverAnchor };
