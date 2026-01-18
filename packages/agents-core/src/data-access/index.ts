@@ -22,7 +22,6 @@ export * from './manage/subAgentRelations';
 export * from './manage/subAgents';
 export * from './manage/subAgentTeamAgentRelations';
 export * from './manage/tools';
-export * from './manage/triggerInvocations';
 export * from './manage/triggers';
 
 // Runtime data access (Postgres - not versioned)
@@ -36,6 +35,7 @@ export * from './runtime/messages';
 export * from './runtime/organizations';
 export * from './runtime/projects';
 export * from './runtime/tasks';
+export * from './runtime/triggerInvocations';
 export * from './runtime/users';
 
 export * from './validation';

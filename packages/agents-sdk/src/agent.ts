@@ -384,7 +384,10 @@ export class Agent implements AgentInterface {
       // Convert Zod inputSchema to JSON Schema if needed
       let processedInputSchema = config.inputSchema;
       if (config.inputSchema && isZodSchema(config.inputSchema)) {
-        processedInputSchema = convertZodToJsonSchema(config.inputSchema) as Record<string, unknown>;
+        processedInputSchema = convertZodToJsonSchema(config.inputSchema) as Record<
+          string,
+          unknown
+        >;
       }
 
       triggersObject[triggerId] = {

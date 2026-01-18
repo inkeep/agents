@@ -85,3 +85,91 @@ export const doltActiveBranch = (db: AgentsManageDatabaseClient) => async (): Pr
 export const doltGetBranchNamespace = (scopes: branchScopes) => (): string => {
   return `${scopes.tenantId}_${scopes.projectId}_${scopes.branchName}`;
 };
+
+/**
+ * Execute a callback function with the database connection on a specific branch.
+ * After the callback completes (success or error), the connection is returned to the original branch.
+ *
+ * @param db - The database client
+ * @param branchName - The branch to checkout before executing the callback
+ * @param callback - The async function to execute while on the specified branch
+ * @returns The result of the callback function
+ *
+ * @example
+ * ```ts
+ * const result = await withBranch(db)({
+ *   branchName: 'default_andrew1_main',
+ *   callback: async () => {
+ *     return await getFullProjectWithRelationIds(db)({ scopes });
+ *   },
+ * });
+ * ```
+ */
+/**
+ * Execute a callback function with the database connection on a specific branch.
+ *
+ * IMPORTANT: This function uses a transaction to ensure all queries within the callback
+ * run on the same database connection. This is critical because DoltGres branching is
+ * connection-scoped - a DOLT_CHECKOUT only affects the specific connection that runs it.
+ * Without a transaction, subsequent queries might use different connections from the pool
+ * that are still on the original branch.
+ *
+ * After the callback completes (success or error), the connection is returned to the original branch.
+ *
+ * @param db - The database client
+ * @param branchName - The branch to checkout before executing the callback
+ * @param callback - The async function to execute while on the specified branch
+ * @returns The result of the callback function
+ *
+ * @example
+ * ```ts
+ * const result = await withBranch(db)({
+ *   branchName: 'default_andrew1_main',
+ *   callback: async (txDb) => {
+ *     return await getFullProjectWithRelationIds(txDb)({ scopes });
+ *   },
+ * });
+ * ```
+ */
+export const withBranch =
+  (db: AgentsManageDatabaseClient) =>
+  async <T>(params: {
+    branchName: string;
+    callback: (txDb: AgentsManageDatabaseClient) => Promise<T>;
+  }): Promise<T> => {
+    const { branchName, callback } = params;
+
+    // Use a transaction to ensure all queries run on the same connection
+    // This is critical because DOLT_CHECKOUT is connection-scoped
+    return db.transaction(async (tx) => {
+      // Get the current branch
+      const originalBranchResult = await tx.execute(sql`SELECT ACTIVE_BRANCH() as branch`);
+      const originalBranch = originalBranchResult.rows[0]?.branch as string;
+
+      // If already on the target branch, just run the callback
+      if (originalBranch === branchName) {
+        return callback(tx as unknown as AgentsManageDatabaseClient);
+      }
+
+      try {
+        // Checkout the target branch on this connection
+        await tx.execute(sql.raw(`SELECT DOLT_CHECKOUT('${branchName}')`));
+
+        // Execute the callback with the transaction connection
+        return await callback(tx as unknown as AgentsManageDatabaseClient);
+      } finally {
+        // Restore the original branch
+        if (originalBranch !== branchName) {
+          await tx.execute(sql.raw(`SELECT DOLT_CHECKOUT('${originalBranch}')`));
+        }
+      }
+    });
+  };
+
+/**
+ * Generate the standard project branch name from tenant and project IDs.
+ * Format: {tenantId}_{projectId}_main
+ */
+export const getProjectBranchName = (tenantId: string, projectId: string): string => {
+  return `${tenantId}_${projectId}_main`;
+};

@@ -1,18 +1,26 @@
 'use client';
 
 import { zodResolver } from '@hookform/resolvers/zod';
-import { Plus, Trash2 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useForm } from 'react-hook-form';
 import { toast } from 'sonner';
 import { z } from 'zod';
+import { ExpandableJsonEditor } from '@/components/editors/expandable-json-editor';
 import { GenericInput } from '@/components/form/generic-input';
 import type { SelectOption } from '@/components/form/generic-select';
 import { GenericSelect } from '@/components/form/generic-select';
 import { GenericTextarea } from '@/components/form/generic-textarea';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
+import {
+  Form,
+  FormControl,
+  FormDescription,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from '@/components/ui/form';
 import { Switch } from '@/components/ui/switch';
 import { createTriggerAction, updateTriggerAction } from '@/lib/actions/triggers';
 import type { Trigger } from '@/lib/api/triggers';
@@ -278,7 +286,8 @@ export function TriggerForm({ tenantId, projectId, agentId, trigger, mode }: Tri
                   <div className="space-y-0.5">
                     <FormLabel className="text-base">Enabled</FormLabel>
                     <FormDescription>
-                      Enable or disable this trigger. Disabled triggers will not accept webhook requests.
+                      Enable or disable this trigger. Disabled triggers will not accept webhook
+                      requests.
                     </FormDescription>
                   </div>
                   <FormControl>
@@ -295,8 +304,8 @@ export function TriggerForm({ tenantId, projectId, agentId, trigger, mode }: Tri
           <CardHeader>
             <CardTitle>Message Template</CardTitle>
             <CardDescription>
-              Define the message template sent to the agent. Use {'{{placeholder}}'} syntax to reference fields from
-              the transformed payload.
+              Define the message template sent to the agent. Use {'{{placeholder}}'} syntax to
+              reference fields from the transformed payload.
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -318,13 +327,22 @@ export function TriggerForm({ tenantId, projectId, agentId, trigger, mode }: Tri
             <CardDescription>JSON Schema to validate incoming webhook payloads.</CardDescription>
           </CardHeader>
           <CardContent>
-            <GenericTextarea
+            <FormField
               control={form.control}
               name="inputSchemaJson"
-              label="JSON Schema"
-              placeholder={`{\n  "type": "object",\n  "properties": {\n    "event": { "type": "string" }\n  }\n}`}
-              rows={8}
-              className="font-mono text-sm"
+              render={({ field, fieldState }) => (
+                <FormItem>
+                  <ExpandableJsonEditor
+                    name="json-schema-trigger-input"
+                    label="JSON Schema"
+                    value={field.value || ''}
+                    onChange={field.onChange}
+                    placeholder={`{\n  "type": "object",\n  "properties": {\n    "event": { "type": "string" }\n  }\n}`}
+                    error={fieldState.error?.message}
+                  />
+                  <FormMessage />
+                </FormItem>
+              )}
             />
           </CardContent>
         </Card>
@@ -333,7 +351,9 @@ export function TriggerForm({ tenantId, projectId, agentId, trigger, mode }: Tri
         <Card>
           <CardHeader>
             <CardTitle>Output Transform (Optional)</CardTitle>
-            <CardDescription>Transform the incoming payload before interpolating the message template.</CardDescription>
+            <CardDescription>
+              Transform the incoming payload before interpolating the message template.
+            </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
             <GenericInput
@@ -342,13 +362,22 @@ export function TriggerForm({ tenantId, projectId, agentId, trigger, mode }: Tri
               label="JMESPath Expression"
               placeholder="e.g., data.{title: title, body: body}"
             />
-            <GenericTextarea
+            <FormField
               control={form.control}
               name="objectTransformationJson"
-              label="Object Transformation"
-              placeholder={`{\n  "title": "{{issue.title}}",\n  "description": "{{issue.body}}"\n}`}
-              rows={6}
-              className="font-mono text-sm"
+              render={({ field, fieldState }) => (
+                <FormItem>
+                  <ExpandableJsonEditor
+                    name="trigger-object-transformation"
+                    label="Object Transformation"
+                    value={field.value || ''}
+                    onChange={field.onChange}
+                    placeholder={`{\n  "title": "{{issue.title}}",\n  "description": "{{issue.body}}"\n}`}
+                    error={fieldState.error?.message}
+                  />
+                  <FormMessage />
+                </FormItem>
+              )}
             />
           </CardContent>
         </Card>
@@ -357,7 +386,9 @@ export function TriggerForm({ tenantId, projectId, agentId, trigger, mode }: Tri
         <Card>
           <CardHeader>
             <CardTitle>Authentication</CardTitle>
-            <CardDescription>Configure authentication for incoming webhook requests.</CardDescription>
+            <CardDescription>
+              Configure authentication for incoming webhook requests.
+            </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
             <GenericSelect
@@ -428,7 +459,8 @@ export function TriggerForm({ tenantId, projectId, agentId, trigger, mode }: Tri
               type="password"
             />
             <FormDescription>
-              If provided, webhook requests must include a valid X-Signature-256 header for verification.
+              If provided, webhook requests must include a valid X-Signature-256 header for
+              verification.
             </FormDescription>
           </CardContent>
         </Card>
@@ -438,7 +470,9 @@ export function TriggerForm({ tenantId, projectId, agentId, trigger, mode }: Tri
           <Button
             type="button"
             variant="outline"
-            onClick={() => router.push(`/${tenantId}/projects/${projectId}/agents/${agentId}/triggers`)}
+            onClick={() =>
+              router.push(`/${tenantId}/projects/${projectId}/agents/${agentId}/triggers`)
+            }
           >
             Cancel
           </Button>

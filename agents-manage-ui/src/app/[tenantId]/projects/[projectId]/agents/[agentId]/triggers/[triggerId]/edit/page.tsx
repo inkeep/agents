@@ -50,8 +50,17 @@ export default async function EditTriggerPage({ params }: EditTriggerPageProps) 
         'Edit',
       ]}
     >
-      <PageHeader title={`Edit ${trigger.name}`} description="Update the webhook trigger configuration." />
-      <TriggerForm tenantId={tenantId} projectId={projectId} agentId={agentId} trigger={trigger} mode="edit" />
+      <PageHeader
+        title={`Edit ${trigger.name}`}
+        description="Update the webhook trigger configuration."
+      />
+      <TriggerForm
+        tenantId={tenantId}
+        projectId={projectId}
+        agentId={agentId}
+        trigger={trigger}
+        mode="edit"
+      />
     </BodyTemplate>
   );
 }

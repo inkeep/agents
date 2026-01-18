@@ -148,28 +148,6 @@ export const triggers = pgTable(
   ]
 );
 
-export const triggerInvocations = pgTable(
-  'trigger_invocations',
-  {
-    ...agentScoped,
-    triggerId: varchar('trigger_id', { length: 256 }).notNull(),
-    conversationId: varchar('conversation_id', { length: 256 }),
-    status: varchar('status', { length: 20 }).notNull().default('pending'),
-    requestPayload: jsonb('request_payload').notNull(),
-    transformedPayload: jsonb('transformed_payload'),
-    errorMessage: text('error_message'),
-    createdAt: timestamp('created_at', { mode: 'string' }).notNull().defaultNow(),
-  },
-  (table) => [
-    primaryKey({ columns: [table.tenantId, table.projectId, table.agentId, table.id] }),
-    foreignKey({
-      columns: [table.tenantId, table.projectId, table.agentId, table.triggerId],
-      foreignColumns: [triggers.tenantId, triggers.projectId, triggers.agentId, triggers.id],
-      name: 'trigger_invocations_trigger_fk',
-    }).onDelete('cascade'),
-  ]
-);
-
 export const subAgents = pgTable(
   'sub_agents',
   {

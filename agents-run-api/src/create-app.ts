@@ -188,14 +188,31 @@ function createExecutionHono(
     })
   );
 
-  // Apply API key authentication to all routes except health and docs
-  app.use('/tenants/*', apiKeyAuth());
+  // Helper to check if a path is a webhook/trigger route (no API key auth required)
+  const isWebhookRoute = (path: string) => {
+    return (
+      path.includes('/triggers/') && !path.endsWith('/triggers') && !path.endsWith('/triggers/')
+    );
+  };
+
+  // Apply API key authentication to all routes except health, docs, and webhooks
+  app.use('/tenants/*', async (c, next) => {
+    if (isWebhookRoute(c.req.path)) {
+      return next();
+    }
+    return apiKeyAuth()(c, next);
+  });
   app.use('/agents/*', apiKeyAuth());
   app.use('/v1/*', apiKeyAuth());
   app.use('/api/*', apiKeyAuth());
 
-  // Fetch project config from Management API for authenticated routes
-  app.use('/tenants/*', projectConfigMiddleware);
+  // Fetch project config from Management API for authenticated routes (except webhooks)
+  app.use('/tenants/*', async (c, next) => {
+    if (isWebhookRoute(c.req.path)) {
+      return next();
+    }
+    return projectConfigMiddleware(c, next);
+  });
   app.use('/agents/*', projectConfigMiddleware);
   app.use('/v1/*', projectConfigMiddleware);
   app.use('/api/*', projectConfigMiddleware);

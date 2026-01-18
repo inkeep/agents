@@ -1,7 +1,13 @@
 'use server';
 
 import { revalidatePath } from 'next/cache';
-import { createTrigger, deleteTrigger, fetchTriggers, type Trigger, updateTrigger } from '../api/triggers';
+import {
+  createTrigger,
+  deleteTrigger,
+  fetchTriggers,
+  type Trigger,
+  updateTrigger,
+} from '../api/triggers';
 import { ApiError } from '../types/errors';
 import type { ActionResult } from './types';
 

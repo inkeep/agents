@@ -20,11 +20,7 @@ import type {
   EvaluationRunSelect,
   EvaluationRunUpdate,
 } from '../../types/entities';
-import type {
-  EvaluationJobFilterCriteria,
-  Filter,
-  ProjectScopeConfig,
-} from '../../types/utility';
+import type { EvaluationJobFilterCriteria, Filter, ProjectScopeConfig } from '../../types/utility';
 
 // ============================================================================
 // DATASET RUN

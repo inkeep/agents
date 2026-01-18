@@ -423,8 +423,6 @@ export function functionTool(config: FunctionToolConfig): FunctionTool {
  * });
  * ```
  */
-export function trigger(
-  config: Omit<TriggerApiInsert, 'id'> & { id?: string }
-): Trigger {
+export function trigger(config: Omit<TriggerApiInsert, 'id'> & { id?: string }): Trigger {
   return new Trigger(config);
 }

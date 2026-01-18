@@ -1,6 +1,6 @@
 import { and, count, desc, eq, gte, lte } from 'drizzle-orm';
-import type { AgentsManageDatabaseClient } from '../../db/manage/manage-client';
-import { triggerInvocations } from '../../db/manage/manage-schema';
+import type { AgentsRunDatabaseClient } from '../../db/runtime/runtime-client';
+import { triggerInvocations } from '../../db/runtime/runtime-schema';
 import type {
   TriggerInvocationInsert,
   TriggerInvocationSelect,
@@ -12,7 +12,7 @@ import type { AgentScopeConfig, PaginationConfig } from '../../types/utility';
  * Get a trigger invocation by ID (agent-scoped)
  */
 export const getTriggerInvocationById =
-  (db: AgentsManageDatabaseClient) =>
+  (db: AgentsRunDatabaseClient) =>
   async (params: {
     scopes: AgentScopeConfig;
     triggerId: string;
@@ -34,7 +34,7 @@ export const getTriggerInvocationById =
  * List trigger invocations with optional filtering (agent-scoped)
  */
 export const listTriggerInvocationsPaginated =
-  (db: AgentsManageDatabaseClient) =>
+  (db: AgentsRunDatabaseClient) =>
   async (params: {
     scopes: AgentScopeConfig;
     triggerId: string;
@@ -93,7 +93,7 @@ export const listTriggerInvocationsPaginated =
  * Create a new trigger invocation (agent-scoped)
  */
 export const createTriggerInvocation =
-  (db: AgentsManageDatabaseClient) =>
+  (db: AgentsRunDatabaseClient) =>
   async (params: TriggerInvocationInsert): Promise<TriggerInvocationSelect> => {
     const result = await db.insert(triggerInvocations).values(params).returning();
     return result[0] as TriggerInvocationSelect;
@@ -103,7 +103,7 @@ export const createTriggerInvocation =
  * Update trigger invocation status (agent-scoped)
  */
 export const updateTriggerInvocationStatus =
-  (db: AgentsManageDatabaseClient) =>
+  (db: AgentsRunDatabaseClient) =>
   async (params: {
     scopes: AgentScopeConfig;
     triggerId: string;

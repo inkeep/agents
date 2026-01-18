@@ -21,7 +21,7 @@ export interface TriggerAuthResult {
  */
 export function verifyTriggerAuth(
   c: Context,
-  authentication?: TriggerAuthentication | null,
+  authentication?: TriggerAuthentication | null
 ): TriggerAuthResult {
   // No authentication configured - allow all requests
   if (!authentication || authentication.type === 'none') {
@@ -154,7 +154,7 @@ export function verifyTriggerAuth(
 export function verifySigningSecret(
   c: Context,
   signingSecret: string | null | undefined,
-  body: string,
+  body: string
 ): TriggerAuthResult {
   // No signing secret configured - skip verification
   if (!signingSecret) {

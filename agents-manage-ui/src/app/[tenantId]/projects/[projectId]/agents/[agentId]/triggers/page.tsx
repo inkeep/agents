@@ -1,7 +1,7 @@
 import { notFound } from 'next/navigation';
+import { TriggersTable } from '@/components/triggers/triggers-table';
 import { getFullAgentAction } from '@/lib/actions/agent-full';
 import { getTriggersAction } from '@/lib/actions/triggers';
-import { TriggersTable } from '@/components/triggers/triggers-table';
 
 interface TriggersPageProps {
   params: Promise<{

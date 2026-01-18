@@ -38,11 +38,17 @@ export default async function InvocationsPage({ params, searchParams }: Invocati
   }
 
   // Fetch invocations
-  const invocationsResponse = await fetchTriggerInvocations(tenantId, projectId, agentId, triggerId, {
-    status,
-    page: page ? parseInt(page) : 1,
-    limit: 50,
-  });
+  const invocationsResponse = await fetchTriggerInvocations(
+    tenantId,
+    projectId,
+    agentId,
+    triggerId,
+    {
+      status,
+      page: page ? parseInt(page) : 1,
+      limit: 50,
+    }
+  );
 
   return (
     <BodyTemplate
@@ -68,7 +74,12 @@ export default async function InvocationsPage({ params, searchParams }: Invocati
       />
       <InvocationsTable
         invocations={invocationsResponse.data}
-        metadata={invocationsResponse.metadata}
+        metadata={{
+          total: invocationsResponse.pagination.total,
+          page: invocationsResponse.pagination.page,
+          limit: invocationsResponse.pagination.pageSize,
+          pages: invocationsResponse.pagination.totalPages,
+        }}
         tenantId={tenantId}
         projectId={projectId}
         agentId={agentId}

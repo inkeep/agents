@@ -45,7 +45,6 @@ import {
   subAgentTeamAgentRelations,
   subAgentToolRelations,
   tools,
-  triggerInvocations,
   triggers,
 } from '../db/manage/manage-schema';
 
@@ -63,6 +62,7 @@ import {
   projectMetadata,
   taskRelations,
   tasks,
+  triggerInvocations,
 } from '../db/runtime/runtime-schema';
 import {
   CredentialStoreType,
@@ -411,13 +411,15 @@ export const TriggerInsertSchema = createInsertSchema(triggers, {
 
 export const TriggerUpdateSchema = TriggerInsertSchema.partial();
 
-export const TriggerApiSelectSchema = createAgentScopedApiSchema(TriggerSelectSchema).openapi('Trigger');
+export const TriggerApiSelectSchema =
+  createAgentScopedApiSchema(TriggerSelectSchema).openapi('Trigger');
 export const TriggerApiInsertSchema = createAgentScopedApiInsertSchema(TriggerInsertSchema)
   .extend({
-    id: resourceIdSchema,
+    id: resourceIdSchema.optional(),
   })
   .openapi('TriggerCreate');
-export const TriggerApiUpdateSchema = createAgentScopedApiUpdateSchema(TriggerUpdateSchema).openapi('TriggerUpdate');
+export const TriggerApiUpdateSchema =
+  createAgentScopedApiUpdateSchema(TriggerUpdateSchema).openapi('TriggerUpdate');
 
 // Trigger Invocation schemas
 export const TriggerInvocationSelectSchema = createSelectSchema(triggerInvocations);
@@ -435,13 +437,19 @@ export const TriggerInvocationInsertSchema = createInsertSchema(triggerInvocatio
 
 export const TriggerInvocationUpdateSchema = TriggerInvocationInsertSchema.partial();
 
-export const TriggerInvocationApiSelectSchema = createAgentScopedApiSchema(TriggerInvocationSelectSchema).openapi('TriggerInvocation');
-export const TriggerInvocationApiInsertSchema = createAgentScopedApiInsertSchema(TriggerInvocationInsertSchema)
+export const TriggerInvocationApiSelectSchema = createAgentScopedApiSchema(
+  TriggerInvocationSelectSchema
+).openapi('TriggerInvocation');
+export const TriggerInvocationApiInsertSchema = createAgentScopedApiInsertSchema(
+  TriggerInvocationInsertSchema
+)
   .extend({
     id: resourceIdSchema,
   })
   .openapi('TriggerInvocationCreate');
-export const TriggerInvocationApiUpdateSchema = createAgentScopedApiUpdateSchema(TriggerInvocationUpdateSchema).openapi('TriggerInvocationUpdate');
+export const TriggerInvocationApiUpdateSchema = createAgentScopedApiUpdateSchema(
+  TriggerInvocationUpdateSchema
+).openapi('TriggerInvocationUpdate');
 
 export const TaskSelectSchema = createSelectSchema(tasks);
 export const TaskInsertSchema = createInsertSchema(tasks).extend({

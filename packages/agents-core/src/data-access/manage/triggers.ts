@@ -1,21 +1,59 @@
-import { and, count, desc, eq } from 'drizzle-orm';
+import { and, count, desc, eq, sql } from 'drizzle-orm';
 import type { AgentsManageDatabaseClient } from '../../db/manage/manage-client';
 import { triggers } from '../../db/manage/manage-schema';
 import type { TriggerInsert, TriggerSelect, TriggerUpdate } from '../../types/entities';
 import type { AgentScopeConfig, PaginationConfig } from '../../types/utility';
 
 /**
+ * Get the branch name for a tenant/project combination
+ */
+const getProjectBranchName = (tenantId: string, projectId: string): string =>
+  `${tenantId}_${projectId}_main`;
+
+/**
  * Get a trigger by ID (agent-scoped)
+ * If no branch context is established on the connection, this will use the project's main branch
+ * via Dolt's AS OF syntax for branch-scoped reads.
  */
 export const getTriggerById =
   (db: AgentsManageDatabaseClient) =>
-  async (params: { scopes: AgentScopeConfig; triggerId: string }): Promise<TriggerSelect | undefined> => {
+  async (params: {
+    scopes: AgentScopeConfig;
+    triggerId: string;
+    /** If true, uses AS OF syntax to read from the project branch. Default: true for non-branch-scoped clients */
+    useBranchScope?: boolean;
+  }): Promise<TriggerSelect | undefined> => {
+    const { scopes, triggerId, useBranchScope = true } = params;
+
+    // If useBranchScope is enabled, use AS OF syntax to query the correct branch
+    if (useBranchScope) {
+      const branchName = getProjectBranchName(scopes.tenantId, scopes.projectId);
+      try {
+        const result = await db.execute(
+          sql`SELECT * FROM triggers AS OF ${sql.raw(`'${branchName}'`)} 
+              WHERE tenant_id = ${scopes.tenantId} 
+              AND project_id = ${scopes.projectId} 
+              AND agent_id = ${scopes.agentId} 
+              AND id = ${triggerId}
+              LIMIT 1`
+        );
+        if (result.rows.length > 0) {
+          return result.rows[0] as unknown as TriggerSelect;
+        }
+        return undefined;
+      } catch {
+        // If AS OF fails (branch doesn't exist), fall back to regular query
+        // This handles the case where we're already on the correct branch
+      }
+    }
+
+    // Fallback: regular query (for when connection is already branch-scoped)
     const result = await db.query.triggers.findFirst({
       where: and(
-        eq(triggers.tenantId, params.scopes.tenantId),
-        eq(triggers.projectId, params.scopes.projectId),
-        eq(triggers.agentId, params.scopes.agentId),
-        eq(triggers.id, params.triggerId)
+        eq(triggers.tenantId, scopes.tenantId),
+        eq(triggers.projectId, scopes.projectId),
+        eq(triggers.agentId, scopes.agentId),
+        eq(triggers.id, triggerId)
       ),
     });
     return result as TriggerSelect | undefined;
