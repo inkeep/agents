@@ -1,7 +1,7 @@
 'use client';
 
+import type { ComponentProps, FC } from 'react';
 import { cn } from '@/lib/utils';
-import type { FC, ComponentProps } from 'react';
 
 interface ProgressProps extends ComponentProps<'div'> {
   /** @default 0 */
