@@ -5,7 +5,7 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import { Suspense, useEffect, useState } from 'react';
 import { usePostHog } from '@/contexts/posthog';
 import { useRuntimeConfig } from '@/contexts/runtime-config';
-import { useAuthSession } from '@/hooks/use-auth';
+import { useAuthSession, type User } from '@/hooks/use-auth';
 import { getPendingInvitations } from '@/lib/actions/invitations';
 import { getUserOrganizations } from '@/lib/actions/user-organizations';
 import { DEFAULT_TENANT_ID } from '@/lib/runtime-config/defaults';
@@ -73,9 +73,9 @@ function HomeContent() {
         router.push(returnUrl);
         return;
       }
-
-      // Authenticated - find their organization
-      try {
+      // Workaround for a React Compiler limitation.
+      // Todo: Support value blocks (conditional, logical, optional chaining, etc) within a try/catch statement
+      async function doRequest(user: User) {
         const userOrganizations = await getUserOrganizations(user.id);
 
         // No organizations - check for pending invitations
@@ -106,6 +106,11 @@ function HomeContent() {
         // Redirect to projects page
         setIsRedirecting(true);
         router.push(`/${organizationId}/projects`);
+      }
+
+      try {
+        // Authenticated - find their organization
+        await doRequest(user);
       } catch (error) {
         console.error(error);
         setIsRedirecting(true);
