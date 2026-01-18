@@ -218,8 +218,9 @@ export function useOAuthLogin({
       await handleOAuthLoginManually(toolId, thirdPartyConnectAccountUrl);
       return;
     }
-
-    try {
+    // Workaround for a React Compiler limitation.
+    // Todo: (BuildHIR::lowerStatement) Support ThrowStatement inside of try/catch
+    async function doAction() {
       // Check credential stores availability
       const credentialStoresStatus = await listCredentialStores(tenantId, projectId);
 
@@ -244,6 +245,10 @@ export function useOAuthLogin({
       } else {
         throw new Error('No credential store available. Please configure Nango or Keychain.');
       }
+    }
+
+    try {
+      await doAction();
     } catch (error) {
       const errorObj = error instanceof Error ? error : new Error('OAuth login failed');
       toast.error(errorObj.message);
