@@ -10,7 +10,7 @@ import { GenericSelect } from '@/components/form/generic-select';
 import { Button } from '@/components/ui/button';
 import { Form } from '@/components/ui/form';
 import { createApiKeyAction } from '@/lib/actions/api-keys';
-import type { ApiKey, ApiKeyCreateResponse } from '@/lib/api/api-keys';
+import type { ApiKeyCreateResponse } from '@/lib/api/api-keys';
 import { defaultValues } from './form-configuration';
 import { type ApiKeyFormData, apiKeySchema, EXPIRATION_DATE_OPTIONS } from './validation';
 
@@ -24,7 +24,7 @@ interface ApiKeyFormProps {
 
 const convertDurationToDate = (duration: string): string | undefined => {
   if (duration === 'never') {
-    return undefined;
+    return;
   }
 
   const now = new Date();
@@ -46,7 +46,7 @@ const convertDurationToDate = (duration: string): string | undefined => {
       now.setFullYear(now.getFullYear() + 1);
       break;
     default:
-      return undefined;
+      return;
   }
 
   return now.toISOString();
@@ -67,17 +67,14 @@ export function ApiKeyForm({
   const { isSubmitting } = form.formState;
 
   const onSubmit = form.handleSubmit(async (data) => {
-    try {
-      const expiresAt = data.expiresAt ? convertDurationToDate(data.expiresAt) : undefined;
-      const name = data.name;
-
-      const payload: Partial<ApiKey> = {
+    // Workaround for a React Compiler limitation.
+    // Todo: Support value blocks (conditional, logical, optional chaining, etc) within a try/catch statement
+    async function doRequest() {
+      const res = await createApiKeyAction(tenantId, projectId, {
         agentId: data.agentId,
-        expiresAt,
-        name,
-      };
-
-      const res = await createApiKeyAction(tenantId, projectId, payload);
+        expiresAt: data.expiresAt ? convertDurationToDate(data.expiresAt) : undefined,
+        name: data.name,
+      });
       if (!res.success) {
         toast.error(res.error || 'Failed to create api key');
         return;
@@ -87,6 +84,9 @@ export function ApiKeyForm({
         onApiKeyCreated?.(res.data);
       }
       toast.success('API key created successfully');
+    }
+    try {
+      await doRequest();
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'An unexpected error occurred';
       toast.error(errorMessage);
