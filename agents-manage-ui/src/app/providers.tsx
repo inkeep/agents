@@ -24,6 +24,7 @@ export function usePostHog() {
   return useContext(PostHogContext);
 }
 
+// Workaround for a React Compiler limitation.
 function importPostHog() {
   return Promise.all([import('posthog-js'), import('@posthog/react')]);
 }
