@@ -32,7 +32,9 @@ export default function SettingsPage() {
 
   const fetchOrganization = async () => {
     if (!tenantId) return;
-    try {
+    // Workaround for a React Compiler limitation.
+    // Todo: Support value blocks (conditional, logical, optional chaining, etc) within a try/catch statement
+    async function doRequest() {
       const [orgResult, memberResult] = await Promise.all([
         authClient.organization.getFullOrganization({
           query: {
@@ -55,6 +57,9 @@ export default function SettingsPage() {
       if (memberResult.data) {
         setCurrentMember(memberResult.data as Member);
       }
+    }
+    try {
+      await doRequest();
     } catch (err) {
       setError(getErrorMessage(err));
     }
