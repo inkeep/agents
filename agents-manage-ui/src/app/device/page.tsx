@@ -30,6 +30,25 @@ function formatUserCode(code: string): string {
   return cleaned;
 }
 
+const StateToMessage: Record<DeviceState, string> = {
+  input: 'Enter the code displayed in your CLI to authorize the device.',
+  get validating() {
+    return this.input;
+  },
+  confirm: 'Confirm that you want to authorize this device.',
+  get approving() {
+    return this.confirm;
+  },
+  approved: 'Device authorized successfully.',
+  denied: 'Device authorization denied.',
+  error: 'An error occurred.',
+};
+// Workaround for a React Compiler limitation.
+// Todo: Support value blocks (conditional, logical, optional chaining, etc) within a try/catch statement
+function getMessage(message: string | undefined | null, fallback: string): string {
+  return message || fallback;
+}
+
 function DeviceVerificationForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -59,7 +78,7 @@ function DeviceVerificationForm() {
       });
 
       if (response.error) {
-        setError(response.error.error_description || 'Invalid or expired code');
+        setError(getMessage(response.error.error_description, 'Invalid or expired code'));
         setState('error');
         return;
       }
@@ -95,7 +114,7 @@ function DeviceVerificationForm() {
       });
 
       if (response.error) {
-        setError(response.error.error_description || 'Failed to approve device');
+        setError(getMessage(response.error.error_description, 'Failed to approve device'));
         setState('error');
         return;
       }
@@ -118,7 +137,7 @@ function DeviceVerificationForm() {
       });
 
       if (response.error) {
-        setError(response.error.error_description || 'Failed to deny device');
+        setError(getMessage(response.error.error_description, 'Failed to deny device'));
         setState('error');
         return;
       }
@@ -165,17 +184,7 @@ function DeviceVerificationForm() {
             <Terminal className="h-6 w-6" />
             Device Authorization
           </CardTitle>
-          <CardDescription>
-            {state === 'input' || state === 'validating'
-              ? 'Enter the code displayed in your CLI to authorize the device.'
-              : state === 'confirm' || state === 'approving'
-                ? 'Confirm that you want to authorize this device.'
-                : state === 'approved'
-                  ? 'Device authorized successfully.'
-                  : state === 'denied'
-                    ? 'Device authorization denied.'
-                    : 'An error occurred.'}
-          </CardDescription>
+          <CardDescription>{StateToMessage[state] ?? StateToMessage.error}</CardDescription>
         </CardHeader>
         <CardContent className="space-y-5">
           {error && (

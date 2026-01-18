@@ -101,10 +101,9 @@ export function ToolCallsBreakdown({ onBack }: ToolCallsBreakdownProps) {
     const fetchData = async () => {
       setLoading(true);
       setError(null);
+      const serverFilter = selectedServer === 'all' ? undefined : selectedServer;
       try {
         const client = getSigNozStatsClient();
-        const serverFilter = selectedServer === 'all' ? undefined : selectedServer;
-
         const [toolData, uniqueServers, uniqueTools] = await Promise.all([
           client.getToolCallsByTool(startTime, endTime, serverFilter, params.projectId as string),
           client.getUniqueToolServers(startTime, endTime, params.projectId as string),
