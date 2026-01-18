@@ -8,7 +8,7 @@ import { useChatActivitiesPolling } from '@/hooks/use-chat-activities-polling';
 import type { DataComponent } from '@/lib/api/data-components';
 import { generateId } from '@/lib/utils/id-utils';
 import { copyTraceToClipboard } from '@/lib/utils/trace-formatter';
-import { useCopilotContext } from '../copilot/copilot-context';
+import { useCopilotContext } from '@/contexts/copilot';
 import { ChatWidget } from './chat-widget';
 import CustomHeadersDialog from './custom-headers-dialog';
 

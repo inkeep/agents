@@ -1,7 +1,7 @@
 'use client';
 
 import { createContext, useContext, useEffect, useState } from 'react';
-import { useRuntimeConfig } from '@/contexts/runtime-config-context';
+import { useRuntimeConfig } from '@/contexts/runtime-config';
 
 type PostHogClient = {
   identify: (
@@ -72,14 +72,14 @@ export function PostHogProvider({ children }: { children: React.ReactNode }) {
 
   // Analytics disabled → behave like a passthrough provider
   if (!ENABLE_POSTHOG || !modules) {
-    return <PostHogContext.Provider value={null}>{children}</PostHogContext.Provider>;
+    return <PostHogContext value={null}>{children}</PostHogContext>;
   }
 
   const { posthog, PostHogProvider: PHProvider } = modules;
 
   return (
-    <PostHogContext.Provider value={posthog}>
+    <PostHogContext value={posthog}>
       <PHProvider client={posthog}>{children}</PHProvider>
-    </PostHogContext.Provider>
+    </PostHogContext>
   );
 }

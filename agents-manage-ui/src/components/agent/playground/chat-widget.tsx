@@ -4,11 +4,11 @@ import type { InkeepCallbackEvent, InvokeMessageCallbackActionArgs } from '@inke
 import { type Dispatch, useCallback, useEffect, useRef, useState } from 'react';
 import { DynamicComponentRenderer } from '@/components/dynamic-component-renderer';
 import type { ConversationDetail } from '@/components/traces/timeline/types';
-import { useRuntimeConfig } from '@/contexts/runtime-config-context';
+import { useRuntimeConfig } from '@/contexts/runtime-config';
 import { useTempApiKey } from '@/hooks/use-temp-api-key';
 import type { DataComponent } from '@/lib/api/data-components';
 import { generateId } from '@/lib/utils/id-utils';
-import { useCopilotContext } from '../copilot/copilot-context';
+import { useCopilotContext } from '@/contexts/copilot';
 import { FeedbackDialog } from './feedback-dialog';
 
 interface ChatWidgetProps {

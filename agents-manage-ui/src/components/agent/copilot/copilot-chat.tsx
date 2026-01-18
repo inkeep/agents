@@ -6,12 +6,12 @@ import { Loader2, RefreshCw } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
-import { useRuntimeConfig } from '@/contexts/runtime-config-context';
+import { useRuntimeConfig } from '@/contexts/runtime-config';
 import { useCopilotToken } from '@/hooks/use-copilot-token';
 import { useOAuthLogin } from '@/hooks/use-oauth-login';
 import { sentry } from '@/lib/sentry';
 import { generateId } from '@/lib/utils/id-utils';
-import { useCopilotContext } from './copilot-context';
+import { useCopilotContext } from '@/contexts/copilot';
 import { IkpMessage } from './message-parts/message';
 
 interface CopilotChatProps {

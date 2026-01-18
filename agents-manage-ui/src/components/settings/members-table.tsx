@@ -17,8 +17,8 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
-import { useRuntimeConfig } from '@/contexts/runtime-config-context';
-import { type useAuthClient as UseAuthClientType, useAuthClient } from '@/lib/auth-client';
+import { useRuntimeConfig } from '@/contexts/runtime-config';
+import { type useAuthClient as UseAuthClientType, useAuthClient } from '@/contexts/auth-client';
 
 type FullOrganization = NonNullable<
   Awaited<
