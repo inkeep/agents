@@ -34,8 +34,9 @@ export default function AcceptInvitationPage() {
         setIsLoading(false);
         return;
       }
-
-      try {
+      // Workaround for a React Compiler limitation.
+      // Todo: Support value blocks (conditional, logical, optional chaining, etc) within a try/catch statement
+      async function doRequest() {
         const result = await authClient.organization.getInvitation({
           query: { id: invitationId },
         });
@@ -49,6 +50,9 @@ export default function AcceptInvitationPage() {
         if ('data' in result && result.data) {
           setInvitation(result.data);
         }
+      }
+      try {
+        await doRequest();
       } catch {
         setError('Failed to load invitation');
       }
