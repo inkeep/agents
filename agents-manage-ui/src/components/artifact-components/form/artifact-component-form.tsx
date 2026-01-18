@@ -17,7 +17,7 @@ import {
   updateArtifactComponentAction,
 } from '@/lib/actions/artifact-components';
 import type { ArtifactComponent } from '@/lib/api/artifact-components';
-import { formatJsonField } from '@/lib/utils';
+import { formatJsonField, getValueOrFallback } from '@/lib/utils';
 import { DeleteArtifactComponentConfirmation } from '../delete-artifact-component-confirmation';
 import { ComponentRenderGenerator } from '../render/component-render-generator';
 import { defaultValues } from './form-configuration';
@@ -76,7 +76,7 @@ export function ArtifactComponentForm({
       if (id) {
         const res = await updateArtifactComponentAction(tenantId, projectId, payload);
         if (!res.success) {
-          toast.error(res.error || 'Failed to update artifact.');
+          toast.error(getValueOrFallback(res.error, 'Failed to update artifact.'));
           return;
         }
         toast.success('Artifact updated.');
@@ -84,7 +84,7 @@ export function ArtifactComponentForm({
       }
       const res = await createArtifactComponentAction(tenantId, projectId, payload);
       if (!res.success) {
-        toast.error(res.error || 'Failed to create artifact');
+        toast.error(getValueOrFallback(res.error, 'Failed to create artifact'));
         return;
       }
       toast.success('Artifact created.');
@@ -167,7 +167,7 @@ export function ArtifactComponentForm({
           artifactComponentId={id}
           artifactComponentName={form.getValues('name')}
           setIsOpen={setIsDeleteOpen}
-          redirectOnDelete={true}
+          redirectOnDelete
         />
       )}
     </Dialog>
