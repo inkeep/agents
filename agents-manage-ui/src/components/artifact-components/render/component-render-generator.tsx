@@ -52,7 +52,9 @@ export function ComponentRenderGenerator({
     setIsComplete(false);
     setIsSaved(false);
 
-    try {
+    // Workaround for a React Compiler limitation.
+    // Todo: (BuildHIR::lowerStatement) Support ThrowStatement inside of try/catch
+    async function doRequest() {
       const response = await fetch(
         `/api/artifact-components/${artifactComponentId}/generate-render`,
         {
@@ -115,13 +117,16 @@ export function ComponentRenderGenerator({
       } else {
         throw new Error('No valid render generated');
       }
+    }
+
+    try {
+      await doRequest();
     } catch (error) {
       console.error('Failed to generate render:', error);
       toast.error('Failed to generate render');
       setIsComplete(true);
-    } finally {
-      setIsGenerating(false);
     }
+    setIsGenerating(false);
   };
 
   const handleDeletePreview = async () => {
@@ -133,14 +138,15 @@ export function ComponentRenderGenerator({
       });
       setRender(null);
       setIsSaved(false);
-      onRenderChanged?.(null);
+      if (onRenderChanged) {
+        onRenderChanged(null);
+      }
       toast.success('Render deleted');
     } catch (error) {
       console.error('Error deleting render:', error);
       toast.error('Failed to delete render');
-    } finally {
-      setIsDeleting(false);
     }
+    setIsDeleting(false);
   };
 
   const hasRender = render !== null && (render.component?.trim().length ?? 0) > 0;
@@ -156,7 +162,9 @@ export function ComponentRenderGenerator({
       const parsedData = JSON.parse(newData);
       const updatedRender = { ...render, mockData: parsedData };
       setRender(updatedRender);
-      onRenderChanged?.(updatedRender);
+      if (onRenderChanged) {
+        onRenderChanged(updatedRender);
+      }
     } catch {
       // Invalid JSON, ignore
     }

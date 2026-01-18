@@ -67,8 +67,6 @@ function getCredentialAuthenticationType(credential: Credential): string | undef
 
     return 'Bearer authentication';
   }
-
-  return undefined;
 }
 
 export function EditCredentialForm({
@@ -90,7 +88,9 @@ export function EditCredentialForm({
   const { isSubmitting } = form.formState;
 
   const handleUpdateCredential = form.handleSubmit(async (formData) => {
-    try {
+    // Workaround for a React Compiler limitation.
+    // Todo: Support value blocks (conditional, logical, optional chaining, etc) within a try/catch statement
+    async function doRequest() {
       await updateCredential(tenantId, projectId, credential.id, {
         name: formData.name.trim(),
       });
@@ -110,6 +110,9 @@ export function EditCredentialForm({
 
       toast.success('Credential updated successfully');
       router.push(`/${tenantId}/projects/${projectId}/credentials`);
+    }
+    try {
+      await doRequest();
     } catch (err) {
       console.error('Failed to update credential:', err);
       toast(err instanceof Error ? err.message : 'Failed to update credential');
@@ -173,7 +176,7 @@ export function EditCredentialForm({
             {credential.createdBy && (
               <div className="space-y-3">
                 <Label>Created by</Label>
-                <Input type="text" disabled={true} value={credential.createdBy} />
+                <Input type="text" disabled value={credential.createdBy} />
               </div>
             )}
 
