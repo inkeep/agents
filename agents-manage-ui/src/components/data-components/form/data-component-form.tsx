@@ -18,7 +18,7 @@ import {
   updateDataComponentAction,
 } from '@/lib/actions/data-components';
 import type { DataComponent } from '@/lib/api/data-components';
-import { formatJsonField, getValueOrFallback } from '@/lib/utils';
+import { formatJsonField } from '@/lib/utils';
 import { DeleteDataComponentConfirmation } from '../delete-data-component-confirmation';
 import { ComponentRenderGenerator } from '../render/component-render-generator';
 import { defaultValues } from './form-configuration';
@@ -70,7 +70,7 @@ export function DataComponentForm({
       if (id) {
         const res = await updateDataComponentAction(tenantId, projectId, payload);
         if (!res.success) {
-          toast.error(getValueOrFallback(res.error, 'Failed to update component'));
+          toast.error(res.error || 'Failed to update component');
           return;
         }
         toast.success('Component updated');
