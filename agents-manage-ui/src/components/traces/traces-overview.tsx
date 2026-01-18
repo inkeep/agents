@@ -151,8 +151,8 @@ export function TracesOverview({ refreshKey }: TracesOverviewProps) {
   // Fetch conversations per day activity
   useEffect(() => {
     const fetchActivity = async () => {
+      setActivityLoading(true);
       try {
-        setActivityLoading(true);
         const client = getSigNozStatsClient(tenantId as string);
         const agentId = selectedAgent ? selectedAgent : undefined;
         console.log('🔍 Fetching activity data:', {
@@ -172,9 +172,8 @@ export function TracesOverview({ refreshKey }: TracesOverviewProps) {
       } catch (e) {
         console.error('Failed to fetch conversation activity:', e);
         setActivityData([]);
-      } finally {
-        setActivityLoading(false);
       }
+      setActivityLoading(false);
     };
     if (startTime && endTime && tenantId) {
       fetchActivity();
@@ -199,9 +198,8 @@ export function TracesOverview({ refreshKey }: TracesOverviewProps) {
       } catch (error) {
         console.error('Failed to fetch span names:', error);
         setAvailableSpanNames([]);
-      } finally {
-        setSpanNamesLoading(false);
       }
+      setSpanNamesLoading(false);
     };
 
     // Only fetch if we have valid time range

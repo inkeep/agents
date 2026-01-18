@@ -36,9 +36,8 @@ export function usePrebuiltMCPServers(
       } catch {
         console.error('Failed to fetch MCP catalog');
         setServers([]);
-      } finally {
-        setIsLoading(false);
       }
+      setIsLoading(false);
     };
 
     fetchServers();

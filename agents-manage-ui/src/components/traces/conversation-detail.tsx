@@ -61,30 +61,28 @@ export function ConversationDetail({ conversationId, onBack }: ConversationDetai
       toast.error('Failed to copy trace', {
         description: err instanceof Error ? err.message : 'An unknown error occurred',
       });
-    } finally {
-      await new Promise((resolve) => setTimeout(resolve, 200));
-      setIsCopying(false);
     }
+    await new Promise((resolve) => setTimeout(resolve, 200));
+    setIsCopying(false);
   };
 
   useEffect(() => {
     const fetchConversationDetail = async () => {
+      setLoading(true);
+      setError(null);
       try {
-        setLoading(true);
-        setError(null);
-
         const response = await fetch(
           `/api/signoz/conversations/${conversationId}?tenantId=${tenantId}&projectId=${projectId}`
         );
-
-        if (!response.ok) throw new Error('Failed to fetch conversation details');
+        if (!response.ok) {
+          throw new Error('Failed to fetch conversation details');
+        }
         const data = await response.json();
         setConversation(data);
       } catch (err) {
         setError(err instanceof Error ? err.message : 'An error occurred');
-      } finally {
-        setLoading(false);
       }
+      setLoading(false);
     };
 
     if (conversationId && tenantId && projectId) fetchConversationDetail();

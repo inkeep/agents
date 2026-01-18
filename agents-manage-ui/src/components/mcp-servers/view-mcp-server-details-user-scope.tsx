@@ -58,9 +58,8 @@ export function ViewMCPServerDetailsUserScope({
       } catch (error) {
         console.error('Failed to fetch user credential:', error);
         setUserCredential(null);
-      } finally {
-        setIsLoadingCredential(false);
       }
+      setIsLoadingCredential(false);
     };
 
     loadUserCredential();
@@ -83,9 +82,8 @@ export function ViewMCPServerDetailsUserScope({
           }
         } catch (error) {
           console.error('Failed to fetch third-party MCP server details:', error);
-        } finally {
-          setIsLoadingThirdParty(false);
         }
+        setIsLoadingThirdParty(false);
       };
 
       fetchServerDetails();

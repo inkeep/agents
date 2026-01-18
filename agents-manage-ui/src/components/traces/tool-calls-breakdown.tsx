@@ -99,10 +99,9 @@ export function ToolCallsBreakdown({ onBack }: ToolCallsBreakdownProps) {
 
   useEffect(() => {
     const fetchData = async () => {
+      setLoading(true);
+      setError(null);
       try {
-        setLoading(true);
-        setError(null);
-
         const client = getSigNozStatsClient();
         const serverFilter = selectedServer === 'all' ? undefined : selectedServer;
 
@@ -118,9 +117,8 @@ export function ToolCallsBreakdown({ onBack }: ToolCallsBreakdownProps) {
       } catch (err) {
         console.error('Error fetching tool calls data:', err);
         setError(err instanceof Error ? err.message : 'Failed to fetch tool calls data');
-      } finally {
-        setLoading(false);
       }
+      setLoading(false);
     };
 
     fetchData();

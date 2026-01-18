@@ -38,17 +38,16 @@ export function DatasetRunsList({
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
 
   const loadRuns = async () => {
+    setLoading(true);
+    setError(null);
     try {
-      setLoading(true);
-      setError(null);
       const response = await fetchDatasetRuns(tenantId, projectId, datasetId);
       setRuns(response.data || []);
     } catch (err) {
       console.error('Error loading dataset runs:', err);
       setError(err instanceof Error ? err.message : 'Failed to load runs');
-    } finally {
-      setLoading(false);
     }
+    setLoading(false);
   };
 
   useEffect(() => {

@@ -26,17 +26,14 @@ export function DeleteApiKeyConfirmation({
 
   const handleDelete = async () => {
     setIsSubmitting(true);
-    try {
-      const result = await deleteApiKeyAction(tenantId, projectId, apiKeyId);
-      if (result.success) {
-        setIsOpen(false);
-        toast.success('API key deleted.');
-      } else {
-        toast.error(result.error);
-      }
-    } finally {
-      setIsSubmitting(false);
+    const result = await deleteApiKeyAction(tenantId, projectId, apiKeyId);
+    if (result.success) {
+      setIsOpen(false);
+      toast.success('API key deleted.');
+    } else {
+      toast.error(result.error);
     }
+    setIsSubmitting(false);
   };
 
   return (

@@ -59,9 +59,8 @@ export function ViewMCPServerDetailsProjectScope({
           }
         } catch (error) {
           console.error('Failed to fetch third-party MCP server details:', error);
-        } finally {
-          setIsLoadingThirdParty(false);
         }
+        setIsLoadingThirdParty(false);
       };
 
       fetchServerDetails();

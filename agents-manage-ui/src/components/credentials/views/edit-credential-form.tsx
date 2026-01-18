@@ -118,18 +118,15 @@ export function EditCredentialForm({
 
   const handleDelete = async () => {
     setIsDeleting(true);
-    try {
-      const result = await deleteCredentialAction(tenantId, projectId, credential.id);
-      if (result.success) {
-        setIsDeleteOpen(false);
-        toast.success('Credential deleted.');
-        router.push(`/${tenantId}/projects/${projectId}/credentials`);
-      } else {
-        toast.error(result.error);
-      }
-    } finally {
-      setIsDeleting(false);
+    const result = await deleteCredentialAction(tenantId, projectId, credential.id);
+    if (result.success) {
+      setIsDeleteOpen(false);
+      toast.success('Credential deleted.');
+      router.push(`/${tenantId}/projects/${projectId}/credentials`);
+    } else {
+      toast.error(result.error);
     }
+    setIsDeleting(false);
   };
 
   const credentialAuthenticationType = getCredentialAuthenticationType(credential);

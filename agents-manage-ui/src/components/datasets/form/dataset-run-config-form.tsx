@@ -81,9 +81,9 @@ export function DatasetRunConfigForm({
 
   useEffect(() => {
     const fetchData = async () => {
+      setLoadingAgents(true);
+      setLoadingEvaluators(true);
       try {
-        setLoadingAgents(true);
-        setLoadingEvaluators(true);
         const [agentsResult, evaluatorsResult] = await Promise.all([
           getAllAgentsAction(tenantId, projectId),
           fetchEvaluators(tenantId, projectId),
@@ -97,10 +97,9 @@ export function DatasetRunConfigForm({
       } catch (error) {
         console.error('Failed to fetch data:', error);
         toast.error('Failed to load data');
-      } finally {
-        setLoadingAgents(false);
-        setLoadingEvaluators(false);
       }
+      setLoadingAgents(false);
+      setLoadingEvaluators(false);
     };
 
     fetchData();

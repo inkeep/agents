@@ -109,10 +109,9 @@ export function AICallsBreakdown({ onBack }: AICallsBreakdownProps) {
   // Fetch AI calls by agent and model
   useEffect(() => {
     const fetchData = async () => {
+      setLoading(true);
+      setError(null);
       try {
-        setLoading(true);
-        setError(null);
-
         const client = getSigNozStatsClient(tenantId);
 
         const agentId = selectedAgent === 'all' ? undefined : selectedAgent;
@@ -139,9 +138,8 @@ export function AICallsBreakdown({ onBack }: AICallsBreakdownProps) {
       } catch (err) {
         console.error('Error fetching AI calls data:', err);
         setError(err instanceof Error ? err.message : 'Failed to fetch AI calls data');
-      } finally {
-        setLoading(false);
       }
+      setLoading(false);
     };
 
     fetchData();
