@@ -112,9 +112,8 @@ function ProviderSetupPage({
       } else {
         toast.error('Failed to create credential. Please try again.');
       }
-    } finally {
-      setLoading(false);
     }
+    setLoading(false);
   };
 
   // Auto-connect when no credential form is required

@@ -52,9 +52,8 @@ export default function SettingsPage() {
       }
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to fetch organization');
-    } finally {
-      setLoading(false);
     }
+    setLoading(false);
   };
 
   useEffect(() => {

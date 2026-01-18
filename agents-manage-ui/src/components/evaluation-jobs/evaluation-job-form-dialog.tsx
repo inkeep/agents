@@ -64,9 +64,8 @@ export function EvaluationJobFormDialog({
     } catch (error) {
       console.error('Error loading data:', error);
       toast.error('Failed to load data');
-    } finally {
-      setLoading(false);
     }
+    setLoading(false);
   };
 
   useEffect(() => {
