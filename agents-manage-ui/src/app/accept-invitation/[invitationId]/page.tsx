@@ -8,8 +8,8 @@ import { InkeepIcon } from '@/components/icons/inkeep';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { useAuthSession } from '@/hooks/use-auth';
 import { useAuthClient } from '@/contexts/auth-client';
+import { useAuthSession } from '@/hooks/use-auth';
 
 export default function AcceptInvitationPage() {
   const params = useParams();

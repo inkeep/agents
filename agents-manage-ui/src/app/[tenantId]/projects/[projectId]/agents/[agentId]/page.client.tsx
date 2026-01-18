@@ -27,7 +27,6 @@ import {
   nodeTypes,
   teamAgentNodeTargetHandleId,
 } from '@/components/agent/configuration/node-types';
-import { useCopilotContext } from '@/contexts/copilot';
 import { CopilotStreamingOverlay } from '@/components/agent/copilot-streaming-overlay';
 import { EmptyState } from '@/components/agent/empty-state';
 import { AgentErrorSummary } from '@/components/agent/error-display/agent-error-summary';
@@ -39,6 +38,7 @@ import { SidePane } from '@/components/agent/sidepane/sidepane';
 import { Toolbar } from '@/components/agent/toolbar/toolbar';
 import { UnsavedChangesDialog } from '@/components/agent/unsaved-changes-dialog';
 import { ResizableHandle, ResizablePanel, ResizablePanelGroup } from '@/components/ui/resizable';
+import { useCopilotContext } from '@/contexts/copilot';
 import { commandManager } from '@/features/agent/commands/command-manager';
 import { AddNodeCommand, AddPreparedEdgeCommand } from '@/features/agent/commands/commands';
 import {

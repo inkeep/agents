@@ -4,8 +4,9 @@ import { ThemeProvider } from 'next-themes';
 import { NuqsAdapter } from 'nuqs/adapters/next/app';
 import { QueryProvider } from '@/components/providers/query-provider';
 import { Toaster } from '@/components/ui/sonner';
-import { RuntimeConfigProvider } from '@/contexts/runtime-config';
 import { AuthClientProvider } from '@/contexts/auth-client';
+import { PostHogProvider } from '@/contexts/posthog';
+import { RuntimeConfigProvider } from '@/contexts/runtime-config';
 import {
   DEFAULT_INKEEP_AGENTS_MANAGE_API_URL,
   DEFAULT_INKEEP_AGENTS_RUN_API_URL,
@@ -15,7 +16,6 @@ import {
 } from '@/lib/runtime-config/defaults';
 import type { RuntimeConfig } from '@/lib/runtime-config/types';
 import { cn } from '@/lib/utils';
-import { PostHogProvider } from '@/contexts/posthog';
 import './globals.css';
 
 const jetBrainsMono = JetBrains_Mono({
