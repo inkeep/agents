@@ -65,7 +65,7 @@ export function DatasetRunsList({
             <TableRow noHover>
               <TableHead>Name</TableHead>
               <TableHead>Created</TableHead>
-              <TableHead className="w-12"></TableHead>
+              <TableHead className="w-12" />
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -131,7 +131,7 @@ export function DatasetRunsList({
           <TableRow noHover>
             <TableHead>Name</TableHead>
             <TableHead>Created</TableHead>
-            <TableHead className="w-12"></TableHead>
+            <TableHead className="w-12" />
           </TableRow>
         </TableHeader>
         <TableBody>

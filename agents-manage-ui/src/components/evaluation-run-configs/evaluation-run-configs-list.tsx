@@ -89,8 +89,8 @@ export function EvaluationRunConfigsList({
               <TableHead>Description</TableHead>
               <TableHead>Status</TableHead>
               <TableHead>Updated</TableHead>
-              <TableHead className="w-12"></TableHead>
-              <TableHead className="w-12"></TableHead>
+              <TableHead className="w-12" />
+              <TableHead className="w-12" />
             </TableRow>
           </TableHeader>
           <TableBody>
