@@ -16,6 +16,7 @@ import {
 } from '@/components/ui/dialog';
 import { Form } from '@/components/ui/form';
 import { updateDatasetAction } from '@/lib/actions/datasets';
+import { getValueOrFallback } from '@/lib/utils';
 
 const renameSchema = z.object({
   name: z.string().min(1, 'Name is required'),
@@ -57,7 +58,7 @@ export function RenameDatasetDialog({
         toast.success('Test suite renamed');
         onOpenChange(false);
       } else {
-        toast.error(result.error || 'Failed to rename test suite');
+        toast.error(getValueOrFallback(result.error, 'Failed to rename test suite'));
       }
     } catch (error) {
       console.error('Error renaming dataset:', error);
