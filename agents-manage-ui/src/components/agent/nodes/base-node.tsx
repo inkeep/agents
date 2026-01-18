@@ -41,7 +41,7 @@ export const BaseNodeHeader: FC<ComponentProps<'header'>> = ({ className, ...pro
  * The title text for the node. To maintain a native application feel, the title
  * text is not selectable.
  */
-export const BaseNodeHeaderTitle: FC<ComponentProps<'h3'>> = ({ className, ref, ...props }) => (
+export const BaseNodeHeaderTitle: FC<ComponentProps<'h3'>> = ({ className, ...props }) => (
   <h3
     data-slot="base-node-title"
     className={cn('user-select-none flex-1 font-semibold text-sm truncate', className)}
