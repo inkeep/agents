@@ -64,9 +64,8 @@ export function CredentialForm({ onCreateCredential, tenantId, projectId }: Cred
         setAvailableMCPServers(toolsWithoutCredentials);
       } catch (err) {
         console.error('Failed to load MCP tools:', err);
-      } finally {
-        setToolsLoading(false);
       }
+      setToolsLoading(false);
     };
 
     loadAvailableTools();
@@ -83,9 +82,8 @@ export function CredentialForm({ onCreateCredential, tenantId, projectId }: Cred
         setAvailableExternalAgents(externalAgentsWithoutCredentials);
       } catch (err) {
         console.error('Failed to load external agents:', err);
-      } finally {
-        setExternalAgentsLoading(false);
       }
+      setExternalAgentsLoading(false);
     };
 
     loadAvailableExternalAgents();
