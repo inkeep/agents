@@ -2,8 +2,8 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { SidebarMenuButton, SidebarMenuItem } from '@/components/ui/sidebar';
 import type { FC } from 'react';
+import { SidebarMenuButton, SidebarMenuItem } from '@/components/ui/sidebar';
 import type { IconComponentProps } from '@/components/ui/svg-icon';
 
 export interface NavItemProps {
