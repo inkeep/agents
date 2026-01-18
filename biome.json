@@ -58,6 +58,7 @@
         "noUnusedTemplateLiteral": "off",
         "noNonNullAssertion": "warn",
         "noUselessElse": "error",
+        "useSelfClosingElements": "error",
         "useImportType": "error"
       },
       "performance": {
@@ -80,6 +81,9 @@
       },
       "security": {
         "noDangerouslySetInnerHtml": "off"
+      },
+      "nursery": {
+        "noReactForwardRef": "error"
       }
     }
   },
