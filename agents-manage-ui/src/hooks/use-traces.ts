@@ -83,9 +83,8 @@ export function useConversationStats(
       const errorMessage =
         err instanceof Error ? err.message : 'Failed to fetch conversation stats';
       setError(errorMessage);
-    } finally {
-      setLoading(false);
     }
+    setLoading(false);
   };
 
   const refresh = () => {
@@ -204,9 +203,8 @@ export function useAggregateStats(options?: {
       console.error('Error fetching aggregate stats:', err);
       const errorMessage = err instanceof Error ? err.message : 'Failed to fetch aggregate stats';
       setError(errorMessage);
-    } finally {
-      setLoading(false);
     }
+    setLoading(false);
   };
 
   useEffect(() => {

@@ -28,8 +28,10 @@ export function usePrebuiltMCPServers(
       try {
         const result = await fetchMCPCatalogAction(tenantId, projectId);
 
-        if (result.success && result.data) {
-          setServers(result.data);
+        if (result.success) {
+          if (result.data) {
+            setServers(result.data);
+          }
         } else {
           setServers([]);
         }

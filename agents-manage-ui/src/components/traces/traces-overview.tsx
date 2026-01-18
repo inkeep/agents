@@ -152,9 +152,9 @@ export function TracesOverview({ refreshKey }: TracesOverviewProps) {
   useEffect(() => {
     const fetchActivity = async () => {
       setActivityLoading(true);
+      const agentId = selectedAgent ? selectedAgent : undefined;
       try {
         const client = getSigNozStatsClient(tenantId as string);
-        const agentId = selectedAgent ? selectedAgent : undefined;
         console.log('🔍 Fetching activity data:', {
           startTime,
           endTime,
@@ -295,8 +295,8 @@ export function TracesOverview({ refreshKey }: TracesOverviewProps) {
               ? { from: customStartDate, to: customEndDate }
               : selectedTimeRange
           }
-          onAdd={(value: TimeRange) => setSelectedTimeRange(value)}
-          setCustomDateRange={(start: string, end: string) => setCustomDateRange(start, end)}
+          onAdd={setSelectedTimeRange}
+          setCustomDateRange={setCustomDateRange}
           options={Object.entries(TIME_RANGES).map(([value, config]) => ({
             value,
             label: config.label,
@@ -336,21 +336,11 @@ export function TracesOverview({ refreshKey }: TracesOverviewProps) {
             dataKeyOne="count"
             hasError={!!aggregateError}
             isLoading={activityLoading}
-            tickFormatter={(value: string) => {
-              try {
-                const [y, m, d] = value.split('-').map(Number);
-                return new Date(y, (m || 1) - 1, d || 1).toLocaleDateString(undefined, {
-                  month: 'short',
-                  day: 'numeric',
-                });
-              } catch {
-                return value;
-              }
-            }}
+            tickFormatter={tickFormatter}
             title={`Conversations per day`}
             xAxisDataKey={'date'}
             yAxisDataKey={'count'}
-            yAxisTickFormatter={(value: number | string) => value?.toLocaleString()}
+            yAxisTickFormatter={(value) => value?.toLocaleString()}
           />
         </div>
 
@@ -420,4 +410,16 @@ export function TracesOverview({ refreshKey }: TracesOverviewProps) {
       />
     </div>
   );
+}
+
+function tickFormatter(value: string): string {
+  try {
+    const [y, m, d] = value.split('-').map(Number);
+    return new Date(y, (m || 1) - 1, d || 1).toLocaleDateString(undefined, {
+      month: 'short',
+      day: 'numeric',
+    });
+  } catch {
+    return value;
+  }
 }
