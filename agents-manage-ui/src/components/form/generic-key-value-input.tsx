@@ -35,10 +35,11 @@ export function GenericKeyValueInput<T extends FieldValues>({
         const currentData: Record<string, string> = field.value || {};
 
         const addKeyValue = () => {
-          if (currentKey.trim() && currentValue.trim()) {
+          const key = currentKey.trim();
+          if (key && currentValue.trim()) {
             const newData = {
               ...currentData,
-              [currentKey.trim()]: currentValue.trim(),
+              [key]: currentValue.trim(),
             };
             field.onChange(newData);
             setCurrentKey('');
