@@ -72,7 +72,9 @@ export default function AcceptInvitationPage() {
     setIsAccepting(true);
     setError(null);
 
-    try {
+    // Workaround for a React Compiler limitation.
+    // Todo: Support value blocks (conditional, logical, optional chaining, etc) within a try/catch statement
+    async function doRequest() {
       const result = await authClient.organization.acceptInvitation({
         invitationId,
       });
@@ -104,6 +106,10 @@ export default function AcceptInvitationPage() {
           router.push('/');
         }
       }, 2000);
+    }
+
+    try {
+      await doRequest();
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to accept invitation');
       setIsAccepting(false);
