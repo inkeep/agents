@@ -42,7 +42,7 @@ interface UseConversationStatsOptions {
 }
 
 export function useConversationStats(
-  options?: UseConversationStatsOptions
+  options: UseConversationStatsOptions
 ): UseConversationStatsResult {
   const [stats, setStats] = useState<ConversationStats[]>([]);
   const [loading, setLoading] = useState(true);
@@ -53,27 +53,27 @@ export function useConversationStats(
   >(null);
 
   // Extract stable values to avoid object recreation issues
-  const pageSize = options?.pagination?.pageSize || 50;
+  const pageSize = options.pagination?.pageSize || 50;
 
   const fetchData = async (page: number) => {
     try {
       setLoading(true);
       setError(null);
 
-      const client = getSigNozStatsClient(options?.tenantId);
+      const client = getSigNozStatsClient(options.tenantId);
       // Use provided time range or default to all time (2020)
       // Clamp endTime to now-1ms to satisfy backend validation (end cannot be in the future)
-      const currentEndTime = Math.min(options?.endTime || Date.now() - 1);
-      const currentStartTime = options?.startTime || new Date('2020-01-01T00:00:00Z').getTime();
+      const currentEndTime = Math.min(options.endTime || Date.now() - 1);
+      const currentStartTime = options.startTime || new Date('2020-01-01T00:00:00Z').getTime();
 
       const result = await client.getConversationStats(
         currentStartTime,
         currentEndTime,
-        options?.filters,
-        options?.projectId,
+        options.filters,
+        options.projectId,
         { page, limit: pageSize },
-        options?.searchQuery,
-        options?.agentId
+        options.searchQuery,
+        options.agentId
       );
 
       setStats(result.data);
@@ -121,13 +121,13 @@ export function useConversationStats(
     setCurrentPage(1);
     fetchData(1);
   }, [
-    options?.startTime,
-    options?.endTime,
-    options?.filters,
-    options?.projectId,
-    options?.tenantId,
-    options?.searchQuery,
-    options?.agentId,
+    options.startTime,
+    options.endTime,
+    options.filters,
+    options.projectId,
+    options.tenantId,
+    options.searchQuery,
+    options.agentId,
     pageSize,
   ]);
 
@@ -163,7 +163,7 @@ export function useConversationStats(
 }
 
 // Hook for aggregate stats only (server-side aggregation)
-export function useAggregateStats(options?: {
+export function useAggregateStats(options: {
   startTime?: number;
   endTime?: number;
   filters?: SpanFilterOptions;
@@ -186,16 +186,16 @@ export function useAggregateStats(options?: {
       setLoading(true);
       setError(null);
 
-      const client = getSigNozStatsClient(options?.tenantId);
-      const currentEndTime = Math.min(options?.endTime || Date.now() - 1);
-      const currentStartTime = options?.startTime || new Date('2020-01-01T00:00:00Z').getTime();
+      const client = getSigNozStatsClient(options.tenantId);
+      const currentEndTime = Math.min(options.endTime || Date.now() - 1);
+      const currentStartTime = options.startTime || new Date('2020-01-01T00:00:00Z').getTime();
 
       const stats = await client.getAggregateStats(
         currentStartTime,
         currentEndTime,
-        options?.filters,
-        options?.projectId,
-        options?.agentId
+        options.filters,
+        options.projectId,
+        options.agentId
       );
 
       setAggregateStats(stats);
