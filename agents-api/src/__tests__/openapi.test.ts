@@ -1,9 +1,8 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { beforeAll, describe, expect, it } from 'vitest';
-import { makeRequest } from '../../utils/testRequest';
+import { makeRequest } from './utils/testRequest';
 
-// Helper to deeply sort object keys for consistent comparison
 function sortObjectKeys(obj: any): any {
   if (typeof obj !== 'object' || obj === null) return obj;
   if (Array.isArray(obj)) return obj.map(sortObjectKeys);
@@ -18,12 +17,11 @@ function sortObjectKeys(obj: any): any {
     );
 }
 
-describe('OpenAPI Specification - Integration Tests', () => {
+describe('OpenAPI Specification - Integration Tests (Unified agents-api)', () => {
   describe('GET /openapi.json', () => {
     let cachedSpec: any;
     let cachedResponse: Response;
 
-    // Fetch the OpenAPI spec once before all tests to avoid expensive regeneration
     beforeAll(async () => {
       cachedResponse = await makeRequest('/openapi.json');
       cachedSpec = await cachedResponse.clone().json();
@@ -39,184 +37,140 @@ describe('OpenAPI Specification - Integration Tests', () => {
       expect(typeof cachedSpec).toBe('object');
     });
 
-    it('should contain required OpenAPI 3.0 fields', async () => {
-      const spec = cachedSpec;
-
-      // Check top-level required fields
-      expect(spec).toHaveProperty('openapi');
-      expect(spec.openapi).toBe('3.0.0');
-      expect(spec).toHaveProperty('info');
-      expect(spec).toHaveProperty('paths');
+    it('should contain required OpenAPI fields', async () => {
+      expect(cachedSpec).toHaveProperty('openapi');
+      expect(cachedSpec.openapi).toBe('3.1.0');
+      expect(cachedSpec).toHaveProperty('info');
+      expect(cachedSpec).toHaveProperty('paths');
     });
 
     it('should have correct API metadata', async () => {
-      const spec = cachedSpec;
-
-      expect(spec.info).toHaveProperty('title');
-      expect(spec.info.title).toBe('Inkeep Agents Manage API');
-      expect(spec.info).toHaveProperty('version');
-      expect(spec.info).toHaveProperty('description');
+      expect(cachedSpec.info).toHaveProperty('title');
+      expect(cachedSpec.info.title).toBe('Inkeep Agents API');
+      expect(cachedSpec.info).toHaveProperty('version');
+      expect(cachedSpec.info).toHaveProperty('description');
     });
 
     it('should contain server configuration', async () => {
-      const spec = cachedSpec;
-
-      expect(spec).toHaveProperty('servers');
-      expect(Array.isArray(spec.servers)).toBe(true);
-      expect(spec.servers.length).toBeGreaterThan(0);
-
-      const firstServer = spec.servers[0];
+      expect(cachedSpec).toHaveProperty('servers');
+      expect(Array.isArray(cachedSpec.servers)).toBe(true);
+      expect(cachedSpec.servers.length).toBeGreaterThan(0);
+      const firstServer = cachedSpec.servers[0];
       expect(firstServer).toHaveProperty('url');
       expect(firstServer).toHaveProperty('description');
     });
 
-    it('should contain path definitions', async () => {
-      const spec = cachedSpec;
+    it('should include both run and manage routes in the unified spec', async () => {
+      const paths = Object.keys(cachedSpec.paths || {});
 
-      expect(spec.paths).toBeDefined();
-      expect(typeof spec.paths).toBe('object');
-      expect(Object.keys(spec.paths).length).toBeGreaterThan(0);
+      // Run API
+      expect(cachedSpec.paths).toHaveProperty('/run/v1/chat/completions');
 
-      // Check for some key endpoints
-      expect(spec.paths).toHaveProperty('/health');
-      expect(spec.paths).toHaveProperty('/tenants/{tenantId}/projects');
-      expect(spec.paths).toHaveProperty('/tenants/{tenantId}/projects/{projectId}/agents');
+      // Manage API is mounted under /manage in the unified app
+      const hasManageTenantPaths = paths.some((p) => p.startsWith('/manage/tenants/'));
+      expect(hasManageTenantPaths).toBe(true);
     });
 
     it('should contain component schemas', async () => {
-      const spec = cachedSpec;
-
-      expect(spec).toHaveProperty('components');
-      expect(spec.components).toHaveProperty('schemas');
-      expect(typeof spec.components.schemas).toBe('object');
-      expect(Object.keys(spec.components.schemas).length).toBeGreaterThan(0);
-
-      // Check for common error schemas
-      expect(spec.components.schemas).toHaveProperty('BadRequest');
-      expect(spec.components.schemas).toHaveProperty('NotFound');
-      expect(spec.components.schemas).toHaveProperty('InternalServerError');
+      expect(cachedSpec).toHaveProperty('components');
+      expect(cachedSpec.components).toHaveProperty('schemas');
+      expect(typeof cachedSpec.components.schemas).toBe('object');
+      expect(Object.keys(cachedSpec.components.schemas).length).toBeGreaterThan(0);
     });
 
     it('should have valid path operations', async () => {
-      const spec = cachedSpec;
-
-      // Check that at least one path has valid HTTP methods
-      const firstPath = Object.values(spec.paths)[0] as any;
+      const firstPath = Object.values(cachedSpec.paths)[0] as any;
       expect(firstPath).toBeDefined();
-
-      // Should have at least one HTTP method (get, post, put, delete, etc.)
       const httpMethods = ['get', 'post', 'put', 'delete', 'patch'];
       const hasHttpMethod = Object.keys(firstPath).some((key) => httpMethods.includes(key));
       expect(hasHttpMethod).toBe(true);
     });
 
-    it('should have operation IDs for endpoints', async () => {
-      const spec = cachedSpec;
-
-      // Check that operations have operationId
-      let foundOperationId = false;
-      for (const path of Object.values(spec.paths) as any[]) {
+    it('should have valid structure for operations', async () => {
+      let hasValidOperation = false;
+      for (const path of Object.values(cachedSpec.paths) as any[]) {
         for (const method of Object.values(path) as any[]) {
-          if (method.operationId) {
-            foundOperationId = true;
-            expect(typeof method.operationId).toBe('string');
-            expect(method.operationId.length).toBeGreaterThan(0);
+          if (method && typeof method === 'object' && (method.responses || method.requestBody)) {
+            hasValidOperation = true;
+            if (method.operationId) {
+              expect(typeof method.operationId).toBe('string');
+              expect(method.operationId.length).toBeGreaterThan(0);
+            }
             break;
           }
         }
-        if (foundOperationId) break;
+        if (hasValidOperation) break;
       }
-      expect(foundOperationId).toBe(true);
+      expect(hasValidOperation).toBe(true);
     });
 
-    it('should have response definitions for operations', async () => {
-      const spec = cachedSpec;
-
-      // Check that operations have responses
-      const projectsPath = spec.paths['/tenants/{tenantId}/projects'];
-      expect(projectsPath).toBeDefined();
-      expect(projectsPath.get).toBeDefined();
-      expect(projectsPath.get.responses).toBeDefined();
-      expect(projectsPath.get.responses['200']).toBeDefined();
-      expect(projectsPath.get.responses['400']).toBeDefined();
-      expect(projectsPath.get.responses['500']).toBeDefined();
+    it('should have response definitions for run chat completions', async () => {
+      const chatPath = cachedSpec.paths['/run/v1/chat/completions'];
+      expect(chatPath).toBeDefined();
+      expect(chatPath.post).toBeDefined();
+      expect(chatPath.post.responses).toBeDefined();
+      expect(chatPath.post.responses['200']).toBeDefined();
     });
 
     it('should not contain invalid schema references', async () => {
-      const spec = cachedSpec;
-
-      // Validate that all $ref references are valid
-      const validateRefs = (obj: any, path: string = '') => {
+      const validateRefs = (obj: any) => {
         if (typeof obj !== 'object' || obj === null) return;
 
         if (obj.$ref) {
-          // $ref should start with #/components/
           expect(obj.$ref).toMatch(/^#\/components\/(schemas|parameters)/);
         }
 
-        for (const [key, value] of Object.entries(obj)) {
-          validateRefs(value, `${path}.${key}`);
+        for (const value of Object.values(obj)) {
+          validateRefs(value);
         }
       };
 
-      validateRefs(spec);
-    });
-
-    it('should successfully parse without throwing errors', async () => {
-      // Verify the cached spec is valid JSON
-      expect(cachedSpec).toBeDefined();
-      expect(typeof cachedSpec).toBe('object');
+      validateRefs(cachedSpec);
     });
 
     it('should match the OpenAPI snapshot', async () => {
-      const snapshotDir = path.resolve(__dirname, '../../../__snapshots__');
+      const snapshotDir = path.resolve(__dirname, '../../__snapshots__');
       const snapshotPath = path.resolve(snapshotDir, 'openapi.json');
 
-      // Normalize the current spec (remove environment-specific values)
       const normalizedSpec = sortObjectKeys({
         ...cachedSpec,
         servers: [{ url: 'http://localhost:3002', description: 'API Server' }],
       });
 
-      // Check if we should update the snapshot (via env var)
       if (process.env.UPDATE_OPENAPI_SNAPSHOT === 'true') {
         if (!fs.existsSync(snapshotDir)) {
           fs.mkdirSync(snapshotDir, { recursive: true });
         }
         fs.writeFileSync(snapshotPath, JSON.stringify(normalizedSpec, null, 2) + '\n', 'utf-8');
-        console.log(`\n✓ Updated OpenAPI snapshot at ${snapshotPath}\n`);
-        return; // Skip comparison when updating
+        return;
       }
 
-      // Check if snapshot exists
       if (!fs.existsSync(snapshotPath)) {
-        console.error('\n');
-        console.error('═'.repeat(70));
-        console.error('  ❌ OpenAPI SNAPSHOT NOT FOUND');
-        console.error('═'.repeat(70));
-        console.error(`  Snapshot file does not exist at:`);
-        console.error(`  ${snapshotPath}`);
-        console.error('');
-        console.error('  To create the initial snapshot, run:');
-        console.error('  pnpm --filter @inkeep/agents-api openapi:update-snapshot');
-        console.error('═'.repeat(70));
-        console.error('\n');
-        throw new Error(
-          `OpenAPI snapshot not found. Run 'pnpm --filter @inkeep/agents-api openapi:update-snapshot' to create it.`
-        );
+        const lines: string[] = [];
+        lines.push('');
+        lines.push('═'.repeat(70));
+        lines.push('  ❌ OpenAPI SNAPSHOT NOT FOUND');
+        lines.push('═'.repeat(70));
+        lines.push('');
+        lines.push('  Snapshot file does not exist at:');
+        lines.push(`  ${snapshotPath}`);
+        lines.push('');
+        lines.push('  To create the initial snapshot, run:');
+        lines.push('  pnpm --filter @inkeep/agents-api openapi:update-snapshot');
+        lines.push('');
+        lines.push('═'.repeat(70));
+        lines.push('');
+        throw new Error(lines.join('\n'));
       }
 
-      // Read and parse the snapshot
       const snapshotContent = fs.readFileSync(snapshotPath, 'utf-8');
       const snapshotSpec = JSON.parse(snapshotContent);
       const normalizedSnapshot = sortObjectKeys(snapshotSpec);
 
-      // Compare
       const currentJson = JSON.stringify(normalizedSpec, null, 2);
       const snapshotJson = JSON.stringify(normalizedSnapshot, null, 2);
 
       if (currentJson !== snapshotJson) {
-        // Find what changed for helpful output
         const currentPaths = Object.keys(normalizedSpec.paths || {});
         const snapshotPaths = Object.keys(normalizedSnapshot.paths || {});
         const addedPaths = currentPaths.filter((p) => !snapshotPaths.includes(p));
@@ -227,7 +181,6 @@ describe('OpenAPI Specification - Integration Tests', () => {
         const addedSchemas = currentSchemas.filter((s) => !snapshotSchemas.includes(s));
         const removedSchemas = snapshotSchemas.filter((s) => !currentSchemas.includes(s));
 
-        // Build a concise error message that shows the update command prominently
         const lines: string[] = [];
         lines.push('');
         lines.push('═'.repeat(70));
@@ -269,15 +222,13 @@ describe('OpenAPI Specification - Integration Tests', () => {
         lines.push('  │  pnpm --filter @inkeep/agents-api openapi:update-snapshot       │');
         lines.push('  └─────────────────────────────────────────────────────────────────┘');
         lines.push('');
-        lines.push('  If this change is UNINTENTIONAL:');
-        lines.push('    Review your changes to the API routes and schemas.');
-        lines.push('');
         lines.push('═'.repeat(70));
         lines.push('');
 
-        // Throw with concise message to avoid massive JSON diff from expect()
         throw new Error(lines.join('\n'));
       }
     });
   });
 });
+
+

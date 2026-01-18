@@ -1,20 +1,98 @@
 import type { ResolvedRef } from '@inkeep/agents-core';
-import { getLedgerArtifacts, getTask, listTaskIdsByContextId } from '@inkeep/agents-core';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { toolSessionManager } from '../../agents/ToolSessionManager';
-import { agentSessionManager } from '../AgentSession';
 import {
   type ArtifactCreateRequest,
   ArtifactService,
   type ArtifactServiceContext,
 } from '../ArtifactService';
 
-// Mock dependencies
-vi.mock('../../agents/ToolSessionManager');
-vi.mock('../AgentSession');
-vi.mock('@inkeep/agents-core');
-vi.mock('../../data/db/dbClient', () => ({
-  default: 'mock-db-client',
+// Hoisted mocks must be defined before vi.mock calls
+const {
+  listTaskIdsByContextIdMock,
+  getTaskMock,
+  getLedgerArtifactsMock,
+  upsertLedgerArtifactMock,
+  toolSessionManagerMock,
+  agentSessionManagerMock,
+} = vi.hoisted(() => ({
+  listTaskIdsByContextIdMock: vi.fn(),
+  getTaskMock: vi.fn(),
+  getLedgerArtifactsMock: vi.fn(),
+  upsertLedgerArtifactMock: vi.fn(),
+  toolSessionManagerMock: {
+    getSession: vi.fn(),
+    createSession: vi.fn(),
+    updateSession: vi.fn(),
+    getToolResult: vi.fn(),
+  },
+  agentSessionManagerMock: {
+    getAgentSession: vi.fn(),
+    ensureAgentSession: vi.fn(),
+    updateArtifactComponents: vi.fn(),
+    recordEvent: vi.fn(),
+    setArtifactCache: vi.fn(),
+    getArtifactCache: vi.fn(),
+  },
+}));
+
+// Mock @inkeep/agents-core WITHOUT importOriginal to avoid loading the heavy module
+vi.mock('@inkeep/agents-core', () => ({
+  listTaskIdsByContextId: listTaskIdsByContextIdMock,
+  getTask: getTaskMock,
+  getLedgerArtifacts: getLedgerArtifactsMock,
+  upsertLedgerArtifact: upsertLedgerArtifactMock,
+  // Add stubs for exports needed by transitive dependencies
+  createAgentsRunDatabaseClient: vi.fn(() => 'mock-run-db-client'),
+  createAgentsManageDatabaseClient: vi.fn(() => 'mock-manage-db-client'),
+  loadEnvironmentFiles: vi.fn(),
+  getLogger: vi.fn(() => ({
+    info: vi.fn(),
+    warn: vi.fn(),
+    error: vi.fn(),
+    debug: vi.fn(),
+    child: vi.fn().mockReturnThis(),
+  })),
+}));
+
+vi.mock('../../agents/ToolSessionManager', () => ({
+  toolSessionManager: toolSessionManagerMock,
+}));
+
+vi.mock('../AgentSession', () => ({
+  agentSessionManager: agentSessionManagerMock,
+}));
+
+// Mock runDbClient to prevent it from loading @inkeep/agents-core
+vi.mock('../../../data/db/runDbClient', () => ({
+  default: 'mock-run-db-client',
+}));
+
+// Mock logger to prevent transitive @inkeep/agents-core imports
+vi.mock('../../../logger', () => ({
+  getLogger: vi.fn(() => ({
+    info: vi.fn(),
+    warn: vi.fn(),
+    error: vi.fn(),
+    debug: vi.fn(),
+    child: vi.fn().mockReturnThis(),
+  })),
+}));
+
+// Mock schema-validation to prevent @inkeep/agents-core/utils imports
+vi.mock('../../utils/schema-validation', () => ({
+  extractPreviewFields: vi.fn((schema: any) => ({
+    type: 'object',
+    properties: schema?.properties
+      ? Object.fromEntries(
+          Object.entries(schema.properties).filter(([_, prop]: [string, any]) => prop.inPreview)
+        )
+      : {},
+  })),
+  extractFullFields: vi.fn((schema: any) => ({
+    type: 'object',
+    properties: schema?.properties || {},
+    required: schema?.required,
+  })),
 }));
 
 describe('ArtifactService', () => {
@@ -108,9 +186,9 @@ describe('ArtifactService', () => {
         },
       ];
 
-      vi.mocked(listTaskIdsByContextId).mockReturnValue(() => Promise.resolve(mockTaskIds));
-      vi.mocked(getTask).mockReturnValue(() => Promise.resolve(mockTask));
-      vi.mocked(getLedgerArtifacts).mockReturnValue(() => Promise.resolve(mockArtifacts));
+      listTaskIdsByContextIdMock.mockReturnValue(() => Promise.resolve(mockTaskIds));
+      getTaskMock.mockReturnValue(() => Promise.resolve(mockTask));
+      getLedgerArtifactsMock.mockReturnValue(() => Promise.resolve(mockArtifacts));
 
       const result = await artifactService.getContextArtifacts('test-context');
 
@@ -124,8 +202,8 @@ describe('ArtifactService', () => {
     it('should handle missing tasks gracefully', async () => {
       const mockTaskIds = ['task1', 'task2'];
 
-      vi.mocked(listTaskIdsByContextId).mockReturnValue(() => Promise.resolve(mockTaskIds));
-      vi.mocked(getTask)
+      listTaskIdsByContextIdMock.mockReturnValue(() => Promise.resolve(mockTaskIds));
+      getTaskMock
         .mockReturnValueOnce(() =>
           Promise.resolve({
             tenantId: 'test-tenant',
@@ -142,7 +220,7 @@ describe('ArtifactService', () => {
           })
         )
         .mockReturnValueOnce(() => Promise.resolve(null)); // Second task not found
-      vi.mocked(getLedgerArtifacts).mockReturnValue(() =>
+      getLedgerArtifactsMock.mockReturnValue(() =>
         Promise.resolve([
           {
             artifactId: 'artifact1',
@@ -162,7 +240,7 @@ describe('ArtifactService', () => {
     });
 
     it('should handle database errors gracefully', async () => {
-      vi.mocked(listTaskIdsByContextId).mockReturnValue(() =>
+      listTaskIdsByContextIdMock.mockReturnValue(() =>
         Promise.reject(new Error('Database error'))
       );
 
@@ -203,9 +281,9 @@ describe('ArtifactService', () => {
         },
       };
 
-      vi.mocked(toolSessionManager.getToolResult).mockReturnValue(mockToolResult);
-      vi.mocked(agentSessionManager.recordEvent).mockResolvedValue(undefined);
-      vi.mocked(agentSessionManager.setArtifactCache).mockResolvedValue(undefined);
+      toolSessionManagerMock.getToolResult.mockReturnValue(mockToolResult);
+      agentSessionManagerMock.recordEvent.mockResolvedValue(undefined);
+      agentSessionManagerMock.setArtifactCache.mockResolvedValue(undefined);
 
       const result = await artifactService.createArtifact(mockRequest);
 
@@ -221,7 +299,7 @@ describe('ArtifactService', () => {
         },
       });
 
-      expect(agentSessionManager.recordEvent).toHaveBeenCalledWith(
+      expect(agentSessionManagerMock.recordEvent).toHaveBeenCalledWith(
         'test-stream-request',
         'artifact_saved',
         'test-agent',
@@ -246,9 +324,9 @@ describe('ArtifactService', () => {
         },
       };
 
-      vi.mocked(toolSessionManager.getToolResult).mockReturnValue(mockToolResult);
-      vi.mocked(agentSessionManager.recordEvent).mockResolvedValue(undefined);
-      vi.mocked(agentSessionManager.setArtifactCache).mockResolvedValue(undefined);
+      toolSessionManagerMock.getToolResult.mockReturnValue(mockToolResult);
+      agentSessionManagerMock.recordEvent.mockResolvedValue(undefined);
+      agentSessionManagerMock.setArtifactCache.mockResolvedValue(undefined);
 
       const result = await artifactService.createArtifact(mockRequest);
 
@@ -259,7 +337,7 @@ describe('ArtifactService', () => {
     });
 
     it('should handle missing tool result', async () => {
-      vi.mocked(toolSessionManager.getToolResult).mockReturnValue(undefined);
+      toolSessionManagerMock.getToolResult.mockReturnValue(undefined);
 
       const result = await artifactService.createArtifact(mockRequest);
 
@@ -285,8 +363,8 @@ describe('ArtifactService', () => {
         result: { data: 'simple string' },
       };
 
-      vi.mocked(toolSessionManager.getToolResult).mockReturnValue(mockToolResult);
-      vi.mocked(agentSessionManager.recordEvent).mockResolvedValue(undefined);
+      toolSessionManagerMock.getToolResult.mockReturnValue(mockToolResult);
+      agentSessionManagerMock.recordEvent.mockResolvedValue(undefined);
 
       const result = await artifactService.createArtifact({
         ...mockRequest,
@@ -306,8 +384,8 @@ describe('ArtifactService', () => {
         },
       };
 
-      vi.mocked(toolSessionManager.getToolResult).mockReturnValue(mockToolResult);
-      vi.mocked(agentSessionManager.recordEvent).mockResolvedValue(undefined);
+      toolSessionManagerMock.getToolResult.mockReturnValue(mockToolResult);
+      agentSessionManagerMock.recordEvent.mockResolvedValue(undefined);
 
       const result = await artifactService.createArtifact({
         ...mockRequest,
@@ -327,7 +405,7 @@ describe('ArtifactService', () => {
         metadata: { artifactType: 'TestType' },
       };
 
-      vi.mocked(agentSessionManager.getArtifactCache).mockResolvedValue(mockCachedArtifact);
+      agentSessionManagerMock.getArtifactCache.mockResolvedValue(mockCachedArtifact);
 
       const result = await artifactService.getArtifactSummary('test-artifact', 'test-tool-call');
 
@@ -342,7 +420,7 @@ describe('ArtifactService', () => {
     });
 
     it('should return artifact from provided map when not in cache', async () => {
-      vi.mocked(agentSessionManager.getArtifactCache).mockResolvedValue(null);
+      agentSessionManagerMock.getArtifactCache.mockResolvedValue(null);
 
       const artifactMap = new Map();
       const mockArtifact = {
@@ -370,7 +448,7 @@ describe('ArtifactService', () => {
     });
 
     it('should fetch from database when not in cache or map', async () => {
-      vi.mocked(agentSessionManager.getArtifactCache).mockResolvedValue(null);
+      agentSessionManagerMock.getArtifactCache.mockResolvedValue(null);
 
       const mockDbArtifact = {
         artifactId: 'test-artifact',
@@ -380,7 +458,7 @@ describe('ArtifactService', () => {
         metadata: { artifactType: 'DBType' },
         createdAt: '2024-01-16T00:30:00.000Z',
       };
-      vi.mocked(getLedgerArtifacts).mockReturnValue(() => Promise.resolve([mockDbArtifact]));
+      getLedgerArtifactsMock.mockReturnValue(() => Promise.resolve([mockDbArtifact]));
 
       const result = await artifactService.getArtifactSummary('test-artifact', 'test-tool-call');
 
@@ -393,12 +471,12 @@ describe('ArtifactService', () => {
         data: { db: 'data' },
       });
 
-      expect(getLedgerArtifacts).toHaveBeenCalledWith('mock-db-client');
+      expect(getLedgerArtifactsMock).toHaveBeenCalledWith('mock-run-db-client');
     });
 
     it('should return null when artifact not found anywhere', async () => {
-      vi.mocked(agentSessionManager.getArtifactCache).mockResolvedValue(null);
-      vi.mocked(getLedgerArtifacts).mockReturnValue(() => Promise.resolve([]));
+      agentSessionManagerMock.getArtifactCache.mockResolvedValue(null);
+      getLedgerArtifactsMock.mockReturnValue(() => Promise.resolve([]));
 
       const result = await artifactService.getArtifactSummary(
         'missing-artifact',
@@ -409,8 +487,8 @@ describe('ArtifactService', () => {
     });
 
     it('should handle database errors gracefully', async () => {
-      vi.mocked(agentSessionManager.getArtifactCache).mockResolvedValue(null);
-      vi.mocked(getLedgerArtifacts).mockReturnValue(() =>
+      agentSessionManagerMock.getArtifactCache.mockResolvedValue(null);
+      getLedgerArtifactsMock.mockReturnValue(() =>
         Promise.reject(new Error('Database error'))
       );
 
@@ -429,7 +507,7 @@ describe('ArtifactService', () => {
         taskId: undefined,
       });
 
-      vi.mocked(agentSessionManager.getArtifactCache).mockResolvedValue(null);
+      agentSessionManagerMock.getArtifactCache.mockResolvedValue(null);
 
       const result = await serviceWithoutContext.getArtifactSummary(
         'test-artifact',
@@ -451,8 +529,8 @@ describe('ArtifactService', () => {
         },
       };
 
-      vi.mocked(toolSessionManager.getToolResult).mockReturnValue(mockToolResult);
-      vi.mocked(agentSessionManager.recordEvent).mockResolvedValue(undefined);
+      toolSessionManagerMock.getToolResult.mockReturnValue(mockToolResult);
+      agentSessionManagerMock.recordEvent.mockResolvedValue(undefined);
 
       const request: ArtifactCreateRequest = {
         artifactId: 'test',
@@ -478,8 +556,8 @@ describe('ArtifactService', () => {
         },
       };
 
-      vi.mocked(toolSessionManager.getToolResult).mockReturnValue(mockToolResult);
-      vi.mocked(agentSessionManager.recordEvent).mockResolvedValue(undefined);
+      toolSessionManagerMock.getToolResult.mockReturnValue(mockToolResult);
+      agentSessionManagerMock.recordEvent.mockResolvedValue(undefined);
 
       const request: ArtifactCreateRequest = {
         artifactId: 'test',
@@ -512,8 +590,8 @@ describe('ArtifactService', () => {
         },
       };
 
-      vi.mocked(toolSessionManager.getToolResult).mockReturnValue(mockToolResult);
-      vi.mocked(agentSessionManager.recordEvent).mockResolvedValue(undefined);
+      toolSessionManagerMock.getToolResult.mockReturnValue(mockToolResult);
+      agentSessionManagerMock.recordEvent.mockResolvedValue(undefined);
 
       const testRequest: ArtifactCreateRequest = {
         artifactId: 'test-artifact',
@@ -552,8 +630,8 @@ describe('ArtifactService', () => {
         },
       };
 
-      vi.mocked(toolSessionManager.getToolResult).mockReturnValue(mockToolResult);
-      vi.mocked(agentSessionManager.recordEvent).mockResolvedValue(undefined);
+      toolSessionManagerMock.getToolResult.mockReturnValue(mockToolResult);
+      agentSessionManagerMock.recordEvent.mockResolvedValue(undefined);
 
       const serviceWithoutComponents = new ArtifactService({
         ...mockContext,

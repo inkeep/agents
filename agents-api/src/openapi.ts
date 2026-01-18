@@ -19,7 +19,7 @@ export function setupOpenAPIRoutes<E extends Env = Env>(app: OpenAPIHono<E>) {
       // : env.INKEEP_AGENTS_API_URL;
 
       const document = app.getOpenAPIDocument({
-        openapi: '3.0.0',
+        openapi: '3.1.0',
         info: {
           title: 'Inkeep Agents API',
           version: '1.0.0',

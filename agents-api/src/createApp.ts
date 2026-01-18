@@ -264,16 +264,6 @@ function createAgentsHono(config: AppConfig) {
 
   app.route('/evals', evalRoutes);
 
-  // OpenAPI documentation
-  app.doc('/openapi.json', {
-    openapi: '3.1.0',
-    info: {
-      title: 'Inkeep Agents API',
-      version: '1.0.0',
-      description: 'Unified API for Inkeep Agent Framework',
-    },
-  });
-
   // Setup OpenAPI documentation endpoints (/openapi.json and /docs)
   setupOpenAPIRoutes(app);
 
