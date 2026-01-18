@@ -183,7 +183,7 @@ export function EvaluationRunConfigFormDialog({
 
   const { isSubmitting } = form.formState;
 
-  const onSubmit = async (data: EvaluationRunConfigFormData) => {
+  const onSubmit = form.handleSubmit(async (data) => {
     const formValid = await form.trigger();
     const suiteConfigFormValid = await suiteConfigForm.trigger();
 
@@ -254,7 +254,7 @@ export function EvaluationRunConfigFormDialog({
       console.error('Error submitting form:', error);
       toast.error('An unexpected error occurred');
     }
-  };
+  });
 
   return (
     <Dialog open={isOpen} onOpenChange={setIsOpen}>
@@ -271,7 +271,7 @@ export function EvaluationRunConfigFormDialog({
         </DialogHeader>
 
         <Form {...form}>
-          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+          <form onSubmit={onSubmit} className="space-y-6">
             <GenericInput
               control={form.control}
               name="name"

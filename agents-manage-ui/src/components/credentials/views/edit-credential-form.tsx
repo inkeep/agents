@@ -89,7 +89,7 @@ export function EditCredentialForm({
 
   const { isSubmitting } = form.formState;
 
-  const handleUpdateCredential = async (formData: EditCredentialFormData) => {
+  const handleUpdateCredential = form.handleSubmit(async (formData) => {
     try {
       await updateCredential(tenantId, projectId, credential.id, {
         name: formData.name.trim(),
@@ -114,11 +114,7 @@ export function EditCredentialForm({
       console.error('Failed to update credential:', err);
       toast(err instanceof Error ? err.message : 'Failed to update credential');
     }
-  };
-
-  const onSubmit = async (data: EditCredentialFormData) => {
-    await handleUpdateCredential(data);
-  };
+  });
 
   const handleDelete = async () => {
     setIsDeleting(true);
@@ -142,7 +138,7 @@ export function EditCredentialForm({
   return (
     <Dialog open={isDeleteOpen} onOpenChange={setIsDeleteOpen}>
       <Form {...form}>
-        <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
+        <form onSubmit={handleUpdateCredential} className="space-y-8">
           {/* Credential Details Section */}
           <div className="space-y-8">
             <GenericInput

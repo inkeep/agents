@@ -97,7 +97,7 @@ export function GenericAuthForm({
     );
   }
 
-  const handleSubmit = (data: FormData) => {
+  const handleSubmit = form.handleSubmit((data) => {
     // Prepare credentials object - only include non-empty values
     const credentials: Record<string, any> = {};
 
@@ -109,7 +109,7 @@ export function GenericAuthForm({
     }
 
     onSubmit(credentials);
-  };
+  });
 
   const renderField = (field: FieldConfig) => {
     const isPrivateKey = field.key === 'private_key';
@@ -176,7 +176,7 @@ export function GenericAuthForm({
       </div>
 
       <Form {...form}>
-        <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-8">
+        <form onSubmit={handleSubmit} className="space-y-8">
           {formConfig.sections.map(renderSection)}
 
           <div className="flex gap-3">

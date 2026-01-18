@@ -64,7 +64,7 @@ export function ArtifactComponentForm({
     isEditing: !!id,
   });
 
-  const onSubmit = async (data: ArtifactComponentFormData) => {
+  const onSubmit = form.handleSubmit(async (data: ArtifactComponentFormData) => {
     try {
       const payload = { ...data } as ArtifactComponent;
 
@@ -94,12 +94,12 @@ export function ArtifactComponentForm({
       const errorMessage = error instanceof Error ? error.message : 'An unexpected error occurred.';
       toast.error(errorMessage);
     }
-  };
+  });
 
   return (
     <Dialog open={isDeleteOpen} onOpenChange={setIsDeleteOpen}>
       <Form {...form}>
-        <form onSubmit={form.handleSubmit(onSubmit)} className="max-w-3xl mx-auto py-4 space-y-8">
+        <form onSubmit={onSubmit} className="max-w-3xl mx-auto py-4 space-y-8">
           <GenericInput
             control={form.control}
             name="name"

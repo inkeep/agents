@@ -66,7 +66,7 @@ export function ApiKeyForm({
 
   const { isSubmitting } = form.formState;
 
-  const onSubmit = async (data: ApiKeyFormData) => {
+  const onSubmit = form.handleSubmit(async (data) => {
     try {
       const expiresAt = data.expiresAt ? convertDurationToDate(data.expiresAt) : undefined;
       const name = data.name;
@@ -91,11 +91,11 @@ export function ApiKeyForm({
       const errorMessage = error instanceof Error ? error.message : 'An unexpected error occurred';
       toast.error(errorMessage);
     }
-  };
+  });
 
   return (
     <Form {...form}>
-      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
+      <form onSubmit={onSubmit} className="space-y-8">
         <GenericInput
           control={form.control}
           name="name"

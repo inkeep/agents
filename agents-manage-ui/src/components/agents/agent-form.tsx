@@ -65,7 +65,7 @@ export const AgentForm = ({
     isEditing: !!agentId,
   });
 
-  const onSubmit = async (data: AgentFormData) => {
+  const onSubmit = form.handleSubmit(async (data) => {
     // Workaround for a React Compiler limitation.
     // Todo: Support value blocks (conditional, logical, optional chaining, etc) within a try/catch statement
     async function doAction() {
@@ -96,11 +96,11 @@ export const AgentForm = ({
       const errorMessage = error instanceof Error ? error.message : 'An unexpected error occurred.';
       toast.error(errorMessage);
     }
-  };
+  });
 
   return (
     <Form {...form}>
-      <form className="space-y-8" onSubmit={form.handleSubmit(onSubmit)}>
+      <form className="space-y-8" onSubmit={onSubmit}>
         <GenericInput
           control={form.control}
           name="name"

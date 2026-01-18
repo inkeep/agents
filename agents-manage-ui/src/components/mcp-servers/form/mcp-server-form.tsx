@@ -88,7 +88,7 @@ export function MCPServerForm({
     return toolsConfig.tools.filter((toolName) => availableToolNames.includes(toolName));
   };
 
-  const onSubmit = async (data: MCPToolFormData) => {
+  const onSubmit = form.handleSubmit(async (data) => {
     try {
       const mcpServerName = data.name;
       const isUserScoped = data.credentialScope === CredentialScopeEnum.user;
@@ -203,7 +203,7 @@ export function MCPServerForm({
       console.error(`Failed to ${mode} MCP tool:`, error);
       toast.error(`Failed to ${mode} MCP server. Please try again.`);
     }
-  };
+  });
 
   const handleDelete = async () => {
     if (!tool) return;
@@ -227,7 +227,7 @@ export function MCPServerForm({
   return (
     <Dialog open={isDeleteOpen} onOpenChange={setIsDeleteOpen}>
       <Form {...form}>
-        <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
+        <form onSubmit={onSubmit} className="space-y-8">
           <GenericInput
             control={form.control}
             name="name"

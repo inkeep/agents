@@ -127,7 +127,7 @@ export function DatasetRunConfigForm({
     return acc;
   }, {});
 
-  const onSubmit = async (data: DatasetRunConfigFormData) => {
+  const onSubmit = form.handleSubmit(async (data) => {
     console.log('Form submission data:', data);
     console.log('evaluatorIds in form data:', data.evaluatorIds);
     console.log('Form values:', form.getValues());
@@ -167,11 +167,11 @@ export function DatasetRunConfigForm({
       console.error('Error submitting form:', error);
       toast.error('An unexpected error occurred');
     }
-  };
+  });
 
   return (
     <Form {...form}>
-      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+      <form onSubmit={onSubmit} className="space-y-6">
         <GenericInput
           control={form.control}
           name="name"

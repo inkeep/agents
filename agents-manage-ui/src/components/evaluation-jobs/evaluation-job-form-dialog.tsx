@@ -121,7 +121,7 @@ export function EvaluationJobFormDialog({
     });
   };
 
-  const onSubmit = async (data: EvaluationJobConfigFormData) => {
+  const onSubmit = form.handleSubmit(async (data) => {
     const isValid = await form.trigger();
     if (!isValid) {
       return;
@@ -168,7 +168,7 @@ export function EvaluationJobFormDialog({
       const errorMessage = error instanceof Error ? error.message : 'An unexpected error occurred';
       toast.error(errorMessage);
     }
-  };
+  });
 
   return (
     <Dialog open={isOpen} onOpenChange={setIsOpen}>
@@ -185,7 +185,7 @@ export function EvaluationJobFormDialog({
           <div className="py-8 text-center text-muted-foreground">Loading...</div>
         ) : (
           <Form {...form}>
-            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+            <form onSubmit={onSubmit} className="space-y-6">
               <FormField
                 control={form.control}
                 name="evaluatorIds"

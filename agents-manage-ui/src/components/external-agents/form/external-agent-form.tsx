@@ -52,7 +52,7 @@ export function ExternalAgentForm({
 
   const { isSubmitting } = form.formState;
 
-  const onSubmit = async (data: ExternalAgentFormData) => {
+  const onSubmit = form.handleSubmit(async (data) => {
     try {
       // Transform form data to API format
       const transformedData = {
@@ -78,11 +78,11 @@ export function ExternalAgentForm({
       console.error(`Failed to ${mode} external agent:`, error);
       toast.error(`Failed to ${mode} external agent. Please try again.`);
     }
-  };
+  });
 
   return (
     <Form {...form}>
-      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
+      <form onSubmit={onSubmit} className="space-y-8">
         <GenericInput
           control={form.control}
           name="name"

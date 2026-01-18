@@ -57,7 +57,7 @@ function CustomHeadersDialog({ customHeaders, setCustomHeaders }: CustomHeadersD
   });
   const { isSubmitting } = form.formState;
 
-  const onSubmit = async ({ headers }: CustomHeadersFormData) => {
+  const onSubmit = form.handleSubmit(async ({ headers }) => {
     let parsedHeaders: Record<string, string> | undefined;
     if (headers) {
       try {
@@ -73,7 +73,7 @@ function CustomHeadersDialog({ customHeaders, setCustomHeaders }: CustomHeadersD
     setCustomHeaders(parsedHeaders || {});
     toast.success('Custom headers applied, you can now use them in the chat.');
     setIsOpen(false);
-  };
+  });
 
   const onRemoveHeaders = () => {
     form.reset({ headers: '{}' });
@@ -97,7 +97,7 @@ function CustomHeadersDialog({ customHeaders, setCustomHeaders }: CustomHeadersD
           <DialogDescription>Add custom headers to the chat API requests.</DialogDescription>
         </DialogHeader>
         <Form {...form}>
-          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
+          <form onSubmit={onSubmit} className="space-y-8">
             <FormFieldWrapper control={form.control} name="headers" label="Custom headers">
               {(field) => (
                 <StandaloneJsonEditor
