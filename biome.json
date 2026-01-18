@@ -58,6 +58,7 @@
         "noUnusedTemplateLiteral": "off",
         "noNonNullAssertion": "warn",
         "noUselessElse": "error",
+        "useSelfClosingElements": "error",
         "useImportType": "error"
       },
       "performance": {

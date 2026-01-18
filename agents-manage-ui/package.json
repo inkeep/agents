@@ -39,7 +39,7 @@
     "prepublishOnly": "node --experimental-strip-types scripts/append-hash-for-server-only-packages.mts",
     "start": "node .next/standalone/agents-manage-ui/server.js",
     "lint": "biome lint --error-on-warnings",
-    "lint:fix": "biome check --write",
+    "lint:fix": "biome check --write --unsafe",
     "format": "biome format --write",
     "format:check": "biome format",
     "typecheck": "next typegen && tsc --noEmit",
