@@ -80,6 +80,9 @@
       },
       "security": {
         "noDangerouslySetInnerHtml": "off"
+      },
+      "nursery": {
+        "noReactForwardRef": "error"
       }
     }
   },

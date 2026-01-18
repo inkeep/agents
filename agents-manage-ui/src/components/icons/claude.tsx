@@ -1,8 +1,8 @@
-import { forwardRef } from 'react';
+import type { FC } from 'react';
 import { type IconComponentProps, SvgIcon } from '@/components/ui/svg-icon';
 
-export const ClaudeIcon = forwardRef<SVGSVGElement, IconComponentProps>((props, ref) => (
-  <SvgIcon ref={ref} {...props} strokeWidth={0}>
+export const ClaudeIcon: FC<IconComponentProps> = (props) => (
+  <SvgIcon {...props} strokeWidth={0}>
     <title>Claude icon</title>
     <g clipPath="url(#clip0_23_202)">
       <path
@@ -16,6 +16,4 @@ export const ClaudeIcon = forwardRef<SVGSVGElement, IconComponentProps>((props, 
       </clipPath>
     </defs>
   </SvgIcon>
-));
-
-ClaudeIcon.displayName = 'ClaudeIcon';
+);

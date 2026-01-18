@@ -1,8 +1,8 @@
-import { forwardRef } from 'react';
+import type { FC } from 'react';
 import { type IconComponentProps, SvgIcon } from '@/components/ui/svg-icon';
 
-export const MCPIcon = forwardRef<SVGSVGElement, IconComponentProps>((props, ref) => (
-  <SvgIcon ref={ref} {...props}>
+export const MCPIcon: FC<IconComponentProps> = (props) => (
+  <SvgIcon {...props}>
     <path
       d="M2.06895 11.2982L11.432 1.9351C12.7248 0.642325 14.8208 0.642325 16.1135 1.9351C17.4063 3.22786 17.4063 5.32386 16.1135 6.61663L9.04249 13.6877"
       stroke="currentColor"
@@ -19,6 +19,4 @@ export const MCPIcon = forwardRef<SVGSVGElement, IconComponentProps>((props, ref
       strokeLinecap="round"
     />
   </SvgIcon>
-));
-
-MCPIcon.displayName = 'MCPIcon';
+);
