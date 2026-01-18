@@ -77,7 +77,7 @@ app.openapi(
     if (!userId || !tenantId || !projectId || !agentId) {
       throw createApiError({
         code: 'unauthorized',
-        message:'User, tenant, project, or agent ID not found',
+        message: 'User, tenant, project, or agent ID not found',
       });
     }
 

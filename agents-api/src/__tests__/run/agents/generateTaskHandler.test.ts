@@ -47,10 +47,6 @@ vi.mock('@inkeep/agents-core', async (importOriginal) => {
   const actual = await importOriginal();
   return {
     ...(actual as any),
-    // Mock ManagementApiClient for getMcpTool calls
-    ManagementApiClient: vi.fn().mockImplementation(() => ({
-      getMcpTool: getMcpToolMock,
-    })),
     // generateTaskHandler resolves MCP tools via DB-scoped helper + withRef; mock both to avoid DB access
     withRef: vi.fn(async (_pool: any, _resolvedRef: any, fn: any) => {
       return await fn({});

@@ -220,10 +220,13 @@ describe('Project Full CRUD Routes - Integration Tests', () => {
       const tenantId = await createTrackedTenant();
       const nonExistentId = `project-${generateId()}`;
 
-      const response = await makeRequest(`/manage/tenants/${tenantId}/project-full/${nonExistentId}`, {
-        method: 'GET',
-        expectError: true,
-      });
+      const response = await makeRequest(
+        `/manage/tenants/${tenantId}/project-full/${nonExistentId}`,
+        {
+          method: 'GET',
+          expectError: true,
+        }
+      );
 
       expect(response.status).toBe(404);
       const body = await response.json();
@@ -344,9 +347,12 @@ describe('Project Full CRUD Routes - Integration Tests', () => {
       expect(createRes.status).toBe(201);
 
       // Verify all 3 agents exist
-      const getInitialRes = await makeRequest(`/manage/tenants/${tenantId}/project-full/${projectId}`, {
-        method: 'GET',
-      });
+      const getInitialRes = await makeRequest(
+        `/manage/tenants/${tenantId}/project-full/${projectId}`,
+        {
+          method: 'GET',
+        }
+      );
       expect(getInitialRes.status).toBe(200);
       const initialBody = await getInitialRes.json();
       expect(Object.keys(initialBody.data.agents)).toHaveLength(3);
@@ -374,9 +380,12 @@ describe('Project Full CRUD Routes - Integration Tests', () => {
       expect(updateBody.data.agents).not.toHaveProperty(agent3Id);
 
       // Verify by fetching the project again
-      const getFinalRes = await makeRequest(`/manage/tenants/${tenantId}/project-full/${projectId}`, {
-        method: 'GET',
-      });
+      const getFinalRes = await makeRequest(
+        `/manage/tenants/${tenantId}/project-full/${projectId}`,
+        {
+          method: 'GET',
+        }
+      );
       expect(getFinalRes.status).toBe(200);
       const finalBody = await getFinalRes.json();
       expect(Object.keys(finalBody.data.agents)).toHaveLength(1);
@@ -429,9 +438,12 @@ describe('Project Full CRUD Routes - Integration Tests', () => {
       expect(Object.keys(updateBody.data.agents)).toHaveLength(0);
 
       // Verify by fetching the project again
-      const getFinalRes = await makeRequest(`/manage/tenants/${tenantId}/project-full/${projectId}`, {
-        method: 'GET',
-      });
+      const getFinalRes = await makeRequest(
+        `/manage/tenants/${tenantId}/project-full/${projectId}`,
+        {
+          method: 'GET',
+        }
+      );
       expect(getFinalRes.status).toBe(200);
       const finalBody = await getFinalRes.json();
       expect(Object.keys(finalBody.data.agents)).toHaveLength(0);
@@ -459,10 +471,13 @@ describe('Project Full CRUD Routes - Integration Tests', () => {
       // 204 No Content response has no body;
 
       // Verify the project is deleted
-      const getResponse = await makeRequest(`/manage/tenants/${tenantId}/project-full/${projectId}`, {
-        method: 'GET',
-        expectError: true,
-      });
+      const getResponse = await makeRequest(
+        `/manage/tenants/${tenantId}/project-full/${projectId}`,
+        {
+          method: 'GET',
+          expectError: true,
+        }
+      );
 
       expect(getResponse.status).toBe(404);
     });
@@ -471,10 +486,13 @@ describe('Project Full CRUD Routes - Integration Tests', () => {
       const tenantId = await createTrackedTenant();
       const nonExistentId = `project-${generateId()}`;
 
-      const response = await makeRequest(`/manage/tenants/${tenantId}/project-full/${nonExistentId}`, {
-        method: 'DELETE',
-        expectError: true,
-      });
+      const response = await makeRequest(
+        `/manage/tenants/${tenantId}/project-full/${nonExistentId}`,
+        {
+          method: 'DELETE',
+          expectError: true,
+        }
+      );
 
       expect(response.status).toBe(404);
       const body = await response.json();

@@ -49,7 +49,9 @@ describe('Evaluators CRUD Routes - Integration Tests', () => {
     it('should list evaluators with pagination (empty initially)', async () => {
       const tenantId = await createTestTenantWithOrg('evaluators-list-empty');
       await createTestProject(manageDbClient, tenantId, projectId);
-      const res = await makeRequest(`/manage/tenants/${tenantId}/projects/${projectId}/evals/evaluators`);
+      const res = await makeRequest(
+        `/manage/tenants/${tenantId}/projects/${projectId}/evals/evaluators`
+      );
       expect(res.status).toBe(200);
       const body = await res.json();
       expect(body.data).toEqual([]);
@@ -62,7 +64,9 @@ describe('Evaluators CRUD Routes - Integration Tests', () => {
       await createTestEvaluator({ tenantId, suffix: '-1' });
       await createTestEvaluator({ tenantId, suffix: '-2' });
 
-      const res = await makeRequest(`/manage/tenants/${tenantId}/projects/${projectId}/evals/evaluators`);
+      const res = await makeRequest(
+        `/manage/tenants/${tenantId}/projects/${projectId}/evals/evaluators`
+      );
       expect(res.status).toBe(200);
       const body = await res.json();
       expect(body.data).toHaveLength(2);
@@ -139,10 +143,13 @@ describe('Evaluators CRUD Routes - Integration Tests', () => {
       await createTestProject(manageDbClient, tenantId, projectId);
       const evaluatorData = createEvaluatorData();
 
-      const res = await makeRequest(`/manage/tenants/${tenantId}/projects/${projectId}/evals/evaluators`, {
-        method: 'POST',
-        body: JSON.stringify(evaluatorData),
-      });
+      const res = await makeRequest(
+        `/manage/tenants/${tenantId}/projects/${projectId}/evals/evaluators`,
+        {
+          method: 'POST',
+          body: JSON.stringify(evaluatorData),
+        }
+      );
 
       expect(res.status).toBe(201);
       const body = await res.json();
@@ -161,10 +168,13 @@ describe('Evaluators CRUD Routes - Integration Tests', () => {
         model: { model: 'gpt-4o-mini' },
       };
 
-      const res = await makeRequest(`/manage/tenants/${tenantId}/projects/${projectId}/evals/evaluators`, {
-        method: 'POST',
-        body: JSON.stringify(minimalData),
-      });
+      const res = await makeRequest(
+        `/manage/tenants/${tenantId}/projects/${projectId}/evals/evaluators`,
+        {
+          method: 'POST',
+          body: JSON.stringify(minimalData),
+        }
+      );
 
       expect(res.status).toBe(201);
       const body = await res.json();

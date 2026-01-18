@@ -10,7 +10,6 @@ import {
   setSpanWithError,
   updateTask,
 } from '@inkeep/agents-core';
-import { getUserIdFromContext } from '../types/executionContext.js';
 import { resolveModelConfig } from '../utils/model-resolver.js';
 import { tracer } from '../utils/tracer.js';
 import { A2AClient } from '../a2a/client.js';
@@ -21,11 +20,11 @@ import runDbClient from '../../../data/db/runDbClient.js';
 import { flushBatchProcessor } from '../../../instrumentation.js';
 import { getLogger } from '../../../logger.js';
 import { agentSessionManager } from '../services/AgentSession.js';
-import { triggerConversationEvaluationHttp } from '../services/evaluationHttpClient.js';
 import { agentInitializingOp, completionOp, errorOp } from '../utils/agent-operations.js';
 import type { StreamHelper } from '../utils/stream-helpers.js';
 import { BufferingStreamHelper } from '../utils/stream-helpers.js';
 import { registerStreamHelper, unregisterStreamHelper } from '../utils/stream-registry.js';
+import { triggerConversationEvaluation } from '../../evals/services/conversationEvaluation.js';
 
 const logger = getLogger('ExecutionHandler');
 
@@ -94,10 +93,8 @@ export class ExecutionHandler {
       'Created AgentSession for message execution'
     );
 
-    const agentConfig: any = null;
+    const agent = project.agents[agentId];
     try {
-      const agent = project.agents[agentId];
-
       if (agent?.statusUpdates && agent.statusUpdates.enabled !== false) {
         try {
           // Get the default sub-agent to resolve models properly with inheritance
@@ -110,7 +107,7 @@ export class ExecutionHandler {
 
             agentSessionManager.initializeStatusUpdates(
               requestId,
-              agentConfig.statusUpdates,
+              agent.statusUpdates,
               resolvedModels.summarizer,
               resolvedModels.base
             );
@@ -118,8 +115,8 @@ export class ExecutionHandler {
             // Fallback to agent-level config if no default sub-agent
             agentSessionManager.initializeStatusUpdates(
               requestId,
-              agentConfig.statusUpdates,
-              agentConfig.models?.summarizer
+              agent.statusUpdates,
+              agent.models?.summarizer
             );
           }
         } catch (modelError) {
@@ -133,8 +130,8 @@ export class ExecutionHandler {
           // Fallback to agent-level config
           agentSessionManager.initializeStatusUpdates(
             requestId,
-            agentConfig.statusUpdates,
-            agentConfig.models?.summarizer
+            agent.statusUpdates,
+            agent.models?.summarizer
           );
         }
       }
@@ -235,7 +232,7 @@ export class ExecutionHandler {
       let currentMessage = userMessage;
 
       const maxTransfers =
-        agentConfig?.stopWhen?.transferCountIs ?? AGENT_EXECUTION_TRANSFER_COUNT_DEFAULT;
+        agent?.stopWhen?.transferCountIs ?? AGENT_EXECUTION_TRANSFER_COUNT_DEFAULT;
 
       while (iterations < maxTransfers) {
         iterations++;
@@ -454,7 +451,7 @@ export class ExecutionHandler {
               span.setAttributes({
                 'ai.response.content': textContent || 'No response content',
                 'ai.response.timestamp': new Date().toISOString(),
-                'subAgent.name': agentConfig?.subAgents[currentAgentId]?.name,
+                'subAgent.name': agent?.subAgents[currentAgentId]?.name,
                 'subAgent.id': currentAgentId,
               });
 
@@ -528,13 +525,13 @@ export class ExecutionHandler {
               logger.info({}, 'ExecutionHandler returning success');
               // Trigger evaluation
               if (!params.datasetRunId) {
-                triggerConversationEvaluationHttp({
-                  tenantId,
+                triggerConversationEvaluation({tenantId,
                   projectId,
                   conversationId,
+                  resolvedRef,
                 }).catch((error) => {
                   logger.error(
-                    { error, conversationId, tenantId, projectId },
+                    { error, conversationId, tenantId, projectId, resolvedRef },
                     'Failed to trigger conversation evaluation (non-blocking)'
                   );
                 });
@@ -585,11 +582,11 @@ export class ExecutionHandler {
           unregisterStreamHelper(requestId);
           // Trigger evaluation for regular conversations (not dataset runs)
           if (!params.datasetRunId) {
-            triggerConversationEvaluationHttp({
+            triggerConversationEvaluation({
               tenantId,
               projectId,
               conversationId,
-              userId: getUserIdFromContext(executionContext),
+              resolvedRef,
             }).catch((error) => {
               logger.error(
                 { error, conversationId, tenantId, projectId },

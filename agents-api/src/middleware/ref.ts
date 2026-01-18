@@ -1,18 +1,19 @@
 import type { Context, Next } from 'hono';
-import { 
-    createApiError,
-    getLogger,
-    ensureBranchExists,
-    isRefWritable,
-    resolveRef,
-    type ResolvedRef,
-    type AgentsManageDatabaseClient,
-    type BaseExecutionContext, 
- } from '@inkeep/agents-core';
+import {
+  createApiError,
+  getLogger,
+  ensureBranchExists,
+  isRefWritable,
+  resolveRef,
+  type ResolvedRef,
+  type AgentsManageDatabaseClient,
+  type BaseExecutionContext,
+  getProjectScopedRef,
+  getTenantScopedRef,
+} from '@inkeep/agents-core';
 import { manageDbClient } from 'src/data/db';
 
 const logger = getLogger('ref-middleware');
-
 
 export type RefContext = {
   resolvedRef?: ResolvedRef;
@@ -143,7 +144,7 @@ export const createRefMiddleware = (
     }
 
     if (process.env.ENVIRONMENT === 'test') {
-      const defaultBranchName = projectId ? `${tenantId}_${projectId}_main` : `${tenantId}_main`;
+      const defaultBranchName = projectId ? getProjectScopedRef(tenantId, projectId, 'main') : getTenantScopedRef(tenantId, 'main');
       const defaultRef: ResolvedRef = {
         type: 'branch',
         name: defaultBranchName,
@@ -192,8 +193,8 @@ async function resolveProjectRef(
   projectId: string,
   ref: string | undefined
 ): Promise<ResolvedRef> {
-  const projectMain = `${tenantId}_${projectId}_main`;
-  const projectScopedRef = `${tenantId}_${projectId}_${ref}`;
+  const projectMain = getProjectScopedRef(tenantId, projectId, 'main');
+  const projectScopedRef = ref ? getProjectScopedRef(tenantId, projectId, ref) : projectMain;
 
   if (ref && ref !== 'main') {
     let refResult = await resolveRef(db)(projectScopedRef);

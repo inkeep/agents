@@ -1,6 +1,9 @@
 import type { ContextFetchDefinition } from '@inkeep/agents-core';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { ContextFetcher, MissingRequiredVariableError } from '../../../domains/run/context/ContextFetcher';
+import {
+  ContextFetcher,
+  MissingRequiredVariableError,
+} from '../../../domains/run/context/ContextFetcher';
 
 // Mock fetch globally
 const mockFetch = vi.fn();

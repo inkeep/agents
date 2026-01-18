@@ -88,7 +88,9 @@ describe('Tools CRUD Routes - Integration Tests', () => {
       await createTestProject(manageDbClient, tenantId, projectId);
       const { toolData, toolId } = await createTestTool({ tenantId });
 
-      const res = await makeRequest(`/manage/tenants/${tenantId}/projects/${projectId}/tools/${toolId}`);
+      const res = await makeRequest(
+        `/manage/tenants/${tenantId}/projects/${projectId}/tools/${toolId}`
+      );
       expect(res.status).toBe(200);
       const body = await res.json();
       expect(body.data.id).toBe(toolId);
@@ -150,10 +152,13 @@ describe('Tools CRUD Routes - Integration Tests', () => {
         description: 'Updated description',
       };
 
-      const res = await makeRequest(`/manage/tenants/${tenantId}/projects/${projectId}/tools/${toolId}`, {
-        method: 'PUT',
-        body: JSON.stringify(updateData),
-      });
+      const res = await makeRequest(
+        `/manage/tenants/${tenantId}/projects/${projectId}/tools/${toolId}`,
+        {
+          method: 'PUT',
+          body: JSON.stringify(updateData),
+        }
+      );
 
       expect(res.status).toBe(200);
       const body = await res.json();
@@ -182,9 +187,12 @@ describe('Tools CRUD Routes - Integration Tests', () => {
       const tenantId = await createTestTenantWithOrg('tools-delete-success');
       await createTestProject(manageDbClient, tenantId, projectId);
       const { toolId } = await createTestTool({ tenantId });
-      const res = await makeRequest(`/manage/tenants/${tenantId}/projects/${projectId}/tools/${toolId}`, {
-        method: 'DELETE',
-      });
+      const res = await makeRequest(
+        `/manage/tenants/${tenantId}/projects/${projectId}/tools/${toolId}`,
+        {
+          method: 'DELETE',
+        }
+      );
       expect(res.status).toBe(204);
 
       const getRes = await makeRequest(

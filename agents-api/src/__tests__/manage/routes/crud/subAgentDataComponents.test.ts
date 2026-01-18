@@ -29,10 +29,13 @@ describe('Agent Data Component CRUD Routes - Integration Tests', () => {
         defaultSubAgentId: null,
       };
       // Try to create the agent, ignore if it already exists
-      const agentRes = await makeRequest(`/manage/tenants/${tenantId}/projects/${projectId}/agents`, {
-        method: 'POST',
-        body: JSON.stringify(agentData),
-      });
+      const agentRes = await makeRequest(
+        `/manage/tenants/${tenantId}/projects/${projectId}/agents`,
+        {
+          method: 'POST',
+          body: JSON.stringify(agentData),
+        }
+      );
       // Use the agentId from the created or existing agent
       effectiveAgentId = agentRes.status === 201 ? effectiveAgentId : 'default';
     }

@@ -5,7 +5,6 @@ import {
   createEvaluationJobConfig,
   createEvaluationJobConfigEvaluatorRelation,
   deleteEvaluationJobConfig,
-  EvalApiClient,
   EvaluationJobConfigApiInsertSchema,
   EvaluationJobConfigApiSelectSchema,
   EvaluationResultApiSelectSchema,
@@ -13,7 +12,6 @@ import {
   getConversation,
   getEvaluationJobConfigById,
   getMessagesByConversation,
-  InternalServices,
   ListResponseSchema,
   listEvaluationJobConfigs,
   listEvaluationResultsByRun,
@@ -22,9 +20,9 @@ import {
   TenantProjectParamsSchema,
 } from '@inkeep/agents-core';
 import runDbClient from '../../../../data/db/runDbClient';
-import { env } from '../../../../env';
 import { getLogger } from '../../../../logger';
 import type { ManageAppVariables } from '../../../../types/app';
+import { queueEvaluationJobConversations } from '../../../evals/services/evaluationJob';
 
 const app = new OpenAPIHono<{ Variables: ManageAppVariables }>();
 const logger = getLogger('evaluationJobConfigs');
@@ -196,24 +194,13 @@ app.openapi(
 
       // Fan out manual bulk evaluation job to eval API if evaluators are configured
       if (evaluatorIds && Array.isArray(evaluatorIds) && evaluatorIds.length > 0) {
-        // Fire and forget: trigger evaluation job via eval API
-        // TODO: Remove this once eval api is merge into main api
-        const evalClient = new EvalApiClient({
-          apiUrl: env.INKEEP_AGENTS_API_URL || '',
+        queueEvaluationJobConversations({
           tenantId,
           projectId,
-          auth: {
-            mode: 'internalService',
-            internalServiceName: InternalServices.INKEEP_AGENTS_EVAL_API,
-          },
-        });
-
-        evalClient
-          .triggerEvaluationJob({
-            evaluationJobConfigId: id,
-            evaluatorIds,
-            jobFilters: created.jobFilters,
-          })
+          evaluationJobConfigId: id,
+          evaluatorIds,
+          jobFilters: created.jobFilters,
+        })
           .then((result) => {
             logger.info(
               {

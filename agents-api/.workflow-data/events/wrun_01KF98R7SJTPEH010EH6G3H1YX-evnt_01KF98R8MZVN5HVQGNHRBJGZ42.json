@@ -1,0 +1,11 @@
+{
+  "eventType": "step_failed",
+  "correlationId": "step_01KF98R82WBJ5WZJY0S04R9WV9",
+  "eventData": {
+    "error": "ManageApiError: Failed to fetch evaluators batch: 404 Not Found",
+    "stack": "ManageApiError: Failed to fetch evaluators batch: 404 Not Found\n    at ManagementApiClient.createError (/Users/mileskaming-thanassi/mono-api/agents-api/.well-known/workflow/v1/step.cjs:102780:12)\n    at ManagementApiClient.makePostRequest (/Users/mileskaming-thanassi/mono-api/agents-api/.well-known/workflow/v1/step.cjs:102711:18)\n    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)\n    at async getEvaluatorsStep (/Users/mileskaming-thanassi/mono-api/agents-api/.well-known/workflow/v1/step.cjs:168303:17)\n    at async /Users/mileskaming-thanassi/mono-api/agents-api/.well-known/workflow/v1/step.cjs:175488:18\n    at async /Users/mileskaming-thanassi/mono-api/agents-api/.well-known/workflow/v1/step.cjs:170380:22\n    at async /Users/mileskaming-thanassi/mono-api/agents-api/.well-known/workflow/v1/step.cjs:170346:59\n    at async /Users/mileskaming-thanassi/mono-api/agents-api/.well-known/workflow/v1/step.cjs:175358:10\n    at async file:///Users/mileskaming-thanassi/mono-api/node_modules/.pnpm/@workflow+world-local@4.0.1-beta.19_@opentelemetry+api@1.9.0/node_modules/@workflow/world-local/dist/queue.js:152:32\n    at async /Users/mileskaming-thanassi/mono-api/agents-api/.well-known/workflow/v1/step.cjs:174302:12"
+  },
+  "runId": "wrun_01KF98R7SJTPEH010EH6G3H1YX",
+  "eventId": "evnt_01KF98R8MZVN5HVQGNHRBJGZ42",
+  "createdAt": "2026-01-18T19:19:17.919Z"
+}

@@ -60,10 +60,13 @@ describe('API Key CRUD Routes - Integration Tests', () => {
       ...(expiresAt && { expiresAt }),
     };
 
-    const createRes = await makeRequest(`/manage/tenants/${tenantId}/projects/${projectId}/api-keys`, {
-      method: 'POST',
-      body: JSON.stringify(createData),
-    });
+    const createRes = await makeRequest(
+      `/manage/tenants/${tenantId}/projects/${projectId}/api-keys`,
+      {
+        method: 'POST',
+        body: JSON.stringify(createData),
+      }
+    );
 
     expect(createRes.status).toBe(201);
     const createBody = await createRes.json();
@@ -523,10 +526,13 @@ describe('API Key CRUD Routes - Integration Tests', () => {
       const { agentId, projectId } = await createtestAgentAndAgent(tenantId);
 
       // Create API key
-      const createRes = await makeRequest(`/manage/tenants/${tenantId}/projects/${projectId}/api-keys`, {
-        method: 'POST',
-        body: JSON.stringify({ agentId: agentId }),
-      });
+      const createRes = await makeRequest(
+        `/manage/tenants/${tenantId}/projects/${projectId}/api-keys`,
+        {
+          method: 'POST',
+          body: JSON.stringify({ agentId: agentId }),
+        }
+      );
 
       const createBody = await createRes.json();
       const { apiKey, key: fullKey } = createBody.data;

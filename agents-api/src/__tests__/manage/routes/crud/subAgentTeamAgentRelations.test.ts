@@ -47,10 +47,13 @@ describe('Sub Agent Team Agent Relations CRUD Routes - Integration Tests', () =>
       defaultSubAgentId: null,
       contextConfigId: null,
     };
-    const createRes = await makeRequest(`/manage/tenants/${tenantId}/projects/${projectId}/agents`, {
-      method: 'POST',
-      body: JSON.stringify(teamAgentData),
-    });
+    const createRes = await makeRequest(
+      `/manage/tenants/${tenantId}/projects/${projectId}/agents`,
+      {
+        method: 'POST',
+        body: JSON.stringify(teamAgentData),
+      }
+    );
     expect(createRes.status).toBe(201);
 
     const createBody = await createRes.json();

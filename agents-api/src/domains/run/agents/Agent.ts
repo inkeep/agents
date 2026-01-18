@@ -13,7 +13,7 @@ import {
   listTaskIdsByContextId,
   MCPServerType,
   type MCPToolConfig,
-  withRef, 
+  withRef,
   getFunctionToolsForSubAgent,
   MCPTransportType,
   McpClient,
@@ -1229,12 +1229,20 @@ export class Agent {
     const functionTools: ToolSet = {};
     const project = this.executionContext.project;
     try {
-      const functionToolsForAgent = await withRef(manageDbPool, this.executionContext.resolvedRef, async (db) => {
-        return await getFunctionToolsForSubAgent(db)({
-          scopes: { tenantId: this.config.tenantId, projectId: this.config.projectId, agentId: this.config.agentId },
-          subAgentId: this.config.id,
-        });
-      });
+      const functionToolsForAgent = await withRef(
+        manageDbPool,
+        this.executionContext.resolvedRef,
+        async (db) => {
+          return await getFunctionToolsForSubAgent(db)({
+            scopes: {
+              tenantId: this.config.tenantId,
+              projectId: this.config.projectId,
+              agentId: this.config.agentId,
+            },
+            subAgentId: this.config.id,
+          });
+        }
+      );
 
       const functionToolsData = functionToolsForAgent.data ?? [];
 

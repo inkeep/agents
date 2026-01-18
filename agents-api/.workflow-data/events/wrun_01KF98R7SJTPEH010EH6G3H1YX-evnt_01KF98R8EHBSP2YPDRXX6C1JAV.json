@@ -1,0 +1,40 @@
+{
+  "eventType": "step_completed",
+  "correlationId": "step_01KF98R82WBJ5WZJY0S04R9WV8",
+  "eventData": {
+    "result": [
+      {
+        "tenantId": 1,
+        "id": 2,
+        "projectId": 3,
+        "userId": 4,
+        "agentId": 3,
+        "activeSubAgentId": 5,
+        "ref": 6,
+        "title": 4,
+        "lastContextResolution": 10,
+        "metadata": 4,
+        "createdAt": 11,
+        "updatedAt": 10
+      },
+      "default",
+      "cy6gg9goe039ozbobczqt",
+      "activities-planner-advanced",
+      null,
+      "activities-planner",
+      {
+        "hash": 7,
+        "name": 8,
+        "type": 9
+      },
+      "0vpbk6u0ned3r8q16lmajls9ieiiedon",
+      "default_activities-planner-advanced_main",
+      "branch",
+      "2026-01-18 19:18:09.49",
+      "2026-01-18 19:18:08.926"
+    ]
+  },
+  "runId": "wrun_01KF98R7SJTPEH010EH6G3H1YX",
+  "eventId": "evnt_01KF98R8EHBSP2YPDRXX6C1JAV",
+  "createdAt": "2026-01-18T19:19:17.713Z"
+}

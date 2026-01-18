@@ -41,7 +41,7 @@ app.use('/:id', async (c, next) => {
     return requirePermission({ sub_agent: ['update'] })(c, next);
   }
   if (c.req.method === 'DELETE') {
-    return requirePermission ({ sub_agent: ['delete'] })(c, next);
+    return requirePermission({ sub_agent: ['delete'] })(c, next);
   }
   return next();
 });

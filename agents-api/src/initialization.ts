@@ -1,11 +1,9 @@
 import {
-  generateId,
+  addUserToOrganization,
   getUserByEmail,
-  member as memberTable,
-  organization as orgTable,
+  upsertOrganization,
 } from '@inkeep/agents-core';
 import type { createAuth } from '@inkeep/agents-core/auth';
-import { and, eq } from 'drizzle-orm';
 import runDbClient from './data/db/runDbClient';
 import { env } from './env';
 import { getLogger } from './logger';
@@ -18,21 +16,15 @@ export async function initializeDefaultUser(authInstance?: ReturnType<typeof cre
 
   // Upsert organization - get existing or create new (always happens regardless of auth)
   const orgId = env.TENANT_ID;
-  const existingOrg = await runDbClient
-    .select()
-    .from(orgTable)
-    .where(eq(orgTable.id, orgId))
-    .limit(1);
+  const { created } = await upsertOrganization(runDbClient)({
+    organizationId: orgId,
+    name: env.TENANT_ID,
+    slug: env.TENANT_ID,
+    logo: null,
+    metadata: null,
+  });
 
-  if (existingOrg.length === 0) {
-    await runDbClient.insert(orgTable).values({
-      id: orgId,
-      name: env.TENANT_ID,
-      slug: env.TENANT_ID,
-      createdAt: new Date(),
-      logo: null,
-      metadata: null,
-    });
+  if (created) {
     logger.info({ organizationId: orgId }, 'Created default organization');
   } else {
     logger.info({ organizationId: orgId }, 'Organization already exists');
@@ -88,28 +80,11 @@ export async function initializeDefaultUser(authInstance?: ReturnType<typeof cre
       );
     }
 
-    // Ensure user is a member with owner role
-    const existingMembership = await runDbClient
-      .select()
-      .from(memberTable)
-      .where(and(eq(memberTable.userId, user.id), eq(memberTable.organizationId, orgId)))
-      .limit(1);
-
-    if (existingMembership.length === 0) {
-      await runDbClient.insert(memberTable).values({
-        id: generateId(),
-        userId: user.id,
-        organizationId: orgId,
-        role: 'owner',
-        createdAt: new Date(),
-      });
-      logger.info({ userId: user.id, organizationId: orgId }, 'Added user as organization owner');
-    } else {
-      logger.info(
-        { userId: user.id, organizationId: orgId },
-        'User already a member of organization'
-      );
-    }
+    await addUserToOrganization(runDbClient)({
+      userId: user.id,
+      organizationId: orgId,
+      role: 'owner',
+    });
 
     logger.info(
       {

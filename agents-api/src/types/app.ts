@@ -1,4 +1,9 @@
-import type { AgentsManageDatabaseClient, CredentialStoreRegistry, ResolvedRef, ServerConfig } from '@inkeep/agents-core';
+import type {
+  AgentsManageDatabaseClient,
+  CredentialStoreRegistry,
+  ResolvedRef,
+  ServerConfig,
+} from '@inkeep/agents-core';
 import type { auth as authForTypes, createAuth } from '@inkeep/agents-core/auth';
 
 interface CommonSandboxConfig {
@@ -43,7 +48,6 @@ export type ManageAppVariables = AppVariables & {
   db: AgentsManageDatabaseClient;
   auth: ReturnType<typeof createAuth> | null;
   resolvedRef: ResolvedRef;
-
 };
 
 export type AppConfig = {
@@ -52,7 +56,6 @@ export type AppConfig = {
   auth: ReturnType<typeof createAuth> | null;
   sandboxConfig?: SandboxConfig;
 };
-
 
 /**
  * Minimal app variables for public/OAuth routes

@@ -1166,10 +1166,13 @@ describe('Agent Full CRUD Routes - Integration Tests', () => {
 
       // Create initial agent with basic features
       const initialAgentData = createFullAgentData();
-      const createRes = await makeRequest(`/manage/tenants/${tenantId}/projects/${projectId}/agent`, {
-        method: 'POST',
-        body: JSON.stringify(initialAgentData),
-      });
+      const createRes = await makeRequest(
+        `/manage/tenants/${tenantId}/projects/${projectId}/agent`,
+        {
+          method: 'POST',
+          body: JSON.stringify(initialAgentData),
+        }
+      );
       expect(createRes.status).toBe(201);
 
       // Update to include enhanced features
@@ -1267,10 +1270,13 @@ describe('Agent Full CRUD Routes - Integration Tests', () => {
       );
 
       // Create the agent first
-      const createRes = await makeRequest(`/manage/tenants/${tenantId}/projects/${projectId}/agent`, {
-        method: 'POST',
-        body: JSON.stringify(agentData),
-      });
+      const createRes = await makeRequest(
+        `/manage/tenants/${tenantId}/projects/${projectId}/agent`,
+        {
+          method: 'POST',
+          body: JSON.stringify(agentData),
+        }
+      );
 
       expect(createRes.status).toBe(201);
 
@@ -1306,10 +1312,13 @@ describe('Agent Full CRUD Routes - Integration Tests', () => {
       );
 
       // Create the agent first
-      const createRes = await makeRequest(`/manage/tenants/${tenantId}/projects/${projectId}/agent`, {
-        method: 'POST',
-        body: JSON.stringify(agentData),
-      });
+      const createRes = await makeRequest(
+        `/manage/tenants/${tenantId}/projects/${projectId}/agent`,
+        {
+          method: 'POST',
+          body: JSON.stringify(agentData),
+        }
+      );
       expect(createRes.status).toBe(201);
 
       // Update to clear headersSchema
@@ -1345,10 +1354,13 @@ describe('Agent Full CRUD Routes - Integration Tests', () => {
       );
 
       // Create the agent first
-      const createRes = await makeRequest(`/manage/tenants/${tenantId}/projects/${projectId}/agent`, {
-        method: 'POST',
-        body: JSON.stringify(agentData),
-      });
+      const createRes = await makeRequest(
+        `/manage/tenants/${tenantId}/projects/${projectId}/agent`,
+        {
+          method: 'POST',
+          body: JSON.stringify(agentData),
+        }
+      );
       expect(createRes.status).toBe(201);
 
       // Update to clear both fields
@@ -1390,10 +1402,13 @@ describe('Agent Full CRUD Routes - Integration Tests', () => {
         agentData.contextConfig.contextVariables = {};
       }
 
-      const createRes = await makeRequest(`/manage/tenants/${tenantId}/projects/${projectId}/agent`, {
-        method: 'POST',
-        body: JSON.stringify(agentData),
-      });
+      const createRes = await makeRequest(
+        `/manage/tenants/${tenantId}/projects/${projectId}/agent`,
+        {
+          method: 'POST',
+          body: JSON.stringify(agentData),
+        }
+      );
 
       expect(createRes.status).toBe(201);
       const body = await createRes.json();
@@ -1411,10 +1426,13 @@ describe('Agent Full CRUD Routes - Integration Tests', () => {
       );
 
       // Create the agent first
-      const createRes = await makeRequest(`/manage/tenants/${tenantId}/projects/${projectId}/agent`, {
-        method: 'POST',
-        body: JSON.stringify(agentData),
-      });
+      const createRes = await makeRequest(
+        `/manage/tenants/${tenantId}/projects/${projectId}/agent`,
+        {
+          method: 'POST',
+          body: JSON.stringify(agentData),
+        }
+      );
       expect(createRes.status).toBe(201);
 
       // Update to clear both fields
@@ -1461,10 +1479,13 @@ describe('Agent Full CRUD Routes - Integration Tests', () => {
       await createTestProject(manageDbClient, tenantId, projectId);
       const agentData = createFullAgentData();
 
-      const createRes = await makeRequest(`/manage/tenants/${tenantId}/projects/${projectId}/agent`, {
-        method: 'POST',
-        body: JSON.stringify(agentData),
-      });
+      const createRes = await makeRequest(
+        `/manage/tenants/${tenantId}/projects/${projectId}/agent`,
+        {
+          method: 'POST',
+          body: JSON.stringify(agentData),
+        }
+      );
 
       expect(createRes.status).toBe(201);
       const body = await createRes.json();
@@ -1626,10 +1647,13 @@ describe('Agent Full CRUD Routes - Integration Tests', () => {
       };
 
       // Create the agent
-      const createRes = await makeRequest(`/manage/tenants/${tenantId}/projects/${projectId}/agent`, {
-        method: 'POST',
-        body: JSON.stringify(agentData),
-      });
+      const createRes = await makeRequest(
+        `/manage/tenants/${tenantId}/projects/${projectId}/agent`,
+        {
+          method: 'POST',
+          body: JSON.stringify(agentData),
+        }
+      );
 
       expect(createRes.status).toBe(201);
       const createBody = await createRes.json();
@@ -1659,10 +1683,13 @@ describe('Agent Full CRUD Routes - Integration Tests', () => {
       const agentData = createFullAgentData();
 
       // Create the agent
-      const createRes = await makeRequest(`/manage/tenants/${tenantId}/projects/${projectId}/agent`, {
-        method: 'POST',
-        body: JSON.stringify(agentData),
-      });
+      const createRes = await makeRequest(
+        `/manage/tenants/${tenantId}/projects/${projectId}/agent`,
+        {
+          method: 'POST',
+          body: JSON.stringify(agentData),
+        }
+      );
 
       expect(createRes.status).toBe(201);
 
@@ -1901,10 +1928,13 @@ describe('Agent Full CRUD Routes - Integration Tests', () => {
       const agentData = createFullAgentData();
 
       // Create the agent
-      const createRes = await makeRequest(`/manage/tenants/${tenantId}/projects/${projectId}/agent`, {
-        method: 'POST',
-        body: JSON.stringify(agentData),
-      });
+      const createRes = await makeRequest(
+        `/manage/tenants/${tenantId}/projects/${projectId}/agent`,
+        {
+          method: 'POST',
+          body: JSON.stringify(agentData),
+        }
+      );
       expect(createRes.status).toBe(201);
 
       // Update the agent

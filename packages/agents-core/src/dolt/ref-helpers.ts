@@ -4,6 +4,7 @@ import type { ResolvedRef } from '../validation/dolt-schemas';
 import { doltListBranches } from './branch';
 import { checkoutBranch } from './branches-api';
 import { doltHashOf, doltListTags } from './commit';
+import { createApiError } from '../utils/error';
 
 export type RefType = 'commit' | 'tag' | 'branch';
 
@@ -12,6 +13,13 @@ export const isValidCommitHash = (ref: string): boolean => {
   return /^[0-9a-v]{32}$/.test(ref);
 };
 
+export const getProjectScopedRef = (tenantId: string, projectId: string, ref: string): string => {
+  return `${tenantId}_${projectId}_${ref}`;
+};
+
+export const getTenantScopedRef = (tenantId: string, ref: string): string => {
+  return `${tenantId}_${ref}`;
+};
 export const resolveRef =
   (db: AgentsManageDatabaseClient) =>
   async (ref: string): Promise<ResolvedRef | null> => {
@@ -83,4 +91,18 @@ export const getCurrentBranchOrCommit =
       hash,
       type: 'commit',
     };
+  };
+
+
+export const getProjectMainResolvedRef =
+  (db: AgentsManageDatabaseClient) =>
+  async (tenantId:string, projectId: string): Promise<ResolvedRef> => {
+    const projectMain = `${tenantId}_${projectId}_main`;
+    const resolvedRef = await resolveRef(db)(projectMain);
+    if (!resolvedRef) {
+      throw new Error(
+        `Project main branch not found: ${projectMain}`
+      );
+    }
+    return resolvedRef;
   };

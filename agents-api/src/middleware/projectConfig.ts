@@ -2,8 +2,8 @@ import {
   type FullExecutionContext,
   ManageApiError,
   type ResolvedRef,
-  getFullProjectWithRelationIds, 
-  withRef
+  getFullProjectWithRelationIds,
+  withRef,
 } from '@inkeep/agents-core';
 import { createMiddleware } from 'hono/factory';
 import { getLogger } from '../logger';
@@ -38,9 +38,7 @@ export const projectConfigMiddleware = createMiddleware<{
   );
 
   try {
-
-
-    if (!resolvedRef) { 
+    if (!resolvedRef) {
       throw new Error('Resolved ref not found');
     }
 

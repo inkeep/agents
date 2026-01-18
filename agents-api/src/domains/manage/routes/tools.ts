@@ -35,26 +35,17 @@ const app = new OpenAPIHono<{ Variables: ManageAppVariables }>();
 // Apply permission middleware by HTTP method
 app.use('/', async (c, next) => {
   if (c.req.method === 'POST') {
-    return requirePermission({ tool: ['create'] })(
-      c,
-      next
-    );
+    return requirePermission({ tool: ['create'] })(c, next);
   }
   return next();
 });
 
 app.use('/:id', async (c, next) => {
   if (c.req.method === 'PUT') {
-    return requirePermission({ tool: ['update'] })(
-      c,
-      next
-    );
+    return requirePermission({ tool: ['update'] })(c, next);
   }
   if (c.req.method === 'DELETE') {
-    return requirePermission({ tool: ['delete'] })(
-      c,
-      next
-    );
+    return requirePermission({ tool: ['delete'] })(c, next);
   }
   return next();
 });

@@ -15,7 +15,6 @@ import evalsRoutes from './routes/evals';
 export function createManageRoutes() {
   const app = new OpenAPIHono<{ Variables: ManageAppVariables }>();
 
-
   // Mount user-organizations routes - global user endpoint
   app.route('/api/users/:userId/organizations', userOrganizationsRoutes);
 
@@ -38,7 +37,7 @@ export function createManageRoutes() {
   app.route('/tenants/:tenantId', projectFullRoutes);
 
   // Mount evaluation routes under tenant and project
-  app.route('/tenants/:tenantId/projects/:projectId/evals', evalsRoutes); 
+  app.route('/tenants/:tenantId/projects/:projectId/evals', evalsRoutes);
 
   // Mount OAuth routes - global OAuth callback endpoint
   app.route('/oauth', oauthRoutes);

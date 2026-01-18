@@ -2,7 +2,7 @@ import { context as otelContext, propagation } from '@opentelemetry/api';
 import { createMiddleware } from 'hono/factory';
 import { getLogger } from '../logger';
 
-const logger = getLogger('tracing-middleware');    
+const logger = getLogger('tracing-middleware');
 
 export const otelBaggageMiddleware = () =>
   createMiddleware(async (c, next) => {

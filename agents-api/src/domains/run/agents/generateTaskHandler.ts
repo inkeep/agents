@@ -149,8 +149,8 @@ export const createTaskHandler = (
       const stopWhen = 'stopWhen' in config.agentSchema ? config.agentSchema.stopWhen : undefined;
 
       // Convert db tools to MCP tools and filter by selectedTools
-      const toolsForAgentResult: McpTool[] = 
-      await withRef(manageDbPool, resolvedRef, async (db) => {
+      const toolsForAgentResult: McpTool[] =
+        (await withRef(manageDbPool, resolvedRef, async (db) => {
           return await Promise.all(
             toolsForAgent.map(async (item) => {
               const mcpTool = await getMcpToolById(db)({
@@ -173,11 +173,11 @@ export const createTaskHandler = (
                 mcpTool.availableTools =
                   mcpTool.availableTools?.filter((tool) => selectedToolsSet.has(tool.name)) || [];
               }
-  
+
               return mcpTool;
             })
-        );
-      }) ?? [];
+          );
+        })) ?? [];
 
       agent = new Agent(
         {
@@ -212,14 +212,15 @@ export const createTaskHandler = (
             enhancedInternalRelations
               .filter((relation) => relation.relationType === 'transfer')
               .map((relation) =>
-                buildTransferRelationConfig({
-                  relation,
-                  executionContext: config.executionContext,
-                  baseUrl: config.baseUrl,
-                  apiKey: config.apiKey,
-                },
-                credentialStoreRegistry
-              )
+                buildTransferRelationConfig(
+                  {
+                    relation,
+                    executionContext: config.executionContext,
+                    baseUrl: config.baseUrl,
+                    apiKey: config.apiKey,
+                  },
+                  credentialStoreRegistry
+                )
               )
           ),
           delegateRelations: [

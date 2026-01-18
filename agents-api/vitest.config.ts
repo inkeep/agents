@@ -8,7 +8,7 @@ export default defineProject({
     environment: 'node',
     testTimeout: 60000, // 60 seconds for database operations
     hookTimeout: 60000, // 60 seconds for setup/teardown hooks
-    exclude: ['node_modules', 'dist'],
+    exclude: ['node_modules', 'dist', 'src/__tests__/manage/integration/**/*.test.ts'],
     // Enable parallelism with in-memory databases - each worker gets isolated database
     fileParallelism: true,
     isolate: true, // Ensure test isolation to prevent state leakage

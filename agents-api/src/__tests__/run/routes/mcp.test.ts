@@ -170,7 +170,7 @@ vi.mock('@inkeep/agents-core', async (importOriginal) => {
     setActiveAgentForThread: vi.fn().mockReturnValue(vi.fn().mockResolvedValue(undefined)),
     generateId: vi.fn(),
   };
-})
+});
 
 // Remove this - moved to the @inkeep/agents-core mock
 

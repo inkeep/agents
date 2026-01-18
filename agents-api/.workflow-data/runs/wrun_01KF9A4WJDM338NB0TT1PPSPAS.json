@@ -1,0 +1,43 @@
+{
+  "runId": "wrun_01KF9A4WJDM338NB0TT1PPSPAS",
+  "status": "completed",
+  "deploymentId": "dpl_local",
+  "workflowName": "workflow//src/domains/evals/workflow/functions/evaluateConversation.ts//evaluateConversationWorkflow",
+  "executionContext": {
+    "traceCarrier": {}
+  },
+  "input": [
+    [
+      1
+    ],
+    {
+      "tenantId": 2,
+      "projectId": 3,
+      "conversationId": 4,
+      "evaluatorIds": 5,
+      "evaluationRunId": 7
+    },
+    "default",
+    "activities-planner-advanced",
+    "58c2xnd4rwoiixpdgqkcx",
+    [
+      6
+    ],
+    "aki585pvtmr97q4adss3v",
+    "mjvc2lvspma1ta5b1tp9e"
+  ],
+  "startedAt": "2026-01-18T19:43:40.438Z",
+  "createdAt": "2026-01-18T19:43:40.109Z",
+  "updatedAt": "2026-01-18T19:44:54.430Z",
+  "output": [
+    {
+      "success": 1,
+      "conversationId": 2,
+      "resultCount": 3
+    },
+    true,
+    "58c2xnd4rwoiixpdgqkcx",
+    1
+  ],
+  "completedAt": "2026-01-18T19:44:54.430Z"
+}

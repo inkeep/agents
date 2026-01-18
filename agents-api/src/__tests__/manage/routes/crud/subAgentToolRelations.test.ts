@@ -104,10 +104,13 @@ describe('Agent Tool Relations CRUD Routes - Integration Tests', () => {
         name: `Test Agent${suffix}`,
         defaultSubAgentId: null,
       };
-      const agentRes = await makeRequest(`/manage/tenants/${tenantId}/projects/${projectId}/agents`, {
-        method: 'POST',
-        body: JSON.stringify(agentData),
-      });
+      const agentRes = await makeRequest(
+        `/manage/tenants/${tenantId}/projects/${projectId}/agents`,
+        {
+          method: 'POST',
+          body: JSON.stringify(agentData),
+        }
+      );
       expect(agentRes.status).toBe(201);
     }
 

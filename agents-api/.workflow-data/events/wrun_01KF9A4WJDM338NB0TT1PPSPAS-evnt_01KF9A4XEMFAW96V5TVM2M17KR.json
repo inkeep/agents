@@ -1,0 +1,60 @@
+{
+  "eventType": "step_completed",
+  "correlationId": "step_01KF9A4WWP20M1PCGD2KQW93M6",
+  "eventData": {
+    "result": [
+      [
+        1
+      ],
+      {
+        "tenantId": 2,
+        "id": 3,
+        "projectId": 4,
+        "name": 5,
+        "description": 6,
+        "prompt": 7,
+        "schema": 8,
+        "model": 17,
+        "passCriteria": 19,
+        "createdAt": 20,
+        "updatedAt": 20
+      },
+      "default",
+      "aki585pvtmr97q4adss3v",
+      "activities-planner-advanced",
+      "test",
+      "",
+      "Make sure that the activities suggested include a number of options",
+      {
+        "type": 9,
+        "required": 10,
+        "properties": 12,
+        "additionalProperties": 16
+      },
+      "object",
+      [
+        11
+      ],
+      "success",
+      {
+        "success": 13
+      },
+      {
+        "type": 14,
+        "description": 15
+      },
+      "boolean",
+      "Whether or not the response was satisfactory",
+      false,
+      {
+        "model": 18
+      },
+      "anthropic/claude-sonnet-4-5",
+      null,
+      "2026-01-18 18:22:36.152"
+    ]
+  },
+  "runId": "wrun_01KF9A4WJDM338NB0TT1PPSPAS",
+  "eventId": "evnt_01KF9A4XEMFAW96V5TVM2M17KR",
+  "createdAt": "2026-01-18T19:43:41.012Z"
+}

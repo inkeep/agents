@@ -1,0 +1,37 @@
+{
+  "runId": "wrun_01KF98R7SJTPEH010EH6G3H1YX",
+  "status": "failed",
+  "deploymentId": "dpl_local",
+  "workflowName": "workflow//src/domains/evals/workflow/functions/evaluateConversation.ts//evaluateConversationWorkflow",
+  "executionContext": {
+    "traceCarrier": {}
+  },
+  "input": [
+    [
+      1
+    ],
+    {
+      "tenantId": 2,
+      "projectId": 3,
+      "conversationId": 4,
+      "evaluatorIds": 5,
+      "evaluationRunId": 7
+    },
+    "default",
+    "activities-planner-advanced",
+    "cy6gg9goe039ozbobczqt",
+    [
+      6
+    ],
+    "aki585pvtmr97q4adss3v",
+    "95i22i52jl47dbmlyotw2"
+  ],
+  "startedAt": "2026-01-18T19:19:17.340Z",
+  "createdAt": "2026-01-18T19:19:17.042Z",
+  "updatedAt": "2026-01-18T19:19:21.174Z",
+  "error": {
+    "message": "Step \"step//src/domains/evals/workflow/functions/evaluateConversation.ts//getEvaluatorsStep\" exceeded max retries (4 attempts)",
+    "stack": "FatalError: Step \"step//src/domains/evals/workflow/functions/evaluateConversation.ts//getEvaluatorsStep\" exceeded max retries (4 attempts)\n    at Timeout._onTimeout (/Users/mileskaming-thanassi/mono-api/agents-api/.well-known/workflow/v1/flow.cjs:45160:22)\n    at listOnTimeout (node:internal/timers:608:17)\n    at process.processTimers (node:internal/timers:543:7)"
+  },
+  "completedAt": "2026-01-18T19:19:21.174Z"
+}

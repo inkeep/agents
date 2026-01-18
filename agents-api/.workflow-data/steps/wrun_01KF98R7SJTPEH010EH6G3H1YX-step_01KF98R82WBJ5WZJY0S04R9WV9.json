@@ -1,0 +1,38 @@
+{
+  "runId": "wrun_01KF98R7SJTPEH010EH6G3H1YX",
+  "stepId": "step_01KF98R82WBJ5WZJY0S04R9WV9",
+  "stepName": "step//src/domains/evals/workflow/functions/evaluateConversation.ts//getEvaluatorsStep",
+  "status": "failed",
+  "input": [
+    {
+      "args": 1,
+      "closureVars": -1
+    },
+    [
+      2
+    ],
+    {
+      "tenantId": 3,
+      "projectId": 4,
+      "conversationId": 5,
+      "evaluatorIds": 6,
+      "evaluationRunId": 8
+    },
+    "default",
+    "activities-planner-advanced",
+    "cy6gg9goe039ozbobczqt",
+    [
+      7
+    ],
+    "aki585pvtmr97q4adss3v",
+    "95i22i52jl47dbmlyotw2"
+  ],
+  "attempt": 3,
+  "startedAt": "2026-01-18T19:19:17.908Z",
+  "createdAt": "2026-01-18T19:19:17.818Z",
+  "updatedAt": "2026-01-18T19:19:21.076Z",
+  "error": {
+    "message": "Step \"step//src/domains/evals/workflow/functions/evaluateConversation.ts//getEvaluatorsStep\" exceeded max retries (4 attempts)"
+  },
+  "completedAt": "2026-01-18T19:19:21.076Z"
+}

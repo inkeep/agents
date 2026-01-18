@@ -54,7 +54,6 @@ vi.mock('../logger', () => {
   };
 });
 
-
 // Also mock the agents-core logger since api-key-auth imports from there
 vi.mock('@inkeep/agents-core', async (importOriginal) => {
   const actual = await importOriginal<typeof import('@inkeep/agents-core')>();
@@ -106,8 +105,7 @@ beforeAll(async () => {
 
     // Use path relative to project root to work with both direct and turbo execution
     // When running from agents-manage-api, go up one level to project root
-    const isInPackageDir =
-      process.cwd().includes('agents-api')
+    const isInPackageDir = process.cwd().includes('agents-api');
     const manageMigrationsPath = isInPackageDir
       ? '../packages/agents-core/drizzle/manage'
       : './packages/agents-core/drizzle/manage';
@@ -116,8 +114,8 @@ beforeAll(async () => {
       ? '../packages/agents-core/drizzle/runtime'
       : './packages/agents-core/drizzle/runtime';
 
-    await migrate(manageDbClient, { migrationsFolder: manageMigrationsPath });
-    await migrate(runDbClient, { migrationsFolder: runMigrationsPath });
+    await migrate(manageDbClient as unknown as Parameters<typeof migrate>[0], { migrationsFolder: manageMigrationsPath });
+    await migrate(runDbClient as unknown as Parameters<typeof migrate>[0], { migrationsFolder: runMigrationsPath });
     logger.debug({}, 'Database migrations applied successfully');
   } catch (error) {
     logger.error({ error }, 'Failed to apply database migrations');

@@ -11,26 +11,23 @@ import {
   DatasetRunConfigApiInsertSchema,
   DatasetRunConfigApiSelectSchema,
   DatasetRunConfigApiUpdateSchema,
-  datasetRun,
   deleteDatasetRunConfig,
   deleteDatasetRunConfigAgentRelation,
-  EvalApiClient,
   generateId,
   getDatasetRunConfigAgentRelations,
   getDatasetRunConfigById,
-  InternalServices,
   ListResponseSchema,
   listDatasetItems,
   listDatasetRunConfigs,
+  linkDatasetRunToEvaluationJobConfig,
   SingleResponseSchema,
   TenantProjectParamsSchema,
   updateDatasetRunConfig,
 } from '@inkeep/agents-core';
-import { and, eq } from 'drizzle-orm';
 import runDbClient from '../../../../data/db/runDbClient';
-import { env } from '../../../../env';
 import { getLogger } from '../../../../logger';
 import type { ManageAppVariables } from '../../../../types/app';
+import { queueDatasetRunItems } from 'src/domains/evals/services/datasetRun';
 
 const app = new OpenAPIHono<{ Variables: ManageAppVariables }>();
 const logger = getLogger('datasetRunConfigs');
@@ -307,16 +304,10 @@ app.openapi(
           );
 
           // Update dataset run to link the eval job config
-          await runDbClient
-            .update(datasetRun)
-            .set({ evaluationJobConfigId: evalJobConfigId })
-            .where(
-              and(
-                eq(datasetRun.tenantId, tenantId),
-                eq(datasetRun.projectId, projectId),
-                eq(datasetRun.id, datasetRunId)
-              )
-            );
+          await linkDatasetRunToEvaluationJobConfig(runDbClient)({
+            scopes: { tenantId, projectId, datasetRunId },
+            evaluationJobConfigId: evalJobConfigId,
+          });
 
           // Create evaluation run linked to the job config
           evaluationRunId = generateId();
@@ -339,22 +330,12 @@ app.openapi(
           }))
         );
 
-        // Trigger dataset run via eval API
-        // TODO: Remove this once eval api is merge into main api
-        const evalClient = new EvalApiClient({
-          apiUrl: env.INKEEP_AGENTS_API_URL || '',
+        const result = await queueDatasetRunItems({
           tenantId,
           projectId,
-          auth: {
-            mode: 'internalService',
-            internalServiceName: InternalServices.INKEEP_AGENTS_EVAL_API,
-          },
-        });
-
-        const result = await evalClient.triggerDatasetRun({
           datasetRunId,
           items,
-          evaluatorIds: evaluatorIds && Array.isArray(evaluatorIds) ? evaluatorIds : undefined,
+          evaluatorIds,
           evaluationRunId,
         });
 

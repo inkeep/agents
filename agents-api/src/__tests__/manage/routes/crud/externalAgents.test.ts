@@ -344,10 +344,13 @@ describe('External Agent CRUD Routes - Integration Tests', () => {
 
       const agentData = createTestExternalAgentData({ tenantId, projectId });
 
-      const res = await makeRequest(`/manage/tenants/${tenantId}/projects/${projectId}/external-agents`, {
-        method: 'POST',
-        body: JSON.stringify(agentData),
-      });
+      const res = await makeRequest(
+        `/manage/tenants/${tenantId}/projects/${projectId}/external-agents`,
+        {
+          method: 'POST',
+          body: JSON.stringify(agentData),
+        }
+      );
 
       expect(res.status).toBe(201);
 
@@ -369,10 +372,13 @@ describe('External Agent CRUD Routes - Integration Tests', () => {
       const agentData = createTestExternalAgentData({ tenantId, projectId });
       const providedId = generateId();
 
-      const res = await makeRequest(`/manage/tenants/${tenantId}/projects/${projectId}/external-agents`, {
-        method: 'POST',
-        body: JSON.stringify({ ...agentData, id: providedId }),
-      });
+      const res = await makeRequest(
+        `/manage/tenants/${tenantId}/projects/${projectId}/external-agents`,
+        {
+          method: 'POST',
+          body: JSON.stringify({ ...agentData, id: providedId }),
+        }
+      );
 
       expect(res.status).toBe(201);
 
@@ -397,10 +403,13 @@ describe('External Agent CRUD Routes - Integration Tests', () => {
     it('should validate required fields', async () => {
       const tenantId = await createTestTenantWithOrg('agents-create-validation');
       await createTestProject(manageDbClient, tenantId, projectId);
-      const res = await makeRequest(`/manage/tenants/${tenantId}/projects/${projectId}/external-agents`, {
-        method: 'POST',
-        body: JSON.stringify({}),
-      });
+      const res = await makeRequest(
+        `/manage/tenants/${tenantId}/projects/${projectId}/external-agents`,
+        {
+          method: 'POST',
+          body: JSON.stringify({}),
+        }
+      );
 
       expect(res.status).toBe(400);
     });

@@ -140,10 +140,13 @@ describe('Credential CRUD Routes - Integration Tests', () => {
     await createTestProject(manageDbClient, tenantId, projectId);
 
     const credentialData = createCredentialData({ suffix });
-    const createRes = await makeRequest(`/manage/tenants/${tenantId}/projects/${projectId}/credentials`, {
-      method: 'POST',
-      body: JSON.stringify(credentialData),
-    });
+    const createRes = await makeRequest(
+      `/manage/tenants/${tenantId}/projects/${projectId}/credentials`,
+      {
+        method: 'POST',
+        body: JSON.stringify(credentialData),
+      }
+    );
 
     expect(createRes.status).toBe(201);
     const createBody = await createRes.json();
@@ -287,12 +290,16 @@ describe('Credential CRUD Routes - Integration Tests', () => {
       await createMultipleCredentials({ tenantId: tenantB, count: 3 });
 
       // Check tenant A sees only its credentials
-      const resA = await makeRequest(`/manage/tenants/${tenantA}/projects/${projectId}/credentials`);
+      const resA = await makeRequest(
+        `/manage/tenants/${tenantA}/projects/${projectId}/credentials`
+      );
       const bodyA = await resA.json();
       expect(bodyA.data).toHaveLength(2);
 
       // Check tenant B sees only its credentials
-      const resB = await makeRequest(`/manage/tenants/${tenantB}/projects/${projectId}/credentials`);
+      const resB = await makeRequest(
+        `/manage/tenants/${tenantB}/projects/${projectId}/credentials`
+      );
       const bodyB = await resB.json();
       expect(bodyB.data).toHaveLength(3);
     });
@@ -359,10 +366,13 @@ describe('Credential CRUD Routes - Integration Tests', () => {
       await createTestProject(manageDbClient, tenantId, projectId);
       const credentialData = createCredentialData();
 
-      const res = await makeRequest(`/manage/tenants/${tenantId}/projects/${projectId}/credentials`, {
-        method: 'POST',
-        body: JSON.stringify(credentialData),
-      });
+      const res = await makeRequest(
+        `/manage/tenants/${tenantId}/projects/${projectId}/credentials`,
+        {
+          method: 'POST',
+          body: JSON.stringify(credentialData),
+        }
+      );
 
       expect(res.status).toBe(201);
       const body = await res.json();
@@ -389,10 +399,13 @@ describe('Credential CRUD Routes - Integration Tests', () => {
         credentialStoreId: 'memory-store',
       };
 
-      const res = await makeRequest(`/manage/tenants/${tenantId}/projects/${projectId}/credentials`, {
-        method: 'POST',
-        body: JSON.stringify(minimalData),
-      });
+      const res = await makeRequest(
+        `/manage/tenants/${tenantId}/projects/${projectId}/credentials`,
+        {
+          method: 'POST',
+          body: JSON.stringify(minimalData),
+        }
+      );
 
       expect(res.status).toBe(201);
       const body = await res.json();
@@ -413,10 +426,13 @@ describe('Credential CRUD Routes - Integration Tests', () => {
         retrievalParams: { some: 'data' },
       };
 
-      const res = await makeRequest(`/manage/tenants/${tenantId}/projects/${projectId}/credentials`, {
-        method: 'POST',
-        body: JSON.stringify(invalidData),
-      });
+      const res = await makeRequest(
+        `/manage/tenants/${tenantId}/projects/${projectId}/credentials`,
+        {
+          method: 'POST',
+          body: JSON.stringify(invalidData),
+        }
+      );
 
       expect(res.status).toBe(400);
     });
@@ -650,13 +666,16 @@ describe('Credential CRUD Routes - Integration Tests', () => {
       const tenantId = await createTestTenantWithOrg('credentials-malformed-json');
       await createTestProject(manageDbClient, tenantId, projectId);
 
-      const res = await makeRequest(`/manage/tenants/${tenantId}/projects/${projectId}/credentials`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: 'invalid json{',
-      });
+      const res = await makeRequest(
+        `/manage/tenants/${tenantId}/projects/${projectId}/credentials`,
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: 'invalid json{',
+        }
+      );
 
       expect(res.status).toBe(400);
     });
@@ -666,10 +685,13 @@ describe('Credential CRUD Routes - Integration Tests', () => {
       await createTestProject(manageDbClient, tenantId, projectId);
       const credentialData = createCredentialData();
 
-      const res = await makeRequest(`/manage/tenants/${tenantId}/projects/${projectId}/credentials`, {
-        method: 'POST',
-        body: JSON.stringify(credentialData),
-      });
+      const res = await makeRequest(
+        `/manage/tenants/${tenantId}/projects/${projectId}/credentials`,
+        {
+          method: 'POST',
+          body: JSON.stringify(credentialData),
+        }
+      );
 
       // Should work with makeRequest utility providing correct headers
       expect(res.status).toBe(201);
@@ -689,10 +711,13 @@ describe('Credential CRUD Routes - Integration Tests', () => {
         },
       };
 
-      const res = await makeRequest(`/manage/tenants/${tenantId}/projects/${projectId}/credentials`, {
-        method: 'POST',
-        body: JSON.stringify(credentialData),
-      });
+      const res = await makeRequest(
+        `/manage/tenants/${tenantId}/projects/${projectId}/credentials`,
+        {
+          method: 'POST',
+          body: JSON.stringify(credentialData),
+        }
+      );
 
       if (res.status !== 201) {
         const errorBody = await res.json();
@@ -715,10 +740,13 @@ describe('Credential CRUD Routes - Integration Tests', () => {
         // retrievalParams omitted - should be set to null in database
       };
 
-      const res = await makeRequest(`/manage/tenants/${tenantId}/projects/${projectId}/credentials`, {
-        method: 'POST',
-        body: JSON.stringify(credentialData),
-      });
+      const res = await makeRequest(
+        `/manage/tenants/${tenantId}/projects/${projectId}/credentials`,
+        {
+          method: 'POST',
+          body: JSON.stringify(credentialData),
+        }
+      );
 
       expect(res.status).toBe(201);
       const body = await res.json();

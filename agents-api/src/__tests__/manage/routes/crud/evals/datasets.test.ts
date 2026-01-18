@@ -42,7 +42,9 @@ describe('Datasets CRUD Routes - Integration Tests', () => {
     it('should list datasets with pagination (empty initially)', async () => {
       const tenantId = await createTestTenantWithOrg('datasets-list-empty');
       await createTestProject(manageDbClient, tenantId, projectId);
-      const res = await makeRequest(`/manage/tenants/${tenantId}/projects/${projectId}/evals/datasets`);
+      const res = await makeRequest(
+        `/manage/tenants/${tenantId}/projects/${projectId}/evals/datasets`
+      );
       expect(res.status).toBe(200);
       const body = await res.json();
       expect(body.data).toEqual([]);
@@ -55,7 +57,9 @@ describe('Datasets CRUD Routes - Integration Tests', () => {
       await createTestDataset({ tenantId, suffix: '-1' });
       await createTestDataset({ tenantId, suffix: '-2' });
 
-      const res = await makeRequest(`/manage/tenants/${tenantId}/projects/${projectId}/evals/datasets`);
+      const res = await makeRequest(
+        `/manage/tenants/${tenantId}/projects/${projectId}/evals/datasets`
+      );
       expect(res.status).toBe(200);
       const body = await res.json();
       expect(body.data).toHaveLength(2);
@@ -94,10 +98,13 @@ describe('Datasets CRUD Routes - Integration Tests', () => {
       await createTestProject(manageDbClient, tenantId, projectId);
       const datasetData = createDatasetData();
 
-      const res = await makeRequest(`/manage/tenants/${tenantId}/projects/${projectId}/evals/datasets`, {
-        method: 'POST',
-        body: JSON.stringify(datasetData),
-      });
+      const res = await makeRequest(
+        `/manage/tenants/${tenantId}/projects/${projectId}/evals/datasets`,
+        {
+          method: 'POST',
+          body: JSON.stringify(datasetData),
+        }
+      );
 
       expect(res.status).toBe(201);
       const body = await res.json();
@@ -112,10 +119,13 @@ describe('Datasets CRUD Routes - Integration Tests', () => {
         name: 'Minimal Dataset',
       };
 
-      const res = await makeRequest(`/manage/tenants/${tenantId}/projects/${projectId}/evals/datasets`, {
-        method: 'POST',
-        body: JSON.stringify(minimalData),
-      });
+      const res = await makeRequest(
+        `/manage/tenants/${tenantId}/projects/${projectId}/evals/datasets`,
+        {
+          method: 'POST',
+          body: JSON.stringify(minimalData),
+        }
+      );
 
       expect(res.status).toBe(201);
       const body = await res.json();

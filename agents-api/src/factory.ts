@@ -35,7 +35,6 @@ export function createAgentsAuth(userAuthConfig?: UserAuthConfig) {
   });
 }
 
-
 export function createAgentsApp(config?: {
   serverConfig?: ServerConfig;
   credentialStores?: CredentialStore[];

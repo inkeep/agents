@@ -1,12 +1,12 @@
 import { OpenAPIHono } from '@hono/zod-openapi';
 
 import type { AppVariables } from '../../types';
+import triggerRoutes from './routes';
 
 export function createEvalRoutes() {
   const app = new OpenAPIHono<{ Variables: AppVariables }>();
 
-  // TODO: Import and mount routes from agents-eval-api
-  // These will be migrated incrementally from agents-eval-api/src/routes/
+  app.route('/tenants/:tenantId/projects/:projectId/', triggerRoutes);
 
   return app;
 }

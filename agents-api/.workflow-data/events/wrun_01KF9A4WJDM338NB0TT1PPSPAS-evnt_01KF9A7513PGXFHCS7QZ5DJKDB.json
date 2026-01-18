@@ -1,0 +1,80 @@
+{
+  "eventType": "step_completed",
+  "correlationId": "step_01KF9A4WWP20M1PCGD2KQW93M7",
+  "eventData": {
+    "result": [
+      {
+        "tenantId": 1,
+        "id": 2,
+        "projectId": 3,
+        "conversationId": 4,
+        "evaluatorId": 5,
+        "evaluationRunId": 6,
+        "output": 7,
+        "createdAt": 23,
+        "updatedAt": 24
+      },
+      "default",
+      "3ggbdexwvzicyanjcazqs",
+      "activities-planner-advanced",
+      "58c2xnd4rwoiixpdgqkcx",
+      "aki585pvtmr97q4adss3v",
+      "mjvc2lvspma1ta5b1tp9e",
+      {
+        "output": 8,
+        "metadata": 10
+      },
+      {
+        "success": 9
+      },
+      true,
+      {
+        "model": 11,
+        "usage": 12,
+        "agentId": 3,
+        "hasTrace": 22,
+        "hasAgentDefinition": 9,
+        "traceActivityCount": 18
+      },
+      "anthropic/claude-sonnet-4-5",
+      {
+        "raw": 13,
+        "inputTokens": 14,
+        "totalTokens": 19,
+        "outputTokens": 16,
+        "cachedInputTokens": 18,
+        "inputTokenDetails": 20,
+        "outputTokenDetails": 21
+      },
+      {
+        "input_tokens": 14,
+        "service_tier": 15,
+        "output_tokens": 16,
+        "cache_creation": 17,
+        "cache_read_input_tokens": 18,
+        "cache_creation_input_tokens": 18
+      },
+      5389,
+      "standard",
+      8,
+      {
+        "ephemeral_1h_input_tokens": 18,
+        "ephemeral_5m_input_tokens": 18
+      },
+      0,
+      5397,
+      {
+        "noCacheTokens": 14,
+        "cacheReadTokens": 18,
+        "cacheWriteTokens": 18
+      },
+      {},
+      false,
+      "2026-01-18 19:43:41.213",
+      "2026-01-18 19:44:54.289"
+    ]
+  },
+  "runId": "wrun_01KF9A4WJDM338NB0TT1PPSPAS",
+  "eventId": "evnt_01KF9A7513PGXFHCS7QZ5DJKDB",
+  "createdAt": "2026-01-18T19:44:54.307Z"
+}

@@ -17,7 +17,7 @@ import {
   getMessagesByConversation,
   ListResponseSchema,
   listEvaluationResultsByRun,
-  listEvaluationRunConfigs,
+  listEvaluationRunConfigsWithSuiteConfigs,
   listEvaluationRuns,
   SingleResponseSchema,
   TenantProjectParamsSchema,
@@ -57,24 +57,9 @@ app.openapi(
     const { tenantId, projectId } = c.req.valid('param');
 
     try {
-      const configs = await listEvaluationRunConfigs(db)({
+      const configsWithSuiteConfigs = await listEvaluationRunConfigsWithSuiteConfigs(db)({
         scopes: { tenantId, projectId },
       });
-
-      // Fetch suite config relations for all configs
-      const configsWithSuiteConfigs = await Promise.all(
-        configs.map(async (config) => {
-          const suiteConfigRelations = await getEvaluationRunConfigEvaluationSuiteConfigRelations(
-            db
-          )({
-            scopes: { tenantId, projectId, evaluationRunConfigId: config.id },
-          });
-          return {
-            ...config,
-            suiteConfigIds: suiteConfigRelations.map((rel) => rel.evaluationSuiteConfigId),
-          };
-        })
-      );
 
       return c.json({
         data: configsWithSuiteConfigs as any,
@@ -185,9 +170,6 @@ app.openapi(
   async (c) => {
     const { tenantId, projectId, configId } = c.req.valid('param');
 
-    console.log('=== GET EVALUATION RESULTS FOR RUN CONFIG ===');
-    console.log('Request params:', { tenantId, projectId, configId });
-
     try {
       // Find evaluation run(s) for this run config
       const evaluationRuns = await listEvaluationRuns(runDbClient)({
@@ -196,26 +178,7 @@ app.openapi(
 
       const runConfigRuns = evaluationRuns.filter((run) => run.evaluationRunConfigId === configId);
 
-      console.log('Found evaluation runs for run config:', {
-        tenantId,
-        projectId,
-        configId,
-        totalEvaluationRuns: evaluationRuns.length,
-        matchingRunConfigRuns: runConfigRuns.length,
-        runConfigRunIds: runConfigRuns.map((r) => r.id),
-        allEvaluationRunConfigIds: evaluationRuns.map((r) => ({
-          id: r.id,
-          evaluationRunConfigId: r.evaluationRunConfigId,
-        })),
-      });
-
       if (runConfigRuns.length === 0) {
-        console.warn('No evaluation runs found for run config:', {
-          tenantId,
-          projectId,
-          configId,
-          totalEvaluationRuns: evaluationRuns.length,
-        });
         return c.json({ data: [], pagination: { page: 1, limit: 100, total: 0, pages: 0 } }) as any;
       }
 
@@ -225,32 +188,11 @@ app.openapi(
           const runResults = await listEvaluationResultsByRun(runDbClient)({
             scopes: { tenantId, projectId, evaluationRunId: run.id },
           });
-          console.log('Results for evaluation run:', {
-            evaluationRunId: run.id,
-            resultCount: runResults.length,
-            conversationIds: runResults.map((r) => r.conversationId),
-            evaluatorIds: runResults.map((r) => r.evaluatorId),
-          });
           return runResults;
         })
       );
 
       const results = allResults.flat();
-
-      console.log('Retrieved evaluation results for run config:', {
-        tenantId,
-        projectId,
-        configId,
-        resultCount: results.length,
-        evaluationRunCount: runConfigRuns.length,
-        uniqueConversationIds: [...new Set(results.map((r) => r.conversationId))],
-        allResults: results.map((r) => ({
-          id: r.id,
-          conversationId: r.conversationId,
-          evaluatorId: r.evaluatorId,
-          evaluationRunId: r.evaluationRunId,
-        })),
-      });
 
       const uniqueConversationIds = [...new Set(results.map((r) => r.conversationId))] as string[];
       const conversationInputs = new Map<string, string>();

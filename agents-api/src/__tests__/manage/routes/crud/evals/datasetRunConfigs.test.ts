@@ -5,17 +5,9 @@ import manageDbClient from '../../../../../data/db/manageDbClient';
 import { makeRequest } from '../../../../utils/testRequest';
 import { createTestTenantWithOrg } from '../../../../utils/testTenant';
 
-// Mock the EvalApiClient to prevent actual API calls
-vi.mock('@inkeep/agents-core', async (importOriginal) => {
-  const actual = await importOriginal<typeof import('@inkeep/agents-core')>();
+vi.mock('src/domains/evals/services/datasetRun', () => {
   return {
-    ...actual,
-    EvalApiClient: vi.fn().mockImplementation(() => ({
-      triggerDatasetRun: vi.fn().mockResolvedValue({
-        queued: 0,
-        failed: 0,
-      }),
-    })),
+    queueDatasetRunItems: vi.fn().mockResolvedValue({ queued: 0, failed: 0 }),
   };
 });
 
@@ -45,10 +37,13 @@ describe('Dataset Run Configs CRUD Routes - Integration Tests', () => {
       name: 'Test Agent',
       systemPrompt: 'You are a test agent',
     };
-    const createRes = await makeRequest(`/manage/tenants/${tenantId}/projects/${projectId}/agents`, {
-      method: 'POST',
-      body: JSON.stringify(agentData),
-    });
+    const createRes = await makeRequest(
+      `/manage/tenants/${tenantId}/projects/${projectId}/agents`,
+      {
+        method: 'POST',
+        body: JSON.stringify(agentData),
+      }
+    );
     expect(createRes.status).toBe(201);
     const createBody = await createRes.json();
     return { agentId: createBody.data.id };

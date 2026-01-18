@@ -57,10 +57,13 @@ describe('Agent CRUD Routes - Integration Tests', () => {
     defaultSubAgentId?: string | null;
   }) => {
     const agentData = createAgentData({ defaultSubAgentId });
-    const createRes = await makeRequest(`/manage/tenants/${tenantId}/projects/${projectId}/agents`, {
-      method: 'POST',
-      body: JSON.stringify(agentData),
-    });
+    const createRes = await makeRequest(
+      `/manage/tenants/${tenantId}/projects/${projectId}/agents`,
+      {
+        method: 'POST',
+        body: JSON.stringify(agentData),
+      }
+    );
     expect(createRes.status).toBe(201);
 
     const createBody = await createRes.json();
@@ -83,10 +86,13 @@ describe('Agent CRUD Routes - Integration Tests', () => {
       });
 
       // Update the agent with the default agent
-      await makeRequest(`/manage/tenants/${tenantId}/projects/${projectId}/agents/${agent.agentId}`, {
-        method: 'PUT',
-        body: JSON.stringify({ defaultSubAgentId: subAgentId }),
-      });
+      await makeRequest(
+        `/manage/tenants/${tenantId}/projects/${projectId}/agents/${agent.agentId}`,
+        {
+          method: 'PUT',
+          body: JSON.stringify({ defaultSubAgentId: subAgentId }),
+        }
+      );
 
       agents.push(agent);
     }
@@ -217,7 +223,9 @@ describe('Agent CRUD Routes - Integration Tests', () => {
         body: JSON.stringify({ defaultSubAgentId: subAgentId }),
       });
 
-      const res = await makeRequest(`/manage/tenants/${tenantId}/projects/${projectId}/agents/${agentId}`);
+      const res = await makeRequest(
+        `/manage/tenants/${tenantId}/projects/${projectId}/agents/${agentId}`
+      );
       expect(res.status).toBe(200);
 
       const body = await res.json();

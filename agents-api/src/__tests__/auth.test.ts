@@ -45,7 +45,6 @@ describe('Auth Integration', () => {
       env: {
         INKEEP_AGENTS_API_URL: 'http://localhost:3002',
         DISABLE_AUTH: true,
-
       },
     }));
 

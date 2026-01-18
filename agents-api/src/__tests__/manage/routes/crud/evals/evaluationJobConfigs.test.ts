@@ -5,19 +5,14 @@ import manageDbClient from '../../../../../data/db/manageDbClient';
 import { makeRequest } from '../../../../utils/testRequest';
 import { createTestTenantWithOrg } from '../../../../utils/testTenant';
 
-// Mock the EvalApiClient to prevent actual API calls
-vi.mock('@inkeep/agents-core', async (importOriginal) => {
-  const actual = await importOriginal<typeof import('@inkeep/agents-core')>();
+vi.mock('src/domains/evals/services/evaluationJob', () => {
   return {
-    ...actual,
-    EvalApiClient: vi.fn().mockImplementation(() => ({
-      triggerEvaluationJob: vi.fn().mockResolvedValue({
-        conversationCount: 0,
-        queued: 0,
-        failed: 0,
-        evaluationRunId: 'mock-eval-run-id',
-      }),
-    })),
+    queueEvaluationJobConversations: vi.fn().mockResolvedValue({
+      conversationCount: 0,
+      queued: 0,
+      failed: 0,
+      evaluationRunId: 'mock-eval-run-id',
+    }),
   };
 });
 

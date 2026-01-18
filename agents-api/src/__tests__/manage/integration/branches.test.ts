@@ -402,9 +402,12 @@ describe('Branch CRUD Routes - Integration Tests', () => {
       const tenantId = await createTestTenantWithOrg('branches-delete-protected');
       const projectId = await createTestProject(tenantId);
 
-      const res = await makeRequest(`/manage/tenants/${tenantId}/projects/${projectId}/branches/main`, {
-        method: 'DELETE',
-      });
+      const res = await makeRequest(
+        `/manage/tenants/${tenantId}/projects/${projectId}/branches/main`,
+        {
+          method: 'DELETE',
+        }
+      );
 
       expect(res.status).toBe(403);
       const body = await res.json();

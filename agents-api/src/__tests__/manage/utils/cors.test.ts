@@ -1,9 +1,9 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { getBaseDomain } from '../../middleware/cors';
+import { getBaseDomain } from '../../../middleware/cors';
 
 vi.mock('../../../env', () => ({
   env: {
-    INKEEP_AGENTS_MANAGE_API_URL: 'http://localhost:3002',
+    INKEEP_AGENTS_API_URL: 'http://localhost:3002',
     INKEEP_AGENTS_MANAGE_UI_URL: undefined,
   },
 }));
@@ -45,17 +45,17 @@ describe('isOriginAllowed', () => {
 
   describe('when origin is undefined or invalid', () => {
     it('should return false for undefined origin', async () => {
-      const { isOriginAllowed } = await import('../../middleware/cors');
+      const { isOriginAllowed } = await import('../../../middleware/cors');
       expect(isOriginAllowed(undefined)).toBe(false);
     });
 
     it('should return false for empty string', async () => {
-      const { isOriginAllowed } = await import('../../middleware/cors');
+      const { isOriginAllowed } = await import('../../../middleware/cors');
       expect(isOriginAllowed('')).toBe(false);
     });
 
     it('should return false for invalid URL', async () => {
-      const { isOriginAllowed } = await import('../../middleware/cors');
+      const { isOriginAllowed } = await import('../../../middleware/cors');
       expect(isOriginAllowed('not-a-url')).toBe(false);
     });
   });
@@ -64,27 +64,27 @@ describe('isOriginAllowed', () => {
     beforeEach(() => {
       vi.doMock('../../../env', () => ({
         env: {
-          INKEEP_AGENTS_MANAGE_API_URL: 'http://localhost:3002',
+          INKEEP_AGENTS_API_URL: 'http://localhost:3002',
           INKEEP_AGENTS_MANAGE_UI_URL: undefined,
         },
       }));
     });
 
     it('should allow localhost origins', async () => {
-      const { isOriginAllowed } = await import('../../middleware/cors');
+      const { isOriginAllowed } = await import('../../../middleware/cors');
       expect(isOriginAllowed('http://localhost:3000')).toBe(true);
       expect(isOriginAllowed('http://localhost:5173')).toBe(true);
       expect(isOriginAllowed('http://localhost')).toBe(true);
     });
 
     it('should allow 127.0.0.1 origins', async () => {
-      const { isOriginAllowed } = await import('../../middleware/cors');
+      const { isOriginAllowed } = await import('../../../middleware/cors');
       expect(isOriginAllowed('http://127.0.0.1:3000')).toBe(true);
       expect(isOriginAllowed('http://127.0.0.1')).toBe(true);
     });
 
     it('should reject non-localhost origins in dev mode', async () => {
-      const { isOriginAllowed } = await import('../../middleware/cors');
+      const { isOriginAllowed } = await import('../../../middleware/cors');
       expect(isOriginAllowed('https://example.com')).toBe(false);
       expect(isOriginAllowed('https://preview.inkeep.com')).toBe(false);
     });
@@ -94,14 +94,14 @@ describe('isOriginAllowed', () => {
     beforeEach(() => {
       vi.doMock('../../../env', () => ({
         env: {
-          INKEEP_AGENTS_MANAGE_API_URL: 'http://127.0.0.1:3002',
+          INKEEP_AGENTS_API_URL: 'http://127.0.0.1:3002',
           INKEEP_AGENTS_MANAGE_UI_URL: undefined,
         },
       }));
     });
 
     it('should allow localhost and 127.0.0.1 origins', async () => {
-      const { isOriginAllowed } = await import('../../middleware/cors');
+      const { isOriginAllowed } = await import('../../../middleware/cors');
       expect(isOriginAllowed('http://localhost:3000')).toBe(true);
       expect(isOriginAllowed('http://127.0.0.1:3000')).toBe(true);
     });
@@ -111,29 +111,29 @@ describe('isOriginAllowed', () => {
     beforeEach(() => {
       vi.doMock('../../../env', () => ({
         env: {
-          INKEEP_AGENTS_MANAGE_API_URL: 'https://agents-manage-api.inkeep.com',
+          INKEEP_AGENTS_API_URL: 'https://agents-manage-api.inkeep.com',
           INKEEP_AGENTS_MANAGE_UI_URL: 'https://agents-manage-ui.inkeep.com',
         },
       }));
     });
 
     it('should allow the exact UI URL hostname', async () => {
-      const { isOriginAllowed } = await import('../../middleware/cors');
+      const { isOriginAllowed } = await import('../../../middleware/cors');
       expect(isOriginAllowed('https://agents-manage-ui.inkeep.com')).toBe(true);
     });
 
     it('should reject different 3-part subdomains (base domain includes subdomain)', async () => {
-      const { isOriginAllowed } = await import('../../middleware/cors');
+      const { isOriginAllowed } = await import('../../../middleware/cors');
       expect(isOriginAllowed('https://other-app.inkeep.com')).toBe(false);
     });
 
     it('should allow 4-part hostnames with matching base domain', async () => {
-      const { isOriginAllowed } = await import('../../middleware/cors');
+      const { isOriginAllowed } = await import('../../../middleware/cors');
       expect(isOriginAllowed('https://app.agents-manage-api.inkeep.com')).toBe(true);
     });
 
     it('should reject origins from different domains', async () => {
-      const { isOriginAllowed } = await import('../../middleware/cors');
+      const { isOriginAllowed } = await import('../../../middleware/cors');
       expect(isOriginAllowed('https://malicious-site.com')).toBe(false);
       expect(isOriginAllowed('https://inkeep.com.evil.com')).toBe(false);
     });
@@ -141,43 +141,43 @@ describe('isOriginAllowed', () => {
 
   describe('production mode with preview environment', () => {
     beforeEach(() => {
-      vi.doMock('../../env', () => ({
+      vi.doMock('../../../env', () => ({
         env: {
-          INKEEP_AGENTS_MANAGE_API_URL: 'https://agents-manage-api.preview.inkeep.com',
+          INKEEP_AGENTS_API_URL: 'https://agents-manage-api.preview.inkeep.com',
           INKEEP_AGENTS_MANAGE_UI_URL: undefined,
         },
       }));
     });
 
     it('should allow origins from the same preview base domain', async () => {
-      const { isOriginAllowed } = await import('../../middleware/cors');
+      const { isOriginAllowed } = await import('../../../middleware/cors');
       expect(isOriginAllowed('https://agents-manage-ui.preview.inkeep.com')).toBe(true);
       expect(isOriginAllowed('https://other-app.preview.inkeep.com')).toBe(true);
     });
 
     it('should reject origins from production domain', async () => {
-      const { isOriginAllowed } = await import('../../middleware/cors');
+      const { isOriginAllowed } = await import('../../../middleware/cors');
       expect(isOriginAllowed('https://agents-manage-ui.inkeep.com')).toBe(false);
     });
 
     it('should reject origins from different preview environments', async () => {
-      const { isOriginAllowed } = await import('../../middleware/cors');
+      const { isOriginAllowed } = await import('../../../middleware/cors');
       expect(isOriginAllowed('https://app.staging.inkeep.com')).toBe(false);
     });
   });
 
   describe('fallback when API URL is not set', () => {
     beforeEach(() => {
-      vi.doMock('../../env', () => ({
+      vi.doMock('../../../env', () => ({
         env: {
-          INKEEP_AGENTS_MANAGE_API_URL: undefined,
+          INKEEP_AGENTS_API_URL: undefined,
           INKEEP_AGENTS_MANAGE_UI_URL: undefined,
         },
       }));
     });
 
     it('should default to localhost behavior', async () => {
-      const { isOriginAllowed } = await import('../../middleware/cors');
+      const { isOriginAllowed } = await import('../../../middleware/cors');
       expect(isOriginAllowed('http://localhost:3000')).toBe(true);
       expect(isOriginAllowed('https://example.com')).toBe(false);
     });

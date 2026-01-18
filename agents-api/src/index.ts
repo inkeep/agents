@@ -47,7 +47,6 @@ const ssoProviders = await Promise.all([
     : null,
 ]);
 
-
 const socialProviders =
   process.env.PUBLIC_GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET
     ? {
@@ -60,13 +59,12 @@ const socialProviders =
       }
     : undefined;
 
-  export const auth = createAgentsAuth({
-    ssoProviders: ssoProviders.filter(
-      (p: SSOProviderConfig | null): p is SSOProviderConfig => p !== null
-    ),
-    socialProviders,
-  });
-    
+export const auth = createAgentsAuth({
+  ssoProviders: ssoProviders.filter(
+    (p: SSOProviderConfig | null): p is SSOProviderConfig => p !== null
+  ),
+  socialProviders,
+});
 
 // Create default credential stores
 const defaultStores = createDefaultCredentialStores();
@@ -81,6 +79,6 @@ const app = createAgentsHono({
 // Initialize default user for development environment only
 if (env.ENVIRONMENT === 'development') {
   void initializeDefaultUser(auth);
-} 
+}
 
 export default app;

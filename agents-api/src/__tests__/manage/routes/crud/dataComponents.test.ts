@@ -339,10 +339,13 @@ describe('Data Component CRUD Routes - Integration Tests', () => {
       await createTestProject(manageDbClient, tenantId, projectId);
       const dataComponentData = createDataComponentData();
 
-      const res = await makeRequest(`/manage/tenants/${tenantId}/projects/${projectId}/data-components`, {
-        method: 'POST',
-        body: JSON.stringify(dataComponentData),
-      });
+      const res = await makeRequest(
+        `/manage/tenants/${tenantId}/projects/${projectId}/data-components`,
+        {
+          method: 'POST',
+          body: JSON.stringify(dataComponentData),
+        }
+      );
 
       expect(res.status).toBe(201);
 
@@ -363,10 +366,13 @@ describe('Data Component CRUD Routes - Integration Tests', () => {
       const dataComponentData = createDataComponentData();
       const providedId = generateId();
 
-      const res = await makeRequest(`/manage/tenants/${tenantId}/projects/${projectId}/data-components`, {
-        method: 'POST',
-        body: JSON.stringify({ ...dataComponentData, id: providedId }),
-      });
+      const res = await makeRequest(
+        `/manage/tenants/${tenantId}/projects/${projectId}/data-components`,
+        {
+          method: 'POST',
+          body: JSON.stringify({ ...dataComponentData, id: providedId }),
+        }
+      );
 
       expect(res.status).toBe(201);
 
@@ -391,10 +397,13 @@ describe('Data Component CRUD Routes - Integration Tests', () => {
     it('should validate required fields', async () => {
       const tenantId = await createTestTenantWithOrg('data-components-create-validation');
       await createTestProject(manageDbClient, tenantId, projectId);
-      const res = await makeRequest(`/manage/tenants/${tenantId}/projects/${projectId}/data-components`, {
-        method: 'POST',
-        body: JSON.stringify({}),
-      });
+      const res = await makeRequest(
+        `/manage/tenants/${tenantId}/projects/${projectId}/data-components`,
+        {
+          method: 'POST',
+          body: JSON.stringify({}),
+        }
+      );
 
       expect(res.status).toBe(400);
     });
@@ -439,10 +448,13 @@ describe('Data Component CRUD Routes - Integration Tests', () => {
         },
       };
 
-      const res = await makeRequest(`/manage/tenants/${tenantId}/projects/${projectId}/data-components`, {
-        method: 'POST',
-        body: JSON.stringify(complexDataComponentData),
-      });
+      const res = await makeRequest(
+        `/manage/tenants/${tenantId}/projects/${projectId}/data-components`,
+        {
+          method: 'POST',
+          body: JSON.stringify(complexDataComponentData),
+        }
+      );
 
       expect(res.status).toBe(201);
 

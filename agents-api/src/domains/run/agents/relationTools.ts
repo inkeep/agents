@@ -516,31 +516,31 @@ export async function buildTransferRelationConfig(
   // Convert ToolForAgent[] to McpTool[] via Management API calls
   //TODO: add user id to the scopes
 
-  const targetAgentTools: McpTool[] = await withRef(manageDbPool, executionContext.resolvedRef, async (db) => {
+  const targetAgentTools: McpTool[] =
+    (await withRef(manageDbPool, executionContext.resolvedRef, async (db) => {
       return await Promise.all(
-      targetToolsForSubAgent.map(async (item) => {
-        const mcpTool = await getMcpToolById(db)({
-          scopes: { tenantId, projectId },
-          toolId: item.tool.id,
-          credentialStoreRegistry,
-          userId: getUserIdFromContext(executionContext),
-        });
-        if (!mcpTool) {
-          throw new Error(`Tool not found: ${item.tool.id}`);
-        }
-        if (item.relationshipId) {
-          mcpTool.relationshipId = item.relationshipId;
-        }
-        if (item.selectedTools && item.selectedTools.length > 0) {
-          const selectedToolsSet = new Set(item.selectedTools);
-          mcpTool.availableTools =
-            mcpTool.availableTools?.filter((tool) => selectedToolsSet.has(tool.name)) || [];
-        }
-        return mcpTool;
-      })
-    );
-  }) ?? [];
-  
+        targetToolsForSubAgent.map(async (item) => {
+          const mcpTool = await getMcpToolById(db)({
+            scopes: { tenantId, projectId },
+            toolId: item.tool.id,
+            credentialStoreRegistry,
+            userId: getUserIdFromContext(executionContext),
+          });
+          if (!mcpTool) {
+            throw new Error(`Tool not found: ${item.tool.id}`);
+          }
+          if (item.relationshipId) {
+            mcpTool.relationshipId = item.relationshipId;
+          }
+          if (item.selectedTools && item.selectedTools.length > 0) {
+            const selectedToolsSet = new Set(item.selectedTools);
+            mcpTool.availableTools =
+              mcpTool.availableTools?.filter((tool) => selectedToolsSet.has(tool.name)) || [];
+          }
+          return mcpTool;
+        })
+      );
+    })) ?? [];
 
   // Get transfer relations for the target sub-agent
   const targetTransferRelations = getTransferRelationsForTargetSubAgent({

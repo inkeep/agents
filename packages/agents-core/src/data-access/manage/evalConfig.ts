@@ -1,5 +1,6 @@
 import { and, eq, inArray } from 'drizzle-orm';
 import type { AgentsManageDatabaseClient } from '../../db/manage/manage-client';
+import type { AgentsRunDatabaseClient } from '../../db/runtime/runtime-client';
 import {
   dataset,
   datasetItem,
@@ -13,6 +14,7 @@ import {
   evaluationSuiteConfigEvaluatorRelations,
   evaluator,
 } from '../../db/manage/manage-schema';
+import { datasetRun } from '../../db/runtime/runtime-schema';
 import type {
   DatasetInsert,
   DatasetItemInsert,
@@ -34,6 +36,7 @@ import type {
   EvaluationRunConfigInsert,
   EvaluationRunConfigSelect,
   EvaluationRunConfigUpdate,
+  EvaluationRunConfigWithSuiteConfigs,
   EvaluationSuiteConfigEvaluatorRelationInsert,
   EvaluationSuiteConfigEvaluatorRelationSelect,
   EvaluationSuiteConfigInsert,
@@ -805,6 +808,62 @@ export const listEvaluationRunConfigs =
       );
   };
 
+export const listEvaluationRunConfigsWithSuiteConfigs =
+  (db: AgentsManageDatabaseClient) =>
+  async (params: { scopes: ProjectScopeConfig }): Promise<EvaluationRunConfigWithSuiteConfigs[]> => {
+    const rows = await db
+      .select({
+        runConfig: evaluationRunConfig,
+        suiteConfigId: evaluationRunConfigEvaluationSuiteConfigRelations.evaluationSuiteConfigId,
+      })
+      .from(evaluationRunConfig)
+      .leftJoin(
+        evaluationRunConfigEvaluationSuiteConfigRelations,
+        and(
+          eq(
+            evaluationRunConfigEvaluationSuiteConfigRelations.tenantId,
+            evaluationRunConfig.tenantId
+          ),
+          eq(
+            evaluationRunConfigEvaluationSuiteConfigRelations.projectId,
+            evaluationRunConfig.projectId
+          ),
+          eq(
+            evaluationRunConfigEvaluationSuiteConfigRelations.evaluationRunConfigId,
+            evaluationRunConfig.id
+          )
+        )
+      )
+      .where(
+        and(
+          eq(evaluationRunConfig.tenantId, params.scopes.tenantId),
+          eq(evaluationRunConfig.projectId, params.scopes.projectId)
+        )
+      );
+
+    const runConfigsById = new Map<string, EvaluationRunConfigWithSuiteConfigs>();
+
+    for (const row of rows) {
+      const runConfig = row.runConfig
+      const runConfigId = runConfig.id
+
+      if (!runConfigsById.has(runConfigId)) {
+        const { tenantId: _tenantId, projectId: _projectId, ...apiRunConfig } = runConfig;
+
+        runConfigsById.set(runConfigId, {
+          ...(apiRunConfig),
+          suiteConfigIds: [],
+        });
+      }
+
+      if (row.suiteConfigId) {
+        runConfigsById.get(runConfigId)?.suiteConfigIds.push(row.suiteConfigId);
+      }
+    }
+
+    return Array.from(runConfigsById.values());
+  };
+
 export const createEvaluationRunConfig =
   (db: AgentsManageDatabaseClient) =>
   async (data: EvaluationRunConfigInsert): Promise<EvaluationRunConfigSelect> => {
@@ -1097,4 +1156,22 @@ export const deleteEvaluationJobConfigEvaluatorRelationsByEvaluator =
       .returning();
 
     return result.length;
+  };
+
+export const linkDatasetRunToEvaluationJobConfig =
+  (db: AgentsRunDatabaseClient) =>
+  async (params: {
+    scopes: ProjectScopeConfig & { datasetRunId: string };
+    evaluationJobConfigId: string;
+  }): Promise<void> => {
+    await db
+      .update(datasetRun)
+      .set({ evaluationJobConfigId: params.evaluationJobConfigId })
+      .where(
+        and(
+          eq(datasetRun.tenantId, params.scopes.tenantId),
+          eq(datasetRun.projectId, params.scopes.projectId),
+          eq(datasetRun.id, params.scopes.datasetRunId)
+        )
+      );
   };

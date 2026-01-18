@@ -9,7 +9,10 @@ vi.mock('ai', () => ({
 }));
 
 import type { AgentConfig, ExternalAgentRelationConfig } from '../../../domains/run/agents/Agent';
-import { createDelegateToAgentTool, createTransferToAgentTool } from '../../../domains/run/agents/relationTools';
+import {
+  createDelegateToAgentTool,
+  createTransferToAgentTool,
+} from '../../../domains/run/agents/relationTools';
 import { saveA2AMessageResponse } from '../../../domains/run/data/conversations';
 
 function createMockExecutionContext(

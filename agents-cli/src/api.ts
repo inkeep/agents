@@ -117,7 +117,7 @@ export class ManagementApiClient extends BaseApiClient {
     const projectId = this.getProjectId();
 
     const response = await this.authenticatedFetch(
-      `${this.apiUrl}/tenants/${tenantId}/projects/${projectId}/agents?limit=100`,
+      `${this.apiUrl}/manage/tenants/${tenantId}/projects/${projectId}/agents?limit=100`,
       {
         method: 'GET',
       }
@@ -155,7 +155,7 @@ export class ManagementApiClient extends BaseApiClient {
 
     // Try to update first using PUT, if it doesn't exist, it will create it
     const response = await this.authenticatedFetch(
-      `${this.apiUrl}/tenants/${tenantId}/projects/${projectId}/agents/${agentId}`,
+      `${this.apiUrl}/manage/tenants/${tenantId}/projects/${projectId}/agents/${agentId}`,
       {
         method: 'PUT',
         body: JSON.stringify({
@@ -178,7 +178,7 @@ export class ManagementApiClient extends BaseApiClient {
     const tenantId = this.checkTenantId();
 
     const response = await this.authenticatedFetch(
-      `${this.apiUrl}/tenants/${tenantId}/project-full/${projectId}`,
+      `${this.apiUrl}/manage/tenants/${tenantId}/project-full/${projectId}`,
       {
         method: 'GET',
       }
@@ -224,7 +224,7 @@ export class ManagementApiClient extends BaseApiClient {
     const tenantId = this.checkTenantId();
 
     const response = await this.authenticatedFetch(
-      `${this.apiUrl}/tenants/${tenantId}/projects?page=${page}&limit=${limit}`,
+      `${this.apiUrl}/manage/tenants/${tenantId}/projects?page=${page}&limit=${limit}`,
       {
         method: 'GET',
       }

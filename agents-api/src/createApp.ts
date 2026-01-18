@@ -26,6 +26,9 @@ import { manageRefMiddleware, runRefMiddleware, writeProtectionMiddleware } from
 import { projectConfigMiddleware } from './middleware/projectConfig';
 import { runRoutes } from './domains/run';
 import { executionBaggageMiddleware } from './middleware/tracing';
+import { evalApiKeyAuth } from './middleware/evalsAuth';
+import { evalRoutes } from './domains/evals';
+import { workflowRoutes } from './domains/evals/workflow/routes';
 
 const logger = getLogger('agents-api');
 
@@ -80,7 +83,7 @@ function createAgentsHono(config: AppConfig) {
     c.set('credentialStores', credentialStores);
     await next();
   });
-  
+
   app.use('/manage/*', async (c, next) => {
     c.set('auth', auth);
     await next();
@@ -131,7 +134,6 @@ function createAgentsHono(config: AppConfig) {
   // Global session middleware - sets user and session in context for all routes
   app.use('*', sessionContext());
 
-
   // Health check endpoint
   app.openapi(
     createRoute({
@@ -151,7 +153,28 @@ function createAgentsHono(config: AppConfig) {
     }
   );
 
-
+  // Workflow process endpoint - called by Vercel cron to keep worker active
+  // The worker processes queued jobs while this request is active
+  app.openapi(
+    createRoute({
+      method: 'get',
+      path: '/api/workflow/process',
+      tags: ['workflow'],
+      summary: 'Process workflow jobs',
+      description: 'Keeps the workflow worker active to process queued jobs (called by cron)',
+      responses: {
+        200: {
+          description: 'Processing complete',
+        },
+      },
+    }),
+    async (c) => {
+      // Worker is already started via world.start() at app initialization
+      // Keep the function alive for ~50s to process jobs (Vercel max is 60s)
+      await new Promise((resolve) => setTimeout(resolve, 50000));
+      return c.json({ processed: true, timestamp: new Date().toISOString() });
+    }
+  );
 
   // Authentication middleware for protected manage routes
   app.use('/manage/tenants/*', async (c, next) => {
@@ -169,29 +192,28 @@ function createAgentsHono(config: AppConfig) {
     return sessionAuth()(c as any, next);
   });
 
-    // Tenant access check (skip in DISABLE_AUTH and test environments)
-    if (env.DISABLE_AUTH || isTestEnvironment()) {
-      // When auth is disabled, just extract tenantId from URL param
-      app.use('/manage/tenants/:tenantId/*', async (c, next) => {
-        const tenantId = c.req.param('tenantId');
-        if (tenantId) {
-          c.set('tenantId', tenantId);
-          c.set('userId', 'anonymous'); // Set a default user ID for disabled auth
-        }
-        await next();
-      });
-    } else {
-      app.use('/manage/tenants/:tenantId/*', requireTenantAccess());
-    }
-
-
-
+  // Tenant access check (skip in DISABLE_AUTH and test environments)
+  if (env.DISABLE_AUTH || isTestEnvironment()) {
+    // When auth is disabled, just extract tenantId from URL param
+    app.use('/manage/tenants/:tenantId/*', async (c, next) => {
+      const tenantId = c.req.param('tenantId');
+      if (tenantId) {
+        c.set('tenantId', tenantId);
+        c.set('userId', 'anonymous'); // Set a default user ID for disabled auth
+      }
+      await next();
+    });
+  } else {
+    app.use('/manage/tenants/:tenantId/*', requireTenantAccess());
+  }
 
   // Apply API key authentication to all protected run routes
   app.use('/run/tenants/*', runApiKeyAuth());
   app.use('/run/agents/*', runApiKeyAuth());
   app.use('/run/v1/*', runApiKeyAuth());
   app.use('/run/api/*', runApiKeyAuth());
+
+  app.use('/evals/tenants/*', evalApiKeyAuth());
 
   // Ref versioning middleware for all tenant routes - MUST be before route mounting
   app.use('/manage/tenants/*', async (c, next) => manageRefMiddleware(c, next));
@@ -211,9 +233,36 @@ function createAgentsHono(config: AppConfig) {
 
   // management routes
   app.route('/manage', manageRoutes);
+
   // Mount execution routes - API key provides tenant, project, and agent context
   app.route('/run', runRoutes);
-  // app.route('/evals', evalRoutes);
+
+  // Mount evaluation routes - API key provides tenant, project, and agent context
+  // Mount eval workflow routes for internal workflow execution
+  // The postgres world's internal local world calls these endpoints
+  // Mount at /.well-known - routes inside define /workflow/v1/flow etc.
+  app.route('/.well-known', workflowRoutes);
+
+  // Handle /index POST - Vercel Queue delivers CloudEvents here
+  // Forward to the workflow flow handler - the dispatchFlowOrStep in routes.ts
+  // handles the actual flow/step routing based on x-vqs-queue-name header
+  app.post('/index', async (c) => {
+    const originalUrl = new URL(c.req.url);
+    const bodyBuffer = await c.req.arrayBuffer();
+
+    // Always forward to /flow - the dispatcher in routes.ts handles flow/step routing
+    const targetUrl = new URL('/.well-known/workflow/v1/flow', originalUrl.origin);
+
+    const forwardedRequest = new Request(targetUrl.toString(), {
+      method: 'POST',
+      headers: new Headers(c.req.raw.headers),
+      body: bodyBuffer,
+    });
+
+    return fetch(forwardedRequest);
+  });
+
+  app.route('/evals', evalRoutes);
 
   // OpenAPI documentation
   app.doc('/openapi.json', {
@@ -225,7 +274,6 @@ function createAgentsHono(config: AppConfig) {
     },
   });
 
- 
   // Setup OpenAPI documentation endpoints (/openapi.json and /docs)
   setupOpenAPIRoutes(app);
 
@@ -233,7 +281,7 @@ function createAgentsHono(config: AppConfig) {
     await next();
     await flushBatchProcessor();
   });
-  
+
   // Wrap in base Hono for framework detection
   const base = new Hono();
   base.route('/', app);

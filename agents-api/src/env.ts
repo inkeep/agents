@@ -12,8 +12,8 @@ const envSchema = z.object({
   INKEEP_AGENTS_MANAGE_DATABASE_URL: z.string(),
   INKEEP_AGENTS_RUN_DATABASE_URL: z.string(),
   INKEEP_AGENTS_MANAGE_UI_URL: z.string().optional(),
-  INKEEP_AGENTS_API_URL: z.string().optional(),
-  
+  INKEEP_AGENTS_API_URL: z.string().optional().default('http://localhost:3002'),
+
   BETTER_AUTH_SECRET: z.string().optional(),
   INKEEP_AGENTS_MANAGE_UI_USERNAME: z
     .string()
@@ -31,6 +31,7 @@ const envSchema = z.object({
   INKEEP_AGENTS_API_BYPASS_SECRET: z.string().optional(),
   INKEEP_AGENTS_MANAGE_API_BYPASS_SECRET: z.string().optional(),
   INKEEP_AGENTS_RUN_API_BYPASS_SECRET: z.string().optional(),
+  INKEEP_AGENTS_EVAL_API_BYPASS_SECRET: z.string().optional(),
 
   INKEEP_AGENTS_TEMP_JWT_PUBLIC_KEY: z.string().optional(),
   INKEEP_AGENTS_TEMP_JWT_PRIVATE_KEY: z.string().optional(),
@@ -46,7 +47,7 @@ const envSchema = z.object({
     .optional()
     .default('false')
     .transform((val) => val === 'true'),
-  
+
   TENANT_ID: z.string().optional().default('default'),
 
   SIGNOZ_URL: z.string().optional(),
@@ -56,8 +57,12 @@ const envSchema = z.object({
   ANTHROPIC_API_KEY: z.string(),
   OPENAI_API_KEY: z.string().optional(),
   GOOGLE_GENERATIVE_AI_API_KEY: z.string().optional(),
-});
 
+  WORKFLOW_TARGET_WORLD: z.string().optional(),
+  WORKFLOW_POSTGRES_URL: z.string().optional(),
+  WORKFLOW_POSTGRES_JOB_PREFIX: z.string().optional(),
+  WORKFLOW_POSTGRES_WORKER_CONCURRENCY: z.string().optional(),
+});
 
 const parseEnv = () => {
   try {
