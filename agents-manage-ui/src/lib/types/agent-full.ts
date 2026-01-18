@@ -41,7 +41,8 @@ export interface Agent {
 export type CreateFullAgentResponse = SingleResponse<FullAgentDefinition>;
 export type CreateAgentResponse = SingleResponse<AgentApiInsert>;
 export type GetAgentResponse = SingleResponse<FullAgentDefinition>;
-export type UpdateAgentResponse = SingleResponse<FullAgentDefinition>;
+export type UpdateFullAgentResponse = SingleResponse<FullAgentDefinition>;
+export type UpdateAgentResponse = SingleResponse<AgentApiInsert>;
 
 export type SubAgentTeamAgentConfig = {
   agentId: string;

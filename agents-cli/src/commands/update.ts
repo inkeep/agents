@@ -11,7 +11,7 @@ export interface UpdateOptions {
 /**
  * Update command - updates the CLI to the latest version
  */
-export async function updateCommand(options: UpdateOptions = {}) {
+export async function updateCommand(options: UpdateOptions = {}): Promise<void> {
   const s = p.spinner();
   s.start('Checking for updates...');
 

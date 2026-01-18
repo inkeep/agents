@@ -157,7 +157,7 @@ vi.mock('../../services/AgentSession.js', () => ({
   },
 }));
 
-vi.mock('../../env.js', async (importOriginal) => {
+vi.mock('../../env.js', async () => {
   return {
     env: {
       AGENT_BASE_URL: 'http://localhost:3002',

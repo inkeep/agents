@@ -1,4 +1,4 @@
-import type { FullExecutionContext, MessageContent, ResolvedRef } from '@inkeep/agents-core';
+import type { FullExecutionContext, MessageContent } from '@inkeep/agents-core';
 import { getLogger } from '../logger';
 import { agentSessionManager } from '../services/AgentSession';
 import { ArtifactParser, type StreamPart } from '../services/ArtifactParser';

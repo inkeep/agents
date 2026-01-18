@@ -5,8 +5,8 @@ import { useRouter } from 'next/navigation';
 import { useState } from 'react';
 import { ErrorContent } from '@/components/errors/full-page-error';
 import { Button } from '@/components/ui/button';
+import { useAuthClient } from '@/contexts/auth-client';
 import { useAuthSession } from '@/hooks/use-auth';
-import { useAuthClient } from '@/lib/auth-client';
 
 export default function NoOrganizationPage() {
   const router = useRouter();

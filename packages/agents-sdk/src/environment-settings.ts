@@ -19,12 +19,8 @@ interface EnvironmentSettingsConfig {
 export function createEnvironmentSettings<T extends Record<string, EnvironmentSettingsConfig>>(
   environments: T
 ) {
-  // Simple type to extract credential keys for autocomplete
-  type CredentialKeys = UnionCredentialIds<T>;
-  type McpServerKeys = UnionMcpServerIds<T>;
-
   return {
-    getEnvironmentCredential: (key: CredentialKeys): CredentialReferenceApiInsert => {
+    getEnvironmentCredential: (key: UnionCredentialIds<T>): CredentialReferenceApiInsert => {
       const currentEnv = process.env.INKEEP_ENV || 'development';
       const env = environments[currentEnv];
 
@@ -42,7 +38,7 @@ export function createEnvironmentSettings<T extends Record<string, EnvironmentSe
       return credential;
     },
 
-    getEnvironmentMcp: (key: McpServerKeys): Tool => {
+    getEnvironmentMcp: (key: UnionMcpServerIds<T>): Tool => {
       const currentEnv = process.env.INKEEP_ENV || 'development';
       const env = environments[currentEnv];
 
@@ -61,7 +57,7 @@ export function createEnvironmentSettings<T extends Record<string, EnvironmentSe
     },
 
     //Deprecated: Use getEnvironmentCredential instead
-    getEnvironmentSetting: (key: CredentialKeys): CredentialReferenceApiInsert => {
+    getEnvironmentSetting: (key: UnionCredentialIds<T>): CredentialReferenceApiInsert => {
       const currentEnv = process.env.INKEEP_ENV || 'development';
       const env = environments[currentEnv];
 

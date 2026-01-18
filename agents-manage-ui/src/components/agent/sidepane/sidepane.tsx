@@ -1,5 +1,5 @@
 import type { Edge, Node } from '@xyflow/react';
-import { useEdges, useNodesData } from '@xyflow/react';
+import { useEdges, useNodesData, useReactFlow } from '@xyflow/react';
 import { type LucideIcon, Workflow } from 'lucide-react';
 import { useMemo } from 'react';
 import { useAgentStore } from '@/features/agent/state/use-agent-store';
@@ -21,6 +21,7 @@ import {
   type FunctionToolNodeData,
   type MCPNodeData,
   NodeType,
+  newNodeDefaults,
   nodeTypeMap,
   type TeamAgentNodeData,
 } from '../configuration/node-types';
@@ -34,6 +35,7 @@ import { FunctionToolNodeEditor } from './nodes/function-tool-node-editor';
 import { MCPServerNodeEditor } from './nodes/mcp-node-editor';
 import { MCPSelector } from './nodes/mcp-selector/mcp-selector';
 import { SubAgentNodeEditor } from './nodes/sub-agent-node-editor';
+import { SubAgentSelector } from './nodes/sub-agent-selector/sub-agent-selector';
 import { TeamAgentNodeEditor } from './nodes/team-agent-node-editor';
 import { TeamAgentSelector } from './nodes/team-agent-selector/team-agent-selector';
 
@@ -65,6 +67,7 @@ export function SidePane({
   disabled = false,
 }: SidePaneProps) {
   const selectedNode = useNodesData(selectedNodeId || '');
+  const { updateNode } = useReactFlow();
   const edges = useEdges();
   const { hasFieldError, getFieldErrorMessage, getFirstErrorField } = useAgentErrors();
   const errors = useAgentStore((state) => state.errors);
@@ -116,6 +119,8 @@ export function SidePane({
       };
 
       switch (nodeType) {
+        case NodeType.SubAgentPlaceholder:
+          return <SubAgentSelector selectedNode={selectedNode as Node} />;
         case NodeType.SubAgent:
           return (
             <SubAgentNodeEditor
@@ -191,13 +196,28 @@ export function SidePane({
     errors,
   ]);
 
+  const nodeType = selectedNode?.type as keyof typeof nodeTypeMap | undefined;
+  const nodeConfig = nodeType ? nodeTypeMap[nodeType] : undefined;
+  const parentPlaceholder =
+    nodeConfig && 'parentPlaceholder' in nodeConfig ? nodeConfig.parentPlaceholder : undefined;
+
+  const onBackButtonClick =
+    selectedNode && parentPlaceholder
+      ? () => {
+          updateNode(selectedNode.id, {
+            type: parentPlaceholder,
+            data: newNodeDefaults[parentPlaceholder],
+          });
+        }
+      : backToAgent;
+
   const showBackButton = selectedNode || selectedEdge;
 
   return (
     <SidePaneLayout.Root>
       <SidePaneLayout.Header>
         <div className="flex items-center relative">
-          {showBackButton && <SidePaneLayout.BackButton onClick={backToAgent} />}
+          {showBackButton && <SidePaneLayout.BackButton onClick={onBackButtonClick} />}
           <Heading
             heading={heading}
             Icon={HeadingIcon}

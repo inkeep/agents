@@ -100,11 +100,7 @@ export function getModelContextWindow(modelSettings?: ModelSettings): ModelConte
   try {
     const modelDetails = ModelInfoMap[modelId as keyof typeof ModelInfoMap];
 
-    if (
-      modelDetails &&
-      modelDetails.contextWindowTokenLimit &&
-      modelDetails.contextWindowTokenLimit > 0
-    ) {
+    if (modelDetails?.contextWindowTokenLimit && modelDetails.contextWindowTokenLimit > 0) {
       logger.debug(
         {
           modelId,
@@ -187,10 +183,12 @@ export function getCompressionConfigForModel(
 
   // Default values from environment or fallback
   const envHardLimit = parseInt(
-    process.env.AGENTS_COMPRESSION_HARD_LIMIT || COMPRESSION_HARD_LIMIT.toString()
+    process.env.AGENTS_COMPRESSION_HARD_LIMIT || COMPRESSION_HARD_LIMIT.toString(),
+    10
   );
   const envSafetyBuffer = parseInt(
-    process.env.AGENTS_COMPRESSION_SAFETY_BUFFER || COMPRESSION_SAFETY_BUFFER.toString()
+    process.env.AGENTS_COMPRESSION_SAFETY_BUFFER || COMPRESSION_SAFETY_BUFFER.toString(),
+    10
   );
   const enabled = process.env.AGENTS_COMPRESSION_ENABLED !== 'false' && COMPRESSION_ENABLED;
 

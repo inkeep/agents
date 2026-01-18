@@ -53,7 +53,7 @@ function findProjectRoot(startPath: string): string {
   return startPath;
 }
 
-export async function initCommand(options?: InitOptions) {
+export async function initCommand(options?: InitOptions): Promise<void> {
   // Check if user wants local init (self-hosted) or cloud init
   if (options?.local) {
     await localInitCommand(options);
@@ -88,7 +88,7 @@ async function cloudInitCommand(options?: InitOptions): Promise<void> {
     // Try to load existing credentials from default cloud profile
     try {
       const existingCreds = await loadCredentials('inkeep-cloud');
-      if (existingCreds && existingCreds.accessToken && existingCreds.organizationId) {
+      if (existingCreds?.accessToken && existingCreds.organizationId) {
         credentials = {
           accessToken: existingCreds.accessToken,
           organizationId: existingCreds.organizationId,
@@ -112,7 +112,7 @@ async function cloudInitCommand(options?: InitOptions): Promise<void> {
 
     // Re-check credentials after login
     const newCreds = await loadCredentials('inkeep-cloud');
-    if (newCreds && newCreds.accessToken && newCreds.organizationId) {
+    if (newCreds?.accessToken && newCreds.organizationId) {
       credentials = {
         accessToken: newCreds.accessToken,
         organizationId: newCreds.organizationId,
@@ -134,7 +134,7 @@ async function cloudInitCommand(options?: InitOptions): Promise<void> {
   try {
     const response = await fetch('https://manage-api.inkeep.com/api/cli/me', {
       headers: {
-        Authorization: `Bearer ${credentials!.accessToken}`,
+        Authorization: `Bearer ${credentials?.accessToken}`,
       },
     });
 
@@ -152,7 +152,7 @@ async function cloudInitCommand(options?: InitOptions): Promise<void> {
     selectedTenantName = data.organization.name;
 
     s.stop(`Organization: ${chalk.cyan(selectedTenantName)}`);
-  } catch (error) {
+  } catch {
     s.stop('Failed to fetch organizations');
     console.error(chalk.red('Network error. Please check your connection.'));
     process.exit(1);
@@ -168,7 +168,7 @@ async function cloudInitCommand(options?: InitOptions): Promise<void> {
       `https://manage-api.inkeep.com/tenants/${selectedTenantId}/projects?limit=100`,
       {
         headers: {
-          Authorization: `Bearer ${credentials!.accessToken}`,
+          Authorization: `Bearer ${credentials?.accessToken}`,
         },
       }
     );
@@ -183,7 +183,7 @@ async function cloudInitCommand(options?: InitOptions): Promise<void> {
     projects = data.data || [];
 
     s.stop(`Found ${projects.length} project(s)`);
-  } catch (error) {
+  } catch {
     s.stop('Failed to fetch projects');
     console.error(chalk.red('Network error. Please check your connection.'));
     process.exit(1);

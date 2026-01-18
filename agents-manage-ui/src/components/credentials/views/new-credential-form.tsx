@@ -5,7 +5,7 @@ import { CredentialStoreType } from '@inkeep/agents-core/types';
 import { useParams, useRouter } from 'next/navigation';
 import { toast } from 'sonner';
 import type { CredentialFormData } from '@/components/credentials/views/credential-form-validation';
-import { useRuntimeConfig } from '@/contexts/runtime-config-context';
+import { useRuntimeConfig } from '@/contexts/runtime-config';
 import { useAuthSession } from '@/hooks/use-auth';
 import { createCredentialInStore } from '@/lib/api/credentialStores';
 import { updateExternalAgent } from '@/lib/api/external-agents';

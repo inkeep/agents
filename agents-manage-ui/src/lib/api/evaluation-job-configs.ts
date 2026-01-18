@@ -21,7 +21,7 @@ export interface EvaluationJobFilterCriteria {
   [key: string]: unknown;
 }
 
-export interface Filter<_T> {
+interface Filter<_T> {
   [key: string]: unknown;
 }
 
@@ -114,7 +114,7 @@ export async function deleteEvaluationJobConfig(
   );
 }
 
-export interface EvaluationJobConfigEvaluatorRelation {
+interface EvaluationJobConfigEvaluatorRelation {
   id: string;
   tenantId: string;
   projectId: string;

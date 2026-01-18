@@ -5,7 +5,7 @@ import {
   evaluatePassCriteria,
 } from '@/lib/evaluation/pass-criteria-evaluator';
 
-export interface EvaluationResultFilters {
+interface EvaluationResultFilters {
   status?: EvaluationStatus | 'all';
   evaluatorId?: string;
   agentId?: string;

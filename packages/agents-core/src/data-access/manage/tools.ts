@@ -77,7 +77,14 @@ async function getCredentialExpiresAt(
  * - parameters (direct) - alternative format
  * - schema - another possible location
  */
-function extractInputSchema(toolDef: any): any {
+function extractInputSchema(toolDef: any, _toolName?: string, _toolOverrides?: any): any {
+  // Always return original schema during discovery
+  // Tool overrides are applied during execution in Agent.ts, not during discovery
+  // This allows the UI to show both original and override schemas for comparison
+  return extractOriginalSchema(toolDef);
+}
+
+function extractOriginalSchema(toolDef: any): any {
   if (toolDef.inputSchema) {
     return toolDef.inputSchema;
   }
@@ -112,6 +119,7 @@ const convertToMCPToolConfig = (tool: ToolSelect): MCPToolConfig => {
       : MCPServerType.generic,
     transport: tool.config.mcp.transport,
     headers: tool.headers,
+    toolOverrides: tool.config.mcp.toolOverrides,
   };
 };
 
@@ -203,12 +211,17 @@ const discoverToolsFromServer = async (
 
     await client.disconnect();
 
+    const toolOverrides = tool.config.mcp.toolOverrides;
+
     const toolDefinitions: McpToolDefinition[] = Object.entries(serverTools).map(
-      ([name, toolDef]) => ({
-        name,
-        description: (toolDef as any).description || '',
-        inputSchema: extractInputSchema(toolDef as any),
-      })
+      ([name, toolDef]) => {
+        const schema = extractInputSchema(toolDef as any, name, toolOverrides);
+        return {
+          name,
+          description: (toolDef as any).description || '',
+          inputSchema: schema,
+        };
+      }
     );
 
     return toolDefinitions;

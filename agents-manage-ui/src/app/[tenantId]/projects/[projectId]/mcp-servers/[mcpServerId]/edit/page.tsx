@@ -72,6 +72,8 @@ async function EditMCPPage({
                 type: 'selective' as const,
                 tools: mcpTool.config.mcp.activeTools,
               },
+        toolOverrides: mcpTool.config.mcp.toolOverrides || {},
+        prompt: mcpTool.config.mcp.prompt || '',
       },
     },
     credentialReferenceId: mcpTool.credentialReferenceId || 'none',

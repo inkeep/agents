@@ -412,7 +412,6 @@ export function generateAgentImports(
   agentData: any,
   style: CodeStyle = DEFAULT_STYLE,
   registry?: ComponentRegistry,
-  contextConfigData?: any,
   actualFilePath?: string
 ): string[] {
   const imports: string[] = [];
@@ -437,8 +436,7 @@ export function generateAgentImports(
 
     // Status component references
     if (
-      agentData.statusUpdates &&
-      agentData.statusUpdates.statusComponents &&
+      agentData.statusUpdates?.statusComponents &&
       Array.isArray(agentData.statusUpdates.statusComponents)
     ) {
       for (const comp of agentData.statusUpdates.statusComponents) {
@@ -483,14 +481,7 @@ export function generateAgentFile(
   projectModels?: any,
   actualFilePath?: string
 ): string {
-  const imports = generateAgentImports(
-    agentId,
-    agentData,
-    style,
-    registry,
-    contextConfigData,
-    actualFilePath
-  );
+  const imports = generateAgentImports(agentId, agentData, style, registry, actualFilePath);
   const definition = generateAgentDefinition(
     agentId,
     agentData,

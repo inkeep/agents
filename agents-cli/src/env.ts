@@ -12,7 +12,7 @@ import { z } from 'zod';
 // URL configuration should only come from inkeep.config.ts or CLI flags.
 loadEnvironmentFiles();
 
-const envSchema = z.object({
+const envSchema: z.ZodType<Env> = z.object({
   DEBUG: z.string().optional(),
   // Secrets loaded from .env files (relative to where CLI is executed)
   ANTHROPIC_API_KEY: z.string().optional(),
@@ -28,7 +28,7 @@ const envSchema = z.object({
     .transform((val) => val === 'true'),
 });
 
-const parseEnv = () => {
+const parseEnv = (): Env => {
   try {
     const parsedEnv = envSchema.parse(process.env);
     return parsedEnv;
@@ -43,5 +43,15 @@ const parseEnv = () => {
   }
 };
 
-export const env = parseEnv();
-export type Env = z.infer<typeof envSchema>;
+export const env: Env = parseEnv();
+
+export interface Env {
+  DEBUG?: string;
+  ANTHROPIC_API_KEY?: string;
+  OPENAI_API_KEY?: string;
+  GOOGLE_GENERATIVE_AI_API_KEY?: string;
+  LANGFUSE_SECRET_KEY?: string;
+  LANGFUSE_PUBLIC_KEY?: string;
+  LANGFUSE_BASEURL: string;
+  LANGFUSE_ENABLED: boolean;
+}

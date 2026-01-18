@@ -439,6 +439,23 @@ export const ToolInsertSchema = createInsertSchema(tools).extend({
         })
         .optional(),
       activeTools: z.array(z.string()).optional(),
+      toolOverrides: z
+        .record(
+          z.string(),
+          z.object({
+            displayName: z.string().optional(),
+            description: z.string().optional(),
+            schema: z.any().optional(),
+            transformation: z
+              .union([
+                z.string(), // JMESPath expression
+                z.record(z.string(), z.string()), // object mapping
+              ])
+              .optional(),
+          })
+        )
+        .optional(),
+      prompt: z.string().optional(),
     }),
   }),
 });
@@ -1117,6 +1134,23 @@ export const MCPToolConfigSchema = McpToolSchema.omit({
   mcpType: z.enum(MCPServerType).optional(),
   transport: McpTransportConfigSchema.optional(),
   credential: CredentialReferenceApiInsertSchema.optional(),
+  toolOverrides: z
+    .record(
+      z.string(),
+      z.object({
+        displayName: z.string().optional(),
+        description: z.string().optional(),
+        schema: z.any().optional(),
+        transformation: z
+          .union([
+            z.string(), // JMESPath expression
+            z.record(z.string(), z.string()), // object mapping
+          ])
+          .optional(),
+      })
+    )
+    .optional(),
+  prompt: z.string().optional(),
 });
 
 export const ToolUpdateSchema = ToolInsertSchema.partial();
