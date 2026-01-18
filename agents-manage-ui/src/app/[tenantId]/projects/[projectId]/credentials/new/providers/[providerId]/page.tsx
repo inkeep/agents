@@ -12,7 +12,7 @@ import { Button } from '@/components/ui/button';
 import { useAuthSession } from '@/hooks/use-auth';
 import { useNangoConnect } from '@/hooks/use-nango-connect';
 import { useNangoProviders } from '@/hooks/use-nango-providers';
-import { useAuthClient } from '@/lib/auth-client';
+import { useAuthClient } from '@/contexts/auth-client';
 import { createProviderConnectSession } from '@/lib/mcp-tools/nango';
 import { NangoError } from '@/lib/mcp-tools/nango-types';
 import { findOrCreateCredential } from '@/lib/utils/credentials-utils';

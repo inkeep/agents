@@ -27,7 +27,7 @@ import {
   nodeTypes,
   teamAgentNodeTargetHandleId,
 } from '@/components/agent/configuration/node-types';
-import { useCopilotContext } from '@/components/agent/copilot/copilot-context';
+import { useCopilotContext } from '@/contexts/copilot';
 import { CopilotStreamingOverlay } from '@/components/agent/copilot-streaming-overlay';
 import { EmptyState } from '@/components/agent/empty-state';
 import { AgentErrorSummary } from '@/components/agent/error-display/agent-error-summary';

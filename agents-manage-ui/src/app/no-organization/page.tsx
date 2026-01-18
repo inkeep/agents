@@ -6,7 +6,7 @@ import { useState } from 'react';
 import { ErrorContent } from '@/components/errors/full-page-error';
 import { Button } from '@/components/ui/button';
 import { useAuthSession } from '@/hooks/use-auth';
-import { useAuthClient } from '@/lib/auth-client';
+import { useAuthClient } from '@/contexts/auth-client';
 
 export default function NoOrganizationPage() {
   const router = useRouter();
