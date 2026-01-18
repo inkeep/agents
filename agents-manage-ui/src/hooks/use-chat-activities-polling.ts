@@ -18,6 +18,40 @@ interface UseChatActivitiesPollingReturn {
   refreshOnce: () => Promise<{ hasNewActivity: boolean }>;
 }
 
+// Workaround for a React Compiler limitation.
+// Todo: (BuildHIR::lowerStatement) Support ThrowStatement inside of try/catch
+async function doRequest({
+  url,
+  signal,
+}: {
+  url: string;
+  signal: AbortSignal;
+}): Promise<ConversationDetail | null> {
+  const response = await fetch(url, { signal });
+
+  if (!response.ok) {
+    // If conversation doesn't exist yet, that's fine - just return
+    if (response.status === 404) {
+      return null;
+    }
+
+    // Try to get the actual error message from the response
+    let errorMessage = 'Failed to fetch chat activities';
+    try {
+      const errorData = await response.json();
+      if (errorData.error) {
+        errorMessage = errorData.error;
+      }
+    } catch {
+      // If we can't parse the error response, use the default message
+    }
+
+    throw new Error(errorMessage);
+  }
+
+  return await response.json();
+}
+
 export const useChatActivitiesPolling = ({
   conversationId,
   tenantId,
@@ -39,35 +73,13 @@ export const useChatActivitiesPolling = ({
 
       abortControllerRef.current = new AbortController();
       const currentConversationId = conversationId; // Capture current ID
-
-      const response = await fetch(
-        `/api/signoz/conversations/${currentConversationId}?tenantId=${tenantId}&projectId=${projectId}`,
-        {
-          signal: abortControllerRef.current.signal,
-        }
-      );
-
-      if (!response.ok) {
-        // If conversation doesn't exist yet, that's fine - just return
-        if (response.status === 404) {
-          return null;
-        }
-
-        // Try to get the actual error message from the response
-        let errorMessage = 'Failed to fetch chat activities';
-        try {
-          const errorData = await response.json();
-          if (errorData.error) {
-            errorMessage = errorData.error;
-          }
-        } catch {
-          // If we can't parse the error response, use the default message
-        }
-
-        throw new Error(errorMessage);
+      const data = await doRequest({
+        url: `/api/signoz/conversations/${currentConversationId}?tenantId=${tenantId}&projectId=${projectId}`,
+        signal: abortControllerRef.current.signal,
+      });
+      if (!data) {
+        return null;
       }
-
-      const data: ConversationDetail = await response.json();
 
       if (isComponentMountedRef.current && currentConversationId === conversationId) {
         // Only update state if data actually changed (by checking activity count)
