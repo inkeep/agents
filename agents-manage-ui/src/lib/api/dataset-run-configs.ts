@@ -23,7 +23,7 @@ export interface DatasetRunConfigInsert {
   evaluatorIds?: string[];
 }
 
-export async function fetchDatasetRunConfigs(
+async function fetchDatasetRunConfigs(
   tenantId: string,
   projectId: string,
   datasetId: string
@@ -36,7 +36,7 @@ export async function fetchDatasetRunConfigs(
   );
 }
 
-export async function fetchDatasetRunConfig(
+async function fetchDatasetRunConfig(
   tenantId: string,
   projectId: string,
   runConfigId: string
@@ -91,7 +91,7 @@ export async function updateDatasetRunConfig(
   );
 }
 
-export async function deleteDatasetRunConfig(
+async function deleteDatasetRunConfig(
   tenantId: string,
   projectId: string,
   runConfigId: string
