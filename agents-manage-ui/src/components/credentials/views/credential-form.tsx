@@ -116,9 +116,8 @@ export function CredentialForm({ onCreateCredential, tenantId, projectId }: Cred
         }
       } catch (err) {
         console.error('Failed to load credential stores:', err);
-      } finally {
-        setStoresLoading(false);
       }
+      setStoresLoading(false);
     };
 
     loadCredentialStores();
@@ -162,19 +161,19 @@ export function CredentialForm({ onCreateCredential, tenantId, projectId }: Cred
   };
 
   const onSubmit = form.handleSubmit(async (data) => {
+    const isInvalidServerSelection =
+      shouldLinkToServer && (data.selectedTool === 'loading' || data.selectedTool === 'error');
+    const isInvalidExternalAgentSelection =
+      shouldLinkToExternalAgent &&
+      (data.selectedExternalAgent === 'loading' || data.selectedExternalAgent === 'error');
+
     try {
-      if (
-        shouldLinkToServer &&
-        (data.selectedTool === 'loading' || data.selectedTool === 'error')
-      ) {
+      if (isInvalidServerSelection) {
         toast('Please select a valid MCP server');
         return;
       }
 
-      if (
-        shouldLinkToExternalAgent &&
-        (data.selectedExternalAgent === 'loading' || data.selectedExternalAgent === 'error')
-      ) {
+      if (isInvalidExternalAgentSelection) {
         toast('Please select a valid external agent');
         return;
       }
