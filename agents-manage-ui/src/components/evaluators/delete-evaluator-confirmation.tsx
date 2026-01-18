@@ -23,6 +23,12 @@ interface DeleteEvaluatorConfirmationProps {
   onOpenChange: (open: boolean) => void;
 }
 
+// Workaround for a React Compiler limitation.
+// Todo: Support value blocks (conditional, logical, optional chaining, etc) within a try/catch statement
+function getErrorMessage(error?: string) {
+  return error || 'Failed to delete evaluator';
+}
+
 export function DeleteEvaluatorConfirmation({
   tenantId,
   projectId,
@@ -40,7 +46,7 @@ export function DeleteEvaluatorConfirmation({
         toast.success('Evaluator deleted');
         onOpenChange(false);
       } else {
-        toast.error(result.error || 'Failed to delete evaluator');
+        toast.error(getErrorMessage(result.error));
       }
     } catch (error) {
       console.error('Error deleting evaluator:', error);
