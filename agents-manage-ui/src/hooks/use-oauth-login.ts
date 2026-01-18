@@ -53,16 +53,22 @@ export function useOAuthLogin({
         existingCleanup();
         activeAttemptsRef.current.delete(toolId);
       }
-
-      try {
-        const oauthUrl =
+      // Workaround for a React Compiler limitation.
+      // Todo: Support value blocks (conditional, logical, optional chaining, etc) within a try/catch statement
+      function getUrl() {
+        return (
           thirdPartyConnectAccountUrl ??
           getOAuthLoginUrl({
             PUBLIC_INKEEP_AGENTS_MANAGE_API_URL,
             tenantId,
             projectId,
             id: toolId,
-          });
+          })
+        );
+      }
+
+      try {
+        const oauthUrl = getUrl();
 
         const popup = window.open(
           oauthUrl,
