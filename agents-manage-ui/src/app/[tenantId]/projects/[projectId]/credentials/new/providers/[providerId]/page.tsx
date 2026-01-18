@@ -79,7 +79,9 @@ function ProviderSetupPage({
 
     setLoading(true);
     setHasAttempted(true);
-    try {
+    // Workaround for a React Compiler limitation.
+    // Todo: Support value blocks (conditional, logical, optional chaining, etc) within a try/catch statement
+    async function doRequest(provider: ApiProvider) {
       const connectToken = await createProviderConnectSession({
         providerName: provider.name,
         uniqueKey: provider.name,
@@ -97,11 +99,13 @@ function ProviderSetupPage({
         organizationId: organizationData?.id,
         organizationDisplayName: organizationData?.name,
       });
-
       openNangoConnect({
         sessionToken: connectToken,
         onEvent: handleNangoConnect,
       });
+    }
+    try {
+      await doRequest(provider);
     } catch (error) {
       console.error('Failed to create credential:', error);
 
