@@ -9,7 +9,7 @@ export function BigVideo({ src, height = 'auto' }: BigVideoProps) {
     // biome-ignore lint/a11y/useMediaCaption: ignore `.vtt` captions
     <video
       src={src}
-      controls
+      controls={true}
       style={{
         borderRadius: '10px',
         display: 'block',

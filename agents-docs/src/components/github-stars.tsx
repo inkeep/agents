@@ -17,7 +17,7 @@ export const GithubStars: FC = async () => {
   const stars = 'Star'; // new Intl.NumberFormat('en-US').format(stars)
 
   return (
-    <Button variant="outline" size="sm" asChild>
+    <Button variant="outline" size="sm" asChild={true}>
       <a
         href="https://github.com/inkeep/agents"
         target="_blank"

@@ -26,7 +26,7 @@ export function Card({ icon: iconName, ...props }: CardProps) {
 
       return (
         <Component
-          data-card
+          data-card={true}
           href={props.href}
           className="block border text-fd-card-foreground transition-colors group/card relative rounded-lg p-6 transition-shadow hover:shadow-[0_1px_7px_-4px_rgba(19,19,22,0.8),0_4px_11px_rgba(32,42,54,0.05)] dark:hover:shadow-none [&_svg]:text-[var(--card-color)]"
           style={{ '--card-color': props.color } as React.CSSProperties}

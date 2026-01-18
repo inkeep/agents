@@ -105,7 +105,7 @@ const linkItems: LinkItemType[] = [
 
 export default function Layout({ children }: LayoutProps<'/'>) {
   return (
-    <html lang="en" className={cn(inter.className, 'antialiased')} suppressHydrationWarning>
+    <html lang="en" className={cn(inter.className, 'antialiased')} suppressHydrationWarning={true}>
       <body
         className="flex flex-col min-h-screen bg-background"
         // Suppress hydration warnings in development caused by browser extensions
@@ -130,7 +130,7 @@ export default function Layout({ children }: LayoutProps<'/'>) {
                       variant="outline"
                       size="sm"
                       className="grow text-primary border-primary/30 hover:bg-primary/5 dark:bg-primary/5 hover:text-primary dark:text-primary dark:border-primary/30 dark:hover:bg-primary/10"
-                      asChild
+                      asChild={true}
                     >
                       <a
                         href="https://inkeep.com/cloud-waitlist?cta_id=docs_nav"
