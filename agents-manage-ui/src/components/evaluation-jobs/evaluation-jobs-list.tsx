@@ -121,7 +121,7 @@ export function EvaluationJobsList({ tenantId, projectId, jobConfigs }: Evaluati
       <div className="rounded-lg border">
         <Table>
           <TableHeader>
-            <TableRow noHover>
+            <TableRow noHover={true}>
               <TableHead>Name</TableHead>
               <TableHead>Updated</TableHead>
               <TableHead className="w-12" />
@@ -130,7 +130,7 @@ export function EvaluationJobsList({ tenantId, projectId, jobConfigs }: Evaluati
           </TableHeader>
           <TableBody>
             {jobConfigs.length === 0 ? (
-              <TableRow noHover>
+              <TableRow noHover={true}>
                 <TableCell colSpan={4} className="py-12">
                   <div className="flex flex-col items-center gap-4">
                     <span className="text-muted-foreground">No batch evaluations yet</span>
@@ -151,7 +151,7 @@ export function EvaluationJobsList({ tenantId, projectId, jobConfigs }: Evaluati
               </TableRow>
             ) : isLoadingNames ? (
               [...jobConfigs].map((jobConfig) => (
-                <TableRow key={jobConfig.id} noHover>
+                <TableRow key={jobConfig.id} noHover={true}>
                   <TableCell>
                     <Skeleton className="h-4 w-48" />
                   </TableCell>
@@ -187,7 +187,7 @@ export function EvaluationJobsList({ tenantId, projectId, jobConfigs }: Evaluati
                     </TableCell>
                     <TableCell onClick={(e) => e.stopPropagation()}>
                       <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
+                        <DropdownMenuTrigger asChild={true}>
                           <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
                             <MoreVertical className="h-4 w-4" />
                           </Button>

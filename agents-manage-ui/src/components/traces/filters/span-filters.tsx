@@ -41,7 +41,7 @@ export function SpanFilters({
   const totalFilters = attributes.length + (spanName ? 1 : 0);
   return (
     <Collapsible defaultOpen={totalFilters > 0} className="border rounded-lg bg-background w-full">
-      <CollapsibleTrigger asChild>
+      <CollapsibleTrigger asChild={true}>
         <Button
           type="button"
           variant="ghost"
@@ -74,7 +74,7 @@ export function SpanFilters({
                   <SelectContent>
                     <SelectItem value="none">No filter</SelectItem>
                     {spanNamesLoading ? (
-                      <SelectItem value="loading" disabled>
+                      <SelectItem value="loading" disabled={true}>
                         Loading span names...
                       </SelectItem>
                     ) : (

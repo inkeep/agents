@@ -29,7 +29,7 @@ export function ApiKeyItemMenu({ apiKey }: ApiKeyItemMenuProps) {
   return (
     <>
       <DropdownMenu>
-        <DropdownMenuTrigger asChild>
+        <DropdownMenuTrigger asChild={true}>
           <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
             <MoreHorizontal className="h-4 w-4 text-muted-foreground" />
             <span className="sr-only">Open menu</span>

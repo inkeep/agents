@@ -28,7 +28,7 @@ export function ArtifactComponentItemMenu({
   return (
     <Dialog open={isOpen} onOpenChange={handleOpenChange}>
       <DropdownMenu>
-        <DropdownMenuTrigger asChild>
+        <DropdownMenuTrigger asChild={true}>
           <Button
             variant="ghost"
             size="icon-sm"
@@ -41,7 +41,7 @@ export function ArtifactComponentItemMenu({
           align="end"
           className="w-48 shadow-lg border border-border bg-popover/95 backdrop-blur-sm"
         >
-          <DialogTrigger asChild>
+          <DialogTrigger asChild={true}>
             <DropdownMenuItem className="text-destructive hover:!bg-destructive/10 dark:hover:!bg-destructive/20 hover:!text-destructive cursor-pointer">
               <Trash2 className="size-4 text-destructive" />
               Delete

@@ -35,7 +35,7 @@ export function DeleteConfirmation({
           `Are you sure you want to delete ${itemName || 'this item'}? This action cannot be undone.`}
       </DialogDescription>
       <DialogFooter>
-        <DialogClose asChild>
+        <DialogClose asChild={true}>
           <Button variant="outline">Cancel</Button>
         </DialogClose>
         <Button variant="destructive" onClick={handleDelete} disabled={isSubmitting}>

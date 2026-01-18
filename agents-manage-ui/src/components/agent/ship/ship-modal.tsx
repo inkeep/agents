@@ -85,7 +85,7 @@ export const ShipModal: FC<{ buttonClassName: string }> = ({ buttonClassName }) 
   const { tenantId, projectId } = useParams();
   return (
     <Dialog>
-      <DialogTrigger asChild>
+      <DialogTrigger asChild={true}>
         <Button variant="outline" className={buttonClassName}>
           <RocketIcon className="size-4" />
           Ship
@@ -102,7 +102,7 @@ export const ShipModal: FC<{ buttonClassName: string }> = ({ buttonClassName }) 
           <div className="flex items-center justify-between w-full gap-2">
             <DialogTitle>Talk to your agent</DialogTitle>
             <div className="flex items-center gap-2">
-              <Button asChild variant="outline" size="sm">
+              <Button asChild={true} variant="outline" size="sm">
                 <Link
                   href={`/${tenantId}/projects/${projectId}/api-keys`}
                   target="_blank"
@@ -112,7 +112,7 @@ export const ShipModal: FC<{ buttonClassName: string }> = ({ buttonClassName }) 
                   Create API key
                 </Link>
               </Button>
-              <DialogClose asChild>
+              <DialogClose asChild={true}>
                 <Button variant="ghost" className="size-8">
                   <X className="size-4 text-muted-foreground" />
                   <span className="sr-only">Close</span>

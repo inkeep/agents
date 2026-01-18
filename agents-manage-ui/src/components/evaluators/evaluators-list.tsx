@@ -50,7 +50,7 @@ export function EvaluatorsList({ tenantId, projectId, evaluators }: EvaluatorsLi
       <div className="rounded-lg border">
         <Table>
           <TableHeader>
-            <TableRow noHover>
+            <TableRow noHover={true}>
               <TableHead>Name</TableHead>
               <TableHead className="max-w-md">Description</TableHead>
               <TableHead>Model</TableHead>
@@ -60,7 +60,7 @@ export function EvaluatorsList({ tenantId, projectId, evaluators }: EvaluatorsLi
           </TableHeader>
           <TableBody>
             {evaluators.length === 0 ? (
-              <TableRow noHover>
+              <TableRow noHover={true}>
                 <TableCell colSpan={5} className="py-12">
                   <div className="flex flex-col items-center gap-4">
                     <span className="text-muted-foreground">No evaluators yet</span>
@@ -81,7 +81,7 @@ export function EvaluatorsList({ tenantId, projectId, evaluators }: EvaluatorsLi
               </TableRow>
             ) : (
               evaluators.map((evaluator) => (
-                <TableRow key={evaluator.id} noHover>
+                <TableRow key={evaluator.id} noHover={true}>
                   <TableCell>
                     <button
                       type="button"
@@ -104,7 +104,7 @@ export function EvaluatorsList({ tenantId, projectId, evaluators }: EvaluatorsLi
                   </TableCell>
                   <TableCell>
                     <DropdownMenu>
-                      <DropdownMenuTrigger asChild>
+                      <DropdownMenuTrigger asChild={true}>
                         <Button variant="ghost" size="sm">
                           <MoreVertical />
                         </Button>

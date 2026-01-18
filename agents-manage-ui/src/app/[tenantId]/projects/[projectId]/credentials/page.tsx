@@ -28,7 +28,7 @@ async function CredentialsPage({
           title="Credentials"
           description={credentialDescription}
           action={
-            <Button asChild>
+            <Button asChild={true}>
               <Link
                 href={`/${tenantId}/projects/${projectId}/credentials/new`}
                 className="flex items-center gap-2"

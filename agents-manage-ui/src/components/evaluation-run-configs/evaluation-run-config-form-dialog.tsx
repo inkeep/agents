@@ -268,7 +268,7 @@ export function EvaluationRunConfigFormDialog({
 
   return (
     <Dialog open={isOpen} onOpenChange={setIsOpen}>
-      {trigger && <DialogTrigger asChild>{trigger}</DialogTrigger>}
+      {trigger && <DialogTrigger asChild={true}>{trigger}</DialogTrigger>}
       <DialogContent className="sm:max-w-3xl max-h-[95vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>
@@ -288,7 +288,7 @@ export function EvaluationRunConfigFormDialog({
               label="Name"
               description="A descriptive name for this continuous test"
               placeholder="e.g., Production Quality Checks"
-              isRequired
+              isRequired={true}
             />
 
             <GenericTextarea
@@ -354,7 +354,7 @@ export function EvaluationRunConfigFormDialog({
                   <FormItem>
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-2">
-                        <FormLabel isRequired>Evaluators</FormLabel>
+                        <FormLabel isRequired={true}>Evaluators</FormLabel>
                         <Badge variant="count">
                           {(suiteConfigForm.watch('evaluatorIds') || []).length}
                         </Badge>

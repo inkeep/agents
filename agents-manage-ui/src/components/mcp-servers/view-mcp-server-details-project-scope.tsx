@@ -84,7 +84,7 @@ export function ViewMCPServerDetailsProjectScope({
             <p className="text-sm text-muted-foreground">MCP server details</p>
           </div>
         </div>
-        <Button asChild>
+        <Button asChild={true}>
           <Link href={`/${tenantId}/projects/${projectId}/mcp-servers/${tool.id}/edit`}>
             <Pencil className="w-4 h-4" />
             Edit
@@ -239,7 +239,11 @@ export function ViewMCPServerDetailsProjectScope({
               tool.availableTools && tool.availableTools.length > 0 ? (
                 <div className="flex flex-wrap gap-2">
                   {tool.availableTools.map((toolInfo) => (
-                    <ActiveToolBadge key={toolInfo.name} toolName={toolInfo.name} isAvailable />
+                    <ActiveToolBadge
+                      key={toolInfo.name}
+                      toolName={toolInfo.name}
+                      isAvailable={true}
+                    />
                   ))}
                 </div>
               ) : (

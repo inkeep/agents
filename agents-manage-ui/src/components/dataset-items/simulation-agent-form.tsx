@@ -104,7 +104,7 @@ export function SimulationAgentForm({ control }: SimulationAgentFormProps) {
         onOpenChange={setIsOpen}
         className="border rounded-md bg-background"
       >
-        <CollapsibleTrigger asChild>
+        <CollapsibleTrigger asChild={true}>
           <Button
             type="button"
             variant="ghost"
@@ -123,7 +123,7 @@ export function SimulationAgentForm({ control }: SimulationAgentFormProps) {
             label="Prompt"
             placeholder="You are a helpful assistant"
             className="min-h-[100px]"
-            isRequired
+            isRequired={true}
           />
 
           {/* Model */}
@@ -133,7 +133,7 @@ export function SimulationAgentForm({ control }: SimulationAgentFormProps) {
               name="simulationAgent.model.model"
               label="Model"
               description="AI model to use for the simulation agent"
-              isRequired
+              isRequired={true}
             >
               {(field) => (
                 <ModelSelector

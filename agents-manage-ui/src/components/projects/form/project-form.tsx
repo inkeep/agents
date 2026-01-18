@@ -156,7 +156,7 @@ export function ProjectForm({
           label="Name"
           placeholder="My Project"
           description="A friendly name for your project"
-          isRequired
+          isRequired={true}
         />
         <GenericInput
           control={form.control}
@@ -165,7 +165,7 @@ export function ProjectForm({
           placeholder="my-project"
           description="Choose a unique identifier for this project. This cannot be changed later."
           disabled={!!projectId}
-          isRequired
+          isRequired={true}
         />
         <GenericTextarea
           control={form.control}

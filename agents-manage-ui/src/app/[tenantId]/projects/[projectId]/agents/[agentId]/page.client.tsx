@@ -993,8 +993,8 @@ export const Agent: FC<AgentProps> = ({
           onConnect={onConnectWrapped}
           onDrop={onDrop}
           onDragOver={onDragOver}
-          fitView
-          snapToGrid
+          fitView={true}
+          snapToGrid={true}
           snapGrid={[20, 20]}
           fitViewOptions={{
             maxZoom: 1,
@@ -1057,7 +1057,7 @@ export const Agent: FC<AgentProps> = ({
         isMounted &&
         !showEmptyState && (
           <>
-            <ResizableHandle withHandle />
+            <ResizableHandle withHandle={true} />
             <ResizablePanel
               minSize={30}
               // Panel id and order props recommended when panels are dynamically rendered
@@ -1083,7 +1083,7 @@ export const Agent: FC<AgentProps> = ({
 
       {showPlayground && agent.id && (
         <>
-          {!showTraces && <ResizableHandle withHandle />}
+          {!showTraces && <ResizableHandle withHandle={true} />}
           <ResizablePanel
             minSize={25}
             // Panel id and order props recommended when panels are dynamically rendered

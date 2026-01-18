@@ -60,7 +60,7 @@ export const ProjectSwitcher: FC = () => {
 
   return (
     <DropdownMenu>
-      <DropdownMenuTrigger asChild>
+      <DropdownMenuTrigger asChild={true}>
         <SidebarMenuButton
           size="lg"
           className="group/project-switcher data-[state=open]:bg-sidebar-accent data-[state=open]:text-sidebar-accent-foreground"
@@ -80,7 +80,7 @@ export const ProjectSwitcher: FC = () => {
         sideOffset={4}
       >
         {projects.map((project) => (
-          <DropdownMenuItem key={project.projectId} asChild>
+          <DropdownMenuItem key={project.projectId} asChild={true}>
             <NextLink href={`/${tenantId}/projects/${project.projectId}/agents`}>
               <ProjectItem
                 name={project.name}

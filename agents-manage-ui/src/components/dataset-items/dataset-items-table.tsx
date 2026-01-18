@@ -38,7 +38,7 @@ const ReadOnlyEditor: FC<{
     <ExpandableJsonEditor
       name={name}
       value={JSON.stringify(value, null, 2)}
-      readOnly
+      readOnly={true}
       editorOptions={{
         wordWrap: 'off',
         scrollbar: {
@@ -69,7 +69,7 @@ export function DatasetItemsTable({
       <div className="rounded-lg border">
         <Table>
           <TableHeader>
-            <TableRow noHover>
+            <TableRow noHover={true}>
               <TableHead>Updated At</TableHead>
               <TableHead>Input</TableHead>
               <TableHead>Expected Output</TableHead>
@@ -79,7 +79,7 @@ export function DatasetItemsTable({
           </TableHeader>
           <TableBody>
             {items.length === 0 ? (
-              <TableRow noHover>
+              <TableRow noHover={true}>
                 <TableCell colSpan={5} className="py-12">
                   <div className="flex flex-col items-center gap-4">
                     <span className="text-muted-foreground">No items yet</span>
@@ -109,7 +109,7 @@ export function DatasetItemsTable({
                 );
 
                 return (
-                  <TableRow key={item.id} noHover>
+                  <TableRow key={item.id} noHover={true}>
                     <TableCell className="text-sm text-muted-foreground">
                       {formatDateTimeTable(item.updatedAt)}
                     </TableCell>
@@ -134,7 +134,7 @@ export function DatasetItemsTable({
                     </TableCell>
                     <TableCell>
                       <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
+                        <DropdownMenuTrigger asChild={true}>
                           <Button variant="ghost" size="sm">
                             <MoreVertical />
                           </Button>

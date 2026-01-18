@@ -189,7 +189,7 @@ export function SuiteConfigViewDialog({
                   <ExpandableJsonEditor
                     name="filters"
                     value={JSON.stringify(suiteConfig.filters, null, 2)}
-                    readOnly
+                    readOnly={true}
                   />
                 </div>
               )}

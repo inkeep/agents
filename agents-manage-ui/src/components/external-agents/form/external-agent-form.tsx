@@ -88,7 +88,7 @@ export function ExternalAgentForm({
           name="name"
           label="Name"
           placeholder="My External Agent"
-          isRequired
+          isRequired={true}
         />
         <GenericTextarea
           control={form.control}
@@ -101,7 +101,7 @@ export function ExternalAgentForm({
           name="baseUrl"
           label="Base URL"
           placeholder="https://api.example.com"
-          isRequired
+          isRequired={true}
         />
 
         <div className="space-y-3">

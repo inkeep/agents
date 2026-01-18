@@ -101,7 +101,7 @@ export function DatePickerWithPresets({
   return (
     <Popover onOpenChange={handleChangeOnOpen} open={isOpen}>
       {showCalendarDirectly ? (
-        <PopoverTrigger asChild>
+        <PopoverTrigger asChild={true}>
           <Button
             variant="outline"
             disabled={disabled}
@@ -134,7 +134,7 @@ export function DatePickerWithPresets({
             <div className="border-b ">
               <Calendar
                 defaultMonth={date?.from}
-                initialFocus
+                initialFocus={true}
                 mode="range"
                 numberOfMonths={2}
                 onSelect={(val) => {

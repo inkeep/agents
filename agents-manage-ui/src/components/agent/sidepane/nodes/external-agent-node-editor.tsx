@@ -119,7 +119,7 @@ export function ExternalAgentNodeEditor({
         value={selectedNode.data.name || ''}
         onChange={handleInputChange}
         placeholder="Support agent"
-        disabled
+        disabled={true}
         error={getFieldError('name')}
       />
 
@@ -132,9 +132,9 @@ export function ExternalAgentNodeEditor({
         onChange={handleInputChange}
         placeholder="my-external-agent"
         error={getFieldError('id')}
-        disabled
+        disabled={true}
         description="Choose a unique identifier for this agent. Using an existing id will replace that agent."
-        isRequired
+        isRequired={true}
       />
 
       <TextareaField
@@ -146,7 +146,7 @@ export function ExternalAgentNodeEditor({
         onChange={handleInputChange}
         placeholder="This agent is responsible for..."
         error={getFieldError('description')}
-        disabled
+        disabled={true}
       />
 
       <InputField
@@ -159,7 +159,7 @@ export function ExternalAgentNodeEditor({
         placeholder="https://api.example.com/agent"
         error={getFieldError('baseUrl')}
         tooltip="This URL is used to discover the agent's capabilities and communicate with it using the A2A protocol. For locally hosted agent defined with the agent-framework this would be: http://localhost:3002/tenants/:tenantId/projects/:projectId/agents/:agentId"
-        disabled
+        disabled={true}
       />
       <div className="space-y-2">
         <FieldLabel id="headers" label="Headers" />

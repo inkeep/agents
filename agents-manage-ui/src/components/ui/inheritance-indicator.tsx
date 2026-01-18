@@ -28,7 +28,7 @@ export function InheritanceIndicator({
     return (
       <TooltipProvider>
         <Tooltip>
-          <TooltipTrigger asChild>
+          <TooltipTrigger asChild={true}>
             <Badge
               variant="outline"
               className={`
@@ -54,7 +54,7 @@ export function InheritanceIndicator({
     return (
       <TooltipProvider>
         <Tooltip>
-          <TooltipTrigger asChild>
+          <TooltipTrigger asChild={true}>
             <Badge
               variant="outline"
               className={`
@@ -80,7 +80,7 @@ export function InheritanceIndicator({
   return (
     <TooltipProvider>
       <Tooltip>
-        <TooltipTrigger asChild>
+        <TooltipTrigger asChild={true}>
           <Badge
             variant="outline"
             className={`

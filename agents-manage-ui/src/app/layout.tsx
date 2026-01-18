@@ -81,7 +81,7 @@ const runtimeConfig: RuntimeConfig = {
 
 export default function RootLayout({ children }: LayoutProps<'/'>) {
   return (
-    <html lang="en" suppressHydrationWarning>
+    <html lang="en" suppressHydrationWarning={true}>
       <body
         className={cn(
           inter.variable,
@@ -95,8 +95,8 @@ export default function RootLayout({ children }: LayoutProps<'/'>) {
         <ThemeProvider
           attribute="class"
           defaultTheme="system"
-          enableSystem
-          disableTransitionOnChange
+          enableSystem={true}
+          disableTransitionOnChange={true}
         >
           <NuqsAdapter>
             <RuntimeConfigProvider value={runtimeConfig}>

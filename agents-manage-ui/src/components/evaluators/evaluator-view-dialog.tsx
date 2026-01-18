@@ -60,7 +60,7 @@ export function EvaluatorViewDialog({ evaluator, isOpen, onOpenChange }: Evaluat
             <ExpandableJsonEditor
               name="schema"
               value={JSON.stringify(evaluator.schema, null, 2)}
-              readOnly
+              readOnly={true}
             />
           </div>
 
@@ -82,7 +82,7 @@ export function EvaluatorViewDialog({ evaluator, isOpen, onOpenChange }: Evaluat
                       <ExpandableJsonEditor
                         name="providerOptions"
                         value={JSON.stringify(evaluator.model.providerOptions, null, 2)}
-                        readOnly
+                        readOnly={true}
                       />
                     </div>
                   )}

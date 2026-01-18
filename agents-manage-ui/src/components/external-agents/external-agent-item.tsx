@@ -32,7 +32,7 @@ import { Tooltip, TooltipContent, TooltipTrigger } from '../ui/tooltip';
 function URLDisplay({ url }: { url: string }) {
   return (
     <Tooltip>
-      <TooltipTrigger asChild>
+      <TooltipTrigger asChild={true}>
         <div className="rounded py-1 min-w-0">
           <code className="text-sm text-muted-foreground block truncate">{url}</code>
         </div>
@@ -83,7 +83,7 @@ function ExternalAgentDialogMenu({
   return (
     <Dialog open={isOpen} onOpenChange={handleOpenChange}>
       <DropdownMenu>
-        <DropdownMenuTrigger asChild>
+        <DropdownMenuTrigger asChild={true}>
           <Button
             variant="ghost"
             size="icon-sm"
@@ -96,7 +96,7 @@ function ExternalAgentDialogMenu({
           align="end"
           className="w-48 shadow-lg border border-border bg-popover/95 backdrop-blur-sm"
         >
-          <DialogTrigger asChild>
+          <DialogTrigger asChild={true}>
             <DropdownMenuItem className="text-destructive hover:!bg-destructive/10 dark:hover:!bg-destructive/20 hover:!text-destructive cursor-pointer">
               <Trash2 className="size-4 text-destructive" />
               Delete

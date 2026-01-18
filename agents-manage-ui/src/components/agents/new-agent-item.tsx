@@ -43,7 +43,7 @@ export function NewAgentDialog({ tenantId, projectId }: NewAgentItemProps) {
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
-      <DialogTrigger asChild>
+      <DialogTrigger asChild={true}>
         <Button>
           <Plus className="size-4" /> New Agent
         </Button>

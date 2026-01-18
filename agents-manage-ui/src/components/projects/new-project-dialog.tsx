@@ -41,7 +41,7 @@ export function NewProjectDialog({
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
-      {children && <DialogTrigger asChild>{children}</DialogTrigger>}
+      {children && <DialogTrigger asChild={true}>{children}</DialogTrigger>}
       <DialogContent className="!max-w-2xl">
         <DialogTitle>Create new project</DialogTitle>
         <DialogDescription>

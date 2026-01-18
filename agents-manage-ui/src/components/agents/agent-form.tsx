@@ -101,7 +101,7 @@ export const AgentForm = ({
           name="name"
           label="Name"
           placeholder="My agent"
-          isRequired
+          isRequired={true}
         />
         <GenericInput
           control={form.control}
@@ -109,7 +109,7 @@ export const AgentForm = ({
           label="Id"
           placeholder="my-agent"
           disabled={!!agentId}
-          isRequired
+          isRequired={true}
         />
         <GenericTextarea
           control={form.control}

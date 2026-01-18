@@ -38,7 +38,7 @@ export function FilterTriggerComponent({
 
   return (
     <div className="flex items-center max-w-full">
-      <PopoverTrigger asChild>
+      <PopoverTrigger asChild={true}>
         <Button
           className={`flex items-center gap-2 justify-between focus:ring-0 ${isShowSelectedOptions && isRemovable && 'rounded-tr-none rounded-br-none '}  max-w-full min-w-0`}
           disabled={disabled}

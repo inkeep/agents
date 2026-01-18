@@ -29,7 +29,7 @@ export function NangoProvidersGrid({ providers }: NangoProvidersGridProps) {
       <ProviderIcon provider={provider.name} size={20} className="flex-shrink-0" />
       <TooltipProvider>
         <Tooltip>
-          <TooltipTrigger asChild>
+          <TooltipTrigger asChild={true}>
             <CardTitle className="text-sm font-medium leading-tight truncate flex-1 min-w-0 overflow-hidden text-ellipsis whitespace-nowrap">
               {provider.display_name || provider.name}
             </CardTitle>

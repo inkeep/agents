@@ -44,7 +44,7 @@ export function GenericComboBox<T extends FieldValues>({
     <FormFieldWrapper control={control} name={name} label={label} isRequired={isRequired}>
       {(field) => (
         <Popover open={open} onOpenChange={setOpen}>
-          <PopoverTrigger asChild>
+          <PopoverTrigger asChild={true}>
             <Button
               variant="outline"
               role="combobox"

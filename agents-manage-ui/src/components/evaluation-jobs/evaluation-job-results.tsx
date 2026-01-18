@@ -217,7 +217,7 @@ export function EvaluationJobResults({
         ) : (
           <Table>
             <TableHeader>
-              <TableRow noHover>
+              <TableRow noHover={true}>
                 <TableHead>Input</TableHead>
                 <TableHead>Time</TableHead>
                 <TableHead>Agent</TableHead>
@@ -234,7 +234,7 @@ export function EvaluationJobResults({
                   return new Date(bTime).getTime() - new Date(aTime).getTime();
                 })
                 .map((result) => (
-                  <TableRow key={result.id} noHover>
+                  <TableRow key={result.id} noHover={true}>
                     <TableCell>
                       <Link
                         href={`/${tenantId}/projects/${projectId}/traces/conversations/${result.conversationId}`}
@@ -342,7 +342,7 @@ function OutputCollapsible({ resultId, output }: { resultId: string; output: unk
           name={`output-${resultId}`}
           value={JSON.stringify(output, null, 2)}
           label="Output"
-          readOnly
+          readOnly={true}
         />
       </CollapsibleContent>
     </Collapsible>
@@ -363,7 +363,7 @@ function MetadataCollapsible({ resultId, metadata }: { resultId: string; metadat
           name={`metadata-${resultId}`}
           value={JSON.stringify(metadata, null, 2)}
           label="Metadata"
-          readOnly
+          readOnly={true}
         />
       </CollapsibleContent>
     </Collapsible>

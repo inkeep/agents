@@ -224,7 +224,7 @@ export function MCPServerNodeEditor({
 
       <div className="space-y-2">
         <Label htmlFor="node-id">Id</Label>
-        <Input id="node-id" value={selectedNode.data.toolId} disabled />
+        <Input id="node-id" value={selectedNode.data.toolId} disabled={true} />
       </div>
       <div className="space-y-2">
         <Label htmlFor="name">Name</Label>
@@ -235,7 +235,7 @@ export function MCPServerNodeEditor({
           onChange={handleInputChange}
           placeholder="MCP server"
           className="w-full"
-          disabled
+          disabled={true}
         />
       </div>
       <div className="space-y-2">
@@ -248,7 +248,7 @@ export function MCPServerNodeEditor({
           }
           onChange={handleInputChange}
           placeholder="https://mcp.inkeep.com"
-          disabled
+          disabled={true}
           className="w-full"
         />
       </div>
@@ -318,7 +318,7 @@ export function MCPServerNodeEditor({
             <div className="grid grid-cols-[1fr_auto] gap-4 px-3 py-2.5 text-xs font-medium text-muted-foreground rounded-t-md border-b">
               <div>Tool</div>
               <Tooltip>
-                <TooltipTrigger asChild>
+                <TooltipTrigger asChild={true}>
                   <div className="flex items-center gap-1 cursor-help">
                     <Shield className="w-3 h-3" />
                     Needs Approval?
@@ -352,7 +352,7 @@ export function MCPServerNodeEditor({
                       onCheckedChange={() => toggleToolSelection(tool.name)}
                     />
                     <Tooltip>
-                      <TooltipTrigger asChild>
+                      <TooltipTrigger asChild={true}>
                         <div className="flex-1 min-w-0">
                           <div className="text-sm font-medium truncate">{tool.name}</div>
                           <div className="text-xs text-muted-foreground line-clamp-1">
@@ -392,7 +392,7 @@ export function MCPServerNodeEditor({
                       onCheckedChange={() => toggleToolSelection(toolName)}
                     />
                     <Tooltip>
-                      <TooltipTrigger asChild>
+                      <TooltipTrigger asChild={true}>
                         <div className="flex-1 min-w-0 flex items-center gap-2">
                           <div className="flex-1">
                             <div className="text-sm font-medium truncate">{toolName}</div>

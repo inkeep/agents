@@ -188,7 +188,7 @@ export function DatasetRunConfigForm({
           label="Name"
           placeholder="Test Run for Production Agents"
           description="A descriptive name for this run configuration"
-          isRequired
+          isRequired={true}
         />
 
         <GenericTextarea
@@ -205,7 +205,7 @@ export function DatasetRunConfigForm({
           render={() => (
             <FormItem>
               <div className="flex items-center gap-2">
-                <FormLabel isRequired>Agents</FormLabel>
+                <FormLabel isRequired={true}>Agents</FormLabel>
                 <Badge variant="count">{(agentIds as string[]).length}</Badge>
               </div>
               {loadingAgents ? (

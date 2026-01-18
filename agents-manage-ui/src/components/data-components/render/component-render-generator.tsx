@@ -190,7 +190,7 @@ export function ComponentRenderGenerator({
           <div className="flex items-center gap-1">
             <h3 className="text-md font-medium">Component Renderer</h3>
             <Tooltip>
-              <TooltipTrigger asChild>
+              <TooltipTrigger asChild={true}>
                 <Info className="w-3 h-3 text-muted-foreground ml-1" />
               </TooltipTrigger>
               <TooltipContent>
@@ -241,7 +241,7 @@ export function ComponentRenderGenerator({
           {hasRender && (
             <>
               <Popover open={isPopoverOpen} onOpenChange={setIsPopoverOpen}>
-                <PopoverTrigger asChild>
+                <PopoverTrigger asChild={true}>
                   <Button
                     variant="outline"
                     size="sm"
@@ -323,7 +323,7 @@ export function ComponentRenderGenerator({
       </div>
       {isGenerating && streamingCode && (
         <Streamdown
-          isAnimating
+          isAnimating={true}
           className="[&_[data-code-block-header=true]]:hidden [&_pre]:bg-muted/40!"
         >{`\`\`\`jsx\n${streamingCode}\`\`\``}</Streamdown>
       )}

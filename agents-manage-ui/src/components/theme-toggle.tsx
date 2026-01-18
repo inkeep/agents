@@ -34,7 +34,7 @@ export const ThemeToggle: FC = () => {
 
   return (
     <DropdownMenu>
-      <DropdownMenuTrigger asChild>
+      <DropdownMenuTrigger asChild={true}>
         <Button
           variant="ghost"
           size="icon"

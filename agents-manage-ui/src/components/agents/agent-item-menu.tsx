@@ -24,7 +24,7 @@ export function AgentItemMenu({ id, name, description, projectId, tenantId }: Ag
   return (
     <>
       <DropdownMenu>
-        <DropdownMenuTrigger asChild>
+        <DropdownMenuTrigger asChild={true}>
           <Button
             variant="ghost"
             size="icon-sm"

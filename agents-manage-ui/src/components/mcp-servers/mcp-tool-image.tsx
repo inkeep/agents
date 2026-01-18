@@ -55,7 +55,7 @@ export function MCPToolImage({ imageUrl, name, size = 24, className }: MCPToolIm
           setImageLoading(false);
         }}
         onLoad={() => setImageLoading(false)}
-        unoptimized // For external URLs
+        unoptimized={true} // For external URLs
       />
     </div>
   );

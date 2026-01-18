@@ -96,7 +96,7 @@ export function ProviderIcon({
           maxHeight: '100%',
           opacity: imageLoaded && !imageError ? 1 : 0,
         }}
-        unoptimized // For local SVG files
+        unoptimized={true} // For local SVG files
       />
     </div>
   );

@@ -45,7 +45,7 @@ export function ProjectStopWhenSection({ control }: ProjectStopWhenSectionProps)
         onOpenChange={setIsOpen}
         className="border rounded-md bg-background"
       >
-        <CollapsibleTrigger asChild>
+        <CollapsibleTrigger asChild={true}>
           <Button
             type="button"
             variant="ghost"

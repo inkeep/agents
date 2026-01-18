@@ -233,14 +233,14 @@ export function MCPServerForm({
             name="name"
             label="Name"
             placeholder="MCP server"
-            isRequired
+            isRequired={true}
           />
           <GenericInput
             control={form.control}
             name="config.mcp.server.url"
             label="URL"
             placeholder="https://api.example.com/mcp"
-            isRequired
+            isRequired={true}
           />
           <GenericSelect
             control={form.control}
@@ -365,7 +365,7 @@ export function MCPServerForm({
               {mode === 'update' ? 'Save' : 'Create'}
             </Button>
             {mode === 'update' && tool && (
-              <DialogTrigger asChild>
+              <DialogTrigger asChild={true}>
                 <Button type="button" variant="destructive-outline">
                   Delete Server
                 </Button>

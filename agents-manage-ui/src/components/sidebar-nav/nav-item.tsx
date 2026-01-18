@@ -18,7 +18,7 @@ export function NavItem({ title, url, icon: Icon, isExternal }: NavItemProps) {
   const isActive = pathname.startsWith(url);
   return (
     <SidebarMenuItem>
-      <SidebarMenuButton asChild tooltip={title} isActive={isActive}>
+      <SidebarMenuButton asChild={true} tooltip={title} isActive={isActive}>
         <Link
           href={url}
           rel={isExternal ? 'noopener noreferrer' : undefined}

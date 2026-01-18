@@ -178,7 +178,7 @@ export function EvaluationJobFormDialog({
 
   return (
     <Dialog open={isOpen} onOpenChange={setIsOpen}>
-      {trigger && <DialogTrigger asChild>{trigger}</DialogTrigger>}
+      {trigger && <DialogTrigger asChild={true}>{trigger}</DialogTrigger>}
       <DialogContent className="sm:max-w-3xl max-h-[95vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>Create Batch Evaluation</DialogTitle>
@@ -225,7 +225,7 @@ export function EvaluationJobFormDialog({
                       onAdd={() => {}}
                       onRemove={handleRemoveDateRange}
                       setCustomDateRange={setCustomDateRange}
-                      showCalendarDirectly
+                      showCalendarDirectly={true}
                       placeholder="Select date range"
                     />
                   </div>

@@ -36,7 +36,7 @@ function BaseModelSection({ control }: { control: Control<ProjectFormData> }) {
         name="models.base.model"
         label="Base model"
         description="Primary model for general agent responses"
-        isRequired
+        isRequired={true}
       >
         {(field) => (
           <ModelConfiguration
@@ -211,7 +211,7 @@ export function ProjectModelsSection({ control }: ProjectModelsSectionProps) {
         onOpenChange={setIsOpen}
         className="border rounded-md bg-background"
       >
-        <CollapsibleTrigger asChild>
+        <CollapsibleTrigger asChild={true}>
           <Button
             type="button"
             variant="ghost"

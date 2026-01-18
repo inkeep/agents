@@ -110,7 +110,7 @@ export function DataComponentForm({
                 </ExternalLink>
               </>
             }
-            isRequired
+            isRequired={true}
           />
           <GenericInput
             control={form.control}
@@ -123,7 +123,7 @@ export function DataComponentForm({
                 ? ''
                 : 'Choose a unique identifier for this component. Using an existing id will replace that component.'
             }
-            isRequired
+            isRequired={true}
           />
           <GenericTextarea
             control={form.control}
@@ -138,7 +138,7 @@ export function DataComponentForm({
             label="Properties"
             placeholder="Enter a valid JSON Schema..."
             uri="json-schema-data-component.json"
-            isRequired
+            isRequired={true}
           />
 
           {id && (
@@ -158,7 +158,7 @@ export function DataComponentForm({
               Save
             </Button>
             {id && (
-              <DialogTrigger asChild>
+              <DialogTrigger asChild={true}>
                 <Button type="button" variant="destructive-outline">
                   Delete Component
                 </Button>

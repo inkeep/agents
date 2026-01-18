@@ -30,7 +30,7 @@ export function DatasetItemMenu({
   return (
     <>
       <DropdownMenu>
-        <DropdownMenuTrigger asChild>
+        <DropdownMenuTrigger asChild={true}>
           <Button
             variant="ghost"
             size="icon-sm"

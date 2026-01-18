@@ -98,7 +98,7 @@ export function ModelSelector({
           {tooltip && (
             <TooltipProvider>
               <Tooltip>
-                <TooltipTrigger asChild>
+                <TooltipTrigger asChild={true}>
                   <Info className="w-3 h-3 text-muted-foreground" />
                 </TooltipTrigger>
                 <TooltipContent>{tooltip}</TooltipContent>
@@ -111,7 +111,7 @@ export function ModelSelector({
       <div className="relative">
         <div className="flex w-full shadow-xs rounded-md">
           <Popover open={open} onOpenChange={setOpen}>
-            <PopoverTrigger asChild>
+            <PopoverTrigger asChild={true}>
               <Button
                 variant="outline"
                 role="combobox"

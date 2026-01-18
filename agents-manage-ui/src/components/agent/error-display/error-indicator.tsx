@@ -25,7 +25,7 @@ export function ErrorIndicator({ errors, className = '' }: ErrorIndicatorProps) 
   return (
     <TooltipProvider>
       <Tooltip>
-        <TooltipTrigger asChild>{indicator}</TooltipTrigger>
+        <TooltipTrigger asChild={true}>{indicator}</TooltipTrigger>
         <TooltipContent
           side="top"
           className="max-w-xs [--bg-color:var(--color-red-50)] dark:[--bg-color:var(--color-red-950)] border-red-200 dark:border-red-700 text-red-800 dark:text-red-300 bg-red-50 dark:bg-red-950/90"

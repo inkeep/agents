@@ -25,7 +25,7 @@ async function DataComponentsPage({
           title="Components"
           description={dataComponentDescription}
           action={
-            <Button asChild>
+            <Button asChild={true}>
               <Link
                 href={`/${tenantId}/projects/${projectId}/components/new`}
                 className="flex items-center gap-2"

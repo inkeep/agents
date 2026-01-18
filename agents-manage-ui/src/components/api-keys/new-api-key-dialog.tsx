@@ -43,9 +43,9 @@ export function NewApiKeyDialog({ tenantId, projectId, agentsOptions }: NewApiKe
       {/* Form Dialog */}
       <Dialog open={isFormOpen} onOpenChange={setIsFormOpen}>
         <Tooltip>
-          <TooltipTrigger asChild>
+          <TooltipTrigger asChild={true}>
             <div>
-              <DialogTrigger asChild>
+              <DialogTrigger asChild={true}>
                 <Button disabled={!hasAgents}>
                   <Plus className="size-4" /> New API key
                 </Button>

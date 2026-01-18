@@ -33,7 +33,7 @@ export function AreaChart<TData>({
   return (
     <ChartContainer className={chartContainerClassName} config={config}>
       <RechartsAreaChart
-        accessibilityLayer
+        accessibilityLayer={true}
         data={data}
         margin={{
           left: 4,

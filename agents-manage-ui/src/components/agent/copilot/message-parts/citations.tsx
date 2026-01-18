@@ -11,7 +11,7 @@ const Citation = ({ artifact }: { artifact: any }) => {
   return (
     <div className="inline-block mr-2 mb-2">
       <Tooltip>
-        <TooltipTrigger asChild>
+        <TooltipTrigger asChild={true}>
           <a
             href={artifactSummary?.url}
             target="_blank"

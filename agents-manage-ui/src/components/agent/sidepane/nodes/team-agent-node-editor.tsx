@@ -109,7 +109,7 @@ export function TeamAgentNodeEditor({
         value={selectedNode.data.name || ''}
         onChange={handleInputChange}
         placeholder="Support agent"
-        disabled
+        disabled={true}
         error={getFieldError('name')}
       />
 
@@ -122,9 +122,9 @@ export function TeamAgentNodeEditor({
         onChange={handleInputChange}
         placeholder="my-external-agent"
         error={getFieldError('id')}
-        disabled
+        disabled={true}
         description="Choose a unique identifier for this agent. Using an existing id will replace that agent."
-        isRequired
+        isRequired={true}
       />
 
       <TextareaField
@@ -136,7 +136,7 @@ export function TeamAgentNodeEditor({
         onChange={handleInputChange}
         placeholder="This agent is responsible for..."
         error={getFieldError('description')}
-        disabled
+        disabled={true}
       />
 
       <div className="space-y-2">

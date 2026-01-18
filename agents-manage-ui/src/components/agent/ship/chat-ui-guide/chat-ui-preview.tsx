@@ -68,7 +68,7 @@ export function ChatUIPreview({
     >
       {component === ChatUIComponent.SIDEBAR_CHAT && (
         <div className="p-4">
-          <Button variant="outline" size="sm" data-inkeep-sidebar-chat-trigger>
+          <Button variant="outline" size="sm" data-inkeep-sidebar-chat-trigger={true}>
             <SidebarIcon className="size-4" />
             Toggle sidebar
           </Button>

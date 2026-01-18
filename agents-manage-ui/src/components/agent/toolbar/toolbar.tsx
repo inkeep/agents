@@ -59,7 +59,7 @@ export function Toolbar({ onSubmit, toggleSidePane, setShowPlayground }: Toolbar
       <ShipModal buttonClassName={commonProps.className} />
       {dirty ? (
         <Tooltip>
-          <TooltipTrigger asChild>
+          <TooltipTrigger asChild={true}>
             {/**
              * Wrap the disabled button in a <div> that can receive hover events since disabled <button> elements
              * don’t trigger pointer events in the browser

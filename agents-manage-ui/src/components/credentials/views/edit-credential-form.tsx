@@ -229,7 +229,7 @@ export function EditCredentialForm({
                 Save
               </Button>
             )}
-            <DialogTrigger asChild>
+            <DialogTrigger asChild={true}>
               <Button type="button" variant="destructive-outline">
                 Delete Credential
               </Button>

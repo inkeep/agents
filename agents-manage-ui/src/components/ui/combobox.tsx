@@ -74,7 +74,7 @@ export function Combobox({
   return (
     <Popover onOpenChange={handleChangeOnOpen} open={isOpen}>
       {TriggerComponent ?? (
-        <PopoverTrigger asChild>
+        <PopoverTrigger asChild={true}>
           <Button
             aria-expanded={isOpen}
             aria-label="Combobox"

@@ -58,7 +58,7 @@ export function ViewExternalAgentDetails({
             <p className="text-sm text-muted-foreground">External agent details</p>
           </div>
         </div>
-        <Button asChild>
+        <Button asChild={true}>
           <Link
             href={`/${tenantId}/projects/${projectId}/external-agents/${externalAgent.id}/edit`}
           >

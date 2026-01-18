@@ -188,7 +188,7 @@ export function CredentialFormInkeepCloud({
             name="name"
             label="Name"
             placeholder="e.g., production-api-key"
-            isRequired
+            isRequired={true}
           />
 
           <div className="space-y-3">
@@ -197,7 +197,7 @@ export function CredentialFormInkeepCloud({
               name="apiKeyToSet"
               label="API key"
               placeholder="e.g., sk-1234567890abcdef1234567890abcdef"
-              isRequired
+              isRequired={true}
             />
             <InfoCard title="How this works">
               <p>

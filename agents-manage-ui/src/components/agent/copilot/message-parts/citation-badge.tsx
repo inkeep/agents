@@ -26,7 +26,7 @@ export const CitationBadge: FC<{
   if (href) {
     return (
       <Tooltip>
-        <TooltipTrigger asChild>
+        <TooltipTrigger asChild={true}>
           <a href={href} target="_blank" rel="noopener noreferrer" className="no-underline">
             {badge}
           </a>
@@ -38,7 +38,7 @@ export const CitationBadge: FC<{
 
   return (
     <Tooltip>
-      <TooltipTrigger asChild>{badge}</TooltipTrigger>
+      <TooltipTrigger asChild={true}>{badge}</TooltipTrigger>
       <TooltipContent className="max-w-xs">{tooltipContent}</TooltipContent>
     </Tooltip>
   );

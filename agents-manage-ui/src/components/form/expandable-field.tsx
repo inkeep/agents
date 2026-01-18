@@ -61,7 +61,7 @@ export function ExpandableField({
         <div className="flex gap-2">
           {actions}
           {!open && (
-            <DialogTrigger asChild>
+            <DialogTrigger asChild={true}>
               <Button variant="link" size="sm" type="button" className="text-xs rounded-sm h-6">
                 <Maximize className="size-3.5" />
                 Expand

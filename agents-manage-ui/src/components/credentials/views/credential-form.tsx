@@ -269,7 +269,7 @@ export function CredentialForm({ onCreateCredential, tenantId, projectId }: Cred
             name="name"
             label="Name"
             placeholder="e.g., production-api-key"
-            isRequired
+            isRequired={true}
           />
 
           <div className="space-y-3">
@@ -278,7 +278,7 @@ export function CredentialForm({ onCreateCredential, tenantId, projectId }: Cred
               name="apiKeyToSet"
               label="API key"
               placeholder="e.g., sk-1234567890abcdef1234567890abcdef"
-              isRequired
+              isRequired={true}
             />
             <InfoCard title="How this works">
               <p>
@@ -324,7 +324,7 @@ export function CredentialForm({ onCreateCredential, tenantId, projectId }: Cred
           {/* Credential Store Selection Section */}
           <div className="space-y-3">
             <GenericSelect
-              isRequired
+              isRequired={true}
               control={form.control}
               name="credentialStoreId"
               label="Credential store"

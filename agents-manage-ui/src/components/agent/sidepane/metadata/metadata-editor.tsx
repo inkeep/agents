@@ -108,7 +108,7 @@ function MetadataEditor() {
           <div className="text-sm leading-none font-medium flex items-center gap-1">
             Chat URL
             <Tooltip>
-              <TooltipTrigger asChild>
+              <TooltipTrigger asChild={true}>
                 <Info className="w-3 h-3 text-muted-foreground" />
               </TooltipTrigger>
               <TooltipContent>
@@ -131,7 +131,7 @@ function MetadataEditor() {
         value={name}
         onChange={(e) => updateMetadata('name', e.target.value)}
         placeholder="My agent"
-        isRequired
+        isRequired={true}
       />
       <InputField
         id="id"
@@ -146,7 +146,7 @@ function MetadataEditor() {
             ? 'Choose a unique identifier for this agent. Using an existing id will replace that agent.'
             : undefined
         }
-        isRequired
+        isRequired={true}
       />
       <TextareaField
         id="description"

@@ -202,7 +202,7 @@ export function ComponentRenderGenerator({
           {hasRender && (
             <>
               <Popover open={isPopoverOpen} onOpenChange={setIsPopoverOpen}>
-                <PopoverTrigger asChild>
+                <PopoverTrigger asChild={true}>
                   <Button
                     variant="outline"
                     size="sm"
@@ -284,7 +284,7 @@ export function ComponentRenderGenerator({
       </div>
       {isGenerating && streamingCode && (
         <Streamdown
-          isAnimating
+          isAnimating={true}
           className="[&_[data-code-block-header=true]]:hidden [&_pre]:bg-muted/40!"
         >{`\`\`\`jsx\n${streamingCode}\`\`\``}</Streamdown>
       )}

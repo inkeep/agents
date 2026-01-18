@@ -25,7 +25,7 @@ async function ExternalAgentsPage({
           title="External agents"
           description={externalAgentsDescription}
           action={
-            <Button asChild>
+            <Button asChild={true}>
               <Link
                 href={`/${tenantId}/projects/${projectId}/external-agents/new`}
                 className="flex items-center gap-2"

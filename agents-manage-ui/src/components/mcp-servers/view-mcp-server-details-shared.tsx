@@ -25,7 +25,7 @@ export function ActiveToolBadge({
   if (!isAvailable) {
     return (
       <Tooltip>
-        <TooltipTrigger asChild>{badge}</TooltipTrigger>
+        <TooltipTrigger asChild={true}>{badge}</TooltipTrigger>
         <TooltipContent>
           <p>This tool is not available in the MCP server.</p>
         </TooltipContent>

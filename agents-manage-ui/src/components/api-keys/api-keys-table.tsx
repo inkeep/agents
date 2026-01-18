@@ -22,7 +22,7 @@ export function ApiKeysTable({ apiKeys, agentLookup }: ApiKeysTableProps) {
     <div className="rounded-lg border">
       <Table>
         <TableHeader>
-          <TableRow noHover>
+          <TableRow noHover={true}>
             <TableHead>Name</TableHead>
             <TableHead>Key</TableHead>
             <TableHead>Last Used</TableHead>
@@ -33,14 +33,14 @@ export function ApiKeysTable({ apiKeys, agentLookup }: ApiKeysTableProps) {
         </TableHeader>
         <TableBody>
           {apiKeys.length === 0 ? (
-            <TableRow noHover>
+            <TableRow noHover={true}>
               <TableCell colSpan={5} className="text-center text-muted-foreground">
                 No API keys yet.
               </TableCell>
             </TableRow>
           ) : (
             apiKeys.map((apiKey) => (
-              <TableRow key={apiKey.id} noHover>
+              <TableRow key={apiKey.id} noHover={true}>
                 <TableCell>
                   <div className="flex flex-col">
                     <span className="font-medium text-foreground">{apiKey.name || 'No name'}</span>

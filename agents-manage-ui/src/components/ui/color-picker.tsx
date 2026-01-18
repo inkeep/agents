@@ -26,7 +26,7 @@ export function ColorPickerInput({ placeholder, color, setColor }: ColorPickerIn
       />
       <div className="z-10 absolute right-3">
         <Popover>
-          <PopoverTrigger asChild>
+          <PopoverTrigger asChild={true}>
             <Button
               aria-label="color picker"
               className="flex flex-row gap-2 rounded w-6 h-6"

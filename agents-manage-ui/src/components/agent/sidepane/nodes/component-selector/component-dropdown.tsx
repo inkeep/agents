@@ -43,7 +43,7 @@ export function ComponentDropdown<T extends ComponentItem>({
   return (
     <div className="flex w-full">
       <Popover open={open} onOpenChange={setOpen}>
-        <PopoverTrigger asChild>
+        <PopoverTrigger asChild={true}>
           <Button
             variant="outline"
             role="combobox"

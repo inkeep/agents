@@ -168,8 +168,8 @@ export function InviteMemberDialog({ open, onOpenChange }: InviteMemberDialogPro
                   value={emails}
                   onChange={(e) => setEmails(e.target.value)}
                   disabled={isSubmitting}
-                  autoFocus
-                  required
+                  autoFocus={true}
+                  required={true}
                   rows={3}
                   placeholder="user@example.com, another@example.com, ..."
                   className="resize-none"
@@ -231,7 +231,7 @@ export function InviteMemberDialog({ open, onOpenChange }: InviteMemberDialogPro
                         <div className="flex gap-2 mt-2">
                           <Input
                             value={result.link}
-                            readOnly
+                            readOnly={true}
                             className="font-mono text-xs h-8"
                             onClick={(e) => e.currentTarget.select()}
                           />

@@ -67,7 +67,7 @@ export default function CopilotStandaloneInput() {
                 <Textarea
                   placeholder="Ask Agent Builder to build..."
                   className="w-full border-none focus-visible:ring-0 focus-visible:border-none resize-none shadow-none p-3 max-h-[200px] min-h-[54px] rounded-b-none rounded-t-xl"
-                  autoFocus
+                  autoFocus={true}
                   {...field}
                 />
               </FormControl>

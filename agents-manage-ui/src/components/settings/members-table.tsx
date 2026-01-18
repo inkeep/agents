@@ -112,14 +112,14 @@ export function MembersTable({
         </div>
         <Table>
           <TableHeader>
-            <TableRow noHover>
+            <TableRow noHover={true}>
               <TableHead>Name</TableHead>
               <TableHead>Role</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
             {members.length === 0 ? (
-              <TableRow noHover>
+              <TableRow noHover={true}>
                 <TableCell colSpan={2} className="text-center text-muted-foreground">
                   No members yet.
                 </TableCell>
@@ -131,7 +131,7 @@ export function MembersTable({
                 const isEditable = canEditMember(member);
                 const isUpdating = updatingMemberId === id;
                 return (
-                  <TableRow key={id} noHover>
+                  <TableRow key={id} noHover={true}>
                     <TableCell>
                       <div className="flex flex-col">
                         <span className="font-medium text-foreground">

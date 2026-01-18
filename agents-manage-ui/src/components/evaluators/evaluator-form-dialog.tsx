@@ -182,7 +182,7 @@ export function EvaluatorFormDialog({
 
   return (
     <Dialog open={isOpen} onOpenChange={setIsOpen}>
-      {trigger && <DialogTrigger asChild>{trigger}</DialogTrigger>}
+      {trigger && <DialogTrigger asChild={true}>{trigger}</DialogTrigger>}
       <DialogContent className="sm:max-w-3xl max-h-[95vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>{evaluatorId ? 'Edit Evaluator' : 'Create Evaluator'}</DialogTitle>
@@ -199,7 +199,7 @@ export function EvaluatorFormDialog({
               name="name"
               label="Name"
               placeholder="e.g., Quality Check Evaluator"
-              isRequired
+              isRequired={true}
             />
 
             <GenericTextarea
@@ -214,7 +214,7 @@ export function EvaluatorFormDialog({
               name="prompt"
               label="Prompt"
               description="Instructions for the evaluator LLM on how to evaluate conversations"
-              isRequired
+              isRequired={true}
             >
               {(field) => (
                 <Textarea
@@ -231,8 +231,8 @@ export function EvaluatorFormDialog({
               name="schema"
               label="Output Schema"
               description="JSON Schema defining the structure of the evaluation output. All properties are required for structured outputs."
-              isRequired
-              allRequired
+              isRequired={true}
+              allRequired={true}
               customTemplate={evaluatorSchemaTemplate}
             />
 
@@ -242,7 +242,7 @@ export function EvaluatorFormDialog({
                 name="model.model"
                 label="Model"
                 description="AI model to use for the evaluator"
-                isRequired
+                isRequired={true}
               >
                 {(field) => (
                   <ModelSelector

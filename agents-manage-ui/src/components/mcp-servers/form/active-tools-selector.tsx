@@ -268,7 +268,7 @@ export function ActiveToolsSelector<
                               </div>
 
                               <Tooltip delayDuration={800}>
-                                <TooltipTrigger asChild>
+                                <TooltipTrigger asChild={true}>
                                   <p className="text-sm text-muted-foreground line-clamp-1">
                                     {override?.description || tool.description}
                                   </p>

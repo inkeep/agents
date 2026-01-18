@@ -121,7 +121,7 @@ export function FunctionToolNodeEditor({ selectedNode }: FunctionToolNodeEditorP
         onChange={handleNameChange}
         placeholder="Enter function tool name..."
         error={getFieldError('name')}
-        isRequired
+        isRequired={true}
       />
       <TextareaField
         ref={(el) => setFieldRef('description', el)}
@@ -142,7 +142,7 @@ export function FunctionToolNodeEditor({ selectedNode }: FunctionToolNodeEditorP
           onChange={handleCodeChange}
           placeholder="Enter function code here..."
           error={getFieldError('code')}
-          isRequired
+          isRequired={true}
         />
         <p className="text-xs text-muted-foreground">
           JavaScript function code to be executed by the tool. The function will receive arguments

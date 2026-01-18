@@ -24,7 +24,7 @@ async function MCPServersPage({
           title="MCP servers"
           description={mcpServerDescription}
           action={
-            <Button asChild>
+            <Button asChild={true}>
               <Link
                 href={`/${tenantId}/projects/${projectId}/mcp-servers/new`}
                 className="flex items-center gap-2"

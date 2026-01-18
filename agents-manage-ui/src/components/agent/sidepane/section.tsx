@@ -7,7 +7,7 @@ function SectionTitle({ title, tooltip }: { title: string; tooltip?: React.React
       {title}
       {tooltip && (
         <Tooltip>
-          <TooltipTrigger asChild>
+          <TooltipTrigger asChild={true}>
             <Info className="w-3 h-3 text-muted-foreground ml-1" />
           </TooltipTrigger>
           <TooltipContent>{tooltip}</TooltipContent>

@@ -253,7 +253,7 @@ export function ErrorContent({
           </Button>
         )}
         {link && linkText && (
-          <Button asChild variant="outline">
+          <Button asChild={true} variant="outline">
             <Link href={link} className="flex items-center gap-2">
               <ArrowLeft className="w-4 h-4" />
               {linkText}

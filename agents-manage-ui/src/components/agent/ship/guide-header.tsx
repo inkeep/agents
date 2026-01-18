@@ -20,7 +20,7 @@ interface DocsLinkProps {
 
 export function DocsLink({ href }: DocsLinkProps) {
   return (
-    <Button asChild variant="outline" size="sm">
+    <Button asChild={true} variant="outline" size="sm">
       <Link href={href} target="_blank" rel="noreferrer noopener">
         <BookOpen className="size-4" />
         View Docs

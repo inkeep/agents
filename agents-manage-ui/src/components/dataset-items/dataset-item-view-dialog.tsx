@@ -174,8 +174,8 @@ export function DatasetItemViewDialog({ item, isOpen, onOpenChange }: DatasetIte
                 <p className="text-sm text-muted-foreground">No simulation agent configured</p>
               </div>
             ) : (
-              <Collapsible defaultOpen className="border rounded-md bg-background">
-                <CollapsibleTrigger asChild>
+              <Collapsible defaultOpen={true} className="border rounded-md bg-background">
+                <CollapsibleTrigger asChild={true}>
                   <Button
                     type="button"
                     variant="ghost"

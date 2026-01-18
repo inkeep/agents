@@ -18,7 +18,7 @@ export function CollapsibleSettings({
       defaultOpen={defaultOpen}
       className="border rounded-md bg-muted/30 dark:bg-muted/20"
     >
-      <CollapsibleTrigger asChild>
+      <CollapsibleTrigger asChild={true}>
         <Button
           variant="ghost"
           size="sm"

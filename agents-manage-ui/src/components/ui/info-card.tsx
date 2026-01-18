@@ -41,7 +41,7 @@ export function CollapsibleInfoCard({
       defaultOpen={defaultOpen}
       className="text-xs text-gray-800 dark:text-muted-foreground bg-gray-100/80 dark:bg-sidebar rounded-md"
     >
-      <CollapsibleTrigger asChild>
+      <CollapsibleTrigger asChild={true}>
         <Button
           variant="ghost"
           className="text-xs flex items-center justify-between h-auto gap-2 py-3 px-3 w-full font-medium text-foreground font-mono uppercase group/info-card"

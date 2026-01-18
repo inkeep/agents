@@ -82,7 +82,7 @@ const Property: FC<PropertyProps> = ({ fieldId, depth = 0, prefix }) => {
       {prefix ||
         (hasInPreview && (
           <Tooltip>
-            <TooltipTrigger asChild>
+            <TooltipTrigger asChild={true}>
               {/* without the wrapping div the checkbox doesn't get the data-state="checked" attribute and the styles are not applied */}
               <div>
                 <Checkbox
@@ -127,7 +127,7 @@ const Property: FC<PropertyProps> = ({ fieldId, depth = 0, prefix }) => {
         <>
           {!allRequired && (
             <Tooltip>
-              <TooltipTrigger asChild>
+              <TooltipTrigger asChild={true}>
                 {/* without the wrapping div the checkbox doesn't get the data-state="checked" attribute and the styles are not applied */}
                 <div>
                   <Checkbox
@@ -142,7 +142,7 @@ const Property: FC<PropertyProps> = ({ fieldId, depth = 0, prefix }) => {
             </Tooltip>
           )}
           <Tooltip>
-            <TooltipTrigger asChild>
+            <TooltipTrigger asChild={true}>
               <Button
                 type="button"
                 size="icon-sm"
@@ -282,7 +282,7 @@ export const JsonSchemaBuilder: FC<{
     <>
       <Table>
         <TableHeader>
-          <TableRow noHover className={cn(hasError && '[&>th]:text-destructive')}>
+          <TableRow noHover={true} className={cn(hasError && '[&>th]:text-destructive')}>
             {hasInPreview && (
               <TableHead className="w-px p-0">
                 <div className="flex items-center gap-1">

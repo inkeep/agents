@@ -43,7 +43,7 @@ function EmptyState({
         </div>
 
         {link && (
-          <Button asChild>
+          <Button asChild={true}>
             <Link href={link}>{linkText}</Link>
           </Button>
         )}

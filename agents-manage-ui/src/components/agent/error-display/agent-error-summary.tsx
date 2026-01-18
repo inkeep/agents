@@ -40,7 +40,7 @@ function ErrorGroup({ title, errors, icon, onNavigate, getItemLabel }: ErrorGrou
 
   return (
     <Collapsible open={isOpen} onOpenChange={setIsOpen}>
-      <CollapsibleTrigger asChild>
+      <CollapsibleTrigger asChild={true}>
         <Button variant="ghost" className="w-full justify-start p-1.5 h-auto">
           <div className="flex items-center gap-1.5 text-red-600 dark:text-red-400 text-xs">
             {icon}

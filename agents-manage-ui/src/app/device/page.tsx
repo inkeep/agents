@@ -199,12 +199,12 @@ function DeviceVerificationForm() {
                   placeholder="XXXX-XXXX"
                   value={formatUserCode(userCode)}
                   onChange={(e) => setUserCode(e.target.value.replace(/[^A-Z0-9-]/gi, ''))}
-                  required
+                  required={true}
                   disabled={state === 'validating'}
                   maxLength={9}
                   className="text-center text-2xl font-mono tracking-widest"
                   autoComplete="off"
-                  autoFocus
+                  autoFocus={true}
                 />
               </div>
 

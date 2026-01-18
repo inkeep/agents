@@ -123,12 +123,17 @@ export function SubAgentNode(props: NodeProps & { data: AgentNodeData }) {
             <ListSection title="Artifacts" items={artifactComponentNames} Icon={Library} />
           )}
         </BaseNodeContent>
-        <Handle id={agentNodeTargetHandleId} type="source" position={Position.Top} isConnectable />
+        <Handle
+          id={agentNodeTargetHandleId}
+          type="source"
+          position={Position.Top}
+          isConnectable={true}
+        />
         <Handle
           id={agentNodeSourceHandleId}
           type="source"
           position={Position.Bottom}
-          isConnectable
+          isConnectable={true}
         />
       </BaseNode>
     </div>

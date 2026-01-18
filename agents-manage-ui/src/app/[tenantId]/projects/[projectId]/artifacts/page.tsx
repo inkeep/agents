@@ -24,7 +24,7 @@ async function ArtifactComponentsPage({
           title="Artifacts"
           description={artifactDescription}
           action={
-            <Button asChild>
+            <Button asChild={true}>
               <Link href={`/${tenantId}/projects/${projectId}/artifacts/new`}>
                 <Plus className="size-4" /> New artifact
               </Link>

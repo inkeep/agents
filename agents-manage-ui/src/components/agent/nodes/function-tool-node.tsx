@@ -48,7 +48,12 @@ export function FunctionToolNode(props: NodeProps & { data: FunctionToolNodeData
             <ErrorIndicator errors={nodeErrors} className="absolute -top-2 -right-2 w-6 h-6" />
           )}
         </BaseNodeHeader>
-        <Handle id={functionToolNodeHandleId} type="target" position={Position.Top} isConnectable />
+        <Handle
+          id={functionToolNodeHandleId}
+          type="target"
+          position={Position.Top}
+          isConnectable={true}
+        />
       </BaseNode>
     </div>
   );

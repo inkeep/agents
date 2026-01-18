@@ -101,7 +101,7 @@ export function ApiKeyForm({
           name="name"
           label="Name"
           placeholder="Enter a name"
-          isRequired
+          isRequired={true}
         />
         <GenericSelect
           control={form.control}
@@ -110,7 +110,7 @@ export function ApiKeyForm({
           placeholder="Select expiration date"
           options={EXPIRATION_DATE_OPTIONS}
           selectTriggerClassName="w-full"
-          isRequired
+          isRequired={true}
         />
         <GenericComboBox
           control={form.control}
@@ -119,7 +119,7 @@ export function ApiKeyForm({
           options={agentsOptions}
           placeholder="Select an agent"
           searchPlaceholder="Search agent..."
-          isRequired
+          isRequired={true}
         />
         <div className="flex justify-end">
           <Button type="submit" disabled={isSubmitting}>

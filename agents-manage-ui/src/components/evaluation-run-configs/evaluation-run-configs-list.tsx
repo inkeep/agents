@@ -84,7 +84,7 @@ export function EvaluationRunConfigsList({
       <div className="rounded-lg border">
         <Table>
           <TableHeader>
-            <TableRow noHover>
+            <TableRow noHover={true}>
               <TableHead>Name</TableHead>
               <TableHead>Description</TableHead>
               <TableHead>Status</TableHead>
@@ -95,7 +95,7 @@ export function EvaluationRunConfigsList({
           </TableHeader>
           <TableBody>
             {runConfigs.length === 0 ? (
-              <TableRow noHover>
+              <TableRow noHover={true}>
                 <TableCell colSpan={6} className="py-12">
                   <div className="flex flex-col items-center gap-4">
                     <span className="text-muted-foreground">No continuous tests yet</span>
@@ -142,7 +142,7 @@ export function EvaluationRunConfigsList({
                   </TableCell>
                   <TableCell onClick={(e) => e.stopPropagation()}>
                     <DropdownMenu>
-                      <DropdownMenuTrigger asChild>
+                      <DropdownMenuTrigger asChild={true}>
                         <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
                           <MoreVertical className="h-4 w-4" />
                         </Button>

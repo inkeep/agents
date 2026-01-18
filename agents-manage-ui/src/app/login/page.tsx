@@ -166,7 +166,7 @@ function LoginForm() {
                 placeholder="you@example.com"
                 value={formData.email}
                 onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                required
+                required={true}
                 disabled={isLoading}
               />
             </div>
@@ -179,7 +179,7 @@ function LoginForm() {
                 placeholder="••••••••"
                 value={formData.password}
                 onChange={(e) => setFormData({ ...formData, password: e.target.value })}
-                required
+                required={true}
                 disabled={isLoading}
                 minLength={8}
               />

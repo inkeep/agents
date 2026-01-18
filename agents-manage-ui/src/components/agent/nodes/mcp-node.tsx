@@ -117,7 +117,7 @@ export function MCPNode(props: NodeProps & { data: MCPNodeData }) {
           <TruncateBadge key={label}>{label}</TruncateBadge>
         ))}
       </BaseNodeContent>
-      <Handle id={mcpNodeHandleId} type="target" position={Position.Top} isConnectable />
+      <Handle id={mcpNodeHandleId} type="target" position={Position.Top} isConnectable={true} />
     </BaseNode>
   );
 }

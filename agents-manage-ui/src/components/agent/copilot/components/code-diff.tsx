@@ -171,7 +171,13 @@ export const CodeDiff: FC<CodeDiffProps> = ({
 
   if (!hasOriginalValue) {
     return (
-      <MonacoEditor value={newValue} uri={modifiedUri} readOnly className={className} {...props} />
+      <MonacoEditor
+        value={newValue}
+        uri={modifiedUri}
+        readOnly={true}
+        className={className}
+        {...props}
+      />
     );
   }
 

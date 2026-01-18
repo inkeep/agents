@@ -89,7 +89,7 @@ export function DatasetForm({ tenantId, projectId, id, initialData }: DatasetFor
               {id ? 'Update' : 'Create'} Test Suite
             </Button>
             {id && (
-              <DialogTrigger asChild>
+              <DialogTrigger asChild={true}>
                 <Button type="button" variant="destructive-outline">
                   Delete Test Suite
                 </Button>

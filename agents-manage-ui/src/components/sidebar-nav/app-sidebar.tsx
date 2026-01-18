@@ -181,7 +181,7 @@ export const AppSidebar: FC<AppSidebarProps> = ({ open, setOpen, ...props }) => 
       {...props}
     >
       <SidebarHeader>
-        <SidebarMenuButton asChild>
+        <SidebarMenuButton asChild={true}>
           <Link href={`/${tenantId}/projects`}>
             <InkeepLogo
               role="img"

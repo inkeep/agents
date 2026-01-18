@@ -62,7 +62,7 @@ export function DatasetRunsList({
       <div className="rounded-lg border">
         <Table>
           <TableHeader>
-            <TableRow noHover>
+            <TableRow noHover={true}>
               <TableHead>Name</TableHead>
               <TableHead>Created</TableHead>
               <TableHead className="w-12" />
@@ -70,7 +70,7 @@ export function DatasetRunsList({
           </TableHeader>
           <TableBody>
             {[1, 2, 3].map((i) => (
-              <TableRow key={i} noHover>
+              <TableRow key={i} noHover={true}>
                 <TableCell>
                   <Skeleton className="h-4 w-32" />
                 </TableCell>
@@ -128,7 +128,7 @@ export function DatasetRunsList({
     <div className="rounded-lg border">
       <Table>
         <TableHeader>
-          <TableRow noHover>
+          <TableRow noHover={true}>
             <TableHead>Name</TableHead>
             <TableHead>Created</TableHead>
             <TableHead className="w-12" />

@@ -52,7 +52,7 @@ export function ExternalAgentNode(props: NodeProps & { data: ExternalAgentNodeDa
           id={externalAgentNodeTargetHandleId}
           type="target"
           position={Position.Top}
-          isConnectable
+          isConnectable={true}
         />
       </BaseNode>
     </div>

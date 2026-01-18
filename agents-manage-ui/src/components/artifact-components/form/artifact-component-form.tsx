@@ -105,7 +105,7 @@ export function ArtifactComponentForm({
             name="name"
             label="Name"
             placeholder="Document Artifact"
-            isRequired
+            isRequired={true}
           />
           <GenericInput
             control={form.control}
@@ -113,7 +113,7 @@ export function ArtifactComponentForm({
             label="Id"
             placeholder="my-artifact"
             disabled={!!id}
-            isRequired
+            isRequired={true}
             description={
               !id &&
               'Choose a unique identifier for this artifact. Using an existing id will replace that artifact.'
@@ -133,7 +133,7 @@ export function ArtifactComponentForm({
             placeholder="Enter a valid JSON Schema with inPreview flags, or leave empty to save entire tool result..."
             description="Optional: Define specific fields with inPreview flags, or leave empty to capture the complete tool response."
             uri="custom-json-schema-artifact-component.json"
-            hasInPreview
+            hasInPreview={true}
           />
 
           {id && (
@@ -153,7 +153,7 @@ export function ArtifactComponentForm({
               Save
             </Button>
             {id && (
-              <DialogTrigger asChild>
+              <DialogTrigger asChild={true}>
                 <Button type="button" variant="destructive-outline">
                   Delete Artifact
                 </Button>

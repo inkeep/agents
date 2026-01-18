@@ -59,6 +59,7 @@
         "noNonNullAssertion": "warn",
         "noUselessElse": "error",
         "useSelfClosingElements": "error",
+        "noImplicitBoolean": "error",
         "useImportType": "error"
       },
       "performance": {

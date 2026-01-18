@@ -47,7 +47,7 @@ export function ConversationListItem({ conversation, projectId }: ConversationLi
                       <>
                         <span className="text-gray-400 dark:text-white/40">•</span>
                         <Tooltip>
-                          <TooltipTrigger asChild>
+                          <TooltipTrigger asChild={true}>
                             <span className="text-gray-400 dark:text-white/40 cursor-help">
                               {formatDateAgo(isoString)}
                             </span>
@@ -73,7 +73,7 @@ export function ConversationListItem({ conversation, projectId }: ConversationLi
           <div className="flex items-center gap-2">
             {toolsUsed.length > 0 && (
               <Tooltip>
-                <TooltipTrigger asChild>
+                <TooltipTrigger asChild={true}>
                   <Badge variant="primary" className="text-xs">
                     {toolsUsed.length} tool{toolsUsed.length > 1 ? 's' : ''} used
                   </Badge>

@@ -24,7 +24,7 @@ export function ProjectItemMenu({ projectName, projectData, tenantId }: ProjectI
   return (
     <>
       <DropdownMenu>
-        <DropdownMenuTrigger asChild>
+        <DropdownMenuTrigger asChild={true}>
           <Button
             variant="ghost"
             size="icon-sm"

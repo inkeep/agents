@@ -52,7 +52,7 @@ export function TeamAgentNode(props: NodeProps & { data: TeamAgentNodeData }) {
           id={teamAgentNodeTargetHandleId}
           type="target"
           position={Position.Top}
-          isConnectable
+          isConnectable={true}
         />
       </BaseNode>
     </div>
