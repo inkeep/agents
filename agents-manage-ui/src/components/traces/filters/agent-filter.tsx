@@ -22,8 +22,8 @@ export const AgentFilter = ({ onSelect, selectedValue }: AgentFilterProps) => {
   useEffect(() => {
     let cancelled = false;
     const fetchAgents = async () => {
+      setLoading(true);
       try {
-        setLoading(true);
         const response = await getAllAgentsAction(tenantId, projectId);
         if (!cancelled && response.success) {
           setAgentOptions(
@@ -51,16 +51,14 @@ export const AgentFilter = ({ onSelect, selectedValue }: AgentFilterProps) => {
   return (
     <Combobox
       defaultValue={selectedValue}
-      notFoundMessage={'No agents found.'}
-      onSelect={(value) => {
-        onSelect(value);
-      }}
+      notFoundMessage="No agents found."
+      onSelect={onSelect}
       options={agentOptions}
       TriggerComponent={
         <FilterTriggerComponent
           disabled={loading}
           filterLabel={selectedValue ? 'Agent' : 'All agents'}
-          isRemovable={true}
+          isRemovable
           onDeleteFilter={() => {
             onSelect(undefined);
           }}

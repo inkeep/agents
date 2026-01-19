@@ -65,7 +65,9 @@ export function DataComponentForm({
   });
 
   const onSubmit = form.handleSubmit(async (data) => {
-    try {
+    // Workaround for a React Compiler limitation.
+    // Todo: Support value blocks (conditional, logical, optional chaining, etc) within a try/catch statement
+    async function doRequest() {
       const payload = { ...data } as DataComponent;
       if (id) {
         const res = await updateDataComponentAction(tenantId, projectId, payload);
@@ -83,6 +85,10 @@ export function DataComponentForm({
         toast.success('Component created');
         router.push(`/${tenantId}/projects/${projectId}/components`);
       }
+    }
+
+    try {
+      await doRequest();
     } catch (error) {
       console.error('Error submitting component:', error);
       const errorMessage = error instanceof Error ? error.message : 'An unexpected error occurred';
