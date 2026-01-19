@@ -1,3 +1,4 @@
+// biome-ignore-all lint/security/noGlobalEval: allow in test
 /**
  * Unit tests for data component generator
  */
@@ -54,7 +55,7 @@ describe('Data Component Generator', () => {
 
   describe('generateDataComponentImports', () => {
     it('should generate correct imports with schema', () => {
-      const imports = generateDataComponentImports('task-list', testComponentData);
+      const imports = generateDataComponentImports(testComponentData);
 
       expect(imports).toHaveLength(2);
       expect(imports[0]).toBe("import { dataComponent } from '@inkeep/agents-sdk';");
@@ -63,14 +64,14 @@ describe('Data Component Generator', () => {
 
     it('should generate only dataComponent import without schema', () => {
       const dataWithoutSchema = { name: 'Simple', description: 'Simple component' };
-      const imports = generateDataComponentImports('simple', dataWithoutSchema);
+      const imports = generateDataComponentImports(dataWithoutSchema);
 
       expect(imports).toHaveLength(1);
       expect(imports[0]).toBe("import { dataComponent } from '@inkeep/agents-sdk';");
     });
 
     it('should handle double quotes style', () => {
-      const imports = generateDataComponentImports('task-list', testComponentData, {
+      const imports = generateDataComponentImports(testComponentData, {
         quotes: 'double',
         semicolons: true,
         indentation: '  ',
@@ -81,7 +82,7 @@ describe('Data Component Generator', () => {
     });
 
     it('should handle no semicolons style', () => {
-      const imports = generateDataComponentImports('task-list', testComponentData, {
+      const imports = generateDataComponentImports(testComponentData, {
         quotes: 'single',
         semicolons: false,
         indentation: '  ',
@@ -190,7 +191,7 @@ describe('Data Component Generator', () => {
 
   describe('compilation tests', () => {
     it('should generate code that compiles and creates a working data component', async () => {
-      const file = generateDataComponentFile('task-list', testComponentData);
+      generateDataComponentFile('task-list', testComponentData);
 
       // Extract just the component definition (remove imports and export)
       const definition = generateDataComponentDefinition('task-list', testComponentData);
@@ -230,7 +231,7 @@ describe('Data Component Generator', () => {
       `;
 
       // Use eval to test the code compiles and runs
-      let result;
+      let result: any;
       expect(() => {
         result = eval(`(() => { ${moduleCode} })()`);
       }).not.toThrow();

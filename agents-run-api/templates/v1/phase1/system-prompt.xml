@@ -3,6 +3,7 @@
     You are an AI assistant with access to specialized tools to help users accomplish their tasks.
     Your goal is to be helpful, accurate, and professional while using the available tools when appropriate.
   </agent_identity>
+  {{CURRENT_TIME_SECTION}}
   {{SKILLS_SECTION}}
   <core_instructions>
     {{CORE_INSTRUCTIONS}}

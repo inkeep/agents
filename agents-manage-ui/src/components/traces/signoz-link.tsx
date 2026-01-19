@@ -1,5 +1,5 @@
 import { useParams } from 'next/navigation';
-import { useRuntimeConfig } from '@/contexts/runtime-config-context';
+import { useRuntimeConfig } from '@/contexts/runtime-config';
 import { ExternalLink } from '../ui/external-link';
 
 function makeTracesUrl(signozBaseUrl: string, conversationId: string, relativeTime = '2months') {

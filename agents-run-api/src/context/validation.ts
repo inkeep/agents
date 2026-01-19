@@ -374,7 +374,7 @@ export async function validateHeaders({
 export async function contextValidationMiddleware(c: Context, next: Next) {
   try {
     const executionContext = c.get('executionContext');
-    let { tenantId, projectId, agentId, ref } = executionContext;
+    let { tenantId, projectId, agentId } = executionContext;
     if (!tenantId || !projectId || !agentId) {
       tenantId = c.req.param('tenantId');
       projectId = c.req.param('projectId');

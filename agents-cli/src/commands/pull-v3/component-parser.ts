@@ -8,7 +8,6 @@
 
 import { existsSync, readdirSync, readFileSync, statSync } from 'node:fs';
 import { extname, join, relative } from 'node:path';
-import chalk from 'chalk';
 import { type CallExpression, Node, type ObjectLiteralExpression, Project } from 'ts-morph';
 import { ComponentRegistry, type ComponentType } from './utils/component-registry';
 
@@ -485,9 +484,6 @@ export function buildComponentRegistryFromParsing(
     }
     stats.byType[component.type] = (stats.byType[component.type] || 0) + 1;
   }
-
-  const total = stats.exported + stats.inline;
-
   return registry;
 }
 

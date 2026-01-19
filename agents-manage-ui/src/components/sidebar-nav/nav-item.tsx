@@ -1,14 +1,15 @@
 'use client';
 
-import type { LucideIcon } from 'lucide-react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
+import type { FC } from 'react';
 import { SidebarMenuButton, SidebarMenuItem } from '@/components/ui/sidebar';
+import type { IconComponentProps } from '@/components/ui/svg-icon';
 
 export interface NavItemProps {
   title: string;
   url: string;
-  icon?: LucideIcon;
+  icon?: FC<IconComponentProps>;
   isExternal?: boolean;
 }
 

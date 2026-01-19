@@ -253,6 +253,7 @@ app.openapi(
         projectId,
         id: validatedBody.id || generateId(),
         name: validatedBody.name,
+        description: validatedBody.description,
         defaultSubAgentId: validatedBody.defaultSubAgentId,
         contextConfigId: validatedBody.contextConfigId ?? undefined,
       });
@@ -311,6 +312,8 @@ app.openapi(
     const updatedAgent = await updateAgent(db)({
       scopes: { tenantId, projectId, agentId: id },
       data: {
+        name: validatedBody.name,
+        description: validatedBody.description,
         defaultSubAgentId: validatedBody.defaultSubAgentId,
         contextConfigId: validatedBody.contextConfigId ?? undefined,
       },

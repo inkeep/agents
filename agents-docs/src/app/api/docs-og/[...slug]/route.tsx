@@ -1,10 +1,15 @@
 import { readFileSync } from 'node:fs';
 import type { NextRequest } from 'next/server';
 import { source } from '@/lib/source';
+import { Logo } from './logo';
 import { generateOGImage } from './og';
 
-const font = readFileSync('./src/app/api/docs-og/[...slug]/Inter-Regular.ttf');
-const fontSemiBold = readFileSync('./src/app/api/docs-og/[...slug]/Inter-SemiBold.ttf');
+const font = readFileSync(
+  './src/app/api/docs-og/[...slug]/Neue_Haas_Grotesk_Display_Pro_45_Light.otf'
+);
+const fontMono = readFileSync('./src/app/api/docs-og/[...slug]/JetBrainsMono-Medium.ttf');
+const backgroundImage = readFileSync('./src/app/api/docs-og/[...slug]/og-background.png');
+const backgroundImageDataUrl = `data:image/png;base64,${backgroundImage.toString('base64')}`;
 
 function getSubheading(path: string) {
   const parts = path.split('/');
@@ -27,20 +32,20 @@ export const GET = async (_req: NextRequest, ctx: RouteContext<'/api/docs-og/[..
     title: page.data.title,
     description: page.data.description,
     site: subHeading || page.data.sidebarTitle || 'Documentation',
-    primaryColor: '#08C9F7',
-    primaryTextColor: '#08C9F7',
-    // logo: Logo(),
+    primaryTextColor: '#ffffff',
+    backgroundImageUrl: backgroundImageDataUrl,
+    logo: Logo(),
     fonts: [
       {
-        name: 'Inter',
+        name: 'Neue Haas Grotesk Display Pro 45 Light',
         data: font,
         weight: 400,
         style: 'normal',
       },
       {
-        name: 'Inter',
-        data: fontSemiBold,
-        weight: 600,
+        name: 'JetBrains Mono',
+        data: fontMono,
+        weight: 500,
         style: 'normal',
       },
     ],

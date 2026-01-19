@@ -1,5 +1,4 @@
 import { createApiError } from '@inkeep/agents-core';
-import type { createAuth } from '@inkeep/agents-core/auth';
 import { createMiddleware } from 'hono/factory';
 import { HTTPException } from 'hono/http-exception';
 import { env } from '../env';
@@ -7,16 +6,6 @@ import type { BaseAppVariables } from '../types/app';
 
 type Permission = {
   [resource: string]: string | string[];
-};
-
-type MinimalAuthVariables = {
-  Variables: {
-    auth: ReturnType<typeof createAuth> | null;
-    userId: string;
-    userEmail: string;
-    tenantId: string;
-    tenantRole: string;
-  };
 };
 
 function formatPermissionsForDisplay(permissions: Permission): string[] {

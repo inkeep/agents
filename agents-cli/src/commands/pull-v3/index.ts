@@ -96,7 +96,7 @@ interface ProjectPaths {
 /**
  * Create project directory structure
  */
-function createProjectStructure(projectDir: string, projectId: string): ProjectPaths {
+function createProjectStructure(projectDir: string): ProjectPaths {
   const projectRoot = projectDir;
 
   const paths = {
@@ -126,10 +126,7 @@ function createProjectStructure(projectDir: string, projectId: string): ProjectP
 /**
  * Enrich canDelegateTo references with component type information
  */
-export function enrichCanDelegateToWithTypes(
-  project: FullProjectDefinition,
-  debug: boolean = false
-): void {
+export function enrichCanDelegateToWithTypes(project: FullProjectDefinition): void {
   // Get all available component IDs by type
   const agentIds = new Set(project.agents ? Object.keys(project.agents) : []);
   const subAgentIds = new Set(Object.keys(extractSubAgents(project)));
@@ -138,7 +135,7 @@ export function enrichCanDelegateToWithTypes(
   );
 
   // Function to enrich a canDelegateTo array
-  const enrichCanDelegateToArray = (canDelegateTo: any[], context: string) => {
+  const enrichCanDelegateToArray = (canDelegateTo: any[]) => {
     if (!Array.isArray(canDelegateTo)) return;
 
     for (let i = 0; i < canDelegateTo.length; i++) {
@@ -168,12 +165,12 @@ export function enrichCanDelegateToWithTypes(
 
   // Process all agents
   if (project.agents) {
-    for (const [_, agentData] of Object.entries(project.agents)) {
+    for (const agentData of Object.values(project.agents)) {
       // Process subAgents within agents
       if (agentData.subAgents) {
-        for (const [subAgentId, subAgentData] of Object.entries(agentData.subAgents)) {
+        for (const subAgentData of Object.values(agentData.subAgents)) {
           if (subAgentData.canDelegateTo) {
-            enrichCanDelegateToArray(subAgentData.canDelegateTo, `subAgent:${subAgentId}`);
+            enrichCanDelegateToArray(subAgentData.canDelegateTo);
           }
         }
       }
@@ -184,10 +181,7 @@ export function enrichCanDelegateToWithTypes(
 /**
  * Read existing project from filesystem if it exists
  */
-async function readExistingProject(
-  projectRoot: string,
-  debug: boolean = false
-): Promise<FullProjectDefinition | null> {
+async function readExistingProject(projectRoot: string): Promise<FullProjectDefinition | null> {
   const indexPath = join(projectRoot, 'index.ts');
 
   if (!existsSync(indexPath)) {
@@ -216,12 +210,8 @@ async function readExistingProject(
     ]);
 
     return projectDefinition;
-  } catch (error) {
+  } catch {
     // If there's any error parsing the existing project, treat as if it doesn't exist
-    const errorMessage = error instanceof Error ? error.message : String(error);
-    const isCredentialError =
-      errorMessage.includes('Credential') && errorMessage.includes('not found');
-
     return null;
   }
 }
@@ -230,7 +220,7 @@ async function readExistingProject(
  * Main pull-v3 command
  * @returns PullResult when in batch mode, otherwise void (exits process)
  */
-export async function pullV3Command(options: PullV3Options): Promise<PullResult | void> {
+export async function pullV3Command(options: PullV3Options): Promise<PullResult | undefined> {
   // Handle --all flag for batch operations
   if (options.all) {
     await pullAllProjects(options);
@@ -267,7 +257,7 @@ export async function pullV3Command(options: PullV3Options): Promise<PullResult 
 
   try {
     // Step 1: Load configuration (same as push command)
-    const { config, profile, isCI } = await initializeCommand({
+    const { config, isCI } = await initializeCommand({
       configPath: options.config,
       profileName: options.profile,
       tag: options.tag,
@@ -427,10 +417,8 @@ export async function pullV3Command(options: PullV3Options): Promise<PullResult 
     if (remoteProject.agents && remoteProject.tools) {
       const projectToolIds = Object.keys(remoteProject.tools);
 
-      for (const [agentId, agentData] of Object.entries(remoteProject.agents) as any[]) {
+      for (const agentData of Object.values(remoteProject.agents) as any[]) {
         if (agentData.tools) {
-          const originalToolCount = Object.keys(agentData.tools).length;
-
           // Filter out any tools that are defined at project level
           const agentSpecificTools = Object.fromEntries(
             Object.entries(agentData.tools).filter(([toolId]) => !projectToolIds.includes(toolId))
@@ -448,7 +436,7 @@ export async function pullV3Command(options: PullV3Options): Promise<PullResult 
     }
 
     // Enrich canDelegateTo references with component type information
-    enrichCanDelegateToWithTypes(remoteProject, options.debug);
+    enrichCanDelegateToWithTypes(remoteProject);
 
     s.message('Project data fetched');
 
@@ -459,7 +447,7 @@ export async function pullV3Command(options: PullV3Options): Promise<PullResult 
     }
 
     // Step 5: Set up project structure
-    const paths = createProjectStructure(projectDir, projectId);
+    const paths = createProjectStructure(projectDir);
 
     if (remoteProject.skills && Object.keys(remoteProject.skills).length) {
       const { generateSkills } = await import('./components/skill-generator');
@@ -493,7 +481,7 @@ export async function pullV3Command(options: PullV3Options): Promise<PullResult 
 
     // Step 7: Read existing project and compare
     // s.start('Reading existing project...');
-    const localProject = await readExistingProject(paths.projectRoot, options.debug);
+    const localProject = await readExistingProject(paths.projectRoot);
 
     if (!localProject) {
       s.message('No existing project found - treating as new project');
@@ -520,7 +508,7 @@ export async function pullV3Command(options: PullV3Options): Promise<PullResult 
         if (!nameGroups.has(comp.name)) {
           nameGroups.set(comp.name, []);
         }
-        nameGroups.get(comp.name)!.push(comp);
+        nameGroups.get(comp.name)?.push(comp);
       }
 
       // Show any conflicts
@@ -538,12 +526,7 @@ export async function pullV3Command(options: PullV3Options): Promise<PullResult 
 
     // Step 10: Comprehensive project comparison (now with access to registry)
     s.start('Comparing projects for changes...');
-    const comparison = await compareProjects(
-      localProject,
-      remoteProject,
-      localRegistry,
-      options.debug
-    );
+    const comparison = await compareProjects(localProject, remoteProject, options.debug);
 
     if (!comparison.hasChanges && !options.force) {
       s.stop();
@@ -572,7 +555,6 @@ export async function pullV3Command(options: PullV3Options): Promise<PullResult 
       // Check for stale components and ask user permission to clean them up (in temp directory first)
       s.start('Checking for stale components...');
       const shouldCleanupStale = await checkAndPromptForStaleComponentCleanup(
-        paths.projectRoot,
         remoteProject,
         localRegistry
       );
@@ -626,7 +608,7 @@ export async function pullV3Command(options: PullV3Options): Promise<PullResult 
           if (!nameGroups.has(comp.name)) {
             nameGroups.set(comp.name, []);
           }
-          nameGroups.get(comp.name)!.push(comp);
+          nameGroups.get(comp.name)?.push(comp);
         }
 
         // Show any conflicts
@@ -666,16 +648,15 @@ export async function pullV3Command(options: PullV3Options): Promise<PullResult 
               .map((result) => ({
                 componentId: result.componentId,
                 componentType: result.componentType,
-                filePath: result.filePath.replace(paths.projectRoot + '/', ''), // Convert to relative path
+                filePath: result.filePath.replace(`${paths.projectRoot}/`, ''), // Convert to relative path
               }))
           : undefined;
 
-      const updateResults = await updateModifiedComponents(
+      await updateModifiedComponents(
         comparison,
         remoteProject,
         localRegistry,
         paths.projectRoot,
-        options.env || 'development',
         options.debug,
         tempDirName, // Use the temp directory we created
         newComponentsForContext
@@ -751,7 +732,7 @@ async function pullAllProjects(options: PullV3Options): Promise<void> {
   performBackgroundVersionCheck();
 
   // Load configuration first
-  const { config, profile, isCI } = await initializeCommand({
+  const { config, isCI } = await initializeCommand({
     configPath: options.config,
     profileName: options.profile,
     tag: options.tag,
@@ -945,7 +926,7 @@ async function pullSingleProject(
     const remoteProject = await apiClient.getFullProject(projectId);
 
     // Create project structure
-    const paths = createProjectStructure(targetDir, projectId);
+    const paths = createProjectStructure(targetDir);
 
     // Generate all files using introspect mode for new projects
     await introspectGenerate(

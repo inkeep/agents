@@ -74,25 +74,6 @@ export async function fetchDatasetItems(
 }
 
 /**
- * Fetch a single dataset item by ID
- */
-export async function fetchDatasetItem(
-  tenantId: string,
-  projectId: string,
-  datasetId: string,
-  itemId: string
-): Promise<DatasetItem> {
-  validateTenantId(tenantId);
-  validateProjectId(projectId);
-
-  const response = await makeManagementApiRequest<SingleResponse<DatasetItem>>(
-    `tenants/${tenantId}/projects/${projectId}/evals/dataset-items/${datasetId}/items/${itemId}`
-  );
-
-  return response.data;
-}
-
-/**
  * Create a new dataset item
  */
 export async function createDatasetItem(

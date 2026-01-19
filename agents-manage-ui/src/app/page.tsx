@@ -3,13 +3,13 @@
 import { Loader2 } from 'lucide-react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { Suspense, useEffect, useState } from 'react';
-import { useRuntimeConfig } from '@/contexts/runtime-config-context';
+import { usePostHog } from '@/contexts/posthog';
+import { useRuntimeConfig } from '@/contexts/runtime-config';
 import { useAuthSession } from '@/hooks/use-auth';
 import { getPendingInvitations } from '@/lib/actions/invitations';
 import { getUserOrganizations } from '@/lib/actions/user-organizations';
 import { DEFAULT_TENANT_ID } from '@/lib/runtime-config/defaults';
 import { isValidReturnUrl } from '@/lib/utils/auth-redirect';
-import { usePostHog } from './providers';
 
 function HomeContent() {
   const router = useRouter();

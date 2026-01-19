@@ -1,5 +1,5 @@
+import path from 'node:path';
 import devServer from '@hono/vite-dev-server';
-import path from 'path';
 import { defineConfig } from 'vite';
 import tsconfigPaths from 'vite-tsconfig-paths';
 

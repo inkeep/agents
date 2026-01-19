@@ -182,7 +182,6 @@ export function generateProjectDefinition(
  * Generate imports needed for a project file
  */
 export function generateProjectImports(
-  projectId: string,
   projectData: any,
   style: CodeStyle = DEFAULT_STYLE,
   registry?: ComponentRegistry
@@ -313,7 +312,7 @@ export function generateProjectFile(
   style: CodeStyle = DEFAULT_STYLE,
   registry?: ComponentRegistry
 ): string {
-  const imports = generateProjectImports(projectId, projectData, style, registry);
+  const imports = generateProjectImports(projectData, style, registry);
   const definition = generateProjectDefinition(projectId, projectData, style, registry);
 
   const definitions: string[] = [];

@@ -16,7 +16,7 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Textarea } from '@/components/ui/textarea';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
-import { useProject } from '@/contexts/project-context';
+import { useProject } from '@/contexts/project';
 import { updateDataComponent } from '@/lib/api/data-components';
 import { DynamicComponentRenderer } from '../../dynamic-component-renderer';
 

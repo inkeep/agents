@@ -119,7 +119,7 @@ describe('Agent CRUD Routes - Integration Tests', () => {
       await createTestProject(manageDbClient, tenantId, projectId);
 
       // Create agent first
-      const { agentData, agentId } = await createTestAgent({
+      const { agentId } = await createTestAgent({
         tenantId,
       });
 
@@ -204,7 +204,7 @@ describe('Agent CRUD Routes - Integration Tests', () => {
       await createTestProject(manageDbClient, tenantId, projectId);
 
       // Create agent first
-      const { agentData, agentId } = await createTestAgent({
+      const { agentId } = await createTestAgent({
         tenantId,
       });
 
@@ -322,7 +322,7 @@ describe('Agent CRUD Routes - Integration Tests', () => {
       const { agentId } = await createTestAgent({ tenantId });
 
       // Create agents with the agentId
-      const { subAgentId: originalAgentId } = await createTestSubAgent({
+      await createTestSubAgent({
         tenantId,
         agentId,
         suffix: ' Original',

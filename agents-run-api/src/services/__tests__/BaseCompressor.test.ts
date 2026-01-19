@@ -1,6 +1,5 @@
-import { randomUUID } from 'crypto';
+// biome-ignore-all lint/complexity/useLiteralKeys: to access protected fields
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import dbClient from '../../data/db/dbClient';
 import { agentSessionManager } from '../AgentSession';
 import { BaseCompressor } from '../BaseCompressor';
 

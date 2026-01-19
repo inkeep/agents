@@ -1,8 +1,10 @@
+// biome-ignore-all lint/security/noGlobalEval: allow in test
 /**
  * Unit tests for agent generator
  */
 
 import { describe, expect, it } from 'vitest';
+import type { ComponentRegistry } from '../../utils/component-registry';
 import {
   generateAgentDefinition,
   generateAgentFile,
@@ -11,7 +13,7 @@ import {
 
 // Mock registry for tests
 const mockRegistry = {
-  formatReferencesForCode: (refs: string[], type: string, style: any, indent: number) => {
+  formatReferencesForCode(refs, _type, _style, indent) {
     if (!refs || refs.length === 0) return '[]';
 
     // Convert refs to proper variable names
@@ -35,7 +37,7 @@ const mockRegistry = {
     const items = variableRefs.map((ref) => `${indentStr}${ref}`).join(',\n');
     return `[\n${items}\n${indentStr.slice(2)}]`;
   },
-  getVariableName: (id: string, type?: string) => {
+  getVariableName(id, _type) {
     // If already camelCase, return as-is, otherwise convert
     if (!/[-_]/.test(id)) {
       return id;
@@ -46,11 +48,11 @@ const mockRegistry = {
       .replace(/[^a-zA-Z0-9]/g, '')
       .replace(/^[0-9]/, '_$&');
   },
-  getImportsForFile: (filePath: string, components: any[]) => {
+  getImportsForFile(_filePath: string, _components: any[]) {
     // Mock implementation returns empty array
     return [];
   },
-  getAllComponents: () => {
+  getAllComponents() {
     // Mock implementation returns contextConfig component
     return [
       {
@@ -63,7 +65,7 @@ const mockRegistry = {
       },
     ];
   },
-};
+} satisfies Partial<ComponentRegistry>;
 
 describe('Agent Generator', () => {
   const basicAgentData = {
@@ -392,7 +394,7 @@ describe('Agent Generator', () => {
         return result;
       `;
 
-      let result;
+      let result: any;
       expect(() => {
         result = eval(`(() => { ${moduleCode} })()`);
       }).not.toThrow();
@@ -429,7 +431,7 @@ describe('Agent Generator', () => {
         return result;
       `;
 
-      let result;
+      let result: any;
       expect(() => {
         result = eval(`(() => { ${moduleCode} })()`);
       }).not.toThrow();

@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+// biome-ignore-all lint/suspicious/noTemplateCurlyInString: allow in test
 
 /**
  * Manual CLI test script for introspect functionality
@@ -453,7 +454,7 @@ Prioritize customer satisfaction and swift resolution.`,
   updatedAt: new Date().toISOString(),
 };
 
-async function main() {
+async function main(): Promise<void> {
   console.log(chalk.blue('\n🧪 Testing Introspect Generator CLI\n'));
 
   // Create temporary test directory

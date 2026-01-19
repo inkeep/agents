@@ -10,7 +10,7 @@
  */
 
 import { randomBytes } from 'node:crypto';
-import { Node, Project, SyntaxKind } from 'ts-morph';
+import { Node, Project } from 'ts-morph';
 
 interface TargetedPlaceholderResult {
   processedContent: string;
@@ -39,10 +39,7 @@ const MIN_REPLACEMENT_LENGTH = 10; // Lowered from 80 to catch more fields
 /**
  * Create targeted placeholders using AST parsing for better accuracy
  */
-export function createTargetedTypeScriptPlaceholders(
-  content: string,
-  debug: boolean = false
-): TargetedPlaceholderResult {
+export function createTargetedTypeScriptPlaceholders(content: string): TargetedPlaceholderResult {
   const replacements: Record<string, string> = {};
   let replacedFields = 0;
   const originalSize = content.length;
@@ -237,7 +234,7 @@ export function createTargetedTypeScriptPlaceholders(
         replacedFields,
       },
     };
-  } catch (error) {
+  } catch {
     // Fallback to original content if AST parsing fails
     return {
       processedContent: content,

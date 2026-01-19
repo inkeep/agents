@@ -18,7 +18,9 @@ export interface ModelConfigurationResult {
   };
 }
 
-export const defaultGeminiModelConfigurations = {
+export type ModelSettings = ModelConfigurationResult['modelSettings'];
+
+export const defaultGeminiModelConfigurations: ModelSettings = {
   base: {
     model: GOOGLE_MODELS.GEMINI_2_5_FLASH,
   },
@@ -30,7 +32,7 @@ export const defaultGeminiModelConfigurations = {
   },
 };
 
-export const defaultOpenaiModelConfigurations = {
+export const defaultOpenaiModelConfigurations: ModelSettings = {
   base: {
     model: OPENAI_MODELS.GPT_5_2,
   },
@@ -42,7 +44,7 @@ export const defaultOpenaiModelConfigurations = {
   },
 };
 
-export const defaultAnthropicModelConfigurations = {
+export const defaultAnthropicModelConfigurations: ModelSettings = {
   base: {
     model: ANTHROPIC_MODELS.CLAUDE_SONNET_4_5,
   },

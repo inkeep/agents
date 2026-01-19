@@ -19,7 +19,7 @@ import { generateMcpToolFile } from './components/mcp-tool-generator';
 import { generateStatusComponentFile } from './components/status-component-generator';
 import { generateSubAgentFile } from './components/sub-agent-generator';
 import type { ProjectComparison } from './project-comparator';
-import type { ComponentRegistry, ComponentType } from './utils/component-registry';
+import type { ComponentRegistry } from './utils/component-registry';
 import { findSubAgentWithParent } from './utils/component-registry';
 import { toCamelCase } from './utils/generator-utils';
 
@@ -155,8 +155,6 @@ function generateComponentContent(
     case 'credentials':
       return generateCredentialFile(componentId, componentData, defaultStyle);
     case 'contextConfigs': {
-      // Extract agent ID if stored in componentData
-      const agentId = componentData._agentId;
       // Remove the temporary _agentId field before passing to generator
       const cleanComponentData = { ...componentData };
       delete cleanComponentData._agentId;
@@ -164,8 +162,7 @@ function generateComponentContent(
         componentId,
         cleanComponentData,
         defaultStyle,
-        componentRegistry,
-        agentId
+        componentRegistry
       );
     }
     default:
@@ -252,7 +249,7 @@ export async function createNewComponents(
       // Register the component with its expected file path and variable name
       const filePath = determineNewFilePath(componentType, componentId, targetPaths);
       const relativePath = filePath.replace(
-        (tempDirName ? targetPaths.projectRoot : paths.projectRoot) + '/',
+        `${tempDirName ? targetPaths.projectRoot : paths.projectRoot}/`,
         ''
       );
 
@@ -371,28 +368,15 @@ export async function createNewComponents(
           });
           continue;
         }
-
-        // File path was already determined above for existence check
-
-        // Ensure directory exists
-        try {
-          mkdirSync(dirname(filePath), { recursive: true });
-        } catch (dirError) {
-          throw dirError;
-        }
+        mkdirSync(dirname(filePath), { recursive: true });
 
         // Generate component content
-        let content: string;
-        try {
-          content = generateComponentContent(
-            componentType,
-            componentId,
-            componentData,
-            localRegistry
-          );
-        } catch (genError) {
-          throw genError;
-        }
+        const content = generateComponentContent(
+          componentType,
+          componentId,
+          componentData,
+          localRegistry
+        );
 
         // Write file
         writeFileSync(filePath, content, 'utf8');
@@ -480,8 +464,8 @@ function findStatusComponentData(
   statusId: string
 ): any | undefined {
   if (project.agents) {
-    for (const [agentId, agentData] of Object.entries(project.agents)) {
-      if (agentData.statusUpdates && agentData.statusUpdates.statusComponents) {
+    for (const agentData of Object.values(project.agents)) {
+      if (agentData.statusUpdates?.statusComponents) {
         for (const statusComp of agentData.statusUpdates.statusComponents) {
           let compId: string | undefined;
 
@@ -517,20 +501,6 @@ function findContextConfigData(
         if (agentData.contextConfig.id === contextId) {
           return { contextConfig: agentData.contextConfig, agentId };
         }
-      }
-    }
-  }
-  return undefined;
-}
-
-/**
- * Find sub-agent data by ID from project agents
- */
-function findSubAgentData(project: FullProjectDefinition, subAgentId: string): any | undefined {
-  if (project.agents) {
-    for (const [agentId, agentData] of Object.entries(project.agents)) {
-      if (agentData.subAgents && agentData.subAgents[subAgentId]) {
-        return agentData.subAgents[subAgentId];
       }
     }
   }

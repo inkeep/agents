@@ -189,10 +189,6 @@ describe('Project Validator - Key Listener Leak Prevention', () => {
       // Expected
     }
     await new Promise((resolve) => setTimeout(resolve, 50));
-
-    const firstCallOnceCount = mockStdin.once.mock.calls.length;
-    const firstCallRemoveAllCount = mockStdin.removeAllListeners.mock.calls.length;
-
     // Reset for second call
     mockStdin.removeAllListeners.mockClear();
     mockStdin.once.mockClear();

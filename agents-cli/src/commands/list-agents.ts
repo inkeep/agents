@@ -10,7 +10,7 @@ export interface ListAgentsOptions {
   configFilePath?: string; // deprecated, kept for backward compatibility
 }
 
-export async function listAgentsCommand(options: ListAgentsOptions) {
+export async function listAgentsCommand(options: ListAgentsOptions): Promise<void> {
   // Use standardized CLI pipeline for initialization
   const configPath = options.config || options.configFilePath;
   const { config } = await initializeCommand({

@@ -1,4 +1,7 @@
+'use client';
+
 import { Plus } from 'lucide-react';
+import { useState } from 'react';
 import { Button } from '../ui/button';
 import { Card, CardContent } from '../ui/card';
 import {
@@ -9,16 +12,18 @@ import {
   DialogTitle,
   DialogTrigger,
 } from '../ui/dialog';
-import { NewAgentForm } from './new-agent-form';
+import { AgentForm } from './agent-form';
 
 interface NewAgentItemProps {
   tenantId: string;
   projectId: string;
 }
 
-interface NewAgentDialogContentProps extends NewAgentItemProps {}
+interface NewAgentDialogContentProps extends NewAgentItemProps {
+  onSuccess?: () => void;
+}
 
-const NewAgentDialogContent = ({ tenantId, projectId }: NewAgentDialogContentProps) => {
+const NewAgentDialogContent = ({ tenantId, projectId, onSuccess }: NewAgentDialogContentProps) => {
   return (
     <DialogContent>
       <DialogHeader>
@@ -26,7 +31,7 @@ const NewAgentDialogContent = ({ tenantId, projectId }: NewAgentDialogContentPro
         <DialogDescription className="sr-only">Create a new agent.</DialogDescription>
       </DialogHeader>
       <div className="pt-6">
-        <NewAgentForm tenantId={tenantId} projectId={projectId} />
+        <AgentForm tenantId={tenantId} projectId={projectId} onSuccess={onSuccess} />
       </div>
     </DialogContent>
   );
@@ -34,22 +39,30 @@ const NewAgentDialogContent = ({ tenantId, projectId }: NewAgentDialogContentPro
 
 // New agent dialog in empty state
 export function NewAgentDialog({ tenantId, projectId }: NewAgentItemProps) {
+  const [open, setOpen] = useState(false);
+
   return (
-    <Dialog>
+    <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
         <Button>
           <Plus className="size-4" /> New Agent
         </Button>
       </DialogTrigger>
-      <NewAgentDialogContent tenantId={tenantId} projectId={projectId} />
+      <NewAgentDialogContent
+        tenantId={tenantId}
+        projectId={projectId}
+        onSuccess={() => setOpen(false)}
+      />
     </Dialog>
   );
 }
 
 // New agent dialog in agents list
 export function NewAgentItem({ tenantId, projectId }: NewAgentItemProps) {
+  const [open, setOpen] = useState(false);
+
   return (
-    <Dialog>
+    <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger>
         <Card className="h-full bg-transparent border shadow-none hover:bg-background hover:ring-2 hover:ring-accent/50 dark:hover:ring-accent/30 transition-all duration-300 cursor-pointer group border-dashed">
           <CardContent className="flex flex-row items-center justify-center text-center gap-2 flex-1">
@@ -60,7 +73,11 @@ export function NewAgentItem({ tenantId, projectId }: NewAgentItemProps) {
           </CardContent>
         </Card>
       </DialogTrigger>
-      <NewAgentDialogContent tenantId={tenantId} projectId={projectId} />
+      <NewAgentDialogContent
+        tenantId={tenantId}
+        projectId={projectId}
+        onSuccess={() => setOpen(false)}
+      />
     </Dialog>
   );
 }
