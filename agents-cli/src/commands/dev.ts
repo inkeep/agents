@@ -328,7 +328,7 @@ This project can be deployed to any platform that supports Next.js:
   }
 }
 
-export async function devCommand(options: DevOptions) {
+export async function devCommand(options: DevOptions): Promise<void> {
   const { port, host, build, outputDir, path, export: exportFlag, openBrowser } = options;
 
   if (path) {

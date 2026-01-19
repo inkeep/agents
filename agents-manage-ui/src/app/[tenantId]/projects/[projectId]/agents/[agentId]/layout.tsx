@@ -2,7 +2,7 @@
 
 import { ReactFlowProvider } from '@xyflow/react';
 import { type FC, useEffect } from 'react';
-import { CopilotProvider } from '@/components/agent/copilot/copilot-context';
+import { CopilotProvider } from '@/contexts/copilot';
 import { useAgentActions, useAgentStore } from '@/features/agent/state/use-agent-store';
 import { getContextSuggestions } from '@/lib/context-suggestions';
 

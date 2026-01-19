@@ -1,6 +1,6 @@
 import * as p from '@clack/prompts';
 import chalk from 'chalk';
-import { CLOUD_REMOTE, type Profile, ProfileError, ProfileManager } from '../utils/profiles';
+import { type Profile, ProfileError, ProfileManager } from '../utils/profiles';
 
 const profileManager = new ProfileManager();
 

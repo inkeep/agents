@@ -124,8 +124,8 @@ export function EvaluationJobsList({ tenantId, projectId, jobConfigs }: Evaluati
             <TableRow noHover>
               <TableHead>Name</TableHead>
               <TableHead>Updated</TableHead>
-              <TableHead className="w-12"></TableHead>
-              <TableHead className="w-12"></TableHead>
+              <TableHead className="w-12" />
+              <TableHead className="w-12" />
             </TableRow>
           </TableHeader>
           <TableBody>

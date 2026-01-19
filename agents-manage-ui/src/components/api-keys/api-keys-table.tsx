@@ -28,7 +28,7 @@ export function ApiKeysTable({ apiKeys, agentLookup }: ApiKeysTableProps) {
             <TableHead>Last Used</TableHead>
             <TableHead>Expires</TableHead>
             <TableHead>Created</TableHead>
-            <TableHead className="w-12"></TableHead>
+            <TableHead className="w-12" />
           </TableRow>
         </TableHeader>
         <TableBody>

@@ -11,6 +11,7 @@ import { GenericTextarea } from '@/components/form/generic-textarea';
 import { Button } from '@/components/ui/button';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { Label } from '@/components/ui/label';
+import { providerOptionsTemplate } from '@/lib/templates';
 import type { DatasetItemFormData } from './validation';
 
 interface SimulationAgentFormProps {
@@ -166,10 +167,7 @@ export function SimulationAgentForm({ control }: SimulationAgentFormProps) {
                   // Invalid JSON - don't update the field value
                 }
               }}
-              placeholder={`{
-  "temperature": 0.7,
-  "maxOutputTokens": 2048
-}`}
+              placeholder={providerOptionsTemplate}
             />
           </div>
 

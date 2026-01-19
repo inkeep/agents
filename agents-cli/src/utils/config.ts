@@ -402,7 +402,7 @@ export async function validateConfiguration(
   let cliCredentials: { accessToken: string; organizationId: string } | null = null;
   try {
     const credentials = await loadCredentials();
-    if (credentials && credentials.accessToken && credentials.organizationId) {
+    if (credentials?.accessToken && credentials.organizationId) {
       cliCredentials = {
         accessToken: credentials.accessToken,
         organizationId: credentials.organizationId,

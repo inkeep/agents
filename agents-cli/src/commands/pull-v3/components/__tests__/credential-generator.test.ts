@@ -1,3 +1,4 @@
+// biome-ignore-all lint/security/noGlobalEval: allow in test
 /**
  * Unit tests for credential generator
  */
@@ -47,14 +48,14 @@ describe('Credential Generator', () => {
 
   describe('generateCredentialImports', () => {
     it('should generate correct imports', () => {
-      const imports = generateCredentialImports('inkeep-api-key', testCredentialData);
+      const imports = generateCredentialImports();
 
       expect(imports).toHaveLength(1);
       expect(imports[0]).toBe("import { credential } from '@inkeep/agents-sdk';");
     });
 
     it('should handle different code styles', () => {
-      const imports = generateCredentialImports('inkeep-api-key', testCredentialData, {
+      const imports = generateCredentialImports({
         quotes: 'double',
         semicolons: false,
         indentation: '    ',
@@ -242,7 +243,7 @@ describe('Credential Generator', () => {
 
   describe('compilation tests', () => {
     it('should generate code that compiles and creates a working credential', async () => {
-      const file = generateCredentialFile('inkeep-api-key', testCredentialData);
+      generateCredentialFile('inkeep-api-key', testCredentialData);
 
       // Extract just the credential definition (remove imports and export)
       const definition = generateCredentialDefinition('inkeep-api-key', testCredentialData);
@@ -259,7 +260,7 @@ describe('Credential Generator', () => {
       `;
 
       // Use eval to test the code compiles and runs
-      let result;
+      let result: any;
       expect(() => {
         result = eval(`(() => { ${moduleCode} })()`);
       }).not.toThrow();
@@ -292,7 +293,7 @@ describe('Credential Generator', () => {
         return databaseUrl;
       `;
 
-      let result;
+      let result: any;
       expect(() => {
         result = eval(`(() => { ${moduleCode} })()`);
       }).not.toThrow();
@@ -316,7 +317,7 @@ describe('Credential Generator', () => {
         return slackToken;
       `;
 
-      let result;
+      let result: any;
       expect(() => {
         result = eval(`(() => { ${moduleCode} })()`);
       }).not.toThrow();

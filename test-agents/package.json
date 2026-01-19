@@ -6,5 +6,9 @@
   "dependencies": {
     "@inkeep/agents-sdk": "workspace:*",
     "@inkeep/agents-cli": "workspace:*"
+  },
+  "scripts": {
+    "lint": "biome lint --error-on-warnings",
+    "lint:fix": "biome check --write"
   }
 }

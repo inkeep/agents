@@ -26,8 +26,8 @@
     "coverage:diff": "node scripts/coverage-diff.mjs",
     "coverage:enforce": "node scripts/enforce-coverage-change.mjs",
     "coverage:check": "pnpm coverage:diff && pnpm coverage:enforce",
-    "lint": "turbo lint --filter='!agents-cookbook-templates'",
-    "lint:fix": "turbo lint:fix --filter='!agents-cookbook-templates'",
+    "lint": "turbo lint",
+    "lint:fix": "turbo lint:fix",
     "format": "pnpm format:check --write",
     "format:check": "biome check --linter-enabled=false",
     "typecheck": "turbo typecheck --filter='!agents-cookbook-templates'",
@@ -80,13 +80,13 @@
   },
   "version": "0.1.0",
   "dependencies": {
-    "tsdown": "^0.18.0",
+    "tsdown": "^0.19.0",
     "zod": "^4.1.12",
     "@hono/zod-openapi": "^1.1.5"
   },
   "devDependencies": {
-    "knip": "5.77.4",
-    "@biomejs/biome": "2.2.4",
+    "knip": "5.82.0",
+    "@biomejs/biome": "2.3.11",
     "@changesets/cli": "2.29.7",
     "drizzle-kit": "^0.31.5",
     "husky": "^9.1.6",

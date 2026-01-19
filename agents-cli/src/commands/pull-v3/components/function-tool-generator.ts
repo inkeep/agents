@@ -4,9 +4,6 @@
  * Generates function tools using the functionTool() builder function from @inkeep/agents-sdk
  * Function tools contain inline JavaScript execution functions
  */
-
-import { jsonSchemaToZod } from 'json-schema-to-zod';
-
 interface CodeStyle {
   quotes: 'single' | 'double';
   semicolons: boolean;
@@ -38,23 +35,7 @@ function formatString(str: string, quote: string = "'", multiline: boolean = fal
     return `\`${str.replace(/`/g, '\\`')}\``;
   }
 
-  return `${quote}${str.replace(new RegExp(quote, 'g'), '\\' + quote)}${quote}`;
-}
-
-/**
- * Convert JSON Schema to Zod schema using existing utility
- */
-function convertJsonSchemaToZod(schema: any): string {
-  if (!schema || typeof schema !== 'object') {
-    return 'z.any()';
-  }
-
-  try {
-    return jsonSchemaToZod(schema);
-  } catch (error) {
-    console.warn('Failed to convert JSON schema to Zod:', error);
-    return 'z.any()';
-  }
+  return `${quote}${str.replace(new RegExp(quote, 'g'), `\\${quote}`)}${quote}`;
 }
 
 /**
@@ -159,7 +140,7 @@ export function generateFunctionToolDefinition(
         return `${indentation}${line}`;
       })
       .join('\n');
-    lines.push(formattedSchema + ',');
+    lines.push(`${formattedSchema},`);
   }
 
   // Execute function - this is the actual JavaScript code
@@ -189,11 +170,7 @@ export function generateFunctionToolDefinition(
 /**
  * Generate imports needed for a function tool file
  */
-export function generateFunctionToolImports(
-  toolId: string,
-  toolData: any,
-  style: CodeStyle = DEFAULT_STYLE
-): string[] {
+export function generateFunctionToolImports(style: CodeStyle = DEFAULT_STYLE): string[] {
   const { quotes, semicolons } = style;
   const q = quotes === 'single' ? "'" : '"';
   const semi = semicolons ? ';' : '';
@@ -213,8 +190,8 @@ export function generateFunctionToolFile(
   toolData: any,
   style: CodeStyle = DEFAULT_STYLE
 ): string {
-  const imports = generateFunctionToolImports(toolId, toolData, style);
+  const imports = generateFunctionToolImports(style);
   const definition = generateFunctionToolDefinition(toolId, toolData, style);
 
-  return imports.join('\n') + '\n\n' + definition + '\n';
+  return `${imports.join('\n')}\n\n${definition}\n`;
 }

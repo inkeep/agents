@@ -18,6 +18,8 @@
     "dev:with-bypass": "PORT=3003 vite",
     "dev:without-bypass": "PORT=3004 INKEEP_AGENTS_RUN_API_BYPASS_SECRET= vite",
     "build": "tsdown",
+    "lint": "biome lint --error-on-warnings",
+    "lint:fix": "biome check --write",
     "start": "node dist/index.js",
     "test": "./run-tests.sh",
     "test:ci": "vitest --run --config vitest.config.ci.ts",

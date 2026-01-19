@@ -144,7 +144,7 @@ export async function mergeComponentsWithLLM(
     }
     relativePath += toParts.slice(commonLength).join('/');
 
-    return relativePath.startsWith('../') ? relativePath : './' + relativePath;
+    return relativePath.startsWith('../') ? relativePath : `./${relativePath}`;
   }
 
   const componentsToExportList =

@@ -10,7 +10,7 @@ import type {
   OAuthLoginHandler,
   OAuthLoginParams,
 } from '@/components/agent/copilot/components/connect-tool-card';
-import { useRuntimeConfig } from '@/contexts/runtime-config-context';
+import { useRuntimeConfig } from '@/contexts/runtime-config';
 import { listCredentialStores } from '@/lib/api/credentialStores';
 import { updateMCPTool } from '@/lib/api/tools';
 import { findOrCreateCredential } from '@/lib/utils/credentials-utils';
