@@ -111,7 +111,11 @@ export const UnsavedChangesDialog: FC<UnsavedChangesDialogProps> = ({ onSubmit }
     return () => {
       window.removeEventListener('beforeunload', handleBeforeUnload);
     };
-  }, [dirty, handleGoBack]);
+  }, [
+    dirty,
+    // biome-ignore lint/correctness/useExhaustiveDependencies: false positive, variable is stable and optimized by the React Compiler
+    handleGoBack,
+  ]);
 
   return (
     <Dialog

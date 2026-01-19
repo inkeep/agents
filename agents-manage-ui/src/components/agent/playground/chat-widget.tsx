@@ -97,7 +97,11 @@ export function ChatWidget({
     if (hasReceivedAssistantMessageRef.current) {
       resetStopPollingTimeout();
     }
-  }, [chatActivities?.activities?.length, resetStopPollingTimeout]);
+  }, [
+    chatActivities?.activities?.length,
+    // biome-ignore lint/correctness/useExhaustiveDependencies: false positive, variable is stable and optimized by the React Compiler
+    resetStopPollingTimeout,
+  ]);
 
   useEffect(() => {
     return () => {
