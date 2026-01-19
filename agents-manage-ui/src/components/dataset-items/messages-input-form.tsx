@@ -111,13 +111,18 @@ export function MessagesInputForm<T extends FieldValues>({
   };
 
   const handleHeadersChange = (headersJson: string) => {
-    try {
+    // Workaround for a React Compiler limitation.
+    // Todo: Support value blocks (conditional, logical, optional chaining, etc) within a try/catch statement
+    function doParse() {
       const parsed = headersJson.trim() === '' ? {} : JSON.parse(headersJson);
       if (typeof parsed === 'object' && parsed !== null && !Array.isArray(parsed)) {
         const headers = parsed as Record<string, string>;
         setLocalHeaders(headers);
         updateField(localMessages, headers);
       }
+    }
+    try {
+      doParse();
     } catch {
       // Invalid JSON - don't update, but allow user to continue typing
     }

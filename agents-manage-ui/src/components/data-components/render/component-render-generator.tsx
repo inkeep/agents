@@ -59,21 +59,10 @@ export function ComponentRenderGenerator({
     setStreamingCode('');
     setIsComplete(false);
     setIsSaved(false);
+    // Workaround for a React Compiler limitation.
+    // Todo: (BuildHIR::lowerStatement) Support ThrowStatement inside of try/catch
 
-    try {
-      const response = await fetch(`/api/data-components/${dataComponentId}/generate-render`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          tenantId,
-          projectId,
-          instructions: instructions || undefined,
-          existingCode: instructions ? render?.component : undefined,
-        }),
-      });
-
+    async function doAction(response: Response) {
       if (!response.ok) {
         throw new Error('Failed to generate render');
       }
@@ -129,6 +118,21 @@ export function ComponentRenderGenerator({
       } else {
         throw new Error('No valid render generated');
       }
+    }
+    try {
+      const response = await fetch(`/api/data-components/${dataComponentId}/generate-render`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          tenantId,
+          projectId,
+          instructions: instructions || undefined,
+          existingCode: instructions ? render?.component : undefined,
+        }),
+      });
+      await doAction(response);
     } catch (error) {
       console.error('Failed to generate render:', error);
       toast.error('Failed to generate render');
@@ -151,9 +155,8 @@ export function ComponentRenderGenerator({
     } catch (error) {
       console.error('Error deleting render:', error);
       toast.error('Failed to delete render');
-    } finally {
-      setIsDeleting(false);
     }
+    setIsDeleting(false);
   };
 
   const hasRender = render !== null && (render.component?.trim().length ?? 0) > 0;
