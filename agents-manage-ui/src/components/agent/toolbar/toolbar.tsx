@@ -15,15 +15,15 @@ interface ToolbarProps {
   setShowPlayground: (show: boolean) => void;
 }
 
+const commonProps = {
+  className: 'backdrop-blur-3xl',
+  type: 'button',
+  variant: 'outline',
+} satisfies ComponentProps<typeof Button>;
+
 export function Toolbar({ onSubmit, toggleSidePane, setShowPlayground }: ToolbarProps) {
   const dirty = useAgentStore((state) => state.dirty);
   const saveButtonRef = useRef<HTMLButtonElement>(null);
-
-  const commonProps = {
-    className: 'backdrop-blur-3xl',
-    type: 'button',
-    variant: 'outline',
-  } satisfies ComponentProps<typeof Button>;
 
   const PreviewButton = (
     <Button {...commonProps} disabled={dirty} onClick={() => setShowPlayground(true)}>

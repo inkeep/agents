@@ -1003,6 +1003,9 @@ export const Agent: FC<AgentProps> = ({
           connectionMode={ConnectionMode.Loose}
           isValidConnection={isValidConnection}
           onNodeClick={onNodeClick}
+          proOptions={{
+            hideAttribution: true,
+          }}
         >
           <Background color="#a8a29e" gap={20} />
           <Controls className="text-foreground" showInteractive={false} />
