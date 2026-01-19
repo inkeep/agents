@@ -3,8 +3,6 @@ import { useAgentActions } from '@/features/agent/state/use-agent-store';
 
 export function useAgentShortcuts() {
   const { undo, redo, deleteSelected } = useAgentActions();
-
-  // biome-ignore lint/correctness/useExhaustiveDependencies: only on mount
   useEffect(() => {
     const onKeyDown = (e: KeyboardEvent) => {
       if (!(e.target as HTMLElement)?.classList.contains('react-flow__node')) return;

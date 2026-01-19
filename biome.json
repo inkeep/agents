@@ -84,7 +84,16 @@
       "correctness": {
         "noUnusedVariables": "warn",
         "noUnusedImports": "error",
-        "useExhaustiveDependencies": "warn",
+        "useExhaustiveDependencies": {
+          "level": "error",
+          "options": {
+            "hooks": [
+              { "name": "useAgentActions", "stableResult": true },
+              { "name": "useMonacoActions", "stableResult": true },
+              { "name": "useProjectActions", "stableResult": true }
+            ]
+          }
+        },
         "useJsxKeyInIterable": "warn",
         "useUniqueElementIds": "off",
         "noNestedComponentDefinitions": "off",

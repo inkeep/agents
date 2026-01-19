@@ -66,7 +66,7 @@ export function useProjectData() {
     } else {
       setLoading(false);
     }
-  }, [tenantId, projectId, storedProjectId, setProjectStore]);
+  }, [tenantId, projectId, storedProjectId]);
 
   return { project, loading, error };
 }
