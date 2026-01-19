@@ -14,8 +14,9 @@ export function useSignozConfig() {
 
   useEffect(() => {
     const checkConfig = async () => {
-      try {
-        setIsLoading(true);
+      // Workaround for a React Compiler limitation.
+      // Todo: (BuildHIR::lowerStatement) Support ThrowStatement inside of try/catch
+      async function doRequest() {
         // Call Next.js route which forwards to manage-api
         const response = await fetch(`/api/signoz?tenantId=${tenantId}`);
         if (!response.ok) {
@@ -23,6 +24,11 @@ export function useSignozConfig() {
         }
         const data: SignozConfigStatus = await response.json();
         setConfigError(data.error || null);
+      }
+
+      setIsLoading(true);
+      try {
+        await doRequest();
       } catch (err) {
         console.error('Error checking Signoz configuration:', err);
         setConfigError(err instanceof Error ? err.message : 'Failed to check SigNoz configuration');
