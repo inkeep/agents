@@ -137,7 +137,7 @@ export class DataComponent implements DataComponentInterface {
 
     // First try to update (in case data component exists)
     const updateResponse = await fetch(
-      `${this.baseURL}/tenants/${this.tenantId}/projects/${this.projectId}/data-components/${this.getId()}`,
+      `${this.baseURL}/manage/tenants/${this.tenantId}/projects/${this.projectId}/data-components/${this.getId()}`,
       {
         method: 'PUT',
         headers: {
@@ -175,7 +175,7 @@ export class DataComponent implements DataComponentInterface {
       );
 
       const createResponse = await fetch(
-        `${this.baseURL}/tenants/${this.tenantId}/projects/${this.projectId}/data-components`,
+        `${this.baseURL}/manage/tenants/${this.tenantId}/projects/${this.projectId}/data-components`,
         {
           method: 'POST',
           headers: {

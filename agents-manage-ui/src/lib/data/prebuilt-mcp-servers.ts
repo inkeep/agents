@@ -13,7 +13,7 @@ interface UsePrebuiltMCPServersResult {
 }
 
 /**
- * Client-side hook to fetch prebuilt MCP servers from the agents-manage-api
+ * Client-side hook to fetch prebuilt MCP servers from the agents-api
  */
 export function usePrebuiltMCPServers(
   tenantId: string,

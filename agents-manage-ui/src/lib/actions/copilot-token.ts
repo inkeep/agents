@@ -2,7 +2,7 @@
 
 import { cookies } from 'next/headers';
 
-import { DEFAULT_INKEEP_AGENTS_MANAGE_API_URL } from '../runtime-config/defaults';
+import { DEFAULT_INKEEP_AGENTS_API_URL } from '../runtime-config/defaults';
 
 type ActionResult<T = void> =
   | {
@@ -26,10 +26,10 @@ export async function getCopilotTokenAction(): Promise<ActionResult<CopilotToken
   const copilotTenantId = process.env.PUBLIC_INKEEP_COPILOT_TENANT_ID;
   const copilotProjectId = process.env.PUBLIC_INKEEP_COPILOT_PROJECT_ID;
   const copilotAgentId = process.env.PUBLIC_INKEEP_COPILOT_AGENT_ID;
-  const manageApiUrl =
-    process.env.INKEEP_AGENTS_MANAGE_API_URL ||
-    process.env.PUBLIC_INKEEP_AGENTS_MANAGE_API_URL ||
-    DEFAULT_INKEEP_AGENTS_MANAGE_API_URL;
+  const agentsApiUrl =
+    process.env.INKEEP_AGENTS_API_URL ||
+    process.env.PUBLIC_INKEEP_AGENTS_API_URL ||
+    DEFAULT_INKEEP_AGENTS_API_URL;
 
   if (!copilotApiKey) {
     return {
@@ -48,17 +48,20 @@ export async function getCopilotTokenAction(): Promise<ActionResult<CopilotToken
   }
 
   try {
-    const response = await fetch(`${manageApiUrl}/manage/tenants/${copilotTenantId}/playground/token`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        Authorization: `Bearer ${copilotApiKey}`,
-      },
-      body: JSON.stringify({
-        projectId: copilotProjectId,
-        agentId: copilotAgentId,
-      }),
-    });
+    const response = await fetch(
+      `${agentsApiUrl}/manage/tenants/${copilotTenantId}/playground/token`,
+      {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${copilotApiKey}`,
+        },
+        body: JSON.stringify({
+          projectId: copilotProjectId,
+          agentId: copilotAgentId,
+        }),
+      }
+    );
 
     if (!response.ok) {
       let errorMessage = 'Failed to fetch copilot token';

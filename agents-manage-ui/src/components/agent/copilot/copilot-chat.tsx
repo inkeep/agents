@@ -77,7 +77,7 @@ export function CopilotChat({ agentId, tenantId, projectId, refreshAgentGraph }:
   }, [conversationId, refreshAgentGraph]);
 
   const {
-    PUBLIC_INKEEP_AGENTS_RUN_API_URL,
+    PUBLIC_INKEEP_AGENTS_API_URL,
     PUBLIC_INKEEP_COPILOT_AGENT_ID,
     PUBLIC_INKEEP_COPILOT_PROJECT_ID,
     PUBLIC_INKEEP_COPILOT_TENANT_ID,
@@ -217,7 +217,7 @@ export function CopilotChat({ agentId, tenantId, projectId, refreshAgentGraph }:
                         copilotAgentId: PUBLIC_INKEEP_COPILOT_AGENT_ID,
                         copilotProjectId: PUBLIC_INKEEP_COPILOT_PROJECT_ID,
                         copilotTenantId: PUBLIC_INKEEP_COPILOT_TENANT_ID,
-                        runApiUrl: PUBLIC_INKEEP_AGENTS_RUN_API_URL,
+                        runApiUrl: PUBLIC_INKEEP_AGENTS_API_URL,
                         targetTenantId: tenantId,
                         targetProjectId: projectId,
                         targetAgentId: agentId,
@@ -236,7 +236,7 @@ export function CopilotChat({ agentId, tenantId, projectId, refreshAgentGraph }:
               light: '/assets/inkeep-icons/icon-blue.svg',
               dark: '/assets/inkeep-icons/icon-sky.svg',
             },
-            agentUrl: `${PUBLIC_INKEEP_AGENTS_RUN_API_URL}/run/api/chat`,
+            agentUrl: `${PUBLIC_INKEEP_AGENTS_API_URL}/run/api/chat`,
             headers: {
               'x-emit-operations': 'true',
               Authorization: `Bearer ${copilotToken}`,

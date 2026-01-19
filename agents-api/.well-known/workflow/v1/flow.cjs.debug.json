@@ -1,8 +1,8 @@
 {
   "workflowFiles": [
+    "/Users/mileskaming-thanassi/mono-api/agents-api/dist/domains/evals/workflow/functions/runDatasetItem.js",
     "/Users/mileskaming-thanassi/mono-api/agents-api/src/domains/evals/workflow/functions/runDatasetItem.ts",
     "/Users/mileskaming-thanassi/mono-api/agents-api/src/domains/evals/workflow/functions/evaluateConversation.ts",
-    "/Users/mileskaming-thanassi/mono-api/agents-api/dist/domains/evals/workflow/functions/evaluateConversation.js",
-    "/Users/mileskaming-thanassi/mono-api/agents-api/dist/domains/evals/workflow/functions/runDatasetItem.js"
+    "/Users/mileskaming-thanassi/mono-api/agents-api/dist/domains/evals/workflow/functions/evaluateConversation.js"
   ]
 }

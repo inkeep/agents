@@ -2,7 +2,7 @@ import axios from 'axios';
 import axiosRetry from 'axios-retry';
 import { type NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
-import { getManageApiUrl } from '@/lib/api/api-config';
+import { getAgentsApiUrl } from '@/lib/api/api-config';
 import { getLogger } from '@/lib/logger';
 
 // Configure axios retry
@@ -88,11 +88,11 @@ export async function POST(request: NextRequest) {
       headers.Cookie = cookieHeader;
     }
 
-    // 5. Forward to secure manage-api
-    const manageApiUrl = getManageApiUrl();
-    const endpoint = `${manageApiUrl}/tenants/${tenantId}/signoz/query`;
+    // 5. Forward to secure agents-api
+    const agentsApiUrl = getAgentsApiUrl();
+    const endpoint = `${agentsApiUrl}/manage/tenants/${tenantId}/signoz/query`;
 
-    logger.info({ endpoint }, 'Forwarding validated query to manage-api');
+    logger.info({ endpoint }, 'Forwarding validated query to agents-api');
 
     const response = await axios.post(endpoint, validatedBody, {
       headers,
@@ -100,13 +100,13 @@ export async function POST(request: NextRequest) {
       withCredentials: true,
     });
 
-    logger.info({ status: response.status }, 'Manage-api response received');
+    logger.info({ status: response.status }, 'Agents-api response received');
 
     return NextResponse.json(response.data);
   } catch (error) {
     logger.error(
       { error, stack: error instanceof Error ? error.stack : undefined },
-      'Error proxying to manage-api'
+      'Error proxying to agents-api'
     );
 
     // Enhanced error handling
@@ -150,11 +150,11 @@ export async function GET(request: NextRequest) {
       headers.Cookie = cookieHeader;
     }
 
-    // Forward to manage-api health endpoint
-    const manageApiUrl = getManageApiUrl();
-    const endpoint = `${manageApiUrl}/manage/tenants/${tenantId}/signoz/health`;
+    // Forward to agents-api health endpoint
+    const agentsApiUrl = getAgentsApiUrl();
+    const endpoint = `${agentsApiUrl}/manage/tenants/${tenantId}/signoz/health`;
 
-    logger.info({ endpoint }, 'Checking SigNoz configuration via manage-api');
+    logger.info({ endpoint }, 'Checking SigNoz configuration via agents-api');
 
     const response = await axios.get(endpoint, {
       headers,

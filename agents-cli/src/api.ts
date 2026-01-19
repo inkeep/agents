@@ -125,7 +125,7 @@ export class ManagementApiClient extends BaseApiClient {
 
     if (!response.ok) {
       throw new Error(
-        `Failed to list agents: ${response.statusText}. ${this.apiUrl}/tenants/${tenantId}/projects/${projectId}/agents`
+        `Failed to list agents: ${response.statusText}. ${this.apiUrl}/manage/tenants/${tenantId}/projects/${projectId}/agents`
       );
     }
 

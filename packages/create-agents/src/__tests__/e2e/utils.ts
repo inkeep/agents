@@ -170,8 +170,7 @@ export async function linkLocalPackages(projectDir: string, monorepoRoot: string
   const inkeepPackages = {
     '@inkeep/agents-sdk': `link:${path.join(monorepoRoot, 'packages/agents-sdk')}`,
     '@inkeep/agents-core': `link:${path.join(monorepoRoot, 'packages/agents-core')}`,
-    '@inkeep/agents-manage-api': `link:${path.join(monorepoRoot, 'agents-manage-api')}`,
-    '@inkeep/agents-run-api': `link:${path.join(monorepoRoot, 'agents-run-api')}`,
+    '@inkeep/agents-api': `link:${path.join(monorepoRoot, 'packages/agents-api')}`,
     '@inkeep/agents-cli': `link:${path.join(monorepoRoot, 'agents-cli')}`,
   };
 

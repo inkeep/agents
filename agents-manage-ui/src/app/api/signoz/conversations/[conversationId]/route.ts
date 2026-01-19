@@ -26,7 +26,7 @@ import {
   SPAN_NAMES,
   UNKNOWN_VALUE,
 } from '@/constants/signoz';
-import { getManageApiUrl } from '@/lib/api/api-config';
+import { getAgentsApiUrl } from '@/lib/api/api-config';
 import { fetchAllSpanAttributes_SQL } from '@/lib/api/signoz-sql';
 import { getLogger } from '@/lib/logger';
 
@@ -78,7 +78,7 @@ function getSigNozEndpoint(): string {
   return `${signozUrl}/api/v4/query_range`;
 }
 
-// Call SigNoz directly for server-to-server calls, otherwise go through manage-api
+// Call SigNoz directly for server-to-server calls, otherwise go through agents-api
 async function signozQuery(
   payload: any,
   tenantId: string,
@@ -102,9 +102,9 @@ async function signozQuery(
         timeout: 30000,
       });
     } else {
-      // For browser calls, go through manage-api for auth
-      const manageApiUrl = getManageApiUrl();
-      const endpoint = `${manageApiUrl}/tenants/${tenantId}/signoz/query`;
+      // For browser calls, go through agents-api for auth
+      const agentsApiUrl = getAgentsApiUrl();
+      const endpoint = `${agentsApiUrl}/manage/tenants/${tenantId}/signoz/query`;
 
       const headers: Record<string, string> = {
         'Content-Type': 'application/json',
@@ -114,7 +114,7 @@ async function signozQuery(
         headers.Cookie = cookieHeader;
       }
 
-      logger.debug({ endpoint }, 'Calling manage-api for conversation traces');
+      logger.debug({ endpoint }, 'Calling agents-api for conversation traces');
 
       response = await axios.post(endpoint, payload, {
         headers,
@@ -1125,7 +1125,7 @@ export async function GET(
     // Build the query payload
     const payload = buildConversationListPayload(conversationId, start, end);
 
-    // Call secure manage-api
+    // Call secure agents-api
     const resp = await signozQuery(payload, tenantId, cookieHeader);
 
     const toolCallSpans = parseList(resp, QUERY_EXPRESSIONS.TOOL_CALLS);
