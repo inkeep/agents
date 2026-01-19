@@ -133,9 +133,8 @@ export function ComponentRenderGenerator({
       console.error('Failed to generate render:', error);
       toast.error('Failed to generate render');
       setIsComplete(true);
-    } finally {
-      setIsGenerating(false);
     }
+    setIsGenerating(false);
   };
 
   const handleDeletePreview = async () => {

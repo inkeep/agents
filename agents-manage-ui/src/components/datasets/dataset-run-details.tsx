@@ -51,11 +51,9 @@ export function DatasetRunDetails({
   } | null>(null);
 
   const loadRun = async (showLoading = true) => {
-    try {
-      if (showLoading) {
-        setLoading(true);
-      }
-      setError(null);
+    // Workaround for a React Compiler limitation.
+    // Todo: Support value blocks (conditional, logical, optional chaining, etc) within a try/catch statement
+    async function doRequest() {
       const response = await fetchDatasetRun(tenantId, projectId, runId);
       setRun(response.data);
 
@@ -96,6 +94,14 @@ export function DatasetRunDetails({
       } else {
         setEvaluationProgress(null);
       }
+    }
+
+    try {
+      if (showLoading) {
+        setLoading(true);
+      }
+      setError(null);
+      await doRequest();
     } catch (err) {
       console.error('Error loading dataset run:', err);
       setError(err instanceof Error ? err.message : 'Failed to load run');

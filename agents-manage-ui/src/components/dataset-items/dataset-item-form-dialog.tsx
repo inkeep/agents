@@ -143,14 +143,9 @@ export function DatasetItemFormDialog({
     }
 
     const value = data.input?.trim();
-
-    try {
-      // Validate that input is provided and has at least one message
-      if (!value) {
-        toast.error('Input is required. Please add at least one message.');
-        return;
-      }
-
+    // Workaround for a React Compiler limitation.
+    // Todo: Support value blocks (conditional, logical, optional chaining, etc) within a try/catch statement
+    async function doRequest() {
       const parsedInput = parseJsonField(value) as DatasetItem['input'];
       if (!parsedInput || !parsedInput.messages || parsedInput.messages.length === 0) {
         toast.error('Input must contain at least one message.');
@@ -246,6 +241,15 @@ export function DatasetItemFormDialog({
       form.reset();
       router.refresh();
       onSuccess?.();
+    }
+
+    try {
+      // Validate that input is provided and has at least one message
+      if (!value) {
+        toast.error('Input is required. Please add at least one message.');
+        return;
+      }
+      await doRequest();
     } catch (error) {
       console.error('Error submitting dataset item:', error);
       const errorMessage = error instanceof Error ? error.message : 'An unexpected error occurred';
