@@ -409,7 +409,18 @@ export const TriggerInsertSchema = createInsertSchema(triggers, {
   signingSecret: () => z.string().optional().describe('HMAC-SHA256 signing secret'),
 });
 
-export const TriggerUpdateSchema = TriggerInsertSchema.partial();
+// For updates, we create a schema without defaults so that {} is detected as empty
+// (TriggerInsertSchema has enabled.default(true) which would make {} parse to {enabled:true})
+export const TriggerUpdateSchema = z.object({
+  name: z.string().trim().nonempty().describe('Trigger name').optional(),
+  description: z.string().optional().describe('Trigger description'),
+  enabled: z.boolean().describe('Whether the trigger is enabled').optional(),
+  inputSchema: z.record(z.string(), z.unknown()).optional().describe('JSON Schema for input validation'),
+  outputTransform: TriggerOutputTransformSchema.optional(),
+  messageTemplate: z.string().trim().nonempty().describe('Message template with {{placeholder}} syntax').optional(),
+  authentication: TriggerAuthenticationSchema.optional(),
+  signingSecret: z.string().optional().describe('HMAC-SHA256 signing secret'),
+});
 
 export const TriggerApiSelectSchema =
   createAgentScopedApiSchema(TriggerSelectSchema).openapi('Trigger');
@@ -418,8 +429,7 @@ export const TriggerApiInsertSchema = createAgentScopedApiInsertSchema(TriggerIn
     id: resourceIdSchema.optional(),
   })
   .openapi('TriggerCreate');
-export const TriggerApiUpdateSchema =
-  createAgentScopedApiUpdateSchema(TriggerUpdateSchema).openapi('TriggerUpdate');
+export const TriggerApiUpdateSchema = TriggerUpdateSchema.openapi('TriggerUpdate');
 
 // Trigger Invocation schemas
 export const TriggerInvocationSelectSchema = createSelectSchema(triggerInvocations);

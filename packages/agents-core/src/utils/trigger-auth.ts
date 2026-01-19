@@ -1,4 +1,4 @@
-import { createHash, timingSafeEqual } from 'crypto';
+import { createHmac, timingSafeEqual } from 'crypto';
 import type { Context } from 'hono';
 import type { z } from 'zod';
 import type { TriggerAuthenticationSchema } from '../validation/schemas';
@@ -172,7 +172,7 @@ export function verifySigningSecret(
   }
 
   // Compute HMAC-SHA256 signature
-  const hmac = createHash('sha256').update(signingSecret).update(body).digest('hex');
+  const hmac = createHmac('sha256', signingSecret).update(body).digest('hex');
   const expectedSignature = `sha256=${hmac}`;
 
   // Use timing-safe comparison to prevent timing attacks

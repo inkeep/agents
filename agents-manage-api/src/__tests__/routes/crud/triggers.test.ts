@@ -6,6 +6,7 @@ import {
 import { createTestProject } from '@inkeep/agents-core/db/test-manage-client';
 import { describe, expect, it } from 'vitest';
 import manageDbClient from '../../../data/db/dbClient';
+import runDbClient from '../../../data/db/runDbClient';
 import { env } from '../../../env';
 import { makeRequest } from '../../utils/testRequest';
 import { createTestSubAgentData } from '../../utils/testSubAgent';
@@ -713,7 +714,7 @@ describe('Trigger CRUD Routes - Integration Tests', () => {
       errorMessage?: string | null;
       createdAt?: string;
     }) => {
-      const invocation = await createTriggerInvocation(manageDbClient)({
+      const invocation = await createTriggerInvocation(runDbClient)({
         id: generateId(),
         tenantId,
         projectId,

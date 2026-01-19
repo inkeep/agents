@@ -337,149 +337,150 @@ async function invokeAgentAsync(params: {
             'Starting async agent invocation'
           );
 
-      // Load full project with agents to build execution context
-      const project = await getFullProjectWithRelationIds(manageDbClient)({
-        scopes: { tenantId, projectId },
-      });
+          // Load full project with agents to build execution context
+          const project = await getFullProjectWithRelationIds(manageDbClient)({
+            scopes: { tenantId, projectId },
+          });
 
-    if (!project) {
-      throw createApiError({
-        code: 'not_found',
-        message: `Project ${projectId} not found`,
-      });
-    }
+          if (!project) {
+            throw createApiError({
+              code: 'not_found',
+              message: `Project ${projectId} not found`,
+            });
+          }
 
-    // Get the agent from project
-    const fullAgent = project.agents[agentId];
-    if (!fullAgent) {
-      throw createApiError({
-        code: 'not_found',
-        message: `Agent ${agentId} not found`,
-      });
-    }
+          // Get the agent from project
+          const fullAgent = project.agents[agentId];
+          if (!fullAgent) {
+            throw createApiError({
+              code: 'not_found',
+              message: `Agent ${agentId} not found`,
+            });
+          }
 
-    // Determine default sub-agent
-    logger.debug(
-      {
-        tenantId,
-        projectId,
-        agentId,
-        defaultSubAgentId: fullAgent.defaultSubAgentId,
-        subAgentKeys: Object.keys((fullAgent.subAgents as Record<string, any>) || {}),
-        subAgentsCount: Object.keys((fullAgent.subAgents as Record<string, any>) || {}).length,
-      },
-      'Debug: Agent and sub-agent info'
-    );
+          // Determine default sub-agent
+          logger.debug(
+            {
+              tenantId,
+              projectId,
+              agentId,
+              defaultSubAgentId: fullAgent.defaultSubAgentId,
+              subAgentKeys: Object.keys((fullAgent.subAgents as Record<string, any>) || {}),
+              subAgentsCount: Object.keys((fullAgent.subAgents as Record<string, any>) || {})
+                .length,
+            },
+            'Debug: Agent and sub-agent info'
+          );
 
-    const agentKeys = Object.keys((fullAgent.subAgents as Record<string, any>) || {});
-    const firstAgentId = agentKeys.length > 0 ? agentKeys[0] : '';
-    const defaultSubAgentId = (fullAgent.defaultSubAgentId as string) || firstAgentId;
+          const agentKeys = Object.keys((fullAgent.subAgents as Record<string, any>) || {});
+          const firstAgentId = agentKeys.length > 0 ? agentKeys[0] : '';
+          const defaultSubAgentId = (fullAgent.defaultSubAgentId as string) || firstAgentId;
 
-    if (!defaultSubAgentId) {
-      throw createApiError({
-        code: 'not_found',
-        message: 'No default sub-agent found',
-      });
-    }
+          if (!defaultSubAgentId) {
+            throw createApiError({
+              code: 'not_found',
+              message: 'No default sub-agent found',
+            });
+          }
 
-    // Build execution context for trigger invocation
-    const executionContext: FullExecutionContext = {
-      tenantId,
-      projectId,
-      agentId,
-      baseUrl: env.INKEEP_AGENTS_RUN_API_URL || 'http://localhost:8080',
-      apiKey: '', // Triggers don't use API keys
-      apiKeyId: 'trigger-invocation', // Placeholder since triggers don't use API keys
-      resolvedRef: {
-        type: 'branch' as const,
-        name: 'main',
-        hash: 'HEAD',
-      },
-      project,
-      metadata: {
-        initiatedBy: {
-          type: 'api_key',
-          id: triggerId,
-        },
-      },
-    };
+          // Build execution context for trigger invocation
+          const executionContext: FullExecutionContext = {
+            tenantId,
+            projectId,
+            agentId,
+            baseUrl: env.INKEEP_AGENTS_RUN_API_URL || 'http://localhost:8080',
+            apiKey: '', // Triggers don't use API keys
+            apiKeyId: 'trigger-invocation', // Placeholder since triggers don't use API keys
+            resolvedRef: {
+              type: 'branch' as const,
+              name: 'main',
+              hash: 'HEAD',
+            },
+            project,
+            metadata: {
+              initiatedBy: {
+                type: 'api_key',
+                id: triggerId,
+              },
+            },
+          };
 
-    // Create conversation in runtime database
-    await createOrGetConversation(dbClient)({
-      tenantId,
-      projectId,
-      id: conversationId,
-      agentId,
-      activeSubAgentId: defaultSubAgentId,
-      ref: executionContext.resolvedRef,
-    });
+          // Create conversation in runtime database
+          await createOrGetConversation(dbClient)({
+            tenantId,
+            projectId,
+            id: conversationId,
+            agentId,
+            activeSubAgentId: defaultSubAgentId,
+            ref: executionContext.resolvedRef,
+          });
 
-    // Set active agent for conversation
-    await setActiveAgentForConversation(dbClient)({
-      scopes: { tenantId, projectId },
-      conversationId,
-      agentId,
-      subAgentId: defaultSubAgentId,
-      ref: executionContext.resolvedRef,
-    });
+          // Set active agent for conversation
+          await setActiveAgentForConversation(dbClient)({
+            scopes: { tenantId, projectId },
+            conversationId,
+            agentId,
+            subAgentId: defaultSubAgentId,
+            ref: executionContext.resolvedRef,
+          });
 
-    logger.info(
-      { conversationId, agentId, defaultSubAgentId },
-      'Conversation created and agent set'
-    );
+          logger.info(
+            { conversationId, agentId, defaultSubAgentId },
+            'Conversation created and agent set'
+          );
 
-    // Create user message in conversation
-    await createMessage(dbClient)({
-      id: generateId(),
-      tenantId,
-      projectId,
-      conversationId,
-      role: 'user',
-      content: {
-        text: userMessage,
-      },
-      visibility: 'user-facing',
-      messageType: 'chat',
-    });
+          // Create user message in conversation
+          await createMessage(dbClient)({
+            id: generateId(),
+            tenantId,
+            projectId,
+            conversationId,
+            role: 'user',
+            content: {
+              text: userMessage,
+            },
+            visibility: 'user-facing',
+            messageType: 'chat',
+          });
 
-    logger.info({ conversationId, invocationId }, 'User message created');
+          logger.info({ conversationId, invocationId }, 'User message created');
 
-    // Execute the agent using ExecutionHandler
-    // Note: We use a null stream helper since this is fire-and-forget (no SSE streaming)
-    const requestId = `trigger-${invocationId}`;
-    const timestamp = Math.floor(Date.now() / 1000);
+          // Execute the agent using ExecutionHandler
+          // Note: We use a null stream helper since this is fire-and-forget (no SSE streaming)
+          const requestId = `trigger-${invocationId}`;
+          const timestamp = Math.floor(Date.now() / 1000);
 
-    // Create a no-op stream helper since triggers don't stream responses back
-    // The HonoSSEStream interface requires writeSSE and sleep methods
-    const noOpStreamHelper = createSSEStreamHelper(
-      {
-        writeSSE: async () => {},
-        sleep: async () => {},
-      },
-      requestId,
-      timestamp
-    );
+          // Create a no-op stream helper since triggers don't stream responses back
+          // The HonoSSEStream interface requires writeSSE and sleep methods
+          const noOpStreamHelper = createSSEStreamHelper(
+            {
+              writeSSE: async () => {},
+              sleep: async () => {},
+            },
+            requestId,
+            timestamp
+          );
 
-    const executionHandler = new ExecutionHandler();
-    await executionHandler.execute({
-      executionContext,
-      conversationId,
-      userMessage,
-      initialAgentId: agentId,
-      requestId,
-      sseHelper: noOpStreamHelper,
-      emitOperations: false,
-    });
+          const executionHandler = new ExecutionHandler();
+          await executionHandler.execute({
+            executionContext,
+            conversationId,
+            userMessage,
+            initialAgentId: agentId,
+            requestId,
+            sseHelper: noOpStreamHelper,
+            emitOperations: false,
+          });
 
-    // Update trigger invocation status to success - uses runtime DB
-    await updateTriggerInvocationStatus(dbClient)({
-      scopes: { tenantId, projectId, agentId },
-      triggerId,
-      invocationId,
-      data: {
-        status: 'success',
-      },
-    });
+          // Update trigger invocation status to success - uses runtime DB
+          await updateTriggerInvocationStatus(dbClient)({
+            scopes: { tenantId, projectId, agentId },
+            triggerId,
+            invocationId,
+            data: {
+              status: 'success',
+            },
+          });
 
           logger.info(
             { tenantId, projectId, agentId, triggerId, invocationId, conversationId },

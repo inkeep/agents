@@ -2,6 +2,41 @@ import { sql } from 'drizzle-orm';
 import type { AgentsManageDatabaseClient } from '../db/manage/manage-client';
 import { doltHashOf } from './commit';
 
+// Cache the Dolt detection result to avoid checking on every withBranch call
+// WeakMap allows garbage collection of db instances while caching results
+const isDoltCache = new WeakMap<AgentsManageDatabaseClient, boolean>();
+
+// In test environments (PGlite), skip Dolt operations entirely
+const isTestEnvironment = process.env.NODE_ENV === 'test' || process.env.VITEST === 'true';
+
+/**
+ * Check if the database supports Dolt operations (cached per db instance)
+ */
+async function checkIsDolt(db: AgentsManageDatabaseClient): Promise<boolean> {
+  // In test environment, always return false (PGlite doesn't support Dolt)
+  if (isTestEnvironment) {
+    return false;
+  }
+
+  // Check cache first
+  const cached = isDoltCache.get(db);
+  if (cached !== undefined) {
+    return cached;
+  }
+
+  // Check if ACTIVE_BRANCH() is available
+  let isDolt = true;
+  try {
+    await db.execute(sql`SELECT ACTIVE_BRANCH() as branch`);
+  } catch {
+    isDolt = false;
+  }
+
+  // Cache the result
+  isDoltCache.set(db, isDolt);
+  return isDolt;
+}
+
 export type branchScopes = {
   tenantId: string;
   projectId: string;
@@ -138,6 +173,14 @@ export const withBranch =
     callback: (txDb: AgentsManageDatabaseClient) => Promise<T>;
   }): Promise<T> => {
     const { branchName, callback } = params;
+
+    // Check if Dolt is available (cached check, skipped entirely in test environment)
+    const isDolt = await checkIsDolt(db);
+
+    // If not on Dolt, just run the callback directly without branch operations
+    if (!isDolt) {
+      return callback(db);
+    }
 
     // Use a transaction to ensure all queries run on the same connection
     // This is critical because DOLT_CHECKOUT is connection-scoped

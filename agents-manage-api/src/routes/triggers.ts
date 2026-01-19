@@ -121,17 +121,21 @@ app.openapi(
       pagination: { page, limit },
     });
 
-    // Add webhookUrl to each trigger
-    const dataWithWebhookUrl = result.data.map((trigger) => ({
-      ...trigger,
-      webhookUrl: generateWebhookUrl({
-        baseUrl: runApiBaseUrl,
-        tenantId,
-        projectId,
-        agentId,
-        triggerId: trigger.id,
-      }),
-    }));
+    // Add webhookUrl to each trigger and exclude sensitive scope fields
+    const dataWithWebhookUrl = result.data.map((trigger) => {
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
+      const { tenantId: _tid, projectId: _pid, agentId: _aid, ...triggerWithoutScopes } = trigger;
+      return {
+        ...triggerWithoutScopes,
+        webhookUrl: generateWebhookUrl({
+          baseUrl: runApiBaseUrl,
+          tenantId,
+          projectId,
+          agentId,
+          triggerId: trigger.id,
+        }),
+      };
+    });
 
     return c.json({
       data: dataWithWebhookUrl,
@@ -182,9 +186,12 @@ app.openapi(
       });
     }
 
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    const { tenantId: _tid, projectId: _pid, agentId: _aid, ...triggerWithoutScopes } = trigger;
+
     return c.json({
       data: {
-        ...trigger,
+        ...triggerWithoutScopes,
         webhookUrl: generateWebhookUrl({
           baseUrl: runApiBaseUrl,
           tenantId,
@@ -254,10 +261,13 @@ app.openapi(
       signingSecret: body.signingSecret,
     });
 
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    const { tenantId: _tid, projectId: _pid, agentId: _aid, ...triggerWithoutScopes } = trigger;
+
     return c.json(
       {
         data: {
-          ...trigger,
+          ...triggerWithoutScopes,
           webhookUrl: generateWebhookUrl({
             baseUrl: runApiBaseUrl,
             tenantId,
@@ -310,7 +320,19 @@ app.openapi(
     const body = c.req.valid('json');
     const runApiBaseUrl = env.INKEEP_AGENTS_RUN_API_URL;
 
-    if (Object.keys(body).length === 0) {
+    // Check if any update fields were actually provided
+    // We check each field explicitly to avoid issues with Zod defaults
+    const hasUpdateFields =
+      body.name !== undefined ||
+      body.description !== undefined ||
+      body.enabled !== undefined ||
+      body.inputSchema !== undefined ||
+      body.outputTransform !== undefined ||
+      body.messageTemplate !== undefined ||
+      body.authentication !== undefined ||
+      body.signingSecret !== undefined;
+
+    if (!hasUpdateFields) {
       throw createApiError({
         code: 'bad_request',
         message: 'No fields to update',
@@ -341,9 +363,13 @@ app.openapi(
       });
     }
 
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    const { tenantId: _tid, projectId: _pid, agentId: _aid, ...triggerWithoutScopes } =
+      updatedTrigger;
+
     return c.json({
       data: {
-        ...updatedTrigger,
+        ...triggerWithoutScopes,
         webhookUrl: generateWebhookUrl({
           baseUrl: runApiBaseUrl,
           tenantId,
@@ -381,6 +407,19 @@ app.openapi(
     const { tenantId, projectId, agentId, id } = c.req.valid('param');
 
     logger.info({ tenantId, projectId, agentId, triggerId: id }, 'Deleting trigger');
+
+    // First check if the trigger exists
+    const existing = await getTriggerById(db)({
+      scopes: { tenantId, projectId, agentId },
+      triggerId: id,
+    });
+
+    if (!existing) {
+      throw createApiError({
+        code: 'not_found',
+        message: 'Trigger not found',
+      });
+    }
 
     await deleteTrigger(db)({
       scopes: { tenantId, projectId, agentId },
@@ -467,7 +506,17 @@ app.openapi(
       },
     });
 
-    return c.json(result);
+    // Remove sensitive scope fields from invocations
+    const dataWithoutScopes = result.data.map((invocation) => {
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
+      const { tenantId: _tid, projectId: _pid, agentId: _aid, ...rest } = invocation;
+      return rest;
+    });
+
+    return c.json({
+      data: dataWithoutScopes,
+      pagination: result.pagination,
+    });
   }
 );
 
@@ -520,8 +569,12 @@ app.openapi(
       });
     }
 
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    const { tenantId: _tid, projectId: _pid, agentId: _aid, ...invocationWithoutScopes } =
+      invocation;
+
     return c.json({
-      data: invocation,
+      data: invocationWithoutScopes,
     });
   }
 );

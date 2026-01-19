@@ -266,8 +266,11 @@ describe('Webhook Endpoint Tests', () => {
         ...testTrigger,
         authentication: {
           type: 'api_key',
-          headerName: 'X-API-Key',
-          apiKey: 'test-secret-key',
+          add_position: 'header',
+          data: {
+            name: 'X-API-Key',
+            value: 'test-secret-key',
+          },
         },
       };
       getTriggerByIdMock.mockReturnValue(vi.fn().mockResolvedValue(triggerWithApiKey));
@@ -292,8 +295,11 @@ describe('Webhook Endpoint Tests', () => {
         ...testTrigger,
         authentication: {
           type: 'api_key',
-          headerName: 'X-API-Key',
-          apiKey: 'test-secret-key',
+          add_position: 'header',
+          data: {
+            name: 'X-API-Key',
+            value: 'test-secret-key',
+          },
         },
       };
       getTriggerByIdMock.mockReturnValue(vi.fn().mockResolvedValue(triggerWithApiKey));
@@ -319,8 +325,11 @@ describe('Webhook Endpoint Tests', () => {
         ...testTrigger,
         authentication: {
           type: 'api_key',
-          headerName: 'X-API-Key',
-          apiKey: 'test-secret-key',
+          add_position: 'header',
+          data: {
+            name: 'X-API-Key',
+            value: 'test-secret-key',
+          },
         },
       };
       getTriggerByIdMock.mockReturnValue(vi.fn().mockResolvedValue(triggerWithApiKey));
@@ -347,8 +356,11 @@ describe('Webhook Endpoint Tests', () => {
         ...testTrigger,
         authentication: {
           type: 'basic_auth',
-          username: 'testuser',
-          password: 'testpass',
+          add_position: 'header',
+          data: {
+            username: 'testuser',
+            password: 'testpass',
+          },
         },
       };
       getTriggerByIdMock.mockReturnValue(vi.fn().mockResolvedValue(triggerWithBasicAuth));
@@ -374,7 +386,10 @@ describe('Webhook Endpoint Tests', () => {
         ...testTrigger,
         authentication: {
           type: 'bearer_token',
-          token: 'test-bearer-token',
+          add_position: 'header',
+          data: {
+            token: 'test-bearer-token',
+          },
         },
       };
       getTriggerByIdMock.mockReturnValue(vi.fn().mockResolvedValue(triggerWithBearerAuth));
@@ -534,7 +549,7 @@ describe('Webhook Endpoint Tests', () => {
 
       expect(response.status).toBe(404);
       const data = await response.json();
-      expect(data.error).toContain('not found');
+      expect(data.detail).toContain('not found');
     });
 
     it('should return 404 when trigger is disabled', async () => {
@@ -554,7 +569,7 @@ describe('Webhook Endpoint Tests', () => {
 
       expect(response.status).toBe(404);
       const data = await response.json();
-      expect(data.error).toContain('disabled');
+      expect(data.detail).toContain('disabled');
     });
   });
 
@@ -582,6 +597,213 @@ describe('Webhook Endpoint Tests', () => {
       expect(response.status).toBe(422);
       const data = await response.json();
       expect(data.error).toContain('transformation failed');
+    });
+
+    it('should apply JMESPath field extraction transformation', async () => {
+      const createInvocationFn = vi.fn().mockResolvedValue({});
+      createTriggerInvocationMock.mockReturnValue(createInvocationFn);
+
+      const triggerWithJMESPath = {
+        ...testTrigger,
+        inputSchema: null, // Skip validation for this test
+        outputTransform: {
+          jmespath: '{ action: action, title: issue.title }',
+        },
+      };
+      getTriggerByIdMock.mockReturnValue(vi.fn().mockResolvedValue(triggerWithJMESPath));
+
+      const response = await app.request(
+        '/tenants/tenant-123/projects/project-123/agents/agent-123/triggers/trigger-123',
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            action: 'opened',
+            issue: {
+              title: 'Bug report',
+              body: 'Description of the bug',
+            },
+          }),
+        }
+      );
+
+      expect(response.status).toBe(202);
+      expect(createInvocationFn).toHaveBeenCalledWith(
+        expect.objectContaining({
+          requestPayload: {
+            action: 'opened',
+            issue: { title: 'Bug report', body: 'Description of the bug' },
+          },
+          transformedPayload: {
+            action: 'opened',
+            title: 'Bug report',
+          },
+        })
+      );
+    });
+
+    it('should apply JMESPath array filtering transformation', async () => {
+      const createInvocationFn = vi.fn().mockResolvedValue({});
+      createTriggerInvocationMock.mockReturnValue(createInvocationFn);
+
+      const triggerWithArrayFilter = {
+        ...testTrigger,
+        inputSchema: null, // Skip validation for this test
+        outputTransform: {
+          jmespath: 'tasks[?priority > `3`].name',
+        },
+      };
+      getTriggerByIdMock.mockReturnValue(vi.fn().mockResolvedValue(triggerWithArrayFilter));
+
+      const response = await app.request(
+        '/tenants/tenant-123/projects/project-123/agents/agent-123/triggers/trigger-123',
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            tasks: [
+              { name: 'High priority', priority: 5 },
+              { name: 'Low priority', priority: 2 },
+              { name: 'Medium priority', priority: 4 },
+            ],
+          }),
+        }
+      );
+
+      expect(response.status).toBe(202);
+      expect(createInvocationFn).toHaveBeenCalledWith(
+        expect.objectContaining({
+          transformedPayload: ['High priority', 'Medium priority'],
+        })
+      );
+    });
+
+    it('should apply objectTransformation mapping', async () => {
+      const createInvocationFn = vi.fn().mockResolvedValue({});
+      createTriggerInvocationMock.mockReturnValue(createInvocationFn);
+
+      const triggerWithObjectTransform = {
+        ...testTrigger,
+        inputSchema: null,
+        outputTransform: {
+          objectTransformation: {
+            sender: 'event.user',
+            message: 'event.text',
+            channel: 'event.channel',
+          },
+        },
+      };
+      getTriggerByIdMock.mockReturnValue(vi.fn().mockResolvedValue(triggerWithObjectTransform));
+
+      const response = await app.request(
+        '/tenants/tenant-123/projects/project-123/agents/agent-123/triggers/trigger-123',
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            event: {
+              user: 'U12345',
+              text: 'Hello world',
+              channel: 'general',
+            },
+          }),
+        }
+      );
+
+      expect(response.status).toBe(202);
+      expect(createInvocationFn).toHaveBeenCalledWith(
+        expect.objectContaining({
+          transformedPayload: {
+            sender: 'U12345',
+            message: 'Hello world',
+            channel: 'general',
+          },
+        })
+      );
+    });
+
+    it('should apply complex nested JMESPath transformation with length function', async () => {
+      const createInvocationFn = vi.fn().mockResolvedValue({});
+      createTriggerInvocationMock.mockReturnValue(createInvocationFn);
+
+      const triggerWithComplexJMESPath = {
+        ...testTrigger,
+        inputSchema: null,
+        outputTransform: {
+          jmespath:
+            '{ orderId: order.id, customerName: order.customer.name, itemNames: order.items[*].name, itemCount: length(order.items) }',
+        },
+      };
+      getTriggerByIdMock.mockReturnValue(vi.fn().mockResolvedValue(triggerWithComplexJMESPath));
+
+      const response = await app.request(
+        '/tenants/tenant-123/projects/project-123/agents/agent-123/triggers/trigger-123',
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            order: {
+              id: 'ORD-123',
+              customer: { name: 'John Doe' },
+              items: [
+                { name: 'Widget A', price: 10 },
+                { name: 'Widget B', price: 20 },
+              ],
+            },
+          }),
+        }
+      );
+
+      expect(response.status).toBe(202);
+      expect(createInvocationFn).toHaveBeenCalledWith(
+        expect.objectContaining({
+          transformedPayload: {
+            orderId: 'ORD-123',
+            customerName: 'John Doe',
+            itemNames: ['Widget A', 'Widget B'],
+            itemCount: 2,
+          },
+        })
+      );
+    });
+
+    it('should pass through payload unchanged when no outputTransform is configured', async () => {
+      const createInvocationFn = vi.fn().mockResolvedValue({});
+      createTriggerInvocationMock.mockReturnValue(createInvocationFn);
+
+      const triggerNoTransform = {
+        ...testTrigger,
+        outputTransform: null,
+      };
+      getTriggerByIdMock.mockReturnValue(vi.fn().mockResolvedValue(triggerNoTransform));
+
+      const payload = { message: 'test', extra: 'data' };
+      const response = await app.request(
+        '/tenants/tenant-123/projects/project-123/agents/agent-123/triggers/trigger-123',
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(payload),
+        }
+      );
+
+      expect(response.status).toBe(202);
+      expect(createInvocationFn).toHaveBeenCalledWith(
+        expect.objectContaining({
+          requestPayload: payload,
+          transformedPayload: payload,
+        })
+      );
     });
   });
 
