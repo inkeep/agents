@@ -1,11 +1,11 @@
 import type { Artifact, McpTool } from '@inkeep/agents-core';
 import { V1_BREAKDOWN_SCHEMA } from '@inkeep/agents-core';
 import { convertZodToJsonSchema, isZodSchema } from '@inkeep/agents-core/utils/schema-conversion';
-import systemPromptTemplate from '../../../../../../templates/v1/phase1/system-prompt.xml?raw';
-import thinkingPreparationTemplate from '../../../../../../templates/v1/phase1/thinking-preparation.xml?raw';
-import toolTemplate from '../../../../../../templates/v1/phase1/tool.xml?raw';
-import artifactTemplate from '../../../../../../templates/v1/shared/artifact.xml?raw';
-import artifactRetrievalGuidance from '../../../../../../templates/v1/shared/artifact-retrieval-guidance.xml?raw';
+import systemPromptTemplate from '../../../../../../templates/v1/phase1/system-prompt.xml';
+import thinkingPreparationTemplate from '../../../../../../templates/v1/phase1/thinking-preparation.xml';
+import toolTemplate from '../../../../../../templates/v1/phase1/tool.xml';
+import artifactTemplate from '../../../../../../templates/v1/shared/artifact.xml';
+import artifactRetrievalGuidance from '../../../../../../templates/v1/shared/artifact-retrieval-guidance.md';
 import {
   type AssembleResult,
   type BreakdownComponentDef,

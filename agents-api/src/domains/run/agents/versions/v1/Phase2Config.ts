@@ -4,12 +4,12 @@ import type {
   ArtifactComponentApiSelect,
   DataComponentApiInsert,
 } from '@inkeep/agents-core';
-import dataComponentTemplate from '../../../../../../templates/v1/phase2/data-component.xml?raw';
-import dataComponentsTemplate from '../../../../../../templates/v1/phase2/data-components.xml?raw';
-import systemPromptTemplate from '../../../../../../templates/v1/phase2/system-prompt.xml?raw';
+import dataComponentTemplate from '../../../../../../templates/v1/phase2/data-component.xml';
+import dataComponentsTemplate from '../../../../../../templates/v1/phase2/data-components.xml';
+import systemPromptTemplate from '../../../../../../templates/v1/phase2/system-prompt.xml';
 // Import template content as raw text
-import artifactTemplate from '../../../../../../templates/v1/shared/artifact.xml?raw';
-import artifactRetrievalGuidance from '../../../../../../templates/v1/shared/artifact-retrieval-guidance.xml?raw';
+import artifactTemplate from '../../../../../../templates/v1/shared/artifact.xml';
+import artifactRetrievalGuidance from '../../../../../../templates/v1/shared/artifact-retrieval-guidance.md';
 import { ArtifactCreateSchema } from '../../../utils/artifact-component-schema';
 
 /**
