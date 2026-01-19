@@ -52,6 +52,8 @@ export function CredentialForm({ onCreateCredential, tenantId, projectId }: Cred
     resolver: zodResolver(credentialFormSchema),
     defaultValues: defaultValues,
   });
+  const credentialStoreId = useWatch({ control: form.control, name: 'credentialStoreId' });
+  const credentialStoreType = useWatch({ control: form.control, name: 'credentialStoreType' });
 
   const { isSubmitting } = form.formState;
 
@@ -143,18 +145,19 @@ export function CredentialForm({ onCreateCredential, tenantId, projectId }: Cred
   }, [shouldLinkToExternalAgent, form]);
 
   useEffect(() => {
-    const subscription = form.watch((value: any, { name }: any) => {
-      if (name === 'credentialStoreId' && value.credentialStoreId) {
-        const selectedStore = credentialStores.find(
-          (store) => store.id === value.credentialStoreId
-        );
-        if (selectedStore && selectedStore.type !== 'memory') {
-          form.setValue('credentialStoreType', selectedStore.type);
-        }
+    if (!credentialStoreId) {
+      return;
+    }
+
+    const selectedStore = credentialStores.find(
+      (store) => store.id === credentialStoreId
+    );
+    if (selectedStore && selectedStore.type !== 'memory') {
+      if (selectedStore.type !== credentialStoreType) {
+        form.setValue('credentialStoreType', selectedStore.type);
       }
-    });
-    return () => subscription.unsubscribe();
-  }, [form, credentialStores]);
+    }
+  }, [credentialStoreId, credentialStoreType, credentialStores, form]);
 
   const handleLinkToServerChange = (checked: boolean | 'indeterminate') => {
     setShouldLinkToServer(checked === true);
@@ -289,7 +292,7 @@ export function CredentialForm({ onCreateCredential, tenantId, projectId }: Cred
             </InfoCard>
           </div>
 
-          {!storesLoading && form.watch('credentialStoreType') === CredentialStoreType.nango && (
+          {!storesLoading && credentialStoreType === CredentialStoreType.nango && (
             <div className="space-y-3">
               <GenericKeyValueInput
                 control={form.control}
