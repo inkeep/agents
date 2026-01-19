@@ -9,12 +9,13 @@ import {
   createDefaultCredentialStores,
   type ServerConfig,
 } from '@inkeep/agents-core';
+import type { createAuth } from '@inkeep/agents-core/auth';
 import { Hono } from 'hono';
 import { createExecutionHono } from './create-app';
 
 export { Hono };
 
-import type { SandboxConfig } from './types/execution-context';
+import type { Principal, SandboxConfig } from './types/execution-context';
 
 // Create default configuration
 const defaultConfig: ServerConfig = {
@@ -46,15 +47,19 @@ export type {
   VercelSandboxConfig,
 } from './types/execution-context';
 
-// Export a helper to create app with custom credential stores and sandbox config - fallsback to default configs
+// Export Principal type for auth context
+export type { Principal } from './types/execution-context';
+
+// Export a helper to create app with custom credential stores, sandbox config, and auth - fallsback to default configs
 export function createExecutionApp(config?: {
   serverConfig?: ServerConfig;
   credentialStores?: CredentialStore[];
   sandboxConfig?: SandboxConfig;
+  auth?: ReturnType<typeof createAuth> | null;
 }) {
   const serverConfig = config?.serverConfig ?? defaultConfig;
   const stores = config?.credentialStores ?? defaultStores;
   const registry = new CredentialStoreRegistry(stores);
 
-  return createExecutionHono(serverConfig, registry, config?.sandboxConfig);
+  return createExecutionHono(serverConfig, registry, config?.sandboxConfig, config?.auth);
 }

@@ -283,6 +283,15 @@ export async function validateHeaders({
     logger.info({ tenantId, projectId, agentId }, 'Validating headers');
     const agent = project.agents[agentId];
 
+    if (!agent) {
+      logger.warn({ agentId }, 'Agent not found in project, skipping context validation');
+      return {
+        valid: true,
+        errors: [],
+        validatedContext: parsedRequest,
+      };
+    }
+
     const contextConfig = agent.contextConfig;
     logger.info({ contextConfig }, 'Context config found');
 

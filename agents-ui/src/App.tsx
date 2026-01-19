@@ -9,8 +9,14 @@ function App() {
           primaryBrandColor: '#3784ff',
         }}
         aiChatSettings={{
+          headers: {
+            'x-inkeep-tenant-id': 'default',
+            'x-inkeep-project-id': 'andrew1',
+            'x-inkeep-agent-id': 'saloon',
+            'x-api-key': import.meta.env.VITE_INKEEP_AGENTS_RUN_API_KEY,
+          },
           agentUrl: 'http://localhost:3003/api/chat',
-          apiKey: 'YOUR_API_KEY',
+          apiKey: import.meta.env.VITE_INKEEP_AGENTS_RUN_API_KEY,
         }}
       />
     </div>

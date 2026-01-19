@@ -5,12 +5,13 @@ import {
   verifyServiceToken,
   verifyTempToken,
 } from '@inkeep/agents-core';
+import type { createAuth } from '@inkeep/agents-core/auth';
 import { createMiddleware } from 'hono/factory';
 import { HTTPException } from 'hono/http-exception';
 import dbClient from '../data/db/dbClient';
 import { env } from '../env';
 import { getLogger } from '../logger';
-import { createBaseExecutionContext } from '../types/execution-context';
+import { createBaseExecutionContext, type Principal } from '../types/execution-context';
 
 const logger = getLogger('env-key-auth');
 
@@ -29,6 +30,7 @@ const logger = getLogger('env-key-auth');
 interface RequestData {
   authHeader?: string;
   apiKey?: string;
+  xApiKey?: string; // X-API-Key header (new pattern per spec)
   tenantId?: string;
   projectId?: string;
   agentId?: string;
@@ -56,6 +58,7 @@ type AuthAttempt = {
  */
 function extractRequestData(c: { req: any }): RequestData {
   const authHeader = c.req.header('Authorization');
+  const xApiKey = c.req.header('X-API-Key');
   const tenantId = c.req.header('x-inkeep-tenant-id');
   const projectId = c.req.header('x-inkeep-project-id');
   const agentId = c.req.header('x-inkeep-agent-id');
@@ -73,9 +76,15 @@ function extractRequestData(c: { req: any }): RequestData {
         ? `${reqUrl.protocol}//${host}`
         : `${reqUrl.origin}`;
 
+  // Support both X-API-Key header (new spec) and Authorization Bearer (backward compatible)
+  // If X-API-Key is present, use it as the API key
+  // Otherwise, fall back to Authorization Bearer (existing behavior)
+  const apiKey = xApiKey || (authHeader?.startsWith('Bearer ') ? authHeader.substring(7) : undefined);
+
   return {
     authHeader,
-    apiKey: authHeader?.startsWith('Bearer ') ? authHeader.substring(7) : undefined,
+    apiKey,
+    xApiKey,
     tenantId,
     projectId,
     agentId,
@@ -100,6 +109,43 @@ function buildExecutionContext(authResult: AuthResult, reqData: RequestData): Ba
     ref: reqData.ref,
     metadata: authResult.metadata,
   });
+}
+
+// ============================================================================
+// Session Validation
+// ============================================================================
+
+/**
+ * Validates a Better Auth session token and returns principal info
+ * Returns null if no valid session found
+ */
+async function validateSession(
+  auth: ReturnType<typeof createAuth> | null,
+  headers: Headers
+): Promise<Principal | null> {
+  if (!auth) {
+    return null;
+  }
+
+  try {
+    const session = await auth.api.getSession({ headers });
+
+    if (!session?.user) {
+      return null;
+    }
+
+    const isAnonymous = session.user.isAnonymous === true;
+
+    return {
+      type: isAnonymous ? 'anonymous' : 'authenticated',
+      id: session.user.id,
+      email: isAnonymous ? undefined : session.user.email,
+      isAnonymous,
+    };
+  } catch (error) {
+    logger.debug({ error }, 'Session validation failed');
+    return null;
+  }
 }
 
 // ============================================================================
@@ -311,15 +357,22 @@ async function authenticateRequest(reqData: RequestData): Promise<AuthAttempt> {
   return { authResult: null, failureMessage: teamAttempt.failureMessage };
 }
 
-export const apiKeyAuth = () =>
+export const apiKeyAuth = (auth?: ReturnType<typeof createAuth> | null) =>
   createMiddleware<{
     Variables: {
       executionContext: BaseExecutionContext;
+      principal?: Principal;
+      auth?: ReturnType<typeof createAuth> | null;
     };
   }>(async (c, next) => {
     if (c.req.method === 'OPTIONS') {
       await next();
       return;
+    }
+
+    // Make auth available on context for other middleware
+    if (auth) {
+      c.set('auth', auth);
     }
 
     const reqData = extractRequestData(c);
@@ -343,14 +396,34 @@ export const apiKeyAuth = () =>
         c.set('executionContext', buildExecutionContext(createDevContext(reqData), reqData));
       }
 
+      // Validate session if auth is available and Authorization header present
+      if (auth && reqData.authHeader?.startsWith('Bearer ')) {
+        const headers = new Headers();
+        headers.set('Authorization', reqData.authHeader);
+        // Also forward cookies if present
+        const cookie = c.req.header('cookie');
+        if (cookie) {
+          headers.set('cookie', cookie);
+        }
+        const principal = await validateSession(auth, headers);
+        if (principal) {
+          c.set('principal', principal);
+          logger.debug({ principalId: principal.id, isAnonymous: principal.isAnonymous }, 'Session validated');
+        }
+      }
+
       await next();
       return;
     }
 
-    // Production environment - require valid auth
-    if (!reqData.authHeader || !reqData.authHeader.startsWith('Bearer ')) {
+    // Production environment - require valid API key auth
+    // Support both X-API-Key header (new spec) and Authorization Bearer (backward compatible)
+    const hasXApiKey = !!reqData.xApiKey;
+    const hasAuthBearer = reqData.authHeader?.startsWith('Bearer ');
+
+    if (!hasXApiKey && !hasAuthBearer) {
       throw new HTTPException(401, {
-        message: 'Missing or invalid authorization header. Expected: Bearer <api_key>',
+        message: 'Missing API key. Expected: X-API-Key header or Authorization: Bearer <api_key>',
       });
     }
 
@@ -389,6 +462,38 @@ export const apiKeyAuth = () =>
     );
 
     c.set('executionContext', buildExecutionContext(attempt.authResult, reqData));
+
+    // Validate session if auth is available
+    // When using X-API-Key, the Authorization header contains the session token
+    // When using Authorization Bearer for API key (backward compat), session is from cookies only
+    if (auth) {
+      const headers = new Headers();
+
+      if (hasXApiKey && hasAuthBearer) {
+        // New pattern: X-API-Key for API key, Authorization Bearer for session token
+        headers.set('Authorization', reqData.authHeader!);
+      }
+
+      // Also forward cookies for session validation
+      const cookie = c.req.header('cookie');
+      if (cookie) {
+        headers.set('cookie', cookie);
+      }
+      const forwardedCookie = c.req.header('x-forwarded-cookie');
+      if (forwardedCookie) {
+        headers.set('cookie', forwardedCookie);
+      }
+
+      const principal = await validateSession(auth, headers);
+      if (principal) {
+        c.set('principal', principal);
+        logger.info(
+          { principalId: principal.id, isAnonymous: principal.isAnonymous },
+          'Session validated successfully'
+        );
+      }
+    }
+
     await next();
   });
 
@@ -396,18 +501,21 @@ export const apiKeyAuth = () =>
  * Helper middleware for endpoints that optionally support API key authentication
  * If no auth header is present, it continues without setting the executionContext
  */
-export const optionalAuth = () =>
+export const optionalAuth = (auth?: ReturnType<typeof createAuth> | null) =>
   createMiddleware<{
     Variables: {
       executionContext?: BaseExecutionContext;
+      principal?: Principal;
     };
   }>(async (c, next) => {
     const authHeader = c.req.header('Authorization');
+    const xApiKey = c.req.header('X-API-Key');
 
-    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+    // No auth headers present, continue without context
+    if (!xApiKey && (!authHeader || !authHeader.startsWith('Bearer '))) {
       await next();
       return;
     }
 
-    return apiKeyAuth()(c as any, next);
+    return apiKeyAuth(auth)(c as any, next);
   });

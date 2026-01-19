@@ -81,6 +81,17 @@ export const apiKeyAuth = () =>
         const session = await auth.api.getSession({ headers });
 
         if (session?.user) {
+          // Reject anonymous sessions - they can only access Run API, not Manage API
+          if (session.user.isAnonymous === true) {
+            logger.warn(
+              { userId: session.user.id },
+              'Anonymous session rejected for Manage API access'
+            );
+            throw new HTTPException(403, {
+              message: 'Authentication required. Anonymous sessions cannot access this API.',
+            });
+          }
+
           logger.info(
             { userId: session.user.id },
             'Better-auth session authenticated successfully'

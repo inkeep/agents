@@ -7,6 +7,7 @@ import {
   handleApiError,
   type ServerConfig,
 } from '@inkeep/agents-core';
+import type { createAuth } from '@inkeep/agents-core/auth';
 import { context as otelContext, propagation } from '@opentelemetry/api';
 import { Hono } from 'hono';
 import { cors } from 'hono/cors';
@@ -22,7 +23,7 @@ import agentRoutes from './routes/agents';
 import chatRoutes from './routes/chat';
 import chatDataRoutes from './routes/chatDataStream';
 import mcpRoutes from './routes/mcp';
-import type { SandboxConfig } from './types/execution-context';
+import type { Principal, SandboxConfig } from './types/execution-context';
 
 const logger = getLogger('agents-run-api');
 
@@ -33,12 +34,15 @@ type AppVariables = {
   sandboxConfig?: SandboxConfig;
   requestBody?: any;
   projectConfig?: FullProjectDefinition;
+  auth?: ReturnType<typeof createAuth> | null;
+  principal?: Principal;
 };
 
 function createExecutionHono(
   serverConfig: ServerConfig,
   credentialStores: CredentialStoreRegistry,
-  sandboxConfig?: SandboxConfig
+  sandboxConfig?: SandboxConfig,
+  auth?: ReturnType<typeof createAuth> | null
 ) {
   const app = new OpenAPIHono<{ Variables: AppVariables }>();
 
@@ -188,10 +192,11 @@ function createExecutionHono(
   );
 
   // Apply API key authentication to all routes except health and docs
-  app.use('/tenants/*', apiKeyAuth());
-  app.use('/agents/*', apiKeyAuth());
-  app.use('/v1/*', apiKeyAuth());
-  app.use('/api/*', apiKeyAuth());
+  // Pass auth instance to enable session validation for anonymous users
+  app.use('/tenants/*', apiKeyAuth(auth));
+  app.use('/agents/*', apiKeyAuth(auth));
+  app.use('/v1/*', apiKeyAuth(auth));
+  app.use('/api/*', apiKeyAuth(auth));
 
   // Fetch project config from Management API for authenticated routes
   app.use('/tenants/*', projectConfigMiddleware);

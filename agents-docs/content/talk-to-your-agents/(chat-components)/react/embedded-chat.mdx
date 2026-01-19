@@ -82,6 +82,68 @@ pnpm add @inkeep/agents-ui
     **Note:** Run your API server with `ENVIRONMENT=development` to bypass authentication.
 
   </Tab>
+
+  <Tab title="Anonymous">
+
+    For public widgets where users don't sign in, but you want stable identity for conversation history and analytics:
+
+    ```tsx
+    import {
+      InkeepEmbeddedChat,
+      type InkeepEmbeddedChatProps,
+    } from "@inkeep/agents-ui";
+    import { createAuthClient } from "better-auth/client";
+    import { anonymousClient } from "better-auth/client/plugins";
+    import { useEffect, useState } from "react";
+
+    // Setup auth client with anonymous plugin
+    const authClient = createAuthClient({
+      baseURL: process.env.REACT_APP_AUTH_URL,
+      plugins: [anonymousClient()],
+    });
+
+    export default function App() {
+      const [sessionToken, setSessionToken] = useState<string | null>(null);
+
+      useEffect(() => {
+        async function initSession() {
+          let session = await authClient.getSession();
+
+          if (!session.data) {
+            // Create new anonymous session
+            const result = await authClient.signIn.anonymous();
+            session = { data: result.data };
+          }
+
+          // Store distinctId for analytics (public, stable identifier)
+          localStorage.setItem("distinctId", session.data.user.id);
+          setSessionToken(session.data.session.token);
+        }
+        initSession();
+      }, []);
+
+      if (!sessionToken) return <div>Loading...</div>;
+
+      const embeddedChatProps: InkeepEmbeddedChatProps = {
+        aiChatSettings: {
+          agentUrl: "https://your-api.example.com/api/chat",
+          apiKey: process.env.REACT_APP_INKEEP_API_KEY,
+          headers: {
+            Authorization: `Bearer ${sessionToken}`,
+          },
+        },
+      };
+
+      return <InkeepEmbeddedChat {...embeddedChatProps} />;
+    }
+    ```
+
+    **Key benefits:**
+    - Conversation history persists across page reloads
+    - `distinctId` is stable for analytics tracking
+    - Sessions auto-refresh (7-day expiry)
+
+  </Tab>
 </Tabs>
 
 ## Props

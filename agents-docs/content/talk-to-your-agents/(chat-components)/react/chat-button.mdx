@@ -82,6 +82,63 @@ pnpm add @inkeep/agents-ui
     **Note:** Run your API server with `ENVIRONMENT=development` to bypass authentication.
 
   </Tab>
+
+  <Tab title="Anonymous">
+
+    For public widgets where users don't sign in, but you want stable identity for conversation history and analytics:
+
+    ```tsx
+    import {
+      InkeepChatButton,
+      type InkeepChatButtonProps,
+    } from "@inkeep/agents-ui";
+    import { createAuthClient } from "better-auth/client";
+    import { anonymousClient } from "better-auth/client/plugins";
+    import { useEffect, useState } from "react";
+
+    const authClient = createAuthClient({
+      baseURL: process.env.REACT_APP_AUTH_URL,
+      plugins: [anonymousClient()],
+    });
+
+    const ChatButton = () => {
+      const [sessionToken, setSessionToken] = useState<string | null>(null);
+
+      useEffect(() => {
+        async function initSession() {
+          let session = await authClient.getSession();
+          if (!session.data) {
+            const result = await authClient.signIn.anonymous();
+            session = { data: result.data };
+          }
+          localStorage.setItem("distinctId", session.data.user.id);
+          setSessionToken(session.data.session.token);
+        }
+        initSession();
+      }, []);
+
+      if (!sessionToken) return null;
+
+      const buttonProps: InkeepChatButtonProps = {
+        aiChatSettings: {
+          agentUrl: "https://your-api.example.com/api/chat",
+          apiKey: process.env.REACT_APP_INKEEP_API_KEY,
+          headers: {
+            Authorization: `Bearer ${sessionToken}`,
+          },
+        },
+      };
+
+      return <InkeepChatButton {...buttonProps} />;
+    };
+    ```
+
+    **Key benefits:**
+    - Conversation history persists across page reloads
+    - `distinctId` is stable for analytics tracking
+    - Sessions auto-refresh (7-day expiry)
+
+  </Tab>
 </Tabs>
 
 ## Props
