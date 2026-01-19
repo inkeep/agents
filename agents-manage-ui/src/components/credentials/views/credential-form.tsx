@@ -3,7 +3,7 @@
 import { zodResolver } from '@hookform/resolvers/zod';
 import { CredentialStoreType } from '@inkeep/agents-core/client-exports';
 import { useEffect, useState } from 'react';
-import { useForm } from 'react-hook-form';
+import { useForm, useWatch } from 'react-hook-form';
 import { toast } from 'sonner';
 import { GenericInput } from '@/components/form/generic-input';
 import { GenericKeyValueInput } from '@/components/form/generic-key-value-input';
@@ -91,29 +91,33 @@ export function CredentialForm({ onCreateCredential, tenantId, projectId }: Cred
 
   // loadCredentialStores
   useEffect(() => {
+    // Workaround for a React Compiler limitation.
+    // Todo: Support value blocks (conditional, logical, optional chaining, etc) within a try/catch statement
+    async function doRequest() {
+      const stores = await listCredentialStores(tenantId, projectId);
+      setCredentialStores(stores);
+
+      // Auto-select preferred store: prioritize Nango, then other available non-memory stores
+      const availableStores = stores.filter((store) => store.available && store.type !== 'memory');
+      if (availableStores.length > 0) {
+        // First try to find Nango store
+        const nangoStore = availableStores.find((store) => store.type === 'nango');
+        const preferredStore = nangoStore || availableStores[0];
+
+        // Only set values if form doesn't already have a credentialStoreId value
+        const currentStoreId = form.getValues('credentialStoreId');
+        if (!currentStoreId) {
+          form.setValue('credentialStoreId', preferredStore.id, { shouldValidate: true });
+          form.setValue('credentialStoreType', preferredStore.type as 'keychain' | 'nango', {
+            shouldValidate: true,
+          });
+        }
+      }
+    }
+
     const loadCredentialStores = async () => {
       try {
-        const stores = await listCredentialStores(tenantId, projectId);
-        setCredentialStores(stores);
-
-        // Auto-select preferred store: prioritize Nango, then other available non-memory stores
-        const availableStores = stores.filter(
-          (store) => store.available && store.type !== 'memory'
-        );
-        if (availableStores.length > 0) {
-          // First try to find Nango store
-          const nangoStore = availableStores.find((store) => store.type === 'nango');
-          const preferredStore = nangoStore || availableStores[0];
-
-          // Only set values if form doesn't already have a credentialStoreId value
-          const currentStoreId = form.getValues('credentialStoreId');
-          if (!currentStoreId) {
-            form.setValue('credentialStoreId', preferredStore.id, { shouldValidate: true });
-            form.setValue('credentialStoreType', preferredStore.type as 'keychain' | 'nango', {
-              shouldValidate: true,
-            });
-          }
-        }
+        await doRequest();
       } catch (err) {
         console.error('Failed to load credential stores:', err);
       }
