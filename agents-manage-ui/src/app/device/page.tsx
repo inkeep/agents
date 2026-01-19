@@ -91,7 +91,12 @@ function DeviceVerificationForm() {
     if (initialCode && isAuthenticated) {
       validateCode(initialCode);
     }
-  }, [initialCode, isAuthenticated, validateCode]);
+  }, [
+    initialCode,
+    isAuthenticated,
+    // biome-ignore lint/correctness/useExhaustiveDependencies: false positive, variable is stable and optimized by the React Compiler
+    validateCode,
+  ]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
