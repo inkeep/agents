@@ -45,9 +45,11 @@ export function ConversationDetail({ conversationId, onBack }: ConversationDetai
   const handleCopyTrace = async () => {
     if (!conversation) return;
 
-    setIsCopying(true);
-    try {
-      const result = await copyTraceToClipboard(conversation);
+    // Workaround for a React Compiler limitation.
+    // Todo: Support value blocks (conditional, logical, optional chaining, etc) within a try/catch statement
+    async function doCopy() {
+      // biome-ignore lint/style/noNonNullAssertion: exist
+      const result = await copyTraceToClipboard(conversation!);
       if (result.success) {
         toast.success('Trace copied to clipboard', {
           description: 'The OTEL trace has been copied successfully.',
@@ -57,6 +59,11 @@ export function ConversationDetail({ conversationId, onBack }: ConversationDetai
           description: result.error || 'An unknown error occurred',
         });
       }
+    }
+
+    setIsCopying(true);
+    try {
+      await doCopy();
     } catch (err) {
       toast.error('Failed to copy trace', {
         description: err instanceof Error ? err.message : 'An unknown error occurred',
