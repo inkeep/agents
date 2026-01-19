@@ -129,7 +129,13 @@ function ProviderSetupPage({
     if (provider && !requiresCredentialForm(provider.auth_mode) && !loading && !hasAttempted) {
       handleCreateCredential();
     }
-  }, [provider, loading, hasAttempted, handleCreateCredential]);
+  }, [
+    provider,
+    loading,
+    hasAttempted,
+    // biome-ignore lint/correctness/useExhaustiveDependencies: false positive, variable is stable and optimized by the React Compiler
+    handleCreateCredential,
+  ]);
 
   const handleBack = () => {
     router.push(`/${tenantId}/projects/${projectId}/credentials/new/providers`);
