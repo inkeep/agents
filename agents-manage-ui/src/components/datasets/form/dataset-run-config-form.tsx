@@ -82,9 +82,9 @@ export function DatasetRunConfigForm({
 
   useEffect(() => {
     const fetchData = async () => {
-      setLoadingAgents(true);
-      setLoadingEvaluators(true);
-      try {
+      async function doRequest() {
+        // Workaround for a React Compiler limitation.
+        // Todo: Support value blocks (conditional, logical, optional chaining, etc) within a try/catch statement
         const [agentsResult, evaluatorsResult] = await Promise.all([
           getAllAgentsAction(tenantId, projectId),
           fetchEvaluators(tenantId, projectId),
@@ -95,6 +95,12 @@ export function DatasetRunConfigForm({
         if (evaluatorsResult.data) {
           setEvaluators(evaluatorsResult.data);
         }
+      }
+
+      setLoadingAgents(true);
+      setLoadingEvaluators(true);
+      try {
+        await doRequest();
       } catch (error) {
         console.error('Failed to fetch data:', error);
         toast.error('Failed to load data');
