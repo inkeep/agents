@@ -55,7 +55,11 @@ export function DatasetRunsList({
     // refreshKey triggers reload when incremented
     void refreshKey;
     loadRuns();
-  }, [loadRuns, refreshKey]);
+  }, [
+    // biome-ignore lint/correctness/useExhaustiveDependencies: false positive, variable is stable and optimized by the React Compiler
+    loadRuns,
+    refreshKey,
+  ]);
 
   if (loading) {
     return (
