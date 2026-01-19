@@ -285,8 +285,9 @@ export function EvaluatorFormDialog({
                 form.setValue('passCriteria', value ?? null, { shouldDirty: true });
               }}
               schema={(() => {
+                const value = schemaField.value || '{}';
                 try {
-                  return JSON.parse(schemaField.value || '{}');
+                  return JSON.parse(value);
                 } catch {
                   return {};
                 }

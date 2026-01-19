@@ -91,7 +91,9 @@ export function MCPServerForm({
   };
 
   const onSubmit = form.handleSubmit(async (data) => {
-    try {
+    // Workaround for a React Compiler limitation.
+    // Todo: Support value blocks (conditional, logical, optional chaining, etc) within a try/catch statement
+    async function doRequest() {
       const mcpServerName = data.name;
       const isUserScoped = data.credentialScope === CredentialScopeEnum.user;
 
@@ -201,6 +203,10 @@ export function MCPServerForm({
         toast.success('MCP server created successfully');
         router.push(`/${tenantId}/projects/${projectId}/mcp-servers/${newTool.id}`);
       }
+    }
+
+    try {
+      await doRequest();
     } catch (error) {
       console.error(`Failed to ${mode} MCP tool:`, error);
       toast.error(`Failed to ${mode} MCP server. Please try again.`);
