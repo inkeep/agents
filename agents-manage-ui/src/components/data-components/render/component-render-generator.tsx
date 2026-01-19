@@ -175,7 +175,9 @@ export function ComponentRenderGenerator({
       const parsedData = JSON.parse(newData);
       const updatedRender = { ...render, mockData: parsedData };
       setRender(updatedRender);
-      onRenderChanged?.(updatedRender);
+      if (onRenderChanged) {
+        onRenderChanged(updatedRender);
+      }
     } catch {
       // Invalid JSON, ignore
     }
