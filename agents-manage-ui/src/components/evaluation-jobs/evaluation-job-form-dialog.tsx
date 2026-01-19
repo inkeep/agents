@@ -3,7 +3,7 @@
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
-import { useForm } from 'react-hook-form';
+import { useForm, useWatch } from 'react-hook-form';
 import { toast } from 'sonner';
 import { ComponentSelector } from '@/components/agent/sidepane/nodes/component-selector/component-selector';
 import { DatePickerWithPresets } from '@/components/traces/filters/date-picker';
@@ -76,8 +76,8 @@ export function EvaluationJobFormDialog({
   }, [isOpen, form, loadData]);
 
   const { isSubmitting } = form.formState;
-  const selectedEvaluatorIds = form.watch('evaluatorIds') || [];
-  const jobFilters = form.watch('jobFilters');
+  const selectedEvaluatorIds = useWatch({ control: form.control, name: 'evaluatorIds' });
+  const jobFilters = useWatch({ control: form.control, name: 'jobFilters' });
 
   const evaluatorLookup = evaluators.reduce<Record<string, Evaluator>>((acc, evaluator) => {
     acc[evaluator.id] = evaluator;
