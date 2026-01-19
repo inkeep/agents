@@ -2,7 +2,7 @@
 
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useEffect, useState } from 'react';
-import { useController, useForm } from 'react-hook-form';
+import { useController, useForm, useWatch } from 'react-hook-form';
 import { toast } from 'sonner';
 import { ModelSelector } from '@/components/agent/sidepane/nodes/model-selector';
 import { ExpandableJsonEditor } from '@/components/editors/expandable-json-editor';
@@ -97,7 +97,7 @@ export function EvaluatorFormDialog({
     defaultValue: undefined,
   });
 
-  const passCriteriaValue = form.watch('passCriteria');
+  const passCriteriaValue = useWatch({ control: form.control, name: 'passCriteria' }) ?? undefined;
 
   const { field: schemaField } = useController({
     control: form.control,
@@ -280,7 +280,7 @@ export function EvaluatorFormDialog({
             </div>
 
             <PassCriteriaBuilder
-              value={passCriteriaValue ?? undefined}
+              value={passCriteriaValue}
               onChange={(value) => {
                 form.setValue('passCriteria', value ?? null, { shouldDirty: true });
               }}
