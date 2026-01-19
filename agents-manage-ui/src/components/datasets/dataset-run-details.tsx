@@ -128,7 +128,10 @@ export function DatasetRunDetails({
   // Initial load
   useEffect(() => {
     loadRun();
-  }, [loadRun]);
+  }, [
+    // biome-ignore lint/correctness/useExhaustiveDependencies: false positive, variable is stable and optimized by the React Compiler
+    loadRun,
+  ]);
 
   // Auto-refresh when run is in progress
   useEffect(() => {
@@ -139,7 +142,11 @@ export function DatasetRunDetails({
     }, 3000); // Refresh every 3 seconds
 
     return () => clearInterval(interval);
-  }, [isRunInProgress, loadRun]);
+  }, [
+    isRunInProgress,
+    // biome-ignore lint/correctness/useExhaustiveDependencies: false positive, variable is stable and optimized by the React Compiler
+    loadRun,
+  ]);
 
   const uniqueAgents = (() => {
     if (!run?.items) return [];
