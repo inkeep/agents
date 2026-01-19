@@ -129,7 +129,9 @@ export function EvaluatorFormDialog({
   };
 
   const onSubmit = async (data: EvaluatorFormData) => {
-    try {
+    // Workaround for a React Compiler limitation.
+    // Todo: Support value blocks (conditional, logical, optional chaining, etc) within a try/catch statement
+    async function doRequest() {
       let parsedSchema: Record<string, unknown>;
       try {
         parsedSchema = JSON.parse(data.schema);
@@ -173,6 +175,9 @@ export function EvaluatorFormDialog({
 
       setIsOpen(false);
       form.reset();
+    }
+    try {
+      await doRequest();
     } catch (error) {
       console.error('Error submitting evaluator:', error);
       const errorMessage = error instanceof Error ? error.message : 'An unexpected error occurred';
