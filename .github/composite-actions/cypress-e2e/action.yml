@@ -39,7 +39,7 @@ runs:
 
     - name: Start backend API server
       shell: bash
-      run: pnpm dev --filter='@inkeep/agents-manage-api' & # & means run job in background
+      run: pnpm dev --filter='@inkeep/agents-api' & # & means run job in background
 
     - name: Build dashboard and cookbook monorepo dependencies
       shell: bash

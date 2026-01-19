@@ -99,11 +99,8 @@
     "*.{ts,tsx,js,jsx,json,md}": [
       "biome check --write --no-errors-on-unmatched --files-ignore-unknown=true"
     ],
-    "agents-manage-api/**/*.{ts,tsx}": [
-      "bash -c 'cd agents-manage-api && pnpm test --passWithNoTests --reporter=verbose'"
-    ],
-    "agents-run-api/**/*.{ts,tsx}": [
-      "bash -c 'cd agents-run-api && pnpm test --passWithNoTests --reporter=verbose'"
+    "agents-api/**/*.{ts,tsx}": [
+      "bash -c 'cd agents-api && pnpm test --passWithNoTests --reporter=verbose'"
     ]
   },
   "packageManager": "pnpm@10.10.0"

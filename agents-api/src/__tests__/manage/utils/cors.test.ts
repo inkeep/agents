@@ -111,7 +111,7 @@ describe('isOriginAllowed', () => {
     beforeEach(() => {
       vi.doMock('../../../env', () => ({
         env: {
-          INKEEP_AGENTS_API_URL: 'https://agents-manage-api.inkeep.com',
+          INKEEP_AGENTS_API_URL: 'https://agents-api.inkeep.com',
           INKEEP_AGENTS_MANAGE_UI_URL: 'https://agents-manage-ui.inkeep.com',
         },
       }));
@@ -129,7 +129,7 @@ describe('isOriginAllowed', () => {
 
     it('should allow 4-part hostnames with matching base domain', async () => {
       const { isOriginAllowed } = await import('../../../middleware/cors');
-      expect(isOriginAllowed('https://app.agents-manage-api.inkeep.com')).toBe(true);
+      expect(isOriginAllowed('https://app.agents-api.inkeep.com')).toBe(true);
     });
 
     it('should reject origins from different domains', async () => {
@@ -143,7 +143,7 @@ describe('isOriginAllowed', () => {
     beforeEach(() => {
       vi.doMock('../../../env', () => ({
         env: {
-          INKEEP_AGENTS_API_URL: 'https://agents-manage-api.preview.inkeep.com',
+          INKEEP_AGENTS_API_URL: 'https://agents-api.preview.inkeep.com',
           INKEEP_AGENTS_MANAGE_UI_URL: undefined,
         },
       }));

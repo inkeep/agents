@@ -157,7 +157,9 @@ describe('Evaluation Triggers - Unit Tests', () => {
       };
       const mockRelations = [{ evaluatorId: 'eval-1' }, { evaluatorId: 'eval-2' }];
 
-      getEvaluationSuiteConfigByIdMock.mockImplementation(() => vi.fn().mockResolvedValue(mockSuiteConfig));
+      getEvaluationSuiteConfigByIdMock.mockImplementation(() =>
+        vi.fn().mockResolvedValue(mockSuiteConfig)
+      );
       getEvaluationSuiteConfigEvaluatorRelationsMock.mockImplementation(() =>
         vi.fn().mockResolvedValue(mockRelations)
       );
@@ -166,10 +168,18 @@ describe('Evaluation Triggers - Unit Tests', () => {
       const relFn = getEvaluationSuiteConfigEvaluatorRelationsMock();
 
       const suiteConfig = await suiteFn({
-        scopes: { tenantId: 'test-tenant', projectId: 'test-project', evaluationSuiteConfigId: 'suite-1' },
+        scopes: {
+          tenantId: 'test-tenant',
+          projectId: 'test-project',
+          evaluationSuiteConfigId: 'suite-1',
+        },
       });
       const relations = await relFn({
-        scopes: { tenantId: 'test-tenant', projectId: 'test-project', evaluationSuiteConfigId: 'suite-1' },
+        scopes: {
+          tenantId: 'test-tenant',
+          projectId: 'test-project',
+          evaluationSuiteConfigId: 'suite-1',
+        },
       });
 
       expect(suiteConfig.sampleRate).toBe(0.5);

@@ -61,8 +61,7 @@ loadEnvironmentFiles();
 dotenv.config();
 
 const projectId = process.env.DEFAULT_PROJECT_ID;
-const manageApiPort = '3002';
-const runApiPort = '3003';
+const agentsApiPort = '3002';
 
 if (!projectId) {
   logError('DEFAULT_PROJECT_ID environment variable is not set');
@@ -70,8 +69,7 @@ if (!projectId) {
 }
 
 logInfo(`Project ID: ${projectId}`);
-logInfo(`Manage API Port: ${manageApiPort}`);
-logInfo(`Run API Port: ${runApiPort}\n`);
+logInfo(`Agents API Port: ${agentsApiPort}`);
 
 async function setupProjectInDatabase(isCloud) {
   const { promisify } = await import('node:util');
@@ -153,8 +151,8 @@ async function setupProjectInDatabase(isCloud) {
     try {
       await execAsync('docker-compose -f docker-compose.db.yml up -d');
       logSuccess('Database containers started successfully');
-      logInfo('DoltgreSQL (port 5432) - Manage API database');
-      logInfo('PostgreSQL (port 5433) - Run API database');
+      logInfo('DoltgreSQL (port 5432) - Management database');
+      logInfo('PostgreSQL (port 5433) - Runtime database');
       logInfo('Waiting for databases to be ready (10 seconds)...');
       await new Promise((resolve) => setTimeout(resolve, 10000));
       logSuccess('Databases should be ready');
@@ -218,16 +216,12 @@ async function setupProjectInDatabase(isCloud) {
     logSuccess(`Development servers process started (PID: ${devProcess.pid})`);
 
     // Track if port errors occur during startup (as a safety fallback)
-    const portErrors = { runApi: false, manageApi: false };
+    const portErrors = { agentsApi: false };
 
     // Regex patterns for detecting port errors in output
     const portErrorPatterns = {
-      runApi: new RegExp(
-        `(EADDRINUSE.*:${runApiPort}|port ${runApiPort}.*already|Port ${runApiPort}.*already|run-api.*Error.*Port)`,
-        'i'
-      ),
-      manageApi: new RegExp(
-        `(EADDRINUSE.*:${manageApiPort}|port ${manageApiPort}.*already|Port ${manageApiPort}.*already|manage-api.*Error.*Port)`,
+      agentsApi: new RegExp(
+        `(EADDRINUSE.*:${agentsApiPort}|port ${agentsApiPort}.*already|Port ${agentsApiPort}.*already|agents-api.*Error.*Port)`,
         'i'
       ),
     };
@@ -260,10 +254,7 @@ async function setupProjectInDatabase(isCloud) {
     function displayPortConflictError(unavailablePorts) {
       let errorMessage = '';
       if (unavailablePorts.runApi) {
-        errorMessage += `  Run API port ${runApiPort} is already in use\n`;
-      }
-      if (unavailablePorts.manageApi) {
-        errorMessage += `  Manage API port ${manageApiPort} is already in use\n`;
+        errorMessage += `  Agents API port ${agentsApiPort} is already in use\n`;
       }
 
       logError('Port conflicts detected');
@@ -275,11 +266,8 @@ async function setupProjectInDatabase(isCloud) {
     // Monitor output for port errors (fallback in case ports become unavailable between check and start)
     const checkForPortErrors = (data) => {
       const output = data.toString();
-      if (portErrorPatterns.runApi.test(output)) {
-        portErrors.runApi = true;
-      }
-      if (portErrorPatterns.manageApi.test(output)) {
-        portErrors.manageApi = true;
+      if (portErrorPatterns.agentsApi.test(output)) {
+        portErrors.agentsApi = true;
       }
     };
 
@@ -287,28 +275,18 @@ async function setupProjectInDatabase(isCloud) {
 
     // Step 4: Wait for servers to be ready
     logStep(4, 'Waiting for servers to be ready');
-    logInfo('Checking Manage API health endpoint (http://localhost:3002/health)...');
+    logInfo('Checking Agents API health endpoint (http://localhost:3002/health)...');
 
     try {
       await waitForServerReady(`http://localhost:3002/health`, 60000);
-      logSuccess('Manage API is ready');
+      logSuccess('Agents API is ready');
     } catch (error) {
-      logError('Manage API failed to start within timeout', error);
-      logWarning('Continuing anyway, but subsequent steps may fail');
-    }
-
-    logInfo('Checking Run API health endpoint (http://localhost:3003/health)...');
-
-    try {
-      await waitForServerReady(`http://localhost:3003/health`, 60000);
-      logSuccess('Run API is ready');
-    } catch (error) {
-      logError('Run API failed to start within timeout', error);
+      logError('Agents API failed to start within timeout', error);
       logWarning('Continuing anyway, but subsequent steps may fail');
     }
 
     // Check if any port errors occurred during startup
-    if (portErrors.runApi || portErrors.manageApi) {
+    if (portErrors.agentsApi) {
       displayPortConflictError(portErrors);
     }
 

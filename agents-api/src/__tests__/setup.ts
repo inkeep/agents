@@ -108,7 +108,7 @@ beforeAll(async () => {
     logger.debug({}, 'Applying database migrations to in-memory test database');
 
     // Use path relative to project root to work with both direct and turbo execution
-    // When running from agents-manage-api, go up one level to project root
+    // When running from agents-api, go up one level to project root
     const isInPackageDir = process.cwd().includes('agents-api');
     const manageMigrationsPath = isInPackageDir
       ? '../packages/agents-core/drizzle/manage'

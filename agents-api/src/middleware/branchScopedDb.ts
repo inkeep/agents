@@ -118,7 +118,7 @@ export const branchScopedDbMiddleware = async (c: Context, next: Next) => {
           await doltAddAndCommit(requestDb)({
             message: commitMessage,
             author: {
-              name: userId ?? 'agents-manage-api',
+              name: userId ?? 'agents-api',
               email: userEmail ?? 'api@inkeep.com',
             },
           });

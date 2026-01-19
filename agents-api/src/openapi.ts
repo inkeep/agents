@@ -128,7 +128,6 @@ export function setupOpenAPIRoutes<E extends Env = Env>(app: OpenAPIHono<E>) {
       });
 
       // Add security schemes and global security requirements
-      //TODO: this is a copy from agents-manage-api
       document.components = {
         ...document.components,
         securitySchemes: {

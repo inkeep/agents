@@ -38,7 +38,7 @@ export function isOriginAllowed(origin: string | undefined): origin is string {
     }
 
     // Production: allow origins from the same base domain as the API URL
-    // This handles cases like agents-manage-ui.preview.inkeep.com -> agents-manage-api.preview.inkeep.com
+    // This handles cases like agents-manage-ui.preview.inkeep.com -> agents-api.preview.inkeep.com
     const requestBaseDomain = getBaseDomain(requestUrl.hostname);
     const apiBaseDomain = getBaseDomain(apiUrl.hostname);
     if (requestBaseDomain === apiBaseDomain) {
